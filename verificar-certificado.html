@@ -1,1 +1,18 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><meta name="description" content="Verificação simulada de certificado de autenticidade Arandu."/><title>Verificar certificado — Arandu</title><link rel="stylesheet" href="css/arandu-system.css"/></head><body><header class="site-header"><div class="container header-inner"><a class="brand-logo" href="index.html">Arandu</a><nav class="site-nav"><a href="certificado-arandu.html">Certificado</a><a href="autenticidade.html">Autenticidade</a><a href="contato.html">Contato</a></nav><a class="cta" href="contato.html">Falar com a curadoria</a></div></header><main><section class="section"><div class="container"><p class="eyebrow">Verificação</p><h1 class="title">Consultar certificado Arandu.</h1><p class="lead">No MVP, esta verificação é demonstrativa. Futuramente, o código consultará o banco de dados de certificados.</p></div></section><section class="section section-muted"><div class="container split"><form class="form-card" id="certificate-form"><h3>Digite o código</h3><input id="certificate-code" placeholder="Ex.: ARD-2026-0001" required/><button type="submit">Verificar</button></form><article class="card" id="certificate-result"><h3>Resultado</h3><p>Digite um código para simular a verificação.</p></article></div></section></main><script src="js/site.js"></script><script>document.getElementById('certificate-form').addEventListener('submit',function(e){e.preventDefault();const code=document.getElementById('certificate-code').value.trim().toUpperCase();const result=document.getElementById('certificate-result');if(code==='ARD-2026-0001'){result.innerHTML='<h3>Certificado encontrado</h3><p><strong>Obra:</strong> Estudo de Solo Nº 04</p><p><strong>Artista:</strong> Marina Silveira</p><p><strong>Status:</strong> Registro demonstrativo válido no MVP.</p>'}else{result.innerHTML='<h3>Não encontrado</h3><p>Este código não aparece na base demonstrativa. Em produção, a consulta será feita no banco de dados da Arandu.</p>'}})</script></body></html>
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Verifique certificados de autenticidade Arandu por código." />
+  <title>Verificar certificado — Arandu</title>
+  <link rel="stylesheet" href="css/arandu-system.css" />
+</head>
+<body>
+  <header class="site-header"><div class="container header-inner"><a class="brand-logo" href="index.html">Arandu</a><nav class="site-nav"><a href="certificado-arandu.html">Certificado</a><a href="autenticidade.html">Autenticidade</a><a href="contato.html">Contato</a></nav><a class="cta" href="contato.html">Falar com a curadoria</a></div></header>
+  <main>
+    <section class="section"><div class="container"><p class="eyebrow">Verificação</p><h1 class="title">Consultar certificado Arandu.</h1><p class="lead">Digite o código do certificado. Enquanto o Supabase não estiver configurado, o código demonstrativo <strong>ARD-2026-0001</strong> funciona em modo demo.</p></div></section>
+    <section class="section section-muted"><div class="container split"><form class="form-card" data-certificate-form><h3>Digite o código</h3><input data-certificate-code placeholder="Ex.: ARD-2026-0001" required /><button type="submit">Verificar</button></form><article class="card" data-certificate-result><h3>Resultado</h3><p>Digite um código para consultar a base de certificados.</p></article></div></section>
+  </main>
+  <script src="js/site.js"></script><script src="js/certificates.js"></script>
+</body>
+</html>
