@@ -2,11 +2,26 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>/index.html</loc></url>
   <url><loc>/encontrar-arte.html</loc></url>
+  <url><loc>/guia-primeira-obra.html</loc></url>
+  <url><loc>/comparar-obras.html</loc></url>
   <url><loc>/obras.html</loc></url>
+  <url><loc>/obras-ate-3000.html</loc></url>
   <url><loc>/obra-estudo-de-solo-04.html</loc></url>
   <url><loc>/obra-sertao-silencioso.html</loc></url>
   <url><loc>/obra-equilibrio-suspenso.html</loc></url>
+  <url><loc>/arte-para-casa.html</loc></url>
+  <url><loc>/arte-para-apartamento.html</loc></url>
+  <url><loc>/arte-para-empresa.html</loc></url>
+  <url><loc>/arte-para-hotelaria.html</loc></url>
   <url><loc>/arte-para-escritorio.html</loc></url>
+  <url><loc>/arte-para-escritorios.html</loc></url>
+  <url><loc>/arte-para-hoteis.html</loc></url>
+  <url><loc>/arte-para-restaurantes.html</loc></url>
+  <url><loc>/arte-para-clinicas.html</loc></url>
+  <url><loc>/arte-para-recepcoes.html</loc></url>
+  <url><loc>/fotografia-brasileira.html</loc></url>
+  <url><loc>/pintura-contemporanea-brasileira.html</loc></url>
+  <url><loc>/escultura-brasileira.html</loc></url>
   <url><loc>/artistas.html</loc></url>
   <url><loc>/artista-marina-silveira.html</loc></url>
   <url><loc>/artista-camila-reboucas.html</loc></url>
@@ -16,6 +31,7 @@
   <url><loc>/para-arquitetos.html</loc></url>
   <url><loc>/para-empresas.html</loc></url>
   <url><loc>/para-artistas.html</loc></url>
+  <url><loc>/checklist-portfolio-artista.html</loc></url>
   <url><loc>/minha-selecao.html</loc></url>
   <url><loc>/cadastro.html</loc></url>
   <url><loc>/login.html</loc></url>
@@ -23,8 +39,17 @@
   <url><loc>/autenticidade.html</loc></url>
   <url><loc>/certificado-arandu.html</loc></url>
   <url><loc>/verificar-certificado.html</loc></url>
+  <url><loc>/como-selecionamos-artistas.html</loc></url>
+  <url><loc>/como-precificamos-obras.html</loc></url>
+  <url><loc>/como-funciona-reserva.html</loc></url>
   <url><loc>/curadoria.html</loc></url>
   <url><loc>/narrativas.html</loc></url>
+  <url><loc>/narrativa-primeira-obra.html</loc></url>
+  <url><loc>/narrativa-empresas-arte.html</loc></url>
+  <url><loc>/narrativa-certificado.html</loc></url>
+  <url><loc>/narrativa-fotografia-primeira-compra.html</loc></url>
+  <url><loc>/narrativa-obra-ambiente.html</loc></url>
+  <url><loc>/narrativa-comprar-pintura.html</loc></url>
   <url><loc>/manifesto.html</loc></url>
   <url><loc>/faq.html</loc></url>
   <url><loc>/politica-comercial.html</loc></url>
