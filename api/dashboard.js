@@ -22,21 +22,26 @@ export default async function handler(req, res) {
       return send(res, 200, {
         ok: true,
         mode: 'demo',
-        metrics: { artworks: 6, artists: 4, leads: 3, certificates: 1, briefs: 2, submissions: 1 }
+        metrics: { artworks: 6, artists: 4, leads: 3, certificates: 1, briefs: 2, submissions: 1, newsletters: 0, selections: 0, narratives: 6 }
       });
     }
 
-    const [artworks, artists, leads, certificates] = await Promise.all([
+    const [artworks, artists, leads, certificates, briefs, submissions, newsletters, selections, narratives] = await Promise.all([
       countTable('artworks'),
       countTable('artists'),
       countTable('leads'),
-      countTable('certificates')
+      countTable('certificates'),
+      countTable('company_briefs'),
+      countTable('artist_submissions'),
+      countTable('newsletter_subscriptions'),
+      countTable('saved_selections'),
+      countTable('narratives')
     ]);
 
     return send(res, 200, {
       ok: true,
       mode: 'supabase',
-      metrics: { artworks, artists, leads, certificates }
+      metrics: { artworks, artists, leads, certificates, briefs, submissions, newsletters, selections, narratives }
     });
   } catch (error) {
     return send(res, 500, { ok: false, error: error.message || 'Erro no painel.' });
