@@ -22,8 +22,8 @@ function demoItems(type) {
 
 function tableForType(type) {
   if (type === 'submissions') return 'artist_submissions';
-  if (type === 'briefs') return 'enterprise_briefings';
-  return 'crm_leads';
+  if (type === 'briefs') return 'company_briefs';
+  return 'leads';
 }
 
 export default async function handler(req, res) {
