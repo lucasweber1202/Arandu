@@ -6,10 +6,19 @@
   <url><loc>https://arandu.vercel.app/encontrar-arte.html</loc><priority>0.95</priority></url>
   <url><loc>https://arandu.vercel.app/obras.html</loc><priority>0.95</priority></url>
   <url><loc>https://arandu.vercel.app/minha-selecao.html</loc><priority>0.85</priority></url>
+  <url><loc>https://arandu.vercel.app/proposta-curatorial.html</loc><priority>0.9</priority></url>
   <url><loc>https://arandu.vercel.app/empresas-e-arquitetos.html</loc><priority>0.95</priority></url>
+  <url><loc>https://arandu.vercel.app/arte-para-clinicas.html</loc><priority>0.88</priority></url>
+  <url><loc>https://arandu.vercel.app/arte-para-empresa.html</loc><priority>0.82</priority></url>
+  <url><loc>https://arandu.vercel.app/arte-para-escritorios.html</loc><priority>0.75</priority></url>
+  <url><loc>https://arandu.vercel.app/arte-para-hoteis.html</loc><priority>0.72</priority></url>
+  <url><loc>https://arandu.vercel.app/arte-para-restaurantes.html</loc><priority>0.72</priority></url>
+  <url><loc>https://arandu.vercel.app/arte-para-recepcoes.html</loc><priority>0.72</priority></url>
   <url><loc>https://arandu.vercel.app/para-artistas.html</loc><priority>0.85</priority></url>
   <url><loc>https://arandu.vercel.app/artistas.html</loc><priority>0.8</priority></url>
   <url><loc>https://arandu.vercel.app/autenticidade.html</loc><priority>0.82</priority></url>
+  <url><loc>https://arandu.vercel.app/certificado-arandu.html</loc><priority>0.78</priority></url>
+  <url><loc>https://arandu.vercel.app/verificar-certificado.html</loc><priority>0.8</priority></url>
   <url><loc>https://arandu.vercel.app/como-comprar-na-arandu.html</loc><priority>0.8</priority></url>
   <url><loc>https://arandu.vercel.app/como-precificamos-obras.html</loc><priority>0.75</priority></url>
   <url><loc>https://arandu.vercel.app/como-funciona-reserva.html</loc><priority>0.75</priority></url>
@@ -21,20 +30,12 @@
   <url><loc>https://arandu.vercel.app/obra-equilibrio-suspenso.html</loc><priority>0.72</priority></url>
   <url><loc>https://arandu.vercel.app/arte-para-casa.html</loc><priority>0.72</priority></url>
   <url><loc>https://arandu.vercel.app/arte-para-apartamento.html</loc><priority>0.7</priority></url>
-  <url><loc>https://arandu.vercel.app/arte-para-empresa.html</loc><priority>0.78</priority></url>
-  <url><loc>https://arandu.vercel.app/arte-para-escritorios.html</loc><priority>0.75</priority></url>
-  <url><loc>https://arandu.vercel.app/arte-para-hoteis.html</loc><priority>0.7</priority></url>
-  <url><loc>https://arandu.vercel.app/arte-para-restaurantes.html</loc><priority>0.7</priority></url>
-  <url><loc>https://arandu.vercel.app/arte-para-clinicas.html</loc><priority>0.7</priority></url>
-  <url><loc>https://arandu.vercel.app/arte-para-recepcoes.html</loc><priority>0.7</priority></url>
   <url><loc>https://arandu.vercel.app/fotografia-brasileira.html</loc><priority>0.72</priority></url>
   <url><loc>https://arandu.vercel.app/pintura-contemporanea-brasileira.html</loc><priority>0.72</priority></url>
   <url><loc>https://arandu.vercel.app/escultura-brasileira.html</loc><priority>0.72</priority></url>
   <url><loc>https://arandu.vercel.app/checklist-portfolio-artista.html</loc><priority>0.7</priority></url>
   <url><loc>https://arandu.vercel.app/prospeccao-artistas.html</loc><priority>0.7</priority></url>
   <url><loc>https://arandu.vercel.app/proposta-empresas.html</loc><priority>0.72</priority></url>
-  <url><loc>https://arandu.vercel.app/certificado-arandu.html</loc><priority>0.7</priority></url>
-  <url><loc>https://arandu.vercel.app/verificar-certificado.html</loc><priority>0.7</priority></url>
   <url><loc>https://arandu.vercel.app/como-selecionamos-artistas.html</loc><priority>0.68</priority></url>
   <url><loc>https://arandu.vercel.app/narrativas.html</loc><priority>0.75</priority></url>
   <url><loc>https://arandu.vercel.app/faq.html</loc><priority>0.65</priority></url>
