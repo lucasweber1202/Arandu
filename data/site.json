@@ -1,0 +1,34 @@
+{
+  "brand": {
+    "name": "Arandu",
+    "tagline": "Arte brasileira contemporânea.",
+    "description": "Plataforma de curadoria de arte brasileira contemporânea por contexto, trajetória e procedência.",
+    "email": "ola@arandu.art",
+    "instagram": "https://instagram.com/arandu.art",
+    "whatsapp": ""
+  },
+  "navigation": [
+    { "label": "Encontrar arte", "href": "encontrar-arte.html" },
+    { "label": "Obras", "href": "obras.html" },
+    { "label": "Coleções", "href": "colecoes.html" },
+    { "label": "Artistas", "href": "artistas.html" },
+    { "label": "Empresas e arquitetos", "href": "empresas-e-arquitetos.html" },
+    { "label": "Para artistas", "href": "para-artistas.html" },
+    { "label": "Autenticidade", "href": "autenticidade.html" },
+    { "label": "FAQ", "href": "faq.html" }
+  ],
+  "colors": {
+    "paper": "#f7f0e6",
+    "red": "#9e3d2c",
+    "terracotta": "#b85a3c",
+    "coal": "#1f1713",
+    "sand": "#d8c1a5"
+  },
+  "core_pillars": [
+    "Obra",
+    "Artista",
+    "Contexto",
+    "Curadoria",
+    "Confiança"
+  ]
+}
