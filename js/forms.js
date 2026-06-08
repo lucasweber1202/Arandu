@@ -113,7 +113,7 @@ document.addEventListener('submit', async (event) => {
   const form = event.target;
   if (!(form instanceof HTMLFormElement)) return;
   if (form.dataset.authHandled === 'true') return;
-  if (form.dataset.briefingForm !== undefined) return;
+  if (form.dataset.briefingForm !== undefined) { event.preventDefault(); return; }
 
   event.preventDefault();
 
