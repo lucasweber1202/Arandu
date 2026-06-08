@@ -1,4 +1,13 @@
 User-agent: *
 Allow: /
+Disallow: /admin-preview.html
+Disallow: /painel-obras.html
+Disallow: /painel-artistas.html
+Disallow: /painel-leads.html
+Disallow: /painel-certificados.html
+Disallow: /demo.html
+Disallow: /roadmap.html
+Disallow: /mapa-do-site.html
 
 Sitemap: /sitemap.xml
+Sitemap: /sitemap-interno.xml
