@@ -1,9 +1,9 @@
-/* ARANDU — Formulários padronizados */
+/* ARANDU — Formulários 100% estáticos */
 const ARANDU_LEADS_KEY = 'arandu.leads.v1';
 const ARANDU_FORM_DRAFTS_KEY = 'arandu.formDrafts.v1';
 
 function readLeads() {
-  try { return JSON.parse(localStorage.getItem(ARANDU_LEADS_KEY) || '[]'); } catch { return []; }
+  try { const data = JSON.parse(localStorage.getItem(ARANDU_LEADS_KEY) || '[]'); return Array.isArray(data) ? data : []; } catch { return []; }
 }
 
 function writeLeads(leads) {
@@ -95,18 +95,16 @@ function storeDraft(payload) {
   localStorage.setItem(ARANDU_FORM_DRAFTS_KEY, JSON.stringify(drafts.slice(-80)));
 }
 
-async function submitLeadToApi(payload) {
-  const response = await fetch('/api/forms', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
+function buildStaticLeadSummary(payload) {
+  const lines = Object.entries(payload.data || {})
+    .filter(([, value]) => value !== '' && value !== false && value !== null && value !== undefined)
+    .map(([key, value]) => `${key}: ${value}`);
+  return `Lead Arandu\nTipo: ${payload.type}\nPágina: ${payload.page}\nData: ${payload.createdAt}\n\n${lines.join('\n')}`;
+}
 
-  const result = await response.json().catch(() => ({}));
-  if (!response.ok || !result.ok) {
-    throw new Error(result.error || 'Não foi possível enviar agora.');
-  }
-  return result;
+async function copyStaticLead(payload) {
+  const text = buildStaticLeadSummary(payload);
+  try { await navigator.clipboard.writeText(text); return true; } catch { return false; }
 }
 
 document.addEventListener('submit', async (event) => {
@@ -118,21 +116,14 @@ document.addEventListener('submit', async (event) => {
   event.preventDefault();
 
   if (hasMissingRequiredFields(form)) {
-    showFormMessage(form, 'Preencha os campos obrigatórios para enviar.', true);
+    showFormMessage(form, 'Preencha os campos obrigatórios para continuar.', true);
     return;
   }
 
   const payload = formToLead(form);
   writeLeads([...readLeads(), payload]);
   storeDraft(payload);
-  showFormMessage(form, 'Enviando para a curadoria...');
-
-  try {
-    const result = await submitLeadToApi(payload);
-    const suffix = result.stored ? '' : ' O envio está em modo demonstração até o Supabase ser configurado.';
-    showFormMessage(form, `Recebido. A curadoria entrará em contato em breve.${suffix}`);
-    form.reset();
-  } catch (error) {
-    showFormMessage(form, `Recebido localmente. ${error.message}`, true);
-  }
+  const copied = await copyStaticLead(payload);
+  showFormMessage(form, copied ? 'Recebido localmente e resumo copiado. Envie pelo WhatsApp ou salve para acompanhamento.' : 'Recebido localmente. O resumo ficou salvo neste navegador.');
+  form.reset();
 });
