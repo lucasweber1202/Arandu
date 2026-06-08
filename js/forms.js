@@ -1,25 +1,15 @@
 /*
-  ARANDU — Captura local de formulários
+  ARANDU — Formulários conectados ao Vercel API
 
-  MVP sem backend:
-  - Intercepta submit de formulários.
-  - Valida campos obrigatórios quando marcados com required.
-  - Salva leads no localStorage.
-  - Identifica tipo de lead por data-form-type.
-  - Exibe mensagem de sucesso sem sair da página.
-
-  Futuro:
-  - Trocar localStorage por Supabase, Resend, Formspree ou backend próprio.
+  Agora o formulário tenta enviar para /api/leads.
+  Se o backend ainda não estiver com Supabase configurado, a API responde em modo demo
+  e o navegador mantém uma cópia local em localStorage como fallback.
 */
 
 const ARANDU_LEADS_KEY = 'arandu.leads.v1';
 
 function readLeads() {
-  try {
-    return JSON.parse(localStorage.getItem(ARANDU_LEADS_KEY) || '[]');
-  } catch {
-    return [];
-  }
+  try { return JSON.parse(localStorage.getItem(ARANDU_LEADS_KEY) || '[]'); } catch { return []; }
 }
 
 function writeLeads(leads) {
@@ -30,6 +20,10 @@ function getFieldKey(field, index) {
   return field.name || field.getAttribute('aria-label') || field.placeholder || `campo_${index + 1}`;
 }
 
+function readSelectionForLead() {
+  try { return JSON.parse(localStorage.getItem('arandu.selection.v1') || '[]'); } catch { return []; }
+}
+
 function formToLead(form) {
   const fields = Array.from(form.querySelectorAll('input, textarea, select'));
   const data = {};
@@ -38,13 +32,16 @@ function formToLead(form) {
     data[getFieldKey(field, index)] = field.value || '';
   });
 
-  return {
+  const lead = {
     id: `lead_${Date.now()}`,
     type: form.dataset.formType || 'contato',
     page: window.location.pathname,
     createdAt: new Date().toISOString(),
     data
   };
+
+  if (lead.type === 'selecao') lead.selection = readSelectionForLead();
+  return lead;
 }
 
 function showFormMessage(form, text, isError = false) {
@@ -63,7 +60,21 @@ function hasMissingRequiredFields(form) {
   return Array.from(form.querySelectorAll('[required]')).some((field) => !field.value.trim());
 }
 
-document.addEventListener('submit', (event) => {
+async function submitLeadToApi(lead) {
+  const response = await fetch('/api/leads', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(lead)
+  });
+
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.ok) {
+    throw new Error(result.error || 'Não foi possível enviar agora.');
+  }
+  return result;
+}
+
+document.addEventListener('submit', async (event) => {
   const form = event.target;
   if (!(form instanceof HTMLFormElement)) return;
 
@@ -76,6 +87,14 @@ document.addEventListener('submit', (event) => {
 
   const lead = formToLead(form);
   writeLeads([...readLeads(), lead]);
-  showFormMessage(form, 'Recebido. A curadoria entrará em contato em breve.');
-  form.reset();
+  showFormMessage(form, 'Enviando para a curadoria...');
+
+  try {
+    const result = await submitLeadToApi(lead);
+    const suffix = result.stored ? '' : ' O envio está em modo demonstração até o Supabase ser configurado.';
+    showFormMessage(form, `Recebido. A curadoria entrará em contato em breve.${suffix}`);
+    form.reset();
+  } catch (error) {
+    showFormMessage(form, `Recebido localmente. ${error.message}`, true);
+  }
 });
