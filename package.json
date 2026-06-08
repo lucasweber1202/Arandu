@@ -7,7 +7,10 @@
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "check": "node scripts/check-static.mjs"
+    "check": "node scripts/check-static.mjs",
+    "check:links": "node scripts/check-links.mjs",
+    "check:production": "node scripts/production-check.mjs",
+    "check:all": "npm run check && npm run check:links && npm run check:production"
   },
   "dependencies": {
     "vite": "^5.4.0",
