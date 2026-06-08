@@ -21,6 +21,32 @@ function downloadSelectionHtml() {
   URL.revokeObjectURL(url);
 }
 
+function getSelectionTerms(items) {
+  const text = items.map((item) => `${item.title} ${item.artist} ${item.context} ${item.note || ''}`).join(' ').toLowerCase();
+  const map = [
+    ['matéria', ['terra', 'solo', 'matéria', 'pintura', 'óleo']],
+    ['memória', ['memória', 'sertão', 'botânica', 'silêncio']],
+    ['movimento', ['movimento', 'urbana', 'ritmo', 'cidade']],
+    ['fotografia', ['fotografia', 'fine art', 'imagem']],
+    ['escultura', ['escultura', 'bronze', 'objeto', 'volume']],
+    ['tons terrosos', ['solo', 'terra', 'outono', 'argila']]
+  ];
+  return map.filter(([, words]) => words.some((word) => text.includes(word))).map(([label]) => label);
+}
+
+function renderCuratorialReading() {
+  const target = document.querySelector('[data-curatorial-reading]');
+  if (!target) return;
+  const items = getStoredSelection();
+  if (!items.length) {
+    target.innerHTML = '<article class="curatorial-reading"><h3>Leitura curatorial automática</h3><p>Salve duas ou três obras para receber uma leitura inicial sobre o seu perfil de interesse.</p></article>';
+    return;
+  }
+  const terms = getSelectionTerms(items);
+  const safeTerms = terms.length ? terms : ['interesse inicial', 'curiosidade visual', 'seleção em formação'];
+  target.innerHTML = `<article class="curatorial-reading"><p class="eyebrow">Leitura curatorial automática</p><h3>Sua seleção indica interesse por:</h3><div class="reading-list">${safeTerms.map((term) => `<span>${term}</span>`).join('')}</div><p><strong>Caminho recomendado:</strong> compare linguagem, escala e faixa de preço antes de decidir. Depois, peça uma leitura da curadoria para entender qual obra conversa melhor com seu momento.</p><div class="page-actions"><a class="cta" href="comparar-obras.html">Comparar caminhos</a><a class="cta secondary" href="contato.html">Pedir leitura da curadoria</a></div></article>`;
+}
+
 function renderSelectionComparison() {
   const target = document.querySelector('[data-selection-comparison]');
   if (!target) return;
@@ -41,7 +67,11 @@ document.addEventListener('click', (event) => {
   if (event.target.closest('[data-show-selection-comparison]')) {
     event.preventDefault();
     renderSelectionComparison();
+    renderCuratorialReading();
   }
 });
 
-document.addEventListener('DOMContentLoaded', renderSelectionComparison);
+document.addEventListener('DOMContentLoaded', () => {
+  renderSelectionComparison();
+  renderCuratorialReading();
+});
