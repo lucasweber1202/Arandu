@@ -1,1 +1,11 @@
-test
+ARANDU - ROTEIRO DE APRESENTACAO
+
+1. Home: index.html
+2. Acervo filtrado: obras.html?q=clinica
+3. Obra dinamica: obra.html?id=sertao-silencioso
+4. Selecao: minha-selecao.html
+5. Proposta: proposta-curatorial.html
+6. Certificado: verificar-certificado.html?id=ARD-2026-0001
+7. Casos: casos-de-uso.html
+
+Antes de apresentar: limpar localStorage ou carregar manualmente a selecao pelo acervo.
