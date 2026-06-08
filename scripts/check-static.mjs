@@ -4,19 +4,37 @@ const requiredFiles = [
   'index.html',
   'encontrar-arte.html',
   'obras.html',
+  'obra-estudo-de-solo-04.html',
   'colecoes.html',
+  'colecao-primeira-obra.html',
+  'arte-para-escritorio.html',
   'artistas.html',
+  'artista-marina-silveira.html',
+  'artistas-convite.html',
   'empresas-e-arquitetos.html',
+  'para-arquitetos.html',
+  'para-empresas.html',
   'para-artistas.html',
   'minha-selecao.html',
   'autenticidade.html',
+  'certificado-arandu.html',
+  'curadoria.html',
+  'manifesto.html',
+  'faq.html',
+  'politica-comercial.html',
   'sobre.html',
   'contato.html',
   'como-funciona.html',
   'obrigado.html',
+  'admin-preview.html',
+  'roadmap.html',
   'css/arandu-system.css',
+  'js/site.js',
   'js/selection.js',
   'js/forms.js',
+  'js/catalog-filters.js',
+  'data/site.json',
+  'data/catalog.json',
   'sitemap.xml',
   'robots.txt'
 ];
@@ -36,6 +54,7 @@ for (const file of htmlFiles) {
   const content = readFileSync(file, 'utf8');
   if (!content.includes('<title>')) broken.push(`${file}: sem title`);
   if (!content.includes('Arandu')) broken.push(`${file}: sem marca Arandu`);
+  if (!content.includes('meta name="viewport"')) broken.push(`${file}: sem viewport`);
 }
 
 if (broken.length) {
