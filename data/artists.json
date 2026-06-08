@@ -1,0 +1,38 @@
+[
+  {
+    "id": "marina-silveira",
+    "name": "Marina Silveira",
+    "city": "São Paulo, SP",
+    "languages": ["pintura", "matéria", "pigmento"],
+    "profile": "Pesquisa matéria, terra e memória por meio de camadas pictóricas de presença silenciosa.",
+    "trajectory": "Séries recentes aproximam gesto contido, tons terrosos e atenção ao tempo de observação.",
+    "url": "artista-marina-silveira.html"
+  },
+  {
+    "id": "camila-reboucas",
+    "name": "Camila Rebouças",
+    "city": "Recife, PE",
+    "languages": ["fotografia", "território", "memória"],
+    "profile": "Trabalha fotografia como narrativa de território, silêncio e permanência afetiva.",
+    "trajectory": "Seu portfólio favorece primeiras compras por escala flexível, edição limitada e leitura direta.",
+    "url": "artista-camila-reboucas.html"
+  },
+  {
+    "id": "arthur-davila",
+    "name": "Arthur D'Avila",
+    "city": "Curitiba, PR",
+    "languages": ["escultura", "bronze", "volume"],
+    "profile": "Investiga tensão, equilíbrio e presença material em objetos de bronze e pequena escala.",
+    "trajectory": "Obras indicadas para coleções, arquitetura e ambientes institucionais que pedem volume.",
+    "url": "artista-arthur-davila.html"
+  },
+  {
+    "id": "lucas-mendes",
+    "name": "Lucas Mendes",
+    "city": "Rio de Janeiro, RJ",
+    "languages": ["objeto", "cidade", "movimento"],
+    "profile": "Parte de ritmos urbanos, deslocamento e composição gráfica para criar objetos de parede.",
+    "trajectory": "Sua pesquisa aproxima arte, arquitetura e energia visual para espaços contemporâneos.",
+    "url": "artistas.html"
+  }
+]
