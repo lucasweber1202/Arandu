@@ -1,21 +1,8 @@
-/*
-  ARANDU — comportamento global do site estático
-
-  Implementações:
-  - Menu mobile criado automaticamente a partir dos links do header.
-  - Contador de Minha Seleção no header.
-  - Classe de página ativa no menu.
-  - Preparado para funcionar em hospedagem estática sem build.
-*/
-
+/* ARANDU — comportamento global do site */
 const SELECTION_KEY = 'arandu.selection.v1';
 
 function getSelectionCount() {
-  try {
-    return JSON.parse(localStorage.getItem(SELECTION_KEY) || '[]').length;
-  } catch {
-    return 0;
-  }
+  try { return JSON.parse(localStorage.getItem(SELECTION_KEY) || '[]').length; } catch { return 0; }
 }
 
 function markActiveLinks() {
@@ -28,12 +15,20 @@ function markActiveLinks() {
 function addSelectionCounter() {
   const navs = document.querySelectorAll('.site-nav, .nav');
   navs.forEach((nav) => {
-    if (nav.querySelector('[data-selection-nav]')) return;
-    const link = document.createElement('a');
-    link.href = 'minha-selecao.html';
-    link.dataset.selectionNav = 'true';
-    link.innerHTML = `Minha seleção (<span data-selection-count>${getSelectionCount()}</span>)`;
-    nav.appendChild(link);
+    if (!nav.querySelector('[data-selection-nav]')) {
+      const link = document.createElement('a');
+      link.href = 'minha-selecao.html';
+      link.dataset.selectionNav = 'true';
+      link.innerHTML = `Minha seleção (<span data-selection-count>${getSelectionCount()}</span>)`;
+      nav.appendChild(link);
+    }
+
+    if (!nav.querySelector('[data-auth-nav]')) {
+      const auth = document.createElement('span');
+      auth.dataset.authNav = 'true';
+      auth.innerHTML = '<a href="login.html">Entrar</a>';
+      nav.appendChild(auth);
+    }
   });
 }
 
