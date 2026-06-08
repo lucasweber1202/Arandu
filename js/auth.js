@@ -24,6 +24,39 @@ function setStatus(form, text, isError = false) {
   status.textContent = text;
 }
 
+function injectAuthForms() {
+  const signupMount = document.querySelector('[data-signup-mount]');
+  if (signupMount && !signupMount.innerHTML.trim()) {
+    signupMount.innerHTML = `
+      <form class="form-card" data-signup-form>
+        <h3>Começar</h3>
+        <input name="fullName" placeholder="Nome completo" required />
+        <input name="email" type="email" placeholder="Email" required />
+        <input name="password" type="password" placeholder="Senha" required />
+        <select name="profileType" required>
+          <option value="comprador">Quero comprar arte</option>
+          <option value="artista">Sou artista</option>
+          <option value="empresa">Sou empresa</option>
+          <option value="arquiteto">Sou arquiteto ou designer</option>
+        </select>
+        <button type="submit">Criar conta</button>
+        <p>Já tem conta? <a href="login.html">Entrar</a></p>
+      </form>`;
+  }
+
+  const loginMount = document.querySelector('[data-login-mount]');
+  if (loginMount && !loginMount.innerHTML.trim()) {
+    loginMount.innerHTML = `
+      <form class="form-card" data-login-form>
+        <h3>Entrar</h3>
+        <input name="email" type="email" placeholder="Email" required />
+        <input name="password" type="password" placeholder="Senha" required />
+        <button type="submit">Entrar</button>
+        <p>Ainda não tem conta? <a href="cadastro.html">Criar conta</a></p>
+      </form>`;
+  }
+}
+
 async function getSession() {
   return requestJson('/api/auth/session', { method: 'GET' });
 }
@@ -122,6 +155,7 @@ document.addEventListener('click', async (event) => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
+  injectAuthForms();
   renderAuthNav();
   renderAccount();
   renderDashboard();
