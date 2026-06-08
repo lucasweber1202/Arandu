@@ -32,12 +32,17 @@ function selectionMessage() {
   return `Olá, Arandu. Gostaria de receber orientação da curadoria.\n\nBriefing:\n${briefingMessage()}\n\nMinha seleção:\n${list}`;
 }
 
+function proposalMessage() {
+  if (typeof window.ARANDU_BUILD_PROPOSAL_MESSAGE === 'function') return window.ARANDU_BUILD_PROPOSAL_MESSAGE();
+  return 'Olá, Arandu. Gostaria de revisar uma proposta curatorial para empresa, clínica ou espaço institucional.';
+}
+
 document.addEventListener('click', (event) => {
   const whatsapp = event.target.closest('[data-whatsapp]');
   if (!whatsapp) return;
   event.preventDefault();
   const type = whatsapp.dataset.whatsapp;
   const custom = whatsapp.dataset.message;
-  const message = type === 'selection' ? selectionMessage() : (custom || 'Olá, Arandu. Gostaria de falar com a curadoria.');
+  const message = type === 'selection' ? selectionMessage() : type === 'proposal' ? proposalMessage() : (custom || 'Olá, Arandu. Gostaria de falar com a curadoria.');
   window.open(buildWhatsappUrl(message), '_blank', 'noopener,noreferrer');
 });
