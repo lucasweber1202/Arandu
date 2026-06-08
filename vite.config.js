@@ -32,22 +32,32 @@ const htmlInputs = Object.fromEntries(
   })
 );
 
-function injectVercelSpeedInsights() {
+function injectGlobalAssets() {
   const speedInsightsTag = '<script type="module" src="/src/vercel-speed-insights.js"></script>';
+  const productCssTag = '<link rel="stylesheet" href="/css/arandu-product.css">';
 
   return {
-    name: 'inject-vercel-speed-insights',
+    name: 'inject-arandu-global-assets',
     transformIndexHtml(html) {
-      if (html.includes('/src/vercel-speed-insights.js')) return html;
-      if (html.includes('</body>')) return html.replace('</body>', `${speedInsightsTag}</body>`);
-      return `${html}${speedInsightsTag}`;
+      let output = html;
+      if (!output.includes('/css/arandu-product.css')) {
+        output = output.includes('</head>')
+          ? output.replace('</head>', `${productCssTag}</head>`)
+          : `${productCssTag}${output}`;
+      }
+      if (!output.includes('/src/vercel-speed-insights.js')) {
+        output = output.includes('</body>')
+          ? output.replace('</body>', `${speedInsightsTag}</body>`)
+          : `${output}${speedInsightsTag}`;
+      }
+      return output;
     }
   };
 }
 
 export default defineConfig({
   appType: 'mpa',
-  plugins: [injectVercelSpeedInsights()],
+  plugins: [injectGlobalAssets()],
   build: {
     rollupOptions: {
       input: htmlInputs
