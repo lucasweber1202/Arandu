@@ -1,0 +1,36 @@
+{
+  "version": "2026-06-08",
+  "leadStatuses": ["new", "qualified", "in_conversation", "proposal_sent", "converted", "archived"],
+  "submissionStatuses": ["received", "screening", "curatorial_review", "approved", "not_now", "published", "archived"],
+  "briefStatuses": ["received", "reviewing", "proposal_draft", "proposal_sent", "won", "lost", "archived"],
+  "artworkStatuses": ["available", "in_conversation", "temporarily_reserved", "sold", "on_hold", "not_published"],
+  "profileTypes": ["comprador", "artista", "empresa", "arquiteto", "curadoria", "admin"],
+  "artistAxes": ["Povos Originários", "Diáspora e Arte Afro-Brasileira", "Brasil Profundo", "Metrópoles Brasileiras", "Autodeclaração opcional"],
+  "languages": ["pintura", "fotografia", "escultura", "objeto", "técnica mista", "papel", "gravura", "instalação"],
+  "artworkTags": ["matéria", "memória", "movimento", "reflexão", "território", "silêncio", "tensão", "brasilidade", "escala", "gesto", "cor", "natureza", "cidade"],
+  "formTypes": {
+    "contato": { "table": "leads", "kind": "general_contact", "required": ["name", "contact"] },
+    "selecao": { "table": "leads", "kind": "selection_reading", "required": ["name", "contact"] },
+    "submissao-artista": { "table": "artist_submissions", "kind": "artist_submission", "required": ["artist_name", "city", "languages", "portfolio_url"] },
+    "empresa-intencao": { "table": "company_briefs", "kind": "company_brief", "required": ["name", "company", "contact"] },
+    "proposta-empresa": { "table": "company_briefs", "kind": "company_brief", "required": ["name", "company", "contact"] },
+    "newsletter": { "table": "newsletter_subscriptions", "kind": "newsletter", "required": ["email"] }
+  },
+  "fieldAliases": {
+    "name": ["nome", "nome_completo", "fullName", "full_name"],
+    "artist_name": ["nome_artistico", "artist_name"],
+    "email": ["email", "e-mail"],
+    "whatsapp": ["whatsapp", "telefone", "phone"],
+    "company": ["empresa", "company"],
+    "city": ["cidade", "city"],
+    "state": ["estado", "state", "uf"],
+    "languages": ["linguagens", "languages"],
+    "portfolio_url": ["portfolio", "portfolio_url", "site"],
+    "instagram": ["instagram"],
+    "price_range": ["faixa_preco", "price_range", "orcamento"],
+    "message": ["mensagem", "message"],
+    "environment": ["ambiente", "environment", "espaco"],
+    "budget": ["budget", "orcamento", "faixa_preco"],
+    "deadline": ["prazo", "deadline"]
+  }
+}
