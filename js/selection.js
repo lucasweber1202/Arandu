@@ -1,15 +1,15 @@
 /*
   ARANDU — Minha Seleção
-  Parte 8 — primeira versão funcional sem backend.
 
-  O que este arquivo faz:
-  1. Captura cliques em botões/links com data-save-artwork.
-  2. Salva a obra no localStorage do navegador.
-  3. Renderiza a lista salva em páginas que tenham [data-selection-list].
-  4. Permite limpar a seleção.
+  Implementação estática com localStorage.
 
-  Esta solução é propositalmente simples: funciona em hospedagem estática
-  e depois pode ser substituída por Supabase/PostgreSQL sem mudar a jornada.
+  Melhorias desta versão:
+  - Salva obras no navegador.
+  - Renderiza a seleção em páginas compatíveis.
+  - Atualiza contador em elementos [data-selection-count].
+  - Permite remover obra individualmente.
+  - Permite limpar toda a seleção.
+  - Mantém a jornada consultiva: seleção antes de carrinho.
 */
 
 const ARANDU_SELECTION_KEY = 'arandu.selection.v1';
@@ -24,6 +24,14 @@ function readSelection() {
 
 function writeSelection(items) {
   localStorage.setItem(ARANDU_SELECTION_KEY, JSON.stringify(items));
+  updateSelectionCount();
+}
+
+function updateSelectionCount() {
+  const count = readSelection().length;
+  document.querySelectorAll('[data-selection-count]').forEach((node) => {
+    node.textContent = String(count);
+  });
 }
 
 function saveArtworkFromElement(element) {
@@ -38,13 +46,23 @@ function saveArtworkFromElement(element) {
   const current = readSelection();
   const exists = current.some((item) => item.id === artwork.id);
   const next = exists ? current : [...current, artwork];
+
   writeSelection(next);
   renderSelection();
 
   element.textContent = exists ? 'Já está na sua seleção' : 'Salvo na minha seleção';
+  element.setAttribute('aria-live', 'polite');
+}
+
+function removeArtwork(id) {
+  const next = readSelection().filter((item) => item.id !== id);
+  writeSelection(next);
+  renderSelection();
 }
 
 function renderSelection() {
+  updateSelectionCount();
+
   const target = document.querySelector('[data-selection-list]');
   if (!target) return;
 
@@ -59,7 +77,10 @@ function renderSelection() {
       <h3>${item.title}</h3>
       <p>${item.artist}</p>
       <p>${item.context}</p>
-      <a href="${item.url}">Ver obra</a>
+      <div class="tags">
+        <a class="tag" href="${item.url}">Ver obra</a>
+        <button class="tag" type="button" data-remove-artwork="${item.id}">Remover</button>
+      </div>
     </article>
   `).join('');
 }
@@ -74,6 +95,12 @@ document.addEventListener('click', (event) => {
   if (saveButton) {
     event.preventDefault();
     saveArtworkFromElement(saveButton);
+  }
+
+  const removeButton = event.target.closest('[data-remove-artwork]');
+  if (removeButton) {
+    event.preventDefault();
+    removeArtwork(removeButton.dataset.removeArtwork);
   }
 
   const clearButton = event.target.closest('[data-clear-selection]');
