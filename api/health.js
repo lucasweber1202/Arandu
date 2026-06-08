@@ -1,4 +1,4 @@
-import { hasSupabaseConfig } from './_supabase.js';
+import { hasSupabaseAuthConfig, hasSupabaseConfig } from './_supabase.js';
 
 export default function handler(req, res) {
   res.statusCode = 200;
@@ -8,6 +8,16 @@ export default function handler(req, res) {
     service: 'Arandu API',
     timestamp: new Date().toISOString(),
     supabaseConfigured: hasSupabaseConfig(),
-    routes: ['/api/leads', '/api/certificates?code=ARD-2026-0001']
+    authConfigured: hasSupabaseAuthConfig(),
+    routes: [
+      '/api/leads',
+      '/api/artworks',
+      '/api/dashboard',
+      '/api/auth/signup',
+      '/api/auth/login',
+      '/api/auth/session',
+      '/api/auth/logout',
+      '/api/certificates?code=ARD-2026-0001'
+    ]
   }));
 }
