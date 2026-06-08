@@ -1,0 +1,12 @@
+{
+  "name": "Arandu",
+  "short_name": "Arandu",
+  "description": "Curadoria de arte brasileira contemporânea.",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#f7f0e6",
+  "theme_color": "#9e3d2c",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}
