@@ -1,1 +1,20 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Painel de leads — Arandu</title><link rel="stylesheet" href="css/arandu-system.css"/></head><body><header class="site-header"><div class="container header-inner"><a class="brand-logo" href="admin-preview.html">Arandu Painel</a><nav class="site-nav"><a href="painel-obras.html">Obras</a><a href="painel-artistas.html">Artistas</a><a href="painel-certificados.html">Certificados</a></nav><a class="cta" href="index.html">Ver site</a></div></header><main><section class="section"><div class="container"><p class="eyebrow">Prévia operacional</p><h1 class="title">Módulo de leads</h1><p class="lead">Prévia visual para contatos de compradores, arquitetos, empresas, artistas e newsletter.</p></div></section><section class="section section-muted"><div class="container grid grid-3"><article class="card"><h3>Comprador</h3><p>Interesse em obra para sala.</p><span class="tag">Alta prioridade</span></article><article class="card"><h3>Arquiteto</h3><p>Briefing para apartamento no Rio de Janeiro.</p><span class="tag">Projeto</span></article><article class="card"><h3>Artista</h3><p>Portfólio enviado para análise.</p><span class="tag">Curadoria</span></article></div></section></main><script src="js/site.js"></script></body></html>
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Painel de leads — Arandu</title>
+  <link rel="stylesheet" href="css/arandu-system.css" />
+  <style>.compare-table{width:100%;border-collapse:collapse}.compare-table th,.compare-table td{padding:12px;border-bottom:1px solid rgba(111,34,27,.22);text-align:left}.compare-table select{border:1px solid rgba(111,34,27,.3);border-radius:999px;padding:8px;background:rgba(255,224,199,.72)}</style>
+</head>
+<body data-operational-panel="leads">
+  <header class="site-header"><div class="container header-inner"><a class="brand-logo" href="painel.html">Arandu Painel</a><nav class="site-nav"><a href="painel-cadastros.html">Cadastros</a><a href="painel-obras.html">Obras</a><a href="painel-artistas.html">Artistas</a><a href="painel-certificados.html">Certificados</a></nav><a class="cta" href="index.html">Ver site</a></div></header>
+  <main>
+    <section class="section section-dark"><div class="container"><p class="eyebrow">CRM conectado</p><h1 class="title">Módulo de leads</h1><p class="lead">Acompanhe contatos de compradores, seleção curatorial, empresas, arquitetos, artistas e newsletter.</p></div></section>
+    <section class="section section-muted"><div class="container"><div class="form-card"><h3>Acesso administrativo</h3><input data-admin-token placeholder="Cole o ARANDU_ADMIN_TOKEN" /><p data-panel-status class="selection-summary">Aguardando carregamento.</p><div class="page-actions"><button class="button secondary" type="button" data-panel-refresh>Atualizar</button><button class="button secondary" type="button" data-panel-export>Exportar CSV</button><a class="cta secondary" href="painel-submissoes.html">Submissões</a><a class="cta secondary" href="painel-briefings.html">Briefings</a></div></div></div></section>
+    <section class="section"><div class="container" data-panel-metrics></div></section>
+    <section class="section section-muted"><div class="container" data-panel-table></div></section>
+  </main>
+  <script src="js/site.js"></script><script src="js/painel-operacional.js"></script>
+</body>
+</html>
