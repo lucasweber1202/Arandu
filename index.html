@@ -5,9 +5,65 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Arandu — plataforma de curadoria de arte brasileira contemporanea." />
     <title>Arandu — Arte brasileira contemporanea</title>
+    <link rel="stylesheet" href="/src/styles.css" />
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.ts"></script>
+    <header class="header">
+      <div class="container header-inner">
+        <a class="logo" href="#top">Arandu</a>
+        <nav class="nav">
+          <a href="#obras">Obras</a>
+          <a href="#artistas">Artistas</a>
+          <a href="#categorias">Categorias</a>
+          <a href="#para-artistas">Para artistas</a>
+          <a href="#autenticidade">Autenticidade</a>
+          <a href="#sobre">Sobre</a>
+        </nav>
+        <a class="cta" href="#contato">Falar com a curadoria</a>
+      </div>
+    </header>
+    <main id="top">
+      <section class="hero">
+        <div class="container hero-grid">
+          <div>
+            <p class="eyebrow">Galeria digital · arte brasileira contemporanea</p>
+            <h1 class="title">Uma curadoria de artistas, territorios e linguagens do Brasil.</h1>
+            <p class="lead">A Arandu reune obras, trajetorias e narrativas da producao artistica brasileira contemporanea, valorizando autenticidade, presenca e procedencia.</p>
+            <div class="actions">
+              <a class="cta" href="#obras">Conhecer obras</a>
+              <a class="cta ghost" href="#artistas">Conhecer artistas</a>
+              <a class="cta ghost" href="#para-artistas">Submeter portfolio</a>
+            </div>
+          </div>
+          <div class="hero-card">
+            <div class="hero-art"></div>
+            <div class="hero-caption"><span>Obra em destaque</span><a href="#obras">Ver acervo</a></div>
+          </div>
+        </div>
+        <div class="container ribbon"><span>Curadoria</span><span>Autenticidade</span><span>Procedencia</span><span>Trajetoria do artista</span><span>Certificacao Arandu</span></div>
+      </section>
+      <section id="obras" class="section">
+        <div class="container section-head"><p class="eyebrow">Obras em destaque</p><h2>Obras que carregam materia, memoria e presenca.</h2><a href="#">Ver catalogo completo</a></div>
+        <div class="container grid grid-3">
+          <article class="art-card"><div class="thumb terra"></div><div class="badges"><span>Obra unica</span><span>Certificada</span></div><p>Marina Silveira · Sao Paulo / SP</p><h3>Estudo de Solo Nº 04</h3><p>Oleo sobre tela · 120 x 100 cm</p><strong>R$ 4.200</strong></article>
+          <article class="art-card"><div class="thumb bronze"></div><div class="badges"><span>Obra unica</span><span>Certificada</span></div><p>Arthur D'Avila · Curitiba / PR</p><h3>Equilibrio Suspenso</h3><p>Bronze fundido · 45 x 20 cm</p><strong>R$ 8.900</strong></article>
+          <article class="art-card"><div class="thumb areia"></div><div class="badges"><span>Edicao de 7</span><span>Certificada</span></div><p>Camila Reboucas · Recife / PE</p><h3>Sertao Silencioso</h3><p>Fotografia fine art · 60 x 90 cm</p><strong>R$ 2.100</strong></article>
+        </div>
+      </section>
+      <section id="artistas" class="section muted">
+        <div class="container section-head"><p class="eyebrow">Artistas em foco</p><h2>Uma plataforma para acompanhar artistas, nao apenas comprar obras.</h2><a href="#">Conhecer trajetorias</a></div>
+        <div class="container grid grid-4">
+          <article class="artist-card"><div></div><p>Sao Paulo / SP · Pintura</p><h3>Marina Silveira</h3><blockquote>"Pinto o que o solo guarda."</blockquote></article>
+          <article class="artist-card"><div></div><p>Curitiba / PR · Escultura</p><h3>Arthur D'Avila</h3><blockquote>"Procuro o ponto exato em que o peso vira respiracao."</blockquote></article>
+          <article class="artist-card"><div></div><p>Recife / PE · Fotografia</p><h3>Camila Reboucas</h3><blockquote>"A imagem e uma forma de permanecer."</blockquote></article>
+          <article class="artist-card"><div></div><p>Belo Horizonte / MG · Escultura</p><h3>Lucas Mendes</h3><blockquote>"A cidade tambem e materia."</blockquote></article>
+        </div>
+      </section>
+      <section id="categorias" class="section"><div class="container section-head"><p class="eyebrow">Linguagens</p><h2>Pintura, fotografia e escultura — tres caminhos de leitura do Brasil.</h2></div><div class="container grid grid-3"><article class="feature"><h3>Pintura</h3><p>Camadas, gesto e materia — uma cartografia de territorios em tinta.</p></article><article class="feature"><h3>Fotografia</h3><p>Imagem como permanencia: documentar o que insiste em existir.</p></article><article class="feature"><h3>Escultura</h3><p>Volume, peso e ar — a forma como pensamento continuo.</p></article></div></section>
+      <section id="sobre" class="section editorial"><div class="container editorial-grid"><div><p class="eyebrow">Bloco editorial</p><h2>Brasil em multiplas linguagens.</h2><p>A Arandu parte da ideia de que uma obra nao existe isolada: ela carrega territorio, materia, gesto, memoria e trajetoria.</p></div><div class="label-cloud"><span>Povos originarios</span><span>Arte afro-brasileira</span><span>Interior do Brasil</span><span>Amazônia e rios</span><span>Sertoes e territorios</span><span>Metropoles brasileiras</span><span>Brasil profundo</span></div></div></section>
+      <section id="autenticidade" class="section"><div class="container section-head"><p class="eyebrow">Autenticidade e certificacao</p><h2>Procedencia documentada, do atelie ao colecionador.</h2><p>A Arandu trabalha para garantir procedencia, documentacao e valorizacao das obras comercializadas na plataforma.</p></div><div class="container grid grid-3"><article class="feature"><h3>Certificado de Autenticidade</h3><p>Documento emitido pela Arandu, com assinatura do artista quando aplicavel.</p></article><article class="feature"><h3>Registro interno da obra</h3><p>Cada obra recebe numero de registro proprio em nosso acervo digital.</p></article><article class="feature"><h3>Laudo tecnico externo</h3><p>Para obras de maior valor ou casos especificos, com especialistas parceiros.</p></article></div></section>
+      <section id="para-artistas" class="section muted"><div class="container artist-cta"><div><p class="eyebrow">Para artistas</p><h2>Construimos trajetorias, nao apenas vitrines.</h2><p>A Arandu busca artistas brasileiros com producao consistente, identidade propria e desejo de construir uma trajetoria de longo prazo.</p></div><ol><li>Envio de portfolio</li><li>Analise curatorial</li><li>Conversa com o artista</li><li>Organizacao das obras</li><li>Registro e certificacao</li><li>Acompanhamento continuo</li></ol></div></section>
+    </main>
+    <footer class="footer"><div class="container footer-grid"><div><h2>Arandu</h2><p>Arte brasileira contemporanea.</p></div><div><p>Acervo</p><a>Obras</a><a>Artistas</a><a>Pintura</a></div><div><p>Plataforma</p><a>Sobre</a><a>Para artistas</a><a>Autenticidade</a></div><div><p>Acompanhe</p><a>Instagram</a><a>curadoria@arandu.art</a></div></div></footer>
   </body>
 </html>
