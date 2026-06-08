@@ -1,152 +1,36 @@
 const CATALOG_SYNONYMS = {
-  quadro: 'pintura tela obra parede',
-  decoracao: 'casa ambiente sala apartamento interiores',
-  decoracao2: 'casa ambiente sala apartamento interiores',
-  barato: 'ate-3000 primeira-obra acessivel fotografia',
-  acessivel: 'ate-3000 primeira-obra fotografia',
-  escritorio: 'empresa corporativo recepcao arquitetura',
-  arquiteto: 'arquitetura empresa interiores briefing',
-  hotel: 'hospitalidade hotelaria recepcao',
-  calma: 'acolhimento silencio memoria',
-  impacto: 'presenca empresa recepcao escultura'
+  quadro: 'pintura tela obra parede', decoracao: 'casa ambiente sala apartamento interiores', barato: 'ate-3000 primeira-obra acessivel fotografia', acessivel: 'ate-3000 primeira-obra fotografia', escritorio: 'empresa corporativo recepcao sala reuniao', clinica: 'consultorio saude acolhimento silencio recepcao paciente', consultorio: 'clinica saude acolhimento silencio', hotel: 'hospitalidade hotelaria recepcao permanencia', restaurante: 'hospitalidade atmosfera permanencia', calma: 'acolhimento silencio memoria serenidade', impacto: 'presenca empresa recepcao escultura', certificado: 'autenticidade procedencia ficha tecnica'
 };
-
-function normalize(value) {
-  return (value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-}
-
-function escapeCatalogHtml(value) {
-  return String(value || '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
-}
-
-function expandCatalogQuery(query) {
-  const q = normalize(query);
-  const synonyms = q.split(/\s+/).map((term) => CATALOG_SYNONYMS[term] || '').join(' ');
-  return normalize(`${q} ${synonyms}`).split(/\s+/).filter(Boolean);
-}
-
-async function loadArtworkData() {
-  try {
-    const response = await fetch('data/artworks.json', { cache: 'no-store' });
-    if (!response.ok) throw new Error('artworks');
-    const data = await response.json();
-    return Array.isArray(data) ? data : [];
-  } catch {
-    return [];
-  }
-}
-
-function artworkTags(artwork) {
-  return [artwork.type, artwork.technique, ...(artwork.tags || []), ...(artwork.moods || []), ...(artwork.spaces || []), ...(artwork.recommendedFor || [])].join(' ');
-}
-
-function renderArtworkCard(artwork, index) {
-  const tags = normalize(artworkTags(artwork));
-  const search = `${artwork.title} ${artwork.artist} ${artwork.technique} ${artwork.summary} ${artwork.search || ''}`;
-  const context = (artwork.tags || []).slice(0, 3).join(' · ');
-  return `
-    <article class="card catalog-card" data-catalog-card data-order="${index + 1}" data-price="${Number(artwork.price || 0)}" data-tags="${escapeCatalogHtml(tags)}" data-search="${escapeCatalogHtml(search)}">
-      <a href="${escapeCatalogHtml(artwork.url || 'obras.html')}" aria-label="Ver ${escapeCatalogHtml(artwork.title)}"><div class="thumb ${escapeCatalogHtml(artwork.thumb || 'thumb-terra')}"></div></a>
-      <div class="tags"><span class="tag">${escapeCatalogHtml(artwork.type)}</span>${artwork.firstArtwork ? '<span class="tag">Primeira obra</span>' : ''}${artwork.certificate ? '<span class="tag">Certificada</span>' : ''}</div>
-      <h3>${escapeCatalogHtml(artwork.title)}</h3>
-      <p class="artwork-meta">${escapeCatalogHtml(artwork.artist)} · ${escapeCatalogHtml(artwork.technique)} · ${escapeCatalogHtml(artwork.dimensions)}</p>
-      <strong>${escapeCatalogHtml(artwork.priceLabel)}</strong>
-      <p>${escapeCatalogHtml(artwork.summary)}</p>
-      <div class="tags">${(artwork.tags || []).slice(0, 4).map((tag) => `<span class="tag">${escapeCatalogHtml(String(tag).replace(/-/g, ' '))}</span>`).join('')}</div>
-      <div class="page-actions"><a class="cta secondary" href="${escapeCatalogHtml(artwork.url || 'obras.html')}">Conhecer obra</a><button class="cta secondary" type="button" data-save-artwork="${escapeCatalogHtml(artwork.id)}" data-artwork-title="${escapeCatalogHtml(artwork.title)}" data-artwork-artist="${escapeCatalogHtml(artwork.artist)}" data-artwork-context="${escapeCatalogHtml(context)}" data-artwork-url="${escapeCatalogHtml(artwork.url || 'obras.html')}">Salvar seleção</button></div>
-    </article>`;
-}
-
-function renderCatalogFromData(artworks) {
-  const grid = document.querySelector('[data-catalog-grid]');
-  if (!grid || !artworks.length) return;
-  grid.innerHTML = artworks.map(renderArtworkCard).join('');
-}
-
-function getActiveFilter() {
-  return document.querySelector('[data-filter].is-active')?.dataset.filter || 'todos';
-}
-
-function parsePrice(card) {
-  const raw = card.dataset.price || '0';
-  return Number(String(raw).replace(/[^0-9]/g, '')) || 0;
-}
-
-function sortCatalog() {
-  const select = document.querySelector('[data-catalog-sort]');
-  const grid = document.querySelector('[data-catalog-grid]');
-  if (!select || !grid) return;
-  const cards = Array.from(grid.querySelectorAll('[data-catalog-card]'));
-  const mode = select.value;
-  cards.sort((a, b) => {
-    if (mode === 'preco-menor') return parsePrice(a) - parsePrice(b);
-    if (mode === 'preco-maior') return parsePrice(b) - parsePrice(a);
-    return Number(a.dataset.order || 0) - Number(b.dataset.order || 0);
-  });
-  cards.forEach((card) => grid.appendChild(card));
-}
-
-function updateResultCount() {
-  const count = Array.from(document.querySelectorAll('[data-catalog-card]')).filter((card) => !card.hidden).length;
-  document.querySelectorAll('[data-result-count]').forEach((node) => {
-    node.textContent = `${count} obra${count === 1 ? '' : 's'} encontrada${count === 1 ? '' : 's'}`;
-  });
-}
-
-function cardMatchesQuery(card, query) {
-  const terms = expandCatalogQuery(query);
-  if (!terms.length) return true;
-  const text = normalize(`${card.dataset.search || ''} ${card.dataset.tags || ''} ${card.textContent || ''}`);
-  return terms.every((term) => text.includes(term));
-}
-
-function applyCatalogFilters() {
-  const query = document.querySelector('[data-catalog-search]')?.value || '';
-  const activeFilter = normalize(getActiveFilter());
-  document.querySelectorAll('[data-catalog-card]').forEach((card) => {
-    const text = normalize(`${card.dataset.search || ''} ${card.textContent || ''}`);
-    const tags = normalize(card.dataset.tags || '');
-    const matchesQuery = cardMatchesQuery(card, query);
-    const matchesFilter = activeFilter === 'todos' || tags.includes(activeFilter) || text.includes(activeFilter);
-    card.hidden = !(matchesQuery && matchesFilter);
-  });
-  sortCatalog();
-  updateResultCount();
-}
-
-function clearFilters() {
-  const search = document.querySelector('[data-catalog-search]');
-  const sort = document.querySelector('[data-catalog-sort]');
-  if (search) search.value = '';
-  if (sort) sort.value = 'curadoria';
-  document.querySelectorAll('[data-filter]').forEach((button) => button.classList.remove('is-active'));
-  document.querySelector('[data-filter="todos"]')?.classList.add('is-active');
-  applyCatalogFilters();
-}
-
-async function setupCatalog() {
-  const artworks = await loadArtworkData();
-  renderCatalogFromData(artworks);
-  applyCatalogFilters();
-}
-
-document.addEventListener('input', (event) => {
-  if (event.target.matches('[data-catalog-search]')) applyCatalogFilters();
-});
-
-document.addEventListener('change', (event) => {
-  if (event.target.matches('[data-catalog-sort]')) applyCatalogFilters();
-});
-
-document.addEventListener('click', (event) => {
-  const clear = event.target.closest('[data-clear-catalog]');
-  if (clear) { event.preventDefault(); clearFilters(); return; }
-  const filter = event.target.closest('[data-filter]');
-  if (!filter) return;
-  event.preventDefault();
-  document.querySelectorAll('[data-filter]').forEach((button) => button.classList.remove('is-active'));
-  filter.classList.add('is-active');
-  applyCatalogFilters();
-});
-
-document.addEventListener('DOMContentLoaded', setupCatalog);
+function normalize(value){return(value||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+function escapeCatalogHtml(value){return String(value||'').replace(/[&<>'"]/g,(char)=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]))}
+function expandCatalogQuery(query){const q=normalize(query);const synonyms=q.split(/\s+/).map((term)=>CATALOG_SYNONYMS[term]||'').join(' ');return normalize(`${q} ${synonyms}`).split(/\s+/).filter(Boolean)}
+async function loadArtworkData(){try{const response=await fetch('data/artworks.json',{cache:'no-store'});if(!response.ok)throw new Error('artworks');const data=await response.json();return Array.isArray(data)?data:[]}catch{return[]}}
+function artworkTags(artwork){return[artwork.type,artwork.technique,artwork.status,...(artwork.tags||[]),...(artwork.moods||[]),...(artwork.spaces||[]),...(artwork.recommendedFor||[])].join(' ')}
+function statusLabel(status){const value=String(status||'disponível').toLowerCase();if(value.includes('vend'))return'Vendida';if(value.includes('reserv'))return'Reservada';return'Disponível'}
+function statusClass(status){const value=String(status||'').toLowerCase();if(value.includes('vend'))return'obra vendida';if(value.includes('reserv'))return'obra reservada';return'obra disponível'}
+function renderArtworkCard(artwork,index){const tags=normalize(artworkTags(artwork));const search=`${artwork.title} ${artwork.artist} ${artwork.technique} ${artwork.summary} ${artwork.search||''}`;const context=(artwork.tags||[]).slice(0,3).join(' · ');const status=statusLabel(artwork.status);const use=(artwork.recommendedFor||[]).slice(0,3).map((item)=>`<span>${escapeCatalogHtml(item)}</span>`).join('');const reserveDisabled=String(artwork.status||'').toLowerCase().includes('vendida');return`
+  <article class="card catalog-card" data-catalog-card data-order="${index+1}" data-price="${Number(artwork.price||0)}" data-tags="${escapeCatalogHtml(tags)}" data-search="${escapeCatalogHtml(search)}">
+    <div class="artwork-badges"><span class="tag">${escapeCatalogHtml(status)}</span>${artwork.firstArtwork?'<span class="tag">Primeira obra</span>':''}${artwork.certificate?'<span class="tag">Certificada</span>':''}</div>
+    <a href="${escapeCatalogHtml(artwork.url||'obras.html')}" aria-label="Ver ${escapeCatalogHtml(artwork.title)}"><div class="thumb ${escapeCatalogHtml(artwork.thumb||'thumb-terra')}"></div></a>
+    <div class="tags"><span class="tag">${escapeCatalogHtml(artwork.type)}</span><span class="tag">${escapeCatalogHtml(artwork.edition||'Obra registrada')}</span></div>
+    <h3>${escapeCatalogHtml(artwork.title)}</h3>
+    <p class="artwork-meta">${escapeCatalogHtml(artwork.artist)} · ${escapeCatalogHtml(artwork.technique)} · ${escapeCatalogHtml(artwork.dimensions)}</p>
+    <strong>${escapeCatalogHtml(artwork.priceLabel||'Sob consulta')}</strong>
+    <p>${escapeCatalogHtml(artwork.summary)}</p>
+    <div class="artwork-use">${use}</div>
+    <div class="tags">${(artwork.tags||[]).slice(0,4).map((tag)=>`<span class="tag">${escapeCatalogHtml(String(tag).replace(/-/g,' '))}</span>`).join('')}</div>
+    <div class="page-actions"><a class="cta secondary" href="${escapeCatalogHtml(artwork.url||'obras.html')}">Leitura curatorial</a><button class="cta secondary" type="button" data-save-artwork="${escapeCatalogHtml(artwork.id)}" data-artwork-title="${escapeCatalogHtml(artwork.title)}" data-artwork-artist="${escapeCatalogHtml(artwork.artist)}" data-artwork-context="${escapeCatalogHtml(context)}" data-artwork-url="${escapeCatalogHtml(artwork.url||'obras.html')}">Salvar</button><button class="cta secondary" type="button" ${reserveDisabled?'disabled':''} data-reserve-artwork="${escapeCatalogHtml(artwork.id)}" data-reserve-title="${escapeCatalogHtml(artwork.title)}" data-reserve-artist="${escapeCatalogHtml(artwork.artist)}" data-reserve-url="${escapeCatalogHtml(artwork.url||'obras.html')}">Reservar</button></div>
+  </article>`}
+function renderCatalogFromData(artworks){const grid=document.querySelector('[data-catalog-grid]');if(!grid||!artworks.length)return;grid.innerHTML=artworks.map(renderArtworkCard).join('')}
+function getActiveFilter(){return document.querySelector('[data-filter].is-active')?.dataset.filter||'todos'}
+function parsePrice(card){return Number(String(card.dataset.price||'0').replace(/[^0-9]/g,''))||0}
+function sortCatalog(){const select=document.querySelector('[data-catalog-sort]');const grid=document.querySelector('[data-catalog-grid]');if(!select||!grid)return;const cards=Array.from(grid.querySelectorAll('[data-catalog-card]'));const mode=select.value;cards.sort((a,b)=>{if(mode==='preco-menor')return parsePrice(a)-parsePrice(b);if(mode==='preco-maior')return parsePrice(b)-parsePrice(a);return Number(a.dataset.order||0)-Number(b.dataset.order||0)});cards.forEach((card)=>grid.appendChild(card))}
+function updateResultCount(){const count=Array.from(document.querySelectorAll('[data-catalog-card]')).filter((card)=>!card.hidden).length;document.querySelectorAll('[data-result-count]').forEach((node)=>{node.textContent=`${count} obra${count===1?'':'s'} encontrada${count===1?'':'s'}`})}
+function cardMatchesQuery(card,query){const terms=expandCatalogQuery(query);if(!terms.length)return true;const text=normalize(`${card.dataset.search||''} ${card.dataset.tags||''} ${card.textContent||''}`);return terms.every((term)=>text.includes(term))}
+function applyCatalogFilters(){const query=document.querySelector('[data-catalog-search]')?.value||'';const activeFilter=normalize(getActiveFilter());document.querySelectorAll('[data-catalog-card]').forEach((card)=>{const text=normalize(`${card.dataset.search||''} ${card.textContent||''}`);const tags=normalize(card.dataset.tags||'');const matchesQuery=cardMatchesQuery(card,query);const matchesFilter=activeFilter==='todos'||tags.includes(activeFilter)||text.includes(activeFilter);card.hidden=!(matchesQuery&&matchesFilter)});sortCatalog();updateResultCount()}
+function clearFilters(){const search=document.querySelector('[data-catalog-search]');const sort=document.querySelector('[data-catalog-sort]');if(search)search.value='';if(sort)sort.value='curadoria';document.querySelectorAll('[data-filter]').forEach((button)=>button.classList.remove('is-active'));document.querySelector('[data-filter="todos"]')?.classList.add('is-active');applyCatalogFilters()}
+async function setupCatalog(){const artworks=await loadArtworkData();renderCatalogFromData(artworks);applyCatalogFilters()}
+document.addEventListener('input',(event)=>{if(event.target.matches('[data-catalog-search]'))applyCatalogFilters()});
+document.addEventListener('change',(event)=>{if(event.target.matches('[data-catalog-sort]'))applyCatalogFilters()});
+document.addEventListener('click',(event)=>{const clear=event.target.closest('[data-clear-catalog]');if(clear){event.preventDefault();clearFilters();return}const filter=event.target.closest('[data-filter]');if(!filter)return;event.preventDefault();document.querySelectorAll('[data-filter]').forEach((button)=>button.classList.remove('is-active'));filter.classList.add('is-active');applyCatalogFilters()});
+document.addEventListener('DOMContentLoaded',setupCatalog);
