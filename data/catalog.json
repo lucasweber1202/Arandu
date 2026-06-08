@@ -1,0 +1,79 @@
+{
+  "artworks": [
+    {
+      "id": "estudo-de-solo-04",
+      "title": "Estudo de Solo Nº 04",
+      "artist": "Marina Silveira",
+      "category": "pintura",
+      "technique": "Óleo sobre tela",
+      "dimensions": "120 x 100 cm",
+      "price": "R$ 4.200",
+      "contexts": ["sala de estar", "recepção", "obra grande", "primeira coleção"],
+      "certificate": true,
+      "url": "obra-estudo-de-solo-04.html"
+    },
+    {
+      "id": "sertao-silencioso",
+      "title": "Sertão Silencioso",
+      "artist": "Camila Rebouças",
+      "category": "fotografia",
+      "technique": "Fotografia fine art",
+      "dimensions": "60 x 90 cm",
+      "price": "R$ 2.100",
+      "contexts": ["primeira obra", "presente", "apartamento"],
+      "certificate": true,
+      "url": "obras.html"
+    },
+    {
+      "id": "equilibrio-suspenso",
+      "title": "Equilíbrio Suspenso",
+      "artist": "Arthur D'Avila",
+      "category": "escultura",
+      "technique": "Bronze fundido",
+      "dimensions": "45 x 20 cm",
+      "price": "R$ 8.900",
+      "contexts": ["escritório", "empresa", "escultura"],
+      "certificate": true,
+      "url": "obras.html"
+    }
+  ],
+  "artists": [
+    {
+      "id": "marina-silveira",
+      "name": "Marina Silveira",
+      "city": "São Paulo",
+      "state": "SP",
+      "languages": ["pintura"],
+      "labels": ["matéria e território", "abstração brasileira", "natureza e paisagem"],
+      "url": "artista-marina-silveira.html"
+    },
+    {
+      "id": "camila-reboucas",
+      "name": "Camila Rebouças",
+      "city": "Recife",
+      "state": "PE",
+      "languages": ["fotografia"],
+      "labels": ["fotografia documental", "sertões e territórios", "memória"],
+      "url": "artistas.html"
+    },
+    {
+      "id": "arthur-davila",
+      "name": "Arthur D'Avila",
+      "city": "Curitiba",
+      "state": "PR",
+      "languages": ["escultura"],
+      "labels": ["escultura contemporânea", "presença", "arquitetura"],
+      "url": "artistas.html"
+    }
+  ],
+  "collections": [
+    "Primeira obra",
+    "Arte para sala",
+    "Arte para escritório",
+    "Presentes autorais",
+    "Fotografia brasileira",
+    "Obras grandes",
+    "Obras até R$ 1.000",
+    "Obras até R$ 3.000"
+  ]
+}
