@@ -1,15 +1,52 @@
+const ARANDU_BRIEFING_KEY = 'arandu.selection.briefing.v1';
+
 function getStoredSelection() {
-  try { return JSON.parse(localStorage.getItem('arandu.selection.v1') || '[]'); } catch { return []; }
+  try { const data = JSON.parse(localStorage.getItem('arandu.selection.v1') || '[]'); return Array.isArray(data) ? data : []; } catch { return []; }
+}
+
+function getStoredBriefing() {
+  try { return JSON.parse(localStorage.getItem(ARANDU_BRIEFING_KEY) || '{}'); } catch { return {}; }
+}
+
+function writeStoredBriefing(data) {
+  localStorage.setItem(ARANDU_BRIEFING_KEY, JSON.stringify(data));
 }
 
 function escapeHtml(value) {
   return String(value || '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
 }
 
+function briefingLines() {
+  const briefing = getStoredBriefing();
+  const labels = {
+    ambiente: 'Ambiente',
+    orcamento: 'Orçamento',
+    prazo: 'Prazo',
+    dimensao: 'Dimensão / parede',
+    sensacao: 'Sensação desejada',
+    uso: 'Uso do espaço',
+    observacoes: 'Observações'
+  };
+  return Object.entries(labels)
+    .map(([key, label]) => briefing[key] ? `${label}: ${briefing[key]}` : '')
+    .filter(Boolean);
+}
+
+function buildSelectionPlainText() {
+  const items = getStoredSelection();
+  const briefing = briefingLines();
+  const works = items.length
+    ? items.map((item, index) => `${index + 1}. ${item.title} — ${item.artist}\n   Contexto: ${item.context}\n   Observação: ${item.note || 'sem observação'}\n   Link: ${item.url || 'obras.html'}`).join('\n\n')
+    : 'Nenhuma obra salva ainda.';
+  return `Briefing Arandu\n\n${briefing.length ? briefing.join('\n') : 'Contexto ainda não preenchido.'}\n\nObras selecionadas:\n${works}`;
+}
+
 function buildSelectionDocument() {
   const items = getStoredSelection();
+  const briefing = briefingLines();
+  const briefingHtml = briefing.length ? briefing.map((line) => `<p>${escapeHtml(line)}</p>`).join('') : '<p>Contexto ainda não preenchido.</p>';
   const rows = items.length ? items.map((item, index) => `<tr><td>${index + 1}</td><td>${escapeHtml(item.title)}</td><td>${escapeHtml(item.artist)}</td><td>${escapeHtml(item.context)}</td><td>${escapeHtml(item.note || '')}</td></tr>`).join('') : '<tr><td colspan="5">Nenhuma obra salva.</td></tr>';
-  return `<!doctype html><html><head><meta charset="UTF-8"><title>Seleção Arandu</title><style>body{font-family:Arial,sans-serif;background:#efe3d1;color:#211713;padding:42px}h1,h2{font-family:Georgia,serif;color:#5a1f1a}p{line-height:1.6}table{width:100%;border-collapse:collapse;background:#f7ead9;border-radius:18px;overflow:hidden}td,th{border:1px solid #ad8a62;padding:12px;text-align:left}.note{background:#173f31;color:#f7ead9;padding:22px;border-radius:18px;margin:22px 0}</style></head><body><h1>Minha seleção Arandu</h1><div class="note"><p>Seleção criada para conversa com a curadoria. Compare presença, linguagem, escala, orçamento e intenção antes de decidir.</p></div><table><tr><th>#</th><th>Obra</th><th>Artista</th><th>Contexto</th><th>Observação</th></tr>${rows}</table></body></html>`;
+  return `<!doctype html><html><head><meta charset="UTF-8"><title>Seleção Arandu</title><style>body{font-family:Arial,sans-serif;background:#efe3d1;color:#211713;padding:42px}h1,h2{font-family:Georgia,serif;color:#5a1f1a}p{line-height:1.6}table{width:100%;border-collapse:collapse;background:#f7ead9;border-radius:18px;overflow:hidden}td,th{border:1px solid #ad8a62;padding:12px;text-align:left}.note{background:#173f31;color:#f7ead9;padding:22px;border-radius:18px;margin:22px 0}.note p{color:#f7ead9}</style></head><body><h1>Minha seleção Arandu</h1><div class="note"><h2>Briefing</h2>${briefingHtml}</div><p>Seleção criada para conversa com a curadoria. Compare presença, linguagem, escala, orçamento e intenção antes de decidir.</p><table><tr><th>#</th><th>Obra</th><th>Artista</th><th>Contexto</th><th>Observação</th></tr>${rows}</table></body></html>`;
 }
 
 function downloadSelectionHtml() {
@@ -38,6 +75,8 @@ function getSelectionTerms(items) {
 }
 
 function inferNextStep(items, terms) {
+  const briefing = getStoredBriefing();
+  if (!briefing.ambiente || !briefing.orcamento) return 'complete ambiente e orçamento para transformar a seleção em briefing de curadoria.';
   if (items.length < 2) return 'salve ao menos mais uma obra para comparar linguagem e presença.';
   if (terms.includes('fotografia de entrada')) return 'compare fotografia com pintura pequena para decidir entre narrativa e matéria.';
   if (terms.includes('escultura e volume')) return 'confira escala, base de apoio e circulação do ambiente antes de reservar.';
@@ -70,19 +109,59 @@ function renderSelectionComparison() {
   target.innerHTML = `<div class="grid grid-3">${items.map((item) => `<article class="card"><span class="tag">Selecionada</span><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.artist)}</p><p>${escapeHtml(item.context)}</p><p>${escapeHtml(item.note || 'Adicione uma observação para orientar a curadoria.')}</p><div class="page-actions"><a class="cta secondary" href="${escapeHtml(item.url || 'obras.html')}">Ver obra</a></div></article>`).join('')}</div>`;
 }
 
+function syncBriefingForm() {
+  const form = document.querySelector('[data-briefing-form]');
+  if (!form) return;
+  const stored = getStoredBriefing();
+  form.querySelectorAll('[data-briefing-field]').forEach((field) => { if (stored[field.name]) field.value = stored[field.name]; });
+  renderBriefingPreview();
+}
+
+function readBriefingForm() {
+  const form = document.querySelector('[data-briefing-form]');
+  if (!form) return getStoredBriefing();
+  const data = {};
+  form.querySelectorAll('[data-briefing-field]').forEach((field) => { data[field.name] = field.value.trim(); });
+  writeStoredBriefing(data);
+  renderBriefingPreview();
+  renderCuratorialReading();
+  return data;
+}
+
+function renderBriefingPreview() {
+  const target = document.querySelector('[data-briefing-preview]');
+  if (!target) return;
+  const lines = briefingLines();
+  target.innerHTML = `<h3>${lines.length ? 'Briefing pronto para curadoria' : 'Briefing em formação'}</h3>${lines.length ? lines.map((line) => `<p>${escapeHtml(line)}</p>`).join('') : '<p>Preencha ambiente, orçamento e intenção para criar uma mensagem curatorial mais completa.</p>'}`;
+}
+
+async function copyBriefing() {
+  readBriefingForm();
+  const text = buildSelectionPlainText();
+  try {
+    await navigator.clipboard.writeText(text);
+    document.querySelectorAll('[data-copy-briefing]').forEach((button) => { button.textContent = 'Briefing copiado'; });
+  } catch {
+    alert(text);
+  }
+}
+
+document.addEventListener('input', (event) => {
+  if (event.target.closest('[data-briefing-field]')) readBriefingForm();
+});
+
+document.addEventListener('change', (event) => {
+  if (event.target.closest('[data-briefing-field]')) readBriefingForm();
+});
+
 document.addEventListener('click', (event) => {
-  if (event.target.closest('[data-download-selection]')) {
-    event.preventDefault();
-    downloadSelectionHtml();
-  }
-  if (event.target.closest('[data-show-selection-comparison]')) {
-    event.preventDefault();
-    renderSelectionComparison();
-    renderCuratorialReading();
-  }
+  if (event.target.closest('[data-download-selection]')) { event.preventDefault(); downloadSelectionHtml(); }
+  if (event.target.closest('[data-show-selection-comparison]')) { event.preventDefault(); renderSelectionComparison(); renderCuratorialReading(); }
+  if (event.target.closest('[data-copy-briefing]')) { event.preventDefault(); copyBriefing(); }
 });
 
 document.addEventListener('DOMContentLoaded', () => {
+  syncBriefingForm();
   renderSelectionComparison();
   renderCuratorialReading();
 });
