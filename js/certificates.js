@@ -5,21 +5,34 @@ async function verifyCertificate(code) {
   return result.certificate;
 }
 
+function escapeCertificateHtml(value) {
+  return String(value || '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
+}
+
 function renderCertificateResult(target, certificate) {
   if (!certificate) {
-    target.innerHTML = '<h3>Não encontrado</h3><p>Este código não aparece na base de certificados. Confira o código ou fale com a curadoria.</p>';
+    target.innerHTML = '<h3>Não encontrado</h3><p>Este código não aparece na base de certificados. Confira o código ou fale com a curadoria.</p><div class="page-actions"><a class="cta secondary" href="contato.html">Falar com a curadoria</a></div>';
     return;
   }
 
   const artwork = certificate.artwork || certificate.payload?.artwork || {};
+  const payload = certificate.payload || {};
+  const status = certificate.verification_status || 'valid';
+  const issuedAt = certificate.issued_at ? new Date(certificate.issued_at).toLocaleDateString('pt-BR') : '—';
   target.innerHTML = `
-    <h3>Certificado encontrado</h3>
-    <p><strong>Código:</strong> ${certificate.code || '—'}</p>
-    <p><strong>Status:</strong> ${certificate.verification_status || 'valid'}</p>
-    <p><strong>Obra:</strong> ${artwork.title || certificate.payload?.title || 'Obra registrada'}</p>
-    <p><strong>Artista:</strong> ${artwork.artist || certificate.payload?.artist || 'Artista registrado'}</p>
-    <p><strong>Técnica:</strong> ${artwork.technique || certificate.payload?.technique || '—'}</p>
-    <p><strong>Dimensões:</strong> ${artwork.dimensions || certificate.payload?.dimensions || '—'}</p>
+    <span class="certificate-status">${escapeCertificateHtml(status === 'valid' ? 'Certificado válido' : status)}</span>
+    <h3>${escapeCertificateHtml(artwork.title || payload.title || 'Obra registrada')}</h3>
+    <p class="certificate-code">${escapeCertificateHtml(certificate.code || '—')}</p>
+    <div class="certificate-grid">
+      <p><strong>Artista</strong><br>${escapeCertificateHtml(artwork.artist || payload.artist || 'Artista registrado')}</p>
+      <p><strong>Técnica</strong><br>${escapeCertificateHtml(artwork.technique || payload.technique || '—')}</p>
+      <p><strong>Dimensões</strong><br>${escapeCertificateHtml(artwork.dimensions || payload.dimensions || '—')}</p>
+      <p><strong>Edição</strong><br>${escapeCertificateHtml(payload.edition || '—')}</p>
+      <p><strong>Ano</strong><br>${escapeCertificateHtml(payload.year || '—')}</p>
+      <p><strong>Emissão</strong><br>${escapeCertificateHtml(issuedAt)}</p>
+    </div>
+    <p><strong>Observação:</strong> ${escapeCertificateHtml(payload.certificate_notes || 'Registro verificado na base Arandu.')}</p>
+    <div class="page-actions"><button class="button secondary" type="button" data-print-certificate>Imprimir validação</button><a class="cta secondary" href="autenticidade.html">Entender autenticidade</a></div>
   `;
 }
 
@@ -37,4 +50,19 @@ document.addEventListener('submit', async (event) => {
 
   const certificate = await verifyCertificate(code);
   renderCertificateResult(target, certificate);
+});
+
+document.addEventListener('click', (event) => {
+  if (event.target.closest('[data-print-certificate]')) window.print();
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('id') || params.get('code');
+  const input = document.querySelector('[data-certificate-code]');
+  const form = document.querySelector('[data-certificate-form]');
+  if (code && input && form) {
+    input.value = code.toUpperCase();
+    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+  }
 });
