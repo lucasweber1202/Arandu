@@ -1,79 +1,26 @@
 {
   "artworks": [
-    {
-      "id": "estudo-de-solo-04",
-      "title": "Estudo de Solo Nº 04",
-      "artist": "Marina Silveira",
-      "category": "pintura",
-      "technique": "Óleo sobre tela",
-      "dimensions": "120 x 100 cm",
-      "price": "R$ 4.200",
-      "contexts": ["sala de estar", "recepção", "obra grande", "primeira coleção"],
-      "certificate": true,
-      "url": "obra-estudo-de-solo-04.html"
-    },
-    {
-      "id": "sertao-silencioso",
-      "title": "Sertão Silencioso",
-      "artist": "Camila Rebouças",
-      "category": "fotografia",
-      "technique": "Fotografia fine art",
-      "dimensions": "60 x 90 cm",
-      "price": "R$ 2.100",
-      "contexts": ["primeira obra", "presente", "apartamento"],
-      "certificate": true,
-      "url": "obras.html"
-    },
-    {
-      "id": "equilibrio-suspenso",
-      "title": "Equilíbrio Suspenso",
-      "artist": "Arthur D'Avila",
-      "category": "escultura",
-      "technique": "Bronze fundido",
-      "dimensions": "45 x 20 cm",
-      "price": "R$ 8.900",
-      "contexts": ["escritório", "empresa", "escultura"],
-      "certificate": true,
-      "url": "obras.html"
-    }
+    {"id":"estudo-de-solo-04","title":"Estudo de Solo Nº 04","artist":"Marina Silveira","category":"pintura","technique":"Óleo sobre tela","dimensions":"120 x 100 cm","price":"R$ 4.200","contexts":["sala de estar","recepção","obra grande","primeira coleção"],"certificate":true,"url":"obra-estudo-de-solo-04.html"},
+    {"id":"sertao-silencioso","title":"Sertão Silencioso","artist":"Camila Rebouças","category":"fotografia","technique":"Fotografia fine art","dimensions":"60 x 90 cm","price":"R$ 2.100","contexts":["primeira obra","presente","apartamento"],"certificate":true,"url":"obra-sertao-silencioso.html"},
+    {"id":"equilibrio-suspenso","title":"Equilíbrio Suspenso","artist":"Arthur D'Avila","category":"escultura","technique":"Bronze fundido","dimensions":"45 x 20 cm","price":"R$ 8.900","contexts":["escritório","empresa","escultura"],"certificate":true,"url":"obra-equilibrio-suspenso.html"},
+    {"id":"estrutura-urbana","title":"Estrutura Urbana","artist":"Lucas Mendes","category":"pintura","technique":"Madeira e acrílica","dimensions":"80 x 80 cm","price":"R$ 3.400","contexts":["arquitetura","movimento","escritório"],"certificate":true,"url":"obras.html"},
+    {"id":"memoria-de-outono","title":"Memória de Outono","artist":"Marina Silveira","category":"pintura","technique":"Acrílica sobre tela","dimensions":"150 x 120 cm","price":"R$ 6.700","contexts":["casa","presença","obra grande"],"certificate":true,"url":"obras.html"},
+    {"id":"botanica-efemera","title":"Botânica Efêmera","artist":"Camila Rebouças","category":"fotografia","technique":"Fine art em papel algodão","dimensions":"50 x 50 cm","price":"R$ 1.800","contexts":["presente","primeira obra","natureza"],"certificate":true,"url":"obras.html"}
   ],
   "artists": [
-    {
-      "id": "marina-silveira",
-      "name": "Marina Silveira",
-      "city": "São Paulo",
-      "state": "SP",
-      "languages": ["pintura"],
-      "labels": ["matéria e território", "abstração brasileira", "natureza e paisagem"],
-      "url": "artista-marina-silveira.html"
-    },
-    {
-      "id": "camila-reboucas",
-      "name": "Camila Rebouças",
-      "city": "Recife",
-      "state": "PE",
-      "languages": ["fotografia"],
-      "labels": ["fotografia documental", "sertões e territórios", "memória"],
-      "url": "artistas.html"
-    },
-    {
-      "id": "arthur-davila",
-      "name": "Arthur D'Avila",
-      "city": "Curitiba",
-      "state": "PR",
-      "languages": ["escultura"],
-      "labels": ["escultura contemporânea", "presença", "arquitetura"],
-      "url": "artistas.html"
-    }
+    {"id":"marina-silveira","name":"Marina Silveira","city":"São Paulo","state":"SP","languages":["pintura"],"labels":["matéria e território","abstração brasileira","natureza e paisagem"],"url":"artista-marina-silveira.html"},
+    {"id":"camila-reboucas","name":"Camila Rebouças","city":"Recife","state":"PE","languages":["fotografia"],"labels":["fotografia documental","sertões e territórios","memória"],"url":"artista-camila-reboucas.html"},
+    {"id":"arthur-davila","name":"Arthur D'Avila","city":"Curitiba","state":"PR","languages":["escultura"],"labels":["escultura contemporânea","presença","arquitetura"],"url":"artista-arthur-davila.html"},
+    {"id":"lucas-mendes","name":"Lucas Mendes","city":"Belo Horizonte","state":"MG","languages":["escultura","objeto"],"labels":["cidade e movimento","metrópoles brasileiras","arquitetura"],"url":"artistas.html"}
   ],
   "collections": [
-    "Primeira obra",
-    "Arte para sala",
-    "Arte para escritório",
-    "Presentes autorais",
-    "Fotografia brasileira",
-    "Obras grandes",
-    "Obras até R$ 1.000",
-    "Obras até R$ 3.000"
+    {"title":"Primeira obra","url":"colecao-primeira-obra.html"},
+    {"title":"Arte para sala","url":"colecoes.html"},
+    {"title":"Arte para escritório","url":"arte-para-escritorio.html"},
+    {"title":"Presentes autorais","url":"colecoes.html"},
+    {"title":"Fotografia brasileira","url":"colecoes.html"},
+    {"title":"Obras grandes","url":"colecoes.html"},
+    {"title":"Obras até R$ 1.000","url":"colecoes.html"},
+    {"title":"Obras até R$ 3.000","url":"colecoes.html"}
   ]
 }
