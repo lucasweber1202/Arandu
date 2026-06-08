@@ -8,8 +8,24 @@
 
 const ARANDU_SELECTION_KEY = 'arandu.selection.v1';
 
+function escapeSelectionHtml(value) {
+  return String(value || '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
+}
+
+function normalizeSelectionUrl(value) {
+  const url = String(value || '').trim();
+  if (!url) return 'obras.html';
+  if (/^(https?:)?\/\//i.test(url)) return 'obras.html';
+  return url.replace(/^\/+/, '');
+}
+
 function readSelection() {
-  try { return JSON.parse(localStorage.getItem(ARANDU_SELECTION_KEY) || '[]'); } catch { return []; }
+  try {
+    const parsed = JSON.parse(localStorage.getItem(ARANDU_SELECTION_KEY) || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
 }
 
 function writeSelection(items) {
@@ -28,7 +44,7 @@ function saveArtworkFromElement(element) {
     title: element.dataset.artworkTitle || 'Obra Arandu',
     artist: element.dataset.artworkArtist || 'Artista Arandu',
     context: element.dataset.artworkContext || 'Seleção curatorial',
-    url: element.dataset.artworkUrl || window.location.pathname,
+    url: normalizeSelectionUrl(element.dataset.artworkUrl || window.location.pathname),
     note: ''
   };
   const current = readSelection();
@@ -53,7 +69,7 @@ function buildSelectionSummary() {
   if (!items.length) return 'Minha seleção Arandu está vazia.';
   return items.map((item, index) => {
     const note = item.note ? `\n   Observação: ${item.note}` : '';
-    return `${index + 1}. ${item.title} — ${item.artist}\n   Contexto: ${item.context}\n   Link: ${item.url}${note}`;
+    return `${index + 1}. ${item.title} — ${item.artist}\n   Contexto: ${item.context}\n   Link: ${normalizeSelectionUrl(item.url)}${note}`;
   }).join('\n\n');
 }
 
@@ -76,19 +92,23 @@ function renderSelection() {
     target.innerHTML = '<p>Sua seleção ainda está vazia. Salve obras no catálogo para pedir orientação à curadoria.</p>';
     return;
   }
-  target.innerHTML = items.map((item) => `
-    <article class="selection-item">
-      <h3>${item.title}</h3>
-      <p>${item.artist}</p>
-      <p>${item.context}</p>
-      <label>Observação para a curadoria
-        <textarea data-selection-note="${item.id}" placeholder="Ex.: esta obra seria para minha sala, parede de 2,40 m...">${item.note || ''}</textarea>
-      </label>
-      <div class="tags">
-        <a class="tag" href="${item.url}">Ver obra</a>
-        <button class="tag" type="button" data-remove-artwork="${item.id}">Remover</button>
-      </div>
-    </article>`).join('');
+  target.innerHTML = items.map((item) => {
+    const id = escapeSelectionHtml(item.id);
+    const url = escapeSelectionHtml(normalizeSelectionUrl(item.url));
+    return `
+      <article class="selection-item">
+        <h3>${escapeSelectionHtml(item.title)}</h3>
+        <p>${escapeSelectionHtml(item.artist)}</p>
+        <p>${escapeSelectionHtml(item.context)}</p>
+        <label>Observação para a curadoria
+          <textarea data-selection-note="${id}" placeholder="Ex.: esta obra seria para minha sala, parede de 2,40 m...">${escapeSelectionHtml(item.note || '')}</textarea>
+        </label>
+        <div class="tags">
+          <a class="tag" href="${url}">Ver obra</a>
+          <button class="tag" type="button" data-remove-artwork="${id}">Remover</button>
+        </div>
+      </article>`;
+  }).join('');
 }
 
 function clearSelection() {
