@@ -32,8 +32,22 @@ const htmlInputs = Object.fromEntries(
   })
 );
 
+function injectVercelSpeedInsights() {
+  const speedInsightsTag = '<script type="module" src="/src/vercel-speed-insights.js"></script>';
+
+  return {
+    name: 'inject-vercel-speed-insights',
+    transformIndexHtml(html) {
+      if (html.includes('/src/vercel-speed-insights.js')) return html;
+      if (html.includes('</body>')) return html.replace('</body>', `${speedInsightsTag}</body>`);
+      return `${html}${speedInsightsTag}`;
+    }
+  };
+}
+
 export default defineConfig({
   appType: 'mpa',
+  plugins: [injectVercelSpeedInsights()],
   build: {
     rollupOptions: {
       input: htmlInputs
