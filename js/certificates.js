@@ -1,8 +1,13 @@
 async function verifyCertificate(code) {
-  const response = await fetch(`/api/certificates?code=${encodeURIComponent(code)}`);
-  const result = await response.json().catch(() => ({}));
-  if (!response.ok || !result.ok) return null;
-  return result.certificate;
+  const normalized = String(code || '').trim().toUpperCase();
+  try {
+    const response = await fetch('data/certificates.json', { cache: 'no-store' });
+    const certificates = await response.json();
+    if (!Array.isArray(certificates)) return null;
+    return certificates.find((certificate) => String(certificate.code || '').toUpperCase() === normalized) || null;
+  } catch {
+    return null;
+  }
 }
 
 function escapeCertificateHtml(value) {
@@ -11,7 +16,7 @@ function escapeCertificateHtml(value) {
 
 function renderCertificateResult(target, certificate) {
   if (!certificate) {
-    target.innerHTML = '<h3>Não encontrado</h3><p>Este código não aparece na base de certificados. Confira o código ou fale com a curadoria.</p><div class="page-actions"><a class="cta secondary" href="contato.html">Falar com a curadoria</a></div>';
+    target.innerHTML = '<h3>Não encontrado</h3><p>Este código não aparece na base estática de certificados. Confira o código ou fale com a curadoria.</p><div class="page-actions"><a class="cta secondary" href="contato.html">Falar com a curadoria</a></div>';
     return;
   }
 
@@ -31,7 +36,7 @@ function renderCertificateResult(target, certificate) {
       <p><strong>Ano</strong><br>${escapeCertificateHtml(payload.year || '—')}</p>
       <p><strong>Emissão</strong><br>${escapeCertificateHtml(issuedAt)}</p>
     </div>
-    <p><strong>Observação:</strong> ${escapeCertificateHtml(payload.certificate_notes || 'Registro verificado na base Arandu.')}</p>
+    <p><strong>Observação:</strong> ${escapeCertificateHtml(payload.certificate_notes || 'Registro verificado na base estática Arandu.')}</p>
     <div class="page-actions"><button class="button secondary" type="button" data-print-certificate>Imprimir validação</button><a class="cta secondary" href="autenticidade.html">Entender autenticidade</a></div>
   `;
 }
@@ -46,7 +51,7 @@ document.addEventListener('submit', async (event) => {
   const code = input?.value.trim().toUpperCase();
 
   if (!target || !code) return;
-  target.innerHTML = '<h3>Consultando...</h3><p>Verificando o código informado.</p>';
+  target.innerHTML = '<h3>Consultando...</h3><p>Verificando o código informado na base estática.</p>';
 
   const certificate = await verifyCertificate(code);
   renderCertificateResult(target, certificate);
