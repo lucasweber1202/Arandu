@@ -1,1 +1,5 @@
-console.log('catalog state');
+function readJsonKey(key){try{var x=JSON.parse(localStorage.getItem(key)||'[]');return Array.isArray(x)?x:[]}catch(e){return[]}}
+function refreshCatalogState(){var selected=readJsonKey('arandu.selection.v1').map(function(x){return x.id});var reserved=readJsonKey('arandu.reservations.v1').map(function(x){return x.id||x.title});document.querySelectorAll('[data-save-artwork]').forEach(function(btn){if(selected.indexOf(btn.dataset.saveArtwork)>=0){btn.textContent='Na seleção';btn.classList.add('is-active')}});document.querySelectorAll('[data-reserve-artwork]').forEach(function(btn){if(reserved.indexOf(btn.dataset.reserveArtwork)>=0||reserved.indexOf(btn.dataset.reserveTitle)>=0){btn.textContent='Reserva solicitada';btn.classList.add('is-active')}})}
+document.addEventListener('DOMContentLoaded',function(){setTimeout(refreshCatalogState,350)});
+document.addEventListener('arandu:selection-updated',function(){setTimeout(refreshCatalogState,50)});
+document.addEventListener('click',function(e){if(e.target.closest('[data-save-artwork]')||e.target.closest('[data-reserve-artwork]'))setTimeout(refreshCatalogState,120)});
