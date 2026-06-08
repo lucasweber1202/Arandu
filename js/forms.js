@@ -15,7 +15,11 @@ function getFieldKey(field, index) {
 }
 
 function readSelectionForLead() {
-  try { return JSON.parse(localStorage.getItem('arandu.selection.v1') || '[]'); } catch { return []; }
+  try { const data = JSON.parse(localStorage.getItem('arandu.selection.v1') || '[]'); return Array.isArray(data) ? data : []; } catch { return []; }
+}
+
+function readSelectionBriefingForLead() {
+  try { return JSON.parse(localStorage.getItem('arandu.selection.briefing.v1') || '{}'); } catch { return {}; }
 }
 
 function readQuizForLead() {
@@ -61,7 +65,10 @@ function formToLead(form) {
     data
   };
 
-  if (type === 'selecao') payload.selection = readSelectionForLead();
+  if (type === 'selecao') {
+    payload.selection = readSelectionForLead();
+    payload.selection_briefing = readSelectionBriefingForLead();
+  }
   payload.quiz = readQuizForLead();
   return payload;
 }
@@ -106,6 +113,7 @@ document.addEventListener('submit', async (event) => {
   const form = event.target;
   if (!(form instanceof HTMLFormElement)) return;
   if (form.dataset.authHandled === 'true') return;
+  if (form.dataset.briefingForm !== undefined) return;
 
   event.preventDefault();
 
