@@ -1,46 +1,50 @@
 # Arandu
 
-**Arandu** e uma plataforma de curadoria de arte brasileira contemporanea.
+Arandu e uma plataforma de curadoria de arte brasileira contemporanea.
 
-O projeto nao deve ser tratado como um e-commerce comum. A proposta central e construir uma experiencia digital em que compradores, artistas, arquitetos e empresas sejam conduzidos por curadoria, contexto, trajetoria e confianca.
+O projeto nao deve ser tratado como e-commerce comum. A proposta central e construir uma experiencia digital em que compradores, artistas, arquitetos e empresas sejam conduzidos por curadoria, contexto, trajetoria e confianca.
 
-## Posicionamento
-
-**Arandu — Arte brasileira contemporanea.**
-
-A Arandu conecta obras, artistas, territorios e compradores por meio de uma experiencia consultiva. O foco inicial e pintura, fotografia e escultura, com selecao curatorial, procedencia, certificado de autenticidade e acompanhamento humano.
-
-## Principios do produto
-
-- A Arandu e uma curadoria, nao apenas uma vitrine.
-- A entrada principal do comprador deve ser por contexto: ambiente, momento, orcamento, escala e intencao.
-- O artista deve ser apresentado por trajetoria, linguagem e evolucao, nao apenas por obras cadastradas.
-- Arquitetos e empresas devem ter uma jornada propria, com briefing, proposta curatorial e selecao por projeto.
-- A experiencia de compra deve ser consultiva, usando chamadas como Tenho interesse, Falar com a curadoria e Salvar na minha selecao.
-- O site deve transmitir brasilidade contemporanea, sofisticacao, confianca, autenticidade e profundidade cultural.
-
-## Stack atual
-
-A base tecnica foi simplificada para um MVP rapido em Vite e TypeScript. A arquitetura documentada continua prevendo evolucao futura para uma stack completa com banco de dados, painel interno e area de relacionamento.
-
-## Como rodar localmente
+## Como rodar
 
 ```bash
 npm install
 npm run dev
 ```
 
-## Estrutura documental
+## Implementacao atual
 
-- `docs/ARCHITECTURE.md` — arquitetura do produto e rotas.
-- `docs/USER_JOURNEYS.md` — jornada de compradores, artistas e arquitetos.
-- `docs/DATA_MODEL.md` — modelo de dados inicial.
-- `docs/ROADMAP.md` — plano de implementacao por fases.
-- `docs/BRAND_GUIDELINES.md` — diretrizes de marca, tom e experiencia visual.
-- `docs/MVP.md` — recorte do primeiro MVP.
-- `docs/OPERATING_MODEL.md` — modelo operacional inicial.
-- `docs/BRIEFINGS.md` — informacoes necessarias para atendimento curatorial.
+1. Base visual compartilhada criada em css/arandu-system.css.
+2. Header e footer padronizados por classes comuns.
+3. Textos das novas paginas revisados com acentuacao.
+4. Projeto preparado para receber a logo final em assets/logo-arandu.png.
+5. Home conectada as principais areas da plataforma.
+6. Novas abas reais criadas como arquivos HTML proprios.
+7. CTAs principais conectados a paginas reais.
+8. Minha Selecao implementada com localStorage em js/selection.js.
+9. Responsividade mobile incluida no CSS compartilhado.
+10. Estrutura pronta para deploy estatico inicial.
 
-## Fase atual
+## Paginas atuais
 
-Este repositorio foi iniciado como base tecnica e estrategica para migrar a Arandu de um prototipo visual para uma plataforma propria de curadoria.
+- index.html
+- encontrar-arte.html
+- obras.html
+- obra-estudo-de-solo-04.html
+- colecoes.html
+- artistas.html
+- artista-marina-silveira.html
+- empresas-e-arquitetos.html
+- para-artistas.html
+- minha-selecao.html
+- autenticidade.html
+- sobre.html
+- contato.html
+
+## Proximas etapas
+
+- Adicionar a logo PNG real.
+- Reduzir estilos inline remanescentes.
+- Ativar formularios com envio real.
+- Criar catalogo dinamico.
+- Criar painel administrativo.
+- Evoluir Minha Selecao para banco de dados.
