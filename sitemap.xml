@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>/index.html</loc></url>
+  <url><loc>/comece-aqui.html</loc></url>
+  <url><loc>/como-comprar-na-arandu.html</loc></url>
+  <url><loc>/colecionadores-iniciantes.html</loc></url>
+  <url><loc>/prova-de-confianca.html</loc></url>
   <url><loc>/encontrar-arte.html</loc></url>
   <url><loc>/guia-primeira-obra.html</loc></url>
   <url><loc>/comparar-obras.html</loc></url>
@@ -26,12 +30,13 @@
   <url><loc>/artista-marina-silveira.html</loc></url>
   <url><loc>/artista-camila-reboucas.html</loc></url>
   <url><loc>/artista-arthur-davila.html</loc></url>
-  <url><loc>/artistas-convite.html</loc></url>
+  <url><loc>/para-artistas.html</loc></url>
+  <url><loc>/checklist-portfolio-artista.html</loc></url>
+  <url><loc>/prospeccao-artistas.html</loc></url>
   <url><loc>/empresas-e-arquitetos.html</loc></url>
   <url><loc>/para-arquitetos.html</loc></url>
   <url><loc>/para-empresas.html</loc></url>
-  <url><loc>/para-artistas.html</loc></url>
-  <url><loc>/checklist-portfolio-artista.html</loc></url>
+  <url><loc>/proposta-empresas.html</loc></url>
   <url><loc>/minha-selecao.html</loc></url>
   <url><loc>/cadastro.html</loc></url>
   <url><loc>/login.html</loc></url>
@@ -50,6 +55,9 @@
   <url><loc>/narrativa-fotografia-primeira-compra.html</loc></url>
   <url><loc>/narrativa-obra-ambiente.html</loc></url>
   <url><loc>/narrativa-comprar-pintura.html</loc></url>
+  <url><loc>/media-kit.html</loc></url>
+  <url><loc>/arandu-para-instagram.html</loc></url>
+  <url><loc>/analytics-conceitual.html</loc></url>
   <url><loc>/manifesto.html</loc></url>
   <url><loc>/faq.html</loc></url>
   <url><loc>/politica-comercial.html</loc></url>
