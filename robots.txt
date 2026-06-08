@@ -9,5 +9,5 @@ Disallow: /demo.html
 Disallow: /roadmap.html
 Disallow: /mapa-do-site.html
 
-Sitemap: /sitemap.xml
-Sitemap: /sitemap-interno.xml
+Sitemap: https://arandu.vercel.app/sitemap.xml
+Sitemap: https://arandu.vercel.app/sitemap-interno.xml
