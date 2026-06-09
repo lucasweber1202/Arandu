@@ -6,9 +6,9 @@ const root = process.cwd();
 const htmlFiles = fs.readdirSync(root).filter((file) => file.endsWith('.html')).sort();
 const requiredCore = ['index.html', 'obras.html', 'obra.html', 'minha-selecao.html', 'proposta-curatorial.html', 'contato.html'];
 const directLoaderPages = ['index.html', 'obras.html', 'obra.html', 'minha-selecao.html'];
-const criticalScripts = ['js/site.js', 'js/arandu-loader.js'];
-const criticalCss = ['css/arandu-system.css'];
-const layerScripts = ['arandu-experience.js', 'arandu-advanced.js', 'arandu-curation-lab.js', 'arandu-final-300.js', 'arandu-visual-governor.js'];
+const criticalScripts = ['js/site.js', 'js/arandu-loader.js', 'js/arandu-public-mode.js'];
+const criticalCss = ['css/arandu-system.css', 'css/arandu-public-mode.css'];
+const layerScripts = ['arandu-experience.js', 'arandu-advanced.js', 'arandu-curation-lab.js', 'arandu-final-300.js', 'arandu-visual-governor.js', 'arandu-public-mode.js'];
 const issues = [];
 const warnings = [];
 const metrics = [];
@@ -134,7 +134,10 @@ function checkCoreFiles() {
     if (!exists(file)) issues.push(`Arquivo crítico ausente: ${file}`);
   });
   const siteJs = exists('js/site.js') ? read('js/site.js') : '';
+  const loaderJs = exists('js/arandu-loader.js') ? read('js/arandu-loader.js') : '';
   if (!siteJs.includes('arandu-loader.js')) issues.push('js/site.js: não aciona arandu-loader.js automaticamente');
+  if (!loaderJs.includes('arandu-public-mode.js')) issues.push('js/arandu-loader.js: não carrega arandu-public-mode.js');
+  if (!loaderJs.includes('arandu-public-mode.css')) issues.push('js/arandu-loader.js: não carrega arandu-public-mode.css');
 }
 
 checkCoreFiles();
