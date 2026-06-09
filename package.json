@@ -14,7 +14,9 @@
     "check": "node scripts/check-static.mjs",
     "check:links": "node scripts/check-links.mjs",
     "check:production": "node scripts/production-check.mjs",
-    "check:all": "npm run check && npm run check:links && npm run check:production"
+    "check:quality": "node scripts/arandu-quality-gate.mjs",
+    "check:all": "npm run check && npm run check:links && npm run check:production && npm run check:quality",
+    "predeploy": "npm run build && npm run check:all"
   },
   "dependencies": {
     "@vercel/speed-insights": "^1.2.0",
