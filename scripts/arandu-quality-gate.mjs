@@ -5,7 +5,7 @@ import { execFileSync } from 'node:child_process';
 const root = process.cwd();
 const htmlFiles = fs.readdirSync(root).filter((file) => file.endsWith('.html')).sort();
 const requiredCore = ['index.html', 'obras.html', 'obra.html', 'minha-selecao.html', 'proposta-curatorial.html', 'contato.html'];
-const loaderPages = ['index.html'];
+const loaderPages = ['index.html', 'obras.html', 'obra.html', 'minha-selecao.html'];
 const criticalScripts = ['js/site.js', 'js/arandu-loader.js'];
 const criticalCss = ['css/arandu-system.css'];
 const layerScripts = ['arandu-experience.js', 'arandu-advanced.js', 'arandu-curation-lab.js', 'arandu-final-300.js', 'arandu-visual-governor.js'];
