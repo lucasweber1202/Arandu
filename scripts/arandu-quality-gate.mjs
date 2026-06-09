@@ -1,14 +1,18 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 
 const root = process.cwd();
 const htmlFiles = fs.readdirSync(root).filter((file) => file.endsWith('.html')).sort();
 const requiredCore = ['index.html', 'obras.html', 'obra.html', 'minha-selecao.html', 'proposta-curatorial.html', 'contato.html'];
-const criticalScripts = ['js/site.js'];
+const loaderPages = ['index.html'];
+const criticalScripts = ['js/site.js', 'js/arandu-loader.js'];
 const criticalCss = ['css/arandu-system.css'];
+const layerScripts = ['arandu-experience.js', 'arandu-advanced.js', 'arandu-curation-lab.js', 'arandu-final-300.js', 'arandu-visual-governor.js'];
 const issues = [];
 const warnings = [];
 const metrics = [];
+const loaderStatus = [];
 
 function read(file) {
   return fs.readFileSync(path.join(root, file), 'utf8');
@@ -27,9 +31,13 @@ function attrValues(text, tag, attr) {
   return [...text.matchAll(re)].map((match) => match[1]);
 }
 
+function baseRef(ref) {
+  return ref.split('?')[0];
+}
+
 function checkFileReferences(file, html) {
   const refs = [...attrValues(html, 'script', 'src'), ...attrValues(html, 'link', 'href')]
-    .map((ref) => ref.split('?')[0])
+    .map(baseRef)
     .filter((ref) => ref && !ref.startsWith('http') && !ref.startsWith('#') && !ref.startsWith('mailto:') && !ref.startsWith('tel:'));
   refs.forEach((ref) => {
     if (!exists(ref)) issues.push(`${file}: referência inexistente: ${ref}`);
@@ -56,12 +64,20 @@ function checkHeader(file, html) {
 }
 
 function checkExperienceLoad(file, html) {
+  const scripts = attrValues(html, 'script', 'src').map(baseRef);
+  const usesLoader = scripts.includes('js/arandu-loader.js');
+  const manualLayers = scripts.filter((src) => layerScripts.some((layer) => src.endsWith(layer)));
+  loaderStatus.push({ file, usesLoader, manualLayers: manualLayers.length });
+
   if (requiredCore.includes(file)) {
-    if (!html.includes('js/site.js')) issues.push(`${file}: não carrega js/site.js`);
+    if (!scripts.includes('js/site.js')) issues.push(`${file}: não carrega js/site.js`);
     if (!html.includes('css/arandu-system.css')) issues.push(`${file}: não carrega css/arandu-system.css`);
     if (!html.includes('Pesquisar')) warnings.push(`${file}: sem controle visível de busca`);
   }
-  if (['index.html', 'obras.html', 'obra.html', 'minha-selecao.html'].includes(file)) {
+
+  if (loaderPages.includes(file) && !usesLoader) issues.push(`${file}: deveria usar js/arandu-loader.js`);
+  if (usesLoader && manualLayers.length) warnings.push(`${file}: usa loader e ainda carrega camadas manualmente (${manualLayers.join(', ')})`);
+  if (!usesLoader && ['index.html', 'obras.html', 'obra.html', 'minha-selecao.html'].includes(file)) {
     if (!html.includes('arandu-experience.js')) warnings.push(`${file}: camada arandu-experience não conectada`);
     if (!html.includes('arandu-curation-lab.js')) warnings.push(`${file}: camada Curation Lab não conectada`);
   }
@@ -73,8 +89,9 @@ function checkPerformanceRisk(file, html) {
   metrics.push({ file, scripts: scripts.length, styles: styles.length });
   if (scripts.length > 12) warnings.push(`${file}: muitos scripts (${scripts.length}); revisar consolidação`);
   if (styles.length > 8) warnings.push(`${file}: muitas folhas CSS (${styles.length}); revisar consolidação`);
-  const duplicateScripts = scripts.filter((src, i) => scripts.indexOf(src) !== i);
-  if (duplicateScripts.length) issues.push(`${file}: scripts duplicados: ${duplicateScripts.join(', ')}`);
+  const normalized = scripts.map(baseRef);
+  const duplicateScripts = normalized.filter((src, i) => normalized.indexOf(src) !== i);
+  if (duplicateScripts.length) issues.push(`${file}: scripts duplicados: ${[...new Set(duplicateScripts)].join(', ')}`);
 }
 
 function checkAccessibility(file, html) {
@@ -98,12 +115,18 @@ function checkContentQuality(file, html) {
 function checkScriptSyntaxRisk() {
   const scriptFiles = fs.readdirSync(path.join(root, 'js')).filter((f) => f.endsWith('.js'));
   scriptFiles.forEach((script) => {
-    const text = read(path.join('js', script));
-    if (/\btype\s*=\s*['"]button['"]/.test(text) && !/\.type\s*=\s*['"]button['"]/.test(text)) {
-      warnings.push(`js/${script}: possível atribuição global type='button'; usar element.type='button'`);
+    const rel = path.join('js', script);
+    const text = read(rel);
+    try {
+      execFileSync(process.execPath, ['--check', path.join(root, rel)], { stdio: 'pipe' });
+    } catch (error) {
+      issues.push(`${rel}: erro de sintaxe JavaScript (${String(error.stderr || error.message).split('\n')[0]})`);
     }
-    if (count(text, /setInterval\(/g) > 3) warnings.push(`js/${script}: muitos setInterval; revisar performance`);
-    if (/innerHTML\s*=/.test(text) && !/escapeHtml|textContent/.test(text)) warnings.push(`js/${script}: usa innerHTML; revisar conteúdo dinâmico`);
+    if (/\btype\s*=\s*['"]button['"]/.test(text) && !/\.type\s*=\s*['"]button['"]/.test(text)) {
+      warnings.push(`${rel}: possível atribuição global type='button'; usar element.type='button'`);
+    }
+    if (count(text, /setInterval\(/g) > 3) warnings.push(`${rel}: muitos setInterval; revisar performance`);
+    if (/innerHTML\s*=/.test(text) && !/escapeHtml|textContent/.test(text)) warnings.push(`${rel}: usa innerHTML; revisar conteúdo dinâmico`);
   });
 }
 
@@ -132,6 +155,7 @@ const report = {
   issues,
   warnings,
   metrics,
+  loaderStatus,
 };
 fs.mkdirSync(path.join(root, 'reports'), { recursive: true });
 fs.writeFileSync(path.join(root, 'reports', 'arandu-quality-report.json'), JSON.stringify(report, null, 2));
@@ -140,14 +164,15 @@ console.log(`Arandu Quality Gate`);
 console.log(`HTML analisados: ${htmlFiles.length}`);
 console.log(`Erros: ${issues.length}`);
 console.log(`Alertas: ${warnings.length}`);
+console.log(`Páginas com loader: ${loaderStatus.filter((item) => item.usesLoader).length}`);
 if (issues.length) {
   console.error('\nErros críticos:');
   issues.forEach((issue) => console.error(`- ${issue}`));
 }
 if (warnings.length) {
   console.warn('\nAlertas:');
-  warnings.slice(0, 80).forEach((warning) => console.warn(`- ${warning}`));
-  if (warnings.length > 80) console.warn(`... +${warnings.length - 80} alertas no relatório JSON.`);
+  warnings.slice(0, 100).forEach((warning) => console.warn(`- ${warning}`));
+  if (warnings.length > 100) console.warn(`... +${warnings.length - 100} alertas no relatório JSON.`);
 }
 console.log('\nRelatório: reports/arandu-quality-report.json');
 if (issues.length) process.exit(1);
