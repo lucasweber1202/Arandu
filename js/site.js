@@ -1,28 +1,26 @@
-/* ARANDU — comportamento global limpo */
-const SELECTION_KEY='arandu.selection.v1';
+/* ARANDU — comportamento público principal */
 const SEARCH_INDEX=[
-  {title:'Comprar arte',url:'comprar-arte.html',type:'Compra',text:'obras disponíveis preço técnica artista comparação'},
-  {title:'Acervo',url:'acervo.html',type:'Acervo',text:'obras artistas rosto trajetória técnica'},
-  {title:'Empresas',url:'empresas.html',type:'Empresas',text:'escritórios clínicas hotéis restaurantes arquitetos'},
-  {title:'Confiança',url:'confianca.html',type:'Confiança',text:'autenticidade certificado compra reserva privacidade'},
-  {title:'Narrativa',url:'narrativa.html',type:'Narrativa',text:'histórias artistas bastidores exposições textos'},
-  {title:'Obras',url:'obras.html',type:'Obras',text:'pintura fotografia escultura acervo'},
-  {title:'Artistas',url:'artistas.html',type:'Artistas',text:'trajetórias linguagem séries'},
-  {title:'Contato',url:'contato.html',type:'Contato',text:'comunicação curadoria proposta'}
+  {title:'Pesquisar obras',url:'pesquisa.html',type:'Pesquisa',text:'busca geral obras artistas certificados empresas'},
+  {title:'Explorar acervo',url:'obras.html',type:'Explorar',text:'pintura fotografia escultura obras disponíveis'},
+  {title:'Ajuda',url:'contato.html',type:'Ajuda',text:'contato dúvidas curadoria suporte'},
+  {title:'Comprar arte',url:'comprar-arte.html',type:'Compra',text:'obras preço técnica artista comparação'},
+  {title:'Acervo',url:'acervo.html',type:'Acervo',text:'obras artistas trajetória técnica'},
+  {title:'Empresas',url:'empresas.html',type:'Empresas',text:'escritórios clínicas hotéis restaurantes'},
+  {title:'Confiança',url:'confianca.html',type:'Confiança',text:'autenticidade certificado compra reserva'},
+  {title:'Narrativa',url:'narrativa.html',type:'Narrativa',text:'histórias artistas bastidores exposições'}
 ];
 function normalizeText(value){return String(value||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
 function escapeHtml(value){return String(value||'').replace(/[&<>'"]/g,(char)=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]))}
-function getSelectionCount(){try{return JSON.parse(localStorage.getItem(SELECTION_KEY)||'[]').length}catch{return 0}}
 function injectScriptOnce(src,id){if(!document.getElementById(id)){const script=document.createElement('script');script.id=id;script.src=src;script.defer=true;document.body.appendChild(script)}}
 function injectCssOnce(href,id){if(!document.getElementById(id)){const link=document.createElement('link');link.id=id;link.rel='stylesheet';link.href=href;document.head.appendChild(link)}}
-function loadCentralLoader(){injectScriptOnce('js/arandu-loader.js?v=20260609-clean-4','arandu-loader-js')}
-function injectProductCss(){injectCssOnce('css/arandu-architecture.css?v=20260609-clean-4','arandu-architecture-css');injectCssOnce('css/arandu-clean.css?v=20260609-clean-4','arandu-clean-css')}
+function loadCentralLoader(){injectScriptOnce('js/arandu-loader.js?v=20260609-public-1','arandu-loader-js')}
+function injectProductCss(){injectCssOnce('css/arandu-architecture.css?v=20260609-public-1','arandu-architecture-css');injectCssOnce('css/arandu-clean.css?v=20260609-public-1','arandu-clean-css')}
 function markActiveLinks(){const page=window.location.pathname.split('/').pop()||'index.html';document.querySelectorAll('a[href]').forEach((link)=>{if(link.getAttribute('href')===page)link.classList.add('is-active')})}
-function normalizeHeader(){const navItems=[['Comprar arte','comprar-arte.html'],['Acervo','acervo.html'],['Empresas','empresas.html'],['Confiança','confianca.html'],['Narrativa','narrativa.html'],['Explorar','obras.html']];document.querySelectorAll('.site-nav,.nav').forEach((nav)=>{nav.innerHTML='';navItems.forEach(([label,href])=>{const a=document.createElement('a');a.href=href;a.textContent=label;nav.appendChild(a)})});document.querySelectorAll('.native-search-link,.search-trigger').forEach((link)=>{link.removeAttribute('data-search-open');link.href='obras.html';link.textContent='Explorar'});document.querySelectorAll('.site-header .cta').forEach((cta)=>{if(/comece|iniciar|minha seleção|curadoria/i.test(cta.textContent||'')){cta.href='comprar-arte.html';cta.textContent='Comprar arte'}})}
+function normalizeHeader(){const navItems=[['Pesquisa','pesquisa.html'],['Explorar','obras.html'],['Ajuda','contato.html']];document.querySelectorAll('.site-nav,.nav').forEach((nav)=>{nav.innerHTML='';navItems.forEach(([label,href])=>{const a=document.createElement('a');a.href=href;a.textContent=label;nav.appendChild(a)})});document.querySelectorAll('.native-search-link,.search-trigger').forEach((link)=>{link.removeAttribute('data-search-open');link.href='pesquisa.html';link.textContent='Pesquisar'});document.querySelectorAll('.site-header .cta').forEach((cta)=>{cta.href='contato.html';cta.textContent='Ajuda'})}
 function renderSearchResults(query=''){const target=document.querySelector('[data-search-results]');if(!target)return;const q=normalizeText(query);const results=SEARCH_INDEX.filter((item)=>!q||normalizeText(`${item.title} ${item.type} ${item.text}`).includes(q)).slice(0,8);target.innerHTML=results.length?results.map((item)=>`<a class="search-result" href="${escapeHtml(item.url)}"><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.type)}</small><p>${escapeHtml(item.text)}</p></a>`).join(''):'<p>Nenhum resultado encontrado.</p>'}
 function setupSearch(){document.querySelectorAll('[data-search-results]').forEach(()=>renderSearchResults(''))}
 function setupMobileMenu(){const headerInner=document.querySelector('.header-inner');const nav=document.querySelector('.site-nav,.nav');if(!headerInner||!nav||document.querySelector('[data-mobile-menu-button]'))return;const button=document.createElement('button');button.type='button';button.className='mobile-menu-button mobile-only';button.dataset.mobileMenuButton='true';button.setAttribute('aria-expanded','false');button.textContent='Menu';const panel=document.createElement('div');panel.className='mobile-menu-panel mobile-only';panel.hidden=true;panel.innerHTML=nav.innerHTML;button.addEventListener('click',()=>{const open=panel.hidden;panel.hidden=!open;document.body.classList.toggle('menu-open',open);button.setAttribute('aria-expanded',String(open))});panel.addEventListener('click',(event)=>{if(event.target.closest('a')){panel.hidden=true;document.body.classList.remove('menu-open');button.setAttribute('aria-expanded','false')}});headerInner.appendChild(button);document.querySelector('.site-header,.header')?.appendChild(panel)}
 function setupShare(){document.addEventListener('click',async(event)=>{const target=event.target.closest('.share-action,[href="#compartilhar"]');if(!target)return;event.preventDefault();const data={title:document.title||'Arandu',text:'Conheça a Arandu',url:location.href};try{if(navigator.share){await navigator.share(data);return}await navigator.clipboard.writeText(location.href);alert('Link copiado para compartilhar.')}catch(_){location.href='https://wa.me/?text='+encodeURIComponent(location.href)}})}
-function removeLegacyUi(){document.querySelectorAll('[data-mega-trigger],[data-mega-nav],[data-mobile-bottom-nav],[data-floating-cta],.floating-cta,.mobile-bottom-nav,.product-mega,.mega-trigger').forEach((el)=>el.remove())}
+function removeLegacyUi(){document.querySelectorAll('#mood-bar,#side-inquiry,#sticky-decision-footer,#lead-magnet,#intent-cloud,#buyer-profile,#budget-helper,#command-palette,#copy-journey,#section-index,#compare-tray,#selection-drawer-hint,[data-mega-trigger],[data-mega-nav],[data-mobile-bottom-nav],[data-floating-cta],.floating-cta,.mobile-bottom-nav,.bottom-nav,.product-mega,.mega-trigger').forEach((el)=>el.remove())}
 document.addEventListener('input',(event)=>{if(event.target.matches('[data-search-input]'))renderSearchResults(event.target.value)});
-document.addEventListener('DOMContentLoaded',()=>{loadCentralLoader();injectProductCss();normalizeHeader();markActiveLinks();setupSearch();setupMobileMenu();setupShare();removeLegacyUi();setTimeout(removeLegacyUi,600);document.body.dataset.selectionCount=String(getSelectionCount())});
+document.addEventListener('DOMContentLoaded',()=>{document.body.dataset.publicShell='20260609-public-1';loadCentralLoader();injectProductCss();normalizeHeader();markActiveLinks();setupSearch();setupMobileMenu();setupShare();removeLegacyUi();setTimeout(removeLegacyUi,200);setTimeout(removeLegacyUi,900);setTimeout(removeLegacyUi,1800)});
