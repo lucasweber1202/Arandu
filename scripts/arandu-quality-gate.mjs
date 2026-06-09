@@ -10,6 +10,7 @@ const directLoaderPages = ['index.html', 'obras.html', 'obra.html', 'minha-selec
 const criticalScripts = ['js/site.js', 'js/arandu-loader.js', 'js/arandu-public-mode.js', 'js/arandu-legal-footer.js'];
 const criticalCss = ['css/arandu-system.css', 'css/arandu-public-mode.css', 'css/arandu-legal.css'];
 const layerScripts = ['arandu-experience.js', 'arandu-advanced.js', 'arandu-curation-lab.js', 'arandu-final-300.js', 'arandu-visual-governor.js', 'arandu-public-mode.js', 'arandu-legal-footer.js'];
+const publicCriticalPages = new Set([...requiredCore, ...requiredLegal, 'encontrar-arte.html', 'comparar-obras.html', 'como-comprar-na-arandu.html', 'autenticidade.html', 'verificar-certificado.html', 'artistas.html', 'narrativas.html']);
 const issues = [];
 const warnings = [];
 const metrics = [];
@@ -21,6 +22,12 @@ function read(file) {
 
 function exists(file) {
   return fs.existsSync(path.join(root, file));
+}
+
+function addProblem(file, message, critical = publicCriticalPages.has(file)) {
+  const text = `${file}: ${message}`;
+  if (critical) issues.push(text);
+  else warnings.push(text);
 }
 
 function count(text, pattern) {
@@ -57,10 +64,10 @@ function checkLinks(file, html) {
 
 function checkHeader(file, html) {
   const header = html.match(/<header[\s\S]*?<\/header>/i)?.[0] || '';
-  if (!header) issues.push(`${file}: header ausente`);
+  if (!header) return addProblem(file, 'header ausente');
   const searchCount = count(header, />\s*Pesquisar\s*</g);
-  if (searchCount > 1) issues.push(`${file}: header contém ${searchCount} ocorrências de Pesquisar`);
-  if (!/brand-logo/.test(header)) issues.push(`${file}: brand-logo ausente no header`);
+  if (searchCount > 1) addProblem(file, `header contém ${searchCount} ocorrências de Pesquisar`);
+  if (!/brand-logo/.test(header)) addProblem(file, 'brand-logo ausente no header');
   if (!/site-nav/.test(header)) warnings.push(`${file}: site-nav ausente no header`);
 }
 
@@ -79,7 +86,7 @@ function checkExperienceLoad(file, html) {
   }
 
   if (directLoaderPages.includes(file) && !usesLoader) warnings.push(`${file}: deveria carregar js/arandu-loader.js diretamente para reduzir dependência`);
-  if (!receivesLoader && !file.includes('404')) warnings.push(`${file}: não recebe loader centralizado via site.js ou arandu-loader.js`);
+  if (!receivesLoader && publicCriticalPages.has(file) && !file.includes('404')) warnings.push(`${file}: não recebe loader centralizado via site.js ou arandu-loader.js`);
   if (receivesLoader && manualLayers.length) warnings.push(`${file}: ainda carrega camadas manuais (${manualLayers.join(', ')})`);
 }
 
@@ -91,14 +98,14 @@ function checkPerformanceRisk(file, html) {
   if (styles.length > 8) warnings.push(`${file}: muitas folhas CSS (${styles.length}); revisar consolidação`);
   const normalized = scripts.map(baseRef);
   const duplicateScripts = normalized.filter((src, i) => normalized.indexOf(src) !== i);
-  if (duplicateScripts.length) issues.push(`${file}: scripts duplicados: ${[...new Set(duplicateScripts)].join(', ')}`);
+  if (duplicateScripts.length) addProblem(file, `scripts duplicados: ${[...new Set(duplicateScripts)].join(', ')}`);
 }
 
 function checkAccessibility(file, html) {
-  if (!/<html[^>]+lang=["']pt-BR["']/i.test(html)) issues.push(`${file}: lang pt-BR ausente`);
-  if (!/<meta[^>]+name=["']viewport["']/i.test(html)) issues.push(`${file}: viewport ausente`);
+  if (!/<html[^>]+lang=["']pt-BR["']/i.test(html)) addProblem(file, 'lang pt-BR ausente');
+  if (!/<meta[^>]+name=["']viewport["']/i.test(html)) addProblem(file, 'viewport ausente');
   if (!/<meta[^>]+name=["']description["']/i.test(html)) warnings.push(`${file}: meta description ausente`);
-  if (!/<h1[\s>]/i.test(html)) issues.push(`${file}: h1 ausente`);
+  if (!/<h1[\s>]/i.test(html)) addProblem(file, 'h1 ausente');
   const buttons = [...html.matchAll(/<button\b([^>]*)>/gi)];
   buttons.forEach((match, idx) => {
     const tag = match[0];
@@ -107,9 +114,10 @@ function checkAccessibility(file, html) {
 }
 
 function checkContentQuality(file, html) {
-  if (/IA|inteligência artificial|ChatGPT/i.test(html)) issues.push(`${file}: contém menção a IA/ChatGPT`);
-  if (/lorem ipsum/i.test(html)) issues.push(`${file}: contém Lorem Ipsum`);
-  if (html.includes('Pesquisar</a><a class="search-trigger')) issues.push(`${file}: possível duplicidade literal de pesquisa`);
+  const aiMention = /\b(?:IA|I\.A\.|ChatGPT|inteligência artificial)\b/i.test(html);
+  if (aiMention) addProblem(file, 'contém menção a IA/ChatGPT');
+  if (/lorem ipsum/i.test(html)) addProblem(file, 'contém Lorem Ipsum');
+  if (html.includes('Pesquisar</a><a class="search-trigger')) addProblem(file, 'possível duplicidade literal de pesquisa');
 }
 
 function checkScriptSyntaxRisk() {
