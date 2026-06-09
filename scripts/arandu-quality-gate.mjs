@@ -5,7 +5,7 @@ import { execFileSync } from 'node:child_process';
 const root = process.cwd();
 const htmlFiles = fs.readdirSync(root).filter((file) => file.endsWith('.html')).sort();
 const requiredCore = ['index.html', 'obras.html', 'obra.html', 'minha-selecao.html', 'proposta-curatorial.html', 'contato.html'];
-const loaderPages = ['index.html', 'obras.html', 'obra.html', 'minha-selecao.html'];
+const directLoaderPages = ['index.html', 'obras.html', 'obra.html', 'minha-selecao.html'];
 const criticalScripts = ['js/site.js', 'js/arandu-loader.js'];
 const criticalCss = ['css/arandu-system.css'];
 const layerScripts = ['arandu-experience.js', 'arandu-advanced.js', 'arandu-curation-lab.js', 'arandu-final-300.js', 'arandu-visual-governor.js'];
@@ -65,22 +65,21 @@ function checkHeader(file, html) {
 
 function checkExperienceLoad(file, html) {
   const scripts = attrValues(html, 'script', 'src').map(baseRef);
+  const usesSite = scripts.includes('js/site.js');
   const usesLoader = scripts.includes('js/arandu-loader.js');
+  const receivesLoader = usesLoader || usesSite;
   const manualLayers = scripts.filter((src) => layerScripts.some((layer) => src.endsWith(layer)));
-  loaderStatus.push({ file, usesLoader, manualLayers: manualLayers.length });
+  loaderStatus.push({ file, usesSite, usesLoader, receivesLoader, manualLayers: manualLayers.length });
 
   if (requiredCore.includes(file)) {
-    if (!scripts.includes('js/site.js')) issues.push(`${file}: não carrega js/site.js`);
+    if (!usesSite) issues.push(`${file}: não carrega js/site.js`);
     if (!html.includes('css/arandu-system.css')) issues.push(`${file}: não carrega css/arandu-system.css`);
     if (!html.includes('Pesquisar')) warnings.push(`${file}: sem controle visível de busca`);
   }
 
-  if (loaderPages.includes(file) && !usesLoader) issues.push(`${file}: deveria usar js/arandu-loader.js`);
-  if (usesLoader && manualLayers.length) warnings.push(`${file}: usa loader e ainda carrega camadas manualmente (${manualLayers.join(', ')})`);
-  if (!usesLoader && ['index.html', 'obras.html', 'obra.html', 'minha-selecao.html'].includes(file)) {
-    if (!html.includes('arandu-experience.js')) warnings.push(`${file}: camada arandu-experience não conectada`);
-    if (!html.includes('arandu-curation-lab.js')) warnings.push(`${file}: camada Curation Lab não conectada`);
-  }
+  if (directLoaderPages.includes(file) && !usesLoader) warnings.push(`${file}: deveria carregar js/arandu-loader.js diretamente para reduzir dependência`);
+  if (!receivesLoader && !file.includes('404')) warnings.push(`${file}: não recebe loader centralizado via site.js ou arandu-loader.js`);
+  if (receivesLoader && manualLayers.length) warnings.push(`${file}: ainda carrega camadas manuais (${manualLayers.join(', ')})`);
 }
 
 function checkPerformanceRisk(file, html) {
@@ -134,6 +133,8 @@ function checkCoreFiles() {
   [...criticalScripts, ...criticalCss].forEach((file) => {
     if (!exists(file)) issues.push(`Arquivo crítico ausente: ${file}`);
   });
+  const siteJs = exists('js/site.js') ? read('js/site.js') : '';
+  if (!siteJs.includes('arandu-loader.js')) issues.push('js/site.js: não aciona arandu-loader.js automaticamente');
 }
 
 checkCoreFiles();
@@ -164,7 +165,7 @@ console.log(`Arandu Quality Gate`);
 console.log(`HTML analisados: ${htmlFiles.length}`);
 console.log(`Erros: ${issues.length}`);
 console.log(`Alertas: ${warnings.length}`);
-console.log(`Páginas com loader: ${loaderStatus.filter((item) => item.usesLoader).length}`);
+console.log(`Páginas recebendo loader: ${loaderStatus.filter((item) => item.receivesLoader).length}`);
 if (issues.length) {
   console.error('\nErros críticos:');
   issues.forEach((issue) => console.error(`- ${issue}`));
