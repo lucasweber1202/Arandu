@@ -15,7 +15,8 @@
     "check:links": "node scripts/check-links.mjs",
     "check:production": "node scripts/production-check.mjs",
     "check:quality": "node scripts/arandu-quality-gate.mjs",
-    "check:all": "npm run check && npm run check:links && npm run check:production && npm run check:quality",
+    "check:inventory": "node scripts/page-inventory.mjs",
+    "check:all": "npm run check && npm run check:links && npm run check:production && npm run check:quality && npm run check:inventory",
     "predeploy": "npm run build && npm run check:all"
   },
   "dependencies": {
