@@ -3,9 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": "20.x"
+  },
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
+    "vercel-build": "npm install --include=optional && vite build",
     "preview": "vite preview --host 0.0.0.0",
     "check": "node scripts/check-static.mjs",
     "check:links": "node scripts/check-links.mjs",
