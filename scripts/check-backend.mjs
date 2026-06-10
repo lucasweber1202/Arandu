@@ -11,6 +11,8 @@ const files = [
   'api/certificates.js',
   'api/catalog.js',
   'api/artists.js',
+  'css/arandu-visual-polish.css',
+  'js/arandu-functions.js',
   'docs/supabase-schema.sql',
   'docs/SUPABASE_OPERACAO.md',
   'scripts/seed-supabase.mjs'
@@ -33,6 +35,10 @@ if (!includes('js/artwork_page.js', '/api/catalog')) issues.push('Página da obr
 if (!includes('js/painel-operacional.js', 'arandu.reservations.v1')) issues.push('Painel não lê reservas locais.');
 if (!includes('js/painel-operacional.js', 'arandu.proposals.history.v1')) issues.push('Painel não lê propostas locais.');
 if (!includes('js/site.js', 'proposal-api.js')) warnings.push('site.js não injeta proposal-api.js automaticamente.');
+if (!includes('js/site.js', 'arandu-functions.js')) issues.push('site.js não injeta arandu-functions.js.');
+if (!includes('js/site.js', 'arandu-visual-polish.css')) issues.push('site.js não injeta arandu-visual-polish.css.');
+if (!includes('js/arandu-functions.js', 'arandu.compare.v1')) issues.push('Camada funcional não cria comparação de obras.');
+if (!includes('comparar-obras.html', 'data-compare-runtime')) issues.push('Página de comparação não possui área dinâmica.');
 
 if (!process.env.SUPABASE_URL) warnings.push('SUPABASE_URL ausente. Endpoints funcionarão em modo demo/local.');
 if (!process.env.SUPABASE_ANON_KEY && !process.env.SUPABASE_SERVICE_ROLE_KEY) warnings.push('Chave Supabase ausente. Endpoints funcionarão em modo demo/local.');
