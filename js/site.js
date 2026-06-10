@@ -72,6 +72,11 @@ function loadCentralLoader() {
   injectScriptOnce('js/arandu-loader.js?v=20260610-public-shell-1', 'arandu-loader-js');
 }
 
+function injectPageIntegrations() {
+  if (isInternalPage()) return;
+  if (currentPage() === 'proposta-curatorial.html') injectScriptOnce('js/proposal-api.js?v=20260610-operational-1', 'arandu-proposal-api-js');
+}
+
 function injectProductCss() {
   if (isInternalPage()) return;
   injectCssOnce('css/arandu-architecture.css?v=20260610-public-shell-1', 'arandu-architecture-css');
@@ -196,6 +201,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.body.dataset.publicShell = isInternalPage() ? '20260610-internal-shell-safe' : '20260610-public-shell-1';
   loadCentralLoader();
   injectProductCss();
+  injectPageIntegrations();
   normalizeHeader();
   markActiveLinks();
   setupSearch();
