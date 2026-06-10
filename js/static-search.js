@@ -1,25 +1,29 @@
 const STATIC_SEARCH_KEY = 'arandu.search.recent.v1';
 const FALLBACK_STATIC_INDEX = [
-  { title: 'Encontrar arte', url: 'encontrar-arte.html', type: 'Curadoria', text: 'quiz ambiente orçamento linguagem' },
-  { title: 'Obras', url: 'obras.html', type: 'Acervo', text: 'pintura fotografia escultura' },
-  { title: 'Empresas e arquitetos', url: 'empresas-e-arquitetos.html', type: 'Empresas', text: 'corporativo hotelaria escritório recepção' },
-  { title: 'Minha seleção', url: 'minha-selecao.html', type: 'Seleção', text: 'obras salvas comparar' },
-  { title: 'Contato', url: 'contato.html', type: 'Contato', text: 'falar com curadoria' }
+  { title: 'Comprar arte', url: 'comprar-arte.html', type: 'Compra', text: 'obras disponíveis preço técnica artista reserva curadoria' },
+  { title: 'Explorar obras', url: 'obras.html', type: 'Obras', text: 'catálogo pintura fotografia escultura acervo filtros' },
+  { title: 'Acervo', url: 'acervo.html', type: 'Acervo', text: 'obras artistas trajetória linguagem procedência' },
+  { title: 'Empresas', url: 'empresas.html', type: 'Empresas', text: 'corporativo clínica escritório recepção hotel restaurante' },
+  { title: 'Confiança', url: 'confianca.html', type: 'Confiança', text: 'certificado autenticidade procedência critérios' },
+  { title: 'Narrativa', url: 'narrativa.html', type: 'Editorial', text: 'histórias artistas bastidores textos arte brasileira contemporânea' },
+  { title: 'Contato', url: 'contato.html', type: 'Contato', text: 'falar com curadoria dúvidas compra empresas artistas' }
 ];
 
 const STATIC_SEARCH_SYNONYMS = {
   decoracao: 'casa ambiente interiores parede apartamento sala',
   decoração: 'casa ambiente interiores parede apartamento sala',
   quadro: 'pintura tela obra parede',
-  barato: 'acessível orçamento até 3000 primeira obra',
-  acessivel: 'acessível orçamento até 3000 primeira obra',
-  escritório: 'empresa corporativo recepção arquitetura',
-  escritorio: 'empresa corporativo recepção arquitetura',
-  arquiteto: 'empresas arquitetos interiores briefing',
-  hotel: 'hotelaria empresas hospitalidade',
-  restaurante: 'hospitalidade atmosfera permanência',
+  pintura: 'tela matéria gesto obra artista',
+  fotografia: 'fine art imagem edição limitada primeira aquisição',
+  escultura: 'objeto volume bronze cerâmica aparador presença',
+  escritorio: 'empresa corporativo recepção arquitetura sala reunião',
+  escritório: 'empresa corporativo recepção arquitetura sala reunião',
+  arquiteto: 'empresas arquitetura interiores briefing projeto',
+  hotel: 'hotelaria empresas hospitalidade permanência',
+  restaurante: 'hospitalidade atmosfera permanência experiência',
   certificado: 'autenticidade procedência ficha técnica confiança',
-  iniciante: 'primeira obra guia comprar segurança orçamento'
+  autenticidade: 'certificado autoria procedência confiança',
+  artista: 'trajetória pesquisa linguagem portfólio curadoria'
 };
 
 function normalizeSearch(value) {
@@ -85,7 +89,7 @@ function renderResults(index, query) {
     .slice(0, 18);
 
   if (!scored.length) {
-    target.innerHTML = '<article class="card"><h3>Nenhum resultado encontrado</h3><p>Tente buscar por obra, artista, fotografia, empresa, certificado, orçamento ou primeira obra.</p><div class="page-actions"><a class="cta secondary" href="encontrar-arte.html">Responder ao quiz curatorial</a><a class="cta secondary" href="contato.html">Falar com a curadoria</a></div></article>';
+    target.innerHTML = '<article class="card"><h3>Nenhum resultado encontrado</h3><p>Tente buscar por obra, artista, fotografia, empresa, certificado, acervo ou contato.</p><div class="page-actions"><a class="cta secondary" href="obras.html">Explorar obras</a><a class="cta secondary" href="contato.html">Falar com a curadoria</a></div></article>';
     return;
   }
 
@@ -103,7 +107,7 @@ function renderRecent() {
   const recent = readRecentSearches();
   target.innerHTML = recent.length
     ? recent.map((item) => `<button class="tag" type="button" data-recent-search="${escapeSearchHtml(item)}">${escapeSearchHtml(item)}</button>`).join('')
-    : '<span class="tag">primeira obra</span><span class="tag">fotografia</span><span class="tag">empresa</span><span class="tag">certificado</span>';
+    : '<span class="tag">pintura</span><span class="tag">fotografia</span><span class="tag">empresa</span><span class="tag">certificado</span>';
 }
 
 async function setupStaticSearchPage() {
