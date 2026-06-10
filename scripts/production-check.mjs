@@ -6,7 +6,12 @@ if (!existsSync('assets/logo-arandu.png')) warnings.push('Logo PNG final ainda n
 
 if (existsSync('data/whatsapp-config.js')) {
   const content = readFileSync('data/whatsapp-config.js', 'utf8');
+  const match = content.match(/ARANDU_WHATSAPP_NUMBER\s*=\s*['"]([^'"]*)['"]/);
+  const number = match ? match[1].replace(/\D/g, '') : '';
   if (content.includes('5500000000000')) warnings.push('WhatsApp ainda está com número placeholder.');
+  if (!number || number.length < 12) warnings.push('WhatsApp real ainda não está configurado em data/whatsapp-config.js.');
+} else {
+  warnings.push('Arquivo data/whatsapp-config.js não encontrado.');
 }
 
 if (existsSync('sitemap.xml')) {
@@ -14,6 +19,9 @@ if (existsSync('sitemap.xml')) {
   if (!sitemap.includes('https://')) warnings.push('sitemap.xml ainda usa URLs relativas; atualizar com domínio real antes da produção.');
   ['admin-preview.html', 'demo.html', 'roadmap.html', 'painel-obras.html'].forEach((internal) => {
     if (sitemap.includes(internal)) warnings.push(`Página interna aparece no sitemap público: ${internal}`);
+  });
+  ['obra-estudo-de-solo-04.html', 'obra-sertao-silencioso.html', 'obra-equilibrio-suspenso.html', 'empresas-e-arquitetos.html'].forEach((legacy) => {
+    if (sitemap.includes(legacy)) warnings.push(`Rota antiga aparece no sitemap público: ${legacy}`);
   });
 }
 
