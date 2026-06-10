@@ -25,8 +25,15 @@ if (existsSync('sitemap.xml')) {
   });
 }
 
-if (existsSync('js/forms.js')) warnings.push('Formulários ainda são locais; integrar com backend antes de depender comercialmente.');
-if (existsSync('verificar-certificado.html')) warnings.push('Verificação de certificado ainda é demonstrativa.');
+const requiredApi = ['api/forms.js', 'api/reservations.js', 'api/proposals.js', 'api/certificates.js', 'api/_arandu.js'];
+requiredApi.forEach((file) => { if (!existsSync(file)) warnings.push(`Endpoint operacional ausente: ${file}`); });
+
+if (!existsSync('docs/supabase-schema.sql')) warnings.push('Schema Supabase ainda não existe em docs/supabase-schema.sql.');
+if (existsSync('js/forms.js') && !readFileSync('js/forms.js', 'utf8').includes('/api/forms')) warnings.push('Formulários ainda não apontam para /api/forms.');
+if (existsSync('js/reservation.js') && !readFileSync('js/reservation.js', 'utf8').includes('/api/reservations')) warnings.push('Reservas ainda não apontam para /api/reservations.');
+if (existsSync('verificar-certificado.html') && !readFileSync('verificar-certificado.html', 'utf8').includes('certificate-api.js')) warnings.push('Verificação de certificado ainda não consulta a API pública.');
+if (!process.env.SUPABASE_URL) warnings.push('SUPABASE_URL ainda não está configurado no ambiente de produção.');
+if (!process.env.SUPABASE_ANON_KEY && !process.env.SUPABASE_SERVICE_ROLE_KEY) warnings.push('Chave Supabase ainda não está configurada no ambiente de produção.');
 
 if (warnings.length) {
   console.warn('Atenções antes de produção:');
