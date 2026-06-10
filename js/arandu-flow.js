@@ -1,0 +1,31 @@
+/* Arandu — fluxo guiado do usuário */
+(function(){
+  const SKIP=/^(painel|admin|demo|roadmap|configuracao|login|cadastro|minha-conta)/i;
+  const KEYS={selection:'arandu.selection.v1',compare:'arandu.compare.v1',briefing:'arandu.selection.briefing.v1',reservations:'arandu.reservation.status.v1',proposals:'arandu.proposals.history.v1'};
+  const STEPS=[
+    {id:'discover',label:'Explorar',href:'obras.html'},
+    {id:'select',label:'Selecionar',href:'minha-selecao.html'},
+    {id:'compare',label:'Comparar',href:'comparar-obras.html'},
+    {id:'reserve',label:'Reservar',href:'obras.html'},
+    {id:'proposal',label:'Proposta',href:'proposta-curatorial.html'},
+    {id:'contact',label:'Curadoria',href:'contato.html'}
+  ];
+  function page(){return location.pathname.split('/').pop()||'index.html'}
+  function allowed(){return !SKIP.test(page())&&!document.querySelector('[data-arandu-flow]')}
+  function readArray(key){try{const data=JSON.parse(localStorage.getItem(key)||'[]');return Array.isArray(data)?data:[]}catch{return[]}}
+  function readObject(key){try{return JSON.parse(localStorage.getItem(key)||'{}')}catch{return{}}}
+  function make(tag,cls,text){const el=document.createElement(tag);if(cls)el.className=cls;if(text)el.textContent=text;return el}
+  function counts(){return{selection:readArray(KEYS.selection).length,compare:readArray(KEYS.compare).length,briefing:Object.keys(readObject(KEYS.briefing)).filter(Boolean).length,reservations:readArray(KEYS.reservations).length,proposals:readArray(KEYS.proposals).length}}
+  function completed(){const c=counts();return{discover:true,select:c.selection>0,compare:c.compare>0,reserve:c.reservations>0,proposal:c.proposals>0||page()==='proposta-curatorial.html',contact:false}}
+  function currentStep(){const p=page();if(['obras.html','comprar-arte.html','acervo.html','obra.html','index.html'].includes(p))return'discover';if(p==='minha-selecao.html')return'select';if(p==='comparar-obras.html')return'compare';if(p==='proposta-curatorial.html')return'proposal';if(p==='contato.html')return'contact';return'discover'}
+  function nextAction(){const c=counts();if(c.selection===0)return{title:'Comece escolhendo 2 ou 3 obras.',text:'Salve obras no acervo para construir uma seleção com leitura curatorial.',href:'obras.html',label:'Explorar obras'};if(c.compare===0&&c.selection>1)return{title:'Compare antes de decidir.',text:'Coloque lado a lado técnica, preço, dimensão e leitura de cada obra.',href:'comparar-obras.html',label:'Comparar seleção'};if(c.briefing<2)return{title:'Complete o briefing da seleção.',text:'Ambiente e orçamento ajudam a transformar interesse em proposta consistente.',href:'minha-selecao.html#briefing',label:'Completar briefing'};if(c.reservations===0)return{title:'Registre interesse ou reserva.',text:'A reserva organiza prioridade comercial e evita perder a obra durante a conversa.',href:'obras.html',label:'Ver obras para reservar'};if(c.proposals===0)return{title:'Transforme a seleção em proposta.',text:'Gere um texto comercial para pessoa física, empresa ou arquiteto.',href:'proposta-curatorial.html',label:'Gerar proposta'};return{title:'Leve para a curadoria finalizar.',text:'Com seleção, reserva e proposta, o próximo passo é alinhar disponibilidade e fechamento.',href:'contato.html',label:'Falar com curadoria'}}
+  function stageCard(step,done,current){const a=make('a','arandu-flow-step',step.label);a.href=step.href;a.dataset.step=step.id;if(done)a.dataset.done='true';if(current)a.dataset.current='true';const dot=make('span','arandu-flow-dot',done?'✓':'');a.prepend(dot);return a}
+  function buildStageMap(){const wrap=make('nav','arandu-flow-map');wrap.setAttribute('aria-label','Jornada Arandu');const done=completed();const current=currentStep();STEPS.forEach(function(step){wrap.appendChild(stageCard(step,Boolean(done[step.id]),current===step.id))});return wrap}
+  function buildNext(){const action=nextAction();const box=make('article','arandu-flow-next');box.append(make('p','eyebrow','Próximo passo'),make('h3',null,action.title),make('p',null,action.text));const actions=make('div','page-actions');const a=make('a','cta secondary',action.label);a.href=action.href;actions.appendChild(a);box.appendChild(actions);return box}
+  function buildMetrics(){const c=counts();const row=make('div','arandu-flow-metrics');[['Salvas',c.selection],['Comparadas',c.compare],['Briefing',c.briefing? 'ok':'—'],['Reservas',c.reservations],['Propostas',c.proposals]].forEach(function(pair){const item=make('span');item.append(make('strong',null,String(pair[1])),make('small',null,pair[0]));row.appendChild(item)});return row}
+  function buildConnections(){const p=page();const box=make('div','arandu-flow-links');const links=[];if(p!=='obras.html')links.push(['Voltar ao acervo','obras.html']);if(p!=='minha-selecao.html')links.push(['Minha seleção','minha-selecao.html']);if(p!=='comparar-obras.html')links.push(['Comparar obras','comparar-obras.html']);if(p!=='proposta-curatorial.html')links.push(['Proposta','proposta-curatorial.html']);links.push(['Contato','contato.html']);links.slice(0,5).forEach(function(row){const a=make('a',null,row[0]);a.href=row[1];box.appendChild(a)});return box}
+  function render(){if(!allowed())return;const main=document.querySelector('main');if(!main)return;const section=make('section','arandu-flow-shell');section.dataset.aranduFlow='true';const container=make('div','container');const top=make('div','arandu-flow-head');const copy=make('div');copy.append(make('p','eyebrow','Jornada de compra'),make('h2','section-title','Continue sem perder o fio da curadoria.'));top.append(copy,buildMetrics());container.append(top,buildStageMap(),buildNext(),buildConnections());section.appendChild(container);const firstSection=main.querySelector('section');if(firstSection)firstSection.insertAdjacentElement('afterend',section);else main.prepend(section)}
+  document.addEventListener('arandu:selection-updated',function(){document.querySelector('[data-arandu-flow]')?.remove();setTimeout(render,120)});
+  document.addEventListener('arandu:reservation-status-updated',function(){document.querySelector('[data-arandu-flow]')?.remove();setTimeout(render,120)});
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(render,1000)});
+})();
