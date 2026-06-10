@@ -70,13 +70,24 @@ Concluído na etapa 4:
 6. `comparar-obras.html`, `como-comprar-na-arandu.html` e `encontrar-arte.html` deixaram de carregar `arandu-experience.js` manualmente.
 7. Botões da curadoria guiada em `encontrar-arte.html` receberam `type="button"`.
 
+Concluído na etapa 5:
+
+1. `sitemap.xml` consolidado com arquitetura pública atual e sem rotas antigas prioritárias.
+2. `sitemap-interno.xml` atualizado com URLs absolutas para painel, demo e páginas internas.
+3. `robots.txt` passou a expor apenas o sitemap público e bloquear rotas internas.
+4. WhatsApp centralizado em `data/whatsapp-config.js`, sem número falso de produção.
+5. `whatsapp.js` e `reservation.js` passaram a tratar ausência de número real sem abrir link falso.
+6. `production-check.mjs` passou a validar número real de WhatsApp e rotas antigas no sitemap.
+7. `obra.html`, `obras.html`, `minha-selecao.html` e `proposta-curatorial.html` passaram a carregar a configuração central de WhatsApp.
+8. Landing pages de empresa, apartamento, escritórios, hotéis, restaurantes e recepções foram padronizadas com meta description, navegação final, footer e loader mínimo.
+
 Próximos focos:
 
 1. Consolidar CSS e reduzir dependência de `!important`.
 2. Padronizar definitivamente rotas de obra em páginas antigas remanescentes.
-3. Separar site público, páginas internas e painel no sitemap.
-4. Configurar logo final, WhatsApp real, sitemap e certificados não demonstrativos.
-5. Revisar páginas antigas para redirecionamento, arquivamento ou remoção.
+3. Adicionar logo final em `assets/logo-arandu.png`.
+4. Configurar o WhatsApp real em `data/whatsapp-config.js`.
+5. Evoluir formulários e certificados para backend real.
 
 ## Páginas públicas prioritárias
 
