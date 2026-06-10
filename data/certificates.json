@@ -3,8 +3,9 @@
     "code": "ARD-2026-0001",
     "verification_status": "valid",
     "issued_at": "2026-06-08T12:00:00.000Z",
-    "issued_to": "Comprador demonstrativo",
+    "issued_to": "Registro curatorial interno",
     "artwork_id": "estudo-de-solo-04",
+    "artist_id": "marina-silveira",
     "payload": {
       "title": "Estudo de Solo Nº 04",
       "artist": "Marina Silveira",
@@ -12,15 +13,16 @@
       "dimensions": "120 x 100 cm",
       "edition": "Obra única",
       "year": "2026",
-      "certificate_notes": "Certificado demonstrativo para validação pública do fluxo Arandu."
+      "certificate_notes": "Registro de autoria, técnica, dimensões, imagem e procedência para conferência curatorial."
     }
   },
   {
     "code": "ARD-2026-0002",
     "verification_status": "valid",
     "issued_at": "2026-06-08T12:00:00.000Z",
-    "issued_to": "Empresa demonstrativa",
+    "issued_to": "Registro curatorial interno",
     "artwork_id": "sertao-silencioso",
+    "artist_id": "camila-reboucas",
     "payload": {
       "title": "Sertão Silencioso",
       "artist": "Camila Rebouças",
@@ -28,7 +30,58 @@
       "dimensions": "60 x 90 cm",
       "edition": "Edição limitada",
       "year": "2026",
-      "certificate_notes": "Certificado demonstrativo para ambientes corporativos e consultórios."
+      "certificate_notes": "Registro de edição, impressão e ficha técnica para conferência de procedência."
+    }
+  },
+  {
+    "code": "ARD-2026-0003",
+    "verification_status": "valid",
+    "issued_at": "2026-06-10T12:00:00.000Z",
+    "issued_to": "Registro curatorial interno",
+    "artwork_id": "equilibrio-suspenso",
+    "artist_id": "arthur-davila",
+    "payload": {
+      "title": "Equilíbrio Suspenso",
+      "artist": "Arthur D'Avila",
+      "technique": "Bronze fundido",
+      "dimensions": "45 x 20 cm",
+      "edition": "Obra única",
+      "year": "2025",
+      "certificate_notes": "Registro de objeto escultórico com controle de autoria, materialidade e procedência."
+    }
+  },
+  {
+    "code": "ARD-2026-0004",
+    "verification_status": "under_review",
+    "issued_at": null,
+    "issued_to": "A emitir",
+    "artwork_id": "mapa-de-trama",
+    "artist_id": "beatriz-xakriaba",
+    "payload": {
+      "title": "Mapa de Trama",
+      "artist": "Beatriz Xakriabá",
+      "technique": "Pigmento natural e trama sobre papel",
+      "dimensions": "70 x 100 cm",
+      "edition": "Obra única",
+      "year": "2026",
+      "certificate_notes": "Certificado em revisão para conferência de ficha técnica e imagem final."
+    }
+  },
+  {
+    "code": "ARD-2026-0005",
+    "verification_status": "draft",
+    "issued_at": null,
+    "issued_to": "A emitir",
+    "artwork_id": "horizonte-baixo",
+    "artist_id": "tiago-do-valle",
+    "payload": {
+      "title": "Horizonte Baixo",
+      "artist": "Tiago do Valle",
+      "technique": "Óleo e pigmento sobre linho",
+      "dimensions": "100 x 140 cm",
+      "edition": "Obra única",
+      "year": "2025",
+      "certificate_notes": "Rascunho de certificado aguardando validação curatorial."
     }
   }
 ]
