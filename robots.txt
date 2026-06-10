@@ -1,13 +1,17 @@
 User-agent: *
 Allow: /
+
 Disallow: /admin-preview.html
-Disallow: /painel-obras.html
-Disallow: /painel-artistas.html
-Disallow: /painel-leads.html
-Disallow: /painel-certificados.html
 Disallow: /demo.html
 Disallow: /roadmap.html
 Disallow: /mapa-do-site.html
+Disallow: /configuracao.html
+Disallow: /login.html
+Disallow: /cadastro.html
+Disallow: /minha-conta.html
+Disallow: /painel.html
+Disallow: /painel-*.html
+Disallow: /sitemap-interno.xml
+Disallow: /templates/
 
 Sitemap: https://arandu.vercel.app/sitemap.xml
-Sitemap: https://arandu.vercel.app/sitemap-interno.xml
