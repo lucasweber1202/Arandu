@@ -68,10 +68,12 @@ function injectCssOnce(href, id) {
 }
 
 function loadCentralLoader() {
+  if (isInternalPage()) return;
   injectScriptOnce('js/arandu-loader.js?v=20260610-public-shell-1', 'arandu-loader-js');
 }
 
 function injectProductCss() {
+  if (isInternalPage()) return;
   injectCssOnce('css/arandu-architecture.css?v=20260610-public-shell-1', 'arandu-architecture-css');
   injectCssOnce('css/arandu-clean.css?v=20260610-public-shell-1', 'arandu-clean-css');
 }
@@ -191,7 +193,7 @@ document.addEventListener('input', (event) => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-  document.body.dataset.publicShell = '20260610-public-shell-1';
+  document.body.dataset.publicShell = isInternalPage() ? '20260610-internal-shell-safe' : '20260610-public-shell-1';
   loadCentralLoader();
   injectProductCss();
   normalizeHeader();
