@@ -1,14 +1,27 @@
 /*
   ARANDU — Integração WhatsApp estática
 
-  Não depende de backend. Gera links wa.me com mensagens pré-preenchidas.
-  Para ativar em produção, preencha o número em data/whatsapp-config.js ou edite ARANDU_WHATSAPP_NUMBER.
+  Não depende de backend. Gera links wa.me com mensagens pré-preenchidas quando há número configurado.
+  Para ativar em produção, preencha window.ARANDU_WHATSAPP_NUMBER em data/whatsapp-config.js.
 */
 
-const ARANDU_WHATSAPP_NUMBER = window.ARANDU_WHATSAPP_NUMBER || '5500000000000';
+function getAranduWhatsappNumber() {
+  return String(window.ARANDU_WHATSAPP_NUMBER || '').replace(/\D/g, '');
+}
 
 function buildWhatsappUrl(message) {
-  return `https://wa.me/${ARANDU_WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+  const number = getAranduWhatsappNumber();
+  return number ? `https://wa.me/${number}?text=${encodeURIComponent(message)}` : '';
+}
+
+async function fallbackContact(message) {
+  try {
+    await navigator.clipboard.writeText(message);
+    alert('Mensagem copiada. Envie para a curadoria pela página de contato.');
+  } catch (_) {
+    alert('WhatsApp ainda não configurado. Use a página de contato para falar com a curadoria.');
+  }
+  window.location.href = 'contato.html';
 }
 
 function getSelectionItems() {
@@ -37,12 +50,17 @@ function proposalMessage() {
   return 'Olá, Arandu. Gostaria de revisar uma proposta curatorial para empresa, clínica ou espaço institucional.';
 }
 
-document.addEventListener('click', (event) => {
+document.addEventListener('click', async (event) => {
   const whatsapp = event.target.closest('[data-whatsapp]');
   if (!whatsapp) return;
   event.preventDefault();
   const type = whatsapp.dataset.whatsapp;
   const custom = whatsapp.dataset.message;
   const message = type === 'selection' ? selectionMessage() : type === 'proposal' ? proposalMessage() : (custom || 'Olá, Arandu. Gostaria de falar com a curadoria.');
-  window.open(buildWhatsappUrl(message), '_blank', 'noopener,noreferrer');
+  const url = buildWhatsappUrl(message);
+  if (!url) {
+    await fallbackContact(message);
+    return;
+  }
+  window.open(url, '_blank', 'noopener,noreferrer');
 });
