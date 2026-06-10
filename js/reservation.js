@@ -12,6 +12,19 @@ function reservationMessage(data) {
   return `Solicitação de reserva Arandu\n\nObra: ${data.title}\nArtista: ${data.artist}\nNome: ${data.name || 'não informado'}\nWhatsApp: ${data.whatsapp || 'não informado'}\nPrazo desejado: ${data.deadline || 'não informado'}\nObservações: ${data.notes || 'sem observações'}\nLink: ${data.url || window.location.href}`;
 }
 
+function getConfiguredWhatsappNumber() {
+  return String(window.ARANDU_WHATSAPP_NUMBER || '').replace(/\D/g, '');
+}
+
+async function copyReservationFallback(message, statusTarget) {
+  try {
+    await navigator.clipboard.writeText(message);
+    if (statusTarget) statusTarget.textContent = 'WhatsApp ainda não configurado. Solicitação copiada para envio pela página de contato.';
+  } catch (_) {
+    if (statusTarget) statusTarget.textContent = 'WhatsApp ainda não configurado. Use a página de contato para falar com a curadoria.';
+  }
+}
+
 function openReservationModal(trigger) {
   const modal = document.querySelector('[data-reserve-modal]') || createReservationModal();
   modal.querySelector('[name="title"]').value = trigger.dataset.reserveTitle || trigger.dataset.artworkTitle || 'Obra selecionada';
@@ -66,7 +79,11 @@ document.addEventListener('click', async (event) => {
     event.preventDefault();
     const form = whatsapp.closest('[data-reserve-form]');
     const { message } = await saveReservation(form, false);
-    const phone = window.ARANDU_WHATSAPP_NUMBER || '5500000000000';
+    const phone = getConfiguredWhatsappNumber();
+    if (!phone) {
+      await copyReservationFallback(message, form.querySelector('[data-reserve-status]'));
+      return;
+    }
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
   }
 });
