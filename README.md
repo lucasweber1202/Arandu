@@ -81,13 +81,27 @@ Concluído na etapa 5:
 7. `obra.html`, `obras.html`, `minha-selecao.html` e `proposta-curatorial.html` passaram a carregar a configuração central de WhatsApp.
 8. Landing pages de empresa, apartamento, escritórios, hotéis, restaurantes e recepções foram padronizadas com meta description, navegação final, footer e loader mínimo.
 
+Concluído na etapa 6 — Plataforma v1:
+
+1. Documento estratégico criado em `docs/ARANDU_PLATAFORMA_V1.md`.
+2. Schema Supabase criado em `docs/supabase-schema.sql`.
+3. Validador curatorial criado em `scripts/check-data.mjs`.
+4. `check:all` passou a incluir `check:data`.
+5. Base de artistas expandida para 12 perfis curatoriais.
+6. Base de obras expandida para 20 obras com `artistId` válido.
+7. URLs de obras normalizadas para `obra.html?id=...`.
+8. Certificados reestruturados com vínculos reais de obra e artista.
+9. Busca estática atualizada para o acervo ampliado.
+
 Próximos focos:
 
-1. Consolidar CSS e reduzir dependência de `!important`.
-2. Padronizar definitivamente rotas de obra em páginas antigas remanescentes.
-3. Adicionar logo final em `assets/logo-arandu.png`.
-4. Configurar o WhatsApp real em `data/whatsapp-config.js`.
-5. Evoluir formulários e certificados para backend real.
+1. Conectar formulários ao backend real.
+2. Criar fluxo real de reservas no banco.
+3. Salvar propostas curatoriais no banco.
+4. Gerar certificado público real e removê-lo do modo demonstrativo.
+5. Consolidar CSS e reduzir dependência de `!important`.
+6. Adicionar logo final em `assets/logo-arandu.png`.
+7. Configurar o WhatsApp real em `data/whatsapp-config.js`.
 
 ## Páginas públicas prioritárias
 
