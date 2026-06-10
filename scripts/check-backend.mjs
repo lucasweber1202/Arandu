@@ -13,6 +13,7 @@ const files = [
   'api/artists.js',
   'css/arandu-visual-polish.css',
   'js/arandu-functions.js',
+  'js/arandu-recent.js',
   'docs/supabase-schema.sql',
   'docs/SUPABASE_OPERACAO.md',
   'scripts/seed-supabase.mjs'
@@ -36,8 +37,12 @@ if (!includes('js/painel-operacional.js', 'arandu.reservations.v1')) issues.push
 if (!includes('js/painel-operacional.js', 'arandu.proposals.history.v1')) issues.push('Painel não lê propostas locais.');
 if (!includes('js/site.js', 'proposal-api.js')) warnings.push('site.js não injeta proposal-api.js automaticamente.');
 if (!includes('js/site.js', 'arandu-functions.js')) issues.push('site.js não injeta arandu-functions.js.');
+if (!includes('js/site.js', 'arandu-recent.js')) issues.push('site.js não injeta arandu-recent.js.');
 if (!includes('js/site.js', 'arandu-visual-polish.css')) issues.push('site.js não injeta arandu-visual-polish.css.');
 if (!includes('js/arandu-functions.js', 'arandu.compare.v1')) issues.push('Camada funcional não cria comparação de obras.');
+if (!includes('js/arandu-recent.js', 'arandu.recentlyViewed.v1')) issues.push('Camada de recentes não registra obras vistas.');
+if (!includes('js/selection-tools.js', 'data-share-selection')) issues.push('Minha seleção não possui compartilhamento por link.');
+if (!includes('js/selection-tools.js', 'selectionReadiness')) issues.push('Minha seleção não calcula prontidão de compra.');
 if (!includes('comparar-obras.html', 'data-compare-runtime')) issues.push('Página de comparação não possui área dinâmica.');
 
 if (!process.env.SUPABASE_URL) warnings.push('SUPABASE_URL ausente. Endpoints funcionarão em modo demo/local.');
