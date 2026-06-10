@@ -1,4 +1,5 @@
 const ARANDU_RESERVATIONS_KEY = 'arandu.reservations.v1';
+const ARANDU_RESERVATIONS_API = '/api/reservations';
 
 function readReservations() {
   try { const data = JSON.parse(localStorage.getItem(ARANDU_RESERVATIONS_KEY) || '[]'); return Array.isArray(data) ? data : []; } catch { return []; }
@@ -16,6 +17,27 @@ function getConfiguredWhatsappNumber() {
   return String(window.ARANDU_WHATSAPP_NUMBER || '').replace(/\D/g, '');
 }
 
+function extractArtworkId(data) {
+  if (data.artwork_id || data.artworkId || data.id) return data.artwork_id || data.artworkId || data.id;
+  try {
+    const url = new URL(data.url || window.location.href, window.location.origin);
+    return url.searchParams.get('id') || '';
+  } catch {
+    return '';
+  }
+}
+
+async function sendReservationToApi(data) {
+  const payload = { ...data, artwork_id: extractArtworkId(data) };
+  try {
+    const response = await fetch(ARANDU_RESERVATIONS_API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    const result = await response.json().catch(() => ({}));
+    return { ok: response.ok && result.ok !== false, status: response.status, result };
+  } catch (error) {
+    return { ok: false, status: 0, result: { error: error.message } };
+  }
+}
+
 async function copyReservationFallback(message, statusTarget) {
   try {
     await navigator.clipboard.writeText(message);
@@ -30,6 +52,7 @@ function openReservationModal(trigger) {
   modal.querySelector('[name="title"]').value = trigger.dataset.reserveTitle || trigger.dataset.artworkTitle || 'Obra selecionada';
   modal.querySelector('[name="artist"]').value = trigger.dataset.reserveArtist || trigger.dataset.artworkArtist || 'Artista Arandu';
   modal.querySelector('[name="url"]').value = trigger.dataset.reserveUrl || trigger.dataset.artworkUrl || window.location.href;
+  modal.querySelector('[name="artwork_id"]').value = trigger.dataset.reserveArtwork || trigger.dataset.saveArtwork || trigger.dataset.artworkId || '';
   modal.classList.add('is-open');
 }
 
@@ -39,7 +62,7 @@ function createReservationModal() {
   modal.dataset.reserveModal = 'true';
   modal.innerHTML = `
     <form class="reserve-dialog" data-reserve-form>
-      <header><div><p class="eyebrow">Reserva de obra</p><h2>Solicitar reserva</h2><p>A solicitação fica salva neste navegador e pode ser enviada por WhatsApp.</p></div><button type="button" data-reserve-close aria-label="Fechar">×</button></header>
+      <header><div><p class="eyebrow">Reserva de obra</p><h2>Solicitar reserva</h2><p>A solicitação é registrada pela curadoria quando o banco estiver configurado.</p></div><button type="button" data-reserve-close aria-label="Fechar">×</button></header>
       <input name="title" readonly />
       <input name="artist" readonly />
       <input name="name" placeholder="Seu nome" />
@@ -47,7 +70,8 @@ function createReservationModal() {
       <input name="deadline" placeholder="Prazo desejado de reserva" />
       <textarea name="notes" placeholder="Observações sobre compra, entrega ou proposta"></textarea>
       <input name="url" type="hidden" />
-      <div class="page-actions"><button class="button secondary" type="submit">Salvar e copiar solicitação</button><button class="button secondary" type="button" data-reserve-whatsapp>Enviar WhatsApp</button></div>
+      <input name="artwork_id" type="hidden" />
+      <div class="page-actions"><button class="button secondary" type="submit">Salvar solicitação</button><button class="button secondary" type="button" data-reserve-whatsapp>Enviar WhatsApp</button></div>
       <p data-reserve-status></p>
     </form>`;
   document.body.appendChild(modal);
@@ -60,13 +84,16 @@ function formData(form) {
 
 async function saveReservation(form, copy = true) {
   const data = { id: `reservation_${Date.now()}`, createdAt: new Date().toISOString(), ...formData(form) };
-  writeReservations([...readReservations(), data]);
+  const api = await sendReservationToApi(data);
+  const localRecord = { ...data, api_status: api.status, api_mode: api.result?.mode || (api.ok ? 'stored' : 'local') };
+  writeReservations([...readReservations(), localRecord]);
   const message = reservationMessage(data);
+  const status = form.querySelector('[data-reserve-status]');
   if (copy) {
-    try { await navigator.clipboard.writeText(message); form.querySelector('[data-reserve-status]').textContent = 'Reserva salva e solicitação copiada.'; }
-    catch { form.querySelector('[data-reserve-status]').textContent = 'Reserva salva neste navegador.'; }
+    try { await navigator.clipboard.writeText(message); } catch {}
+    if (status) status.textContent = api.ok ? (api.result?.mode === 'demo' ? 'Reserva preparada e salva neste navegador.' : 'Reserva registrada para a curadoria.') : 'Reserva salva neste navegador; não foi possível registrar agora.';
   }
-  return { data, message };
+  return { data, message, api };
 }
 
 document.addEventListener('click', async (event) => {
@@ -80,10 +107,7 @@ document.addEventListener('click', async (event) => {
     const form = whatsapp.closest('[data-reserve-form]');
     const { message } = await saveReservation(form, false);
     const phone = getConfiguredWhatsappNumber();
-    if (!phone) {
-      await copyReservationFallback(message, form.querySelector('[data-reserve-status]'));
-      return;
-    }
+    if (!phone) { await copyReservationFallback(message, form.querySelector('[data-reserve-status]')); return; }
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
   }
 });
