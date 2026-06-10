@@ -76,6 +76,7 @@ function injectPageIntegrations() {
   if (isInternalPage()) return;
   injectScriptOnce('js/arandu-functions.js?v=20260610-ux-1', 'arandu-functions-js');
   injectScriptOnce('js/arandu-recent.js?v=20260610-ux-1', 'arandu-recent-js');
+  injectScriptOnce('js/arandu-journey.js?v=20260610-ux-1', 'arandu-journey-js');
   if (currentPage() === 'proposta-curatorial.html') injectScriptOnce('js/proposal-api.js?v=20260610-operational-1', 'arandu-proposal-api-js');
 }
 
