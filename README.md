@@ -47,13 +47,26 @@ Concluído na etapa 2:
 7. Header e footer padronizados diretamente no HTML de `narrativa.html`.
 8. Links principais dessas páginas foram alinhados à arquitetura pública final.
 
+Concluído na etapa 3:
+
+1. Header e footer padronizados em `artistas.html`.
+2. Header e footer padronizados em `obra.html`.
+3. Header e footer padronizados em `minha-selecao.html`.
+4. Header e footer padronizados em `proposta-curatorial.html`.
+5. Header e footer padronizados em `contato.html`.
+6. Header e footer padronizados em `certificado-autenticidade.html`.
+7. Header e footer padronizados em `verificar-certificado.html`.
+8. `arandu-loader.js` reduzido a loader mínimo, evitando carregar camadas globais repetidas.
+9. `obra.html` passou a carregar `js/artwork_page.js` diretamente.
+10. Wrapper duplicado `js/artwork-page.js` removido.
+
 Próximos focos:
 
-1. Padronizar `artistas.html`, `obra.html`, `minha-selecao.html`, `proposta-curatorial.html`, `contato.html`, `certificado-autenticidade.html` e `verificar-certificado.html`.
-2. Consolidar CSS e reduzir dependência de `!important`.
-3. Padronizar rotas de obra em `obra.html?id=...`.
-4. Separar definitivamente site público, páginas internas e painel.
-5. Configurar logo final, WhatsApp real, sitemap e certificados não demonstrativos.
+1. Consolidar CSS e reduzir dependência de `!important`.
+2. Padronizar definitivamente rotas de obra em `obra.html?id=...` nos dados e páginas antigas remanescentes.
+3. Separar site público, páginas internas e painel no sitemap.
+4. Configurar logo final, WhatsApp real, sitemap e certificados não demonstrativos.
+5. Revisar páginas antigas para redirecionamento, arquivamento ou remoção.
 
 ## Páginas públicas prioritárias
 
