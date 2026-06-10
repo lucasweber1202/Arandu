@@ -74,6 +74,7 @@ function loadCentralLoader() {
 
 function injectPageIntegrations() {
   if (isInternalPage()) return;
+  injectScriptOnce('js/arandu-functions.js?v=20260610-ux-1', 'arandu-functions-js');
   if (currentPage() === 'proposta-curatorial.html') injectScriptOnce('js/proposal-api.js?v=20260610-operational-1', 'arandu-proposal-api-js');
 }
 
@@ -81,6 +82,7 @@ function injectProductCss() {
   if (isInternalPage()) return;
   injectCssOnce('css/arandu-architecture.css?v=20260610-public-shell-1', 'arandu-architecture-css');
   injectCssOnce('css/arandu-clean.css?v=20260610-public-shell-1', 'arandu-clean-css');
+  injectCssOnce('css/arandu-visual-polish.css?v=20260610-ux-1', 'arandu-visual-polish-css');
 }
 
 function markActiveLinks() {
