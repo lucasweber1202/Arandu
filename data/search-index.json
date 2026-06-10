@@ -1,42 +1,128 @@
 [
-  {"title":"Comece aqui","url":"comece-aqui.html","type":"Entrada","text":"começar comprar primeira obra curadoria caminho empresa artista iniciante"},
-  {"title":"Pesquisar","url":"pesquisa.html","type":"Busca","text":"pesquisa estática obra artista intenção contexto certificado empresa"},
-  {"title":"Encontrar arte","url":"encontrar-arte.html","type":"Curadoria","text":"quiz ambiente sensação orçamento linguagem obra recomendação perfil curatorial salvar sugestão"},
-  {"title":"Minha seleção","url":"minha-selecao.html","type":"Seleção","text":"briefing obras salvas comparar enviar curadoria leitura automática baixar copiar whatsapp ambiente orçamento prazo parede"},
-  {"title":"Proposta curatorial","url":"proposta-curatorial.html","type":"Empresas","text":"proposta automática empresas clínicas consultórios hotelaria restaurantes orçamento obras seleção download whatsapp"},
-  {"title":"Obras","url":"obras.html","type":"Acervo","text":"pintura fotografia escultura objeto matéria memória movimento reflexão casa empresa consultório filtros"},
-  {"title":"Artistas","url":"artistas.html","type":"Trajetórias","text":"artistas trajetória linguagem pesquisa séries evolução acompanhamento"},
-  {"title":"Estudo de Solo Nº 04","url":"obra-estudo-de-solo-04.html","type":"Obra","text":"Marina Silveira pintura óleo tela matéria terra memória ocre barro R$ 4200"},
-  {"title":"Sertão Silencioso","url":"obra-sertao-silencioso.html","type":"Obra","text":"Camila Rebouças fotografia fine art memória sertão primeira obra R$ 2100 entrada clínica consultório acolhimento"},
-  {"title":"Equilíbrio Suspenso","url":"obra-equilibrio-suspenso.html","type":"Obra","text":"Arthur D'Avila escultura bronze matéria tensão volume R$ 8900 presença empresa recepção"},
-  {"title":"Estrutura Urbana","url":"obras.html?q=estrutura%20urbana","type":"Obra","text":"Lucas Mendes objeto madeira acrílica movimento cidade ritmo escritório empresa"},
-  {"title":"Memória de Outono","url":"obras.html?q=memória%20de%20outono","type":"Obra","text":"Marina Silveira pintura acrílica tela matéria densidade memória parede principal"},
-  {"title":"Botânica Efêmera","url":"obras.html?q=botânica%20efêmera","type":"Obra","text":"Camila Rebouças fotografia fine art natureza delicadeza primeira obra R$ 1800 clínica consultório"},
-  {"title":"Empresas, clínicas e espaços","url":"empresas-e-arquitetos.html","type":"Empresas","text":"corporativo hotelaria escritório recepção clínica consultório restaurante proposta briefing espaço institucional"},
-  {"title":"Briefing empresarial","url":"empresas-e-arquitetos.html#briefing","type":"Empresas","text":"empresa clínica consultório espaço recepção escritório hotel restaurante proposta formal orçamento prazo"},
-  {"title":"Arte para clínicas e consultórios","url":"arte-para-clinicas.html","type":"Saúde","text":"clínica consultório acolhimento silêncio confiança saúde recepção paciente sala de espera cuidado"},
-  {"title":"Arte para empresas","url":"arte-para-empresa.html","type":"Empresas","text":"empresa escritório recepção motivar cativar marca cultura identidade"},
-  {"title":"Arte para escritórios","url":"arte-para-escritorios.html","type":"Empresas","text":"escritório sala reunião recepção equipe corporativo concentração repertório"},
-  {"title":"Arte para hotéis","url":"arte-para-hoteis.html","type":"Hospitalidade","text":"hotel pousada hospitalidade hóspede experiência memória permanência"},
-  {"title":"Arte para restaurantes","url":"arte-para-restaurantes.html","type":"Hospitalidade","text":"restaurante café atmosfera permanência identidade experiência"},
-  {"title":"Arte para recepções","url":"arte-para-recepcoes.html","type":"Empresas","text":"recepção impacto inicial acolhimento marca visitante"},
-  {"title":"Verificar certificado","url":"verificar-certificado.html","type":"Certificado","text":"validar código certificado obra autenticidade procedência ARD"},
-  {"title":"Autenticidade","url":"autenticidade.html","type":"Confiança","text":"certificado autoria procedência ficha técnica verificação confiança"},
-  {"title":"Como comprar na Arandu","url":"como-comprar-na-arandu.html","type":"Compra","text":"comprar reserva certificado entrega proposta curadoria pagamento"},
-  {"title":"Como funciona reserva","url":"como-funciona-reserva.html","type":"Compra","text":"reserva obra prazo disponibilidade comprador separar obra"},
-  {"title":"Como precificamos obras","url":"como-precificamos-obras.html","type":"Confiança","text":"preço valor técnica artista trajetória dimensão custo"},
-  {"title":"Prova de confiança","url":"prova-de-confianca.html","type":"Confiança","text":"curadoria certificado transparência processo compra confiança"},
-  {"title":"Guia da primeira obra","url":"guia-primeira-obra.html","type":"Iniciante","text":"primeira obra comprar arte orçamento fotografia pintura certificado segurança"},
-  {"title":"Obras até R$ 3.000","url":"obras-ate-3000.html","type":"Entrada","text":"obra acessível orçamento fotografia primeira compra até 3000 entrada"},
-  {"title":"Comparar obras","url":"comparar-obras.html","type":"Comparação","text":"comparar linguagem preço técnica dimensão presença decisão"},
-  {"title":"Para artistas","url":"para-artistas.html","type":"Artistas","text":"submissão portfólio artista trajetória maturação evolução plataforma critérios curadoria documentação preço coerência"},
-  {"title":"Critérios curatoriais para artistas","url":"para-artistas.html#criterios","type":"Artistas","text":"coerência documentação preço continuidade série ficha técnica imagem aprovação"},
-  {"title":"Submeter portfólio","url":"para-artistas.html#submissao","type":"Artistas","text":"submissão portfólio nome artístico cidade linguagens obras disponíveis faixa de preço"},
-  {"title":"Narrativas","url":"narrativas.html","type":"Editorial","text":"artigos notas curadoria arte brasileira contemporânea editorial"},
-  {"title":"Fotografia brasileira","url":"fotografia-brasileira.html","type":"Linguagem","text":"fotografia brasileira contemporânea fine art narrativa primeira obra"},
-  {"title":"Pintura contemporânea brasileira","url":"pintura-contemporanea-brasileira.html","type":"Linguagem","text":"pintura contemporânea brasileira matéria gesto tela"},
-  {"title":"Escultura brasileira","url":"escultura-brasileira.html","type":"Linguagem","text":"escultura brasileira objeto volume bronze matéria"},
-  {"title":"Arte para casa","url":"arte-para-casa.html","type":"Contexto","text":"casa sala quarto convivência acolhimento memória"},
-  {"title":"Arte para apartamento","url":"arte-para-apartamento.html","type":"Contexto","text":"apartamento escala parede pequena média presença"},
-  {"title":"Contato","url":"contato.html","type":"Contato","text":"falar com curadoria dúvidas compra empresa artista orientação"}
+  {
+    "title": "Comprar arte",
+    "url": "comprar-arte.html",
+    "type": "Compra",
+    "text": "obras disponíveis preço técnica artista reserva curadoria compra assistida"
+  },
+  {
+    "title": "Explorar obras",
+    "url": "obras.html",
+    "type": "Obras",
+    "text": "catálogo acervo pintura fotografia escultura objeto filtros preço técnica artista"
+  },
+  {
+    "title": "Acervo",
+    "url": "acervo.html",
+    "type": "Acervo",
+    "text": "obras artistas trajetória linguagem território procedência curadoria"
+  },
+  {
+    "title": "Artistas",
+    "url": "artistas.html",
+    "type": "Artistas",
+    "text": "artistas brasileiros contemporâneos trajetória pesquisa linguagem território acompanhamento"
+  },
+  {
+    "title": "Empresas",
+    "url": "empresas.html",
+    "type": "Empresas",
+    "text": "arte para empresas escritórios clínicas hotéis restaurantes recepção ambientes corporativos"
+  },
+  {
+    "title": "Confiança",
+    "url": "confianca.html",
+    "type": "Confiança",
+    "text": "autenticidade certificado critérios curatoriais procedência compra reserva transparência"
+  },
+  {
+    "title": "Certificado de autenticidade",
+    "url": "certificado-autenticidade.html",
+    "type": "Certificado",
+    "text": "certificado autenticidade autoria técnica dimensões edição registro procedência"
+  },
+  {
+    "title": "Verificar certificado",
+    "url": "verificar-certificado.html",
+    "type": "Certificado",
+    "text": "validar código certificado obra autenticidade procedência ARD"
+  },
+  {
+    "title": "Narrativa",
+    "url": "narrativa.html",
+    "type": "Editorial",
+    "text": "histórias bastidores artistas exposições textos arte brasileira contemporânea"
+  },
+  {
+    "title": "Contato",
+    "url": "contato.html",
+    "type": "Contato",
+    "text": "falar com curadoria dúvidas compra empresa artista orientação"
+  },
+  {
+    "title": "Para artistas",
+    "url": "para-artistas.html",
+    "type": "Artistas",
+    "text": "submissão portfólio artista trajetória maturação evolução plataforma critérios curadoria documentação"
+  },
+  {
+    "title": "Prospecção de artistas",
+    "url": "prospeccao-artistas.html",
+    "type": "Artistas",
+    "text": "processo curatorial captação artistas acompanhamento documentação portfólio relação"
+  },
+  {
+    "title": "Proposta curatorial",
+    "url": "proposta-curatorial.html",
+    "type": "Empresas",
+    "text": "proposta empresas clínicas consultórios hotelaria restaurantes orçamento obras seleção"
+  },
+  {
+    "title": "Minha seleção",
+    "url": "minha-selecao.html",
+    "type": "Seleção",
+    "text": "obras salvas briefing comparação leitura curatorial reserva whatsapp seleção"
+  },
+  {
+    "title": "Estudo de Solo Nº 04",
+    "url": "obra.html?id=estudo-de-solo-04",
+    "type": "Obra",
+    "text": "Marina Silveira pintura óleo sobre tela matéria terra memória R$ 4200"
+  },
+  {
+    "title": "Sertão Silencioso",
+    "url": "obra.html?id=sertao-silencioso",
+    "type": "Obra",
+    "text": "Camila Rebouças fotografia fine art memória sertão silêncio R$ 2100"
+  },
+  {
+    "title": "Equilíbrio Suspenso",
+    "url": "obra.html?id=equilibrio-suspenso",
+    "type": "Obra",
+    "text": "Arthur D'Avila escultura bronze matéria tensão volume R$ 8900"
+  },
+  {
+    "title": "Estrutura Urbana",
+    "url": "obra.html?id=estrutura-urbana",
+    "type": "Obra",
+    "text": "Lucas Mendes objeto madeira acrílica movimento cidade ritmo escritório empresa"
+  },
+  {
+    "title": "Linha d'Água",
+    "url": "obra.html?id=linha-dagua",
+    "type": "Obra",
+    "text": "João Arapiuns fotografia água rio território hotel restaurante recepção"
+  },
+  {
+    "title": "Política de privacidade",
+    "url": "politica-de-privacidade.html",
+    "type": "Legal",
+    "text": "dados privacidade comunicação curadoria formulários"
+  },
+  {
+    "title": "Termos de uso",
+    "url": "termos-de-uso.html",
+    "type": "Legal",
+    "text": "termos regras uso do site compra reserva artistas"
+  }
 ]
