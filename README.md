@@ -2,7 +2,7 @@
 
 Arandu é uma plataforma de curadoria de arte brasileira contemporânea.
 
-O projeto não deve ser tratado como e-commerce comum. A proposta central é construir uma experiência digital em que compradores, artistas, arquitetos e empresas sejam conduzidos por curadoria, contexto, trajetória e confiança.
+O projeto não deve ser ser tratado como e-commerce comum. A proposta central é construir uma experiência digital em que compradores, artistas, arquitetos e empresas sejam conduzidos por curadoria, contexto, trajetória e confiança.
 
 ## Como rodar
 
@@ -93,15 +93,27 @@ Concluído na etapa 6 — Plataforma v1:
 8. Certificados reestruturados com vínculos reais de obra e artista.
 9. Busca estática atualizada para o acervo ampliado.
 
+Concluído na etapa 7 — Backend operacional v1:
+
+1. Endpoints públicos criados em `api/forms.js`, `api/reservations.js`, `api/proposals.js` e `api/certificates.js`.
+2. Endpoints públicos de leitura criados em `api/catalog.js` e `api/artists.js`.
+3. Helper compartilhado criado em `api/_arandu.js`.
+4. Formulários passam a tentar `/api/forms` antes do fallback local.
+5. Reservas passam a tentar `/api/reservations` antes do fallback local/WhatsApp.
+6. Propostas passam a tentar `/api/proposals` por integração complementar em `js/proposal-api.js`.
+7. Certificados passam a tentar `/api/certificates` antes do JSON local.
+8. Seed Supabase criado em `scripts/seed-supabase.mjs`.
+9. Check de backend criado em `scripts/check-backend.mjs` e incluído no `check:all`.
+10. Guia operacional criado em `docs/SUPABASE_OPERACAO.md`.
+
 Próximos focos:
 
-1. Conectar formulários ao backend real.
-2. Criar fluxo real de reservas no banco.
-3. Salvar propostas curatoriais no banco.
-4. Gerar certificado público real e removê-lo do modo demonstrativo.
-5. Consolidar CSS e reduzir dependência de `!important`.
-6. Adicionar logo final em `assets/logo-arandu.png`.
-7. Configurar o WhatsApp real em `data/whatsapp-config.js`.
+1. Configurar Supabase real e rodar `npm run seed:supabase`.
+2. Testar fluxos reais de formulário, reserva, proposta e certificado.
+3. Evoluir o painel operacional como CRM de curadoria.
+4. Consolidar CSS e reduzir dependência de `!important`.
+5. Adicionar logo final em `assets/logo-arandu.png`.
+6. Configurar o WhatsApp real em `data/whatsapp-config.js`.
 
 ## Páginas públicas prioritárias
 
@@ -126,14 +138,14 @@ Próximos focos:
 ```bash
 npm run check:all
 npm run build
+npm run seed:supabase:dry
 ```
 
 ## Pendências de produção
 
 - Adicionar a logo PNG real.
-- Reduzir estilos inline remanescentes.
-- Ativar formulários com envio real.
+- Configurar Supabase real no ambiente de produção.
+- Popular Supabase com `npm run seed:supabase`.
+- Testar envio real de formulários, reservas, propostas e certificados.
 - Configurar WhatsApp real.
-- Remover conteúdos demonstrativos de certificado.
-- Criar painel administrativo funcional com backend conectado.
-- Evoluir Minha Seleção para banco de dados.
+- Consolidar CSS e reduzir estilos redundantes.
