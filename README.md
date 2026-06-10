@@ -60,10 +60,20 @@ Concluído na etapa 3:
 9. `obra.html` passou a carregar `js/artwork_page.js` diretamente.
 10. Wrapper duplicado `js/artwork-page.js` removido.
 
+Concluído na etapa 4:
+
+1. `artista.html` padronizado com estrutura completa, meta description, header, footer e loader mínimo.
+2. `sobre.html` deixou de usar CSS inline próprio e passou para o padrão visual público.
+3. `colecoes.html` deixou de usar CSS inline próprio e passou para o padrão visual público.
+4. `artista-marina-silveira.html` foi padronizado e seus links de obra migraram para `obra.html?id=...`.
+5. `index.html` e `obras.html` ganharam acesso visível à busca pública.
+6. `comparar-obras.html`, `como-comprar-na-arandu.html` e `encontrar-arte.html` deixaram de carregar `arandu-experience.js` manualmente.
+7. Botões da curadoria guiada em `encontrar-arte.html` receberam `type="button"`.
+
 Próximos focos:
 
 1. Consolidar CSS e reduzir dependência de `!important`.
-2. Padronizar definitivamente rotas de obra em `obra.html?id=...` nos dados e páginas antigas remanescentes.
+2. Padronizar definitivamente rotas de obra em páginas antigas remanescentes.
 3. Separar site público, páginas internas e painel no sitemap.
 4. Configurar logo final, WhatsApp real, sitemap e certificados não demonstrativos.
 5. Revisar páginas antigas para redirecionamento, arquivamento ou remoção.
