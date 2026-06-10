@@ -1,2 +1,36 @@
 /* ARANDU — shell público final */
-.site-header .header-inner{gap:18px!important}.site-header .site-nav{display:flex!important;gap:18px!important;align-items:center!important}.site-header .site-nav a{display:none!important}.site-header .site-nav a[href='pesquisa.html'],.site-header .site-nav a[href='obras.html'],.site-header .site-nav a[href='contato.html']{display:inline-flex!important}.site-header .search-trigger{display:inline-flex!important}.site-header .search-trigger::after{content:''}.site-header .cta{display:inline-flex!important;background:transparent!important;color:var(--clean-red-deep,#571812)!important;border:1px solid rgba(87,24,18,.28)!important}.site-header .cta[href='comprar-arte.html'],.site-header .cta[href='proposta-empresas.html'],.site-header .cta[href='minha-selecao.html']{display:none!important}#mood-bar,#side-inquiry,#sticky-decision-footer,#lead-magnet,#intent-cloud,#buyer-profile,#budget-helper,#command-palette,#copy-journey,#section-index,#compare-tray,#selection-drawer-hint,#recent-intent-cta,#context-ribbon,#intent-score,#session-summary,#keyboard-hint,#last-reserve,#collector-mode,#quiet-mode{display:none!important}.mobile-bottom-nav,.bottom-nav,.floating-cta,.product-mega,.mega-trigger,[data-mobile-bottom-nav],[data-floating-cta],[data-mega-trigger],[data-mega-nav]{display:none!important}@media(max-width:900px){.site-header .site-nav{display:none!important}.site-header .cta{display:none!important}}
+.site-header .header-inner{gap:18px!important}
+.site-header .site-nav{display:flex!important;gap:18px!important;align-items:center!important;justify-content:center!important;min-width:0!important}
+.site-header .site-nav a{display:inline-flex!important;align-items:center!important;white-space:nowrap!important}
+.site-header .header-inner>.search-trigger,.site-header .header-inner>.native-search-link{display:none!important}
+.site-header .cta{display:inline-flex!important}
+body:not([data-path^='painel']) #mood-bar,
+body:not([data-path^='painel']) #side-inquiry,
+body:not([data-path^='painel']) #sticky-decision-footer,
+body:not([data-path^='painel']) #lead-magnet,
+body:not([data-path^='painel']) #intent-cloud,
+body:not([data-path^='painel']) #buyer-profile,
+body:not([data-path^='painel']) #budget-helper,
+body:not([data-path^='painel']) #command-palette,
+body:not([data-path^='painel']) #copy-journey,
+body:not([data-path^='painel']) #section-index,
+body:not([data-path^='painel']) #compare-tray,
+body:not([data-path^='painel']) #selection-drawer-hint,
+body:not([data-path^='painel']) #recent-intent-cta,
+body:not([data-path^='painel']) #context-ribbon,
+body:not([data-path^='painel']) #intent-score,
+body:not([data-path^='painel']) #session-summary,
+body:not([data-path^='painel']) #keyboard-hint,
+body:not([data-path^='painel']) #last-reserve,
+body:not([data-path^='painel']) #collector-mode,
+body:not([data-path^='painel']) #quiet-mode,
+body:not([data-path^='painel']) .mobile-bottom-nav,
+body:not([data-path^='painel']) .bottom-nav,
+body:not([data-path^='painel']) .floating-cta,
+body:not([data-path^='painel']) .product-mega,
+body:not([data-path^='painel']) .mega-trigger,
+body:not([data-path^='painel']) [data-mobile-bottom-nav],
+body:not([data-path^='painel']) [data-floating-cta],
+body:not([data-path^='painel']) [data-mega-trigger],
+body:not([data-path^='painel']) [data-mega-nav]{display:none!important}
+@media(max-width:900px){.site-header .site-nav{display:none!important}.site-header .cta{display:none!important}.site-header .mobile-menu-button{display:inline-flex!important}}
