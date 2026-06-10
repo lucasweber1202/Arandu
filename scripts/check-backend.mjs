@@ -9,7 +9,10 @@ const files = [
   'api/reservations.js',
   'api/proposals.js',
   'api/certificates.js',
+  'api/catalog.js',
+  'api/artists.js',
   'docs/supabase-schema.sql',
+  'docs/SUPABASE_OPERACAO.md',
   'scripts/seed-supabase.mjs'
 ];
 
