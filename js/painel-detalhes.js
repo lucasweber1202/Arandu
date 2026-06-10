@@ -4,6 +4,24 @@ function detailToken() {
   return localStorage.getItem(DETAIL_TOKEN_KEY) || '';
 }
 
+function loadCrmLite() {
+  if (!document.body.dataset.operationalPanel) return;
+  if (!document.getElementById('painel-crm-lite-css')) {
+    const link = document.createElement('link');
+    link.id = 'painel-crm-lite-css';
+    link.rel = 'stylesheet';
+    link.href = 'css/painel-crm-lite.css?v=20260610-crm-1';
+    document.head.appendChild(link);
+  }
+  if (!document.getElementById('painel-crm-lite-js')) {
+    const script = document.createElement('script');
+    script.id = 'painel-crm-lite-js';
+    script.src = 'js/painel-crm-lite.js?v=20260610-crm-1';
+    script.defer = true;
+    document.body.appendChild(script);
+  }
+}
+
 async function detailRequest(url, options = {}) {
   const response = await fetch(url, {
     ...options,
@@ -53,6 +71,16 @@ async function loadOperationalDetails(entityType, entityId) {
   return { notes: notes.items || [], tasks: tasks.items || [] };
 }
 
+function localDetailFallback(entityType, entityId, error) {
+  return `
+    <article class="card">
+      <p class="eyebrow">${entityType}</p>
+      <h3>${entityId}</h3>
+      <p>Banco operacional ainda não configurado para este detalhe. Use o CRM leve do painel para registrar tarefas e notas locais.</p>
+      <small>${error.message}</small>
+    </article>`;
+}
+
 async function openDetail(entityId) {
   const panel = document.body.dataset.operationalPanel;
   const entityType = getPanelEntityType(panel);
@@ -88,7 +116,7 @@ async function openDetail(entityId) {
     drawer.dataset.entityType = entityType;
     drawer.dataset.entityId = entityId;
   } catch (error) {
-    content.innerHTML = `<p>${error.message}</p>`;
+    content.innerHTML = localDetailFallback(entityType, entityId, error);
   }
 }
 
@@ -106,7 +134,7 @@ async function submitNote(form) {
 
 async function submitTask(form) {
   const drawer = ensureDrawer();
-  const entity_type = drawer.dataset.entityType;
+  const entity_type = drawer.datasetEntityType || drawer.dataset.entityType;
   const entity_id = drawer.dataset.entityId;
   const data = Object.fromEntries(new FormData(form).entries());
   await detailRequest('/api/admin/operational?resource=tasks', {
@@ -130,3 +158,5 @@ document.addEventListener('submit', async (event) => {
   if (noteForm) await submitNote(noteForm);
   if (taskForm) await submitTask(taskForm);
 });
+
+document.addEventListener('DOMContentLoaded', loadCrmLite);
