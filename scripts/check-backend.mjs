@@ -12,10 +12,12 @@ const files = [
   'api/catalog.js',
   'api/artists.js',
   'css/arandu-visual-polish.css',
+  'css/arandu-security.css',
   'js/arandu-functions.js',
   'js/arandu-recent.js',
   'js/arandu-journey.js',
   'js/arandu-usability.js',
+  'js/arandu-security-guard.js',
   'docs/supabase-schema.sql',
   'docs/SUPABASE_OPERACAO.md',
   'scripts/seed-supabase.mjs'
@@ -43,6 +45,9 @@ if (!includes('js/site.js', 'arandu-recent.js')) issues.push('site.js não injet
 if (!includes('js/site.js', 'arandu-journey.js')) issues.push('site.js não injeta arandu-journey.js.');
 if (!includes('js/site.js', 'arandu-usability.js')) issues.push('site.js não injeta arandu-usability.js.');
 if (!includes('js/site.js', 'arandu-visual-polish.css')) issues.push('site.js não injeta arandu-visual-polish.css.');
+if (!includes('js/arandu-usability.js', 'arandu-security-guard.js')) issues.push('Camada de segurança leve não é carregada pela usabilidade.');
+if (!includes('js/arandu-security-guard.js', 'arandu.admin.token')) issues.push('Camada de segurança não protege token administrativo local.');
+if (!includes('js/arandu-security-guard.js', 'website')) issues.push('Camada de segurança não adiciona honeypot aos formulários.');
 if (!includes('js/arandu-functions.js', 'arandu.compare.v1')) issues.push('Camada funcional não cria comparação de obras.');
 if (!includes('js/arandu-recent.js', 'arandu.recentlyViewed.v1')) issues.push('Camada de recentes não registra obras vistas.');
 if (!includes('js/arandu-journey.js', 'arandu.proposals.history.v1')) issues.push('Assistente de jornada não acompanha propostas locais.');
