@@ -14,6 +14,7 @@ const files = [
   'css/arandu-visual-polish.css',
   'js/arandu-functions.js',
   'js/arandu-recent.js',
+  'js/arandu-journey.js',
   'docs/supabase-schema.sql',
   'docs/SUPABASE_OPERACAO.md',
   'scripts/seed-supabase.mjs'
@@ -38,9 +39,12 @@ if (!includes('js/painel-operacional.js', 'arandu.proposals.history.v1')) issues
 if (!includes('js/site.js', 'proposal-api.js')) warnings.push('site.js não injeta proposal-api.js automaticamente.');
 if (!includes('js/site.js', 'arandu-functions.js')) issues.push('site.js não injeta arandu-functions.js.');
 if (!includes('js/site.js', 'arandu-recent.js')) issues.push('site.js não injeta arandu-recent.js.');
+if (!includes('js/site.js', 'arandu-journey.js')) issues.push('site.js não injeta arandu-journey.js.');
 if (!includes('js/site.js', 'arandu-visual-polish.css')) issues.push('site.js não injeta arandu-visual-polish.css.');
 if (!includes('js/arandu-functions.js', 'arandu.compare.v1')) issues.push('Camada funcional não cria comparação de obras.');
 if (!includes('js/arandu-recent.js', 'arandu.recentlyViewed.v1')) issues.push('Camada de recentes não registra obras vistas.');
+if (!includes('js/arandu-journey.js', 'arandu.proposals.history.v1')) issues.push('Assistente de jornada não acompanha propostas locais.');
+if (!includes('css/arandu-visual-polish.css', 'arandu-journey-panel')) issues.push('Camada visual não estiliza assistente de jornada.');
 if (!includes('js/selection-tools.js', 'data-share-selection')) issues.push('Minha seleção não possui compartilhamento por link.');
 if (!includes('js/selection-tools.js', 'selectionReadiness')) issues.push('Minha seleção não calcula prontidão de compra.');
 if (!includes('comparar-obras.html', 'data-compare-runtime')) issues.push('Página de comparação não possui área dinâmica.');
