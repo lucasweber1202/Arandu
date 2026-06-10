@@ -28,7 +28,7 @@ npm run dev
 
 A primeira frente de limpeza prioriza a experiência pública antes de novas funcionalidades.
 
-Concluído nesta etapa:
+Concluído na etapa 1:
 
 1. Navegação pública unificada em torno de `Comprar arte`, `Acervo`, `Empresas`, `Confiança`, `Narrativa` e `Explorar`.
 2. Proteção para páginas internas, evitando que painel/admin recebam a navegação pública por acidente.
@@ -36,9 +36,20 @@ Concluído nesta etapa:
 4. Página `pesquisa.html` atualizada para a nova arquitetura visual e textual.
 5. Camada `arandu-architecture.js` tornou-se menos agressiva, removendo ruídos por seletor e não mais por termos amplos como orçamento.
 
+Concluído na etapa 2:
+
+1. Header e footer padronizados diretamente no HTML de `index.html`.
+2. Header e footer padronizados diretamente no HTML de `comprar-arte.html`.
+3. Header e footer padronizados diretamente no HTML de `acervo.html`.
+4. Header e footer padronizados diretamente no HTML de `obras.html`.
+5. Header e footer padronizados diretamente no HTML de `empresas.html`.
+6. Header e footer padronizados diretamente no HTML de `confianca.html`.
+7. Header e footer padronizados diretamente no HTML de `narrativa.html`.
+8. Links principais dessas páginas foram alinhados à arquitetura pública final.
+
 Próximos focos:
 
-1. Padronizar headers e footers diretamente no HTML das páginas públicas.
+1. Padronizar `artistas.html`, `obra.html`, `minha-selecao.html`, `proposta-curatorial.html`, `contato.html`, `certificado-autenticidade.html` e `verificar-certificado.html`.
 2. Consolidar CSS e reduzir dependência de `!important`.
 3. Padronizar rotas de obra em `obra.html?id=...`.
 4. Separar definitivamente site público, páginas internas e painel.
