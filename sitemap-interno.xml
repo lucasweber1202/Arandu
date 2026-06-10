@@ -1,11 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>/mapa-do-site.html</loc></url>
-  <url><loc>/demo.html</loc></url>
-  <url><loc>/roadmap.html</loc></url>
-  <url><loc>/admin-preview.html</loc></url>
-  <url><loc>/painel-obras.html</loc></url>
-  <url><loc>/painel-artistas.html</loc></url>
-  <url><loc>/painel-leads.html</loc></url>
-  <url><loc>/painel-certificados.html</loc></url>
+  <url><loc>https://arandu.vercel.app/mapa-do-site.html</loc></url>
+  <url><loc>https://arandu.vercel.app/demo.html</loc></url>
+  <url><loc>https://arandu.vercel.app/roadmap.html</loc></url>
+  <url><loc>https://arandu.vercel.app/admin-preview.html</loc></url>
+  <url><loc>https://arandu.vercel.app/painel.html</loc></url>
+  <url><loc>https://arandu.vercel.app/painel-obras.html</loc></url>
+  <url><loc>https://arandu.vercel.app/painel-artistas.html</loc></url>
+  <url><loc>https://arandu.vercel.app/painel-leads.html</loc></url>
+  <url><loc>https://arandu.vercel.app/painel-certificados.html</loc></url>
+  <url><loc>https://arandu.vercel.app/painel-propostas.html</loc></url>
+  <url><loc>https://arandu.vercel.app/painel-reservas.html</loc></url>
+  <url><loc>https://arandu.vercel.app/painel-qualidade.html</loc></url>
 </urlset>
