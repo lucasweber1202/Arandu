@@ -7,9 +7,9 @@ const htmlFiles = fs.readdirSync(root).filter((file) => file.endsWith('.html')).
 const requiredCore = ['index.html', 'obras.html', 'obra.html', 'minha-selecao.html', 'proposta-curatorial.html', 'contato.html'];
 const requiredLegal = ['termos-de-uso.html', 'politica-de-privacidade.html', 'compra-reserva-reembolso.html', 'politica-para-artistas.html', 'certificado-autenticidade.html'];
 const directLoaderPages = ['index.html', 'obras.html', 'obra.html', 'minha-selecao.html'];
-const criticalScripts = ['js/site.js', 'js/arandu-loader.js', 'js/arandu-public-mode.js', 'js/arandu-legal-footer.js'];
-const criticalCss = ['css/arandu-system.css', 'css/arandu-public-mode.css', 'css/arandu-legal.css'];
-const layerScripts = ['arandu-experience.js', 'arandu-advanced.js', 'arandu-curation-lab.js', 'arandu-final-300.js', 'arandu-visual-governor.js', 'arandu-public-mode.js', 'arandu-legal-footer.js'];
+const criticalScripts = ['js/site.js', 'js/arandu-loader.js', 'js/arandu-architecture.js'];
+const criticalCss = ['css/arandu-system.css', 'css/arandu-public-shell.css', 'css/arandu-architecture.css', 'css/arandu-clean.css', 'css/arandu-legal.css'];
+const legacyLayerScripts = ['arandu-experience.js', 'arandu-advanced.js', 'arandu-curation-lab.js', 'arandu-final-300.js', 'arandu-visual-governor.js', 'arandu-public-mode.js', 'arandu-legal-footer.js'];
 const publicCriticalPages = new Set([...requiredCore, ...requiredLegal, 'encontrar-arte.html', 'comparar-obras.html', 'como-comprar-na-arandu.html', 'autenticidade.html', 'verificar-certificado.html', 'artistas.html', 'narrativas.html']);
 const issues = [];
 const warnings = [];
@@ -76,7 +76,7 @@ function checkExperienceLoad(file, html) {
   const usesSite = scripts.includes('js/site.js');
   const usesLoader = scripts.includes('js/arandu-loader.js');
   const receivesLoader = usesLoader || usesSite;
-  const manualLayers = scripts.filter((src) => layerScripts.some((layer) => src.endsWith(layer)));
+  const manualLayers = scripts.filter((src) => legacyLayerScripts.some((layer) => src.endsWith(layer)));
   loaderStatus.push({ file, usesSite, usesLoader, receivesLoader, manualLayers: manualLayers.length });
 
   if (requiredCore.includes(file)) {
@@ -87,7 +87,7 @@ function checkExperienceLoad(file, html) {
 
   if (directLoaderPages.includes(file) && !usesLoader) warnings.push(`${file}: deveria carregar js/arandu-loader.js diretamente para reduzir dependência`);
   if (!receivesLoader && publicCriticalPages.has(file) && !file.includes('404')) warnings.push(`${file}: não recebe loader centralizado via site.js ou arandu-loader.js`);
-  if (receivesLoader && manualLayers.length) warnings.push(`${file}: ainda carrega camadas manuais (${manualLayers.join(', ')})`);
+  if (receivesLoader && manualLayers.length) warnings.push(`${file}: ainda carrega camadas manuais legadas (${manualLayers.join(', ')})`);
 }
 
 function checkPerformanceRisk(file, html) {
@@ -130,11 +130,11 @@ function checkScriptSyntaxRisk() {
     } catch (error) {
       issues.push(`${rel}: erro de sintaxe JavaScript (${String(error.stderr || error.message).split('\n')[0]})`);
     }
-    if (/\btype\s*=\s*['"]button['"]/.test(text) && !/\.type\s*=\s*['"]button['"]/.test(text)) {
+    if (/^\s*type\s*=\s*['"]button['"]/m.test(text) && !/\.type\s*=\s*['"]button['"]/.test(text)) {
       warnings.push(`${rel}: possível atribuição global type='button'; usar element.type='button'`);
     }
     if (count(text, /setInterval\(/g) > 3) warnings.push(`${rel}: muitos setInterval; revisar performance`);
-    if (/innerHTML\s*=/.test(text) && !/escapeHtml|textContent/.test(text)) warnings.push(`${rel}: usa innerHTML; revisar conteúdo dinâmico`);
+    if (/innerHTML\s*=/.test(text) && !/escape[A-Za-z]*Html|textContent/.test(text)) warnings.push(`${rel}: usa innerHTML; revisar conteúdo dinâmico`);
   });
 }
 
@@ -145,10 +145,8 @@ function checkCoreFiles() {
   const siteJs = exists('js/site.js') ? read('js/site.js') : '';
   const loaderJs = exists('js/arandu-loader.js') ? read('js/arandu-loader.js') : '';
   if (!siteJs.includes('arandu-loader.js')) issues.push('js/site.js: não aciona arandu-loader.js automaticamente');
-  if (!loaderJs.includes('arandu-public-mode.js')) issues.push('js/arandu-loader.js: não carrega arandu-public-mode.js');
-  if (!loaderJs.includes('arandu-public-mode.css')) issues.push('js/arandu-loader.js: não carrega arandu-public-mode.css');
-  if (!loaderJs.includes('arandu-legal-footer.js')) issues.push('js/arandu-loader.js: não carrega arandu-legal-footer.js');
-  if (!loaderJs.includes('arandu-legal.css')) issues.push('js/arandu-loader.js: não carrega arandu-legal.css');
+  if (!loaderJs.includes('arandu-public-shell.css')) issues.push('js/arandu-loader.js: não carrega arandu-public-shell.css');
+  if (!loaderJs.includes('arandu-architecture.js')) issues.push('js/arandu-loader.js: não carrega arandu-architecture.js');
 }
 
 checkCoreFiles();
