@@ -4,19 +4,81 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Fale com a curadoria Arandu sobre obras, artistas, certificado, orçamento e escolha de arte." />
-  <title>Comunicação — Arandu</title>
+  <title>Contato — Arandu</title>
   <link rel="stylesheet" href="css/arandu-system.css?v=20260608" />
   <link rel="stylesheet" href="css/arandu-product.css?v=20260608" />
   <link rel="stylesheet" href="css/arandu-marketplace.css?v=lovable-4" />
+  <link rel="stylesheet" href="css/arandu-architecture.css?v=20260610-public-shell-1" />
+  <link rel="stylesheet" href="css/arandu-clean.css?v=20260610-public-shell-1" />
 </head>
-<body class="lovable-page contact-page">
-  <header class="site-header"><div class="container header-inner"><a class="brand-logo" href="index.html">Arandu</a><nav class="site-nav"><a href="obras.html">Obras</a><a href="artistas.html">Artistas</a><a href="narrativas.html">Narrativas</a><a href="contato.html">Comunicação</a></nav><a class="cta" href="minha-selecao.html">Minha seleção</a></div></header>
+<body class="lovable-page contact-page architecture-clean">
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand-logo" href="index.html">Arandu</a>
+      <nav class="site-nav">
+        <a href="comprar-arte.html">Comprar arte</a>
+        <a href="acervo.html">Acervo</a>
+        <a href="empresas.html">Empresas</a>
+        <a href="confianca.html">Confiança</a>
+        <a href="narrativa.html">Narrativa</a>
+        <a href="obras.html">Explorar</a>
+      </nav>
+      <a class="cta" href="contato.html">Falar com a curadoria</a>
+    </div>
+  </header>
   <main>
-    <section class="contact-gallery-hero"><div class="container contact-gallery-grid"><div><p class="eyebrow">Comunicação</p><h1 class="title">Uma conversa antes da compra.</h1><p class="lead short-lead">Tire dúvidas sobre obra, artista, escala, certificado, reserva ou proposta para espaço.</p><div class="page-actions"><a class="cta" href="#formulario">Falar com curadoria</a><a class="cta secondary" href="minha-selecao.html">Enviar seleção</a></div></div><div class="contact-object"><span>Curadoria</span><strong>Vamos olhar juntos?</strong></div></div></section>
-    <section class="experience-rail"><div class="container rail-grid"><a href="obras.html"><span>01</span>Vi uma obra</a><a href="encontrar-arte.html"><span>02</span>Quero ajuda</a><a href="autenticidade.html"><span>03</span>Quero segurança</a><a href="empresas-e-arquitetos.html"><span>04</span>Sou empresa</a></div></section>
-    <section class="section section-muted" id="formulario"><div class="container briefing-gallery"><div><p class="eyebrow">Como respondemos</p><h2 class="section-title">Sem pressão. Com contexto.</h2><p class="lead">A curadoria entende intenção, espaço, orçamento e prazo antes de sugerir uma obra ou caminho de compra.</p></div><form class="form-card" data-form-type="duvida-curadoria"><h3>Falar com a curadoria</h3><input name="nome" placeholder="Nome" required /><input name="email" placeholder="Email" /><input name="whatsapp" placeholder="WhatsApp" required /><select name="motivo" required><option value="">Sobre o que você quer falar?</option><option>Dúvida sobre uma obra</option><option>Ajuda para escolher</option><option>Certificado e autenticidade</option><option>Entrega e logística</option><option>Orçamento</option><option>Sou artista</option><option>Sou empresa</option></select><input name="orcamento" placeholder="Orçamento aproximado, se houver" /><textarea name="mensagem" placeholder="Conte sua dúvida ou intenção de compra" required></textarea><button type="submit">Enviar mensagem</button></form></div></section>
+    <section class="rect-hero">
+      <div class="container rect-hero-grid">
+        <div>
+          <p class="eyebrow">Contato</p>
+          <h1 class="title">Uma conversa antes da compra.</h1>
+          <p class="lead">Tire dúvidas sobre obra, artista, escala, certificado, reserva ou proposta para espaço.</p>
+          <div class="page-actions"><a class="cta" href="#formulario">Falar com curadoria</a><a class="cta secondary" href="minha-selecao.html">Enviar seleção</a></div>
+        </div>
+        <div class="rect-frame"><div class="rect-block tall red"></div><div class="rect-block green"></div><div class="rect-block dark"></div></div>
+      </div>
+    </section>
+    <section class="clean-section section-muted" id="formulario">
+      <div class="container briefing-gallery">
+        <div>
+          <p class="eyebrow">Como respondemos</p>
+          <h2 class="section-title">Sem pressão. Com contexto.</h2>
+          <p class="lead">A curadoria entende intenção, espaço, orçamento e prazo antes de sugerir uma obra ou caminho de compra.</p>
+          <div class="page-actions"><a class="cta secondary" href="obras.html">Ver obras</a><a class="cta secondary" href="confianca.html">Entender confiança</a></div>
+        </div>
+        <form class="form-card" data-form-type="duvida-curadoria">
+          <h3>Falar com a curadoria</h3>
+          <input name="nome" placeholder="Nome" required />
+          <input name="email" placeholder="Email" />
+          <input name="whatsapp" placeholder="WhatsApp" required />
+          <select name="motivo" required>
+            <option value="">Sobre o que você quer falar?</option>
+            <option>Dúvida sobre uma obra</option>
+            <option>Ajuda para escolher</option>
+            <option>Certificado e autenticidade</option>
+            <option>Entrega e logística</option>
+            <option>Orçamento</option>
+            <option>Sou artista</option>
+            <option>Sou empresa</option>
+          </select>
+          <input name="orcamento" placeholder="Orçamento aproximado, se houver" />
+          <textarea name="mensagem" placeholder="Conte sua dúvida ou intenção de compra" required></textarea>
+          <button type="submit">Enviar mensagem</button>
+        </form>
+      </div>
+    </section>
   </main>
-  <footer class="site-footer"><div class="container footer-grid"><div><h2>Arandu</h2><p>Comunicação direta com a curadoria para comprar melhor.</p></div><div><p>Pesquisar</p><a href="obras.html">Obras</a><a href="artistas.html">Artistas</a><a href="narrativas.html">Narrativas</a></div><div><p>Experiência</p><a href="encontrar-arte.html">Curadoria guiada</a><a href="minha-selecao.html">Seleção</a><a href="proposta-curatorial.html">Proposta</a></div><div><p>Confiança</p><a href="autenticidade.html">Autenticidade</a><a href="verificar-certificado.html">Certificado</a></div></div></footer>
-  <script src="js/site.js?v=20260608"></script><script src="js/forms.js"></script><script src="js/selection.js"></script>
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div><h2>Arandu</h2><p>Arte brasileira contemporânea com curadoria, território e procedência.</p></div>
+      <div><p>Comprar</p><a href="comprar-arte.html">Comprar arte</a><a href="obras.html">Explorar obras</a><a href="minha-selecao.html">Minha seleção</a></div>
+      <div><p>Acervo</p><a href="acervo.html">Obras e artistas</a><a href="artistas.html">Artistas</a><a href="para-artistas.html">Para artistas</a></div>
+      <div><p>Confiança</p><a href="confianca.html">Critérios</a><a href="verificar-certificado.html">Verificar certificado</a><a href="contato.html">Contato</a></div>
+    </div>
+  </footer>
+  <script src="js/site.js?v=20260610-public-shell-1"></script>
+  <script src="js/arandu-loader.js?v=20260610-minimal-1"></script>
+  <script src="js/forms.js"></script>
+  <script src="js/selection.js"></script>
 </body>
 </html>
