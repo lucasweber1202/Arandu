@@ -28,6 +28,10 @@ if (!includes('js/forms.js', '/api/forms')) issues.push('js/forms.js não aponta
 if (!includes('js/reservation.js', '/api/reservations')) issues.push('js/reservation.js não aponta para /api/reservations.');
 if (!includes('js/proposal-api.js', '/api/proposals')) issues.push('js/proposal-api.js não aponta para /api/proposals.');
 if (!includes('js/certificates.js', '/api/certificates')) issues.push('js/certificates.js não consulta /api/certificates.');
+if (!includes('js/catalog-filters.js', '/api/catalog')) issues.push('Catálogo público não consulta /api/catalog.');
+if (!includes('js/artwork_page.js', '/api/catalog')) issues.push('Página da obra não consulta /api/catalog.');
+if (!includes('js/painel-operacional.js', 'arandu.reservations.v1')) issues.push('Painel não lê reservas locais.');
+if (!includes('js/painel-operacional.js', 'arandu.proposals.history.v1')) issues.push('Painel não lê propostas locais.');
 if (!includes('js/site.js', 'proposal-api.js')) warnings.push('site.js não injeta proposal-api.js automaticamente.');
 
 if (!process.env.SUPABASE_URL) warnings.push('SUPABASE_URL ausente. Endpoints funcionarão em modo demo/local.');
