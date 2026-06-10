@@ -106,11 +106,20 @@ Concluído na etapa 7 — Backend operacional v1:
 9. Check de backend criado em `scripts/check-backend.mjs` e incluído no `check:all`.
 10. Guia operacional criado em `docs/SUPABASE_OPERACAO.md`.
 
+Concluído na etapa 8 — Painel operacional v2:
+
+1. `obras.html` e `obra.html` passam a tentar `/api/catalog` antes do JSON local.
+2. O painel de leads lê registros locais criados pelos formulários.
+3. O painel de reservas lê solicitações locais criadas pelo fluxo de reserva.
+4. O painel de propostas lê propostas locais criadas pela integração de proposta.
+5. O painel mantém filtros, status local, exportação CSV e métricas por status.
+6. O `check:backend` valida catálogo API, página de obra API, reservas locais e propostas locais.
+
 Próximos focos:
 
 1. Configurar Supabase real e rodar `npm run seed:supabase`.
 2. Testar fluxos reais de formulário, reserva, proposta e certificado.
-3. Evoluir o painel operacional como CRM de curadoria.
+3. Evoluir o painel para atualizar status diretamente no banco.
 4. Consolidar CSS e reduzir dependência de `!important`.
 5. Adicionar logo final em `assets/logo-arandu.png`.
 6. Configurar o WhatsApp real em `data/whatsapp-config.js`.
