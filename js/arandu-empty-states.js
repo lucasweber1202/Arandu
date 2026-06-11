@@ -1,0 +1,13 @@
+/* Arandu — estados vazios essenciais */
+(function(){
+  const SKIP=/^(painel|admin|demo|roadmap|configuracao|login|cadastro|minha-conta)/i;
+  function page(){return location.pathname.split('/').pop()||'index.html'}
+  function allowed(){return !SKIP.test(page())&&!document.querySelector('[data-empty-state-guide]')}
+  function readArray(key){try{const data=JSON.parse(localStorage.getItem(key)||'[]');return Array.isArray(data)?data:[]}catch{return[]}}
+  function readObject(key){try{return JSON.parse(localStorage.getItem(key)||'{}')}catch{return{}}}
+  function make(tag,cls,text){const el=document.createElement(tag);if(cls)el.className=cls;if(text)el.textContent=text;return el}
+  function data(){const p=page();const selection=readArray('arandu.selection.v1').length;const compare=readArray('arandu.compare.v1').length;const briefing=Object.keys(readObject('arandu.selection.briefing.v1')).length;if(p==='minha-selecao.html'&&selection===0)return['Seleção vazia','Sua seleção ainda não tem obras.','Comece salvando obras no acervo. Depois, esta página vira seu espaço de leitura curatorial.','Explorar obras','obras.html'];if(p==='comparar-obras.html'&&compare===0)return['Comparação vazia','Nenhuma obra foi adicionada à comparação.','Use a comparação quando estiver em dúvida entre duas ou mais opções.','Ir ao acervo','obras.html'];if(p==='proposta-curatorial.html'&&selection===0)return['Proposta sem seleção','Escolha obras antes de gerar a proposta.','A proposta fica mais forte quando parte de uma seleção real.','Escolher obras','obras.html'];if(p==='proposta-curatorial.html'&&briefing<2)return['Briefing incompleto','Complete ambiente e orçamento antes da proposta.','Essas informações tornam o resumo comercial mais profissional.','Completar briefing','minha-selecao.html#briefing'];return null}
+  function render(){if(!allowed())return;const d=data();if(!d)return;const main=document.querySelector('main');if(!main)return;const section=make('section','arandu-empty-state');section.dataset.emptyStateGuide='true';const container=make('div','container');const card=make('article','card arandu-empty-card');card.append(make('p','eyebrow',d[0]),make('h2',null,d[1]),make('p',null,d[2]));const actions=make('div','page-actions');const a=make('a','cta',d[3]);a.href=d[4];actions.appendChild(a);card.appendChild(actions);container.appendChild(card);section.appendChild(container);const first=main.querySelector('section');if(first)first.insertAdjacentElement('afterend',section);else main.prepend(section)}
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(render,900)});
+  document.addEventListener('arandu:selection-updated',function(){document.querySelector('[data-empty-state-guide]')?.remove();setTimeout(render,120)});
+})();
