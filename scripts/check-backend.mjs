@@ -11,6 +11,7 @@ const files = [
   'api/certificates.js',
   'api/catalog.js',
   'api/artists.js',
+  'api/admin.js',
   'css/arandu-visual-polish.css',
   'css/arandu-security.css',
   'css/arandu-flow.css',
@@ -41,6 +42,10 @@ if (!includes('js/catalog-filters.js', '/api/catalog')) issues.push('Catálogo p
 if (!includes('js/artwork_page.js', '/api/catalog')) issues.push('Página da obra não consulta /api/catalog.');
 if (!includes('js/painel-operacional.js', 'arandu.reservations.v1')) issues.push('Painel não lê reservas locais.');
 if (!includes('js/painel-operacional.js', 'arandu.proposals.history.v1')) issues.push('Painel não lê propostas locais.');
+if (!includes('js/painel-operacional.js', '/api/admin')) issues.push('Painel operacional não consulta /api/admin.');
+if (!includes('api/admin.js', 'ARANDU_ADMIN_TOKEN')) issues.push('API administrativa não exige ARANDU_ADMIN_TOKEN.');
+if (!includes('api/admin.js', 'PATCH')) issues.push('API administrativa não atualiza status por PATCH.');
+if (!includes('api/admin.js', 'v_artworks_full')) issues.push('API administrativa não usa a view completa de obras.');
 if (!includes('js/site.js', 'proposal-api.js')) warnings.push('site.js não injeta proposal-api.js automaticamente.');
 if (!includes('js/site.js', 'arandu-functions.js')) issues.push('site.js não injeta arandu-functions.js.');
 if (!includes('js/site.js', 'arandu-recent.js')) issues.push('site.js não injeta arandu-recent.js.');
@@ -68,6 +73,7 @@ if (!includes('comparar-obras.html', 'data-compare-runtime')) issues.push('Pági
 if (!process.env.SUPABASE_URL) warnings.push('SUPABASE_URL ausente. Endpoints funcionarão em modo demo/local.');
 if (!process.env.SUPABASE_ANON_KEY && !process.env.SUPABASE_SERVICE_ROLE_KEY) warnings.push('Chave Supabase ausente. Endpoints funcionarão em modo demo/local.');
 if (process.env.SUPABASE_ANON_KEY && !process.env.SUPABASE_SERVICE_ROLE_KEY) warnings.push('Apenas SUPABASE_ANON_KEY configurada. Para seed e operações administrativas, use SERVICE_ROLE com cuidado no ambiente servidor.');
+if (!process.env.ARANDU_ADMIN_TOKEN) warnings.push('ARANDU_ADMIN_TOKEN ausente. O painel administrativo continuará em modo local/demo.');
 
 console.log('Arandu Backend Check');
 console.log(`Erros: ${issues.length}`);
