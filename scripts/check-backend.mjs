@@ -13,6 +13,7 @@ const files = [
   'api/artists.js',
   'api/admin.js',
   'api/operational.js',
+  'api/selections.js',
   'api/dashboard.js',
   'api/auth/_auth.js',
   'api/auth/session.js',
@@ -54,6 +55,9 @@ if (!includes('js/painel-detalhes.js', '/api/operational')) issues.push('Drawer 
 if (!includes('api/operational.js', 'crm_notes')) issues.push('API operacional não grava notas de CRM.');
 if (!includes('api/operational.js', 'tasks')) issues.push('API operacional não grava tarefas.');
 if (!includes('api/operational.js', 'PATCH')) issues.push('API operacional não permite concluir tarefas.');
+if (!includes('api/selections.js', 'saved_selections')) issues.push('API de seleções não grava em saved_selections.');
+if (!includes('js/selection-tools.js', '/api/selections')) issues.push('Minha seleção não tenta salvar compartilhamento via /api/selections.');
+if (!includes('js/selection-tools.js', 'selection_token')) issues.push('Minha seleção não importa link por token curto.');
 if (!includes('js/admin-cadastros.js', '/api/admin')) issues.push('Cadastros administrativos não usam /api/admin unificado.');
 if (!includes('api/admin.js', 'ARANDU_ADMIN_TOKEN')) issues.push('API administrativa não exige ARANDU_ADMIN_TOKEN.');
 if (!includes('api/admin.js', 'PATCH')) issues.push('API administrativa não atualiza status por PATCH.');
