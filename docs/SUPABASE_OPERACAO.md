@@ -206,6 +206,35 @@ Header: x-arandu-admin-token: seu_token
 Body: { "panel": "reservations", "id": "uuid", "status": "confirmed" }
 ```
 
+### Notas e tarefas operacionais
+
+Arquivos:
+
+- `api/operational.js`;
+- `js/painel-detalhes.js`.
+
+O botão `Detalhes` do painel abre um histórico operacional por entidade. Com Supabase e token configurados, é possível:
+
+- consultar notas e tarefas por obra, artista, lead, certificado, proposta, reserva, briefing ou submissão;
+- adicionar nota de CRM;
+- criar tarefa com responsável, prazo e prioridade;
+- marcar tarefa como concluída.
+
+Exemplo de consulta de notas:
+
+```text
+GET /api/operational?resource=notes&entity_type=lead&entity_id=uuid
+Header: x-arandu-admin-token: seu_token
+```
+
+Exemplo de criação de tarefa:
+
+```text
+POST /api/operational?resource=tasks
+Header: x-arandu-admin-token: seu_token
+Body: { "entity_type": "lead", "entity_id": "uuid", "title": "Retornar contato" }
+```
+
 ## 8. Critério para seguir para WhatsApp e logo
 
 Antes de configurar WhatsApp real e logo final, confirmar:
@@ -233,5 +262,6 @@ Depois testar manualmente:
 7. Criar cadastro e fazer login.
 8. Abrir o painel, inserir `ARANDU_ADMIN_TOKEN` e alterar o status de um lead, reserva ou proposta.
 9. Cadastrar um artista, uma obra e um certificado pelo painel de cadastros.
+10. Abrir detalhes de um registro, adicionar nota e criar tarefa.
 
-Quando esses nove fluxos estiverem funcionando, o Arandu está pronto para receber logo final, WhatsApp real e início de prospecção.
+Quando esses dez fluxos estiverem funcionando, o Arandu está pronto para receber logo final, WhatsApp real e início de prospecção.
