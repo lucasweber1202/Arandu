@@ -56,6 +56,7 @@ if (!includes('api/operational.js', 'crm_notes')) issues.push('API operacional n
 if (!includes('api/operational.js', 'tasks')) issues.push('API operacional não grava tarefas.');
 if (!includes('api/operational.js', 'PATCH')) issues.push('API operacional não permite concluir tarefas.');
 if (!includes('api/selections.js', 'saved_selections')) issues.push('API de seleções não grava em saved_selections.');
+if (!includes('api/selections.js', 'briefing')) issues.push('API de seleções não preserva briefing.');
 if (!includes('js/selection-tools.js', '/api/selections')) issues.push('Minha seleção não tenta salvar compartilhamento via /api/selections.');
 if (!includes('js/selection-tools.js', 'selection_token')) issues.push('Minha seleção não importa link por token curto.');
 if (!includes('js/admin-cadastros.js', '/api/admin')) issues.push('Cadastros administrativos não usam /api/admin unificado.');
@@ -65,9 +66,13 @@ if (!includes('api/admin.js', 'POST')) issues.push('API administrativa não cria
 if (!includes('api/admin.js', 'v_artworks_full')) issues.push('API administrativa não usa a view completa de obras.');
 if (!includes('api/dashboard.js', 'v_sales_pipeline')) issues.push('Dashboard não consulta o pipeline comercial.');
 if (!includes('js/auth.js', '/api/auth/session')) issues.push('Front de autenticação não consulta sessão.');
+if (!includes('js/auth.js', 'pipelineCards')) issues.push('Dashboard visual não renderiza pipeline recente.');
 if (!includes('api/auth/login.js', 'grant_type=password')) issues.push('Login não usa fluxo de senha do Supabase Auth.');
 if (!includes('api/auth/signup.js', 'signup')) issues.push('Cadastro não usa Supabase Auth signup.');
 if (!includes('api/auth/_auth.js', 'HttpOnly')) issues.push('Sessão de autenticação não usa cookie HttpOnly.');
+if (!includes('docs/supabase-schema.sql', 'set_updated_at')) issues.push('Schema não possui trigger de updated_at.');
+if (!includes('docs/supabase-schema.sql', 'idx_saved_selections_public_token')) issues.push('Schema não indexa token público das seleções.');
+if (!includes('docs/supabase-schema.sql', "select 'selection' as source")) issues.push('Pipeline comercial não inclui seleções salvas.');
 if (!includes('js/site.js', 'proposal-api.js')) warnings.push('site.js não injeta proposal-api.js automaticamente.');
 if (!includes('js/site.js', 'arandu-functions.js')) issues.push('site.js não injeta arandu-functions.js.');
 if (!includes('js/site.js', 'arandu-recent.js')) issues.push('site.js não injeta arandu-recent.js.');
