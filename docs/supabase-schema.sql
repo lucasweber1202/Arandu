@@ -242,13 +242,66 @@ create table if not exists newsletter_subscriptions (
   created_at timestamptz default now()
 );
 
+create index if not exists idx_artists_status on artists(status);
+create index if not exists idx_artists_slug on artists(slug);
 create index if not exists idx_artworks_artist_id on artworks(artist_id);
 create index if not exists idx_artworks_status on artworks(status);
 create index if not exists idx_artworks_published on artworks(published);
+create index if not exists idx_artworks_slug on artworks(slug);
 create index if not exists idx_certificates_code on certificates(code);
+create index if not exists idx_certificates_artwork_id on certificates(artwork_id);
+create index if not exists idx_leads_status on leads(status);
+create index if not exists idx_leads_email on leads(email);
+create index if not exists idx_company_briefs_status on company_briefs(status);
+create index if not exists idx_artist_submissions_status on artist_submissions(status);
+create index if not exists idx_saved_selections_public_token on saved_selections(public_token);
+create index if not exists idx_saved_selections_status on saved_selections(status);
 create index if not exists idx_reservations_artwork_id on reservations(artwork_id);
+create index if not exists idx_reservations_status on reservations(status);
+create index if not exists idx_proposals_status on proposals(status);
+create index if not exists idx_proposals_public_token on proposals(public_token);
 create index if not exists idx_proposal_items_proposal_id on proposal_items(proposal_id);
+create index if not exists idx_crm_notes_entity on crm_notes(entity_type, entity_id);
 create index if not exists idx_tasks_entity on tasks(entity_type, entity_id);
+create index if not exists idx_tasks_status_due on tasks(status, due_at);
+
+create or replace function set_updated_at()
+returns trigger as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists trg_artists_updated_at on artists;
+create trigger trg_artists_updated_at before update on artists for each row execute function set_updated_at();
+
+drop trigger if exists trg_artworks_updated_at on artworks;
+create trigger trg_artworks_updated_at before update on artworks for each row execute function set_updated_at();
+
+drop trigger if exists trg_certificates_updated_at on certificates;
+create trigger trg_certificates_updated_at before update on certificates for each row execute function set_updated_at();
+
+drop trigger if exists trg_leads_updated_at on leads;
+create trigger trg_leads_updated_at before update on leads for each row execute function set_updated_at();
+
+drop trigger if exists trg_artist_submissions_updated_at on artist_submissions;
+create trigger trg_artist_submissions_updated_at before update on artist_submissions for each row execute function set_updated_at();
+
+drop trigger if exists trg_company_briefs_updated_at on company_briefs;
+create trigger trg_company_briefs_updated_at before update on company_briefs for each row execute function set_updated_at();
+
+drop trigger if exists trg_saved_selections_updated_at on saved_selections;
+create trigger trg_saved_selections_updated_at before update on saved_selections for each row execute function set_updated_at();
+
+drop trigger if exists trg_reservations_updated_at on reservations;
+create trigger trg_reservations_updated_at before update on reservations for each row execute function set_updated_at();
+
+drop trigger if exists trg_proposals_updated_at on proposals;
+create trigger trg_proposals_updated_at before update on proposals for each row execute function set_updated_at();
+
+drop trigger if exists trg_tasks_updated_at on tasks;
+create trigger trg_tasks_updated_at before update on tasks for each row execute function set_updated_at();
 
 create or replace view v_artworks_full as
 select
@@ -286,6 +339,8 @@ create or replace view v_sales_pipeline as
 select 'lead' as source, id::text, name, status, created_at from leads
 union all
 select 'brief' as source, id::text, company as name, status, created_at from company_briefs
+union all
+select 'selection' as source, id::text, coalesce(name, email, whatsapp, public_token) as name, status, created_at from saved_selections
 union all
 select 'reservation' as source, id::text, name, status, created_at from reservations
 union all
