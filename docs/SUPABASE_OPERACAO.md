@@ -16,6 +16,7 @@ No ambiente local ou na Vercel, configure:
 SUPABASE_URL=https://seu-projeto.supabase.co
 SUPABASE_ANON_KEY=chave_publica_anon
 SUPABASE_SERVICE_ROLE_KEY=chave_service_role_servidor
+ARANDU_ADMIN_TOKEN=um_token_longo_e_privado_para_o_painel
 ```
 
 Observações:
@@ -23,6 +24,7 @@ Observações:
 - `SUPABASE_URL` é obrigatório para operação real.
 - `SUPABASE_ANON_KEY` permite leitura/escrita conforme políticas do banco.
 - `SUPABASE_SERVICE_ROLE_KEY` deve ficar apenas no ambiente servidor. Não colocar no front.
+- `ARANDU_ADMIN_TOKEN` protege o painel operacional. Use um valor longo, privado e diferente de senhas pessoais.
 
 ## 3. Validar backend
 
@@ -127,6 +129,34 @@ Consulta pública por código:
 
 O front tenta API primeiro e usa `data/certificates.json` como fallback.
 
+### Painel administrativo
+
+Arquivos:
+
+- `api/admin.js`;
+- `js/painel-operacional.js`.
+
+O painel tenta consultar o Supabase quando o usuário informa o `ARANDU_ADMIN_TOKEN` no campo de acesso administrativo. Com Supabase e token configurados, ele passa a:
+
+- listar obras, artistas, certificados, leads, submissões, briefings, propostas, reservas e tarefas pelo backend;
+- atualizar status com `PATCH /api/admin`;
+- manter fallback local/demo quando o banco ou o token não estiverem disponíveis.
+
+Exemplo de consulta administrativa:
+
+```text
+GET /api/admin?panel=leads
+Header: x-arandu-admin-token: seu_token
+```
+
+Exemplo de atualização de status:
+
+```text
+PATCH /api/admin
+Header: x-arandu-admin-token: seu_token
+Body: { "panel": "reservations", "id": "uuid", "status": "confirmed" }
+```
+
 ## 8. Critério para seguir para WhatsApp e logo
 
 Antes de configurar WhatsApp real e logo final, confirmar:
@@ -151,5 +181,6 @@ Depois testar manualmente:
 4. Criar reserva de obra.
 5. Criar proposta curatorial.
 6. Verificar certificado por código.
+7. Abrir o painel, inserir `ARANDU_ADMIN_TOKEN` e alterar o status de um lead, reserva ou proposta.
 
-Quando esses seis fluxos estiverem funcionando, o Arandu está pronto para receber logo final, WhatsApp real e início de prospecção.
+Quando esses sete fluxos estiverem funcionando, o Arandu está pronto para receber logo final, WhatsApp real e início de prospecção.
