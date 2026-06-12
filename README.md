@@ -125,11 +125,21 @@ Concluído na etapa 9 — Painel conectado ao Supabase:
 6. `scripts/check-backend.mjs` passou a validar a existência da API administrativa e da conexão do painel com `/api/admin`.
 7. `docs/SUPABASE_OPERACAO.md` passou a documentar o token administrativo, consulta de painel e atualização de status.
 
+Concluído na etapa 10 — Contas, dashboard e cadastros administrativos:
+
+1. `api/dashboard.js` criado para alimentar métricas do painel e da conta.
+2. Rotas de autenticação criadas em `api/auth/session.js`, `api/auth/login.js`, `api/auth/signup.js` e `api/auth/logout.js`.
+3. Autenticação usa Supabase Auth por email/senha e cookie `HttpOnly`.
+4. `api/admin.js` passou a aceitar `POST /api/admin` para criar artistas, obras, certificados e tarefas.
+5. `js/admin-cadastros.js` deixou de chamar rotas antigas e passou a usar `/api/admin` unificado.
+6. `scripts/check-backend.mjs` passou a validar dashboard, autenticação e cadastros administrativos.
+7. `docs/SUPABASE_OPERACAO.md` foi atualizado com login, cadastro, dashboard e criação administrativa.
+
 Próximos focos:
 
 1. Configurar Supabase real e rodar `npm run seed:supabase`.
 2. Configurar `ARANDU_ADMIN_TOKEN` na Vercel e testar o painel conectado.
-3. Testar fluxos reais de formulário, reserva, proposta, certificado e alteração de status no painel.
+3. Testar fluxos reais de formulário, reserva, proposta, certificado, login, cadastro e alteração de status no painel.
 4. Consolidar CSS e reduzir dependência de `!important`.
 5. Adicionar logo final em `assets/logo-arandu.png`.
 6. Configurar o WhatsApp real em `data/whatsapp-config.js`.
@@ -166,6 +176,8 @@ npm run seed:supabase:dry
 - Configurar `ARANDU_ADMIN_TOKEN`.
 - Popular Supabase com `npm run seed:supabase`.
 - Testar envio real de formulários, reservas, propostas e certificados.
+- Testar login, cadastro e logout.
+- Testar criação de artistas, obras e certificados pelo painel.
 - Testar alteração de status no painel conectado.
 - Adicionar a logo PNG real.
 - Configurar WhatsApp real.
