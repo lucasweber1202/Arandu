@@ -7,6 +7,7 @@ Este guia transforma o backend preparado em operação real.
 1. Crie um projeto no Supabase.
 2. Abra o SQL Editor.
 3. Rode o conteúdo de `docs/supabase-schema.sql`.
+4. Em Authentication, confirme se login por email/senha está habilitado.
 
 ## 2. Configurar variáveis
 
@@ -22,7 +23,7 @@ ARANDU_ADMIN_TOKEN=um_token_longo_e_privado_para_o_painel
 Observações:
 
 - `SUPABASE_URL` é obrigatório para operação real.
-- `SUPABASE_ANON_KEY` permite leitura/escrita conforme políticas do banco.
+- `SUPABASE_ANON_KEY` permite autenticação pública e uso do Supabase Auth.
 - `SUPABASE_SERVICE_ROLE_KEY` deve ficar apenas no ambiente servidor. Não colocar no front.
 - `ARANDU_ADMIN_TOKEN` protege o painel operacional. Use um valor longo, privado e diferente de senhas pessoais.
 
@@ -129,17 +130,57 @@ Consulta pública por código:
 
 O front tenta API primeiro e usa `data/certificates.json` como fallback.
 
+### Dashboard
+
+Arquivo: `api/dashboard.js`.
+
+Retorna métricas operacionais para `painel.html` e `minha-conta.html`:
+
+- obras;
+- artistas;
+- leads;
+- certificados;
+- reservas;
+- propostas;
+- submissões;
+- briefings;
+- tarefas;
+- últimos movimentos do pipeline comercial.
+
+### Autenticação
+
+Arquivos:
+
+- `api/auth/session.js`;
+- `api/auth/login.js`;
+- `api/auth/signup.js`;
+- `api/auth/logout.js`;
+- `api/auth/_auth.js`.
+
+O fluxo usa Supabase Auth com email e senha. A sessão é guardada em cookie `HttpOnly`, e o front continua usando `js/auth.js`.
+
+Endpoints:
+
+```text
+GET /api/auth/session
+POST /api/auth/login
+POST /api/auth/signup
+POST /api/auth/logout
+```
+
 ### Painel administrativo
 
 Arquivos:
 
 - `api/admin.js`;
-- `js/painel-operacional.js`.
+- `js/painel-operacional.js`;
+- `js/admin-cadastros.js`.
 
 O painel tenta consultar o Supabase quando o usuário informa o `ARANDU_ADMIN_TOKEN` no campo de acesso administrativo. Com Supabase e token configurados, ele passa a:
 
 - listar obras, artistas, certificados, leads, submissões, briefings, propostas, reservas e tarefas pelo backend;
 - atualizar status com `PATCH /api/admin`;
+- cadastrar artistas, obras, certificados e tarefas com `POST /api/admin`;
 - manter fallback local/demo quando o banco ou o token não estiverem disponíveis.
 
 Exemplo de consulta administrativa:
@@ -147,6 +188,14 @@ Exemplo de consulta administrativa:
 ```text
 GET /api/admin?panel=leads
 Header: x-arandu-admin-token: seu_token
+```
+
+Exemplo de cadastro administrativo:
+
+```text
+POST /api/admin
+Header: x-arandu-admin-token: seu_token
+Body: { "type": "artist", "data": { "name": "Nome do artista" } }
 ```
 
 Exemplo de atualização de status:
@@ -181,6 +230,8 @@ Depois testar manualmente:
 4. Criar reserva de obra.
 5. Criar proposta curatorial.
 6. Verificar certificado por código.
-7. Abrir o painel, inserir `ARANDU_ADMIN_TOKEN` e alterar o status de um lead, reserva ou proposta.
+7. Criar cadastro e fazer login.
+8. Abrir o painel, inserir `ARANDU_ADMIN_TOKEN` e alterar o status de um lead, reserva ou proposta.
+9. Cadastrar um artista, uma obra e um certificado pelo painel de cadastros.
 
-Quando esses sete fluxos estiverem funcionando, o Arandu está pronto para receber logo final, WhatsApp real e início de prospecção.
+Quando esses nove fluxos estiverem funcionando, o Arandu está pronto para receber logo final, WhatsApp real e início de prospecção.
