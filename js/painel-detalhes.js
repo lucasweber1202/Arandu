@@ -14,6 +14,15 @@ function escapeDetailHtml(value) {
   }[char]));
 }
 
+function appendOperationalScript(id, src) {
+  if (document.getElementById(id)) return;
+  const script = document.createElement('script');
+  script.id = id;
+  script.src = src;
+  script.defer = true;
+  document.body.appendChild(script);
+}
+
 function loadCrmLite() {
   if (!document.body.dataset.operationalPanel) return;
   if (!document.getElementById('painel-crm-lite-css')) {
@@ -23,13 +32,8 @@ function loadCrmLite() {
     link.href = 'css/painel-crm-lite.css?v=20260612-crm-2';
     document.head.appendChild(link);
   }
-  if (!document.getElementById('painel-crm-lite-js')) {
-    const script = document.createElement('script');
-    script.id = 'painel-crm-lite-js';
-    script.src = 'js/painel-crm-lite.js?v=20260612-crm-2';
-    script.defer = true;
-    document.body.appendChild(script);
-  }
+  appendOperationalScript('painel-crm-lite-js', 'js/painel-crm-lite.js?v=20260612-crm-2');
+  appendOperationalScript('painel-edit-js', 'js/painel-edit.js?v=20260612-edit-1');
 }
 
 async function detailRequest(url, options = {}) {
@@ -47,17 +51,7 @@ async function detailRequest(url, options = {}) {
 }
 
 function getPanelEntityType(panel) {
-  return ({
-    obras: 'artwork',
-    artistas: 'artist',
-    leads: 'lead',
-    submissions: 'artist_submission',
-    briefs: 'company_brief',
-    certificados: 'certificate',
-    proposals: 'proposal',
-    reservations: 'reservation',
-    tasks: 'task'
-  })[panel] || 'lead';
+  return ({ obras: 'artwork', artistas: 'artist', leads: 'lead', submissions: 'artist_submission', briefs: 'company_brief', certificados: 'certificate', proposals: 'proposal', reservations: 'reservation', tasks: 'task' })[panel] || 'lead';
 }
 
 function ensureDrawer() {
@@ -67,11 +61,7 @@ function ensureDrawer() {
   drawer.dataset.detailDrawer = 'true';
   drawer.className = 'search-overlay';
   drawer.hidden = true;
-  drawer.innerHTML = `
-    <div class="search-dialog">
-      <div class="search-dialog-header"><h2>Detalhes operacionais</h2><button class="search-close" type="button" data-detail-close>Fechar</button></div>
-      <div data-detail-content></div>
-    </div>`;
+  drawer.innerHTML = `<div class="search-dialog"><div class="search-dialog-header"><h2>Detalhes operacionais</h2><button class="search-close" type="button" data-detail-close>Fechar</button></div><div data-detail-content></div></div>`;
   document.body.appendChild(drawer);
   return drawer;
 }
@@ -85,13 +75,7 @@ async function loadOperationalDetails(entityType, entityId) {
 }
 
 function localDetailFallback(entityType, entityId, error) {
-  return `
-    <article class="card">
-      <p class="eyebrow">${escapeDetailHtml(entityType)}</p>
-      <h3>${escapeDetailHtml(entityId)}</h3>
-      <p>Banco operacional ainda não configurado para este detalhe. Use o CRM leve do painel para registrar tarefas e notas locais.</p>
-      <small>${escapeDetailHtml(error.message)}</small>
-    </article>`;
+  return `<article class="card"><p class="eyebrow">${escapeDetailHtml(entityType)}</p><h3>${escapeDetailHtml(entityId)}</h3><p>Banco operacional ainda não configurado para este detalhe. Use o CRM leve do painel para registrar tarefas e notas locais.</p><small>${escapeDetailHtml(error.message)}</small></article>`;
 }
 
 function renderNote(note) {
@@ -109,31 +93,9 @@ async function openDetail(entityId) {
   const content = drawer.querySelector('[data-detail-content]');
   drawer.hidden = false;
   content.innerHTML = '<p>Carregando histórico...</p>';
-
   try {
     const { notes, tasks } = await loadOperationalDetails(entityType, entityId);
-    content.innerHTML = `
-      <article class="card">
-        <p class="eyebrow">${escapeDetailHtml(entityType)}</p>
-        <h3>${escapeDetailHtml(entityId)}</h3>
-        <div class="grid grid-2">
-          <form class="form-card" data-note-form>
-            <h3>Adicionar nota</h3>
-            <textarea name="note" placeholder="Próximo contato, observação curatorial, condição comercial..." required></textarea>
-            <button type="submit">Salvar nota</button>
-          </form>
-          <form class="form-card" data-task-form>
-            <h3>Criar tarefa</h3>
-            <input name="title" placeholder="Título da tarefa" required />
-            <input name="owner_name" placeholder="Responsável" />
-            <input name="due_at" type="datetime-local" />
-            <select name="priority"><option value="normal">Normal</option><option value="high">Alta</option><option value="low">Baixa</option></select>
-            <button type="submit">Criar tarefa</button>
-          </form>
-        </div>
-      </article>
-      <article class="card"><h3>Notas</h3>${notes.length ? notes.map(renderNote).join('') : '<p>Nenhuma nota.</p>'}</article>
-      <article class="card"><h3>Tarefas</h3>${tasks.length ? tasks.map(renderTask).join('') : '<p>Nenhuma tarefa.</p>'}</article>`;
+    content.innerHTML = `<article class="card"><p class="eyebrow">${escapeDetailHtml(entityType)}</p><h3>${escapeDetailHtml(entityId)}</h3><div class="grid grid-2"><form class="form-card" data-note-form><h3>Adicionar nota</h3><textarea name="note" placeholder="Próximo contato, observação curatorial, condição comercial..." required></textarea><button type="submit">Salvar nota</button></form><form class="form-card" data-task-form><h3>Criar tarefa</h3><input name="title" placeholder="Título da tarefa" required /><input name="owner_name" placeholder="Responsável" /><input name="due_at" type="datetime-local" /><select name="priority"><option value="normal">Normal</option><option value="high">Alta</option><option value="low">Baixa</option></select><button type="submit">Criar tarefa</button></form></div></article><article class="card"><h3>Notas</h3>${notes.length ? notes.map(renderNote).join('') : '<p>Nenhuma nota.</p>'}</article><article class="card"><h3>Tarefas</h3>${tasks.length ? tasks.map(renderTask).join('') : '<p>Nenhuma tarefa.</p>'}</article>`;
     drawer.dataset.entityType = entityType;
     drawer.dataset.entityId = entityId;
   } catch (error) {
@@ -146,10 +108,7 @@ async function submitNote(form) {
   const entity_type = drawer.dataset.entityType;
   const entity_id = drawer.dataset.entityId;
   const note = form.querySelector('[name="note"]').value;
-  await detailRequest('/api/operational?resource=notes', {
-    method: 'POST',
-    body: JSON.stringify({ entity_type, entity_id, note })
-  });
+  await detailRequest('/api/operational?resource=notes', { method: 'POST', body: JSON.stringify({ entity_type, entity_id, note }) });
   await openDetail(entity_id);
 }
 
@@ -158,19 +117,13 @@ async function submitTask(form) {
   const entity_type = drawer.dataset.entityType;
   const entity_id = drawer.dataset.entityId;
   const data = Object.fromEntries(new FormData(form).entries());
-  await detailRequest('/api/operational?resource=tasks', {
-    method: 'POST',
-    body: JSON.stringify({ ...data, entity_type, entity_id })
-  });
+  await detailRequest('/api/operational?resource=tasks', { method: 'POST', body: JSON.stringify({ ...data, entity_type, entity_id }) });
   await openDetail(entity_id);
 }
 
 async function markTaskDone(taskId) {
   const drawer = ensureDrawer();
-  await detailRequest('/api/operational?resource=tasks', {
-    method: 'PATCH',
-    body: JSON.stringify({ id: taskId, status: 'done' })
-  });
+  await detailRequest('/api/operational?resource=tasks', { method: 'PATCH', body: JSON.stringify({ id: taskId, status: 'done' }) });
   await openDetail(drawer.dataset.entityId);
 }
 
