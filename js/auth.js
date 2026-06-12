@@ -12,6 +12,21 @@ async function requestJson(url, options = {}) {
   return data;
 }
 
+function escapeAuthHtml(value) {
+  return String(value ?? '').replace(/[&<>'"]/g, (char) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    "'": '&#39;',
+    '"': '&quot;'
+  }[char]));
+}
+
+function formatDateTime(value) {
+  if (!value) return 'Sem data';
+  try { return new Date(value).toLocaleString('pt-BR'); } catch { return 'Sem data'; }
+}
+
 function setStatus(form, text, isError = false) {
   let status = form.querySelector('[data-auth-status]');
   if (!status) {
@@ -76,6 +91,16 @@ async function renderAuthNav() {
   }
 }
 
+function accountNextStep(profileType) {
+  const map = {
+    artista: ['Enviar portfólio', 'prospeccao-artistas.html', 'Compartilhe trajetória, técnica, faixa de preço e obras disponíveis para análise curatorial.'],
+    empresa: ['Criar briefing', 'proposta-empresas.html', 'Informe ambiente, orçamento e intenção para receber uma proposta curatorial.'],
+    arquiteto: ['Montar seleção', 'minha-selecao.html', 'Salve obras, monte briefing e compartilhe com cliente ou curadoria.'],
+    comprador: ['Explorar obras', 'obras.html', 'Salve obras, compare caminhos e peça apoio da curadoria.']
+  };
+  return map[profileType] || map.comprador;
+}
+
 async function renderAccount() {
   const target = document.querySelector('[data-account-panel]');
   if (!target) return;
@@ -88,20 +113,28 @@ async function renderAccount() {
     }
 
     const dashboard = await requestJson('/api/dashboard', { method: 'GET' });
+    const profileType = session.user.profile_type || 'comprador';
+    const [label, href, description] = accountNextStep(profileType);
     const metrics = dashboard.metrics || {};
     target.innerHTML = `
-      <div class="card"><p class="eyebrow">Sessão ativa</p><h3>${session.user.full_name || session.user.email}</h3><p>${session.user.email}</p><span class="tag">${session.user.profile_type || 'comprador'}</span></div>
-      <div class="grid grid-4">
-        <article class="card"><h3>${metrics.artworks ?? 0}</h3><p>Obras cadastradas</p></article>
-        <article class="card"><h3>${metrics.artists ?? 0}</h3><p>Artistas</p></article>
-        <article class="card"><h3>${metrics.leads ?? 0}</h3><p>Leads recebidos</p></article>
-        <article class="card"><h3>${metrics.certificates ?? 0}</h3><p>Certificados</p></article>
+      <div class="card"><p class="eyebrow">Sessão ativa</p><h3>${escapeAuthHtml(session.user.full_name || session.user.email)}</h3><p>${escapeAuthHtml(session.user.email)}</p><span class="tag">${escapeAuthHtml(profileType)}</span></div>
+      <div class="grid grid-3">
+        <article class="card"><h3>${metrics.reservations ?? 0}</h3><p>Reservas registradas</p></article>
+        <article class="card"><h3>${metrics.proposals ?? 0}</h3><p>Propostas curatoriais</p></article>
+        <article class="card"><h3>${metrics.certificates ?? 0}</h3><p>Certificados verificáveis</p></article>
       </div>
-      <div class="page-actions"><a class="cta" href="minha-selecao.html">Minha seleção</a><a class="cta secondary" href="painel.html">Abrir painel</a><button class="button secondary" type="button" data-auth-logout>Sair</button></div>
+      <article class="card"><p class="eyebrow">Próximo passo</p><h3>${escapeAuthHtml(label)}</h3><p>${escapeAuthHtml(description)}</p><div class="page-actions"><a class="cta" href="${escapeAuthHtml(href)}">Continuar</a><a class="cta secondary" href="minha-selecao.html">Minha seleção</a><button class="button secondary" type="button" data-auth-logout>Sair</button></div></article>
     `;
   } catch (error) {
-    target.innerHTML = `<div class="card"><h3>Erro ao carregar conta</h3><p>${error.message}</p></div>`;
+    target.innerHTML = `<div class="card"><h3>Erro ao carregar conta</h3><p>${escapeAuthHtml(error.message)}</p></div>`;
   }
+}
+
+function pipelineCards(items) {
+  if (!Array.isArray(items) || !items.length) {
+    return '<article class="card"><h3>Nenhum movimento recente</h3><p>Quando leads, reservas, briefings e propostas entrarem no banco, eles aparecerão aqui.</p></article>';
+  }
+  return items.map((item) => `<article class="card"><span class="tag">${escapeAuthHtml(item.source || 'pipeline')}</span><h3>${escapeAuthHtml(item.name || item.id || 'Registro')}</h3><p>Status: ${escapeAuthHtml(item.status || 'sem status')}</p><small>${escapeAuthHtml(formatDateTime(item.created_at))}</small></article>`).join('');
 }
 
 async function renderDashboard() {
@@ -117,11 +150,15 @@ async function renderDashboard() {
         <article class="card"><h3>${metrics.artists ?? 0}</h3><p>Artistas</p></article>
         <article class="card"><h3>${metrics.leads ?? 0}</h3><p>Leads</p></article>
         <article class="card"><h3>${metrics.certificates ?? 0}</h3><p>Certificados</p></article>
+        <article class="card"><h3>${metrics.reservations ?? 0}</h3><p>Reservas</p></article>
+        <article class="card"><h3>${metrics.proposals ?? 0}</h3><p>Propostas</p></article>
+        <article class="card"><h3>${metrics.submissions ?? 0}</h3><p>Submissões</p></article>
+        <article class="card"><h3>${metrics.tasks ?? 0}</h3><p>Tarefas</p></article>
       </div>
-      <p class="selection-summary">Modo atual: ${dashboard.mode === 'supabase' ? 'Supabase conectado' : 'Demonstração'}</p>
+      <div class="card"><h3>Pipeline recente</h3><p class="selection-summary">Modo atual: ${dashboard.mode === 'supabase' ? 'Supabase conectado' : 'Demonstração'}</p><div class="grid grid-4">${pipelineCards(dashboard.pipeline)}</div></div>
     `;
   } catch (error) {
-    target.innerHTML = `<div class="card"><h3>Erro no painel</h3><p>${error.message}</p></div>`;
+    target.innerHTML = `<div class="card"><h3>Erro no painel</h3><p>${escapeAuthHtml(error.message)}</p></div>`;
   }
 }
 
