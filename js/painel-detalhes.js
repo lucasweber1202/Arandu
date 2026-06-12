@@ -4,19 +4,29 @@ function detailToken() {
   return localStorage.getItem(DETAIL_TOKEN_KEY) || '';
 }
 
+function escapeDetailHtml(value) {
+  return String(value ?? '').replace(/[&<>'"]/g, (char) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    "'": '&#39;',
+    '"': '&quot;'
+  }[char]));
+}
+
 function loadCrmLite() {
   if (!document.body.dataset.operationalPanel) return;
   if (!document.getElementById('painel-crm-lite-css')) {
     const link = document.createElement('link');
     link.id = 'painel-crm-lite-css';
     link.rel = 'stylesheet';
-    link.href = 'css/painel-crm-lite.css?v=20260610-crm-1';
+    link.href = 'css/painel-crm-lite.css?v=20260612-crm-2';
     document.head.appendChild(link);
   }
   if (!document.getElementById('painel-crm-lite-js')) {
     const script = document.createElement('script');
     script.id = 'painel-crm-lite-js';
-    script.src = 'js/painel-crm-lite.js?v=20260610-crm-1';
+    script.src = 'js/painel-crm-lite.js?v=20260612-crm-2';
     script.defer = true;
     document.body.appendChild(script);
   }
@@ -43,7 +53,10 @@ function getPanelEntityType(panel) {
     leads: 'lead',
     submissions: 'artist_submission',
     briefs: 'company_brief',
-    certificados: 'certificate'
+    certificados: 'certificate',
+    proposals: 'proposal',
+    reservations: 'reservation',
+    tasks: 'task'
   })[panel] || 'lead';
 }
 
@@ -65,8 +78,8 @@ function ensureDrawer() {
 
 async function loadOperationalDetails(entityType, entityId) {
   const [notes, tasks] = await Promise.all([
-    detailRequest(`/api/admin/operational?resource=notes&entity_type=${entityType}&entity_id=${entityId}`),
-    detailRequest(`/api/admin/operational?resource=tasks&entity_type=${entityType}&entity_id=${entityId}`)
+    detailRequest(`/api/operational?resource=notes&entity_type=${encodeURIComponent(entityType)}&entity_id=${encodeURIComponent(entityId)}`),
+    detailRequest(`/api/operational?resource=tasks&entity_type=${encodeURIComponent(entityType)}&entity_id=${encodeURIComponent(entityId)}`)
   ]);
   return { notes: notes.items || [], tasks: tasks.items || [] };
 }
@@ -74,11 +87,19 @@ async function loadOperationalDetails(entityType, entityId) {
 function localDetailFallback(entityType, entityId, error) {
   return `
     <article class="card">
-      <p class="eyebrow">${entityType}</p>
-      <h3>${entityId}</h3>
+      <p class="eyebrow">${escapeDetailHtml(entityType)}</p>
+      <h3>${escapeDetailHtml(entityId)}</h3>
       <p>Banco operacional ainda não configurado para este detalhe. Use o CRM leve do painel para registrar tarefas e notas locais.</p>
-      <small>${error.message}</small>
+      <small>${escapeDetailHtml(error.message)}</small>
     </article>`;
+}
+
+function renderNote(note) {
+  return `<p><strong>${escapeDetailHtml(note.author_name || 'Curadoria')}:</strong> ${escapeDetailHtml(note.note)}<br><small>${note.created_at ? new Date(note.created_at).toLocaleString('pt-BR') : 'Sem data'}</small></p>`;
+}
+
+function renderTask(task) {
+  return `<p><strong>${escapeDetailHtml(task.title)}</strong> · ${escapeDetailHtml(task.status)} · ${escapeDetailHtml(task.priority)}<br><small>${escapeDetailHtml(task.owner_name || 'Sem responsável')}${task.due_at ? ' · ' + new Date(task.due_at).toLocaleString('pt-BR') : ''}</small>${task.id ? `<br><button class="tag" type="button" data-task-done="${escapeDetailHtml(task.id)}">Marcar como concluída</button>` : ''}</p>`;
 }
 
 async function openDetail(entityId) {
@@ -93,8 +114,8 @@ async function openDetail(entityId) {
     const { notes, tasks } = await loadOperationalDetails(entityType, entityId);
     content.innerHTML = `
       <article class="card">
-        <p class="eyebrow">${entityType}</p>
-        <h3>${entityId}</h3>
+        <p class="eyebrow">${escapeDetailHtml(entityType)}</p>
+        <h3>${escapeDetailHtml(entityId)}</h3>
         <div class="grid grid-2">
           <form class="form-card" data-note-form>
             <h3>Adicionar nota</h3>
@@ -111,8 +132,8 @@ async function openDetail(entityId) {
           </form>
         </div>
       </article>
-      <article class="card"><h3>Notas</h3>${notes.length ? notes.map((note) => `<p><strong>${note.author_name || 'Curadoria'}:</strong> ${note.note}<br><small>${new Date(note.created_at).toLocaleString('pt-BR')}</small></p>`).join('') : '<p>Nenhuma nota.</p>'}</article>
-      <article class="card"><h3>Tarefas</h3>${tasks.length ? tasks.map((task) => `<p><strong>${task.title}</strong> · ${task.status} · ${task.priority}<br><small>${task.owner_name || 'Sem responsável'} ${task.due_at ? '· ' + new Date(task.due_at).toLocaleString('pt-BR') : ''}</small></p>`).join('') : '<p>Nenhuma tarefa.</p>'}</article>`;
+      <article class="card"><h3>Notas</h3>${notes.length ? notes.map(renderNote).join('') : '<p>Nenhuma nota.</p>'}</article>
+      <article class="card"><h3>Tarefas</h3>${tasks.length ? tasks.map(renderTask).join('') : '<p>Nenhuma tarefa.</p>'}</article>`;
     drawer.dataset.entityType = entityType;
     drawer.dataset.entityId = entityId;
   } catch (error) {
@@ -125,7 +146,7 @@ async function submitNote(form) {
   const entity_type = drawer.dataset.entityType;
   const entity_id = drawer.dataset.entityId;
   const note = form.querySelector('[name="note"]').value;
-  await detailRequest('/api/admin/operational?resource=notes', {
+  await detailRequest('/api/operational?resource=notes', {
     method: 'POST',
     body: JSON.stringify({ entity_type, entity_id, note })
   });
@@ -134,19 +155,30 @@ async function submitNote(form) {
 
 async function submitTask(form) {
   const drawer = ensureDrawer();
-  const entity_type = drawer.datasetEntityType || drawer.dataset.entityType;
+  const entity_type = drawer.dataset.entityType;
   const entity_id = drawer.dataset.entityId;
   const data = Object.fromEntries(new FormData(form).entries());
-  await detailRequest('/api/admin/operational?resource=tasks', {
+  await detailRequest('/api/operational?resource=tasks', {
     method: 'POST',
     body: JSON.stringify({ ...data, entity_type, entity_id })
   });
   await openDetail(entity_id);
 }
 
+async function markTaskDone(taskId) {
+  const drawer = ensureDrawer();
+  await detailRequest('/api/operational?resource=tasks', {
+    method: 'PATCH',
+    body: JSON.stringify({ id: taskId, status: 'done' })
+  });
+  await openDetail(drawer.dataset.entityId);
+}
+
 document.addEventListener('click', (event) => {
   const open = event.target.closest('[data-open-detail]');
+  const done = event.target.closest('[data-task-done]');
   if (open) openDetail(open.dataset.openDetail);
+  if (done) markTaskDone(done.dataset.taskDone);
   if (event.target.closest('[data-detail-close]') || event.target.matches('[data-detail-drawer]')) ensureDrawer().hidden = true;
 });
 
