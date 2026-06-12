@@ -12,12 +12,12 @@ function normalizeSelection(body) {
     email: clean(body.email || briefing.email) || null,
     whatsapp: clean(body.whatsapp || briefing.whatsapp || briefing.telefone) || null,
     items,
-    briefing,
-    status: 'sent',
-    payload: {
-      source: body.source || 'minha-selecao',
-      createdAt: body.createdAt || new Date().toISOString()
-    }
+    briefing: {
+      ...briefing,
+      source: body.source || briefing.source || 'minha-selecao',
+      shared_at: body.createdAt || new Date().toISOString()
+    },
+    status: 'sent'
   };
 }
 
