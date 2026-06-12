@@ -135,11 +135,21 @@ Concluído na etapa 10 — Contas, dashboard e cadastros administrativos:
 6. `scripts/check-backend.mjs` passou a validar dashboard, autenticação e cadastros administrativos.
 7. `docs/SUPABASE_OPERACAO.md` foi atualizado com login, cadastro, dashboard e criação administrativa.
 
+Concluído na etapa 11 — Detalhes operacionais e CRM:
+
+1. `api/operational.js` criado para notas e tarefas vinculadas a entidades.
+2. `js/painel-detalhes.js` passou a usar `/api/operational` em vez de rota inexistente.
+3. O botão `Detalhes` agora cobre obras, artistas, leads, submissões, briefings, certificados, propostas, reservas e tarefas.
+4. Notas de CRM são persistidas em `crm_notes` quando o Supabase está configurado.
+5. Tarefas são persistidas em `tasks`, com responsável, prazo, prioridade e status.
+6. O drawer permite marcar tarefa como concluída.
+7. `scripts/check-backend.mjs` e `docs/SUPABASE_OPERACAO.md` passaram a validar/documentar esse fluxo.
+
 Próximos focos:
 
 1. Configurar Supabase real e rodar `npm run seed:supabase`.
 2. Configurar `ARANDU_ADMIN_TOKEN` na Vercel e testar o painel conectado.
-3. Testar fluxos reais de formulário, reserva, proposta, certificado, login, cadastro e alteração de status no painel.
+3. Testar fluxos reais de formulário, reserva, proposta, certificado, login, cadastro, alteração de status e detalhes operacionais.
 4. Consolidar CSS e reduzir dependência de `!important`.
 5. Adicionar logo final em `assets/logo-arandu.png`.
 6. Configurar o WhatsApp real em `data/whatsapp-config.js`.
@@ -179,6 +189,7 @@ npm run seed:supabase:dry
 - Testar login, cadastro e logout.
 - Testar criação de artistas, obras e certificados pelo painel.
 - Testar alteração de status no painel conectado.
+- Testar notas e tarefas no drawer de detalhes.
 - Adicionar a logo PNG real.
 - Configurar WhatsApp real.
 - Consolidar CSS e reduzir estilos redundantes.
