@@ -12,6 +12,12 @@ const files = [
   'api/catalog.js',
   'api/artists.js',
   'api/admin.js',
+  'api/dashboard.js',
+  'api/auth/_auth.js',
+  'api/auth/session.js',
+  'api/auth/login.js',
+  'api/auth/signup.js',
+  'api/auth/logout.js',
   'css/arandu-visual-polish.css',
   'css/arandu-security.css',
   'css/arandu-flow.css',
@@ -43,9 +49,16 @@ if (!includes('js/artwork_page.js', '/api/catalog')) issues.push('Página da obr
 if (!includes('js/painel-operacional.js', 'arandu.reservations.v1')) issues.push('Painel não lê reservas locais.');
 if (!includes('js/painel-operacional.js', 'arandu.proposals.history.v1')) issues.push('Painel não lê propostas locais.');
 if (!includes('js/painel-operacional.js', '/api/admin')) issues.push('Painel operacional não consulta /api/admin.');
+if (!includes('js/admin-cadastros.js', '/api/admin')) issues.push('Cadastros administrativos não usam /api/admin unificado.');
 if (!includes('api/admin.js', 'ARANDU_ADMIN_TOKEN')) issues.push('API administrativa não exige ARANDU_ADMIN_TOKEN.');
 if (!includes('api/admin.js', 'PATCH')) issues.push('API administrativa não atualiza status por PATCH.');
+if (!includes('api/admin.js', 'POST')) issues.push('API administrativa não cria registros por POST.');
 if (!includes('api/admin.js', 'v_artworks_full')) issues.push('API administrativa não usa a view completa de obras.');
+if (!includes('api/dashboard.js', 'v_sales_pipeline')) issues.push('Dashboard não consulta o pipeline comercial.');
+if (!includes('js/auth.js', '/api/auth/session')) issues.push('Front de autenticação não consulta sessão.');
+if (!includes('api/auth/login.js', 'grant_type=password')) issues.push('Login não usa fluxo de senha do Supabase Auth.');
+if (!includes('api/auth/signup.js', 'signup')) issues.push('Cadastro não usa Supabase Auth signup.');
+if (!includes('api/auth/_auth.js', 'HttpOnly')) issues.push('Sessão de autenticação não usa cookie HttpOnly.');
 if (!includes('js/site.js', 'proposal-api.js')) warnings.push('site.js não injeta proposal-api.js automaticamente.');
 if (!includes('js/site.js', 'arandu-functions.js')) issues.push('site.js não injeta arandu-functions.js.');
 if (!includes('js/site.js', 'arandu-recent.js')) issues.push('site.js não injeta arandu-recent.js.');
