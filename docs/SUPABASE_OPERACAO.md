@@ -130,6 +130,22 @@ Consulta pública por código:
 
 O front tenta API primeiro e usa `data/certificates.json` como fallback.
 
+### Seleções salvas
+
+Arquivos:
+
+- `api/selections.js`;
+- `js/selection-tools.js`.
+
+Quando o Supabase está configurado, o botão de compartilhar da página `minha-selecao.html` salva a seleção em `saved_selections` e gera um link com `selection_token`. Sem Supabase, o fluxo mantém o link antigo com a seleção codificada na própria URL.
+
+Endpoints:
+
+```text
+POST /api/selections
+GET /api/selections?token=token_publico
+```
+
 ### Dashboard
 
 Arquivo: `api/dashboard.js`.
@@ -260,8 +276,9 @@ Depois testar manualmente:
 5. Criar proposta curatorial.
 6. Verificar certificado por código.
 7. Criar cadastro e fazer login.
-8. Abrir o painel, inserir `ARANDU_ADMIN_TOKEN` e alterar o status de um lead, reserva ou proposta.
-9. Cadastrar um artista, uma obra e um certificado pelo painel de cadastros.
-10. Abrir detalhes de um registro, adicionar nota e criar tarefa.
+8. Compartilhar uma seleção e abrir o link em outro navegador.
+9. Abrir o painel, inserir `ARANDU_ADMIN_TOKEN` e alterar o status de um lead, reserva ou proposta.
+10. Cadastrar um artista, uma obra e um certificado pelo painel de cadastros.
+11. Abrir detalhes de um registro, adicionar nota e criar tarefa.
 
-Quando esses dez fluxos estiverem funcionando, o Arandu está pronto para receber logo final, WhatsApp real e início de prospecção.
+Quando esses onze fluxos estiverem funcionando, o Arandu está pronto para receber logo final, WhatsApp real e início de prospecção.
