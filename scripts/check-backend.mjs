@@ -4,57 +4,30 @@ const warnings = [];
 const issues = [];
 
 const files = [
-  'api/_arandu.js',
-  'api/forms.js',
-  'api/reservations.js',
-  'api/proposals.js',
-  'api/certificates.js',
-  'api/catalog.js',
-  'api/artists.js',
-  'api/admin.js',
-  'api/operational.js',
-  'api/selections.js',
-  'api/dashboard.js',
-  'api/auth/_auth.js',
-  'api/auth/session.js',
-  'api/auth/login.js',
-  'api/auth/signup.js',
-  'api/auth/logout.js',
-  'css/arandu-visual-polish.css',
-  'css/arandu-security.css',
-  'css/arandu-flow.css',
-  'js/arandu-functions.js',
-  'js/arandu-recent.js',
-  'js/arandu-journey.js',
-  'js/arandu-usability.js',
-  'js/arandu-security-guard.js',
-  'js/arandu-flow.js',
-  'docs/supabase-schema.sql',
-  'docs/SUPABASE_OPERACAO.md',
-  'scripts/seed-supabase.mjs'
+  'api/_arandu.js','api/forms.js','api/reservations.js','api/proposals.js','api/certificates.js','api/certificate-document.js','api/catalog.js','api/artists.js','api/admin.js','api/admin-update.js','api/operational.js','api/media.js','api/selections.js','api/dashboard.js','api/auth/_auth.js','api/auth/session.js','api/auth/login.js','api/auth/signup.js','api/auth/logout.js','css/arandu-visual-polish.css','css/arandu-security.css','css/arandu-flow.css','js/arandu-functions.js','js/arandu-recent.js','js/arandu-journey.js','js/arandu-usability.js','js/arandu-security-guard.js','js/arandu-flow.js','js/painel-edit.js','js/certificate-document-link.js','docs/supabase-schema.sql','docs/SUPABASE_OPERACAO.md','scripts/seed-supabase.mjs'
 ];
 
-files.forEach((file) => {
-  if (!fs.existsSync(file)) issues.push(`Arquivo obrigatório ausente: ${file}`);
-});
-
-function includes(file, term) {
-  return fs.existsSync(file) && fs.readFileSync(file, 'utf8').includes(term);
-}
+files.forEach((file) => { if (!fs.existsSync(file)) issues.push(`Arquivo obrigatório ausente: ${file}`); });
+function includes(file, term) { return fs.existsSync(file) && fs.readFileSync(file, 'utf8').includes(term); }
 
 if (!includes('js/forms.js', '/api/forms')) issues.push('js/forms.js não aponta para /api/forms.');
 if (!includes('js/reservation.js', '/api/reservations')) issues.push('js/reservation.js não aponta para /api/reservations.');
 if (!includes('js/proposal-api.js', '/api/proposals')) issues.push('js/proposal-api.js não aponta para /api/proposals.');
 if (!includes('js/certificates.js', '/api/certificates')) issues.push('js/certificates.js não consulta /api/certificates.');
+if (!includes('js/certificate-document-link.js', '/api/certificate-document')) issues.push('Certificados não apontam para documento imprimível.');
 if (!includes('js/catalog-filters.js', '/api/catalog')) issues.push('Catálogo público não consulta /api/catalog.');
 if (!includes('js/artwork_page.js', '/api/catalog')) issues.push('Página da obra não consulta /api/catalog.');
 if (!includes('js/painel-operacional.js', 'arandu.reservations.v1')) issues.push('Painel não lê reservas locais.');
 if (!includes('js/painel-operacional.js', 'arandu.proposals.history.v1')) issues.push('Painel não lê propostas locais.');
 if (!includes('js/painel-operacional.js', '/api/admin')) issues.push('Painel operacional não consulta /api/admin.');
 if (!includes('js/painel-detalhes.js', '/api/operational')) issues.push('Drawer de detalhes não consulta /api/operational.');
+if (!includes('js/painel-detalhes.js', '/api/media')) issues.push('Drawer de detalhes não consulta /api/media.');
+if (!includes('js/painel-detalhes.js', 'painel-edit.js')) issues.push('Painel de detalhes não carrega edição inline.');
 if (!includes('api/operational.js', 'crm_notes')) issues.push('API operacional não grava notas de CRM.');
 if (!includes('api/operational.js', 'tasks')) issues.push('API operacional não grava tarefas.');
 if (!includes('api/operational.js', 'PATCH')) issues.push('API operacional não permite concluir tarefas.');
+if (!includes('api/media.js', 'media_assets')) issues.push('API de mídia não grava media_assets.');
+if (!includes('api/media.js', 'validUrl')) issues.push('API de mídia não valida URLs.');
 if (!includes('api/selections.js', 'saved_selections')) issues.push('API de seleções não grava em saved_selections.');
 if (!includes('api/selections.js', 'briefing')) issues.push('API de seleções não preserva briefing.');
 if (!includes('js/selection-tools.js', '/api/selections')) issues.push('Minha seleção não tenta salvar compartilhamento via /api/selections.');
@@ -63,6 +36,8 @@ if (!includes('js/admin-cadastros.js', '/api/admin')) issues.push('Cadastros adm
 if (!includes('api/admin.js', 'ARANDU_ADMIN_TOKEN')) issues.push('API administrativa não exige ARANDU_ADMIN_TOKEN.');
 if (!includes('api/admin.js', 'PATCH')) issues.push('API administrativa não atualiza status por PATCH.');
 if (!includes('api/admin.js', 'POST')) issues.push('API administrativa não cria registros por POST.');
+if (!includes('api/admin-update.js', 'ALLOWED')) issues.push('API de edição completa não define campos permitidos.');
+if (!includes('js/painel-edit.js', '/api/admin-update')) issues.push('Editor inline não salva via /api/admin-update.');
 if (!includes('api/admin.js', 'v_artworks_full')) issues.push('API administrativa não usa a view completa de obras.');
 if (!includes('api/dashboard.js', 'v_sales_pipeline')) issues.push('Dashboard não consulta o pipeline comercial.');
 if (!includes('js/auth.js', '/api/auth/session')) issues.push('Front de autenticação não consulta sessão.');
@@ -105,15 +80,6 @@ if (!process.env.ARANDU_ADMIN_TOKEN) warnings.push('ARANDU_ADMIN_TOKEN ausente. 
 console.log('Arandu Backend Check');
 console.log(`Erros: ${issues.length}`);
 console.log(`Alertas: ${warnings.length}`);
-
-if (issues.length) {
-  console.error('\nErros:');
-  issues.forEach((issue) => console.error(`- ${issue}`));
-}
-
-if (warnings.length) {
-  console.warn('\nAlertas:');
-  warnings.forEach((warning) => console.warn(`- ${warning}`));
-}
-
+if (issues.length) { console.error('\nErros:'); issues.forEach((issue) => console.error(`- ${issue}`)); }
+if (warnings.length) { console.warn('\nAlertas:'); warnings.forEach((warning) => console.warn(`- ${warning}`)); }
 if (issues.length) process.exit(1);
