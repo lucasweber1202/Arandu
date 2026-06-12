@@ -43,16 +43,17 @@ async function loadAdminPreview() {
   if (!target || !adminToken()) return;
   try {
     const [artists, artworks, certificates] = await Promise.all([
-      adminRequest('/api/admin/artists'),
-      adminRequest('/api/admin/artworks'),
-      adminRequest('/api/admin/certificates')
+      adminRequest('/api/admin?panel=artistas'),
+      adminRequest('/api/admin?panel=obras'),
+      adminRequest('/api/admin?panel=certificados')
     ]);
     target.innerHTML = `
       <div class="grid grid-3">
-        <article class="card"><h3>${artists.artists?.length || 0}</h3><p>Artistas cadastrados</p></article>
-        <article class="card"><h3>${artworks.artworks?.length || 0}</h3><p>Obras cadastradas</p></article>
-        <article class="card"><h3>${certificates.certificates?.length || 0}</h3><p>Certificados emitidos</p></article>
+        <article class="card"><h3>${artists.items?.length || 0}</h3><p>Artistas cadastrados</p></article>
+        <article class="card"><h3>${artworks.items?.length || 0}</h3><p>Obras cadastradas</p></article>
+        <article class="card"><h3>${certificates.items?.length || 0}</h3><p>Certificados emitidos</p></article>
       </div>`;
+    setAdminStatus(artists.mode === 'stored' ? 'Cadastros conectados ao Supabase.' : 'Modo demo/local: cadastros não serão gravados no banco.');
   } catch (error) {
     target.innerHTML = `<div class="card"><h3>Prévia indisponível</h3><p>${error.message}</p></div>`;
   }
@@ -64,19 +65,14 @@ document.addEventListener('submit', async (event) => {
   event.preventDefault();
 
   const type = form.dataset.adminForm;
-  const endpoints = {
-    artist: '/api/admin/artists',
-    artwork: '/api/admin/artworks',
-    certificate: '/api/admin/certificates'
-  };
 
   try {
     setAdminStatus('Enviando cadastro...');
-    const result = await adminRequest(endpoints[type], {
+    const result = await adminRequest('/api/admin', {
       method: 'POST',
-      body: JSON.stringify(formDataObject(form))
+      body: JSON.stringify({ type, data: formDataObject(form) })
     });
-    setAdminStatus(`Cadastro salvo: ${type}.`);
+    setAdminStatus(result.mode === 'stored' ? `Cadastro salvo no banco: ${type}.` : `Cadastro validado em modo demo: ${type}.`);
     form.reset();
     await loadAdminPreview();
     console.log(result);
