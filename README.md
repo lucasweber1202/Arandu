@@ -145,11 +145,19 @@ Concluído na etapa 11 — Detalhes operacionais e CRM:
 6. O drawer permite marcar tarefa como concluída.
 7. `scripts/check-backend.mjs` e `docs/SUPABASE_OPERACAO.md` passaram a validar/documentar esse fluxo.
 
+Concluído na etapa 12 — Seleções compartilháveis:
+
+1. `api/selections.js` criado para salvar e recuperar seleções por token público.
+2. `js/selection-tools.js` passou a tentar salvar a seleção em `/api/selections` antes do fallback por URL codificada.
+3. Links compartilhados passam a usar `selection_token` quando o Supabase está disponível.
+4. O fallback antigo com `selection=` continua funcionando quando o banco não está configurado.
+5. `scripts/check-backend.mjs` e `docs/SUPABASE_OPERACAO.md` passaram a validar/documentar esse fluxo.
+
 Próximos focos:
 
 1. Configurar Supabase real e rodar `npm run seed:supabase`.
 2. Configurar `ARANDU_ADMIN_TOKEN` na Vercel e testar o painel conectado.
-3. Testar fluxos reais de formulário, reserva, proposta, certificado, login, cadastro, alteração de status e detalhes operacionais.
+3. Testar fluxos reais de formulário, reserva, proposta, certificado, login, cadastro, alteração de status, detalhes operacionais e seleção compartilhada.
 4. Consolidar CSS e reduzir dependência de `!important`.
 5. Adicionar logo final em `assets/logo-arandu.png`.
 6. Configurar o WhatsApp real em `data/whatsapp-config.js`.
@@ -190,6 +198,7 @@ npm run seed:supabase:dry
 - Testar criação de artistas, obras e certificados pelo painel.
 - Testar alteração de status no painel conectado.
 - Testar notas e tarefas no drawer de detalhes.
+- Testar compartilhamento de seleção por token.
 - Adicionar a logo PNG real.
 - Configurar WhatsApp real.
 - Consolidar CSS e reduzir estilos redundantes.
