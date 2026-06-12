@@ -12,6 +12,7 @@ const files = [
   'api/catalog.js',
   'api/artists.js',
   'api/admin.js',
+  'api/operational.js',
   'api/dashboard.js',
   'api/auth/_auth.js',
   'api/auth/session.js',
@@ -49,6 +50,10 @@ if (!includes('js/artwork_page.js', '/api/catalog')) issues.push('Página da obr
 if (!includes('js/painel-operacional.js', 'arandu.reservations.v1')) issues.push('Painel não lê reservas locais.');
 if (!includes('js/painel-operacional.js', 'arandu.proposals.history.v1')) issues.push('Painel não lê propostas locais.');
 if (!includes('js/painel-operacional.js', '/api/admin')) issues.push('Painel operacional não consulta /api/admin.');
+if (!includes('js/painel-detalhes.js', '/api/operational')) issues.push('Drawer de detalhes não consulta /api/operational.');
+if (!includes('api/operational.js', 'crm_notes')) issues.push('API operacional não grava notas de CRM.');
+if (!includes('api/operational.js', 'tasks')) issues.push('API operacional não grava tarefas.');
+if (!includes('api/operational.js', 'PATCH')) issues.push('API operacional não permite concluir tarefas.');
 if (!includes('js/admin-cadastros.js', '/api/admin')) issues.push('Cadastros administrativos não usam /api/admin unificado.');
 if (!includes('api/admin.js', 'ARANDU_ADMIN_TOKEN')) issues.push('API administrativa não exige ARANDU_ADMIN_TOKEN.');
 if (!includes('api/admin.js', 'PATCH')) issues.push('API administrativa não atualiza status por PATCH.');
