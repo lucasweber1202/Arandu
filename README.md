@@ -115,11 +115,21 @@ Concluído na etapa 8 — Painel operacional v2:
 5. O painel mantém filtros, status local, exportação CSV e métricas por status.
 6. O `check:backend` valida catálogo API, página de obra API, reservas locais e propostas locais.
 
+Concluído na etapa 9 — Painel conectado ao Supabase:
+
+1. Endpoint administrativo criado em `api/admin.js`.
+2. `api/admin.js` exige `ARANDU_ADMIN_TOKEN` no servidor e token no header `x-arandu-admin-token`.
+3. Painel operacional passa a tentar `/api/admin?panel=...` antes do modo local/demo.
+4. Alterações de status em obras, artistas, certificados, leads, submissões, briefings, propostas, reservas e tarefas passam a ser enviadas por `PATCH /api/admin` quando o Supabase está configurado.
+5. Status do painel foi alinhado aos checks definidos em `docs/supabase-schema.sql`.
+6. `scripts/check-backend.mjs` passou a validar a existência da API administrativa e da conexão do painel com `/api/admin`.
+7. `docs/SUPABASE_OPERACAO.md` passou a documentar o token administrativo, consulta de painel e atualização de status.
+
 Próximos focos:
 
 1. Configurar Supabase real e rodar `npm run seed:supabase`.
-2. Testar fluxos reais de formulário, reserva, proposta e certificado.
-3. Evoluir o painel para atualizar status diretamente no banco.
+2. Configurar `ARANDU_ADMIN_TOKEN` na Vercel e testar o painel conectado.
+3. Testar fluxos reais de formulário, reserva, proposta, certificado e alteração de status no painel.
 4. Consolidar CSS e reduzir dependência de `!important`.
 5. Adicionar logo final em `assets/logo-arandu.png`.
 6. Configurar o WhatsApp real em `data/whatsapp-config.js`.
@@ -152,9 +162,11 @@ npm run seed:supabase:dry
 
 ## Pendências de produção
 
-- Adicionar a logo PNG real.
 - Configurar Supabase real no ambiente de produção.
+- Configurar `ARANDU_ADMIN_TOKEN`.
 - Popular Supabase com `npm run seed:supabase`.
 - Testar envio real de formulários, reservas, propostas e certificados.
+- Testar alteração de status no painel conectado.
+- Adicionar a logo PNG real.
 - Configurar WhatsApp real.
 - Consolidar CSS e reduzir estilos redundantes.
