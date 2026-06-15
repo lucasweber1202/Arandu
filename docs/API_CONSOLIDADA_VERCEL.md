@@ -6,13 +6,19 @@ O plano Hobby da Vercel limita a quantidade de Serverless Functions por deploy. 
 
 ## Solução aplicada
 
-Todas as rotas foram consolidadas em uma única função:
+As rotas operacionais foram consolidadas na função principal:
 
 ```text
 api/[...path].js
 ```
 
-Essa função atua como roteador interno e mantém os mesmos caminhos públicos usados pelo front.
+Além dela, existe uma função leve de diagnóstico:
+
+```text
+api/health.js
+```
+
+A arquitetura atual fica com 2 funções serverless, ainda muito abaixo do limite de 12 do plano Hobby.
 
 ## Rotas mantidas
 
@@ -34,6 +40,7 @@ Essa função atua como roteador interno e mantém os mesmos caminhos públicos 
 /api/auth/login
 /api/auth/signup
 /api/auth/logout
+/api/health
 ```
 
 ## O que não deve voltar
@@ -49,6 +56,24 @@ api/auth/login.js
 ```
 
 Se esses arquivos voltarem, a Vercel volta a contar cada um como função separada e o erro de limite pode retornar.
+
+## Health check
+
+A rota abaixo confirma se as variáveis de produção estão chegando ao servidor:
+
+```text
+/api/health
+```
+
+Ela retorna apenas indicadores booleanos, sem expor chaves ou tokens.
+
+Também existe uma página visual:
+
+```text
+/status.html
+```
+
+Use essa página depois do deploy para confirmar se Supabase e token administrativo estão configurados.
 
 ## Como testar
 
@@ -67,6 +92,8 @@ No navegador ou terminal:
 /api/catalog
 /api/artists
 /api/auth/session
+/api/health
+/status.html
 ```
 
 Sem Supabase configurado, algumas rotas respondem em modo `demo`. Isso é esperado.
@@ -84,6 +111,9 @@ ARANDU_ADMIN_TOKEN=
 
 - Deploy na Vercel não acusa limite de funções.
 - `api/[...path].js` existe.
+- `api/health.js` existe.
 - Arquivos serverless antigos não existem.
 - Front continua chamando as mesmas URLs `/api/...`.
+- `/api/health` responde em produção.
+- `status.html` mostra quais variáveis ainda estão pendentes.
 - `npm run check:backend` reconhece a arquitetura consolidada.
