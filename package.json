@@ -18,7 +18,8 @@
     "check:inventory": "node scripts/page-inventory.mjs",
     "check:data": "node scripts/check-data.mjs",
     "check:backend": "node scripts/check-backend.mjs",
-    "check:all": "npm run check && npm run check:links && npm run check:production && npm run check:quality && npm run check:inventory && npm run check:data && npm run check:backend",
+    "check:commercial": "node scripts/check-commercial-docs.mjs",
+    "check:all": "npm run check && npm run check:links && npm run check:production && npm run check:quality && npm run check:inventory && npm run check:data && npm run check:backend && npm run check:commercial",
     "seed:supabase": "node scripts/seed-supabase.mjs",
     "seed:supabase:dry": "node scripts/seed-supabase.mjs --dry-run",
     "predeploy": "npm run build && npm run check:all"
