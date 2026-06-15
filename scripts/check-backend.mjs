@@ -3,12 +3,69 @@ import fs from 'node:fs';
 const warnings = [];
 const issues = [];
 
-const files = [
-  'api/_arandu.js','api/forms.js','api/reservations.js','api/proposals.js','api/certificates.js','api/certificate-document.js','api/catalog.js','api/artists.js','api/admin.js','api/admin-update.js','api/operational.js','api/media.js','api/selections.js','api/dashboard.js','api/auth/_auth.js','api/auth/session.js','api/auth/login.js','api/auth/signup.js','api/auth/logout.js','css/arandu-visual-polish.css','css/arandu-security.css','css/arandu-flow.css','js/arandu-functions.js','js/arandu-recent.js','js/arandu-journey.js','js/arandu-usability.js','js/arandu-security-guard.js','js/arandu-flow.js','js/painel-edit.js','js/certificate-document-link.js','docs/supabase-schema.sql','docs/SUPABASE_OPERACAO.md','scripts/seed-supabase.mjs'
+const requiredFiles = [
+  'api/[...path].js',
+  'css/arandu-visual-polish.css',
+  'css/arandu-security.css',
+  'css/arandu-flow.css',
+  'js/arandu-functions.js',
+  'js/arandu-recent.js',
+  'js/arandu-journey.js',
+  'js/arandu-usability.js',
+  'js/arandu-security-guard.js',
+  'js/arandu-flow.js',
+  'js/painel-edit.js',
+  'js/certificate-document-link.js',
+  'docs/supabase-schema.sql',
+  'docs/SUPABASE_OPERACAO.md',
+  'scripts/seed-supabase.mjs'
 ];
 
-files.forEach((file) => { if (!fs.existsSync(file)) issues.push(`Arquivo obrigatório ausente: ${file}`); });
+const removedServerlessFiles = [
+  'api/_arandu.js',
+  'api/forms.js',
+  'api/reservations.js',
+  'api/proposals.js',
+  'api/certificates.js',
+  'api/certificate-document.js',
+  'api/catalog.js',
+  'api/artists.js',
+  'api/admin.js',
+  'api/admin-update.js',
+  'api/operational.js',
+  'api/media.js',
+  'api/selections.js',
+  'api/dashboard.js',
+  'api/auth/_auth.js',
+  'api/auth/session.js',
+  'api/auth/login.js',
+  'api/auth/signup.js',
+  'api/auth/logout.js'
+];
+
+requiredFiles.forEach((file) => { if (!fs.existsSync(file)) issues.push(`Arquivo obrigatório ausente: ${file}`); });
+removedServerlessFiles.forEach((file) => { if (fs.existsSync(file)) issues.push(`Função serverless antiga ainda existe e aumenta a contagem no Vercel: ${file}`); });
+
 function includes(file, term) { return fs.existsSync(file) && fs.readFileSync(file, 'utf8').includes(term); }
+
+const api = 'api/[...path].js';
+['forms','reservations','proposals','certificates','certificate-document','catalog','artists','admin','admin-update','operational','media','selections','dashboard','auth/session','auth/login','auth/signup','auth/logout'].forEach((route) => {
+  if (!includes(api, route.split('/')[0])) issues.push(`API consolidada não cobre a rota: /api/${route}`);
+});
+
+if (!includes(api, 'ARANDU_ADMIN_TOKEN')) issues.push('API consolidada não exige ARANDU_ADMIN_TOKEN nas rotas administrativas.');
+if (!includes(api, 'v_artworks_full')) issues.push('API consolidada não usa a view completa de obras.');
+if (!includes(api, 'v_sales_pipeline')) issues.push('Dashboard consolidado não consulta o pipeline comercial.');
+if (!includes(api, 'grant_type=password')) issues.push('Login consolidado não usa fluxo de senha do Supabase Auth.');
+if (!includes(api, 'signup')) issues.push('Cadastro consolidado não usa Supabase Auth signup.');
+if (!includes(api, 'HttpOnly')) issues.push('Sessão consolidada não usa cookie HttpOnly.');
+if (!includes(api, 'media_assets')) issues.push('API consolidada não grava media_assets.');
+if (!includes(api, 'validUrl')) issues.push('API consolidada não valida URLs de mídia.');
+if (!includes(api, 'saved_selections')) issues.push('API consolidada não grava em saved_selections.');
+if (!includes(api, 'briefing')) issues.push('API consolidada não preserva briefing.');
+if (!includes(api, 'crm_notes')) issues.push('API consolidada não grava notas de CRM.');
+if (!includes(api, 'tasks')) issues.push('API consolidada não grava tarefas.');
+if (!includes(api, 'PATCH')) issues.push('API consolidada não possui rotas de atualização PATCH.');
 
 if (!includes('js/forms.js', '/api/forms')) issues.push('js/forms.js não aponta para /api/forms.');
 if (!includes('js/reservation.js', '/api/reservations')) issues.push('js/reservation.js não aponta para /api/reservations.');
@@ -17,34 +74,16 @@ if (!includes('js/certificates.js', '/api/certificates')) issues.push('js/certif
 if (!includes('js/certificate-document-link.js', '/api/certificate-document')) issues.push('Certificados não apontam para documento imprimível.');
 if (!includes('js/catalog-filters.js', '/api/catalog')) issues.push('Catálogo público não consulta /api/catalog.');
 if (!includes('js/artwork_page.js', '/api/catalog')) issues.push('Página da obra não consulta /api/catalog.');
-if (!includes('js/painel-operacional.js', 'arandu.reservations.v1')) issues.push('Painel não lê reservas locais.');
-if (!includes('js/painel-operacional.js', 'arandu.proposals.history.v1')) issues.push('Painel não lê propostas locais.');
 if (!includes('js/painel-operacional.js', '/api/admin')) issues.push('Painel operacional não consulta /api/admin.');
 if (!includes('js/painel-detalhes.js', '/api/operational')) issues.push('Drawer de detalhes não consulta /api/operational.');
 if (!includes('js/painel-detalhes.js', '/api/media')) issues.push('Drawer de detalhes não consulta /api/media.');
-if (!includes('js/painel-detalhes.js', 'painel-edit.js')) issues.push('Painel de detalhes não carrega edição inline.');
-if (!includes('api/operational.js', 'crm_notes')) issues.push('API operacional não grava notas de CRM.');
-if (!includes('api/operational.js', 'tasks')) issues.push('API operacional não grava tarefas.');
-if (!includes('api/operational.js', 'PATCH')) issues.push('API operacional não permite concluir tarefas.');
-if (!includes('api/media.js', 'media_assets')) issues.push('API de mídia não grava media_assets.');
-if (!includes('api/media.js', 'validUrl')) issues.push('API de mídia não valida URLs.');
-if (!includes('api/selections.js', 'saved_selections')) issues.push('API de seleções não grava em saved_selections.');
-if (!includes('api/selections.js', 'briefing')) issues.push('API de seleções não preserva briefing.');
-if (!includes('js/selection-tools.js', '/api/selections')) issues.push('Minha seleção não tenta salvar compartilhamento via /api/selections.');
-if (!includes('js/selection-tools.js', 'selection_token')) issues.push('Minha seleção não importa link por token curto.');
 if (!includes('js/admin-cadastros.js', '/api/admin')) issues.push('Cadastros administrativos não usam /api/admin unificado.');
-if (!includes('api/admin.js', 'ARANDU_ADMIN_TOKEN')) issues.push('API administrativa não exige ARANDU_ADMIN_TOKEN.');
-if (!includes('api/admin.js', 'PATCH')) issues.push('API administrativa não atualiza status por PATCH.');
-if (!includes('api/admin.js', 'POST')) issues.push('API administrativa não cria registros por POST.');
-if (!includes('api/admin-update.js', 'ALLOWED')) issues.push('API de edição completa não define campos permitidos.');
 if (!includes('js/painel-edit.js', '/api/admin-update')) issues.push('Editor inline não salva via /api/admin-update.');
-if (!includes('api/admin.js', 'v_artworks_full')) issues.push('API administrativa não usa a view completa de obras.');
-if (!includes('api/dashboard.js', 'v_sales_pipeline')) issues.push('Dashboard não consulta o pipeline comercial.');
 if (!includes('js/auth.js', '/api/auth/session')) issues.push('Front de autenticação não consulta sessão.');
 if (!includes('js/auth.js', 'pipelineCards')) issues.push('Dashboard visual não renderiza pipeline recente.');
-if (!includes('api/auth/login.js', 'grant_type=password')) issues.push('Login não usa fluxo de senha do Supabase Auth.');
-if (!includes('api/auth/signup.js', 'signup')) issues.push('Cadastro não usa Supabase Auth signup.');
-if (!includes('api/auth/_auth.js', 'HttpOnly')) issues.push('Sessão de autenticação não usa cookie HttpOnly.');
+if (!includes('js/selection-tools.js', '/api/selections')) issues.push('Minha seleção não tenta salvar compartilhamento via /api/selections.');
+if (!includes('js/selection-tools.js', 'selection_token')) issues.push('Minha seleção não importa link por token curto.');
+
 if (!includes('docs/supabase-schema.sql', 'set_updated_at')) issues.push('Schema não possui trigger de updated_at.');
 if (!includes('docs/supabase-schema.sql', 'idx_saved_selections_public_token')) issues.push('Schema não indexa token público das seleções.');
 if (!includes('docs/supabase-schema.sql', "select 'selection' as source")) issues.push('Pipeline comercial não inclui seleções salvas.');
@@ -78,6 +117,7 @@ if (process.env.SUPABASE_ANON_KEY && !process.env.SUPABASE_SERVICE_ROLE_KEY) war
 if (!process.env.ARANDU_ADMIN_TOKEN) warnings.push('ARANDU_ADMIN_TOKEN ausente. O painel administrativo continuará em modo local/demo.');
 
 console.log('Arandu Backend Check');
+console.log('Arquitetura serverless: api/[...path].js');
 console.log(`Erros: ${issues.length}`);
 console.log(`Alertas: ${warnings.length}`);
 if (issues.length) { console.error('\nErros:'); issues.forEach((issue) => console.error(`- ${issue}`)); }
