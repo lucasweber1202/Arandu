@@ -2,14 +2,40 @@
 
 Este guia transforma o backend preparado em operação real.
 
-## 1. Criar projeto
+## 1. Arquitetura atual
+
+A operação de API está consolidada para caber no plano Hobby da Vercel:
+
+```text
+api/[...path].js
+api/health.js
+```
+
+As rotas públicas continuam existindo, mas não devem mais ser implementadas como arquivos separados dentro de `api/`.
+
+Não recriar:
+
+```text
+api/forms.js
+api/reservations.js
+api/proposals.js
+api/catalog.js
+api/artists.js
+api/admin.js
+api/dashboard.js
+api/auth/login.js
+```
+
+Cada arquivo separado em `api/` conta como uma Serverless Function na Vercel.
+
+## 2. Criar projeto Supabase
 
 1. Crie um projeto no Supabase.
 2. Abra o SQL Editor.
 3. Rode o conteúdo de `docs/supabase-schema.sql`.
 4. Em Authentication, confirme se login por email/senha está habilitado.
 
-## 2. Configurar variáveis
+## 3. Configurar variáveis
 
 No ambiente local ou na Vercel, configure:
 
@@ -27,7 +53,7 @@ Observações:
 - `SUPABASE_SERVICE_ROLE_KEY` deve ficar apenas no ambiente servidor. Não colocar no front.
 - `ARANDU_ADMIN_TOKEN` protege o painel operacional. Use um valor longo, privado e diferente de senhas pessoais.
 
-## 3. Validar backend
+## 4. Validar backend
 
 Sem variáveis, o backend roda em modo demo/local:
 
@@ -42,7 +68,14 @@ npm run check:all
 npm run build
 ```
 
-## 4. Testar seed sem enviar dados
+Depois do deploy, abra:
+
+```text
+/api/health
+/status.html
+```
+
+## 5. Testar seed sem enviar dados
 
 Antes de popular o banco:
 
@@ -52,7 +85,7 @@ npm run seed:supabase:dry
 
 Esse comando valida quantidade de artistas, obras e certificados sem gravar nada.
 
-## 5. Popular banco
+## 6. Popular banco
 
 Depois de aplicar o schema e configurar variáveis:
 
@@ -66,7 +99,7 @@ O seed faz upsert de:
 - `data/artworks.json` em `artworks`;
 - `data/certificates.json` em `certificates`.
 
-## 6. Reimportação
+## 7. Reimportação
 
 O seed usa conflito por chave:
 
@@ -84,11 +117,15 @@ ARANDU_SEED_RESET=1 npm run seed:supabase
 
 Use reset com cuidado, especialmente quando já houver reservas, propostas e certificados emitidos.
 
-## 7. Fluxos que passam a gravar no banco
+## 8. Fluxos que passam a gravar no banco
 
 ### Formulários
 
-Arquivo: `api/forms.js`.
+Endpoint público:
+
+```text
+POST /api/forms
+```
 
 Destino:
 
@@ -99,7 +136,11 @@ Destino:
 
 ### Reservas
 
-Arquivo: `api/reservations.js`.
+Endpoint público:
+
+```text
+POST /api/reservations
+```
 
 Destino:
 
@@ -109,7 +150,11 @@ A reserva mantém fallback local no navegador quando o banco não está configur
 
 ### Propostas
 
-Arquivo: `api/proposals.js`.
+Endpoint público:
+
+```text
+POST /api/proposals
+```
 
 Destino:
 
@@ -120,22 +165,27 @@ A integração pública está em `js/proposal-api.js`.
 
 ### Certificados
 
-Arquivo: `api/certificates.js`.
-
 Consulta pública por código:
 
 ```text
-/api/certificates?code=ARD-2026-0001
+GET /api/certificates?code=ARD-2026-0001
+GET /api/certificate-document?code=ARD-2026-0001
 ```
 
 O front tenta API primeiro e usa `data/certificates.json` como fallback.
 
+### Catálogo e artistas
+
+Leitura pública:
+
+```text
+GET /api/catalog
+GET /api/artists
+```
+
+Essas rotas alimentam páginas públicas quando o Supabase está configurado.
+
 ### Seleções salvas
-
-Arquivos:
-
-- `api/selections.js`;
-- `js/selection-tools.js`.
 
 Quando o Supabase está configurado, o botão de compartilhar da página `minha-selecao.html` salva a seleção em `saved_selections` e gera um link com `selection_token`. Sem Supabase, o fluxo mantém o link antigo com a seleção codificada na própria URL.
 
@@ -148,7 +198,11 @@ GET /api/selections?token=token_publico
 
 ### Dashboard
 
-Arquivo: `api/dashboard.js`.
+Endpoint:
+
+```text
+GET /api/dashboard
+```
 
 Retorna métricas operacionais para `painel.html` e `minha-conta.html`:
 
@@ -165,16 +219,6 @@ Retorna métricas operacionais para `painel.html` e `minha-conta.html`:
 
 ### Autenticação
 
-Arquivos:
-
-- `api/auth/session.js`;
-- `api/auth/login.js`;
-- `api/auth/signup.js`;
-- `api/auth/logout.js`;
-- `api/auth/_auth.js`.
-
-O fluxo usa Supabase Auth com email e senha. A sessão é guardada em cookie `HttpOnly`, e o front continua usando `js/auth.js`.
-
 Endpoints:
 
 ```text
@@ -184,13 +228,9 @@ POST /api/auth/signup
 POST /api/auth/logout
 ```
 
+O fluxo usa Supabase Auth com email e senha. A sessão é guardada em cookie `HttpOnly`, e o front continua usando `js/auth.js`.
+
 ### Painel administrativo
-
-Arquivos:
-
-- `api/admin.js`;
-- `js/painel-operacional.js`;
-- `js/admin-cadastros.js`.
 
 O painel tenta consultar o Supabase quando o usuário informa o `ARANDU_ADMIN_TOKEN` no campo de acesso administrativo. Com Supabase e token configurados, ele passa a:
 
@@ -222,12 +262,18 @@ Header: x-arandu-admin-token: seu_token
 Body: { "panel": "reservations", "id": "uuid", "status": "confirmed" }
 ```
 
+### Edição administrativa completa
+
+Endpoint:
+
+```text
+PATCH /api/admin-update
+Header: x-arandu-admin-token: seu_token
+```
+
+Uso previsto para edição de campos de artistas, obras, certificados e tarefas.
+
 ### Notas e tarefas operacionais
-
-Arquivos:
-
-- `api/operational.js`;
-- `js/painel-detalhes.js`.
 
 O botão `Detalhes` do painel abre um histórico operacional por entidade. Com Supabase e token configurados, é possível:
 
@@ -251,34 +297,43 @@ Header: x-arandu-admin-token: seu_token
 Body: { "entity_type": "lead", "entity_id": "uuid", "title": "Retornar contato" }
 ```
 
-## 8. Critério para seguir para WhatsApp e logo
+### Mídia
+
+Endpoint:
+
+```text
+GET /api/media?entity_type=artwork&entity_id=id_da_obra
+POST /api/media
+Header: x-arandu-admin-token: seu_token
+```
+
+Uso previsto para associar imagens e materiais a obras, artistas e entidades operacionais.
+
+## 9. Critério para seguir para WhatsApp e logo
 
 Antes de configurar WhatsApp real e logo final, confirmar:
 
 ```bash
 npm run check:all
 npm run build
-npm run seed:supabase:dry
 ```
 
-E, com Supabase real:
+Depois, confirmar em produção:
 
-```bash
-npm run seed:supabase
+```text
+/status.html
+/api/health
 ```
 
-Depois testar manualmente:
+## 10. Próximo passo após Supabase configurado
 
-1. Enviar formulário de contato.
-2. Enviar submissão de artista.
-3. Enviar briefing de empresa.
-4. Criar reserva de obra.
-5. Criar proposta curatorial.
-6. Verificar certificado por código.
-7. Criar cadastro e fazer login.
-8. Compartilhar uma seleção e abrir o link em outro navegador.
-9. Abrir o painel, inserir `ARANDU_ADMIN_TOKEN` e alterar o status de um lead, reserva ou proposta.
-10. Cadastrar um artista, uma obra e um certificado pelo painel de cadastros.
-11. Abrir detalhes de um registro, adicionar nota e criar tarefa.
-
-Quando esses onze fluxos estiverem funcionando, o Arandu está pronto para receber logo final, WhatsApp real e início de prospecção.
+1. Rodar seed.
+2. Testar `/api/catalog`.
+3. Testar `/api/artists`.
+4. Testar `/api/certificates?code=...`.
+5. Testar envio de formulário.
+6. Testar reserva.
+7. Testar proposta.
+8. Testar login.
+9. Testar painel com `ARANDU_ADMIN_TOKEN`.
+10. Trocar base demonstrativa por artistas e obras reais.
