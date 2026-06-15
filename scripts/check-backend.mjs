@@ -5,6 +5,9 @@ const issues = [];
 
 const requiredFiles = [
   'api/[...path].js',
+  'api/health.js',
+  'status.html',
+  'js/status.js',
   'css/arandu-visual-polish.css',
   'css/arandu-security.css',
   'css/arandu-flow.css',
@@ -52,6 +55,12 @@ const api = 'api/[...path].js';
 ['forms','reservations','proposals','certificates','certificate-document','catalog','artists','admin','admin-update','operational','media','selections','dashboard','auth/session','auth/login','auth/signup','auth/logout'].forEach((route) => {
   if (!includes(api, route.split('/')[0])) issues.push(`API consolidada não cobre a rota: /api/${route}`);
 });
+
+if (!includes('api/health.js', 'productionReady')) issues.push('Health check não calcula prontidão de produção.');
+if (!includes('api/health.js', 'SUPABASE_URL')) issues.push('Health check não valida SUPABASE_URL.');
+if (!includes('api/health.js', 'ARANDU_ADMIN_TOKEN')) issues.push('Health check não valida ARANDU_ADMIN_TOKEN.');
+if (!includes('js/status.js', '/api/health')) issues.push('status.js não consulta /api/health.');
+if (!includes('status.html', 'data-api-status')) issues.push('status.html não possui área dinâmica de status.');
 
 if (!includes(api, 'ARANDU_ADMIN_TOKEN')) issues.push('API consolidada não exige ARANDU_ADMIN_TOKEN nas rotas administrativas.');
 if (!includes(api, 'v_artworks_full')) issues.push('API consolidada não usa a view completa de obras.');
@@ -117,7 +126,7 @@ if (process.env.SUPABASE_ANON_KEY && !process.env.SUPABASE_SERVICE_ROLE_KEY) war
 if (!process.env.ARANDU_ADMIN_TOKEN) warnings.push('ARANDU_ADMIN_TOKEN ausente. O painel administrativo continuará em modo local/demo.');
 
 console.log('Arandu Backend Check');
-console.log('Arquitetura serverless: api/[...path].js');
+console.log('Arquitetura serverless: api/[...path].js + api/health.js');
 console.log(`Erros: ${issues.length}`);
 console.log(`Alertas: ${warnings.length}`);
 if (issues.length) { console.error('\nErros:'); issues.forEach((issue) => console.error(`- ${issue}`)); }
