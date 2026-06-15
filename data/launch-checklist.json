@@ -1,0 +1,36 @@
+{
+  "updatedAt": "2026-06-15",
+  "project": "Arandu",
+  "status": "pre-launch",
+  "minimumLaunchCriteria": {
+    "technical": [
+      { "item": "Deploy Vercel sem erro de limite de funções", "done": false },
+      { "item": "Supabase configurado", "done": false },
+      { "item": "Variáveis de ambiente configuradas na Vercel", "done": false },
+      { "item": "Domínio oficial apontando para o deploy", "done": false },
+      { "item": "WhatsApp ou email real configurado", "done": false }
+    ],
+    "catalog": [
+      { "item": "5 artistas reais aprovados", "done": false },
+      { "item": "20 obras reais cadastradas", "done": false },
+      { "item": "Fotos reais revisadas", "done": false },
+      { "item": "Ficha técnica completa por obra", "done": false },
+      { "item": "Preço ou faixa de preço revisada", "done": false }
+    ],
+    "trust": [
+      { "item": "Modelo final de certificado", "done": false },
+      { "item": "Código único por obra", "done": false },
+      { "item": "Política comercial definida", "done": false },
+      { "item": "Política de frete e devolução definida", "done": false },
+      { "item": "Autorização de imagem dos artistas", "done": false }
+    ],
+    "media": [
+      { "item": "Logo final em boa resolução", "done": false },
+      { "item": "Instagram criado", "done": false },
+      { "item": "LinkedIn criado", "done": false },
+      { "item": "9 posts iniciais prontos", "done": false },
+      { "item": "Bio e destaques definidos", "done": false }
+    ]
+  },
+  "recommendedNextAction": "Confirmar deploy na Vercel, configurar Supabase e substituir dados demonstrativos por artistas e obras reais."
+}
