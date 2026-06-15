@@ -58,6 +58,17 @@ if (!existsSync(apiRouter)) {
   if (!apiContent.includes('HttpOnly')) warnings.push('API consolidada não usa cookie HttpOnly para sessão.');
 }
 
+if (!existsSync('api/health.js')) warnings.push('Health check ausente: api/health.js.');
+if (!existsSync('status.html')) warnings.push('Página de status técnico ausente: status.html.');
+if (!existsSync('js/status.js')) warnings.push('Runtime visual de status ausente: js/status.js.');
+if (existsSync('js/status.js') && !readFileSync('js/status.js', 'utf8').includes('/api/health')) warnings.push('Página de status não consulta /api/health.');
+if (existsSync('vercel.json')) {
+  const vercel = readFileSync('vercel.json', 'utf8');
+  ['X-Content-Type-Options', 'X-Frame-Options', 'Referrer-Policy', 'Permissions-Policy'].forEach((header) => {
+    if (!vercel.includes(header)) warnings.push(`Header de segurança ausente na Vercel: ${header}.`);
+  });
+}
+
 const deprecatedApiFiles = [
   'api/_arandu.js',
   'api/forms.js',
