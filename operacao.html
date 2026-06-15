@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Painel operacional mínimo do Arandu para organizar artistas, obras, certificados, reservas, pagamentos, comissão e envio." />
+  <meta name="description" content="Painel operacional mínimo do Arandu para organizar artistas, obras, certificados, reservas, pagamentos, comissão, envio e lançamento." />
   <title>Operação — Arandu</title>
   <link rel="stylesheet" href="css/arandu-system.css?v=20260608" />
   <link rel="stylesheet" href="css/arandu-product.css?v=20260608" />
@@ -17,14 +17,14 @@
   <header class="site-header">
     <div class="container header-inner">
       <a class="brand-logo" href="index.html">Arandu</a>
-      <nav class="site-nav"><a href="comprar-arte.html">Comprar arte</a><a href="acervo.html">Acervo</a><a href="empresas.html">Empresas</a><a href="confianca.html">Confiança</a><a href="narrativa.html">Narrativa</a><a href="obras.html">Explorar</a></nav>
+      <nav class="site-nav"><a href="comprar-arte.html">Comprar arte</a><a href="acervo.html">Acervo</a><a href="empresas.html">Empresas</a><a href="confianca.html">Confiança</a><a href="lancamento.html">Lançamento</a><a href="obras.html">Explorar</a></nav>
       <a class="cta" href="contato.html">Falar com a curadoria</a>
     </div>
   </header>
   <main>
     <section class="rect-hero">
       <div class="container rect-hero-grid">
-        <div><p class="eyebrow">Operação</p><h1 class="title">Backoffice mínimo para não perder controle quando a prospecção começar.</h1><p class="lead">Esta página organiza o que precisa ser acompanhado internamente: artista, obra, certificado, reserva, pagamento, comissão, envio e pós-venda.</p></div>
+        <div><p class="eyebrow">Operação</p><h1 class="title">Backoffice mínimo para não perder controle quando a prospecção começar.</h1><p class="lead">Esta página organiza o que precisa ser acompanhado internamente: artista, obra, certificado, reserva, pagamento, comissão, envio, pós-venda e lançamento público.</p><div class="page-actions"><a class="cta" href="lancamento.html">Ver checklist de lançamento</a><a class="cta secondary" href="politica-comercial.html">Política comercial</a></div></div>
         <div class="certificate-preview"><p class="eyebrow">Status operacional</p><h2>Artista → Obra → Certificado → Venda → Envio</h2><p>O objetivo é permitir uma operação simples antes de escalar integrações e automações.</p></div>
       </div>
     </section>
@@ -47,8 +47,15 @@
         <ol class="process-steps"><li>1. Aprovar artista</li><li>2. Cadastrar obra</li><li>3. Emitir registro</li><li>4. Publicar</li><li>5. Reservar</li><li>6. Confirmar pagamento</li><li>7. Enviar</li><li>8. Atualizar status</li></ol>
       </div>
     </section>
+    <section class="clean-section">
+      <div class="container home-trust-band">
+        <a class="macro-card" href="docs/LANCAMENTO_ARANDU.md"><strong>Plano de lançamento</strong><span>Ordem de execução para deploy, Supabase, catálogo real, certificado e redes.</span></a>
+        <a class="macro-card" href="docs/REDES_SOCIAIS_ARANDU.md"><strong>Redes sociais</strong><span>Tom de voz, bio, destaques, grade inicial e posts de lançamento.</span></a>
+        <a class="macro-card" href="data/launch-checklist.json"><strong>Checklist JSON</strong><span>Critérios mínimos estruturados para acompanhar o status do lançamento.</span></a>
+      </div>
+    </section>
   </main>
-  <footer class="site-footer"><div class="container footer-grid"><div><h2>Arandu</h2><p>Arte brasileira contemporânea com curadoria, território e procedência.</p></div><div><p>Comprar</p><a href="comprar-arte.html">Comprar arte</a><a href="obras.html">Explorar obras</a><a href="minha-selecao.html">Minha seleção</a></div><div><p>Acervo</p><a href="acervo.html">Obras e artistas</a><a href="artistas.html">Artistas</a><a href="para-artistas.html">Para artistas</a></div><div><p>Confiança</p><a href="confianca.html">Critérios</a><a href="verificar-certificado.html">Verificar certificado</a><a href="operacao.html">Operação</a></div></div></footer>
+  <footer class="site-footer"><div class="container footer-grid"><div><h2>Arandu</h2><p>Arte brasileira contemporânea com curadoria, território e procedência.</p></div><div><p>Comprar</p><a href="comprar-arte.html">Comprar arte</a><a href="obras.html">Explorar obras</a><a href="minha-selecao.html">Minha seleção</a></div><div><p>Acervo</p><a href="acervo.html">Obras e artistas</a><a href="artistas.html">Artistas</a><a href="para-artistas.html">Para artistas</a></div><div><p>Confiança</p><a href="confianca.html">Critérios</a><a href="verificar-certificado.html">Verificar certificado</a><a href="lancamento.html">Lançamento</a></div></div></footer>
   <script src="js/site.js?v=20260610-public-shell-1"></script>
   <script src="js/arandu-loader.js?v=20260610-minimal-1"></script>
 </body>
