@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Status técnico do Arandu: API, Supabase, token administrativo e rotas principais de produção." />
+  <title>Status técnico — Arandu</title>
+  <link rel="stylesheet" href="css/arandu-system.css?v=20260608" />
+  <link rel="stylesheet" href="css/arandu-product.css?v=20260608" />
+  <link rel="stylesheet" href="css/arandu-gallery.css?v=20260608" />
+  <link rel="stylesheet" href="css/arandu-marketplace.css?v=lovable-4" />
+  <link rel="stylesheet" href="css/arandu-architecture.css?v=20260610-public-shell-1" />
+  <link rel="stylesheet" href="css/arandu-clean.css?v=20260610-public-shell-1" />
+  <link rel="stylesheet" href="css/arandu-1506.css?v=20260615" />
+</head>
+<body class="lovable-page architecture-clean">
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand-logo" href="index.html">Arandu</a>
+      <nav class="site-nav"><a href="comprar-arte.html">Comprar arte</a><a href="acervo.html">Acervo</a><a href="confianca.html">Confiança</a><a href="operacao.html">Operação</a><a href="lancamento.html">Lançamento</a></nav>
+      <a class="cta" href="contato.html">Falar com a curadoria</a>
+    </div>
+  </header>
+  <main>
+    <section class="rect-hero">
+      <div class="container rect-hero-grid">
+        <div><p class="eyebrow">Status técnico</p><h1 class="title">Diagnóstico rápido da operação digital.</h1><p class="lead">Esta página consulta a rota <code>/api/health</code> e mostra se a API, Supabase e token administrativo estão prontos para produção.</p></div>
+        <div class="certificate-preview"><p class="eyebrow">Uso interno</p><h2>Antes e depois do deploy</h2><p>Depois de configurar a Vercel, abra esta página para confirmar se as variáveis estão chegando ao servidor.</p></div>
+      </div>
+    </section>
+    <section class="clean-section"><div class="container" data-api-status><div class="certificate-preview"><p class="eyebrow">Carregando</p><h2>Consultando /api/health...</h2><p>Aguarde a resposta da API.</p></div></div></section>
+  </main>
+  <footer class="site-footer"><div class="container footer-grid"><div><h2>Arandu</h2><p>Arte brasileira contemporânea com curadoria, território e procedência.</p></div><div><p>Operação</p><a href="operacao.html">Backoffice</a><a href="lancamento.html">Lançamento</a><a href="status.html">Status técnico</a></div><div><p>Produção</p><a href="docs/SETUP_PRODUCAO.md">Setup</a><a href="docs/API_CONSOLIDADA_VERCEL.md">API Vercel</a></div><div><p>Confiança</p><a href="confianca.html">Critérios</a><a href="verificar-certificado.html">Verificar certificado</a></div></div></footer>
+  <script src="js/site.js?v=20260610-public-shell-1"></script>
+  <script src="js/arandu-loader.js?v=20260610-minimal-1"></script>
+  <script src="js/status.js?v=20260615-health-1"></script>
+</body>
+</html>
