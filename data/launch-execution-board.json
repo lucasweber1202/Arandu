@@ -1,0 +1,60 @@
+{
+  "title": "Arandu — quadro de execução do lançamento",
+  "updatedAt": "2026-06-15",
+  "groups": [
+    {
+      "id": "infra",
+      "title": "Infraestrutura",
+      "items": [
+        { "id": "deploy-vercel", "title": "Deploy Vercel sem erro de funções", "status": "pending", "priority": "high" },
+        { "id": "domain", "title": "Domínio real configurado", "status": "pending", "priority": "high" },
+        { "id": "supabase", "title": "Supabase configurado", "status": "pending", "priority": "high" },
+        { "id": "admin-token", "title": "Token administrativo configurado", "status": "pending", "priority": "high" },
+        { "id": "health", "title": "Validar /api/health e /status.html", "status": "pending", "priority": "high" }
+      ]
+    },
+    {
+      "id": "brand",
+      "title": "Marca",
+      "items": [
+        { "id": "logo", "title": "Logo final em assets/logo-arandu.png", "status": "pending", "priority": "high" },
+        { "id": "favicon", "title": "Favicon derivado da logo", "status": "pending", "priority": "medium" },
+        { "id": "social-bio", "title": "Bio de Instagram e LinkedIn fechada", "status": "pending", "priority": "medium" },
+        { "id": "share-image", "title": "Imagem de compartilhamento/OG", "status": "pending", "priority": "medium" }
+      ]
+    },
+    {
+      "id": "catalog",
+      "title": "Catálogo real",
+      "items": [
+        { "id": "artists-real", "title": "5 artistas reais aprovados", "status": "pending", "priority": "high" },
+        { "id": "artworks-real", "title": "20 obras reais cadastradas", "status": "pending", "priority": "high" },
+        { "id": "images-authorized", "title": "Imagens autorizadas", "status": "pending", "priority": "high" },
+        { "id": "prices", "title": "Preços ou faixas validadas", "status": "pending", "priority": "high" },
+        { "id": "certificates", "title": "Certificados vinculados", "status": "pending", "priority": "medium" }
+      ]
+    },
+    {
+      "id": "commercial",
+      "title": "Comercial",
+      "items": [
+        { "id": "whatsapp", "title": "WhatsApp real configurado", "status": "pending", "priority": "high" },
+        { "id": "policy", "title": "Política comercial revisada", "status": "pending", "priority": "high" },
+        { "id": "artist-terms", "title": "Condições com artistas revisadas", "status": "pending", "priority": "high" },
+        { "id": "reservation-flow", "title": "Fluxo de reserva testado", "status": "pending", "priority": "high" },
+        { "id": "curatorial-proposal", "title": "Modelo de proposta curatorial validado", "status": "pending", "priority": "medium" }
+      ]
+    },
+    {
+      "id": "growth",
+      "title": "Lançamento e crescimento",
+      "items": [
+        { "id": "content-calendar", "title": "Calendário de 30 dias pronto", "status": "ready", "priority": "medium" },
+        { "id": "artist-prospecting", "title": "Lista de 30 artistas mapeada", "status": "pending", "priority": "high" },
+        { "id": "buyer-prospecting", "title": "Lista de compradores/empresas mapeada", "status": "pending", "priority": "high" },
+        { "id": "metrics", "title": "Métricas de funil acompanhadas", "status": "pending", "priority": "medium" },
+        { "id": "seo", "title": "Checklist de SEO/domínio executado", "status": "pending", "priority": "medium" }
+      ]
+    }
+  ]
+}
