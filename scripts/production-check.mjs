@@ -25,24 +25,64 @@ if (existsSync('sitemap.xml')) {
   });
 }
 
-const requiredApi = [
+const apiRouter = 'api/[...path].js';
+if (!existsSync(apiRouter)) {
+  warnings.push('API consolidada ausente: api/[...path].js. O deploy pode voltar a estourar limite de funções na Vercel Hobby.');
+} else {
+  const apiContent = readFileSync(apiRouter, 'utf8');
+  [
+    'forms',
+    'reservations',
+    'proposals',
+    'certificates',
+    'certificate-document',
+    'catalog',
+    'artists',
+    'admin',
+    'admin-update',
+    'operational',
+    'media',
+    'selections',
+    'dashboard',
+    'auth/session',
+    'auth/login',
+    'auth/signup',
+    'auth/logout'
+  ].forEach((route) => {
+    const marker = route.includes('/') ? route.split('/')[0] : route;
+    if (!apiContent.includes(marker)) warnings.push(`API consolidada não parece cobrir /api/${route}.`);
+  });
+  if (!apiContent.includes('ARANDU_ADMIN_TOKEN')) warnings.push('API consolidada não valida ARANDU_ADMIN_TOKEN.');
+  if (!apiContent.includes('v_public_catalog')) warnings.push('API consolidada não consulta v_public_catalog.');
+  if (!apiContent.includes('v_sales_pipeline')) warnings.push('API consolidada não consulta v_sales_pipeline.');
+  if (!apiContent.includes('HttpOnly')) warnings.push('API consolidada não usa cookie HttpOnly para sessão.');
+}
+
+const deprecatedApiFiles = [
+  'api/_arandu.js',
   'api/forms.js',
   'api/reservations.js',
   'api/proposals.js',
   'api/certificates.js',
+  'api/certificate-document.js',
   'api/catalog.js',
   'api/artists.js',
   'api/admin.js',
+  'api/admin-update.js',
   'api/operational.js',
+  'api/media.js',
   'api/selections.js',
   'api/dashboard.js',
+  'api/auth/_auth.js',
   'api/auth/session.js',
   'api/auth/login.js',
   'api/auth/signup.js',
-  'api/auth/logout.js',
-  'api/_arandu.js'
+  'api/auth/logout.js'
 ];
-requiredApi.forEach((file) => { if (!existsSync(file)) warnings.push(`Endpoint operacional ausente: ${file}`); });
+
+deprecatedApiFiles.forEach((file) => {
+  if (existsSync(file)) warnings.push(`Função serverless antiga ainda existe e pode aumentar a contagem na Vercel: ${file}`);
+});
 
 if (!existsSync('docs/supabase-schema.sql')) {
   warnings.push('Schema Supabase ainda não existe em docs/supabase-schema.sql.');
@@ -60,6 +100,11 @@ if (existsSync('js/painel-operacional.js') && !readFileSync('js/painel-operacion
 if (existsSync('js/painel-detalhes.js') && !readFileSync('js/painel-detalhes.js', 'utf8').includes('/api/operational')) warnings.push('Detalhes operacionais ainda não apontam para /api/operational.');
 if (existsSync('js/selection-tools.js') && !readFileSync('js/selection-tools.js', 'utf8').includes('/api/selections')) warnings.push('Minha seleção ainda não aponta para /api/selections.');
 if (existsSync('verificar-certificado.html') && !readFileSync('verificar-certificado.html', 'utf8').includes('certificate-api.js')) warnings.push('Verificação de certificado ainda não consulta a API pública.');
+if (!existsSync('docs/API_CONSOLIDADA_VERCEL.md')) warnings.push('Documentação da API consolidada ausente.');
+if (!existsSync('docs/LANCAMENTO_ARANDU.md')) warnings.push('Plano de lançamento ausente.');
+if (!existsSync('docs/REDES_SOCIAIS_ARANDU.md')) warnings.push('Plano de redes sociais ausente.');
+if (!existsSync('data/launch-checklist.json')) warnings.push('Checklist estruturado de lançamento ausente.');
+
 if (!process.env.SUPABASE_URL) warnings.push('SUPABASE_URL ainda não está configurado no ambiente de produção.');
 if (!process.env.SUPABASE_ANON_KEY && !process.env.SUPABASE_SERVICE_ROLE_KEY) warnings.push('Chave Supabase ainda não está configurada no ambiente de produção.');
 if (!process.env.ARANDU_ADMIN_TOKEN) warnings.push('ARANDU_ADMIN_TOKEN ainda não está configurado no ambiente de produção.');
