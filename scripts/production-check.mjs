@@ -113,6 +113,9 @@ if (existsSync('js/selection-tools.js') && !readFileSync('js/selection-tools.js'
 if (existsSync('verificar-certificado.html') && !readFileSync('verificar-certificado.html', 'utf8').includes('certificate-api.js')) warnings.push('Verificação de certificado ainda não consulta a API pública.');
 if (!existsSync('docs/API_CONSOLIDADA_VERCEL.md')) warnings.push('Documentação da API consolidada ausente.');
 if (!existsSync('docs/LANCAMENTO_ARANDU.md')) warnings.push('Plano de lançamento ausente.');
+if (!existsSync('docs/GO_LIVE_ARANDU.md')) warnings.push('Roteiro go-live ausente.');
+if (!existsSync('docs/FLUXO_COMPRA_RESERVA.md')) warnings.push('Fluxo de compra e reserva ausente.');
+if (!existsSync('docs/CHECKLIST_PARCEIRA_ARTISTA.md')) warnings.push('Checklist de parceria com artistas ausente.');
 if (!existsSync('docs/REDES_SOCIAIS_ARANDU.md')) warnings.push('Plano de redes sociais ausente.');
 if (!existsSync('data/launch-checklist.json')) warnings.push('Checklist estruturado de lançamento ausente.');
 
