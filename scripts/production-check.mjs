@@ -116,6 +116,9 @@ if (!existsSync('docs/LANCAMENTO_ARANDU.md')) warnings.push('Plano de lançament
 if (!existsSync('docs/GO_LIVE_ARANDU.md')) warnings.push('Roteiro go-live ausente.');
 if (!existsSync('docs/FLUXO_COMPRA_RESERVA.md')) warnings.push('Fluxo de compra e reserva ausente.');
 if (!existsSync('docs/CHECKLIST_PARCEIRA_ARTISTA.md')) warnings.push('Checklist de parceria com artistas ausente.');
+if (!existsSync('docs/PROSPECCAO_ARTISTAS_PLAYBOOK.md')) warnings.push('Playbook de prospecção de artistas ausente.');
+if (!existsSync('docs/PRIMEIROS_30_DIAS.md')) warnings.push('Plano dos primeiros 30 dias ausente.');
+if (!existsSync('docs/SEO_DOMINIO_CHECKLIST.md')) warnings.push('Checklist de SEO e domínio ausente.');
 if (!existsSync('docs/REDES_SOCIAIS_ARANDU.md')) warnings.push('Plano de redes sociais ausente.');
 if (!existsSync('data/launch-checklist.json')) warnings.push('Checklist estruturado de lançamento ausente.');
 
