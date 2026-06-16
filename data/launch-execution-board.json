@@ -1,16 +1,26 @@
 {
   "title": "Arandu — quadro de execução do lançamento",
-  "updatedAt": "2026-06-15",
+  "updatedAt": "2026-06-16",
   "groups": [
     {
+      "id": "local-validation",
+      "title": "Validação local",
+      "items": [
+        { "id": "quality-check", "title": "Check de qualidade sem erros", "status": "ready", "priority": "high" },
+        { "id": "build", "title": "Build local aprovado", "status": "ready", "priority": "high" },
+        { "id": "commercial-docs", "title": "Documentação comercial validada", "status": "ready", "priority": "high" },
+        { "id": "backend-check", "title": "Backend sem erro estrutural", "status": "ready", "priority": "high" }
+      ]
+    },
+    {
       "id": "infra",
-      "title": "Infraestrutura",
+      "title": "Infraestrutura externa",
       "items": [
         { "id": "deploy-vercel", "title": "Deploy Vercel sem erro de funções", "status": "pending", "priority": "high" },
         { "id": "domain", "title": "Domínio real configurado", "status": "pending", "priority": "high" },
         { "id": "supabase", "title": "Supabase configurado", "status": "pending", "priority": "high" },
-        { "id": "admin-token", "title": "Token administrativo configurado", "status": "pending", "priority": "high" },
-        { "id": "health", "title": "Validar /api/health e /status.html", "status": "pending", "priority": "high" }
+        { "id": "admin-token", "title": "Token administrativo configurado na Vercel", "status": "pending", "priority": "high" },
+        { "id": "health", "title": "Validar /api/health e /status.html em produção", "status": "pending", "priority": "high" }
       ]
     },
     {
@@ -19,7 +29,7 @@
       "items": [
         { "id": "logo", "title": "Logo final em assets/logo-arandu.png", "status": "pending", "priority": "high" },
         { "id": "favicon", "title": "Favicon derivado da logo", "status": "pending", "priority": "medium" },
-        { "id": "social-bio", "title": "Bio de Instagram e LinkedIn fechada", "status": "pending", "priority": "medium" },
+        { "id": "social-bio", "title": "Bio de Instagram e LinkedIn fechada", "status": "ready", "priority": "medium" },
         { "id": "share-image", "title": "Imagem de compartilhamento/OG", "status": "pending", "priority": "medium" }
       ]
     },
@@ -27,6 +37,7 @@
       "id": "catalog",
       "title": "Catálogo real",
       "items": [
+        { "id": "catalog-guide", "title": "Guia de cadastro real criado", "status": "ready", "priority": "medium" },
         { "id": "artists-real", "title": "5 artistas reais aprovados", "status": "pending", "priority": "high" },
         { "id": "artworks-real", "title": "20 obras reais cadastradas", "status": "pending", "priority": "high" },
         { "id": "images-authorized", "title": "Imagens autorizadas", "status": "pending", "priority": "high" },
@@ -39,10 +50,10 @@
       "title": "Comercial",
       "items": [
         { "id": "whatsapp", "title": "WhatsApp real configurado", "status": "pending", "priority": "high" },
-        { "id": "policy", "title": "Política comercial revisada", "status": "pending", "priority": "high" },
-        { "id": "artist-terms", "title": "Condições com artistas revisadas", "status": "pending", "priority": "high" },
-        { "id": "reservation-flow", "title": "Fluxo de reserva testado", "status": "pending", "priority": "high" },
-        { "id": "curatorial-proposal", "title": "Modelo de proposta curatorial validado", "status": "pending", "priority": "medium" }
+        { "id": "policy", "title": "Política comercial estruturada", "status": "ready", "priority": "high" },
+        { "id": "artist-terms", "title": "Checklist de relação com artistas criado", "status": "ready", "priority": "high" },
+        { "id": "reservation-flow", "title": "Fluxo de reserva documentado", "status": "ready", "priority": "high" },
+        { "id": "curatorial-proposal", "title": "Modelo de proposta curatorial documentado", "status": "ready", "priority": "medium" }
       ]
     },
     {
@@ -50,10 +61,12 @@
       "title": "Lançamento e crescimento",
       "items": [
         { "id": "content-calendar", "title": "Calendário de 30 dias pronto", "status": "ready", "priority": "medium" },
+        { "id": "artist-prospecting-playbook", "title": "Playbook de prospecção de artistas pronto", "status": "ready", "priority": "high" },
+        { "id": "buyer-prospecting-playbook", "title": "Playbook de compradores/empresas pronto", "status": "ready", "priority": "high" },
         { "id": "artist-prospecting", "title": "Lista de 30 artistas mapeada", "status": "pending", "priority": "high" },
         { "id": "buyer-prospecting", "title": "Lista de compradores/empresas mapeada", "status": "pending", "priority": "high" },
-        { "id": "metrics", "title": "Métricas de funil acompanhadas", "status": "pending", "priority": "medium" },
-        { "id": "seo", "title": "Checklist de SEO/domínio executado", "status": "pending", "priority": "medium" }
+        { "id": "metrics", "title": "Métricas de funil definidas", "status": "ready", "priority": "medium" },
+        { "id": "seo", "title": "Checklist de SEO/domínio pronto", "status": "ready", "priority": "medium" }
       ]
     }
   ]
