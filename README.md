@@ -133,6 +133,7 @@ data/catalog-intake-template.csv
 ## Documentos operacionais importantes
 
 ```text
+docs/OPERACAO_COMERCIAL_INDEX.md
 docs/GO_LIVE_ARANDU.md
 docs/SETUP_PRODUCAO.md
 docs/API_CONSOLIDADA_VERCEL.md
