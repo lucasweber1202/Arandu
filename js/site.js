@@ -90,6 +90,7 @@ function injectProductCss() {
   injectCssOnce('css/arandu-clean.css?v=20260610-public-shell-1', 'arandu-clean-css');
   injectCssOnce('css/arandu-visual-polish.css?v=20260610-ux-1', 'arandu-visual-polish-css');
   injectCssOnce('css/arandu-experience.css?v=20260618-experience-1', 'arandu-experience-css');
+  injectCssOnce('css/arandu-presentation.css?v=20260618-presentation-1', 'arandu-presentation-css');
 }
 
 function markActiveLinks() {
@@ -213,7 +214,7 @@ document.addEventListener('input', (event) => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-  document.body.dataset.publicShell = isInternalPage() ? '20260610-internal-shell-safe' : '20260618-experience-shell-1';
+  document.body.dataset.publicShell = isInternalPage() ? '20260610-internal-shell-safe' : '20260618-presentation-shell-1';
   loadCentralLoader();
   injectProductCss();
   injectPageIntegrations();
