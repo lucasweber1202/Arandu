@@ -83,6 +83,7 @@ function injectPageIntegrations() {
   injectScriptOnce('js/arandu-assistant.js?v=20260618-experience-1', 'arandu-assistant-js');
   injectScriptOnce('js/arandu-mobile.js?v=20260618-mobile-1', 'arandu-mobile-js');
   injectScriptOnce('js/arandu-ux-plus.js?v=20260618-ux-plus-1', 'arandu-ux-plus-js');
+  injectScriptOnce('js/arandu-usability-pack.js?v=20260618-usability-pack-1', 'arandu-usability-pack-js');
   if (currentPage() === 'proposta-curatorial.html') injectScriptOnce('js/proposal-api.js?v=20260610-operational-1', 'arandu-proposal-api-js');
 }
 
@@ -95,6 +96,7 @@ function injectProductCss() {
   injectCssOnce('css/arandu-presentation.css?v=20260618-presentation-1', 'arandu-presentation-css');
   injectCssOnce('css/arandu-mobile.css?v=20260618-mobile-1', 'arandu-mobile-css');
   injectCssOnce('css/arandu-ux-plus.css?v=20260618-ux-plus-1', 'arandu-ux-plus-css');
+  injectCssOnce('css/arandu-usability-pack.css?v=20260618-usability-pack-1', 'arandu-usability-pack-css');
 }
 
 function markActiveLinks() {
@@ -218,7 +220,7 @@ document.addEventListener('input', (event) => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-  document.body.dataset.publicShell = isInternalPage() ? '20260610-internal-shell-safe' : '20260618-ux-plus-shell-1';
+  document.body.dataset.publicShell = isInternalPage() ? '20260610-internal-shell-safe' : '20260618-usability-pack-shell-1';
   loadCentralLoader();
   injectProductCss();
   injectPageIntegrations();
