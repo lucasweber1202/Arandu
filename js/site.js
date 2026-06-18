@@ -84,6 +84,7 @@ function injectPageIntegrations() {
   injectScriptOnce('js/arandu-mobile.js?v=20260618-mobile-1', 'arandu-mobile-js');
   injectScriptOnce('js/arandu-ux-plus.js?v=20260618-ux-plus-1', 'arandu-ux-plus-js');
   injectScriptOnce('js/arandu-usability-pack.js?v=20260618-usability-pack-1', 'arandu-usability-pack-js');
+  injectScriptOnce('js/arandu-final-polish.js?v=20260618-final-polish-1', 'arandu-final-polish-js');
   if (currentPage() === 'proposta-curatorial.html') injectScriptOnce('js/proposal-api.js?v=20260610-operational-1', 'arandu-proposal-api-js');
 }
 
@@ -97,6 +98,7 @@ function injectProductCss() {
   injectCssOnce('css/arandu-mobile.css?v=20260618-mobile-1', 'arandu-mobile-css');
   injectCssOnce('css/arandu-ux-plus.css?v=20260618-ux-plus-1', 'arandu-ux-plus-css');
   injectCssOnce('css/arandu-usability-pack.css?v=20260618-usability-pack-1', 'arandu-usability-pack-css');
+  injectCssOnce('css/arandu-final-polish.css?v=20260618-final-polish-1', 'arandu-final-polish-css');
 }
 
 function markActiveLinks() {
@@ -220,7 +222,7 @@ document.addEventListener('input', (event) => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-  document.body.dataset.publicShell = isInternalPage() ? '20260610-internal-shell-safe' : '20260618-usability-pack-shell-1';
+  document.body.dataset.publicShell = isInternalPage() ? '20260610-internal-shell-safe' : '20260618-final-polish-shell-1';
   loadCentralLoader();
   injectProductCss();
   injectPageIntegrations();
