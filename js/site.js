@@ -7,6 +7,8 @@ const SEARCH_INDEX = [
   { title: 'Confiança', url: 'confianca.html', type: 'Confiança', text: 'autenticidade certificado critérios reserva compra procedência' },
   { title: 'Narrativa', url: 'narrativa.html', type: 'Narrativa', text: 'histórias artistas bastidores textos arte brasileira contemporânea' },
   { title: 'Contato', url: 'contato.html', type: 'Contato', text: 'falar com curadoria dúvidas compra artistas empresas' },
+  { title: 'Assistente virtual', url: '#assistente', type: 'Atendimento', text: 'orientação caminho comprar obra empresa artista certificado' },
+  { title: 'Para artistas', url: 'para-artistas.html', type: 'Artistas', text: 'submeter portfólio documentação certificado curadoria' },
   { title: 'Verificar certificado', url: 'verificar-certificado.html', type: 'Certificado', text: 'código certificado autenticidade validação procedência' }
 ];
 
@@ -78,6 +80,7 @@ function injectPageIntegrations() {
   injectScriptOnce('js/arandu-recent.js?v=20260610-ux-1', 'arandu-recent-js');
   injectScriptOnce('js/arandu-journey.js?v=20260610-ux-1', 'arandu-journey-js');
   injectScriptOnce('js/arandu-usability.js?v=20260610-ux-1', 'arandu-usability-js');
+  injectScriptOnce('js/arandu-assistant.js?v=20260618-experience-1', 'arandu-assistant-js');
   if (currentPage() === 'proposta-curatorial.html') injectScriptOnce('js/proposal-api.js?v=20260610-operational-1', 'arandu-proposal-api-js');
 }
 
@@ -86,6 +89,7 @@ function injectProductCss() {
   injectCssOnce('css/arandu-architecture.css?v=20260610-public-shell-1', 'arandu-architecture-css');
   injectCssOnce('css/arandu-clean.css?v=20260610-public-shell-1', 'arandu-clean-css');
   injectCssOnce('css/arandu-visual-polish.css?v=20260610-ux-1', 'arandu-visual-polish-css');
+  injectCssOnce('css/arandu-experience.css?v=20260618-experience-1', 'arandu-experience-css');
 }
 
 function markActiveLinks() {
@@ -113,6 +117,7 @@ function normalizeHeader() {
   });
 
   document.querySelectorAll('.site-header .cta').forEach((cta) => {
+    if (cta.matches('[data-assistant-open]')) return;
     cta.href = 'contato.html';
     cta.textContent = 'Falar com a curadoria';
   });
@@ -128,7 +133,12 @@ function renderSearchResults(query = '') {
     .slice(0, 8);
 
   target.innerHTML = results.length
-    ? results.map((item) => `<a class="search-result" href="${escapeHtml(item.url)}"><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.type)}</small><p>${escapeHtml(item.text)}</p></a>`).join('')
+    ? results.map((item) => {
+      if (item.url === '#assistente') {
+        return `<button class="search-result" type="button" data-assistant-open><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.type)}</small><p>${escapeHtml(item.text)}</p></button>`;
+      }
+      return `<a class="search-result" href="${escapeHtml(item.url)}"><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.type)}</small><p>${escapeHtml(item.text)}</p></a>`;
+    }).join('')
     : '<p>Nenhum resultado encontrado.</p>';
 }
 
@@ -203,7 +213,7 @@ document.addEventListener('input', (event) => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-  document.body.dataset.publicShell = isInternalPage() ? '20260610-internal-shell-safe' : '20260610-public-shell-1';
+  document.body.dataset.publicShell = isInternalPage() ? '20260610-internal-shell-safe' : '20260618-experience-shell-1';
   loadCentralLoader();
   injectProductCss();
   injectPageIntegrations();
