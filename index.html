@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="css/arandu-architecture.css?v=20260610-public-shell-1" />
   <link rel="stylesheet" href="css/arandu-clean.css?v=20260610-public-shell-1" />
   <link rel="stylesheet" href="css/arandu-1506.css?v=20260615" />
+  <link rel="stylesheet" href="css/arandu-experience.css?v=20260618-experience-1" />
 </head>
 <body class="home-page lovable-page architecture-clean">
   <header class="site-header">
@@ -29,22 +30,45 @@
     </div>
   </header>
   <main>
-    <section class="rect-hero">
-      <div class="container rect-hero-grid">
-        <div>
+    <section class="rect-hero immersive-hero">
+      <div class="container rect-hero-grid immersive-hero-grid">
+        <div class="hero-copy">
           <p class="eyebrow">Arte brasileira contemporânea</p>
-          <h1 class="title">Obras com território, procedência e leitura curatorial.</h1>
-          <p class="lead">A Arandu aproxima artistas brasileiros contemporâneos, compradores e espaços que buscam obras com história, documentação e presença. Menos vitrine genérica, mais acervo acompanhado.</p>
-          <div class="page-actions">
-            <a class="cta" href="comprar-arte.html">Comprar arte</a>
-            <a class="cta secondary" href="acervo.html">Ver acervo</a>
-            <a class="cta secondary search-trigger" href="pesquisa.html">Pesquisar</a>
+          <h1 class="title">Entre pela obra. Encontre o artista, a história e o caminho de compra.</h1>
+          <p class="lead">A Arandu aproxima colecionadores, arquitetos, empresas e artistas brasileiros com uma experiência mais guiada: obras com presença visual, procedência clara, leitura curatorial e atendimento próximo.</p>
+          <div class="page-actions hero-actions">
+            <a class="cta" href="comprar-arte.html">Começar pelo acervo</a>
+            <a class="cta secondary" href="#caminho-arandu">Escolher meu caminho</a>
+            <button class="cta secondary assistant-open" type="button" data-assistant-open>Falar com assistente</button>
+          </div>
+          <div class="hero-route-pills" aria-label="Atalhos principais">
+            <a href="comprar-arte.html">Comprar obra</a>
+            <a href="empresas.html">Projeto para empresa</a>
+            <a href="para-artistas.html">Sou artista</a>
           </div>
         </div>
-        <div class="rect-frame" aria-label="Composição visual com vermelho pau-brasil, verde mata e matéria urbana">
-          <div class="rect-block tall red"></div>
-          <div class="rect-block green"></div>
-          <div class="rect-block dark"></div>
+        <div class="hero-art-stage" aria-label="Obra em destaque com movimento inspirado em pigmentos, mata e cidade">
+          <div class="hero-artwork-card">
+            <div class="hero-media-toolbar">
+              <span>Obra em destaque</span>
+              <span class="live-dot">acervo guiado</span>
+            </div>
+            <div class="hero-artwork-canvas" aria-hidden="true">
+              <span class="paint-stroke stroke-one"></span>
+              <span class="paint-stroke stroke-two"></span>
+              <span class="paint-stroke stroke-three"></span>
+              <span class="urban-line line-one"></span>
+              <span class="urban-line line-two"></span>
+              <span class="video-play">▶</span>
+            </div>
+            <div class="hero-film-strip" aria-hidden="true">
+              <span></span><span></span><span></span><span></span>
+            </div>
+            <div class="hero-media-caption">
+              <strong>Território em Vermelho</strong>
+              <span>pintura, matéria e deslocamento urbano · leitura curatorial disponível</span>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -59,7 +83,42 @@
       </div>
     </section>
 
-    <section class="clean-section">
+    <section class="clean-section path-section" id="caminho-arandu">
+      <div class="container">
+        <div class="section-head path-head">
+          <div>
+            <p class="eyebrow">Caminho do usuário</p>
+            <h2 class="section-title">O site agora começa pela intenção de quem entra.</h2>
+          </div>
+          <button class="cta secondary assistant-open" type="button" data-assistant-open>Receber orientação</button>
+        </div>
+        <div class="journey-grid">
+          <a class="journey-card vivid-red" href="comprar-arte.html">
+            <span>01</span>
+            <strong>Quero comprar minha primeira obra</strong>
+            <p>Veja obras disponíveis por técnica, faixa de preço, ambiente e documentação.</p>
+          </a>
+          <a class="journey-card vivid-forest" href="empresas.html">
+            <span>02</span>
+            <strong>Quero montar um acervo ou projeto</strong>
+            <p>Receba curadoria para empresa, escritório, clínica, hotel ou coleção particular.</p>
+          </a>
+          <a class="journey-card vivid-sand" href="para-artistas.html">
+            <span>03</span>
+            <strong>Sou artista e quero submeter portfólio</strong>
+            <p>Entenda os critérios de seleção, documentação, certificado e acompanhamento.</p>
+          </a>
+        </div>
+        <div class="journey-rail" aria-label="Etapas de compra na Arandu">
+          <article><strong>Descobrir</strong><span>Obras, artistas e narrativas.</span></article>
+          <article><strong>Entender</strong><span>Técnica, contexto, procedência e preço.</span></article>
+          <article><strong>Reservar</strong><span>Contato com curadoria antes da confirmação.</span></article>
+          <article><strong>Receber</strong><span>Envio, certificado e acompanhamento.</span></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="clean-section works-section">
       <div class="container">
         <div class="section-head">
           <div><p class="eyebrow">Obras</p><h2 class="section-title">Três presenças iniciais.</h2></div>
@@ -78,7 +137,7 @@
       </div>
     </section>
 
-    <section class="clean-section section-muted">
+    <section class="clean-section section-muted artists-section">
       <div class="container">
         <div class="section-head">
           <div><p class="eyebrow">Artistas</p><h2 class="section-title">O rosto de quem faz importa.</h2></div>
@@ -91,7 +150,7 @@
       </div>
     </section>
 
-    <section class="clean-section">
+    <section class="clean-section artist-call-section">
       <div class="container">
         <div class="section-head">
           <div><p class="eyebrow">Para artistas</p><h2 class="section-title">Captação com critério, não vitrine automática.</h2></div>
@@ -105,7 +164,7 @@
       </div>
     </section>
 
-    <section class="clean-section">
+    <section class="clean-section ecosystem-section">
       <div class="container">
         <div class="clean-grid">
           <a class="macro-card" href="empresas.html"><strong>Empresas</strong><span>Curadoria para ambientes que recebem pessoas.</span></a>
@@ -123,7 +182,7 @@
       <div><p>Confiança</p><a href="confianca.html">Critérios</a><a href="verificar-certificado.html">Verificar certificado</a><a href="contato.html">Contato</a></div>
     </div>
   </footer>
-  <script src="js/site.js?v=20260610-public-shell-1"></script>
+  <script src="js/site.js?v=20260618-experience-1"></script>
   <script src="js/arandu-loader.js?v=20260610-minimal-1"></script>
   <script src="js/selection.js"></script>
 </body>
