@@ -3,16 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Página de compradores da Arandu." />
+  <meta name="description" content="Cadastre interesse para receber a primeira seleção de obras da Arandu." />
   <title>Para compradores — Arandu</title>
   <link rel="stylesheet" href="css/arandu-system.css?v=20260608" />
+  <link rel="stylesheet" href="css/arandu-product.css?v=20260608" />
+  <link rel="stylesheet" href="css/arandu-marketplace.css?v=lovable-4" />
 </head>
-<body>
+<body class="lovable-page buyers-page">
   <header class="site-header"><div class="container header-inner"><a class="brand-logo" href="index.html">Arandu</a><nav class="site-nav"><a href="comprar-arte.html">Comprar arte</a><a href="obras.html">Obras</a><a href="artistas.html">Artistas</a><a href="curadoria.html">Curadoria</a><a href="para-artistas.html">Para artistas</a></nav><a class="cta" href="contato.html">Falar com a curadoria</a></div></header>
   <main>
-    <section class="section"><div class="container"><p class="eyebrow">Para compradores</p><h1 class="title">Acompanhe a primeira seleção da Arandu.</h1><p class="lead">A Arandu trabalha com compra assistida, curadoria e confirmação de disponibilidade antes de qualquer venda.</p><div class="page-actions"><a class="cta" href="cadastro.html">Criar cadastro</a><a class="cta secondary" href="contato.html">Falar com a curadoria</a></div></div></section>
+    <section class="section"><div class="container split"><div><p class="eyebrow">Para compradores</p><h1 class="title">Acompanhe a primeira seleção da Arandu.</h1><p class="lead">A Arandu trabalha com compra assistida, curadoria e confirmação de disponibilidade antes de qualquer venda.</p><div class="page-actions"><a class="cta" href="#interesse">Cadastrar interesse</a><a class="cta secondary" href="obras.html">Ver obras</a></div></div><article class="card"><h3>Compra assistida</h3><p>Nesta fase, a pessoa demonstra interesse e a curadoria confirma obra, documentação, preço e envio antes da aquisição.</p></article></div></section>
     <section class="section section-muted"><div class="container grid grid-3"><article class="card"><h3>Primeira obra</h3><p>Orientação para quem deseja comprar com segurança.</p></article><article class="card"><h3>Coleção</h3><p>Acompanhamento de artistas, séries e obras.</p></article><article class="card"><h3>Projeto</h3><p>Seleções para casas, empresas e ambientes.</p></article></div></section>
+    <section class="section" id="interesse"><div class="container split"><div><p class="eyebrow">Pré-cadastro</p><h2 class="section-title">Conte o que você procura.</h2><p>O cadastro ajuda a Arandu a organizar a primeira coleção com base em interesses reais.</p></div><form class="form-card" data-form-type="interesse-comprador"><h3>Receber seleção</h3><input name="nome" placeholder="Nome completo" required /><input name="email" type="email" placeholder="Email" required /><select name="faixa_preco" required><option value="">Faixa de preço</option><option>Até R$ 1.000</option><option>R$ 1.000 a R$ 5.000</option><option>R$ 5.000 a R$ 10.000</option><option>Acima de R$ 10.000</option><option>Ainda não sei</option></select><select name="interesse" required><option value="">Principal intenção</option><option>Comprar minha primeira obra</option><option>Acompanhar artistas</option><option>Montar coleção</option><option>Presentear</option><option>Decorar espaço</option><option>Projeto para empresa</option></select><input name="tecnicas" placeholder="Pintura, fotografia, escultura..." /><textarea name="mensagem" placeholder="Conte o estilo, ambiente ou tipo de obra que procura"></textarea><button type="submit">Cadastrar interesse</button></form></div></section>
   </main>
-  <script src="js/site.js"></script>
+  <script src="js/site.js"></script><script src="js/forms.js"></script>
 </body>
 </html>
