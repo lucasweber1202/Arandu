@@ -1,18 +1,30 @@
 /* ARANDU — shell público principal */
 const SEARCH_INDEX=[
-['Comprar arte','comprar-arte.html','Compra','obras disponíveis preço técnica artista reserva curadoria'],
-['Explorar obras','obras.html','Obras','catálogo pintura fotografia escultura filtros acervo'],
-['Acervo','acervo.html','Acervo','obras artistas trajetória técnica procedência'],
-['Empresas','empresas.html','Empresas','curadoria escritórios clínicas hotéis restaurantes ambientes'],
-['Confiança','confianca.html','Confiança','autenticidade certificado critérios reserva compra procedência'],
-['Narrativa','narrativa.html','Narrativa','histórias artistas bastidores textos arte brasileira contemporânea'],
-['Contato','contato.html','Contato','falar com curadoria dúvidas compra artistas empresas'],
-['Assistente virtual','#assistente','Atendimento','orientação caminho comprar obra empresa artista certificado'],
-['Para artistas','para-artistas.html','Artistas','submeter portfólio documentação certificado curadoria'],
-['Verificar certificado','verificar-certificado.html','Certificado','código certificado autenticidade validação procedência']
+  ['Comprar arte','comprar-arte.html','Compra','obras disponíveis preço técnica artista reserva curadoria'],
+  ['Para compradores','para-compradores.html','Compradores','cadastro interesse primeira coleção orçamento técnica acompanhar artistas'],
+  ['Explorar obras','obras.html','Obras','catálogo pintura fotografia escultura filtros acervo'],
+  ['Artistas','artistas.html','Artistas','perfil trajetória técnica território obras disponíveis'],
+  ['Para artistas','para-artistas.html','Artistas','submeter portfólio documentação certificado curadoria candidatura'],
+  ['Curadoria','curadoria.html','Curadoria','critérios seleção originalidade técnica trajetória diversidade documentação'],
+  ['Autenticidade','autenticidade.html','Confiança','certificado autoria ficha técnica procedência verificação'],
+  ['Confiança','confianca.html','Confiança','autenticidade certificado critérios reserva compra procedência'],
+  ['Sobre a Arandu','sobre.html','Institucional','manifesto nome arandu arte brasileira contemporânea'],
+  ['FAQ','faq.html','Ajuda','perguntas frequentes compra entrega artista certificado devolução'],
+  ['Contato','contato.html','Contato','falar com curadoria dúvidas compra artistas empresas'],
+  ['Cadastro','cadastro.html','Conta','criar conta comprador artista curadoria'],
+  ['Entrar','login.html','Conta','login acesso conta painel seleção'],
+  ['Assistente virtual','#assistente','Atendimento','orientação caminho comprar obra empresa artista certificado'],
+  ['Verificar certificado','verificar-certificado.html','Certificado','código certificado autenticidade validação procedência']
 ].map(([title,url,type,text])=>({title,url,type,text}));
 
-const PUBLIC_NAV_ITEMS=[['Comprar arte','comprar-arte.html'],['Acervo','acervo.html'],['Empresas','empresas.html'],['Confiança','confianca.html'],['Narrativa','narrativa.html'],['Explorar','obras.html']];
+const PUBLIC_NAV_ITEMS=[
+  ['Comprar arte','comprar-arte.html'],
+  ['Obras','obras.html'],
+  ['Artistas','artistas.html'],
+  ['Curadoria','curadoria.html'],
+  ['Para artistas','para-artistas.html'],
+  ['Para compradores','para-compradores.html']
+];
 const INTERNAL_PAGE_PATTERNS=/^(painel|admin|demo|roadmap|configuracao|login|cadastro|minha-conta)/i;
 const normalizeText=(value)=>String(value||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
 const escapeHtml=(value)=>String(value||'').replace(/[&<>'"]/g,(char)=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
@@ -109,7 +121,7 @@ function renderSearchResults(query=''){
   const target=document.querySelector('[data-search-results]');
   if(!target) return;
   const q=normalizeText(query);
-  const results=SEARCH_INDEX.filter((item)=>!q||normalizeText(`${item.title} ${item.type} ${item.text}`).includes(q)).slice(0,8);
+  const results=SEARCH_INDEX.filter((item)=>!q||normalizeText(`${item.title} ${item.type} ${item.text}`).includes(q)).slice(0,10);
   target.innerHTML=results.length?results.map((item)=>item.url==='#assistente'
     ?`<button class="search-result" type="button" data-assistant-open><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.type)}</small><p>${escapeHtml(item.text)}</p></button>`
     :`<a class="search-result" href="${escapeHtml(item.url)}"><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.type)}</small><p>${escapeHtml(item.text)}</p></a>`).join('')
@@ -173,7 +185,7 @@ function removeLegacyUi(){
 
 document.addEventListener('input',(event)=>{if(event.target.matches('[data-search-input]')) renderSearchResults(event.target.value);});
 document.addEventListener('DOMContentLoaded',()=>{
-  document.body.dataset.publicShell=isInternalPage()?'20260610-internal-shell-safe':'20260618-commerce-shell-1';
+  document.body.dataset.publicShell=isInternalPage()?'20260610-internal-shell-safe':'20260622-prelaunch-shell';
   loadCentralLoader();
   injectProductCss();
   injectPageIntegrations();
