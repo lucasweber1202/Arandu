@@ -1,0 +1,23 @@
+/* Arandu — ajustes leves de pre-lancamento */
+[data-prelaunch-band] .macro-card,
+[data-buyer-shortcut] .macro-card,
+[data-prelaunch-newsletter] .form-card{
+  border-color: rgba(111,34,27,.18);
+}
+[data-prelaunch-newsletter] input,
+[data-prelaunch-newsletter] select,
+[data-prelaunch-newsletter] textarea,
+.buyers-page input,
+.buyers-page select,
+.buyers-page textarea{
+  width:100%;
+  margin:.42rem 0;
+}
+[data-work-interest-note]{
+  margin-top:1rem;
+  color:#6f221b;
+  font-weight:700;
+}
+.form-consent{display:flex;gap:.55rem;align-items:flex-start;font-size:.92rem;line-height:1.4}
+.form-consent input{width:auto!important;margin-top:.2rem}
+.site-footer .footer-grid>div:last-child a{display:block}
