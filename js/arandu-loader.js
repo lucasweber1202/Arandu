@@ -1,11 +1,13 @@
 /* ARANDU — loader público mínimo */
 (function(){
-  const version = '20260610-minimal-1';
+  const version = '20260622-prelaunch-1';
   const page = location.pathname.split('/').pop() || 'index.html';
   const isInternal = /^(painel|admin|demo|roadmap|configuracao|login|cadastro|minha-conta)/i.test(page);
   const layers = [
     { id: 'arandu-public-shell-css', src: 'css/arandu-public-shell.css?v=' + version, kind: 'css' },
-    { id: 'arandu-architecture-js', src: 'js/arandu-architecture.js?v=' + version, kind: 'script' }
+    { id: 'arandu-prelaunch-css', src: 'css/arandu-prelaunch.css?v=' + version, kind: 'css' },
+    { id: 'arandu-architecture-js', src: 'js/arandu-architecture.js?v=' + version, kind: 'script' },
+    { id: 'arandu-prelaunch-js', src: 'js/arandu-prelaunch.js?v=' + version, kind: 'script' }
   ];
   const loaded = [];
   const failed = [];
