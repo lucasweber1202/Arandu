@@ -1,0 +1,19 @@
+Arandu - notas de pre-lancamento
+
+Site:
+- conferir home
+- conferir obras
+- conferir artistas
+- conferir curadoria
+- conferir compradores
+- conferir artistas
+
+Captacao:
+- testar formulario de compradores
+- testar formulario de artistas
+- testar contato
+
+Operacao:
+- conferir catalogo
+- conferir painel
+- revisar textos
