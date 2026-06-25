@@ -12,19 +12,20 @@
   <link rel="stylesheet" href="css/arandu-architecture.css?v=20260610-public-shell-1" />
   <link rel="stylesheet" href="css/arandu-clean.css?v=20260610-public-shell-1" />
   <link rel="stylesheet" href="css/arandu-1506.css?v=20260615" />
+  <link rel="stylesheet" href="css/arandu-launch.css?v=20260625" />
 </head>
 <body class="lovable-page architecture-clean">
   <header class="site-header">
     <div class="container header-inner">
       <a class="brand-logo" href="index.html">Arandu</a>
-      <nav class="site-nav"><a href="comprar-arte.html">Comprar arte</a><a href="acervo.html">Acervo</a><a href="empresas.html">Empresas</a><a href="confianca.html">Confiança</a><a href="lancamento.html">Lançamento</a><a href="obras.html">Explorar</a></nav>
+      <nav class="site-nav"><a href="comprar-arte.html">Comprar arte</a><a href="acervo.html">Acervo</a><a href="empresas.html">Empresas</a><a href="confianca.html">Confiança</a><a href="lancamento.html">Lançamento</a><a href="admin.html">Admin</a><a href="obras.html">Explorar</a></nav>
       <a class="cta" href="contato.html">Falar com a curadoria</a>
     </div>
   </header>
   <main>
     <section class="rect-hero">
       <div class="container rect-hero-grid">
-        <div><p class="eyebrow">Operação</p><h1 class="title">Backoffice mínimo para não perder controle quando a prospecção começar.</h1><p class="lead">Esta página organiza o que precisa ser acompanhado internamente: artista, obra, certificado, reserva, pagamento, comissão, envio, pós-venda e lançamento público.</p><div class="page-actions"><a class="cta" href="lancamento.html">Ver checklist de lançamento</a><a class="cta secondary" href="politica-comercial.html">Política comercial</a></div></div>
+        <div><p class="eyebrow">Operação</p><h1 class="title">Backoffice mínimo para não perder controle quando a prospecção começar.</h1><p class="lead">Esta página organiza o que precisa ser acompanhado internamente: artista, obra, certificado, reserva, pagamento, comissão, envio, pós-venda e lançamento público.</p><div class="page-actions"><a class="cta" href="admin.html">Abrir painel interno</a><a class="cta secondary" href="lancamento.html">Ver checklist de lançamento</a><a class="cta secondary" href="politica-comercial.html">Política comercial</a></div></div>
         <div class="certificate-preview"><p class="eyebrow">Status operacional</p><h2>Artista → Obra → Certificado → Venda → Envio</h2><p>O objetivo é permitir uma operação simples antes de escalar integrações e automações.</p></div>
       </div>
     </section>
@@ -48,7 +49,16 @@
       </div>
     </section>
     <section class="clean-section">
+      <div class="container launch-matrix">
+        <article class="is-ready"><strong>Admin</strong><span>Painel interno para consultar registros, criar itens e alterar status.</span></article>
+        <article class="is-critical"><strong>Supabase</strong><span>Depende das variáveis de produção e do schema aplicado no projeto real.</span></article>
+        <article class="is-critical"><strong>Catálogo real</strong><span>Trocar demonstrações por artistas, obras, imagens e autorizações reais.</span></article>
+        <article class="is-critical"><strong>Política</strong><span>Revisar comissão, frete, devolução, danos e responsabilidade antes de divulgar.</span></article>
+      </div>
+    </section>
+    <section class="clean-section">
       <div class="container home-trust-band">
+        <a class="macro-card" href="admin.html"><strong>Painel interno</strong><span>Consultar submissões, leads, reservas, obras e tarefas.</span></a>
         <a class="macro-card" href="docs/LANCAMENTO_ARANDU.md"><strong>Plano de lançamento</strong><span>Ordem de execução para deploy, Supabase, catálogo real, certificado e redes.</span></a>
         <a class="macro-card" href="docs/REDES_SOCIAIS_ARANDU.md"><strong>Redes sociais</strong><span>Tom de voz, bio, destaques, grade inicial e posts de lançamento.</span></a>
         <a class="macro-card" href="data/launch-checklist.json"><strong>Checklist JSON</strong><span>Critérios mínimos estruturados para acompanhar o status do lançamento.</span></a>
