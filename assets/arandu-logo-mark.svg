@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 220">
+<rect width="720" height="220" fill="#fff8ed"/>
+<path d="M74 154 C116 110 132 76 156 42 C184 88 204 120 230 154" fill="none" stroke="#8f2d23" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M104 126 C136 112 164 112 202 126" fill="none" stroke="#153d31" stroke-width="8" stroke-linecap="round"/>
+<path d="M252 156 L252 48 C316 42 336 76 304 108 C288 124 274 128 252 128" fill="none" stroke="#8f2d23" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M288 126 C304 138 320 148 336 160" fill="none" stroke="#153d31" stroke-width="8" stroke-linecap="round"/>
+<path d="M360 154 C386 98 406 64 428 42 C452 92 470 122 496 154" fill="none" stroke="#8f2d23" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M388 124 C418 110 446 112 474 124" fill="none" stroke="#6b3a22" stroke-width="8" stroke-linecap="round"/>
+<path d="M524 156 L524 48 C560 90 588 122 616 156 L616 48" fill="none" stroke="#8f2d23" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M72 184 C160 170 216 198 302 184 C392 168 470 204 638 178" fill="none" stroke="#153d31" stroke-width="8" stroke-linecap="round"/>
+<path d="M98 184 C196 182 298 186 404 184 C504 182 570 176 650 182" fill="none" stroke="#8f2d23" stroke-width="4" stroke-linecap="round"/>
+</svg>
