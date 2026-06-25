@@ -174,6 +174,24 @@
     }
   }
 
+  function loadExtraAdminTools() {
+    if (!document.body.classList.contains('admin-shell')) return;
+    if (!document.getElementById('arandu-admin-ops-css')) {
+      const link = document.createElement('link');
+      link.id = 'arandu-admin-ops-css';
+      link.rel = 'stylesheet';
+      link.href = 'css/arandu-admin-ops.css?v=20260625';
+      document.head.appendChild(link);
+    }
+    if (!document.getElementById('arandu-admin-ops-js')) {
+      const script = document.createElement('script');
+      script.id = 'arandu-admin-ops-js';
+      script.src = 'js/admin-ops.js?v=20260625';
+      script.defer = true;
+      document.body.appendChild(script);
+    }
+  }
+
   function bind() {
     const tokenInput = $('#admin-token');
     if (tokenInput) tokenInput.value = localStorage.getItem(TOKEN_KEY) || '';
@@ -198,6 +216,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', () => {
+    loadExtraAdminTools();
     bind();
     renderPanelTabs();
     renderCreateTabs();
