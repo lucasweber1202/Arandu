@@ -11,6 +11,7 @@ O projeto já possui:
 - health check em `/api/health`;
 - página de diagnóstico em `status.html`;
 - painel administrativo mínimo em `admin.html`;
+- checklist visual em `lancamento.html` lendo `data/launch-checklist.json`;
 - base demonstrativa com artistas, obras e certificados;
 - schema Supabase para operação comercial;
 - checks de qualidade, dados, links, backend, inventário e build.
@@ -30,6 +31,7 @@ O projeto já possui:
 - `/api/health` respondendo.
 - `status.html` mostrando Supabase, token, domínio e contato como configurados.
 - `admin.html` lendo dados reais do Supabase com token administrativo.
+- `lancamento.html` carregando o checklist mínimo.
 
 ### Marca
 
@@ -83,12 +85,13 @@ O projeto já possui:
 7. Abrir `admin.html`, inserir o token e validar leitura dos painéis.
 8. Testar criação de artista, obra, certificado e tarefa no painel.
 9. Testar catálogo, artistas, certificados, login e reserva de obra.
-10. Inserir logo final e favicon.
-11. Configurar WhatsApp ou e-mail real.
-12. Trocar base demonstrativa por artistas e obras reais.
-13. Revisar política comercial e termo de artista.
-14. Preparar posts e abrir redes sociais.
-15. Iniciar prospecção ativa de artistas.
+10. Abrir `lancamento.html` e conferir o checklist visual.
+11. Inserir logo final e favicon.
+12. Configurar WhatsApp ou e-mail real.
+13. Trocar base demonstrativa por artistas e obras reais.
+14. Revisar política comercial e termo de artista.
+15. Preparar posts e abrir redes sociais.
+16. Iniciar prospecção ativa de artistas.
 
 ## 4. Testes mínimos antes de divulgar
 
@@ -103,6 +106,7 @@ Depois do deploy:
 ```text
 /status.html
 /admin.html
+/lancamento.html
 /api/health
 /api/catalog
 /api/artists
@@ -116,6 +120,7 @@ O Arandu pode ser divulgado quando:
 - o site abre pelo domínio real;
 - `/status.html` não mostra pendências técnicas críticas;
 - `admin.html` consegue ler e alterar dados reais;
+- `lancamento.html` carrega o checklist sem erro;
 - há obras reais suficientes para o comprador navegar;
 - ao menos um canal de contato real funciona;
 - a política comercial não está indefinida;
@@ -123,7 +128,16 @@ O Arandu pode ser divulgado quando:
 - o artista entende como enviar portfólio;
 - a marca visual está consistente.
 
-## 6. O que não precisa estar pronto no primeiro lançamento
+## 6. Guias relacionados
+
+```text
+docs/ADMIN_OPERACAO_ARANDU.md
+docs/IMPLEMENTACAO_LANCAMENTO_20260625.md
+docs/SETUP_PRODUCAO.md
+docs/SUPABASE_OPERACAO.md
+```
+
+## 7. O que não precisa estar pronto no primeiro lançamento
 
 - Pagamento integrado.
 - Upload automático de imagem.
