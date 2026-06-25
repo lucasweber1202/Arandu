@@ -72,22 +72,27 @@
     URL.revokeObjectURL(url);
   }
 
-  document.addEventListener('input', (event) => {
-    if (event.target.matches('[data-admin-search]')) { state.query = event.target.value || ''; applyFilters(); }
-    if (event.target.matches('[data-admin-status-filter]')) { state.status = event.target.value || ''; applyFilters(); }
-  });
+  function bind() {
+    document.addEventListener('input', (event) => {
+      if (event.target.matches('[data-admin-search]')) { state.query = event.target.value || ''; applyFilters(); }
+      if (event.target.matches('[data-admin-status-filter]')) { state.status = event.target.value || ''; applyFilters(); }
+    });
 
-  document.addEventListener('click', async (event) => {
-    if (event.target.closest('[data-admin-copy-visible]')) {
-      try { await navigator.clipboard.writeText(rowsAsText()); } catch (_) {}
-    }
-    if (event.target.closest('[data-admin-export-visible]')) exportCsv();
-  });
+    document.addEventListener('click', async (event) => {
+      if (event.target.closest('[data-admin-copy-visible]')) {
+        try { await navigator.clipboard.writeText(rowsAsText()); } catch (_) {}
+      }
+      if (event.target.closest('[data-admin-export-visible]')) exportCsv();
+    });
+  }
 
-  const observer = new MutationObserver(() => applyFilters());
-  document.addEventListener('DOMContentLoaded', () => {
+  function init() {
+    bind();
     const list = q('[data-admin-list]');
-    if (list) observer.observe(list, { childList: true, subtree: true });
+    if (list) new MutationObserver(() => applyFilters()).observe(list, { childList: true, subtree: true });
     applyFilters();
-  });
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
 })();
