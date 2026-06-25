@@ -22,6 +22,10 @@ function configured(name) {
   return Boolean(process.env[name]);
 }
 
+function configuredAny(names) {
+  return names.some((name) => configured(name));
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     res.statusCode = 405;
@@ -38,14 +42,20 @@ export default async function handler(req, res) {
     supabaseUrl: configured('SUPABASE_URL'),
     supabaseAnonKey: configured('SUPABASE_ANON_KEY'),
     supabaseServiceRoleKey: configured('SUPABASE_SERVICE_ROLE_KEY'),
-    adminToken: configured('ARANDU_ADMIN_TOKEN')
+    adminToken: configured('ARANDU_ADMIN_TOKEN'),
+    siteUrl: configured('ARANDU_SITE_URL'),
+    whatsappNumber: configured('ARANDU_WHATSAPP_NUMBER'),
+    contactEmail: configured('ARANDU_CONTACT_EMAIL'),
+    contactChannel: configuredAny(['ARANDU_WHATSAPP_NUMBER', 'ARANDU_CONTACT_EMAIL'])
   };
 
   const productionReady = Boolean(
     checks.supabaseUrl &&
     checks.supabaseAnonKey &&
     checks.supabaseServiceRoleKey &&
-    checks.adminToken
+    checks.adminToken &&
+    checks.siteUrl &&
+    checks.contactChannel
   );
 
   res.statusCode = 200;
@@ -60,6 +70,17 @@ export default async function handler(req, res) {
     commit: process.env.VERCEL_GIT_COMMIT_SHA || null,
     checkedAt: new Date().toISOString(),
     productionReady,
+    launchReadiness: {
+      technical: checks.supabaseUrl && checks.supabaseAnonKey && checks.supabaseServiceRoleKey && checks.adminToken,
+      contact: checks.contactChannel,
+      domain: checks.siteUrl,
+      nextCriticalActions: [
+        !checks.supabaseUrl || !checks.supabaseAnonKey || !checks.supabaseServiceRoleKey ? 'Configurar Supabase na Vercel' : null,
+        !checks.adminToken ? 'Configurar ARANDU_ADMIN_TOKEN' : null,
+        !checks.siteUrl ? 'Configurar ARANDU_SITE_URL com domínio real' : null,
+        !checks.contactChannel ? 'Configurar WhatsApp ou e-mail de atendimento' : null
+      ].filter(Boolean)
+    },
     checks,
     routes: ROUTES
   }));
