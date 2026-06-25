@@ -1,0 +1,25 @@
+{
+  "updatedAt": "2026-06-25",
+  "sections": [
+    {
+      "title": "Identificacao",
+      "items": ["Nome artistico", "Nome completo", "Cidade e estado", "Contato principal", "Mini bio"]
+    },
+    {
+      "title": "Portfolio",
+      "items": ["Serie principal", "Linguagens", "Tecnicas", "Imagens das obras", "Faixa de preco"]
+    },
+    {
+      "title": "Obras",
+      "items": ["Titulo", "Ano", "Dimensoes", "Suporte", "Disponibilidade", "Condicao da obra"]
+    },
+    {
+      "title": "Comercial",
+      "items": ["Preco final", "Comissao", "Responsavel pelo frete", "Prazo de reserva", "Politica de dano"]
+    },
+    {
+      "title": "Publicacao",
+      "items": ["Autorizacao de imagem", "Texto curatorial", "Certificado", "Status no catalogo", "Data de publicacao"]
+    }
+  ]
+}
