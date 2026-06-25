@@ -19,9 +19,14 @@
   const appendIntro = (payload) => {
     const box = el('div', 'certificate-preview');
     box.appendChild(el('p', 'eyebrow', 'Status da API'));
-    box.appendChild(el('h2', '', payload.productionReady ? 'Produção quase pronta' : 'Pré-produção'));
+    box.appendChild(el('h2', '', payload.productionReady ? 'Produção tecnicamente pronta' : 'Pré-produção'));
     const commit = payload.commit ? ` · Commit: ${String(payload.commit).slice(0, 7)}` : '';
     box.appendChild(el('p', '', `Ambiente: ${payload.environment || 'local'}${commit}`));
+    if (payload.launchReadiness?.nextCriticalActions?.length) {
+      const list = el('div', 'readiness-list');
+      payload.launchReadiness.nextCriticalActions.forEach((action) => list.appendChild(el('p', '', action)));
+      box.appendChild(list);
+    }
     root.appendChild(box);
   };
 
@@ -37,6 +42,29 @@
     root.appendChild(board);
   };
 
+  const appendLaunch = (payload) => {
+    const readiness = payload.launchReadiness || {};
+    const wrap = el('div', 'collector-guidance');
+    const head = el('div');
+    head.appendChild(el('p', 'eyebrow', 'Leitura de lançamento'));
+    head.appendChild(el('h2', 'section-title', payload.productionReady ? 'Falta validar catálogo, marca e operação comercial.' : 'Ainda há pendências técnicas antes da divulgação pública.'));
+    wrap.appendChild(head);
+    const grid = el('div', 'launch-matrix');
+    [
+      ['Técnico', readiness.technical, 'Supabase, chaves e token administrativo.'],
+      ['Contato', readiness.contact, 'WhatsApp ou e-mail real para atendimento.'],
+      ['Domínio', readiness.domain, 'URL oficial configurada no ambiente.'],
+      ['API', payload.ok, 'Roteador e health check respondendo.']
+    ].forEach(([name, ok, text]) => {
+      const card = el('article', ok ? 'is-ready' : 'is-critical');
+      card.appendChild(el('strong', '', ok ? 'OK' : '!'));
+      card.appendChild(el('span', '', `${name} — ${text}`));
+      grid.appendChild(card);
+    });
+    wrap.appendChild(grid);
+    root.appendChild(wrap);
+  };
+
   const appendRoutes = (routes) => {
     const wrap = el('div', 'collector-guidance');
     const head = el('div');
@@ -44,7 +72,7 @@
     head.appendChild(el('h2', 'section-title', 'A API pública mantém estes caminhos.'));
     wrap.appendChild(head);
     const list = el('ol', 'process-steps');
-    (routes || []).slice(0, 12).forEach((route) => list.appendChild(el('li', '', route)));
+    (routes || []).slice(0, 16).forEach((route) => list.appendChild(el('li', '', route)));
     wrap.appendChild(list);
     root.appendChild(wrap);
   };
@@ -57,12 +85,17 @@
       ['SUPABASE_URL', checks.supabaseUrl],
       ['SUPABASE_ANON_KEY', checks.supabaseAnonKey],
       ['SUPABASE_SERVICE_ROLE_KEY', checks.supabaseServiceRoleKey],
-      ['ARANDU_ADMIN_TOKEN', checks.adminToken]
+      ['ARANDU_ADMIN_TOKEN', checks.adminToken],
+      ['ARANDU_SITE_URL', checks.siteUrl],
+      ['WhatsApp', checks.whatsappNumber],
+      ['E-mail de contato', checks.contactEmail],
+      ['Canal de atendimento', checks.contactChannel]
     ];
 
     clear();
     appendIntro(payload);
     appendCards(rows);
+    appendLaunch(payload);
     appendRoutes(payload.routes || []);
   };
 

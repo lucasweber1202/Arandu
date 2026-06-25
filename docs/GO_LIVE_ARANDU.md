@@ -10,8 +10,9 @@ O projeto já possui:
 - API consolidada para Vercel Hobby;
 - health check em `/api/health`;
 - página de diagnóstico em `status.html`;
+- painel administrativo mínimo em `admin.html`;
 - base demonstrativa com artistas, obras e certificados;
-- painel operacional preparado para Supabase;
+- schema Supabase para operação comercial;
 - checks de qualidade, dados, links, backend, inventário e build.
 
 ## 2. O que precisa estar pronto antes de abrir publicamente
@@ -24,8 +25,11 @@ O projeto já possui:
 - `SUPABASE_ANON_KEY` configurada.
 - `SUPABASE_SERVICE_ROLE_KEY` configurada.
 - `ARANDU_ADMIN_TOKEN` configurado.
+- `ARANDU_SITE_URL` configurado com o domínio final.
+- `ARANDU_WHATSAPP_NUMBER` ou `ARANDU_CONTACT_EMAIL` configurado.
 - `/api/health` respondendo.
-- `status.html` mostrando Supabase e token como configurados.
+- `status.html` mostrando Supabase, token, domínio e contato como configurados.
+- `admin.html` lendo dados reais do Supabase com token administrativo.
 
 ### Marca
 
@@ -57,6 +61,7 @@ O projeto já possui:
 - Regra de devolução definida.
 - Regra de dano no transporte definida.
 - Modelo de certificado aprovado.
+- Rotina definida para atualizar status no painel interno.
 
 ### Mídias sociais
 
@@ -75,13 +80,15 @@ O projeto já possui:
 4. Criar projeto Supabase e rodar `docs/supabase-schema.sql`.
 5. Rodar `npm run seed:supabase:dry`.
 6. Rodar `npm run seed:supabase`.
-7. Testar catálogo, artistas, certificados, login e painel.
-8. Inserir logo final e favicon.
-9. Configurar WhatsApp real.
-10. Trocar base demonstrativa por artistas e obras reais.
-11. Revisar política comercial e termo de artista.
-12. Preparar posts e abrir redes sociais.
-13. Iniciar prospecção ativa de artistas.
+7. Abrir `admin.html`, inserir o token e validar leitura dos painéis.
+8. Testar criação de artista, obra, certificado e tarefa no painel.
+9. Testar catálogo, artistas, certificados, login e reserva de obra.
+10. Inserir logo final e favicon.
+11. Configurar WhatsApp ou e-mail real.
+12. Trocar base demonstrativa por artistas e obras reais.
+13. Revisar política comercial e termo de artista.
+14. Preparar posts e abrir redes sociais.
+15. Iniciar prospecção ativa de artistas.
 
 ## 4. Testes mínimos antes de divulgar
 
@@ -95,6 +102,7 @@ Depois do deploy:
 
 ```text
 /status.html
+/admin.html
 /api/health
 /api/catalog
 /api/artists
@@ -107,6 +115,7 @@ O Arandu pode ser divulgado quando:
 
 - o site abre pelo domínio real;
 - `/status.html` não mostra pendências técnicas críticas;
+- `admin.html` consegue ler e alterar dados reais;
 - há obras reais suficientes para o comprador navegar;
 - ao menos um canal de contato real funciona;
 - a política comercial não está indefinida;

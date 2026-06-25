@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-06-15",
+  "updatedAt": "2026-06-25",
   "project": "Arandu",
   "status": "pre-launch",
   "minimumLaunchCriteria": {
@@ -7,6 +7,8 @@
       { "item": "Deploy Vercel sem erro de limite de funções", "done": false },
       { "item": "Supabase configurado", "done": false },
       { "item": "Variáveis de ambiente configuradas na Vercel", "done": false },
+      { "item": "ARANDU_ADMIN_TOKEN configurado", "done": false },
+      { "item": "Painel interno admin.html testado com dados reais", "done": false },
       { "item": "Domínio oficial apontando para o deploy", "done": false },
       { "item": "WhatsApp ou email real configurado", "done": false }
     ],
@@ -32,5 +34,13 @@
       { "item": "Bio e destaques definidos", "done": false }
     ]
   },
-  "recommendedNextAction": "Confirmar deploy na Vercel, configurar Supabase e substituir dados demonstrativos por artistas e obras reais."
+  "implementedInRepository": [
+    "API consolidada para Vercel Hobby",
+    "Health check ampliado para Supabase, admin, domínio e contato",
+    "Página status.html com leitura de pendências críticas",
+    "Painel interno admin.html para operação mínima",
+    "Formulário de submissão de artistas com dados mínimos de contato e portfólio",
+    "Fluxo de reserva exigindo nome e WhatsApp"
+  ],
+  "recommendedNextAction": "Configurar Supabase e variáveis na Vercel, testar status.html, validar admin.html e substituir dados demonstrativos por artistas e obras reais."
 }
