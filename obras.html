@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Obras disponíveis no acervo Arandu com artistas, preços, técnicas e tags curatoriais." />
+  <meta name="description" content="Acervo Arandu: obras brasileiras contemporâneas com preço, artista, técnica, certificado e reserva com curadoria." />
   <title>Obras — Arandu</title>
   <link rel="stylesheet" href="css/arandu-system.css?v=20260608" />
   <link rel="stylesheet" href="css/arandu-product.css?v=20260608" />
@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="css/arandu-marketplace.css?v=lovable-4" />
   <link rel="stylesheet" href="css/arandu-architecture.css?v=20260610-public-shell-1" />
   <link rel="stylesheet" href="css/arandu-clean.css?v=20260610-public-shell-1" />
+  <link rel="stylesheet" href="css/arandu-gallery-commerce.css?v=20260706-gallery-commerce-1" />
 </head>
 <body class="catalog-page lovable-page architecture-clean">
   <header class="site-header">
@@ -28,38 +29,65 @@
     </div>
   </header>
   <main id="conteudo">
-    <section class="rect-hero">
-      <div class="container rect-hero-grid">
-        <div>
-          <p class="eyebrow">Explorar obras</p>
-          <h1 class="title">Um acervo para olhar sem ruído.</h1>
-          <p class="lead">Obras disponíveis com preço, técnica, artista e tags curatoriais. Sem excesso de filtros e sem vitrines por orçamento.</p>
-          <div class="page-actions"><a class="cta" href="#acervo">Ver obras</a><a class="cta secondary search-trigger" href="pesquisa.html">Pesquisar</a><a class="cta secondary" href="comparar-obras.html">Comparar</a><a class="cta secondary share-action" href="#compartilhar">Compartilhar</a></div>
+    <section class="gallery-commerce-hero">
+      <div class="container gallery-commerce-grid">
+        <div class="gallery-commerce-copy">
+          <p class="commerce-eyebrow">Acervo disponível</p>
+          <h1 class="gallery-commerce-title">Olhe como galeria. Compre com clareza.</h1>
+          <p class="gallery-commerce-lead">Obras brasileiras contemporâneas organizadas por presença, técnica, ambiente, faixa de preço e intenção. Salve, compare ou reserve com acompanhamento da curadoria.</p>
+          <div class="page-actions"><a class="cta" href="#acervo">Ver obras</a><a class="cta secondary" href="contato.html">Pedir seleção personalizada</a></div>
+          <div class="commerce-proof-row"><span>Preço visível</span><span>Certificado</span><span>Reserva assistida</span><span>Envio validado</span></div>
         </div>
-        <div class="rect-frame"><div class="rect-block tall red"></div><div class="rect-block green"></div><div class="rect-block dark"></div></div>
+        <div class="gallery-commerce-wall" aria-label="Parede de obras do acervo Arandu">
+          <a class="gallery-wall-piece large" href="obra.html?id=estudo-de-solo-04"><span class="gallery-wall-caption"><strong>Estudo de Solo Nº 04</strong><span>Marina Silveira · R$ 4.200</span></span></a>
+          <a class="gallery-wall-piece medium green" href="obra.html?id=equilibrio-suspenso"><span class="gallery-wall-caption"><strong>Equilíbrio Suspenso</strong><span>Arthur D'Avila · R$ 8.900</span></span></a>
+          <a class="gallery-wall-piece sand" href="obra.html?id=sertao-silencioso"><span class="gallery-wall-caption"><strong>Sertão Silencioso</strong><span>Camila Rebouças · R$ 2.100</span></span></a>
+        </div>
       </div>
     </section>
-    <section class="clean-section" id="acervo">
+
+    <section class="commerce-route-section">
       <div class="container">
-        <div class="section-head"><div><p class="eyebrow">Acervo</p><h2 class="section-title">Obras disponíveis.</h2></div></div>
-        <div class="catalog-tools">
-          <input class="search-input" data-catalog-search placeholder="Buscar por artista, técnica, ambiente ou intenção..." aria-label="Buscar no acervo" />
-          <select class="search-input" data-catalog-sort aria-label="Ordenar obras"><option value="curadoria">Ordem da curadoria</option><option value="preco-menor">Menor preço</option><option value="preco-maior">Maior preço</option></select>
+        <div class="commerce-section-head">
+          <div><p class="commerce-eyebrow">Inspirações</p><h2>Entre pelo desejo de ambiente.</h2></div>
+          <p>Assim como boas galerias online, o acervo precisa permitir compra por técnica, mas também por sensação, formato, uso e estilo de vida.</p>
         </div>
-        <div class="filter-bar">
-          <button class="filter-button is-active" type="button" data-filter="todos">Todos</button>
-          <button class="filter-button" type="button" data-filter="pintura">Pintura</button>
-          <button class="filter-button" type="button" data-filter="fotografia">Fotografia</button>
-          <button class="filter-button" type="button" data-filter="escultura">Escultura</button>
-          <button class="filter-button" type="button" data-filter="clinica">Clínica</button>
-          <button class="filter-button" type="button" data-filter="empresa">Empresa</button>
-          <button class="filter-button" type="button" data-filter="acolhimento">Acolhimento</button>
-          <button class="filter-button" type="button" data-clear-catalog>Limpar</button>
+        <div class="commerce-inspiration-grid">
+          <a class="commerce-inspiration-card" href="obras.html?busca=natureza"><strong>Natureza e matéria</strong><span>Texturas, paisagem, terra, rio, corpo e permanência.</span><small>Explorar</small></a>
+          <a class="commerce-inspiration-card dark" href="obras.html?busca=urbano"><strong>Urbano e gesto</strong><span>Movimento, cidade, grafismo e presença contemporânea.</span><small>Explorar</small></a>
+          <a class="commerce-inspiration-card" href="obras.html?busca=minimalista"><strong>Silêncio visual</strong><span>Peças para clínicas, quartos, escritórios e ambientes calmos.</span><small>Explorar</small></a>
+          <a class="commerce-inspiration-card" href="obras.html?busca=coloridas"><strong>Cor e brasilidade</strong><span>Obras mais vivas para sala, hall, recepção e primeira coleção.</span><small>Explorar</small></a>
         </div>
-        <p class="selection-summary" data-result-count>0 obras encontradas</p>
       </div>
     </section>
-    <section class="section"><div class="container grid grid-3 curated-grid" data-catalog-grid></div></section>
+
+    <section class="commerce-catalog-shell" id="acervo">
+      <div class="container">
+        <div class="commerce-section-head">
+          <div><p class="commerce-eyebrow">Catálogo</p><h2 class="commerce-catalog-title">Obras disponíveis.</h2></div>
+          <a class="cta secondary share-action" href="#compartilhar">Compartilhar acervo</a>
+        </div>
+        <div class="commerce-tools-panel">
+          <div class="catalog-tools">
+            <input class="search-input" data-catalog-search placeholder="Buscar por artista, técnica, ambiente, preço ou sensação..." aria-label="Buscar no acervo" />
+            <select class="search-input" data-catalog-sort aria-label="Ordenar obras"><option value="curadoria">Ordem da curadoria</option><option value="preco-menor">Menor preço</option><option value="preco-maior">Maior preço</option></select>
+          </div>
+          <div class="filter-bar">
+            <button class="filter-button is-active" type="button" data-filter="todos">Todos</button>
+            <button class="filter-button" type="button" data-filter="pintura">Pintura</button>
+            <button class="filter-button" type="button" data-filter="fotografia">Fotografia</button>
+            <button class="filter-button" type="button" data-filter="escultura">Escultura</button>
+            <button class="filter-button" type="button" data-filter="primeira-obra">Primeira obra</button>
+            <button class="filter-button" type="button" data-filter="sala">Sala</button>
+            <button class="filter-button" type="button" data-filter="clinica">Clínica</button>
+            <button class="filter-button" type="button" data-filter="empresa">Empresa</button>
+            <button class="filter-button" type="button" data-clear-catalog>Limpar</button>
+          </div>
+          <p class="selection-summary" data-result-count>0 obras encontradas</p>
+        </div>
+      </div>
+    </section>
+    <section class="section"><div class="container commerce-gallery-grid curated-grid" data-catalog-grid></div></section>
   </main>
   <footer class="site-footer">
     <div class="container footer-grid">
