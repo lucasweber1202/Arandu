@@ -13,6 +13,8 @@
     "preview": "vite preview --host 0.0.0.0",
     "check": "node scripts/check-static.mjs",
     "check:links": "node scripts/check-links.mjs",
+    "check:runtime:local": "node scripts/check-runtime-site.mjs http://localhost:4173",
+    "check:runtime:prod": "node scripts/check-runtime-site.mjs https://arandu-bice.vercel.app",
     "check:production": "node scripts/production-check.mjs",
     "check:quality": "node scripts/arandu-quality-gate.mjs",
     "check:inventory": "node scripts/page-inventory.mjs",
