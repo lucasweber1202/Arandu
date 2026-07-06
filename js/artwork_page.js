@@ -72,6 +72,13 @@ function trustCard(title, text) {
   return '<article class="trust-card"><strong>' + escapeArtworkHtml(title) + '</strong><span>' + escapeArtworkHtml(text) + '</span></article>';
 }
 
+function relatedCard(item) {
+  return '<a class="related-mini-card" href="obra.html?id=' + escapeArtworkHtml(item.id) + '">'
+    + '<div class="thumb ' + escapeArtworkHtml(item.thumb || 'thumb-terra') + '"></div>'
+    + '<div><strong>' + escapeArtworkHtml(item.title) + '</strong><span>' + escapeArtworkHtml(item.artist) + ' · ' + escapeArtworkHtml(item.priceLabel || 'sob consulta') + '</span></div>'
+    + '</a>';
+}
+
 async function runArtworkPage() {
   var box = document.querySelector('[data-artwork-page]');
   if (!box) return;
@@ -138,7 +145,7 @@ async function runArtworkPage() {
       + '</section>'
       + '<section class="related-works">'
       + '<div class="section-head"><div><p class="eyebrow">Continue olhando</p><h2 class="section-title">Obras que conversam com esta escolha.</h2></div><a class="cta secondary" href="obras.html">Ver acervo</a></div>'
-      + '<div class="related-grid">' + related.map(function (item) { return '<a class="showcase-card" href="obra.html?id=' + escapeArtworkHtml(item.id) + '"><div class="' + escapeArtworkHtml(item.thumb || 'thumb-terra') + '"></div><strong>' + escapeArtworkHtml(item.title) + '</strong><span>' + escapeArtworkHtml(item.artist) + ' · ' + escapeArtworkHtml(item.priceLabel || 'sob consulta') + '</span></a>'; }).join('') + '</div>'
+      + '<div class="related-grid">' + related.map(relatedCard).join('') + '</div>'
       + '</section>'
       + '</div>';
   } catch (error) {
