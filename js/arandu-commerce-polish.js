@@ -1,6 +1,16 @@
 (() => {
   const page = window.location.pathname.split('/').pop() || 'index.html';
 
+  function injectGalleryCommerceCss() {
+    if (document.getElementById('arandu-gallery-commerce-css')) return;
+    if (document.querySelector('link[href*="css/arandu-gallery-commerce.css"]')) return;
+    const link = document.createElement('link');
+    link.id = 'arandu-gallery-commerce-css';
+    link.rel = 'stylesheet';
+    link.href = 'css/arandu-gallery-commerce.css?v=20260706-gallery-commerce-1';
+    document.head.appendChild(link);
+  }
+
   function addTrustNote(targetSelector, text) {
     const target = document.querySelector(targetSelector);
     if (!target) return;
@@ -13,6 +23,7 @@
 
   function improveCards() {
     document.querySelectorAll('.artwork-card, .showcase-card, .journey-card, .artist-work-card, .macro-card, .card, .mini-kpi').forEach((card) => {
+      if (card.closest('.arandu-editorial-works')) return;
       card.setAttribute('data-commerce-polish', 'true');
       if (!card.querySelector('.status-pill')) {
         const status = card.dataset.artworkStatus || card.textContent.match(/(disponível|reservada|vendida|em análise)/i)?.[0];
@@ -69,7 +80,9 @@
     }
   }
 
+  injectGalleryCommerceCss();
   document.addEventListener('DOMContentLoaded', () => {
+    injectGalleryCommerceCss();
     improveCards();
     relabelReserveButtons();
     enhanceHomeJourney();
