@@ -4,7 +4,7 @@ import { join } from 'node:path';
 const root = process.cwd();
 const dist = join(root, 'dist');
 
-const folders = ['js', 'data', 'assets'];
+const folders = ['js', 'data', 'assets', 'css'];
 
 function copyDir(source, target) {
   if (!existsSync(source)) return;

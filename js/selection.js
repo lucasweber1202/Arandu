@@ -101,7 +101,7 @@ function renderSelection() {
         </label>
         <div class="tags">
           <a class="tag" href="${url}">Ver obra</a>
-          <button class="tag" type="button" data-reserve-artwork="${id}" data-reserve-title="${escapeSelectionHtml(item.title)}" data-reserve-artist="${escapeSelectionHtml(item.artist)}" data-reserve-url="${url}">Reservar</button>
+          <button class="tag" type="button" data-reserve-artwork="${id}" data-reserve-title="${escapeSelectionHtml(item.title)}" data-reserve-artist="${escapeSelectionHtml(item.artist)}" data-reserve-url="${url}">Reservar com curadoria</button>
           <button class="tag" type="button" data-remove-artwork="${id}">Remover</button>
         </div>
       </article>`;

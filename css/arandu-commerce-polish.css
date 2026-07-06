@@ -1,0 +1,149 @@
+:root {
+  --arandu-red: #a73b2d;
+  --arandu-red-soft: #d96a4f;
+  --arandu-cream: #f7efe7;
+  --arandu-cream-strong: #f2e2d0;
+  --arandu-forest: #19362c;
+  --arandu-brown: #453224;
+  --arandu-gold: #c08b3d;
+  --arandu-shadow: rgba(25, 18, 12, 0.16);
+}
+
+body {
+  background: linear-gradient(135deg, #fcf8f2 0%, var(--arandu-cream) 100%);
+}
+
+.artwork-card,
+.showcase-card,
+.journey-card,
+.artist-work-card,
+.macro-card,
+.card,
+.selection-item,
+.form-card,
+.mini-kpi,
+.trust-card,
+.premium-buybox,
+.artwork-facts,
+.artwork-reading,
+.related-works,
+.home-trust-band {
+  border: 1px solid rgba(167, 59, 45, 0.14);
+  box-shadow: 0 16px 40px rgba(25, 18, 12, 0.06);
+  border-radius: 24px;
+  background: rgba(255, 250, 244, 0.96);
+}
+
+.artwork-card:hover,
+.showcase-card:hover,
+.journey-card:hover,
+.artist-work-card:hover,
+.macro-card:hover,
+.card:hover,
+.form-card:hover,
+.mini-kpi:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 22px 48px rgba(25, 18, 12, 0.12);
+}
+
+.price-line,
+.artwork-card .price-line,
+.showcase-card span,
+.tag-square,
+.badge,
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(167, 59, 45, 0.09);
+  color: var(--arandu-brown);
+  font-size: 0.92rem;
+}
+
+.price-line strong,
+.price-line .price-value {
+  color: var(--arandu-red);
+  font-weight: 700;
+}
+
+.cta,
+button.cta,
+button[type="submit"],
+button[data-save-artwork],
+button[data-reserve-artwork] {
+  background: linear-gradient(135deg, var(--arandu-red) 0%, var(--arandu-red-soft) 100%);
+  color: #fff;
+  border: none;
+  box-shadow: 0 12px 28px rgba(167, 59, 45, 0.2);
+}
+
+.cta.secondary,
+button.cta.secondary {
+  background: transparent;
+  color: var(--arandu-forest);
+  border: 1px solid rgba(25, 54, 44, 0.2);
+  box-shadow: none;
+}
+
+.eyebrow {
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--arandu-red);
+}
+
+.hero-artwork-card,
+.rect-frame,
+.hero-media-toolbar,
+.hero-media-caption,
+.premium-buybox,
+.artwork-facts {
+  border-radius: 28px;
+}
+
+.hero-artwork-card {
+  background: linear-gradient(145deg, var(--arandu-cream-strong), #fff);
+  border: 1px solid rgba(167, 59, 45, 0.16);
+}
+
+.trust-note,
+.reservation-note,
+.curatorial-note {
+  display: block;
+  margin-top: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-radius: 16px;
+  background: rgba(25, 54, 44, 0.05);
+  color: var(--arandu-brown);
+  border-left: 3px solid var(--arandu-red);
+  font-size: 0.95rem;
+}
+
+.process-steps li,
+.process-list p,
+.step-card,
+.roadmap-card {
+  border-radius: 18px;
+  padding: 0.95rem 1rem;
+  background: rgba(255, 250, 244, 0.9);
+}
+
+@media (max-width: 780px) {
+  .artwork-card,
+  .showcase-card,
+  .journey-card,
+  .artist-work-card,
+  .macro-card,
+  .card,
+  .form-card,
+  .mini-kpi,
+  .trust-card,
+  .premium-buybox,
+  .artwork-facts,
+  .artwork-reading,
+  .related-works,
+  .home-trust-band {
+    border-radius: 20px;
+  }
+}
