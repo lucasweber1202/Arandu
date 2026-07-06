@@ -1,0 +1,449 @@
+/* ARANDU — refinamento íntimo/profissional de compra de arte */
+:root {
+  --gi-paper: #fbf7ef;
+  --gi-wall: #eee4d8;
+  --gi-ink: #17110e;
+  --gi-muted: rgba(23, 17, 14, .66);
+  --gi-red: #8f2f26;
+  --gi-forest: #14342b;
+  --gi-gold: #b9854f;
+  --gi-line: rgba(23, 17, 14, .12);
+}
+
+body[data-public-shell] main {
+  background: var(--gi-paper);
+}
+
+body[data-public-shell] .site-header {
+  box-shadow: 0 10px 26px rgba(23, 17, 14, .035);
+}
+
+body[data-public-shell] .site-header .cta::after {
+  content: ' →';
+  font-weight: 900;
+}
+
+/* sensação de galeria: hero mais respirado e menos “landing page” */
+.gallery-commerce-hero {
+  border-bottom: 1px solid var(--gi-line);
+}
+
+.gallery-commerce-title::after {
+  content: '';
+  display: block;
+  width: clamp(84px, 12vw, 170px);
+  height: 1px;
+  margin-top: clamp(22px, 3vw, 34px);
+  background: var(--gi-ink);
+}
+
+.gallery-commerce-lead::first-letter {
+  color: var(--gi-red);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.25em;
+}
+
+.gallery-commerce-copy .page-actions {
+  margin-top: 30px;
+}
+
+/* Coleções rápidas inspiradas em navegação por categoria, inspiração e valor */
+.intimate-quick-shop,
+.intimate-price-board,
+.intimate-curator-note,
+.intimate-artist-row,
+.intimate-catalog-intro,
+.intimate-artwork-service {
+  padding: clamp(54px, 7vw, 92px) 0;
+  background: var(--gi-paper);
+}
+
+.intimate-quick-shop .container,
+.intimate-price-board .container,
+.intimate-curator-note .container,
+.intimate-artist-row .container,
+.intimate-catalog-intro .container,
+.intimate-artwork-service .container {
+  width: min(1380px, calc(100% - 44px));
+}
+
+.intimate-section-kicker {
+  margin: 0 0 14px;
+  color: var(--gi-red);
+  font-size: .72rem;
+  font-weight: 950;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+}
+
+.intimate-section-title {
+  max-width: 980px;
+  margin: 0;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(2.8rem, 5.8vw, 7rem);
+  line-height: .86;
+  letter-spacing: -.08em;
+  color: var(--gi-ink);
+}
+
+.intimate-section-copy {
+  max-width: 660px;
+  margin: 18px 0 0;
+  color: var(--gi-muted);
+  line-height: 1.72;
+  font-size: clamp(1rem, 1.25vw, 1.18rem);
+}
+
+.intimate-link-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 1px;
+  margin-top: clamp(28px, 4vw, 46px);
+  border: 1px solid var(--gi-line);
+  background: var(--gi-line);
+}
+
+.intimate-link-card {
+  position: relative;
+  min-height: 196px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  background: var(--gi-paper);
+  color: var(--gi-ink);
+  text-decoration: none;
+}
+
+.intimate-link-card::before {
+  content: '';
+  position: absolute;
+  inset: auto 22px 20px 22px;
+  height: 3px;
+  background: var(--gi-red);
+  transform: scaleX(.35);
+  transform-origin: left;
+  transition: transform .22s ease;
+}
+
+.intimate-link-card:hover::before { transform: scaleX(1); }
+
+.intimate-link-card strong {
+  position: relative;
+  z-index: 1;
+  max-width: 170px;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(1.45rem, 2vw, 2.4rem);
+  line-height: .95;
+  letter-spacing: -.055em;
+}
+
+.intimate-link-card span {
+  position: relative;
+  z-index: 1;
+  color: var(--gi-muted);
+  line-height: 1.45;
+  font-size: .92rem;
+}
+
+.intimate-link-card.dark {
+  background: var(--gi-forest);
+  color: #fffaf2;
+}
+
+.intimate-link-card.dark span { color: rgba(255,250,242,.72); }
+
+.intimate-link-card.warm {
+  background: #efe0cc;
+}
+
+/* Tabela de compra por valor / intenção */
+.intimate-price-panel {
+  display: grid;
+  grid-template-columns: .92fr 1.08fr;
+  gap: 1px;
+  margin-top: clamp(28px, 4vw, 46px);
+  border: 1px solid var(--gi-line);
+  background: var(--gi-line);
+}
+
+.intimate-price-story,
+.intimate-price-list {
+  background: var(--gi-paper);
+}
+
+.intimate-price-story {
+  min-height: 520px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: clamp(28px, 4vw, 56px);
+  background:
+    linear-gradient(180deg, rgba(23,17,14,0) 0%, rgba(23,17,14,.58) 100%),
+    radial-gradient(circle at 24% 20%, rgba(255,239,209,.72), transparent 20%),
+    linear-gradient(135deg, #d7aa72, #8f2f26 62%, #14342b);
+  color: #fffaf2;
+}
+
+.intimate-price-story h3 {
+  margin: 0;
+  max-width: 520px;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(2.7rem, 5vw, 6rem);
+  line-height: .86;
+  letter-spacing: -.08em;
+}
+
+.intimate-price-story p {
+  max-width: 520px;
+  margin: 18px 0 0;
+  color: rgba(255,250,242,.78);
+  line-height: 1.6;
+}
+
+.intimate-price-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.intimate-price-option {
+  display: flex;
+  min-height: 260px;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: clamp(24px, 3vw, 42px);
+  border-bottom: 1px solid var(--gi-line);
+  border-right: 1px solid var(--gi-line);
+  color: var(--gi-ink);
+  text-decoration: none;
+}
+
+.intimate-price-option:nth-child(even) { border-right: 0; }
+.intimate-price-option:nth-last-child(-n+2) { border-bottom: 0; }
+
+.intimate-price-option small {
+  color: var(--gi-red);
+  text-transform: uppercase;
+  letter-spacing: .14em;
+  font-weight: 950;
+}
+
+.intimate-price-option strong {
+  display: block;
+  margin-top: 12px;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(1.8rem, 3vw, 3.4rem);
+  line-height: .92;
+  letter-spacing: -.06em;
+}
+
+.intimate-price-option span {
+  display: block;
+  max-width: 260px;
+  color: var(--gi-muted);
+  line-height: 1.5;
+}
+
+/* Nota de curadoria mais humana e íntima */
+.intimate-curator-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(360px, .95fr);
+  gap: 1px;
+  border: 1px solid var(--gi-line);
+  background: var(--gi-line);
+}
+
+.intimate-curator-copy,
+.intimate-curator-steps {
+  background: #f3eadf;
+  padding: clamp(28px, 4vw, 56px);
+}
+
+.intimate-curator-copy blockquote {
+  margin: 0;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(2.3rem, 4.6vw, 5.7rem);
+  line-height: .88;
+  letter-spacing: -.075em;
+  color: var(--gi-ink);
+}
+
+.intimate-curator-copy p {
+  max-width: 600px;
+  margin: 22px 0 0;
+  color: var(--gi-muted);
+  line-height: 1.72;
+}
+
+.intimate-curator-steps {
+  display: grid;
+  gap: 1px;
+  padding: 0;
+  background: var(--gi-line);
+}
+
+.intimate-curator-step {
+  display: grid;
+  grid-template-columns: 70px 1fr;
+  gap: 18px;
+  align-items: start;
+  padding: clamp(22px, 3vw, 36px);
+  background: var(--gi-paper);
+}
+
+.intimate-curator-step strong {
+  color: var(--gi-red);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 2.2rem;
+  line-height: .8;
+}
+
+.intimate-curator-step span {
+  color: var(--gi-muted);
+  line-height: 1.5;
+}
+
+/* Prateleira de artistas/coletáveis */
+.intimate-artist-shelf {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  margin-top: clamp(28px, 4vw, 46px);
+  border: 1px solid var(--gi-line);
+  background: var(--gi-line);
+}
+
+.intimate-artist-card {
+  min-height: 360px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 26px;
+  background:
+    linear-gradient(180deg, rgba(23,17,14,0) 0%, rgba(23,17,14,.58) 100%),
+    linear-gradient(135deg, #c99052, #8f2f26);
+  color: #fffaf2;
+  text-decoration: none;
+}
+
+.intimate-artist-card:nth-child(2) { background: linear-gradient(180deg, rgba(23,17,14,0), rgba(23,17,14,.58)), linear-gradient(135deg, #14342b, #b9854f); }
+.intimate-artist-card:nth-child(3) { background: linear-gradient(180deg, rgba(23,17,14,0), rgba(23,17,14,.58)), linear-gradient(135deg, #ead9bf, #8f2f26); }
+.intimate-artist-card:nth-child(4) { background: linear-gradient(180deg, rgba(23,17,14,0), rgba(23,17,14,.58)), linear-gradient(135deg, #231814, #c89662); }
+
+.intimate-artist-card small {
+  color: rgba(255,250,242,.70);
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  font-weight: 900;
+}
+
+.intimate-artist-card strong {
+  margin-top: 8px;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(2rem, 3vw, 4rem);
+  line-height: .88;
+  letter-spacing: -.075em;
+}
+
+.intimate-artist-card span {
+  max-width: 260px;
+  margin-top: 12px;
+  color: rgba(255,250,242,.76);
+  line-height: 1.5;
+}
+
+/* Catálogo: barra tipo loja online */
+.intimate-catalog-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 26px;
+}
+
+.intimate-catalog-strip a {
+  padding: 10px 14px;
+  border: 1px solid var(--gi-line);
+  color: var(--gi-ink);
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  font-size: .72rem;
+  font-weight: 950;
+}
+
+.intimate-catalog-strip a:hover {
+  background: var(--gi-ink);
+  color: #fffaf2;
+}
+
+/* Ficha da obra: serviço pessoal de compra */
+.intimate-artwork-service-card {
+  margin-top: 22px;
+  padding: 22px;
+  border: 1px solid var(--gi-line);
+  background: #f2e7da;
+}
+
+.intimate-artwork-service-card strong {
+  display: block;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.55rem;
+  line-height: 1;
+  letter-spacing: -.04em;
+}
+
+.intimate-artwork-service-card p {
+  margin: 10px 0 0;
+  color: var(--gi-muted);
+  line-height: 1.55;
+}
+
+.intimate-mini-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.intimate-mini-actions a,
+.intimate-mini-actions button {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  padding: 8px 12px;
+  border: 1px solid rgba(23,17,14,.2);
+  background: transparent;
+  color: var(--gi-ink);
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  font-size: .68rem;
+  font-weight: 950;
+}
+
+@media (max-width: 1100px) {
+  .intimate-link-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .intimate-price-panel,
+  .intimate-curator-card { grid-template-columns: 1fr; }
+  .intimate-artist-shelf { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 680px) {
+  .intimate-quick-shop .container,
+  .intimate-price-board .container,
+  .intimate-curator-note .container,
+  .intimate-artist-row .container,
+  .intimate-catalog-intro .container,
+  .intimate-artwork-service .container {
+    width: min(100% - 28px, 1380px);
+  }
+  .intimate-link-grid,
+  .intimate-price-list,
+  .intimate-artist-shelf { grid-template-columns: 1fr; }
+  .intimate-price-story { min-height: 360px; }
+  .intimate-price-option { min-height: 210px; border-right: 0; }
+  .intimate-price-option:nth-last-child(-n+2) { border-bottom: 1px solid var(--gi-line); }
+  .intimate-price-option:last-child { border-bottom: 0; }
+  .intimate-curator-step { grid-template-columns: 1fr; }
+}
