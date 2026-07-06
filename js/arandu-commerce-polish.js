@@ -1,14 +1,19 @@
 (() => {
   const page = window.location.pathname.split('/').pop() || 'index.html';
 
-  function injectGalleryCommerceCss() {
-    if (document.getElementById('arandu-gallery-commerce-css')) return;
-    if (document.querySelector('link[href*="css/arandu-gallery-commerce.css"]')) return;
+  function injectCssOnce(id, href) {
+    if (document.getElementById(id)) return;
+    if (document.querySelector(`link[href*="${href.split('?')[0]}"]`)) return;
     const link = document.createElement('link');
-    link.id = 'arandu-gallery-commerce-css';
+    link.id = id;
     link.rel = 'stylesheet';
-    link.href = 'css/arandu-gallery-commerce.css?v=20260706-gallery-commerce-1';
+    link.href = href;
     document.head.appendChild(link);
+  }
+
+  function injectGalleryCommerceCss() {
+    injectCssOnce('arandu-gallery-commerce-css', 'css/arandu-gallery-commerce.css?v=20260706-gallery-commerce-1');
+    injectCssOnce('arandu-gallery-commerce-pro-css', 'css/arandu-gallery-commerce-pro.css?v=20260706-gallery-commerce-pro-1');
   }
 
   function addTrustNote(targetSelector, text) {
