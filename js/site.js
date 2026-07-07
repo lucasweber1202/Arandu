@@ -1,7 +1,7 @@
 /* ARANDU — shell público principal */
 const SEARCH_INDEX=[
   ['Comprar arte','comprar-arte.html','Compra','obras disponíveis preço técnica artista reserva curadoria'],
-  ['Perfil','perfil.html','Conta','perfil comprador preferências obras salvas recomendações login supabase'],
+  ['Perfil','minha-conta.html','Conta','perfil comprador preferências obras salvas recomendações login supabase'],
   ['Portal do artista','portal-artista.html','Artistas','login artista precificação portfólio preço reavaliação obras'],
   ['Empresas','empresas.html','Empresas','curadoria corporativa arquitetura hotel clínica escritório proposta'],
   ['Para compradores','para-compradores.html','Compradores','cadastro interesse primeira coleção orçamento técnica acompanhar artistas'],
@@ -26,7 +26,7 @@ const PUBLIC_NAV_ITEMS=[
   ['Artistas','artistas.html'],
   ['Empresas','empresas.html'],
   ['Portal artista','portal-artista.html'],
-  ['Perfil','perfil.html']
+  ['Entrar','login.html']
 ];
 const INTERNAL_PAGE_PATTERNS=/^(painel|admin|demo|roadmap|configuracao|login|cadastro|minha-conta)/i;
 const normalizeText=(value)=>String(value||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
