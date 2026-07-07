@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Perfil do comprador Arandu para preferências, seleção de obras e contato com curadoria." />
+  <title>Perfil — Arandu</title>
+  <link rel="stylesheet" href="css/arandu-system.css?v=20260608" />
+  <link rel="stylesheet" href="css/arandu-product.css?v=20260608" />
+  <link rel="stylesheet" href="css/arandu-clean.css?v=20260610-public-shell-1" />
+  <link rel="stylesheet" href="css/arandu-visual-commercial-polish.css?v=20260707-commercial-polish-2" />
+  <link rel="stylesheet" href="css/arandu-platform-upgrade.css?v=20260707-platform-1" />
+</head>
+<body class="lovable-page architecture-clean">
+  <header class="site-header"><div class="container header-inner"><a class="brand-logo" href="index.html">Arandu</a><nav class="site-nav"><a href="comprar-arte.html">Comprar arte</a><a href="obras.html">Obras</a><a href="artistas.html">Artistas</a><a href="empresas.html">Empresas</a><a href="portal-artista.html">Portal artista</a></nav><a class="cta" href="login.html">Entrar</a></div></header>
+  <main>
+    <section class="portal-shell">
+      <div class="container portal-layout">
+        <aside class="portal-card">
+          <p class="eyebrow">Perfil do comprador</p>
+          <h1 class="section-title">Sua curadoria começa pelo que você quer viver no espaço.</h1>
+          <p>Esta área prepara uma experiência de conta para compradores, colecionadores e clientes de projeto. O login usa Supabase; enquanto o banco final não estiver configurado, as preferências são enviadas pela API de formulários e ficam prontas para cair na base.</p>
+          <div class="page-actions"><a class="cta" href="login.html">Entrar</a><a class="cta secondary" href="cadastro.html">Criar conta</a></div>
+        </aside>
+        <section class="portal-card">
+          <div class="portal-kpi-grid">
+            <div class="portal-kpi"><strong>01</strong><span>preferências de compra</span></div>
+            <div class="portal-kpi"><strong>02</strong><span>obras salvas e interesse</span></div>
+            <div class="portal-kpi"><strong>03</strong><span>retorno da curadoria</span></div>
+          </div>
+          <h2>Preferências para a curadoria</h2>
+          <form data-api-form="perfil-comprador">
+            <div class="form-grid-two"><input name="nome" placeholder="Nome"><input name="email" type="email" placeholder="E-mail"></div>
+            <div class="form-grid-two"><select name="intencao"><option>Primeira obra</option><option>Coleção pessoal</option><option>Projeto residencial</option><option>Projeto corporativo</option><option>Presente</option></select><select name="orcamento"><option>Até R$ 3 mil</option><option>R$ 3 mil a R$ 8 mil</option><option>Acima de R$ 8 mil</option><option>A definir com curadoria</option></select></div>
+            <div class="form-grid-two"><select name="linguagem"><option>Pintura</option><option>Fotografia</option><option>Escultura</option><option>Sem preferência</option></select><select name="ambiente"><option>Sala</option><option>Escritório</option><option>Recepção</option><option>Quarto</option><option>Coleção</option></select></div>
+            <textarea name="mensagem" placeholder="Conte o que você procura: tamanho, tons, sensação, artista, cidade, prazo ou dúvida."></textarea>
+            <button class="cta" type="submit">Salvar preferências</button>
+            <p class="form-status" data-form-status></p>
+          </form>
+        </section>
+      </div>
+    </section>
+    <section class="editorial-strip"><div class="container editorial-grid"><a class="editorial-card large" href="comprar-arte.html"><strong>Continue pelo acervo</strong><span>Veja peças por preço, técnica e intenção de compra.</span><em>Comprar arte</em></a><a class="editorial-card" href="minha-selecao.html"><strong>Monte uma seleção</strong><span>Separe obras e envie para leitura curatorial.</span><em>Minha seleção</em></a><a class="editorial-card" href="confianca.html"><strong>Entenda a segurança</strong><span>Certificado, procedência, reserva e envio.</span><em>Confiança</em></a></div></section>
+  </main>
+  <footer class="site-footer"><div class="container footer-grid"><div><h2>Arandu</h2><p>Arte brasileira contemporânea com curadoria, território e procedência.</p></div><div><p>Comprar</p><a href="comprar-arte.html">Comprar arte</a><a href="obras.html">Explorar obras</a></div><div><p>Conta</p><a href="perfil.html">Perfil</a><a href="portal-artista.html">Portal do artista</a></div><div><p>Contato</p><a href="contato.html">Curadoria</a><a href="empresas.html">Empresas</a></div></div></footer>
+  <script src="js/site.js?v=20260610-public-shell-1"></script>
+</body>
+</html>
