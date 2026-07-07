@@ -57,11 +57,11 @@
   }
 
   function preventOverlap(){
-    document.querySelectorAll('.artwork-card,.clean-card,.opportunity-card,.commercial-card,.rect-hero,.clean-section,.launch-trust-band').forEach((el)=>{
+    document.querySelectorAll('.artwork-card,.clean-card,.opportunity-card,.commercial-card,.rect-hero,.clean-section,.launch-trust-band,.purchase-featured-card,.purchase-step-card').forEach((el)=>{
       el.style.minWidth='0';
     });
-    document.querySelectorAll('h1,h2,h3,p,a,span,strong,small').forEach((el)=>{
-      el.style.overflowWrap='anywhere';
+    document.querySelectorAll('main p, main li').forEach((el)=>{
+      el.style.overflowWrap='break-word';
     });
   }
 
@@ -69,7 +69,7 @@
     document.querySelectorAll('a[href="comprar-arte.html"],a[href="#obras-disponiveis"]').forEach((link)=>{
       if(/comprar arte/i.test(link.textContent.trim())) link.setAttribute('aria-label','Comprar arte com busca, obras disponíveis e apoio da curadoria');
     });
-    document.querySelectorAll('[data-reserve-artwork], .artwork-card[href*="obra.html"]').forEach((el)=>{
+    document.querySelectorAll('[data-reserve-artwork], .artwork-card[href*="obra.html"], .purchase-featured-card[href*="obra.html"]').forEach((el)=>{
       el.setAttribute('data-commercial-ready','true');
     });
   }
