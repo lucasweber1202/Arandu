@@ -66,7 +66,7 @@ function injectPageIntegrations(){
     ['js/arandu-commerce.js?v=20260618-commerce-1','arandu-commerce-js'],
     ['js/arandu-commerce-polish.js?v=20260706-commerce-polish-1','arandu-commerce-polish-js'],
     ['js/arandu-launch-readiness.js?v=20260707-launch-readiness-1','arandu-launch-readiness-js'],
-    ['js/arandu-visual-commercial-polish.js?v=20260707-commercial-polish-1','arandu-visual-commercial-polish-js']
+    ['js/arandu-visual-commercial-polish.js?v=20260707-commercial-polish-2','arandu-visual-commercial-polish-js']
   ].forEach(([src,id])=>injectScriptOnce(src,id));
   if(currentPage()==='proposta-curatorial.html') injectScriptOnce('js/proposal-api.js?v=20260610-operational-1','arandu-proposal-api-js');
 }
@@ -81,7 +81,7 @@ function injectProductCss(){
     ['css/arandu-commerce.css?v=20260618-commerce-1','arandu-commerce-css'],
     ['css/arandu-commerce-polish.css?v=20260706-commerce-polish-1','arandu-commerce-polish-css'],
     ['css/arandu-launch-readiness.css?v=20260707-launch-readiness-1','arandu-launch-readiness-css'],
-    ['css/arandu-visual-commercial-polish.css?v=20260707-commercial-polish-1','arandu-visual-commercial-polish-css']
+    ['css/arandu-visual-commercial-polish.css?v=20260707-commercial-polish-2','arandu-visual-commercial-polish-css']
   ].forEach(([href,id])=>injectCssOnce(href,id));
 }
 
