@@ -58,6 +58,9 @@ function injectPageIntegrations(){
   if(isInternalPage()) return;
   [
     ['js/arandu-functions.js?v=20260610-ux-1','arandu-functions-js'],
+    ['js/arandu-recent.js?v=20260610-public-shell-1','arandu-recent-js'],
+    ['js/arandu-journey.js?v=20260610-public-shell-1','arandu-journey-js'],
+    ['js/arandu-usability.js?v=20260610-public-shell-1','arandu-usability-js'],
     ['js/arandu-assistant.js?v=20260618-experience-1','arandu-assistant-js'],
     ['js/arandu-mobile.js?v=20260618-mobile-1','arandu-mobile-js'],
     ['js/arandu-commerce.js?v=20260618-commerce-1','arandu-commerce-js'],
@@ -72,6 +75,7 @@ function injectProductCss(){
   [
     ['css/arandu-architecture.css?v=20260610-public-shell-1','arandu-architecture-css'],
     ['css/arandu-clean.css?v=20260610-public-shell-1','arandu-clean-css'],
+    ['css/arandu-visual-polish.css?v=20260610-public-shell-1','arandu-visual-polish-css'],
     ['css/arandu-mobile.css?v=20260618-mobile-1','arandu-mobile-css'],
     ['css/arandu-commerce.css?v=20260618-commerce-1','arandu-commerce-css'],
     ['css/arandu-commerce-polish.css?v=20260706-commerce-polish-1','arandu-commerce-polish-css'],
