@@ -3,13 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Comprar arte na Arandu: obras disponíveis, preços, tags e comparação." />
+  <meta name="description" content="Comprar arte na Arandu: obras disponíveis, oportunidades da semana, busca por técnica e reserva acompanhada por curadoria." />
   <title>Comprar arte — Arandu</title>
   <link rel="stylesheet" href="css/arandu-system.css?v=20260608" />
   <link rel="stylesheet" href="css/arandu-product.css?v=20260608" />
   <link rel="stylesheet" href="css/arandu-marketplace.css?v=lovable-4" />
   <link rel="stylesheet" href="css/arandu-architecture.css?v=20260610-public-shell-1" />
   <link rel="stylesheet" href="css/arandu-clean.css?v=20260610-public-shell-1" />
+  <link rel="stylesheet" href="css/arandu-visual-commercial-polish.css?v=20260707-commercial-polish-1" />
 </head>
 <body class="lovable-page architecture-clean">
   <header class="site-header">
@@ -26,32 +27,104 @@
       <a class="cta" href="contato.html">Falar com a curadoria</a>
     </div>
   </header>
+
   <main>
     <section class="rect-hero">
       <div class="container rect-hero-grid">
         <div>
           <p class="eyebrow">Comprar arte</p>
-          <h1 class="title">Obras disponíveis, com preço e contexto.</h1>
-          <p class="lead">Uma página direta para ver peças, entender técnica, artista e presença. A curadoria entra para apoiar a decisão, não para complicar o caminho.</p>
-          <div class="page-actions"><a class="cta" href="#obras-disponiveis">Ver obras</a><a class="cta secondary" href="comparar-obras.html">Comparar</a></div>
+          <h1 class="title">Escolha uma obra com calma, contexto e acompanhamento.</h1>
+          <p class="lead">A Arandu não quer transformar arte em vitrine fria. Aqui, a compra começa por uma peça que chama atenção, passa pela história do artista e só avança quando técnica, preço, certificado e entrega estão claros.</p>
+          <div class="page-actions">
+            <a class="cta" href="#oportunidades">Ver oportunidades</a>
+            <a class="cta secondary" href="#busca-curatorial">Pesquisar obras</a>
+          </div>
         </div>
-        <div class="rect-frame"><div class="rect-block tall red"></div><div class="rect-block green"></div><div class="rect-block dark"></div></div>
+        <div class="rect-frame" aria-hidden="true"><div class="rect-block tall red"></div><div class="rect-block green"></div><div class="rect-block dark"></div></div>
       </div>
     </section>
-    <section class="clean-section" id="obras-disponiveis">
+
+    <section class="clean-section" id="busca-curatorial" data-commercial-search-panel="true">
+      <div class="container">
+        <div class="commercial-search-panel">
+          <div class="commercial-search-header">
+            <div>
+              <p class="eyebrow">Encontrar uma obra</p>
+              <h2 class="commercial-title">Pesquise por técnica, artista ou intenção.</h2>
+              <p class="commercial-copy">Digite pintura, fotografia, escultura, até R$ 3 mil, obra para sala, presente ou primeira compra. A busca serve para aproximar o olhar antes da conversa com a curadoria.</p>
+            </div>
+            <label class="commercial-search-box">
+              <span class="sr-only">Pesquisar obras</span>
+              <input data-commercial-search-input type="search" placeholder="Ex.: fotografia, pintura, até R$ 3 mil" />
+              <a class="cta secondary" href="obras.html">Ver acervo</a>
+            </label>
+          </div>
+          <div class="commercial-search-results" data-commercial-search-results></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="opportunity-strip" id="oportunidades">
       <div class="container">
         <div class="section-head">
-          <div><p class="eyebrow">Disponíveis</p><h2 class="section-title">Peças para considerar.</h2></div>
-          <a class="cta secondary share-action" href="#compartilhar">Compartilhar</a>
+          <div>
+            <p class="eyebrow">Oportunidades no acervo</p>
+            <h2 class="opportunity-title">Três peças para considerar agora.</h2>
+          </div>
+          <p class="commercial-copy">Não é liquidação de obra. É uma seleção da semana com peças que fazem sentido para iniciar conversa, reservar com prioridade ou entrar no acervo com um valor mais acessível.</p>
         </div>
-        <div class="clean-grid">
-          <a class="artwork-card" href="obra.html?id=estudo-de-solo-04"><strong>Estudo de Solo Nº 04</strong><span>Marina Silveira · óleo sobre tela</span><div class="price-line"><span class="tag-square">R$ 4.200</span><span class="tag-square">pintura</span><span class="tag-square">disponível</span></div><p class="trust-note">Preço, técnica e certificado acompanhados por leitura curatorial.</p></a>
-          <a class="artwork-card" href="obra.html?id=sertao-silencioso"><strong>Sertão Silencioso</strong><span>Camila Rebouças · fotografia fine art</span><div class="price-line"><span class="tag-square">R$ 2.100</span><span class="tag-square">fotografia</span><span class="tag-square">reserva</span></div><p class="trust-note">A reserva abre conversa com a curadoria e não confirma compra automática.</p></a>
-          <a class="artwork-card" href="obra.html?id=equilibrio-suspenso"><strong>Equilíbrio Suspenso</strong><span>Arthur D'Avila · bronze fundido</span><div class="price-line"><span class="tag-square">R$ 8.900</span><span class="tag-square">escultura</span><span class="tag-square">novo</span></div><p class="trust-note">Procedência, condição e envio são avaliados antes do fechamento.</p></a>
+        <div class="opportunity-grid">
+          <a class="opportunity-card" href="obra.html?id=sertao-silencioso">
+            <span class="opportunity-badge">Faixa acessível</span>
+            <strong>Sertão Silencioso</strong>
+            <span>Camila Rebouças · fotografia fine art</span>
+            <span class="price">R$ 2.100</span>
+            <p class="why">Boa primeira compra para quem quer uma obra com narrativa brasileira forte, presença leve e leitura direta.</p>
+            <div class="opportunity-tags"><span class="opportunity-badge soft">até R$ 3 mil</span><span class="opportunity-badge soft">fotografia</span></div>
+          </a>
+          <a class="opportunity-card" href="obra.html?id=estudo-de-solo-04">
+            <span class="opportunity-badge">Oportunidade da semana</span>
+            <strong>Estudo de Solo Nº 04</strong>
+            <span>Marina Silveira · óleo sobre tela</span>
+            <span class="price">R$ 4.200</span>
+            <p class="why">Uma pintura silenciosa, com boa escala e contexto curatorial claro para quem quer comprar sem pressa.</p>
+            <div class="opportunity-tags"><span class="opportunity-badge soft">pintura</span><span class="opportunity-badge soft">obra única</span></div>
+          </a>
+          <a class="opportunity-card" href="obra.html?id=equilibrio-suspenso">
+            <span class="opportunity-badge">Peça de impacto</span>
+            <strong>Equilíbrio Suspenso</strong>
+            <span>Arthur D'Avila · bronze fundido</span>
+            <span class="price">R$ 8.900</span>
+            <p class="why">Para quem busca uma obra com presença física, ideal para entrada, aparador, escritório ou projeto especial.</p>
+            <div class="opportunity-tags"><span class="opportunity-badge soft">escultura</span><span class="opportunity-badge soft">projeto</span></div>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="clean-section" id="obras-disponiveis">
+      <div class="container commercial-intimate-grid">
+        <div class="curated-copy reading-card">
+          <p class="eyebrow">Como comprar</p>
+          <h2 class="section-title">A compra começa pela escolha, mas não termina em um clique frio.</h2>
+          <p>Você pode salvar uma obra, pedir reserva ou falar com a curadoria. Antes de qualquer fechamento, a Arandu confirma disponibilidade, ficha técnica, estado da obra, certificado, embalagem e prazo de entrega.</p>
+          <p>Esse caminho foi pensado para dar segurança ao comprador e também preservar o valor da obra e do artista.</p>
+        </div>
+        <div>
+          <div class="section-head">
+            <div><p class="eyebrow">Disponíveis</p><h2 class="section-title">Peças em destaque.</h2></div>
+            <a class="cta secondary share-action" href="#compartilhar">Compartilhar</a>
+          </div>
+          <div class="clean-grid">
+            <a class="artwork-card" href="obra.html?id=estudo-de-solo-04"><strong>Estudo de Solo Nº 04</strong><span>Marina Silveira · óleo sobre tela</span><div class="price-line"><span class="tag-square">R$ 4.200</span><span class="tag-square">pintura</span><span class="tag-square">disponível</span></div><p class="trust-note">Preço, técnica e certificado acompanhados por leitura curatorial.</p></a>
+            <a class="artwork-card" href="obra.html?id=sertao-silencioso"><strong>Sertão Silencioso</strong><span>Camila Rebouças · fotografia fine art</span><div class="price-line"><span class="tag-square">R$ 2.100</span><span class="tag-square">fotografia</span><span class="tag-square">reserva</span></div><p class="trust-note">A reserva abre conversa com a curadoria e não confirma compra automática.</p></a>
+            <a class="artwork-card" href="obra.html?id=equilibrio-suspenso"><strong>Equilíbrio Suspenso</strong><span>Arthur D'Avila · bronze fundido</span><div class="price-line"><span class="tag-square">R$ 8.900</span><span class="tag-square">escultura</span><span class="tag-square">novo</span></div><p class="trust-note">Procedência, condição e envio são avaliados antes do fechamento.</p></a>
+          </div>
         </div>
       </div>
     </section>
   </main>
+
   <footer class="site-footer">
     <div class="container footer-grid">
       <div><h2>Arandu</h2><p>Arte brasileira contemporânea com curadoria, território e procedência.</p></div>
