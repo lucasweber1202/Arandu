@@ -1,6 +1,9 @@
 /* ARANDU — shell público principal */
 const SEARCH_INDEX=[
   ['Comprar arte','comprar-arte.html','Compra','obras disponíveis preço técnica artista reserva curadoria'],
+  ['Perfil','perfil.html','Conta','perfil comprador preferências obras salvas recomendações login supabase'],
+  ['Portal do artista','portal-artista.html','Artistas','login artista precificação portfólio preço reavaliação obras'],
+  ['Empresas','empresas.html','Empresas','curadoria corporativa arquitetura hotel clínica escritório proposta'],
   ['Para compradores','para-compradores.html','Compradores','cadastro interesse primeira coleção orçamento técnica acompanhar artistas'],
   ['Explorar obras','obras.html','Obras','catálogo pintura fotografia escultura filtros acervo'],
   ['Artistas','artistas.html','Artistas','perfil trajetória técnica território obras disponíveis'],
@@ -21,9 +24,9 @@ const PUBLIC_NAV_ITEMS=[
   ['Comprar arte','comprar-arte.html'],
   ['Obras','obras.html'],
   ['Artistas','artistas.html'],
-  ['Curadoria','curadoria.html'],
-  ['Para artistas','para-artistas.html'],
-  ['Para compradores','para-compradores.html']
+  ['Empresas','empresas.html'],
+  ['Portal artista','portal-artista.html'],
+  ['Perfil','perfil.html']
 ];
 const INTERNAL_PAGE_PATTERNS=/^(painel|admin|demo|roadmap|configuracao|login|cadastro|minha-conta)/i;
 const normalizeText=(value)=>String(value||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
@@ -66,7 +69,8 @@ function injectPageIntegrations(){
     ['js/arandu-commerce.js?v=20260618-commerce-1','arandu-commerce-js'],
     ['js/arandu-commerce-polish.js?v=20260706-commerce-polish-1','arandu-commerce-polish-js'],
     ['js/arandu-launch-readiness.js?v=20260707-launch-readiness-1','arandu-launch-readiness-js'],
-    ['js/arandu-visual-commercial-polish.js?v=20260707-commercial-polish-2','arandu-visual-commercial-polish-js']
+    ['js/arandu-visual-commercial-polish.js?v=20260707-commercial-polish-2','arandu-visual-commercial-polish-js'],
+    ['js/arandu-platform-upgrade.js?v=20260707-platform-1','arandu-platform-upgrade-js']
   ].forEach(([src,id])=>injectScriptOnce(src,id));
   if(currentPage()==='proposta-curatorial.html') injectScriptOnce('js/proposal-api.js?v=20260610-operational-1','arandu-proposal-api-js');
 }
@@ -81,7 +85,8 @@ function injectProductCss(){
     ['css/arandu-commerce.css?v=20260618-commerce-1','arandu-commerce-css'],
     ['css/arandu-commerce-polish.css?v=20260706-commerce-polish-1','arandu-commerce-polish-css'],
     ['css/arandu-launch-readiness.css?v=20260707-launch-readiness-1','arandu-launch-readiness-css'],
-    ['css/arandu-visual-commercial-polish.css?v=20260707-commercial-polish-2','arandu-visual-commercial-polish-css']
+    ['css/arandu-visual-commercial-polish.css?v=20260707-commercial-polish-2','arandu-visual-commercial-polish-css'],
+    ['css/arandu-platform-upgrade.css?v=20260707-platform-1','arandu-platform-upgrade-css']
   ].forEach(([href,id])=>injectCssOnce(href,id));
 }
 
@@ -181,7 +186,7 @@ function removeLegacyUi(){
 
 document.addEventListener('input',(event)=>{if(event.target.matches('[data-search-input]')) renderSearchResults(event.target.value);});
 document.addEventListener('DOMContentLoaded',()=>{
-  document.body.dataset.publicShell=isInternalPage()?'20260707-internal-shell-safe':'20260707-launch-readiness-shell';
+  document.body.dataset.publicShell=isInternalPage()?'20260707-internal-shell-safe':'20260707-platform-shell';
   loadCentralLoader();
   injectProductCss();
   injectPageIntegrations();
