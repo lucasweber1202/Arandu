@@ -51,24 +51,21 @@ function injectCssOnce(href,id){
 }
 
 function loadCentralLoader(){
-  if(!isInternalPage()) injectScriptOnce('js/arandu-loader.js?v=20260610-public-shell-1','arandu-loader-js');
+  if(!isInternalPage()) injectScriptOnce('js/arandu-loader.js?v=20260707-launch-readiness-1','arandu-loader-js');
 }
 
 function injectPageIntegrations(){
   if(isInternalPage()) return;
   [
     ['js/arandu-functions.js?v=20260610-ux-1','arandu-functions-js'],
-    ['js/arandu-recent.js?v=20260610-ux-1','arandu-recent-js'],
-    ['js/arandu-journey.js?v=20260610-ux-1','arandu-journey-js'],
-    ['js/arandu-usability.js?v=20260610-ux-1','arandu-usability-js'],
+    ['js/arandu-recent.js?v=20260610-public-shell-1','arandu-recent-js'],
+    ['js/arandu-journey.js?v=20260610-public-shell-1','arandu-journey-js'],
+    ['js/arandu-usability.js?v=20260610-public-shell-1','arandu-usability-js'],
     ['js/arandu-assistant.js?v=20260618-experience-1','arandu-assistant-js'],
     ['js/arandu-mobile.js?v=20260618-mobile-1','arandu-mobile-js'],
-    ['js/arandu-ux-plus.js?v=20260618-ux-plus-1','arandu-ux-plus-js'],
-    ['js/arandu-usability-pack.js?v=20260618-usability-pack-1','arandu-usability-pack-js'],
-    ['js/arandu-final-polish.js?v=20260618-final-polish-1','arandu-final-polish-js'],
-    ['js/arandu-growth.js?v=20260618-growth-1','arandu-growth-js'],
     ['js/arandu-commerce.js?v=20260618-commerce-1','arandu-commerce-js'],
-    ['js/arandu-commerce-polish.js?v=20260706-commerce-polish-1','arandu-commerce-polish-js']
+    ['js/arandu-commerce-polish.js?v=20260706-commerce-polish-1','arandu-commerce-polish-js'],
+    ['js/arandu-launch-readiness.js?v=20260707-launch-readiness-1','arandu-launch-readiness-js']
   ].forEach(([src,id])=>injectScriptOnce(src,id));
   if(currentPage()==='proposta-curatorial.html') injectScriptOnce('js/proposal-api.js?v=20260610-operational-1','arandu-proposal-api-js');
 }
@@ -78,16 +75,11 @@ function injectProductCss(){
   [
     ['css/arandu-architecture.css?v=20260610-public-shell-1','arandu-architecture-css'],
     ['css/arandu-clean.css?v=20260610-public-shell-1','arandu-clean-css'],
-    ['css/arandu-visual-polish.css?v=20260610-ux-1','arandu-visual-polish-css'],
-    ['css/arandu-experience.css?v=20260618-experience-1','arandu-experience-css'],
-    ['css/arandu-presentation.css?v=20260618-presentation-1','arandu-presentation-css'],
+    ['css/arandu-visual-polish.css?v=20260610-public-shell-1','arandu-visual-polish-css'],
     ['css/arandu-mobile.css?v=20260618-mobile-1','arandu-mobile-css'],
-    ['css/arandu-ux-plus.css?v=20260618-ux-plus-1','arandu-ux-plus-css'],
-    ['css/arandu-usability-pack.css?v=20260618-usability-pack-1','arandu-usability-pack-css'],
-    ['css/arandu-final-polish.css?v=20260618-final-polish-1','arandu-final-polish-css'],
-    ['css/arandu-growth.css?v=20260618-growth-1','arandu-growth-css'],
     ['css/arandu-commerce.css?v=20260618-commerce-1','arandu-commerce-css'],
-    ['css/arandu-commerce-polish.css?v=20260706-commerce-polish-1','arandu-commerce-polish-css']
+    ['css/arandu-commerce-polish.css?v=20260706-commerce-polish-1','arandu-commerce-polish-css'],
+    ['css/arandu-launch-readiness.css?v=20260707-launch-readiness-1','arandu-launch-readiness-css']
   ].forEach(([href,id])=>injectCssOnce(href,id));
 }
 
@@ -187,7 +179,7 @@ function removeLegacyUi(){
 
 document.addEventListener('input',(event)=>{if(event.target.matches('[data-search-input]')) renderSearchResults(event.target.value);});
 document.addEventListener('DOMContentLoaded',()=>{
-  document.body.dataset.publicShell=isInternalPage()?'20260610-internal-shell-safe':'20260622-prelaunch-shell';
+  document.body.dataset.publicShell=isInternalPage()?'20260707-internal-shell-safe':'20260707-launch-readiness-shell';
   loadCentralLoader();
   injectProductCss();
   injectPageIntegrations();

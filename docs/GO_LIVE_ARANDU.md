@@ -14,7 +14,9 @@ O projeto já possui:
 - checklist visual em `lancamento.html` lendo `data/launch-checklist.json`;
 - base demonstrativa com artistas, obras e certificados;
 - schema Supabase para operação comercial;
-- checks de qualidade, dados, links, backend, inventário e build.
+- checks de qualidade, dados, links, backend, inventário e build;
+- camada pública consolidada de prontidão de lançamento, com reforço de confiança, reserva acompanhada e orientação para artistas;
+- painel administrativo com busca, filtro, exportação e detalhe operacional rápido.
 
 ## 2. O que precisa estar pronto antes de abrir publicamente
 
@@ -51,6 +53,7 @@ O projeto já possui:
 - Status real da obra: disponível, reservada, vendida ou não publicada.
 - Texto curatorial curto por obra.
 - Perfil curto do artista.
+- Confirmação expressa de autorização de imagem e divulgação.
 
 ### Confiança e operação
 
@@ -64,6 +67,7 @@ O projeto já possui:
 - Regra de dano no transporte definida.
 - Modelo de certificado aprovado.
 - Rotina definida para atualizar status no painel interno.
+- Mensagens-padrão para comprador, artista e empresa.
 
 ### Mídias sociais
 
@@ -128,7 +132,18 @@ O Arandu pode ser divulgado quando:
 - o artista entende como enviar portfólio;
 - a marca visual está consistente.
 
-## 6. Guias relacionados
+## 6. Próximo bloco de implementação recomendado
+
+Depois desta rodada, o próximo bloco deve focar em operação real, não em mais páginas:
+
+1. transformar registros do admin em telas de detalhe completas por artista, obra, lead e reserva;
+2. vincular notas e tarefas a cada entidade operacional;
+3. criar histórico de status por obra e lead;
+4. permitir gestão de imagens reais por URL antes de upload próprio;
+5. criar mensagens-padrão copiáveis para prospecção, reserva e retorno de artista;
+6. substituir a base demonstrativa por dados reais autorizados.
+
+## 7. Guias relacionados
 
 ```text
 docs/ADMIN_OPERACAO_ARANDU.md
@@ -137,7 +152,7 @@ docs/SETUP_PRODUCAO.md
 docs/SUPABASE_OPERACAO.md
 ```
 
-## 7. O que não precisa estar pronto no primeiro lançamento
+## 8. O que não precisa estar pronto no primeiro lançamento
 
 - Pagamento integrado.
 - Upload automático de imagem.
