@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Portal do artista Arandu para login, acompanhamento de portfólio e pedido de reavaliação de preço." />
+  <title>Portal do artista — Arandu</title>
+  <link rel="stylesheet" href="css/arandu-system.css?v=20260608" />
+  <link rel="stylesheet" href="css/arandu-product.css?v=20260608" />
+  <link rel="stylesheet" href="css/arandu-clean.css?v=20260610-public-shell-1" />
+  <link rel="stylesheet" href="css/arandu-visual-commercial-polish.css?v=20260707-commercial-polish-2" />
+  <link rel="stylesheet" href="css/arandu-platform-upgrade.css?v=20260707-platform-1" />
+</head>
+<body class="lovable-page architecture-clean">
+  <header class="site-header"><div class="container header-inner"><a class="brand-logo" href="index.html">Arandu</a><nav class="site-nav"><a href="comprar-arte.html">Comprar arte</a><a href="obras.html">Obras</a><a href="artistas.html">Artistas</a><a href="empresas.html">Empresas</a><a href="perfil.html">Perfil</a></nav><a class="cta" href="login.html">Entrar</a></div></header>
+  <main>
+    <section class="portal-shell">
+      <div class="container portal-layout">
+        <aside class="portal-card">
+          <p class="eyebrow">Portal do artista</p>
+          <h1 class="section-title">Acompanhe obra, documentação e preço com mais clareza.</h1>
+          <p>O portal foi pensado para artistas verificados: portfólio, status das obras, documentação, avaliação de preço e comunicação com a curadoria. O login usa a autenticação Supabase da Arandu.</p>
+          <div class="page-actions"><a class="cta" href="login.html">Entrar</a><a class="cta secondary" href="cadastro.html">Criar conta</a></div>
+        </aside>
+        <section class="portal-card">
+          <div class="portal-kpi-grid"><div class="portal-kpi"><strong>12</strong><span>artistas demo</span></div><div class="portal-kpi"><strong>22</strong><span>obras no acervo</span></div><div class="portal-kpi"><strong>5</strong><span>certificados base</span></div></div>
+          <h2>Solicitar reavaliação de preço</h2>
+          <p>Use quando houver mudança real: exposição, prêmio, venda comparável, série esgotando, aumento de demanda ou reposicionamento da trajetória.</p>
+          <form data-api-form="artist-price-review">
+            <div class="form-grid-two"><input name="nome_artistico" placeholder="Nome artístico"><input name="email" type="email" placeholder="E-mail"></div>
+            <input name="obra" placeholder="Obra ou série">
+            <div class="form-grid-two"><input name="preco_atual" placeholder="Preço atual"><input name="preco_sugerido" placeholder="Preço sugerido"></div>
+            <select name="motivo"><option>Nova exposição, prêmio ou edital</option><option>Venda recente comparável</option><option>Série esgotando ou baixa disponibilidade</option><option>Ajuste estratégico para venda</option><option>Revisão de custos e produção</option></select>
+            <textarea name="justificativa" placeholder="Explique por que o preço deve mudar. Inclua técnica, tamanho, tempo de produção, exposições, vendas, procura e referências."></textarea>
+            <button class="cta" type="submit">Enviar para curadoria</button>
+            <p class="form-status" data-form-status></p>
+          </form>
+        </section>
+      </div>
+    </section>
+    <section class="artist-pricing-section"><div class="container"><div class="section-head"><div><p class="eyebrow">Gestão do artista</p><h2 class="section-title">O que o portal deve concentrar.</h2></div><a class="cta secondary" href="para-artistas.html">Critérios de seleção</a></div><div class="price-review-grid"><article class="price-review-card"><strong>Portfólio</strong><span>Obras, ficha técnica, imagens, disponibilidade e autorização de uso.</span></article><article class="price-review-card"><strong>Preço</strong><span>Preço atual, preço mínimo, histórico de revisão e justificativa.</span></article><article class="price-review-card"><strong>Documentação</strong><span>Certificado, edição, procedência, estado e observações de conservação.</span></article><article class="price-review-card"><strong>Evolução</strong><span>Exposições, vendas, publicações, prêmios e leitura curatorial atualizada.</span></article></div></div></section>
+  </main>
+  <footer class="site-footer"><div class="container footer-grid"><div><h2>Arandu</h2><p>Arte brasileira contemporânea com curadoria, território e procedência.</p></div><div><p>Artistas</p><a href="para-artistas.html">Submeter portfólio</a><a href="portal-artista.html">Portal do artista</a></div><div><p>Acervo</p><a href="obras.html">Obras</a><a href="artistas.html">Artistas</a></div><div><p>Conta</p><a href="login.html">Entrar</a><a href="cadastro.html">Criar conta</a></div></div></footer>
+  <script src="js/site.js?v=20260610-public-shell-1"></script>
+</body>
+</html>
