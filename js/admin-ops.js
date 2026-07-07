@@ -21,6 +21,17 @@
     host.parentElement.insertBefore(toolbar, host);
   }
 
+  function ensureDrawer() {
+    if (q('[data-admin-detail-drawer]')) return q('[data-admin-detail-drawer]');
+    const drawer = document.createElement('aside');
+    drawer.className = 'admin-detail-drawer';
+    drawer.dataset.adminDetailDrawer = 'true';
+    drawer.hidden = true;
+    drawer.innerHTML = '<div class="admin-detail-head"><div><p class="eyebrow">Detalhe operacional</p><h2>Registro selecionado</h2></div><button type="button" data-admin-detail-close>×</button></div><div data-admin-detail-body></div>';
+    document.body.appendChild(drawer);
+    return drawer;
+  }
+
   function updateStatusOptions() {
     const select = q('[data-admin-status-filter]');
     if (!select) return;
@@ -36,6 +47,7 @@
 
   function applyFilters() {
     ensureToolbar();
+    ensureDrawer();
     updateStatusOptions();
     const query = state.query.toLowerCase();
     const status = state.status;
@@ -45,7 +57,18 @@
       const okQuery = !query || itemText.includes(query);
       const okStatus = !status || current === status;
       item.style.display = okQuery && okStatus ? '' : 'none';
+      addDetailButton(item);
     });
+  }
+
+  function addDetailButton(item) {
+    if (q('[data-admin-open-detail]', item)) return;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'cta secondary admin-detail-button';
+    button.dataset.adminOpenDetail = 'true';
+    button.textContent = 'Detalhes';
+    item.appendChild(button);
   }
 
   function rowsAsText() {
@@ -72,6 +95,36 @@
     URL.revokeObjectURL(url);
   }
 
+  function openDetail(item) {
+    const drawer = ensureDrawer();
+    const title = text(q('strong', item)) || 'Registro';
+    const detail = text(q('small', item)) || 'Sem subtítulo';
+    const status = q('[data-admin-status-select]', item)?.value || '';
+    const id = item.dataset.adminId || '';
+    q('h2', drawer).textContent = title;
+    q('[data-admin-detail-body]', drawer).innerHTML = `
+      <dl class="admin-detail-list">
+        <div><dt>ID</dt><dd>${id || 'não informado'}</dd></div>
+        <div><dt>Resumo</dt><dd>${detail}</dd></div>
+        <div><dt>Status atual</dt><dd>${status || 'sem status'}</dd></div>
+      </dl>
+      <div class="admin-detail-actions">
+        <button class="cta secondary" type="button" data-admin-copy-detail>Copiar resumo</button>
+        <a class="cta secondary" href="operacao.html">Abrir operação</a>
+      </div>
+      <p class="admin-detail-note">Use este painel para triagem rápida. Para produção, o próximo passo é vincular notas, tarefas e histórico por entidade.</p>`;
+    drawer.dataset.currentSummary = `${title}\n${detail}\nStatus: ${status}\nID: ${id}`;
+    drawer.hidden = false;
+    drawer.classList.add('is-open');
+  }
+
+  function closeDetail() {
+    const drawer = q('[data-admin-detail-drawer]');
+    if (!drawer) return;
+    drawer.hidden = true;
+    drawer.classList.remove('is-open');
+  }
+
   function bind() {
     document.addEventListener('input', (event) => {
       if (event.target.matches('[data-admin-search]')) { state.query = event.target.value || ''; applyFilters(); }
@@ -83,6 +136,13 @@
         try { await navigator.clipboard.writeText(rowsAsText()); } catch (_) {}
       }
       if (event.target.closest('[data-admin-export-visible]')) exportCsv();
+      const detailButton = event.target.closest('[data-admin-open-detail]');
+      if (detailButton) openDetail(detailButton.closest('.admin-item'));
+      if (event.target.closest('[data-admin-detail-close]')) closeDetail();
+      if (event.target.closest('[data-admin-copy-detail]')) {
+        const drawer = q('[data-admin-detail-drawer]');
+        try { await navigator.clipboard.writeText(drawer?.dataset.currentSummary || ''); } catch (_) {}
+      }
     });
   }
 
