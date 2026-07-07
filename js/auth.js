@@ -14,178 +14,29 @@ async function requestJson(url, options = {}) {
 
 function escapeAuthHtml(value) {
   return String(value ?? '').replace(/[&<>'"]/g, (char) => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    "'": '&#39;',
-    '"': '&quot;'
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
   }[char]));
 }
-
-function formatDateTime(value) {
-  if (!value) return 'Sem data';
-  try { return new Date(value).toLocaleString('pt-BR'); } catch { return 'Sem data'; }
-}
-
-function selectedAuthRole() {
-  return localStorage.getItem('arandu.login.role') || document.querySelector('[data-role-choice].is-active')?.dataset.roleChoice || 'comprador';
-}
-
-function routeForRole(role) {
-  const map = { comprador: 'minha-conta.html', artista: 'portal-artista.html', empresa: 'empresas.html', arquiteto: 'empresas.html' };
-  return map[role] || 'minha-conta.html';
-}
-
-function bindRoleChoice() {
-  document.querySelectorAll('[data-role-choice]').forEach((button) => {
-    button.addEventListener('click', () => {
-      const role = button.dataset.roleChoice || 'comprador';
-      localStorage.setItem('arandu.login.role', role);
-      document.querySelectorAll('[data-role-choice]').forEach((item) => item.classList.toggle('is-active', item === button));
-      document.querySelectorAll('[data-login-profile-type]').forEach((select) => { select.value = role; });
-      const context = document.querySelector('[data-login-context]');
-      if (context) context.textContent = role === 'artista' ? 'Acesso para acompanhar portfólio, documentação e pedidos de revisão de preço.' : role === 'empresa' ? 'Acesso para briefings, propostas e curadoria para espaços.' : 'Acesso para salvar obras, receber orientação e acompanhar reservas.';
-    });
-  });
-}
-
-function setStatus(form, text, isError = false) {
-  let status = form.querySelector('[data-auth-status]');
-  if (!status) {
-    status = document.createElement('p');
-    status.dataset.authStatus = 'true';
-    status.style.fontWeight = '800';
-    form.appendChild(status);
-  }
-  status.style.color = isError ? '#7b1f17' : '#c93f2d';
-  status.textContent = text;
-}
-
+function formatDateTime(value) { if (!value) return 'Sem data'; try { return new Date(value).toLocaleString('pt-BR'); } catch { return 'Sem data'; } }
+function selectedAuthRole() { return localStorage.getItem('arandu.login.role') || document.querySelector('[data-role-choice].is-active')?.dataset.roleChoice || 'comprador'; }
+function routeForRole(role) { return ({ comprador: 'minha-conta.html', artista: 'portal-artista.html', empresa: 'empresas.html', arquiteto: 'empresas.html' }[role] || 'minha-conta.html'); }
+function bindRoleChoice() { document.querySelectorAll('[data-role-choice]').forEach((button) => { button.addEventListener('click', () => { const role = button.dataset.roleChoice || 'comprador'; localStorage.setItem('arandu.login.role', role); document.querySelectorAll('[data-role-choice]').forEach((item) => item.classList.toggle('is-active', item === button)); document.querySelectorAll('[data-login-profile-type]').forEach((select) => { select.value = role; }); const context = document.querySelector('[data-login-context]'); if (context) context.textContent = role === 'artista' ? 'Acesso para acompanhar portfólio, documentação e pedidos de revisão de preço.' : role === 'empresa' ? 'Acesso para briefings, propostas e curadoria para espaços.' : 'Acesso para salvar obras, receber orientação e acompanhar reservas.'; }); }); }
+function setStatus(form, text, isError = false) { let status = form.querySelector('[data-auth-status]'); if (!status) { status = document.createElement('p'); status.dataset.authStatus = 'true'; status.style.fontWeight = '800'; form.appendChild(status); } status.style.color = isError ? '#7b1f17' : '#c93f2d'; status.textContent = text; }
 function injectAuthForms() {
   const signupMount = document.querySelector('[data-signup-mount]');
-  if (signupMount && !signupMount.innerHTML.trim()) {
-    signupMount.innerHTML = `
-      <form class="form-card" data-signup-form>
-        <h3>Começar</h3>
-        <input name="fullName" placeholder="Nome completo" required />
-        <input name="email" type="email" placeholder="Email" required />
-        <input name="password" type="password" placeholder="Senha" required />
-        <select name="profileType" required data-login-profile-type>
-          <option value="comprador">Quero comprar arte</option>
-          <option value="artista">Sou artista</option>
-          <option value="empresa">Sou empresa</option>
-          <option value="arquiteto">Sou arquiteto ou designer</option>
-        </select>
-        <button type="submit">Criar conta</button>
-        <p>Já tem conta? <a href="login.html">Entrar</a></p>
-      </form>`;
-  }
-
+  if (signupMount && !signupMount.innerHTML.trim()) signupMount.innerHTML = `<form class="form-card" data-signup-form><h3>Começar</h3><input name="fullName" placeholder="Nome completo" required /><input name="email" type="email" placeholder="Email" required /><input name="password" type="password" placeholder="Senha" required /><select name="profileType" required data-login-profile-type><option value="comprador">Quero comprar arte</option><option value="artista">Sou artista</option><option value="empresa">Sou empresa</option><option value="arquiteto">Sou arquiteto ou designer</option></select><button type="submit">Criar conta</button><p>Já tem conta? <a href="login.html">Entrar</a></p></form>`;
   const loginMount = document.querySelector('[data-login-mount]');
-  if (loginMount && !loginMount.innerHTML.trim()) {
-    const role = selectedAuthRole();
-    loginMount.innerHTML = `
-      <form class="form-card" data-login-form>
-        <h3>Entrar</h3>
-        <p class="login-context" data-login-context>${role === 'artista' ? 'Acesso para acompanhar portfólio, documentação e pedidos de revisão de preço.' : role === 'empresa' ? 'Acesso para briefings, propostas e curadoria para espaços.' : 'Acesso para salvar obras, receber orientação e acompanhar reservas.'}</p>
-        <select name="profileType" required data-login-profile-type>
-          <option value="comprador" ${role === 'comprador' ? 'selected' : ''}>Comprador</option>
-          <option value="artista" ${role === 'artista' ? 'selected' : ''}>Artista</option>
-          <option value="empresa" ${role === 'empresa' ? 'selected' : ''}>Empresa</option>
-        </select>
-        <input name="email" type="email" placeholder="Email" required />
-        <input name="password" type="password" placeholder="Senha" required />
-        <button type="submit">Entrar</button>
-        <p>Ainda não tem conta? <a href="cadastro.html">Criar conta</a></p>
-      </form>`;
-  }
+  if (loginMount && !loginMount.innerHTML.trim()) { const role = selectedAuthRole(); loginMount.innerHTML = `<form class="form-card" data-login-form><h3>Entrar</h3><p class="login-context" data-login-context>${role === 'artista' ? 'Acesso para acompanhar portfólio, documentação e pedidos de revisão de preço.' : role === 'empresa' ? 'Acesso para briefings, propostas e curadoria para espaços.' : 'Acesso para salvar obras, receber orientação e acompanhar reservas.'}</p><select name="profileType" required data-login-profile-type><option value="comprador" ${role === 'comprador' ? 'selected' : ''}>Comprador</option><option value="artista" ${role === 'artista' ? 'selected' : ''}>Artista</option><option value="empresa" ${role === 'empresa' ? 'selected' : ''}>Empresa</option></select><input name="email" type="email" placeholder="Email" required /><input name="password" type="password" placeholder="Senha" required /><button type="submit">Entrar</button><p>Ainda não tem conta? <a href="cadastro.html">Criar conta</a></p></form>`; }
 }
-
 async function getSession() { return requestJson('/api/auth/session', { method: 'GET' }); }
-
-async function renderAuthNav() {
-  try {
-    const session = await getSession();
-    document.querySelectorAll('[data-auth-nav]').forEach((target) => {
-      target.innerHTML = session.authenticated ? '<a href="minha-conta.html">Minha conta</a><button class="tag" type="button" data-auth-logout>Sair</button>' : '<a href="login.html">Entrar</a><a href="cadastro.html">Cadastrar</a>';
-    });
-  } catch {
-    document.querySelectorAll('[data-auth-nav]').forEach((target) => { target.innerHTML = '<a href="login.html">Entrar</a><a href="cadastro.html">Cadastrar</a>'; });
-  }
-}
-
-function accountNextStep(profileType) {
-  const map = {
-    artista: ['Enviar portfólio', 'prospeccao-artistas.html', 'Compartilhe trajetória, técnica, faixa de preço e obras disponíveis para análise curatorial.'],
-    empresa: ['Criar briefing', 'proposta-empresas.html', 'Informe ambiente, orçamento e intenção para receber uma proposta curatorial.'],
-    arquiteto: ['Montar seleção', 'minha-selecao.html', 'Salve obras, monte briefing e compartilhe com cliente ou curadoria.'],
-    comprador: ['Explorar obras', 'obras.html', 'Salve obras, compare caminhos e peça apoio da curadoria.']
-  };
-  return map[profileType] || map.comprador;
-}
-
+async function renderAuthNav() { try { const session = await getSession(); document.querySelectorAll('[data-auth-nav]').forEach((target) => { target.innerHTML = session.authenticated ? '<a href="minha-conta.html">Minha conta</a><button class="tag" type="button" data-auth-logout>Sair</button>' : '<a href="login.html">Entrar</a><a href="cadastro.html">Cadastrar</a>'; }); } catch { document.querySelectorAll('[data-auth-nav]').forEach((target) => { target.innerHTML = '<a href="login.html">Entrar</a><a href="cadastro.html">Cadastrar</a>'; }); } }
+function accountNextStep(profileType) { const map = { artista: ['Enviar portfólio', 'prospeccao-artistas.html', 'Compartilhe trajetória, técnica, faixa de preço e obras disponíveis para análise curatorial.'], empresa: ['Criar briefing', 'proposta-empresas.html', 'Informe ambiente, orçamento e intenção para receber uma proposta curatorial.'], arquiteto: ['Montar seleção', 'minha-selecao.html', 'Salve obras, monte briefing e compartilhe com cliente ou curadoria.'], comprador: ['Explorar obras', 'obras.html', 'Salve obras, compare caminhos e peça apoio da curadoria.'] }; return map[profileType] || map.comprador; }
 async function renderAccount() {
-  const target = document.querySelector('[data-account-panel]');
-  if (!target) return;
-  try {
-    const session = await getSession();
-    if (!session.authenticated) {
-      target.innerHTML = '<div class="card"><h3>Você ainda não entrou.</h3><p>Entre ou crie uma conta para acompanhar seleções, briefings e futuras compras.</p><div class="page-actions"><a class="cta" href="login.html">Entrar</a><a class="cta secondary" href="cadastro.html">Criar conta</a></div></div>';
-      return;
-    }
-    const dashboard = await requestJson('/api/dashboard', { method: 'GET' });
-    const profileType = session.user.profile_type || selectedAuthRole();
-    const [label, href, description] = accountNextStep(profileType);
-    const metrics = dashboard.metrics || {};
-    target.innerHTML = `<div class="card"><p class="eyebrow">Sessão ativa</p><h3>${escapeAuthHtml(session.user.full_name || session.user.email)}</h3><p>${escapeAuthHtml(session.user.email)}</p><span class="tag">${escapeAuthHtml(profileType)}</span></div><div class="grid grid-3"><article class="card"><h3>${metrics.reservations ?? 0}</h3><p>Reservas registradas</p></article><article class="card"><h3>${metrics.proposals ?? 0}</h3><p>Propostas curatoriais</p></article><article class="card"><h3>${metrics.certificates ?? 0}</h3><p>Certificados verificáveis</p></article></div><article class="card"><p class="eyebrow">Próximo passo</p><h3>${escapeAuthHtml(label)}</h3><p>${escapeAuthHtml(description)}</p><div class="page-actions"><a class="cta" href="${escapeAuthHtml(href)}">Continuar</a><a class="cta secondary" href="minha-selecao.html">Minha seleção</a><button class="button secondary" type="button" data-auth-logout>Sair</button></div></article>`;
-  } catch (error) { target.innerHTML = `<div class="card"><h3>Erro ao carregar conta</h3><p>${escapeAuthHtml(error.message)}</p></div>`; }
+  const target = document.querySelector('[data-account-panel]'); if (!target) return;
+  try { const session = await getSession(); if (!session.authenticated) { target.innerHTML = '<div class="card"><h3>Você ainda não entrou.</h3><p>Entre ou crie uma conta para acompanhar seleções, briefings e futuras compras.</p><div class="page-actions"><a class="cta" href="login.html">Entrar</a><a class="cta secondary" href="cadastro.html">Criar conta</a></div></div>'; return; } const dashboard = await requestJson('/api/dashboard', { method: 'GET' }); const profileType = session.user.profile_type || selectedAuthRole(); const [label, href, description] = accountNextStep(profileType); const metrics = dashboard.metrics || {}; target.innerHTML = `<div class="card"><p class="eyebrow">Sessão ativa</p><h3>${escapeAuthHtml(session.user.full_name || session.user.email)}</h3><p>${escapeAuthHtml(session.user.email)}</p><span class="tag">${escapeAuthHtml(profileType)}</span></div><div class="grid grid-3"><article class="card"><h3>${metrics.reservations ?? 0}</h3><p>Reservas registradas</p></article><article class="card"><h3>${metrics.proposals ?? 0}</h3><p>Propostas curatoriais</p></article><article class="card"><h3>${metrics.certificates ?? 0}</h3><p>Certificados verificáveis</p></article></div><article class="card"><p class="eyebrow">Próximo passo</p><h3>${escapeAuthHtml(label)}</h3><p>${escapeAuthHtml(description)}</p><div class="page-actions"><a class="cta" href="${escapeAuthHtml(href)}">Continuar</a><a class="cta secondary" href="minha-selecao.html">Minha seleção</a><button class="button secondary" type="button" data-auth-logout>Sair</button></div></article>`; } catch (error) { target.innerHTML = `<div class="card"><h3>Erro ao carregar conta</h3><p>${escapeAuthHtml(error.message)}</p></div>`; }
 }
-
-function pipelineCards(items) {
-  if (!Array.isArray(items) || !items.length) return '<article class="card"><h3>Nenhum movimento recente</h3><p>Quando leads, reservas, briefings e propostas entrarem no banco, eles aparecerão aqui.</p></article>';
-  return items.map((item) => `<article class="card"><span class="tag">${escapeAuthHtml(item.source || 'pipeline')}</span><h3>${escapeAuthHtml(item.name || item.id || 'Registro')}</h3><p>Status: ${escapeAuthHtml(item.status || 'sem status')}</p><small>${escapeAuthHtml(formatDateTime(item.created_at))}</small></article>`).join('');
-}
-
-async function renderDashboard() {
-  const target = document.querySelector('[data-dashboard-panel]');
-  if (!target) return;
-  try {
-    const dashboard = await requestJson('/api/dashboard', { method: 'GET' });
-    const metrics = dashboard.metrics || {};
-    target.innerHTML = `<div class="grid grid-4"><article class="card"><h3>${metrics.artworks ?? 0}</h3><p>Obras</p></article><article class="card"><h3>${metrics.artists ?? 0}</h3><p>Artistas</p></article><article class="card"><h3>${metrics.leads ?? 0}</h3><p>Leads</p></article><article class="card"><h3>${metrics.certificates ?? 0}</h3><p>Certificados</p></article><article class="card"><h3>${metrics.reservations ?? 0}</h3><p>Reservas</p></article><article class="card"><h3>${metrics.proposals ?? 0}</h3><p>Propostas</p></article><article class="card"><h3>${metrics.submissions ?? 0}</h3><p>Submissões</p></article><article class="card"><h3>${metrics.tasks ?? 0}</h3><p>Tarefas</p></article></div><div class="card"><h3>Pipeline recente</h3><p class="selection-summary">Modo atual: ${dashboard.mode === 'supabase' ? 'Supabase conectado' : 'Demonstração'}</p><div class="grid grid-4">${pipelineCards(dashboard.pipeline)}</div></div>`;
-  } catch (error) { target.innerHTML = `<div class="card"><h3>Erro no painel</h3><p>${escapeAuthHtml(error.message)}</p></div>`; }
-}
-
-document.addEventListener('submit', async (event) => {
-  const signup = event.target.closest('[data-signup-form]');
-  const login = event.target.closest('[data-login-form]');
-  if (!signup && !login) return;
-  event.preventDefault();
-  const form = signup || login;
-  const formData = new FormData(form);
-  const payload = Object.fromEntries(formData.entries());
-  localStorage.setItem('arandu.login.role', payload.profileType || selectedAuthRole());
-  const endpoint = signup ? '/api/auth/signup' : '/api/auth/login';
-  try {
-    setStatus(form, signup ? 'Criando cadastro...' : 'Entrando...');
-    const result = await requestJson(endpoint, { method: 'POST', body: JSON.stringify(payload) });
-    setStatus(form, result.needsEmailConfirmation ? 'Cadastro criado. Confira seu e-mail para confirmar a conta.' : 'Tudo certo. Redirecionando...');
-    setTimeout(() => { window.location.href = routeForRole(payload.profileType || selectedAuthRole()); }, 900);
-  } catch (error) { setStatus(form, error.message, true); }
-});
-
-document.addEventListener('click', async (event) => {
-  const logout = event.target.closest('[data-auth-logout]');
-  if (!logout) return;
-  event.preventDefault();
-  await requestJson('/api/auth/logout', { method: 'POST' });
-  window.location.href = 'index.html';
-});
-
-document.addEventListener('DOMContentLoaded', () => {
-  injectAuthForms();
-  bindRoleChoice();
-  renderAuthNav();
-  renderAccount();
-  renderDashboard();
-});
+function pipelineCards(items) { if (!Array.isArray(items) || !items.length) return '<article class="card"><h3>Nenhum movimento recente</h3><p>Quando leads, reservas, briefings e propostas entrarem no banco, eles aparecerão aqui.</p></article>'; return items.map((item) => `<article class="card"><span class="tag">${escapeAuthHtml(item.source || 'pipeline')}</span><h3>${escapeAuthHtml(item.name || item.id || 'Registro')}</h3><p>Status: ${escapeAuthHtml(item.status || 'sem status')}</p><small>${escapeAuthHtml(formatDateTime(item.created_at))}</small></article>`).join(''); }
+async function renderDashboard() { const target = document.querySelector('[data-dashboard-panel]'); if (!target) return; try { const dashboard = await requestJson('/api/dashboard', { method: 'GET' }); const metrics = dashboard.metrics || {}; target.innerHTML = `<div class="grid grid-4"><article class="card"><h3>${metrics.artworks ?? 0}</h3><p>Obras</p></article><article class="card"><h3>${metrics.artists ?? 0}</h3><p>Artistas</p></article><article class="card"><h3>${metrics.leads ?? 0}</h3><p>Leads</p></article><article class="card"><h3>${metrics.certificates ?? 0}</h3><p>Certificados</p></article><article class="card"><h3>${metrics.reservations ?? 0}</h3><p>Reservas</p></article><article class="card"><h3>${metrics.proposals ?? 0}</h3><p>Propostas</p></article><article class="card"><h3>${metrics.submissions ?? 0}</h3><p>Submissões</p></article><article class="card"><h3>${metrics.tasks ?? 0}</h3><p>Tarefas</p></article></div><div class="card"><h3>Pipeline recente</h3><p class="selection-summary">Modo atual: ${dashboard.mode === 'supabase' ? 'Supabase conectado' : 'Demonstração'}</p><div class="grid grid-4">${pipelineCards(dashboard.pipeline)}</div></div>`; } catch (error) { target.innerHTML = `<div class="card"><h3>Erro no painel</h3><p>${escapeAuthHtml(error.message)}</p></div>`; } }
+document.addEventListener('submit', async (event) => { const signup = event.target.closest('[data-signup-form]'); const login = event.target.closest('[data-login-form]'); if (!signup && !login) return; event.preventDefault(); const form = signup || login; const formData = new FormData(form); const payload = Object.fromEntries(formData.entries()); localStorage.setItem('arandu.login.role', payload.profileType || selectedAuthRole()); const endpoint = signup ? '/api/auth/signup' : '/api/auth/login'; try { setStatus(form, signup ? 'Criando cadastro...' : 'Entrando...'); const result = await requestJson(endpoint, { method: 'POST', body: JSON.stringify(payload) }); setStatus(form, result.needsEmailConfirmation ? 'Cadastro criado. Confira seu e-mail para confirmar a conta.' : 'Tudo certo. Redirecionando...'); setTimeout(() => { window.location.href = routeForRole(payload.profileType || selectedAuthRole()); }, 900); } catch (error) { setStatus(form, error.message, true); } });
+document.addEventListener('click', async (event) => { const logout = event.target.closest('[data-auth-logout]'); if (!logout) return; event.preventDefault(); await requestJson('/api/auth/logout', { method: 'POST' }); window.location.href = 'index.html'; });
+document.addEventListener('DOMContentLoaded', () => { injectAuthForms(); bindRoleChoice(); renderAuthNav(); renderAccount(); renderDashboard(); });
