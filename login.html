@@ -7,12 +7,41 @@
   <title>Entrar — Arandu</title>
   <link rel="stylesheet" href="css/arandu-system.css" />
   <link rel="stylesheet" href="css/arandu-platform-upgrade.css?v=20260707-platform-3" />
+  <link rel="stylesheet" href="css/arandu-ux-final-tune.css?v=20260708-ux-tune-1" />
 </head>
-<body class="lovable-page architecture-clean">
-  <header class="site-header"><div class="container header-inner"><a class="brand-logo" href="index.html">Arandu</a><nav class="site-nav"><a href="comprar-arte.html">Comprar arte</a><a href="obras.html">Obras</a><a href="artistas.html">Artistas</a><a href="empresas.html">Empresas</a><span data-auth-nav></span></nav><a class="cta" href="contato.html">Falar com a curadoria</a></div></header>
+<body class="lovable-page architecture-clean login-page">
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand-logo" href="index.html">Arandu</a>
+      <nav class="site-nav">
+        <a href="index.html">Home</a>
+        <a href="comprar-arte.html">Comprar</a>
+        <a href="artistas.html">Artistas</a>
+        <a href="confianca.html">Confiança</a>
+        <a href="pesquisa.html">Pesquisar</a>
+        <a href="narrativa.html">Narrativa</a>
+        <a href="login.html">Entrar</a>
+      </nav>
+    </div>
+  </header>
   <main>
-    <section class="portal-shell"><div class="container portal-layout"><div class="portal-card"><p class="eyebrow">Entrar</p><h1 class="section-title">Escolha seu caminho na Arandu.</h1><p>O acesso muda conforme a intenção: comprar uma obra, acompanhar portfólio como artista ou montar um projeto para empresa.</p><div class="login-role-grid" data-login-role-grid><button class="login-role-card is-active" type="button" data-role-choice="comprador"><strong>Comprador</strong><span>Salvar obras, receber curadoria e acompanhar reservas.</span></button><button class="login-role-card" type="button" data-role-choice="artista"><strong>Artista</strong><span>Acompanhar portfólio, documentação e preço.</span></button><button class="login-role-card" type="button" data-role-choice="empresa"><strong>Empresa</strong><span>Enviar briefing e montar projeto para espaços.</span></button></div></div><div data-login-mount></div></div></section>
+    <section class="portal-shell">
+      <div class="container portal-layout">
+        <div class="portal-card">
+          <p class="eyebrow">Entrar</p>
+          <h1 class="section-title">Escolha como quer usar a Arandu.</h1>
+          <p>O acesso muda conforme a intenção. Primeiro escolha seu perfil; depois entre ou crie uma conta.</p>
+          <div class="login-role-grid" data-login-role-grid>
+            <button class="login-role-card is-active" type="button" data-role-choice="comprador"><strong>Comprador</strong><span>Salvar obras, receber curadoria e acompanhar reservas.</span></button>
+            <button class="login-role-card" type="button" data-role-choice="artista"><strong>Artista</strong><span>Acompanhar portfólio, documentação e preço.</span></button>
+            <button class="login-role-card" type="button" data-role-choice="empresa"><strong>Empresa</strong><span>Enviar briefing e montar projeto para espaços.</span></button>
+          </div>
+        </div>
+        <div data-login-mount></div>
+      </div>
+    </section>
   </main>
-  <script src="js/site.js"></script><script src="js/auth.js"></script>
+  <script src="js/site.js"></script>
+  <script src="js/auth.js"></script>
 </body>
 </html>
