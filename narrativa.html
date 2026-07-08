@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Narrativa Arandu: histórias, bastidores, artistas, exposições e textos sobre arte brasileira contemporânea." />
+  <meta name="description" content="Narrativa Arandu: manifestos, estudos, resumos, análises e depoimentos sobre arte no Brasil e no mundo." />
   <title>Narrativa — Arandu</title>
   <link rel="stylesheet" href="css/arandu-system.css?v=20260608" />
   <link rel="stylesheet" href="css/arandu-product.css?v=20260608" />
@@ -11,19 +11,18 @@
   <link rel="stylesheet" href="css/arandu-architecture.css?v=20260610-public-shell-1" />
   <link rel="stylesheet" href="css/arandu-clean.css?v=20260610-public-shell-1" />
 </head>
-<body class="lovable-page architecture-clean">
+<body class="lovable-page architecture-clean narrative-ux-page">
   <header class="site-header">
     <div class="container header-inner">
       <a class="brand-logo" href="index.html">Arandu</a>
       <nav class="site-nav">
-        <a href="comprar-arte.html">Comprar arte</a>
-        <a href="acervo.html">Acervo</a>
-        <a href="empresas.html">Empresas</a>
+        <a href="comprar-arte.html">Comprar</a>
+        <a href="artistas.html">Artistas</a>
         <a href="confianca.html">Confiança</a>
+        <a href="pesquisa.html">Pesquisar</a>
         <a href="narrativa.html">Narrativa</a>
-        <a href="obras.html">Explorar</a>
+        <a href="login.html">Entrar</a>
       </nav>
-      <a class="cta" href="contato.html">Falar com a curadoria</a>
     </div>
   </header>
   <main>
@@ -31,24 +30,41 @@
       <div class="container rect-hero-grid">
         <div>
           <p class="eyebrow">Narrativa</p>
-          <h1 class="title">Histórias que aproximam obra, artista e rotina.</h1>
-          <p class="lead">Uma área para textos, bastidores, exposições e leituras sobre artistas, acervo e mundo da arte.</p>
-          <div class="page-actions"><a class="cta" href="narrativas.html">Ler textos</a><a class="cta secondary" href="acervo.html">Ver acervo</a></div>
+          <h1 class="title">Uma área editorial sobre arte, não sobre a plataforma.</h1>
+          <p class="lead">Manifestos, estudos, resumos, análises e depoimentos para pensar arte no Brasil e no mundo: mercado, território, imagem, memória, museus, coleções e artistas.</p>
+          <div class="page-actions"><a class="cta" href="#editorial">Ler editorias</a><a class="cta secondary" href="artistas.html">Ver artistas</a></div>
         </div>
         <div class="rect-frame"><div class="rect-block tall red"></div><div class="rect-block dark"></div><div class="rect-block green"></div></div>
       </div>
     </section>
-    <section class="clean-section">
+
+    <section class="clean-section" id="editorial">
       <div class="container">
-        <p class="eyebrow">Editorias</p>
-        <h2 class="section-title">O que a Arandu conta.</h2>
-        <div class="clean-grid">
-          <a class="macro-card" href="narrativas.html"><strong>Histórias</strong><span>Textos curatoriais e leituras do acervo.</span></a>
-          <a class="macro-card" href="manifesto.html"><strong>Manifesto</strong><span>O olhar da Arandu sobre arte brasileira contemporânea.</span></a>
-          <a class="macro-card" href="artistas.html"><strong>Artistas</strong><span>Trajetórias, séries e bastidores.</span></a>
-          <a class="macro-card" href="acervo.html"><strong>Obras</strong><span>Obra, rosto e contexto em diálogo.</span></a>
-          <a class="macro-card" href="empresas.html"><strong>Espaços</strong><span>Arte em ambientes de vida e trabalho.</span></a>
-          <a class="macro-card" href="contato.html"><strong>Rotina</strong><span>Conversas, propostas e acompanhamento curatorial.</span></a>
+        <div class="section-head compact-head">
+          <div><p class="eyebrow">Editorias</p><h2 class="section-title">Leituras para formar repertório.</h2></div>
+          <p class="lead">O objetivo é criar desejo, contexto e formação de olhar. A página pode receber textos longos, notas curtas, entrevistas e recortes de pesquisa.</p>
+        </div>
+        <div class="ux-narrative-grid">
+          <a class="ux-essay-card featured" href="manifesto.html">
+            <span>Manifesto</span>
+            <strong>Por que arte brasileira contemporânea precisa de contexto?</strong>
+            <p>Um texto de abertura sobre território, presença, mercado, imagem e circulação.</p>
+          </a>
+          <div class="clean-grid">
+            <a class="ux-essay-card" href="narrativas.html"><span>Estudos</span><strong>Mercado de arte no Brasil</strong><p>Resumos e análises sobre formação de preço, galeria, feira, coleção e certificação.</p></a>
+            <a class="ux-essay-card" href="narrativas.html"><span>Mundo</span><strong>O que observar em museus e feiras</strong><p>Notas sobre tendências, materialidade, fotografia, escultura e pintura contemporânea.</p></a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="clean-section section-muted">
+      <div class="container">
+        <div class="section-head compact-head"><div><p class="eyebrow">Vozes</p><h2 class="section-title">Depoimentos e perguntas de artistas.</h2></div></div>
+        <div class="ux-testimonials">
+          <article class="ux-testimonial"><blockquote>“O trabalho não começa quando a obra fica pronta. Ele começa no modo como a gente aprende a olhar.”</blockquote><cite>Depoimento de artista</cite></article>
+          <article class="ux-testimonial"><blockquote>“Uma coleção brasileira não precisa repetir clichês nacionais; ela pode mostrar conflito, cidade, corpo, território e silêncio.”</blockquote><cite>Nota curatorial</cite></article>
+          <article class="ux-testimonial"><blockquote>“O mercado só fica mais maduro quando o comprador entende a diferença entre imagem bonita, obra consistente e trajetória.”</blockquote><cite>Ensaio em preparação</cite></article>
         </div>
       </div>
     </section>
@@ -56,9 +72,9 @@
   <footer class="site-footer">
     <div class="container footer-grid">
       <div><h2>Arandu</h2><p>Arte brasileira contemporânea com curadoria, território e procedência.</p></div>
-      <div><p>Comprar</p><a href="comprar-arte.html">Comprar arte</a><a href="obras.html">Explorar obras</a><a href="minha-selecao.html">Minha seleção</a></div>
-      <div><p>Acervo</p><a href="acervo.html">Obras e artistas</a><a href="artistas.html">Artistas</a><a href="para-artistas.html">Para artistas</a></div>
-      <div><p>Confiança</p><a href="confianca.html">Critérios</a><a href="verificar-certificado.html">Verificar certificado</a><a href="contato.html">Contato</a></div>
+      <div><p>Explorar</p><a href="comprar-arte.html">Comprar</a><a href="artistas.html">Artistas</a><a href="pesquisa.html">Pesquisar</a></div>
+      <div><p>Contexto</p><a href="confianca.html">Confiança</a><a href="narrativa.html">Narrativa</a><a href="verificar-certificado.html">Verificar certificado</a></div>
+      <div><p>Conta</p><a href="login.html">Entrar</a><a href="cadastro.html">Criar conta</a><a href="contato.html">Contato</a></div>
     </div>
   </footer>
   <script src="js/site.js?v=20260610-public-shell-1"></script>
