@@ -8,6 +8,7 @@ const ASSET_VERSION = '20260608';
 const HARDENING_VERSION = '20260707-hardening-1';
 const POLISH_VERSION = '20260707-polish-1';
 const UX_VERSION = '20260708-ux-1';
+const UX_TUNE_VERSION = '20260708-ux-tune-1';
 
 function collectHtmlFiles(dir = root) {
   const entries = readdirSync(dir);
@@ -46,6 +47,8 @@ function cacheBustKnownAssets(html) {
     .replace(/href="\/css\/arandu-final-polish\.css(\?v=[^"]*)?"/g, `href="/css/arandu-final-polish.css?v=${POLISH_VERSION}"`)
     .replace(/href="css\/arandu-ux-refresh\.css(\?v=[^"]*)?"/g, `href="css/arandu-ux-refresh.css?v=${UX_VERSION}"`)
     .replace(/href="\/css\/arandu-ux-refresh\.css(\?v=[^"]*)?"/g, `href="/css/arandu-ux-refresh.css?v=${UX_VERSION}"`)
+    .replace(/href="css\/arandu-ux-final-tune\.css(\?v=[^"]*)?"/g, `href="css/arandu-ux-final-tune.css?v=${UX_TUNE_VERSION}"`)
+    .replace(/href="\/css\/arandu-ux-final-tune\.css(\?v=[^"]*)?"/g, `href="/css/arandu-ux-final-tune.css?v=${UX_TUNE_VERSION}"`)
     .replace(/src="js\/site\.js(\?v=[^"]*)?"/g, `src="js/site.js?v=${ASSET_VERSION}"`)
     .replace(/src="\/js\/site\.js(\?v=[^"]*)?"/g, `src="/js/site.js?v=${ASSET_VERSION}"`);
 }
@@ -66,6 +69,7 @@ function injectGlobalAssets() {
   const hardeningCssTag = `<link rel="stylesheet" href="/css/arandu-interface-hardening.css?v=${HARDENING_VERSION}">`;
   const polishCssTag = `<link rel="stylesheet" href="/css/arandu-final-polish.css?v=${POLISH_VERSION}">`;
   const uxCssTag = `<link rel="stylesheet" href="/css/arandu-ux-refresh.css?v=${UX_VERSION}">`;
+  const uxTuneCssTag = `<link rel="stylesheet" href="/css/arandu-ux-final-tune.css?v=${UX_TUNE_VERSION}">`;
   const auditJsTag = `<script src="/js/arandu-interface-audit.js?v=${HARDENING_VERSION}" defer></script>`;
 
   return {
@@ -84,6 +88,9 @@ function injectGlobalAssets() {
       }
       if (!output.includes('/css/arandu-ux-refresh.css')) {
         output = output.includes('</head>') ? output.replace('</head>', `${uxCssTag}</head>`) : `${uxCssTag}${output}`;
+      }
+      if (!output.includes('/css/arandu-ux-final-tune.css')) {
+        output = output.includes('</head>') ? output.replace('</head>', `${uxTuneCssTag}</head>`) : `${uxTuneCssTag}${output}`;
       }
       if (!output.includes('/js/arandu-interface-audit.js')) {
         output = output.includes('</body>') ? output.replace('</body>', `${auditJsTag}</body>`) : `${output}${auditJsTag}`;
