@@ -19,9 +19,16 @@
   const appendIntro = (payload) => {
     const box = el('div', 'certificate-preview');
     box.appendChild(el('p', 'eyebrow', 'Status da API'));
-    box.appendChild(el('h2', '', payload.productionReady ? 'Produção tecnicamente pronta' : 'Pré-produção'));
+    box.appendChild(el('h2', '', payload.verifiedReady ? 'Produção conectada e verificada' : payload.productionReady ? 'Produção configurada, validar banco' : 'Pré-produção'));
     const commit = payload.commit ? ` · Commit: ${String(payload.commit).slice(0, 7)}` : '';
-    box.appendChild(el('p', '', `Ambiente: ${payload.environment || 'local'}${commit}`));
+    box.appendChild(el('p', '', `Ambiente: ${payload.environment || 'local'} · Modo: ${payload.mode || 'indefinido'}${commit}`));
+
+    if (Array.isArray(payload.missing) && payload.missing.length) {
+      const missing = el('div', 'readiness-list');
+      payload.missing.forEach((item) => missing.appendChild(el('p', '', `Pendente: ${item}`)));
+      box.appendChild(missing);
+    }
+
     if (payload.launchReadiness?.nextCriticalActions?.length) {
       const list = el('div', 'readiness-list');
       payload.launchReadiness.nextCriticalActions.forEach((action) => list.appendChild(el('p', '', action)));
@@ -32,11 +39,11 @@
 
   const appendCards = (rows) => {
     const board = el('div', 'operational-board');
-    rows.forEach(([name, value]) => {
+    rows.forEach(([name, value, detail]) => {
       const card = el('article', `mini-kpi ${className(value)}`);
       card.appendChild(el('strong', '', value ? 'OK' : '!'));
       card.appendChild(el('h3', '', name));
-      card.appendChild(el('p', '', label(value)));
+      card.appendChild(el('p', '', detail || label(value)));
       board.appendChild(card);
     });
     root.appendChild(board);
@@ -47,11 +54,12 @@
     const wrap = el('div', 'collector-guidance');
     const head = el('div');
     head.appendChild(el('p', 'eyebrow', 'Leitura de lançamento'));
-    head.appendChild(el('h2', 'section-title', payload.productionReady ? 'Falta validar catálogo, marca e operação comercial.' : 'Ainda há pendências técnicas antes da divulgação pública.'));
+    head.appendChild(el('h2', 'section-title', payload.verifiedReady ? 'Parte técnica conectada. Próximo foco: catálogo, marca e operação.' : payload.productionReady ? 'Variáveis existem. Falta confirmar Supabase real.' : 'Ainda há pendências técnicas antes da divulgação pública.'));
     wrap.appendChild(head);
     const grid = el('div', 'launch-matrix');
     [
       ['Técnico', readiness.technical, 'Supabase, chaves e token administrativo.'],
+      ['Banco', readiness.database, 'Tabelas e views respondendo via probe.'],
       ['Contato', readiness.contact, 'WhatsApp ou e-mail real para atendimento.'],
       ['Domínio', readiness.domain, 'URL oficial configurada no ambiente.'],
       ['API', payload.ok, 'Roteador e health check respondendo.']
@@ -65,6 +73,39 @@
     root.appendChild(wrap);
   };
 
+  const appendProbes = (payload) => {
+    const probe = payload.probes?.supabase;
+    const wrap = el('div', 'collector-guidance');
+    const head = el('div');
+    head.appendChild(el('p', 'eyebrow', 'Supabase real'));
+    head.appendChild(el('h2', 'section-title', probe?.ok ? 'Banco respondeu às consultas principais.' : 'Banco ainda precisa de conferência.'));
+    wrap.appendChild(head);
+
+    if (probe?.skipped) {
+      wrap.appendChild(el('p', '', probe.reason || 'Probe não executado.'));
+      root.appendChild(wrap);
+      return;
+    }
+
+    if (!probe?.configured) {
+      wrap.appendChild(el('p', '', probe?.reason || 'Supabase não configurado.'));
+      root.appendChild(wrap);
+      return;
+    }
+
+    const grid = el('div', 'operational-board');
+    (probe.resources || []).forEach((item) => {
+      const card = el('article', `mini-kpi ${className(item.ok)}`);
+      card.appendChild(el('strong', '', item.ok ? 'OK' : '!'));
+      card.appendChild(el('h3', '', item.label));
+      const detail = item.ok ? `HTTP ${item.status} · ${item.ms}ms` : `HTTP ${item.status} · ${item.error || 'Falha'}`;
+      card.appendChild(el('p', '', detail));
+      grid.appendChild(card);
+    });
+    wrap.appendChild(grid);
+    root.appendChild(wrap);
+  };
+
   const appendRoutes = (routes) => {
     const wrap = el('div', 'collector-guidance');
     const head = el('div');
@@ -72,7 +113,7 @@
     head.appendChild(el('h2', 'section-title', 'A API pública mantém estes caminhos.'));
     wrap.appendChild(head);
     const list = el('ol', 'process-steps');
-    (routes || []).slice(0, 16).forEach((route) => list.appendChild(el('li', '', route)));
+    (routes || []).slice(0, 18).forEach((route) => list.appendChild(el('li', '', route)));
     wrap.appendChild(list);
     root.appendChild(wrap);
   };
@@ -96,6 +137,7 @@
     appendIntro(payload);
     appendCards(rows);
     appendLaunch(payload);
+    appendProbes(payload);
     appendRoutes(payload.routes || []);
   };
 
@@ -103,12 +145,12 @@
     clear();
     const box = el('div', 'certificate-preview');
     box.appendChild(el('p', 'eyebrow', 'Status da API'));
-    box.appendChild(el('h2', '', 'Não foi possível consultar /api/health'));
+    box.appendChild(el('h2', '', 'Não foi possível consultar /api/health?probe=1'));
     box.appendChild(el('p', '', error.message || 'Erro inesperado.'));
     root.appendChild(box);
   };
 
-  fetch('/api/health')
+  fetch('/api/health?probe=1')
     .then((response) => response.json())
     .then(render)
     .catch(renderError);
