@@ -35,6 +35,22 @@ npm run check:all
 npm run build
 ```
 
+## Como validar produção publicada
+
+Depois de cada deploy, rode uma checagem live contra a URL publicada:
+
+```bash
+npm run check:live:prod
+```
+
+Para validar outro domínio ou preview específico:
+
+```bash
+npm run check:live -- https://seu-dominio-ou-preview.vercel.app
+```
+
+A página `status.html` consulta `/api/health?probe=1`. Esse modo testa não apenas se as variáveis existem, mas também se as tabelas e views centrais do Supabase respondem.
+
 ## Arquitetura de API
 
 A arquitetura atual usa uma função principal consolidada:
@@ -95,6 +111,7 @@ Depois do deploy, testar:
 ```text
 /status.html
 /api/health
+/api/health?probe=1
 /api/catalog
 /api/artists
 /api/auth/session
@@ -149,6 +166,7 @@ docs/OBJECOES_E_RESPOSTAS.md
 docs/METRICAS_FUNIL_ARANDU.md
 docs/PRIMEIROS_30_DIAS.md
 docs/SEO_DOMINIO_CHECKLIST.md
+docs/ACAO_OBRIGATORIA_LUCAS.md
 ```
 
 ## Páginas públicas prioritárias
@@ -178,6 +196,7 @@ Antes de abrir redes sociais e prospecção ativa, confirmar:
 
 - domínio funcionando;
 - `/status.html` sem pendências técnicas críticas;
+- `/api/health?probe=1` com Supabase respondendo;
 - Supabase configurado;
 - token administrativo configurado;
 - WhatsApp ou e-mail real funcionando;
