@@ -5,6 +5,7 @@
   if(INTERNAL.test(page())) return;
 
   const publicNav=[
+    ['Home','index.html'],
     ['Comprar','comprar-arte.html'],
     ['Artistas','artistas.html'],
     ['Confiança','confianca.html'],
