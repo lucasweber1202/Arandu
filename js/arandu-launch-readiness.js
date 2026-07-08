@@ -5,9 +5,6 @@
   if (INTERNAL_PAGE_PATTERNS.test(page) || document.body.dataset.launchReadiness === 'true') return;
   document.body.dataset.launchReadiness = 'true';
 
-  const publicPages = new Set(['index.html','comprar-arte.html','acervo.html','obras.html','obra.html','artistas.html','artista.html','empresas.html','confianca.html','para-artistas.html','minha-selecao.html']);
-  const escapeHtml = (value) => String(value || '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
-
   function track(name, detail = {}) {
     try {
       const list = JSON.parse(localStorage.getItem('arandu-launch-events') || '[]').slice(-90);
@@ -16,41 +13,18 @@
     } catch (_) {}
   }
 
-  function createTrustBand() {
-    if (!publicPages.has(page) || document.querySelector('.launch-trust-band')) return;
-    const footer = document.querySelector('.site-footer');
-    if (!footer) return;
-    const section = document.createElement('section');
-    section.className = 'launch-trust-band clean-section';
-    section.innerHTML = `
-      <div class="container launch-trust-inner">
-        <div>
-          <p class="eyebrow">Compra acompanhada</p>
-          <h2>Reserva com curadoria antes de pagamento.</h2>
-          <p>A Arandu confirma disponibilidade, ficha técnica, documentação, prazo de envio e condição da obra antes de qualquer finalização comercial.</p>
-        </div>
-        <div class="launch-trust-steps" aria-label="Etapas de confiança Arandu">
-          <article><strong>01</strong><span>Você salva ou solicita reserva.</span></article>
-          <article><strong>02</strong><span>A curadoria valida obra, artista e documentação.</span></article>
-          <article><strong>03</strong><span>Pagamento, envio e certificado seguem combinados.</span></article>
-        </div>
-      </div>`;
-    footer.parentNode.insertBefore(section, footer);
-  }
-
   function enhanceArtworkPage() {
     if (page !== 'obra.html') return;
     const buybox = document.querySelector('.artwork-buybox,.premium-buybox,.artwork-shell');
     if (!buybox || buybox.querySelector('.launch-buy-checklist')) return;
     const block = document.createElement('aside');
-    block.className = 'launch-buy-checklist';
+    block.className = 'launch-buy-checklist contextual-help-only';
     block.innerHTML = `
-      <strong>Antes da compra, a curadoria confirma</strong>
+      <strong>Precisa de ajuda antes de comprar?</strong>
       <ul>
-        <li>disponibilidade real e prazo de reserva;</li>
-        <li>estado da obra, ficha técnica e imagens;</li>
-        <li>certificado, autoria e procedência;</li>
-        <li>frete, embalagem, seguro e cidade de destino.</li>
+        <li>confirmamos disponibilidade e prazo de reserva;</li>
+        <li>checamos ficha técnica, estado da obra e imagens;</li>
+        <li>orientamos certificado, frete, embalagem e cidade de destino.</li>
       </ul>
       <a href="compra-reserva-reembolso.html">Ver política de reserva</a>`;
     buybox.appendChild(block);
@@ -93,8 +67,12 @@
     });
   }
 
+  function removeOldGlobalTrustBands() {
+    document.querySelectorAll('.launch-trust-band').forEach((section) => section.remove());
+  }
+
   function init() {
-    createTrustBand();
+    removeOldGlobalTrustBands();
     enhanceArtworkPage();
     enhanceArtistsPage();
     improveReserveButtons();
