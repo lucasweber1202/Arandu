@@ -14,6 +14,7 @@ const required = [
   'painel-admin.html',
   'upload-imagens.html',
   'dominio-go-live.html',
+  'benchmark-conversao.html',
   'status.html',
   'api/health.js',
   'api/[...path].js',
@@ -21,8 +22,12 @@ const required = [
   'sitemap.xml',
   'manifest.webmanifest',
   'css/arandu-ui-rescue.css',
+  'css/arandu-deep-clean.css',
   'js/site.js',
-  'js/arandu-assistant.js'
+  'js/arandu-assistant.js',
+  'js/catalog-page.js',
+  'js/conversion-benchmark.js',
+  'data/conversion-benchmark.json'
 ];
 
 const publicPages = ['index.html','comprar-arte.html','artistas.html','confianca.html','pesquisa.html','narrativa.html','login.html'];
@@ -55,10 +60,17 @@ if(exists('js/site.js')){
   ['Home','Comprar','Artistas','Confiança','Pesquisar','Narrativa','Entrar'].forEach((label)=>check(site.includes(label),`Menu público sem ${label}.`));
   check(site.includes('arandu-assistant.js'),'site.js não injeta Assistente Arandu.');
   check(site.includes('ensureHeaderNav'),'site.js não reconstrói navegação.');
+  check(site.includes('arandu-deep-clean.css'),'site.js não injeta limpeza profunda no dev.');
+}
+if(exists('js/catalog-page.js')){
+  const catalog=read('js/catalog-page.js');
+  check(catalog.includes('Reservar com curadoria'),'Catálogo sem CTA de reserva.');
+  check(catalog.includes('data-save-artwork'),'Catálogo sem salvar obra.');
 }
 if(exists('vite.config.js')){
   const vite=read('vite.config.js');
   check(vite.includes('arandu-ui-rescue.css'),'Vite não injeta arandu-ui-rescue.css.');
+  check(vite.includes('arandu-deep-clean.css'),'Vite não injeta arandu-deep-clean.css.');
   check(vite.includes('manifest.webmanifest'),'Vite não injeta manifest.webmanifest.');
 }
 
@@ -68,6 +80,6 @@ issues.forEach((item)=>console.error(`- ${item}`));
 console.log(`Alertas: ${warnings.length}`);
 warnings.forEach((item)=>console.warn(`- ${item}`));
 console.log('\nURLs para validar no Codespace:');
-publicPages.concat(['colecoes.html','como-funciona.html','faq.html','dominio-go-live.html','status.html','painel-admin.html']).forEach((page)=>console.log(`- /${page}`));
+publicPages.concat(['colecoes.html','como-funciona.html','faq.html','benchmark-conversao.html','dominio-go-live.html','status.html','painel-admin.html']).forEach((page)=>console.log(`- /${page}`));
 console.log('\nDepois do domínio, rode dominio-go-live.html e atualize ARANDU_SITE_URL na Vercel.');
 if(issues.length)process.exit(1);
