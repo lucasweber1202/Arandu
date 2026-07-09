@@ -1,0 +1,58 @@
+[
+  {
+    "id": "manifesto-contexto-arte-brasileira",
+    "type": "Manifesto",
+    "title": "Por que arte brasileira contemporânea precisa de contexto?",
+    "summary": "Um texto de abertura sobre território, presença, mercado, imagem e circulação.",
+    "author": "Curadoria Arandu",
+    "readTime": "6 min",
+    "featured": true,
+    "body": [
+      "Comprar uma obra não deveria começar apenas pelo preço ou pela dimensão. Uma obra carrega material, trajetória, deslocamento, memória e escolha. Quando o contexto desaparece, a arte vira imagem solta; quando o contexto aparece, a obra volta a ter mundo.",
+      "A arte brasileira contemporânea é atravessada por cidade, floresta, sertão, litoral, religiosidade, trabalho, raça, corpo, técnica e disputa de linguagem. O olhar que compra também precisa aprender a ler essas camadas sem reduzir o artista a um rótulo.",
+      "Contexto não é excesso de explicação. É o mínimo para que a relação entre obra, artista e comprador não seja empobrecida. É também o que diferencia uma peça decorativa de uma aquisição com presença, história e continuidade."
+    ]
+  },
+  {
+    "id": "mercado-arte-brasil-formacao-preco",
+    "type": "Estudo",
+    "title": "Mercado de arte no Brasil: preço, trajetória e confiança",
+    "summary": "Notas sobre formação de preço, galeria, feira, coleção e certificação.",
+    "author": "Arandu Pesquisa",
+    "readTime": "8 min",
+    "featured": false,
+    "body": [
+      "O preço de uma obra não nasce apenas do tamanho ou da técnica. Ele passa por trajetória, consistência, raridade, circulação, documentação, estado de conservação e demanda.",
+      "Para compradores novos, a principal dificuldade é diferenciar gosto, oportunidade e segurança. O papel de uma curadoria é tornar essa decisão menos opaca, sem retirar a dimensão afetiva da escolha.",
+      "Um mercado mais maduro depende de fichas técnicas claras, registros, certificados verificáveis, transparência sobre edição e uma conversa honesta sobre disponibilidade e envio."
+    ]
+  },
+  {
+    "id": "museus-feiras-observar-arte",
+    "type": "Mundo",
+    "title": "O que observar em museus, feiras e galerias",
+    "summary": "Um guia breve sobre materialidade, repetição, série, escala e presença.",
+    "author": "Notas de olhar",
+    "readTime": "5 min",
+    "featured": false,
+    "body": [
+      "Ao entrar em uma feira ou museu, tente observar menos a legenda e mais a recorrência: que materiais aparecem, que corpos aparecem, que paisagens retornam, que tipo de escala domina o espaço.",
+      "A obra ganha força quando existe relação entre forma e intenção. Uma fotografia pode ser silenciosa e política; uma pintura pode ser abstrata e territorial; uma escultura pode organizar a circulação de um ambiente.",
+      "Olhar arte é também construir vocabulário. Quanto mais repertório, menos a decisão de compra depende apenas da primeira impressão."
+    ]
+  },
+  {
+    "id": "depoimento-artista-olhar",
+    "type": "Depoimento",
+    "title": "O trabalho começa no modo como a gente aprende a olhar",
+    "summary": "Um depoimento-modelo para abrir conversas com artistas sobre processo, imagem e trajetória.",
+    "author": "Depoimento de artista",
+    "readTime": "4 min",
+    "featured": false,
+    "body": [
+      "O trabalho não começa quando a obra fica pronta. Ele começa no modo como a gente aprende a olhar, no que insistimos em guardar e no que escolhemos transformar em imagem, cor, volume ou silêncio.",
+      "Quando uma obra chega a alguém, ela já passou por muitas decisões invisíveis. Parte do papel de uma plataforma de arte é não apagar esse caminho.",
+      "O comprador não precisa saber tudo, mas precisa sentir que existe uma trajetória ali. Isso muda a relação com a obra."
+    ]
+  }
+]
