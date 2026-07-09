@@ -71,6 +71,7 @@ function injectNativeSearch(html) {
 
 function injectGlobalAssets() {
   const speedInsightsTag = '<script type="module" src="/src/vercel-speed-insights.js"></script>';
+  const manifestTag = '<link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#180804"><meta name="apple-mobile-web-app-title" content="Arandu"><link rel="icon" href="/assets/icon-192.svg" type="image/svg+xml">';
   const productCssTag = `<link rel="stylesheet" href="/css/arandu-product.css?v=${ASSET_VERSION}">`;
   const hardeningCssTag = `<link rel="stylesheet" href="/css/arandu-interface-hardening.css?v=${HARDENING_VERSION}">`;
   const polishCssTag = `<link rel="stylesheet" href="/css/arandu-final-polish.css?v=${POLISH_VERSION}">`;
@@ -88,6 +89,7 @@ function injectGlobalAssets() {
     transformIndexHtml(html) {
       let output = cacheBustKnownAssets(html);
       output = injectNativeSearch(output);
+      if (!output.includes('/manifest.webmanifest')) output = output.includes('</head>') ? output.replace('</head>', `${manifestTag}</head>`) : `${manifestTag}${output}`;
       if (!output.includes('/css/arandu-product.css')) output = output.includes('</head>') ? output.replace('</head>', `${productCssTag}</head>`) : `${productCssTag}${output}`;
       if (!output.includes('/css/arandu-interface-hardening.css')) output = output.includes('</head>') ? output.replace('</head>', `${hardeningCssTag}</head>`) : `${hardeningCssTag}${output}`;
       if (!output.includes('/css/arandu-final-polish.css')) output = output.includes('</head>') ? output.replace('</head>', `${polishCssTag}</head>`) : `${polishCssTag}${output}`;
