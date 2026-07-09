@@ -14,82 +14,14 @@
   <link rel="canonical" href="https://arandu-bice.vercel.app/comprar-arte.html" />
 </head>
 <body class="lovable-page architecture-clean catalog-ux-page">
-  <header class="site-header">
-    <div class="container header-inner">
-      <a class="brand-logo" href="index.html">Arandu</a>
-      <nav class="site-nav"><a href="index.html">Home</a><a href="comprar-arte.html">Comprar</a><a href="artistas.html">Artistas</a><a href="confianca.html">Confiança</a><a href="pesquisa.html">Pesquisar</a><a href="narrativa.html">Narrativa</a><a href="login.html">Entrar</a></nav>
-    </div>
-  </header>
-
+  <header class="site-header"><div class="container header-inner"><a class="brand-logo" href="index.html">Arandu</a><nav class="site-nav"><a href="index.html">Home</a><a href="comprar-arte.html">Comprar</a><a href="artistas.html">Artistas</a><a href="confianca.html">Confiança</a><a href="pesquisa.html">Pesquisar</a><a href="narrativa.html">Narrativa</a><a href="login.html">Entrar</a></nav></div></header>
   <main>
-    <section class="rect-hero purchase-hero">
-      <div class="container rect-hero-grid">
-        <div>
-          <p class="eyebrow">Comprar</p>
-          <h1 class="title">Acervo em formato de galeria.</h1>
-          <p class="lead">Todas as obras disponíveis em uma experiência única, com coleções curatoriais, filtro por técnica, eixo, edição e preço.</p>
-          <div class="page-actions"><a class="cta" href="#obras">Ver obras</a><a class="cta secondary" href="pesquisa.html">Pesquisar</a></div>
-        </div>
-        <div class="rect-frame" aria-hidden="true"><div class="rect-block tall red"></div><div class="rect-block green"></div><div class="rect-block dark"></div></div>
-      </div>
-    </section>
-
-    <section class="clean-section" id="obras">
-      <div class="container">
-        <div class="section-head compact-head">
-          <div><p class="eyebrow">Coleções curatoriais</p><h2 class="section-title">Comece por uma intenção.</h2></div>
-          <p class="lead">Use uma coleção como atalho. Ela ativa filtros e termos de busca para reduzir ruído.</p>
-        </div>
-        <div class="op-collections" data-ux-collections>
-          <button class="op-collection-card" type="button" data-collection="primeira"><strong>Primeira coleção</strong><span>Obras de entrada, preço mais acessível e leitura direta.</span><em>Filtrar</em></button>
-          <button class="op-collection-card" type="button" data-collection="casa"><strong>Casa e apartamento</strong><span>Pinturas, fotografias e peças para convivência.</span><em>Filtrar</em></button>
-          <button class="op-collection-card" type="button" data-collection="empresa"><strong>Empresas e espaços</strong><span>Obras para recepção, escritório, hotelaria e clínicas.</span><em>Filtrar</em></button>
-          <button class="op-collection-card" type="button" data-collection="brasil"><strong>Brasil em obra</strong><span>Território, cidade, rio, sertão, corpo e memória.</span><em>Filtrar</em></button>
-        </div>
-
-        <div class="section-head compact-head">
-          <div><p class="eyebrow">Obras</p><h2 class="section-title">Comprar por olhar, técnica e contexto.</h2></div>
-          <p class="lead">Use os filtros para reduzir ruído. As tags de cada obra resumem técnica, eixo cultural e edição/tiragem.</p>
-        </div>
-
-        <div class="op-filter-panel" data-catalog-controls>
-          <div class="op-filter-row">
-            <input data-ux-catalog-search type="search" placeholder="Buscar por obra, artista, técnica, ambiente ou eixo" aria-label="Pesquisar obras" />
-            <select data-ux-catalog-type aria-label="Filtrar por técnica"><option value="todos">Todas técnicas</option><option value="Pintura">Pintura</option><option value="Fotografia">Fotografia</option><option value="Escultura">Escultura</option></select>
-            <select data-ux-catalog-axis aria-label="Filtrar por eixo"><option value="todos">Todos eixos</option><option value="Metrópole">Metrópole</option><option value="Sertão">Sertão</option><option value="Afro-brasileiro">Afro-brasileiro</option><option value="Originário">Originário</option><option value="Rio e natureza">Rio e natureza</option></select>
-            <select data-ux-catalog-edition aria-label="Filtrar por edição"><option value="todos">Todas edições</option><option value="Obra única">Obra única</option><option value="Edição limitada">Edição limitada</option><option value="Edição especial">Edição especial</option></select>
-            <select data-ux-catalog-sort aria-label="Ordenar obras"><option value="curadoria">Ordem da curadoria</option><option value="recentes">Mais recentes</option><option value="preco-menor">Menor preço</option><option value="preco-maior">Maior preço</option><option value="artista">Artista A-Z</option></select>
-          </div>
-          <div class="op-chip-row" data-ux-catalog-price>
-            <button type="button" data-price="todos" class="is-active">Todos preços</button>
-            <button type="button" data-price="ate3000">Até R$ 3 mil</button>
-            <button type="button" data-price="3000a7000">R$ 3 mil a R$ 7 mil</button>
-            <button type="button" data-price="acima7000">Acima de R$ 7 mil</button>
-            <button type="button" data-clear>Limpar filtros</button>
-          </div>
-          <div class="op-result-line"><span data-ux-catalog-count>Carregando obras...</span><button type="button" data-ux-catalog-view>Alternar densidade</button></div>
-        </div>
-
-        <div class="ux-work-grid" data-ux-catalog>
-          <div class="final-empty"><strong>Carregando obras</strong><span>Buscando acervo disponível...</span></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="clean-section section-muted">
-      <div class="container">
-        <div class="home-trust-band">
-          <a class="macro-card" href="confianca.html"><strong>Compra com confiança</strong><span>Entenda certificado, reserva, envio e política comercial.</span></a>
-          <a class="macro-card" href="artistas.html"><strong>Conhecer artistas</strong><span>Veja origem, trajetória e obras disponíveis de cada artista.</span></a>
-          <a class="macro-card" href="minha-selecao.html"><strong>Minha seleção</strong><span>Salve obras antes de decidir ou conversar com a curadoria.</span></a>
-        </div>
-      </div>
-    </section>
+    <section class="rect-hero purchase-hero"><div class="container rect-hero-grid"><div><div class="breadcrumb public"><a href="index.html">Home</a><span>›</span><span>Comprar</span></div><p class="eyebrow">Comprar</p><h1 class="title">Acervo em formato de galeria.</h1><p class="lead">Todas as obras disponíveis em uma experiência única, com coleções curatoriais, filtro por técnica, ambiente, dimensão, eixo, edição e preço.</p><div class="page-actions"><a class="cta" href="#obras">Ver obras</a><a class="cta secondary" href="pesquisa.html">Pesquisar</a></div></div><div class="rect-frame" aria-hidden="true"><div class="rect-block tall red"></div><div class="rect-block green"></div><div class="rect-block dark"></div></div></div></section>
+    <section class="clean-section" id="obras"><div class="container"><div class="section-head compact-head"><div><p class="eyebrow">Coleções curatoriais</p><h2 class="section-title">Comece por uma intenção.</h2></div><p class="lead">Use uma coleção como atalho. Ela ativa filtros e termos de busca para reduzir ruído.</p></div><div class="op-collections" data-ux-collections><button class="op-collection-card" type="button" data-collection="primeira"><strong>Primeira coleção</strong><span>Obras de entrada, preço mais acessível e leitura direta.</span><em>Filtrar</em></button><button class="op-collection-card" type="button" data-collection="casa"><strong>Casa e apartamento</strong><span>Pinturas, fotografias e peças para convivência.</span><em>Filtrar</em></button><button class="op-collection-card" type="button" data-collection="empresa"><strong>Empresas e espaços</strong><span>Obras para recepção, escritório, hotelaria e clínicas.</span><em>Filtrar</em></button><button class="op-collection-card" type="button" data-collection="brasil"><strong>Brasil em obra</strong><span>Território, cidade, rio, sertão, corpo e memória.</span><em>Filtrar</em></button></div>
+      <div class="section-head compact-head"><div><p class="eyebrow">Obras</p><h2 class="section-title">Comprar por olhar, técnica e contexto.</h2></div><p class="lead">Use filtros objetivos ou o modo galeria. As tags resumem técnica, eixo cultural, edição e completude do cadastro.</p></div>
+      <button class="filter-drawer-button cta secondary" type="button" data-toggle-filters>Mostrar/ocultar filtros</button>
+      <div class="op-filter-panel" data-catalog-controls><div class="op-filter-row"><input data-ux-catalog-search type="search" placeholder="Buscar por obra, artista, técnica, ambiente ou eixo" aria-label="Pesquisar obras" /><select data-ux-catalog-type aria-label="Filtrar por técnica"><option value="todos">Todas técnicas</option><option value="Pintura">Pintura</option><option value="Fotografia">Fotografia</option><option value="Escultura">Escultura</option></select><select data-ux-catalog-axis aria-label="Filtrar por eixo"><option value="todos">Todos eixos</option><option value="Metrópole">Metrópole</option><option value="Sertão">Sertão</option><option value="Afro-brasileiro">Afro-brasileiro</option><option value="Originário">Originário</option><option value="Rio e natureza">Rio e natureza</option></select><select data-ux-catalog-edition aria-label="Filtrar por edição"><option value="todos">Todas edições</option><option value="Obra única">Obra única</option><option value="Edição limitada">Edição limitada</option><option value="Edição especial">Edição especial</option></select><select data-ux-catalog-dimension aria-label="Filtrar por dimensão"><option value="todos">Todas dimensões</option><option value="pequena">Pequena</option><option value="media">Média</option><option value="grande">Grande</option><option value="monumental">Monumental</option></select><select data-ux-catalog-space aria-label="Filtrar por ambiente"><option value="todos">Todos ambientes</option><option value="sala">Sala</option><option value="escritorio">Escritório</option><option value="recepcao">Recepção</option><option value="clinica">Clínica</option><option value="hotel">Hotel</option></select><select data-ux-catalog-sort aria-label="Ordenar obras"><option value="curadoria">Ordem da curadoria</option><option value="recentes">Mais recentes</option><option value="preco-menor">Menor preço</option><option value="preco-maior">Maior preço</option><option value="artista">Artista A-Z</option></select></div><div class="op-chip-row" data-ux-catalog-price><button type="button" data-price="todos" class="is-active">Todos preços</button><button type="button" data-price="ate3000">Até R$ 3 mil</button><button type="button" data-price="3000a7000">R$ 3 mil a R$ 7 mil</button><button type="button" data-price="7000a15000">R$ 7 mil a R$ 15 mil</button><button type="button" data-price="acima15000">Acima de R$ 15 mil</button><button type="button" data-clear>Limpar filtros</button></div><div class="op-result-line"><span data-ux-catalog-count>Carregando obras...</span><div class="admin-actions"><button type="button" data-ux-catalog-view>Alternar densidade</button><button type="button" data-ux-gallery-mode>Modo galeria</button></div></div></div>
+      <div class="ux-work-grid" data-ux-catalog><div class="final-empty"><strong>Carregando obras</strong><span>Buscando acervo disponível...</span></div></div></div></section>
+    <section class="clean-section section-muted"><div class="container"><div class="home-trust-band"><a class="macro-card" href="confianca.html"><strong>Compra com confiança</strong><span>Entenda certificado, reserva, envio e política comercial.</span></a><a class="macro-card" href="colecoes.html"><strong>Coleções</strong><span>Comece por uma intenção curatorial.</span></a><a class="macro-card" href="proposta-pdf.html"><strong>Gerar proposta</strong><span>Transforme sua seleção em PDF.</span></a></div></div></section>
   </main>
-
-  <footer class="site-footer"><div class="container footer-grid"><div><h2>Arandu</h2><p>Arte brasileira contemporânea com curadoria, território e procedência.</p></div><div><p>Explorar</p><a href="comprar-arte.html">Comprar</a><a href="artistas.html">Artistas</a><a href="pesquisa.html">Pesquisar</a></div><div><p>Contexto</p><a href="confianca.html">Confiança</a><a href="narrativa.html">Narrativa</a><a href="verificar-certificado.html">Verificar certificado</a></div><div><p>Conta</p><a href="login.html">Entrar</a><a href="cadastro.html">Criar conta</a><a href="contato.html">Contato</a></div></div></footer>
-  <script src="js/site.js?v=20260610-public-shell-1"></script>
-  <script src="js/arandu-loader.js?v=20260610-public-shell-1"></script>
-  <script src="js/catalog-page.js?v=20260709-next-ops-1"></script>
-</body>
-</html>
+  <footer class="site-footer"><div class="container footer-grid"><div><h2>Arandu</h2><p>Arte brasileira contemporânea com curadoria, território e procedência.</p></div><div><p>Explorar</p><a href="comprar-arte.html">Comprar</a><a href="artistas.html">Artistas</a><a href="pesquisa.html">Pesquisar</a></div><div><p>Contexto</p><a href="confianca.html">Confiança</a><a href="narrativa.html">Narrativa</a><a href="verificar-certificado.html">Verificar certificado</a></div><div><p>Conta</p><a href="login.html">Entrar</a><a href="cadastro.html">Criar conta</a><a href="contato.html">Contato</a></div></div></footer><script src="js/site.js?v=20260610-public-shell-1"></script><script src="js/arandu-loader.js?v=20260610-public-shell-1"></script><script src="js/catalog-page.js?v=20260709-advanced-1"></script></body></html>
