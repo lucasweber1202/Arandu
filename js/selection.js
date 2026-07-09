@@ -7,8 +7,9 @@ function escapeSelectionHtml(value) {
 
 function normalizeSelectionUrl(value) {
   const url = String(value || '').trim();
-  if (!url) return 'obras.html';
-  if (/^(https?:)?\/\//i.test(url)) return 'obras.html';
+  if (!url) return 'comprar-arte.html';
+  if (/^(https?:)?\/\//i.test(url)) return 'comprar-arte.html';
+  if (url === 'obras.html' || url === 'acervo.html') return 'comprar-arte.html';
   return url.replace(/^\/+/, '');
 }
 
@@ -86,7 +87,7 @@ function renderSelection() {
   const target = document.querySelector('[data-selection-list]');
   if (!target) return;
   const items = readSelection();
-  if (!items.length) { target.innerHTML = '<p>Sua seleção ainda está vazia. Salve obras no acervo para pedir orientação à curadoria.</p>'; return; }
+  if (!items.length) { target.innerHTML = '<p>Sua seleção ainda está vazia. Salve obras em Comprar para pedir orientação à curadoria.</p><div class="page-actions"><a class="cta" href="comprar-arte.html">Comprar obras</a><a class="cta secondary" href="proposta-pdf.html">Gerar proposta</a></div>'; return; }
   target.innerHTML = items.map((item) => {
     const id = escapeSelectionHtml(item.id);
     const url = escapeSelectionHtml(normalizeSelectionUrl(item.url));
@@ -101,6 +102,7 @@ function renderSelection() {
         </label>
         <div class="tags">
           <a class="tag" href="${url}">Ver obra</a>
+          <a class="tag" href="proposta-pdf.html">Gerar proposta</a>
           <button class="tag" type="button" data-reserve-artwork="${id}" data-reserve-title="${escapeSelectionHtml(item.title)}" data-reserve-artist="${escapeSelectionHtml(item.artist)}" data-reserve-url="${url}">Reservar com curadoria</button>
           <button class="tag" type="button" data-remove-artwork="${id}">Remover</button>
         </div>
