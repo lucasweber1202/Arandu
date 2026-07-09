@@ -1,0 +1,47 @@
+[
+  {
+    "platform": "Arandu alvo",
+    "model": "Curadoria + reserva assistida",
+    "steps": 4,
+    "estimatedMinutes": 4,
+    "primaryCta": "Reservar com curadoria",
+    "friction": "Baixo: usuário não precisa pagar antes de confirmar disponibilidade, certificado e envio.",
+    "conversionIdea": "Card com preço, tags, salvar, reservar e proposta no mesmo bloco."
+  },
+  {
+    "platform": "Saatchi Art",
+    "model": "Marketplace com carrinho",
+    "steps": 5,
+    "estimatedMinutes": 6,
+    "primaryCta": "Add to cart / checkout",
+    "friction": "Médio: decisão rápida, mas ainda exige frete, conta e pagamento.",
+    "conversionIdea": "Preço claro e compra direta reduzem hesitação."
+  },
+  {
+    "platform": "Singulart",
+    "model": "Galeria online + advisor",
+    "steps": 6,
+    "estimatedMinutes": 7,
+    "primaryCta": "Buy / contact advisor",
+    "friction": "Médio: confiança alta, porém mais conteúdo consultivo antes da compra.",
+    "conversionIdea": "Combinar compra direta com curadoria aumenta confiança."
+  },
+  {
+    "platform": "Artsy",
+    "model": "Galerias parceiras + buy now/inquire/make offer",
+    "steps": 7,
+    "estimatedMinutes": 8,
+    "primaryCta": "Buy now / make offer / inquire",
+    "friction": "Médio-alto: múltiplos modelos comerciais podem atrasar decisão.",
+    "conversionIdea": "Evitar excesso de CTAs concorrentes no primeiro card."
+  },
+  {
+    "platform": "1stDibs",
+    "model": "Luxo, vendedor e negociação",
+    "steps": 7,
+    "estimatedMinutes": 9,
+    "primaryCta": "Add to cart / make offer",
+    "friction": "Médio-alto: busca robusta e negociação favorecem ticket alto, mas ampliam caminho.",
+    "conversionIdea": "Reserva rápida pode funcionar melhor para comprador que ainda está inseguro."
+  }
+]
