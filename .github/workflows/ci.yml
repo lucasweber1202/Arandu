@@ -21,11 +21,11 @@ jobs:
       - name: Install
         run: npm install --include=optional
 
-      - name: Quality checks
-        run: npm run check:quality
-
-      - name: Full checks
-        run: npm run check:all
-
       - name: Build
         run: npm run build
+
+      - name: Quality gate
+        run: npm run check:quality
+
+      - name: UX launch checks
+        run: npm run check:ux
