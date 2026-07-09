@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Editor operacional de obras e artistas da Arandu." />
+  <title>Editor de registro — Arandu</title>
+  <link rel="stylesheet" href="css/arandu-system.css?v=20260608" />
+  <link rel="stylesheet" href="css/arandu-admin-suite.css?v=20260709-admin-suite-1" />
+</head>
+<body class="admin-suite-page">
+  <header class="site-header"><div class="container header-inner"><a class="brand-logo" href="index.html">Arandu</a><nav class="site-nav"><a href="painel-admin.html">Painel</a><a href="operacao-obras.html">Nova obra</a><a href="upload-imagens.html">Upload</a><a href="kanban-comercial.html">Kanban</a></nav></div></header>
+  <main class="admin-shell"><div class="container">
+    <div class="breadcrumb"><a href="painel-admin.html">Painel</a><span>›</span><span>Editor</span></div>
+    <div class="admin-topbar"><div><p class="eyebrow">Editor</p><h1>Editar obra ou artista.</h1><p>Atualize campos principais usando a rota administrativa segura. Para criar novos registros, use o mesmo formulário sem ID existente.</p></div><div class="admin-token-card"><label>Token administrativo<input data-admin-token type="password" placeholder="ARANDU_ADMIN_TOKEN" /></label><button class="admin-button" type="button" data-load-record>Carregar registro</button></div></div>
+    <section class="admin-grid"><aside class="admin-sidebar"><a href="painel-admin.html">Voltar ao painel</a><a href="catalogo-intake.html">Importar CSV</a><a href="upload-imagens.html">Upload de imagem</a><a href="diagnostico-catalogo.html">Diagnóstico</a></aside><article class="admin-editor"><form data-record-editor><div class="admin-form-grid"><label>Painel<select name="panel" data-editor-panel><option value="obras">Obra</option><option value="artistas">Artista</option><option value="certificados">Certificado</option></select></label><label>ID<input name="id" data-editor-id placeholder="id do registro" /></label><label>Título/Nome<input name="title" data-field-title placeholder="Título da obra ou nome do artista" /></label><label>Status<input name="status" placeholder="available, published, reserved..." /></label><label>Técnica/Linguagem<input name="technique" placeholder="Pintura, fotografia, cerâmica..." /></label><label>Preço<input name="price" placeholder="5000" /></label><label>Preço exibido<input name="price_label" placeholder="R$ 5.000 ou sob consulta" /></label><label>Cidade<input name="city" placeholder="Cidade do artista" /></label><label>Estado<input name="state" placeholder="UF" /></label><label>Imagem principal<input name="main_image_url" placeholder="URL da imagem principal" /></label><label>Foto do artista<input name="image_url" placeholder="URL/foto do artista" /></label><label class="full">Tags / linguagens<input name="tags" placeholder="metrópole, obra única, pintura" /></label><label class="full">Resumo<textarea name="summary" placeholder="Resumo curto"></textarea></label><label class="full">Leitura / trajetória<textarea name="curatorial_reading" placeholder="Leitura curatorial ou trajetória"></textarea></label></div><div class="admin-print-actions"><button class="admin-button" type="submit">Salvar alterações</button><button class="admin-button secondary" type="button" data-open-public>Abrir página pública</button></div><p data-editor-status></p></form></article></section>
+  </div></main>
+  <div class="admin-toast-zone" data-toast-zone></div>
+  <script src="js/record-editor.js?v=20260709-admin-suite-1"></script>
+</body>
+</html>
