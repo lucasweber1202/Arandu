@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Pesquise obras, artistas, empresas, certificados e conteúdos da Arandu." />
+  <meta name="description" content="Pesquise obras, artistas, empresas, certificados e conteúdos da Arandu por palavra-chave ou intenção." />
   <title>Pesquisar — Arandu</title>
   <link rel="stylesheet" href="css/arandu-system.css?v=20260608" />
   <link rel="stylesheet" href="css/arandu-product.css?v=20260608" />
@@ -11,77 +11,12 @@
   <link rel="stylesheet" href="css/arandu-clean.css?v=20260610-public-shell-1" />
 </head>
 <body class="lovable-page architecture-clean">
-  <header class="site-header">
-    <div class="container header-inner">
-      <a class="brand-logo" href="index.html">Arandu</a>
-      <nav class="site-nav">
-        <a href="comprar-arte.html">Comprar arte</a>
-        <a href="acervo.html">Acervo</a>
-        <a href="empresas.html">Empresas</a>
-        <a href="confianca.html">Confiança</a>
-        <a href="narrativa.html">Narrativa</a>
-        <a href="obras.html">Explorar</a>
-      </nav>
-      <a class="cta" href="contato.html">Falar com a curadoria</a>
-    </div>
-  </header>
+  <header class="site-header"><div class="container header-inner"><a class="brand-logo" href="index.html">Arandu</a><nav class="site-nav"><a href="index.html">Home</a><a href="comprar-arte.html">Comprar</a><a href="artistas.html">Artistas</a><a href="confianca.html">Confiança</a><a href="pesquisa.html">Pesquisar</a><a href="narrativa.html">Narrativa</a><a href="login.html">Entrar</a></nav></div></header>
   <main>
-    <section class="rect-hero">
-      <div class="container rect-hero-grid">
-        <div>
-          <p class="eyebrow">Busca Arandu</p>
-          <h1 class="title">Encontre obras, artistas e critérios de confiança.</h1>
-          <p class="lead">Pesquise por obra, artista, técnica, ambiente, certificado ou assunto curatorial.</p>
-          <div class="page-actions">
-            <a class="cta" href="obras.html">Explorar obras</a>
-            <a class="cta secondary" href="contato.html">Falar com a curadoria</a>
-          </div>
-        </div>
-        <div class="rect-frame">
-          <div class="rect-block tall red"></div>
-          <div class="rect-block green"></div>
-          <div class="rect-block dark"></div>
-        </div>
-      </div>
-    </section>
-    <section class="clean-section">
-      <div class="container search-page-shell">
-        <aside class="search-side">
-          <div class="card art-mark">
-            <h3>O que você procura?</h3>
-            <input class="search-page-input" data-static-search-input placeholder="Ex.: fotografia, empresa, certificado, Marina Silveira" aria-label="Pesquisar na Arandu" />
-            <div class="search-suggestions">
-              <button class="tag" type="button" data-static-search-suggestion="pintura">Pintura</button>
-              <button class="tag" type="button" data-static-search-suggestion="fotografia">Fotografia</button>
-              <button class="tag" type="button" data-static-search-suggestion="escultura">Escultura</button>
-              <button class="tag" type="button" data-static-search-suggestion="empresa">Empresa</button>
-              <button class="tag" type="button" data-static-search-suggestion="certificado">Certificado</button>
-              <button class="tag" type="button" data-static-search-suggestion="artista">Artista</button>
-            </div>
-            <h3>Buscas recentes</h3>
-            <div class="search-suggestions" data-static-search-recent></div>
-          </div>
-          <div class="page-actions">
-            <a class="cta secondary" href="obras.html">Ver obras</a>
-            <a class="cta secondary" href="acervo.html">Ver acervo</a>
-          </div>
-        </aside>
-        <section>
-          <p class="eyebrow">Resultados</p>
-          <div class="search-page-results" data-static-search-results></div>
-        </section>
-      </div>
-    </section>
+    <section class="rect-hero"><div class="container rect-hero-grid"><div><p class="eyebrow">Busca Arandu</p><h1 class="title">Busque por obra, artista ou intenção.</h1><p class="lead">Digite algo direto ou descreva a situação: obra para sala pequena, fotografia até R$ 5 mil, peça para recepção, artista do Nordeste.</p><div class="page-actions"><a class="cta" href="comprar-arte.html">Explorar obras</a><a class="cta secondary" href="colecoes.html">Ver coleções</a></div></div><div class="rect-frame"><div class="rect-block tall red"></div><div class="rect-block green"></div><div class="rect-block dark"></div></div></div></section>
+    <section class="clean-section"><div class="container search-page-shell"><aside class="search-side"><div class="intent-panel"><h3>Busca por intenção</h3><input data-intent-search placeholder="Ex.: quero uma obra para escritório até 10 mil" /><div class="search-suggestions"><button class="tag" type="button" data-intent-preset="fotografia até 5 mil">Fotografia até 5 mil</button><button class="tag" type="button" data-intent-preset="obra para clínica">Clínica</button><button class="tag" type="button" data-intent-preset="brasil território sertão">Brasil em obra</button></div><p data-intent-output>Descreva o que procura para receber um caminho sugerido.</p></div><div class="card art-mark"><h3>Busca livre</h3><input class="search-page-input" data-static-search-input placeholder="Ex.: fotografia, certificado, Marina Silveira" aria-label="Pesquisar na Arandu" /><div class="search-suggestions"><button class="tag" type="button" data-static-search-suggestion="pintura">Pintura</button><button class="tag" type="button" data-static-search-suggestion="fotografia">Fotografia</button><button class="tag" type="button" data-static-search-suggestion="escultura">Escultura</button><button class="tag" type="button" data-static-search-suggestion="empresa">Empresa</button><button class="tag" type="button" data-static-search-suggestion="certificado">Certificado</button><button class="tag" type="button" data-static-search-suggestion="artista">Artista</button></div><h3>Buscas recentes</h3><div class="search-suggestions" data-static-search-recent></div></div><div class="page-actions"><a class="cta secondary" href="comprar-arte.html">Ver obras</a><a class="cta secondary" href="artistas.html">Ver artistas</a></div></aside><section><p class="eyebrow">Resultados</p><div class="search-page-results" data-static-search-results></div></section></div></section>
   </main>
-  <footer class="site-footer">
-    <div class="container footer-grid">
-      <div><h2>Arandu</h2><p>Arte brasileira contemporânea com curadoria, território e procedência.</p></div>
-      <div><p>Comprar</p><a href="comprar-arte.html">Comprar arte</a><a href="obras.html">Explorar obras</a></div>
-      <div><p>Acervo</p><a href="acervo.html">Obras e artistas</a><a href="artistas.html">Artistas</a></div>
-      <div><p>Confiança</p><a href="confianca.html">Critérios</a><a href="verificar-certificado.html">Verificar certificado</a></div>
-    </div>
-  </footer>
-  <script src="js/site.js?v=20260610-public-shell-1"></script>
-  <script src="js/static-search.js?v=20260610-public-shell-1"></script>
+  <footer class="site-footer"><div class="container footer-grid"><div><h2>Arandu</h2><p>Arte brasileira contemporânea com curadoria, território e procedência.</p></div><div><p>Explorar</p><a href="comprar-arte.html">Comprar</a><a href="artistas.html">Artistas</a><a href="pesquisa.html">Pesquisar</a></div><div><p>Contexto</p><a href="confianca.html">Confiança</a><a href="narrativa.html">Narrativa</a><a href="verificar-certificado.html">Verificar certificado</a></div><div><p>Conta</p><a href="login.html">Entrar</a><a href="cadastro.html">Criar conta</a><a href="contato.html">Contato</a></div></div></footer>
+  <script src="js/site.js?v=20260610-public-shell-1"></script><script src="js/static-search.js?v=20260610-public-shell-1"></script><script src="js/intent-search.js?v=20260709-admin-suite-1"></script>
 </body>
 </html>
