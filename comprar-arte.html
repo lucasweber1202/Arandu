@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Comprar arte na Arandu: todas as obras disponíveis com foto, artista, título, filtros e tags de técnica, eixo e edição." />
+  <meta name="description" content="Comprar arte na Arandu: obras disponíveis, coleções curatoriais, filtros e tags de técnica, eixo e edição." />
   <title>Comprar — Arandu</title>
   <link rel="stylesheet" href="css/arandu-system.css?v=20260608" />
   <link rel="stylesheet" href="css/arandu-product.css?v=20260608" />
@@ -27,7 +27,7 @@
         <div>
           <p class="eyebrow">Comprar</p>
           <h1 class="title">Acervo em formato de galeria.</h1>
-          <p class="lead">Todas as obras disponíveis em uma experiência única, com filtro por técnica, eixo, edição e preço. Clique em uma obra para ver ficha, leitura curatorial e reserva.</p>
+          <p class="lead">Todas as obras disponíveis em uma experiência única, com coleções curatoriais, filtro por técnica, eixo, edição e preço.</p>
           <div class="page-actions"><a class="cta" href="#obras">Ver obras</a><a class="cta secondary" href="pesquisa.html">Pesquisar</a></div>
         </div>
         <div class="rect-frame" aria-hidden="true"><div class="rect-block tall red"></div><div class="rect-block green"></div><div class="rect-block dark"></div></div>
@@ -36,6 +36,17 @@
 
     <section class="clean-section" id="obras">
       <div class="container">
+        <div class="section-head compact-head">
+          <div><p class="eyebrow">Coleções curatoriais</p><h2 class="section-title">Comece por uma intenção.</h2></div>
+          <p class="lead">Use uma coleção como atalho. Ela ativa filtros e termos de busca para reduzir ruído.</p>
+        </div>
+        <div class="op-collections" data-ux-collections>
+          <button class="op-collection-card" type="button" data-collection="primeira"><strong>Primeira coleção</strong><span>Obras de entrada, preço mais acessível e leitura direta.</span><em>Filtrar</em></button>
+          <button class="op-collection-card" type="button" data-collection="casa"><strong>Casa e apartamento</strong><span>Pinturas, fotografias e peças para convivência.</span><em>Filtrar</em></button>
+          <button class="op-collection-card" type="button" data-collection="empresa"><strong>Empresas e espaços</strong><span>Obras para recepção, escritório, hotelaria e clínicas.</span><em>Filtrar</em></button>
+          <button class="op-collection-card" type="button" data-collection="brasil"><strong>Brasil em obra</strong><span>Território, cidade, rio, sertão, corpo e memória.</span><em>Filtrar</em></button>
+        </div>
+
         <div class="section-head compact-head">
           <div><p class="eyebrow">Obras</p><h2 class="section-title">Comprar por olhar, técnica e contexto.</h2></div>
           <p class="lead">Use os filtros para reduzir ruído. As tags de cada obra resumem técnica, eixo cultural e edição/tiragem.</p>
@@ -76,16 +87,9 @@
     </section>
   </main>
 
-  <footer class="site-footer">
-    <div class="container footer-grid">
-      <div><h2>Arandu</h2><p>Arte brasileira contemporânea com curadoria, território e procedência.</p></div>
-      <div><p>Explorar</p><a href="comprar-arte.html">Comprar</a><a href="artistas.html">Artistas</a><a href="pesquisa.html">Pesquisar</a></div>
-      <div><p>Contexto</p><a href="confianca.html">Confiança</a><a href="narrativa.html">Narrativa</a><a href="verificar-certificado.html">Verificar certificado</a></div>
-      <div><p>Conta</p><a href="login.html">Entrar</a><a href="cadastro.html">Criar conta</a><a href="contato.html">Contato</a></div>
-    </div>
-  </footer>
+  <footer class="site-footer"><div class="container footer-grid"><div><h2>Arandu</h2><p>Arte brasileira contemporânea com curadoria, território e procedência.</p></div><div><p>Explorar</p><a href="comprar-arte.html">Comprar</a><a href="artistas.html">Artistas</a><a href="pesquisa.html">Pesquisar</a></div><div><p>Contexto</p><a href="confianca.html">Confiança</a><a href="narrativa.html">Narrativa</a><a href="verificar-certificado.html">Verificar certificado</a></div><div><p>Conta</p><a href="login.html">Entrar</a><a href="cadastro.html">Criar conta</a><a href="contato.html">Contato</a></div></div></footer>
   <script src="js/site.js?v=20260610-public-shell-1"></script>
   <script src="js/arandu-loader.js?v=20260610-public-shell-1"></script>
-  <script src="js/catalog-page.js?v=20260709-operational-1"></script>
+  <script src="js/catalog-page.js?v=20260709-next-ops-1"></script>
 </body>
 </html>
