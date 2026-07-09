@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Cadastro operacional de obras Arandu." />
+  <title>Cadastrar obra — Arandu</title>
+  <link rel="stylesheet" href="css/arandu-system.css?v=20260608" />
+  <link rel="stylesheet" href="css/arandu-clean.css?v=20260610-public-shell-1" />
+</head>
+<body class="lovable-page architecture-clean">
+  <header class="site-header"><div class="container header-inner"><a class="brand-logo" href="index.html">Arandu</a><nav class="site-nav"><a href="lancamento.html">Lançamento</a><a href="catalogo-intake.html">Importar catálogo</a><a href="diagnostico-catalogo.html">Diagnóstico</a><a href="status.html">Status</a></nav></div></header>
+  <main>
+    <section class="rect-hero"><div class="container"><p class="eyebrow">Operação</p><h1 class="title">Cadastrar obra individual.</h1><p class="lead">Use para inserir uma obra no Supabase sem montar CSV. Exige ARANDU_ADMIN_TOKEN.</p></div></section>
+    <section class="clean-section"><div class="container op-admin-form-layout"><form class="form-card" data-artwork-admin-form><h2>Dados da obra</h2><input name="token" type="password" placeholder="ARANDU_ADMIN_TOKEN" required /><input name="id" placeholder="id/slug da obra" required /><input name="title" placeholder="Título" required /><input name="artist_id" placeholder="artist_id" required /><input name="technique" placeholder="Técnica" /><input name="type" placeholder="Tipo: pintura, fotografia ou escultura" /><input name="price" placeholder="Preço numérico" /><input name="price_label" placeholder="Preço exibido: R$ 5.000 ou sob consulta" /><input name="dimensions" placeholder="Dimensões" /><input name="year" placeholder="Ano" /><input name="edition" placeholder="Edição/tiragem" /><input name="image_url" placeholder="URL da imagem principal" /><input name="detail_image_url" placeholder="URL de detalhe" /><input name="room_image_url" placeholder="URL em ambiente" /><textarea name="summary" placeholder="Resumo curto"></textarea><textarea name="curatorial_note" placeholder="Leitura curatorial"></textarea><input name="tags" placeholder="tags separadas por vírgula" /><select name="status"><option value="available">Disponível</option><option value="in_conversation">Em conversa</option><option value="reserved">Reservada</option><option value="sold">Vendida</option></select><button class="cta" type="submit">Cadastrar obra</button><p data-admin-artwork-status></p></form><aside class="certificate-preview"><p class="eyebrow">Prévia</p><h2 data-preview-title>Obra sem título</h2><div class="op-card-media" data-preview-image></div><p data-preview-summary>Preencha o formulário para visualizar o resumo.</p></aside></div></section>
+  </main>
+  <script src="js/site.js?v=20260610-public-shell-1"></script>
+  <script src="js/admin-artwork-form.js?v=20260709-operational-1"></script>
+</body>
+</html>
