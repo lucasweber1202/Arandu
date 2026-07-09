@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Kanban comercial Arandu para leads, briefings, reservas e propostas." />
+  <title>Kanban comercial — Arandu</title>
+  <link rel="stylesheet" href="css/arandu-system.css?v=20260608" />
+  <link rel="stylesheet" href="css/arandu-admin-suite.css?v=20260709-admin-suite-1" />
+</head>
+<body class="admin-suite-page">
+  <header class="site-header"><div class="container header-inner"><a class="brand-logo" href="index.html">Arandu</a><nav class="site-nav"><a href="painel-admin.html">Painel</a><a href="kanban-comercial.html">Kanban</a><a href="proposta-pdf.html">Proposta</a><a href="checklist-lancamento.html">Checklist</a></nav></div></header>
+  <main class="admin-shell"><div class="container"><div class="breadcrumb"><a href="painel-admin.html">Painel</a><span>›</span><span>Kanban comercial</span></div><div class="admin-topbar"><div><p class="eyebrow">Comercial</p><h1>Kanban de vendas.</h1><p>Leads, briefings, reservas e propostas em um fluxo único de acompanhamento.</p></div><div class="admin-token-card"><label>Token administrativo<input data-admin-token type="password" placeholder="ARANDU_ADMIN_TOKEN" /></label><button class="admin-button" data-load-kanban type="button">Carregar kanban</button></div></div><section class="admin-panel"><div class="admin-toolbar"><select data-kanban-source><option value="leads">Leads</option><option value="briefs">Briefings</option><option value="reservations">Reservas</option><option value="proposals">Propostas</option></select><input data-kanban-search placeholder="Buscar no fluxo" /><a class="admin-button secondary" href="painel-admin.html">Abrir painel completo</a></div><div class="admin-kanban" data-kanban-board><div class="op-empty"><strong>Aguardando token</strong><span>Carregue o kanban para acompanhar o pipeline.</span></div></div></section></div></main><div class="admin-toast-zone" data-toast-zone></div><script src="js/sales-kanban.js?v=20260709-admin-suite-1"></script></body>
+</html>
