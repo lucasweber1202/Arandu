@@ -13,6 +13,7 @@ const OP_VERSION = '20260709-operational-1';
 const NEXT_OPS_VERSION = '20260709-next-ops-1';
 const ADVANCED_VERSION = '20260709-advanced-1';
 const RESCUE_VERSION = '20260709-ui-rescue-1';
+const DEEP_CLEAN_VERSION = '20260709-deep-clean-1';
 
 function collectHtmlFiles(dir = root) {
   const entries = readdirSync(dir);
@@ -57,6 +58,8 @@ function cacheBustKnownAssets(html) {
     .replace(/href="\/css\/arandu-advanced-features\.css(\?v=[^"]*)?"/g, `href="/css/arandu-advanced-features.css?v=${ADVANCED_VERSION}"`)
     .replace(/href="css\/arandu-ui-rescue\.css(\?v=[^"]*)?"/g, `href="css/arandu-ui-rescue.css?v=${RESCUE_VERSION}"`)
     .replace(/href="\/css\/arandu-ui-rescue\.css(\?v=[^"]*)?"/g, `href="/css/arandu-ui-rescue.css?v=${RESCUE_VERSION}"`)
+    .replace(/href="css\/arandu-deep-clean\.css(\?v=[^"]*)?"/g, `href="css/arandu-deep-clean.css?v=${DEEP_CLEAN_VERSION}"`)
+    .replace(/href="\/css\/arandu-deep-clean\.css(\?v=[^"]*)?"/g, `href="/css/arandu-deep-clean.css?v=${DEEP_CLEAN_VERSION}"`)
     .replace(/src="js\/site\.js(\?v=[^"]*)?"/g, `src="js/site.js?v=${ASSET_VERSION}"`)
     .replace(/src="\/js\/site\.js(\?v=[^"]*)?"/g, `src="/js/site.js?v=${ASSET_VERSION}"`);
 }
@@ -81,6 +84,7 @@ function injectGlobalAssets() {
   const nextOpsCssTag = `<link rel="stylesheet" href="/css/arandu-next-ops.css?v=${NEXT_OPS_VERSION}">`;
   const advancedCssTag = `<link rel="stylesheet" href="/css/arandu-advanced-features.css?v=${ADVANCED_VERSION}">`;
   const rescueCssTag = `<link rel="stylesheet" href="/css/arandu-ui-rescue.css?v=${RESCUE_VERSION}">`;
+  const deepCleanCssTag = `<link rel="stylesheet" href="/css/arandu-deep-clean.css?v=${DEEP_CLEAN_VERSION}">`;
   const auditJsTag = `<script src="/js/arandu-interface-audit.js?v=${HARDENING_VERSION}" defer></script>`;
   const assistantJsTag = `<script src="/js/arandu-assistant.js?v=${RESCUE_VERSION}" defer></script>`;
 
@@ -99,6 +103,7 @@ function injectGlobalAssets() {
       if (!output.includes('/css/arandu-next-ops.css')) output = output.includes('</head>') ? output.replace('</head>', `${nextOpsCssTag}</head>`) : `${output}${nextOpsCssTag}`;
       if (!output.includes('/css/arandu-advanced-features.css')) output = output.includes('</head>') ? output.replace('</head>', `${advancedCssTag}</head>`) : `${output}${advancedCssTag}`;
       if (!output.includes('/css/arandu-ui-rescue.css')) output = output.includes('</head>') ? output.replace('</head>', `${rescueCssTag}</head>`) : `${output}${rescueCssTag}`;
+      if (!output.includes('/css/arandu-deep-clean.css')) output = output.includes('</head>') ? output.replace('</head>', `${deepCleanCssTag}</head>`) : `${output}${deepCleanCssTag}`;
       if (!output.includes('/js/arandu-interface-audit.js')) output = output.includes('</body>') ? output.replace('</body>', `${auditJsTag}</body>`) : `${output}${auditJsTag}`;
       if (!output.includes('/js/arandu-assistant.js')) output = output.includes('</body>') ? output.replace('</body>', `${assistantJsTag}</body>`) : `${output}${assistantJsTag}`;
       if (!output.includes('/src/vercel-speed-insights.js')) output = output.includes('</body>') ? output.replace('</body>', `${speedInsightsTag}</body>`) : `${output}${speedInsightsTag}`;
