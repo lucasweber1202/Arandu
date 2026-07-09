@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Console de domínio e go-live da Arandu para validar Vercel, DNS, Supabase, SEO, sitemap e páginas públicas." />
+  <title>Domínio e go-live — Arandu</title>
+  <link rel="stylesheet" href="css/arandu-system.css?v=20260608" />
+  <link rel="stylesheet" href="css/arandu-admin-suite.css?v=20260709-admin-suite-1" />
+  <link rel="stylesheet" href="css/arandu-advanced-features.css?v=20260709-advanced-1" />
+  <link rel="stylesheet" href="css/arandu-ui-rescue.css?v=20260709-ui-rescue-1" />
+</head>
+<body class="admin-suite-page">
+  <header class="site-header"><div class="container header-inner"><a class="brand-logo" href="index.html">Arandu</a><nav class="site-nav"><a href="painel-admin.html">Painel</a><a href="checklist-lancamento.html">Checklist</a><a href="status.html">Status</a><a href="dominio-go-live.html">Domínio</a></nav></div></header>
+  <main class="admin-shell"><div class="container">
+    <div class="breadcrumb"><a href="painel-admin.html">Painel</a><span>›</span><span>Domínio e go-live</span></div>
+    <div class="admin-topbar"><div><p class="eyebrow">Go-live</p><h1>Domínio, SEO e validação final.</h1><p>Use amanhã, após a Vercel liberar, para conferir se o domínio, DNS, Supabase, sitemap e páginas públicas estão prontos para divulgação.</p></div><div class="admin-token-card"><label>Domínio pretendido<input data-domain-input placeholder="ex.: arandu.art.br" /></label><button class="admin-button" type="button" data-save-domain>Salvar domínio</button><button class="admin-button secondary" type="button" data-run-domain-check>Rodar checklist</button></div></div>
+    <section class="af-grid-2"><article class="af-panel"><p class="eyebrow">Passo a passo no Vercel</p><ol><li>Abra Project arandu → Settings → Domains.</li><li>Adicione o domínio comprado, com e sem www.</li><li>Use o DNS recomendado pela Vercel.</li><li>Defina o domínio principal como production.</li><li>Confirme HTTPS ativo.</li><li>Atualize ARANDU_SITE_URL para o domínio final.</li></ol></article><article class="af-panel"><p class="eyebrow">DNS esperado</p><div data-dns-plan><p>Informe o domínio para gerar instruções.</p></div></article></section>
+    <section class="admin-panel" style="margin-top:22px"><div class="section-head compact-head"><div><p class="eyebrow">Validação automática</p><h2 class="section-title">Checklist do deploy publicado.</h2></div><p class="lead">O navegador testa páginas públicas e endpoints essenciais. Em domínio novo, rode novamente após DNS propagar.</p></div><div class="op-quality-grid" data-domain-checks></div></section>
+    <section class="admin-panel" style="margin-top:22px"><div class="section-head compact-head"><div><p class="eyebrow">Copiar para Vercel</p><h2 class="section-title">Variáveis e URLs finais.</h2></div></div><pre data-domain-env style="white-space:pre-wrap;word-break:break-word;background:#170804;color:#fff2dc;border-radius:24px;padding:20px"></pre></section>
+  </div></main>
+  <div class="admin-toast-zone" data-toast-zone></div>
+  <script src="js/domain-go-live.js?v=20260709-domain-1"></script>
+</body>
+</html>
