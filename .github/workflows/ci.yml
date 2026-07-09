@@ -24,6 +24,9 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Launch readiness
+        run: npm run check:ready
+
       - name: Quality gate
         run: npm run check:quality
 
