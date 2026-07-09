@@ -1,0 +1,20 @@
+(function(){
+  const board=document.querySelector('[data-kanban-board]'); if(!board)return;
+  const tokenInput=document.querySelector('[data-admin-token]'); const sourceSelect=document.querySelector('[data-kanban-source]'); const search=document.querySelector('[data-kanban-search]'); const key='arandu.admin.token'; if(tokenInput)tokenInput.value=localStorage.getItem(key)||'';
+  const state={panel:'leads',items:[],statuses:[],term:''};
+  function esc(v){return String(v??'').replace(/[&<>'"]/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
+  function token(){const t=tokenInput?.value.trim()||''; if(t)localStorage.setItem(key,t); return t;}
+  function toast(text){const zone=document.querySelector('[data-toast-zone]'); const item=document.createElement('div');item.className='admin-toast';item.textContent=text;zone.appendChild(item);setTimeout(()=>item.remove(),3500);}
+  async function api(path,opts={}){const res=await fetch(path,{...opts,headers:{'Content-Type':'application/json','x-arandu-admin-token':token(),...(opts.headers||{})}}); const json=await res.json().catch(()=>({})); if(!res.ok||json.ok===false)throw new Error(json.error||'Erro no kanban.'); return json;}
+  function label(item){return item.name||item.client||item.company||item.email||item.artwork_id||item.id||'Registro';}
+  function status(item){return item.status||item.verification_status||'sem status';}
+  function text(item){return JSON.stringify(item).toLowerCase();}
+  function render(){const items=state.items.filter((item)=>!state.term||text(item).includes(state.term)); board.innerHTML=state.statuses.map((st)=>{const group=items.filter((item)=>status(item)===st); return '<section class="admin-kanban-column"><h3>'+esc(st)+' <small>'+group.length+'</small></h3>'+group.map((item)=>'<article class="admin-kanban-card"><strong>'+esc(label(item))+'</strong><small>'+esc(item.email||item.whatsapp||item.space||item.project_type||item.id||'')+'</small><p>'+esc(item.message||item.notes||item.budget||item.deadline||'Sem observação.')+'</p><div class="admin-actions"><button type="button" data-next="'+esc(item.id)+'">Avançar</button><a class="secondary" href="editor-registro.html?panel='+esc(state.panel)+'&id='+esc(item.id)+'">Editar</a></div></article>').join('')+'</section>';}).join('');}
+  async function load(){state.panel=sourceSelect.value; board.innerHTML='<div class="op-empty"><strong>Carregando</strong><span>Consultando pipeline...</span></div>'; const data=await api('/api/admin?panel='+encodeURIComponent(state.panel)); state.items=data.items||[]; state.statuses=data.statusOptions||[]; render(); toast('Kanban carregado.');}
+  async function next(id){const item=state.items.find((row)=>String(row.id)===String(id)); if(!item)return; const current=status(item); const nextStatus=state.statuses[(state.statuses.indexOf(current)+1)%state.statuses.length]||state.statuses[0]; await api('/api/admin',{method:'PATCH',body:JSON.stringify({panel:state.panel,id,status:nextStatus})}); toast('Movido para '+nextStatus); await load();}
+  document.querySelector('[data-load-kanban]')?.addEventListener('click',()=>load().catch(e=>toast(e.message)));
+  sourceSelect?.addEventListener('change',()=>load().catch(e=>toast(e.message)));
+  search?.addEventListener('input',()=>{state.term=search.value.toLowerCase();render();});
+  board.addEventListener('click',(e)=>{const b=e.target.closest('[data-next]'); if(b)next(b.dataset.next).catch(err=>toast(err.message));});
+  if(token()) load().catch(()=>{});
+})();
