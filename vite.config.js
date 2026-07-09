@@ -9,24 +9,21 @@ const HARDENING_VERSION = '20260707-hardening-1';
 const POLISH_VERSION = '20260707-polish-1';
 const UX_VERSION = '20260708-ux-1';
 const UX_TUNE_VERSION = '20260708-ux-tune-1';
+const OP_VERSION = '20260709-operational-1';
 
 function collectHtmlFiles(dir = root) {
   const entries = readdirSync(dir);
   const files = [];
-
   for (const entry of entries) {
     const fullPath = resolve(dir, entry);
     const stat = statSync(fullPath);
-
     if (stat.isDirectory()) {
       if (ignoredDirs.has(entry)) continue;
       files.push(...collectHtmlFiles(fullPath));
       continue;
     }
-
     if (extname(entry) === '.html') files.push(fullPath);
   }
-
   return files;
 }
 
@@ -49,6 +46,8 @@ function cacheBustKnownAssets(html) {
     .replace(/href="\/css\/arandu-ux-refresh\.css(\?v=[^"]*)?"/g, `href="/css/arandu-ux-refresh.css?v=${UX_VERSION}"`)
     .replace(/href="css\/arandu-ux-final-tune\.css(\?v=[^"]*)?"/g, `href="css/arandu-ux-final-tune.css?v=${UX_TUNE_VERSION}"`)
     .replace(/href="\/css\/arandu-ux-final-tune\.css(\?v=[^"]*)?"/g, `href="/css/arandu-ux-final-tune.css?v=${UX_TUNE_VERSION}"`)
+    .replace(/href="css\/arandu-operational-upgrade\.css(\?v=[^"]*)?"/g, `href="css/arandu-operational-upgrade.css?v=${OP_VERSION}"`)
+    .replace(/href="\/css\/arandu-operational-upgrade\.css(\?v=[^"]*)?"/g, `href="/css/arandu-operational-upgrade.css?v=${OP_VERSION}"`)
     .replace(/src="js\/site\.js(\?v=[^"]*)?"/g, `src="js/site.js?v=${ASSET_VERSION}"`)
     .replace(/src="\/js\/site\.js(\?v=[^"]*)?"/g, `src="/js/site.js?v=${ASSET_VERSION}"`);
 }
@@ -56,9 +55,7 @@ function cacheBustKnownAssets(html) {
 function injectNativeSearch(html) {
   if (html.includes('native-search-link') || html.includes('href="pesquisa.html"')) return html;
   const searchLink = '<a class="search-trigger native-search-link" href="pesquisa.html">Pesquisar</a>';
-  if (html.includes('class="brand-logo"')) {
-    return html.replace(/(<a class="brand-logo"[^>]*>.*?<\/a>)/, `$1${searchLink}`);
-  }
+  if (html.includes('class="brand-logo"')) return html.replace(/(<a class="brand-logo"[^>]*>.*?<\/a>)/, `$1${searchLink}`);
   if (html.includes('<header')) return html.replace('</header>', `${searchLink}</header>`);
   return html;
 }
@@ -70,6 +67,7 @@ function injectGlobalAssets() {
   const polishCssTag = `<link rel="stylesheet" href="/css/arandu-final-polish.css?v=${POLISH_VERSION}">`;
   const uxCssTag = `<link rel="stylesheet" href="/css/arandu-ux-refresh.css?v=${UX_VERSION}">`;
   const uxTuneCssTag = `<link rel="stylesheet" href="/css/arandu-ux-final-tune.css?v=${UX_TUNE_VERSION}">`;
+  const opCssTag = `<link rel="stylesheet" href="/css/arandu-operational-upgrade.css?v=${OP_VERSION}">`;
   const auditJsTag = `<script src="/js/arandu-interface-audit.js?v=${HARDENING_VERSION}" defer></script>`;
 
   return {
@@ -77,27 +75,14 @@ function injectGlobalAssets() {
     transformIndexHtml(html) {
       let output = cacheBustKnownAssets(html);
       output = injectNativeSearch(output);
-      if (!output.includes('/css/arandu-product.css')) {
-        output = output.includes('</head>') ? output.replace('</head>', `${productCssTag}</head>`) : `${productCssTag}${output}`;
-      }
-      if (!output.includes('/css/arandu-interface-hardening.css')) {
-        output = output.includes('</head>') ? output.replace('</head>', `${hardeningCssTag}</head>`) : `${hardeningCssTag}${output}`;
-      }
-      if (!output.includes('/css/arandu-final-polish.css')) {
-        output = output.includes('</head>') ? output.replace('</head>', `${polishCssTag}</head>`) : `${polishCssTag}${output}`;
-      }
-      if (!output.includes('/css/arandu-ux-refresh.css')) {
-        output = output.includes('</head>') ? output.replace('</head>', `${uxCssTag}</head>`) : `${uxCssTag}${output}`;
-      }
-      if (!output.includes('/css/arandu-ux-final-tune.css')) {
-        output = output.includes('</head>') ? output.replace('</head>', `${uxTuneCssTag}</head>`) : `${uxTuneCssTag}${output}`;
-      }
-      if (!output.includes('/js/arandu-interface-audit.js')) {
-        output = output.includes('</body>') ? output.replace('</body>', `${auditJsTag}</body>`) : `${output}${auditJsTag}`;
-      }
-      if (!output.includes('/src/vercel-speed-insights.js')) {
-        output = output.includes('</body>') ? output.replace('</body>', `${speedInsightsTag}</body>`) : `${output}${speedInsightsTag}`;
-      }
+      if (!output.includes('/css/arandu-product.css')) output = output.includes('</head>') ? output.replace('</head>', `${productCssTag}</head>`) : `${productCssTag}${output}`;
+      if (!output.includes('/css/arandu-interface-hardening.css')) output = output.includes('</head>') ? output.replace('</head>', `${hardeningCssTag}</head>`) : `${hardeningCssTag}${output}`;
+      if (!output.includes('/css/arandu-final-polish.css')) output = output.includes('</head>') ? output.replace('</head>', `${polishCssTag}</head>`) : `${polishCssTag}${output}`;
+      if (!output.includes('/css/arandu-ux-refresh.css')) output = output.includes('</head>') ? output.replace('</head>', `${uxCssTag}</head>`) : `${uxCssTag}${output}`;
+      if (!output.includes('/css/arandu-ux-final-tune.css')) output = output.includes('</head>') ? output.replace('</head>', `${uxTuneCssTag}</head>`) : `${uxTuneCssTag}${output}`;
+      if (!output.includes('/css/arandu-operational-upgrade.css')) output = output.includes('</head>') ? output.replace('</head>', `${opCssTag}</head>`) : `${opCssTag}${output}`;
+      if (!output.includes('/js/arandu-interface-audit.js')) output = output.includes('</body>') ? output.replace('</body>', `${auditJsTag}</body>`) : `${output}${auditJsTag}`;
+      if (!output.includes('/src/vercel-speed-insights.js')) output = output.includes('</body>') ? output.replace('</body>', `${speedInsightsTag}</body>`) : `${output}${speedInsightsTag}`;
       return output;
     }
   };
@@ -106,9 +91,5 @@ function injectGlobalAssets() {
 export default defineConfig({
   appType: 'mpa',
   plugins: [injectGlobalAssets()],
-  build: {
-    rollupOptions: {
-      input: htmlInputs
-    }
-  }
+  build: { rollupOptions: { input: htmlInputs } }
 });
