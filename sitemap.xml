@@ -6,6 +6,7 @@
   <url><loc>https://arandu-bice.vercel.app/confianca.html</loc><priority>0.86</priority></url>
   <url><loc>https://arandu-bice.vercel.app/pesquisa.html</loc><priority>0.84</priority></url>
   <url><loc>https://arandu-bice.vercel.app/narrativa.html</loc><priority>0.84</priority></url>
+  <url><loc>https://arandu-bice.vercel.app/empresas.html</loc><priority>0.82</priority></url>
   <url><loc>https://arandu-bice.vercel.app/artigo.html?id=manifesto-contexto-arte-brasileira</loc><priority>0.72</priority></url>
   <url><loc>https://arandu-bice.vercel.app/artigo.html?id=mercado-arte-brasil-formacao-preco</loc><priority>0.7</priority></url>
   <url><loc>https://arandu-bice.vercel.app/obra.html?id=estudo-de-solo-04</loc><priority>0.78</priority></url>
@@ -17,6 +18,10 @@
   <url><loc>https://arandu-bice.vercel.app/cadastro.html</loc><priority>0.66</priority></url>
   <url><loc>https://arandu-bice.vercel.app/contato.html</loc><priority>0.72</priority></url>
   <url><loc>https://arandu-bice.vercel.app/para-artistas.html</loc><priority>0.62</priority></url>
+  <url><loc>https://arandu-bice.vercel.app/lancamento.html</loc><priority>0.35</priority></url>
+  <url><loc>https://arandu-bice.vercel.app/catalogo-intake.html</loc><priority>0.25</priority></url>
+  <url><loc>https://arandu-bice.vercel.app/operacao-obras.html</loc><priority>0.25</priority></url>
+  <url><loc>https://arandu-bice.vercel.app/diagnostico-catalogo.html</loc><priority>0.25</priority></url>
   <url><loc>https://arandu-bice.vercel.app/termos-de-uso.html</loc><priority>0.42</priority></url>
   <url><loc>https://arandu-bice.vercel.app/politica-de-privacidade.html</loc><priority>0.42</priority></url>
   <url><loc>https://arandu-bice.vercel.app/compra-reserva-reembolso.html</loc><priority>0.42</priority></url>
