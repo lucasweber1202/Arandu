@@ -36,6 +36,12 @@
     });
   }
 
+  function normalizeFooter(){
+    document.querySelectorAll('.site-footer .footer-grid').forEach((footer)=>{
+      footer.innerHTML='<div><h2>Arandu</h2><p>Arte brasileira contemporânea com curadoria, território e procedência.</p></div><div><p>Explorar</p><a href="comprar-arte.html">Comprar</a><a href="artistas.html">Artistas</a><a href="pesquisa.html">Pesquisar</a></div><div><p>Contexto</p><a href="confianca.html">Confiança</a><a href="narrativa.html">Narrativa</a><a href="verificar-certificado.html">Verificar certificado</a></div><div><p>Conta</p><a href="login.html">Entrar</a><a href="cadastro.html">Criar conta</a><a href="contato.html">Contato</a></div>';
+    });
+  }
+
   function insertLoginEntry(){
     if(page()!=='index.html'||document.querySelector('[data-login-entry-strip]')) return;
     const target=document.querySelector('.path-section')||document.querySelector('[data-market-order]')||document.querySelector('.works-section');
@@ -65,6 +71,6 @@
     document.querySelectorAll('main h1,main h2,main h3,main strong,main a,main span').forEach((el)=>{el.style.wordBreak='normal';});
   }
 
-  function runAudit(){rebuildNav();insertLoginEntry();dedupeSections();fixLegacyLinks();fixOverflow();}
+  function runAudit(){rebuildNav();normalizeFooter();insertLoginEntry();dedupeSections();fixLegacyLinks();fixOverflow();}
   document.addEventListener('DOMContentLoaded',()=>{runAudit();setTimeout(runAudit,400);setTimeout(runAudit,1200);});
 })();
