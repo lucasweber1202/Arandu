@@ -22,6 +22,7 @@
     "check:backend": "node scripts/check-backend.mjs",
     "check:commercial": "node scripts/check-commercial-docs.mjs",
     "check:ux": "node scripts/check-ux-launch.mjs",
+    "check:ready": "node scripts/check-ready.mjs",
     "check:live": "node scripts/check-live-production.mjs",
     "check:live:prod": "node scripts/check-live-production.mjs https://arandu-bice.vercel.app",
     "check:all": "npm run check && npm run check:links && npm run check:production && npm run check:quality && npm run check:inventory && npm run check:data && npm run check:backend && npm run check:commercial && npm run check:ux",
