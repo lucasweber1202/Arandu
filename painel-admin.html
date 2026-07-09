@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Painel administrativo Arandu para operar obras, artistas, leads, reservas, propostas, certificados e tarefas." />
+  <title>Painel admin — Arandu</title>
+  <link rel="stylesheet" href="css/arandu-system.css?v=20260608" />
+  <link rel="stylesheet" href="css/arandu-admin-suite.css?v=20260709-admin-suite-1" />
+</head>
+<body class="admin-suite-page">
+  <header class="site-header"><div class="container header-inner"><a class="brand-logo" href="index.html">Arandu</a><nav class="site-nav"><a href="painel-admin.html">Painel</a><a href="kanban-comercial.html">Kanban</a><a href="operacao-obras.html">Nova obra</a><a href="upload-imagens.html">Upload</a><a href="diagnostico-catalogo.html">Diagnóstico</a></nav></div></header>
+  <main class="admin-shell"><div class="container">
+    <div class="breadcrumb"><a href="index.html">Home</a><span>›</span><span>Painel admin</span></div>
+    <div class="admin-topbar"><div><p class="eyebrow">Operação</p><h1>Painel administrativo.</h1><p>Controle obras, artistas, certificados, leads, reservas, propostas, briefs, submissões e tarefas em uma única área.</p></div><div class="admin-token-card"><label>Token administrativo<input data-admin-token type="password" placeholder="ARANDU_ADMIN_TOKEN" /></label><button class="admin-button" type="button" data-admin-load>Carregar operação</button></div></div>
+    <div class="admin-grid">
+      <aside class="admin-sidebar" data-admin-tabs>
+        <button type="button" data-panel="obras" class="is-active">Obras</button><button type="button" data-panel="artistas">Artistas</button><button type="button" data-panel="leads">Leads</button><button type="button" data-panel="reservations">Reservas</button><button type="button" data-panel="proposals">Propostas</button><button type="button" data-panel="briefs">Briefings</button><button type="button" data-panel="submissions">Submissões</button><button type="button" data-panel="certificados">Certificados</button><button type="button" data-panel="tasks">Tarefas</button><a href="editor-registro.html?panel=obras">Editor</a><a href="kanban-comercial.html">Kanban</a>
+      </aside>
+      <section class="admin-main">
+        <div class="admin-metrics" data-admin-metrics></div>
+        <article class="admin-panel"><div class="section-head compact-head"><div><p class="eyebrow" data-admin-panel-label>Obras</p><h2 class="section-title">Registros</h2></div><div class="admin-actions"><a href="operacao-obras.html">Nova obra</a><a href="editor-registro.html?panel=artistas">Novo artista</a></div></div><div class="admin-toolbar"><input data-admin-search placeholder="Buscar no painel atual" /><select data-admin-status><option value="todos">Todos os status</option></select><select data-admin-sort><option value="recentes">Mais recentes</option><option value="nome">Nome/título</option><option value="status">Status</option></select></div><div class="admin-table" data-admin-table><div class="op-empty"><strong>Aguardando token</strong><span>Informe o token administrativo e carregue a operação.</span></div></div></article>
+      </section>
+    </div>
+  </div></main>
+  <div class="admin-toast-zone" data-toast-zone></div>
+  <script src="js/admin-console.js?v=20260709-admin-suite-1"></script>
+</body>
+</html>
