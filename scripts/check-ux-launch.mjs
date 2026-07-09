@@ -60,12 +60,17 @@ mustInclude('termos-artistas.html','Termos operacionais','termos para artistas')
 mustInclude('404.html','Página não encontrada','404 personalizada');
 mustInclude('lancamento.html','data-launch-dashboard','dashboard de lançamento');
 mustInclude('js/arandu-assistant.js','comprar-arte.html','assistente aponta para Comprar');
+mustInclude('js/site.js','arandu-assistant.js','site carrega assistente seguro');
+mustInclude('js/site.js','ensureHeaderNav','site restaura navegação');
 mustInclude('js/public-breadcrumbs.js','breadcrumb public','breadcrumbs públicos');
 mustNotInclude('js/arandu-assistant.js','obras.html?','links antigos de obras com query');
 mustNotInclude('js/auth.js','obras.html','auth apontando para páginas antigas');
 mustInclude('vite.config.js','arandu-operational-upgrade.css','CSS operacional injetado');
 mustInclude('vite.config.js','arandu-next-ops.css','CSS next ops injetado');
 mustInclude('vite.config.js','arandu-advanced-features.css','CSS avançado injetado');
+mustInclude('vite.config.js','arandu-ui-rescue.css','CSS de resgate de navegação injetado');
+mustInclude('css/arandu-ui-rescue.css','.site-nav','resgate visual da navegação');
+mustInclude('css/arandu-ui-rescue.css','.arandu-assistant','assistente visível');
 
 console.log('UX Launch Check');
 console.log(`Falhas: ${failures.length}`);
