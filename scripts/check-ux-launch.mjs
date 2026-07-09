@@ -14,15 +14,25 @@ function mustNotInclude(path,needle,label=needle){const text=file(path);if(text.
 mustInclude('comprar-arte.html','data-ux-catalog-type','filtros por técnica');
 mustInclude('comprar-arte.html','data-ux-catalog-axis','filtros por eixo');
 mustInclude('comprar-arte.html','data-ux-catalog-sort','ordenação');
+mustInclude('comprar-arte.html','data-collection','coleções curatoriais');
+mustInclude('js/catalog-page.js','collectionOk','filtro por coleção');
 mustInclude('artistas.html','data-ux-artist-search','busca de artistas');
+mustInclude('artista.html','arandu-artist-detail.css','polimento de artista individual');
+mustInclude('js/autor.js','artist-jsonld','SEO dinâmico de artista');
+mustInclude('js/artwork_page.js','VisualArtwork','SEO dinâmico de obra');
 mustInclude('narrativa.html','data-narrative-list','hub editorial dinâmico');
 mustInclude('artigo.html','data-article-page','página de artigo');
+mustInclude('catalogo-intake.html','data-catalog-file','upload de CSV');
 mustInclude('catalogo-intake.html','data-catalog-csv','importador de catálogo');
+mustInclude('operacao-obras.html','data-artwork-admin-form','formulário admin de obra');
+mustInclude('diagnostico-catalogo.html','data-catalog-quality','diagnóstico de catálogo');
+mustInclude('404.html','Página não encontrada','404 personalizada');
 mustInclude('lancamento.html','data-launch-dashboard','dashboard de lançamento');
 mustInclude('js/arandu-assistant.js','comprar-arte.html','assistente aponta para Comprar');
 mustNotInclude('js/arandu-assistant.js','obras.html?','links antigos de obras com query');
 mustNotInclude('js/auth.js','obras.html','auth apontando para páginas antigas');
 mustInclude('vite.config.js','arandu-operational-upgrade.css','CSS operacional injetado');
+mustInclude('vite.config.js','arandu-next-ops.css','CSS next ops injetado');
 
 console.log('UX Launch Check');
 console.log(`Falhas: ${failures.length}`);
