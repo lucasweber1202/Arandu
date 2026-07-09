@@ -3,35 +3,24 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Artistas brasileiros contemporâneos acompanhados pela Arandu, com origem e quantidade de obras disponíveis." />
+  <meta name="description" content="Artistas brasileiros contemporâneos acompanhados pela Arandu, com origem, linguagem, trajetória e quantidade de obras disponíveis." />
   <title>Artistas — Arandu</title>
   <link rel="stylesheet" href="css/arandu-system.css?v=20260608" />
   <link rel="stylesheet" href="css/arandu-product.css?v=20260608" />
   <link rel="stylesheet" href="css/arandu-marketplace.css?v=lovable-4" />
   <link rel="stylesheet" href="css/arandu-architecture.css?v=20260610-public-shell-1" />
   <link rel="stylesheet" href="css/arandu-clean.css?v=20260610-public-shell-1" />
+  <link rel="canonical" href="https://arandu-bice.vercel.app/artistas.html" />
 </head>
 <body class="lovable-page artists-page architecture-clean">
-  <header class="site-header">
-    <div class="container header-inner">
-      <a class="brand-logo" href="index.html">Arandu</a>
-      <nav class="site-nav">
-        <a href="comprar-arte.html">Comprar</a>
-        <a href="artistas.html">Artistas</a>
-        <a href="confianca.html">Confiança</a>
-        <a href="pesquisa.html">Pesquisar</a>
-        <a href="narrativa.html">Narrativa</a>
-        <a href="login.html">Entrar</a>
-      </nav>
-    </div>
-  </header>
+  <header class="site-header"><div class="container header-inner"><a class="brand-logo" href="index.html">Arandu</a><nav class="site-nav"><a href="index.html">Home</a><a href="comprar-arte.html">Comprar</a><a href="artistas.html">Artistas</a><a href="confianca.html">Confiança</a><a href="pesquisa.html">Pesquisar</a><a href="narrativa.html">Narrativa</a><a href="login.html">Entrar</a></nav></div></header>
   <main>
     <section class="rect-hero">
       <div class="container rect-hero-grid">
         <div>
           <p class="eyebrow">Artistas</p>
-          <h1 class="title">Quem faz, de onde vem e o que está disponível.</h1>
-          <p class="lead">A página de artistas agora é uma entrada objetiva para trajetórias: foto, nome, origem e quantidade de obras disponíveis.</p>
+          <h1 class="title">Rostos, origem e obras disponíveis.</h1>
+          <p class="lead">Entre pela trajetória de quem produz. Busque por nome, cidade, região ou linguagem e veja quantas obras estão disponíveis.</p>
           <div class="page-actions"><a class="cta" href="#artistas">Ver artistas</a><a class="cta secondary" href="comprar-arte.html">Comprar obras</a></div>
         </div>
         <div class="rect-frame"><div class="rect-block tall green"></div><div class="rect-block red"></div><div class="rect-block dark"></div></div>
@@ -42,35 +31,26 @@
       <div class="container">
         <div class="section-head compact-head">
           <div><p class="eyebrow">Diretório</p><h2 class="section-title">Artistas no site.</h2></div>
-          <p class="lead">Cada card leva à página do artista. A contagem considera obras carregadas no catálogo e disponíveis para conversa.</p>
+          <p class="lead">A contagem considera obras carregadas no catálogo e disponíveis para conversa.</p>
         </div>
-        <div class="ux-artist-grid" data-ux-artists>
-          <div class="final-empty"><strong>Carregando artistas</strong><span>Buscando diretório curatorial...</span></div>
+        <div class="op-artist-toolbar">
+          <input data-ux-artist-search type="search" placeholder="Buscar por artista, cidade, região ou linguagem" aria-label="Pesquisar artistas" />
+          <select data-ux-artist-language aria-label="Filtrar linguagem"><option value="todos">Todas linguagens</option><option value="pintura">Pintura</option><option value="fotografia">Fotografia</option><option value="escultura">Escultura</option><option value="objeto">Objeto</option></select>
+          <select data-ux-artist-sort aria-label="Ordenar artistas"><option value="nome">Nome A-Z</option><option value="obras">Mais obras disponíveis</option><option value="cidade">Cidade</option></select>
         </div>
+        <p class="selection-summary" data-ux-artist-count>Carregando artistas...</p>
+        <div class="ux-artist-grid" data-ux-artists><div class="final-empty"><strong>Carregando artistas</strong><span>Buscando diretório curatorial...</span></div></div>
       </div>
     </section>
 
     <section class="clean-section section-muted">
-      <div class="container">
-        <div class="home-trust-band">
-          <a class="macro-card" href="comprar-arte.html"><strong>Ver obras</strong><span>Entre pelo acervo disponível.</span></a>
-          <a class="macro-card" href="narrativa.html"><strong>Ler textos</strong><span>Depoimentos, estudos e leituras sobre arte.</span></a>
-          <a class="macro-card" href="para-artistas.html"><strong>Sou artista</strong><span>Entenda como submeter portfólio.</span></a>
-        </div>
-      </div>
+      <div class="container"><div class="home-trust-band"><a class="macro-card" href="comprar-arte.html"><strong>Ver obras</strong><span>Entre pelo acervo disponível.</span></a><a class="macro-card" href="narrativa.html"><strong>Ler textos</strong><span>Depoimentos, estudos e leituras sobre arte.</span></a><a class="macro-card" href="para-artistas.html"><strong>Sou artista</strong><span>Entenda como submeter portfólio.</span></a></div></div>
     </section>
   </main>
-  <footer class="site-footer">
-    <div class="container footer-grid">
-      <div><h2>Arandu</h2><p>Arte brasileira contemporânea com curadoria, território e procedência.</p></div>
-      <div><p>Explorar</p><a href="comprar-arte.html">Comprar</a><a href="artistas.html">Artistas</a><a href="pesquisa.html">Pesquisar</a></div>
-      <div><p>Contexto</p><a href="confianca.html">Confiança</a><a href="narrativa.html">Narrativa</a><a href="verificar-certificado.html">Verificar certificado</a></div>
-      <div><p>Conta</p><a href="login.html">Entrar</a><a href="cadastro.html">Criar conta</a><a href="contato.html">Contato</a></div>
-    </div>
-  </footer>
+  <footer class="site-footer"><div class="container footer-grid"><div><h2>Arandu</h2><p>Arte brasileira contemporânea com curadoria, território e procedência.</p></div><div><p>Explorar</p><a href="comprar-arte.html">Comprar</a><a href="artistas.html">Artistas</a><a href="pesquisa.html">Pesquisar</a></div><div><p>Contexto</p><a href="confianca.html">Confiança</a><a href="narrativa.html">Narrativa</a><a href="verificar-certificado.html">Verificar certificado</a></div><div><p>Conta</p><a href="login.html">Entrar</a><a href="cadastro.html">Criar conta</a><a href="contato.html">Contato</a></div></div></footer>
   <script src="js/site.js?v=20260610-public-shell-1"></script>
   <script src="js/arandu-loader.js?v=20260610-minimal-1"></script>
   <script src="js/selection.js"></script>
-  <script src="js/artists-page.js?v=20260708-ux-1"></script>
+  <script src="js/artists-page.js?v=20260709-operational-1"></script>
 </body>
 </html>
