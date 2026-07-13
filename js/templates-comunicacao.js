@@ -1,0 +1,25 @@
+(function(){
+  const list=document.querySelector('[data-template-list]'); if(!list)return;
+  const nameInput=document.querySelector('[data-template-name]');
+  const contextInput=document.querySelector('[data-template-context]');
+  const filter=document.querySelector('[data-template-filter]');
+  const search=document.querySelector('[data-template-search]');
+  const templates=[
+    {type:'artist',title:'Convite para artista fundador',text:'Olá, {nome}. Estou estruturando a Arandu, uma galeria digital curada de arte brasileira contemporânea. Gostei muito do seu trabalho e queria te convidar para uma conversa rápida sobre uma possível participação como artista fundador(a), com seleção cuidadosa de obras, certificado e acompanhamento de evolução da trajetória.'},
+    {type:'artist',title:'Pedido de dados da obra',text:'Oi, {nome}. Para deixar sua obra pronta na Arandu, preciso confirmar: título, ano, técnica, suporte, dimensões, preço ou faixa, disponibilidade, cidade da obra, 2 a 4 imagens autorizadas e uma frase curta sobre o contexto da peça.'},
+    {type:'artist',title:'Retorno após submissão',text:'Olá, {nome}. Obrigado por enviar seu portfólio para a Arandu. A curadoria vai avaliar linguagem, consistência, documentação das obras e aderência ao momento inicial da plataforma. Assim que concluirmos a triagem, retorno com próximos passos ou comentários objetivos.'},
+    {type:'buyer',title:'Resposta a comprador interessado',text:'Olá, {nome}. Obrigado pelo interesse. Antes de avançarmos, a Arandu confirma disponibilidade da obra, certificado, condição, embalagem e frete. Me diga se a obra é para casa, escritório ou presente, e qual faixa de orçamento confortável para eu orientar melhor.'},
+    {type:'reservation',title:'Confirmação de reserva assistida',text:'Olá, {nome}. Recebi seu pedido de reserva para {contexto}. A reserva ainda não é compra fechada: vou confirmar disponibilidade, documentação, envio e condição da obra. Depois te envio um resumo com valor, prazo, certificado e próximos passos.'},
+    {type:'proposal',title:'Envio de proposta curatorial',text:'Olá, {nome}. Preparei uma proposta curatorial com obras alinhadas ao seu contexto: {contexto}. A seleção considera escala, presença visual, linguagem, preço, certificado e adequação ao ambiente. A proposta é um ponto de partida; podemos ajustar com base no espaço e no orçamento.'},
+    {type:'company',title:'Briefing para empresa/arquiteto',text:'Olá, {nome}. Para montar uma seleção coerente para {contexto}, preciso de fotos do espaço, medidas aproximadas das paredes, orçamento estimado, prazo desejado, tipo de público que circula no ambiente e a sensação que o projeto precisa transmitir.'},
+    {type:'company',title:'Follow-up de proposta',text:'Olá, {nome}. Passando para saber se a seleção enviada fez sentido para o projeto. Posso ajustar por orçamento, escala, linguagem ou atmosfera do ambiente. A ideia é chegar em uma proposta enxuta, segura e fácil de aprovar internamente.'},
+    {type:'buyer',title:'Pós-compra / confiança',text:'Olá, {nome}. Obrigado por comprar com a Arandu. Vamos acompanhar certificado, embalagem e envio com cuidado. Assim que a obra estiver pronta para despacho, envio atualização com dados de rastreio e orientações de recebimento.'}
+  ];
+  const esc=(v)=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+  function toast(text){const zone=document.querySelector('[data-toast-zone]'); if(!zone)return; const item=document.createElement('div');item.className='admin-toast';item.textContent=text;zone.appendChild(item);setTimeout(()=>item.remove(),2600);}
+  function fill(text){return text.replaceAll('{nome}',nameInput.value||'').replaceAll('{contexto}',contextInput.value||'a obra selecionada');}
+  function render(){const q=(search.value||'').toLowerCase();const f=filter.value;const rows=templates.filter(t=>(f==='all'||t.type===f)&&(!q||(t.title+' '+t.text+' '+t.type).toLowerCase().includes(q)));list.innerHTML=rows.map((t,i)=>'<article class="op-quality-item"><div><strong>'+esc(t.title)+'</strong><p>'+esc(fill(t.text))+'</p><small>'+esc(t.type)+'</small></div><div class="admin-actions"><button type="button" data-copy-template="'+i+'">Copiar</button><a href="contato.html">Contato</a></div></article>').join('')||'<div class="op-empty"><strong>Nenhum template encontrado</strong><span>Ajuste filtro ou busca.</span></div>';}
+  list.addEventListener('click',(event)=>{const b=event.target.closest('[data-copy-template]'); if(!b)return; const visible=Array.from(list.querySelectorAll('[data-copy-template]')); const idx=visible.indexOf(b); const q=(search.value||'').toLowerCase();const f=filter.value;const rows=templates.filter(t=>(f==='all'||t.type===f)&&(!q||(t.title+' '+t.text+' '+t.type).toLowerCase().includes(q))); navigator.clipboard?.writeText(fill(rows[idx].text)); toast('Template copiado.');});
+  [nameInput,contextInput,filter,search].forEach(el=>el?.addEventListener('input',render));
+  render();
+})();
