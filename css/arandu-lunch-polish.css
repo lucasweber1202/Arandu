@@ -1,0 +1,22 @@
+/* Arandu — polimento extra para revisão visual rápida */
+.op-filter-panel.is-collapsed{max-height:0!important;overflow:hidden!important;padding:0!important;margin:0 0 18px!important;border-width:0!important;opacity:0!important;pointer-events:none!important;}
+.filter-drawer-button{margin:10px 0 8px!important;background:#fffaf0!important;color:#4d0f0b!important;border:1px solid rgba(111,23,18,.28)!important;box-shadow:0 10px 26px rgba(36,17,11,.08)!important;}
+.filter-drawer-button::after{content:' avançados';}
+.quick-buy-panel+.section-head{margin-top:26px!important;}
+.ux-work-card{transition:transform .18s ease,box-shadow .18s ease;}
+.ux-work-card:hover{transform:translateY(-4px);box-shadow:0 24px 70px rgba(36,17,11,.16)!important;}
+.ux-work-card .reserve{font-size:1rem!important;padding:13px 14px!important;}
+.work-card-actions button[data-save-artwork]::before{content:'＋ ';}
+.work-card-actions a[href*='proposta']{display:none!important;}
+.op-work-foot{border-top:1px solid rgba(78,28,18,.12);padding-top:12px;}
+.op-result-line{align-items:center!important;background:#fffaf0!important;border:1px solid rgba(78,28,18,.18)!important;border-radius:22px!important;padding:12px 14px!important;margin-bottom:16px!important;}
+.op-result-line [data-ux-catalog-count]{font-weight:950!important;color:#4d0f0b!important;}
+.safe-action.primary,.safe-action[href*='comprar-arte']{box-shadow:0 18px 54px rgba(111,23,18,.24)!important;}
+.safe-action.primary span,.safe-action[href*='comprar-arte'] span{color:inherit!important;}
+.safe-card:hover,.macro-card:hover,.op-collection-card:hover{transform:translateY(-3px);transition:.2s ease;}
+.rect-hero .lead,.safe-lead{font-size:clamp(18px,2vw,23px)!important;}
+.clean-section .lead{font-size:clamp(16px,1.3vw,19px)!important;}
+.card h3,.macro-card strong,.op-collection-card strong{line-height:1.08!important;}
+.final-empty,.op-empty{background:#fffaf0!important;color:#24110b!important;border:1px solid rgba(78,28,18,.18)!important;border-radius:24px!important;padding:20px!important;}
+.final-empty span,.op-empty span{color:#4c2a1f!important;}
+@media(max-width:760px){.quick-buy-actions{display:grid!important;grid-template-columns:1fr 1fr!important}.quick-buy-actions a{grid-column:1/-1;text-align:center}.public-commerce-cta{font-size:.92rem}.public-commerce-cta span{display:none!important}}
