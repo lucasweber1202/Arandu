@@ -2,7 +2,10 @@ import { existsSync, readFileSync } from 'node:fs';
 
 const warnings = [];
 
-if (!existsSync('assets/logo-arandu.png')) warnings.push('Logo PNG final ainda não existe em assets/logo-arandu.png.');
+const hasFinalPngLogo = existsSync('assets/logo-arandu.png');
+const hasVectorLogo = existsSync('assets/logo-arandu.svg');
+if (!hasFinalPngLogo && !hasVectorLogo) warnings.push('Logo ainda não existe em assets/logo-arandu.png ou assets/logo-arandu.svg.');
+if (!hasFinalPngLogo && hasVectorLogo) warnings.push('Logo vetorial provisória existe em assets/logo-arandu.svg; substituir por PNG final antes da divulgação ampla.');
 
 if (existsSync('data/whatsapp-config.js')) {
   const content = readFileSync('data/whatsapp-config.js', 'utf8');
