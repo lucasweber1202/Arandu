@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Painel MVP Arandu: validação comercial, funil de artistas, reservas, certificados e indicadores operacionais." />
+  <title>Painel MVP — Arandu</title>
+  <link rel="stylesheet" href="css/arandu-system.css?v=20260608" />
+  <link rel="stylesheet" href="css/arandu-deep-clean.css?v=20260709-deep-clean-1" />
+  <link rel="stylesheet" href="css/arandu-mvp.css?v=20260713-mvp-2" />
+</head>
+<body class="mvp-operacional-page" data-page="painel-mvp">
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand-logo" href="index.html">Arandu</a>
+      <nav class="site-nav" aria-label="Navegação do painel">
+        <a href="painel.html">Painel</a>
+        <a href="painel-mvp.html">MVP</a>
+        <a href="painel-cadastros.html">Cadastros</a>
+        <a href="painel-obras.html">Obras</a>
+        <a href="painel-artistas.html">Artistas</a>
+        <a href="painel-leads.html">Leads</a>
+        <a href="painel-certificados.html">Certificados</a>
+        <a href="index.html">Ver site</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="mvp-hero">
+      <div class="container mvp-hero-grid">
+        <div>
+          <div class="breadcrumb public"><a href="painel.html">Painel</a><span>›</span><span>MVP</span></div>
+          <p class="eyebrow">Painel de validação</p>
+          <h1 class="title">O MVP está pronto para sair do piloto?</h1>
+          <p class="lead">Este painel lê `/api/mvp-dashboard` e consolida as views do Supabase para medir artistas, obras, reservas, certificados, preço, funil e validação comercial.</p>
+          <div class="page-actions">
+            <a class="cta" href="mvp-operacional.html">Abrir cockpit MVP</a>
+            <a class="cta secondary" href="docs/arandu-mvp-operacional.sql">Abrir SQL operacional</a>
+          </div>
+        </div>
+        <aside class="mvp-orbit">
+          <span>Supabase · Vercel · Operação</span>
+          <strong>Scorecard de validação.</strong>
+          <span>Se as views ainda não estiverem instaladas, o painel mostra exatamente o que falta rodar.</span>
+        </aside>
+      </div>
+    </section>
+
+    <div data-mvp-dashboard>
+      <section class="mvp-section">
+        <div class="container">
+          <article class="mvp-card"><h3>Carregando painel MVP...</h3><p>Buscando dados no Supabase.</p></article>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div><h2>Arandu</h2><p>Painel de validação do MVP fechado.</p></div>
+      <div><p>Painel</p><a href="painel.html">Geral</a><a href="painel-mvp.html">MVP</a><a href="painel-qualidade.html">Qualidade</a></div>
+      <div><p>Operação</p><a href="mvp-operacional.html">Cockpit MVP</a><a href="comprar-arte.html">Catálogo</a><a href="para-artistas.html">Artistas</a></div>
+      <div><p>Dados</p><a href="docs/arandu-mvp-operacional.sql">SQL MVP</a><a href="docs/MVP_OPERACIONAL_ARANDU.md">Documentação</a></div>
+    </div>
+  </footer>
+  <script src="js/site.js?v=20260713-mvp-2"></script>
+  <script src="js/mvp-dashboard.js?v=20260713-mvp-2"></script>
+</body>
+</html>
