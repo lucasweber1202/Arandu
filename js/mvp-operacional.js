@@ -52,7 +52,7 @@
   }
   function bindChecklist(){
     const buttons=$$('[data-mvp-check]');
-    const progress=$('[data-mvp-progress] span');
+    const progress=$('[data-mvp-progress] span')||$('.mvp-progress span');
     const label=$('[data-mvp-progress-label]');
     function key(button){return STORAGE_PREFIX+'check.'+(button.dataset.mvpCheck||button.textContent.trim()).toLowerCase().replace(/\s+/g,'-');}
     function refresh(){
