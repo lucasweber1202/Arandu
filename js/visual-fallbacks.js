@@ -1,20 +1,29 @@
 /* Arandu — substitui placeholders vazios por obras visuais provisórias */
 (function(){
-  const arts=[
-    'assets/art-placeholder-terra.svg',
-    'assets/art-placeholder-rio.svg',
-    'assets/art-placeholder-urbano.svg',
-    'assets/art-placeholder-corpo.svg'
-  ];
+  const arts={
+    terra:'assets/art-placeholder-terra.svg',
+    rio:'assets/art-placeholder-rio.svg',
+    urbano:'assets/art-placeholder-urbano.svg',
+    corpo:'assets/art-placeholder-corpo.svg',
+    mata:'assets/art-placeholder-mata.svg',
+    trama:'assets/art-placeholder-trama.svg',
+    luz:'assets/art-placeholder-luz.svg',
+    noite:'assets/art-placeholder-noite.svg'
+  };
+  const list=Object.values(arts);
   function pick(el,index){
-    const text=(el.className+' '+(el.closest('article')?.textContent||'')).toLowerCase();
-    if(/rio|natureza|verde|água|agua/.test(text))return arts[1];
-    if(/urbano|cidade|metrópole|metropole|empresa|escritório|escritorio/.test(text))return arts[2];
-    if(/corpo|afro|memória|memoria|retrato/.test(text))return arts[3];
-    return arts[index%arts.length];
+    const text=(el.className+' '+(el.closest('article,section')?.textContent||'')).toLowerCase();
+    if(/xakriab|origin|indígen|indigen|trama|grafismo|território|territorio/.test(text))return arts.trama;
+    if(/rio|água|agua|fluvial|travessia/.test(text))return arts.rio;
+    if(/mata|natureza|verde|botânica|botanica|folha|jardim/.test(text))return arts.mata;
+    if(/urbano|cidade|metrópole|metropole|empresa|escritório|escritorio|reunião|reuniao/.test(text))return arts.noite;
+    if(/corpo|afro|memória|memoria|retrato|comunidade|festa/.test(text))return arts.corpo;
+    if(/luz|horizonte|interior|sertão|sertao|paisagem/.test(text))return arts.luz;
+    if(/bronze|escultura|objeto|cerâmica|ceramica|madeira/.test(text))return arts.terra;
+    return list[index%list.length];
   }
   function apply(){
-    document.querySelectorAll('.op-card-media,.admin-proposal-thumb,.thumb-terra,.thumb-urbano,.thumb-verde,.thumb-areia,.rect-frame,.safe-visual,.art-tile').forEach((el,index)=>{
+    document.querySelectorAll('.op-card-media,.admin-proposal-thumb,.thumb-terra,.thumb-urbano,.thumb-verde,.thumb-areia,.thumb-bronze,.thumb-botanica,.thumb-outono,.rect-frame,.safe-visual,.art-tile,.certificate-preview').forEach((el,index)=>{
       if(el.querySelector?.('img'))return;
       if(el.dataset.visualFallbackApplied)return;
       const src=pick(el,index);
@@ -24,7 +33,7 @@
       el.dataset.visualFallbackApplied='true';
       el.setAttribute('aria-label',el.getAttribute('aria-label')||'Imagem provisória de obra Arandu');
     });
-    document.querySelectorAll('.rect-frame .rect-block,.safe-visual .rect-block').forEach((el)=>{el.style.display='none';});
+    document.querySelectorAll('.rect-frame .rect-block,.safe-visual .rect-block,.safe-visual:before,.safe-visual:after').forEach((el)=>{el.style.display='none';});
   }
   apply();
   const observer=new MutationObserver(()=>apply());
