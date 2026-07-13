@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1200" role="img" aria-label="Obra abstrata inspirada no movimento urbano brasileiro">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#180804"/>
+      <stop offset="0.52" stop-color="#6f1712"/>
+      <stop offset="1" stop-color="#e3b16f"/>
+    </linearGradient>
+    <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="4"/><feComponentTransfer><feFuncA type="table" tableValues="0 0.16"/></feComponentTransfer></filter>
+  </defs>
+  <rect width="900" height="1200" fill="url(#bg)"/>
+  <g opacity="0.92">
+    <rect x="110" y="160" width="145" height="720" rx="34" fill="#fff3df" opacity="0.92" transform="rotate(-8 110 160)"/>
+    <rect x="315" y="80" width="128" height="960" rx="34" fill="#173f31" opacity="0.9" transform="rotate(7 315 80)"/>
+    <rect x="520" y="230" width="165" height="760" rx="38" fill="#bd5635" opacity="0.94" transform="rotate(-5 520 230)"/>
+  </g>
+  <path d="M60 360 L820 260" stroke="#24110b" stroke-width="24" stroke-linecap="round" opacity="0.55"/>
+  <path d="M90 690 L850 795" stroke="#fff3df" stroke-width="20" stroke-linecap="round" opacity="0.72"/>
+  <path d="M130 950 C350 820 540 1120 800 910" fill="none" stroke="#173f31" stroke-width="35" stroke-linecap="round" opacity="0.86"/>
+  <circle cx="220" cy="1020" r="62" fill="#e3b16f" opacity="0.86"/>
+  <rect width="900" height="1200" filter="url(#grain)" opacity="0.46"/>
+</svg>
