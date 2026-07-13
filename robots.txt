@@ -24,6 +24,9 @@ Disallow: /propostas-admin.html
 Disallow: /colecoes-admin.html
 Disallow: /checklist-lancamento.html
 Disallow: /dominio-go-live.html
+Disallow: /go-live.html
+Disallow: /mvp-operacional.html
+Disallow: /templates-comunicacao.html
 Disallow: /diagnostico-catalogo.html
 Disallow: /catalogo-intake.html
 Disallow: /operacao-obras.html
