@@ -45,7 +45,7 @@
       try{
         status.textContent='Registrando reserva...';
         status.classList.remove('ok');
-        const response=await fetch('/api/reservations',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({artwork_id:data.artwork_id,name:data.name,whatsapp:data.whatsapp,website:data.website,deadline:'48h',notes:[data.notes,`Obra: ${title}`,`Artista: ${artist}`,`URL: ${url}`].filter(Boolean).join('\n')})});
+        const response=await fetch('/api/reservations',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json','Idempotency-Key':crypto.randomUUID()},body:JSON.stringify({artwork_id:data.artwork_id,name:data.name,whatsapp:data.whatsapp,website:data.website,deadline:'48h',notes:[data.notes,`Obra: ${title}`,`Artista: ${artist}`,`URL: ${url}`].filter(Boolean).join('\n')})});
         const payload=await response.json().catch(()=>({}));
         if(!response.ok||payload.ok===false)throw new Error(payload.error||'Não foi possível registrar a reserva.');
         if(payload.stored!==true)throw new Error('A reserva não foi confirmada no banco.');

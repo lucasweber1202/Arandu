@@ -59,5 +59,14 @@ document.addEventListener('click', (event) => {
 
 document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('[data-admin-token]').forEach((input) => { input.value = qualityToken(); });
+  const status = document.querySelector('[data-quality-status]');
+  if (status && !document.querySelector('[data-catalog-review-link]')) {
+    const link = document.createElement('a');
+    link.href = 'revisao-catalogo.html';
+    link.className = 'btn btn-secondary';
+    link.dataset.catalogReviewLink = '';
+    link.textContent = 'Abrir revisão editorial';
+    status.insertAdjacentElement('afterend', link);
+  }
   loadQuality();
 });

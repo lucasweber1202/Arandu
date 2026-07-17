@@ -54,6 +54,7 @@ Instalação nova:
 4. `docs/supabase-sprint2-catalog-readiness.sql`
 5. `docs/arandu-mvp-collections.sql`
 6. `docs/supabase-sprint5-pilot.sql`
+7. `docs/supabase-sprint6-12-platform.sql`
 
 Banco existente:
 
@@ -62,8 +63,9 @@ Banco existente:
 3. `docs/supabase-sprint2-catalog-readiness.sql`
 4. `docs/arandu-mvp-collections.sql`
 5. `docs/supabase-sprint5-pilot.sql`
+6. `docs/supabase-sprint6-12-platform.sql`
 
-O Sprint 2 precisa ser aplicado depois de `supabase-production.sql`, porque substitui as policies permissivas do catálogo. As coleções dependem das views públicas seguras do Sprint 2. O Sprint 5 cria somente as tabelas privadas de eventos e feedback do piloto.
+O Sprint 2 precisa ser aplicado depois de `supabase-production.sql`, porque substitui as policies permissivas do catálogo. As coleções dependem das views públicas seguras do Sprint 2. O Sprint 5 cria as tabelas privadas do piloto. A migration dos Sprints 6–12 adiciona rate limit distribuído, workflow editorial, auditoria, LGPD, idempotência e conversão consentida.
 
 ```bash
 npm run check:migrations

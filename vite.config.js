@@ -3,7 +3,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { resolve, relative, extname, sep } from 'node:path';
 
 const root = process.cwd();
-const ignoredDirs = new Set(['node_modules', '.git', 'dist']);
+const ignoredDirs = new Set(['node_modules', '.git', 'dist', 'reports', 'tests', 'test-results', 'playwright-report']);
 const routeManifest = JSON.parse(readFileSync(resolve(root, 'data/public-routes.json'), 'utf8'));
 const canonicalPages = new Set(routeManifest.canonical);
 const configuredSiteUrl = (() => {
@@ -102,6 +102,7 @@ function injectGlobalAssets() {
   const catalogSourceJsTag = `<script src="/js/catalog-source.js?v=20260717-catalog-release-1"></script>`;
   const pilotBootstrapTag = `<script>window.ARANDU_PILOT_ENABLED=${JSON.stringify(configuredPilotEnabled)}</script>`;
   const pilotJsTag = `<script src="/js/pilot.js?v=20260717-pilot-1" defer></script>`;
+  const platformRuntimeTag = `<script src="/js/platform-runtime.js?v=20260717-platform-1" defer></script>`;
 
   return {
     name: 'inject-arandu-global-assets',
@@ -135,6 +136,7 @@ function injectGlobalAssets() {
       if (!output.includes('/js/arandu-interface-audit.js')) output = output.includes('</body>') ? output.replace('</body>', `${auditJsTag}</body>`) : `${output}${auditJsTag}`;
       if (!output.includes('/js/arandu-assistant.js')) output = output.includes('</body>') ? output.replace('</body>', `${assistantJsTag}</body>`) : `${output}${assistantJsTag}`;
       if (!output.includes('/js/pilot.js')) output = output.includes('</body>') ? output.replace('</body>', `${pilotJsTag}</body>`) : `${output}${pilotJsTag}`;
+      if (!output.includes('/js/platform-runtime.js')) output = output.includes('</body>') ? output.replace('</body>', `${platformRuntimeTag}</body>`) : `${output}${platformRuntimeTag}`;
       if (!output.includes('/src/vercel-speed-insights.js')) output = output.includes('</body>') ? output.replace('</body>', `${speedInsightsTag}</body>`) : `${output}${speedInsightsTag}`;
       return output;
     }

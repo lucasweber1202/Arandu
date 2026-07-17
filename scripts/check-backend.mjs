@@ -32,6 +32,7 @@ const requiredFiles = [
   'docs/supabase-sprint2-catalog-readiness.sql',
   'docs/arandu-mvp-collections.sql',
   'docs/supabase-sprint5-pilot.sql',
+  'docs/supabase-sprint6-12-platform.sql',
   'docs/supabase-migrations.json',
   'docs/SUPABASE_OPERACAO.md',
   'scripts/seed-supabase.mjs'
@@ -65,7 +66,7 @@ removedServerlessFiles.forEach((file) => { if (fs.existsSync(file)) issues.push(
 function includes(file, term) { return fs.existsSync(file) && fs.readFileSync(file, 'utf8').includes(term); }
 
 const api = 'api/[...path].js';
-['forms','reservations','proposals','certificates','certificate-document','catalog','artists','public-config','events','pilot','admin','admin-update','operational','media','selections','account','dashboard','auth/session','auth/login','auth/signup','auth/logout'].forEach((route) => {
+['forms','reservations','proposals','certificates','certificate-document','catalog','artists','public-config','events','conversion-events','catalog-review','privacy/export','privacy/request','pilot','admin','admin-update','operational','media','selections','account','dashboard','auth/session','auth/login','auth/signup','auth/reset-password','auth/logout'].forEach((route) => {
   if (!includes(api, route.split('/')[0])) issues.push(`API consolidada não cobre a rota: /api/${route}`);
 });
 
@@ -97,6 +98,10 @@ if (!includes(api, 'PATCH')) issues.push('API consolidada não possui rotas de a
 if (!includes(api, 'catalog_not_verified')) issues.push('API consolidada não bloqueia catálogo não verificado.');
 if (!includes(api, 'commercial_policy_pending')) issues.push('API consolidada não bloqueia transações antes da aprovação comercial.');
 if (!includes(api, 'arandu_pilot')) issues.push('API consolidada não cria sessão protegida do piloto.');
+if (!includes(api, 'publicDataRequest')) issues.push('API consolidada não separa leitura pública da service role.');
+if (!includes(api, 'handleCatalogReview')) issues.push('API consolidada não oferece workflow editorial.');
+if (!includes(api, 'handlePrivacy')) issues.push('API consolidada não oferece solicitações LGPD.');
+if (!includes('js/platform-runtime.js', 'data-consent-essential')) issues.push('Runtime global não oferece consentimento granular.');
 
 if (!includes('js/forms.js', '/api/forms')) issues.push('js/forms.js não aponta para /api/forms.');
 if (!includes('js/reservation.js', '/api/reservations')) issues.push('js/reservation.js não aponta para /api/reservations.');

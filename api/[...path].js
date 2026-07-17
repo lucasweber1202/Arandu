@@ -1,4 +1,4 @@
-import { createHash, timingSafeEqual } from 'node:crypto';
+import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -14,6 +14,10 @@ const PUBLIC_PROFILE_TYPES = new Set(['comprador', 'artista', 'empresa', 'arquit
 const PUBLIC_SELECTION_STATUSES = new Set(['open', 'sent', 'reviewed']);
 const RATE_LIMITS = new Map();
 const PILOT_EVENT_TYPES = new Set(['page_view','search','artwork_view','selection_add','reservation_start','reservation_complete','form_submit','pilot_task']);
+const CONVERSION_EVENT_TYPES = new Set(['search','catalog_view','artwork_view','selection_add','contact_start','reservation_start','reservation_complete']);
+const PRIVACY_REQUEST_TYPES = new Set(['access','correction','deletion','portability']);
+const EDITORIAL_STATUSES = new Set(['draft','documentation_pending','curatorial_review','approved','published','rejected','archived']);
+const CONSENT_VERSION = '2026-07-17';
 
 class HttpError extends Error {
   constructor(status, message, code = null) {
@@ -54,6 +58,7 @@ async function readBody(req) {
 }
 
 function hasDataConfig() { return Boolean(SUPABASE_URL && SUPABASE_KEY); }
+function hasPublicDataConfig() { return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY); }
 function authConfigured() { return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY); }
 function requireDataConfig() {
   if (!hasDataConfig()) throw new HttpError(503, 'O banco de produção ainda não está configurado.', 'database_unconfigured');
@@ -81,6 +86,7 @@ function safeSelectionUrl(value) {
   } catch { return ''; }
 }
 function escapeHtml(value) { return String(value ?? '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char])); }
+function safeObject(value) { return value && typeof value === 'object' && !Array.isArray(value) ? value : {}; }
 
 function clientFingerprint(req, scope) {
   const forwarded = String(req.headers?.['x-forwarded-for'] || '').split(',')[0].trim();
@@ -88,7 +94,7 @@ function clientFingerprint(req, scope) {
   return createHash('sha256').update(`${scope}:${ip}`).digest('hex');
 }
 
-function enforceRateLimit(req, scope, limit, windowMs) {
+function enforceMemoryRateLimit(req, scope, limit, windowMs) {
   const now = Date.now();
   if (RATE_LIMITS.size > 2000) {
     for (const [entryKey, value] of RATE_LIMITS) if (value.resetAt <= now) RATE_LIMITS.delete(entryKey);
@@ -101,6 +107,31 @@ function enforceRateLimit(req, scope, limit, windowMs) {
   }
   current.count += 1;
   if (current.count > limit) throw new HttpError(429, 'Muitas tentativas. Aguarde alguns minutos e tente novamente.');
+}
+
+async function enforceRateLimit(req, scope, limit, windowMs) {
+  const distributed = trueFlag(process.env.ARANDU_DISTRIBUTED_RATE_LIMIT) || Boolean(process.env.VERCEL_ENV);
+  if (!distributed) return enforceMemoryRateLimit(req, scope, limit, windowMs);
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+    throw new HttpError(503, 'A proteção distribuída contra abuso ainda não foi configurada.', 'rate_limit_unconfigured');
+  }
+  const response = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/rest/v1/rpc/consume_rate_limit`, {
+    method: 'POST',
+    headers: {
+      apikey: SUPABASE_SERVICE_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      p_scope: scope,
+      p_fingerprint: clientFingerprint(req, scope),
+      p_limit: limit,
+      p_window_seconds: Math.max(1, Math.ceil(windowMs / 1000))
+    })
+  });
+  const allowed = await response.json().catch(() => null);
+  if (!response.ok) throw new HttpError(503, 'A proteção contra abuso está temporariamente indisponível.', 'rate_limit_unavailable');
+  if (allowed !== true) throw new HttpError(429, 'Muitas tentativas. Aguarde alguns minutos e tente novamente.');
 }
 
 async function dataRequest(resource, options = {}) {
@@ -121,6 +152,61 @@ async function dataRequest(resource, options = {}) {
   const data = text ? JSON.parse(text) : null;
   if (!response.ok) throw new Error(data?.message || data?.error || `Banco ${response.status}`);
   return data;
+}
+
+async function publicDataRequest(resource, options = {}) {
+  if (!hasPublicDataConfig()) throw new HttpError(503, 'A leitura pública segura do Supabase ainda não foi configurada.', 'public_database_unconfigured');
+  const response = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/rest/v1/${resource}`, {
+    method: options.method || 'GET',
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json',
+      Prefer: '',
+      ...(options.headers || {})
+    },
+    body: options.body
+  });
+  const text = await response.text();
+  const data = text ? JSON.parse(text) : null;
+  if (!response.ok) throw new Error(data?.message || data?.error || `Banco público ${response.status}`);
+  return data;
+}
+
+async function writeAudit({ actorType, actorRef, action, entityType = null, entityId = null, metadata = {} }) {
+  await dataRequest('audit_logs', {
+    method: 'POST',
+    headers: { Prefer: 'return=minimal' },
+    body: JSON.stringify({
+      actor_type: actorType,
+      actor_ref: limited(actorRef, 160) || null,
+      action: limited(action, 120),
+      entity_type: limited(entityType, 80) || null,
+      entity_id: limited(entityId, 160) || null,
+      metadata: safeObject(metadata)
+    })
+  });
+}
+
+async function beginIdempotency(req, scope, body) {
+  const rawKey = limited(req.headers?.['idempotency-key'], 128);
+  if (!rawKey) return null;
+  if (!/^[A-Za-z0-9_-]{16,128}$/.test(rawKey)) throw new HttpError(400, 'Idempotency-Key inválida.');
+  const keyHash = createHash('sha256').update(rawKey).digest('hex');
+  const requestHash = createHash('sha256').update(JSON.stringify(body || {})).digest('hex');
+  const existing = firstRecord(await dataRequest(`idempotency_keys?scope=eq.${encodeURIComponent(scope)}&key_hash=eq.${keyHash}&select=request_hash,response_status,response_body,expires_at&limit=1`, { method: 'GET', headers: { Prefer: '' } }));
+  if (existing) {
+    if (existing.request_hash !== requestHash) throw new HttpError(409, 'A mesma chave de idempotência foi usada com dados diferentes.');
+    if (existing.response_body && existing.response_status) return { replay: true, status: existing.response_status, payload: existing.response_body };
+    throw new HttpError(409, 'Esta solicitação já está sendo processada.', 'idempotency_in_progress');
+  }
+  await dataRequest('idempotency_keys', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ scope, key_hash: keyHash, request_hash: requestHash }) });
+  return { replay: false, scope, keyHash };
+}
+
+async function finishIdempotency(context, status, payload) {
+  if (!context || context.replay) return;
+  await dataRequest(`idempotency_keys?scope=eq.${encodeURIComponent(context.scope)}&key_hash=eq.${context.keyHash}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ response_status: status, response_body: payload }) });
 }
 
 async function supabaseAuth(path, options = {}) {
@@ -478,10 +564,10 @@ const PUBLIC_ARTIST_SELECT = [
 ].join(',');
 
 async function catalogReadiness() {
-  requireDataConfig();
+  if (!hasPublicDataConfig()) throw new HttpError(503, 'A leitura pública segura do Supabase ainda não foi configurada.', 'public_database_unconfigured');
   let row;
   try {
-    row = firstRecord(await dataRequest('v_catalog_readiness?select=*&id=eq.production&limit=1', { method: 'GET', headers: { Prefer: '' } }));
+    row = firstRecord(await publicDataRequest('v_catalog_readiness?select=*&id=eq.production&limit=1'));
   } catch (error) {
     throw new HttpError(503, 'A migration de prontidão do catálogo ainda não foi aplicada.', 'catalog_migration_pending');
   }
@@ -493,7 +579,7 @@ async function catalogReadiness() {
 
 async function handleForms(req, res) {
   if (req.method !== 'POST') return json(res, 405, { ok: false, error: 'Método não permitido.' });
-  enforceRateLimit(req, 'forms', 30, 10 * 60 * 1000);
+  await enforceRateLimit(req, 'forms', 30, 10 * 60 * 1000);
   const body = await readBody(req);
   if (clean(body.website || body.data?.website)) return json(res, 202, { ok: true, stored: false });
   const { table, record } = normalizeFormPayload(body);
@@ -515,8 +601,10 @@ async function handleForms(req, res) {
 async function handleReservations(req, res) {
   if (req.method !== 'POST') return json(res, 405, { ok: false, error: 'Método não permitido.' });
   requireCommercialReady();
-  enforceRateLimit(req, 'reservations', 20, 10 * 60 * 1000);
+  await enforceRateLimit(req, 'reservations', 20, 10 * 60 * 1000);
   const body = await readBody(req);
+  const idempotency = await beginIdempotency(req, 'reservation.create', body);
+  if (idempotency?.replay) return json(res, idempotency.status, idempotency.payload, { 'Idempotency-Replayed': 'true' });
   if (clean(body.website)) return json(res, 202, { ok: true, stored: false });
   const record = normalizeReservation(body);
   if (!record.artwork_id) throw new HttpError(400, 'Obra é obrigatória.');
@@ -526,26 +614,43 @@ async function handleReservations(req, res) {
   if (user) record.user_id = user.id;
   requireDataConfig();
   const saved = firstRecord(await dataRequest('reservations', { method: 'POST', body: JSON.stringify(record) }));
-  return json(res, 201, {
+  const payload = {
     ok: true,
     mode: 'stored',
     stored: true,
     reservation: accountReservation(saved)
-  }, session.headers);
+  };
+  await finishIdempotency(idempotency, 201, payload);
+  return json(res, 201, payload, session.headers);
 }
-async function handleProposals(req, res) { if (req.method !== 'POST') return json(res, 405, { ok: false, error: 'Método não permitido.' }); const { proposal, items } = normalizeProposal(await readBody(req)); requireDataConfig(); const saved = await dataRequest('proposals', { method: 'POST', body: JSON.stringify(proposal) }); const savedProposal = firstRecord(saved); if (savedProposal?.id && items.length) { const rows = items.map((item, index) => ({ proposal_id: savedProposal.id, artwork_id: item.id || item.artwork_id || null, position: index + 1, price: Number(item.price || 0) || null, note: item.note || item.context || null })).filter((row) => row.artwork_id); if (rows.length) await dataRequest('proposal_items', { method: 'POST', body: JSON.stringify(rows) }); } return json(res, 201, { ok: true, mode: 'stored', stored: true, proposal: savedProposal }); }
-async function handleCertificates(req, res) { if (req.method !== 'GET') return json(res, 405, { ok: false, error: 'Método não permitido.' }); const url = new URL(req.url, 'http://localhost'); const code = clean(url.searchParams.get('code') || url.searchParams.get('id')).toUpperCase(); if (!code) return json(res, 400, { ok: false, error: 'Código obrigatório.' }); if (!/^[A-Z0-9-]{4,80}$/.test(code)) return json(res, 400, { ok: false, error: 'Código inválido.' }); enforceRateLimit(req, 'certificate-read', 60, 10 * 60 * 1000); requireDataConfig(); const rows = await dataRequest(`certificates?code=eq.${encodeURIComponent(code)}&verification_status=eq.valid&select=code,verification_status,artwork_id,artist_id,issued_at,certificate_hash,certificate_notes&limit=1`, { method: 'GET', headers: { Prefer: '' } }); return json(res, 200, { ok: true, mode: 'stored', certificate: firstRecord(rows) }); }
-async function handleCertificateDocument(req, res) { if (req.method !== 'GET') return html(res, 405, '<h1>Método não permitido.</h1>'); const url = new URL(req.url, 'http://localhost'); const code = clean(url.searchParams.get('code')).toUpperCase(); if (!code) return html(res, 400, '<h1>Código obrigatório.</h1>'); if (!/^[A-Z0-9-]{4,80}$/.test(code)) return html(res, 400, '<h1>Código inválido.</h1>'); enforceRateLimit(req, 'certificate-document', 30, 10 * 60 * 1000); requireDataConfig(); const certificate = firstRecord(await dataRequest(`certificates?code=eq.${encodeURIComponent(code)}&verification_status=eq.valid&select=code,verification_status,artwork_id,artist_id,issued_to,issued_at,certificate_hash,certificate_notes&limit=1`, { method: 'GET', headers: { Prefer: '' } })); if (!certificate) return html(res, 404, '<h1>Certificado não encontrado.</h1>'); const artwork = certificate.artwork_id ? firstRecord(await dataRequest(`v_public_catalog?id=eq.${encodeURIComponent(certificate.artwork_id)}&select=id,title,artist_name,technique,dimensions&limit=1`, { method: 'GET', headers: { Prefer: '' } })) : null; return html(res, 200, certificateDocumentHtml(certificate, artwork)); }
+async function handleProposals(req, res) {
+  if (req.method !== 'POST') return json(res, 405, { ok: false, error: 'Método não permitido.' });
+  const body = await readBody(req);
+  const idempotency = await beginIdempotency(req, 'proposal.create', body);
+  if (idempotency?.replay) return json(res, idempotency.status, idempotency.payload, { 'Idempotency-Replayed': 'true' });
+  const { proposal, items } = normalizeProposal(body);
+  requireDataConfig();
+  const savedProposal = firstRecord(await dataRequest('proposals', { method: 'POST', body: JSON.stringify(proposal) }));
+  if (savedProposal?.id && items.length) {
+    const rows = items.map((item, index) => ({ proposal_id: savedProposal.id, artwork_id: item.id || item.artwork_id || null, position: index + 1, price: Number(item.price || 0) || null, note: item.note || item.context || null })).filter((row) => row.artwork_id);
+    if (rows.length) await dataRequest('proposal_items', { method: 'POST', body: JSON.stringify(rows) });
+  }
+  const payload = { ok: true, mode: 'stored', stored: true, proposal: savedProposal };
+  await finishIdempotency(idempotency, 201, payload);
+  return json(res, 201, payload);
+}
+async function handleCertificates(req, res) { if (req.method !== 'GET') return json(res, 405, { ok: false, error: 'Método não permitido.' }); const url = new URL(req.url, 'http://localhost'); const code = clean(url.searchParams.get('code') || url.searchParams.get('id')).toUpperCase(); if (!code) return json(res, 400, { ok: false, error: 'Código obrigatório.' }); if (!/^[A-Z0-9-]{4,80}$/.test(code)) return json(res, 400, { ok: false, error: 'Código inválido.' }); await enforceRateLimit(req, 'certificate-read', 60, 10 * 60 * 1000); const rows = await publicDataRequest(`certificates?code=eq.${encodeURIComponent(code)}&verification_status=eq.valid&select=code,verification_status,artwork_id,artist_id,issued_at,certificate_hash,certificate_notes&limit=1`); return json(res, 200, { ok: true, mode: 'stored', certificate: firstRecord(rows) }); }
+async function handleCertificateDocument(req, res) { if (req.method !== 'GET') return html(res, 405, '<h1>Método não permitido.</h1>'); const url = new URL(req.url, 'http://localhost'); const code = clean(url.searchParams.get('code')).toUpperCase(); if (!code) return html(res, 400, '<h1>Código obrigatório.</h1>'); if (!/^[A-Z0-9-]{4,80}$/.test(code)) return html(res, 400, '<h1>Código inválido.</h1>'); await enforceRateLimit(req, 'certificate-document', 30, 10 * 60 * 1000); const certificate = firstRecord(await publicDataRequest(`certificates?code=eq.${encodeURIComponent(code)}&verification_status=eq.valid&select=code,verification_status,artwork_id,artist_id,issued_to,issued_at,certificate_hash,certificate_notes&limit=1`)); if (!certificate) return html(res, 404, '<h1>Certificado não encontrado.</h1>'); const artwork = certificate.artwork_id ? firstRecord(await publicDataRequest(`v_public_catalog?id=eq.${encodeURIComponent(certificate.artwork_id)}&select=id,title,artist_name,technique,dimensions&limit=1`)) : null; return html(res, 200, certificateDocumentHtml(certificate, artwork)); }
 async function handleCatalog(req, res) {
   if (req.method !== 'GET') return json(res, 405, { ok: false, error: 'Método não permitido.' });
   const readiness = await catalogReadiness();
-  const rows = await dataRequest(`v_public_catalog?select=${PUBLIC_CATALOG_SELECT}&order=created_at.desc`, { method: 'GET', headers: { Prefer: '' } });
+  const rows = await publicDataRequest(`v_public_catalog?select=${PUBLIC_CATALOG_SELECT}&order=created_at.desc`);
   return json(res, 200, { ok: true, mode: 'supabase', verifiedReady: true, release: readiness.dataset_version, items: rows || [] });
 }
 async function handleArtists(req, res) {
   if (req.method !== 'GET') return json(res, 405, { ok: false, error: 'Método não permitido.' });
   const readiness = await catalogReadiness();
-  const rows = await dataRequest(`v_public_artists?select=${PUBLIC_ARTIST_SELECT}&order=name.asc`, { method: 'GET', headers: { Prefer: '' } });
+  const rows = await publicDataRequest(`v_public_artists?select=${PUBLIC_ARTIST_SELECT}&order=name.asc`);
   return json(res, 200, { ok: true, mode: 'supabase', verifiedReady: true, release: readiness.dataset_version, items: rows || [] });
 }
 function publicSiteUrl() {
@@ -599,7 +704,7 @@ async function handleEvents(req, res) {
   if (req.method !== 'POST') return json(res, 405, { ok: false, error: 'Método não permitido.' });
   requirePilotAccess(req);
   requireDataConfig();
-  enforceRateLimit(req, 'pilot-events', 180, 10 * 60 * 1000);
+  await enforceRateLimit(req, 'pilot-events', 180, 10 * 60 * 1000);
   const body = await readBody(req);
   const sessionId = clean(body.sessionId || body.session_id);
   const eventType = clean(body.eventType || body.event_type);
@@ -622,7 +727,7 @@ async function handlePilot(req, res, action) {
   }
   if (action === 'access') {
     if (req.method !== 'POST') return json(res, 405, { ok: false, error: 'Método não permitido.' });
-    enforceRateLimit(req, 'pilot-access', 12, 10 * 60 * 1000);
+    await enforceRateLimit(req, 'pilot-access', 12, 10 * 60 * 1000);
     if (!pilotEnabled()) throw new HttpError(403, 'O piloto fechado não está ativo.', 'pilot_disabled');
     if (!pilotConfigured()) throw new HttpError(503, 'O piloto ainda não foi configurado no servidor.', 'pilot_unconfigured');
     const body = await readBody(req);
@@ -638,7 +743,7 @@ async function handlePilot(req, res, action) {
     if (req.method !== 'POST') return json(res, 405, { ok: false, error: 'Método não permitido.' });
     requirePilotAccess(req);
     requireDataConfig();
-    enforceRateLimit(req, 'pilot-feedback', 20, 60 * 60 * 1000);
+    await enforceRateLimit(req, 'pilot-feedback', 20, 60 * 60 * 1000);
     const body = await readBody(req);
     const sessionId = clean(body.sessionId || body.session_id);
     const rating = Number(body.rating);
@@ -682,7 +787,7 @@ async function handleMedia(req, res) { const access = adminGuard(req); if (!acce
 async function handleSelections(req, res) {
   requireDataConfig();
   if (req.method === 'GET') {
-    enforceRateLimit(req, 'selection-read', 120, 10 * 60 * 1000);
+    await enforceRateLimit(req, 'selection-read', 120, 10 * 60 * 1000);
     const url = new URL(req.url, 'http://localhost');
     const token = limited(url.searchParams.get('token') || url.searchParams.get('id'), 128);
     if (!/^[A-Za-z0-9_-]{12,128}$/.test(token)) throw new HttpError(400, 'Token de seleção inválido.');
@@ -691,7 +796,7 @@ async function handleSelections(req, res) {
   }
 
   if (req.method === 'POST') {
-    enforceRateLimit(req, 'selection-write', 40, 10 * 60 * 1000);
+    await enforceRateLimit(req, 'selection-write', 40, 10 * 60 * 1000);
     const body = await readBody(req);
     const record = normalizeSelection(body);
     if (!record.items.length) throw new HttpError(400, 'Seleção sem obras.');
@@ -728,7 +833,7 @@ async function handleSelections(req, res) {
   }
 
   if (req.method === 'DELETE') {
-    enforceRateLimit(req, 'selection-delete', 20, 10 * 60 * 1000);
+    await enforceRateLimit(req, 'selection-delete', 20, 10 * 60 * 1000);
     const session = await requireUser(req);
     const rows = await dataRequest(`saved_selections?user_id=eq.${encodeURIComponent(session.user.id)}&status=eq.open`, {
       method: 'DELETE'
@@ -763,6 +868,134 @@ async function handleAccount(req, res) {
     selections,
     reservations
   }, session.headers);
+}
+
+function editorialRequirements(entityType) {
+  return entityType === 'artist'
+    ? ['identity','origin','publicationConsent','portfolio','profile']
+    : ['artistApproved','imageAuthorization','provenance','price','availability','technicalSheet'];
+}
+
+function editorialChecklist(body, entityType) {
+  const source = safeObject(body);
+  return Object.fromEntries(editorialRequirements(entityType).map((key) => [key, source[key] === true]));
+}
+
+function assertEditorialTransition(fromStatus, toStatus) {
+  const transitions = {
+    draft: ['documentation_pending','curatorial_review','archived'],
+    documentation_pending: ['draft','curatorial_review','rejected','archived'],
+    curatorial_review: ['documentation_pending','approved','rejected','archived'],
+    approved: ['curatorial_review','published','archived'],
+    published: ['approved','archived'],
+    rejected: ['draft','documentation_pending','archived'],
+    archived: ['draft']
+  };
+  if (!(transitions[fromStatus || 'draft'] || []).includes(toStatus)) {
+    throw new HttpError(409, `Transição editorial inválida: ${fromStatus || 'draft'} → ${toStatus}.`, 'invalid_editorial_transition');
+  }
+}
+
+async function handleCatalogReview(req, res) {
+  const guard = adminGuard(req);
+  if (!guard.ok) return json(res, guard.status, { ok: false, error: guard.error });
+  if (req.method === 'GET') {
+    const url = new URL(req.url, 'http://localhost');
+    const entityType = clean(url.searchParams.get('entityType'));
+    const entityId = limited(url.searchParams.get('entityId'), 160);
+    const readiness = firstRecord(await dataRequest('v_catalog_editorial_readiness?select=*&limit=1', { method: 'GET', headers: { Prefer: '' } }));
+    const history = entityType && entityId
+      ? await dataRequest(`catalog_review_history?entity_type=eq.${encodeURIComponent(entityType)}&entity_id=eq.${encodeURIComponent(entityId)}&select=*&order=created_at.desc&limit=100`, { method: 'GET', headers: { Prefer: '' } })
+      : [];
+    return json(res, 200, { ok: true, readiness, history });
+  }
+  if (req.method !== 'PATCH') return json(res, 405, { ok: false, error: 'Método não permitido.' });
+  const body = await readBody(req);
+  const entityType = clean(body.entityType || body.entity_type);
+  const entityId = limited(body.entityId || body.entity_id, 160);
+  const nextStatus = clean(body.status);
+  if (!['artist','artwork'].includes(entityType)) throw new HttpError(400, 'Tipo editorial inválido.');
+  if (!entityId) throw new HttpError(400, 'Entidade editorial obrigatória.');
+  if (!EDITORIAL_STATUSES.has(nextStatus)) throw new HttpError(400, 'Status editorial inválido.');
+  const table = entityType === 'artist' ? 'artists' : 'artworks';
+  const current = firstRecord(await dataRequest(`${table}?id=eq.${encodeURIComponent(entityId)}&select=id,editorial_status&limit=1`, { method: 'GET', headers: { Prefer: '' } }));
+  if (!current) throw new HttpError(404, 'Registro editorial não encontrado.');
+  assertEditorialTransition(current.editorial_status || 'draft', nextStatus);
+  const checklist = editorialChecklist(body.checklist, entityType);
+  if (['approved','published'].includes(nextStatus) && Object.values(checklist).some((value) => value !== true)) {
+    throw new HttpError(409, 'Complete toda a documentação antes de aprovar ou publicar.', 'editorial_checklist_incomplete');
+  }
+  const reviewedAt = new Date().toISOString();
+  const updated = firstRecord(await dataRequest(`${table}?id=eq.${encodeURIComponent(entityId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ editorial_status: nextStatus, editorial_checklist: checklist, reviewed_by: 'admin-token', reviewed_at: reviewedAt, updated_at: reviewedAt })
+  }));
+  await dataRequest('catalog_review_history', {
+    method: 'POST',
+    headers: { Prefer: 'return=minimal' },
+    body: JSON.stringify({ entity_type: entityType, entity_id: entityId, from_status: current.editorial_status || 'draft', to_status: nextStatus, checklist, note: limited(body.note, 1000) || null, actor_ref: 'admin-token' })
+  });
+  await writeAudit({ actorType: 'admin', actorRef: 'admin-token', action: 'catalog.review', entityType, entityId, metadata: { from: current.editorial_status || 'draft', to: nextStatus } });
+  return json(res, 200, { ok: true, record: updated, checklist });
+}
+
+async function handlePrivacy(req, res, action) {
+  const session = await requireUser(req);
+  requireDataConfig();
+  const userId = encodeURIComponent(session.user.id);
+  if (action === 'export') {
+    if (req.method !== 'GET') return json(res, 405, { ok: false, error: 'Método não permitido.' });
+    await enforceRateLimit(req, 'privacy-export', 5, 60 * 60 * 1000);
+    const [profile, selections, reservations, leads, briefs, requests] = await Promise.all([
+      dataRequest(`profiles?id=eq.${userId}&select=id,email,full_name,phone,profile_type,created_at,updated_at&limit=1`, { method: 'GET', headers: { Prefer: '' } }),
+      dataRequest(`saved_selections?user_id=eq.${userId}&select=id,status,items,briefing,created_at,updated_at&limit=100`, { method: 'GET', headers: { Prefer: '' } }),
+      dataRequest(`reservations?user_id=eq.${userId}&select=id,artwork_id,status,deadline,notes,created_at,updated_at&limit=100`, { method: 'GET', headers: { Prefer: '' } }),
+      dataRequest(`leads?user_id=eq.${userId}&select=id,status,source,created_at,updated_at&limit=100`, { method: 'GET', headers: { Prefer: '' } }),
+      dataRequest(`company_briefs?user_id=eq.${userId}&select=id,status,created_at,updated_at&limit=100`, { method: 'GET', headers: { Prefer: '' } }),
+      dataRequest(`privacy_requests?user_id=eq.${userId}&select=id,request_type,status,due_at,completed_at,created_at&limit=100`, { method: 'GET', headers: { Prefer: '' } })
+    ]);
+    await writeAudit({ actorType: 'user', actorRef: session.user.id, action: 'privacy.export', entityType: 'user', entityId: session.user.id });
+    return json(res, 200, { ok: true, exportedAt: new Date().toISOString(), user: session.user, profile: firstRecord(profile), selections, reservations, leads, companyBriefs: briefs, privacyRequests: requests }, { ...session.headers, 'Content-Disposition': 'attachment; filename="arandu-dados.json"' });
+  }
+  if (action === 'request') {
+    if (req.method === 'GET') {
+      const requests = await dataRequest(`privacy_requests?user_id=eq.${userId}&select=id,request_type,status,due_at,completed_at,created_at&order=created_at.desc&limit=50`, { method: 'GET', headers: { Prefer: '' } });
+      return json(res, 200, { ok: true, requests }, session.headers);
+    }
+    if (req.method !== 'POST') return json(res, 405, { ok: false, error: 'Método não permitido.' });
+    await enforceRateLimit(req, 'privacy-request', 5, 24 * 60 * 60 * 1000);
+    const body = await readBody(req);
+    const requestType = clean(body.requestType || body.request_type);
+    if (!PRIVACY_REQUEST_TYPES.has(requestType)) throw new HttpError(400, 'Tipo de solicitação LGPD inválido.');
+    const record = firstRecord(await dataRequest('privacy_requests', { method: 'POST', body: JSON.stringify({ user_id: session.user.id, request_type: requestType, details: { message: limited(body.message, 1000) || null } }) }));
+    await writeAudit({ actorType: 'user', actorRef: session.user.id, action: `privacy.${requestType}.requested`, entityType: 'privacy_request', entityId: record?.id || null });
+    return json(res, 201, { ok: true, request: record ? { id: record.id, requestType: record.request_type, status: record.status, dueAt: record.due_at, createdAt: record.created_at } : null }, session.headers);
+  }
+  return json(res, 404, { ok: false, error: 'Rota de privacidade não encontrada.' });
+}
+
+function conversionPayload(value) {
+  const source = safeObject(value);
+  const result = {};
+  ['artworkId','collectionId','source','target'].forEach((key) => { if (source[key] !== undefined) result[key] = limited(source[key], 160); });
+  ['resultCount','queryLength'].forEach((key) => { const number = Number(source[key]); if (Number.isFinite(number)) result[key] = Math.max(0, Math.min(10000, Math.round(number))); });
+  return result;
+}
+
+async function handleConversionEvents(req, res) {
+  if (req.method !== 'POST') return json(res, 405, { ok: false, error: 'Método não permitido.' });
+  await enforceRateLimit(req, 'conversion-events', 180, 10 * 60 * 1000);
+  const body = await readBody(req);
+  const eventType = clean(body.eventType || body.event_type);
+  const anonymousId = clean(body.anonymousId || body.anonymous_id);
+  const consentVersion = clean(body.consentVersion || body.consent_version);
+  if (!CONVERSION_EVENT_TYPES.has(eventType)) throw new HttpError(400, 'Evento de conversão inválido.');
+  if (!validPilotSessionId(anonymousId)) throw new HttpError(400, 'Identificador anônimo inválido.');
+  if (consentVersion !== CONSENT_VERSION) throw new HttpError(403, 'Consentimento de métricas ausente ou desatualizado.', 'analytics_consent_required');
+  const { user } = await optionalUser(req);
+  requireDataConfig();
+  await dataRequest('conversion_events', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ anonymous_id: anonymousId, user_id: user?.id || null, event_type: eventType, path: limited(body.path, 240) || '/', payload: conversionPayload(body.payload), consent_version: CONSENT_VERSION }) });
+  return json(res, 201, { ok: true, stored: true });
 }
 
 async function handleDashboard(req, res) {
@@ -806,7 +1039,7 @@ async function handleAuth(req, res, action) {
 
   if (action === 'login') {
     if (req.method !== 'POST') return json(res, 405, { ok: false, error: 'Método não permitido.' });
-    enforceRateLimit(req, 'auth-login', 12, 10 * 60 * 1000);
+    await enforceRateLimit(req, 'auth-login', 12, 10 * 60 * 1000);
     if (!authConfigured()) throw new HttpError(503, 'Autenticação Supabase ainda não configurada.');
     const body = await readBody(req);
     const email = cleanEmail(body.email);
@@ -816,9 +1049,25 @@ async function handleAuth(req, res, action) {
     return json(res, 200, { ok: true, authenticated: true, user: publicUser(result.user) }, { 'Set-Cookie': sessionCookie(result) });
   }
 
+  if (action === 'reset-password') {
+    if (req.method !== 'POST') return json(res, 405, { ok: false, error: 'Método não permitido.' });
+    await enforceRateLimit(req, 'auth-reset-password', 5, 60 * 60 * 1000);
+    if (!authConfigured()) throw new HttpError(503, 'Autenticação Supabase ainda não configurada.');
+    const body = await readBody(req);
+    const email = cleanEmail(body.email);
+    if (!validEmail(email)) throw new HttpError(400, 'Informe um e-mail válido.');
+    const redirectTo = publicSiteUrl() ? `${publicSiteUrl()}/login.html?recovery=1` : null;
+    try {
+      await supabaseAuth(`recover${redirectTo ? `?redirect_to=${encodeURIComponent(redirectTo)}` : ''}`, { method: 'POST', body: JSON.stringify({ email }) });
+    } catch (error) {
+      console.error(JSON.stringify({ level: 'error', event: 'auth.password_recovery_failed', message: limited(error?.message, 180) }));
+    }
+    return json(res, 202, { ok: true, message: 'Se existir uma conta para este e-mail, enviaremos as instruções de recuperação.' });
+  }
+
   if (action === 'signup') {
     if (req.method !== 'POST') return json(res, 405, { ok: false, error: 'Método não permitido.' });
-    enforceRateLimit(req, 'auth-signup', 8, 60 * 60 * 1000);
+    await enforceRateLimit(req, 'auth-signup', 8, 60 * 60 * 1000);
     if (!authConfigured()) throw new HttpError(503, 'Autenticação Supabase ainda não configurada.');
     const body = await readBody(req);
     if (clean(body.website)) return json(res, 202, { ok: true, authenticated: false, needsEmailConfirmation: true });
@@ -851,6 +1100,8 @@ function routeFrom(req) {
 }
 
 export default async function handler(req, res) {
+  const requestId = limited(req.headers?.['x-request-id'], 80) || randomUUID();
+  res.setHeader('X-Request-ID', requestId);
   try {
     const route = routeFrom(req);
     if (route === 'forms') return await handleForms(req, res);
@@ -862,7 +1113,10 @@ export default async function handler(req, res) {
     if (route === 'artists') return await handleArtists(req, res);
     if (route === 'public-config') return await handlePublicConfig(req, res);
     if (route === 'events') return await handleEvents(req, res);
+    if (route === 'conversion-events') return await handleConversionEvents(req, res);
     if (route.startsWith('pilot/')) return await handlePilot(req, res, route.split('/')[1]);
+    if (route.startsWith('privacy/')) return await handlePrivacy(req, res, route.split('/')[1]);
+    if (route === 'catalog-review') return await handleCatalogReview(req, res);
     if (route === 'admin') return await handleAdmin(req, res);
     if (route === 'admin-update') return await handleAdminUpdate(req, res);
     if (route === 'operational') return await handleOperational(req, res);
@@ -882,8 +1136,8 @@ export default async function handler(req, res) {
       : error instanceof HttpError || status < 500
         ? error.message || 'Não foi possível concluir a solicitação.'
         : 'Não foi possível concluir a solicitação agora.';
-    if (status >= 500 && !(error instanceof HttpError && error.code === 'catalog_not_verified')) console.error(`[Arandu API] ${route}:`, error?.message || error);
+    if (status >= 500 && !(error instanceof HttpError && error.code === 'catalog_not_verified')) console.error(JSON.stringify({ level: 'error', service: 'arandu-api', requestId, route, status, code: error?.code || null, message: limited(error?.message, 220) || 'Erro desconhecido' }));
     if (route === 'certificate-document') return html(res, status, `<h1>Erro ao gerar certificado</h1><p>${escapeHtml(message)}</p>`);
-    return json(res, status, { ok: false, error: message, ...(error?.code ? { code: error.code } : {}) });
+    return json(res, status, { ok: false, error: message, requestId, ...(error?.code ? { code: error.code } : {}) });
   }
 }

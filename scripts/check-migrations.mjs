@@ -20,15 +20,18 @@ for (const [flow, files] of Object.entries(manifest)) {
   const sprint2 = files.indexOf('docs/supabase-sprint2-catalog-readiness.sql');
   const collections = files.indexOf('docs/arandu-mvp-collections.sql');
   const sprint5 = files.indexOf('docs/supabase-sprint5-pilot.sql');
+  const platform = files.indexOf('docs/supabase-sprint6-12-platform.sql');
   const production = files.indexOf('docs/supabase-production.sql');
   if (sprint2 === -1) issues.push(`${flow}: migration do Sprint 2 ausente.`);
   if (sprint5 === -1) issues.push(`${flow}: migration do Sprint 5 ausente.`);
+  if (platform === -1) issues.push(`${flow}: migration dos Sprints 6 a 12 ausente.`);
   if (collections === -1) issues.push(`${flow}: migration de coleções públicas ausente.`);
   if (production === -1) issues.push(`${flow}: migration de produção ausente.`);
   if (sprint2 !== -1 && production !== -1 && sprint2 < production) issues.push(`${flow}: a migration do Sprint 2 precisa vir depois da camada de produção para fechar as políticas.`);
   if (sprint5 < sprint2) issues.push(`${flow}: a migration do Sprint 5 precisa vir depois do gate de catálogo.`);
   if (collections !== -1 && sprint2 !== -1 && collections < sprint2) issues.push(`${flow}: coleções precisam vir depois do gate de catálogo.`);
   if (collections !== -1 && sprint5 !== -1 && collections > sprint5) issues.push(`${flow}: coleções precisam vir antes da telemetria do piloto.`);
+  if (platform !== -1 && sprint5 !== -1 && platform < sprint5) issues.push(`${flow}: hardening da plataforma precisa vir depois da migration do piloto.`);
 }
 
 console.log('Arandu Migration Order Check');

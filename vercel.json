@@ -8,7 +8,13 @@
     { "source": "/acervo.html", "destination": "/comprar-arte.html", "permanent": true },
     { "source": "/empresas.html", "destination": "/empresas-e-arquitetos.html", "permanent": true },
     { "source": "/privacidade.html", "destination": "/politica-de-privacidade.html", "permanent": true },
-    { "source": "/politica-de-devolucao.html", "destination": "/compra-reserva-reembolso.html", "permanent": true }
+    { "source": "/politica-de-devolucao.html", "destination": "/compra-reserva-reembolso.html", "permanent": true },
+    { "source": "/obra-estudo-de-solo-04.html", "destination": "/obra.html?id=estudo-de-solo-04", "permanent": true },
+    { "source": "/obra-sertao-silencioso.html", "destination": "/obra.html?id=sertao-silencioso", "permanent": true },
+    { "source": "/obra-equilibrio-suspenso.html", "destination": "/obra.html?id=equilibrio-suspenso", "permanent": true },
+    { "source": "/narrativas.html", "destination": "/narrativa.html", "permanent": true },
+    { "source": "/autenticidade.html", "destination": "/confianca.html", "permanent": true },
+    { "source": "/certificado-arandu.html", "destination": "/verificar-certificado.html", "permanent": true }
   ],
   "headers": [
     {
@@ -17,7 +23,10 @@
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" }
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" },
+        { "key": "Strict-Transport-Security", "value": "max-age=31536000; includeSubDomains" },
+        { "key": "Cross-Origin-Opener-Policy", "value": "same-origin" },
+        { "key": "Content-Security-Policy-Report-Only", "value": "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self' https://*.supabase.co; frame-ancestors 'self'; base-uri 'self'; form-action 'self'" }
       ]
     },
     {

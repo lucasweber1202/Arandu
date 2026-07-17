@@ -130,6 +130,11 @@ if (!process.env.SUPABASE_ANON_KEY && !process.env.SUPABASE_SERVICE_ROLE_KEY) wa
 if (!process.env.ARANDU_ADMIN_TOKEN) warnings.push('ARANDU_ADMIN_TOKEN ainda não está configurado no ambiente de produção.');
 if (!['1','true','yes','sim'].includes(String(process.env.ARANDU_BRAND_READY || '').toLowerCase())) warnings.push('Identidade final ainda não foi aprovada com ARANDU_BRAND_READY=true.');
 if (!['1','true','yes','sim'].includes(String(process.env.ARANDU_COMMERCIAL_READY || '').toLowerCase())) warnings.push('Política comercial ainda não foi aprovada com ARANDU_COMMERCIAL_READY=true.');
+if (!['1','true','yes','sim'].includes(String(process.env.ARANDU_DISTRIBUTED_RATE_LIMIT || '').toLowerCase())) warnings.push('Rate limit distribuído ainda não foi confirmado com ARANDU_DISTRIBUTED_RATE_LIMIT=true.');
+if (!['1','true','yes','sim'].includes(String(process.env.ARANDU_ERROR_MONITORING_READY || '').toLowerCase())) warnings.push('Monitoramento e alertas ainda não foram confirmados com ARANDU_ERROR_MONITORING_READY=true.');
+if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(process.env.ARANDU_PRIVACY_CONTACT_EMAIL || '').trim())) warnings.push('Contato LGPD ainda não foi configurado em ARANDU_PRIVACY_CONTACT_EMAIL.');
+const backupVerifiedAt = Date.parse(String(process.env.ARANDU_BACKUP_VERIFIED_AT || ''));
+if (!Number.isFinite(backupVerifiedAt) || Date.now() - backupVerifiedAt > 30 * 24 * 60 * 60 * 1000) warnings.push('Restauração de backup não foi comprovada nos últimos 30 dias em ARANDU_BACKUP_VERIFIED_AT.');
 
 if (warnings.length) {
   console.warn('Atenções antes de produção:');

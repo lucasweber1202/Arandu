@@ -6,6 +6,10 @@ const ROUTES = [
   '/api/artists',
   '/api/public-config',
   '/api/events',
+  '/api/conversion-events',
+  '/api/catalog-review',
+  '/api/privacy/export',
+  '/api/privacy/request',
   '/api/pilot/session',
   '/api/pilot/access',
   '/api/pilot/feedback',
@@ -22,6 +26,7 @@ const ROUTES = [
   '/api/auth/session',
   '/api/auth/login',
   '/api/auth/signup',
+  '/api/auth/reset-password',
   '/api/auth/logout'
 ];
 
@@ -59,6 +64,11 @@ function productionSiteConfigured() {
   } catch {
     return false;
   }
+}
+
+function recentBackupVerified() {
+  const timestamp = Date.parse(String(process.env.ARANDU_BACKUP_VERIFIED_AT || ''));
+  return Number.isFinite(timestamp) && timestamp <= Date.now() && Date.now() - timestamp <= 30 * 24 * 60 * 60 * 1000;
 }
 
 function cleanNumber(value) {
@@ -146,6 +156,9 @@ async function runSupabaseProbes(enabled) {
     probeSupabaseResource('View v_public_artists', 'v_public_artists?select=id&limit=1'),
     probeSupabaseResource('View v_public_catalog', 'v_public_catalog?select=id&limit=1'),
     probeSupabaseResource('View v_public_collections', 'v_public_collections?select=id&limit=1'),
+    probeSupabaseResource('Workflow editorial', 'v_catalog_editorial_readiness?select=*&limit=1'),
+    probeSupabaseResource('Solicitações LGPD', 'privacy_requests?select=id&limit=1'),
+    probeSupabaseResource('Rate limit distribuído', 'api_rate_limits?select=scope&limit=1'),
     probeSupabaseResource('View v_sales_pipeline', 'v_sales_pipeline?select=id&limit=1')
   ]);
 
@@ -177,6 +190,10 @@ function buildChecks() {
     contactChannel: whatsappDigits.length >= 12 || validEmail(process.env.ARANDU_CONTACT_EMAIL),
     brandReady: enabled('ARANDU_BRAND_READY'),
     commercialReady: enabled('ARANDU_COMMERCIAL_READY'),
+    distributedRateLimit: enabled('ARANDU_DISTRIBUTED_RATE_LIMIT'),
+    privacyContact: validEmail(process.env.ARANDU_PRIVACY_CONTACT_EMAIL || process.env.ARANDU_CONTACT_EMAIL),
+    errorMonitoring: enabled('ARANDU_ERROR_MONITORING_READY'),
+    backupVerified: recentBackupVerified(),
     pilotEnabled,
     pilotAccessCode,
     pilotSecret,
@@ -193,6 +210,10 @@ function missingFrom(checks) {
   if (!checks.contactChannel) missing.push('ARANDU_WHATSAPP_NUMBER ou ARANDU_CONTACT_EMAIL');
   if (!checks.brandReady) missing.push('ARANDU_BRAND_READY');
   if (!checks.commercialReady) missing.push('ARANDU_COMMERCIAL_READY');
+  if (!checks.distributedRateLimit) missing.push('ARANDU_DISTRIBUTED_RATE_LIMIT');
+  if (!checks.privacyContact) missing.push('ARANDU_PRIVACY_CONTACT_EMAIL ou ARANDU_CONTACT_EMAIL');
+  if (!checks.errorMonitoring) missing.push('ARANDU_ERROR_MONITORING_READY');
+  if (!checks.backupVerified) missing.push('ARANDU_BACKUP_VERIFIED_AT recente');
   if (checks.pilotEnabled && !checks.pilotAccessCode) missing.push('ARANDU_PILOT_ACCESS_CODE');
   if (checks.pilotEnabled && !checks.pilotSecret) missing.push('ARANDU_PILOT_SECRET');
   if (!checks.pilotApproved) missing.push('ARANDU_PILOT_APPROVED');
@@ -207,6 +228,10 @@ function nextCriticalActions(checks, supabaseProbe, catalogReady) {
     !checks.contactChannel ? 'Configurar WhatsApp real ou e-mail de atendimento.' : null,
     !checks.brandReady ? 'Aprovar a identidade visual final e definir ARANDU_BRAND_READY=true.' : null,
     !checks.commercialReady ? 'Aprovar a política comercial e definir ARANDU_COMMERCIAL_READY=true.' : null,
+    !checks.distributedRateLimit ? 'Ativar ARANDU_DISTRIBUTED_RATE_LIMIT após aplicar a migration de plataforma.' : null,
+    !checks.privacyContact ? 'Configurar o contato responsável por solicitações LGPD.' : null,
+    !checks.errorMonitoring ? 'Configurar monitoramento externo e definir ARANDU_ERROR_MONITORING_READY=true.' : null,
+    !checks.backupVerified ? 'Executar uma restauração de teste e registrar ARANDU_BACKUP_VERIFIED_AT.' : null,
     checks.pilotEnabled && !checks.pilotReady ? 'Completar código e segredo do piloto fechado.' : null,
     !checks.pilotApproved ? 'Concluir o piloto fechado, resolver bloqueadores e definir ARANDU_PILOT_APPROVED=true.' : null,
     supabaseProbe && supabaseProbe.skipped ? 'Rodar /api/health?probe=1 para testar tabelas e views reais do Supabase.' : null,
@@ -242,6 +267,10 @@ export default async function handler(req, res) {
     checks.contactChannel &&
     checks.brandReady &&
     checks.commercialReady &&
+    checks.distributedRateLimit &&
+    checks.privacyContact &&
+    checks.errorMonitoring &&
+    checks.backupVerified &&
     checks.pilotApproved
   );
   const verifiedReady = Boolean(productionReady && !supabaseProbe.skipped && supabaseProbe.ok && catalogReady);
@@ -268,6 +297,10 @@ export default async function handler(req, res) {
       domain: checks.siteUrl,
       brand: checks.brandReady,
       commercial: checks.commercialReady,
+      privacy: checks.privacyContact,
+      abuseProtection: checks.distributedRateLimit,
+      monitoring: checks.errorMonitoring,
+      backup: checks.backupVerified,
       pilot: checks.pilotApproved,
       pilotRuntime: checks.pilotReady,
       database: !supabaseProbe.skipped && supabaseProbe.ok,

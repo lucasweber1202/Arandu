@@ -65,6 +65,10 @@
       ['Catálogo', readiness.catalog, 'Dados reais, autorizações, volume mínimo e escrita verificada.'],
       ['Marca', readiness.brand, 'Identidade final aprovada.'],
       ['Comercial', readiness.commercial, 'Política, prazos e responsabilidades aprovados.'],
+      ['LGPD', readiness.privacy, 'Contato responsável e fluxos de direitos configurados.'],
+      ['Antiabuso', readiness.abuseProtection, 'Rate limit compartilhado entre instâncias.'],
+      ['Monitoramento', readiness.monitoring, 'Erros e indisponibilidade geram alertas externos.'],
+      ['Backup', readiness.backup, 'Restauração testada nos últimos 30 dias.'],
       ['Piloto', readiness.pilot, 'Ciclo fechado concluído e bloqueadores resolvidos.'],
       ['API', payload.ok, 'Roteador e health check respondendo.']
     ].forEach(([name, ok, text]) => {
@@ -137,6 +141,10 @@
       ['Canal de atendimento', checks.contactChannel],
       ['Marca aprovada', checks.brandReady],
       ['Política comercial aprovada', checks.commercialReady],
+      ['Rate limit distribuído', checks.distributedRateLimit],
+      ['Contato LGPD', checks.privacyContact],
+      ['Monitoramento de erros', checks.errorMonitoring],
+      ['Backup restaurado recentemente', checks.backupVerified],
       ['Piloto concluído', checks.pilotApproved],
       ...(checks.pilotEnabled ? [
         ['Piloto habilitado', true, 'Cohort fechado ativo.'],

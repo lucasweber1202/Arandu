@@ -1,7 +1,5 @@
 const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
-const SUPABASE_KEY = SUPABASE_SERVICE_KEY || SUPABASE_ANON_KEY;
 
 const COLLECTION_SELECT = [
   'id','slug','title','summary','curatorial_axis','audience','position','hero_image_url',
@@ -33,7 +31,7 @@ function json(res, status, payload) {
 }
 
 function hasDataConfig() {
-  return Boolean(SUPABASE_URL && SUPABASE_KEY);
+  return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 }
 
 function clean(value) {
@@ -48,8 +46,8 @@ async function dataRequest(resource) {
   if (!hasDataConfig()) throw new HttpError(503, 'O banco de produção ainda não está configurado.', 'database_unconfigured');
   const response = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/rest/v1/${resource}`, {
     headers: {
-      apikey: SUPABASE_KEY,
-      Authorization: `Bearer ${SUPABASE_KEY}`,
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
       'Content-Type': 'application/json',
       Prefer: ''
     }

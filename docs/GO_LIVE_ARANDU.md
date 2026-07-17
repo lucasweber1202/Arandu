@@ -25,6 +25,9 @@ O Arandu deve sair do preview fechado somente quando os gates abaixo estiverem c
 - catálogo com no mínimo 5 artistas e 20 obras reais;
 - identidades, fontes, preços, disponibilidade e autorizações verificados;
 - teste canário de escrita concluído;
+- rate limit distribuído confirmado;
+- contato LGPD, monitoramento de erros e alertas configurados;
+- restauração de backup comprovada nos últimos 30 dias;
 - `/api/health?probe=1` com `verifiedReady: true`.
 
 ## 3. Catálogo real
@@ -90,6 +93,7 @@ npm run check:catalog:release
 npm run check:domain:release
 npm run check:commercial:release
 npm run check:pilot:release
+npm run check:platform:release
 npm run predeploy
 ```
 
@@ -107,4 +111,4 @@ No preview e novamente em produção:
 
 Pode lançar quando `npm run predeploy` passar, o health check estiver verificado e o piloto não tiver bloqueadores críticos. Se um check de release falhar, a abertura permanece bloqueada até a evidência correspondente ser registrada.
 
-Detalhes de implementação e responsabilidades: `docs/SPRINTS_2_A_5_IMPLEMENTACAO.md` e `docs/SETUP_PRODUCAO.md`.
+Detalhes de implementação e responsabilidades: `docs/SPRINTS_2_A_5_IMPLEMENTACAO.md`, `docs/SPRINTS_6_A_12_IMPLEMENTACAO.md` e `docs/SETUP_PRODUCAO.md`.

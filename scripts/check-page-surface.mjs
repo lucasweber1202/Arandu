@@ -1,0 +1,6 @@
+import fs from 'node:fs';
+const issues=[];const routes=JSON.parse(fs.readFileSync('data/public-routes.json','utf8'));const lifecycle=JSON.parse(fs.readFileSync('data/page-lifecycle.json','utf8'));const vercel=JSON.parse(fs.readFileSync('vercel.json','utf8'));const redirects=new Map((vercel.redirects||[]).map((item)=>[item.source.replace(/^\//,''),item.destination.replace(/^\//,'')]));
+if(routes.canonical.length>lifecycle.indexableBudget)issues.push(`Superfície indexável excede o orçamento de ${lifecycle.indexableBudget} páginas.`);
+for(const [source,target] of Object.entries(lifecycle.retiredRedirects||{})){if(!fs.existsSync(source))issues.push(`Rota aposentada ausente: ${source}.`);if(redirects.get(source)!==target)issues.push(`Redirect de aposentadoria ausente: ${source} -> ${target}.`);}
+const sitemap=fs.readFileSync('sitemap.xml','utf8');for(const source of Object.keys(lifecycle.retiredRedirects||{})){if(sitemap.includes(source))issues.push(`Rota aposentada ainda aparece no sitemap: ${source}.`);}
+console.log('Arandu Page Surface Check');console.log(`Rotas indexáveis: ${routes.canonical.length}/${lifecycle.indexableBudget}`);console.log(`Rotas aposentadas: ${Object.keys(lifecycle.retiredRedirects||{}).length}`);console.log(`Erros: ${issues.length}`);issues.forEach((item)=>console.error(`- ${item}`));if(issues.length)process.exit(1);

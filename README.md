@@ -127,6 +127,7 @@ docs/supabase-sprint1-auth-ownership.sql
 docs/supabase-sprint2-catalog-readiness.sql
 docs/arandu-mvp-collections.sql
 docs/supabase-sprint5-pilot.sql
+docs/supabase-sprint6-12-platform.sql
 ```
 
 Banco existente:
@@ -137,6 +138,7 @@ docs/supabase-production.sql
 docs/supabase-sprint2-catalog-readiness.sql
 docs/arandu-mvp-collections.sql
 docs/supabase-sprint5-pilot.sql
+docs/supabase-sprint6-12-platform.sql
 ```
 
 A migration do Sprint 2 deve vir depois de `supabase-production.sql`, pois fecha as policies públicas do catálogo. A migration de coleções depende das views seguras criadas no Sprint 2 e deve vir logo depois dela.

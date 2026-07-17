@@ -188,3 +188,5 @@ html, body {
 @media (max-width: 480px) {
   .site-actions .auth-entry { display: none; }
 }
+
+.skip-link{position:fixed;left:1rem;top:-5rem;z-index:10000;background:#180804;color:#fff8ed;padding:.8rem 1rem;border-radius:.25rem}.skip-link:focus{top:1rem}.privacy-banner{position:fixed;z-index:9998;left:1rem;right:1rem;bottom:1rem;display:flex;align-items:center;justify-content:space-between;gap:1.25rem;max-width:1120px;margin:auto;padding:1rem 1.2rem;background:#fff8ed;color:#211713;border:1px solid #7b1f17;box-shadow:0 18px 60px rgba(24,8,4,.24)}.privacy-banner p{margin:.35rem 0 0;max-width:720px}.privacy-banner-actions{display:flex;align-items:center;justify-content:flex-end;gap:.6rem;flex-wrap:wrap}.privacy-banner-actions a{font-weight:800;color:#7b1f17}@media(max-width:760px){.privacy-banner{align-items:stretch;flex-direction:column}.privacy-banner-actions{justify-content:flex-start}.privacy-banner-actions .cta{flex:1}}
