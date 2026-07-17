@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { evaluateCatalogRelease } from './lib/catalog-readiness.mjs';
 
 const root = process.cwd();
 const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -17,7 +18,7 @@ function requiredEnv() {
   if (DRY_RUN) return;
   const missing = [];
   if (!SUPABASE_URL) missing.push('SUPABASE_URL');
-  if (!SUPABASE_KEY) missing.push('SUPABASE_SERVICE_ROLE_KEY ou SUPABASE_ANON_KEY');
+  if (!SUPABASE_SERVICE_KEY) missing.push('SUPABASE_SERVICE_ROLE_KEY');
   if (missing.length) {
     console.error(`Variáveis ausentes: ${missing.join(', ')}`);
     console.error('Use npm run seed:supabase -- --dry-run para validar sem enviar ao banco.');
@@ -65,6 +66,10 @@ function artistRows(artists) {
     artist_level: artist.artistLevel || artist.artist_level || 'emerging',
     image_url: artist.imageUrl || artist.image_url || null,
     studio_image_url: artist.studioImageUrl || artist.studio_image_url || null,
+    identity_verified: artist.identityVerified === true || artist.identity_verified === true,
+    publishing_consent_at: artist.publishingConsentAt || artist.publishing_consent_at || null,
+    verified_at: artist.verifiedAt || artist.verified_at || null,
+    source_reference: artist.sourceReference || artist.source_reference || null,
     payload: artist
   }));
 }
@@ -90,6 +95,11 @@ function artworkRows(artworks) {
     main_image_url: artwork.mainImageUrl || artwork.main_image_url || null,
     detail_image_url: artwork.detailImageUrl || artwork.detail_image_url || null,
     room_image_url: artwork.roomImageUrl || artwork.room_image_url || null,
+    image_authorized_at: artwork.imageAuthorizedAt || artwork.image_authorized_at || null,
+    price_verified_at: artwork.priceVerifiedAt || artwork.price_verified_at || null,
+    availability_verified_at: artwork.availabilityVerifiedAt || artwork.availability_verified_at || null,
+    catalog_verified_at: artwork.catalogVerifiedAt || artwork.catalog_verified_at || null,
+    source_reference: artwork.sourceReference || artwork.source_reference || null,
     recommended_for: artwork.recommendedFor || [],
     tags: artwork.tags || [],
     moods: artwork.moods || [],
@@ -150,16 +160,32 @@ async function main() {
   const artists = readJson('data/artists.json');
   const artworks = readJson('data/artworks.json');
   const certificates = readJson('data/certificates.json');
+  const release = readJson('data/catalog-release.json');
+  const readiness = evaluateCatalogRelease({ artists, artworks, release });
 
   console.log('Arandu Supabase Seed');
   console.log(`Artistas: ${artists.length}`);
   console.log(`Obras: ${artworks.length}`);
   console.log(`Certificados: ${certificates.length}`);
+  console.log(`Catálogo verificado: ${readiness.verifiedReady}`);
+
+  if (!DRY_RUN && !readiness.verifiedReady) {
+    throw new Error(`Seed de produção bloqueado. ${readiness.issues.join(' ')}`);
+  }
 
   await resetTables();
   await upsert('artists', artistRows(artists), 'id');
   await upsert('artworks', artworkRows(artworks), 'id');
   await upsert('certificates', certificateRows(certificates), 'code');
+  await upsert('catalog_releases', [{
+    id: release.releaseId || 'production',
+    dataset_version: release.datasetVersion || 'unconfigured',
+    dataset_kind: release.datasetKind || 'demonstration',
+    verified_ready: readiness.verifiedReady,
+    verified_by: release.verifiedBy || null,
+    verified_at: readiness.verifiedReady ? (release.verifiedAt || new Date().toISOString()) : null,
+    notes: release.notes || null
+  }], 'id');
 
   console.log(DRY_RUN ? 'Dry-run concluído. Nenhum dado foi enviado.' : 'Seed concluído.');
 }

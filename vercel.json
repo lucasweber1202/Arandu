@@ -3,6 +3,13 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "cleanUrls": false,
+  "redirects": [
+    { "source": "/obras.html", "destination": "/comprar-arte.html", "permanent": true },
+    { "source": "/acervo.html", "destination": "/comprar-arte.html", "permanent": true },
+    { "source": "/empresas.html", "destination": "/empresas-e-arquitetos.html", "permanent": true },
+    { "source": "/privacidade.html", "destination": "/politica-de-privacidade.html", "permanent": true },
+    { "source": "/politica-de-devolucao.html", "destination": "/compra-reserva-reembolso.html", "permanent": true }
+  ],
   "headers": [
     {
       "source": "/(.*)",

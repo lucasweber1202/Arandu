@@ -1,143 +1,165 @@
 # Setup de produção — Arandu
 
-## 1. Puxar a versão atual
-
-No Codespace:
+## 1. Preparar e validar o código
 
 ```bash
-git checkout main
-git pull origin main
 npm install
-```
-
-## 2. Validar localmente
-
-```bash
-npm run check:backend
-npm run check:security
 npm run check:all
 npm run build
 ```
 
-## 3. Testar preview local
+Os checks normais validam código e contratos. Os checks `*:release` validam decisões e dependências externas; por isso devem falhar enquanto os gates não estiverem concluídos.
 
-```bash
-npm run dev
-```
+## 2. Configurar o ambiente de preview
 
-Abrir a porta `5173` no Codespace.
-
-## 4. Configurar Vercel
-
-Em Project Settings > Environment Variables, configurar em Production:
+Use um preview protegido e configure:
 
 ```bash
 SUPABASE_URL=
 SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 ARANDU_ADMIN_TOKEN=
+
+ARANDU_SITE_URL=https://dominio-proprio.example
 ARANDU_WHATSAPP_NUMBER=
 ARANDU_CONTACT_EMAIL=
-ARANDU_SITE_URL=
+ARANDU_BRAND_READY=false
+ARANDU_COMMERCIAL_READY=false
+
+ARANDU_PILOT_ENABLED=true
+ARANDU_PILOT_APPROVED=false
+ARANDU_PILOT_ACCESS_CODE=
+ARANDU_PILOT_SECRET=
 ```
 
-Depois rodar novo deploy.
+Requisitos:
 
-## 5. Confirmar que o erro de funções sumiu
+- `ARANDU_SITE_URL`: HTTPS e domínio próprio, sem `*.vercel.app` ou `localhost`;
+- ao menos um canal real de contato;
+- código do piloto com pelo menos 10 caracteres;
+- segredo do piloto com pelo menos 32 caracteres;
+- chaves Supabase e token administrativo somente no ambiente servidor.
 
-A arquitetura atual usa:
+Não coloque segredos em arquivos públicos, HTML ou JavaScript do navegador.
 
-```text
-api/[...path].js
-api/collections.js
-api/commercial.js
-api/health.js
-api/mvp-dashboard.js
-api/upload.js
-```
+## 3. Aplicar migrations do Supabase
 
-Ou seja: 6 funções serverless no total, ainda abaixo do limite de 12 do plano Hobby.
+A ordem fonte de verdade está em `docs/supabase-migrations.json`.
 
-Não devem existir funções antigas como `api/forms.js`, `api/catalog.js`, `api/admin.js` ou `api/auth/login.js`.
+Instalação nova:
 
-## 6. Configurar Supabase
+1. `docs/supabase-schema.sql`
+2. `docs/supabase-production.sql`
+3. `docs/supabase-sprint1-auth-ownership.sql`
+4. `docs/supabase-sprint2-catalog-readiness.sql`
+5. `docs/arandu-mvp-collections.sql`
+6. `docs/supabase-sprint5-pilot.sql`
 
-1. Criar projeto Supabase, se ainda não existir.
-2. Em instalação nova, rodar `docs/supabase-schema.sql`, `docs/supabase-production.sql` e `docs/supabase-sprint1-auth-ownership.sql`, nesta ordem.
-3. Em banco já existente, rodar primeiro `docs/supabase-sprint1-auth-ownership.sql` e depois executar novamente `docs/supabase-production.sql`.
-4. Habilitar login por email/senha e configurar a URL final de redirecionamento em Authentication.
-5. Copiar URL, anon key e service role key para a Vercel.
-6. Rodar seed:
+Banco existente:
+
+1. `docs/supabase-sprint1-auth-ownership.sql`
+2. `docs/supabase-production.sql`
+3. `docs/supabase-sprint2-catalog-readiness.sql`
+4. `docs/arandu-mvp-collections.sql`
+5. `docs/supabase-sprint5-pilot.sql`
+
+O Sprint 2 precisa ser aplicado depois de `supabase-production.sql`, porque substitui as policies permissivas do catálogo. As coleções dependem das views públicas seguras do Sprint 2. O Sprint 5 cria somente as tabelas privadas de eventos e feedback do piloto.
 
 ```bash
+npm run check:migrations
+```
+
+No Supabase Auth, habilite email/senha e configure as URLs reais de redirecionamento.
+
+## 4. Preparar o catálogo real
+
+1. Substitua os fixtures por registros comprovados.
+2. Preencha identidade, origem, consentimento de publicação e datas de verificação dos artistas.
+3. Preencha autorização da imagem, origem, preço, disponibilidade e data de verificação das obras.
+4. Garanta pelo menos 5 artistas e 20 obras elegíveis.
+5. Atualize `data/catalog-release.json` para `datasetKind: "real"` e `verifiedReady: true` somente após revisão humana.
+6. Rode:
+
+```bash
+npm run check:catalog:release
 npm run seed:supabase:dry
 npm run seed:supabase
 ```
 
-## 7. Testar rotas em produção
+O catálogo público retorna indisponibilidade controlada até que o gate real esteja aprovado; ele não reutiliza fixtures como se fossem produção.
 
-```text
-/api/catalog
-/api/artists
-/api/auth/session
-/api/account
-/api/certificates?code=ARANDU-TESTE
-/api/health
-/api/health?probe=1
-/status.html
-```
+## 5. Confirmar escrita real
 
-Sem dados reais, algumas respostas podem vir vazias. O importante é não retornar erro de deploy, função inexistente ou falha de tabela/view.
-
-Teste também o fluxo completo: criar conta, confirmar o e-mail, entrar, salvar uma seleção, solicitar uma reserva, conferir os dois registros em `minha-conta.html` e sair.
-
-## 8. Rodar validação live
-
-Para a URL padrão atual:
+Depois do deploy protegido:
 
 ```bash
-npm run check:live:prod
+ARANDU_WRITE_TEST_URL=https://preview-protegido.example npm run check:supabase:write
 ```
 
-Para outra URL de preview ou domínio:
+O teste cria, relê e remove um registro canário pela API e atualiza `write_verified_at`. Sem essa confirmação, `v_catalog_readiness.verified_ready` permanece falso.
+
+## 6. Aprovar marca e operação comercial
+
+Marca:
+
+- logo, favicon, imagem social e paleta final revisados;
+- domínio e contato reais funcionando;
+- só então definir `ARANDU_BRAND_READY=true`.
+
+Comercial:
+
+- preencher e aprovar todos os itens de `data/commercial-policy.json`;
+- revisar reserva, pagamento, comissão, frete, seguro, avaria, cancelamento, devolução, certificado e responsável operacional;
+- só então definir `ARANDU_COMMERCIAL_READY=true`.
+
+Reservas e propostas permanecem bloqueadas enquanto o gate comercial estiver falso.
 
 ```bash
-npm run check:live -- https://sua-url.vercel.app
+npm run check:domain:release
+npm run check:commercial:release
 ```
 
-O script não substitui a validação visual, mas ajuda a detectar:
+## 7. Executar o piloto fechado
 
-- API fora do ar;
-- JSON inválido;
-- Supabase em modo demo;
-- variáveis ausentes;
-- falhas em `artists`, `artworks`, `v_public_catalog` e `v_sales_pipeline`;
-- página `status.html` indisponível.
+1. Mantenha o deploy protegido no provedor.
+2. Defina `ARANDU_PILOT_ENABLED=true`, código e segredo fortes.
+3. Compartilhe apenas `/piloto.html` com a coorte selecionada.
+4. Acompanhe `/painel-piloto.html` com token administrativo.
+5. Registre feedback; não colete texto digitado, e-mail ou telefone na telemetria de comportamento.
+6. Respeite `Do Not Track` e revise bloqueadores críticos antes de abrir o site.
+7. Após resolver os bloqueadores, defina `ARANDU_PILOT_APPROVED=true` e `ARANDU_PILOT_ENABLED=false` para a abertura pública.
 
-## 9. Interpretar status.html
+```bash
+npm run check:pilot:release
+```
 
-A página `status.html` consulta `/api/health?probe=1` e mostra:
+O check de release exige a conclusão aprovada do piloto. Código e segredo só são obrigatórios enquanto o gate da coorte estiver habilitado.
 
-- se a API está respondendo;
-- se o roteador principal existe;
-- se `SUPABASE_URL` está configurada;
-- se `SUPABASE_ANON_KEY` está configurada;
-- se `SUPABASE_SERVICE_ROLE_KEY` está configurada;
-- se `ARANDU_ADMIN_TOKEN` está configurado;
-- se o canal de contato está configurado;
-- se as tabelas/views principais do Supabase respondem.
+## 8. Testar os fluxos ponta a ponta
 
-Quando todos esses itens estiverem marcados como OK, a parte técnica estará pronta para testar operação real.
+Verifique no preview:
 
-## 10. Antes de abrir redes sociais
+- `/status.html` e `/api/health?probe=1`;
+- catálogo e artistas somente com release verificado;
+- cadastro, confirmação de e-mail, login e logout;
+- seleção sincronizada entre sessões;
+- reserva e proposta somente após aprovação comercial;
+- admin e métricas do piloto com token;
+- sitemap, robots, canonical e redirecionamentos no domínio próprio;
+- navegação por teclado, celular e desktop.
 
-Confirmar:
+Para conferir páginas publicadas:
 
-- domínio funcionando;
-- e-mail ou WhatsApp real funcionando;
-- pelo menos 5 artistas reais;
-- pelo menos 20 obras reais;
-- fotos autorizadas;
-- política comercial revisada;
-- certificado estruturado;
-- 9 posts iniciais prontos.
+```bash
+npm run check:live -- https://preview-protegido.example
+```
+
+## 9. Autorizar lançamento
+
+Rode a barreira final:
+
+```bash
+npm run predeploy
+```
+
+O comando só deve passar quando os gates de catálogo, domínio, comercial e piloto estiverem realmente prontos. Em seguida, faça o deploy de produção e repita `/api/health?probe=1` e os fluxos críticos no domínio final.

@@ -3,7 +3,7 @@
     "name": "Arandu",
     "tagline": "Arte brasileira contemporânea.",
     "description": "Plataforma de curadoria de arte brasileira contemporânea por contexto, trajetória e procedência.",
-    "email": "ola@arandu.art",
+    "email": "",
     "instagram": "https://instagram.com/arandu.art",
     "whatsapp": ""
   },
@@ -18,11 +18,11 @@
     { "label": "FAQ", "href": "faq.html" }
   ],
   "colors": {
-    "paper": "#f7f0e6",
-    "red": "#9e3d2c",
-    "terracotta": "#b85a3c",
-    "coal": "#1f1713",
-    "sand": "#d8c1a5"
+    "paper": "#fffaf6",
+    "red": "#741f1a",
+    "terracotta": "#d76443",
+    "coal": "#21110d",
+    "clay": "#b94d36"
   },
   "core_pillars": [
     "Obra",

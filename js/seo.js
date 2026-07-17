@@ -1,6 +1,11 @@
 /* ARANDU — SEO técnico e dados estruturados */
 (function setupAranduSeo() {
-  const siteUrl = 'https://arandu.vercel.app';
+  const hostname = window.location.hostname;
+  const isCustomProductionHost = window.location.protocol === 'https:'
+    && hostname !== 'localhost'
+    && hostname !== '127.0.0.1'
+    && !hostname.endsWith('.vercel.app');
+  const siteUrl = isCustomProductionHost ? window.location.origin : '';
   const pagePath = window.location.pathname.split('/').pop() || 'index.html';
   const canonicalPath = pagePath === 'index.html' ? '/' : `/${pagePath}`;
   const title = document.title || 'Arandu — Arte brasileira contemporânea';
@@ -34,13 +39,15 @@
     document.head.appendChild(script);
   }
 
-  ensureLink('canonical', `${siteUrl}${canonicalPath}`);
+  if (siteUrl) ensureLink('canonical', `${siteUrl}${canonicalPath}`);
   ensureMeta('og:title', title, 'property');
   ensureMeta('og:description', description, 'property');
   ensureMeta('og:type', pagePath === 'index.html' ? 'website' : 'article', 'property');
-  ensureMeta('og:url', `${siteUrl}${canonicalPath}`, 'property');
+  if (siteUrl) ensureMeta('og:url', `${siteUrl}${canonicalPath}`, 'property');
   ensureMeta('twitter:card', 'summary_large_image');
   ensureMeta('theme-color', '#5a1f1a');
+
+  if (!siteUrl) return;
 
   addJsonLd('arandu-organization-jsonld', {
     '@context': 'https://schema.org',

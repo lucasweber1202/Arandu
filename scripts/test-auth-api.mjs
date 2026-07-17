@@ -5,6 +5,7 @@ process.env.SUPABASE_URL = 'https://arandu-test.supabase.co';
 process.env.SUPABASE_ANON_KEY = 'anon-test-key';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-test-key';
 process.env.ARANDU_ADMIN_TOKEN = 'admin-test-token';
+process.env.ARANDU_COMMERCIAL_READY = 'true';
 
 const { default: handler } = await import(`../api/[...path].js?test=${Date.now()}`);
 

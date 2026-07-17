@@ -19,7 +19,7 @@
   const appendIntro = (payload) => {
     const box = el('div', 'certificate-preview');
     box.appendChild(el('p', 'eyebrow', 'Status da API'));
-    box.appendChild(el('h2', '', payload.verifiedReady ? 'Produção conectada e verificada' : payload.productionReady ? 'Produção configurada, validar banco' : 'Pré-produção'));
+    box.appendChild(el('h2', '', payload.verifiedReady ? 'Lançamento conectado e verificado' : payload.productionReady ? 'Configuração concluída, validar banco e catálogo' : 'Pré-produção'));
     const commit = payload.commit ? ` · Commit: ${String(payload.commit).slice(0, 7)}` : '';
     box.appendChild(el('p', '', `Ambiente: ${payload.environment || 'local'} · Modo: ${payload.mode || 'indefinido'}${commit}`));
 
@@ -54,7 +54,7 @@
     const wrap = el('div', 'collector-guidance');
     const head = el('div');
     head.appendChild(el('p', 'eyebrow', 'Leitura de lançamento'));
-    head.appendChild(el('h2', 'section-title', payload.verifiedReady ? 'Parte técnica conectada. Próximo foco: catálogo, marca e operação.' : payload.productionReady ? 'Variáveis existem. Falta confirmar Supabase real.' : 'Ainda há pendências técnicas antes da divulgação pública.'));
+    head.appendChild(el('h2', 'section-title', payload.verifiedReady ? 'Os gates técnicos, editoriais e comerciais foram confirmados.' : payload.productionReady ? 'Configuração aprovada. Falta confirmar banco e catálogo real.' : 'Ainda há gates pendentes antes da divulgação pública.'));
     wrap.appendChild(head);
     const grid = el('div', 'launch-matrix');
     [
@@ -62,6 +62,10 @@
       ['Banco', readiness.database, 'Tabelas e views respondendo via probe.'],
       ['Contato', readiness.contact, 'WhatsApp ou e-mail real para atendimento.'],
       ['Domínio', readiness.domain, 'URL oficial configurada no ambiente.'],
+      ['Catálogo', readiness.catalog, 'Dados reais, autorizações, volume mínimo e escrita verificada.'],
+      ['Marca', readiness.brand, 'Identidade final aprovada.'],
+      ['Comercial', readiness.commercial, 'Política, prazos e responsabilidades aprovados.'],
+      ['Piloto', readiness.pilot, 'Ciclo fechado concluído e bloqueadores resolvidos.'],
       ['API', payload.ok, 'Roteador e health check respondendo.']
     ].forEach(([name, ok, text]) => {
       const card = el('article', ok ? 'is-ready' : 'is-critical');
@@ -130,7 +134,15 @@
       ['ARANDU_SITE_URL', checks.siteUrl],
       ['WhatsApp', checks.whatsappNumber],
       ['E-mail de contato', checks.contactEmail],
-      ['Canal de atendimento', checks.contactChannel]
+      ['Canal de atendimento', checks.contactChannel],
+      ['Marca aprovada', checks.brandReady],
+      ['Política comercial aprovada', checks.commercialReady],
+      ['Piloto concluído', checks.pilotApproved],
+      ...(checks.pilotEnabled ? [
+        ['Piloto habilitado', true, 'Cohort fechado ativo.'],
+        ['Código do piloto', checks.pilotAccessCode],
+        ['Segredo do piloto', checks.pilotSecret]
+      ] : [])
     ];
 
     clear();

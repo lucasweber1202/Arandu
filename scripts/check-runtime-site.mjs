@@ -1,10 +1,10 @@
 import process from 'node:process';
 import { URL } from 'node:url';
 
-const [, , rawBaseUrl] = process.argv;
+const rawBaseUrl = process.argv[2] || process.env.ARANDU_SITE_URL;
 
 if (!rawBaseUrl) {
-  console.error('Uso: node scripts/check-runtime-site.mjs <url-base>');
+  console.error('Informe <url-base> ou configure ARANDU_SITE_URL.');
   process.exit(2);
 }
 
@@ -13,12 +13,13 @@ const origin = new URL(baseUrl).origin;
 const pages = [
   'index.html',
   'comprar-arte.html',
+  'colecoes.html',
   'obras.html',
   'para-artistas.html',
   'obra.html?id=estudo-de-solo-04',
   'confianca.html'
 ];
-const apiChecks = ['/api/health', '/api/catalog'];
+const apiChecks = ['/api/health', '/api/catalog', '/api/collections'];
 const checked = new Set();
 const failures = [];
 const warnings = [];

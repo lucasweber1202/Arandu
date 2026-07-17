@@ -1,0 +1,11 @@
+{
+  "releaseId": "production",
+  "datasetVersion": "catalog-draft-2026-07-17",
+  "datasetKind": "demonstration",
+  "verifiedReady": false,
+  "minimums": {
+    "artists": 5,
+    "artworks": 20
+  },
+  "notes": "A base local atual serve para desenvolvimento. Substitua os registros por dados reais, documente autorizações e só então altere datasetKind para real e verifiedReady para true."
+}
