@@ -6,6 +6,10 @@ const issues = [];
 const requiredFiles = [
   'api/[...path].js',
   'api/health.js',
+  'api/collections.js',
+  'api/commercial.js',
+  'api/mvp-dashboard.js',
+  'api/upload.js',
   'status.html',
   'js/status.js',
   'css/arandu-visual-polish.css',
@@ -20,6 +24,7 @@ const requiredFiles = [
   'js/painel-edit.js',
   'js/certificate-document-link.js',
   'docs/supabase-schema.sql',
+  'docs/supabase-sprint1-auth-ownership.sql',
   'docs/SUPABASE_OPERACAO.md',
   'scripts/seed-supabase.mjs'
 ];
@@ -52,7 +57,7 @@ removedServerlessFiles.forEach((file) => { if (fs.existsSync(file)) issues.push(
 function includes(file, term) { return fs.existsSync(file) && fs.readFileSync(file, 'utf8').includes(term); }
 
 const api = 'api/[...path].js';
-['forms','reservations','proposals','certificates','certificate-document','catalog','artists','admin','admin-update','operational','media','selections','dashboard','auth/session','auth/login','auth/signup','auth/logout'].forEach((route) => {
+['forms','reservations','proposals','certificates','certificate-document','catalog','artists','admin','admin-update','operational','media','selections','account','dashboard','auth/session','auth/login','auth/signup','auth/logout'].forEach((route) => {
   if (!includes(api, route.split('/')[0])) issues.push(`API consolidada não cobre a rota: /api/${route}`);
 });
 
@@ -89,6 +94,7 @@ if (!includes('js/painel-detalhes.js', '/api/media')) issues.push('Drawer de det
 if (!includes('js/admin-cadastros.js', '/api/admin')) issues.push('Cadastros administrativos não usam /api/admin unificado.');
 if (!includes('js/painel-edit.js', '/api/admin-update')) issues.push('Editor inline não salva via /api/admin-update.');
 if (!includes('js/auth.js', '/api/auth/session')) issues.push('Front de autenticação não consulta sessão.');
+if (!includes('js/auth.js', '/api/account')) issues.push('Minha Conta não consulta dados vinculados ao usuário.');
 if (!includes('js/auth.js', 'pipelineCards')) issues.push('Dashboard visual não renderiza pipeline recente.');
 if (!includes('js/selection-tools.js', '/api/selections')) issues.push('Minha seleção não tenta salvar compartilhamento via /api/selections.');
 if (!includes('js/selection-tools.js', 'selection_token')) issues.push('Minha seleção não importa link por token curto.');
@@ -126,7 +132,7 @@ if (process.env.SUPABASE_ANON_KEY && !process.env.SUPABASE_SERVICE_ROLE_KEY) war
 if (!process.env.ARANDU_ADMIN_TOKEN) warnings.push('ARANDU_ADMIN_TOKEN ausente. O painel administrativo continuará em modo local/demo.');
 
 console.log('Arandu Backend Check');
-console.log('Arquitetura serverless: api/[...path].js + api/health.js');
+console.log('Arquitetura serverless: 6 funções gerenciadas em api/.');
 console.log(`Erros: ${issues.length}`);
 console.log(`Alertas: ${warnings.length}`);
 if (issues.length) { console.error('\nErros:'); issues.forEach((issue) => console.error(`- ${issue}`)); }

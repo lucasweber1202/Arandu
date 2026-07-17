@@ -2,18 +2,36 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const ADMIN_TOKEN = process.env.ARANDU_ADMIN_TOKEN;
 const BUCKET = process.env.ARANDU_STORAGE_BUCKET || 'arandu-media';
+const MAX_BODY_BYTES = 9 * 1024 * 1024;
+
+class HttpError extends Error {
+  constructor(status, message) {
+    super(message);
+    this.status = status;
+  }
+}
 
 function json(res, status, payload) {
   res.statusCode = status;
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
   res.end(JSON.stringify(payload));
 }
 
 async function readBody(req) {
   const chunks = [];
-  for await (const chunk of req) chunks.push(chunk);
+  let bytes = 0;
+  const declaredSize = Number(req.headers?.['content-length'] || 0);
+  if (declaredSize > MAX_BODY_BYTES) throw new HttpError(413, 'Imagem acima do limite permitido.');
+  for await (const chunk of req) {
+    bytes += chunk.length;
+    if (bytes > MAX_BODY_BYTES) throw new HttpError(413, 'Imagem acima do limite permitido.');
+    chunks.push(chunk);
+  }
   const raw = Buffer.concat(chunks).toString('utf8');
-  return raw ? JSON.parse(raw) : {};
+  if (!raw) return {};
+  try { return JSON.parse(raw); } catch { throw new HttpError(400, 'JSON inválido.'); }
 }
 
 function clean(value) { return String(value || '').trim(); }
@@ -80,6 +98,8 @@ export default async function handler(req, res) {
     await insertMedia({ entity_type: entityType, entity_id: entityId, asset_type: 'image', url, alt, position: Number(body.position || 1) || 1, payload: { filename, content_type: contentType, storage_path: path } });
     return json(res, 201, { ok: true, bucket: BUCKET, path, url });
   } catch (error) {
-    return json(res, 500, { ok: false, error: error.message || 'Erro no upload.' });
+    const status = Number(error?.status) || 500;
+    if (status >= 500) console.error('[Arandu Upload]', error?.message || error);
+    return json(res, status, { ok: false, error: status < 500 ? error.message : 'Não foi possível enviar a imagem agora.' });
   }
 }

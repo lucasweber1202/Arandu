@@ -13,6 +13,8 @@ const FALLBACK_COLLECTIONS = [
 function json(res, status, payload) {
   res.statusCode = status;
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
   res.end(JSON.stringify(payload));
 }
 
@@ -62,6 +64,7 @@ export default async function handler(req, res) {
     return json(res, 200, { ok: true, mode: 'supabase', installed: true, collections: collections || [], items: [] });
   } catch (error) {
     const collection = id ? FALLBACK_COLLECTIONS.find((item) => item.id === id || item.slug === id) : null;
-    return json(res, 200, { ok: true, mode: 'fallback', installed: false, collections: id ? (collection ? [collection] : []) : FALLBACK_COLLECTIONS, items: [], error: error.message });
+    console.error('[Arandu Collections]', error?.message || error);
+    return json(res, 200, { ok: true, mode: 'fallback', installed: false, collections: id ? (collection ? [collection] : []) : FALLBACK_COLLECTIONS, items: [] });
   }
 }

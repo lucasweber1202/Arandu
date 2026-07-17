@@ -62,7 +62,7 @@ function saveArtworkFromElement(element) {
 
 function removeArtwork(id) { writeSelection(readSelection().filter((item) => item.id !== id)); renderSelection(); }
 function updateArtworkNote(id, note) { writeSelection(readSelection().map((item) => item.id === id ? { ...item, note } : item)); }
-function clearSelection() { localStorage.removeItem(ARANDU_SELECTION_KEY); renderSelection(); }
+function clearSelection() { writeSelection([]); renderSelection(); }
 
 function buildSelectionSummary() {
   const items = readSelection();

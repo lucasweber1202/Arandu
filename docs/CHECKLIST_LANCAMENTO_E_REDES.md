@@ -42,7 +42,9 @@ para-artistas.html
 Verificar:
 
 - botão Entrar visível no header;
-- login com comprador, artista e empresa;
+- cadastro e login da conta de comprador funcionando;
+- submissão de artista e briefing de empresa funcionando sem conta;
+- seleção e reserva aparecendo em Minha Conta;
 - home sem texto claro em fundo claro;
 - ausência de blocos duplicados;
 - cards sem sobreposição;

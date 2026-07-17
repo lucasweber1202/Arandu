@@ -30,6 +30,7 @@ O projeto já possui:
 - `ARANDU_ADMIN_TOKEN` configurado.
 - `ARANDU_SITE_URL` configurado com o domínio final.
 - `ARANDU_WHATSAPP_NUMBER` ou `ARANDU_CONTACT_EMAIL` configurado.
+- `docs/supabase-sprint1-auth-ownership.sql` aplicado antes do deploy.
 - `/api/health` respondendo.
 - `status.html` mostrando Supabase, token, domínio e contato como configurados.
 - `admin.html` lendo dados reais do Supabase com token administrativo.
@@ -80,27 +81,29 @@ O projeto já possui:
 
 ## 3. Ordem de execução recomendada
 
-1. Fazer deploy na Vercel.
-2. Configurar variáveis de ambiente.
-3. Testar `/api/health` e `status.html`.
-4. Criar projeto Supabase e rodar `docs/supabase-schema.sql`.
-5. Rodar `npm run seed:supabase:dry`.
-6. Rodar `npm run seed:supabase`.
-7. Abrir `admin.html`, inserir o token e validar leitura dos painéis.
-8. Testar criação de artista, obra, certificado e tarefa no painel.
-9. Testar catálogo, artistas, certificados, login e reserva de obra.
-10. Abrir `lancamento.html` e conferir o checklist visual.
-11. Inserir logo final e favicon.
-12. Configurar WhatsApp ou e-mail real.
-13. Trocar base demonstrativa por artistas e obras reais.
-14. Revisar política comercial e termo de artista.
-15. Preparar posts e abrir redes sociais.
-16. Iniciar prospecção ativa de artistas.
+1. Criar o Supabase novo com schema, production e migration; em banco existente, aplicar primeiro `docs/supabase-sprint1-auth-ownership.sql` e depois executar novamente `docs/supabase-production.sql`.
+2. Configurar as URLs de site e redirecionamento de e-mail no Supabase Auth.
+3. Configurar variáveis de ambiente na Vercel.
+4. Fazer deploy na Vercel.
+5. Testar `/api/health` e `status.html`.
+6. Rodar `npm run seed:supabase:dry`.
+7. Rodar `npm run seed:supabase`.
+8. Abrir `admin.html`, inserir o token e validar leitura dos painéis.
+9. Testar criação de artista, obra, certificado e tarefa no painel.
+10. Testar cadastro, confirmação de e-mail, login, seleção em dois dispositivos, reserva, Minha Conta e logout.
+11. Abrir `lancamento.html` e conferir o checklist visual.
+12. Inserir logo final e favicon.
+13. Configurar WhatsApp ou e-mail real.
+14. Trocar base demonstrativa por artistas e obras reais.
+15. Revisar política comercial e termo de artista.
+16. Preparar posts e abrir redes sociais.
+17. Iniciar prospecção ativa de artistas.
 
 ## 4. Testes mínimos antes de divulgar
 
 ```bash
 npm run check:quality
+npm run check:security
 npm run check:all
 npm run build
 ```

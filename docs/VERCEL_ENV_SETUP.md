@@ -39,17 +39,18 @@ ARANDU_CONTACT_EMAIL=contato@seu-dominio-final.com
 
 ## 4. Ordem recomendada
 
-1. Criar projeto no Supabase.
-2. Rodar `docs/supabase-schema.sql`.
-3. Rodar `docs/supabase-production.sql`, se aplicável.
+1. Criar o projeto no Supabase, se ainda não existir.
+2. Em instalação nova: rodar `docs/supabase-schema.sql`, `docs/supabase-production.sql` e `docs/supabase-sprint1-auth-ownership.sql`, nesta ordem.
+3. Em banco já existente: rodar primeiro `docs/supabase-sprint1-auth-ownership.sql` e depois executar novamente `docs/supabase-production.sql`.
 4. Rodar `docs/arandu-mvp-operacional.sql`.
 5. Rodar `docs/arandu-mvp-collections.sql`.
 6. Configurar as variáveis na Vercel.
 7. Fazer novo deploy.
 8. Abrir `/api/health`.
-9. Abrir `/api/health?probe=1` para testar tabelas/views reais.
-10. Abrir `/status.html`.
-11. Abrir `/painel-admin.html` ou o painel operacional e testar leitura.
+9. Abrir `/api/health?probe=1` para testar tabelas, views e colunas de propriedade.
+10. Testar cadastro, confirmação de e-mail, login, Minha Seleção, reserva, Minha Conta e logout.
+11. Abrir `/status.html`.
+12. Abrir `/painel-admin.html` ou o painel operacional e testar leitura com token.
 
 ## 5. Como validar pelo terminal
 
@@ -57,6 +58,7 @@ Antes do deploy:
 
 ```bash
 npm run check:all
+npm run check:security
 npm run build
 ```
 

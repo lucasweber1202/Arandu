@@ -10,7 +10,7 @@
     const item=document.createElement('div');item.className='mvp-toast';item.textContent=text;zone.appendChild(item);setTimeout(()=>item.remove(),3600);
   }
   async function postJson(url,payload){
-    const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const response=await fetch(url,{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     const data=await response.json().catch(()=>({}));
     if(!response.ok||data.ok===false)throw new Error(data.error||'Não foi possível registrar.');
     return data;

@@ -12,13 +12,17 @@ As rotas operacionais foram consolidadas na função principal:
 api/[...path].js
 ```
 
-Além dela, existe uma função leve de diagnóstico:
+Funções complementares cobrem diagnóstico, coleções, operação comercial, painel MVP e upload administrativo:
 
 ```text
 api/health.js
+api/collections.js
+api/commercial.js
+api/mvp-dashboard.js
+api/upload.js
 ```
 
-A arquitetura atual fica com 2 funções serverless, ainda muito abaixo do limite de 12 do plano Hobby.
+A arquitetura atual fica com 6 funções serverless, ainda abaixo do limite de 12 do plano Hobby.
 
 ## Rotas mantidas
 
@@ -35,6 +39,7 @@ A arquitetura atual fica com 2 funções serverless, ainda muito abaixo do limit
 /api/operational
 /api/media
 /api/selections
+/api/account
 /api/dashboard
 /api/auth/session
 /api/auth/login
@@ -42,6 +47,8 @@ A arquitetura atual fica com 2 funções serverless, ainda muito abaixo do limit
 /api/auth/logout
 /api/health
 ```
+
+`/api/account` exige sessão do comprador. `/api/dashboard`, `/api/mvp-dashboard`, `/api/commercial`, `/api/upload` e as rotas administrativas exigem `x-arandu-admin-token`.
 
 ## O que não deve voltar
 
@@ -112,6 +119,7 @@ ARANDU_ADMIN_TOKEN=
 - Deploy na Vercel não acusa limite de funções.
 - `api/[...path].js` existe.
 - `api/health.js` existe.
+- As 6 funções de `api/` carregam sem import quebrado.
 - Arquivos serverless antigos não existem.
 - Front continua chamando as mesmas URLs `/api/...`.
 - `/api/health` responde em produção.
