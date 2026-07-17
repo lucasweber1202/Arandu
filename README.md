@@ -1,68 +1,55 @@
 # Arandu
 
-Arandu é uma plataforma de curadoria, apresentação e intermediação de arte brasileira contemporânea.
-
-A proposta não é operar como e-commerce genérico. O foco é criar uma experiência de compra e descoberta em que obras, artistas, território, procedência e confiança sejam apresentados com linguagem curatorial.
+Arandu é uma plataforma de curadoria, apresentação e intermediação de arte brasileira contemporânea. A experiência relaciona obra, artista, território, procedência e acompanhamento humano, sem tratar o catálogo como um e-commerce genérico.
 
 ## Estado atual
 
-O projeto já possui:
+Os Sprints 1 a 5 estão implementados no código:
 
-- site público com páginas de compra, acervo, obras, artistas, confiança, empresas, narrativa e contato;
-- páginas dinâmicas para obra e artista;
-- conta de comprador com seleções sincronizadas e reservas vinculadas;
-- Minha Seleção com salvamento local, sincronização autenticada e compartilhamento seguro por API;
-- proposta curatorial;
-- verificação de certificado;
-- painel operacional preparado para Supabase;
-- API consolidada para Vercel Hobby;
-- health check em `/api/health`;
-- página técnica `status.html`;
-- documentação de lançamento, produção, redes sociais e operação comercial;
-- validações de qualidade, links, dados, backend, produção e build.
+- autenticação Supabase com sessão `HttpOnly`, propriedade dos dados e rate limit;
+- catálogo público liberado somente após aprovação de dados reais, autorizações, volume mínimo e teste de escrita;
+- navegação pública consolidada, busca visível, menu secundário fechado e paleta pau-brasil/argila/terracota;
+- domínio, contato, marca e política comercial tratados como gates de lançamento;
+- piloto fechado com código de acesso, sessão protegida, telemetria mínima e feedback;
+- API consolidada compatível com o limite de funções do plano Hobby da Vercel;
+- página de status em `status.html` e validadores automatizados.
 
-## Como rodar localmente
+Os dados atuais em `data/artists.json` e `data/artworks.json` continuam classificados como demonstração. O sistema não os apresenta publicamente como catálogo real.
+
+## Rodar localmente
 
 ```bash
 npm install
 npm run dev
 ```
 
-## Como validar antes de deploy
+## Validação
+
+Validação completa de código e contratos:
 
 ```bash
-npm run check:quality
 npm run check:all
 npm run build
 ```
 
-## Como validar produção publicada
-
-Depois de cada deploy, rode uma checagem live contra a URL publicada:
+Os gates externos de liberação são intencionalmente estritos:
 
 ```bash
-npm run check:live:prod
+npm run check:catalog:release
+npm run check:domain:release
+npm run check:commercial:release
+npm run check:pilot:release
+npm run predeploy
 ```
 
-Para validar outro domínio ou preview específico:
+`predeploy` só passa depois que catálogo real, domínio, marca, operação comercial e piloto estiverem configurados e aprovados.
 
-```bash
-npm run check:live -- https://seu-dominio-ou-preview.vercel.app
-```
+## Arquitetura da API
 
-A página `status.html` consulta `/api/health?probe=1`. Esse modo testa não apenas se as variáveis existem, mas também se as tabelas e views centrais do Supabase respondem.
-
-## Arquitetura de API
-
-A arquitetura atual usa uma função principal consolidada:
+A função principal é `api/[...path].js`. Funções complementares cobrem diagnóstico, coleções, operação comercial, painel MVP e upload:
 
 ```text
 api/[...path].js
-```
-
-Funções complementares cobrem diagnóstico, coleções, operação comercial, painel MVP e upload administrativo:
-
-```text
 api/health.js
 api/collections.js
 api/commercial.js
@@ -70,9 +57,7 @@ api/mvp-dashboard.js
 api/upload.js
 ```
 
-Essa estrutura mantém o projeto abaixo do limite de Serverless Functions do plano Hobby da Vercel.
-
-Rotas públicas e operacionais preservadas:
+Rotas principais:
 
 ```text
 /api/forms
@@ -80,6 +65,13 @@ Rotas públicas e operacionais preservadas:
 /api/proposals
 /api/catalog
 /api/artists
+/api/public-config
+/api/events
+/api/pilot/session
+/api/pilot/access
+/api/pilot/logout
+/api/pilot/feedback
+/api/pilot/metrics
 /api/certificates
 /api/certificate-document
 /api/admin
@@ -96,146 +88,111 @@ Rotas públicas e operacionais preservadas:
 /api/health
 ```
 
-`/api/dashboard`, `/api/mvp-dashboard` e as rotas administrativas exigem o header `x-arandu-admin-token`. `/api/account` exige a sessão do comprador em cookie `HttpOnly` e devolve somente os dados vinculados ao usuário autenticado.
-
-Não recriar arquivos antigos como `api/forms.js`, `api/catalog.js`, `api/admin.js`, `api/dashboard.js` ou `api/auth/login.js`, porque cada arquivo em `api/` conta como função separada na Vercel.
+As rotas administrativas exigem `x-arandu-admin-token`. `/api/account` exige a sessão do comprador. `/api/pilot/metrics` exige token administrativo. Catálogo, gravações e transações não possuem fallback público demonstrativo quando o Supabase ou os gates não estão prontos.
 
 ## Variáveis de produção
 
-Na Vercel, configurar:
+Use `.env.example` como referência. Os grupos essenciais são:
 
 ```bash
 SUPABASE_URL=
 SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 ARANDU_ADMIN_TOKEN=
+
+ARANDU_SITE_URL=
 ARANDU_WHATSAPP_NUMBER=
 ARANDU_CONTACT_EMAIL=
-ARANDU_SITE_URL=
+ARANDU_BRAND_READY=false
+ARANDU_COMMERCIAL_READY=false
+
+ARANDU_PILOT_ENABLED=false
+ARANDU_PILOT_APPROVED=false
+ARANDU_PILOT_ACCESS_CODE=
+ARANDU_PILOT_SECRET=
 ```
 
-Depois do deploy, testar:
+`ARANDU_SITE_URL` precisa usar HTTPS e domínio próprio; previews `*.vercel.app` não satisfazem o gate de lançamento.
 
-```text
-/status.html
-/api/health
-/api/health?probe=1
-/api/catalog
-/api/artists
-/api/auth/session
-```
+## Supabase e catálogo
 
-## Dados e Supabase
+A ordem oficial das migrations está em `docs/supabase-migrations.json`.
 
-O schema está em:
-
-```text
-docs/supabase-schema.sql
-```
-
-Em uma instalação nova, rode nesta ordem:
+Instalação nova:
 
 ```text
 docs/supabase-schema.sql
 docs/supabase-production.sql
 docs/supabase-sprint1-auth-ownership.sql
+docs/supabase-sprint2-catalog-readiness.sql
+docs/arandu-mvp-collections.sql
+docs/supabase-sprint5-pilot.sql
 ```
 
-Em um banco existente, aplique primeiro `docs/supabase-sprint1-auth-ownership.sql` e depois execute novamente `docs/supabase-production.sql`. A migration precisa entrar antes do deploy desta versão.
+Banco existente:
 
-Para testar o seed:
+```text
+docs/supabase-sprint1-auth-ownership.sql
+docs/supabase-production.sql
+docs/supabase-sprint2-catalog-readiness.sql
+docs/arandu-mvp-collections.sql
+docs/supabase-sprint5-pilot.sql
+```
+
+A migration do Sprint 2 deve vir depois de `supabase-production.sql`, pois fecha as policies públicas do catálogo. A migration de coleções depende das views seguras criadas no Sprint 2 e deve vir logo depois dela.
 
 ```bash
+npm run check:migrations
 npm run seed:supabase:dry
-```
-
-Para popular o banco real:
-
-```bash
 npm run seed:supabase
+ARANDU_WRITE_TEST_URL=https://preview-protegido.exemplo npm run check:supabase:write
 ```
 
-Bases locais principais:
+O seed real é bloqueado enquanto `data/catalog-release.json` não declarar dados reais aprovados e não houver, no mínimo, 5 artistas e 20 obras verificadas.
+
+## Piloto fechado
+
+Com `ARANDU_PILOT_ENABLED=true`, o site abre um gate de coorte e cria uma sessão protegida no servidor. Os pontos operacionais são:
 
 ```text
-data/artists.json
-data/artworks.json
-data/certificates.json
-data/search-index.json
-data/catalog-intake-template.csv
+/piloto.html
+/painel-piloto.html
+/api/pilot/session
+/api/pilot/feedback
+/api/pilot/metrics
 ```
 
-## Documentos operacionais importantes
+Para proteção rígida de todo o deploy, mantenha também a proteção de acesso do provedor de hospedagem. O gate da aplicação organiza a coorte e a experiência; não substitui a barreira de infraestrutura.
 
-```text
-docs/OPERACAO_COMERCIAL_INDEX.md
-docs/GO_LIVE_ARANDU.md
-docs/SETUP_PRODUCAO.md
-docs/API_CONSOLIDADA_VERCEL.md
-docs/SUPABASE_OPERACAO.md
-docs/LANCAMENTO_ARANDU.md
-docs/REDES_SOCIAIS_ARANDU.md
-docs/FLUXO_COMPRA_RESERVA.md
-docs/CHECKLIST_PARCEIRA_ARTISTA.md
-docs/PROSPECCAO_ARTISTAS_PLAYBOOK.md
-docs/PROSPECCAO_COMPRADORES_EMPRESAS.md
-docs/CALENDARIO_CONTEUDO_30_DIAS.md
-docs/OBJECOES_E_RESPOSTAS.md
-docs/METRICAS_FUNIL_ARANDU.md
-docs/PRIMEIROS_30_DIAS.md
-docs/SEO_DOMINIO_CHECKLIST.md
-docs/ACAO_OBRIGATORIA_LUCAS.md
-```
+Depois do ciclo, resolva os bloqueadores, defina `ARANDU_PILOT_APPROVED=true` e desative `ARANDU_PILOT_ENABLED` para a abertura pública. O gate de release distingue o piloto em execução do piloto já concluído.
 
-## Páginas públicas prioritárias
+## Documentação operacional
 
-```text
-index.html
-comprar-arte.html
-acervo.html
-obras.html
-obra.html?id=...
-artistas.html
-artista.html?id=...
-empresas.html
-confianca.html
-politica-comercial.html
-para-artistas.html
-minha-selecao.html
-proposta-curatorial.html
-certificado-autenticidade.html
-verificar-certificado.html
-contato.html
-```
+- `docs/SPRINTS_2_A_5_IMPLEMENTACAO.md` — entrega, gates e sequência operacional desta rodada.
+- `docs/SETUP_PRODUCAO.md` — configuração de produção e testes.
+- `docs/GO_LIVE_ARANDU.md` — roteiro de decisão para abertura.
+- `docs/OPERACAO_COMERCIAL_INDEX.md` — índice da operação comercial.
+- `docs/SUPABASE_OPERACAO.md` — operação do banco.
+- `docs/FLUXO_COMPRA_RESERVA.md` — fluxo comercial.
+- `docs/GUIA_CADASTRO_OBRAS_REAIS.md` — preparação do catálogo verdadeiro.
+- `docs/CHECKLIST_PARCEIRA_ARTISTA.md` — validação da parceria com artistas.
+- `docs/PROSPECCAO_ARTISTAS_PLAYBOOK.md` — prospecção de artistas.
+- `docs/PROSPECCAO_COMPRADORES_EMPRESAS.md` — prospecção de compradores e empresas.
+- `docs/OBJECOES_E_RESPOSTAS.md` — respostas comerciais padronizadas.
+- `docs/CALENDARIO_CONTEUDO_30_DIAS.md` — preparação editorial.
+- `docs/METRICAS_FUNIL_ARANDU.md` — métricas do funil.
+- `docs/PRIMEIROS_30_DIAS.md` — operação após abertura.
+- `docs/SEO_DOMINIO_CHECKLIST.md` — conferência de SEO e domínio.
 
-## Critério para lançamento público
+## Critério de lançamento
 
-Antes de abrir redes sociais e prospecção ativa, confirmar:
+O lançamento público só deve ocorrer quando:
 
-- domínio funcionando;
-- `/status.html` sem pendências técnicas críticas;
-- `/api/health?probe=1` com Supabase respondendo;
-- Supabase configurado;
-- migration de propriedade das contas aplicada;
-- cadastro, confirmação de e-mail, login, sincronização e logout testados;
-- token administrativo configurado;
-- WhatsApp ou e-mail real funcionando;
-- logo final adicionada;
-- pelo menos 5 artistas reais;
-- pelo menos 20 obras reais;
-- fotos autorizadas;
-- política comercial revisada;
-- fluxo de reserva claro;
-- certificado estruturado;
-- 9 posts iniciais prontos.
-
-## Pendências reais de produção
-
-- Configurar Supabase real no ambiente de produção.
-- Configurar `ARANDU_ADMIN_TOKEN`.
-- Popular Supabase com dados reais.
-- Adicionar logo final em `assets/logo-arandu.png`.
-- Configurar WhatsApp real em `data/whatsapp-config.js` ou via variável de ambiente.
-- Revisar política comercial com apoio jurídico/contábil.
-- Substituir obras e artistas demonstrativos por material real autorizado.
-- Ajustar `sitemap.xml` com domínio real.
+- migrations aplicadas e probes do Supabase aprovados;
+- teste real de escrita concluído;
+- ao menos 5 artistas e 20 obras reais, verificadas e autorizadas;
+- domínio próprio, canal de contato e identidade final aprovados;
+- política comercial e responsabilidades operacionais aprovadas;
+- cadastro, confirmação de e-mail, login, seleção, reserva e logout testados ponta a ponta;
+- piloto fechado concluído sem bloqueadores críticos;
+- `npm run predeploy` concluído com sucesso.

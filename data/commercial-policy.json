@@ -1,0 +1,13 @@
+{
+  "status": "draft",
+  "approved": false,
+  "commissionDefined": false,
+  "reservationHours": null,
+  "paymentMode": null,
+  "shippingResponsibilityDefined": false,
+  "insuranceResponsibilityDefined": false,
+  "cancellationPolicyApproved": false,
+  "certificatePolicyApproved": false,
+  "invoiceModelDefined": false,
+  "notes": "Preencher e aprovar com a operação antes de ativar ARANDU_COMMERCIAL_READY."
+}

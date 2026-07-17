@@ -1,0 +1,30 @@
+{
+  "canonical": [
+    "index.html",
+    "encontrar-arte.html",
+    "comprar-arte.html",
+    "colecoes.html",
+    "artistas.html",
+    "confianca.html",
+    "como-funciona.html",
+    "faq.html",
+    "pesquisa.html",
+    "narrativa.html",
+    "empresas-e-arquitetos.html",
+    "para-artistas.html",
+    "para-compradores.html",
+    "para-empresas.html",
+    "contato.html",
+    "verificar-certificado.html",
+    "termos-de-uso.html",
+    "politica-de-privacidade.html",
+    "compra-reserva-reembolso.html"
+  ],
+  "aliases": {
+    "obras.html": "comprar-arte.html",
+    "acervo.html": "comprar-arte.html",
+    "empresas.html": "empresas-e-arquitetos.html",
+    "privacidade.html": "politica-de-privacidade.html",
+    "politica-de-devolucao.html": "compra-reserva-reembolso.html"
+  }
+}

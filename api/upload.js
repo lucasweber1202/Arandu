@@ -1,3 +1,5 @@
+import { timingSafeEqual } from 'node:crypto';
+
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const ADMIN_TOKEN = process.env.ARANDU_ADMIN_TOKEN;
@@ -37,6 +39,7 @@ async function readBody(req) {
 function clean(value) { return String(value || '').trim(); }
 function slugify(value) { return String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9.]+/g, '-').replace(/(^-|-$)/g, ''); }
 function tokenFrom(req) { const authorization = req.headers.authorization || ''; return clean(req.headers['x-arandu-admin-token'] || (authorization.startsWith('Bearer ') ? authorization.slice(7) : '')); }
+function constantTimeEqual(left, right) { const supplied = Buffer.from(String(left || '')); const expected = Buffer.from(String(right || '')); return supplied.length === expected.length && timingSafeEqual(supplied, expected); }
 function contentTypeOk(type) { return ['image/jpeg','image/png','image/webp','image/gif'].includes(type); }
 function extFrom(type, filename) { const ext = clean(filename).split('.').pop(); if (['jpg','jpeg','png','webp','gif'].includes(ext)) return ext; return ({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' }[type] || 'jpg'); }
 
@@ -74,7 +77,7 @@ async function insertMedia(record) {
 export default async function handler(req, res) {
   try {
     if (req.method !== 'POST') return json(res, 405, { ok: false, error: 'Método não permitido.' });
-    if (!ADMIN_TOKEN || tokenFrom(req) !== ADMIN_TOKEN) return json(res, 401, { ok: false, error: 'Acesso administrativo não autorizado.' });
+    if (!ADMIN_TOKEN || !constantTimeEqual(tokenFrom(req), ADMIN_TOKEN)) return json(res, 401, { ok: false, error: 'Acesso administrativo não autorizado.' });
     if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) return json(res, 503, { ok: false, error: 'Supabase Storage exige SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.' });
 
     const body = await readBody(req);

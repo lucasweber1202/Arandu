@@ -1,13 +1,7 @@
 const QUIZ_KEY = 'arandu.quiz.v1';
 const QUIZ_SELECTION_KEY = 'arandu.selection.v1';
 
-const FALLBACK_QUIZ_WORKS = [
-  { id: 'sertao-silencioso', title: 'Sertão Silencioso', artist: 'Camila Rebouças', priceLabel: 'R$ 2.100', url: 'obra-sertao-silencioso.html', type: 'Fotografia', tags: ['fotografia', 'primeira-obra', 'memória'], moods: ['memória', 'acolhimento'], summary: 'Boa primeira compra para quem busca memória, silêncio e linguagem documental.' },
-  { id: 'estudo-de-solo-04', title: 'Estudo de Solo Nº 04', artist: 'Marina Silveira', priceLabel: 'R$ 4.200', url: 'obra-estudo-de-solo-04.html', type: 'Pintura', tags: ['pintura', 'matéria', 'memória'], moods: ['acolhimento', 'reflexão'], summary: 'Pintura com presença de matéria, terra e contemplação.' },
-  { id: 'equilibrio-suspenso', title: 'Equilíbrio Suspenso', artist: "Arthur D'Avila", priceLabel: 'R$ 8.900', url: 'obra-equilibrio-suspenso.html', type: 'Escultura', tags: ['escultura', 'volume', 'reflexão'], moods: ['presença'], summary: 'Escultura de tensão formal, indicada para quem busca presença material.' }
-];
-
-let QUIZ_ARTWORKS = FALLBACK_QUIZ_WORKS;
+let QUIZ_ARTWORKS = [];
 
 function escapeQuizHtml(value) {
   return String(value || '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
@@ -15,12 +9,10 @@ function escapeQuizHtml(value) {
 
 async function loadQuizArtworks() {
   try {
-    const response = await fetch('data/artworks.json', { cache: 'no-store' });
-    if (!response.ok) throw new Error('artworks');
-    const data = await response.json();
-    QUIZ_ARTWORKS = Array.isArray(data) && data.length ? data : FALLBACK_QUIZ_WORKS;
+    if (!window.AranduCatalogSource) throw new Error('catalog');
+    QUIZ_ARTWORKS = await window.AranduCatalogSource.catalog();
   } catch {
-    QUIZ_ARTWORKS = FALLBACK_QUIZ_WORKS;
+    QUIZ_ARTWORKS = [];
   }
 }
 

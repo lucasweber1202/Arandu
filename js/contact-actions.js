@@ -18,5 +18,6 @@
     document.querySelectorAll('[data-contact-email]').forEach((el)=>{const email=contact().email;if(email)el.textContent=email;});
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',hydrate);else hydrate();
+  document.addEventListener('arandu:public-config',hydrate);
   setTimeout(hydrate,500);
 })();

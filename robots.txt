@@ -1,37 +1,3 @@
+# O build libera indexação somente quando ARANDU_SITE_URL aponta para domínio próprio.
 User-agent: *
-Allow: /
-
-Disallow: /admin-preview.html
-Disallow: /demo.html
-Disallow: /roadmap.html
-Disallow: /mapa-do-site.html
-Disallow: /configuracao.html
-Disallow: /login.html
-Disallow: /cadastro.html
-Disallow: /minha-conta.html
-Disallow: /painel.html
-Disallow: /painel-*.html
-Disallow: /painel-admin.html
-Disallow: /obra-editor.html
-Disallow: /artista-editor.html
-Disallow: /editor-registro.html
-Disallow: /upload-imagens.html
-Disallow: /kanban-comercial.html
-Disallow: /funil-comercial.html
-Disallow: /lead-detalhe.html
-Disallow: /certificados-admin.html
-Disallow: /propostas-admin.html
-Disallow: /colecoes-admin.html
-Disallow: /checklist-lancamento.html
-Disallow: /dominio-go-live.html
-Disallow: /go-live.html
-Disallow: /mvp-operacional.html
-Disallow: /templates-comunicacao.html
-Disallow: /diagnostico-catalogo.html
-Disallow: /catalogo-intake.html
-Disallow: /operacao-obras.html
-Disallow: /status.html
-Disallow: /sitemap-interno.xml
-Disallow: /templates/
-
-Sitemap: https://arandu-bice.vercel.app/sitemap.xml
+Disallow: /
