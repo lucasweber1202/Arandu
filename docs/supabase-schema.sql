@@ -82,6 +82,7 @@ create table if not exists certificates (
 
 create table if not exists leads (
   id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete set null,
   type text default 'contato',
   name text,
   email text,
@@ -116,6 +117,7 @@ create table if not exists artist_submissions (
 
 create table if not exists company_briefs (
   id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete set null,
   name text,
   email text,
   whatsapp text,
@@ -134,7 +136,8 @@ create table if not exists company_briefs (
 
 create table if not exists saved_selections (
   id uuid primary key default gen_random_uuid(),
-  public_token text unique default encode(gen_random_bytes(8), 'hex'),
+  user_id uuid references auth.users(id) on delete set null,
+  public_token text unique default encode(gen_random_bytes(16), 'hex'),
   lead_id uuid references leads(id),
   name text,
   email text,
@@ -148,6 +151,7 @@ create table if not exists saved_selections (
 
 create table if not exists reservations (
   id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete set null,
   artwork_id text references artworks(id),
   lead_id uuid references leads(id),
   name text,
@@ -252,12 +256,16 @@ create index if not exists idx_certificates_code on certificates(code);
 create index if not exists idx_certificates_artwork_id on certificates(artwork_id);
 create index if not exists idx_leads_status on leads(status);
 create index if not exists idx_leads_email on leads(email);
+create index if not exists idx_leads_user_id on leads(user_id, created_at desc);
 create index if not exists idx_company_briefs_status on company_briefs(status);
+create index if not exists idx_company_briefs_user_id on company_briefs(user_id, created_at desc);
 create index if not exists idx_artist_submissions_status on artist_submissions(status);
 create index if not exists idx_saved_selections_public_token on saved_selections(public_token);
 create index if not exists idx_saved_selections_status on saved_selections(status);
+create index if not exists idx_saved_selections_user_id on saved_selections(user_id, updated_at desc);
 create index if not exists idx_reservations_artwork_id on reservations(artwork_id);
 create index if not exists idx_reservations_status on reservations(status);
+create index if not exists idx_reservations_user_id on reservations(user_id, created_at desc);
 create index if not exists idx_proposals_status on proposals(status);
 create index if not exists idx_proposals_public_token on proposals(public_token);
 create index if not exists idx_proposal_items_proposal_id on proposal_items(proposal_id);

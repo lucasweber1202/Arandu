@@ -28,7 +28,11 @@ begin
     new.id,
     new.email,
     coalesce(new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'name', new.email),
-    coalesce(new.raw_user_meta_data->>'profile_type', 'comprador')
+    case
+      when new.raw_user_meta_data->>'profile_type' in ('comprador','artista','empresa','arquiteto')
+        then new.raw_user_meta_data->>'profile_type'
+      else 'comprador'
+    end
   )
   on conflict (id) do update set
     email = excluded.email,
@@ -72,6 +76,11 @@ create policy profiles_select_own on public.profiles for select to authenticated
 drop policy if exists profiles_update_own on public.profiles;
 create policy profiles_update_own on public.profiles for update to authenticated using (auth.uid() = id) with check (auth.uid() = id);
 
+-- A conta pode editar apenas dados de apresentação. Tipo de perfil e e-mail
+-- continuam sob controle do backend/curadoria.
+revoke update on public.profiles from authenticated;
+grant update (full_name, phone) on public.profiles to authenticated;
+
 drop policy if exists artists_public_read on public.artists;
 create policy artists_public_read on public.artists for select to anon, authenticated using (status = 'published');
 
@@ -82,22 +91,62 @@ drop policy if exists certificates_public_valid_read on public.certificates;
 create policy certificates_public_valid_read on public.certificates for select to anon, authenticated using (verification_status = 'valid');
 
 drop policy if exists leads_public_insert on public.leads;
-create policy leads_public_insert on public.leads for insert to anon, authenticated with check (true);
+create policy leads_public_insert on public.leads for insert to anon, authenticated
+  with check (
+    (auth.uid() is null and user_id is null)
+    or (auth.uid() is not null and auth.uid() = user_id)
+  );
+
+drop policy if exists leads_select_own on public.leads;
+create policy leads_select_own on public.leads for select to authenticated
+  using (auth.uid() = user_id);
 
 drop policy if exists artist_submissions_public_insert on public.artist_submissions;
 create policy artist_submissions_public_insert on public.artist_submissions for insert to anon, authenticated with check (true);
 
 drop policy if exists company_briefs_public_insert on public.company_briefs;
-create policy company_briefs_public_insert on public.company_briefs for insert to anon, authenticated with check (true);
+create policy company_briefs_public_insert on public.company_briefs for insert to anon, authenticated
+  with check (
+    (auth.uid() is null and user_id is null)
+    or (auth.uid() is not null and auth.uid() = user_id)
+  );
+
+drop policy if exists company_briefs_select_own on public.company_briefs;
+create policy company_briefs_select_own on public.company_briefs for select to authenticated
+  using (auth.uid() = user_id);
 
 drop policy if exists reservations_public_insert on public.reservations;
-create policy reservations_public_insert on public.reservations for insert to anon, authenticated with check (true);
+create policy reservations_public_insert on public.reservations for insert to anon, authenticated
+  with check (
+    (auth.uid() is null and user_id is null)
+    or (auth.uid() is not null and auth.uid() = user_id)
+  );
+
+drop policy if exists reservations_select_own on public.reservations;
+create policy reservations_select_own on public.reservations for select to authenticated
+  using (auth.uid() = user_id);
 
 drop policy if exists selections_public_insert on public.saved_selections;
-create policy selections_public_insert on public.saved_selections for insert to anon, authenticated with check (true);
+create policy selections_public_insert on public.saved_selections for insert to anon, authenticated
+  with check (
+    (auth.uid() is null and user_id is null)
+    or (auth.uid() is not null and auth.uid() = user_id)
+  );
 
 drop policy if exists selections_public_token_read on public.saved_selections;
-create policy selections_public_token_read on public.saved_selections for select to anon, authenticated using (public_token is not null and status in ('open','sent','reviewed'));
+
+drop policy if exists selections_select_own on public.saved_selections;
+create policy selections_select_own on public.saved_selections for select to authenticated
+  using (auth.uid() = user_id);
+
+drop policy if exists selections_update_own on public.saved_selections;
+create policy selections_update_own on public.saved_selections for update to authenticated
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+drop policy if exists selections_delete_own on public.saved_selections;
+create policy selections_delete_own on public.saved_selections for delete to authenticated
+  using (auth.uid() = user_id);
 
 drop policy if exists newsletter_public_insert on public.newsletter_subscriptions;
 create policy newsletter_public_insert on public.newsletter_subscriptions for insert to anon, authenticated with check (true);

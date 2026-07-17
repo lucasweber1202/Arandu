@@ -11,6 +11,7 @@ const ROUTES = [
   '/api/operational',
   '/api/media',
   '/api/selections',
+  '/api/account',
   '/api/dashboard',
   '/api/auth/session',
   '/api/auth/login',
@@ -114,6 +115,9 @@ async function runSupabaseProbes(enabled) {
   const resources = await Promise.all([
     probeSupabaseResource('Tabela artists', 'artists?select=id&limit=1'),
     probeSupabaseResource('Tabela artworks', 'artworks?select=id&limit=1'),
+    probeSupabaseResource('Perfis de conta', 'profiles?select=id,profile_type&limit=1'),
+    probeSupabaseResource('Propriedade das seleções', 'saved_selections?select=id,user_id,public_token&limit=1'),
+    probeSupabaseResource('Propriedade das reservas', 'reservations?select=id,user_id&limit=1'),
     probeSupabaseResource('View v_public_catalog', 'v_public_catalog?select=id&limit=1'),
     probeSupabaseResource('View v_sales_pipeline', 'v_sales_pipeline?select=id&limit=1')
   ]);

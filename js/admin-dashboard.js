@@ -33,7 +33,7 @@
   const clean = (value) => String(value ?? '').trim();
 
   function token() {
-    return clean(localStorage.getItem(TOKEN_KEY) || $('#admin-token')?.value);
+    return clean($('#admin-token')?.value || localStorage.getItem(TOKEN_KEY) || localStorage.getItem('arandu.admin.token'));
   }
 
   function headers() {
@@ -75,8 +75,12 @@
   }
 
   async function loadDashboard() {
+    if (!token()) {
+      renderMetrics({}, 'demo');
+      return;
+    }
     try {
-      const data = await fetchJson(DASHBOARD);
+      const data = await fetchJson(DASHBOARD, { headers: headers() });
       renderMetrics(data.metrics || {}, data.mode);
     } catch (error) {
       renderMetrics({}, 'demo');
@@ -194,12 +198,12 @@
 
   function bind() {
     const tokenInput = $('#admin-token');
-    if (tokenInput) tokenInput.value = localStorage.getItem(TOKEN_KEY) || '';
+    if (tokenInput) tokenInput.value = localStorage.getItem(TOKEN_KEY) || localStorage.getItem('arandu.admin.token') || '';
     document.addEventListener('click', (event) => {
       const saveToken = event.target.closest('[data-admin-save-token]');
-      if (saveToken) { localStorage.setItem(TOKEN_KEY, clean($('#admin-token')?.value)); setStatus('Token salvo neste navegador.', 'ok'); loadPanel(activePanel); return; }
+      if (saveToken) { const value=clean($('#admin-token')?.value); localStorage.setItem(TOKEN_KEY,value); localStorage.setItem('arandu.admin.token',value); setStatus('Token salvo neste navegador.', 'ok'); Promise.all([loadPanel(activePanel), loadDashboard()]); return; }
       const clearToken = event.target.closest('[data-admin-clear-token]');
-      if (clearToken) { localStorage.removeItem(TOKEN_KEY); if (tokenInput) tokenInput.value = ''; setStatus('Token removido deste navegador.'); renderPanel({ items: [] }); return; }
+      if (clearToken) { localStorage.removeItem(TOKEN_KEY); localStorage.removeItem('arandu.admin.token'); if (tokenInput) tokenInput.value = ''; setStatus('Token removido deste navegador.'); renderPanel({ items: [] }); return; }
       const panelButton = event.target.closest('[data-admin-panel]');
       if (panelButton) { loadPanel(panelButton.dataset.adminPanel); return; }
       const statusButton = event.target.closest('[data-admin-save-status]');

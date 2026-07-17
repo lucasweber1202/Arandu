@@ -49,7 +49,7 @@
     const section=document.createElement('section');
     section.className='login-entry-strip';
     section.dataset.loginEntryStrip='true';
-    section.innerHTML='<div class="container"><div class="login-entry-card"><div><p class="eyebrow">Conta Arandu</p><h2>Entre como comprador, artista ou empresa.</h2><p>O login separa cada experiência: obras e reservas para compradores, portfólio e preço para artistas, briefing e proposta para empresas.</p></div><div class="login-entry-actions"><a class="cta" href="login.html">Entrar</a><a class="cta secondary" href="cadastro.html">Criar conta</a></div></div></div>';
+    section.innerHTML='<div class="container"><div class="login-entry-card"><div><p class="eyebrow">Conta do comprador</p><h2>Retome sua seleção em qualquer dispositivo.</h2><p>A conta reúne obras salvas e solicitações de reserva. Artistas enviam portfólio pelo fluxo curatorial; empresas começam por briefing.</p></div><div class="login-entry-actions"><a class="cta" href="login.html">Entrar</a><a class="cta secondary" href="cadastro.html">Criar conta</a></div></div></div>';
     target.parentNode.insertBefore(section,target);
   }
 

@@ -10,7 +10,8 @@ O projeto já possui:
 
 - site público com páginas de compra, acervo, obras, artistas, confiança, empresas, narrativa e contato;
 - páginas dinâmicas para obra e artista;
-- Minha Seleção com salvamento local e tentativa de compartilhamento por API;
+- conta de comprador com seleções sincronizadas e reservas vinculadas;
+- Minha Seleção com salvamento local, sincronização autenticada e compartilhamento seguro por API;
 - proposta curatorial;
 - verificação de certificado;
 - painel operacional preparado para Supabase;
@@ -59,13 +60,17 @@ A arquitetura atual usa uma função principal consolidada:
 api/[...path].js
 ```
 
-E uma função leve de diagnóstico:
+Funções complementares cobrem diagnóstico, coleções, operação comercial, painel MVP e upload administrativo:
 
 ```text
 api/health.js
+api/collections.js
+api/commercial.js
+api/mvp-dashboard.js
+api/upload.js
 ```
 
-Essa estrutura evita o erro de limite de Serverless Functions do plano Hobby da Vercel.
+Essa estrutura mantém o projeto abaixo do limite de Serverless Functions do plano Hobby da Vercel.
 
 Rotas públicas e operacionais preservadas:
 
@@ -82,6 +87,7 @@ Rotas públicas e operacionais preservadas:
 /api/operational
 /api/media
 /api/selections
+/api/account
 /api/dashboard
 /api/auth/session
 /api/auth/login
@@ -89,6 +95,8 @@ Rotas públicas e operacionais preservadas:
 /api/auth/logout
 /api/health
 ```
+
+`/api/dashboard`, `/api/mvp-dashboard` e as rotas administrativas exigem o header `x-arandu-admin-token`. `/api/account` exige a sessão do comprador em cookie `HttpOnly` e devolve somente os dados vinculados ao usuário autenticado.
 
 Não recriar arquivos antigos como `api/forms.js`, `api/catalog.js`, `api/admin.js`, `api/dashboard.js` ou `api/auth/login.js`, porque cada arquivo em `api/` conta como função separada na Vercel.
 
@@ -124,6 +132,16 @@ O schema está em:
 ```text
 docs/supabase-schema.sql
 ```
+
+Em uma instalação nova, rode nesta ordem:
+
+```text
+docs/supabase-schema.sql
+docs/supabase-production.sql
+docs/supabase-sprint1-auth-ownership.sql
+```
+
+Em um banco existente, aplique primeiro `docs/supabase-sprint1-auth-ownership.sql` e depois execute novamente `docs/supabase-production.sql`. A migration precisa entrar antes do deploy desta versão.
 
 Para testar o seed:
 
@@ -198,6 +216,8 @@ Antes de abrir redes sociais e prospecção ativa, confirmar:
 - `/status.html` sem pendências técnicas críticas;
 - `/api/health?probe=1` com Supabase respondendo;
 - Supabase configurado;
+- migration de propriedade das contas aplicada;
+- cadastro, confirmação de e-mail, login, sincronização e logout testados;
 - token administrativo configurado;
 - WhatsApp ou e-mail real funcionando;
 - logo final adicionada;

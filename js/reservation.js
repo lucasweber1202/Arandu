@@ -30,7 +30,7 @@ function extractArtworkId(data) {
 async function sendReservationToApi(data) {
   const payload = { ...data, artwork_id: extractArtworkId(data) };
   try {
-    const response = await fetch(ARANDU_RESERVATIONS_API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    const response = await fetch(ARANDU_RESERVATIONS_API, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     const result = await response.json().catch(() => ({}));
     return { ok: response.ok && result.ok !== false, status: response.status, result };
   } catch (error) {
@@ -67,10 +67,11 @@ function createReservationModal() {
       <header><div><p class="eyebrow">Reserva de obra</p><h2>Solicitar reserva</h2><p>A solicitação registra seu interesse e não confirma pagamento automaticamente. A curadoria confirma disponibilidade, condição, prazo e envio.</p></div><button type="button" data-reserve-close aria-label="Fechar">×</button></header>
       <input name="title" readonly />
       <input name="artist" readonly />
-      <input name="name" placeholder="Seu nome" required />
-      <input name="whatsapp" placeholder="WhatsApp com DDD" required />
-      <input name="deadline" placeholder="Prazo desejado de reserva. Ex.: 48h" />
-      <textarea name="notes" placeholder="Observações sobre compra, entrega, cidade de destino ou proposta"></textarea>
+      <input name="name" placeholder="Seu nome" maxlength="160" required />
+      <input name="whatsapp" placeholder="WhatsApp com DDD" maxlength="20" required />
+      <input name="deadline" placeholder="Prazo desejado de reserva. Ex.: 48h" maxlength="160" />
+      <textarea name="notes" maxlength="3000" placeholder="Observações sobre compra, entrega, cidade de destino ou proposta"></textarea>
+      <input name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;opacity:0;pointer-events:none" />
       <input name="url" type="hidden" />
       <input name="artwork_id" type="hidden" />
       <div class="page-actions"><button class="button secondary" type="submit">Salvar solicitação</button><button class="button secondary" type="button" data-reserve-whatsapp>Enviar WhatsApp</button></div>

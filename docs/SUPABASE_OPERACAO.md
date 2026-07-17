@@ -187,14 +187,28 @@ Essas rotas alimentam páginas públicas quando o Supabase está configurado.
 
 ### Seleções salvas
 
-Quando o Supabase está configurado, o botão de compartilhar da página `minha-selecao.html` salva a seleção em `saved_selections` e gera um link com `selection_token`. Sem Supabase, o fluxo mantém o link antigo com a seleção codificada na própria URL.
+Quando o Supabase está configurado, a página `minha-selecao.html` sincroniza automaticamente a seleção da conta autenticada. O botão de compartilhar gera um link com `selection_token`. Sem Supabase, o fluxo mantém o link antigo com a seleção codificada na própria URL.
 
 Endpoints:
 
 ```text
 POST /api/selections
 GET /api/selections?token=token_publico
+DELETE /api/selections
 ```
+
+O GET público devolve somente obras, briefing sem campos pessoais, status e datas. A leitura direta da tabela pelo token deve permanecer desabilitada.
+O DELETE exige sessão e remove somente a seleção aberta do comprador autenticado.
+
+### Conta do comprador
+
+Endpoint autenticado por cookie `HttpOnly`:
+
+```text
+GET /api/account
+```
+
+Retorna somente seleções e reservas cujo `user_id` corresponde à sessão atual.
 
 ### Dashboard
 
@@ -202,9 +216,10 @@ Endpoint:
 
 ```text
 GET /api/dashboard
+Header: x-arandu-admin-token: seu_token
 ```
 
-Retorna métricas operacionais para `painel.html` e `minha-conta.html`:
+Retorna métricas operacionais somente para os painéis internos:
 
 - obras;
 - artistas;

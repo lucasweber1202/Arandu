@@ -4,8 +4,9 @@
   function esc(v){return String(v??'').replace(/[&<>'"]/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
   function ok(v){return v?'OK':'!';}
   function card(label,value,text){return '<article class="op-launch-card"><strong>'+ok(value)+'</strong><h3>'+esc(label)+'</h3><p>'+esc(text)+'</p></article>';}
-  async function json(url){const res=await fetch(url,{cache:'no-store'});return res.json();}
-  Promise.allSettled([json('/api/health?probe=1'),json('/api/dashboard')]).then((results)=>{
+  function adminToken(){return localStorage.getItem('arandu.adminToken.v1')||localStorage.getItem('arandu.admin.token')||'';}
+  async function json(url,admin=false){const token=admin?adminToken():'';const res=await fetch(url,{cache:'no-store',headers:token?{'x-arandu-admin-token':token}:{}});const data=await res.json().catch(()=>({}));if(!res.ok||data.ok===false)throw new Error(data.error||`Erro ${res.status}`);return data;}
+  Promise.allSettled([json('/api/health?probe=1'),json('/api/dashboard',true)]).then((results)=>{
     const health=results[0].status==='fulfilled'?results[0].value:null;
     const dashboard=results[1].status==='fulfilled'?results[1].value:null;
     const checks=health?.checks||{}; const metrics=dashboard?.metrics||{};

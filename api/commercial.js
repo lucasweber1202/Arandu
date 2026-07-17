@@ -1,7 +1,62 @@
-import { dataRequest, firstRecord, hasDataConfig, json, readBody } from './_arandu.js';
-
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+const SUPABASE_KEY = SUPABASE_SERVICE_KEY || SUPABASE_ANON_KEY;
 const ADMIN_TOKEN = process.env.ARANDU_ADMIN_TOKEN;
 const STATUS = ['draft','confirmed','completed','cancelled'];
+const MAX_BODY_BYTES = 256 * 1024;
+
+class HttpError extends Error {
+  constructor(status, message) {
+    super(message);
+    this.status = status;
+  }
+}
+
+function json(res, status, payload) {
+  res.statusCode = status;
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.end(JSON.stringify(payload));
+}
+
+async function readBody(req) {
+  const chunks = [];
+  let bytes = 0;
+  const declaredSize = Number(req.headers?.['content-length'] || 0);
+  if (declaredSize > MAX_BODY_BYTES) throw new HttpError(413, 'Solicitação muito grande.');
+  for await (const chunk of req) {
+    bytes += chunk.length;
+    if (bytes > MAX_BODY_BYTES) throw new HttpError(413, 'Solicitação muito grande.');
+    chunks.push(chunk);
+  }
+  const raw = Buffer.concat(chunks).toString('utf8');
+  if (!raw) return {};
+  try { return JSON.parse(raw); } catch { throw new HttpError(400, 'JSON inválido.'); }
+}
+
+function hasDataConfig() { return Boolean(SUPABASE_URL && SUPABASE_KEY); }
+function firstRecord(data) { return Array.isArray(data) ? data[0] || null : data; }
+
+async function dataRequest(resource, options = {}) {
+  if (!hasDataConfig()) throw new Error('Banco não configurado.');
+  const response = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/rest/v1/${resource}`, {
+    method: options.method || 'GET',
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=representation',
+      ...(options.headers || {})
+    },
+    body: options.body
+  });
+  const text = await response.text();
+  const data = text ? JSON.parse(text) : null;
+  if (!response.ok) throw new Error(data?.message || data?.error || `Banco ${response.status}`);
+  return data;
+}
 
 function guard(req) {
   const token = String(req.headers['x-arandu-admin-token'] || '').trim();
@@ -89,6 +144,8 @@ export default async function handler(req, res) {
     if (req.method === 'PATCH') return updateRecord(req, res);
     return json(res, 405, { ok: false, error: 'Método não permitido.' });
   } catch (error) {
-    return json(res, 500, { ok: false, error: error.message || 'Erro inesperado.' });
+    const status = Number(error?.status) || 500;
+    if (status >= 500) console.error('[Arandu Commercial]', error?.message || error);
+    return json(res, status, { ok: false, error: status < 500 ? error.message : 'Não foi possível concluir a operação comercial agora.' });
   }
 }

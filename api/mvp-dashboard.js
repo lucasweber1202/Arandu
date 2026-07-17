@@ -2,11 +2,26 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 const SUPABASE_KEY = SUPABASE_SERVICE_KEY || SUPABASE_ANON_KEY;
+const ADMIN_TOKEN = process.env.ARANDU_ADMIN_TOKEN;
 
 function json(res, status, payload) {
   res.statusCode = status;
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
   res.end(JSON.stringify(payload));
+}
+
+function tokenFrom(req) {
+  const authorization = String(req.headers.authorization || '');
+  const bearer = authorization.startsWith('Bearer ') ? authorization.slice(7) : '';
+  return String(req.headers['x-arandu-admin-token'] || bearer || '').trim();
+}
+
+function adminGuard(req) {
+  if (!ADMIN_TOKEN) return { ok: false, status: 503, error: 'ARANDU_ADMIN_TOKEN não configurado no servidor.' };
+  if (tokenFrom(req) !== ADMIN_TOKEN) return { ok: false, status: 401, error: 'Acesso administrativo não autorizado.' };
+  return { ok: true };
 }
 
 function hasDataConfig() {
@@ -56,6 +71,8 @@ async function countResource(resource, errors) {
 }
 
 export default async function handler(req, res) {
+  const access = adminGuard(req);
+  if (!access.ok) return json(res, access.status, { ok: false, error: access.error });
   if (req.method !== 'GET') return json(res, 405, { ok: false, error: 'Método não permitido.' });
 
   const errors = [];
