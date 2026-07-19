@@ -1,5 +1,16 @@
 # Changelog — Arandu
 
+## v1.0 — Execução auditável de produção
+
+- Cadeia dos Sprints 2–12, SEO, PWA e legibilidade consolidada na `main`.
+- CI passa a executar todos os contratos, build, SEO de `dist` e jornadas Playwright em desktop e celular.
+- Auditoria de variáveis de produção sem expor valores ou segredos.
+- Registro obrigatório de evidências externas para Supabase, catálogo, comercial, marca, plataforma, piloto e domínio.
+- Bundle reproduzível das migrations com SHA-256 por arquivo e do pacote completo.
+- Importador CSV corrigido para os cabeçalhos em português e metadados necessários ao catálogo real.
+- Gate comercial reforçado com valores, versões, responsável e data de aprovação.
+- Comandos `release:status` e `release:check` para decisão objetiva de lançamento.
+
 ## v0.9 — Clareza e legibilidade visual
 
 - Contraste alto e explícito para superfícies claras, heróis, rodapé e cards.

@@ -15,6 +15,8 @@ O Arandu deve sair do preview fechado somente quando os gates abaixo estiverem c
 9. Rodar `npm run predeploy`.
 10. Abrir produção e repetir os smoke tests no domínio final.
 
+Cada comprovação externa precisa ser registrada em `ops/release-evidence.json`, sem segredos ou PII. O arquivo não substitui os documentos originais; mantém apenas datas, papéis responsáveis e referências auditáveis.
+
 ## 2. Deploy na Vercel e infraestrutura
 
 - deploy protegido sem erros;
@@ -29,6 +31,7 @@ O Arandu deve sair do preview fechado somente quando os gates abaixo estiverem c
 - contato LGPD, monitoramento de erros e alertas configurados;
 - restauração de backup comprovada nos últimos 30 dias;
 - `/api/health?probe=1` com `verifiedReady: true`.
+- `npm run check:env:release` e `npm run check:evidence:release` aprovados.
 
 ## 3. Catálogo real
 
@@ -89,6 +92,8 @@ O gate da aplicação controla a experiência da coorte; a proteção rígida do
 ```bash
 npm run check:all
 npm run build
+npm run check:env:release
+npm run check:evidence:release
 npm run check:catalog:release
 npm run check:domain:release
 npm run check:commercial:release
@@ -96,6 +101,8 @@ npm run check:pilot:release
 npm run check:platform:release
 npm run predeploy
 ```
+
+Use `npm run release:status` durante a preparação e `npm run release:check` como leitura consolidada do gate. A CI da `main` executa build, contratos, SEO do artefato e jornadas Playwright em desktop e celular; evidências de falha ficam anexadas ao workflow.
 
 No preview e novamente em produção:
 

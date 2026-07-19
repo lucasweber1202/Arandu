@@ -6,9 +6,11 @@
 npm install
 npm run check:all
 npm run build
+npm run release:status
 ```
 
 Os checks normais validam código e contratos. Os checks `*:release` validam decisões e dependências externas; por isso devem falhar enquanto os gates não estiverem concluídos.
+O comando `release:status` gera `reports/release-status.json` e não libera produção por conta própria.
 
 ## 2. Configurar o ambiente de preview
 
@@ -42,9 +44,24 @@ Requisitos:
 
 Não coloque segredos em arquivos públicos, HTML ou JavaScript do navegador.
 
+Antes de copiar valores para a Vercel, valide formato e força sem imprimir os segredos:
+
+```bash
+npm run check:env
+```
+
 ## 3. Aplicar migrations do Supabase
 
 A ordem fonte de verdade está em `docs/supabase-migrations.json`.
+
+Para gerar um único SQL auditável, com SHA-256 de cada etapa:
+
+```bash
+npm run migrations:bundle
+npm run migrations:bundle -- --flow=existingDatabase
+```
+
+Os arquivos são criados em `reports/`. Confirme o fluxo escolhido com o estado real do banco antes de executar no SQL Editor ou por conexão administrativa.
 
 Instalação nova:
 
@@ -90,6 +107,8 @@ npm run seed:supabase
 
 O catálogo público retorna indisponibilidade controlada até que o gate real esteja aprovado; ele não reutiliza fixtures como se fossem produção.
 
+O importador de `catalogo-intake.html` usa `data/catalog-intake-template.csv`. Linhas básicas podem ser enviadas para revisão, mas a interface destaca separadamente os campos que ainda impedem elegibilidade no catálogo real.
+
 ## 5. Confirmar escrita real
 
 Depois do deploy protegido:
@@ -111,6 +130,7 @@ Marca:
 Comercial:
 
 - preencher e aprovar todos os itens de `data/commercial-policy.json`;
+- usar `docs/APROVACAO_COMERCIAL.md` para registrar a decisão completa;
 - revisar reserva, pagamento, comissão, frete, seguro, avaria, cancelamento, devolução, certificado e responsável operacional;
 - só então definir `ARANDU_COMMERCIAL_READY=true`.
 
@@ -120,6 +140,8 @@ Reservas e propostas permanecem bloqueadas enquanto o gate comercial estiver fal
 npm run check:domain:release
 npm run check:commercial:release
 ```
+
+Além dos flags, preencha `ops/release-evidence.json`. O arquivo não é copiado para o site público e registra somente referências não sensíveis e datas de comprovação; nunca coloque chaves, tokens, contatos pessoais ou contratos completos nele.
 
 ## 7. Executar o piloto fechado
 
@@ -164,4 +186,4 @@ Rode a barreira final:
 npm run predeploy
 ```
 
-O comando só deve passar quando os gates de catálogo, domínio, comercial e piloto estiverem realmente prontos. Em seguida, faça o deploy de produção e repita `/api/health?probe=1` e os fluxos críticos no domínio final.
+O comando só deve passar quando ambiente, evidências, catálogo, domínio, comercial, piloto e plataforma estiverem realmente prontos. Em seguida, faça o deploy de produção, rode `npm run check:live:prod` e repita os fluxos críticos no domínio final.
