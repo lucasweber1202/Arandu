@@ -1,12 +1,38 @@
 {
-  "name": "Arandu",
+  "name": "Arandu — Arte brasileira contemporânea",
   "short_name": "Arandu",
-  "description": "Curadoria de arte brasileira contemporânea.",
-  "start_url": "/index.html",
+  "description": "Arte brasileira contemporânea com curadoria, território e procedência.",
+  "lang": "pt-BR",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#f7f0e6",
-  "theme_color": "#9e3d2c",
+  "background_color": "#fff2dc",
+  "theme_color": "#180804",
+  "orientation": "portrait-primary",
   "icons": [
-    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+    {
+      "src": "/assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/assets/icon-512.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
   ]
 }

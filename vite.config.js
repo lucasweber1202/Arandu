@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { resolve, relative, extname, sep } from 'node:path';
+import { deploymentBaseUrl, renderSeoHead } from './scripts/seo-meta.mjs';
 
 const root = process.cwd();
 const ignoredDirs = new Set(['node_modules', '.git', 'dist', 'reports', 'tests', 'test-results', 'playwright-report']);
@@ -13,6 +14,7 @@ const configuredSiteUrl = (() => {
     return url.toString().replace(/\/$/, '');
   } catch { return ''; }
 })();
+const configuredShareBaseUrl = deploymentBaseUrl();
 const configuredPilotEnabled = ['1','true','yes','sim'].includes(String(process.env.ARANDU_PILOT_ENABLED || '').trim().toLowerCase());
 const ASSET_VERSION = '20260608';
 const HARDENING_VERSION = '20260707-hardening-1';
@@ -85,7 +87,6 @@ function injectNativeSearch(html) {
 
 function injectGlobalAssets() {
   const speedInsightsTag = '<script type="module" src="/src/vercel-speed-insights.js"></script>';
-  const manifestTag = '<link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#180804"><meta name="apple-mobile-web-app-title" content="Arandu"><link rel="icon" href="/assets/icon-192.svg" type="image/svg+xml">';
   const productCssTag = `<link rel="stylesheet" href="/css/arandu-product.css?v=${ASSET_VERSION}">`;
   const hardeningCssTag = `<link rel="stylesheet" href="/css/arandu-interface-hardening.css?v=${HARDENING_VERSION}">`;
   const polishCssTag = `<link rel="stylesheet" href="/css/arandu-final-polish.css?v=${POLISH_VERSION}">`;
@@ -109,17 +110,13 @@ function injectGlobalAssets() {
     transformIndexHtml(html, context) {
       let output = cacheBustKnownAssets(html);
       const pageName = context?.filename ? relative(root, context.filename).split(sep).join('/') : '';
-      output = output.replace(/<link\s+rel=["']canonical["'][^>]*>/gi, '');
-      if (canonicalPages.has(pageName) && configuredSiteUrl) {
-        const suffix = pageName === 'index.html' ? '/' : `/${pageName}`;
-        const canonicalTag = `<link rel="canonical" href="${configuredSiteUrl}${suffix}">`;
-        output = output.includes('</head>') ? output.replace('</head>', `${canonicalTag}</head>`) : `${canonicalTag}${output}`;
-      } else if ((!canonicalPages.has(pageName) || !configuredSiteUrl) && !/<meta\s+name=["']robots["']/i.test(output)) {
-        const noindexTag = '<meta name="robots" content="noindex,nofollow">';
-        output = output.includes('</head>') ? output.replace('</head>', `${noindexTag}</head>`) : `${noindexTag}${output}`;
-      }
+      output = renderSeoHead(output, {
+        pageName,
+        siteUrl: configuredSiteUrl,
+        shareBaseUrl: configuredShareBaseUrl,
+        isCanonical: canonicalPages.has(pageName)
+      });
       output = injectNativeSearch(output);
-      if (!output.includes('/manifest.webmanifest')) output = output.includes('</head>') ? output.replace('</head>', `${manifestTag}</head>`) : `${manifestTag}${output}`;
       if (!output.includes('/css/arandu-product.css')) output = output.includes('</head>') ? output.replace('</head>', `${productCssTag}</head>`) : `${productCssTag}${output}`;
       if (!output.includes('/css/arandu-interface-hardening.css')) output = output.includes('</head>') ? output.replace('</head>', `${hardeningCssTag}</head>`) : `${hardeningCssTag}${output}`;
       if (!output.includes('/css/arandu-final-polish.css')) output = output.includes('</head>') ? output.replace('</head>', `${polishCssTag}</head>`) : `${polishCssTag}${output}`;

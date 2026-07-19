@@ -1,5 +1,20 @@
 # Changelog — Arandu
 
+## v0.8 — SEO, compartilhamento social e base PWA
+
+- Open Graph e Twitter Cards gerados no build para todas as páginas, com título,
+  descrição e imagem social da Arandu.
+- Canonical e indexação continuam condicionados a `ARANDU_SITE_URL` em domínio
+  próprio; previews da Vercel e páginas internas permanecem `noindex,nofollow`.
+- Imagem social 1200×630, favicon e ícones PNG 32/180/192/512 adicionados.
+- Manifestos PWA unificados, com `start_url`, `scope`, cores e ícones coerentes.
+- Dados estruturados `Organization`, `WebSite` e `SearchAction` na home quando o
+  domínio final está configurado.
+- Verificação automatizada de SEO/social/PWA integrada a `npm run check:all`,
+  incluindo idempotência, dimensões dos assets e teste do gate de domínio.
+- Arquivos runtime `favicon.svg`, `manifest.webmanifest` e `site.webmanifest`
+  passam a ser copiados explicitamente para `dist/`.
+
 ## v0.1 — Base visual inicial
 
 - Estrutura inicial do site.

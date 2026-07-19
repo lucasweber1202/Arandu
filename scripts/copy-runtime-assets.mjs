@@ -5,7 +5,7 @@ const root = process.cwd();
 const dist = join(root, 'dist');
 
 const folders = ['js', 'data', 'assets', 'css'];
-const rootFiles = ['manifest.webmanifest'];
+const rootFiles = ['manifest.webmanifest', 'site.webmanifest', 'favicon.svg'];
 
 function copyDir(source, target) {
   if (!existsSync(source)) return;
