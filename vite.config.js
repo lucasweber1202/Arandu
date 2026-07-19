@@ -98,6 +98,7 @@ function injectGlobalAssets() {
   const rescueCssTag = `<link rel="stylesheet" href="/css/arandu-ui-rescue.css?v=${RESCUE_VERSION}">`;
   const deepCleanCssTag = `<link rel="stylesheet" href="/css/arandu-deep-clean.css?v=${DEEP_CLEAN_VERSION}">`;
   const releaseCssTag = `<link rel="stylesheet" href="/css/arandu-release.css?v=20260717-release-1">`;
+  const clarityCssTag = `<link rel="stylesheet" href="/css/arandu-clarity.css?v=20260719-clarity-1">`;
   const auditJsTag = `<script src="/js/arandu-interface-audit.js?v=${HARDENING_VERSION}" defer></script>`;
   const assistantJsTag = `<script src="/js/arandu-assistant.js?v=${RESCUE_VERSION}" defer></script>`;
   const catalogSourceJsTag = `<script src="/js/catalog-source.js?v=20260717-catalog-release-1"></script>`;
@@ -128,6 +129,7 @@ function injectGlobalAssets() {
       if (!output.includes('/css/arandu-ui-rescue.css')) output = output.includes('</head>') ? output.replace('</head>', `${rescueCssTag}</head>`) : `${output}${rescueCssTag}`;
       if (!output.includes('/css/arandu-deep-clean.css')) output = output.includes('</head>') ? output.replace('</head>', `${deepCleanCssTag}</head>`) : `${output}${deepCleanCssTag}`;
       if (!output.includes('/css/arandu-release.css')) output = output.includes('</head>') ? output.replace('</head>', `${releaseCssTag}</head>`) : `${output}${releaseCssTag}`;
+      if (!output.includes('/css/arandu-clarity.css')) output = output.includes('</head>') ? output.replace('</head>', `${clarityCssTag}</head>`) : `${output}${clarityCssTag}`;
       if (!output.includes('/js/catalog-source.js')) output = output.includes('</head>') ? output.replace('</head>', `${catalogSourceJsTag}</head>`) : `${catalogSourceJsTag}${output}`;
       if (!output.includes('window.ARANDU_PILOT_ENABLED=')) output = output.includes('</head>') ? output.replace('</head>', `${pilotBootstrapTag}</head>`) : `${pilotBootstrapTag}${output}`;
       if (!output.includes('/js/arandu-interface-audit.js')) output = output.includes('</body>') ? output.replace('</body>', `${auditJsTag}</body>`) : `${output}${auditJsTag}`;

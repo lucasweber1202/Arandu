@@ -1,5 +1,15 @@
 # Changelog — Arandu
 
+## v0.9 — Clareza e legibilidade visual
+
+- Contraste alto e explícito para superfícies claras, heróis, rodapé e cards.
+- Títulos com entrelinha mais confortável e escala responsiva menos agressiva.
+- Texto corrido maior, com largura e espaçamento adequados para leitura contínua.
+- Correção de texto claro sobre fundo claro nas faixas de conversão e segurança.
+- Remoção de barras flutuantes duplicadas que cobriam conteúdo no celular.
+- Controles, estados de foco, menus e placeholders com leitura mais nítida.
+- Verificação automatizada de contraste e da ordem final das camadas de estilo.
+
 ## v0.8 — SEO, compartilhamento social e base PWA
 
 - Open Graph e Twitter Cards gerados no build para todas as páginas, com título,
