@@ -3,11 +3,20 @@ import { join, dirname, normalize } from 'node:path';
 
 const root = process.cwd();
 const ignoredPrefixes = ['http://', 'https://', 'mailto:', 'tel:', '#', 'javascript:'];
+const ignoredDirs = new Set([
+  'node_modules',
+  '.git',
+  'dist',
+  'reports',
+  'tests',
+  'test-results',
+  'playwright-report'
+]);
 const htmlFiles = [];
 
 function walk(dir) {
   for (const entry of readdirSync(dir)) {
-    if (['node_modules', '.git', 'dist'].includes(entry)) continue;
+    if (ignoredDirs.has(entry)) continue;
     const path = join(dir, entry);
     const stat = statSync(path);
     if (stat.isDirectory()) walk(path);

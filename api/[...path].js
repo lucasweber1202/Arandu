@@ -345,6 +345,8 @@ function slugify(value) {
 }
 function listFrom(value) { return Array.isArray(value) ? value.map((item) => String(item).trim()).filter(Boolean) : String(value || '').split(',').map((item) => item.trim()).filter(Boolean); }
 function money(value) { const parsed = Number(String(value || '').replace(/\./g, '').replace(',', '.')); return Number.isFinite(parsed) && parsed > 0 ? parsed : null; }
+function boolFrom(value) { return value === true || ['1','true','yes','sim','s'].includes(String(value || '').trim().toLowerCase()); }
+function dateFrom(value) { const parsed = Date.parse(String(value || '')); return Number.isFinite(parsed) ? new Date(parsed).toISOString() : null; }
 
 const PANELS = {
   obras: { table: 'artworks', read: 'v_artworks_full?select=*&order=created_at.desc', statusField: 'status', statuses: ['available', 'in_conversation', 'reserved', 'sold', 'not_published', 'archived'] },
@@ -377,8 +379,77 @@ const JSONS = new Set(['logistics']);
 
 function panelConfig(panel) { return PANELS[String(panel || '').trim()] || null; }
 function panelFromBody(body) { const raw = body.panel || body.type || body.resource || body.kind; return CREATE_ALIASES[String(raw || '').trim()] || String(raw || '').trim(); }
-function normalizeArtist(body) { const name = body.name || body.artist_name; const id = body.id || slugify(name); return { id, name, legal_name: body.legal_name || null, slug: body.slug || id, city: body.city || null, state: body.state || null, languages: listFrom(body.languages), curatorial_axes: listFrom(body.axes || body.curatorial_axes), profile: body.bio || body.profile || null, trajectory: body.trajectory || body.bio || body.profile || null, portfolio_url: body.portfolio_url || null, instagram: body.instagram || null, status: body.status && PANELS.artistas.statuses.includes(body.status) ? body.status : 'in_review', payload: body }; }
-function normalizeArtwork(body) { const title = body.title; const id = body.id || slugify(title); const status = body.status === 'temporarily_reserved' ? 'reserved' : body.status; return { id, slug: body.slug || id, title, artist_id: body.artist_id || body.artistId || null, language: body.language || null, type: body.type || body.language || null, technique: body.technique || null, year: body.year || null, dimensions: body.dimensions || null, price: money(body.price), price_label: body.price_label || null, status: PANELS.obras.statuses.includes(status) ? status : 'available', certificate: true, tags: listFrom(body.tags), search: [title, body.technique, body.tags].filter(Boolean).join(' '), summary: body.summary || body.curatorial_note || null, curatorial_reading: body.curatorial_note || body.curatorial_reading || null, published: status !== 'not_published', payload: body }; }
+function normalizeArtist(body) {
+  const name = body.name || body.artist_name;
+  const id = body.id || slugify(name);
+  return {
+    id,
+    name,
+    legal_name: limited(body.legal_name, 200) || null,
+    slug: body.slug || id,
+    city: limited(body.city, 120) || null,
+    state: limited(body.state, 60) || null,
+    region: limited(body.region, 120) || null,
+    languages: listFrom(body.languages),
+    curatorial_axes: listFrom(body.axes || body.curatorial_axes),
+    profile: limited(body.bio || body.profile, 4000) || null,
+    trajectory: limited(body.trajectory || body.bio || body.profile, 6000) || null,
+    statement: limited(body.statement, 6000) || null,
+    portfolio_url: limited(body.portfolio_url, 1000) || null,
+    instagram: limited(body.instagram, 200) || null,
+    status: body.status && PANELS.artistas.statuses.includes(body.status) ? body.status : 'in_review',
+    artist_level: limited(body.artist_level, 80) || 'emerging',
+    image_url: limited(body.image_url, 2000) || null,
+    studio_image_url: limited(body.studio_image_url, 2000) || null,
+    identity_verified: boolFrom(body.identity_verified),
+    publishing_consent_at: dateFrom(body.publishing_consent_at),
+    verified_at: dateFrom(body.verified_at),
+    source_reference: limited(body.source_reference, 1000) || null,
+    payload: body
+  };
+}
+function normalizeArtwork(body) {
+  const title = body.title;
+  const id = body.id || slugify(title);
+  const status = body.status === 'temporarily_reserved' ? 'reserved' : body.status;
+  return {
+    id,
+    slug: body.slug || id,
+    title,
+    artist_id: body.artist_id || body.artistId || null,
+    language: limited(body.language, 120) || null,
+    type: limited(body.type || body.language, 120) || null,
+    technique: limited(body.technique, 300) || null,
+    support: limited(body.support, 300) || null,
+    year: limited(body.year, 20) || null,
+    dimensions: limited(body.dimensions, 200) || null,
+    price: money(body.price),
+    price_label: limited(body.price_label, 120) || null,
+    status: PANELS.obras.statuses.includes(status) ? status : 'available',
+    edition: limited(body.edition, 120) || null,
+    edition_size: Number(body.edition_size) > 0 ? Number(body.edition_size) : null,
+    certificate: body.certificate === undefined ? true : boolFrom(body.certificate),
+    thumb: limited(body.thumb, 2000) || null,
+    main_image_url: limited(body.main_image_url || body.image_url, 2000) || null,
+    detail_image_url: limited(body.detail_image_url, 2000) || null,
+    room_image_url: limited(body.room_image_url, 2000) || null,
+    recommended_for: listFrom(body.recommended_for),
+    tags: listFrom(body.tags),
+    moods: listFrom(body.moods),
+    spaces: listFrom(body.spaces),
+    search: [title, body.technique, body.tags].filter(Boolean).join(' '),
+    summary: limited(body.summary || body.curatorial_note, 4000) || null,
+    curatorial_reading: limited(body.curatorial_note || body.curatorial_reading, 6000) || null,
+    first_artwork: boolFrom(body.first_artwork),
+    published: body.published === undefined ? status !== 'not_published' : boolFrom(body.published),
+    image_authorized_at: dateFrom(body.image_authorized_at),
+    price_verified_at: dateFrom(body.price_verified_at),
+    availability_verified_at: dateFrom(body.availability_verified_at),
+    catalog_verified_at: dateFrom(body.catalog_verified_at),
+    source_reference: limited(body.source_reference, 1000) || null,
+    payload: body
+  };
+}
 function normalizeCertificateRecord(body) { const status = body.status || body.verification_status || 'draft'; return { code: String(body.code || '').trim().toUpperCase(), artwork_id: body.artwork_id || body.artworkId || null, artist_id: body.artist_id || body.artistId || null, issued_to: body.issued_to || null, verification_status: PANELS.certificados.statuses.includes(status) ? status : 'draft', issued_at: status === 'valid' ? new Date().toISOString() : null, certificate_notes: body.criterios || body.certificate_notes || null, payload: body }; }
 function normalizeTask(body) { return { title: body.title, entity_type: body.entity_type || null, entity_id: body.entity_id || null, owner_name: body.owner_name || 'Curadoria', due_at: body.due_at || null, priority: ['low','normal','high'].includes(body.priority) ? body.priority : 'normal', status: PANELS.tasks.statuses.includes(body.status) ? body.status : 'open' }; }
 function normalizeRecord(panel, body) { if (panel === 'artistas') return normalizeArtist(body); if (panel === 'obras') return normalizeArtwork(body); if (panel === 'certificados') return normalizeCertificateRecord(body); if (panel === 'tasks') return normalizeTask(body); return null; }

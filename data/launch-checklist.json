@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-06-25",
+  "updatedAt": "2026-07-19",
   "project": "Arandu",
   "status": "pre-launch",
   "minimumLaunchCriteria": {
@@ -36,11 +36,16 @@
   },
   "implementedInRepository": [
     "API consolidada para Vercel Hobby",
+    "PRs dos Sprints 2–12, SEO, PWA e legibilidade consolidados na main",
+    "CI completa com contratos, build, SEO e jornadas desktop/mobile",
+    "Auditoria de variáveis e registro de evidências externas",
+    "Bundle auditável das migrations Supabase com SHA-256",
+    "Importador CSV compatível com o template real em português",
     "Health check ampliado para Supabase, admin, domínio e contato",
     "Página status.html com leitura de pendências críticas",
     "Painel interno admin.html para operação mínima",
     "Formulário de submissão de artistas com dados mínimos de contato e portfólio",
     "Fluxo de reserva exigindo nome e WhatsApp"
   ],
-  "recommendedNextAction": "Configurar Supabase e variáveis na Vercel, testar status.html, validar admin.html e substituir dados demonstrativos por artistas e obras reais."
+  "recommendedNextAction": "Escolher o fluxo de migration, configurar Supabase e variáveis na Vercel, executar o canário de escrita e então importar 5 artistas e 20 obras reais pelo template revisado."
 }

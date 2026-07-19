@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "updatedAt": null,
+  "supabase": {
+    "migrationFlow": null,
+    "projectRef": null,
+    "migrationsAppliedAt": null,
+    "writeCanaryAt": null
+  },
+  "catalog": {
+    "reviewedBy": null,
+    "reviewedAt": null,
+    "imageRightsVerified": false,
+    "pricesVerified": false
+  },
+  "commercial": {
+    "approvedBy": null,
+    "approvedAt": null,
+    "policyVersion": null,
+    "legalReviewReference": null
+  },
+  "brand": {
+    "approvedBy": null,
+    "approvedAt": null,
+    "logoAsset": null
+  },
+  "platform": {
+    "rateLimitProvider": null,
+    "errorMonitoringProvider": null,
+    "privacyContactVerifiedAt": null,
+    "backupRestoreVerifiedAt": null,
+    "backupEvidenceReference": null
+  },
+  "pilot": {
+    "minimumCohort": 10,
+    "cohortSize": 0,
+    "startedAt": null,
+    "completedAt": null,
+    "criticalBlockersOpen": null,
+    "approvedBy": null,
+    "approvalReference": null
+  },
+  "domain": {
+    "hostname": null,
+    "verifiedAt": null
+  }
+}

@@ -1,6 +1,6 @@
 {
   "title": "Arandu — quadro de execução do lançamento",
-  "updatedAt": "2026-06-16",
+  "updatedAt": "2026-07-19",
   "groups": [
     {
       "id": "local-validation",
@@ -28,9 +28,9 @@
       "title": "Marca",
       "items": [
         { "id": "logo", "title": "Logo final em assets/logo-arandu.png", "status": "pending", "priority": "high" },
-        { "id": "favicon", "title": "Favicon derivado da logo", "status": "pending", "priority": "medium" },
+        { "id": "favicon", "title": "Favicon derivado da identidade atual", "status": "ready", "priority": "medium" },
         { "id": "social-bio", "title": "Bio de Instagram e LinkedIn fechada", "status": "ready", "priority": "medium" },
-        { "id": "share-image", "title": "Imagem de compartilhamento/OG", "status": "pending", "priority": "medium" }
+        { "id": "share-image", "title": "Imagem de compartilhamento/OG", "status": "ready", "priority": "medium" }
       ]
     },
     {

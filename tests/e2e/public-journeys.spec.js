@@ -9,7 +9,13 @@ test('home oferece navegação, busca, acessibilidade e escolha de privacidade',
   await expect(page.locator('[data-privacy-banner]')).toHaveCount(0);
   const consent = await page.evaluate(() => JSON.parse(localStorage.getItem('arandu.privacy.consent.v1')));
   expect(consent.analytics).toBe(false);
-  await expect(page.locator('a[href*="pesquisa.html"]').first()).toBeVisible();
+  const mobileMenuButton = page.locator('[data-mobile-menu-button]');
+  if (await mobileMenuButton.isVisible()) {
+    await mobileMenuButton.click();
+    await expect(page.locator('#arandu-site-menu a[href*="pesquisa.html"]').first()).toBeVisible();
+  } else {
+    await expect(page.locator('.site-actions a[href*="pesquisa.html"]').first()).toBeVisible();
+  }
 });
 
 test('catálogo indisponível não revela fixtures', async ({ page }) => {

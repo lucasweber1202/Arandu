@@ -1,15 +1,30 @@
 (function(){
-  const textarea=document.querySelector('[data-catalog-csv]'); const preview=document.querySelector('[data-catalog-preview]'); if(!textarea||!preview)return;
-  const tokenInput=document.querySelector('[data-admin-token]'); const fileInput=document.querySelector('[data-catalog-file]'); let validated=[];
-  function esc(v){return String(v??'').replace(/[&<>'"]/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
-  function parseCsv(text){const rows=[];let row=[],cell='',quote=false;for(let i=0;i<text.length;i++){const ch=text[i],next=text[i+1];if(ch==='"'&&quote&&next==='"'){cell+='"';i++;continue;}if(ch==='"'){quote=!quote;continue;}if(ch===','&&!quote){row.push(cell.trim());cell='';continue;}if((ch==='\n'||ch==='\r')&&!quote){if(ch==='\r'&&next==='\n')i++;row.push(cell.trim());if(row.some(Boolean))rows.push(row);row=[];cell='';continue;}cell+=ch;}row.push(cell.trim());if(row.some(Boolean))rows.push(row);return rows;}
-  function slug(value){return String(value||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');}
-  function normalize(record){const tipo=(record.tipo||record.kind||record.item_type||'obra').toLowerCase(); if(tipo.includes('artista'))return{panel:'artistas',data:{id:record.id||slug(record.name||record.nome||record.artist_name),name:record.name||record.nome||record.artist_name,city:record.city||record.cidade,state:record.state||record.estado,region:record.region||record.regiao,languages:record.languages||record.linguagens,profile:record.profile||record.bio||record.perfil,instagram:record.instagram,portfolio_url:record.portfolio_url||record.portfolio,image_url:record.image_url||record.photo_url,status:record.status||'in_review'}}; return{panel:'obras',data:{id:record.id||slug(record.title||record.titulo),title:record.title||record.titulo,artist_id:record.artist_id||record.artista_id,technique:record.technique||record.tecnica,type:record.type||record.tipo_obra||record.tipo,price:record.price||record.preco,price_label:record.price_label||record.preco_label,dimensions:record.dimensions||record.dimensoes,year:record.year||record.ano,edition:record.edition||record.edicao,tags:record.tags||record.etiquetas,summary:record.summary||record.resumo,curatorial_note:record.curatorial_note||record.leitura,image_url:record.image_url||record.main_image_url,detail_image_url:record.detail_image_url,room_image_url:record.room_image_url,status:record.status||'available'}};}
-  function validate(item){const errors=[];if(item.panel==='artistas'&&!item.data.name)errors.push('Nome do artista é obrigatório.');if(item.panel==='obras'&&!item.data.title)errors.push('Título da obra é obrigatório.');if(item.panel==='obras'&&!item.data.artist_id)errors.push('artist_id é obrigatório para obra.');if(item.panel==='obras'&&!item.data.image_url)errors.push('Imagem principal ausente.');if(item.panel==='obras'&&!item.data.price&&!item.data.price_label)errors.push('Preço ou preço exibido ausente.');return errors;}
-  function build(){const rows=parseCsv(textarea.value);if(rows.length<2)return[];const headers=rows[0].map((h)=>h.trim());return rows.slice(1).map((row,index)=>{const raw=Object.fromEntries(headers.map((h,i)=>[h,row[i]||'']));const item=normalize(raw);const errors=validate(item);return{index:index+2,raw,item,errors};});}
-  function image(data){const src=data.image_url||data.photo_url||data.main_image_url;return src?'<img class="op-import-thumb" src="'+esc(src)+'" alt="prévia">':'';}
-  function render(list){validated=list;preview.innerHTML=list.length?list.map((entry)=>'<div class="op-import-row '+(entry.errors.length?'is-error':'')+'">'+image(entry.item.data)+'<strong>Linha '+entry.index+' · '+esc(entry.item.panel)+'</strong><p>'+esc(entry.item.data.title||entry.item.data.name||'Sem título')+'</p>'+(entry.errors.length?'<ul>'+entry.errors.map((e)=>'<li>'+esc(e)+'</li>').join('')+'</ul>':'<span>Pronto para envio</span>')+'</div>').join(''):'<div class="op-empty"><strong>Nenhum registro</strong><span>Confirme cabeçalhos e linhas do CSV.</span></div>';}
-  async function send(){if(!validated.length)render(build());const token=tokenInput?.value.trim();if(!token){alert('Informe ARANDU_ADMIN_TOKEN para enviar.');return;}const valid=validated.filter((entry)=>!entry.errors.length);let ok=0,fail=0;for(const entry of valid){try{const res=await fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json','x-arandu-admin-token':token},body:JSON.stringify({panel:entry.item.panel,data:entry.item.data})});if(res.ok)ok++;else fail++;}catch{fail++;}}alert(`Envio concluído: ${ok} ok, ${fail} falhas.`);}
+  const core=globalThis.AranduCatalogIntakeCore;
+  const textarea=document.querySelector('[data-catalog-csv]');
+  const preview=document.querySelector('[data-catalog-preview]');
+  if(!core||!textarea||!preview)return;
+  const tokenInput=document.querySelector('[data-admin-token]');
+  const fileInput=document.querySelector('[data-catalog-file]');
+  let validated=[];
+  const esc=(value)=>String(value??'').replace(/[&<>'"]/g,(character)=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[character]));
+  const image=(data)=>{const src=data.main_image_url||data.image_url;return src?'<img class="op-import-thumb" src="'+esc(src)+'" alt="Prévia do registro">':'';};
+  function render(list){
+    validated=list;
+    preview.innerHTML=list.length?list.map((entry)=>{
+      const messages=[...entry.errors.map((message)=>({kind:'Erro',message})),...entry.warnings.map((message)=>({kind:'Pendência',message}))];
+      return '<div class="op-import-row '+(entry.errors.length?'is-error':entry.warnings.length?'is-warning':'')+'">'+image(entry.item.data)+'<strong>Linha '+entry.index+' · '+esc(entry.item.panel)+'</strong><p>'+esc(entry.item.data.title||entry.item.data.name||'Sem título')+'</p>'+(messages.length?'<ul>'+messages.map((item)=>'<li><strong>'+item.kind+':</strong> '+esc(item.message)+'</li>').join('')+'</ul>':'<span>Elegível para revisão final</span>')+'</div>';
+    }).join(''):'<div class="op-empty"><strong>Nenhum registro</strong><span>Confirme cabeçalhos e linhas do CSV.</span></div>';
+  }
+  function build(){return core.buildEntries(textarea.value);}
+  async function send(){
+    if(!validated.length)render(build());
+    const token=tokenInput?.value.trim();if(!token){alert('Informe ARANDU_ADMIN_TOKEN para enviar.');return;}
+    const valid=validated.filter((entry)=>!entry.errors.length);let ok=0,fail=0;
+    for(const entry of valid){
+      try{const response=await fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json','x-arandu-admin-token':token},body:JSON.stringify({panel:entry.item.panel,data:entry.item.data})});if(response.ok)ok++;else fail++;}catch{fail++;}
+    }
+    alert(`Envio concluído: ${ok} ok, ${fail} falhas. Registros com pendências continuam sujeitos à revisão editorial.`);
+  }
   fileInput?.addEventListener('change',async()=>{const file=fileInput.files?.[0];if(!file)return;textarea.value=await file.text();render(build());});
   document.querySelector('[data-validate-catalog]')?.addEventListener('click',()=>render(build()));
   document.querySelector('[data-send-catalog]')?.addEventListener('click',send);

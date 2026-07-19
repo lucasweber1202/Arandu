@@ -4,15 +4,16 @@ const strict = process.argv.includes('--require-ready');
 const policy = JSON.parse(fs.readFileSync('data/commercial-policy.json', 'utf8'));
 const envReady = ['1','true','yes','sim'].includes(String(process.env.ARANDU_COMMERCIAL_READY || '').trim().toLowerCase());
 const checks = {
-  approved: policy.approved === true && policy.status === 'approved',
-  commission: policy.commissionDefined === true,
+  approved: policy.approved === true && policy.status === 'approved' && Boolean(policy.approvedBy) && Number.isFinite(Date.parse(policy.approvedAt)),
+  commission: policy.commissionDefined === true && Number(policy.commissionPercent) > 0 && Number(policy.commissionPercent) < 100,
   reservation: Number(policy.reservationHours || 0) > 0,
   payment: Boolean(String(policy.paymentMode || '').trim()),
-  shipping: policy.shippingResponsibilityDefined === true,
-  insurance: policy.insuranceResponsibilityDefined === true,
-  cancellation: policy.cancellationPolicyApproved === true,
-  certificate: policy.certificatePolicyApproved === true,
-  invoice: policy.invoiceModelDefined === true,
+  shipping: policy.shippingResponsibilityDefined === true && Boolean(String(policy.shippingModel || '').trim()),
+  insurance: policy.insuranceResponsibilityDefined === true && Boolean(String(policy.insuranceModel || '').trim()),
+  cancellation: policy.cancellationPolicyApproved === true && Boolean(String(policy.cancellationPolicyVersion || '').trim()),
+  certificate: policy.certificatePolicyApproved === true && Boolean(String(policy.certificatePolicyVersion || '').trim()),
+  invoice: policy.invoiceModelDefined === true && Boolean(String(policy.invoiceModel || '').trim()),
+  owner: Boolean(String(policy.operationalOwner || '').trim()),
   environment: envReady
 };
 const pending = Object.entries(checks).filter(([, ok]) => !ok).map(([key]) => key);

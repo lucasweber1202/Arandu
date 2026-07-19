@@ -6,9 +6,15 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: arandu-ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   validate:
     runs-on: ubuntu-latest
+    env:
+      ARANDU_SITE_URL: https://arandu.example.com
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -17,18 +23,33 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 24
+          cache: npm
 
       - name: Install
-        run: npm install --include=optional
+        run: npm ci --include=optional
+
+      - name: Full source and contract checks
+        run: npm run check:all
 
       - name: Build
         run: npm run build
 
-      - name: Launch readiness
-        run: npm run check:ready
+      - name: SEO in built output
+        run: npm run check:seo:dist
 
-      - name: Quality gate
-        run: npm run check:quality
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
 
-      - name: UX launch checks
-        run: npm run check:ux
+      - name: Desktop and mobile journeys
+        run: npm run test:e2e
+
+      - name: Upload browser evidence on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: arandu-playwright-evidence
+          path: |
+            reports/playwright
+            test-results
+          if-no-files-found: ignore
+          retention-days: 7
