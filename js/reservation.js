@@ -30,7 +30,8 @@ function extractArtworkId(data) {
 async function sendReservationToApi(data) {
   const payload = { ...data, artwork_id: extractArtworkId(data) };
   try {
-    const response = await fetch(ARANDU_RESERVATIONS_API, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    const idempotencyKey = String(data.id || crypto.randomUUID()).replace(/[^A-Za-z0-9_-]/g, '_');
+    const response = await fetch(ARANDU_RESERVATIONS_API, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey }, body: JSON.stringify(payload) });
     const result = await response.json().catch(() => ({}));
     return { ok: response.ok && result.ok !== false, status: response.status, result };
   } catch (error) {

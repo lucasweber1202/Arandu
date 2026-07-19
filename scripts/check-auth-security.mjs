@@ -51,10 +51,14 @@ if (/saved_selections\?public_token[^\n]+select=\*/.test(api)) {
 }
 
 requireTerm('api/mvp-dashboard.js', mvpApi, 'adminGuard(req)', 'dashboard MVP continua público.');
+requireTerm('api/mvp-dashboard.js', mvpApi, 'timingSafeEqual', 'dashboard MVP compara o token administrativo de forma vulnerável a timing.');
 requireTerm('api/commercial.js', commercialApi, 'MAX_BODY_BYTES', 'API comercial não limita o corpo da requisição.');
 requireTerm('api/commercial.js', commercialApi, 'Acesso administrativo não autorizado', 'API comercial não exige token administrativo.');
+requireTerm('api/commercial.js', commercialApi, 'timingSafeEqual', 'API comercial compara o token administrativo de forma vulnerável a timing.');
 requireTerm('api/upload.js', uploadApi, 'MAX_BODY_BYTES', 'upload acumula o corpo sem limite prévio.');
 requireTerm('api/upload.js', uploadApi, 'Acesso administrativo não autorizado', 'upload não exige token administrativo.');
+requireTerm('api/upload.js', uploadApi, 'timingSafeEqual', 'upload compara o token administrativo de forma vulnerável a timing.');
+requireTerm('api/[...path].js', api, 'verification_status=eq.valid', 'consulta pública pode retornar certificado ainda não validado.');
 requireTerm('api/health.js', health, 'saved_selections?select=id,user_id,public_token', 'health check não detecta migration de propriedade ausente.');
 requireTerm('api/health.js', health, 'reservations?select=id,user_id', 'health check não valida propriedade das reservas.');
 requireTerm('docs/supabase-schema.sql', schema, 'gen_random_bytes(16)', 'token público de seleção possui menos de 128 bits no schema.');

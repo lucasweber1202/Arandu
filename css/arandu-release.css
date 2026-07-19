@@ -1,0 +1,192 @@
+:root {
+  --arandu-pau-brasil: #741f1a;
+  --arandu-argila: #b94d36;
+  --arandu-terracota: #d76443;
+  --arandu-mata: #173f31;
+  --arandu-carvao: #21110d;
+  --arandu-porcelana: #fffaf6;
+  --arandu-rosa-terra: #f6d6c8;
+}
+
+html, body {
+  background: var(--arandu-porcelana);
+  color: var(--arandu-carvao);
+}
+
+.site-header {
+  background: var(--arandu-pau-brasil) !important;
+  border-bottom: 3px solid var(--arandu-terracota);
+}
+
+.header-inner {
+  flex-wrap: nowrap !important;
+}
+
+.site-nav {
+  gap: 4px !important;
+  flex: 1;
+  justify-content: center;
+}
+
+.site-nav a,
+.site-actions a,
+.menu-toggle {
+  border: 1px solid transparent;
+  border-radius: 10px !important;
+  min-height: 42px;
+  padding: 10px 12px !important;
+  font-weight: 800;
+}
+
+.site-nav a.is-active,
+.site-actions a.is-active {
+  background: var(--arandu-porcelana) !important;
+  color: var(--arandu-pau-brasil) !important;
+  box-shadow: inset 0 -3px 0 var(--arandu-terracota);
+}
+
+.site-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.site-actions a {
+  color: #fff !important;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.site-actions .search-entry {
+  border-color: rgba(255,255,255,.48);
+}
+
+.site-actions .auth-entry {
+  background: var(--arandu-porcelana) !important;
+  color: var(--arandu-pau-brasil) !important;
+}
+
+.menu-toggle {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: #fff;
+  border-color: rgba(255,255,255,.48);
+  cursor: pointer;
+}
+
+.mobile-menu-panel {
+  position: absolute;
+  top: calc(100% + 1px);
+  right: max(18px, calc((100vw - 1180px) / 2));
+  width: min(360px, calc(100vw - 36px));
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid rgba(116,31,26,.24);
+  border-radius: 0 0 18px 18px;
+  background: var(--arandu-porcelana);
+  box-shadow: 0 22px 60px rgba(33,17,13,.2);
+  z-index: 100000;
+}
+
+.mobile-menu-panel[hidden] {
+  display: none !important;
+}
+
+.mobile-menu-panel a {
+  display: flex;
+  align-items: center;
+  min-height: 46px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: var(--arandu-pau-brasil);
+  text-decoration: none;
+  font-weight: 800;
+}
+
+.mobile-menu-panel a:hover,
+.mobile-menu-panel a:focus-visible {
+  background: var(--arandu-rosa-terra);
+}
+
+.catalog-unavailable {
+  border: 2px solid var(--arandu-argila);
+  background: var(--arandu-porcelana);
+  color: var(--arandu-carvao);
+}
+
+.catalog-unavailable a {
+  color: var(--arandu-pau-brasil);
+  font-weight: 850;
+}
+
+.pilot-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 1000000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(33,17,13,.88);
+  backdrop-filter: blur(10px);
+}
+
+.pilot-gate-card {
+  width: min(520px, 100%);
+  display: grid;
+  gap: 14px;
+  padding: clamp(24px, 5vw, 46px);
+  border-radius: 24px;
+  background: var(--arandu-porcelana);
+  box-shadow: 0 30px 100px rgba(0,0,0,.36);
+}
+
+.pilot-gate-card input,
+.pilot-gate-card button {
+  min-height: 48px;
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.pilot-gate-card button {
+  border: 0;
+  background: var(--arandu-pau-brasil);
+  color: #fff;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.pilot-gate-card input[name="website"] {
+  position: absolute;
+  left: -9999px;
+}
+
+.rect-hero,
+.platform-hero-strip {
+  background-color: var(--arandu-porcelana) !important;
+}
+
+.section-muted,
+.clean-section:nth-of-type(even) {
+  background-color: #fbe9e1 !important;
+}
+
+@media (max-width: 1080px) {
+  .site-nav a:nth-child(4) { display: none !important; }
+}
+
+@media (max-width: 860px) {
+  .site-nav { display: none !important; }
+  .site-actions .search-entry { display: none; }
+  .header-inner { gap: 8px !important; }
+  .mobile-menu-panel { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 480px) {
+  .site-actions .auth-entry { display: none; }
+}
+
+.skip-link{position:fixed;left:1rem;top:-5rem;z-index:10000;background:#180804;color:#fff8ed;padding:.8rem 1rem;border-radius:.25rem}.skip-link:focus{top:1rem}.privacy-banner{position:fixed;z-index:9998;left:1rem;right:1rem;bottom:1rem;display:flex;align-items:center;justify-content:space-between;gap:1.25rem;max-width:1120px;margin:auto;padding:1rem 1.2rem;background:#fff8ed;color:#211713;border:1px solid #7b1f17;box-shadow:0 18px 60px rgba(24,8,4,.24)}.privacy-banner p{margin:.35rem 0 0;max-width:720px}.privacy-banner-actions{display:flex;align-items:center;justify-content:flex-end;gap:.6rem;flex-wrap:wrap}.privacy-banner-actions a{font-weight:800;color:#7b1f17}@media(max-width:760px){.privacy-banner{align-items:stretch;flex-direction:column}.privacy-banner-actions{justify-content:flex-start}.privacy-banner-actions .cta{flex:1}}

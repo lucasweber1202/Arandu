@@ -19,7 +19,7 @@
     const body=payload();
     writeArray(HISTORY_KEY,[...readArray(HISTORY_KEY),{...body,local_id:`proposal_${Date.now()}`}]);
     try{
-      const response=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+      const response=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json','Idempotency-Key':crypto.randomUUID()},body:JSON.stringify(body)});
       const result=await response.json().catch(()=>({}));
       if(response.ok&&result.ok!==false){status(result.mode==='demo'?'Proposta preparada e salva neste navegador.':'Proposta registrada para a curadoria.');return true}
     }catch(_){/* fallback local */}

@@ -13,7 +13,7 @@
   async function load(){
     summary.innerHTML='<div class="op-empty"><strong>Carregando</strong><span>Consultando arquivos e endpoints públicos...</span></div>';
     const [health,catalog,artists,certs,checklist,logoPng,logoSvg]=await Promise.all([
-      json('/api/health',{}),json('/api/catalog','data/artworks.json'),json('/api/artists','data/artists.json'),json('data/certificates.json',[]),json('data/launch-checklist.json',{}),exists('assets/logo-arandu.png'),exists('assets/logo-arandu.svg')
+      json('/api/health?probe=1',{}),json('/api/catalog',{}),json('/api/artists',{}),json('data/certificates.json',[]),json('data/launch-checklist.json',{}),exists('assets/logo-arandu.png'),exists('assets/logo-arandu.svg')
     ]);
     const healthData=health.data||{};
     const catalogItems=Array.isArray(catalog.data?.items)?catalog.data.items:(Array.isArray(catalog.data)?catalog.data:[]);
@@ -22,7 +22,7 @@
     const checks=healthData.checks||{};
     const productionReady=Boolean(healthData.productionReady);
     const contact=contactOk();
-    const hasEnoughCatalog=catalogItems.length>=20&&artistItems.length>=5;
+    const hasEnoughCatalog=Boolean(healthData.verifiedReady&&catalog.data?.verifiedReady&&artists.data?.verifiedReady&&catalogItems.length>=20&&artistItems.length>=5);
     const hasTrust=certItems.some((item)=>item.verification_status==='valid');
     const hasLogo=logoPng||logoSvg;
     const cards=[
@@ -30,10 +30,10 @@
       card('Catálogo mínimo',hasEnoughCatalog,catalogItems.length+' obras e '+artistItems.length+' artistas carregados.','diagnostico-catalogo.html'),
       card('Certificados',hasTrust,certItems.length+' registros de certificado encontrados.','certificado-imprimivel.html'),
       card('Contato comercial',contact,contact?'WhatsApp ou e-mail central configurado.':'Configurar WhatsApp real ou e-mail de atendimento.','templates-comunicacao.html'),
-      card('Supabase',Boolean(checks.supabaseUrl&&checks.supabaseAnonKey),checks.supabaseUrl?'Variáveis Supabase detectadas.':'Ainda em modo demo/local.','status.html'),
+      card('Supabase',Boolean(checks.supabaseUrl&&checks.supabaseAnonKey),checks.supabaseUrl?'Variáveis Supabase detectadas.':'Banco de produção ainda não configurado.','status.html'),
       card('Token admin',Boolean(checks.adminToken),checks.adminToken?'Token administrativo detectado.':'Configure ARANDU_ADMIN_TOKEN na Vercel.','docs/VERCEL_ENV_SETUP.md'),
       card('Logo',hasLogo,logoPng?'PNG final detectado.':(logoSvg?'SVG provisório detectado; substituir por PNG final depois.':'Logo ausente.'),'assets/logo-arandu.svg'),
-      card('Pronto para produção',productionReady,productionReady?'Ambiente de produção configurado.':'Faltam variáveis reais de produção.','status.html')
+      card('Pronto para produção',Boolean(healthData.verifiedReady),healthData.verifiedReady?'Ambiente e catálogo verificados ponta a ponta.':'Faltam configuração, catálogo real ou teste de escrita.','status.html')
     ];
     summary.innerHTML='<div class="section-head compact-head"><div><p class="eyebrow">Resumo</p><h2>Prontidão de lançamento</h2></div><strong>'+cards.filter((html)=>html.includes('is-ok')).length+'/'+cards.length+'</strong></div><div class="op-quality-grid">'+cards.join('')+'</div>';
     const pending=[];

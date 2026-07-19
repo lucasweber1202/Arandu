@@ -1,3 +1,5 @@
+import { timingSafeEqual } from 'node:crypto';
+
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
@@ -18,9 +20,16 @@ function tokenFrom(req) {
   return String(req.headers['x-arandu-admin-token'] || bearer || '').trim();
 }
 
+function constantTimeEqual(left, right) {
+  const supplied = Buffer.from(String(left || ''));
+  const expected = Buffer.from(String(right || ''));
+  if (supplied.length !== expected.length) return false;
+  return timingSafeEqual(supplied, expected);
+}
+
 function adminGuard(req) {
   if (!ADMIN_TOKEN) return { ok: false, status: 503, error: 'ARANDU_ADMIN_TOKEN não configurado no servidor.' };
-  if (tokenFrom(req) !== ADMIN_TOKEN) return { ok: false, status: 401, error: 'Acesso administrativo não autorizado.' };
+  if (!constantTimeEqual(tokenFrom(req), ADMIN_TOKEN)) return { ok: false, status: 401, error: 'Acesso administrativo não autorizado.' };
   return { ok: true };
 }
 

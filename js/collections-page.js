@@ -20,10 +20,10 @@
       if(!response.ok||data.ok===false)throw new Error(data.error||'Não foi possível carregar coleções.');
       const collections=Array.isArray(data.collections)?data.collections:[];
       root.innerHTML=collections.length?collections.map(card).join(''):'<article class="macro-card"><strong>Sem coleções</strong><span>Cadastre coleções ou rode o SQL de coleções do MVP.</span></article>';
-      if(status)status.textContent=data.installed?'Coleções carregadas do Supabase.':'Coleções em modo fallback. Rode docs/arandu-mvp-collections.sql para editar pelo banco.';
+      if(status)status.textContent='Coleções carregadas do catálogo verificado.';
     }catch(error){
-      root.innerHTML='<article class="macro-card"><strong>Erro ao carregar coleções</strong><span>'+escapeHtml(error.message)+'</span></article>';
-      if(status)status.textContent='Falha ao consultar /api/collections.';
+      root.innerHTML='<article class="macro-card catalog-unavailable"><strong>Coleções indisponíveis</strong><span>'+escapeHtml(error.message)+'</span><a href="status.html">Ver estado do serviço</a></article>';
+      if(status)status.textContent='As coleções serão abertas após a validação do catálogo real.';
     }
   }
   load();

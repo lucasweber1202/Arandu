@@ -8,6 +8,7 @@ const checks = [
   { path: '/api/health?probe=1', type: 'json', required: true, name: 'Health + Supabase probe' },
   { path: '/api/catalog', type: 'json', required: true, name: 'Catálogo público' },
   { path: '/api/artists', type: 'json', required: true, name: 'Artistas públicos' },
+  { path: '/api/collections', type: 'json', required: true, name: 'Coleções públicas' },
   { path: '/api/auth/session', type: 'json', required: true, name: 'Sessão Auth' },
   { path: '/api/certificates?code=ARANDU-TESTE', type: 'json', required: false, name: 'Certificado público' },
   { path: '/status.html', type: 'html', required: true, name: 'Página de status' }

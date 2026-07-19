@@ -7,19 +7,16 @@ const hasVectorLogo = existsSync('assets/logo-arandu.svg');
 if (!hasFinalPngLogo && !hasVectorLogo) warnings.push('Logo ainda não existe em assets/logo-arandu.png ou assets/logo-arandu.svg.');
 if (!hasFinalPngLogo && hasVectorLogo) warnings.push('Logo vetorial provisória existe em assets/logo-arandu.svg; substituir por PNG final antes da divulgação ampla.');
 
-if (existsSync('data/whatsapp-config.js')) {
-  const content = readFileSync('data/whatsapp-config.js', 'utf8');
-  const match = content.match(/ARANDU_WHATSAPP_NUMBER\s*=\s*['"]([^'"]*)['"]/);
-  const number = match ? match[1].replace(/\D/g, '') : '';
-  if (content.includes('5500000000000')) warnings.push('WhatsApp ainda está com número placeholder.');
-  if (!number || number.length < 12) warnings.push('WhatsApp real ainda não está configurado em data/whatsapp-config.js.');
-} else {
+if (!existsSync('data/whatsapp-config.js')) {
   warnings.push('Arquivo data/whatsapp-config.js não encontrado.');
 }
+const whatsappDigits = String(process.env.ARANDU_WHATSAPP_NUMBER || '').replace(/\D/g, '');
+const contactEmail = String(process.env.ARANDU_CONTACT_EMAIL || '').trim();
+if (whatsappDigits.length < 12 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) warnings.push('Canal real de contato ainda não foi configurado no ambiente.');
 
 if (existsSync('sitemap.xml')) {
   const sitemap = readFileSync('sitemap.xml', 'utf8');
-  if (!sitemap.includes('https://')) warnings.push('sitemap.xml ainda usa URLs relativas; atualizar com domínio real antes da produção.');
+  if (!sitemap.includes('https://') && !process.env.ARANDU_SITE_URL) warnings.push('Sitemap público será gerado no build somente após configurar ARANDU_SITE_URL com domínio próprio.');
   ['admin-preview.html', 'demo.html', 'roadmap.html', 'painel-obras.html'].forEach((internal) => {
     if (sitemap.includes(internal)) warnings.push(`Página interna aparece no sitemap público: ${internal}`);
   });
@@ -41,6 +38,9 @@ if (!existsSync(apiRouter)) {
     'certificate-document',
     'catalog',
     'artists',
+    'public-config',
+    'events',
+    'pilot',
     'admin',
     'admin-update',
     'operational',
@@ -128,6 +128,13 @@ if (!existsSync('data/launch-checklist.json')) warnings.push('Checklist estrutur
 if (!process.env.SUPABASE_URL) warnings.push('SUPABASE_URL ainda não está configurado no ambiente de produção.');
 if (!process.env.SUPABASE_ANON_KEY && !process.env.SUPABASE_SERVICE_ROLE_KEY) warnings.push('Chave Supabase ainda não está configurada no ambiente de produção.');
 if (!process.env.ARANDU_ADMIN_TOKEN) warnings.push('ARANDU_ADMIN_TOKEN ainda não está configurado no ambiente de produção.');
+if (!['1','true','yes','sim'].includes(String(process.env.ARANDU_BRAND_READY || '').toLowerCase())) warnings.push('Identidade final ainda não foi aprovada com ARANDU_BRAND_READY=true.');
+if (!['1','true','yes','sim'].includes(String(process.env.ARANDU_COMMERCIAL_READY || '').toLowerCase())) warnings.push('Política comercial ainda não foi aprovada com ARANDU_COMMERCIAL_READY=true.');
+if (!['1','true','yes','sim'].includes(String(process.env.ARANDU_DISTRIBUTED_RATE_LIMIT || '').toLowerCase())) warnings.push('Rate limit distribuído ainda não foi confirmado com ARANDU_DISTRIBUTED_RATE_LIMIT=true.');
+if (!['1','true','yes','sim'].includes(String(process.env.ARANDU_ERROR_MONITORING_READY || '').toLowerCase())) warnings.push('Monitoramento e alertas ainda não foram confirmados com ARANDU_ERROR_MONITORING_READY=true.');
+if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(process.env.ARANDU_PRIVACY_CONTACT_EMAIL || '').trim())) warnings.push('Contato LGPD ainda não foi configurado em ARANDU_PRIVACY_CONTACT_EMAIL.');
+const backupVerifiedAt = Date.parse(String(process.env.ARANDU_BACKUP_VERIFIED_AT || ''));
+if (!Number.isFinite(backupVerifiedAt) || Date.now() - backupVerifiedAt > 30 * 24 * 60 * 60 * 1000) warnings.push('Restauração de backup não foi comprovada nos últimos 30 dias em ARANDU_BACKUP_VERIFIED_AT.');
 
 if (warnings.length) {
   console.warn('Atenções antes de produção:');

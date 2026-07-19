@@ -76,7 +76,13 @@ function injectAuthForms() {
         <input name="password" type="password" placeholder="Senha" autocomplete="current-password" required />
         <input name="profileType" type="hidden" value="comprador" />
         <button type="submit">Entrar</button>
+        <button class="button secondary" type="button" data-show-password-reset>Esqueci minha senha</button>
         <p>Ainda não tem conta? <a href="cadastro.html">Criar conta</a></p>
+      </form>
+      <form class="form-card" data-password-reset-form hidden>
+        <h3>Recuperar senha</h3><p>Enviaremos instruções caso exista uma conta para o e-mail informado.</p>
+        <input name="email" type="email" placeholder="E-mail da conta" autocomplete="email" required />
+        <button type="submit">Enviar instruções</button>
       </form>`;
   }
 }
@@ -164,6 +170,7 @@ async function renderAccount() {
       </div>
       <section class="card"><p class="eyebrow">Suas seleções</p><div class="grid grid-2">${selectionCards(account.selections)}</div></section>
       <section class="card"><p class="eyebrow">Suas reservas</p><div class="grid grid-2">${reservationCards(account.reservations)}</div></section>`;
+    target.insertAdjacentHTML('beforeend', `<section class="card"><p class="eyebrow">Privacidade e seus dados</p><h3>Você controla as informações da sua conta.</h3><p>Baixe uma cópia em JSON ou solicite acesso, correção, portabilidade ou exclusão. Solicitações ficam registradas com prazo de atendimento.</p><div class="page-actions"><a class="cta secondary" href="/api/privacy/export" download>Baixar meus dados</a></div><form data-privacy-request-form><label>Tipo de solicitação<select name="requestType" required><option value="access">Acesso</option><option value="correction">Correção</option><option value="portability">Portabilidade</option><option value="deletion">Exclusão</option></select></label><label>Detalhes<textarea name="message" maxlength="1000" placeholder="Descreva apenas o necessário"></textarea></label><button type="submit">Registrar solicitação</button></form></section>`);
   } catch (error) {
     if (error.status === 401) {
       target.innerHTML = '<div class="card"><h3>Você ainda não entrou.</h3><p>Entre ou crie uma conta para sincronizar seleções e acompanhar reservas.</p><div class="page-actions"><a class="cta" href="login.html">Entrar</a><a class="cta secondary" href="cadastro.html">Criar conta</a></div></div>';
@@ -198,14 +205,18 @@ async function renderDashboard() {
 document.addEventListener('submit', async (event) => {
   const signup = event.target.closest('[data-signup-form]');
   const login = event.target.closest('[data-login-form]');
-  if (!signup && !login) return;
+  const reset = event.target.closest('[data-password-reset-form]');
+  const privacy = event.target.closest('[data-privacy-request-form]');
+  if (!signup && !login && !reset && !privacy) return;
   event.preventDefault();
-  const form = signup || login;
+  const form = signup || login || reset || privacy;
   const payload = Object.fromEntries(new FormData(form).entries());
-  const endpoint = signup ? '/api/auth/signup' : '/api/auth/login';
+  const endpoint = signup ? '/api/auth/signup' : login ? '/api/auth/login' : reset ? '/api/auth/reset-password' : '/api/privacy/request';
   try {
-    setStatus(form, signup ? 'Criando cadastro...' : 'Entrando...');
+    setStatus(form, signup ? 'Criando cadastro...' : login ? 'Entrando...' : reset ? 'Solicitando recuperação...' : 'Registrando solicitação...');
     const result = await requestJson(endpoint, { method: 'POST', body: JSON.stringify(payload) });
+    if (reset) { setStatus(form, result.message || 'Confira seu e-mail para continuar.'); return; }
+    if (privacy) { setStatus(form, `Solicitação registrada. Prazo: ${formatDateTime(result.request?.dueAt)}.`); form.reset(); return; }
     if (result.needsEmailConfirmation) {
       setStatus(form, 'Cadastro criado. Confira seu e-mail e confirme a conta antes de entrar.');
       form.querySelector('button[type="submit"]')?.setAttribute('disabled', 'disabled');
@@ -221,6 +232,12 @@ document.addEventListener('submit', async (event) => {
 });
 
 document.addEventListener('click', async (event) => {
+  const resetTrigger = event.target.closest('[data-show-password-reset]');
+  if (resetTrigger) {
+    const form = document.querySelector('[data-password-reset-form]');
+    if (form) { form.hidden = false; form.querySelector('input')?.focus(); }
+    return;
+  }
   const logout = event.target.closest('[data-auth-logout]');
   if (!logout) return;
   event.preventDefault();

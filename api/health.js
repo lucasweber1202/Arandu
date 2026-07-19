@@ -4,6 +4,16 @@ const ROUTES = [
   '/api/proposals',
   '/api/catalog',
   '/api/artists',
+  '/api/public-config',
+  '/api/events',
+  '/api/conversion-events',
+  '/api/catalog-review',
+  '/api/privacy/export',
+  '/api/privacy/request',
+  '/api/pilot/session',
+  '/api/pilot/access',
+  '/api/pilot/feedback',
+  '/api/pilot/metrics',
   '/api/certificates',
   '/api/certificate-document',
   '/api/admin',
@@ -16,6 +26,7 @@ const ROUTES = [
   '/api/auth/session',
   '/api/auth/login',
   '/api/auth/signup',
+  '/api/auth/reset-password',
   '/api/auth/logout'
 ];
 
@@ -36,6 +47,28 @@ function configured(name) {
 
 function configuredAny(names) {
   return names.some((name) => configured(name));
+}
+
+function enabled(name) {
+  return ['1','true','yes','sim'].includes(String(process.env[name] || '').trim().toLowerCase());
+}
+
+function validEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
+}
+
+function productionSiteConfigured() {
+  try {
+    const url = new URL(process.env.ARANDU_SITE_URL);
+    return url.protocol === 'https:' && !url.hostname.endsWith('.vercel.app') && url.hostname !== 'localhost';
+  } catch {
+    return false;
+  }
+}
+
+function recentBackupVerified() {
+  const timestamp = Date.parse(String(process.env.ARANDU_BACKUP_VERIFIED_AT || ''));
+  return Number.isFinite(timestamp) && timestamp <= Date.now() && Date.now() - timestamp <= 30 * 24 * 60 * 60 * 1000;
 }
 
 function cleanNumber(value) {
@@ -68,7 +101,7 @@ function baseSupabaseHeaders() {
   };
 }
 
-async function probeSupabaseResource(label, resource) {
+async function probeSupabaseResource(label, resource, exposeSample = false) {
   const startedAt = Date.now();
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), SUPABASE_TIMEOUT_MS);
@@ -90,7 +123,8 @@ async function probeSupabaseResource(label, resource) {
       status: response.status,
       ms: Date.now() - startedAt,
       count: Array.isArray(parsed) ? parsed.length : null,
-      error: response.ok ? null : sanitizeError(parsed?.message || parsed?.error || text || `HTTP ${response.status}`)
+      error: response.ok ? null : sanitizeError(parsed?.message || parsed?.error || text || `HTTP ${response.status}`),
+      ...(exposeSample && Array.isArray(parsed) ? { sample: parsed[0] || null } : {})
     };
   } catch (error) {
     return {
@@ -118,7 +152,13 @@ async function runSupabaseProbes(enabled) {
     probeSupabaseResource('Perfis de conta', 'profiles?select=id,profile_type&limit=1'),
     probeSupabaseResource('Propriedade das seleções', 'saved_selections?select=id,user_id,public_token&limit=1'),
     probeSupabaseResource('Propriedade das reservas', 'reservations?select=id,user_id&limit=1'),
+    probeSupabaseResource('Prontidão do catálogo', 'v_catalog_readiness?select=id,dataset_version,dataset_kind,release_approved,write_verified_at,verified_artist_count,verified_artwork_count,required_artist_count,required_artwork_count,verified_ready&limit=1', true),
+    probeSupabaseResource('View v_public_artists', 'v_public_artists?select=id&limit=1'),
     probeSupabaseResource('View v_public_catalog', 'v_public_catalog?select=id&limit=1'),
+    probeSupabaseResource('View v_public_collections', 'v_public_collections?select=id&limit=1'),
+    probeSupabaseResource('Workflow editorial', 'v_catalog_editorial_readiness?select=*&limit=1'),
+    probeSupabaseResource('Solicitações LGPD', 'privacy_requests?select=id&limit=1'),
+    probeSupabaseResource('Rate limit distribuído', 'api_rate_limits?select=scope&limit=1'),
     probeSupabaseResource('View v_sales_pipeline', 'v_sales_pipeline?select=id&limit=1')
   ]);
 
@@ -133,6 +173,10 @@ async function runSupabaseProbes(enabled) {
 
 function buildChecks() {
   const whatsappDigits = cleanNumber(process.env.ARANDU_WHATSAPP_NUMBER);
+  const pilotEnabled = enabled('ARANDU_PILOT_ENABLED');
+  const pilotAccessCode = String(process.env.ARANDU_PILOT_ACCESS_CODE || '').length >= 10;
+  const pilotSecret = String(process.env.ARANDU_PILOT_SECRET || '').length >= 32;
+  const pilotApproved = enabled('ARANDU_PILOT_APPROVED');
   const checks = {
     api: true,
     mainRouter: true,
@@ -140,10 +184,21 @@ function buildChecks() {
     supabaseAnonKey: configured('SUPABASE_ANON_KEY'),
     supabaseServiceRoleKey: configured('SUPABASE_SERVICE_ROLE_KEY'),
     adminToken: configured('ARANDU_ADMIN_TOKEN'),
-    siteUrl: configured('ARANDU_SITE_URL'),
+    siteUrl: productionSiteConfigured(),
     whatsappNumber: whatsappDigits.length >= 12,
-    contactEmail: configured('ARANDU_CONTACT_EMAIL'),
-    contactChannel: whatsappDigits.length >= 12 || configured('ARANDU_CONTACT_EMAIL')
+    contactEmail: validEmail(process.env.ARANDU_CONTACT_EMAIL),
+    contactChannel: whatsappDigits.length >= 12 || validEmail(process.env.ARANDU_CONTACT_EMAIL),
+    brandReady: enabled('ARANDU_BRAND_READY'),
+    commercialReady: enabled('ARANDU_COMMERCIAL_READY'),
+    distributedRateLimit: enabled('ARANDU_DISTRIBUTED_RATE_LIMIT'),
+    privacyContact: validEmail(process.env.ARANDU_PRIVACY_CONTACT_EMAIL || process.env.ARANDU_CONTACT_EMAIL),
+    errorMonitoring: enabled('ARANDU_ERROR_MONITORING_READY'),
+    backupVerified: recentBackupVerified(),
+    pilotEnabled,
+    pilotAccessCode,
+    pilotSecret,
+    pilotReady: pilotEnabled && pilotAccessCode && pilotSecret,
+    pilotApproved
   };
 
   return checks;
@@ -151,18 +206,37 @@ function buildChecks() {
 
 function missingFrom(checks) {
   const missing = REQUIRED_ENV.filter((name) => !configured(name));
+  if (!checks.siteUrl && !missing.includes('ARANDU_SITE_URL')) missing.push('ARANDU_SITE_URL válido em domínio próprio');
   if (!checks.contactChannel) missing.push('ARANDU_WHATSAPP_NUMBER ou ARANDU_CONTACT_EMAIL');
+  if (!checks.brandReady) missing.push('ARANDU_BRAND_READY');
+  if (!checks.commercialReady) missing.push('ARANDU_COMMERCIAL_READY');
+  if (!checks.distributedRateLimit) missing.push('ARANDU_DISTRIBUTED_RATE_LIMIT');
+  if (!checks.privacyContact) missing.push('ARANDU_PRIVACY_CONTACT_EMAIL ou ARANDU_CONTACT_EMAIL');
+  if (!checks.errorMonitoring) missing.push('ARANDU_ERROR_MONITORING_READY');
+  if (!checks.backupVerified) missing.push('ARANDU_BACKUP_VERIFIED_AT recente');
+  if (checks.pilotEnabled && !checks.pilotAccessCode) missing.push('ARANDU_PILOT_ACCESS_CODE');
+  if (checks.pilotEnabled && !checks.pilotSecret) missing.push('ARANDU_PILOT_SECRET');
+  if (!checks.pilotApproved) missing.push('ARANDU_PILOT_APPROVED');
   return missing;
 }
 
-function nextCriticalActions(checks, supabaseProbe) {
+function nextCriticalActions(checks, supabaseProbe, catalogReady) {
   const actions = [
     !checks.supabaseUrl || !checks.supabaseAnonKey || !checks.supabaseServiceRoleKey ? 'Configurar SUPABASE_URL, SUPABASE_ANON_KEY e SUPABASE_SERVICE_ROLE_KEY na Vercel.' : null,
     !checks.adminToken ? 'Configurar ARANDU_ADMIN_TOKEN na Vercel.' : null,
     !checks.siteUrl ? 'Configurar ARANDU_SITE_URL com o domínio real de produção.' : null,
     !checks.contactChannel ? 'Configurar WhatsApp real ou e-mail de atendimento.' : null,
+    !checks.brandReady ? 'Aprovar a identidade visual final e definir ARANDU_BRAND_READY=true.' : null,
+    !checks.commercialReady ? 'Aprovar a política comercial e definir ARANDU_COMMERCIAL_READY=true.' : null,
+    !checks.distributedRateLimit ? 'Ativar ARANDU_DISTRIBUTED_RATE_LIMIT após aplicar a migration de plataforma.' : null,
+    !checks.privacyContact ? 'Configurar o contato responsável por solicitações LGPD.' : null,
+    !checks.errorMonitoring ? 'Configurar monitoramento externo e definir ARANDU_ERROR_MONITORING_READY=true.' : null,
+    !checks.backupVerified ? 'Executar uma restauração de teste e registrar ARANDU_BACKUP_VERIFIED_AT.' : null,
+    checks.pilotEnabled && !checks.pilotReady ? 'Completar código e segredo do piloto fechado.' : null,
+    !checks.pilotApproved ? 'Concluir o piloto fechado, resolver bloqueadores e definir ARANDU_PILOT_APPROVED=true.' : null,
     supabaseProbe && supabaseProbe.skipped ? 'Rodar /api/health?probe=1 para testar tabelas e views reais do Supabase.' : null,
-    supabaseProbe && !supabaseProbe.skipped && !supabaseProbe.ok ? 'Corrigir tabelas/views/policies do Supabase indicadas nos probes.' : null
+    supabaseProbe && !supabaseProbe.skipped && !supabaseProbe.ok ? 'Corrigir tabelas/views/policies do Supabase indicadas nos probes.' : null,
+    supabaseProbe && !supabaseProbe.skipped && supabaseProbe.ok && !catalogReady ? 'Aprovar o catálogo real, validar 5 artistas e 20 obras e concluir o teste de escrita.' : null
   ];
 
   return actions.filter(Boolean);
@@ -182,15 +256,24 @@ export default async function handler(req, res) {
   const shouldProbe = ['1', 'true', 'yes'].includes(String(url.searchParams.get('probe') || '').toLowerCase());
   const checks = buildChecks();
   const supabaseProbe = await runSupabaseProbes(shouldProbe);
+  const catalogProbe = supabaseProbe?.resources?.find((item) => item.label === 'Prontidão do catálogo');
+  const catalogReady = catalogProbe?.sample?.verified_ready === true;
   const productionReady = Boolean(
     checks.supabaseUrl &&
     checks.supabaseAnonKey &&
     checks.supabaseServiceRoleKey &&
     checks.adminToken &&
     checks.siteUrl &&
-    checks.contactChannel
+    checks.contactChannel &&
+    checks.brandReady &&
+    checks.commercialReady &&
+    checks.distributedRateLimit &&
+    checks.privacyContact &&
+    checks.errorMonitoring &&
+    checks.backupVerified &&
+    checks.pilotApproved
   );
-  const verifiedReady = Boolean(productionReady && !supabaseProbe.skipped && supabaseProbe.ok);
+  const verifiedReady = Boolean(productionReady && !supabaseProbe.skipped && supabaseProbe.ok && catalogReady);
   const missing = missingFrom(checks);
 
   res.statusCode = 200;
@@ -212,8 +295,17 @@ export default async function handler(req, res) {
       technical: checks.supabaseUrl && checks.supabaseAnonKey && checks.supabaseServiceRoleKey && checks.adminToken,
       contact: checks.contactChannel,
       domain: checks.siteUrl,
+      brand: checks.brandReady,
+      commercial: checks.commercialReady,
+      privacy: checks.privacyContact,
+      abuseProtection: checks.distributedRateLimit,
+      monitoring: checks.errorMonitoring,
+      backup: checks.backupVerified,
+      pilot: checks.pilotApproved,
+      pilotRuntime: checks.pilotReady,
       database: !supabaseProbe.skipped && supabaseProbe.ok,
-      nextCriticalActions: nextCriticalActions(checks, supabaseProbe)
+      catalog: catalogReady,
+      nextCriticalActions: nextCriticalActions(checks, supabaseProbe, catalogReady)
     },
     checks,
     probes: {

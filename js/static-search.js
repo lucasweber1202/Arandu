@@ -1,9 +1,9 @@
 const STATIC_SEARCH_KEY = 'arandu.search.recent.v1';
 const FALLBACK_STATIC_INDEX = [
   { title: 'Comprar arte', url: 'comprar-arte.html', type: 'Compra', text: 'obras disponíveis preço técnica artista reserva curadoria' },
-  { title: 'Explorar obras', url: 'obras.html', type: 'Obras', text: 'catálogo pintura fotografia escultura acervo filtros' },
-  { title: 'Acervo', url: 'acervo.html', type: 'Acervo', text: 'obras artistas trajetória linguagem procedência' },
-  { title: 'Empresas', url: 'empresas.html', type: 'Empresas', text: 'corporativo clínica escritório recepção hotel restaurante' },
+  { title: 'Artistas', url: 'artistas.html', type: 'Artistas', text: 'trajetória linguagem território perfil obras disponíveis' },
+  { title: 'Coleções', url: 'colecoes.html', type: 'Coleções', text: 'primeira aquisição casa empresa fotografia território intenção curatorial' },
+  { title: 'Empresas e arquitetos', url: 'empresas-e-arquitetos.html', type: 'Empresas', text: 'corporativo clínica escritório recepção hotel restaurante' },
   { title: 'Confiança', url: 'confianca.html', type: 'Confiança', text: 'certificado autenticidade procedência critérios' },
   { title: 'Narrativa', url: 'narrativa.html', type: 'Editorial', text: 'histórias artistas bastidores textos arte brasileira contemporânea' },
   { title: 'Contato', url: 'contato.html', type: 'Contato', text: 'falar com curadoria dúvidas compra empresas artistas' }
@@ -46,13 +46,35 @@ function writeRecentSearch(query) {
 }
 
 async function loadSearchIndex() {
+  let base = FALLBACK_STATIC_INDEX;
   try {
     const response = await fetch('data/search-index.json', { cache: 'no-store' });
     if (!response.ok) throw new Error('index');
     const data = await response.json();
-    return Array.isArray(data) && data.length ? data : FALLBACK_STATIC_INDEX;
+    if (Array.isArray(data) && data.length) base = data;
+  } catch {}
+
+  if (!window.AranduCatalogSource) return base;
+  try {
+    const [artworks, artists] = await Promise.all([
+      window.AranduCatalogSource.catalog(),
+      window.AranduCatalogSource.artists()
+    ]);
+    const catalogItems = artworks.map((item) => ({
+      title: item.title || 'Obra',
+      url: `obra.html?id=${encodeURIComponent(item.id)}`,
+      type: 'Obra',
+      text: [item.artist_name, item.type, item.technique, item.dimensions, item.price_label, item.summary, ...(item.tags || [])].filter(Boolean).join(' ')
+    }));
+    const artistItems = artists.map((item) => ({
+      title: item.name || 'Artista',
+      url: `artista.html?id=${encodeURIComponent(item.id)}`,
+      type: 'Artista',
+      text: [item.city, item.state, item.region, item.profile, item.trajectory, ...(item.languages || []), ...(item.curatorial_axes || [])].filter(Boolean).join(' ')
+    }));
+    return [...base, ...catalogItems, ...artistItems];
   } catch {
-    return FALLBACK_STATIC_INDEX;
+    return base;
   }
 }
 
@@ -89,7 +111,7 @@ function renderResults(index, query) {
     .slice(0, 18);
 
   if (!scored.length) {
-    target.innerHTML = '<article class="card"><h3>Nenhum resultado encontrado</h3><p>Tente buscar por obra, artista, fotografia, empresa, certificado, acervo ou contato.</p><div class="page-actions"><a class="cta secondary" href="obras.html">Explorar obras</a><a class="cta secondary" href="contato.html">Falar com a curadoria</a></div></article>';
+    target.innerHTML = '<article class="card"><h3>Nenhum resultado encontrado</h3><p>Tente buscar por obra, artista, fotografia, empresa, certificado, coleção ou contato.</p><div class="page-actions"><a class="cta secondary" href="comprar-arte.html">Explorar obras</a><a class="cta secondary" href="contato.html">Falar com a curadoria</a></div></article>';
     return;
   }
 

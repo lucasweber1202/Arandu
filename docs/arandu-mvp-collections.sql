@@ -1,6 +1,6 @@
 -- Arandu — coleções curatoriais do MVP
--- Rodar depois de docs/supabase-schema.sql.
--- Opcional, mas recomendado para transformar as coleções em dados editáveis.
+-- Rodar depois de docs/supabase-sprint2-catalog-readiness.sql.
+-- Obrigatório para publicar a rota canônica de coleções.
 
 create table if not exists curated_collections (
   id text primary key,
@@ -57,38 +57,77 @@ on conflict (id) do update set
   payload = excluded.payload,
   updated_at = now();
 
-create or replace view v_public_collections as
+drop view if exists v_public_collection_items;
+drop view if exists v_public_collections;
+
+create view v_public_collections as
 select
-  c.*,
-  count(ca.artwork_id) as artwork_count,
-  min(a.price) filter (where a.price is not null and a.published = true) as starting_price,
-  max(a.created_at) as last_artwork_at
+  c.id,
+  c.slug,
+  c.title,
+  c.summary,
+  c.curatorial_axis,
+  c.audience,
+  c.position,
+  c.hero_image_url,
+  c.created_at,
+  c.updated_at,
+  count(catalog.id) as artwork_count,
+  min(catalog.price) filter (where catalog.price is not null) as starting_price,
+  max(catalog.created_at) as last_artwork_at
 from curated_collections c
 left join collection_artworks ca on ca.collection_id = c.id
-left join artworks a on a.id = ca.artwork_id and a.published = true and a.status in ('available','in_conversation','reserved','sold')
+left join v_public_catalog catalog on catalog.id = ca.artwork_id
 where c.status = 'published'
 group by c.id
 order by c.position asc, c.created_at desc;
 
-create or replace view v_public_collection_items as
+create view v_public_collection_items as
 select
   c.id as collection_id,
   c.slug as collection_slug,
   c.title as collection_title,
   ca.position,
   ca.curatorial_note as collection_note,
-  a.*,
-  ar.name as artist_name,
-  ar.city as artist_city,
-  ar.state as artist_state,
-  ar.region as artist_region
+  catalog.id,
+  catalog.slug,
+  catalog.title,
+  catalog.artist_id,
+  catalog.artist_name,
+  catalog.artist_city,
+  catalog.artist_region,
+  catalog.artist_languages,
+  catalog.language,
+  catalog.type,
+  catalog.technique,
+  catalog.support,
+  catalog.year,
+  catalog.dimensions,
+  catalog.price,
+  catalog.price_label,
+  catalog.status,
+  catalog.edition,
+  catalog.edition_size,
+  catalog.certificate,
+  catalog.thumb,
+  catalog.main_image_url,
+  catalog.detail_image_url,
+  catalog.room_image_url,
+  catalog.recommended_for,
+  catalog.tags,
+  catalog.moods,
+  catalog.spaces,
+  catalog.search,
+  catalog.summary,
+  catalog.curatorial_reading,
+  catalog.first_artwork,
+  catalog.logistics,
+  catalog.created_at,
+  catalog.updated_at
 from curated_collections c
 join collection_artworks ca on ca.collection_id = c.id
-join artworks a on a.id = ca.artwork_id
-join artists ar on ar.id = a.artist_id
+join v_public_catalog catalog on catalog.id = ca.artwork_id
 where c.status = 'published'
-  and a.published = true
-  and a.status in ('available','in_conversation','reserved','sold')
 order by c.position asc, ca.position asc;
 
 alter table curated_collections enable row level security;
@@ -99,6 +138,11 @@ create policy curated_collections_public_read on curated_collections for select 
 
 drop policy if exists collection_artworks_public_read on collection_artworks;
 create policy collection_artworks_public_read on collection_artworks for select to anon, authenticated using (true);
+
+revoke select on curated_collections from anon, authenticated;
+revoke select on collection_artworks from anon, authenticated;
+grant select on v_public_collections to anon, authenticated;
+grant select on v_public_collection_items to anon, authenticated;
 
 comment on table curated_collections is 'Coleções curatoriais editáveis do MVP Arandu.';
 comment on table collection_artworks is 'Relação entre coleções curatoriais e obras.';
