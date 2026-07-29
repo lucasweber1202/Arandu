@@ -78,6 +78,9 @@ if (!csp) {
   if ((directives.get('script-src') || '').includes("'unsafe-eval'")) {
     issues.push("CSP: script-src não pode liberar 'unsafe-eval'.");
   }
+  if ((directives.get('script-src') || '').includes("'unsafe-inline'")) {
+    issues.push("CSP: script-src não pode liberar 'unsafe-inline'.");
+  }
   if (!csp.includes('upgrade-insecure-requests')) issues.push('CSP: upgrade-insecure-requests ausente.');
 }
 
@@ -111,6 +114,8 @@ const originCases = [
   ['POST de outra origem', fakeRequest('POST', { host: 'arandu.art', origin: 'https://malicioso.example' }), true],
   ['DELETE de outra origem', fakeRequest('DELETE', { host: 'arandu.art', origin: 'https://malicioso.example' }), true],
   ['POST com Sec-Fetch-Site cross-site', fakeRequest('POST', { host: 'arandu.art', 'sec-fetch-site': 'cross-site' }), true],
+  ['POST com Origin null', fakeRequest('POST', { host: 'arandu.art', origin: 'null', 'sec-fetch-site': 'same-origin' }), true],
+  ['POST de navegador sem Origin', fakeRequest('POST', { host: 'arandu.art', 'sec-fetch-site': 'same-origin' }), true],
   ['POST com Origin malformada', fakeRequest('POST', { host: 'arandu.art', origin: 'nao-e-uma-url' }), true]
 ];
 

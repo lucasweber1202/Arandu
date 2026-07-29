@@ -1,11 +1,11 @@
 const QUALITY_TOKEN_KEY = 'arandu.admin.token';
 
 function qualityToken() {
-  return localStorage.getItem(QUALITY_TOKEN_KEY) || '';
+  return sessionStorage.getItem(QUALITY_TOKEN_KEY) || '';
 }
 
 function setQualityToken(value) {
-  localStorage.setItem(QUALITY_TOKEN_KEY, value.trim());
+  sessionStorage.setItem(QUALITY_TOKEN_KEY, value.trim());
 }
 
 async function qualityFetch() {

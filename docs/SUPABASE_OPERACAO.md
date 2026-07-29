@@ -172,7 +172,9 @@ GET /api/certificates?code=ARD-2026-0001
 GET /api/certificate-document?code=ARD-2026-0001
 ```
 
-O front tenta API primeiro e usa `data/certificates.json` como fallback.
+O front consulta exclusivamente `/api/certificates`. `data/certificates.json` é
+material de seed/homologação e é removido do artefato público no build; falhas da
+API nunca podem transformar um certificado demonstrativo em registro válido.
 
 ### Catálogo e artistas
 

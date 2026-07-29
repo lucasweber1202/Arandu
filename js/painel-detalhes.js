@@ -1,6 +1,6 @@
 const DETAIL_TOKEN_KEY = 'arandu.admin.token';
 
-function detailToken() { return localStorage.getItem(DETAIL_TOKEN_KEY) || ''; }
+function detailToken() { return sessionStorage.getItem(DETAIL_TOKEN_KEY) || ''; }
 function escapeDetailHtml(value) { return String(value ?? '').replace(/[&<>'"]/g, (char) => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char])); }
 
 function appendOperationalScript(id, src) { if (document.getElementById(id)) return; const script = document.createElement('script'); script.id = id; script.src = src; script.defer = true; document.body.appendChild(script); }

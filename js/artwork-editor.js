@@ -1,9 +1,9 @@
 (function(){
   const form=document.querySelector('[data-artwork-editor]'); if(!form)return;
-  const tokenInput=document.querySelector('[data-admin-token]'); const tokenKey='arandu.admin.token'; if(tokenInput)tokenInput.value=localStorage.getItem(tokenKey)||'';
+  const tokenInput=document.querySelector('[data-admin-token]'); const tokenKey='arandu.admin.token'; if(tokenInput)tokenInput.value=sessionStorage.getItem(tokenKey)||'';
   const statusEl=document.querySelector('[data-artwork-editor-status]'); const preview=document.querySelector('[data-artwork-preview]'); const titleEl=document.querySelector('[data-artwork-preview-title]'); const metaEl=document.querySelector('[data-artwork-preview-meta]'); const qualityEl=document.querySelector('[data-artwork-quality]');
   const params=new URLSearchParams(location.search); if(params.get('id')) form.id.value=params.get('id');
-  function token(){const t=tokenInput?.value.trim()||''; if(t)localStorage.setItem(tokenKey,t); return t;}
+  function token(){const t=tokenInput?.value.trim()||''; if(t)sessionStorage.setItem(tokenKey,t); return t;}
   function toast(text){const zone=document.querySelector('[data-toast-zone]'); const item=document.createElement('div'); item.className='admin-toast'; item.textContent=text; zone.appendChild(item); setTimeout(()=>item.remove(),3500);}
   async function api(path,opts={}){const res=await fetch(path,{...opts,headers:{'Content-Type':'application/json','x-arandu-admin-token':token(),...(opts.headers||{})}}); const json=await res.json().catch(()=>({})); if(!res.ok||json.ok===false)throw new Error(json.error||'Erro administrativo.'); return json;}
   function list(v){return String(v||'').split(',').map(x=>x.trim()).filter(Boolean);}

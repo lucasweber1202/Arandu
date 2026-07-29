@@ -3,11 +3,11 @@
   const tokenInput=document.querySelector('[data-admin-token]');
   const sourceSelect=document.querySelector('[data-kanban-source]');
   const search=document.querySelector('[data-kanban-search]');
-  const key='arandu.admin.token'; if(tokenInput)tokenInput.value=localStorage.getItem(key)||'';
+  const key='arandu.admin.token'; if(tokenInput)tokenInput.value=sessionStorage.getItem(key)||'';
   const statusMap={leads:['new','contacted','qualified','proposal','reserved','won','lost'],briefs:['received','qualified','proposal','negotiation','won','lost'],reservations:['requested','confirmed','expired','cancelled','converted'],proposals:['draft','sent','approved','declined','expired','archived']};
   const state={panel:'leads',items:[],statuses:[],term:'',mode:'demo'};
   function esc(v){return String(v??'').replace(/[&<>'"]/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
-  function token(){const t=tokenInput?.value.trim()||''; if(t)localStorage.setItem(key,t); return t;}
+  function token(){const t=tokenInput?.value.trim()||''; if(t)sessionStorage.setItem(key,t); return t;}
   function toast(text){const zone=document.querySelector('[data-toast-zone]'); if(!zone)return; const item=document.createElement('div');item.className='admin-toast';item.textContent=text;zone.appendChild(item);setTimeout(()=>item.remove(),3500);}
   async function api(path,opts={}){const res=await fetch(path,{...opts,headers:{'Content-Type':'application/json','x-arandu-admin-token':token(),...(opts.headers||{})}}); const json=await res.json().catch(()=>({})); if(!res.ok||json.ok===false)throw new Error(json.error||'Erro no kanban.'); return json;}
   function demo(panel){return ({leads:[{id:'lead-01',name:'Comprador primeira obra',email:'cliente@email.com',status:'new',message:'Busca obra até R$ 3.000.'},{id:'lead-02',name:'Arquiteta parceira',email:'studio@email.com',status:'contacted',message:'Quer seleção para apartamento.'},{id:'lead-03',name:'Clínica Horizonte',email:'contato@clinica.com',status:'proposal',message:'Recepção e sala de espera.'}],briefs:[{id:'brief-01',company:'Escritório corporativo',status:'received',project_type:'Recepção',budget:'R$ 20.000'},{id:'brief-02',company:'Apartamento em Niterói',status:'proposal',project_type:'Sala',budget:'R$ 6.000'}],reservations:[{id:'res-01',name:'Cliente reserva',artwork_id:'estudo-de-solo-04',status:'requested',notes:'Confirmar disponibilidade com artista.'}],proposals:[{id:'prop-01',client:'Clínica Horizonte',space:'Recepção',status:'draft',total:12000},{id:'prop-02',client:'Apartamento em Niterói',space:'Sala',status:'sent',total:6000}]}[panel]||[]);}

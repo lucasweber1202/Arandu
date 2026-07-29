@@ -188,7 +188,7 @@ function pipelineCards(items) {
 async function renderDashboard() {
   const target = document.querySelector('[data-dashboard-panel]');
   if (!target) return;
-  const token = localStorage.getItem(ARANDU_ADMIN_TOKEN_KEY) || '';
+  const token = sessionStorage.getItem(ARANDU_ADMIN_TOKEN_KEY) || '';
   if (!token) {
     target.innerHTML = '<div class="card"><h3>Acesso administrativo necessário</h3><p>Informe o token no painel administrativo para carregar estes dados.</p></div>';
     return;

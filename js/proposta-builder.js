@@ -1,6 +1,6 @@
 const PROPOSAL_TOKEN_KEY = 'arandu.admin.token';
 
-function proposalToken() { return localStorage.getItem(PROPOSAL_TOKEN_KEY) || ''; }
+function proposalToken() { return sessionStorage.getItem(PROPOSAL_TOKEN_KEY) || ''; }
 function proposalTarget() { return document.querySelector('[data-proposal-builder]'); }
 async function proposalRequest(url, options = {}) {
   const response = await fetch(url, {

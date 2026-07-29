@@ -2,9 +2,9 @@
   const panels={obras:'Obras',artistas:'Artistas',leads:'Leads',reservations:'Reservas',proposals:'Propostas',briefs:'Briefings',submissions:'Submissões',certificados:'Certificados',tasks:'Tarefas'};
   const state={panel:'obras',items:[],statusOptions:[],metrics:null,term:'',status:'todos',sort:'recentes'};
   const tokenInput=document.querySelector('[data-admin-token]'); const table=document.querySelector('[data-admin-table]'); const metricsEl=document.querySelector('[data-admin-metrics]'); const statusSelect=document.querySelector('[data-admin-status]'); const searchInput=document.querySelector('[data-admin-search]'); const sortSelect=document.querySelector('[data-admin-sort]');
-  const tokenKey='arandu.admin.token'; const sharedTokenKey='arandu.adminToken.v1'; if(tokenInput) tokenInput.value=localStorage.getItem(tokenKey)||localStorage.getItem(sharedTokenKey)||'';
+  const tokenKey='arandu.admin.token'; const sharedTokenKey='arandu.adminToken.v1'; if(tokenInput) tokenInput.value=sessionStorage.getItem(tokenKey)||sessionStorage.getItem(sharedTokenKey)||'';
   function esc(v){return String(v??'').replace(/[&<>'"]/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
-  function token(){const value=tokenInput?.value.trim()||''; if(value){localStorage.setItem(tokenKey,value);localStorage.setItem(sharedTokenKey,value);} return value;}
+  function token(){const value=tokenInput?.value.trim()||''; if(value){sessionStorage.setItem(tokenKey,value);sessionStorage.setItem(sharedTokenKey,value);} return value;}
   function toast(text){const zone=document.querySelector('[data-toast-zone]'); if(!zone)return; const item=document.createElement('div'); item.className='admin-toast'; item.textContent=text; zone.appendChild(item); setTimeout(()=>item.remove(),3600);}
   async function api(path,opts={}){const res=await fetch(path,{...opts,headers:{'Content-Type':'application/json','x-arandu-admin-token':token(),...(opts.headers||{})}}); const json=await res.json().catch(()=>({})); if(!res.ok||json.ok===false) throw new Error(json.error||'Erro na operação.'); return json;}
   function label(item){return item.title||item.name||item.client||item.company||item.email||item.code||item.id||'Registro';}

@@ -1,9 +1,9 @@
 (function(){
   const form=document.querySelector('[data-record-editor]'); if(!form)return;
-  const tokenInput=document.querySelector('[data-admin-token]'); const statusEl=document.querySelector('[data-editor-status]'); const tokenKey='arandu.admin.token'; if(tokenInput)tokenInput.value=localStorage.getItem(tokenKey)||'';
+  const tokenInput=document.querySelector('[data-admin-token]'); const statusEl=document.querySelector('[data-editor-status]'); const tokenKey='arandu.admin.token'; if(tokenInput)tokenInput.value=sessionStorage.getItem(tokenKey)||'';
   const params=new URLSearchParams(location.search); form.panel.value=params.get('panel')||'obras'; form.id.value=params.get('id')||'';
   function esc(v){return String(v??'').replace(/[&<>'"]/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
-  function token(){const t=tokenInput?.value.trim()||''; if(t)localStorage.setItem(tokenKey,t); return t;}
+  function token(){const t=tokenInput?.value.trim()||''; if(t)sessionStorage.setItem(tokenKey,t); return t;}
   function toast(text){let zone=document.querySelector('[data-toast-zone]'); if(!zone){zone=document.createElement('div');zone.className='admin-toast-zone';document.body.appendChild(zone);} const item=document.createElement('div');item.className='admin-toast';item.textContent=text;zone.appendChild(item);setTimeout(()=>item.remove(),3500);}
   async function api(path,opts={}){const res=await fetch(path,{...opts,headers:{'Content-Type':'application/json','x-arandu-admin-token':token(),...(opts.headers||{})}});const data=await res.json().catch(()=>({}));if(!res.ok||data.ok===false)throw new Error(data.error||'Erro administrativo.');return data;}
   function fill(item){if(!item)return; const map={title:item.title||item.name||item.code,status:item.status||item.verification_status,technique:item.technique||((item.languages||[]).join(', ')),price:item.price,price_label:item.price_label,city:item.city,state:item.state,main_image_url:item.main_image_url||item.image_url,image_url:item.image_url,tags:(item.tags||item.languages||[]).join(', '),summary:item.summary||item.profile,curatorial_reading:item.curatorial_reading||item.trajectory}; Object.entries(map).forEach(([k,v])=>{if(form.elements[k]&&v!==undefined&&v!==null)form.elements[k].value=v;});}

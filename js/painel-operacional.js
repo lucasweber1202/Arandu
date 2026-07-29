@@ -98,11 +98,11 @@ const PANEL_DEMO = {
 let lastRemoteMode = 'demo';
 
 function panelToken() {
-  return localStorage.getItem(PANEL_ADMIN_TOKEN_KEY) || '';
+  return sessionStorage.getItem(PANEL_ADMIN_TOKEN_KEY) || '';
 }
 
 function setPanelToken(value) {
-  localStorage.setItem(PANEL_ADMIN_TOKEN_KEY, String(value || '').trim());
+  sessionStorage.setItem(PANEL_ADMIN_TOKEN_KEY, String(value || '').trim());
 }
 
 function panelStatus(text, isError = false) {
