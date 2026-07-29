@@ -158,6 +158,8 @@ docs/supabase-sprint2-catalog-readiness.sql
 docs/arandu-mvp-collections.sql
 docs/supabase-sprint5-pilot.sql
 docs/supabase-sprint6-12-platform.sql
+docs/supabase-commercial.sql
+docs/supabase-transactions-rbac-audit.sql
 ```
 
 Banco existente:
@@ -169,9 +171,15 @@ docs/supabase-sprint2-catalog-readiness.sql
 docs/arandu-mvp-collections.sql
 docs/supabase-sprint5-pilot.sql
 docs/supabase-sprint6-12-platform.sql
+docs/supabase-commercial.sql
+docs/supabase-transactions-rbac-audit.sql
 ```
 
 A migration do Sprint 2 deve vir depois de `supabase-production.sql`, pois fecha as policies públicas do catálogo. A migration de coleções depende das views seguras criadas no Sprint 2 e deve vir logo depois dela.
+As tabelas comerciais e a camada transacional/RLS são as duas últimas etapas.
+Reservas, propostas e registros comerciais passam por RPCs atômicas e preços
+calculados no banco. Consulte
+[`docs/TRANSACTIONS_RLS_RBAC.md`](docs/TRANSACTIONS_RLS_RBAC.md) antes de aplicar.
 
 ```bash
 npm run check:migrations

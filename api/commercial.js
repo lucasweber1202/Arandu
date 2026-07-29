@@ -1,15 +1,23 @@
+import { createHash, randomUUID } from 'node:crypto';
 import { AdminAuthError, applyAdminResponseHeaders, requireAdmin } from '../lib/admin-auth.mjs';
+import { requireAdminPermission } from '../lib/admin-rbac.mjs';
 import { applyApiSecurityHeaders, crossOriginRejection } from '../lib/http-security.mjs';
+import { enforceSensitiveRateLimit } from '../lib/rate-limit.mjs';
+import {
+  adminSupabaseRequest,
+  adminSupabaseRpc,
+  auditRequestHeaders,
+  hasSupabaseAccess
+} from '../lib/supabase.mjs';
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const STATUS = ['draft','confirmed','completed','cancelled'];
+const STATUS = ['draft', 'confirmed', 'completed', 'cancelled'];
 const MAX_BODY_BYTES = 256 * 1024;
 
 class HttpError extends Error {
-  constructor(status, message) {
+  constructor(status, message, code = null) {
     super(message);
     this.status = status;
+    this.code = code;
   }
 }
 
@@ -33,119 +41,199 @@ async function readBody(req) {
   }
   const raw = Buffer.concat(chunks).toString('utf8');
   if (!raw) return {};
-  try { return JSON.parse(raw); } catch { throw new HttpError(400, 'JSON inválido.'); }
+  try {
+    return JSON.parse(raw);
+  } catch {
+    throw new HttpError(400, 'JSON inválido.');
+  }
 }
 
-function hasDataConfig() { return Boolean(SUPABASE_URL && SUPABASE_SERVICE_KEY); }
-function firstRecord(data) { return Array.isArray(data) ? data[0] || null : data; }
-
-async function dataRequest(resource, options = {}) {
-  if (!hasDataConfig()) throw new Error('Banco não configurado.');
-  const response = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/rest/v1/${resource}`, {
-    method: options.method || 'GET',
-    headers: {
-      apikey: SUPABASE_SERVICE_KEY,
-      Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
-      'Content-Type': 'application/json',
-      Prefer: 'return=representation',
-      ...(options.headers || {})
-    },
-    body: options.body
-  });
-  const text = await response.text();
-  const data = text ? JSON.parse(text) : null;
-  if (!response.ok) throw new Error(data?.message || data?.error || `Banco ${response.status}`);
-  return data;
+function clean(value) {
+  return String(value || '').trim();
 }
 
-function clean(value) { return String(value || '').trim(); }
-function numberValue(value) { const n = Number(String(value || 0).replace(/\./g, '').replace(',', '.')); return Number.isFinite(n) ? n : 0; }
+function limited(value, max) {
+  return clean(value).slice(0, max);
+}
 
-function normalizeRecord(body) {
-  const total = numberValue(body.total);
-  const rate = Number.isFinite(Number(body.platform_fee_rate)) ? Number(body.platform_fee_rate) : 0.25;
-  const fee = numberValue(body.platform_fee) || total * rate;
+function firstRecord(value) {
+  return Array.isArray(value) ? value[0] || null : value;
+}
+
+function canonicalJson(value) {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+  if (value && typeof value === 'object') {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(',')}}`;
+  }
+  return JSON.stringify(value ?? null);
+}
+
+function policy() {
+  const version = limited(process.env.ARANDU_COMMERCIAL_POLICY_VERSION, 120);
+  const currency = clean(process.env.ARANDU_COMMERCIAL_CURRENCY).toUpperCase();
+  const feeRateRaw = clean(process.env.ARANDU_PLATFORM_FEE_RATE);
+  const feeRate = Number(feeRateRaw);
+  if (!version || !/^[A-Z]{3}$/.test(currency) || !feeRateRaw || !Number.isFinite(feeRate) || feeRate < 0 || feeRate >= 1) {
+    throw new HttpError(503, 'A política comercial versionada ainda não foi configurada.', 'commercial_policy_unconfigured');
+  }
+  return { version, currency, feeRate };
+}
+
+function acceptedRecord(body) {
+  const artworkIds = Array.isArray(body.items)
+    ? body.items.map((item) => limited(item?.artwork_id || item?.artworkId || item?.id, 180)).filter(Boolean)
+    : [];
   return {
-    proposal_id: body.proposal_id || null,
-    reservation_id: body.reservation_id || null,
-    lead_id: body.lead_id || null,
-    client: clean(body.client),
-    email: clean(body.email) || null,
-    whatsapp: clean(body.whatsapp) || null,
-    total,
-    platform_fee_rate: rate,
-    platform_fee: fee,
-    artist_amount: numberValue(body.artist_amount) || Math.max(total - fee, 0),
-    status: STATUS.includes(body.status) ? body.status : 'draft',
-    logistics_status: body.logistics_status || 'pending',
-    notes: body.notes || null,
-    payload: body.payload && typeof body.payload === 'object' ? body.payload : {}
+    artworkIds,
+    proposalId: limited(body.proposal_id, 80) || null,
+    reservationId: limited(body.reservation_id, 80) || null,
+    leadId: limited(body.lead_id, 80) || null,
+    client: limited(body.client, 240),
+    email: limited(body.email, 254).toLowerCase() || null,
+    whatsapp: clean(body.whatsapp).replace(/\D/g, '').slice(0, 15) || null,
+    notes: limited(body.notes, 3000) || null
   };
 }
 
-function normalizeItem(item, position) {
-  const price = numberValue(item.price);
-  const fee = numberValue(item.platform_fee) || price * 0.25;
-  return {
-    artwork_id: item.artwork_id || item.artworkId || null,
-    artist_id: item.artist_id || item.artistId || null,
-    position,
-    price,
-    platform_fee: fee,
-    artist_amount: numberValue(item.artist_amount) || Math.max(price - fee, 0),
-    note: item.note || null
-  };
+async function acquireIdempotency(req, actor, accepted) {
+  const rawKey = limited(req.headers?.['idempotency-key'], 128);
+  if (!/^[A-Za-z0-9_-]{16,128}$/.test(rawKey)) {
+    throw new HttpError(400, 'Idempotency-Key válida é obrigatória.', 'idempotency_key_required');
+  }
+  const scope = 'commercial.create';
+  const keyHash = createHash('sha256').update(rawKey).digest('hex');
+  const identityHash = createHash('sha256').update(actor.id).digest('hex');
+  const requestHash = createHash('sha256').update(canonicalJson(accepted)).digest('hex');
+  const result = firstRecord(await adminSupabaseRpc('acquire_idempotency', {
+    p_scope: scope,
+    p_key_hash: keyHash,
+    p_identity_hash: identityHash,
+    p_request_hash: requestHash,
+    p_lock_seconds: 120,
+    p_ttl_seconds: 86400
+  }));
+  if (result?.outcome === 'replay') return { replay: true, status: result.response_status, payload: result.response_body };
+  if (result?.outcome === 'identity_conflict') throw new HttpError(409, 'Esta chave pertence a outra identidade.', 'idempotency_identity_conflict');
+  if (result?.outcome === 'payload_conflict') throw new HttpError(409, 'A mesma chave foi usada com dados diferentes.', 'idempotency_payload_conflict');
+  if (result?.outcome === 'in_progress') throw new HttpError(409, 'Esta solicitação já está sendo processada.', 'idempotency_in_progress');
+  if (result?.outcome !== 'acquired') throw new HttpError(503, 'Não foi possível adquirir a chave de idempotência.', 'idempotency_unavailable');
+  return { replay: false, scope, keyHash, identityHash, requestHash };
 }
 
-async function listRecords(res) {
-  if (!hasDataConfig()) return json(res, 202, { ok: true, mode: 'demo', items: [] });
-  const rows = await dataRequest('commercial_records?select=*&order=created_at.desc', { method: 'GET', headers: { Prefer: '' } });
-  return json(res, 200, { ok: true, mode: 'stored', items: rows || [] });
+async function failIdempotency(context, error) {
+  if (!context || context.replay) return;
+  await adminSupabaseRpc('fail_idempotency', {
+    p_scope: context.scope,
+    p_key_hash: context.keyHash,
+    p_identity_hash: context.identityHash,
+    p_request_hash: context.requestHash,
+    p_error_code: limited(error?.code || error?.message || 'operation_failed', 120)
+  }).catch(() => null);
 }
 
-async function createRecord(req, res) {
+async function listRecords(res, admin) {
+  requireAdminPermission(admin.actor, 'commercial', 'read');
+  const rows = await adminSupabaseRequest('commercial_records?select=*&order=created_at.desc', { prefer: '' });
+  return json(res, 200, { ok: true, mode: 'stored', items: rows || [] }, admin.headers);
+}
+
+async function createRecord(req, res, admin, requestId) {
+  requireAdminPermission(admin.actor, 'commercial', 'create');
   const body = await readBody(req);
-  const record = normalizeRecord(body);
-  const items = Array.isArray(body.items) ? body.items.map(normalizeItem) : [];
-  if (!record.client) return json(res, 400, { ok: false, error: 'Cliente obrigatório.' });
-  if (!hasDataConfig()) return json(res, 202, { ok: true, mode: 'demo', stored: false, record, items });
-  const saved = firstRecord(await dataRequest('commercial_records', { method: 'POST', body: JSON.stringify(record) }));
-  const savedItems = items.length ? await dataRequest('commercial_items', { method: 'POST', body: JSON.stringify(items.map((item) => ({ ...item, commercial_record_id: saved.id }))) }) : [];
-  return json(res, 201, { ok: true, mode: 'stored', stored: true, record: saved, items: savedItems || [] });
+  const record = acceptedRecord(body);
+  if (!record.client) throw new HttpError(400, 'Cliente obrigatório.');
+  if (!record.artworkIds.length) throw new HttpError(400, 'Inclua ao menos uma obra.');
+  const commercialPolicy = policy();
+  const idempotency = await acquireIdempotency(req, admin.actor, record);
+  if (idempotency.replay) {
+    return json(res, idempotency.status, idempotency.payload, {
+      ...admin.headers,
+      'Idempotency-Replayed': 'true'
+    });
+  }
+  try {
+    const payload = firstRecord(await adminSupabaseRpc('create_commercial_record_atomic', {
+      p_artwork_ids: record.artworkIds,
+      p_proposal_id: record.proposalId,
+      p_reservation_id: record.reservationId,
+      p_lead_id: record.leadId,
+      p_client: record.client,
+      p_email: record.email,
+      p_whatsapp: record.whatsapp,
+      p_currency: commercialPolicy.currency,
+      p_platform_fee_rate: commercialPolicy.feeRate,
+      p_policy_version: commercialPolicy.version,
+      p_notes: record.notes,
+      p_actor_ref: admin.actor.id,
+      p_actor_role: admin.actor.role,
+      p_request_id: requestId,
+      p_idempotency_scope: idempotency.scope,
+      p_idempotency_key_hash: idempotency.keyHash,
+      p_identity_hash: idempotency.identityHash,
+      p_request_hash: idempotency.requestHash
+    }));
+    return json(res, 201, payload, admin.headers);
+  } catch (error) {
+    await failIdempotency(idempotency, error);
+    throw error;
+  }
 }
 
-async function updateRecord(req, res) {
+async function updateRecord(req, res, admin, requestId) {
+  requireAdminPermission(admin.actor, 'commercial', 'update');
   const body = await readBody(req);
-  const id = clean(body.id);
+  const id = limited(body.id, 80);
   const payload = {};
-  if (!id) return json(res, 400, { ok: false, error: 'ID obrigatório.' });
+  if (!id) throw new HttpError(400, 'ID obrigatório.');
   if (STATUS.includes(body.status)) payload.status = body.status;
-  if (body.logistics_status !== undefined) payload.logistics_status = clean(body.logistics_status);
-  if (body.notes !== undefined) payload.notes = body.notes;
-  if (!Object.keys(payload).length) return json(res, 400, { ok: false, error: 'Nenhum campo válido.' });
-  if (!hasDataConfig()) return json(res, 202, { ok: true, mode: 'demo', stored: false, record: { id, ...payload } });
-  const rows = await dataRequest(`commercial_records?id=eq.${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(payload) });
-  return json(res, 200, { ok: true, mode: 'stored', stored: true, record: firstRecord(rows) });
+  if (body.logistics_status !== undefined) payload.logistics_status = limited(body.logistics_status, 80);
+  if (body.notes !== undefined) payload.notes = limited(body.notes, 3000);
+  if (!Object.keys(payload).length) throw new HttpError(400, 'Nenhum campo válido.');
+  const rows = await adminSupabaseRequest(`commercial_records?id=eq.${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: auditRequestHeaders(admin.actor, requestId, body.justification),
+    body: payload
+  });
+  return json(res, 200, { ok: true, mode: 'stored', stored: true, record: firstRecord(rows) }, admin.headers);
 }
 
 export default async function handler(req, res) {
+  const requestId = limited(req.headers?.['x-request-id'], 80) || randomUUID();
+  res.setHeader('X-Request-ID', requestId);
   try {
     const rejection = crossOriginRejection(req);
-    if (rejection) return json(res, rejection.status, { ok: false, error: rejection.error, code: rejection.code });
-    const access = await requireAdmin(req);
-    applyAdminResponseHeaders(res, access.headers);
-    if (!hasDataConfig()) throw new HttpError(503, 'O banco de produção ainda não está configurado.');
-    if (req.method === 'GET') return listRecords(res);
-    if (req.method === 'POST') return createRecord(req, res);
-    if (req.method === 'PATCH') return updateRecord(req, res);
-    return json(res, 405, { ok: false, error: 'Método não permitido.' });
+    if (rejection) return json(res, rejection.status, { ok: false, error: rejection.error, code: rejection.code, requestId });
+    const admin = await requireAdmin(req);
+    if (req.method !== 'GET') {
+      await enforceSensitiveRateLimit(req, 'admin-commercial-write', {
+        limit: 60,
+        windowMs: 10 * 60 * 1000,
+        identity: admin.actor.id
+      });
+    }
+    if (!hasSupabaseAccess('admin')) throw new HttpError(503, 'O banco de produção ainda não está configurado.');
+    if (req.method === 'GET') return listRecords(res, admin);
+    if (req.method === 'POST') return createRecord(req, res, admin, requestId);
+    if (req.method === 'PATCH') return updateRecord(req, res, admin, requestId);
+    return json(res, 405, { ok: false, error: 'Método não permitido.', requestId });
   } catch (error) {
     const status = Number(error?.status) || 500;
-    if (status >= 500) console.error('[Arandu Commercial]', error?.message || error);
+    if (status >= 500) {
+      console.error(JSON.stringify({
+        level: 'error',
+        service: 'arandu-commercial',
+        requestId,
+        status,
+        code: error?.code || null,
+        message: limited(error?.message, 220)
+      }));
+    }
     return json(res, status, {
       ok: false,
       error: status < 500 ? error.message : 'Não foi possível concluir a operação comercial agora.',
-      ...(error instanceof AdminAuthError && error.code ? { code: error.code } : {})
+      ...(error instanceof AdminAuthError && error.code ? { code: error.code } : {}),
+      ...(error?.code ? { code: error.code } : {}),
+      requestId
     });
   }
 }

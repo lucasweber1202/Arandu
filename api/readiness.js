@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { AdminAuthError, applyAdminResponseHeaders, requireAdmin } from '../lib/admin-auth.mjs';
+import { requireAdminPermission } from '../lib/admin-rbac.mjs';
 import { applyApiSecurityHeaders } from '../lib/http-security.mjs';
+import { enforceSensitiveRateLimit } from '../lib/rate-limit.mjs';
 
 const PROBE_TIMEOUT_MS = 6000;
 const REQUIRED_TABLES = [
@@ -31,6 +33,22 @@ function enabled(name) {
 
 function configured(name) {
   return Boolean(clean(process.env[name]));
+}
+
+function validCommercialConfiguration() {
+  const currency = clean(process.env.ARANDU_COMMERCIAL_CURRENCY).toUpperCase();
+  const feeRateRaw = clean(process.env.ARANDU_PLATFORM_FEE_RATE);
+  const feeRate = Number(feeRateRaw);
+  const reservationHours = Number(process.env.ARANDU_RESERVATION_HOURS);
+  return configured('ARANDU_COMMERCIAL_POLICY_VERSION')
+    && /^[A-Z]{3}$/.test(currency)
+    && feeRateRaw.length > 0
+    && Number.isFinite(feeRate)
+    && feeRate >= 0
+    && feeRate < 1
+    && Number.isFinite(reservationHours)
+    && reservationHours >= 1
+    && reservationHours <= 720;
 }
 
 function validEmail(value) {
@@ -64,6 +82,7 @@ function buildChecks() {
     privacyContact: validEmail(process.env.ARANDU_PRIVACY_CONTACT_EMAIL || process.env.ARANDU_CONTACT_EMAIL),
     brandReady: enabled('ARANDU_BRAND_READY'),
     commercialReady: enabled('ARANDU_COMMERCIAL_READY'),
+    commercialPolicyConfigured: validCommercialConfiguration(),
     distributedRateLimit: enabled('ARANDU_DISTRIBUTED_RATE_LIMIT'),
     errorMonitoring: enabled('ARANDU_ERROR_MONITORING_READY'),
     backupVerified: recentBackupVerified(),
@@ -114,6 +133,12 @@ export default async function handler(req, res) {
   try {
     if (req.method !== 'GET') return json(res, 405, { ok: false, error: 'Método não permitido.', requestId });
     const admin = await requireAdmin(req);
+    requireAdminPermission(admin.actor, 'diagnostics', 'read');
+    await enforceSensitiveRateLimit(req, 'admin-readiness', {
+      limit: 30,
+      windowMs: 10 * 60 * 1000,
+      identity: admin.actor.id
+    });
     const checks = buildChecks();
     const databaseConfigured = checks.supabaseUrl && checks.supabaseServiceRoleKey;
     const probes = databaseConfigured

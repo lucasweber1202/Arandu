@@ -6,7 +6,9 @@
     "docs/supabase-sprint2-catalog-readiness.sql",
     "docs/arandu-mvp-collections.sql",
     "docs/supabase-sprint5-pilot.sql",
-    "docs/supabase-sprint6-12-platform.sql"
+    "docs/supabase-sprint6-12-platform.sql",
+    "docs/supabase-commercial.sql",
+    "docs/supabase-transactions-rbac-audit.sql"
   ],
   "existingDatabase": [
     "docs/supabase-sprint1-auth-ownership.sql",
@@ -14,6 +16,8 @@
     "docs/supabase-sprint2-catalog-readiness.sql",
     "docs/arandu-mvp-collections.sql",
     "docs/supabase-sprint5-pilot.sql",
-    "docs/supabase-sprint6-12-platform.sql"
+    "docs/supabase-sprint6-12-platform.sql",
+    "docs/supabase-commercial.sql",
+    "docs/supabase-transactions-rbac-audit.sql"
   ]
 }

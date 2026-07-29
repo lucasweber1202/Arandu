@@ -1,5 +1,7 @@
 import { AdminAuthError, applyAdminResponseHeaders, requireAdmin } from '../lib/admin-auth.mjs';
+import { requireAdminPermission } from '../lib/admin-rbac.mjs';
 import { applyApiSecurityHeaders } from '../lib/http-security.mjs';
+import { enforceSensitiveRateLimit } from '../lib/rate-limit.mjs';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -61,6 +63,12 @@ async function countResource(resource, errors) {
 export default async function handler(req, res) {
   try {
     const access = await requireAdmin(req);
+    requireAdminPermission(access.actor, 'dashboard', 'read');
+    await enforceSensitiveRateLimit(req, 'admin-dashboard-read', {
+      limit: 120,
+      windowMs: 10 * 60 * 1000,
+      identity: access.actor.id
+    });
     applyAdminResponseHeaders(res, access.headers);
     if (req.method !== 'GET') return json(res, 405, { ok: false, error: 'Método não permitido.' });
     if (!hasDataConfig()) return json(res, 503, { ok: false, error: 'O banco de produção ainda não está configurado.' });

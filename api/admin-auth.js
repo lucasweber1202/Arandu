@@ -7,6 +7,7 @@ import {
   verifyAdminMfa
 } from '../lib/admin-auth.mjs';
 import { applyApiSecurityHeaders, crossOriginRejection } from '../lib/http-security.mjs';
+import { enforceSensitiveRateLimit } from '../lib/rate-limit.mjs';
 
 const MAX_BODY_BYTES = 16 * 1024;
 
@@ -57,6 +58,7 @@ export default async function handler(req, res) {
 
     if (action === 'challenge') {
       if (req.method !== 'POST') return json(res, 405, { ok: false, error: 'Método não permitido.', requestId });
+      await enforceSensitiveRateLimit(req, 'admin-mfa-challenge', { limit: 10, windowMs: 10 * 60 * 1000 });
       const challenge = await beginAdminMfa(req);
       return json(res, 201, {
         ok: true,
@@ -68,6 +70,7 @@ export default async function handler(req, res) {
 
     if (action === 'verify') {
       if (req.method !== 'POST') return json(res, 405, { ok: false, error: 'Método não permitido.', requestId });
+      await enforceSensitiveRateLimit(req, 'admin-mfa-verify', { limit: 10, windowMs: 10 * 60 * 1000 });
       const result = await verifyAdminMfa(req, await readBody(req));
       return json(res, 200, { ok: true, authenticated: true, authorized: true, mfaVerified: true }, result.headers);
     }

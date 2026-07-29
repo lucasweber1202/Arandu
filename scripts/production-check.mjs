@@ -130,6 +130,13 @@ if (!process.env.SUPABASE_ANON_KEY && !process.env.SUPABASE_SERVICE_ROLE_KEY) wa
 if (!process.env.SUPABASE_ANON_KEY) warnings.push('SUPABASE_ANON_KEY ainda não está configurada para autenticação administrativa.');
 if (!['1','true','yes','sim'].includes(String(process.env.ARANDU_BRAND_READY || '').toLowerCase())) warnings.push('Identidade final ainda não foi aprovada com ARANDU_BRAND_READY=true.');
 if (!['1','true','yes','sim'].includes(String(process.env.ARANDU_COMMERCIAL_READY || '').toLowerCase())) warnings.push('Política comercial ainda não foi aprovada com ARANDU_COMMERCIAL_READY=true.');
+if (!String(process.env.ARANDU_COMMERCIAL_POLICY_VERSION || '').trim()) warnings.push('Versão da política comercial ainda não foi configurada em ARANDU_COMMERCIAL_POLICY_VERSION.');
+if (!/^[A-Z]{3}$/.test(String(process.env.ARANDU_COMMERCIAL_CURRENCY || '').trim().toUpperCase())) warnings.push('Moeda comercial ainda não foi configurada em ARANDU_COMMERCIAL_CURRENCY.');
+const configuredFeeRateRaw = String(process.env.ARANDU_PLATFORM_FEE_RATE || '').trim();
+const configuredFeeRate = Number(configuredFeeRateRaw);
+if (!configuredFeeRateRaw || !Number.isFinite(configuredFeeRate) || configuredFeeRate < 0 || configuredFeeRate >= 1) warnings.push('Comissão comercial ainda não foi configurada em ARANDU_PLATFORM_FEE_RATE.');
+const configuredReservationHours = Number(process.env.ARANDU_RESERVATION_HOURS);
+if (!Number.isFinite(configuredReservationHours) || configuredReservationHours < 1 || configuredReservationHours > 720) warnings.push('Prazo de reserva ainda não foi configurado em ARANDU_RESERVATION_HOURS.');
 if (!['1','true','yes','sim'].includes(String(process.env.ARANDU_DISTRIBUTED_RATE_LIMIT || '').toLowerCase())) warnings.push('Rate limit distribuído ainda não foi confirmado com ARANDU_DISTRIBUTED_RATE_LIMIT=true.');
 if (!['1','true','yes','sim'].includes(String(process.env.ARANDU_ERROR_MONITORING_READY || '').toLowerCase())) warnings.push('Monitoramento e alertas ainda não foram confirmados com ARANDU_ERROR_MONITORING_READY=true.');
 if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(process.env.ARANDU_PRIVACY_CONTACT_EMAIL || '').trim())) warnings.push('Contato LGPD ainda não foi configurado em ARANDU_PRIVACY_CONTACT_EMAIL.');

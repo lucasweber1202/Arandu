@@ -5,6 +5,10 @@ process.env.SUPABASE_URL = 'https://arandu-test.supabase.co';
 process.env.SUPABASE_ANON_KEY = 'anon-test-key';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-test-key';
 process.env.ARANDU_COMMERCIAL_READY = 'true';
+process.env.ARANDU_COMMERCIAL_POLICY_VERSION = 'policy-auth-test-v1';
+process.env.ARANDU_COMMERCIAL_CURRENCY = 'BRL';
+process.env.ARANDU_PLATFORM_FEE_RATE = '0.2';
+process.env.ARANDU_RESERVATION_HOURS = '24';
 
 const { default: handler } = await import(`../api/[...path].js?test=${Date.now()}`);
 
@@ -123,15 +127,31 @@ try {
   global.fetch = async (url, options = {}) => {
     const value = String(url);
     if (value.endsWith('/auth/v1/user')) return jsonResponse({ id: 'user-123', email: 'compradora@example.com', user_metadata: { full_name: 'Compradora' } });
-    if (value.includes('/rest/v1/reservations')) {
+    if (value.includes('/rpc/acquire_idempotency')) return jsonResponse({ outcome: 'acquired' });
+    if (value.includes('/rpc/create_reservation_atomic')) {
       reservationPayload = JSON.parse(options.body);
-      return jsonResponse([{ id: 'reservation-2', artwork_id: reservationPayload.artwork_id, status: 'requested', user_id: reservationPayload.user_id, name: reservationPayload.name, whatsapp: reservationPayload.whatsapp }]);
+      return jsonResponse({
+        ok: true,
+        stored: true,
+        reservation: {
+          id: 'reservation-2',
+          artwork_id: reservationPayload.p_artwork_id,
+          status: 'requested'
+        }
+      });
     }
     throw new Error(`URL inesperada: ${value}`);
   };
-  const reservation = await call('POST', '/api/reservations', { artwork_id: 'obra-2', name: 'Compradora', whatsapp: '(11) 99999-9999' }, { cookie: sessionCookie() });
+  const reservation = await call('POST', '/api/reservations', {
+    artwork_id: 'obra-2',
+    name: 'Compradora',
+    whatsapp: '(11) 99999-9999'
+  }, {
+    cookie: sessionCookie(),
+    'Idempotency-Key': 'auth-reservation-0001'
+  });
   assert.equal(reservation.status, 201);
-  assert.equal(reservationPayload.user_id, 'user-123');
+  assert.equal(reservationPayload.p_user_id, 'user-123');
   assert.equal(reservation.body.reservation.name, undefined);
   assert.equal(reservation.body.reservation.whatsapp, undefined);
 

@@ -1,6 +1,15 @@
 import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
 import { AdminAuthError, applyAdminResponseHeaders, requireAdmin } from '../lib/admin-auth.mjs';
+import { requireAdminPermission } from '../lib/admin-rbac.mjs';
 import { applyApiSecurityHeaders, crossOriginRejection } from '../lib/http-security.mjs';
+import {
+  adminSupabaseRequest,
+  adminSupabaseRpc,
+  auditRequestHeaders,
+  hasSupabaseAccess,
+  publicSupabaseRequest,
+  userSupabaseRequest
+} from '../lib/supabase.mjs';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -58,8 +67,8 @@ async function readBody(req) {
   try { return JSON.parse(raw); } catch { throw new HttpError(400, 'JSON inválido.'); }
 }
 
-function hasDataConfig() { return Boolean(SUPABASE_URL && SUPABASE_SERVICE_KEY); }
-function hasPublicDataConfig() { return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY); }
+function hasDataConfig() { return hasSupabaseAccess('admin'); }
+function hasPublicDataConfig() { return hasSupabaseAccess('public'); }
 function authConfigured() { return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY); }
 function requireDataConfig() {
   if (!hasDataConfig()) throw new HttpError(503, 'O banco de produção ainda não está configurado.', 'database_unconfigured');
@@ -75,6 +84,20 @@ function requireCommercialReady() {
   if (!trueFlag(process.env.ARANDU_COMMERCIAL_READY)) {
     throw new HttpError(503, 'Reservas e propostas aguardam a aprovação da política comercial.', 'commercial_policy_pending');
   }
+}
+function commercialPolicy({ includeFee = false } = {}) {
+  const version = limited(process.env.ARANDU_COMMERCIAL_POLICY_VERSION, 120);
+  const currency = clean(process.env.ARANDU_COMMERCIAL_CURRENCY).toUpperCase();
+  const reservationHours = Number(process.env.ARANDU_RESERVATION_HOURS);
+  const feeRateRaw = clean(process.env.ARANDU_PLATFORM_FEE_RATE);
+  const feeRate = Number(feeRateRaw);
+  if (!version || !/^[A-Z]{3}$/.test(currency) || !Number.isFinite(reservationHours) || reservationHours < 1 || reservationHours > 720) {
+    throw new HttpError(503, 'A política comercial versionada ainda não foi configurada.', 'commercial_policy_unconfigured');
+  }
+  if (includeFee && (!feeRateRaw || !Number.isFinite(feeRate) || feeRate < 0 || feeRate >= 1)) {
+    throw new HttpError(503, 'A comissão da política comercial ainda não foi configurada.', 'commercial_fee_unconfigured');
+  }
+  return { version, currency, reservationHours, feeRate: includeFee ? feeRate : null };
 }
 function publicProfileType(value) { const type = clean(value).toLowerCase(); return PUBLIC_PROFILE_TYPES.has(type) ? type : 'comprador'; }
 function validUrl(value) { try { const url = new URL(value); return ['http:', 'https:'].includes(url.protocol); } catch { return false; } }
@@ -94,18 +117,18 @@ function enforceSameOrigin(req) {
   if (rejection) throw new HttpError(rejection.status, rejection.error, rejection.code);
 }
 
-function clientFingerprint(req, scope) {
+function clientFingerprint(req, scope, identity = '') {
   const forwarded = String(req.headers?.['x-forwarded-for'] || '').split(',')[0].trim();
   const ip = forwarded || req.socket?.remoteAddress || 'unknown';
-  return createHash('sha256').update(`${scope}:${ip}`).digest('hex');
+  return createHash('sha256').update(`${scope}:${ip}:${clean(identity).toLowerCase()}`).digest('hex');
 }
 
-function enforceMemoryRateLimit(req, scope, limit, windowMs) {
+function enforceMemoryRateLimit(req, scope, limit, windowMs, identity = '') {
   const now = Date.now();
   if (RATE_LIMITS.size > 2000) {
     for (const [entryKey, value] of RATE_LIMITS) if (value.resetAt <= now) RATE_LIMITS.delete(entryKey);
   }
-  const key = clientFingerprint(req, scope);
+  const key = clientFingerprint(req, scope, identity);
   const current = RATE_LIMITS.get(key);
   if (!current || current.resetAt <= now) {
     RATE_LIMITS.set(key, { count: 1, resetAt: now + windowMs });
@@ -115,9 +138,9 @@ function enforceMemoryRateLimit(req, scope, limit, windowMs) {
   if (current.count > limit) throw new HttpError(429, 'Muitas tentativas. Aguarde alguns minutos e tente novamente.');
 }
 
-async function enforceRateLimit(req, scope, limit, windowMs) {
+async function enforceRateLimit(req, scope, limit, windowMs, identity = '') {
   const distributed = trueFlag(process.env.ARANDU_DISTRIBUTED_RATE_LIMIT) || Boolean(process.env.VERCEL_ENV);
-  if (!distributed) return enforceMemoryRateLimit(req, scope, limit, windowMs);
+  if (!distributed) return enforceMemoryRateLimit(req, scope, limit, windowMs, identity);
   if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
     throw new HttpError(503, 'A proteção distribuída contra abuso ainda não foi configurada.', 'rate_limit_unconfigured');
   }
@@ -130,7 +153,7 @@ async function enforceRateLimit(req, scope, limit, windowMs) {
     },
     body: JSON.stringify({
       p_scope: scope,
-      p_fingerprint: clientFingerprint(req, scope),
+      p_fingerprint: clientFingerprint(req, scope, identity),
       p_limit: limit,
       p_window_seconds: Math.max(1, Math.ceil(windowMs / 1000))
     })
@@ -141,42 +164,16 @@ async function enforceRateLimit(req, scope, limit, windowMs) {
 }
 
 async function dataRequest(resource, options = {}) {
-  if (!hasDataConfig()) throw new Error('Banco não configurado.');
-  const url = `${SUPABASE_URL.replace(/\/$/, '')}/rest/v1/${resource}`;
-  const response = await fetch(url, {
-    method: options.method || 'GET',
-    headers: {
-      apikey: SUPABASE_SERVICE_KEY,
-      Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
-      'Content-Type': 'application/json',
-      Prefer: 'return=representation',
-      ...(options.headers || {})
-    },
-    body: options.body
+  return adminSupabaseRequest(resource, {
+    ...options,
+    prefer: options.headers?.Prefer ?? options.prefer,
+    headers: Object.fromEntries(Object.entries(options.headers || {}).filter(([key]) => key.toLowerCase() !== 'prefer'))
   });
-  const text = await response.text();
-  const data = text ? JSON.parse(text) : null;
-  if (!response.ok) throw new Error(data?.message || data?.error || `Banco ${response.status}`);
-  return data;
 }
 
 async function publicDataRequest(resource, options = {}) {
   if (!hasPublicDataConfig()) throw new HttpError(503, 'A leitura pública segura do Supabase ainda não foi configurada.', 'public_database_unconfigured');
-  const response = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/rest/v1/${resource}`, {
-    method: options.method || 'GET',
-    headers: {
-      apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-      'Content-Type': 'application/json',
-      Prefer: '',
-      ...(options.headers || {})
-    },
-    body: options.body
-  });
-  const text = await response.text();
-  const data = text ? JSON.parse(text) : null;
-  if (!response.ok) throw new Error(data?.message || data?.error || `Banco público ${response.status}`);
-  return data;
+  return publicSupabaseRequest(resource, options);
 }
 
 async function writeAudit({ actorType, actorRef, action, entityType = null, entityId = null, metadata = {} }) {
@@ -194,25 +191,55 @@ async function writeAudit({ actorType, actorRef, action, entityType = null, enti
   });
 }
 
-async function beginIdempotency(req, scope, body) {
-  const rawKey = limited(req.headers?.['idempotency-key'], 128);
-  if (!rawKey) return null;
-  if (!/^[A-Za-z0-9_-]{16,128}$/.test(rawKey)) throw new HttpError(400, 'Idempotency-Key inválida.');
-  const keyHash = createHash('sha256').update(rawKey).digest('hex');
-  const requestHash = createHash('sha256').update(JSON.stringify(body || {})).digest('hex');
-  const existing = firstRecord(await dataRequest(`idempotency_keys?scope=eq.${encodeURIComponent(scope)}&key_hash=eq.${keyHash}&select=request_hash,response_status,response_body,expires_at&limit=1`, { method: 'GET', headers: { Prefer: '' } }));
-  if (existing) {
-    if (existing.request_hash !== requestHash) throw new HttpError(409, 'A mesma chave de idempotência foi usada com dados diferentes.');
-    if (existing.response_body && existing.response_status) return { replay: true, status: existing.response_status, payload: existing.response_body };
-    throw new HttpError(409, 'Esta solicitação já está sendo processada.', 'idempotency_in_progress');
+function canonicalJson(value) {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+  if (value && typeof value === 'object') {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(',')}}`;
   }
-  await dataRequest('idempotency_keys', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ scope, key_hash: keyHash, request_hash: requestHash }) });
-  return { replay: false, scope, keyHash };
+  return JSON.stringify(value ?? null);
 }
 
-async function finishIdempotency(context, status, payload) {
+function operationIdentity(req, user = null, actor = null) {
+  const reference = actor?.id || user?.id || `visitor:${clientFingerprint(req, 'operation-identity')}`;
+  return {
+    reference,
+    hash: createHash('sha256').update(reference).digest('hex'),
+    actorType: actor ? 'admin' : user ? 'user' : 'system'
+  };
+}
+
+async function beginIdempotency(req, scope, body, identity) {
+  const rawKey = limited(req.headers?.['idempotency-key'], 128);
+  if (!rawKey) throw new HttpError(400, 'Idempotency-Key é obrigatória para esta operação.', 'idempotency_key_required');
+  if (!/^[A-Za-z0-9_-]{16,128}$/.test(rawKey)) throw new HttpError(400, 'Idempotency-Key inválida.');
+  const keyHash = createHash('sha256').update(rawKey).digest('hex');
+  const requestHash = createHash('sha256').update(canonicalJson(body || {})).digest('hex');
+  const result = firstRecord(await adminSupabaseRpc('acquire_idempotency', {
+    p_scope: scope,
+    p_key_hash: keyHash,
+    p_identity_hash: identity.hash,
+    p_request_hash: requestHash,
+    p_lock_seconds: 120,
+    p_ttl_seconds: 86400
+  }));
+  const outcome = result?.outcome;
+  if (outcome === 'replay') return { replay: true, status: result.response_status, payload: result.response_body };
+  if (outcome === 'identity_conflict') throw new HttpError(409, 'Esta chave pertence a outra identidade.', 'idempotency_identity_conflict');
+  if (outcome === 'payload_conflict') throw new HttpError(409, 'A mesma chave foi usada com dados diferentes.', 'idempotency_payload_conflict');
+  if (outcome === 'in_progress') throw new HttpError(409, 'Esta solicitação já está sendo processada.', 'idempotency_in_progress');
+  if (outcome !== 'acquired') throw new HttpError(503, 'Não foi possível adquirir a chave de idempotência.', 'idempotency_unavailable');
+  return { replay: false, scope, keyHash, requestHash, identityHash: identity.hash };
+}
+
+async function failIdempotency(context, error) {
   if (!context || context.replay) return;
-  await dataRequest(`idempotency_keys?scope=eq.${encodeURIComponent(context.scope)}&key_hash=eq.${context.keyHash}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ response_status: status, response_body: payload }) });
+  await adminSupabaseRpc('fail_idempotency', {
+    p_scope: context.scope,
+    p_key_hash: context.keyHash,
+    p_identity_hash: context.identityHash,
+    p_request_hash: context.requestHash,
+    p_error_code: limited(error?.code || error?.message || 'operation_failed', 120)
+  }).catch(() => null);
 }
 
 async function supabaseAuth(path, options = {}) {
@@ -300,12 +327,13 @@ async function resolveSession(req) {
   if (!expiresSoon) {
     try {
       const user = await supabaseAuth('user', { method: 'GET', headers: { Authorization: `Bearer ${session.access_token}` } });
-      return { authenticated: true, mode: 'supabase', user: publicUser(user), headers: {} };
+      return { authenticated: true, mode: 'supabase', user: publicUser(user), accessToken: session.access_token, headers: {} };
     } catch {}
   }
 
   if (!session.refresh_token) return { authenticated: false, mode: 'supabase', user: null, headers: { 'Set-Cookie': clearSessionCookie() } };
   try {
+    await enforceRateLimit(req, 'auth-refresh', 60, 10 * 60 * 1000);
     const refreshed = await supabaseAuth('token?grant_type=refresh_token', {
       method: 'POST',
       body: JSON.stringify({ refresh_token: session.refresh_token })
@@ -315,6 +343,7 @@ async function resolveSession(req) {
       authenticated: true,
       mode: 'supabase',
       user: publicUser(user),
+      accessToken: refreshed.access_token,
       headers: { 'Set-Cookie': sessionCookie(refreshed) }
     };
   } catch {
@@ -333,11 +362,14 @@ async function requireUser(req) {
   return session;
 }
 
-async function adminGuard(req, res) {
+async function adminGuard(req, res, resource = null, action = null) {
   try {
+    await enforceRateLimit(req, 'admin-api', 300, 10 * 60 * 1000);
     const admin = await requireAdmin(req);
+    await enforceRateLimit(req, 'admin-account', 600, 10 * 60 * 1000, admin.actor.id);
     applyAdminResponseHeaders(res, admin.headers);
     if (!hasDataConfig()) return { ok: false, status: 503, error: 'O banco de produção ainda não está configurado.', code: 'database_unconfigured' };
+    if (resource && action) requireAdminPermission(admin.actor, resource, action);
     return { ok: true, actor: admin.actor };
   } catch (error) {
     if (error instanceof AdminAuthError) {
@@ -385,6 +417,19 @@ const BOOLEANS = new Set(['certificate','published','first_artwork','identity_ve
 const JSONS = new Set(['logistics']);
 
 function panelConfig(panel) { return PANELS[String(panel || '').trim()] || null; }
+function panelResource(panel) {
+  return ({
+    obras: 'artworks',
+    artistas: 'artists',
+    certificados: 'certificates',
+    leads: 'leads',
+    submissions: 'submissions',
+    briefs: 'briefs',
+    proposals: 'proposals',
+    reservations: 'reservations',
+    tasks: 'tasks'
+  })[String(panel || '').trim()] || '';
+}
 function panelFromBody(body) { const raw = body.panel || body.type || body.resource || body.kind; return CREATE_ALIASES[String(raw || '').trim()] || String(raw || '').trim(); }
 function normalizeArtist(body) {
   const name = body.name || body.artist_name;
@@ -528,11 +573,25 @@ function normalizeReservation(body) {
     whatsapp: cleanPhone(body.whatsapp) || null,
     deadline: limited(body.deadline, 160) || null,
     notes: limited(body.notes, 3000) || null,
-    status: 'requested',
-    payload: body
+    origin: limited(body.origin || body.source || body.source_page, 120) || 'website'
   };
 }
-function normalizeProposal(body) { const items = Array.isArray(body.items) ? body.items : []; const total = Number(body.total || 0) || null; return { proposal: { client: body.client || null, space: body.space || null, goal: body.goal || null, budget: body.budget || null, deadline: body.deadline || null, notes: body.notes || null, total, status: 'draft', payload: body }, items }; }
+function normalizeProposal(body) {
+  const artworkIds = Array.isArray(body.items)
+    ? body.items.map((item) => limited(item?.id || item?.artwork_id, 180)).filter(Boolean)
+    : [];
+  return {
+    artworkIds,
+    client: limited(body.client || body.name, 240) || null,
+    leadId: limited(body.lead_id, 80) || null,
+    companyBriefId: limited(body.company_brief_id, 80) || null,
+    space: limited(body.space, 500) || null,
+    goal: limited(body.goal, 1000) || null,
+    budget: limited(body.budget, 160) || null,
+    deadline: limited(body.deadline, 160) || null,
+    notes: limited(body.notes, 3000) || null
+  };
+}
 function normalizeSelectionItem(item) {
   return {
     id: limited(item?.id || item?.artwork_id, 180),
@@ -612,6 +671,7 @@ function accountReservation(record) {
     status: record.status,
     deadline: record.deadline,
     notes: record.notes,
+    expires_at: record.expires_at || null,
     created_at: record.created_at || null,
     updated_at: record.updated_at || null
   };
@@ -681,41 +741,100 @@ async function handleReservations(req, res) {
   requireCommercialReady();
   await enforceRateLimit(req, 'reservations', 20, 10 * 60 * 1000);
   const body = await readBody(req);
-  const idempotency = await beginIdempotency(req, 'reservation.create', body);
-  if (idempotency?.replay) return json(res, idempotency.status, idempotency.payload, { 'Idempotency-Replayed': 'true' });
   if (clean(body.website)) return json(res, 202, { ok: true, stored: false });
   const record = normalizeReservation(body);
   if (!record.artwork_id) throw new HttpError(400, 'Obra é obrigatória.');
   if (!record.name) throw new HttpError(400, 'Nome é obrigatório.');
   if (!record.whatsapp || record.whatsapp.length < 10) throw new HttpError(400, 'Informe um WhatsApp válido com DDD.');
   const { session, user } = await optionalUser(req);
-  if (user) record.user_id = user.id;
   requireDataConfig();
-  const saved = firstRecord(await dataRequest('reservations', { method: 'POST', body: JSON.stringify(record) }));
-  const payload = {
-    ok: true,
-    mode: 'stored',
-    stored: true,
-    reservation: accountReservation(saved)
+  const policy = commercialPolicy();
+  const identity = operationIdentity(req, user);
+  const accepted = {
+    artworkId: record.artwork_id,
+    name: record.name,
+    whatsapp: record.whatsapp,
+    deadline: record.deadline,
+    notes: record.notes,
+    origin: record.origin
   };
-  await finishIdempotency(idempotency, 201, payload);
-  return json(res, 201, payload, session.headers);
+  const idempotency = await beginIdempotency(req, 'reservation.create', accepted, identity);
+  if (idempotency.replay) return json(res, idempotency.status, idempotency.payload, {
+    ...session.headers,
+    'Idempotency-Replayed': 'true'
+  });
+  try {
+    const payload = firstRecord(await adminSupabaseRpc('create_reservation_atomic', {
+      p_artwork_id: record.artwork_id,
+      p_user_id: user?.id || null,
+      p_visitor_ref: user ? null : identity.reference,
+      p_name: record.name,
+      p_whatsapp: record.whatsapp,
+      p_deadline: record.deadline,
+      p_notes: record.notes,
+      p_expires_at: new Date(Date.now() + policy.reservationHours * 60 * 60 * 1000).toISOString(),
+      p_currency: policy.currency,
+      p_policy_version: policy.version,
+      p_origin: record.origin,
+      p_actor_type: identity.actorType,
+      p_actor_ref: identity.reference,
+      p_request_id: req.aranduRequestId,
+      p_idempotency_scope: idempotency.scope,
+      p_idempotency_key_hash: idempotency.keyHash,
+      p_identity_hash: idempotency.identityHash,
+      p_request_hash: idempotency.requestHash
+    }));
+    return json(res, 201, payload, session.headers);
+  } catch (error) {
+    await failIdempotency(idempotency, error);
+    throw error;
+  }
 }
 async function handleProposals(req, res) {
   if (req.method !== 'POST') return json(res, 405, { ok: false, error: 'Método não permitido.' });
+  requireCommercialReady();
+  await enforceRateLimit(req, 'proposals', 20, 10 * 60 * 1000);
   const body = await readBody(req);
-  const idempotency = await beginIdempotency(req, 'proposal.create', body);
-  if (idempotency?.replay) return json(res, idempotency.status, idempotency.payload, { 'Idempotency-Replayed': 'true' });
-  const { proposal, items } = normalizeProposal(body);
+  const proposal = normalizeProposal(body);
+  if (!proposal.client) throw new HttpError(400, 'Cliente é obrigatório.');
+  if (!proposal.artworkIds.length) throw new HttpError(400, 'A proposta precisa conter obras.');
+  const { session, user } = await optionalUser(req);
   requireDataConfig();
-  const savedProposal = firstRecord(await dataRequest('proposals', { method: 'POST', body: JSON.stringify(proposal) }));
-  if (savedProposal?.id && items.length) {
-    const rows = items.map((item, index) => ({ proposal_id: savedProposal.id, artwork_id: item.id || item.artwork_id || null, position: index + 1, price: Number(item.price || 0) || null, note: item.note || item.context || null })).filter((row) => row.artwork_id);
-    if (rows.length) await dataRequest('proposal_items', { method: 'POST', body: JSON.stringify(rows) });
+  const policy = commercialPolicy({ includeFee: true });
+  const identity = operationIdentity(req, user);
+  const idempotency = await beginIdempotency(req, 'proposal.create', proposal, identity);
+  if (idempotency.replay) return json(res, idempotency.status, idempotency.payload, {
+    ...session.headers,
+    'Idempotency-Replayed': 'true'
+  });
+  try {
+    const payload = firstRecord(await adminSupabaseRpc('create_proposal_atomic', {
+      p_artwork_ids: proposal.artworkIds,
+      p_user_id: user?.id || null,
+      p_lead_id: proposal.leadId,
+      p_company_brief_id: proposal.companyBriefId,
+      p_client: proposal.client,
+      p_space: proposal.space,
+      p_goal: proposal.goal,
+      p_budget: proposal.budget,
+      p_deadline: proposal.deadline,
+      p_notes: proposal.notes,
+      p_currency: policy.currency,
+      p_platform_fee_rate: policy.feeRate,
+      p_policy_version: policy.version,
+      p_actor_type: identity.actorType,
+      p_actor_ref: identity.reference,
+      p_request_id: req.aranduRequestId,
+      p_idempotency_scope: idempotency.scope,
+      p_idempotency_key_hash: idempotency.keyHash,
+      p_identity_hash: idempotency.identityHash,
+      p_request_hash: idempotency.requestHash
+    }));
+    return json(res, 201, payload, session.headers);
+  } catch (error) {
+    await failIdempotency(idempotency, error);
+    throw error;
   }
-  const payload = { ok: true, mode: 'stored', stored: true, proposal: savedProposal };
-  await finishIdempotency(idempotency, 201, payload);
-  return json(res, 201, payload);
 }
 async function handleCertificates(req, res) { if (req.method !== 'GET') return json(res, 405, { ok: false, error: 'Método não permitido.' }); const url = new URL(req.url, 'http://localhost'); const code = clean(url.searchParams.get('code') || url.searchParams.get('id')).toUpperCase(); if (!code) return json(res, 400, { ok: false, error: 'Código obrigatório.' }); if (!/^[A-Z0-9-]{4,80}$/.test(code)) return json(res, 400, { ok: false, error: 'Código inválido.' }); await enforceRateLimit(req, 'certificate-read', 60, 10 * 60 * 1000); const rows = await publicDataRequest(`certificates?code=eq.${encodeURIComponent(code)}&verification_status=eq.valid&select=code,verification_status,artwork_id,artist_id,issued_at,certificate_hash,certificate_notes&limit=1`); return json(res, 200, { ok: true, mode: 'stored', certificate: firstRecord(rows) }); }
 async function handleCertificateDocument(req, res) { if (req.method !== 'GET') return html(res, 405, '<h1>Método não permitido.</h1>'); const url = new URL(req.url, 'http://localhost'); const code = clean(url.searchParams.get('code')).toUpperCase(); if (!code) return html(res, 400, '<h1>Código obrigatório.</h1>'); if (!/^[A-Z0-9-]{4,80}$/.test(code)) return html(res, 400, '<h1>Código inválido.</h1>'); await enforceRateLimit(req, 'certificate-document', 30, 10 * 60 * 1000); const certificate = firstRecord(await publicDataRequest(`certificates?code=eq.${encodeURIComponent(code)}&verification_status=eq.valid&select=code,verification_status,artwork_id,artist_id,issued_to,issued_at,certificate_hash,certificate_notes&limit=1`)); if (!certificate) return html(res, 404, '<h1>Certificado não encontrado.</h1>'); const artwork = certificate.artwork_id ? firstRecord(await publicDataRequest(`v_public_catalog?id=eq.${encodeURIComponent(certificate.artwork_id)}&select=id,title,artist_name,technique,dimensions&limit=1`)) : null; return html(res, 200, certificateDocumentHtml(certificate, artwork)); }
@@ -838,7 +957,7 @@ async function handlePilot(req, res, action) {
     return json(res, 201, { ok: true, stored: true });
   }
   if (action === 'metrics') {
-    const guard = await adminGuard(req, res);
+    const guard = await adminGuard(req, res, 'pilot', 'read');
     if (!guard.ok) return json(res, guard.status, { ok: false, error: guard.error, code: guard.code });
     if (req.method !== 'GET') return json(res, 405, { ok: false, error: 'Método não permitido.' });
     const [events, feedback] = await Promise.all([
@@ -858,10 +977,166 @@ async function handlePilot(req, res, action) {
   }
   return json(res, 404, { ok: false, error: 'Rota do piloto não encontrada.' });
 }
-async function handleAdmin(req, res) { const guard = await adminGuard(req, res); if (!guard.ok) return json(res, guard.status, { ok: false, error: guard.error, code: guard.code }); if (req.method === 'GET') { const url = new URL(req.url, 'http://localhost'); const panel = url.searchParams.get('panel'); const config = panelConfig(panel); if (!config) return json(res, 400, { ok: false, error: 'Painel inválido.' }); const items = await dataRequest(config.read, { method: 'GET', headers: { Prefer: '' } }); return json(res, 200, { ok: true, mode: 'stored', panel, statusOptions: config.statuses, items: items || [] }); } if (req.method === 'POST') { const body = await readBody(req); const panel = panelFromBody(body); const config = panelConfig(panel); if (!config) return json(res, 400, { ok: false, error: 'Tipo de cadastro inválido.' }); const record = normalizeRecord(panel, body.data || body); if (!record) return json(res, 400, { ok: false, error: 'Este painel ainda não possui criação administrativa.' }); const validation = validateRecord(panel, record); if (validation) return json(res, 400, { ok: false, error: validation }); const saved = await dataRequest(config.table, { method: 'POST', body: JSON.stringify(record) }); return json(res, 201, { ok: true, mode: 'stored', stored: true, panel, record: firstRecord(saved) }); } if (req.method === 'PATCH') { const body = await readBody(req); const panel = clean(body.panel); const id = clean(body.id); const status = clean(body.status); const config = panelConfig(panel); if (!config) return json(res, 400, { ok: false, error: 'Painel inválido.' }); if (!id) return json(res, 400, { ok: false, error: 'ID obrigatório.' }); if (!config.statuses.includes(status)) return json(res, 400, { ok: false, error: 'Status inválido para este painel.' }); const rows = await dataRequest(`${config.table}?id=eq.${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify({ [config.statusField]: status, updated_at: new Date().toISOString() }) }); const record = firstRecord(rows); if (!record) return json(res, 404, { ok: false, error: 'Registro não encontrado.' }); return json(res, 200, { ok: true, mode: 'stored', stored: true, panel, record }); } return json(res, 405, { ok: false, error: 'Método não permitido.' }); }
-async function handleAdminUpdate(req, res) { const access = await adminGuard(req, res); if (!access.ok) return json(res, access.status, { ok: false, error: access.error, code: access.code }); if (req.method !== 'PATCH') return json(res, 405, { ok: false, error: 'Método não permitido.' }); const body = await readBody(req); const panel = clean(body.panel); const id = clean(body.id); const table = TABLES[panel]; const fields = body.fields && typeof body.fields === 'object' ? body.fields : {}; const payload = buildPayload(panel, fields); if (!table) return json(res, 400, { ok: false, error: 'Painel inválido.' }); if (!id) return json(res, 400, { ok: false, error: 'ID obrigatório.' }); if (!Object.keys(payload).length) return json(res, 400, { ok: false, error: 'Nenhum campo válido para atualizar.' }); const rows = await dataRequest(`${table}?id=eq.${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(payload) }); const record = firstRecord(rows); if (!record) return json(res, 404, { ok: false, error: 'Registro não encontrado.' }); return json(res, 200, { ok: true, mode: 'stored', stored: true, panel, record }); }
-async function handleOperational(req, res) { const guard = await adminGuard(req, res); if (!guard.ok) return json(res, guard.status, { ok: false, error: guard.error, code: guard.code }); const url = new URL(req.url, 'http://localhost'); const resource = clean(url.searchParams.get('resource')); if (!validOperationalResource(resource)) return json(res, 400, { ok: false, error: 'Recurso operacional inválido.' }); if (req.method === 'GET') { const entityType = clean(url.searchParams.get('entity_type')); const entityId = clean(url.searchParams.get('entity_id')); if (!entityType || !entityId) return json(res, 400, { ok: false, error: 'Entidade obrigatória.' }); const query = `${operationalTable(resource)}?select=*&entity_type=eq.${encodeURIComponent(entityType)}&entity_id=eq.${encodeURIComponent(entityId)}&order=${encodeURIComponent(operationalOrder(resource))}`; const rows = await dataRequest(query, { method: 'GET', headers: { Prefer: '' } }); return json(res, 200, { ok: true, mode: 'stored', resource, items: rows || [] }); } if (req.method === 'POST') { const body = await readBody(req); const record = resource === 'notes' ? normalizeNote(body) : normalizeOperationalTask(body); if (!record.entity_type || !record.entity_id) return json(res, 400, { ok: false, error: 'Entidade obrigatória.' }); if (resource === 'notes' && !record.note) return json(res, 400, { ok: false, error: 'Nota obrigatória.' }); if (resource === 'tasks' && !record.title) return json(res, 400, { ok: false, error: 'Título da tarefa obrigatório.' }); const saved = await dataRequest(operationalTable(resource), { method: 'POST', body: JSON.stringify(record) }); return json(res, 201, { ok: true, mode: 'stored', stored: true, resource, record: firstRecord(saved) }); } if (req.method === 'PATCH') { if (resource !== 'tasks') return json(res, 400, { ok: false, error: 'Apenas tarefas aceitam atualização operacional.' }); const body = await readBody(req); const id = clean(body.id); const status = clean(body.status); if (!id) return json(res, 400, { ok: false, error: 'ID da tarefa obrigatório.' }); if (!['open','doing','done','cancelled'].includes(status)) return json(res, 400, { ok: false, error: 'Status de tarefa inválido.' }); const saved = await dataRequest(`tasks?id=eq.${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify({ status, updated_at: new Date().toISOString() }) }); return json(res, 200, { ok: true, mode: 'stored', stored: true, record: firstRecord(saved) }); } return json(res, 405, { ok: false, error: 'Método não permitido.' }); }
-async function handleMedia(req, res) { const access = await adminGuard(req, res); if (!access.ok) return json(res, access.status, { ok: false, error: access.error, code: access.code }); if (req.method === 'GET') { const url = new URL(req.url, 'http://localhost'); const entityType = clean(url.searchParams.get('entity_type')); const entityId = clean(url.searchParams.get('entity_id')); if (!entityType || !entityId) return json(res, 400, { ok: false, error: 'Entidade obrigatória.' }); const rows = await dataRequest(`media_assets?select=*&entity_type=eq.${encodeURIComponent(entityType)}&entity_id=eq.${encodeURIComponent(entityId)}&order=position.asc,created_at.desc`, { method: 'GET', headers: { Prefer: '' } }); return json(res, 200, { ok: true, mode: 'stored', items: rows || [] }); } if (req.method === 'POST') { const body = await readBody(req); const record = { entity_type: clean(body.entity_type), entity_id: clean(body.entity_id), asset_type: clean(body.asset_type) || 'image', url: clean(body.url), alt: clean(body.alt) || null, position: Number.isFinite(Number(body.position)) ? Number(body.position) : 1, payload: body.payload && typeof body.payload === 'object' ? body.payload : {} }; if (!record.entity_type || !record.entity_id) return json(res, 400, { ok: false, error: 'Entidade obrigatória.' }); if (!record.url || !validUrl(record.url)) return json(res, 400, { ok: false, error: 'URL de mídia inválida.' }); const saved = await dataRequest('media_assets', { method: 'POST', body: JSON.stringify(record) }); return json(res, 201, { ok: true, mode: 'stored', stored: true, record: firstRecord(saved) }); } return json(res, 405, { ok: false, error: 'Método não permitido.' }); }
+async function handleAdmin(req, res) {
+  const guard = await adminGuard(req, res);
+  if (!guard.ok) return json(res, guard.status, { ok: false, error: guard.error, code: guard.code });
+  if (req.method === 'GET') {
+    const url = new URL(req.url, 'http://localhost');
+    const panel = url.searchParams.get('panel');
+    const config = panelConfig(panel);
+    if (!config) return json(res, 400, { ok: false, error: 'Painel inválido.' });
+    requireAdminPermission(guard.actor, panelResource(panel), 'read');
+    const items = await dataRequest(config.read, { method: 'GET', headers: { Prefer: '' } });
+    return json(res, 200, { ok: true, mode: 'stored', panel, statusOptions: config.statuses, items: items || [] });
+  }
+  if (req.method === 'POST') {
+    const body = await readBody(req);
+    const panel = panelFromBody(body);
+    const config = panelConfig(panel);
+    if (!config) return json(res, 400, { ok: false, error: 'Tipo de cadastro inválido.' });
+    requireAdminPermission(guard.actor, panelResource(panel), 'create');
+    if (panel === 'certificados') {
+      await enforceRateLimit(req, 'admin-certificate-write', 30, 60 * 60 * 1000, guard.actor.id);
+    }
+    const record = normalizeRecord(panel, body.data || body);
+    if (!record) return json(res, 400, { ok: false, error: 'Este painel ainda não possui criação administrativa.' });
+    const validation = validateRecord(panel, record);
+    if (validation) return json(res, 400, { ok: false, error: validation });
+    const saved = await dataRequest(config.table, {
+      method: 'POST',
+      headers: auditRequestHeaders(guard.actor, req.aranduRequestId, body.justification),
+      body: JSON.stringify(record)
+    });
+    return json(res, 201, { ok: true, mode: 'stored', stored: true, panel, record: firstRecord(saved) });
+  }
+  if (req.method === 'PATCH') {
+    const body = await readBody(req);
+    const panel = clean(body.panel);
+    const id = clean(body.id);
+    const status = clean(body.status);
+    const config = panelConfig(panel);
+    if (!config) return json(res, 400, { ok: false, error: 'Painel inválido.' });
+    requireAdminPermission(guard.actor, panelResource(panel), 'update');
+    if (panel === 'certificados') {
+      await enforceRateLimit(req, 'admin-certificate-write', 30, 60 * 60 * 1000, guard.actor.id);
+    }
+    if (!id) return json(res, 400, { ok: false, error: 'ID obrigatório.' });
+    if (!config.statuses.includes(status)) return json(res, 400, { ok: false, error: 'Status inválido para este painel.' });
+    const rows = await dataRequest(`${config.table}?id=eq.${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      headers: auditRequestHeaders(guard.actor, req.aranduRequestId, body.justification),
+      body: JSON.stringify({ [config.statusField]: status, updated_at: new Date().toISOString() })
+    });
+    const record = firstRecord(rows);
+    if (!record) return json(res, 404, { ok: false, error: 'Registro não encontrado.' });
+    return json(res, 200, { ok: true, mode: 'stored', stored: true, panel, record });
+  }
+  return json(res, 405, { ok: false, error: 'Método não permitido.' });
+}
+async function handleAdminUpdate(req, res) {
+  const access = await adminGuard(req, res);
+  if (!access.ok) return json(res, access.status, { ok: false, error: access.error, code: access.code });
+  if (req.method !== 'PATCH') return json(res, 405, { ok: false, error: 'Método não permitido.' });
+  const body = await readBody(req);
+  const panel = clean(body.panel);
+  const id = clean(body.id);
+  const table = TABLES[panel];
+  const fields = body.fields && typeof body.fields === 'object' ? body.fields : {};
+  const payload = buildPayload(panel, fields);
+  if (!table) return json(res, 400, { ok: false, error: 'Painel inválido.' });
+  requireAdminPermission(access.actor, panelResource(panel), 'update');
+  if (!id) return json(res, 400, { ok: false, error: 'ID obrigatório.' });
+  if (!Object.keys(payload).length) return json(res, 400, { ok: false, error: 'Nenhum campo válido para atualizar.' });
+  const rows = await dataRequest(`${table}?id=eq.${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: auditRequestHeaders(access.actor, req.aranduRequestId, body.justification),
+    body: JSON.stringify(payload)
+  });
+  const record = firstRecord(rows);
+  if (!record) return json(res, 404, { ok: false, error: 'Registro não encontrado.' });
+  return json(res, 200, { ok: true, mode: 'stored', stored: true, panel, record });
+}
+async function handleOperational(req, res) {
+  const guard = await adminGuard(req, res);
+  if (!guard.ok) return json(res, guard.status, { ok: false, error: guard.error, code: guard.code });
+  const url = new URL(req.url, 'http://localhost');
+  const resource = clean(url.searchParams.get('resource'));
+  if (!validOperationalResource(resource)) return json(res, 400, { ok: false, error: 'Recurso operacional inválido.' });
+  if (req.method === 'GET') {
+    requireAdminPermission(guard.actor, resource, 'read');
+    const entityType = clean(url.searchParams.get('entity_type'));
+    const entityId = clean(url.searchParams.get('entity_id'));
+    if (!entityType || !entityId) return json(res, 400, { ok: false, error: 'Entidade obrigatória.' });
+    const query = `${operationalTable(resource)}?select=*&entity_type=eq.${encodeURIComponent(entityType)}&entity_id=eq.${encodeURIComponent(entityId)}&order=${encodeURIComponent(operationalOrder(resource))}`;
+    const rows = await dataRequest(query, { method: 'GET', headers: { Prefer: '' } });
+    return json(res, 200, { ok: true, mode: 'stored', resource, items: rows || [] });
+  }
+  if (req.method === 'POST') {
+    requireAdminPermission(guard.actor, resource, 'create');
+    const body = await readBody(req);
+    const record = resource === 'notes' ? normalizeNote(body) : normalizeOperationalTask(body);
+    if (!record.entity_type || !record.entity_id) return json(res, 400, { ok: false, error: 'Entidade obrigatória.' });
+    if (resource === 'notes' && !record.note) return json(res, 400, { ok: false, error: 'Nota obrigatória.' });
+    if (resource === 'tasks' && !record.title) return json(res, 400, { ok: false, error: 'Título da tarefa obrigatório.' });
+    const saved = await dataRequest(operationalTable(resource), {
+      method: 'POST',
+      headers: auditRequestHeaders(guard.actor, req.aranduRequestId, body.justification),
+      body: JSON.stringify(record)
+    });
+    return json(res, 201, { ok: true, mode: 'stored', stored: true, resource, record: firstRecord(saved) });
+  }
+  if (req.method === 'PATCH') {
+    requireAdminPermission(guard.actor, resource, 'update');
+    if (resource !== 'tasks') return json(res, 400, { ok: false, error: 'Apenas tarefas aceitam atualização operacional.' });
+    const body = await readBody(req);
+    const id = clean(body.id);
+    const status = clean(body.status);
+    if (!id) return json(res, 400, { ok: false, error: 'ID da tarefa obrigatório.' });
+    if (!['open','doing','done','cancelled'].includes(status)) return json(res, 400, { ok: false, error: 'Status de tarefa inválido.' });
+    const saved = await dataRequest(`tasks?id=eq.${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      headers: auditRequestHeaders(guard.actor, req.aranduRequestId, body.justification),
+      body: JSON.stringify({ status, updated_at: new Date().toISOString() })
+    });
+    return json(res, 200, { ok: true, mode: 'stored', stored: true, record: firstRecord(saved) });
+  }
+  return json(res, 405, { ok: false, error: 'Método não permitido.' });
+}
+async function handleMedia(req, res) {
+  const access = await adminGuard(req, res);
+  if (!access.ok) return json(res, access.status, { ok: false, error: access.error, code: access.code });
+  if (req.method === 'GET') {
+    requireAdminPermission(access.actor, 'media', 'read');
+    const url = new URL(req.url, 'http://localhost');
+    const entityType = clean(url.searchParams.get('entity_type'));
+    const entityId = clean(url.searchParams.get('entity_id'));
+    if (!entityType || !entityId) return json(res, 400, { ok: false, error: 'Entidade obrigatória.' });
+    const rows = await dataRequest(`media_assets?select=*&entity_type=eq.${encodeURIComponent(entityType)}&entity_id=eq.${encodeURIComponent(entityId)}&order=position.asc,created_at.desc`, { method: 'GET', headers: { Prefer: '' } });
+    return json(res, 200, { ok: true, mode: 'stored', items: rows || [] });
+  }
+  if (req.method === 'POST') {
+    requireAdminPermission(access.actor, 'media', 'create');
+    const body = await readBody(req);
+    const record = {
+      entity_type: clean(body.entity_type),
+      entity_id: clean(body.entity_id),
+      asset_type: clean(body.asset_type) || 'image',
+      url: clean(body.url),
+      alt: clean(body.alt) || null,
+      position: Number.isFinite(Number(body.position)) ? Number(body.position) : 1,
+      payload: body.payload && typeof body.payload === 'object' ? body.payload : {}
+    };
+    if (!record.entity_type || !record.entity_id) return json(res, 400, { ok: false, error: 'Entidade obrigatória.' });
+    if (!record.url || !validUrl(record.url)) return json(res, 400, { ok: false, error: 'URL de mídia inválida.' });
+    const saved = await dataRequest('media_assets', {
+      method: 'POST',
+      headers: auditRequestHeaders(access.actor, req.aranduRequestId, body.justification),
+      body: JSON.stringify(record)
+    });
+    return json(res, 201, { ok: true, mode: 'stored', stored: true, record: firstRecord(saved) });
+  }
+  return json(res, 405, { ok: false, error: 'Método não permitido.' });
+}
 async function handleSelections(req, res) {
   requireDataConfig();
   if (req.method === 'GET') {
@@ -933,8 +1208,8 @@ async function handleAccount(req, res) {
 
   const userId = encodeURIComponent(session.user.id);
   const [selectionRows, reservationRows] = await Promise.all([
-    dataRequest(`saved_selections?user_id=eq.${userId}&select=id,public_token,status,items,briefing,created_at,updated_at&order=updated_at.desc&limit=20`, { method: 'GET', headers: { Prefer: '' } }),
-    dataRequest(`reservations?user_id=eq.${userId}&select=id,artwork_id,status,deadline,notes,created_at,updated_at&order=created_at.desc&limit=20`, { method: 'GET', headers: { Prefer: '' } })
+    userSupabaseRequest(session.accessToken, `saved_selections?user_id=eq.${userId}&select=id,public_token,status,items,briefing,created_at,updated_at&order=updated_at.desc&limit=20`, { method: 'GET', prefer: '' }),
+    userSupabaseRequest(session.accessToken, `reservations?user_id=eq.${userId}&select=id,artwork_id,status,deadline,notes,expires_at,created_at,updated_at&order=created_at.desc&limit=20`, { method: 'GET', prefer: '' })
   ]);
   const selections = Array.isArray(selectionRows) ? selectionRows.map(accountSelection).filter(Boolean) : [];
   const reservations = Array.isArray(reservationRows) ? reservationRows.map(accountReservation).filter(Boolean) : [];
@@ -959,21 +1234,6 @@ function editorialChecklist(body, entityType) {
   return Object.fromEntries(editorialRequirements(entityType).map((key) => [key, source[key] === true]));
 }
 
-function assertEditorialTransition(fromStatus, toStatus) {
-  const transitions = {
-    draft: ['documentation_pending','curatorial_review','archived'],
-    documentation_pending: ['draft','curatorial_review','rejected','archived'],
-    curatorial_review: ['documentation_pending','approved','rejected','archived'],
-    approved: ['curatorial_review','published','archived'],
-    published: ['approved','archived'],
-    rejected: ['draft','documentation_pending','archived'],
-    archived: ['draft']
-  };
-  if (!(transitions[fromStatus || 'draft'] || []).includes(toStatus)) {
-    throw new HttpError(409, `Transição editorial inválida: ${fromStatus || 'draft'} → ${toStatus}.`, 'invalid_editorial_transition');
-  }
-}
-
 async function handleCatalogReview(req, res) {
   const guard = await adminGuard(req, res);
   if (!guard.ok) return json(res, guard.status, { ok: false, error: guard.error, code: guard.code });
@@ -981,6 +1241,7 @@ async function handleCatalogReview(req, res) {
     const url = new URL(req.url, 'http://localhost');
     const entityType = clean(url.searchParams.get('entityType'));
     const entityId = limited(url.searchParams.get('entityId'), 160);
+    requireAdminPermission(guard.actor, entityType === 'artist' ? 'artists' : 'artworks', 'read');
     const readiness = firstRecord(await dataRequest('v_catalog_editorial_readiness?select=*&limit=1', { method: 'GET', headers: { Prefer: '' } }));
     const history = entityType && entityId
       ? await dataRequest(`catalog_review_history?entity_type=eq.${encodeURIComponent(entityType)}&entity_id=eq.${encodeURIComponent(entityId)}&select=*&order=created_at.desc&limit=100`, { method: 'GET', headers: { Prefer: '' } })
@@ -993,28 +1254,24 @@ async function handleCatalogReview(req, res) {
   const entityId = limited(body.entityId || body.entity_id, 160);
   const nextStatus = clean(body.status);
   if (!['artist','artwork'].includes(entityType)) throw new HttpError(400, 'Tipo editorial inválido.');
+  requireAdminPermission(guard.actor, entityType === 'artist' ? 'artists' : 'artworks', 'review');
   if (!entityId) throw new HttpError(400, 'Entidade editorial obrigatória.');
   if (!EDITORIAL_STATUSES.has(nextStatus)) throw new HttpError(400, 'Status editorial inválido.');
-  const table = entityType === 'artist' ? 'artists' : 'artworks';
-  const current = firstRecord(await dataRequest(`${table}?id=eq.${encodeURIComponent(entityId)}&select=id,editorial_status&limit=1`, { method: 'GET', headers: { Prefer: '' } }));
-  if (!current) throw new HttpError(404, 'Registro editorial não encontrado.');
-  assertEditorialTransition(current.editorial_status || 'draft', nextStatus);
   const checklist = editorialChecklist(body.checklist, entityType);
   if (['approved','published'].includes(nextStatus) && Object.values(checklist).some((value) => value !== true)) {
     throw new HttpError(409, 'Complete toda a documentação antes de aprovar ou publicar.', 'editorial_checklist_incomplete');
   }
-  const reviewedAt = new Date().toISOString();
-  const updated = firstRecord(await dataRequest(`${table}?id=eq.${encodeURIComponent(entityId)}`, {
-    method: 'PATCH',
-    body: JSON.stringify({ editorial_status: nextStatus, editorial_checklist: checklist, reviewed_by: guard.actor.id, reviewed_at: reviewedAt, updated_at: reviewedAt })
+  const result = firstRecord(await adminSupabaseRpc('apply_catalog_review_atomic', {
+    p_entity_type: entityType,
+    p_entity_id: entityId,
+    p_next_status: nextStatus,
+    p_checklist: checklist,
+    p_note: limited(body.note, 1000) || null,
+    p_actor_ref: guard.actor.id,
+    p_actor_role: guard.actor.role,
+    p_request_id: req.aranduRequestId
   }));
-  await dataRequest('catalog_review_history', {
-    method: 'POST',
-    headers: { Prefer: 'return=minimal' },
-    body: JSON.stringify({ entity_type: entityType, entity_id: entityId, from_status: current.editorial_status || 'draft', to_status: nextStatus, checklist, note: limited(body.note, 1000) || null, actor_ref: guard.actor.id })
-  });
-  await writeAudit({ actorType: 'admin', actorRef: guard.actor.id, action: 'catalog.review', entityType, entityId, metadata: { from: current.editorial_status || 'draft', to: nextStatus, role: guard.actor.role } });
-  return json(res, 200, { ok: true, record: updated, checklist });
+  return json(res, 200, result);
 }
 
 async function handlePrivacy(req, res, action) {
@@ -1025,19 +1282,23 @@ async function handlePrivacy(req, res, action) {
     if (req.method !== 'GET') return json(res, 405, { ok: false, error: 'Método não permitido.' });
     await enforceRateLimit(req, 'privacy-export', 5, 60 * 60 * 1000);
     const [profile, selections, reservations, leads, briefs, requests] = await Promise.all([
-      dataRequest(`profiles?id=eq.${userId}&select=id,email,full_name,phone,profile_type,created_at,updated_at&limit=1`, { method: 'GET', headers: { Prefer: '' } }),
-      dataRequest(`saved_selections?user_id=eq.${userId}&select=id,status,items,briefing,created_at,updated_at&limit=100`, { method: 'GET', headers: { Prefer: '' } }),
-      dataRequest(`reservations?user_id=eq.${userId}&select=id,artwork_id,status,deadline,notes,created_at,updated_at&limit=100`, { method: 'GET', headers: { Prefer: '' } }),
-      dataRequest(`leads?user_id=eq.${userId}&select=id,status,source,created_at,updated_at&limit=100`, { method: 'GET', headers: { Prefer: '' } }),
-      dataRequest(`company_briefs?user_id=eq.${userId}&select=id,status,created_at,updated_at&limit=100`, { method: 'GET', headers: { Prefer: '' } }),
-      dataRequest(`privacy_requests?user_id=eq.${userId}&select=id,request_type,status,due_at,completed_at,created_at&limit=100`, { method: 'GET', headers: { Prefer: '' } })
+      userSupabaseRequest(session.accessToken, `profiles?id=eq.${userId}&select=id,email,full_name,phone,profile_type,created_at,updated_at&limit=1`, { method: 'GET', prefer: '' }),
+      userSupabaseRequest(session.accessToken, `saved_selections?user_id=eq.${userId}&select=id,status,items,briefing,created_at,updated_at&limit=100`, { method: 'GET', prefer: '' }),
+      userSupabaseRequest(session.accessToken, `reservations?user_id=eq.${userId}&select=id,artwork_id,status,deadline,notes,created_at,updated_at&limit=100`, { method: 'GET', prefer: '' }),
+      userSupabaseRequest(session.accessToken, `leads?user_id=eq.${userId}&select=id,status,source_page,created_at,updated_at&limit=100`, { method: 'GET', prefer: '' }),
+      userSupabaseRequest(session.accessToken, `company_briefs?user_id=eq.${userId}&select=id,status,created_at,updated_at&limit=100`, { method: 'GET', prefer: '' }),
+      userSupabaseRequest(session.accessToken, `privacy_requests?user_id=eq.${userId}&select=id,request_type,status,due_at,completed_at,created_at&limit=100`, { method: 'GET', prefer: '' })
     ]);
     await writeAudit({ actorType: 'user', actorRef: session.user.id, action: 'privacy.export', entityType: 'user', entityId: session.user.id });
     return json(res, 200, { ok: true, exportedAt: new Date().toISOString(), user: session.user, profile: firstRecord(profile), selections, reservations, leads, companyBriefs: briefs, privacyRequests: requests }, { ...session.headers, 'Content-Disposition': 'attachment; filename="arandu-dados.json"' });
   }
   if (action === 'request') {
     if (req.method === 'GET') {
-      const requests = await dataRequest(`privacy_requests?user_id=eq.${userId}&select=id,request_type,status,due_at,completed_at,created_at&order=created_at.desc&limit=50`, { method: 'GET', headers: { Prefer: '' } });
+      const requests = await userSupabaseRequest(
+        session.accessToken,
+        `privacy_requests?user_id=eq.${userId}&select=id,request_type,status,due_at,completed_at,created_at&order=created_at.desc&limit=50`,
+        { method: 'GET', prefer: '' }
+      );
       return json(res, 200, { ok: true, requests }, session.headers);
     }
     if (req.method !== 'POST') return json(res, 405, { ok: false, error: 'Método não permitido.' });
@@ -1077,7 +1338,7 @@ async function handleConversionEvents(req, res) {
 }
 
 async function handleDashboard(req, res) {
-  const guard = await adminGuard(req, res);
+  const guard = await adminGuard(req, res, 'dashboard', 'read');
   if (!guard.ok) return json(res, guard.status, { ok: false, error: guard.error, code: guard.code });
   if (req.method !== 'GET') return json(res, 405, { ok: false, error: 'Método não permitido.' });
   const metrics = { artworks: 0, artists: 0, leads: 0, certificates: 0, reservations: 0, proposals: 0, submissions: 0, briefs: 0, tasks: 0 };
@@ -1123,6 +1384,7 @@ async function handleAuth(req, res, action) {
     const email = cleanEmail(body.email);
     const password = String(body.password || '');
     if (!validEmail(email) || !password) throw new HttpError(400, 'Email e senha são obrigatórios.');
+    await enforceRateLimit(req, 'auth-login-account', 20, 60 * 60 * 1000, email);
     const result = await supabaseAuth('token?grant_type=password', { method: 'POST', body: JSON.stringify({ email, password }) });
     return json(res, 200, { ok: true, authenticated: true, user: publicUser(result.user) }, { 'Set-Cookie': sessionCookie(result) });
   }
@@ -1179,6 +1441,7 @@ function routeFrom(req) {
 
 export default async function handler(req, res) {
   const requestId = limited(req.headers?.['x-request-id'], 80) || randomUUID();
+  req.aranduRequestId = requestId;
   res.setHeader('X-Request-ID', requestId);
   try {
     enforceSameOrigin(req);

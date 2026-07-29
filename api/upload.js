@@ -1,5 +1,7 @@
 import { AdminAuthError, applyAdminResponseHeaders, requireAdmin } from '../lib/admin-auth.mjs';
+import { requireAdminPermission } from '../lib/admin-rbac.mjs';
 import { applyApiSecurityHeaders, crossOriginRejection } from '../lib/http-security.mjs';
+import { enforceSensitiveRateLimit } from '../lib/rate-limit.mjs';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -85,6 +87,12 @@ export default async function handler(req, res) {
     if (rejection) return json(res, rejection.status, { ok: false, error: rejection.error, code: rejection.code });
     if (req.method !== 'POST') return json(res, 405, { ok: false, error: 'Método não permitido.' });
     const admin = await requireAdmin(req);
+    requireAdminPermission(admin.actor, 'media', 'create');
+    await enforceSensitiveRateLimit(req, 'admin-upload', {
+      limit: 30,
+      windowMs: 60 * 60 * 1000,
+      identity: admin.actor.id
+    });
     applyAdminResponseHeaders(res, admin.headers);
     if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) return json(res, 503, { ok: false, error: 'Supabase Storage exige SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.' });
 
