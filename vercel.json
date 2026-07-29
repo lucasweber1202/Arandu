@@ -5,7 +5,7 @@
   "cleanUrls": false,
   "functions": {
     "api/internal-page.js": {
-      "includeFiles": ["*.html"]
+      "includeFiles": "*.html"
     }
   },
   "redirects": [
