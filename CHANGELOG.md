@@ -1,5 +1,51 @@
 # Changelog — Arandu
 
+## v1.1 — Usabilidade, segurança, estética e organização
+
+### Segurança
+
+- CSP passa a ser **aplicada**, não apenas relatada, com `object-src`, `frame-src`
+  e `worker-src` fechados e `upgrade-insecure-requests`.
+- Novos cabeçalhos de borda: `Cross-Origin-Resource-Policy`,
+  `X-Permitted-Cross-Domain-Policies`, `X-DNS-Prefetch-Control`, HSTS de dois anos
+  com `preload` e `X-Robots-Tag: noindex` nas respostas de API.
+- Guarda de mesma origem (`lib/http-security.mjs`) recusa escrita vinda de outro
+  site em `api/[...path].js`, `api/commercial.js` e `api/upload.js`. Clientes
+  não-navegador seguem permitidos.
+- Cabeçalhos de segurança das respostas de API unificados num único helper
+  (`X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `Vary`).
+- Novo gate `npm run check:http`, incluído em `check:security` e `check:all`.
+
+### Usabilidade
+
+- Menu móvel fecha com `Esc` e devolve o foco ao botão; abre com foco no primeiro
+  item e trava a rolagem de fundo.
+- Item de navegação atual passa a expor `aria-current="page"`.
+- Cabeçalho e menu deixam de ser reescritos a cada temporizador — antes o botão
+  vinculado e o foco do teclado eram descartados a 300 ms e 1200 ms.
+- Corrigido o acúmulo de ouvintes de busca, que reexecutava a filtragem três vezes
+  por tecla digitada.
+- Alvos de toque da navegação com no mínimo 44 px.
+
+### Estética
+
+- Home volta ao tema claro pretendido: faltava a classe `home-page`, então ela
+  recebia o gradiente escuro das páginas internas. O texto de apoio do herói subiu
+  de **2,7:1 para 16,4:1** de contraste.
+- Corrigido texto creme sobre fundo creme nos cartões da faixa inferior da home
+  (colisão entre `arandu-clarity.css` e `arandu-readability-commerce.css`).
+- CSS inline da home extraído para `css/arandu-home.css`.
+- Nova camada `css/arandu-refinamento.css` com foco visível, `prefers-reduced-motion`,
+  alvos de toque e folha de impressão — uma definição só, para o site inteiro.
+
+### Organização
+
+- Removidos 32 arquivos de CSS/JS comprovadamente mortos (~144 KB), confirmados
+  por análise estática e por navegação real nas 152 páginas construídas.
+- Novo gate `npm run check:assets` impede o retorno de assets órfãos.
+- `docs/ARQUITETURA_FRONTEND.md` documenta a ordem de cascata, onde colocar estilo
+  novo e as armadilhas de especificidade.
+
 ## v1.0 — Execução auditável de produção
 
 - Cadeia dos Sprints 2–12, SEO, PWA e legibilidade consolidada na `main`.
