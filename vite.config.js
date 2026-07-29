@@ -26,6 +26,7 @@ const NEXT_OPS_VERSION = '20260709-next-ops-1';
 const ADVANCED_VERSION = '20260709-advanced-1';
 const RESCUE_VERSION = '20260709-ui-rescue-1';
 const DEEP_CLEAN_VERSION = '20260709-deep-clean-1';
+const REFINEMENT_VERSION = '20260729-refinamento-1';
 
 function collectHtmlFiles(dir = root) {
   const entries = readdirSync(dir);
@@ -99,6 +100,9 @@ function injectGlobalAssets() {
   const deepCleanCssTag = `<link rel="stylesheet" href="/css/arandu-deep-clean.css?v=${DEEP_CLEAN_VERSION}">`;
   const releaseCssTag = `<link rel="stylesheet" href="/css/arandu-release.css?v=20260717-release-1">`;
   const clarityCssTag = `<link rel="stylesheet" href="/css/arandu-clarity.css?v=20260719-clarity-1">`;
+  // Camada transversal de acessibilidade e polimento: entra por último para
+  // vencer no empate de cascata contra as folhas históricas acima.
+  const refinementCssTag = `<link rel="stylesheet" href="/css/arandu-refinamento.css?v=${REFINEMENT_VERSION}">`;
   const auditJsTag = `<script src="/js/arandu-interface-audit.js?v=${HARDENING_VERSION}" defer></script>`;
   const assistantJsTag = `<script src="/js/arandu-assistant.js?v=${RESCUE_VERSION}" defer></script>`;
   const catalogSourceJsTag = `<script src="/js/catalog-source.js?v=20260717-catalog-release-1"></script>`;
@@ -130,6 +134,7 @@ function injectGlobalAssets() {
       if (!output.includes('/css/arandu-deep-clean.css')) output = output.includes('</head>') ? output.replace('</head>', `${deepCleanCssTag}</head>`) : `${output}${deepCleanCssTag}`;
       if (!output.includes('/css/arandu-release.css')) output = output.includes('</head>') ? output.replace('</head>', `${releaseCssTag}</head>`) : `${output}${releaseCssTag}`;
       if (!output.includes('/css/arandu-clarity.css')) output = output.includes('</head>') ? output.replace('</head>', `${clarityCssTag}</head>`) : `${output}${clarityCssTag}`;
+      if (!output.includes('/css/arandu-refinamento.css')) output = output.includes('</head>') ? output.replace('</head>', `${refinementCssTag}</head>`) : `${output}${refinementCssTag}`;
       if (!output.includes('/js/catalog-source.js')) output = output.includes('</head>') ? output.replace('</head>', `${catalogSourceJsTag}</head>`) : `${catalogSourceJsTag}${output}`;
       if (!output.includes('window.ARANDU_PILOT_ENABLED=')) output = output.includes('</head>') ? output.replace('</head>', `${pilotBootstrapTag}</head>`) : `${pilotBootstrapTag}${output}`;
       if (!output.includes('/js/arandu-interface-audit.js')) output = output.includes('</body>') ? output.replace('</body>', `${auditJsTag}</body>`) : `${output}${auditJsTag}`;

@@ -1,4 +1,5 @@
 import { timingSafeEqual } from 'node:crypto';
+import { applyApiSecurityHeaders } from '../lib/http-security.mjs';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -9,8 +10,7 @@ const ADMIN_TOKEN = process.env.ARANDU_ADMIN_TOKEN;
 function json(res, status, payload) {
   res.statusCode = status;
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-  res.setHeader('X-Content-Type-Options', 'nosniff');
+  applyApiSecurityHeaders(res);
   res.end(JSON.stringify(payload));
 }
 

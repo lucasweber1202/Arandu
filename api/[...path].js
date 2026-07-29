@@ -1,4 +1,5 @@
 import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
+import { applyApiSecurityHeaders, crossOriginRejection } from '../lib/http-security.mjs';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -30,8 +31,7 @@ class HttpError extends Error {
 function json(res, status, payload, extraHeaders = {}) {
   res.statusCode = status;
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-  res.setHeader('X-Content-Type-Options', 'nosniff');
+  applyApiSecurityHeaders(res);
   Object.entries(extraHeaders).forEach(([key, value]) => res.setHeader(key, value));
   res.end(JSON.stringify(payload));
 }
@@ -39,6 +39,8 @@ function json(res, status, payload, extraHeaders = {}) {
 function html(res, status, body) {
   res.statusCode = status;
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
   res.end(body);
 }
 
@@ -87,6 +89,11 @@ function safeSelectionUrl(value) {
 }
 function escapeHtml(value) { return String(value ?? '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char])); }
 function safeObject(value) { return value && typeof value === 'object' && !Array.isArray(value) ? value : {}; }
+
+function enforceSameOrigin(req) {
+  const rejection = crossOriginRejection(req);
+  if (rejection) throw new HttpError(rejection.status, rejection.error, rejection.code);
+}
 
 function clientFingerprint(req, scope) {
   const forwarded = String(req.headers?.['x-forwarded-for'] || '').split(',')[0].trim();
@@ -1174,6 +1181,7 @@ export default async function handler(req, res) {
   const requestId = limited(req.headers?.['x-request-id'], 80) || randomUUID();
   res.setHeader('X-Request-ID', requestId);
   try {
+    enforceSameOrigin(req);
     const route = routeFrom(req);
     if (route === 'forms') return await handleForms(req, res);
     if (route === 'reservations') return await handleReservations(req, res);

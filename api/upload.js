@@ -1,4 +1,5 @@
 import { timingSafeEqual } from 'node:crypto';
+import { applyApiSecurityHeaders, crossOriginRejection } from '../lib/http-security.mjs';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -16,8 +17,7 @@ class HttpError extends Error {
 function json(res, status, payload) {
   res.statusCode = status;
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-  res.setHeader('X-Content-Type-Options', 'nosniff');
+  applyApiSecurityHeaders(res);
   res.end(JSON.stringify(payload));
 }
 
@@ -83,6 +83,8 @@ async function insertMedia(record) {
 
 export default async function handler(req, res) {
   try {
+    const rejection = crossOriginRejection(req);
+    if (rejection) return json(res, rejection.status, { ok: false, error: rejection.error, code: rejection.code });
     if (req.method !== 'POST') return json(res, 405, { ok: false, error: 'Método não permitido.' });
     if (!ADMIN_TOKEN || !constantTimeEqual(tokenFrom(req), ADMIN_TOKEN)) return json(res, 401, { ok: false, error: 'Acesso administrativo não autorizado.' });
     if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) return json(res, 503, { ok: false, error: 'Supabase Storage exige SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.' });

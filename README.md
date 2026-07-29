@@ -44,6 +44,33 @@ npm run predeploy
 
 `predeploy` só passa depois que catálogo real, domínio, marca, operação comercial e piloto estiverem configurados e aprovados.
 
+Gates úteis isoladamente durante o desenvolvimento:
+
+```bash
+npm run check:http     # CSP aplicada, cabeçalhos de borda e guarda de mesma origem
+npm run check:assets   # nenhum CSS/JS órfão novo
+npm run check:ux       # camadas de navegação e elementos de interface
+```
+
+## Arquitetura do front-end
+
+O site é multipágina estático, sem framework de componentes. A coerência visual vem
+de um pipeline de injeção no build (`vite.config.js`) somado ao shell de navegação
+(`js/site.js`) — e a ordem em que as camadas de CSS entram na página não é óbvia.
+
+Antes de criar ou editar uma folha de estilo, leia
+[`docs/ARQUITETURA_FRONTEND.md`](docs/ARQUITETURA_FRONTEND.md): ele explica a ordem
+da cascata, por que especificidade vence ordem entre declarações `!important`, e em
+qual arquivo colocar cada tipo de estilo.
+
+Resumo rápido:
+
+- estilo para o site inteiro → `css/arandu-refinamento.css` (última camada);
+- estilo só da home → `css/arandu-home.css`;
+- estilo de uma página interna → `<link>` na própria página, com seletor ancorado
+  numa classe do `<body>`;
+- não crie uma folha nova por sprint.
+
 ## Arquitetura da API
 
 A função principal é `api/[...path].js`. Funções complementares cobrem diagnóstico, coleções, operação comercial, painel MVP e upload:

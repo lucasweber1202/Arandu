@@ -1,0 +1,147 @@
+/* ARANDU — camada de refinamento transversal.
+   Carregada por último (via site.js e via build) para corrigir de forma única o
+   que antes cada folha resolvia por conta própria: foco visível, respeito a
+   movimento reduzido, alvos de toque e comportamento do menu em telas pequenas.
+   Regras aqui devem ser genéricas — nada específico de uma página. */
+
+/* --- Foco visível ---------------------------------------------------------
+   Um anel único para todo o site. Sem isso, cada camada visual removia o
+   outline padrão do navegador e a navegação por teclado ficava invisível. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 3px solid #6f1712;
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* Em superfícies escuras o anel precisa do contraste invertido. */
+:where(.safe-strip, .site-header, .site-footer, .mobile-menu-panel)
+  :where(a, button, [tabindex]):focus-visible {
+  outline-color: #fff2dc;
+}
+
+/* O anel só aparece para teclado; o clique de mouse continua limpo. */
+:where(a, button):focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* O skip link já é posicionado por arandu-release.css e arandu-usability-pack.css.
+   Uma terceira definição aqui só criaria conflito de `top` contra `transform` e
+   deixaria o link visível fora de foco — por isso esta camada não o reposiciona. */
+
+/* --- Alvos de toque -------------------------------------------------------
+   WCAG 2.2 pede ao menos 24×24px; a navegação e as ações recebem 44px. */
+.site-nav a,
+.site-actions a,
+.site-actions button,
+.mobile-menu-panel a,
+.safe-links a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* --- Menu móvel -----------------------------------------------------------
+   `arandu-menu-open` é aplicada ao body por js/site.js e trava o fundo para
+   que o gesto de rolagem não escape do painel aberto. */
+body.arandu-menu-open {
+  overflow: hidden;
+}
+
+.mobile-menu-panel[hidden] {
+  display: none;
+}
+
+.mobile-menu-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- Estado ativo ---------------------------------------------------------
+   `aria-current` é a fonte da verdade; a classe é só o eco visual legado. */
+.site-nav a[aria-current='page'],
+.mobile-menu-panel a[aria-current='page'] {
+  box-shadow: inset 0 -3px 0 0 currentColor;
+}
+
+/* --- Colisão de contraste nos cartões da faixa escura ---------------------
+   `arandu-clarity.css` trata `.safe-card` como cartão escuro e pinta os filhos
+   com texto claro por seletor descendente. `arandu-readability-commerce.css`
+   depois repinta apenas o fundo do próprio cartão de papel claro — e o texto
+   claro dos filhos, de especificidade maior, sobrevive. Resultado: creme sobre
+   creme, ilegível. A faixa `.safe-strip` é escura por definição, então o cartão
+   volta a ser escuro e o texto claro dos filhos passa a fazer sentido.
+   As duas folhas em conflito declaram `!important`; por isso a correção também
+   precisa declarar, vencendo pelo seletor mais específico. */
+.safe-strip .safe-card {
+  background: rgba(255, 242, 220, .08) !important;
+  border-color: rgba(255, 242, 220, .22) !important;
+}
+
+.safe-strip .safe-card:hover,
+.safe-strip .safe-card:focus-visible {
+  background: rgba(255, 242, 220, .16) !important;
+  border-color: rgba(255, 242, 220, .4) !important;
+}
+
+.safe-strip .safe-card :is(strong, span, p) {
+  color: #fff2dc !important;
+}
+
+.safe-strip .safe-card :is(span, p) {
+  color: rgba(255, 242, 220, .84) !important;
+}
+
+/* Camadas posteriores clareiam o parágrafo de apoio do herói para um marrom
+   médio que some sobre o gradiente. Ele volta à tinta cheia da marca. */
+.emergency-home .safe-lead {
+  color: #24110b !important;
+}
+
+/* --- Legibilidade ---------------------------------------------------------
+   Títulos e parágrafos longos ganham quebra equilibrada onde há suporte. */
+:where(h1, h2, h3) {
+  text-wrap: balance;
+}
+
+:where(p, li) {
+  text-wrap: pretty;
+}
+
+/* Rolagem suave até âncoras sem esconder o conteúdo sob o cabeçalho fixo. */
+:where(h1, h2, h3, [id]) {
+  scroll-margin-top: 84px;
+}
+
+/* --- Movimento reduzido ---------------------------------------------------
+   Respeita a preferência do sistema em todo o site de uma vez só, incluindo as
+   animações declaradas nas camadas visuais anteriores. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* --- Impressão ------------------------------------------------------------
+   Certificados e propostas são impressos com frequência; tira o cromo da tela. */
+@media print {
+  .site-header,
+  .site-footer,
+  .safe-header,
+  .safe-footer,
+  .skip-link,
+  .mobile-menu-panel,
+  .arandu-assistant,
+  [data-privacy-banner] {
+    display: none !important;
+  }
+
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+}
