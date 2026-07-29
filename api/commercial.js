@@ -1,11 +1,8 @@
-import { timingSafeEqual } from 'node:crypto';
+import { AdminAuthError, applyAdminResponseHeaders, requireAdmin } from '../lib/admin-auth.mjs';
 import { applyApiSecurityHeaders, crossOriginRejection } from '../lib/http-security.mjs';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
-const SUPABASE_KEY = SUPABASE_SERVICE_KEY || SUPABASE_ANON_KEY;
-const ADMIN_TOKEN = process.env.ARANDU_ADMIN_TOKEN;
 const STATUS = ['draft','confirmed','completed','cancelled'];
 const MAX_BODY_BYTES = 256 * 1024;
 
@@ -16,10 +13,11 @@ class HttpError extends Error {
   }
 }
 
-function json(res, status, payload) {
+function json(res, status, payload, headers = {}) {
   res.statusCode = status;
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   applyApiSecurityHeaders(res);
+  applyAdminResponseHeaders(res, headers);
   res.end(JSON.stringify(payload));
 }
 
@@ -38,22 +36,16 @@ async function readBody(req) {
   try { return JSON.parse(raw); } catch { throw new HttpError(400, 'JSON inválido.'); }
 }
 
-function hasDataConfig() { return Boolean(SUPABASE_URL && SUPABASE_KEY); }
+function hasDataConfig() { return Boolean(SUPABASE_URL && SUPABASE_SERVICE_KEY); }
 function firstRecord(data) { return Array.isArray(data) ? data[0] || null : data; }
-function constantTimeEqual(left, right) {
-  const supplied = Buffer.from(String(left || ''));
-  const expected = Buffer.from(String(right || ''));
-  if (supplied.length !== expected.length) return false;
-  return timingSafeEqual(supplied, expected);
-}
 
 async function dataRequest(resource, options = {}) {
   if (!hasDataConfig()) throw new Error('Banco não configurado.');
   const response = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/rest/v1/${resource}`, {
     method: options.method || 'GET',
     headers: {
-      apikey: SUPABASE_KEY,
-      Authorization: `Bearer ${SUPABASE_KEY}`,
+      apikey: SUPABASE_SERVICE_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
       'Content-Type': 'application/json',
       Prefer: 'return=representation',
       ...(options.headers || {})
@@ -64,13 +56,6 @@ async function dataRequest(resource, options = {}) {
   const data = text ? JSON.parse(text) : null;
   if (!response.ok) throw new Error(data?.message || data?.error || `Banco ${response.status}`);
   return data;
-}
-
-function guard(req) {
-  const token = String(req.headers['x-arandu-admin-token'] || '').trim();
-  if (!ADMIN_TOKEN) return { ok: false, status: 503, error: 'ARANDU_ADMIN_TOKEN não configurado no servidor.' };
-  if (!constantTimeEqual(token, ADMIN_TOKEN)) return { ok: false, status: 401, error: 'Acesso administrativo não autorizado.' };
-  return { ok: true };
 }
 
 function clean(value) { return String(value || '').trim(); }
@@ -147,8 +132,9 @@ export default async function handler(req, res) {
   try {
     const rejection = crossOriginRejection(req);
     if (rejection) return json(res, rejection.status, { ok: false, error: rejection.error, code: rejection.code });
-    const access = guard(req);
-    if (!access.ok) return json(res, access.status, { ok: false, error: access.error });
+    const access = await requireAdmin(req);
+    applyAdminResponseHeaders(res, access.headers);
+    if (!hasDataConfig()) throw new HttpError(503, 'O banco de produção ainda não está configurado.');
     if (req.method === 'GET') return listRecords(res);
     if (req.method === 'POST') return createRecord(req, res);
     if (req.method === 'PATCH') return updateRecord(req, res);
@@ -156,6 +142,10 @@ export default async function handler(req, res) {
   } catch (error) {
     const status = Number(error?.status) || 500;
     if (status >= 500) console.error('[Arandu Commercial]', error?.message || error);
-    return json(res, status, { ok: false, error: status < 500 ? error.message : 'Não foi possível concluir a operação comercial agora.' });
+    return json(res, status, {
+      ok: false,
+      error: status < 500 ? error.message : 'Não foi possível concluir a operação comercial agora.',
+      ...(error instanceof AdminAuthError && error.code ? { code: error.code } : {})
+    });
   }
 }

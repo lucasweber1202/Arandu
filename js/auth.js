@@ -1,5 +1,3 @@
-const ARANDU_ADMIN_TOKEN_KEY = 'arandu.adminToken.v1';
-
 async function requestJson(url, options = {}) {
   const response = await fetch(url, {
     credentials: 'include',
@@ -188,13 +186,8 @@ function pipelineCards(items) {
 async function renderDashboard() {
   const target = document.querySelector('[data-dashboard-panel]');
   if (!target) return;
-  const token = sessionStorage.getItem(ARANDU_ADMIN_TOKEN_KEY) || '';
-  if (!token) {
-    target.innerHTML = '<div class="card"><h3>Acesso administrativo necessário</h3><p>Informe o token no painel administrativo para carregar estes dados.</p></div>';
-    return;
-  }
   try {
-    const dashboard = await requestJson('/api/dashboard', { method: 'GET', headers: { 'x-arandu-admin-token': token } });
+    const dashboard = await requestJson('/api/dashboard', { method: 'GET' });
     const metrics = dashboard.metrics || {};
     target.innerHTML = `<div class="grid grid-4"><article class="card"><h3>${metrics.artworks ?? 0}</h3><p>Obras</p></article><article class="card"><h3>${metrics.artists ?? 0}</h3><p>Artistas</p></article><article class="card"><h3>${metrics.leads ?? 0}</h3><p>Leads</p></article><article class="card"><h3>${metrics.reservations ?? 0}</h3><p>Reservas</p></article></div><div class="card"><h3>Pipeline recente</h3><div class="grid grid-4">${pipelineCards(dashboard.pipeline)}</div></div>`;
   } catch (error) {

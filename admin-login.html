@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow,noarchive" />
+  <meta name="description" content="Acesso restrito à operação interna do Arandu." />
+  <title>Acesso administrativo — Arandu</title>
+  <link rel="stylesheet" href="css/arandu-system.css" />
+  <link rel="stylesheet" href="css/arandu-admin.css" />
+</head>
+<body class="lovable-page architecture-clean login-page">
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand-logo" href="index.html">Arandu</a>
+      <nav class="site-nav" aria-label="Navegação de acesso">
+        <a href="index.html">Site público</a>
+        <a href="login.html">Conta de comprador</a>
+      </nav>
+    </div>
+  </header>
+  <main>
+    <section class="portal-shell">
+      <div class="container portal-layout">
+        <div class="portal-card">
+          <p class="eyebrow">Uso interno</p>
+          <h1 class="section-title">Acesso administrativo protegido.</h1>
+          <p>Entre com uma conta autorizada no Supabase. O papel administrativo é validado no servidor e o segundo fator TOTP é obrigatório.</p>
+          <a href="index.html">Voltar ao site público</a>
+        </div>
+        <div class="portal-card">
+          <form class="form-card" data-admin-login-form>
+            <h2>Identificação</h2>
+            <input name="email" type="email" placeholder="E-mail administrativo" autocomplete="username" required />
+            <input name="password" type="password" placeholder="Senha" autocomplete="current-password" required />
+            <button type="submit">Entrar</button>
+          </form>
+          <form class="form-card" data-admin-mfa-form hidden>
+            <h2>Segundo fator</h2>
+            <p>Informe o código de seis dígitos do seu autenticador.</p>
+            <input name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required />
+            <button type="submit">Confirmar código</button>
+          </form>
+          <p class="admin-status" data-admin-auth-status aria-live="polite"></p>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script src="js/admin-login.js" defer></script>
+</body>
+</html>

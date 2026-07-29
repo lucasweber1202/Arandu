@@ -5,13 +5,12 @@ const baseUrl = String(process.argv[2] || DEFAULT_BASE_URL).replace(/\/$/, '');
 const timeoutMs = Number(process.env.ARANDU_LIVE_CHECK_TIMEOUT_MS || 10000);
 
 const checks = [
-  { path: '/api/health?probe=1', type: 'json', required: true, name: 'Health + Supabase probe' },
+  { path: '/api/health', type: 'json', required: true, name: 'Health público' },
   { path: '/api/catalog', type: 'json', required: true, name: 'Catálogo público' },
   { path: '/api/artists', type: 'json', required: true, name: 'Artistas públicos' },
   { path: '/api/collections', type: 'json', required: true, name: 'Coleções públicas' },
   { path: '/api/auth/session', type: 'json', required: true, name: 'Sessão Auth' },
-  { path: '/api/certificates?code=ARANDU-TESTE', type: 'json', required: false, name: 'Certificado público' },
-  { path: '/status.html', type: 'html', required: true, name: 'Página de status' }
+  { path: '/api/certificates?code=ARANDU-TESTE', type: 'json', required: false, name: 'Certificado público' }
 ];
 
 const failures = [];
@@ -49,15 +48,9 @@ async function request(path) {
 
 function evaluateHealth(payload) {
   if (!payload?.ok) failures.push('/api/health não retornou ok=true.');
-  if (!payload?.productionReady) warnings.push('/api/health indica que produção ainda não está completamente configurada.');
-  if (!payload?.verifiedReady) warnings.push('/api/health?probe=1 indica que produção ainda não está verificada ponta a ponta.');
-  if (payload?.missing?.length) warnings.push(`Variáveis/canais pendentes: ${payload.missing.join(', ')}.`);
-
-  const supabase = payload?.probes?.supabase;
-  if (!supabase || supabase.skipped) warnings.push('Probe Supabase não foi executado ou foi pulado.');
-  if (supabase && !supabase.skipped && !supabase.ok) {
-    const failed = (supabase.resources || []).filter((item) => !item.ok).map((item) => `${item.label} (${item.status})`);
-    warnings.push(`Supabase com falhas: ${failed.join(', ') || 'falha não detalhada'}.`);
+  if (payload?.status !== 'alive') failures.push('/api/health não retornou status=alive.');
+  if (/SUPABASE|missing|routes|environment|commit/i.test(JSON.stringify(payload || {}))) {
+    failures.push('/api/health expõe detalhes internos.');
   }
 }
 

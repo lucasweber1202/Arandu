@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { Readable } from 'node:stream';
-process.env.SUPABASE_URL='https://arandu-platform-test.supabase.co';process.env.SUPABASE_ANON_KEY='anon-platform-test';process.env.SUPABASE_SERVICE_ROLE_KEY='service-platform-test';process.env.ARANDU_ADMIN_TOKEN='admin-platform-test';delete process.env.VERCEL_ENV;delete process.env.ARANDU_DISTRIBUTED_RATE_LIMIT;
+process.env.SUPABASE_URL='https://arandu-platform-test.supabase.co';process.env.SUPABASE_ANON_KEY='anon-platform-test';process.env.SUPABASE_SERVICE_ROLE_KEY='service-platform-test';delete process.env.VERCEL_ENV;delete process.env.ARANDU_DISTRIBUTED_RATE_LIMIT;
 const {default:handler}=await import(`../api/[...path].js?platform-test=${Date.now()}`);
 function req(method,url,body,headers={}){const chunks=body===undefined?[]:[Buffer.from(JSON.stringify(body))];const request=Readable.from(chunks);request.method=method;request.url=url;request.headers=Object.fromEntries(Object.entries(headers).map(([key,value])=>[key.toLowerCase(),value]));request.socket={remoteAddress:'127.0.0.9'};return request;}
 function res(){return{statusCode:0,headers:{},body:'',setHeader(name,value){this.headers[String(name).toLowerCase()]=value;},end(value=''){this.body=String(value);}};}

@@ -4,13 +4,13 @@ Este documento separa o que já pode ser resolvido por código do que depende de
 
 ## 1. O que já ficou implementado no repositório
 
-- `/api/health` agora informa modo de produção, variáveis ausentes, ações críticas e prontidão verificada.
-- `/api/health?probe=1` testa conexão real com Supabase e valida recursos centrais:
+- `/api/health` informa somente liveness, sem expor configuração.
+- `/api/readiness`, protegido por identidade, papel e MFA, testa a conexão real com Supabase e valida recursos centrais:
   - `artists`
   - `artworks`
   - `v_public_catalog`
   - `v_sales_pipeline`
-- `status.html` passou a usar `/api/health?probe=1` e mostrar se o Supabase responde de verdade.
+- `status.html` usa `/api/readiness` e mostra se o Supabase responde de verdade somente a administradores.
 - `scripts/check-live-production.mjs` permite validar a URL publicada sem abrir o painel da Vercel.
 - `npm run check:live:prod` roda a validação live contra `https://arandu-bice.vercel.app`.
 
@@ -24,13 +24,12 @@ Entrar no projeto da Vercel e conferir se estas variáveis existem em Production
 SUPABASE_URL=
 SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
-ARANDU_ADMIN_TOKEN=
 ARANDU_SITE_URL=
 ARANDU_WHATSAPP_NUMBER=
 ARANDU_CONTACT_EMAIL=
 ```
 
-Depois disso, rodar um novo deploy.
+Depois disso, rodar um novo deploy. Não recrie `ARANDU_ADMIN_TOKEN`: a administração agora usa Supabase Auth com papel em `app_metadata` e MFA TOTP. Siga `ADMIN_AUTH_MFA.md`.
 
 ### Supabase
 

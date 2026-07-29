@@ -1,7 +1,6 @@
 (() => {
   const API = '/api/admin';
   const DASHBOARD = '/api/dashboard';
-  const TOKEN_KEY = 'arandu.adminToken.v1';
 
   const panels = {
     submissions: { label: 'Submissões', title: ['artist_name', 'name', 'email'], subtitle: ['city', 'portfolio_url'], statusField: 'status' },
@@ -32,12 +31,8 @@
   const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
   const clean = (value) => String(value ?? '').trim();
 
-  function token() {
-    return clean($('#admin-token')?.value || sessionStorage.getItem(TOKEN_KEY) || sessionStorage.getItem('arandu.admin.token'));
-  }
-
   function headers() {
-    return { 'Content-Type': 'application/json', 'x-arandu-admin-token': token() };
+    return { 'Content-Type': 'application/json' };
   }
 
   function setStatus(message, type = '') {
@@ -59,7 +54,7 @@
   }
 
   async function fetchJson(url, options = {}) {
-    const response = await fetch(url, { cache: 'no-store', ...options });
+    const response = await fetch(url, { credentials: 'include', cache: 'no-store', ...options });
     const data = await response.json().catch(() => ({}));
     if (!response.ok || data.ok === false) throw new Error(data.error || `Erro ${response.status}`);
     return data;
@@ -92,10 +87,6 @@
   }
 
   async function loadDashboard() {
-    if (!token()) {
-      renderMetrics({}, 'demo');
-      return;
-    }
     try {
       const data = await fetchJson(DASHBOARD, { headers: headers() });
       renderMetrics(data.metrics || {}, data.mode);
@@ -190,11 +181,6 @@
   async function loadPanel(panel = activePanel) {
     activePanel = panel;
     renderPanelTabs();
-    if (!token()) {
-      renderPanel({ items: [], mode: 'demo' });
-      setStatus('Informe o ARANDU_ADMIN_TOKEN para carregar o painel interno.', 'error');
-      return;
-    }
     setStatus('Carregando painel...');
     try {
       const data = await fetchJson(`${API}?panel=${encodeURIComponent(activePanel)}`, { headers: headers() });
@@ -232,7 +218,6 @@
   }
 
   async function createRecord(form) {
-    if (!token()) { setStatus('Informe o token administrativo antes de cadastrar.', 'error'); return; }
     const panel = form.dataset.adminCreate;
     setStatus('Criando registro...');
     try {
@@ -264,13 +249,7 @@
   }
 
   function bind() {
-    const tokenInput = $('#admin-token');
-    if (tokenInput) tokenInput.value = sessionStorage.getItem(TOKEN_KEY) || sessionStorage.getItem('arandu.admin.token') || '';
     document.addEventListener('click', (event) => {
-      const saveToken = event.target.closest('[data-admin-save-token]');
-      if (saveToken) { const value=clean($('#admin-token')?.value); sessionStorage.setItem(TOKEN_KEY,value); sessionStorage.setItem('arandu.admin.token',value); setStatus('Token mantido apenas nesta aba.', 'ok'); Promise.all([loadPanel(activePanel), loadDashboard()]); return; }
-      const clearToken = event.target.closest('[data-admin-clear-token]');
-      if (clearToken) { sessionStorage.removeItem(TOKEN_KEY); sessionStorage.removeItem('arandu.admin.token'); if (tokenInput) tokenInput.value = ''; setStatus('Token removido deste navegador.'); renderPanel({ items: [] }); return; }
       const panelButton = event.target.closest('[data-admin-panel]');
       if (panelButton) { loadPanel(panelButton.dataset.adminPanel); return; }
       const statusButton = event.target.closest('[data-admin-save-status]');

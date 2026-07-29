@@ -20,7 +20,6 @@ Na Vercel:
 | `SUPABASE_URL` | Sim | API, painel, catálogo, formulários | URL do projeto Supabase. |
 | `SUPABASE_ANON_KEY` | Sim | Leitura pública e autenticação | Chave pública anon. Pode existir no front/API. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Sim | Operações administrativas servidoras | Nunca expor no front. Usar apenas na Vercel/API. |
-| `ARANDU_ADMIN_TOKEN` | Sim | Painel administrativo | Token longo e aleatório. Não usar senha pessoal. |
 | `ARANDU_SITE_URL` | Sim | Health check, links públicos, domínio | Exemplo: `https://arandu.art`. |
 | `ARANDU_WHATSAPP_NUMBER` | Recomendado | Contato comercial | Formato: `55` + DDD + número, só dígitos. |
 | `ARANDU_CONTACT_EMAIL` | Recomendado | Contato comercial alternativo | Use se o WhatsApp ainda não estiver pronto. |
@@ -31,7 +30,6 @@ Na Vercel:
 SUPABASE_URL=https://seu-projeto.supabase.co
 SUPABASE_ANON_KEY=cole_a_chave_anon_aqui
 SUPABASE_SERVICE_ROLE_KEY=cole_a_service_role_aqui
-ARANDU_ADMIN_TOKEN=gere_um_token_longo_e_aleatorio
 ARANDU_SITE_URL=https://seu-dominio-final.com
 ARANDU_WHATSAPP_NUMBER=5521999999999
 ARANDU_CONTACT_EMAIL=contato@seu-dominio-final.com
@@ -46,11 +44,11 @@ ARANDU_CONTACT_EMAIL=contato@seu-dominio-final.com
 5. Rodar `docs/arandu-mvp-collections.sql`.
 6. Configurar as variáveis na Vercel.
 7. Fazer novo deploy.
-8. Abrir `/api/health`.
-9. Abrir `/api/health?probe=1` para testar tabelas, views e colunas de propriedade.
-10. Testar cadastro, confirmação de e-mail, login, Minha Seleção, reserva, Minha Conta e logout.
-11. Abrir `/status.html`.
-12. Abrir `/painel-admin.html` ou o painel operacional e testar leitura com token.
+8. Abrir `/api/health` e confirmar apenas a liveness mínima.
+9. Provisionar a conta administrativa e o MFA conforme `ADMIN_AUTH_MFA.md`.
+10. Autenticar e abrir `/api/readiness` para testar tabelas e views.
+11. Testar cadastro, confirmação de e-mail, login, Minha Seleção, reserva, Minha Conta e logout.
+12. Abrir `/painel-admin.html` ou o painel operacional e confirmar a exigência de identidade, papel e MFA.
 
 ## 5. Como validar pelo terminal
 
@@ -66,7 +64,7 @@ Depois do deploy:
 
 ```text
 /api/health
-/api/health?probe=1
+/api/readiness
 /status.html
 /comprar-arte.html
 /colecoes.html
@@ -79,9 +77,9 @@ Depois do deploy:
 
 O site ainda pode abrir, mas endpoints ficam em modo demo/local ou sem persistência real.
 
-### Token administrativo ausente
+### Conta administrativa ou MFA ausente
 
-O painel não deve operar dados reais. Configure `ARANDU_ADMIN_TOKEN` antes de usar administração em produção.
+O painel não deve operar dados reais. Provisione o papel em `app_metadata`, cadastre TOTP e confirme `aal2` conforme `ADMIN_AUTH_MFA.md`.
 
 ### WhatsApp ausente
 

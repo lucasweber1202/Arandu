@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import { Readable } from 'node:stream';
+import { testAdminCookie, testAdminUser } from './test-helpers/admin-session.mjs';
 
 process.env.SUPABASE_URL = 'https://arandu-pilot-test.supabase.co';
 process.env.SUPABASE_ANON_KEY = 'anon-pilot-test';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-pilot-test';
-process.env.ARANDU_ADMIN_TOKEN = 'admin-pilot-test';
 process.env.ARANDU_PILOT_ENABLED = 'true';
 process.env.ARANDU_PILOT_ACCESS_CODE = 'convite-piloto-2026';
 process.env.ARANDU_PILOT_SECRET = 'segredo-de-teste-com-mais-de-trinta-e-dois-caracteres';
@@ -79,11 +79,12 @@ try {
 
   global.fetch = async (url) => {
     const value = String(url);
+    if (value.endsWith('/auth/v1/user')) return json(testAdminUser());
     if (value.includes('pilot_events?')) return json([{ session_id: '123e4567-e89b-42d3-a456-426614174000', event_type: 'page_view' }, { session_id: '123e4567-e89b-42d3-a456-426614174000', event_type: 'selection_add' }]);
     if (value.includes('pilot_feedback?')) return json([{ session_id: '123e4567-e89b-42d3-a456-426614174000', rating: 4 }]);
     throw new Error(`URL inesperada: ${value}`);
   };
-  const metrics = await call('GET', '/api/pilot/metrics', undefined, { 'x-arandu-admin-token': 'admin-pilot-test' });
+  const metrics = await call('GET', '/api/pilot/metrics', undefined, { cookie: testAdminCookie() });
   assert.equal(metrics.status, 200);
   assert.equal(metrics.body.metrics.unique_sessions, 1);
   assert.equal(metrics.body.metrics.average_rating, 4);

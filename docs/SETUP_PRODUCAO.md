@@ -3,7 +3,7 @@
 ## 1. Preparar e validar o código
 
 ```bash
-npm install
+npm ci
 npm run check:all
 npm run build
 npm run release:status
@@ -20,7 +20,6 @@ Use um preview protegido e configure:
 SUPABASE_URL=
 SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
-ARANDU_ADMIN_TOKEN=
 
 ARANDU_SITE_URL=https://dominio-proprio.example
 ARANDU_WHATSAPP_NUMBER=
@@ -40,7 +39,8 @@ Requisitos:
 - ao menos um canal real de contato;
 - código do piloto com pelo menos 10 caracteres;
 - segredo do piloto com pelo menos 32 caracteres;
-- chaves Supabase e token administrativo somente no ambiente servidor.
+- service role somente no ambiente servidor;
+- conta administrativa com papel em `app_metadata` e MFA TOTP, conforme `docs/ADMIN_AUTH_MFA.md`.
 
 Não coloque segredos em arquivos públicos, HTML ou JavaScript do navegador.
 
@@ -88,7 +88,7 @@ O Sprint 2 precisa ser aplicado depois de `supabase-production.sql`, porque subs
 npm run check:migrations
 ```
 
-No Supabase Auth, habilite email/senha e configure as URLs reais de redirecionamento.
+No Supabase Auth, habilite email/senha, configure as URLs reais de redirecionamento e prepare a primeira conta administrativa conforme `docs/ADMIN_AUTH_MFA.md`.
 
 ## 4. Preparar o catálogo real
 
@@ -148,7 +148,7 @@ Além dos flags, preencha `ops/release-evidence.json`. O arquivo não é copiado
 1. Mantenha o deploy protegido no provedor.
 2. Defina `ARANDU_PILOT_ENABLED=true`, código e segredo fortes.
 3. Compartilhe apenas `/piloto.html` com a coorte selecionada.
-4. Acompanhe `/painel-piloto.html` com token administrativo.
+4. Acompanhe `/painel-piloto.html` com sessão administrativa identificada e MFA.
 5. Registre feedback; não colete texto digitado, e-mail ou telefone na telemetria de comportamento.
 6. Respeite `Do Not Track` e revise bloqueadores críticos antes de abrir o site.
 7. Após resolver os bloqueadores, defina `ARANDU_PILOT_APPROVED=true` e `ARANDU_PILOT_ENABLED=false` para a abertura pública.

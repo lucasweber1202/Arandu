@@ -7,8 +7,8 @@
       { "item": "Deploy Vercel sem erro de limite de funções", "done": false },
       { "item": "Supabase configurado", "done": false },
       { "item": "Variáveis de ambiente configuradas na Vercel", "done": false },
-      { "item": "ARANDU_ADMIN_TOKEN configurado", "done": false },
-      { "item": "Painel interno admin.html testado com dados reais", "done": false },
+      { "item": "Conta administrativa com papel imutável e MFA TOTP configurada", "done": false },
+      { "item": "Painel interno testado com sessão identificada e dados reais", "done": false },
       { "item": "Domínio oficial apontando para o deploy", "done": false },
       { "item": "WhatsApp ou email real configurado", "done": false }
     ],

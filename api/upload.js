@@ -1,9 +1,8 @@
-import { timingSafeEqual } from 'node:crypto';
+import { AdminAuthError, applyAdminResponseHeaders, requireAdmin } from '../lib/admin-auth.mjs';
 import { applyApiSecurityHeaders, crossOriginRejection } from '../lib/http-security.mjs';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const ADMIN_TOKEN = process.env.ARANDU_ADMIN_TOKEN;
 const BUCKET = process.env.ARANDU_STORAGE_BUCKET || 'arandu-media';
 const MAX_BODY_BYTES = 9 * 1024 * 1024;
 
@@ -14,10 +13,11 @@ class HttpError extends Error {
   }
 }
 
-function json(res, status, payload) {
+function json(res, status, payload, headers = {}) {
   res.statusCode = status;
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   applyApiSecurityHeaders(res);
+  applyAdminResponseHeaders(res, headers);
   res.end(JSON.stringify(payload));
 }
 
@@ -38,8 +38,6 @@ async function readBody(req) {
 
 function clean(value) { return String(value || '').trim(); }
 function slugify(value) { return String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9.]+/g, '-').replace(/(^-|-$)/g, ''); }
-function tokenFrom(req) { const authorization = req.headers.authorization || ''; return clean(req.headers['x-arandu-admin-token'] || (authorization.startsWith('Bearer ') ? authorization.slice(7) : '')); }
-function constantTimeEqual(left, right) { const supplied = Buffer.from(String(left || '')); const expected = Buffer.from(String(right || '')); return supplied.length === expected.length && timingSafeEqual(supplied, expected); }
 function contentTypeOk(type) { return ['image/jpeg','image/png','image/webp','image/gif'].includes(type); }
 function detectedImageType(buffer) {
   if (buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return 'image/jpeg';
@@ -86,7 +84,8 @@ export default async function handler(req, res) {
     const rejection = crossOriginRejection(req);
     if (rejection) return json(res, rejection.status, { ok: false, error: rejection.error, code: rejection.code });
     if (req.method !== 'POST') return json(res, 405, { ok: false, error: 'Método não permitido.' });
-    if (!ADMIN_TOKEN || !constantTimeEqual(tokenFrom(req), ADMIN_TOKEN)) return json(res, 401, { ok: false, error: 'Acesso administrativo não autorizado.' });
+    const admin = await requireAdmin(req);
+    applyAdminResponseHeaders(res, admin.headers);
     if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) return json(res, 503, { ok: false, error: 'Supabase Storage exige SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.' });
 
     const body = await readBody(req);
@@ -114,6 +113,10 @@ export default async function handler(req, res) {
   } catch (error) {
     const status = Number(error?.status) || 500;
     if (status >= 500) console.error('[Arandu Upload]', error?.message || error);
-    return json(res, status, { ok: false, error: status < 500 ? error.message : 'Não foi possível enviar a imagem agora.' });
+    return json(res, status, {
+      ok: false,
+      error: status < 500 ? error.message : 'Não foi possível enviar a imagem agora.',
+      ...(error instanceof AdminAuthError && error.code ? { code: error.code } : {})
+    });
   }
 }
