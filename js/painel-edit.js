@@ -12,7 +12,7 @@ const EDIT_CONFIG = {
   tasks: [['entity_type','Tipo da entidade'],['entity_id','ID da entidade'],['title','Título'],['owner_name','Responsável'],['due_at','Prazo'],['priority','Prioridade'],['status','Status']]
 };
 
-function editToken() { return localStorage.getItem(EDIT_TOKEN_KEY) || ''; }
+function editToken() { return sessionStorage.getItem(EDIT_TOKEN_KEY) || ''; }
 function editPanel() { return document.body.dataset.operationalPanel; }
 function editItems() { return window.__ARANDU_PANEL_ITEMS__ || []; }
 function editEscape(value) { return String(value ?? '').replace(/[&<>'"]/g, (char) => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char])); }

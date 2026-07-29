@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readdirSync, statSync, copyFileSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, statSync, copyFileSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
 const root = process.cwd();
@@ -31,6 +31,14 @@ if (!existsSync(dist)) {
 for (const folder of folders) {
   copyDir(join(root, folder), join(dist, folder));
   console.log(`Copiado: ${folder} -> dist/${folder}`);
+}
+
+// A base JSON é somente material de seed/homologação. Publicá-la permitiria
+// confundir registros demonstrativos com uma verificação oficial.
+const demoCertificates = join(dist, 'data', 'certificates.json');
+if (existsSync(demoCertificates)) {
+  rmSync(demoCertificates);
+  console.log('Removido do runtime público: data/certificates.json');
 }
 
 for (const file of rootFiles) {

@@ -33,7 +33,7 @@
   const clean = (value) => String(value ?? '').trim();
 
   function token() {
-    return clean($('#admin-token')?.value || localStorage.getItem(TOKEN_KEY) || localStorage.getItem('arandu.admin.token'));
+    return clean($('#admin-token')?.value || sessionStorage.getItem(TOKEN_KEY) || sessionStorage.getItem('arandu.admin.token'));
   }
 
   function headers() {
@@ -71,7 +71,24 @@
     const order = [
       ['artists', 'artistas'], ['artworks', 'obras'], ['leads', 'leads'], ['submissions', 'submissões'], ['reservations', 'reservas'], ['certificates', 'certificados'], ['briefs', 'briefs'], ['proposals', 'propostas'], ['tasks', 'tarefas']
     ];
-    root.innerHTML = order.map(([key, text]) => `<article class="admin-metric"><strong>${Number(metrics[key] || 0)}</strong><span>${text}</span></article>`).join('') + (mode === 'demo' ? '<p class="admin-help">Modo demo: configure o Supabase para ver dados reais.</p>' : '');
+    const fragment = document.createDocumentFragment();
+    order.forEach(([key, text]) => {
+      const card = document.createElement('article');
+      card.className = 'admin-metric';
+      const value = document.createElement('strong');
+      value.textContent = String(Number(metrics[key] || 0));
+      const caption = document.createElement('span');
+      caption.textContent = text;
+      card.append(value, caption);
+      fragment.appendChild(card);
+    });
+    if (mode === 'demo') {
+      const help = document.createElement('p');
+      help.className = 'admin-help';
+      help.textContent = 'Modo demo: configure o Supabase para ver dados reais.';
+      fragment.appendChild(help);
+    }
+    root.replaceChildren(fragment);
   }
 
   async function loadDashboard() {
@@ -90,7 +107,16 @@
   function renderPanelTabs() {
     const root = $('[data-admin-tabs]');
     if (!root) return;
-    root.innerHTML = Object.entries(panels).map(([key, cfg]) => `<button class="admin-tab ${key === activePanel ? 'is-active' : ''}" type="button" data-admin-panel="${key}">${cfg.label}</button>`).join('');
+    const fragment = document.createDocumentFragment();
+    Object.entries(panels).forEach(([key, cfg]) => {
+      const button = document.createElement('button');
+      button.className = `admin-tab ${key === activePanel ? 'is-active' : ''}`;
+      button.type = 'button';
+      button.dataset.adminPanel = key;
+      button.textContent = cfg.label;
+      fragment.appendChild(button);
+    });
+    root.replaceChildren(fragment);
   }
 
   function itemTitle(item, panel) {
@@ -110,14 +136,55 @@
     const items = Array.isArray(data.items) ? data.items : [];
     const options = Array.isArray(data.statusOptions) ? data.statusOptions : [];
     if (!items.length) {
-      root.innerHTML = `<div class="admin-help">${data.mode === 'demo' ? 'Painel disponível em modo demo. Configure Supabase e ARANDU_ADMIN_TOKEN para operar dados reais.' : 'Nenhum registro encontrado neste painel.'}</div>`;
+      const help = document.createElement('div');
+      help.className = 'admin-help';
+      help.textContent = data.mode === 'demo'
+        ? 'Painel disponível em modo demo. Configure Supabase e ARANDU_ADMIN_TOKEN para operar dados reais.'
+        : 'Nenhum registro encontrado neste painel.';
+      root.replaceChildren(help);
       return;
     }
-    root.innerHTML = items.map((item) => {
+    const fragment = document.createDocumentFragment();
+    items.forEach((item) => {
       const current = item[panels[activePanel].statusField] || item.status || '';
-      const select = options.length ? `<select data-admin-status-select>${options.map((status) => `<option value="${status}" ${status === current ? 'selected' : ''}>${label(status)}</option>`).join('')}</select>` : `<small>${label(current)}</small>`;
-      return `<article class="admin-item" data-admin-id="${item.id || ''}"><div><strong>${itemTitle(item, activePanel)}</strong><small>${itemSubtitle(item, activePanel)}</small></div>${select}<button class="cta secondary" type="button" data-admin-save-status>Atualizar</button></article>`;
-    }).join('');
+      const card = document.createElement('article');
+      card.className = 'admin-item';
+      card.dataset.adminId = clean(item.id);
+
+      const summary = document.createElement('div');
+      const titleNode = document.createElement('strong');
+      titleNode.textContent = itemTitle(item, activePanel);
+      const subtitleNode = document.createElement('small');
+      subtitleNode.textContent = itemSubtitle(item, activePanel);
+      summary.append(titleNode, subtitleNode);
+      card.appendChild(summary);
+
+      if (options.length) {
+        const select = document.createElement('select');
+        select.dataset.adminStatusSelect = 'true';
+        options.forEach((status) => {
+          const option = document.createElement('option');
+          option.value = clean(status);
+          option.textContent = label(status);
+          option.selected = status === current;
+          select.appendChild(option);
+        });
+        card.appendChild(select);
+      } else {
+        const status = document.createElement('small');
+        status.textContent = label(current);
+        card.appendChild(status);
+      }
+
+      const update = document.createElement('button');
+      update.className = 'cta secondary';
+      update.type = 'button';
+      update.dataset.adminSaveStatus = 'true';
+      update.textContent = 'Atualizar';
+      card.appendChild(update);
+      fragment.appendChild(card);
+    });
+    root.replaceChildren(fragment);
   }
 
   async function loadPanel(panel = activePanel) {
@@ -198,12 +265,12 @@
 
   function bind() {
     const tokenInput = $('#admin-token');
-    if (tokenInput) tokenInput.value = localStorage.getItem(TOKEN_KEY) || localStorage.getItem('arandu.admin.token') || '';
+    if (tokenInput) tokenInput.value = sessionStorage.getItem(TOKEN_KEY) || sessionStorage.getItem('arandu.admin.token') || '';
     document.addEventListener('click', (event) => {
       const saveToken = event.target.closest('[data-admin-save-token]');
-      if (saveToken) { const value=clean($('#admin-token')?.value); localStorage.setItem(TOKEN_KEY,value); localStorage.setItem('arandu.admin.token',value); setStatus('Token salvo neste navegador.', 'ok'); Promise.all([loadPanel(activePanel), loadDashboard()]); return; }
+      if (saveToken) { const value=clean($('#admin-token')?.value); sessionStorage.setItem(TOKEN_KEY,value); sessionStorage.setItem('arandu.admin.token',value); setStatus('Token mantido apenas nesta aba.', 'ok'); Promise.all([loadPanel(activePanel), loadDashboard()]); return; }
       const clearToken = event.target.closest('[data-admin-clear-token]');
-      if (clearToken) { localStorage.removeItem(TOKEN_KEY); localStorage.removeItem('arandu.admin.token'); if (tokenInput) tokenInput.value = ''; setStatus('Token removido deste navegador.'); renderPanel({ items: [] }); return; }
+      if (clearToken) { sessionStorage.removeItem(TOKEN_KEY); sessionStorage.removeItem('arandu.admin.token'); if (tokenInput) tokenInput.value = ''; setStatus('Token removido deste navegador.'); renderPanel({ items: [] }); return; }
       const panelButton = event.target.closest('[data-admin-panel]');
       if (panelButton) { loadPanel(panelButton.dataset.adminPanel); return; }
       const statusButton = event.target.closest('[data-admin-save-status]');

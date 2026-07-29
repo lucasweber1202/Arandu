@@ -1,12 +1,26 @@
 const ARANDU_RESERVATIONS_KEY = 'arandu.reservations.v1';
 const ARANDU_RESERVATIONS_API = '/api/reservations';
+const ARANDU_RESERVATION_TTL_MS = 24 * 60 * 60 * 1000;
+const ARANDU_MAX_LOCAL_RESERVATIONS = 5;
 
 function readReservations() {
-  try { const data = JSON.parse(localStorage.getItem(ARANDU_RESERVATIONS_KEY) || '[]'); return Array.isArray(data) ? data : []; } catch { return []; }
+  try {
+    const data = JSON.parse(localStorage.getItem(ARANDU_RESERVATIONS_KEY) || '[]');
+    const active = Array.isArray(data)
+      ? data.filter((item) => Number(item?.expiresAt || 0) > Date.now()).slice(-ARANDU_MAX_LOCAL_RESERVATIONS)
+      : [];
+    if (active.length) localStorage.setItem(ARANDU_RESERVATIONS_KEY, JSON.stringify(active));
+    else localStorage.removeItem(ARANDU_RESERVATIONS_KEY);
+    return active;
+  } catch {
+    localStorage.removeItem(ARANDU_RESERVATIONS_KEY);
+    return [];
+  }
 }
 
 function writeReservations(items) {
-  localStorage.setItem(ARANDU_RESERVATIONS_KEY, JSON.stringify(items.slice(-80)));
+  const expiring = items.map((item) => ({ ...item, expiresAt: Number(item.expiresAt || 0) || Date.now() + ARANDU_RESERVATION_TTL_MS }));
+  localStorage.setItem(ARANDU_RESERVATIONS_KEY, JSON.stringify(expiring.slice(-ARANDU_MAX_LOCAL_RESERVATIONS)));
 }
 
 function reservationMessage(data) {
@@ -103,14 +117,21 @@ async function saveReservation(form, copy = true) {
   }
   const data = { id: `reservation_${Date.now()}`, createdAt: new Date().toISOString(), ...formData(form) };
   const api = await sendReservationToApi(data);
-  const localRecord = { ...data, api_status: api.status, api_mode: api.result?.mode || (api.ok ? 'stored' : 'local') };
-  writeReservations([...readReservations(), localRecord]);
+  if (api.ok) {
+    localStorage.removeItem(ARANDU_RESERVATIONS_KEY);
+  } else {
+    const localRecord = { ...data, api_status: api.status, api_mode: 'local', expiresAt: Date.now() + ARANDU_RESERVATION_TTL_MS };
+    writeReservations([...readReservations(), localRecord]);
+  }
   const message = reservationMessage(data);
   const status = form.querySelector('[data-reserve-status]');
   if (copy) {
     try { await navigator.clipboard.writeText(message); } catch {}
-    if (status) status.textContent = api.ok ? (api.result?.mode === 'demo' ? 'Reserva preparada e salva neste navegador. Configure o Supabase para registrar no banco.' : 'Reserva registrada para a curadoria.') : 'Reserva salva neste navegador; não foi possível registrar agora.';
+    if (status) status.textContent = api.ok
+      ? (api.result?.mode === 'demo' ? 'Reserva preparada sem retenção de dados pessoais neste navegador.' : 'Reserva registrada para a curadoria.')
+      : 'Não foi possível registrar agora. O rascunho local expira em 24 horas.';
   }
+  if (api.ok) form.reset();
   return { data, message, api };
 }
 
@@ -137,3 +158,5 @@ document.addEventListener('submit', async (event) => {
   event.preventDefault();
   await saveReservation(form, true);
 });
+
+readReservations();

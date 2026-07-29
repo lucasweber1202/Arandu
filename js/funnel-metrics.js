@@ -1,10 +1,10 @@
 (function(){
   const root=document.querySelector('[data-funnel-output]'); if(!root)return;
-  const tokenInput=document.querySelector('[data-admin-token]'); const key='arandu.admin.token'; if(tokenInput)tokenInput.value=localStorage.getItem(key)||'';
+  const tokenInput=document.querySelector('[data-admin-token]'); const key='arandu.admin.token'; if(tokenInput)tokenInput.value=sessionStorage.getItem(key)||'';
   const stages=['new','contacted','qualified','proposal','reserved','won','lost'];
   const labels={new:'Novo',contacted:'Contato feito',qualified:'Qualificado',proposal:'Proposta enviada',reserved:'Reserva',won:'Vendido',lost:'Perdido'};
   const esc=(v)=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-  function token(){const t=tokenInput?.value.trim()||''; if(t)localStorage.setItem(key,t); return t;}
+  function token(){const t=tokenInput?.value.trim()||''; if(t)sessionStorage.setItem(key,t); return t;}
   function toast(text){const zone=document.querySelector('[data-toast-zone]'); if(!zone)return; const item=document.createElement('div');item.className='admin-toast';item.textContent=text;zone.appendChild(item);setTimeout(()=>item.remove(),3500);}
   async function api(panel){const res=await fetch('/api/admin?panel='+panel,{headers:{'x-arandu-admin-token':token()}});const data=await res.json().catch(()=>({}));if(!res.ok||data.ok===false)throw new Error(data.error||'Erro no funil.');return data.items||[];}
   function demo(){return {leads:[

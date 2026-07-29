@@ -1,9 +1,9 @@
 (function(){
   const output=document.querySelector('[data-history-output]'); if(!output)return;
-  const tokenInput=document.querySelector('[data-admin-token]'); const idInput=document.querySelector('[data-history-id]'); const tokenKey='arandu.admin.token'; if(tokenInput)tokenInput.value=localStorage.getItem(tokenKey)||''; const params=new URLSearchParams(location.search); if(params.get('id'))idInput.value=params.get('id');
+  const tokenInput=document.querySelector('[data-admin-token]'); const idInput=document.querySelector('[data-history-id]'); const tokenKey='arandu.admin.token'; if(tokenInput)tokenInput.value=sessionStorage.getItem(tokenKey)||''; const params=new URLSearchParams(location.search); if(params.get('id'))idInput.value=params.get('id');
   const isArtist=location.pathname.includes('historico-artista');
   function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
-  function token(){const t=tokenInput?.value.trim()||''; if(t)localStorage.setItem(tokenKey,t); return t;}
+  function token(){const t=tokenInput?.value.trim()||''; if(t)sessionStorage.setItem(tokenKey,t); return t;}
   function toast(text){const zone=document.querySelector('[data-toast-zone]'); const item=document.createElement('div'); item.className='admin-toast'; item.textContent=text; zone.appendChild(item); setTimeout(()=>item.remove(),3500);}
   async function api(path){const res=await fetch(path,{headers:{'x-arandu-admin-token':token()}});const data=await res.json().catch(()=>({}));if(!res.ok||data.ok===false)throw new Error(data.error||'Erro ao carregar histórico.');return data;}
   function event(label,date,text,type='info'){return {label,date:date||new Date().toISOString(),text,type};}

@@ -3,15 +3,12 @@ async function verifyCertificate(code) {
   try {
     const apiResponse = await fetch('/api/certificates?code=' + encodeURIComponent(normalized), { cache: 'no-store' });
     const apiData = await apiResponse.json().catch(() => ({}));
-    if (apiResponse.ok && apiData && apiData.certificate) return apiData.certificate;
-  } catch {}
-  try {
-    const response = await fetch('data/certificates.json', { cache: 'no-store' });
-    const certificates = await response.json();
-    if (!Array.isArray(certificates)) return null;
-    return certificates.find((certificate) => String(certificate.code || '').toUpperCase() === normalized) || null;
+    if (!apiResponse.ok || apiData?.ok === false) return { state: 'unavailable', certificate: null };
+    return apiData?.certificate
+      ? { state: 'verified', certificate: apiData.certificate }
+      : { state: 'not-found', certificate: null };
   } catch {
-    return null;
+    return { state: 'unavailable', certificate: null };
   }
 }
 
@@ -19,12 +16,28 @@ function escapeCertificateHtml(value) {
   return String(value || '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
 }
 
-function renderCertificateResult(target, certificate) {
-  if (!certificate) {
-    target.innerHTML = '<h3>Não encontrado</h3><p>Este código não aparece na base estática de certificados. Confira o código ou fale com a curadoria.</p><div class="page-actions"><a class="cta secondary" href="contato.html">Falar com a curadoria</a></div>';
+function renderCertificateResult(target, result) {
+  if (result?.state !== 'verified' || !result.certificate) {
+    const unavailable = result?.state === 'unavailable';
+    target.replaceChildren();
+    const title = document.createElement('h3');
+    title.textContent = unavailable ? 'Verificação indisponível' : 'Certificado não encontrado';
+    const message = document.createElement('p');
+    message.textContent = unavailable
+      ? 'Não foi possível consultar a base oficial agora. Por segurança, nenhum certificado é considerado válido sem resposta do servidor.'
+      : 'Este código não consta como válido na base oficial. Confira o código ou fale com a curadoria.';
+    const actions = document.createElement('div');
+    actions.className = 'page-actions';
+    const contact = document.createElement('a');
+    contact.className = 'cta secondary';
+    contact.href = 'contato.html';
+    contact.textContent = 'Falar com a curadoria';
+    actions.appendChild(contact);
+    target.append(title, message, actions);
     return;
   }
 
+  const certificate = result.certificate;
   const artwork = certificate.artwork || certificate.artworks || certificate.payload?.artwork || {};
   const payload = certificate.payload || {};
   const artist = artwork.artists || {};
@@ -59,8 +72,8 @@ document.addEventListener('submit', async (event) => {
   if (!target || !code) return;
   target.innerHTML = '<h3>Consultando...</h3><p>Verificando o código informado.</p>';
 
-  const certificate = await verifyCertificate(code);
-  renderCertificateResult(target, certificate);
+  const result = await verifyCertificate(code);
+  renderCertificateResult(target, result);
 });
 
 document.addEventListener('click', (event) => {

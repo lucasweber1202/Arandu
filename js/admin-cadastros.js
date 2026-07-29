@@ -1,7 +1,7 @@
 const ADMIN_TOKEN_KEY = 'arandu.admin.token';
 
 function adminToken() {
-  return localStorage.getItem(ADMIN_TOKEN_KEY) || '';
+  return sessionStorage.getItem(ADMIN_TOKEN_KEY) || '';
 }
 
 function setAdminStatus(text, isError = false) {
@@ -34,7 +34,7 @@ function setupAdminToken() {
   if (!input) return;
   input.value = adminToken();
   input.addEventListener('input', () => {
-    localStorage.setItem(ADMIN_TOKEN_KEY, input.value.trim());
+    sessionStorage.setItem(ADMIN_TOKEN_KEY, input.value.trim());
   });
 }
 

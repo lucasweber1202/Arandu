@@ -37,7 +37,9 @@
     if (!select) return;
     const values = [...new Set(qa('[data-admin-status-select]').map((item) => item.value).filter(Boolean))];
     const previous = select.value;
-    select.innerHTML = '<option value="">Todos os status</option>' + values.map((value) => `<option value="${value}">${value}</option>`).join('');
+    const options = [new Option('Todos os status', '')];
+    values.forEach((value) => options.push(new Option(value, value)));
+    select.replaceChildren(...options);
     if (values.includes(previous)) select.value = previous;
   }
 
@@ -102,17 +104,38 @@
     const status = q('[data-admin-status-select]', item)?.value || '';
     const id = item.dataset.adminId || '';
     q('h2', drawer).textContent = title;
-    q('[data-admin-detail-body]', drawer).innerHTML = `
-      <dl class="admin-detail-list">
-        <div><dt>ID</dt><dd>${id || 'não informado'}</dd></div>
-        <div><dt>Resumo</dt><dd>${detail}</dd></div>
-        <div><dt>Status atual</dt><dd>${status || 'sem status'}</dd></div>
-      </dl>
-      <div class="admin-detail-actions">
-        <button class="cta secondary" type="button" data-admin-copy-detail>Copiar resumo</button>
-        <a class="cta secondary" href="operacao.html">Abrir operação</a>
-      </div>
-      <p class="admin-detail-note">Use este painel para triagem rápida. Para produção, o próximo passo é vincular notas, tarefas e histórico por entidade.</p>`;
+    const body = q('[data-admin-detail-body]', drawer);
+    const list = document.createElement('dl');
+    list.className = 'admin-detail-list';
+    [
+      ['ID', id || 'não informado'],
+      ['Resumo', detail],
+      ['Status atual', status || 'sem status']
+    ].forEach(([term, value]) => {
+      const row = document.createElement('div');
+      const dt = document.createElement('dt');
+      const dd = document.createElement('dd');
+      dt.textContent = term;
+      dd.textContent = value;
+      row.append(dt, dd);
+      list.appendChild(row);
+    });
+    const actions = document.createElement('div');
+    actions.className = 'admin-detail-actions';
+    const copy = document.createElement('button');
+    copy.className = 'cta secondary';
+    copy.type = 'button';
+    copy.dataset.adminCopyDetail = 'true';
+    copy.textContent = 'Copiar resumo';
+    const link = document.createElement('a');
+    link.className = 'cta secondary';
+    link.href = 'operacao.html';
+    link.textContent = 'Abrir operação';
+    actions.append(copy, link);
+    const note = document.createElement('p');
+    note.className = 'admin-detail-note';
+    note.textContent = 'Use este painel para triagem rápida. Para produção, vincule notas, tarefas e histórico por entidade.';
+    body.replaceChildren(list, actions, note);
     drawer.dataset.currentSummary = `${title}\n${detail}\nStatus: ${status}\nID: ${id}`;
     drawer.hidden = false;
     drawer.classList.add('is-open');

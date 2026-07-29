@@ -1,13 +1,22 @@
 const ARANDU_LEADS_KEY = 'arandu.leads.v1';
 const ARANDU_FORM_DRAFTS_KEY = 'arandu.formDrafts.v1';
 const ARANDU_FORMS_API = '/api/forms';
+const ARANDU_LOCAL_DRAFT_TTL_MS = 24 * 60 * 60 * 1000;
+const ARANDU_MAX_LOCAL_DRAFTS = 5;
 
-function readLeads() {
-  try { const data = JSON.parse(localStorage.getItem(ARANDU_LEADS_KEY) || '[]'); return Array.isArray(data) ? data : []; } catch { return []; }
-}
-
-function writeLeads(leads) {
-  localStorage.setItem(ARANDU_LEADS_KEY, JSON.stringify(leads.slice(-120)));
+function purgeLegacyPersonalData() {
+  localStorage.removeItem(ARANDU_LEADS_KEY);
+  try {
+    const now = Date.now();
+    const drafts = JSON.parse(localStorage.getItem(ARANDU_FORM_DRAFTS_KEY) || '[]');
+    const active = Array.isArray(drafts)
+      ? drafts.filter((draft) => Number(draft?.expiresAt || 0) > now).slice(-ARANDU_MAX_LOCAL_DRAFTS)
+      : [];
+    if (active.length) localStorage.setItem(ARANDU_FORM_DRAFTS_KEY, JSON.stringify(active));
+    else localStorage.removeItem(ARANDU_FORM_DRAFTS_KEY);
+  } catch {
+    localStorage.removeItem(ARANDU_FORM_DRAFTS_KEY);
+  }
 }
 
 function getFieldKey(field, index) {
@@ -80,14 +89,18 @@ function hasMissingRequiredFields(form) {
 }
 
 function storeDraft(payload) {
-  const drafts = JSON.parse(localStorage.getItem(ARANDU_FORM_DRAFTS_KEY) || '[]');
-  drafts.push(payload);
-  localStorage.setItem(ARANDU_FORM_DRAFTS_KEY, JSON.stringify(drafts.slice(-120)));
+  let drafts = [];
+  try {
+    const parsed = JSON.parse(localStorage.getItem(ARANDU_FORM_DRAFTS_KEY) || '[]');
+    if (Array.isArray(parsed)) drafts = parsed.filter((draft) => Number(draft?.expiresAt || 0) > Date.now());
+  } catch {}
+  drafts.push({ ...payload, expiresAt: Date.now() + ARANDU_LOCAL_DRAFT_TTL_MS });
+  localStorage.setItem(ARANDU_FORM_DRAFTS_KEY, JSON.stringify(drafts.slice(-ARANDU_MAX_LOCAL_DRAFTS)));
 }
 
-function saveLeadLocal(payload) {
-  writeLeads([...readLeads(), payload]);
-  storeDraft(payload);
+function clearLocalDrafts() {
+  localStorage.removeItem(ARANDU_LEADS_KEY);
+  localStorage.removeItem(ARANDU_FORM_DRAFTS_KEY);
 }
 
 function buildStaticLeadSummary(payload) {
@@ -120,12 +133,15 @@ document.addEventListener('submit', async (event) => {
   const payload = formToLead(form);
   showFormMessage(form, 'Enviando para a curadoria...');
   const sent = await sendLeadToApi(payload);
-  saveLeadLocal({ ...payload, api_status: sent.status, api_mode: sent.result?.mode || (sent.ok ? 'stored' : 'local') });
   if (sent.ok) {
-    showFormMessage(form, sent.result?.mode === 'demo' ? 'Recebido em modo de preparação e salvo neste navegador.' : 'Recebido. A curadoria irá analisar e retornar pelo contato informado.');
+    clearLocalDrafts();
+    showFormMessage(form, sent.result?.mode === 'demo' ? 'Recebido em modo de preparação. Nenhum dado pessoal foi mantido neste navegador.' : 'Recebido. A curadoria irá analisar e retornar pelo contato informado.');
     form.reset();
     return;
   }
+  storeDraft({ ...payload, api_status: sent.status, api_mode: 'local' });
   const copied = await copyStaticLead(payload);
-  showFormMessage(form, copied ? 'Não foi possível enviar agora. O resumo foi copiado e salvo neste navegador.' : 'Não foi possível enviar agora. O resumo ficou salvo neste navegador.', true);
+  showFormMessage(form, copied ? 'Não foi possível enviar agora. O resumo foi copiado e o rascunho local expira em 24 horas.' : 'Não foi possível enviar agora. O rascunho local expira em 24 horas.', true);
 });
+
+purgeLegacyPersonalData();

@@ -1,9 +1,9 @@
 (function(){
   const form=document.querySelector('[data-certificate-form]'); if(!form)return;
-  const tokenInput=document.querySelector('[data-admin-token]'); const list=document.querySelector('[data-cert-list]'); const statusEl=document.querySelector('[data-certificate-status]'); const tokenKey='arandu.admin.token'; if(tokenInput)tokenInput.value=localStorage.getItem(tokenKey)||'';
+  const tokenInput=document.querySelector('[data-admin-token]'); const list=document.querySelector('[data-cert-list]'); const statusEl=document.querySelector('[data-certificate-status]'); const tokenKey='arandu.admin.token'; if(tokenInput)tokenInput.value=sessionStorage.getItem(tokenKey)||'';
   const params=new URLSearchParams(location.search); if(params.get('artwork_id'))form.artwork_id.value=params.get('artwork_id'); if(!form.code.value&&form.artwork_id.value)form.code.value='ARANDU-'+form.artwork_id.value.toUpperCase().replace(/[^A-Z0-9]+/g,'-');
   function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
-  function token(){const t=tokenInput?.value.trim()||''; if(t)localStorage.setItem(tokenKey,t); return t;}
+  function token(){const t=tokenInput?.value.trim()||''; if(t)sessionStorage.setItem(tokenKey,t); return t;}
   function toast(text){const zone=document.querySelector('[data-toast-zone]'); const item=document.createElement('div');item.className='admin-toast';item.textContent=text;zone.appendChild(item);setTimeout(()=>item.remove(),3500);}
   async function api(path,opts={}){const res=await fetch(path,{...opts,headers:{'Content-Type':'application/json','x-arandu-admin-token':token(),...(opts.headers||{})}}); const json=await res.json().catch(()=>({})); if(!res.ok||json.ok===false)throw new Error(json.error||'Erro administrativo.'); return json;}
   function values(){const fd=new FormData(form);return Object.fromEntries(fd.entries());}
