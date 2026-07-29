@@ -130,6 +130,7 @@ originCases.forEach(([label, req, shouldBlock]) => {
 
 const GUARDED_APIS = {
   'api/[...path].js': 'enforceSameOrigin(req)',
+  'api/admin-auth.js': 'crossOriginRejection(req)',
   'api/commercial.js': 'crossOriginRejection(req)',
   'api/upload.js': 'crossOriginRejection(req)'
 };
@@ -144,7 +145,7 @@ Object.entries(GUARDED_APIS).forEach(([file, needle]) => {
   }
 });
 
-['api/[...path].js', 'api/collections.js', 'api/commercial.js', 'api/mvp-dashboard.js', 'api/upload.js'].forEach((file) => {
+['api/[...path].js', 'api/admin-auth.js', 'api/collections.js', 'api/commercial.js', 'api/mvp-dashboard.js', 'api/readiness.js', 'api/upload.js'].forEach((file) => {
   if (fs.existsSync(file) && !fs.readFileSync(file, 'utf8').includes('applyApiSecurityHeaders')) {
     issues.push(`${file}: respostas sem os cabeçalhos de segurança compartilhados.`);
   }
@@ -155,7 +156,6 @@ Object.entries(GUARDED_APIS).forEach(([file, needle]) => {
 process.env.SUPABASE_URL ||= 'https://arandu-security-check.supabase.co';
 process.env.SUPABASE_ANON_KEY ||= 'anon-security-check';
 process.env.SUPABASE_SERVICE_ROLE_KEY ||= 'service-security-check';
-process.env.ARANDU_ADMIN_TOKEN ||= 'admin-security-check';
 
 const { default: handler } = await import(`../api/[...path].js?security=${Date.now()}`);
 

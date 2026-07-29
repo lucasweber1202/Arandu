@@ -5,13 +5,17 @@ const issues = [];
 
 const requiredFiles = [
   'api/[...path].js',
+  'api/admin-auth.js',
   'api/health.js',
+  'api/internal-page.js',
+  'api/readiness.js',
   'api/collections.js',
   'api/commercial.js',
   'api/mvp-dashboard.js',
   'api/upload.js',
   'status.html',
   'js/status.js',
+  'js/admin-login.js',
   'css/arandu-visual-polish.css',
   'css/arandu-security.css',
   'css/arandu-flow.css',
@@ -70,19 +74,24 @@ const api = 'api/[...path].js';
   if (!includes(api, route.split('/')[0])) issues.push(`API consolidada não cobre a rota: /api/${route}`);
 });
 
-if (!includes('api/health.js', 'productionReady')) issues.push('Health check não calcula prontidão de produção.');
-if (!includes('api/health.js', 'SUPABASE_URL')) issues.push('Health check não valida SUPABASE_URL.');
-if (!includes('api/health.js', 'ARANDU_ADMIN_TOKEN')) issues.push('Health check não valida ARANDU_ADMIN_TOKEN.');
-if (!includes('api/health.js', 'v_catalog_readiness')) issues.push('Health check não consulta a prontidão real do catálogo.');
-if (!includes('api/health.js', 'v_public_collections')) issues.push('Health check não consulta as coleções públicas.');
-if (!includes('api/health.js', 'brandReady')) issues.push('Health check não valida a aprovação da marca.');
-if (!includes('api/health.js', 'commercialReady')) issues.push('Health check não valida a aprovação comercial.');
-if (!includes('api/health.js', 'pilotReady')) issues.push('Health check não valida o piloto fechado.');
-if (!includes('api/health.js', 'pilotApproved')) issues.push('Health check não exige a conclusão do piloto para lançamento.');
-if (!includes('js/status.js', '/api/health')) issues.push('status.js não consulta /api/health.');
+if (!includes('api/health.js', "status: 'alive'")) issues.push('Health público não está limitado à liveness mínima.');
+if (includes('api/health.js', 'SUPABASE_URL') || includes('api/health.js', 'process.env')) issues.push('Health público ainda expõe ou consulta configuração interna.');
+if (!includes('api/readiness.js', 'productionReady')) issues.push('Readiness protegida não calcula prontidão de produção.');
+if (!includes('api/readiness.js', 'SUPABASE_URL')) issues.push('Readiness protegida não valida SUPABASE_URL.');
+if (!includes('api/readiness.js', 'v_catalog_readiness')) issues.push('Readiness protegida não consulta a prontidão real do catálogo.');
+if (!includes('api/readiness.js', 'v_public_collections')) issues.push('Readiness protegida não consulta as coleções públicas.');
+if (!includes('api/readiness.js', 'brandReady')) issues.push('Readiness protegida não valida a aprovação da marca.');
+if (!includes('api/readiness.js', 'commercialReady')) issues.push('Readiness protegida não valida a aprovação comercial.');
+if (!includes('api/readiness.js', 'pilotApproved')) issues.push('Readiness protegida não exige a conclusão do piloto para lançamento.');
+if (!includes('api/readiness.js', 'requireAdmin(req)')) issues.push('Readiness detalhada não exige sessão administrativa.');
+if (!includes('js/status.js', '/api/readiness')) issues.push('status.js não consulta /api/readiness.');
 if (!includes('status.html', 'data-api-status')) issues.push('status.html não possui área dinâmica de status.');
 
-if (!includes(api, 'ARANDU_ADMIN_TOKEN')) issues.push('API consolidada não exige ARANDU_ADMIN_TOKEN nas rotas administrativas.');
+if (!includes(api, 'requireAdmin(req)')) issues.push('API consolidada não exige identidade administrativa nas rotas privilegiadas.');
+if (includes(api, 'ARANDU_ADMIN_TOKEN') || includes(api, 'x-arandu-admin-token')) issues.push('API consolidada ainda aceita segredo administrativo compartilhado.');
+if (!includes('lib/admin-auth.mjs', 'app_metadata')) issues.push('Papel administrativo não é lido de app_metadata.');
+if (!includes('lib/admin-auth.mjs', "aal !== 'aal2'")) issues.push('Operações administrativas não exigem MFA aal2.');
+if (!includes('api/internal-page.js', 'requireAdmin(req)')) issues.push('Páginas internas não possuem guarda de sessão.');
 if (!includes(api, 'v_artworks_full')) issues.push('API consolidada não usa a view completa de obras.');
 if (!includes(api, 'v_sales_pipeline')) issues.push('Dashboard consolidado não consulta o pipeline comercial.');
 if (!includes(api, 'grant_type=password')) issues.push('Login consolidado não usa fluxo de senha do Supabase Auth.');
@@ -136,7 +145,6 @@ if (!includes('js/site.js', 'arandu-usability.js')) issues.push('site.js não in
 if (!includes('js/site.js', 'arandu-visual-polish.css')) issues.push('site.js não injeta arandu-visual-polish.css.');
 if (!includes('js/arandu-usability.js', 'arandu-security-guard.js')) issues.push('Camada de segurança leve não é carregada pela usabilidade.');
 if (!includes('js/arandu-usability.js', 'arandu-flow.js')) issues.push('Fluxo guiado não é carregado pela usabilidade.');
-if (!includes('js/arandu-security-guard.js', 'arandu.admin.token')) issues.push('Camada de segurança não protege token administrativo local.');
 if (!includes('js/arandu-security-guard.js', 'website')) issues.push('Camada de segurança não adiciona honeypot aos formulários.');
 if (!includes('js/arandu-flow.js', 'arandu-flow-map')) issues.push('Fluxo guiado não cria mapa da jornada.');
 if (!includes('js/arandu-flow.js', 'Próximo passo')) issues.push('Fluxo guiado não cria próximo passo contextual.');
@@ -155,10 +163,10 @@ if (!includes('comparar-obras.html', 'data-compare-runtime')) issues.push('Pági
 if (!process.env.SUPABASE_URL) warnings.push('SUPABASE_URL ausente. Rotas persistentes e catálogo público responderão como indisponíveis.');
 if (!process.env.SUPABASE_ANON_KEY && !process.env.SUPABASE_SERVICE_ROLE_KEY) warnings.push('Chave Supabase ausente. Rotas de dados permanecerão bloqueadas.');
 if (process.env.SUPABASE_ANON_KEY && !process.env.SUPABASE_SERVICE_ROLE_KEY) warnings.push('Apenas SUPABASE_ANON_KEY configurada. Para seed e operações administrativas, use SERVICE_ROLE com cuidado no ambiente servidor.');
-if (!process.env.ARANDU_ADMIN_TOKEN) warnings.push('ARANDU_ADMIN_TOKEN ausente. O painel administrativo permanecerá bloqueado.');
+if (!process.env.SUPABASE_ANON_KEY) warnings.push('SUPABASE_ANON_KEY ausente. Login administrativo permanecerá bloqueado.');
 
 console.log('Arandu Backend Check');
-console.log('Arquitetura serverless: 6 funções gerenciadas em api/.');
+console.log(`Arquitetura serverless: ${fs.readdirSync('api').filter((name) => name.endsWith('.js')).length} funções gerenciadas em api/.`);
 console.log(`Erros: ${issues.length}`);
 console.log(`Alertas: ${warnings.length}`);
 if (issues.length) { console.error('\nErros:'); issues.forEach((issue) => console.error(`- ${issue}`)); }

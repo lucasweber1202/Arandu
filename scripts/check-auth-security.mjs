@@ -17,6 +17,9 @@ function requireTerm(file, content, term, message) {
 const api = source('api/[...path].js');
 const mvpApi = source('api/mvp-dashboard.js');
 const health = source('api/health.js');
+const readiness = source('api/readiness.js');
+const adminAuth = source('lib/admin-auth.mjs');
+const internalPage = source('api/internal-page.js');
 const commercialApi = source('api/commercial.js');
 const uploadApi = source('api/upload.js');
 const schema = source('docs/supabase-schema.sql');
@@ -42,7 +45,7 @@ requireTerm('api/[...path].js', api, 'saved_selections?user_id=eq.', 'seleções
 requireTerm('api/[...path].js', api, 'reservations?user_id=eq.', 'reservas da conta não são filtradas pelo proprietário.');
 requireTerm('api/[...path].js', api, 'select=public_token,status,items,briefing,created_at,updated_at', 'link público de seleção ainda consulta campos pessoais.');
 requireTerm('api/[...path].js', api, 'withoutPersonalBriefingFields', 'briefing público ainda não remove dados pessoais.');
-requireTerm('api/[...path].js', api, 'const guard = adminGuard(req)', 'dashboard consolidado não exige token administrativo.');
+requireTerm('api/[...path].js', api, 'await adminGuard(req, res)', 'dashboard consolidado não exige sessão administrativa.');
 requireTerm('api/[...path].js', api, 'safeSelectionUrl', 'links enviados em seleções não são validados.');
 requireTerm('api/[...path].js', api, 'return await handleAccount', 'erros assíncronos escapam do tratamento JSON da API.');
 
@@ -50,17 +53,29 @@ if (/saved_selections\?public_token[^\n]+select=\*/.test(api)) {
   issues.push('api/[...path].js: seleção pública ainda usa select=* e pode expor dados pessoais.');
 }
 
-requireTerm('api/mvp-dashboard.js', mvpApi, 'adminGuard(req)', 'dashboard MVP continua público.');
-requireTerm('api/mvp-dashboard.js', mvpApi, 'timingSafeEqual', 'dashboard MVP compara o token administrativo de forma vulnerável a timing.');
+requireTerm('api/mvp-dashboard.js', mvpApi, 'requireAdmin(req)', 'dashboard MVP continua público.');
 requireTerm('api/commercial.js', commercialApi, 'MAX_BODY_BYTES', 'API comercial não limita o corpo da requisição.');
-requireTerm('api/commercial.js', commercialApi, 'Acesso administrativo não autorizado', 'API comercial não exige token administrativo.');
-requireTerm('api/commercial.js', commercialApi, 'timingSafeEqual', 'API comercial compara o token administrativo de forma vulnerável a timing.');
+requireTerm('api/commercial.js', commercialApi, 'requireAdmin(req)', 'API comercial não exige sessão administrativa.');
 requireTerm('api/upload.js', uploadApi, 'MAX_BODY_BYTES', 'upload acumula o corpo sem limite prévio.');
-requireTerm('api/upload.js', uploadApi, 'Acesso administrativo não autorizado', 'upload não exige token administrativo.');
-requireTerm('api/upload.js', uploadApi, 'timingSafeEqual', 'upload compara o token administrativo de forma vulnerável a timing.');
+requireTerm('api/upload.js', uploadApi, 'requireAdmin(req)', 'upload não exige sessão administrativa.');
 requireTerm('api/[...path].js', api, 'verification_status=eq.valid', 'consulta pública pode retornar certificado ainda não validado.');
-requireTerm('api/health.js', health, 'saved_selections?select=id,user_id,public_token', 'health check não detecta migration de propriedade ausente.');
-requireTerm('api/health.js', health, 'reservations?select=id,user_id', 'health check não valida propriedade das reservas.');
+requireTerm('api/health.js', health, "status: 'alive'", 'health público não está limitado à liveness.');
+if (/SUPABASE|process\.env|routes|missing|checks/i.test(health)) {
+  issues.push('api/health.js: liveness pública ainda expõe detalhes internos.');
+}
+requireTerm('api/readiness.js', readiness, 'requireAdmin(req)', 'readiness detalhada não exige sessão administrativa.');
+requireTerm('api/readiness.js', readiness, "'saved_selections'", 'readiness não detecta migration de propriedade ausente.');
+requireTerm('api/readiness.js', readiness, "'reservations'", 'readiness não valida propriedade das reservas.');
+requireTerm('lib/admin-auth.mjs', adminAuth, 'app_metadata', 'papel administrativo não vem de metadados imutáveis.');
+requireTerm('lib/admin-auth.mjs', adminAuth, "aal !== 'aal2'", 'MFA aal2 não é obrigatório.');
+requireTerm('lib/admin-auth.mjs', adminAuth, 'arandu_disabled', 'contas administrativas não podem ser desativadas.');
+requireTerm('api/internal-page.js', internalPage, 'requireAdmin(req)', 'HTML interno ainda pode ser servido sem autorização.');
+if (/ARANDU_ADMIN_TOKEN|x-arandu-admin-token/.test(api + mvpApi + commercialApi + uploadApi + adminAuth)) {
+  issues.push('APIs privilegiadas ainda aceitam o segredo administrativo compartilhado.');
+}
+if (/SUPABASE_SERVICE_KEY\s*\|\|\s*SUPABASE_ANON_KEY/.test(api + mvpApi + commercialApi)) {
+  issues.push('Service role ainda possui fallback inseguro para anon key.');
+}
 requireTerm('docs/supabase-schema.sql', schema, 'gen_random_bytes(16)', 'token público de seleção possui menos de 128 bits no schema.');
 
 ['leads', 'company_briefs', 'saved_selections', 'reservations'].forEach((table) => {
@@ -77,9 +92,9 @@ requireTerm('js/selection-tools.js', selections, 'hydrateSelectionFromAccount', 
 requireTerm('js/selection-tools.js', selections, 'syncSelectionWithAccount', 'Minha Seleção não sincroniza alterações autenticadas.');
 requireTerm('js/selection-tools.js', selections, "credentials:'include'", 'sincronização não envia o cookie de sessão explicitamente.');
 requireTerm('js/reservation.js', reservations, "credentials: 'include'", 'reserva não envia o cookie de sessão explicitamente.');
-requireTerm('js/admin-dashboard.js', adminDashboard, 'x-arandu-admin-token', 'painel administrativo não envia o token ao dashboard.');
-requireTerm('js/launch-dashboard.js', launchDashboard, "json('/api/dashboard',true)", 'painel de lançamento não autentica o dashboard.');
-requireTerm('js/launch-checklist.js', launchChecklist, "json('/api/dashboard',true)", 'checklist de lançamento não autentica o dashboard.');
+requireTerm('js/admin-dashboard.js', adminDashboard, "credentials: 'include'", 'painel administrativo não usa a sessão HttpOnly.');
+requireTerm('js/launch-dashboard.js', launchDashboard, "json('/api/dashboard')", 'painel de lançamento não usa a sessão administrativa.');
+requireTerm('js/launch-checklist.js', launchChecklist, "json('/api/dashboard')", 'checklist de lançamento não usa a sessão administrativa.');
 
 console.log('Arandu Auth & Security Check');
 console.log(`Erros: ${issues.length}`);

@@ -58,7 +58,7 @@
     wrap.appendChild(head);
     const grid = el('div', 'launch-matrix');
     [
-      ['Técnico', readiness.technical, 'Supabase, chaves e token administrativo.'],
+      ['Técnico', readiness.technical, 'Supabase, sessão administrativa e MFA.'],
       ['Banco', readiness.database, 'Tabelas e views respondendo via probe.'],
       ['Contato', readiness.contact, 'WhatsApp ou e-mail real para atendimento.'],
       ['Domínio', readiness.domain, 'URL oficial configurada no ambiente.'],
@@ -134,7 +134,8 @@
       ['SUPABASE_URL', checks.supabaseUrl],
       ['SUPABASE_ANON_KEY', checks.supabaseAnonKey],
       ['SUPABASE_SERVICE_ROLE_KEY', checks.supabaseServiceRoleKey],
-      ['ARANDU_ADMIN_TOKEN', checks.adminToken],
+      ['Autenticação administrativa', checks.adminAuth],
+      ['MFA administrativo obrigatório', checks.adminMfaRequired],
       ['ARANDU_SITE_URL', checks.siteUrl],
       ['WhatsApp', checks.whatsappNumber],
       ['E-mail de contato', checks.contactEmail],
@@ -165,12 +166,12 @@
     clear();
     const box = el('div', 'certificate-preview');
     box.appendChild(el('p', 'eyebrow', 'Status da API'));
-    box.appendChild(el('h2', '', 'Não foi possível consultar /api/health?probe=1'));
+    box.appendChild(el('h2', '', 'Não foi possível consultar a readiness administrativa'));
     box.appendChild(el('p', '', error.message || 'Erro inesperado.'));
     root.appendChild(box);
   };
 
-  fetch('/api/health?probe=1')
+  fetch('/api/readiness', { credentials: 'include', cache: 'no-store' })
     .then((response) => response.json())
     .then(render)
     .catch(renderError);

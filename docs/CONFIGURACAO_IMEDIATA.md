@@ -10,7 +10,6 @@ Adicionar em Project Settings > Environment Variables:
 SUPABASE_URL=
 SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
-ARANDU_ADMIN_TOKEN=
 ARANDU_WHATSAPP_NUMBER=
 ARANDU_CONTACT_EMAIL=
 ARANDU_SITE_URL=
@@ -22,7 +21,8 @@ ARANDU_SITE_URL=
 2. Abrir SQL Editor.
 3. Rodar `docs/supabase-schema.sql`.
 4. Copiar URL e chaves para a Vercel.
-5. Rodar seed local quando as variáveis estiverem disponíveis.
+5. Provisionar a conta administrativa e o MFA conforme `ADMIN_AUTH_MFA.md`.
+6. Rodar seed local quando as variáveis estiverem disponíveis.
 
 ## 3. WhatsApp
 

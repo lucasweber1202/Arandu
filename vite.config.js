@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { resolve, relative, extname, sep } from 'node:path';
 import { deploymentBaseUrl, renderSeoHead } from './scripts/seo-meta.mjs';
+import { INTERNAL_PAGE_SET } from './lib/internal-pages.mjs';
 
 const root = process.cwd();
 const ignoredDirs = new Set(['node_modules', '.git', 'dist', 'reports', 'tests', 'test-results', 'playwright-report']);
@@ -45,7 +46,7 @@ function collectHtmlFiles(dir = root) {
 }
 
 const htmlInputs = Object.fromEntries(
-  collectHtmlFiles().map((file) => {
+  collectHtmlFiles().filter((file) => !INTERNAL_PAGE_SET.has(relative(root, file).split(sep).join('/'))).map((file) => {
     const name = relative(root, file).replace(/\.html$/, '').split(sep).join('/');
     return [name, file];
   })

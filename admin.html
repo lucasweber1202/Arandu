@@ -35,7 +35,7 @@
         <div>
           <p class="eyebrow">Uso interno</p>
           <h1 class="title">Painel para operar o Arandu antes de divulgar.</h1>
-          <p class="lead">Aqui você acompanha submissões, leads, obras, artistas, reservas, certificados, briefs, propostas e tarefas. A página usa a API consolidada em <code>/api/admin</code> e exige o <code>ARANDU_ADMIN_TOKEN</code>.</p>
+          <p class="lead">Aqui você acompanha submissões, leads, obras, artistas, reservas, certificados, briefs, propostas e tarefas. A página usa sessão administrativa HttpOnly, papel validado no servidor e segundo fator obrigatório.</p>
           <div class="page-actions">
             <a class="cta" href="status.html">Ver status técnico</a>
             <a class="cta secondary" href="docs/GO_LIVE_ARANDU.md">Roteiro go-live</a>
@@ -53,18 +53,17 @@
       <div class="container admin-grid">
         <aside class="admin-card">
           <p class="eyebrow">Acesso</p>
-          <h3>Token administrativo</h3>
-          <p>Use o mesmo valor configurado na Vercel como <code>ARANDU_ADMIN_TOKEN</code>. Ele fica salvo apenas neste navegador.</p>
+          <h3>Sessão administrativa</h3>
+          <p>Identidade, papel e MFA são verificados no servidor. Nenhum segredo administrativo é digitado ou guardado pelo navegador.</p>
           <div class="admin-token-row">
-            <input id="admin-token" type="password" placeholder="ARANDU_ADMIN_TOKEN" autocomplete="off" />
-            <button class="cta" type="button" data-admin-save-token>Salvar</button>
+            <input id="admin-token" type="hidden" aria-hidden="true" />
           </div>
           <div class="admin-actions">
-            <button class="cta secondary" type="button" data-admin-clear-token>Limpar token</button>
+            <button class="cta secondary" type="button" data-auth-logout>Sair com segurança</button>
             <a class="cta secondary" href="docs/SETUP_PRODUCAO.md">Setup produção</a>
           </div>
           <p class="admin-status" data-admin-status></p>
-          <div class="admin-help"><strong>Importante:</strong> se o Supabase ainda não estiver configurado, a API responde em modo demo. Depois das variáveis reais, o painel passa a ler e gravar no banco.</div>
+          <div class="admin-help"><strong>Importante:</strong> páginas internas e operações privilegiadas falham de forma fechada quando Supabase, papel administrativo, MFA ou service role não estão disponíveis.</div>
         </aside>
 
         <section class="admin-panel-card">

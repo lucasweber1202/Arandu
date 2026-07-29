@@ -30,7 +30,6 @@ add('SUPABASE_URL', supabaseUrl(value('SUPABASE_URL')), 'Use a URL HTTPS do proj
 add('SUPABASE_ANON_KEY', validSupabaseKey(value('SUPABASE_ANON_KEY')), 'Use a anon/publishable key válida.');
 add('SUPABASE_SERVICE_ROLE_KEY', validSupabaseKey(value('SUPABASE_SERVICE_ROLE_KEY')), 'Use uma service-role/secret key válida somente no servidor.');
 add('Chaves Supabase distintas', value('SUPABASE_ANON_KEY') && value('SUPABASE_ANON_KEY') !== value('SUPABASE_SERVICE_ROLE_KEY'), 'Anon e service role não podem ser iguais.');
-add('ARANDU_ADMIN_TOKEN', value('ARANDU_ADMIN_TOKEN').length >= 32, 'Gere um token aleatório com pelo menos 32 caracteres.');
 add('ARANDU_SITE_URL', ownHttpsUrl(value('ARANDU_SITE_URL')), 'Configure HTTPS em domínio próprio.');
 
 const whatsappDigits = value('ARANDU_WHATSAPP_NUMBER').replace(/\D/g, '');

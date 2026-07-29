@@ -1,70 +1,36 @@
-# Arandu — Guia rápido de produção
+# Arandu — guia rápido de produção
 
-Este arquivo resume o que precisa ser feito antes de hospedar a Arandu em domínio público.
+O Arandu está em pré-produção para um piloto fechado de vendas assistidas. Build verde não libera lançamento: catálogo, política comercial, ambiente real, jurídico, monitoramento, backup e piloto precisam de evidência.
 
-## Páginas públicas recomendadas
-
-- `index.html`
-- `encontrar-arte.html`
-- `obras.html`
-- páginas individuais de obras
-- `colecoes.html`
-- páginas de coleções
-- `artistas.html`
-- páginas individuais de artistas
-- `para-artistas.html`
-- `para-arquitetos.html`
-- `para-empresas.html`
-- `curadoria.html`
-- `autenticidade.html`
-- `certificado-arandu.html`
-- `verificar-certificado.html`
-- `faq.html`
-- políticas
-- `contato.html`
-- `press-kit.html`
-
-## Páginas internas ou de demonstração
-
-Não divulgar como produto final:
-
-- `demo.html`
-- `roadmap.html`
-- `admin-preview.html`
-- `painel-obras.html`
-- `painel-artistas.html`
-- `painel-leads.html`
-- `painel-certificados.html`
-- `mapa-do-site.html`
-- `configuracao.html`
-
-## Antes de publicar
-
-1. Adicionar a logo real em `assets/logo-arandu.png`.
-2. Trocar o WhatsApp em `data/whatsapp-config.js`.
-3. Atualizar e-mail oficial em `data/site.json`.
-4. Revisar políticas com apoio jurídico.
-5. Remover linguagem de MVP das páginas públicas.
-6. Rodar `npm run check`.
-7. Rodar `npm run check:links`.
-8. Rodar `npm run check:production`.
-9. Testar mobile.
-10. Atualizar `sitemap.xml` com domínio real quando houver.
-
-## O que ainda é simulado
-
-- Formulários não enviam para servidor.
-- Minha Seleção usa o navegador do usuário.
-- Certificado é demonstrativo.
-- Painel é apenas mock.
-- Não há pagamento, login, reserva real ou banco de dados.
-
-## Comandos
+## Validação técnica
 
 ```bash
-npm install
-npm run check
-npm run check:links
-npm run check:production
-npm run dev
+npm ci
+npm run check:all
+npm run build
+npm run check:seo:dist
+npm run test:e2e
+npm audit
 ```
+
+## Segurança administrativa
+
+- `/api/health` oferece somente liveness pública.
+- `/api/readiness` exige sessão administrativa, papel imutável e MFA.
+- páginas de `lib/internal-pages.mjs` não entram no `dist`;
+- HTML interno é servido por `api/internal-page.js` somente após autorização;
+- APIs privilegiadas não aceitam segredo compartilhado;
+- a service role não possui fallback para anon key.
+
+Para criar, revogar e validar uma conta administrativa, consulte `docs/ADMIN_AUTH_MFA.md`.
+
+## Pendências externas que continuam bloqueando o lançamento
+
+- Supabase real, migrations, write canary, RLS e restauração de backup;
+- pelo menos 5 artistas e 20 obras reais verificadas;
+- política comercial e revisão jurídica;
+- domínio, contatos, marca e identidade final;
+- monitoramento, rate limit distribuído e e-mail transacional;
+- piloto fechado com ao menos 10 participantes e zero bloqueadores críticos.
+
+Não marque gates como prontos sem a evidência correspondente.

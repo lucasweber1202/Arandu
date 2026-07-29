@@ -10,7 +10,7 @@ requireTerm(api, 'timingSafeEqual', 'Código do piloto não usa comparação em 
 requireTerm(api, 'HttpOnly; SameSite=Lax; Secure', 'Cookie do piloto não está protegido.');
 requireTerm(api, 'pilotEventPayload', 'Eventos não possuem whitelist de payload.');
 requireTerm(api, 'requirePilotAccess(req)', 'Eventos/feedback não exigem convite.');
-requireTerm(api, "adminGuard(req)", 'Métricas do piloto não exigem token administrativo.');
+requireTerm(api, "await adminGuard(req, res)", 'Métricas do piloto não exigem sessão administrativa.');
 requireTerm(client, "navigator.doNotTrack === '1'", 'Telemetria não respeita Do Not Track.');
 requireTerm(migration, 'revoke all on public.pilot_events', 'Tabela de eventos aceita acesso direto.');
 requireTerm(migration, 'revoke all on public.pilot_feedback', 'Tabela de feedback aceita acesso direto.');

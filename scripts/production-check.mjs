@@ -55,7 +55,7 @@ if (!existsSync(apiRouter)) {
     const marker = route.includes('/') ? route.split('/')[0] : route;
     if (!apiContent.includes(marker)) warnings.push(`API consolidada não parece cobrir /api/${route}.`);
   });
-  if (!apiContent.includes('ARANDU_ADMIN_TOKEN')) warnings.push('API consolidada não valida ARANDU_ADMIN_TOKEN.');
+  if (!apiContent.includes('requireAdmin(req)')) warnings.push('API consolidada não valida identidade administrativa.');
   if (!apiContent.includes('v_public_catalog')) warnings.push('API consolidada não consulta v_public_catalog.');
   if (!apiContent.includes('v_sales_pipeline')) warnings.push('API consolidada não consulta v_sales_pipeline.');
   if (!apiContent.includes('HttpOnly')) warnings.push('API consolidada não usa cookie HttpOnly para sessão.');
@@ -64,7 +64,7 @@ if (!existsSync(apiRouter)) {
 if (!existsSync('api/health.js')) warnings.push('Health check ausente: api/health.js.');
 if (!existsSync('status.html')) warnings.push('Página de status técnico ausente: status.html.');
 if (!existsSync('js/status.js')) warnings.push('Runtime visual de status ausente: js/status.js.');
-if (existsSync('js/status.js') && !readFileSync('js/status.js', 'utf8').includes('/api/health')) warnings.push('Página de status não consulta /api/health.');
+if (existsSync('js/status.js') && !readFileSync('js/status.js', 'utf8').includes('/api/readiness')) warnings.push('Página de status não consulta /api/readiness protegida.');
 if (existsSync('vercel.json')) {
   const vercel = readFileSync('vercel.json', 'utf8');
   ['X-Content-Type-Options', 'X-Frame-Options', 'Referrer-Policy', 'Permissions-Policy'].forEach((header) => {
@@ -127,7 +127,7 @@ if (!existsSync('data/launch-checklist.json')) warnings.push('Checklist estrutur
 
 if (!process.env.SUPABASE_URL) warnings.push('SUPABASE_URL ainda não está configurado no ambiente de produção.');
 if (!process.env.SUPABASE_ANON_KEY && !process.env.SUPABASE_SERVICE_ROLE_KEY) warnings.push('Chave Supabase ainda não está configurada no ambiente de produção.');
-if (!process.env.ARANDU_ADMIN_TOKEN) warnings.push('ARANDU_ADMIN_TOKEN ainda não está configurado no ambiente de produção.');
+if (!process.env.SUPABASE_ANON_KEY) warnings.push('SUPABASE_ANON_KEY ainda não está configurada para autenticação administrativa.');
 if (!['1','true','yes','sim'].includes(String(process.env.ARANDU_BRAND_READY || '').toLowerCase())) warnings.push('Identidade final ainda não foi aprovada com ARANDU_BRAND_READY=true.');
 if (!['1','true','yes','sim'].includes(String(process.env.ARANDU_COMMERCIAL_READY || '').toLowerCase())) warnings.push('Política comercial ainda não foi aprovada com ARANDU_COMMERCIAL_READY=true.');
 if (!['1','true','yes','sim'].includes(String(process.env.ARANDU_DISTRIBUTED_RATE_LIMIT || '').toLowerCase())) warnings.push('Rate limit distribuído ainda não foi confirmado com ARANDU_DISTRIBUTED_RATE_LIMIT=true.');

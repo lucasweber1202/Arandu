@@ -113,9 +113,11 @@ Rotas principais:
 /api/auth/signup
 /api/auth/logout
 /api/health
+/api/readiness
+/api/admin-auth
 ```
 
-As rotas administrativas exigem `x-arandu-admin-token`. `/api/account` exige a sessão do comprador. `/api/pilot/metrics` exige token administrativo. Catálogo, gravações e transações não possuem fallback público demonstrativo quando o Supabase ou os gates não estão prontos.
+As rotas administrativas exigem uma sessão Supabase Auth em cookie `HttpOnly`, papel administrativo em `app_metadata` e MFA TOTP (`aal2`). `/api/account` exige a sessão do comprador. `/api/health` expõe somente liveness; a prontidão detalhada fica protegida em `/api/readiness`. Catálogo, gravações e transações não possuem fallback público demonstrativo quando o Supabase ou os gates não estão prontos.
 
 ## Variáveis de produção
 
@@ -125,7 +127,6 @@ Use `.env.example` como referência. Os grupos essenciais são:
 SUPABASE_URL=
 SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
-ARANDU_ADMIN_TOKEN=
 
 ARANDU_SITE_URL=
 ARANDU_WHATSAPP_NUMBER=
@@ -140,6 +141,8 @@ ARANDU_PILOT_SECRET=
 ```
 
 `ARANDU_SITE_URL` precisa usar HTTPS e domínio próprio; previews `*.vercel.app` não satisfazem o gate de lançamento.
+
+O provisionamento de contas administrativas e MFA está documentado em `docs/ADMIN_AUTH_MFA.md`.
 
 ## Supabase e catálogo
 
