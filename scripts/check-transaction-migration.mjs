@@ -16,6 +16,9 @@ requirePattern(migration, /create_proposal_atomic[\s\S]*insert into public\.prop
 requirePattern(migration, /acquire_idempotency[\s\S]*pg_advisory_xact_lock/i, 'Aquisição de idempotência não está serializada.');
 requirePattern(migration, /identity_hash/i, 'Idempotência não está vinculada à identidade.');
 requirePattern(migration, /request_hash/i, 'Idempotência não está vinculada ao payload.');
+requirePattern(migration, /policy_snapshot jsonb/i, 'Snapshot imutável da política comercial não é persistido.');
+requirePattern(api, /p_policy_snapshot: policy/i, 'API pública não envia o snapshot completo da política do servidor.');
+requirePattern(commercial, /p_policy_snapshot: commercialPolicy/i, 'API comercial não envia o snapshot completo da política do servidor.');
 requirePattern(migration, /status in \('processing', 'completed', 'failed'\)/i, 'Estados de idempotência estão incompletos.');
 requirePattern(migration, /revoke insert, update, delete on public\.reservations from anon, authenticated/i, 'Escrita direta em reservas continua aberta.');
 requirePattern(migration, /revoke insert, update, delete on public\.proposals from anon, authenticated/i, 'Escrita direta em propostas continua aberta.');
@@ -30,7 +33,7 @@ requirePattern(api, /adminSupabaseRpc\('create_proposal_atomic'/, 'API de propos
 requirePattern(api, /userSupabaseRequest\(session\.accessToken/, 'Rotas de conta não exercitam JWT e RLS.');
 requirePattern(api, /adminSupabaseRpc\('apply_catalog_review_atomic'/, 'Revisão editorial não usa RPC transacional.');
 requirePattern(commercial, /create_commercial_record_atomic/, 'Operação comercial não é transacional.');
-requirePattern(commercial, /ARANDU_PLATFORM_FEE_RATE/, 'Comissão não vem da política versionada do servidor.');
+requirePattern(commercial, /requireCommercialPolicy/, 'Comissão não vem da política completa e versionada do servidor.');
 if (/\bbody\.(total|platform_fee|artist_amount)\b/.test(commercial)) {
   issues.push('API comercial ainda confia em valores monetários do cliente.');
 }

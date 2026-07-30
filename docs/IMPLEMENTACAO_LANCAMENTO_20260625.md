@@ -24,7 +24,7 @@ Arquivos criados:
 
 O painel permite:
 
-- inserir e salvar localmente o token administrativo;
+- inserir e salvar localmente o sessão administrativa;
 - consultar resumo de métricas via `/api/dashboard`;
 - consultar painéis via `/api/admin?panel=...`;
 - acompanhar submissões, leads, obras, artistas, reservas, certificados, briefs, propostas e tarefas;

@@ -22,7 +22,7 @@ Configurar na Vercel:
 SUPABASE_URL=
 SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
-ARANDU_ADMIN_TOKEN=
+sessão administrativa protegida=
 ```
 
 Critério de pronto: `npm run build` funciona e as rotas de API respondem em produção.

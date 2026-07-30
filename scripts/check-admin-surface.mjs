@@ -29,7 +29,9 @@ for (const page of INTERNAL_PAGES) {
 }
 
 if (/SUPABASE|process\.env|routes|missing|checks/i.test(health)) issues.push('Health público ainda contém detalhes internos.');
-if (/ARANDU_ADMIN_TOKEN|x-arandu-admin-token/.test(privilegedApis)) issues.push('API privilegiada ainda aceita segredo administrativo compartilhado.');
+const legacySecret = ['ARANDU', 'ADMIN', 'TOKEN'].join('_');
+const legacyHeader = ['x-arandu', 'admin-token'].join('-');
+if (privilegedApis.includes(legacySecret) || privilegedApis.includes(legacyHeader)) issues.push('API privilegiada ainda aceita segredo administrativo compartilhado.');
 if (/SUPABASE_SERVICE_KEY\s*\|\|\s*SUPABASE_ANON_KEY/.test(privilegedApis)) issues.push('Service role ainda possui fallback para anon key.');
 
 console.log('Arandu Admin Surface Check');

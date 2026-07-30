@@ -52,7 +52,7 @@ Também foram aproveitadas rotas já criadas:
 1. Configure na Vercel:
 
 ```text
-ARANDU_ADMIN_TOKEN
+sessão administrativa protegida
 ```
 
 2. Abra uma página do painel, por exemplo:

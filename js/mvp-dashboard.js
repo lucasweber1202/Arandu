@@ -25,9 +25,9 @@
   }
   async function load(){
     try{
-      const token=sessionStorage.getItem('arandu.adminToken.v1')||sessionStorage.getItem('arandu.admin.token')||'';
-      if(!token)throw new Error('Informe o token administrativo no painel antes de abrir o dashboard MVP.');
-      const response=await fetch('/api/mvp-dashboard',{cache:'no-store',headers:{'x-arandu-admin-token':token}});
+      const token=sessionStorage.getItem('arandu.adminSessionHint.v1')||sessionStorage.getItem('arandu.admin.sessionHint')||'';
+      if(!token)throw new Error('Informe o sessão administrativa no painel antes de abrir o dashboard MVP.');
+      const response=await fetch('/api/mvp-dashboard',{cache:'no-store',headers:{}});
       const data=await response.json().catch(()=>({}));
       if(!response.ok||data.ok===false)throw new Error(data.error||'Falha ao carregar MVP.');
       const dashboard=data.dashboard||{};

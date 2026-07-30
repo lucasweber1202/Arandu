@@ -1,7 +1,7 @@
-const RESERVATION_TOKEN_KEY = 'arandu.admin.token';
+const RESERVATION_TOKEN_KEY = 'arandu.admin.sessionHint';
 function reservationToken() { return sessionStorage.getItem(RESERVATION_TOKEN_KEY) || ''; }
 async function reservationRequest(url, options = {}) {
-  const response = await fetch(url, { ...options, headers: { 'Content-Type': 'application/json', 'x-arandu-admin-token': reservationToken(), ...(options.headers || {}) } });
+  const response = await fetch(url, { ...options, headers: { 'Content-Type': 'application/json', ...(options.headers || {}) } });
   const data = await response.json().catch(() => ({}));
   if (!response.ok || data.ok === false) throw new Error(data.error || 'Erro ao salvar reserva.');
   return data;

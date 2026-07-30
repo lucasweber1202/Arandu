@@ -55,6 +55,7 @@ call_reservation() {
       now() + interval '24 hours',
       'BRL',
       'policy-test-v1',
+      '{\"version\":\"policy-test-v1\",\"currency\":\"BRL\",\"platformFeeRate\":0.20,\"reservationHours\":24}'::jsonb,
       'database-concurrency',
       'system',
       'visitor-concurrency',

@@ -22,11 +22,32 @@ create table if not exists public.pilot_feedback (
   created_at timestamptz not null default now()
 );
 
+alter table public.pilot_feedback
+  add column if not exists category text,
+  add column if not exists severity text,
+  add column if not exists blocker_status text,
+  add column if not exists task_completed boolean;
+
+alter table public.pilot_feedback
+  drop constraint if exists pilot_feedback_severity_check;
+alter table public.pilot_feedback
+  add constraint pilot_feedback_severity_check
+  check (severity is null or severity in ('info', 'low', 'medium', 'high', 'critical'));
+
+alter table public.pilot_feedback
+  drop constraint if exists pilot_feedback_blocker_status_check;
+alter table public.pilot_feedback
+  add constraint pilot_feedback_blocker_status_check
+  check (blocker_status is null or blocker_status in ('open', 'mitigated', 'resolved', 'not_applicable'));
+
 create index if not exists idx_pilot_events_created_at on public.pilot_events(created_at desc);
 create index if not exists idx_pilot_events_session on public.pilot_events(session_id, created_at);
 create index if not exists idx_pilot_events_type on public.pilot_events(event_type, created_at desc);
 create index if not exists idx_pilot_feedback_created_at on public.pilot_feedback(created_at desc);
 create index if not exists idx_pilot_feedback_session on public.pilot_feedback(session_id, created_at);
+create index if not exists idx_pilot_feedback_blockers
+  on public.pilot_feedback(severity, blocker_status, created_at desc)
+  where severity in ('high', 'critical');
 
 alter table public.pilot_events enable row level security;
 alter table public.pilot_feedback enable row level security;

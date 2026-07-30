@@ -2,11 +2,11 @@
 -- Este rollback remove funções e constraints novas, mas preserva colunas e dados.
 -- Antes de executar, interrompa escritas, faça backup e registre a justificativa.
 
-drop function if exists public.create_commercial_record_atomic(text[], uuid, uuid, uuid, text, text, text, text, numeric, text, text, text, text, text, text, text, text, text);
+drop function if exists public.create_commercial_record_atomic(text[], uuid, uuid, uuid, text, text, text, text, numeric, text, jsonb, text, text, text, text, text, text, text, text);
 drop function if exists public.apply_catalog_review_atomic(text, text, text, jsonb, text, text, text, text);
-drop function if exists public.create_proposal_atomic(text[], uuid, uuid, uuid, text, text, text, text, text, text, text, numeric, text, text, text, text, text, text, text, text);
+drop function if exists public.create_proposal_atomic(text[], uuid, uuid, uuid, text, text, text, text, text, text, text, numeric, text, jsonb, text, text, text, text, text, text, text);
 drop function if exists public.expire_reservations(boolean, text, text);
-drop function if exists public.create_reservation_atomic(text, uuid, text, text, text, text, text, timestamptz, text, text, text, text, text, text, text, text, text, text);
+drop function if exists public.create_reservation_atomic(text, uuid, text, text, text, text, text, timestamptz, text, text, jsonb, text, text, text, text, text, text, text, text);
 drop function if exists public.cleanup_idempotency(boolean);
 drop function if exists public.fail_idempotency(text, text, text, text, text);
 drop function if exists public.complete_idempotency(text, text, text, text, integer, jsonb);

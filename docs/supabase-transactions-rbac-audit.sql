@@ -13,6 +13,7 @@ alter table public.reservations
   add column if not exists price_snapshot numeric,
   add column if not exists currency text,
   add column if not exists policy_version text,
+  add column if not exists policy_snapshot jsonb,
   add column if not exists visitor_ref text,
   add column if not exists request_id text,
   add column if not exists origin text,
@@ -24,6 +25,7 @@ alter table public.proposals
   add column if not exists user_id uuid references auth.users(id) on delete set null,
   add column if not exists currency text,
   add column if not exists policy_version text,
+  add column if not exists policy_snapshot jsonb,
   add column if not exists subtotal numeric,
   add column if not exists platform_fee_rate numeric,
   add column if not exists platform_fee numeric,
@@ -38,6 +40,7 @@ alter table public.proposal_items
 alter table public.commercial_records
   add column if not exists currency text,
   add column if not exists policy_version text,
+  add column if not exists policy_snapshot jsonb,
   add column if not exists request_id text;
 
 alter table public.commercial_items
@@ -375,6 +378,7 @@ create or replace function public.create_reservation_atomic(
   p_expires_at timestamptz,
   p_currency text,
   p_policy_version text,
+  p_policy_snapshot jsonb,
   p_origin text,
   p_actor_type text,
   p_actor_ref text,
@@ -409,6 +413,12 @@ begin
   if p_currency !~ '^[A-Z]{3}$' or coalesce(length(trim(p_policy_version)), 0) < 1 then
     raise exception using message = 'Moeda ou versão da política inválida.', errcode = '22023';
   end if;
+  if jsonb_typeof(p_policy_snapshot) <> 'object'
+    or p_policy_snapshot->>'version' is distinct from p_policy_version
+    or p_policy_snapshot->>'currency' is distinct from p_currency
+    or coalesce((p_policy_snapshot->>'reservationHours')::integer, 0) < 1 then
+    raise exception using message = 'Snapshot da política comercial inválido.', errcode = '22023';
+  end if;
 
   select * into v_artwork
   from public.artworks
@@ -431,12 +441,12 @@ begin
   perform set_config('arandu.audit.skip', 'true', true);
   insert into public.reservations (
     user_id, artwork_id, name, whatsapp, deadline, notes, status, expires_at,
-    price_snapshot, currency, policy_version, visitor_ref, request_id, origin, payload
+    price_snapshot, currency, policy_version, policy_snapshot, visitor_ref, request_id, origin, payload
   )
   values (
     p_user_id, p_artwork_id, left(p_name, 160), left(p_whatsapp, 15),
     left(p_deadline, 160), left(p_notes, 3000), 'requested', p_expires_at,
-    v_artwork.price, p_currency, p_policy_version, left(p_visitor_ref, 160),
+    v_artwork.price, p_currency, p_policy_version, p_policy_snapshot, left(p_visitor_ref, 160),
     left(p_request_id, 80), left(p_origin, 120), '{}'::jsonb
   )
   returning * into v_reservation;
@@ -570,6 +580,7 @@ create or replace function public.create_proposal_atomic(
   p_currency text,
   p_platform_fee_rate numeric,
   p_policy_version text,
+  p_policy_snapshot jsonb,
   p_actor_type text,
   p_actor_ref text,
   p_request_id text,
@@ -624,6 +635,12 @@ begin
     or coalesce(length(trim(p_policy_version)), 0) < 1 then
     raise exception using message = 'Política comercial inválida.', errcode = '22023';
   end if;
+  if jsonb_typeof(p_policy_snapshot) <> 'object'
+    or p_policy_snapshot->>'version' is distinct from p_policy_version
+    or p_policy_snapshot->>'currency' is distinct from p_currency
+    or coalesce((p_policy_snapshot->>'platformFeeRate')::numeric, -1) <> p_platform_fee_rate then
+    raise exception using message = 'Snapshot da política comercial inválido.', errcode = '22023';
+  end if;
 
   perform 1
   from public.artworks
@@ -649,14 +666,14 @@ begin
 
   insert into public.proposals (
     user_id, lead_id, company_brief_id, client, space, goal, budget, deadline,
-    notes, total, status, payload, currency, policy_version, subtotal,
+    notes, total, status, payload, currency, policy_version, policy_snapshot, subtotal,
     platform_fee_rate, platform_fee, artist_amount, request_id
   )
   values (
     p_user_id, p_lead_id, p_company_brief_id, left(p_client, 240),
     left(p_space, 500), left(p_goal, 1000), left(p_budget, 160),
     left(p_deadline, 160), left(p_notes, 3000), v_subtotal, 'draft',
-    '{}'::jsonb, p_currency, p_policy_version, v_subtotal,
+    '{}'::jsonb, p_currency, p_policy_version, p_policy_snapshot, v_subtotal,
     p_platform_fee_rate, v_fee, v_artist_amount, left(p_request_id, 80)
   )
   returning * into v_proposal;
@@ -738,6 +755,7 @@ create or replace function public.create_commercial_record_atomic(
   p_currency text,
   p_platform_fee_rate numeric,
   p_policy_version text,
+  p_policy_snapshot jsonb,
   p_notes text,
   p_actor_ref text,
   p_actor_role text,
@@ -775,6 +793,12 @@ begin
     or coalesce(length(trim(p_policy_version)), 0) < 1 then
     raise exception using message = 'Política comercial inválida.', errcode = '22023';
   end if;
+  if jsonb_typeof(p_policy_snapshot) <> 'object'
+    or p_policy_snapshot->>'version' is distinct from p_policy_version
+    or p_policy_snapshot->>'currency' is distinct from p_currency
+    or coalesce((p_policy_snapshot->>'platformFeeRate')::numeric, -1) <> p_platform_fee_rate then
+    raise exception using message = 'Snapshot da política comercial inválido.', errcode = '22023';
+  end if;
 
   perform 1 from public.artworks where id = any(p_artwork_ids) order by id for update;
   select count(*), coalesce(sum(price), 0)
@@ -790,13 +814,13 @@ begin
   insert into public.commercial_records (
     proposal_id, reservation_id, lead_id, client, email, whatsapp, total,
     platform_fee_rate, platform_fee, artist_amount, status, logistics_status,
-    notes, payload, currency, policy_version, request_id
+    notes, payload, currency, policy_version, policy_snapshot, request_id
   )
   values (
     p_proposal_id, p_reservation_id, p_lead_id, left(p_client, 240),
     left(p_email, 254), left(p_whatsapp, 15), v_total,
     p_platform_fee_rate, v_fee, v_total - v_fee, 'draft', 'pending',
-    left(p_notes, 3000), '{}'::jsonb, p_currency, p_policy_version,
+    left(p_notes, 3000), '{}'::jsonb, p_currency, p_policy_version, p_policy_snapshot,
     left(p_request_id, 80)
   )
   returning * into v_record;
@@ -1076,29 +1100,29 @@ revoke all on function public.acquire_idempotency(text, text, text, text, intege
 revoke all on function public.complete_idempotency(text, text, text, text, integer, jsonb) from public, anon, authenticated;
 revoke all on function public.fail_idempotency(text, text, text, text, text) from public, anon, authenticated;
 revoke all on function public.cleanup_idempotency(boolean) from public, anon, authenticated;
-revoke all on function public.create_reservation_atomic(text, uuid, text, text, text, text, text, timestamptz, text, text, text, text, text, text, text, text, text, text) from public, anon, authenticated;
+revoke all on function public.create_reservation_atomic(text, uuid, text, text, text, text, text, timestamptz, text, text, jsonb, text, text, text, text, text, text, text, text) from public, anon, authenticated;
 revoke all on function public.expire_reservations(boolean, text, text) from public, anon, authenticated;
-revoke all on function public.create_proposal_atomic(text[], uuid, uuid, uuid, text, text, text, text, text, text, text, numeric, text, text, text, text, text, text, text, text) from public, anon, authenticated;
-revoke all on function public.create_commercial_record_atomic(text[], uuid, uuid, uuid, text, text, text, text, numeric, text, text, text, text, text, text, text, text, text) from public, anon, authenticated;
+revoke all on function public.create_proposal_atomic(text[], uuid, uuid, uuid, text, text, text, text, text, text, text, numeric, text, jsonb, text, text, text, text, text, text, text) from public, anon, authenticated;
+revoke all on function public.create_commercial_record_atomic(text[], uuid, uuid, uuid, text, text, text, text, numeric, text, jsonb, text, text, text, text, text, text, text, text) from public, anon, authenticated;
 revoke all on function public.apply_catalog_review_atomic(text, text, text, jsonb, text, text, text, text) from public, anon, authenticated;
 
 grant execute on function public.acquire_idempotency(text, text, text, text, integer, integer) to service_role;
 grant execute on function public.complete_idempotency(text, text, text, text, integer, jsonb) to service_role;
 grant execute on function public.fail_idempotency(text, text, text, text, text) to service_role;
 grant execute on function public.cleanup_idempotency(boolean) to service_role;
-grant execute on function public.create_reservation_atomic(text, uuid, text, text, text, text, text, timestamptz, text, text, text, text, text, text, text, text, text, text) to service_role;
+grant execute on function public.create_reservation_atomic(text, uuid, text, text, text, text, text, timestamptz, text, text, jsonb, text, text, text, text, text, text, text, text) to service_role;
 grant execute on function public.expire_reservations(boolean, text, text) to service_role;
-grant execute on function public.create_proposal_atomic(text[], uuid, uuid, uuid, text, text, text, text, text, text, text, numeric, text, text, text, text, text, text, text, text) to service_role;
-grant execute on function public.create_commercial_record_atomic(text[], uuid, uuid, uuid, text, text, text, text, numeric, text, text, text, text, text, text, text, text, text) to service_role;
+grant execute on function public.create_proposal_atomic(text[], uuid, uuid, uuid, text, text, text, text, text, text, text, numeric, text, jsonb, text, text, text, text, text, text, text) to service_role;
+grant execute on function public.create_commercial_record_atomic(text[], uuid, uuid, uuid, text, text, text, text, numeric, text, jsonb, text, text, text, text, text, text, text, text) to service_role;
 grant execute on function public.apply_catalog_review_atomic(text, text, text, jsonb, text, text, text, text) to service_role;
 
 comment on index public.uq_reservations_one_active_artwork is
   'Impede mais de uma reserva requested/confirmed por obra, inclusive sob concorrência.';
 comment on function public.acquire_idempotency(text, text, text, text, integer, integer) is
   'Adquire chave atomicamente e a vincula a identidade e payload canônico.';
-comment on function public.create_reservation_atomic(text, uuid, text, text, text, text, text, timestamptz, text, text, text, text, text, text, text, text, text, text) is
+comment on function public.create_reservation_atomic(text, uuid, text, text, text, text, text, timestamptz, text, text, jsonb, text, text, text, text, text, text, text, text) is
   'Reserva obra, altera disponibilidade, audita e conclui idempotência em uma transação.';
-comment on function public.create_proposal_atomic(text[], uuid, uuid, uuid, text, text, text, text, text, text, text, numeric, text, text, text, text, text, text, text, text) is
+comment on function public.create_proposal_atomic(text[], uuid, uuid, uuid, text, text, text, text, text, text, text, numeric, text, jsonb, text, text, text, text, text, text, text) is
   'Calcula preços no banco e cria proposta e itens em uma única transação.';
 comment on function public.apply_catalog_review_atomic(text, text, text, jsonb, text, text, text, text) is
   'Atualiza entidade, histórico editorial e auditoria na mesma transação.';

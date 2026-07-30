@@ -1,14 +1,11 @@
 import assert from 'node:assert/strict';
 import { Readable } from 'node:stream';
+import { configureTestCommercialPolicy } from './test-helpers/commercial-policy-env.mjs';
 
 process.env.SUPABASE_URL = 'https://arandu-test.supabase.co';
 process.env.SUPABASE_ANON_KEY = 'anon-test-key';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-test-key';
-process.env.ARANDU_COMMERCIAL_READY = 'true';
-process.env.ARANDU_COMMERCIAL_POLICY_VERSION = 'policy-auth-test-v1';
-process.env.ARANDU_COMMERCIAL_CURRENCY = 'BRL';
-process.env.ARANDU_PLATFORM_FEE_RATE = '0.2';
-process.env.ARANDU_RESERVATION_HOURS = '24';
+configureTestCommercialPolicy('policy-auth-test-v1');
 
 const { default: handler } = await import(`../api/[...path].js?test=${Date.now()}`);
 

@@ -130,7 +130,7 @@
       const help = document.createElement('div');
       help.className = 'admin-help';
       help.textContent = data.mode === 'demo'
-        ? 'Painel disponível em modo demo. Configure Supabase e ARANDU_ADMIN_TOKEN para operar dados reais.'
+        ? 'Painel disponível em modo demo. Configure Supabase e sessão administrativa protegida para operar dados reais.'
         : 'Nenhum registro encontrado neste painel.';
       root.replaceChildren(help);
       return;

@@ -21,7 +21,7 @@ Cada comprovação externa precisa ser registrada em `ops/release-evidence.json`
 
 - deploy protegido sem erros;
 - domínio próprio em HTTPS;
-- Supabase, service role e token administrativo configurados no servidor;
+- Supabase, service role e sessão administrativa configurados no servidor;
 - autenticação com URLs finais de redirecionamento;
 - probes de tabelas, views e RLS aprovados;
 - catálogo com no mínimo 5 artistas e 20 obras reais;

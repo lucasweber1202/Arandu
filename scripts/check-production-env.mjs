@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { inspectCommercialPolicy } from '../lib/commercial-policy.mjs';
 const strict = process.argv.includes('--require-ready');
 const checks = [];
 
@@ -45,6 +46,8 @@ add('Comissão comercial no servidor', rawFeeRate !== '' && Number.isFinite(feeR
 const rawReservationHours = value('ARANDU_RESERVATION_HOURS');
 const reservationHours = Number(rawReservationHours);
 add('Prazo de reserva no servidor', rawReservationHours !== '' && Number.isFinite(reservationHours) && reservationHours >= 1 && reservationHours <= 720, 'Configure o prazo aprovado entre 1 e 720 horas.');
+const commercialPolicy = inspectCommercialPolicy();
+add('Política comercial completa', commercialPolicy.ready, 'Configure referências, governança e aprovação de todos os componentes da política.');
 add('Rate limit distribuído', truthy('ARANDU_DISTRIBUTED_RATE_LIMIT'), 'Só ative depois de testar a migration/provedor compartilhado.');
 add('Monitoramento de erros', truthy('ARANDU_ERROR_MONITORING_READY'), 'Só ative depois de receber um erro canário no monitoramento.');
 add('Restauração de backup', recentDate(value('ARANDU_BACKUP_VERIFIED_AT')), 'Registre uma restauração comprovada nos últimos 30 dias.');

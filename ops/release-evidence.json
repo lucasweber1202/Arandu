@@ -1,47 +1,97 @@
 {
-  "version": 1,
+  "version": 2,
   "updatedAt": null,
-  "supabase": {
-    "migrationFlow": null,
-    "projectRef": null,
-    "migrationsAppliedAt": null,
-    "writeCanaryAt": null
-  },
-  "catalog": {
-    "reviewedBy": null,
-    "reviewedAt": null,
-    "imageRightsVerified": false,
-    "pricesVerified": false
-  },
-  "commercial": {
-    "approvedBy": null,
-    "approvedAt": null,
-    "policyVersion": null,
-    "legalReviewReference": null
-  },
-  "brand": {
-    "approvedBy": null,
-    "approvedAt": null,
-    "logoAsset": null
-  },
-  "platform": {
-    "rateLimitProvider": null,
-    "errorMonitoringProvider": null,
-    "privacyContactVerifiedAt": null,
-    "backupRestoreVerifiedAt": null,
-    "backupEvidenceReference": null
-  },
-  "pilot": {
-    "minimumCohort": 10,
-    "cohortSize": 0,
-    "startedAt": null,
-    "completedAt": null,
-    "criticalBlockersOpen": null,
-    "approvedBy": null,
-    "approvalReference": null
-  },
-  "domain": {
-    "hostname": null,
-    "verifiedAt": null
+  "gates": {
+    "migration_preflight": {
+      "state": "not_started",
+      "owner": null,
+      "observedAt": null,
+      "reference": null,
+      "notes": null
+    },
+    "migration_ci": {
+      "state": "not_started",
+      "owner": null,
+      "observedAt": null,
+      "reference": null,
+      "notes": null
+    },
+    "migration_staging": {
+      "state": "not_started",
+      "owner": null,
+      "observedAt": null,
+      "reference": null,
+      "notes": null
+    },
+    "backup_restore": {
+      "state": "not_started",
+      "owner": null,
+      "observedAt": null,
+      "reference": null,
+      "notes": null
+    },
+    "write_canary": {
+      "state": "not_started",
+      "owner": null,
+      "observedAt": null,
+      "reference": null,
+      "notes": null
+    },
+    "rls_isolation": {
+      "state": "not_started",
+      "owner": null,
+      "observedAt": null,
+      "reference": null,
+      "notes": null
+    },
+    "reservation_concurrency": {
+      "state": "not_started",
+      "owner": null,
+      "observedAt": null,
+      "reference": null,
+      "notes": null
+    },
+    "catalog_real": {
+      "state": "not_started",
+      "owner": null,
+      "observedAt": null,
+      "reference": null,
+      "notes": null
+    },
+    "commercial_policy": {
+      "state": "not_started",
+      "owner": null,
+      "observedAt": null,
+      "reference": null,
+      "notes": null
+    },
+    "monitoring": {
+      "state": "not_started",
+      "owner": null,
+      "observedAt": null,
+      "reference": null,
+      "notes": null
+    },
+    "privacy_contact": {
+      "state": "not_started",
+      "owner": null,
+      "observedAt": null,
+      "reference": null,
+      "notes": null
+    },
+    "domain_https": {
+      "state": "not_started",
+      "owner": null,
+      "observedAt": null,
+      "reference": null,
+      "notes": null
+    },
+    "pilot_closed": {
+      "state": "not_started",
+      "owner": null,
+      "observedAt": null,
+      "reference": null,
+      "notes": null
+    }
   }
 }

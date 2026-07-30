@@ -8,7 +8,7 @@ O projeto já possui uma base técnica real para trabalhar com Supabase, autenti
 
 A API principal está em `api/[...path].js`.
 
-Ela já lê variáveis de ambiente para Supabase e autenticação, usa uma chave de serviço ou chave pública quando configurada e também prevê token administrativo.
+Ela já lê variáveis de ambiente para Supabase e autenticação, usa uma chave de serviço ou chave pública quando configurada e também prevê sessão administrativa.
 
 Rotas identificadas:
 

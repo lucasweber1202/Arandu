@@ -1,14 +1,11 @@
 import assert from 'node:assert/strict';
 import { Readable } from 'node:stream';
+import { configureTestCommercialPolicy } from './test-helpers/commercial-policy-env.mjs';
 
 process.env.SUPABASE_URL = 'https://arandu-transactions-test.supabase.co';
 process.env.SUPABASE_ANON_KEY = 'anon-transactions-test';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-transactions-test';
-process.env.ARANDU_COMMERCIAL_READY = 'true';
-process.env.ARANDU_COMMERCIAL_POLICY_VERSION = 'policy-test-v1';
-process.env.ARANDU_COMMERCIAL_CURRENCY = 'BRL';
-process.env.ARANDU_PLATFORM_FEE_RATE = '0.2';
-process.env.ARANDU_RESERVATION_HOURS = '24';
+configureTestCommercialPolicy();
 delete process.env.VERCEL_ENV;
 delete process.env.ARANDU_DISTRIBUTED_RATE_LIMIT;
 
@@ -61,12 +58,14 @@ try {
       assert.equal(body.p_artwork_id, 'obra-1');
       assert.equal(body.p_currency, 'BRL');
       assert.equal(body.p_policy_version, 'policy-test-v1');
+      assert.equal(body.p_policy_snapshot.references.shipping, 'test-shipping-v1');
       assert.equal('p_price' in body, false);
       return responseJson({ ok: true, stored: true, reservation: { id: 'reservation-1', status: 'requested' } });
     }
     if (value.includes('/rpc/create_proposal_atomic')) {
       assert.deepEqual(body.p_artwork_ids, ['obra-1', 'obra-2']);
       assert.equal(body.p_platform_fee_rate, 0.2);
+      assert.equal(body.p_policy_snapshot.approvalReference, 'test-approval-v1');
       assert.equal('p_total' in body, false);
       return responseJson({ ok: true, stored: true, proposal: { id: 'proposal-1', total: 7000 } });
     }
