@@ -3,7 +3,6 @@
   const textarea=document.querySelector('[data-catalog-csv]');
   const preview=document.querySelector('[data-catalog-preview]');
   if(!core||!textarea||!preview)return;
-  const tokenInput=document.querySelector('[data-admin-token]');
   const fileInput=document.querySelector('[data-catalog-file]');
   let validated=[];
   const esc=(value)=>String(value??'').replace(/[&<>'"]/g,(character)=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[character]));
@@ -18,12 +17,14 @@
   function build(){return core.buildEntries(textarea.value);}
   async function send(){
     if(!validated.length)render(build());
-    const token=tokenInput?.value.trim();if(!token){alert('Informe ARANDU_ADMIN_TOKEN para enviar.');return;}
-    const valid=validated.filter((entry)=>!entry.errors.length);let ok=0,fail=0;
+    const invalid=validated.filter((entry)=>entry.errors.length);
+    if(invalid.length){alert(`Envio bloqueado: ${invalid.length} linha(s) possuem erros. Corrija e valide novamente.`);return;}
+    if(!confirm(`Dry-run aprovado para ${validated.length} registro(s). Enviar para revisão administrativa?`))return;
+    const valid=validated;let ok=0,fail=0;
     for(const entry of valid){
-      try{const response=await fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json','x-arandu-admin-token':token},body:JSON.stringify({panel:entry.item.panel,data:entry.item.data})});if(response.ok)ok++;else fail++;}catch{fail++;}
+      try{const response=await fetch('/api/admin',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({panel:entry.item.panel,data:entry.item.data})});if(response.ok)ok++;else fail++;}catch{fail++;}
     }
-    alert(`Envio concluído: ${ok} ok, ${fail} falhas. Registros com pendências continuam sujeitos à revisão editorial.`);
+    alert(`Envio concluído: ${ok} ok, ${fail} falhas. A publicação continua bloqueada até a revisão editorial.`);
   }
   fileInput?.addEventListener('change',async()=>{const file=fileInput.files?.[0];if(!file)return;textarea.value=await file.text();render(build());});
   document.querySelector('[data-validate-catalog]')?.addEventListener('click',()=>render(build()));

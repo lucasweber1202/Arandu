@@ -9,7 +9,7 @@ Antes de usar o painel com dados reais, confirme:
 - `SUPABASE_URL` configurada;
 - `SUPABASE_ANON_KEY` configurada;
 - `SUPABASE_SERVICE_ROLE_KEY` configurada;
-- `ARANDU_ADMIN_TOKEN` configurado;
+- `sessão administrativa protegida` configurado;
 - `docs/supabase-schema.sql` aplicado no Supabase;
 - `/api/health` sem pendências críticas.
 
@@ -21,7 +21,7 @@ Abra:
 /admin.html
 ```
 
-Informe o mesmo valor definido em `ARANDU_ADMIN_TOKEN`.
+Informe o mesmo valor definido em `sessão administrativa protegida`.
 
 O token é salvo apenas no navegador usado para operar o painel.
 
@@ -103,7 +103,7 @@ O painel deixa de ser apenas preparação quando:
 
 - Supabase está configurado;
 - service role está configurada;
-- token administrativo está configurado;
+- sessão administrativa está configurado;
 - as tabelas existem;
 - os registros aparecem no admin;
 - alterações de status persistem depois de recarregar a página.

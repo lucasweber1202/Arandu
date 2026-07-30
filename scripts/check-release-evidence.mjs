@@ -2,66 +2,134 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const strict = process.argv.includes('--require-ready');
 const root = process.cwd();
-const evidencePath = path.join(root, 'ops/release-evidence.json');
-const evidence = JSON.parse(fs.readFileSync(evidencePath, 'utf8'));
-const checks = [];
+const strict = process.argv.includes('--require-ready');
+const sourcePath = path.join(root, 'ops/release-evidence.json');
+const reportPath = path.join(root, 'reports/release-evidence.md');
+const evidence = JSON.parse(fs.readFileSync(sourcePath, 'utf8'));
 
-const present = (candidate) => Boolean(String(candidate || '').trim());
-const validDate = (candidate) => {
-  const timestamp = Date.parse(String(candidate || ''));
+const STATES = new Set([
+  'not_started',
+  'implemented',
+  'ci_validated',
+  'staging_validated',
+  'production_validated',
+  'human_approved'
+]);
+const STATE_RANK = {
+  not_started: 0,
+  implemented: 1,
+  ci_validated: 2,
+  staging_validated: 3,
+  production_validated: 4,
+  human_approved: 5
+};
+const REQUIRED_GATES = {
+  migration_preflight: 'implemented',
+  migration_ci: 'ci_validated',
+  migration_staging: 'staging_validated',
+  backup_restore: 'staging_validated',
+  write_canary: 'staging_validated',
+  rls_isolation: 'staging_validated',
+  reservation_concurrency: 'staging_validated',
+  catalog_real: 'human_approved',
+  commercial_policy: 'human_approved',
+  monitoring: 'staging_validated',
+  privacy_contact: 'production_validated',
+  domain_https: 'production_validated',
+  pilot_closed: 'human_approved'
+};
+const VAGUE = /^(?:feito|ok|sim|yes|done|true|pronto|conclu[ií]do|n\/?a)$/i;
+const SECRET = /(?:eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}|sb_(?:secret|publishable)_[A-Za-z0-9_-]{20,}|postgres(?:ql)?:\/\/[^/\s]+:[^@\s]+@|service[_-]?role|api[_-]?key|bearer\s+[A-Za-z0-9._-]{12,})/i;
+const EMAIL = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
+
+function validPastDate(value) {
+  const timestamp = Date.parse(String(value || ''));
   return Number.isFinite(timestamp) && timestamp <= Date.now();
-};
-const recentDate = (candidate, days = 30) => validDate(candidate) && Date.now() - Date.parse(candidate) <= days * 86400000;
-const ownHostname = (candidate) => {
-  const hostname = String(candidate || '').trim().toLowerCase();
-  if (!/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(hostname)) return false;
-  return hostname !== 'example.com' && !hostname.endsWith('.example.com') && !hostname.endsWith('.vercel.app');
-};
-const add = (group, name, ok, guidance) => checks.push({ group, name, ok: Boolean(ok), guidance });
+}
 
-add('Supabase', 'Fluxo de migration', ['cleanInstall', 'existingDatabase'].includes(evidence.supabase?.migrationFlow), 'Registre cleanInstall ou existingDatabase.');
-add('Supabase', 'Projeto identificado', String(evidence.supabase?.projectRef || '').length >= 6, 'Registre apenas o project ref, nunca chaves.');
-add('Supabase', 'Migrations aplicadas', validDate(evidence.supabase?.migrationsAppliedAt), 'Registre a data após a execução completa.');
-add('Supabase', 'Canário de escrita recente', recentDate(evidence.supabase?.writeCanaryAt), 'Execute check:supabase:write e registre a data.');
+function validReference(value) {
+  const reference = String(value || '').trim();
+  return reference.length >= 8 && !VAGUE.test(reference) && !SECRET.test(reference) && !EMAIL.test(reference);
+}
 
-add('Catálogo', 'Revisão identificada', present(evidence.catalog?.reviewedBy), 'Use um papel ou identificador sem PII.');
-add('Catálogo', 'Revisão datada', validDate(evidence.catalog?.reviewedAt), 'Registre a data da revisão final.');
-add('Catálogo', 'Direitos de imagem', evidence.catalog?.imageRightsVerified === true, 'Confirme autorizações de todas as imagens publicadas.');
-add('Catálogo', 'Preços verificados', evidence.catalog?.pricesVerified === true, 'Confirme preço e disponibilidade com os artistas.');
+function validOwner(value) {
+  const owner = String(value || '').trim();
+  return owner.length >= 3 && owner.length <= 80 && !VAGUE.test(owner) && !EMAIL.test(owner);
+}
 
-add('Comercial', 'Aprovação identificada', present(evidence.commercial?.approvedBy), 'Registre o papel responsável pela aprovação.');
-add('Comercial', 'Aprovação datada', validDate(evidence.commercial?.approvedAt), 'Registre a data de aprovação.');
-add('Comercial', 'Versão da política', present(evidence.commercial?.policyVersion), 'Registre a versão publicada da política.');
-add('Comercial', 'Referência jurídica', present(evidence.commercial?.legalReviewReference), 'Registre protocolo, documento ou decisão; não inclua dados sensíveis.');
+const problems = [];
+if (evidence.version !== 2) problems.push('version: use o formato 2.');
+if (!evidence.gates || typeof evidence.gates !== 'object' || Array.isArray(evidence.gates)) {
+  problems.push('gates: objeto obrigatório.');
+}
 
-const logoAsset = String(evidence.brand?.logoAsset || '');
-add('Marca', 'Aprovação identificada', present(evidence.brand?.approvedBy), 'Registre o papel responsável pela aprovação.');
-add('Marca', 'Aprovação datada', validDate(evidence.brand?.approvedAt), 'Registre a data de aprovação.');
-add('Marca', 'Logo final existente', present(logoAsset) && fs.existsSync(path.join(root, logoAsset)), 'Aponte para um asset final versionado.');
+const gates = evidence.gates || {};
+const rows = Object.entries(REQUIRED_GATES).map(([id, requiredState]) => {
+  const gate = gates[id] || {};
+  const state = String(gate.state || 'not_started');
+  const knownState = STATES.has(state);
+  const completed = knownState && state !== 'not_started';
+  const fieldsValid = !completed || (
+    validOwner(gate.owner)
+    && validPastDate(gate.observedAt)
+    && validReference(gate.reference)
+  );
+  const meetsRelease = knownState
+    && fieldsValid
+    && STATE_RANK[state] >= STATE_RANK[requiredState];
 
-add('Plataforma', 'Rate limit comprovado', present(evidence.platform?.rateLimitProvider), 'Registre o provedor ou mecanismo distribuído testado.');
-add('Plataforma', 'Monitoramento comprovado', present(evidence.platform?.errorMonitoringProvider), 'Registre o provedor após receber um erro canário.');
-add('Plataforma', 'Contato LGPD testado', validDate(evidence.platform?.privacyContactVerifiedAt), 'Registre a data do teste do canal LGPD.');
-add('Plataforma', 'Restauração recente', recentDate(evidence.platform?.backupRestoreVerifiedAt), 'Comprove uma restauração nos últimos 30 dias.');
-add('Plataforma', 'Referência do backup', present(evidence.platform?.backupEvidenceReference), 'Registre um protocolo ou hash sem segredos.');
+  if (!knownState) problems.push(`${id}: estado inválido "${state}".`);
+  if (completed && !validOwner(gate.owner)) problems.push(`${id}: responsável não identificável ou contém PII.`);
+  if (completed && !validPastDate(gate.observedAt)) problems.push(`${id}: data ausente, futura ou inválida.`);
+  if (completed && !validReference(gate.reference)) problems.push(`${id}: referência ausente, vaga, sensível ou com PII.`);
+  if (gate.notes && (SECRET.test(String(gate.notes)) || EMAIL.test(String(gate.notes)))) {
+    problems.push(`${id}: notas contêm possível segredo ou PII.`);
+  }
 
-const minimumCohort = Number(evidence.pilot?.minimumCohort || 10);
-const startedAt = Date.parse(String(evidence.pilot?.startedAt || ''));
-const completedAt = Date.parse(String(evidence.pilot?.completedAt || ''));
-add('Piloto', 'Coorte mínima', Number(evidence.pilot?.cohortSize || 0) >= minimumCohort, `Inclua pelo menos ${minimumCohort} participantes.`);
-add('Piloto', 'Início registrado', Number.isFinite(startedAt), 'Registre o início da rodada.');
-add('Piloto', 'Conclusão registrada', Number.isFinite(completedAt) && completedAt >= startedAt, 'Registre uma conclusão posterior ao início.');
-add('Piloto', 'Zero bloqueadores críticos', evidence.pilot?.criticalBlockersOpen === 0, 'Resolva todos os bloqueadores críticos.');
-add('Piloto', 'Aprovação identificada', present(evidence.pilot?.approvedBy), 'Registre o papel responsável.');
-add('Piloto', 'Referência de aprovação', present(evidence.pilot?.approvalReference), 'Registre relatório, ata ou protocolo.');
+  return { id, state, requiredState, fieldsValid, meetsRelease, gate };
+});
 
-add('Domínio', 'Hostname próprio', ownHostname(evidence.domain?.hostname), 'Registre o domínio final sem protocolo.');
-add('Domínio', 'DNS/HTTPS verificado', validDate(evidence.domain?.verifiedAt), 'Registre a data do teste DNS/HTTPS.');
+for (const id of Object.keys(gates)) {
+  if (!(id in REQUIRED_GATES)) problems.push(`${id}: gate desconhecido; atualize o verificador antes de adicionar evidência.`);
+}
 
-const pending = checks.filter((item) => !item.ok);
+const releaseReady = rows.every((row) => row.meetsRelease) && problems.length === 0;
+const markdown = [
+  '# Evidências de liberação — Arandu',
+  '',
+  `Gerado em: ${new Date().toISOString()}`,
+  '',
+  `Resultado: **${releaseReady ? 'LIBERADO' : 'BLOQUEADO'}**`,
+  '',
+  '| Gate | Estado registrado | Mínimo para liberação | Campos válidos | Resultado |',
+  '| --- | --- | --- | --- | --- |',
+  ...rows.map((row) => `| ${row.id} | ${row.state} | ${row.requiredState} | ${row.fieldsValid ? 'sim' : 'não'} | ${row.meetsRelease ? 'aprovado' : 'pendente'} |`),
+  '',
+  '## Regras',
+  '',
+  '- `implemented`: existe no código, mas não comprova CI, staging ou produção.',
+  '- `ci_validated`: foi validado por uma execução referenciada da CI.',
+  '- `staging_validated`: foi executado no ambiente de staging identificado pela referência.',
+  '- `production_validated`: foi executado no ambiente de produção identificado pela referência.',
+  '- `human_approved`: exige decisão humana registrada; não pode ser inferida por teste automatizado.',
+  '- CI local ou em GitHub Actions não comprova aplicação no Supabase real.',
+  '',
+  '## Problemas de formato',
+  '',
+  ...(problems.length ? problems.map((problem) => `- ${problem}`) : ['- Nenhum.']),
+  ''
+].join('\n');
+
+fs.mkdirSync(path.dirname(reportPath), { recursive: true });
+fs.writeFileSync(reportPath, markdown);
+
 console.log('Arandu Release Evidence Check');
-console.log(`Evidências: ${checks.length - pending.length}/${checks.length}`);
-for (const item of checks) console.log(`${item.ok ? 'OK' : 'PENDENTE'} [${item.group}] ${item.name}${item.ok ? '' : ` — ${item.guidance}`}`);
-if (strict && pending.length) process.exit(1);
+console.log(`Gates liberados: ${rows.filter((row) => row.meetsRelease).length}/${rows.length}`);
+console.log(`Erros de formato: ${problems.length}`);
+for (const row of rows) {
+  console.log(`${row.meetsRelease ? 'OK' : 'PENDENTE'} ${row.id}: ${row.state} (mínimo ${row.requiredState})`);
+}
+problems.forEach((problem) => console.error(`- ${problem}`));
+console.log('Relatório: reports/release-evidence.md');
+if (problems.length || (strict && !releaseReady)) process.exit(1);

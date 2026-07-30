@@ -4,13 +4,43 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
 
 concurrency:
   group: arandu-ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  database:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Clean install, upgrade, rollback, RLS and transaction tests
+        env:
+          ARANDU_DATABASE_TEST_URL: postgresql://postgres:postgres@localhost:5432/postgres
+        run: npm run test:database
+
   validate:
     runs-on: ubuntu-latest
     env:

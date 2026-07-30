@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { inspectCommercialPolicy } from '../lib/commercial-policy.mjs';
 const strict = process.argv.includes('--require-ready');
 const checks = [];
 
@@ -37,6 +38,16 @@ add('Canal comercial', whatsappDigits.length >= 12 || validEmail(value('ARANDU_C
 add('Contato LGPD', validEmail(value('ARANDU_PRIVACY_CONTACT_EMAIL')), 'Configure um e-mail válido para solicitações LGPD.');
 add('Marca aprovada', truthy('ARANDU_BRAND_READY'), 'Só ative depois da aprovação formal da identidade.');
 add('Operação comercial aprovada', truthy('ARANDU_COMMERCIAL_READY'), 'Só ative depois da política comercial completa.');
+add('Versão comercial no servidor', value('ARANDU_COMMERCIAL_POLICY_VERSION').length > 0, 'Configure a versão exata da política aprovada.');
+add('Moeda comercial', /^[A-Z]{3}$/.test(value('ARANDU_COMMERCIAL_CURRENCY').toUpperCase()), 'Configure uma moeda ISO 4217, sem presumir valor padrão.');
+const rawFeeRate = value('ARANDU_PLATFORM_FEE_RATE');
+const feeRate = Number(rawFeeRate);
+add('Comissão comercial no servidor', rawFeeRate !== '' && Number.isFinite(feeRate) && feeRate >= 0 && feeRate < 1, 'Configure a fração aprovada entre 0 e 1.');
+const rawReservationHours = value('ARANDU_RESERVATION_HOURS');
+const reservationHours = Number(rawReservationHours);
+add('Prazo de reserva no servidor', rawReservationHours !== '' && Number.isFinite(reservationHours) && reservationHours >= 1 && reservationHours <= 720, 'Configure o prazo aprovado entre 1 e 720 horas.');
+const commercialPolicy = inspectCommercialPolicy();
+add('Política comercial completa', commercialPolicy.ready, 'Configure referências, governança e aprovação de todos os componentes da política.');
 add('Rate limit distribuído', truthy('ARANDU_DISTRIBUTED_RATE_LIMIT'), 'Só ative depois de testar a migration/provedor compartilhado.');
 add('Monitoramento de erros', truthy('ARANDU_ERROR_MONITORING_READY'), 'Só ative depois de receber um erro canário no monitoramento.');
 add('Restauração de backup', recentDate(value('ARANDU_BACKUP_VERIFIED_AT')), 'Registre uma restauração comprovada nos últimos 30 dias.');

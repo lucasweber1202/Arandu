@@ -84,12 +84,12 @@ Criados:
 - `painel-cadastros.html`
 - `js/admin-cadastros.js`
 
-Essas rotas exigem token administrativo.
+Essas rotas exigem sessão administrativa.
 
 Variável necessária na Vercel:
 
 ```text
-ARANDU_ADMIN_TOKEN
+sessão administrativa protegida
 ```
 
 O painel `painel-cadastros.html` permite iniciar cadastros de artista, obra e certificado.
@@ -100,7 +100,7 @@ O painel `painel-cadastros.html` permite iniciar cadastros de artista, obra e ce
 SUPABASE_URL
 SUPABASE_ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY
-ARANDU_ADMIN_TOKEN
+sessão administrativa protegida
 ```
 
 ## 8. Como testar

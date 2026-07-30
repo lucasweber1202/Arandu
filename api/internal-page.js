@@ -1,7 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { AdminAuthError, applyAdminResponseHeaders, requireAdmin } from '../lib/admin-auth.mjs';
-import { INTERNAL_PAGE_SET } from '../lib/internal-pages.mjs';
+import { requireAdminPermission } from '../lib/admin-rbac.mjs';
+import { INTERNAL_PAGE_SET, permissionForInternalPage } from '../lib/internal-pages.mjs';
 
 function pageName(req) {
   const url = new URL(req.url, 'http://localhost');
@@ -30,6 +31,8 @@ export default async function handler(req, res) {
 
   try {
     const admin = await requireAdmin(req);
+    const [resource, action] = permissionForInternalPage(page);
+    requireAdminPermission(admin.actor, resource, action);
     const source = await readFile(resolve(process.cwd(), page), 'utf8');
     const bridge = '<script src="/js/admin-session-bridge.js"></script>';
     const html = source.includes('</head>') ? source.replace('</head>', `${bridge}</head>`) : `${bridge}${source}`;

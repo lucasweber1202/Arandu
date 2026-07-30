@@ -5,8 +5,6 @@ import { evaluateCatalogRelease } from './lib/catalog-readiness.mjs';
 const root = process.cwd();
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
-const SUPABASE_KEY = SUPABASE_SERVICE_KEY || SUPABASE_ANON_KEY;
 const DRY_RUN = process.argv.includes('--dry-run') || process.env.ARANDU_SEED_DRY_RUN === '1';
 const RESET = process.argv.includes('--reset') || process.env.ARANDU_SEED_RESET === '1';
 
@@ -32,8 +30,8 @@ async function supabase(resource, options = {}) {
   const response = await fetch(url, {
     method: options.method || 'GET',
     headers: {
-      apikey: SUPABASE_KEY,
-      Authorization: `Bearer ${SUPABASE_KEY}`,
+      apikey: SUPABASE_SERVICE_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
       'Content-Type': 'application/json',
       Prefer: options.prefer || 'return=representation,resolution=merge-duplicates',
       ...(options.headers || {})

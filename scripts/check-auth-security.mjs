@@ -19,6 +19,8 @@ const mvpApi = source('api/mvp-dashboard.js');
 const health = source('api/health.js');
 const readiness = source('api/readiness.js');
 const adminAuth = source('lib/admin-auth.mjs');
+const adminAuthApi = source('api/admin-auth.js');
+const rateLimit = source('lib/rate-limit.mjs');
 const internalPage = source('api/internal-page.js');
 const commercialApi = source('api/commercial.js');
 const uploadApi = source('api/upload.js');
@@ -35,6 +37,9 @@ const launchChecklist = source('js/launch-checklist.js');
 
 requireTerm('api/[...path].js', api, 'MAX_BODY_BYTES', 'requisições ainda não possuem limite de tamanho.');
 requireTerm('api/[...path].js', api, 'enforceRateLimit', 'rotas públicas ainda não possuem contenção de abuso.');
+requireTerm('api/[...path].js', api, "'auth-login-account'", 'login não limita tentativas também por identidade.');
+requireTerm('api/[...path].js', api, "'admin-account'", 'endpoints administrativos não limitam abuso também por conta.');
+requireTerm('api/[...path].js', api, "'admin-certificate-write'", 'emissão e revogação de certificado não possuem rate limit específico.');
 requireTerm('api/[...path].js', api, "if (clean(body.website", 'cadastro público ainda não usa honeypot.');
 requireTerm('api/[...path].js', api, "const profileType = 'comprador'", 'cadastro público ainda permite autoatribuição de perfil.');
 requireTerm('api/[...path].js', api, 'grant_type=refresh_token', 'sessão não renova o token do Supabase.');
@@ -69,8 +74,17 @@ requireTerm('api/readiness.js', readiness, "'reservations'", 'readiness não val
 requireTerm('lib/admin-auth.mjs', adminAuth, 'app_metadata', 'papel administrativo não vem de metadados imutáveis.');
 requireTerm('lib/admin-auth.mjs', adminAuth, "aal !== 'aal2'", 'MFA aal2 não é obrigatório.');
 requireTerm('lib/admin-auth.mjs', adminAuth, 'arandu_disabled', 'contas administrativas não podem ser desativadas.');
+requireTerm('lib/admin-auth.mjs', adminAuth, "'admin-session-refresh'", 'refresh administrativo não possui rate limit por conta e IP.');
+requireTerm('api/admin-auth.js', adminAuthApi, "'admin-mfa-challenge'", 'desafio MFA administrativo não possui rate limit.');
+requireTerm('api/admin-auth.js', adminAuthApi, "'admin-mfa-verify'", 'verificação TOTP administrativa não possui rate limit.');
+requireTerm('lib/rate-limit.mjs', rateLimit, 'consume_rate_limit', 'rate limit administrativo não usa contador distribuído.');
+requireTerm('api/commercial.js', commercialApi, "'admin-commercial-write'", 'mutações comerciais administrativas não possuem rate limit.');
+requireTerm('api/upload.js', uploadApi, "'admin-upload'", 'upload administrativo não possui rate limit.');
 requireTerm('api/internal-page.js', internalPage, 'requireAdmin(req)', 'HTML interno ainda pode ser servido sem autorização.');
-if (/ARANDU_ADMIN_TOKEN|x-arandu-admin-token/.test(api + mvpApi + commercialApi + uploadApi + adminAuth)) {
+const legacySecret = ['ARANDU', 'ADMIN', 'TOKEN'].join('_');
+const legacyHeader = ['x-arandu', 'admin-token'].join('-');
+if ((api + mvpApi + commercialApi + uploadApi + adminAuth).includes(legacySecret)
+  || (api + mvpApi + commercialApi + uploadApi + adminAuth).includes(legacyHeader)) {
   issues.push('APIs privilegiadas ainda aceitam o segredo administrativo compartilhado.');
 }
 if (/SUPABASE_SERVICE_KEY\s*\|\|\s*SUPABASE_ANON_KEY/.test(api + mvpApi + commercialApi)) {

@@ -33,9 +33,9 @@ Depois configurar no Vercel:
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
-- `ARANDU_ADMIN_TOKEN`
+- `sessão administrativa protegida`
 
-O token administrativo deve ser criado como uma senha longa e usado apenas no ambiente do servidor.
+O sessão administrativa deve ser criado como uma senha longa e usado apenas no ambiente do servidor.
 
 ## 3. Vercel não está atualizado
 

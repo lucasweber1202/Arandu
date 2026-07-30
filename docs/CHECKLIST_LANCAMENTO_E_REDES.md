@@ -59,7 +59,7 @@ Verificar:
 - WhatsApp real;
 - e-mail operacional;
 - ambiente Supabase;
-- token administrativo;
+- sessão administrativa;
 - artistas e obras reais;
 - certificados reais;
 - revisão de placeholders.

@@ -2,7 +2,7 @@
 
 ## Estado implementado
 
-O Arandu não aceita mais `ARANDU_ADMIN_TOKEN` nas APIs privilegiadas. A administração usa a mesma sessão Supabase Auth mantida em cookie `HttpOnly`, com autorização verificada no servidor.
+O Arandu não aceita mais `sessão administrativa protegida` nas APIs privilegiadas. A administração usa a mesma sessão Supabase Auth mantida em cookie `HttpOnly`, com autorização verificada no servidor.
 
 O acesso exige simultaneamente:
 

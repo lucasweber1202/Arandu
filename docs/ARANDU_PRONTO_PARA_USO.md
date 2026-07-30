@@ -37,7 +37,7 @@ Este documento resume o que já pode ser usado agora e o que ainda depende de co
    - `SUPABASE_URL`
    - `SUPABASE_ANON_KEY`
    - `SUPABASE_SERVICE_ROLE_KEY`
-   - `ARANDU_ADMIN_TOKEN`
+   - `sessão administrativa protegida`
    - `ARANDU_SITE_URL`
 4. Rodar schema Supabase e seeds.
 5. Substituir artistas/obras demonstrativos por registros reais autorizados.

@@ -1,6 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import { AdminAuthError, applyAdminResponseHeaders, requireAdmin } from '../lib/admin-auth.mjs';
+import { requireAdminPermission } from '../lib/admin-rbac.mjs';
 import { applyApiSecurityHeaders } from '../lib/http-security.mjs';
+import { enforceSensitiveRateLimit } from '../lib/rate-limit.mjs';
+import { inspectCommercialPolicy } from '../lib/commercial-policy.mjs';
 
 const PROBE_TIMEOUT_MS = 6000;
 const REQUIRED_TABLES = [
@@ -31,6 +34,10 @@ function enabled(name) {
 
 function configured(name) {
   return Boolean(clean(process.env[name]));
+}
+
+function validCommercialConfiguration() {
+  return inspectCommercialPolicy().ready;
 }
 
 function validEmail(value) {
@@ -64,6 +71,7 @@ function buildChecks() {
     privacyContact: validEmail(process.env.ARANDU_PRIVACY_CONTACT_EMAIL || process.env.ARANDU_CONTACT_EMAIL),
     brandReady: enabled('ARANDU_BRAND_READY'),
     commercialReady: enabled('ARANDU_COMMERCIAL_READY'),
+    commercialPolicyConfigured: validCommercialConfiguration(),
     distributedRateLimit: enabled('ARANDU_DISTRIBUTED_RATE_LIMIT'),
     errorMonitoring: enabled('ARANDU_ERROR_MONITORING_READY'),
     backupVerified: recentBackupVerified(),
@@ -114,6 +122,12 @@ export default async function handler(req, res) {
   try {
     if (req.method !== 'GET') return json(res, 405, { ok: false, error: 'Método não permitido.', requestId });
     const admin = await requireAdmin(req);
+    requireAdminPermission(admin.actor, 'diagnostics', 'read');
+    await enforceSensitiveRateLimit(req, 'admin-readiness', {
+      limit: 30,
+      windowMs: 10 * 60 * 1000,
+      identity: admin.actor.id
+    });
     const checks = buildChecks();
     const databaseConfigured = checks.supabaseUrl && checks.supabaseServiceRoleKey;
     const probes = databaseConfigured

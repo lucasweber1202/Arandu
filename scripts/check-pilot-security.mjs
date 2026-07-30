@@ -9,6 +9,8 @@ const requireTerm = (source, term, message) => { if (!source.includes(term)) iss
 requireTerm(api, 'timingSafeEqual', 'Código do piloto não usa comparação em tempo constante.');
 requireTerm(api, 'HttpOnly; SameSite=Lax; Secure', 'Cookie do piloto não está protegido.');
 requireTerm(api, 'pilotEventPayload', 'Eventos não possuem whitelist de payload.');
+requireTerm(api, 'PILOT_SEVERITIES', 'Feedback não classifica severidade.');
+requireTerm(api, 'critical_blockers_open', 'Métricas não expõem bloqueadores críticos abertos.');
 requireTerm(api, 'requirePilotAccess(req)', 'Eventos/feedback não exigem convite.');
 requireTerm(api, "await adminGuard(req, res)", 'Métricas do piloto não exigem sessão administrativa.');
 requireTerm(client, "navigator.doNotTrack === '1'", 'Telemetria não respeita Do Not Track.');

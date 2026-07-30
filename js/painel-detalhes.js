@@ -1,4 +1,4 @@
-const DETAIL_TOKEN_KEY = 'arandu.admin.token';
+const DETAIL_TOKEN_KEY = 'arandu.admin.sessionHint';
 
 function detailToken() { return sessionStorage.getItem(DETAIL_TOKEN_KEY) || ''; }
 function escapeDetailHtml(value) { return String(value ?? '').replace(/[&<>'"]/g, (char) => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char])); }
@@ -13,7 +13,7 @@ function loadCrmLite() {
 }
 
 async function detailRequest(url, options = {}) {
-  const response = await fetch(url, { ...options, headers: { 'Content-Type': 'application/json', 'x-arandu-admin-token': detailToken(), ...(options.headers || {}) } });
+  const response = await fetch(url, { ...options, headers: { 'Content-Type': 'application/json', ...(options.headers || {}) } });
   const data = await response.json().catch(() => ({}));
   if (!response.ok || data.ok === false) throw new Error(data.error || 'Erro operacional.');
   return data;

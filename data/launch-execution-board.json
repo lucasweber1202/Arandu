@@ -19,7 +19,7 @@
         { "id": "deploy-vercel", "title": "Deploy Vercel sem erro de funções", "status": "pending", "priority": "high" },
         { "id": "domain", "title": "Domínio real configurado", "status": "pending", "priority": "high" },
         { "id": "supabase", "title": "Supabase configurado", "status": "pending", "priority": "high" },
-        { "id": "admin-token", "title": "Token administrativo configurado na Vercel", "status": "pending", "priority": "high" },
+        { "id": "admin-token", "title": "Sessão administrativa configurado na Vercel", "status": "pending", "priority": "high" },
         { "id": "health", "title": "Validar /api/health e /status.html em produção", "status": "pending", "priority": "high" }
       ]
     },

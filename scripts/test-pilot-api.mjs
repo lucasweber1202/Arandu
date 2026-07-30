@@ -71,17 +71,21 @@ try {
     return new Response(null, { status: 201 });
   };
   const feedback = await call('POST', '/api/pilot/feedback', {
-    sessionId: '123e4567-e89b-42d3-a456-426614174000', task: 'catalog', rating: 4, message: 'Busca clara.', contactAllowed: true
+    sessionId: '123e4567-e89b-42d3-a456-426614174000', task: 'catalog', rating: 4, message: 'Busca clara.', contactAllowed: true,
+    category: 'catalog', severity: 'high', blockerStatus: 'resolved', taskCompleted: true
   }, { cookie: pilotCookie });
   assert.equal(feedback.status, 201);
   assert.equal(feedbackRecord.rating, 4);
   assert.equal(feedbackRecord.contact_allowed, true);
+  assert.equal(feedbackRecord.severity, 'high');
+  assert.equal(feedbackRecord.blocker_status, 'resolved');
+  assert.equal(feedbackRecord.task_completed, true);
 
   global.fetch = async (url) => {
     const value = String(url);
     if (value.endsWith('/auth/v1/user')) return json(testAdminUser());
     if (value.includes('pilot_events?')) return json([{ session_id: '123e4567-e89b-42d3-a456-426614174000', event_type: 'page_view' }, { session_id: '123e4567-e89b-42d3-a456-426614174000', event_type: 'selection_add' }]);
-    if (value.includes('pilot_feedback?')) return json([{ session_id: '123e4567-e89b-42d3-a456-426614174000', rating: 4 }]);
+    if (value.includes('pilot_feedback?')) return json([{ session_id: '123e4567-e89b-42d3-a456-426614174000', rating: 4, severity: 'critical', blocker_status: 'open', task_completed: true }]);
     throw new Error(`URL inesperada: ${value}`);
   };
   const metrics = await call('GET', '/api/pilot/metrics', undefined, { cookie: testAdminCookie() });
@@ -89,6 +93,8 @@ try {
   assert.equal(metrics.body.metrics.unique_sessions, 1);
   assert.equal(metrics.body.metrics.average_rating, 4);
   assert.equal(metrics.body.metrics.event_selection_add, 1);
+  assert.equal(metrics.body.metrics.critical_blockers_open, 1);
+  assert.equal(metrics.body.metrics.tasks_completed, 1);
 
   process.env.ARANDU_PILOT_ENABLED = 'false';
   const disabledSession = await call('GET', '/api/pilot/session');

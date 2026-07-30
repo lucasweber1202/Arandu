@@ -1,4 +1,4 @@
-const PANEL_ADMIN_TOKEN_KEY = 'arandu.admin.token';
+const PANEL_ADMIN_TOKEN_KEY = 'arandu.admin.sessionHint';
 const PANEL_LOCAL_STATUS_KEY = 'arandu.panel.status.v1';
 
 const PANEL_CONFIG = {
@@ -268,7 +268,6 @@ async function adminRequest(path, options = {}) {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      'x-arandu-admin-token': token,
       ...(options.headers || {})
     }
   });
@@ -339,7 +338,7 @@ async function loadPanel() {
   } else if (panelToken()) {
     panelStatus('Token informado, mas o Supabase ainda não está disponível. Alterações ficarão locais.');
   } else {
-    panelStatus('Painel operacional em modo local/demo. Informe o ARANDU_ADMIN_TOKEN para conectar ao banco.');
+    panelStatus('Painel operacional em modo local/demo. Informe o sessão administrativa protegida para conectar ao banco.');
   }
 }
 
@@ -425,7 +424,7 @@ document.addEventListener('click', async (event) => {
 });
 
 document.addEventListener('input', (event) => {
-  if (event.target.matches('[data-admin-token]')) setPanelToken(event.target.value);
+  if (event.target.matches('[data-admin-session-hint]')) setPanelToken(event.target.value);
   if (event.target.matches('[data-panel-filter-q]')) renderTable(currentConfig());
 });
 
@@ -434,6 +433,6 @@ document.addEventListener('change', (event) => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-  document.querySelectorAll('[data-admin-token]').forEach((input) => { input.value = panelToken(); });
+  document.querySelectorAll('[data-admin-session-hint]').forEach((input) => { input.value = panelToken(); });
   loadPanel();
 });

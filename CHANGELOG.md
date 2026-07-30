@@ -1,5 +1,28 @@
 # Changelog — Arandu
 
+## Não lançado — Integridade transacional e autorização
+
+- Reservas atômicas com bloqueio da obra e unicidade de reserva ativa.
+- Propostas e registros comerciais calculados e criados no PostgreSQL.
+- Idempotência serializada, vinculada à identidade e ao payload.
+- Clientes Supabase separados para leitura pública, JWT do usuário e service role.
+- Escritas diretas anônimas/autenticadas fechadas nos fluxos protegidos.
+- RBAC explícito para `admin`, `operator` e `curator`, inclusive nas páginas internas.
+- Auditoria transacional minimizada com operador, papel e request ID.
+- PostgreSQL descartável na CI para migrations, rollback, RLS e concorrência.
+- Snapshots imutáveis da política comercial em reservas, propostas e registros.
+- Política comercial central, completa e fail-closed, sem valores vindos do navegador.
+- Fluxo operacional de migrations com dry-run, preflight sem PII, backup obrigatório,
+  probes pós-migration e canário de escrita.
+- Evidências de release tipadas por estágio, validadas e publicadas em relatório
+  legível, sem alegar validações externas.
+- Intake de catálogo com moeda, situação editorial, autorizações, consentimento,
+  duplicidades e relatório por linha.
+- Observabilidade com request ID, logs estruturados minimizados e adaptador HTTPS.
+- Piloto fechado com tarefas, severidade de feedback, bloqueadores e gate de aprovação.
+- Scanner de regressão impede segredos administrativos legados, fallback da service
+  role e papéis privilegiados em `user_metadata`.
+
 ## v1.1 — Usabilidade, segurança, estética e organização
 
 ### Segurança
