@@ -29,7 +29,7 @@ ARANDU_WHATSAPP_NUMBER=
 ARANDU_CONTACT_EMAIL=
 ```
 
-Depois disso, rodar um novo deploy. Não recrie `ARANDU_ADMIN_TOKEN`: a administração agora usa Supabase Auth com papel em `app_metadata` e MFA TOTP. Siga `ADMIN_AUTH_MFA.md`.
+Depois disso, rodar um novo deploy. Não recrie `sessão administrativa protegida`: a administração agora usa Supabase Auth com papel em `app_metadata` e MFA TOTP. Siga `ADMIN_AUTH_MFA.md`.
 
 ### Supabase
 

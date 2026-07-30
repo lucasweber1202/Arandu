@@ -1,4 +1,4 @@
-const ADMIN_TOKEN_KEY = 'arandu.admin.token';
+const ADMIN_TOKEN_KEY = 'arandu.admin.sessionHint';
 
 function adminToken() {
   return sessionStorage.getItem(ADMIN_TOKEN_KEY) || '';
@@ -16,7 +16,6 @@ async function adminRequest(url, options = {}) {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      'x-arandu-admin-token': adminToken(),
       ...(options.headers || {})
     }
   });
@@ -30,7 +29,7 @@ function formDataObject(form) {
 }
 
 function setupAdminToken() {
-  const input = document.querySelector('[data-admin-token]');
+  const input = document.querySelector('[data-admin-session-hint]');
   if (!input) return;
   input.value = adminToken();
   input.addEventListener('input', () => {

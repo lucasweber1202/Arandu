@@ -31,7 +31,7 @@
       card('Certificados',hasTrust,certItems.length+' registros de certificado encontrados.','certificado-imprimivel.html'),
       card('Contato comercial',contact,contact?'WhatsApp ou e-mail central configurado.':'Configurar WhatsApp real ou e-mail de atendimento.','templates-comunicacao.html'),
       card('Supabase',Boolean(checks.supabaseUrl&&checks.supabaseAnonKey),checks.supabaseUrl?'Variáveis Supabase detectadas.':'Banco de produção ainda não configurado.','status.html'),
-      card('Token admin',Boolean(checks.adminToken),checks.adminToken?'Token administrativo detectado.':'Configure ARANDU_ADMIN_TOKEN na Vercel.','docs/VERCEL_ENV_SETUP.md'),
+      card('Token admin',Boolean(checks.adminToken),checks.adminToken?'Sessão administrativa detectado.':'Configure sessão administrativa protegida na Vercel.','docs/VERCEL_ENV_SETUP.md'),
       card('Logo',hasLogo,logoPng?'PNG final detectado.':(logoSvg?'SVG provisório detectado; substituir por PNG final depois.':'Logo ausente.'),'assets/logo-arandu.svg'),
       card('Pronto para produção',Boolean(healthData.verifiedReady),healthData.verifiedReady?'Ambiente e catálogo verificados ponta a ponta.':'Faltam configuração, catálogo real ou teste de escrita.','status.html')
     ];
@@ -39,7 +39,7 @@
     const pending=[];
     if(!contact)pending.push({title:'Configurar canal de contato',text:'Inserir WhatsApp real em data/whatsapp-config.js ou configurar ARANDU_CONTACT_EMAIL.',href:'docs/VERCEL_ENV_SETUP.md'});
     if(!checks.supabaseUrl)pending.push({title:'Configurar Supabase',text:'Adicionar SUPABASE_URL, SUPABASE_ANON_KEY e SERVICE_ROLE na Vercel.',href:'docs/VERCEL_ENV_SETUP.md'});
-    if(!checks.adminToken)pending.push({title:'Criar token administrativo',text:'Definir ARANDU_ADMIN_TOKEN para liberar painel real.',href:'docs/VERCEL_ENV_SETUP.md'});
+    if(!checks.adminToken)pending.push({title:'Criar sessão administrativa',text:'Definir sessão administrativa protegida para liberar painel real.',href:'docs/VERCEL_ENV_SETUP.md'});
     if(!hasEnoughCatalog)pending.push({title:'Substituir base demo por catálogo real',text:'Meta mínima: 5 artistas reais e 20 obras reais autorizadas.',href:'catalogo-intake.html'});
     if(!logoPng)pending.push({title:'Subir logo final PNG',text:'Adicionar assets/logo-arandu.png antes de divulgar amplamente.',href:'docs/VERCEL_ENV_SETUP.md'});
     const ready=[{title:'Venda assistida já utilizável',text:'Catálogo, reserva, proposta pública, certificado e contato já têm fluxos navegáveis.',href:'comprar-arte.html'},{title:'Operação comercial já utilizável',text:'Kanban, funil, diagnóstico e templates estão disponíveis para uso interno.',href:'kanban-comercial.html'}];

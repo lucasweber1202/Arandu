@@ -56,14 +56,14 @@ begin
   end if;
   if not has_function_privilege(
     'service_role',
-    'public.create_reservation_atomic(text,uuid,text,text,text,text,text,timestamptz,text,text,text,text,text,text,text,text,text,text)',
+    'public.create_reservation_atomic(text,uuid,text,text,text,text,text,timestamptz,text,text,jsonb,text,text,text,text,text,text,text,text)',
     'EXECUTE'
   ) then
     raise exception 'service_role não pode executar reserva atômica';
   end if;
   if has_function_privilege(
     'anon',
-    'public.create_reservation_atomic(text,uuid,text,text,text,text,text,timestamptz,text,text,text,text,text,text,text,text,text,text)',
+    'public.create_reservation_atomic(text,uuid,text,text,text,text,text,timestamptz,text,text,jsonb,text,text,text,text,text,text,text,text)',
     'EXECUTE'
   ) then
     raise exception 'anon pode executar reserva atômica';
@@ -117,6 +117,7 @@ select public.create_proposal_atomic(
   'BRL',
   0.20,
   'policy-test-v1',
+  '{"version":"policy-test-v1","currency":"BRL","platformFeeRate":0.20,"reservationHours":24}'::jsonb,
   'user',
   '11111111-1111-4111-8111-111111111111',
   'request-proposal-1',
@@ -193,6 +194,7 @@ begin
       'BRL',
       0.20,
       'policy-test-v1',
+      '{"version":"policy-test-v1","currency":"BRL","platformFeeRate":0.20,"reservationHours":24}'::jsonb,
       'user',
       '11111111-1111-4111-8111-111111111111',
       'request-proposal-rollback',
@@ -232,6 +234,7 @@ select public.create_reservation_atomic(
   now() + interval '24 hours',
   'BRL',
   'policy-test-v1',
+  '{"version":"policy-test-v1","currency":"BRL","platformFeeRate":0.20,"reservationHours":24}'::jsonb,
   'database-test',
   'user',
   '11111111-1111-4111-8111-111111111111',

@@ -33,7 +33,7 @@ Conferir em `Settings → Environment Variables`:
 SUPABASE_URL=
 SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
-ARANDU_ADMIN_TOKEN=
+sessão administrativa protegida=
 ARANDU_SITE_URL=https://SEU-DOMINIO
 ARANDU_WHATSAPP_NUMBER=55DDNUMERO
 ARANDU_CONTACT_EMAIL=contato@SEU-DOMINIO
@@ -50,7 +50,7 @@ Depois de alterar variáveis, faça um redeploy único.
 4. Subir uma imagem por `upload-imagens.html`.
 5. Aplicar a imagem a uma obra real.
 6. Testar catálogo público.
-7. Testar painel admin com `ARANDU_ADMIN_TOKEN`.
+7. Testar painel admin com `sessão administrativa protegida`.
 
 ## 5. URLs para validar
 

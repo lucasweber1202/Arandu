@@ -43,7 +43,7 @@ No ambiente local ou na Vercel, configure:
 SUPABASE_URL=https://seu-projeto.supabase.co
 SUPABASE_ANON_KEY=chave_publica_anon
 SUPABASE_SERVICE_ROLE_KEY=chave_service_role_servidor
-ARANDU_ADMIN_TOKEN=um_token_longo_e_privado_para_o_painel
+sessão administrativa protegida=um_token_longo_e_privado_para_o_painel
 ```
 
 Observações:
@@ -51,7 +51,7 @@ Observações:
 - `SUPABASE_URL` é obrigatório para operação real.
 - `SUPABASE_ANON_KEY` permite autenticação pública e uso do Supabase Auth.
 - `SUPABASE_SERVICE_ROLE_KEY` deve ficar apenas no ambiente servidor. Não colocar no front.
-- `ARANDU_ADMIN_TOKEN` protege o painel operacional. Use um valor longo, privado e diferente de senhas pessoais.
+- `sessão administrativa protegida` protege o painel operacional. Use um valor longo, privado e diferente de senhas pessoais.
 
 ## 4. Validar backend
 
@@ -218,7 +218,7 @@ Endpoint:
 
 ```text
 GET /api/dashboard
-Header: x-arandu-admin-token: seu_token
+Header: cookie HttpOnly de sessão: cookie de sessão
 ```
 
 Retorna métricas operacionais somente para os painéis internos:
@@ -249,7 +249,7 @@ O fluxo usa Supabase Auth com email e senha. A sessão é guardada em cookie `Ht
 
 ### Painel administrativo
 
-O painel tenta consultar o Supabase quando o usuário informa o `ARANDU_ADMIN_TOKEN` no campo de acesso administrativo. Com Supabase e token configurados, ele passa a:
+O painel tenta consultar o Supabase quando o usuário informa o `sessão administrativa protegida` no campo de acesso administrativo. Com Supabase e token configurados, ele passa a:
 
 - listar obras, artistas, certificados, leads, submissões, briefings, propostas, reservas e tarefas pelo backend;
 - atualizar status com `PATCH /api/admin`;
@@ -260,14 +260,14 @@ Exemplo de consulta administrativa:
 
 ```text
 GET /api/admin?panel=leads
-Header: x-arandu-admin-token: seu_token
+Header: cookie HttpOnly de sessão: cookie de sessão
 ```
 
 Exemplo de cadastro administrativo:
 
 ```text
 POST /api/admin
-Header: x-arandu-admin-token: seu_token
+Header: cookie HttpOnly de sessão: cookie de sessão
 Body: { "type": "artist", "data": { "name": "Nome do artista" } }
 ```
 
@@ -275,7 +275,7 @@ Exemplo de atualização de status:
 
 ```text
 PATCH /api/admin
-Header: x-arandu-admin-token: seu_token
+Header: cookie HttpOnly de sessão: cookie de sessão
 Body: { "panel": "reservations", "id": "uuid", "status": "confirmed" }
 ```
 
@@ -285,7 +285,7 @@ Endpoint:
 
 ```text
 PATCH /api/admin-update
-Header: x-arandu-admin-token: seu_token
+Header: cookie HttpOnly de sessão: cookie de sessão
 ```
 
 Uso previsto para edição de campos de artistas, obras, certificados e tarefas.
@@ -303,14 +303,14 @@ Exemplo de consulta de notas:
 
 ```text
 GET /api/operational?resource=notes&entity_type=lead&entity_id=uuid
-Header: x-arandu-admin-token: seu_token
+Header: cookie HttpOnly de sessão: cookie de sessão
 ```
 
 Exemplo de criação de tarefa:
 
 ```text
 POST /api/operational?resource=tasks
-Header: x-arandu-admin-token: seu_token
+Header: cookie HttpOnly de sessão: cookie de sessão
 Body: { "entity_type": "lead", "entity_id": "uuid", "title": "Retornar contato" }
 ```
 
@@ -321,7 +321,7 @@ Endpoint:
 ```text
 GET /api/media?entity_type=artwork&entity_id=id_da_obra
 POST /api/media
-Header: x-arandu-admin-token: seu_token
+Header: cookie HttpOnly de sessão: cookie de sessão
 ```
 
 Uso previsto para associar imagens e materiais a obras, artistas e entidades operacionais.
@@ -352,5 +352,5 @@ Depois, confirmar em produção:
 6. Testar reserva.
 7. Testar proposta.
 8. Testar login.
-9. Testar painel com `ARANDU_ADMIN_TOKEN`.
+9. Testar painel com `sessão administrativa protegida`.
 10. Trocar base demonstrativa por artistas e obras reais.

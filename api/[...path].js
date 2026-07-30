@@ -1,6 +1,8 @@
 import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
 import { AdminAuthError, applyAdminResponseHeaders, requireAdmin } from '../lib/admin-auth.mjs';
 import { requireAdminPermission } from '../lib/admin-rbac.mjs';
+import { requireCommercialPolicy } from '../lib/commercial-policy.mjs';
+import { reportError } from '../lib/observability.mjs';
 import { applyApiSecurityHeaders, crossOriginRejection } from '../lib/http-security.mjs';
 import {
   adminSupabaseRequest,
@@ -23,6 +25,8 @@ const PUBLIC_PROFILE_TYPES = new Set(['comprador', 'artista', 'empresa', 'arquit
 const PUBLIC_SELECTION_STATUSES = new Set(['open', 'sent', 'reviewed']);
 const RATE_LIMITS = new Map();
 const PILOT_EVENT_TYPES = new Set(['page_view','search','artwork_view','selection_add','reservation_start','reservation_complete','form_submit','pilot_task']);
+const PILOT_SEVERITIES = new Set(['info','low','medium','high','critical']);
+const PILOT_BLOCKER_STATUSES = new Set(['open','mitigated','resolved','not_applicable']);
 const CONVERSION_EVENT_TYPES = new Set(['search','catalog_view','artwork_view','selection_add','contact_start','reservation_start','reservation_complete']);
 const PRIVACY_REQUEST_TYPES = new Set(['access','correction','deletion','portability']);
 const EDITORIAL_STATUSES = new Set(['draft','documentation_pending','curatorial_review','approved','published','rejected','archived']);
@@ -81,23 +85,7 @@ function cleanPhone(value) { return clean(value).replace(/\D/g, '').slice(0, 15)
 function validEmail(value) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail(value)); }
 function trueFlag(value) { return ['1','true','yes','sim'].includes(clean(value).toLowerCase()); }
 function requireCommercialReady() {
-  if (!trueFlag(process.env.ARANDU_COMMERCIAL_READY)) {
-    throw new HttpError(503, 'Reservas e propostas aguardam a aprovação da política comercial.', 'commercial_policy_pending');
-  }
-}
-function commercialPolicy({ includeFee = false } = {}) {
-  const version = limited(process.env.ARANDU_COMMERCIAL_POLICY_VERSION, 120);
-  const currency = clean(process.env.ARANDU_COMMERCIAL_CURRENCY).toUpperCase();
-  const reservationHours = Number(process.env.ARANDU_RESERVATION_HOURS);
-  const feeRateRaw = clean(process.env.ARANDU_PLATFORM_FEE_RATE);
-  const feeRate = Number(feeRateRaw);
-  if (!version || !/^[A-Z]{3}$/.test(currency) || !Number.isFinite(reservationHours) || reservationHours < 1 || reservationHours > 720) {
-    throw new HttpError(503, 'A política comercial versionada ainda não foi configurada.', 'commercial_policy_unconfigured');
-  }
-  if (includeFee && (!feeRateRaw || !Number.isFinite(feeRate) || feeRate < 0 || feeRate >= 1)) {
-    throw new HttpError(503, 'A comissão da política comercial ainda não foi configurada.', 'commercial_fee_unconfigured');
-  }
-  return { version, currency, reservationHours, feeRate: includeFee ? feeRate : null };
+  return requireCommercialPolicy();
 }
 function publicProfileType(value) { const type = clean(value).toLowerCase(); return PUBLIC_PROFILE_TYPES.has(type) ? type : 'comprador'; }
 function validUrl(value) { try { const url = new URL(value); return ['http:', 'https:'].includes(url.protocol); } catch { return false; } }
@@ -748,7 +736,7 @@ async function handleReservations(req, res) {
   if (!record.whatsapp || record.whatsapp.length < 10) throw new HttpError(400, 'Informe um WhatsApp válido com DDD.');
   const { session, user } = await optionalUser(req);
   requireDataConfig();
-  const policy = commercialPolicy();
+  const policy = requireCommercialReady();
   const identity = operationIdentity(req, user);
   const accepted = {
     artworkId: record.artwork_id,
@@ -775,6 +763,7 @@ async function handleReservations(req, res) {
       p_expires_at: new Date(Date.now() + policy.reservationHours * 60 * 60 * 1000).toISOString(),
       p_currency: policy.currency,
       p_policy_version: policy.version,
+      p_policy_snapshot: policy,
       p_origin: record.origin,
       p_actor_type: identity.actorType,
       p_actor_ref: identity.reference,
@@ -800,7 +789,7 @@ async function handleProposals(req, res) {
   if (!proposal.artworkIds.length) throw new HttpError(400, 'A proposta precisa conter obras.');
   const { session, user } = await optionalUser(req);
   requireDataConfig();
-  const policy = commercialPolicy({ includeFee: true });
+  const policy = requireCommercialReady();
   const identity = operationIdentity(req, user);
   const idempotency = await beginIdempotency(req, 'proposal.create', proposal, identity);
   if (idempotency.replay) return json(res, idempotency.status, idempotency.payload, {
@@ -820,8 +809,9 @@ async function handleProposals(req, res) {
       p_deadline: proposal.deadline,
       p_notes: proposal.notes,
       p_currency: policy.currency,
-      p_platform_fee_rate: policy.feeRate,
+      p_platform_fee_rate: policy.platformFeeRate,
       p_policy_version: policy.version,
+      p_policy_snapshot: policy,
       p_actor_type: identity.actorType,
       p_actor_ref: identity.reference,
       p_request_id: req.aranduRequestId,
@@ -944,14 +934,25 @@ async function handlePilot(req, res, action) {
     const body = await readBody(req);
     const sessionId = clean(body.sessionId || body.session_id);
     const rating = Number(body.rating);
+    const severity = clean(body.severity).toLowerCase() || 'info';
+    const blockerStatus = clean(body.blockerStatus || body.blocker_status).toLowerCase() || 'not_applicable';
     if (!validPilotSessionId(sessionId)) throw new HttpError(400, 'Sessão do piloto inválida.');
     if (!Number.isInteger(rating) || rating < 1 || rating > 5) throw new HttpError(400, 'Nota deve estar entre 1 e 5.');
+    if (!PILOT_SEVERITIES.has(severity)) throw new HttpError(400, 'Severidade de feedback inválida.');
+    if (!PILOT_BLOCKER_STATUSES.has(blockerStatus)) throw new HttpError(400, 'Situação do bloqueador inválida.');
+    if (['high','critical'].includes(severity) && blockerStatus === 'not_applicable') {
+      throw new HttpError(400, 'Feedback de alta severidade precisa de situação de bloqueador.');
+    }
     const record = {
       session_id: sessionId,
       task: limited(body.task, 120) || null,
       rating,
       message: limited(body.message, 2000) || null,
-      contact_allowed: body.contactAllowed === true || body.contact_allowed === true
+      contact_allowed: body.contactAllowed === true || body.contact_allowed === true,
+      category: limited(body.category, 80) || null,
+      severity,
+      blocker_status: blockerStatus,
+      task_completed: body.taskCompleted === true || body.task_completed === true
     };
     await dataRequest('pilot_feedback', { method: 'POST', body: JSON.stringify(record), headers: { Prefer: 'return=minimal' } });
     return json(res, 201, { ok: true, stored: true });
@@ -962,7 +963,7 @@ async function handlePilot(req, res, action) {
     if (req.method !== 'GET') return json(res, 405, { ok: false, error: 'Método não permitido.' });
     const [events, feedback] = await Promise.all([
       dataRequest('pilot_events?select=session_id,event_type&order=created_at.desc&limit=5000', { method: 'GET', headers: { Prefer: '' } }),
-      dataRequest('pilot_feedback?select=session_id,rating&order=created_at.desc&limit=1000', { method: 'GET', headers: { Prefer: '' } })
+      dataRequest('pilot_feedback?select=session_id,rating,severity,blocker_status,task_completed&order=created_at.desc&limit=1000', { method: 'GET', headers: { Prefer: '' } })
     ]);
     const eventRows = Array.isArray(events) ? events : [];
     const feedbackRows = Array.isArray(feedback) ? feedback : [];
@@ -972,6 +973,9 @@ async function handlePilot(req, res, action) {
       feedback_total: feedbackRows.length,
       average_rating: feedbackRows.length ? Number((feedbackRows.reduce((sum, item) => sum + Number(item.rating || 0), 0) / feedbackRows.length).toFixed(2)) : 0
     };
+    metrics.tasks_completed = feedbackRows.filter((item) => item.task_completed === true).length;
+    metrics.critical_blockers_open = feedbackRows.filter((item) => item.severity === 'critical' && item.blocker_status === 'open').length;
+    metrics.high_blockers_open = feedbackRows.filter((item) => item.severity === 'high' && item.blocker_status === 'open').length;
     for (const type of PILOT_EVENT_TYPES) metrics[`event_${type}`] = eventRows.filter((item) => item.event_type === type).length;
     return json(res, 200, { ok: true, metrics });
   }
@@ -1478,7 +1482,9 @@ export default async function handler(req, res) {
       : error instanceof HttpError || status < 500
         ? error.message || 'Não foi possível concluir a solicitação.'
         : 'Não foi possível concluir a solicitação agora.';
-    if (status >= 500 && !(error instanceof HttpError && error.code === 'catalog_not_verified')) console.error(JSON.stringify({ level: 'error', service: 'arandu-api', requestId, route, status, code: error?.code || null, message: limited(error?.message, 220) || 'Erro desconhecido' }));
+    if (status >= 500 && !(error instanceof HttpError && error.code === 'catalog_not_verified')) {
+      await reportError({ service: 'arandu-api', requestId, route, status, code: error?.code, method: req.method, error });
+    }
     if (route === 'certificate-document') return html(res, status, `<h1>Erro ao gerar certificado</h1><p>${escapeHtml(message)}</p>`);
     return json(res, status, { ok: false, error: message, requestId, ...(error?.code ? { code: error.code } : {}) });
   }

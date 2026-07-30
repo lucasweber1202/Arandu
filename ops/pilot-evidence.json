@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "state": "not_started",
+  "cohortReference": null,
+  "cohortSize": 0,
+  "startedAt": null,
+  "completedAt": null,
+  "metricsReference": null,
+  "uniqueParticipants": 0,
+  "feedbackResponses": 0,
+  "averageRating": null,
+  "tasksCompleted": 0,
+  "criticalBlockersOpen": null,
+  "highBlockersOpen": null,
+  "approved": false,
+  "approvedBy": null,
+  "approvedAt": null,
+  "approvalReference": null
+}

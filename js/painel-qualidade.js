@@ -1,4 +1,4 @@
-const QUALITY_TOKEN_KEY = 'arandu.admin.token';
+const QUALITY_TOKEN_KEY = 'arandu.admin.sessionHint';
 
 function qualityToken() {
   return sessionStorage.getItem(QUALITY_TOKEN_KEY) || '';
@@ -10,7 +10,7 @@ function setQualityToken(value) {
 
 async function qualityFetch() {
   const response = await fetch('/api/admin/quality', {
-    headers: { 'x-arandu-admin-token': qualityToken() }
+    headers: { }
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok || data.ok === false) throw new Error(data.error || 'Falha ao carregar auditoria.');
@@ -50,7 +50,7 @@ async function loadQuality() {
 }
 
 document.addEventListener('input', (event) => {
-  if (event.target.matches('[data-admin-token]')) setQualityToken(event.target.value);
+  if (event.target.matches('[data-admin-session-hint]')) setQualityToken(event.target.value);
 });
 
 document.addEventListener('click', (event) => {
@@ -58,7 +58,7 @@ document.addEventListener('click', (event) => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-  document.querySelectorAll('[data-admin-token]').forEach((input) => { input.value = qualityToken(); });
+  document.querySelectorAll('[data-admin-session-hint]').forEach((input) => { input.value = qualityToken(); });
   const status = document.querySelector('[data-quality-status]');
   if (status && !document.querySelector('[data-catalog-review-link]')) {
     const link = document.createElement('a');

@@ -34,7 +34,7 @@ Uso público e comercial.
 Critérios:
 
 - Supabase real configurado.
-- Token administrativo configurado.
+- Sessão administrativa configurado.
 - Domínio final configurado.
 - WhatsApp ou e-mail real configurado.
 - Catálogo real com autorização.

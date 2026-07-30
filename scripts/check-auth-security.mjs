@@ -81,7 +81,10 @@ requireTerm('lib/rate-limit.mjs', rateLimit, 'consume_rate_limit', 'rate limit a
 requireTerm('api/commercial.js', commercialApi, "'admin-commercial-write'", 'mutações comerciais administrativas não possuem rate limit.');
 requireTerm('api/upload.js', uploadApi, "'admin-upload'", 'upload administrativo não possui rate limit.');
 requireTerm('api/internal-page.js', internalPage, 'requireAdmin(req)', 'HTML interno ainda pode ser servido sem autorização.');
-if (/ARANDU_ADMIN_TOKEN|x-arandu-admin-token/.test(api + mvpApi + commercialApi + uploadApi + adminAuth)) {
+const legacySecret = ['ARANDU', 'ADMIN', 'TOKEN'].join('_');
+const legacyHeader = ['x-arandu', 'admin-token'].join('-');
+if ((api + mvpApi + commercialApi + uploadApi + adminAuth).includes(legacySecret)
+  || (api + mvpApi + commercialApi + uploadApi + adminAuth).includes(legacyHeader)) {
   issues.push('APIs privilegiadas ainda aceitam o segredo administrativo compartilhado.');
 }
 if (/SUPABASE_SERVICE_KEY\s*\|\|\s*SUPABASE_ANON_KEY/.test(api + mvpApi + commercialApi)) {

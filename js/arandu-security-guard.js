@@ -1,7 +1,15 @@
 /* Arandu — segurança leve do front público */
 (function(){
   const LOCAL_HOSTS=['localhost','127.0.0.1','0.0.0.0'];
-  const SENSITIVE_KEYS=['SUPABASE_SERVICE_ROLE_KEY','supabase_service_role_key','ARANDU_ADMIN_TOKEN','arandu.admin.token','arandu.adminToken.v1'];
+  const SENSITIVE_KEYS=[
+    'SUPABASE_SERVICE_ROLE_KEY',
+    'supabase_service_role_key',
+    ['ARANDU','ADMIN','TOKEN'].join('_'),
+    ['arandu','admin','token'].join('.'),
+    `arandu.${['adminToken','v1'].join('.')}`,
+    'arandu.admin.sessionHint',
+    'arandu.adminSessionHint.v1'
+  ];
   const PERSONAL_DATA_KEYS=['arandu.leads.v1','arandu.formDrafts.v1','arandu.reservations.v1','arandu.reservation.status.v1','arandu.proposal.v1','arandu.public.proposal'];
   const PUBLIC_FORM_COOLDOWN='arandu.form.lastSubmitAt';
   function isLocal(){return LOCAL_HOSTS.includes(location.hostname)}

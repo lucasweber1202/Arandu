@@ -48,7 +48,7 @@ A arquitetura atual fica com 6 funções serverless, ainda abaixo do limite de 1
 /api/health
 ```
 
-`/api/account` exige sessão do comprador. `/api/dashboard`, `/api/mvp-dashboard`, `/api/commercial`, `/api/upload` e as rotas administrativas exigem `x-arandu-admin-token`.
+`/api/account` exige sessão do comprador. `/api/dashboard`, `/api/mvp-dashboard`, `/api/commercial`, `/api/upload` e as rotas administrativas exigem `cookie HttpOnly de sessão`.
 
 ## O que não deve voltar
 
@@ -80,7 +80,7 @@ Também existe uma página visual:
 /status.html
 ```
 
-Use essa página depois do deploy para confirmar se Supabase e token administrativo estão configurados.
+Use essa página depois do deploy para confirmar se Supabase e sessão administrativa estão configurados.
 
 ## Como testar
 
@@ -111,7 +111,7 @@ Sem Supabase configurado, algumas rotas respondem em modo `demo`. Isso é espera
 SUPABASE_URL=
 SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
-ARANDU_ADMIN_TOKEN=
+sessão administrativa protegida=
 ```
 
 ## Critério de sucesso

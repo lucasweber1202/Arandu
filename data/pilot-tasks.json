@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "minimumCohort": 10,
+  "tasks": [
+    {
+      "id": "discover-artwork",
+      "label": "Encontrar uma obra compatível com um ambiente e orçamento",
+      "requiredEvent": "search"
+    },
+    {
+      "id": "review-artwork",
+      "label": "Avaliar ficha, autoria, dimensões, técnica e certificado",
+      "requiredEvent": "artwork_view"
+    },
+    {
+      "id": "build-selection",
+      "label": "Adicionar uma obra à seleção",
+      "requiredEvent": "selection_add"
+    },
+    {
+      "id": "start-reservation",
+      "label": "Iniciar o fluxo de reserva sem concluir pagamento",
+      "requiredEvent": "reservation_start"
+    },
+    {
+      "id": "submit-feedback",
+      "label": "Registrar avaliação, dificuldade e severidade",
+      "requiredEvent": "pilot_task"
+    }
+  ],
+  "approvalRules": {
+    "criticalBlockersOpen": 0,
+    "minimumAverageRating": 3,
+    "minimumFeedbackResponses": 10
+  }
+}

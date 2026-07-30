@@ -1,11 +1,11 @@
-const PROPOSAL_TOKEN_KEY = 'arandu.admin.token';
+const PROPOSAL_TOKEN_KEY = 'arandu.admin.sessionHint';
 
 function proposalToken() { return sessionStorage.getItem(PROPOSAL_TOKEN_KEY) || ''; }
 function proposalTarget() { return document.querySelector('[data-proposal-builder]'); }
 async function proposalRequest(url, options = {}) {
   const response = await fetch(url, {
     ...options,
-    headers: { 'Content-Type': 'application/json', 'x-arandu-admin-token': proposalToken(), ...(options.headers || {}) }
+    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok || data.ok === false) throw new Error(data.error || 'Erro ao salvar proposta.');

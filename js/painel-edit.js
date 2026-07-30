@@ -1,4 +1,4 @@
-const EDIT_TOKEN_KEY = 'arandu.admin.token';
+const EDIT_TOKEN_KEY = 'arandu.admin.sessionHint';
 
 const EDIT_CONFIG = {
   obras: [['title','Título'],['artist_id','ID do artista'],['language','Linguagem'],['technique','Técnica'],['year','Ano'],['dimensions','Dimensões'],['price','Preço'],['price_label','Texto do preço'],['status','Status'],['main_image_url','Imagem principal'],['detail_image_url','Imagem de detalhe'],['room_image_url','Imagem em ambiente'],['tags','Tags'],['summary','Resumo'],['curatorial_reading','Leitura curatorial']],
@@ -76,7 +76,7 @@ async function submitEdit(form) {
   status.textContent = 'Salvando alterações...';
   const response = await fetch('/api/admin-update', {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', 'x-arandu-admin-token': editToken() },
+    headers: { 'Content-Type': 'application/json', },
     body: JSON.stringify({ panel, id, fields })
   });
   const data = await response.json().catch(() => ({}));

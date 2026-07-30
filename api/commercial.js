@@ -1,6 +1,8 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { AdminAuthError, applyAdminResponseHeaders, requireAdmin } from '../lib/admin-auth.mjs';
 import { requireAdminPermission } from '../lib/admin-rbac.mjs';
+import { requireCommercialPolicy } from '../lib/commercial-policy.mjs';
+import { reportError } from '../lib/observability.mjs';
 import { applyApiSecurityHeaders, crossOriginRejection } from '../lib/http-security.mjs';
 import { enforceSensitiveRateLimit } from '../lib/rate-limit.mjs';
 import {
@@ -68,17 +70,6 @@ function canonicalJson(value) {
   return JSON.stringify(value ?? null);
 }
 
-function policy() {
-  const version = limited(process.env.ARANDU_COMMERCIAL_POLICY_VERSION, 120);
-  const currency = clean(process.env.ARANDU_COMMERCIAL_CURRENCY).toUpperCase();
-  const feeRateRaw = clean(process.env.ARANDU_PLATFORM_FEE_RATE);
-  const feeRate = Number(feeRateRaw);
-  if (!version || !/^[A-Z]{3}$/.test(currency) || !feeRateRaw || !Number.isFinite(feeRate) || feeRate < 0 || feeRate >= 1) {
-    throw new HttpError(503, 'A política comercial versionada ainda não foi configurada.', 'commercial_policy_unconfigured');
-  }
-  return { version, currency, feeRate };
-}
-
 function acceptedRecord(body) {
   const artworkIds = Array.isArray(body.items)
     ? body.items.map((item) => limited(item?.artwork_id || item?.artworkId || item?.id, 180)).filter(Boolean)
@@ -143,7 +134,7 @@ async function createRecord(req, res, admin, requestId) {
   const record = acceptedRecord(body);
   if (!record.client) throw new HttpError(400, 'Cliente obrigatório.');
   if (!record.artworkIds.length) throw new HttpError(400, 'Inclua ao menos uma obra.');
-  const commercialPolicy = policy();
+  const commercialPolicy = requireCommercialPolicy();
   const idempotency = await acquireIdempotency(req, admin.actor, record);
   if (idempotency.replay) {
     return json(res, idempotency.status, idempotency.payload, {
@@ -161,8 +152,9 @@ async function createRecord(req, res, admin, requestId) {
       p_email: record.email,
       p_whatsapp: record.whatsapp,
       p_currency: commercialPolicy.currency,
-      p_platform_fee_rate: commercialPolicy.feeRate,
+      p_platform_fee_rate: commercialPolicy.platformFeeRate,
       p_policy_version: commercialPolicy.version,
+      p_policy_snapshot: commercialPolicy,
       p_notes: record.notes,
       p_actor_ref: admin.actor.id,
       p_actor_role: admin.actor.role,
@@ -219,14 +211,7 @@ export default async function handler(req, res) {
   } catch (error) {
     const status = Number(error?.status) || 500;
     if (status >= 500) {
-      console.error(JSON.stringify({
-        level: 'error',
-        service: 'arandu-commercial',
-        requestId,
-        status,
-        code: error?.code || null,
-        message: limited(error?.message, 220)
-      }));
+      await reportError({ service: 'arandu-commercial', requestId, status, code: error?.code, method: req.method, error });
     }
     return json(res, status, {
       ok: false,

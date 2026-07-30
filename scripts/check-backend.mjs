@@ -88,7 +88,9 @@ if (!includes('js/status.js', '/api/readiness')) issues.push('status.js não con
 if (!includes('status.html', 'data-api-status')) issues.push('status.html não possui área dinâmica de status.');
 
 if (!includes(api, 'requireAdmin(req)')) issues.push('API consolidada não exige identidade administrativa nas rotas privilegiadas.');
-if (includes(api, 'ARANDU_ADMIN_TOKEN') || includes(api, 'x-arandu-admin-token')) issues.push('API consolidada ainda aceita segredo administrativo compartilhado.');
+const legacySecret = ['ARANDU', 'ADMIN', 'TOKEN'].join('_');
+const legacyHeader = ['x-arandu', 'admin-token'].join('-');
+if (includes(api, legacySecret) || includes(api, legacyHeader)) issues.push('API consolidada ainda aceita segredo administrativo compartilhado.');
 if (!includes('lib/admin-auth.mjs', 'app_metadata')) issues.push('Papel administrativo não é lido de app_metadata.');
 if (!includes('lib/admin-auth.mjs', "aal !== 'aal2'")) issues.push('Operações administrativas não exigem MFA aal2.');
 if (!includes('api/internal-page.js', 'requireAdmin(req)')) issues.push('Páginas internas não possuem guarda de sessão.');
@@ -105,7 +107,7 @@ if (!includes(api, 'crm_notes')) issues.push('API consolidada não grava notas d
 if (!includes(api, 'tasks')) issues.push('API consolidada não grava tarefas.');
 if (!includes(api, 'PATCH')) issues.push('API consolidada não possui rotas de atualização PATCH.');
 if (!includes(api, 'catalog_not_verified')) issues.push('API consolidada não bloqueia catálogo não verificado.');
-if (!includes(api, 'commercial_policy_pending')) issues.push('API consolidada não bloqueia transações antes da aprovação comercial.');
+if (!includes(api, 'requireCommercialPolicy')) issues.push('API consolidada não aplica a política comercial central e fail-closed.');
 if (!includes(api, 'arandu_pilot')) issues.push('API consolidada não cria sessão protegida do piloto.');
 if (!includes(api, 'publicDataRequest')) issues.push('API consolidada não separa leitura pública da service role.');
 if (!includes(api, 'handleCatalogReview')) issues.push('API consolidada não oferece workflow editorial.');

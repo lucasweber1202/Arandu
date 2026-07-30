@@ -25,6 +25,9 @@
   function money(value){const raw=String(value||'').replace(/R\$|\s/g,'');const normalized=raw.includes(',')?raw.replace(/\./g,'').replace(',','.'):raw;const parsed=Number(normalized);return Number.isFinite(parsed)&&parsed>0?parsed:null;}
   function artistStatus(value){const normalized=String(value||'in_review').trim().toLowerCase();return({publicado:'published',aprovado:'approved','em_analise':'in_review','em análise':'in_review'}[normalized]||normalized);}
   function artworkStatus(value){const normalized=String(value||'available').trim().toLowerCase();return({disponivel:'available','disponível':'available',reservada:'reserved',reservado:'reserved',vendida:'sold',vendido:'sold'}[normalized]||normalized);}
+  function editorialStatus(value){const normalized=String(value||'draft').trim().toLowerCase();return({rascunho:'draft','em_revisao':'in_review','em revisão':'in_review',aprovado:'approved',publicado:'published'}[normalized]||normalized);}
+  function currency(value){const normalized=String(value||'').trim().toUpperCase();return/^[A-Z]{3}$/.test(normalized)?normalized:null;}
+  function validHttpUrl(value){try{const parsed=new URL(String(value||''));return['http:','https:'].includes(parsed.protocol);}catch{return false;}}
 
   function normalize(record){
     const declared=String(pick(record,'tipo','kind','item_type','categoria')||'').toLowerCase();
@@ -42,6 +45,7 @@
         profile:pick(record,'profile','bio','bio_curta','perfil'),trajectory:pick(record,'trajectory','trajetoria'),statement:pick(record,'statement'),
         portfolio_url:pick(record,'portfolio_url','portfolio'),instagram:pick(record,'instagram'),image_url:pick(record,'image_url','photo_url','imagem_principal'),
         status:artistStatus(pick(record,'status','status_curatorial')),
+        editorial_status:editorialStatus(pick(record,'editorial_status','situacao_editorial','revisao_curatorial')),
         identity_verified:yes(pick(record,'identity_verified','identidade_verificada')),
         publishing_consent_at:date(pick(record,'publishing_consent_at','consentimento_publicacao_em')),
         verified_at:date(pick(record,'verified_at','artista_verificado_em')),
@@ -54,11 +58,13 @@
       artist_id:pick(record,'artist_id','artista_id'),
       technique:pick(record,'technique','tecnica'),type:pick(record,'type','tipo_obra','linguagem'),support:pick(record,'support','suporte'),
       price:money(pick(record,'price','preco')),price_label:pick(record,'price_label','preco_label'),dimensions:pick(record,'dimensions','dimensoes'),
+      currency:currency(pick(record,'currency','moeda')),
       year:pick(record,'year','ano'),edition:pick(record,'edition','edicao','edicao_tiragem'),certificate:yes(pick(record,'certificate','certificado')),
       tags:list(pick(record,'tags','etiquetas')),recommended_for:list(pick(record,'recommended_for','contextos')),
       summary:pick(record,'summary','resumo'),curatorial_reading:pick(record,'curatorial_reading','curatorial_note','leitura_curatorial','leitura'),
       main_image_url:pick(record,'main_image_url','image_url','imagem_principal'),detail_image_url:pick(record,'detail_image_url','imagem_detalhe'),room_image_url:pick(record,'room_image_url','imagem_ambiente'),
       status:artworkStatus(pick(record,'status')),
+      editorial_status:editorialStatus(pick(record,'editorial_status','situacao_editorial','revisao_curatorial')),
       image_authorized_at:date(pick(record,'image_authorized_at','autorizacao_imagem_em')),
       price_verified_at:date(pick(record,'price_verified_at','preco_verificado_em')),
       availability_verified_at:date(pick(record,'availability_verified_at','disponibilidade_verificada_em')),
@@ -73,18 +79,27 @@
     if(item.panel==='obras'&&!data.title)errors.push('Título da obra é obrigatório.');
     if(item.panel==='obras'&&!data.artist_id)errors.push('artist_id é obrigatório para obra.');
     if(item.panel==='obras'&&!data.main_image_url)errors.push('Imagem principal ausente.');
-    if(item.panel==='obras'&&!data.price&&!data.price_label)errors.push('Preço ou preço exibido ausente.');
+    if(item.panel==='obras'&&data.main_image_url&&!validHttpUrl(data.main_image_url))errors.push('Imagem principal precisa usar URL HTTP(S) válida.');
+    if(item.panel==='obras'&&!data.price)errors.push('Preço numérico positivo é obrigatório.');
+    if(item.panel==='obras'&&!data.currency)errors.push('Moeda ISO 4217 é obrigatória.');
+    if(item.panel==='obras'&&!data.dimensions)errors.push('Dimensões são obrigatórias.');
+    if(item.panel==='obras'&&!data.technique)errors.push('Técnica é obrigatória.');
+    if(item.panel==='obras'&&!data.certificate)errors.push('Confirmação de certificado é obrigatória para publicação.');
     if(item.panel==='artistas'){
-      if(!data.identity_verified)warnings.push('Identidade ainda não verificada.');
-      if(!data.publishing_consent_at)warnings.push('Consentimento de publicação ausente.');
-      if(!data.verified_at)warnings.push('Data de verificação do artista ausente.');
-      if(!data.source_reference)warnings.push('Fonte de comprovação ausente.');
+      if(!data.identity_verified)errors.push('Identidade ainda não verificada.');
+      if(!data.publishing_consent_at)errors.push('Consentimento de publicação ausente.');
+      if(!data.verified_at)errors.push('Data de verificação do artista ausente.');
+      if(!data.source_reference)errors.push('Fonte de comprovação ausente.');
+      if(!['approved','published'].includes(data.status))errors.push('Artista precisa estar aprovado ou publicado.');
+      if(!['approved','published'].includes(data.editorial_status))errors.push('Revisão curatorial do artista está pendente.');
     }else{
-      if(!data.image_authorized_at)warnings.push('Autorização de imagem ausente.');
-      if(!data.price_verified_at)warnings.push('Preço ainda não verificado.');
-      if(!data.availability_verified_at)warnings.push('Disponibilidade ainda não verificada.');
-      if(!data.catalog_verified_at)warnings.push('Revisão final de catálogo ausente.');
-      if(!data.source_reference)warnings.push('Fonte de comprovação ausente.');
+      if(!data.image_authorized_at)errors.push('Autorização de imagem ausente.');
+      if(!data.price_verified_at)errors.push('Preço ainda não verificado.');
+      if(!data.availability_verified_at)errors.push('Disponibilidade ainda não verificada.');
+      if(!data.catalog_verified_at)errors.push('Revisão final de catálogo ausente.');
+      if(!data.source_reference)errors.push('Fonte de comprovação ausente.');
+      if(!['approved','published'].includes(data.editorial_status))errors.push('Revisão curatorial da obra está pendente.');
+      if(data.status!=='available')warnings.push('A obra não está marcada como disponível.');
     }
     return{errors,warnings};
   }
@@ -92,11 +107,24 @@
   function buildEntries(text){
     const rows=parseCsv(text);if(rows.length<2)return[];
     const headers=rows[0].map((header)=>header.trim());
-    return rows.slice(1).map((row,index)=>{
+    const entries=rows.slice(1).map((row,index)=>{
       const raw=Object.fromEntries(headers.map((header,column)=>[header,row[column]||'']));
       const item=normalize(raw);const result=validate(item);
       return{index:index+2,raw,item,...result};
     });
+    const identities=new Map();
+    for(const entry of entries){
+      const key=`${entry.item.panel}:${entry.item.data.id}`;
+      const first=identities.get(key);
+      if(first){
+        entry.errors.push(`ID duplicado no CSV; primeira ocorrência na linha ${first}.`);
+        const original=entries.find((candidate)=>candidate.index===first);
+        if(original&&!original.errors.some((message)=>message.includes('ID duplicado')))original.errors.push(`ID duplicado no CSV; repetido na linha ${entry.index}.`);
+      }else if(entry.item.data.id){
+        identities.set(key,entry.index);
+      }
+    }
+    return entries;
   }
 
   global.AranduCatalogIntakeCore={parseCsv,normalize,validate,buildEntries};
