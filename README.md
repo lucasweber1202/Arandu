@@ -133,6 +133,20 @@ Os arquivos de demonstração não contam como catálogo real. A publicação ex
 
 A operação comercial permanece fail-closed enquanto a política não estiver completa e aprovada. Valores enviados pelo navegador não substituem cálculo no servidor e no banco.
 
+Documentação comercial e de crescimento mantida como referência obrigatória:
+
+- `docs/OPERACAO_COMERCIAL_INDEX.md` — índice da operação comercial;
+- `docs/GO_LIVE_ARANDU.md` — roteiro de promoção e abertura;
+- `docs/PRIMEIROS_30_DIAS.md` — operação inicial após o lançamento;
+- `docs/PROSPECCAO_ARTISTAS_PLAYBOOK.md` — prospecção e qualificação de artistas;
+- `docs/CHECKLIST_PARCEIRA_ARTISTA.md` — autorizações e parceria;
+- `docs/PROSPECCAO_COMPRADORES_EMPRESAS.md` — aquisição B2C e B2B;
+- `docs/FLUXO_COMPRA_RESERVA.md` — jornada comercial;
+- `docs/OBJECOES_E_RESPOSTAS.md` — respostas comerciais padronizadas;
+- `docs/CALENDARIO_CONTEUDO_30_DIAS.md` — preparação editorial;
+- `docs/METRICAS_FUNIL_ARANDU.md` — métricas de aquisição e conversão;
+- `docs/SEO_DOMINIO_CHECKLIST.md` — domínio, indexação e SEO final.
+
 ## Governança do repositório
 
 Leia antes de contribuir:
