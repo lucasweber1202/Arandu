@@ -10,6 +10,15 @@ Este arquivo é o ponto de entrada para operação, staging e lançamento. Quand
 - `npm run release:check` — falha enquanto os requisitos mínimos não forem atingidos.
 - `npm run predeploy` — gate final de build, código e release.
 
+## Preparação de staging
+
+- `docs/STAGING_REHEARSAL.md` — ensaio manual e não destrutivo antes do staging real.
+- `.github/workflows/staging-rehearsal.yml` — workflow `workflow_dispatch` sem segredos.
+- `npm run check:staging` — impede que o rehearsal aplique migrations ou altere gates.
+- `npm run staging:evidence` — gera relatório local classificado como simulação.
+
+Um rehearsal verde comprova somente preparação técnica em CI. Ele não equivale a `staging_validated` e não altera `ops/release-evidence.json`.
+
 ## Banco e migrations
 
 1. `docs/supabase-migrations.json` — ordem canônica.

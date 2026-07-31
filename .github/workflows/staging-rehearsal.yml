@@ -1,0 +1,155 @@
+name: Arandu Staging Rehearsal
+
+on:
+  workflow_dispatch:
+    inputs:
+      migration_flow:
+        description: Fluxo de migration a simular
+        required: true
+        default: existingDatabase
+        type: choice
+        options:
+          - existingDatabase
+          - cleanInstall
+      target_url:
+        description: URL HTTPS de staging para smoke remoto; deixe vazio para ignorar
+        required: false
+        default: ''
+        type: string
+      run_browser:
+        description: Executar jornadas Playwright desktop e mobile
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: arandu-staging-rehearsal-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  rehearsal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      ARANDU_SITE_URL: https://arandu.example.com
+      MIGRATION_FLOW: ${{ inputs.migration_flow }}
+      STAGING_TARGET_URL: ${{ inputs.target_url }}
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Install dependencies
+        run: npm ci --include=optional
+
+      - name: Audit high-severity dependency vulnerabilities
+        id: audit
+        run: npm run audit:ci
+
+      - name: Source, contract and governance checks
+        id: checks
+        run: npm run check:all
+
+      - name: Build and validate SEO output
+        id: build
+        run: |
+          npm run build
+          npm run check:seo:dist
+
+      - name: Build deterministic migration bundle
+        id: bundle
+        run: npm run migrations:bundle -- --flow="$MIGRATION_FLOW"
+
+      - name: Simulate migration release without connection
+        id: dry_run
+        run: npm run migrations:release -- --dry-run --flow="$MIGRATION_FLOW" --environment=staging
+
+      - name: Test install, upgrade, rollback, RLS and transactions
+        id: database
+        env:
+          ARANDU_DATABASE_TEST_URL: postgresql://postgres:postgres@localhost:5432/postgres
+        run: npm run test:database
+
+      - name: Browser journeys
+        id: browser
+        if: inputs.run_browser
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:e2e
+
+      - name: Validate staging URL and run remote smoke
+        id: live
+        if: inputs.target_url != ''
+        run: |
+          node -e "const u=new URL(process.env.STAGING_TARGET_URL); if(u.protocol!=='https:'||u.username||u.password||u.search||u.hash){throw new Error('target_url deve ser uma origem HTTPS sem credenciais, query ou fragmento')}"
+          npm run check:live -- "$STAGING_TARGET_URL"
+
+      - name: Generate non-promoting rehearsal evidence
+        if: always()
+        env:
+          AUDIT_STATUS: ${{ steps.audit.outcome }}
+          CHECKS_STATUS: ${{ steps.checks.outcome }}
+          BUILD_STATUS: ${{ steps.build.outcome }}
+          BUNDLE_STATUS: ${{ steps.bundle.outcome }}
+          DRY_RUN_STATUS: ${{ steps.dry_run.outcome }}
+          DATABASE_STATUS: ${{ steps.database.outcome }}
+          BROWSER_STATUS: ${{ steps.browser.outcome }}
+          LIVE_STATUS: ${{ steps.live.outcome }}
+        run: >-
+          node scripts/create-staging-rehearsal-report.mjs
+          --flow="$MIGRATION_FLOW"
+          --target-url="$STAGING_TARGET_URL"
+          --audit-status="$AUDIT_STATUS"
+          --checks-status="$CHECKS_STATUS"
+          --build-status="$BUILD_STATUS"
+          --bundle-status="$BUNDLE_STATUS"
+          --dry-run-status="$DRY_RUN_STATUS"
+          --database-status="$DATABASE_STATUS"
+          --browser-status="$BROWSER_STATUS"
+          --live-status="$LIVE_STATUS"
+
+      - name: Publish rehearsal summary
+        if: always()
+        run: |
+          if [ -f reports/staging-rehearsal.md ]; then
+            cat reports/staging-rehearsal.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload audit-safe rehearsal reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: arandu-staging-rehearsal-${{ github.run_id }}
+          path: |
+            reports/staging-rehearsal.json
+            reports/staging-rehearsal.md
+            reports/migration-release-report.json
+            reports/supabase-migrations-*.json
+          if-no-files-found: warn
+          retention-days: 14
