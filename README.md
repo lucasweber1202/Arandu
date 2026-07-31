@@ -78,6 +78,21 @@ npm run predeploy
 
 `release:check` e `predeploy` devem falhar enquanto os gates externos não estiverem comprovados.
 
+## Staging rehearsal
+
+O workflow manual `.github/workflows/staging-rehearsal.yml` ensaia o pacote de staging sem usar segredos, conectar ao Supabase real ou aplicar migrations.
+
+Ele executa auditoria, `check:all`, build, SEO, bundle determinístico, dry-run de migration, PostgreSQL 16 descartável, Playwright opcional e smoke remoto opcional em uma origem HTTPS.
+
+A execução gera relatórios classificados como `ci_rehearsal_only`. Esses relatórios não promovem `ops/release-evidence.json` e não podem ser tratados como `staging_validated`.
+
+```bash
+npm run check:staging
+npm run staging:evidence
+```
+
+Procedimento completo: `docs/STAGING_REHEARSAL.md`.
+
 ## Arquitetura
 
 O front-end é multipágina e construído com Vite. A coerência visual vem do pipeline de build, do shell global em `js/site.js` e das camadas CSS documentadas em `docs/ARQUITETURA_FRONTEND.md`.
@@ -158,7 +173,7 @@ Leia antes de contribuir:
 - `docs/REPOSITORY_HYGIENE.md` — política para branches e documentos históricos;
 - `docs/VERSIONING.md` — estratégia de versões antes do lançamento público.
 
-A CI executa `scripts/check-governance.mjs` para impedir regressões nos controles mínimos do repositório.
+A CI executa `scripts/check-governance.mjs` e `scripts/check-staging-rehearsal.mjs` para impedir regressões nos controles mínimos do repositório e no workflow de preparação de staging.
 
 ## Variáveis de produção
 
