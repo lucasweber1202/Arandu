@@ -5,6 +5,9 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
 concurrency:
   group: arandu-ci-${{ github.ref }}
   cancel-in-progress: true
@@ -12,6 +15,7 @@ concurrency:
 jobs:
   database:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     services:
       postgres:
         image: postgres:16
@@ -27,6 +31,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -43,11 +49,14 @@ jobs:
 
   validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     env:
       ARANDU_SITE_URL: https://arandu.example.com
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -58,7 +67,10 @@ jobs:
       - name: Install
         run: npm ci --include=optional
 
-      - name: Full source and contract checks
+      - name: Audit high-severity dependency vulnerabilities
+        run: npm run audit:ci
+
+      - name: Full source, contract and governance checks
         run: npm run check:all
 
       - name: Build
