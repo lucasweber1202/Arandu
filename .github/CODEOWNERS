@@ -1,0 +1,15 @@
+# Responsável padrão
+* @lucasweber1202
+
+# Superfícies críticas
+/.github/ @lucasweber1202
+/api/ @lucasweber1202
+/lib/ @lucasweber1202
+/scripts/ @lucasweber1202
+/tests/ @lucasweber1202
+/ops/ @lucasweber1202
+/docs/*.sql @lucasweber1202
+/docs/rollback/ @lucasweber1202
+/package.json @lucasweber1202
+/package-lock.json @lucasweber1202
+/vercel.json @lucasweber1202
