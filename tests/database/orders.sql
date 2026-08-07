@@ -1,6 +1,17 @@
 \set ON_ERROR_STOP on
 
--- Requer tests/database/transactions.sql executado antes: usuário A e obra-2 já existem.
+-- Requer tests/database/transactions.sql executado antes: usuários e artista-base já existem.
+
+insert into public.artworks (
+  id, slug, title, artist_id, price, status, published, main_image_url,
+  image_authorized_at, price_verified_at, availability_verified_at,
+  catalog_verified_at, source_reference, editorial_status
+)
+values (
+  'obra-order-test', 'obra-order-test', 'Obra Order Test', 'artista-1', 2000, 'available', true,
+  'https://example.com/order.webp', now(), now(), now(), now(), 'database-order-test', 'published'
+)
+on conflict (id) do update set price = excluded.price, status = 'available', published = true;
 
 do $$
 begin
@@ -39,7 +50,7 @@ select public.acquire_idempotency(
 );
 
 select public.create_reservation_atomic(
-  'obra-2',
+  'obra-order-test',
   '11111111-1111-4111-8111-111111111111',
   null,
   'Pessoa A',
@@ -62,7 +73,7 @@ select public.create_reservation_atomic(
 
 update public.reservations
 set status = 'confirmed', confirmed_at = coalesce(confirmed_at, now())
-where artwork_id = 'obra-2' and user_id = '11111111-1111-4111-8111-111111111111';
+where artwork_id = 'obra-order-test' and user_id = '11111111-1111-4111-8111-111111111111';
 
 select public.acquire_idempotency(
   'orders.create',
@@ -74,7 +85,7 @@ select public.acquire_idempotency(
 );
 
 select public.create_order_atomic(
-  (select id from public.reservations where artwork_id = 'obra-2' order by created_at desc limit 1),
+  (select id from public.reservations where artwork_id = 'obra-order-test' order by created_at desc limit 1),
   null,
   null,
   'database-operator',
@@ -90,7 +101,7 @@ do $$
 declare
   v_order public.orders%rowtype;
 begin
-  select * into v_order from public.orders where artwork_id = 'obra-2' order by created_at desc limit 1;
+  select * into v_order from public.orders where artwork_id = 'obra-order-test' order by created_at desc limit 1;
   if v_order.price_snapshot <> 2000
     or v_order.currency <> 'BRL'
     or v_order.platform_fee_rate <> 0.20
@@ -111,7 +122,7 @@ do $$
 declare
   v_order_id uuid;
 begin
-  select id into v_order_id from public.orders where artwork_id = 'obra-2' order by created_at desc limit 1;
+  select id into v_order_id from public.orders where artwork_id = 'obra-order-test' order by created_at desc limit 1;
   begin
     update public.orders set price_snapshot = 1 where id = v_order_id;
     raise exception 'Snapshot financeiro pôde ser alterado diretamente';
@@ -122,55 +133,55 @@ end;
 $$;
 
 select public.transition_order_atomic(
-  (select id from public.orders where artwork_id = 'obra-2' order by created_at desc limit 1),
+  (select id from public.orders where artwork_id = 'obra-order-test' order by created_at desc limit 1),
   'confirmed', null, null, null, null, null,
   'Confirmação operacional do pedido', 'database-operator', 'operator', 'request-order-confirm'
 );
 
 select public.transition_order_atomic(
-  (select id from public.orders where artwork_id = 'obra-2' order by created_at desc limit 1),
+  (select id from public.orders where artwork_id = 'obra-order-test' order by created_at desc limit 1),
   null, 'awaiting_confirmation', null, null, null, null,
   'Pagamento encaminhado para confirmação', 'database-operator', 'operator', 'request-order-await-payment'
 );
 
 select public.transition_order_atomic(
-  (select id from public.orders where artwork_id = 'obra-2' order by created_at desc limit 1),
+  (select id from public.orders where artwork_id = 'obra-order-test' order by created_at desc limit 1),
   null, 'paid', null, null, null, null,
   'Pagamento confirmado pela operação', 'database-operator', 'operator', 'request-order-paid'
 );
 
 select public.transition_order_atomic(
-  (select id from public.orders where artwork_id = 'obra-2' order by created_at desc limit 1),
+  (select id from public.orders where artwork_id = 'obra-order-test' order by created_at desc limit 1),
   null, null, 'packing', null, null, 'transportadora-teste',
   'Obra liberada para preparação logística', 'database-operator', 'operator', 'request-order-packing'
 );
 
 select public.transition_order_atomic(
-  (select id from public.orders where artwork_id = 'obra-2' order by created_at desc limit 1),
+  (select id from public.orders where artwork_id = 'obra-order-test' order by created_at desc limit 1),
   null, null, 'shipped', null, 'TRACK-TEST-001', 'transportadora-teste',
   'Obra entregue à transportadora', 'database-operator', 'operator', 'request-order-shipped'
 );
 
 select public.transition_order_atomic(
-  (select id from public.orders where artwork_id = 'obra-2' order by created_at desc limit 1),
+  (select id from public.orders where artwork_id = 'obra-order-test' order by created_at desc limit 1),
   null, null, 'delivered', null, null, null,
   'Entrega confirmada pela operação', 'database-operator', 'operator', 'request-order-delivered'
 );
 
 select public.transition_order_atomic(
-  (select id from public.orders where artwork_id = 'obra-2' order by created_at desc limit 1),
+  (select id from public.orders where artwork_id = 'obra-order-test' order by created_at desc limit 1),
   null, null, null, 'ready', null, null,
   'Certificado revisado e pronto', 'database-operator', 'operator', 'request-order-cert-ready'
 );
 
 select public.transition_order_atomic(
-  (select id from public.orders where artwork_id = 'obra-2' order by created_at desc limit 1),
+  (select id from public.orders where artwork_id = 'obra-order-test' order by created_at desc limit 1),
   null, null, null, 'issued', null, null,
   'Certificado emitido ao comprador', 'database-operator', 'operator', 'request-order-cert-issued'
 );
 
 select public.transition_order_atomic(
-  (select id from public.orders where artwork_id = 'obra-2' order by created_at desc limit 1),
+  (select id from public.orders where artwork_id = 'obra-order-test' order by created_at desc limit 1),
   'completed', null, null, null, null, null,
   'Pedido concluído após entrega e certificado', 'database-operator', 'operator', 'request-order-complete'
 );
@@ -180,7 +191,7 @@ declare
   v_order public.orders%rowtype;
   v_order_id uuid;
 begin
-  select * into v_order from public.orders where artwork_id = 'obra-2' order by created_at desc limit 1;
+  select * into v_order from public.orders where artwork_id = 'obra-order-test' order by created_at desc limit 1;
   v_order_id := v_order.id;
   if v_order.status <> 'completed'
     or v_order.payment_status <> 'paid'
@@ -214,8 +225,8 @@ set role authenticated;
 select set_config('request.jwt.claim.sub', '11111111-1111-4111-8111-111111111111', false);
 do $$
 begin
-  if (select count(*) from public.orders) <> 1 then
-    raise exception 'Pessoa A não enxerga exatamente o próprio pedido';
+  if (select count(*) from public.orders where artwork_id = 'obra-order-test') <> 1 then
+    raise exception 'Pessoa A não enxerga exatamente o próprio pedido de teste';
   end if;
 end;
 $$;
@@ -225,7 +236,7 @@ set role authenticated;
 select set_config('request.jwt.claim.sub', '22222222-2222-4222-8222-222222222222', false);
 do $$
 begin
-  if (select count(*) from public.orders) <> 0 then
+  if (select count(*) from public.orders where artwork_id = 'obra-order-test') <> 0 then
     raise exception 'Pessoa B conseguiu ler pedido da Pessoa A';
   end if;
 end;
