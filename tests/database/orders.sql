@@ -72,7 +72,7 @@ select public.create_reservation_atomic(
 );
 
 update public.reservations
-set status = 'confirmed', confirmed_at = coalesce(confirmed_at, now())
+set status = 'confirmed'
 where artwork_id = 'obra-order-test' and user_id = '11111111-1111-4111-8111-111111111111';
 
 select public.acquire_idempotency(
