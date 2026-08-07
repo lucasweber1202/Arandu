@@ -4,6 +4,7 @@ import { requireAdminPermission } from '../lib/admin-rbac.mjs';
 import { applyApiSecurityHeaders } from '../lib/http-security.mjs';
 import { enforceSensitiveRateLimit } from '../lib/rate-limit.mjs';
 import { inspectCommercialPolicy } from '../lib/commercial-policy.mjs';
+import { inspectEmailConfiguration } from '../lib/email.mjs';
 
 const PROBE_TIMEOUT_MS = 6000;
 const REQUIRED_TABLES = [
@@ -12,6 +13,7 @@ const REQUIRED_TABLES = [
   'profiles',
   'saved_selections',
   'reservations',
+  'orders',
   'privacy_requests',
   'api_rate_limits'
 ];
@@ -72,6 +74,7 @@ function buildChecks() {
     brandReady: enabled('ARANDU_BRAND_READY'),
     commercialReady: enabled('ARANDU_COMMERCIAL_READY'),
     commercialPolicyConfigured: validCommercialConfiguration(),
+    transactionalEmail: inspectEmailConfiguration().ready,
     distributedRateLimit: enabled('ARANDU_DISTRIBUTED_RATE_LIMIT'),
     errorMonitoring: enabled('ARANDU_ERROR_MONITORING_READY'),
     backupVerified: recentBackupVerified(),
@@ -142,7 +145,8 @@ export default async function handler(req, res) {
       contact: checks.contactChannel,
       domain: checks.siteUrl,
       brand: checks.brandReady,
-      commercial: checks.commercialReady,
+      commercial: checks.commercialReady && checks.commercialPolicyConfigured,
+      transactionalEmail: checks.transactionalEmail,
       privacy: checks.privacyContact,
       abuseProtection: checks.distributedRateLimit,
       monitoring: checks.errorMonitoring,
