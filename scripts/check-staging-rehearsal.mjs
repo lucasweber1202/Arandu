@@ -28,6 +28,8 @@ if (exists(workflowPath)) {
     'permissions:',
     'contents: read',
     'persist-credentials: false',
+    'actions/checkout@v7',
+    'actions/setup-node@v7',
     'npm run audit:ci',
     'npm run check:all',
     'npm run build',
@@ -37,7 +39,7 @@ if (exists(workflowPath)) {
     '--dry-run',
     'npm run test:database',
     'create-staging-rehearsal-report.mjs',
-    'actions/upload-artifact@v4'
+    'actions/upload-artifact@v7'
   ];
   for (const fragment of requiredFragments) {
     if (!workflow.includes(fragment)) problems.push(`${workflowPath}: fragmento obrigatório ausente: ${fragment}.`);
@@ -50,7 +52,10 @@ if (exists(workflowPath)) {
     'ARANDU_DATABASE_URL',
     'ops/release-evidence.json',
     'secrets.',
-    'permissions: write-all'
+    'permissions: write-all',
+    'actions/checkout@v4',
+    'actions/setup-node@v4',
+    'actions/upload-artifact@v4'
   ];
   for (const fragment of forbiddenFragments) {
     if (workflow.includes(fragment)) problems.push(`${workflowPath}: conteúdo proibido encontrado: ${fragment}.`);
