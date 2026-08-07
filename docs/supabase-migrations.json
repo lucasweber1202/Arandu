@@ -11,7 +11,8 @@
     "docs/supabase-transactions-rbac-audit.sql",
     "docs/supabase-orders.sql",
     "docs/supabase-orders-hardening.sql",
-    "docs/supabase-transactional-email-outbox.sql"
+    "docs/supabase-transactional-email-outbox.sql",
+    "docs/supabase-retention-controls.sql"
   ],
   "existingDatabase": [
     "docs/supabase-sprint1-auth-ownership.sql",
@@ -24,6 +25,7 @@
     "docs/supabase-transactions-rbac-audit.sql",
     "docs/supabase-orders.sql",
     "docs/supabase-orders-hardening.sql",
-    "docs/supabase-transactional-email-outbox.sql"
+    "docs/supabase-transactional-email-outbox.sql",
+    "docs/supabase-retention-controls.sql"
   ]
 }
