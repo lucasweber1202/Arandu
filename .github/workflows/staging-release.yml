@@ -44,6 +44,8 @@ jobs:
     env:
       ARANDU_SITE_URL: https://arandu.example.com
       ARANDU_STAGING_DATABASE_URL: ${{ secrets.ARANDU_STAGING_DATABASE_URL }}
+      ARANDU_STAGING_DATABASE_FINGERPRINT: ${{ secrets.ARANDU_STAGING_DATABASE_FINGERPRINT }}
+      ARANDU_STAGING_PROJECT_REF: ${{ secrets.ARANDU_STAGING_PROJECT_REF }}
       ARANDU_WRITE_TEST_URL: ${{ secrets.ARANDU_STAGING_WRITE_TEST_URL }}
       SUPABASE_URL: ${{ secrets.ARANDU_STAGING_SUPABASE_URL }}
       SUPABASE_ANON_KEY: ${{ secrets.ARANDU_STAGING_SUPABASE_ANON_KEY }}
@@ -54,6 +56,8 @@ jobs:
         run: |
           test "${{ inputs.confirmation }}" = "ARANDU-STAGING"
           test -n "$ARANDU_STAGING_DATABASE_URL"
+          test -n "$ARANDU_STAGING_DATABASE_FINGERPRINT"
+          test -n "$ARANDU_STAGING_PROJECT_REF"
 
       - name: Checkout
         uses: actions/checkout@v7
