@@ -48,7 +48,7 @@ try {
 
   process.env.ARANDU_EMAIL_PROVIDER = 'resend';
   process.env.ARANDU_TRANSACTIONAL_EMAIL_READY = 'true';
-  process.env.ARANDU_EMAIL_FROM = 'Arandu <no-reply@arandu.test.br>';
+  process.env.ARANDU_EMAIL_FROM = 'no-reply@arandu.test.br';
   process.env.ARANDU_EMAIL_REPLY_TO = 'contato@arandu.test.br';
   process.env.RESEND_API_KEY = 're_test_key_1234567890';
   const resendConfig = inspectEmailConfiguration();
