@@ -1,0 +1,107 @@
+name: Arandu Protected Staging Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      migration_flow:
+        description: Fluxo canônico de migration
+        required: true
+        default: existingDatabase
+        type: choice
+        options:
+          - existingDatabase
+          - cleanInstall
+      operator:
+        description: Papel operacional sem PII
+        required: true
+        default: release-operator
+        type: string
+      backup_reference:
+        description: Protocolo/hash/ticket verificável do backup
+        required: true
+        type: string
+      restore_reference:
+        description: Protocolo/hash/ticket do restore testado
+        required: true
+        type: string
+      confirmation:
+        description: Digite ARANDU-STAGING para autorizar DDL em staging
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: arandu-protected-staging
+  cancel-in-progress: false
+
+jobs:
+  staging:
+    environment: staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      ARANDU_SITE_URL: https://arandu.example.com
+      ARANDU_STAGING_DATABASE_URL: ${{ secrets.ARANDU_STAGING_DATABASE_URL }}
+      ARANDU_WRITE_TEST_URL: ${{ secrets.ARANDU_STAGING_WRITE_TEST_URL }}
+      SUPABASE_URL: ${{ secrets.ARANDU_STAGING_SUPABASE_URL }}
+      SUPABASE_ANON_KEY: ${{ secrets.ARANDU_STAGING_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.ARANDU_STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+
+    steps:
+      - name: Reject accidental production execution
+        run: |
+          test "${{ inputs.confirmation }}" = "ARANDU-STAGING"
+          test -n "$ARANDU_STAGING_DATABASE_URL"
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Install dependencies
+        run: npm ci --include=optional
+
+      - name: Validate code and deterministic migration bundle
+        run: |
+          npm run audit:ci
+          npm run check:all
+          npm run migrations:bundle -- --flow="${{ inputs.migration_flow }}"
+
+      - name: Execute protected staging migration
+        run: >-
+          npm run staging:release --
+          --flow="${{ inputs.migration_flow }}"
+          --operator="${{ inputs.operator }}"
+          --backup-reference="${{ inputs.backup_reference }}"
+          --restore-reference="${{ inputs.restore_reference }}"
+          --confirm="${{ inputs.confirmation }}"
+
+      - name: Publish staging summary
+        if: always()
+        run: |
+          if [ -f reports/staging-release-execution.json ]; then
+            cat reports/staging-release-execution.json >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload audit-safe reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: arandu-staging-release-${{ github.run_id }}
+          path: |
+            reports/staging-release-execution.json
+            reports/migration-release-report.json
+            reports/supabase-migrations-*.json
+          if-no-files-found: warn
+          retention-days: 14
