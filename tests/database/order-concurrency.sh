@@ -38,7 +38,7 @@ select public.create_reservation_atomic(
   repeat('a',64), repeat('b',64), repeat('c',64)
 );
 update public.reservations
-set status = 'confirmed', confirmed_at = coalesce(confirmed_at, now())
+set status = 'confirmed'
 where artwork_id = 'obra-order-concurrency';
 
 select public.acquire_idempotency('orders.concurrent', repeat('d',64), repeat('f',64), repeat('1',64), 120, 86400);
