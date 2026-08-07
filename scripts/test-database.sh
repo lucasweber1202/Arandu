@@ -29,6 +29,7 @@ while IFS= read -r file; do
 done < <(node -e "const m=require('./docs/supabase-migrations.json'); for (const f of m.cleanInstall) console.log(f)")
 apply_file "$clean_db" "tests/database/transactions.sql"
 apply_file "$clean_db" "tests/database/orders.sql"
+apply_file "$clean_db" "tests/database/email-outbox.sql"
 bash "$root_dir/tests/database/reservation-concurrency.sh" "$(database_url "$clean_db")"
 bash "$root_dir/tests/database/order-concurrency.sh" "$(database_url "$clean_db")"
 
@@ -52,6 +53,7 @@ apply_file "$upgrade_db" "docs/supabase-transactional-email-outbox.sql"
 
 apply_file "$upgrade_db" "tests/database/transactions.sql"
 apply_file "$upgrade_db" "tests/database/orders.sql"
+apply_file "$upgrade_db" "tests/database/email-outbox.sql"
 
 echo "Arandu Database Integration Tests"
 echo "Instalação limpa, upgrade, reaplicação, rollback, RLS, transações, pedidos e outbox aprovados."
