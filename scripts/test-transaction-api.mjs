@@ -59,12 +59,14 @@ try {
       assert.equal(body.p_currency, 'BRL');
       assert.equal(body.p_policy_version, 'policy-test-v1');
       assert.equal(body.p_policy_snapshot.references.shipping, 'test-shipping-v1');
+      assert.equal(body.p_policy_snapshot.references.packaging, 'test-packaging-v1');
       assert.equal('p_price' in body, false);
       return responseJson({ ok: true, stored: true, reservation: { id: 'reservation-1', status: 'requested' } });
     }
     if (value.includes('/rpc/create_proposal_atomic')) {
       assert.deepEqual(body.p_artwork_ids, ['obra-1', 'obra-2']);
       assert.equal(body.p_platform_fee_rate, 0.2);
+      assert.equal(body.p_policy_snapshot.references.packaging, 'test-packaging-v1');
       assert.equal(body.p_policy_snapshot.approvalReference, 'test-approval-v1');
       assert.equal('p_total' in body, false);
       return responseJson({ ok: true, stored: true, proposal: { id: 'proposal-1', total: 7000 } });
