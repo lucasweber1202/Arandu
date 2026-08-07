@@ -5,16 +5,21 @@ const requiredFiles = [
   'api/orders.js',
   'api/account-orders.js',
   'lib/email.mjs',
+  'lib/email-outbox.mjs',
   'docs/supabase-orders.sql',
   'docs/supabase-orders-hardening.sql',
   'docs/supabase-transactional-email-outbox.sql',
+  'docs/supabase-retention-controls.sql',
   'docs/rollback/supabase-orders.rollback.sql',
   'docs/rollback/supabase-orders-hardening.rollback.sql',
   'docs/rollback/supabase-transactional-email-outbox.rollback.sql',
+  'docs/rollback/supabase-retention-controls.rollback.sql',
+  'scripts/database-fingerprint.mjs',
   'scripts/run-staging-release.mjs',
   '.github/workflows/staging-release.yml',
   'docs/PRODUCT_READINESS_EXECUTION.md',
-  'docs/ORDERS_OPERATIONS.md'
+  'docs/ORDERS_OPERATIONS.md',
+  'docs/TRANSACTIONAL_EMAIL_OUTBOX.md'
 ];
 
 const problems = [];
@@ -28,17 +33,22 @@ for (const flow of ['cleanInstall', 'existingDatabase']) {
   const ordersIndex = migrations.indexOf('docs/supabase-orders.sql');
   const hardeningIndex = migrations.indexOf('docs/supabase-orders-hardening.sql');
   const outboxIndex = migrations.indexOf('docs/supabase-transactional-email-outbox.sql');
+  const retentionIndex = migrations.indexOf('docs/supabase-retention-controls.sql');
   if (ordersIndex === -1) problems.push(`docs/supabase-orders.sql ausente em ${flow}.`);
   if (hardeningIndex === -1) problems.push(`docs/supabase-orders-hardening.sql ausente em ${flow}.`);
   if (outboxIndex === -1) problems.push(`docs/supabase-transactional-email-outbox.sql ausente em ${flow}.`);
+  if (retentionIndex === -1) problems.push(`docs/supabase-retention-controls.sql ausente em ${flow}.`);
   if (ordersIndex !== -1 && hardeningIndex !== ordersIndex + 1) {
     problems.push(`docs/supabase-orders-hardening.sql deve vir imediatamente depois de docs/supabase-orders.sql em ${flow}.`);
   }
   if (hardeningIndex !== -1 && outboxIndex !== hardeningIndex + 1) {
     problems.push(`docs/supabase-transactional-email-outbox.sql deve vir imediatamente depois do hardening de pedidos em ${flow}.`);
   }
-  if (outboxIndex !== migrations.length - 1) {
-    problems.push(`docs/supabase-transactional-email-outbox.sql deve ser a última migration em ${flow}.`);
+  if (outboxIndex !== -1 && retentionIndex !== outboxIndex + 1) {
+    problems.push(`docs/supabase-retention-controls.sql deve vir imediatamente depois da outbox em ${flow}.`);
+  }
+  if (retentionIndex !== migrations.length - 1) {
+    problems.push(`docs/supabase-retention-controls.sql deve ser a última migration em ${flow}.`);
   }
 }
 
@@ -77,6 +87,19 @@ for (const token of [
   if (!outboxSql.includes(token)) problems.push(`Outbox transacional sem: ${token}`);
 }
 
+const retentionSql = fs.readFileSync('docs/supabase-retention-controls.sql', 'utf8');
+for (const token of [
+  'create table if not exists public.data_retention_policies',
+  'create table if not exists public.data_legal_holds',
+  'enabled boolean not null default false',
+  'decision_reference',
+  'is_under_legal_hold',
+  'create_legal_hold',
+  'release_legal_hold'
+]) {
+  if (!retentionSql.includes(token)) problems.push(`Controles de retenção sem: ${token}`);
+}
+
 const ordersApi = fs.readFileSync('api/orders.js', 'utf8');
 if (/body\.(?:price|currency|platform_fee|artist_amount)/.test(ordersApi)) {
   problems.push('API de orders não deve confiar em preço/moeda/comissão enviados pelo navegador.');
@@ -95,7 +118,9 @@ for (const variable of [
   'ARANDU_PACKAGING_POLICY_REFERENCE=',
   'ARANDU_EMAIL_PROVIDER=disabled',
   'ARANDU_TRANSACTIONAL_EMAIL_READY=false',
-  'ARANDU_STAGING_DATABASE_URL='
+  'ARANDU_STAGING_DATABASE_URL=',
+  'ARANDU_STAGING_DATABASE_FINGERPRINT=',
+  'ARANDU_STAGING_PROJECT_REF='
 ]) {
   if (!env.includes(variable)) problems.push(`.env.example sem ${variable}`);
 }
@@ -108,11 +133,16 @@ const staging = fs.readFileSync('.github/workflows/staging-release.yml', 'utf8')
 if (!staging.includes('workflow_dispatch:')) problems.push('Staging release deve ser manual.');
 if (!staging.includes('environment: staging')) problems.push('Staging release deve usar GitHub Environment staging.');
 if (!staging.includes('ARANDU-STAGING')) problems.push('Staging release sem confirmação explícita.');
+if (!staging.includes('ARANDU_STAGING_DATABASE_FINGERPRINT')) problems.push('Staging release não exige fingerprint do banco.');
+if (!staging.includes('ARANDU_STAGING_PROJECT_REF')) problems.push('Staging release não exige project ref esperado.');
 if (/\n\s+(push|pull_request):/.test(staging)) problems.push('Staging real não pode executar automaticamente em push/PR.');
 
 const runner = fs.readFileSync('scripts/run-staging-release.mjs', 'utf8');
 if (runner.includes('ops/release-evidence.json')) {
   problems.push('Runner de staging não pode promover release-evidence automaticamente.');
+}
+for (const token of ['databaseFingerprint', 'expectedFingerprint', 'expectedProjectRef']) {
+  if (!runner.includes(token)) problems.push(`Runner de staging sem verificação: ${token}.`);
 }
 
 const commercialPolicy = fs.readFileSync('lib/commercial-policy.mjs', 'utf8');
