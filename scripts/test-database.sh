@@ -32,22 +32,26 @@ apply_file "$clean_db" "tests/database/orders.sql"
 bash "$root_dir/tests/database/reservation-concurrency.sh" "$(database_url "$clean_db")"
 bash "$root_dir/tests/database/order-concurrency.sh" "$(database_url "$clean_db")"
 
-# Upgrade: simula uma base que já possui transações, mas ainda não recebeu orders/hardening.
+# Upgrade: simula uma base que já possui transações, mas ainda não recebeu orders/hardening/outbox.
 apply_file "$upgrade_db" "tests/database/bootstrap.sql"
 while IFS= read -r file; do
   apply_file "$upgrade_db" "$file"
-done < <(node -e "const m=require('./docs/supabase-migrations.json'); for (const f of m.cleanInstall.slice(0,-2)) console.log(f)")
+done < <(node -e "const m=require('./docs/supabase-migrations.json'); const i=m.cleanInstall.indexOf('docs/supabase-orders.sql'); for (const f of m.cleanInstall.slice(0,i)) console.log(f)")
 
 apply_file "$upgrade_db" "docs/supabase-orders.sql"
 apply_file "$upgrade_db" "docs/supabase-orders-hardening.sql"
+apply_file "$upgrade_db" "docs/supabase-transactional-email-outbox.sql"
 
-# O hardening precisa ser reaplicável e ter rollback operacional verificável.
+# As camadas aditivas precisam ser reaplicáveis e ter rollback operacional verificável.
 apply_file "$upgrade_db" "docs/supabase-orders-hardening.sql"
+apply_file "$upgrade_db" "docs/supabase-transactional-email-outbox.sql"
+apply_file "$upgrade_db" "docs/rollback/supabase-transactional-email-outbox.rollback.sql"
 apply_file "$upgrade_db" "docs/rollback/supabase-orders-hardening.rollback.sql"
 apply_file "$upgrade_db" "docs/supabase-orders-hardening.sql"
+apply_file "$upgrade_db" "docs/supabase-transactional-email-outbox.sql"
 
 apply_file "$upgrade_db" "tests/database/transactions.sql"
 apply_file "$upgrade_db" "tests/database/orders.sql"
 
 echo "Arandu Database Integration Tests"
-echo "Instalação limpa, upgrade, reaplicação, rollback, RLS, transações e pedidos aprovados."
+echo "Instalação limpa, upgrade, reaplicação, rollback, RLS, transações, pedidos e outbox aprovados."
