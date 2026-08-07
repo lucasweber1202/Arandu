@@ -2,8 +2,12 @@ import fs from 'node:fs';
 
 const migration = fs.readFileSync('docs/supabase-transactions-rbac-audit.sql', 'utf8');
 const rollback = fs.readFileSync('docs/rollback/supabase-transactions-rbac-audit.rollback.sql', 'utf8');
+const ordersMigration = fs.readFileSync('docs/supabase-orders.sql', 'utf8');
+const ordersHardening = fs.readFileSync('docs/supabase-orders-hardening.sql', 'utf8');
+const ordersRollback = fs.readFileSync('docs/rollback/supabase-orders-hardening.rollback.sql', 'utf8');
 const api = fs.readFileSync('api/[...path].js', 'utf8');
 const commercial = fs.readFileSync('api/commercial.js', 'utf8');
+const ordersApi = fs.readFileSync('api/orders.js', 'utf8');
 const issues = [];
 
 function requirePattern(source, pattern, message) {
@@ -38,7 +42,25 @@ if (/\bbody\.(total|platform_fee|artist_amount)\b/.test(commercial)) {
   issues.push('API comercial ainda confia em valores monetários do cliente.');
 }
 
-console.log('Arandu Transaction, RLS & Audit Migration Check');
+requirePattern(ordersMigration, /uq_orders_reservation/i, 'Pedidos não possuem unicidade por reserva.');
+requirePattern(ordersMigration, /create_order_atomic[\s\S]*from public\.reservations[\s\S]*for update/i, 'Criação de pedido não bloqueia a reserva.');
+requirePattern(ordersMigration, /v_fee := round\(v_reservation\.price_snapshot \* v_fee_rate/i, 'Pedido não calcula comissão no banco.');
+requirePattern(ordersMigration, /revoke insert, update, delete on public\.orders from authenticated/i, 'Usuário autenticado ainda pode escrever diretamente em pedidos.');
+requirePattern(ordersMigration, /orders_select_own[\s\S]*auth\.uid\(\) = user_id/i, 'RLS própria de pedidos ausente.');
+requirePattern(ordersHardening, /protect_order_immutable_fields[\s\S]*price_snapshot[\s\S]*policy_snapshot/i, 'Hardening não protege campos financeiros e snapshots do pedido.');
+requirePattern(ordersHardening, /create or replace function public\.transition_order_atomic/i, 'State machine atômica de pedidos ausente.');
+requirePattern(ordersHardening, /order_status_history/i, 'Histórico de estados de pedidos ausente.');
+requirePattern(ordersHardening, /Pedido só pode ser concluído após pagamento, entrega e certificado/i, 'Conclusão do pedido não está protegida por invariantes.');
+requirePattern(ordersHardening, /Justificativa operacional é obrigatória/i, 'Transição privilegiada de pedido não exige justificativa.');
+requirePattern(ordersApi, /adminSupabaseRpc\('create_order_atomic'/, 'API de pedidos não usa criação atômica.');
+requirePattern(ordersApi, /adminSupabaseRpc\('transition_order_atomic'/, 'API de pedidos não usa state machine atômica.');
+if (/adminSupabaseRequest\(`orders\?id=eq\.[\s\S]*method:\s*'PATCH'/i.test(ordersApi)) {
+  issues.push('API de pedidos ainda faz PATCH direto na tabela.');
+}
+requirePattern(ordersRollback, /drop function if exists public\.transition_order_atomic/i, 'Rollback do hardening não remove a state machine de pedidos.');
+requirePattern(ordersRollback, /drop table if exists public\.order_status_history/i, 'Rollback do hardening não remove o histórico de pedidos.');
+
+console.log('Arandu Transaction, RLS, Orders & Audit Migration Check');
 console.log(`Erros: ${issues.length}`);
 issues.forEach((issue) => console.error(`- ${issue}`));
 if (issues.length) process.exit(1);
