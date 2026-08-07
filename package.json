@@ -45,6 +45,7 @@
     "check:ux": "node scripts/check-ux-launch.mjs",
     "check:seo": "node scripts/check-seo.mjs",
     "check:seo:dist": "node scripts/check-seo.mjs --dist",
+    "check:build-size": "node scripts/check-build-size.mjs",
     "check:readability": "node scripts/check-readability.mjs",
     "check:env": "node scripts/check-production-env.mjs",
     "check:env:release": "node scripts/check-production-env.mjs --require-ready",
@@ -68,7 +69,7 @@
     "staging:release": "node scripts/run-staging-release.mjs",
     "seed:supabase": "node scripts/seed-supabase.mjs",
     "seed:supabase:dry": "node scripts/seed-supabase.mjs --dry-run",
-    "predeploy": "npm run build && npm run check:all && npm run check:env:release && npm run check:evidence:release && npm run check:catalog:release && npm run check:domain:release && npm run check:commercial:release && npm run check:pilot:release && npm run check:platform:release"
+    "predeploy": "npm run build && npm run check:build-size && npm run check:all && npm run check:env:release && npm run check:evidence:release && npm run check:catalog:release && npm run check:domain:release && npm run check:commercial:release && npm run check:pilot:release && npm run check:platform:release"
   },
   "dependencies": {
     "@vercel/speed-insights": "^1.2.0",
