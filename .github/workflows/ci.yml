@@ -76,6 +76,9 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Build size budget
+        run: npm run check:build-size
+
       - name: SEO in built output
         run: npm run check:seo:dist
 
