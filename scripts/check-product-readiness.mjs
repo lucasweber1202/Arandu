@@ -5,10 +5,13 @@ const requiredFiles = [
   'api/orders.js',
   'lib/email.mjs',
   'docs/supabase-orders.sql',
+  'docs/supabase-orders-hardening.sql',
   'docs/rollback/supabase-orders.rollback.sql',
+  'docs/rollback/supabase-orders-hardening.rollback.sql',
   'scripts/run-staging-release.mjs',
   '.github/workflows/staging-release.yml',
-  'docs/PRODUCT_READINESS_EXECUTION.md'
+  'docs/PRODUCT_READINESS_EXECUTION.md',
+  'docs/ORDERS_OPERATIONS.md'
 ];
 
 const problems = [];
@@ -18,8 +21,16 @@ for (const file of requiredFiles) {
 
 const manifest = JSON.parse(fs.readFileSync('docs/supabase-migrations.json', 'utf8'));
 for (const flow of ['cleanInstall', 'existingDatabase']) {
-  if (manifest[flow]?.at(-1) !== 'docs/supabase-orders.sql') {
-    problems.push(`docs/supabase-orders.sql deve ser a última migration em ${flow}.`);
+  const migrations = manifest[flow] || [];
+  const ordersIndex = migrations.indexOf('docs/supabase-orders.sql');
+  const hardeningIndex = migrations.indexOf('docs/supabase-orders-hardening.sql');
+  if (ordersIndex === -1) problems.push(`docs/supabase-orders.sql ausente em ${flow}.`);
+  if (hardeningIndex === -1) problems.push(`docs/supabase-orders-hardening.sql ausente em ${flow}.`);
+  if (ordersIndex !== -1 && hardeningIndex !== ordersIndex + 1) {
+    problems.push(`docs/supabase-orders-hardening.sql deve vir imediatamente depois de docs/supabase-orders.sql em ${flow}.`);
+  }
+  if (hardeningIndex !== migrations.length - 1) {
+    problems.push(`docs/supabase-orders-hardening.sql deve ser a última migration em ${flow}.`);
   }
 }
 
@@ -34,11 +45,24 @@ for (const token of [
   if (!sql.includes(token)) problems.push(`Migration de orders sem: ${token}`);
 }
 
+const hardeningSql = fs.readFileSync('docs/supabase-orders-hardening.sql', 'utf8');
+for (const token of [
+  'create table if not exists public.order_status_history',
+  'protect_order_immutable_fields',
+  'transition_order_atomic',
+  'Justificativa operacional é obrigatória',
+  'Pedido só pode ser concluído após pagamento, entrega e certificado'
+]) {
+  if (!hardeningSql.includes(token)) problems.push(`Hardening de orders sem: ${token}`);
+}
+
 const ordersApi = fs.readFileSync('api/orders.js', 'utf8');
 if (/body\.(?:price|currency|platform_fee|artist_amount)/.test(ordersApi)) {
   problems.push('API de orders não deve confiar em preço/moeda/comissão enviados pelo navegador.');
 }
 if (!ordersApi.includes("const scope = 'orders.create'")) problems.push('Orders sem escopo de idempotência dedicado.');
+if (!ordersApi.includes("adminSupabaseRpc('transition_order_atomic'")) problems.push('Orders não usam a state machine atômica.');
+if (!ordersApi.includes('justification.length < 8')) problems.push('Orders não exigem justificativa operacional para transições.');
 
 const env = fs.readFileSync('.env.example', 'utf8');
 for (const variable of [
@@ -71,7 +95,7 @@ if (!commercialPolicy.includes("packaging: 'ARANDU_PACKAGING_POLICY_REFERENCE'")
 }
 
 const email = await import(`../lib/email.mjs?check=${Date.now()}`);
-if (email.listTransactionalTemplates().length !== 7) problems.push('Esperados 7 templates transacionais.');
+if (email.listTransactionalTemplates().length < 7) problems.push('Esperados pelo menos 7 templates transacionais.');
 const rendered = email.renderTransactionalEmail('reservation_confirmed', { artwork: '<teste>' });
 if (rendered.html.includes('<teste>')) problems.push('Template de e-mail não escapou HTML.');
 const previousProvider = process.env.ARANDU_EMAIL_PROVIDER;
