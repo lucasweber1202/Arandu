@@ -10,7 +10,8 @@
     "docs/supabase-commercial.sql",
     "docs/supabase-transactions-rbac-audit.sql",
     "docs/supabase-orders.sql",
-    "docs/supabase-orders-hardening.sql"
+    "docs/supabase-orders-hardening.sql",
+    "docs/supabase-transactional-email-outbox.sql"
   ],
   "existingDatabase": [
     "docs/supabase-sprint1-auth-ownership.sql",
@@ -22,6 +23,7 @@
     "docs/supabase-commercial.sql",
     "docs/supabase-transactions-rbac-audit.sql",
     "docs/supabase-orders.sql",
-    "docs/supabase-orders-hardening.sql"
+    "docs/supabase-orders-hardening.sql",
+    "docs/supabase-transactional-email-outbox.sql"
   ]
 }
