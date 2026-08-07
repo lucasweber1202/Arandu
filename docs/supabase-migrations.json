@@ -9,7 +9,8 @@
     "docs/supabase-sprint6-12-platform.sql",
     "docs/supabase-commercial.sql",
     "docs/supabase-transactions-rbac-audit.sql",
-    "docs/supabase-orders.sql"
+    "docs/supabase-orders.sql",
+    "docs/supabase-orders-hardening.sql"
   ],
   "existingDatabase": [
     "docs/supabase-sprint1-auth-ownership.sql",
@@ -20,6 +21,7 @@
     "docs/supabase-sprint6-12-platform.sql",
     "docs/supabase-commercial.sql",
     "docs/supabase-transactions-rbac-audit.sql",
-    "docs/supabase-orders.sql"
+    "docs/supabase-orders.sql",
+    "docs/supabase-orders-hardening.sql"
   ]
 }
