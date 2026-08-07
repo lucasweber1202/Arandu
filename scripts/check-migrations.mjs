@@ -26,6 +26,7 @@ for (const [flow, files] of Object.entries(manifest)) {
   const orders = files.indexOf('docs/supabase-orders.sql');
   const ordersHardening = files.indexOf('docs/supabase-orders-hardening.sql');
   const emailOutbox = files.indexOf('docs/supabase-transactional-email-outbox.sql');
+  const retention = files.indexOf('docs/supabase-retention-controls.sql');
   const production = files.indexOf('docs/supabase-production.sql');
   if (sprint2 === -1) issues.push(`${flow}: migration do Sprint 2 ausente.`);
   if (sprint5 === -1) issues.push(`${flow}: migration do Sprint 5 ausente.`);
@@ -35,6 +36,7 @@ for (const [flow, files] of Object.entries(manifest)) {
   if (orders === -1) issues.push(`${flow}: migration de pedidos ausente.`);
   if (ordersHardening === -1) issues.push(`${flow}: hardening aditivo de pedidos ausente.`);
   if (emailOutbox === -1) issues.push(`${flow}: migration da outbox transacional ausente.`);
+  if (retention === -1) issues.push(`${flow}: migration de retenção/legal hold ausente.`);
   if (collections === -1) issues.push(`${flow}: migration de coleções públicas ausente.`);
   if (production === -1) issues.push(`${flow}: migration de produção ausente.`);
   if (sprint2 !== -1 && production !== -1 && sprint2 < production) issues.push(`${flow}: a migration do Sprint 2 precisa vir depois da camada de produção para fechar as políticas.`);
@@ -47,7 +49,8 @@ for (const [flow, files] of Object.entries(manifest)) {
   if (orders !== -1 && transactions !== -1 && orders < transactions) issues.push(`${flow}: pedidos precisam vir depois da camada transacional/RLS.`);
   if (ordersHardening !== -1 && orders !== -1 && ordersHardening !== orders + 1) issues.push(`${flow}: hardening de pedidos precisa vir imediatamente depois da migration de pedidos.`);
   if (emailOutbox !== -1 && ordersHardening !== -1 && emailOutbox !== ordersHardening + 1) issues.push(`${flow}: outbox transacional precisa vir imediatamente depois do hardening de pedidos.`);
-  if (emailOutbox !== -1 && emailOutbox !== files.length - 1) issues.push(`${flow}: outbox transacional deve ser a última migration atual.`);
+  if (retention !== -1 && emailOutbox !== -1 && retention !== emailOutbox + 1) issues.push(`${flow}: retenção/legal hold precisa vir imediatamente depois da outbox.`);
+  if (retention !== -1 && retention !== files.length - 1) issues.push(`${flow}: retenção/legal hold deve ser a última migration atual.`);
 }
 
 console.log('Arandu Migration Order Check');
