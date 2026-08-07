@@ -11,9 +11,10 @@ Já estão implementados no código:
 - autenticação de compradores com Supabase Auth;
 - administração com sessão `HttpOnly`, papéis em `app_metadata` e MFA TOTP `aal2`;
 - catálogo público fail-closed, sem promover fixtures como acervo real;
-- reservas, propostas e registros comerciais transacionais;
+- reservas, propostas, pedidos e registros comerciais transacionais;
+- pedidos com state machine atômica, histórico operacional e snapshots financeiros imutáveis;
 - RLS, idempotência, concorrência e auditoria minimizada;
-- política comercial versionada e snapshots imutáveis;
+- política comercial versionada e snapshots imutáveis, incluindo referência de embalagem;
 - intake validado de catálogo;
 - piloto fechado, telemetria mínima e feedback estruturado;
 - SEO, PWA, acessibilidade e jornadas desktop/mobile;
@@ -68,6 +69,8 @@ ARANDU_DATABASE_TEST_URL=postgresql://postgres:postgres@localhost:5432/postgres 
   npm run test:database
 ```
 
+A suíte de banco valida instalação limpa, upgrade, reaplicação, rollback, RLS, transações, state machine e concorrência de pedidos.
+
 Os checks de desenvolvimento não afirmam que staging ou produção foram validados. A liberação exige:
 
 ```bash
@@ -97,7 +100,7 @@ Procedimento completo: `docs/STAGING_REHEARSAL.md`.
 
 O front-end é multipágina e construído com Vite. A coerência visual vem do pipeline de build, do shell global em `js/site.js` e das camadas CSS documentadas em `docs/ARQUITETURA_FRONTEND.md`.
 
-A API é formada por funções serverless, com `api/[...path].js` como roteador principal e funções complementares para autenticação, readiness, operação comercial, upload e painéis.
+A API é formada por funções serverless, com `api/[...path].js` como roteador principal e funções complementares para autenticação, readiness, operação comercial, pedidos, upload e painéis.
 
 Rotas importantes:
 
@@ -107,6 +110,7 @@ Rotas importantes:
 /api/forms
 /api/reservations
 /api/proposals
+/api/orders
 /api/account
 /api/auth/session
 /api/auth/login
@@ -128,8 +132,11 @@ Rotas importantes:
 A ordem canônica está em `docs/supabase-migrations.json`. Antes de executar qualquer migration real, leia:
 
 - `docs/TRANSACTIONS_RLS_RBAC.md`;
+- `docs/ORDERS_OPERATIONS.md`;
 - `docs/MIGRATION_RELEASE_RUNBOOK.md`;
 - `docs/INCIDENT_BACKUP_OBSERVABILITY_RUNBOOK.md`.
+
+A camada de pedidos é aditiva: `docs/supabase-orders.sql` cria o domínio e `docs/supabase-orders-hardening.sql` adiciona state machine, histórico, tracking e imutabilidade financeira sem reescrever a migration original.
 
 Comandos principais:
 
@@ -146,7 +153,7 @@ Nunca aplique migrations sem backup referenciado, preflight aprovado e plano de 
 
 Os arquivos de demonstração não contam como catálogo real. A publicação exige autorizações, procedência, disponibilidade, preço, moeda, dimensões, técnica, certificado, consentimento e aprovação editorial.
 
-A operação comercial permanece fail-closed enquanto a política não estiver completa e aprovada. Valores enviados pelo navegador não substituem cálculo no servidor e no banco.
+A operação comercial permanece fail-closed enquanto a política não estiver completa e aprovada. Valores enviados pelo navegador não substituem cálculo no servidor e no banco. Domínios reservados (`example.*`, `.test`, `.invalid`, `localhost`) e previews `*.vercel.app` não contam como domínio final de produção.
 
 Documentação comercial e de crescimento mantida como referência obrigatória:
 
@@ -157,6 +164,7 @@ Documentação comercial e de crescimento mantida como referência obrigatória:
 - `docs/CHECKLIST_PARCEIRA_ARTISTA.md` — autorizações e parceria;
 - `docs/PROSPECCAO_COMPRADORES_EMPRESAS.md` — aquisição B2C e B2B;
 - `docs/FLUXO_COMPRA_RESERVA.md` — jornada comercial;
+- `docs/ORDERS_OPERATIONS.md` — domínio, state machine e operação de pedidos;
 - `docs/OBJECOES_E_RESPOSTAS.md` — respostas comerciais padronizadas;
 - `docs/CALENDARIO_CONTEUDO_30_DIAS.md` — preparação editorial;
 - `docs/METRICAS_FUNIL_ARANDU.md` — métricas de aquisição e conversão;
@@ -173,7 +181,7 @@ Leia antes de contribuir:
 - `docs/REPOSITORY_HYGIENE.md` — política para branches e documentos históricos;
 - `docs/VERSIONING.md` — estratégia de versões antes do lançamento público.
 
-A CI executa `scripts/check-governance.mjs` e `scripts/check-staging-rehearsal.mjs` para impedir regressões nos controles mínimos do repositório e no workflow de preparação de staging.
+A CI executa `scripts/check-governance.mjs` e `scripts/check-staging-rehearsal.mjs` para impedir regressões nos controles mínimos do repositório e no workflow de preparação de staging. Os workflows do repositório usam Actions compatíveis com Node.js 24.
 
 ## Variáveis de produção
 
