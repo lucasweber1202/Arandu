@@ -81,7 +81,7 @@ begin
   if v_payment = 'paid' and v_status not in ('confirmed', 'completed') then
     raise exception using message = 'Pagamento pago exige pedido confirmado.', errcode = '23514';
   end if;
-  if v_fulfillment in ('packing', 'shipped', 'delivered') and (v_payment <> 'paid' or v_status <> 'confirmed') then
+  if v_fulfillment in ('packing', 'shipped', 'delivered') and (v_payment <> 'paid' or v_status not in ('confirmed', 'completed')) then
     raise exception using message = 'Fulfillment exige pedido confirmado e pagamento pago.', errcode = '23514';
   end if;
   if v_certificate = 'ready' and v_payment <> 'paid' then
