@@ -27,16 +27,23 @@ while IFS= read -r file; do
   apply_file "$clean_db" "$file"
 done < <(node -e "const m=require('./docs/supabase-migrations.json'); for (const f of m.cleanInstall) console.log(f)")
 apply_file "$clean_db" "tests/database/transactions.sql"
+apply_file "$clean_db" "tests/database/orders.sql"
 bash "$root_dir/tests/database/reservation-concurrency.sh" "$(database_url "$clean_db")"
 
 apply_file "$upgrade_db" "tests/database/bootstrap.sql"
 while IFS= read -r file; do
   apply_file "$upgrade_db" "$file"
-done < <(node -e "const m=require('./docs/supabase-migrations.json'); for (const f of m.cleanInstall.slice(0,-1)) console.log(f)")
+done < <(node -e "const m=require('./docs/supabase-migrations.json'); for (const f of m.cleanInstall.slice(0,-2)) console.log(f)")
 apply_file "$upgrade_db" "docs/supabase-transactions-rbac-audit.sql"
 apply_file "$upgrade_db" "docs/supabase-transactions-rbac-audit.sql"
 apply_file "$upgrade_db" "docs/rollback/supabase-transactions-rbac-audit.rollback.sql"
 apply_file "$upgrade_db" "docs/supabase-transactions-rbac-audit.sql"
+apply_file "$upgrade_db" "docs/supabase-orders.sql"
+apply_file "$upgrade_db" "docs/supabase-order-state-machine.sql"
+apply_file "$upgrade_db" "docs/supabase-orders.sql"
+apply_file "$upgrade_db" "docs/supabase-order-state-machine.sql"
+apply_file "$upgrade_db" "tests/database/transactions.sql"
+apply_file "$upgrade_db" "tests/database/orders.sql"
 
 echo "Arandu Database Integration Tests"
-echo "Instalação limpa, upgrade, reaplicação, rollback, RLS e transações aprovados."
+echo "Instalação limpa, upgrade, reaplicação, rollback, RLS, pedidos e transações aprovados."
