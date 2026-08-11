@@ -42,7 +42,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
-      ARANDU_SITE_URL: https://arandu.example.com
+      ARANDU_STAGING_SITE_URL: ${{ secrets.ARANDU_STAGING_SITE_URL }}
+      ARANDU_SITE_URL: ${{ secrets.ARANDU_STAGING_SITE_URL }}
+      ARANDU_STAGING_PROJECT_REF: ${{ secrets.ARANDU_STAGING_PROJECT_REF }}
+      ARANDU_PRODUCTION_PROJECT_REF: ${{ secrets.ARANDU_PRODUCTION_PROJECT_REF }}
       ARANDU_STAGING_DATABASE_URL: ${{ secrets.ARANDU_STAGING_DATABASE_URL }}
       ARANDU_WRITE_TEST_URL: ${{ secrets.ARANDU_STAGING_WRITE_TEST_URL }}
       SUPABASE_URL: ${{ secrets.ARANDU_STAGING_SUPABASE_URL }}
@@ -101,6 +104,7 @@ jobs:
           name: arandu-staging-release-${{ github.run_id }}
           path: |
             reports/staging-release-execution.json
+            reports/staging-environment.json
             reports/migration-release-report.json
             reports/supabase-migrations-*.json
           if-no-files-found: warn

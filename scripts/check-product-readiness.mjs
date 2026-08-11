@@ -5,6 +5,8 @@ const requiredFiles = [
   'api/orders.js',
   'lib/email.mjs',
   'docs/supabase-orders.sql',
+  'docs/supabase-order-state-machine.sql',
+  'docs/rollback/supabase-order-state-machine.rollback.sql',
   'docs/rollback/supabase-orders.rollback.sql',
   'scripts/run-staging-release.mjs',
   '.github/workflows/staging-release.yml',
@@ -18,8 +20,8 @@ for (const file of requiredFiles) {
 
 const manifest = JSON.parse(fs.readFileSync('docs/supabase-migrations.json', 'utf8'));
 for (const flow of ['cleanInstall', 'existingDatabase']) {
-  if (manifest[flow]?.at(-1) !== 'docs/supabase-orders.sql') {
-    problems.push(`docs/supabase-orders.sql deve ser a última migration em ${flow}.`);
+  if (manifest[flow]?.at(-1) !== 'docs/supabase-order-state-machine.sql') {
+    problems.push(`docs/supabase-order-state-machine.sql deve ser a última migration em ${flow}.`);
   }
 }
 
@@ -39,6 +41,8 @@ if (/body\.(?:price|currency|platform_fee|artist_amount)/.test(ordersApi)) {
   problems.push('API de orders não deve confiar em preço/moeda/comissão enviados pelo navegador.');
 }
 if (!ordersApi.includes("const scope = 'orders.create'")) problems.push('Orders sem escopo de idempotência dedicado.');
+if (!ordersApi.includes("adminSupabaseRpc('transition_order_atomic'")) problems.push('Orders não usa máquina de estados transacional.');
+if (/adminSupabaseRequest\(`orders\?id=.*method: 'PATCH'/s.test(ordersApi)) problems.push('Orders ainda permite PATCH direto sem invariantes no banco.');
 
 const env = fs.readFileSync('.env.example', 'utf8');
 for (const variable of [

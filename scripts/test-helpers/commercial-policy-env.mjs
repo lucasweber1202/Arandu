@@ -7,6 +7,7 @@ export function configureTestCommercialPolicy(version = 'policy-test-v1') {
     ARANDU_RESERVATION_HOURS: '24',
     ARANDU_PAYMENT_POLICY_REFERENCE: 'test-payment-v1',
     ARANDU_SHIPPING_POLICY_REFERENCE: 'test-shipping-v1',
+    ARANDU_PACKAGING_POLICY_REFERENCE: 'test-packaging-v1',
     ARANDU_INSURANCE_POLICY_REFERENCE: 'test-insurance-v1',
     ARANDU_CANCELLATION_POLICY_REFERENCE: 'test-cancellation-v1',
     ARANDU_RETURN_POLICY_REFERENCE: 'test-return-v1',
@@ -19,3 +20,4 @@ export function configureTestCommercialPolicy(version = 'policy-test-v1') {
     ARANDU_COMMERCIAL_APPROVAL_REFERENCE: 'test-approval-v1'
   });
 }
+

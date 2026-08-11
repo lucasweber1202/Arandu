@@ -93,6 +93,10 @@ npm run staging:evidence
 
 Procedimento completo: `docs/STAGING_REHEARSAL.md`.
 
+O caminho real protegido, a validação de project ref, a máquina de estados de
+pedidos, o verificador de restore e o formato v3 das evidências estão em
+`docs/PRODUCTION_READINESS_FINAL.md`.
+
 ## Arquitetura
 
 O front-end é multipágina e construído com Vite. A coerência visual vem do pipeline de build, do shell global em `js/site.js` e das camadas CSS documentadas em `docs/ARQUITETURA_FRONTEND.md`.
@@ -138,6 +142,7 @@ npm run check:migrations
 npm run migrations:bundle
 npm run migrations:release -- --dry-run --environment staging
 npm run seed:supabase:dry
+npm run staging:validate
 ```
 
 Nunca aplique migrations sem backup referenciado, preflight aprovado e plano de rollback.

@@ -1,97 +1,19 @@
 {
-  "version": 2,
+  "version": 3,
   "updatedAt": null,
   "gates": {
-    "migration_preflight": {
-      "state": "not_started",
-      "owner": null,
-      "observedAt": null,
-      "reference": null,
-      "notes": null
-    },
-    "migration_ci": {
-      "state": "not_started",
-      "owner": null,
-      "observedAt": null,
-      "reference": null,
-      "notes": null
-    },
-    "migration_staging": {
-      "state": "not_started",
-      "owner": null,
-      "observedAt": null,
-      "reference": null,
-      "notes": null
-    },
-    "backup_restore": {
-      "state": "not_started",
-      "owner": null,
-      "observedAt": null,
-      "reference": null,
-      "notes": null
-    },
-    "write_canary": {
-      "state": "not_started",
-      "owner": null,
-      "observedAt": null,
-      "reference": null,
-      "notes": null
-    },
-    "rls_isolation": {
-      "state": "not_started",
-      "owner": null,
-      "observedAt": null,
-      "reference": null,
-      "notes": null
-    },
-    "reservation_concurrency": {
-      "state": "not_started",
-      "owner": null,
-      "observedAt": null,
-      "reference": null,
-      "notes": null
-    },
-    "catalog_real": {
-      "state": "not_started",
-      "owner": null,
-      "observedAt": null,
-      "reference": null,
-      "notes": null
-    },
-    "commercial_policy": {
-      "state": "not_started",
-      "owner": null,
-      "observedAt": null,
-      "reference": null,
-      "notes": null
-    },
-    "monitoring": {
-      "state": "not_started",
-      "owner": null,
-      "observedAt": null,
-      "reference": null,
-      "notes": null
-    },
-    "privacy_contact": {
-      "state": "not_started",
-      "owner": null,
-      "observedAt": null,
-      "reference": null,
-      "notes": null
-    },
-    "domain_https": {
-      "state": "not_started",
-      "owner": null,
-      "observedAt": null,
-      "reference": null,
-      "notes": null
-    },
-    "pilot_closed": {
-      "state": "not_started",
-      "owner": null,
-      "observedAt": null,
-      "reference": null,
-      "notes": null
-    }
+    "migration_preflight": { "state": "not_started", "owner": null, "timestamp": null, "reference": null, "environment": null, "origin": null, "result": null, "notes": null },
+    "migration_ci": { "state": "ci_validated", "owner": "release-operator", "timestamp": "2026-08-11T14:08:21.467Z", "reference": "GHA-RUN-31499692700", "environment": "ci", "origin": "github_actions", "result": "passed", "notes": "PostgreSQL 16 clean install, upgrade, rollback, RLS, concorrência e pedidos aprovados." },
+    "migration_staging": { "state": "not_started", "owner": null, "timestamp": null, "reference": null, "environment": null, "origin": null, "result": null, "notes": null },
+    "backup_restore": { "state": "not_started", "owner": null, "timestamp": null, "reference": null, "environment": null, "origin": null, "result": null, "notes": null },
+    "write_canary": { "state": "not_started", "owner": null, "timestamp": null, "reference": null, "environment": null, "origin": null, "result": null, "notes": null },
+    "rls_isolation": { "state": "not_started", "owner": null, "timestamp": null, "reference": null, "environment": null, "origin": null, "result": null, "notes": null },
+    "reservation_concurrency": { "state": "not_started", "owner": null, "timestamp": null, "reference": null, "environment": null, "origin": null, "result": null, "notes": null },
+    "catalog_real": { "state": "not_started", "owner": null, "timestamp": null, "reference": null, "environment": null, "origin": null, "result": null, "notes": null },
+    "commercial_policy": { "state": "not_started", "owner": null, "timestamp": null, "reference": null, "environment": null, "origin": null, "result": null, "notes": null },
+    "monitoring": { "state": "not_started", "owner": null, "timestamp": null, "reference": null, "environment": null, "origin": null, "result": null, "notes": null },
+    "privacy_contact": { "state": "not_started", "owner": null, "timestamp": null, "reference": null, "environment": null, "origin": null, "result": null, "notes": null },
+    "domain_https": { "state": "not_started", "owner": null, "timestamp": null, "reference": null, "environment": null, "origin": null, "result": null, "notes": null },
+    "pilot_closed": { "state": "not_started", "owner": null, "timestamp": null, "reference": null, "environment": null, "origin": null, "result": null, "notes": null }
   }
 }
