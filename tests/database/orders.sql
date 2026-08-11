@@ -46,7 +46,7 @@ begin
       'database-operator', 'operator', 'request-invalid-complete'
     );
     raise exception 'Pedido incompleto foi concluído';
-  exception when check_violation then null;
+  exception when check_violation or invalid_parameter_value then null;
   end;
 end;
 $$;
