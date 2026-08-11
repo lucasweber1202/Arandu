@@ -2,6 +2,16 @@
 
 ## Não lançado — Integridade transacional e autorização
 
+- Máquina de estados transacional de pedidos rejeita combinações impossíveis entre
+  pedido, pagamento, fulfillment e certificado; a API deixou de atualizar a tabela diretamente.
+- Upgrade de banco agora aplica e testa migrations de pedidos, incluindo replay,
+  RLS entre compradores, auditoria e transições negativas.
+- Preflight de staging vincula site, banco e Supabase ao project ref esperado e
+  bloqueia coincidência com produção antes de qualquer DDL.
+- Verificador operacional de backup/restore valida idade e integridade do dump,
+  fingerprint do schema e probes em banco restaurado descartável.
+- Evidências de release v3 distinguem preparação, CI, staging, verificação externa
+  e falha, com metadados obrigatórios e promoções fail-closed.
 - Reservas atômicas com bloqueio da obra e unicidade de reserva ativa.
 - Propostas e registros comerciais calculados e criados no PostgreSQL.
 - Idempotência serializada, vinculada à identidade e ao payload.
