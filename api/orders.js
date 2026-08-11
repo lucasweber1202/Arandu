@@ -7,7 +7,6 @@ import { enforceSensitiveRateLimit } from '../lib/rate-limit.mjs';
 import {
   adminSupabaseRequest,
   adminSupabaseRpc,
-  auditRequestHeaders,
   hasSupabaseAccess
 } from '../lib/supabase.mjs';
 
@@ -177,12 +176,17 @@ async function updateOrder(req, res, admin, requestId) {
   }
   if (!Object.keys(payload).length) throw new HttpError(400, 'Nenhum campo válido.');
 
-  const rows = await adminSupabaseRequest(`orders?id=eq.${encodeURIComponent(id)}`, {
-    method: 'PATCH',
-    headers: auditRequestHeaders(admin.actor, requestId, body.justification),
-    body: payload
-  });
-  return json(res, 200, { ok: true, mode: 'stored', stored: true, order: firstRecord(rows) }, admin.headers);
+  const result = firstRecord(await adminSupabaseRpc('transition_order_atomic', {
+    p_order_id: id,
+    p_status: payload.status ?? null,
+    p_payment_status: payload.payment_status ?? null,
+    p_fulfillment_status: payload.fulfillment_status ?? null,
+    p_certificate_status: payload.certificate_status ?? null,
+    p_actor_ref: admin.actor.id,
+    p_actor_role: admin.actor.role,
+    p_request_id: requestId
+  }));
+  return json(res, 200, { ...result, mode: 'stored' }, admin.headers);
 }
 
 export default async function handler(req, res) {
