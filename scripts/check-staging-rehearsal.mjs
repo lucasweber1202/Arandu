@@ -31,13 +31,16 @@ if (exists(workflowPath)) {
     'npm run audit:ci',
     'npm run check:all',
     'npm run build',
+    'npm run check:build-size',
     'npm run check:seo:dist',
     'npm run migrations:bundle',
     'npm run migrations:release',
     '--dry-run',
     'npm run test:database',
     'create-staging-rehearsal-report.mjs',
-    'actions/upload-artifact@v4'
+    'actions/checkout@v7',
+    'actions/setup-node@v7',
+    'actions/upload-artifact@v7'
   ];
   for (const fragment of requiredFragments) {
     if (!workflow.includes(fragment)) problems.push(`${workflowPath}: fragmento obrigatório ausente: ${fragment}.`);
