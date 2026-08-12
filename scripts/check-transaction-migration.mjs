@@ -4,6 +4,11 @@ const migration = fs.readFileSync('docs/supabase-transactions-rbac-audit.sql', '
 const rollback = fs.readFileSync('docs/rollback/supabase-transactions-rbac-audit.rollback.sql', 'utf8');
 const api = fs.readFileSync('api/[...path].js', 'utf8');
 const commercial = fs.readFileSync('api/commercial.js', 'utf8');
+const ordersApi = fs.readFileSync('api/orders.js', 'utf8');
+const accountOrdersApi = fs.readFileSync('api/account-orders.js', 'utf8');
+const stateMachine = fs.readFileSync('docs/supabase-order-state-machine.sql', 'utf8');
+const ordersHardening = fs.readFileSync('docs/supabase-orders-hardening.sql', 'utf8');
+const outbox = fs.readFileSync('docs/supabase-transactional-email-outbox.sql', 'utf8');
 const issues = [];
 
 function requirePattern(source, pattern, message) {
@@ -34,9 +39,50 @@ requirePattern(api, /userSupabaseRequest\(session\.accessToken/, 'Rotas de conta
 requirePattern(api, /adminSupabaseRpc\('apply_catalog_review_atomic'/, 'Revisão editorial não usa RPC transacional.');
 requirePattern(commercial, /create_commercial_record_atomic/, 'Operação comercial não é transacional.');
 requirePattern(commercial, /requireCommercialPolicy/, 'Comissão não vem da política completa e versionada do servidor.');
-if (/\bbody\.(total|platform_fee|artist_amount)\b/.test(commercial)) {
-  issues.push('API comercial ainda confia em valores monetários do cliente.');
+if (/\bbody\.(total|platform_fee|artist_amount)\b/.test(commercial)) issues.push('API comercial ainda confia em valores monetários do cliente.');
+
+requirePattern(stateMachine, /select \* into v_order from public\.orders where id = p_order_id for update/i, 'State machine base não bloqueia o pedido.');
+requirePattern(stateMachine, /Pagamento pago exige pedido confirmado/i, 'State machine base perdeu a invariante de pagamento.');
+requirePattern(stateMachine, /Emissão do certificado exige pagamento e entrega/i, 'State machine base perdeu a invariante de certificado.');
+requirePattern(stateMachine, /update public\.artworks set status = 'sold'/i, 'State machine base não sincroniza obra vendida.');
+
+requirePattern(ordersHardening, /create table if not exists public\.order_status_history/i, 'Hardening não cria histórico de pedidos.');
+requirePattern(ordersHardening, /protect_order_history_append_only/i, 'Histórico de pedidos não está protegido como append-only.');
+requirePattern(ordersHardening, /protect_order_immutable_fields/i, 'Hardening não protege snapshots financeiros.');
+requirePattern(ordersHardening, /Justificativa operacional é obrigatória/i, 'Hardening não exige justificativa operacional.');
+for (const invariant of [
+  'Pedido não pode ser cancelado no estado operacional atual.',
+  'Pagamento pago exige pedido confirmado.',
+  'Fulfillment exige pedido confirmado e pagamento pago.',
+  'Certificado pronto exige pagamento pago.',
+  'Emissão do certificado exige pagamento e entrega.',
+  'Conclusão exige pagamento, entrega e certificado resolvido.'
+]) {
+  if (!ordersHardening.includes(invariant)) issues.push(`Hardening perdeu invariante da PR #38: ${invariant}`);
 }
+requirePattern(ordersHardening, /set_config\('request\.headers'/i, 'Hardening não propaga contexto de auditoria.');
+requirePattern(ordersHardening, /update public\.artworks set status = 'sold'/i, 'Hardening não sincroniza obra concluída.');
+requirePattern(ordersHardening, /from public, anon, authenticated, service_role/i, 'Assinatura antiga não é revogada do service_role durante o hardening.');
+
+requirePattern(ordersApi, /adminSupabaseRpc\('transition_order_atomic'/, 'API de orders não usa RPC atômica.');
+requirePattern(ordersApi, /justification\.length < 8/, 'API de orders não exige justificativa.');
+requirePattern(ordersApi, /p_tracking_code:/, 'API de orders não encaminha tracking.');
+requirePattern(ordersApi, /p_shipping_provider:/, 'API de orders não encaminha transportadora.');
+if (/adminSupabaseRequest\(`orders\?id=.*method: 'PATCH'/s.test(ordersApi)) issues.push('Orders ainda permite PATCH direto no banco.');
+
+requirePattern(accountOrdersApi, /hasSupabaseAccess\('user'\)/, 'Conta de pedidos não exige acesso Supabase de usuário.');
+requirePattern(accountOrdersApi, /userSupabaseRequest\(/, 'Conta de pedidos não usa JWT/RLS do comprador.');
+if (/policy_snapshot|platform_fee|artist_amount/.test(accountOrdersApi)) issues.push('Conta de pedidos expõe campos comerciais internos desnecessários.');
+
+for (const pattern of [
+  /create table if not exists public\.transactional_email_outbox/i,
+  /for update skip locked/i,
+  /claim_transactional_email_batch/i,
+  /complete_transactional_email/i,
+  /fail_transactional_email/i,
+  /recipient_address = null/i,
+  /trg_orders_transactional_email/i
+]) requirePattern(outbox, pattern, `Outbox transacional incompleta: ${pattern}`);
 
 console.log('Arandu Transaction, RLS & Audit Migration Check');
 console.log(`Erros: ${issues.length}`);

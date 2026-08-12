@@ -30,12 +30,12 @@ jobs:
           --health-retries 10
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 24
 
@@ -54,12 +54,12 @@ jobs:
       ARANDU_SITE_URL: https://arandu.example.com
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
@@ -76,6 +76,9 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Build size budget
+        run: npm run check:build-size
+
       - name: SEO in built output
         run: npm run check:seo:dist
 
@@ -87,7 +90,7 @@ jobs:
 
       - name: Upload browser evidence on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: arandu-playwright-evidence
           path: |

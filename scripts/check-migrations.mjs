@@ -25,6 +25,9 @@ for (const [flow, files] of Object.entries(manifest)) {
   const transactions = files.indexOf('docs/supabase-transactions-rbac-audit.sql');
   const orders = files.indexOf('docs/supabase-orders.sql');
   const orderStateMachine = files.indexOf('docs/supabase-order-state-machine.sql');
+  const ordersHardening = files.indexOf('docs/supabase-orders-hardening.sql');
+  const emailOutbox = files.indexOf('docs/supabase-transactional-email-outbox.sql');
+  const retention = files.indexOf('docs/supabase-retention-controls.sql');
   const production = files.indexOf('docs/supabase-production.sql');
   if (sprint2 === -1) issues.push(`${flow}: migration do Sprint 2 ausente.`);
   if (sprint5 === -1) issues.push(`${flow}: migration do Sprint 5 ausente.`);
@@ -33,6 +36,9 @@ for (const [flow, files] of Object.entries(manifest)) {
   if (transactions === -1) issues.push(`${flow}: migration transacional/RLS ausente.`);
   if (orders === -1) issues.push(`${flow}: migration de pedidos ausente.`);
   if (orderStateMachine === -1) issues.push(`${flow}: máquina de estados de pedidos ausente.`);
+  if (ordersHardening === -1) issues.push(`${flow}: hardening de pedidos ausente.`);
+  if (emailOutbox === -1) issues.push(`${flow}: outbox transacional ausente.`);
+  if (retention === -1) issues.push(`${flow}: controles de retenção ausentes.`);
   if (collections === -1) issues.push(`${flow}: migration de coleções públicas ausente.`);
   if (production === -1) issues.push(`${flow}: migration de produção ausente.`);
   if (sprint2 !== -1 && production !== -1 && sprint2 < production) issues.push(`${flow}: a migration do Sprint 2 precisa vir depois da camada de produção para fechar as políticas.`);
@@ -43,7 +49,11 @@ for (const [flow, files] of Object.entries(manifest)) {
   if (commercial !== -1 && platform !== -1 && commercial < platform) issues.push(`${flow}: tabelas comerciais precisam vir depois do hardening da plataforma.`);
   if (transactions !== -1 && commercial !== -1 && transactions < commercial) issues.push(`${flow}: transações/RLS precisam vir depois das tabelas comerciais.`);
   if (orders !== -1 && transactions !== -1 && orders < transactions) issues.push(`${flow}: pedidos precisam vir depois da camada transacional.`);
-  if (orderStateMachine !== -1 && orders !== -1 && orderStateMachine < orders) issues.push(`${flow}: máquina de estados precisa vir depois de pedidos.`);
+  if (orders !== -1 && orderStateMachine !== orders + 1) issues.push(`${flow}: state machine deve vir imediatamente depois de orders.`);
+  if (orderStateMachine !== -1 && ordersHardening !== orderStateMachine + 1) issues.push(`${flow}: hardening deve vir imediatamente depois da state machine da PR #38.`);
+  if (ordersHardening !== -1 && emailOutbox !== ordersHardening + 1) issues.push(`${flow}: outbox deve vir imediatamente depois do hardening de pedidos.`);
+  if (emailOutbox !== -1 && retention !== emailOutbox + 1) issues.push(`${flow}: retenção deve vir imediatamente depois da outbox.`);
+  if (retention !== -1 && retention !== files.length - 1) issues.push(`${flow}: controles de retenção devem encerrar a sequência atual.`);
 }
 
 console.log('Arandu Migration Order Check');

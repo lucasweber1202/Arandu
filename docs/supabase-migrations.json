@@ -4,24 +4,32 @@
     "docs/supabase-production.sql",
     "docs/supabase-sprint1-auth-ownership.sql",
     "docs/supabase-sprint2-catalog-readiness.sql",
+    "docs/arandu-mvp-operacional.sql",
     "docs/arandu-mvp-collections.sql",
     "docs/supabase-sprint5-pilot.sql",
     "docs/supabase-sprint6-12-platform.sql",
     "docs/supabase-commercial.sql",
     "docs/supabase-transactions-rbac-audit.sql",
     "docs/supabase-orders.sql",
-    "docs/supabase-order-state-machine.sql"
+    "docs/supabase-order-state-machine.sql",
+    "docs/supabase-orders-hardening.sql",
+    "docs/supabase-transactional-email-outbox.sql",
+    "docs/supabase-retention-controls.sql"
   ],
   "existingDatabase": [
     "docs/supabase-sprint1-auth-ownership.sql",
     "docs/supabase-production.sql",
     "docs/supabase-sprint2-catalog-readiness.sql",
+    "docs/arandu-mvp-operacional.sql",
     "docs/arandu-mvp-collections.sql",
     "docs/supabase-sprint5-pilot.sql",
     "docs/supabase-sprint6-12-platform.sql",
     "docs/supabase-commercial.sql",
     "docs/supabase-transactions-rbac-audit.sql",
     "docs/supabase-orders.sql",
-    "docs/supabase-order-state-machine.sql"
+    "docs/supabase-order-state-machine.sql",
+    "docs/supabase-orders-hardening.sql",
+    "docs/supabase-transactional-email-outbox.sql",
+    "docs/supabase-retention-controls.sql"
   ]
 }
