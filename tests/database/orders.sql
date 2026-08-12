@@ -216,7 +216,7 @@ begin
     );
     raise exception 'Pedido concluído aceitou regressão para created';
   exception
-    when sqlstate 'P0001' then null;
+    when sqlstate '22023' then null;
   end;
 end;
 $$;
