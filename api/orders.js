@@ -155,38 +155,66 @@ async function updateOrder(req, res, admin, requestId) {
   requireAdminPermission(admin.actor, 'commercial', 'update');
   const body = await readBody(req);
   const id = clean(body.id, 80);
+  const justification = clean(body.justification, 500);
   if (!id) throw new HttpError(400, 'ID obrigatório.');
+  if (justification.length < 8) {
+    throw new HttpError(400, 'Justificativa operacional é obrigatória.', 'order_justification_required');
+  }
 
-  const payload = {};
+  const payload = {
+    status: null,
+    paymentStatus: null,
+    fulfillmentStatus: null,
+    certificateStatus: null,
+    trackingCode: null,
+    shippingProvider: null
+  };
+  let changed = false;
+
   if (body.status !== undefined) {
     if (!ORDER_STATUS.has(body.status)) throw new HttpError(400, 'Status do pedido inválido.');
     payload.status = body.status;
+    changed = true;
   }
   if (body.payment_status !== undefined) {
     if (!PAYMENT_STATUS.has(body.payment_status)) throw new HttpError(400, 'Status de pagamento inválido.');
-    payload.payment_status = body.payment_status;
+    payload.paymentStatus = body.payment_status;
+    changed = true;
   }
   if (body.fulfillment_status !== undefined) {
     if (!FULFILLMENT_STATUS.has(body.fulfillment_status)) throw new HttpError(400, 'Status logístico inválido.');
-    payload.fulfillment_status = body.fulfillment_status;
+    payload.fulfillmentStatus = body.fulfillment_status;
+    changed = true;
   }
   if (body.certificate_status !== undefined) {
     if (!CERTIFICATE_STATUS.has(body.certificate_status)) throw new HttpError(400, 'Status de certificado inválido.');
-    payload.certificate_status = body.certificate_status;
+    payload.certificateStatus = body.certificate_status;
+    changed = true;
   }
-  if (!Object.keys(payload).length) throw new HttpError(400, 'Nenhum campo válido.');
+  if (body.tracking_code !== undefined) {
+    payload.trackingCode = clean(body.tracking_code, 160) || null;
+    changed = true;
+  }
+  if (body.shipping_provider !== undefined) {
+    payload.shippingProvider = clean(body.shipping_provider, 120) || null;
+    changed = true;
+  }
+  if (!changed) throw new HttpError(400, 'Nenhum campo válido.');
 
   const result = firstRecord(await adminSupabaseRpc('transition_order_atomic', {
     p_order_id: id,
-    p_status: payload.status ?? null,
-    p_payment_status: payload.payment_status ?? null,
-    p_fulfillment_status: payload.fulfillment_status ?? null,
-    p_certificate_status: payload.certificate_status ?? null,
+    p_status: payload.status,
+    p_payment_status: payload.paymentStatus,
+    p_fulfillment_status: payload.fulfillmentStatus,
+    p_certificate_status: payload.certificateStatus,
+    p_tracking_code: payload.trackingCode,
+    p_shipping_provider: payload.shippingProvider,
+    p_justification: justification,
     p_actor_ref: admin.actor.id,
     p_actor_role: admin.actor.role,
     p_request_id: requestId
   }));
-  return json(res, 200, { ...result, mode: 'stored' }, admin.headers);
+  return json(res, 200, result || { ok: true, mode: 'stored', stored: true }, admin.headers);
 }
 
 export default async function handler(req, res) {

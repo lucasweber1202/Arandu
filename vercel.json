@@ -56,6 +56,7 @@
     { "source": "/painel-leads.html", "destination": "/api/internal-page?page=painel-leads.html" },
     { "source": "/painel-mvp.html", "destination": "/api/internal-page?page=painel-mvp.html" },
     { "source": "/painel-obras.html", "destination": "/api/internal-page?page=painel-obras.html" },
+    { "source": "/painel-pedidos.html", "destination": "/api/internal-page?page=painel-pedidos.html" },
     { "source": "/painel-piloto.html", "destination": "/api/internal-page?page=painel-piloto.html" },
     { "source": "/painel-propostas.html", "destination": "/api/internal-page?page=painel-propostas.html" },
     { "source": "/painel-qualidade.html", "destination": "/api/internal-page?page=painel-qualidade.html" },
