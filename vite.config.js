@@ -107,7 +107,7 @@ function injectGlobalAssets() {
   const auditJsTag = `<script src="/js/arandu-interface-audit.js?v=${HARDENING_VERSION}" defer></script>`;
   const assistantJsTag = `<script src="/js/arandu-assistant.js?v=${RESCUE_VERSION}" defer></script>`;
   const catalogSourceJsTag = `<script src="/js/catalog-source.js?v=20260717-catalog-release-1"></script>`;
-  const pilotBootstrapTag = `<script>window.ARANDU_PILOT_ENABLED=${JSON.stringify(configuredPilotEnabled)}</script>`;
+  const pilotBootstrapTag = `<meta name="arandu-pilot-enabled" content="${configuredPilotEnabled ? 'true' : 'false'}">`;
   const pilotJsTag = `<script src="/js/pilot.js?v=20260717-pilot-1" defer></script>`;
   const platformRuntimeTag = `<script src="/js/platform-runtime.js?v=20260717-platform-1" defer></script>`;
 
@@ -137,7 +137,7 @@ function injectGlobalAssets() {
       if (!output.includes('/css/arandu-clarity.css')) output = output.includes('</head>') ? output.replace('</head>', `${clarityCssTag}</head>`) : `${output}${clarityCssTag}`;
       if (!output.includes('/css/arandu-refinamento.css')) output = output.includes('</head>') ? output.replace('</head>', `${refinementCssTag}</head>`) : `${output}${refinementCssTag}`;
       if (!output.includes('/js/catalog-source.js')) output = output.includes('</head>') ? output.replace('</head>', `${catalogSourceJsTag}</head>`) : `${catalogSourceJsTag}${output}`;
-      if (!output.includes('window.ARANDU_PILOT_ENABLED=')) output = output.includes('</head>') ? output.replace('</head>', `${pilotBootstrapTag}</head>`) : `${pilotBootstrapTag}${output}`;
+      if (!output.includes('name="arandu-pilot-enabled"')) output = output.includes('</head>') ? output.replace('</head>', `${pilotBootstrapTag}</head>`) : `${pilotBootstrapTag}${output}`;
       if (!output.includes('/js/arandu-interface-audit.js')) output = output.includes('</body>') ? output.replace('</body>', `${auditJsTag}</body>`) : `${output}${auditJsTag}`;
       if (!output.includes('/js/arandu-assistant.js')) output = output.includes('</body>') ? output.replace('</body>', `${assistantJsTag}</body>`) : `${output}${assistantJsTag}`;
       if (!output.includes('/js/pilot.js')) output = output.includes('</body>') ? output.replace('</body>', `${pilotJsTag}</body>`) : `${output}${pilotJsTag}`;
