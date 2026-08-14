@@ -88,6 +88,9 @@ function cleanEmail(value) { return limited(value, 254).toLowerCase(); }
 function cleanPhone(value) { return clean(value).replace(/\D/g, '').slice(0, 15); }
 function validEmail(value) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail(value)); }
 function trueFlag(value) { return ['1','true','yes','sim'].includes(clean(value).toLowerCase()); }
+function consentVersionConfigured() {
+  return /^[A-Za-z0-9][A-Za-z0-9._-]{2,79}$/.test(CONSENT_VERSION);
+}
 function requireCommercialReady() {
   return requireCommercialPolicy();
 }
@@ -873,6 +876,10 @@ async function handlePublicConfig(req, res) {
     ok: true,
     brand: { name: 'Arandu', ready: brandReady },
     pilot: { enabled: isPilotEnabled },
+    consent: {
+      configured: consentVersionConfigured(),
+      version: consentVersionConfigured() ? CONSENT_VERSION : null
+    },
     siteUrl,
     contact: {
       email: validEmail(email) ? email : null,
@@ -1346,6 +1353,9 @@ async function handleConversionEvents(req, res) {
   const eventType = clean(body.eventType || body.event_type);
   const anonymousId = clean(body.anonymousId || body.anonymous_id);
   const consentVersion = clean(body.consentVersion || body.consent_version);
+  if (!consentVersionConfigured()) {
+    throw new HttpError(503, 'A versão de consentimento analítico não foi configurada no servidor.', 'analytics_consent_unconfigured');
+  }
   if (!CONVERSION_EVENT_TYPES.has(eventType)) throw new HttpError(400, 'Evento de conversão inválido.');
   if (!validPilotSessionId(anonymousId)) throw new HttpError(400, 'Identificador anônimo inválido.');
   if (consentVersion !== CONSENT_VERSION) throw new HttpError(403, 'Consentimento de métricas ausente ou desatualizado.', 'analytics_consent_required');

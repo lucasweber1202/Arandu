@@ -2,6 +2,14 @@ import assert from 'node:assert/strict';
 import { Readable } from 'node:stream';
 import { testAdminCookie, testAdminUser } from './test-helpers/admin-session.mjs';
 
+const originalVercelEnv = process.env.VERCEL_ENV;
+const originalDistributedRateLimit = process.env.ARANDU_DISTRIBUTED_RATE_LIMIT;
+
+// Contract tests use deterministic in-memory rate limiting. Production and Vercel
+// behavior remains covered by the dedicated distributed rate-limit tests.
+delete process.env.VERCEL_ENV;
+delete process.env.ARANDU_DISTRIBUTED_RATE_LIMIT;
+
 process.env.SUPABASE_URL = 'https://arandu-pilot-test.supabase.co';
 process.env.SUPABASE_ANON_KEY = 'anon-pilot-test';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-pilot-test';
@@ -28,6 +36,11 @@ async function call(method, url, body, headers) {
   const res = response();
   await handler(request(method, url, body, headers), res);
   return { status: res.statusCode, headers: res.headers, body: JSON.parse(res.body) };
+}
+
+function restoreEnv(name, value) {
+  if (value === undefined) delete process.env[name];
+  else process.env[name] = value;
 }
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
@@ -106,4 +119,6 @@ try {
   console.log('7 cenários aprovados.');
 } finally {
   global.fetch = originalFetch;
+  restoreEnv('VERCEL_ENV', originalVercelEnv);
+  restoreEnv('ARANDU_DISTRIBUTED_RATE_LIMIT', originalDistributedRateLimit);
 }

@@ -2,6 +2,13 @@ import assert from 'node:assert/strict';
 import { Readable } from 'node:stream';
 import { configureTestCommercialPolicy } from './test-helpers/commercial-policy-env.mjs';
 
+const originalVercelEnv = process.env.VERCEL_ENV;
+const originalDistributedRateLimit = process.env.ARANDU_DISTRIBUTED_RATE_LIMIT;
+
+// Keep API contract tests deterministic; distributed limiting has its own tests.
+delete process.env.VERCEL_ENV;
+delete process.env.ARANDU_DISTRIBUTED_RATE_LIMIT;
+
 process.env.SUPABASE_URL = 'https://arandu-test.supabase.co';
 process.env.SUPABASE_ANON_KEY = 'anon-test-key';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-test-key';
@@ -46,6 +53,11 @@ function sessionCookie({ expired = false } = {}) {
 
 function jsonResponse(data, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
+}
+
+function restoreEnv(name, value) {
+  if (value === undefined) delete process.env[name];
+  else process.env[name] = value;
 }
 
 const originalFetch = global.fetch;
@@ -200,4 +212,6 @@ try {
   console.log('10 cenários aprovados.');
 } finally {
   global.fetch = originalFetch;
+  restoreEnv('VERCEL_ENV', originalVercelEnv);
+  restoreEnv('ARANDU_DISTRIBUTED_RATE_LIMIT', originalDistributedRateLimit);
 }

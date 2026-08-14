@@ -98,3 +98,45 @@ jobs:
             test-results
           if-no-files-found: ignore
           retention-days: 7
+
+  deploy-boundaries:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      ARANDU_SITE_URL: https://arandu.example.com
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install
+        run: npm ci --include=optional
+
+      - name: Simulate Vercel preview technical deploy
+        env:
+          VERCEL_ENV: preview
+        run: npm run vercel-build
+
+      - name: Simulate Vercel production technical deploy
+        env:
+          VERCEL_ENV: production
+        run: npm run vercel-build
+
+      - name: Confirm final go-live remains fail-closed
+        run: |
+          set +e
+          npm run predeploy > /tmp/arandu-predeploy.log 2>&1
+          status=$?
+          set -e
+          cat /tmp/arandu-predeploy.log
+          test "$status" -ne 0
+          grep -q "Arandu Release Status" /tmp/arandu-predeploy.log
+          grep -q "BLOQUEADO" /tmp/arandu-predeploy.log
+

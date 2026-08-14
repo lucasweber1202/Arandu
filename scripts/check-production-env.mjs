@@ -32,6 +32,11 @@ add('SUPABASE_ANON_KEY', validSupabaseKey(value('SUPABASE_ANON_KEY')), 'Use a an
 add('SUPABASE_SERVICE_ROLE_KEY', validSupabaseKey(value('SUPABASE_SERVICE_ROLE_KEY')), 'Use uma service-role/secret key válida somente no servidor.');
 add('Chaves Supabase distintas', value('SUPABASE_ANON_KEY') && value('SUPABASE_ANON_KEY') !== value('SUPABASE_SERVICE_ROLE_KEY'), 'Anon e service role não podem ser iguais.');
 add('ARANDU_SITE_URL', ownHttpsUrl(value('ARANDU_SITE_URL')), 'Configure HTTPS em domínio próprio.');
+add(
+  'Versão de consentimento analítico',
+  /^[A-Za-z0-9][A-Za-z0-9._-]{2,79}$/.test(value('ARANDU_CONSENT_VERSION')),
+  'Configure a versão exata da política publicada; sem ela analytics permanece desativado.'
+);
 
 const whatsappDigits = value('ARANDU_WHATSAPP_NUMBER').replace(/\D/g, '');
 add('Canal comercial', whatsappDigits.length >= 12 || validEmail(value('ARANDU_CONTACT_EMAIL')), 'Configure WhatsApp internacional ou e-mail comercial.');

@@ -2,16 +2,157 @@
 (function () {
   const CONSENT_KEY = 'arandu.privacy.consent.v1';
   const ANONYMOUS_KEY = 'arandu.analytics.anonymous.v1';
-  const CONSENT_VERSION = '2026-07-17';
-  function readConsent(){try{const value=JSON.parse(localStorage.getItem(CONSENT_KEY)||'null');return value?.version===CONSENT_VERSION?value:null;}catch{return null;}}
-  function saveConsent(analytics){const value={version:CONSENT_VERSION,essential:true,analytics:analytics===true,updatedAt:new Date().toISOString()};localStorage.setItem(CONSENT_KEY,JSON.stringify(value));document.querySelector('[data-privacy-banner]')?.remove();window.dispatchEvent(new CustomEvent('arandu:consent',{detail:value}));return value;}
-  function anonymousId(){let value=localStorage.getItem(ANONYMOUS_KEY);if(!/^[0-9a-f-]{36}$/i.test(value||'')){value=crypto.randomUUID();localStorage.setItem(ANONYMOUS_KEY,value);}return value;}
-  async function track(eventType,payload={}){const consent=readConsent();if(!consent?.analytics||navigator.doNotTrack==='1')return false;try{const response=await fetch('/api/conversion-events',{method:'POST',credentials:'include',keepalive:true,headers:{'Content-Type':'application/json'},body:JSON.stringify({anonymousId:anonymousId(),eventType,path:location.pathname,payload,consentVersion:CONSENT_VERSION})});return response.ok;}catch{return false;}}
-  function consentBanner(){if(readConsent()||document.querySelector('[data-privacy-banner]'))return;const banner=document.createElement('section');banner.className='privacy-banner';banner.dataset.privacyBanner='true';banner.setAttribute('aria-label','Preferências de privacidade');banner.innerHTML='<div><strong>Privacidade sob seu controle</strong><p>Usamos armazenamento essencial para conta e seleção. Métricas anônimas são opcionais e não recebem texto livre.</p></div><div class="privacy-banner-actions"><button type="button" class="cta secondary" data-consent-essential>Somente essencial</button><button type="button" class="cta" data-consent-analytics>Aceitar métricas</button><a href="politica-de-privacidade.html">Ler política</a></div>';document.body.appendChild(banner);}
-  function accessibility(){const main=document.querySelector('main');if(main&&!main.id)main.id='conteudo-principal';if(main&&!document.querySelector('.skip-link')){const link=document.createElement('a');link.className='skip-link';link.href=`#${main.id}`;link.textContent='Pular para o conteúdo';document.body.prepend(link);}document.querySelectorAll('a[target="_blank"]').forEach((link)=>link.setAttribute('rel','noopener noreferrer'));document.querySelectorAll('img').forEach((image,index)=>{if(!image.hasAttribute('decoding'))image.decoding='async';if(!image.hasAttribute('loading')&&index>0&&!image.closest('.hero,.rect-hero'))image.loading='lazy';if(!image.hasAttribute('alt'))image.alt='';});}
-  function automaticJourneyEvents(){const path=location.pathname;if(/comprar-arte|colecoes/.test(path))track('catalog_view');if(/obra\.html/.test(path))track('artwork_view',{artworkId:new URLSearchParams(location.search).get('id')||''});document.addEventListener('click',(event)=>{const save=event.target.closest('[data-save-artwork]');if(save)track('selection_add',{artworkId:save.dataset.artworkId||save.dataset.saveArtwork||''});if(event.target.closest('a[href*="contato"],a[href^="mailto:"],a[href^="https://wa.me"]'))track('contact_start',{target:'contact'});const reserve=event.target.closest('[data-reserve-artwork]');if(reserve)track('reservation_start',{artworkId:reserve.dataset.reserveArtwork||''});const result=event.target.closest('[data-static-search-results] a');if(result)track('search',{target:result.getAttribute('href')||''});});}
-  document.addEventListener('click',(event)=>{if(event.target.closest('[data-consent-essential]'))saveConsent(false);if(event.target.closest('[data-consent-analytics]'))saveConsent(true);});
-  function boot(){accessibility();consentBanner();automaticJourneyEvents();}
-  window.ARANDU_PRIVACY=Object.freeze({readConsent,saveConsent,track,consentVersion:CONSENT_VERSION});
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+  let consentVersion = null;
+  let consentConfigured = false;
+
+  function validConsentVersion(value) {
+    return /^[A-Za-z0-9][A-Za-z0-9._-]{2,79}$/.test(String(value || ''));
+  }
+
+  async function loadPublicConfig(fetchImpl = fetch) {
+    try {
+      const response = await fetchImpl('/api/public-config', {
+        method: 'GET',
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: { Accept: 'application/json' }
+      });
+      const payload = await response.json().catch(() => ({}));
+      const candidate = payload?.consent?.version;
+      consentConfigured = response.ok && payload?.consent?.configured === true && validConsentVersion(candidate);
+      consentVersion = consentConfigured ? candidate : null;
+    } catch {
+      consentConfigured = false;
+      consentVersion = null;
+    }
+    return { configured: consentConfigured, version: consentVersion };
+  }
+
+  function readConsent() {
+    if (!consentConfigured || !consentVersion) return null;
+    try {
+      const value = JSON.parse(localStorage.getItem(CONSENT_KEY) || 'null');
+      return value?.version === consentVersion ? value : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function saveConsent(analytics) {
+    const metricsAllowed = analytics === true && consentConfigured && Boolean(consentVersion);
+    const value = {
+      version: consentVersion || 'essential-only',
+      essential: true,
+      analytics: metricsAllowed,
+      updatedAt: new Date().toISOString()
+    };
+    localStorage.setItem(CONSENT_KEY, JSON.stringify(value));
+    document.querySelector('[data-privacy-banner]')?.remove();
+    window.dispatchEvent(new CustomEvent('arandu:consent', { detail: value }));
+    return value;
+  }
+
+  function anonymousId() {
+    let value = localStorage.getItem(ANONYMOUS_KEY);
+    if (!/^[0-9a-f-]{36}$/i.test(value || '')) {
+      value = crypto.randomUUID();
+      localStorage.setItem(ANONYMOUS_KEY, value);
+    }
+    return value;
+  }
+
+  async function track(eventType, payload = {}) {
+    const consent = readConsent();
+    if (!consentConfigured || !consent?.analytics || navigator.doNotTrack === '1') return false;
+    try {
+      const response = await fetch('/api/conversion-events', {
+        method: 'POST',
+        credentials: 'include',
+        keepalive: true,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          anonymousId: anonymousId(),
+          eventType,
+          path: location.pathname,
+          payload,
+          consentVersion
+        })
+      });
+      return response.ok;
+    } catch {
+      return false;
+    }
+  }
+
+  function consentBanner() {
+    if (readConsent() || document.querySelector('[data-privacy-banner]')) return;
+    const banner = document.createElement('section');
+    banner.className = 'privacy-banner';
+    banner.dataset.privacyBanner = 'true';
+    banner.setAttribute('aria-label', 'Preferências de privacidade');
+    const analyticsAction = consentConfigured
+      ? '<button type="button" class="cta" data-consent-analytics>Aceitar métricas</button>'
+      : '';
+    const analyticsText = consentConfigured
+      ? 'Métricas anônimas são opcionais e não recebem texto livre.'
+      : 'Métricas opcionais estão indisponíveis até a configuração da versão de consentimento.';
+    banner.innerHTML = `<div><strong>Privacidade sob seu controle</strong><p>Usamos armazenamento essencial para conta e seleção. ${analyticsText}</p></div><div class="privacy-banner-actions"><button type="button" class="cta secondary" data-consent-essential>Somente essencial</button>${analyticsAction}<a href="politica-de-privacidade.html">Ler política</a></div>`;
+    document.body.appendChild(banner);
+  }
+
+  function accessibility() {
+    const main = document.querySelector('main');
+    if (main && !main.id) main.id = 'conteudo-principal';
+    if (main && !document.querySelector('.skip-link')) {
+      const link = document.createElement('a');
+      link.className = 'skip-link';
+      link.href = `#${main.id}`;
+      link.textContent = 'Pular para o conteúdo';
+      document.body.prepend(link);
+    }
+    document.querySelectorAll('a[target="_blank"]').forEach((link) => link.setAttribute('rel', 'noopener noreferrer'));
+    document.querySelectorAll('img').forEach((image, index) => {
+      if (!image.hasAttribute('decoding')) image.decoding = 'async';
+      if (!image.hasAttribute('loading') && index > 0 && !image.closest('.hero,.rect-hero')) image.loading = 'lazy';
+      if (!image.hasAttribute('alt')) image.alt = '';
+    });
+  }
+
+  function automaticJourneyEvents() {
+    const path = location.pathname;
+    if (/comprar-arte|colecoes/.test(path)) track('catalog_view');
+    if (/obra\.html/.test(path)) track('artwork_view', { artworkId: new URLSearchParams(location.search).get('id') || '' });
+    document.addEventListener('click', (event) => {
+      const save = event.target.closest('[data-save-artwork]');
+      if (save) track('selection_add', { artworkId: save.dataset.artworkId || save.dataset.saveArtwork || '' });
+      if (event.target.closest('a[href*="contato"],a[href^="mailto:"],a[href^="https://wa.me"]')) track('contact_start', { target: 'contact' });
+      const reserve = event.target.closest('[data-reserve-artwork]');
+      if (reserve) track('reservation_start', { artworkId: reserve.dataset.reserveArtwork || '' });
+      const result = event.target.closest('[data-static-search-results] a');
+      if (result) track('search', { target: result.getAttribute('href') || '' });
+    });
+  }
+
+  document.addEventListener('click', (event) => {
+    if (event.target.closest('[data-consent-essential]')) saveConsent(false);
+    if (event.target.closest('[data-consent-analytics]')) saveConsent(true);
+  });
+
+  async function boot() {
+    await loadPublicConfig();
+    accessibility();
+    consentBanner();
+    automaticJourneyEvents();
+  }
+
+  window.ARANDU_PRIVACY = Object.freeze({
+    readConsent,
+    saveConsent,
+    track,
+    loadPublicConfig,
+    getConsentVersion: () => consentVersion,
+    consentConfigured: () => consentConfigured
+  });
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
 })();
