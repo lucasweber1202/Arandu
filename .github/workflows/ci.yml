@@ -82,11 +82,14 @@ jobs:
       - name: SEO in built output
         run: npm run check:seo:dist
 
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+      - name: Install Chromium, Firefox and WebKit
+        run: npx playwright install --with-deps chromium firefox webkit
 
-      - name: Desktop and mobile journeys
+      - name: Public journeys in Chromium, Firefox and WebKit
         run: npm run test:e2e
+
+      - name: Safe presentation journeys in Chromium, Firefox and WebKit
+        run: npm run test:e2e:presentation
 
       - name: Upload browser evidence on failure
         if: failure()
@@ -139,4 +142,3 @@ jobs:
           test "$status" -ne 0
           grep -q "Arandu Release Status" /tmp/arandu-predeploy.log
           grep -q "BLOQUEADO" /tmp/arandu-predeploy.log
-
