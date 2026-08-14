@@ -3,6 +3,13 @@ import { Readable } from 'node:stream';
 import { requireAdmin } from '../lib/admin-auth.mjs';
 import { testAdminAccessToken, testAdminCookie, testAdminUser } from './test-helpers/admin-session.mjs';
 
+const originalVercelEnv = process.env.VERCEL_ENV;
+const originalDistributedRateLimit = process.env.ARANDU_DISTRIBUTED_RATE_LIMIT;
+
+// Keep this contract suite deterministic; distributed limiting is tested separately.
+delete process.env.VERCEL_ENV;
+delete process.env.ARANDU_DISTRIBUTED_RATE_LIMIT;
+
 process.env.SUPABASE_URL = 'https://arandu-admin-test.supabase.co';
 process.env.SUPABASE_ANON_KEY = 'anon-admin-test';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-admin-test';
@@ -46,6 +53,11 @@ const json = (data, status = 200) => new Response(JSON.stringify(data), {
   status,
   headers: { 'Content-Type': 'application/json' }
 });
+function restoreEnv(name, value) {
+  if (value === undefined) delete process.env[name];
+  else process.env[name] = value;
+}
+
 const originalFetch = global.fetch;
 
 try {
@@ -141,4 +153,6 @@ try {
   console.log('11 cenários aprovados.');
 } finally {
   global.fetch = originalFetch;
+  restoreEnv('VERCEL_ENV', originalVercelEnv);
+  restoreEnv('ARANDU_DISTRIBUTED_RATE_LIMIT', originalDistributedRateLimit);
 }
