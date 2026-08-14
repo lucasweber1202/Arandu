@@ -67,7 +67,9 @@ update public.transactional_email_outbox
 set max_attempts = 1
 where idempotency_key = 'email-test:order-shipped';
 
-select public.claim_transactional_email_batch('database-email-worker', 10);
+create temporary table claimed_email_items(item jsonb);
+insert into claimed_email_items
+select value from jsonb_array_elements(public.claim_transactional_email_batch_v2('database-email-worker', 10));
 
 do $$
 begin
@@ -77,18 +79,21 @@ begin
 end;
 $$;
 
-select public.complete_transactional_email(
+select public.complete_transactional_email_v2(
   (select id from public.transactional_email_outbox where idempotency_key='email-test:order-created'),
+  (select (item->>'claimToken')::uuid from claimed_email_items where item->>'id'=(select id::text from public.transactional_email_outbox where idempotency_key='email-test:order-created')),
   'mock-provider',
   'provider-reference-1'
 );
-select public.fail_transactional_email(
+select public.fail_transactional_email_v2(
   (select id from public.transactional_email_outbox where idempotency_key='email-test:payment-confirmed'),
+  (select (item->>'claimToken')::uuid from claimed_email_items where item->>'id'=(select id::text from public.transactional_email_outbox where idempotency_key='email-test:payment-confirmed')),
   'temporary_failure',
   60
 );
-select public.fail_transactional_email(
+select public.fail_transactional_email_v2(
   (select id from public.transactional_email_outbox where idempotency_key='email-test:order-shipped'),
+  (select (item->>'claimToken')::uuid from claimed_email_items where item->>'id'=(select id::text from public.transactional_email_outbox where idempotency_key='email-test:order-shipped')),
   'permanent_failure',
   60
 );

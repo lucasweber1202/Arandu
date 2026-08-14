@@ -8,6 +8,9 @@
       "includeFiles": "*.html"
     }
   },
+  "crons": [
+    { "path": "/api/email-dispatch", "schedule": "*/5 * * * *" }
+  ],
   "redirects": [
     { "source": "/obras.html", "destination": "/comprar-arte.html", "permanent": true },
     { "source": "/acervo.html", "destination": "/comprar-arte.html", "permanent": true },

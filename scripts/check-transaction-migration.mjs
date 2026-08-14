@@ -9,6 +9,7 @@ const accountOrdersApi = fs.readFileSync('api/account-orders.js', 'utf8');
 const stateMachine = fs.readFileSync('docs/supabase-order-state-machine.sql', 'utf8');
 const ordersHardening = fs.readFileSync('docs/supabase-orders-hardening.sql', 'utf8');
 const outbox = fs.readFileSync('docs/supabase-transactional-email-outbox.sql', 'utf8');
+const outboxFencing = fs.readFileSync('docs/supabase-email-outbox-fencing.sql', 'utf8');
 const issues = [];
 
 function requirePattern(source, pattern, message) {
@@ -83,6 +84,16 @@ for (const pattern of [
   /recipient_address = null/i,
   /trg_orders_transactional_email/i
 ]) requirePattern(outbox, pattern, `Outbox transacional incompleta: ${pattern}`);
+
+for (const pattern of [
+  /claim_token uuid/i,
+  /lease_expires_at timestamptz/i,
+  /for update skip locked/i,
+  /claim_transactional_email_batch_v2/i,
+  /complete_transactional_email_v2[\s\S]*claim_token = p_claim_token[\s\S]*lease_expires_at > now\(\)/i,
+  /fail_transactional_email_v2[\s\S]*claim_token = p_claim_token[\s\S]*lease_expires_at > now\(\)/i,
+  /revoke all on function public\.complete_transactional_email\(uuid,text,text\) from service_role/i
+]) requirePattern(outboxFencing, pattern, `Fencing da outbox incompleto: ${pattern}`);
 
 console.log('Arandu Transaction, RLS & Audit Migration Check');
 console.log(`Erros: ${issues.length}`);

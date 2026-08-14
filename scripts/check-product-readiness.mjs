@@ -12,10 +12,12 @@ const requiredFiles = [
   'docs/supabase-orders-hardening.sql',
   'docs/supabase-transactional-email-outbox.sql',
   'docs/supabase-retention-controls.sql',
+  'docs/supabase-email-outbox-fencing.sql',
   'docs/rollback/supabase-order-state-machine.rollback.sql',
   'docs/rollback/supabase-orders-hardening.rollback.sql',
   'docs/rollback/supabase-transactional-email-outbox.rollback.sql',
   'docs/rollback/supabase-retention-controls.rollback.sql',
+  'docs/rollback/supabase-email-outbox-fencing.rollback.sql',
   'docs/rollback/supabase-orders.rollback.sql',
   'scripts/run-staging-release.mjs',
   'scripts/validate-staging-environment.mjs',
@@ -36,8 +38,9 @@ for (const flow of ['cleanInstall', 'existingDatabase']) {
   const hardening = migrations.indexOf('docs/supabase-orders-hardening.sql');
   const outbox = migrations.indexOf('docs/supabase-transactional-email-outbox.sql');
   const retention = migrations.indexOf('docs/supabase-retention-controls.sql');
-  if (orders === -1 || stateMachine !== orders + 1 || hardening !== stateMachine + 1 || outbox !== hardening + 1 || retention !== outbox + 1) problems.push(`Sequência de pedidos/readiness inválida em ${flow}.`);
-  if (retention !== migrations.length - 1) problems.push(`Retenção deve encerrar a sequência atual em ${flow}.`);
+  const fencing = migrations.indexOf('docs/supabase-email-outbox-fencing.sql');
+  if (orders === -1 || stateMachine !== orders + 1 || hardening !== stateMachine + 1 || outbox !== hardening + 1 || retention !== outbox + 1 || fencing !== retention + 1) problems.push(`Sequência de pedidos/readiness inválida em ${flow}.`);
+  if (fencing !== migrations.length - 1) problems.push(`Fencing da outbox deve encerrar a sequência atual em ${flow}.`);
 }
 
 const sql = fs.readFileSync('docs/supabase-orders.sql', 'utf8');
@@ -78,7 +81,7 @@ const commercialPolicy = fs.readFileSync('lib/commercial-policy.mjs', 'utf8');
 if (!commercialPolicy.includes("packaging: 'ARANDU_PACKAGING_POLICY_REFERENCE'")) problems.push('Snapshot comercial não contém referência de embalagem.');
 
 const email = await import(`../lib/email.mjs?check=${Date.now()}`);
-if (email.listTransactionalTemplates().length !== 10) problems.push('Esperados 10 templates transacionais, incluindo pedidos.');
+if (email.listTransactionalTemplates().length !== 15) problems.push('Esperados 15 templates transacionais, incluindo o ciclo completo de pedidos.');
 const rendered = email.renderTransactionalEmail('reservation_confirmed', { artwork: '<teste>' });
 if (rendered.html.includes('<teste>')) problems.push('Template de e-mail não escapou HTML.');
 const previousProvider = process.env.ARANDU_EMAIL_PROVIDER;

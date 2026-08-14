@@ -12,7 +12,8 @@ const original = {
   ready: process.env.ARANDU_TRANSACTIONAL_EMAIL_READY,
   from: process.env.ARANDU_EMAIL_FROM,
   replyTo: process.env.ARANDU_EMAIL_REPLY_TO,
-  key: process.env.RESEND_API_KEY
+  key: process.env.RESEND_API_KEY,
+  hmac: process.env.ARANDU_RECIPIENT_HMAC_SECRET
 };
 
 function restore(name, value) {
@@ -22,8 +23,8 @@ function restore(name, value) {
 
 try {
   const templates = listTransactionalTemplates();
-  assert.equal(templates.length, 10);
-  for (const template of ['order_created', 'payment_confirmed', 'order_shipped']) {
+  assert.equal(templates.length, 15);
+  for (const template of ['order_created', 'order_confirmed', 'payment_confirmed', 'order_shipped', 'order_delivered', 'order_completed', 'order_cancelled', 'order_refunded']) {
     assert.equal(templates.includes(template), true);
   }
 
@@ -51,16 +52,20 @@ try {
   process.env.ARANDU_EMAIL_FROM = 'no-reply@arandu.test.br';
   process.env.ARANDU_EMAIL_REPLY_TO = 'contato@arandu.test.br';
   process.env.RESEND_API_KEY = 're_test_key_1234567890';
+  process.env.ARANDU_RECIPIENT_HMAC_SECRET = 'test-recipient-hmac-secret-at-least-32-characters';
   const resendConfig = inspectEmailConfiguration();
   assert.equal(resendConfig.ready, true);
 
   let outboundBody = null;
+  let outboundHeaders = null;
   const delivered = await sendTransactionalEmail({
     template: 'order_created',
     to: 'buyer@example.com',
     data: { orderNumber: 'ARANDU-20260807-ABC123' },
+    idempotencyKey: 'email-test-order-created',
     fetchImpl: async (_url, options) => {
       outboundBody = JSON.parse(options.body);
+      outboundHeaders = options.headers;
       return new Response(JSON.stringify({ id: 'email-provider-ref-1' }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' }
@@ -69,9 +74,10 @@ try {
   });
   assert.equal(delivered.delivered, true);
   assert.equal(delivered.providerReference, 'email-provider-ref-1');
-  assert.equal(delivered.event.recipientRef.length, 16);
+  assert.match(delivered.event.recipientRef, /^v1:[0-9a-f]{24}$/);
   assert.equal(JSON.stringify(delivered).includes('buyer@example.com'), false);
   assert.deepEqual(outboundBody.to, ['buyer@example.com']);
+  assert.equal(outboundHeaders['Idempotency-Key'], 'email-test-order-created');
 
   console.log('Arandu Transactional Email & Outbox Tests');
   console.log('Templates, escaping, disabled-by-default e provider reference validados.');
@@ -81,4 +87,5 @@ try {
   restore('ARANDU_EMAIL_FROM', original.from);
   restore('ARANDU_EMAIL_REPLY_TO', original.replyTo);
   restore('RESEND_API_KEY', original.key);
+  restore('ARANDU_RECIPIENT_HMAC_SECRET', original.hmac);
 }
