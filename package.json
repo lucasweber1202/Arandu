@@ -81,5 +81,5 @@
     "typescript": "^7.0.2",
     "vite": "^8.2.1"
   },
-  "devDependencies": { "@playwright/test": "^1.61.1" }
+  "devDependencies": { "@playwright/test": "^1.62.1" }
 }
