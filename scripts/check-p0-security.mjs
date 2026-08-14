@@ -93,7 +93,15 @@ if (catchAll.includes('onclick="window.print()"')) {
 }
 
 const stagingRelease = read('.github/workflows/staging-release.yml');
-const runInputInterpolation = /run:\s*[|>-][\s\S]*?\$\{\{\s*inputs\./m.test(stagingRelease);
+const stagingLines = stagingRelease.split(/\r?\n/);
+let runIndent = null;
+let runInputInterpolation = false;
+for (const line of stagingLines) {
+  const indent = line.match(/^\s*/)[0].length;
+  if (runIndent !== null && line.trim() && indent <= runIndent) runIndent = null;
+  if (/^\s*run:\s*(?:[|>-]|$)/.test(line)) runIndent = indent;
+  if (runIndent !== null && /\$\{\{\s*inputs\./.test(line)) runInputInterpolation = true;
+}
 if (runInputInterpolation) {
   issues.push('.github/workflows/staging-release.yml: input manual ainda é interpolado diretamente em shell.');
 }
