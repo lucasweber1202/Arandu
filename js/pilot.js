@@ -1,5 +1,6 @@
 /* Gate de coorte e telemetria minimizada para o piloto fechado. */
 (function () {
+  const pilotEnabled = document.querySelector('meta[name="arandu-pilot-enabled"]')?.content === 'true';
   const SESSION_KEY = 'arandu.pilot.session.v1';
   let config = null;
   let authenticated = false;
