@@ -1092,7 +1092,8 @@ async function handleOperational(req, res) {
     const entityType = clean(url.searchParams.get('entity_type'));
     const entityId = clean(url.searchParams.get('entity_id'));
     if (!entityType || !entityId) return json(res, 400, { ok: false, error: 'Entidade obrigatória.' });
-    const query = `${operationalTable(resource)}?select=*&entity_type=eq.${encodeURIComponent(entityType)}&entity_id=eq.${encodeURIComponent(entityId)}&order=${encodeURIComponent(operationalOrder(resource))}`;
+    const fields = resource === 'notes' ? 'id,entity_type,entity_id,author_name,note,created_at' : 'id,entity_type,entity_id,title,owner_name,due_at,priority,status,created_at,updated_at';
+    const query = `${operationalTable(resource)}?select=${fields}&entity_type=eq.${encodeURIComponent(entityType)}&entity_id=eq.${encodeURIComponent(entityId)}&order=${encodeURIComponent(operationalOrder(resource))}&limit=200`;
     const rows = await dataRequest(query, { method: 'GET', headers: { Prefer: '' } });
     return json(res, 200, { ok: true, mode: 'stored', resource, items: rows || [] });
   }
@@ -1136,7 +1137,7 @@ async function handleMedia(req, res) {
     const entityType = clean(url.searchParams.get('entity_type'));
     const entityId = clean(url.searchParams.get('entity_id'));
     if (!entityType || !entityId) return json(res, 400, { ok: false, error: 'Entidade obrigatória.' });
-    const rows = await dataRequest(`media_assets?select=*&entity_type=eq.${encodeURIComponent(entityType)}&entity_id=eq.${encodeURIComponent(entityId)}&order=position.asc,created_at.desc`, { method: 'GET', headers: { Prefer: '' } });
+    const rows = await dataRequest(`media_assets?select=id,entity_type,entity_id,asset_type,url,alt,position,created_at&entity_type=eq.${encodeURIComponent(entityType)}&entity_id=eq.${encodeURIComponent(entityId)}&order=position.asc,created_at.desc&limit=200`, { method: 'GET', headers: { Prefer: '' } });
     return json(res, 200, { ok: true, mode: 'stored', items: rows || [] });
   }
   if (req.method === 'POST') {
@@ -1267,9 +1268,9 @@ async function handleCatalogReview(req, res) {
     const entityType = clean(url.searchParams.get('entityType'));
     const entityId = limited(url.searchParams.get('entityId'), 160);
     requireAdminPermission(guard.actor, entityType === 'artist' ? 'artists' : 'artworks', 'read');
-    const readiness = firstRecord(await dataRequest('v_catalog_editorial_readiness?select=*&limit=1', { method: 'GET', headers: { Prefer: '' } }));
+    const readiness = firstRecord(await dataRequest('v_catalog_editorial_readiness?select=artists_total,artists_approved,artists_documentation_pending,artworks_total,artworks_approved,artworks_documentation_pending&limit=1', { method: 'GET', headers: { Prefer: '' } }));
     const history = entityType && entityId
-      ? await dataRequest(`catalog_review_history?entity_type=eq.${encodeURIComponent(entityType)}&entity_id=eq.${encodeURIComponent(entityId)}&select=*&order=created_at.desc&limit=100`, { method: 'GET', headers: { Prefer: '' } })
+      ? await dataRequest(`catalog_review_history?entity_type=eq.${encodeURIComponent(entityType)}&entity_id=eq.${encodeURIComponent(entityId)}&select=id,entity_type,entity_id,from_status,to_status,checklist,note,actor_ref,created_at&order=created_at.desc&limit=100`, { method: 'GET', headers: { Prefer: '' } })
       : [];
     return json(res, 200, { ok: true, readiness, history });
   }
@@ -1306,16 +1307,20 @@ async function handlePrivacy(req, res, action) {
   if (action === 'export') {
     if (req.method !== 'GET') return json(res, 405, { ok: false, error: 'Método não permitido.' });
     await enforceRateLimit(req, 'privacy-export', 5, 60 * 60 * 1000);
-    const [profile, selections, reservations, leads, briefs, requests] = await Promise.all([
+    const [profile, selections, reservations, leads, briefs, requests, orders, proposals] = await Promise.all([
       userSupabaseRequest(session.accessToken, `profiles?id=eq.${userId}&select=id,email,full_name,phone,profile_type,created_at,updated_at&limit=1`, { method: 'GET', prefer: '' }),
-      userSupabaseRequest(session.accessToken, `saved_selections?user_id=eq.${userId}&select=id,status,items,briefing,created_at,updated_at&limit=100`, { method: 'GET', prefer: '' }),
-      userSupabaseRequest(session.accessToken, `reservations?user_id=eq.${userId}&select=id,artwork_id,status,deadline,notes,created_at,updated_at&limit=100`, { method: 'GET', prefer: '' }),
-      userSupabaseRequest(session.accessToken, `leads?user_id=eq.${userId}&select=id,status,source_page,created_at,updated_at&limit=100`, { method: 'GET', prefer: '' }),
-      userSupabaseRequest(session.accessToken, `company_briefs?user_id=eq.${userId}&select=id,status,created_at,updated_at&limit=100`, { method: 'GET', prefer: '' }),
-      userSupabaseRequest(session.accessToken, `privacy_requests?user_id=eq.${userId}&select=id,request_type,status,due_at,completed_at,created_at&limit=100`, { method: 'GET', prefer: '' })
+      userSupabaseRequest(session.accessToken, `saved_selections?user_id=eq.${userId}&select=id,status,items,briefing,created_at,updated_at&limit=1000`, { method: 'GET', prefer: '' }),
+      userSupabaseRequest(session.accessToken, `reservations?user_id=eq.${userId}&select=id,artwork_id,status,deadline,notes,created_at,updated_at&limit=1000`, { method: 'GET', prefer: '' }),
+      userSupabaseRequest(session.accessToken, `leads?user_id=eq.${userId}&select=id,status,source_page,created_at,updated_at&limit=1000`, { method: 'GET', prefer: '' }),
+      userSupabaseRequest(session.accessToken, `company_briefs?user_id=eq.${userId}&select=id,status,created_at,updated_at&limit=1000`, { method: 'GET', prefer: '' }),
+      userSupabaseRequest(session.accessToken, `privacy_requests?user_id=eq.${userId}&select=id,request_type,status,due_at,completed_at,created_at&limit=1000`, { method: 'GET', prefer: '' })
+      , userSupabaseRequest(session.accessToken, `orders?user_id=eq.${userId}&select=id,order_number,artwork_id,artist_id,reservation_id,price_snapshot,currency,status,payment_status,fulfillment_status,certificate_status,tracking_code,shipping_provider,created_at,updated_at,paid_at,completed_at,cancelled_at,shipping_updated_at&order=created_at.desc&limit=1000`, { method: 'GET', prefer: '' })
+      , userSupabaseRequest(session.accessToken, `proposals?user_id=eq.${userId}&select=id,status,client,space,goal,budget,deadline,created_at,updated_at&order=created_at.desc&limit=1000`, { method: 'GET', prefer: '' })
     ]);
     await writeAudit({ actorType: 'user', actorRef: session.user.id, action: 'privacy.export', entityType: 'user', entityId: session.user.id });
-    return json(res, 200, { ok: true, exportedAt: new Date().toISOString(), user: session.user, profile: firstRecord(profile), selections, reservations, leads, companyBriefs: briefs, privacyRequests: requests }, { ...session.headers, 'Content-Disposition': 'attachment; filename="arandu-dados.json"' });
+    const exportData = { profile: firstRecord(profile), selections, reservations, orders, proposals, leads, companyBriefs: briefs, privacyRequests: requests };
+    const counts = Object.fromEntries(Object.entries(exportData).map(([key, value]) => [key, Array.isArray(value) ? value.length : value ? 1 : 0]));
+    return json(res, 200, { ok: true, exportVersion: '2026-08-14.1', exportedAt: new Date().toISOString(), subject: { id: session.user.id, email: session.user.email, createdAt: session.user.created_at }, counts, data: exportData }, { ...session.headers, 'Content-Disposition': 'attachment; filename="arandu-dados.json"' });
   }
   if (action === 'request') {
     if (req.method === 'GET') {
@@ -1377,7 +1382,7 @@ async function handleDashboard(req, res) {
     return [key, Array.isArray(rows) ? rows.length : 0];
   }));
   let pipeline = [];
-  try { pipeline = await dataRequest('v_sales_pipeline?select=*&order=created_at.desc&limit=8', { method: 'GET', headers: { Prefer: '' } }); } catch {}
+  try { pipeline = await dataRequest('v_sales_pipeline?select=source,id,name,status,created_at&order=created_at.desc&limit=8', { method: 'GET', headers: { Prefer: '' } }); } catch {}
   return json(res, 200, { ok: true, mode: 'supabase', metrics: Object.fromEntries(entries), pipeline: Array.isArray(pipeline) ? pipeline : [] });
 }
 

@@ -107,8 +107,8 @@ async function listOrders(req, res, admin) {
   requireAdminPermission(admin.actor, 'commercial', 'read');
   const id = clean(new URL(req.url, 'https://arandu.invalid').searchParams.get('id'), 80);
   const query = id
-    ? `orders?id=eq.${encodeURIComponent(id)}&select=*&limit=1`
-    : 'orders?select=*&order=created_at.desc&limit=100';
+    ? `orders?id=eq.${encodeURIComponent(id)}&select=id,order_number,user_id,artwork_id,artist_id,reservation_id,proposal_id,commercial_record_id,price_snapshot,currency,status,payment_status,fulfillment_status,certificate_status,tracking_code,shipping_provider,created_at,updated_at,paid_at,completed_at,cancelled_at,shipping_updated_at&limit=1`
+    : 'orders?select=id,order_number,user_id,artwork_id,artist_id,reservation_id,proposal_id,commercial_record_id,price_snapshot,currency,status,payment_status,fulfillment_status,certificate_status,tracking_code,shipping_provider,created_at,updated_at,paid_at,completed_at,cancelled_at,shipping_updated_at&order=created_at.desc&limit=100';
   const rows = await adminSupabaseRequest(query, { prefer: '' });
   return json(res, 200, { ok: true, mode: 'stored', items: rows || [] }, admin.headers);
 }

@@ -161,3 +161,64 @@ grant execute on function public.release_legal_hold(text,text,text,text) to serv
 
 comment on table public.data_retention_policies is 'Prazos só podem ser habilitados após decisão humana/fiscal-jurídica referenciada.';
 comment on table public.data_legal_holds is 'Bloqueios de retenção por entidade sem armazenar PII no motivo ou ator.';
+
+create or replace function public.execute_data_retention(
+  p_data_class text,
+  p_dry_run boolean,
+  p_actor_ref text,
+  p_decision_reference text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_policy public.data_retention_policies%rowtype;
+  v_cutoff timestamptz;
+  v_candidates bigint := 0;
+  v_affected bigint := 0;
+begin
+  if p_data_class not in ('conversion_events','idempotency_keys','transactional_email_outbox') then
+    raise exception using message = 'Classe não suportada pelo executor de retenção.', errcode = '22023';
+  end if;
+  if coalesce(length(trim(p_actor_ref)),0) < 3 or coalesce(length(trim(p_decision_reference)),0) < 8 then
+    raise exception using message = 'Ator e referência de decisão são obrigatórios.', errcode = '22023';
+  end if;
+  select * into v_policy from public.data_retention_policies where data_class=p_data_class for update;
+  if not found or not v_policy.enabled or v_policy.retention_days is null
+    or v_policy.disposition='review' or v_policy.decision_reference <> trim(p_decision_reference) then
+    raise exception using message = 'Política de retenção não aprovada para execução.', errcode = 'P0001';
+  end if;
+  v_cutoff := now() - make_interval(days => v_policy.retention_days);
+
+  if p_data_class='conversion_events' then
+    select count(*) into v_candidates from public.conversion_events e
+      where e.created_at < v_cutoff and not public.is_under_legal_hold(p_data_class,e.id::text);
+    if not p_dry_run then
+      if v_policy.disposition='delete' then delete from public.conversion_events e where e.created_at < v_cutoff and not public.is_under_legal_hold(p_data_class,e.id::text);
+      else update public.conversion_events e set user_id=null,payload='{}'::jsonb where e.created_at < v_cutoff and not public.is_under_legal_hold(p_data_class,e.id::text); end if;
+      get diagnostics v_affected = row_count;
+    end if;
+  elsif p_data_class='idempotency_keys' then
+    select count(*) into v_candidates from public.idempotency_keys k where k.expires_at < v_cutoff;
+    if not p_dry_run then delete from public.idempotency_keys k where k.expires_at < v_cutoff; get diagnostics v_affected = row_count; end if;
+  else
+    select count(*) into v_candidates from public.transactional_email_outbox o
+      where o.created_at < v_cutoff and o.status in ('delivered','dead') and not public.is_under_legal_hold(p_data_class,o.id::text);
+    if not p_dry_run then
+      if v_policy.disposition='delete' then delete from public.transactional_email_outbox o where o.created_at < v_cutoff and o.status in ('delivered','dead') and not public.is_under_legal_hold(p_data_class,o.id::text);
+      else update public.transactional_email_outbox o set recipient_address=null,payload='{}'::jsonb where o.created_at < v_cutoff and o.status in ('delivered','dead') and not public.is_under_legal_hold(p_data_class,o.id::text); end if;
+      get diagnostics v_affected = row_count;
+    end if;
+  end if;
+
+  insert into public.audit_logs(actor_type,actor_ref,action,entity_type,entity_id,metadata)
+  values ('system',left(trim(p_actor_ref),160),case when p_dry_run then 'retention.preview' else 'retention.execute' end,
+    'data_retention_policy',p_data_class,jsonb_build_object('decisionReference',trim(p_decision_reference),'disposition',v_policy.disposition,'cutoff',v_cutoff,'candidates',v_candidates,'affected',v_affected));
+  return jsonb_build_object('ok',true,'dryRun',p_dry_run,'dataClass',p_data_class,'disposition',v_policy.disposition,'cutoff',v_cutoff,'candidates',v_candidates,'affected',v_affected);
+end;
+$$;
+
+revoke all on function public.execute_data_retention(text,boolean,text,text) from public, anon, authenticated;
+grant execute on function public.execute_data_retention(text,boolean,text,text) to service_role;

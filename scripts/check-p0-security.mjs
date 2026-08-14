@@ -40,8 +40,8 @@ tokenFiles.forEach((file) => {
 });
 
 const certificates = read('js/certificates.js');
-if (certificates.includes('data/certificates.json')) {
-  issues.push('js/certificates.js: verificação pública ainda aceita base estática.');
+if (certificates.includes('data/certificates.json') && !certificates.includes('arandu-presentation-mode')) {
+  issues.push('js/certificates.js: base estática não está restrita ao modo explícito de apresentação.');
 }
 requireText('scripts/copy-runtime-assets.mjs', "rmSync(demoCertificates)", 'base demonstrativa de certificados ainda é publicada.');
 requireText('js/certificate-print.js', "verification_status:'não verificado'", 'impressão não falha de forma fechada.');
@@ -75,7 +75,11 @@ const uploadApi = read('api/upload.js');
   ["'x-upsert': 'false'", 'upload novo ainda permite sobrescrita'],
   ['if (!response.ok)', 'falha de metadados não é verificada'],
   ['await storageDelete(path)', 'objeto órfão não é removido quando metadados falham'],
-  ['AbortSignal.timeout', 'integração de upload sem timeout']
+  ['AbortSignal.timeout', 'integração de upload sem timeout'],
+  ['canonicalBase64', 'upload não rejeita codificação base64 não canônica'],
+  ['MAX_IMAGE_PIXELS', 'upload não limita decompression bombs por dimensões'],
+  ['containsSensitiveMetadata', 'upload não trata metadados EXIF/XMP'],
+  ['ALLOWED_ENTITY_TYPES', 'upload não restringe namespaces de entidade']
 ].forEach(([text, message]) => {
   if (!uploadApi.includes(text)) issues.push(`api/upload.js: ${message}.`);
 });

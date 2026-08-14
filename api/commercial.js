@@ -124,7 +124,7 @@ async function failIdempotency(context, error) {
 
 async function listRecords(res, admin) {
   requireAdminPermission(admin.actor, 'commercial', 'read');
-  const rows = await adminSupabaseRequest('commercial_records?select=*&order=created_at.desc', { prefer: '' });
+  const rows = await adminSupabaseRequest('commercial_records?select=id,commercial_number,proposal_id,reservation_id,lead_id,client,email,whatsapp,total,platform_fee_rate,platform_fee,artist_amount,status,logistics_status,notes,created_at,updated_at&order=created_at.desc&limit=200', { prefer: '' });
   return json(res, 200, { ok: true, mode: 'stored', items: rows || [] }, admin.headers);
 }
 
