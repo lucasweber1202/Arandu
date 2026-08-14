@@ -4,7 +4,7 @@ import path from 'node:path';
 
 const root = process.cwd();
 const runtimeTargets = ['api', 'lib', 'src', 'vite.config.js', 'scripts/vercel-build.mjs'];
-const platformVariables = new Set(['CI', 'NODE_ENV', 'VERCEL', 'VERCEL_ENV', 'VERCEL_URL']);
+const platformVariables = new Set(['CI', 'NODE_ENV', 'VERCEL', 'VERCEL_ENV', 'VERCEL_URL', 'VERCEL_GIT_COMMIT_SHA']);
 const documented = new Set(
   fs.readFileSync(path.join(root, '.env.example'), 'utf8')
     .split(/\r?\n/)
