@@ -50,6 +50,9 @@ try {
       assert.equal(value.includes('policy_snapshot'), false);
       assert.equal(value.includes('platform_fee'), false);
       assert.equal(value.includes('artist_amount'), false);
+      assert.equal(value.includes('order=created_at.desc,id.desc'), true);
+      assert.equal(value.includes('limit=31'), true);
+      assert.equal(options.signal instanceof AbortSignal, true);
       return new Response(JSON.stringify([{
         id: 'order-1',
         order_number: 'ARANDU-20260807-ABC123',
@@ -86,6 +89,19 @@ try {
   const anonymousResponse = res();
   await handler(req(''), anonymousResponse);
   assert.equal(anonymousResponse.statusCode, 401);
+  assert.equal(anonymousResponse.headers['set-cookie'].includes('Max-Age=0'), true);
+
+  const invalidSessionResponse = res();
+  await handler(req('arandu_session=not-a-session'), invalidSessionResponse);
+  assert.equal(invalidSessionResponse.statusCode, 401);
+  assert.equal(invalidSessionResponse.headers['set-cookie'].includes('Max-Age=0'), true);
+
+  const hostileRequestId = req(`arandu_session=${encodeURIComponent(cookieValue)}`);
+  hostileRequestId.headers['x-request-id'] = 'ok\\r\\nInjected: yes';
+  const hostileRequestIdResponse = res();
+  await handler(hostileRequestId, hostileRequestIdResponse);
+  assert.equal(hostileRequestIdResponse.headers['x-request-id'].includes('\\r'), false);
+  assert.equal(hostileRequestIdResponse.headers['x-request-id'].includes('\\n'), false);
 
   console.log('Arandu Account Orders API Tests');
   console.log('Sessão, JWT/RLS e minimização de campos validados.');

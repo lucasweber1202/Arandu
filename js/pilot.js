@@ -59,7 +59,7 @@
       authenticated = session.authenticated === true;
       if (!authenticated) gate();
       else { document.documentElement.classList.add('pilot-authenticated'); await track('page_view'); }
-    } catch { if (window.ARANDU_PILOT_ENABLED === true) gate(); }
+    } catch { if (pilotEnabled) gate(); }
   }
 
   document.addEventListener('click', (event) => {

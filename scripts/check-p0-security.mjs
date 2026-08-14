@@ -63,6 +63,49 @@ for (const file of fs.readdirSync('js').filter((name) => name.endsWith('.js'))) 
   }
 }
 
+const viteConfig = read('vite.config.js');
+if (/<script>window\.ARANDU_PILOT_ENABLED=/.test(viteConfig)) {
+  issues.push('vite.config.js: bootstrap do piloto voltou a usar script inline incompatível com CSP.');
+}
+requireText('vite.config.js', 'name="arandu-pilot-enabled"', 'configuração do piloto não usa metadado compatível com CSP.');
+
+const uploadApi = read('api/upload.js');
+[
+  ['randomUUID()', 'nome do objeto não usa UUID criptográfico'],
+  ["'x-upsert': 'false'", 'upload novo ainda permite sobrescrita'],
+  ['if (!response.ok)', 'falha de metadados não é verificada'],
+  ['await storageDelete(path)', 'objeto órfão não é removido quando metadados falham'],
+  ['AbortSignal.timeout', 'integração de upload sem timeout']
+].forEach(([text, message]) => {
+  if (!uploadApi.includes(text)) issues.push(`api/upload.js: ${message}.`);
+});
+if (uploadApi.includes("'x-upsert': 'true'")) issues.push('api/upload.js: upload ainda pode sobrescrever objeto existente.');
+
+const catchAll = read('api/[...path].js');
+const formStart = catchAll.indexOf('function normalizeFormPayload(body)');
+const formEnd = catchAll.indexOf('function normalizeSelection', formStart);
+const formNormalizer = catchAll.slice(formStart, formEnd);
+if (formNormalizer.includes('payload: body')) {
+  issues.push('api/[...path].js: formulário público ainda persiste payload bruto.');
+}
+if (catchAll.includes('onclick="window.print()"')) {
+  issues.push('api/[...path].js: certificado público ainda gera onclick inline.');
+}
+
+const stagingRelease = read('.github/workflows/staging-release.yml');
+const stagingLines = stagingRelease.split(/\r?\n/);
+let runIndent = null;
+let runInputInterpolation = false;
+for (const line of stagingLines) {
+  const indent = line.match(/^\s*/)[0].length;
+  if (runIndent !== null && line.trim() && indent <= runIndent) runIndent = null;
+  if (/^\s*run:\s*(?:[|>-]|$)/.test(line)) runIndent = indent;
+  if (runIndent !== null && /\$\{\{\s*inputs\./.test(line)) runInputInterpolation = true;
+}
+if (runInputInterpolation) {
+  issues.push('.github/workflows/staging-release.yml: input manual ainda é interpolado diretamente em shell.');
+}
+
 console.log('Arandu P0 Security Regression Check');
 console.log(`Erros: ${issues.length}`);
 if (issues.length) {
