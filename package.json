@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build && node scripts/copy-runtime-assets.mjs",
-    "vercel-build": "npm run predeploy",
+    "vercel-build": "node scripts/vercel-build.mjs",
     "preview": "vite preview --host 0.0.0.0",
     "serve:test": "node scripts/serve-dist.mjs",
     "pretest:e2e": "npm run build",
