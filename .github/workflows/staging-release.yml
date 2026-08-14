@@ -51,6 +51,7 @@ jobs:
       SUPABASE_URL: ${{ secrets.ARANDU_STAGING_SUPABASE_URL }}
       SUPABASE_ANON_KEY: ${{ secrets.ARANDU_STAGING_SUPABASE_ANON_KEY }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.ARANDU_STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+      ARANDU_MIGRATION_FLOW: ${{ inputs.migration_flow }}
 
     steps:
       - name: Reject accidental production execution
@@ -85,7 +86,6 @@ jobs:
 
       - name: Execute protected staging migration
         env:
-          ARANDU_MIGRATION_FLOW: ${{ inputs.migration_flow }}
           ARANDU_RELEASE_OPERATOR: ${{ inputs.operator }}
           ARANDU_BACKUP_REFERENCE: ${{ inputs.backup_reference }}
           ARANDU_RESTORE_REFERENCE: ${{ inputs.restore_reference }}
