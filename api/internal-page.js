@@ -3,6 +3,9 @@ import { resolve } from 'node:path';
 import { AdminAuthError, applyAdminResponseHeaders, requireAdmin } from '../lib/admin-auth.mjs';
 import { requireAdminPermission } from '../lib/admin-rbac.mjs';
 import { INTERNAL_PAGE_SET, permissionForInternalPage } from '../lib/internal-pages.mjs';
+import { presentationModeEnabled } from '../lib/presentation-mode.mjs';
+
+const PRESENTATION_PAGES = new Set(['demo.html', 'admin-preview.html']);
 
 function pageName(req) {
   const url = new URL(req.url, 'http://localhost');
@@ -30,6 +33,21 @@ export default async function handler(req, res) {
   }
 
   try {
+    if (presentationModeEnabled() && PRESENTATION_PAGES.has(page)) {
+      const source = await readFile(resolve(process.cwd(), page), 'utf8');
+      const headAssets = '<meta name="arandu-presentation-mode" content="true"><link rel="stylesheet" href="/css/arandu-presentation.css?v=20260814-1">';
+      const bodyAssets = '<script src="/js/presentation-runtime.js?v=20260814-1" defer></script>';
+      const withHead = source.includes('</head>') ? source.replace('</head>', `${headAssets}</head>`) : `${headAssets}${source}`;
+      const html = withHead.includes('</body>') ? withHead.replace('</body>', `${bodyAssets}</body>`) : `${withHead}${bodyAssets}`;
+      res.statusCode = 200;
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+      res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('X-Frame-Options', 'DENY');
+      res.setHeader('Content-Security-Policy', "default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'");
+      return res.end(html);
+    }
     const admin = await requireAdmin(req);
     const [resource, action] = permissionForInternalPage(page);
     requireAdminPermission(admin.actor, resource, action);

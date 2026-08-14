@@ -14,6 +14,9 @@ async function requestJson(url, options = {}) {
   return data;
 }
 
+const presentationEnabled = () => window.AranduPresentation?.enabled === true
+  || document.querySelector('meta[name="arandu-presentation-mode"]')?.content === 'true';
+
 function escapeAuthHtml(value) {
   return String(value ?? '').replace(/[&<>'"]/g, (char) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
@@ -82,6 +85,7 @@ function injectAuthForms() {
         <input name="email" type="email" placeholder="E-mail da conta" autocomplete="email" required />
         <button type="submit">Enviar instruções</button>
       </form>`;
+    if (presentationEnabled()) loginMount.insertAdjacentHTML('afterbegin', '<div class="presentation-disclaimer"><strong>Apresentação:</strong> a autenticação real continua protegida. <a class="cta secondary" href="minha-conta.html">Explorar conta demonstrativa</a></div>');
   }
 }
 
@@ -103,6 +107,10 @@ async function syncLocalSelectionAfterAuth() {
 }
 
 async function renderAuthNav() {
+  if (presentationEnabled()) {
+    document.querySelectorAll('[data-auth-nav]').forEach((target) => { target.innerHTML = '<a href="minha-conta.html">Conta demonstrativa</a>'; });
+    return;
+  }
   try {
     const session = await getSession();
     document.querySelectorAll('[data-auth-nav]').forEach((target) => {
@@ -151,6 +159,13 @@ function reservationCards(reservations) {
 async function renderAccount() {
   const target = document.querySelector('[data-account-panel]');
   if (!target) return;
+  if (presentationEnabled()) {
+    let selections = [];
+    try { selections = JSON.parse(localStorage.getItem('arandu.selection.v1') || '[]'); } catch {}
+    const reservations = window.AranduPresentation?.reservations?.() || [];
+    target.innerHTML = `<div class="card"><p class="eyebrow">Conta demonstrativa</p><h2>Visitante da apresentação</h2><p>Nenhuma sessão real foi criada. Estes dados existem somente neste navegador.</p></div><div class="grid grid-2"><article class="card"><h3>${Array.isArray(selections) ? selections.length : 0}</h3><p>Obras salvas localmente</p></article><article class="card"><h3>${reservations.length}</h3><p>Reservas simuladas nesta aba</p></article></div><section class="card"><p class="eyebrow">Privacidade</p><h3>Nenhum dado pessoal foi armazenado no servidor.</h3><p>Exportação, correção e exclusão reais permanecem disponíveis apenas para uma conta autenticada.</p></section>`;
+    return;
+  }
   try {
     const account = await requestJson('/api/account', { method: 'GET' });
     const metrics = account.metrics || {};

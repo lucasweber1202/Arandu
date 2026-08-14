@@ -87,6 +87,11 @@
   async function loadOrders() {
     const target = document.querySelector('[data-account-orders]');
     if (!target) return;
+    const presentation = window.AranduPresentation?.enabled === true || document.querySelector('meta[name="arandu-presentation-mode"]')?.content === 'true';
+    if (presentation) {
+      target.innerHTML = '<section class="card"><p class="eyebrow">Pedido demonstrativo</p><h2>Acompanhamento pós-reserva</h2><p class="presentation-disclaimer"><strong>Cenário sem validade comercial.</strong> Nenhum pedido ou pagamento foi criado.</p><div class="grid grid-2"><article class="card"><span class="tag">Demonstração</span><h3>ARD-DEMO-001</h3><p><strong>Valor demonstrativo</strong></p><p>Obra: Estudo de Solo Nº 04</p><ul><li>Pagamento não iniciado</li><li>Logística não iniciada</li><li>Registro de procedência demonstrativo</li></ul></article></div></section>';
+      return;
+    }
     try {
       const response = await fetch('/api/account-orders', {
         method: 'GET',

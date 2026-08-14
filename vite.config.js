@@ -3,6 +3,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { resolve, relative, extname, sep } from 'node:path';
 import { deploymentBaseUrl, renderSeoHead } from './scripts/seo-meta.mjs';
 import { INTERNAL_PAGE_SET } from './lib/internal-pages.mjs';
+import { assertPresentationModeIsSafe } from './lib/presentation-mode.mjs';
 
 const root = process.cwd();
 const ignoredDirs = new Set(['node_modules', '.git', 'dist', 'reports', 'tests', 'test-results', 'playwright-report']);
@@ -17,6 +18,7 @@ const configuredSiteUrl = (() => {
 })();
 const configuredShareBaseUrl = deploymentBaseUrl();
 const configuredPilotEnabled = ['1','true','yes','sim'].includes(String(process.env.ARANDU_PILOT_ENABLED || '').trim().toLowerCase());
+const configuredPresentationMode = assertPresentationModeIsSafe();
 const ASSET_VERSION = '20260608';
 const HARDENING_VERSION = '20260707-hardening-1';
 const POLISH_VERSION = '20260707-polish-1';
@@ -110,6 +112,9 @@ function injectGlobalAssets() {
   const pilotBootstrapTag = `<meta name="arandu-pilot-enabled" content="${configuredPilotEnabled ? 'true' : 'false'}">`;
   const pilotJsTag = `<script src="/js/pilot.js?v=20260717-pilot-1" defer></script>`;
   const platformRuntimeTag = `<script src="/js/platform-runtime.js?v=20260717-platform-1" defer></script>`;
+  const presentationBootstrapTag = `<meta name="arandu-presentation-mode" content="${configuredPresentationMode ? 'true' : 'false'}">`;
+  const presentationCssTag = '<link rel="stylesheet" href="/css/arandu-presentation.css?v=20260814-1">';
+  const presentationRuntimeTag = '<script src="/js/presentation-runtime.js?v=20260814-1" defer></script>';
 
   return {
     name: 'inject-arandu-global-assets',
@@ -138,10 +143,13 @@ function injectGlobalAssets() {
       if (!output.includes('/css/arandu-refinamento.css')) output = output.includes('</head>') ? output.replace('</head>', `${refinementCssTag}</head>`) : `${output}${refinementCssTag}`;
       if (!output.includes('/js/catalog-source.js')) output = output.includes('</head>') ? output.replace('</head>', `${catalogSourceJsTag}</head>`) : `${catalogSourceJsTag}${output}`;
       if (!output.includes('name="arandu-pilot-enabled"')) output = output.includes('</head>') ? output.replace('</head>', `${pilotBootstrapTag}</head>`) : `${pilotBootstrapTag}${output}`;
+      if (!output.includes('name="arandu-presentation-mode"')) output = output.includes('</head>') ? output.replace('</head>', `${presentationBootstrapTag}</head>`) : `${presentationBootstrapTag}${output}`;
+      if (configuredPresentationMode && !output.includes('/css/arandu-presentation.css')) output = output.includes('</head>') ? output.replace('</head>', `${presentationCssTag}</head>`) : `${presentationCssTag}${output}`;
       if (!output.includes('/js/arandu-interface-audit.js')) output = output.includes('</body>') ? output.replace('</body>', `${auditJsTag}</body>`) : `${output}${auditJsTag}`;
       if (!output.includes('/js/arandu-assistant.js')) output = output.includes('</body>') ? output.replace('</body>', `${assistantJsTag}</body>`) : `${output}${assistantJsTag}`;
       if (!output.includes('/js/pilot.js')) output = output.includes('</body>') ? output.replace('</body>', `${pilotJsTag}</body>`) : `${output}${pilotJsTag}`;
       if (!output.includes('/js/platform-runtime.js')) output = output.includes('</body>') ? output.replace('</body>', `${platformRuntimeTag}</body>`) : `${output}${platformRuntimeTag}`;
+      if (configuredPresentationMode && !output.includes('/js/presentation-runtime.js')) output = output.includes('</body>') ? output.replace('</body>', `${presentationRuntimeTag}</body>`) : `${output}${presentationRuntimeTag}`;
       if (!output.includes('/src/vercel-speed-insights.js')) output = output.includes('</body>') ? output.replace('</body>', `${speedInsightsTag}</body>`) : `${output}${speedInsightsTag}`;
       return output;
     }

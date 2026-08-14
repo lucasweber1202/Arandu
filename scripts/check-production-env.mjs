@@ -56,6 +56,7 @@ add('Política comercial completa', commercialPolicy.ready, 'Configure referênc
 add('Rate limit distribuído', truthy('ARANDU_DISTRIBUTED_RATE_LIMIT'), 'Só ative depois de testar a migration/provedor compartilhado.');
 add('Monitoramento de erros', truthy('ARANDU_ERROR_MONITORING_READY'), 'Só ative depois de receber um erro canário no monitoramento.');
 add('Restauração de backup', recentDate(value('ARANDU_BACKUP_VERIFIED_AT')), 'Registre uma restauração comprovada nos últimos 30 dias.');
+add('Modo de apresentação desligado', !truthy('ARANDU_PRESENTATION_MODE'), 'Nunca ative ARANDU_PRESENTATION_MODE no ambiente Production.');
 
 const pilotEnabled = truthy('ARANDU_PILOT_ENABLED');
 add('Piloto concluído', truthy('ARANDU_PILOT_APPROVED'), 'Aprove somente após a rodada fechada e zero bloqueadores críticos.');

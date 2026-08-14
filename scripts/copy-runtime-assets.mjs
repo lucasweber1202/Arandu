@@ -1,8 +1,10 @@
 import { existsSync, mkdirSync, readdirSync, statSync, copyFileSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
+import { assertPresentationModeIsSafe } from '../lib/presentation-mode.mjs';
 
 const root = process.cwd();
 const dist = join(root, 'dist');
+const presentationMode = assertPresentationModeIsSafe();
 
 const folders = ['js', 'data', 'assets', 'css'];
 const rootFiles = ['manifest.webmanifest', 'site.webmanifest', 'favicon.svg'];
@@ -36,9 +38,11 @@ for (const folder of folders) {
 // A base JSON é somente material de seed/homologação. Publicá-la permitiria
 // confundir registros demonstrativos com uma verificação oficial.
 const demoCertificates = join(dist, 'data', 'certificates.json');
-if (existsSync(demoCertificates)) {
+if (existsSync(demoCertificates) && !presentationMode) {
   rmSync(demoCertificates);
   console.log('Removido do runtime público: data/certificates.json');
+} else if (existsSync(demoCertificates)) {
+  console.log('Mantido apenas no preview de apresentação: data/certificates.json');
 }
 
 for (const file of rootFiles) {
@@ -46,6 +50,11 @@ for (const file of rootFiles) {
   if (!existsSync(source)) throw new Error(`Arquivo runtime ausente: ${file}`);
   copyFileSync(source, join(dist, file));
   console.log(`Copiado: ${file} -> dist/${file}`);
+}
+
+if (presentationMode) {
+  for (const file of ['demo.html', 'admin-preview.html']) copyFileSync(join(root, file), join(dist, file));
+  console.log('Telas internas de apresentação copiadas somente para o Preview explícito.');
 }
 
 const routeManifest = JSON.parse(readFileSync(join(root, 'data/public-routes.json'), 'utf8'));

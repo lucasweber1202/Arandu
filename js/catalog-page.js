@@ -45,6 +45,14 @@
       try{
         status.textContent='Registrando reserva...';
         status.classList.remove('ok');
+        if(window.AranduCatalogSource?.presentationEnabled?.()===true){
+          window.AranduPresentation?.recordReservation({artworkId:data.artwork_id,title,artist});
+          status.textContent='Simulação concluída. Nenhuma reserva, contato ou transação foi enviada.';
+          status.classList.add('ok');
+          toast('Reserva demonstrativa simulada com segurança.');
+          setTimeout(()=>{modal.hidden=true;form.reset();},1200);
+          return;
+        }
         const response=await fetch('/api/reservations',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json','Idempotency-Key':crypto.randomUUID()},body:JSON.stringify({artwork_id:data.artwork_id,name:data.name,whatsapp:data.whatsapp,website:data.website,deadline:'48h',notes:[data.notes,`Obra: ${title}`,`Artista: ${artist}`,`URL: ${url}`].filter(Boolean).join('\n')})});
         const payload=await response.json().catch(()=>({}));
         if(!response.ok||payload.ok===false)throw new Error(payload.error||'Não foi possível registrar a reserva.');
