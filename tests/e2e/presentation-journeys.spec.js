@@ -37,7 +37,7 @@ test('conta e operação demonstrativas não fingem autenticação ou evidência
   await expect(page.locator('[data-account-panel]')).toContainText('Nenhuma sessão real foi criada');
   await expect(page.locator('[data-account-orders]')).toContainText('Nenhum pedido ou pagamento foi criado');
   await page.goto('/admin-preview.html');
-  await expect(page.locator('main')).toContainText('não constitui evidência operacional');
+  await expect(page.locator('main')).toContainText('não constituem evidência operacional');
   await expect(page.locator('main')).toContainText('não concede acesso administrativo');
 });
 
