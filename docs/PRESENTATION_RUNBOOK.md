@@ -31,3 +31,7 @@ O build aceita `ARANDU_PRESENTATION_MODE=true` somente fora de `VERCEL_ENV=produ
 - O catálogo da API continua recusando dados que não estejam verificados.
 - `npm run predeploy` continua falhando enquanto gates externos estiverem pendentes.
 - Nenhuma tela ou fala descreve dados demonstrativos como evidência real.
+
+## Limite operacional do e-mail
+
+O cron nativo está agendado diariamente às 12:00 UTC porque o plano Vercel Hobby rejeita frequências maiores no deployment. Ele permanece desligado por `ARANDU_EMAIL_DISPATCH_ENABLED=false`. Antes de operação real, a frequência e o SLA precisam de decisão explícita (plano Vercel compatível ou disparador externo autenticado); não trate o cron diário como aprovação operacional.

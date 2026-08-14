@@ -9,7 +9,7 @@
     }
   },
   "crons": [
-    { "path": "/api/email-dispatch", "schedule": "*/5 * * * *" }
+    { "path": "/api/email-dispatch", "schedule": "0 12 * * *" }
   ],
   "redirects": [
     { "source": "/obras.html", "destination": "/comprar-arte.html", "permanent": true },

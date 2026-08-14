@@ -18,7 +18,7 @@ function json(res, status, payload, headers = {}) {
 const truthy = (value) => ['1', 'true', 'yes', 'sim'].includes(String(value || '').trim().toLowerCase());
 const safeRequestId = (value) => String(value || randomUUID()).replace(/[^A-Za-z0-9._:-]/g, '').slice(0, 80) || randomUUID();
 function authorizedCron(req) {
-  const configured = String(process.env.ARANDU_EMAIL_CRON_SECRET || '');
+  const configured = String(process.env.CRON_SECRET || process.env.ARANDU_EMAIL_CRON_SECRET || '');
   const supplied = String(req.headers?.authorization || '').replace(/^Bearer\s+/i, '');
   if (configured.length < 32 || supplied.length !== configured.length) return false;
   return timingSafeEqual(Buffer.from(supplied), Buffer.from(configured));
