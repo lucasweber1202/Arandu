@@ -4,6 +4,7 @@ import { hasSupabaseAccess, userSupabaseRequest } from '../lib/supabase.mjs';
 
 const COOKIE_NAME = 'arandu_session';
 const MAX_AGE = 60 * 60 * 24 * 7;
+const AUTH_TIMEOUT_MS = Math.max(1_000, Math.min(Number(process.env.ARANDU_AUTH_TIMEOUT_MS) || 8_000, 30_000));
 
 class HttpError extends Error {
   constructor(status, message, code = null) {
@@ -15,6 +16,31 @@ class HttpError extends Error {
 
 function clean(value, max = 500) {
   return String(value ?? '').trim().slice(0, max);
+}
+
+function safeRequestId(value) {
+  const normalized = clean(value, 160).replace(/[^A-Za-z0-9._:-]/g, '').slice(0, 80);
+  return normalized || randomUUID();
+}
+
+function clearSessionCookie() {
+  return `${COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Secure; Priority=High; Max-Age=0`;
+}
+
+function decodeCursor(value) {
+  if (!value) return null;
+  try {
+    const parsed = JSON.parse(Buffer.from(value, 'base64url').toString('utf8'));
+    const createdAt = new Date(parsed.created_at);
+    if (!parsed.id || Number.isNaN(createdAt.getTime())) return null;
+    return { id: clean(parsed.id, 80), created_at: createdAt.toISOString() };
+  } catch {
+    return null;
+  }
+}
+
+function encodeCursor(record) {
+  return Buffer.from(JSON.stringify({ id: record.id, created_at: record.created_at })).toString('base64url');
 }
 
 function json(res, status, payload, extraHeaders = {}) {
@@ -66,6 +92,7 @@ async function authRequest(path, options = {}) {
   if (!baseUrl || !anonKey) throw new HttpError(503, 'Autenticação indisponível.', 'auth_unconfigured');
   const response = await fetch(`${baseUrl}/auth/v1/${path}`, {
     ...options,
+    signal: AbortSignal.timeout(AUTH_TIMEOUT_MS),
     headers: {
       apikey: anonKey,
       'Content-Type': 'application/json',
@@ -132,7 +159,7 @@ function safeOrder(record) {
 }
 
 export default async function handler(req, res) {
-  const requestId = clean(req.headers?.['x-request-id'], 80) || randomUUID();
+  const requestId = safeRequestId(req.headers?.['x-request-id']);
   res.setHeader('X-Request-ID', requestId);
   try {
     if (req.method !== 'GET') throw new HttpError(405, 'Método não permitido.');
@@ -140,13 +167,23 @@ export default async function handler(req, res) {
 
     const session = await resolveSession(req);
     const userId = encodeURIComponent(session.user.id);
+    const requestUrl = new URL(req.url || '/api/account-orders', 'https://arandu.invalid');
+    const limit = Math.max(1, Math.min(Number(requestUrl.searchParams.get('limit')) || 30, 50));
+    const cursor = decodeCursor(requestUrl.searchParams.get('cursor'));
+    if (requestUrl.searchParams.has('cursor') && !cursor) throw new HttpError(400, 'Cursor inválido.', 'invalid_cursor');
+    const cursorFilter = cursor
+      ? `&or=(created_at.lt.${encodeURIComponent(cursor.created_at)},and(created_at.eq.${encodeURIComponent(cursor.created_at)},id.lt.${encodeURIComponent(cursor.id)}))`
+      : '';
     const rows = await userSupabaseRequest(
       session.accessToken,
-      `orders?user_id=eq.${userId}&select=id,order_number,artwork_id,artist_id,reservation_id,price_snapshot,currency,status,payment_status,fulfillment_status,certificate_status,tracking_code,shipping_provider,created_at,updated_at,paid_at,completed_at,cancelled_at,shipping_updated_at&order=created_at.desc&limit=30`,
+      `orders?user_id=eq.${userId}&select=id,order_number,artwork_id,artist_id,reservation_id,price_snapshot,currency,status,payment_status,fulfillment_status,certificate_status,tracking_code,shipping_provider,created_at,updated_at,paid_at,completed_at,cancelled_at,shipping_updated_at&order=created_at.desc,id.desc&limit=${limit + 1}${cursorFilter}`,
       { method: 'GET', prefer: '' }
     );
-    const orders = Array.isArray(rows) ? rows.map(safeOrder) : [];
-    return json(res, 200, { ok: true, mode: 'supabase', count: orders.length, orders }, session.headers);
+    const rawOrders = Array.isArray(rows) ? rows : [];
+    const hasMore = rawOrders.length > limit;
+    const orders = rawOrders.slice(0, limit).map(safeOrder);
+    const nextCursor = hasMore && orders.length ? encodeCursor(orders[orders.length - 1]) : null;
+    return json(res, 200, { ok: true, mode: 'supabase', count: orders.length, hasMore, nextCursor, orders }, session.headers);
   } catch (error) {
     const status = Number(error?.status) || 500;
     return json(res, status, {
@@ -154,6 +191,6 @@ export default async function handler(req, res) {
       error: status < 500 ? error.message : 'Não foi possível carregar seus pedidos agora.',
       ...(error?.code ? { code: error.code } : {}),
       requestId
-    });
+    }, status === 401 ? { 'Set-Cookie': clearSessionCookie() } : {});
   }
 }
