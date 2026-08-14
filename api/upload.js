@@ -55,6 +55,7 @@ async function storageUpload(path, buffer, contentType) {
   const base = SUPABASE_URL.replace(/\/$/, '');
   const response = await fetch(`${base}/storage/v1/object/${BUCKET}/${path}`, {
     method: 'POST',
+    signal: AbortSignal.timeout(8_000),
     headers: {
       apikey: SUPABASE_SERVICE_KEY,
       Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
