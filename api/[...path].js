@@ -30,7 +30,8 @@ const PILOT_BLOCKER_STATUSES = new Set(['open','mitigated','resolved','not_appli
 const CONVERSION_EVENT_TYPES = new Set(['search','catalog_view','artwork_view','selection_add','contact_start','reservation_start','reservation_complete']);
 const PRIVACY_REQUEST_TYPES = new Set(['access','correction','deletion','portability']);
 const EDITORIAL_STATUSES = new Set(['draft','documentation_pending','curatorial_review','approved','published','rejected','archived']);
-const CONSENT_VERSION = '2026-07-17';
+const CONSENT_VERSION = String(process.env.ARANDU_CONSENT_VERSION || '').trim();
+const EXTERNAL_REQUEST_TIMEOUT_MS = Math.max(1_000, Math.min(Number(process.env.ARANDU_EXTERNAL_REQUEST_TIMEOUT_MS) || 8_000, 30_000));
 
 class HttpError extends Error {
   constructor(status, message, code = null) {
@@ -80,6 +81,9 @@ function requireDataConfig() {
 function firstRecord(data) { return Array.isArray(data) ? data[0] || null : data; }
 function clean(value) { return String(value || '').trim(); }
 function limited(value, max = 500) { return clean(value).slice(0, max); }
+function safeRequestId(value) {
+  return limited(value, 160).replace(/[^A-Za-z0-9._:-]/g, '').slice(0, 80) || randomUUID();
+}
 function cleanEmail(value) { return limited(value, 254).toLowerCase(); }
 function cleanPhone(value) { return clean(value).replace(/\D/g, '').slice(0, 15); }
 function validEmail(value) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail(value)); }
@@ -134,6 +138,7 @@ async function enforceRateLimit(req, scope, limit, windowMs, identity = '') {
   }
   const response = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/rest/v1/rpc/consume_rate_limit`, {
     method: 'POST',
+    signal: AbortSignal.timeout(EXTERNAL_REQUEST_TIMEOUT_MS),
     headers: {
       apikey: SUPABASE_SERVICE_KEY,
       Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
@@ -234,6 +239,7 @@ async function supabaseAuth(path, options = {}) {
   if (!authConfigured()) throw new Error('Autenticação Supabase não configurada.');
   const response = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/${path}`, {
     ...options,
+    signal: AbortSignal.timeout(EXTERNAL_REQUEST_TIMEOUT_MS),
     headers: { apikey: SUPABASE_ANON_KEY, 'Content-Type': 'application/json', ...(options.headers || {}) }
   });
   const data = await response.json().catch(() => ({}));
@@ -497,6 +503,14 @@ function validateRecord(panel, record) { if (panel === 'artistas' && !record.nam
 function normalizeField(field, value) { if (value === undefined) return undefined; if (value === '') return null; if (ARRAYS.has(field)) return listFrom(value); if (NUMBERS.has(field)) { const parsed = Number(String(value).replace(/\./g, '').replace(',', '.')); return Number.isFinite(parsed) ? parsed : null; } if (BOOLEANS.has(field)) return value === true || value === 'true' || value === '1' || value === 'on'; if (JSONS.has(field)) { if (value && typeof value === 'object') return value; try { return value ? JSON.parse(value) : {}; } catch { return {}; } } return String(value).trim(); }
 function buildPayload(panel, fields) { return (ALLOWED[panel] || []).reduce((payload, field) => { const value = normalizeField(field, fields[field]); if (value !== undefined) payload[field] = value; return payload; }, {}); }
 
+function minimalFormPayload(type, body) {
+  return {
+    form_type: limited(type, 80),
+    source_page: limited(body.page || body.source_page, 240) || null,
+    consent_version: CONSENT_VERSION || null
+  };
+}
+
 function normalizeFormPayload(body) {
   const type = limited(body.type || body.form_type || 'contato', 80);
   const data = body.data || body;
@@ -510,7 +524,7 @@ function normalizeFormPayload(body) {
     message: limited(data.mensagem || data.message, 4000) || null,
     source_page: limited(body.page || body.source_page, 240) || null,
     status: 'new',
-    payload: body
+    payload: minimalFormPayload(type, body)
   };
   if (type === 'submissao-artista') {
     table = 'artist_submissions';
@@ -527,7 +541,7 @@ function normalizeFormPayload(body) {
       price_range: limited(data.faixa_preco || data.orcamento, 160) || null,
       message: limited(data.mensagem, 4000) || null,
       status: 'received',
-      payload: body
+      payload: minimalFormPayload(type, body)
     };
   }
   if (type === 'empresa-intencao' || type === 'proposta-empresa') {
@@ -548,7 +562,7 @@ function normalizeFormPayload(body) {
       email: cleanEmail(data.email),
       name: limited(data.nome || data.name, 160) || null,
       source_page: limited(body.page, 240) || null,
-      payload: body
+      payload: minimalFormPayload(type, body)
     };
   }
   return { table, record };
@@ -674,7 +688,7 @@ function hashCertificate(certificate) { const raw = [certificate.code, certifica
 function certificateDocumentHtml(certificate, artwork) {
   const hash = certificate.certificate_hash || hashCertificate(certificate);
   const valid = certificate.verification_status === 'valid';
-  return `<!doctype html><html lang="pt-BR"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Certificado ${escapeHtml(certificate.code)} — Arandu</title><style>body{margin:0;background:#efe3d1;color:#211713;font-family:Arial,sans-serif}.sheet{max-width:900px;margin:40px auto;padding:56px;background:#fff8ed;border:1px solid #ad8a62;box-shadow:0 24px 80px rgba(33,23,19,.18)}.brand{font-family:Georgia,serif;font-size:44px;color:#7b1f17;margin:0}.eyebrow{text-transform:uppercase;letter-spacing:.18em;font-size:12px;color:#7b1f17;font-weight:800}.title{font-family:Georgia,serif;font-size:32px;margin:24px 0 8px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:32px 0}.box{border:1px solid rgba(111,34,27,.25);padding:18px;border-radius:18px;background:#f7ead9}.status{display:inline-block;padding:8px 12px;border-radius:999px;background:${valid ? '#173f31' : '#7b1f17'};color:#fff8ed;font-weight:800}.hash{font-family:monospace;word-break:break-all;font-size:12px}.actions{margin-top:28px}.actions button{padding:12px 18px;border-radius:999px;border:0;background:#7b1f17;color:#fff8ed;font-weight:800}@media print{body{background:#fff}.sheet{box-shadow:none;margin:0;max-width:none;border:0}.actions{display:none}}</style></head><body><main class="sheet"><p class="eyebrow">Certificado de autenticidade</p><h1 class="brand">Arandu</h1><h2 class="title">${escapeHtml(artwork?.title || certificate.artwork_id || 'Obra certificada')}</h2><p>Este documento registra a verificação curatorial e documental da obra no acervo Arandu.</p><span class="status">${valid ? 'Certificado válido' : escapeHtml(certificate.verification_status || 'Em análise')}</span><div class="grid"><section class="box"><p class="eyebrow">Código</p><h3>${escapeHtml(certificate.code)}</h3><p><strong>Obra:</strong> ${escapeHtml(artwork?.title || certificate.artwork_id || '—')}</p><p><strong>Artista:</strong> ${escapeHtml(artwork?.artist_name || certificate.artist_id || '—')}</p><p><strong>Técnica:</strong> ${escapeHtml(artwork?.technique || '—')}</p><p><strong>Dimensões:</strong> ${escapeHtml(artwork?.dimensions || '—')}</p></section><section class="box"><p class="eyebrow">Emissão</p><p><strong>Emitido para:</strong> ${escapeHtml(certificate.issued_to || 'Registro curatorial')}</p><p><strong>Data:</strong> ${certificate.issued_at ? escapeHtml(new Date(certificate.issued_at).toLocaleDateString('pt-BR')) : '—'}</p><p><strong>Status:</strong> ${escapeHtml(certificate.verification_status)}</p><p><strong>Hash:</strong></p><p class="hash">${escapeHtml(hash)}</p></section></div><section class="box"><p class="eyebrow">Notas</p><p>${escapeHtml(certificate.certificate_notes || 'Certificado vinculado à obra, ao artista e à verificação pública por código.')}</p></section><div class="actions"><button onclick="window.print()">Imprimir / salvar PDF</button></div></main></body></html>`;
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Certificado ${escapeHtml(certificate.code)} — Arandu</title><style>body{margin:0;background:#efe3d1;color:#211713;font-family:Arial,sans-serif}.sheet{max-width:900px;margin:40px auto;padding:56px;background:#fff8ed;border:1px solid #ad8a62;box-shadow:0 24px 80px rgba(33,23,19,.18)}.brand{font-family:Georgia,serif;font-size:44px;color:#7b1f17;margin:0}.eyebrow{text-transform:uppercase;letter-spacing:.18em;font-size:12px;color:#7b1f17;font-weight:800}.title{font-family:Georgia,serif;font-size:32px;margin:24px 0 8px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:32px 0}.box{border:1px solid rgba(111,34,27,.25);padding:18px;border-radius:18px;background:#f7ead9}.status{display:inline-block;padding:8px 12px;border-radius:999px;background:${valid ? '#173f31' : '#7b1f17'};color:#fff8ed;font-weight:800}.hash{font-family:monospace;word-break:break-all;font-size:12px}.actions{margin-top:28px}.actions button{padding:12px 18px;border-radius:999px;border:0;background:#7b1f17;color:#fff8ed;font-weight:800}@media print{body{background:#fff}.sheet{box-shadow:none;margin:0;max-width:none;border:0}.actions{display:none}}</style></head><body><main class="sheet"><p class="eyebrow">Certificado de autenticidade</p><h1 class="brand">Arandu</h1><h2 class="title">${escapeHtml(artwork?.title || certificate.artwork_id || 'Obra certificada')}</h2><p>Este documento registra a verificação curatorial e documental da obra no acervo Arandu.</p><span class="status">${valid ? 'Certificado válido' : escapeHtml(certificate.verification_status || 'Em análise')}</span><div class="grid"><section class="box"><p class="eyebrow">Código</p><h3>${escapeHtml(certificate.code)}</h3><p><strong>Obra:</strong> ${escapeHtml(artwork?.title || certificate.artwork_id || '—')}</p><p><strong>Artista:</strong> ${escapeHtml(artwork?.artist_name || certificate.artist_id || '—')}</p><p><strong>Técnica:</strong> ${escapeHtml(artwork?.technique || '—')}</p><p><strong>Dimensões:</strong> ${escapeHtml(artwork?.dimensions || '—')}</p></section><section class="box"><p class="eyebrow">Emissão</p><p><strong>Emitido para:</strong> ${escapeHtml(certificate.issued_to || 'Registro curatorial')}</p><p><strong>Data:</strong> ${certificate.issued_at ? escapeHtml(new Date(certificate.issued_at).toLocaleDateString('pt-BR')) : '—'}</p><p><strong>Status:</strong> ${escapeHtml(certificate.verification_status)}</p><p><strong>Hash:</strong></p><p class="hash">${escapeHtml(hash)}</p></section></div><section class="box"><p class="eyebrow">Notas</p><p>${escapeHtml(certificate.certificate_notes || 'Certificado vinculado à obra, ao artista e à verificação pública por código.')}</p></section><div class="actions"><button type="button" data-print-certificate>Imprimir / salvar PDF</button></div></main><script src="/js/certificate-print.js" defer></script></body></html>`;
 }
 
 const PUBLIC_CATALOG_SELECT = [
@@ -1444,7 +1458,7 @@ function routeFrom(req) {
 }
 
 export default async function handler(req, res) {
-  const requestId = limited(req.headers?.['x-request-id'], 80) || randomUUID();
+  const requestId = safeRequestId(req.headers?.['x-request-id']);
   req.aranduRequestId = requestId;
   res.setHeader('X-Request-ID', requestId);
   try {
