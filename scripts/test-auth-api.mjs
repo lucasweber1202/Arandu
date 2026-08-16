@@ -123,14 +123,19 @@ try {
     accountQueries.push(value);
     if (value.includes('/saved_selections?')) return jsonResponse([{ id: 'selection-1', public_token: 'abcdefghijklmnop', status: 'open', items: [{ id: 'obra-1', title: 'Obra 1' }], briefing: {} }]);
     if (value.includes('/reservations?')) return jsonResponse([{ id: 'reservation-1', artwork_id: 'obra-1', status: 'requested' }]);
+    if (value.includes('/artist_accounts?')) return jsonResponse([]);
+    if (value.includes('/company_briefs?')) return jsonResponse([]);
     throw new Error(`URL inesperada: ${value}`);
   };
   const account = await call('GET', '/api/account', undefined, { cookie: sessionCookie() });
   assert.equal(account.status, 200);
   assert.equal(account.body.metrics.selections, 1);
   assert.equal(account.body.metrics.reservations, 1);
-  assert.equal(accountQueries.length, 2);
+  assert.equal(accountQueries.length, 4);
   assert.ok(accountQueries.every((url) => url.includes('user_id=eq.user-123')));
+  // Conta sem vínculo verificado só enxerga a própria área de comprador.
+  assert.deepEqual(account.body.capabilities, ['account:read']);
+  assert.equal(account.body.declaredProfileType, 'comprador');
 
   let reservationPayload = null;
   global.fetch = async (url, options = {}) => {
