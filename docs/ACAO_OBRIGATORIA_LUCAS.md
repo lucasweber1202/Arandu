@@ -119,10 +119,22 @@ No navegador:
 Depois que Lucas confirmar Vercel e Supabase, a próxima rodada técnica deve focar em:
 
 1. Transformar o painel admin em operação diária de leads, obras, artistas e certificados.
+   — entregue nos painéis operacionais e no drawer de detalhes.
 2. Criar fluxo real de aprovação de artista.
+   — **entregue**: `prospected → in_review → approved → published`, com identidade
+   verificada e consentimento de publicação obrigatórios. Ver
+   `docs/OPERATIONAL_STATUS_FLOW.md`.
 3. Criar status de obra com histórico operacional.
+   — **entregue**: máquina de estados sob lock e trilha imutável em
+   `operational_status_history`, exibida em `historico-obra.html`.
 4. Criar proposta comercial exportável.
+   — entregue em `proposta-pdf.html` e `js/proposal-print.js`.
 5. Criar certificado imprimível mais completo.
+   — entregue em `certificado-imprimivel.html` e `js/certificate-print.js`.
 6. Melhorar permissões por perfil: comprador, artista, empresa e admin.
+   — parcial: RBAC administrativo (`admin`, `operator`, `curator`) cobre painéis e
+   transições sensíveis. Portais dedicados de artista e empresa continuam pendentes.
 7. Trocar dados demo por seed real.
+   — **bloqueado por dados reais**: depende dos 5 artistas e 20 obras autorizados.
 8. Ajustar SEO e sitemap com domínio oficial.
+   — **bloqueado por domínio**: depende de `ARANDU_SITE_URL` definitivo.

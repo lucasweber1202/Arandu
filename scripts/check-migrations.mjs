@@ -28,6 +28,7 @@ for (const [flow, files] of Object.entries(manifest)) {
   const ordersHardening = files.indexOf('docs/supabase-orders-hardening.sql');
   const emailOutbox = files.indexOf('docs/supabase-transactional-email-outbox.sql');
   const retention = files.indexOf('docs/supabase-retention-controls.sql');
+  const operationalStatus = files.indexOf('docs/supabase-operational-status.sql');
   const production = files.indexOf('docs/supabase-production.sql');
   if (sprint2 === -1) issues.push(`${flow}: migration do Sprint 2 ausente.`);
   if (sprint5 === -1) issues.push(`${flow}: migration do Sprint 5 ausente.`);
@@ -53,7 +54,9 @@ for (const [flow, files] of Object.entries(manifest)) {
   if (orderStateMachine !== -1 && ordersHardening !== orderStateMachine + 1) issues.push(`${flow}: hardening deve vir imediatamente depois da state machine da PR #38.`);
   if (ordersHardening !== -1 && emailOutbox !== ordersHardening + 1) issues.push(`${flow}: outbox deve vir imediatamente depois do hardening de pedidos.`);
   if (emailOutbox !== -1 && retention !== emailOutbox + 1) issues.push(`${flow}: retenção deve vir imediatamente depois da outbox.`);
-  if (retention !== -1 && retention !== files.length - 1) issues.push(`${flow}: controles de retenção devem encerrar a sequência atual.`);
+  if (operationalStatus === -1) issues.push(`${flow}: máquina de estados operacional ausente.`);
+  if (retention !== -1 && operationalStatus !== retention + 1) issues.push(`${flow}: a máquina de estados operacional deve vir imediatamente depois dos controles de retenção.`);
+  if (operationalStatus !== -1 && operationalStatus !== files.length - 1) issues.push(`${flow}: a máquina de estados operacional deve encerrar a sequência atual.`);
 }
 
 console.log('Arandu Migration Order Check');

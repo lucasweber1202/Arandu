@@ -1,6 +1,13 @@
 import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
 import { AdminAuthError, applyAdminResponseHeaders, requireAdmin } from '../lib/admin-auth.mjs';
 import { requireAdminPermission } from '../lib/admin-rbac.mjs';
+import {
+  assertTransition,
+  describeFlow,
+  elevatedActionFor,
+  entityForPanel,
+  statusFieldFor
+} from '../lib/operational-status.mjs';
 import { requireCommercialPolicy } from '../lib/commercial-policy.mjs';
 import { reportError } from '../lib/observability.mjs';
 import { applyApiSecurityHeaders, crossOriginRejection } from '../lib/http-security.mjs';
@@ -683,9 +690,9 @@ function accountReservation(record) {
 }
 function normalizeNote(body) { return { entity_type: clean(body.entity_type), entity_id: clean(body.entity_id), author_name: body.author_name || 'Curadoria', note: clean(body.note) }; }
 function normalizeOperationalTask(body) { return { entity_type: clean(body.entity_type), entity_id: clean(body.entity_id), title: clean(body.title), owner_name: body.owner_name || 'Curadoria', due_at: body.due_at ? new Date(body.due_at).toISOString() : null, priority: ['low','normal','high'].includes(body.priority) ? body.priority : 'normal', status: ['open','doing','done','cancelled'].includes(body.status) ? body.status : 'open' }; }
-function validOperationalResource(resource) { return resource === 'notes' || resource === 'tasks'; }
-function operationalTable(resource) { return resource === 'notes' ? 'crm_notes' : 'tasks'; }
-function operationalOrder(resource) { return resource === 'notes' ? 'created_at.desc' : 'due_at.asc.nullslast,created_at.desc'; }
+function validOperationalResource(resource) { return resource === 'notes' || resource === 'tasks' || resource === 'status-history'; }
+function operationalTable(resource) { if (resource === 'notes') return 'crm_notes'; if (resource === 'status-history') return 'operational_status_history'; return 'tasks'; }
+function operationalOrder(resource) { if (resource === 'notes') return 'created_at.desc'; if (resource === 'status-history') return 'created_at.desc'; return 'due_at.asc.nullslast,created_at.desc'; }
 function hashCertificate(certificate) { const raw = [certificate.code, certificate.artwork_id, certificate.artist_id, certificate.issued_to, certificate.issued_at].filter(Boolean).join('|'); return createHash('sha256').update(raw || certificate.code || 'arandu').digest('hex'); }
 
 function certificateDocumentHtml(certificate, artwork) {
@@ -1012,7 +1019,14 @@ async function handleAdmin(req, res) {
     if (!config) return json(res, 400, { ok: false, error: 'Painel inválido.' });
     requireAdminPermission(guard.actor, panelResource(panel), 'read');
     const items = await dataRequest(config.read, { method: 'GET', headers: { Prefer: '' } });
-    return json(res, 200, { ok: true, mode: 'stored', panel, statusOptions: config.statuses, items: items || [] });
+    return json(res, 200, {
+      ok: true,
+      mode: 'stored',
+      panel,
+      statusOptions: config.statuses,
+      flow: describeFlow(panel),
+      items: items || []
+    });
   }
   if (req.method === 'POST') {
     const body = await readBody(req);
@@ -1047,14 +1061,23 @@ async function handleAdmin(req, res) {
     }
     if (!id) return json(res, 400, { ok: false, error: 'ID obrigatório.' });
     if (!config.statuses.includes(status)) return json(res, 400, { ok: false, error: 'Status inválido para este painel.' });
-    const rows = await dataRequest(`${config.table}?id=eq.${encodeURIComponent(id)}`, {
-      method: 'PATCH',
-      headers: auditRequestHeaders(guard.actor, req.aranduRequestId, body.justification),
-      body: JSON.stringify({ [config.statusField]: status, updated_at: new Date().toISOString() })
+    const transition = await applyOperationalTransition(
+      req,
+      guard.actor,
+      panel,
+      id,
+      status,
+      body.note || body.justification
+    );
+    if (!transition.record) return json(res, 404, { ok: false, error: 'Registro não encontrado.' });
+    return json(res, 200, {
+      ok: true,
+      mode: 'stored',
+      stored: true,
+      panel,
+      record: transition.record,
+      transition: { from: transition.from, to: transition.to }
     });
-    const record = firstRecord(rows);
-    if (!record) return json(res, 404, { ok: false, error: 'Registro não encontrado.' });
-    return json(res, 200, { ok: true, mode: 'stored', stored: true, panel, record });
   }
   return json(res, 405, { ok: false, error: 'Método não permitido.' });
 }
@@ -1072,14 +1095,61 @@ async function handleAdminUpdate(req, res) {
   requireAdminPermission(access.actor, panelResource(panel), 'update');
   if (!id) return json(res, 400, { ok: false, error: 'ID obrigatório.' });
   if (!Object.keys(payload).length) return json(res, 400, { ok: false, error: 'Nenhum campo válido para atualizar.' });
-  const rows = await dataRequest(`${table}?id=eq.${encodeURIComponent(id)}`, {
-    method: 'PATCH',
-    headers: auditRequestHeaders(access.actor, req.aranduRequestId, body.justification),
-    body: JSON.stringify(payload)
-  });
-  const record = firstRecord(rows);
+  const entity = entityForPanel(panel);
+  const statusField = statusFieldFor(panel);
+  const transition = entity && payload[statusField] !== undefined
+    ? await applyOperationalTransition(req, access.actor, panel, id, payload[statusField], body.note || body.justification)
+    : null;
+  if (transition) delete payload[statusField];
+
+  let record = transition?.record || null;
+  if (Object.keys(payload).length) {
+    const rows = await dataRequest(`${table}?id=eq.${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      headers: auditRequestHeaders(access.actor, req.aranduRequestId, body.justification),
+      body: JSON.stringify(payload)
+    });
+    record = firstRecord(rows) || record;
+  }
   if (!record) return json(res, 404, { ok: false, error: 'Registro não encontrado.' });
-  return json(res, 200, { ok: true, mode: 'stored', stored: true, panel, record });
+  return json(res, 200, {
+    ok: true,
+    mode: 'stored',
+    stored: true,
+    panel,
+    record,
+    ...(transition ? { transition: { from: transition.from, to: transition.to } } : {})
+  });
+}
+
+async function loadOperationalRecord(table, id) {
+  const rows = await dataRequest(
+    `${table}?id=eq.${encodeURIComponent(id)}&select=*&limit=1`,
+    { method: 'GET', headers: { Prefer: '' } }
+  );
+  return firstRecord(rows);
+}
+
+// Aplica a transição operacional sob lock e registra a trilha de histórico.
+// O status nunca é gravado por PATCH direto: sem rota válida não há escrita.
+async function applyOperationalTransition(req, actor, panel, id, nextStatus, note) {
+  const entity = entityForPanel(panel);
+  const statusField = statusFieldFor(panel);
+  const current = await loadOperationalRecord(TABLES[panel], id);
+  if (!current) throw new HttpError(404, 'Registro não encontrado.');
+  const transition = assertTransition(panel, current[statusField], nextStatus, current);
+  const elevated = elevatedActionFor(panel, transition.to);
+  if (elevated) requireAdminPermission(actor, panelResource(panel), elevated);
+  const result = firstRecord(await adminSupabaseRpc('apply_operational_status_atomic', {
+    p_entity_type: entity,
+    p_entity_id: id,
+    p_next_status: transition.to,
+    p_note: limited(note, 1000) || null,
+    p_actor_ref: actor.id,
+    p_actor_role: actor.role,
+    p_request_id: req.aranduRequestId
+  }));
+  return { from: transition.from, to: transition.to, record: result?.record || null };
 }
 async function handleOperational(req, res) {
   const guard = await adminGuard(req, res);
@@ -1095,6 +1165,10 @@ async function handleOperational(req, res) {
     const query = `${operationalTable(resource)}?select=*&entity_type=eq.${encodeURIComponent(entityType)}&entity_id=eq.${encodeURIComponent(entityId)}&order=${encodeURIComponent(operationalOrder(resource))}`;
     const rows = await dataRequest(query, { method: 'GET', headers: { Prefer: '' } });
     return json(res, 200, { ok: true, mode: 'stored', resource, items: rows || [] });
+  }
+  if (resource === 'status-history') {
+    // A trilha operacional é imutável: só é escrita pela máquina de estados.
+    return json(res, 405, { ok: false, error: 'A trilha de status é somente leitura.' });
   }
   if (req.method === 'POST') {
     requireAdminPermission(guard.actor, resource, 'create');

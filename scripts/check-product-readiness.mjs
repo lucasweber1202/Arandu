@@ -37,7 +37,9 @@ for (const flow of ['cleanInstall', 'existingDatabase']) {
   const outbox = migrations.indexOf('docs/supabase-transactional-email-outbox.sql');
   const retention = migrations.indexOf('docs/supabase-retention-controls.sql');
   if (orders === -1 || stateMachine !== orders + 1 || hardening !== stateMachine + 1 || outbox !== hardening + 1 || retention !== outbox + 1) problems.push(`Sequência de pedidos/readiness inválida em ${flow}.`);
-  if (retention !== migrations.length - 1) problems.push(`Retenção deve encerrar a sequência atual em ${flow}.`);
+  const operationalStatus = migrations.indexOf('docs/supabase-operational-status.sql');
+  if (operationalStatus !== retention + 1) problems.push(`Máquina de estados operacional deve vir logo depois da retenção em ${flow}.`);
+  if (operationalStatus !== migrations.length - 1) problems.push(`Máquina de estados operacional deve encerrar a sequência atual em ${flow}.`);
 }
 
 const sql = fs.readFileSync('docs/supabase-orders.sql', 'utf8');
