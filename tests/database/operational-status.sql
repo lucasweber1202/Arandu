@@ -233,3 +233,121 @@ begin
   end if;
 end;
 $$;
+
+-- ---------------------------------------------------------------------------
+-- Trilha completa: transições internas também precisam aparecer.
+-- ---------------------------------------------------------------------------
+
+-- Uma escrita direta na tabela, sem passar pela RPC, ainda entra na trilha.
+update public.artworks set status = 'archived' where id = 'obra-status-test';
+
+do $$
+declare
+  v_direct integer;
+  v_actor text;
+begin
+  select count(*) into v_direct
+  from public.operational_status_history
+  where entity_type = 'artwork' and entity_id = 'obra-status-test'
+    and from_status = 'sold' and to_status = 'archived';
+  if v_direct <> 1 then
+    raise exception 'Escrita direta de status não entrou na trilha (% linhas)', v_direct;
+  end if;
+
+  select actor_role into v_actor
+  from public.operational_status_history
+  where entity_type = 'artwork' and entity_id = 'obra-status-test' and to_status = 'archived';
+  if v_actor <> 'system' then
+    raise exception 'Transição sem responsável deveria ser atribuída ao sistema, veio %', v_actor;
+  end if;
+end;
+$$;
+
+-- A RPC não pode duplicar a linha agora que o gatilho registra.
+insert into public.artists (id, name, slug, status, identity_verified)
+values ('artista-trilha-test', 'Artista Trilha', 'artista-trilha-test', 'in_review', true)
+on conflict (id) do update set status = 'in_review', identity_verified = true;
+
+select public.apply_operational_status_atomic(
+  'artist', 'artista-trilha-test', 'approved', 'nota da curadoria',
+  'admin-operacional-2', 'curator', 'request-trilha-0001'
+);
+
+do $$
+declare
+  v_rows integer;
+  v_note text;
+  v_actor text;
+begin
+  select count(*) into v_rows
+  from public.operational_status_history
+  where entity_type = 'artist' and entity_id = 'artista-trilha-test';
+  if v_rows <> 1 then
+    raise exception 'Esperada 1 linha na trilha, encontrada % (duplicação do gatilho?)', v_rows;
+  end if;
+
+  select note, actor_role into v_note, v_actor
+  from public.operational_status_history
+  where entity_type = 'artist' and entity_id = 'artista-trilha-test';
+  if v_note <> 'nota da curadoria' then
+    raise exception 'Nota da transição não foi preservada, veio %', v_note;
+  end if;
+  if v_actor <> 'curator' then
+    raise exception 'Responsável da transição pelo painel deveria ser curator, veio %', v_actor;
+  end if;
+end;
+$$;
+
+-- Reserva e expiração: transições internas da obra ficam visíveis.
+insert into public.artworks (id, slug, title, artist_id, status, price, image_authorized_at)
+values ('obra-reserva-trilha', 'obra-reserva-trilha', 'Obra Reserva', 'artista-trilha-test', 'available', 5000, now())
+on conflict (id) do update set status = 'available', price = 5000, image_authorized_at = now();
+
+update public.artworks set status = 'reserved' where id = 'obra-reserva-trilha';
+update public.artworks set status = 'available' where id = 'obra-reserva-trilha';
+
+do $$
+declare
+  v_rows integer;
+begin
+  select count(*) into v_rows
+  from public.operational_status_history
+  where entity_type = 'artwork' and entity_id = 'obra-reserva-trilha';
+  if v_rows <> 2 then
+    raise exception 'Trilha da obra reservada com % linhas, esperado 2', v_rows;
+  end if;
+end;
+$$;
+
+-- O caminho que originalmente escapava: pedido concluído muda a obra para
+-- vendida por dentro do banco. Precisa estar na trilha, com o operador do
+-- pedido, e não como transição anônima.
+do $$
+declare
+  v_actor text;
+  v_role text;
+begin
+  if not exists (
+    select 1 from public.operational_status_history
+    where entity_type = 'artwork' and entity_id = 'obra-order-test'
+      and from_status = 'reserved' and to_status = 'sold'
+  ) then
+    raise exception 'Venda concluída por pedido não entrou na trilha da obra';
+  end if;
+
+  select actor_ref, actor_role into v_actor, v_role
+  from public.operational_status_history
+  where entity_type = 'artwork' and entity_id = 'obra-order-test' and to_status = 'sold';
+  if v_actor = 'system' or v_role = 'system' then
+    raise exception 'Venda por pedido deveria manter o operador responsável, veio %/%', v_actor, v_role;
+  end if;
+
+  -- A reserva que originou o pedido também precisa ter trilha própria.
+  if not exists (
+    select 1 from public.operational_status_history
+    where entity_type = 'reservation' and to_status = 'converted'
+  ) then
+    raise exception 'Conversão da reserva não entrou na trilha';
+  end if;
+end;
+$$;

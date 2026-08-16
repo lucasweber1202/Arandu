@@ -12,13 +12,32 @@ Este documento trata do eixo **operacional**. O editorial continua em
 
 ## Regra central
 
-Status operacional não é campo livre. Nenhuma rota grava status por `PATCH`
-direto: toda mudança passa por `public.apply_operational_status_atomic`, que
+São duas garantias distintas, e vale não confundi-las.
+
+**Validação — quem entra pelo painel.** Nenhuma rota administrativa grava status
+por `PATCH` direto: toda mudança passa por
+`public.apply_operational_status_atomic`, que
 
 1. trava o registro (`select ... for update`);
 2. rejeita transições fora da máquina de estados;
-3. rejeita transições que violem pré-condições de negócio;
-4. grava a linha correspondente em `public.operational_status_history`.
+3. rejeita transições que violem pré-condições de negócio.
+
+**Registro — qualquer caminho.** A trilha não depende de quem escreve. O gatilho
+`trg_arandu_operational_status` grava em `public.operational_status_history`
+sempre que o status muda, venha do painel, de rotina interna do banco ou de uma
+correção manual.
+
+Isso importa porque o banco muda status sozinho em quatro pontos: reserva criada
+(`available → reserved`), reserva expirada (`reserved → available`), pedido
+concluído (`reserved → sold`) e pedido cancelado (`reserved → available`). Todos
+passam a aparecer no histórico. Quando o caminho já identifica o responsável em
+`request.headers` — como a máquina de estados de pedidos — a transição fica
+atribuída a ele; sem cabeçalho, entra como `system`.
+
+Essas rotinas internas **não** são validadas contra a máquina de estados: elas
+são parte do modelo transacional e já produzem transições válidas por
+construção. A máquina descreve o que a operação humana pode fazer; o gatilho
+descreve o que de fato aconteceu.
 
 As rotas são declaradas duas vezes de propósito — em
 `lib/operational-status.mjs` (falha rápida, com mensagem em português) e em
