@@ -2,6 +2,15 @@
 
 ## Não lançado — Integridade transacional e autorização
 
+- Máquina de estados operacional aplica status de obras, artistas, submissões,
+  certificados e registros comerciais sob lock, com trilha imutável em
+  `operational_status_history`; status deixou de ser campo livre no painel.
+- Fluxo real de aprovação de artista: `approved` exige identidade verificada e
+  `published` exige consentimento de publicação, ambos ligados ao RBAC de curadoria.
+- Obra vendida não retorna a disponível, venda exige preço e disponibilização
+  exige autorização de imagem.
+- `historico-obra.html` e `historico-artista.html` passam a exibir a trilha real
+  de transições, e não apenas eventos inferidos do cadastro.
 - Máquina de estados transacional de pedidos rejeita combinações impossíveis entre
   pedido, pagamento, fulfillment e certificado; a API deixou de atualizar a tabela diretamente.
 - Upgrade de banco agora aplica e testa migrations de pedidos, incluindo replay,
