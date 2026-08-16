@@ -2,6 +2,9 @@
 
 ## Não lançado — Integridade transacional e autorização
 
+- Trilha operacional passa a ser gravada por gatilho e cobre também as transições
+  internas do banco: reserva criada, reserva expirada, pedido concluído e pedido
+  cancelado deixaram de ser invisíveis no histórico da obra.
 - Capacidades de conta passam a derivar de fato verificado no servidor. `profile_type`
   vive em `user_metadata`, é editável pela própria pessoa e agora é tratado
   explicitamente como declaração, nunca como permissão.

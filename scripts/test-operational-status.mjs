@@ -164,6 +164,26 @@ assert.ok(
 );
 assert.ok(sql.includes('for update'), 'A transição precisa ocorrer sob lock.');
 
+// A trilha precisa cobrir também as transições internas do banco.
+const trailSql = fs.readFileSync(path.join(root, 'docs/supabase-operational-trail-completeness.sql'), 'utf8');
+assert.ok(
+  trailSql.includes('trg_arandu_operational_status'),
+  'A trilha completa precisa instalar o gatilho de status.'
+);
+assert.ok(
+  trailSql.includes('log_operational_status_change'),
+  'A trilha completa precisa da função de registro.'
+);
+for (const table of ['artworks', 'artists', 'reservations', 'certificates']) {
+  assert.ok(trailSql.includes(`'${table}'`), `O gatilho precisa cobrir ${table}.`);
+}
+// A RPC não pode continuar inserindo direto, senão o gatilho duplica a linha.
+const rpcBody = trailSql.slice(trailSql.indexOf('create or replace function public.apply_operational_status_atomic'));
+assert.ok(
+  !/insert into public\.operational_status_history[\s\S]*?values \(\s*p_entity_type/.test(rpcBody),
+  'A RPC deve delegar o registro da trilha ao gatilho.'
+);
+
 // --- Superfície de API -----------------------------------------------------
 
 process.env.SUPABASE_URL = 'https://arandu-operational-test.supabase.co';

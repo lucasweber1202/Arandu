@@ -30,6 +30,7 @@ for (const [flow, files] of Object.entries(manifest)) {
   const retention = files.indexOf('docs/supabase-retention-controls.sql');
   const operationalStatus = files.indexOf('docs/supabase-operational-status.sql');
   const profileAccess = files.indexOf('docs/supabase-profile-access.sql');
+  const trailCompleteness = files.indexOf('docs/supabase-operational-trail-completeness.sql');
   const production = files.indexOf('docs/supabase-production.sql');
   if (sprint2 === -1) issues.push(`${flow}: migration do Sprint 2 ausente.`);
   if (sprint5 === -1) issues.push(`${flow}: migration do Sprint 5 ausente.`);
@@ -59,7 +60,9 @@ for (const [flow, files] of Object.entries(manifest)) {
   if (retention !== -1 && operationalStatus !== retention + 1) issues.push(`${flow}: a máquina de estados operacional deve vir imediatamente depois dos controles de retenção.`);
   if (profileAccess === -1) issues.push(`${flow}: vínculo de conta e artista ausente.`);
   if (operationalStatus !== -1 && profileAccess !== operationalStatus + 1) issues.push(`${flow}: o vínculo de conta e artista deve vir imediatamente depois da máquina de estados operacional.`);
-  if (profileAccess !== -1 && profileAccess !== files.length - 1) issues.push(`${flow}: o vínculo de conta e artista deve encerrar a sequência atual.`);
+  if (trailCompleteness === -1) issues.push(`${flow}: trilha operacional completa ausente.`);
+  if (profileAccess !== -1 && trailCompleteness !== profileAccess + 1) issues.push(`${flow}: a trilha completa deve vir imediatamente depois do vínculo de conta e artista.`);
+  if (trailCompleteness !== -1 && trailCompleteness !== files.length - 1) issues.push(`${flow}: a trilha operacional completa deve encerrar a sequência atual.`);
 }
 
 console.log('Arandu Migration Order Check');

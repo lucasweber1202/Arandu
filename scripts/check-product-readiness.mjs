@@ -41,7 +41,9 @@ for (const flow of ['cleanInstall', 'existingDatabase']) {
   if (operationalStatus !== retention + 1) problems.push(`Máquina de estados operacional deve vir logo depois da retenção em ${flow}.`);
   const profileAccess = migrations.indexOf('docs/supabase-profile-access.sql');
   if (profileAccess !== operationalStatus + 1) problems.push(`Vínculo de conta e artista deve vir logo depois da máquina de estados em ${flow}.`);
-  if (profileAccess !== migrations.length - 1) problems.push(`Vínculo de conta e artista deve encerrar a sequência atual em ${flow}.`);
+  const trailCompleteness = migrations.indexOf('docs/supabase-operational-trail-completeness.sql');
+  if (trailCompleteness !== profileAccess + 1) problems.push(`Trilha operacional completa deve vir logo depois do vínculo em ${flow}.`);
+  if (trailCompleteness !== migrations.length - 1) problems.push(`Trilha operacional completa deve encerrar a sequência atual em ${flow}.`);
 }
 
 const sql = fs.readFileSync('docs/supabase-orders.sql', 'utf8');
