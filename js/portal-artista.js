@@ -1,0 +1,119 @@
+(() => {
+  const root = document.querySelector('[data-artist-portal]');
+  if (!root) return;
+
+  const statusZone = root.querySelector('[data-portal-status]');
+  const contentZone = root.querySelector('[data-portal-content]');
+
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>'"]/g, (char) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+    }[char]));
+  }
+
+  function formatDate(value) {
+    if (!value) return '—';
+    try { return new Date(value).toLocaleDateString('pt-BR'); } catch { return '—'; }
+  }
+
+  const artworkStatus = {
+    available: 'Disponível',
+    in_conversation: 'Em conversa',
+    reserved: 'Reservada',
+    sold: 'Vendida',
+    not_published: 'Fora da vitrine',
+    archived: 'Arquivada'
+  };
+
+  const artistStatus = {
+    prospected: 'Prospectado',
+    in_review: 'Em análise',
+    approved: 'Aprovado',
+    published: 'Publicado',
+    paused: 'Pausado',
+    archived: 'Arquivado'
+  };
+
+  function message(title, detail, actionHtml = '') {
+    statusZone.innerHTML = `<div class="portal-card"><h2>${escapeHtml(title)}</h2><p>${escapeHtml(detail)}</p>${actionHtml}</div>`;
+    contentZone.innerHTML = '';
+  }
+
+  function render(data) {
+    const artist = data.artist || {};
+    const artworks = Array.isArray(data.artworks) ? data.artworks : [];
+    const trail = Array.isArray(data.statusTrail) ? data.statusTrail : [];
+
+    statusZone.innerHTML = `<div class="portal-card">
+      <p class="eyebrow">Portal do artista</p>
+      <h1>${escapeHtml(artist.name || 'Seu perfil')}</h1>
+      <p>Situação na curadoria: <strong>${escapeHtml(artistStatus[artist.status] || artist.status || '—')}</strong></p>
+      <p>Obras registradas: <strong>${artworks.length}</strong> · Disponíveis: <strong>${data.metrics?.published ?? 0}</strong></p>
+    </div>`;
+
+    const artworkRows = artworks.length
+      ? artworks.map((artwork) => `<tr>
+          <td>${escapeHtml(artwork.title || artwork.id)}</td>
+          <td>${escapeHtml(artworkStatus[artwork.status] || artwork.status || '—')}</td>
+          <td>${escapeHtml(artwork.technique || '—')}</td>
+          <td>${escapeHtml(artwork.dimensions || '—')}</td>
+          <td>${escapeHtml(formatDate(artwork.updated_at))}</td>
+        </tr>`).join('')
+      : '<tr><td colspan="5">Nenhuma obra registrada ainda.</td></tr>';
+
+    const trailRows = trail.length
+      ? trail.map((item) => `<li>${escapeHtml(formatDate(item.created_at))} — ${escapeHtml(artistStatus[item.from_status] || item.from_status || 'sem status')} → ${escapeHtml(artistStatus[item.to_status] || item.to_status)}</li>`).join('')
+      : '<li>Nenhuma transição registrada ainda.</li>';
+
+    contentZone.innerHTML = `<section class="portal-card">
+        <h2>Suas obras</h2>
+        <div class="portal-table-wrap">
+          <table class="portal-table">
+            <thead><tr><th>Obra</th><th>Situação</th><th>Técnica</th><th>Dimensões</th><th>Atualizada</th></tr></thead>
+            <tbody>${artworkRows}</tbody>
+          </table>
+        </div>
+        <p class="portal-note">Preços e publicação são definidos junto com a curadoria. Para propor revisão, use o formulário abaixo.</p>
+      </section>
+      <section class="portal-card">
+        <h2>Histórico do seu perfil</h2>
+        <ul class="portal-trail">${trailRows}</ul>
+      </section>`;
+  }
+
+  async function load() {
+    message('Carregando', 'Buscando seus dados na curadoria.');
+    let response;
+    try {
+      response = await fetch('/api/portal/artist', { headers: { Accept: 'application/json' } });
+    } catch {
+      message('Sem conexão', 'Não foi possível falar com o servidor agora. Tente novamente em instantes.');
+      return;
+    }
+    const data = await response.json().catch(() => ({}));
+
+    if (response.status === 401) {
+      message(
+        'Entre na sua conta',
+        'O portal do artista exige login.',
+        '<div class="page-actions"><a class="cta" href="login.html">Entrar</a></div>'
+      );
+      return;
+    }
+    if (response.status === 403) {
+      message(
+        'Conta ainda não vinculada',
+        'Sua conta não está vinculada a um artista aprovado. O vínculo é feito pela curadoria depois da aprovação do portfólio.',
+        '<div class="page-actions"><a class="cta secondary" href="para-artistas.html">Ver critérios</a></div>'
+      );
+      return;
+    }
+    if (!response.ok || data.ok === false) {
+      message('Não foi possível carregar', data.error || 'Tente novamente em instantes.');
+      return;
+    }
+    render(data);
+  }
+
+  load();
+})();

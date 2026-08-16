@@ -2,6 +2,13 @@
 
 ## Não lançado — Integridade transacional e autorização
 
+- Capacidades de conta passam a derivar de fato verificado no servidor. `profile_type`
+  vive em `user_metadata`, é editável pela própria pessoa e agora é tratado
+  explicitamente como declaração, nunca como permissão.
+- Portal do artista exige vínculo ativo em `artist_accounts`, criado por curadoria e
+  aceito somente para artista já aprovado, com unicidade garantida por índice.
+- Portal da empresa devolve os briefings da própria conta por RLS, sem orçamento,
+  mensagem original ou contato.
 - Máquina de estados operacional aplica status de obras, artistas, submissões,
   certificados e registros comerciais sob lock, com trilha imutável em
   `operational_status_history`; status deixou de ser campo livre no painel.

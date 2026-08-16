@@ -34,6 +34,7 @@ Nunca aplique migration real sem backup referenciado e ambiente explicitamente i
 - `docs/ADMIN_AUTH_MFA.md` — provisionamento, papéis, MFA e revogação.
 - `docs/ADMIN_OPERACAO_ARANDU.md` — operação diária dos painéis.
 - `docs/OPERATIONAL_STATUS_FLOW.md` — máquina de estados operacional, permissões por transição e trilha de histórico.
+- `docs/PERFIS_E_PORTAIS.md` — perfis do público, capacidades verificadas e portais de artista e empresa.
 - `docs/ARTWORK_STATUS.md` — matriz operacional das obras.
 - `SECURITY.md` — reporte privado de vulnerabilidades.
 - `.github/CODEOWNERS` — responsáveis pelas superfícies críticas.

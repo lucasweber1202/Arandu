@@ -132,8 +132,11 @@ Depois que Lucas confirmar Vercel e Supabase, a próxima rodada técnica deve fo
 5. Criar certificado imprimível mais completo.
    — entregue em `certificado-imprimivel.html` e `js/certificate-print.js`.
 6. Melhorar permissões por perfil: comprador, artista, empresa e admin.
-   — parcial: RBAC administrativo (`admin`, `operator`, `curator`) cobre painéis e
-   transições sensíveis. Portais dedicados de artista e empresa continuam pendentes.
+   — **entregue**: RBAC administrativo (`admin`, `operator`, `curator`) nos painéis e
+   transições sensíveis; capacidades do público derivadas de fato verificado, com
+   portal do artista por vínculo de curadoria e portal da empresa por posse de
+   briefing. Ver `docs/PERFIS_E_PORTAIS.md`. Segue fora do escopo o portal
+   empresarial com vários usuários por empresa, que exige criar a entidade `companies`.
 7. Trocar dados demo por seed real.
    — **bloqueado por dados reais**: depende dos 5 artistas e 20 obras autorizados.
 8. Ajustar SEO e sitemap com domínio oficial.

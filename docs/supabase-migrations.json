@@ -15,7 +15,8 @@
     "docs/supabase-orders-hardening.sql",
     "docs/supabase-transactional-email-outbox.sql",
     "docs/supabase-retention-controls.sql",
-    "docs/supabase-operational-status.sql"
+    "docs/supabase-operational-status.sql",
+    "docs/supabase-profile-access.sql"
   ],
   "existingDatabase": [
     "docs/supabase-sprint1-auth-ownership.sql",
@@ -32,6 +33,7 @@
     "docs/supabase-orders-hardening.sql",
     "docs/supabase-transactional-email-outbox.sql",
     "docs/supabase-retention-controls.sql",
-    "docs/supabase-operational-status.sql"
+    "docs/supabase-operational-status.sql",
+    "docs/supabase-profile-access.sql"
   ]
 }
