@@ -145,7 +145,10 @@ test('nenhuma página nova quebra o contraste mínimo WCAG AA', async ({ page },
   const regressoes = [];
   const corrigidas = [];
   for (const pagina of paginas) {
-    await page.goto(`/${pagina}`, { waitUntil: 'domcontentloaded' });
+    // `load` garante que as folhas de estilo foram aplicadas. Com
+    // `domcontentloaded` a medição dependia de um `waitForTimeout` vencer a
+    // aplicação do CSS, o que falhava sob contenção dos cinco projetos.
+    await page.goto(`/${pagina}`, { waitUntil: 'load' });
     // Páginas legadas redirecionam sozinhas; medir a que some não diz nada
     // sobre ela e derruba a avaliação no meio da navegação.
     if (await page.locator('body[data-legacy-redirect]').count()) continue;

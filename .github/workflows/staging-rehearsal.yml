@@ -101,7 +101,7 @@ jobs:
         id: browser
         if: inputs.run_browser
         run: |
-          npx playwright install --with-deps chromium
+          npx playwright install --with-deps chromium firefox webkit
           npm run test:e2e
 
       - name: Validate staging URL and run remote smoke
