@@ -17,7 +17,8 @@
     "docs/supabase-retention-controls.sql",
     "docs/supabase-operational-status.sql",
     "docs/supabase-profile-access.sql",
-    "docs/supabase-operational-trail-completeness.sql"
+    "docs/supabase-operational-trail-completeness.sql",
+    "docs/supabase-email-outbox-fencing.sql"
   ],
   "existingDatabase": [
     "docs/supabase-sprint1-auth-ownership.sql",
@@ -36,6 +37,7 @@
     "docs/supabase-retention-controls.sql",
     "docs/supabase-operational-status.sql",
     "docs/supabase-profile-access.sql",
-    "docs/supabase-operational-trail-completeness.sql"
+    "docs/supabase-operational-trail-completeness.sql",
+    "docs/supabase-email-outbox-fencing.sql"
   ]
 }

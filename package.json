@@ -80,7 +80,9 @@
     "check:globals": "node scripts/check-script-globals.mjs",
     "check:dist-assets": "node scripts/check-dist-assets.mjs",
     "check:sql": "node scripts/check-sql-security.mjs",
-    "check:presentation": "node scripts/test-presentation-mode.mjs"
+    "check:presentation": "node scripts/test-presentation-mode.mjs",
+    "pretest:e2e:presentation": "ARANDU_PRESENTATION_MODE=true VERCEL_ENV=preview npm run build",
+    "test:e2e:presentation": "playwright test --config playwright.presentation.config.js"
   },
   "dependencies": {
     "@vercel/speed-insights": "^2.0.0",

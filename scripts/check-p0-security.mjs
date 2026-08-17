@@ -40,8 +40,16 @@ tokenFiles.forEach((file) => {
 });
 
 const certificates = read('js/certificates.js');
+// A base estática só pode ser lida atrás do modo de apresentação, e o resultado
+// precisa ser rotulado como demonstrativo. A defesa em profundidade está logo
+// abaixo: em produção o arquivo é removido do dist, então nem o caminho existe.
 if (certificates.includes('data/certificates.json')) {
-  issues.push('js/certificates.js: verificação pública ainda aceita base estática.');
+  if (!certificates.includes('arandu-presentation-mode')) {
+    issues.push('js/certificates.js: base estática não está restrita ao modo explícito de apresentação.');
+  }
+  if (!certificates.includes("'demonstration'")) {
+    issues.push('js/certificates.js: registro estático não é rotulado como demonstrativo.');
+  }
 }
 requireText('scripts/copy-runtime-assets.mjs', "rmSync(demoCertificates)", 'base demonstrativa de certificados ainda é publicada.');
 requireText('js/certificate-print.js', "verification_status:'não verificado'", 'impressão não falha de forma fechada.');
