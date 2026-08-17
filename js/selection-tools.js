@@ -1,12 +1,12 @@
 const ARANDU_BRIEFING_KEY = 'arandu.selection.briefing.v1';
-const ARANDU_SELECTION_KEY = 'arandu.selection.v1';
+const ARANDU_SELECTION_STORE_KEY = 'arandu.selection.v1';
 const ARANDU_SELECTION_TOKEN_KEY = 'arandu.selection.token.v1';
 let accountSessionCache = { checkedAt: 0, authenticated: false };
 let accountSyncTimer = null;
 let suppressAccountSync = false;
 
-function getStoredSelection(){try{const data=JSON.parse(localStorage.getItem(ARANDU_SELECTION_KEY)||'[]');return Array.isArray(data)?data:[]}catch{return[]}}
-function writeStoredSelection(items){localStorage.setItem(ARANDU_SELECTION_KEY,JSON.stringify(Array.isArray(items)?items.slice(-40):[]));document.dispatchEvent(new CustomEvent('arandu:selection-updated'))}
+function getStoredSelection(){try{const data=JSON.parse(localStorage.getItem(ARANDU_SELECTION_STORE_KEY)||'[]');return Array.isArray(data)?data:[]}catch{return[]}}
+function writeStoredSelection(items){localStorage.setItem(ARANDU_SELECTION_STORE_KEY,JSON.stringify(Array.isArray(items)?items.slice(-40):[]));document.dispatchEvent(new CustomEvent('arandu:selection-updated'))}
 function getStoredBriefing(){try{return JSON.parse(localStorage.getItem(ARANDU_BRIEFING_KEY)||'{}')}catch{return{}}}
 function writeStoredBriefing(data){localStorage.setItem(ARANDU_BRIEFING_KEY,JSON.stringify(data));document.dispatchEvent(new CustomEvent('arandu:briefing-updated'))}
 function escapeHtml(value){return String(value||'').replace(/[&<>'"]/g,(char)=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]))}

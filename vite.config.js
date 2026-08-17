@@ -87,8 +87,31 @@ function injectNativeSearch(html) {
   return html;
 }
 
+const SPEED_INSIGHTS_TAG = '<script type="module" src="/src/vercel-speed-insights.js"></script>';
+
+/**
+ * O tag do Speed Insights precisa entrar ANTES do plugin interno de HTML do
+ * Vite: só assim `/src/vercel-speed-insights.js` é reconhecido como entrada,
+ * empacotado e reescrito para o asset com hash. Injetado depois (ordem
+ * padrão), o Vite nunca vê o módulo, nada é emitido em `dist/src/` e todas as
+ * páginas publicadas disparam um 404 a cada carregamento.
+ */
+function injectSpeedInsights() {
+  return {
+    name: 'inject-arandu-speed-insights',
+    transformIndexHtml: {
+      order: 'pre',
+      handler(html) {
+        if (html.includes('/src/vercel-speed-insights.js')) return html;
+        return html.includes('</body>')
+          ? html.replace('</body>', `${SPEED_INSIGHTS_TAG}</body>`)
+          : `${html}${SPEED_INSIGHTS_TAG}`;
+      }
+    }
+  };
+}
+
 function injectGlobalAssets() {
-  const speedInsightsTag = '<script type="module" src="/src/vercel-speed-insights.js"></script>';
   const productCssTag = `<link rel="stylesheet" href="/css/arandu-product.css?v=${ASSET_VERSION}">`;
   const hardeningCssTag = `<link rel="stylesheet" href="/css/arandu-interface-hardening.css?v=${HARDENING_VERSION}">`;
   const polishCssTag = `<link rel="stylesheet" href="/css/arandu-final-polish.css?v=${POLISH_VERSION}">`;
@@ -142,7 +165,6 @@ function injectGlobalAssets() {
       if (!output.includes('/js/arandu-assistant.js')) output = output.includes('</body>') ? output.replace('</body>', `${assistantJsTag}</body>`) : `${output}${assistantJsTag}`;
       if (!output.includes('/js/pilot.js')) output = output.includes('</body>') ? output.replace('</body>', `${pilotJsTag}</body>`) : `${output}${pilotJsTag}`;
       if (!output.includes('/js/platform-runtime.js')) output = output.includes('</body>') ? output.replace('</body>', `${platformRuntimeTag}</body>`) : `${output}${platformRuntimeTag}`;
-      if (!output.includes('/src/vercel-speed-insights.js')) output = output.includes('</body>') ? output.replace('</body>', `${speedInsightsTag}</body>`) : `${output}${speedInsightsTag}`;
       return output;
     }
   };
@@ -150,6 +172,6 @@ function injectGlobalAssets() {
 
 export default defineConfig({
   appType: 'mpa',
-  plugins: [injectGlobalAssets()],
+  plugins: [injectSpeedInsights(), injectGlobalAssets()],
   build: { rollupOptions: { input: htmlInputs } }
 });
