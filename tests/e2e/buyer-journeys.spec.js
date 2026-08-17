@@ -330,7 +330,19 @@ test('todo campo de formulário público tem nome acessível', async ({ page }) 
 
 test('cada página pública tem um único h1 e um alvo para o link de pular', async ({ page }) => {
   await stubApi(page);
-  for (const route of ['/index.html', '/comprar-arte.html', '/artistas.html', '/colecoes.html', '/login.html', '/minha-selecao.html']) {
+  const routes = [
+    '/index.html',
+    '/comprar-arte.html',
+    '/artistas.html',
+    '/colecoes.html',
+    '/login.html',
+    '/minha-selecao.html',
+    // As páginas de detalhe montam o h1 por JS; obra.html e artista.html ainda
+    // traziam um h1 estático escondido, então ficavam com dois.
+    '/obra.html?id=obra-horizonte',
+    '/artista.html?id=a1'
+  ];
+  for (const route of routes) {
     await page.goto(route);
     await expect(page.locator('h1'), `h1 em ${route}`).toHaveCount(1);
     const skip = page.locator('.skip-link');

@@ -303,3 +303,55 @@ body.arandu-consent-pending .arandu-assistant {
 .arandu-field-label + textarea {
   margin-top: 0;
 }
+
+/* --- Página da obra -------------------------------------------------------
+   Camadas concorrentes deixaram três blocos ilegíveis nesta página, que é a
+   mais importante da jornada de compra. Cada regra abaixo restaura o par
+   correto de cor e fundo com especificidade suficiente para vencer as folhas
+   históricas. */
+
+/* Ficha técnica: rótulo e valor em colunas, com respiro entre eles. */
+.artwork-fact {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: .35rem 1rem;
+}
+
+.artwork-fact > strong {
+  flex: 0 0 auto;
+}
+
+.artwork-fact > span {
+  flex: 1 1 auto;
+  text-align: right;
+  min-width: 0;
+}
+
+/* Chips de classificação: estavam em creme sobre creme (1.09:1). */
+.artwork-buybox .reading-tags span,
+.premium-buybox .reading-tags span {
+  background: rgba(123, 31, 23, .1) !important;
+  border: 1px solid rgba(123, 31, 23, .22) !important;
+  color: #64241f !important;
+}
+
+/* Leitura curatorial: o cartão recebe gradiente escuro de uma folha e cor de
+   texto pensada para cartão claro de outra — o parágrafo ficava preto no
+   preto. Todo o conteúdo do cartão passa a ser claro. */
+.artwork-reading.premium-reading,
+.artwork-reading.premium-reading :is(p, span, li, strong, h2, h3) {
+  color: #f7ead9 !important;
+}
+
+.artwork-reading.premium-reading .eyebrow {
+  color: #f0bd75 !important;
+}
+
+/* Cartões de obras relacionadas: título e legenda ficam sobre a imagem em
+   fundo escuro; a cor herdada era quase a do próprio fundo. */
+.related-works .showcase-card strong,
+.related-works .showcase-card span {
+  color: #f7ead9 !important;
+  text-shadow: 0 1px 10px rgba(20, 10, 6, .75);
+}

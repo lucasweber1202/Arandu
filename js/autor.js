@@ -18,6 +18,11 @@ async function loadWorks() { if (!window.AranduCatalogSource) throw new Error('F
 function artistPhoto(artist) { if (artist.image) return '<div class="op-card-media artist-portrait-large"><img src="' + escapeArtistHtml(artist.image) + '" alt="' + escapeArtistHtml(artist.name) + '"></div>'; return '<div class="op-card-media artist-portrait-large artist-face large"></div>'; }
 async function autor() {
   var box = document.querySelector('[data-artist-page]'); if (!box) return;
+  // O h1 servido no HTML existe para quem chega sem JS e para os rastreadores.
+  // A partir daqui o conteúdo renderizado traz o próprio h1 — com o título real
+  // do artista ou o estado de indisponibilidade — então o marcador sai para a
+  // página não ficar com dois títulos de primeiro nível.
+  document.querySelector('[data-page-title-placeholder]')?.remove();
   var id = new URLSearchParams(location.search).get('id');
   try {
     var results = await Promise.all([loadArtists(), loadWorks()]); var artists = results[0]; var works = results[1]; var artist = artists.find(function (item) { return item.id === id; }); if (!artist) throw new Error('Artista não encontrado no catálogo verificado.');
