@@ -264,8 +264,54 @@ async function supabaseAuth(path, options = {}) {
     headers: { apikey: SUPABASE_ANON_KEY, 'Content-Type': 'application/json', ...(options.headers || {}) }
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.error_description || data.msg || data.message || `Auth ${response.status}`);
+  if (!response.ok) {
+    const error = new Error(data.error_description || data.msg || data.message || `Auth ${response.status}`);
+    error.upstreamStatus = response.status;
+    error.upstreamCode = clean(data.error_code || data.code);
+    throw error;
+  }
   return data;
+}
+
+/**
+ * Traduz falhas do provedor de identidade em respostas estáveis.
+ *
+ * As mensagens do Supabase chegam em inglês e distinguem casos que revelam a
+ * existência da conta — "Email not confirmed" só aparece para e-mails
+ * cadastrados, enquanto "Invalid login credentials" cobre os demais. Repassá-las
+ * ao cliente entrega ao atacante um oráculo de enumeração de usuários e ainda
+ * quebra o português da interface. O login passa a responder sempre a mesma
+ * coisa, exceto quando o próprio provedor sinaliza excesso de tentativas.
+ */
+function authFailure(error, { scope }) {
+  const upstream = Number(error?.upstreamStatus) || 0;
+  const code = clean(error?.upstreamCode).toLowerCase();
+  const detail = clean(error?.message).toLowerCase();
+
+  if (upstream === 429 || code === 'over_request_rate_limit' || code === 'over_email_send_rate_limit') {
+    return new HttpError(429, 'Muitas tentativas. Aguarde alguns minutos e tente novamente.', 'auth_rate_limited');
+  }
+  if (upstream >= 500 || upstream === 0) {
+    return new HttpError(503, 'O serviço de contas está indisponível no momento. Tente novamente em instantes.', 'auth_unavailable');
+  }
+  if (scope === 'signup') {
+    // Regras de formato podem ser devolvidas: elas não dizem nada sobre a
+    // existência da conta e ajudam quem está criando o cadastro.
+    if (code === 'weak_password' || detail.includes('password')) {
+      return new HttpError(400, 'Escolha uma senha mais forte, com pelo menos 8 caracteres.', 'weak_password');
+    }
+    if (code === 'email_address_invalid' || code === 'validation_failed') {
+      return new HttpError(400, 'Informe um e-mail válido.', 'invalid_email');
+    }
+  }
+  return new HttpError(401, 'E-mail ou senha incorretos.', 'invalid_credentials');
+}
+
+/** `true` quando o provedor recusou o cadastro por a conta já existir. */
+function signupAlreadyRegistered(error) {
+  const code = clean(error?.upstreamCode).toLowerCase();
+  const detail = clean(error?.message).toLowerCase();
+  return code === 'user_already_exists' || code === 'email_exists' || detail.includes('already registered') || detail.includes('already been registered');
 }
 
 function readCookie(req, name) {
@@ -1647,7 +1693,12 @@ async function handleAuth(req, res, action) {
     const password = String(body.password || '');
     if (!validEmail(email) || !password) throw new HttpError(400, 'Email e senha são obrigatórios.');
     await enforceRateLimit(req, 'auth-login-account', 20, 60 * 60 * 1000, email);
-    const result = await supabaseAuth('token?grant_type=password', { method: 'POST', body: JSON.stringify({ email, password }) });
+    let result;
+    try {
+      result = await supabaseAuth('token?grant_type=password', { method: 'POST', body: JSON.stringify({ email, password }) });
+    } catch (error) {
+      throw authFailure(error, { scope: 'login' });
+    }
     return json(res, 200, { ok: true, authenticated: true, user: publicUser(result.user) }, { 'Set-Cookie': sessionCookie(result) });
   }
 
@@ -1680,10 +1731,19 @@ async function handleAuth(req, res, action) {
     if (!fullName) throw new HttpError(400, 'Nome completo é obrigatório.');
     if (!validEmail(email)) throw new HttpError(400, 'Informe um e-mail válido.');
     if (password.length < 8) throw new HttpError(400, 'A senha deve ter pelo menos 8 caracteres.');
-    const result = await supabaseAuth('signup', {
-      method: 'POST',
-      body: JSON.stringify({ email, password, data: { full_name: fullName, profile_type: profileType } })
-    });
+    let result;
+    try {
+      result = await supabaseAuth('signup', {
+        method: 'POST',
+        body: JSON.stringify({ email, password, data: { full_name: fullName, profile_type: profileType } })
+      });
+    } catch (error) {
+      // Um "já cadastrado" explícito distingue e-mails registrados dos demais e
+      // vira oráculo de enumeração. A resposta é a mesma de um cadastro novo:
+      // quem controla a caixa de entrada descobre o estado da conta, ninguém mais.
+      if (!signupAlreadyRegistered(error)) throw authFailure(error, { scope: 'signup' });
+      return json(res, 201, { ok: true, authenticated: false, needsEmailConfirmation: true, user: null });
+    }
     const headers = result.access_token ? { 'Set-Cookie': sessionCookie(result) } : {};
     return json(res, 201, {
       ok: true,

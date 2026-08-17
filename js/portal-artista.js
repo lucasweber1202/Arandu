@@ -35,7 +35,10 @@
   };
 
   function message(title, detail, actionHtml = '') {
-    statusZone.innerHTML = `<div class="portal-card"><h2>${escapeHtml(title)}</h2><p>${escapeHtml(detail)}</p>${actionHtml}</div>`;
+    // O h1 servido no HTML vive dentro desta zona: trocá-lo por h2 deixava a
+    // página do portal sem título de primeiro nível para leitores de tela e
+    // para indexação.
+    statusZone.innerHTML = `<div class="portal-card"><h1>${escapeHtml(title)}</h1><p>${escapeHtml(detail)}</p>${actionHtml}</div>`;
     contentZone.innerHTML = '';
   }
 

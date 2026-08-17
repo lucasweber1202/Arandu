@@ -213,8 +213,62 @@ try {
   assert.equal(invalidJson.status, 400);
   assert.equal(invalidJson.body.error, 'JSON inválido.');
 
+  // Regressão de enumeração de usuários: "Email not confirmed" só é devolvido
+  // pelo Supabase para e-mails cadastrados. Se a mensagem chegar ao cliente,
+  // basta comparar as respostas para descobrir quem tem conta na Arandu.
+  const loginFailures = [
+    { status: 400, payload: { error_description: 'Invalid login credentials' } },
+    { status: 400, payload: { error_code: 'email_not_confirmed', msg: 'Email not confirmed' } },
+    { status: 400, payload: { error_code: 'invalid_credentials', msg: 'Invalid login credentials' } }
+  ];
+  const loginResponses = [];
+  for (const failure of loginFailures) {
+    global.fetch = async () => jsonResponse(failure.payload, failure.status);
+    loginResponses.push(await call('POST', '/api/auth/login', {
+      email: `enumeracao-${loginResponses.length}@example.com`,
+      password: 'senha-que-nao-serve'
+    }));
+  }
+  for (const response of loginResponses) {
+    assert.equal(response.status, 401);
+    assert.equal(response.body.error, 'E-mail ou senha incorretos.');
+    assert.equal(response.body.code, 'invalid_credentials');
+  }
+  assert.equal(new Set(loginResponses.map((item) => `${item.status}:${item.body.error}`)).size, 1);
+
+  global.fetch = async () => jsonResponse({ error_code: 'over_request_rate_limit', msg: 'Request rate limit reached' }, 429);
+  const throttled = await call('POST', '/api/auth/login', { email: 'limitada@example.com', password: 'senha-teste-1' });
+  assert.equal(throttled.status, 429);
+  assert.equal(throttled.body.code, 'auth_rate_limited');
+
+  global.fetch = async () => jsonResponse({ msg: 'internal server error' }, 500);
+  const upstreamDown = await call('POST', '/api/auth/login', { email: 'indisponivel@example.com', password: 'senha-teste-2' });
+  assert.equal(upstreamDown.status, 503);
+  assert.equal(upstreamDown.body.code, 'auth_unavailable');
+
+  // Cadastro com e-mail já registrado responde igual a um cadastro novo.
+  global.fetch = async () => jsonResponse({ id: 'user-novo', email: 'nova@example.com', user_metadata: {} }, 200);
+  const freshSignup = await call('POST', '/api/auth/signup', {
+    fullName: 'Pessoa Nova', email: 'nova@example.com', password: 'senha-forte-1'
+  });
+  global.fetch = async () => jsonResponse({ error_code: 'user_already_exists', msg: 'User already registered' }, 422);
+  const repeatedSignup = await call('POST', '/api/auth/signup', {
+    fullName: 'Pessoa Repetida', email: 'existente@example.com', password: 'senha-forte-1'
+  });
+  assert.equal(freshSignup.status, repeatedSignup.status);
+  assert.equal(repeatedSignup.body.needsEmailConfirmation, true);
+  assert.equal(repeatedSignup.body.authenticated, false);
+  assert.equal(freshSignup.body.needsEmailConfirmation, repeatedSignup.body.needsEmailConfirmation);
+
+  global.fetch = async () => jsonResponse({ error_code: 'weak_password', msg: 'Password is too weak' }, 422);
+  const weakPassword = await call('POST', '/api/auth/signup', {
+    fullName: 'Pessoa Fraca', email: 'fraca@example.com', password: 'senha-fraca-1'
+  });
+  assert.equal(weakPassword.status, 400);
+  assert.equal(weakPassword.body.code, 'weak_password');
+
   console.log('Arandu Auth API Contract Tests');
-  console.log('10 cenários aprovados.');
+  console.log('16 cenários aprovados.');
 } finally {
   global.fetch = originalFetch;
   restoreEnv('VERCEL_ENV', originalVercelEnv);
