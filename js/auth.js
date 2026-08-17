@@ -41,10 +41,20 @@ function setStatus(form, text, isError = false) {
     status = document.createElement('p');
     status.dataset.authStatus = 'true';
     status.style.fontWeight = '800';
+    // Sem região viva o retorno do login — inclusive a recusa de credenciais —
+    // aparece só visualmente e nunca é anunciado a quem usa leitor de tela.
+    status.setAttribute('role', 'status');
+    status.setAttribute('aria-live', 'polite');
     form.appendChild(status);
   }
   status.style.color = isError ? '#7b1f17' : '#173f31';
   status.textContent = text;
+  // O erro vem do servidor e não é por campo; marcar os campos preenchíveis
+  // permite que o leitor de tela relacione a mensagem ao formulário recusado.
+  form.querySelectorAll('input:not([type="hidden"])').forEach((field) => {
+    if (isError) field.setAttribute('aria-invalid', 'true');
+    else field.removeAttribute('aria-invalid');
+  });
 }
 
 function injectAuthForms() {
@@ -52,11 +62,15 @@ function injectAuthForms() {
   if (signupMount && !signupMount.innerHTML.trim()) {
     signupMount.innerHTML = `
       <form class="form-card" data-signup-form>
-        <h3>Criar conta de comprador</h3>
+        <h2>Criar conta de comprador</h2>
         <p>Salve sua seleção e acompanhe as reservas em qualquer dispositivo.</p>
-        <input name="fullName" placeholder="Nome completo" autocomplete="name" maxlength="160" required />
-        <input name="email" type="email" placeholder="E-mail" autocomplete="email" maxlength="254" required />
-        <input name="password" type="password" placeholder="Senha com pelo menos 8 caracteres" autocomplete="new-password" minlength="8" required />
+        <label for="arandu-signup-name">Nome completo</label>
+        <input id="arandu-signup-name" name="fullName" placeholder="Nome completo" autocomplete="name" maxlength="160" required />
+        <label for="arandu-signup-email">E-mail</label>
+        <input id="arandu-signup-email" name="email" type="email" placeholder="voce@exemplo.com" autocomplete="email" maxlength="254" required />
+        <label for="arandu-signup-password">Senha</label>
+        <input id="arandu-signup-password" name="password" type="password" placeholder="Pelo menos 8 caracteres" autocomplete="new-password" minlength="8" required aria-describedby="arandu-signup-password-hint" />
+        <small id="arandu-signup-password-hint">Use pelo menos 8 caracteres.</small>
         <input name="profileType" type="hidden" value="comprador" />
         <input name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;opacity:0;pointer-events:none" />
         <button type="submit">Criar conta</button>
@@ -68,18 +82,21 @@ function injectAuthForms() {
   if (loginMount && !loginMount.innerHTML.trim()) {
     loginMount.innerHTML = `
       <form class="form-card" data-login-form>
-        <h3>Entrar na conta</h3>
+        <h2>Entrar na conta</h2>
         <p>Acesse suas seleções e solicitações de reserva.</p>
-        <input name="email" type="email" placeholder="E-mail" autocomplete="email" maxlength="254" required />
-        <input name="password" type="password" placeholder="Senha" autocomplete="current-password" required />
+        <label for="arandu-login-email">E-mail</label>
+        <input id="arandu-login-email" name="email" type="email" placeholder="voce@exemplo.com" autocomplete="email" maxlength="254" required />
+        <label for="arandu-login-password">Senha</label>
+        <input id="arandu-login-password" name="password" type="password" placeholder="Sua senha" autocomplete="current-password" required />
         <input name="profileType" type="hidden" value="comprador" />
         <button type="submit">Entrar</button>
         <button class="button secondary" type="button" data-show-password-reset>Esqueci minha senha</button>
         <p>Ainda não tem conta? <a href="cadastro.html">Criar conta</a></p>
       </form>
       <form class="form-card" data-password-reset-form hidden>
-        <h3>Recuperar senha</h3><p>Enviaremos instruções caso exista uma conta para o e-mail informado.</p>
-        <input name="email" type="email" placeholder="E-mail da conta" autocomplete="email" required />
+        <h2>Recuperar senha</h2><p>Enviaremos instruções caso exista uma conta para o e-mail informado.</p>
+        <label for="arandu-reset-email">E-mail da conta</label>
+        <input id="arandu-reset-email" name="email" type="email" placeholder="voce@exemplo.com" autocomplete="email" required />
         <button type="submit">Enviar instruções</button>
       </form>`;
   }

@@ -1,5 +1,16 @@
 # Arandu — Pacote Final 300
 
+> **Camada desativada e removida.** O pacote foi desligado no site público
+> (`js/arandu-loader.js` carrega com `disabledLegacyLayers: true`) e os arquivos
+> abaixo viraram stubs sem referência em nenhuma página, script ou etapa de
+> build. Foram removidos do repositório; o conteúdo original permanece no
+> histórico do Git. Este documento fica como registro do que a camada fazia,
+> não como descrição do estado atual do código.
+>
+> Arquivos removidos: `js/arandu-final-300.js`, `js/arandu-advanced.js`,
+> `js/arandu-curation-lab.js`, `css/arandu-final-300.css`,
+> `css/arandu-advanced.css`, `css/arandu-curation-lab.css`.
+
 Este documento registra o pacote final de melhorias implementado no fechamento do dia. O pacote foi estruturado para funcionar como uma camada global de produto, curadoria, conversão, acessibilidade e otimização, com foco em preview via Codespace e posterior deploy único no Vercel.
 
 ## Arquivos criados

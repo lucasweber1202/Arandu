@@ -79,6 +79,12 @@ jobs:
       - name: Build size budget
         run: npm run check:build-size
 
+      # Precisa rodar aqui, e não só dentro de `predeploy`: aquele job afirma
+      # saída diferente de zero, então uma referência quebrada no build passaria
+      # despercebida por ser mais uma falha entre as esperadas.
+      - name: Published asset integrity
+        run: npm run check:dist-assets
+
       - name: SEO in built output
         run: npm run check:seo:dist
 

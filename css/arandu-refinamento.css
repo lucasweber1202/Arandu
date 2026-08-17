@@ -145,3 +145,311 @@ body.arandu-menu-open {
     color: #000 !important;
   }
 }
+
+/* --- Escala do título de abertura -----------------------------------------
+   `arandu-clarity.css` levava `.title/.safe-title` a `clamp(3.4rem, 8vw,
+   7.25rem)`: 115px em 1440×900, o retrato mais comum de notebook. O resultado
+   era uma dobra ocupada só pela manchete — com a última linha cortada pela
+   barra de privacidade — e nenhum CTA, subtítulo ou obra visível antes de
+   rolar. A manchete continua editorial e dominante, mas agora cabe na tela
+   junto com a proposta de valor e as ações. */
+.title,
+.safe-title,
+.rect-hero h1,
+.purchase-hero h1,
+.proposal-hero h1 {
+  max-width: 18ch !important;
+  font-size: clamp(2.5rem, 5vw, 4.5rem) !important;
+  line-height: 1.04 !important;
+}
+
+@media (max-width: 920px) {
+  .title,
+  .safe-title,
+  .rect-hero h1,
+  .purchase-hero h1,
+  .proposal-hero h1 {
+    max-width: 16ch !important;
+    font-size: clamp(2.2rem, 8.2vw, 3.4rem) !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .title,
+  .safe-title,
+  .rect-hero h1,
+  .purchase-hero h1,
+  .proposal-hero h1 {
+    font-size: clamp(2rem, 8.8vw, 2.9rem) !important;
+  }
+}
+
+/* --- Escolha de privacidade sem obstrução ---------------------------------
+   A barra de consentimento é `position: fixed` no rodapé; o botão do
+   assistente ocupa o mesmo canto com z-index bem maior e cobria "Somente
+   essencial" em telas estreitas. Enquanto a escolha estiver pendente o
+   assistente sai do caminho, e a barra passa a ser a camada mais alta da
+   página — nenhuma outra sobreposição pode capturar esse clique. */
+body.arandu-consent-pending .arandu-assistant {
+  display: none !important;
+}
+
+[data-privacy-banner] {
+  z-index: 2147483000 !important;
+}
+
+/* Em telas pequenas a barra vira uma folha inferior legível, sem empurrar as
+   ações para fora da área tocável. */
+@media (max-width: 760px) {
+  [data-privacy-banner] .privacy-banner-actions {
+    gap: .5rem;
+  }
+
+  [data-privacy-banner] .privacy-banner-actions .cta {
+    min-height: 44px;
+  }
+}
+
+/* --- Heróis internos: mesma escala do resto do site ------------------------
+   As páginas de acervo, proposta e narrativa usam `.rect-hero`/`.purchase-hero`,
+   cujas folhas históricas fixam `clamp(3.4rem, 7.4vw, 7rem)` com especificidade
+   de duas classes. Sem igualar essa especificidade a manchete de comprar-arte
+   voltava a 106px e empurrava lead, CTAs e o primeiro bloco de obras para fora
+   da dobra. */
+.rect-hero .title,
+.rect-hero h1,
+.purchase-hero .title,
+.purchase-hero h1,
+.proposal-hero .title,
+.proposal-hero h1,
+.ux-home-hero .title,
+.ux-home-hero h1 {
+  max-width: 18ch !important;
+  font-size: clamp(2.5rem, 5vw, 4.5rem) !important;
+  line-height: 1.04 !important;
+}
+
+@media (max-width: 920px) {
+  .rect-hero .title,
+  .rect-hero h1,
+  .purchase-hero .title,
+  .purchase-hero h1,
+  .proposal-hero .title,
+  .proposal-hero h1,
+  .ux-home-hero .title,
+  .ux-home-hero h1 {
+    max-width: 16ch !important;
+    font-size: clamp(2.2rem, 8.2vw, 3.4rem) !important;
+  }
+}
+
+/* --- Marca legível no cabeçalho -------------------------------------------
+   `.header-inner .brand-logo` (duas classes) pintava a marca de vinho escuro,
+   vencendo todas as regras de uma classe que a deixavam creme. Em páginas com
+   cabeçalho vermelho — comprar-arte, entre outras — a palavra "Arandu" ficava
+   com contraste ~1.1:1 contra o próprio fundo: invisível. O cabeçalho é sempre
+   uma superfície escura, então a marca e a navegação são sempre claras. */
+.site-header .header-inner .brand-logo,
+.safe-header .safe-nav .safe-logo,
+.site-header .header-inner .site-nav a,
+.safe-header .safe-nav .safe-links a {
+  color: #fff4df !important;
+}
+
+/* --- Composição decorativa do herói ---------------------------------------
+   `.rect-frame` é ornamento (`aria-hidden`). A 46% de opacidade sobre heróis
+   escuros os blocos sumiam e sobrava só o contorno — lido como um bloco vazio
+   e inacabado numa demonstração. Aqui ele volta a ser uma composição visível
+   sem competir com o texto. */
+.rect-hero .rect-frame,
+.purchase-hero .rect-frame,
+.proposal-hero .rect-frame {
+  opacity: .85;
+}
+
+/* --- Placeholder visual do herói ------------------------------------------
+   O desenho previsto para `.rect-frame` é a arte de apoio de
+   `assets/art-placeholder-terra.svg`, com os blocos internos ocultos. Só que
+   `.rect-hero .rect-frame { background: transparent !important }` usa o
+   atalho `background` e apaga a imagem com especificidade maior — sobrava
+   um retângulo vazio com borda no herói de comprar-arte e das demais páginas
+   de acervo. A imagem volta pela propriedade específica, sem reintroduzir o
+   atalho que causou o conflito. */
+.rect-hero .rect-frame,
+.purchase-hero .rect-frame,
+.proposal-hero .rect-frame {
+  background-image: url('../assets/art-placeholder-terra.svg') !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+
+/* --- Rótulos de formulário ------------------------------------------------
+   Injetados por js/platform-runtime.js nos campos que só tinham placeholder.
+   Discretos por design: o campo continua sendo o elemento dominante, o rótulo
+   é a legenda que permanece visível enquanto a pessoa digita e revisa. */
+.arandu-field-label {
+  display: block;
+  margin: .35rem 0 .2rem;
+  font-size: .8rem;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  opacity: .78;
+}
+
+.arandu-field-label + input,
+.arandu-field-label + select,
+.arandu-field-label + textarea {
+  margin-top: 0;
+}
+
+/* --- Página da obra -------------------------------------------------------
+   Camadas concorrentes deixaram três blocos ilegíveis nesta página, que é a
+   mais importante da jornada de compra. Cada regra abaixo restaura o par
+   correto de cor e fundo com especificidade suficiente para vencer as folhas
+   históricas. */
+
+/* Ficha técnica: rótulo e valor em colunas, com respiro entre eles. */
+.artwork-fact {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: .35rem 1rem;
+}
+
+.artwork-fact > strong {
+  flex: 0 0 auto;
+}
+
+.artwork-fact > span {
+  flex: 1 1 auto;
+  text-align: right;
+  min-width: 0;
+}
+
+/* Chips de classificação: estavam em creme sobre creme (1.09:1). */
+.artwork-buybox .reading-tags span,
+.premium-buybox .reading-tags span {
+  background: rgba(123, 31, 23, .1) !important;
+  border: 1px solid rgba(123, 31, 23, .22) !important;
+  color: #64241f !important;
+}
+
+/* Leitura curatorial: o cartão recebe gradiente escuro de uma folha e cor de
+   texto pensada para cartão claro de outra — o parágrafo ficava preto no
+   preto. Todo o conteúdo do cartão passa a ser claro. */
+.artwork-reading.premium-reading,
+.artwork-reading.premium-reading :is(p, span, li, strong, h2, h3) {
+  color: #f7ead9 !important;
+}
+
+.artwork-reading.premium-reading .eyebrow {
+  color: #f0bd75 !important;
+}
+
+/* Cartões de obras relacionadas: título e legenda ficam sobre a imagem em
+   fundo escuro; a cor herdada era quase a do próprio fundo. */
+.related-works .showcase-card strong,
+.related-works .showcase-card span {
+  color: #f7ead9 !important;
+  text-shadow: 0 1px 10px rgba(20, 10, 6, .75);
+}
+
+/* --- Cartão claro dentro de seção escura ----------------------------------
+   `arandu-clarity.css` já declara quais cartões são claros e força tinta
+   escura neles, mas logo abaixo declara que todo texto dentro de um herói
+   escuro é claro. As duas regras têm a mesma especificidade (0,2,0) e a
+   segunda vence por ordem — então um cartão de papel colocado sobre um herói
+   vinho ficava com texto quase branco sobre fundo quase branco. Era o caso da
+   prévia do certificado em confianca.html, onde título e descrição chegavam a
+   1.0:1.
+
+   A regra abaixo qualifica o contexto (seção escura > cartão claro > texto) e
+   por isso vence pelas três classes, sem precisar reordenar folhas
+   históricas. */
+:is(.rect-hero, .purchase-hero, .ux-home-hero, .proposal-hero,
+    .enterprise-curatorial-hero, .contact-gallery-hero, .trust-hero,
+    .certificate-hero, .narrative-gallery-hero, .section-dark, .safe-strip,
+    .conversion-band.is-dark, .clinic-note, .mvp-section.dark)
+  :is(.card, .form-card, .macro-card, .editorial-card, .trust-card, .clean-card,
+      .ux-work-card, .ux-artist-card, .op-collection-card, .conversion-step,
+      .af-panel, .af-card, .certificate-preview, .proposal-preview,
+      .search-result, .final-empty, .op-empty)
+  :is(h1, h2, h3, h4, strong) {
+  color: var(--clarity-ink) !important;
+}
+
+:is(.rect-hero, .purchase-hero, .ux-home-hero, .proposal-hero,
+    .enterprise-curatorial-hero, .contact-gallery-hero, .trust-hero,
+    .certificate-hero, .narrative-gallery-hero, .section-dark, .safe-strip,
+    .conversion-band.is-dark, .clinic-note, .mvp-section.dark)
+  :is(.card, .form-card, .macro-card, .editorial-card, .trust-card, .clean-card,
+      .ux-work-card, .ux-artist-card, .op-collection-card, .conversion-step,
+      .af-panel, .af-card, .certificate-preview, .proposal-preview,
+      .search-result, .final-empty, .op-empty)
+  :is(p, li, span, small, label, .lead) {
+  color: var(--clarity-muted) !important;
+}
+
+/* --- Eyebrow em superfície clara ------------------------------------------
+   `arandu-deep-clean.css` fixa `.eyebrow { color:#d99a67 }` para toda a
+   interface. Esse tom foi desenhado para fundo escuro; sobre o papel da marca
+   ele fica em ~1.5:1 e o rótulo de seção vira decoração ilegível. Nas
+   superfícies que declaram ser claras — e só nelas — o eyebrow assume o
+   vermelho da marca. Seções escuras seguem com o tom claro original. */
+.section:not(.section-dark) .eyebrow,
+.clean-section:not(.section-dark) .eyebrow,
+.section-muted:not(.section-dark) .eyebrow,
+:is(.card, .form-card, .macro-card, .editorial-card, .trust-card, .clean-card,
+    .ux-work-card, .ux-artist-card, .op-collection-card, .conversion-step,
+    .af-panel, .af-card, .certificate-preview, .proposal-preview,
+    .search-result, .final-empty, .op-empty) .eyebrow {
+  color: var(--clarity-red) !important;
+}
+
+/* --- Componentes que perderam o próprio fundo -----------------------------
+   `.af-button.secondary` e `.op-artist-count` foram desenhados como texto
+   claro sobre superfície escura, mas folhas posteriores substituem só o fundo
+   e deixam a cor do texto intacta. O resultado é creme sobre creme: o contador
+   de obras do diretório de artistas ficava em 1.01:1 e o botão secundário da
+   Narrativa em 1.06:1 — ambos invisíveis. Aqui as duas propriedades voltam a
+   ser declaradas juntas, para que nenhuma camada consiga separá-las. */
+.af-button.secondary {
+  background: rgba(111, 23, 18, .12) !important;
+  border-color: rgba(111, 23, 18, .3) !important;
+  color: var(--clarity-red) !important;
+}
+
+/* `.conversion-band.is-dark` e `.mvp-section.dark` ficam fora do `:is()`: a
+   especificidade de `:is()` é a do argumento mais específico, e esses dois
+   seletores de duas classes elevariam a regra escura acima da regra do cartão
+   claro que precisa vencê-la logo abaixo. */
+.conversion-band.is-dark .af-button.secondary,
+.mvp-section.dark .af-button.secondary,
+:is(.rect-hero, .purchase-hero, .ux-home-hero, .proposal-hero,
+    .enterprise-curatorial-hero, .contact-gallery-hero, .trust-hero,
+    .certificate-hero, .narrative-gallery-hero, .section-dark, .safe-strip,
+    .clinic-note) .af-button.secondary {
+  background: rgba(255, 242, 220, .14) !important;
+  border-color: rgba(255, 242, 220, .32) !important;
+  color: #fff2dc !important;
+}
+
+.op-artist-count {
+  background: var(--clarity-red) !important;
+  color: var(--clarity-on-dark) !important;
+}
+
+/* Um cartão claro pode estar aninhado dentro de um herói escuro; nesse caso a
+   superfície que importa é a mais próxima, não a seção. Por isso a variante
+   clara vem depois: entre duas regras de mesma especificidade, esta vence e o
+   botão sobre papel volta a ser vermelho sobre vermelho translúcido. */
+:is(.card, .form-card, .macro-card, .editorial-card, .trust-card, .clean-card,
+    .ux-work-card, .ux-artist-card, .op-collection-card, .conversion-step,
+    .af-panel, .af-card, .certificate-preview, .proposal-preview,
+    .search-result, .final-empty, .op-empty) .af-button.secondary {
+  background: rgba(111, 23, 18, .12) !important;
+  border-color: rgba(111, 23, 18, .3) !important;
+  color: var(--clarity-red) !important;
+}

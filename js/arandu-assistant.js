@@ -95,7 +95,7 @@
         <button class="assistant-chip" type="button" data-assistant-choice="narrativa">Narrativa</button>
         <button class="assistant-chip" type="button" data-assistant-choice="empresa">Empresa</button>
       </div>
-      <form class="assistant-input-row" data-assistant-form><input type="text" name="message" autocomplete="off" placeholder="Ex.: quero uma pintura até R$ 5 mil" /><button type="submit">Enviar</button></form>
+      <form class="assistant-input-row" data-assistant-form><label class="sr-only" for="arandu-assistant-message">Pergunte à Arandu</label><input id="arandu-assistant-message" type="text" name="message" autocomplete="off" placeholder="Ex.: quero uma pintura até R$ 5 mil" /><button type="submit">Enviar</button></form>
     </section>`;
 
   document.body.appendChild(root);

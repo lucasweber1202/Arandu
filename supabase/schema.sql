@@ -291,14 +291,36 @@ create policy "company_briefs_insert_public" on company_briefs for insert with c
 drop policy if exists "newsletter_insert_public" on newsletter_subscriptions;
 create policy "newsletter_insert_public" on newsletter_subscriptions for insert with check (true);
 
+-- `security definer` roda com os privilégios de quem criou a função. Sem
+-- `set search_path` a resolução de nomes segue o `search_path` de quem chama,
+-- e quem conseguir criar objetos em um schema anterior consegue sombrear
+-- operadores e funções usados aqui — execução de código com o papel do
+-- definidor. Todas as demais funções do repositório já fixam o caminho.
+--
+-- `profile_type` vem de `raw_user_meta_data`, que é escrito pelo próprio
+-- cadastro e portanto controlado pelo usuário. A coluna aceita 'curadoria' e
+-- 'admin' pelo CHECK, então repassar o valor cru deixava qualquer pessoa
+-- gravar um perfil declarado como administrativo. A lista aqui só admite os
+-- perfis sem privilégio; papel administrativo real vem de
+-- `app_metadata.arandu_role`, que o usuário não escreve.
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
 security definer
+set search_path = public, pg_temp
 as $$
 begin
   insert into public.profiles (id, email, full_name, profile_type)
-  values (new.id, new.email, new.raw_user_meta_data->>'full_name', coalesce(new.raw_user_meta_data->>'profile_type', 'comprador'))
+  values (
+    new.id,
+    new.email,
+    new.raw_user_meta_data->>'full_name',
+    case
+      when new.raw_user_meta_data->>'profile_type' in ('comprador','artista','empresa','arquiteto')
+        then new.raw_user_meta_data->>'profile_type'
+      else 'comprador'
+    end
+  )
   on conflict (id) do nothing;
   return new;
 end;

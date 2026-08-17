@@ -42,6 +42,9 @@ requireTerm('api/[...path].js', api, "'admin-account'", 'endpoints administrativ
 requireTerm('api/[...path].js', api, "'admin-certificate-write'", 'emissão e revogação de certificado não possuem rate limit específico.');
 requireTerm('api/[...path].js', api, "if (clean(body.website", 'cadastro público ainda não usa honeypot.');
 requireTerm('api/[...path].js', api, "const profileType = 'comprador'", 'cadastro público ainda permite autoatribuição de perfil.');
+requireTerm('api/[...path].js', api, 'function authFailure', 'falhas do provedor de identidade ainda chegam cruas ao cliente.');
+requireTerm('api/[...path].js', api, "throw authFailure(error, { scope: 'login' })", 'login ainda repassa a mensagem original do provedor e permite enumerar contas.');
+requireTerm('api/[...path].js', api, 'signupAlreadyRegistered', 'cadastro ainda revela quando o e-mail já está registrado.');
 requireTerm('api/[...path].js', api, 'grant_type=refresh_token', 'sessão não renova o token do Supabase.');
 requireTerm('api/[...path].js', api, "supabaseAuth('logout'", 'logout local não revoga a sessão no Supabase.');
 requireTerm('api/[...path].js', api, 'async function handleAccount', 'rota de dados próprios da conta não existe.');

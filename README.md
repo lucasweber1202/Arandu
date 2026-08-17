@@ -54,12 +54,31 @@ npm run build
 npm run audit:ci
 ```
 
+Integridade do que é publicado (exige `npm run build` antes):
+
+```bash
+npm run check:dist-assets
+```
+
+Toda referência local do build precisa existir em `dist/`. Sem esse gate, uma
+tag injetada fora de ordem no `vite.config.js` gera 404 em todas as páginas
+publicadas sem quebrar o build.
+
 Jornadas de navegador:
 
 ```bash
 npx playwright install chromium
 npm run test:e2e
 ```
+
+A suíte cobre catálogo, seleção, reserva, login e 404 em desktop e mobile, e
+inclui duas catracas de qualidade sobre o build:
+
+- `tests/e2e/contrast.spec.js` mede o contraste das páginas publicadas. As que
+  ainda têm dívida estão em `PAGINAS_COM_DIVIDA`; a lista só pode encolher, e
+  qualquer página fora dela precisa passar em WCAG AA.
+- `buyer-journeys.spec.js` exige rótulo acessível em todo campo de formulário,
+  `h1` único por página e ação de consentimento livre de sobreposição.
 
 Banco descartável:
 
@@ -144,6 +163,11 @@ npm run migrations:release -- --dry-run --environment staging
 npm run seed:supabase:dry
 npm run staging:validate
 ```
+
+`check:migrations` inclui `scripts/check-sql-security.mjs`, que exige `set
+search_path` em toda função `security definer` e lista fechada de perfis em
+todo gatilho que lê `profile_type` do cadastro — esse campo é escrito pelo
+próprio usuário no signup e a coluna aceita valores administrativos.
 
 Nunca aplique migrations sem backup referenciado, preflight aprovado e plano de rollback.
 

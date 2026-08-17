@@ -43,6 +43,12 @@ begin
 end;
 $$;
 
+-- Projetos criados a partir de supabase/schema.sql já têm o gatilho legado
+-- apontando para public.handle_new_user. Sem removê-lo aqui, os dois disparam
+-- no mesmo insert e a versão antiga continua ativa depois do upgrade.
+drop trigger if exists on_auth_user_created on auth.users;
+drop function if exists public.handle_new_user();
+
 drop trigger if exists trg_auth_user_profile on auth.users;
 create trigger trg_auth_user_profile
 after insert on auth.users
