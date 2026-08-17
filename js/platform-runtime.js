@@ -48,6 +48,7 @@
     };
     localStorage.setItem(CONSENT_KEY, JSON.stringify(value));
     document.querySelector('[data-privacy-banner]')?.remove();
+    document.body.classList.remove('arandu-consent-pending');
     window.dispatchEvent(new CustomEvent('arandu:consent', { detail: value }));
     return value;
   }
@@ -98,6 +99,10 @@
       : 'Métricas opcionais estão indisponíveis até a configuração da versão de consentimento.';
     banner.innerHTML = `<div><strong>Privacidade sob seu controle</strong><p>Usamos armazenamento essencial para conta e seleção. ${analyticsText}</p></div><div class="privacy-banner-actions"><button type="button" class="cta secondary" data-consent-essential>Somente essencial</button>${analyticsAction}<a href="politica-de-privacidade.html">Ler política</a></div>`;
     document.body.appendChild(banner);
+    // O botão flutuante do assistente é `position: fixed` no mesmo canto e com
+    // z-index maior: sem esta marcação ele cobre "Somente essencial" no celular
+    // e a escolha de privacidade fica intocável.
+    document.body.classList.add('arandu-consent-pending');
   }
 
   function accessibility() {
