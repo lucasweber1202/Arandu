@@ -26,7 +26,7 @@
     "check:data": "node scripts/check-data.mjs",
     "check:catalog": "node scripts/check-catalog-readiness.mjs && node scripts/check-catalog-contract.mjs && node scripts/test-catalog-api.mjs && node scripts/test-collections-api.mjs",
     "check:catalog:release": "node scripts/check-catalog-readiness.mjs --require-verified",
-    "check:migrations": "node scripts/check-migrations.mjs && node scripts/check-transaction-migration.mjs",
+    "check:migrations": "node scripts/check-migrations.mjs && node scripts/check-transaction-migration.mjs && node scripts/check-sql-security.mjs",
     "check:routes": "node scripts/check-public-routes.mjs && node scripts/check-page-surface.mjs",
     "check:domain": "node scripts/check-domain-config.mjs",
     "check:domain:release": "node scripts/check-domain-config.mjs --require-ready",
@@ -78,7 +78,8 @@
     "check:deploy-release-separation": "node scripts/test-deploy-release-separation.mjs",
     "predeploy": "npm run deploy:check && npm run release:check",
     "check:globals": "node scripts/check-script-globals.mjs",
-    "check:dist-assets": "node scripts/check-dist-assets.mjs"
+    "check:dist-assets": "node scripts/check-dist-assets.mjs",
+    "check:sql": "node scripts/check-sql-security.mjs"
   },
   "dependencies": {
     "@vercel/speed-insights": "^2.0.0",
