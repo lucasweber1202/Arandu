@@ -2,7 +2,26 @@ import { test, expect } from '@playwright/test';
 
 test('modo de apresentação identifica o ambiente e carrega acervo demonstrativo', async ({ page }) => {
   await page.goto('/comprar-arte.html');
-  await expect(page.locator('.presentation-banner')).toContainText('Ambiente de apresentação');
+  const banner = page.locator('.presentation-banner');
+  await expect(banner).toContainText('Ambiente de apresentação');
+
+  // O aviso precisa ser legível: um `strong { color }` global com `!important`
+  // já derrubou o rótulo para 1.41:1 sobre o vinho do banner.
+  const contraste = await banner.evaluate((elemento) => {
+    const componentes = (valor) => (valor.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+    const canal = (bruto) => {
+      const v = bruto / 255;
+      return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+    };
+    const luminancia = ([r, g, b]) => 0.2126 * canal(r) + 0.7152 * canal(g) + 0.0722 * canal(b);
+    const fundo = luminancia(componentes(getComputedStyle(elemento).backgroundColor));
+    return [...elemento.querySelectorAll('strong, span')].map((no) => {
+      const [claro, escuro] = [luminancia(componentes(getComputedStyle(no).color)), fundo].sort((a, b) => b - a);
+      return (claro + 0.05) / (escuro + 0.05);
+    });
+  });
+  for (const razao of contraste) expect(razao).toBeGreaterThanOrEqual(4.5);
+
   await expect(page.locator('[data-card-artwork]')).toHaveCount(22);
   await expect(page.locator('body')).toContainText('Estudo de Solo Nº 04');
 });
