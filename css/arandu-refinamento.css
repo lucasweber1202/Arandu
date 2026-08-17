@@ -453,3 +453,18 @@ body.arandu-consent-pending .arandu-assistant {
   border-color: rgba(111, 23, 18, .3) !important;
   color: var(--clarity-red) !important;
 }
+
+/* --- Banner do ambiente de apresentação -----------------------------------
+   `arandu-readability-commerce.css` pinta `strong` de tinta escura com
+   `!important` num seletor sem contexto, então o rótulo "AMBIENTE DE
+   APRESENTAÇÃO" caía para 1.41:1 sobre o vinho do banner — justamente o aviso
+   que precisa ser lido primeiro. O banner declara as duas cores juntas para
+   que nenhuma camada consiga separá-las. */
+.presentation-banner,
+.presentation-banner :is(strong, span, a) {
+  color: #fff8e9 !important;
+}
+
+.presentation-banner {
+  background: #611713 !important;
+}

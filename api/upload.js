@@ -8,6 +8,9 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BUCKET = process.env.ARANDU_STORAGE_BUCKET || 'arandu-media';
 const MAX_BODY_BYTES = 9 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
+const MAX_IMAGE_PIXELS = 40_000_000;
+const ALLOWED_ENTITY_TYPES = new Set(['artwork', 'artist', 'collection', 'certificate']);
 
 class HttpError extends Error {
   constructor(status, message) {
@@ -50,6 +53,36 @@ function detectedImageType(buffer) {
   return null;
 }
 function extFrom(type) { return ({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' }[type] || 'jpg'); }
+function canonicalBase64(value) {
+  return typeof value === 'string' && value.length > 0 && value.length % 4 === 0
+    && /^[A-Za-z0-9+/]+={0,2}$/.test(value);
+}
+function imageDimensions(buffer, type) {
+  if (type === 'image/png' && buffer.length >= 24) return { width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) };
+  if (type === 'image/gif' && buffer.length >= 10) return { width: buffer.readUInt16LE(6), height: buffer.readUInt16LE(8) };
+  if (type === 'image/webp' && buffer.length >= 30 && buffer.subarray(12, 16).toString('ascii') === 'VP8X') {
+    return { width: 1 + buffer.readUIntLE(24, 3), height: 1 + buffer.readUIntLE(27, 3) };
+  }
+  if (type === 'image/jpeg') {
+    let offset = 2;
+    while (offset + 9 < buffer.length) {
+      if (buffer[offset] !== 0xff) { offset += 1; continue; }
+      const marker = buffer[offset + 1];
+      const length = buffer.readUInt16BE(offset + 2);
+      if (length < 2 || offset + length + 2 > buffer.length) break;
+      if ([0xc0,0xc1,0xc2,0xc3,0xc5,0xc6,0xc7,0xc9,0xca,0xcb,0xcd,0xce,0xcf].includes(marker)) {
+        return { height: buffer.readUInt16BE(offset + 5), width: buffer.readUInt16BE(offset + 7) };
+      }
+      offset += length + 2;
+    }
+  }
+  return null;
+}
+function containsSensitiveMetadata(buffer, type) {
+  if (type !== 'image/jpeg') return false;
+  const head = buffer.subarray(0, Math.min(buffer.length, 256 * 1024));
+  return head.includes(Buffer.from('Exif\0\0')) || head.includes(Buffer.from('http://ns.adobe.com/xap/1.0/'));
+}
 
 async function storageUpload(path, buffer, contentType) {
   const base = SUPABASE_URL.replace(/\/$/, '');
@@ -122,16 +155,24 @@ export default async function handler(req, res) {
     const filename = clean(body.filename || 'imagem', 240);
     const contentType = clean(body.content_type || body.contentType || 'image/jpeg', 80);
     const alt = clean(body.alt || filename, 500);
-    const raw = clean(body.base64 || body.data || '').replace(/^data:[^;]+;base64,/, '');
+    const raw = String(body.base64 || body.data || '').trim().replace(/^data:[^;]+;base64,/, '');
 
     if (!contentTypeOk(contentType)) return json(res, 400, { ok: false, error: 'Formato permitido: jpg, png, webp ou gif.' });
     if (!raw) return json(res, 400, { ok: false, error: 'Arquivo em base64 obrigatório.' });
+    if (!canonicalBase64(raw)) return json(res, 400, { ok: false, error: 'Codificação base64 inválida.' });
 
     const buffer = Buffer.from(raw, 'base64');
     if (!buffer.length) return json(res, 400, { ok: false, error: 'Arquivo vazio.' });
-    if (buffer.length > 6 * 1024 * 1024) return json(res, 413, { ok: false, error: 'Imagem acima de 6MB.' });
+    if (buffer.length > MAX_IMAGE_BYTES) return json(res, 413, { ok: false, error: 'Imagem acima de 6MB.' });
     const detectedType = detectedImageType(buffer);
     if (!detectedType || detectedType !== contentType) return json(res, 400, { ok: false, error: 'O conteúdo do arquivo não corresponde ao formato informado.' });
+    const dimensions = imageDimensions(buffer, detectedType);
+    if (!dimensions || dimensions.width < 1 || dimensions.height < 1 || dimensions.width > 12000 || dimensions.height > 12000 || dimensions.width * dimensions.height > MAX_IMAGE_PIXELS) {
+      return json(res, 400, { ok: false, error: 'Dimensões da imagem inválidas ou excessivas.' });
+    }
+    if (containsSensitiveMetadata(buffer, detectedType)) return json(res, 400, { ok: false, error: 'Remova metadados EXIF/XMP da imagem antes do envio.' });
+
+    if (!ALLOWED_ENTITY_TYPES.has(entityType)) return json(res, 400, { ok: false, error: 'Tipo de entidade inválido.' });
 
     const entityTypeSlug = slugify(entityType);
     const entityIdSlug = slugify(entityId);
@@ -140,7 +181,8 @@ export default async function handler(req, res) {
     const path = `${entityTypeSlug}/${entityIdSlug}/${randomUUID()}.${ext}`;
     const url = await storageUpload(path, buffer, detectedType);
     try {
-      await insertMedia({ entity_type: entityType, entity_id: entityId, asset_type: 'image', url, alt, position: Number(body.position || 1) || 1, payload: { filename, content_type: detectedType, storage_path: path } });
+      const position = Math.max(1, Math.min(Number.parseInt(body.position, 10) || 1, 1000));
+      await insertMedia({ entity_type: entityType, entity_id: entityId, asset_type: 'image', url, alt, position, payload: { filename, content_type: detectedType, storage_path: path, width: dimensions.width, height: dimensions.height } });
     } catch (metadataError) {
       try {
         await storageDelete(path);

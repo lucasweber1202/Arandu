@@ -31,6 +31,7 @@ for (const [flow, files] of Object.entries(manifest)) {
   const operationalStatus = files.indexOf('docs/supabase-operational-status.sql');
   const profileAccess = files.indexOf('docs/supabase-profile-access.sql');
   const trailCompleteness = files.indexOf('docs/supabase-operational-trail-completeness.sql');
+  const emailFencing = files.indexOf('docs/supabase-email-outbox-fencing.sql');
   const production = files.indexOf('docs/supabase-production.sql');
   if (sprint2 === -1) issues.push(`${flow}: migration do Sprint 2 ausente.`);
   if (sprint5 === -1) issues.push(`${flow}: migration do Sprint 5 ausente.`);
@@ -62,7 +63,12 @@ for (const [flow, files] of Object.entries(manifest)) {
   if (operationalStatus !== -1 && profileAccess !== operationalStatus + 1) issues.push(`${flow}: o vínculo de conta e artista deve vir imediatamente depois da máquina de estados operacional.`);
   if (trailCompleteness === -1) issues.push(`${flow}: trilha operacional completa ausente.`);
   if (profileAccess !== -1 && trailCompleteness !== profileAccess + 1) issues.push(`${flow}: a trilha completa deve vir imediatamente depois do vínculo de conta e artista.`);
-  if (trailCompleteness !== -1 && trailCompleteness !== files.length - 1) issues.push(`${flow}: a trilha operacional completa deve encerrar a sequência atual.`);
+  // O fencing da outbox foi escrito quando a retenção encerrava a sequência. Como
+  // as migrations dos PRs #43–#45 entraram depois dela, ele passa a ser o último:
+  // suas dependências (outbox e orders) continuam bem antes na cadeia.
+  if (emailFencing === -1) issues.push(`${flow}: fencing da outbox ausente.`);
+  if (trailCompleteness !== -1 && emailFencing !== trailCompleteness + 1) issues.push(`${flow}: o fencing da outbox deve vir imediatamente depois da trilha operacional completa.`);
+  if (emailFencing !== -1 && emailFencing !== files.length - 1) issues.push(`${flow}: o fencing da outbox deve encerrar a sequência atual.`);
 }
 
 console.log('Arandu Migration Order Check');

@@ -88,11 +88,17 @@ jobs:
       - name: SEO in built output
         run: npm run check:seo:dist
 
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+      - name: Install Chromium, Firefox and WebKit
+        run: npx playwright install --with-deps chromium firefox webkit
 
-      - name: Desktop and mobile journeys
+      # Cobre jornadas públicas, do comprador, autenticação, seleção, contraste
+      # e mobile nos três motores. A suíte de apresentação roda separada porque
+      # exige um build com ARANDU_PRESENTATION_MODE=true.
+      - name: Desktop and mobile journeys across browser engines
         run: npm run test:e2e
+
+      - name: Safe presentation journeys across browser engines
+        run: npm run test:e2e:presentation
 
       - name: Upload browser evidence on failure
         if: failure()
@@ -101,6 +107,7 @@ jobs:
           name: arandu-playwright-evidence
           path: |
             reports/playwright
+            reports/playwright-presentation
             test-results
           if-no-files-found: ignore
           retention-days: 7

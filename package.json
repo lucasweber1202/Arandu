@@ -33,7 +33,7 @@
     "check:supabase:write": "node scripts/test-supabase-write.mjs",
     "test:database": "bash scripts/test-database.sh",
     "check:pilot": "node scripts/check-pilot-readiness.mjs && node scripts/check-pilot-evidence.mjs && node scripts/check-pilot-security.mjs && node scripts/test-pilot-api.mjs",
-    "check:platform": "node scripts/check-platform-hardening.mjs && node scripts/test-operational-status.mjs && node scripts/test-profile-access.mjs && node scripts/test-pilot-runtime.mjs && node scripts/test-consent-runtime.mjs && node scripts/test-platform-api.mjs && node scripts/test-transaction-api.mjs && node scripts/test-account-orders-api.mjs && node scripts/test-email-outbox.mjs && node scripts/test-observability.mjs",
+    "check:platform": "node scripts/check-platform-hardening.mjs && node scripts/test-operational-status.mjs && node scripts/test-profile-access.mjs && node scripts/test-pilot-runtime.mjs && node scripts/test-consent-runtime.mjs && node scripts/test-platform-api.mjs && node scripts/test-transaction-api.mjs && node scripts/test-account-orders-api.mjs && node scripts/test-email-outbox.mjs && node scripts/test-observability.mjs && node scripts/test-presentation-mode.mjs",
     "check:platform:release": "node scripts/check-platform-release.mjs",
     "check:pilot:release": "node scripts/check-pilot-readiness.mjs --require-ready",
     "check:backend": "node scripts/check-backend.mjs && node scripts/check-api-modules.mjs",
@@ -79,7 +79,10 @@
     "predeploy": "npm run deploy:check && npm run release:check",
     "check:globals": "node scripts/check-script-globals.mjs",
     "check:dist-assets": "node scripts/check-dist-assets.mjs",
-    "check:sql": "node scripts/check-sql-security.mjs"
+    "check:sql": "node scripts/check-sql-security.mjs",
+    "check:presentation": "node scripts/test-presentation-mode.mjs",
+    "pretest:e2e:presentation": "ARANDU_PRESENTATION_MODE=true VERCEL_ENV=preview npm run build",
+    "test:e2e:presentation": "playwright test --config playwright.presentation.config.js"
   },
   "dependencies": {
     "@vercel/speed-insights": "^2.0.0",

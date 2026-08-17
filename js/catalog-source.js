@@ -33,6 +33,19 @@
     return payload.items;
   }
 
+  function presentationEnabled() {
+    return window.AranduPresentation?.enabled === true
+      || document.querySelector('meta[name="arandu-presentation-mode"]')?.content === 'true';
+  }
+
+  async function presentationRequest(path) {
+    const response = await fetch(path, { cache: 'no-store', credentials: 'same-origin' });
+    if (!response.ok) throw new CatalogSourceError('Não foi possível carregar o acervo demonstrativo.', 'presentation_dataset_unavailable', response.status);
+    const payload = await response.json();
+    if (!Array.isArray(payload)) throw new CatalogSourceError('Dataset demonstrativo inválido.', 'invalid_presentation_dataset', response.status);
+    return payload.map((item) => ({ ...item, dataset_kind: 'demonstration', presentation_only: true }));
+  }
+
   function message(error, subject = 'acervo') {
     if (error?.code === 'catalog_not_verified' || error?.code === 'catalog_migration_pending') {
       return `O ${subject} está em validação curatorial e será exibido somente após a conferência dos dados e autorizações.`;
@@ -42,8 +55,9 @@
 
   window.AranduCatalogSource = Object.freeze({
     CatalogSourceError,
-    catalog: () => request('/api/catalog'),
-    artists: () => request('/api/artists'),
+    presentationEnabled,
+    catalog: () => presentationEnabled() ? presentationRequest('/data/artworks.json') : request('/api/catalog'),
+    artists: () => presentationEnabled() ? presentationRequest('/data/artists.json') : request('/api/artists'),
     message
   });
 })();

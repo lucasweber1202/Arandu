@@ -14,6 +14,8 @@ Toda classe de dado começa com retenção automática desativada. Para habilita
 
 Valores como `ok`, `sim`, `pronto` ou uma flag booleana isolada não substituem decisão jurídica/fiscal.
 
+O executor `execute_data_retention` aceita somente três classes técnicas allowlisted (`conversion_events`, `idempotency_keys` e `transactional_email_outbox`). Ele exige a mesma referência da política aprovada, respeita legal hold e registra preview ou execução em auditoria. Rode primeiro com `p_dry_run=true`; políticas começam desativadas e o código não inventa prazos.
+
 ## Legal hold
 
 `data_legal_holds` permite suspender qualquer descarte de uma entidade específica quando existir motivo jurídico, fiscal, disputa, incidente ou outra obrigação formal.

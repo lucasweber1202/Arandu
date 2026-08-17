@@ -1,5 +1,13 @@
 async function verifyCertificate(code) {
   const normalized = String(code || '').trim().toUpperCase();
+  if (window.AranduPresentation?.enabled === true || document.querySelector('meta[name="arandu-presentation-mode"]')?.content === 'true') {
+    try {
+      const response = await fetch('/data/certificates.json', { cache: 'no-store' });
+      const certificates = await response.json();
+      const certificate = Array.isArray(certificates) ? certificates.find((item) => item.code === normalized) : null;
+      return certificate ? { state: 'demonstration', certificate } : { state: 'not-found', certificate: null };
+    } catch { return { state: 'unavailable', certificate: null }; }
+  }
   try {
     const apiResponse = await fetch('/api/certificates?code=' + encodeURIComponent(normalized), { cache: 'no-store' });
     const apiData = await apiResponse.json().catch(() => ({}));
@@ -17,7 +25,7 @@ function escapeCertificateHtml(value) {
 }
 
 function renderCertificateResult(target, result) {
-  if (result?.state !== 'verified' || !result.certificate) {
+  if (!['verified', 'demonstration'].includes(result?.state) || !result.certificate) {
     const unavailable = result?.state === 'unavailable';
     target.replaceChildren();
     const title = document.createElement('h3');
@@ -38,13 +46,14 @@ function renderCertificateResult(target, result) {
   }
 
   const certificate = result.certificate;
+  const demonstration = result.state === 'demonstration';
   const artwork = certificate.artwork || certificate.artworks || certificate.payload?.artwork || {};
   const payload = certificate.payload || {};
   const artist = artwork.artists || {};
   const status = certificate.verification_status || 'valid';
   const issuedAt = certificate.issued_at ? new Date(certificate.issued_at).toLocaleDateString('pt-BR') : '—';
   target.innerHTML = `
-    <span class="certificate-status">${escapeCertificateHtml(status === 'valid' ? 'Certificado válido' : status)}</span>
+    <span class="certificate-status">${escapeCertificateHtml(demonstration ? 'Registro demonstrativo · sem validade comercial' : status === 'valid' ? 'Certificado válido' : status)}</span>
     <h3>${escapeCertificateHtml(artwork.title || payload.title || 'Obra registrada')}</h3>
     <p class="certificate-code">${escapeCertificateHtml(certificate.code || '—')}</p>
     <div class="certificate-grid">
