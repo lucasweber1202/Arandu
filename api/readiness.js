@@ -89,8 +89,9 @@ async function probe(resource) {
   try {
     const base = clean(process.env.SUPABASE_URL).replace(/\/$/, '');
     const key = clean(process.env.SUPABASE_SERVICE_ROLE_KEY);
-    const response = await fetch(`${base}/rest/v1/${resource}?select=*&limit=1`, {
-      headers: { apikey: key, Authorization: `Bearer ${key}` },
+    const response = await fetch(`${base}/rest/v1/${resource}?limit=0`, {
+      method: 'HEAD',
+      headers: { apikey: key, Authorization: `Bearer ${key}`, Prefer: 'count=planned' },
       signal: controller.signal
     });
     return {

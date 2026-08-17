@@ -53,6 +53,15 @@ requireTerm('api/[...path].js', api, 'saved_selections?user_id=eq.', 'seleções
 requireTerm('api/[...path].js', api, 'reservations?user_id=eq.', 'reservas da conta não são filtradas pelo proprietário.');
 requireTerm('api/[...path].js', api, 'select=public_token,status,items,briefing,created_at,updated_at', 'link público de seleção ainda consulta campos pessoais.');
 requireTerm('api/[...path].js', api, 'withoutPersonalBriefingFields', 'briefing público ainda não remove dados pessoais.');
+// Direito de acesso da LGPD: a exportação precisa cobrir pedidos e propostas do
+// titular e nunca pode voltar a usar `select=*`, que traria campos internos.
+requireTerm('api/[...path].js', api, "exportVersion", 'exportação LGPD não declara versão de contrato.');
+requireTerm('api/[...path].js', api, 'orders?user_id=eq.${userId}&select=id,order_number', 'exportação LGPD não inclui os pedidos do titular.');
+requireTerm('api/[...path].js', api, 'proposals?user_id=eq.${userId}&select=id,status', 'exportação LGPD não inclui as propostas do titular.');
+if (/privacy[\s\S]{0,4000}?select=\*/.test(api.slice(api.indexOf('async function handlePrivacy')))) {
+  console.error('- api/[...path].js: exportação LGPD voltou a usar select=*.');
+  process.exitCode = 1;
+}
 requireTerm('api/[...path].js', api, 'await adminGuard(req, res)', 'dashboard consolidado não exige sessão administrativa.');
 requireTerm('api/[...path].js', api, 'safeSelectionUrl', 'links enviados em seleções não são validados.');
 requireTerm('api/[...path].js', api, 'return await handleAccount', 'erros assíncronos escapam do tratamento JSON da API.');

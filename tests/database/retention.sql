@@ -12,8 +12,39 @@ begin
   if has_function_privilege('authenticated', 'public.create_legal_hold(text,text,text,text)', 'EXECUTE') then
     raise exception 'authenticated consegue criar legal hold';
   end if;
+  if not has_function_privilege('service_role', 'public.execute_data_retention(text,boolean,text,text)', 'EXECUTE')
+    or has_function_privilege('authenticated', 'public.execute_data_retention(text,boolean,text,text)', 'EXECUTE') then
+    raise exception 'Permissões do executor de retenção estão incorretas';
+  end if;
 end;
 $$;
+
+insert into public.data_retention_policies(data_class,retention_days,disposition,enabled,decision_reference,approved_by_ref,approved_at)
+values ('conversion_events',30,'delete',true,'test-decision-retention-001','test-legal',now())
+on conflict (data_class) do update set retention_days=excluded.retention_days,disposition=excluded.disposition,
+  enabled=excluded.enabled,decision_reference=excluded.decision_reference,approved_by_ref=excluded.approved_by_ref,approved_at=excluded.approved_at;
+
+insert into public.conversion_events(anonymous_id,event_type,path,payload,consent_version,created_at)
+values ('33333333-3333-4333-8333-333333333333','catalog_view','/retention-test','{}','test-v1',now()-interval '40 days');
+
+select public.create_legal_hold('conversion_events',(select id::text from public.conversion_events where path='/retention-test'),'test-hold-retention-001','test-legal');
+select public.execute_data_retention('conversion_events',true,'test-retention-worker','test-decision-retention-001');
+select public.execute_data_retention('conversion_events',false,'test-retention-worker','test-decision-retention-001');
+
+do $$ begin
+  if not exists(select 1 from public.conversion_events where path='/retention-test') then
+    raise exception 'Executor ignorou legal hold ativo';
+  end if;
+end $$;
+
+select public.release_legal_hold('conversion_events',(select id::text from public.conversion_events where path='/retention-test'),'test-release-retention-001','test-legal');
+select public.execute_data_retention('conversion_events',false,'test-retention-worker','test-decision-retention-001');
+
+do $$ begin
+  if exists(select 1 from public.conversion_events where path='/retention-test') then
+    raise exception 'Executor não aplicou política após liberação do hold';
+  end if;
+end $$;
 
 insert into public.data_retention_policies(data_class, disposition, enabled)
 values ('orders', 'review', false)

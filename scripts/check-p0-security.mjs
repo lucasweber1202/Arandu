@@ -83,7 +83,11 @@ const uploadApi = read('api/upload.js');
   ["'x-upsert': 'false'", 'upload novo ainda permite sobrescrita'],
   ['if (!response.ok)', 'falha de metadados não é verificada'],
   ['await storageDelete(path)', 'objeto órfão não é removido quando metadados falham'],
-  ['AbortSignal.timeout', 'integração de upload sem timeout']
+  ['AbortSignal.timeout', 'integração de upload sem timeout'],
+  ['canonicalBase64', 'upload não rejeita codificação base64 não canônica'],
+  ['MAX_IMAGE_PIXELS', 'upload não limita decompression bombs por dimensões'],
+  ['containsSensitiveMetadata', 'upload não trata metadados EXIF/XMP'],
+  ['ALLOWED_ENTITY_TYPES', 'upload não restringe namespaces de entidade']
 ].forEach(([text, message]) => {
   if (!uploadApi.includes(text)) issues.push(`api/upload.js: ${message}.`);
 });
