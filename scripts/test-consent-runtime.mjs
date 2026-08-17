@@ -10,9 +10,18 @@ async function runtime({ consent, dnt = '0', initialConsent = null }) {
   if (initialConsent) values.set('arandu.privacy.consent.v1', JSON.stringify(initialConsent));
   const requests = [];
   const banners = [];
+  const bodyClasses = new Set();
   const document = {
     readyState: 'complete',
-    body: { appendChild(node) { banners.push(node); }, prepend() {} },
+    body: {
+      appendChild(node) { banners.push(node); },
+      prepend() {},
+      classList: {
+        add(name) { bodyClasses.add(name); },
+        remove(name) { bodyClasses.delete(name); },
+        contains(name) { return bodyClasses.has(name); }
+      }
+    },
     querySelector() { return null; },
     querySelectorAll() { return []; },
     createElement() {
@@ -51,7 +60,7 @@ async function runtime({ consent, dnt = '0', initialConsent = null }) {
   vm.runInNewContext(source, context, { filename: 'js/platform-runtime.js' });
   await new Promise((resolve) => setImmediate(resolve));
   await new Promise((resolve) => setImmediate(resolve));
-  return { api: context.window.ARANDU_PRIVACY, requests, banners, values };
+  return { api: context.window.ARANDU_PRIVACY, requests, banners, values, bodyClasses };
 }
 
 const canonical = '2026-08-14';
@@ -80,6 +89,14 @@ const missing = await runtime({ consent: { configured: false, version: null } })
 assert.equal(missing.api.saveConsent(true).analytics, false);
 assert.equal(missing.banners[0].innerHTML.includes('data-consent-analytics'), false);
 assert.equal(await missing.api.track('catalog_view'), false);
+
+// Enquanto a barra de privacidade está aberta o body carrega a marcação que
+// tira o assistente flutuante da frente do botão de consentimento; ela precisa
+// sair assim que a escolha é registrada, senão o assistente some para sempre.
+const pending = await runtime({ consent: { configured: true, version: canonical } });
+assert.equal(pending.bodyClasses.has('arandu-consent-pending'), true, 'banner aberto deve marcar o body');
+pending.api.saveConsent(false);
+assert.equal(pending.bodyClasses.has('arandu-consent-pending'), false, 'escolha registrada deve limpar a marcação');
 
 assert.doesNotMatch(source, /const CONSENT_VERSION\s*=\s*['"]/);
 console.log('Consent runtime uses canonical public config, rejects old versions and preserves Do Not Track.');

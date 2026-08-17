@@ -298,6 +298,36 @@ test('formulário de login é rotulado, navegável por teclado e anuncia a recus
   await expect(email).toHaveAttribute('aria-invalid', 'true');
 });
 
+test('todo campo de formulário público tem nome acessível', async ({ page }) => {
+  await stubApi(page);
+  // Uma página de cada família de formulário: contato, briefing de empresa,
+  // newsletter, briefing da seleção, portal do artista e acesso administrativo.
+  const routes = [
+    '/contato.html',
+    '/empresas.html',
+    '/newsletter.html',
+    '/minha-selecao.html',
+    '/portal-artista.html',
+    '/admin-login.html'
+  ];
+  for (const route of routes) {
+    await page.goto(route);
+    const unnamed = await page.evaluate(() => {
+      const missing = [];
+      document.querySelectorAll('input, select, textarea').forEach((field) => {
+        const type = String(field.getAttribute('type') || '').toLowerCase();
+        if (['hidden', 'submit', 'button', 'reset', 'image'].includes(type)) return;
+        if (field.getAttribute('aria-hidden') === 'true') return;
+        const associated = field.id ? document.querySelector(`label[for="${CSS.escape(field.id)}"]`) : null;
+        const name = (associated?.textContent || field.closest('label')?.textContent || field.getAttribute('aria-label') || '').trim();
+        if (!name) missing.push(`${field.tagName.toLowerCase()}[name=${field.name || '?'}]`);
+      });
+      return missing;
+    });
+    expect(unnamed, `campos sem rótulo em ${route}`).toEqual([]);
+  }
+});
+
 test('cada página pública tem um único h1 e um alvo para o link de pular', async ({ page }) => {
   await stubApi(page);
   for (const route of ['/index.html', '/comprar-arte.html', '/artistas.html', '/colecoes.html', '/login.html', '/minha-selecao.html']) {

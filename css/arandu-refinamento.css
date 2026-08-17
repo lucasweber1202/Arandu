@@ -283,3 +283,23 @@ body.arandu-consent-pending .arandu-assistant {
   background-position: center !important;
   background-repeat: no-repeat !important;
 }
+
+/* --- Rótulos de formulário ------------------------------------------------
+   Injetados por js/platform-runtime.js nos campos que só tinham placeholder.
+   Discretos por design: o campo continua sendo o elemento dominante, o rótulo
+   é a legenda que permanece visível enquanto a pessoa digita e revisa. */
+.arandu-field-label {
+  display: block;
+  margin: .35rem 0 .2rem;
+  font-size: .8rem;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  opacity: .78;
+}
+
+.arandu-field-label + input,
+.arandu-field-label + select,
+.arandu-field-label + textarea {
+  margin-top: 0;
+}
