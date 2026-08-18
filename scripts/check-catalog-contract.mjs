@@ -2,7 +2,10 @@ import fs from 'node:fs';
 
 const issues = [];
 const read = (file) => fs.readFileSync(file, 'utf8');
-const api = read('api/[...path].js');
+const api = [
+  read('api/[...path].js'),
+  ...fs.readdirSync('lib/api/domains').filter((file) => file.endsWith('.mjs')).map((file) => read(`lib/api/domains/${file}`))
+].join('\n');
 const collectionsApi = read('api/collections.js');
 const readiness = read('api/readiness.js');
 const migration = read('docs/supabase-sprint2-catalog-readiness.sql');
@@ -26,9 +29,9 @@ function requireTerm(file, source, term, message) {
   if (!source.includes(term)) issues.push(`${file}: ${message}`);
 }
 
-requireTerm('api/[...path].js', api, 'async function catalogReadiness', 'não exige o gate de catálogo.');
-requireTerm('api/[...path].js', api, "'catalog_not_verified'", 'não sinaliza catálogo ainda não verificado.');
-requireTerm('api/[...path].js', api, 'verifiedReady: true', 'não confirma prontidão na resposta pública.');
+requireTerm('API catalog domain', api, 'async function catalogReadiness', 'não exige o gate de catálogo.');
+requireTerm('API catalog domain', api, "'catalog_not_verified'", 'não sinaliza catálogo ainda não verificado.');
+requireTerm('API catalog domain', api, 'verifiedReady: true', 'não confirma prontidão na resposta pública.');
 requireTerm('api/readiness.js', readiness, 'v_catalog_readiness', 'não verifica o release de catálogo.');
 requireTerm('api/readiness.js', readiness, 'v_public_collections', 'não verifica a view pública de coleções.');
 requireTerm('api/collections.js', collectionsApi, 'v_catalog_readiness', 'não exige o gate de catálogo.');
