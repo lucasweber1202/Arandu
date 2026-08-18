@@ -92,8 +92,8 @@ function injectSpeedInsights() {
 function injectGlobalAssets() {
   const productCssTag = `<link rel="stylesheet" href="/css/arandu-product.css?v=${ASSET_VERSION}">`;
   const runtimeCssTag = '<link rel="stylesheet" href="/css/arandu-runtime.css?v=20260818-structural-1">';
-  // Camada transversal de acessibilidade e polimento: entra por último para
-  // vencer no empate de cascata contra as folhas históricas acima.
+  const auditJsTag = '<script src="/js/arandu-interface-audit.js?v=20260709-ui-rescue-1" defer></script>';
+  const assistantJsTag = '<script src="/js/arandu-assistant.js?v=20260709-ui-rescue-1" defer></script>';
   const catalogSourceJsTag = `<script src="/js/catalog-source.js?v=20260717-catalog-release-1"></script>`;
   const pilotBootstrapTag = `<meta name="arandu-pilot-enabled" content="${configuredPilotEnabled ? 'true' : 'false'}">`;
   const pilotJsTag = `<script src="/js/pilot.js?v=20260717-pilot-1" defer></script>`;
