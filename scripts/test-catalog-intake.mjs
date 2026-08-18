@@ -30,7 +30,10 @@ assert.equal(entries[1].warnings.length,0);
 const duplicates=core.buildEntries(`${csv}\nobra,obra-real,,,,approved,,,,contrato-obra-002,Outra Obra,artista-real,Pintura,40 x 60 cm,4200,BRL,sim,https://example.com/obra-2.jpg,2026-07-03,2026-07-03,2026-07-03,2026-07-03`);
 assert.match(duplicates.at(-1).errors.join(' '),/duplicado/i);
 
-const api=fs.readFileSync('api/[...path].js','utf8');
+const api=[
+  'api/[...path].js',
+  ...fs.readdirSync('lib/api/domains').filter((name)=>name.endsWith('.mjs')).map((name)=>`lib/api/domains/${name}`)
+].map((file)=>fs.readFileSync(file,'utf8')).join('\n');
 for(const term of ['publishing_consent_at: dateFrom','identity_verified: boolFrom','image_authorized_at: dateFrom','catalog_verified_at: dateFrom','source_reference: limited']){
   assert.ok(api.includes(term),`API administrativa não preserva ${term}.`);
 }
