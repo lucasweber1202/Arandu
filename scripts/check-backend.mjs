@@ -15,12 +15,19 @@ const requiredFiles = [
   'api/upload.js',
   'lib/api-core.mjs',
   'lib/api-dtos.mjs',
+  'lib/api/domains/auth.mjs',
+  'lib/api/domains/pilot.mjs',
+  'lib/api/domains/public-content.mjs',
+  'lib/api/domains/intake.mjs',
+  'lib/api/domains/admin-operations.mjs',
+  'lib/api/domains/selections.mjs',
+  'lib/api/domains/accounts.mjs',
+  'lib/api/domains/privacy.mjs',
+  'lib/api/domains/dashboard.mjs',
   'status.html',
   'js/status.js',
   'js/admin-login.js',
-  'css/arandu-visual-polish.css',
-  'css/arandu-security.css',
-  'css/arandu-flow.css',
+  'css/arandu-runtime.css',
   'js/arandu-functions.js',
   'js/arandu-recent.js',
   'js/arandu-journey.js',
@@ -74,18 +81,29 @@ removedServerlessFiles.forEach((file) => { if (fs.existsSync(file)) issues.push(
 function includes(file, term) { return fs.existsSync(file) && fs.readFileSync(file, 'utf8').includes(term); }
 
 const api = 'api/[...path].js';
+const domainDirectory = 'lib/api/domains';
+const domainFiles = fs.existsSync(domainDirectory)
+  ? fs.readdirSync(domainDirectory).filter((file) => file.endsWith('.mjs')).map((file) => `${domainDirectory}/${file}`)
+  : [];
+const apiSourceGraph = [api, ...domainFiles]
+  .filter((file) => fs.existsSync(file))
+  .map((file) => fs.readFileSync(file, 'utf8'))
+  .join('\n');
+function apiIncludes(term) { return apiSourceGraph.includes(term); }
 if (fs.existsSync(api)) {
   const apiSource = fs.readFileSync(api, 'utf8');
   const apiLines = apiSource.split(/\r?\n/).length;
-  if (apiLines > 1700) issues.push(`API consolidada voltou a exceder o budget incremental de 1700 linhas: ${apiLines}.`);
+  if (apiLines > 500) issues.push(`Router da API voltou a exceder o budget de 500 linhas: ${apiLines}.`);
+  if (Buffer.byteLength(apiSource, 'utf8') > 25_000) issues.push('Router da API voltou a exceder o budget de 25 KB.');
+  if (domainFiles.length < 9) issues.push(`A API deve manter ao menos 9 módulos de domínio; encontrados: ${domainFiles.length}.`);
   if (!apiSource.includes("from '../lib/api-core.mjs'")) issues.push('API consolidada não usa o núcleo HTTP compartilhado.');
   if (!apiSource.includes("from '../lib/api-dtos.mjs'")) issues.push('API consolidada não usa DTOs separados por allowlist.');
-  for (const declaration of ['class HttpError', 'function readBody(', 'function normalizeFormPayload(', 'function normalizeSelection(']) {
+  for (const declaration of ['class HttpError', 'function readBody(', 'function normalizeFormPayload(', 'function normalizeSelection(', 'async function handleAuth(', 'async function handleAdmin(']) {
     if (apiSource.includes(declaration)) issues.push(`API consolidada reintroduziu responsabilidade extraída: ${declaration}.`);
   }
 }
 ['forms','reservations','proposals','certificates','certificate-document','catalog','artists','public-config','events','conversion-events','catalog-review','privacy/export','privacy/request','pilot','admin','admin-update','operational','media','selections','account','dashboard','auth/session','auth/login','auth/signup','auth/reset-password','auth/logout'].forEach((route) => {
-  if (!includes(api, route.split('/')[0])) issues.push(`API consolidada não cobre a rota: /api/${route}`);
+  if (!apiIncludes(route.split('/')[0])) issues.push(`API consolidada não cobre a rota: /api/${route}`);
 });
 
 if (!includes('api/health.js', "status: 'alive'")) issues.push('Health público não está limitado à liveness mínima.');
@@ -101,31 +119,31 @@ if (!includes('api/readiness.js', 'requireAdmin(req)')) issues.push('Readiness d
 if (!includes('js/status.js', '/api/readiness')) issues.push('status.js não consulta /api/readiness.');
 if (!includes('status.html', 'data-api-status')) issues.push('status.html não possui área dinâmica de status.');
 
-if (!includes(api, 'requireAdmin(req)')) issues.push('API consolidada não exige identidade administrativa nas rotas privilegiadas.');
+if (!apiIncludes('requireAdmin(req)')) issues.push('API consolidada não exige identidade administrativa nas rotas privilegiadas.');
 const legacySecret = ['ARANDU', 'ADMIN', 'TOKEN'].join('_');
 const legacyHeader = ['x-arandu', 'admin-token'].join('-');
-if (includes(api, legacySecret) || includes(api, legacyHeader)) issues.push('API consolidada ainda aceita segredo administrativo compartilhado.');
+if (apiIncludes(legacySecret) || apiIncludes(legacyHeader)) issues.push('API consolidada ainda aceita segredo administrativo compartilhado.');
 if (!includes('lib/admin-auth.mjs', 'app_metadata')) issues.push('Papel administrativo não é lido de app_metadata.');
 if (!includes('lib/admin-auth.mjs', "aal !== 'aal2'")) issues.push('Operações administrativas não exigem MFA aal2.');
 if (!includes('api/internal-page.js', 'requireAdmin(req)')) issues.push('Páginas internas não possuem guarda de sessão.');
-if (!includes(api, 'v_artworks_full')) issues.push('API consolidada não usa a view completa de obras.');
-if (!includes(api, 'v_sales_pipeline')) issues.push('Dashboard consolidado não consulta o pipeline comercial.');
-if (!includes(api, 'grant_type=password')) issues.push('Login consolidado não usa fluxo de senha do Supabase Auth.');
-if (!includes(api, 'signup')) issues.push('Cadastro consolidado não usa Supabase Auth signup.');
-if (!includes(api, 'HttpOnly')) issues.push('Sessão consolidada não usa cookie HttpOnly.');
-if (!includes(api, 'media_assets')) issues.push('API consolidada não grava media_assets.');
-if (!includes(api, 'validUrl')) issues.push('API consolidada não valida URLs de mídia.');
-if (!includes(api, 'saved_selections')) issues.push('API consolidada não grava em saved_selections.');
-if (!includes(api, 'briefing')) issues.push('API consolidada não preserva briefing.');
-if (!includes(api, 'crm_notes')) issues.push('API consolidada não grava notas de CRM.');
-if (!includes(api, 'tasks')) issues.push('API consolidada não grava tarefas.');
-if (!includes(api, 'PATCH')) issues.push('API consolidada não possui rotas de atualização PATCH.');
-if (!includes(api, 'catalog_not_verified')) issues.push('API consolidada não bloqueia catálogo não verificado.');
-if (!includes(api, 'requireCommercialPolicy')) issues.push('API consolidada não aplica a política comercial central e fail-closed.');
-if (!includes(api, 'arandu_pilot')) issues.push('API consolidada não cria sessão protegida do piloto.');
-if (!includes(api, 'publicDataRequest')) issues.push('API consolidada não separa leitura pública da service role.');
-if (!includes(api, 'handleCatalogReview')) issues.push('API consolidada não oferece workflow editorial.');
-if (!includes(api, 'handlePrivacy')) issues.push('API consolidada não oferece solicitações LGPD.');
+if (!apiIncludes('v_artworks_full')) issues.push('API consolidada não usa a view completa de obras.');
+if (!apiIncludes('v_sales_pipeline')) issues.push('Dashboard consolidado não consulta o pipeline comercial.');
+if (!apiIncludes('grant_type=password')) issues.push('Login consolidado não usa fluxo de senha do Supabase Auth.');
+if (!apiIncludes('signup')) issues.push('Cadastro consolidado não usa Supabase Auth signup.');
+if (!apiIncludes('HttpOnly')) issues.push('Sessão consolidada não usa cookie HttpOnly.');
+if (!apiIncludes('media_assets')) issues.push('API consolidada não grava media_assets.');
+if (!apiIncludes('validUrl')) issues.push('API consolidada não valida URLs de mídia.');
+if (!apiIncludes('saved_selections')) issues.push('API consolidada não grava em saved_selections.');
+if (!apiIncludes('briefing')) issues.push('API consolidada não preserva briefing.');
+if (!apiIncludes('crm_notes')) issues.push('API consolidada não grava notas de CRM.');
+if (!apiIncludes('tasks')) issues.push('API consolidada não grava tarefas.');
+if (!apiIncludes('PATCH')) issues.push('API consolidada não possui rotas de atualização PATCH.');
+if (!apiIncludes('catalog_not_verified')) issues.push('API consolidada não bloqueia catálogo não verificado.');
+if (!apiIncludes('requireCommercialPolicy')) issues.push('API consolidada não aplica a política comercial central e fail-closed.');
+if (!apiIncludes('arandu_pilot')) issues.push('API consolidada não cria sessão protegida do piloto.');
+if (!apiIncludes('publicDataRequest')) issues.push('API consolidada não separa leitura pública da service role.');
+if (!apiIncludes('handleCatalogReview')) issues.push('API consolidada não oferece workflow editorial.');
+if (!apiIncludes('handlePrivacy')) issues.push('API consolidada não oferece solicitações LGPD.');
 if (!includes('js/platform-runtime.js', 'data-consent-essential')) issues.push('Runtime global não oferece consentimento granular.');
 
 if (!includes('js/forms.js', '/api/forms')) issues.push('js/forms.js não aponta para /api/forms.');
@@ -158,20 +176,20 @@ if (!includes('js/site.js', 'arandu-functions.js')) issues.push('site.js não in
 if (!includes('js/site.js', 'arandu-recent.js')) issues.push('site.js não injeta arandu-recent.js.');
 if (!includes('js/site.js', 'arandu-journey.js')) issues.push('site.js não injeta arandu-journey.js.');
 if (!includes('js/site.js', 'arandu-usability.js')) issues.push('site.js não injeta arandu-usability.js.');
-if (!includes('js/site.js', 'arandu-visual-polish.css')) issues.push('site.js não injeta arandu-visual-polish.css.');
+if (includes('js/site.js', 'createElement(\'link\')')) issues.push('site.js voltou a injetar folhas CSS em runtime.');
 if (!includes('js/arandu-usability.js', 'arandu-security-guard.js')) issues.push('Camada de segurança leve não é carregada pela usabilidade.');
 if (!includes('js/arandu-usability.js', 'arandu-flow.js')) issues.push('Fluxo guiado não é carregado pela usabilidade.');
 if (!includes('js/arandu-security-guard.js', 'website')) issues.push('Camada de segurança não adiciona honeypot aos formulários.');
 if (!includes('js/arandu-flow.js', 'arandu-flow-map')) issues.push('Fluxo guiado não cria mapa da jornada.');
 if (!includes('js/arandu-flow.js', 'Próximo passo')) issues.push('Fluxo guiado não cria próximo passo contextual.');
-if (!includes('css/arandu-flow.css', 'arandu-flow-shell')) issues.push('CSS do fluxo guiado não estiliza a jornada.');
+if (!includes('css/arandu-runtime.css', 'arandu-flow-shell')) issues.push('Bundle CSS canônico não estiliza a jornada.');
 if (!includes('js/arandu-functions.js', 'arandu.compare.v1')) issues.push('Camada funcional não cria comparação de obras.');
 if (!includes('js/arandu-recent.js', 'arandu.recentlyViewed.v1')) issues.push('Camada de recentes não registra obras vistas.');
 if (!includes('js/arandu-journey.js', 'arandu.proposals.history.v1')) issues.push('Assistente de jornada não acompanha propostas locais.');
 if (!includes('js/arandu-usability.js', 'arandu-read-progress')) issues.push('Camada de usabilidade não cria progresso de leitura.');
 if (!includes('js/arandu-usability.js', 'arandu-help-panel')) issues.push('Camada de usabilidade não cria ajuda rápida.');
-if (!includes('css/arandu-visual-polish.css', 'arandu-journey-panel')) issues.push('Camada visual não estiliza assistente de jornada.');
-if (!includes('css/arandu-visual-polish.css', 'arandu-help-panel')) issues.push('Camada visual não estiliza ajuda rápida.');
+if (!includes('css/arandu-runtime.css', 'arandu-journey-panel')) issues.push('Camada visual não estiliza assistente de jornada.');
+if (!includes('css/arandu-runtime.css', 'arandu-help-panel')) issues.push('Camada visual não estiliza ajuda rápida.');
 if (!includes('js/selection-tools.js', 'data-share-selection')) issues.push('Minha seleção não possui compartilhamento por link.');
 if (!includes('js/selection-tools.js', 'selectionReadiness')) issues.push('Minha seleção não calcula prontidão de compra.');
 if (!includes('comparar-obras.html', 'data-compare-runtime')) issues.push('Página de comparação não possui área dinâmica.');

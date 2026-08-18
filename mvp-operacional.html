@@ -6,10 +6,9 @@
   <meta name="description" content="MVP operacional do Arandu: estratégia, captação de artistas, curadoria, reservas, validação e rotina de lançamento." />
   <title>MVP Operacional — Arandu</title>
   <link rel="stylesheet" href="css/arandu-system.css?v=20260608" />
-  <link rel="stylesheet" href="css/arandu-deep-clean.css?v=20260709-deep-clean-1" />
-  <link rel="stylesheet" href="css/arandu-mvp.css?v=20260713-mvp-1" />
+<link rel="stylesheet" href="css/arandu-mvp.css?v=20260713-mvp-1" />
 </head>
-<body class="mvp-operacional-page" data-page="mvp-operacional">
+<body class="mvp-operacional-page" data-page="mvp-operacional"><a class="skip-link" href="#conteudo-principal">Pular para o conteúdo</a>
   <header class="site-header">
     <div class="container header-inner">
       <a class="brand-logo" href="index.html">Arandu</a>
@@ -24,7 +23,7 @@
     </div>
   </header>
 
-  <main>
+  <main id="conteudo-principal">
     <section class="mvp-hero">
       <div class="container mvp-hero-grid">
         <div>
@@ -122,16 +121,16 @@
             <span class="mvp-kicker">Artista</span>
             <h3>Submissão curatorial</h3>
             <form class="mvp-form" data-mvp-form="submissao-artista">
-              <input name="nome_completo" placeholder="Nome completo" required />
-              <input name="nome_artistico" placeholder="Nome artístico" />
-              <div class="inline"><input name="cidade" placeholder="Cidade" /><input name="estado" placeholder="UF" /></div>
-              <input name="portfolio" placeholder="Link do portfólio" required />
-              <input name="instagram" placeholder="Instagram" />
-              <input name="email" type="email" placeholder="Email" required />
-              <input name="whatsapp" placeholder="WhatsApp" />
-              <select name="linguagens"><option>Pintura</option><option>Fotografia</option><option>Escultura/Objeto</option><option>Técnica mista</option></select>
-              <input name="faixa_preco" placeholder="Faixa de preço das obras" />
-              <textarea name="mensagem" placeholder="Resumo da pesquisa artística, território, memória, corpo, cidade, natureza ou técnica."></textarea>
+              <label class="u-visually-hidden" for="mvp-operacional-nome-completo-1">Nome completo</label><input id="mvp-operacional-nome-completo-1" name="nome_completo" placeholder="Nome completo" required />
+              <label class="u-visually-hidden" for="mvp-operacional-nome-artistico-2">Nome artístico</label><input id="mvp-operacional-nome-artistico-2" name="nome_artistico" placeholder="Nome artístico" />
+              <div class="inline"><label class="u-visually-hidden" for="mvp-operacional-cidade-3">Cidade</label><input id="mvp-operacional-cidade-3" name="cidade" placeholder="Cidade" /><label class="u-visually-hidden" for="mvp-operacional-estado-4">UF</label><input id="mvp-operacional-estado-4" name="estado" placeholder="UF" /></div>
+              <label class="u-visually-hidden" for="mvp-operacional-portfolio-5">Link do portfólio</label><input id="mvp-operacional-portfolio-5" name="portfolio" placeholder="Link do portfólio" required />
+              <label class="u-visually-hidden" for="mvp-operacional-instagram-6">Instagram</label><input id="mvp-operacional-instagram-6" name="instagram" placeholder="Instagram" />
+              <label class="u-visually-hidden" for="mvp-operacional-email-7">Email</label><input id="mvp-operacional-email-7" name="email" type="email" placeholder="Email" required  inputmode="email"/>
+              <label class="u-visually-hidden" for="mvp-operacional-whatsapp-8">WhatsApp</label><input id="mvp-operacional-whatsapp-8" name="whatsapp" placeholder="WhatsApp" />
+              <label class="u-visually-hidden" for="mvp-operacional-linguagens-9">linguagens</label><select id="mvp-operacional-linguagens-9" name="linguagens"><option>Pintura</option><option>Fotografia</option><option>Escultura/Objeto</option><option>Técnica mista</option></select>
+              <label class="u-visually-hidden" for="mvp-operacional-faixa-preco-10">Faixa de preço das obras</label><input id="mvp-operacional-faixa-preco-10" name="faixa_preco" placeholder="Faixa de preço das obras" />
+              <label class="u-visually-hidden" for="mvp-operacional-mensagem-11">Resumo da pesquisa artística, território, memória, corpo, cidade, natureza ou técnica.</label><textarea id="mvp-operacional-mensagem-11" name="mensagem" placeholder="Resumo da pesquisa artística, território, memória, corpo, cidade, natureza ou técnica."></textarea>
               <button class="cta" type="submit">Enviar para curadoria</button>
               <p class="mvp-status" data-mvp-status></p>
             </form>
@@ -140,12 +139,12 @@
             <span class="mvp-kicker">Comprador</span>
             <h3>Interesse de compra</h3>
             <form class="mvp-form" data-mvp-form="comprador-intencao">
-              <input name="nome" placeholder="Nome" required />
-              <input name="email" type="email" placeholder="Email" required />
-              <input name="whatsapp" placeholder="WhatsApp" />
-              <select name="orcamento"><option>Até R$ 1.000</option><option>R$ 1.001 a R$ 3.000</option><option>R$ 3.001 a R$ 8.000</option><option>R$ 8.001 a R$ 20.000</option><option>Acima de R$ 20.000</option></select>
-              <select name="intencao"><option>Primeira aquisição</option><option>Colecionador em formação</option><option>Obra para casa</option><option>Presente</option><option>Empresa ou escritório</option></select>
-              <textarea name="mensagem" placeholder="Conte que tipo de obra, tamanho, técnica ou ambiente você procura."></textarea>
+              <label class="u-visually-hidden" for="mvp-operacional-nome-12">Nome</label><input id="mvp-operacional-nome-12" name="nome" placeholder="Nome" required />
+              <label class="u-visually-hidden" for="mvp-operacional-email-13">Email</label><input id="mvp-operacional-email-13" name="email" type="email" placeholder="Email" required  inputmode="email"/>
+              <label class="u-visually-hidden" for="mvp-operacional-whatsapp-14">WhatsApp</label><input id="mvp-operacional-whatsapp-14" name="whatsapp" placeholder="WhatsApp" />
+              <label class="u-visually-hidden" for="mvp-operacional-orcamento-15">orcamento</label><select id="mvp-operacional-orcamento-15" name="orcamento"><option>Até R$ 1.000</option><option>R$ 1.001 a R$ 3.000</option><option>R$ 3.001 a R$ 8.000</option><option>R$ 8.001 a R$ 20.000</option><option>Acima de R$ 20.000</option></select>
+              <label class="u-visually-hidden" for="mvp-operacional-intencao-16">intencao</label><select id="mvp-operacional-intencao-16" name="intencao"><option>Primeira aquisição</option><option>Colecionador em formação</option><option>Obra para casa</option><option>Presente</option><option>Empresa ou escritório</option></select>
+              <label class="u-visually-hidden" for="mvp-operacional-mensagem-17">Conte que tipo de obra, tamanho, técnica ou ambiente você procura.</label><textarea id="mvp-operacional-mensagem-17" name="mensagem" placeholder="Conte que tipo de obra, tamanho, técnica ou ambiente você procura."></textarea>
               <button class="cta" type="submit">Registrar interesse</button>
               <p class="mvp-status" data-mvp-status></p>
             </form>
@@ -154,11 +153,11 @@
             <span class="mvp-kicker">Reserva</span>
             <h3>Compra assistida</h3>
             <form class="mvp-form" data-mvp-reservation-form>
-              <input name="nome" placeholder="Nome" required />
-              <input name="whatsapp" placeholder="WhatsApp" required />
-              <input name="artwork_id" placeholder="ID ou título da obra" required />
-              <select name="prazo"><option>24h</option><option selected>48h</option><option>72h</option></select>
-              <textarea name="mensagem" placeholder="Dúvidas sobre certificado, frete, pagamento, moldura ou disponibilidade."></textarea>
+              <label class="u-visually-hidden" for="mvp-operacional-nome-18">Nome</label><input id="mvp-operacional-nome-18" name="nome" placeholder="Nome" required />
+              <label class="u-visually-hidden" for="mvp-operacional-whatsapp-19">WhatsApp</label><input id="mvp-operacional-whatsapp-19" name="whatsapp" placeholder="WhatsApp" required />
+              <label class="u-visually-hidden" for="mvp-operacional-artwork-id-20">ID ou título da obra</label><input id="mvp-operacional-artwork-id-20" name="artwork_id" placeholder="ID ou título da obra" required />
+              <label class="u-visually-hidden" for="mvp-operacional-prazo-21">prazo</label><select id="mvp-operacional-prazo-21" name="prazo"><option>24h</option><option selected>48h</option><option>72h</option></select>
+              <label class="u-visually-hidden" for="mvp-operacional-mensagem-22">Dúvidas sobre certificado, frete, pagamento, moldura ou disponibilidade.</label><textarea id="mvp-operacional-mensagem-22" name="mensagem" placeholder="Dúvidas sobre certificado, frete, pagamento, moldura ou disponibilidade."></textarea>
               <button class="cta" type="submit">Solicitar reserva</button>
               <p class="mvp-status" data-mvp-status></p>
             </form>
@@ -167,14 +166,14 @@
             <span class="mvp-kicker">Parceiro</span>
             <h3>Briefing corporativo</h3>
             <form class="mvp-form" data-mvp-form="empresa-intencao">
-              <input name="nome" placeholder="Responsável" required />
-              <input name="empresa" placeholder="Empresa, escritório ou projeto" />
-              <input name="email" type="email" placeholder="Email" required />
-              <input name="whatsapp" placeholder="WhatsApp" />
-              <input name="ambiente" placeholder="Ambiente: recepção, hotel, sala, clínica..." />
-              <input name="orcamento" placeholder="Orçamento estimado" />
-              <input name="prazo" placeholder="Prazo desejado" />
-              <textarea name="mensagem" placeholder="Objetivo, tamanho do espaço, estilo, região e restrições."></textarea>
+              <label class="u-visually-hidden" for="mvp-operacional-nome-23">Responsável</label><input id="mvp-operacional-nome-23" name="nome" placeholder="Responsável" required />
+              <label class="u-visually-hidden" for="mvp-operacional-empresa-24">Empresa, escritório ou projeto</label><input id="mvp-operacional-empresa-24" name="empresa" placeholder="Empresa, escritório ou projeto" />
+              <label class="u-visually-hidden" for="mvp-operacional-email-25">Email</label><input id="mvp-operacional-email-25" name="email" type="email" placeholder="Email" required  inputmode="email"/>
+              <label class="u-visually-hidden" for="mvp-operacional-whatsapp-26">WhatsApp</label><input id="mvp-operacional-whatsapp-26" name="whatsapp" placeholder="WhatsApp" />
+              <label class="u-visually-hidden" for="mvp-operacional-ambiente-27">Ambiente: recepção, hotel, sala, clínica...</label><input id="mvp-operacional-ambiente-27" name="ambiente" placeholder="Ambiente: recepção, hotel, sala, clínica..." />
+              <label class="u-visually-hidden" for="mvp-operacional-orcamento-28">Orçamento estimado</label><input id="mvp-operacional-orcamento-28" name="orcamento" placeholder="Orçamento estimado" />
+              <label class="u-visually-hidden" for="mvp-operacional-prazo-29">Prazo desejado</label><input id="mvp-operacional-prazo-29" name="prazo" placeholder="Prazo desejado" />
+              <label class="u-visually-hidden" for="mvp-operacional-mensagem-30">Objetivo, tamanho do espaço, estilo, região e restrições.</label><textarea id="mvp-operacional-mensagem-30" name="mensagem" placeholder="Objetivo, tamanho do espaço, estilo, região e restrições."></textarea>
               <button class="cta" type="submit">Enviar briefing</button>
               <p class="mvp-status" data-mvp-status></p>
             </form>
@@ -196,7 +195,7 @@
           <div class="mvp-progress"><span></span></div>
           <p class="selection-summary" data-mvp-progress-label>0/25 entregas concluídas · 0%</p>
         </div>
-        <div class="mvp-grid-5" style="margin-top:18px">
+        <div class="mvp-grid-5 u-mt-18">
           <article class="mvp-card"><span class="mvp-kicker">Estratégia</span><div class="mvp-checklist"><button class="mvp-check" data-mvp-check="proposta">Proposta de valor fechada</button><button class="mvp-check" data-mvp-check="comissao">Comissão definida</button><button class="mvp-check" data-mvp-check="colecoes">3 coleções iniciais</button><button class="mvp-check" data-mvp-check="publicos">Públicos priorizados</button><button class="mvp-check" data-mvp-check="roadmap">Roadmap de 90 dias</button></div></article>
           <article class="mvp-card"><span class="mvp-kicker">Artistas</span><div class="mvp-checklist"><button class="mvp-check" data-mvp-check="lista-artistas">Lista de 30 artistas</button><button class="mvp-check" data-mvp-check="abordagem">Mensagem de abordagem</button><button class="mvp-check" data-mvp-check="triagem">Ficha de triagem</button><button class="mvp-check" data-mvp-check="termo-artista">Termo do artista</button><button class="mvp-check" data-mvp-check="onboarding">Onboarding pronto</button></div></article>
           <article class="mvp-card"><span class="mvp-kicker">Acervo</span><div class="mvp-checklist"><button class="mvp-check" data-mvp-check="obras">40 obras cadastradas</button><button class="mvp-check" data-mvp-check="imagens">Imagens revisadas</button><button class="mvp-check" data-mvp-check="precos">Preços defensáveis</button><button class="mvp-check" data-mvp-check="textos">Textos curatoriais</button><button class="mvp-check" data-mvp-check="certificados">Certificados emitíveis</button></div></article>
@@ -221,11 +220,11 @@
             <span class="mvp-kicker">Modelo financeiro</span>
             <h3>Calculadora do piloto</h3>
             <div class="mvp-calc">
-              <label class="mvp-calc-row"><span>Artistas ativos</span><input data-calc="artists" type="number" value="12" min="1" /></label>
-              <label class="mvp-calc-row"><span>Obras publicadas</span><input data-calc="works" type="number" value="50" min="1" /></label>
-              <label class="mvp-calc-row"><span>Ticket médio</span><input data-calc="ticket" type="number" value="3000" min="0" /></label>
-              <label class="mvp-calc-row"><span>Vendas/mês</span><input data-calc="sales" type="number" value="4" min="0" /></label>
-              <label class="mvp-calc-row"><span>Comissão Arandu (%)</span><input data-calc="commission" type="number" value="30" min="0" max="100" /></label>
+              <label class="mvp-calc-row"><span>Artistas ativos</span><input id="mvp-operacional-input-31" name="input" data-calc="artists" type="number" value="12" min="1"  inputmode="decimal"/></label>
+              <label class="mvp-calc-row"><span>Obras publicadas</span><input id="mvp-operacional-input-32" name="input" data-calc="works" type="number" value="50" min="1"  inputmode="decimal"/></label>
+              <label class="mvp-calc-row"><span>Ticket médio</span><input id="mvp-operacional-input-33" name="input" data-calc="ticket" type="number" value="3000" min="0"  inputmode="decimal"/></label>
+              <label class="mvp-calc-row"><span>Vendas/mês</span><input id="mvp-operacional-input-34" name="input" data-calc="sales" type="number" value="4" min="0"  inputmode="decimal"/></label>
+              <label class="mvp-calc-row"><span>Comissão Arandu (%)</span><input id="mvp-operacional-input-35" name="input" data-calc="commission" type="number" value="30" min="0" max="100"  inputmode="decimal"/></label>
               <div class="mvp-calc-result" data-calc-output></div>
             </div>
           </article>
@@ -233,20 +232,20 @@
             <span class="mvp-kicker">Rotina</span>
             <h3>Roadmap local de 8 semanas</h3>
             <div class="mvp-roadmap">
-              <label class="mvp-week"><strong>Semana 1</strong><textarea data-mvp-week="1">Fechar comissão, certificado e critérios curatoriais.</textarea></label>
-              <label class="mvp-week"><strong>Semana 2</strong><textarea data-mvp-week="2">Criar documentos, textos e abordagem de artistas.</textarea></label>
-              <label class="mvp-week"><strong>Semana 3</strong><textarea data-mvp-week="3">Prospectar artistas e revisar portfólios.</textarea></label>
-              <label class="mvp-week"><strong>Semana 4</strong><textarea data-mvp-week="4">Selecionar obras e padronizar ficha técnica.</textarea></label>
-              <label class="mvp-week"><strong>Semana 5</strong><textarea data-mvp-week="5">Cadastrar acervo, coleções e páginas de artista.</textarea></label>
-              <label class="mvp-week"><strong>Semana 6</strong><textarea data-mvp-week="6">Testar reserva, certificado, formulário e painel.</textarea></label>
-              <label class="mvp-week"><strong>Semana 7</strong><textarea data-mvp-week="7">Convidar compradores, arquitetos e parceiros.</textarea></label>
-              <label class="mvp-week"><strong>Semana 8</strong><textarea data-mvp-week="8">Consolidar feedback, reservas e primeiras vendas.</textarea></label>
+              <label class="mvp-week"><strong>Semana 1</strong><textarea id="mvp-operacional-textarea-36" name="textarea" data-mvp-week="1">Fechar comissão, certificado e critérios curatoriais.</textarea></label>
+              <label class="mvp-week"><strong>Semana 2</strong><textarea id="mvp-operacional-textarea-37" name="textarea" data-mvp-week="2">Criar documentos, textos e abordagem de artistas.</textarea></label>
+              <label class="mvp-week"><strong>Semana 3</strong><textarea id="mvp-operacional-textarea-38" name="textarea" data-mvp-week="3">Prospectar artistas e revisar portfólios.</textarea></label>
+              <label class="mvp-week"><strong>Semana 4</strong><textarea id="mvp-operacional-textarea-39" name="textarea" data-mvp-week="4">Selecionar obras e padronizar ficha técnica.</textarea></label>
+              <label class="mvp-week"><strong>Semana 5</strong><textarea id="mvp-operacional-textarea-40" name="textarea" data-mvp-week="5">Cadastrar acervo, coleções e páginas de artista.</textarea></label>
+              <label class="mvp-week"><strong>Semana 6</strong><textarea id="mvp-operacional-textarea-41" name="textarea" data-mvp-week="6">Testar reserva, certificado, formulário e painel.</textarea></label>
+              <label class="mvp-week"><strong>Semana 7</strong><textarea id="mvp-operacional-textarea-42" name="textarea" data-mvp-week="7">Convidar compradores, arquitetos e parceiros.</textarea></label>
+              <label class="mvp-week"><strong>Semana 8</strong><textarea id="mvp-operacional-textarea-43" name="textarea" data-mvp-week="8">Consolidar feedback, reservas e primeiras vendas.</textarea></label>
             </div>
             <div class="page-actions"><button class="cta secondary" type="button" data-mvp-export>Exportar roadmap</button></div>
           </article>
         </div>
 
-        <div class="mvp-grid-2" style="margin-top:24px">
+        <div class="mvp-grid-2 u-mt-24">
           <article class="mvp-card">
             <span class="mvp-kicker">Banco de dados</span>
             <h3>Views operacionais adicionadas</h3>
@@ -277,7 +276,7 @@
       <div><h2>Arandu</h2><p>Arte brasileira contemporânea com curadoria, território e procedência.</p></div>
       <div><p>Explorar</p><a href="comprar-arte.html">Comprar</a><a href="artistas.html">Artistas</a><a href="mvp-operacional.html">MVP operacional</a></div>
       <div><p>Contexto</p><a href="confianca.html">Confiança</a><a href="narrativa.html">Narrativa</a><a href="verificar-certificado.html">Verificar certificado</a></div>
-      <div><p>Operação</p><a href="painel.html">Painel</a><a href="para-artistas.html">Para artistas</a><a href="empresas.html">Empresas</a></div>
+      <div><p>Operação</p><a href="painel.html">Painel</a><a href="para-artistas.html">Para artistas</a><a href="empresas-e-arquitetos.html">Empresas</a></div>
     </div>
   </footer>
   <script src="js/site.js?v=20260713-mvp-1"></script>

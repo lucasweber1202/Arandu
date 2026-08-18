@@ -22,16 +22,6 @@ const configuredPilotEnabled = ['1','true','yes','sim'].includes(String(process.
 // o build inteiro falha antes de emitir qualquer página de demonstração.
 const configuredPresentationMode = assertPresentationModeIsSafe();
 const ASSET_VERSION = '20260608';
-const HARDENING_VERSION = '20260707-hardening-1';
-const POLISH_VERSION = '20260707-polish-1';
-const UX_VERSION = '20260708-ux-1';
-const UX_TUNE_VERSION = '20260708-ux-tune-1';
-const OP_VERSION = '20260709-operational-1';
-const NEXT_OPS_VERSION = '20260709-next-ops-1';
-const ADVANCED_VERSION = '20260709-advanced-1';
-const RESCUE_VERSION = '20260709-ui-rescue-1';
-const DEEP_CLEAN_VERSION = '20260709-deep-clean-1';
-const REFINEMENT_VERSION = '20260729-refinamento-1';
 
 function collectHtmlFiles(dir = root) {
   const entries = readdirSync(dir);
@@ -62,22 +52,6 @@ function cacheBustKnownAssets(html) {
     .replace(/href="\/css\/arandu-system\.css(\?v=[^"]*)?"/g, `href="/css/arandu-system.css?v=${ASSET_VERSION}"`)
     .replace(/href="css\/arandu-product\.css(\?v=[^"]*)?"/g, `href="css/arandu-product.css?v=${ASSET_VERSION}"`)
     .replace(/href="\/css\/arandu-product\.css(\?v=[^"]*)?"/g, `href="/css/arandu-product.css?v=${ASSET_VERSION}"`)
-    .replace(/href="css\/arandu-final-polish\.css(\?v=[^"]*)?"/g, `href="css/arandu-final-polish.css?v=${POLISH_VERSION}"`)
-    .replace(/href="\/css\/arandu-final-polish\.css(\?v=[^"]*)?"/g, `href="/css/arandu-final-polish.css?v=${POLISH_VERSION}"`)
-    .replace(/href="css\/arandu-ux-refresh\.css(\?v=[^"]*)?"/g, `href="css/arandu-ux-refresh.css?v=${UX_VERSION}"`)
-    .replace(/href="\/css\/arandu-ux-refresh\.css(\?v=[^"]*)?"/g, `href="/css/arandu-ux-refresh.css?v=${UX_VERSION}"`)
-    .replace(/href="css\/arandu-ux-final-tune\.css(\?v=[^"]*)?"/g, `href="css/arandu-ux-final-tune.css?v=${UX_TUNE_VERSION}"`)
-    .replace(/href="\/css\/arandu-ux-final-tune\.css(\?v=[^"]*)?"/g, `href="/css/arandu-ux-final-tune.css?v=${UX_TUNE_VERSION}"`)
-    .replace(/href="css\/arandu-operational-upgrade\.css(\?v=[^"]*)?"/g, `href="css/arandu-operational-upgrade.css?v=${OP_VERSION}"`)
-    .replace(/href="\/css\/arandu-operational-upgrade\.css(\?v=[^"]*)?"/g, `href="/css/arandu-operational-upgrade.css?v=${OP_VERSION}"`)
-    .replace(/href="css\/arandu-next-ops\.css(\?v=[^"]*)?"/g, `href="css/arandu-next-ops.css?v=${NEXT_OPS_VERSION}"`)
-    .replace(/href="\/css\/arandu-next-ops\.css(\?v=[^"]*)?"/g, `href="/css/arandu-next-ops.css?v=${NEXT_OPS_VERSION}"`)
-    .replace(/href="css\/arandu-advanced-features\.css(\?v=[^"]*)?"/g, `href="css/arandu-advanced-features.css?v=${ADVANCED_VERSION}"`)
-    .replace(/href="\/css\/arandu-advanced-features\.css(\?v=[^"]*)?"/g, `href="/css/arandu-advanced-features.css?v=${ADVANCED_VERSION}"`)
-    .replace(/href="css\/arandu-ui-rescue\.css(\?v=[^"]*)?"/g, `href="css/arandu-ui-rescue.css?v=${RESCUE_VERSION}"`)
-    .replace(/href="\/css\/arandu-ui-rescue\.css(\?v=[^"]*)?"/g, `href="/css/arandu-ui-rescue.css?v=${RESCUE_VERSION}"`)
-    .replace(/href="css\/arandu-deep-clean\.css(\?v=[^"]*)?"/g, `href="css/arandu-deep-clean.css?v=${DEEP_CLEAN_VERSION}"`)
-    .replace(/href="\/css\/arandu-deep-clean\.css(\?v=[^"]*)?"/g, `href="/css/arandu-deep-clean.css?v=${DEEP_CLEAN_VERSION}"`)
     .replace(/src="js\/site\.js(\?v=[^"]*)?"/g, `src="js/site.js?v=${ASSET_VERSION}"`)
     .replace(/src="\/js\/site\.js(\?v=[^"]*)?"/g, `src="/js/site.js?v=${ASSET_VERSION}"`);
 }
@@ -117,22 +91,9 @@ function injectSpeedInsights() {
 
 function injectGlobalAssets() {
   const productCssTag = `<link rel="stylesheet" href="/css/arandu-product.css?v=${ASSET_VERSION}">`;
-  const hardeningCssTag = `<link rel="stylesheet" href="/css/arandu-interface-hardening.css?v=${HARDENING_VERSION}">`;
-  const polishCssTag = `<link rel="stylesheet" href="/css/arandu-final-polish.css?v=${POLISH_VERSION}">`;
-  const uxCssTag = `<link rel="stylesheet" href="/css/arandu-ux-refresh.css?v=${UX_VERSION}">`;
-  const uxTuneCssTag = `<link rel="stylesheet" href="/css/arandu-ux-final-tune.css?v=${UX_TUNE_VERSION}">`;
-  const opCssTag = `<link rel="stylesheet" href="/css/arandu-operational-upgrade.css?v=${OP_VERSION}">`;
-  const nextOpsCssTag = `<link rel="stylesheet" href="/css/arandu-next-ops.css?v=${NEXT_OPS_VERSION}">`;
-  const advancedCssTag = `<link rel="stylesheet" href="/css/arandu-advanced-features.css?v=${ADVANCED_VERSION}">`;
-  const rescueCssTag = `<link rel="stylesheet" href="/css/arandu-ui-rescue.css?v=${RESCUE_VERSION}">`;
-  const deepCleanCssTag = `<link rel="stylesheet" href="/css/arandu-deep-clean.css?v=${DEEP_CLEAN_VERSION}">`;
-  const releaseCssTag = `<link rel="stylesheet" href="/css/arandu-release.css?v=20260717-release-1">`;
-  const clarityCssTag = `<link rel="stylesheet" href="/css/arandu-clarity.css?v=20260719-clarity-1">`;
+  const runtimeCssTag = '<link rel="stylesheet" href="/css/arandu-runtime.css?v=20260818-structural-1">';
   // Camada transversal de acessibilidade e polimento: entra por último para
   // vencer no empate de cascata contra as folhas históricas acima.
-  const refinementCssTag = `<link rel="stylesheet" href="/css/arandu-refinamento.css?v=${REFINEMENT_VERSION}">`;
-  const auditJsTag = `<script src="/js/arandu-interface-audit.js?v=${HARDENING_VERSION}" defer></script>`;
-  const assistantJsTag = `<script src="/js/arandu-assistant.js?v=${RESCUE_VERSION}" defer></script>`;
   const catalogSourceJsTag = `<script src="/js/catalog-source.js?v=20260717-catalog-release-1"></script>`;
   const pilotBootstrapTag = `<meta name="arandu-pilot-enabled" content="${configuredPilotEnabled ? 'true' : 'false'}">`;
   const pilotJsTag = `<script src="/js/pilot.js?v=20260717-pilot-1" defer></script>`;
@@ -154,18 +115,7 @@ function injectGlobalAssets() {
       });
       output = injectNativeSearch(output);
       if (!output.includes('/css/arandu-product.css')) output = output.includes('</head>') ? output.replace('</head>', `${productCssTag}</head>`) : `${productCssTag}${output}`;
-      if (!output.includes('/css/arandu-interface-hardening.css')) output = output.includes('</head>') ? output.replace('</head>', `${hardeningCssTag}</head>`) : `${hardeningCssTag}${output}`;
-      if (!output.includes('/css/arandu-final-polish.css')) output = output.includes('</head>') ? output.replace('</head>', `${polishCssTag}</head>`) : `${polishCssTag}${output}`;
-      if (!output.includes('/css/arandu-ux-refresh.css')) output = output.includes('</head>') ? output.replace('</head>', `${uxCssTag}</head>`) : `${uxCssTag}${output}`;
-      if (!output.includes('/css/arandu-ux-final-tune.css')) output = output.includes('</head>') ? output.replace('</head>', `${uxTuneCssTag}</head>`) : `${uxTuneCssTag}${output}`;
-      if (!output.includes('/css/arandu-operational-upgrade.css')) output = output.includes('</head>') ? output.replace('</head>', `${opCssTag}</head>`) : `${opCssTag}${output}`;
-      if (!output.includes('/css/arandu-next-ops.css')) output = output.includes('</head>') ? output.replace('</head>', `${nextOpsCssTag}</head>`) : `${output}${nextOpsCssTag}`;
-      if (!output.includes('/css/arandu-advanced-features.css')) output = output.includes('</head>') ? output.replace('</head>', `${advancedCssTag}</head>`) : `${output}${advancedCssTag}`;
-      if (!output.includes('/css/arandu-ui-rescue.css')) output = output.includes('</head>') ? output.replace('</head>', `${rescueCssTag}</head>`) : `${output}${rescueCssTag}`;
-      if (!output.includes('/css/arandu-deep-clean.css')) output = output.includes('</head>') ? output.replace('</head>', `${deepCleanCssTag}</head>`) : `${output}${deepCleanCssTag}`;
-      if (!output.includes('/css/arandu-release.css')) output = output.includes('</head>') ? output.replace('</head>', `${releaseCssTag}</head>`) : `${output}${releaseCssTag}`;
-      if (!output.includes('/css/arandu-clarity.css')) output = output.includes('</head>') ? output.replace('</head>', `${clarityCssTag}</head>`) : `${output}${clarityCssTag}`;
-      if (!output.includes('/css/arandu-refinamento.css')) output = output.includes('</head>') ? output.replace('</head>', `${refinementCssTag}</head>`) : `${output}${refinementCssTag}`;
+      if (!output.includes('/css/arandu-runtime.css')) output = output.includes('</head>') ? output.replace('</head>', `${runtimeCssTag}</head>`) : `${runtimeCssTag}${output}`;
       if (!output.includes('/js/catalog-source.js')) output = output.includes('</head>') ? output.replace('</head>', `${catalogSourceJsTag}</head>`) : `${catalogSourceJsTag}${output}`;
       if (!output.includes('name="arandu-pilot-enabled"')) output = output.includes('</head>') ? output.replace('</head>', `${pilotBootstrapTag}</head>`) : `${pilotBootstrapTag}${output}`;
       if (!output.includes('name="arandu-presentation-mode"')) output = output.includes('</head>') ? output.replace('</head>', `${presentationBootstrapTag}</head>`) : `${presentationBootstrapTag}${output}`;
@@ -185,3 +135,4 @@ export default defineConfig({
   plugins: [injectSpeedInsights(), injectGlobalAssets()],
   build: { rollupOptions: { input: htmlInputs } }
 });
+

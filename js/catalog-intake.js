@@ -6,7 +6,7 @@
   const fileInput=document.querySelector('[data-catalog-file]');
   let validated=[];
   const esc=(value)=>String(value??'').replace(/[&<>'"]/g,(character)=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[character]));
-  const image=(data)=>{const src=data.main_image_url||data.image_url;return src?'<img class="op-import-thumb" src="'+esc(src)+'" alt="Prévia do registro">':'';};
+  const image=(data)=>{const src=data.main_image_url||data.image_url;return src?'<img class="op-import-thumb" width="320" height="240" loading="lazy" decoding="async" src="'+esc(src)+'" alt="Prévia do registro">':'';};
   function render(list){
     validated=list;
     preview.innerHTML=list.length?list.map((entry)=>{

@@ -20,7 +20,7 @@
   function photoClass(index){return ['photo-earth','photo-sand','photo-open','photo-city'][index%4];}
   function matches(artist){const term=state.term.trim().toLowerCase(); const lang=state.language; const languageText=artist.languages.join(' ').toLowerCase(); return (!term||artist.search.includes(term))&&(lang==='todos'||languageText.includes(lang)||artist.search.includes(lang));}
   function sorted(list){const copy=[...list]; if(state.sort==='obras')copy.sort((a,b)=>b.count-a.count||a.name.localeCompare(b.name,'pt-BR')); else if(state.sort==='cidade')copy.sort((a,b)=>a.city.localeCompare(b.city,'pt-BR')); else copy.sort((a,b)=>a.name.localeCompare(b.name,'pt-BR')); return copy;}
-  function card(artist,index){const media=artist.image?'<div class="op-card-media"><img src="'+escapeHtml(artist.image)+'" alt="'+escapeHtml(artist.name)+'"></div>':'<div class="ux-artist-photo op-card-media '+photoClass(index)+'"></div>'; return '<a class="ux-artist-card" href="'+escapeHtml(artist.url)+'">'
+  function card(artist,index){const media=artist.image?'<div class="op-card-media"><img width="640" height="800" loading="lazy" decoding="async" src="'+escapeHtml(artist.image)+'" alt="'+escapeHtml(artist.name)+'"></div>':'<div class="ux-artist-photo op-card-media '+photoClass(index)+'"></div>'; return '<a class="ux-artist-card" href="'+escapeHtml(artist.url)+'">'
     + media
     + '<div class="op-artist-text"><strong>'+escapeHtml(artist.name)+'</strong><div class="ux-artist-meta"><span>'+escapeHtml([artist.city,artist.state].filter(Boolean).join(' · ')||'Brasil')+'</span><span class="op-artist-count">'+artist.count+' obra'+(artist.count===1?'':'s')+'</span></div>'
     + '<p>'+escapeHtml(artist.profile||'Trajetória em acompanhamento curatorial.')+'</p>'

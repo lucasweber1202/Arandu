@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="css/arandu-launch.css?v=20260625" />
   <link rel="stylesheet" href="css/arandu-admin.css?v=20260625" />
 </head>
-<body class="lovable-page architecture-clean admin-shell">
+<body class="lovable-page architecture-clean admin-shell"><a class="skip-link" href="#conteudo-principal">Pular para o conteúdo</a>
   <header class="site-header">
     <div class="container header-inner">
       <a class="brand-logo" href="index.html">Arandu</a>
@@ -23,13 +23,13 @@
         <a href="operacao.html">Operação</a>
         <a href="lancamento.html">Lançamento</a>
         <a href="status.html">Status técnico</a>
-        <a href="obras.html">Acervo</a>
+        <a href="comprar-arte.html">Acervo</a>
       </nav>
       <a class="cta" href="contato.html">Falar com a curadoria</a>
     </div>
   </header>
 
-  <main>
+  <main id="conteudo-principal">
     <section class="rect-hero">
       <div class="container rect-hero-grid">
         <div>
@@ -104,58 +104,58 @@
         </div>
 
         <form class="admin-form-grid" data-admin-create="artistas">
-          <input name="name" placeholder="Nome artístico" required />
-          <input name="legal_name" placeholder="Nome completo / razão social" />
-          <input name="city" placeholder="Cidade" />
-          <input name="state" placeholder="UF" />
-          <input name="region" placeholder="Região" />
-          <input name="languages" placeholder="Linguagens: pintura, fotografia..." />
-          <input name="axes" placeholder="Eixos curatoriais: território, memória..." />
-          <input name="artist_level" placeholder="emerging, developing ou established" />
-          <input class="wide" name="portfolio_url" placeholder="Link de portfólio" />
-          <input class="wide" name="instagram" placeholder="Instagram / site" />
-          <textarea class="wide" name="profile" placeholder="Perfil curto do artista"></textarea>
-          <textarea class="wide" name="trajectory" placeholder="Trajetória, séries e evolução"></textarea>
-          <textarea class="wide" name="statement" placeholder="Statement do artista"></textarea>
-          <input name="status" placeholder="Status inicial: in_review, approved ou published" />
+          <label class="u-visually-hidden" for="admin-name-1">Nome artístico</label><input id="admin-name-1" name="name" placeholder="Nome artístico" required />
+          <label class="u-visually-hidden" for="admin-legal-name-2">Nome completo / razão social</label><input id="admin-legal-name-2" name="legal_name" placeholder="Nome completo / razão social" />
+          <label class="u-visually-hidden" for="admin-city-3">Cidade</label><input id="admin-city-3" name="city" placeholder="Cidade" />
+          <label class="u-visually-hidden" for="admin-state-4">UF</label><input id="admin-state-4" name="state" placeholder="UF" />
+          <label class="u-visually-hidden" for="admin-region-5">Região</label><input id="admin-region-5" name="region" placeholder="Região" />
+          <label class="u-visually-hidden" for="admin-languages-6">Linguagens: pintura, fotografia...</label><input id="admin-languages-6" name="languages" placeholder="Linguagens: pintura, fotografia..." />
+          <label class="u-visually-hidden" for="admin-axes-7">Eixos curatoriais: território, memória...</label><input id="admin-axes-7" name="axes" placeholder="Eixos curatoriais: território, memória..." />
+          <label class="u-visually-hidden" for="admin-artist-level-8">emerging, developing ou established</label><input id="admin-artist-level-8" name="artist_level" placeholder="emerging, developing ou established" />
+          <label class="u-visually-hidden" for="admin-portfolio-url-9">Link de portfólio</label><input id="admin-portfolio-url-9" class="wide" name="portfolio_url" placeholder="Link de portfólio" />
+          <label class="u-visually-hidden" for="admin-instagram-10">Instagram / site</label><input id="admin-instagram-10" class="wide" name="instagram" placeholder="Instagram / site" />
+          <label class="u-visually-hidden" for="admin-profile-11">Perfil curto do artista</label><textarea id="admin-profile-11" class="wide" name="profile" placeholder="Perfil curto do artista"></textarea>
+          <label class="u-visually-hidden" for="admin-trajectory-12">Trajetória, séries e evolução</label><textarea id="admin-trajectory-12" class="wide" name="trajectory" placeholder="Trajetória, séries e evolução"></textarea>
+          <label class="u-visually-hidden" for="admin-statement-13">Statement do artista</label><textarea id="admin-statement-13" class="wide" name="statement" placeholder="Statement do artista"></textarea>
+          <label class="u-visually-hidden" for="admin-status-14">Status inicial: in_review, approved ou published</label><input id="admin-status-14" name="status" placeholder="Status inicial: in_review, approved ou published" />
           <button class="cta" type="submit">Cadastrar artista</button>
         </form>
 
         <form class="admin-form-grid" data-admin-create="obras">
-          <input name="title" placeholder="Título da obra" required />
-          <input name="artist_id" placeholder="ID do artista" required />
-          <input name="type" placeholder="Tipo: Pintura, Fotografia, Escultura..." />
-          <input name="technique" placeholder="Técnica" />
-          <input name="dimensions" placeholder="Dimensões" />
-          <input name="year" placeholder="Ano" />
-          <input name="price" placeholder="Preço numérico" />
-          <input name="price_label" placeholder="Preço exibido: R$ 4.200" />
-          <input name="status" placeholder="available, reserved, sold..." />
-          <input name="edition" placeholder="Obra única / edição limitada" />
-          <input class="wide" name="tags" placeholder="Tags separadas por vírgula" />
-          <textarea class="wide" name="summary" placeholder="Resumo curto para card e página da obra"></textarea>
-          <textarea class="wide" name="curatorial_note" placeholder="Leitura curatorial"></textarea>
+          <label class="u-visually-hidden" for="admin-title-15">Título da obra</label><input id="admin-title-15" name="title" placeholder="Título da obra" required />
+          <label class="u-visually-hidden" for="admin-artist-id-16">ID do artista</label><input id="admin-artist-id-16" name="artist_id" placeholder="ID do artista" required />
+          <label class="u-visually-hidden" for="admin-type-17">Tipo: Pintura, Fotografia, Escultura...</label><input id="admin-type-17" name="type" placeholder="Tipo: Pintura, Fotografia, Escultura..." />
+          <label class="u-visually-hidden" for="admin-technique-18">Técnica</label><input id="admin-technique-18" name="technique" placeholder="Técnica" />
+          <label class="u-visually-hidden" for="admin-dimensions-19">Dimensões</label><input id="admin-dimensions-19" name="dimensions" placeholder="Dimensões" />
+          <label class="u-visually-hidden" for="admin-year-20">Ano</label><input id="admin-year-20" name="year" placeholder="Ano" />
+          <label class="u-visually-hidden" for="admin-price-21">Preço numérico</label><input id="admin-price-21" name="price" placeholder="Preço numérico" />
+          <label class="u-visually-hidden" for="admin-price-label-22">Preço exibido: R$ 4.200</label><input id="admin-price-label-22" name="price_label" placeholder="Preço exibido: R$ 4.200" />
+          <label class="u-visually-hidden" for="admin-status-23">available, reserved, sold...</label><input id="admin-status-23" name="status" placeholder="available, reserved, sold..." />
+          <label class="u-visually-hidden" for="admin-edition-24">Obra única / edição limitada</label><input id="admin-edition-24" name="edition" placeholder="Obra única / edição limitada" />
+          <label class="u-visually-hidden" for="admin-tags-25">Tags separadas por vírgula</label><input id="admin-tags-25" class="wide" name="tags" placeholder="Tags separadas por vírgula" />
+          <label class="u-visually-hidden" for="admin-summary-26">Resumo curto para card e página da obra</label><textarea id="admin-summary-26" class="wide" name="summary" placeholder="Resumo curto para card e página da obra"></textarea>
+          <label class="u-visually-hidden" for="admin-curatorial-note-27">Leitura curatorial</label><textarea id="admin-curatorial-note-27" class="wide" name="curatorial_note" placeholder="Leitura curatorial"></textarea>
           <button class="cta" type="submit">Cadastrar obra</button>
         </form>
 
         <form class="admin-form-grid" data-admin-create="certificados">
-          <input name="code" placeholder="Código do certificado" required />
-          <input name="artwork_id" placeholder="ID da obra" required />
-          <input name="artist_id" placeholder="ID do artista" />
-          <input name="issued_to" placeholder="Emitido para" />
-          <input name="status" placeholder="draft, valid, under_review ou revoked" />
-          <textarea class="wide" name="criterios" placeholder="Notas de autenticação, ficha técnica e observações"></textarea>
+          <label class="u-visually-hidden" for="admin-code-28">Código do certificado</label><input id="admin-code-28" name="code" placeholder="Código do certificado" required />
+          <label class="u-visually-hidden" for="admin-artwork-id-29">ID da obra</label><input id="admin-artwork-id-29" name="artwork_id" placeholder="ID da obra" required />
+          <label class="u-visually-hidden" for="admin-artist-id-30">ID do artista</label><input id="admin-artist-id-30" name="artist_id" placeholder="ID do artista" />
+          <label class="u-visually-hidden" for="admin-issued-to-31">Emitido para</label><input id="admin-issued-to-31" name="issued_to" placeholder="Emitido para" />
+          <label class="u-visually-hidden" for="admin-status-32">draft, valid, under_review ou revoked</label><input id="admin-status-32" name="status" placeholder="draft, valid, under_review ou revoked" />
+          <label class="u-visually-hidden" for="admin-criterios-33">Notas de autenticação, ficha técnica e observações</label><textarea id="admin-criterios-33" class="wide" name="criterios" placeholder="Notas de autenticação, ficha técnica e observações"></textarea>
           <button class="cta" type="submit">Criar certificado</button>
         </form>
 
         <form class="admin-form-grid" data-admin-create="tasks">
-          <input name="title" placeholder="Título da tarefa" required />
-          <input name="entity_type" placeholder="Tipo: artist, artwork, lead..." />
-          <input name="entity_id" placeholder="ID relacionado" />
-          <input name="owner_name" placeholder="Responsável" />
-          <input name="due_at" type="datetime-local" />
-          <select name="priority"><option value="normal">normal</option><option value="high">alta</option><option value="low">baixa</option></select>
-          <select name="status"><option value="open">aberta</option><option value="doing">fazendo</option><option value="done">feita</option><option value="cancelled">cancelada</option></select>
+          <label class="u-visually-hidden" for="admin-title-34">Título da tarefa</label><input id="admin-title-34" name="title" placeholder="Título da tarefa" required />
+          <label class="u-visually-hidden" for="admin-entity-type-35">Tipo: artist, artwork, lead...</label><input id="admin-entity-type-35" name="entity_type" placeholder="Tipo: artist, artwork, lead..." />
+          <label class="u-visually-hidden" for="admin-entity-id-36">ID relacionado</label><input id="admin-entity-id-36" name="entity_id" placeholder="ID relacionado" />
+          <label class="u-visually-hidden" for="admin-owner-name-37">Responsável</label><input id="admin-owner-name-37" name="owner_name" placeholder="Responsável" />
+          <label class="u-visually-hidden" for="admin-due-at-38">due at</label><input id="admin-due-at-38" name="due_at" type="datetime-local" />
+          <label class="u-visually-hidden" for="admin-priority-39">priority</label><select id="admin-priority-39" name="priority"><option value="normal">normal</option><option value="high">alta</option><option value="low">baixa</option></select>
+          <label class="u-visually-hidden" for="admin-status-40">status</label><select id="admin-status-40" name="status"><option value="open">aberta</option><option value="doing">fazendo</option><option value="done">feita</option><option value="cancelled">cancelada</option></select>
           <button class="cta" type="submit">Criar tarefa</button>
         </form>
       </div>
@@ -166,7 +166,7 @@
     <div class="container footer-grid">
       <div><h2>Arandu</h2><p>Painel interno de curadoria, operação e lançamento.</p></div>
       <div><p>Operação</p><a href="operacao.html">Backoffice</a><a href="lancamento.html">Lançamento</a><a href="status.html">Status técnico</a></div>
-      <div><p>Acervo</p><a href="obras.html">Obras</a><a href="artistas.html">Artistas</a><a href="para-artistas.html">Para artistas</a></div>
+      <div><p>Acervo</p><a href="comprar-arte.html">Obras</a><a href="artistas.html">Artistas</a><a href="para-artistas.html">Para artistas</a></div>
       <div><p>Produção</p><a href="docs/SETUP_PRODUCAO.md">Setup</a><a href="docs/SUPABASE_OPERACAO.md">Supabase</a><a href="docs/GO_LIVE_ARANDU.md">Go-live</a></div>
     </div>
   </footer>

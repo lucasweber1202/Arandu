@@ -12,23 +12,22 @@
   function action(title,items){return '<section class="admin-kanban-column"><h3>'+esc(title)+' <small>'+items.length+'</small></h3>'+items.map((item)=>'<article class="admin-kanban-card"><strong>'+esc(item.title)+'</strong><p>'+esc(item.text)+'</p>'+(item.href?'<a href="'+esc(item.href)+'">Resolver</a>':'')+'</article>').join('')+'</section>';}
   async function load(){
     summary.innerHTML='<div class="op-empty"><strong>Carregando</strong><span>Consultando arquivos e endpoints públicos...</span></div>';
-    const [health,catalog,artists,certs,checklist,logoPng,logoSvg]=await Promise.all([
-      json('/api/health?probe=1',{}),json('/api/catalog',{}),json('/api/artists',{}),json('data/certificates.json',[]),json('data/launch-checklist.json',{}),exists('assets/logo-arandu.png'),exists('assets/logo-arandu.svg')
+    const [health,catalog,artists,checklist,logoPng,logoSvg]=await Promise.all([
+      json('/api/health?probe=1',{}),json('/api/catalog',{}),json('/api/artists',{}),json('data/launch-checklist.json',{}),exists('assets/logo-arandu.png'),exists('assets/logo-arandu.svg')
     ]);
     const healthData=health.data||{};
     const catalogItems=Array.isArray(catalog.data?.items)?catalog.data.items:(Array.isArray(catalog.data)?catalog.data:[]);
     const artistItems=Array.isArray(artists.data?.items)?artists.data.items:(Array.isArray(artists.data)?artists.data:[]);
-    const certItems=Array.isArray(certs.data)?certs.data:[];
     const checks=healthData.checks||{};
     const productionReady=Boolean(healthData.productionReady);
     const contact=contactOk();
     const hasEnoughCatalog=Boolean(healthData.verifiedReady&&catalog.data?.verifiedReady&&artists.data?.verifiedReady&&catalogItems.length>=20&&artistItems.length>=5);
-    const hasTrust=certItems.some((item)=>item.verification_status==='valid');
+    const hasTrust=catalogItems.some((item)=>item.certificate===true||item.certificate_id||item.registry_code);
     const hasLogo=logoPng||logoSvg;
     const cards=[
       card('Site público',true,'Home, compra, coleções, artistas, confiança, busca e narrativa estão navegáveis.','index.html'),
       card('Catálogo mínimo',hasEnoughCatalog,catalogItems.length+' obras e '+artistItems.length+' artistas carregados.','diagnostico-catalogo.html'),
-      card('Certificados',hasTrust,certItems.length+' registros de certificado encontrados.','certificado-imprimivel.html'),
+      card('Certificados',hasTrust,hasTrust?'Catálogo oficial contém obras certificadas.':'Nenhum certificado oficial confirmado pelo catálogo.','certificado-imprimivel.html'),
       card('Contato comercial',contact,contact?'WhatsApp ou e-mail central configurado.':'Configurar WhatsApp real ou e-mail de atendimento.','templates-comunicacao.html'),
       card('Supabase',Boolean(checks.supabaseUrl&&checks.supabaseAnonKey),checks.supabaseUrl?'Variáveis Supabase detectadas.':'Banco de produção ainda não configurado.','status.html'),
       card('Token admin',Boolean(checks.adminToken),checks.adminToken?'Sessão administrativa detectado.':'Configure sessão administrativa protegida na Vercel.','docs/VERCEL_ENV_SETUP.md'),

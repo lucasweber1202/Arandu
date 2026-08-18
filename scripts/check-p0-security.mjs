@@ -51,7 +51,12 @@ if (certificates.includes('data/certificates.json')) {
     issues.push('js/certificates.js: registro estático não é rotulado como demonstrativo.');
   }
 }
-requireText('scripts/copy-runtime-assets.mjs', "rmSync(demoCertificates)", 'base demonstrativa de certificados ainda é publicada.');
+['artworks.json', 'artists.json', 'certificates.json'].forEach((fixture) => {
+  requireText('scripts/copy-runtime-assets.mjs', fixture, `fixture ${fixture} não está coberta pela remoção do build normal`);
+});
+if (read('js/catalog-quality.js').includes('data/artworks.json') || read('js/catalog-quality.js').includes('data/artists.json')) {
+  issues.push('js/catalog-quality.js: diagnóstico interno ainda usa fixture demonstrativa.');
+}
 requireText('js/certificate-print.js', "verification_status:'não verificado'", 'impressão não falha de forma fechada.');
 
 requireText('js/forms.js', 'ARANDU_LOCAL_DRAFT_TTL_MS', 'rascunhos de formulário não possuem expiração.');
@@ -93,7 +98,7 @@ const uploadApi = read('api/upload.js');
 });
 if (uploadApi.includes("'x-upsert': 'true'")) issues.push('api/upload.js: upload ainda pode sobrescrever objeto existente.');
 
-const catchAll = read('api/[...path].js');
+const catchAll = [read('api/[...path].js'), ...fs.readdirSync('lib/api/domains').filter((file) => file.endsWith('.mjs')).map((file) => read(`lib/api/domains/${file}`))].join('\n');
 const formStart = catchAll.indexOf('function normalizeFormPayload(body)');
 const formEnd = catchAll.indexOf('function normalizeSelection', formStart);
 const formNormalizer = catchAll.slice(formStart, formEnd);

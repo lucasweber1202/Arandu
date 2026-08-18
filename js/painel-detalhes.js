@@ -7,7 +7,6 @@ function appendOperationalScript(id, src) { if (document.getElementById(id)) ret
 
 function loadCrmLite() {
   if (!document.body.dataset.operationalPanel) return;
-  if (!document.getElementById('painel-crm-lite-css')) { const link = document.createElement('link'); link.id = 'painel-crm-lite-css'; link.rel = 'stylesheet'; link.href = 'css/painel-crm-lite.css?v=20260612-crm-2'; document.head.appendChild(link); }
   appendOperationalScript('painel-crm-lite-js', 'js/painel-crm-lite.js?v=20260612-crm-2');
   appendOperationalScript('painel-edit-js', 'js/painel-edit.js?v=20260612-edit-1');
 }

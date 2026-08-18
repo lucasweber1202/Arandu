@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="css/arandu-system.css" />
   <link rel="stylesheet" href="css/arandu-admin.css" />
 </head>
-<body class="lovable-page architecture-clean login-page">
+<body class="lovable-page architecture-clean login-page"><a class="skip-link" href="#conteudo-principal">Pular para o conteúdo</a>
   <header class="site-header">
     <div class="container header-inner">
       <a class="brand-logo" href="index.html">Arandu</a>
@@ -19,7 +19,7 @@
       </nav>
     </div>
   </header>
-  <main>
+  <main id="conteudo-principal">
     <section class="portal-shell">
       <div class="container portal-layout">
         <div class="portal-card">
@@ -31,14 +31,14 @@
         <div class="portal-card">
           <form class="form-card" data-admin-login-form>
             <h2>Identificação</h2>
-            <input name="email" type="email" placeholder="E-mail administrativo" autocomplete="username" required />
-            <input name="password" type="password" placeholder="Senha" autocomplete="current-password" required />
+            <label class="u-visually-hidden" for="admin-login-email-1">E-mail administrativo</label><input id="admin-login-email-1" name="email" type="email" placeholder="E-mail administrativo" autocomplete="username" required  inputmode="email"/>
+            <label class="u-visually-hidden" for="admin-login-password-2">Senha</label><input id="admin-login-password-2" name="password" type="password" placeholder="Senha" autocomplete="current-password" required />
             <button type="submit">Entrar</button>
           </form>
           <form class="form-card" data-admin-mfa-form hidden>
             <h2>Segundo fator</h2>
             <p>Informe o código de seis dígitos do seu autenticador.</p>
-            <input name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required />
+            <label class="u-visually-hidden" for="admin-login-code-3">code</label><input id="admin-login-code-3" name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required />
             <button type="submit">Confirmar código</button>
           </form>
           <p class="admin-status" data-admin-auth-status aria-live="polite"></p>

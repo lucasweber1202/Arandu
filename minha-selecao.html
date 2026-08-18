@@ -13,17 +13,17 @@
   <link rel="stylesheet" href="css/arandu-architecture.css?v=20260610-public-shell-1" />
   <link rel="stylesheet" href="css/arandu-clean.css?v=20260610-public-shell-1" />
 </head>
-<body class="lovable-page selection-page architecture-clean">
+<body class="lovable-page selection-page architecture-clean"><a class="skip-link" href="#conteudo-principal">Pular para o conteúdo</a>
   <header class="site-header">
     <div class="container header-inner">
       <a class="brand-logo" href="index.html">Arandu</a>
       <nav class="site-nav">
         <a href="comprar-arte.html">Comprar arte</a>
-        <a href="acervo.html">Acervo</a>
-        <a href="empresas.html">Empresas</a>
+        <a href="comprar-arte.html">Acervo</a>
+        <a href="empresas-e-arquitetos.html">Empresas</a>
         <a href="confianca.html">Confiança</a>
         <a href="narrativa.html">Narrativa</a>
-        <a href="obras.html">Explorar</a>
+        <a href="comprar-arte.html">Explorar</a>
       </nav>
       <a class="cta" href="contato.html">Falar com a curadoria</a>
     </div>
@@ -35,16 +35,16 @@
           <p class="eyebrow">Minha seleção</p>
           <h1 class="title">O momento em que o olhar vira intenção.</h1>
           <p class="lead short-lead">Salve obras, organize contexto e transforme escolhas em proposta ou conversa curatorial.</p>
-          <div class="page-actions"><a class="cta" href="obras.html">Adicionar obras</a><a class="cta secondary" href="proposta-curatorial.html">Gerar proposta</a><a class="cta secondary search-trigger" href="pesquisa.html">Pesquisar</a></div>
+          <div class="page-actions"><a class="cta" href="comprar-arte.html">Adicionar obras</a><a class="cta secondary" href="proposta-curatorial.html">Gerar proposta</a><a class="cta secondary search-trigger" href="pesquisa.html">Pesquisar</a></div>
         </div>
         <div class="proposal-object"><span>Seleção</span><strong><span data-selection-count>0</span> obras</strong><small>salvas para comparação, proposta ou reserva</small></div>
       </div>
     </section>
-    <section class="experience-rail"><div class="container rail-grid"><a href="obras.html"><span>01</span>Olhar</a><a href="#briefing"><span>02</span>Contexto</a><a href="#obras-salvas"><span>03</span>Comparar</a><a href="proposta-curatorial.html"><span>04</span>Propor</a></div></section>
+    <section class="experience-rail"><div class="container rail-grid"><a href="comprar-arte.html"><span>01</span>Olhar</a><a href="#briefing"><span>02</span>Contexto</a><a href="#obras-salvas"><span>03</span>Comparar</a><a href="proposta-curatorial.html"><span>04</span>Propor</a></div></section>
     <section class="section section-muted" id="briefing">
       <div class="container briefing-gallery">
         <div><p class="eyebrow">Briefing da seleção</p><h2 class="section-title">Antes das obras, conte o espaço.</h2><p class="lead">Essas informações ajudam a transformar obras salvas em leitura curatorial, proposta e próximos passos.</p><div class="proposal-preview" data-briefing-preview><h3>Briefing em formação</h3><p>Preencha ambiente, orçamento e intenção para criar uma mensagem mais completa.</p></div></div>
-        <form class="form-card" data-briefing-form><h3>Contexto da compra</h3><input name="ambiente" data-briefing-field placeholder="Ambiente: casa, clínica, recepção..." /><input name="orcamento" data-briefing-field placeholder="Orçamento confortável"/><input name="prazo" data-briefing-field placeholder="Prazo"/><input name="dimensao" data-briefing-field placeholder="Dimensão / parede"/><input name="sensacao" data-briefing-field placeholder="Sensação desejada"/><textarea name="observacoes" data-briefing-field placeholder="Conte onde a obra ficaria, o que chamou atenção e qual dúvida quer resolver"></textarea><button class="button secondary" type="button" data-copy-briefing>Copiar briefing</button></form>
+        <form class="form-card" data-briefing-form><h3>Contexto da compra</h3><label class="u-visually-hidden" for="minha-selecao-ambiente-1">Ambiente: casa, clínica, recepção...</label><input id="minha-selecao-ambiente-1" name="ambiente" data-briefing-field placeholder="Ambiente: casa, clínica, recepção..." /><label class="u-visually-hidden" for="minha-selecao-orcamento-2">Orçamento confortável</label><input id="minha-selecao-orcamento-2" name="orcamento" data-briefing-field placeholder="Orçamento confortável"/><label class="u-visually-hidden" for="minha-selecao-prazo-3">Prazo</label><input id="minha-selecao-prazo-3" name="prazo" data-briefing-field placeholder="Prazo"/><label class="u-visually-hidden" for="minha-selecao-dimensao-4">Dimensão / parede</label><input id="minha-selecao-dimensao-4" name="dimensao" data-briefing-field placeholder="Dimensão / parede"/><label class="u-visually-hidden" for="minha-selecao-sensacao-5">Sensação desejada</label><input id="minha-selecao-sensacao-5" name="sensacao" data-briefing-field placeholder="Sensação desejada"/><label class="u-visually-hidden" for="minha-selecao-observacoes-6">Conte onde a obra ficaria, o que chamou atenção e qual dúvida quer resolver</label><textarea id="minha-selecao-observacoes-6" name="observacoes" data-briefing-field placeholder="Conte onde a obra ficaria, o que chamou atenção e qual dúvida quer resolver"></textarea><button class="button secondary" type="button" data-copy-briefing>Copiar briefing</button></form>
       </div>
     </section>
     <section class="section" id="obras-salvas">
@@ -54,10 +54,10 @@
           <h2 class="section-title">Sua seleção atual.</h2>
           <p class="selection-summary">Obras salvas: <span data-selection-count>0</span></p>
           <div data-selection-list></div>
-          <div class="selection-actions"><a class="cta secondary" href="obras.html">Voltar ao acervo</a><a class="cta secondary" href="proposta-curatorial.html">Gerar proposta</a><button class="button secondary" type="button" data-show-selection-comparison>Comparar</button><button class="button secondary" type="button" data-download-selection>Baixar</button><button class="button secondary" type="button" data-copy-selection>Copiar</button><button class="button secondary" type="button" data-whatsapp="selection">WhatsApp</button><button class="button secondary" type="button" data-clear-selection>Limpar</button></div>
+          <div class="selection-actions"><a class="cta secondary" href="comprar-arte.html">Voltar ao acervo</a><a class="cta secondary" href="proposta-curatorial.html">Gerar proposta</a><button class="button secondary" type="button" data-show-selection-comparison>Comparar</button><button class="button secondary" type="button" data-download-selection>Baixar</button><button class="button secondary" type="button" data-copy-selection>Copiar</button><button class="button secondary" type="button" data-whatsapp="selection">WhatsApp</button><button class="button secondary" type="button" data-clear-selection>Limpar</button></div>
           <p class="selection-summary" data-selection-sync-status></p>
         </div>
-        <form class="form-card" data-form-type="selecao"><h3>Pedir leitura da curadoria</h3><input name="nome" placeholder="Nome" required/><input name="email" placeholder="Email"/><input name="whatsapp" placeholder="Telefone / WhatsApp" required/><input name="orcamento" placeholder="Orçamento estimado"/><textarea name="mensagem" placeholder="Explique por que salvou essas obras e qual dúvida quer resolver"></textarea><button type="submit">Receber orientação</button></form>
+        <form class="form-card" data-form-type="selecao"><h3>Pedir leitura da curadoria</h3><label class="u-visually-hidden" for="minha-selecao-nome-7">Nome</label><input id="minha-selecao-nome-7" name="nome" placeholder="Nome" required/><label class="u-visually-hidden" for="minha-selecao-email-8">Email</label><input id="minha-selecao-email-8" name="email" placeholder="Email"/><label class="u-visually-hidden" for="minha-selecao-whatsapp-9">Telefone / WhatsApp</label><input id="minha-selecao-whatsapp-9" name="whatsapp" placeholder="Telefone / WhatsApp" required/><label class="u-visually-hidden" for="minha-selecao-orcamento-10">Orçamento estimado</label><input id="minha-selecao-orcamento-10" name="orcamento" placeholder="Orçamento estimado"/><label class="u-visually-hidden" for="minha-selecao-mensagem-11">Explique por que salvou essas obras e qual dúvida quer resolver</label><textarea id="minha-selecao-mensagem-11" name="mensagem" placeholder="Explique por que salvou essas obras e qual dúvida quer resolver"></textarea><button type="submit">Receber orientação</button></form>
       </div>
     </section>
     <section class="section"><div class="container" data-curatorial-reading></div></section>
@@ -66,8 +66,8 @@
   <footer class="site-footer">
     <div class="container footer-grid">
       <div><h2>Arandu</h2><p>Arte brasileira contemporânea com curadoria, território e procedência.</p></div>
-      <div><p>Comprar</p><a href="comprar-arte.html">Comprar arte</a><a href="obras.html">Explorar obras</a><a href="minha-selecao.html">Minha seleção</a></div>
-      <div><p>Acervo</p><a href="acervo.html">Obras e artistas</a><a href="artistas.html">Artistas</a><a href="para-artistas.html">Para artistas</a></div>
+      <div><p>Comprar</p><a href="comprar-arte.html">Comprar arte</a><a href="comprar-arte.html">Explorar obras</a><a href="minha-selecao.html">Minha seleção</a></div>
+      <div><p>Acervo</p><a href="comprar-arte.html">Obras e artistas</a><a href="artistas.html">Artistas</a><a href="para-artistas.html">Para artistas</a></div>
       <div><p>Confiança</p><a href="confianca.html">Critérios</a><a href="verificar-certificado.html">Verificar certificado</a><a href="contato.html">Contato</a></div>
     </div>
   </footer>
