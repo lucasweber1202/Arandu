@@ -30,12 +30,12 @@ jobs:
           --health-retries 10
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Setup Node
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 24
 
@@ -54,12 +54,12 @@ jobs:
       ARANDU_SITE_URL: https://arandu.example.com
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Setup Node
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 24
           cache: npm
@@ -69,6 +69,17 @@ jobs:
 
       - name: Audit high-severity dependency vulnerabilities
         run: npm run audit:ci
+
+      - name: Generate CycloneDX SBOM
+        run: npm run sbom:ci
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: arandu-sbom-${{ github.sha }}
+          path: reports/arandu-sbom.cdx.json
+          if-no-files-found: error
+          retention-days: 30
 
       - name: Full source, contract and governance checks
         run: npm run check:all
@@ -102,7 +113,7 @@ jobs:
 
       - name: Upload browser evidence on failure
         if: failure()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: arandu-playwright-evidence
           path: |
@@ -119,12 +130,12 @@ jobs:
       ARANDU_SITE_URL: https://arandu.example.com
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Setup Node
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 24
           cache: npm
@@ -152,4 +163,3 @@ jobs:
           test "$status" -ne 0
           grep -q "Arandu Release Status" /tmp/arandu-predeploy.log
           grep -q "BLOQUEADO" /tmp/arandu-predeploy.log
-

@@ -19,10 +19,15 @@ Marque somente o que foi realmente executado.
 
 - [ ] `npm ci --include=optional`
 - [ ] `npm run audit:ci`
+- [ ] `npm run sbom:ci`
 - [ ] `npm run check:all`
 - [ ] `npm run build`
+- [ ] `npm run check:dist-assets`
+- [ ] `npm run check:build-size`
+- [ ] `npm run check:seo:dist`
 - [ ] `npm run test:e2e:list`
 - [ ] `npm run test:e2e`
+- [ ] `npm run test:e2e:presentation`
 - [ ] `npm run test:database`
 - [ ] `git diff --check`
 

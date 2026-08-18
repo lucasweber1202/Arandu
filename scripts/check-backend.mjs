@@ -13,6 +13,8 @@ const requiredFiles = [
   'api/commercial.js',
   'api/mvp-dashboard.js',
   'api/upload.js',
+  'lib/api-core.mjs',
+  'lib/api-dtos.mjs',
   'status.html',
   'js/status.js',
   'js/admin-login.js',
@@ -39,7 +41,9 @@ const requiredFiles = [
   'docs/supabase-sprint6-12-platform.sql',
   'docs/supabase-migrations.json',
   'docs/SUPABASE_OPERACAO.md',
-  'scripts/seed-supabase.mjs'
+  'scripts/seed-supabase.mjs',
+  'scripts/test-api-core.mjs',
+  'scripts/test-api-dtos.mjs'
 ];
 
 const removedServerlessFiles = [
@@ -70,6 +74,16 @@ removedServerlessFiles.forEach((file) => { if (fs.existsSync(file)) issues.push(
 function includes(file, term) { return fs.existsSync(file) && fs.readFileSync(file, 'utf8').includes(term); }
 
 const api = 'api/[...path].js';
+if (fs.existsSync(api)) {
+  const apiSource = fs.readFileSync(api, 'utf8');
+  const apiLines = apiSource.split(/\r?\n/).length;
+  if (apiLines > 1700) issues.push(`API consolidada voltou a exceder o budget incremental de 1700 linhas: ${apiLines}.`);
+  if (!apiSource.includes("from '../lib/api-core.mjs'")) issues.push('API consolidada não usa o núcleo HTTP compartilhado.');
+  if (!apiSource.includes("from '../lib/api-dtos.mjs'")) issues.push('API consolidada não usa DTOs separados por allowlist.');
+  for (const declaration of ['class HttpError', 'function readBody(', 'function normalizeFormPayload(', 'function normalizeSelection(']) {
+    if (apiSource.includes(declaration)) issues.push(`API consolidada reintroduziu responsabilidade extraída: ${declaration}.`);
+  }
+}
 ['forms','reservations','proposals','certificates','certificate-document','catalog','artists','public-config','events','conversion-events','catalog-review','privacy/export','privacy/request','pilot','admin','admin-update','operational','media','selections','account','dashboard','auth/session','auth/login','auth/signup','auth/reset-password','auth/logout'].forEach((route) => {
   if (!includes(api, route.split('/')[0])) issues.push(`API consolidada não cobre a rota: /api/${route}`);
 });

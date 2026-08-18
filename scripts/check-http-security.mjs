@@ -88,6 +88,41 @@ const apiHeaders = headersFor('/api/(.*)');
 if (!String(apiHeaders.get('Cache-Control') || '').includes('no-store')) {
   issues.push('vercel.json: respostas de /api precisam de Cache-Control no-store.');
 }
+
+const publicHtmlHeaders = headersFor('/(.*).html');
+const publicBrowserCache = String(publicHtmlHeaders.get('Cache-Control') || '');
+const publicCdnCache = String(publicHtmlHeaders.get('Vercel-CDN-Cache-Control') || '');
+if (!publicBrowserCache.includes('max-age=0') || publicBrowserCache.includes('no-store')) {
+  issues.push('vercel.json: HTML público deve revalidar no navegador sem usar no-store global.');
+}
+if (!publicCdnCache.includes('max-age=300') || !publicCdnCache.includes('stale-while-revalidate=86400')) {
+  issues.push('vercel.json: HTML público precisa de cache curto na CDN com stale-while-revalidate.');
+}
+
+const internalRule = (vercel.headers || []).find((entry) => entry.source.includes('admin-preview|admin|artista-editor'));
+const internalHeaders = new Map((internalRule?.headers || []).map((header) => [header.key, header.value]));
+if (!String(internalHeaders.get('Cache-Control') || '').includes('no-store')) {
+  issues.push('vercel.json: superfícies internas HTML precisam permanecer no-store.');
+}
+if (internalHeaders.get('Vercel-CDN-Cache-Control') !== 'no-store') {
+  issues.push('vercel.json: CDN não pode armazenar superfícies internas HTML.');
+}
+if (!String(internalHeaders.get('X-Robots-Tag') || '').includes('noindex')) {
+  issues.push('vercel.json: superfícies internas HTML precisam permanecer noindex.');
+}
+const genericIndex = (vercel.headers || []).findIndex((entry) => entry.source === '/(.*).html');
+const internalIndex = (vercel.headers || []).indexOf(internalRule);
+if (genericIndex < 0 || internalIndex <= genericIndex) {
+  issues.push('vercel.json: regra privada deve vir depois do cache HTML genérico para sobrescrevê-lo.');
+}
+const protectedInternalPages = new Set(String(internalRule?.source || '').replace(/^\/\(/, '').replace(/\)\.html$/, '').split('|').filter(Boolean));
+const rewrittenInternalPages = new Set((vercel.rewrites || []).map((rewrite) => String(rewrite.source || '').match(/^\/([^/]+)\.html$/)?.[1]).filter(Boolean));
+for (const page of rewrittenInternalPages) {
+  if (!protectedInternalPages.has(page)) issues.push(`vercel.json: rewrite interno ${page}.html ficou fora da regra privada de cache.`);
+}
+for (const page of protectedInternalPages) {
+  if (!rewrittenInternalPages.has(page)) issues.push(`vercel.json: proteção privada sem rewrite correspondente: ${page}.html.`);
+}
 if (!String(apiHeaders.get('X-Robots-Tag') || '').includes('noindex')) {
   issues.push('vercel.json: respostas de /api precisam de X-Robots-Tag noindex.');
 }
@@ -110,7 +145,10 @@ const originCases = [
   ['POST sem Origin (cliente não-navegador)', fakeRequest('POST', { host: 'arandu.art' }), false],
   ['GET de outra origem', fakeRequest('GET', { host: 'arandu.art', origin: 'https://malicioso.example' }), false],
   ['POST de mesma origem', fakeRequest('POST', { host: 'arandu.art', origin: 'https://arandu.art' }), false],
-  ['POST via x-forwarded-host', fakeRequest('POST', { host: 'interno', 'x-forwarded-host': 'arandu.art', origin: 'https://arandu.art' }), false],
+  ['POST ignora x-forwarded-host conflitante', fakeRequest('POST', { host: 'arandu.art', 'x-forwarded-host': 'malicioso.example', origin: 'https://arandu.art' }), false],
+  ['POST não confia só em x-forwarded-host', fakeRequest('POST', { host: 'interno', 'x-forwarded-host': 'arandu.art', origin: 'https://arandu.art' }), true],
+  ['POST com protocolo divergente', fakeRequest('POST', { host: 'arandu.art', 'x-forwarded-proto': 'https', origin: 'http://arandu.art' }), true],
+  ['POST com host malformado', fakeRequest('POST', { host: 'arandu.art@malicioso.example', origin: 'https://arandu.art' }), true],
   ['POST de outra origem', fakeRequest('POST', { host: 'arandu.art', origin: 'https://malicioso.example' }), true],
   ['DELETE de outra origem', fakeRequest('DELETE', { host: 'arandu.art', origin: 'https://malicioso.example' }), true],
   ['POST com Sec-Fetch-Site cross-site', fakeRequest('POST', { host: 'arandu.art', 'sec-fetch-site': 'cross-site' }), true],
@@ -145,11 +183,16 @@ Object.entries(GUARDED_APIS).forEach(([file, needle]) => {
   }
 });
 
-['api/[...path].js', 'api/admin-auth.js', 'api/collections.js', 'api/commercial.js', 'api/mvp-dashboard.js', 'api/readiness.js', 'api/upload.js'].forEach((file) => {
+['api/admin-auth.js', 'api/collections.js', 'api/commercial.js', 'api/mvp-dashboard.js', 'api/readiness.js', 'api/upload.js'].forEach((file) => {
   if (fs.existsSync(file) && !fs.readFileSync(file, 'utf8').includes('applyApiSecurityHeaders')) {
     issues.push(`${file}: respostas sem os cabeçalhos de segurança compartilhados.`);
   }
 });
+const catchAllSource = fs.readFileSync('api/[...path].js', 'utf8');
+const apiCoreSource = fs.readFileSync('lib/api-core.mjs', 'utf8');
+if (!catchAllSource.includes("from '../lib/api-core.mjs'") || !apiCoreSource.includes('applyApiSecurityHeaders')) {
+  issues.push('api/[...path].js: respostas não estão ligadas ao núcleo HTTP seguro.');
+}
 
 // --- A API bloqueia de verdade uma escrita cross-origin ---------------------
 

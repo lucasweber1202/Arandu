@@ -130,7 +130,16 @@
     {
       "source": "/(.*).html",
       "headers": [
-        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate, proxy-revalidate" }
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" },
+        { "key": "Vercel-CDN-Cache-Control", "value": "public, max-age=300, stale-while-revalidate=86400, stale-if-error=86400" }
+      ]
+    },
+    {
+      "source": "/(admin-preview|admin|artista-editor|benchmark-conversao|calendario-editorial|catalogo-intake|certificados-admin|certificado-imprimivel|checklist-lancamento|colecoes-admin|configuracao|demo|diagnostico-catalogo|dominio-go-live|editor-registro|funil-comercial|go-live|historico-artista|historico-obra|kanban-comercial|lancamento|lead-detalhe|mvp-operacional|obra-editor|operacao-obras|operacao|painel-admin|painel-artistas|painel-briefings|painel-cadastros|painel-certificados|painel-leads|painel-mvp|painel-obras|painel-pedidos|painel-piloto|painel-propostas|painel-qualidade|painel-reservas|painel-submissoes|painel-tarefas|painel|piloto|propostas-admin|proposta-pdf|prospeccao-artistas|revisao-catalogo|status|templates-comunicacao|upload-imagens).html",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate, proxy-revalidate" },
+        { "key": "Vercel-CDN-Cache-Control", "value": "no-store" },
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" }
       ]
     },
     {

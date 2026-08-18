@@ -13,6 +13,7 @@ const flow = String(args.get('--flow') || 'existingDatabase');
 const operator = String(args.get('--operator') || '').trim();
 const backupReference = String(args.get('--backup-reference') || process.env.ARANDU_STAGING_BACKUP_REFERENCE || '').trim();
 const restoreReference = String(args.get('--restore-reference') || process.env.ARANDU_STAGING_RESTORE_REFERENCE || '').trim();
+const restoreEvidence = String(args.get('--restore-evidence') || 'reports/backup-restore-verification.json').trim();
 const confirmation = String(args.get('--confirm') || '').trim();
 const stagingDatabaseUrl = String(process.env.ARANDU_STAGING_DATABASE_URL || '').trim();
 const stagingSiteUrl = String(process.env.ARANDU_STAGING_SITE_URL || '').trim();
@@ -60,7 +61,9 @@ run([
   `--flow=${flow}`,
   '--environment=staging',
   `--operator=${operator}`,
-  `--backup-reference=${backupReference}`
+  `--backup-reference=${backupReference}`,
+  `--restore-reference=${restoreReference}`,
+  `--restore-evidence=${restoreEvidence}`
 ]);
 
 run(['run', 'check:live', '--', stagingSiteUrl]);
@@ -72,6 +75,8 @@ if (migrationReport.status !== 'applied_and_probed') {
 }
 const environmentReportFile = path.join(root, 'reports', 'staging-environment.json');
 if (!fs.existsSync(environmentReportFile)) fail('Relatório de validação do ambiente não foi gerado.');
+const restoreReportFile = path.resolve(root, restoreEvidence);
+if (!fs.existsSync(restoreReportFile)) fail('Relatório de backup/restore não foi encontrado.');
 
 fs.mkdirSync(path.dirname(reportPath), { recursive: true });
 const evidence = {
@@ -86,6 +91,9 @@ const evidence = {
     .digest('hex'),
   environmentReportSha256: createHash('sha256')
     .update(fs.readFileSync(environmentReportFile))
+    .digest('hex'),
+  restoreReportSha256: createHash('sha256')
+    .update(fs.readFileSync(restoreReportFile))
     .digest('hex'),
   migrationStatus: migrationReport.status,
   promotesReleaseGates: false,
