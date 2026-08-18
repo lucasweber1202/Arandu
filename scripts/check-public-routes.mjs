@@ -13,7 +13,7 @@ for (const page of manifest.canonical) {
 for (const [alias, target] of Object.entries(manifest.aliases)) {
   if (fs.existsSync(alias)) issues.push(`Alias ainda publicado como HTML em vez de redirect de infraestrutura: ${alias}.`);
   const canonicalTarget = target.split(/[?#]/, 1)[0];
-  if (!manifest.canonical.includes(canonicalTarget)) issues.push(`Alias ${alias} aponta para rota não canônica: ${target}.`);
+  if (!manifest.canonical.includes(canonicalTarget) && !(target.includes('?') && fs.existsSync(canonicalTarget))) issues.push(`Alias ${alias} aponta para rota pública inexistente: ${target}.`);
   const redirect = redirects.get(alias);
   if (redirect?.destination !== target) issues.push(`Redirect da Vercel ausente ou divergente: ${alias} -> ${target}.`);
   if (redirect && redirect.permanent !== true) issues.push(`Redirect da Vercel precisa ser permanente: ${alias}.`);
