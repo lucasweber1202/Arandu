@@ -192,7 +192,10 @@ process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-operational-test';
 delete process.env.VERCEL_ENV;
 delete process.env.ARANDU_DISTRIBUTED_RATE_LIMIT;
 
-const apiSource = fs.readFileSync(path.join(root, 'api/[...path].js'), 'utf8');
+const apiSource = [
+  path.join(root, 'api/[...path].js'),
+  ...fs.readdirSync(path.join(root, 'lib/api/domains')).filter((name) => name.endsWith('.mjs')).map((name) => path.join(root, 'lib/api/domains', name))
+].map((file) => fs.readFileSync(file, 'utf8')).join('\n');
 assert.ok(
   apiSource.includes('apply_operational_status_atomic'),
   'A API precisa aplicar status pela RPC atômica.'
