@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
+import { inspectBackupArtifact, inspectRestoreEvidence, validOperationalReference } from '../lib/backup-evidence.mjs';
 
 const root = process.cwd();
 const args = new Map(process.argv.slice(2).map((argument) => {
@@ -17,6 +18,8 @@ const backupReference = String(args.get('--backup-reference') || '').trim();
 const operator = String(args.get('--operator') || '').trim();
 const databaseUrl = String(process.env.ARANDU_DATABASE_URL || '').trim();
 const backupPath = String(process.env.ARANDU_BACKUP_PATH || '').trim();
+const restoreReference = String(args.get('--restore-reference') || '').trim();
+const restoreEvidencePath = path.resolve(String(args.get('--restore-evidence') || 'reports/backup-restore-verification.json'));
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'docs/supabase-migrations.json'), 'utf8'));
 const files = manifest[flow];
 const report = {
@@ -26,6 +29,7 @@ const report = {
   mode: dryRun ? 'dry-run' : apply ? 'apply' : 'preflight',
   operator: operator || null,
   backupReference: backupReference || null,
+  restoreReference: restoreReference || null,
   bundleSha256: null,
   duplicateActiveReservations: null,
   steps: [],
@@ -37,10 +41,6 @@ function fail(message) {
   writeReport();
   console.error(`BLOQUEADO: ${message}`);
   process.exit(1);
-}
-
-function validReference(value) {
-  return value.length >= 8 && !/^(?:feito|ok|sim|yes|done|true|pronto)$/i.test(value);
 }
 
 function run(binary, commandArgs, options = {}) {
@@ -69,8 +69,11 @@ function writeReport() {
 if (!Array.isArray(files)) fail(`Fluxo inválido. Use: ${Object.keys(manifest).join(', ')}.`);
 if (!['staging', 'production'].includes(environment)) fail('Ambiente deve ser staging ou production.');
 if (!dryRun && !operator) fail('Informe --operator com um papel operacional, sem PII.');
-if (!dryRun && !validReference(backupReference)) {
+if (!dryRun && !validOperationalReference(backupReference)) {
   fail('Informe --backup-reference com protocolo, hash ou ticket auditável; valores vagos não são aceitos.');
+}
+if (apply && !validOperationalReference(restoreReference)) {
+  fail('Aplicação exige --restore-reference com protocolo, hash ou ticket auditável.');
 }
 if (environment === 'production' && args.get('--confirm-production') !== 'ARANDU-PRODUCTION') {
   fail('Produção exige --confirm-production=ARANDU-PRODUCTION.');
@@ -111,6 +114,12 @@ if (dryRun) {
 }
 
 if (!databaseUrl) fail('ARANDU_DATABASE_URL não configurada.');
+if (apply && environment === 'staging' && databaseUrl !== String(process.env.ARANDU_STAGING_DATABASE_URL || '').trim()) {
+  fail('ARANDU_DATABASE_URL deve coincidir exatamente com ARANDU_STAGING_DATABASE_URL.');
+}
+if (apply && environment === 'production' && databaseUrl !== String(process.env.ARANDU_PRODUCTION_DATABASE_URL || '').trim()) {
+  fail('ARANDU_DATABASE_URL deve coincidir exatamente com ARANDU_PRODUCTION_DATABASE_URL.');
+}
 
 try {
   const duplicateCount = Number(run('psql', [
@@ -124,7 +133,33 @@ try {
   report.steps.push({ name: 'duplicate-preflight', ok: duplicateCount === 0, detail: { groups: duplicateCount } });
   if (duplicateCount > 0) fail(`Foram encontrados ${duplicateCount} grupo(s) de reservas ativas duplicadas.`);
 
-  if (backupPath) {
+  if (apply) {
+    if (!backupPath || !path.isAbsolute(backupPath)) fail('Aplicação exige ARANDU_BACKUP_PATH absoluto fora do repositório.');
+    const resolved = path.resolve(backupPath);
+    const relative = path.relative(root, resolved);
+    if (!relative.startsWith('..') && !path.isAbsolute(relative)) {
+      fail('ARANDU_BACKUP_PATH deve ser absoluto e ficar fora do repositório.');
+    }
+    let backupStat;
+    try { backupStat = fs.statSync(resolved); } catch { fail('Backup verificado não foi encontrado em ARANDU_BACKUP_PATH.'); }
+    const artifact = inspectBackupArtifact({ stat: backupStat, reference: backupReference, maxAgeHours: 6 });
+    if (!artifact.ok) fail(artifact.problems.join(' '));
+    const sha256 = createHash('sha256').update(fs.readFileSync(resolved)).digest('hex');
+    let restoreEvidence;
+    try { restoreEvidence = JSON.parse(fs.readFileSync(restoreEvidencePath, 'utf8')); } catch { fail('Relatório verificável de backup/restore ausente ou inválido.'); }
+    const verified = inspectRestoreEvidence({
+      report: restoreEvidence,
+      backupReference,
+      restoreReference,
+      backupSha256: sha256,
+      maxAgeHours: 6
+    });
+    if (!verified.ok) fail(verified.problems.join(' '));
+    report.steps.push({
+      name: 'backup-restore-evidence', ok: true,
+      detail: { backupReference, restoreReference, backupSha256: sha256, evidenceAgeHours: Number(verified.ageHours.toFixed(2)) }
+    });
+  } else if (backupPath) {
     const resolved = path.resolve(backupPath);
     const relative = path.relative(root, resolved);
     if (!path.isAbsolute(backupPath) || (!relative.startsWith('..') && !path.isAbsolute(relative))) {
@@ -133,9 +168,9 @@ try {
     fs.mkdirSync(path.dirname(resolved), { recursive: true });
     run('pg_dump', [databaseUrl, '--format=custom', '--no-owner', '--no-acl', '--file', resolved]);
     const sha256 = createHash('sha256').update(fs.readFileSync(resolved)).digest('hex');
-    report.steps.push({ name: 'backup', ok: true, detail: { reference: backupReference, sha256 } });
+    report.steps.push({ name: 'backup-unverified', ok: true, detail: { reference: backupReference, sha256 } });
   } else {
-    report.steps.push({ name: 'backup', ok: true, detail: { reference: backupReference, mode: 'external-evidence' } });
+    report.steps.push({ name: 'backup-reference-only', ok: true, detail: { reference: backupReference, mode: 'preflight-only' } });
   }
 
   if (!apply) {

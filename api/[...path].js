@@ -1,4 +1,4 @@
-import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import { AdminAuthError, applyAdminResponseHeaders, requireAdmin } from '../lib/admin-auth.mjs';
 import { requireAdminPermission } from '../lib/admin-rbac.mjs';
 import {
@@ -21,7 +21,31 @@ import {
 } from '../lib/profile-access.mjs';
 import { requireCommercialPolicy } from '../lib/commercial-policy.mjs';
 import { reportError } from '../lib/observability.mjs';
-import { applyApiSecurityHeaders, crossOriginRejection } from '../lib/http-security.mjs';
+import { crossOriginRejection } from '../lib/http-security.mjs';
+import {
+  HttpError,
+  clean,
+  cleanEmail,
+  cleanPhone,
+  escapeHtml,
+  html,
+  json,
+  limited,
+  readBody,
+  safeObject,
+  safeRequestId,
+  trueFlag,
+  validEmail
+} from '../lib/api-core.mjs';
+import {
+  accountReservation,
+  accountSelection,
+  normalizeFormPayload,
+  normalizeProposal,
+  normalizeReservation,
+  normalizeSelection,
+  publicSelection
+} from '../lib/api-dtos.mjs';
 import {
   adminSupabaseRequest,
   adminSupabaseRpc,
@@ -38,9 +62,7 @@ const COOKIE_NAME = 'arandu_session';
 const PILOT_COOKIE_NAME = 'arandu_pilot';
 const MAX_AGE = 60 * 60 * 24 * 7;
 const PILOT_MAX_AGE = 60 * 60 * 24 * 30;
-const MAX_BODY_BYTES = 128 * 1024;
 const PUBLIC_PROFILE_TYPES = new Set(['comprador', 'artista', 'empresa', 'arquiteto']);
-const PUBLIC_SELECTION_STATUSES = new Set(['open', 'sent', 'reviewed']);
 const RATE_LIMITS = new Map();
 const PILOT_EVENT_TYPES = new Set(['page_view','search','artwork_view','selection_add','reservation_start','reservation_complete','form_submit','pilot_task']);
 const PILOT_SEVERITIES = new Set(['info','low','medium','high','critical']);
@@ -51,45 +73,6 @@ const EDITORIAL_STATUSES = new Set(['draft','documentation_pending','curatorial_
 const CONSENT_VERSION = String(process.env.ARANDU_CONSENT_VERSION || '').trim();
 const EXTERNAL_REQUEST_TIMEOUT_MS = Math.max(1_000, Math.min(Number(process.env.ARANDU_EXTERNAL_REQUEST_TIMEOUT_MS) || 8_000, 30_000));
 
-class HttpError extends Error {
-  constructor(status, message, code = null) {
-    super(message);
-    this.status = status;
-    this.code = code;
-  }
-}
-
-function json(res, status, payload, extraHeaders = {}) {
-  res.statusCode = status;
-  res.setHeader('Content-Type', 'application/json; charset=utf-8');
-  applyApiSecurityHeaders(res);
-  Object.entries(extraHeaders).forEach(([key, value]) => res.setHeader(key, value));
-  res.end(JSON.stringify(payload));
-}
-
-function html(res, status, body) {
-  res.statusCode = status;
-  res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'DENY');
-  res.end(body);
-}
-
-async function readBody(req) {
-  const chunks = [];
-  let bytes = 0;
-  const declaredSize = Number(req.headers?.['content-length'] || 0);
-  if (declaredSize > MAX_BODY_BYTES) throw new HttpError(413, 'Solicitação muito grande.');
-  for await (const chunk of req) {
-    bytes += chunk.length;
-    if (bytes > MAX_BODY_BYTES) throw new HttpError(413, 'Solicitação muito grande.');
-    chunks.push(chunk);
-  }
-  const raw = Buffer.concat(chunks).toString('utf8');
-  if (!raw) return {};
-  try { return JSON.parse(raw); } catch { throw new HttpError(400, 'JSON inválido.'); }
-}
-
 function hasDataConfig() { return hasSupabaseAccess('admin'); }
 function hasPublicDataConfig() { return hasSupabaseAccess('public'); }
 function authConfigured() { return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY); }
@@ -97,15 +80,6 @@ function requireDataConfig() {
   if (!hasDataConfig()) throw new HttpError(503, 'O banco de produção ainda não está configurado.', 'database_unconfigured');
 }
 function firstRecord(data) { return Array.isArray(data) ? data[0] || null : data; }
-function clean(value) { return String(value || '').trim(); }
-function limited(value, max = 500) { return clean(value).slice(0, max); }
-function safeRequestId(value) {
-  return limited(value, 160).replace(/[^A-Za-z0-9._:-]/g, '').slice(0, 80) || randomUUID();
-}
-function cleanEmail(value) { return limited(value, 254).toLowerCase(); }
-function cleanPhone(value) { return clean(value).replace(/\D/g, '').slice(0, 15); }
-function validEmail(value) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail(value)); }
-function trueFlag(value) { return ['1','true','yes','sim'].includes(clean(value).toLowerCase()); }
 function consentVersionConfigured() {
   return /^[A-Za-z0-9][A-Za-z0-9._-]{2,79}$/.test(CONSENT_VERSION);
 }
@@ -114,17 +88,6 @@ function requireCommercialReady() {
 }
 function publicProfileType(value) { const type = clean(value).toLowerCase(); return PUBLIC_PROFILE_TYPES.has(type) ? type : 'comprador'; }
 function validUrl(value) { try { const url = new URL(value); return ['http:', 'https:'].includes(url.protocol); } catch { return false; } }
-function safeSelectionUrl(value) {
-  const raw = limited(value, 500);
-  if (!raw) return '';
-  try {
-    const url = new URL(raw, 'https://arandu.local');
-    return ['http:', 'https:'].includes(url.protocol) ? raw : '';
-  } catch { return ''; }
-}
-function escapeHtml(value) { return String(value ?? '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char])); }
-function safeObject(value) { return value && typeof value === 'object' && !Array.isArray(value) ? value : {}; }
-
 function enforceSameOrigin(req) {
   const rejection = crossOriginRejection(req);
   if (rejection) throw new HttpError(rejection.status, rejection.error, rejection.code);
@@ -570,181 +533,6 @@ function validateRecord(panel, record) { if (panel === 'artistas' && !record.nam
 function normalizeField(field, value) { if (value === undefined) return undefined; if (value === '') return null; if (ARRAYS.has(field)) return listFrom(value); if (NUMBERS.has(field)) { const parsed = Number(String(value).replace(/\./g, '').replace(',', '.')); return Number.isFinite(parsed) ? parsed : null; } if (BOOLEANS.has(field)) return value === true || value === 'true' || value === '1' || value === 'on'; if (JSONS.has(field)) { if (value && typeof value === 'object') return value; try { return value ? JSON.parse(value) : {}; } catch { return {}; } } return String(value).trim(); }
 function buildPayload(panel, fields) { return (ALLOWED[panel] || []).reduce((payload, field) => { const value = normalizeField(field, fields[field]); if (value !== undefined) payload[field] = value; return payload; }, {}); }
 
-function minimalFormPayload(type, body) {
-  return {
-    form_type: limited(type, 80),
-    source_page: limited(body.page || body.source_page, 240) || null,
-    consent_version: CONSENT_VERSION || null
-  };
-}
-
-function normalizeFormPayload(body) {
-  const type = limited(body.type || body.form_type || 'contato', 80);
-  const data = body.data || body;
-  let table = 'leads';
-  let record = {
-    type,
-    name: limited(data.nome || data.name || data.nome_completo, 160) || null,
-    email: cleanEmail(data.email) || null,
-    whatsapp: cleanPhone(data.whatsapp || data.telefone || data.phone) || null,
-    company: limited(data.empresa || data.company, 180) || null,
-    message: limited(data.mensagem || data.message, 4000) || null,
-    source_page: limited(body.page || body.source_page, 240) || null,
-    status: 'new',
-    payload: minimalFormPayload(type, body)
-  };
-  if (type === 'submissao-artista') {
-    table = 'artist_submissions';
-    record = {
-      name: limited(data.nome_completo || data.nome, 160) || null,
-      artist_name: limited(data.nome_artistico || data.artist_name || data.nome, 160) || null,
-      city: limited(data.cidade, 120) || null,
-      state: limited(data.estado || data.uf, 40) || null,
-      portfolio_url: limited(data.portfolio || data.portfolio_url, 500) || null,
-      instagram: limited(data.instagram, 180) || null,
-      email: cleanEmail(data.email) || null,
-      whatsapp: cleanPhone(data.whatsapp || data.telefone) || null,
-      languages: limited(data.linguagens || data.languages, 500) || null,
-      price_range: limited(data.faixa_preco || data.orcamento, 160) || null,
-      message: limited(data.mensagem, 4000) || null,
-      status: 'received',
-      payload: minimalFormPayload(type, body)
-    };
-  }
-  if (type === 'empresa-intencao' || type === 'proposta-empresa') {
-    table = 'company_briefs';
-    record = {
-      ...record,
-      project_type: limited(data.tipo_projeto || data.espaco, 160) || null,
-      environment: limited(data.ambiente, 500) || null,
-      budget: limited(data.orcamento || data.budget, 160) || null,
-      deadline: limited(data.prazo, 160) || null,
-      status: 'received'
-    };
-    delete record.type;
-  }
-  if (type === 'newsletter') {
-    table = 'newsletter_subscriptions';
-    record = {
-      email: cleanEmail(data.email),
-      name: limited(data.nome || data.name, 160) || null,
-      source_page: limited(body.page, 240) || null,
-      payload: minimalFormPayload(type, body)
-    };
-  }
-  return { table, record };
-}
-
-function normalizeReservation(body) {
-  return {
-    artwork_id: limited(body.artwork_id || body.artworkId || body.id, 180) || null,
-    name: limited(body.name, 160) || null,
-    whatsapp: cleanPhone(body.whatsapp) || null,
-    deadline: limited(body.deadline, 160) || null,
-    notes: limited(body.notes, 3000) || null,
-    origin: limited(body.origin || body.source || body.source_page, 120) || 'website'
-  };
-}
-function normalizeProposal(body) {
-  const artworkIds = Array.isArray(body.items)
-    ? body.items.map((item) => limited(item?.id || item?.artwork_id, 180)).filter(Boolean)
-    : [];
-  return {
-    artworkIds,
-    client: limited(body.client || body.name, 240) || null,
-    leadId: limited(body.lead_id, 80) || null,
-    companyBriefId: limited(body.company_brief_id, 80) || null,
-    space: limited(body.space, 500) || null,
-    goal: limited(body.goal, 1000) || null,
-    budget: limited(body.budget, 160) || null,
-    deadline: limited(body.deadline, 160) || null,
-    notes: limited(body.notes, 3000) || null
-  };
-}
-function normalizeSelectionItem(item) {
-  return {
-    id: limited(item?.id || item?.artwork_id, 180),
-    title: limited(item?.title, 240),
-    artist: limited(item?.artist || item?.artist_name, 180),
-    context: limited(item?.context, 500),
-    url: safeSelectionUrl(item?.url),
-    price: Number.isFinite(Number(item?.price)) && Number(item.price) >= 0 ? Number(item.price) : null,
-    priceLabel: limited(item?.priceLabel || item?.price_label, 120),
-    technique: limited(item?.technique, 180),
-    dimensions: limited(item?.dimensions, 120),
-    status: limited(item?.status, 80),
-    thumb: limited(item?.thumb, 500).replace(/[^a-zA-Z0-9 _-]/g, ''),
-    note: limited(item?.note, 1000)
-  };
-}
-
-function normalizeBriefing(value) {
-  const briefing = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
-  return Object.fromEntries(Object.entries(briefing).slice(0, 30).map(([key, item]) => [limited(key, 80), limited(item, 1200)]));
-}
-
-function normalizeSelection(body) {
-  const briefing = normalizeBriefing(body.briefing);
-  const items = Array.isArray(body.items)
-    ? body.items.slice(0, 40).map(normalizeSelectionItem).filter((item) => item.id)
-    : [];
-  return {
-    name: limited(body.name || briefing.nome || briefing.name, 160) || null,
-    email: cleanEmail(body.email || briefing.email) || null,
-    whatsapp: cleanPhone(body.whatsapp || briefing.whatsapp || briefing.telefone) || null,
-    items,
-    briefing: {
-      ...briefing,
-      source: limited(body.source || briefing.source || 'minha-selecao', 120),
-      shared_at: limited(body.createdAt, 80) || new Date().toISOString()
-    },
-    status: 'open'
-  };
-}
-
-function withoutPersonalBriefingFields(value) {
-  const briefing = normalizeBriefing(value);
-  ['nome', 'name', 'email', 'whatsapp', 'telefone', 'phone'].forEach((key) => delete briefing[key]);
-  return briefing;
-}
-
-function publicSelection(record) {
-  if (!record || !PUBLIC_SELECTION_STATUSES.has(record.status)) return null;
-  return {
-    public_token: record.public_token,
-    status: record.status,
-    items: Array.isArray(record.items) ? record.items.map(normalizeSelectionItem) : [],
-    briefing: withoutPersonalBriefingFields(record.briefing),
-    updated_at: record.updated_at || record.created_at || null
-  };
-}
-
-function accountSelection(record) {
-  if (!record) return null;
-  return {
-    id: record.id,
-    public_token: record.public_token,
-    status: record.status,
-    items: Array.isArray(record.items) ? record.items.map(normalizeSelectionItem) : [],
-    briefing: normalizeBriefing(record.briefing),
-    created_at: record.created_at || null,
-    updated_at: record.updated_at || null
-  };
-}
-
-function accountReservation(record) {
-  if (!record) return null;
-  return {
-    id: record.id,
-    artwork_id: record.artwork_id,
-    status: record.status,
-    deadline: record.deadline,
-    notes: record.notes,
-    expires_at: record.expires_at || null,
-    created_at: record.created_at || null,
-    updated_at: record.updated_at || null
-  };
-}
 function normalizeNote(body) { return { entity_type: clean(body.entity_type), entity_id: clean(body.entity_id), author_name: body.author_name || 'Curadoria', note: clean(body.note) }; }
 function normalizeOperationalTask(body) { return { entity_type: clean(body.entity_type), entity_id: clean(body.entity_id), title: clean(body.title), owner_name: body.owner_name || 'Curadoria', due_at: body.due_at ? new Date(body.due_at).toISOString() : null, priority: ['low','normal','high'].includes(body.priority) ? body.priority : 'normal', status: ['open','doing','done','cancelled'].includes(body.status) ? body.status : 'open' }; }
 function validOperationalResource(resource) { return resource === 'notes' || resource === 'tasks' || resource === 'status-history'; }
@@ -789,7 +577,7 @@ async function handleForms(req, res) {
   await enforceRateLimit(req, 'forms', 30, 10 * 60 * 1000);
   const body = await readBody(req);
   if (clean(body.website || body.data?.website)) return json(res, 202, { ok: true, stored: false });
-  const { table, record } = normalizeFormPayload(body);
+  const { table, record } = normalizeFormPayload(body, { consentVersion: CONSENT_VERSION });
   const { session, user } = await optionalUser(req);
   if (user && (table === 'leads' || table === 'company_briefs')) record.user_id = user.id;
   if (record.email && !validEmail(record.email)) throw new HttpError(400, 'Informe um e-mail válido.');

@@ -15,6 +15,8 @@ function requireTerm(file, content, term, message) {
 }
 
 const api = source('api/[...path].js');
+const apiCore = source('lib/api-core.mjs');
+const apiDtos = source('lib/api-dtos.mjs');
 const mvpApi = source('api/mvp-dashboard.js');
 const health = source('api/health.js');
 const readiness = source('api/readiness.js');
@@ -35,7 +37,7 @@ const adminDashboard = source('js/admin-dashboard.js');
 const launchDashboard = source('js/launch-dashboard.js');
 const launchChecklist = source('js/launch-checklist.js');
 
-requireTerm('api/[...path].js', api, 'MAX_BODY_BYTES', 'requisições ainda não possuem limite de tamanho.');
+requireTerm('lib/api-core.mjs', apiCore, 'MAX_BODY_BYTES', 'requisições ainda não possuem limite de tamanho.');
 requireTerm('api/[...path].js', api, 'enforceRateLimit', 'rotas públicas ainda não possuem contenção de abuso.');
 requireTerm('api/[...path].js', api, "'auth-login-account'", 'login não limita tentativas também por identidade.');
 requireTerm('api/[...path].js', api, "'admin-account'", 'endpoints administrativos não limitam abuso também por conta.');
@@ -52,7 +54,7 @@ requireTerm('api/[...path].js', api, 'const session = await requireUser(req)', '
 requireTerm('api/[...path].js', api, 'saved_selections?user_id=eq.', 'seleções da conta não são filtradas pelo proprietário.');
 requireTerm('api/[...path].js', api, 'reservations?user_id=eq.', 'reservas da conta não são filtradas pelo proprietário.');
 requireTerm('api/[...path].js', api, 'select=public_token,status,items,briefing,created_at,updated_at', 'link público de seleção ainda consulta campos pessoais.');
-requireTerm('api/[...path].js', api, 'withoutPersonalBriefingFields', 'briefing público ainda não remove dados pessoais.');
+requireTerm('lib/api-dtos.mjs', apiDtos, 'withoutPersonalBriefingFields', 'briefing público ainda não remove dados pessoais.');
 // Direito de acesso da LGPD: a exportação precisa cobrir pedidos e propostas do
 // titular e nunca pode voltar a usar `select=*`, que traria campos internos.
 requireTerm('api/[...path].js', api, "exportVersion", 'exportação LGPD não declara versão de contrato.');
@@ -63,7 +65,7 @@ if (/privacy[\s\S]{0,4000}?select=\*/.test(api.slice(api.indexOf('async function
   process.exitCode = 1;
 }
 requireTerm('api/[...path].js', api, 'await adminGuard(req, res)', 'dashboard consolidado não exige sessão administrativa.');
-requireTerm('api/[...path].js', api, 'safeSelectionUrl', 'links enviados em seleções não são validados.');
+requireTerm('lib/api-dtos.mjs', apiDtos, 'safeSelectionUrl', 'links enviados em seleções não são validados.');
 requireTerm('api/[...path].js', api, 'return await handleAccount', 'erros assíncronos escapam do tratamento JSON da API.');
 
 if (/saved_selections\?public_token[^\n]+select=\*/.test(api)) {

@@ -60,12 +60,15 @@ Depois de um rehearsal verde:
 
 1. identificar o projeto Supabase correto;
 2. registrar responsável operacional sem PII;
-3. gerar e referenciar backup;
-4. comprovar restore em projeto descartável;
-5. executar preflight no banco real;
-6. aplicar a migration conforme `docs/MIGRATION_RELEASE_RUNBOOK.md`;
-7. executar probes e canário;
-8. registrar as referências verificáveis em `ops/release-evidence.json`.
+3. configurar o environment protegido `staging`, inclusive as origens distintas de staging e produção;
+4. executar manualmente **Arandu Protected Staging Release**;
+5. o workflow gera um backup do schema `public` fora do checkout e não o publica como artefato;
+6. o mesmo backup é restaurado por `pg_restore` em PostgreSQL 16 descartável;
+7. o fingerprint do schema restaurado precisa coincidir com o schema de origem;
+8. somente depois dessa prova o workflow aplica a migration, executa probes e canário;
+9. revisar os relatórios sem PII antes de registrar referências em `ops/release-evidence.json`.
+
+Uma referência textual de backup ou restore não é suficiente para liberar DDL. O script de migration exige o hash do próprio arquivo restaurado e um relatório `restore_verification` recente, com os checks obrigatórios aprovados. O backup pode conter dados pessoais e, por isso, nunca entra no repositório nem nos artifacts do GitHub. Restore integral gerenciado/PITR continua externo e mantém o gate `backup_restore` sem promoção automática.
 
 Somente essas ações externas podem promover os gates de staging.
 

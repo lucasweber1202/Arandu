@@ -41,12 +41,27 @@ jobs:
     environment: staging
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
       ARANDU_STAGING_SITE_URL: ${{ secrets.ARANDU_STAGING_SITE_URL }}
+      ARANDU_PRODUCTION_SITE_URL: ${{ secrets.ARANDU_PRODUCTION_SITE_URL }}
       ARANDU_SITE_URL: ${{ secrets.ARANDU_STAGING_SITE_URL }}
       ARANDU_STAGING_PROJECT_REF: ${{ secrets.ARANDU_STAGING_PROJECT_REF }}
       ARANDU_PRODUCTION_PROJECT_REF: ${{ secrets.ARANDU_PRODUCTION_PROJECT_REF }}
       ARANDU_STAGING_DATABASE_URL: ${{ secrets.ARANDU_STAGING_DATABASE_URL }}
+      ARANDU_BACKUP_PATH: /tmp/arandu-staging-pre-migration.dump
+      ARANDU_RESTORE_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arandu_restore
       ARANDU_WRITE_TEST_URL: ${{ secrets.ARANDU_STAGING_WRITE_TEST_URL }}
       SUPABASE_URL: ${{ secrets.ARANDU_STAGING_SUPABASE_URL }}
       SUPABASE_ANON_KEY: ${{ secrets.ARANDU_STAGING_SUPABASE_ANON_KEY }}
@@ -62,12 +77,12 @@ jobs:
           test -n "$ARANDU_STAGING_DATABASE_URL"
 
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Setup Node
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 24
           cache: npm
@@ -84,6 +99,43 @@ jobs:
           npm run check:all
           npm run migrations:bundle -- --flow="$ARANDU_MIGRATION_FLOW"
 
+      - name: Create pre-migration backup outside the checkout
+        run: >-
+          pg_dump "$ARANDU_STAGING_DATABASE_URL"
+          --format=custom
+          --schema=public
+          --no-owner
+          --no-acl
+          --file="$ARANDU_BACKUP_PATH"
+
+      - name: Create disposable restore database
+        run: >-
+          psql postgresql://postgres:postgres@localhost:5432/postgres
+          -X -v ON_ERROR_STOP=1
+          -c "create database arandu_restore"
+
+      - name: Bootstrap Supabase roles in disposable database
+        run: >-
+          psql "$ARANDU_RESTORE_DATABASE_URL"
+          -X -v ON_ERROR_STOP=1
+          -f tests/database/bootstrap.sql
+
+      - name: Restore backup and verify schema in disposable database
+        env:
+          ARANDU_RELEASE_OPERATOR: ${{ inputs.operator }}
+          ARANDU_BACKUP_REFERENCE: ${{ inputs.backup_reference }}
+          ARANDU_RESTORE_REFERENCE: ${{ inputs.restore_reference }}
+        run: >-
+          npm run backup:restore:verify --
+          --backup-file="$ARANDU_BACKUP_PATH"
+          --backup-reference="$ARANDU_BACKUP_REFERENCE"
+          --restore-reference="$ARANDU_RESTORE_REFERENCE"
+          --operator="$ARANDU_RELEASE_OPERATOR"
+          --scope=public_schema
+          --compare-source-schema
+          --restore-backup
+          --confirm=ARANDU-RESTORE-VERIFY
+
       - name: Execute protected staging migration
         env:
           ARANDU_RELEASE_OPERATOR: ${{ inputs.operator }}
@@ -96,6 +148,7 @@ jobs:
           --operator="$ARANDU_RELEASE_OPERATOR"
           --backup-reference="$ARANDU_BACKUP_REFERENCE"
           --restore-reference="$ARANDU_RESTORE_REFERENCE"
+          --restore-evidence=reports/backup-restore-verification.json
           --confirm="$ARANDU_RELEASE_CONFIRMATION"
 
       - name: Publish staging summary
@@ -107,13 +160,14 @@ jobs:
 
       - name: Upload audit-safe reports
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: arandu-staging-release-${{ github.run_id }}
           path: |
             reports/staging-release-execution.json
             reports/staging-environment.json
+            reports/backup-restore-verification.json
             reports/migration-release-report.json
             reports/supabase-migrations-*.json
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 14
