@@ -42,8 +42,7 @@ const requiredFiles = [
   'js/arandu-loader.js',
   'js/arandu-assistant.js',
   'css/arandu-system.css',
-  'css/arandu-ui-rescue.css',
-  'css/arandu-advanced-features.css',
+  'css/arandu-runtime.css',
   'api/[...path].js',
   'api/health.js',
   'vite.config.js',
@@ -80,7 +79,7 @@ function checkRequiredFiles() {
   if (!site.includes('ensureHeaderNav')) problem('js/site.js', 'não restaura navegação pública');
   if (!site.includes('arandu-assistant.js')) problem('js/site.js', 'não injeta assistente Arandu');
   if (!loader.includes('disabledLegacyLayers')) problem('js/arandu-loader.js', 'loader seguro deve manter camadas legadas desativadas');
-  if (!vite.includes('arandu-ui-rescue.css')) problem('vite.config.js', 'não injeta CSS de resgate global');
+  if (!vite.includes('arandu-runtime.css')) problem('vite.config.js', 'não injeta a cascata canônica');
 }
 
 function checkHtml(file, html) {
