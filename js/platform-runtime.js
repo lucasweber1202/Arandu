@@ -105,111 +105,13 @@
     document.body.classList.add('arandu-consent-pending');
   }
 
-  /**
-   * Rótulos dos campos de formulário.
-   *
-   * O site tem 154 páginas estáticas que compartilham este runtime e cujos
-   * formulários nasceram só com `placeholder`. Placeholder não é rótulo: some
-   * ao digitar, não é exposto de forma confiável como nome acessível e deixa a
-   * pessoa sem referência ao revisar o que preencheu. Como o vocabulário de
-   * campos é fechado (o mesmo `name` se repete página a página), o rótulo vem
-   * de um dicionário canônico e o placeholder permanece como exemplo.
-   */
-  const FIELD_LABELS = {
-    ambiente: 'Ambiente',
-    cidade: 'Cidade',
-    code: 'Código de verificação',
-    dimensao: 'Dimensão da parede',
-    email: 'E-mail',
-    empresa: 'Empresa',
-    escritorio: 'Escritório',
-    espaco: 'Tipo de espaço',
-    estado: 'Estado',
-    faixa_preco: 'Faixa de preço',
-    interesse: 'Interesse',
-    medidas: 'Medidas da parede',
-    mensagem: 'Mensagem',
-    message: 'Mensagem',
-    motivo: 'Motivo do contato',
-    nome: 'Nome',
-    obra: 'Obra ou série',
-    observacoes: 'Observações',
-    orcamento: 'Orçamento',
-    password: 'Senha',
-    perfil: 'Perfil',
-    prazo: 'Prazo',
-    preco: 'Preço sugerido',
-    sensacao: 'Sensação desejada',
-    tecnicas: 'Técnicas de interesse',
-    tipo_espaco: 'Tipo de espaço',
-    tipo_projeto: 'Tipo de projeto',
-    whatsapp: 'WhatsApp'
-  };
-
-  function accessibleName(field) {
-    if (field.id) {
-      const associated = document.querySelector(`label[for="${CSS.escape(field.id)}"]`);
-      if (associated?.textContent.trim()) return associated.textContent.trim();
-    }
-    if (field.closest('label')?.textContent.trim()) return field.closest('label').textContent.trim();
-    return String(field.getAttribute('aria-label') || '').trim();
-  }
-
-  function labelText(field) {
-    const byName = FIELD_LABELS[String(field.name || '').trim().toLowerCase()];
-    if (byName) return byName;
-    const placeholder = String(field.getAttribute('placeholder') || '').trim();
-    // Placeholders longos são exemplos, não nomes: corta na primeira pausa.
-    const head = placeholder.split(/[:.…]|,\s/)[0].trim();
-    if (head && head.length <= 40) return head.charAt(0).toUpperCase() + head.slice(1);
-    return '';
-  }
-
-  let labelSequence = 0;
-  function labelFormFields(scope = document) {
-    scope.querySelectorAll('input, select, textarea').forEach((field) => {
-      const type = String(field.getAttribute('type') || '').toLowerCase();
-      if (['hidden', 'submit', 'button', 'reset', 'image'].includes(type)) return;
-      if (field.getAttribute('aria-hidden') === 'true') return;
-      if (accessibleName(field)) return;
-
-      const text = labelText(field);
-      if (!text) return;
-      if (!field.id) {
-        labelSequence += 1;
-        field.id = `arandu-field-${labelSequence}`;
-      }
-      const label = document.createElement('label');
-      label.className = 'arandu-field-label';
-      label.setAttribute('for', field.id);
-      label.textContent = text;
-      field.parentNode?.insertBefore(label, field);
-      // Placeholder que apenas repete o rótulo vira ruído depois que o rótulo
-      // existe; o que traz exemplo ou instrução permanece.
-      const placeholder = String(field.getAttribute('placeholder') || '').trim();
-      if (placeholder && placeholder.localeCompare(text, 'pt-BR', { sensitivity: 'base' }) === 0) {
-        field.removeAttribute('placeholder');
-      }
-    });
-  }
-
   function accessibility() {
-    const main = document.querySelector('main');
-    if (main && !main.id) main.id = 'conteudo-principal';
-    if (main && !document.querySelector('.skip-link')) {
-      const link = document.createElement('a');
-      link.className = 'skip-link';
-      link.href = `#${main.id}`;
-      link.textContent = 'Pular para o conteúdo';
-      document.body.prepend(link);
-    }
     document.querySelectorAll('a[target="_blank"]').forEach((link) => link.setAttribute('rel', 'noopener noreferrer'));
     document.querySelectorAll('img').forEach((image, index) => {
       if (!image.hasAttribute('decoding')) image.decoding = 'async';
       if (!image.hasAttribute('loading') && index > 0 && !image.closest('.hero,.rect-hero')) image.loading = 'lazy';
       if (!image.hasAttribute('alt')) image.alt = '';
     });
-    labelFormFields();
   }
 
   function automaticJourneyEvents() {

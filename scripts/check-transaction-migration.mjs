@@ -2,7 +2,10 @@ import fs from 'node:fs';
 
 const migration = fs.readFileSync('docs/supabase-transactions-rbac-audit.sql', 'utf8');
 const rollback = fs.readFileSync('docs/rollback/supabase-transactions-rbac-audit.rollback.sql', 'utf8');
-const api = fs.readFileSync('api/[...path].js', 'utf8');
+const api = [
+  'api/[...path].js',
+  ...fs.readdirSync('lib/api/domains').filter((name) => name.endsWith('.mjs')).map((name) => `lib/api/domains/${name}`)
+].map((file) => fs.readFileSync(file, 'utf8')).join('\n');
 const commercial = fs.readFileSync('api/commercial.js', 'utf8');
 const ordersApi = fs.readFileSync('api/orders.js', 'utf8');
 const accountOrdersApi = fs.readFileSync('api/account-orders.js', 'utf8');

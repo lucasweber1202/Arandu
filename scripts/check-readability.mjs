@@ -18,14 +18,12 @@ function contrast(foreground, background) {
   return (values[0] + .05) / (values[1] + .05);
 }
 
-const files = ['css/arandu-clarity.css', 'vite.config.js', 'js/site.js'];
+const files = ['css/arandu-runtime.css', 'vite.config.js'];
 for (const file of files) check(fs.existsSync(path.join(root, file)), `Arquivo ausente: ${file}`);
 
 if (errors.length === 0) {
-  const css = read('css/arandu-clarity.css');
+  const css = read('css/arandu-runtime.css');
   const vite = read('vite.config.js');
-  const site = read('js/site.js');
-  const version = '20260719-clarity-1';
 
   check(css.includes('--clarity-ink: #21110d'), 'A paleta de alto contraste não está definida.');
   check(css.includes('.conversion-band :is(h1, h2, h3, strong, .section-title)'), 'A faixa de conversão não protege a cor dos títulos.');
@@ -34,15 +32,8 @@ if (errors.length === 0) {
   check(css.includes('.mobile-bottom-nav') && css.includes('display: none !important'), 'As barras móveis duplicadas não foram removidas.');
   check(css.includes(':focus-visible') && css.includes('outline: 3px solid var(--clarity-focus)'), 'O foco visível de alto contraste está ausente.');
 
-  const viteClarity = vite.lastIndexOf('/css/arandu-clarity.css');
-  const viteRelease = vite.lastIndexOf('/css/arandu-release.css');
-  check(viteClarity > viteRelease, 'O Vite precisa injetar arandu-clarity.css depois de arandu-release.css.');
-  check(vite.includes(`arandu-clarity.css?v=${version}`), 'A versão da camada de clareza diverge no Vite.');
-
-  const siteClarity = site.indexOf("['arandu-clarity.css'");
-  const siteLunch = site.indexOf("['arandu-lunch-polish.css'");
-  check(siteClarity > siteLunch, 'site.js precisa carregar arandu-clarity.css por último.');
-  check(site.includes(`['arandu-clarity.css','${version}']`), 'A versão da camada de clareza diverge em site.js.');
+  check(vite.includes('/css/arandu-runtime.css'), 'O Vite não injeta o bundle CSS canônico.');
+  check(!vite.includes('/css/arandu-clarity.css'), 'O Vite voltou a carregar a camada histórica de clareza.');
 
   const pairs = [
     ['texto principal', '#21110d', '#fffaf6'],
@@ -63,4 +54,4 @@ console.log('Arandu Readability Check');
 console.log(`Erros: ${errors.length}`);
 errors.forEach((error) => console.error(`- ${error}`));
 if (errors.length) process.exit(1);
-console.log('Contraste, tipografia, foco e ordem das camadas validados.');
+console.log('Contraste, tipografia, foco e cascata canônica validados.');

@@ -1,7 +1,10 @@
 import fs from 'node:fs';
 
 const issues = [];
-const api = fs.readFileSync('api/[...path].js', 'utf8');
+const api = [
+  'api/[...path].js',
+  ...fs.readdirSync('lib/api/domains').filter((name) => name.endsWith('.mjs')).map((name) => `lib/api/domains/${name}`)
+].map((file) => fs.readFileSync(file, 'utf8')).join('\n');
 const client = fs.readFileSync('js/pilot.js', 'utf8');
 const migration = fs.readFileSync('docs/supabase-sprint5-pilot.sql', 'utf8');
 const requireTerm = (source, term, message) => { if (!source.includes(term)) issues.push(message); };

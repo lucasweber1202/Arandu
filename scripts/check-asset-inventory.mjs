@@ -9,16 +9,16 @@
  * Este gate falha quando aparecem novos órfãos além dos já conhecidos. Ao remover
  * um órfão da lista abaixo, o limite cai junto — a dívida só pode diminuir.
  *
- * Um arquivo é considerado órfão quando seu nome não aparece em nenhum HTML, JS,
- * TS, JSON, YAML ou Markdown do repositório. Referências dentro do próprio
- * diretório `css/` (por `@import`, por exemplo) também contam.
+ * Um arquivo é considerado órfão quando seu nome não aparece em um consumidor
+ * executável (HTML, JS, MJS, TS ou JSON). Documentação não mantém asset vivo.
+ * Referências dentro do próprio diretório `css/` (por `@import`) também contam.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 
 const root = process.cwd();
 const IGNORED_DIRS = new Set(['node_modules', '.git', 'dist', 'reports', 'test-results', 'playwright-report']);
-const SEARCHABLE = /\.(html|js|mjs|ts|json|css|yml|yaml|md)$/;
+const SEARCHABLE = /\.(html|js|mjs|ts|json)$/;
 
 /**
  * Órfãos tolerados hoje. Cada entrada é dívida conhecida, não permissão para

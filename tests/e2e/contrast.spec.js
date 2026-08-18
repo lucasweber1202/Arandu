@@ -16,22 +16,7 @@ import { readdirSync } from 'node:fs';
  * uma regressão nova falha o build mesmo com a dívida antiga em aberto.
  * Ao corrigir uma página, remova-a da lista.
  */
-const PAGINAS_COM_DIVIDA = new Set([
-  'arte-para-clinicas.html',
-  'artista-marina-silveira.html',
-  'artistas.html',
-  'autenticidade.html',
-  'certificado-autenticidade.html',
-  'certificado-template.html',
-  'comprar-arte.html',
-  'empresas-e-arquitetos.html',
-  'empresas.html',
-  'encontrar-arte.html',
-  'minha-conta.html',
-  'narrativas.html',
-  'proposta-curatorial-template.html',
-  'selecao-curatorial-template.html'
-]);
+const PAGINAS_COM_DIVIDA = new Set([]);
 
 /** Abaixo disto a página ainda não terminou de montar e a leitura não conclui. */
 const MEDICOES_MINIMAS = 12;
@@ -154,7 +139,7 @@ test('nenhuma página nova quebra o contraste mínimo WCAG AA', async ({ page },
     if (await page.locator('body[data-legacy-redirect]').count()) continue;
     await page.waitForTimeout(150);
     const { falhas, medidos } = await page.evaluate(MEDIR_CONTRASTE).catch(() => ({ falhas: [], medidos: 0 }));
-    if (falhas.length && !PAGINAS_COM_DIVIDA.has(pagina)) regressoes.push(`${pagina}: ${falhas.slice(0, 3).join(' | ')}`);
+    if (falhas.length && !PAGINAS_COM_DIVIDA.has(pagina)) regressoes.push(`${pagina}: ${falhas.slice(0, 10).join(' | ')}`);
     // Uma página que quase nada mediu ainda estava renderizando; declará-la
     // corrigida transformaria lentidão da máquina em falha de teste.
     if (!falhas.length && medidos >= MEDICOES_MINIMAS && PAGINAS_COM_DIVIDA.has(pagina)) corrigidas.push(pagina);

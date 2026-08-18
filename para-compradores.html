@@ -13,13 +13,13 @@
   <link rel="stylesheet" href="css/arandu-clean.css?v=20260610-public-shell-1" />
   <link rel="stylesheet" href="css/arandu-1506.css?v=20260615" />
 </head>
-<body class="lovable-page buyers-page architecture-clean">
+<body class="lovable-page buyers-page architecture-clean"><a class="skip-link" href="#conteudo-principal">Pular para o conteúdo</a>
   <header class="site-header">
     <div class="container header-inner">
       <a class="brand-logo" href="index.html">Arandu</a>
       <nav class="site-nav">
         <a href="comprar-arte.html">Comprar arte</a>
-        <a href="obras.html">Obras</a>
+        <a href="comprar-arte.html">Obras</a>
         <a href="artistas.html">Artistas</a>
         <a href="curadoria.html">Curadoria</a>
         <a href="para-artistas.html">Para artistas</a>
@@ -29,7 +29,7 @@
     </div>
   </header>
 
-  <main>
+  <main id="conteudo-principal">
     <section class="rect-hero">
       <div class="container rect-hero-grid">
         <div>
@@ -38,7 +38,7 @@
           <p class="lead">A Arandu nasce com compra assistida: você demonstra interesse, a curadoria entende sua intenção e confirma obra, artista, documentação, preço e envio antes de qualquer aquisição.</p>
           <div class="page-actions">
             <a class="cta" href="#cadastro-comprador">Receber primeira seleção</a>
-            <a class="cta secondary" href="obras.html">Explorar obras</a>
+            <a class="cta secondary" href="comprar-arte.html">Explorar obras</a>
             <a class="cta secondary" href="confianca.html">Entender confiança</a>
           </div>
         </div>
@@ -85,12 +85,12 @@
         </div>
         <form class="form-card" data-form-type="interesse-comprador">
           <h3>Receber seleção Arandu</h3>
-          <input name="nome" placeholder="Nome completo" required />
-          <input name="email" type="email" placeholder="Email" required />
-          <input name="whatsapp" placeholder="WhatsApp" />
-          <input name="cidade" placeholder="Cidade" />
-          <input name="estado" placeholder="Estado" />
-          <select name="faixa_preco" required>
+          <label class="u-visually-hidden" for="para-compradores-nome-1">Nome completo</label><input id="para-compradores-nome-1" name="nome" placeholder="Nome completo" required />
+          <label class="u-visually-hidden" for="para-compradores-email-2">Email</label><input id="para-compradores-email-2" name="email" type="email" placeholder="Email" required  inputmode="email"/>
+          <label class="u-visually-hidden" for="para-compradores-whatsapp-3">WhatsApp</label><input id="para-compradores-whatsapp-3" name="whatsapp" placeholder="WhatsApp" />
+          <label class="u-visually-hidden" for="para-compradores-cidade-4">Cidade</label><input id="para-compradores-cidade-4" name="cidade" placeholder="Cidade" />
+          <label class="u-visually-hidden" for="para-compradores-estado-5">Estado</label><input id="para-compradores-estado-5" name="estado" placeholder="Estado" />
+          <label class="u-visually-hidden" for="para-compradores-faixa-preco-6">faixa preco</label><select id="para-compradores-faixa-preco-6" name="faixa_preco" required>
             <option value="">Faixa de preço de interesse</option>
             <option>Até R$ 1.000</option>
             <option>R$ 1.000 a R$ 5.000</option>
@@ -98,7 +98,7 @@
             <option>Acima de R$ 10.000</option>
             <option>Ainda não sei</option>
           </select>
-          <select name="interesse" required>
+          <label class="u-visually-hidden" for="para-compradores-interesse-7">interesse</label><select id="para-compradores-interesse-7" name="interesse" required>
             <option value="">Principal intenção</option>
             <option>Comprar minha primeira obra</option>
             <option>Acompanhar artistas</option>
@@ -107,9 +107,9 @@
             <option>Decorar casa ou apartamento</option>
             <option>Projeto para empresa ou escritório</option>
           </select>
-          <input name="tecnicas" placeholder="Técnicas de interesse: pintura, fotografia, escultura..." />
-          <textarea name="mensagem" placeholder="Conte o estilo, ambiente, artista ou tipo de obra que você gostaria de encontrar"></textarea>
-          <label class="form-consent"><input name="newsletter" type="checkbox" checked /> Quero receber novidades e seleções curatoriais da Arandu.</label>
+          <label class="u-visually-hidden" for="para-compradores-tecnicas-8">Técnicas de interesse: pintura, fotografia, escultura...</label><input id="para-compradores-tecnicas-8" name="tecnicas" placeholder="Técnicas de interesse: pintura, fotografia, escultura..." />
+          <label class="u-visually-hidden" for="para-compradores-mensagem-9">Conte o estilo, ambiente, artista ou tipo de obra que você gostaria de encontrar</label><textarea id="para-compradores-mensagem-9" name="mensagem" placeholder="Conte o estilo, ambiente, artista ou tipo de obra que você gostaria de encontrar"></textarea>
+          <label class="form-consent"><input id="para-compradores-newsletter-10" name="newsletter" type="checkbox" checked /> Quero receber novidades e seleções curatoriais da Arandu.</label>
           <button type="submit">Cadastrar interesse</button>
         </form>
       </div>
@@ -119,8 +119,8 @@
   <footer class="site-footer">
     <div class="container footer-grid">
       <div><h2>Arandu</h2><p>Arte brasileira contemporânea com curadoria, território e procedência.</p></div>
-      <div><p>Comprar</p><a href="comprar-arte.html">Comprar arte</a><a href="obras.html">Explorar obras</a><a href="para-compradores.html">Para compradores</a></div>
-      <div><p>Acervo</p><a href="acervo.html">Obras e artistas</a><a href="artistas.html">Artistas</a><a href="para-artistas.html">Para artistas</a></div>
+      <div><p>Comprar</p><a href="comprar-arte.html">Comprar arte</a><a href="comprar-arte.html">Explorar obras</a><a href="para-compradores.html">Para compradores</a></div>
+      <div><p>Acervo</p><a href="comprar-arte.html">Obras e artistas</a><a href="artistas.html">Artistas</a><a href="para-artistas.html">Para artistas</a></div>
       <div><p>Confiança</p><a href="curadoria.html">Curadoria</a><a href="confianca.html">Critérios</a><a href="contato.html">Contato</a></div>
     </div>
   </footer>

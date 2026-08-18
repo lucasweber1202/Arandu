@@ -11,22 +11,22 @@
   <link rel="stylesheet" href="css/arandu-architecture.css?v=20260610-public-shell-1" />
   <link rel="stylesheet" href="css/arandu-clean.css?v=20260610-public-shell-1" />
 </head>
-<body class="lovable-page contact-page architecture-clean">
+<body class="lovable-page contact-page architecture-clean"><a class="skip-link" href="#conteudo-principal">Pular para o conteúdo</a>
   <header class="site-header">
     <div class="container header-inner">
       <a class="brand-logo" href="index.html">Arandu</a>
       <nav class="site-nav">
         <a href="comprar-arte.html">Comprar arte</a>
-        <a href="acervo.html">Acervo</a>
-        <a href="empresas.html">Empresas</a>
+        <a href="comprar-arte.html">Acervo</a>
+        <a href="empresas-e-arquitetos.html">Empresas</a>
         <a href="confianca.html">Confiança</a>
         <a href="narrativa.html">Narrativa</a>
-        <a href="obras.html">Explorar</a>
+        <a href="comprar-arte.html">Explorar</a>
       </nav>
       <a class="cta" href="contato.html">Falar com a curadoria</a>
     </div>
   </header>
-  <main>
+  <main id="conteudo-principal">
     <section class="rect-hero">
       <div class="container rect-hero-grid">
         <div>
@@ -44,14 +44,14 @@
           <p class="eyebrow">Como respondemos</p>
           <h2 class="section-title">Sem pressão. Com contexto.</h2>
           <p class="lead">A curadoria entende intenção, espaço, orçamento e prazo antes de sugerir uma obra ou caminho de compra.</p>
-          <div class="page-actions"><a class="cta secondary" href="obras.html">Ver obras</a><a class="cta secondary" href="confianca.html">Entender confiança</a></div>
+          <div class="page-actions"><a class="cta secondary" href="comprar-arte.html">Ver obras</a><a class="cta secondary" href="confianca.html">Entender confiança</a></div>
         </div>
         <form class="form-card" data-form-type="duvida-curadoria">
           <h3>Falar com a curadoria</h3>
-          <input name="nome" placeholder="Nome" required />
-          <input name="email" placeholder="Email" />
-          <input name="whatsapp" placeholder="WhatsApp" required />
-          <select name="motivo" required>
+          <label class="u-visually-hidden" for="contato-nome-1">Nome</label><input id="contato-nome-1" name="nome" placeholder="Nome" required />
+          <label class="u-visually-hidden" for="contato-email-2">Email</label><input id="contato-email-2" name="email" placeholder="Email" />
+          <label class="u-visually-hidden" for="contato-whatsapp-3">WhatsApp</label><input id="contato-whatsapp-3" name="whatsapp" placeholder="WhatsApp" required />
+          <label class="u-visually-hidden" for="contato-motivo-4">motivo</label><select id="contato-motivo-4" name="motivo" required>
             <option value="">Sobre o que você quer falar?</option>
             <option>Dúvida sobre uma obra</option>
             <option>Ajuda para escolher</option>
@@ -61,8 +61,8 @@
             <option>Sou artista</option>
             <option>Sou empresa</option>
           </select>
-          <input name="orcamento" placeholder="Orçamento aproximado, se houver" />
-          <textarea name="mensagem" placeholder="Conte sua dúvida ou intenção de compra" required></textarea>
+          <label class="u-visually-hidden" for="contato-orcamento-5">Orçamento aproximado, se houver</label><input id="contato-orcamento-5" name="orcamento" placeholder="Orçamento aproximado, se houver" />
+          <label class="u-visually-hidden" for="contato-mensagem-6">Conte sua dúvida ou intenção de compra</label><textarea id="contato-mensagem-6" name="mensagem" placeholder="Conte sua dúvida ou intenção de compra" required></textarea>
           <button type="submit">Enviar mensagem</button>
         </form>
       </div>
@@ -71,8 +71,8 @@
   <footer class="site-footer">
     <div class="container footer-grid">
       <div><h2>Arandu</h2><p>Arte brasileira contemporânea com curadoria, território e procedência.</p></div>
-      <div><p>Comprar</p><a href="comprar-arte.html">Comprar arte</a><a href="obras.html">Explorar obras</a><a href="minha-selecao.html">Minha seleção</a></div>
-      <div><p>Acervo</p><a href="acervo.html">Obras e artistas</a><a href="artistas.html">Artistas</a><a href="para-artistas.html">Para artistas</a></div>
+      <div><p>Comprar</p><a href="comprar-arte.html">Comprar arte</a><a href="comprar-arte.html">Explorar obras</a><a href="minha-selecao.html">Minha seleção</a></div>
+      <div><p>Acervo</p><a href="comprar-arte.html">Obras e artistas</a><a href="artistas.html">Artistas</a><a href="para-artistas.html">Para artistas</a></div>
       <div><p>Confiança</p><a href="confianca.html">Critérios</a><a href="verificar-certificado.html">Verificar certificado</a><a href="contato.html">Contato</a></div>
     </div>
   </footer>

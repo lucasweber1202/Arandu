@@ -1,5 +1,8 @@
 import fs from 'node:fs';
-const issues=[];const read=(file)=>fs.readFileSync(file,'utf8');const api=read('api/[...path].js');const migration=read('docs/supabase-sprint6-12-platform.sql');const runtime=read('js/platform-runtime.js');const upload=read('api/upload.js');
+const issues=[];const read=(file)=>fs.readFileSync(file,'utf8');const api=[
+  read('api/[...path].js'),
+  ...fs.readdirSync('lib/api/domains').filter((file)=>file.endsWith('.mjs')).map((file)=>read(`lib/api/domains/${file}`))
+].join('\n');const migration=read('docs/supabase-sprint6-12-platform.sql');const runtime=read('js/platform-runtime.js');const upload=read('api/upload.js');
 function need(file,source,term,message){if(!source.includes(term))issues.push(`${file}: ${message}`);}
 need('api/[...path].js',api,'publicDataRequest','não separa leitura pública da service role.');
 need('api/[...path].js',api,'SUPABASE_ANON_KEY','não exige chave anônima nas views públicas.');

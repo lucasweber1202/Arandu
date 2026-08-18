@@ -5,41 +5,6 @@
 
   if (INTERNAL_PAGE_PATTERNS.test(currentPage()) || document.querySelector('[data-arandu-assistant]')) return;
 
-  const CORE_STYLE_ID = 'arandu-assistant-core-css';
-
-  function injectCoreCss() {
-    if (document.getElementById(CORE_STYLE_ID)) return;
-
-    const style = document.createElement('style');
-    style.id = CORE_STYLE_ID;
-    style.textContent = `
-      .arandu-assistant { position: fixed !important; right: 22px !important; bottom: 22px !important; z-index: 99999 !important; font-family: Arial, sans-serif !important; color: #180f0c !important; }
-      .arandu-assistant *, .arandu-assistant *::before, .arandu-assistant *::after { box-sizing: border-box !important; }
-      .arandu-assistant .assistant-toggle { border: 0 !important; border-radius: 999px !important; padding: 14px 18px !important; background: linear-gradient(135deg, #3e100d, #9f2f24, #c4492e) !important; color: #fff1dc !important; font-weight: 900 !important; box-shadow: 0 18px 50px rgba(62, 16, 13, .34) !important; cursor: pointer !important; font-size: 14px !important; line-height: 1 !important; }
-      .arandu-assistant .assistant-toggle:hover { transform: translateY(-2px) !important; }
-      .arandu-assistant .assistant-panel { position: absolute !important; right: 0 !important; bottom: 62px !important; width: min(390px, calc(100vw - 32px)) !important; max-height: min(680px, calc(100vh - 110px)) !important; background: #fff1dc !important; border: 1px solid rgba(62, 16, 13, .34) !important; border-radius: 28px !important; box-shadow: 0 28px 90px rgba(20, 13, 10, .32) !important; overflow: hidden !important; }
-      .arandu-assistant .assistant-panel[hidden] { display: none !important; }
-      .arandu-assistant .assistant-panel header { display: flex !important; justify-content: space-between !important; align-items: center !important; gap: 12px !important; padding: 18px 18px 12px !important; background: linear-gradient(135deg, #3e100d, #9f2f24) !important; color: #fff1dc !important; }
-      .arandu-assistant .assistant-panel header strong { display: block !important; font-family: Georgia, serif !important; font-size: 21px !important; color: #fff1dc !important; }
-      .arandu-assistant .assistant-panel header small { display: block !important; margin-top: 3px !important; color: rgba(255, 241, 220, .78) !important; font-size: 12px !important; line-height: 1.35 !important; }
-      .arandu-assistant .assistant-close { width: 32px !important; height: 32px !important; border-radius: 999px !important; border: 1px solid rgba(255, 241, 220, .34) !important; background: transparent !important; color: #fff1dc !important; cursor: pointer !important; font-size: 22px !important; line-height: 1 !important; }
-      .arandu-assistant .assistant-messages { display: grid !important; gap: 10px !important; max-height: 310px !important; overflow: auto !important; padding: 16px !important; background: #fff6e9 !important; }
-      .arandu-assistant .assistant-message { padding: 12px 14px !important; border-radius: 18px !important; line-height: 1.45 !important; font-size: 14px !important; }
-      .arandu-assistant .assistant-message.bot { background: #f2d5af !important; color: #180f0c !important; border: 1px solid rgba(62, 16, 13, .14) !important; }
-      .arandu-assistant .assistant-message.user { background: #163c30 !important; color: #fff1dc !important; justify-self: end !important; max-width: 86% !important; }
-      .arandu-assistant .assistant-message a { font-weight: 900 !important; color: #3e100d !important; text-decoration: underline !important; text-underline-offset: 3px !important; }
-      .arandu-assistant .assistant-quick-actions { display: flex !important; gap: 8px !important; flex-wrap: wrap !important; padding: 0 16px 14px !important; background: #fff6e9 !important; }
-      .arandu-assistant .assistant-chip { border: 1px solid rgba(62, 16, 13, .22) !important; background: rgba(255, 241, 220, .88) !important; color: #3e100d !important; border-radius: 999px !important; padding: 8px 10px !important; font-weight: 800 !important; font-size: 12px !important; cursor: pointer !important; }
-      .arandu-assistant .assistant-input-row { display: flex !important; gap: 8px !important; padding: 12px 14px 16px !important; border-top: 1px solid rgba(62, 16, 13, .22) !important; background: #fff1dc !important; }
-      .arandu-assistant .assistant-input-row input { flex: 1 !important; min-width: 0 !important; border: 1px solid rgba(62, 16, 13, .26) !important; border-radius: 999px !important; padding: 11px 13px !important; background: #fffaf1 !important; color: #180f0c !important; font-size: 14px !important; }
-      .arandu-assistant .assistant-input-row button { border: 0 !important; border-radius: 999px !important; padding: 0 14px !important; background: #3e100d !important; color: #fff1dc !important; font-weight: 900 !important; cursor: pointer !important; }
-      @media (max-width: 720px) { .arandu-assistant { right: 14px !important; bottom: 14px !important; } .arandu-assistant .assistant-toggle { padding: 12px 14px !important; font-size: 13px !important; } .arandu-assistant .assistant-panel { right: 0 !important; bottom: 56px !important; width: calc(100vw - 28px) !important; max-height: calc(100vh - 92px) !important; } .arandu-assistant .assistant-input-row { flex-direction: column !important; } .arandu-assistant .assistant-input-row button { padding: 11px 14px !important; } }
-    `;
-
-    document.head.appendChild(style);
-  }
-
-  injectCoreCss();
 
   const escapeHtml = (value) => String(value || '').replace(/[&<>'"]/g, (char) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'

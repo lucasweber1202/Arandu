@@ -2,7 +2,7 @@
   const root=document.querySelector('[data-catalog-quality]'); if(!root)return;
   const esc=(v)=>String(v??'').replace(/[&<>'"]/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
   const image=(item)=>item.image_url||item.main_image_url||item.photo_url||item.image||item.thumb_url||item.studio_image_url||item.thumb||'';
-  async function get(url,fallback){try{const res=await fetch(url,{cache:'no-store'});const json=await res.json();if(res.ok&&Array.isArray(json.items))return json.items;if(Array.isArray(json))return json;}catch{} const res=await fetch(fallback,{cache:'no-store'});return res.json();}
+  async function get(url){const res=await fetch(url,{cache:'no-store',credentials:'same-origin'});const json=await res.json().catch(()=>({}));if(!res.ok||json?.ok===false)throw new Error(json?.error||'Fonte oficial indisponível.');if(!Array.isArray(json.items))throw new Error('Resposta oficial inválida.');return json.items;}
   function workChecks(w){return [
     ['Imagem principal',Boolean(image(w)),'Adicionar imagem autorizada da obra.'],
     ['Preço ou faixa',Boolean(w.price||w.price_label||w.priceLabel),'Definir preço, faixa ou sob consulta.'],
@@ -22,8 +22,8 @@
   function score(checks){return Math.round((checks.filter(([,ok])=>ok).length/checks.length)*100);}
   function metric(label,value,text){return '<article class="op-quality-card"><strong>'+esc(value)+'</strong><h3>'+esc(label)+'</h3><p>'+esc(text)+'</p></article>';}
   function row(r){const missing=r.checks.filter(([,ok])=>!ok);return '<article class="op-quality-item '+(r.score<60?'is-critical':'')+'"><div><strong>'+esc(r.type)+' · '+esc(r.name)+'</strong><p>Score '+r.score+'/100 · '+(missing.length?esc(missing.map(([label])=>label).join(', ')):'Completo')+'</p></div><div class="admin-actions"><a href="'+esc(r.url)+'">Abrir</a><button type="button" data-copy-fix="'+esc(missing.map(([,ok,fix])=>fix).join('\n'))+'">Copiar pendências</button></div></article>';}
-  Promise.all([get('/api/catalog','data/artworks.json'),get('/api/artists','data/artists.json'),get('data/certificates.json','data/certificates.json')]).then(([works,artists,certs])=>{
-    const certByArtwork=new Set((Array.isArray(certs)?certs:[]).map((c)=>c.artwork_id).filter(Boolean));
+  Promise.all([get('/api/catalog'),get('/api/artists')]).then(([works,artists])=>{
+    const certByArtwork=new Set(works.filter((item)=>item.certificate===true).map((item)=>item.id));
     const workRows=works.map((w)=>{const checks=workChecks({...w,certificate:w.certificate||certByArtwork.has(w.id)});return {type:'obra',name:w.title||w.name||w.id,score:score(checks),checks,url:'obra.html?id='+(w.id||'')}});
     const artistRows=artists.map((a)=>{const checks=artistChecks(a);return {type:'artista',name:a.name||a.artist||a.id,score:score(checks),checks,url:'artista.html?id='+(a.id||'')}});
     const rows=[...workRows,...artistRows].sort((a,b)=>a.score-b.score);

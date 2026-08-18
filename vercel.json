@@ -9,155 +9,440 @@
     }
   },
   "crons": [
-    { "path": "/api/email-dispatch", "schedule": "0 12 * * *" }
+    {
+      "path": "/api/email-dispatch",
+      "schedule": "0 12 * * *"
+    }
   ],
   "redirects": [
-    { "source": "/obras.html", "destination": "/comprar-arte.html", "permanent": true },
-    { "source": "/acervo.html", "destination": "/comprar-arte.html", "permanent": true },
-    { "source": "/empresas.html", "destination": "/empresas-e-arquitetos.html", "permanent": true },
-    { "source": "/privacidade.html", "destination": "/politica-de-privacidade.html", "permanent": true },
-    { "source": "/politica-de-devolucao.html", "destination": "/compra-reserva-reembolso.html", "permanent": true },
-    { "source": "/obra-estudo-de-solo-04.html", "destination": "/obra.html?id=estudo-de-solo-04", "permanent": true },
-    { "source": "/obra-sertao-silencioso.html", "destination": "/obra.html?id=sertao-silencioso", "permanent": true },
-    { "source": "/obra-equilibrio-suspenso.html", "destination": "/obra.html?id=equilibrio-suspenso", "permanent": true },
-    { "source": "/narrativas.html", "destination": "/narrativa.html", "permanent": true },
-    { "source": "/autenticidade.html", "destination": "/confianca.html", "permanent": true },
-    { "source": "/certificado-arandu.html", "destination": "/verificar-certificado.html", "permanent": true }
+    {
+      "source": "/obras.html",
+      "destination": "/comprar-arte.html",
+      "permanent": true
+    },
+    {
+      "source": "/acervo.html",
+      "destination": "/comprar-arte.html",
+      "permanent": true
+    },
+    {
+      "source": "/empresas.html",
+      "destination": "/empresas-e-arquitetos.html",
+      "permanent": true
+    },
+    {
+      "source": "/privacidade.html",
+      "destination": "/politica-de-privacidade.html",
+      "permanent": true
+    },
+    {
+      "source": "/politica-de-devolucao.html",
+      "destination": "/compra-reserva-reembolso.html",
+      "permanent": true
+    },
+    {
+      "source": "/obra-estudo-de-solo-04.html",
+      "destination": "/obra.html?id=estudo-de-solo-04",
+      "permanent": true
+    },
+    {
+      "source": "/obra-sertao-silencioso.html",
+      "destination": "/obra.html?id=sertao-silencioso",
+      "permanent": true
+    },
+    {
+      "source": "/obra-equilibrio-suspenso.html",
+      "destination": "/obra.html?id=equilibrio-suspenso",
+      "permanent": true
+    },
+    {
+      "source": "/narrativas.html",
+      "destination": "/narrativa.html",
+      "permanent": true
+    },
+    {
+      "source": "/autenticidade.html",
+      "destination": "/confianca.html",
+      "permanent": true
+    },
+    {
+      "source": "/certificado-arandu.html",
+      "destination": "/verificar-certificado.html",
+      "permanent": true
+    }
   ],
   "rewrites": [
-    { "source": "/admin-preview.html", "destination": "/api/internal-page?page=admin-preview.html" },
-    { "source": "/admin.html", "destination": "/api/internal-page?page=admin.html" },
-    { "source": "/artista-editor.html", "destination": "/api/internal-page?page=artista-editor.html" },
-    { "source": "/benchmark-conversao.html", "destination": "/api/internal-page?page=benchmark-conversao.html" },
-    { "source": "/calendario-editorial.html", "destination": "/api/internal-page?page=calendario-editorial.html" },
-    { "source": "/catalogo-intake.html", "destination": "/api/internal-page?page=catalogo-intake.html" },
-    { "source": "/certificados-admin.html", "destination": "/api/internal-page?page=certificados-admin.html" },
-    { "source": "/certificado-imprimivel.html", "destination": "/api/internal-page?page=certificado-imprimivel.html" },
-    { "source": "/checklist-lancamento.html", "destination": "/api/internal-page?page=checklist-lancamento.html" },
-    { "source": "/colecoes-admin.html", "destination": "/api/internal-page?page=colecoes-admin.html" },
-    { "source": "/configuracao.html", "destination": "/api/internal-page?page=configuracao.html" },
-    { "source": "/demo.html", "destination": "/api/internal-page?page=demo.html" },
-    { "source": "/diagnostico-catalogo.html", "destination": "/api/internal-page?page=diagnostico-catalogo.html" },
-    { "source": "/dominio-go-live.html", "destination": "/api/internal-page?page=dominio-go-live.html" },
-    { "source": "/editor-registro.html", "destination": "/api/internal-page?page=editor-registro.html" },
-    { "source": "/funil-comercial.html", "destination": "/api/internal-page?page=funil-comercial.html" },
-    { "source": "/go-live.html", "destination": "/api/internal-page?page=go-live.html" },
-    { "source": "/historico-artista.html", "destination": "/api/internal-page?page=historico-artista.html" },
-    { "source": "/historico-obra.html", "destination": "/api/internal-page?page=historico-obra.html" },
-    { "source": "/kanban-comercial.html", "destination": "/api/internal-page?page=kanban-comercial.html" },
-    { "source": "/lancamento.html", "destination": "/api/internal-page?page=lancamento.html" },
-    { "source": "/lead-detalhe.html", "destination": "/api/internal-page?page=lead-detalhe.html" },
-    { "source": "/mvp-operacional.html", "destination": "/api/internal-page?page=mvp-operacional.html" },
-    { "source": "/obra-editor.html", "destination": "/api/internal-page?page=obra-editor.html" },
-    { "source": "/operacao-obras.html", "destination": "/api/internal-page?page=operacao-obras.html" },
-    { "source": "/operacao.html", "destination": "/api/internal-page?page=operacao.html" },
-    { "source": "/painel-admin.html", "destination": "/api/internal-page?page=painel-admin.html" },
-    { "source": "/painel-artistas.html", "destination": "/api/internal-page?page=painel-artistas.html" },
-    { "source": "/painel-briefings.html", "destination": "/api/internal-page?page=painel-briefings.html" },
-    { "source": "/painel-cadastros.html", "destination": "/api/internal-page?page=painel-cadastros.html" },
-    { "source": "/painel-certificados.html", "destination": "/api/internal-page?page=painel-certificados.html" },
-    { "source": "/painel-leads.html", "destination": "/api/internal-page?page=painel-leads.html" },
-    { "source": "/painel-mvp.html", "destination": "/api/internal-page?page=painel-mvp.html" },
-    { "source": "/painel-obras.html", "destination": "/api/internal-page?page=painel-obras.html" },
-    { "source": "/painel-pedidos.html", "destination": "/api/internal-page?page=painel-pedidos.html" },
-    { "source": "/painel-piloto.html", "destination": "/api/internal-page?page=painel-piloto.html" },
-    { "source": "/painel-propostas.html", "destination": "/api/internal-page?page=painel-propostas.html" },
-    { "source": "/painel-qualidade.html", "destination": "/api/internal-page?page=painel-qualidade.html" },
-    { "source": "/painel-reservas.html", "destination": "/api/internal-page?page=painel-reservas.html" },
-    { "source": "/painel-submissoes.html", "destination": "/api/internal-page?page=painel-submissoes.html" },
-    { "source": "/painel-tarefas.html", "destination": "/api/internal-page?page=painel-tarefas.html" },
-    { "source": "/painel.html", "destination": "/api/internal-page?page=painel.html" },
-    { "source": "/piloto.html", "destination": "/api/internal-page?page=piloto.html" },
-    { "source": "/propostas-admin.html", "destination": "/api/internal-page?page=propostas-admin.html" },
-    { "source": "/proposta-pdf.html", "destination": "/api/internal-page?page=proposta-pdf.html" },
-    { "source": "/prospeccao-artistas.html", "destination": "/api/internal-page?page=prospeccao-artistas.html" },
-    { "source": "/revisao-catalogo.html", "destination": "/api/internal-page?page=revisao-catalogo.html" },
-    { "source": "/status.html", "destination": "/api/internal-page?page=status.html" },
-    { "source": "/templates-comunicacao.html", "destination": "/api/internal-page?page=templates-comunicacao.html" },
-    { "source": "/upload-imagens.html", "destination": "/api/internal-page?page=upload-imagens.html" }
+    {
+      "source": "/.well-known/security.txt",
+      "destination": "/api/security-contact"
+    },
+    {
+      "source": "/admin-preview.html",
+      "destination": "/api/internal-page?page=admin-preview.html"
+    },
+    {
+      "source": "/admin.html",
+      "destination": "/api/internal-page?page=admin.html"
+    },
+    {
+      "source": "/artista-editor.html",
+      "destination": "/api/internal-page?page=artista-editor.html"
+    },
+    {
+      "source": "/benchmark-conversao.html",
+      "destination": "/api/internal-page?page=benchmark-conversao.html"
+    },
+    {
+      "source": "/calendario-editorial.html",
+      "destination": "/api/internal-page?page=calendario-editorial.html"
+    },
+    {
+      "source": "/catalogo-intake.html",
+      "destination": "/api/internal-page?page=catalogo-intake.html"
+    },
+    {
+      "source": "/certificados-admin.html",
+      "destination": "/api/internal-page?page=certificados-admin.html"
+    },
+    {
+      "source": "/certificado-imprimivel.html",
+      "destination": "/api/internal-page?page=certificado-imprimivel.html"
+    },
+    {
+      "source": "/checklist-lancamento.html",
+      "destination": "/api/internal-page?page=checklist-lancamento.html"
+    },
+    {
+      "source": "/colecoes-admin.html",
+      "destination": "/api/internal-page?page=colecoes-admin.html"
+    },
+    {
+      "source": "/configuracao.html",
+      "destination": "/api/internal-page?page=configuracao.html"
+    },
+    {
+      "source": "/demo.html",
+      "destination": "/api/internal-page?page=demo.html"
+    },
+    {
+      "source": "/diagnostico-catalogo.html",
+      "destination": "/api/internal-page?page=diagnostico-catalogo.html"
+    },
+    {
+      "source": "/dominio-go-live.html",
+      "destination": "/api/internal-page?page=dominio-go-live.html"
+    },
+    {
+      "source": "/editor-registro.html",
+      "destination": "/api/internal-page?page=editor-registro.html"
+    },
+    {
+      "source": "/funil-comercial.html",
+      "destination": "/api/internal-page?page=funil-comercial.html"
+    },
+    {
+      "source": "/go-live.html",
+      "destination": "/api/internal-page?page=go-live.html"
+    },
+    {
+      "source": "/historico-artista.html",
+      "destination": "/api/internal-page?page=historico-artista.html"
+    },
+    {
+      "source": "/historico-obra.html",
+      "destination": "/api/internal-page?page=historico-obra.html"
+    },
+    {
+      "source": "/kanban-comercial.html",
+      "destination": "/api/internal-page?page=kanban-comercial.html"
+    },
+    {
+      "source": "/lancamento.html",
+      "destination": "/api/internal-page?page=lancamento.html"
+    },
+    {
+      "source": "/lead-detalhe.html",
+      "destination": "/api/internal-page?page=lead-detalhe.html"
+    },
+    {
+      "source": "/mvp-operacional.html",
+      "destination": "/api/internal-page?page=mvp-operacional.html"
+    },
+    {
+      "source": "/obra-editor.html",
+      "destination": "/api/internal-page?page=obra-editor.html"
+    },
+    {
+      "source": "/operacao-obras.html",
+      "destination": "/api/internal-page?page=operacao-obras.html"
+    },
+    {
+      "source": "/operacao.html",
+      "destination": "/api/internal-page?page=operacao.html"
+    },
+    {
+      "source": "/painel-admin.html",
+      "destination": "/api/internal-page?page=painel-admin.html"
+    },
+    {
+      "source": "/painel-artistas.html",
+      "destination": "/api/internal-page?page=painel-artistas.html"
+    },
+    {
+      "source": "/painel-briefings.html",
+      "destination": "/api/internal-page?page=painel-briefings.html"
+    },
+    {
+      "source": "/painel-cadastros.html",
+      "destination": "/api/internal-page?page=painel-cadastros.html"
+    },
+    {
+      "source": "/painel-certificados.html",
+      "destination": "/api/internal-page?page=painel-certificados.html"
+    },
+    {
+      "source": "/painel-leads.html",
+      "destination": "/api/internal-page?page=painel-leads.html"
+    },
+    {
+      "source": "/painel-mvp.html",
+      "destination": "/api/internal-page?page=painel-mvp.html"
+    },
+    {
+      "source": "/painel-obras.html",
+      "destination": "/api/internal-page?page=painel-obras.html"
+    },
+    {
+      "source": "/painel-pedidos.html",
+      "destination": "/api/internal-page?page=painel-pedidos.html"
+    },
+    {
+      "source": "/painel-piloto.html",
+      "destination": "/api/internal-page?page=painel-piloto.html"
+    },
+    {
+      "source": "/painel-propostas.html",
+      "destination": "/api/internal-page?page=painel-propostas.html"
+    },
+    {
+      "source": "/painel-qualidade.html",
+      "destination": "/api/internal-page?page=painel-qualidade.html"
+    },
+    {
+      "source": "/painel-reservas.html",
+      "destination": "/api/internal-page?page=painel-reservas.html"
+    },
+    {
+      "source": "/painel-submissoes.html",
+      "destination": "/api/internal-page?page=painel-submissoes.html"
+    },
+    {
+      "source": "/painel-tarefas.html",
+      "destination": "/api/internal-page?page=painel-tarefas.html"
+    },
+    {
+      "source": "/painel.html",
+      "destination": "/api/internal-page?page=painel.html"
+    },
+    {
+      "source": "/piloto.html",
+      "destination": "/api/internal-page?page=piloto.html"
+    },
+    {
+      "source": "/propostas-admin.html",
+      "destination": "/api/internal-page?page=propostas-admin.html"
+    },
+    {
+      "source": "/proposta-pdf.html",
+      "destination": "/api/internal-page?page=proposta-pdf.html"
+    },
+    {
+      "source": "/prospeccao-artistas.html",
+      "destination": "/api/internal-page?page=prospeccao-artistas.html"
+    },
+    {
+      "source": "/revisao-catalogo.html",
+      "destination": "/api/internal-page?page=revisao-catalogo.html"
+    },
+    {
+      "source": "/status.html",
+      "destination": "/api/internal-page?page=status.html"
+    },
+    {
+      "source": "/templates-comunicacao.html",
+      "destination": "/api/internal-page?page=templates-comunicacao.html"
+    },
+    {
+      "source": "/upload-imagens.html",
+      "destination": "/api/internal-page?page=upload-imagens.html"
+    }
   ],
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "Permissions-Policy", "value": "accelerometer=(), autoplay=(), camera=(), display-capture=(), encrypted-media=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=(), interest-cohort=(), browsing-topics=()" },
-        { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains; preload" },
-        { "key": "Cross-Origin-Opener-Policy", "value": "same-origin" },
-        { "key": "Cross-Origin-Resource-Policy", "value": "same-site" },
-        { "key": "X-Permitted-Cross-Domain-Policies", "value": "none" },
-        { "key": "X-DNS-Prefetch-Control", "value": "off" },
-        { "key": "Content-Security-Policy", "value": "default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; object-src 'none'; frame-src 'none'; worker-src 'self'; manifest-src 'self'; font-src 'self' data:; img-src 'self' data: blob: https:; media-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' https://va.vercel-scripts.com; connect-src 'self' https://*.supabase.co https://va.vercel-scripts.com https://vitals.vercel-insights.com; upgrade-insecure-requests" }
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "accelerometer=(), autoplay=(), camera=(), display-capture=(), encrypted-media=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=(), interest-cohort=(), browsing-topics=()"
+        },
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=63072000; includeSubDomains; preload"
+        },
+        {
+          "key": "Cross-Origin-Opener-Policy",
+          "value": "same-origin"
+        },
+        {
+          "key": "Cross-Origin-Resource-Policy",
+          "value": "same-site"
+        },
+        {
+          "key": "X-Permitted-Cross-Domain-Policies",
+          "value": "none"
+        },
+        {
+          "key": "X-DNS-Prefetch-Control",
+          "value": "off"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; object-src 'none'; frame-src 'none'; worker-src 'self'; manifest-src 'self'; font-src 'self' data:; img-src 'self' data: blob: https:; media-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' https://va.vercel-scripts.com; connect-src 'self' https://*.supabase.co https://va.vercel-scripts.com https://vitals.vercel-insights.com; upgrade-insecure-requests"
+        }
       ]
     },
     {
       "source": "/api/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate, proxy-revalidate" },
-        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
+        {
+          "key": "Cache-Control",
+          "value": "no-store, no-cache, must-revalidate, proxy-revalidate"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
       ]
     },
     {
       "source": "/admin(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate, proxy-revalidate" },
-        { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" }
+        {
+          "key": "Cache-Control",
+          "value": "no-store, no-cache, must-revalidate, proxy-revalidate"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow, noarchive"
+        }
       ]
     },
     {
       "source": "/painel(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate, proxy-revalidate" },
-        { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" }
+        {
+          "key": "Cache-Control",
+          "value": "no-store, no-cache, must-revalidate, proxy-revalidate"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow, noarchive"
+        }
       ]
     },
     {
       "source": "/operacao(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate, proxy-revalidate" },
-        { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" }
+        {
+          "key": "Cache-Control",
+          "value": "no-store, no-cache, must-revalidate, proxy-revalidate"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow, noarchive"
+        }
       ]
     },
     {
       "source": "/piloto(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate, proxy-revalidate" },
-        { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" }
+        {
+          "key": "Cache-Control",
+          "value": "no-store, no-cache, must-revalidate, proxy-revalidate"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow, noarchive"
+        }
       ]
     },
     {
       "source": "/(.*).html",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" },
-        { "key": "Vercel-CDN-Cache-Control", "value": "public, max-age=300, stale-while-revalidate=86400, stale-if-error=86400" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        },
+        {
+          "key": "Vercel-CDN-Cache-Control",
+          "value": "public, max-age=300, stale-while-revalidate=86400, stale-if-error=86400"
+        }
       ]
     },
     {
       "source": "/(admin-preview|admin|artista-editor|benchmark-conversao|calendario-editorial|catalogo-intake|certificados-admin|certificado-imprimivel|checklist-lancamento|colecoes-admin|configuracao|demo|diagnostico-catalogo|dominio-go-live|editor-registro|funil-comercial|go-live|historico-artista|historico-obra|kanban-comercial|lancamento|lead-detalhe|mvp-operacional|obra-editor|operacao-obras|operacao|painel-admin|painel-artistas|painel-briefings|painel-cadastros|painel-certificados|painel-leads|painel-mvp|painel-obras|painel-pedidos|painel-piloto|painel-propostas|painel-qualidade|painel-reservas|painel-submissoes|painel-tarefas|painel|piloto|propostas-admin|proposta-pdf|prospeccao-artistas|revisao-catalogo|status|templates-comunicacao|upload-imagens).html",
       "headers": [
-        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate, proxy-revalidate" },
-        { "key": "Vercel-CDN-Cache-Control", "value": "no-store" },
-        { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" }
+        {
+          "key": "Cache-Control",
+          "value": "no-store, no-cache, must-revalidate, proxy-revalidate"
+        },
+        {
+          "key": "Vercel-CDN-Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow, noarchive"
+        }
       ]
     },
     {
       "source": "/assets/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
       ]
     },
     {
       "source": "/js/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
       ]
     },
     {
       "source": "/css/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
       ]
     }
   ]

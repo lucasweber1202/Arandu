@@ -35,14 +35,17 @@ for (const folder of folders) {
   console.log(`Copiado: ${folder} -> dist/${folder}`);
 }
 
-// A base JSON é somente material de seed/homologação. Publicá-la permitiria
-// confundir registros demonstrativos com uma verificação oficial.
-const demoCertificates = join(dist, 'data', 'certificates.json');
-if (existsSync(demoCertificates) && !presentationMode) {
-  rmSync(demoCertificates);
-  console.log('Removido do runtime público: data/certificates.json');
-} else if (existsSync(demoCertificates)) {
-  console.log('Mantido apenas no preview de apresentação: data/certificates.json');
+// Fixtures existem para seed/homologação e para Preview explicitamente
+// demonstrativo. O build normal remove o conjunto inteiro do runtime público.
+const presentationFixtures = ['artworks.json', 'artists.json', 'certificates.json'];
+for (const fixture of presentationFixtures) {
+  const target = join(dist, 'data', fixture);
+  if (existsSync(target) && !presentationMode) {
+    rmSync(target);
+    console.log(`Removido do runtime público: data/${fixture}`);
+  } else if (existsSync(target)) {
+    console.log(`Mantido apenas no preview de apresentação: data/${fixture}`);
+  }
 }
 
 for (const file of rootFiles) {

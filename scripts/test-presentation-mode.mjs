@@ -15,7 +15,8 @@ const release = JSON.parse(fs.readFileSync('data/catalog-release.json', 'utf8'))
 assert.match(catalog, /dataset_kind: 'demonstration'/);
 assert.match(reservations, /Nenhuma reserva, contato ou transação foi enviada/);
 assert.match(internal, /PRESENTATION_PAGES = new Set\(\['demo\.html', 'admin-preview\.html'\]\)/);
-assert.match(copy, /existsSync\(demoCertificates\) && !presentationMode/);
+assert.match(copy, /const presentationFixtures = \['artworks\.json', 'artists\.json', 'certificates\.json'\]/);
+assert.match(copy, /existsSync\(target\) && !presentationMode/);
 assert.notEqual(release.datasetKind, 'real');
 assert.notEqual(release.verifiedReady, true);
 // A cópia estática de demo.html/admin-preview.html vence o rewrite do Vercel.

@@ -12,9 +12,9 @@
   <link rel="stylesheet" href="css/arandu-clean.css?v=20260610-public-shell-1" />
   <link rel="canonical" href="https://arandu-bice.vercel.app/artistas.html" />
 </head>
-<body class="lovable-page artists-page architecture-clean">
+<body class="lovable-page artists-page architecture-clean"><a class="skip-link" href="#conteudo-principal">Pular para o conteúdo</a>
   <header class="site-header"><div class="container header-inner"><a class="brand-logo" href="index.html">Arandu</a><nav class="site-nav"><a href="index.html">Home</a><a href="comprar-arte.html">Comprar</a><a href="artistas.html">Artistas</a><a href="confianca.html">Confiança</a><a href="pesquisa.html">Pesquisar</a><a href="narrativa.html">Narrativa</a><a href="login.html">Entrar</a></nav></div></header>
-  <main>
+  <main id="conteudo-principal">
     <section class="rect-hero">
       <div class="container rect-hero-grid">
         <div>
@@ -34,9 +34,9 @@
           <p class="lead">A contagem considera obras carregadas no catálogo e disponíveis para conversa.</p>
         </div>
         <div class="op-artist-toolbar">
-          <input data-ux-artist-search type="search" placeholder="Buscar por artista, cidade, região ou linguagem" aria-label="Pesquisar artistas" />
-          <select data-ux-artist-language aria-label="Filtrar linguagem"><option value="todos">Todas linguagens</option><option value="pintura">Pintura</option><option value="fotografia">Fotografia</option><option value="escultura">Escultura</option><option value="objeto">Objeto</option></select>
-          <select data-ux-artist-sort aria-label="Ordenar artistas"><option value="nome">Nome A-Z</option><option value="obras">Mais obras disponíveis</option><option value="cidade">Cidade</option></select>
+          <label class="u-visually-hidden" for="artistas-buscar-por-artista-cidade-regiao-ou-linguagem-1">Pesquisar artistas</label><input id="artistas-buscar-por-artista-cidade-regiao-ou-linguagem-1" name="pesquisar-artistas" data-ux-artist-search type="search" placeholder="Buscar por artista, cidade, região ou linguagem" aria-label="Pesquisar artistas" />
+          <label class="u-visually-hidden" for="artistas-select-2">Filtrar linguagem</label><select id="artistas-select-2" name="filtrar-linguagem" data-ux-artist-language aria-label="Filtrar linguagem"><option value="todos">Todas linguagens</option><option value="pintura">Pintura</option><option value="fotografia">Fotografia</option><option value="escultura">Escultura</option><option value="objeto">Objeto</option></select>
+          <label class="u-visually-hidden" for="artistas-select-3">Ordenar artistas</label><select id="artistas-select-3" name="ordenar-artistas" data-ux-artist-sort aria-label="Ordenar artistas"><option value="nome">Nome A-Z</option><option value="obras">Mais obras disponíveis</option><option value="cidade">Cidade</option></select>
         </div>
         <p class="selection-summary" data-ux-artist-count>Carregando artistas...</p>
         <div class="ux-artist-grid" data-ux-artists><div class="final-empty"><strong>Carregando artistas</strong><span>Buscando diretório curatorial...</span></div></div>

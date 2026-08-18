@@ -14,7 +14,10 @@ function requireTerm(file, content, term, message) {
   if (!content.includes(term)) issues.push(`${file}: ${message}`);
 }
 
-const api = source('api/[...path].js');
+const api = [
+  source('api/[...path].js'),
+  ...fs.readdirSync('lib/api/domains').filter((file) => file.endsWith('.mjs')).map((file) => source(`lib/api/domains/${file}`))
+].join('\n');
 const apiCore = source('lib/api-core.mjs');
 const apiDtos = source('lib/api-dtos.mjs');
 const mvpApi = source('api/mvp-dashboard.js');

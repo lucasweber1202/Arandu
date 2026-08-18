@@ -123,7 +123,10 @@ for (const field of ['budget', 'message', 'email', 'whatsapp', 'name', 'company'
 
 // --- Superfície da API ----------------------------------------------------
 
-const apiSource = fs.readFileSync(path.join(root, 'api/[...path].js'), 'utf8');
+const apiSource = [
+  path.join(root, 'api/[...path].js'),
+  ...fs.readdirSync(path.join(root, 'lib/api/domains')).filter((name) => name.endsWith('.mjs')).map((name) => path.join(root, 'lib/api/domains', name))
+].map((file) => fs.readFileSync(file, 'utf8')).join('\n');
 assert.ok(apiSource.includes('resolveAccountAccess'), 'A API precisa resolver capacidades no servidor.');
 assert.ok(
   apiSource.includes('requireCapability(access, ACCOUNT_CAPABILITIES.ARTIST_PORTAL)'),

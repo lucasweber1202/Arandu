@@ -65,12 +65,9 @@ mustInclude('js/site.js','ensureHeaderNav','site restaura navegação');
 mustInclude('js/public-breadcrumbs.js','breadcrumb public','breadcrumbs públicos');
 mustNotInclude('js/arandu-assistant.js','obras.html?','links antigos de obras com query');
 mustNotInclude('js/auth.js','obras.html','auth apontando para páginas antigas');
-mustInclude('vite.config.js','arandu-operational-upgrade.css','CSS operacional injetado');
-mustInclude('vite.config.js','arandu-next-ops.css','CSS next ops injetado');
-mustInclude('vite.config.js','arandu-advanced-features.css','CSS avançado injetado');
-mustInclude('vite.config.js','arandu-ui-rescue.css','CSS de resgate de navegação injetado');
-mustInclude('css/arandu-ui-rescue.css','.site-nav','resgate visual da navegação');
-mustInclude('css/arandu-ui-rescue.css','.arandu-assistant','assistente visível');
+mustInclude('vite.config.js','arandu-runtime.css','bundle CSS canônico');
+mustInclude('css/arandu-runtime.css','.site-nav','navegação no bundle canônico');
+mustInclude('css/arandu-runtime.css','.arandu-assistant','assistente no bundle canônico');
 
 console.log('UX Launch Check');
 console.log(`Falhas: ${failures.length}`);

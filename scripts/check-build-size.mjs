@@ -37,7 +37,9 @@ const limits = {
   javascript: 800000,
   css: 650000,
   largestJavascript: 100000,
-  largestCss: 80000,
+  // A cascata canônica substitui 26 requests históricos; o limite por arquivo
+  // cresce apenas para ela, enquanto o budget CSS total continua inalterado.
+  largestCss: 170000,
   largestImage: 750000
 };
 
