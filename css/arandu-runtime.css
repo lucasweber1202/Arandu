@@ -1427,23 +1427,14 @@ body.arandu-consent-pending .arandu-assistant {
   color: var(--clarity-red) !important;
 }
 
-/* --- Componentes que perderam o próprio fundo -----------------------------
-   `.af-button.secondary` e `.op-artist-count` foram desenhados como texto
-   claro sobre superfície escura, mas folhas posteriores substituem só o fundo
-   e deixam a cor do texto intacta. O resultado é creme sobre creme: o contador
-   de obras do diretório de artistas ficava em 1.01:1 e o botão secundário da
-   Narrativa em 1.06:1 — ambos invisíveis. Aqui as duas propriedades voltam a
-   ser declaradas juntas, para que nenhuma camada consiga separá-las. */
+/* Pares de cor explícitos para componentes de ação. */
 .af-button.secondary {
   background: rgba(111, 23, 18, .12) !important;
   border-color: rgba(111, 23, 18, .3) !important;
   color: var(--clarity-red) !important;
 }
 
-/* `.conversion-band.is-dark` e `.mvp-section.dark` ficam fora do `:is()`: a
-   especificidade de `:is()` é a do argumento mais específico, e esses dois
-   seletores de duas classes elevariam a regra escura acima da regra do cartão
-   claro que precisa vencê-la logo abaixo. */
+
 .conversion-band.is-dark .af-button.secondary,
 .mvp-section.dark .af-button.secondary,
 :is(.rect-hero, .purchase-hero, .ux-home-hero, .proposal-hero,
@@ -1455,10 +1446,6 @@ body.arandu-consent-pending .arandu-assistant {
   color: #fff2dc !important;
 }
 
-.op-artist-count {
-  background: var(--clarity-red) !important;
-  color: var(--clarity-on-dark) !important;
-}
 
 /* Um cartão claro pode estar aninhado dentro de um herói escuro; nesse caso a
    superfície que importa é a mais próxima, não a seção. Por isso a variante
@@ -1629,3 +1616,25 @@ main>section{position:relative}.container{width:min(1180px,calc(100% - 32px))}.s
 
 /* Migrado de selecao-curatorial-template.html; escopo preservado pelos seletores existentes. */
 @media print{.site-header,.page-actions{display:none}}.proposal{max-width:1040px;margin:40px auto;background:#fffaf2;border:1px solid #d8c1a5;border-radius:28px;padding:38px}
+
+/* Contraste final: cada componente declara o par adequado à sua superfície. */
+:is(.certificate-preview, .certificate-document, .proposal, .card) > .eyebrow {
+  color: #741f1a !important;
+}
+.artist-detail-page .showcase-card :is(strong, span),
+.guided-page .context-card :is(h3, p) {
+  color: #4b342c !important;
+}
+.quick-buy-panel {
+  background: #fffaf2;
+}
+.quick-buy-panel :is(h2, h3, p, span, .eyebrow) {
+  color: #4b342c !important;
+}
+.quick-buy-actions a {
+  background: #741f1a;
+  color: #fffaf2 !important;
+}
+span.op-artist-count {
+  color: #fffaf2 !important;
+}
