@@ -5,7 +5,6 @@
   const LS={recent:'arandu.recent.v1',forms:'arandu.forms.v1',seenGuide:'arandu.guide.seen.v1'};
   const safeJson=(v,fallback)=>{try{return JSON.parse(v)||fallback}catch{return fallback}};
   const page=location.pathname.split('/').pop()||'index.html';
-  function injectCssOnce(href,id){if(!document.getElementById(id)){const link=document.createElement('link');link.id=id;link.rel='stylesheet';link.href=href;document.head.appendChild(link)}}
   function injectScriptOnce(src,id){if(!document.getElementById(id)){const script=document.createElement('script');script.id=id;script.src=src;script.defer=true;document.body.appendChild(script)}}
   function addBodyFlags(){document.body.classList.add('arandu-experience-ready');document.body.dataset.path=page.replace('.html','')}
   function dedupeSearchControls(){const header=$('.header-inner');if(!header)return;const controls=$$('.search-trigger,.native-search-link,[data-search-open]',header);controls.forEach((el,i)=>{if(i>0)el.remove();else{el.removeAttribute('data-search-open');if(el.tagName==='A')el.href='obras.html';el.textContent='Explorar'}})}
