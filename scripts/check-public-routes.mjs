@@ -3,7 +3,7 @@ import fs from 'node:fs';
 const issues = [];
 const manifest = JSON.parse(fs.readFileSync('data/public-routes.json', 'utf8'));
 const vercel = JSON.parse(fs.readFileSync('vercel.json', 'utf8'));
-const redirects = new Map((vercel.redirects || []).map((item) => [item.source.replace(/^\//, ''), item.destination.replace(/^\//, '')]));
+const redirects = new Map((vercel.redirects || []).map((item) => [item.source.replace(/^\//, ''), { ...item, destination: item.destination.replace(/^\//, '') }]));
 
 if (new Set(manifest.canonical).size !== manifest.canonical.length) issues.push('Rotas canônicas duplicadas.');
 for (const page of manifest.canonical) {
@@ -11,9 +11,12 @@ for (const page of manifest.canonical) {
   if (manifest.aliases[page]) issues.push(`Página canônica também foi declarada como alias: ${page}.`);
 }
 for (const [alias, target] of Object.entries(manifest.aliases)) {
-  if (!fs.existsSync(alias)) issues.push(`Alias sem arquivo de compatibilidade: ${alias}.`);
-  if (!manifest.canonical.includes(target)) issues.push(`Alias ${alias} aponta para rota não canônica: ${target}.`);
-  if (redirects.get(alias) !== target) issues.push(`Redirect da Vercel ausente ou divergente: ${alias} -> ${target}.`);
+  if (fs.existsSync(alias)) issues.push(`Alias ainda publicado como HTML em vez de redirect de infraestrutura: ${alias}.`);
+  const canonicalTarget = target.split(/[?#]/, 1)[0];
+  if (!manifest.canonical.includes(canonicalTarget)) issues.push(`Alias ${alias} aponta para rota não canônica: ${target}.`);
+  const redirect = redirects.get(alias);
+  if (redirect?.destination !== target) issues.push(`Redirect da Vercel ausente ou divergente: ${alias} -> ${target}.`);
+  if (redirect && redirect.permanent !== true) issues.push(`Redirect da Vercel precisa ser permanente: ${alias}.`);
 }
 
 const vite = fs.readFileSync('vite.config.js', 'utf8');
