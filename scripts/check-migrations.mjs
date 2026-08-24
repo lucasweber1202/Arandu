@@ -64,11 +64,16 @@ for (const [flow, files] of Object.entries(manifest)) {
   if (trailCompleteness === -1) issues.push(`${flow}: trilha operacional completa ausente.`);
   if (profileAccess !== -1 && trailCompleteness !== profileAccess + 1) issues.push(`${flow}: a trilha completa deve vir imediatamente depois do vínculo de conta e artista.`);
   // O fencing da outbox foi escrito quando a retenção encerrava a sequência. Como
-  // as migrations dos PRs #43–#45 entraram depois dela, ele passa a ser o último:
-  // suas dependências (outbox e orders) continuam bem antes na cadeia.
+  // as migrations dos PRs #43–#45 entraram depois dela, ele deixou de ser o
+  // último, mas continua imediatamente depois da trilha operacional completa.
   if (emailFencing === -1) issues.push(`${flow}: fencing da outbox ausente.`);
   if (trailCompleteness !== -1 && emailFencing !== trailCompleteness + 1) issues.push(`${flow}: o fencing da outbox deve vir imediatamente depois da trilha operacional completa.`);
-  if (emailFencing !== -1 && emailFencing !== files.length - 1) issues.push(`${flow}: o fencing da outbox deve encerrar a sequência atual.`);
+  // A ampliação do vocabulário de eventos depende da tabela criada nos Sprints
+  // 6 a 12 e encerra a sequência atual.
+  const betaEvents = files.indexOf('docs/supabase-beta-conversion-events.sql');
+  if (betaEvents === -1) issues.push(`${flow}: eventos de conversão da beta ausentes.`);
+  if (betaEvents !== -1 && platform !== -1 && betaEvents < platform) issues.push(`${flow}: os eventos da beta precisam vir depois do hardening da plataforma.`);
+  if (betaEvents !== -1 && betaEvents !== files.length - 1) issues.push(`${flow}: os eventos de conversão da beta devem encerrar a sequência atual.`);
 }
 
 console.log('Arandu Migration Order Check');

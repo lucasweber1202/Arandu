@@ -18,7 +18,8 @@
     "docs/supabase-operational-status.sql",
     "docs/supabase-profile-access.sql",
     "docs/supabase-operational-trail-completeness.sql",
-    "docs/supabase-email-outbox-fencing.sql"
+    "docs/supabase-email-outbox-fencing.sql",
+    "docs/supabase-beta-conversion-events.sql"
   ],
   "existingDatabase": [
     "docs/supabase-sprint1-auth-ownership.sql",
@@ -38,6 +39,7 @@
     "docs/supabase-operational-status.sql",
     "docs/supabase-profile-access.sql",
     "docs/supabase-operational-trail-completeness.sql",
-    "docs/supabase-email-outbox-fencing.sql"
+    "docs/supabase-email-outbox-fencing.sql",
+    "docs/supabase-beta-conversion-events.sql"
   ]
 }

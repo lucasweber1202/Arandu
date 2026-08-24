@@ -2,8 +2,50 @@
 (function () {
   const CONSENT_KEY = 'arandu.privacy.consent.v1';
   const ANONYMOUS_KEY = 'arandu.analytics.anonymous.v1';
+  const ATTRIBUTION_KEY = 'arandu.attribution.v1';
+  const UTM_FIELDS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'];
   let consentVersion = null;
   let consentConfigured = false;
+
+  function safeTag(value) {
+    // Rótulo de campanha, não texto livre: sem isso um utm_source manipulado
+    // entra inteiro no lead e no evento de conversão.
+    return String(value || '').trim().slice(0, 80).replace(/[^\w .\-|/]+/g, '');
+  }
+
+  // Atribuição de primeiro toque, no escopo da aba. Quem chega pelo TikTok em
+  // index.html e só envia o portfólio duas páginas depois perdia a origem,
+  // porque a leitura acontecia no momento do envio, na URL daquela página.
+  // Guarda apenas rótulos de campanha e o host do referrer — nunca a URL
+  // completa, que costuma carregar identificadores de perfil.
+  function captureAttribution() {
+    try {
+      const stored = JSON.parse(sessionStorage.getItem(ATTRIBUTION_KEY) || 'null');
+      if (stored && typeof stored === 'object') return stored;
+    } catch {}
+    const params = new URLSearchParams(location.search);
+    const value = { landing_page: String(location.pathname).slice(0, 240) };
+    UTM_FIELDS.forEach((field) => {
+      const tag = safeTag(params.get(field));
+      if (tag) value[field] = tag;
+    });
+    let referrerHost = '';
+    try {
+      const referrer = new URL(document.referrer);
+      if (referrer.hostname !== location.hostname) referrerHost = safeTag(referrer.hostname);
+    } catch {}
+    if (referrerHost) value.referrer_host = referrerHost;
+    try { sessionStorage.setItem(ATTRIBUTION_KEY, JSON.stringify(value)); } catch {}
+    return value;
+  }
+
+  function attribution() {
+    try {
+      const stored = JSON.parse(sessionStorage.getItem(ATTRIBUTION_KEY) || 'null');
+      if (stored && typeof stored === 'object') return stored;
+    } catch {}
+    return captureAttribution();
+  }
 
   function validConsentVersion(value) {
     return /^[A-Za-z0-9][A-Za-z0-9._-]{2,79}$/.test(String(value || ''));
@@ -75,7 +117,7 @@
           anonymousId: anonymousId(),
           eventType,
           path: location.pathname,
-          payload,
+          payload: { ...attribution(), ...payload },
           consentVersion
         })
       });
@@ -121,7 +163,12 @@
     document.addEventListener('click', (event) => {
       const save = event.target.closest('[data-save-artwork]');
       if (save) track('selection_add', { artworkId: save.dataset.artworkId || save.dataset.saveArtwork || '' });
-      if (event.target.closest('a[href*="contato"],a[href^="mailto:"],a[href^="https://wa.me"]')) track('contact_start', { target: 'contact' });
+      const contactLink = event.target.closest('a[href*="contato"],a[href^="mailto:"],a[href^="https://wa.me"]');
+      if (contactLink) {
+        const href = contactLink.getAttribute('href') || '';
+        const target = href.startsWith('https://wa.me') ? 'whatsapp' : href.startsWith('mailto:') ? 'email' : 'contact';
+        track('contact_start', { target });
+      }
       const reserve = event.target.closest('[data-reserve-artwork]');
       if (reserve) track('reservation_start', { artworkId: reserve.dataset.reserveArtwork || '' });
       const result = event.target.closest('[data-static-search-results] a');
@@ -135,6 +182,7 @@
   });
 
   async function boot() {
+    captureAttribution();
     await loadPublicConfig();
     accessibility();
     consentBanner();
@@ -145,10 +193,14 @@
     readConsent,
     saveConsent,
     track,
+    attribution,
     loadPublicConfig,
     getConsentVersion: () => consentVersion,
     consentConfigured: () => consentConfigured
   });
+  // Antes do boot: o primeiro toque precisa ser gravado ainda na página de
+  // entrada, mesmo que a pessoa saia antes de qualquer interação.
+  captureAttribution();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })();
