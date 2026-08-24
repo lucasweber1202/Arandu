@@ -53,11 +53,24 @@
     return error?.message || `Não foi possível carregar o ${subject} agora.`;
   }
 
+  // Um estado vazio honesto ainda precisa de saída. Enquanto o catálogo real não
+  // é liberado, quem chega pela home ou por um link externo encontrava só
+  // "Ver estado do serviço" — uma página de diagnóstico interno. Estas ações
+  // existem de verdade hoje: submissão de portfólio e contato com a curadoria.
+  function rescueActions(context = 'acervo') {
+    const artist = context === 'artistas'
+      ? '<a href="para-artistas.html#submissao">Sou artista: enviar portfólio</a>'
+      : '<a href="para-artistas.html#submissao">Enviar portfólio</a>';
+    return '<div class="arandu-rescue-actions"><a href="contato.html">Falar com a curadoria</a>'
+      + artist + '</div>';
+  }
+
   window.AranduCatalogSource = Object.freeze({
     CatalogSourceError,
     presentationEnabled,
     catalog: () => presentationEnabled() ? presentationRequest('/data/artworks.json') : request('/api/catalog'),
     artists: () => presentationEnabled() ? presentationRequest('/data/artists.json') : request('/api/artists'),
-    message
+    message,
+    rescueActions
   });
 })();

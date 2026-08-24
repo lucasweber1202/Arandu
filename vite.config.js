@@ -21,7 +21,30 @@ const configuredPilotEnabled = ['1','true','yes','sim'].includes(String(process.
 // Lança quando VERCEL_ENV=production e ARANDU_PRESENTATION_MODE está ligado:
 // o build inteiro falha antes de emitir qualquer página de demonstração.
 const configuredPresentationMode = assertPresentationModeIsSafe();
+const configuredCommercialReady = ['1','true','yes','sim'].includes(String(process.env.ARANDU_COMMERCIAL_READY || '').trim().toLowerCase());
 const ASSET_VERSION = '20260608';
+
+// Beta pública: enquanto a política comercial não estiver aprovada e o catálogo
+// real não estiver liberado, toda página pública declara o estado no topo. O
+// aviso é estático no HTML emitido (nada de injeção tardia, que deslocaria o
+// layout) e some sozinho quando ARANDU_COMMERCIAL_READY entrar como verdadeiro.
+const BETA_BANNER = configuredCommercialReady
+  ? ''
+  : '<aside class="beta-banner" data-beta-banner aria-label="Estado da plataforma">'
+    + '<div class="container"><b>Beta pública</b>'
+    + '<span>O acervo está em validação curatorial e a compra ainda não está aberta. '
+    + 'Já dá para <a href="para-artistas.html">enviar portfólio como artista</a> e '
+    + '<a href="contato.html">falar com a curadoria</a>.</span></div></aside>';
+
+// O aviso entra depois do link de pular conteúdo para não roubar o primeiro
+// foco do teclado, e antes do cabeçalho para ser a primeira coisa lida.
+function injectBetaBanner(html) {
+  if (!BETA_BANNER || html.includes('data-beta-banner')) return html;
+  const skipLink = html.match(/<body[^>]*>\s*<a class="skip-link"[^>]*>[^<]*<\/a>/i);
+  if (skipLink) return html.replace(skipLink[0], `${skipLink[0]}${BETA_BANNER}`);
+  const body = html.match(/<body[^>]*>/i);
+  return body ? html.replace(body[0], `${body[0]}${BETA_BANNER}`) : html;
+}
 
 function collectHtmlFiles(dir = root) {
   const entries = readdirSync(dir);
@@ -114,6 +137,7 @@ function injectGlobalAssets() {
         isCanonical: canonicalPages.has(pageName)
       });
       output = injectNativeSearch(output);
+      output = injectBetaBanner(output);
       if (!output.includes('/css/arandu-product.css')) output = output.includes('</head>') ? output.replace('</head>', `${productCssTag}</head>`) : `${productCssTag}${output}`;
       if (!output.includes('/css/arandu-runtime.css')) output = output.includes('</head>') ? output.replace('</head>', `${runtimeCssTag}</head>`) : `${runtimeCssTag}${output}`;
       if (!output.includes('/js/catalog-source.js')) output = output.includes('</head>') ? output.replace('</head>', `${catalogSourceJsTag}</head>`) : `${catalogSourceJsTag}${output}`;
