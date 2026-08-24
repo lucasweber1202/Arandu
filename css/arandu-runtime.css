@@ -1651,3 +1651,6 @@ span.op-artist-count {
 .catalog-unavailable .arandu-rescue-actions a+a{border-color:#f0d7bb;color:#f0d7bb}
 .form-privacy-note{margin-top:12px;font-size:.86rem;line-height:1.5;color:#4b342c}
 .form-privacy-note a{color:#741f1a}
+/* A camada legada empilhava logo e ações em grade de uma coluna abaixo de 980px.
+   Com a navegação já no botão "Menu", isso só dobrava a altura do cabeçalho. */
+@media(max-width:980px){.site-header .header-inner{display:flex!important;grid-template-columns:none!important;align-items:center;justify-content:space-between;gap:12px}}

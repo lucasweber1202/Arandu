@@ -110,12 +110,23 @@ function showFormRescue(form, payload) {
   if (whatsapp) links.push(`<a href="${whatsapp}" target="_blank" rel="noopener noreferrer">Enviar por WhatsApp</a>`);
   const mailto = contact?.mailto?.('Contato Arandu', summary);
   if (mailto) links.push(`<a href="${mailto}">Enviar por e-mail</a>`);
-  if (!links.length) links.push('<a href="contato.html">Abrir a página de contato</a>');
+  links.push('<a href="contato.html">Abrir a página de contato</a>');
   const rescue = document.createElement('div');
   rescue.className = 'arandu-rescue-actions';
   rescue.dataset.formRescue = 'true';
   rescue.innerHTML = links.join('');
   form.appendChild(rescue);
+}
+
+// A confirmação de portfólio precisa dizer o que vem depois, não só "recebido".
+function showFormNextStep(form) {
+  form.querySelector('[data-form-rescue]')?.remove();
+  const next = document.createElement('div');
+  next.className = 'arandu-rescue-actions';
+  next.dataset.formRescue = 'true';
+  next.innerHTML = '<a href="submissao-recebida.html">O que acontece agora</a>'
+    + '<a href="checklist-portfolio-artista.html">Checklist do portfólio</a>';
+  form.appendChild(next);
 }
 
 function hasMissingRequiredFields(form) {
@@ -184,6 +195,7 @@ document.addEventListener('submit', async (event) => {
   if (sent.ok) {
     clearLocalDrafts();
     showFormMessage(form, successMessageFor(payload.type, sent.result));
+    if (payload.type === 'submissao-artista') showFormNextStep(form);
     window.ARANDU_PRIVACY?.track?.(conversionEventFor(payload.type), { form_type: payload.type });
     form.reset();
     return;

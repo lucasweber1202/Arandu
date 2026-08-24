@@ -35,10 +35,10 @@ const ASSET_VERSION = '20260608';
 const BETA_BANNER = configuredCommercialReady
   ? ''
   : '<aside class="beta-banner" data-beta-banner aria-label="Estado da plataforma">'
-    + '<div class="container"><b>Beta pública</b>'
-    + '<span>O acervo está em validação curatorial e a compra ainda não está aberta. '
-    + 'Já dá para <a href="para-artistas.html">enviar portfólio como artista</a> e '
-    + '<a href="contato.html">falar com a curadoria</a>.</span></div></aside>';
+    + '<div class="container"><b>Beta</b>'
+    + '<span>Acervo em validação curatorial; compra ainda não aberta. '
+    + '<a href="para-artistas.html">Enviar portfólio</a> · '
+    + '<a href="contato.html">Falar com a curadoria</a></span></div></aside>';
 
 // O aviso entra depois do link de pular conteúdo para não roubar o primeiro
 // foco do teclado, e antes do cabeçalho para ser a primeira coisa lida.
