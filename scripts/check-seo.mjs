@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';
-import { renderSeoHead, SEO_MARKER_START, SEO_THEME_COLOR } from './seo-meta.mjs';
+import { deploymentBaseUrl, renderSeoHead, SEO_MARKER_START, SEO_THEME_COLOR } from './seo-meta.mjs';
+import { ownSiteUrl } from '../lib/public-site-url.mjs';
 
 const root = process.cwd();
 const distMode = process.argv.includes('--dist');
@@ -10,9 +11,13 @@ const errors = [];
 const routeManifest = JSON.parse(fs.readFileSync(path.join(root, 'data/public-routes.json'), 'utf8'));
 const canonicalPages = new Set(routeManifest.canonical);
 const ignoredDirs = new Set(['node_modules', '.git', 'dist', 'reports', 'tests', 'test-results', 'playwright-report']);
-const validationSiteUrl = distMode
-  ? String(process.env.ARANDU_SITE_URL || '').replace(/\/$/, '')
-  : 'https://arandu.example';
+// Sem domínio próprio o build emite deliberadamente uma prévia não indexável:
+// sem canonical, sem JSON-LD e com robots noindex em toda página. Exigir uma
+// URL aqui punia justamente o estado honesto — e o deploy da Vercel, que roda
+// este gate, deixava de sair. Em vez de recusar, valida-se o contrato da
+// prévia; a validação estrita volta assim que o domínio existir.
+const validationSiteUrl = distMode ? ownSiteUrl(process.env.ARANDU_SITE_URL) : 'https://arandu.example';
+const previewMode = distMode && !validationSiteUrl;
 
 function collectHtmlFiles(dir) {
   const files = [];
@@ -42,7 +47,8 @@ function fail(page, message) {
 }
 
 function validatePage(html, pageName) {
-  const isCanonical = canonicalPages.has(pageName);
+  // Na prévia nenhuma rota é indexável, então nenhuma delas carrega canonical.
+  const isCanonical = !previewMode && canonicalPages.has(pageName);
   const expectedCanonical = isCanonical ? `${validationSiteUrl}${pageName === 'index.html' ? '/' : `/${pageName}`}` : '';
   const checks = [
     [/name=["']robots["']/gi, 1, 'meta robots'],
@@ -145,10 +151,15 @@ if (!fs.existsSync(contentRoot)) {
   console.error(`Diretório ausente: ${contentRoot}`);
   process.exit(1);
 }
-if (distMode && !/^https:\/\//.test(validationSiteUrl)) {
-  console.error('ARANDU_SITE_URL HTTPS é obrigatório para validar dist.');
+// og:url e og:image precisam ser absolutas, e para isso o build precisa ter
+// tido alguma base: domínio próprio ou a URL do deploy. Na Vercel a segunda
+// sempre existe, então o gate roda; num build local sem nenhuma das duas não há
+// o que validar e dizer isso é mais útil que reprovar cada página.
+if (distMode && !validationSiteUrl && !deploymentBaseUrl()) {
+  console.error('Configure ARANDU_SITE_URL com domínio próprio ou rode dentro de um deploy (VERCEL_URL) para validar dist.');
   process.exit(1);
 }
+
 
 const files = collectHtmlFiles(contentRoot).sort();
 let homeHtml = '';
@@ -177,10 +188,12 @@ for (const file of files) {
 }
 
 const jsonLd = homeHtml.match(/<script type=["']application\/ld\+json["']>([\s\S]*?)<\/script>/i)?.[1];
-if (!jsonLd) {
-  fail('index.html', 'JSON-LD ausente');
-} else {
+if (jsonLd) {
   try { JSON.parse(jsonLd); } catch (error) { fail('index.html', `JSON-LD inválido: ${error.message}`); }
+} else if (!previewMode) {
+  // Dados estruturados só são emitidos com domínio próprio: sem ele não há URL
+  // absoluta honesta para declarar.
+  fail('index.html', 'JSON-LD ausente');
 }
 
 if (!distMode) {

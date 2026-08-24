@@ -3,23 +3,14 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { resolve, relative, extname, sep } from 'node:path';
 import { deploymentBaseUrl, renderSeoHead } from './scripts/seo-meta.mjs';
 import { INTERNAL_PAGE_SET } from './lib/internal-pages.mjs';
+import { ownSiteUrl } from './lib/public-site-url.mjs';
 import { assertPresentationModeIsSafe } from './lib/presentation-mode.mjs';
 
 const root = process.cwd();
 const ignoredDirs = new Set(['node_modules', '.git', 'dist', 'reports', 'tests', 'test-results', 'playwright-report']);
 const routeManifest = JSON.parse(readFileSync(resolve(root, 'data/public-routes.json'), 'utf8'));
 const canonicalPages = new Set(routeManifest.canonical);
-// Rótulo mais TLD alfabético: sem isso o placeholder `https://sua-url-da-vercel`
-// passa como domínio próprio e o build emite canonical e sitemap inválidos.
-const PUBLIC_HOSTNAME = /^(?=.{4,253}$)([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/i;
-const configuredSiteUrl = (() => {
-  try {
-    const url = new URL(process.env.ARANDU_SITE_URL);
-    if (url.protocol !== 'https:' || url.hostname.endsWith('.vercel.app') || url.hostname === 'localhost') return '';
-    if (!PUBLIC_HOSTNAME.test(url.hostname)) return '';
-    return url.toString().replace(/\/$/, '');
-  } catch { return ''; }
-})();
+const configuredSiteUrl = ownSiteUrl(process.env.ARANDU_SITE_URL);
 const configuredShareBaseUrl = deploymentBaseUrl();
 const configuredPilotEnabled = ['1','true','yes','sim'].includes(String(process.env.ARANDU_PILOT_ENABLED || '').trim().toLowerCase());
 // Lança quando VERCEL_ENV=production e ARANDU_PRESENTATION_MODE está ligado:
