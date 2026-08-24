@@ -9,10 +9,14 @@ const root = process.cwd();
 const ignoredDirs = new Set(['node_modules', '.git', 'dist', 'reports', 'tests', 'test-results', 'playwright-report']);
 const routeManifest = JSON.parse(readFileSync(resolve(root, 'data/public-routes.json'), 'utf8'));
 const canonicalPages = new Set(routeManifest.canonical);
+// Rótulo mais TLD alfabético: sem isso o placeholder `https://sua-url-da-vercel`
+// passa como domínio próprio e o build emite canonical e sitemap inválidos.
+const PUBLIC_HOSTNAME = /^(?=.{4,253}$)([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/i;
 const configuredSiteUrl = (() => {
   try {
     const url = new URL(process.env.ARANDU_SITE_URL);
     if (url.protocol !== 'https:' || url.hostname.endsWith('.vercel.app') || url.hostname === 'localhost') return '';
+    if (!PUBLIC_HOSTNAME.test(url.hostname)) return '';
     return url.toString().replace(/\/$/, '');
   } catch { return ''; }
 })();
@@ -21,7 +25,30 @@ const configuredPilotEnabled = ['1','true','yes','sim'].includes(String(process.
 // Lança quando VERCEL_ENV=production e ARANDU_PRESENTATION_MODE está ligado:
 // o build inteiro falha antes de emitir qualquer página de demonstração.
 const configuredPresentationMode = assertPresentationModeIsSafe();
+const configuredCommercialReady = ['1','true','yes','sim'].includes(String(process.env.ARANDU_COMMERCIAL_READY || '').trim().toLowerCase());
 const ASSET_VERSION = '20260608';
+
+// Beta pública: enquanto a política comercial não estiver aprovada e o catálogo
+// real não estiver liberado, toda página pública declara o estado no topo. O
+// aviso é estático no HTML emitido (nada de injeção tardia, que deslocaria o
+// layout) e some sozinho quando ARANDU_COMMERCIAL_READY entrar como verdadeiro.
+const BETA_BANNER = configuredCommercialReady
+  ? ''
+  : '<aside class="beta-banner" data-beta-banner aria-label="Estado da plataforma">'
+    + '<div class="container"><b>Beta</b>'
+    + '<span>Acervo em validação curatorial; compra ainda não aberta. '
+    + '<a href="para-artistas.html">Enviar portfólio</a> · '
+    + '<a href="contato.html">Falar com a curadoria</a></span></div></aside>';
+
+// O aviso entra depois do link de pular conteúdo para não roubar o primeiro
+// foco do teclado, e antes do cabeçalho para ser a primeira coisa lida.
+function injectBetaBanner(html) {
+  if (!BETA_BANNER || html.includes('data-beta-banner')) return html;
+  const skipLink = html.match(/<body[^>]*>\s*<a class="skip-link"[^>]*>[^<]*<\/a>/i);
+  if (skipLink) return html.replace(skipLink[0], `${skipLink[0]}${BETA_BANNER}`);
+  const body = html.match(/<body[^>]*>/i);
+  return body ? html.replace(body[0], `${body[0]}${BETA_BANNER}`) : html;
+}
 
 function collectHtmlFiles(dir = root) {
   const entries = readdirSync(dir);
@@ -114,6 +141,7 @@ function injectGlobalAssets() {
         isCanonical: canonicalPages.has(pageName)
       });
       output = injectNativeSearch(output);
+      output = injectBetaBanner(output);
       if (!output.includes('/css/arandu-product.css')) output = output.includes('</head>') ? output.replace('</head>', `${productCssTag}</head>`) : `${productCssTag}${output}`;
       if (!output.includes('/css/arandu-runtime.css')) output = output.includes('</head>') ? output.replace('</head>', `${runtimeCssTag}</head>`) : `${runtimeCssTag}${output}`;
       if (!output.includes('/js/catalog-source.js')) output = output.includes('</head>') ? output.replace('</head>', `${catalogSourceJsTag}</head>`) : `${catalogSourceJsTag}${output}`;

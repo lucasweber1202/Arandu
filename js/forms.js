@@ -35,9 +35,19 @@ function readQuizForLead() {
   try { return JSON.parse(localStorage.getItem('arandu.quiz.v1') || '{}'); } catch { return {}; }
 }
 
+// Primeiro toque da aba, gravado por js/platform-runtime.js na página de
+// entrada. A leitura antiga só olhava a URL do envio: quem chegava pelo TikTok
+// na home e enviava o portfólio em para-artistas.html chegava sem origem.
 function readUtm() {
+  const stored = window.ARANDU_PRIVACY?.attribution?.();
+  if (stored && typeof stored === 'object') return stored;
   const params = new URLSearchParams(window.location.search);
-  return { utm_source: params.get('utm_source'), utm_medium: params.get('utm_medium'), utm_campaign: params.get('utm_campaign'), referrer: document.referrer || null };
+  const fallback = { landing_page: window.location.pathname };
+  ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'].forEach((field) => {
+    const value = params.get(field);
+    if (value) fallback[field] = String(value).slice(0, 80);
+  });
+  return fallback;
 }
 
 function normalizeFormType(form) {
@@ -78,10 +88,45 @@ function showFormMessage(form, text, isError = false) {
     message = document.createElement('p');
     message.dataset.formStatus = 'true';
     message.style.fontWeight = '700';
+    message.setAttribute('role', 'status');
+    message.setAttribute('aria-live', 'polite');
     form.appendChild(message);
   }
   message.style.color = isError ? '#7b1f17' : '#6f221b';
   message.textContent = text;
+  form.querySelector('[data-form-rescue]')?.remove();
+}
+
+// Uma submissão recusada não pode terminar em beco sem saída. O rascunho local
+// e a cópia para a área de transferência ajudam quem já está no desktop, mas
+// quem chega do TikTok no celular precisa de um canal que funcione agora —
+// mesmo com o banco de produção indisponível.
+function showFormRescue(form, payload) {
+  form.querySelector('[data-form-rescue]')?.remove();
+  const contact = window.ARANDU_CONTACT;
+  const summary = buildStaticLeadSummary(payload);
+  const links = [];
+  const whatsapp = contact?.whatsappUrl?.(summary);
+  if (whatsapp) links.push(`<a href="${whatsapp}" target="_blank" rel="noopener noreferrer">Enviar por WhatsApp</a>`);
+  const mailto = contact?.mailto?.('Contato Arandu', summary);
+  if (mailto) links.push(`<a href="${mailto}">Enviar por e-mail</a>`);
+  links.push('<a href="contato.html">Abrir a página de contato</a>');
+  const rescue = document.createElement('div');
+  rescue.className = 'arandu-rescue-actions';
+  rescue.dataset.formRescue = 'true';
+  rescue.innerHTML = links.join('');
+  form.appendChild(rescue);
+}
+
+// A confirmação de portfólio precisa dizer o que vem depois, não só "recebido".
+function showFormNextStep(form) {
+  form.querySelector('[data-form-rescue]')?.remove();
+  const next = document.createElement('div');
+  next.className = 'arandu-rescue-actions';
+  next.dataset.formRescue = 'true';
+  next.innerHTML = '<a href="submissao-recebida.html">O que acontece agora</a>'
+    + '<a href="checklist-portfolio-artista.html">Checklist do portfólio</a>';
+  form.appendChild(next);
 }
 
 function hasMissingRequiredFields(form) {
@@ -123,6 +168,20 @@ async function sendLeadToApi(payload) {
   }
 }
 
+// `submissao-artista` é o evento de funil que define a beta: sem ele não dá
+// para saber se o tráfego do TikTok virou candidatura. Os demais formulários
+// entram como início de contato.
+function conversionEventFor(type) {
+  if (type === 'submissao-artista') return 'submit_artist_application';
+  return 'contact_start';
+}
+
+function successMessageFor(type, result) {
+  if (result?.mode === 'demo') return 'Recebido em modo de preparação. Nenhum dado pessoal foi mantido neste navegador.';
+  if (type === 'submissao-artista') return 'Portfólio recebido. A curadoria analisa coerência, documentação e disponibilidade das obras e retorna pelo contato informado.';
+  return 'Recebido. A curadoria irá analisar e retornar pelo contato informado.';
+}
+
 document.addEventListener('submit', async (event) => {
   const form = event.target;
   if (!(form instanceof HTMLFormElement)) return;
@@ -135,13 +194,18 @@ document.addEventListener('submit', async (event) => {
   const sent = await sendLeadToApi(payload);
   if (sent.ok) {
     clearLocalDrafts();
-    showFormMessage(form, sent.result?.mode === 'demo' ? 'Recebido em modo de preparação. Nenhum dado pessoal foi mantido neste navegador.' : 'Recebido. A curadoria irá analisar e retornar pelo contato informado.');
+    showFormMessage(form, successMessageFor(payload.type, sent.result));
+    if (payload.type === 'submissao-artista') showFormNextStep(form);
+    window.ARANDU_PRIVACY?.track?.(conversionEventFor(payload.type), { form_type: payload.type });
     form.reset();
     return;
   }
   storeDraft({ ...payload, api_status: sent.status, api_mode: 'local' });
   const copied = await copyStaticLead(payload);
-  showFormMessage(form, copied ? 'Não foi possível enviar agora. O resumo foi copiado e o rascunho local expira em 24 horas.' : 'Não foi possível enviar agora. O rascunho local expira em 24 horas.', true);
+  showFormMessage(form, copied
+    ? 'Não conseguimos registrar seu envio agora. O resumo foi copiado e o rascunho local expira em 24 horas — use um dos canais abaixo para falar com a curadoria.'
+    : 'Não conseguimos registrar seu envio agora. O rascunho local expira em 24 horas — use um dos canais abaixo para falar com a curadoria.', true);
+  showFormRescue(form, payload);
 });
 
 purgeLegacyPersonalData();

@@ -47,7 +47,9 @@ for (const flow of ['cleanInstall', 'existingDatabase']) {
   if (trailCompleteness !== profileAccess + 1) problems.push(`Trilha operacional completa deve vir logo depois do vínculo em ${flow}.`);
   const fencing = migrations.indexOf('docs/supabase-email-outbox-fencing.sql');
   if (fencing !== trailCompleteness + 1) problems.push(`Fencing da outbox deve vir logo depois da trilha operacional completa em ${flow}.`);
-  if (fencing !== migrations.length - 1) problems.push(`Fencing da outbox deve encerrar a sequência atual em ${flow}.`);
+  const betaEvents = migrations.indexOf('docs/supabase-beta-conversion-events.sql');
+  if (betaEvents !== fencing + 1) problems.push(`Eventos de conversão da beta devem vir logo depois do fencing da outbox em ${flow}.`);
+  if (betaEvents !== migrations.length - 1) problems.push(`Eventos de conversão da beta devem encerrar a sequência atual em ${flow}.`);
 }
 
 const sql = fs.readFileSync('docs/supabase-orders.sql', 'utf8');

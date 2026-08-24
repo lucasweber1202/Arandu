@@ -23,7 +23,7 @@
       root.innerHTML=collections.length?collections.map(card).join(''):'<article class="macro-card"><strong>Sem coleções</strong><span>Cadastre coleções ou rode o SQL de coleções do MVP.</span></article>';
       if(status)status.textContent=presentation?'Coleções demonstrativas para navegação; não representam catálogo comercial.':'Coleções carregadas do catálogo verificado.';
     }catch(error){
-      root.innerHTML='<article class="macro-card catalog-unavailable"><strong>Coleções indisponíveis</strong><span>'+escapeHtml(error.message)+'</span><a href="status.html">Ver estado do serviço</a></article>';
+      root.innerHTML='<article class="macro-card catalog-unavailable"><strong>Coleções em validação curatorial</strong><span>'+escapeHtml(error.message)+'</span>'+(window.AranduCatalogSource?.rescueActions('acervo')||'')+'</article>';
       if(status)status.textContent='As coleções serão abertas após a validação do catálogo real.';
     }
   }

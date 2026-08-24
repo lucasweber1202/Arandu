@@ -78,7 +78,10 @@ const RATE_LIMITS = new Map();
 const PILOT_EVENT_TYPES = new Set(['page_view','search','artwork_view','selection_add','reservation_start','reservation_complete','form_submit','pilot_task']);
 const PILOT_SEVERITIES = new Set(['info','low','medium','high','critical']);
 const PILOT_BLOCKER_STATUSES = new Set(['open','mitigated','resolved','not_applicable']);
-const CONVERSION_EVENT_TYPES = new Set(['search','catalog_view','artwork_view','selection_add','contact_start','reservation_start','reservation_complete']);
+// `submit_artist_application` é o evento que mede a beta: sem ele não há como
+// saber se o tráfego virou candidatura de artista. Exige a migration
+// docs/supabase-beta-conversion-events.sql, que amplia o CHECK da tabela.
+const CONVERSION_EVENT_TYPES = new Set(['search','catalog_view','artwork_view','selection_add','contact_start','reservation_start','reservation_complete','submit_artist_application']);
 const PRIVACY_REQUEST_TYPES = new Set(['access','correction','deletion','portability']);
 const EDITORIAL_STATUSES = new Set(['draft','documentation_pending','curatorial_review','approved','published','rejected','archived']);
 const CONSENT_VERSION = String(process.env.ARANDU_CONSENT_VERSION || '').trim();
