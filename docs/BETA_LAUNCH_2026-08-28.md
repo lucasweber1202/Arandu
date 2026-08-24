@@ -30,6 +30,7 @@ Os gates externos continuam fail-closed e nada aqui os promove.
 | A11 | Nota de privacidade LGPD junto ao botão dos dez formulários públicos; status do envio anunciado por leitor de tela. | 10 páginas com `data-form-type`, `js/forms.js` |
 | A12 | `ARANDU_SITE_URL` com host sem TLD (o placeholder `https://sua-url-da-vercel`, hoje em produção) deixa de passar como domínio próprio no runtime, no build e no gate. | `lib/api/domains/public-content.mjs`, `vite.config.js`, `scripts/check-domain-config.mjs` |
 | A13 | Contraste WCAG AA restaurado em oito páginas públicas. `tests/e2e/contrast.spec.js` falhava em `main` e passa aqui. | `css/arandu-runtime.css` |
+| A14 | Regra de "domínio próprio" passa a ter uma definição só, compartilhada pelo runtime, pelo build, pelo gate de domínio e pelo gate de SEO. Sem domínio, o gate de SEO valida o **contrato da prévia** (nenhuma rota indexável, nenhum canonical, sem JSON-LD) em vez de reprovar — é o que mantém o deploy da Vercel possível durante a beta. `og:image` deixa de sair absoluta para um host inexistente. | `lib/public-site-url.mjs`, `scripts/seo-meta.mjs`, `scripts/check-seo.mjs` |
 
 ### Preservado deliberadamente
 
@@ -57,7 +58,7 @@ Os gates externos continuam fail-closed e nada aqui os promove.
 
 | # | Variável | Estado hoje em produção | Efeito |
 | - | -------- | ----------------------- | ------ |
-| C1 | `ARANDU_SITE_URL` | **`https://sua-url-da-vercel`** — placeholder | Depois da correção A12 o runtime passa a tratá-lo como ausente (honesto). Preencher com o domínio real ou deixar vazio; **não deixar o placeholder**. |
+| C1 | `ARANDU_SITE_URL` | **`https://sua-url-da-vercel`** — placeholder | Depois de A12/A14 o runtime e o build tratam o valor como ausente (honesto) e o deploy continua saindo, como prévia não indexável. Preencher com o domínio real ou deixar vazio; **não deixar o placeholder** — enquanto ele estiver lá, o site não é indexado e a prévia de link usa a URL do deploy. |
 | C2 | `ARANDU_CONSENT_VERSION` | ausente | **Analytics inteiramente desligado.** `/api/public-config` responde `consent.configured: false`, o banner diz que métricas estão indisponíveis e `/api/conversion-events` recusa com 503. Sem isso não há funil de TikTok, mesmo com A7–A9 no ar. |
 | C3 | `ARANDU_CONTACT_EMAIL` | ausente (`null`) | O resgate de formulário e os CTAs de contato caem só no WhatsApp. Um e-mail dá segunda via. |
 | C4 | `ARANDU_WHATSAPP_NUMBER` | **configurado** (`5521976706600`) | OK. É hoje o único canal de contato realmente ativo. |
@@ -135,13 +136,15 @@ não recebe um único lead — o formulário responde 503 para todo mundo.
 | `npm run check:all` | **passou** (33 gates) |
 | `npm run build` | **passou** |
 | `npm run check:dist-assets` | **passou** — 97 páginas, 1631 referências locais |
-| `npm run check:seo:dist` | **passou** com `ARANDU_SITE_URL` real (sem domínio o gate recusa validar, por desenho) |
+| `npm run check:seo:dist` | **passou** nos três estados: domínio próprio, prévia da Vercel (placeholder + `VERCEL_URL`) e o valor de CI |
 | `npm run test:e2e:list` | 110 testes em 4 arquivos |
 | `npm run test:e2e` (chromium-desktop + mobile-chrome) | **42 passaram, 2 pulados** (pulos são do próprio spec, por projeto) |
 | `npm run test:e2e:presentation` (idem) | **9 passaram** |
 | `npm run test:database` (PostgreSQL 16 local) | **passou** — instalação limpa, upgrade, reaplicação, rollback, RLS, transações, pedidos, outbox, fencing e retenção, já com a migration nova |
 | `git diff --check` | limpo |
 | Build com `ARANDU_PRESENTATION_MODE=true VERCEL_ENV=production` | **falha, como esperado** |
+| `npm run vercel-build` simulando a Vercel (placeholder + `VERCEL_URL` + `VERCEL_ENV=preview`) | **passou** |
+| Os três jobs de `.github/workflows/ci.yml` simulados com `ARANDU_SITE_URL=https://arandu.example.com` | **passaram**; `predeploy` segue saindo != 0 com `BLOQUEADO` |
 
 **Limitação do ambiente:** só o Chromium está instalado (build 1194; o
 `@playwright/test` do repo espera 1234), e sem rede para baixar os demais. Os
