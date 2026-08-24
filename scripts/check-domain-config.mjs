@@ -1,3 +1,5 @@
+import { publicHostname } from '../lib/public-site-url.mjs';
+
 const strict = process.argv.includes('--require-ready');
 const issues = [];
 
@@ -14,7 +16,7 @@ function reservedHostname(hostname) {
   if (!host) return true;
   // Placeholder como `sua-url-da-vercel` não tem TLD: sem esta guarda o gate
   // de domínio próprio ficava verde com o valor de exemplo do .env.
-  if (!/^(?=.{4,253}$)([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/.test(host)) return true;
+  if (!publicHostname(host)) return true;
   if (host === 'localhost' || host.endsWith('.localhost')) return true;
   if (host === 'example.com' || host.endsWith('.example.com')) return true;
   if (host === 'example.org' || host.endsWith('.example.org')) return true;

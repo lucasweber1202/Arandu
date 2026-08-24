@@ -1,3 +1,4 @@
+import { ownSiteUrl } from '../lib/public-site-url.mjs';
 import path from 'node:path';
 
 export const SEO_MARKER_START = '<!-- arandu:seo:start -->';
@@ -49,8 +50,11 @@ function safeAbsoluteUrl(value) {
 }
 
 export function deploymentBaseUrl(environment = process.env) {
+  // ARANDU_SITE_URL só entra como base de compartilhamento se for domínio
+  // próprio de verdade. Com o placeholder configurado, og:image apontava para
+  // um host inexistente e a prévia do link quebrava em qualquer rede social.
   for (const candidate of [
-    environment.ARANDU_SITE_URL,
+    ownSiteUrl(environment.ARANDU_SITE_URL),
     environment.VERCEL_PROJECT_PRODUCTION_URL,
     environment.VERCEL_URL
   ]) {
