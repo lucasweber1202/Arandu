@@ -124,7 +124,11 @@ function showFormNextStep(form) {
   const next = document.createElement('div');
   next.className = 'arandu-rescue-actions';
   next.dataset.formRescue = 'true';
+  // Depois de enviar, o artista precisava saber o que fazer para voltar. Sem a
+  // conta e o portal aqui, a submissão terminava num beco: nada indicava que
+  // existe uma tela para acompanhar a análise.
   next.innerHTML = '<a href="submissao-recebida.html">O que acontece agora</a>'
+    + '<a href="cadastro.html">Criar conta para acompanhar</a>'
     + '<a href="checklist-portfolio-artista.html">Checklist do portfólio</a>';
   form.appendChild(next);
 }

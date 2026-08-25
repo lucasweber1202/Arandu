@@ -288,7 +288,11 @@ html, body {
   font-weight: 700;
 }
 
+/* `.site-footer a` é `display:block` para as colunas de links. Na linha legal
+   isso quebrava cada item numa linha, com os separadores " · " soltos entre
+   elas. */
 .footer-legal a {
+  display: inline;
   white-space: nowrap;
 }
 
