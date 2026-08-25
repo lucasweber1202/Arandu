@@ -9,6 +9,14 @@
   const ready = document.querySelector('meta[name="arandu-commercial-ready"]')?.content === 'true';
   if (ready) return;
 
+  // O modo de apresentação é um ambiente declaradamente demonstrativo — o
+  // banner diz "Ambiente de apresentação" e a reserva ali é simulada no
+  // navegador, sem chamar a API e sem guardar dado pessoal. Ali o botão não
+  // promete nada, ele demonstra o fluxo; retirá-lo apagaria a demonstração.
+  const presentation = document.querySelector('meta[name="arandu-presentation-mode"]')?.content === 'true'
+    || window.AranduPresentation?.enabled === true;
+  if (presentation) return;
+
   const NOTE = 'A reserva abre quando a política comercial for aprovada. Até lá, a conversa começa pela curadoria.';
 
   function replaceReserveControl(control) {
