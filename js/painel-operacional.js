@@ -336,9 +336,9 @@ async function loadPanel() {
   if (lastRemoteMode === 'stored') {
     panelStatus('Painel conectado ao Supabase. Alterações de status serão salvas no banco.');
   } else if (panelToken()) {
-    panelStatus('Token informado, mas o Supabase ainda não está disponível. Alterações ficarão locais.');
+    panelStatus('Sessão ativa, mas o Supabase não respondeu. As mudanças de status ficam só neste navegador até o banco voltar.');
   } else {
-    panelStatus('Painel operacional em modo local/demo. Informe o sessão administrativa protegida para conectar ao banco.');
+    panelStatus('Painel em modo local: o banco não está conectado nesta sessão. O que aparece aqui não vem do Supabase e não é gravado.');
   }
 }
 

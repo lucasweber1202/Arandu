@@ -372,7 +372,7 @@ const {
 const { handleSelections } = createSelectionsDomain(sharedDomainDependencies);
 const { handleAccount, handlePortal, handleArtistAccounts } = createAccountsDomain(sharedDomainDependencies);
 const { handlePrivacy, handleConversionEvents } = createPrivacyDomain(sharedDomainDependencies);
-const { handleDashboard } = createDashboardDomain(sharedDomainDependencies);
+const { handleDashboard, handleQuality } = createDashboardDomain(sharedDomainDependencies);
 
 function routeFrom(req) {
   const pathname = new URL(req.url, 'http://localhost').pathname.replace(/^\/api\/?/, '').replace(/\/$/, '');
@@ -409,6 +409,7 @@ export default async function handler(req, res) {
     if (route.startsWith('portal/')) return await handlePortal(req, res, route.split('/')[1]);
     if (route === 'artist-accounts') return await handleArtistAccounts(req, res);
     if (route === 'dashboard') return await handleDashboard(req, res);
+    if (route === 'admin/quality') return await handleQuality(req, res);
     if (route.startsWith('auth/')) return await handleAuth(req, res, route.split('/')[1]);
     return json(res, 404, { ok: false, error: 'Rota de API não encontrada.', route });
   } catch (error) {

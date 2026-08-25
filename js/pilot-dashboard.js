@@ -5,7 +5,7 @@
   if (!root || !token) return;
   async function load() {
     const value = token.value.trim();
-    if (!value) { status.textContent = 'Informe o sessão administrativa.'; return; }
+    if (!value) { status.textContent = 'Sessão administrativa não reconhecida. Entre de novo pelo console.'; return; }
     status.textContent = 'Carregando métricas...';
     try {
       const response = await fetch('/api/pilot/metrics', { cache: 'no-store', headers: { } });
