@@ -117,6 +117,13 @@ jobs:
       - name: Safe presentation journeys across browser engines
         run: npm run test:e2e:presentation
 
+      # A suíte principal cobre o estado publicado (compra fechada). Esta cobre
+      # o fluxo de reserva que precisa continuar correto quando a política
+      # comercial for aprovada — inclusive a chave de idempotência por
+      # tentativa.
+      - name: Browser journeys with commerce open
+        run: npm run test:e2e:commerce
+
       - name: Upload browser evidence on failure
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7

@@ -215,47 +215,27 @@ test('salvar obra alimenta a seleção e as ferramentas da seleção funcionam',
   expect(pageErrors).toEqual([]);
 });
 
-test('reserva envia chave de idempotência e trata recusa do servidor', async ({ page }) => {
+// Com `ARANDU_COMMERCIAL_READY=false` — o estado da beta — o servidor recusa
+// `/api/reservations` de forma fechada. Oferecer "Reservar com curadoria" era
+// prometer um fluxo que termina em erro de política comercial. A jornada com a
+// compra aberta vive em `commerce-journeys.spec.js`, sobre um build próprio.
+test('com a compra fechada, o acervo oferece a curadoria no lugar da reserva', async ({ page }) => {
   await stubApi(page);
-  const idempotencyKeys = [];
-  await page.route('**/api/reservations', async (route) => {
-    idempotencyKeys.push(route.request().headers()['idempotency-key']);
-    const payload = route.request().postDataJSON();
-    // O honeypot precisa continuar sendo enviado vazio por um usuário real.
-    expect(payload.website ?? '').toBe('');
-    expect(payload.artwork_id).toBe('obra-horizonte');
-    await route.fulfill({
-      status: idempotencyKeys.length === 1 ? 503 : 201,
-      contentType: 'application/json',
-      body: JSON.stringify(idempotencyKeys.length === 1
-        ? { ok: false, error: 'O banco de produção ainda não está configurado.' }
-        : { ok: true, stored: true })
-    });
-  });
-
   await page.goto('/comprar-arte.html');
   await acceptEssential(page);
-  await page.locator('[data-card-artwork="obra-horizonte"] [data-reserve-artwork]').click();
 
-  const dialog = page.locator('[data-reserve-modal] [role="dialog"]');
-  await expect(dialog).toBeVisible();
-  await expect(dialog).toContainText('Horizonte de Barro');
+  const card = page.locator('[data-card-artwork="obra-horizonte"]');
+  await expect(card).toBeVisible();
+  await expect(card.locator('[data-reserve-artwork]')).toHaveCount(0);
 
-  await page.locator('[data-reserve-form] input[name="name"]').fill('Pessoa Compradora');
-  await page.locator('[data-reserve-form] input[name="whatsapp"]').fill('11999990000');
-  await page.locator('[data-reserve-form] button[type="submit"]').click();
+  const curadoria = card.locator('[data-commerce-replaced]');
+  await expect(curadoria).toBeVisible();
+  await expect(curadoria).toHaveText('Falar com a curadoria');
+  await expect(curadoria).toHaveAttribute('href', /^contato\.html/);
 
-  // Falha do servidor precisa aparecer para a pessoa, não sumir em silêncio.
-  await expect(page.locator('[data-reserve-status]')).toContainText('banco de produção');
-
-  await page.locator('[data-reserve-form] button[type="submit"]').click();
-  await expect(page.locator('[data-reserve-status]')).toContainText('Reserva registrada');
-
-  expect(idempotencyKeys).toHaveLength(2);
-  for (const key of idempotencyKeys) expect(key).toMatch(/^[0-9a-f-]{36}$/i);
-  // Tentativas distintas precisam de chaves distintas, senão o retry legítimo
-  // seria recusado como replay pelo servidor.
-  expect(new Set(idempotencyKeys).size).toBe(2);
+  // Nenhum caminho de reserva pode sobrar em outros pontos da mesma página.
+  await expect(page.locator('[data-reserve-artwork]')).toHaveCount(0);
+  await expect(page.locator('[data-reserve-modal]')).toHaveCount(0);
 });
 
 test('página inexistente oferece saída para o acervo', async ({ page }) => {

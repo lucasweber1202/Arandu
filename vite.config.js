@@ -127,6 +127,10 @@ function injectGlobalAssets() {
   const pilotJsTag = `<script src="/js/pilot.js?v=20260717-pilot-1" defer></script>`;
   const platformRuntimeTag = `<script src="/js/platform-runtime.js?v=20260717-platform-1" defer></script>`;
   const presentationBootstrapTag = `<meta name="arandu-presentation-mode" content="${configuredPresentationMode ? 'true' : 'false'}">`;
+  // Mesma fonte do aviso de beta: enquanto a política comercial não estiver
+  // aprovada, a página não pode oferecer reserva — o servidor a recusa.
+  const commercialBootstrapTag = `<meta name="arandu-commercial-ready" content="${configuredCommercialReady ? 'true' : 'false'}">`;
+  const commerceJsTag = '<script src="/js/commerce-availability.js?v=20260825-commerce-1" defer></script>';
   const presentationCssTag = '<link rel="stylesheet" href="/css/arandu-presentation.css?v=20260814-1">';
   const presentationRuntimeTag = '<script src="/js/presentation-runtime.js?v=20260814-1" defer></script>';
 
@@ -150,9 +154,11 @@ function injectGlobalAssets() {
       if (!output.includes('/js/catalog-source.js')) output = output.includes('</head>') ? output.replace('</head>', `${catalogSourceJsTag}</head>`) : `${catalogSourceJsTag}${output}`;
       if (!output.includes('name="arandu-pilot-enabled"')) output = output.includes('</head>') ? output.replace('</head>', `${pilotBootstrapTag}</head>`) : `${pilotBootstrapTag}${output}`;
       if (!output.includes('name="arandu-presentation-mode"')) output = output.includes('</head>') ? output.replace('</head>', `${presentationBootstrapTag}</head>`) : `${presentationBootstrapTag}${output}`;
+      if (!output.includes('name="arandu-commercial-ready"')) output = output.includes('</head>') ? output.replace('</head>', `${commercialBootstrapTag}</head>`) : `${commercialBootstrapTag}${output}`;
       if (configuredPresentationMode && !output.includes('/css/arandu-presentation.css')) output = output.includes('</head>') ? output.replace('</head>', `${presentationCssTag}</head>`) : `${presentationCssTag}${output}`;
       if (!output.includes('/js/arandu-interface-audit.js')) output = output.includes('</body>') ? output.replace('</body>', `${auditJsTag}</body>`) : `${output}${auditJsTag}`;
       if (!output.includes('/js/arandu-assistant.js')) output = output.includes('</body>') ? output.replace('</body>', `${assistantJsTag}</body>`) : `${output}${assistantJsTag}`;
+      if (!output.includes('/js/commerce-availability.js')) output = output.includes('</body>') ? output.replace('</body>', `${commerceJsTag}</body>`) : `${output}${commerceJsTag}`;
       if (!output.includes('/js/pilot.js')) output = output.includes('</body>') ? output.replace('</body>', `${pilotJsTag}</body>`) : `${output}${pilotJsTag}`;
       if (!output.includes('/js/platform-runtime.js')) output = output.includes('</body>') ? output.replace('</body>', `${platformRuntimeTag}</body>`) : `${output}${platformRuntimeTag}`;
       if (configuredPresentationMode && !output.includes('/js/presentation-runtime.js')) output = output.includes('</body>') ? output.replace('</body>', `${presentationRuntimeTag}</body>`) : `${output}${presentationRuntimeTag}`;

@@ -86,7 +86,9 @@
     "pretest:e2e:presentation": "ARANDU_PRESENTATION_MODE=true VERCEL_ENV=preview npm run build",
     "test:e2e:presentation": "playwright test --config playwright.presentation.config.js",
     "check:css": "node scripts/check-css-architecture.mjs",
-    "check:navigation": "node scripts/check-navigation.mjs"
+    "check:navigation": "node scripts/check-navigation.mjs",
+    "pretest:e2e:commerce": "ARANDU_COMMERCIAL_READY=true npm run build",
+    "test:e2e:commerce": "playwright test --config playwright.commerce.config.js"
   },
   "dependencies": {
     "@vercel/speed-insights": "^2.0.0",

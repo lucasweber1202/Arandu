@@ -87,7 +87,9 @@ function renderSelection() {
   const target = document.querySelector('[data-selection-list]');
   if (!target) return;
   const items = readSelection();
-  if (!items.length) { target.innerHTML = '<p>Sua seleção ainda está vazia. Salve obras em Comprar para pedir orientação à curadoria.</p><div class="page-actions"><a class="cta" href="comprar-arte.html">Comprar obras</a><a class="cta secondary" href="proposta-pdf.html">Gerar proposta</a></div>'; return; }
+  // Seleção vazia não gera proposta: a saída é encontrar obra ou falar com a
+  // curadoria. O link antigo levava para uma página administrativa.
+  if (!items.length) { target.innerHTML = '<p>Sua seleção ainda está vazia. Salve obras no acervo para pedir orientação à curadoria.</p><div class="page-actions"><a class="cta" href="comprar-arte.html">Ver o acervo</a><a class="cta secondary" href="contato.html">Falar com a curadoria</a></div>'; return; }
   target.innerHTML = items.map((item) => {
     const id = escapeSelectionHtml(item.id);
     const url = escapeSelectionHtml(normalizeSelectionUrl(item.url));
@@ -102,7 +104,7 @@ function renderSelection() {
         </label>
         <div class="tags">
           <a class="tag" href="${url}">Ver obra</a>
-          <a class="tag" href="proposta-pdf.html">Gerar proposta</a>
+          <a class="tag" href="proposta-curatorial.html">Gerar proposta</a>
           <button class="tag" type="button" data-reserve-artwork="${id}" data-reserve-title="${escapeSelectionHtml(item.title)}" data-reserve-artist="${escapeSelectionHtml(item.artist)}" data-reserve-url="${url}">Reservar com curadoria</button>
           <button class="tag" type="button" data-remove-artwork="${id}">Remover</button>
         </div>

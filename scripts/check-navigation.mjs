@@ -166,6 +166,36 @@ for (const file of readdirSync(join(root, 'css')).filter((name) => name.endsWith
   }
 }
 
+// --- 3b. Scripts públicos não podem escrever link para tela interna --------
+// `js/catalog-page.js` desenhava um link "Proposta" para `proposta-pdf.html`
+// em cada cartão de obra: como o link nasce em runtime, ele não aparece no
+// HTML publicado e passou por toda checagem estática.
+const publicScripts = new Set();
+for (const page of distPages) {
+  const html = readFileSync(join(dist, page), 'utf8');
+  for (const raw of linksOf(html)) {
+    const target = resolveHref(page, raw);
+    if (target.startsWith('js/') && target.endsWith('.js')) publicScripts.add(target.slice('js/'.length));
+  }
+}
+// Scripts carregados por outros scripts (js/site.js e js/arandu-usability.js
+// injetam a segunda onda) contam como públicos também.
+for (const seed of ['site.js', 'arandu-usability.js']) {
+  if (!publicScripts.has(seed)) continue;
+  const source = readFileSync(join(root, 'js', seed), 'utf8');
+  for (const match of source.matchAll(/['"]([A-Za-z0-9._-]+\.js)['"]/g)) publicScripts.add(match[1]);
+  for (const match of source.matchAll(/js\/([A-Za-z0-9._-]+\.js)/g)) publicScripts.add(match[1]);
+}
+for (const file of [...publicScripts].sort()) {
+  const path = join(root, 'js', file);
+  if (!existsSync(path)) continue;
+  const source = readFileSync(path, 'utf8');
+  for (const match of source.matchAll(/href=\\?["']([A-Za-z0-9._?=&#-]+\.html)/g)) {
+    const target = match[1].split('?')[0].split('#')[0];
+    if (INTERNAL_PAGE_SET.has(target)) issues.push(`js/${file} escreve um link público para a tela interna ${target}.`);
+  }
+}
+
 // --- 4. Cada audiência tem porta de entrada --------------------------------
 const ENTRY_POINTS = [
   ['portal-artista.html', 'portal do artista (vendedor)'],
