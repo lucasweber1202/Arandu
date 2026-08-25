@@ -308,26 +308,74 @@ test('todo campo de formulário público tem nome acessível', async ({ page }) 
   }
 });
 
+// Conteúdo que o build publica e o navegador não desenha.
+//
+// A cascata acumulou regras de limpeza com seletor curinga — [class*='intent'],
+// [class*='suggest'], [class*='mobile'], a[href*='3000'] — escritas para matar
+// widgets de protótipo. Elas também apagavam coisas reais: a busca por
+// intenção e as sugestões de pesquisa.html, e a trilha de etapas de três
+// páginas. Nenhuma catraca via isso, porque o HTML publicado estava correto:
+// só o resultado renderizado é que faltava. Este teste mede o resultado.
+test('nada que a página publica fica invisível para quem lê', async ({ page }) => {
+  await stubApi(page);
+  const { readdirSync } = await import('node:fs');
+  const { INTERNAL_PAGE_SET } = await import('../../lib/internal-pages.mjs');
+  const SEM_CASCA = new Set(['admin-login.html', 'certificado-template.html', 'proposta-curatorial-template.html', 'selecao-curatorial-template.html', 'proposta-publica.html']);
+  const paginas = readdirSync('dist')
+    .filter((arquivo) => arquivo.endsWith('.html') && !INTERNAL_PAGE_SET.has(arquivo) && !SEM_CASCA.has(arquivo))
+    .sort();
+
+  const falhas = [];
+  for (const pagina of paginas) {
+    await page.goto(`/${pagina}`);
+    await page.waitForTimeout(250);
+    const invisiveis = await page.evaluate(() => {
+      const achados = [];
+      document.querySelectorAll('main a[href], main button, main section, main article').forEach((elemento) => {
+        const caixa = elemento.getBoundingClientRect();
+        if (caixa.width > 0 || caixa.height > 0) return;
+        const texto = (elemento.innerText || '').trim();
+        if (!texto || texto.length > 90) return;
+        // Painel fechado de propósito não conta: `hidden`, `details` fechado e
+        // `aria-hidden` são estados legítimos da interface.
+        if (elemento.closest('[hidden], details:not([open]), [aria-hidden="true"]')) return;
+        achados.push(`${elemento.tagName.toLowerCase()} "${texto.replace(/\s+/g, ' ').slice(0, 50)}"`);
+      });
+      return achados;
+    });
+    for (const item of invisiveis) falhas.push(`${pagina}: ${item}`);
+  }
+  expect(falhas, falhas.join('\n')).toEqual([]);
+});
+
+// Varre todas as páginas públicas publicadas, não uma lista escolhida à mão.
+// A lista antiga tinha oito rotas e não incluía artigo.html, que publicava dois
+// h1 — o do herói e o do texto montado por JS.
 test('cada página pública tem um único h1 e um alvo para o link de pular', async ({ page }) => {
   await stubApi(page);
-  const routes = [
-    '/index.html',
-    '/comprar-arte.html',
-    '/artistas.html',
-    '/colecoes.html',
-    '/login.html',
-    '/minha-selecao.html',
-    // As páginas de detalhe montam o h1 por JS; obra.html e artista.html ainda
-    // traziam um h1 estático escondido, então ficavam com dois.
-    '/obra.html?id=obra-horizonte',
-    '/artista.html?id=a1'
-  ];
-  for (const route of routes) {
-    await page.goto(route);
-    await expect(page.locator('h1'), `h1 em ${route}`).toHaveCount(1);
+  const { readdirSync } = await import('node:fs');
+  const { INTERNAL_PAGE_SET } = await import('../../lib/internal-pages.mjs');
+  // Impressos e o login administrativo não usam a casca pública nem um h1 de página.
+  const SEM_CASCA = new Set(['admin-login.html', 'certificado-template.html', 'proposta-curatorial-template.html', 'selecao-curatorial-template.html', 'proposta-publica.html']);
+  // As páginas de detalhe montam o h1 por JS a partir do id.
+  const COM_ID = { 'obra.html': '?id=obra-horizonte', 'artista.html': '?id=a1', 'artigo.html': '', 'colecao.html': '' };
+  const rotas = readdirSync('dist')
+    .filter((arquivo) => arquivo.endsWith('.html') && !INTERNAL_PAGE_SET.has(arquivo) && !SEM_CASCA.has(arquivo))
+    .sort()
+    .map((arquivo) => `/${arquivo}${COM_ID[arquivo] ?? ''}`);
+
+  expect(rotas.length, 'a varredura precisa encontrar as páginas publicadas').toBeGreaterThan(50);
+
+  const falhas = [];
+  for (const rota of rotas) {
+    await page.goto(rota);
+    await page.waitForTimeout(250);
+    const titulos = await page.locator('h1').allTextContents();
+    if (titulos.length !== 1) falhas.push(`${rota}: ${titulos.length} h1 (${titulos.join(' | ')})`);
     const skip = page.locator('.skip-link');
-    await expect(skip, `skip link em ${route}`).toHaveCount(1);
-    const target = await skip.getAttribute('href');
-    await expect(page.locator(target), `alvo ${target} em ${route}`).toHaveCount(1);
+    if (await skip.count() !== 1) { falhas.push(`${rota}: ${await skip.count()} links de pular`); continue; }
+    const alvo = await skip.getAttribute('href');
+    if (await page.locator(alvo).count() !== 1) falhas.push(`${rota}: alvo ${alvo} não existe`);
   }
+  expect(falhas, falhas.join('\n')).toEqual([]);
 });
