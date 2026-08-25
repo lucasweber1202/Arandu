@@ -19,6 +19,11 @@
   const normalize=(value)=>String(value||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
   const escape=(value)=>String(value||'').replace(/[&<>'"]/g,(char)=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
   const page=()=>location.pathname.split('/').pop()||'index.html';
+  // Página interna servida atrás da sessão administrativa: ela já tem a barra
+  // do console. Antes, site.js montava a navegação pública por cima e o painel
+  // ficava com duas navegações, uma delas oferecendo "Entrar" a quem já estava
+  // dentro.
+  if(document.querySelector('[data-owner-console]'))return;
   let accountAuthenticated=false;
   let accountCheckStarted=false;
   const accountNav=()=>accountAuthenticated?['Minha conta','minha-conta.html']:['Entrar','login.html'];
