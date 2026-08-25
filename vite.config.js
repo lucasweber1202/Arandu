@@ -5,6 +5,7 @@ import { deploymentBaseUrl, renderSeoHead } from './scripts/seo-meta.mjs';
 import { INTERNAL_PAGE_SET } from './lib/internal-pages.mjs';
 import { ownSiteUrl } from './lib/public-site-url.mjs';
 import { assertPresentationModeIsSafe } from './lib/presentation-mode.mjs';
+import { applyPublicShell, shellApplies } from './lib/public-shell.mjs';
 
 const root = process.cwd();
 const ignoredDirs = new Set(['node_modules', '.git', 'dist', 'reports', 'tests', 'test-results', 'playwright-report']);
@@ -74,6 +75,15 @@ function cacheBustKnownAssets(html) {
     .replace(/src="\/js\/site\.js(\?v=[^"]*)?"/g, `src="/js/site.js?v=${ASSET_VERSION}"`);
 }
 
+// A casca canônica traz o botão do menu; sem js/site.js ele não abre. Antes,
+// obrigado.html ficava com um menu inerte porque nunca carregou o script.
+function ensureShellRuntime(html, pageName) {
+  if (!shellApplies(pageName)) return html;
+  if (/src=["'][^"']*\/?js\/site\.js(?:\?[^"']*)?["']/i.test(html)) return html;
+  const tag = `<script src="/js/site.js?v=${ASSET_VERSION}"></script>`;
+  return html.includes('</body>') ? html.replace('</body>', `${tag}</body>`) : `${html}${tag}`;
+}
+
 function injectNativeSearch(html) {
   if (/src=["'][^"']*site\.js(?:\?[^"']*)?["']/i.test(html)) return html;
   if (html.includes('native-search-link') || html.includes('href="pesquisa.html"')) return html;
@@ -131,6 +141,8 @@ function injectGlobalAssets() {
         shareBaseUrl: configuredShareBaseUrl,
         isCanonical: canonicalPages.has(pageName)
       });
+      output = applyPublicShell(output, pageName);
+      output = ensureShellRuntime(output, pageName);
       output = injectNativeSearch(output);
       output = injectBetaBanner(output);
       if (!output.includes('/css/arandu-product.css')) output = output.includes('</head>') ? output.replace('</head>', `${productCssTag}</head>`) : `${productCssTag}${output}`;

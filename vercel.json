@@ -173,6 +173,10 @@
       "destination": "/api/internal-page?page=obra-editor.html"
     },
     {
+      "source": "/onboarding-artista.html",
+      "destination": "/api/internal-page?page=onboarding-artista.html"
+    },
+    {
       "source": "/operacao-obras.html",
       "destination": "/api/internal-page?page=operacao-obras.html"
     },
