@@ -26,7 +26,7 @@
   async function load(){
     try{
       const token=sessionStorage.getItem('arandu.adminSessionHint.v1')||sessionStorage.getItem('arandu.admin.sessionHint')||'';
-      if(!token)throw new Error('Informe o sessão administrativa no painel antes de abrir o dashboard MVP.');
+      if(!token)throw new Error('Sessão administrativa não reconhecida. Entre de novo pelo console para abrir o painel do MVP.');
       const response=await fetch('/api/mvp-dashboard',{cache:'no-store',headers:{}});
       const data=await response.json().catch(()=>({}));
       if(!response.ok||data.ok===false)throw new Error(data.error||'Falha ao carregar MVP.');

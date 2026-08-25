@@ -3,15 +3,59 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Portal do artista Arandu para login, acompanhamento de portfólio, documentação e pedido de reavaliação de preço." />
+  <meta name="description" content="Portal do artista Arandu: acompanhe a situação do seu portfólio na curadoria, o estado das suas obras e peça revisão de preço." />
   <title>Portal do artista — Arandu</title>
   <link rel="stylesheet" href="css/arandu-system.css" />
   <link rel="stylesheet" href="css/arandu-platform-upgrade.css?v=20260707-platform-3" />
 </head>
 <body class="lovable-page architecture-clean"><a class="skip-link" href="#conteudo-principal">Pular para o conteúdo</a>
-  <header class="site-header"><div class="container header-inner"><a class="brand-logo" href="index.html">Arandu</a><nav class="site-nav"><a href="comprar-arte.html">Comprar arte</a><a href="comprar-arte.html">Obras</a><a href="artistas.html">Artistas</a><a href="empresas-e-arquitetos.html">Empresas</a><a href="login.html">Entrar</a></nav><a class="cta" href="para-artistas.html">Submeter portfólio</a></div></header>
-  <main id="conteudo-principal"><section class="portal-shell"><div class="container portal-layout" data-artist-portal><div data-portal-status><section class="portal-card"><p class="eyebrow">Portal do artista</p><h1>Portfólio, documentação e preço.</h1><p>Área para artistas acompanharem obras, certificado, status de curadoria e solicitações de revisão de preço.</p><div class="page-actions"><a class="cta" href="login.html">Entrar como artista</a><a class="cta secondary" href="para-artistas.html">Critérios</a></div></section></div><div data-portal-content></div><section class="portal-card"><h2>Reavaliar preço</h2><p>Envie uma justificativa quando houver exposição, venda comparável, nova série, mudança de demanda ou reposicionamento.</p><form data-api-form="artist-price-review"><label class="u-visually-hidden" for="portal-artista-nome-1">Nome artístico</label><input id="portal-artista-nome-1" name="nome" placeholder="Nome artístico"><label class="u-visually-hidden" for="portal-artista-email-2">E-mail</label><input id="portal-artista-email-2" name="email" type="email" placeholder="E-mail" inputmode="email"><label class="u-visually-hidden" for="portal-artista-obra-3">Obra ou série</label><input id="portal-artista-obra-3" name="obra" placeholder="Obra ou série"><label class="u-visually-hidden" for="portal-artista-preco-4">Preço sugerido</label><input id="portal-artista-preco-4" name="preco" placeholder="Preço sugerido"><label class="u-visually-hidden" for="portal-artista-mensagem-5">Justificativa</label><textarea id="portal-artista-mensagem-5" name="mensagem" placeholder="Justificativa"></textarea><button class="cta" type="submit">Enviar</button><p data-form-status></p></form></section></div></section></main>
+  <header class="site-header"><div class="container header-inner"><a class="brand-logo" href="index.html">Arandu</a><nav class="site-nav"></nav></div></header>
+  <main id="conteudo-principal">
+    <section class="portal-shell">
+      <div class="container portal-layout" data-artist-portal>
+        <div data-portal-status>
+          <section class="portal-card">
+            <p class="eyebrow">Portal do artista</p>
+            <h1>Acompanhe seu portfólio na curadoria.</h1>
+            <p>Aqui você vê a situação do seu perfil, o estado de cada obra registrada e o histórico da análise. O acesso é liberado depois que a curadoria vincula sua conta ao seu perfil de artista.</p>
+            <div class="page-actions"><a class="cta" href="login.html">Entrar</a><a class="cta secondary" href="para-artistas.html#submissao">Ainda não enviei portfólio</a></div>
+          </section>
+        </div>
+        <div data-portal-content></div>
+
+        <section class="portal-card">
+          <h2>Como funciona o acesso</h2>
+          <ol class="process-steps">
+            <li>Envie seu portfólio em <a href="para-artistas.html#submissao">Para artistas</a>. A curadoria responde pelo contato informado.</li>
+            <li>Crie sua conta com o mesmo e-mail da submissão em <a href="cadastro.html">Criar conta</a>.</li>
+            <li>Depois da aprovação, a curadoria vincula a conta ao seu perfil e este portal abre.</li>
+          </ol>
+          <p class="portal-note">Enquanto o vínculo não existe, o portal informa isso claramente — ele não inventa obras nem prazos.</p>
+        </section>
+
+        <section class="portal-card">
+          <h2>Pedir revisão de preço</h2>
+          <p>Envie uma justificativa quando houver exposição, venda comparável, nova série, mudança de demanda ou reposicionamento. O pedido chega à curadoria junto do seu contato.</p>
+          <form class="form-card" data-form-type="revisao-preco-artista">
+            <label for="portal-artista-nome">Nome artístico</label>
+            <input id="portal-artista-nome" name="nome" placeholder="Nome artístico" required />
+            <label for="portal-artista-email">E-mail</label>
+            <input id="portal-artista-email" name="email" type="email" placeholder="seu@email" inputmode="email" required />
+            <label for="portal-artista-obra">Obra ou série</label>
+            <input id="portal-artista-obra" name="obra" placeholder="Obra ou série" required />
+            <label for="portal-artista-preco">Preço sugerido</label>
+            <input id="portal-artista-preco" name="preco" placeholder="Ex.: R$ 4.200" />
+            <label for="portal-artista-mensagem">Justificativa</label>
+            <textarea id="portal-artista-mensagem" name="mensagem" placeholder="Exposição, venda comparável, nova série, mudança de demanda"></textarea>
+            <button type="submit">Enviar pedido</button>
+            <p class="form-privacy-note">Ao enviar, você concorda que a Arandu use estes dados para responder ao pedido, conforme a <a href="politica-de-privacidade.html">Política de privacidade</a>. Você pode pedir acesso, correção ou exclusão a qualquer momento.</p>
+          </form>
+        </section>
+      </div>
+    </section>
+  </main>
   <script src="js/site.js"></script>
+  <script src="js/forms.js?v=20260825-portal-1"></script>
   <script src="js/portal-artista.js" defer></script>
 </body>
 </html>

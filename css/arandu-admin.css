@@ -29,3 +29,254 @@
 .admin-ops-toolbar{display:grid;grid-template-columns:minmax(180px,1fr) minmax(150px,220px) auto auto;gap:10px;align-items:center;margin:18px 0}.admin-ops-toolbar input,.admin-ops-toolbar select{border:1px solid rgba(43,12,9,.2);border-radius:999px;background:#fffdf8;color:var(--admin-ink);padding:11px 13px;font:inherit}.admin-detail-button{white-space:nowrap}.admin-detail-drawer{position:fixed;right:18px;top:88px;width:min(440px,calc(100vw - 32px));max-height:calc(100vh - 110px);overflow:auto;background:#fff8ed;border:1px solid rgba(43,12,9,.22);border-radius:28px;box-shadow:0 30px 100px rgba(43,12,9,.28);z-index:9999;padding:22px}.admin-detail-drawer[hidden]{display:none}.admin-detail-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;border-bottom:1px solid rgba(43,12,9,.14);padding-bottom:14px;margin-bottom:16px}.admin-detail-head h2{margin:2px 0 0;font-family:Georgia,serif;color:var(--admin-red-deep);font-size:28px}.admin-detail-head button{width:36px;height:36px;border-radius:999px;border:1px solid rgba(43,12,9,.2);background:#fffdf8;color:var(--admin-red-deep);font-size:24px;cursor:pointer}.admin-detail-list{display:grid;gap:10px;margin:0}.admin-detail-list div{background:#fffdf8;border:1px solid rgba(43,12,9,.12);border-radius:18px;padding:14px}.admin-detail-list dt{text-transform:uppercase;letter-spacing:.12em;font-size:11px;font-weight:900;color:var(--admin-muted);margin-bottom:5px}.admin-detail-list dd{margin:0;color:var(--admin-ink);line-height:1.5;word-break:break-word}.admin-detail-actions{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0}.admin-detail-note{background:rgba(143,45,35,.08);border:1px solid rgba(143,45,35,.16);border-radius:18px;padding:14px;color:var(--admin-muted)}
 @media(max-width:980px){.admin-grid{grid-template-columns:1fr}.admin-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-item{grid-template-columns:1fr}.admin-form-grid{grid-template-columns:1fr}.admin-ops-toolbar{grid-template-columns:1fr 1fr}.admin-detail-drawer{top:72px;right:12px}}
 @media(max-width:620px){.admin-token-row,.admin-metrics,.admin-ops-toolbar{grid-template-columns:1fr}.admin-card,.admin-panel-card,.admin-create-card{padding:18px;border-radius:22px}.admin-detail-drawer{left:10px;right:10px;width:auto;border-radius:22px}}
+
+/* ===== Console do proprietário =============================================
+   Antes, cada uma das 51 páginas internas trazia um cabeçalho improvisado, com
+   um punhado de links diferentes, e quatro delas disputavam o papel de início.
+   Várias telas só eram alcançáveis digitando a URL. A barra abaixo é emitida
+   pelo servidor em toda página interna (lib/owner-console.mjs) e substitui
+   esses cabeçalhos: mesma navegação, mesma marcação de página atual, mesmo
+   caminho de saída. Os pares de cor repetem os do cabeçalho público, já
+   medidos em WCAG AA. */
+.owner-console {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  background: #21110d;
+  color: #fff4df;
+  border-bottom: 1px solid rgba(255, 244, 223, .18);
+}
+
+.owner-console a,
+.owner-console button,
+.owner-console summary {
+  color: #fff4df !important;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.owner-console-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px clamp(14px, 3vw, 28px);
+}
+
+.owner-console-home {
+  font-weight: 900;
+  letter-spacing: .01em;
+  white-space: nowrap;
+}
+
+.owner-console-groups {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.owner-console-groups a,
+.owner-console-actions a,
+.owner-console-actions button,
+.owner-console-sub a,
+.owner-console-map a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  font-size: .92rem;
+  cursor: pointer;
+}
+
+.owner-console-groups a:hover,
+.owner-console-actions a:hover,
+.owner-console-actions button:hover,
+.owner-console-sub a:hover {
+  border-color: rgba(255, 244, 223, .48);
+}
+
+.owner-console-groups a.is-open {
+  background: rgba(255, 244, 223, .16);
+  border-color: rgba(255, 244, 223, .48);
+}
+
+.owner-console-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.owner-console-actions button {
+  border-color: rgba(255, 244, 223, .48);
+  font-family: inherit;
+}
+
+.owner-console-sub {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  padding: 0 clamp(14px, 3vw, 28px) 10px;
+}
+
+.owner-console-sub a {
+  min-height: 36px;
+  padding: 6px 11px;
+  font-size: .86rem;
+  font-weight: 700;
+  background: rgba(255, 244, 223, .08);
+}
+
+.owner-console-home.is-active,
+.owner-console-sub a.is-active,
+.owner-console-map a.is-active {
+  background: #fffaf6;
+  color: #741f1a !important;
+}
+
+.owner-console-map {
+  border-top: 1px solid rgba(255, 244, 223, .18);
+}
+
+.owner-console-map summary {
+  padding: 10px clamp(14px, 3vw, 28px);
+  font-weight: 800;
+  font-size: .88rem;
+  cursor: pointer;
+}
+
+.owner-console-map-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 4px 18px;
+  padding: 0 clamp(14px, 3vw, 28px) 16px;
+}
+
+.owner-console-map-grid p {
+  margin: 10px 0 2px;
+  /* Cada painel interno traz a própria regra de `p`, várias com `!important`:
+     sem isto o título do grupo herdava um marrom de 3.03:1 sobre a barra. */
+  color: #f0d7bb !important;
+  font-size: .76rem;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.owner-console-map-grid a {
+  min-height: 34px;
+  padding: 5px 10px;
+  font-size: .86rem;
+  font-weight: 700;
+}
+
+/* A barra do console é a navegação da página interna; o cabeçalho próprio de
+   cada painel virava uma segunda navegação, com links diferentes. */
+body.owner-console-page .site-header {
+  display: none !important;
+}
+
+/* Manual servido em /docs/*: leitura, não painel. */
+.owner-doc {
+  max-width: 78ch;
+  margin: 0 auto;
+  padding: clamp(24px, 4vw, 48px) clamp(16px, 4vw, 28px);
+  color: #21110d;
+}
+
+.owner-doc pre {
+  overflow-x: auto;
+  padding: 14px 16px;
+  border: 1px solid rgba(33, 17, 13, .16);
+  border-radius: 12px;
+  background: #fffaf6;
+}
+
+.owner-doc code {
+  font-size: .92em;
+}
+
+/* Nomes de arquivo e URLs longas dos runbooks estouravam a largura do celular. */
+.owner-doc h1,
+.owner-doc h2,
+.owner-doc h3,
+.owner-doc p,
+.owner-doc li,
+.owner-doc td,
+.owner-doc th {
+  overflow-wrap: anywhere;
+}
+
+/* Tabela larga rola dentro do próprio bloco; a página não rola de lado. */
+.owner-doc table {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+}
+
+.owner-doc th,
+.owner-doc td {
+  padding: 8px 10px;
+  border: 1px solid rgba(33, 17, 13, .16);
+  text-align: left;
+  vertical-align: top;
+}
+
+/* As páginas internas não recebem css/arandu-runtime.css (elas não passam pelo
+   build do Vite), e sem ele o link de pular conteúdo ficava visível por cima do
+   console em toda tela. */
+body.owner-console-page .skip-link {
+  position: fixed;
+  left: 1rem;
+  top: -5rem;
+  z-index: 10000;
+  padding: .8rem 1rem;
+  border-radius: .25rem;
+  background: #180804;
+  color: #fff8ed;
+}
+
+body.owner-console-page .skip-link:focus {
+  top: 1rem;
+}
+
+/* No celular, a barra empilhava um grupo por linha e o console comia 560px
+   antes do conteúdo. Cada fileira vira um trilho horizontal de uma linha só. */
+@media (max-width: 720px) {
+  .owner-console-bar {
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 12px;
+  }
+
+  .owner-console-groups {
+    order: 3;
+    width: 100%;
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .owner-console-groups a,
+  .owner-console-sub a {
+    flex: 0 0 auto;
+  }
+
+  .owner-console-sub {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: 0 12px 8px;
+  }
+
+  .owner-console-map-grid {
+    grid-template-columns: 1fr;
+  }
+}

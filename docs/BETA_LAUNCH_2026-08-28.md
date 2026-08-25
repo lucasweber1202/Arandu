@@ -159,7 +159,7 @@ e as de browser, de build local servido em `127.0.0.1:4173`.
 GET /api/health          -> {"ok":true,"service":"arandu-api","status":"alive"}
 GET /api/public-config   -> siteUrl "https://sua-url-da-vercel", consent.configured false,
                             contact.whatsappNumber "5521976706600", contact.email null
-GET /api/catalog         -> 
+GET /api/catalog         ->
                             {"ok":false,"code":"catalog_migration_pending"}
 POST /api/forms          -> 503 {"ok":false,"code":"rate_limit_unavailable"}
 ```

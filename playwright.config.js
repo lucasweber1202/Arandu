@@ -1,10 +1,11 @@
 import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './tests/e2e',
-  // A suíte de apresentação precisa de um build com ARANDU_PRESENTATION_MODE=true.
-  // Rodá-la contra o build normal falharia por ausência do banner, então ela vive
-  // em playwright.presentation.config.js e é ignorada aqui.
-  testIgnore: '**/presentation-journeys.spec.js', timeout: 30000, fullyParallel: true, retries: process.env.CI ? 2 : 0,
+  // Duas suítes dependem de um build com variável própria e falhariam contra o
+  // build padrão: apresentação (ARANDU_PRESENTATION_MODE=true) e compra aberta
+  // (ARANDU_COMMERCIAL_READY=true). Cada uma tem a sua config e fica de fora
+  // daqui, para que `npm run test:e2e` continue cobrindo o estado publicado.
+  testIgnore: ['**/presentation-journeys.spec.js', '**/commerce-journeys.spec.js'], timeout: 30000, fullyParallel: true, retries: process.env.CI ? 2 : 0,
   reporter: [['list'], ['html', { outputFolder: 'reports/playwright', open: 'never' }]],
   use: { baseURL: 'http://127.0.0.1:4173', trace: 'retain-on-failure', screenshot: 'only-on-failure' },
   projects: [

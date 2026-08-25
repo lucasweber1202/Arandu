@@ -99,6 +99,12 @@ jobs:
       - name: SEO in built output
         run: npm run check:seo:dist
 
+      # Mesma razão do gate acima: só o artefato publicado revela navegação
+      # escondida por CSS, link público para tela administrativa, referência a
+      # arquivo não publicado e audiência sem porta de entrada.
+      - name: Published navigation
+        run: npm run check:navigation
+
       - name: Install Chromium, Firefox and WebKit
         run: npx playwright install --with-deps chromium firefox webkit
 
@@ -110,6 +116,13 @@ jobs:
 
       - name: Safe presentation journeys across browser engines
         run: npm run test:e2e:presentation
+
+      # A suíte principal cobre o estado publicado (compra fechada). Esta cobre
+      # o fluxo de reserva que precisa continuar correto quando a política
+      # comercial for aprovada — inclusive a chave de idempotência por
+      # tentativa.
+      - name: Browser journeys with commerce open
+        run: npm run test:e2e:commerce
 
       - name: Upload browser evidence on failure
         if: failure()

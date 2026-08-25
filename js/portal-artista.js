@@ -81,6 +81,7 @@
       <section class="portal-card">
         <h2>Histórico do seu perfil</h2>
         <ul class="portal-trail">${trailRows}</ul>
+        <p class="portal-note">Cada mudança de situação registrada pela curadoria aparece aqui. Dúvida sobre uma transição? <a href="contato.html">Fale com a curadoria</a>.</p>
       </section>`;
   }
 
@@ -90,7 +91,11 @@
     try {
       response = await fetch('/api/portal/artist', { headers: { Accept: 'application/json' } });
     } catch {
-      message('Sem conexão', 'Não foi possível falar com o servidor agora. Tente novamente em instantes.');
+      message(
+        'Sem conexão',
+        'Não foi possível falar com o servidor agora. Tente novamente em instantes.',
+        '<div class="page-actions"><a class="cta secondary" href="contato.html">Falar com a curadoria</a></div>'
+      );
       return;
     }
     const data = await response.json().catch(() => ({}));
@@ -98,21 +103,25 @@
     if (response.status === 401) {
       message(
         'Entre na sua conta',
-        'O portal do artista exige login.',
-        '<div class="page-actions"><a class="cta" href="login.html">Entrar</a></div>'
+        'O portal do artista exige login. Use o mesmo e-mail que você informou na submissão do portfólio.',
+        '<div class="page-actions"><a class="cta" href="login.html">Entrar</a><a class="cta secondary" href="cadastro.html">Criar conta</a></div>'
       );
       return;
     }
     if (response.status === 403) {
       message(
         'Conta ainda não vinculada',
-        'Sua conta não está vinculada a um artista aprovado. O vínculo é feito pela curadoria depois da aprovação do portfólio.',
-        '<div class="page-actions"><a class="cta secondary" href="para-artistas.html">Ver critérios</a></div>'
+        'Sua conta existe, mas ainda não está ligada a um perfil de artista aprovado. O vínculo é feito pela curadoria depois da análise do portfólio — não há prazo automático, e o retorno vem pelo contato que você informou.',
+        '<div class="page-actions"><a class="cta" href="para-artistas.html#submissao">Enviar portfólio</a><a class="cta secondary" href="contato.html">Falar com a curadoria</a></div>'
       );
       return;
     }
     if (!response.ok || data.ok === false) {
-      message('Não foi possível carregar', data.error || 'Tente novamente em instantes.');
+      message(
+        'Não foi possível carregar',
+        data.error || 'Tente novamente em instantes.',
+        '<div class="page-actions"><a class="cta secondary" href="contato.html">Falar com a curadoria</a></div>'
+      );
       return;
     }
     render(data);

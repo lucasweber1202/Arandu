@@ -30,4 +30,13 @@ assert.equal(withPresentationAssets(marked), marked, 'a marcação não pode ser
 assert.match(internal, /withPresentationAssets/);
 assert.match(copy, /withPresentationAssets/);
 
+// A reserva é o fluxo que a demonstração existe para mostrar. Fora dela,
+// js/commerce-availability.js retira o botão enquanto a política comercial não
+// estiver aprovada — e uma primeira versão o retirava também na apresentação,
+// derrubando a jornada demonstrativa em todos os navegadores. Aqui a exceção é
+// afirmada em segundos, sem depender da suíte de browser para descobri-la.
+const commerce = fs.readFileSync('js/commerce-availability.js', 'utf8');
+assert.match(commerce, /name="arandu-presentation-mode"/);
+assert.match(commerce, /if \(presentation\) return;/);
+
 console.log('Presentation mode: separação, fail-closed e rotulagem demonstrativa validadas.');
