@@ -1605,7 +1605,6 @@ body.arandu-consent-pending{padding-bottom:170px}@media(max-width:900px){body.ar
 .arandu-rescue-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
 .arandu-rescue-actions a{display:inline-flex;align-items:center;min-height:44px;padding:10px 16px;border-radius:999px;border:1px solid #741f1a;background:#741f1a;color:#fffaf2;font-weight:800;text-decoration:none}
 .arandu-rescue-actions a+a{background:transparent;color:#741f1a}
-.catalog-unavailable .arandu-rescue-actions a+a{border-color:#f0d7bb;color:#f0d7bb}
 .form-privacy-note{margin-top:12px;font-size:.86rem;line-height:1.5;color:#4b342c}
 .form-privacy-note a{color:#741f1a}
 /* A camada legada empilhava logo e ações em grade de uma coluna abaixo de 980px.
@@ -1635,5 +1634,20 @@ body.arandu-consent-pending{padding-bottom:170px}@media(max-width:900px){body.ar
 @media (max-width: 480px) {
   .site-header .header-inner .site-actions .auth-entry {
     display: inline-flex !important;
+  }
+}
+
+/* --- Alvo de toque em listas de links ------------------------------------
+   `mapa-do-site`, `press-kit` e o bloco de ajuda do catálogo empilham âncoras
+   sem classe dentro de um cartão. Elas ficavam com 19px de altura e coladas
+   umas nas outras: abaixo do mínimo de 24px do WCAG 2.5.8 e difíceis de
+   acertar com o polegar. O `:not([class])` mantém intactos os CTAs com classe
+   própria, que já têm altura suficiente. */
+@media (max-width: 720px) {
+  .card > a:not([class]),
+  .quick-buy-actions > a:not([class]) {
+    display: flex;
+    align-items: center;
+    min-height: 32px;
   }
 }

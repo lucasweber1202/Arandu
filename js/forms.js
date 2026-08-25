@@ -119,17 +119,71 @@ function showFormRescue(form, payload) {
 }
 
 // A confirmação de portfólio precisa dizer o que vem depois, não só "recebido".
-function showFormNextStep(form) {
+// Converter é o passo mais caro da jornada, e cinco dos seis formulários
+// terminavam em "Recebido. A curadoria irá analisar" e nada mais: a pessoa
+// enviava e a página não dizia o que esperar nem o que fazer em seguida.
+const FORM_NEXT_STEPS = {
+  'submissao-artista': [
+    ['O que acontece agora', 'submissao-recebida.html'],
+    ['Criar conta para acompanhar', 'cadastro.html'],
+    ['Checklist do portfólio', 'checklist-portfolio-artista.html']
+  ],
+  'revisao-preco-artista': [
+    ['Voltar ao portal do artista', 'portal-artista.html'],
+    ['Como selecionamos', 'como-selecionamos-artistas.html']
+  ],
+  'duvida-curadoria': [
+    ['Como a Arandu funciona', 'como-funciona.html'],
+    ['O que garantimos', 'confianca.html'],
+    ['Ver o acervo', 'comprar-arte.html']
+  ],
+  'interesse-comprador': [
+    ['Como comprar', 'como-comprar-na-arandu.html'],
+    ['Montar minha seleção', 'minha-selecao.html'],
+    ['Criar conta', 'cadastro.html']
+  ],
+  'selecao': [
+    ['Como comprar', 'como-comprar-na-arandu.html'],
+    ['O que garantimos', 'confianca.html'],
+    ['Criar conta para guardar', 'cadastro.html']
+  ],
+  'empresa-intencao': [
+    ['Como funciona para empresas', 'empresas-e-arquitetos.html'],
+    ['Montar uma seleção', 'minha-selecao.html'],
+    ['O que garantimos', 'confianca.html']
+  ],
+  newsletter: [
+    ['Ler a Narrativa', 'narrativa.html'],
+    ['Ver o acervo', 'comprar-arte.html']
+  ]
+};
+FORM_NEXT_STEPS['briefing-empresa'] = FORM_NEXT_STEPS['empresa-intencao'];
+FORM_NEXT_STEPS['briefing-arquiteto'] = FORM_NEXT_STEPS['empresa-intencao'];
+FORM_NEXT_STEPS['proposta-empresa'] = FORM_NEXT_STEPS['empresa-intencao'];
+
+function nextStepsFor(type) {
+  return FORM_NEXT_STEPS[type] || [
+    ['Ver o acervo', 'comprar-arte.html'],
+    ['Como a Arandu funciona', 'como-funciona.html']
+  ];
+}
+
+function showFormNextStep(form, type) {
   form.querySelector('[data-form-rescue]')?.remove();
+  const here = window.location.pathname.split('/').pop() || 'index.html';
+  // "Próximo passo" que aponta para a página onde a pessoa já está não é passo
+  // nenhum: o briefing de empresas oferecia voltar para o próprio briefing.
+  const steps = nextStepsFor(type).filter(([, href]) => href.split('?')[0].split('#')[0] !== here);
+  const usable = steps.length ? steps : [['Ver o acervo', 'comprar-arte.html'], ['Como a Arandu funciona', 'como-funciona.html']];
   const next = document.createElement('div');
   next.className = 'arandu-rescue-actions';
   next.dataset.formRescue = 'true';
-  // Depois de enviar, o artista precisava saber o que fazer para voltar. Sem a
-  // conta e o portal aqui, a submissão terminava num beco: nada indicava que
-  // existe uma tela para acompanhar a análise.
-  next.innerHTML = '<a href="submissao-recebida.html">O que acontece agora</a>'
-    + '<a href="cadastro.html">Criar conta para acompanhar</a>'
-    + '<a href="checklist-portfolio-artista.html">Checklist do portfólio</a>';
+  usable.forEach(([label, href]) => {
+    const link = document.createElement('a');
+    link.href = href;
+    link.textContent = label;
+    next.appendChild(link);
+  });
   form.appendChild(next);
 }
 
@@ -180,10 +234,24 @@ function conversionEventFor(type) {
   return 'contact_start';
 }
 
+// Cada tipo diz o que foi recebido e o que acontece com aquilo — "Recebido" e
+// nada mais deixa a pessoa sem saber se o envio chegou ao lugar certo.
+const FORM_SUCCESS = {
+  'submissao-artista': 'Portfólio recebido. A curadoria analisa coerência, documentação e disponibilidade das obras e retorna pelo contato informado.',
+  'revisao-preco-artista': 'Pedido de revisão registrado. A curadoria avalia a justificativa junto do histórico da obra e responde pelo seu contato.',
+  'duvida-curadoria': 'Mensagem recebida. A curadoria responde pelo contato informado; enquanto isso, estas páginas costumam resolver as dúvidas mais comuns.',
+  'interesse-comprador': 'Recebido. A curadoria vai entender o que você procura e responder com um caminho — não com uma lista de preços.',
+  selecao: 'Seleção enviada. A curadoria comenta as obras salvas e responde pelo contato informado.',
+  'empresa-intencao': 'Briefing recebido. A curadoria estuda ambiente, orçamento e prazo antes de propor qualquer obra.',
+  'briefing-empresa': 'Briefing recebido. A curadoria estuda ambiente, orçamento e prazo antes de propor qualquer obra.',
+  'briefing-arquiteto': 'Briefing recebido. A curadoria estuda ambiente, orçamento e prazo antes de propor qualquer obra.',
+  'proposta-empresa': 'Pedido de proposta recebido. A curadoria retorna com uma seleção comentada para o seu espaço.',
+  newsletter: 'Inscrição registrada. Você recebe os textos da Narrativa e os avisos de abertura do acervo no e-mail informado.'
+};
+
 function successMessageFor(type, result) {
   if (result?.mode === 'demo') return 'Recebido em modo de preparação. Nenhum dado pessoal foi mantido neste navegador.';
-  if (type === 'submissao-artista') return 'Portfólio recebido. A curadoria analisa coerência, documentação e disponibilidade das obras e retorna pelo contato informado.';
-  return 'Recebido. A curadoria irá analisar e retornar pelo contato informado.';
+  return FORM_SUCCESS[type] || 'Recebido. A curadoria irá analisar e retornar pelo contato informado.';
 }
 
 document.addEventListener('submit', async (event) => {
@@ -199,7 +267,7 @@ document.addEventListener('submit', async (event) => {
   if (sent.ok) {
     clearLocalDrafts();
     showFormMessage(form, successMessageFor(payload.type, sent.result));
-    if (payload.type === 'submissao-artista') showFormNextStep(form);
+    showFormNextStep(form, payload.type);
     window.ARANDU_PRIVACY?.track?.(conversionEventFor(payload.type), { form_type: payload.type });
     form.reset();
     return;

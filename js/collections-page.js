@@ -20,8 +20,12 @@
       const data=await response.json().catch(()=>({}));
       if(!response.ok||data.ok===false)throw new Error(data.error||'Não foi possível carregar coleções.');
       const collections=presentation?(Array.isArray(data)?data:[]):(Array.isArray(data.collections)?data.collections:[]);
-      root.innerHTML=collections.length?collections.map(card).join(''):'<article class="macro-card"><strong>Sem coleções</strong><span>Cadastre coleções ou rode o SQL de coleções do MVP.</span></article>';
-      if(status)status.textContent=presentation?'Coleções demonstrativas para navegação; não representam catálogo comercial.':'Coleções carregadas do catálogo verificado.';
+      // Sem coleção cadastrada, esta era a única página pública que respondia ao
+      // visitante com uma instrução de operação — "rode o SQL de coleções do
+      // MVP". É o estado que produção devolve hoje, então era o que a pessoa
+      // via ao abrir Coleções.
+      root.innerHTML=collections.length?collections.map(card).join(''):'<article class="macro-card catalog-unavailable"><strong>As coleções abrem junto com o acervo</strong><span>Cada coleção é montada a partir de obras já conferidas. Enquanto o acervo está em validação curatorial, não há coleção para mostrar — e nenhuma é inventada.</span>'+(window.AranduCatalogSource?.rescueActions('acervo')||'')+'</article>';
+      if(status)status.textContent=presentation?'Coleções demonstrativas para navegação; não representam catálogo comercial.':(collections.length?'Coleções carregadas do catálogo verificado.':'Nenhuma coleção publicada ainda.');
     }catch(error){
       root.innerHTML='<article class="macro-card catalog-unavailable"><strong>Coleções em validação curatorial</strong><span>'+escapeHtml(error.message)+'</span>'+(window.AranduCatalogSource?.rescueActions('acervo')||'')+'</article>';
       if(status)status.textContent='As coleções serão abertas após a validação do catálogo real.';
