@@ -76,7 +76,7 @@
     "test:evidence": "node scripts/test-release-evidence.mjs",
     "seed:supabase": "node scripts/seed-supabase.mjs",
     "seed:supabase:dry": "node scripts/seed-supabase.mjs --dry-run",
-    "deploy:check": "npm run build && npm run check:build-size && npm run check:all && npm run check:dist-assets && npm run check:seo:dist && npm run test:e2e:list",
+    "deploy:check": "npm run build && npm run check:build-size && npm run check:all && npm run check:dist-assets && npm run check:navigation && npm run check:seo:dist && npm run test:e2e:list",
     "check:deploy-release-separation": "node scripts/test-deploy-release-separation.mjs",
     "predeploy": "npm run deploy:check && npm run release:check",
     "check:globals": "node scripts/check-script-globals.mjs",
@@ -85,7 +85,8 @@
     "check:presentation": "node scripts/test-presentation-mode.mjs",
     "pretest:e2e:presentation": "ARANDU_PRESENTATION_MODE=true VERCEL_ENV=preview npm run build",
     "test:e2e:presentation": "playwright test --config playwright.presentation.config.js",
-    "check:css": "node scripts/check-css-architecture.mjs"
+    "check:css": "node scripts/check-css-architecture.mjs",
+    "check:navigation": "node scripts/check-navigation.mjs"
   },
   "dependencies": {
     "@vercel/speed-insights": "^2.0.0",
