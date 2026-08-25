@@ -308,6 +308,44 @@ test('todo campo de formulário público tem nome acessível', async ({ page }) 
   }
 });
 
+// Alvo de toque e rolagem lateral no celular, nas 87 páginas publicadas.
+//
+// mapa-do-site, press-kit e o bloco de ajuda do catálogo empilhavam âncoras sem
+// classe com 19px de altura, coladas umas nas outras — abaixo do mínimo de
+// 24x24 do WCAG 2.5.8. O mínimo aqui é o da norma, não um número escolhido:
+// link dentro de parágrafo ou item de lista é texto corrido e fica de fora,
+// como a própria norma prevê.
+test('no celular nada rola de lado nem fica pequeno demais para o polegar', async ({ page, isMobile }) => {
+  test.skip(!isMobile, 'a medida só faz sentido no viewport de celular');
+  await stubApi(page);
+  const { readdirSync } = await import('node:fs');
+  const { INTERNAL_PAGE_SET } = await import('../../lib/internal-pages.mjs');
+  const SEM_CASCA = new Set(['admin-login.html', 'certificado-template.html', 'proposta-curatorial-template.html', 'selecao-curatorial-template.html', 'proposta-publica.html']);
+  const paginas = readdirSync('dist')
+    .filter((arquivo) => arquivo.endsWith('.html') && !INTERNAL_PAGE_SET.has(arquivo) && !SEM_CASCA.has(arquivo))
+    .sort();
+
+  const falhas = [];
+  for (const pagina of paginas) {
+    await page.goto(`/${pagina}`);
+    await page.waitForTimeout(220);
+    const medida = await page.evaluate(() => {
+      const doc = document.documentElement;
+      const pequenos = [];
+      document.querySelectorAll('main a[href], main button, main select').forEach((elemento) => {
+        const caixa = elemento.getBoundingClientRect();
+        if (!caixa.width || !caixa.height) return;
+        if (elemento.closest('p, li')) return;
+        if (caixa.height < 24) pequenos.push(`${(elemento.textContent || '').trim().slice(0, 24) || elemento.tagName} ${Math.round(caixa.height)}px`);
+      });
+      return { rolagem: doc.scrollWidth - doc.clientWidth, pequenos: [...new Set(pequenos)].slice(0, 4) };
+    });
+    if (medida.rolagem > 1) falhas.push(`${pagina}: rolagem lateral de ${medida.rolagem}px`);
+    if (medida.pequenos.length) falhas.push(`${pagina}: alvo abaixo de 24px — ${medida.pequenos.join(' | ')}`);
+  }
+  expect(falhas, falhas.join('\n')).toEqual([]);
+});
+
 // Conteúdo que o build publica e o navegador não desenha.
 //
 // A cascata acumulou regras de limpeza com seletor curinga — [class*='intent'],

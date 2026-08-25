@@ -1637,3 +1637,18 @@ body.arandu-consent-pending{padding-bottom:170px}@media(max-width:900px){body.ar
     display: inline-flex !important;
   }
 }
+
+/* --- Alvo de toque em listas de links ------------------------------------
+   `mapa-do-site`, `press-kit` e o bloco de ajuda do catálogo empilham âncoras
+   sem classe dentro de um cartão. Elas ficavam com 19px de altura e coladas
+   umas nas outras: abaixo do mínimo de 24px do WCAG 2.5.8 e difíceis de
+   acertar com o polegar. O `:not([class])` mantém intactos os CTAs com classe
+   própria, que já têm altura suficiente. */
+@media (max-width: 720px) {
+  .card > a:not([class]),
+  .quick-buy-actions > a:not([class]) {
+    display: flex;
+    align-items: center;
+    min-height: 32px;
+  }
+}
