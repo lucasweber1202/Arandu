@@ -308,6 +308,27 @@ test('todo campo de formulário público tem nome acessível', async ({ page }) 
   }
 });
 
+/**
+ * Páginas públicas do artefato publicado.
+ *
+ * As três varreduras abaixo passam por todas elas. Cada uma declara o próprio
+ * tempo: 88 navegações não cabem no limite de 30s que vale para um teste de
+ * jornada, e afrouxar o limite global esconderia lentidão real nos outros
+ * testes. `domcontentloaded` basta — o que elas medem (h1, caixa dos
+ * elementos, largura da página) já está no documento e no CSS; esperar todo
+ * subrecurso de cada página multiplicava o custo por cinco motores.
+ */
+const TEMPO_DE_VARREDURA = 180_000;
+
+async function paginasPublicadas() {
+  const { readdirSync } = await import('node:fs');
+  const { INTERNAL_PAGE_SET } = await import('../../lib/internal-pages.mjs');
+  const SEM_CASCA = new Set(['admin-login.html', 'certificado-template.html', 'proposta-curatorial-template.html', 'selecao-curatorial-template.html', 'proposta-publica.html']);
+  return readdirSync('dist')
+    .filter((arquivo) => arquivo.endsWith('.html') && !INTERNAL_PAGE_SET.has(arquivo) && !SEM_CASCA.has(arquivo))
+    .sort();
+}
+
 // Alvo de toque e rolagem lateral no celular, nas 87 páginas publicadas.
 //
 // mapa-do-site, press-kit e o bloco de ajuda do catálogo empilhavam âncoras sem
@@ -317,18 +338,13 @@ test('todo campo de formulário público tem nome acessível', async ({ page }) 
 // como a própria norma prevê.
 test('no celular nada rola de lado nem fica pequeno demais para o polegar', async ({ page, isMobile }) => {
   test.skip(!isMobile, 'a medida só faz sentido no viewport de celular');
+  test.setTimeout(TEMPO_DE_VARREDURA);
   await stubApi(page);
-  const { readdirSync } = await import('node:fs');
-  const { INTERNAL_PAGE_SET } = await import('../../lib/internal-pages.mjs');
-  const SEM_CASCA = new Set(['admin-login.html', 'certificado-template.html', 'proposta-curatorial-template.html', 'selecao-curatorial-template.html', 'proposta-publica.html']);
-  const paginas = readdirSync('dist')
-    .filter((arquivo) => arquivo.endsWith('.html') && !INTERNAL_PAGE_SET.has(arquivo) && !SEM_CASCA.has(arquivo))
-    .sort();
+  const paginas = await paginasPublicadas();
 
   const falhas = [];
   for (const pagina of paginas) {
-    await page.goto(`/${pagina}`);
-    await page.waitForTimeout(220);
+    await page.goto(`/${pagina}`, { waitUntil: 'domcontentloaded' });
     const medida = await page.evaluate(() => {
       const doc = document.documentElement;
       const pequenos = [];
@@ -355,18 +371,13 @@ test('no celular nada rola de lado nem fica pequeno demais para o polegar', asyn
 // páginas. Nenhuma catraca via isso, porque o HTML publicado estava correto:
 // só o resultado renderizado é que faltava. Este teste mede o resultado.
 test('nada que a página publica fica invisível para quem lê', async ({ page }) => {
+  test.setTimeout(TEMPO_DE_VARREDURA);
   await stubApi(page);
-  const { readdirSync } = await import('node:fs');
-  const { INTERNAL_PAGE_SET } = await import('../../lib/internal-pages.mjs');
-  const SEM_CASCA = new Set(['admin-login.html', 'certificado-template.html', 'proposta-curatorial-template.html', 'selecao-curatorial-template.html', 'proposta-publica.html']);
-  const paginas = readdirSync('dist')
-    .filter((arquivo) => arquivo.endsWith('.html') && !INTERNAL_PAGE_SET.has(arquivo) && !SEM_CASCA.has(arquivo))
-    .sort();
+  const paginas = await paginasPublicadas();
 
   const falhas = [];
   for (const pagina of paginas) {
-    await page.goto(`/${pagina}`);
-    await page.waitForTimeout(250);
+    await page.goto(`/${pagina}`, { waitUntil: 'domcontentloaded' });
     const invisiveis = await page.evaluate(() => {
       const achados = [];
       document.querySelectorAll('main a[href], main button, main section, main article').forEach((elemento) => {
@@ -390,30 +401,31 @@ test('nada que a página publica fica invisível para quem lê', async ({ page }
 // A lista antiga tinha oito rotas e não incluía artigo.html, que publicava dois
 // h1 — o do herói e o do texto montado por JS.
 test('cada página pública tem um único h1 e um alvo para o link de pular', async ({ page }) => {
+  test.setTimeout(TEMPO_DE_VARREDURA);
   await stubApi(page);
-  const { readdirSync } = await import('node:fs');
-  const { INTERNAL_PAGE_SET } = await import('../../lib/internal-pages.mjs');
-  // Impressos e o login administrativo não usam a casca pública nem um h1 de página.
-  const SEM_CASCA = new Set(['admin-login.html', 'certificado-template.html', 'proposta-curatorial-template.html', 'selecao-curatorial-template.html', 'proposta-publica.html']);
-  // As páginas de detalhe montam o h1 por JS a partir do id.
-  const COM_ID = { 'obra.html': '?id=obra-horizonte', 'artista.html': '?id=a1', 'artigo.html': '', 'colecao.html': '' };
-  const rotas = readdirSync('dist')
-    .filter((arquivo) => arquivo.endsWith('.html') && !INTERNAL_PAGE_SET.has(arquivo) && !SEM_CASCA.has(arquivo))
-    .sort()
-    .map((arquivo) => `/${arquivo}${COM_ID[arquivo] ?? ''}`);
+  // Estas quatro montam o h1 por JS; as demais já o trazem no HTML publicado.
+  const MONTADAS_POR_JS = { 'obra.html': '?id=obra-horizonte', 'artista.html': '?id=a1', 'artigo.html': '', 'colecao.html': '' };
+  const paginas = await paginasPublicadas();
+  const rotas = paginas.map((arquivo) => ({ arquivo, url: `/${arquivo}${MONTADAS_POR_JS[arquivo] ?? ''}` }));
 
   expect(rotas.length, 'a varredura precisa encontrar as páginas publicadas').toBeGreaterThan(50);
 
   const falhas = [];
-  for (const rota of rotas) {
-    await page.goto(rota);
-    await page.waitForTimeout(250);
+  for (const { arquivo, url } of rotas) {
+    await page.goto(url, { waitUntil: 'domcontentloaded' });
+    // Só quem depende de JS espera por ele, e espera pelo resultado em vez de
+    // por um tempo fixo — 250ms por página, vezes 88, vezes cinco motores, era
+    // a maior parte do custo desta varredura.
+    if (arquivo in MONTADAS_POR_JS) {
+      await page.locator('h1').first().waitFor({ state: 'attached', timeout: 5000 }).catch(() => {});
+    }
     const titulos = await page.locator('h1').allTextContents();
-    if (titulos.length !== 1) falhas.push(`${rota}: ${titulos.length} h1 (${titulos.join(' | ')})`);
+    if (titulos.length !== 1) falhas.push(`${url}: ${titulos.length} h1 (${titulos.join(' | ')})`);
     const skip = page.locator('.skip-link');
-    if (await skip.count() !== 1) { falhas.push(`${rota}: ${await skip.count()} links de pular`); continue; }
+    const quantos = await skip.count();
+    if (quantos !== 1) { falhas.push(`${url}: ${quantos} links de pular`); continue; }
     const alvo = await skip.getAttribute('href');
-    if (await page.locator(alvo).count() !== 1) falhas.push(`${rota}: alvo ${alvo} não existe`);
+    if (await page.locator(alvo).count() !== 1) falhas.push(`${url}: alvo ${alvo} não existe`);
   }
   expect(falhas, falhas.join('\n')).toEqual([]);
 });
