@@ -9,7 +9,7 @@
   const PRIMARY_NAV=[['Comprar arte','comprar-arte.html'],['Artistas','artistas.html'],['Para artistas','para-artistas.html'],['Coleções','colecoes.html']];
   const MENU_GROUPS=[
     ['Explorar',[['Início','index.html'],['Comprar arte','comprar-arte.html'],['Coleções','colecoes.html'],['Artistas','artistas.html'],['Pesquisar','pesquisa.html'],['Narrativa','narrativa.html']]],
-    ['Caminhos',[['Sou artista','para-artistas.html'],['Portal do artista','portal-artista.html'],['Empresas e arquitetos','empresas-e-arquitetos.html'],['Como funciona','como-funciona.html'],['Confiança','confianca.html'],['Verificar certificado','verificar-certificado.html']]]
+    ['Caminhos',[['Sou artista','para-artistas.html'],['Portal do artista','portal-artista.html'],['Empresas e arquitetos','empresas-e-arquitetos.html'],['Portal de empresas','portal-empresa.html'],['Confiança','confianca.html'],['Verificar certificado','verificar-certificado.html']]]
   ];
   // Só rotas públicas entram aqui. Reescrever para uma página interna
   // (proposta-pdf.html) mandava o visitante para o login administrativo.
@@ -138,7 +138,7 @@
     const [accountLabel,accountHref]=accountNav();
     return [
       ['Explorar',[['Comprar arte','comprar-arte.html'],['Coleções','colecoes.html'],['Artistas','artistas.html'],['Pesquisar','pesquisa.html']]],
-      ['Caminhos',[['Sou artista','para-artistas.html'],['Portal do artista','portal-artista.html'],['Empresas e arquitetos','empresas-e-arquitetos.html'],['Como funciona','como-funciona.html']]],
+      ['Caminhos',[['Sou artista','para-artistas.html'],['Portal do artista','portal-artista.html'],['Empresas e arquitetos','empresas-e-arquitetos.html'],['Portal de empresas','portal-empresa.html']]],
       ['Conta e confiança',[[accountLabel,accountHref],['Minha seleção','minha-selecao.html'],['Confiança','confianca.html'],['Verificar certificado','verificar-certificado.html']]]
     ];
   }

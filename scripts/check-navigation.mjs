@@ -199,6 +199,7 @@ for (const file of [...publicScripts].sort()) {
 // --- 4. Cada audiência tem porta de entrada --------------------------------
 const ENTRY_POINTS = [
   ['portal-artista.html', 'portal do artista (vendedor)'],
+  ['portal-empresa.html', 'portal de empresas e arquitetos'],
   ['minha-conta.html', 'área do comprador'],
   ['minha-selecao.html', 'seleção do comprador'],
   ['para-artistas.html', 'submissão de portfólio'],

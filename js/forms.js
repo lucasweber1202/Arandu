@@ -148,7 +148,7 @@ const FORM_NEXT_STEPS = {
     ['Criar conta para guardar', 'cadastro.html']
   ],
   'empresa-intencao': [
-    ['Como funciona para empresas', 'empresas-e-arquitetos.html'],
+    ['Acompanhar meus briefings', 'portal-empresa.html'],
     ['Montar uma seleção', 'minha-selecao.html'],
     ['O que garantimos', 'confianca.html']
   ],
