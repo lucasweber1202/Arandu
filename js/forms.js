@@ -101,6 +101,11 @@ function showFormMessage(form, text, isError = false) {
 // e a cópia para a área de transferência ajudam quem já está no desktop, mas
 // quem chega do TikTok no celular precisa de um canal que funcione agora —
 // mesmo com o banco de produção indisponível.
+/** Nome do arquivo da página aberta, para não oferecer link para ela mesma. */
+function paginaAtual() {
+  return window.location.pathname.split('/').pop() || 'index.html';
+}
+
 function showFormRescue(form, payload) {
   form.querySelector('[data-form-rescue]')?.remove();
   const contact = window.ARANDU_CONTACT;
@@ -110,7 +115,14 @@ function showFormRescue(form, payload) {
   if (whatsapp) links.push(`<a href="${whatsapp}" target="_blank" rel="noopener noreferrer">Enviar por WhatsApp</a>`);
   const mailto = contact?.mailto?.('Contato Arandu', summary);
   if (mailto) links.push(`<a href="${mailto}">Enviar por e-mail</a>`);
-  links.push('<a href="contato.html">Abrir a página de contato</a>');
+  // Em contato.html esse link mandava a pessoa para a página onde ela já
+  // estava — e, sem WhatsApp nem e-mail configurados, era a única saída
+  // oferecida logo depois de dizer "use um dos canais abaixo".
+  if (paginaAtual() !== 'contato.html') {
+    links.push('<a href="contato.html">Abrir a página de contato</a>');
+  } else if (!links.length) {
+    links.push('<a href="como-funciona.html">Como a Arandu funciona</a>', '<a href="comprar-arte.html">Ver o acervo</a>');
+  }
   const rescue = document.createElement('div');
   rescue.className = 'arandu-rescue-actions';
   rescue.dataset.formRescue = 'true';
@@ -170,9 +182,9 @@ function nextStepsFor(type) {
 
 function showFormNextStep(form, type) {
   form.querySelector('[data-form-rescue]')?.remove();
-  const here = window.location.pathname.split('/').pop() || 'index.html';
   // "Próximo passo" que aponta para a página onde a pessoa já está não é passo
   // nenhum: o briefing de empresas oferecia voltar para o próprio briefing.
+  const here = paginaAtual();
   const steps = nextStepsFor(type).filter(([, href]) => href.split('?')[0].split('#')[0] !== here);
   const usable = steps.length ? steps : [['Ver o acervo', 'comprar-arte.html'], ['Como a Arandu funciona', 'como-funciona.html']];
   const next = document.createElement('div');

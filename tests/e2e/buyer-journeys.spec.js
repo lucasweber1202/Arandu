@@ -498,3 +498,44 @@ test('com a API fora do ar, nada vaza texto do servidor nem perde o título', as
   }
   expect(falhas, falhas.join('\n')).toEqual([]);
 });
+
+
+// Saída de emergência que aponta para a própria página não é saída.
+//
+// Quando o envio falha, o formulário guarda um rascunho e diz "use um dos
+// canais abaixo". Em contato.html o único canal oferecido era "Abrir a página
+// de contato" — a página onde a pessoa já estava. Sem WhatsApp nem e-mail
+// configurados no ambiente (o estado da beta), a frase apontava para o nada.
+test('quando o envio falha, a saída oferecida não é a própria página', async ({ page }) => {
+  await stubApi(page);
+  await page.route('**/api/forms', (route) => route.fulfill({
+    status: 503,
+    contentType: 'application/json',
+    body: JSON.stringify({ ok: false, error: 'A gravação de formulários ainda não foi configurada no servidor.', code: 'forms_unconfigured' })
+  }));
+
+  await page.goto('/contato.html');
+  await acceptEssential(page);
+
+  const form = page.locator('form').first();
+  await form.evaluate((elemento) => {
+    for (const campo of elemento.querySelectorAll('input, select, textarea')) {
+      if (['hidden', 'submit', 'button'].includes(campo.type)) continue;
+      if (campo.type === 'checkbox') { if (campo.required) campo.checked = true; continue; }
+      if (campo.tagName === 'SELECT') { if (campo.options.length > 1) campo.selectedIndex = 1; continue; }
+      campo.value = campo.type === 'email' ? 'pessoa@example.com' : 'Mensagem de verificação';
+      campo.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  });
+  await form.evaluate((elemento) => elemento.requestSubmit());
+
+  await expect(form.locator('[data-form-status]')).toContainText('Não conseguimos registrar seu envio agora');
+  const saidas = form.locator('[data-form-rescue] a');
+  await expect(saidas.first()).toBeVisible();
+
+  const destinos = await saidas.evaluateAll((links) => links.map((link) => link.getAttribute('href')));
+  expect(destinos.length, 'a falha precisa oferecer alguma saída').toBeGreaterThan(0);
+  for (const destino of destinos) {
+    expect(destino.split('?')[0].split('#')[0], `saída aponta para a própria página`).not.toBe('contato.html');
+  }
+});
