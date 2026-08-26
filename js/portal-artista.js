@@ -117,9 +117,13 @@
       return;
     }
     if (!response.ok || data.ok === false) {
+      // O texto de `data.error` fala com a operação, não com o artista: cita
+      // migration, configuração de banco e nomes de serviço. Quem espera ver as
+      // próprias obras precisa de uma frase que diga o que aconteceu e o que
+      // fazer agora.
       message(
-        'Não foi possível carregar',
-        data.error || 'Tente novamente em instantes.',
+        'Não foi possível carregar seu portal',
+        'A falha é nossa, não do seu cadastro: seus dados continuam registrados. Recarregue a página em instantes; se continuar assim, fale com a curadoria.',
         '<div class="page-actions"><a class="cta secondary" href="contato.html">Falar com a curadoria</a></div>'
       );
       return;

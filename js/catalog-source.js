@@ -1,11 +1,16 @@
 /* Fonte pública única do catálogo. Dados locais são apenas fixtures de desenvolvimento. */
 (function () {
   class CatalogSourceError extends Error {
-    constructor(message, code, status) {
+    // `ownMessage` separa o texto que a Arandu escreveu do texto que veio do
+    // servidor. Só o nosso pode chegar ao visitante: a resposta de erro da API
+    // fala de migration, de configuração e de Supabase, vocabulário interno que
+    // não explica nada a quem veio comprar uma obra.
+    constructor(message, code, status, ownMessage = true) {
       super(message);
       this.name = 'CatalogSourceError';
       this.code = code || 'catalog_unavailable';
       this.status = status || 0;
+      this.ownMessage = ownMessage === true;
     }
   }
 
@@ -21,7 +26,8 @@
       throw new CatalogSourceError(
         payload?.error || 'O acervo está temporariamente indisponível.',
         payload?.code || 'catalog_unavailable',
-        response.status
+        response.status,
+        !payload?.error
       );
     }
     if (payload?.verifiedReady !== true) {
@@ -46,11 +52,17 @@
     return payload.map((item) => ({ ...item, dataset_kind: 'demonstration', presentation_only: true }));
   }
 
+  const EM_VALIDACAO = new Set(['catalog_not_verified', 'catalog_migration_pending']);
+
   function message(error, subject = 'acervo') {
-    if (error?.code === 'catalog_not_verified' || error?.code === 'catalog_migration_pending') {
+    if (EM_VALIDACAO.has(error?.code)) {
       return `O ${subject} está em validação curatorial e será exibido somente após a conferência dos dados e autorizações.`;
     }
-    return error?.message || `Não foi possível carregar o ${subject} agora.`;
+    if (error?.status === 429) {
+      return `Muitas consultas em pouco tempo. Espere um instante e recarregue a página.`;
+    }
+    if (error?.ownMessage && error?.message) return error.message;
+    return `Não foi possível carregar o ${subject} agora. Recarregue a página em instantes ou fale com a curadoria.`;
   }
 
   // Um estado vazio honesto ainda precisa de saída. Enquanto o catálogo real não

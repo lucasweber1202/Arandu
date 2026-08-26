@@ -97,9 +97,11 @@
       return;
     }
     if (!response.ok || data.ok === false) {
+      // Mesma razão do portal do artista: a resposta de erro da API é escrita
+      // para quem opera o sistema, e nada nela ajuda quem enviou um briefing.
       message(
-        'Não foi possível carregar',
-        data.error || 'Tente novamente em instantes.',
+        'Não foi possível carregar seus briefings',
+        'A falha é nossa, não do seu envio: os briefings registrados continuam com a curadoria. Recarregue a página em instantes; se continuar assim, fale com a curadoria.',
         '<div class="page-actions"><a class="cta secondary" href="contato.html">Falar com a curadoria</a></div>'
       );
       return;

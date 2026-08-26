@@ -107,7 +107,9 @@
       if (!response.ok || data.ok === false) throw new Error(data.error || 'Não foi possível carregar seus pedidos.');
       renderOrders(target, Array.isArray(data.orders) ? data.orders : []);
     } catch (error) {
-      target.innerHTML = `<section class="card"><p class="eyebrow">Seus pedidos</p><h3>Acompanhamento temporariamente indisponível</h3><p>${escapeHtml(error.message)}</p></section>`;
+      // Sem esta troca, o comprador lia a mensagem de erro da API no lugar do
+      // acompanhamento do próprio pedido.
+      target.innerHTML = '<section class="card"><p class="eyebrow">Seus pedidos</p><h3>Acompanhamento temporariamente indisponível</h3><p>Nenhum pedido foi perdido: o acompanhamento volta assim que a consulta se restabelecer. Recarregue a página em instantes ou fale com a curadoria.</p><div class="page-actions"><a class="cta secondary" href="contato.html">Falar com a curadoria</a></div></section>';
     }
   }
 

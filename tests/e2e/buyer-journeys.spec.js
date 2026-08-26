@@ -417,7 +417,14 @@ test('cada página pública tem um único h1 e um alvo para o link de pular', as
     // por um tempo fixo — 250ms por página, vezes 88, vezes cinco motores, era
     // a maior parte do custo desta varredura.
     if (arquivo in MONTADAS_POR_JS) {
+      // Esperar o h1 existir não basta: colecao.html publica
+      // "Carregando coleção..." no HTML e só depois troca o bloco inteiro pelo
+      // resultado, então a medida caía sobre o placeholder. O que interessa é
+      // o estado assentado. (Com a API respondendo, este é o estado de
+      // sucesso; o estado de falha é medido pela varredura sem stub, no fim
+      // deste arquivo.)
       await page.locator('h1').first().waitFor({ state: 'attached', timeout: 5000 }).catch(() => {});
+      await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});
     }
     const titulos = await page.locator('h1').allTextContents();
     if (titulos.length !== 1) falhas.push(`${url}: ${titulos.length} h1 (${titulos.join(' | ')})`);
@@ -426,6 +433,68 @@ test('cada página pública tem um único h1 e um alvo para o link de pular', as
     if (quantos !== 1) { falhas.push(`${url}: ${quantos} links de pular`); continue; }
     const alvo = await skip.getAttribute('href');
     if (await page.locator(alvo).count() !== 1) falhas.push(`${url}: alvo ${alvo} não existe`);
+  }
+  expect(falhas, falhas.join('\n')).toEqual([]);
+});
+
+
+// Mensagem de erro do servidor não é texto de página.
+//
+// O servidor estático de teste responde 404 em `/api/*` com um texto próprio,
+// "API não simulada." Ele funciona como marcador: se aparecer na página, é
+// porque o código imprimiu a resposta do servidor no lugar de uma frase
+// escrita para quem está lendo. Foi o que acontecia em nove páginas — e em
+// produção o mesmo caminho mostrava ao comprador "A migration de prontidão do
+// catálogo ainda não foi aplicada" e o nome do banco de dados.
+//
+// A varredura visita só quem busca dados, e descobre esse conjunto pelos
+// scripts que a página carrega: uma página nova entra sozinha.
+const MARCADOR_DO_SERVIDOR = 'API não simulada';
+
+async function paginasComBuscaDeDados() {
+  const { readFileSync } = await import('node:fs');
+  const paginas = await paginasPublicadas();
+  const busca = new Map();
+  const scriptBusca = (arquivo) => {
+    if (!busca.has(arquivo)) {
+      let fonte = '';
+      try { fonte = readFileSync(`js/${arquivo}`, 'utf8'); } catch { fonte = ''; }
+      busca.set(arquivo, fonte.includes('/api/') || fonte.includes('AranduCatalogSource'));
+    }
+    return busca.get(arquivo);
+  };
+  return paginas.filter((pagina) => {
+    const html = readFileSync(`dist/${pagina}`, 'utf8');
+    return [...html.matchAll(/src="\/?js\/([\w.-]+\.js)/g)].some((achado) => scriptBusca(achado[1]));
+  });
+}
+
+test('com a API fora do ar, nada vaza texto do servidor nem perde o título', async ({ page }) => {
+  test.setTimeout(TEMPO_DE_VARREDURA);
+  // Sem `stubApi` de propósito. As outras varreduras injetam um catálogo
+  // válido e medem o estado de sucesso; enquanto o catálogo real não é
+  // liberado, quem visita o site encontra o estado de falha — e era só nele
+  // que os dois defeitos apareciam.
+  const paginas = await paginasComBuscaDeDados();
+  expect(paginas.length, 'a varredura precisa encontrar as páginas que buscam dados').toBeGreaterThan(8);
+
+  const falhas = [];
+  for (const pagina of paginas) {
+    await page.goto(`/${pagina}`, { waitUntil: 'domcontentloaded' });
+    await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});
+    const medida = await page.evaluate((marcador) => {
+      const alvo = document.querySelector('main') || document.body;
+      const texto = (alvo.innerText || '').replace(/\s+/g, ' ');
+      const posicao = texto.indexOf(marcador);
+      return {
+        vazamento: posicao < 0 ? '' : texto.slice(Math.max(0, posicao - 60), posicao + marcador.length + 10),
+        titulos: [...document.querySelectorAll('h1')].length
+      };
+    }, MARCADOR_DO_SERVIDOR);
+    if (medida.vazamento) falhas.push(`${pagina}: ...${medida.vazamento}`);
+    // colecao.html trocava o bloco inteiro pelo aviso de indisponibilidade e
+    // levava junto o único h1 da página.
+    if (medida.titulos !== 1) falhas.push(`${pagina}: ${medida.titulos} h1 no estado de falha`);
   }
   expect(falhas, falhas.join('\n')).toEqual([]);
 });

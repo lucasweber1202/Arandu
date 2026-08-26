@@ -209,7 +209,10 @@ async function renderAccount() {
       target.innerHTML = '<div class="card"><h3>Você ainda não entrou.</h3><p>Entre ou crie uma conta para sincronizar seleções e acompanhar reservas.</p><div class="page-actions"><a class="cta" href="login.html">Entrar</a><a class="cta secondary" href="cadastro.html">Criar conta</a></div></div>';
       return;
     }
-    target.innerHTML = `<div class="card"><h3>Não foi possível carregar sua conta</h3><p>${escapeAuthHtml(error.message)}</p><a class="cta secondary" href="contato.html">Falar com a curadoria</a></div>`;
+    // `error.message` aqui pode ser o texto de erro da API ou a mensagem do
+    // próprio navegador em inglês. Nenhum dos dois diz a quem está logado o que
+    // fazer com a própria conta.
+    target.innerHTML = '<div class="card"><h3>Não foi possível carregar sua conta</h3><p>Seus dados continuam salvos. Recarregue a página em instantes; se o problema persistir, fale com a curadoria.</p><a class="cta secondary" href="contato.html">Falar com a curadoria</a></div>';
   }
 }
 
