@@ -1651,3 +1651,221 @@ body.arandu-consent-pending{padding-bottom:170px}@media(max-width:900px){body.ar
     min-height: 32px;
   }
 }
+
+/* =========================================================================
+   Comparação, leitura objetiva e presença de galeria
+   =========================================================================
+
+   Três coisas nesta seção:
+
+   1. A comparação, que existia como página e chave de armazenamento mas não
+      tinha implementação: nenhum script que tocava `arandu.compare.v1` era
+      carregado por alguma página publicada.
+   2. A ficha de leitura objetiva de obra e de artista.
+   3. O ajuste de presença do acervo — cartão com menos moldura e mais obra,
+      que é como uma galeria mostra trabalho.
+
+   O botão do assistente é `position:fixed;right:22px;bottom:22px` (14px no
+   celular). A barra de comparação fica ACIMA dele, nunca ao lado, para não
+   disputar espaço horizontal em tela estreita. */
+
+/* --- Botão de comparar --------------------------------------------------- */
+.compare-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  min-height: 32px;
+  padding: .35rem .85rem;
+  border: 1px solid rgba(36, 17, 13, .3);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: .82rem;
+  cursor: pointer;
+}
+.compare-toggle::before {
+  content: "";
+  width: .62rem;
+  height: .62rem;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+}
+.compare-toggle.is-comparing {
+  background: var(--arandu-blood, #6f1712);
+  border-color: var(--arandu-blood, #6f1712);
+  color: #fff6e9;
+}
+.compare-toggle.is-comparing::before {
+  background: currentColor;
+  border-color: currentColor;
+}
+.compare-toggle:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+
+/* --- Barra de comparação ------------------------------------------------- */
+.compare-bar {
+  position: fixed;
+  left: 14px;
+  right: 14px;
+  bottom: 76px;
+  z-index: 120;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .75rem 1rem;
+  padding: .75rem 1rem;
+  border-radius: 18px;
+  background: #1c0a07;
+  color: #fff2dc;
+  box-shadow: 0 18px 48px rgba(20, 8, 5, .42);
+}
+/* `arandu-system.css` pinta todo `p` com `color:rgba(36,22,17,.78)`, então
+   herdar a cor clara da barra não funciona: a contagem saía a 1.09:1 sobre o
+   fundo escuro. A cor precisa ser dita no próprio elemento. */
+.compare-bar-count { margin: 0; font-size: .9rem; color: #fff2dc; }
+.compare-bar-count strong { font-size: 1.15rem; color: #fff2dc; }
+.compare-bar-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  flex: 1 1 14rem;
+}
+.compare-bar-list li {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .2rem .5rem;
+  border: 1px solid rgba(255, 242, 220, .3);
+  border-radius: 999px;
+  font-size: .78rem;
+}
+.compare-bar-list button {
+  min-height: 24px;
+  padding: 0 .3rem;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: .72rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.compare-bar-actions { display: flex; gap: .5rem; align-items: center; }
+.compare-bar-actions .cta { min-height: 36px; display: inline-flex; align-items: center; }
+.compare-bar-actions button {
+  min-height: 36px;
+  padding: 0 .8rem;
+  border: 1px solid rgba(255, 242, 220, .45);
+  border-radius: 999px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: .82rem;
+  cursor: pointer;
+}
+@media (max-width: 720px) {
+  .compare-bar { bottom: 68px; padding: .6rem .7rem; }
+  .compare-bar-list { display: none; }
+}
+
+/* --- Tabela de comparação ------------------------------------------------ */
+/* A tabela rola dentro do próprio contêiner: o documento nunca ganha rolagem
+   lateral, que é o que a varredura de celular mede. */
+.compare-scroller { overflow-x: auto; margin: 1.5rem 0; }
+.compare-table { width: 100%; border-collapse: collapse; min-width: 32rem; }
+.compare-table th,
+.compare-table td {
+  padding: .7rem .8rem;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid rgba(36, 17, 13, .14);
+  font-size: .92rem;
+}
+.compare-table thead th { vertical-align: bottom; }
+.compare-table thead a { display: block; text-decoration: none; color: inherit; }
+.compare-table thead strong { display: block; margin-top: .45rem; font-size: 1rem; line-height: 1.25; }
+.compare-table tbody th { font-weight: 600; white-space: nowrap; width: 12rem; }
+.compare-media {
+  display: block;
+  width: 100%;
+  max-width: 11rem;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 10px;
+  background: rgba(36, 17, 13, .12);
+}
+.compare-table tr.is-different td { background: rgba(185, 130, 44, .1); }
+.compare-vazio { opacity: .65; font-style: italic; }
+.compare-drop {
+  margin-top: .4rem;
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: .76rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.compare-actions { display: flex; flex-wrap: wrap; gap: .6rem; }
+.compare-actions button { cursor: pointer; }
+
+/* --- Ficha de leitura objetiva ------------------------------------------- */
+.artwork-analysis { margin: 2.5rem 0; }
+.analysis-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 1rem;
+  margin: 1.25rem 0 0;
+}
+.analysis-item {
+  padding: 1rem 1.1rem;
+  border: 1px solid rgba(36, 17, 13, .16);
+  border-radius: 14px;
+  background: rgba(255, 250, 246, .72);
+}
+.analysis-item dt {
+  margin: 0 0 .35rem;
+  font-size: .74rem;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  opacity: .78;
+}
+.analysis-item dd { margin: 0; font-size: 1.18rem; line-height: 1.3; font-weight: 600; }
+.analysis-item p { margin: .45rem 0 0; font-size: .84rem; line-height: 1.45; opacity: .82; }
+.analysis-source { margin-top: 1rem; font-size: .8rem; opacity: .78; }
+
+/* --- Presença de galeria no acervo --------------------------------------- */
+/* O cartão vinha com 30px de raio, borda, moldura interna e sombra de 64px:
+   muita interface em volta de pouca obra. Uma galeria mostra o trabalho e
+   recolhe o resto — a imagem passa a ocupar a largura inteira do cartão, com
+   proporção constante para a grade ganhar ritmo. */
+/* A moldura do cartão vem de uma regra agrupada com `!important` mais acima
+   neste arquivo, que vale para seis famílias de cartão. Em vez de mexer nela e
+   mudar as outras, o acervo declara a própria presença. */
+.ux-work-grid { gap: 1.75rem 1.5rem !important; }
+.ux-work-card {
+  gap: .85rem !important;
+  padding: 0 0 1.1rem !important;
+  border-radius: 4px !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.ux-work-card > .op-card-media {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  border-radius: 2px !important;
+  margin-bottom: .35rem;
+}
+/* A obra ganha um respiro ao passar o cursor, em vez de a interface toda se
+   mexer: quem está escolhendo quer comparar imagens, não animações. */
+.ux-work-card .op-card-media { transition: filter .2s ease; }
+.ux-work-card:hover .op-card-media { filter: brightness(1.04) saturate(1.03); }
+.ux-work-card > strong { font-size: 1.12rem; line-height: 1.25; }
+.ux-work-card:hover { transform: translateY(-3px); box-shadow: none; }
+.ux-work-card .work-card-actions { gap: .45rem; flex-wrap: wrap; }
