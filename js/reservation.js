@@ -160,3 +160,44 @@ document.addEventListener('submit', async (event) => {
 });
 
 readReservations();
+
+
+/* ---------------------------------------------------------------------------
+ * Campos extras do formulário de reserva.
+ *
+ * Vinha em `js/reservation-plus.js`, carregado por uma única página. Em
+ * obra.html isso custava a 46ª requisição, uma acima do teto de 45 da suíte de
+ * performance — o firefox pede uma a mais que o chromium, e a página passou a
+ * operar no limite. Fundir aqui é neutro: o código só age quando o modal de
+ * reserva existe, e o modal é criado sob demanda por `openReservationModal`.
+ * Em minha-selecao.html, a outra página que carrega este arquivo, o efeito é
+ * o mesmo formulário ganhar os mesmos campos.
+ * ------------------------------------------------------------------------- */
+(() => {
+  function extraFields(form) {
+    if (!form || form.dataset.reservePlus === 'true') return;
+    form.dataset.reservePlus = 'true';
+    const notes = form.querySelector('textarea[name="notes"]');
+    const url = form.querySelector('input[name="url"]');
+    const city = document.createElement('input');
+    city.name = 'city';
+    city.placeholder = 'Cidade de entrega';
+    const profile = document.createElement('select');
+    profile.name = 'buyer_profile';
+    profile.innerHTML = '<option value="">Perfil da compra</option><option value="primeira-compra">Primeira compra de arte</option><option value="colecionador">Colecionador</option><option value="empresa">Empresa ou projeto</option><option value="arquiteto">Arquiteto ou decorador</option>';
+    if (notes) form.insertBefore(city, notes);
+    if (notes) form.insertBefore(profile, notes);
+    const info = document.createElement('div');
+    info.className = 'launch-note';
+    info.innerHTML = '<strong>Próximos passos:</strong> a curadoria confirma disponibilidade, estado da obra, envio, prazo, certificado e forma de pagamento antes de qualquer fechamento.';
+    if (url) form.insertBefore(info, url);
+  }
+
+  function observeModal() {
+    const modal = document.querySelector('[data-reserve-modal]');
+    if (modal) extraFields(modal.querySelector('[data-reserve-form]'));
+  }
+
+  document.addEventListener('click', () => setTimeout(observeModal, 80));
+  document.addEventListener('DOMContentLoaded', observeModal);
+})();

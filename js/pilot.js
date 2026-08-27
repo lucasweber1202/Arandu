@@ -14,6 +14,33 @@
     return value;
   }
 
+
+  /**
+   * Uma requisição de `/api/public-config` por carga de página.
+   *
+   * Três scripts pediam a mesma configuração na mesma página: `pilot.js`,
+   * `platform-runtime.js` e o caminho de contato. Em obra.html isso ajudava a
+   * estourar o teto de requisições da suíte de performance, e em toda página
+   * era o mesmo dado buscado de novo. A promessa fica no `window` para que
+   * qualquer ordem de carregamento reaproveite a primeira chamada.
+   */
+  function configuracaoPublicaCompartilhada(fetchImpl) {
+    var buscar = fetchImpl || window.fetch;
+    if (fetchImpl && fetchImpl !== window.fetch) {
+      // Chamada com fetch próprio (teste) não entra no cache compartilhado.
+      return buscar('/api/public-config', { method: 'GET', credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } })
+        .then(function (resposta) { return resposta.json().catch(function () { return {}; }).then(function (dados) { return { ok: resposta.ok, dados: dados }; }); });
+    }
+    if (!window.__aranduConfigPublica) {
+      window.__aranduConfigPublica = buscar('/api/public-config', { method: 'GET', credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } })
+        .then(function (resposta) { return resposta.json().catch(function () { return {}; }).then(function (dados) { return { ok: resposta.ok, dados: dados }; }); })
+        .catch(function () { return { ok: false, dados: {} }; });
+    }
+    return window.__aranduConfigPublica;
+  }
+
+  window.__aranduConfigPublicaFn = window.__aranduConfigPublicaFn || configuracaoPublicaCompartilhada;
+
   async function json(url, options = {}) {
     const response = await fetch(url, { credentials: 'include', cache: 'no-store', ...options });
     const payload = await response.json().catch(() => ({}));
@@ -53,7 +80,10 @@
 
   async function boot() {
     try {
-      config = await json('/api/public-config');
+      // Mesma configuração que platform-runtime.js já busca: uma chamada só.
+      var compartilhada = await window.__aranduConfigPublicaFn();
+      if (!compartilhada.ok) throw new Error('Configuração pública indisponível.');
+      config = compartilhada.dados;
       if (!config?.pilot?.enabled) return;
       document.documentElement.classList.add('pilot-enabled');
       const session = await json('/api/pilot/session');
