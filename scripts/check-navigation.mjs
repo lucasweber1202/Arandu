@@ -231,10 +231,45 @@ for (const [title, items] of CONSOLE_GROUPS) {
   if (!items.length) issues.push(`Grupo do console sem telas: ${title}.`);
 }
 
+// --- 6. Só quem reescreve rota aposentada pode nomear rota aposentada -------
+//
+// `site.js` reescreve os links legados no carregamento, e `selection.js` faz o
+// mesmo com as URLs guardadas na seleção. Quem escreve HTML *depois* do
+// carregamento escapa dos dois: o resultado do quiz, a seleção montada, a
+// proposta gerada e a consulta de certificado nasciam apontando para
+// `obras.html` e `autenticidade.html`. Os links funcionavam por causa do
+// redirect 301, mas "Ver obra" levava ao acervo inteiro em vez da obra, e a
+// proposta enviada ao cliente trazia "Link: obras.html".
+//
+// A regra é simples: fora dos dois reescritores, nenhum script publicado
+// nomeia uma rota aposentada.
+const REESCRITORES = new Set(['site.js', 'selection.js']);
+const rotasAposentadas = (JSON.parse(readFileSync(join(root, 'vercel.json'), 'utf8')).redirects || [])
+  .map((regra) => String(regra.source || '').replace(/^\//, ''))
+  .filter((rota) => rota.endsWith('.html'));
+if (!rotasAposentadas.length) issues.push('Nenhuma rota aposentada declarada: a checagem de rota legada perderia o sentido.');
+const scriptsPublicados = new Set();
+for (const page of distPages) {
+  const html = readFileSync(join(root, 'dist', page), 'utf8');
+  for (const achado of html.matchAll(/src="\/?js\/([\w.-]+\.js)/g)) scriptsPublicados.add(achado[1]);
+}
+for (const script of [...scriptsPublicados].sort()) {
+  if (REESCRITORES.has(script)) continue;
+  const fonte = join(root, 'js', script);
+  if (!existsSync(fonte)) continue;
+  const codigo = readFileSync(fonte, 'utf8');
+  for (const rota of rotasAposentadas) {
+    if (codigo.includes(`'${rota}'`) || codigo.includes(`"${rota}"`)) {
+      issues.push(`js/${script} nomeia a rota aposentada ${rota}; o link nasce fora do alcance do reescritor.`);
+    }
+  }
+}
+
 console.log('Arandu Navigation Check');
 console.log(`Páginas publicadas: ${distPages.length} · com casca pública: ${shellPages.length}`);
 console.log(`Telas internas no console: ${targets.size}`);
 console.log(`Links de entrada por audiência — ${entryReport}`);
+console.log(`Scripts publicados verificados contra ${rotasAposentadas.length} rotas aposentadas: ${scriptsPublicados.size}`);
 console.log(`Erros: ${issues.length}`);
 issues.forEach((issue) => console.error(`- ${issue}`));
 if (issues.length) process.exit(1);
