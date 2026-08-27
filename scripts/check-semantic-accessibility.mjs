@@ -1,5 +1,14 @@
 import fs from 'node:fs';
 
+// Campo de contato com o teclado errado custa conversão no lugar mais caro da
+// jornada. Todo formulário público pedia e-mail e WhatsApp como texto simples:
+// no celular, nenhum "@" à mão e teclado alfabético para digitar telefone.
+// `autocomplete` completa o par — é o que deixa o navegador preencher sozinho.
+const TIPOS_ESPERADOS = [
+  { nome: /^e-?mail$/i, tipo: 'email', autocomplete: 'email' },
+  { nome: /^(whatsapp|telefone|celular|phone)$/i, tipo: 'tel', autocomplete: 'tel' }
+];
+
 const issues = [];
 let controls = 0;
 for (const file of fs.readdirSync('.').filter((name) => name.endsWith('.html'))) {
@@ -20,6 +29,14 @@ for (const file of fs.readdirSync('.').filter((name) => name.endsWith('.html')))
     if (!id) issues.push(`${file}: controle sem id.`);
     if (!name) issues.push(`${file}: controle sem name.`);
     if (id && !labels.has(id) && !nested) issues.push(`${file}: controle ${id} sem label semântico.`);
+    if (name && /^<input\b/i.test(tag)) {
+      const esperado = TIPOS_ESPERADOS.find((regra) => regra.nome.test(name));
+      if (esperado) {
+        const tipo = tag.match(/\btype=["']([^"']+)/i)?.[1] || 'text';
+        if (tipo !== esperado.tipo) issues.push(`${file}: campo ${name} com type="${tipo}"; esperado type="${esperado.tipo}".`);
+        if (!/\bautocomplete=/i.test(tag)) issues.push(`${file}: campo ${name} sem autocomplete="${esperado.autocomplete}".`);
+      }
+    }
   }
   if (/<main\b/i.test(html)) {
     if (!/<main\b[^>]*\bid=["']conteudo-principal["']/i.test(html)) issues.push(`${file}: main sem landmark estável.`);
