@@ -1742,14 +1742,22 @@ body.arandu-consent-pending{padding-bottom:170px}@media(max-width:900px){body.ar
   border-radius: 999px;
   font-size: .78rem;
 }
+/* Mesma razão da tabela: tirar uma obra é ação secundária. A classe repetida
+   vence as regras globais de `button`, que enchiam o botão de vermelho. */
+.compare-bar-list button.compare-bar-list button,
 .compare-bar-list button {
   min-height: 24px;
-  padding: 0 .3rem;
-  border: 0;
-  background: none;
-  color: inherit;
+  padding: 0 .3rem !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+  color: inherit !important;
   font: inherit;
-  font-size: .72rem;
+  font-size: .72rem !important;
+  font-weight: 500 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
   text-decoration: underline;
   cursor: pointer;
 }
@@ -1799,18 +1807,29 @@ body.arandu-consent-pending{padding-bottom:170px}@media(max-width:900px){body.ar
 }
 .compare-table tr.is-different td { background: rgba(185, 130, 44, .1); }
 .compare-vazio { opacity: .65; font-style: italic; }
-.compare-drop {
-  margin-top: .4rem;
+/* Ação secundária de uma tabela de comparação é texto, não botão cheio: numa
+   página de galeria o título da obra tem de ser o elemento mais forte da
+   coluna. A classe repetida vence as regras globais de `button`. */
+.compare-drop.compare-drop {
+  display: inline-block;
+  margin-top: .45rem;
   min-height: 24px;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: inherit;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+  color: inherit !important;
   font: inherit;
-  font-size: .76rem;
+  font-size: .76rem !important;
+  font-weight: 500 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
   text-decoration: underline;
+  opacity: .8;
   cursor: pointer;
 }
+.compare-drop.compare-drop:hover { opacity: 1; }
 .compare-actions { display: flex; flex-wrap: wrap; gap: .6rem; }
 .compare-actions button { cursor: pointer; }
 
@@ -1869,3 +1888,275 @@ body.arandu-consent-pending{padding-bottom:170px}@media(max-width:900px){body.ar
 .ux-work-card > strong { font-size: 1.12rem; line-height: 1.25; }
 .ux-work-card:hover { transform: translateY(-3px); box-shadow: none; }
 .ux-work-card .work-card-actions { gap: .45rem; flex-wrap: wrap; }
+
+/* Texto claro dentro de bloco escuro.
+
+   `.section:not(.section-dark) p|li|small` (0,2,1) pinta com o marrom de seção
+   clara tudo o que estiver dentro de uma seção clara — inclusive os blocos que
+   têm gradiente escuro próprio. O guarda `:not(.section-dark)` só conhece a
+   seção; não sabe que dentro dela existe uma caixa escura.
+
+   O estrago era grande e invisível para as catracas, porque varredura de
+   contraste lê `background-color` e fundo em gradiente volta transparente:
+   "Quer ajuda para escolher?" saía quase preto sobre marrom escuro no CTA final
+   de 43 páginas — o último convite antes de falar com a curadoria — e "valor
+   indicativo do acervo" saía a 1.4:1 no bloco de preço de toda página de obra.
+
+   Estes seletores têm (0,3,1) e alcançam o texto dentro dos blocos escuros
+   conhecidos. A catraca de contraste agora lê gradiente e acusa se faltar um. */
+.final-cta,
+.price-line { color: #ffeede; }
+
+.final-cta h2,
+.final-cta h3,
+.final-cta .section-title,
+.section .final-cta p,
+.section .final-cta li,
+.section .final-cta small,
+.section .final-cta .lead,
+.clean-section .final-cta p,
+.clean-section .final-cta .lead,
+.section-muted .final-cta p,
+.section-muted .final-cta .lead,
+.section .price-line span,
+.section .price-line small,
+.clean-section .price-line span,
+.clean-section .price-line small,
+.price-line span,
+.price-line small {
+  color: #ffeede !important;
+}
+
+
+/* Título das páginas legais.
+   `.legal-hero` declara gradiente escuro e cor creme, mas o título entra como
+   `.title`, que tem regra própria e vence a herança: "Política de Privacidade",
+   "Termos de uso" e as demais saíam quase pretas sobre marrom escuro. */
+.legal-hero h1,
+.legal-hero .title,
+.legal-hero h2,
+.section .legal-hero p,
+.legal-hero .lead {
+  color: #fff4e6 !important;
+}
+
+/* Seção "muted" como papel, não como véu.
+
+   `body:not(.home-page) .section-muted` pintava a seção com
+   `rgba(115,53,29,.28) → rgba(255,242,220,.86)`: um véu marrom translúcido que,
+   composto sobre o creme da página, dá um marrom médio no terço superior. O
+   rótulo da seção é vermelho escuro (#741f1a) e sumia ali — em 46 páginas.
+
+   Nenhuma catraca via, porque varredura de contraste lê `background-color` e
+   véu em gradiente translúcido volta transparente. A catraca agora interpola o
+   gradiente no ponto do texto e compõe a transparência sobre o que está
+   embaixo; foi ela que apontou este bloco.
+
+   O papel claro também é o que uma galeria faz: fundo quieto, obra alta. */
+body:not(.home-page) .section-muted {
+  background: linear-gradient(180deg, rgba(255, 244, 227, .96), rgba(246, 231, 208, .96)) !important;
+}
+
+/* Rótulo e título dentro de cartão claro.
+
+   Os cartões (`.portal-card`, `.trust-card`, `.certificate-preview` e
+   companhia) recebem fundo claro `#fff1dc → #eed2a9`, mas o rótulo continuava
+   com o tan `#d99a67` pensado para fundo escuro, e o título do certificado
+   continuava creme: texto claro sobre papel claro, invisível. */
+.portal-card .eyebrow,
+.ux-work-card .eyebrow,
+.ux-artist-card .eyebrow,
+.ux-testimonial .eyebrow,
+.macro-card .eyebrow,
+.trust-card .eyebrow,
+.certificate-preview .eyebrow,
+.op-empty .eyebrow {
+  color: #741f1a !important;
+}
+.certificate-preview h2,
+.certificate-preview h3,
+.certificate-preview .title,
+.certificate-preview strong {
+  color: #2b1712 !important;
+}
+
+/* Página 404: o texto está sobre `linear-gradient(135deg,#1b0b07,#6f1712,…)`,
+   e o título saía quase preto sobre esse escuro. */
+.op-redirect h1,
+.op-redirect .title,
+.op-redirect-card h1,
+.op-redirect-card .title {
+  color: #fff2dc !important;
+}
+
+/* Canvas de galeria.
+
+   O fundo da página era `#2a110c → #572016 → #9f5a33 → #e2c097`: quase preto no
+   topo, creme no rodapé. Conteúdo apoiado direto nele não tem cor de texto
+   possível — clara some embaixo, escura some em cima —, e era daí que vinha o
+   resto das falhas de contraste: rótulo, pílula de confiança e título de 404.
+
+   Uma galeria faz o contrário: parede quieta, obra alta. As seções que
+   precisam de escuro já pintam o próprio fundo (`.rect-hero`, `.proposal-hero`,
+   `.legal-hero`, `.final-cta`), então a página pode ser papel. */
+body:not(.home-page):not(.admin-page) {
+  background:
+    radial-gradient(circle at 18% 0%, rgba(159, 47, 36, .06), transparent 42%),
+    linear-gradient(180deg, #fdf7ee 0%, #f7ecdd 100%) !important;
+}
+
+/* Cor de rótulo por herança, não por disputa de especificidade.
+
+   O rótulo de seção (`.eyebrow`) precisa ser escuro sobre papel e creme sobre
+   bloco escuro. Resolver isso com lista de seletores não funciona: `.card` e
+   `.proposal-hero` têm a mesma especificidade, e um cartão claro dentro de um
+   herói escuro fazia a ordem do arquivo decidir a cor — cada regra nova
+   quebrava outra.
+
+   Custom property herda, e é exatamente a semântica desejada: quem manda é a
+   caixa pintada mais próxima do texto. Cada bloco declara a própria cor de
+   rótulo; o rótulo só lê. */
+:root { --arandu-eyebrow: #741f1a; }
+
+.section-dark,
+.rect-hero,
+.proposal-hero,
+.legal-hero,
+.enterprise-curatorial-hero,
+.portal-shell,
+.clinic-note,
+.op-redirect,
+.op-redirect-card,
+.final-cta,
+.artwork-reading,
+.premium-reading { --arandu-eyebrow: #f4dfc4; }
+
+.card,
+.legal-card,
+.portal-card,
+.certificate-preview,
+.proposal-preview,
+.selection-reading-card,
+.trust-card,
+.macro-card,
+.ux-work-card,
+.ux-artist-card,
+.op-empty { --arandu-eyebrow: #741f1a; }
+
+/* A classe repetida sobe a especificidade para (0,3,0) sem inventar um
+   ancestral: `.section:not(.section-dark) .eyebrow` e
+   `body:not(.home-page) .rect-hero .eyebrow` já ocupam (0,2,0) e (0,3,0), e um
+   seletor de uma classe só nunca chegaria a valer. */
+.eyebrow.eyebrow.eyebrow { color: var(--arandu-eyebrow) !important; }
+
+/* O cartão da página 404 era um véu de 10% sobre um gradiente que vai do quase
+   preto ao ocre: o texto ficava sem chão estável. Um cartão precisa ser cartão. */
+.op-redirect-card {
+  background: rgba(26, 10, 6, .92) !important;
+  border-radius: 18px;
+}
+
+/* Blocos que se diziam escuros sem pintar escuro.
+
+   `.section-dark` declarava texto claro e contava com o fundo da página para
+   ser o escuro — funcionava por acidente enquanto a página era um gradiente
+   quase preto. Com a página em papel, o texto claro ficou sobre claro. Um
+   bloco que promete escuro precisa pintar o próprio escuro.
+
+   `.clinic-note`, `.recommendation-box` e `.art-tile` são o caso oposto: têm
+   fundo escuro próprio e receberam texto escuro herdado da seção clara. */
+.section.section-dark,
+.section-dark {
+  background: linear-gradient(160deg, #24100b, #4a1a14 62%, #17362f) !important;
+  --arandu-eyebrow: #f4dfc4;
+}
+.section-dark .section-title,
+.section-dark h2,
+.section-dark h3,
+.section-dark p,
+.section-dark li,
+.section-dark span,
+.section-dark a:not(.cta) {
+  color: #f6ece0 !important;
+}
+
+.clinic-note,
+.recommendation-box,
+.art-tile { --arandu-eyebrow: #f4dfc4; }
+
+.clinic-note .section-title,
+.clinic-note h2,
+.clinic-note h3,
+.clinic-note p,
+.clinic-note li,
+.recommendation-box h2,
+.recommendation-box h3,
+.recommendation-box p,
+.art-tile span,
+.art-tile strong {
+  color: #f6ece0 !important;
+}
+
+/* O texto de apoio do cartão 404 ficou com o cinza de papel sobre o escuro. */
+.op-redirect-card p,
+.op-redirect-card li {
+  color: rgba(246, 236, 224, .88) !important;
+}
+
+/* Herói de proposta: escuro onde o texto está.
+   A camada de base ia de `#cdb38e` (areia clara) no canto superior esquerdo até
+   `#102933`. O conteúdo do herói fica justamente nesse canto, em creme: 2.7:1.
+   A família de cor continua a mesma; o que muda é começar escuro onde se lê. */
+.proposal-hero {
+  background:
+    radial-gradient(circle at 12% 14%, rgba(91, 23, 20, .24), rgba(0, 0, 0, 0) 31%),
+    radial-gradient(circle at 84% 18%, rgba(18, 50, 41, .24), rgba(0, 0, 0, 0) 32%),
+    linear-gradient(135deg, #2b1310 0%, #6d3a27 58%, #102933 100%) !important;
+}
+
+/* Nota clínica: bloco verde-escuro que continuava recebendo o texto de seção
+   clara. `.section:not(.section-dark) p` tem (0,2,1); a classe repetida sobe a
+   desta para (0,3,1) e resolve sem tocar na regra geral. */
+.clinic-note.clinic-note p,
+.clinic-note.clinic-note li,
+.clinic-note.clinic-note .section-title,
+.clinic-note.clinic-note h2,
+.clinic-note.clinic-note h3 {
+  color: #f6ece0 !important;
+}
+
+/* Legenda sobre peça de arte.
+   O rótulo ficava em creme direto sobre o ocre da peça. Legenda sobre imagem
+   pede chão próprio — é o que qualquer galeria faz numa ficha de parede. */
+.art-tile span,
+.art-tile strong {
+  background: rgba(26, 10, 6, .74);
+  padding: .18rem .5rem;
+  border-radius: 4px;
+}
+
+/* Mesmo caso da nota clínica: a caixa de recomendação é escura e o texto de
+   apoio continuava recebendo o marrom de seção clara. */
+.recommendation-box.recommendation-box p,
+.recommendation-box.recommendation-box li,
+.recommendation-box.recommendation-box small,
+.recommendation-box.recommendation-box .section-title {
+  color: #f6ece0 !important;
+}
+
+/* Cartão dentro da caixa de recomendação.
+   A cascata já mandava o texto do cartão em marrom escuro (`.recommendation-box
+   .card :is(h3,span,strong)`), mas o cartão não pintava fundo: o texto escuro
+   caía direto sobre o gradiente escuro da caixa. Um cartão com texto escuro
+   precisa do próprio papel. */
+.recommendation-box .card,
+.recommendation-box .op-card {
+  background: #fff8ec !important;
+  border-radius: 12px;
+}
+.recommendation-box .card p,
+.recommendation-box .card span,
+.recommendation-box .card small,
+.recommendation-box .card li {
+  color: #4b342c !important;
+}
