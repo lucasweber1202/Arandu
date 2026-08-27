@@ -18,7 +18,7 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join, dirname, normalize } from 'node:path';
 import { INTERNAL_PAGE_SET } from '../lib/internal-pages.mjs';
 import { FOOTER_COLUMNS, MENU_GROUPS, PRIMARY_NAV, SHELL_EXEMPT_PAGES, shellApplies } from '../lib/public-shell.mjs';
-import { CONSOLE_GROUPS, consoleTargets } from '../lib/owner-console.mjs';
+import { CONSOLE_GROUPS, applyOwnerConsole, consoleTargets } from '../lib/owner-console.mjs';
 import { INTERNAL_PAGES } from '../lib/internal-pages.mjs';
 
 const issues = [];
@@ -263,6 +263,32 @@ for (const script of [...scriptsPublicados].sort()) {
       issues.push(`js/${script} nomeia a rota aposentada ${rota}; o link nasce fora do alcance do reescritor.`);
     }
   }
+}
+
+// --- 7. O console renderizado tem uma implementação só ---------------------
+//
+// A injeção do console vivia dentro de `api/internal-page.js`, onde nada
+// conseguia montá-la: para conferir a interface do proprietário era preciso
+// reescrever a transformação e, a partir daí, verificar a cópia em vez do que
+// vai ao ar. Agora ela mora em `lib/owner-console.mjs`, e esta checagem cobra
+// as duas pontas: que a função serverless use a implementação única, e que a
+// implementação faça o que a página interna depende que ela faça.
+const funcaoInterna = readFileSync(join(root, 'api/internal-page.js'), 'utf8');
+if (!funcaoInterna.includes("from '../lib/owner-console.mjs'") || !funcaoInterna.includes('applyOwnerConsole(')) {
+  issues.push('api/internal-page.js não usa applyOwnerConsole de lib/owner-console.mjs.');
+}
+if (/function\s+withOwnerConsole/.test(funcaoInterna)) {
+  issues.push('api/internal-page.js voltou a ter a própria injeção de console.');
+}
+const consoleRenderizado = applyOwnerConsole(
+  '<html><head></head><body class="painel"><a class="skip-link" href="#conteudo-principal">Pular</a><main id="conteudo-principal">painel</main></body></html>',
+  'painel-leads.html'
+);
+if (!consoleRenderizado.includes('owner-console-page')) issues.push('applyOwnerConsole não marca o body como página de console.');
+if (!consoleRenderizado.includes('owner-console')) issues.push('applyOwnerConsole não injeta a barra do console.');
+if (!consoleRenderizado.includes('arandu-admin.css')) issues.push('applyOwnerConsole não injeta o CSS do console.');
+if (consoleRenderizado.indexOf('skip-link') > consoleRenderizado.indexOf('owner-console-bar')) {
+  issues.push('O console entra antes do link de pular conteúdo e rouba o primeiro foco do teclado.');
 }
 
 console.log('Arandu Navigation Check');

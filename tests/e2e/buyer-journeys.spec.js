@@ -539,3 +539,17 @@ test('quando o envio falha, a saída oferecida não é a própria página', asyn
     expect(destino.split('?')[0].split('#')[0], `saída aponta para a própria página`).not.toBe('contato.html');
   }
 });
+
+// O contrário da varredura do ambiente demonstrativo: com o acervo fechado — o
+// estado publicado — a página precisa continuar dizendo isso. A alternativa
+// demonstrativa mora num atributo do HTML e só pode entrar quando
+// presentation-runtime.js está carregado.
+test('com o acervo fechado, a página continua dizendo que ele está fechado', async ({ page }) => {
+  await stubApi(page);
+  await page.goto('/comprar-arte.html');
+  await acceptEssential(page);
+
+  await expect(page.locator('main h1')).toContainText('ainda está em validação curatorial');
+  await expect(page.locator('body')).not.toContainText('Acervo demonstrativo');
+  await expect(page.locator('.presentation-banner')).toHaveCount(0);
+});

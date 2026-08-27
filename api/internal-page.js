@@ -4,7 +4,7 @@ import { AdminAuthError, applyAdminResponseHeaders, requireAdmin } from '../lib/
 import { requireAdminPermission } from '../lib/admin-rbac.mjs';
 import { INTERNAL_PAGE_SET, permissionForInternalPage } from '../lib/internal-pages.mjs';
 import { presentationModeEnabled, withPresentationAssets } from '../lib/presentation-mode.mjs';
-import { renderConsole } from '../lib/owner-console.mjs';
+import { applyOwnerConsole, renderConsole } from '../lib/owner-console.mjs';
 import { escapeHtml as escapeDocHtml, isSafeDocName, renderDoc, renderDocIndex } from '../lib/owner-docs.mjs';
 
 const PRESENTATION_PAGES = new Set(['demo.html', 'admin-preview.html']);
@@ -19,30 +19,6 @@ function pageName(req) {
 function docName(req) {
   const url = new URL(req.url, 'http://localhost');
   return String(url.searchParams.get('doc') || '').replace(/^\/+/, '');
-}
-
-/**
- * Barra do console em toda página interna, no lugar do cabeçalho improvisado
- * que cada painel trazia. `owner-console-page` no `<body>` esconde o cabeçalho
- * antigo (css/arandu-admin.css): duas navegações com links diferentes na mesma
- * tela era o que havia antes.
- */
-function withOwnerConsole(source, page) {
-  let html = source.includes('</head>')
-    ? source.replace('</head>', `${CONSOLE_ASSETS}${SESSION_BRIDGE}</head>`)
-    : `${CONSOLE_ASSETS}${SESSION_BRIDGE}${source}`;
-  const body = html.match(/<body[^>]*>/i);
-  if (!body) return `${renderConsole(page)}${html}`;
-  const tag = body[0].includes('class="')
-    ? body[0].replace(/class="/, 'class="owner-console-page ')
-    : body[0].replace(/<body/i, '<body class="owner-console-page"');
-  // O console entra depois do link de pular conteúdo para não roubar o
-  // primeiro foco do teclado.
-  const skip = html.match(/<a class="skip-link"[^>]*>[^<]*<\/a>/i);
-  html = html.replace(body[0], tag);
-  return skip
-    ? html.replace(skip[0], `${skip[0]}${renderConsole(page)}`)
-    : html.replace(tag, `${tag}${renderConsole(page)}`);
 }
 
 function docPage(title, content) {
@@ -119,7 +95,7 @@ export default async function handler(req, res) {
       }
       html = docPage(doc, content);
     } else {
-      html = withOwnerConsole(await readFile(resolve(process.cwd(), page), 'utf8'), page);
+      html = applyOwnerConsole(await readFile(resolve(process.cwd(), page), 'utf8'), page);
     }
 
     res.statusCode = 200;
