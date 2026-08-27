@@ -12,7 +12,39 @@ function artistFact(label, value) { return '<p><strong>' + escapeArtistHtml(labe
 function imageUrl(item) { return item.image_url || item.photo_url || item.studio_image_url || item.avatar_url || item.main_image_url || item.image || ''; }
 function normalizeArtist(item) { return { ...item, id: item.id, name: item.name || item.artist || 'Artista Arandu', city: item.city || item.location || item.origin || 'Brasil', state: item.state || '', region: item.region || '', languages: item.languages || item.language_tags || [], curatorialAxes: item.curatorialAxes || item.curatorial_axes || [], profile: item.profile || item.bio || item.summary || 'Trajetória em acompanhamento curatorial.', trajectory: item.trajectory || item.career_note || '', statement: item.statement || item.artist_statement || '', artistLevel: item.artistLevel || item.artist_level || 'developing', image: imageUrl(item) }; }
 function normalizeWork(work) { return { ...work, id: work.id, title: work.title || 'Obra sem título', artistId: work.artistId || work.artist_id, artist: work.artist || work.artist_name || work.artists?.name || '', type: work.type || work.language || work.technique || 'Obra', status: work.status || 'disponível', technique: work.technique || '', priceLabel: work.priceLabel || work.price_label || 'sob consulta', thumb: work.thumb || work.image_class || 'thumb-terra', image: imageUrl(work) }; }
-function workCard(work) { var media = work.image ? '<div class="op-card-media"><img width="640" height="480" loading="lazy" decoding="async" src="' + escapeArtistHtml(work.image) + '" alt="' + escapeArtistHtml(work.title) + '"></div>' : '<div class="op-card-media ' + escapeArtistHtml(work.thumb || 'thumb-terra') + '"></div>'; return '<a class="ux-work-card" href="obra.html?id=' + escapeArtistHtml(work.id) + '">' + media + '<strong>' + escapeArtistHtml(work.title) + '</strong><span class="artist">' + escapeArtistHtml(work.type || 'Obra') + ' · ' + escapeArtistHtml(work.status || 'disponível') + '</span><div class="op-work-foot"><span class="op-price">' + escapeArtistHtml(work.priceLabel || 'sob consulta') + '</span><span class="op-mini-link">Ver obra →</span></div></a>'; }
+// O cartão era um `<a>` inteiro, e por isso não podia conter ação nenhuma:
+// comparar uma obra a partir da página do artista era impossível. Agora o
+// cartão é um contêiner, o link cobre mídia e título, e a ação vive ao lado.
+function workCard(work) {
+  var media = work.image
+    ? '<div class="op-card-media"><img width="640" height="480" loading="lazy" decoding="async" src="' + escapeArtistHtml(work.image) + '" alt="' + escapeArtistHtml(work.title) + '"></div>'
+    : '<div class="op-card-media ' + escapeArtistHtml(work.thumb || 'thumb-terra') + '"></div>';
+  var destino = 'obra.html?id=' + escapeArtistHtml(work.id);
+  return '<article class="ux-work-card" data-card-artwork="' + escapeArtistHtml(work.id) + '">'
+    + '<a class="ux-work-card-link" href="' + destino + '">' + media
+    + '<strong>' + escapeArtistHtml(work.title) + '</strong>'
+    + '<span class="artist">' + escapeArtistHtml(work.type || 'Obra') + ' · ' + escapeArtistHtml(work.status || 'disponível') + '</span></a>'
+    + '<div class="op-work-foot"><span class="op-price">' + escapeArtistHtml(work.priceLabel || 'sob consulta') + '</span>'
+    + '<a class="op-mini-link" href="' + destino + '">Ver obra →</a></div>'
+    + '<div class="work-card-actions"><button class="compare-toggle" type="button"'
+    + ' data-compare-artwork="' + escapeArtistHtml(work.id) + '"'
+    + ' data-compare-title="' + escapeArtistHtml(work.title) + '"'
+    + ' data-compare-artist="' + escapeArtistHtml(work.artist || '') + '"'
+    + ' data-compare-artist-id="' + escapeArtistHtml(work.artistId || '') + '"'
+    + ' data-compare-type="' + escapeArtistHtml(work.type || '') + '"'
+    + ' data-compare-technique="' + escapeArtistHtml(work.technique || '') + '"'
+    + ' data-compare-dimensions="' + escapeArtistHtml(work.dimensions || '') + '"'
+    + ' data-compare-year="' + escapeArtistHtml(work.year || '') + '"'
+    + ' data-compare-edition="' + escapeArtistHtml(work.edition || '') + '"'
+    + ' data-compare-status="' + escapeArtistHtml(work.status || '') + '"'
+    + ' data-compare-certificate="' + (work.certificate ? 'true' : 'false') + '"'
+    + ' data-compare-price="' + escapeArtistHtml(work.price == null ? '' : work.price) + '"'
+    + ' data-compare-price-label="' + escapeArtistHtml(work.priceLabel || '') + '"'
+    + ' data-compare-thumb="' + escapeArtistHtml(work.thumb || '') + '"'
+    + ' data-compare-image="' + escapeArtistHtml(work.image || '') + '"'
+    + ' data-compare-url="' + destino + '"><span data-compare-label>Comparar</span></button></div>'
+    + '</article>';
+}
 async function loadArtists() { if (!window.AranduCatalogSource) throw new Error('Fonte de artistas não carregada.'); return (await window.AranduCatalogSource.artists()).map(normalizeArtist); }
 async function loadWorks() { if (!window.AranduCatalogSource) throw new Error('Fonte do catálogo não carregada.'); return (await window.AranduCatalogSource.catalog()).map(normalizeWork); }
 function artistPhoto(artist) { if (artist.image) return '<div class="op-card-media artist-portrait-large"><img width="640" height="480" loading="lazy" decoding="async" src="' + escapeArtistHtml(artist.image) + '" alt="' + escapeArtistHtml(artist.name) + '"></div>'; return '<div class="op-card-media artist-portrait-large artist-face large"></div>'; }

@@ -1701,6 +1701,9 @@ body.arandu-consent-pending{padding-bottom:170px}@media(max-width:900px){body.ar
   border-color: currentColor;
 }
 .compare-toggle:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+/* A ação não deve esticar até a largura do cartão: ela é secundária ao lado do
+   preço e do link da obra. */
+.work-card-actions .compare-toggle { width: fit-content; align-self: start; }
 
 /* --- Barra de comparação ------------------------------------------------- */
 .compare-bar {
@@ -2159,4 +2162,14 @@ body:not(.home-page):not(.admin-page) {
 .recommendation-box .card small,
 .recommendation-box .card li {
   color: #4b342c !important;
+}
+
+/* O cartão de obra deixou de ser um link inteiro para poder conter ações; o
+   link agora cobre mídia e título e precisa herdar a aparência do cartão. */
+.ux-work-card-link {
+  display: flex;
+  flex-direction: column;
+  gap: .55rem;
+  color: inherit;
+  text-decoration: none;
 }
