@@ -154,7 +154,7 @@ if (!includes('js/certificate-document-link.js', '/api/certificate-document')) i
 if (!includes('js/catalog-source.js', '/api/catalog')) issues.push('Fonte única do catálogo não consulta /api/catalog.');
 if (!includes('api/collections.js', 'v_catalog_readiness')) issues.push('Coleções públicas não exigem prontidão do catálogo.');
 if (!includes('api/collections.js', 'v_public_collections')) issues.push('Coleções públicas não usam a view segura.');
-if (!includes('js/catalog-filters.js', 'AranduCatalogSource')) issues.push('Catálogo público não usa a fonte única verificada.');
+if (!includes('js/catalog-page.js', 'AranduCatalogSource')) issues.push('Catálogo público não usa a fonte única verificada.');
 if (!includes('js/artwork_page.js', 'AranduCatalogSource')) issues.push('Página da obra não usa a fonte única verificada.');
 if (!includes('js/artists-page.js', 'AranduCatalogSource')) issues.push('Página de artistas não usa a fonte única verificada.');
 if (!includes('js/painel-operacional.js', '/api/admin')) issues.push('Painel operacional não consulta /api/admin.');

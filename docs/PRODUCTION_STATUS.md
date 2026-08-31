@@ -8,8 +8,8 @@ A rodada atual consolidou o site para funcionar com um carregamento centralizado
 
 - `site.js` aciona automaticamente `arandu-loader.js`.
 - `arandu-loader.js` centraliza as camadas globais.
-- `arandu-public-mode.js` esconde ferramentas internas na navegação pública.
-- `arandu-visual-governor.js` controla excesso visual, duplicidades e mobile.
+- As superfícies internas ficam fora da navegação pública pelo servidor:
+  `api/internal-page.js` exige sessão administrativa e redireciona para o login.
 - `arandu-quality-gate.mjs` valida sintaxe, links, duplicidades, carregamento e conteúdo.
 - `page-inventory.mjs` lista páginas, scripts, CSS e status do loader.
 

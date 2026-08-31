@@ -17,7 +17,6 @@ const publicLoaders = [
   'js/artwork_page.js',
   'js/autor.js',
   'js/collection-detail.js',
-  'js/catalog-filters.js',
   'js/arandu-recommendations.js',
   'js/arandu-guided-curation.js',
   'js/quiz-curatorial.js',
