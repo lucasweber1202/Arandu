@@ -21,10 +21,19 @@
   };
 
   window.ARANDU_CONTACT = contact;
-  fetch('/api/public-config', { cache: 'no-store' })
-    .then((response) => response.json().then((payload) => ({ response, payload })))
-    .then(({ response, payload }) => {
-      if (!response.ok || payload?.ok === false) throw new Error('config');
+
+  // Este arquivo é o primeiro a precisar de `/api/public-config`, então é ele
+  // quem cria a promessa compartilhada. `pilot.js` e `platform-runtime.js`
+  // reaproveitam a mesma: eram três requisições idênticas por página, e em
+  // obra.html isso ajudava a estourar o teto da suíte de performance.
+  window.__aranduConfigPublica = window.__aranduConfigPublica
+    || fetch('/api/public-config', { method: 'GET', credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } })
+      .then((resposta) => resposta.json().catch(() => ({})).then((dados) => ({ ok: resposta.ok, dados })))
+      .catch(() => ({ ok: false, dados: {} }));
+
+  window.__aranduConfigPublica
+    .then(({ ok, dados: payload }) => {
+      if (!ok || payload?.ok === false) throw new Error('config');
       contact.whatsappNumber = payload?.contact?.whatsappNumber || '';
       contact.email = payload?.contact?.email || '';
       window.ARANDU_WHATSAPP_NUMBER = contact.whatsappNumber;

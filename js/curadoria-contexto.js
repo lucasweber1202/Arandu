@@ -42,7 +42,7 @@ function updateRecommendation() {
     <h2>${filled ? next : 'Comece escolhendo um ambiente.'}</h2>
     <p>${perfil ? `Perfil selecionado: ${perfil}.` : 'A escolha inicial muda as recomendações seguintes.'}</p>
     <div class="page-actions">
-      <a class="cta" href="obras.html">Ver obras sugeridas</a>
+      <a class="cta" href="comprar-arte.html">Ver obras sugeridas</a>
       <a class="cta secondary" href="contato.html">Falar com a curadoria</a>
     </div>
   `;

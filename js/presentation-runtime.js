@@ -35,4 +35,19 @@
   banner.setAttribute('role', 'status');
   banner.innerHTML = '<strong>Ambiente de apresentação</strong><span>Acervo e operações demonstrativos · nenhum pedido, pagamento ou certificado real é criado.</span>';
   document.body.prepend(banner);
+
+  // Texto que a página só pode afirmar com o acervo fechado.
+  //
+  // comprar-arte.html anunciava "o acervo ainda está em validação curatorial" e
+  // "a listagem abaixo só abre quando os dados forem reais" — e, no ambiente de
+  // apresentação, 22 obras apareciam logo abaixo dessa frase. A cópia honesta
+  // do estado publicado virava contradição justamente na tela em que a
+  // demonstração começa.
+  //
+  // A alternativa mora no HTML, junto da frase que substitui, para que as duas
+  // versões sejam lidas lado a lado por quem edita o texto.
+  for (const elemento of document.querySelectorAll('[data-presentation-text]')) {
+    const alternativa = elemento.dataset.presentationText;
+    if (alternativa) elemento.textContent = alternativa;
+  }
 })();

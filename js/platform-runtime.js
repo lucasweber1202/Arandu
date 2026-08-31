@@ -51,17 +51,36 @@
     return /^[A-Za-z0-9][A-Za-z0-9._-]{2,79}$/.test(String(value || ''));
   }
 
+
+  /**
+   * Uma requisição de `/api/public-config` por carga de página.
+   *
+   * Três scripts pediam a mesma configuração na mesma página: `pilot.js`,
+   * `platform-runtime.js` e o caminho de contato. Em obra.html isso ajudava a
+   * estourar o teto de requisições da suíte de performance, e em toda página
+   * era o mesmo dado buscado de novo. A promessa fica no `window` para que
+   * qualquer ordem de carregamento reaproveite a primeira chamada.
+   */
+  function configuracaoPublicaCompartilhada(fetchImpl) {
+    var buscar = fetchImpl || window.fetch;
+    if (fetchImpl && fetchImpl !== window.fetch) {
+      // Chamada com fetch próprio (teste) não entra no cache compartilhado.
+      return buscar('/api/public-config', { method: 'GET', credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } })
+        .then(function (resposta) { return resposta.json().catch(function () { return {}; }).then(function (dados) { return { ok: resposta.ok, dados: dados }; }); });
+    }
+    if (!window.__aranduConfigPublica) {
+      window.__aranduConfigPublica = buscar('/api/public-config', { method: 'GET', credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } })
+        .then(function (resposta) { return resposta.json().catch(function () { return {}; }).then(function (dados) { return { ok: resposta.ok, dados: dados }; }); })
+        .catch(function () { return { ok: false, dados: {} }; });
+    }
+    return window.__aranduConfigPublica;
+  }
+
   async function loadPublicConfig(fetchImpl = fetch) {
     try {
-      const response = await fetchImpl('/api/public-config', {
-        method: 'GET',
-        credentials: 'same-origin',
-        cache: 'no-store',
-        headers: { Accept: 'application/json' }
-      });
-      const payload = await response.json().catch(() => ({}));
+      const { ok, dados: payload } = await configuracaoPublicaCompartilhada(fetchImpl);
       const candidate = payload?.consent?.version;
-      consentConfigured = response.ok && payload?.consent?.configured === true && validConsentVersion(candidate);
+      consentConfigured = ok && payload?.consent?.configured === true && validConsentVersion(candidate);
       consentVersion = consentConfigured ? candidate : null;
     } catch {
       consentConfigured = false;

@@ -99,7 +99,10 @@ function saveQuizSuggestion(id) {
     title: artwork.title,
     artist: artwork.artist,
     context: (artwork.tags || []).slice(0, 3).join(' · ') || 'Sugestão do quiz curatorial',
-    url: artwork.url || 'obras.html',
+    // Sem isto, a obra salva pelo quiz ia parar na seleção com "Ver obra"
+    // apontando para o acervo inteiro, e ficava assim no armazenamento local,
+    // ao lado das obras salvas pelo catálogo, que levam à própria obra.
+    url: artwork.url || (artwork.id ? `obra.html?id=${encodeURIComponent(artwork.id)}` : 'comprar-arte.html'),
     note: 'Sugestão gerada pelo quiz curatorial.'
   };
   writeSelectionForQuiz([...current, item]);
@@ -139,7 +142,7 @@ function renderQuiz(state = readQuiz()) {
           <h3>${escapeQuizHtml(work.title)}</h3>
           <p>${escapeQuizHtml(work.artist)} · ${escapeQuizHtml(work.priceLabel || '')}</p>
           <p>${escapeQuizHtml(work.curatorialReading || work.summary || '')}</p>
-          <div class="page-actions"><a class="cta secondary" href="${escapeQuizHtml(work.url || 'obras.html')}">Ver obra</a><button class="cta secondary" type="button" data-quiz-save="${escapeQuizHtml(work.id)}">Salvar sugestão</button></div>
+          <div class="page-actions"><a class="cta secondary" href="${escapeQuizHtml(work.url || (work.id ? `obra.html?id=${encodeURIComponent(work.id)}` : 'comprar-arte.html'))}">Ver obra</a><button class="cta secondary" type="button" data-quiz-save="${escapeQuizHtml(work.id)}">Salvar sugestão</button></div>
         </article>`).join('')}
     </div>
     <article class="card art-mark">
@@ -147,7 +150,7 @@ function renderQuiz(state = readQuiz()) {
       <p>${escapeQuizHtml(curatorialAdvice(state, language))}</p>
       <a class="cta secondary" href="contato.html">Pedir leitura humana da curadoria</a>
     </article>
-    <div class="page-actions"><a class="cta" href="obras.html">Ver acervo</a><a class="cta secondary" href="minha-selecao.html">Montar seleção</a><button class="button secondary" type="button" data-quiz-reset>Refazer quiz</button></div>
+    <div class="page-actions"><a class="cta" href="comprar-arte.html">Ver acervo</a><a class="cta secondary" href="minha-selecao.html">Montar seleção</a><button class="button secondary" type="button" data-quiz-reset>Refazer quiz</button></div>
   `;
 }
 

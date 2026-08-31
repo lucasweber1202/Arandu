@@ -68,3 +68,30 @@ test('layout móvel não cria rolagem horizontal', async ({ page }, testInfo) =>
     expect(overflow, `${path} possui overflow horizontal`).toBeLessThanOrEqual(1);
   }
 });
+
+// Frase que a página só pode dizer com o acervo fechado.
+//
+// comprar-arte.html anunciava "o acervo ainda está em validação curatorial" e
+// "a listagem abaixo só abre quando os dados forem reais" — com 22 obras
+// desenhadas logo abaixo. A cópia honesta do estado publicado virava
+// contradição justamente na tela em que a demonstração começa.
+test('nenhuma página do ambiente demonstrativo nega o acervo que ela mesma mostra', async ({ page }) => {
+  const NEGACOES = [
+    'ainda está em validação curatorial',
+    'só abre quando os dados forem reais',
+    'quando o acervo abrir',
+    'O acervo abre depois da validação curatorial'
+  ];
+  for (const rota of ['/index.html', '/comprar-arte.html']) {
+    await page.goto(rota);
+    await page.waitForLoadState('networkidle').catch(() => {});
+    const texto = await page.locator('body').innerText();
+    for (const negacao of NEGACOES) {
+      expect(texto, `${rota} nega o acervo demonstrativo: "${negacao}"`).not.toContain(negacao);
+    }
+  }
+
+  // A troca só pode valer para a frase marcada: o aviso de ambiente continua.
+  await expect(page.locator('.presentation-banner')).toContainText('demonstrativos');
+  await expect(page.locator('[data-card-artwork]')).toHaveCount(22);
+});

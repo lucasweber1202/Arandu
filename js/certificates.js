@@ -65,7 +65,7 @@ function renderCertificateResult(target, result) {
       <p><strong>Emissão</strong><br>${escapeCertificateHtml(issuedAt)}</p>
     </div>
     <p><strong>Observação:</strong> ${escapeCertificateHtml(certificate.certificate_notes || payload.certificate_notes || 'Registro verificado na base Arandu.')}</p>
-    <div class="page-actions"><button class="button secondary" type="button" data-print-certificate>Imprimir validação</button><a class="cta secondary" href="autenticidade.html">Entender autenticidade</a></div>
+    <div class="page-actions"><button class="button secondary" type="button" data-print-certificate>Imprimir validação</button><a class="cta secondary" href="confianca.html">Entender autenticidade</a></div>
   `;
 }
 

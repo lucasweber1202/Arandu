@@ -18,7 +18,7 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join, dirname, normalize } from 'node:path';
 import { INTERNAL_PAGE_SET } from '../lib/internal-pages.mjs';
 import { FOOTER_COLUMNS, MENU_GROUPS, PRIMARY_NAV, SHELL_EXEMPT_PAGES, shellApplies } from '../lib/public-shell.mjs';
-import { CONSOLE_GROUPS, consoleTargets } from '../lib/owner-console.mjs';
+import { CONSOLE_GROUPS, applyOwnerConsole, consoleTargets } from '../lib/owner-console.mjs';
 import { INTERNAL_PAGES } from '../lib/internal-pages.mjs';
 
 const issues = [];
@@ -231,10 +231,71 @@ for (const [title, items] of CONSOLE_GROUPS) {
   if (!items.length) issues.push(`Grupo do console sem telas: ${title}.`);
 }
 
+// --- 6. Só quem reescreve rota aposentada pode nomear rota aposentada -------
+//
+// `site.js` reescreve os links legados no carregamento, e `selection.js` faz o
+// mesmo com as URLs guardadas na seleção. Quem escreve HTML *depois* do
+// carregamento escapa dos dois: o resultado do quiz, a seleção montada, a
+// proposta gerada e a consulta de certificado nasciam apontando para
+// `obras.html` e `autenticidade.html`. Os links funcionavam por causa do
+// redirect 301, mas "Ver obra" levava ao acervo inteiro em vez da obra, e a
+// proposta enviada ao cliente trazia "Link: obras.html".
+//
+// A regra é simples: fora dos dois reescritores, nenhum script publicado
+// nomeia uma rota aposentada.
+const REESCRITORES = new Set(['site.js', 'selection.js']);
+const rotasAposentadas = (JSON.parse(readFileSync(join(root, 'vercel.json'), 'utf8')).redirects || [])
+  .map((regra) => String(regra.source || '').replace(/^\//, ''))
+  .filter((rota) => rota.endsWith('.html'));
+if (!rotasAposentadas.length) issues.push('Nenhuma rota aposentada declarada: a checagem de rota legada perderia o sentido.');
+const scriptsPublicados = new Set();
+for (const page of distPages) {
+  const html = readFileSync(join(root, 'dist', page), 'utf8');
+  for (const achado of html.matchAll(/src="\/?js\/([\w.-]+\.js)/g)) scriptsPublicados.add(achado[1]);
+}
+for (const script of [...scriptsPublicados].sort()) {
+  if (REESCRITORES.has(script)) continue;
+  const fonte = join(root, 'js', script);
+  if (!existsSync(fonte)) continue;
+  const codigo = readFileSync(fonte, 'utf8');
+  for (const rota of rotasAposentadas) {
+    if (codigo.includes(`'${rota}'`) || codigo.includes(`"${rota}"`)) {
+      issues.push(`js/${script} nomeia a rota aposentada ${rota}; o link nasce fora do alcance do reescritor.`);
+    }
+  }
+}
+
+// --- 7. O console renderizado tem uma implementação só ---------------------
+//
+// A injeção do console vivia dentro de `api/internal-page.js`, onde nada
+// conseguia montá-la: para conferir a interface do proprietário era preciso
+// reescrever a transformação e, a partir daí, verificar a cópia em vez do que
+// vai ao ar. Agora ela mora em `lib/owner-console.mjs`, e esta checagem cobra
+// as duas pontas: que a função serverless use a implementação única, e que a
+// implementação faça o que a página interna depende que ela faça.
+const funcaoInterna = readFileSync(join(root, 'api/internal-page.js'), 'utf8');
+if (!funcaoInterna.includes("from '../lib/owner-console.mjs'") || !funcaoInterna.includes('applyOwnerConsole(')) {
+  issues.push('api/internal-page.js não usa applyOwnerConsole de lib/owner-console.mjs.');
+}
+if (/function\s+withOwnerConsole/.test(funcaoInterna)) {
+  issues.push('api/internal-page.js voltou a ter a própria injeção de console.');
+}
+const consoleRenderizado = applyOwnerConsole(
+  '<html><head></head><body class="painel"><a class="skip-link" href="#conteudo-principal">Pular</a><main id="conteudo-principal">painel</main></body></html>',
+  'painel-leads.html'
+);
+if (!consoleRenderizado.includes('owner-console-page')) issues.push('applyOwnerConsole não marca o body como página de console.');
+if (!consoleRenderizado.includes('owner-console')) issues.push('applyOwnerConsole não injeta a barra do console.');
+if (!consoleRenderizado.includes('arandu-admin.css')) issues.push('applyOwnerConsole não injeta o CSS do console.');
+if (consoleRenderizado.indexOf('skip-link') > consoleRenderizado.indexOf('owner-console-bar')) {
+  issues.push('O console entra antes do link de pular conteúdo e rouba o primeiro foco do teclado.');
+}
+
 console.log('Arandu Navigation Check');
 console.log(`Páginas publicadas: ${distPages.length} · com casca pública: ${shellPages.length}`);
 console.log(`Telas internas no console: ${targets.size}`);
 console.log(`Links de entrada por audiência — ${entryReport}`);
+console.log(`Scripts publicados verificados contra ${rotasAposentadas.length} rotas aposentadas: ${scriptsPublicados.size}`);
 console.log(`Erros: ${issues.length}`);
 issues.forEach((issue) => console.error(`- ${issue}`));
 if (issues.length) process.exit(1);

@@ -539,3 +539,149 @@ test('quando o envio falha, a saída oferecida não é a própria página', asyn
     expect(destino.split('?')[0].split('#')[0], `saída aponta para a própria página`).not.toBe('contato.html');
   }
 });
+
+// O contrário da varredura do ambiente demonstrativo: com o acervo fechado — o
+// estado publicado — a página precisa continuar dizendo isso. A alternativa
+// demonstrativa mora num atributo do HTML e só pode entrar quando
+// presentation-runtime.js está carregado.
+test('com o acervo fechado, a página continua dizendo que ele está fechado', async ({ page }) => {
+  await stubApi(page);
+  await page.goto('/comprar-arte.html');
+  await acceptEssential(page);
+
+  await expect(page.locator('main h1')).toContainText('ainda está em validação curatorial');
+  await expect(page.locator('body')).not.toContainText('Acervo demonstrativo');
+  await expect(page.locator('.presentation-banner')).toHaveCount(0);
+});
+
+// A comparação existia como página vazia.
+//
+// comparar-obras.html trazia o gancho `data-compare-runtime` e a chave
+// `arandu.compare.v1` desde sempre, mas os seis scripts que tocavam nessa
+// chave eram carregados por zero páginas publicadas: não havia como pôr uma
+// obra na comparação, e a página abria vazia para qualquer visitante.
+test('comparar obras funciona do acervo até a tabela', async ({ page }) => {
+  await stubApi(page);
+  await page.goto('/comprar-arte.html');
+  await acceptEssential(page);
+
+  const botoes = page.locator('[data-card-artwork] [data-compare-artwork]');
+  await expect(botoes).toHaveCount(3);
+  await expect(botoes.first()).toHaveAttribute('aria-pressed', 'false');
+
+  await botoes.nth(0).click();
+  await botoes.nth(1).click();
+  await expect(botoes.nth(0)).toHaveAttribute('aria-pressed', 'true');
+
+  const barra = page.locator('[data-compare-bar]');
+  await expect(barra).toContainText('2 obras na comparação');
+
+  // Clicar de novo tira a obra: o botão é alternador, não acumulador.
+  await botoes.nth(1).click();
+  await expect(barra).toContainText('1 obra na comparação');
+  await botoes.nth(1).click();
+
+  await page.locator('[data-compare-bar] a[href="comparar-obras.html"]').click();
+  await expect(page).toHaveURL(/comparar-obras\.html/);
+
+  const tabela = page.locator('.compare-table');
+  await expect(tabela).toBeVisible();
+  await expect(tabela.locator('thead th')).toHaveCount(3);
+  await expect(tabela).toContainText('Horizonte de Barro');
+  await expect(tabela).toContainText('Maré Alta');
+
+  // A comparação só ajuda se apontar a diferença; linha igual não é marcada.
+  await expect(tabela.locator('tbody tr.is-different').first()).toBeVisible();
+  await expect(tabela).toContainText('Preço por m²');
+
+  await tabela.locator('[data-compare-remove]').first().click();
+  await expect(tabela.locator('thead th')).toHaveCount(2);
+});
+
+test('a comparação para em quatro obras e avisa', async ({ page }) => {
+  await stubApi(page, { catalog: { ...CATALOG, items: [...CATALOG.items, ...CATALOG.items.map((item, indice) => ({ ...item, id: item.id + '-b' + indice, title: item.title + ' II' }))] } });
+  await page.goto('/comprar-arte.html');
+  await acceptEssential(page);
+
+  const botoes = page.locator('[data-card-artwork] [data-compare-artwork]');
+  await expect(botoes).toHaveCount(6);
+  for (let indice = 0; indice < 5; indice += 1) await botoes.nth(indice).click();
+
+  await expect(page.locator('[data-compare-bar]')).toContainText('4 obras na comparação');
+  const marcados = await botoes.evaluateAll((lista) => lista.filter((botao) => botao.getAttribute('aria-pressed') === 'true').length);
+  expect(marcados, 'a quinta obra não pode entrar').toBe(4);
+});
+
+// A barra é fixa. O botão do assistente também é, e a barra de consentimento
+// também: cobrir a escolha de privacidade já foi defeito nesta base.
+test('a barra de comparação não cobre o consentimento nem o assistente', async ({ page }) => {
+  await stubApi(page);
+  await page.goto('/comprar-arte.html');
+
+  // Antes da escolha de privacidade a barra não pode sequer existir.
+  await page.locator('[data-card-artwork] [data-compare-artwork]').first().click();
+  if (await page.locator('[data-privacy-banner]').count()) {
+    await expect(page.locator('[data-compare-bar]')).toHaveCount(0);
+  }
+  await acceptEssential(page);
+  await page.locator('[data-card-artwork] [data-compare-artwork]').nth(1).click();
+
+  const barra = page.locator('[data-compare-bar]');
+  await expect(barra).toBeVisible();
+
+  const colisoes = await page.evaluate(() => {
+    const caixa = document.querySelector('[data-compare-bar]').getBoundingClientRect();
+    const encosta = (outro) => {
+      if (!outro) return false;
+      const alvo = outro.getBoundingClientRect();
+      if (!alvo.width || !alvo.height) return false;
+      return !(caixa.bottom <= alvo.top || caixa.top >= alvo.bottom || caixa.right <= alvo.left || caixa.left >= alvo.right);
+    };
+    return {
+      assistente: encosta(document.querySelector('.arandu-assistant')),
+      consentimento: encosta(document.querySelector('[data-privacy-banner]'))
+    };
+  });
+  expect(colisoes.assistente, 'a barra cobre o botão do assistente').toBe(false);
+  expect(colisoes.consentimento, 'a barra cobre a escolha de privacidade').toBe(false);
+
+  // Numa tela estreita a barra também não pode empurrar o documento de lado.
+  const rolagem = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(rolagem).toBeLessThanOrEqual(1);
+});
+
+// Leitura objetiva: a página passou a publicar números derivados da ficha.
+// Um número inventado aqui seria pior que nenhum, então o teste cobra o valor
+// exato que a aritmética tem de produzir.
+test('a obra publica leitura objetiva calculada da própria ficha', async ({ page }) => {
+  await stubApi(page);
+  await page.goto('/obra.html?id=obra-horizonte');
+  await acceptEssential(page);
+
+  const ficha = page.locator('.artwork-analysis');
+  await expect(ficha).toBeVisible();
+
+  // 120 x 90 cm = 1,08 m²; R$ 6.400 / 1,08 m² = R$ 5.926/m².
+  await expect(ficha).toContainText('1,08 m²');
+  await expect(ficha).toContainText('R$ 5.926');
+  await expect(ficha).toContainText('Escala grande');
+
+  // A origem do número fica dita na página, e a promessa que não existe também.
+  await expect(ficha).toContainText('Não é avaliação de mercado');
+});
+
+test('o artista publica o próprio retrato no acervo de hoje', async ({ page }) => {
+  await stubApi(page, { catalog: CATALOG });
+  await page.route('**/api/artists', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ ok: true, verifiedReady: true, items: [{ id: 'ayla-nunes', name: 'Ayla Nunes', city: 'Recife', state: 'PE' }] })
+  }));
+  await page.goto('/artista.html?id=ayla-nunes');
+  await acceptEssential(page);
+
+  const ficha = page.locator('.artist-analysis');
+  await expect(ficha).toBeVisible();
+  await expect(ficha).toContainText('Obras publicadas');
+  await expect(ficha).toContainText('Recife');
+});
