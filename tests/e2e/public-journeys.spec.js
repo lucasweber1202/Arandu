@@ -140,3 +140,59 @@ for (const recorte of RECORTES_DO_ACERVO) {
     await expect(page.locator('[data-card-artwork]', { hasText: recorte.ausente })).toHaveCount(0);
   });
 }
+
+// Dois módulos escutavam o clique no mesmo botão de comparar com semânticas
+// opostas: um alternava a obra, o outro sempre adicionava. O resultado dependia
+// de qual ouvinte tinha sido registrado primeiro — da ordem de carga dos
+// scripts, portanto. Na ordem infeliz, tirar uma obra da comparação não fazia
+// nada. O contrato aqui é o comportamento observável, repetido, para não
+// depender de ordem: alternar tem de alternar, sempre.
+test('o botão de comparar alterna a obra, sem depender da ordem de carga', async ({ page }) => {
+  await page.route('**/api/catalog', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      ok: true,
+      verifiedReady: true,
+      items: [
+        { id: 'obra-a', title: 'Horizonte de Barro', artist_name: 'A', technique: 'Óleo', price: 6400, status: 'available' },
+        { id: 'obra-b', title: 'Maré Alta', artist_name: 'B', technique: 'Fotografia', price: 2800, status: 'available' }
+      ]
+    })
+  }));
+  await page.goto('/comprar-arte.html');
+
+  const botao = page.locator('[data-card-artwork="obra-a"] [data-compare-artwork]');
+  await expect(botao).toHaveAttribute('aria-pressed', 'false');
+
+  const guardadas = () => page.evaluate(() => JSON.parse(localStorage.getItem('arandu.compare.v1') || '[]').map((item) => item.id));
+
+  // Três voltas: um ouvinte a mais somando no mesmo clique aparece já na primeira.
+  for (let volta = 0; volta < 3; volta += 1) {
+    await botao.click();
+    await expect(botao).toHaveAttribute('aria-pressed', 'true');
+    expect(await guardadas(), `volta ${volta + 1}: entrar na comparação`).toEqual(['obra-a']);
+
+    await botao.click();
+    await expect(botao).toHaveAttribute('aria-pressed', 'false');
+    expect(await guardadas(), `volta ${volta + 1}: sair da comparação`).toEqual([]);
+  }
+
+  // Um único controle de comparação por obra: nada injeta um segundo.
+  await expect(page.locator('[data-card-artwork="obra-a"] [data-compare-artwork]')).toHaveCount(1);
+
+  // E um clique produz uma gravação, não duas. É isto que pega o ouvinte a mais
+  // mesmo na ordem de carga em que os dois se anulam e o resultado final passa:
+  // com dois donos, o mesmo clique escreve a chave duas vezes.
+  await page.evaluate(() => {
+    window.__gravacoesDaComparacao = 0;
+    const original = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (chave, valor) {
+      if (chave === 'arandu.compare.v1') window.__gravacoesDaComparacao += 1;
+      return original.call(this, chave, valor);
+    };
+  });
+  await botao.click();
+  await expect(botao).toHaveAttribute('aria-pressed', 'true');
+  expect(await page.evaluate(() => window.__gravacoesDaComparacao), 'gravações por clique').toBe(1);
+});
