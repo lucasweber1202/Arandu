@@ -211,6 +211,15 @@ Nada aqui deve atrasar o lançamento inicial.
   `como-funciona` e `faq`).
 - Deduplicar a consulta de `/api/auth/session`, feita duas vezes em
   `login.html`.
+- Unificar o dock de decisão e a barra de comparação numa superfície só. Hoje
+  o dock some enquanto a comparação está aberta, o que resolve a disputa pelo
+  clique, mas as duas continuam sendo dois desenhos para a mesma decisão.
+- Com a seleção vazia, `minha-selecao.html` ainda oferece baixar, copiar e
+  compartilhar. As ações respondem (a de compartilhar avisa por `alert`
+  nativo), mas operam sobre nada.
+- `enhanceArtworkActions()` injeta um segundo botão de comparar ao lado de
+  cada `[data-save-artwork]`. Hoje roda antes de os cartões existirem e não
+  produz nada; se a ordem mudar, produz botão duplicado.
 - Recomendação, feed, avaliações, seguidores, app.
 
 ---
