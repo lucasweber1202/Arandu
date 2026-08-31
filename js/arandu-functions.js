@@ -19,12 +19,15 @@
   function setupShortcuts(){document.addEventListener('keydown',function(event){if(event.key==='/'&&!/input|textarea|select/i.test(document.activeElement.tagName)){const search=document.querySelector('[data-catalog-search],[data-search-input]');if(search){event.preventDefault();search.focus();toast('Busca ativada.')}}})}
   document.addEventListener('click',function(event){const clear=event.target.closest('[data-clear-compare]');if(clear){event.preventDefault();write(COMPARE_KEY,[]);toast('Comparação limpa.');renderDock();renderComparePage();return}const remove=event.target.closest('[data-remove-compare]');if(remove){event.preventDefault();removeCompare(remove.dataset.removeCompare);renderComparePage();return}});
   document.addEventListener('arandu:selection-updated',renderDock);
-  // A comparação é de artwork-tools.js: ele alterna a obra, mantém aria-pressed,
-  // o rótulo, o limite de quatro e a barra. Este arquivo também escutava o clique
-  // no mesmo botão e sempre *adicionava* a obra. Os dois rodavam no mesmo clique e
-  // o resultado dependia de qual ouvinte tinha sido registrado primeiro — ou seja,
-  // da ordem de carga dos scripts. Na ordem infeliz, tirar uma obra da comparação
-  // não fazia nada. O dock agora só escuta o resultado, sem disputar o clique.
-  document.addEventListener('arandu:compare-changed',renderDock);
+  // A comparação é de artwork-tools.js: ele alterna a obra e desenha a própria
+  // barra. Este arquivo também escutava o clique no mesmo botão, para sempre
+  // *adicionar* a obra, mas nunca chegava a agir — lia o id por
+  // `data-artwork-id`/`data-save-artwork`/`data-reserve-artwork`, e o botão de
+  // comparar não tem nenhum deles. Era código morto com aparência de disputa.
+  //
+  // O dock não escuta `arandu:compare-changed` de propósito: ele é uma segunda
+  // barra fixa no rodapé e, aberto junto com a barra de comparação, cobre o
+  // "Comparar agora" dela. Enquanto as duas superfícies não forem uma só, quem
+  // fala de comparação é a barra.
   document.addEventListener('DOMContentLoaded',function(){if(isInternal())return;enhanceArtworkActions();addGuidanceBlocks();renderDock();renderComparePage();setupShortcuts();setTimeout(function(){enhanceArtworkActions();addGuidanceBlocks();renderDock();renderComparePage()},900);setTimeout(function(){enhanceArtworkActions();renderDock()},1800)});
 })();

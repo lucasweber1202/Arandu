@@ -648,6 +648,28 @@ test('a barra de comparação não cobre o consentimento nem o assistente', asyn
   // Numa tela estreita a barra também não pode empurrar o documento de lado.
   const rolagem = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(rolagem).toBeLessThanOrEqual(1);
+
+  // O dock de decisão é a outra barra fixa do rodapé e aparece ao salvar uma
+  // obra. Com as duas abertas, ele chegou a ficar por cima do "Comparar agora"
+  // — a barra continuava visível e o clique ia para o dock. Visível não basta:
+  // o teste pergunta quem recebe o clique no centro do próprio botão.
+  await page.locator('[data-card-artwork] [data-save-artwork]').first().click();
+  await expect(barra).toBeVisible();
+
+  const quemRecebeOClique = await page.evaluate(() => {
+    const acao = document.querySelector('[data-compare-bar] a[href="comparar-obras.html"]');
+    if (!acao) return 'ação principal ausente';
+    const caixa = acao.getBoundingClientRect();
+    const alvo = document.elementFromPoint(caixa.left + caixa.width / 2, caixa.top + caixa.height / 2);
+    if (!alvo) return 'fora da viewport';
+    if (alvo.closest('[data-compare-bar]')) return 'a própria barra';
+    return `coberto por ${alvo.closest('[data-arandu-decision-dock]') ? 'dock de decisão' : alvo.tagName.toLowerCase()}`;
+  });
+  expect(quemRecebeOClique, 'o "Comparar agora" precisa receber o próprio clique').toBe('a própria barra');
+
+  // E o clique tem de completar de verdade, não só passar no teste de acerto.
+  await page.locator('[data-compare-bar] a[href="comparar-obras.html"]').click({ timeout: 5000 });
+  await expect(page).toHaveURL(/comparar-obras\.html/);
 });
 
 // Leitura objetiva: a página passou a publicar números derivados da ficha.
