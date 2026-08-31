@@ -5,6 +5,11 @@
   const controls=document.querySelector('[data-catalog-controls]');
   const target=document.querySelector('#obras .section-head')||controls;
   if(!target||document.querySelector('[data-quick-buy-panel]'))return;
+  // Os atalhos operam os filtros do catálogo. Sem listagem aberta não há o que
+  // filtrar: o painel some junto com os demais controles em vez de ficar
+  // clicável sem efeito.
+  if(window.AranduCatalogSource?.listingClosed())return;
+  document.addEventListener('arandu:listing-closed',()=>{document.querySelector('[data-quick-buy-panel]')?.remove();});
   function click(sel){const el=document.querySelector(sel); if(el){el.click(); return true;} return false;}
   function setInput(sel,value){const el=document.querySelector(sel); if(!el)return false; el.value=value; el.dispatchEvent(new Event('input',{bubbles:true})); el.dispatchEvent(new Event('change',{bubbles:true})); return true;}
   function setSearch(value){return setInput('[data-ux-catalog-search]',value);}
@@ -29,10 +34,25 @@
   controls?.classList.add('is-collapsed');
   const filterButton=document.querySelector('[data-toggle-filters]');
   if(filterButton){filterButton.textContent='Mostrar filtros';filterButton.addEventListener('click',()=>setTimeout(()=>{filterButton.textContent=controls?.classList.contains('is-collapsed')?'Mostrar filtros':'Ocultar filtros';},30));}
+  // A reserva depende da política comercial aprovada. Enquanto ela não entra, o
+  // painel descreve o que a página realmente oferece — conversa com a curadoria
+  // — em vez de um passo a passo de pagamento que ninguém consegue percorrer.
+  function commercialReady(){return document.querySelector('meta[name="arandu-commercial-ready"]')?.content==='true';}
+  function intro(){
+    return commercialReady()
+      ? 'Use um atalho, veja poucas obras e peça reserva. A curadoria confirma disponibilidade, certificado, envio e preço final antes de qualquer pagamento.'
+      : 'Use um atalho e veja poucas obras. Reserva e pagamento ainda não estão abertos nesta beta: a conversa começa pela curadoria.';
+  }
+  function helpSteps(){
+    const steps=commercialReady()
+      ? ['1. Clique em uma intenção.','2. Reserve com nome e WhatsApp.','3. Confirme antes de pagar.']
+      : ['1. Clique em uma intenção.','2. Salve ou compare as obras.','3. Fale com a curadoria.'];
+    return '<div class="quick-buy-help">'+steps.map((step)=>'<span>'+step+'</span>').join('')+'</div>';
+  }
   const panel=document.createElement('section');
   panel.className='quick-buy-panel';
   panel.dataset.quickBuyPanel='true';
-  panel.innerHTML='<p class="eyebrow">Compra rápida</p><h2>Escolha por intenção, não por excesso de filtro.</h2><p>Use um atalho, veja poucas obras e peça reserva. A curadoria confirma disponibilidade, certificado, envio e preço final antes de qualquer pagamento.</p><div class="quick-buy-actions"><button type="button" data-qb="primeira" class="is-dark">Primeira obra</button><button type="button" data-qb="ate3000">Até R$ 3 mil</button><button type="button" data-qb="foto">Fotografia</button><button type="button" data-qb="casa">Para casa</button><button type="button" data-qb="empresa">Empresa/escritório</button><button type="button" data-qb="certificado">Com certificado</button><button type="button" data-qb="limpar">Ver tudo</button><a data-qb-contact href="contato.html">Pedir ajuda</a></div><div class="quick-buy-help"><span>1. Clique em uma intenção.</span><span>2. Reserve com nome e WhatsApp.</span><span>3. Confirme antes de pagar.</span></div>';
+  panel.innerHTML='<p class="eyebrow">Compra rápida</p><h2>Escolha por intenção, não por excesso de filtro.</h2>'+intro()+'<div class="quick-buy-actions"><button type="button" data-qb="primeira" class="is-dark">Primeira obra</button><button type="button" data-qb="ate3000">Até R$ 3 mil</button><button type="button" data-qb="foto">Fotografia</button><button type="button" data-qb="casa">Para casa</button><button type="button" data-qb="empresa">Empresa/escritório</button><button type="button" data-qb="certificado">Com certificado</button><button type="button" data-qb="limpar">Ver tudo</button><a data-qb-contact href="contato.html">Pedir ajuda</a></div>'+helpSteps()+'';
   target.parentElement.insertBefore(panel,target.nextSibling);
   panel.addEventListener('click',(event)=>{
     const btn=event.target.closest('[data-qb]'); if(!btn)return;

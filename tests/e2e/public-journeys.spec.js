@@ -39,3 +39,71 @@ test('cadastro mantém perfil público de comprador e orienta confirmação', as
   await page.locator('[data-signup-form]').evaluate((form) => form.requestSubmit());
   await expect(page.locator('[data-signup-form] [data-auth-status]')).toContainText('confirme a conta');
 });
+
+// Catraca do defeito que esta rodada corrigiu: com a listagem fechada, quem
+// liga filtro, ordenação, atalho de coleção e painel de compra rápida aos seus
+// eventos é o mesmo caminho de sucesso que não aconteceu. Os controles ficavam
+// na página, visíveis e clicáveis, sem efeito nenhum — nem resultado, nem
+// explicação. O contrato aqui é funcional: se o controle continua na página,
+// ele tem de responder.
+const SUPERFICIES_DE_LISTAGEM = [
+  {
+    rota: '/comprar-arte.html',
+    api: '**/api/catalog',
+    controles: '[data-catalog-controls], [data-toggle-filters], [data-ux-collections], [data-quick-buy-panel], [data-listing-only]'
+  },
+  {
+    rota: '/artistas.html',
+    api: '**/api/artists',
+    controles: '[data-artists-controls]'
+  }
+];
+
+for (const superficie of SUPERFICIES_DE_LISTAGEM) {
+  test(`com a listagem fechada, ${superficie.rota} não deixa controle inerte na página`, async ({ page }) => {
+    for (const rota of ['**/api/catalog', '**/api/artists']) {
+      await page.route(rota, (route) => route.fulfill({
+        status: 503,
+        contentType: 'application/json',
+        body: JSON.stringify({ ok: false, code: 'catalog_not_verified', error: 'Catálogo em validação.' })
+      }));
+    }
+    await page.goto(superficie.rota);
+    await expect(page.locator('.catalog-unavailable')).toBeVisible();
+    await expect(page.locator(superficie.controles)).toHaveCount(0);
+
+    // Nada de esconder o problema num controle invisível mas focável.
+    const focaveisSemEfeito = await page.evaluate(() => document.querySelectorAll(
+      '[data-catalog-controls], [data-toggle-filters], [data-ux-collections], [data-quick-buy-panel], [data-artists-controls], [data-listing-only]'
+    ).length);
+    expect(focaveisSemEfeito).toBe(0);
+
+    // A saída real continua na página: a listagem fecha, o produto não.
+    await expect(page.locator('.arandu-rescue-actions a[href*="contato.html"]').first()).toBeVisible();
+    await expect(page.locator('.arandu-rescue-actions a[href*="para-artistas.html"]').first()).toBeVisible();
+  });
+}
+
+// Com a listagem aberta, os mesmos controles precisam continuar existindo e
+// operando — a correção acima não pode virar uma poda permanente.
+test('com o acervo aberto, os filtros do catálogo continuam na página e operam', async ({ page }) => {
+  await page.route('**/api/catalog', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      ok: true,
+      verifiedReady: true,
+      items: [
+        { id: 'obra-a', title: 'Horizonte Seco', artist_name: 'Artista A', technique: 'Pintura', price: 4200, status: 'available' },
+        { id: 'obra-b', title: 'Maré Alta', artist_name: 'Artista B', technique: 'Fotografia', price: 2800, status: 'available' }
+      ]
+    })
+  }));
+  await page.goto('/comprar-arte.html');
+  await expect(page.locator('[data-card-artwork]')).toHaveCount(2);
+  await expect(page.locator('[data-catalog-controls]')).toHaveCount(1);
+  await expect(page.locator('[data-quick-buy-panel]')).toHaveCount(1);
+
+  await page.locator('[data-ux-catalog-search]').fill('Maré');
+  await expect(page.locator('[data-card-artwork]')).toHaveCount(1);
+});
