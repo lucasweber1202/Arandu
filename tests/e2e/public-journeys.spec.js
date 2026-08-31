@@ -107,3 +107,36 @@ test('com o acervo aberto, os filtros do catálogo continuam na página e operam
   await page.locator('[data-ux-catalog-search]').fill('Maré');
   await expect(page.locator('[data-card-artwork]')).toHaveCount(1);
 });
+
+// Doze CTAs do site apontam para comprar-arte.html?q=... . O parâmetro não era
+// lido: o link prometia um recorte e entregava o acervo inteiro. Catraca dos
+// recortes que existem hoje na navegação pública.
+const RECORTES_DO_ACERVO = [
+  { q: 'fotografia', esperado: ['Maré Alta'], ausente: 'Horizonte Seco' },
+  { q: 'pintura', esperado: ['Horizonte Seco'], ausente: 'Maré Alta' },
+  { q: 'clinica', esperado: ['Sala de Espera'], ausente: 'Horizonte Seco' }
+];
+
+for (const recorte of RECORTES_DO_ACERVO) {
+  test(`o acervo aplica o recorte que o link prometeu (?q=${recorte.q})`, async ({ page }) => {
+    await page.route('**/api/catalog', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        ok: true,
+        verifiedReady: true,
+        items: [
+          { id: 'obra-a', title: 'Horizonte Seco', artist_name: 'Artista A', technique: 'Pintura', type: 'Pintura', price: 4200, status: 'available' },
+          { id: 'obra-b', title: 'Maré Alta', artist_name: 'Artista B', technique: 'Fotografia', type: 'Fotografia', price: 2800, status: 'available' },
+          { id: 'obra-c', title: 'Sala de Espera', artist_name: 'Artista C', technique: 'Fotografia', type: 'Fotografia', price: 3100, status: 'available', spaces: ['clínica'] }
+        ]
+      })
+    }));
+    await page.goto(`/comprar-arte.html?q=${recorte.q}`);
+    await expect(page.locator('[data-card-artwork]').first()).toBeVisible();
+    for (const titulo of recorte.esperado) {
+      await expect(page.locator('[data-card-artwork]', { hasText: titulo })).toHaveCount(1);
+    }
+    await expect(page.locator('[data-card-artwork]', { hasText: recorte.ausente })).toHaveCount(0);
+  });
+}
