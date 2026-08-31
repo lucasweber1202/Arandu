@@ -39,9 +39,12 @@
   // — em vez de um passo a passo de pagamento que ninguém consegue percorrer.
   function commercialReady(){return document.querySelector('meta[name="arandu-commercial-ready"]')?.content==='true';}
   function intro(){
-    return commercialReady()
+    // O parágrafo precisa do próprio `<p>`: é ele que a folha de estilo pinta.
+    // Solto na seção, o texto herdava a cor do fundo e sumia.
+    const texto = commercialReady()
       ? 'Use um atalho, veja poucas obras e peça reserva. A curadoria confirma disponibilidade, certificado, envio e preço final antes de qualquer pagamento.'
       : 'Use um atalho e veja poucas obras. Reserva e pagamento ainda não estão abertos nesta beta: a conversa começa pela curadoria.';
+    return '<p>'+texto+'</p>';
   }
   function helpSteps(){
     const steps=commercialReady()
