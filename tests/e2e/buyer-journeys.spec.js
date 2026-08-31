@@ -685,3 +685,30 @@ test('o artista publica o próprio retrato no acervo de hoje', async ({ page }) 
   await expect(ficha).toContainText('Obras publicadas');
   await expect(ficha).toContainText('Recife');
 });
+
+// A varredura de alvos acima mede só `main`. O aviso de beta e a assinatura
+// legal ficam fora dele — e é no aviso de beta que estão as duas ações que esta
+// beta existe para colher, em toda página pública. Elas chegaram a 15px de
+// altura no celular sem que nenhuma catraca visse. Esta mede o que aquela não
+// alcança.
+test('as ações fora do main também cabem no polegar', async ({ page, isMobile }) => {
+  test.skip(!isMobile, 'a medida só faz sentido no viewport de celular');
+  test.setTimeout(TEMPO_DE_VARREDURA);
+  await stubApi(page);
+
+  const falhas = [];
+  for (const pagina of ['index.html', 'comprar-arte.html', 'para-artistas.html', 'contato.html', 'empresas-e-arquitetos.html']) {
+    await page.goto(`/${pagina}`, { waitUntil: 'domcontentloaded' });
+    const pequenos = await page.evaluate(() => {
+      const medidos = [];
+      document.querySelectorAll('[data-beta-banner] a, .footer-legal a, .site-footer a[href]').forEach((elemento) => {
+        const caixa = elemento.getBoundingClientRect();
+        if (!caixa.width || !caixa.height) return;
+        if (caixa.height < 24) medidos.push(`${(elemento.textContent || '').trim().slice(0, 28)} ${Math.round(caixa.height)}px`);
+      });
+      return [...new Set(medidos)];
+    });
+    if (pequenos.length) falhas.push(`${pagina}: alvo abaixo de 24px — ${pequenos.join(' | ')}`);
+  }
+  expect(falhas, falhas.join('\n')).toEqual([]);
+});
