@@ -84,6 +84,12 @@ gravada.
 
 ### B1. Supabase (bloqueia a beta)
 
+**Já existe um projeto Supabase ligado a este repositório** pela integração
+Supabase no GitHub — ela aparece como a verificação "Supabase Preview" nos PRs.
+O primeiro passo é localizar esse projeto no seu painel, não criar um novo.
+O que falta confirmar é se ele é o de produção, se as migrations foram
+aplicadas nele e se as três chaves estão no ambiente de produção da Vercel.
+
 | Variável | Para quê |
 |---|---|
 | `SUPABASE_URL` | Leitura pública e escrita dos formulários |
@@ -124,9 +130,9 @@ você quer divulgar).
 
 ### B6. Vercel
 
-Projeto conectado, variáveis acima no ambiente de produção, `vercel-build`
-como comando de build. `VERCEL_ENV=preview` e `VERCEL_ENV=production`
-validados nesta rodada.
+**Já está conectada:** cada PR gera um deploy de prévia, e o do RC1 subiu como
+`Ready`. Falta pôr as variáveis acima no ambiente de produção e apontar o
+domínio. `VERCEL_ENV=preview` e `VERCEL_ENV=production` validados nesta rodada.
 
 ### B7. Depois da beta
 
@@ -230,7 +236,7 @@ Curta e na ordem de execução. Cada item é seu, não do código.
 
 ### Antes de publicar
 
-- [ ] Projeto Supabase criado
+- [ ] Projeto Supabase localizado (já há um ligado ao repositório) e confirmado como o de produção
 - [ ] Migrations aplicadas na ordem de `docs/supabase-migrations.json`
 - [ ] `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` na Vercel
 - [ ] `ARANDU_CONTACT_EMAIL` e `ARANDU_WHATSAPP_NUMBER` configurados
