@@ -11,7 +11,7 @@ O projeto está como MVP estático navegável, com HTML, CSS e JavaScript simple
 - `js/site.js` para menu mobile, link ativo e contador da seleção.
 - `js/selection.js` para Minha Seleção com localStorage.
 - `js/forms.js` para captura local de formulários.
-- `js/catalog-filters.js` para busca, filtros, ordenação e contador no catálogo.
+- `js/catalog-page.js` para busca, filtros, ordenação e contador no catálogo, sempre a partir de `js/catalog-source.js`.
 - `data/catalog.json` e `data/site.json` como preparação para conteúdo estruturado.
 
 ## Próxima arquitetura recomendada

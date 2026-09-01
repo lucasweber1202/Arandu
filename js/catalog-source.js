@@ -77,7 +77,38 @@
       + artist + '</div>';
   }
 
+  // Um controle que não opera sobre nada é pior do que a ausência dele: filtro,
+  // ordenação, atalho de coleção e painel de compra rápida continuavam visíveis
+  // e clicáveis depois que a listagem falhava, porque quem os liga a eventos é
+  // o mesmo caminho de sucesso que não aconteceu. Quem clicava não recebia nem
+  // resultado nem explicação. Enquanto a listagem não abre, esses controles
+  // saem da página e sobra o que de fato funciona: o motivo e as saídas reais.
+  const LISTING_CONTROL_SELECTORS = [
+    '[data-catalog-controls]',
+    '[data-toggle-filters]',
+    '[data-ux-collections]',
+    '[data-ux-catalog-view]',
+    '[data-ux-gallery-mode]',
+    '[data-quick-buy-panel]',
+    '[data-artists-controls]',
+    '[data-listing-only]'
+  ];
+
+  function closeListingControls() {
+    document.documentElement.dataset.aranduListing = 'closed';
+    for (const selector of LISTING_CONTROL_SELECTORS) {
+      document.querySelectorAll(selector).forEach((element) => element.remove());
+    }
+    document.dispatchEvent(new CustomEvent('arandu:listing-closed'));
+  }
+
+  function listingClosed() {
+    return document.documentElement.dataset.aranduListing === 'closed';
+  }
+
   window.AranduCatalogSource = Object.freeze({
+    closeListingControls,
+    listingClosed,
     CatalogSourceError,
     presentationEnabled,
     catalog: () => presentationEnabled() ? presentationRequest('/data/artworks.json') : request('/api/catalog'),

@@ -233,9 +233,13 @@ html, body {
 /* `.site-footer a` é `display:block` para as colunas de links. Na linha legal
    isso quebrava cada item numa linha, com os separadores " · " soltos entre
    elas. */
+/* O respiro vertical entra por `padding-block`: em elemento em linha ele
+   aumenta a área de toque sem mexer na altura da linha, então a assinatura
+   legal continua desenhada igual e fica alcançável no polegar. */
 .footer-legal a {
   display: inline;
   white-space: nowrap;
+  padding-block: 5px;
 }
 
 .catalog-unavailable {
@@ -952,7 +956,7 @@ body:not([data-public-shell="20260610-internal-shell-safe"]){background:linear-g
 .catalog-card h3,.showcase-card strong{font-size:clamp(1.1rem,1.8vw,1.45rem)}.artwork-meta{color:var(--arandu-muted)}.artwork-use{display:flex;flex-wrap:wrap;gap:.45rem;margin:.65rem 0}.price-line span,.proposal-total{color:var(--arandu-red)}
 [data-catalog-grid]{align-items:stretch}.catalog-card{display:flex;flex-direction:column}.catalog-card .page-actions{margin-top:auto;gap:.5rem;flex-wrap:wrap}.catalog-card .page-actions .cta,.catalog-card .page-actions button{font-size:.86rem;padding:.72rem 1rem}
 .arandu-toast{position:fixed;right:22px;bottom:22px;z-index:9999;max-width:340px;padding:16px 18px;border-radius:18px;background:#211713;color:#fff8ec;box-shadow:0 24px 60px rgba(0,0,0,.22);opacity:0;transform:translateY(12px);pointer-events:none;transition:opacity .22s ease,transform .22s ease}.arandu-toast.is-visible{opacity:1;transform:translateY(0)}
-.arandu-decision-dock{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:9998;width:min(920px,calc(100vw - 28px));display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 16px;border:1px solid rgba(127,47,40,.18);border-radius:24px;background:rgba(255,248,236,.95);box-shadow:0 24px 80px rgba(49,31,22,.16);backdrop-filter:blur(16px)}.arandu-decision-dock[hidden]{display:none}.arandu-decision-dock strong{display:block;color:var(--arandu-ink)}.arandu-decision-dock small{color:var(--arandu-muted)}.arandu-decision-dock .dock-actions{display:flex;gap:8px;flex-wrap:wrap}.arandu-decision-dock a,.arandu-decision-dock button{border:1px solid rgba(127,47,40,.18);border-radius:999px;padding:.72rem 1rem;background:#fffaf0;color:var(--arandu-red);font-weight:800;text-decoration:none}.arandu-decision-dock a.primary{background:var(--arandu-red);color:#fff8ec}.arandu-decision-dock button:hover,.arandu-decision-dock a:hover{transform:translateY(-1px)}
+.arandu-decision-dock{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:9998;width:min(920px,calc(100vw - 28px));display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 16px;border:1px solid rgba(127,47,40,.18);border-radius:24px;background:rgba(255,248,236,.95);box-shadow:0 24px 80px rgba(49,31,22,.16);backdrop-filter:blur(16px)}.arandu-decision-dock[hidden]{display:none}/* Duas barras fixas no rodapé disputavam o mesmo canto: o dock (bottom:18px, z-index:9998) é alto o bastante para passar por cima da barra de comparação (bottom:76px, z-index:120) e ficava recebendo o clique do "Comparar agora". Enquanto a comparação está aberta, quem fala é a barra — ela já oferece comparar e limpar, que é o que o dock repetiria ali. */body:has([data-compare-bar]) .arandu-decision-dock{display:none}.arandu-decision-dock strong{display:block;color:var(--arandu-ink)}.arandu-decision-dock small{color:var(--arandu-muted)}.arandu-decision-dock .dock-actions{display:flex;gap:8px;flex-wrap:wrap}.arandu-decision-dock a,.arandu-decision-dock button{border:1px solid rgba(127,47,40,.18);border-radius:999px;padding:.72rem 1rem;background:#fffaf0;color:var(--arandu-red);font-weight:800;text-decoration:none}.arandu-decision-dock a.primary{background:var(--arandu-red);color:#fff8ec}.arandu-decision-dock button:hover,.arandu-decision-dock a:hover{transform:translateY(-1px)}
 .arandu-compare-bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:.6rem}.arandu-compare-chip{border:1px solid rgba(127,47,40,.18);background:rgba(127,47,40,.07);border-radius:999px;padding:.55rem .75rem;font-weight:800;color:var(--arandu-red)}
 .arandu-guidance-card{position:relative;overflow:hidden}.arandu-guidance-card::before{content:"";position:absolute;inset:auto -20% -60% -20%;height:120%;background:radial-gradient(circle,rgba(127,47,40,.16),transparent 62%);pointer-events:none}.arandu-guidance-card > *{position:relative}
 .selection-reading-card{border:1px solid var(--arandu-line);border-radius:28px;padding:clamp(24px,4vw,44px);position:relative;overflow:hidden}.selection-reading-card::after{content:"";position:absolute;right:-12%;top:-35%;width:340px;height:340px;background:radial-gradient(circle,rgba(127,47,40,.12),transparent 68%)}.selection-reading-card > *{position:relative}.reading-list{display:flex;gap:.55rem;flex-wrap:wrap;margin:.9rem 0 1.2rem}.reading-list span{padding:.55rem .8rem;font-weight:800}.selection-actions{display:flex;gap:.55rem;flex-wrap:wrap}.selection-actions .button,.selection-actions .cta{font-size:.9rem}.clean-section[data-recently-viewed],section[data-recently-viewed],section[data-arandu-recommendations]{animation:aranduFadeUp .35s ease both}.arandu-compare-chip:hover{background:rgba(127,47,40,.12)}
@@ -1601,7 +1605,7 @@ body.arandu-consent-pending{padding-bottom:170px}@media(max-width:900px){body.ar
 .beta-banner{background:#2c1109;color:#ffe9cf;border-bottom:1px solid rgba(255,233,207,.22)}
 .beta-banner>.container{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;padding:10px 18px;font-size:.92rem;line-height:1.45}@media(max-width:560px){.beta-banner>.container{gap:2px 8px;padding:7px 16px;font-size:.82rem;line-height:1.35}.beta-banner b{font-size:.66rem}}
 .beta-banner b{color:#ffd9ad;letter-spacing:.06em;text-transform:uppercase;font-size:.74rem;font-weight:900}
-.beta-banner a{color:#ffe9cf;text-decoration:underline}
+.beta-banner a{color:#ffe9cf;text-decoration:underline;padding-block:6px}
 .arandu-rescue-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
 .arandu-rescue-actions a{display:inline-flex;align-items:center;min-height:44px;padding:10px 16px;border-radius:999px;border:1px solid #741f1a;background:#741f1a;color:#fffaf2;font-weight:800;text-decoration:none}
 .arandu-rescue-actions a+a{background:transparent;color:#741f1a}

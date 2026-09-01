@@ -62,7 +62,12 @@ mustInclude('lancamento.html','data-launch-dashboard','dashboard de lançamento'
 mustInclude('js/arandu-assistant.js','comprar-arte.html','assistente aponta para Comprar');
 mustInclude('js/site.js','arandu-assistant.js','site carrega assistente seguro');
 mustInclude('js/site.js','ensureHeaderNav','site restaura navegação');
-mustInclude('js/public-breadcrumbs.js','breadcrumb public','breadcrumbs públicos');
+// A catraca antiga lia um módulo que nenhuma página carregava: ela ficava
+// verde enquanto os breadcrumbs vinham do HTML publicado. Passa a medir as
+// páginas que de fato os publicam.
+for (const pagina of ['comprar-arte.html','como-funciona.html','faq.html']) {
+  mustInclude(pagina,'class="breadcrumb public"','breadcrumb público publicado');
+}
 mustNotInclude('js/arandu-assistant.js','obras.html?','links antigos de obras com query');
 mustNotInclude('js/auth.js','obras.html','auth apontando para páginas antigas');
 mustInclude('vite.config.js','arandu-runtime.css','bundle CSS canônico');

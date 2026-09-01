@@ -27,7 +27,6 @@ Este documento registra o pacote final de melhorias implementado no fechamento d
 O pacote trabalha em conjunto com:
 
 - `js/site.js`
-- `js/arandu-experience.js`
 - `js/arandu-advanced.js`
 - `js/arandu-curation-lab.js`
 - `css/arandu-experience.css`

@@ -31,3 +31,28 @@ rows.forEach(row=>{
   console.log(`${status.padEnd(10)} ${row.file.padEnd(36)} scripts:${String(row.scriptCount).padStart(2)} css:${String(row.styleCount).padStart(2)}${manual}`);
 });
 console.log('\nRelatório: reports/page-inventory.json');
+
+// Cinco módulos de js/ tinham deixado de ser carregados por qualquer página e
+// continuavam no repositório — um deles ainda era o alvo de uma catraca, que
+// ficava verde guardando código morto enquanto o código vivo seguia sem guarda.
+// Um módulo pode ser carregado por uma tag <script>, por outro módulo (site.js
+// injeta os globais por nome) ou pelo servidor/build; o que não aparece em
+// nenhum desses lugares não é executado por ninguém.
+const jsFiles = fs.readdirSync(path.join(root, 'js')).filter((file) => file.endsWith('.js'));
+const htmlText = htmlFiles.map((file) => read(file)).join('\n');
+const serverText = [
+  ...fs.readdirSync(path.join(root, 'lib')).filter((f) => f.endsWith('.mjs')).map((f) => `lib/${f}`),
+  ...fs.readdirSync(path.join(root, 'api')).map((f) => `api/${f}`),
+  'vite.config.js'
+].map((file) => read(file)).join('\n');
+
+const orphans = jsFiles.filter((file) => {
+  if (htmlText.includes(file)) return false;
+  if (serverText.includes(file)) return false;
+  return !jsFiles.some((other) => other !== file && read(path.join('js', other)).includes(file));
+});
+
+if (orphans.length) {
+  console.error(`\nMódulos em js/ que nenhuma página, módulo ou servidor carrega: ${orphans.join(', ')}`);
+  process.exit(1);
+}
