@@ -20,11 +20,9 @@ Pendências operacionais, não novas features:
 2. aplicar migrations na ordem canônica;
 3. configurar as três variáveis Supabase na Vercel;
 4. configurar contato por e-mail e WhatsApp;
-5. definir `ARANDU_SITE_URL` em domínio HTTPS;
-6. executar smoke tests reais de persistência, contato, UTM e proteção interna.
-
-`ARANDU_CONSENT_VERSION` bloqueia métricas consentidas, mas a ausência mantém
-analytics desligado e não transforma uma beta sem medição em comércio aberto.
+5. configurar `ARANDU_CONSENT_VERSION` e publicar a política correspondente;
+6. definir `ARANDU_SITE_URL` em domínio HTTPS;
+7. executar smoke tests reais de persistência, contato, UTM e proteção interna.
 
 ## P1 — antes de divulgar muito
 
