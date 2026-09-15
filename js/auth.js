@@ -110,6 +110,7 @@ function injectAuthForms() {
 }
 
 async function getSession() {
+  if (window.AranduSession?.get) return window.AranduSession.get();
   return requestJson('/api/auth/session', { method: 'GET' });
 }
 
