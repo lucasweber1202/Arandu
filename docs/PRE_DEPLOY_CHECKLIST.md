@@ -1,23 +1,24 @@
 # Arandu — Checklist de Pré-Deploy
 
-Use este checklist antes de publicar no Vercel. O objetivo é evitar regressões depois da grande rodada de melhorias visuais, funcionais e curatoriais.
+Use este checklist antes de um deploy técnico ou de uma beta pública no Vercel. O go-live comercial completo possui gates adicionais.
 
 ## 1. Validação técnica
 
 Execute:
 
 ```bash
-npm install --include=optional
-npm run build
-npm run check:quality
-npm run check:all
+npm ci --include=optional
+npm run deploy:check
 ```
 
-O deploy só deve avançar se `npm run predeploy` passar.
+Esse comando autoriza apenas o deploy técnico. Para uma beta pública, complete
+também o checklist operacional de `docs/RELEASE_CANDIDATE_1.md`: Supabase,
+migrations, variáveis, contatos, consentimento quando houver métricas, domínio
+HTTPS e smoke tests reais.
 
-```bash
-npm run predeploy
-```
+`npm run predeploy` é reservado ao go-live comercial completo e deve falhar
+enquanto as evidências externas estiverem pendentes. Não altere gates para
+publicar a beta.
 
 ## 2. Páginas obrigatórias para teste manual
 
@@ -107,9 +108,9 @@ Validar:
 
 Antes do deploy:
 
-- Node.js Version Override: `20.x`
-- Branch: `main`
-- Build command: `npm run build`
+- Node.js Version Override: `24.x`
+- Branch: branch validada; promover para `main` somente após revisão
+- Build command: `npm run vercel-build`
 - Output directory: `dist`
 
 Depois do limite de deploy resetar, publicar apenas uma vez.
