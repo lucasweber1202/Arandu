@@ -6,9 +6,11 @@ Este arquivo é o ponto de entrada para operação, staging e lançamento. Quand
 
 - `ops/release-evidence.json` — fonte oficial dos 13 gates externos.
 - `ops/pilot-evidence.json` — evidências do piloto fechado.
+- `docs/RELEASE_CANDIDATE_1.md` — checklist da beta pública com catálogo e comércio fechados.
+- `npm run deploy:check` — gate de deploy técnico e base do deploy da beta.
 - `npm run release:status` — relatório legível do estado atual.
 - `npm run release:check` — falha enquanto os requisitos mínimos não forem atingidos.
-- `npm run predeploy` — gate final de build, código e release.
+- `npm run predeploy` — gate do go-live comercial completo; não é requisito da beta.
 
 ## Preparação de staging
 
@@ -58,7 +60,7 @@ Fixtures e demonstrações não contam como catálogo publicado.
 
 Decisões de comissão, pagamento, frete, seguro, devolução e modelo fiscal exigem aprovação humana.
 
-## Piloto, domínio e go-live
+## Beta, piloto, domínio e go-live
 
 - `docs/GO_LIVE_ARANDU.md` — sequência de promoção.
 - `docs/DEPLOY_DOMINIO_VERCEL.md` — domínio e hospedagem.
