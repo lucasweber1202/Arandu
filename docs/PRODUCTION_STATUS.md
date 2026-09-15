@@ -36,14 +36,13 @@ A beta pode ser publicada com catálogo fechado e comércio fechado. Ela requer:
 - `SUPABASE_URL`, `SUPABASE_ANON_KEY` e
   `SUPABASE_SERVICE_ROLE_KEY` configuradas somente no ambiente;
 - `ARANDU_CONTACT_EMAIL` e `ARANDU_WHATSAPP_NUMBER`;
-- `ARANDU_CONSENT_VERSION` e política correspondente, se métricas forem usadas;
+- `ARANDU_CONSENT_VERSION` e política correspondente;
 - `ARANDU_SITE_URL` em domínio HTTPS;
 - smoke tests de formulário, persistência, UTM, WhatsApp, celular e proteção das
   páginas internas.
 
 A beta não exige catálogo real, política comercial aprovada, piloto fechado nem
-todos os gates de release. Sem `ARANDU_CONSENT_VERSION`, analytics permanece
-desligado; isso bloqueia medição, não a publicação honesta da beta.
+todos os gates de release. Sem `ARANDU_CONSENT_VERSION`, analytics permanece desligado e o checklist desta beta não está completo.
 
 ## Go-live comercial completo
 
