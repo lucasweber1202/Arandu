@@ -26,6 +26,20 @@
   if(document.querySelector('[data-owner-console]'))return;
   let accountAuthenticated=false;
   let accountCheckStarted=false;
+  let pageSessionPromise=null;
+  function getPageSession(){
+    if(!pageSessionPromise){
+      pageSessionPromise=fetch('/api/auth/session',{credentials:'include',cache:'no-store'}).then(async(response)=>{
+        const data=await response.json().catch(()=>({}));
+        if(!response.ok||data.ok===false)throw new Error(data.error||'Não foi possível consultar a sessão.');
+        return data;
+      });
+    }
+    return pageSessionPromise;
+  }
+  // Cache somente em memória e somente durante este pageview. auth.js e
+  // selection-tools.js reutilizam a mesma Promise sem persistir sessão.
+  window.AranduSession=Object.freeze({get:getPageSession});
   const accountNav=()=>accountAuthenticated?['Minha conta','minha-conta.html']:['Entrar','login.html'];
   // A seleção é o que traz o comprador de volta. O contador só aparece quando
   // existe alguma obra salva: um "0" permanente no cabeçalho é ruído.
@@ -180,7 +194,7 @@
       legal.appendChild(linkTo(item[1],item[0]));
     });
   }
-  async function syncAuthNavigation(){if(accountCheckStarted)return;accountCheckStarted=true;try{const response=await fetch('/api/auth/session',{credentials:'include',cache:'no-store'});const data=await response.json().catch(()=>({}));if(!response.ok||!data.authenticated)return;accountAuthenticated=true;refreshShell();}catch{}}
+  async function syncAuthNavigation(){if(accountCheckStarted)return;accountCheckStarted=true;try{const data=await getPageSession();if(!data.authenticated)return;accountAuthenticated=true;refreshShell();}catch{}}
   function renderSearch(query=''){document.querySelectorAll('[data-search-results]').forEach((target)=>{const q=normalize(query);const results=SEARCH_INDEX.filter((item)=>!q||normalize(`${item.title} ${item.type} ${item.text}`).includes(q)).slice(0,10);target.innerHTML=results.length?results.map((item)=>`<a class="search-result" href="${escape(item.url)}"><strong>${escape(item.title)}</strong><small>${escape(item.type)}</small><p>${escape(item.text)}</p></a>`).join(''):'<p>Nenhum resultado encontrado.</p>';});}
   let searchBound=false;
   function bindSearch(){renderSearch('');if(searchBound)return;searchBound=true;document.addEventListener('input',(event)=>{if(event.target.matches('[data-search-input]'))renderSearch(event.target.value);});}
