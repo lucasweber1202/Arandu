@@ -222,7 +222,9 @@ ARANDU_PILOT_APPROVED=false
 
 Segredos pertencem somente ao ambiente do servidor. Não registre valores reais no Git, em issues, logs ou evidências.
 
-## Critério de go-live comercial completo
+## Critério de lançamento
+
+### Go-live comercial completo
 
 A beta pública segue o checklist menor de `docs/RELEASE_CANDIDATE_1.md`. O catálogo e o comércio só devem abrir quando:
 
