@@ -1,6 +1,6 @@
-# Deploy técnico e go-live público
+# Deploy técnico, beta pública e go-live comercial
 
-O Arandu separa implantação técnica da autorização comercial para abertura pública.
+O Arandu separa implantação técnica, beta pública com catálogo/comércio fechados e autorização para go-live comercial completo.
 
 ## Deploy técnico automático
 
@@ -16,9 +16,16 @@ O gate técnico verifica:
 
 Ele não promove catálogo, política comercial, piloto ou evidências externas.
 
-## Go-live público
+## Beta pública
 
-A autorização final é explícita:
+A beta usa `deploy:check` e o checklist operacional de
+`docs/RELEASE_CANDIDATE_1.md`. Ela não exige catálogo real, política comercial
+aprovada, piloto fechado ou todos os gates de release; catálogo e comércio
+permanecem explicitamente fechados.
+
+## Go-live comercial completo
+
+A autorização comercial final é explícita:
 
 ```bash
 npm run predeploy
