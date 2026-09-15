@@ -1,38 +1,65 @@
 # Pendências resumidas — Arandu
 
-## Pronto
+Documento resumido. O detalhamento canônico está em
+`docs/RELEASE_CANDIDATE_1.md`; evidências externas vivem em
+`ops/release-evidence.json`.
 
-- Site público estruturado.
-- API consolidada para Vercel Hobby.
-- Health check em `/api/health`.
-- Página `status.html`.
-- Painel preparado para Supabase.
-- Documentação comercial e operacional.
-- Playbooks de artistas, compradores, conteúdo, métricas e SEO.
+## Código pronto para beta
 
-## Falta antes do lançamento público
+- Site público, navegação, mobile, catálogo fail-closed e seleção.
+- Autenticação, contas, portais, admin, RBAC, RLS e MFA.
+- Segurança, LGPD, retenção, legal hold e outbox.
+- Testes E2E, testes de banco, migrations e gates de deploy/release.
+- Modo de apresentação e integração Vercel.
 
-1. Fazer deploy final na Vercel.
-2. Configurar variáveis de produção.
-3. Configurar Supabase.
-4. Testar `/api/health` e `/status.html`.
-5. Adicionar logo final.
-6. Configurar WhatsApp real.
-7. Configurar domínio real.
-8. Substituir base demonstrativa por artistas reais.
-9. Cadastrar pelo menos 5 artistas reais.
-10. Cadastrar pelo menos 20 obras reais.
-11. Validar preços, disponibilidade e imagens autorizadas.
-12. Revisar política comercial.
-13. Testar reserva, proposta e certificado em produção.
-14. Preparar 9 posts iniciais.
-15. Iniciar prospecção controlada.
+## P0 — bloqueia a beta pública
 
-## Não precisa travar o primeiro lançamento
+Pendências operacionais, não novas features:
 
-- Pagamento online.
-- Upload automático de imagem.
-- CRM completo.
-- App mobile.
-- Emissão fiscal automatizada.
-- Login obrigatório para comprador.
+1. identificar o projeto Supabase real;
+2. aplicar migrations na ordem canônica;
+3. configurar as três variáveis Supabase na Vercel;
+4. configurar contato por e-mail e WhatsApp;
+5. definir `ARANDU_SITE_URL` em domínio HTTPS;
+6. executar smoke tests reais de persistência, contato, UTM e proteção interna.
+
+`ARANDU_CONSENT_VERSION` bloqueia métricas consentidas, mas a ausência mantém
+analytics desligado e não transforma uma beta sem medição em comércio aberto.
+
+## P1 — antes de divulgar muito
+
+- Definir contato LGPD e contato de segurança.
+- Configurar monitoramento e validar canário.
+- Testar a jornada em celular físico.
+- Iniciar prospecção e coletar obras autorizadas.
+- Preparar conteúdo e canais de suporte.
+
+## Bloqueia catálogo real
+
+- Pelo menos 5 artistas e 20 obras reais verificados.
+- Autorizações de imagem/publicação.
+- Ficha, disponibilidade, preço, moeda, procedência e certificado revisados.
+- Aprovação curatorial humana.
+
+## Bloqueia comércio
+
+- Política comercial, fiscal e jurídica aprovada.
+- Comissão, reserva, pagamento, frete, seguro, cancelamento, devolução, avaria
+  e modelo fiscal definidos.
+- `ARANDU_COMMERCIAL_READY` permanece desligado até a política aprovada.
+
+## Bloqueia go-live comercial completo
+
+- staging, restore, canários, RLS e concorrência com evidência externa;
+- catálogo real e política comercial aprovados;
+- monitoramento, contato LGPD e domínio;
+- piloto fechado;
+- `npm run predeploy` aprovado.
+
+## Pós-beta / opcional
+
+- Pagamento online e automações comerciais adicionais.
+- Eventos de signup, login e comparação.
+- Consolidação visual completa do dock de decisão e barra de comparação.
+- Breadcrumbs nas páginas em que seriam apenas melhoria visual.
+- CRM completo e app mobile.
