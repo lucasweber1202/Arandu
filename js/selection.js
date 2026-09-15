@@ -30,6 +30,7 @@ function updateSelectionCount() {
 
 function updateSelectionDependentActions(items = readSelection()) {
   const isEmpty = items.length === 0;
+  document.body?.setAttribute('data-selection-empty', String(isEmpty));
   document.querySelectorAll('[data-selection-dependent]').forEach((control) => {
     control.hidden = isEmpty;
     control.style.display = isEmpty ? 'none' : '';
