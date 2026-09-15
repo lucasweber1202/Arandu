@@ -32,6 +32,7 @@ function updateSelectionDependentActions(items = readSelection()) {
   const isEmpty = items.length === 0;
   document.querySelectorAll('[data-selection-dependent]').forEach((control) => {
     control.hidden = isEmpty;
+    control.style.display = isEmpty ? 'none' : '';
     control.setAttribute('aria-hidden', String(isEmpty));
     if ('disabled' in control) control.disabled = isEmpty;
   });
