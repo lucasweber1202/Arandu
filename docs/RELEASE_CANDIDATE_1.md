@@ -9,7 +9,7 @@ Ele é o ponto de passagem entre o desenvolvimento e a operação real. Depois
 desta rodada a intenção é congelar features e passar a executar o que só se
 resolve fora do repositório.
 
-Base: `main` em `bd60a44` (merge do PR #58).
+Base auditada: `main` em `f7105f4` (merge do PR #59).
 
 ---
 
@@ -78,9 +78,9 @@ Nada abaixo depende de mais desenvolvimento para a beta.
 
 ## B. Exige ambiente
 
-Isto é configuração, não código. Sem isto a beta sobe, mas **não persiste
-nada** — os formulários falham de forma honesta e nenhuma candidatura é
-gravada.
+Isto é configuração, não código. Sem isto um deploy técnico pode subir, mas a
+beta ainda não está pronta: os formulários falham de forma honesta e nenhuma
+candidatura é gravada.
 
 ### B1. Supabase (bloqueia a beta)
 
@@ -115,7 +115,7 @@ candidatura e não consegue medi-la.
 | `ARANDU_CONTACT_EMAIL` | CTAs de contato caem para `contato.html` |
 | `ARANDU_WHATSAPP_NUMBER` | Sem link de WhatsApp em nenhuma página |
 
-### B4. Consentimento e métricas (bloqueia a medição, não a beta)
+### B4. Consentimento e métricas (bloqueia a beta)
 
 `ARANDU_CONSENT_VERSION` — sem ela, **analytics fica permanentemente
 desligado** e o banner diz isso ao visitante. Nenhum UTM é registrado. Se você
@@ -215,17 +215,7 @@ Nada aqui deve atrasar o lançamento inicial.
   nova).
 - Breadcrumbs nas demais páginas públicas (hoje em `comprar-arte`,
   `como-funciona` e `faq`).
-- Deduplicar a consulta de `/api/auth/session`, feita duas vezes em
-  `login.html`.
-- Unificar o dock de decisão e a barra de comparação numa superfície só. Hoje
-  o dock some enquanto a comparação está aberta, o que resolve a disputa pelo
-  clique, mas as duas continuam sendo dois desenhos para a mesma decisão.
-- Com a seleção vazia, `minha-selecao.html` ainda oferece baixar, copiar e
-  compartilhar. As ações respondem (a de compartilhar avisa por `alert`
-  nativo), mas operam sobre nada.
-- `enhanceArtworkActions()` injeta um segundo botão de comparar ao lado de
-  cada `[data-save-artwork]`. Hoje roda antes de os cartões existirem e não
-  produz nada; se a ordem mudar, produz botão duplicado.
+- Unificar visualmente o dock de decisão e a barra de comparação. O comportamento atual é seguro: o dock some enquanto a barra está aberta, sem colisão ou ação duplicada. A reconstrução visual fica para pós-beta por ter risco maior que o benefício.
 - Recomendação, feed, avaliações, seguidores, app.
 
 ---

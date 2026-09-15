@@ -178,7 +178,9 @@ test('o botão de comparar alterna a obra, sem depender da ordem de carga', asyn
     expect(await guardadas(), `volta ${volta + 1}: sair da comparação`).toEqual([]);
   }
 
-  // Um único controle de comparação por obra: nada injeta um segundo.
+  // Um único controle de comparação por obra, inclusive depois dos reparos
+  // tardios que antes acionavam enhanceArtworkActions().
+  await page.waitForTimeout(1900);
   await expect(page.locator('[data-card-artwork="obra-a"] [data-compare-artwork]')).toHaveCount(1);
 
   // E um clique produz uma gravação, não duas. É isto que pega o ouvinte a mais
@@ -195,4 +197,23 @@ test('o botão de comparar alterna a obra, sem depender da ordem de carga', asyn
   await botao.click();
   await expect(botao).toHaveAttribute('aria-pressed', 'true');
   expect(await page.evaluate(() => window.__gravacoesDaComparacao), 'gravações por clique').toBe(1);
+});
+
+
+test('login consulta a sessão uma única vez por carregamento', async ({ page }) => {
+  let sessionRequests = 0;
+  await page.route('**/api/auth/session', (route) => {
+    sessionRequests += 1;
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ ok: true, authenticated: false })
+    });
+  });
+
+  await page.goto('/login.html');
+  await expect(page.locator('[data-login-form]')).toBeVisible();
+  await expect.poll(() => sessionRequests).toBe(1);
+  await page.waitForTimeout(500);
+  expect(sessionRequests).toBe(1);
 });

@@ -4,7 +4,7 @@ Arandu é uma plataforma de curadoria, apresentação e intermediação de arte 
 
 ## Estado operacional
 
-A base técnica está pronta para uma rodada séria de **staging**, mas o lançamento público e a operação comercial continuam bloqueados até existirem evidências reais.
+A base técnica está pronta para uma **beta pública honesta**, com catálogo e comércio explicitamente fechados. Catálogo real, operação comercial e go-live completo continuam bloqueados até existirem as respectivas evidências.
 
 Já estão implementados no código:
 
@@ -20,13 +20,10 @@ Já estão implementados no código:
 - migrations, rollback, probes, canário e evidências de release;
 - CI com PostgreSQL 16, contratos, segurança, build, SEO e Playwright.
 
-Continuam bloqueadores externos:
-
-1. executar migration, restore e canários em staging;
-2. aprovar a política comercial, fiscal e jurídica;
-3. validar pelo menos 5 artistas e 20 obras reais;
-4. configurar monitoramento, contato LGPD e domínio HTTPS;
-5. concluir o piloto fechado sem bloqueadores críticos.
+Para a beta, faltam ambiente Supabase, migrations, variáveis, contatos, domínio
+HTTPS e smoke tests reais. Para catálogo/comércio/go-live completo, continuam
+bloqueadores externos: staging e restore, política comercial, 5 artistas e 20
+obras reais, monitoramento/LGPD e piloto fechado.
 
 O estado oficial dos 13 gates fica em `ops/release-evidence.json`. Nenhum gate deve ser promovido sem responsável, data e referência verificável.
 
@@ -227,7 +224,9 @@ Segredos pertencem somente ao ambiente do servidor. Não registre valores reais 
 
 ## Critério de lançamento
 
-O Arandu só deve abrir publicamente quando:
+### Go-live comercial completo
+
+A beta pública segue o checklist menor de `docs/RELEASE_CANDIDATE_1.md`. O catálogo e o comércio só devem abrir quando:
 
 - migrations e probes tiverem sido executados em staging;
 - backup e restauração estiverem comprovados;

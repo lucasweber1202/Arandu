@@ -73,7 +73,10 @@ jobs:
       - name: Generate CycloneDX SBOM
         run: npm run sbom:ci
 
+      # A geração é o gate; retenção é best-effort porque a quota de artifacts
+      # é externa e não deve impedir os checks seguintes de executarem.
       - name: Upload SBOM
+        continue-on-error: true
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: arandu-sbom-${{ github.sha }}

@@ -28,6 +28,17 @@ function updateSelectionCount() {
   document.querySelectorAll('[data-selection-count]').forEach((node) => { node.textContent = String(count); });
 }
 
+function updateSelectionDependentActions(items = readSelection()) {
+  const isEmpty = items.length === 0;
+  document.body?.setAttribute('data-selection-empty', String(isEmpty));
+  document.querySelectorAll('[data-selection-dependent]').forEach((control) => {
+    control.hidden = isEmpty;
+    control.style.display = isEmpty ? 'none' : '';
+    control.setAttribute('aria-hidden', String(isEmpty));
+    if ('disabled' in control) control.disabled = isEmpty;
+  });
+}
+
 function normalizeArtworkFromElement(element) {
   return {
     id: element.dataset.artworkId || element.dataset.saveArtwork || `artwork_${Date.now()}`,
@@ -87,6 +98,7 @@ function renderSelection() {
   const target = document.querySelector('[data-selection-list]');
   if (!target) return;
   const items = readSelection();
+  updateSelectionDependentActions(items);
   // Seleção vazia não gera proposta: a saída é encontrar obra ou falar com a
   // curadoria. O link antigo levava para uma página administrativa.
   if (!items.length) { target.innerHTML = '<p>Sua seleção ainda está vazia. Salve obras no acervo para pedir orientação à curadoria.</p><div class="page-actions"><a class="cta" href="comprar-arte.html">Ver o acervo</a><a class="cta secondary" href="contato.html">Falar com a curadoria</a></div>'; return; }
@@ -130,4 +142,15 @@ document.addEventListener('input', (event) => {
   if (note) updateArtworkNote(note.dataset.selectionNote, note.value);
 });
 
-document.addEventListener('DOMContentLoaded', renderSelection);
+document.addEventListener('arandu:selection-updated', renderSelection);
+document.addEventListener('DOMContentLoaded', () => {
+  renderSelection();
+  const observer = new MutationObserver((records) => {
+    const addedDependentAction = records.some((record) => [...record.addedNodes].some((node) =>
+      node.nodeType === Node.ELEMENT_NODE
+      && (node.matches?.('[data-selection-dependent]') || node.querySelector?.('[data-selection-dependent]'))
+    ));
+    if (addedDependentAction) updateSelectionDependentActions();
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+});

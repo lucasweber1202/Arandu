@@ -1,87 +1,81 @@
-# Arandu — Estado de Produção
+# Arandu — estado de produção
 
-## Objetivo da rodada
+## Fonte de verdade
 
-A rodada atual consolidou o site para funcionar com um carregamento centralizado, limpo e mais seguro para validação em Codespace e posterior deploy no Vercel.
+Este documento resume o estado operacional. Em caso de divergência, siga
+`docs/RELEASE_CANDIDATE_1.md`, o código da `main` e
+`ops/release-evidence.json`.
 
-## O que está implementado
+O Arandu separa três decisões que não podem ser confundidas:
 
-- `site.js` aciona automaticamente `arandu-loader.js`.
-- `arandu-loader.js` centraliza as camadas globais.
-- As superfícies internas ficam fora da navegação pública pelo servidor:
-  `api/internal-page.js` exige sessão administrativa e redireciona para o login.
-- `arandu-quality-gate.mjs` valida sintaxe, links, duplicidades, carregamento e conteúdo.
-- `page-inventory.mjs` lista páginas, scripts, CSS e status do loader.
+| Estado | Comando / evidência | O que autoriza |
+|---|---|---|
+| Deploy técnico | `npm run deploy:check` | Build e publicação técnica do site |
+| Beta pública | checklist do RC1 + smoke tests reais | Site público com catálogo e comércio explicitamente fechados |
+| Go-live comercial completo | `npm run predeploy` | Catálogo real, comércio e operação completos |
 
-## Comandos essenciais
+## Deploy técnico
+
+Antes de publicar um preview ou a beta técnica:
 
 ```bash
-git pull origin main
-npm install --include=optional
+npm ci --include=optional
+npm run deploy:check
+```
+
+A Vercel usa `npm run vercel-build`, que preserva essa separação. Um deploy
+técnico verde não promove catálogo, política comercial, piloto ou evidência
+externa.
+
+## Beta pública
+
+A beta pode ser publicada com catálogo fechado e comércio fechado. Ela requer:
+
+- projeto Supabase real identificado;
+- migrations aplicadas na ordem de `docs/supabase-migrations.json`;
+- `SUPABASE_URL`, `SUPABASE_ANON_KEY` e
+  `SUPABASE_SERVICE_ROLE_KEY` configuradas somente no ambiente;
+- `ARANDU_CONTACT_EMAIL` e `ARANDU_WHATSAPP_NUMBER`;
+- `ARANDU_CONSENT_VERSION` e política correspondente;
+- `ARANDU_SITE_URL` em domínio HTTPS;
+- smoke tests de formulário, persistência, UTM, WhatsApp, celular e proteção das
+  páginas internas.
+
+A beta não exige catálogo real, política comercial aprovada, piloto fechado nem
+todos os gates de release. Sem `ARANDU_CONSENT_VERSION`, analytics permanece desligado e o checklist desta beta não está completo.
+
+## Go-live comercial completo
+
+Execute:
+
+```bash
 npm run predeploy
 ```
 
-Para diagnóstico específico:
+`predeploy` inclui `deploy:check` e o gate fail-closed de release. Ele deve
+continuar falhando enquanto staging, restore, canários, catálogo real, política
+comercial, monitoramento, contato LGPD, domínio e piloto não tiverem evidência
+externa verificável.
 
-```bash
-npm run check:quality
-npm run check:inventory
-```
+Nunca altere gates ou evidências apenas para liberar um deploy.
 
-Relatórios gerados:
-
-```text
-reports/arandu-quality-report.json
-reports/page-inventory.json
-```
-
-## Fluxo prioritário para teste manual
+## Teste manual prioritário
 
 1. `/`
-2. `obras.html`
-3. `obra.html?id=estudo-de-solo-04`
-4. `minha-selecao.html`
-5. `proposta-curatorial.html`
+2. `comprar-arte.html`
+3. `minha-selecao.html`
+4. `para-artistas.html`
+5. `empresas-e-arquitetos.html`
 6. `contato.html`
-7. `autenticidade.html`
-8. `verificar-certificado.html`
+7. `login.html`
+8. `/painel.html` (deve exigir autenticação administrativa)
 
-## Critérios de aprovação visual
+Critérios: navegação sem duplicidade, seleção vazia sem ações inertes,
+comparação clicável no desktop/mobile, formulários com retorno honesto,
+consentimento acima das superfícies fixas e nenhuma página interna exposta.
 
-- Header sem duplicidade de Pesquisar.
-- Explorar funcionando.
-- Mobile sem excesso de botões flutuantes.
-- Página de obra abre e mostra conteúdo.
-- Seleção salva obras e atualiza contagem.
-- Proposta e contato preservam contexto.
-- Nenhum painel interno visível no modo público normal.
+## Estado atual
 
-## Modo de depuração
-
-Para ver elementos internos e QA visual:
-
-```text
-?debug=1
-```
-
-Ou no console:
-
-```js
-localStorage.setItem('arandu.debug', 'true')
-```
-
-Para voltar ao modo público:
-
-```js
-localStorage.removeItem('arandu.debug')
-```
-
-## Observação antes do deploy
-
-Só publicar no Vercel se:
-
-```bash
-npm run predeploy
-```
-
-passar sem erro crítico.
+Código e contratos estão prontos para beta. As pendências prioritárias são de
+ambiente e operação; o estado oficial dos 13 gates externos permanece em
+`ops/release-evidence.json`.

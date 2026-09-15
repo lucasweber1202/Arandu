@@ -734,3 +734,36 @@ test('as ações fora do main também cabem no polegar', async ({ page, isMobile
   }
   expect(falhas, falhas.join('\n')).toEqual([]);
 });
+
+
+test('seleção vazia oferece somente ações que não dependem de obras', async ({ page }) => {
+  await stubApi(page);
+  await page.goto('/minha-selecao.html');
+
+  const dependent = page.locator('[data-selection-dependent]');
+  await expect(dependent.first()).toBeAttached();
+  await expect(page.locator('[data-selection-dependent]:visible')).toHaveCount(0);
+  expect(await dependent.evaluateAll((controls) => controls.every((control) =>
+    control.hidden
+    && control.getAttribute('aria-hidden') === 'true'
+    && (!('disabled' in control) || control.disabled)
+  ))).toBe(true);
+  await expect(page.getByRole('link', { name: /Adicionar obras|Voltar ao acervo|Ver o acervo/ }).first()).toBeVisible();
+
+  await page.evaluate(() => {
+    localStorage.setItem('arandu.selection.v1', JSON.stringify([{
+      id: 'obra-a',
+      title: 'Horizonte de Barro',
+      artist: 'Artista A',
+      url: 'obra.html?id=obra-a'
+    }]));
+    document.dispatchEvent(new CustomEvent('arandu:selection-updated'));
+  });
+
+  await expect(page.locator('[data-selection-dependent]:visible')).toHaveCount(await dependent.count());
+  expect(await dependent.evaluateAll((controls) => controls.every((control) =>
+    !control.hidden
+    && control.getAttribute('aria-hidden') === 'false'
+    && (!('disabled' in control) || !control.disabled)
+  ))).toBe(true);
+});
