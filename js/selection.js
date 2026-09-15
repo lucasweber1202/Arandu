@@ -142,4 +142,14 @@ document.addEventListener('input', (event) => {
 });
 
 document.addEventListener('arandu:selection-updated', renderSelection);
-document.addEventListener('DOMContentLoaded', renderSelection);
+document.addEventListener('DOMContentLoaded', () => {
+  renderSelection();
+  const observer = new MutationObserver((records) => {
+    const addedDependentAction = records.some((record) => [...record.addedNodes].some((node) =>
+      node.nodeType === Node.ELEMENT_NODE
+      && (node.matches?.('[data-selection-dependent]') || node.querySelector?.('[data-selection-dependent]'))
+    ));
+    if (addedDependentAction) updateSelectionDependentActions();
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+});
