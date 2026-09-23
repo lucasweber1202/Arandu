@@ -153,7 +153,63 @@ begin
   end if;
 end $$;
 
+-- --------------------------------------------- outbox de e-mail desligada
+
 reset role;
+do $$
+declare v_enabled text; v_queued integer;
+begin
+  select public.fin_setting('email_enabled', 'ausente') into v_enabled;
+  if v_enabled <> 'false' then raise exception 'envio de e-mail nasce ligado (%)', v_enabled; end if;
+
+  -- Com a chave desligada, nada é enfileirado.
+  if public.fin_enqueue_email('provider_invite', 'contato@exemplo.invalid', 'rfq',
+       '00000000-0000-4000-8000-00000000cb01', '{}'::jsonb, 'teste-desligado') then
+    raise exception 'e-mail foi enfileirado com o envio desligado';
+  end if;
+  select count(*) into v_queued from public.transactional_email_outbox where idempotency_key = 'teste-desligado';
+  if v_queued <> 0 then raise exception 'linha entrou na outbox com o envio desligado'; end if;
+
+  -- Ligada, enfileira uma vez só e nunca guarda o token nem termo financeiro.
+  update public.fin_settings set value = 'true' where key = 'email_enabled';
+  perform public.fin_enqueue_email('provider_invite', 'contato@exemplo.invalid', 'rfq',
+    '00000000-0000-4000-8000-00000000cb01',
+    jsonb_build_object('buyer', 'Empresa DEMO', 'product', 'credit', 'invite_ref', '00000000-0000-4000-8000-00000000cb02'),
+    'teste-ligado');
+  perform public.fin_enqueue_email('provider_invite', 'contato@exemplo.invalid', 'rfq',
+    '00000000-0000-4000-8000-00000000cb01', '{}'::jsonb, 'teste-ligado');
+  select count(*) into v_queued from public.transactional_email_outbox where idempotency_key = 'teste-ligado';
+  if v_queued <> 1 then raise exception 'enfileiramento não é idempotente (%)', v_queued; end if;
+
+  if exists (select 1 from public.transactional_email_outbox
+             where idempotency_key = 'teste-ligado'
+               and payload::text ~* '(token|interest_rate|mdr|offered_amount)') then
+    raise exception 'payload de e-mail carrega token ou termo financeiro';
+  end if;
+
+  -- Modelo fora do vocabulário é recusado.
+  begin
+    perform public.fin_enqueue_email('promocao', 'contato@exemplo.invalid', 'rfq',
+      '00000000-0000-4000-8000-00000000cb01', '{}'::jsonb, 'teste-invalido');
+    raise exception 'modelo de e-mail desconhecido foi aceito';
+  exception when others then
+    if sqlerrm not like '%unknown template%' then raise; end if;
+  end;
+
+  update public.fin_settings set value = 'false' where key = 'email_enabled';
+  -- A outbox é compartilhada com o restante do Arandu: deixar a linha de teste
+  -- pendente faria o teste de concorrência da outbox contar um claim a mais.
+  delete from public.transactional_email_outbox where idempotency_key in ('teste-ligado', 'teste-desligado');
+end $$;
+
+do $$
+begin
+  if has_table_privilege('authenticated', 'public.fin_settings', 'SELECT')
+    or has_function_privilege('authenticated', 'public.fin_enqueue_email(text,text,text,uuid,jsonb,text)', 'EXECUTE') then
+    raise exception 'conta comum alcança as chaves de operação do piloto';
+  end if;
+end $$;
+
 select set_config('request.jwt.claim.sub', '', false);
 
-\echo 'Financial Procurement pilot: allowlist, aceite de termos e eventos de cliente aprovados.'
+\echo 'Financial Procurement pilot: allowlist, aceite de termos, eventos de cliente e outbox de e-mail aprovados.'

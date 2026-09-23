@@ -134,3 +134,105 @@ grant execute on function
   public.fin_record_client_event(uuid, text, uuid, text)
   to authenticated, service_role;
 grant execute on function public.fin_pilot_access_allowed(text) to service_role;
+
+-- ============================================================================
+-- Enfileiramento de e-mail na outbox transacional existente
+-- ============================================================================
+--
+-- O envio continua desligado por padrão. A chave está no banco, e não em
+-- variável de ambiente, porque quem liga o envio é quem opera o piloto e não
+-- quem faz deploy — e porque enfileirar sem despachante produz uma fila que só
+-- cresce enquanto a empresa acha que o convite foi enviado.
+--
+-- Com a chave desligada, `fin_enqueue_email` não faz nada e devolve false; o
+-- convite continua sendo entregue manualmente, que é o comportamento
+-- documentado em docs/FINANCIAL_EMAIL_TEMPLATES.md.
+create table if not exists public.fin_settings (
+  key text primary key,
+  value text not null,
+  updated_by uuid references auth.users(id),
+  updated_at timestamptz not null default now()
+);
+alter table public.fin_settings enable row level security;
+alter table public.fin_settings force row level security;
+revoke all on public.fin_settings from anon, authenticated;
+
+insert into public.fin_settings (key, value) values ('email_enabled', 'false')
+  on conflict (key) do nothing;
+
+create or replace function public.fin_setting(p_key text, p_default text default '')
+returns text language sql stable security definer set search_path = '' as $$
+  select coalesce((select value from public.fin_settings where key = p_key), p_default);
+$$;
+
+-- O corpo do e-mail é renderizado pelo despachante a partir de
+-- lib/finance/email-templates.mjs. O que entra no payload aqui é o mínimo para
+-- renderizar e endereçar: nenhum termo financeiro, nenhuma condição, nenhum
+-- valor. Um e-mail encaminhado não pode virar vazamento de taxa ou de MDR.
+create or replace function public.fin_enqueue_email(
+  p_template text, p_recipient text, p_entity_type text, p_entity_id uuid,
+  p_payload jsonb, p_idempotency_key text
+) returns boolean language plpgsql security definer set search_path = '' as $$
+declare v_hash text;
+begin
+  if public.fin_setting('email_enabled', 'false') <> 'true' then return false; end if;
+  if coalesce(p_recipient,'') !~* '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$' then return false; end if;
+  if p_template not in (
+    'member_invite','provider_invite','rfq_opened','deadline_near',
+    'proposal_received','proposal_revised','decision_recorded','renewal_due'
+  ) then raise exception 'unknown template'; end if;
+  v_hash := encode(sha256(convert_to(lower(trim(p_recipient)), 'UTF8')), 'hex');
+  insert into public.transactional_email_outbox (
+    event_type, entity_type, entity_id, template, recipient_hash, recipient_address,
+    payload, request_id, idempotency_key
+  ) values (
+    'finance_' || p_template, p_entity_type, p_entity_id::text, p_template, v_hash, lower(trim(p_recipient)),
+    coalesce(p_payload, '{}'::jsonb), 'finance-' || p_entity_id::text, p_idempotency_key
+  ) on conflict (idempotency_key) do nothing;
+  return true;
+end $$;
+
+-- O convite de provedor é o ponto mais crítico do piloto: é por ele que uma
+-- instituição externa entra. Quando o envio está ligado, o e-mail nasce na
+-- mesma transação que o convite — não existe convite criado cujo e-mail se
+-- perdeu, nem e-mail enviado de um convite que não foi gravado.
+--
+-- O TOKEN não entra no payload da outbox. Ele vai apenas no link, montado pelo
+-- despachante a partir de `invite_ref`, e a outbox guarda a referência, não o
+-- segredo.
+create or replace function public.fin_invite_provider(p_rfq uuid, p_provider uuid)
+returns text language plpgsql security definer set search_path = '' as $$
+declare v_org uuid; v_status text; v_token text; v_invite uuid; v_contact text; v_buyer text; v_deadline date; v_product text;
+begin
+  select organization_id, status, response_deadline, product into v_org, v_status, v_deadline, v_product
+    from public.fin_rfqs where id = p_rfq;
+  if v_org is null then raise exception 'rfq not found'; end if;
+  if not public.fin_has_role(v_org, array['admin','finance_manager']) then raise exception 'forbidden'; end if;
+  if v_status not in ('draft','open','collecting') then raise exception 'invalid state'; end if;
+  select contact_email into v_contact from public.fin_providers p
+    where p.id = p_provider and p.organization_id = v_org and p.status = 'active';
+  if not found then raise exception 'provider not found'; end if;
+  select legal_name into v_buyer from public.fin_organizations where id = v_org;
+  v_token := replace(gen_random_uuid()::text,'-','') || replace(gen_random_uuid()::text,'-','');
+  insert into public.fin_rfq_invites (buyer_organization_id, rfq_id, provider_id, token_hash, created_by)
+    values (v_org, p_rfq, p_provider, encode(sha256(convert_to(v_token,'UTF8')),'hex'), auth.uid())
+    returning id into v_invite;
+  insert into public.fin_events (organization_id, entity_type, entity_id, event_type, actor_id)
+    values (v_org, 'rfq', p_rfq, 'provider_invited', auth.uid());
+  if v_contact is not null then
+    perform public.fin_enqueue_email(
+      'provider_invite', v_contact, 'rfq', p_rfq,
+      jsonb_build_object('buyer', v_buyer, 'product', v_product, 'deadline', v_deadline, 'invite_ref', v_invite),
+      'provider_invite:' || v_invite::text);
+  end if;
+  return v_token;
+end $$;
+
+revoke all on function
+  public.fin_setting(text, text),
+  public.fin_enqueue_email(text, text, text, uuid, jsonb, text)
+  from public, anon, authenticated;
+grant execute on function
+  public.fin_setting(text, text),
+  public.fin_enqueue_email(text, text, text, uuid, jsonb, text)
+  to service_role;
