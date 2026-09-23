@@ -1,0 +1,96 @@
+/* Arandu Financial Procurement — casca própria dos portais B2B.
+   Mantida separada do CSS do site de arte para não arrastar o layout editorial
+   para dentro de um painel operacional. */
+:root{
+  --ink:#152433;--ink-soft:#526473;--line:#d5e0e6;--bg:#f3f7f8;--card:#fff;
+  --brand:#0f5b62;--brand-dark:#0a4046;--accent:#b4641a;--ok:#125c3b;--alert:#8b2020;
+  font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:var(--ink);background:var(--bg);
+}
+*{box-sizing:border-box}
+body{margin:0;line-height:1.5}
+.skip-link{position:absolute;left:-10000px;top:0;z-index:20}
+.skip-link:focus{left:1rem;top:1rem;background:#fff;color:var(--ink);padding:.6rem;border-radius:6px}
+header.app{background:var(--brand-dark);color:#fff;padding:.9rem max(1rem,calc((100vw - 1180px)/2))}
+header.app .bar{display:flex;flex-wrap:wrap;gap:1rem;align-items:center;justify-content:space-between}
+header.app a{color:inherit;text-decoration:none}
+header.app .brand{font-weight:700;font-size:1.05rem}
+header.app .brand small{font-weight:400;opacity:.75;display:block;font-size:.75rem;letter-spacing:.06em;text-transform:uppercase}
+nav.app{display:flex;flex-wrap:wrap;gap:.25rem}
+nav.app a{padding:.4rem .7rem;border-radius:6px;font-size:.92rem}
+nav.app a[aria-current="page"]{background:rgba(255,255,255,.18);font-weight:600}
+nav.app a:hover{background:rgba(255,255,255,.12)}
+main{max-width:1180px;margin:auto;padding:2rem 1rem 4rem}
+h1{font-size:clamp(1.6rem,4vw,2.4rem);line-height:1.15;margin:.2rem 0 .6rem}
+h2{font-size:1.15rem;margin:0 0 .5rem}
+h3{font-size:1rem;margin:1.2rem 0 .4rem}
+.lede{color:var(--ink-soft);max-width:70ch;margin:0 0 1.5rem}
+.boundary{border-left:4px solid var(--accent);background:#fff7ee;padding:.8rem 1rem;border-radius:0 8px 8px 0;margin:0 0 1.5rem;font-size:.92rem}
+.demo-flag{background:#2b2b2b;color:#fff;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;padding:.35rem .6rem;border-radius:4px;display:inline-block;margin-bottom:.8rem}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:1.1rem 1.2rem;margin-bottom:1.2rem}
+.grid{display:grid;gap:1rem}
+@media(min-width:760px){.grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}.grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:1rem}
+.stat b{display:block;font-size:1.8rem;line-height:1.1}
+.stat span{color:var(--ink-soft);font-size:.88rem}
+form{display:grid;gap:.7rem;margin:.6rem 0 0}
+fieldset{border:1px solid var(--line);border-radius:8px;padding:.9rem;margin:0}
+legend{padding:0 .4rem;font-weight:600;font-size:.92rem}
+label{display:grid;gap:.25rem;font-size:.9rem}
+input,select,textarea,button{font:inherit;padding:.6rem;border:1px solid #9cb0ba;border-radius:6px;max-width:100%;background:#fff;color:inherit}
+textarea{min-height:76px}
+button,.button{background:var(--brand);color:#fff;border:0;cursor:pointer;text-decoration:none;padding:.65rem 1rem;border-radius:6px;display:inline-block;text-align:center}
+button.secondary{background:#e5edef;color:var(--brand-dark)}
+button:hover,.button:hover{background:var(--brand-dark)}
+button.secondary:hover{background:#d3e0e3}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.table-scroll{overflow-x:auto;margin-top:.6rem}
+table{border-collapse:collapse;width:100%;min-width:420px;font-size:.92rem}
+th,td{border:1px solid var(--line);padding:.5rem .6rem;text-align:left;vertical-align:top;overflow-wrap:anywhere}
+thead th{background:#eef4f5}
+td.best{background:#eaf5ee}
+td.best .why{display:block;font-size:.74rem;color:var(--ok)}
+.rows{display:grid;gap:.6rem;margin-top:.6rem}
+.row{border:1px solid var(--line);border-radius:8px;padding:.7rem .8rem;background:#fcfefe;overflow-wrap:anywhere}
+.row b{display:block}
+.row small{display:block;color:var(--ink-soft)}
+.tag{display:inline-block;font-size:.74rem;text-transform:uppercase;letter-spacing:.05em;background:#e5edef;color:var(--brand-dark);border-radius:999px;padding:.15rem .55rem;margin-right:.3rem}
+.empty{border:1px dashed var(--line);border-radius:8px;padding:1.2rem;color:var(--ink-soft);text-align:center}
+.muted{color:var(--ink-soft);font-size:.88rem}
+#message{min-height:1.4rem;margin:0 0 1rem;font-weight:600;color:var(--alert)}
+#message.success{color:var(--ok)}
+#message.info{color:var(--ink-soft)}
+.loading{color:var(--ink-soft);font-style:italic}
+footer.app{border-top:1px solid var(--line);margin-top:2rem;padding:1.5rem max(1rem,calc((100vw - 1180px)/2));color:var(--ink-soft);font-size:.85rem}
+footer.app a{color:var(--brand-dark)}
+@media(max-width:759px){header.app .bar{align-items:flex-start;flex-direction:column;gap:.6rem}}
+
+/* Comparação: tabela em tela larga, um cartão por proposta no celular.
+   A tabela rolando de lado no telefone perde o cabeçalho da linha, e quem
+   rola deixa de saber que número está lendo. */
+.comparison-cards{display:none;gap:1rem}
+.compare-card{background:#fcfefe;border:1px solid var(--line);border-radius:10px;padding:.9rem}
+.compare-card h3{margin:0 0 .2rem}
+.compare-list{display:grid;grid-template-columns:1fr auto;gap:.3rem .8rem;margin:.6rem 0 0}
+.compare-list dt{color:var(--ink-soft);font-size:.88rem}
+.compare-list dd{margin:0;text-align:right;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.compare-list dd.best{background:#eaf5ee;border-radius:4px;padding:0 .35rem}
+.compare-list dd.best .why{display:block;font-size:.72rem;color:var(--ok)}
+@media(max-width:759px){
+  .comparison-wide{display:none}
+  .comparison-cards{display:grid}
+}
+.coverage{font-variant-numeric:tabular-nums}
+#weights-output .boundary{margin-top:.8rem}
+.freshness{display:inline-block;border-radius:999px;padding:.1rem .5rem;font-size:.74rem;margin-left:.4rem}
+.freshness.ok{background:#e4f2ea;color:var(--ok)}
+.freshness.due{background:#fcf1e0;color:#8a5a12}
+.freshness.stale{background:#fbe9e9;color:var(--alert)}
+.freshness.missing{background:#eef1f3;color:var(--ink-soft)}
+.steps{display:flex;flex-wrap:wrap;gap:.4rem;list-style:none;padding:0;margin:0 0 1rem;counter-reset:step}
+.steps li{background:#fff;border:1px solid var(--line);border-radius:999px;padding:.3rem .8rem;font-size:.85rem;color:var(--ink-soft)}
+.steps li[aria-current="step"]{background:var(--brand);color:#fff;border-color:var(--brand);font-weight:600}
+.wizard-nav{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.4rem}
+.wizard-nav button[hidden]{display:none}
+button:disabled{background:#c3d0d4;cursor:not-allowed}
+details{margin:.5rem 0}
+summary{cursor:pointer;color:var(--brand-dark);font-weight:600}

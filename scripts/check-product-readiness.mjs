@@ -49,7 +49,11 @@ for (const flow of ['cleanInstall', 'existingDatabase']) {
   if (fencing !== trailCompleteness + 1) problems.push(`Fencing da outbox deve vir logo depois da trilha operacional completa em ${flow}.`);
   const betaEvents = migrations.indexOf('docs/supabase-beta-conversion-events.sql');
   if (betaEvents !== fencing + 1) problems.push(`Eventos de conversão da beta devem vir logo depois do fencing da outbox em ${flow}.`);
-  if (betaEvents !== migrations.length - 1) problems.push(`Eventos de conversão da beta devem encerrar a sequência atual em ${flow}.`);
+  const financial = migrations.indexOf('docs/supabase-financial-procurement.sql');
+  if (financial !== betaEvents + 1) problems.push(`Procurement financeiro deve vir logo depois dos eventos de conversão da beta em ${flow}.`);
+  const financialHardening = migrations.indexOf('docs/supabase-financial-procurement-hardening.sql');
+  if (financialHardening !== financial + 1) problems.push(`Endurecimento do procurement financeiro deve vir logo depois da migration base em ${flow}.`);
+  if (financialHardening !== migrations.length - 1) problems.push(`Endurecimento do procurement financeiro deve encerrar a sequência atual em ${flow}.`);
 }
 
 const sql = fs.readFileSync('docs/supabase-orders.sql', 'utf8');

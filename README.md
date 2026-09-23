@@ -2,6 +2,26 @@
 
 Arandu é uma plataforma de curadoria, apresentação e intermediação de arte brasileira contemporânea. A experiência relaciona obra, artista, território, procedência e acompanhamento humano, sem tratar o catálogo como um e-commerce genérico.
 
+## Arandu — Financial Procurement (B2B)
+
+Além da vertical de Arte, o repositório abriga a plataforma de **procurement
+financeiro B2B**: a empresa estrutura uma necessidade (crédito empresarial ou
+adquirência), solicita propostas a múltiplos provedores, compara condições
+normalizadas, registra a decisão humana e acompanha contrato e renovação.
+
+O Arandu **não** concede crédito, não decide crédito, não movimenta recursos,
+não executa pagamentos e não recomenda instituições — ver
+[`docs/FINANCIAL_PRODUCT_BOUNDARIES.md`](docs/FINANCIAL_PRODUCT_BOUNDARIES.md).
+
+* Portais: `/finance/` (empresa) e `/provider/` (provedor).
+* API: `/api/finance/*`.
+* Banco: `docs/supabase-financial-procurement.sql` (aditiva, com rollback).
+* Documentação: [`docs/FINANCIAL_PROCUREMENT_PRODUCT.md`](docs/FINANCIAL_PROCUREMENT_PRODUCT.md),
+  [`docs/FINANCIAL_DATA_MODEL.md`](docs/FINANCIAL_DATA_MODEL.md),
+  [`docs/FINANCIAL_SECURITY_MODEL.md`](docs/FINANCIAL_SECURITY_MODEL.md),
+  [`docs/FINANCIAL_MVP_RUNBOOK.md`](docs/FINANCIAL_MVP_RUNBOOK.md),
+  [`docs/FINANCIAL_PIVOT_AUDIT.md`](docs/FINANCIAL_PIVOT_AUDIT.md).
+
 ## Estado operacional
 
 A base técnica está pronta para uma **beta pública honesta**, com catálogo e comércio explicitamente fechados. Catálogo real, operação comercial e go-live completo continuam bloqueados até existirem as respectivas evidências.
