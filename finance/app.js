@@ -361,6 +361,30 @@ function organizationForm(organization) {
   return panel;
 }
 
+/**
+ * Lê o token do convite e o REMOVE do endereço imediatamente.
+ *
+ * O token é um segredo de uso único. Deixá-lo na URL o espalha por caminhos que
+ * ninguém controla: histórico do navegador, cabeçalho `Referer` de qualquer
+ * link clicado, log de acesso do host e analytics da página. Os links passaram
+ * a usar o fragmento (`#token=…`), que o navegador nunca envia em requisição
+ * alguma; a leitura de `?token=` continua aqui só para não quebrar um convite
+ * já entregue, e nesse caso a limpeza do endereço é o que impede o vazamento.
+ */
+function takeInviteToken() {
+  let token = '';
+  const hash = new URLSearchParams(String(location.hash || '').replace(/^#/, ''));
+  const query = new URLSearchParams(location.search);
+  token = (hash.get('token') || query.get('token') || '').trim();
+  if (!token) return '';
+  try {
+    query.delete('token');
+    const search = query.toString();
+    history.replaceState(null, '', `${location.pathname}${search ? `?${search}` : ''}`);
+  } catch { /* sem history API seguimos com o token já em memória */ }
+  return token;
+}
+
 const REVENUE_BANDS = Object.freeze([
   ['ate_360k', 'Até R$ 360 mil'],
   ['360k_4_8m', 'R$ 360 mil a R$ 4,8 milhões'],
@@ -757,7 +781,7 @@ const views = {
    */
   providerInvite: async (data) => {
     const frag = document.createDocumentFragment();
-    const token = (new URLSearchParams(location.search).get('token') || '').trim();
+    const token = takeInviteToken();
     const panel = el('section', { class: 'panel' });
     panel.append(el('h2', { text: 'Aceitar convite para responder a uma solicitação' }));
 

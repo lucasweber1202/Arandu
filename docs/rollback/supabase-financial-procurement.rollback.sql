@@ -5,6 +5,9 @@
 -- vertical de Arte é tocada. Reaplicar a migration restaura o schema; os dados
 -- das tabelas removidas não voltam, então exporte antes se houver conteúdo.
 
+drop function if exists public.fin_record_client_event(uuid, text, uuid, text);
+drop function if exists public.fin_accept_terms(uuid, text, text);
+drop function if exists public.fin_pilot_access_allowed(text);
 drop function if exists public.fin_record_provider_evidence(uuid, text, text, text, date);
 drop function if exists public.fin_update_organization(uuid, text, text, text, text);
 drop function if exists public.fin_register_contract(uuid, date, date, integer, text, text, text);
@@ -30,6 +33,8 @@ do $$ declare p record; begin
   end loop;
 end $$;
 
+drop table if exists public.fin_pilot_allowlist;
+drop table if exists public.fin_terms_acceptances;
 drop table if exists public.fin_events;
 drop table if exists public.fin_tasks;
 drop table if exists public.fin_documents;

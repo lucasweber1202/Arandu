@@ -84,7 +84,11 @@ for (const [flow, files] of Object.entries(manifest)) {
   const financialHardening = files.indexOf('docs/supabase-financial-procurement-hardening.sql');
   if (financialHardening === -1) issues.push(`${flow}: endurecimento do procurement financeiro ausente.`);
   if (financial !== -1 && financialHardening !== financial + 1) issues.push(`${flow}: o endurecimento deve vir imediatamente depois do procurement financeiro.`);
-  if (financialHardening !== -1 && financialHardening !== files.length - 1) issues.push(`${flow}: o endurecimento do procurement financeiro deve encerrar a sequência atual.`);
+  // Os controles de piloto dependem das tabelas e funções das duas anteriores.
+  const financialPilot = files.indexOf('docs/supabase-financial-pilot.sql');
+  if (financialPilot === -1) issues.push(`${flow}: controles de piloto financeiro ausentes.`);
+  if (financialHardening !== -1 && financialPilot !== financialHardening + 1) issues.push(`${flow}: os controles de piloto devem vir imediatamente depois do endurecimento.`);
+  if (financialPilot !== -1 && financialPilot !== files.length - 1) issues.push(`${flow}: os controles de piloto financeiro devem encerrar a sequência atual.`);
 }
 
 console.log('Arandu Migration Order Check');
