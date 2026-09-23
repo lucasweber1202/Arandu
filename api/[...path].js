@@ -8,6 +8,7 @@ import { createSelectionsDomain } from '../lib/api/domains/selections.mjs';
 import { createAccountsDomain } from '../lib/api/domains/accounts.mjs';
 import { createPrivacyDomain } from '../lib/api/domains/privacy.mjs';
 import { createDashboardDomain } from '../lib/api/domains/dashboard.mjs';
+import { handleFinance } from '../lib/api/domains/finance.mjs';
 
 import { AdminAuthError, applyAdminResponseHeaders, requireAdmin } from '../lib/admin-auth.mjs';
 import { requireAdminPermission } from '../lib/admin-rbac.mjs';
@@ -387,6 +388,9 @@ export default async function handler(req, res) {
     enforceSameOrigin(req);
     const route = routeFrom(req);
     if (route === 'security-contact') return await handleSecurityText(req, res);
+    // Procurement financeiro B2B: domínio próprio, com sessão de usuário e
+    // isolamento multi-tenant garantidos pelo RLS do Supabase.
+    if (route.startsWith('finance/')) return await handleFinance(req, res, route.slice('finance/'.length), { requireUser, enforceRateLimit });
     if (route === 'forms') return await handleForms(req, res);
     if (route === 'reservations') return await handleReservations(req, res);
     if (route === 'proposals') { requireCommercialReady(); return await handleProposals(req, res); }
@@ -414,6 +418,25 @@ export default async function handler(req, res) {
     return json(res, 404, { ok: false, error: 'Rota de API não encontrada.', route });
   } catch (error) {
     const route = routeFrom(req);
+    // O domínio financeiro nunca repassa a mensagem bruta do Postgres: ela
+    // revelaria nomes de tabela, policies e a existência de registros de
+    // outra organização.
+    if (route.startsWith('finance/') && !(error instanceof HttpError)) {
+      const upstream = Number(error?.status);
+      const status = [400, 401, 403, 404, 409].includes(upstream) ? upstream : 503;
+      if (status >= 500) {
+        await reportError({
+          service: 'arandu-finance-api', requestId, route: 'finance', status,
+          code: 'upstream_unavailable', method: req.method,
+          error: new Error('Financial procurement upstream unavailable')
+        });
+      }
+      return json(res, status, {
+        ok: false,
+        error: status === 503 ? 'Serviço temporariamente indisponível.' : 'Operação inválida ou sem permissão.',
+        requestId
+      });
+    }
     const fallbackStatus = route === 'auth/login' ? 401 : route === 'auth/signup' ? 400 : 500;
     const ownershipMigrationPending = /user_id/i.test(String(error?.message || '')) && /(column|schema cache|does not exist|não existe)/i.test(String(error?.message || ''));
     const status = ownershipMigrationPending ? 503 : Number(error?.status) || fallbackStatus;

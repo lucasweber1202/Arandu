@@ -1,0 +1,148 @@
+# Arandu — Financial Procurement Platform
+
+## Definição de produto
+
+O Arandu é uma plataforma para empresas **estruturarem necessidades financeiras,
+solicitarem propostas a múltiplos provedores, compararem condições de forma
+padronizada, decidirem com mais informação e acompanharem contratos e
+renovações**.
+
+A função do produto é organizar o processo competitivo de contratação de
+produtos financeiros B2B. Nada além disso. Os limites estão em
+[`FINANCIAL_PRODUCT_BOUNDARIES.md`](FINANCIAL_PRODUCT_BOUNDARIES.md) e valem
+como regra de engenharia, não apenas como texto de marketing.
+
+## Cliente e usuários
+
+Empresas brasileiras pequenas, médias e grupos empresariais menores, com
+operação financeira minimamente estruturada. Os usuários são CFO, gerente
+financeiro, tesoureiro, controller, fundador, analista financeiro, comprador
+financeiro e o administrador da conta da empresa.
+
+Do outro lado estão os provedores: bancos, fintechs, adquirentes,
+subadquirentes, instituições de crédito, provedores de meios de pagamento e,
+quando juridicamente apropriado, originadores de recebíveis.
+
+## Produtos do MVP
+
+Exatamente dois, e os dois funcionam ponta a ponta.
+
+### 1. Crédito empresarial
+
+```
+necessidade → RFQ → convite a provedores → propostas → normalização
+→ comparação factual → decisão humana → contrato → acompanhamento de renovação
+```
+
+Campos da demanda e da proposta estão declarados em
+[`lib/finance/products.mjs`](../lib/finance/products.mjs) e detalhados em
+[`FINANCIAL_DATA_MODEL.md`](FINANCIAL_DATA_MODEL.md).
+
+### 2. Adquirência e meios de pagamento
+
+```
+perfil de recebimentos → RFQ → propostas → normalização
+→ comparação factual (MDR, PIX, antecipação, liquidação, custo fixo)
+→ decisão humana → contrato → repricing
+```
+
+## Princípio central de comparação
+
+O Arandu **não diz** que uma instituição é a melhor.
+
+Ele diz o que é verificável na proposta recebida: menor taxa informada, menor
+CET informado, menor custo total declarado, maior prazo, maior carência, menor
+exigência de garantia, menor MDR, menor taxa de antecipação, menor custo fixo,
+menor prazo de liquidação, proposta mais recente, maior validade.
+
+A empresa pode definir critérios e pesos próprios. Nesse caso — e só nesse caso
+— existe uma ordenação, sempre rotulada **"Resultado conforme os pesos definidos
+por você"**. A expressão "Recomendação do Arandu" não existe no produto.
+
+Quando a empresa define pesos, o resultado vem com a **cobertura** de cada
+proposta — a parcela do peso definido que ela efetivamente respondeu. Uma
+proposta que responde 25% do peso pode ter nota alta sobre esse pouco; ela é
+marcada e fica depois das completas, em vez de liderar em silêncio. Critérios
+em que todas informaram o mesmo valor são nomeados como não discriminantes.
+
+A proteção é dupla:
+
+* **backend** — `lib/finance/comparison.mjs` só produz `applyUserWeights` quando
+  recebe pesos explícitos; a resposta de comparação sem pesos não tem campo de
+  ranking, e `scripts/test-finance-domain.mjs` verifica a ausência das chaves
+  `ranking`, `recommended` e `best`;
+* **frontend** — `finance/app.js` só renderiza ordenação depois do envio do
+  formulário de pesos, e o texto do rótulo é verificado pela suíte E2E de
+  apresentação.
+
+## Cálculos e proveniência
+
+O Arandu **nunca inventa CET**. O CET aparece apenas quando o provedor o
+informa.
+
+Quando todos os insumos existem, o produto pode mostrar uma estimativa própria
+de custo, sempre acompanhada de:
+
+* fórmula explícita;
+* insumos utilizados;
+* premissas assumidas;
+* marcação de que é estimativa.
+
+Faltando qualquer insumo, o resultado é **o motivo pelo qual não foi
+calculado**, não um número aproximado nem um campo vazio. O Arandu recusa a
+projeção quando:
+
+* falta valor, taxa, prazo ou tarifa;
+* a taxa é pós-fixada (exigiria arbitrar uma curva de CDI ou IPCA);
+* a amortização é SAC, bullet ou customizada (a fórmula é PRICE);
+* há carência (o tratamento dos juros no período varia por contrato);
+* em adquirência, uma fatia foi declarada sem a taxa correspondente.
+
+A **antecipação não entra** no custo mensal de adquirência: calculá-la exigiria
+volume antecipado e prazo médio, que a empresa não declara nesta fase, e
+embutir uma hipótese mudaria a ordem das propostas sem ninguém ver a hipótese.
+Quando o mix declarado não soma 100%, a estimativa diz que cobre apenas a parte
+declarada.
+
+## Módulos
+
+| Módulo | Onde vive |
+| --- | --- |
+| Organizações, membros e papéis | `fin_organizations`, `fin_members`, `fin_member_invitations` |
+| Perfil financeiro reutilizável | `fin_company_profiles` |
+| Provedores | `fin_providers` |
+| RFQ e máquina de estados | `fin_rfqs`, `lib/finance/workflow.mjs` |
+| Convite de provedor (uso único) | `fin_rfq_invites` |
+| Propostas e versões | `fin_proposals`, `fin_proposal_versions` |
+| Comparação | `lib/finance/comparison.mjs` |
+| Decisão com snapshot | `fin_decisions` |
+| Contratos e renovação | `fin_contracts` |
+| Documentos por referência | `fin_documents` |
+| Tarefas e trilha | `fin_tasks`, `fin_events` |
+| Validação local de CNPJ | `lib/finance/cnpj.mjs` |
+| Modelos de e-mail (preparados, não enviando) | `lib/finance/email-templates.mjs` |
+
+## Interfaces
+
+Portal da empresa (`/finance/`): início, painel, solicitações, detalhe da RFQ,
+provedores, propostas, contratos, perfil financeiro e limites do produto.
+
+Portal do provedor (`/provider/`): início, aceite de convite com estado
+explícito, RFQs atribuídas com a necessidade declarada, e resposta de proposta
+com rascunho local e histórico de versões.
+
+## Preparação para benchmarking (não implementado)
+
+A arquitetura já sustenta um benchmarking futuro — dados estruturados,
+propostas versionadas, produto normalizado, datas confiáveis, setor e porte
+disponíveis. **Nenhum benchmark agregado é exibido**, e não deve ser exibido
+antes de haver volume suficiente e política de anonimização validada
+juridicamente.
+
+## Fora de escopo nesta rodada
+
+Seguros, câmbio, leasing, factoring avançado, marketplace de FIDC, conta
+digital, PIX, transferências, open finance real, score de crédito,
+underwriting, cobrança, emissão de crédito, KYC pago, assinatura eletrônica,
+integração real com bancos, equity, crowdfunding, investimentos, gestão de
+portfólio, recomendação automatizada e qualquer forma de IA escolhendo proposta.
