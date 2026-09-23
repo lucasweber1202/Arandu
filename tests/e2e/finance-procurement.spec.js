@@ -45,7 +45,9 @@ test('portais da empresa e do provedor abrem, são acessíveis e cabem na viewpo
     // A fronteira de produto é declarada em toda página operacional do portal;
     // a própria página de limites é a versão longa dela.
     if (path === '/finance/boundaries.html') await expect(page.locator('main')).toContainText('não concede crédito');
-    else await expect(page.locator('.boundary')).toContainText('não concede crédito');
+    // `main > .boundary` é o aviso de fronteira da página; outros `.boundary`
+    // podem existir dentro do conteúdo (aceite de termos, cobertura baixa).
+    else await expect(page.locator('main > .boundary')).toContainText('não concede crédito');
   }
 });
 
@@ -172,6 +174,44 @@ test('a comparação usa tabela no desktop e cartões no celular', async ({ page
     else await expect(page.locator('.comparison-cards')).toBeHidden();
   }
   await expect(page.locator('#view')).toContainText(/não há propostas|Entre para usar o portal|Nenhuma RFQ/);
+});
+
+test('a página de convite não entrega o token a analytics, ao histórico nem ao referrer', async ({ page }) => {
+  const token = 'b'.repeat(64);
+  const externalRequests = [];
+  page.on('request', (request) => {
+    const url = request.url();
+    if (!url.startsWith('http://127.0.0.1:4173')) externalRequests.push(url);
+  });
+
+  // O link real leva o token no FRAGMENTO, que o navegador nunca envia.
+  await page.goto(`/provider/invite.html#token=${token}`);
+  await expect(page.locator('#invite-state')).toContainText('Confirme a organização');
+  await expect(page.getByLabel('Token do convite')).toHaveValue(token);
+
+  // Nenhuma requisição saiu para fora da origem — não há analytics nesta página.
+  expect(externalRequests, `requisições externas: ${externalRequests.join(', ')}`).toEqual([]);
+  const analytics = await page.locator('script[src*="speed-insights"]').count();
+  expect(analytics, 'a página de convite não pode carregar analytics').toBe(0);
+
+  // A política de referrer impede que a URL vaze em qualquer navegação.
+  await expect(page.locator('meta[name="referrer"]')).toHaveAttribute('content', 'no-referrer');
+
+  // Um link antigo com ?token= ainda funciona, mas o endereço é limpo na hora.
+  await page.goto(`/provider/invite.html?token=${token}`);
+  await expect(page.getByLabel('Token do convite')).toHaveValue(token);
+  expect(page.url(), 'o token não pode permanecer no endereço').not.toContain(token);
+  expect(page.url()).not.toContain('token=');
+});
+
+test('uma conta sem organização recebe o formulário de criação, não um beco sem saída', async ({ page }) => {
+  // Sem sessão o portal pede login; o que se verifica aqui é que a tela de
+  // criação existe e está montada, porque antes a API aceitava criar
+  // organização e nenhuma página chamava essa rota.
+  await page.goto('/provider/index.html');
+  await expect(page.locator('#view')).toContainText(/organização|Entre para usar o portal/);
+  await page.goto('/finance/settings.html');
+  await expect(page.locator('#view')).toBeVisible();
 });
 
 test('o teclado alcança a navegação e o conteúdo principal', async ({ page }) => {

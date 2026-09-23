@@ -69,6 +69,22 @@ async function api(path, options = {}) {
   return payload;
 }
 
+/**
+ * Sinais que só existem no navegador (convite aberto, comparação vista, pesos
+ * aplicados). O vocabulário é fechado no servidor e no banco; falha aqui é
+ * silenciosa de propósito — perder uma métrica nunca pode atrapalhar quem está
+ * tentando fechar uma cotação.
+ */
+function signal(event, entityType, entityId) {
+  if (!state.organizationId || !entityId) return;
+  fetch('/api/finance/signals', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ organization_id: state.organizationId, event, entity_type: entityType, entity_id: entityId })
+  }).catch(() => {});
+}
+
 async function demo() {
   if (!demoMode) return null;
   if (state.demo) return state.demo;
@@ -228,6 +244,7 @@ function weightsPanel(product, proposals) {
       output.append(el('p', { class: 'muted', text: scored.notice }));
       return;
     }
+    signal('weights_applied', 'rfq', new URLSearchParams(location.search).get('id') || '');
     output.append(el('p', { id: 'weights-notice', text: scored.notice }));
     output.append(el('p', {
       class: 'muted',
@@ -285,6 +302,51 @@ export const RECOMMENDED_PROFILE_FIELDS = Object.freeze([
   { key: 'garantias_disponiveis', label: 'garantias disponíveis' }
 ]);
 
+/**
+ * Onde o provedor está e qual é o próximo passo.
+ *
+ * Um provedor que chega por um link de convite não sabe — e não precisa saber —
+ * como o Arandu organiza organização, convite e proposta por dentro. O painel
+ * diz uma frase e aponta uma ação.
+ */
+function providerStatus(data) {
+  const rows = data.assignments || [];
+  const panel = el('section', { class: 'panel', id: 'provider-status' });
+  let title = '';
+  let hint = '';
+  let action = null;
+
+  if (data.no_provider_org) {
+    const box = el('section', { class: 'panel', id: 'provider-status' });
+    box.append(el('h2', { text: 'Comece criando a organização da sua instituição' }));
+    box.append(el('p', { class: 'muted', text: 'O convite é vinculado a uma organização provedora. Crie a sua para poder aceitar — leva um campo.' }));
+    return el('div', {}, [box, createOrganizationForm('PROVIDER')]);
+  }
+  if (!rows.length) {
+    title = 'Organização criada. Falta aceitar um convite';
+    hint = 'Abra o link que a empresa compradora enviou, ou cole o token do convite abaixo.';
+    action = el('a', { class: 'button', href: '/provider/invite.html', text: 'Aceitar convite' });
+  } else {
+    const pending = rows.filter((row) => row.status === 'draft');
+    const sent = rows.filter((row) => ['submitted', 'revised'].includes(row.status));
+    if (pending.length) {
+      title = `${pending.length} solicitação${pending.length > 1 ? 'ões' : ''} aguardando sua proposta`;
+      hint = 'Abra a solicitação, leia a necessidade declarada e responda com as suas condições.';
+      action = el('a', { class: 'button', href: `/provider/proposal.html?proposal=${encodeURIComponent(pending[0].proposal_id)}`, text: 'Responder agora' });
+    } else if (sent.length) {
+      title = 'Suas propostas foram enviadas';
+      hint = 'A empresa compradora decide e registra a escolha. Você pode revisar enquanto a solicitação estiver aberta; cada revisão cria uma versão nova.';
+    } else {
+      title = 'Nada aguardando você no momento';
+      hint = 'Novas solicitações aparecem aqui quando a empresa compradora convidar a sua instituição.';
+    }
+  }
+  panel.append(el('h2', { text: title }));
+  panel.append(el('p', { class: 'muted', text: hint }));
+  if (action) panel.append(action);
+  return panel;
+}
+
 /** Estados que o provedor vê, com o que cada um significa para ele. */
 export const PROPOSAL_STATUS = Object.freeze({
   draft: { label: 'convite aceito', hint: 'Você ainda não enviou uma proposta para esta solicitação.' },
@@ -313,6 +375,155 @@ export function freshness(field, today = new Date()) {
   if (days >= PROFILE_STALE_DAYS) return { level: 'stale', label: `desatualizado (${days} dias)` };
   if (days >= PROFILE_DUE_DAYS) return { level: 'due', label: `revisar (${days} dias)` };
   return { level: 'ok', label: 'atualizado' };
+}
+
+/**
+ * Checklist de primeiro acesso.
+ *
+ * Some sozinha quando os quatro passos estão feitos: um painel que continua
+ * pedindo o que já foi feito vira ruído. O objetivo é reduzir suporte manual
+ * no piloto, não gamificar nada.
+ */
+function buyerOnboarding(data) {
+  const organization = data.organization || null;
+  const profile = data.profile || [];
+  const steps = [
+    {
+      key: 'empresa',
+      label: 'Complete os dados da empresa',
+      done: Boolean(organization?.tax_identifier && organization?.sector && organization?.revenue_band),
+      href: '/finance/settings.html',
+      hint: 'CNPJ, setor e faixa de faturamento são o que os provedores pedem para cotar.'
+    },
+    {
+      key: 'perfil',
+      label: 'Preencha o perfil financeiro',
+      done: profile.length >= 3,
+      href: '/finance/settings.html',
+      hint: 'Informado uma vez, reaproveitado em toda solicitação.'
+    },
+    {
+      key: 'provedores',
+      label: 'Cadastre ao menos três provedores',
+      done: (data.providers || []).length >= 3,
+      href: '/finance/providers.html',
+      hint: 'Com menos de três, a comparação tem pouco a comparar.'
+    },
+    {
+      key: 'rfq',
+      label: 'Crie a primeira solicitação',
+      done: (data.rfqs || []).length > 0,
+      href: '/finance/rfqs.html',
+      hint: 'Crédito empresarial ou adquirência, em quatro etapas.'
+    }
+  ];
+  const pending = steps.filter((step) => !step.done);
+  if (!pending.length) return document.createDocumentFragment();
+
+  const panel = el('section', { class: 'panel', id: 'buyer-onboarding' });
+  panel.append(el('h2', { text: 'Para começar' }));
+  panel.append(el('p', { class: 'muted', text: `${steps.length - pending.length} de ${steps.length} concluídos.` }));
+  const list = el('ol', { class: 'rows' });
+  for (const step of steps) {
+    const row = el('li', { class: 'row' });
+    row.append(el('span', { class: `freshness ${step.done ? 'ok' : 'missing'}`, text: step.done ? 'feito' : 'pendente' }));
+    row.append(el('b', { text: step.label }));
+    row.append(el('small', { text: step.hint }));
+    if (!step.done) row.append(el('a', { href: step.href, text: 'Ir para este passo' }));
+    list.append(row);
+  }
+  panel.append(list);
+  return panel;
+}
+
+/**
+ * Criação da organização.
+ *
+ * Sem isto a jornada não tinha primeiro passo: a API aceitava criar
+ * organização desde sempre, mas nenhuma tela chamava essa rota. Quem chegava
+ * numa conta nova via o painel pedir uma organização que não havia como criar.
+ */
+/**
+ * Registro de aceite de termos.
+ *
+ * O produto registra QUE alguém aceitou, QUAL versão e QUANDO. Ele não exibe um
+ * texto de termos, porque não existe texto revisado: fingir aceite legal de um
+ * documento que ninguém leu é pior do que não ter aceite nenhum.
+ */
+function termsPanel(data) {
+  const panel = el('section', { class: 'panel', id: 'terms-panel' });
+  panel.append(el('h2', { text: 'Aceite de termos do piloto' }));
+  const accepted = (data.terms || [])[0] || null;
+  if (accepted) {
+    panel.append(el('p', { text: `Versão ${accepted.terms_version} registrada em ${String(accepted.accepted_at).slice(0, 10)}.` }));
+  } else {
+    panel.append(el('p', { class: 'muted', text: 'Nenhum aceite registrado para esta organização.' }));
+  }
+  panel.append(el('p', {
+    class: 'boundary',
+    text: 'O texto dos termos ainda não foi revisado juridicamente. O Arandu registra a versão, quem aceitou e quando — e não trata esse registro como aceite legal válido enquanto a revisão não acontecer.'
+  }));
+  const form = el('form', { id: 'terms-form' });
+  const version = el('label', { text: 'Versão dos termos (AAAA-MM-DD ou AAAA-MM-DD-rotulo)' });
+  version.append(el('input', {
+    name: 'terms_version', required: 'required', pattern: '[0-9]{4}-[0-9]{2}-[0-9]{2}(-[a-z0-9-]{1,40})?',
+    placeholder: '2026-09-23-pilot', 'aria-label': 'Versão dos termos'
+  }));
+  form.append(version, el('button', { type: 'submit', text: 'Registrar aceite' }));
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    try {
+      await api('terms', {
+        method: 'POST',
+        body: JSON.stringify({ organization_id: state.organizationId, ...Object.fromEntries(new FormData(form)) })
+      });
+      say('Aceite registrado com a versão informada.', 'success');
+    } catch (error) {
+      say(error.status === 401 ? 'Entre na sua conta para registrar o aceite.' : error.message);
+    }
+  });
+  panel.append(form);
+  return panel;
+}
+
+function createOrganizationForm(kind) {
+  const buyer = kind === 'BUYER';
+  const panel = el('section', { class: 'panel', id: 'create-organization' });
+  panel.append(el('h2', { text: buyer ? 'Criar a organização da sua empresa' : 'Criar a organização da sua instituição' }));
+  panel.append(el('p', {
+    class: 'muted',
+    text: buyer
+      ? 'A organização agrupa as pessoas da sua empresa, as solicitações e os contratos. Quem cria vira administrador.'
+      : 'A organização identifica a sua instituição no Arandu e é a ela que os convites ficam vinculados. Quem cria vira administrador.'
+  }));
+  const form = el('form', { id: 'create-organization-form' });
+  const name = el('label', { text: buyer ? 'Razão social da empresa' : 'Razão social da instituição' });
+  name.append(el('input', { name: 'legal_name', required: 'required', minlength: '2', maxlength: '200', 'aria-label': 'Razão social' }));
+  const country = el('label', { text: 'País' });
+  const select = el('select', { name: 'country', 'aria-label': 'País' });
+  for (const [value, text] of [['BR', 'Brasil']]) select.add(new Option(text, value));
+  country.append(select);
+  form.append(name, country, el('button', { type: 'submit', text: 'Criar organização' }));
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const body = { ...Object.fromEntries(new FormData(form)), kind };
+    try {
+      const result = await api('organizations', { method: 'POST', body: JSON.stringify(body) });
+      state.organizationId = result.id;
+      try { sessionStorage.setItem('arandu-finance-org', result.id); } catch { /* segue sem memória */ }
+      say('Organização criada. Você é o administrador dela.', 'success');
+      load();
+    } catch (error) {
+      if (error.status === 401) { say('Entre na sua conta para criar a organização.'); return; }
+      // A allowlist do piloto recusa por e-mail; a mensagem precisa dizer o
+      // que fazer, não repetir um erro que ninguém sabe resolver.
+      say(/pilot access/i.test(error.message)
+        ? 'Esta conta ainda não está liberada para o piloto. Peça ao responsável do Arandu para incluir o seu e-mail.'
+        : error.message);
+    }
+  });
+  panel.append(form);
+  return panel;
 }
 
 function organizationForm(organization) {
@@ -414,6 +625,7 @@ const views = {
   dashboard: async (data) => {
     const frag = document.createDocumentFragment();
     const rfqs = data.rfqs || [];
+    frag.append(buyerOnboarding(data));
     const contracts = data.contracts || [];
     const today = new Date().toISOString().slice(0, 10);
     const reviewFrom = (contract) => {
@@ -560,6 +772,8 @@ const views = {
     } else {
       comparison.append(comparisonView(rfq.product, proposals));
       comparison.append(estimatesBlock(rfq, proposals));
+      comparison.append(exportLink(rfq));
+      signal('comparison_viewed', 'rfq', rfq.id);
     }
     frag.append(comparison);
     if (proposals.length > 1) frag.append(weightsPanel(rfq.product, proposals));
@@ -719,14 +933,13 @@ const views = {
     }
     frag.append(panel);
     frag.append(profileForm());
+    frag.append(termsPanel(data));
     return frag;
   },
 
   providerRfqs: async (data) => {
     const frag = document.createDocumentFragment();
-    if (data.no_provider_org) {
-      frag.append(emptyState('Esta conta ainda não pertence a nenhuma organização provedora. Crie a organização da sua instituição para aceitar convites.'));
-    }
+    frag.append(providerStatus(data));
     const rows = data.assignments || [];
     if (!rows.length) {
       frag.append(emptyState('Nenhuma RFQ atribuída a esta organização provedora. Aceite um convite para começar.'));
@@ -791,6 +1004,7 @@ const views = {
       panel.append(el('p', { id: 'invite-state', class: 'boundary', text: 'Este link não tem o formato de um convite do Arandu. Confira se ele foi copiado por inteiro.' }));
     } else {
       panel.append(el('p', { id: 'invite-state', class: 'muted', text: 'Confirme a organização que vai responder e aceite o convite.' }));
+      if (state.organizationId) signal('invite_opened', 'organization', state.organizationId);
     }
 
     if (data.no_provider_org) {
@@ -946,6 +1160,38 @@ const views = {
     return frag;
   }
 };
+
+/**
+ * Exportação factual do processo: o que foi pedido, o que foi ofertado, o que
+ * foi decidido e quando. Não é parecer, não é recomendação, não é relatório
+ * jurídico — e o próprio arquivo diz isso.
+ */
+function exportLink(rfq) {
+  const box = el('div');
+  const button = el('button', { type: 'button', class: 'secondary', id: 'export-rfq', text: 'Exportar este processo (JSON)' });
+  button.addEventListener('click', async () => {
+    try {
+      const result = await api(`export?rfq_id=${encodeURIComponent(rfq.id)}`);
+      const blob = new Blob([JSON.stringify(result.export, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = el('a', { href: url, download: `arandu-rfq-${rfq.id.slice(0, 8)}.json` });
+      document.body.append(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      signal('export_generated', 'rfq', rfq.id);
+      say('Exportação gerada neste navegador.', 'success');
+    } catch (error) {
+      say(error.status === 401 ? 'Entre na sua conta para exportar o processo.' : error.message);
+    }
+  });
+  box.append(button);
+  box.append(el('p', {
+    class: 'muted',
+    text: 'O arquivo traz a solicitação, as propostas recebidas, os critérios e a decisão registrada, com datas. Ele não contém recomendação nem classificação de instituições.'
+  }));
+  return box;
+}
 
 function estimatesBlock(rfq, proposals) {
   const box = el('div');
@@ -1358,7 +1604,7 @@ async function load() {
   if (failure) {
     nodes.append(signedOut(failure));
   } else if (data?.empty) {
-    nodes.append(emptyState('Nenhuma organização vinculada a esta conta. Crie a organização da sua empresa para começar.'));
+    nodes.append(createOrganizationForm(audience === 'provider' ? 'PROVIDER' : 'BUYER'));
   } else if (state.organizations.length > 1) {
     nodes.append(organizationPicker());
   }
