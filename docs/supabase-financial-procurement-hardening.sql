@@ -236,3 +236,55 @@ grant execute on function
 -- A tarefa derivada é criada pela função acima, que roda como definer. O
 -- cliente continua podendo criar e fechar as próprias tarefas pelas policies
 -- já existentes.
+
+-- ------------------------------------------- vínculo com o provedor canônico
+--
+-- O schema já separa duas coisas que costumam ser confundidas:
+--
+--   fin_organizations (kind='PROVIDER')  → a IDENTIDADE canônica do provedor,
+--                                          única no sistema, com membros próprios;
+--   fin_providers                        → a RELAÇÃO entre um comprador e um
+--                                          provedor: contato, notas internas,
+--                                          estado, evidência regulatória.
+--
+-- O que faltava era ligar as duas. `fin_providers.provider_organization_id`
+-- existia na tabela desde a migration base e nunca era preenchido, então o
+-- cadastro do comprador ficava órfão da conta do provedor mesmo depois de o
+-- convite ser aceito. Preencher esse vínculo no aceite é aditivo, não quebra
+-- API nem RLS, e é o que impede a dívida de crescer: qualquer consolidação
+-- futura passa a ter uma chave real para agrupar, em vez de casar por nome.
+--
+-- O vínculo NÃO cria leitura cruzada: o provedor continua sem acesso a
+-- `fin_providers`, que é do comprador, e um comprador continua sem ver o
+-- cadastro de outro. Ver docs/FINANCIAL_PROVIDER_CANONICALIZATION.md.
+create or replace function public.fin_accept_provider_invite(p_token text, p_provider_org uuid)
+returns uuid language plpgsql security definer set search_path = '' as $$
+declare v_inv public.fin_rfq_invites%rowtype;
+begin
+  if auth.uid() is null or coalesce(p_token,'') !~ '^[0-9a-f]{64}$' then raise exception 'invalid invitation'; end if;
+  if not public.fin_has_role(p_provider_org, array['admin','provider_user']) then raise exception 'forbidden'; end if;
+  if not exists (select 1 from public.fin_organizations o where o.id = p_provider_org and o.kind = 'PROVIDER') then
+    raise exception 'provider organization required';
+  end if;
+  select * into v_inv from public.fin_rfq_invites
+    where token_hash = encode(sha256(convert_to(p_token,'UTF8')),'hex')
+      and status = 'invited' and accepted_at is null and expires_at > now()
+    for update;
+  if not found then raise exception 'invalid invitation'; end if;
+  if v_inv.buyer_organization_id = p_provider_org then raise exception 'invalid invitation'; end if;
+  update public.fin_rfq_invites
+    set status = 'accepted', accepted_at = now(), provider_organization_id = p_provider_org
+    where id = v_inv.id;
+  -- O cadastro do comprador passa a apontar para a conta canônica do provedor.
+  update public.fin_providers
+    set provider_organization_id = p_provider_org, updated_at = now()
+    where id = v_inv.provider_id and organization_id = v_inv.buyer_organization_id
+      and provider_organization_id is null;
+  insert into public.fin_proposals (invite_id, rfq_id, buyer_organization_id, provider_id, provider_organization_id, product)
+    select v_inv.id, v_inv.rfq_id, v_inv.buyer_organization_id, v_inv.provider_id, p_provider_org, r.product
+    from public.fin_rfqs r where r.id = v_inv.rfq_id
+    on conflict (invite_id) do nothing;
+  insert into public.fin_events (organization_id, entity_type, entity_id, event_type, actor_id)
+    values (v_inv.buyer_organization_id, 'rfq', v_inv.rfq_id, 'invite_accepted', auth.uid());
+  return v_inv.id;
+end $$;

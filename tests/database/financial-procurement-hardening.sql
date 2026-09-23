@@ -135,6 +135,28 @@ select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-00000000ba03
 select public.fin_submit_proposal((select value from hard_ids where key = 'p2'),
   '{"institution":"Fintech Hardening Demo","interest_rate_month":2.2,"term_months":24}'::jsonb);
 
+-- ------------------------------- vínculo com a conta canônica do provedor
+
+do $$
+declare v_linked uuid; v_visible integer;
+begin
+  -- Lido pelo comprador: é o cadastro dele.
+  perform set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-00000000ba01', false);
+  select provider_organization_id into v_linked from public.fin_providers
+    where id = (select value from hard_ids where key = 'provider_a');
+  if v_linked is distinct from (select value from hard_ids where key = 'prov1') then
+    raise exception 'o cadastro do comprador não ficou ligado à conta canônica do provedor';
+  end if;
+
+  -- O vínculo não pode abrir leitura cruzada: o provedor continua sem enxergar
+  -- o cadastro (e as notas internas) que o comprador mantém sobre ele.
+  perform set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-00000000ba02', false);
+  select count(*) into v_visible from public.fin_providers
+    where id = (select value from hard_ids where key = 'provider_a');
+  if v_visible <> 0 then raise exception 'provedor leu o cadastro interno do comprador'; end if;
+  perform set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-00000000ba01', false);
+end $$;
+
 -- ------------------------------------------------- uma decisão por RFQ
 
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-00000000ba01', false);
