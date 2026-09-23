@@ -118,25 +118,42 @@ test('procurement financeiro demonstra crédito e adquirência com dados rotulad
   await expect(page.getByRole('link', { name: /Adquirência/ })).toBeVisible();
 });
 
-test('a comparação de crédito destaca diferenças factuais e nunca recomenda', async ({ page }) => {
+test('a comparação de crédito destaca diferenças factuais e nunca recomenda', async ({ page }, testInfo) => {
   await page.goto('/finance/rfq.html?id=demo-rfq-credito');
   await expect(page.locator('#comparison-notice')).toContainText('O Arandu não recomenda instituições.');
 
-  const table = page.locator('table').first();
-  await expect(table.getByRole('columnheader', { name: 'Banco Alfa Demo' })).toBeVisible();
-  await expect(table.getByRole('columnheader', { name: 'Fintech Beta Demo' })).toBeVisible();
-  await expect(table.getByRole('columnheader', { name: 'Crédito Gama Demo' })).toBeVisible();
+  // A mesma comparação tem duas apresentações: tabela em tela larga e um
+  // cartão por proposta no celular. Só uma delas está visível por vez.
+  const mobile = (testInfo.project.use.viewport?.width ?? 1280) < 760;
+  if (mobile) {
+    const cards = page.locator('.compare-card');
+    await expect(cards).toHaveCount(3);
+    await expect(cards.filter({ hasText: 'Banco Alfa Demo' })).toBeVisible();
+    await expect(page.locator('.comparison-wide')).toBeHidden();
+    const best = cards.filter({ hasText: 'Banco Alfa Demo' }).locator('dd.best');
+    await expect(best.filter({ hasText: 'menor valor informado' }).first()).toBeVisible();
+  } else {
+    const table = page.locator('table').first();
+    for (const name of ['Banco Alfa Demo', 'Fintech Beta Demo', 'Crédito Gama Demo']) {
+      await expect(table.getByRole('columnheader', { name })).toBeVisible();
+    }
+    // A menor taxa informada é marcada, com o critério verificável ao lado.
+    const rateRow = table.locator('tr', { has: page.getByRole('rowheader', { name: 'Taxa (% a.m.)' }) });
+    await expect(rateRow.locator('td.best')).toHaveCount(1);
+    await expect(rateRow.locator('td.best')).toContainText('menor valor informado');
+    await expect(rateRow.locator('td.best')).toContainText('1,72');
+    await expect(page.locator('.comparison-cards')).toBeHidden();
+  }
 
-  // A menor taxa informada é marcada, com o critério verificável ao lado.
-  const rateRow = table.locator('tr', { has: page.getByRole('rowheader', { name: 'Taxa (% a.m.)' }) });
-  await expect(rateRow.locator('td.best')).toHaveCount(1);
-  await expect(rateRow.locator('td.best')).toContainText('menor valor informado');
-  await expect(rateRow.locator('td.best')).toContainText('1,72');
-
-  // CET só aparece quando o provedor informou; estimativa vem rotulada.
-  await expect(page.locator('#view')).toContainText('CET informado pelo provedor');
-  await expect(page.locator('#view')).toContainText('Estimativa do Arandu');
-  await expect(page.locator('#view')).toContainText('Estimativa não calculável com os insumos informados');
+  // CET só aparece quando o provedor informou; a estimativa própria vem
+  // rotulada, e quando não é calculável o motivo aparece no lugar do número.
+  const view = page.locator('#view');
+  await expect(view).toContainText('CET informado pelo provedor');
+  await expect(view).toContainText('Estimativa do Arandu');
+  // Banco Alfa Demo tem carência: a projeção PRICE não vale e o motivo é dito.
+  await expect(view).toContainText('Estimativa não calculável: há carência');
+  // Crédito Gama Demo é indexado ao CDI e amortiza em SAC.
+  await expect(view).toContainText('taxa indexada a CDI');
 
   const body = (await page.locator('body').innerText()).toLowerCase();
   expect(body).not.toContain('recomendação do arandu');
@@ -159,17 +176,46 @@ test('os pesos são da empresa e o resultado é rotulado como dela', async ({ pa
   await expect(output).toContainText('Resultado conforme os pesos definidos por você.');
   await expect(output).not.toContainText('Recomendação');
   await expect(output.locator('li')).toHaveCount(3);
+  // A cobertura da pontuação aparece em cada linha: uma nota alta sobre pouco
+  // peso respondido não pode passar por equivalente a uma proposta completa.
+  await expect(output.locator('.coverage').first()).toContainText('Cobertura da pontuação:');
+  await expect(output).toContainText('Pesos aplicados:');
 });
 
-test('a comparação de adquirência traz MDR, PIX, antecipação e liquidação', async ({ page }) => {
+test('a cobertura baixa é avisada em vez de liderar em silêncio', async ({ page }) => {
+  await page.goto('/finance/rfq.html?id=demo-rfq-credito');
+  const form = page.locator('#weights-form');
+  // Tarifas: só Banco Alfa e Gama informaram valor comparável neste conjunto,
+  // e CET só o Banco Alfa — critérios com resposta parcial.
+  await form.getByLabel('Peso de CET informado (% a.a.)').fill('60');
+  await form.getByLabel('Peso de Taxa (% a.m.)').fill('40');
+  await form.getByRole('button', { name: 'Aplicar meus pesos' }).click();
+  const output = page.locator('#weights-output');
+  await expect(output).toContainText('Cobertura da pontuação: 40%');
+  await expect(page.locator('#coverage-warning')).toContainText('não é comparável');
+  // A proposta de cobertura baixa fica marcada e aparece por último.
+  await expect(output.locator('li').last()).toContainText('cobertura baixa');
+});
+
+test('a comparação de adquirência traz MDR, PIX, antecipação e liquidação', async ({ page }, testInfo) => {
   await page.goto('/finance/rfq.html?id=demo-rfq-adquirencia');
-  const table = page.locator('table').first();
-  for (const label of ['MDR débito (%)', 'MDR crédito à vista (%)', 'Taxa PIX (%)', 'Antecipação (% a.m.)', 'Prazo de liquidação (dias)']) {
-    await expect(table.getByRole('rowheader', { name: label })).toBeVisible();
+  const labels = ['MDR débito (%)', 'MDR crédito à vista (%)', 'Taxa PIX (%)', 'Antecipação (% a.m.)', 'Prazo de liquidação (dias)'];
+  const mobile = (testInfo.project.use.viewport?.width ?? 1280) < 760;
+  if (mobile) {
+    const card = page.locator('.compare-card').first();
+    for (const label of labels) await expect(card.getByText(label, { exact: true })).toBeVisible();
+    await expect(page.locator('.compare-card dd.best').first()).toBeVisible();
+  } else {
+    const table = page.locator('table').first();
+    for (const label of labels) await expect(table.getByRole('rowheader', { name: label })).toBeVisible();
+    const pixRow = table.locator('tr', { has: page.getByRole('rowheader', { name: 'Taxa PIX (%)' }) });
+    await expect(pixRow.locator('td.best')).toContainText('menor valor informado');
   }
-  const pixRow = table.locator('tr', { has: page.getByRole('rowheader', { name: 'Taxa PIX (%)' }) });
-  await expect(pixRow.locator('td.best')).toContainText('menor valor informado');
-  await expect(page.locator('#view')).toContainText('Custo mensal estimado');
+  const view = page.locator('#view');
+  await expect(view).toContainText('Custo mensal estimado');
+  // A antecipação não entra na conta: calculá-la exigiria volume antecipado e
+  // prazo médio, que a empresa não declara.
+  await expect(view).toContainText('sem antecipação');
 });
 
 test('contratos demonstrativos mostram a janela de renovação', async ({ page }) => {

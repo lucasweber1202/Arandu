@@ -63,3 +63,34 @@ td.best .why{display:block;font-size:.74rem;color:var(--ok)}
 footer.app{border-top:1px solid var(--line);margin-top:2rem;padding:1.5rem max(1rem,calc((100vw - 1180px)/2));color:var(--ink-soft);font-size:.85rem}
 footer.app a{color:var(--brand-dark)}
 @media(max-width:759px){header.app .bar{align-items:flex-start;flex-direction:column;gap:.6rem}}
+
+/* Comparação: tabela em tela larga, um cartão por proposta no celular.
+   A tabela rolando de lado no telefone perde o cabeçalho da linha, e quem
+   rola deixa de saber que número está lendo. */
+.comparison-cards{display:none;gap:1rem}
+.compare-card{background:#fcfefe;border:1px solid var(--line);border-radius:10px;padding:.9rem}
+.compare-card h3{margin:0 0 .2rem}
+.compare-list{display:grid;grid-template-columns:1fr auto;gap:.3rem .8rem;margin:.6rem 0 0}
+.compare-list dt{color:var(--ink-soft);font-size:.88rem}
+.compare-list dd{margin:0;text-align:right;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.compare-list dd.best{background:#eaf5ee;border-radius:4px;padding:0 .35rem}
+.compare-list dd.best .why{display:block;font-size:.72rem;color:var(--ok)}
+@media(max-width:759px){
+  .comparison-wide{display:none}
+  .comparison-cards{display:grid}
+}
+.coverage{font-variant-numeric:tabular-nums}
+#weights-output .boundary{margin-top:.8rem}
+.freshness{display:inline-block;border-radius:999px;padding:.1rem .5rem;font-size:.74rem;margin-left:.4rem}
+.freshness.ok{background:#e4f2ea;color:var(--ok)}
+.freshness.due{background:#fcf1e0;color:#8a5a12}
+.freshness.stale{background:#fbe9e9;color:var(--alert)}
+.freshness.missing{background:#eef1f3;color:var(--ink-soft)}
+.steps{display:flex;flex-wrap:wrap;gap:.4rem;list-style:none;padding:0;margin:0 0 1rem;counter-reset:step}
+.steps li{background:#fff;border:1px solid var(--line);border-radius:999px;padding:.3rem .8rem;font-size:.85rem;color:var(--ink-soft)}
+.steps li[aria-current="step"]{background:var(--brand);color:#fff;border-color:var(--brand);font-weight:600}
+.wizard-nav{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.4rem}
+.wizard-nav button[hidden]{display:none}
+button:disabled{background:#c3d0d4;cursor:not-allowed}
+details{margin:.5rem 0}
+summary{cursor:pointer;color:var(--brand-dark);font-weight:600}

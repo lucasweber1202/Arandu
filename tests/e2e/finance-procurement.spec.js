@@ -20,6 +20,7 @@ const COMPANY_PAGES = [
 
 const PROVIDER_PAGES = [
   ['/provider/index.html', 'Portal do provedor'],
+  ['/provider/invite.html', 'Aceitar convite'],
   ['/provider/rfqs.html', 'RFQs atribuídas'],
   ['/provider/proposal.html', 'Responder proposta']
 ];
@@ -102,6 +103,75 @@ test('o portal do provedor permite salvar rascunho local e recuperá-lo', async 
   await expect(page.locator('#message')).toHaveText('Rascunho salvo neste navegador.');
   await page.reload();
   await expect(page.locator('#proposal-form').getByLabel('Instituição', { exact: true })).toHaveValue('Banco Alfa Demo');
+});
+
+test('a página de convite trata cada estado do token em vez de dar erro genérico', async ({ page }) => {
+  // Sem token: pede o token, não finge que algo deu errado.
+  await page.goto('/provider/invite.html');
+  await expect(page.locator('#invite-state')).toContainText('Nenhum token no endereço');
+
+  // Token malformado é reconhecido antes de qualquer chamada ao servidor.
+  await page.goto('/provider/invite.html?token=nao-e-um-token');
+  await expect(page.locator('#invite-state')).toContainText('não tem o formato de um convite');
+
+  // Token bem formado leva ao passo de confirmação da organização.
+  await page.goto(`/provider/invite.html?token=${'a'.repeat(64)}`);
+  await expect(page.locator('#invite-state')).toContainText('Confirme a organização');
+  await expect(page.getByLabel('Token do convite')).toHaveValue('a'.repeat(64));
+  await expect(page.locator('#view')).toContainText('vale uma vez e expira');
+});
+
+test('a criação de solicitação avança por etapas em vez de um formulário único', async ({ page }) => {
+  await page.goto('/finance/rfqs.html');
+  const form = page.locator('#rfq-form');
+  await expect(form).toBeVisible();
+  // Só a etapa atual aparece.
+  await expect(form.locator('fieldset[data-step="0"]')).toBeVisible();
+  await expect(form.locator('fieldset[data-step="1"]')).toBeHidden();
+  await expect(page.locator('.steps li[aria-current="step"]')).toHaveText('1. Produto');
+
+  // Campo obrigatório vazio não deixa avançar escondendo o problema.
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await expect(form.locator('fieldset[data-step="1"]')).toBeHidden();
+
+  await form.getByLabel('Título da solicitação').fill('Capital de giro do teste');
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await expect(form.locator('fieldset[data-step="1"]')).toBeVisible();
+  await expect(page.locator('.steps li[aria-current="step"]')).toHaveText('2. Necessidade');
+  await expect(page.getByRole('button', { name: 'Voltar' })).toBeVisible();
+});
+
+test('o mix de recebimentos que não fecha 100% é avisado antes do envio', async ({ page }) => {
+  await page.goto('/finance/rfqs.html');
+  const form = page.locator('#rfq-form');
+  await form.getByLabel('Produto financeiro').selectOption('acquiring');
+  await form.getByLabel('Título da solicitação').fill('Adquirência do teste');
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  await form.getByLabel('Faturamento mensal em cartões (R$)').fill('1200000');
+  await form.getByLabel('Percentual débito (%)').fill('80');
+  await form.getByLabel('Percentual crédito à vista (%)').fill('60');
+  await form.getByLabel('Percentual parcelado (%)').fill('40');
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  // 180% é erro de preenchimento: a revisão explica e o envio fica bloqueado.
+  await expect(page.locator('#rfq-review')).toContainText('180%');
+  await expect(page.getByRole('button', { name: 'Criar solicitação' })).toBeDisabled();
+});
+
+test('a comparação usa tabela no desktop e cartões no celular', async ({ page }, testInfo) => {
+  // Sem sessão não há propostas, então o que se verifica aqui é a regra de
+  // apresentação: as duas formas nunca aparecem ao mesmo tempo.
+  await page.goto('/finance/rfq.html');
+  const mobile = (testInfo.project.use.viewport?.width ?? 1280) < 760;
+  const wide = await page.locator('.comparison-wide').count();
+  const cards = await page.locator('.comparison-cards').count();
+  if (wide && cards) {
+    if (mobile) await expect(page.locator('.comparison-wide')).toBeHidden();
+    else await expect(page.locator('.comparison-cards')).toBeHidden();
+  }
+  await expect(page.locator('#view')).toContainText(/não há propostas|Entre para usar o portal|Nenhuma RFQ/);
 });
 
 test('o teclado alcança a navegação e o conteúdo principal', async ({ page }) => {
