@@ -1,10 +1,12 @@
--- Rollback do procurement financeiro B2B.
+-- Rollback do procurement financeiro B2B (migration base + endurecimento).
 --
 -- Aplicado manualmente e nunca por automação: remove exclusivamente os objetos
 -- criados por docs/supabase-financial-procurement.sql. Nenhuma tabela da
 -- vertical de Arte é tocada. Reaplicar a migration restaura o schema; os dados
 -- das tabelas removidas não voltam, então exporte antes se houver conteúdo.
 
+drop function if exists public.fin_record_provider_evidence(uuid, text, text, text, date);
+drop function if exists public.fin_update_organization(uuid, text, text, text, text);
 drop function if exists public.fin_register_contract(uuid, date, date, integer, text, text, text);
 drop function if exists public.fin_record_decision(uuid, uuid, jsonb, text);
 drop function if exists public.fin_transition(text, uuid, text);
