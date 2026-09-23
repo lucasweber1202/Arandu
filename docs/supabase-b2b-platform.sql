@@ -125,8 +125,16 @@ create table if not exists public.b2b_cbam_cases (
   facility text not null, reporting_period daterange not null, importer text,
   emissions_data jsonb not null default '{}'::jsonb check(jsonb_typeof(emissions_data)='object'), methodology text, notes text,
   verification_state text not null default 'PENDING_VERIFICATION' check(verification_state in ('PENDING_VERIFICATION','REVIEWED')),
+  reviewed_by uuid references auth.users(id), reviewed_at timestamptz,
   created_at timestamptz not null default now(), unique(organization_id,id),
   foreign key(organization_id,product_id) references public.b2b_products(organization_id,id)
+);
+create table if not exists public.b2b_cbam_evidence (
+  id uuid primary key default gen_random_uuid(), organization_id uuid not null,
+  case_id uuid not null, document_id uuid not null, created_at timestamptz not null default now(),
+  unique(organization_id,id), unique(case_id,document_id),
+  foreign key(organization_id,case_id) references public.b2b_cbam_cases(organization_id,id),
+  foreign key(organization_id,document_id) references public.b2b_documents(organization_id,id)
 );
 create table if not exists public.b2b_rfqs (
   id uuid primary key default gen_random_uuid(), organization_id uuid not null references public.b2b_organizations(id),
@@ -178,7 +186,7 @@ create table if not exists public.b2b_events (
 
 -- RLS is enforced even when callers use the REST API directly. Never grant anon table access.
 do $$ declare t text; begin
-  foreach t in array array['b2b_organizations','b2b_members','b2b_products','b2b_requirements','b2b_documents','b2b_product_requirements','b2b_evidence','b2b_passports','b2b_cbam_cases','b2b_rfqs','b2b_rfq_invitations','b2b_quotes','b2b_decisions','b2b_contracts','b2b_events'] loop
+  foreach t in array array['b2b_organizations','b2b_members','b2b_products','b2b_requirements','b2b_documents','b2b_product_requirements','b2b_evidence','b2b_passports','b2b_cbam_cases','b2b_cbam_evidence','b2b_rfqs','b2b_rfq_invitations','b2b_quotes','b2b_decisions','b2b_contracts','b2b_events'] loop
     execute format('alter table public.%I enable row level security',t);
     execute format('revoke all on public.%I from anon, authenticated',t);
     execute format('grant select, insert, update on public.%I to authenticated',t);
@@ -193,7 +201,7 @@ do $$ declare t text; begin
   end loop;
 end $$;
 do $$ declare t text; begin
-  foreach t in array array['b2b_products','b2b_requirements','b2b_documents','b2b_product_requirements','b2b_evidence','b2b_passports','b2b_cbam_cases','b2b_rfqs','b2b_decisions','b2b_contracts','b2b_events'] loop
+  foreach t in array array['b2b_products','b2b_requirements','b2b_documents','b2b_product_requirements','b2b_evidence','b2b_passports','b2b_cbam_cases','b2b_cbam_evidence','b2b_rfqs','b2b_decisions','b2b_contracts','b2b_events'] loop
     execute format('create policy b2b_read on public.%I for select to authenticated using (public.b2b_has_role(organization_id))',t);
     execute format('create policy b2b_write on public.%I for insert to authenticated with check (public.b2b_has_role(organization_id, array[''admin'',''compliance_manager'',''procurement_manager'']))',t);
     execute format('create policy b2b_edit on public.%I for update to authenticated using (public.b2b_has_role(organization_id, array[''admin'',''compliance_manager'',''procurement_manager''])) with check (public.b2b_has_role(organization_id, array[''admin'',''compliance_manager'',''procurement_manager'']))',t);
@@ -236,7 +244,7 @@ create policy b2b_quote_write on public.b2b_quotes for insert to authenticated w
    exists(select 1 from public.b2b_rfq_invitations i join public.b2b_rfqs r on r.id=i.rfq_id where i.id=b2b_quotes.invitation_id and i.provider_organization_id=b2b_quotes.provider_organization_id and i.status='invited' and r.status='open' and r.category=b2b_quotes.category));
 -- No UPDATE of quotes, decisions, events or evidence: records are append-only in MVP.
 revoke update on public.b2b_products, public.b2b_requirements, public.b2b_documents, public.b2b_product_requirements,
-  public.b2b_evidence, public.b2b_passports, public.b2b_cbam_cases, public.b2b_rfqs, public.b2b_rfq_invitations,
+  public.b2b_evidence, public.b2b_passports, public.b2b_cbam_cases, public.b2b_cbam_evidence, public.b2b_rfqs, public.b2b_rfq_invitations,
   public.b2b_quotes, public.b2b_decisions, public.b2b_contracts, public.b2b_events from authenticated;
 
 create or replace function public.b2b_transition(p_kind text,p_id uuid,p_status text)
@@ -259,6 +267,14 @@ begin
     select organization_id into v_org from public.b2b_rfqs where id=p_id;
     if not public.b2b_has_role(v_org,array['admin','procurement_manager']) then raise exception 'forbidden'; end if;
     update public.b2b_rfqs set status='open' where id=p_id and status='draft';
+  elsif p_kind='cbam' and p_status='REVIEWED' then
+    select organization_id into v_org from public.b2b_cbam_cases where id=p_id;
+    if not public.b2b_has_role(v_org,array['admin','compliance_reviewer']) then raise exception 'forbidden'; end if;
+    update public.b2b_cbam_cases set verification_state='REVIEWED', reviewed_by=auth.uid(), reviewed_at=now()
+      where id=p_id and verification_state='PENDING_VERIFICATION'
+        and exists(select 1 from public.b2b_cbam_evidence e join public.b2b_documents d on d.id=e.document_id
+          where e.case_id=p_id and e.organization_id=v_org and d.status='verified'
+            and (d.expires_at is null or d.expires_at>now()));
   else raise exception 'invalid transition'; end if;
   if not found then raise exception 'not found or invalid state'; end if;
   insert into public.b2b_events(organization_id,entity_type,entity_id,event_type,actor_id)

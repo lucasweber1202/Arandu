@@ -1,6 +1,6 @@
 const vertical = document.body.dataset.vertical;
 const keys = vertical === 'export'
-  ? ['products','requirements','documents','mappings','evidence','passports','cbam']
+  ? ['products','requirements','documents','mappings','evidence','passports','cbam','cbam-evidence']
   : ['rfqs','invitations','quotes','decisions','contracts'];
 const orgSelect = document.querySelector('#organization');
 const message = document.querySelector('#message');
@@ -57,7 +57,8 @@ function renderRows(key) {
       documents: [['document','verified','Marcar verificado'],['document','rejected','Rejeitar']],
       evidence: [['evidence','accepted','Aceitar evidência'],['evidence','rejected','Rejeitar']],
       passports: [['passport','published','Publicar passaporte']],
-      rfqs: [['rfq','open','Abrir RFQ']]
+      rfqs: [['rfq','open','Abrir RFQ']],
+      cbam: [['cbam','REVIEWED','Registrar revisão do case']]
     };
     for (const [kind,status,label] of transitions[key] || []) {
       const button = document.createElement('button'); button.type = 'button'; button.textContent = label;
@@ -124,7 +125,7 @@ document.querySelectorAll('form[data-action]').forEach(form => form.addEventList
     if (!orgSelect.value) return info('Crie ou selecione uma organização.');
     body.organization_id = orgSelect.value;
   }
-  for (const field of ['details','terms']) {
+  for (const field of ['details','terms','composition','emissions_data']) {
     if (field in body) {
       try { body[field] = JSON.parse(body[field] || '{}'); }
       catch { return info(`${field}: JSON inválido.`); }

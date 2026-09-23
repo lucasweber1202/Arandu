@@ -14,15 +14,25 @@ insert into public.b2b_requirements(organization_id,code,title,vertical) values 
 insert into public.b2b_documents(organization_id,title,document_type,uploader_id) values (:'org_a','Composition file metadata','composition','00000000-0000-4000-8000-000000000001') returning id as doc_a \gset
 insert into public.b2b_product_requirements(organization_id,product_id,requirement_id) values (:'org_a',:'product_a',:'req_a');
 insert into public.b2b_evidence(organization_id,product_id,requirement_id,document_id) values (:'org_a',:'product_a',:'req_a',:'doc_a') returning id as evidence_a \gset
+insert into public.b2b_cbam_cases(organization_id,product_id,facility,reporting_period)
+  values (:'org_a',:'product_a','Demo Plant','[2026-01-01,2026-04-01)') returning id as cbam_a \gset
+insert into public.b2b_cbam_evidence(organization_id,case_id,document_id) values (:'org_a',:'cbam_a',:'doc_a');
 insert into public.b2b_passports(organization_id,product_id) values (:'org_a',:'product_a') returning id as passport_a,token as token_a \gset
 select 1/(case when count(*)=0 then 1 else 0 end) from public.b2b_public_passport(:'token_a'::uuid);
 select public.b2b_transition('passport',:'passport_a','published');
 select 1/(case when count(*)=1 then 1 else 0 end) from public.b2b_public_passport(:'token_a'::uuid);
 select 1/(case when data_readiness=0 then 1 else 0 end) from public.b2b_public_passport(:'token_a'::uuid);
+select set_config('test.cbam_a',:'cbam_a',true);
+do $$ declare rejected boolean:=false; begin
+  begin perform public.b2b_transition('cbam',current_setting('test.cbam_a')::uuid,'REVIEWED');
+  exception when others then rejected:=true; end;
+  if not rejected then raise exception 'CBAM reviewed without verified document'; end if;
+end $$;
 select public.b2b_transition('document',:'doc_a','verified');
 select public.b2b_transition('evidence',:'evidence_a','accepted');
+select public.b2b_transition('cbam',:'cbam_a','REVIEWED');
 select 1/(case when data_readiness=100 then 1 else 0 end) from public.b2b_public_passport(:'token_a'::uuid);
-select 1/(case when count(*)=3 then 1 else 0 end) from public.b2b_events where organization_id=:'org_a'::uuid;
+select 1/(case when count(*)=4 then 1 else 0 end) from public.b2b_events where organization_id=:'org_a'::uuid;
 set local role anon;
 select 1/(case when count(*)=1 then 1 else 0 end) from public.b2b_public_passport(:'token_a'::uuid);
 select 1/(case when count(*)=0 then 1 else 0 end) from public.b2b_public_passport('00000000-0000-4000-8000-000000000099'::uuid);

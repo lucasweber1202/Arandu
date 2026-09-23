@@ -13,4 +13,4 @@
 | crm_note / task | note / task futuros | Legado fica em Arte |
 | media_asset | attachment futuro | Sem reutilização de storage público |
 
-Migration `docs/supabase-b2b-platform.sql` adiciona 16 tabelas e RPCs. Chaves compostas guardam fronteiras entre tenants; relacionamentos polimórficos por ID sem FK foram evitados nos fluxos financeiros e de evidência. Ainda não há migração de dados de Arte para B2B porque nenhuma equivalência preserva adequadamente consentimento, finalidade e significado comercial.
+Migration `docs/supabase-b2b-platform.sql` adiciona 17 tabelas e RPCs. Chaves compostas guardam fronteiras entre tenants; relacionamentos polimórficos por ID sem FK foram evitados nos fluxos financeiros e de evidência. Ainda não há migração de dados de Arte para B2B porque nenhuma equivalência preserva adequadamente consentimento, finalidade e significado comercial.
