@@ -12,6 +12,13 @@ create table if not exists public.b2b_members (
   role text not null check (role in ('admin','member','compliance_manager','compliance_reviewer','procurement_manager','finance_reviewer','provider_user','supplier_user','auditor','viewer')),
   created_at timestamptz not null default now(), primary key (organization_id,user_id)
 );
+create table if not exists public.b2b_member_invitations (
+  id uuid primary key default gen_random_uuid(), organization_id uuid not null references public.b2b_organizations(id),
+  email text not null, role text not null check(role in ('admin','member','compliance_manager','compliance_reviewer','procurement_manager','finance_reviewer','provider_user','supplier_user','auditor','viewer')),
+  token_hash text not null unique, created_by uuid not null references auth.users(id),
+  expires_at timestamptz not null default now()+interval '7 days', accepted_at timestamptz,
+  created_at timestamptz not null default now()
+);
 
 -- Direct creation would let a user claim someone else's company. Bootstrap atomically.
 create or replace function public.b2b_create_organization(p_name text, p_kind text, p_country text default 'BR')
@@ -37,12 +44,43 @@ $$;
 revoke all on function public.b2b_create_organization(text,text,text), public.b2b_has_role(uuid,text[]) from public, anon;
 grant execute on function public.b2b_create_organization(text,text,text), public.b2b_has_role(uuid,text[]) to authenticated, service_role;
 
+create or replace function public.b2b_invite_member(p_org uuid,p_email text,p_role text)
+returns text language plpgsql security definer set search_path = '' as $$
+declare v_token text;
+begin
+  if not public.b2b_has_role(p_org,array['admin']) then raise exception 'forbidden'; end if;
+  if p_email !~* '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$' or length(p_email)>254 then raise exception 'invalid email'; end if;
+  if p_role not in ('admin','member','compliance_manager','compliance_reviewer','procurement_manager','finance_reviewer','provider_user','supplier_user','auditor','viewer') then raise exception 'invalid role'; end if;
+  v_token := replace(gen_random_uuid()::text,'-','') || replace(gen_random_uuid()::text,'-','');
+  insert into public.b2b_member_invitations(organization_id,email,role,token_hash,created_by)
+    values(p_org,lower(trim(p_email)),p_role,encode(sha256(convert_to(v_token,'UTF8')),'hex'),auth.uid());
+  return v_token;
+end $$;
+create or replace function public.b2b_accept_member_invitation(p_token text)
+returns uuid language plpgsql security definer set search_path = '' as $$
+declare v_inv public.b2b_member_invitations%rowtype; v_email text;
+begin
+  if auth.uid() is null or p_token !~ '^[0-9a-f]{64}$' then raise exception 'invalid invitation'; end if;
+  select lower(email) into v_email from auth.users where id=auth.uid();
+  select * into v_inv from public.b2b_member_invitations
+    where token_hash=encode(sha256(convert_to(p_token,'UTF8')),'hex') and accepted_at is null and expires_at>now() for update;
+  if not found or v_inv.email is distinct from v_email then raise exception 'invalid invitation'; end if;
+  insert into public.b2b_members(organization_id,user_id,role) values(v_inv.organization_id,auth.uid(),v_inv.role)
+    on conflict (organization_id,user_id) do nothing;
+  update public.b2b_member_invitations set accepted_at=now() where id=v_inv.id;
+  return v_inv.organization_id;
+end $$;
+revoke all on function public.b2b_invite_member(uuid,text,text), public.b2b_accept_member_invitation(text) from public, anon;
+grant execute on function public.b2b_invite_member(uuid,text,text), public.b2b_accept_member_invitation(text) to authenticated, service_role;
+alter table public.b2b_member_invitations enable row level security;
+revoke all on public.b2b_member_invitations from anon, authenticated;
+
 create table if not exists public.b2b_products (
   id uuid primary key default gen_random_uuid(), organization_id uuid not null references public.b2b_organizations(id),
   sku text not null, name text not null, description text, category text, brand text, manufacturer text,
   country_of_origin text, hs_code text, model text, batch text, serial text, market text,
   status text not null default 'draft' check(status in ('draft','review','published','archived')),
-  composition jsonb not null default '{}'::jsonb, created_at timestamptz not null default now(),
+  composition jsonb not null default '{}'::jsonb check(jsonb_typeof(composition)='object'), created_at timestamptz not null default now(),
   unique(organization_id,id), unique(organization_id,sku)
 );
 create table if not exists public.b2b_requirements (
@@ -85,7 +123,7 @@ create table if not exists public.b2b_passports (
 create table if not exists public.b2b_cbam_cases (
   id uuid primary key default gen_random_uuid(), organization_id uuid not null, product_id uuid not null,
   facility text not null, reporting_period daterange not null, importer text,
-  emissions_data jsonb not null default '{}'::jsonb, methodology text, notes text,
+  emissions_data jsonb not null default '{}'::jsonb check(jsonb_typeof(emissions_data)='object'), methodology text, notes text,
   verification_state text not null default 'PENDING_VERIFICATION' check(verification_state in ('PENDING_VERIFICATION','REVIEWED')),
   created_at timestamptz not null default now(), unique(organization_id,id),
   foreign key(organization_id,product_id) references public.b2b_products(organization_id,id)
@@ -93,7 +131,7 @@ create table if not exists public.b2b_cbam_cases (
 create table if not exists public.b2b_rfqs (
   id uuid primary key default gen_random_uuid(), organization_id uuid not null references public.b2b_organizations(id),
   title text not null, category text not null check(category in ('credit','insurance','fx','acquiring','guarantee','leasing','other')),
-  details jsonb not null default '{}'::jsonb, status text not null default 'draft' check(status in ('draft','open','closed')),
+  details jsonb not null default '{}'::jsonb check(jsonb_typeof(details)='object'), status text not null default 'draft' check(status in ('draft','open','closed')),
   created_at timestamptz not null default now(), unique(organization_id,id)
 );
 create table if not exists public.b2b_rfq_invitations (
@@ -108,7 +146,8 @@ create table if not exists public.b2b_rfq_invitations (
 create table if not exists public.b2b_quotes (
   id uuid primary key default gen_random_uuid(), invitation_id uuid not null, provider_organization_id uuid not null,
   category text not null check(category in ('credit','insurance','fx','acquiring','guarantee','leasing','other')),
-  terms jsonb not null, currency text, amount numeric, valid_until date,
+  terms jsonb not null check(jsonb_typeof(terms)='object'), currency text check(currency is null or currency ~ '^[A-Z]{3}$'),
+  amount numeric check(amount is null or amount>=0), valid_until date,
   status text not null default 'submitted' check(status in ('submitted','withdrawn')),
   created_at timestamptz not null default now(), unique(invitation_id,id),
   foreign key(invitation_id,provider_organization_id) references public.b2b_rfq_invitations(id,provider_organization_id)

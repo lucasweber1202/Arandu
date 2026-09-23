@@ -81,4 +81,27 @@ insert into public.b2b_decisions(organization_id,rfq_id,invitation_id,quote_id,d
   values (:'org_b',:'rfq_b',:'invite_bc',:'quote_c','00000000-0000-4000-8000-000000000002','Human decision') returning id as decision_b \gset
 insert into public.b2b_contracts(organization_id,decision_id,quote_id,starts_on,ends_on)
   values (:'org_b',:'decision_b',:'quote_c','2026-10-01','2027-09-30');
+select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000001',true);
+select public.b2b_invite_member(:'org_a','d@example.invalid','viewer') as token_ad \gset
+select set_config('test.token_ad',:'token_ad',true);
+select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000002',true);
+do $$ declare rejected boolean:=false; begin
+  begin perform public.b2b_accept_member_invitation(current_setting('test.token_ad'));
+  exception when others then rejected:=true; end;
+  if not rejected then raise exception 'wrong email accepted invitation'; end if;
+end $$;
+select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000004',true);
+select 1/(case when public.b2b_accept_member_invitation(:'token_ad')=:'org_a'::uuid then 1 else 0 end);
+select 1/(case when count(*)=1 then 1 else 0 end) from public.b2b_products where id=:'product_a'::uuid;
+do $$ declare rejected boolean:=false; begin
+  begin perform public.b2b_accept_member_invitation(current_setting('test.token_ad'));
+  exception when others then rejected:=true; end;
+  if not rejected then raise exception 'invitation reused'; end if;
+end $$;
+do $$ begin
+  begin
+    insert into public.b2b_products(organization_id,sku,name) values (current_setting('test.org_a')::uuid,'VIEWER-ATTACK','Cross tenant');
+    raise exception 'viewer wrote product';
+  exception when insufficient_privilege then null; end;
+end $$;
 rollback;
