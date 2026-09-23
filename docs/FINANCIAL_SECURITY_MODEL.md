@@ -1,0 +1,90 @@
+# Modelo de segurança — Financial Procurement
+
+A vertical herda os padrões já existentes do Arandu: Supabase Auth, sessão
+segura, RLS, RBAC, proteção contra enumeração, rate limit, validação de origem,
+CSP, sanitização, DTO com allowlist, auditoria e retenção.
+
+## Camadas
+
+1. **Origem e sessão** — `enforceSameOrigin` e `requireUser` em
+   `api/[...path].js`, antes de qualquer rota `/api/finance/*`.
+2. **Rate limit** — três escopos: catálogo de produtos (anônimo, 120/10min),
+   conta (240/10min por usuário) e escrita (60/10min por usuário).
+3. **DTO / allowlist** — `lib/finance/products.mjs` define os campos aceitos por
+   produto. `normalizeDemand` / `normalizeProposal` descartam qualquer chave não
+   declarada e devolvem a lista do que foi rejeitado.
+4. **Resolução no servidor** — `organization_id` só vale depois de confirmado
+   pelo banco; o **produto** de uma proposta vem da linha em `fin_proposals`,
+   nunca do corpo; `provider_organization_id` é validado por membresia.
+5. **RLS forçada** — `force row level security` em todas as tabelas `fin_*`.
+   `anon` não recebe nenhum privilégio. Mesmo um chamador que fale direto com a
+   REST API do Supabase não atravessa as policies.
+6. **Escrita de estado por função** — `INSERT`/`UPDATE`/`DELETE` diretos estão
+   revogados em RFQs, convites, propostas, versões, decisões, contratos e
+   eventos. Tudo passa por funções `SECURITY DEFINER` que checam papel e estado.
+7. **Redação de erro** — erros não-`HttpError` no domínio financeiro viram 503
+   ou um código genérico. A mensagem do Postgres nunca chega ao cliente: ela
+   revelaria nomes de tabela, policies e a existência de registros alheios.
+
+## Isolamento entre organizações
+
+* Uma organização nunca lê RFQ, proposta, contrato, provedor ou perfil de outra.
+* Um provedor lê apenas: as RFQs cujo convite **aceitou** e a **própria**
+  proposta, com as próprias versões.
+* Um provedor nunca lê proposta de concorrente, nota interna da empresa nem a
+  decisão antes de registrada.
+
+Todos esses pontos têm teste em `tests/database/financial-procurement.sql`,
+rodando contra PostgreSQL real com `set role authenticated` e claim JWT.
+
+## Convites
+
+| Ameaça | Defesa |
+| --- | --- |
+| Reuso de token | `status='invited' and accepted_at is null ... for update` |
+| Token expirado | `expires_at > now()` |
+| Vazamento do token armazenado | apenas o `sha256` é persistido |
+| Troca de identidade do provedor | a organização provedora vem da membresia do chamador, validada por `fin_has_role`; não há caminho em que o corpo escolha por quem responder |
+| Convite de si mesmo | `check (buyer_organization_id <> provider_organization_id)` e checagem em `fin_accept_provider_invite` |
+| Token de convite de membro exposto | `fin_member_invitations` não tem `SELECT` para `authenticated` |
+
+## Testes de segurança exigidos e onde estão
+
+| Cenário | Arquivo |
+| --- | --- |
+| Org A não lê org B | `tests/database/financial-procurement.sql` |
+| Provider A não lê provider B | idem |
+| Provedor não lê concorrente (proposta e versões) | idem |
+| `viewer` não altera | idem |
+| `organization_id` adulterado falha | `scripts/test-finance-api.mjs` (400/403 sem tocar o banco) |
+| `provider_id` / produto adulterado é ignorado | `scripts/test-finance-api.mjs` |
+| Campos financeiros privilegiados injetados pelo browser | `scripts/test-finance-api.mjs` e `scripts/test-finance-domain.mjs` |
+| Proposta de outra RFQ não pode ser vinculada | chaves compostas + `fin_record_decision` |
+| Contrato de outra organização não é acessível | policy `fin_contract_read` |
+| Token expirado falha | `tests/database/financial-procurement.sql` |
+| Token reutilizado falha | idem |
+| Transição inválida falha | idem + `scripts/test-finance-api.mjs` |
+| Anon não alcança nenhuma tabela `fin_*` | idem (checagem de privilégio) |
+
+## Idempotência e concorrência
+
+* Aceitar convite usa `select ... for update` e é idempotente por
+  `on conflict (invite_id) do nothing` na criação da proposta.
+* Envio de proposta usa `for update` sobre `fin_proposals` e a unicidade
+  `(proposal_id, version)` impede duas versões com o mesmo número em corrida.
+* Transições são `update ... where status = <estado esperado>`: duas abas
+  concorrentes não atravessam o mesmo estado duas vezes.
+
+## Logs e PII
+
+Os eventos em `fin_events` carregam tipo de entidade, identificador, tipo de
+evento, ator e metadados não sensíveis. Termos financeiros não são registrados
+na trilha — há teste de banco que falha se forem.
+
+## Administração
+
+A vertical não cria nenhum bypass administrativo. Ações sensíveis continuam
+sujeitas ao modelo já existente: sessão administrativa, MFA, RBAC, auditoria e
+motivo. Nenhuma função `fin_*` concede acesso a `service_role` além do que o
+Supabase já concede por padrão, e nenhuma delas aceita "agir como" outro
+usuário.
