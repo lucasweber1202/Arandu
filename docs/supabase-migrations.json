@@ -20,7 +20,8 @@
     "docs/supabase-operational-trail-completeness.sql",
     "docs/supabase-email-outbox-fencing.sql",
     "docs/supabase-beta-conversion-events.sql",
-    "docs/supabase-financial-procurement.sql"
+    "docs/supabase-financial-procurement.sql",
+    "docs/supabase-financial-procurement-hardening.sql"
   ],
   "existingDatabase": [
     "docs/supabase-sprint1-auth-ownership.sql",
@@ -42,6 +43,7 @@
     "docs/supabase-operational-trail-completeness.sql",
     "docs/supabase-email-outbox-fencing.sql",
     "docs/supabase-beta-conversion-events.sql",
-    "docs/supabase-financial-procurement.sql"
+    "docs/supabase-financial-procurement.sql",
+    "docs/supabase-financial-procurement-hardening.sql"
   ]
 }

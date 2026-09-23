@@ -59,6 +59,12 @@ A empresa pode definir critérios e pesos próprios. Nesse caso — e só nesse 
 — existe uma ordenação, sempre rotulada **"Resultado conforme os pesos definidos
 por você"**. A expressão "Recomendação do Arandu" não existe no produto.
 
+Quando a empresa define pesos, o resultado vem com a **cobertura** de cada
+proposta — a parcela do peso definido que ela efetivamente respondeu. Uma
+proposta que responde 25% do peso pode ter nota alta sobre esse pouco; ela é
+marcada e fica depois das completas, em vez de liderar em silêncio. Critérios
+em que todas informaram o mesmo valor são nomeados como não discriminantes.
+
 A proteção é dupla:
 
 * **backend** — `lib/finance/comparison.mjs` só produz `applyUserWeights` quando
@@ -82,9 +88,21 @@ de custo, sempre acompanhada de:
 * premissas assumidas;
 * marcação de que é estimativa.
 
-Faltando qualquer insumo, o resultado é "não calculável" — não um número
-aproximado. Isso vale para o custo total de crédito e para o custo mensal de
-adquirência.
+Faltando qualquer insumo, o resultado é **o motivo pelo qual não foi
+calculado**, não um número aproximado nem um campo vazio. O Arandu recusa a
+projeção quando:
+
+* falta valor, taxa, prazo ou tarifa;
+* a taxa é pós-fixada (exigiria arbitrar uma curva de CDI ou IPCA);
+* a amortização é SAC, bullet ou customizada (a fórmula é PRICE);
+* há carência (o tratamento dos juros no período varia por contrato);
+* em adquirência, uma fatia foi declarada sem a taxa correspondente.
+
+A **antecipação não entra** no custo mensal de adquirência: calculá-la exigiria
+volume antecipado e prazo médio, que a empresa não declara nesta fase, e
+embutir uma hipótese mudaria a ordem das propostas sem ninguém ver a hipótese.
+Quando o mix declarado não soma 100%, a estimativa diz que cobre apenas a parte
+declarada.
 
 ## Módulos
 
@@ -101,14 +119,17 @@ adquirência.
 | Contratos e renovação | `fin_contracts` |
 | Documentos por referência | `fin_documents` |
 | Tarefas e trilha | `fin_tasks`, `fin_events` |
+| Validação local de CNPJ | `lib/finance/cnpj.mjs` |
+| Modelos de e-mail (preparados, não enviando) | `lib/finance/email-templates.mjs` |
 
 ## Interfaces
 
 Portal da empresa (`/finance/`): início, painel, solicitações, detalhe da RFQ,
 provedores, propostas, contratos, perfil financeiro e limites do produto.
 
-Portal do provedor (`/provider/`): início, RFQs atribuídas e resposta de
-proposta.
+Portal do provedor (`/provider/`): início, aceite de convite com estado
+explícito, RFQs atribuídas com a necessidade declarada, e resposta de proposta
+com rascunho local e histórico de versões.
 
 ## Preparação para benchmarking (não implementado)
 

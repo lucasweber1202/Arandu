@@ -25,6 +25,10 @@ CSP, sanitização, DTO com allowlist, auditoria e retenção.
 7. **Redação de erro** — erros não-`HttpError` no domínio financeiro viram 503
    ou um código genérico. A mensagem do Postgres nunca chega ao cliente: ela
    revelaria nomes de tabela, policies e a existência de registros alheios.
+   Falhas conhecidas das funções do banco são traduzidas por uma tabela fixa
+   em `lib/api/domains/finance.mjs` para mensagens úteis ("este convite não é
+   válido", "esta solicitação já tem uma decisão") — nada fora dessa tabela
+   atravessa.
 
 ## Isolamento entre organizações
 
@@ -65,6 +69,15 @@ rodando contra PostgreSQL real com `set role authenticated` e claim JWT.
 | Token reutilizado falha | idem |
 | Transição inválida falha | idem + `scripts/test-finance-api.mjs` |
 | Anon não alcança nenhuma tabela `fin_*` | idem (checagem de privilégio) |
+| Duas decisões na mesma RFQ | `tests/database/financial-procurement-hardening.sql` |
+| Dois contratos para a mesma decisão | idem |
+| Revisão posterior alterando o snapshot da decisão | idem |
+| Evidência regulatória sem https ou com data futura | idem |
+| Provedor lendo o cadastro interno do comprador após o vínculo canônico | idem |
+| Comparação acessada por organização provedora | `scripts/test-finance-api.mjs` |
+| Mensagem crua do Postgres chegando ao cliente | idem |
+
+O mapa completo de ataques está em [`FINANCIAL_THREAT_MODEL.md`](FINANCIAL_THREAT_MODEL.md).
 
 ## Idempotência e concorrência
 
@@ -72,6 +85,10 @@ rodando contra PostgreSQL real com `set role authenticated` e claim JWT.
   `on conflict (invite_id) do nothing` na criação da proposta.
 * Envio de proposta usa `for update` sobre `fin_proposals` e a unicidade
   `(proposal_id, version)` impede duas versões com o mesmo número em corrida.
+  Reenvio de termos idênticos é idempotente.
+* Decisão e contrato travam a linha que leem (`for update`) e têm índice único
+  por RFQ e por decisão: duas requisições simultâneas não produzem duas
+  decisões nem dois contratos.
 * Transições são `update ... where status = <estado esperado>`: duas abas
   concorrentes não atravessam o mesmo estado duas vezes.
 

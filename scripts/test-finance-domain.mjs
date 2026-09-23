@@ -1,13 +1,15 @@
 import assert from 'node:assert/strict';
 import {
   PRODUCT_IDS, normalizeDemand, normalizeProposal,
-  estimateCreditTotalCost, estimateAcquiringMonthlyCost
+  estimateCreditTotalCost, estimateAcquiringMonthlyCost, checkAcquiringShares
 } from '../lib/finance/products.mjs';
+import { validateCnpj, normalizeCnpj, formatCnpj } from '../lib/finance/cnpj.mjs';
 import {
   buildComparison, applyUserWeights, comparableFields,
   NEUTRAL_RANKING_NOTICE, USER_WEIGHTS_NOTICE
 } from '../lib/finance/comparison.mjs';
 import { canTransition, nextStates, RFQ_STATES } from '../lib/finance/workflow.mjs';
+import { LOW_COVERAGE_THRESHOLD } from '../lib/finance/comparison.mjs';
 import { summarize, withRenewalWindow } from '../lib/api/domains/finance.mjs';
 
 assert.deepEqual(PRODUCT_IDS, ['credit', 'acquiring']);
@@ -56,10 +58,31 @@ assert.ok(normalizeProposal('acquiring', { institution: 'A', product_name: 'B', 
 
 // --------------------------------------------------------- cálculos e CET
 
-// Sem insumos completos não há estimativa: o Arandu não inventa custo.
-assert.equal(estimateCreditTotalCost({ offered_amount: 500000, term_months: 24 }), null);
-// Pós-fixado não é projetável sem curva; o campo fica sem estimativa.
-assert.equal(estimateCreditTotalCost({ offered_amount: 1000, interest_rate_month: 1, term_months: 12, index: 'cdi' }), null);
+// Sem insumos completos não há estimativa: o Arandu não inventa custo — e diz
+// por que não calculou, em vez de devolver vazio sem explicação.
+{
+  const missing = estimateCreditTotalCost({ offered_amount: 500000, term_months: 24 });
+  assert.equal(missing.estimate, false);
+  assert.match(missing.reason, /taxa mensal/);
+}
+// Pós-fixado depende de projeção do indexador, que o Arandu não arbitra.
+{
+  const indexed = estimateCreditTotalCost({ offered_amount: 1000, interest_rate_month: 1, term_months: 12, index: 'cdi' });
+  assert.equal(indexed.estimate, false);
+  assert.match(indexed.reason, /CDI/);
+}
+// A fórmula é PRICE. Aplicá-la a SAC ou bullet daria número errado com cara de certo.
+for (const amortization of ['sac', 'bullet', 'customizada']) {
+  const result = estimateCreditTotalCost({ offered_amount: 1000, interest_rate_month: 1, term_months: 12, amortization });
+  assert.equal(result.estimate, false, `${amortization} não pode usar a fórmula PRICE`);
+  assert.match(result.reason, /PRICE/);
+}
+// Carência muda o tratamento dos juros e varia por contrato.
+{
+  const grace = estimateCreditTotalCost({ offered_amount: 1000, interest_rate_month: 1, term_months: 12, grace_months: 3 });
+  assert.equal(grace.estimate, false);
+  assert.match(grace.reason, /carência/);
+}
 {
   const estimate = estimateCreditTotalCost({ offered_amount: 500000, interest_rate_month: 1.85, term_months: 24, fees_amount: 1500 });
   assert.equal(estimate.estimate, true);
@@ -82,7 +105,63 @@ assert.equal(estimateCreditTotalCost({ offered_amount: 1000, interest_rate_month
   assert.equal(estimate.estimate, true);
 }
 // Fatia declarada sem a taxa correspondente não vira estimativa parcial.
-assert.equal(estimateAcquiringMonthlyCost({ monthly_volume: 1000, share_pix: 100 }, { mdr_debit: 1 }), null);
+{
+  const partial = estimateAcquiringMonthlyCost({ monthly_volume: 1000, share_pix: 100 }, { mdr_debit: 1 });
+  assert.equal(partial.estimate, false);
+  assert.match(partial.reason, /PIX/);
+}
+// Antecipação fica de fora: exigiria volume antecipado e prazo médio.
+{
+  const estimate = estimateAcquiringMonthlyCost(
+    { monthly_volume: 1000, share_debit: 100, terminals: 0 },
+    { mdr_debit: 1, anticipation_rate: 99, terminal_rent: 0, gateway_cost: 0 }
+  );
+  assert.equal(estimate.total_cost, 10, 'a antecipação não pode entrar na conta');
+  assert.ok(estimate.assumptions.some((item) => /antecipação/.test(item)));
+  assert.equal(estimate.covers_full_volume, true);
+  assert.equal(estimate.unit, 'BRL/mês');
+}
+// Quando o mix não fecha 100%, a estimativa diz que cobre só o declarado.
+{
+  const partial = estimateAcquiringMonthlyCost(
+    { monthly_volume: 1000, share_debit: 50, terminals: 0 },
+    { mdr_debit: 1, terminal_rent: 0, gateway_cost: 0 }
+  );
+  assert.equal(partial.covers_full_volume, false);
+  assert.equal(partial.declared_share, 50);
+}
+
+// ------------------------------------------------ mix de recebimentos
+
+assert.equal(checkAcquiringShares({ share_debit: 40, share_credit_cash: 30, share_credit_installment: 20, share_pix: 10 }).ok, true);
+// 80 + 60 + 40 = 180 é erro de preenchimento.
+{
+  const broken = checkAcquiringShares({ share_debit: 80, share_credit_cash: 60, share_credit_installment: 40 });
+  assert.equal(broken.ok, false);
+  assert.match(broken.errors[0], /180%/);
+}
+// Diferença pequena é aviso, e o valor informado NÃO é normalizado em silêncio.
+{
+  const drift = checkAcquiringShares({ share_debit: 40, share_credit_cash: 30, share_credit_installment: 20, share_pix: 5 });
+  assert.equal(drift.ok, true);
+  assert.equal(drift.warnings.length, 1);
+  assert.equal(drift.declared, 95);
+}
+// Arredondamento do dia a dia não incomoda ninguém.
+assert.equal(checkAcquiringShares({ share_debit: 40, share_credit_cash: 30, share_credit_installment: 20, share_pix: 11 }).warnings.length, 0);
+assert.equal(checkAcquiringShares({}).ok, true);
+
+// ------------------------------------------------------------- CNPJ
+
+assert.equal(validateCnpj('11.222.333/0001-81').format_valid, true);
+// Dígitos conferidos nunca viram afirmação de que a empresa existe.
+assert.equal(validateCnpj('11.222.333/0001-81').externally_verified, false);
+assert.equal(validateCnpj('11222333000182').format_valid, false);
+assert.equal(validateCnpj('11111111111111').format_valid, false);
+assert.equal(validateCnpj('112223330001').format_valid, false);
+assert.equal(validateCnpj('').format_valid, false);
+assert.equal(normalizeCnpj('11.222.333/0001-81'), '11222333000181');
+assert.equal(formatCnpj('11222333000181'), '11.222.333/0001-81');
 
 // ------------------------------------------------------- comparação factual
 
@@ -181,4 +260,72 @@ assert.deepEqual(nextStates('rfq', 'inexistente'), []);
 assert.equal(withRenewalWindow({ ends_on: '2030-01-31', renewal_notice_days: 30 }).review_from, '2030-01-01');
 assert.equal(withRenewalWindow({ ends_on: 'invalido', renewal_notice_days: 30 }).review_from, null);
 
-console.log('Financial Procurement domain: normalização, cálculos com proveniência, comparação factual, pesos do usuário e máquina de estados aprovados.');
+// ------------------------------- pesos: empate, cobertura e uma proposta
+
+// Empate não pode depender da direção do campo. Antes, um empate dava 1 para
+// "maior é melhor" e 0 para "menor é melhor", e a ordem final mudava conforme
+// os campos escolhidos, não conforme as condições.
+{
+  const tied = [
+    { id: 'x', terms: { interest_rate_month: 2, term_months: 24 } },
+    { id: 'y', terms: { interest_rate_month: 2, term_months: 24 } }
+  ];
+  const lower = applyUserWeights('credit', tied, { interest_rate_month: 100 });
+  const higher = applyUserWeights('credit', tied, { term_months: 100 });
+  assert.deepEqual(lower.results.map((row) => row.score), [1, 1]);
+  assert.deepEqual(higher.results.map((row) => row.score), [1, 1]);
+  assert.equal(lower.non_discriminating_criteria.length, 1);
+  assert.ok(lower.results.every((row) => row.breakdown.every((item) => item.discriminates === false)));
+}
+
+// Uma única proposta não produz ordenação com sentido.
+{
+  const single = applyUserWeights('credit', [proposals[0]], { interest_rate_month: 100 });
+  assert.equal(single.applied, true);
+  assert.equal(single.ranking_meaningful, false);
+}
+assert.equal(applyUserWeights('credit', proposals, { interest_rate_month: 40 }).ranking_meaningful, true);
+
+// Cobertura baixa não pode liderar em silêncio sobre uma proposta completa.
+{
+  const mixed = applyUserWeights('credit', [
+    { id: 'completa', terms: { interest_rate_month: 2.0, term_months: 24, grace_months: 3, fees_amount: 1000 } },
+    { id: 'quase-vazia', terms: { interest_rate_month: 1.0 } }
+  ], { interest_rate_month: 25, term_months: 25, grace_months: 25, fees_amount: 25 });
+  const sparse = mixed.results.find((row) => row.id === 'quase-vazia');
+  const complete = mixed.results.find((row) => row.id === 'completa');
+  assert.equal(sparse.coverage, 0.25);
+  assert.equal(sparse.low_coverage, true);
+  assert.equal(complete.low_coverage, false);
+  assert.ok(sparse.score > complete.score, 'a nota da esparsa é maior sobre o pouco que respondeu');
+  assert.equal(mixed.results[0].id, 'completa', 'mesmo assim a completa vem primeiro');
+  assert.equal(mixed.has_low_coverage, true);
+  assert.equal(mixed.coverage_threshold, LOW_COVERAGE_THRESHOLD);
+  assert.deepEqual(sparse.missing_criteria.sort(), ['Carência (meses)', 'Prazo (meses)', 'Tarifas (R$)']);
+}
+
+// Peso absurdo vindo do cliente é descartado, não aplicado.
+assert.equal(applyUserWeights('credit', proposals, { interest_rate_month: 1e9 }).applied, false);
+assert.equal(applyUserWeights('credit', proposals, { interest_rate_month: -5 }).applied, false);
+assert.equal(applyUserWeights('credit', proposals, { interest_rate_month: 'muito' }).applied, false);
+
+// A soma dos pesos não precisa ser 100: o que importa é a proporção, e ela é
+// devolvida explicitamente para a interface mostrar.
+{
+  const shares = applyUserWeights('credit', proposals, { interest_rate_month: 3, term_months: 1 });
+  assert.equal(shares.criteria.find((item) => item.key === 'interest_rate_month').share, 0.75);
+}
+
+// Proposta sem nenhum critério respondido não recebe nota inventada.
+{
+  const empty = applyUserWeights('credit', [
+    { id: 'a', terms: { interest_rate_month: 1 } },
+    { id: 'vazia', terms: {} }
+  ], { interest_rate_month: 100 });
+  const blank = empty.results.find((row) => row.id === 'vazia');
+  assert.equal(blank.score, null);
+  assert.equal(blank.coverage, 0);
+  assert.equal(blank.low_coverage, true);
+}
+
+console.log('Financial Procurement domain: normalização, cálculos com proveniência, comparação factual, pesos do usuário e máquina de estados, empates, cobertura e CNPJ aprovados.');

@@ -9,11 +9,13 @@
 
 ## Aplicar a migration
 
-A migration entra por último na ordem canônica, nos dois fluxos
-(`cleanInstall` e `existingDatabase`) de `docs/supabase-migrations.json`:
+As migrations entram por último na ordem canônica, nos dois fluxos
+(`cleanInstall` e `existingDatabase`) de `docs/supabase-migrations.json`, nesta
+ordem:
 
 ```
 docs/supabase-financial-procurement.sql
+docs/supabase-financial-procurement-hardening.sql
 ```
 
 Ela é aditiva e reaplicável. Rollback manual (nunca automático):
@@ -30,6 +32,9 @@ O rollback remove as policies `fin_*` antes das tabelas, para não precisar de
 1. **Criar organização compradora**
    `POST /api/finance/organizations` com `kind: "BUYER"`.
    O criador vira `admin` atomicamente.
+   Depois, `PATCH /api/finance/organizations` completa nome fantasia, CNPJ,
+   setor e porte. O CNPJ é conferido em formato e dígitos; a resposta separa
+   `format_valid` de `externally_verified`, que é sempre falso nesta fase.
 2. **Preencher o perfil financeiro** (opcional, reutilizável)
    `POST /api/finance/profile` — cada campo guarda origem, responsável e data.
 3. **Cadastrar provedores**
@@ -57,7 +62,12 @@ O rollback remove as policies `fin_*` antes das tabelas, para não precisar de
 11. **Registrar contrato**
     `POST /api/finance/contracts`. A RFQ vai para `contracted`.
 12. **Acompanhar renovação**
-    `GET /api/finance/contracts` devolve `review_from` e `days_to_end`.
+    `GET /api/finance/contracts` devolve `review_from` e `days_to_end`, e o
+    registro do contrato já criou a tarefa de revisão em `fin_tasks`.
+
+Para montar o portal inteiro em uma chamada, `GET /api/finance/overview`
+devolve organização, RFQs com propostas, provedores, contratos, perfil e
+tarefas. O portal do provedor usa `GET /api/finance/assignments`.
 
 ## Fluxo ponta a ponta — adquirência
 
@@ -107,4 +117,15 @@ portal carrega dado demonstrativo — há teste E2E que verifica isso.
 * **Benchmarking não é exibido.** A estrutura existe; o dado agregado, não.
 * **Economia não é calculada.** O painel declara isso explicitamente.
 * **Notificações de renovação são exibidas na interface**, não enviadas por
-  e-mail. O outbox existente não foi acoplado a esta vertical nesta rodada.
+  e-mail. Os oito modelos estão prontos em `lib/finance/email-templates.mjs` e
+  produzem a linha da outbox existente, mas nada é enfileirado nem enviado —
+  ver [`FINANCIAL_EMAIL_TEMPLATES.md`](FINANCIAL_EMAIL_TEMPLATES.md).
+* **Não há registro de aceite de termos** no schema. Durante o piloto isso é
+  feito fora do produto.
+* **Não há preferência de notificação por membro**, o que é pré-requisito para
+  ligar os e-mails.
+* **A abertura da comparação não é instrumentada**: não há evento de produto
+  para ela, então a métrica correspondente não pode ser calculada ainda.
+* **Admin da vertical é leitura pelo painel da própria organização.** Não há
+  console administrativo cruzando organizações; ações sensíveis continuam
+  restritas ao modelo administrativo existente do Arandu.

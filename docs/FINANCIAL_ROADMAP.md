@@ -1,12 +1,21 @@
 # Roadmap — Financial Procurement
 
-## Rodada atual (entregue)
+## Entregue até aqui
 
-Crédito empresarial e adquirência ponta a ponta: organização, perfil financeiro,
-provedores, RFQ com máquina de estados, convite de uso único, propostas
-versionadas, comparação factual, pesos do usuário, decisão humana com snapshot,
-contrato e janela de renovação. Portais de empresa e de provedor. RLS, RBAC e
-isolamento multi-tenant testados contra PostgreSQL real.
+**Pivot (PR #64):** crédito empresarial e adquirência ponta a ponta —
+organização, perfil financeiro, provedores, RFQ com máquina de estados, convite
+de uso único, propostas versionadas, comparação factual, pesos do usuário,
+decisão humana com snapshot, contrato e janela de renovação. Portais de empresa
+e de provedor. RLS, RBAC e isolamento multi-tenant testados contra PostgreSQL
+real.
+
+**Hardening para piloto (esta rodada):** travas de unicidade em decisão e
+contrato, idempotência no envio de proposta, correção da pontuação por pesos
+(empates e cobertura), estimativas que recusam SAC/bullet/carência/pós-fixado
+dizendo o motivo, validação do mix de recebimentos, validação local de CNPJ,
+completar cadastro da empresa, evidência regulatória de provedor, rotas de
+documento e tarefa, página de aceite de convite com estados, comparação em
+cartões no celular, assistente de criação de RFQ e consultas com número fixo.
 
 ## Próxima rodada — completar o núcleo
 
@@ -14,13 +23,25 @@ isolamento multi-tenant testados contra PostgreSQL real.
    validação de tipo, tamanho, hash, vínculo de entidade, autorização, storage,
    política de acesso e retenção. Enquanto não existir, `fin_documents` continua
    sendo referência.
-2. **Notificações** de prazo de resposta, validade de proposta e janela de
-   renovação, pelo outbox transacional já existente.
-3. **Exportação** da comparação (CSV/PDF) com os mesmos rótulos de neutralidade.
-4. **Admin operacional** da vertical: visão de organizações, provedores, RFQs,
-   convites, propostas, contratos, falhas, eventos e abuso, sob sessão
-   administrativa com MFA, RBAC, auditoria e motivo.
-5. **Validação de CNPJ** contra fonte oficial.
+2. **Ligar as notificações**: os modelos e a linha da outbox já existem; falta
+   credencial de envio, domínio verificado e preferência de notificação por
+   membro.
+3. **Registro de aceite de termos** no produto, hoje feito fora dele.
+4. **Instrumentar a abertura da comparação**, para que a métrica
+   correspondente deixe de ser incalculável.
+5. **Exportação** da comparação (CSV/PDF) com os mesmos rótulos de neutralidade.
+6. **Console administrativo** da vertical, sob sessão administrativa com MFA,
+   RBAC, auditoria e motivo.
+7. **Validação de CNPJ** contra fonte oficial — hoje só formato e dígitos.
+
+## Depois — consolidar a identidade de provedor
+
+O vínculo entre o cadastro do comprador e a conta canônica do provedor já é
+preenchido no aceite do convite. A extração de uma tabela global de provedores
+tem plano de migração escrito em
+[`FINANCIAL_PROVIDER_CANONICALIZATION.md`](FINANCIAL_PROVIDER_CANONICALIZATION.md),
+e só se justifica quando houver necessidade real — nenhum dos dois fluxos atuais
+precisa dela.
 
 ## Depois — mais produtos financeiros
 

@@ -10,7 +10,10 @@
 // factuais e, quando a empresa define pesos, rotula o resultado como sendo
 // dela.
 
-import { PRODUCTS, PRODUCT_IDS } from '../lib/finance/products.mjs';
+import {
+  PRODUCTS, PRODUCT_IDS, estimateCreditTotalCost, estimateAcquiringMonthlyCost, checkAcquiringShares
+} from '../lib/finance/products.mjs';
+import { applyUserWeights } from '../lib/finance/comparison.mjs';
 
 const view = document.body.dataset.view || 'home';
 const audience = document.body.dataset.audience || 'company';
@@ -19,7 +22,7 @@ const root = document.querySelector('#view');
 
 const demoMode = document.querySelector('meta[name="arandu-presentation-mode"]')?.content === 'true';
 const state = { organizations: [], organizationId: '', demo: null };
-const EMPTY_DATA = Object.freeze({ rfqs: [], providers: [], contracts: [], profile: [], assignments: [] });
+const EMPTY_DATA = Object.freeze({ rfqs: [], providers: [], contracts: [], profile: [], assignments: [], tasks: [] });
 
 function say(text, tone = 'error') {
   if (!message) return;
@@ -100,44 +103,92 @@ function fieldRows(fields, values) {
   return list.children.length ? list : emptyState('Nenhum campo desta demanda foi preenchido ainda.');
 }
 
-/** Tabela de comparação factual. Destaques citam o critério verificável. */
-function comparisonTable(product, proposals) {
-  const spec = PRODUCTS[product];
-  const table = el('table');
-  const head = el('tr', {}, [el('th', { scope: 'col', text: 'Condição' })]);
-  for (const proposal of proposals) head.append(el('th', { scope: 'col', text: proposal.provider_name }));
-  table.append(el('thead', {}, head));
-  const body = el('tbody');
-  for (const field of spec.proposalFields) {
+/**
+ * Comparação factual.
+ *
+ * Duas apresentações do MESMO conteúdo: tabela em telas largas e um cartão por
+ * proposta no celular. Uma tabela de doze colunas com rolagem lateral no
+ * telefone é tecnicamente "responsiva" e praticamente ilegível — quem rola
+ * perde o cabeçalho da linha e deixa de saber que número está lendo.
+ *
+ * Destaques citam sempre o critério verificável ("menor valor informado"),
+ * nunca uma opinião sobre a instituição.
+ */
+function comparisonRows(product, proposals) {
+  const rows = [];
+  for (const field of PRODUCTS[product].proposalFields) {
     const values = proposals.map((proposal) => proposal.terms?.[field.key] ?? null);
     if (values.every((value) => value === null || value === undefined || value === '')) continue;
-    const tr = el('tr', {}, [el('th', { scope: 'row', text: field.label })]);
     let target = null;
+    let numeric = [];
     if (field.comparable && field.direction) {
-      const numeric = values.map((value) => (field.type === 'date' ? Date.parse(`${value}T00:00:00Z`) : Number(value)))
+      numeric = values
+        .map((value) => (field.type === 'date' ? Date.parse(`${value}T00:00:00Z`) : Number(value)))
         .map((value) => (Number.isFinite(value) ? value : null));
       const present = numeric.filter((value) => value !== null);
       if (present.length > 1 && new Set(present).size > 1) {
         target = field.direction === 'lower_is_better' ? Math.min(...present) : Math.max(...present);
       }
-      values.forEach((value, index) => {
-        const cell = el('td', { text: show(value, field.type) });
-        if (target !== null && numeric[index] === target) {
-          cell.className = 'best';
-          cell.append(el('span', {
-            class: 'why',
-            text: field.direction === 'lower_is_better' ? 'menor valor informado' : 'maior valor informado'
-          }));
-        }
-        tr.append(cell);
-      });
-    } else {
-      for (const value of values) tr.append(el('td', { text: show(value, field.type) }));
     }
+    rows.push({
+      field,
+      values,
+      best: values.map((_, index) => target !== null && numeric[index] === target),
+      reason: field.direction === 'lower_is_better' ? 'menor valor informado' : 'maior valor informado'
+    });
+  }
+  return rows;
+}
+
+function comparisonTable(product, proposals) {
+  const table = el('table');
+  const head = el('tr', {}, [el('th', { scope: 'col', text: 'Condição' })]);
+  for (const proposal of proposals) head.append(el('th', { scope: 'col', text: proposal.provider_name }));
+  table.append(el('thead', {}, head));
+  const body = el('tbody');
+  for (const row of comparisonRows(product, proposals)) {
+    const tr = el('tr', {}, [el('th', { scope: 'row', text: row.field.label })]);
+    row.values.forEach((value, index) => {
+      const cell = el('td', { text: show(value, row.field.type) });
+      if (row.best[index]) {
+        cell.className = 'best';
+        cell.append(el('span', { class: 'why', text: row.reason }));
+      }
+      tr.append(cell);
+    });
     body.append(tr);
   }
   table.append(body);
-  return el('div', { class: 'table-scroll' }, table);
+  return el('div', { class: 'table-scroll comparison-wide' }, table);
+}
+
+function comparisonCards(product, proposals) {
+  const host = el('div', { class: 'comparison-cards' });
+  proposals.forEach((proposal, index) => {
+    const card = el('article', { class: 'compare-card' });
+    card.append(el('h3', { text: proposal.provider_name }));
+    card.append(el('p', { class: 'muted', text: `Versão ${proposal.version ?? 1} · enviada em ${proposal.submitted_at ? String(proposal.submitted_at).slice(0, 10) : 'data não informada'}` }));
+    const list = el('dl', { class: 'compare-list' });
+    for (const row of comparisonRows(product, proposals)) {
+      list.append(el('dt', { text: row.field.label }));
+      const value = el('dd', { text: show(row.values[index], row.field.type) });
+      if (row.best[index]) {
+        value.className = 'best';
+        value.append(el('span', { class: 'why', text: row.reason }));
+      }
+      list.append(value);
+    }
+    card.append(list);
+    host.append(card);
+  });
+  return host;
+}
+
+function comparisonView(product, proposals) {
+  const box = el('div');
+  box.append(comparisonTable(product, proposals));
+  box.append(comparisonCards(product, proposals));
+  return box;
 }
 
 /** Painel de pesos: a ordenação só existe porque a empresa a pediu. */
@@ -161,6 +212,7 @@ function weightsPanel(product, proposals) {
   }
   form.append(fieldset, el('button', { type: 'submit', text: 'Aplicar meus pesos' }));
   const output = el('div', { id: 'weights-output', role: 'status', 'aria-live': 'polite' });
+
   form.addEventListener('submit', (event) => {
     event.preventDefault();
     const weights = {};
@@ -169,19 +221,46 @@ function weightsPanel(product, proposals) {
       if (Number.isFinite(weight) && weight > 0) weights[key] = weight;
     }
     output.replaceChildren();
-    if (!Object.keys(weights).length) {
-      output.append(el('p', { class: 'muted', text: 'Defina ao menos um critério com peso maior que zero.' }));
+    // Exatamente a mesma função que a API usa, para que a tela não possa
+    // discordar do servidor sobre a própria pontuação da empresa.
+    const scored = applyUserWeights(product, proposals, weights);
+    if (!scored.applied) {
+      output.append(el('p', { class: 'muted', text: scored.notice }));
       return;
     }
-    output.append(el('p', { text: 'Resultado conforme os pesos definidos por você.' }));
+    output.append(el('p', { id: 'weights-notice', text: scored.notice }));
+    output.append(el('p', {
+      class: 'muted',
+      text: `Pesos aplicados: ${scored.criteria.map((item) => `${item.label} ${(item.share * 100).toFixed(0)}%`).join(' · ')}.`
+    }));
+    if (!scored.ranking_meaningful) {
+      output.append(el('p', { class: 'muted', text: 'Com menos de duas propostas comparáveis, a ordenação não diz nada — ela aparece apenas para conferência.' }));
+    }
+    if (scored.non_discriminating_criteria.length) {
+      output.append(el('p', {
+        class: 'muted',
+        text: `Critérios em que todas as propostas informaram o mesmo valor (não separam ninguém): ${scored.non_discriminating_criteria.join(', ')}.`
+      }));
+    }
+    if (scored.has_low_coverage) {
+      output.append(el('p', {
+        id: 'coverage-warning',
+        class: 'boundary',
+        text: `Atenção: há proposta pontuada sobre menos de ${(scored.coverage_threshold * 100).toFixed(0)}% do peso que você definiu. A nota dela responde só pelo que foi informado, então não é comparável com a de uma proposta completa. Essas propostas aparecem por último.`
+      }));
+    }
     const list = el('ol', { class: 'rows' });
-    for (const item of scoreLocally(product, proposals, weights)) {
+    for (const item of scored.results) {
       const row = el('li', { class: 'row' });
-      row.append(
-        el('b', { text: item.provider_name }),
-        el('small', { text: `Pontuação com os seus pesos: ${item.score === null ? 'sem dados' : item.score.toFixed(3)}` }),
-        el('small', { text: `Critérios respondidos: ${(item.coverage * 100).toFixed(0)}%` })
-      );
+      row.append(el('b', { text: item.provider_name }));
+      row.append(el('small', {
+        text: `Pontuação com os seus pesos: ${item.score === null ? 'sem dados suficientes' : item.score.toFixed(3)}`
+      }));
+      row.append(el('small', { class: 'coverage', text: `Cobertura da pontuação: ${(item.coverage * 100).toFixed(0)}%` }));
+      if (item.missing_criteria.length) {
+        row.append(el('small', { text: `Não informado: ${item.missing_criteria.join(', ')}.` }));
+      }
+      if (item.low_coverage) row.append(el('span', { class: 'tag', text: 'cobertura baixa' }));
       list.append(row);
     }
     output.append(list);
@@ -190,44 +269,105 @@ function weightsPanel(product, proposals) {
   return panel;
 }
 
-/** Mesma normalização min-max do servidor, para a demonstração sem sessão. */
-export function scoreLocally(product, proposals, weights) {
-  const spec = new Map(PRODUCTS[product].proposalFields.map((field) => [field.key, field]));
-  const criteria = Object.entries(weights)
-    .filter(([key]) => spec.get(key)?.comparable && spec.get(key)?.direction)
-    .map(([key, weight]) => ({ key, weight: Number(weight), direction: spec.get(key).direction, type: spec.get(key).type }));
-  const total = criteria.reduce((sum, item) => sum + item.weight, 0) || 1;
-  const numeric = (item, proposal) => {
-    const raw = proposal.terms?.[item.key];
-    if (raw === null || raw === undefined || raw === '') return null;
-    const value = item.type === 'date' ? Date.parse(`${raw}T00:00:00Z`) : Number(raw);
-    return Number.isFinite(value) ? value : null;
-  };
-  const ranges = new Map(criteria.map((item) => {
-    const values = proposals.map((proposal) => numeric(item, proposal)).filter((value) => value !== null);
-    return [item.key, values.length ? { min: Math.min(...values), max: Math.max(...values) } : null];
-  }));
-  return proposals.map((proposal) => {
-    let weighted = 0;
-    let answered = 0;
-    for (const item of criteria) {
-      const value = numeric(item, proposal);
-      const range = ranges.get(item.key);
-      if (value === null || !range) continue;
-      const span = range.max - range.min;
-      let normalized = span === 0 ? 1 : (value - range.min) / span;
-      if (item.direction === 'lower_is_better') normalized = 1 - normalized;
-      weighted += normalized * item.weight;
-      answered += item.weight;
-    }
-    return {
-      id: proposal.id,
-      provider_name: proposal.provider_name || proposal.terms?.institution || 'Provedor',
-      score: answered ? weighted / answered : null,
-      coverage: answered / total
-    };
-  }).sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
+/**
+ * Campos que o produto espera reaproveitar entre RFQs. A lista existe para
+ * dizer o que falta, não para obrigar: o perfil não é um depósito de PII, e
+ * nada aqui é exigido para usar a plataforma.
+ */
+export const RECOMMENDED_PROFILE_FIELDS = Object.freeze([
+  { key: 'faturamento_anual', label: 'faturamento anual' },
+  { key: 'faturamento_mensal_cartoes', label: 'faturamento mensal em cartões' },
+  { key: 'setor', label: 'setor' },
+  { key: 'funcionarios', label: 'número de funcionários' },
+  { key: 'fundacao', label: 'ano de fundação' },
+  { key: 'bancos_atuais', label: 'bancos atuais' },
+  { key: 'adquirente_atual', label: 'adquirente atual' },
+  { key: 'garantias_disponiveis', label: 'garantias disponíveis' }
+]);
+
+/** Estados que o provedor vê, com o que cada um significa para ele. */
+export const PROPOSAL_STATUS = Object.freeze({
+  draft: { label: 'convite aceito', hint: 'Você ainda não enviou uma proposta para esta solicitação.' },
+  submitted: { label: 'enviada', hint: 'Sua proposta foi enviada e está visível para a empresa compradora.' },
+  revised: { label: 'revisada', hint: 'Você enviou uma versão nova. As anteriores continuam no histórico.' },
+  withdrawn: { label: 'retirada', hint: 'Você retirou esta proposta. Ela permanece registrada no histórico.' }
+});
+
+const PROFILE_STALE_DAYS = 180;
+const PROFILE_DUE_DAYS = 150;
+
+/**
+ * Situação de um campo do perfil. Um faturamento informado há dois anos não é
+ * "preenchido": ele é um número que ninguém confere há dois anos, e quem monta
+ * uma RFQ com ele precisa saber disso.
+ */
+export function freshness(field, today = new Date()) {
+  if (!field || !field.field_value) return { level: 'missing', label: 'ausente' };
+  if (field.valid_until) {
+    const validUntil = Date.parse(`${field.valid_until}T00:00:00Z`);
+    if (Number.isFinite(validUntil) && validUntil < today.getTime()) return { level: 'stale', label: 'vencido' };
+  }
+  const updated = Date.parse(field.updated_at);
+  if (!Number.isFinite(updated)) return { level: 'missing', label: 'sem data' };
+  const days = Math.floor((today.getTime() - updated) / 86400000);
+  if (days >= PROFILE_STALE_DAYS) return { level: 'stale', label: `desatualizado (${days} dias)` };
+  if (days >= PROFILE_DUE_DAYS) return { level: 'due', label: `revisar (${days} dias)` };
+  return { level: 'ok', label: 'atualizado' };
 }
+
+function organizationForm(organization) {
+  const panel = el('section', { class: 'panel' });
+  panel.append(el('h2', { text: 'Dados da empresa' }));
+  if (!organization) {
+    panel.append(emptyState('Crie a organização da sua empresa para preencher os dados cadastrais.'));
+    return panel;
+  }
+  panel.append(el('p', { class: 'muted', text: `Razão social: ${organization.legal_name}` }));
+  const form = el('form', { id: 'organization-form' });
+  const trade = el('label', { text: 'Nome fantasia' });
+  trade.append(el('input', { name: 'trade_name', value: organization.trade_name || '', 'aria-label': 'Nome fantasia' }));
+  const cnpj = el('label', { text: 'CNPJ' });
+  cnpj.append(el('input', {
+    name: 'tax_identifier', value: organization.tax_identifier || '', inputmode: 'numeric',
+    placeholder: '00.000.000/0000-00', 'aria-label': 'CNPJ'
+  }));
+  const sector = el('label', { text: 'Setor' });
+  sector.append(el('input', { name: 'sector', value: organization.sector || '', 'aria-label': 'Setor' }));
+  const band = el('label', { text: 'Faixa de faturamento' });
+  const select = el('select', { name: 'revenue_band', 'aria-label': 'Faixa de faturamento' });
+  select.add(new Option('Selecione…', ''));
+  for (const [value, text] of REVENUE_BANDS) select.add(new Option(text, value));
+  if (organization.revenue_band) select.value = organization.revenue_band;
+  band.append(select);
+  form.append(trade, cnpj, sector, band, el('button', { type: 'submit', text: 'Salvar dados da empresa' }));
+  // O CNPJ é conferido em formato e dígitos. Isso não é o mesmo que dizer que
+  // a empresa existe ou está regular, e a tela não confunde as duas coisas.
+  form.append(el('p', {
+    class: 'muted',
+    text: 'O CNPJ é conferido localmente (formato e dígitos verificadores). O Arandu não consulta base oficial nesta fase, então não afirma que a inscrição existe ou está ativa.'
+  }));
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const body = Object.fromEntries(new FormData(form));
+    for (const [key, value] of Object.entries(body)) if (value === '') delete body[key];
+    try {
+      await api('organizations', { method: 'PATCH', body: JSON.stringify({ organization_id: state.organizationId, ...body }) });
+      say('Dados da empresa atualizados.', 'success');
+    } catch (error) {
+      say(error.status === 401 ? 'Entre na sua conta para atualizar os dados da empresa.' : error.message);
+    }
+  });
+  panel.append(form);
+  return panel;
+}
+
+const REVENUE_BANDS = Object.freeze([
+  ['ate_360k', 'Até R$ 360 mil'],
+  ['360k_4_8m', 'R$ 360 mil a R$ 4,8 milhões'],
+  ['4_8m_30m', 'R$ 4,8 milhões a R$ 30 milhões'],
+  ['30m_300m', 'R$ 30 milhões a R$ 300 milhões'],
+  ['acima_300m', 'Acima de R$ 300 milhões']
+]);
 
 function signedOut(error) {
   const box = el('section', { class: 'panel' });
@@ -252,23 +392,85 @@ const views = {
     const rfqs = data.rfqs || [];
     const contracts = data.contracts || [];
     const today = new Date().toISOString().slice(0, 10);
-    const expiring = contracts.filter((contract) => {
+    const reviewFrom = (contract) => {
       const ends = Date.parse(`${contract.ends_on}T00:00:00Z`);
-      if (!Number.isFinite(ends)) return false;
-      return new Date(ends - Number(contract.renewal_notice_days || 0) * 86400000).toISOString().slice(0, 10) <= today;
-    });
+      if (!Number.isFinite(ends)) return null;
+      return new Date(ends - Number(contract.renewal_notice_days || 0) * 86400000).toISOString().slice(0, 10);
+    };
+    const active = contracts.filter((contract) => ['active', 'renewing'].includes(contract.status));
+    const expiring = active.filter((contract) => { const date = reviewFrom(contract); return date && date <= today; });
+    const awaiting = rfqs.filter((rfq) => ['open', 'collecting'].includes(rfq.status) && !(rfq.proposals || []).length);
+    const toDecide = rfqs.filter((rfq) => rfq.status === 'comparing');
+    const proposals = rfqs.reduce((total, rfq) => total + (rfq.proposals || []).length, 0);
     const credit = rfqs.filter((rfq) => rfq.product === 'credit')
       .reduce((sum, rfq) => sum + (Number(rfq.demand?.amount) || 0), 0);
-    const grid = el('div', { class: 'grid three' }, [
-      statTile('RFQs abertas ou coletando', rfqs.filter((rfq) => ['open', 'collecting'].includes(rfq.status)).length),
-      statTile('RFQs em comparação', rfqs.filter((rfq) => rfq.status === 'comparing').length),
-      statTile('Propostas recebidas', rfqs.reduce((sum, rfq) => sum + (rfq.proposals?.length || 0), 0)),
-      statTile('Contratos ativos', contracts.filter((contract) => ['active', 'renewing'].includes(contract.status)).length),
-      statTile('Contratos em janela de renovação', expiring.length),
+
+    // Tempo até a primeira proposta só aparece quando existe alguma; sem
+    // tráfego, a média correta é "ainda não há dados", não um número.
+    const firstResponses = rfqs
+      .map((rfq) => {
+        const first = (rfq.proposals || [])
+          .map((proposal) => Date.parse(proposal.submitted_at))
+          .filter(Number.isFinite)
+          .sort((a, b) => a - b)[0];
+        const created = Date.parse(rfq.created_at);
+        return Number.isFinite(first) && Number.isFinite(created) ? (first - created) / 86400000 : null;
+      })
+      .filter((value) => value !== null && value >= 0);
+    const averageFirst = firstResponses.length
+      ? (firstResponses.reduce((sum, value) => sum + value, 0) / firstResponses.length).toFixed(1)
+      : null;
+    const invited = rfqs.reduce((total, rfq) => total + (rfq.invites_count || 0), 0);
+
+    frag.append(el('div', { class: 'grid three' }, [
+      statTile('Aguardando primeira proposta', awaiting.length, awaiting.length ? 'Solicitações abertas sem nenhuma resposta ainda.' : null),
+      statTile('Prontas para decidir', toDecide.length, 'Solicitações em comparação, aguardando a decisão da empresa.'),
+      statTile('Propostas recebidas', proposals),
+      statTile('Contratos ativos', active.length),
+      statTile('Em janela de renovação', expiring.length, expiring.length ? 'Revise as condições ou peça novas propostas.' : null),
       statTile('Provedores cadastrados', (data.providers || []).length),
-      statTile('Crédito solicitado', money(credit), 'Soma dos valores declarados nas RFQs de crédito.')
-    ]);
-    frag.append(grid);
+      statTile('Crédito solicitado', money(credit), 'Soma dos valores declarados nas solicitações de crédito.'),
+      statTile(
+        'Tempo até a primeira proposta',
+        averageFirst === null ? 'sem dados' : `${averageFirst} dias`,
+        averageFirst === null ? 'Aparece quando houver ao menos uma proposta recebida.' : 'Média das solicitações que já receberam resposta.'
+      ),
+      statTile(
+        'Taxa de resposta',
+        invited ? `${Math.round((proposals / invited) * 100)}%` : 'sem dados',
+        invited ? 'Propostas recebidas sobre provedores convidados.' : 'Aparece quando houver provedores convidados.'
+      )
+    ]));
+
+    if (expiring.length) {
+      const alert = el('section', { class: 'panel' });
+      alert.append(el('h2', { text: 'Contratos que pedem atenção agora' }));
+      const list = el('div', { class: 'rows' });
+      for (const contract of expiring) {
+        list.append(el('div', { class: 'row' }, [
+          el('b', { text: `${PRODUCTS[contract.product]?.label || contract.product} — vence em ${contract.ends_on}` }),
+          el('small', { text: `Janela de revisão aberta desde ${reviewFrom(contract)}. Aviso prévio: ${contract.renewal_notice_days} dias.` })
+        ]));
+      }
+      alert.append(list, el('a', { class: 'button', href: '/finance/contracts.html', text: 'Ver contratos' }));
+      frag.append(alert);
+    }
+
+    const tasks = (data.tasks || []).filter((task) => task.status === 'open');
+    if (tasks.length) {
+      const panel = el('section', { class: 'panel' });
+      panel.append(el('h2', { text: 'Tarefas abertas' }));
+      const list = el('div', { class: 'rows' });
+      for (const task of tasks.slice(0, 8)) {
+        list.append(el('div', { class: 'row' }, [
+          el('b', { text: task.title }),
+          el('small', { text: task.due_on ? `Prazo: ${task.due_on}` : 'Sem prazo definido.' })
+        ]));
+      }
+      panel.append(list);
+      frag.append(panel);
+    }
+
     const note = el('section', { class: 'panel' });
     note.append(el('h2', { text: 'Economia registrada' }));
     note.append(el('p', {
@@ -276,8 +478,11 @@ const views = {
       text: 'Não exibida nesta fase. O Arandu só apresenta economia quando houver metodologia explícita, linha de base verificável e dados comparáveis — números estimados sem isso seriam invenção.'
     }));
     frag.append(note);
-    if (!rfqs.length) frag.append(emptyState('Nenhuma RFQ ainda. Comece criando uma solicitação de crédito ou de adquirência.',
-      el('a', { class: 'button', href: '/finance/rfqs.html', text: 'Criar RFQ' })));
+
+    if (!rfqs.length) {
+      frag.append(emptyState('Nenhuma solicitação ainda. Comece estruturando uma necessidade de crédito ou de adquirência.',
+        el('a', { class: 'button', href: '/finance/rfqs.html', text: 'Criar solicitação' })));
+    }
     return frag;
   },
 
@@ -300,7 +505,7 @@ const views = {
       }
       frag.append(list);
     }
-    frag.append(newRfqForm());
+    frag.append(newRfqForm(data.profile || []));
     return frag;
   },
 
@@ -329,7 +534,7 @@ const views = {
     if (proposals.length < 1) {
       comparison.append(emptyState('Ainda não há propostas recebidas para comparar.'));
     } else {
-      comparison.append(comparisonTable(rfq.product, proposals));
+      comparison.append(comparisonView(rfq.product, proposals));
       comparison.append(estimatesBlock(rfq, proposals));
     }
     frag.append(comparison);
@@ -451,33 +656,42 @@ const views = {
 
   settings: async (data) => {
     const frag = document.createDocumentFragment();
+    frag.append(organizationForm(data.organization));
     const profile = data.profile || [];
     const panel = el('section', { class: 'panel' });
     panel.append(el('h2', { text: 'Perfil financeiro reutilizável' }));
     panel.append(el('p', {
       class: 'muted',
-      text: 'Estes campos são reaproveitados entre RFQs para que a empresa não precise repetir informações. Cada campo guarda origem, responsável, estado e data de atualização.'
+      text: 'Estes campos são reaproveitados entre solicitações para que a empresa não precise repetir informações. Cada campo guarda origem, responsável, estado e data de atualização.'
     }));
+    const expected = RECOMMENDED_PROFILE_FIELDS.filter((field) => !profile.some((row) => row.field_key === field.key));
     if (!profile.length) panel.append(emptyState('Nenhum campo de perfil preenchido ainda.'));
     else {
       const table = el('table');
       table.append(el('thead', {}, el('tr', {}, [
         el('th', { scope: 'col', text: 'Campo' }), el('th', { scope: 'col', text: 'Valor' }),
-        el('th', { scope: 'col', text: 'Origem' }), el('th', { scope: 'col', text: 'Estado' }),
-        el('th', { scope: 'col', text: 'Atualizado em' })
+        el('th', { scope: 'col', text: 'Origem' }), el('th', { scope: 'col', text: 'Atualizado em' }),
+        el('th', { scope: 'col', text: 'Situação' })
       ])));
       const body = el('tbody');
       for (const field of profile) {
+        const state = freshness(field);
         body.append(el('tr', {}, [
           el('th', { scope: 'row', text: field.field_key }),
           el('td', { text: field.field_value }),
           el('td', { text: field.source }),
-          el('td', { text: field.status }),
-          el('td', { text: String(field.updated_at || '').slice(0, 10) })
+          el('td', { text: String(field.updated_at || '').slice(0, 10) }),
+          el('td', {}, el('span', { class: `freshness ${state.level}`, text: state.label }))
         ]));
       }
       table.append(body);
       panel.append(el('div', { class: 'table-scroll' }, table));
+    }
+    if (expected.length) {
+      panel.append(el('p', {
+        class: 'muted',
+        text: `Ainda não informados: ${expected.map((field) => field.label).join(', ')}. Preenchê-los evita repetir os mesmos dados a cada solicitação.`
+      }));
     }
     frag.append(panel);
     frag.append(profileForm());
@@ -486,6 +700,9 @@ const views = {
 
   providerRfqs: async (data) => {
     const frag = document.createDocumentFragment();
+    if (data.no_provider_org) {
+      frag.append(emptyState('Esta conta ainda não pertence a nenhuma organização provedora. Crie a organização da sua instituição para aceitar convites.'));
+    }
     const rows = data.assignments || [];
     if (!rows.length) {
       frag.append(emptyState('Nenhuma RFQ atribuída a esta organização provedora. Aceite um convite para começar.'));
@@ -493,13 +710,32 @@ const views = {
       const list = el('div', { class: 'rows' });
       for (const row of rows) {
         const item = el('div', { class: 'row' });
+        const state = PROPOSAL_STATUS[row.status] || { label: row.status, hint: '' };
         item.append(
           el('span', { class: 'tag', text: PRODUCTS[row.product]?.label || row.product }),
-          el('span', { class: 'tag', text: row.status }),
+          el('span', { class: 'tag', text: state.label }),
           el('b', { text: row.title || 'Solicitação' }),
-          el('small', { text: `Prazo de resposta: ${row.response_deadline || 'não definido'}` }),
-          el('a', { href: `/provider/proposal.html?proposal=${encodeURIComponent(row.proposal_id || '')}`, text: 'Responder proposta' })
+          el('small', { text: state.hint }),
+          el('small', { text: `Prazo de resposta: ${row.response_deadline || 'não definido'}` })
         );
+        if (row.rfq_status && !['open', 'collecting'].includes(row.rfq_status)) {
+          item.append(el('small', { text: 'Esta solicitação não está mais recebendo propostas.' }));
+        }
+        // O provedor precisa entender a necessidade para responder. O que ele
+        // nunca recebe é proposta de concorrente, nota interna ou comparação.
+        if (Object.keys(row.demand || {}).length) {
+          const details = el('details');
+          details.append(el('summary', { text: 'Ver a necessidade declarada pela empresa' }));
+          details.append(fieldRows(PRODUCTS[row.product].demandFields, row.demand));
+          item.append(details);
+        }
+        if (row.history?.length > 1) {
+          item.append(el('small', { text: `Suas versões: ${row.history.map((entry) => `v${entry.version}`).join(', ')}.` }));
+        }
+        item.append(el('a', {
+          href: `/provider/proposal.html?proposal=${encodeURIComponent(row.proposal_id || '')}`,
+          text: row.version ? 'Revisar minha proposta' : 'Responder proposta'
+        }));
         list.append(item);
       }
       frag.append(list);
@@ -508,9 +744,82 @@ const views = {
     return frag;
   },
 
+  /**
+   * Página de aceite do convite.
+   *
+   * O provedor chega aqui por um link com o token. Cada desfecho tem um estado
+   * próprio e visível — válido, expirado, já usado, revogado, organização
+   * errada — em vez de uma mensagem genérica de erro.
+   *
+   * O token só é verificado quando o provedor confirma, e a resposta é sempre a
+   * mesma para convite inexistente, expirado, usado e revogado: enumerar
+   * tokens não pode render informação.
+   */
+  providerInvite: async (data) => {
+    const frag = document.createDocumentFragment();
+    const token = (new URLSearchParams(location.search).get('token') || '').trim();
+    const panel = el('section', { class: 'panel' });
+    panel.append(el('h2', { text: 'Aceitar convite para responder a uma solicitação' }));
+
+    if (!token) {
+      panel.append(el('p', { id: 'invite-state', class: 'muted', text: 'Nenhum token no endereço. Cole abaixo o token que você recebeu.' }));
+    } else if (!/^[0-9a-f]{64}$/.test(token)) {
+      panel.append(el('p', { id: 'invite-state', class: 'boundary', text: 'Este link não tem o formato de um convite do Arandu. Confira se ele foi copiado por inteiro.' }));
+    } else {
+      panel.append(el('p', { id: 'invite-state', class: 'muted', text: 'Confirme a organização que vai responder e aceite o convite.' }));
+    }
+
+    if (data.no_provider_org) {
+      panel.append(el('p', {
+        class: 'boundary',
+        text: 'Esta conta ainda não pertence a nenhuma organização provedora. Crie a organização da sua instituição antes de aceitar: o convite é vinculado a ela, e não é possível responder em nome de outra.'
+      }));
+      frag.append(panel);
+      return frag;
+    }
+
+    const form = el('form', { id: 'invite-form' });
+    const tokenLabel = el('label', { text: 'Token do convite' });
+    tokenLabel.append(el('input', {
+      name: 'token', value: token, required: 'required', minlength: '64', maxlength: '64',
+      'aria-label': 'Token do convite'
+    }));
+    const orgLabel = el('label', { text: 'Organização que vai responder' });
+    const orgSelect = el('select', { name: 'provider_organization_id', 'aria-label': 'Organização que vai responder' });
+    for (const organization of state.organizations) orgSelect.add(new Option(organization.legal_name, organization.id));
+    orgLabel.append(orgSelect);
+    form.append(tokenLabel, orgLabel, el('button', { type: 'submit', text: 'Aceitar convite' }));
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const body = Object.fromEntries(new FormData(form));
+      const target = panel.querySelector('#invite-state');
+      try {
+        await api('invites/accept', { method: 'POST', body: JSON.stringify(body) });
+        target.className = '';
+        target.textContent = 'Convite aceito. A solicitação já aparece na sua lista de RFQs atribuídas.';
+        say('Convite aceito.', 'success');
+        form.replaceChildren(el('a', { class: 'button', href: '/provider/rfqs.html', text: 'Ver RFQs atribuídas' }));
+      } catch (error) {
+        target.className = 'boundary';
+        target.textContent = error.status === 401
+          ? 'Entre na sua conta de provedor para aceitar o convite.'
+          : error.message;
+      }
+    });
+    panel.append(form);
+    panel.append(el('p', {
+      class: 'muted',
+      text: 'O convite vale uma vez e expira. Ele vincula a solicitação à organização provedora da qual você é membro — não é possível responder em nome de outra instituição.'
+    }));
+    frag.append(panel);
+    return frag;
+  },
+
   providerProposal: async (data) => {
     const frag = document.createDocumentFragment();
-    const assignment = (data.assignments || [])[0];
+    const wanted = new URLSearchParams(location.search).get('proposal');
+    const assignment = (data.assignments || []).find((row) => row.proposal_id === wanted)
+      || (data.assignments || [])[0];
     const product = assignment?.product || new URLSearchParams(location.search).get('product') || 'credit';
     const spec = PRODUCTS[PRODUCT_IDS.includes(product) ? product : 'credit'];
     const panel = el('section', { class: 'panel' });
@@ -519,6 +828,25 @@ const views = {
       class: 'muted',
       text: 'Você responde apenas às RFQs atribuídas à sua organização. Propostas de outros provedores, notas internas da empresa e a decisão antes de publicada não são acessíveis por este portal.'
     }));
+    if (assignment) {
+      panel.append(el('p', { text: `Solicitação: ${assignment.title}` }));
+      const status = PROPOSAL_STATUS[assignment.status];
+      if (status) panel.append(el('p', { class: 'muted', text: `${status.label} — ${status.hint}` }));
+      if (Object.keys(assignment.demand || {}).length) {
+        const details = el('details');
+        details.append(el('summary', { text: 'Necessidade declarada pela empresa' }));
+        details.append(fieldRows(PRODUCTS[assignment.product].demandFields, assignment.demand));
+        panel.append(details);
+      }
+      if (assignment.history?.length) {
+        panel.append(el('p', {
+          class: 'muted',
+          text: `Histórico da sua proposta: ${assignment.history.map((entry) => `v${entry.version} em ${String(entry.submitted_at || '').slice(0, 10)}`).join(' · ')}.`
+        }));
+      }
+    } else {
+      panel.append(emptyState('Aceite um convite para responder a uma solicitação.'));
+    }
     const form = el('form', { id: 'proposal-form' });
     const fieldset = el('fieldset', {}, el('legend', { text: 'Condições ofertadas' }));
     for (const field of spec.proposalFields) {
@@ -560,6 +888,11 @@ const views = {
         say('Rascunho salvo neste navegador.', 'success');
       } catch { say('Não foi possível salvar o rascunho neste navegador.'); }
     });
+    // A versão já enviada é o ponto de partida de uma revisão.
+    for (const [key, value] of Object.entries(assignment?.terms || {})) {
+      const input = form.elements.namedItem(key);
+      if (input && value !== null && value !== undefined) input.value = String(value);
+    }
     try {
       const stored = JSON.parse(localStorage.getItem(draftKey) || 'null');
       if (stored) for (const [key, value] of Object.entries(stored)) {
@@ -606,19 +939,32 @@ function estimatesBlock(rfq, proposals) {
     if (rfq.product === 'credit') {
       const declared = proposal.terms?.cet_year;
       row.append(el('small', { text: `CET informado pelo provedor: ${declared ? `${declared}% a.a.` : 'não informado'}` }));
-      const estimate = localCreditEstimate(proposal.terms || {});
+      // Mesma função do servidor: se as duas implementações divergirem, a tela
+      // mostra um número que a API não confirma.
+      const estimate = estimateCreditTotalCost(proposal.terms || {});
       row.append(el('small', {
-        text: estimate
-          ? `Estimativa do Arandu: ${money(estimate.total)} no total (parcela ${money(estimate.installment)}). Fórmula: parcela = principal · i / (1 − (1 + i)^−n); premissas: pré-fixado, PRICE, sem carência.`
-          : 'Estimativa não calculável com os insumos informados — nenhum valor é inventado.'
+        text: estimate.estimate
+          ? `Estimativa do Arandu: ${money(estimate.total_cost)} no total (parcela ${money(estimate.installment)}).`
+          : estimate.reason
       }));
+      if (estimate.estimate) {
+        row.append(el('small', { text: `Fórmula: ${estimate.formula}. Premissas: ${estimate.assumptions.join('; ')}.` }));
+      }
     } else {
-      const estimate = localAcquiringEstimate(rfq.demand || {}, proposal.terms || {});
+      const estimate = estimateAcquiringMonthlyCost(rfq.demand || {}, proposal.terms || {});
       row.append(el('small', {
-        text: estimate
-          ? `Custo mensal estimado: ${money(estimate.total)} (variável ${money(estimate.variable)} + fixo ${money(estimate.fixed)}). Fórmula: Σ(volume · fatia% · taxa%) + terminais · aluguel + gateway.`
-          : 'Estimativa não calculável com os insumos informados — nenhum valor é inventado.'
+        text: estimate.estimate
+          ? `Custo mensal estimado: ${money(estimate.total_cost)} (variável ${money(estimate.variable_cost)} + fixo ${money(estimate.fixed_cost)}).`
+          : estimate.reason
       }));
+      if (estimate.estimate) {
+        row.append(el('small', { text: `Fórmula: ${estimate.formula}. Premissas: ${estimate.assumptions.join('; ')}.` }));
+        if (!estimate.covers_full_volume) {
+          row.append(el('small', {
+            text: `Atenção: o perfil declarado soma ${estimate.declared_share}% do faturamento, então a estimativa cobre apenas essa parte.`
+          }));
+        }
+      }
     }
     list.append(row);
   }
@@ -626,81 +972,159 @@ function estimatesBlock(rfq, proposals) {
   return box;
 }
 
-function localCreditEstimate(terms) {
-  const amount = Number(terms.offered_amount);
-  const rate = Number(terms.interest_rate_month);
-  const term = Number(terms.term_months);
-  const fees = Number(terms.fees_amount ?? 0);
-  if (![amount, rate, term, fees].every(Number.isFinite) || amount <= 0 || term <= 0) return null;
-  if (terms.index && terms.index !== 'pre') return null;
-  if (terms.amortization && terms.amortization !== 'price') return null;
-  const i = rate / 100;
-  const installment = i === 0 ? amount / term : (amount * i) / (1 - (1 + i) ** -term);
-  return { installment, total: installment * term + fees };
-}
-
-function localAcquiringEstimate(demand, terms) {
-  const volume = Number(demand.monthly_volume);
-  if (!Number.isFinite(volume) || volume <= 0) return null;
-  const pairs = [
-    [demand.share_debit, terms.mdr_debit],
-    [demand.share_credit_cash, terms.mdr_credit_cash],
-    [demand.share_credit_installment, terms.mdr_credit_installment],
-    [demand.share_pix, terms.pix_fee]
-  ];
-  let variable = 0;
-  for (const [share, rate] of pairs) {
-    if (!Number.isFinite(Number(share))) continue;
-    if (!Number.isFinite(Number(rate))) return null;
-    variable += volume * (Number(share) / 100) * (Number(rate) / 100);
-  }
-  const fixed = Number(demand.terminals || 0) * Number(terms.terminal_rent || 0) + Number(terms.gateway_cost || 0);
-  if (!Number.isFinite(fixed)) return null;
-  return { variable, fixed, total: variable + fixed };
-}
-
 // ------------------------------------------------------------------ formulários
 
-function newRfqForm() {
+/**
+ * Criação de RFQ em etapas.
+ *
+ * Um formulário único com vinte campos não diz a ninguém o que é obrigatório
+ * nem por onde começar. As etapas separam o produto, a necessidade, as
+ * condições e a revisão — e a revisão mostra o que será enviado antes de
+ * enviar, inclusive os avisos de coerência.
+ */
+function newRfqForm(profile = []) {
   const panel = el('section', { class: 'panel' });
   panel.append(el('h2', { text: 'Nova solicitação' }));
-  const form = el('form');
+  const steps = el('ol', { class: 'steps' });
+  const STEP_LABELS = ['Produto', 'Necessidade', 'Condições', 'Revisão'];
+  for (const [index, label] of STEP_LABELS.entries()) {
+    steps.append(el('li', { text: `${index + 1}. ${label}`, 'data-step': String(index) }));
+  }
+  panel.append(steps);
+
+  const form = el('form', { id: 'rfq-form' });
+  let current = 0;
+
+  const productStep = el('fieldset', { 'data-step': '0' }, el('legend', { text: 'Produto financeiro' }));
   const product = el('select', { name: 'product', 'aria-label': 'Produto financeiro' });
   for (const id of PRODUCT_IDS) product.add(new Option(PRODUCTS[id].label, id));
-  const productLabel = el('label', { text: 'Produto financeiro' });
+  const productLabel = el('label', { text: 'O que a empresa precisa contratar' });
   productLabel.append(product);
+  const productHint = el('p', { class: 'muted', text: PRODUCTS[PRODUCT_IDS[0]].summary });
   const title = el('label', { text: 'Título da solicitação' });
   title.append(el('input', { name: 'title', required: 'required', 'aria-label': 'Título da solicitação' }));
-  const deadline = el('label', { text: 'Prazo de resposta' });
+  productStep.append(productLabel, productHint, title);
+
+  const needStep = el('fieldset', { 'data-step': '1' }, el('legend', { text: 'Necessidade' }));
+  const conditionStep = el('fieldset', { 'data-step': '2' }, el('legend', { text: 'Condições e prazo' }));
+  const deadline = el('label', { text: 'Prazo de resposta dos provedores' });
   deadline.append(el('input', { name: 'response_deadline', type: 'date', 'aria-label': 'Prazo de resposta' }));
-  const fields = el('fieldset', {}, el('legend', { text: 'Dados da necessidade' }));
-  const renderFields = () => {
-    fields.replaceChildren(el('legend', { text: 'Dados da necessidade' }));
-    for (const field of PRODUCTS[product.value].demandFields) {
-      const label = el('label', { text: field.label + (field.required ? ' *' : '') });
-      let input;
-      if (field.type === 'enum') {
-        input = el('select', { name: field.key, 'aria-label': field.label });
-        input.add(new Option('Selecione…', ''));
-        for (const option of field.options) input.add(new Option(option, option));
-      } else if (field.type === 'bool') {
-        input = el('select', { name: field.key, 'aria-label': field.label });
-        for (const [value, text] of [['', 'Selecione…'], ['true', 'sim'], ['false', 'não']]) input.add(new Option(text, value));
-      } else {
-        input = el('input', {
-          name: field.key, 'aria-label': field.label,
-          type: ['money', 'percent', 'number', 'int'].includes(field.type) ? 'number' : field.type === 'date' ? 'date' : 'text',
-          step: field.type === 'int' ? '1' : field.type === 'text' ? null : '0.01',
-          ...(field.required ? { required: 'required' } : {})
-        });
-      }
-      label.append(input);
-      fields.append(label);
-    }
+
+  const reviewStep = el('fieldset', { 'data-step': '3' }, el('legend', { text: 'Revisão' }));
+  const review = el('div', { id: 'rfq-review', role: 'status', 'aria-live': 'polite' });
+  reviewStep.append(review);
+
+  // Campos obrigatórios e de valor vão para "necessidade"; o resto, para
+  // "condições". A separação é do produto, não do tipo do campo.
+  const NEED_KEYS = {
+    credit: ['amount', 'purpose', 'term_months', 'grace_months'],
+    acquiring: ['monthly_volume', 'average_ticket', 'share_debit', 'share_credit_cash', 'share_credit_installment', 'share_pix']
   };
+
+  function inputFor(field) {
+    if (field.type === 'enum') {
+      const select = el('select', { name: field.key, 'aria-label': field.label });
+      select.add(new Option('Selecione…', ''));
+      for (const option of field.options) select.add(new Option(option, option));
+      return select;
+    }
+    if (field.type === 'bool') {
+      const select = el('select', { name: field.key, 'aria-label': field.label });
+      for (const [value, text] of [['', 'Selecione…'], ['true', 'sim'], ['false', 'não']]) select.add(new Option(text, value));
+      return select;
+    }
+    if (field.type === 'text' && (field.max ?? 0) > 400) return el('textarea', { name: field.key, 'aria-label': field.label });
+    return el('input', {
+      name: field.key, 'aria-label': field.label,
+      type: ['money', 'percent', 'number', 'int'].includes(field.type) ? 'number' : field.type === 'date' ? 'date' : 'text',
+      step: field.type === 'int' ? '1' : field.type === 'text' ? null : '0.01',
+      ...(field.required ? { required: 'required' } : {})
+    });
+  }
+
+  function renderFields() {
+    const spec = PRODUCTS[product.value];
+    productHint.textContent = spec.summary;
+    needStep.replaceChildren(el('legend', { text: 'Necessidade' }));
+    conditionStep.replaceChildren(el('legend', { text: 'Condições e prazo' }));
+    const needKeys = new Set(NEED_KEYS[product.value] || []);
+    for (const field of spec.demandFields) {
+      const label = el('label', { text: field.label + (field.required ? ' *' : '') });
+      // O perfil financeiro já respondeu isso antes: a etiqueta diz de onde
+      // veio e o valor entra preenchido, em vez de ser pedido de novo.
+      const reused = profile.find((row) => row.field_key === PROFILE_TO_DEMAND[field.key]);
+      const input = inputFor(field);
+      if (reused && !['money', 'percent', 'number', 'int'].includes(field.type)) input.value = reused.field_value;
+      label.append(input);
+      if (reused) label.append(el('small', { class: 'muted', text: `Do perfil da empresa, atualizado em ${String(reused.updated_at).slice(0, 10)}.` }));
+      (needKeys.has(field.key) ? needStep : conditionStep).append(label);
+    }
+    conditionStep.append(deadline);
+  }
   renderFields();
   product.addEventListener('change', renderFields);
-  form.append(productLabel, title, deadline, fields, el('button', { type: 'submit', text: 'Criar RFQ' }));
+
+  const nav = el('div', { class: 'wizard-nav' });
+  const back = el('button', { type: 'button', class: 'secondary', id: 'rfq-back', text: 'Voltar' });
+  const next = el('button', { type: 'button', id: 'rfq-next', text: 'Continuar' });
+  const submit = el('button', { type: 'submit', id: 'rfq-submit', text: 'Criar solicitação' });
+  nav.append(back, next, submit);
+
+  function renderReview() {
+    review.replaceChildren();
+    const spec = PRODUCTS[product.value];
+    const entries = Object.fromEntries(new FormData(form));
+    const demand = {};
+    for (const field of spec.demandFields) {
+      if (entries[field.key] !== undefined && entries[field.key] !== '') demand[field.key] = entries[field.key];
+    }
+    review.append(el('p', { text: `${spec.label} · ${entries.title || 'sem título'}` }));
+    review.append(fieldRows(spec.demandFields, demand));
+    if (product.value === 'acquiring') {
+      const shares = checkAcquiringShares(
+        Object.fromEntries(Object.entries(demand).map(([key, value]) => [key, Number(value)]))
+      );
+      for (const message of [...shares.errors, ...shares.warnings]) {
+        review.append(el('p', { class: 'boundary', text: message }));
+      }
+      submit.disabled = !shares.ok;
+    } else {
+      submit.disabled = false;
+    }
+    review.append(el('p', {
+      class: 'muted',
+      text: 'A solicitação nasce como rascunho. Nada é enviado a nenhum provedor até você abri-la e convidar.'
+    }));
+  }
+
+  function show(index) {
+    current = Math.max(0, Math.min(3, index));
+    for (const node of [productStep, needStep, conditionStep, reviewStep]) {
+      node.hidden = Number(node.dataset.step) !== current;
+    }
+    for (const item of steps.children) {
+      if (Number(item.dataset.step) === current) item.setAttribute('aria-current', 'step');
+      else item.removeAttribute('aria-current');
+    }
+    back.hidden = current === 0;
+    next.hidden = current === 3;
+    submit.hidden = current !== 3;
+    if (current === 3) renderReview();
+  }
+
+  next.addEventListener('click', () => {
+    // Sem isto o passo seguinte esconderia um campo obrigatório vazio e a
+    // validação só apareceria no envio, três telas adiante.
+    const active = [productStep, needStep, conditionStep][current];
+    const invalid = active?.querySelector(':invalid');
+    if (invalid) { invalid.reportValidity(); return; }
+    show(current + 1);
+  });
+  back.addEventListener('click', () => show(current - 1));
+
+  form.append(productStep, needStep, conditionStep, reviewStep, nav);
+  show(0);
+
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     const entries = Object.fromEntries(new FormData(form));
@@ -715,17 +1139,26 @@ function newRfqForm() {
       if (entries[field.key] !== undefined && entries[field.key] !== '') body.demand[field.key] = entries[field.key];
     }
     try {
-      await api('rfqs', { method: 'POST', body: JSON.stringify(body) });
-      say('RFQ criada em rascunho. Abra-a para convidar provedores.', 'success');
+      const result = await api('rfqs', { method: 'POST', body: JSON.stringify(body) });
+      const warnings = (result.warnings || []).join(' ');
+      say(`Solicitação criada em rascunho. Abra-a para convidar provedores. ${warnings}`.trim(), 'success');
       form.reset();
       renderFields();
+      show(0);
     } catch (error) {
-      say(error.status === 401 ? 'Entre na sua conta para criar uma RFQ.' : error.message);
+      say(error.status === 401 ? 'Entre na sua conta para criar uma solicitação.' : error.message);
     }
   });
   panel.append(form);
   return panel;
 }
+
+/** Campos do perfil que respondem diretamente a um campo da demanda. */
+const PROFILE_TO_DEMAND = Object.freeze({
+  sector: 'setor',
+  collateral: 'garantias_disponiveis',
+  current_acquirer: 'adquirente_atual'
+});
 
 function newProviderForm() {
   const panel = el('section', { class: 'panel' });
@@ -839,42 +1272,24 @@ function organizationPicker() {
 
 async function collectCompanyData() {
   const organizations = (await api('organizations')).rows || [];
-  state.organizations = organizations;
-  if (!organizations.length) return { empty: true };
+  state.organizations = organizations.filter((organization) => organization.kind === 'BUYER');
+  if (!state.organizations.length) return { empty: true };
   let remembered = '';
   try { remembered = sessionStorage.getItem('arandu-finance-org') || ''; } catch { remembered = ''; }
   state.organizationId = state.organizationId
-    || (organizations.some((organization) => organization.id === remembered) ? remembered : organizations[0].id);
-  const org = `organization_id=${encodeURIComponent(state.organizationId)}`;
-  const [rfqList, providers, contracts, profile] = await Promise.all([
-    api(`rfqs?${org}`), api(`providers?${org}`), api(`contracts?${org}`), api(`profile?${org}`)
-  ]);
-  const rfqs = [];
-  for (const rfq of rfqList.rows || []) {
-    const detail = await api(`rfq/${encodeURIComponent(rfq.id)}`).catch(() => ({ proposals: [] }));
-    rfqs.push({ ...rfq, proposals: detail.proposals || [] });
-  }
-  return { rfqs, providers: providers.rows || [], contracts: contracts.rows || [], profile: profile.rows || [] };
+    || (state.organizations.some((organization) => organization.id === remembered) ? remembered : state.organizations[0].id);
+  // Uma chamada em vez de uma por RFQ: abrir o painel com 40 solicitações não
+  // pode custar 44 requisições em série.
+  return api(`overview?organization_id=${encodeURIComponent(state.organizationId)}`);
 }
 
 async function collectProviderData() {
   const organizations = (await api('organizations')).rows || [];
   state.organizations = organizations.filter((organization) => organization.kind === 'PROVIDER');
-  if (!state.organizations.length) return { assignments: [] };
+  if (!state.organizations.length) return { assignments: [], no_provider_org: true };
   state.organizationId = state.organizationId || state.organizations[0].id;
-  const proposals = await api(`proposals?organization_id=${encodeURIComponent(state.organizationId)}`);
-  const assignments = [];
-  for (const proposal of proposals.rows || []) {
-    const detail = await api(`rfq/${encodeURIComponent(proposal.rfq_id)}`).catch(() => null);
-    assignments.push({
-      proposal_id: proposal.id,
-      product: proposal.product,
-      status: proposal.status,
-      title: detail?.rfq?.title || 'Solicitação',
-      response_deadline: detail?.rfq?.response_deadline || null
-    });
-  }
-  return { assignments };
+  const result = await api(`assignments?organization_id=${encodeURIComponent(state.organizationId)}`);
+  return { assignments: result.rows || [] };
 }
 
 function demoShape(data) {
@@ -884,12 +1299,18 @@ function demoShape(data) {
     providers: data.providers || [],
     contracts: data.contracts || [],
     profile: data.profile || [],
+    tasks: data.tasks || [],
     assignments: (data.rfqs || []).map((rfq) => ({
       proposal_id: rfq.proposals?.[0]?.id || '',
+      rfq_id: rfq.id,
       product: rfq.product,
       status: rfq.proposals?.[0]?.status || 'draft',
+      rfq_status: rfq.status,
       title: rfq.title,
-      response_deadline: rfq.response_deadline
+      response_deadline: rfq.response_deadline,
+      demand: rfq.demand || {},
+      terms: rfq.proposals?.[0]?.terms || {},
+      history: []
     })),
     demonstration: true,
     notice: data.notice

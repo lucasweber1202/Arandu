@@ -1,7 +1,11 @@
 # Modelo de dados — Financial Procurement
 
-Migration: [`supabase-financial-procurement.sql`](supabase-financial-procurement.sql).
-Rollback: [`rollback/supabase-financial-procurement.rollback.sql`](rollback/supabase-financial-procurement.rollback.sql).
+Migrations, nesta ordem:
+
+1. [`supabase-financial-procurement.sql`](supabase-financial-procurement.sql) — schema base;
+2. [`supabase-financial-procurement-hardening.sql`](supabase-financial-procurement-hardening.sql) — travas de integridade, idempotência e os caminhos de escrita que faltavam.
+
+Rollback (manual, cobre as duas): [`rollback/supabase-financial-procurement.rollback.sql`](rollback/supabase-financial-procurement.rollback.sql).
 
 Todas as tabelas usam o prefixo `fin_`. Nenhuma tabela da vertical de Arte é
 alterada, renomeada ou removida.
@@ -48,6 +52,8 @@ Não são validações de aplicação: o Postgres recusa a linha.
 | Comprador e provedor nunca são a mesma organização | `check (buyer_organization_id <> provider_organization_id)` |
 | Uma proposta por convite | `fin_proposals.invite_id` é `unique` |
 | Uma decisão por proposta | `fin_decisions.proposal_id` é `unique` |
+| **Uma decisão por RFQ** | índice único `fin_decisions(rfq_id)` + `for update` na RFQ dentro de `fin_record_decision` |
+| **Um contrato por decisão** | índice único `fin_contracts(decision_id)` + `for update` na decisão |
 
 ## Tabelas
 
@@ -71,7 +77,13 @@ reaproveitar o perfil entre RFQs sem duplicar.
 Tipos: `bank`, `fintech`, `acquirer`, `subacquirer`, `credit_provider`,
 `payment_provider`, `other`. O estado de verificação nasce `NAO_VERIFICADO`. A
 constraint `fin_provider_evidence_required` impede `EVIDENCIA_REGISTRADA` sem
-autoridade, registro, URL de evidência e data de consulta.
+autoridade, registro, URL de evidência e data de consulta, e o único caminho de
+escrita é `fin_record_provider_evidence`.
+
+Esta tabela é a **relação** entre um comprador e um provedor, não a identidade
+canônica do provedor — essa é `fin_organizations` com `kind='PROVIDER'`. O
+vínculo entre as duas é preenchido quando o convite é aceito. Ver
+[`FINANCIAL_PROVIDER_CANONICALIZATION.md`](FINANCIAL_PROVIDER_CANONICALIZATION.md).
 
 ### `fin_rfqs`
 `demand` é `jsonb`, mas o conteúdo aceito é a allowlist de
@@ -96,9 +108,17 @@ Termos financeiros nunca são sobrescritos: cada envio cria uma versão nova e
 incrementa `current_version`. A versão 1 marca a proposta como `submitted`; as
 seguintes, como `revised`. Não existe `UPDATE` de versão para `authenticated`.
 
+O envio é **idempotente**: reenviar termos idênticos aos da versão corrente
+devolve a versão atual em vez de criar uma revisão falsa. Duplo clique e retry
+de rede não poluem o histórico.
+
 ### `fin_decisions`
 `snapshot` guarda a proposta escolhida **e todas as demais** com seus termos no
-momento da decisão. `criteria` guarda os pesos que a empresa usou, quando usou.
+momento da decisão, mais `decided_version` — a versão exata que foi escolhida.
+`criteria` guarda os pesos que a empresa usou, quando usou.
+
+O snapshot é um `jsonb` gravado no instante da decisão: uma revisão posterior do
+provedor não o alcança. Há teste para isso.
 
 ### `fin_contracts`
 `renewal_notice_days` define a janela de revisão: `ends_on - renewal_notice_days`.
@@ -106,7 +126,12 @@ momento da decisão. `criteria` guarda os pesos que a empresa usou, quando usou.
 
 ### `fin_documents`
 Referência documental apenas. **Upload não está implementado nesta fase** (ver
-limitações no runbook). O campo `reference_url` exige `https://`.
+limitações no runbook). O campo `reference_url` exige `https://`. Exposta em
+`GET`/`POST /api/finance/documents`, que responde `upload_supported: false`.
+
+### `fin_tasks`
+Tarefas da organização. Registrar um contrato cria automaticamente a tarefa de
+revisão de renovação, com vencimento em `ends_on − renewal_notice_days`.
 
 ### `fin_events`
 Trilha de produto e observabilidade. `metadata` guarda contagens e

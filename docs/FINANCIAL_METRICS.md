@@ -21,7 +21,10 @@ Gravados em `fin_events` pelas funções `SECURITY DEFINER` (nunca pelo cliente)
 | `proposal_withdrawn` | `fin_withdraw_proposal` |
 | `rfq_<estado>` | `fin_transition` |
 | `contract_<estado>` | `fin_transition` |
-| `decision_recorded` | `fin_record_decision` |
+| `decision_recorded` | `fin_record_decision` (com `decided_version`) |
+| `organization_updated` | `fin_update_organization` |
+| `provider_evidence_recorded` | `fin_record_provider_evidence` |
+| `rfq_demand_updated` / `rfq_demand_updated_after_open` | `fin_update_rfq_demand` |
 | `contract_registered` | `fin_register_contract` |
 
 Falhas de API e tentativas de acesso indevido seguem a observabilidade já
@@ -38,7 +41,7 @@ financeiros no log.
 | Taxa de resposta | `proposal_submitted` distintos ÷ `invite_accepted` |
 | Tempo até a primeira proposta | primeiro `proposal_submitted` − `rfq_created` |
 | Propostas por RFQ | contagem de propostas com `current_version > 0` |
-| Comparação aberta | evento de produto a instrumentar no front (ainda não emitido) |
+| Comparação aberta | **não calculável hoje**: não há evento de abertura de comparação. Instrumentar antes de prometer a métrica |
 | Decisão | contagem de `decision_recorded` |
 | Contratação | contagem de `contract_registered` |
 | Renovação | contratos que entraram em `renewing` |
@@ -46,10 +49,14 @@ financeiros no log.
 
 ## O que o painel exibe hoje
 
-RFQs abertas, RFQs em comparação, propostas recebidas, contratos ativos,
-contratos em janela de renovação, oportunidades de repricing, provedores
-cadastrados e volume de crédito solicitado (soma dos valores **declarados** nas
-RFQs de crédito).
+Aguardando primeira proposta, prontas para decidir, propostas recebidas,
+contratos ativos, contratos em janela de renovação, provedores cadastrados,
+crédito solicitado (soma dos valores **declarados**), tempo médio até a
+primeira proposta e taxa de resposta.
+
+As duas últimas aparecem como **"sem dados"** enquanto não houver,
+respectivamente, proposta recebida e provedor convidado. Sem tráfego, o valor
+correto de uma média é a ausência dela, não zero.
 
 ## O que o painel deliberadamente não exibe
 
