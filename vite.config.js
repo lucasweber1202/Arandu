@@ -19,6 +19,7 @@ const configuredPilotEnabled = ['1','true','yes','sim'].includes(String(process.
 const configuredPresentationMode = assertPresentationModeIsSafe();
 const configuredCommercialReady = ['1','true','yes','sim'].includes(String(process.env.ARANDU_COMMERCIAL_READY || '').trim().toLowerCase());
 const ASSET_VERSION = '20260608';
+const FINANCE_PAGE_PREFIXES = ['finance/', 'provider/'];
 
 // Beta pública: enquanto a política comercial não estiver aprovada e o catálogo
 // real não estiver liberado, toda página pública declara o estado no topo. O
@@ -139,6 +140,25 @@ function injectGlobalAssets() {
     transformIndexHtml(html, context) {
       let output = cacheBustKnownAssets(html);
       const pageName = context?.filename ? relative(root, context.filename).split(sep).join('/') : '';
+      // Os portais B2B (procurement financeiro) têm casca, CSS e runtime
+      // próprios. Injetar aqui a casca pública, o banner de beta do acervo e os
+      // scripts do site de arte quebraria o layout do painel e carregaria
+      // JavaScript irrelevante. Eles recebem apenas o bloco de SEO, sem
+      // canônica — são páginas de aplicação, não de conteúdo indexável.
+      if (FINANCE_PAGE_PREFIXES.some((prefix) => pageName.startsWith(prefix))) {
+        // O runtime do portal só carrega o conjunto demonstrativo quando esta
+        // marcação existe, e ela só existe fora de produção: o build inteiro
+        // falha se ARANDU_PRESENTATION_MODE for ligado com VERCEL_ENV=production.
+        if (configuredPresentationMode && !output.includes('name="arandu-presentation-mode"')) {
+          output = output.replace('</head>', `${presentationBootstrapTag}</head>`);
+        }
+        return renderSeoHead(output, {
+          pageName,
+          siteUrl: configuredSiteUrl,
+          shareBaseUrl: configuredShareBaseUrl,
+          isCanonical: false
+        });
+      }
       output = renderSeoHead(output, {
         pageName,
         siteUrl: configuredSiteUrl,
