@@ -25,6 +25,9 @@ Gravados em `fin_events` pelas funções `SECURITY DEFINER` (nunca pelo cliente)
 | `organization_updated` | `fin_update_organization` |
 | `provider_evidence_recorded` | `fin_record_provider_evidence` |
 | `rfq_demand_updated` / `rfq_demand_updated_after_open` | `fin_update_rfq_demand` |
+| `buyer_onboarded` / `provider_onboarded` | `fin_create_organization` |
+| `terms_accepted` | `fin_accept_terms` |
+| `invite_opened`, `proposal_started`, `comparison_viewed`, `weights_applied`, `export_generated` | `fin_record_client_event`, emitidos pelo navegador |
 | `contract_registered` | `fin_register_contract` |
 
 Falhas de API e tentativas de acesso indevido seguem a observabilidade já
@@ -41,7 +44,8 @@ financeiros no log.
 | Taxa de resposta | `proposal_submitted` distintos ÷ `invite_accepted` |
 | Tempo até a primeira proposta | primeiro `proposal_submitted` − `rfq_created` |
 | Propostas por RFQ | contagem de propostas com `current_version > 0` |
-| Comparação aberta | **não calculável hoje**: não há evento de abertura de comparação. Instrumentar antes de prometer a métrica |
+| Comparação aberta | `comparison_viewed` |
+| Pesos aplicados | `weights_applied` |
 | Decisão | contagem de `decision_recorded` |
 | Contratação | contagem de `contract_registered` |
 | Renovação | contratos que entraram em `renewing` |
@@ -57,6 +61,18 @@ primeira proposta e taxa de resposta.
 As duas últimas aparecem como **"sem dados"** enquanto não houver,
 respectivamente, proposta recebida e provedor convidado. Sem tráfego, o valor
 correto de uma média é a ausência dela, não zero.
+
+## Onde extrair
+
+`GET /api/finance/pilot-metrics?organization_id=…` devolve as contagens
+operacionais desta organização, calculadas só a partir da trilha de eventos.
+
+Toda taxa e toda média devolvem `null` quando não houve o evento
+correspondente. Sem tráfego, o valor correto de uma média é a ausência dela, e
+não zero — que seria indistinguível de uma medição real de zero.
+
+Não é benchmark: não compara com nenhuma outra empresa e não existe agregado
+entre organizações.
 
 ## O que o painel deliberadamente não exibe
 

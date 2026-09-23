@@ -16,6 +16,10 @@ não executa pagamentos e não recomenda instituições — ver
 * Portais: `/finance/` (empresa) e `/provider/` (provedor).
 * API: `/api/finance/*`.
 * Banco: `docs/supabase-financial-procurement.sql` (aditiva, com rollback).
+* Piloto: [`docs/FINANCIAL_PILOT_GO_NOGO.md`](docs/FINANCIAL_PILOT_GO_NOGO.md),
+  [`docs/FIRST_FINANCIAL_PILOT.md`](docs/FIRST_FINANCIAL_PILOT.md),
+  [`docs/FINANCIAL_OWNER_ACTIONS.md`](docs/FINANCIAL_OWNER_ACTIONS.md).
+* Comandos: `npm run finance:env:check`, `npm run test:pilot`, `npm run check:finance`.
 * Documentação: [`docs/FINANCIAL_PROCUREMENT_PRODUCT.md`](docs/FINANCIAL_PROCUREMENT_PRODUCT.md),
   [`docs/FINANCIAL_DATA_MODEL.md`](docs/FINANCIAL_DATA_MODEL.md),
   [`docs/FINANCIAL_SECURITY_MODEL.md`](docs/FINANCIAL_SECURITY_MODEL.md),

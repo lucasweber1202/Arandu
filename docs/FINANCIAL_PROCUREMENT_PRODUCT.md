@@ -120,7 +120,12 @@ declarada.
 | Documentos por referência | `fin_documents` |
 | Tarefas e trilha | `fin_tasks`, `fin_events` |
 | Validação local de CNPJ | `lib/finance/cnpj.mjs` |
-| Modelos de e-mail (preparados, não enviando) | `lib/finance/email-templates.mjs` |
+| Modelos de e-mail (preparados, envio desligado) | `lib/finance/email-templates.mjs`, `fin_enqueue_email` |
+| Aceite de termos (versão, autor, data) | `fin_terms_acceptances` |
+| Allowlist do piloto | `fin_pilot_allowlist` |
+| Sinais de produto do navegador | `fin_record_client_event` |
+| Métricas operacionais do piloto | `pilotMetrics` em `lib/api/domains/finance.mjs` |
+| Exportação factual do processo | `GET /api/finance/export` |
 
 ## Interfaces
 
@@ -138,6 +143,22 @@ propostas versionadas, produto normalizado, datas confiáveis, setor e porte
 disponíveis. **Nenhum benchmark agregado é exibido**, e não deve ser exibido
 antes de haver volume suficiente e política de anonimização validada
 juridicamente.
+
+## Perguntas que a documentação responde
+
+| Pergunta | Documento |
+| --- | --- |
+| O que o Arandu Finance faz hoje? | este documento |
+| O que ele não faz? | [`FINANCIAL_PRODUCT_BOUNDARIES.md`](FINANCIAL_PRODUCT_BOUNDARIES.md) |
+| Como subir um piloto? | [`FINANCIAL_PILOT_ENVIRONMENT.md`](FINANCIAL_PILOT_ENVIRONMENT.md) |
+| Como criar empresa, provedor e a primeira RFQ? | [`FINANCIAL_MVP_RUNBOOK.md`](FINANCIAL_MVP_RUNBOOK.md) |
+| Como operar o piloto? | [`FINANCIAL_PILOT_PLAYBOOK.md`](FINANCIAL_PILOT_PLAYBOOK.md) e [`FIRST_FINANCIAL_PILOT.md`](FIRST_FINANCIAL_PILOT.md) |
+| Como diagnosticar um problema? | [`FINANCIAL_PILOT_SUPPORT.md`](FINANCIAL_PILOT_SUPPORT.md) |
+| O piloto pode começar? | [`FINANCIAL_PILOT_GO_NOGO.md`](FINANCIAL_PILOT_GO_NOGO.md) |
+| O que depende do fundador? | [`FINANCIAL_OWNER_ACTIONS.md`](FINANCIAL_OWNER_ACTIONS.md) |
+| O que depende de advogado? | [`FINANCIAL_LEGAL_REVIEW_REQUIRED.md`](FINANCIAL_LEGAL_REVIEW_REQUIRED.md) |
+| Como os dados são tratados? | [`FINANCIAL_DATA_CLASSIFICATION.md`](FINANCIAL_DATA_CLASSIFICATION.md) |
+| Que ataques foram testados? | [`FINANCIAL_THREAT_MODEL.md`](FINANCIAL_THREAT_MODEL.md) |
 
 ## Fora de escopo nesta rodada
 

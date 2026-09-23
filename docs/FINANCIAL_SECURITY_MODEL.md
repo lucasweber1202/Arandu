@@ -9,7 +9,10 @@ CSP, sanitização, DTO com allowlist, auditoria e retenção.
 1. **Origem e sessão** — `enforceSameOrigin` e `requireUser` em
    `api/[...path].js`, antes de qualquer rota `/api/finance/*`.
 2. **Rate limit** — três escopos: catálogo de produtos (anônimo, 120/10min),
-   conta (240/10min por usuário) e escrita (60/10min por usuário).
+   conta (240/10min por usuário) e escrita (60/10min por usuário). O limite de
+   escrita cobre convite, envio de proposta e decisão; ele é folgado o bastante
+   para um piloto real e apertado o bastante para que replay de convite ou spam
+   de proposta esbarrem nele.
 3. **DTO / allowlist** — `lib/finance/products.mjs` define os campos aceitos por
    produto. `normalizeDemand` / `normalizeProposal` descartam qualquer chave não
    declarada e devolvem a lista do que foi rejeitado.
@@ -77,6 +80,12 @@ rodando contra PostgreSQL real com `set role authenticated` e claim JWT.
 | Comparação acessada por organização provedora | `scripts/test-finance-api.mjs` |
 | Mensagem crua do Postgres chegando ao cliente | idem |
 
+| Token de convite em analytics, referrer, histórico ou log | `tests/e2e/finance-procurement.spec.js` |
+| Bypass ou configuração pela metade da allowlist do piloto | `tests/database/financial-pilot.sql` |
+| Aceite de termos forjado por escrita direta | idem |
+| Evento arbitrário ou termo financeiro pela porta dos sinais | idem + `scripts/test-finance-api.mjs` |
+| E-mail enfileirado com token ou condição no payload | `tests/database/financial-pilot.sql` |
+
 O mapa completo de ataques está em [`FINANCIAL_THREAT_MODEL.md`](FINANCIAL_THREAT_MODEL.md).
 
 ## Idempotência e concorrência
@@ -97,6 +106,14 @@ O mapa completo de ataques está em [`FINANCIAL_THREAT_MODEL.md`](FINANCIAL_THRE
 Os eventos em `fin_events` carregam tipo de entidade, identificador, tipo de
 evento, ator e metadados não sensíveis. Termos financeiros não são registrados
 na trilha — há teste de banco que falha se forem.
+
+## Segredos que o produto manipula
+
+| Segredo | Onde existe | Onde nunca existe |
+| --- | --- | --- |
+| Token de convite de provedor | no fragmento do link e em memória na página | banco (só o `sha256`), log, analytics, referrer, histórico, payload de e-mail |
+| Token de convite de membro | na resposta da chamada que o criou | banco (só o `sha256`), qualquer leitura de cliente |
+| Chave de serviço do Supabase | não usada pelo domínio financeiro | qualquer caminho financeiro |
 
 ## Administração
 
