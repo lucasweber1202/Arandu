@@ -22,6 +22,17 @@ select 1/(case when data_readiness=0 then 1 else 0 end) from public.b2b_public_p
 select public.b2b_transition('document',:'doc_a','verified');
 select public.b2b_transition('evidence',:'evidence_a','accepted');
 select 1/(case when data_readiness=100 then 1 else 0 end) from public.b2b_public_passport(:'token_a'::uuid);
+select 1/(case when count(*)=3 then 1 else 0 end) from public.b2b_events where organization_id=:'org_a'::uuid;
+set local role anon;
+select 1/(case when count(*)=1 then 1 else 0 end) from public.b2b_public_passport(:'token_a'::uuid);
+select 1/(case when count(*)=0 then 1 else 0 end) from public.b2b_public_passport('00000000-0000-4000-8000-000000000099'::uuid);
+do $$ begin
+  begin
+    perform 1 from public.b2b_passports limit 1;
+    raise exception 'anonymous table access permitted';
+  exception when insufficient_privilege then null; end;
+end $$;
+set local role authenticated;
 select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000002',true);
 select public.b2b_create_organization('Buyer Demo','FINANCIAL_BUYER','BR') as org_b \gset
 select 1/(case when count(*)=0 then 1 else 0 end) from public.b2b_products where organization_id=:'org_a'::uuid;
@@ -54,6 +65,16 @@ insert into public.b2b_quotes(invitation_id,provider_organization_id,category,te
 select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000004',true);
 select public.b2b_create_organization('Other Provider Demo','FINANCIAL_PROVIDER','BR') as org_d \gset
 select 1/(case when count(*)=0 then 1 else 0 end) from public.b2b_quotes where id=:'quote_c'::uuid;
+select 1/(case when count(*)=0 then 1 else 0 end) from public.b2b_rfqs where id=:'rfq_b'::uuid;
+select set_config('test.invite_bc',:'invite_bc',true);
+select set_config('test.org_d',:'org_d',true);
+do $$ begin
+  begin
+    insert into public.b2b_quotes(invitation_id,provider_organization_id,category,terms)
+      values(current_setting('test.invite_bc')::uuid,current_setting('test.org_d')::uuid,'insurance','{}'::jsonb);
+    raise exception 'uninvited provider submitted a quote';
+  exception when insufficient_privilege or foreign_key_violation then null; end;
+end $$;
 select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000002',true);
 select 1/(case when count(*)=1 then 1 else 0 end) from public.b2b_quotes where id=:'quote_c'::uuid;
 insert into public.b2b_decisions(organization_id,rfq_id,invitation_id,quote_id,decided_by,rationale)
