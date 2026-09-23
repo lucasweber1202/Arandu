@@ -165,6 +165,7 @@ assert.equal(sent.length, 0);
 // ------------------------------------------------------------- comparação
 
 reset((entry) => {
+  if (entry.url.includes('fin_organizations')) return orgRow(BUYER, 'BUYER');
   if (entry.url.includes('fin_rfqs')) return [{ id: RFQ, product: 'credit', demand: { amount: 500000 }, status: 'comparing', organization_id: BUYER }];
   if (entry.url.includes('fin_proposal_versions')) {
     return [
@@ -215,4 +216,156 @@ await rejects('POST', 'contracts', { body: { decision_id: RFQ, starts_on: '2026-
 await rejects('GET', 'nao-existe', {}, 404);
 await rejects('DELETE', 'products', {}, 404);
 
-console.log('Financial Procurement API: allowlist de campos, isolamento de organização, anti-spoofing de provedor, transições e comparação neutra aprovados.');
+// ------------------------------------------------- completar organização
+
+reset((entry) => (entry.url.includes('fin_organizations') ? orgRow(BUYER, 'BUYER') : []));
+{
+  const res = await call('PATCH', 'organizations', {
+    body: { organization_id: BUYER, trade_name: 'Acme', tax_identifier: '11.222.333/0001-81', sector: 'Indústria', revenue_band: '30m_300m' }
+  });
+  const rpcCall = sent.find((entry) => entry.url.includes('rpc/fin_update_organization'));
+  assert.equal(rpcCall.body.p_tax_identifier, '11222333000181', 'CNPJ deve ser normalizado para dígitos');
+  // O produto afirma formato conferido, nunca existência verificada.
+  assert.deepEqual(res.payload.tax_identifier, { format_valid: true, externally_verified: false });
+}
+reset(() => orgRow(BUYER, 'BUYER'));
+await rejects('PATCH', 'organizations', { body: { organization_id: BUYER, tax_identifier: '11222333000182' } }, 400);
+await rejects('PATCH', 'organizations', { body: { organization_id: BUYER, revenue_band: 'gigante' } }, 400);
+assert.ok(!sent.some((entry) => entry.url.includes('rpc/fin_update_organization')), 'CNPJ inválido não chega ao banco');
+
+// ------------------------------------------------ evidência regulatória
+
+reset(() => []);
+await rejects('POST', 'providers/evidence', {
+  body: { provider_id: BUYER, regulator_authority: 'A', regulator_registry: '1', regulator_evidence_url: 'http://x.example', regulator_checked_at: '2026-01-01' }
+}, 400);
+await rejects('POST', 'providers/evidence', {
+  body: { provider_id: BUYER, regulator_authority: 'A', regulator_registry: '1', regulator_evidence_url: 'https://x.example', regulator_checked_at: 'ontem' }
+}, 400);
+assert.equal(sent.length, 0, 'evidência malformada não chega ao banco');
+
+// --------------------------------------------------- mix de adquirência
+
+reset(() => orgRow(BUYER, 'BUYER'));
+// 80 + 60 + 40 = 180% é erro de preenchimento, não arredondamento.
+await rejects('POST', 'rfqs', {
+  body: {
+    organization_id: BUYER, product: 'acquiring', title: 'Adquirência DEMO',
+    demand: { monthly_volume: 100000, share_debit: 80, share_credit_cash: 60, share_credit_installment: 40 }
+  }
+}, 400);
+assert.ok(!sent.some((entry) => entry.url.includes('rpc/fin_create_rfq')));
+
+reset((entry) => (entry.url.includes('fin_organizations') ? orgRow(BUYER, 'BUYER') : [{ id: RFQ }]));
+{
+  // 95% passa, mas o desvio volta como aviso em vez de ser normalizado calado.
+  const res = await call('POST', 'rfqs', {
+    body: {
+      organization_id: BUYER, product: 'acquiring', title: 'Adquirência DEMO',
+      demand: { monthly_volume: 100000, share_debit: 40, share_credit_cash: 30, share_credit_installment: 20, share_pix: 5 }
+    }
+  });
+  assert.equal(res.payload.warnings.length, 1);
+  assert.match(res.payload.warnings[0], /95%/);
+  const rpcCall = sent.find((entry) => entry.url.includes('rpc/fin_create_rfq'));
+  assert.equal(rpcCall.body.p_demand.share_pix, 5, 'o valor informado não pode ser alterado pelo servidor');
+}
+
+// ------------------------------------------- mensagens úteis do upstream
+
+// A mensagem do Postgres nunca atravessa: o que chega é o motivo em português,
+// sem revelar tabela, policy nem a existência de registro de terceiro.
+reset((entry) => {
+  if (entry.url.includes('fin_organizations')) return orgRow(PROVIDER_ORG, 'PROVIDER');
+  const error = new Error('invalid invitation'); error.status = 400; throw error;
+});
+await assert.rejects(
+  () => call('POST', 'invites/accept', { body: { token: 'a'.repeat(64), provider_organization_id: PROVIDER_ORG } }),
+  (error) => {
+    assert.equal(error.status, 409);
+    assert.match(error.message, /expirado|usado|revogado/);
+    assert.ok(!/invalid invitation|fin_|supabase|postgres/i.test(error.message), 'mensagem crua do banco vazou');
+    return true;
+  }
+);
+
+reset((entry) => {
+  if (entry.url.includes('fin_rfqs')) return [{ id: RFQ, organization_id: BUYER, product: 'credit', status: 'comparing', demand: {} }];
+  const error = new Error('decision already recorded'); error.status = 400; throw error;
+});
+await assert.rejects(
+  () => call('POST', 'decisions', { body: { rfq_id: RFQ, proposal_id: PROPOSAL } }),
+  (error) => {
+    assert.equal(error.status, 409);
+    assert.match(error.message, /já tem uma decisão/);
+    return true;
+  }
+);
+
+// --------------------------------------------- documentos e tarefas
+
+reset((entry) => (entry.url.includes('fin_organizations') ? orgRow(BUYER, 'BUYER') : [{ id: PROPOSAL }]));
+await rejects('POST', 'documents', { body: { organization_id: BUYER, entity_type: 'rfq', entity_id: RFQ, title: 'Contrato', reference_url: 'http://inseguro.example' } }, 400);
+await rejects('POST', 'documents', { body: { organization_id: BUYER, entity_type: 'inventado', entity_id: RFQ, title: 'X', reference_url: 'https://ok.example' } }, 400);
+{
+  const res = await call('POST', 'documents', {
+    body: { organization_id: BUYER, entity_type: 'rfq', entity_id: RFQ, title: 'Proposta assinada', reference_url: 'https://drive.example/doc', storage_path: '/etc/passwd' }
+  });
+  assert.equal(res.payload.ok, true);
+  const write = sent.find((entry) => entry.method === 'POST' && entry.url.includes('fin_documents'));
+  // Não existe upload nesta fase: nenhum caminho de storage é aceito.
+  assert.ok(!('storage_path' in write.body));
+  assert.equal(write.body.created_by, ACTOR);
+}
+reset((entry) => (entry.url.includes('fin_organizations') ? orgRow(BUYER, 'BUYER') : []));
+await rejects('PATCH', 'tasks', { body: { organization_id: BUYER, task_id: RFQ, status: 'inventado' } }, 400);
+
+// ----------------------------------- comparação é da empresa compradora
+
+reset((entry) => {
+  if (entry.url.includes('fin_rfqs')) return [{ id: RFQ, organization_id: BUYER, product: 'credit', status: 'comparing', demand: {} }];
+  if (entry.url.includes('fin_organizations')) return orgRow(BUYER, 'PROVIDER');
+  return [];
+});
+await rejects('POST', 'comparison', { body: { rfq_id: RFQ } }, 400);
+
+// --------------------------------- visão do provedor não vaza concorrente
+
+reset((entry) => {
+  if (entry.url.includes('fin_organizations')) return orgRow(PROVIDER_ORG, 'PROVIDER');
+  if (entry.url.includes('fin_proposal_versions')) return [{ proposal_id: PROPOSAL, version: 1, terms: { institution: 'Meu Banco' }, submitted_at: '2026-01-01T00:00:00Z' }];
+  if (entry.url.includes('fin_proposals')) return [{ id: PROPOSAL, rfq_id: RFQ, product: 'credit', status: 'submitted', current_version: 1 }];
+  if (entry.url.includes('fin_rfqs')) return [{ id: RFQ, title: 'RFQ', product: 'credit', status: 'collecting', demand: { amount: 500000 }, description: 'necessidade' }];
+  return [];
+});
+{
+  const res = await call('GET', 'assignments', { url: `/api/finance/assignments?organization_id=${PROVIDER_ORG}` });
+  const row = res.payload.rows[0];
+  // O provedor recebe a necessidade para conseguir responder...
+  assert.equal(row.demand.amount, 500000);
+  assert.equal(row.title, 'RFQ');
+  // ...e nada sobre concorrentes, notas internas ou comparação.
+  const serialized = JSON.stringify(res.payload);
+  assert.ok(!/notes|comparison|weights|decision/i.test(serialized), 'visão do provedor expôs campo indevido');
+  // A consulta de propostas é sempre filtrada pela própria organização.
+  const proposalQuery = sent.find((entry) => entry.url.includes('fin_proposals'));
+  assert.match(proposalQuery.url, new RegExp(`provider_organization_id=eq.${PROVIDER_ORG}`));
+}
+
+// ------------------------------------------ overview sem consulta por RFQ
+
+reset((entry) => {
+  if (entry.url.includes('fin_organizations')) return orgRow(BUYER, 'BUYER');
+  if (entry.url.includes('fin_rfqs')) return Array.from({ length: 12 }, (_, index) => ({
+    id: `00000000-0000-4000-8000-0000000000${String(index).padStart(2, '0')}`,
+    organization_id: BUYER, product: 'credit', status: 'open', demand: { amount: 1000 }
+  }));
+  return [];
+});
+{
+  await call('GET', 'overview', { url: `/api/finance/overview?organization_id=${BUYER}` });
+  // Com 12 RFQs o número de consultas não pode crescer com a quantidade.
+  assert.ok(sent.length <= 8, `overview fez ${sent.length} consultas para 12 RFQs`);
+}
+
+console.log('Financial Procurement API: allowlist de campos, isolamento de organização, anti-spoofing de provedor, transições, comparação neutra, CNPJ, mix de recebimentos, mensagens redigidas e consultas limitadas aprovados.');
