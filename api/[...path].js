@@ -416,6 +416,11 @@ export default async function handler(req, res) {
     return json(res, 404, { ok: false, error: 'Rota de API não encontrada.', route });
   } catch (error) {
     const route = routeFrom(req);
+    if (route.startsWith('b2b/') && !(error instanceof HttpError)) {
+      const status = [400,401,403,404,409].includes(Number(error?.status)) ? Number(error.status) : 503;
+      if (status >= 500) await reportError({ service: 'arandu-b2b-api', requestId, route: 'b2b', status, code: 'upstream_unavailable', method: req.method, error: new Error('B2B upstream unavailable') });
+      return json(res, status, { ok: false, error: status === 503 ? 'Serviço temporariamente indisponível.' : 'Operação inválida ou sem permissão.', requestId });
+    }
     const fallbackStatus = route === 'auth/login' ? 401 : route === 'auth/signup' ? 400 : 500;
     const ownershipMigrationPending = /user_id/i.test(String(error?.message || '')) && /(column|schema cache|does not exist|não existe)/i.test(String(error?.message || ''));
     const status = ownershipMigrationPending ? 503 : Number(error?.status) || fallbackStatus;

@@ -163,6 +163,12 @@ end $$;
 drop policy b2b_write on public.b2b_documents;
 create policy b2b_document_create on public.b2b_documents for insert to authenticated with check
   (public.b2b_has_role(organization_id,array['admin','compliance_manager']) and uploader_id=auth.uid() and status='pending_review' and storage_path is null and version=1);
+drop policy b2b_write on public.b2b_requirements;
+create policy b2b_requirement_create on public.b2b_requirements for insert to authenticated with check
+  (public.b2b_has_role(organization_id,array['admin','compliance_manager']) and verification_state='PENDING_VERIFICATION');
+drop policy b2b_write on public.b2b_cbam_cases;
+create policy b2b_cbam_create on public.b2b_cbam_cases for insert to authenticated with check
+  (public.b2b_has_role(organization_id,array['admin','compliance_manager']) and verification_state='PENDING_VERIFICATION');
 drop policy b2b_write on public.b2b_evidence;
 create policy b2b_evidence_create on public.b2b_evidence for insert to authenticated with check
   (public.b2b_has_role(organization_id,array['admin','compliance_manager']) and review_status='pending' and reviewed_by is null and reviewed_at is null);
@@ -181,7 +187,7 @@ create policy b2b_event_create on public.b2b_events for insert to authenticated 
 create policy b2b_invitation_read on public.b2b_rfq_invitations for select to authenticated using
   (public.b2b_has_role(buyer_organization_id) or public.b2b_has_role(provider_organization_id));
 create policy b2b_invitation_write on public.b2b_rfq_invitations for insert to authenticated with check
-  (public.b2b_has_role(buyer_organization_id,array['admin','procurement_manager']));
+  (status='invited' and public.b2b_has_role(buyer_organization_id,array['admin','procurement_manager']));
 create policy b2b_rfq_invited_read on public.b2b_rfqs for select to authenticated using
   (exists(select 1 from public.b2b_rfq_invitations i where i.rfq_id=b2b_rfqs.id and public.b2b_has_role(i.provider_organization_id)));
 create policy b2b_quote_read on public.b2b_quotes for select to authenticated using
