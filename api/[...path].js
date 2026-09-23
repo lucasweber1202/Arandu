@@ -8,6 +8,7 @@ import { createSelectionsDomain } from '../lib/api/domains/selections.mjs';
 import { createAccountsDomain } from '../lib/api/domains/accounts.mjs';
 import { createPrivacyDomain } from '../lib/api/domains/privacy.mjs';
 import { createDashboardDomain } from '../lib/api/domains/dashboard.mjs';
+import { handleB2b } from '../lib/api/domains/b2b.mjs';
 
 import { AdminAuthError, applyAdminResponseHeaders, requireAdmin } from '../lib/admin-auth.mjs';
 import { requireAdminPermission } from '../lib/admin-rbac.mjs';
@@ -387,6 +388,7 @@ export default async function handler(req, res) {
     enforceSameOrigin(req);
     const route = routeFrom(req);
     if (route === 'security-contact') return await handleSecurityText(req, res);
+    if (route.startsWith('b2b/')) return await handleB2b(req, res, route.slice(4), { requireUser, enforceRateLimit });
     if (route === 'forms') return await handleForms(req, res);
     if (route === 'reservations') return await handleReservations(req, res);
     if (route === 'proposals') { requireCommercialReady(); return await handleProposals(req, res); }

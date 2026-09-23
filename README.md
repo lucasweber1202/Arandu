@@ -1,5 +1,7 @@
 # Arandu
 
+> **Branch experimental B2B.** O produto Arte continua preservado. A primeira camada de Export Compliance e Financial Procurement está em `/b2b/`, com migration aditiva `docs/supabase-b2b-platform.sql`. Consulte [o escopo e as limitações](docs/PIVOT_B2B_PLATFORM.md) antes de testar. Este MVP usa somente fixtures fictícias; upload corporativo, onboarding de membros e validação de staging ainda não estão fechados.
+
 Arandu é uma plataforma de curadoria, apresentação e intermediação de arte brasileira contemporânea. A experiência relaciona obra, artista, território, procedência e acompanhamento humano, sem tratar o catálogo como um e-commerce genérico.
 
 ## Estado operacional

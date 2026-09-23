@@ -139,6 +139,7 @@ function injectGlobalAssets() {
     transformIndexHtml(html, context) {
       let output = cacheBustKnownAssets(html);
       const pageName = context?.filename ? relative(root, context.filename).split(sep).join('/') : '';
+      if (pageName.startsWith('b2b/')) return html;
       output = renderSeoHead(output, {
         pageName,
         siteUrl: configuredSiteUrl,
@@ -172,4 +173,3 @@ export default defineConfig({
   plugins: [injectSpeedInsights(), injectGlobalAssets()],
   build: { rollupOptions: { input: htmlInputs } }
 });
-
