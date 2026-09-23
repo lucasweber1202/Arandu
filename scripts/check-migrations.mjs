@@ -73,7 +73,8 @@ for (const [flow, files] of Object.entries(manifest)) {
   const betaEvents = files.indexOf('docs/supabase-beta-conversion-events.sql');
   if (betaEvents === -1) issues.push(`${flow}: eventos de conversão da beta ausentes.`);
   if (betaEvents !== -1 && platform !== -1 && betaEvents < platform) issues.push(`${flow}: os eventos da beta precisam vir depois do hardening da plataforma.`);
-  if (betaEvents !== -1 && betaEvents !== files.length - 1) issues.push(`${flow}: os eventos de conversão da beta devem encerrar a sequência atual.`);
+  const b2b = files.indexOf('docs/supabase-b2b-platform.sql');
+  if (b2b === -1 || b2b !== files.length - 1 || betaEvents !== b2b - 1) issues.push(`${flow}: pivot B2B deve vir imediatamente após os eventos da beta e encerrar a sequência.`);
 }
 
 console.log('Arandu Migration Order Check');

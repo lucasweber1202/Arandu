@@ -33,6 +33,7 @@ apply_file "$clean_db" "tests/database/email-outbox.sql"
 apply_file "$clean_db" "tests/database/retention.sql"
 apply_file "$clean_db" "tests/database/operational-status.sql"
 apply_file "$clean_db" "tests/database/profile-access.sql"
+apply_file "$clean_db" "tests/database/b2b-platform.sql"
 bash "$root_dir/tests/database/reservation-concurrency.sh" "$(database_url "$clean_db")"
 bash "$root_dir/tests/database/order-concurrency.sh" "$(database_url "$clean_db")"
 
