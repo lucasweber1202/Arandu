@@ -54,6 +54,10 @@ O Arandu **não**:
 | Não inventa economia | O painel expõe `savings: null` com nota explícita sobre metodologia. |
 | Não atesta regulação | `fin_providers` nasce em `NAO_VERIFICADO`; a constraint `fin_provider_evidence_required` impede o estado verificado sem autoridade, registro, evidência e data de consulta. |
 | Não assina contrato | `fin_contracts` guarda apenas referência documental (`https://`); não há integração de assinatura. |
+| Não ordena sem pedido | `applyUserWeights` só produz ordenação com pesos explícitos do usuário, e empates valem igual para todos, para que a ordem não dependa da direção do campo. |
+| Não esconde nota frágil | proposta pontuada sobre pouco peso respondido é marcada e vai depois das completas, com a cobertura visível. |
+| Não projeta o que não dá | a estimativa recusa pós-fixado, SAC, bullet e carência, e diz o motivo no lugar do número. |
+| Não normaliza dado do cliente | mix de recebimentos fora de 100% vira erro ou aviso; o valor informado nunca é alterado pelo servidor. |
 
 ## Pontos que exigem revisão jurídica humana
 

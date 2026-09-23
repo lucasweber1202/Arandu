@@ -59,7 +59,17 @@ assinado fora dele.
 Definir prazo de retenção de RFQs, propostas, decisões e contratos, e o
 comportamento sob legal hold, alinhado aos controles de retenção já existentes.
 
-## 12. Conteúdo desta documentação — `LEGAL_REVIEW_REQUIRED`
+## 12. Comunicação por e-mail com provedores — `LEGAL_REVIEW_REQUIRED`
+Oito modelos estão preparados (`lib/finance/email-templates.mjs`), nenhum é
+enviado. Revisar a base legal para contatar o provedor cadastrado por um
+comprador e o conteúdo de cada modelo antes de ligar a entrega.
+
+## 13. O que o provedor passa a ver ao aceitar — `LEGAL_REVIEW_REQUIRED`
+Ao aceitar o convite, o provedor passa a ver a demanda declarada pela empresa,
+que inclui faturamento, garantias e perfil de recebimentos. Confirmar que o
+consentimento da empresa cobre esse compartilhamento e como ele é comunicado.
+
+## 14. Conteúdo desta documentação — `LEGAL_REVIEW_REQUIRED`
 `FINANCIAL_PRODUCT_BOUNDARIES.md` e a página `/finance/boundaries.html`
 descrevem comportamento de software. Antes de servirem como comunicação ao
 cliente, precisam de revisão jurídica.
