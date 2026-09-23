@@ -183,12 +183,12 @@ create policy b2b_invitation_read on public.b2b_rfq_invitations for select to au
 create policy b2b_invitation_write on public.b2b_rfq_invitations for insert to authenticated with check
   (public.b2b_has_role(buyer_organization_id,array['admin','procurement_manager']));
 create policy b2b_rfq_invited_read on public.b2b_rfqs for select to authenticated using
-  (exists(select 1 from public.b2b_rfq_invitations i where i.rfq_id=id and public.b2b_has_role(i.provider_organization_id)));
+  (exists(select 1 from public.b2b_rfq_invitations i where i.rfq_id=b2b_rfqs.id and public.b2b_has_role(i.provider_organization_id)));
 create policy b2b_quote_read on public.b2b_quotes for select to authenticated using
   (public.b2b_has_role(provider_organization_id) or exists(select 1 from public.b2b_rfq_invitations i where i.id=invitation_id and public.b2b_has_role(i.buyer_organization_id)));
 create policy b2b_quote_write on public.b2b_quotes for insert to authenticated with check
   (status='submitted' and public.b2b_has_role(provider_organization_id,array['admin','provider_user']) and
-   exists(select 1 from public.b2b_rfq_invitations i join public.b2b_rfqs r on r.id=i.rfq_id where i.id=invitation_id and i.provider_organization_id=provider_organization_id and i.status='invited' and r.status='open' and r.category=category));
+   exists(select 1 from public.b2b_rfq_invitations i join public.b2b_rfqs r on r.id=i.rfq_id where i.id=b2b_quotes.invitation_id and i.provider_organization_id=b2b_quotes.provider_organization_id and i.status='invited' and r.status='open' and r.category=b2b_quotes.category));
 -- No UPDATE of quotes, decisions, events or evidence: records are append-only in MVP.
 revoke update on public.b2b_products, public.b2b_requirements, public.b2b_documents, public.b2b_product_requirements,
   public.b2b_evidence, public.b2b_passports, public.b2b_cbam_cases, public.b2b_rfqs, public.b2b_rfq_invitations,
