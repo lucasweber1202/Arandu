@@ -16,6 +16,7 @@ ordem:
 ```
 docs/supabase-financial-procurement.sql
 docs/supabase-financial-procurement-hardening.sql
+docs/supabase-financial-pilot.sql
 ```
 
 Ela é aditiva e reaplicável. Rollback manual (nunca automático):
@@ -80,7 +81,9 @@ terminal, gateway, liquidação, chargeback, prazo, multa e extras.
 
 ```bash
 npm ci --include=optional
-npm run check:all          # inclui check:finance
+npm run finance:env:check  # ambiente: o que falta e o que é combinação proibida
+npm run test:pilot         # jornada ponta a ponta, sem banco real
+npm run check:all          # inclui check:finance, que inclui test:pilot
 npm run build
 npm run check:dist-assets
 npm run check:build-size
@@ -120,12 +123,12 @@ portal carrega dado demonstrativo — há teste E2E que verifica isso.
   e-mail. Os oito modelos estão prontos em `lib/finance/email-templates.mjs` e
   produzem a linha da outbox existente, mas nada é enfileirado nem enviado —
   ver [`FINANCIAL_EMAIL_TEMPLATES.md`](FINANCIAL_EMAIL_TEMPLATES.md).
-* **Não há registro de aceite de termos** no schema. Durante o piloto isso é
-  feito fora do produto.
+* **O texto dos termos não existe.** O registro de aceite existe (versão, quem,
+  quando); o documento a ser aceito continua `LEGAL_REVIEW_REQUIRED`.
 * **Não há preferência de notificação por membro**, o que é pré-requisito para
   ligar os e-mails.
-* **A abertura da comparação não é instrumentada**: não há evento de produto
-  para ela, então a métrica correspondente não pode ser calculada ainda.
+* **Não há console administrativo** cruzando organizações. O diagnóstico usa o
+  painel da organização, a trilha de eventos e as métricas do piloto.
 * **Admin da vertical é leitura pelo painel da própria organização.** Não há
   console administrativo cruzando organizações; ações sensíveis continuam
   restritas ao modelo administrativo existente do Arandu.
