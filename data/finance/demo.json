@@ -1,0 +1,253 @@
+{
+  "notice": "DEMONSTRATION DATA — organizações, provedores, propostas e contratos fictícios, criados apenas para demonstrar o fluxo do Arandu. Nenhuma instituição real é representada e nenhum valor corresponde a condição comercial praticada.",
+  "organization": {
+    "id": "demo-org-acme",
+    "legal_name": "Acme Indústria Ltda. (DEMO)",
+    "kind": "BUYER",
+    "sector": "Indústria de transformação",
+    "revenue_band": "30m_300m"
+  },
+  "profile": [
+    { "field_key": "faturamento_anual", "field_value": "R$ 62.000.000 (DEMO)", "source": "declarado_pela_empresa", "status": "informado", "updated_at": "2026-08-12" },
+    { "field_key": "faturamento_mensal_cartoes", "field_value": "R$ 1.200.000 (DEMO)", "source": "extrato", "status": "revisado", "updated_at": "2026-09-01" },
+    { "field_key": "funcionarios", "field_value": "180 (DEMO)", "source": "declarado_pela_empresa", "status": "informado", "updated_at": "2026-08-12" },
+    { "field_key": "fundacao", "field_value": "2009 (DEMO)", "source": "documento_interno", "status": "revisado", "updated_at": "2026-08-12" },
+    { "field_key": "garantias_disponiveis", "field_value": "Recebíveis de cartão e imóvel próprio (DEMO)", "source": "declarado_pela_empresa", "status": "informado", "updated_at": "2026-08-20" }
+  ],
+  "providers": [
+    { "id": "demo-provider-alfa", "name": "Banco Alfa Demo", "kind": "bank", "status": "active", "verification_state": "NAO_VERIFICADO", "region": "Nacional" },
+    { "id": "demo-provider-beta", "name": "Fintech Beta Demo", "kind": "fintech", "status": "active", "verification_state": "NAO_VERIFICADO", "region": "Sudeste" },
+    { "id": "demo-provider-gama", "name": "Crédito Gama Demo", "kind": "credit_provider", "status": "active", "verification_state": "NAO_VERIFICADO", "region": "Nacional" },
+    { "id": "demo-provider-delta", "name": "Pagamentos Delta Demo", "kind": "acquirer", "status": "active", "verification_state": "NAO_VERIFICADO", "region": "Nacional" },
+    { "id": "demo-provider-epsilon", "name": "Adquirente Épsilon Demo", "kind": "acquirer", "status": "active", "verification_state": "NAO_VERIFICADO", "region": "Nacional" }
+  ],
+  "rfqs": [
+    {
+      "id": "demo-rfq-credito",
+      "product": "credit",
+      "title": "Capital de giro — R$ 500 mil (DEMO)",
+      "description": "Necessidade de capital de giro para ciclo de produção. Dados de demonstração.",
+      "status": "comparing",
+      "response_deadline": "2026-10-10",
+      "demand": {
+        "amount": 500000,
+        "purpose": "capital_de_giro",
+        "term_months": 24,
+        "grace_months": 3,
+        "annual_revenue": 62000000,
+        "sector": "Indústria de transformação",
+        "operating_years": 17,
+        "collateral": "Recebíveis de cartão (DEMO)",
+        "urgency": "media",
+        "notes": "Dados de demonstração."
+      },
+      "proposals": [
+        {
+          "id": "demo-proposal-alfa",
+          "provider_id": "demo-provider-alfa",
+          "provider_name": "Banco Alfa Demo",
+          "status": "revised",
+          "version": 2,
+          "submitted_at": "2026-09-16",
+          "terms": {
+            "institution": "Banco Alfa Demo",
+            "product_name": "Capital de giro garantido",
+            "offered_amount": 500000,
+            "interest_rate_month": 1.72,
+            "index": "pre",
+            "cet_year": 24.9,
+            "term_months": 24,
+            "grace_months": 3,
+            "amortization": "price",
+            "collateral_required": "Recebíveis de cartão",
+            "fees_amount": 1800,
+            "valid_until": "2026-10-05",
+            "contracting_days": 12,
+            "conditions_precedent": "Aprovação de comitê e formalização de cessão.",
+            "notes": "Proposta de demonstração."
+          }
+        },
+        {
+          "id": "demo-proposal-beta",
+          "provider_id": "demo-provider-beta",
+          "provider_name": "Fintech Beta Demo",
+          "status": "submitted",
+          "version": 1,
+          "submitted_at": "2026-09-15",
+          "terms": {
+            "institution": "Fintech Beta Demo",
+            "product_name": "Giro digital",
+            "offered_amount": 450000,
+            "interest_rate_month": 2.10,
+            "index": "pre",
+            "term_months": 36,
+            "grace_months": 0,
+            "amortization": "price",
+            "collateral_required": "Aval dos sócios",
+            "fees_amount": 900,
+            "valid_until": "2026-10-20",
+            "contracting_days": 5,
+            "notes": "Proposta de demonstração."
+          }
+        },
+        {
+          "id": "demo-proposal-gama",
+          "provider_id": "demo-provider-gama",
+          "provider_name": "Crédito Gama Demo",
+          "status": "submitted",
+          "version": 1,
+          "submitted_at": "2026-09-17",
+          "terms": {
+            "institution": "Crédito Gama Demo",
+            "product_name": "Capital de giro indexado",
+            "offered_amount": 500000,
+            "interest_rate_month": 1.95,
+            "index": "cdi",
+            "index_spread": 6.5,
+            "term_months": 30,
+            "grace_months": 6,
+            "amortization": "sac",
+            "collateral_required": "Imóvel em garantia",
+            "fees_amount": 3200,
+            "valid_until": "2026-09-30",
+            "contracting_days": 25,
+            "conditions_precedent": "Avaliação do imóvel.",
+            "notes": "Proposta de demonstração."
+          }
+        }
+      ]
+    },
+    {
+      "id": "demo-rfq-adquirencia",
+      "product": "acquiring",
+      "title": "Adquirência — R$ 1,2 milhão/mês (DEMO)",
+      "description": "Revisão de condições de meios de pagamento. Dados de demonstração.",
+      "status": "comparing",
+      "response_deadline": "2026-10-03",
+      "demand": {
+        "monthly_volume": 1200000,
+        "average_ticket": 240,
+        "share_debit": 25,
+        "share_credit_cash": 40,
+        "share_credit_installment": 10,
+        "average_installments": 4,
+        "share_pix": 25,
+        "channel_presencial": true,
+        "channel_ecommerce": true,
+        "channel_recurring": false,
+        "terminals": 12,
+        "settlement_days_target": 1,
+        "current_anticipation": 1.55,
+        "current_acquirer": "Adquirente atual (DEMO)",
+        "notes": "Dados de demonstração."
+      },
+      "proposals": [
+        {
+          "id": "demo-proposal-delta",
+          "provider_id": "demo-provider-delta",
+          "provider_name": "Pagamentos Delta Demo",
+          "status": "submitted",
+          "version": 1,
+          "submitted_at": "2026-09-14",
+          "terms": {
+            "institution": "Pagamentos Delta Demo",
+            "product_name": "Pacote varejo",
+            "mdr_debit": 0.89,
+            "mdr_credit_cash": 2.39,
+            "mdr_credit_installment": 3.05,
+            "pix_fee": 0.45,
+            "anticipation_rate": 1.49,
+            "terminal_rent": 59,
+            "gateway_cost": 0,
+            "settlement_days": 1,
+            "chargeback_terms": "Repasse integral ao lojista.",
+            "contract_months": 24,
+            "early_exit_penalty": 8000,
+            "valid_until": "2026-10-10",
+            "contracting_days": 10,
+            "extra_services": "Conciliação e link de pagamento.",
+            "notes": "Proposta de demonstração."
+          }
+        },
+        {
+          "id": "demo-proposal-epsilon",
+          "provider_id": "demo-provider-epsilon",
+          "provider_name": "Adquirente Épsilon Demo",
+          "status": "submitted",
+          "version": 1,
+          "submitted_at": "2026-09-18",
+          "terms": {
+            "institution": "Adquirente Épsilon Demo",
+            "product_name": "Pacote e-commerce",
+            "mdr_debit": 1.05,
+            "mdr_credit_cash": 2.15,
+            "mdr_credit_installment": 2.89,
+            "pix_fee": 0.29,
+            "anticipation_rate": 1.72,
+            "terminal_rent": 39,
+            "gateway_cost": 149,
+            "settlement_days": 2,
+            "chargeback_terms": "Franquia mensal e repasse do excedente.",
+            "contract_months": 12,
+            "early_exit_penalty": 3000,
+            "valid_until": "2026-10-25",
+            "contracting_days": 7,
+            "extra_services": "Antifraude incluído.",
+            "notes": "Proposta de demonstração."
+          }
+        },
+        {
+          "id": "demo-proposal-beta-pag",
+          "provider_id": "demo-provider-beta",
+          "provider_name": "Fintech Beta Demo",
+          "status": "submitted",
+          "version": 1,
+          "submitted_at": "2026-09-19",
+          "terms": {
+            "institution": "Fintech Beta Demo",
+            "product_name": "Pacote híbrido",
+            "mdr_debit": 0.95,
+            "mdr_credit_cash": 2.28,
+            "mdr_credit_installment": 2.95,
+            "pix_fee": 0.35,
+            "anticipation_rate": 1.38,
+            "terminal_rent": 49,
+            "gateway_cost": 79,
+            "settlement_days": 1,
+            "chargeback_terms": "Repasse integral ao lojista.",
+            "contract_months": 18,
+            "early_exit_penalty": 5000,
+            "valid_until": "2026-10-15",
+            "contracting_days": 9,
+            "extra_services": "Split de pagamento.",
+            "notes": "Proposta de demonstração."
+          }
+        }
+      ]
+    }
+  ],
+  "contracts": [
+    {
+      "id": "demo-contract-adquirencia",
+      "product": "acquiring",
+      "provider_name": "Adquirente atual (DEMO)",
+      "starts_on": "2025-01-15",
+      "ends_on": "2026-11-30",
+      "renewal_notice_days": 90,
+      "status": "active",
+      "cost_summary": "MDR crédito à vista 2,69% (DEMO)",
+      "main_conditions": "Renovação automática se não houver aviso prévio. Dados de demonstração."
+    },
+    {
+      "id": "demo-contract-credito",
+      "product": "credit",
+      "provider_name": "Banco Alfa Demo",
+      "starts_on": "2024-06-01",
+      "ends_on": "2027-06-01",
+      "renewal_notice_days": 60,
+      "status": "active",
+      "cost_summary": "Taxa 1,89% a.m. (DEMO)",
+      "main_conditions": "Garantia de recebíveis. Dados de demonstração."
+    }
+  ]
+}

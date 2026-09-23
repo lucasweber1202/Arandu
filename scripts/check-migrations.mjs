@@ -73,7 +73,13 @@ for (const [flow, files] of Object.entries(manifest)) {
   const betaEvents = files.indexOf('docs/supabase-beta-conversion-events.sql');
   if (betaEvents === -1) issues.push(`${flow}: eventos de conversão da beta ausentes.`);
   if (betaEvents !== -1 && platform !== -1 && betaEvents < platform) issues.push(`${flow}: os eventos da beta precisam vir depois do hardening da plataforma.`);
-  if (betaEvents !== -1 && betaEvents !== files.length - 1) issues.push(`${flow}: os eventos de conversão da beta devem encerrar a sequência atual.`);
+  // O procurement financeiro B2B é aditivo e depende apenas de auth.users, mas
+  // encerra a sequência para que a instalação limpa e o upgrade tenham a mesma
+  // ordem canônica.
+  const financial = files.indexOf('docs/supabase-financial-procurement.sql');
+  if (financial === -1) issues.push(`${flow}: migration de procurement financeiro ausente.`);
+  if (betaEvents !== -1 && financial !== betaEvents + 1) issues.push(`${flow}: o procurement financeiro deve vir imediatamente depois dos eventos de conversão da beta.`);
+  if (financial !== -1 && financial !== files.length - 1) issues.push(`${flow}: o procurement financeiro deve encerrar a sequência atual.`);
 }
 
 console.log('Arandu Migration Order Check');
