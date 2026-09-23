@@ -92,7 +92,8 @@ create table if not exists public.b2b_requirements (
 );
 create table if not exists public.b2b_documents (
   id uuid primary key default gen_random_uuid(), organization_id uuid not null references public.b2b_organizations(id),
-  title text not null, document_type text not null, storage_path text, sha256 text check(sha256 is null or sha256 ~ '^[0-9a-f]{64}$'),
+  title text not null, document_type text not null, source_url text check(source_url is null or source_url ~ '^https://'),
+  storage_path text, sha256 text check(sha256 is null or sha256 ~ '^[0-9a-f]{64}$'),
   version integer not null default 1 check(version>0), issuer text, expires_at timestamptz,
   status text not null default 'pending_review' check(status in ('pending_review','verified','rejected','expired','superseded','revoked')),
   uploader_id uuid not null references auth.users(id), created_at timestamptz not null default now(), unique(organization_id,id)
@@ -254,7 +255,8 @@ begin
   if p_kind='document' and p_status in ('verified','rejected') then
     select organization_id into v_org from public.b2b_documents where id=p_id;
     if not public.b2b_has_role(v_org,array['admin','compliance_reviewer']) then raise exception 'forbidden'; end if;
-    update public.b2b_documents set status=p_status where id=p_id and status='pending_review';
+    update public.b2b_documents set status=p_status where id=p_id and status='pending_review'
+      and (p_status='rejected' or source_url is not null or (storage_path is not null and sha256 is not null));
   elsif p_kind='evidence' and p_status in ('accepted','rejected') then
     select organization_id into v_org from public.b2b_evidence where id=p_id;
     if not public.b2b_has_role(v_org,array['admin','compliance_reviewer']) then raise exception 'forbidden'; end if;

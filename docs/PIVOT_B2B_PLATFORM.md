@@ -15,7 +15,7 @@ Base: `main` em `76c50bfe87414041843fd4c052ad85d51d0dd631` (Arandu Arte). Esta b
 
 ## Limites desta entrega
 
-O MVP permite operar registros e fluxos com duas organizações autenticadas, desde que cada uma crie sua conta. Não há armazenamento seguro de bytes de documento nem upload de arquivo B2B: só metadados, hash declarado e revisão. O sistema não autentica o conteúdo do hash declarado. Convite a fornecedor usa o ID da organização, sem e-mail transacional. Membros internos entram por token de uso único atrelado ao e-mail da conta convidada; o administrador compartilha esse token fora da plataforma. QR é um endereço estável para o passaporte; a geração gráfica pode ser feita depois sem mudar o identificador.
+O MVP permite operar registros e fluxos com duas organizações autenticadas, desde que cada uma crie sua conta. Não há armazenamento seguro de bytes de documento nem upload de arquivo B2B: metadados, referência HTTPS externa, hash declarado e revisão humana. O sistema não autentica o conteúdo do hash declarado. Convite a fornecedor usa o ID da organização, sem e-mail transacional. Membros internos entram por token de uso único atrelado ao e-mail da conta convidada; o administrador compartilha esse token fora da plataforma. QR é um endereço estável para o passaporte; a geração gráfica pode ser feita depois sem mudar o identificador.
 
 ## Rollback
 

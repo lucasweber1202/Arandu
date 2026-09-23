@@ -11,7 +11,7 @@ select public.b2b_create_organization('Exporter Demo','EXPORTER','BR') as org_a 
 select set_config('test.org_a',:'org_a',true);
 insert into public.b2b_products(organization_id,sku,name) values (:'org_a','DEMO-001','Product A') returning id as product_a \gset
 insert into public.b2b_requirements(organization_id,code,title,vertical) values (:'org_a','DEMO-REQ','Composition','export') returning id as req_a \gset
-insert into public.b2b_documents(organization_id,title,document_type,uploader_id) values (:'org_a','Composition file metadata','composition','00000000-0000-4000-8000-000000000001') returning id as doc_a \gset
+insert into public.b2b_documents(organization_id,title,document_type,source_url,uploader_id) values (:'org_a','Composition file metadata','composition','https://example.invalid/composition','00000000-0000-4000-8000-000000000001') returning id as doc_a \gset
 insert into public.b2b_product_requirements(organization_id,product_id,requirement_id) values (:'org_a',:'product_a',:'req_a');
 insert into public.b2b_evidence(organization_id,product_id,requirement_id,document_id) values (:'org_a',:'product_a',:'req_a',:'doc_a') returning id as evidence_a \gset
 insert into public.b2b_cbam_cases(organization_id,product_id,facility,reporting_period)
@@ -23,6 +23,14 @@ select public.b2b_transition('passport',:'passport_a','published');
 select 1/(case when count(*)=1 then 1 else 0 end) from public.b2b_public_passport(:'token_a'::uuid);
 select 1/(case when data_readiness=0 then 1 else 0 end) from public.b2b_public_passport(:'token_a'::uuid);
 select set_config('test.cbam_a',:'cbam_a',true);
+insert into public.b2b_documents(organization_id,title,document_type,uploader_id)
+  values (:'org_a','Metadata without evidence','other','00000000-0000-4000-8000-000000000001') returning id as doc_empty \gset
+select set_config('test.doc_empty',:'doc_empty',true);
+do $$ declare rejected boolean:=false; begin
+  begin perform public.b2b_transition('document',current_setting('test.doc_empty')::uuid,'verified');
+  exception when others then rejected:=true; end;
+  if not rejected then raise exception 'metadata-only document verified'; end if;
+end $$;
 do $$ declare rejected boolean:=false; begin
   begin perform public.b2b_transition('cbam',current_setting('test.cbam_a')::uuid,'REVIEWED');
   exception when others then rejected:=true; end;
