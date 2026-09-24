@@ -1,4 +1,6 @@
 import { test, expect } from '@playwright/test';
+import { mkdir } from 'node:fs/promises';
+import { join } from 'node:path';
 
 // Jornadas do Arandu Financial Procurement no build publicado (sem modo de
 // demonstração e sem sessão): o que se verifica aqui é a navegação, os estados
@@ -24,6 +26,24 @@ const PROVIDER_PAGES = [
   ['/provider/rfqs.html', 'RFQs atribuídas'],
   ['/provider/proposal.html', 'Responder proposta']
 ];
+
+test('capturas reproduzíveis das superfícies financeiras', async ({ page }, testInfo) => {
+  if (!['chromium-desktop', 'mobile-chrome'].includes(testInfo.project.name)) test.skip();
+  const folder = join(process.cwd(), 'reports', 'financial-visual', testInfo.project.name);
+  await mkdir(folder, { recursive: true });
+  for (const [name, path] of [
+    ['home', '/'], ['login', '/login.html'], ['signup', '/cadastro.html'],
+    ['dashboard', '/finance/dashboard.html'], ['rfqs', '/finance/rfqs.html'],
+    ['rfq', '/finance/rfq.html'], ['providers', '/finance/providers.html'],
+    ['proposals', '/finance/proposals.html'], ['contracts', '/finance/contracts.html'],
+    ['settings', '/finance/settings.html'], ['provider', '/provider/index.html'],
+    ['provider-proposal', '/provider/proposal.html']
+  ]) {
+    await page.goto(path);
+    await expect(page.locator('main')).toBeVisible();
+    await page.screenshot({ path: join(folder, name + '.png'), fullPage: true });
+  }
+});
 
 test('portais da empresa e do provedor abrem, são acessíveis e cabem na viewport', async ({ page }) => {
   for (const [path, heading] of [...COMPANY_PAGES, ...PROVIDER_PAGES]) {

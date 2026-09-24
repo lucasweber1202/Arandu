@@ -117,6 +117,16 @@ jobs:
       - name: Desktop and mobile journeys across browser engines
         run: npm run test:e2e:finance
 
+      - name: Financial visual evidence
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0 # v7
+        with:
+          name: arandu-financial-visual-${{ github.sha }}
+          path: reports/financial-visual
+          if-no-files-found: ignore
+          retention-days: 14
+
       - name: Upload browser evidence on failure
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
