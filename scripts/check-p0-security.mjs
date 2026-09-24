@@ -51,9 +51,13 @@ if (certificates.includes('data/certificates.json')) {
     issues.push('js/certificates.js: registro estático não é rotulado como demonstrativo.');
   }
 }
-['artworks.json', 'artists.json', 'certificates.json'].forEach((fixture) => {
-  requireText('scripts/copy-runtime-assets.mjs', fixture, `fixture ${fixture} não está coberta pela remoção do build normal`);
-});
+const runtimeCopy = read('scripts/copy-runtime-assets.mjs');
+if (/copyDir\(|artworks\.json|artists\.json|certificates\.json/.test(runtimeCopy)) {
+  issues.push('scripts/copy-runtime-assets.mjs: cópia ampla pode publicar fixtures de arte.');
+}
+if (!runtimeCopy.includes("if (assertPresentationModeIsSafe())") || !runtimeCopy.includes('data/finance/demo.json')) {
+  issues.push('scripts/copy-runtime-assets.mjs: fixture financeira não está restrita a preview explícito.');
+}
 if (read('js/catalog-quality.js').includes('data/artworks.json') || read('js/catalog-quality.js').includes('data/artists.json')) {
   issues.push('js/catalog-quality.js: diagnóstico interno ainda usa fixture demonstrativa.');
 }
