@@ -80,7 +80,7 @@ const viteConfig = read('vite.config.js');
 if (/<script>window\.ARANDU_PILOT_ENABLED=/.test(viteConfig)) {
   issues.push('vite.config.js: bootstrap do piloto voltou a usar script inline incompatível com CSP.');
 }
-requireText('vite.config.js', 'name="arandu-pilot-enabled"', 'configuração do piloto não usa metadado compatível com CSP.');
+requireText('vite.config.js', 'name="arandu-presentation-mode"', 'modo demonstrativo financeiro não usa metadado compatível com CSP.');
 
 const uploadApi = read('api/upload.js');
 [
