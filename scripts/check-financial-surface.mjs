@@ -16,6 +16,12 @@ const forbiddenFiles = /(?:^|\/)(?:comprar-arte|artistas|colecoes|obra|para-arti
 const forbiddenCopy = /arte brasileira contemporânea|comprar arte|curadoria antes da vitrine|enviar portfólio|obras salvas|arandu arte|portal do artista|empresas e arquitetos/i;
 for (const path of output) assert.ok(!forbiddenFiles.test(relative(dist, path)), 'Página de arte publicada: ' + relative(dist, path));
 for (const path of html) assert.ok(!forbiddenCopy.test(readFileSync(path, 'utf8')), 'Texto de arte publicado: ' + relative(dist, path));
+for (const path of html) {
+  const name = relative(dist, path);
+  if (/^(?:finance|provider)\//.test(name) || /^(?:login|cadastro)\.html$/.test(name)) {
+    assert.match(readFileSync(path, 'utf8'), /name="robots" content="noindex,nofollow"/, 'Área interna indexável: ' + name);
+  }
+}
 assert.match(readFileSync(join(dist, 'index.html'), 'utf8'), /Procurement financeiro B2B/i);
 assert.match(readFileSync(join(dist, 'login.html'), 'utf8'), /acesso corporativo/i);
 const invite = readFileSync(join(dist, 'provider/invite.html'), 'utf8');
