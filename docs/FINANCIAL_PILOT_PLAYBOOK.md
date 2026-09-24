@@ -5,12 +5,25 @@ levar uma cotação do começo ao fim aqui, sem improviso no fluxo principal?**
 
 Não é validar PMF, não é medir receita e não é operação financeira.
 
+## Documentos desta família
+
+| Preciso de… | Documento |
+| --- | --- |
+| a ficha do primeiro piloto, para preencher | [`FIRST_FINANCIAL_PILOT.md`](FIRST_FINANCIAL_PILOT.md) |
+| configurar o ambiente | [`FINANCIAL_PILOT_ENVIRONMENT.md`](FINANCIAL_PILOT_ENVIRONMENT.md) |
+| decidir se o piloto começa | [`FINANCIAL_PILOT_GO_NOGO.md`](FINANCIAL_PILOT_GO_NOGO.md) |
+| resolver um problema durante o piloto | [`FINANCIAL_PILOT_SUPPORT.md`](FINANCIAL_PILOT_SUPPORT.md) |
+
 ## Antes de convidar alguém
 
-- [ ] migrations aplicadas (base + endurecimento), conferidas por `npm run test:database`;
-- [ ] `SUPABASE_URL` e `SUPABASE_ANON_KEY` configurados no ambiente do piloto;
-- [ ] `ARANDU_PRESENTATION_MODE` **desligado** no ambiente do piloto (dado demo não convive com dado real);
+- [ ] as **três** migrations aplicadas (base, endurecimento, controles de piloto), conferidas por `npm run test:database`;
+- [ ] `ARANDU_ENV=pilot npm run finance:env:check` sem erros;
+- [ ] `npm run test:pilot` aprovado;
+- [ ] allowlist (`fin_pilot_allowlist`) preenchida — com a tabela vazia o acesso fica aberto;
+- [ ] `ARANDU_PRESENTATION_MODE` **desligado** (dado demo não convive com dado real; o checker recusa);
+- [ ] nenhum dado de `finance:seed:demo` no banco do piloto;
 - [ ] CI verde na `main`;
+- [ ] backup conferido e restore testado em banco vazio — ver [`FINANCIAL_PILOT_ENVIRONMENT.md`](FINANCIAL_PILOT_ENVIRONMENT.md);
 - [ ] `docs/FINANCIAL_PRODUCT_BOUNDARIES.md` lido por quem vai falar com a empresa;
 - [ ] itens de `FINANCIAL_LEGAL_REVIEW_REQUIRED.md` revisados por pessoa com autoridade — **o piloto não começa sem isto**.
 
@@ -22,10 +35,10 @@ Não é validar PMF, não é medir receita e não é operação financeira.
 | Organização criada | aparece no seletor; o criador é `admin` |
 | Dados cadastrais preenchidos | CNPJ aceito em `/finance/settings.html`, com o aviso de que não há consulta oficial |
 | Perfil financeiro mínimo | ao menos faturamento, setor e garantias, cada um com origem |
-| Aceite dos termos | **pendente**: não existe registro de aceite no schema. Fazer fora do produto e anotar quem aceitou e quando |
+| Aceite dos termos | registrado em `/finance/settings.html` com versão, autor e data. O **texto** continua `LEGAL_REVIEW_REQUIRED`, e a tela diz isso |
 | RFQ criada | assistente em 4 etapas conclui e a RFQ nasce em `draft` |
 | Provedores cadastrados | ao menos 3, para a comparação fazer sentido |
-| Convites enviados | um token por provedor; hoje a entrega é manual (ver "E-mails") |
+| Convites enviados | um token por provedor. O link leva o token no fragmento, que não vai para log nem analytics. Entrega manual enquanto `fin_settings.email_enabled` for `false` |
 | Propostas recebidas | aparecem em `/finance/proposals.html` com versão e validade |
 | Comparação aberta | tabela no desktop, cartões no celular, sem ranking padrão |
 | Pesos aplicados | resultado rotulado como da empresa, com cobertura por proposta |
@@ -65,7 +78,7 @@ Todas saem de `fin_events` e são **contagens**, não projeções:
 | tempo até a primeira proposta | `rfq_created` → primeiro `proposal_submitted` |
 | taxa de resposta | `proposal_submitted` distintos ÷ `provider_invited` |
 | propostas por RFQ | contagem por `rfq_id` |
-| uso da comparação | **não instrumentado**: não há evento de abertura de comparação |
+| uso da comparação | `comparison_viewed` e `weights_applied`, emitidos pelo navegador |
 | decisão | `decision_recorded` |
 | satisfação | fora do produto, no roteiro acima |
 
@@ -74,15 +87,17 @@ anedota; o que se busca é o fluxo funcionar sem improviso.
 
 ## Limitações que o piloto vai encontrar
 
-* **Convite é entregue manualmente.** O token aparece na tela para quem
-  convidou; não há envio automático (ver `FINANCIAL_EMAIL_TEMPLATES.md`).
+* **Convite é entregue manualmente** enquanto o envio estiver desligado. O
+  caminho de enfileiramento existe e é testado; falta credencial de provedor de
+  e-mail (ver `FINANCIAL_EMAIL_TEMPLATES.md`).
 * **Não há upload de documento**, só referência `https://`.
 * **Não há assinatura eletrônica.**
-* **Não há aceite de termos no produto.**
 * **Alertas de renovação são visuais**, não enviados.
 * **CNPJ não é consultado em base oficial.**
-* **Não há admin operacional completo** — só a visão de leitura descrita em
-  `FINANCIAL_MVP_RUNBOOK.md`.
+* **Não há console administrativo cruzando organizações.** O diagnóstico do
+  piloto é feito pelo painel da própria organização, pela trilha de eventos
+  (`GET /api/finance/events`) e pelas métricas
+  (`GET /api/finance/pilot-metrics`).
 
 ## Se algo der errado
 

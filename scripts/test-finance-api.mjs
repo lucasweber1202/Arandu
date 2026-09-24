@@ -15,6 +15,7 @@ const OTHER_ORG = '00000000-0000-4000-8000-0000000000d1';
 const PROPOSAL = '00000000-0000-4000-8000-0000000000e1';
 const RFQ = '00000000-0000-4000-8000-0000000000f1';
 const ACTOR = '00000000-0000-4000-8000-0000000000a1';
+const DECISION_ID = '00000000-0000-4000-8000-0000000000a2';
 
 let sent = [];
 let responder = () => [];
@@ -368,4 +369,93 @@ reset((entry) => {
   assert.ok(sent.length <= 8, `overview fez ${sent.length} consultas para 12 RFQs`);
 }
 
-console.log('Financial Procurement API: allowlist de campos, isolamento de organização, anti-spoofing de provedor, transições, comparação neutra, CNPJ, mix de recebimentos, mensagens redigidas e consultas limitadas aprovados.');
+// =========================================================================
+// Reteste do threat model sobre o código novo desta rodada
+// =========================================================================
+
+// --- aceite de termos não pode ser forjado nem inventado ---
+
+reset((entry) => (entry.url.includes('fin_organizations') ? orgRow(BUYER, 'BUYER') : []));
+await rejects('POST', 'terms', { body: { organization_id: BUYER, terms_version: 'v1' } }, 400);
+await rejects('POST', 'terms', { body: { organization_id: BUYER, terms_version: '2026-09-23', context: 'legal' } }, 400);
+assert.ok(!sent.some((entry) => entry.url.includes('rpc/fin_accept_terms')), 'versão inválida não chega ao banco');
+{
+  const res = await call('POST', 'terms', { body: { organization_id: BUYER, terms_version: '2026-09-23-pilot' } });
+  // O produto nunca deixa de dizer que o texto não foi revisado.
+  assert.equal(res.payload.legal_review_required, true);
+}
+
+// --- sinais de produto: vocabulário fechado, metadata não passa ---
+
+reset((entry) => (entry.url.includes('fin_organizations') ? orgRow(BUYER, 'BUYER') : []));
+await rejects('POST', 'signals', { body: { organization_id: BUYER, event: 'taxa_negociada', entity_type: 'rfq', entity_id: RFQ } }, 400);
+await rejects('POST', 'signals', { body: { organization_id: BUYER, event: 'comparison_viewed', entity_type: 'segredo', entity_id: RFQ } }, 400);
+assert.equal(sent.filter((entry) => entry.url.includes('rpc/fin_record_client_event')).length, 0);
+{
+  await call('POST', 'signals', {
+    body: {
+      organization_id: BUYER, event: 'comparison_viewed', entity_type: 'rfq', entity_id: RFQ,
+      // Tentativa de carregar termo financeiro junto do sinal.
+      metadata: { interest_rate_month: 1.72 }, terms: { mdr_debit: 0.9 }
+    }
+  });
+  const call_ = sent.find((entry) => entry.url.includes('rpc/fin_record_client_event'));
+  assert.deepEqual(Object.keys(call_.body).sort(), ['p_entity_id', 'p_entity_type', 'p_event', 'p_org']);
+  assert.ok(!/interest_rate|mdr/i.test(JSON.stringify(call_.body)), 'termo financeiro entrou no sinal');
+}
+
+// --- exportação é do comprador e não vira parecer ---
+
+reset((entry) => {
+  if (entry.url.includes('fin_organizations')) return orgRow(PROVIDER_ORG, 'PROVIDER');
+  if (entry.url.includes('fin_rfqs')) return [{ id: RFQ, organization_id: BUYER, product: 'credit', status: 'decided', demand: {} }];
+  return [];
+});
+await rejects('GET', 'export', { url: `/api/finance/export?rfq_id=${RFQ}` }, 400);
+
+reset((entry) => {
+  if (entry.url.includes('fin_organizations')) return orgRow(BUYER, 'BUYER');
+  if (entry.url.includes('fin_rfqs')) return [{ id: RFQ, organization_id: BUYER, product: 'credit', status: 'decided', demand: { amount: 1000 } }];
+  if (entry.url.includes('fin_decisions')) return [{ id: DECISION_ID, rfq_id: RFQ, proposal_id: PROPOSAL, decided_at: '2026-09-23T00:00:00Z', criteria: {}, rationale: null, snapshot: {} }];
+  return [];
+});
+{
+  const res = await call('GET', 'export', { url: `/api/finance/export?rfq_id=${RFQ}` });
+  assert.ok(res.payload.export.disclaimer.includes('não emite recomendação'));
+  assert.ok(!/recommended|best_provider|ranking/i.test(JSON.stringify(res.payload.export)));
+}
+
+// --- métricas do piloto: contagens, nunca benchmark ---
+
+reset((entry) => {
+  if (entry.url.includes('fin_organizations')) return orgRow(BUYER, 'BUYER');
+  if (entry.url.includes('fin_events')) return [
+    { entity_type: 'organization', entity_id: BUYER, event_type: 'buyer_onboarded', happened_at: '2026-09-01T00:00:00Z' },
+    { entity_type: 'rfq', entity_id: RFQ, event_type: 'rfq_created', happened_at: '2026-09-01T00:00:00Z' },
+    { entity_type: 'rfq', entity_id: RFQ, event_type: 'provider_invited', happened_at: '2026-09-01T01:00:00Z' },
+    { entity_type: 'rfq', entity_id: RFQ, event_type: 'provider_invited', happened_at: '2026-09-01T01:00:00Z' },
+    { entity_type: 'proposal', entity_id: PROPOSAL, event_type: 'proposal_submitted', happened_at: '2026-09-03T00:00:00Z' }
+  ];
+  return [];
+});
+{
+  const res = await call('GET', 'pilot-metrics', { url: `/api/finance/pilot-metrics?organization_id=${BUYER}` });
+  const metrics = res.payload.metrics;
+  assert.equal(metrics.invites_sent, 2);
+  assert.equal(metrics.proposals_submitted, 1);
+  assert.equal(metrics.response_rate, 0.5);
+  assert.equal(metrics.days_to_first_proposal, 2);
+  // Dois convites, nenhum aceito ainda: zero é medição de verdade aqui.
+  assert.equal(metrics.invite_acceptance_rate, 0);
+  assert.ok(metrics.note.includes('Não são benchmark'));
+}
+reset((entry) => (entry.url.includes('fin_organizations') ? orgRow(BUYER, 'BUYER') : []));
+{
+  const res = await call('GET', 'pilot-metrics', { url: `/api/finance/pilot-metrics?organization_id=${BUYER}` });
+  // Sem tráfego nenhum, as taxas são nulas em vez de zero disfarçado de medição.
+  assert.equal(res.payload.metrics.response_rate, null);
+  assert.equal(res.payload.metrics.days_to_first_proposal, null);
+  assert.equal(res.payload.metrics.proposals_per_rfq, null);
+}
+
+console.log('Financial Procurement API: allowlist de campos, isolamento de organização, anti-spoofing de provedor, transições, comparação neutra, CNPJ, mix de recebimentos, mensagens redigidas, consultas limitadas, aceite de termos, sinais fechados, exportação factual e métricas sem invenção aprovados.');

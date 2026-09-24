@@ -3,7 +3,8 @@
 ## Proteção da branch `main` — `OWNER_ACTION_REQUIRED`
 
 **Não foi possível configurar nem sequer ler as regras de proteção a partir
-desta sessão.** A API respondeu:
+desta sessão.** Tentado novamente nesta rodada, com o mesmo resultado. A API
+respondeu, nas duas tentativas:
 
 ```
 GET /repos/lucasweber1202/Arandu/branches/main/protection
@@ -34,12 +35,16 @@ O toggle "Do not allow bypassing" fica **desligado de propósito**: ligá-lo
 bloquearia o próprio proprietário em uma emergência sem que haja um segundo
 administrador para destravar.
 
-### Por que isso importa nesta rodada
+### Por que isso importa — agora com duas ocorrências
 
-A PR #64 foi mesclada às 18:07 UTC com o job `validate` ainda em execução —
-o job que roda a suíte E2E nos cinco navegadores. Deu certo (o run seguinte na
-`main` ficou verde), mas deu certo por sorte, não por regra. Com
-"Require status checks" ligado, esse merge teria esperado.
+A PR #64 foi mesclada com o job `validate` ainda em execução. A PR #65 também.
+Nos dois casos o run seguinte na `main` ficou verde, mas isso é sorte
+observada duas vezes, não um controle. `validate` é o job que roda a suíte E2E
+nos cinco navegadores e leva cerca de vinte minutos; ele é exatamente o que
+"Require status checks" existe para esperar.
+
+Enquanto a regra não existir, a recomendação operacional é simples: **não
+mesclar antes de os três jobs fecharem**, e conferir na aba Actions.
 
 ## PR #63 — encerrada como obsoleta
 
@@ -55,6 +60,15 @@ branch limpa e sem Export Compliance.
 
 ## Dependabot
 
-Duas PRs abertas no momento desta rodada (`#60` vite, `#61` @playwright/test)
-não foram tocadas: atualizar dependência no meio de uma rodada de hardening
-misturaria a causa de qualquer regressão. Elas seguem o fluxo normal.
+`#60` (vite 8.2.2 → 8.3.0) e `#61` (@playwright/test 1.62.1 → 1.63.0). Ambas são
+incrementos de versão menor dentro da mesma maior, sem breaking change
+declarado.
+
+Nesta rodada as duas branches foram **atualizadas contra a `main` atual**, para
+que o CI delas rode contra o código de hoje — o CI verde que elas exibiam era
+de 21/09, anterior às PRs #64 e #65, e não dizia mais nada.
+
+Elas **não** foram mescladas junto com esta rodada, de propósito: misturar
+atualização de dependência com mudança de produto torna impossível saber qual
+das duas causou uma regressão. Merge separado, depois do CI verde, é
+`OWNER_ACTION_REQUIRED`.

@@ -1,0 +1,128 @@
+#!/usr/bin/env node
+// Verificação de ambiente do Arandu Finance.
+//
+// Diz o que está configurado, o que falta e o que está perigosamente
+// configurado — sem NUNCA imprimir o valor de um segredo. O que aparece é
+// presença, formato e comprimento; nada além disso.
+//
+//   npm run finance:env:check                  → verifica o ambiente atual
+//   ARANDU_ENV=pilot npm run finance:env:check → aplica as exigências de piloto
+//
+// Sai com código 1 quando falta algo obrigatório para o ambiente declarado, ou
+// quando encontra uma combinação que não deveria existir.
+
+const env = process.env;
+const problems = [];
+const warnings = [];
+const report = [];
+
+const ENVIRONMENTS = ['development', 'preview', 'pilot', 'production'];
+const declared = String(env.ARANDU_ENV || '').trim().toLowerCase();
+const vercelEnv = String(env.VERCEL_ENV || '').trim().toLowerCase();
+const environment = ENVIRONMENTS.includes(declared)
+  ? declared
+  : vercelEnv === 'production' ? 'production'
+    : vercelEnv === 'preview' ? 'preview'
+      : 'development';
+
+if (declared && !ENVIRONMENTS.includes(declared)) {
+  problems.push(`ARANDU_ENV="${declared}" não é um ambiente conhecido (${ENVIRONMENTS.join(', ')}).`);
+}
+
+/** Descreve uma variável sem revelar o conteúdo. */
+function describe(name, { required = false, pattern = null, minLength = 0, secret = false } = {}) {
+  const raw = env[name];
+  const value = typeof raw === 'string' ? raw.trim() : '';
+  if (!value) {
+    if (required) problems.push(`${name} ausente.`);
+    report.push(`  ${name}: ausente`);
+    return null;
+  }
+  if (pattern && !pattern.test(value)) {
+    problems.push(`${name} presente, mas fora do formato esperado.`);
+    report.push(`  ${name}: presente, formato inválido`);
+    return value;
+  }
+  if (minLength && value.length < minLength) {
+    problems.push(`${name} presente, mas curto demais para ser uma credencial válida.`);
+    report.push(`  ${name}: presente, comprimento suspeito`);
+    return value;
+  }
+  // Segredo nunca é impresso — nem truncado, nem mascarado com parte do valor.
+  report.push(`  ${name}: presente${secret ? ` (${value.length} caracteres)` : ` (${value})`}`);
+  return value;
+}
+
+const TRUTHY = new Set(['1', 'true', 'yes', 'sim']);
+const flag = (name) => TRUTHY.has(String(env[name] || '').trim().toLowerCase());
+
+const needsSupabase = ['pilot', 'production'].includes(environment);
+
+report.push(`Ambiente: ${environment}${declared ? ' (declarado)' : ' (inferido)'}`);
+report.push('');
+report.push('Supabase:');
+describe('SUPABASE_URL', { required: needsSupabase, pattern: /^https:\/\/[a-z0-9.-]+$/i });
+describe('SUPABASE_ANON_KEY', { required: needsSupabase, minLength: 20, secret: true });
+const serviceRole = describe('SUPABASE_SERVICE_ROLE_KEY', { minLength: 20, secret: true });
+
+report.push('');
+report.push('Aplicação:');
+describe('ARANDU_SITE_URL', { required: needsSupabase, pattern: /^https:\/\// });
+
+report.push('');
+report.push('Modos:');
+const presentation = flag('ARANDU_PRESENTATION_MODE');
+const financeEnabled = env.ARANDU_FINANCE_ENABLED === undefined ? true : flag('ARANDU_FINANCE_ENABLED');
+const commercial = flag('ARANDU_COMMERCIAL_READY');
+report.push(`  ARANDU_FINANCE_ENABLED: ${financeEnabled ? 'ligado' : 'desligado'}${env.ARANDU_FINANCE_ENABLED === undefined ? ' (padrão)' : ''}`);
+report.push(`  ARANDU_PRESENTATION_MODE: ${presentation ? 'ligado' : 'desligado'}`);
+report.push(`  ARANDU_COMMERCIAL_READY: ${commercial ? 'ligado' : 'desligado'}`);
+
+// --- combinações que não devem existir -------------------------------------
+
+// Dado de demonstração e dado real de empresa não convivem na mesma base.
+if (presentation && environment === 'production') {
+  problems.push('ARANDU_PRESENTATION_MODE ligado em produção. O build já falha nessa combinação, e ela nunca deve ser tentada.');
+}
+if (presentation && environment === 'pilot') {
+  problems.push('ARANDU_PRESENTATION_MODE ligado no piloto: dado de demonstração misturaria com dado real da empresa piloto.');
+}
+
+// A service role atravessa o RLS. O domínio financeiro não a usa, e ela não
+// tem por que existir no ambiente que serve o navegador.
+if (serviceRole && environment === 'pilot') {
+  warnings.push('SUPABASE_SERVICE_ROLE_KEY presente no ambiente de piloto. O domínio financeiro não a usa; confirme que ela é exigida por outra parte do Arandu antes de mantê-la.');
+}
+
+if (environment === 'pilot' && !flag('ARANDU_PILOT_ALLOWLIST_CONFIRMED')) {
+  warnings.push('Confirme que a allowlist do piloto (fin_pilot_allowlist) tem ao menos uma entrada; com a tabela vazia o acesso fica aberto. Defina ARANDU_PILOT_ALLOWLIST_CONFIRMED=true depois de conferir.');
+}
+
+report.push('');
+report.push('E-mail transacional:');
+const emailKeys = ['RESEND_API_KEY', 'SENDGRID_API_KEY', 'SMTP_URL', 'ARANDU_EMAIL_PROVIDER_KEY'];
+const configuredEmail = emailKeys.filter((key) => String(env[key] || '').trim());
+if (configuredEmail.length) {
+  report.push(`  provedor configurado: ${configuredEmail.join(', ')}`);
+} else {
+  report.push('  nenhum provedor configurado');
+  if (environment === 'pilot') {
+    warnings.push('Nenhum provedor de e-mail configurado: o convite de provedor será entregue manualmente. Isso é aceitável no piloto, e está documentado em docs/FINANCIAL_EMAIL_TEMPLATES.md.');
+  }
+}
+
+console.log('Arandu Finance — Environment Check');
+console.log(report.join('\n'));
+console.log('');
+if (warnings.length) {
+  console.log(`Avisos: ${warnings.length}`);
+  for (const warning of warnings) console.log(`  - ${warning}`);
+  console.log('');
+}
+console.log(`Erros: ${problems.length}`);
+for (const problem of problems) console.log(`  - ${problem}`);
+if (problems.length) process.exit(1);
+console.log('');
+console.log(needsSupabase
+  ? 'Ambiente apto a operar o Financial Procurement com dados reais.'
+  : 'Ambiente de desenvolvimento: Supabase não é exigido, e as rotas financeiras respondem como indisponíveis sem ele.');

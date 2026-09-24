@@ -53,7 +53,9 @@ for (const flow of ['cleanInstall', 'existingDatabase']) {
   if (financial !== betaEvents + 1) problems.push(`Procurement financeiro deve vir logo depois dos eventos de conversão da beta em ${flow}.`);
   const financialHardening = migrations.indexOf('docs/supabase-financial-procurement-hardening.sql');
   if (financialHardening !== financial + 1) problems.push(`Endurecimento do procurement financeiro deve vir logo depois da migration base em ${flow}.`);
-  if (financialHardening !== migrations.length - 1) problems.push(`Endurecimento do procurement financeiro deve encerrar a sequência atual em ${flow}.`);
+  const financialPilot = migrations.indexOf('docs/supabase-financial-pilot.sql');
+  if (financialPilot !== financialHardening + 1) problems.push(`Controles de piloto devem vir logo depois do endurecimento em ${flow}.`);
+  if (financialPilot !== migrations.length - 1) problems.push(`Controles de piloto devem encerrar a sequência atual em ${flow}.`);
 }
 
 const sql = fs.readFileSync('docs/supabase-orders.sql', 'utf8');

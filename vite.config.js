@@ -103,12 +103,25 @@ const SPEED_INSIGHTS_TAG = '<script type="module" src="/src/vercel-speed-insight
  * padrão), o Vite nunca vê o módulo, nada é emitido em `dist/src/` e todas as
  * páginas publicadas disparam um 404 a cada carregamento.
  */
+/**
+ * Páginas que nunca podem carregar analytics de terceiro, porque a URL delas
+ * carrega segredo de uso único. O Speed Insights reporta a URL da página; com
+ * `?token=…` no endereço, o token do convite iria parar no analytics.
+ *
+ * O token passou a viajar no fragmento (`#token=…`), que o navegador não envia
+ * em requisição nenhuma — mas a exclusão fica aqui de qualquer forma, porque um
+ * link antigo com `?token=` ainda pode ser aberto.
+ */
+const NO_ANALYTICS_PAGES = ['provider/invite.html'];
+
 function injectSpeedInsights() {
   return {
     name: 'inject-arandu-speed-insights',
     transformIndexHtml: {
       order: 'pre',
-      handler(html) {
+      handler(html, context) {
+        const pageName = context?.filename ? relative(root, context.filename).split(sep).join('/') : '';
+        if (NO_ANALYTICS_PAGES.includes(pageName)) return html;
         if (html.includes('/src/vercel-speed-insights.js')) return html;
         return html.includes('</body>')
           ? html.replace('</body>', `${SPEED_INSIGHTS_TAG}</body>`)

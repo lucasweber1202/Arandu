@@ -41,6 +41,26 @@ pelo nosso frontend nem pela nossa API.
 | 26 | **Provedor lendo a comparação do comprador** | a rota de comparação exige organização compradora | `test-finance-api.mjs` |
 | 27 | **Provedor lendo notas internas** | `fin_providers` é do comprador; o provedor não tem policy de leitura, nem depois do vínculo canônico | `financial-procurement-hardening.sql` |
 
+## Reteste sobre o código da rodada de piloto
+
+| # | Ataque | Defesa | Teste |
+| --- | --- | --- | --- |
+| 28 | **Token de convite vazando por analytics** — a página de aceite carregava o Vercel Speed Insights, que reporta a URL da página | a página é excluída da injeção de analytics; o token passou a viajar no fragmento, que o navegador não envia em requisição nenhuma | `finance-procurement.spec.js` verifica que nenhuma requisição externa sai da página |
+| 29 | **Token vazando pelo `Referer`** | a página declara `no-referrer` | idem |
+| 30 | **Token persistindo no histórico e no log do host** | fragmento + `history.replaceState` limpa o endereço no carregamento | idem, inclusive para links `?token=` antigos |
+| 31 | **Bypass da allowlist do piloto** | checada dentro de `fin_create_organization`, que é `SECURITY DEFINER`; a tabela não é legível nem sondável por conta comum | `financial-pilot.sql` |
+| 32 | **Allowlist aberta por configuração pela metade** | ligar a allowlist é o próprio ato de inserir a primeira linha; não existe flag separada que alguém esqueça de virar | idem |
+| 33 | **Aceite de termos forjado** | `INSERT`/`UPDATE`/`DELETE` revogados; só `fin_accept_terms`, que exige membresia e valida o formato da versão | idem + `test-finance-api.mjs` |
+| 34 | **Evento de produto arbitrário vindo do cliente** | vocabulário fechado no banco e repetido na API; a metadata do cliente é descartada inteira | idem |
+| 35 | **Termo financeiro injetado pela porta dos sinais** | a função aceita só organização, entidade e tipo de evento | `test-finance-api.mjs` |
+| 36 | **Exportação acessada por provedor** | a rota exige organização compradora | idem |
+| 37 | **Exportação virando parecer** | o arquivo carrega o aviso de neutralidade e não tem campo de ranking | idem |
+| 38 | **E-mail enfileirado com token ou condição no payload** | `fin_enqueue_email` recebe referência do convite, não o token; modelo fora do vocabulário é recusado | `financial-pilot.sql` |
+| 39 | **Envio ligado por engano** | a chave nasce `false` no banco e não é alcançável por conta comum | idem |
+| 40 | **Seed DEMO alcançando produção ou piloto** | o script recusa `ARANDU_ENV` de produção e de piloto, exige URL de banco explícita e recusa URL com aparência de produção | `seed-finance-demo.mjs`, travas verificadas na execução |
+| 41 | **Ambiente mal configurado** — demo ligado no piloto, service role onde não é usada | `finance:env:check` recusa a primeira combinação e avisa da segunda, sem imprimir segredo | `check-finance-env.mjs` |
+| 42 | **Métrica inventada sem tráfego** | taxas e médias devolvem `null` quando não há evento; o painel diz "sem dados" | `test-finance-api.mjs` |
+
 ## O que continua sendo risco aceito e declarado
 
 * **Um membro legítimo com papel de escrita pode agir mal dentro da própria
@@ -52,6 +72,13 @@ pelo nosso frontend nem pela nossa API.
   declara isso na interface em vez de fingir verificação.
 * **Sem upload de documento**, então não há superfície de storage — e também
   não há antivírus, varredura ou quarentena, porque não há arquivo.
+* **A allowlist do piloto é por e-mail.** Ela controla quem cria organização,
+  não quem se cadastra no Arandu. Alguém fora dela consegue criar conta; o que
+  não consegue é entrar no procurement financeiro.
+* **O token do convite ainda é um segredo portável.** Quem o receber por
+  encaminhamento consegue aceitar, desde que seja membro de uma organização
+  provedora. É o mesmo modelo de um link de convite de qualquer produto, e o
+  mitigante é a expiração e o uso único.
 
 ## Fora do modelo
 

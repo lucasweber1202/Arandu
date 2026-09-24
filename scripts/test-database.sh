@@ -35,10 +35,12 @@ apply_file "$clean_db" "tests/database/operational-status.sql"
 apply_file "$clean_db" "tests/database/profile-access.sql"
 apply_file "$clean_db" "tests/database/financial-procurement.sql"
 apply_file "$clean_db" "tests/database/financial-procurement-hardening.sql"
+apply_file "$clean_db" "tests/database/financial-pilot.sql"
 # Reaplicação da migration financeira sobre a base já povoada: a rodada precisa
 # ser idempotente antes de o rollback ser exercitado.
 apply_file "$clean_db" "docs/supabase-financial-procurement.sql"
 apply_file "$clean_db" "docs/supabase-financial-procurement-hardening.sql"
+apply_file "$clean_db" "docs/supabase-financial-pilot.sql"
 bash "$root_dir/tests/database/reservation-concurrency.sh" "$(database_url "$clean_db")"
 bash "$root_dir/tests/database/order-concurrency.sh" "$(database_url "$clean_db")"
 
@@ -78,12 +80,15 @@ apply_file "$upgrade_db" "tests/database/retention.sql"
 # Rollback do procurement financeiro e reaplicação, no banco de upgrade.
 apply_file "$upgrade_db" "docs/supabase-financial-procurement.sql"
 apply_file "$upgrade_db" "docs/supabase-financial-procurement-hardening.sql"
+apply_file "$upgrade_db" "docs/supabase-financial-pilot.sql"
 apply_file "$upgrade_db" "docs/rollback/supabase-financial-procurement.rollback.sql"
 psql "$(database_url "$upgrade_db")" -v ON_ERROR_STOP=1 -c "do \$\$ begin if to_regclass('public.fin_rfqs') is not null then raise exception 'rollback financeiro não removeu as tabelas'; end if; end \$\$;"
 apply_file "$upgrade_db" "docs/supabase-financial-procurement.sql"
 apply_file "$upgrade_db" "docs/supabase-financial-procurement-hardening.sql"
+apply_file "$upgrade_db" "docs/supabase-financial-pilot.sql"
 apply_file "$upgrade_db" "tests/database/financial-procurement.sql"
 apply_file "$upgrade_db" "tests/database/financial-procurement-hardening.sql"
+apply_file "$upgrade_db" "tests/database/financial-pilot.sql"
 bash "$root_dir/tests/database/email-outbox-concurrency.sh" "$(database_url "$upgrade_db")"
 
 echo "Arandu Database Integration Tests"
