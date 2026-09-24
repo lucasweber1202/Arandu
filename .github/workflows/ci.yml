@@ -117,6 +117,19 @@ jobs:
       - name: Desktop and mobile journeys across browser engines
         run: npm run test:e2e:finance
 
+      # The repository's Actions artifact quota may be exhausted. These six
+      # public/unauthenticated PNGs remain recoverable from the job log.
+      - name: Selected visual evidence in logs
+        if: always()
+        run: |
+          for path in reports/financial-visual/{chromium-desktop,mobile-chrome}/{home,dashboard,provider}.png; do
+            if [ -f "$path" ]; then
+              printf 'ARANDU_IMAGE_BEGIN %s\n' "$path"
+              base64 -w0 "$path"
+              printf '\nARANDU_IMAGE_END\n'
+            fi
+          done
+
       - name: Financial visual evidence
         if: always()
         continue-on-error: true
