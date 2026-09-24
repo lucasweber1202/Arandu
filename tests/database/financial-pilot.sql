@@ -30,6 +30,7 @@ create temporary table pilot_ids (key text primary key, value uuid);
 grant all on pilot_ids to authenticated;
 
 -- Allowlist vazia: recusa explicitamente, inclusive em piloto sem configuração.
+delete from public.fin_pilot_allowlist;
 set role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-00000000ca02', false);
 do $$
