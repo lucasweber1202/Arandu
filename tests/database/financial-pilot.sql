@@ -29,10 +29,18 @@ on conflict (id) do nothing;
 create temporary table pilot_ids (key text primary key, value uuid);
 grant all on pilot_ids to authenticated;
 
--- Allowlist vazia: sem restrição (desenvolvimento e demonstração).
+-- Allowlist vazia: recusa explicitamente, inclusive em piloto sem configuração.
 set role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-00000000ca02', false);
-insert into pilot_ids values ('aberta', public.fin_create_organization('Empresa Sem Allowlist DEMO', 'BUYER'));
+do $$
+begin
+  begin
+    perform public.fin_create_organization('Empresa Sem Allowlist DEMO', 'BUYER');
+    raise exception 'empty allowlist admitted a buyer';
+  exception when others then
+    if sqlerrm not like '%pilot access not allowed%' then raise; end if;
+  end;
+end $$;
 
 -- Ligar a allowlist é o próprio ato de cadastrar quem pode entrar.
 reset role;

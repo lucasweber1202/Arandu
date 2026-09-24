@@ -55,6 +55,16 @@ function show(value, type) {
   return String(value);
 }
 
+const STATUS_LABELS = Object.freeze({
+  draft: 'Rascunho', open: 'Aberta', collecting: 'Recebendo propostas',
+  comparing: 'Pronta para comparação', decided: 'Decisão registrada',
+  contracted: 'Contrato registrado', cancelled: 'Cancelada', expired: 'Encerrada',
+  active: 'Ativo', renewing: 'Em renovação', invited: 'Convidado',
+  accepted: 'Aceito', submitted: 'Enviada', revised: 'Revisada',
+  declined: 'Recusada', revoked: 'Revogado'
+});
+function statusLabel(value) { return STATUS_LABELS[value] || String(value || 'Não informado'); }
+
 async function api(path, options = {}) {
   const response = await fetch(`/api/finance/${path}`, {
     credentials: 'same-origin',
@@ -678,6 +688,16 @@ const views = {
       )
     ]));
 
+    const priorities = el('section', { class: 'panel priorities' });
+    priorities.append(el('h2', { text: 'O que precisa de atenção' }));
+    const priorityList = el('div', { class: 'rows' });
+    if (expiring.length) priorityList.append(el('a', { class: 'row', href: '/finance/contracts.html', text: expiring.length + ' contrato(s) em janela de renovação →' }));
+    if (toDecide.length) priorityList.append(el('a', { class: 'row', href: '/finance/rfqs.html', text: toDecide.length + ' solicitação(ões) aguardando decisão →' }));
+    if (awaiting.length) priorityList.append(el('a', { class: 'row', href: '/finance/rfqs.html', text: awaiting.length + ' solicitação(ões) sem primeira proposta →' }));
+    if (!priorityList.children.length) priorityList.append(el('p', { class: 'muted', text: 'Nenhum prazo ou decisão pendente nos registros atuais.' }));
+    priorities.append(priorityList);
+    frag.append(priorities);
+
     if (expiring.length) {
       const alert = el('section', { class: 'panel' });
       alert.append(el('h2', { text: 'Contratos que pedem atenção agora' }));
@@ -707,13 +727,14 @@ const views = {
       frag.append(panel);
     }
 
-    const note = el('section', { class: 'panel' });
-    note.append(el('h2', { text: 'Economia registrada' }));
-    note.append(el('p', {
-      class: 'muted',
-      text: 'Não exibida nesta fase. O Arandu só apresenta economia quando houver metodologia explícita, linha de base verificável e dados comparáveis — números estimados sem isso seriam invenção.'
-    }));
-    frag.append(note);
+    const pipeline = el('section', { class: 'panel' });
+    pipeline.append(el('h2', { text: 'Solicitações recentes' }));
+    const recent = [...rfqs].sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || ''))).slice(0, 5);
+    if (!recent.length) pipeline.append(emptyState('Abra sua primeira solicitação de crédito ou adquirência.', el('a', { class: 'button', href: '/finance/rfqs.html', text: 'Nova solicitação' })));
+    else for (const rfq of recent) pipeline.append(el('a', { class: 'row pipeline-link', href: '/finance/rfq.html?id=' + encodeURIComponent(rfq.id) }, [
+      el('b', { text: rfq.title }), el('small', { text: (PRODUCTS[rfq.product]?.label || rfq.product) + ' · ' + statusLabel(rfq.status) + ' · ' + (rfq.proposals?.length || 0) + ' proposta(s)' })
+    ]));
+    frag.append(pipeline);
 
     if (!rfqs.length) {
       frag.append(emptyState('Nenhuma solicitação ainda. Comece estruturando uma necessidade de crédito ou de adquirência.',
@@ -728,17 +749,36 @@ const views = {
     if (!rfqs.length) {
       frag.append(emptyState('Nenhuma RFQ registrada para esta organização.'));
     } else {
-      const list = el('div', { class: 'rows' });
-      for (const rfq of rfqs) {
+      const controls = el('div', { class: 'list-controls' });
+      const filter = el('select', { 'aria-label': 'Filtrar solicitações por status' });
+      for (const [value, label] of [['', 'Todos os status'], ['draft', 'Rascunhos'], ['open', 'Abertas'], ['collecting', 'Recebendo propostas'], ['comparing', 'Prontas para decidir'], ['decided', 'Decididas']]) filter.add(new Option(label, value));
+      const sort = el('select', { 'aria-label': 'Ordenar solicitações' });
+      sort.add(new Option('Prazo mais próximo', 'deadline'));
+      sort.add(new Option('Mais recentes', 'recent'));
+      controls.append(filter, sort);
+      frag.append(controls);
+      const list = el('div', { class: 'rows rfq-list' });
+      const ordered = [...rfqs];
+      const draw = () => {
+        list.replaceChildren();
+        ordered.sort((a, b) => sort.value === 'recent'
+          ? String(b.created_at || '').localeCompare(String(a.created_at || ''))
+          : String(a.response_deadline || '9999').localeCompare(String(b.response_deadline || '9999')));
+        for (const rfq of ordered.filter(r => !filter.value || r.status === filter.value)) {
         const row = el('div', { class: 'row' });
         row.append(
           el('span', { class: 'tag', text: PRODUCTS[rfq.product]?.label || rfq.product }),
-          el('span', { class: 'tag', text: rfq.status }),
+          el('span', { class: 'tag', text: statusLabel(rfq.status) }),
           el('b', {}, el('a', { href: `/finance/rfq.html?id=${encodeURIComponent(rfq.id)}`, text: rfq.title })),
-          el('small', { text: `Prazo de resposta: ${rfq.response_deadline || 'não definido'} · Propostas: ${rfq.proposals?.length ?? 0}` })
+          el('small', { text: `Prazo: ${rfq.response_deadline || 'não definido'} · Propostas: ${rfq.proposals?.length ?? 0} · Próxima ação: ${rfq.status === 'comparing' ? 'registrar decisão' : rfq.status === 'draft' ? 'revisar e abrir' : 'acompanhar processo'}` })
         );
         list.append(row);
-      }
+        }
+        if (!list.children.length) list.append(emptyState('Nenhuma solicitação corresponde a este filtro.'));
+      };
+      filter.addEventListener('change', draw);
+      sort.addEventListener('change', draw);
+      draw();
       frag.append(list);
     }
     frag.append(newRfqForm(data.profile || []));
@@ -754,7 +794,7 @@ const views = {
     const header = el('section', { class: 'panel' });
     header.append(
       el('h2', { text: rfq.title }),
-      el('p', { class: 'muted', text: `${PRODUCTS[rfq.product]?.label || rfq.product} · estado: ${rfq.status} · prazo de resposta: ${rfq.response_deadline || 'não definido'}` }),
+      el('p', { class: 'muted', text: `${PRODUCTS[rfq.product]?.label || rfq.product} · ${statusLabel(rfq.status)} · prazo de resposta: ${rfq.response_deadline || 'não definido'}` }),
       rfq.description ? el('p', { text: rfq.description }) : null
     );
     frag.append(header);
@@ -822,7 +862,7 @@ const views = {
         row.append(
           el('span', { class: 'tag', text: provider.kind }),
           el('b', { text: provider.name }),
-          el('small', { text: `Região: ${provider.region || 'não informada'} · estado: ${provider.status}` }),
+          el('small', { text: `Região: ${provider.region || 'não informada'} · situação: ${statusLabel(provider.status)}` }),
           el('small', {
             text: provider.verification_state === 'EVIDENCIA_REGISTRADA'
               ? `Evidência regulatória registrada em ${provider.regulator_checked_at || 'data não informada'} (${provider.regulator_authority || 'autoridade não informada'}).`
@@ -848,7 +888,7 @@ const views = {
     for (const { rfq, proposal } of rows) {
       const row = el('div', { class: 'row' });
       row.append(
-        el('span', { class: 'tag', text: proposal.status }),
+        el('span', { class: 'tag', text: statusLabel(proposal.status) }),
         el('b', { text: `${proposal.provider_name} · ${rfq.title}` }),
         el('small', { text: `Versão ${proposal.version} · enviada em ${proposal.submitted_at || 'data não informada'}` }),
         el('small', { text: `Validade: ${proposal.terms?.valid_until || 'não informada'}` }),
@@ -874,7 +914,7 @@ const views = {
       const row = el('div', { class: 'row' });
       row.append(
         el('span', { class: 'tag', text: PRODUCTS[contract.product]?.label || contract.product }),
-        el('span', { class: 'tag', text: contract.status }),
+        el('span', { class: 'tag', text: statusLabel(contract.status) }),
         el('b', { text: contract.provider_name || 'Provedor' }),
         el('small', { text: `Vigência: ${contract.starts_on} → ${contract.ends_on} · aviso prévio: ${contract.renewal_notice_days} dias` }),
         el('small', {

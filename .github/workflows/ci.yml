@@ -105,8 +105,8 @@ jobs:
       # Mesma razão do gate acima: só o artefato publicado revela navegação
       # escondida por CSS, link público para tela administrativa, referência a
       # arquivo não publicado e audiência sem porta de entrada.
-      - name: Published navigation
-        run: npm run check:navigation
+      - name: Published financial surface and navigation
+        run: npm run check:financial-surface && npm run check:financial-navigation
 
       - name: Install Chromium, Firefox and WebKit
         run: npx playwright install --with-deps chromium firefox webkit
@@ -115,17 +115,7 @@ jobs:
       # e mobile nos três motores. A suíte de apresentação roda separada porque
       # exige um build com ARANDU_PRESENTATION_MODE=true.
       - name: Desktop and mobile journeys across browser engines
-        run: npm run test:e2e
-
-      - name: Safe presentation journeys across browser engines
-        run: npm run test:e2e:presentation
-
-      # A suíte principal cobre o estado publicado (compra fechada). Esta cobre
-      # o fluxo de reserva que precisa continuar correto quando a política
-      # comercial for aprovada — inclusive a chave de idempotência por
-      # tentativa.
-      - name: Browser journeys with commerce open
-        run: npm run test:e2e:commerce
+        run: npm run test:e2e:finance
 
       - name: Upload browser evidence on failure
         if: failure()

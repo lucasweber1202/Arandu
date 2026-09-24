@@ -24,11 +24,9 @@ create table if not exists public.fin_terms_acceptances (
 
 -- --------------------------------------------------------- allowlist do piloto
 --
--- Enquanto a tabela está VAZIA, não há restrição — é o estado de
--- desenvolvimento e de demonstração. Assim que a primeira linha entra, a
--- criação de organização passa a exigir correspondência: ligar a allowlist é o
--- próprio ato de cadastrar quem pode entrar, então não existe estado
--- "configurado pela metade" que deixe o piloto aberto sem querer.
+-- A tabela vazia recusa a criação de organizações. Um piloto não pode ficar
+-- aberto por falta de configuração. Desenvolvimento pode adicionar uma entrada
+-- explícita; a demonstração estática não usa esta função.
 create table if not exists public.fin_pilot_allowlist (
   id uuid primary key default gen_random_uuid(),
   -- Um e-mail completo, ou um domínio começando com '@'.
@@ -40,8 +38,7 @@ create table if not exists public.fin_pilot_allowlist (
 
 create or replace function public.fin_pilot_access_allowed(p_email text)
 returns boolean language sql stable security definer set search_path = '' as $$
-  select not exists (select 1 from public.fin_pilot_allowlist)
-    or exists (
+  select exists (
       select 1 from public.fin_pilot_allowlist a
       where lower(a.pattern) = lower(trim(p_email))
          or (a.pattern like '@%' and lower(trim(p_email)) like '%' || lower(a.pattern))
@@ -160,6 +157,10 @@ revoke all on public.fin_settings from anon, authenticated;
 insert into public.fin_settings (key, value) values ('email_enabled', 'false')
   on conflict (key) do nothing;
 
+-- Secret confined to service-side SQL; the outbox stores only invite_ref.
+insert into public.fin_settings (key, value) values ('invite_secret', encode(gen_random_bytes(32), 'hex'))
+  on conflict (key) do nothing;
+
 create or replace function public.fin_setting(p_key text, p_default text default '')
 returns text language sql stable security definer set search_path = '' as $$
   select coalesce((select value from public.fin_settings where key = p_key), p_default);
@@ -186,7 +187,7 @@ begin
     event_type, entity_type, entity_id, template, recipient_hash, recipient_address,
     payload, request_id, idempotency_key
   ) values (
-    'finance_' || p_template, p_entity_type, p_entity_id::text, p_template, v_hash, lower(trim(p_recipient)),
+    'finance_' || p_template, p_entity_type, p_entity_id::text, 'finance_' || p_template, v_hash, lower(trim(p_recipient)),
     coalesce(p_payload, '{}'::jsonb), 'finance-' || p_entity_id::text, p_idempotency_key
   ) on conflict (idempotency_key) do nothing;
   return true;
@@ -213,10 +214,10 @@ begin
     where p.id = p_provider and p.organization_id = v_org and p.status = 'active';
   if not found then raise exception 'provider not found'; end if;
   select legal_name into v_buyer from public.fin_organizations where id = v_org;
-  v_token := replace(gen_random_uuid()::text,'-','') || replace(gen_random_uuid()::text,'-','');
-  insert into public.fin_rfq_invites (buyer_organization_id, rfq_id, provider_id, token_hash, created_by)
-    values (v_org, p_rfq, p_provider, encode(sha256(convert_to(v_token,'UTF8')),'hex'), auth.uid())
-    returning id into v_invite;
+  v_invite := gen_random_uuid();
+  v_token := encode(sha256(convert_to(public.fin_setting('invite_secret') || ':' || v_invite::text, 'UTF8')), 'hex');
+  insert into public.fin_rfq_invites (id, buyer_organization_id, rfq_id, provider_id, token_hash, created_by)
+    values (v_invite, v_org, p_rfq, p_provider, encode(sha256(convert_to(v_token,'UTF8')),'hex'), auth.uid());
   insert into public.fin_events (organization_id, entity_type, entity_id, event_type, actor_id)
     values (v_org, 'rfq', p_rfq, 'provider_invited', auth.uid());
   if v_contact is not null then
@@ -227,6 +228,26 @@ begin
   end if;
   return v_token;
 end $$;
+
+
+-- Only the privileged dispatcher can reconstruct an unexpired, unused link.
+-- The same opaque token is returned once at invitation creation for manual delivery.
+create or replace function public.fin_resolve_provider_invite_token(p_invite uuid)
+returns text language plpgsql security definer set search_path = '' as $$
+declare v_secret text; v_token text;
+begin
+  if current_setting('request.jwt.claim.role', true) <> 'service_role' then raise exception 'forbidden'; end if;
+  if not exists (select 1 from public.fin_rfq_invites
+    where id = p_invite and status = 'invited' and expires_at > now()) then
+    raise exception 'invite unavailable';
+  end if;
+  select value into v_secret from public.fin_settings where key = 'invite_secret';
+  if length(coalesce(v_secret,'')) < 64 then raise exception 'invite secret unavailable'; end if;
+  v_token := encode(sha256(convert_to(v_secret || ':' || p_invite::text, 'UTF8')), 'hex');
+  return v_token;
+end $$;
+revoke all on function public.fin_resolve_provider_invite_token(uuid) from public, anon, authenticated;
+grant execute on function public.fin_resolve_provider_invite_token(uuid) to service_role;
 
 revoke all on function
   public.fin_setting(text, text),

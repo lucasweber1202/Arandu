@@ -4,6 +4,7 @@
 :root{
   --ink:#152433;--ink-soft:#526473;--line:#d5e0e6;--bg:#f3f7f8;--card:#fff;
   --brand:#0f5b62;--brand-dark:#0a4046;--accent:#b4641a;--ok:#125c3b;--alert:#8b2020;
+  --focus:#b4641a;--surface:#fff;--surface-muted:#edf3f4;--radius:12px;--shadow:0 8px 24px #1524330d;
   font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:var(--ink);background:var(--bg);
 }
 *{box-sizing:border-box}
@@ -64,6 +65,42 @@ footer.app{border-top:1px solid var(--line);margin-top:2rem;padding:1.5rem max(1
 footer.app a{color:var(--brand-dark)}
 @media(max-width:759px){header.app .bar{align-items:flex-start;flex-direction:column;gap:.6rem}}
 
+/* Shared B2B workspace shell. Navigation remains in source HTML so deep links
+   and keyboard users can reach every section even before app.js finishes. */
+@media(min-width:1000px){
+  body[data-audience]{padding-left:244px}
+  body[data-audience] header.app{position:fixed;inset:0 auto 0 0;width:244px;padding:1.75rem .9rem;background:#122536;z-index:10;border-right:1px solid #284153}
+  body[data-audience] header.app .bar{height:100%;display:flex;align-items:stretch;flex-direction:column;justify-content:flex-start;gap:2.7rem}
+  body[data-audience] header.app .brand{padding:.2rem .8rem;font-size:1.35rem}
+  body[data-audience] nav.app{display:flex;flex-direction:column;gap:.18rem}
+  body[data-audience] nav.app a{padding:.72rem .85rem;border-radius:8px}
+  body[data-audience] nav.app a[aria-current="page"]{background:#255263;box-shadow:inset 3px 0 #8bd1c4}
+  body[data-audience] main{max-width:1370px;padding:2rem clamp(2rem,4vw,4rem) 5rem;min-height:calc(100vh - 76px)}
+  body[data-audience] footer.app{margin:0;padding:1.1rem clamp(2rem,4vw,4rem)}
+}
+body[data-audience] header.app{background:#122536}
+body[data-audience] main>h1{font-size:clamp(1.65rem,2.6vw,2.3rem);letter-spacing:-.025em}
+body[data-audience] main>.lede{font-size:.98rem}
+body[data-audience] .panel,body[data-audience] .stat{box-shadow:var(--shadow)}
+body[data-audience] .stat{border-top:3px solid #6aa79f}
+body[data-audience] .stat b{font-variant-numeric:tabular-nums;letter-spacing:-.03em}
+body[data-audience] .row{border-left:3px solid #b8ced0;background:white;padding:.95rem 1rem}
+body[data-audience] .row:hover{border-left-color:var(--brand)}
+body[data-audience] .tag{text-transform:none;letter-spacing:0;font-weight:650}
+body[data-audience] .empty{background:#fff;padding:2rem;border-color:#b6cbd0}
+body[data-audience] th,body[data-audience] td{padding:.72rem .85rem}
+body[data-audience] .comparison-wide th:first-child{position:sticky;left:0;z-index:2;background:#eef4f5}
+body[data-audience] .comparison-wide td:first-child{position:sticky;left:0;background:#fff;z-index:1}
+body[data-audience] nav.app a{min-height:42px}
+@media(max-width:999px){
+  body[data-audience] header.app{padding:1rem}
+  body[data-audience] header.app .bar{display:block}
+  body[data-audience] nav.app{overflow-x:auto;white-space:nowrap;flex-wrap:nowrap;margin-top:.75rem;padding-bottom:.2rem}
+  body[data-audience] nav.app a{flex:none}
+}
+@media(max-width:759px){body[data-audience] main{padding:1.5rem 1rem 3rem}body[data-audience] .grid.three{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:480px){body[data-audience] .grid.three{grid-template-columns:1fr}body[data-audience] .panel{padding:1rem}}
+
 /* Comparação: tabela em tela larga, um cartão por proposta no celular.
    A tabela rolando de lado no telefone perde o cabeçalho da linha, e quem
    rola deixa de saber que número está lendo. */
@@ -86,6 +123,13 @@ footer.app a{color:var(--brand-dark)}
 .freshness.due{background:#fcf1e0;color:#8a5a12}
 .freshness.stale{background:#fbe9e9;color:var(--alert)}
 .freshness.missing{background:#eef1f3;color:var(--ink-soft)}
+.list-controls{display:flex;gap:.65rem;flex-wrap:wrap;margin:0 0 1rem}
+.list-controls select{background:#fff;min-width:180px}
+.rfq-list .row{display:grid;grid-template-columns:max-content max-content 1fr;align-items:center;gap:.25rem .7rem}
+.rfq-list .row b,.rfq-list .row small{grid-column:1/-1}
+.pipeline-link{text-decoration:none;color:inherit;display:block;margin:.5rem 0}
+.pipeline-link:hover b{text-decoration:underline}
+.priorities .row{text-decoration:none;color:var(--brand-dark);display:block;font-weight:650}
 .steps{display:flex;flex-wrap:wrap;gap:.4rem;list-style:none;padding:0;margin:0 0 1rem;counter-reset:step}
 .steps li{background:#fff;border:1px solid var(--line);border-radius:999px;padding:.3rem .8rem;font-size:.85rem;color:var(--ink-soft)}
 .steps li[aria-current="step"]{background:var(--brand);color:#fff;border-color:var(--brand);font-weight:600}

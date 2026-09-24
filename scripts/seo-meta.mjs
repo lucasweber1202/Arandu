@@ -3,15 +3,15 @@ import path from 'node:path';
 
 export const SEO_MARKER_START = '<!-- arandu:seo:start -->';
 export const SEO_MARKER_END = '<!-- arandu:seo:end -->';
-export const SEO_THEME_COLOR = '#180804';
+export const SEO_THEME_COLOR = '#122536';
 export const SEO_DEFAULT_DESCRIPTION =
-  'Arte brasileira contemporânea com curadoria, obras selecionadas, procedência e reserva assistida.';
+  'Procurement financeiro B2B para estruturar demandas, comparar propostas e documentar decisões.';
 
 const SITE_NAME = 'Arandu';
 const LOCALE = 'pt_BR';
-const SOCIAL_IMAGE_PATH = '/assets/social/arandu-og.png';
+const SOCIAL_IMAGE_PATH = '/financial-og.png';
 const SOCIAL_IMAGE_ALT =
-  'Arandu — arte brasileira contemporânea com curadoria e procedência.';
+  'Arandu — procurement financeiro B2B para crédito empresarial e adquirência.';
 
 function decodeEntities(value) {
   return String(value || '')
@@ -129,7 +129,7 @@ function structuredData(siteUrl) {
         '@id': `${siteUrl}/#organization`,
         name: SITE_NAME,
         url: `${siteUrl}/`,
-        logo: `${siteUrl}/assets/logo-arandu.svg`,
+        logo: `${siteUrl}/favicon.svg`,
         description: SEO_DEFAULT_DESCRIPTION
       },
       {
@@ -138,12 +138,7 @@ function structuredData(siteUrl) {
         url: `${siteUrl}/`,
         name: SITE_NAME,
         inLanguage: 'pt-BR',
-        publisher: { '@id': `${siteUrl}/#organization` },
-        potentialAction: {
-          '@type': 'SearchAction',
-          target: `${siteUrl}/pesquisa.html?q={search_term_string}`,
-          'query-input': 'required name=search_term_string'
-        }
+        publisher: { '@id': `${siteUrl}/#organization` }
       }
     ]
   };
@@ -174,8 +169,7 @@ function buildSeoBlock({
     '  <meta name="mobile-web-app-capable" content="yes">',
     `  <meta name="apple-mobile-web-app-title" content="${SITE_NAME}">`,
     '  <link rel="icon" href="/favicon.svg" type="image/svg+xml">',
-    '  <link rel="icon" href="/assets/favicon-32.png" sizes="32x32" type="image/png">',
-    '  <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">',
+    '  <link rel="apple-touch-icon" href="/financial-icon-180.png">',
     '  <link rel="manifest" href="/manifest.webmanifest">',
     '  <meta property="og:type" content="website">',
     `  <meta property="og:site_name" content="${SITE_NAME}">`,
