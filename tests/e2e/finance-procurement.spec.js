@@ -41,6 +41,7 @@ test('capturas reproduzíveis das superfícies financeiras', async ({ page }, te
   ]) {
     await page.goto(path);
     await expect(page.locator('main')).toBeVisible();
+    await page.waitForLoadState('networkidle');
     await page.screenshot({ path: join(folder, name + '.png'), fullPage: true });
   }
 });
@@ -79,6 +80,20 @@ test('página inicial, login e cadastro falam de procurement financeiro', async 
   await expect(page.locator('form[data-finance-auth="login"]')).toBeVisible();
   await page.getByRole('link', { name: 'Criar conta' }).click();
   await expect(page.locator('form[data-finance-auth="signup"]')).toBeVisible();
+});
+
+test('login do provedor retorna ao portal atribuído sem redirect externo', async ({ page }) => {
+  await page.route('**/api/auth/login', route => route.fulfill({ status: 200, contentType: 'application/json', body: '{"ok":true}' }));
+  await page.goto('/login.html?next=%2Fprovider%2Findex.html');
+  await page.getByLabel('E-mail corporativo').fill('provedor@example.invalid');
+  await page.getByLabel('Senha').fill('example-password');
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click();
+  await expect(page).toHaveURL(/\/provider\/index\.html$/);
+  await page.goto('/login.html?next=https%3A%2F%2Fevil.example');
+  await page.getByLabel('E-mail corporativo').fill('provedor@example.invalid');
+  await page.getByLabel('Senha').fill('example-password');
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click();
+  await expect(page).toHaveURL(/\/finance\/index\.html$/);
 });
 
 test('a navegação entre os portais funciona por links reais, sem depender de JavaScript', async ({ browser }) => {

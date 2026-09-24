@@ -26,7 +26,9 @@ document.querySelectorAll('[data-finance-auth]').forEach(form => form.addEventLi
       return;
     }
     status.textContent = 'Conta ativa. Abrindo o workspace…';
-    location.assign('/finance/index.html');
+    const next = new URLSearchParams(location.search).get('next') || '';
+    // Only fixed first-party workspaces are valid return destinations.
+    location.assign(/^\/(?:provider|finance)\/[a-z-]+\.html$/.test(next) ? next : '/finance/index.html');
   } catch (error) {
     status.textContent = error.message;
     form.querySelectorAll('input').forEach(input => input.setAttribute('aria-invalid', 'true'));

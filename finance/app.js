@@ -624,7 +624,8 @@ function signedOut(error) {
       ? 'Esta conta não é membro da organização solicitada. Peça um convite ao administrador da empresa.'
       : 'Os dados do procurement financeiro exigem sessão autenticada. Entre na sua conta para carregar organizações, RFQs e propostas.'
   }));
-  box.append(el('a', { class: 'button', href: '/login.html', text: 'Entrar na conta' }));
+  const destination = audience === 'provider' ? '/provider/index.html' : '/finance/index.html';
+  box.append(el('a', { class: 'button', href: '/login.html?next=' + encodeURIComponent(destination), text: 'Entrar na conta' }));
   if (demoMode) box.append(el('p', { class: 'muted', text: 'Este ambiente também exibe um conjunto de dados de demonstração abaixo.' }));
   return box;
 }
