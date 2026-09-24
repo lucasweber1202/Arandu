@@ -789,23 +789,28 @@ const views = {
   rfq: async (data) => {
     const frag = document.createDocumentFragment();
     const id = new URLSearchParams(location.search).get('id');
-    const rfq = (data.rfqs || []).find((item) => item.id === id) || (data.rfqs || [])[0];
-    if (!rfq) return emptyState('Nenhuma RFQ disponível para exibir.');
+    const rfq = (data.rfqs || []).find((item) => item.id === id);
+    if (!rfq) return emptyState(id ? 'Esta solicitação não foi encontrada nesta organização. Confira o link ou volte à lista de solicitações.' : 'Escolha uma solicitação na lista para ver os detalhes.', el('a', { href: '/finance/rfqs.html', text: 'Ver solicitações' }));
     document.title = `${rfq.title} | Arandu Financial Procurement`;
-    const header = el('section', { class: 'panel' });
+    const header = el('section', { class: 'panel', id: 'resumo' });
     header.append(
       el('h2', { text: rfq.title }),
       el('p', { class: 'muted', text: `${PRODUCTS[rfq.product]?.label || rfq.product} · ${statusLabel(rfq.status)} · prazo de resposta: ${rfq.response_deadline || 'não definido'}` }),
-      rfq.description ? el('p', { text: rfq.description }) : null
+      rfq.description ? el('p', { text: rfq.description }) : null,
+      el('p', { class: 'muted', text: `${rfq.invites_count ?? 0} convite(s) registrado(s) · ${(rfq.proposals || []).length} proposta(s) recebida(s)` })
     );
+    const sections = [['resumo', 'Resumo'], ['demanda', 'Demanda'], ['comparacao', 'Comparação'], ['decisao', 'Decisão']];
+    const contents = el('nav', { class: 'detail-nav', 'aria-label': 'Seções da solicitação' });
+    for (const [anchor, label] of sections) contents.append(el('a', { href: '#' + anchor, text: label }));
+    frag.append(contents);
     frag.append(header);
 
-    const demand = el('section', { class: 'panel' });
+    const demand = el('section', { class: 'panel', id: 'demanda' });
     demand.append(el('h2', { text: 'Demanda declarada pela empresa' }), fieldRows(PRODUCTS[rfq.product].demandFields, rfq.demand));
     frag.append(demand);
 
     const proposals = rfq.proposals || [];
-    const comparison = el('section', { class: 'panel' });
+    const comparison = el('section', { class: 'panel', id: 'comparacao' });
     comparison.append(el('h2', { text: 'Comparação factual' }));
     comparison.append(el('p', { class: 'muted', id: 'comparison-notice', text: 'Comparação factual das condições informadas. O Arandu não recomenda instituições.' }));
     if (proposals.length < 1) {
@@ -819,7 +824,7 @@ const views = {
     frag.append(comparison);
     if (proposals.length > 1) frag.append(weightsPanel(rfq.product, proposals));
 
-    const decision = el('section', { class: 'panel' });
+    const decision = el('section', { class: 'panel', id: 'decisao' });
     decision.append(el('h2', { text: 'Decisão' }));
     decision.append(el('p', {
       class: 'muted',

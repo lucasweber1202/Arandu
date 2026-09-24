@@ -130,6 +130,10 @@ body[data-audience] nav.app a{min-height:42px}
 .pipeline-link{text-decoration:none;color:inherit;display:block;margin:.5rem 0}
 .pipeline-link:hover b{text-decoration:underline}
 .priorities .row{text-decoration:none;color:var(--brand-dark);display:block;font-weight:650}
+.detail-nav{display:flex;flex-wrap:wrap;gap:.35rem;margin:0 0 1rem;padding:.3rem;border:1px solid var(--line);border-radius:10px;background:#fff}
+.detail-nav a{display:inline-flex;align-items:center;min-height:44px;padding:.55rem .85rem;border-radius:7px;color:var(--brand-dark);font-weight:650;text-decoration:none}
+.detail-nav a:hover,.detail-nav a:focus-visible{background:#e7f0f1}
+.detail-nav+section,.detail-nav~section{scroll-margin-top:1rem}
 .steps{display:flex;flex-wrap:wrap;gap:.4rem;list-style:none;padding:0;margin:0 0 1rem;counter-reset:step}
 .steps li{background:#fff;border:1px solid var(--line);border-radius:999px;padding:.3rem .8rem;font-size:.85rem;color:var(--ink-soft)}
 .steps li[aria-current="step"]{background:var(--brand);color:#fff;border-color:var(--brand);font-weight:600}
