@@ -717,7 +717,9 @@ const views = {
     const averageFirst = firstResponses.length
       ? (firstResponses.reduce((sum, value) => sum + value, 0) / firstResponses.length).toFixed(1)
       : null;
-    const invited = rfqs.reduce((total, rfq) => total + (rfq.invites_count || 0), 0);
+    const openTasks = (data.tasks || []).filter((task) => task.status === 'open');
+    const overdueTasks = openTasks.filter((task) => /^\d{4}-\d{2}-\d{2}$/.test(task.due_on || '') && task.due_on < today);
+    const dueRfqs = rfqs.filter((rfq) => ['open', 'collecting'].includes(rfq.status) && /^\d{4}-\d{2}-\d{2}$/.test(rfq.response_deadline || '') && rfq.response_deadline >= today && rfq.response_deadline <= new Date(Date.parse(`${today}T00:00:00Z`) + 7 * 86400000).toISOString().slice(0, 10));
 
     frag.append(el('div', { class: 'grid three' }, [
       statTile('Aguardando primeira proposta', awaiting.length, awaiting.length ? 'Solicitações abertas sem nenhuma resposta ainda.' : null),
@@ -733,15 +735,17 @@ const views = {
         averageFirst === null ? 'Aparece quando houver ao menos uma proposta recebida.' : 'Média das solicitações que já receberam resposta.'
       ),
       statTile(
-        'Taxa de resposta',
-        invited ? `${Math.round((proposals / invited) * 100)}%` : 'sem dados',
-        invited ? 'Propostas recebidas sobre provedores convidados.' : 'Aparece quando houver provedores convidados.'
+        'Propostas por solicitação',
+        rfqs.length ? (proposals / rfqs.length).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) : 'sem dados',
+        rfqs.length ? 'Média factual de propostas registradas por solicitação; não representa taxa de resposta aos convites.' : 'Aparece quando houver solicitações.'
       )
     ]));
 
     const priorities = el('section', { class: 'panel priorities' });
     priorities.append(el('h2', { text: 'O que precisa de atenção' }));
     const priorityList = el('div', { class: 'rows' });
+    if (overdueTasks.length) priorityList.append(el('a', { class: 'row', href: '/finance/dashboard.html#open-tasks', text: overdueTasks.length + ' tarefa(s) vencida(s) →' }));
+    if (dueRfqs.length) priorityList.append(el('a', { class: 'row', href: '/finance/rfqs.html', text: dueRfqs.length + ' solicitação(ões) com prazo nos próximos 7 dias →' }));
     if (expiring.length) priorityList.append(el('a', { class: 'row', href: '/finance/contracts.html', text: expiring.length + ' contrato(s) em janela de renovação →' }));
     if (toDecide.length) priorityList.append(el('a', { class: 'row', href: '/finance/rfqs.html', text: toDecide.length + ' solicitação(ões) aguardando decisão →' }));
     if (awaiting.length) priorityList.append(el('a', { class: 'row', href: '/finance/rfqs.html', text: awaiting.length + ' solicitação(ões) sem primeira proposta →' }));
@@ -763,15 +767,16 @@ const views = {
       frag.append(alert);
     }
 
-    const tasks = (data.tasks || []).filter((task) => task.status === 'open');
+    const tasks = [...openTasks].sort((a, b) => String(a.due_on || '9999').localeCompare(String(b.due_on || '9999')));
     if (tasks.length) {
       const panel = el('section', { class: 'panel' });
+      panel.id = 'open-tasks';
       panel.append(el('h2', { text: 'Tarefas abertas' }));
       const list = el('div', { class: 'rows' });
       for (const task of tasks.slice(0, 8)) {
         list.append(el('div', { class: 'row' }, [
           el('b', { text: task.title }),
-          el('small', { text: task.due_on ? `Prazo: ${task.due_on}` : 'Sem prazo definido.' })
+          el('small', { text: task.due_on ? `Prazo: ${task.due_on}${task.due_on < today ? ' · vencida' : ''}` : 'Sem prazo definido.' })
         ]));
       }
       panel.append(list);
@@ -1715,6 +1720,7 @@ async function load() {
   nodes.append(await views[view](source));
   root.replaceChildren(nodes);
   installCommandCenter(failure || data?.empty ? null : data);
+  if (location.hash === '#rfq-form' || location.hash === '#open-tasks') document.querySelector(location.hash)?.scrollIntoView();
 }
 
 if (root && views[view]) {
