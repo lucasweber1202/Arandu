@@ -1957,6 +1957,85 @@ function newRfqForm(profile = [], source = null) {
   }
   show(0);
 
+  let editorRevision = 0;
+  let dirty = false;
+  let conflicted = false;
+  let pending = null;
+  let saveTimer;
+  let editSequence = 0;
+  const autosaveState = el('span', { class: 'muted', role: 'status', 'aria-live': 'polite', text: demoMode ? 'Demonstração: rascunho não persistido.' : 'Carregando rascunho…' });
+  const retrySave = el('button', { type: 'button', class: 'secondary', hidden: 'hidden', text: 'Tentar salvar novamente' });
+  nav.append(autosaveState, retrySave);
+  const editorPayload = () => {
+    const entries = Object.fromEntries(new FormData(form));
+    const demand = {};
+    for (const field of PRODUCTS[entries.product].demandFields) {
+      if (entries[field.key] !== undefined && entries[field.key] !== '') demand[field.key] = entries[field.key];
+    }
+    return { organization_id: state.organizationId, product: entries.product, title: entries.title || '',
+      response_deadline: entries.response_deadline || null, demand, expected_revision: editorRevision };
+  };
+  const saveEditor = async () => {
+    if (demoMode || !dirty || conflicted || pending) return;
+    const sequence = editSequence;
+    autosaveState.textContent = 'Salvando rascunho…';
+    retrySave.hidden = true;
+    pending = api('rfq-editor', { method: 'PATCH', body: JSON.stringify(editorPayload()) });
+    try {
+      const result = await pending;
+      editorRevision = result.revision;
+      if (editSequence === sequence) {
+        dirty = false;
+        autosaveState.textContent = 'Rascunho salvo no servidor às ' + new Date(result.updated_at).toLocaleTimeString('pt-BR');
+      } else {
+        autosaveState.textContent = 'Há alterações para salvar…';
+      }
+    } catch (error) {
+      conflicted = error.status === 409;
+      autosaveState.textContent = conflicted
+        ? 'Esta solicitação mudou em outra aba. Recarregue a página para ver a versão mais recente.'
+        : 'Falha ao salvar. Os dados desta aba ainda não estão no servidor.';
+      retrySave.textContent = conflicted ? 'Recarregar rascunho' : 'Tentar salvar novamente';
+      retrySave.hidden = false;
+    } finally {
+      pending = null;
+      if (dirty && !conflicted && retrySave.hidden) saveTimer = setTimeout(saveEditor, 650);
+    }
+  };
+  retrySave.addEventListener('click', () => {
+    if (conflicted) { location.reload(); return; }
+    saveEditor();
+  });
+  if (!demoMode) {
+    form.addEventListener('input', () => {
+      dirty = true;
+      editSequence++;
+      autosaveState.textContent = 'Alterações ainda não salvas…';
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(saveEditor, 650);
+    });
+    api('rfq-editor?organization_id=' + encodeURIComponent(state.organizationId)).then(({ draft }) => {
+      editorRevision = draft?.revision ?? 0;
+      if (draft?.payload && !source && !dirty && PRODUCTS[draft.payload.product]) {
+        product.value = draft.payload.product;
+        renderFields();
+        for (const [key, value] of Object.entries({ title: draft.payload.title,
+          response_deadline: draft.payload.response_deadline, ...draft.payload.demand })) {
+          const input = form.elements.namedItem(key);
+          if (input && value !== null && value !== undefined) input.value = String(value);
+        }
+        autosaveState.textContent = 'Rascunho recuperado do servidor.';
+      } else {
+        autosaveState.textContent = draft ? 'Rascunho salvo anteriormente disponível.' : 'As alterações serão salvas no servidor.';
+      }
+    }).catch(() => {
+      autosaveState.textContent = 'Não foi possível carregar o rascunho. Tente atualizar a página.';
+      conflicted = true;
+      retrySave.hidden = false;
+      retrySave.textContent = 'Recarregar rascunho';
+    });
+  }
+
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     const entries = Object.fromEntries(new FormData(form));
@@ -1971,7 +2050,14 @@ function newRfqForm(profile = [], source = null) {
       if (entries[field.key] !== undefined && entries[field.key] !== '') body.demand[field.key] = entries[field.key];
     }
     try {
+      if (conflicted) throw new Error('O rascunho mudou em outra aba. Recarregue antes de criar a solicitação.');
+      clearTimeout(saveTimer);
+      if (pending) await pending;
       const result = await api('rfqs', { method: 'POST', body: JSON.stringify(body) });
+      if (!demoMode && editorRevision) {
+        try { await api('rfq-editor', { method: 'DELETE', body: JSON.stringify({ organization_id: state.organizationId, expected_revision: editorRevision }) }); }
+        catch { /* A RFQ foi criada; o rascunho antigo pode ser descartado depois. */ }
+      }
       const warnings = (result.warnings || []).join(' ');
       say(`Solicitação criada em rascunho. Abra-a para convidar provedores. ${warnings}`.trim(), 'success');
       if (result.id) { location.assign('/finance/rfq.html?id=' + encodeURIComponent(result.id)); return; }
