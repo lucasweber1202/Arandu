@@ -51,6 +51,15 @@ insert into auth.users (id, email) values
   ('00000000-0000-4000-8000-00000000fd02', 'provedor-2@example.invalid')
 on conflict (id) do nothing;
 
+-- Synthetic test principals must be admitted explicitly under the pilot gate.
+insert into public.fin_pilot_allowlist (pattern, created_by, note)
+  select email, '00000000-0000-4000-8000-00000000fa01', 'financial database test'
+  from auth.users where id in (
+    '00000000-0000-4000-8000-00000000fa01','00000000-0000-4000-8000-00000000fa02',
+    '00000000-0000-4000-8000-00000000fb01','00000000-0000-4000-8000-00000000fd01',
+    '00000000-0000-4000-8000-00000000fd02'
+  ) on conflict (pattern) do nothing;
+
 create temporary table fin_ids (key text primary key, value uuid);
 create temporary table fin_tokens (key text primary key, value text);
 grant all on fin_ids, fin_tokens to authenticated;

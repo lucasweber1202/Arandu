@@ -5,7 +5,7 @@ import {
   renderTransactionalEmail,
   sendTransactionalEmail
 } from '../lib/email.mjs';
-import { dispatchTransactionalOutbox } from '../lib/email-outbox.mjs';
+import { dispatchTransactionalOutbox, prepareFinancialEmail } from '../lib/email-outbox.mjs';
 
 const original = {
   provider: process.env.ARANDU_EMAIL_PROVIDER,
@@ -23,7 +23,30 @@ function restore(name, value) {
 
 try {
   const templates = listTransactionalTemplates();
-  assert.equal(templates.length, 15);
+  assert.equal(templates.length, 23);
+  assert.equal(templates.includes('finance_provider_invite'), true);
+  const financial = renderTransactionalEmail('finance_provider_invite', {
+    buyer: 'Empresa Exemplo', product: 'crédito empresarial', deadline: '2026-10-01',
+    link: 'https://arandu.example/provider/invite.html#token=' + 'a'.repeat(64)
+  });
+  assert.match(financial.text, /Empresa Exemplo/);
+  assert.match(financial.text, /#token=/);
+  assert.equal(financial.html.includes('<script>'), false);
+  const inviteRef = '00000000-0000-4000-8000-00000000cb02';
+  const prepared = await prepareFinancialEmail({
+    template: 'finance_provider_invite',
+    payload: { buyer: 'Empresa Exemplo', product: 'credit', invite_ref: inviteRef }
+  }, {
+    baseUrl: 'https://arandu.example',
+    resolveInviteToken: async (ref) => {
+      assert.equal(ref, inviteRef);
+      return 'a'.repeat(64);
+    }
+  });
+  const readyEmail = renderTransactionalEmail('finance_provider_invite', prepared);
+  assert.match(readyEmail.text, /#token=/);
+  assert.ok(!readyEmail.text.includes('?token='));
+  assert.ok(!JSON.stringify({ invite_ref: inviteRef }).includes('a'.repeat(64)));
   for (const template of ['order_created', 'order_confirmed', 'payment_confirmed', 'order_shipped', 'order_delivered', 'order_completed', 'order_cancelled', 'order_refunded']) {
     assert.equal(templates.includes(template), true);
   }
