@@ -157,3 +157,6 @@ header.app .command-trigger{min-height:44px;white-space:nowrap;background:#e5ede
 .command-result span:last-child{display:grid;min-width:0;overflow-wrap:anywhere}
 .command-result small{color:var(--ink-soft)}
 @media(max-width:759px){header.app .command-trigger{width:100%}.command-dialog{margin:4vh auto auto}.command-heading{align-items:center}}
+
+.stat span,.stat small{display:block}
+.stat small{margin-top:.35rem}
