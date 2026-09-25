@@ -811,7 +811,12 @@ const views = {
       const sort = el('select', { 'aria-label': 'Ordenar solicitações' });
       sort.add(new Option('Prazo mais próximo', 'deadline'));
       sort.add(new Option('Mais recentes', 'recent'));
-      controls.append(filter, sort);
+      const productFilter = el('select', { 'aria-label': 'Filtrar solicitações por produto' });
+      productFilter.add(new Option('Todos os produtos', ''));
+      for (const id of PRODUCT_IDS) productFilter.add(new Option(PRODUCTS[id].label, id));
+      const search = el('input', { type: 'search', 'aria-label': 'Buscar solicitação por título', placeholder: 'Buscar pelo título' });
+      const count = el('span', { class: 'muted', role: 'status', 'aria-live': 'polite' });
+      controls.append(search, filter, productFilter, sort, count);
       frag.append(controls);
       const list = el('div', { class: 'rows rfq-list' });
       const ordered = [...rfqs];
@@ -820,7 +825,12 @@ const views = {
         ordered.sort((a, b) => sort.value === 'recent'
           ? String(b.created_at || '').localeCompare(String(a.created_at || ''))
           : String(a.response_deadline || '9999').localeCompare(String(b.response_deadline || '9999')));
-        for (const rfq of ordered.filter(r => !filter.value || r.status === filter.value)) {
+        const term = search.value.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
+        const visible = ordered.filter((rfq) => (!filter.value || rfq.status === filter.value)
+          && (!productFilter.value || rfq.product === productFilter.value)
+          && (!term || String(rfq.title || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR').includes(term)));
+        count.textContent = visible.length + ' de ' + rfqs.length + ' solicitações';
+        for (const rfq of visible) {
         const row = el('div', { class: 'row' });
         row.append(
           el('span', { class: 'tag', text: PRODUCTS[rfq.product]?.label || rfq.product }),
@@ -830,10 +840,12 @@ const views = {
         );
         list.append(row);
         }
-        if (!list.children.length) list.append(emptyState('Nenhuma solicitação corresponde a este filtro.'));
+        if (!list.children.length) list.append(emptyState('Nenhuma solicitação corresponde aos filtros. Altere a busca, o produto ou o status.'));
       };
       filter.addEventListener('change', draw);
       sort.addEventListener('change', draw);
+      productFilter.addEventListener('change', draw);
+      search.addEventListener('input', draw);
       draw();
       frag.append(list);
     }
