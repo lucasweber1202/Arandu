@@ -166,3 +166,21 @@ header.app .command-trigger{min-height:44px;white-space:nowrap;background:#e5ede
   .rfq-list .row .tag{min-width:0;margin-right:0;white-space:normal;overflow-wrap:anywhere}
   fieldset,form{min-width:0}
 }
+
+/* Compact collaboration controls shared by buyer and provider workspaces. */
+.notification-center{position:relative;margin-left:auto;min-width:8rem;color:#fff}
+.notification-center summary{cursor:pointer;min-height:44px;padding:.65rem .8rem;border:1px solid #7895a3;border-radius:.45rem;list-style:none}
+.notification-center summary:focus-visible,.notification-item:focus-visible{outline:3px solid #56c2d0;outline-offset:2px}
+.notification-list{position:absolute;right:0;top:calc(100% + .4rem);z-index:20;width:min(25rem,calc(100vw - 2rem));max-height:24rem;overflow:auto;background:#fff;color:#142a38;border:1px solid #d3e0e6;border-radius:.5rem;box-shadow:0 1rem 2rem #071e2a30;padding:.4rem}
+.notification-item{display:grid;gap:.25rem;padding:.7rem;border-bottom:1px solid #e0e9ed;color:#173c49;text-decoration:none}
+.notification-item.unread{background:#e8f5f6;border-left:3px solid #087c82}
+.notification-item span,.notification-item small{color:#506773}
+.notification-center>button{margin:.4rem;min-height:44px}
+.comment-list{display:grid;gap:.5rem;margin:1rem 0}
+.comment-item{padding:.75rem 1rem;border-left:3px solid #638b98;background:#f3f7f8}
+.comment-item p{white-space:pre-wrap;overflow-wrap:anywhere;margin:.5rem 0}
+.comment-item small{color:#506773}
+.activity-list{display:grid;gap:.5rem;padding-left:1.5rem}
+.activity-list li{padding:.4rem 0;border-bottom:1px solid #e0e9ed}
+.comments-panel textarea{min-height:6rem}
+@media(max-width:600px){.notification-center{width:100%;margin:.5rem 0}.notification-list{right:auto;left:0}.comment-item{padding:.7rem}}
