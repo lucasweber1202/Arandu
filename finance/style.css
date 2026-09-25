@@ -184,3 +184,8 @@ header.app .command-trigger{min-height:44px;white-space:nowrap;background:#e5ede
 .activity-list li{padding:.4rem 0;border-bottom:1px solid #e0e9ed}
 .comments-panel textarea{min-height:6rem}
 @media(max-width:600px){.notification-center{width:100%;margin:.5rem 0}.notification-list{right:auto;left:0}.comment-item{padding:.7rem}}
+
+.notification-preferences{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.5rem 1rem}
+.notification-preference{display:flex;align-items:center;gap:.6rem;padding:.5rem .65rem;border:1px solid var(--border,#d7dce2);border-radius:.45rem;min-height:44px}
+.notification-preference input{margin:0}
+.contract-toolbar{display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:1rem}
