@@ -459,3 +459,25 @@ reset((entry) => (entry.url.includes('fin_organizations') ? orgRow(BUYER, 'BUYER
 }
 
 console.log('Financial Procurement API: allowlist de campos, isolamento de organização, anti-spoofing de provedor, transições, comparação neutra, CNPJ, mix de recebimentos, mensagens redigidas, consultas limitadas, aceite de termos, sinais fechados, exportação factual e métricas sem invenção aprovados.');
+
+
+/* Enterprise approval boundary: only typed IDs and actions reach privileged RPCs. */
+reset((entry) => entry.url.includes('fin_organizations') ? orgRow(BUYER, 'BUYER') : []);
+await rejects('POST', 'approvals/request', { body: { rfq_id: RFQ, proposal_id: PROPOSAL, approver_ids: [OTHER_ORG, 'forged'], rationale: 'Revisão' } }, 400);
+assert.equal(sent.filter((entry) => entry.url.includes('rpc/fin_request_approval')).length, 0);
+reset(() => []);
+await rejects('POST', 'approvals/act', { body: { request_id: RFQ, action: 'force_approved' } }, 400);
+assert.equal(sent.length, 0);
+reset((entry) => {
+  if (entry.url.includes('fin_organizations')) return orgRow(BUYER, 'BUYER');
+  if (entry.url.includes('fin_approval_requests')) return [{ id: RFQ, organization_id: BUYER, rfq_id: RFQ, status: 'pending' }];
+  if (entry.url.includes('fin_approval_steps')) return [{ id: PROPOSAL, request_id: RFQ, position: 1, approver_id: ACTOR, status: 'pending' }];
+  return [];
+});
+{
+  const res = await call('GET', 'approvals', { url: `/api/finance/approvals?organization_id=${BUYER}&rfq_id=${RFQ}` });
+  assert.equal(res.payload.rows[0].steps[0].approver_id, ACTOR);
+  assert.ok(sent.every((entry) => entry.authorization === 'Bearer user-jwt'));
+}
+reset(() => []);
+await rejects('GET', 'approvals', { url: `/api/finance/approvals?organization_id=${OTHER_ORG}` }, 403);
