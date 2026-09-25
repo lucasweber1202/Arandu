@@ -849,7 +849,9 @@ const views = {
       draw();
       frag.append(list);
     }
-    frag.append(newRfqForm(data.profile || []));
+    const cloneId = new URLSearchParams(location.search).get('clone');
+    const source = rfqs.find((rfq) => rfq.id === cloneId);
+    frag.append(newRfqForm(data.profile || [], source));
     return frag;
   },
 
@@ -864,7 +866,8 @@ const views = {
       el('h2', { text: rfq.title }),
       el('p', { class: 'muted', text: `${PRODUCTS[rfq.product]?.label || rfq.product} · ${statusLabel(rfq.status)} · prazo de resposta: ${rfq.response_deadline || 'não definido'}` }),
       rfq.description ? el('p', { text: rfq.description }) : null,
-      el('p', { class: 'muted', text: `${rfq.invites_count ?? 0} convite(s) registrado(s) · ${(rfq.proposals || []).length} proposta(s) recebida(s)` })
+      el('p', { class: 'muted', text: `${rfq.invites_count ?? 0} convite(s) registrado(s) · ${(rfq.proposals || []).length} proposta(s) recebida(s)` }),
+      el('a', { class: 'button secondary', href: `/finance/rfqs.html?clone=${encodeURIComponent(rfq.id)}#rfq-form`, text: 'Criar nova solicitação com estes dados' })
     );
     const sections = [['resumo', 'Resumo'], ['demanda', 'Demanda'], ['comparacao', 'Comparação'], ['decisao', 'Decisão']];
     const contents = el('nav', { class: 'detail-nav', 'aria-label': 'Seções da solicitação' });
@@ -1365,9 +1368,10 @@ function estimatesBlock(rfq, proposals) {
  * condições e a revisão — e a revisão mostra o que será enviado antes de
  * enviar, inclusive os avisos de coerência.
  */
-function newRfqForm(profile = []) {
+function newRfqForm(profile = [], source = null) {
   const panel = el('section', { class: 'panel' });
   panel.append(el('h2', { text: 'Nova solicitação' }));
+  if (source) panel.append(el('p', { class: 'muted', text: 'Dados da demanda anterior pré-preenchidos. Revise tudo antes de criar o novo rascunho. Convites, propostas e decisões não são copiados.' }));
   const steps = el('ol', { class: 'steps' });
   const STEP_LABELS = ['Produto', 'Necessidade', 'Condições', 'Revisão'];
   for (const [index, label] of STEP_LABELS.entries()) {
@@ -1506,6 +1510,18 @@ function newRfqForm(profile = []) {
   back.addEventListener('click', () => show(current - 1));
 
   form.append(productStep, needStep, conditionStep, reviewStep, nav);
+  if (source && PRODUCTS[source.product]) {
+    product.value = source.product;
+    renderFields();
+    form.elements.namedItem('title').value = `Nova solicitação — ${source.title || PRODUCTS[source.product].label}`.slice(0, 200);
+    for (const field of PRODUCTS[source.product].demandFields) {
+      const input = form.elements.namedItem(field.key);
+      const value = source.demand?.[field.key];
+      if (input && value !== null && value !== undefined) input.value = String(value);
+    }
+    const previousDeadline = source.response_deadline;
+    if (previousDeadline && previousDeadline > new Date().toISOString().slice(0, 10)) form.elements.namedItem('response_deadline').value = previousDeadline;
+  }
   show(0);
 
   form.addEventListener('submit', async (event) => {
@@ -1525,9 +1541,8 @@ function newRfqForm(profile = []) {
       const result = await api('rfqs', { method: 'POST', body: JSON.stringify(body) });
       const warnings = (result.warnings || []).join(' ');
       say(`Solicitação criada em rascunho. Abra-a para convidar provedores. ${warnings}`.trim(), 'success');
-      form.reset();
-      renderFields();
-      show(0);
+      if (result.id) { location.assign('/finance/rfq.html?id=' + encodeURIComponent(result.id)); return; }
+      await load();
     } catch (error) {
       say(error.status === 401 ? 'Entre na sua conta para criar uma solicitação.' : error.message);
     }
