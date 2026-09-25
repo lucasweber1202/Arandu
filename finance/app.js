@@ -1057,6 +1057,34 @@ const views = {
   settings: async (data) => {
     const frag = document.createDocumentFragment();
     frag.append(organizationForm(data.organization));
+    if (!demoMode && state.organizationId) {
+      const policy = el('section', { class: 'panel' });
+      policy.append(el('h2', { text: 'Política de aprovação' }));
+      const form = el('form');
+      const label = el('label', { text: 'Exigir aprovação antes de registrar qualquer decisão' });
+      const checkbox = el('input', { type: 'checkbox', name: 'required_for_decision' });
+      label.prepend(checkbox, ' ');
+      const status = el('p', { class: 'muted', role: 'status', 'aria-live': 'polite', text: 'Carregando política…' });
+      form.append(label, el('button', { type: 'submit', text: 'Salvar política' }), status);
+      api(`approval-policy?organization_id=${encodeURIComponent(state.organizationId)}`).then((result) => {
+        checkbox.checked = result.required_for_decision;
+        status.textContent = result.updated_at ? `Atualizada em ${new Date(result.updated_at).toLocaleString('pt-BR')}` : 'Nenhuma exigência configurada. A decisão direta continua disponível.';
+      }).catch((error) => { status.textContent = `Não foi possível carregar a política: ${error.message}`; });
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const button = form.querySelector('button');
+        button.disabled = true;
+        try {
+          await api('approval-policy', { method: 'POST', body: JSON.stringify({
+            organization_id: state.organizationId, required_for_decision: checkbox.checked
+          }) });
+          status.textContent = checkbox.checked ? 'Aprovação obrigatória para novas decisões.' : 'Aprovação opcional.';
+          say('Política de aprovação atualizada.', 'success');
+        } catch (error) { say(error.message); } finally { button.disabled = false; }
+      });
+      policy.append(form, el('p', { class: 'muted', text: 'Somente um administrador pode alterar esta regra. Mudanças são registradas na trilha da organização.' }));
+      frag.append(policy);
+    }
     const profile = data.profile || [];
     const panel = el('section', { class: 'panel' });
     panel.append(el('h2', { text: 'Perfil financeiro reutilizável' }));
