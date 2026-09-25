@@ -266,3 +266,42 @@ test('o teclado alcança a navegação e o conteúdo principal', async ({ page }
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/#main$/);
 });
+
+// O índice e a duplicação usam somente o overview autorizado da organização ativa.
+test('busca por teclado e duplicação da demanda preservam o contexto da empresa', async ({ page }) => {
+  await page.route('**/api/finance/**', (route) => {
+    const url = new URL(route.request().url());
+    if (url.pathname.endsWith('/organizations')) return route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ rows: [{ id: 'org-1', kind: 'BUYER', name: 'Empresa de teste' }] })
+    });
+    if (url.pathname.endsWith('/overview')) return route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({
+        organization: { id: 'org-1', kind: 'BUYER' }, profile: [], providers: [], contracts: [], tasks: [],
+        rfqs: [{
+          id: 'rfq-1', title: 'Crédito expansão', product: 'credit', status: 'draft',
+          response_deadline: '2027-10-01', demand: { amount: 500000, purpose: 'expansao', term_months: 24 },
+          proposals: [], invites_count: 0
+        }]
+      })
+    });
+    return route.fulfill({ status: 404, contentType: 'application/json', body: '{}' });
+  });
+  await page.goto('/finance/rfq.html?id=rfq-1');
+  await expect(page.getByRole('button', { name: /Buscar/ })).toBeVisible();
+  await page.keyboard.press('Control+k');
+  const dialog = page.getByRole('dialog', { name: 'Buscar no espaço da empresa' });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole('searchbox').fill('credito expansao');
+  await expect(dialog.getByRole('link', { name: /Crédito expansão/ })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+
+  await page.getByRole('link', { name: 'Criar nova solicitação com estes dados' }).click();
+  await expect(page).toHaveURL(/clone=rfq-1/);
+  const form = page.locator('#rfq-form');
+  await expect(form.getByLabel('Título da solicitação')).toHaveValue(/Nova solicitação/);
+  await form.getByRole('button', { name: 'Continuar' }).click();
+  await expect(form.getByLabel('Valor desejado (R$)')).toHaveValue('500000');
+});
