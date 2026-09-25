@@ -1083,7 +1083,7 @@ const views = {
       row.append(
         el('span', { class: 'tag', text: PRODUCTS[contract.product]?.label || contract.product }),
         el('span', { class: 'tag', text: statusLabel(contract.status) }),
-        el('b', { text: data.providers?.find((provider) => provider.id === contract.provider_id)?.name || 'Provedor' }),
+        el('b', { text: contract.provider_name || data.providers?.find((provider) => provider.id === contract.provider_id)?.name || 'Provedor' }),
         el('small', { text: `Vigência: ${contract.starts_on} → ${contract.ends_on} · aviso prévio: ${contract.renewal_notice_days} dias` }),
         el('small', {
           text: reviewFrom
