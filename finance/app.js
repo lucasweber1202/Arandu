@@ -937,6 +937,7 @@ const views = {
     const demand = el('section', { class: 'panel', id: 'demanda' });
     demand.append(el('h2', { text: 'Demanda declarada pela empresa' }), fieldRows(PRODUCTS[rfq.product].demandFields, rfq.demand));
     frag.append(demand);
+    frag.append(rfqRevisionPanel(rfq));
 
     const proposals = rfq.proposals || [];
     const comparison = el('section', { class: 'panel', id: 'comparacao' });
@@ -1240,6 +1241,9 @@ const views = {
           el('small', { text: state.hint }),
           el('small', { text: `Prazo de resposta: ${row.response_deadline || 'não definido'}` })
         );
+        if (row.version && row.rfq_revision > row.submitted_rfq_revision) {
+          item.append(el('p', { class: 'boundary', text: `A RFQ está na v${row.rfq_revision}; sua proposta respondeu à v${row.submitted_rfq_revision}. Revise as alterações antes de reenviar.` }));
+        }
         if (row.rfq_status && !['open', 'collecting'].includes(row.rfq_status)) {
           item.append(el('small', { text: 'Esta solicitação não está mais recebendo propostas.' }));
         }
@@ -1352,7 +1356,30 @@ const views = {
       text: 'Você responde apenas às RFQs atribuídas à sua organização. Propostas de outros provedores, notas internas da empresa e a decisão antes de publicada não são acessíveis por este portal.'
     }));
     if (assignment) {
-      panel.append(el('p', { text: `Solicitação: ${assignment.title}` }));
+      panel.append(el('p', { text: `Solicitação: ${assignment.title} · RFQ v${assignment.rfq_revision || 1}` }));
+      if (assignment.version && assignment.rfq_revision > assignment.submitted_rfq_revision) {
+        const warning = el('aside', { class: 'boundary', role: 'status' }, [
+          el('b', { text: `A solicitação mudou desde sua proposta (v${assignment.submitted_rfq_revision} → v${assignment.rfq_revision}).` }),
+          el('p', { text: 'Confira as condições e envie uma nova versão se necessário. A proposta anterior permanece registrada.' })
+        ]);
+        panel.append(warning);
+        if (!demoMode) api('rfq-revisions?organization_id=' + encodeURIComponent(state.organizationId)
+          + '&rfq_id=' + encodeURIComponent(assignment.rfq_id)).then(({ rows }) => {
+          const old = rows?.find((row) => row.revision === assignment.submitted_rfq_revision)?.snapshot;
+          const latest = rows?.find((row) => row.revision === assignment.rfq_revision)?.snapshot;
+          if (!old || !latest) return;
+          const changed = [['title', 'Título'], ['response_deadline', 'Prazo de resposta'],
+            ...PRODUCTS[assignment.product].demandFields.map((field) => [field.key, field.label])];
+          const list = el('ul');
+          for (const [key, label] of changed) {
+            const before = key in (old.demand || {}) ? old.demand[key] : old[key];
+            const after = key in (latest.demand || {}) ? latest.demand[key] : latest[key];
+            if (JSON.stringify(before ?? null) !== JSON.stringify(after ?? null))
+              list.append(el('li', { text: `${label}: ${show(before)} → ${show(after)}` }));
+          }
+          if (list.children.length) warning.append(list);
+        }).catch(() => {});
+      }
       const status = PROPOSAL_STATUS[assignment.status];
       if (status) panel.append(el('p', { class: 'muted', text: `${status.label} — ${status.hint}` }));
       if (Object.keys(assignment.demand || {}).length) {
@@ -1626,6 +1653,85 @@ function objectHref(type, id) {
   if (type === 'proposal') return `/provider/proposal.html?proposal=${encodeURIComponent(id)}`;
   if (type === 'contract') return `/finance/contracts.html#contract-${encodeURIComponent(id)}`;
   return '/finance/dashboard.html#open-tasks';
+}
+
+function rfqRevisionPanel(rfq) {
+  const section = el('section', { class: 'panel', id: 'revisoes' });
+  section.append(el('h2', { text: 'Revisões da solicitação' }),
+    el('p', { class: 'muted', text: 'Mudanças publicadas ficam no histórico. Propostas enviadas continuam vinculadas à versão anterior.' }));
+  const history = el('div', { class: 'revision-history' });
+  section.append(history);
+  if (!demoMode) api('rfq-revisions?organization_id=' + encodeURIComponent(state.organizationId)
+    + '&rfq_id=' + encodeURIComponent(rfq.id)).then(({ rows }) => {
+    history.replaceChildren();
+    for (const item of rows || []) {
+      const detail = el('details');
+      detail.append(el('summary', { text: 'v' + item.revision + ' · ' + new Date(item.published_at).toLocaleString('pt-BR') }));
+      detail.append(el('p', { text: item.snapshot.title || 'Solicitação' }),
+        fieldRows(PRODUCTS[rfq.product].demandFields, item.snapshot.demand || {}),
+        el('small', { text: 'Prazo de resposta: ' + (item.snapshot.response_deadline || 'não definido') }));
+      history.append(detail);
+    }
+    if (!history.children.length) history.append(el('p', { class: 'muted', text: 'Nenhuma revisão registrada.' }));
+  }).catch((error) => { history.textContent = 'Histórico indisponível: ' + error.message; });
+  if (demoMode || !['draft','open','collecting'].includes(rfq.status)) return section;
+  const form = el('form', { class: 'rfq-revision-form' });
+  const title = el('label', { text: 'Título' });
+  title.append(el('input', { name: 'title', required: 'required', value: rfq.title, minlength: '3', maxlength: '200' }));
+  const desc = el('label', { text: 'Descrição' });
+  const descInput = el('textarea', { name: 'description', maxlength: '4000' });
+  descInput.value = rfq.description || '';
+  desc.append(descInput);
+  const deadline = el('label', { text: 'Prazo de resposta' });
+  const deadlineInput = el('input', { name: 'response_deadline', type: 'date' });
+  deadlineInput.value = rfq.response_deadline || '';
+  deadline.append(deadlineInput);
+  form.append(title, desc, deadline);
+  for (const field of PRODUCTS[rfq.product].demandFields) {
+    const label = el('label', { text: field.label });
+    let input;
+    if (field.type === 'enum' || field.type === 'bool') {
+      input = el('select', { name: field.key });
+      input.add(new Option('Não informado', ''));
+      for (const value of field.type === 'bool' ? ['true','false'] : field.options) input.add(new Option(value, value));
+    } else {
+      input = el('input', { name: field.key, type: field.type === 'date' ? 'date' :
+        ['money','percent','number','int'].includes(field.type) ? 'number' : 'text',
+        step: field.type === 'int' ? '1' : '0.01' });
+    }
+    if (rfq.demand?.[field.key] !== undefined && rfq.demand?.[field.key] !== null) input.value = String(rfq.demand[field.key]);
+    label.append(input);
+    form.append(label);
+  }
+  const status = el('p', { role: 'status', 'aria-live': 'polite', class: 'muted',
+    text: 'Revisão atual: v' + (rfq.revision || 1) + '. A alteração será visível aos provedores convidados.' });
+  const button = el('button', { type: 'submit', text: 'Publicar revisão' });
+  form.append(status, button);
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    button.disabled = true;
+    const entries = Object.fromEntries(new FormData(form));
+    const demand = {};
+    for (const field of PRODUCTS[rfq.product].demandFields) {
+      if (entries[field.key] !== '') demand[field.key] = entries[field.key];
+    }
+    try {
+      const result = await api('rfqs', { method: 'PATCH', body: JSON.stringify({
+        rfq_id: rfq.id, expected_revision: rfq.revision || 1,
+        title: entries.title, description: entries.description, response_deadline: entries.response_deadline, demand
+      }) });
+      status.textContent = 'Revisão v' + result.revision + ' publicada. Atualizando histórico…';
+      location.reload();
+    } catch (error) {
+      status.textContent = error.message;
+      if (error.status === 409) status.append(el('button', { type: 'button', class: 'secondary',
+        text: 'Recarregar versão atual' }));
+      status.querySelector('button')?.addEventListener('click', () => location.reload());
+      button.disabled = false;
+    }
+  });
+  section.append(form);
+  return section;
 }
 
 function installNotificationCenter() {
