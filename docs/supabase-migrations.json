@@ -22,7 +22,9 @@
     "docs/supabase-beta-conversion-events.sql",
     "docs/supabase-financial-procurement.sql",
     "docs/supabase-financial-procurement-hardening.sql",
-    "docs/supabase-financial-pilot.sql"
+    "docs/supabase-financial-pilot.sql",
+    "docs/supabase-financial-enterprise-approvals.sql",
+    "docs/supabase-financial-enterprise-drafts.sql"
   ],
   "existingDatabase": [
     "docs/supabase-sprint1-auth-ownership.sql",
@@ -46,6 +48,8 @@
     "docs/supabase-beta-conversion-events.sql",
     "docs/supabase-financial-procurement.sql",
     "docs/supabase-financial-procurement-hardening.sql",
-    "docs/supabase-financial-pilot.sql"
+    "docs/supabase-financial-pilot.sql",
+    "docs/supabase-financial-enterprise-approvals.sql",
+    "docs/supabase-financial-enterprise-drafts.sql"
   ]
 }

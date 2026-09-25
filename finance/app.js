@@ -755,6 +755,32 @@ const views = {
     if (!priorityList.children.length) priorityList.append(el('p', { class: 'muted', text: 'Nenhum prazo ou decisão pendente nos registros atuais.' }));
     priorities.append(priorityList);
     frag.append(priorities);
+    if (!demoMode && state.organizationId) {
+      const inbox = el('section', { class: 'panel', id: 'approval-inbox' });
+      inbox.append(el('h2', { text: 'Aprovações aguardando minha ação' }));
+      const list = el('div', { class: 'rows', 'aria-live': 'polite' }, el('p', { class: 'muted', text: 'Carregando aprovações…' }));
+      inbox.append(list);
+      frag.append(inbox);
+      Promise.all([
+        api(`approvals?organization_id=${encodeURIComponent(state.organizationId)}`),
+        api(`members?organization_id=${encodeURIComponent(state.organizationId)}`)
+      ]).then(([approvals, members]) => {
+        list.replaceChildren();
+        const mine = (approvals.rows || []).filter((request) => {
+          if (request.status !== 'pending') return false;
+          const pending = (request.steps || []).find((step) => step.status === 'pending');
+          return pending?.approver_id === members.viewer_id;
+        });
+        for (const request of mine) {
+          const rfq = rfqs.find((item) => item.id === request.rfq_id);
+          list.append(el('a', {
+            class: 'row', href: `/finance/rfq.html?id=${encodeURIComponent(request.rfq_id)}#aprovacoes`,
+            text: `${rfq?.title || 'Solicitação'} · proposta v${request.proposal_version} · aberta em ${new Date(request.requested_at).toLocaleDateString('pt-BR')} →`
+          }));
+        }
+        if (!mine.length) list.append(el('p', { class: 'muted', text: 'Nenhuma aprovação atribuída a você agora.' }));
+      }).catch((error) => list.replaceChildren(el('p', { text: `Não foi possível carregar a caixa de aprovação: ${error.message}` })));
+    }
 
     if (expiring.length) {
       const alert = el('section', { class: 'panel' });
@@ -873,7 +899,7 @@ const views = {
       el('p', { class: 'muted', text: `${rfq.invites_count ?? 0} convite(s) registrado(s) · ${(rfq.proposals || []).length} proposta(s) recebida(s)` }),
       el('a', { class: 'button secondary', href: `/finance/rfqs.html?clone=${encodeURIComponent(rfq.id)}#rfq-form`, text: 'Criar nova solicitação com estes dados' })
     );
-    const sections = [['resumo', 'Resumo'], ['demanda', 'Demanda'], ['comparacao', 'Comparação'], ['decisao', 'Decisão']];
+    const sections = [['resumo', 'Resumo'], ['demanda', 'Demanda'], ['comparacao', 'Comparação'], ['aprovacoes', 'Aprovações'], ['decisao', 'Decisão']];
     const contents = el('nav', { class: 'detail-nav', 'aria-label': 'Seções da solicitação' });
     for (const [anchor, label] of sections) contents.append(el('a', { href: '#' + anchor, text: label }));
     frag.append(contents);
@@ -898,6 +924,7 @@ const views = {
     frag.append(comparison);
     if (proposals.length > 1) frag.append(weightsPanel(rfq.product, proposals));
 
+    frag.append(approvalWorkspace(rfq, proposals));
     const decision = el('section', { class: 'panel', id: 'decisao' });
     decision.append(el('h2', { text: 'Decisão' }));
     decision.append(el('p', {
@@ -1030,6 +1057,34 @@ const views = {
   settings: async (data) => {
     const frag = document.createDocumentFragment();
     frag.append(organizationForm(data.organization));
+    if (!demoMode && state.organizationId) {
+      const policy = el('section', { class: 'panel' });
+      policy.append(el('h2', { text: 'Política de aprovação' }));
+      const form = el('form');
+      const label = el('label', { text: 'Exigir aprovação antes de registrar qualquer decisão' });
+      const checkbox = el('input', { type: 'checkbox', name: 'required_for_decision' });
+      label.prepend(checkbox, ' ');
+      const status = el('p', { class: 'muted', role: 'status', 'aria-live': 'polite', text: 'Carregando política…' });
+      form.append(label, el('button', { type: 'submit', text: 'Salvar política' }), status);
+      api(`approval-policy?organization_id=${encodeURIComponent(state.organizationId)}`).then((result) => {
+        checkbox.checked = result.required_for_decision;
+        status.textContent = result.updated_at ? `Atualizada em ${new Date(result.updated_at).toLocaleString('pt-BR')}` : 'Nenhuma exigência configurada. A decisão direta continua disponível.';
+      }).catch((error) => { status.textContent = `Não foi possível carregar a política: ${error.message}`; });
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const button = form.querySelector('button');
+        button.disabled = true;
+        try {
+          await api('approval-policy', { method: 'POST', body: JSON.stringify({
+            organization_id: state.organizationId, required_for_decision: checkbox.checked
+          }) });
+          status.textContent = checkbox.checked ? 'Aprovação obrigatória para novas decisões.' : 'Aprovação opcional.';
+          say('Política de aprovação atualizada.', 'success');
+        } catch (error) { say(error.message); } finally { button.disabled = false; }
+      });
+      policy.append(form, el('p', { class: 'muted', text: 'Somente um administrador pode alterar esta regra. Mudanças são registradas na trilha da organização.' }));
+      frag.append(policy);
+    }
     const profile = data.profile || [];
     const panel = el('section', { class: 'panel' });
     panel.append(el('h2', { text: 'Perfil financeiro reutilizável' }));
@@ -1246,40 +1301,95 @@ const views = {
     const note = el('label', { text: 'Nota da revisão (opcional)' });
     note.append(el('input', { name: '__note', 'aria-label': 'Nota da revisão' }));
     form.append(note);
+    const saveButton = el('button', { type: 'button', class: 'secondary', id: 'save-draft', text: 'Salvar agora' });
     form.append(el('div', {}, [
-      el('button', { type: 'submit', text: 'Enviar proposta' }),
-      el('button', { type: 'button', class: 'secondary', id: 'save-draft', text: 'Salvar rascunho local' })
+      el('button', { type: 'submit', text: 'Revisar e enviar proposta' }),
+      saveButton
     ]));
     form.append(el('p', {
       class: 'muted',
       text: 'Alterações após o envio criam uma nova versão. A versão anterior permanece registrada e visível para a empresa compradora.'
     }));
-    const draftKey = `arandu-finance-draft-${assignment?.proposal_id || product}`;
-    form.querySelector('#save-draft').addEventListener('click', () => {
-      try {
-        localStorage.setItem(draftKey, JSON.stringify(Object.fromEntries(new FormData(form))));
-        say('Rascunho salvo neste navegador.', 'success');
-      } catch { say('Não foi possível salvar o rascunho neste navegador.'); }
-    });
-    // A versão já enviada é o ponto de partida de uma revisão.
+    const saveState = el('p', { class: 'muted', role: 'status', 'aria-live': 'polite', text: 'Rascunho ainda não salvo.' });
+    form.append(saveState);
+    const baseVersion = assignment?.version || 0;
+    // Remove drafts stored by older builds. Terms now live only in the tenant-scoped database.
+    try { localStorage.removeItem(`arandu-finance-draft-${assignment?.proposal_id || product}`); } catch { /* storage may be disabled */ }
+    let revision = 0;
+    let timer;
+    let inFlight = Promise.resolve();
+    let draftReady = Promise.resolve();
+    let dirty = false;
+    let blocked = false;
+    function values() {
+      const entries = Object.fromEntries(new FormData(form));
+      delete entries.__note;
+      for (const [key, value] of Object.entries(entries)) if (value === '') delete entries[key];
+      return entries;
+    }
+    async function save() {
+      if (!assignment?.proposal_id || demoMode || !dirty || blocked) return;
+      clearTimeout(timer);
+      const terms = values();
+      dirty = false;
+      saveState.textContent = 'Salvando…';
+      inFlight = inFlight.then(async () => {
+        await draftReady;
+        const result = await api('proposal-draft', { method: 'PATCH', body: JSON.stringify({
+          proposal_id: assignment.proposal_id, terms,
+          expected_revision: revision, base_version: baseVersion
+        }) });
+        revision = result.revision;
+        saveState.textContent = dirty ? 'Alterações pendentes…' : 'Rascunho salvo no servidor.';
+      }).catch((error) => {
+        dirty = true;
+        blocked = error.status === 409;
+        saveState.textContent = blocked
+          ? 'Conflito: este rascunho mudou em outra aba. Atualize a página antes de continuar.'
+          : `Falha ao salvar. Use “Salvar agora” para tentar novamente: ${error.message}`;
+      });
+      await inFlight;
+    }
     for (const [key, value] of Object.entries(assignment?.terms || {})) {
       const input = form.elements.namedItem(key);
       if (input && value !== null && value !== undefined) input.value = String(value);
     }
-    try {
-      const stored = JSON.parse(localStorage.getItem(draftKey) || 'null');
-      if (stored) for (const [key, value] of Object.entries(stored)) {
-        const input = form.elements.namedItem(key);
-        if (input && value) input.value = value;
-      }
-    } catch { /* rascunho ilegível é simplesmente ignorado */ }
+    if (assignment?.proposal_id && !demoMode) {
+      draftReady = api(`proposal-draft?proposal_id=${encodeURIComponent(assignment.proposal_id)}`).then(({ draft }) => {
+        if (!draft) return;
+        revision = draft.revision;
+        if (dirty) return;
+        for (const [key, value] of Object.entries(draft.terms || {})) {
+          const input = form.elements.namedItem(key);
+          if (input && value !== null && value !== undefined) input.value = String(value);
+        }
+        saveState.textContent = `Rascunho salvo em ${new Date(draft.updated_at).toLocaleString('pt-BR')}.`;
+      }).catch((error) => { saveState.textContent = `Não foi possível carregar o rascunho: ${error.message}`; });
+      form.addEventListener('input', () => {
+        dirty = true;
+        if (blocked) return;
+        saveState.textContent = 'Alterações pendentes…';
+        clearTimeout(timer);
+        timer = setTimeout(save, 900);
+      });
+      form.addEventListener('change', () => {
+        dirty = true;
+        if (blocked) return;
+        clearTimeout(timer);
+        timer = setTimeout(save, 900);
+      });
+      saveButton.addEventListener('click', () => { if (!blocked) { dirty = true; save(); } });
+    } else saveButton.disabled = true;
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
-      const entries = Object.fromEntries(new FormData(form));
-      const noteValue = entries.__note;
-      delete entries.__note;
-      for (const [key, value] of Object.entries(entries)) if (value === '') delete entries[key];
+      clearTimeout(timer);
+      if (dirty) await save();
+      await inFlight;
+      if (blocked) { say('Atualize a página para resolver o conflito de rascunho.'); return; }
+      const noteValue = form.elements.namedItem('__note')?.value;
+      const entries = values();
       if (!assignment?.proposal_id) { say('Aceite um convite antes de enviar a proposta.'); return; }
+      if (!window.confirm('Revise as condições preenchidas antes de enviar. Uma nova versão ficará registrada para a empresa. Enviar agora?')) return;
       try {
         const result = await api('proposals', {
           method: 'POST',
@@ -1301,6 +1411,110 @@ const views = {
  * foi decidido e quando. Não é parecer, não é recomendação, não é relatório
  * jurídico — e o próprio arquivo diz isso.
  */
+
+function approvalWorkspace(rfq, proposals) {
+  const section = el('section', { class: 'panel', id: 'aprovacoes' });
+  section.append(el('h2', { text: 'Aprovações' }));
+  const content = el('div', { 'aria-live': 'polite' }, el('p', { class: 'muted', text: 'Carregando aprovações…' }));
+  section.append(content);
+  if (demoMode || !state.organizationId) {
+    content.replaceChildren(el('p', { class: 'muted', text: 'Aprovações disponíveis no workspace autenticado.' }));
+    return section;
+  }
+  const refresh = async () => {
+    try {
+      const [approvalData, memberData] = await Promise.all([
+        api(`approvals?organization_id=${encodeURIComponent(state.organizationId)}&rfq_id=${encodeURIComponent(rfq.id)}`),
+        api(`members?organization_id=${encodeURIComponent(state.organizationId)}`)
+      ]);
+      content.replaceChildren();
+      const rows = approvalData.rows || [];
+      const latest = rows[0];
+      const name = (id) => {
+        const member = (memberData.rows || []).find((entry) => entry.user_id === id);
+        return member ? `${member.role} · ${id.slice(0, 8)}` : id.slice(0, 8);
+      };
+      if (latest) {
+        content.append(el('p', { class: 'muted', text: `Solicitação ${statusLabel(latest.status)} · proposta v${latest.proposal_version} · ${new Date(latest.requested_at).toLocaleString('pt-BR')}` }));
+        content.append(el('p', { text: latest.rationale }));
+        const list = el('ol');
+        for (const step of latest.steps || []) {
+          const item = el('li', { text: `${name(step.approver_id)} — ${statusLabel(step.status)}${step.comment ? ` · ${step.comment}` : ''}` });
+          if (latest.status === 'pending' && step.status === 'pending' && step.approver_id === memberData.viewer_id &&
+              !(latest.steps || []).some((earlier) => earlier.position < step.position && earlier.status === 'pending')) {
+            for (const [action, label] of [['approved','Aprovar'],['changes_requested','Solicitar alterações'],['rejected','Rejeitar']]) {
+              const button = el('button', { type: 'button', class: action === 'approved' ? '' : 'secondary', text: label });
+              button.addEventListener('click', async () => {
+                const comment = action === 'approved' ? '' : window.prompt('Informe o motivo (mínimo 3 caracteres):');
+                if (comment === null || (action !== 'approved' && (!comment || comment.trim().length < 3))) return;
+                button.disabled = true;
+                try {
+                  await api('approvals/act', { method: 'POST', body: JSON.stringify({ request_id: latest.id, action, comment }) });
+                  say('Aprovação registrada.', 'success');
+                  await refresh();
+                } catch (error) { say(error.message); button.disabled = false; }
+              });
+              item.append(' ', button);
+            }
+          }
+          list.append(item);
+        }
+        content.append(list);
+        if (latest.status === 'pending' && memberData.viewer_id === latest.requested_by) {
+          const cancel = el('button', { type: 'button', class: 'secondary', text: 'Cancelar solicitação' });
+          cancel.addEventListener('click', async () => {
+            cancel.disabled = true;
+            try {
+              await api('approvals/cancel', { method: 'POST', body: JSON.stringify({ request_id: latest.id }) });
+              await refresh();
+            } catch (error) { say(error.message); cancel.disabled = false; }
+          });
+          content.append(cancel);
+        }
+      } else content.append(el('p', { class: 'muted', text: 'Nenhuma aprovação solicitada. A empresa pode decidir diretamente ou solicitar uma revisão formal.' }));
+      if (proposals.length && (!latest || latest.status !== 'pending') &&
+          ['collecting','comparing'].includes(rfq.status)) {
+        const eligible = (memberData.rows || []).filter((member) => member.user_id !== memberData.viewer_id && member.role !== 'provider_user');
+        if (!eligible.length) {
+          content.append(el('p', { class: 'muted', text: 'Convide outro membro para solicitar aprovação. O solicitante não pode aprovar a própria solicitação.' }));
+          return;
+        }
+        const form = el('form');
+        const proposalLabel = el('label', { text: 'Proposta para aprovação' });
+        const proposalSelect = el('select', { name: 'proposal_id', required: '' });
+        for (const proposal of proposals) proposalSelect.add(new Option(`${proposal.provider_name} · v${proposal.version || 1}`, proposal.id));
+        proposalLabel.append(proposalSelect);
+        const approverLabel = el('label', { text: 'Aprovadores em ordem (Ctrl/Cmd para selecionar vários)' });
+        const select = el('select', { name: 'approver_ids', multiple: '', size: String(Math.min(5, eligible.length)), required: '' });
+        for (const member of eligible) select.add(new Option(name(member.user_id), member.user_id));
+        approverLabel.append(select);
+        const why = el('label', { text: 'Contexto para o aprovador' });
+        why.append(el('textarea', { name: 'rationale', required: '', minlength: '1', maxlength: '4000' }));
+        form.append(proposalLabel, approverLabel, why, el('button', { type: 'submit', text: 'Solicitar aprovação' }));
+        form.addEventListener('submit', async (event) => {
+          event.preventDefault();
+          const button = form.querySelector('button[type="submit"]');
+          button.disabled = true;
+          try {
+            await api('approvals/request', { method: 'POST', body: JSON.stringify({
+              rfq_id: rfq.id, proposal_id: proposalSelect.value,
+              approver_ids: [...select.selectedOptions].map((option) => option.value),
+              rationale: why.querySelector('textarea').value
+            }) });
+            say('Aprovação solicitada.', 'success');
+            await refresh();
+          } catch (error) { say(error.message); button.disabled = false; }
+        });
+        content.append(form);
+      }
+    } catch (error) {
+      content.replaceChildren(el('p', { text: `Não foi possível carregar aprovações: ${error.message}` }));
+    }
+  };
+  refresh();
+  return section;
+}
+
 function exportLink(rfq) {
   const box = el('div');
   const button = el('button', { type: 'button', class: 'secondary', id: 'export-rfq', text: 'Exportar este processo (JSON)' });

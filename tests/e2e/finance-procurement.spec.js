@@ -148,15 +148,16 @@ test('nenhuma página do portal promete aprovação, recomendação ou ranking',
   }
 });
 
-test('o portal do provedor permite salvar rascunho local e recuperá-lo', async ({ page }) => {
+test('o portal do provedor não persiste termos financeiros no navegador', async ({ page }) => {
   await page.goto('/provider/proposal.html');
   const form = page.locator('#proposal-form');
   await form.getByLabel('Instituição', { exact: true }).fill('Banco Alfa Demo');
   await form.getByLabel('Taxa (% a.m.)', { exact: true }).fill('1.85');
-  await page.getByRole('button', { name: 'Salvar rascunho local' }).click();
-  await expect(page.locator('#message')).toHaveText('Rascunho salvo neste navegador.');
-  await page.reload();
-  await expect(page.locator('#proposal-form').getByLabel('Instituição', { exact: true })).toHaveValue('Banco Alfa Demo');
+  // A apresentação não tem sessão de provedor e não pode prometer persistência.
+  await expect(page.getByRole('button', { name: 'Salvar agora' })).toBeDisabled();
+  const keys = await page.evaluate(() => Object.keys(localStorage).filter((key) => key.startsWith('arandu-finance-draft-')));
+  expect(keys).toEqual([]);
+  await expect(form.getByRole('button', { name: 'Revisar e enviar proposta' })).toBeVisible();
 });
 
 test('a página de convite trata cada estado do token em vez de dar erro genérico', async ({ page }) => {
