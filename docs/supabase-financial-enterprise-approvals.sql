@@ -122,6 +122,35 @@ begin
     values(v_request.organization_id,'rfq',v_request.rfq_id,'approval_cancelled',auth.uid(),jsonb_build_object('request_id',p_request));
 end $$;
 
+-- Explicit opt-in organization policy; configured by an admin and audited.
+create table if not exists public.fin_approval_policies (
+ organization_id uuid primary key references public.fin_organizations(id),
+ required_for_decision boolean not null default false,
+ updated_by uuid not null references auth.users(id),
+ updated_at timestamptz not null default now()
+);
+alter table public.fin_approval_policies enable row level security;
+alter table public.fin_approval_policies force row level security;
+revoke all on public.fin_approval_policies from anon,authenticated;
+grant select on public.fin_approval_policies to authenticated;
+drop policy if exists fin_approval_policy_read on public.fin_approval_policies;
+create policy fin_approval_policy_read on public.fin_approval_policies for select to authenticated
+ using(public.fin_has_role(organization_id));
+create or replace function public.fin_set_approval_policy(p_org uuid,p_required boolean)
+returns void language plpgsql security definer set search_path = '' as $
+begin
+ if not public.fin_has_role(p_org,array['admin']) then raise exception 'forbidden'; end if;
+ if not exists(select 1 from public.fin_organizations where id=p_org and kind='BUYER') then raise exception 'forbidden'; end if;
+ if p_required is null then raise exception 'invalid policy'; end if;
+ insert into public.fin_approval_policies(organization_id,required_for_decision,updated_by)
+ values(p_org,p_required,auth.uid())
+ on conflict(organization_id) do update set required_for_decision=excluded.required_for_decision,updated_by=auth.uid(),updated_at=now();
+ insert into public.fin_events(organization_id,entity_type,entity_id,event_type,actor_id,metadata)
+ values(p_org,'organization',p_org,'approval_policy_updated',auth.uid(),jsonb_build_object('required_for_decision',p_required));
+end $;
+revoke all on function public.fin_set_approval_policy(uuid,boolean) from public,anon;
+grant execute on function public.fin_set_approval_policy(uuid,boolean) to authenticated,service_role;
+
 -- Replace the decision entrypoint, including callers that bypass the application API.
 create or replace function public.fin_record_decision(
   p_rfq uuid, p_proposal uuid, p_criteria jsonb default '{}'::jsonb, p_rationale text default null
@@ -138,7 +167,10 @@ begin
     where id=p_proposal and rfq_id=p_rfq and buyer_organization_id=v_org and status in ('submitted','revised');
   if v_version is null then raise exception 'proposal not eligible'; end if;
   select * into v_approval from public.fin_approval_requests where rfq_id=p_rfq order by requested_at desc,id desc limit 1;
-  if found and (v_approval.status <> 'approved' or v_approval.proposal_id <> p_proposal
+  if v_approval.id is null and exists(select 1 from public.fin_approval_policies where organization_id=v_org and required_for_decision) then
+    raise exception 'approval required or stale';
+  end if;
+  if v_approval.id is not null and (v_approval.status <> 'approved' or v_approval.proposal_id <> p_proposal
     or v_approval.proposal_version <> v_version or v_approval.rfq_updated_at is distinct from v_updated) then
     raise exception 'approval required or stale';
   end if;
