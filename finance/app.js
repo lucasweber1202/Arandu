@@ -645,9 +645,10 @@ function installCommandCenter(data) {
   const results = el('div', { class: 'command-results', 'aria-live': 'polite' });
   const close = el('button', { type: 'button', class: 'secondary', text: 'Fechar' });
   const items = commandItems(data);
-  const draw = () => {
+  let searchTimer;
+  let requestSequence = 0;
+  const renderItems = (matches) => {
     results.replaceChildren();
-    const matches = searchCommandItems(items, input.value);
     if (!matches.length) {
       results.append(el('p', { class: 'muted', text: 'Nenhum resultado nesta organização. Tente outro termo.' }));
       return;
@@ -656,6 +657,29 @@ function installCommandCenter(data) {
       el('span', { class: 'tag', text: item.kind }),
       el('span', {}, [el('b', { text: item.title }), item.detail ? el('small', { text: item.detail }) : null])
     ]));
+  };
+  const draw = () => {
+    clearTimeout(searchTimer);
+    const sequence = ++requestSequence;
+    const term = input.value.trim();
+    if (term.length < 2 || demoMode) {
+      renderItems(searchCommandItems(items, term));
+      return;
+    }
+    results.replaceChildren(el('p', { class: 'muted', text: 'Buscando…' }));
+    searchTimer = setTimeout(async () => {
+      try {
+        const response = await api('search?organization_id=' + encodeURIComponent(state.organizationId)
+          + '&q=' + encodeURIComponent(term));
+        if (sequence !== requestSequence || !dialog.open) return;
+        const labels = { rfq: 'Solicitação', proposal: 'Proposta', provider: 'Provedor', contract: 'Contrato', task: 'Tarefa' };
+        renderItems((response.rows || []).map((row) => ({
+          kind: labels[row.kind] || row.kind, title: row.title, detail: row.detail, href: row.href
+        })));
+      } catch {
+        if (sequence === requestSequence) results.replaceChildren(el('p', { class: 'muted', text: 'A busca está indisponível. Tente novamente.' }));
+      }
+    }, 240);
   };
   trigger.addEventListener('click', () => { input.value = ''; draw(); dialog.showModal(); input.focus(); });
   close.addEventListener('click', () => dialog.close());
