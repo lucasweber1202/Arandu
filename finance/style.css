@@ -160,3 +160,9 @@ header.app .command-trigger{min-height:44px;white-space:nowrap;background:#e5ede
 
 .stat span,.stat small{display:block}
 .stat small{margin-top:.35rem}
+
+@media(max-width:759px){
+  .rfq-list .row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .rfq-list .row .tag{min-width:0;margin-right:0;white-space:normal;overflow-wrap:anywhere}
+  fieldset,form{min-width:0}
+}
