@@ -1,32 +1,39 @@
 \set ON_ERROR_STOP on
--- Enterprise approvals: authorization, sequential votes, stale evidence and decision gate.
+-- Self-contained fixture in the same psql session as the assertions.
 insert into auth.users(id,email) values
+('00000000-0000-4000-8000-00000000ba01','buyer-approval@example.invalid'),
 ('00000000-0000-4000-8000-00000000ba04','approver-one@example.invalid'),
 ('00000000-0000-4000-8000-00000000ba05','approver-two@example.invalid'),
 ('00000000-0000-4000-8000-00000000ba06','outsider@example.invalid')
 on conflict(id) do nothing;
-insert into public.fin_members(organization_id,user_id,role)
-select value,'00000000-0000-4000-8000-00000000ba04','viewer' from hard_ids where key='buyer'
-on conflict do nothing;
-insert into public.fin_members(organization_id,user_id,role)
-select value,'00000000-0000-4000-8000-00000000ba05','finance_manager' from hard_ids where key='buyer'
-on conflict do nothing;
+insert into public.fin_organizations(id,legal_name,kind,created_by) values
+('00000000-0000-4000-8000-00000000bb01','Empresa aprovação DEMO','BUYER','00000000-0000-4000-8000-00000000ba01');
+insert into public.fin_members(organization_id,user_id,role) values
+('00000000-0000-4000-8000-00000000bb01','00000000-0000-4000-8000-00000000ba01','admin'),
+('00000000-0000-4000-8000-00000000bb01','00000000-0000-4000-8000-00000000ba04','viewer'),
+('00000000-0000-4000-8000-00000000bb01','00000000-0000-4000-8000-00000000ba05','finance_manager');
+insert into public.fin_rfqs(id,organization_id,product,title,owner_id,status,demand) values
+('00000000-0000-4000-8000-00000000bb11','00000000-0000-4000-8000-00000000bb01','credit',
+ 'Aprovação empresarial DEMO','00000000-0000-4000-8000-00000000ba01','collecting','{"amount":100000}'::jsonb);
+insert into public.fin_providers(id,organization_id,name,kind,created_by) values
+('00000000-0000-4000-8000-00000000bb03','00000000-0000-4000-8000-00000000bb01',
+ 'Banco approval DEMO','bank','00000000-0000-4000-8000-00000000ba01');
+insert into public.fin_organizations(id,legal_name,kind,created_by) values
+('00000000-0000-4000-8000-00000000bb02','Provider approval DEMO','PROVIDER','00000000-0000-4000-8000-00000000ba01');
+insert into public.fin_rfq_invites(id,buyer_organization_id,rfq_id,provider_id,provider_organization_id,token_hash,created_by,status) values
+('00000000-0000-4000-8000-00000000bb04','00000000-0000-4000-8000-00000000bb01',
+ '00000000-0000-4000-8000-00000000bb11','00000000-0000-4000-8000-00000000bb03',
+ '00000000-0000-4000-8000-00000000bb02',repeat('b',64),'00000000-0000-4000-8000-00000000ba01','accepted');
+insert into public.fin_proposals(id,invite_id,rfq_id,buyer_organization_id,provider_id,provider_organization_id,product,status,current_version) values
+('00000000-0000-4000-8000-00000000bb12','00000000-0000-4000-8000-00000000bb04',
+ '00000000-0000-4000-8000-00000000bb11','00000000-0000-4000-8000-00000000bb01',
+ '00000000-0000-4000-8000-00000000bb03','00000000-0000-4000-8000-00000000bb02','credit','submitted',1);
+insert into public.fin_proposal_versions(proposal_id,version,terms,submitted_by) values
+('00000000-0000-4000-8000-00000000bb12',1,'{"interest_rate_month":1.5}'::jsonb,'00000000-0000-4000-8000-00000000ba01');
 create temporary table approval_ids(key text primary key,value uuid);
-create temporary table approval_tokens(key text primary key,value text);
-grant all on approval_ids,approval_tokens to authenticated;
+grant all on approval_ids to authenticated;
 set role authenticated;
 select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-00000000ba01',false);
-insert into approval_ids select 'rfq',public.fin_create_rfq((select value from hard_ids where key='buyer'),
- 'credit','Aprovação empresarial DEMO',null,'{"amount":100000}'::jsonb,null);
-select public.fin_transition('rfq',(select value from approval_ids where key='rfq'),'open');
-insert into approval_tokens select 'invite',public.fin_invite_provider(
- (select value from approval_ids where key='rfq'),(select value from hard_ids where key='provider_a'));
-select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-00000000ba02',false);
-select public.fin_accept_provider_invite((select value from approval_tokens where key='invite'),(select value from hard_ids where key='prov1'));
-insert into approval_ids select 'proposal',id from public.fin_proposals where rfq_id=(select value from approval_ids where key='rfq');
-select public.fin_submit_proposal((select value from approval_ids where key='proposal'),'{"interest_rate_month":1.5}'::jsonb);
-select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-00000000ba01',false);
-
 -- Direct table mutation cannot forge approval state.
 do $$
 begin
@@ -35,31 +42,31 @@ begin
    raise exception 'approval tables are directly writable';
  end if;
  begin
-  perform public.fin_request_approval((select value from approval_ids where key='rfq'),
-   (select value from approval_ids where key='proposal'),array['00000000-0000-4000-8000-00000000ba01'::uuid],'self');
+  perform public.fin_request_approval('00000000-0000-4000-8000-00000000bb11'::uuid,
+   '00000000-0000-4000-8000-00000000bb12'::uuid,array['00000000-0000-4000-8000-00000000ba01'::uuid],'self');
   raise exception 'self approval accepted';
  exception when others then if sqlerrm not like '%invalid approver%' then raise; end if; end;
  begin
-  perform public.fin_request_approval((select value from approval_ids where key='rfq'),
-   (select value from approval_ids where key='proposal'),array['00000000-0000-4000-8000-00000000ba06'::uuid],'outsider');
+  perform public.fin_request_approval('00000000-0000-4000-8000-00000000bb11'::uuid,
+   '00000000-0000-4000-8000-00000000bb12'::uuid,array['00000000-0000-4000-8000-00000000ba06'::uuid],'outsider');
   raise exception 'foreign approver accepted';
  exception when others then if sqlerrm not like '%invalid approver%' then raise; end if; end;
 end $$;
 
 insert into approval_ids select 'request',public.fin_request_approval(
- (select value from approval_ids where key='rfq'),(select value from approval_ids where key='proposal'),
+ '00000000-0000-4000-8000-00000000bb11'::uuid,'00000000-0000-4000-8000-00000000bb12'::uuid,
  array['00000000-0000-4000-8000-00000000ba04'::uuid,'00000000-0000-4000-8000-00000000ba05'::uuid],
  'Revisar proposta e condições');
 do $$
 begin
  begin
-  perform public.fin_record_decision((select value from approval_ids where key='rfq'),
-   (select value from approval_ids where key='proposal'));
+  perform public.fin_record_decision('00000000-0000-4000-8000-00000000bb11'::uuid,
+   '00000000-0000-4000-8000-00000000bb12'::uuid);
   raise exception 'decision bypassed approval';
  exception when others then if sqlerrm not like '%approval required or stale%' then raise; end if; end;
  begin
-  perform public.fin_request_approval((select value from approval_ids where key='rfq'),
-   (select value from approval_ids where key='proposal'),array['00000000-0000-4000-8000-00000000ba05'::uuid],'duplicate');
+  perform public.fin_request_approval('00000000-0000-4000-8000-00000000bb11'::uuid,
+   '00000000-0000-4000-8000-00000000bb12'::uuid,array['00000000-0000-4000-8000-00000000ba05'::uuid],'duplicate');
   raise exception 'parallel request accepted';
  exception when others then if sqlerrm not like '%approval pending%' then raise; end if; end;
 end $$;
@@ -91,7 +98,7 @@ begin
 end $$;
 select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-00000000ba01',false);
 insert into approval_ids select 'decision',public.fin_record_decision(
- (select value from approval_ids where key='rfq'),(select value from approval_ids where key='proposal'));
+ '00000000-0000-4000-8000-00000000bb11'::uuid,'00000000-0000-4000-8000-00000000bb12'::uuid);
 do $$
 declare v_id text;
 begin
