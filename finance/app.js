@@ -1051,6 +1051,22 @@ const views = {
     const frag = document.createDocumentFragment();
     const contracts = data.contracts || [];
     if (!contracts.length) return emptyState('Nenhum contrato registrado ainda.');
+    if (!demoMode) {
+      const toolbar = el('div', { class: 'contract-toolbar' });
+      const check = el('button', { type: 'button', class: 'secondary', text: 'Atualizar marcos de renovação' });
+      const feedback = el('span', { role: 'status', 'aria-live': 'polite', class: 'muted' });
+      check.addEventListener('click', async () => {
+        check.disabled = true;
+        try {
+          const result = await api('renewals', { method: 'POST', body: JSON.stringify({ organization_id: state.organizationId }) });
+          feedback.textContent = `${result.tasks_created} tarefa(s) de renovação criada(s).`;
+          if (result.tasks_created) setTimeout(() => location.reload(), 800);
+        } catch (error) { feedback.textContent = error.message; }
+        finally { check.disabled = false; }
+      });
+      toolbar.append(check, feedback);
+      frag.append(toolbar);
+    }
     const list = el('div', { class: 'rows' });
     const today = new Date().toISOString().slice(0, 10);
     for (const contract of contracts) {
@@ -1073,6 +1089,17 @@ const views = {
         }),
         contract.cost_summary ? el('small', { text: `Custo registrado: ${contract.cost_summary}` }) : null
       );
+      if (!demoMode) {
+        const restart = el('button', { type: 'button', class: 'secondary', text: 'Iniciar nova concorrência' });
+        restart.addEventListener('click', async () => {
+          restart.disabled = true;
+          try {
+            const result = await api('contract-renewal-rfq', { method: 'POST', body: JSON.stringify({ organization_id: state.organizationId, contract_id: contract.id }) });
+            location.href = '/finance/rfq.html?id=' + encodeURIComponent(result.id);
+          } catch (error) { say(error.message); restart.disabled = false; }
+        });
+        row.append(restart);
+      }
       list.append(row);
     }
     frag.append(list);
