@@ -24,7 +24,7 @@ begin
  if not public.fin_has_role(p_org,array['admin','finance_manager']) then raise exception 'forbidden'; end if;
  if p_expected is null or p_expected<0 or jsonb_typeof(p_payload)<>'object' or pg_column_size(p_payload)>32768
   or (select count(*) from jsonb_object_keys(p_payload))>4
-  or exists(select 1 from jsonb_object_keys(p_payload) k where k not in ('product','title','response_deadline','demand'))
+  or exists(select 1 from jsonb_object_keys(p_payload) as keys(key) where key not in ('product','title','response_deadline','demand'))
   or (p_payload ? 'demand' and jsonb_typeof(p_payload->'demand')<>'object')
  then raise exception 'invalid editor draft'; end if;
  insert into public.fin_rfq_editor_drafts(organization_id,user_id,payload,revision)
