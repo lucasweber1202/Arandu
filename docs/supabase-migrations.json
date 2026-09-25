@@ -27,7 +27,8 @@
     "docs/supabase-financial-enterprise-drafts.sql",
     "docs/supabase-financial-collaboration.sql",
     "docs/supabase-financial-operational-search.sql",
-    "docs/supabase-financial-renewals.sql"
+    "docs/supabase-financial-renewals.sql",
+    "docs/supabase-financial-rfq-editor.sql"
   ],
   "existingDatabase": [
     "docs/supabase-sprint1-auth-ownership.sql",
@@ -56,6 +57,7 @@
     "docs/supabase-financial-enterprise-drafts.sql",
     "docs/supabase-financial-collaboration.sql",
     "docs/supabase-financial-operational-search.sql",
-    "docs/supabase-financial-renewals.sql"
+    "docs/supabase-financial-renewals.sql",
+    "docs/supabase-financial-rfq-editor.sql"
   ]
 }
