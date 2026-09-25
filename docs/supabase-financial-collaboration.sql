@@ -97,12 +97,12 @@ begin
  if public.fin_has_role(v_org,array['admin','finance_manager','analyst']) then
   if p_visibility='provider_visible' and p_type not in ('rfq','proposal') then raise exception 'invalid visibility'; end if;
  elsif public.fin_provider_can_comment(p_type,p_id) then
-  if p_visibility<>'provider_visible' then raise exception 'forbidden'; end if;
+  if p_visibility<>'provider_visible' or cardinality(coalesce(p_mention_ids,'{}'::uuid[]))>0 then raise exception 'forbidden'; end if;
  else raise exception 'forbidden'; end if;
  if p_client_id is not null then
   select id into v_id from public.fin_comments where id=p_client_id;
   if v_id is not null then
-   if exists(select 1 from public.fin_comments where id=v_id and author_id=auth.uid() and object_type=p_type and object_id=p_id and organization_id=v_org) then return v_id; end if;
+   if exists(select 1 from public.fin_comments where id=v_id and author_id=auth.uid() and object_type=p_type and object_id=p_id and organization_id=v_org and body=v_text and visibility=p_visibility) then return v_id; end if;
    raise exception 'comment conflict';
   end if;
  end if;
