@@ -76,7 +76,12 @@ async function api(path, options = {}) {
   try { payload = await response.json(); } catch { payload = {}; }
   if (response.status === 401) { const error = new Error('Sessão expirada ou ausente.'); error.status = 401; throw error; }
   if (response.status === 403) { const error = new Error(payload.error || 'Acesso negado para esta organização.'); error.status = 403; throw error; }
-  if (!response.ok) { const error = new Error(payload.error || `Falha ${response.status}.`); error.status = response.status; throw error; }
+  if (!response.ok) {
+    const reference = payload.requestId || response.headers.get('X-Request-ID');
+    const error = new Error((payload.error || `Falha ${response.status}.`) + (reference ? ` Código de referência: ${reference}` : ''));
+    error.status = response.status;
+    throw error;
+  }
   return payload;
 }
 
@@ -1074,7 +1079,7 @@ const views = {
       const reviewFrom = Number.isFinite(ends)
         ? new Date(ends - Number(contract.renewal_notice_days || 0) * 86400000).toISOString().slice(0, 10)
         : null;
-      const row = el('div', { class: 'row' });
+      const row = el('div', { class: 'row', id: 'contract-' + contract.id });
       row.append(
         el('span', { class: 'tag', text: PRODUCTS[contract.product]?.label || contract.product }),
         el('span', { class: 'tag', text: statusLabel(contract.status) }),
