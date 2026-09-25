@@ -755,6 +755,32 @@ const views = {
     if (!priorityList.children.length) priorityList.append(el('p', { class: 'muted', text: 'Nenhum prazo ou decisão pendente nos registros atuais.' }));
     priorities.append(priorityList);
     frag.append(priorities);
+    if (!demoMode && state.organizationId) {
+      const inbox = el('section', { class: 'panel', id: 'approval-inbox' });
+      inbox.append(el('h2', { text: 'Aprovações aguardando minha ação' }));
+      const list = el('div', { class: 'rows', 'aria-live': 'polite' }, el('p', { class: 'muted', text: 'Carregando aprovações…' }));
+      inbox.append(list);
+      frag.append(inbox);
+      Promise.all([
+        api(`approvals?organization_id=${encodeURIComponent(state.organizationId)}`),
+        api(`members?organization_id=${encodeURIComponent(state.organizationId)}`)
+      ]).then(([approvals, members]) => {
+        list.replaceChildren();
+        const mine = (approvals.rows || []).filter((request) => {
+          if (request.status !== 'pending') return false;
+          const pending = (request.steps || []).find((step) => step.status === 'pending');
+          return pending?.approver_id === members.viewer_id;
+        });
+        for (const request of mine) {
+          const rfq = rfqs.find((item) => item.id === request.rfq_id);
+          list.append(el('a', {
+            class: 'row', href: `/finance/rfq.html?id=${encodeURIComponent(request.rfq_id)}#aprovacoes`,
+            text: `${rfq?.title || 'Solicitação'} · proposta v${request.proposal_version} · aberta em ${new Date(request.requested_at).toLocaleDateString('pt-BR')} →`
+          }));
+        }
+        if (!mine.length) list.append(el('p', { class: 'muted', text: 'Nenhuma aprovação atribuída a você agora.' }));
+      }).catch((error) => list.replaceChildren(el('p', { text: `Não foi possível carregar a caixa de aprovação: ${error.message}` })));
+    }
 
     if (expiring.length) {
       const alert = el('section', { class: 'panel' });
