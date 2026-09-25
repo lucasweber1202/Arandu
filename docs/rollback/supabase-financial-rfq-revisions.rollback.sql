@@ -1,6 +1,8 @@
 -- Export revision snapshots before applying in a real environment.
 drop trigger if exists fin_stamp_proposal_rfq_revision on public.fin_proposal_versions;
 drop function if exists public.fin_stamp_proposal_rfq_revision();
+drop trigger if exists fin_seed_rfq_revision on public.fin_rfqs;
+drop function if exists public.fin_seed_rfq_revision();
 drop trigger if exists fin_log_rfq_revision on public.fin_rfqs;
 drop trigger if exists fin_capture_rfq_revision on public.fin_rfqs;
 drop function if exists public.fin_revise_rfq(uuid,integer,text,text,jsonb,date);
