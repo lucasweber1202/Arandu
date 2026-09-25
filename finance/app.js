@@ -1273,40 +1273,89 @@ const views = {
     const note = el('label', { text: 'Nota da revisão (opcional)' });
     note.append(el('input', { name: '__note', 'aria-label': 'Nota da revisão' }));
     form.append(note);
+    const saveButton = el('button', { type: 'button', class: 'secondary', id: 'save-draft', text: 'Salvar agora' });
     form.append(el('div', {}, [
-      el('button', { type: 'submit', text: 'Enviar proposta' }),
-      el('button', { type: 'button', class: 'secondary', id: 'save-draft', text: 'Salvar rascunho local' })
+      el('button', { type: 'submit', text: 'Revisar e enviar proposta' }),
+      saveButton
     ]));
     form.append(el('p', {
       class: 'muted',
       text: 'Alterações após o envio criam uma nova versão. A versão anterior permanece registrada e visível para a empresa compradora.'
     }));
-    const draftKey = `arandu-finance-draft-${assignment?.proposal_id || product}`;
-    form.querySelector('#save-draft').addEventListener('click', () => {
-      try {
-        localStorage.setItem(draftKey, JSON.stringify(Object.fromEntries(new FormData(form))));
-        say('Rascunho salvo neste navegador.', 'success');
-      } catch { say('Não foi possível salvar o rascunho neste navegador.'); }
-    });
-    // A versão já enviada é o ponto de partida de uma revisão.
+    const saveState = el('p', { class: 'muted', role: 'status', 'aria-live': 'polite', text: 'Rascunho ainda não salvo.' });
+    form.append(saveState);
+    const baseVersion = assignment?.version || 0;
+    let revision = 0;
+    let timer;
+    let inFlight = Promise.resolve();
+    let dirty = false;
+    let blocked = false;
+    function values() {
+      const entries = Object.fromEntries(new FormData(form));
+      delete entries.__note;
+      for (const [key, value] of Object.entries(entries)) if (value === '') delete entries[key];
+      return entries;
+    }
+    async function save() {
+      if (!assignment?.proposal_id || demoMode || !dirty || blocked) return;
+      clearTimeout(timer);
+      const terms = values();
+      dirty = false;
+      saveState.textContent = 'Salvando…';
+      inFlight = inFlight.then(async () => {
+        const result = await api('proposal-draft', { method: 'PATCH', body: JSON.stringify({
+          proposal_id: assignment.proposal_id, terms,
+          expected_revision: revision, base_version: baseVersion
+        }) });
+        revision = result.revision;
+        saveState.textContent = dirty ? 'Alterações pendentes…' : 'Rascunho salvo no servidor.';
+      }).catch((error) => {
+        dirty = true;
+        blocked = error.status === 409;
+        saveState.textContent = blocked
+          ? 'Conflito: este rascunho mudou em outra aba. Atualize a página antes de continuar.'
+          : `Falha ao salvar. Use “Salvar agora” para tentar novamente: ${error.message}`;
+      });
+      await inFlight;
+    }
     for (const [key, value] of Object.entries(assignment?.terms || {})) {
       const input = form.elements.namedItem(key);
       if (input && value !== null && value !== undefined) input.value = String(value);
     }
-    try {
-      const stored = JSON.parse(localStorage.getItem(draftKey) || 'null');
-      if (stored) for (const [key, value] of Object.entries(stored)) {
-        const input = form.elements.namedItem(key);
-        if (input && value) input.value = value;
-      }
-    } catch { /* rascunho ilegível é simplesmente ignorado */ }
+    if (assignment?.proposal_id && !demoMode) {
+      api(`proposal-draft?proposal_id=${encodeURIComponent(assignment.proposal_id)}`).then(({ draft }) => {
+        if (!draft || dirty) return;
+        revision = draft.revision;
+        for (const [key, value] of Object.entries(draft.terms || {})) {
+          const input = form.elements.namedItem(key);
+          if (input && value !== null && value !== undefined) input.value = String(value);
+        }
+        saveState.textContent = `Rascunho salvo em ${new Date(draft.updated_at).toLocaleString('pt-BR')}.`;
+      }).catch((error) => { saveState.textContent = `Não foi possível carregar o rascunho: ${error.message}`; });
+      form.addEventListener('input', () => {
+        dirty = true;
+        if (blocked) return;
+        saveState.textContent = 'Alterações pendentes…';
+        clearTimeout(timer);
+        timer = setTimeout(save, 900);
+      });
+      form.addEventListener('change', () => {
+        dirty = true;
+        if (blocked) return;
+        clearTimeout(timer);
+        timer = setTimeout(save, 900);
+      });
+      saveButton.addEventListener('click', () => { if (!blocked) { dirty = true; save(); } });
+    } else saveButton.disabled = true;
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
-      const entries = Object.fromEntries(new FormData(form));
-      const noteValue = entries.__note;
-      delete entries.__note;
-      for (const [key, value] of Object.entries(entries)) if (value === '') delete entries[key];
+      clearTimeout(timer);
+      await inFlight;
+      if (blocked) { say('Atualize a página para resolver o conflito de rascunho.'); return; }
+      const noteValue = form.elements.namedItem('__note')?.value;
+      const entries = values();
       if (!assignment?.proposal_id) { say('Aceite um convite antes de enviar a proposta.'); return; }
+      if (!window.confirm('Revise as condições preenchidas antes de enviar. Uma nova versão ficará registrada para a empresa. Enviar agora?')) return;
       try {
         const result = await api('proposals', {
           method: 'POST',
