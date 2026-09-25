@@ -1318,6 +1318,7 @@ const views = {
     let revision = 0;
     let timer;
     let inFlight = Promise.resolve();
+    let draftReady = Promise.resolve();
     let dirty = false;
     let blocked = false;
     function values() {
@@ -1333,6 +1334,7 @@ const views = {
       dirty = false;
       saveState.textContent = 'Salvando…';
       inFlight = inFlight.then(async () => {
+        await draftReady;
         const result = await api('proposal-draft', { method: 'PATCH', body: JSON.stringify({
           proposal_id: assignment.proposal_id, terms,
           expected_revision: revision, base_version: baseVersion
@@ -1353,7 +1355,7 @@ const views = {
       if (input && value !== null && value !== undefined) input.value = String(value);
     }
     if (assignment?.proposal_id && !demoMode) {
-      api(`proposal-draft?proposal_id=${encodeURIComponent(assignment.proposal_id)}`).then(({ draft }) => {
+      draftReady = api(`proposal-draft?proposal_id=${encodeURIComponent(assignment.proposal_id)}`).then(({ draft }) => {
         if (!draft) return;
         revision = draft.revision;
         if (dirty) return;
