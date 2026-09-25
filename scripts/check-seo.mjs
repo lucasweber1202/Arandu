@@ -95,11 +95,11 @@ function pngDimensions(file) {
 
 function validateAssets() {
   const expectedPngs = new Map([
-    ['assets/social/arandu-og.png', [1200, 630]],
-    ['assets/icon-192.png', [192, 192]],
-    ['assets/icon-512.png', [512, 512]],
-    ['assets/apple-touch-icon.png', [180, 180]],
-    ['assets/favicon-32.png', [32, 32]]
+    ['financial-og.png', [1200, 630]],
+    ['financial-icon-192.png', [192, 192]],
+    ['financial-icon-512.png', [512, 512]],
+    ['financial-icon-180.png', [180, 180]],
+    ['financial-icon-32.png', [32, 32]]
   ]);
   for (const [relativePath, dimensions] of expectedPngs) {
     const source = path.join(contentRoot, relativePath);
@@ -161,7 +161,8 @@ if (distMode && !validationSiteUrl && !deploymentBaseUrl()) {
 }
 
 
-const files = collectHtmlFiles(contentRoot).sort();
+const published = new Set([...canonicalPages, 'login.html', 'cadastro.html', '404.html', ...collectHtmlFiles(path.join(root, 'finance')).map(f => path.relative(root, f).split(path.sep).join('/')), ...collectHtmlFiles(path.join(root, 'provider')).map(f => path.relative(root, f).split(path.sep).join('/'))]);
+const files = collectHtmlFiles(contentRoot).filter(f => published.has(path.relative(contentRoot, f).split(path.sep).join('/'))).sort();
 let homeHtml = '';
 for (const file of files) {
   const pageName = path.relative(contentRoot, file).split(path.sep).join('/');

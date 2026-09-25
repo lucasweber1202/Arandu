@@ -14,7 +14,7 @@ const privilegedApis = [
   read('api/upload.js')
 ].join('\n');
 
-if (!vite.includes('INTERNAL_PAGE_SET')) issues.push('Vite não exclui as páginas internas do artefato estático.');
+if (!vite.includes('const pages = [') || vite.includes('collectHtmlFiles(')) issues.push('Vite não restringe o artefato a entradas explícitas.');
 if (!read('api/internal-page.js').includes('requireAdmin(req)')) issues.push('Servidor de páginas internas não exige autenticação.');
 if (!read('lib/admin-auth.mjs').includes('app_metadata')) issues.push('Papel administrativo não vem de app_metadata.');
 if (!read('lib/admin-auth.mjs').includes("aal !== 'aal2'")) issues.push('MFA aal2 não é obrigatório.');
@@ -23,9 +23,8 @@ if (!vercel.functions?.['api/internal-page.js']?.includeFiles?.includes('*.html'
 const rewriteMap = new Map((vercel.rewrites || []).map((item) => [item.source, item.destination]));
 for (const page of INTERNAL_PAGES) {
   if (!fs.existsSync(page)) issues.push(`Página interna declarada não existe: ${page}`);
-  if (rewriteMap.get(`/${page}`) !== `/api/internal-page?page=${page}`) {
-    issues.push(`Rewrite protegido ausente ou incorreto: /${page}`);
-  }
+  if (vite.includes(`'${page}'`)) issues.push(`Página interna incluída no build: /${page}`);
+  if (rewriteMap.has(`/${page}`)) issues.push(`Página interna antiga ainda exposta por rewrite: /${page}`);
 }
 
 if (/SUPABASE|process\.env|routes|missing|checks/i.test(health)) issues.push('Health público ainda contém detalhes internos.');

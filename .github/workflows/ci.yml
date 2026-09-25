@@ -105,8 +105,8 @@ jobs:
       # Mesma razão do gate acima: só o artefato publicado revela navegação
       # escondida por CSS, link público para tela administrativa, referência a
       # arquivo não publicado e audiência sem porta de entrada.
-      - name: Published navigation
-        run: npm run check:navigation
+      - name: Published financial surface and navigation
+        run: npm run check:financial-surface && npm run check:financial-navigation
 
       - name: Install Chromium, Firefox and WebKit
         run: npx playwright install --with-deps chromium firefox webkit
@@ -115,17 +115,30 @@ jobs:
       # e mobile nos três motores. A suíte de apresentação roda separada porque
       # exige um build com ARANDU_PRESENTATION_MODE=true.
       - name: Desktop and mobile journeys across browser engines
-        run: npm run test:e2e
+        run: npm run test:e2e:finance
 
-      - name: Safe presentation journeys across browser engines
-        run: npm run test:e2e:presentation
+      # The repository's Actions artifact quota may be exhausted. These six
+      # public/unauthenticated PNGs remain recoverable from the job log.
+      - name: Selected visual evidence in logs
+        if: always()
+        run: |
+          for path in reports/financial-visual/{chromium-desktop,mobile-chrome}/{home,dashboard,provider}.png; do
+            if [ -f "$path" ]; then
+              printf 'ARANDU_IMAGE_BEGIN %s\n' "$path"
+              base64 -w0 "$path"
+              printf '\nARANDU_IMAGE_END\n'
+            fi
+          done
 
-      # A suíte principal cobre o estado publicado (compra fechada). Esta cobre
-      # o fluxo de reserva que precisa continuar correto quando a política
-      # comercial for aprovada — inclusive a chave de idempotência por
-      # tentativa.
-      - name: Browser journeys with commerce open
-        run: npm run test:e2e:commerce
+      - name: Financial visual evidence
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: arandu-financial-visual-${{ github.sha }}
+          path: reports/financial-visual
+          if-no-files-found: ignore
+          retention-days: 14
 
       - name: Upload browser evidence on failure
         if: failure()

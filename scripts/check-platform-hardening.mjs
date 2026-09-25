@@ -18,6 +18,7 @@ need('docs/supabase-sprint6-12-platform.sql',migration,'privacy_requests','migra
 need('docs/supabase-sprint6-12-platform.sql',migration,'idempotency_keys','migration não cria chaves de idempotência.');
 need('js/platform-runtime.js',runtime,'navigator.doNotTrack','métricas não respeitam Do Not Track.');
 need('js/platform-runtime.js',runtime,'data-consent-essential','consentimento não oferece opção somente essencial.');
-need('vite.config.js',read('vite.config.js'),"'reports'",'build pode publicar relatórios internos de teste.');
+if (!read('vite.config.js').includes('const pages = [') || read('vite.config.js').includes('collectHtmlFiles('))
+  issues.push('vite.config.js: entradas HTML precisam de lista explícita para não publicar relatórios ou legado.');
 if(/async function publicDataRequest[\s\S]{0,900}SUPABASE_SERVICE_KEY/.test(api))issues.push('api/[...path].js: leitura pública ainda referencia a service role.');
 console.log('Arandu Platform Hardening Check');console.log(`Erros: ${issues.length}`);issues.forEach((item)=>console.error(`- ${item}`));if(issues.length)process.exit(1);

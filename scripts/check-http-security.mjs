@@ -120,9 +120,8 @@ const rewrittenInternalPages = new Set((vercel.rewrites || []).map((rewrite) => 
 for (const page of rewrittenInternalPages) {
   if (!protectedInternalPages.has(page)) issues.push(`vercel.json: rewrite interno ${page}.html ficou fora da regra privada de cache.`);
 }
-for (const page of protectedInternalPages) {
-  if (!rewrittenInternalPages.has(page)) issues.push(`vercel.json: proteção privada sem rewrite correspondente: ${page}.html.`);
-}
+// Retired pages may keep a defensive private header without a public rewrite.
+// The inverse condition above still rejects every unprotected rewrite.
 if (!String(apiHeaders.get('X-Robots-Tag') || '').includes('noindex')) {
   issues.push('vercel.json: respostas de /api precisam de X-Robots-Tag noindex.');
 }
