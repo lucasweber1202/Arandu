@@ -94,7 +94,10 @@ for (const [flow, files] of Object.entries(manifest)) {
   const drafts = files.indexOf('docs/supabase-financial-enterprise-drafts.sql');
   if (drafts === -1) issues.push(`${flow}: rascunhos persistidos ausentes.`);
   if (approvals !== -1 && drafts !== approvals + 1) issues.push(`${flow}: rascunhos devem vir depois de aprovações.`);
-  if (drafts !== -1 && drafts !== files.length - 1) issues.push(`${flow}: rascunhos devem encerrar a sequência atual.`);
+  const collaboration = files.indexOf('docs/supabase-financial-collaboration.sql');
+  if (collaboration === -1) issues.push(`${flow}: colaboração financeira ausente.`);
+  if (drafts !== -1 && collaboration !== drafts + 1) issues.push(`${flow}: colaboração deve vir depois dos rascunhos.`);
+  if (collaboration !== -1 && collaboration !== files.length - 1) issues.push(`${flow}: colaboração deve encerrar a sequência atual.`);
 }
 
 console.log('Arandu Migration Order Check');
