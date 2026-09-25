@@ -163,11 +163,11 @@ begin
   v_type:=case when new.event_type='proposal_submitted' then 'proposal_received' else 'proposal_revised' end;
   v_object:='rfq';
  elsif new.event_type='approval_requested' then
-  select s.approver_id into v_user from public.fin_approval_steps s where s.request_id=(new.metadata->>'request_id')::uuid order by s.position limit 1;
-  v_type:='approval_requested';v_object:='approval';v_target:=(new.metadata->>'request_id')::uuid;
+  select s.approver_id,r.rfq_id into v_user,v_target from public.fin_approval_steps s join public.fin_approval_requests r on r.id=s.request_id where s.request_id=(new.metadata->>'request_id')::uuid order by s.position limit 1;
+  v_type:='approval_requested';v_object:='rfq';
  elsif new.event_type in ('approval_approved','approval_rejected','approval_changes_requested') then
-  select requested_by into v_user from public.fin_approval_requests where id=(new.metadata->>'request_id')::uuid;
-  v_type:=new.event_type;v_object:='approval';v_target:=(new.metadata->>'request_id')::uuid;
+  select requested_by,rfq_id into v_user,v_target from public.fin_approval_requests where id=(new.metadata->>'request_id')::uuid;
+  v_type:=new.event_type;v_object:='rfq';
  else return new;
  end if;
  if v_user is not null and v_user is distinct from new.actor_id then
@@ -189,5 +189,19 @@ revoke all on function public.fin_comment_object_org(text,uuid),public.fin_provi
 grant execute on function public.fin_add_comment(text,uuid,text,text,uuid[],uuid),
  public.fin_mark_notifications(uuid,uuid[]),public.fin_set_notification_preference(uuid,text,boolean,boolean)
  to authenticated,service_role;
-grant execute on function public.fin_comment_object_org(text,uuid),public.fin_provider_can_comment(text,uuid)
- to authenticated,service_role;
+grant execute on function public.fin_provider_can_comment(text,uuid) to authenticated,service_role;
+
+-- Preferences suppress in-app delivery atomically; email preferences are stored
+-- but dispatch remains disabled until an explicit, reviewed outbox integration.
+create or replace function public.fin_apply_notification_preference()
+returns trigger language plpgsql security definer set search_path = '' as $$
+begin
+ if exists(select 1 from public.fin_notification_preferences p
+   where p.organization_id=new.organization_id and p.user_id=new.user_id
+   and p.event_type=new.event_type and not p.in_app) then return null; end if;
+ return new;
+end $$;
+drop trigger if exists fin_apply_notification_preference on public.fin_notifications;
+create trigger fin_apply_notification_preference before insert on public.fin_notifications
+for each row execute function public.fin_apply_notification_preference();
+revoke all on function public.fin_apply_notification_preference() from public,anon,authenticated;
