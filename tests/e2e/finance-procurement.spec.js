@@ -121,6 +121,12 @@ test('sem sessão o portal pede login em vez de mostrar dado de outra organizaç
   await expect(page.locator('.demo-flag')).toHaveCount(0);
 });
 
+test('sem sessão o portal do provedor não presume organização criada', async ({ page }) => {
+  await page.goto('/provider/index.html');
+  await expect(page.locator('#view')).toContainText('Entre para usar o portal');
+  await expect(page.locator('#view')).not.toContainText('Organização criada');
+});
+
 test('o formulário de proposta do provedor traz os campos normalizados do produto', async ({ page }) => {
   await page.goto('/provider/proposal.html');
   const form = page.locator('#proposal-form');
