@@ -115,6 +115,7 @@ test('sem sessão o portal pede login em vez de mostrar dado de outra organizaç
   const view = page.locator('#view');
   await expect(view).toContainText(/Entre para usar o portal|Acesso negado|Conteúdo indisponível/);
   await expect(view.getByRole('link', { name: 'Entrar na conta' })).toBeVisible();
+  await expect(view.locator('.stat')).toHaveCount(0); // Sem sessão, zero não é dado observado.
   // Nenhum dado de demonstração vaza para o build publicado.
   await expect(page.locator('#demo-notice')).toHaveCount(0);
   await expect(page.locator('.demo-flag')).toHaveCount(0);
