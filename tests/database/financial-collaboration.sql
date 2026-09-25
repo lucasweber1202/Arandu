@@ -17,6 +17,10 @@ begin
  or has_table_privilege('authenticated','public.fin_notifications','UPDATE') then raise exception 'direct collaboration mutation allowed'; end if;
  if public.fin_add_comment('rfq',v_rfq,'internal','Discussão interna',array['00000000-0000-4000-8000-00000000ba04'::uuid],v_internal)<>v_internal then raise exception 'comment ID mismatch'; end if;
  if public.fin_add_comment('rfq',v_rfq,'internal','Discussão interna',array[]::uuid[],v_internal)<>v_internal then raise exception 'idempotency replay failed'; end if;
+ begin
+  perform public.fin_add_comment('rfq',v_rfq,'internal','Texto alterado',array[]::uuid[],v_internal);
+  raise exception 'replay changed comment';
+ exception when others then if sqlerrm not like '%comment conflict%' then raise; end if; end;
  perform public.fin_add_comment('rfq',v_rfq,'provider_visible','Mensagem compartilhada',array[]::uuid[],v_shared);
  if (select count(*) from public.fin_comments where organization_id=v_org and object_id=v_rfq)<>2 then raise exception 'duplicate comment'; end if;
  begin
@@ -53,8 +57,8 @@ begin
  exception when others then if sqlerrm not like '%forbidden%' then raise; end if; end;
  begin
   perform public.fin_add_comment('rfq','00000000-0000-4000-8000-00000000bb11','provider_visible','Forjado',array['00000000-0000-4000-8000-00000000ba04'::uuid],null);
-  -- Provider mentions are ignored and never delivered to buyer users.
- exception when others then raise; end;
+  raise exception 'provider mentioned buyer';
+ exception when others then if sqlerrm not like '%forbidden%' then raise; end if; end;
  if exists(select 1 from public.fin_notifications where organization_id='00000000-0000-4000-8000-00000000bb01') then raise exception 'provider read buyer notifications'; end if;
  begin
   perform public.fin_mark_notifications('00000000-0000-4000-8000-00000000bb01',null);
