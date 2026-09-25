@@ -100,7 +100,10 @@ for (const [flow, files] of Object.entries(manifest)) {
   const search = files.indexOf('docs/supabase-financial-operational-search.sql');
   if (search === -1) issues.push(`${flow}: busca financeira ausente.`);
   if (collaboration !== -1 && search !== collaboration + 1) issues.push(`${flow}: busca deve vir depois da colaboração.`);
-  if (search !== -1 && search !== files.length - 1) issues.push(`${flow}: busca deve encerrar a sequência atual.`);
+  const renewals = files.indexOf('docs/supabase-financial-renewals.sql');
+  if (renewals === -1) issues.push(`${flow}: renovação financeira ausente.`);
+  if (search !== -1 && renewals !== search + 1) issues.push(`${flow}: renovação deve vir depois da busca.`);
+  if (renewals !== -1 && renewals !== files.length - 1) issues.push(`${flow}: renovação deve encerrar a sequência atual.`);
 }
 
 console.log('Arandu Migration Order Check');
