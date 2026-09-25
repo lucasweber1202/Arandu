@@ -955,6 +955,7 @@ const views = {
       decision.append(emptyState('A decisão fica disponível quando houver ao menos uma proposta.'));
     }
     frag.append(decision);
+    frag.append(commentPanel('rfq', rfq.id), activityPanel('rfq', rfq.id));
     return frag;
   },
 
@@ -1402,6 +1403,7 @@ const views = {
     });
     panel.append(form);
     frag.append(panel);
+    if (assignment?.rfq_id) frag.append(commentPanel('rfq', assignment.rfq_id, true));
     return frag;
   }
 };
@@ -1511,6 +1513,153 @@ function approvalWorkspace(rfq, proposals) {
       content.replaceChildren(el('p', { text: `Não foi possível carregar aprovações: ${error.message}` }));
     }
   };
+  refresh();
+  return section;
+}
+
+
+const ACTIVITY_LABELS = Object.freeze({
+  rfq_created: 'Solicitação criada', rfq_open: 'Solicitação aberta',
+  provider_invited: 'Provedor convidado', invite_accepted: 'Convite aceito',
+  proposal_submitted: 'Proposta enviada', proposal_revised: 'Proposta revisada',
+  approval_requested: 'Aprovação solicitada', approval_approved: 'Aprovação registrada',
+  approval_rejected: 'Aprovação rejeitada', approval_changes_requested: 'Alterações solicitadas',
+  decision_recorded: 'Decisão registrada', contract_registered: 'Contrato registrado',
+  comment_added: 'Comentário registrado', renewal_due: 'Renovação em atenção'
+});
+function objectHref(type, id) {
+  if (type === 'rfq') return `/finance/rfq.html?id=${encodeURIComponent(id)}`;
+  if (type === 'proposal') return `/provider/proposal.html?proposal=${encodeURIComponent(id)}`;
+  if (type === 'contract') return `/finance/contracts.html#contract-${encodeURIComponent(id)}`;
+  return '/finance/dashboard.html#open-tasks';
+}
+
+function installNotificationCenter() {
+  if (!state.organizationId || demoMode) return;
+  const bar = document.querySelector('header.app .bar');
+  if (!bar) return;
+  bar.querySelector('#notification-center')?.remove();
+  const details = el('details', { class: 'notification-center', id: 'notification-center' });
+  const summary = el('summary', { text: 'Notificações' });
+  const list = el('div', { class: 'notification-list', 'aria-live': 'polite' });
+  const mark = el('button', { type: 'button', class: 'secondary', text: 'Marcar todas como lidas' });
+  details.append(summary, list, mark);
+  bar.append(details);
+  async function refresh() {
+    list.replaceChildren(el('p', { class: 'muted', text: 'Carregando notificações…' }));
+    try {
+      const result = await api(`notifications?organization_id=${encodeURIComponent(state.organizationId)}`);
+      list.replaceChildren();
+      const unread = (result.rows || []).filter((row) => !row.read_at).length;
+      summary.textContent = `Notificações${unread ? ` (${unread})` : ''}`;
+      for (const row of result.rows || []) {
+        const link = el('a', { class: `notification-item${row.read_at ? '' : ' unread'}`,
+          href: objectHref(row.object_type, row.object_id) });
+        link.append(el('b', { text: row.title }), el('span', { text: row.body }),
+          el('small', { text: new Date(row.created_at).toLocaleString('pt-BR') }));
+        link.addEventListener('click', () => {
+          if (!row.read_at) api('notifications', { method: 'PATCH', body: JSON.stringify({
+            organization_id: state.organizationId, ids: [row.id]
+          }) }).catch(() => {});
+        });
+        list.append(link);
+      }
+      if (!list.children.length) list.append(el('p', { class: 'muted', text: 'Nenhuma notificação por enquanto.' }));
+      mark.disabled = !unread;
+    } catch (error) { list.replaceChildren(el('p', { text: `Não foi possível carregar notificações: ${error.message}` })); }
+  }
+  mark.addEventListener('click', async () => {
+    mark.disabled = true;
+    try { await api('notifications', { method: 'PATCH', body: JSON.stringify({ organization_id: state.organizationId }) }); await refresh(); }
+    catch (error) { say(error.message); mark.disabled = false; }
+  });
+  details.addEventListener('toggle', () => { if (details.open) refresh(); });
+  refresh();
+}
+
+function activityPanel(type, id) {
+  const section = el('section', { class: 'panel', id: 'atividade' });
+  section.append(el('h2', { text: 'Atividade do processo' }));
+  const list = el('ol', { class: 'activity-list' });
+  section.append(list);
+  if (demoMode || !state.organizationId) {
+    list.append(el('li', { text: 'Entre na organização para ver o histórico.' }));
+    return section;
+  }
+  api(`events?organization_id=${encodeURIComponent(state.organizationId)}&entity_type=${type}&entity_id=${encodeURIComponent(id)}`)
+    .then(({ rows }) => {
+      list.replaceChildren();
+      for (const row of rows || []) list.append(el('li', { text:
+        `${ACTIVITY_LABELS[row.event_type] || row.event_type.replaceAll('_', ' ')} · ${new Date(row.happened_at).toLocaleString('pt-BR')}` }));
+      if (!list.children.length) list.append(el('li', { text: 'Nenhuma atividade registrada.' }));
+    }).catch((error) => list.replaceChildren(el('li', { text: `Histórico indisponível: ${error.message}` })));
+  return section;
+}
+
+function commentPanel(type, id, provider = false) {
+  const section = el('section', { class: 'panel comments-panel', id: 'comentarios' });
+  section.append(el('h2', { text: 'Comentários do processo' }));
+  const list = el('div', { class: 'comment-list', 'aria-live': 'polite' });
+  section.append(list);
+  if (demoMode || !state.organizationId) {
+    list.append(el('p', { class: 'muted', text: 'Entre na organização para colaborar.' }));
+    return section;
+  }
+  const form = el('form');
+  const label = el('label', { text: 'Comentário (texto simples)' });
+  const body = el('textarea', { name: 'body', required: '', maxlength: '4000', 'aria-label': 'Comentário' });
+  label.append(body);
+  const visibility = el('select', { name: 'visibility', 'aria-label': 'Visibilidade do comentário' });
+  if (provider) visibility.add(new Option('Compartilhado com a empresa compradora', 'provider_visible'));
+  else {
+    visibility.add(new Option('Interno — apenas sua empresa', 'internal'));
+    if (['rfq','proposal'].includes(type)) visibility.add(new Option('Compartilhado com provedores deste processo', 'provider_visible'));
+  }
+  const visibilityLabel = el('label', { text: 'Quem pode ler' });
+  visibilityLabel.append(visibility);
+  const mentions = el('select', { multiple: '', size: '3', 'aria-label': 'Mencionar membros (opcional)' });
+  const mentionLabel = el('label', { text: 'Mencionar membros internos (opcional)' });
+  mentionLabel.append(mentions);
+  if (!provider) api(`members?organization_id=${encodeURIComponent(state.organizationId)}`).then(({ rows, viewer_id }) => {
+    for (const member of rows || []) if (member.user_id !== viewer_id)
+      mentions.add(new Option(`${member.role} · ${member.user_id.slice(0, 8)}`, member.user_id));
+  }).catch(() => {});
+  if (!provider) visibility.addEventListener('change', () => {
+    mentions.disabled = visibility.value !== 'internal';
+    if (mentions.disabled) for (const option of mentions.options) option.selected = false;
+  });
+  form.append(label, visibilityLabel, ...(provider ? [] : [mentionLabel]), el('button', { type: 'submit', text: 'Registrar comentário' }));
+  section.append(form);
+  async function refresh() {
+    try {
+      const result = await api(`comments?organization_id=${encodeURIComponent(state.organizationId)}&object_type=${type}&object_id=${encodeURIComponent(id)}`);
+      list.replaceChildren();
+      for (const row of result.rows || []) {
+        const item = el('article', { class: 'comment-item' });
+        item.append(el('b', { text: row.visibility === 'internal' ? 'Interno — apenas sua empresa' : 'Compartilhado com provedores' }),
+          el('p', { text: row.body }),
+          el('small', { text: `Membro ${row.author_id.slice(0, 8)} · ${new Date(row.created_at).toLocaleString('pt-BR')}` }));
+        list.append(item);
+      }
+      if (!list.children.length) list.append(el('p', { class: 'muted', text: 'Nenhum comentário ainda. Registre o contexto neste processo.' }));
+    } catch (error) { list.replaceChildren(el('p', { text: `Comentários indisponíveis: ${error.message}` })); }
+  }
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const button = form.querySelector('button');
+    button.disabled = true;
+    try {
+      await api('comments', { method: 'POST', body: JSON.stringify({
+        organization_id: state.organizationId, object_type: type, object_id: id,
+        visibility: visibility.value, body: body.value,
+        mention_ids: visibility.value === 'internal' ? [...mentions.selectedOptions].map((option) => option.value) : [],
+        client_id: crypto.randomUUID()
+      }) });
+      body.value = '';
+      say('Comentário registrado.', 'success');
+      await refresh();
+    } catch (error) { say(error.message); } finally { button.disabled = false; }
+  });
   refresh();
   return section;
 }
@@ -1980,6 +2129,7 @@ async function load() {
   if (!(failure && !demoData && ['dashboard', 'providerRfqs'].includes(view))) nodes.append(await views[view](source));
   root.replaceChildren(nodes);
   installCommandCenter(failure || data?.empty ? null : data);
+  if (!failure && !data?.empty) installNotificationCenter();
   if (location.hash === '#rfq-form' || location.hash === '#open-tasks') document.querySelector(location.hash)?.scrollIntoView();
 }
 
