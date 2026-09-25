@@ -659,6 +659,9 @@ function installCommandCenter(data) {
   };
   trigger.addEventListener('click', () => { input.value = ''; draw(); dialog.showModal(); input.focus(); });
   close.addEventListener('click', () => dialog.close());
+  dialog.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') { event.preventDefault(); dialog.close(); }
+  });
   input.addEventListener('input', draw);
   input.addEventListener('keydown', (event) => {
     if (event.key === 'ArrowDown') { const first = results.querySelector('a'); if (first) { event.preventDefault(); first.focus(); } }
