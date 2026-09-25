@@ -32,3 +32,5 @@ A lista de RFQs filtra por título, produto e status. O comprador pode pré-pree
 ### Limites desta rodada
 
 A busca não é server-side nem paginada; `overview` ainda limita a quantidade de registros. Não foram acrescentados approvals multinível, upload privado, autosave no servidor, notificações in-app ou console operacional. Nenhum desses fluxos deve ser anunciado como disponível. A inspeção visual manual do preview protegido e a validação com usuários de piloto continuam separadas dos testes automáticos.
+
+A suíte `test:e2e:presentation` agora é um job explícito da CI e cobre a prévia financeira rotulada, ausência de escrita ao explorar pesos, navegação sem Arte, mobile e reutilização de demanda. Os testes do antigo acervo foram substituídos porque aquelas páginas não fazem parte do build financeiro publicado.
