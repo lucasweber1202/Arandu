@@ -1,4 +1,6 @@
 import { test, expect } from '@playwright/test';
+import { mkdir } from 'node:fs/promises';
+import { join } from 'node:path';
 
 // Jornadas do Arandu Financial Procurement no build publicado (sem modo de
 // demonstração e sem sessão): o que se verifica aqui é a navegação, os estados
@@ -25,6 +27,25 @@ const PROVIDER_PAGES = [
   ['/provider/proposal.html', 'Responder proposta']
 ];
 
+test('capturas reproduzíveis das superfícies financeiras', async ({ page }, testInfo) => {
+  if (!['chromium-desktop', 'mobile-chrome'].includes(testInfo.project.name)) test.skip();
+  const folder = join(process.cwd(), 'reports', 'financial-visual', testInfo.project.name);
+  await mkdir(folder, { recursive: true });
+  for (const [name, path] of [
+    ['home', '/'], ['login', '/login.html'], ['signup', '/cadastro.html'],
+    ['dashboard', '/finance/dashboard.html'], ['rfqs', '/finance/rfqs.html'],
+    ['rfq', '/finance/rfq.html'], ['providers', '/finance/providers.html'],
+    ['proposals', '/finance/proposals.html'], ['contracts', '/finance/contracts.html'],
+    ['settings', '/finance/settings.html'], ['provider', '/provider/index.html'],
+    ['provider-proposal', '/provider/proposal.html']
+  ]) {
+    await page.goto(path);
+    await expect(page.locator('main')).toBeVisible();
+    await page.waitForLoadState('networkidle');
+    await page.screenshot({ path: join(folder, name + '.png'), fullPage: true });
+  }
+});
+
 test('portais da empresa e do provedor abrem, são acessíveis e cabem na viewport', async ({ page }) => {
   for (const [path, heading] of [...COMPANY_PAGES, ...PROVIDER_PAGES]) {
     await page.goto(path);
@@ -42,13 +63,37 @@ test('portais da empresa e do provedor abrem, são acessíveis e cabem na viewpo
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     expect(overflow, `overflow horizontal em ${path}`).toBeLessThanOrEqual(1);
 
-    // A fronteira de produto é declarada em toda página operacional do portal;
-    // a própria página de limites é a versão longa dela.
+    // Operational screens link to the full boundary instead of repeating a
+    // long legal block above every task.
     if (path === '/finance/boundaries.html') await expect(page.locator('main')).toContainText('não concede crédito');
-    // `main > .boundary` é o aviso de fronteira da página; outros `.boundary`
-    // podem existir dentro do conteúdo (aceite de termos, cobertura baixa).
-    else await expect(page.locator('main > .boundary')).toContainText('não concede crédito');
+    else await expect(page.getByRole('link', { name: 'Limites do produto' }).first()).toBeVisible();
   }
+});
+
+test('página inicial, login e cadastro falam de procurement financeiro', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Contratações financeiras');
+  await expect(page.locator('main')).toContainText('crédito empresarial e adquirência');
+  await expect(page.locator('body')).not.toContainText(/Comprar arte|Portal do artista|Enviar portfólio/);
+  await page.getByRole('link', { name: /Acessar plataforma/ }).click();
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('processo financeiro');
+  await expect(page.locator('form[data-finance-auth="login"]')).toBeVisible();
+  await page.getByRole('link', { name: 'Criar conta' }).click();
+  await expect(page.locator('form[data-finance-auth="signup"]')).toBeVisible();
+});
+
+test('login do provedor retorna ao portal atribuído sem redirect externo', async ({ page }) => {
+  await page.route('**/api/auth/login', route => route.fulfill({ status: 200, contentType: 'application/json', body: '{"ok":true}' }));
+  await page.goto('/login.html?next=%2Fprovider%2Findex.html');
+  await page.getByLabel('E-mail corporativo').fill('provedor@example.invalid');
+  await page.getByLabel('Senha').fill('example-password');
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click();
+  await expect(page).toHaveURL(/\/provider\/index\.html$/);
+  await page.goto('/login.html?next=https%3A%2F%2Fevil.example');
+  await page.getByLabel('E-mail corporativo').fill('provedor@example.invalid');
+  await page.getByLabel('Senha').fill('example-password');
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click();
+  await expect(page).toHaveURL(/\/finance\/index\.html$/);
 });
 
 test('a navegação entre os portais funciona por links reais, sem depender de JavaScript', async ({ browser }) => {
@@ -70,9 +115,16 @@ test('sem sessão o portal pede login em vez de mostrar dado de outra organizaç
   const view = page.locator('#view');
   await expect(view).toContainText(/Entre para usar o portal|Acesso negado|Conteúdo indisponível/);
   await expect(view.getByRole('link', { name: 'Entrar na conta' })).toBeVisible();
+  await expect(view.locator('.stat')).toHaveCount(0); // Sem sessão, zero não é dado observado.
   // Nenhum dado de demonstração vaza para o build publicado.
   await expect(page.locator('#demo-notice')).toHaveCount(0);
   await expect(page.locator('.demo-flag')).toHaveCount(0);
+});
+
+test('sem sessão o portal do provedor não presume organização criada', async ({ page }) => {
+  await page.goto('/provider/index.html');
+  await expect(page.locator('#view')).toContainText('Entre para usar o portal');
+  await expect(page.locator('#view')).not.toContainText('Organização criada');
 });
 
 test('o formulário de proposta do provedor traz os campos normalizados do produto', async ({ page }) => {
@@ -220,4 +272,43 @@ test('o teclado alcança a navegação e o conteúdo principal', async ({ page }
   await expect(page.locator(':focus')).toHaveText('Pular para o conteudo');
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/#main$/);
+});
+
+// O índice e a duplicação usam somente o overview autorizado da organização ativa.
+test('busca por teclado e duplicação da demanda preservam o contexto da empresa', async ({ page }) => {
+  await page.route('**/api/finance/**', (route) => {
+    const url = new URL(route.request().url());
+    if (url.pathname.endsWith('/organizations')) return route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ rows: [{ id: 'org-1', kind: 'BUYER', name: 'Empresa de teste' }] })
+    });
+    if (url.pathname.endsWith('/overview')) return route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({
+        organization: { id: 'org-1', kind: 'BUYER' }, profile: [], providers: [], contracts: [], tasks: [],
+        rfqs: [{
+          id: 'rfq-1', title: 'Crédito expansão', product: 'credit', status: 'draft',
+          response_deadline: '2027-10-01', demand: { amount: 500000, purpose: 'expansao', term_months: 24 },
+          proposals: [], invites_count: 0
+        }]
+      })
+    });
+    return route.fulfill({ status: 404, contentType: 'application/json', body: '{}' });
+  });
+  await page.goto('/finance/rfq.html?id=rfq-1');
+  await expect(page.getByRole('button', { name: /Buscar/ })).toBeVisible();
+  await page.keyboard.press('Control+k');
+  const dialog = page.getByRole('dialog', { name: 'Buscar no espaço da empresa' });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole('searchbox').fill('credito expansao');
+  await expect(dialog.getByRole('link', { name: /Crédito expansão/ })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+
+  await page.getByRole('link', { name: 'Criar nova solicitação com estes dados' }).click();
+  await expect(page).toHaveURL(/clone=rfq-1/);
+  const form = page.locator('#rfq-form');
+  await expect(form.getByLabel('Título da solicitação')).toHaveValue(/Nova solicitação/);
+  await form.getByRole('button', { name: 'Continuar' }).click();
+  await expect(form.getByLabel('Valor desejado (R$)')).toHaveValue('500000');
 });

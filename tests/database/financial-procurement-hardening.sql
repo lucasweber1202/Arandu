@@ -9,6 +9,13 @@ insert into auth.users (id, email) values
   ('00000000-0000-4000-8000-00000000ba03', 'provedor-hard-2@example.invalid')
 on conflict (id) do nothing;
 
+insert into public.fin_pilot_allowlist (pattern, created_by, note)
+  select email, '00000000-0000-4000-8000-00000000ba01', 'hardening database test'
+  from auth.users where id in (
+    '00000000-0000-4000-8000-00000000ba01','00000000-0000-4000-8000-00000000ba02',
+    '00000000-0000-4000-8000-00000000ba03'
+  ) on conflict (pattern) do nothing;
+
 create temporary table hard_ids (key text primary key, value uuid);
 create temporary table hard_tokens (key text primary key, value text);
 grant all on hard_ids, hard_tokens to authenticated;
