@@ -35,14 +35,14 @@ grant all on approval_ids to authenticated;
 set role authenticated;
 select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-00000000ba01',false);
 select public.fin_set_approval_policy('00000000-0000-4000-8000-00000000bb01',true);
-do $
+do $$
 begin
  begin
   perform public.fin_record_decision('00000000-0000-4000-8000-00000000bb11',
    '00000000-0000-4000-8000-00000000bb12');
   raise exception 'required policy bypassed';
  exception when others then if sqlerrm not like '%approval required or stale%' then raise; end if; end;
-end $;
+end $$;
 -- Direct table mutation cannot forge approval state.
 do $$
 begin
