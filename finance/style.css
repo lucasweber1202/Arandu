@@ -142,3 +142,18 @@ body[data-audience] nav.app a{min-height:42px}
 button:disabled{background:#c3d0d4;cursor:not-allowed}
 details{margin:.5rem 0}
 summary{cursor:pointer;color:var(--brand-dark);font-weight:600}
+
+/* Busca contextual: os resultados permanecem na memória da organização ativa. */
+header.app .command-trigger{min-height:44px;white-space:nowrap;background:#e5edef;color:var(--brand-dark)}
+.command-dialog{width:min(620px,calc(100vw - 2rem));max-height:min(75vh,680px);margin:10vh auto auto;padding:1rem;border:1px solid var(--line);border-radius:var(--radius);box-shadow:0 24px 70px #0b263655;background:var(--surface);color:var(--ink)}
+.command-dialog::backdrop{background:#10263599}
+.command-heading{display:flex;align-items:start;justify-content:space-between;gap:1rem}
+.command-heading label{font-weight:700}
+.command-heading button{min-height:44px}
+.command-dialog input{width:100%;margin:.8rem 0}
+.command-results{max-height:50vh;overflow:auto}
+.command-result{display:flex;align-items:center;gap:.7rem;min-height:48px;padding:.55rem;border-bottom:1px solid var(--line);color:var(--ink);text-decoration:none}
+.command-result:hover,.command-result:focus-visible{background:var(--surface-muted)}
+.command-result span:last-child{display:grid;min-width:0;overflow-wrap:anywhere}
+.command-result small{color:var(--ink-soft)}
+@media(max-width:759px){header.app .command-trigger{width:100%}.command-dialog{margin:4vh auto auto}.command-heading{align-items:center}}
