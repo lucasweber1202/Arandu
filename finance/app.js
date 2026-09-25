@@ -851,6 +851,7 @@ const views = {
     }
     const cloneId = new URLSearchParams(location.search).get('clone');
     const source = rfqs.find((rfq) => rfq.id === cloneId);
+    if (cloneId && !source) frag.append(el('p', { class: 'boundary', text: 'A solicitação de origem não está disponível nesta organização. Comece uma nova demanda sem dados copiados.' }));
     frag.append(newRfqForm(data.profile || [], source));
     return frag;
   },
@@ -932,8 +933,19 @@ const views = {
     const providers = data.providers || [];
     if (!providers.length) frag.append(emptyState('Nenhum provedor cadastrado ainda.'));
     else {
+      const controls = el('div', { class: 'list-controls' });
+      const search = el('input', { type: 'search', 'aria-label': 'Buscar provedor', placeholder: 'Buscar nome ou região' });
+      const count = el('span', { class: 'muted', role: 'status', 'aria-live': 'polite' });
+      controls.append(search, count);
+      frag.append(controls);
       const list = el('div', { class: 'rows' });
-      for (const provider of providers) {
+      const draw = () => {
+        list.replaceChildren();
+        const term = search.value.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
+        const visible = providers.filter((provider) => [provider.name, provider.region].some((value) =>
+          String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR').includes(term)));
+        count.textContent = visible.length + ' de ' + providers.length + ' provedores';
+        for (const provider of visible) {
         const row = el('div', { class: 'row' });
         row.append(
           el('span', { class: 'tag', text: provider.kind }),
@@ -946,7 +958,11 @@ const views = {
           })
         );
         list.append(row);
-      }
+        }
+        if (!visible.length) list.append(emptyState('Nenhum provedor corresponde à busca nesta organização.'));
+      };
+      search.addEventListener('input', draw);
+      draw();
       frag.append(list);
     }
     frag.append(newProviderForm());
