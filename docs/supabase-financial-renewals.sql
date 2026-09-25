@@ -60,10 +60,10 @@ create or replace function public.fin_start_contract_rfq(p_contract uuid)
 returns uuid language plpgsql security definer set search_path = '' as $$
 declare c record;v_id uuid;
 begin
- select c.organization_id,c.product,c.id,r.title,r.description,r.demand into c
- from public.fin_contracts c join public.fin_decisions d on d.id=c.decision_id
- join public.fin_rfqs r on r.id=d.rfq_id and r.organization_id=c.organization_id
- where c.id=p_contract for update of c;
+ select ct.organization_id,ct.product,ct.id,r.title,r.description,r.demand into c
+ from public.fin_contracts ct join public.fin_decisions d on d.id=ct.decision_id
+ join public.fin_rfqs r on r.id=d.rfq_id and r.organization_id=ct.organization_id
+ where ct.id=p_contract for update of ct;
  if not found then raise exception 'contract not found'; end if;
  if not public.fin_has_role(c.organization_id,array['admin','finance_manager']) then raise exception 'forbidden'; end if;
  insert into public.fin_rfqs(organization_id,product,title,description,demand,owner_id,status)
