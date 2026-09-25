@@ -63,7 +63,8 @@ test('procurement financeiro demonstra crédito e adquirência com dados rotulad
   await expect(page.locator('#demo-notice')).toContainText('fictícios');
   await expect(page.locator('.stat')).not.toHaveCount(0);
   // A economia nunca é inventada.
-  await expect(page.locator('#view')).toContainText('metodologia explícita');
+  await expect(page.locator('#view')).toContainText('Propostas por solicitação');
+  await expect(page.locator('#view')).not.toContainText('Taxa de resposta');
 
   await page.goto('/finance/rfqs.html');
   await expect(page.getByRole('link', { name: /Capital de giro/ })).toBeVisible();
