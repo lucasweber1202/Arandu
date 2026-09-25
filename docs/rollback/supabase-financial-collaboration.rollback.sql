@@ -1,6 +1,6 @@
 -- Isolated rollback after exporting operational evidence. Apply before the enterprise approvals rollback.
-drop trigger if exists fin_notification_preference_guard on public.fin_notifications;
-drop trigger if exists fin_notification_event_trigger on public.fin_events;
+drop trigger if exists fin_apply_notification_preference on public.fin_notifications;
+drop trigger if exists fin_notify_event on public.fin_events;
 drop function if exists public.fin_apply_notification_preference();
 drop function if exists public.fin_notify_event();
 drop function if exists public.fin_set_notification_preference(uuid,text,boolean,boolean);
