@@ -103,7 +103,10 @@ for (const [flow, files] of Object.entries(manifest)) {
   const renewals = files.indexOf('docs/supabase-financial-renewals.sql');
   if (renewals === -1) issues.push(`${flow}: renovação financeira ausente.`);
   if (search !== -1 && renewals !== search + 1) issues.push(`${flow}: renovação deve vir depois da busca.`);
-  if (renewals !== -1 && renewals !== files.length - 1) issues.push(`${flow}: renovação deve encerrar a sequência atual.`);
+  const editor = files.indexOf('docs/supabase-financial-rfq-editor.sql');
+  if (editor === -1) issues.push(`${flow}: editor persistente de RFQ ausente.`);
+  if (renewals !== -1 && editor !== renewals + 1) issues.push(`${flow}: editor deve vir depois da renovação.`);
+  if (editor !== -1 && editor !== files.length - 1) issues.push(`${flow}: editor deve encerrar a sequência atual.`);
 }
 
 console.log('Arandu Migration Order Check');
