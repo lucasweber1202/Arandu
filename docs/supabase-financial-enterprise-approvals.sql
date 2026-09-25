@@ -137,7 +137,7 @@ drop policy if exists fin_approval_policy_read on public.fin_approval_policies;
 create policy fin_approval_policy_read on public.fin_approval_policies for select to authenticated
  using(public.fin_has_role(organization_id));
 create or replace function public.fin_set_approval_policy(p_org uuid,p_required boolean)
-returns void language plpgsql security definer set search_path = '' as $
+returns void language plpgsql security definer set search_path = '' as $$
 begin
  if not public.fin_has_role(p_org,array['admin']) then raise exception 'forbidden'; end if;
  if not exists(select 1 from public.fin_organizations where id=p_org and kind='BUYER') then raise exception 'forbidden'; end if;
@@ -147,7 +147,7 @@ begin
  on conflict(organization_id) do update set required_for_decision=excluded.required_for_decision,updated_by=auth.uid(),updated_at=now();
  insert into public.fin_events(organization_id,entity_type,entity_id,event_type,actor_id,metadata)
  values(p_org,'organization',p_org,'approval_policy_updated',auth.uid(),jsonb_build_object('required_for_decision',p_required));
-end $;
+end $$;
 revoke all on function public.fin_set_approval_policy(uuid,boolean) from public,anon;
 grant execute on function public.fin_set_approval_policy(uuid,boolean) to authenticated,service_role;
 
