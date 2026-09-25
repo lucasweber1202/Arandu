@@ -14,6 +14,7 @@ import {
   PRODUCTS, PRODUCT_IDS, estimateCreditTotalCost, estimateAcquiringMonthlyCost, checkAcquiringShares
 } from '../lib/finance/products.mjs';
 import { applyUserWeights } from '../lib/finance/comparison.mjs';
+import { commandItems, searchCommandItems } from '../lib/finance/command-center.mjs';
 
 const view = document.body.dataset.view || 'home';
 const audience = document.body.dataset.audience || 'company';
@@ -629,6 +630,55 @@ function signedOut(error) {
   if (demoMode) box.append(el('p', { class: 'muted', text: 'Este ambiente também exibe um conjunto de dados de demonstração abaixo.' }));
   return box;
 }
+
+// Busca local apenas nos registros já autorizados da organização ativa.
+function installCommandCenter(data) {
+  document.querySelector('#command-trigger')?.remove();
+  document.querySelector('#command-center')?.remove();
+  if (audience !== 'company' || !state.organizationId || !data) return;
+  const bar = document.querySelector('header.app .bar');
+  if (!bar || typeof HTMLDialogElement === 'undefined') return;
+  const trigger = el('button', { id: 'command-trigger', type: 'button', class: 'secondary command-trigger', 'aria-keyshortcuts': 'Control+K Meta+K', text: 'Buscar  ⌘K' });
+  const dialog = el('dialog', { id: 'command-center', class: 'command-dialog', 'aria-label': 'Buscar no espaço da empresa' });
+  const label = el('label', { for: 'command-query', text: 'Buscar solicitações, propostas, provedores, contratos e tarefas' });
+  const input = el('input', { id: 'command-query', type: 'search', autocomplete: 'off', placeholder: 'Digite um nome, título ou prazo' });
+  const results = el('div', { class: 'command-results', 'aria-live': 'polite' });
+  const close = el('button', { type: 'button', class: 'secondary', text: 'Fechar' });
+  const items = commandItems(data);
+  const draw = () => {
+    results.replaceChildren();
+    const matches = searchCommandItems(items, input.value);
+    if (!matches.length) {
+      results.append(el('p', { class: 'muted', text: 'Nenhum resultado nesta organização. Tente outro termo.' }));
+      return;
+    }
+    for (const item of matches) results.append(el('a', { class: 'command-result', href: item.href }, [
+      el('span', { class: 'tag', text: item.kind }),
+      el('span', {}, [el('b', { text: item.title }), item.detail ? el('small', { text: item.detail }) : null])
+    ]));
+  };
+  trigger.addEventListener('click', () => { input.value = ''; draw(); dialog.showModal(); input.focus(); });
+  close.addEventListener('click', () => dialog.close());
+  input.addEventListener('input', draw);
+  input.addEventListener('keydown', (event) => {
+    if (event.key === 'ArrowDown') { const first = results.querySelector('a'); if (first) { event.preventDefault(); first.focus(); } }
+  });
+  results.addEventListener('keydown', (event) => {
+    if (event.key === 'ArrowUp' && event.target === results.querySelector('a')) { event.preventDefault(); input.focus(); }
+  });
+  dialog.addEventListener('close', () => trigger.focus());
+  dialog.append(el('div', { class: 'command-heading' }, [label, close]), input, results);
+  bar.append(trigger);
+  document.body.append(dialog);
+  draw();
+}
+
+document.addEventListener('keydown', (event) => {
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k' && audience === 'company') {
+    const trigger = document.querySelector('#command-trigger');
+    if (trigger) { event.preventDefault(); trigger.click(); }
+  }
+});
 
 // -------------------------------------------------------------------- views
 
@@ -1664,6 +1714,7 @@ async function load() {
   }
   nodes.append(await views[view](source));
   root.replaceChildren(nodes);
+  installCommandCenter(failure || data?.empty ? null : data);
 }
 
 if (root && views[view]) {
