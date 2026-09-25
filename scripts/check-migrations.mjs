@@ -88,7 +88,10 @@ for (const [flow, files] of Object.entries(manifest)) {
   const financialPilot = files.indexOf('docs/supabase-financial-pilot.sql');
   if (financialPilot === -1) issues.push(`${flow}: controles de piloto financeiro ausentes.`);
   if (financialHardening !== -1 && financialPilot !== financialHardening + 1) issues.push(`${flow}: os controles de piloto devem vir imediatamente depois do endurecimento.`);
-  if (financialPilot !== -1 && financialPilot !== files.length - 1) issues.push(`${flow}: os controles de piloto financeiro devem encerrar a sequência atual.`);
+  const approvals = files.indexOf('docs/supabase-financial-enterprise-approvals.sql');
+  if (approvals === -1) issues.push(`${flow}: aprovação empresarial ausente.`);
+  if (financialPilot !== -1 && approvals !== financialPilot + 1) issues.push(`${flow}: a aprovação deve vir depois dos controles de piloto.`);
+  if (approvals !== -1 && approvals !== files.length - 1) issues.push(`${flow}: a aprovação deve encerrar a sequência atual.`);
 }
 
 console.log('Arandu Migration Order Check');
