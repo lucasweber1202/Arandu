@@ -20,3 +20,15 @@ A migration do piloto recusa a criação de organização quando a allowlist est
 ## Validação
 
 `npm run build && npm run check:financial-surface && npm run check:dist-assets` verifica a superfície e os assets. `npm run check:finance` cobre domínio/API/smoke; `node scripts/test-email-outbox.mjs` cobre o renderer. `npm run test:database` exige PostgreSQL local. `npx playwright test tests/e2e/finance-procurement.spec.js` cobre desktop e celular quando os navegadores Playwright estão instalados.
+
+## Reconciliação da base e aprofundamento incremental
+
+A PR #67 foi incorporada à branch `work/arandu-first-financial-pilot-readiness` no merge `d23bbb5`, e não à `main`. O merge `603ffb5` tem como pais a `main` `1046af6` e esse commit. Como a única divergência posterior da `main` desde a base comum era `package.json` e `package-lock.json`, os scripts financeiros da #67 foram preservados com Vite 8.3.0 e Playwright 1.63.0 da `main`.
+
+O comando `Ctrl/Cmd+K` abre busca local nos registros já recebidos da API para a organização ativa: solicitações, propostas, provedores, contratos e tarefas. A busca não consulta outra organização, não persiste termos e não emite analytics. O catálogo é limitado aos registros presentes no `overview`; não é busca paginada de todo o histórico. O painel expõe tarefas vencidas e RFQs com prazo em sete dias. A média de propostas por solicitação substitui a antiga “taxa de resposta”, que usava propostas/convites sem identificar convites respondidos e poderia induzir interpretação incorreta.
+
+A lista de RFQs filtra por título, produto e status. O comprador pode pré-preencher uma nova demanda a partir de RFQ anterior da mesma organização. Somente produto, título, campos de demanda e prazo futuro são copiados na memória da página; a nova RFQ só nasce no POST explícito e convites, propostas e decisões não são copiados. A resposta do POST leva diretamente ao novo rascunho. A lista de provedores filtra por nome e região.
+
+### Limites desta rodada
+
+A busca não é server-side nem paginada; `overview` ainda limita a quantidade de registros. Não foram acrescentados approvals multinível, upload privado, autosave no servidor, notificações in-app ou console operacional. Nenhum desses fluxos deve ser anunciado como disponível. A inspeção visual manual do preview protegido e a validação com usuários de piloto continuam separadas dos testes automáticos.
