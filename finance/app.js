@@ -1285,6 +1285,8 @@ const views = {
     const saveState = el('p', { class: 'muted', role: 'status', 'aria-live': 'polite', text: 'Rascunho ainda não salvo.' });
     form.append(saveState);
     const baseVersion = assignment?.version || 0;
+    // Remove drafts stored by older builds. Terms now live only in the tenant-scoped database.
+    try { localStorage.removeItem(`arandu-finance-draft-${assignment?.proposal_id || product}`); } catch { /* storage may be disabled */ }
     let revision = 0;
     let timer;
     let inFlight = Promise.resolve();
@@ -1324,8 +1326,9 @@ const views = {
     }
     if (assignment?.proposal_id && !demoMode) {
       api(`proposal-draft?proposal_id=${encodeURIComponent(assignment.proposal_id)}`).then(({ draft }) => {
-        if (!draft || dirty) return;
+        if (!draft) return;
         revision = draft.revision;
+        if (dirty) return;
         for (const [key, value] of Object.entries(draft.terms || {})) {
           const input = form.elements.namedItem(key);
           if (input && value !== null && value !== undefined) input.value = String(value);
@@ -1350,6 +1353,7 @@ const views = {
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
       clearTimeout(timer);
+      if (dirty) await save();
       await inFlight;
       if (blocked) { say('Atualize a página para resolver o conflito de rascunho.'); return; }
       const noteValue = form.elements.namedItem('__note')?.value;
