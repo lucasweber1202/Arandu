@@ -1763,7 +1763,7 @@ async function load() {
     nodes.append(el('p', { class: 'demo-flag', text: 'DEMONSTRATION DATA' }));
     nodes.append(el('p', { class: 'muted', id: 'demo-notice', text: source.notice }));
   }
-  if (!(failure && ['dashboard', 'providerRfqs'].includes(view))) nodes.append(await views[view](source));
+  if (!(failure && !demoData && ['dashboard', 'providerRfqs'].includes(view))) nodes.append(await views[view](source));
   root.replaceChildren(nodes);
   installCommandCenter(failure || data?.empty ? null : data);
   if (location.hash === '#rfq-form' || location.hash === '#open-tasks') document.querySelector(location.hash)?.scrollIntoView();
