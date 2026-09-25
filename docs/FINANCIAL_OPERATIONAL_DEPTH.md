@@ -42,7 +42,7 @@ consultado. Nenhum índice especulativo foi criado.
 
 `fin_rfq_editor_drafts` guarda uma edição por pessoa e organização. O
 navegador envia após 650 ms sem digitação, exibe salvando/salvo/falha e
-permite retry. A RPC compara `revision` atomically no `ON CONFLICT`:
+permite retry. A RPC compara `revision` atomicamente no `ON CONFLICT`:
 uma aba antiga recebe 409 e precisa recarregar. O GET só expõe o próprio
 rascunho via RLS. O wizard cria a RFQ a partir do estado atual e tenta
 descartar o rascunho correspondente. Se o descarte falhar após a RFQ já
@@ -58,7 +58,7 @@ continua no RPC existente, sem revisão publicada adicional nesta rodada.
 bloqueia linhas, determina o marco mais próximo (`d180`, `d120`,
 `d90`, `d60`, `d30`, `d7` ou `expired`) e cria tarefa, evento e
 notificação ao responsável na mesma transação. A chave única
-`(contract_id,milestone)` evita duplicação na repetição/concor­rência. O
+`(contract_id,milestone)` evita duplicação na repetição/concorrência. O
 marco é acionado por “Atualizar marcos de renovação” na área de contratos.
 Não há daemon local nem cron configurado: para alertas sem acesso humano,
 agendar chamada autenticada e monitorada da mesma lógica em infraestrutura
