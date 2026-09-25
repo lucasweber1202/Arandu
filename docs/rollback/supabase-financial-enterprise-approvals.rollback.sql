@@ -42,3 +42,6 @@ drop table if exists public.fin_approval_requests;
 drop function if exists public.fin_cancel_approval(uuid);
 drop function if exists public.fin_act_on_approval(uuid,text,text);
 drop function if exists public.fin_request_approval(uuid,uuid,uuid[],text);
+
+drop function if exists public.fin_set_approval_policy(uuid,boolean);
+drop table if exists public.fin_approval_policies;
