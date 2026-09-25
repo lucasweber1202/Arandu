@@ -1078,7 +1078,7 @@ const views = {
       row.append(
         el('span', { class: 'tag', text: PRODUCTS[contract.product]?.label || contract.product }),
         el('span', { class: 'tag', text: statusLabel(contract.status) }),
-        el('b', { text: contract.provider_name || 'Provedor' }),
+        el('b', { text: data.providers?.find((provider) => provider.id === contract.provider_id)?.name || 'Provedor' }),
         el('small', { text: `Vigência: ${contract.starts_on} → ${contract.ends_on} · aviso prévio: ${contract.renewal_notice_days} dias` }),
         el('small', {
           text: reviewFrom
@@ -1136,6 +1136,44 @@ const views = {
       });
       policy.append(form, el('p', { class: 'muted', text: 'Somente um administrador pode alterar esta regra. Mudanças são registradas na trilha da organização.' }));
       frag.append(policy);
+    }
+    if (!demoMode && state.organizationId) {
+      const preferencePanel = el('section', { class: 'panel' });
+      preferencePanel.append(el('h2', { text: 'Notificações' }),
+        el('p', { class: 'muted', text: 'Escolha os avisos na aplicação. O envio por e-mail permanece desligado até haver infraestrutura configurada.' }));
+      const status = el('p', { role: 'status', 'aria-live': 'polite', class: 'muted', text: 'Carregando preferências…' });
+      const list = el('div', { class: 'notification-preferences' });
+      preferencePanel.append(list, status);
+      const types = [
+        ['mention', 'Menções'], ['comment', 'Comentários'], ['proposal_received', 'Propostas recebidas'],
+        ['proposal_revised', 'Propostas revisadas'], ['approval_requested', 'Aprovações solicitadas'],
+        ['approval_approved', 'Aprovações registradas'], ['approval_rejected', 'Aprovações rejeitadas'],
+        ['approval_changes_requested', 'Alterações solicitadas'], ['renewal_due', 'Renovações'], ['task_assigned', 'Tarefas atribuídas']
+      ];
+      api('notification-preferences?organization_id=' + encodeURIComponent(state.organizationId)).then(({ rows }) => {
+        const saved = new Map((rows || []).map((row) => [row.event_type, row]));
+        status.textContent = 'Alterações são salvas ao selecionar cada opção.';
+        for (const [type, title] of types) {
+          const label = el('label', { class: 'notification-preference' });
+          const checkbox = el('input', { type: 'checkbox', 'aria-label': title + ' na aplicação' });
+          checkbox.checked = saved.get(type)?.in_app ?? true;
+          checkbox.addEventListener('change', async () => {
+            checkbox.disabled = true;
+            try {
+              await api('notification-preferences', { method: 'POST', body: JSON.stringify({
+                organization_id: state.organizationId, event_type: type, in_app: checkbox.checked, email: saved.get(type)?.email ?? false
+              }) });
+              status.textContent = title + ': preferência salva.';
+            } catch (error) {
+              checkbox.checked = !checkbox.checked;
+              status.textContent = 'Não foi possível salvar: ' + error.message;
+            } finally { checkbox.disabled = false; }
+          });
+          label.append(checkbox, el('span', { text: title }));
+          list.append(label);
+        }
+      }).catch((error) => { status.textContent = 'Não foi possível carregar as preferências: ' + error.message; });
+      frag.append(preferencePanel);
     }
     const profile = data.profile || [];
     const panel = el('section', { class: 'panel' });
