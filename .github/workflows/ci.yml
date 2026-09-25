@@ -152,6 +152,30 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+  presentation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      ARANDU_SITE_URL: https://arandu.example.com
+      ARANDU_PRESENTATION_MODE: "true"
+      VERCEL_ENV: preview
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install
+        run: npm ci --include=optional
+      - name: Install browsers
+        run: npx playwright install --with-deps chromium firefox webkit
+      - name: Presentation journeys
+        run: npm run test:e2e:presentation
+
   deploy-boundaries:
     runs-on: ubuntu-latest
     timeout-minutes: 35
