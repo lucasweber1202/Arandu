@@ -22,6 +22,19 @@ select r.id,r.revision,r.organization_id,jsonb_build_object('title',r.title,'des
  'demand',r.demand,'response_deadline',r.response_deadline),r.owner_id,r.updated_at
 from public.fin_rfqs r on conflict(rfq_id,revision) do nothing;
 
+create or replace function public.fin_seed_rfq_revision()
+returns trigger language plpgsql security definer set search_path = '' as $
+begin
+ insert into public.fin_rfq_revisions(rfq_id,revision,organization_id,snapshot,changed_by)
+ values(new.id,new.revision,new.organization_id,
+  jsonb_build_object('title',new.title,'description',new.description,'demand',new.demand,
+   'response_deadline',new.response_deadline),auth.uid())
+ on conflict(rfq_id,revision) do nothing;
+ return new;
+end $;
+drop trigger if exists fin_seed_rfq_revision on public.fin_rfqs;
+create trigger fin_seed_rfq_revision after insert on public.fin_rfqs
+for each row execute function public.fin_seed_rfq_revision();
 create or replace function public.fin_capture_rfq_revision()
 returns trigger language plpgsql security definer set search_path = '' as $$
 begin
@@ -70,7 +83,7 @@ begin
    response_deadline=p_deadline,updated_at=now() where id=p_rfq returning revision into v_revision;
  return v_revision;
 end $$;
-revoke all on function public.fin_capture_rfq_revision(),public.fin_log_rfq_revision(),
+revoke all on function public.fin_seed_rfq_revision(),public.fin_capture_rfq_revision(),public.fin_log_rfq_revision(),
  public.fin_revise_rfq(uuid,integer,text,text,jsonb,date) from public,anon;
 grant execute on function public.fin_revise_rfq(uuid,integer,text,text,jsonb,date) to authenticated,service_role;
 
