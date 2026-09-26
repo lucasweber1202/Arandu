@@ -29,6 +29,13 @@ async function confirm(page, label) {
   await expect(dialog).toBeHidden();
 }
 const tab = (page, name) => page.getByRole('tab', { name: new RegExp(`^${name}`) });
+/** Entra pela página inicial e só segue depois que o painel terminou de carregar. */
+async function enterDemo(page) {
+  await page.goto('/demo/index.html');
+  await page.getByRole('link', { name: 'Explorar demonstração' }).click();
+  await expect(page).toHaveURL(/\/demo\/finance\/dashboard\.html$/);
+  await expect(page.locator('#precisa-de-voce')).toBeVisible();
+}
 
 test('abre /demo sem login e deixa claro que é demonstrativo', async ({ page }) => {
   const offending = watchNetwork(page);
@@ -53,8 +60,7 @@ test('abre /demo sem login e deixa claro que é demonstrativo', async ({ page })
 test('jornada completa: comprador → provedor → comprador → aprovador → decisão → contrato → renovação', async ({ page }) => {
   test.setTimeout(150000);
   const offending = watchNetwork(page);
-  await page.goto('/demo/index.html');
-  await page.getByRole('link', { name: 'Explorar demonstração' }).click();
+  await enterDemo(page);
 
   // Comprador cria a solicitação pelo assistente.
   await page.goto('/demo/finance/new-rfq.html');
@@ -243,8 +249,7 @@ const OVERDRAFT = 'de000000-0000-4000-8000-000400000008';
 
 test('provedor aceita convite do conjunto inicial, salva parcial, recarrega e vê processo encerrado só para leitura', async ({ page }) => {
   const offending = watchNetwork(page);
-  await page.goto('/demo/index.html');
-  await page.getByRole('link', { name: 'Explorar demonstração' }).click();
+  await enterDemo(page);
   await asPersona(page, 'Provedor');
   // O rascunho que vence antes (3 dias) é a próxima ação, não o convite que vence em 6.
   await expect(page.locator('#provider-status')).toContainText('Revisão de adquirência');
@@ -268,8 +273,7 @@ test('provedor aceita convite do conjunto inicial, salva parcial, recarrega e v�
 });
 
 test('aprovador pede alterações em um caso e aprova outro; o comprador vê cada retorno uma vez', async ({ page }) => {
-  await page.goto('/demo/index.html');
-  await page.getByRole('link', { name: 'Explorar demonstração' }).click();
+  await enterDemo(page);
   await asPersona(page, 'Aprovador');
   await page.goto('/demo/finance/approvals.html');
   const overdraft = page.locator('.inbox-row', { hasText: 'Conta garantida' });
@@ -305,8 +309,7 @@ test('aprovador pede alterações em um caso e aprova outro; o comprador vê cad
 
 test('confidencialidade entre provedores: pergunta de concorrente e documentos internos nunca chegam ao Atlas', async ({ page }) => {
   const offending = watchNetwork(page);
-  await page.goto('/demo/index.html');
-  await page.getByRole('link', { name: 'Explorar demonstração' }).click();
+  await enterDemo(page);
   // Comprador anexa um arquivo compartilhado; só metadados existem na demonstração.
   await page.goto(`/demo/finance/rfq.html?id=${CAPITAL}`);
   const docs = page.locator('#documentos');
@@ -335,8 +338,7 @@ test('confidencialidade entre provedores: pergunta de concorrente e documentos i
 });
 
 test('console operacional de exemplo mostra saúde, não dados de clientes', async ({ page }) => {
-  await page.goto('/demo/index.html');
-  await page.getByRole('link', { name: 'Explorar demonstração' }).click();
+  await enterDemo(page);
   await page.goto('/demo/finance/ops.html');
   const view = page.locator('#view');
   await expect(view).toContainText('Execuções de jobs');
