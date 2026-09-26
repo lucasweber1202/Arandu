@@ -376,8 +376,14 @@ const { handleAccount, handlePortal, handleArtistAccounts } = createAccountsDoma
 const { handlePrivacy, handleConversionEvents } = createPrivacyDomain(sharedDomainDependencies);
 const { handleDashboard, handleQuality } = createDashboardDomain(sharedDomainDependencies);
 
+// Na Vercel fora do Next.js, `api/[...path].js` só recebe um segmento: rotas
+// como /api/finance/rfqs chegam aqui pelo rewrite `/api/:scope/:rest+` de
+// vercel.json. Em rewrite, `req.url` mantém o caminho original — por isso
+// /.well-known/security.txt precisa ser reconhecido pelo próprio caminho.
 function routeFrom(req) {
-  const pathname = new URL(req.url, 'http://localhost').pathname.replace(/^\/api\/?/, '').replace(/\/$/, '');
+  const original = new URL(req.url, 'http://localhost').pathname;
+  if (original === '/.well-known/security.txt') return 'security-contact';
+  const pathname = original.replace(/^\/api\/?/, '').replace(/\/$/, '');
   return pathname || 'index';
 }
 
