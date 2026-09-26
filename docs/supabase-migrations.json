@@ -24,7 +24,12 @@
     "docs/supabase-financial-procurement-hardening.sql",
     "docs/supabase-financial-pilot.sql",
     "docs/supabase-financial-enterprise-approvals.sql",
-    "docs/supabase-financial-enterprise-drafts.sql"
+    "docs/supabase-financial-enterprise-drafts.sql",
+    "docs/supabase-financial-collaboration.sql",
+    "docs/supabase-financial-operational-search.sql",
+    "docs/supabase-financial-renewals.sql",
+    "docs/supabase-financial-rfq-editor.sql",
+    "docs/supabase-financial-rfq-revisions.sql"
   ],
   "existingDatabase": [
     "docs/supabase-sprint1-auth-ownership.sql",
@@ -50,6 +55,11 @@
     "docs/supabase-financial-procurement-hardening.sql",
     "docs/supabase-financial-pilot.sql",
     "docs/supabase-financial-enterprise-approvals.sql",
-    "docs/supabase-financial-enterprise-drafts.sql"
+    "docs/supabase-financial-enterprise-drafts.sql",
+    "docs/supabase-financial-collaboration.sql",
+    "docs/supabase-financial-operational-search.sql",
+    "docs/supabase-financial-renewals.sql",
+    "docs/supabase-financial-rfq-editor.sql",
+    "docs/supabase-financial-rfq-revisions.sql"
   ]
 }

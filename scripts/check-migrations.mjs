@@ -94,7 +94,22 @@ for (const [flow, files] of Object.entries(manifest)) {
   const drafts = files.indexOf('docs/supabase-financial-enterprise-drafts.sql');
   if (drafts === -1) issues.push(`${flow}: rascunhos persistidos ausentes.`);
   if (approvals !== -1 && drafts !== approvals + 1) issues.push(`${flow}: rascunhos devem vir depois de aprovações.`);
-  if (drafts !== -1 && drafts !== files.length - 1) issues.push(`${flow}: rascunhos devem encerrar a sequência atual.`);
+  const collaboration = files.indexOf('docs/supabase-financial-collaboration.sql');
+  if (collaboration === -1) issues.push(`${flow}: colaboração financeira ausente.`);
+  if (drafts !== -1 && collaboration !== drafts + 1) issues.push(`${flow}: colaboração deve vir depois dos rascunhos.`);
+  const search = files.indexOf('docs/supabase-financial-operational-search.sql');
+  if (search === -1) issues.push(`${flow}: busca financeira ausente.`);
+  if (collaboration !== -1 && search !== collaboration + 1) issues.push(`${flow}: busca deve vir depois da colaboração.`);
+  const renewals = files.indexOf('docs/supabase-financial-renewals.sql');
+  if (renewals === -1) issues.push(`${flow}: renovação financeira ausente.`);
+  if (search !== -1 && renewals !== search + 1) issues.push(`${flow}: renovação deve vir depois da busca.`);
+  const editor = files.indexOf('docs/supabase-financial-rfq-editor.sql');
+  if (editor === -1) issues.push(`${flow}: editor persistente de RFQ ausente.`);
+  if (renewals !== -1 && editor !== renewals + 1) issues.push(`${flow}: editor deve vir depois da renovação.`);
+  const revisions = files.indexOf('docs/supabase-financial-rfq-revisions.sql');
+  if (revisions === -1) issues.push(`${flow}: revisões publicadas de RFQ ausentes.`);
+  if (editor !== -1 && revisions !== editor + 1) issues.push(`${flow}: revisões devem vir depois do editor.`);
+  if (revisions !== -1 && revisions !== files.length - 1) issues.push(`${flow}: revisões devem encerrar a sequência atual.`);
 }
 
 console.log('Arandu Migration Order Check');

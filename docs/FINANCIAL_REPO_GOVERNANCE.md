@@ -24,7 +24,7 @@ Branch name pattern: `main`
 | Require approvals | 1 | revisão humana antes do merge |
 | Dismiss stale pull request approvals when new commits are pushed | ligado | aprovação não sobrevive a um push novo |
 | Require status checks to pass before merging | ligado | é o item que faltava: a PR #64 foi mesclada com o job `validate` ainda em execução |
-| → Required status checks | `validate`, `database`, `deploy-boundaries` | os três jobs do `Arandu CI` |
+| → Required status checks | `validate`, `database`, `deploy-boundaries`, `presentation` | os quatro jobs do `Arandu CI` |
 | Require branches to be up to date before merging | ligado | evita merge verde contra base velha |
 | Require conversation resolution before merging | ligado | nenhum comentário aberto some no merge |
 | Do not allow bypassing the above settings | **desligado** | mantém o acesso de emergência do proprietário |
@@ -72,3 +72,7 @@ Elas **não** foram mescladas junto com esta rodada, de propósito: misturar
 atualização de dependência com mudança de produto torna impossível saber qual
 das duas causou uma regressão. Merge separado, depois do CI verde, é
 `OWNER_ACTION_REQUIRED`.
+
+## Verificação da rodada operacional (25/09/2026)
+
+A leitura de `GET /repos/lucasweber1202/Arandu/branches/main/protection` retornou novamente `403 Resource not accessible by integration`. A conexão GitHub não oferece permissão administrativa; portanto a proteção **não foi alterada nem considerada ativa**. O proprietário deve aplicar os quatro checks acima em Settings → Branches e impedir push direto, force push e deleção, com branch atualizada antes do merge.

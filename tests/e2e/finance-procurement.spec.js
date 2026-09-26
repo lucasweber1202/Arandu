@@ -275,7 +275,7 @@ test('o teclado alcança a navegação e o conteúdo principal', async ({ page }
   await expect(page).toHaveURL(/#main$/);
 });
 
-// O índice e a duplicação usam somente o overview autorizado da organização ativa.
+// A busca consulta o endpoint autorizado; a duplicação reutiliza a demanda da organização ativa.
 test('busca por teclado e duplicação da demanda preservam o contexto da empresa', async ({ page }) => {
   await page.route('**/api/finance/**', (route) => {
     const url = new URL(route.request().url());
@@ -283,6 +283,14 @@ test('busca por teclado e duplicação da demanda preservam o contexto da empres
       status: 200, contentType: 'application/json',
       body: JSON.stringify({ rows: [{ id: 'org-1', kind: 'BUYER', name: 'Empresa de teste' }] })
     });
+    if (url.pathname.endsWith('/search')) {
+      expect(url.searchParams.get('organization_id')).toBe('org-1');
+      expect(url.searchParams.get('q')).toBe('credito expansao');
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        ok: true, rows: [{ kind: 'rfq', id: 'rfq-1', title: 'Crédito expansão', detail: 'draft',
+          href: '/finance/rfq.html?id=rfq-1' }]
+      }) });
+    }
     if (url.pathname.endsWith('/overview')) return route.fulfill({
       status: 200, contentType: 'application/json',
       body: JSON.stringify({

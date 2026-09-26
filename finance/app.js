@@ -76,7 +76,12 @@ async function api(path, options = {}) {
   try { payload = await response.json(); } catch { payload = {}; }
   if (response.status === 401) { const error = new Error('Sessão expirada ou ausente.'); error.status = 401; throw error; }
   if (response.status === 403) { const error = new Error(payload.error || 'Acesso negado para esta organização.'); error.status = 403; throw error; }
-  if (!response.ok) { const error = new Error(payload.error || `Falha ${response.status}.`); error.status = response.status; throw error; }
+  if (!response.ok) {
+    const reference = payload.requestId || response.headers.get('X-Request-ID');
+    const error = new Error((payload.error || `Falha ${response.status}.`) + (reference ? ` Código de referência: ${reference}` : ''));
+    error.status = response.status;
+    throw error;
+  }
   return payload;
 }
 
@@ -645,9 +650,10 @@ function installCommandCenter(data) {
   const results = el('div', { class: 'command-results', 'aria-live': 'polite' });
   const close = el('button', { type: 'button', class: 'secondary', text: 'Fechar' });
   const items = commandItems(data);
-  const draw = () => {
+  let searchTimer;
+  let requestSequence = 0;
+  const renderItems = (matches) => {
     results.replaceChildren();
-    const matches = searchCommandItems(items, input.value);
     if (!matches.length) {
       results.append(el('p', { class: 'muted', text: 'Nenhum resultado nesta organização. Tente outro termo.' }));
       return;
@@ -656,6 +662,29 @@ function installCommandCenter(data) {
       el('span', { class: 'tag', text: item.kind }),
       el('span', {}, [el('b', { text: item.title }), item.detail ? el('small', { text: item.detail }) : null])
     ]));
+  };
+  const draw = () => {
+    clearTimeout(searchTimer);
+    const sequence = ++requestSequence;
+    const term = input.value.trim();
+    if (term.length < 2 || demoMode) {
+      renderItems(searchCommandItems(items, term));
+      return;
+    }
+    results.replaceChildren(el('p', { class: 'muted', text: 'Buscando…' }));
+    searchTimer = setTimeout(async () => {
+      try {
+        const response = await api('search?organization_id=' + encodeURIComponent(state.organizationId)
+          + '&q=' + encodeURIComponent(term));
+        if (sequence !== requestSequence || !dialog.open) return;
+        const labels = { rfq: 'Solicitação', proposal: 'Proposta', provider: 'Provedor', contract: 'Contrato', task: 'Tarefa' };
+        renderItems((response.rows || []).map((row) => ({
+          kind: labels[row.kind] || row.kind, title: row.title, detail: row.detail, href: row.href
+        })));
+      } catch {
+        if (sequence === requestSequence) results.replaceChildren(el('p', { class: 'muted', text: 'A busca está indisponível. Tente novamente.' }));
+      }
+    }, 240);
   };
   trigger.addEventListener('click', () => { input.value = ''; draw(); dialog.showModal(); input.focus(); });
   close.addEventListener('click', () => dialog.close());
@@ -908,6 +937,7 @@ const views = {
     const demand = el('section', { class: 'panel', id: 'demanda' });
     demand.append(el('h2', { text: 'Demanda declarada pela empresa' }), fieldRows(PRODUCTS[rfq.product].demandFields, rfq.demand));
     frag.append(demand);
+    frag.append(rfqRevisionPanel(rfq));
 
     const proposals = rfq.proposals || [];
     const comparison = el('section', { class: 'panel', id: 'comparacao' });
@@ -955,6 +985,7 @@ const views = {
       decision.append(emptyState('A decisão fica disponível quando houver ao menos uma proposta.'));
     }
     frag.append(decision);
+    frag.append(commentPanel('rfq', rfq.id), activityPanel('rfq', rfq.id));
     return frag;
   },
 
@@ -1026,6 +1057,22 @@ const views = {
     const frag = document.createDocumentFragment();
     const contracts = data.contracts || [];
     if (!contracts.length) return emptyState('Nenhum contrato registrado ainda.');
+    if (!demoMode) {
+      const toolbar = el('div', { class: 'contract-toolbar' });
+      const check = el('button', { type: 'button', class: 'secondary', text: 'Atualizar marcos de renovação' });
+      const feedback = el('span', { role: 'status', 'aria-live': 'polite', class: 'muted' });
+      check.addEventListener('click', async () => {
+        check.disabled = true;
+        try {
+          const result = await api('renewals', { method: 'POST', body: JSON.stringify({ organization_id: state.organizationId }) });
+          feedback.textContent = `${result.tasks_created} tarefa(s) de renovação criada(s).`;
+          if (result.tasks_created) setTimeout(() => location.reload(), 800);
+        } catch (error) { feedback.textContent = error.message; }
+        finally { check.disabled = false; }
+      });
+      toolbar.append(check, feedback);
+      frag.append(toolbar);
+    }
     const list = el('div', { class: 'rows' });
     const today = new Date().toISOString().slice(0, 10);
     for (const contract of contracts) {
@@ -1033,11 +1080,11 @@ const views = {
       const reviewFrom = Number.isFinite(ends)
         ? new Date(ends - Number(contract.renewal_notice_days || 0) * 86400000).toISOString().slice(0, 10)
         : null;
-      const row = el('div', { class: 'row' });
+      const row = el('div', { class: 'row', id: 'contract-' + contract.id });
       row.append(
         el('span', { class: 'tag', text: PRODUCTS[contract.product]?.label || contract.product }),
         el('span', { class: 'tag', text: statusLabel(contract.status) }),
-        el('b', { text: contract.provider_name || 'Provedor' }),
+        el('b', { text: contract.provider_name || data.providers?.find((provider) => provider.id === contract.provider_id)?.name || 'Provedor' }),
         el('small', { text: `Vigência: ${contract.starts_on} → ${contract.ends_on} · aviso prévio: ${contract.renewal_notice_days} dias` }),
         el('small', {
           text: reviewFrom
@@ -1048,6 +1095,17 @@ const views = {
         }),
         contract.cost_summary ? el('small', { text: `Custo registrado: ${contract.cost_summary}` }) : null
       );
+      if (!demoMode) {
+        const restart = el('button', { type: 'button', class: 'secondary', text: 'Iniciar nova concorrência' });
+        restart.addEventListener('click', async () => {
+          restart.disabled = true;
+          try {
+            const result = await api('contract-renewal-rfq', { method: 'POST', body: JSON.stringify({ organization_id: state.organizationId, contract_id: contract.id }) });
+            location.href = '/finance/rfq.html?id=' + encodeURIComponent(result.id);
+          } catch (error) { say(error.message); restart.disabled = false; }
+        });
+        row.append(restart);
+      }
       list.append(row);
     }
     frag.append(list);
@@ -1084,6 +1142,44 @@ const views = {
       });
       policy.append(form, el('p', { class: 'muted', text: 'Somente um administrador pode alterar esta regra. Mudanças são registradas na trilha da organização.' }));
       frag.append(policy);
+    }
+    if (!demoMode && state.organizationId) {
+      const preferencePanel = el('section', { class: 'panel' });
+      preferencePanel.append(el('h2', { text: 'Notificações' }),
+        el('p', { class: 'muted', text: 'Escolha os avisos na aplicação. O envio por e-mail permanece desligado até haver infraestrutura configurada.' }));
+      const status = el('p', { role: 'status', 'aria-live': 'polite', class: 'muted', text: 'Carregando preferências…' });
+      const list = el('div', { class: 'notification-preferences' });
+      preferencePanel.append(list, status);
+      const types = [
+        ['mention', 'Menções'], ['comment', 'Comentários'], ['proposal_received', 'Propostas recebidas'],
+        ['proposal_revised', 'Propostas revisadas'], ['approval_requested', 'Aprovações solicitadas'],
+        ['approval_approved', 'Aprovações registradas'], ['approval_rejected', 'Aprovações rejeitadas'],
+        ['approval_changes_requested', 'Alterações solicitadas'], ['renewal_due', 'Renovações'], ['task_assigned', 'Tarefas atribuídas']
+      ];
+      api('notification-preferences?organization_id=' + encodeURIComponent(state.organizationId)).then(({ rows }) => {
+        const saved = new Map((rows || []).map((row) => [row.event_type, row]));
+        status.textContent = 'Alterações são salvas ao selecionar cada opção.';
+        for (const [type, title] of types) {
+          const label = el('label', { class: 'notification-preference' });
+          const checkbox = el('input', { type: 'checkbox', 'aria-label': title + ' na aplicação' });
+          checkbox.checked = saved.get(type)?.in_app ?? true;
+          checkbox.addEventListener('change', async () => {
+            checkbox.disabled = true;
+            try {
+              await api('notification-preferences', { method: 'POST', body: JSON.stringify({
+                organization_id: state.organizationId, event_type: type, in_app: checkbox.checked, email: saved.get(type)?.email ?? false
+              }) });
+              status.textContent = title + ': preferência salva.';
+            } catch (error) {
+              checkbox.checked = !checkbox.checked;
+              status.textContent = 'Não foi possível salvar: ' + error.message;
+            } finally { checkbox.disabled = false; }
+          });
+          label.append(checkbox, el('span', { text: title }));
+          list.append(label);
+        }
+      }).catch((error) => { status.textContent = 'Não foi possível carregar as preferências: ' + error.message; });
+      frag.append(preferencePanel);
     }
     const profile = data.profile || [];
     const panel = el('section', { class: 'panel' });
@@ -1145,6 +1241,9 @@ const views = {
           el('small', { text: state.hint }),
           el('small', { text: `Prazo de resposta: ${row.response_deadline || 'não definido'}` })
         );
+        if (row.version && row.rfq_revision > row.submitted_rfq_revision) {
+          item.append(el('p', { class: 'boundary', text: `A RFQ está na v${row.rfq_revision}; sua proposta respondeu à v${row.submitted_rfq_revision}. Revise as alterações antes de reenviar.` }));
+        }
         if (row.rfq_status && !['open', 'collecting'].includes(row.rfq_status)) {
           item.append(el('small', { text: 'Esta solicitação não está mais recebendo propostas.' }));
         }
@@ -1257,7 +1356,30 @@ const views = {
       text: 'Você responde apenas às RFQs atribuídas à sua organização. Propostas de outros provedores, notas internas da empresa e a decisão antes de publicada não são acessíveis por este portal.'
     }));
     if (assignment) {
-      panel.append(el('p', { text: `Solicitação: ${assignment.title}` }));
+      panel.append(el('p', { text: `Solicitação: ${assignment.title} · RFQ v${assignment.rfq_revision || 1}` }));
+      if (assignment.version && assignment.rfq_revision > assignment.submitted_rfq_revision) {
+        const warning = el('aside', { class: 'boundary', role: 'status' }, [
+          el('b', { text: `A solicitação mudou desde sua proposta (v${assignment.submitted_rfq_revision} → v${assignment.rfq_revision}).` }),
+          el('p', { text: 'Confira as condições e envie uma nova versão se necessário. A proposta anterior permanece registrada.' })
+        ]);
+        panel.append(warning);
+        if (!demoMode) api('rfq-revisions?organization_id=' + encodeURIComponent(state.organizationId)
+          + '&rfq_id=' + encodeURIComponent(assignment.rfq_id)).then(({ rows }) => {
+          const old = rows?.find((row) => row.revision === assignment.submitted_rfq_revision)?.snapshot;
+          const latest = rows?.find((row) => row.revision === assignment.rfq_revision)?.snapshot;
+          if (!old || !latest) return;
+          const changed = [['title', 'Título'], ['response_deadline', 'Prazo de resposta'],
+            ...PRODUCTS[assignment.product].demandFields.map((field) => [field.key, field.label])];
+          const list = el('ul');
+          for (const [key, label] of changed) {
+            const before = key in (old.demand || {}) ? old.demand[key] : old[key];
+            const after = key in (latest.demand || {}) ? latest.demand[key] : latest[key];
+            if (JSON.stringify(before ?? null) !== JSON.stringify(after ?? null))
+              list.append(el('li', { text: `${label}: ${show(before)} → ${show(after)}` }));
+          }
+          if (list.children.length) warning.append(list);
+        }).catch(() => {});
+      }
       const status = PROPOSAL_STATUS[assignment.status];
       if (status) panel.append(el('p', { class: 'muted', text: `${status.label} — ${status.hint}` }));
       if (Object.keys(assignment.demand || {}).length) {
@@ -1402,6 +1524,7 @@ const views = {
     });
     panel.append(form);
     frag.append(panel);
+    if (assignment?.rfq_id) frag.append(commentPanel('rfq', assignment.rfq_id, true));
     return frag;
   }
 };
@@ -1511,6 +1634,232 @@ function approvalWorkspace(rfq, proposals) {
       content.replaceChildren(el('p', { text: `Não foi possível carregar aprovações: ${error.message}` }));
     }
   };
+  refresh();
+  return section;
+}
+
+
+const ACTIVITY_LABELS = Object.freeze({
+  rfq_created: 'Solicitação criada', rfq_open: 'Solicitação aberta',
+  provider_invited: 'Provedor convidado', invite_accepted: 'Convite aceito',
+  proposal_submitted: 'Proposta enviada', proposal_revised: 'Proposta revisada',
+  approval_requested: 'Aprovação solicitada', approval_approved: 'Aprovação registrada',
+  approval_rejected: 'Aprovação rejeitada', approval_changes_requested: 'Alterações solicitadas',
+  decision_recorded: 'Decisão registrada', contract_registered: 'Contrato registrado',
+  comment_added: 'Comentário registrado', renewal_due: 'Renovação em atenção'
+});
+function objectHref(type, id) {
+  if (type === 'rfq') return `/finance/rfq.html?id=${encodeURIComponent(id)}`;
+  if (type === 'proposal') return `/provider/proposal.html?proposal=${encodeURIComponent(id)}`;
+  if (type === 'contract') return `/finance/contracts.html#contract-${encodeURIComponent(id)}`;
+  return '/finance/dashboard.html#open-tasks';
+}
+
+function rfqRevisionPanel(rfq) {
+  const section = el('section', { class: 'panel', id: 'revisoes' });
+  section.append(el('h2', { text: 'Revisões da solicitação' }),
+    el('p', { class: 'muted', text: 'Mudanças publicadas ficam no histórico. Propostas enviadas continuam vinculadas à versão anterior.' }));
+  const history = el('div', { class: 'revision-history' });
+  section.append(history);
+  if (!demoMode) api('rfq-revisions?organization_id=' + encodeURIComponent(state.organizationId)
+    + '&rfq_id=' + encodeURIComponent(rfq.id)).then(({ rows }) => {
+    history.replaceChildren();
+    for (const item of rows || []) {
+      const detail = el('details');
+      detail.append(el('summary', { text: 'v' + item.revision + ' · ' + new Date(item.published_at).toLocaleString('pt-BR') }));
+      detail.append(el('p', { text: item.snapshot.title || 'Solicitação' }),
+        fieldRows(PRODUCTS[rfq.product].demandFields, item.snapshot.demand || {}),
+        el('small', { text: 'Prazo de resposta: ' + (item.snapshot.response_deadline || 'não definido') }));
+      history.append(detail);
+    }
+    if (!history.children.length) history.append(el('p', { class: 'muted', text: 'Nenhuma revisão registrada.' }));
+  }).catch((error) => { history.textContent = 'Histórico indisponível: ' + error.message; });
+  if (demoMode || !['draft','open','collecting'].includes(rfq.status)) return section;
+  const form = el('form', { class: 'rfq-revision-form' });
+  const title = el('label', { text: 'Título' });
+  title.append(el('input', { name: 'title', required: 'required', value: rfq.title, minlength: '3', maxlength: '200' }));
+  const desc = el('label', { text: 'Descrição' });
+  const descInput = el('textarea', { name: 'description', maxlength: '4000' });
+  descInput.value = rfq.description || '';
+  desc.append(descInput);
+  const deadline = el('label', { text: 'Prazo de resposta' });
+  const deadlineInput = el('input', { name: 'response_deadline', type: 'date' });
+  deadlineInput.value = rfq.response_deadline || '';
+  deadline.append(deadlineInput);
+  form.append(title, desc, deadline);
+  for (const field of PRODUCTS[rfq.product].demandFields) {
+    const label = el('label', { text: field.label });
+    let input;
+    if (field.type === 'enum' || field.type === 'bool') {
+      input = el('select', { name: field.key });
+      input.add(new Option('Não informado', ''));
+      for (const value of field.type === 'bool' ? ['true','false'] : field.options) input.add(new Option(value, value));
+    } else {
+      input = el('input', { name: field.key, type: field.type === 'date' ? 'date' :
+        ['money','percent','number','int'].includes(field.type) ? 'number' : 'text',
+        step: field.type === 'int' ? '1' : '0.01' });
+    }
+    if (rfq.demand?.[field.key] !== undefined && rfq.demand?.[field.key] !== null) input.value = String(rfq.demand[field.key]);
+    label.append(input);
+    form.append(label);
+  }
+  const status = el('p', { role: 'status', 'aria-live': 'polite', class: 'muted',
+    text: 'Revisão atual: v' + (rfq.revision || 1) + '. A alteração será visível aos provedores convidados.' });
+  const button = el('button', { type: 'submit', text: 'Publicar revisão' });
+  form.append(status, button);
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    button.disabled = true;
+    const entries = Object.fromEntries(new FormData(form));
+    const demand = {};
+    for (const field of PRODUCTS[rfq.product].demandFields) {
+      if (entries[field.key] !== '') demand[field.key] = entries[field.key];
+    }
+    try {
+      const result = await api('rfqs', { method: 'PATCH', body: JSON.stringify({
+        rfq_id: rfq.id, expected_revision: rfq.revision || 1,
+        title: entries.title, description: entries.description, response_deadline: entries.response_deadline, demand
+      }) });
+      status.textContent = 'Revisão v' + result.revision + ' publicada. Atualizando histórico…';
+      location.reload();
+    } catch (error) {
+      status.textContent = error.message;
+      if (error.status === 409) status.append(el('button', { type: 'button', class: 'secondary',
+        text: 'Recarregar versão atual' }));
+      status.querySelector('button')?.addEventListener('click', () => location.reload());
+      button.disabled = false;
+    }
+  });
+  section.append(form);
+  return section;
+}
+
+function installNotificationCenter() {
+  if (!state.organizationId || demoMode) return;
+  const bar = document.querySelector('header.app .bar');
+  if (!bar) return;
+  bar.querySelector('#notification-center')?.remove();
+  const details = el('details', { class: 'notification-center', id: 'notification-center' });
+  const summary = el('summary', { text: 'Notificações' });
+  const list = el('div', { class: 'notification-list', 'aria-live': 'polite' });
+  const mark = el('button', { type: 'button', class: 'secondary', text: 'Marcar todas como lidas' });
+  details.append(summary, list, mark);
+  bar.append(details);
+  async function refresh() {
+    list.replaceChildren(el('p', { class: 'muted', text: 'Carregando notificações…' }));
+    try {
+      const result = await api(`notifications?organization_id=${encodeURIComponent(state.organizationId)}`);
+      list.replaceChildren();
+      const unread = (result.rows || []).filter((row) => !row.read_at).length;
+      summary.textContent = `Notificações${unread ? ` (${unread})` : ''}`;
+      for (const row of result.rows || []) {
+        const link = el('a', { class: `notification-item${row.read_at ? '' : ' unread'}`,
+          href: objectHref(row.object_type, row.object_id) });
+        link.append(el('b', { text: row.title }), el('span', { text: row.body }),
+          el('small', { text: new Date(row.created_at).toLocaleString('pt-BR') }));
+        link.addEventListener('click', () => {
+          if (!row.read_at) api('notifications', { method: 'PATCH', body: JSON.stringify({
+            organization_id: state.organizationId, ids: [row.id]
+          }) }).catch(() => {});
+        });
+        list.append(link);
+      }
+      if (!list.children.length) list.append(el('p', { class: 'muted', text: 'Nenhuma notificação por enquanto.' }));
+      mark.disabled = !unread;
+    } catch (error) { list.replaceChildren(el('p', { text: `Não foi possível carregar notificações: ${error.message}` })); }
+  }
+  mark.addEventListener('click', async () => {
+    mark.disabled = true;
+    try { await api('notifications', { method: 'PATCH', body: JSON.stringify({ organization_id: state.organizationId }) }); await refresh(); }
+    catch (error) { say(error.message); mark.disabled = false; }
+  });
+  details.addEventListener('toggle', () => { if (details.open) refresh(); });
+  refresh();
+}
+
+function activityPanel(type, id) {
+  const section = el('section', { class: 'panel', id: 'atividade' });
+  section.append(el('h2', { text: 'Atividade do processo' }));
+  const list = el('ol', { class: 'activity-list' });
+  section.append(list);
+  if (demoMode || !state.organizationId) {
+    list.append(el('li', { text: 'Entre na organização para ver o histórico.' }));
+    return section;
+  }
+  api(`events?organization_id=${encodeURIComponent(state.organizationId)}&entity_type=${type}&entity_id=${encodeURIComponent(id)}`)
+    .then(({ rows }) => {
+      list.replaceChildren();
+      for (const row of rows || []) list.append(el('li', { text:
+        `${ACTIVITY_LABELS[row.event_type] || row.event_type.replaceAll('_', ' ')} · ${new Date(row.happened_at).toLocaleString('pt-BR')}` }));
+      if (!list.children.length) list.append(el('li', { text: 'Nenhuma atividade registrada.' }));
+    }).catch((error) => list.replaceChildren(el('li', { text: `Histórico indisponível: ${error.message}` })));
+  return section;
+}
+
+function commentPanel(type, id, provider = false) {
+  const section = el('section', { class: 'panel comments-panel', id: 'comentarios' });
+  section.append(el('h2', { text: 'Comentários do processo' }));
+  const list = el('div', { class: 'comment-list', 'aria-live': 'polite' });
+  section.append(list);
+  if (demoMode || !state.organizationId) {
+    list.append(el('p', { class: 'muted', text: 'Entre na organização para colaborar.' }));
+    return section;
+  }
+  const form = el('form');
+  const label = el('label', { text: 'Comentário (texto simples)' });
+  const body = el('textarea', { name: 'body', required: '', maxlength: '4000', 'aria-label': 'Comentário' });
+  label.append(body);
+  const visibility = el('select', { name: 'visibility', 'aria-label': 'Visibilidade do comentário' });
+  if (provider) visibility.add(new Option('Compartilhado com a empresa compradora', 'provider_visible'));
+  else {
+    visibility.add(new Option('Interno — apenas sua empresa', 'internal'));
+    if (['rfq','proposal'].includes(type)) visibility.add(new Option('Compartilhado com provedores deste processo', 'provider_visible'));
+  }
+  const visibilityLabel = el('label', { text: 'Quem pode ler' });
+  visibilityLabel.append(visibility);
+  const mentions = el('select', { multiple: '', size: '3', 'aria-label': 'Mencionar membros (opcional)' });
+  const mentionLabel = el('label', { text: 'Mencionar membros internos (opcional)' });
+  mentionLabel.append(mentions);
+  if (!provider) api(`members?organization_id=${encodeURIComponent(state.organizationId)}`).then(({ rows, viewer_id }) => {
+    for (const member of rows || []) if (member.user_id !== viewer_id)
+      mentions.add(new Option(`${member.role} · ${member.user_id.slice(0, 8)}`, member.user_id));
+  }).catch(() => {});
+  if (!provider) visibility.addEventListener('change', () => {
+    mentions.disabled = visibility.value !== 'internal';
+    if (mentions.disabled) for (const option of mentions.options) option.selected = false;
+  });
+  form.append(label, visibilityLabel, ...(provider ? [] : [mentionLabel]), el('button', { type: 'submit', text: 'Registrar comentário' }));
+  section.append(form);
+  async function refresh() {
+    try {
+      const result = await api(`comments?organization_id=${encodeURIComponent(state.organizationId)}&object_type=${type}&object_id=${encodeURIComponent(id)}`);
+      list.replaceChildren();
+      for (const row of result.rows || []) {
+        const item = el('article', { class: 'comment-item' });
+        item.append(el('b', { text: row.visibility === 'internal' ? 'Interno — apenas sua empresa' : 'Compartilhado com provedores' }),
+          el('p', { text: row.body }),
+          el('small', { text: `Membro ${row.author_id.slice(0, 8)} · ${new Date(row.created_at).toLocaleString('pt-BR')}` }));
+        list.append(item);
+      }
+      if (!list.children.length) list.append(el('p', { class: 'muted', text: 'Nenhum comentário ainda. Registre o contexto neste processo.' }));
+    } catch (error) { list.replaceChildren(el('p', { text: `Comentários indisponíveis: ${error.message}` })); }
+  }
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const button = form.querySelector('button');
+    button.disabled = true;
+    try {
+      await api('comments', { method: 'POST', body: JSON.stringify({
+        organization_id: state.organizationId, object_type: type, object_id: id,
+        visibility: visibility.value, body: body.value,
+        mention_ids: visibility.value === 'internal' ? [...mentions.selectedOptions].map((option) => option.value) : [],
+        client_id: crypto.randomUUID()
+      }) });
+      body.value = '';
+      say('Comentário registrado.', 'success');
+      await refresh();
+    } catch (error) { say(error.message); } finally { button.disabled = false; }
+  });
   refresh();
   return section;
 }
@@ -1757,6 +2106,85 @@ function newRfqForm(profile = [], source = null) {
   }
   show(0);
 
+  let editorRevision = 0;
+  let dirty = false;
+  let conflicted = false;
+  let pending = null;
+  let saveTimer;
+  let editSequence = 0;
+  const autosaveState = el('span', { class: 'muted', role: 'status', 'aria-live': 'polite', text: demoMode ? 'Demonstração: rascunho não persistido.' : 'Carregando rascunho…' });
+  const retrySave = el('button', { type: 'button', class: 'secondary', hidden: 'hidden', text: 'Tentar salvar novamente' });
+  nav.append(autosaveState, retrySave);
+  const editorPayload = () => {
+    const entries = Object.fromEntries(new FormData(form));
+    const demand = {};
+    for (const field of PRODUCTS[entries.product].demandFields) {
+      if (entries[field.key] !== undefined && entries[field.key] !== '') demand[field.key] = entries[field.key];
+    }
+    return { organization_id: state.organizationId, product: entries.product, title: entries.title || '',
+      response_deadline: entries.response_deadline || null, demand, expected_revision: editorRevision };
+  };
+  const saveEditor = async () => {
+    if (demoMode || !dirty || conflicted || pending) return;
+    const sequence = editSequence;
+    autosaveState.textContent = 'Salvando rascunho…';
+    retrySave.hidden = true;
+    pending = api('rfq-editor', { method: 'PATCH', body: JSON.stringify(editorPayload()) });
+    try {
+      const result = await pending;
+      editorRevision = result.revision;
+      if (editSequence === sequence) {
+        dirty = false;
+        autosaveState.textContent = 'Rascunho salvo no servidor às ' + new Date(result.updated_at).toLocaleTimeString('pt-BR');
+      } else {
+        autosaveState.textContent = 'Há alterações para salvar…';
+      }
+    } catch (error) {
+      conflicted = error.status === 409;
+      autosaveState.textContent = conflicted
+        ? 'Esta solicitação mudou em outra aba. Recarregue a página para ver a versão mais recente.'
+        : 'Falha ao salvar. Os dados desta aba ainda não estão no servidor.';
+      retrySave.textContent = conflicted ? 'Recarregar rascunho' : 'Tentar salvar novamente';
+      retrySave.hidden = false;
+    } finally {
+      pending = null;
+      if (dirty && !conflicted && retrySave.hidden) saveTimer = setTimeout(saveEditor, 650);
+    }
+  };
+  retrySave.addEventListener('click', () => {
+    if (conflicted) { location.reload(); return; }
+    saveEditor();
+  });
+  if (!demoMode) {
+    form.addEventListener('input', () => {
+      dirty = true;
+      editSequence++;
+      autosaveState.textContent = 'Alterações ainda não salvas…';
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(saveEditor, 650);
+    });
+    api('rfq-editor?organization_id=' + encodeURIComponent(state.organizationId)).then(({ draft }) => {
+      editorRevision = draft?.revision ?? 0;
+      if (draft?.payload && !source && !dirty && PRODUCTS[draft.payload.product]) {
+        product.value = draft.payload.product;
+        renderFields();
+        for (const [key, value] of Object.entries({ title: draft.payload.title,
+          response_deadline: draft.payload.response_deadline, ...draft.payload.demand })) {
+          const input = form.elements.namedItem(key);
+          if (input && value !== null && value !== undefined) input.value = String(value);
+        }
+        autosaveState.textContent = 'Rascunho recuperado do servidor.';
+      } else {
+        autosaveState.textContent = draft ? 'Rascunho salvo anteriormente disponível.' : 'As alterações serão salvas no servidor.';
+      }
+    }).catch(() => {
+      autosaveState.textContent = 'Não foi possível carregar o rascunho. Tente atualizar a página.';
+      conflicted = true;
+      retrySave.hidden = false;
+      retrySave.textContent = 'Recarregar rascunho';
+    });
+  }
+
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     const entries = Object.fromEntries(new FormData(form));
@@ -1771,7 +2199,14 @@ function newRfqForm(profile = [], source = null) {
       if (entries[field.key] !== undefined && entries[field.key] !== '') body.demand[field.key] = entries[field.key];
     }
     try {
+      if (conflicted) throw new Error('O rascunho mudou em outra aba. Recarregue antes de criar a solicitação.');
+      clearTimeout(saveTimer);
+      if (pending) await pending;
       const result = await api('rfqs', { method: 'POST', body: JSON.stringify(body) });
+      if (!demoMode && editorRevision) {
+        try { await api('rfq-editor', { method: 'DELETE', body: JSON.stringify({ organization_id: state.organizationId, expected_revision: editorRevision }) }); }
+        catch { /* A RFQ foi criada; o rascunho antigo pode ser descartado depois. */ }
+      }
       const warnings = (result.warnings || []).join(' ');
       say(`Solicitação criada em rascunho. Abra-a para convidar provedores. ${warnings}`.trim(), 'success');
       if (result.id) { location.assign('/finance/rfq.html?id=' + encodeURIComponent(result.id)); return; }
@@ -1980,6 +2415,7 @@ async function load() {
   if (!(failure && !demoData && ['dashboard', 'providerRfqs'].includes(view))) nodes.append(await views[view](source));
   root.replaceChildren(nodes);
   installCommandCenter(failure || data?.empty ? null : data);
+  if (!failure && !data?.empty) installNotificationCenter();
   if (location.hash === '#rfq-form' || location.hash === '#open-tasks') document.querySelector(location.hash)?.scrollIntoView();
 }
 
