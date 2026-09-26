@@ -3,19 +3,20 @@ import { resolve, relative, sep } from 'node:path';
 import { deploymentBaseUrl, renderSeoHead } from './scripts/seo-meta.mjs';
 import { ownSiteUrl } from './lib/public-site-url.mjs';
 import { assertPresentationModeIsSafe } from './lib/presentation-mode.mjs';
+import { assertDemoModeIsSafe } from './lib/demo-mode.mjs';
+import { PAGES as FINANCE_PAGES } from './scripts/generate-finance-pages.mjs';
 
 const root = process.cwd();
 const siteUrl = ownSiteUrl(process.env.ARANDU_SITE_URL);
-const presentationMode = assertPresentationModeIsSafe();
+assertPresentationModeIsSafe();
+// Demonstração interativa: decidida no build, nunca por parâmetro de URL. Em
+// produção financeira a constante é false e o motor não entra no pacote.
+const demoMode = assertDemoModeIsSafe();
 const publicPages = new Set(['index.html', 'produto.html', 'credito.html', 'adquirencia.html', 'seguranca.html', 'limites.html']);
 // Explicit production surface: legacy HTML is never discovered automatically.
-const pages = [
-  ...publicPages, 'login.html', 'cadastro.html', '404.html',
-  'finance/index.html', 'finance/dashboard.html', 'finance/rfqs.html',
-  'finance/rfq.html', 'finance/providers.html', 'finance/proposals.html',
-  'finance/contracts.html', 'finance/settings.html', 'finance/boundaries.html',
-  'provider/index.html', 'provider/invite.html', 'provider/rfqs.html', 'provider/proposal.html'
-];
+const financePages = FINANCE_PAGES.map((page) => page.path);
+const demoPages = demoMode ? ['demo/index.html', ...financePages.map((page) => `demo/${page}`)] : [];
+const pages = [...publicPages, 'login.html', 'cadastro.html', '404.html', ...financePages, ...demoPages];
 const input = Object.fromEntries(pages.map(page => [page.replace(/\.html$/, ''), resolve(root, page)]));
 const speedInsightsTag = '<script type="module" src="/src/vercel-speed-insights.js"></script>';
 
@@ -27,11 +28,12 @@ export default defineConfig({
       order: 'pre',
       handler(html, context) {
         const page = relative(root, context.filename).split(sep).join('/');
-        if (presentationMode && /^(finance|provider)\//.test(page)) {
-          html = html.replace('</head>', '<meta name="arandu-presentation-mode" content="true"></head>');
+        // A demonstração não carrega analytics: nada do sandbox vira métrica real.
+        // O convite também não: o token de uso único nunca pode chegar a terceiros.
+        if (page !== 'provider/invite.html' && !page.startsWith('demo/')) html = html.replace('</body>', speedInsightsTag + '</body>');
+        if (demoMode && page === 'index.html') {
+          html = html.replace('<a class="button ghost" href="#fluxo">', '<a class="button ghost" href="/demo/index.html" data-demo-cta>Explorar demonstração</a><a class="button ghost" href="#fluxo">');
         }
-        // Legacy invite query strings can contain a one-time secret.
-        if (page !== 'provider/invite.html') html = html.replace('</body>', speedInsightsTag + '</body>');
         return renderSeoHead(html, {
           pageName: page, siteUrl, shareBaseUrl: deploymentBaseUrl(),
           isCanonical: publicPages.has(page)
@@ -39,5 +41,6 @@ export default defineConfig({
       }
     }
   }],
+  define: { __ARANDU_DEMO__: JSON.stringify(demoMode) },
   build: { rollupOptions: { input } }
 });
