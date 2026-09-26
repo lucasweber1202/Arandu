@@ -144,8 +144,20 @@ begin
  if (select created from renewal_run where step='third')<>0 then raise exception 'reused task counted as new'; end if;
  if (select milestone from public.fin_renewal_milestones where contract_id=v_contract)<>'notice' then raise exception 'notice milestone not preferred'; end if;
  if (select count(*) from public.fin_tasks where related_id=v_contract and status='open')<>1 then raise exception 'second open task created'; end if;
- if (select count(*) from public.fin_notifications where event_type='renewal_due')<>(select notifications from renewal_run where step='third')
- then raise exception 'duplicate renewal notification'; end if;
+ -- Marco novo avisa uma vez, mesmo reaproveitando a tarefa aberta
+ -- (docs/supabase-financial-pilot-operations.sql).
+ if (select count(*) from public.fin_notifications where event_type='renewal_due')<>(select notifications from renewal_run where step='third') + 1
+ then raise exception 'new renewal milestone did not notify exactly once'; end if;
+end $$;
+select count(*) as notifications_after_third from public.fin_notifications where event_type='renewal_due' \gset
+set role service_role;
+select public.fin_run_renewal_schedule() as fourth_run \gset
+reset role;
+insert into renewal_run values ('fourth', :fourth_run, :notifications_after_third);
+do $$ begin
+ if (select count(*) from public.fin_notifications where event_type='renewal_due')<>(select notifications from renewal_run where step='fourth') then
+   raise exception 'duplicate renewal notification';
+ end if;
 end $$;
 reset role;
 \echo 'Comment threads, preference-gated notification e-mail with rate limit and scheduled renewal milestones validated.'

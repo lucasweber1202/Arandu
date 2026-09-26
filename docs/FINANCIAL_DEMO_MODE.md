@@ -82,6 +82,9 @@ navegador não guarda rascunho real — os testes E2E verificam isso.
 
 ## Vercel: por que a URL de preview ainda pede login
 
+> Passo a passo atualizado do projeto `arandu-demo` e verificação por `curl`:
+> [`FINANCIAL_PILOT_GO_LIVE.md`](FINANCIAL_PILOT_GO_LIVE.md#demo-pública).
+
 O bloqueio observado **não é** a autenticação do Arandu. Em 26/09/2026 todas as
 URLs do projeto `arandu` (`…-lucas-projects467.vercel.app`) respondiam
 `302 → https://vercel.com/sso-api?...` antes de qualquer código do Arandu rodar:

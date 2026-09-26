@@ -21,7 +21,8 @@ confiança em tudo que o piloto medir.
 | --- | --- | --- |
 | `SUPABASE_URL` | obrigatória | projeto **dedicado** ao piloto |
 | `SUPABASE_ANON_KEY` | obrigatória | o domínio financeiro usa só esta, com o JWT do usuário |
-| `SUPABASE_SERVICE_ROLE_KEY` | evitar | atravessa o RLS; o procurement financeiro não a usa. O checker avisa se ela estiver presente |
+| `SUPABASE_SERVICE_ROLE_KEY` | obrigatória, **só no servidor** | atravessa o RLS; usada apenas depois de uma RPC com o token do usuário autorizar: assinar URLs curtas de documentos privados e rodar a agenda de renovação |
+| `CRON_SECRET` | obrigatória | 32+ caracteres (`openssl rand -hex 32`), próprio, diferente do service role; protege `/api/jobs/renewals` |
 | `ARANDU_SITE_URL` | obrigatória | monta o link do convite |
 | `ARANDU_ENV` | `pilot` | declara o ambiente |
 | `ARANDU_PRESENTATION_MODE` | **não definir** | o checker recusa se ligada |
@@ -38,15 +39,9 @@ O piloto **não** compartilha banco com produção nem com preview. Motivos
 concretos: o rollback do procurement financeiro remove tabelas; a allowlist é
 por instância; e dado de uma empresa real não pode conviver com dado de teste.
 
-Aplicar, nesta ordem:
-
-```
-docs/supabase-financial-procurement.sql
-docs/supabase-financial-procurement-hardening.sql
-docs/supabase-financial-pilot.sql
-```
-
-A ordem canônica completa está em `docs/supabase-migrations.json`.
+Aplicar **todos** os arquivos de `docs/supabase-migrations.json` → `cleanInstall`,
+na ordem (33 arquivos; o último é `docs/supabase-financial-pilot-operations.sql`).
+A sequência foi ensaiada no Postgres 15 da Supabase com `npm run pilot:local:up`.
 
 ## Domínio
 
@@ -59,10 +54,11 @@ Escolher, registrar e apontar o DNS é `OWNER_ACTION_REQUIRED`.
 
 ## Allowlist
 
-Enquanto `fin_pilot_allowlist` está **vazia**, não há restrição — é o estado de
-desenvolvimento. A primeira linha inserida liga a restrição. Ligar a allowlist
-é, portanto, o próprio ato de cadastrar quem pode entrar: não existe estado
-"configurado pela metade" que deixe o piloto aberto sem querer.
+A allowlist **falha fechada**: com `fin_pilot_allowlist` vazia, **ninguém** cria
+organização (`fin_pilot_access_allowed` só aceita quem casa com uma linha).
+Cadastrar as linhas é o próprio ato de liberar quem entra; não existe estado
+"configurado pela metade" que deixe o piloto aberto. Ensaiado: tabela vazia →
+403; só o domínio do comprador → provedor 403; conta fora da lista → 403.
 
 Aceita e-mail completo ou domínio começando com `@`:
 

@@ -58,7 +58,7 @@ pelo nosso frontend nem pela nossa API.
 | 38 | **E-mail enfileirado com token ou condição no payload** | `fin_enqueue_email` recebe referência do convite, não o token; modelo fora do vocabulário é recusado | `financial-pilot.sql` |
 | 39 | **Envio ligado por engano** | a chave nasce `false` no banco e não é alcançável por conta comum | idem |
 | 40 | **Seed DEMO alcançando produção ou piloto** | o script recusa `ARANDU_ENV` de produção e de piloto, exige URL de banco explícita e recusa URL com aparência de produção | `seed-finance-demo.mjs`, travas verificadas na execução |
-| 41 | **Ambiente mal configurado** — demo ligado no piloto, service role onde não é usada | `finance:env:check` recusa a primeira combinação e avisa da segunda, sem imprimir segredo | `check-finance-env.mjs` |
+| 41 | **Ambiente mal configurado** — demo ligado no piloto, service role ou segredo do cron ausentes, segredo do cron igual ao service role | `finance:env:check` recusa essas combinações no piloto, sem imprimir segredo; o service role é só do servidor | `check-finance-env.mjs` |
 | 42 | **Métrica inventada sem tráfego** | taxas e médias devolvem `null` quando não há evento; o painel diz "sem dados" | `test-finance-api.mjs` |
 
 ## O que continua sendo risco aceito e declarado

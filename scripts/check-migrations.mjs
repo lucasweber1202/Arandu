@@ -115,7 +115,10 @@ for (const [flow, files] of Object.entries(manifest)) {
   const pilotGrade = files.indexOf('docs/supabase-financial-pilot-grade.sql');
   if (pilotGrade === -1) issues.push(`${flow}: rodada de piloto (documentos privados, identidade, console operacional) ausente.`);
   if (delivery !== -1 && pilotGrade !== -1 && pilotGrade !== delivery + 1) issues.push(`${flow}: rodada de piloto deve vir depois da entrega operacional.`);
-  if (pilotGrade !== -1 && pilotGrade !== files.length - 1) issues.push(`${flow}: rodada de piloto deve encerrar a sequência atual.`);
+  const pilotOperations = files.indexOf('docs/supabase-financial-pilot-operations.sql');
+  if (pilotOperations === -1) issues.push(`${flow}: operação do piloto (vínculo de convite, janela de upload) ausente.`);
+  if (pilotGrade !== -1 && pilotOperations !== -1 && pilotOperations !== pilotGrade + 1) issues.push(`${flow}: operação do piloto deve vir depois da rodada de piloto.`);
+  if (pilotOperations !== -1 && pilotOperations !== files.length - 1) issues.push(`${flow}: operação do piloto deve encerrar a sequência atual.`);
 }
 
 console.log('Arandu Migration Order Check');

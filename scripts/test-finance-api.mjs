@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { Readable } from 'node:stream';
 import { handleFinance } from '../lib/api/domains/finance.mjs';
-import { createDocumentStorage, downloadName } from '../lib/finance/document-storage.mjs';
+import { createDocumentStorage, downloadName, signedUrlTtl } from '../lib/finance/document-storage.mjs';
 
 // Testes de fronteira da API financeira. Nada aqui fala com o Supabase real:
 // o `fetch` é substituído para inspecionar exatamente o que sairia daqui.
@@ -510,10 +510,12 @@ await rejects('GET', 'approvals', { url: `/api/finance/approvals?organization_id
   const PATH = `${BUYER}/${DOC}/v1-00000000-0000-4000-8000-0000000000aa`;
   const signed = [];
   const adminCalls = [];
+  // Tokens no formato do Storage: a API informa exp - iat, não um número fixo.
+  const storageToken = (ttl) => `h.${Buffer.from(JSON.stringify({ iat: 1_800_000_000, exp: 1_800_000_000 + ttl })).toString('base64url')}.s`;
   const storage = {
-    signUpload: async (path) => { signed.push(['upload', path]); return `https://supabase.example.invalid/storage/v1/object/upload/sign/fin-documents/${path}?token=t`; },
+    signUpload: async (path) => { signed.push(['upload', path]); return `https://supabase.example.invalid/storage/v1/object/upload/sign/fin-documents/${path}?token=${storageToken(7200)}`; },
     inspect: async () => ({ size: 2048, mime: 'application/pdf' }),
-    signDownload: async (path, name) => { signed.push(['download', path, name]); return `https://supabase.example.invalid/storage/v1/object/sign/fin-documents/${path}?token=d`; }
+    signDownload: async (path, name) => { signed.push(['download', path, name]); return `https://supabase.example.invalid/storage/v1/object/sign/fin-documents/${path}?token=${storageToken(60)}&download=${name}`; }
   };
   const docDeps = { ...deps, documentStorage: storage, adminRpc: async (name, body) => { adminCalls.push([name, body]); return 'available'; } };
   const docCall = async (method, path, options = {}) => {
@@ -535,7 +537,10 @@ await rejects('GET', 'approvals', { url: `/api/finance/approvals?organization_id
   {
     const res = await docCall('POST', 'private-documents/upload', { body: { organization_id: BUYER, entity_type: 'rfq', entity_id: RFQ, title: 'Balanço', visibility: 'internal', mime_type: 'application/pdf', size: 2048, sha256: 'A'.repeat(64) } });
     assert.equal(res.statusCode, 201);
-    assert.equal(res.payload.expires_in, 120);
+    // O Storage hospedado dá 2 h à URL de upload, ignorando o pedido; a API diz
+    // isso e o banco limita a reserva a 10 minutos.
+    assert.equal(res.payload.expires_in, 7200);
+    assert.equal(res.payload.complete_within, 600);
     assert.match(res.payload.upload_url, /upload\/sign\/fin-documents\//);
     const begin = sent.find((entry) => entry.url.includes('rpc/fin_document_begin_upload'));
     assert.equal(begin.authorization, 'Bearer user-jwt', 'reserva do envio precisa rodar como o usuário');
@@ -556,7 +561,7 @@ await rejects('GET', 'approvals', { url: `/api/finance/approvals?organization_id
   {
     const res = await docCall('POST', 'private-documents/download', { body: { document_id: DOC } });
     assert.equal(res.payload.expires_in, 60);
-    assert.match(res.payload.url, /token=d/);
+    assert.match(res.payload.url, /token=h\./);
     assert.equal(res.headers['Cache-Control'], 'no-store');
     assert.deepEqual(signed.at(-1), ['download', PATH, 'Balanco-2025-v2.pdf']);
   }
@@ -601,6 +606,8 @@ console.log('Financial Procurement API: documentos privados (autorização antes
   assert.match(url, /download=x\.pdf$/);
   await assert.rejects(() => store.signDownload('../outra-empresa/arquivo'), /inválido/);
   await assert.rejects(() => createDocumentStorage({ env: {}, fetchImpl: fake }).signUpload(path), /indisponível/);
+  assert.equal(signedUrlTtl('https://x.invalid/storage/v1/object/sign/b/p?token=h.eyJpYXQiOjEwMCwiZXhwIjoxNjB9.s'), 60);
+  assert.equal(signedUrlTtl('https://x.invalid/storage/v1/object/sign/b/p?token=sem-jwt'), null);
   assert.equal(downloadName('Balanço <script> 2025', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 3), 'Balanco-script-2025-v3.xlsx');
 }
-console.log('Document storage: caminhos validados, TTL de 120 s para envio e 60 s para download.');
+console.log('Document storage: caminhos validados; pede 120 s (envio) e 60 s (download) e informa o prazo real lido do token.');

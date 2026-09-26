@@ -1,5 +1,7 @@
 # O que depende do proprietário
 
+> Checklist única e atualizada, com estado por item: [`FINANCIAL_PILOT_GO_LIVE.md`](FINANCIAL_PILOT_GO_LIVE.md).
+
 Lista curta e fechada. **Só entra aqui o que é impossível resolver por código.**
 Tudo que era implementável foi implementado.
 
@@ -37,9 +39,9 @@ um controle.
 ## 3. Ambiente do piloto
 
 * criar um projeto **Supabase dedicado**, separado de produção e de preview;
-* aplicar as três migrations financeiras na ordem canônica;
-* definir `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `ARANDU_SITE_URL` e
-  `ARANDU_ENV=pilot`;
+* aplicar as 33 migrations de `docs/supabase-migrations.json` (`cleanInstall`), na ordem;
+* definir `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+  (só servidor), `CRON_SECRET` (32+), `ARANDU_SITE_URL` e `ARANDU_ENV=pilot`;
 * escolher e apontar um subdomínio — **nenhum domínio foi comprado ou
   registrado**;
 * rodar `ARANDU_ENV=pilot npm run finance:env:check` e resolver o que ele apontar.
@@ -70,7 +72,7 @@ isso em vez de fingir que enviou.
 * dois ou três provedores dispostos a responder;
 * preencher [`FIRST_FINANCIAL_PILOT.md`](FIRST_FINANCIAL_PILOT.md);
 * cadastrar os e-mails em `fin_pilot_allowlist` — enquanto a tabela estiver
-  vazia, o acesso fica aberto.
+  vazia, **ninguém** consegue criar organização (falha fechada).
 
 ## 7. Acordos comerciais
 

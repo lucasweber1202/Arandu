@@ -1,0 +1,79 @@
+# Componentes reais do Supabase para o ensaio local do piloto (scripts/pilot-local/up.sh).
+# Imagens públicas em public.ecr.aws/supabase, as mesmas da stack self-hosted.
+services:
+  db:
+    image: public.ecr.aws/supabase/postgres:15.14.1.064
+    environment:
+      POSTGRES_PASSWORD: ${PGPW}
+      POSTGRES_HOST: /var/run/postgresql
+      PGPORT: 5432
+      POSTGRES_PORT: 5432
+      PGDATABASE: postgres
+      POSTGRES_DB: postgres
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXP: 3600
+    command: ["postgres","-c","config_file=/etc/postgresql/postgresql.conf","-c","log_min_messages=fatal"]
+    ports: ["54322:5432"]
+    healthcheck:
+      test: ["CMD","pg_isready","-U","postgres","-h","localhost"]
+      interval: 3s
+      retries: 40
+  auth:
+    image: public.ecr.aws/supabase/gotrue:v2.181.0
+    depends_on: { db: { condition: service_healthy } }
+    restart: on-failure
+    ports: ["9999:9999"]
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      API_EXTERNAL_URL: https://localhost:8443/auth/v1
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${PGPW}@db:5432/postgres
+      GOTRUE_SITE_URL: https://localhost:4443
+      GOTRUE_URI_ALLOW_LIST: "*"
+      GOTRUE_DISABLE_SIGNUP: "false"
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_EXP: 3600
+      GOTRUE_JWT_SECRET: ${JWT_SECRET}
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+      GOTRUE_MAILER_AUTOCONFIRM: "true"
+      GOTRUE_MFA_TOTP_ENROLL_ENABLED: "true"
+      GOTRUE_MFA_TOTP_VERIFY_ENABLED: "true"
+      GOTRUE_MFA_MAX_ENROLLED_FACTORS: 10
+      GOTRUE_RATE_LIMIT_EMAIL_SENT: 1000
+  rest:
+    image: public.ecr.aws/supabase/postgrest:v12.2.9
+    depends_on: { db: { condition: service_healthy } }
+    restart: on-failure
+    ports: ["3000:3000"]
+    environment:
+      PGRST_DB_URI: postgres://authenticator:${PGPW}@db:5432/postgres
+      PGRST_DB_SCHEMAS: public,storage
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      PGRST_DB_USE_LEGACY_GUCS: "false"
+      PGRST_APP_SETTINGS_JWT_SECRET: ${JWT_SECRET}
+      PGRST_APP_SETTINGS_JWT_EXP: 3600
+  storage:
+    image: public.ecr.aws/supabase/storage-api:v1.25.3
+    depends_on: { db: { condition: service_healthy }, rest: { condition: service_started } }
+    restart: on-failure
+    ports: ["5000:5000"]
+    environment:
+      ANON_KEY: ${ANON_KEY}
+      SERVICE_KEY: ${SERVICE_KEY}
+      POSTGREST_URL: http://rest:3000
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      AUTH_JWT_SECRET: ${JWT_SECRET}
+      DATABASE_URL: postgres://supabase_storage_admin:${PGPW}@db:5432/postgres
+      FILE_SIZE_LIMIT: 52428800
+      # Valor padrão do self-hosted; no Supabase hospedado a URL de upload vale 2 h.
+      UPLOAD_SIGNED_URL_EXPIRATION_TIME: 60
+      STORAGE_BACKEND: file
+      FILE_STORAGE_BACKEND_PATH: /var/lib/storage
+      TENANT_ID: stub
+      REGION: stub
+      GLOBAL_S3_BUCKET: stub
+      ENABLE_IMAGE_TRANSFORMATION: "false"
