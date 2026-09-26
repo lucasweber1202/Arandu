@@ -359,6 +359,21 @@ reset((entry) => {
   assert.match(proposalQuery.url, new RegExp(`provider_organization_id=eq.${PROVIDER_ORG}`));
 }
 
+// ------------------------------------------ respostas usam o pai do banco
+{
+  const PARENT = '00000000-0000-4000-8000-0000000000a3';
+  const CLIENT = '00000000-0000-4000-8000-0000000000a4';
+  reset((entry) => (entry.url.includes('fin_organizations') ? orgRow(BUYER, 'BUYER') : entry.url.includes('rpc/fin_reply_comment') ? CLIENT : []));
+  const res = await call('POST', 'comments', { body: { organization_id: BUYER, object_type: 'rfq', object_id: RFQ, visibility: 'provider_visible',
+    body: 'Resposta', parent_id: PARENT, client_id: CLIENT, mention_ids: [] } });
+  assert.equal(res.payload.id, CLIENT);
+  const rpcCall = sent.find((entry) => entry.url.includes('/rpc/'));
+  assert.match(rpcCall.url, /rpc\/fin_reply_comment$/);
+  // Objeto e visibilidade da resposta vêm do pai, no banco — o corpo não decide.
+  assert.deepEqual(Object.keys(rpcCall.body).sort(), ['p_body', 'p_client_id', 'p_mention_ids', 'p_parent']);
+  await rejects('POST', 'comments', { body: { organization_id: BUYER, object_type: 'rfq', object_id: RFQ, body: 'x', parent_id: 'nao-uuid', client_id: CLIENT } }, 400);
+}
+
 // ------------------------------------------ overview sem consulta por RFQ
 
 reset((entry) => {

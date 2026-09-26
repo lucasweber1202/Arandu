@@ -730,6 +730,11 @@ export function createDemoEngine({ storage, now = () => new Date(), latency = 0 
       state.data.comments.push(row);
       event(state, rfq.organization_id, 'rfq', rfq.id, 'comment_added', userId, { visibility });
       const author = userName(state, userId);
+      const parentRow = parentId && state.data.comments.find((item) => item.id === parentId);
+      if (parentRow && parentRow.author_id !== userId && hasRole(state, parentRow.author_id, rfq.organization_id)) {
+        notify(state, { organizationId: rfq.organization_id, userId: parentRow.author_id, eventType: 'comment', objectType: 'rfq', objectId: rfq.id,
+          title: 'Responderam ao seu comentário', body: `${author} · ${rfq.title}` });
+      }
       for (const mentioned of mentions) {
         notify(state, { organizationId: rfq.organization_id, userId: mentioned, eventType: 'mention', objectType: 'rfq', objectId: rfq.id,
           title: `${author} mencionou você`, body: rfq.title });
