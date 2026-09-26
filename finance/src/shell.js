@@ -1,7 +1,7 @@
 // Estrutura do espaço de trabalho: barra lateral, barra superior, navegação
 // móvel, busca (Ctrl/Cmd+K), central de notificações e faixa da demonstração.
 
-import { el, icon, fold, timeAgo, productLabel, RFQ_STATUS } from './core.js';
+import { el, icon, fold, timeAgo, productLabel, RFQ_STATUS, CONTRACT_STATUS, formatDate } from './core.js';
 import { avatar, iconButton, button, toast, confirmDialog } from './ui.js';
 
 const COMPANY_NAV = [
@@ -18,7 +18,7 @@ const COMPANY_NAV = [
 const PROVIDER_NAV = [
   { key: 'providerHome', label: 'Início', path: '/provider/index.html', icon: 'home' },
   { key: 'providerRfqs', label: 'Oportunidades', path: '/provider/rfqs.html', icon: 'inbox', views: ['providerRfqs', 'providerProposal'] },
-  { key: 'providerInvite', label: 'Aceitar convite', path: '/provider/invite.html', icon: 'send' }
+  { key: 'providerInvite', label: 'Código de convite', path: '/provider/invite.html', icon: 'send' }
 ];
 const MOBILE_TABS = { company: ['dashboard', 'rfqs', 'approvals', 'contracts'], provider: ['providerHome', 'providerRfqs', 'providerInvite'] };
 
@@ -108,12 +108,22 @@ function openMoreSheet(ctx, counts) {
   sheet.showModal();
 }
 
+/** O servidor devolve estado e datas em forma técnica; a busca mostra texto de gente. */
+export function readableDetail(detail) {
+  const text = String(detail || '').trim();
+  const status = RFQ_STATUS[text] || CONTRACT_STATUS[text];
+  if (status) return status.label;
+  return text.replace(/\b(\d{4}-\d{2}-\d{2})\b/g, (iso) => formatDate(iso));
+}
+
 export function renderTopbar(ctx) {
   const bar = document.querySelector('.topbar');
   if (!bar) return {};
   const mobileBrand = el('a', { class: 'topbar-brand', href: ctx.href(ctx.audience === 'provider' ? '/provider/index.html' : '/finance/dashboard.html'), 'aria-label': 'Arandu — início' },
     [el('span', { class: 'brand-mark', 'aria-hidden': 'true', text: 'A' }), el('span', { class: 'topbar-org', text: ctx.organization?.legal_name || 'Arandu' })]);
   const actions = el('div', { class: 'topbar-actions' });
+  // No celular a faixa da demonstração rola para fora da tela: este selo fica sempre visível.
+  if (ctx.mode === 'demo') actions.append(el('span', { class: 'demo-chip', title: 'Ambiente demonstrativo. Dados fictícios.' }, [icon('info', { size: 12 }), el('span', { text: 'Demo · dados fictícios' })]));
   let searchButton = null;
   if (ctx.audience === 'company' && ctx.organization) {
     searchButton = el('button', { type: 'button', id: 'command-trigger', class: 'search-trigger', 'aria-keyshortcuts': 'Control+K Meta+K', 'aria-label': 'Buscar (Ctrl+K)' }, [
@@ -283,7 +293,7 @@ export function installCommandCenter(ctx, trigger) {
         const response = await ctx.api(`search?organization_id=${encodeURIComponent(ctx.organization.id)}&q=${encodeURIComponent(term)}`);
         if (current !== sequence || !dialog.open) return;
         const seen = new Set();
-        const rows = (response.rows || []).map((row) => ({ kind: row.kind, title: row.title, detail: row.detail, href: ctx.href(row.href) }))
+        const rows = (response.rows || []).map((row) => ({ kind: row.kind, title: row.title, detail: readableDetail(row.detail), href: ctx.href(row.href) }))
           .concat(local.filter((item) => item.kind === 'action'))
           .filter((row) => { const key = `${row.kind}:${row.title}:${row.href}`; if (seen.has(key)) return false; seen.add(key); return true; });
         render(rows);

@@ -314,9 +314,12 @@ export function progress(value, total, { label = null } = {}) {
       el('span', { class: 'progress-text', text: `${value}/${total}` })]);
 }
 
-export function menu(label, items, { iconName = 'more' } = {}) {
+export function menu(label, items, { iconName = 'more', visibleLabel = '' } = {}) {
   const wrap = el('div', { class: 'menu' });
-  const trigger = el('button', { type: 'button', class: 'btn btn-ghost btn-icon-only', 'aria-haspopup': 'true', 'aria-expanded': 'false', 'aria-label': label, title: label }, icon(iconName));
+  // Com rótulo visível o menu deixa de ser um ícone solto fácil de ignorar.
+  const trigger = visibleLabel
+    ? el('button', { type: 'button', class: 'btn', 'aria-haspopup': 'true', 'aria-expanded': 'false', 'aria-label': label, title: label }, [el('span', { text: visibleLabel }), icon('chevronDown', { size: 16 })])
+    : el('button', { type: 'button', class: 'btn btn-ghost btn-icon-only', 'aria-haspopup': 'true', 'aria-expanded': 'false', 'aria-label': label, title: label }, icon(iconName));
   const list = el('div', { class: 'menu-list', role: 'menu', hidden: true });
   const closeMenu = () => { list.hidden = true; trigger.setAttribute('aria-expanded', 'false'); };
   for (const item of items.filter(Boolean)) {

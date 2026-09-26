@@ -4,7 +4,8 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createDemoEngine, DEMO_STORAGE_KEY, validState } from '../finance/demo/engine.js';
-import { R, U, P, C, O } from '../finance/demo/seed.js';
+import { R, U, P, C, O, demoId } from '../finance/demo/seed.js';
+const demoProposalHorizonte = demoId(6, 2);
 
 globalThis.fetch = () => { throw new Error('O motor da demonstração tentou usar a rede.'); };
 
@@ -57,6 +58,11 @@ engine.setPersona('provider');
 await expectError(call(`overview?organization_id=${org}`), 403);
 const invites = await call(`assignments?organization_id=${O.atlas}`);
 assert.ok(invites.pending_invites.some((row) => row.rfq_id === rfqId));
+// Convites que já vêm no conjunto inicial também precisam ser aceitáveis pela interface.
+const seeded = invites.pending_invites.find((row) => row.rfq_id === R.anticipation);
+assert.match(seeded.demo_token, /^[0-9a-f]{64}$/, 'token de convite do conjunto inicial fora do formato aceito');
+const seededAccept = await call('invites/accept', 'POST', { token: seeded.demo_token, provider_organization_id: O.atlas });
+assert.ok(seededAccept.proposal_id, 'convite do conjunto inicial não gerou proposta');
 const accepted = await call('invites/accept', 'POST', { token: sent.invitationToken, provider_organization_id: O.atlas });
 await expectError(call('invites/accept', 'POST', { token: sent.invitationToken, provider_organization_id: O.atlas }), 409);
 const proposalId = accepted.proposal_id;
@@ -69,6 +75,28 @@ assert.equal((await call('proposals', 'POST', { proposal_id: proposalId, terms }
 const comments = await call(`comments?organization_id=${O.atlas}&object_type=rfq&object_id=${R.capital}`);
 assert.ok(comments.rows.every((row) => row.visibility === 'provider_visible'), 'provedor leu comentário interno');
 await expectError(call('comments', 'POST', { organization_id: O.atlas, object_type: 'rfq', object_id: rfqId, visibility: 'internal', body: 'x', client_id: 'c1' }), 400);
+// Pergunta de um concorrente (Nexa) nunca chega ao Atlas; a resposta da empresa, sim.
+assert.ok(!comments.rows.some((row) => row.author_id === U.bianca), 'provedor leu pergunta de outro provedor');
+assert.ok(comments.rows.some((row) => row.author_id === U.marina && row.visibility === 'provider_visible'), 'provedor perdeu a resposta da empresa');
+// Documentos: o compartilhado da RFQ aparece, o interno não; proposta de outro provedor é invisível.
+const docs = await call(`private-documents?organization_id=${O.atlas}&entity_type=rfq&entity_id=${R.capital}`);
+assert.deepEqual(docs.rows.map((row) => row.title), ['Minuta de garantias aceitas'], 'provedor viu documento interno da empresa');
+const foreign = await call(`private-documents?organization_id=${O.atlas}&entity_type=proposal&entity_id=${demoProposalHorizonte}`);
+assert.equal(foreign.rows.length, 0);
+await expectError(call('private-documents/upload', 'POST', { organization_id: O.atlas, entity_type: 'proposal', entity_id: demoProposalHorizonte, title: 'Intruso', mime_type: 'application/pdf', size: 10 }), 403);
+await expectError(call('private-documents/upload', 'POST', { organization_id: O.atlas, entity_type: 'rfq', entity_id: R.capital, title: 'Intruso', mime_type: 'application/pdf', size: 10 }), 403);
+await expectError(call('private-documents/upload', 'POST', { organization_id: O.atlas, entity_type: 'proposal', entity_id: proposalId, title: 'Macro', mime_type: 'application/vnd.ms-excel.sheet.macroEnabled.12', size: 10 }), 400);
+await expectError(call('private-documents/upload', 'POST', { organization_id: O.atlas, entity_type: 'proposal', entity_id: proposalId, title: 'Grande', mime_type: 'application/pdf', size: 10 * 1024 * 1024 + 1 }), 413);
+const slot = await call('private-documents/upload', 'POST', { organization_id: O.atlas, entity_type: 'proposal', entity_id: proposalId, title: 'Term sheet jornada', visibility: 'shared', mime_type: 'application/pdf', size: 4000 });
+assert.match(slot.upload_url, /^demo:\/\/upload\//);
+await engine.putFile(slot.upload_url);
+assert.equal((await call('private-documents/complete', 'POST', { document_id: slot.document_id, version: 1 })).status, 'available');
+const again2 = await call('private-documents/upload', 'POST', { organization_id: O.atlas, document_id: slot.document_id, mime_type: 'application/pdf', size: 5000 });
+assert.equal(again2.version, 2, 'nova versão não numerada');
+await call('private-documents/complete', 'POST', { document_id: slot.document_id, version: 2 });
+const dl = await call('private-documents/download', 'POST', { document_id: slot.document_id, version: 1 });
+assert.equal(dl.url, null, 'demonstração não pode gerar URL de arquivo');
+assert.ok(!JSON.stringify(engine.snapshot()).includes('data:'), 'nenhum conteúdo de arquivo guardado no navegador');
 
 // 4. Comprador revisa para 3: a proposta continua na revisão 2.
 engine.setPersona('buyer');

@@ -21,12 +21,27 @@ function lifecycle(rfq, pendingApproval) {
   return list;
 }
 
+/** Documentos carregados só quando a pessoa abre a seção: evita uma chamada por cartão. */
+export function lazyDocuments(ctx, entityType, entityId, label, options = {}) {
+  const details = el('details', { class: 'lazy-documents' }, [el('summary', {}, [icon('file', { size: 14 }), el('span', { text: label })])]);
+  details.addEventListener('toggle', () => {
+    if (!details.open || details.dataset.loaded) return;
+    details.dataset.loaded = '1';
+    import('./documents.js').then(({ documentsPanel }) => details.append(documentsPanel(ctx, { entityType, entityId, ...options })));
+  });
+  return details;
+}
+
 function keyTerms(product, terms) {
   const keys = product === 'credit' ? ['offered_amount', 'interest_rate_month', 'cet_year', 'term_months', 'grace_months']
     : ['mdr_debit', 'mdr_credit_cash', 'mdr_credit_installment', 'pix_fee', 'anticipation_rate', 'settlement_days'];
   const specs = Object.fromEntries(PRODUCTS[product].proposalFields.map((spec) => [spec.key, spec]));
   return el('dl', { class: 'key-terms' }, keys.map((key) => {
-    const value = fieldValue(specs[key], terms?.[key]);
+    // O rótulo curto perde a unidade do parênteses; ela volta junto do valor.
+    const unit = (specs[key].label.match(/\(([^)]*)\)$/) || [])[1] || '';
+    const suffix = { meses: ' meses', dias: ' dias', '% a.m.': ' a.m.', '% a.a.': ' a.a.' }[unit] || '';
+    const raw = fieldValue(specs[key], terms?.[key]);
+    const value = raw === null ? null : `${raw}${suffix}`;
     return el('div', { class: 'key-term' }, [el('dt', { text: specs[key].label.replace(/\s*\(.*\)$/, '') }), el('dd', { class: value === null ? 'missing' : '', text: value ?? '—' })]);
   }));
 }
@@ -81,7 +96,7 @@ export async function rfqDetail(ctx) {
     manage && rfq.status === 'comparing' && !decision ? { label: 'Reabrir coleta', icon: 'refresh', onClick: () => transition('collecting', { title: 'Reabrir a coleta?', description: 'Provedores voltam a poder enviar e revisar propostas.', confirmLabel: 'Reabrir' }) } : null,
     manage && ['draft', 'open', 'collecting', 'comparing'].includes(rfq.status) ? { label: 'Cancelar solicitação', icon: 'x', danger: true, onClick: () => transition('cancelled', { title: 'Cancelar esta solicitação?', description: 'O processo é encerrado sem decisão. O histórico é preservado. Esta ação não pode ser desfeita.', confirmLabel: 'Cancelar solicitação', tone: 'danger' }) } : null
   ].filter(Boolean);
-  actions.push(menu('Mais ações', more));
+  actions.push(menu('Mais ações', more, { visibleLabel: 'Mais' }));
   ctx.header({
     crumbs: [{ label: 'Solicitações', href: ctx.href('/finance/rfqs.html') }, { label: rfq.title }],
     title: rfq.title,
@@ -90,7 +105,7 @@ export async function rfqDetail(ctx) {
       el('span', { class: 'meta-item', title: 'Revisão publicada atual' }, [icon('repeat', { size: 14 }), el('span', { text: `Revisão ${rfq.revision || 1}` })]),
       el('span', { class: 'meta-item' }, [icon('users', { size: 14 }), el('span', { text: rfq.owner_name || memberName(ctx.members, rfq.owner_id) })]),
       el('span', { class: `meta-item${live && days !== null && days <= 2 ? ' urgent' : ''}` }, [icon('calendar', { size: 14 }),
-        el('span', { text: rfq.response_deadline ? `Prazo ${formatDate(rfq.response_deadline)}${live ? ` · ${relativeDays(rfq.response_deadline)}` : ''}` : 'Sem prazo definido' })])
+        el('span', { text: rfq.response_deadline ? `Prazo de resposta ${formatDate(rfq.response_deadline)}${live ? ` · ${relativeDays(rfq.response_deadline)}` : ''}` : 'Sem prazo definido' })])
     ],
     actions
   });
@@ -102,7 +117,7 @@ export async function rfqDetail(ctx) {
   root.append(lifecycle(rfq, Boolean(pending)));
 
   const tabset = tabs([
-    { id: 'visao-geral', label: 'Visão geral', render: () => overviewTab(ctx, rfq, { manage }) },
+    { id: 'visao-geral', label: 'Visão geral', render: () => overviewTab(ctx, rfq, { manage, pending, approvals, decision, contract, policy }) },
     { id: 'propostas', label: 'Propostas', count: proposals.length, render: () => proposalsTab(ctx, rfq) },
     { id: 'comparacao', label: 'Comparação', render: () => comparisonTab(ctx, rfq) },
     { id: 'aprovacoes', label: 'Aprovações', count: pending ? 1 : null, render: () => approvalsTab(ctx, rfq, approvals, { manage }) },
@@ -114,7 +129,7 @@ export async function rfqDetail(ctx) {
 }
 
 // ------------------------------------------------------------ visão geral
-function overviewTab(ctx, rfq, { manage }) {
+function overviewTab(ctx, rfq, { manage, pending, approvals, decision, contract, policy }) {
   const grid = el('div', { class: 'split' });
   const spec = PRODUCTS[rfq.product];
   const demand = card({ title: 'Demanda', subtitle: 'O que a empresa pediu, como os provedores veem.', id: 'demanda', body: [
@@ -141,12 +156,32 @@ function overviewTab(ctx, rfq, { manage }) {
 
   const reuse = card({ title: 'Reaproveitar', body: [el('p', { class: 'muted small', text: 'Comece outra solicitação com esta demanda. Convites, propostas e decisões não são copiados.' }),
     linkButton('Criar nova solicitação com estes dados', ctx.href(`/finance/new-rfq.html?clone=${encodeURIComponent(rfq.id)}`), { size: 'sm', iconName: 'repeat' })] });
-  grid.append(el('div', { class: 'split-main' }, [demand, revisions]), el('div', { class: 'split-side' }, [nextStepCard(ctx, rfq), inviteCard, reuse]));
+  const documents = card({ title: 'Documentos', subtitle: 'Balanços, minutas e anexos do processo, em armazenamento privado.', id: 'documentos', body: el('div', {}, loading()) });
+  import('./documents.js').then(({ documentsPanel }) => documents.querySelector('.card-body').replaceChildren(documentsPanel(ctx, {
+    entityType: 'rfq', entityId: rfq.id, canUpload: manage || ctx.can('upload_document'), shareLabel: 'Visível aos provedores convidados' })));
+  grid.append(el('div', { class: 'split-main' }, [demand, revisions]), el('div', { class: 'split-side' }, [nextStepCard(ctx, rfq, { pending, approvals, decision, contract, policy }), inviteCard, documents, reuse]));
   return grid;
 }
 
-function nextStepCard(ctx, rfq) {
-  const text = {
+function nextStepCard(ctx, rfq, { pending, approvals = [], decision, contract, policy } = {}) {
+  // O cartão acompanha o estado real do processo, não só o status da RFQ.
+  const latest = [...approvals].sort((a, b) => String(b.requested_at).localeCompare(String(a.requested_at)))[0];
+  const situational = (() => {
+    if (pending) {
+      const step = currentStep(pending);
+      const total = (pending.steps || []).length;
+      return step?.approver_id === ctx.viewer?.id
+        ? ['Sua aprovação é necessária', `Etapa ${step.position} de ${total}. Veja o contexto na aba Aprovações e decida.`]
+        : [`Aguardando ${step ? memberName(ctx.members, step.approver_id) : 'aprovação'}`, `Etapa ${step?.position || '—'} de ${total}. Você será avisado quando a etapa for concluída.`];
+    }
+    if (rfq.status === 'comparing' && latest?.status === 'changes_requested') return ['Alterações pedidas na aprovação', 'Revise a justificativa ou a escolha e solicite aprovação de novo.'];
+    if (rfq.status === 'comparing' && latest?.status === 'rejected') return ['Aprovação rejeitada', 'Veja o motivo na aba Aprovações antes de decidir o próximo passo.'];
+    if (rfq.status === 'comparing' && latest?.status === 'approved' && !latest.stale && !decision) return ['Aprovação concluída: registre a decisão', 'A aprovação cobre a proposta escolhida. Registre a decisão para seguir ao contrato.'];
+    if (rfq.status === 'comparing' && policy?.required_for_decision) return ['Compare e peça aprovação', 'A política da empresa exige aprovação antes da decisão. A comparação é factual; a decisão é sempre da empresa.'];
+    if (rfq.status === 'decided' && contract) return ['Contrato registrado', 'Os marcos de renovação aparecem em Contratos.'];
+    return null;
+  })();
+  const text = situational || {
     draft: ['Convide provedores e abra para propostas', 'Provedores só veem a solicitação depois de convidados e com ela aberta.'],
     open: ['Aguardando as primeiras respostas', 'Você será avisado quando uma proposta chegar.'],
     collecting: ['Acompanhe as respostas até o prazo', 'Encerre a coleta quando tiver propostas suficientes para avaliar.'],
@@ -155,7 +190,7 @@ function nextStepCard(ctx, rfq) {
     contracted: ['Contrato em acompanhamento', 'Os marcos de renovação aparecem em Contratos.'],
     cancelled: ['Solicitação cancelada', 'O histórico fica preservado para consulta.']
   }[rfq.status] || ['—', ''];
-  return el('section', { class: 'next-step' }, [el('span', { class: 'next-step-kicker', text: 'Próximo passo' }), el('p', { class: 'next-step-title', text: text[0] }), el('p', { class: 'next-step-text', text: text[1] })]);
+  return el('section', { class: 'next-step', 'aria-label': 'Próximo passo' }, [el('span', { class: 'next-step-kicker', text: 'Próximo passo' }), el('p', { class: 'next-step-title', text: text[0] }), el('p', { class: 'next-step-text', text: text[1] })]);
 }
 
 function inviteForm(ctx, rfq) {
@@ -243,7 +278,8 @@ function proposalsTab(ctx, rfq) {
       el('div', { class: 'proposal-foot' }, [el('span', { class: 'coverage-inline' }, [el('span', { class: 'coverage-bar' }, el('span', { class: 'coverage-fill', style: `width:${Math.round(cov.ratio * 100)}%` })), el('span', { text: `${cov.filled} de ${cov.total} condições comparáveis informadas` })]),
         proposal.terms?.valid_until ? el('span', { class: `muted small${daysUntil(proposal.terms.valid_until) < 5 ? ' warn-text' : ''}`, text: `Válida até ${formatDate(proposal.terms.valid_until)}` }) : null]),
       proposal.note ? el('p', { class: 'proposal-note' }, [icon('message', { size: 14 }), el('span', { text: proposal.note })]) : null,
-      details
+      details,
+      lazyDocuments(ctx, 'proposal', proposal.id, 'Documentos enviados pelo provedor')
     ]));
   }
   const waiting = (rfq.invites || []).filter((invite) => !proposals.some((proposal) => proposal.provider_id === invite.provider_id));

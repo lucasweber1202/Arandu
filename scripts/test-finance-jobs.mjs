@@ -6,9 +6,9 @@ import { handleFinanceJobs, authorizedCron } from '../lib/api/domains/finance-jo
 
 const secret = 's'.repeat(40);
 const res = () => ({ headers: {}, setHeader(key, value) { this.headers[key] = value; }, end(value) { this.payload = JSON.parse(value); } });
-const req = (method, authorization) => ({ method, headers: authorization ? { authorization } : {} });
+const req = (method, authorization, extra = {}) => ({ method, headers: { ...(authorization ? { authorization } : {}), ...extra } });
 let calls = [];
-const deps = { env: { CRON_SECRET: secret }, rpc: async (name, body) => { calls.push([name, body]); return 2; }, databaseReady: () => true, now: () => new Date('2026-09-26T09:15:00Z') };
+const deps = { env: { CRON_SECRET: secret }, rpc: async (name, body) => { calls.push([name, body]); return name === 'fin_run_renewal_schedule' ? 2 : null; }, databaseReady: () => true, now: () => new Date('2026-09-26T09:15:00Z') };
 
 assert.equal(authorizedCron(req('GET', `Bearer ${secret}`), { CRON_SECRET: secret }), true);
 assert.equal(authorizedCron(req('GET', `Bearer ${secret}`), { CRON_SECRET: 'curto' }), false, 'segredo curto não autoriza');
@@ -28,11 +28,31 @@ assert.deepEqual(calls, [], 'requisição não autorizada chegou ao banco');
 }
 {
   const out = res();
-  await handleFinanceJobs(req('GET', `Bearer ${secret}`), out, 'renewals', deps);
+  await handleFinanceJobs(req('GET', `Bearer ${secret}`, { 'x-vercel-id': 'gru1::abc<script>' }), out, 'renewals', deps);
   assert.equal(out.statusCode, 200);
-  assert.deepEqual(out.payload, { ok: true, job: 'renewals', day: '2026-09-26', tasks_created: 2 });
-  assert.deepEqual(calls, [['fin_run_renewal_schedule', { p_day: '2026-09-26' }]]);
+  assert.deepEqual(out.payload, { ok: true, job: 'renewals', day: '2026-09-26', tasks_created: 2, request_id: 'gru1--abc-script-' });
+  assert.deepEqual(calls[0], ['fin_run_renewal_schedule', { p_day: '2026-09-26' }]);
+  assert.deepEqual(calls[1], ['fin_record_job_run', { p_job: 'renewals', p_status: 'succeeded', p_processed: 2, p_request_id: 'gru1--abc-script-', p_error_code: null, p_started_at: '2026-09-26T09:15:00.000Z' }]);
   assert.equal(out.headers['Cache-Control'], 'no-store');
+}
+{
+  // Falha do banco: execução registrada como falha, com código curto e sem a mensagem original.
+  calls = [];
+  const out = res();
+  const failing = { ...deps, rpc: async (name, body) => { calls.push([name, body]); if (name === 'fin_run_renewal_schedule') { const error = new Error('relation fin_contracts: senha=xyz'); error.code = 'Upstream Unavailable'; throw error; } return null; } };
+  await handleFinanceJobs(req('GET', `Bearer ${secret}`), out, 'renewals', failing);
+  assert.equal(out.statusCode, 502);
+  assert.equal(out.payload.code, 'renewal_job_failed');
+  assert.doesNotMatch(JSON.stringify(out.payload), /senha|fin_contracts/);
+  assert.equal(calls[1][1].p_status, 'failed');
+  assert.equal(calls[1][1].p_error_code, 'upstream_unavailable');
+}
+{
+  // Duas execuções no mesmo dia chegam ao banco; a idempotência é da função SQL (provada em test:database).
+  calls = [];
+  for (let i = 0; i < 2; i += 1) await handleFinanceJobs(req('GET', `Bearer ${secret}`), res(), 'renewals', deps);
+  assert.equal(calls.filter(([name]) => name === 'fin_run_renewal_schedule').length, 2);
+  assert.equal(calls.filter(([name]) => name === 'fin_record_job_run').length, 2);
 }
 {
   const out = res();

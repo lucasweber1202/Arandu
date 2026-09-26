@@ -57,6 +57,16 @@ try {
   assert.match(noticeEmail.subject, /aprovação/);
   assert.match(noticeEmail.text, /https:\/\/arandu\.example\/finance\/rfq\.html\?id=/);
   assert.doesNotMatch(noticeEmail.text, /Capital de giro|R\$/);
+  // Os quatro tipos com e-mail: assunto próprio e link para a tela certa, inclusive o contrato com âncora.
+  for (const [kind, path, subject] of [
+    ['mention', '/finance/rfq.html?id=00000000-0000-4000-8000-00000000cb03', /mencionado/],
+    ['proposal', '/finance/rfq.html?id=00000000-0000-4000-8000-00000000cb03', /proposta/],
+    ['renewal_due', '/finance/contracts.html#contract-00000000-0000-4000-8000-00000000cb04', /renovação/]
+  ]) {
+    const email = renderTransactionalEmail('finance_notification', await prepareFinancialEmail({ template: 'finance_notification', payload: { kind, path } }, { baseUrl: 'https://arandu.example' }));
+    assert.match(email.subject, subject);
+    assert.ok(email.text.includes(`https://arandu.example${path}`), `${kind}: link incorreto`);
+  }
   for (const path of ['https://evil.example/x', '//evil.example', '/finance/../admin.html', 'javascript:alert(1)']) {
     await assert.rejects(prepareFinancialEmail({ template: 'finance_notification', payload: { kind: 'mention', path } }, { baseUrl: 'https://arandu.example' }), /invalid_notification_path/);
   }

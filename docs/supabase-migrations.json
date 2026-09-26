@@ -30,7 +30,8 @@
     "docs/supabase-financial-renewals.sql",
     "docs/supabase-financial-rfq-editor.sql",
     "docs/supabase-financial-rfq-revisions.sql",
-    "docs/supabase-financial-delivery.sql"
+    "docs/supabase-financial-delivery.sql",
+    "docs/supabase-financial-pilot-grade.sql"
   ],
   "existingDatabase": [
     "docs/supabase-sprint1-auth-ownership.sql",
@@ -62,6 +63,7 @@
     "docs/supabase-financial-renewals.sql",
     "docs/supabase-financial-rfq-editor.sql",
     "docs/supabase-financial-rfq-revisions.sql",
-    "docs/supabase-financial-delivery.sql"
+    "docs/supabase-financial-delivery.sql",
+    "docs/supabase-financial-pilot-grade.sql"
   ]
 }

@@ -121,6 +121,16 @@ const ENUM_LABELS = {
 };
 export function enumLabel(value) { return ENUM_LABELS[value] || String(value); }
 
+/** Chave técnica (faturamento_anual) em texto legível (Faturamento anual). */
+export function humanizeKey(key) {
+  const text = String(key || '').replaceAll('_', ' ').trim();
+  return text ? text[0].toUpperCase() + text.slice(1) : '';
+}
+/** Texto livre (Faturamento anual) na chave estável usada pela API (faturamento_anual). */
+export function slugKey(label) {
+  return String(label || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').replace(/^([0-9])/, 'campo_$1').slice(0, 49);
+}
+
 /** Valor de campo do catálogo formatado para leitura; ausência é explícita. */
 export function fieldValue(field, value) {
   if (value === null || value === undefined || value === '') return null;

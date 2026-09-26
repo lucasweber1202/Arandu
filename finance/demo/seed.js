@@ -9,7 +9,7 @@
 // "encerra esta semana" e "entra em renovação" continuem verdadeiros em
 // qualquer dia em que alguém abrir o produto.
 
-export const DEMO_SEED_ID = 'acme-2026-09-v1';
+export const DEMO_SEED_ID = 'acme-2026-09-v2';
 
 const DAY = 86400000;
 
@@ -29,7 +29,7 @@ export const P = Object.freeze({
 });
 export const R = Object.freeze({
   capital: demoId(4, 1), acquiring: demoId(4, 2), anticipation: demoId(4, 3), expansion: demoId(4, 4),
-  refinancing: demoId(4, 5), ecommerce: demoId(4, 6), capital2025: demoId(4, 7)
+  refinancing: demoId(4, 5), ecommerce: demoId(4, 6), capital2025: demoId(4, 7), overdraft: demoId(4, 8)
 });
 export const C = Object.freeze({ ecommerce: demoId(9, 1), capital2025: demoId(9, 2), legacy: demoId(9, 3) });
 
@@ -123,9 +123,9 @@ export function createSeed(now = new Date()) {
       description: 'Antecipação pontual de recebíveis de cartão para cobrir o 13º salário.',
       demand: { amount: 1200000, purpose: 'antecipacao_recebiveis', term_months: 6, annual_revenue: 186000000, urgency: 'alta', collateral: 'Agenda de recebíveis de cartão' },
       response_deadline: day(6), created_at: at(-3, 14), updated_at: at(-3, 14) }),
-    rfq(R.expansion, { product: 'credit', title: 'Linha de investimento — expansão da fábrica 2', status: 'draft', owner_id: U.joao,
+    rfq(R.expansion, { product: 'credit', title: 'Financiamento da expansão da fábrica 2', status: 'draft', owner_id: U.joao,
       description: 'Financiamento de máquinas para a nova linha de extrusão. Aguardando orçamento final dos fornecedores.',
-      demand: { amount: 5000000, purpose: 'investimento', term_months: 60, grace_months: 6 },
+      demand: { amount: 5000000, purpose: 'expansao', term_months: 60, grace_months: 6 },
       response_deadline: day(21), created_at: at(-1, 17), updated_at: at(-1, 17) }),
     rfq(R.refinancing, { product: 'credit', title: 'Refinanciamento de CCB — R$ 1,8 milhão', status: 'decided',
       description: 'Refinanciamento da CCB contratada em 2024 para alongar o prazo.',
@@ -135,6 +135,11 @@ export function createSeed(now = new Date()) {
       description: 'Contratação de adquirente para a loja virtual.',
       demand: { monthly_volume: 1500000, average_ticket: 380, share_debit: 5, share_credit_cash: 45, share_credit_installment: 40, share_pix: 10, channel_ecommerce: true, terminals: 0 },
       response_deadline: day(-330), created_at: at(-360), updated_at: at(-310) }),
+    // Segundo caso para o aprovador: duas propostas, empate na taxa e campos faltando.
+    rfq(R.overdraft, { product: 'credit', title: 'Conta garantida — R$ 800 mil', status: 'comparing', owner_id: U.joao,
+      description: 'Limite rotativo de segurança para o caixa das filiais durante a troca do sistema de cobrança.',
+      demand: { amount: 800000, purpose: 'capital_de_giro', term_months: 12, annual_revenue: 186000000, urgency: 'media', collateral: 'Aval dos sócios' },
+      response_deadline: day(-2), created_at: at(-15, 10), updated_at: at(-2, 18) }),
     rfq(R.capital2025, { product: 'credit', title: 'Capital de giro — 2º semestre de 2025', status: 'contracted',
       demand: { amount: 2000000, purpose: 'capital_de_giro', term_months: 24 },
       response_deadline: day(-135), created_at: at(-150), updated_at: at(-120) })
@@ -153,7 +158,7 @@ export function createSeed(now = new Date()) {
 
   const invite = (id, rfqId, providerId, providerOrg, status, created) => ({
     id, rfq_id: rfqId, buyer_organization_id: O.acme, provider_id: providerId, provider_organization_id: status === 'invited' ? null : providerOrg,
-    status, token: `${'d'.repeat(48)}${String(id).slice(-16)}`, created_at: at(created), accepted_at: status === 'accepted' ? at(created + 0.2) : null,
+    status, token: `${'d'.repeat(32)}${String(id).replaceAll('-', '')}`, created_at: at(created), accepted_at: status === 'accepted' ? at(created + 0.2) : null,
     expires_at: at(created + 30)
   });
   const invites = [
@@ -169,7 +174,9 @@ export function createSeed(now = new Date()) {
     invite(demoId(5, 10), R.refinancing, P.nexa, O.nexa, 'accepted', -34),
     invite(demoId(5, 11), R.refinancing, P.horizonte, O.horizonte, 'accepted', -34),
     invite(demoId(5, 12), R.ecommerce, P.cadencia, O.cadencia, 'accepted', -358),
-    invite(demoId(5, 13), R.capital2025, P.horizonte, O.horizonte, 'accepted', -150)
+    invite(demoId(5, 13), R.capital2025, P.horizonte, O.horizonte, 'accepted', -150),
+    invite(demoId(5, 14), R.overdraft, P.horizonte, O.horizonte, 'accepted', -15),
+    invite(demoId(5, 15), R.overdraft, P.nexa, O.nexa, 'accepted', -15)
   ];
 
   const proposal = (id, inviteRow, product, status, version, created) => ({
@@ -177,7 +184,7 @@ export function createSeed(now = new Date()) {
     provider_organization_id: inviteRow.provider_organization_id, product, status, current_version: version,
     created_at: at(created), updated_at: at(created)
   });
-  const [iCapAtlas, iCapHor, iCapNexa, iAcqOrbe, iAcqCad, iAcqAtlas, , , , iRefNexa, iRefHor, iEcoCad, iCap25Hor] = invites;
+  const [iCapAtlas, iCapHor, iCapNexa, iAcqOrbe, iAcqCad, iAcqAtlas, , , , iRefNexa, iRefHor, iEcoCad, iCap25Hor, iOdHor, iOdNexa] = invites;
   const proposals = [
     proposal(demoId(6, 1), iCapAtlas, 'credit', 'revised', 2, -9),
     proposal(demoId(6, 2), iCapHor, 'credit', 'submitted', 1, -5),
@@ -188,7 +195,9 @@ export function createSeed(now = new Date()) {
     proposal(demoId(6, 7), iRefNexa, 'credit', 'submitted', 1, -20),
     proposal(demoId(6, 8), iRefHor, 'credit', 'submitted', 1, -18),
     proposal(demoId(6, 9), iEcoCad, 'acquiring', 'submitted', 1, -340),
-    proposal(demoId(6, 10), iCap25Hor, 'credit', 'submitted', 1, -140)
+    proposal(demoId(6, 10), iCap25Hor, 'credit', 'submitted', 1, -140),
+    proposal(demoId(6, 11), iOdHor, 'credit', 'submitted', 1, -6),
+    proposal(demoId(6, 12), iOdNexa, 'credit', 'submitted', 1, -4)
   ];
 
   const common = (institution, productName, validDays, contracting) => ({
@@ -227,7 +236,11 @@ export function createSeed(now = new Date()) {
     version(demoId(6, 9), 1, { mdr_debit: 0.99, mdr_credit_cash: 2.15, mdr_credit_installment: 2.89, pix_fee: 0.45, anticipation_rate: 1.69, gateway_cost: 390, settlement_days: 2,
       contract_months: 12, ...common('Cadência Adquirência — DEMO', 'Cadência Online — DEMO', -320, 10) }, 1, U.luana, at(-340)),
     version(demoId(6, 10), 1, { offered_amount: 2000000, interest_rate_month: 1.42, index: 'pre', cet_year: 19.9, term_months: 24, amortization: 'price', fees_amount: 10000,
-      ...common('Banco Horizonte Sul — DEMO', 'Giro Fácil Empresas — DEMO', -120, 8) }, 1, U.rafael, at(-140))
+      ...common('Banco Horizonte Sul — DEMO', 'Giro Fácil Empresas — DEMO', -120, 8) }, 1, U.rafael, at(-140)),
+    version(demoId(6, 11), 1, { offered_amount: 800000, interest_rate_month: 2.49, index: 'pre', cet_year: 36.2, term_months: 12, amortization: 'bullet', fees_amount: 4000,
+      collateral_required: 'Aval dos sócios', ...common('Banco Horizonte Sul — DEMO', 'Conta Garantida PJ — DEMO', 12, 5) }, 1, U.rafael, at(-6, 11)),
+    version(demoId(6, 12), 1, { offered_amount: 600000, interest_rate_month: 2.49, index: 'pre', term_months: 12, fees_amount: 0,
+      ...common('Nexa Crédito — DEMO', 'Nexa Limite Rotativo — DEMO', 10, 2) }, 1, U.bianca, at(-4, 16), 'Limite inicial de R$ 600 mil, revisável após 90 dias.')
   ];
   const proposalDrafts = [
     { proposal_id: demoId(6, 6), base_version: 0, revision: 1, updated_at: at(-1, 18),
@@ -245,7 +258,11 @@ export function createSeed(now = new Date()) {
     { id: demoId(7, 2), organization_id: O.acme, rfq_id: R.refinancing, proposal_id: demoId(6, 8), proposal_version: 1,
       requested_by: U.marina, requested_at: at(-4, 10), status: 'approved', resolved_at: at(-3, 11), rfq_updated_at: at(-34),
       rationale: 'Horizonte com menor taxa e SAC, reduzindo o custo total.',
-      steps: [{ id: demoId(7, 201), position: 1, approver_id: U.ricardo, status: 'approved', comment: 'De acordo.', acted_at: at(-3, 11) }] }
+      steps: [{ id: demoId(7, 201), position: 1, approver_id: U.ricardo, status: 'approved', comment: 'De acordo.', acted_at: at(-3, 11) }] },
+    { id: demoId(7, 3), organization_id: O.acme, rfq_id: R.overdraft, proposal_id: demoId(6, 11), proposal_version: 1,
+      requested_by: U.joao, requested_at: at(-1, 16), status: 'pending', resolved_at: null, rfq_updated_at: at(-2, 18),
+      rationale: 'Mesma taxa nas duas propostas. Horizonte cobre o valor integral de R$ 800 mil; Nexa limita a R$ 600 mil e não informou o CET.',
+      steps: [{ id: demoId(7, 301), position: 1, approver_id: U.ricardo, status: 'pending', comment: null, acted_at: null }] }
   ];
 
   const decisions = [
@@ -308,6 +325,7 @@ export function createSeed(now = new Date()) {
   const notifications = [
     notification(1, U.ricardo, O.acme, 'approval_requested', 'rfq', R.capital, 'Aprovação aguardando você', 'Capital de giro — R$ 3 milhões · etapa 2 de 2', [-1, 14, 5]),
     notification(2, U.ricardo, O.acme, 'mention', 'rfq', R.capital, 'Marina Costa mencionou você', 'Capital de giro — R$ 3 milhões', [-4, 11]),
+    notification(4, U.ricardo, O.acme, 'approval_requested', 'rfq', R.overdraft, 'Aprovação aguardando você', 'Conta garantida — R$ 800 mil · etapa 1 de 1', [-1, 16, 2]),
     notification(3, U.ricardo, O.acme, 'approval_approved', 'rfq', R.refinancing, 'Aprovação concluída', 'Refinanciamento de CCB — R$ 1,8 milhão', [-3, 11], true),
     notification(10, U.marina, O.acme, 'proposal_received', 'rfq', R.acquiring, 'Nova proposta recebida', 'Cadência Adquirência — DEMO respondeu a Revisão de adquirência', [-2, 10, 5]),
     notification(11, U.marina, O.acme, 'renewal_due', 'contract', C.ecommerce, 'Contrato entrou na janela de renovação', 'Adquirência do e-commerce · aviso prévio em 20 dias', [-10, 7]),
@@ -351,6 +369,12 @@ export function createSeed(now = new Date()) {
     event('rfq', R.anticipation, 'rfq_created', U.marina, [-3, 14]),
     event('rfq', R.anticipation, 'rfq_open', U.marina, [-3, 14, 5]),
     event('rfq', R.expansion, 'rfq_created', U.joao, [-1, 17]),
+    event('rfq', R.overdraft, 'rfq_created', U.joao, [-15, 10]),
+    event('rfq', R.overdraft, 'rfq_open', U.joao, [-15, 10, 5]),
+    event('rfq', R.overdraft, 'proposal_submitted', U.rafael, [-6, 11], { provider: 'Banco Horizonte Sul — DEMO', version: 1, rfq_revision: 1 }),
+    event('rfq', R.overdraft, 'proposal_submitted', U.bianca, [-4, 16], { provider: 'Nexa Crédito — DEMO', version: 1, rfq_revision: 1 }),
+    event('rfq', R.overdraft, 'rfq_comparing', U.joao, [-2, 18]),
+    event('rfq', R.overdraft, 'approval_requested', U.joao, [-1, 16], { steps: 1 }),
     event('rfq', R.refinancing, 'decision_recorded', U.marina, [-2, 15], { provider: 'Banco Horizonte Sul — DEMO' }),
     event('contract', C.ecommerce, 'renewal_task_created', null, [-10, 7], { milestone: 'd90' })
   ];
@@ -368,7 +392,25 @@ export function createSeed(now = new Date()) {
     id: demoId(14, index + 1), organization_id: O.acme, field_key, field_value, source, status: 'informado', valid_until: valid, updated_at: at(offset)
   }));
 
+  // Documentos: só metadados fictícios. Nenhum arquivo existe na demonstração.
+  const doc = (n, fields, versions) => ({
+    document: { id: demoId(15, n), current_version: versions.length, created_at: versions[0].at, removed_at: null, ...fields },
+    versions: versions.map((row, index) => ({ document_id: demoId(15, n), version: index + 1, mime_type: row.mime, size_bytes: row.size,
+      status: 'available', uploaded_by: row.by, completed_at: row.at }))
+  });
+  const docs = [
+    doc(1, { organization_id: O.acme, buyer_organization_id: O.acme, entity_type: 'rfq', entity_id: R.capital, rfq_id: R.capital, title: 'Balanço patrimonial 2025', visibility: 'internal', created_by: U.marina },
+      [{ mime: 'application/pdf', size: 1842211, by: U.marina, at: at(-12, 9, 30) }, { mime: 'application/pdf', size: 1907330, by: U.joao, at: at(-6, 11) }]),
+    doc(2, { organization_id: O.acme, buyer_organization_id: O.acme, entity_type: 'rfq', entity_id: R.capital, rfq_id: R.capital, title: 'Minuta de garantias aceitas', visibility: 'shared', created_by: U.marina },
+      [{ mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', size: 84512, by: U.marina, at: at(-8, 17) }]),
+    doc(3, { organization_id: O.atlas, buyer_organization_id: O.acme, entity_type: 'proposal', entity_id: demoId(6, 1), rfq_id: R.capital, title: 'Term sheet Atlas — capital de giro', visibility: 'shared', created_by: U.camila },
+      [{ mime: 'application/pdf', size: 402118, by: U.camila, at: at(-4, 10, 5) }]),
+    doc(4, { organization_id: O.acme, buyer_organization_id: O.acme, entity_type: 'contract', entity_id: C.ecommerce, rfq_id: R.ecommerce, title: 'Contrato assinado — Cadência', visibility: 'internal', created_by: U.helena },
+      [{ mime: 'application/pdf', size: 2511040, by: U.helena, at: at(-300) }])
+  ];
+
   return {
+    documents: docs.map((row) => row.document), document_versions: docs.flatMap((row) => row.versions),
     users, organizations, members, providers, rfqs, rfq_revisions: rfqRevisions, invites, proposals,
     proposal_versions: proposalVersions, proposal_drafts: proposalDrafts, editor_drafts: [],
     approvals, policies: [{ organization_id: O.acme, required_for_decision: true, updated_at: at(-90), updated_by: U.helena }],

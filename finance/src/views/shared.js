@@ -263,7 +263,9 @@ export function revisionDiff(product, before, after) {
     const b = key in (before.demand || {}) || key in (after.demand || {}) ? after.demand?.[key] : after[key];
     if (JSON.stringify(a ?? null) === JSON.stringify(b ?? null)) continue;
     const format = (value) => (spec ? fieldValue(spec, value) : key === 'response_deadline' ? formatDate(value) : value) ?? 'não informado';
-    changes.push({ label, before: key === 'description' ? 'texto anterior' : format(a), after: key === 'description' ? 'texto atualizado' : format(b) });
+    // Descrição: mostra o trecho real, encurtado, em vez de um marcador genérico.
+    const excerpt = (value) => { const text = String(value ?? '').replace(/\s+/g, ' ').trim(); return text ? (text.length > 90 ? `${text.slice(0, 90)}…` : text) : 'sem descrição'; };
+    changes.push({ label, before: key === 'description' ? excerpt(a) : format(a), after: key === 'description' ? excerpt(b) : format(b) });
   }
   return changes;
 }
@@ -356,9 +358,10 @@ const VISIBILITY = {
   internal: { icon: 'lock', label: 'Somente sua empresa', tone: 'internal' },
   provider_visible: { icon: 'eye', label: 'Visível ao provedor', tone: 'shared' }
 };
-export function visibilityBadge(visibility, { provider = false } = {}) {
+export function visibilityBadge(visibility, { provider = false, fromBuyer = false } = {}) {
   const meta = VISIBILITY[visibility] || VISIBILITY.internal;
-  const label = provider && visibility === 'provider_visible' ? 'Visível à empresa compradora' : meta.label;
+  const label = provider && visibility === 'provider_visible'
+    ? (fromBuyer ? 'Da empresa a todos os provedores convidados' : 'Visível à empresa compradora') : meta.label;
   return el('span', { class: `visibility visibility-${meta.tone}` }, [icon(meta.icon, { size: 12 }), el('span', { text: label })]);
 }
 
@@ -496,6 +499,7 @@ export function collaboration(ctx, rfq, { provider = false } = {}) {
     return form;
   };
 
+  let rowsById = new Map();
   const renderComment = (row, replies) => {
     const author = row.author_name || memberName(members, row.author_id);
     const item = el('article', { class: `comment comment-${row.visibility}`, id: `comment-${row.id}` }, [
@@ -505,20 +509,26 @@ export function collaboration(ctx, rfq, { provider = false } = {}) {
           el('strong', { class: 'comment-author', text: author }),
           row.author_org && row.author_is_provider ? el('span', { class: 'comment-org', text: row.author_org }) : null,
           el('time', { class: 'comment-time', datetime: row.created_at, title: formatDateTime(row.created_at), text: timeAgo(row.created_at) }),
-          visibilityBadge(row.visibility, { provider })
+          visibilityBadge(row.visibility, { provider, fromBuyer: provider && !row.author_is_provider })
         ]),
+        row.parent_id && !rowsById.has(row.parent_id) ? el('p', { class: 'muted small', text: 'Resposta da empresa a uma pergunta enviada por outra instituição.' }) : null,
         commentBody(row.body, names)
       ])
     ]);
     const main = item.querySelector('.comment-main');
-    const reply = el('button', { type: 'button', class: 'link-btn' }, [icon('reply', { size: 14 }), el('span', { text: 'Responder' })]);
-    reply.addEventListener('click', () => {
-      if (main.querySelector('.composer-reply')) return;
-      const form = composer(row);
-      main.append(form);
-      form.querySelector('textarea').focus();
-    });
-    main.append(el('div', { class: 'comment-actions' }, reply));
+    // Threads têm um nível: responder a uma resposta vai para o comentário de
+    // origem; sem acesso à origem (pergunta de outra instituição), não há resposta.
+    const target = row.parent_id ? rowsById.get(row.parent_id) : row;
+    if (target) {
+      const reply = el('button', { type: 'button', class: 'link-btn' }, [icon('reply', { size: 14 }), el('span', { text: 'Responder' })]);
+      reply.addEventListener('click', () => {
+        if (main.querySelector('.composer-reply')) return;
+        const form = composer(target);
+        main.append(form);
+        form.querySelector('textarea').focus();
+      });
+      main.append(el('div', { class: 'comment-actions' }, reply));
+    }
     if (replies.length) main.append(el('div', { class: 'replies' }, replies.map((child) => renderComment(child, []))));
     return item;
   };
@@ -528,6 +538,7 @@ export function collaboration(ctx, rfq, { provider = false } = {}) {
       const result = await ctx.api(`comments?organization_id=${encodeURIComponent(ctx.organization.id)}&object_type=rfq&object_id=${encodeURIComponent(rfq.id)}`);
       const rows = [...(result.rows || [])].sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
       const ids = new Set(rows.map((row) => row.id));
+      rowsById = new Map(rows.map((row) => [row.id, row]));
       const roots = rows.filter((row) => !row.parent_id || !ids.has(row.parent_id));
       thread.replaceChildren();
       for (const root of roots) thread.append(renderComment(root, rows.filter((row) => row.parent_id === root.id)));
@@ -549,8 +560,23 @@ const EVENT_LABELS = Object.freeze({
   approval_requested: 'solicitou aprovação', approval_step_approved: 'aprovou uma etapa', approval_approved: 'concluiu a aprovação', approval_rejected: 'rejeitou a aprovação',
   approval_changes_requested: 'pediu alterações', approval_cancelled: 'cancelou o pedido de aprovação', decision_recorded: 'registrou a decisão',
   contract_registered: 'registrou o contrato', comment_added: 'comentou', renewal_task_created: 'criou tarefa de renovação', renewal_rfq_started: 'iniciou nova concorrência',
-  rfq_demand_updated: 'atualizou a demanda', rfq_demand_updated_after_open: 'alterou a demanda após a abertura'
+  rfq_demand_updated: 'atualizou a demanda', rfq_demand_updated_after_open: 'alterou a demanda após a abertura',
+  renewal_milestone_reached: 'registrou um marco de renovação', document_uploaded: 'anexou um documento', document_version_added: 'enviou nova versão de documento',
+  document_downloaded: 'baixou um documento', document_removed: 'removeu um documento'
 });
+/** Frase do histórico. Tipo desconhecido nunca aparece cru na interface. */
+export function eventPhrase(type) { return EVENT_LABELS[type] || 'registrou uma atualização'; }
+const EVENT_TITLES = Object.freeze({
+  proposal_submitted: 'Nova proposta', proposal_revised: 'Proposta revisada', approval_requested: 'Aprovação solicitada', approval_approved: 'Aprovação concluída',
+  approval_step_approved: 'Etapa aprovada', approval_rejected: 'Aprovação rejeitada', approval_changes_requested: 'Alterações pedidas', approval_cancelled: 'Pedido de aprovação cancelado',
+  decision_recorded: 'Decisão registrada', contract_registered: 'Contrato registrado', rfq_revised: 'Nova revisão', rfq_created: 'Solicitação criada',
+  rfq_open: 'Aberta para propostas', rfq_collecting: 'Coleta reaberta', rfq_comparing: 'Coleta encerrada', rfq_cancelled: 'Solicitação cancelada', provider_invited: 'Provedor convidado',
+  invite_accepted: 'Convite aceito', comment_added: 'Comentário', renewal_task_created: 'Renovação em atenção', renewal_milestone_reached: 'Marco de renovação',
+  renewal_rfq_started: 'Nova concorrência de renovação', rfq_demand_updated: 'Demanda atualizada', rfq_demand_updated_after_open: 'Demanda alterada após abertura',
+  document_uploaded: 'Documento anexado', document_version_added: 'Nova versão de documento', document_removed: 'Documento removido'
+});
+/** Título curto para feeds. */
+export function eventTitle(type) { return EVENT_TITLES[type] || 'Atualização'; }
 export function activityLog(ctx, type, id) {
   const list = el('ol', { class: 'activity' }, el('li', {}, loading('Carregando histórico…')));
   ctx.api(`events?organization_id=${encodeURIComponent(ctx.organization.id)}&entity_type=${type}&entity_id=${encodeURIComponent(id)}`).then(({ rows }) => {
@@ -559,7 +585,7 @@ export function activityLog(ctx, type, id) {
       const detail = row.metadata?.provider ? ` · ${row.metadata.provider}` : row.metadata?.revision ? ` · revisão ${row.metadata.revision}` : '';
       list.append(el('li', { class: 'activity-item' }, [
         el('span', { class: 'activity-dot', 'aria-hidden': 'true' }),
-        el('span', { class: 'activity-text' }, [el('strong', { text: row.actor_name || 'Membro da equipe' }), ` ${EVENT_LABELS[row.event_type] || row.event_type.replaceAll('_', ' ')}${detail}`]),
+        el('span', { class: 'activity-text' }, [el('strong', { text: row.actor_name || 'Membro da equipe' }), ` ${eventPhrase(row.event_type)}${detail}`]),
         el('time', { class: 'activity-time', datetime: row.happened_at, text: formatDateTime(row.happened_at) })
       ]));
     }

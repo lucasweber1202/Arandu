@@ -25,7 +25,9 @@ export const DEMO_SCHEMA = 1;
 const DAY = 86400000;
 const ARRAYS = ['users', 'organizations', 'members', 'providers', 'rfqs', 'rfq_revisions', 'invites', 'proposals', 'proposal_versions',
   'proposal_drafts', 'editor_drafts', 'approvals', 'policies', 'decisions', 'contracts', 'renewal_milestones', 'tasks', 'comments',
-  'notifications', 'preferences', 'events', 'profile', 'terms', 'simulated_emails'];
+  'notifications', 'preferences', 'events', 'profile', 'terms', 'simulated_emails', 'documents', 'document_versions'];
+const DOCUMENT_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+const DOCUMENT_MAX_BYTES = 10 * 1024 * 1024;
 
 export class DemoError extends Error {
   constructor(status, message, code) {
@@ -139,6 +141,13 @@ export function createDemoEngine({ storage, now = () => new Date(), latency = 0 
     const orgs = providerOrgsOf(state, userId);
     return state.data.invites.some((row) => row.rfq_id === rfqId && row.status === 'accepted' && orgs.includes(row.provider_organization_id));
   }
+  /** Mesma regra do banco: provedor lê o que a empresa publicou e o que a própria instituição escreveu, nunca a pergunta de um concorrente. */
+  function providerReadsComment(state, userId, comment) {
+    if (comment.visibility !== 'provider_visible' || !providerCanSee(state, userId, comment.object_id)) return false;
+    const orgs = providerOrgsOf(state, userId);
+    return hasRole(state, comment.author_id, comment.organization_id)
+      || state.data.members.some((row) => row.user_id === comment.author_id && orgs.includes(row.organization_id));
+  }
 
   function event(state, organizationId, entityType, entityId, eventType, actorId, metadata = {}) {
     state.data.events.push({ id: uuid(), organization_id: organizationId, entity_type: entityType, entity_id: entityId,
@@ -219,6 +228,18 @@ export function createDemoEngine({ storage, now = () => new Date(), latency = 0 
         return { user_id: row.user_id, role: row.role, created_at: row.created_at, display_name: user?.name || null, title: user?.title || null };
       });
       return { ok: true, rows, viewer_id: userId };
+    },
+    'PATCH members': (state, { userId, body, sub }) => {
+      if (sub !== 'me') fail(404, 'Recurso não encontrado.', 'not_found');
+      memberOrganization(state, userId, body.organization_id);
+      const name = String(body.display_name || '').trim();
+      const title = String(body.title || '').trim();
+      if (name.length < 2 || name.length > 120 || /[<>@]/.test(name)) fail(400, 'Use seu nome, com pelo menos 2 caracteres e sem e-mail.', 'invalid_display_name');
+      if (title && (title.length < 2 || title.length > 80 || /[<>]/.test(title))) fail(400, 'Informe um cargo com pelo menos 2 caracteres.', 'invalid_job_title');
+      const user = state.data.users.find((row) => row.id === userId);
+      user.name = name;
+      user.title = title || null;
+      return { ok: true };
     },
 
     'GET overview': (state, { userId, query }) => {
@@ -544,7 +565,7 @@ export function createDemoEngine({ storage, now = () => new Date(), latency = 0 
       if (action !== 'approved' && comment.length < 3) fail(400, 'Informe um motivo ao rejeitar ou solicitar alterações.', 'comment_required');
       if (approvalStale(state, request)) fail(409, 'A aprovação está pendente ou ficou desatualizada após uma alteração. Solicite uma nova aprovação.', 'approval_stale');
       const step = request.steps.filter((row) => row.status === 'pending').sort((a, b) => a.position - b.position)[0];
-      if (!step || step.approver_id !== userId || request.requested_by === userId) fail(403, 'Sua conta não tem permissão para esta operação nesta organização.', 'forbidden');
+      if (!step || step.approver_id !== userId || request.requested_by === userId) fail(403, 'Você não tem permissão para decidir esta etapa. Só o aprovador da vez pode aprovar, pedir alterações ou rejeitar.', 'not_your_step');
       Object.assign(step, { status: action, comment: comment || null, acted_at: nowIso() });
       const rfq = rfqById(state, request.rfq_id);
       const remaining = request.steps.filter((row) => row.status === 'pending').sort((a, b) => a.position - b.position);
@@ -689,7 +710,7 @@ export function createDemoEngine({ storage, now = () => new Date(), latency = 0 
       if (organization.kind === 'BUYER') rows = rows.filter((row) => row.organization_id === organization.id);
       else {
         if (objectType !== 'rfq' || !providerCanSee(state, userId, objectId)) rows = [];
-        rows = rows.filter((row) => row.visibility === 'provider_visible');
+        rows = rows.filter((row) => providerReadsComment(state, userId, row));
       }
       const author = (id) => {
         const user = state.data.users.find((row) => row.id === id);
@@ -724,6 +745,7 @@ export function createDemoEngine({ storage, now = () => new Date(), latency = 0 
       if (parentId) {
         const parent = state.data.comments.find((row) => row.id === parentId && row.object_id === objectId);
         if (!parent || (parent.visibility === 'internal' && (provider || visibility !== 'internal'))) fail(400, 'Resposta inválida para este comentário.', 'invalid_parent');
+        if (provider && !providerReadsComment(state, userId, parent)) fail(403, 'Você só pode responder a comentários que a sua instituição consegue ler.', 'forbidden');
       }
       const row = { id: uuid(), client_id: clientId || null, organization_id: rfq.organization_id, object_type: 'rfq', object_id: objectId,
         author_id: userId, visibility, body: text, created_at: nowIso(), parent_id: parentId, mention_ids: mentions };
@@ -893,8 +915,111 @@ export function createDemoEngine({ storage, now = () => new Date(), latency = 0 
     },
     // O modo demonstração não produz métrica: nada sai do navegador.
     'POST signals': () => ({ ok: true, recorded: false }),
-    'GET documents': () => ({ ok: true, rows: [], upload_supported: false })
+    'GET documents': () => ({ ok: true, rows: [], upload_supported: false }),
+
+    // Documentos privados: mesmas regras de acesso do banco, só com metadados.
+    // Nenhum arquivo é lido, guardado ou baixado na demonstração.
+    'GET private-documents': (state, { userId, query }) => {
+      memberOrganization(state, userId, query.get('organization_id'));
+      const entityType = clean(query.get('entity_type'));
+      const entityId = clean(query.get('entity_id'));
+      const rows = state.data.documents.filter((row) => row.entity_type === entityType && row.entity_id === entityId && !row.removed_at && canReadDocument(state, userId, row))
+        .map((row) => ({ ...row, versions: state.data.document_versions.filter((version) => version.document_id === row.id && version.status === 'available').sort((a, b) => b.version - a.version) }));
+      return { ok: true, rows, limits: { max_bytes: DOCUMENT_MAX_BYTES, mime_types: DOCUMENT_TYPES } };
+    },
+    'POST private-documents': (state, { userId, body, sub }) => {
+      if (sub === 'upload') {
+        const { organization } = memberOrganization(state, userId, body.organization_id);
+        const mime = clean(body.mime_type).toLowerCase();
+        const size = Number(body.size);
+        if (!DOCUMENT_TYPES.includes(mime)) fail(400, 'Tipo de arquivo não aceito. Envie PDF, JPG, PNG, XLSX ou DOCX.', 'document_type_not_allowed');
+        if (!Number.isInteger(size) || size < 1 || size > DOCUMENT_MAX_BYTES) fail(413, 'O arquivo passa de 10 MB. Reduza o tamanho ou divida em partes.', 'document_too_large');
+        let doc = clean(body.document_id) && state.data.documents.find((row) => row.id === clean(body.document_id) && !row.removed_at);
+        if (clean(body.document_id) && (!doc || doc.organization_id !== organization.id)) fail(403, 'Você não pode enviar nova versão deste documento.', 'forbidden');
+        const provider = organization.kind === 'PROVIDER';
+        requireRole(state, userId, organization.id, provider ? ['admin', 'provider_user'] : ['admin', 'finance_manager', 'analyst']);
+        if (!doc) {
+          const title = String(body.title || '').trim();
+          if (title.length < 2 || title.length > 200 || /[<>]/.test(title)) fail(400, 'Dê um nome ao documento, com pelo menos 2 caracteres.', 'invalid_document_title');
+          const entityType = clean(body.entity_type);
+          const entityId = clean(body.entity_id);
+          const visibility = clean(body.visibility) || 'internal';
+          if (!['internal', 'shared'].includes(visibility)) fail(400, 'Escolha uma visibilidade permitida.', 'invalid_visibility');
+          let buyer = organization.id;
+          let rfqId = null;
+          if (entityType === 'proposal') {
+            const proposal = state.data.proposals.find((row) => row.id === entityId && row.provider_organization_id === organization.id);
+            if (!proposal) fail(403, 'Você só anexa documentos às propostas da sua instituição.', 'forbidden');
+            buyer = proposal.buyer_organization_id; rfqId = proposal.rfq_id;
+          } else if (provider) fail(403, 'Provedores anexam documentos apenas à própria proposta.', 'forbidden');
+          else if (entityType === 'rfq') { const rfq = rfqById(state, entityId); if (!rfq || rfq.organization_id !== organization.id) fail(403, 'Solicitação de outra organização.', 'forbidden'); rfqId = rfq.id; }
+          else if (entityType === 'contract') { if (!state.data.contracts.some((row) => row.id === entityId && row.organization_id === organization.id) || visibility !== 'internal') fail(403, 'Documentos de contrato ficam restritos à sua empresa.', 'forbidden'); }
+          else fail(400, 'Tipo de entidade inválido.', 'invalid_entity_type');
+          doc = { id: uuid(), organization_id: organization.id, buyer_organization_id: buyer, entity_type: entityType, entity_id: entityId, rfq_id: rfqId,
+            title, visibility, current_version: 0, created_by: userId, created_at: nowIso(), removed_at: null };
+          state.data.documents.push(doc);
+        }
+        const version = Math.max(0, ...state.data.document_versions.filter((row) => row.document_id === doc.id).map((row) => row.version)) + 1;
+        state.data.document_versions.push({ document_id: doc.id, version, mime_type: mime, size_bytes: size, status: 'pending', uploaded_by: userId, completed_at: null });
+        return { ok: true, document_id: doc.id, version, upload_url: `demo://upload/${doc.id}/${version}`, expires_in: 120 };
+      }
+      if (sub === 'complete') {
+        const row = state.data.document_versions.find((item) => item.document_id === clean(body.document_id) && item.version === Number(body.version) && item.status === 'pending' && item.uploaded_by === userId);
+        if (!row) fail(404, 'Este envio não está pendente ou não pertence à sua conta.', 'upload_not_pending');
+        row.status = 'available'; row.completed_at = nowIso();
+        const doc = state.data.documents.find((item) => item.id === row.document_id);
+        doc.current_version = Math.max(doc.current_version, row.version);
+        const type = row.version === 1 ? 'document_uploaded' : 'document_version_added';
+        event(state, doc.organization_id, doc.entity_type, doc.entity_id, type, userId, { document_id: doc.id, version: row.version });
+        if (doc.visibility === 'shared' && doc.organization_id !== doc.buyer_organization_id) event(state, doc.buyer_organization_id, 'rfq', doc.rfq_id, type, userId, { document_id: doc.id, version: row.version });
+        return { ok: true, document_id: doc.id, version: row.version, status: 'available' };
+      }
+      const doc = state.data.documents.find((row) => row.id === clean(body.document_id) && !row.removed_at);
+      if (!doc || !canReadDocument(state, userId, doc)) fail(403, 'Você não tem acesso a este documento.', 'forbidden');
+      if (sub === 'download') {
+        const version = body.version ? Number(body.version) : doc.current_version;
+        if (!state.data.document_versions.some((row) => row.document_id === doc.id && row.version === version && row.status === 'available')) fail(409, 'Esta versão do documento não existe.', 'document_not_available');
+        event(state, doc.organization_id, doc.entity_type, doc.entity_id, 'document_downloaded', userId, { document_id: doc.id, version });
+        return { ok: true, url: null, version, expires_in: 60, notice: 'Na demonstração nenhum arquivo é armazenado: existem só os metadados fictícios. O download foi registrado na trilha como aconteceria de verdade.' };
+      }
+      if (sub === 'remove') {
+        const owner = doc.organization_id === doc.buyer_organization_id ? ['admin', 'finance_manager'] : ['admin'];
+        if (!hasRole(state, userId, doc.organization_id, owner) && !(doc.created_by === userId && hasRole(state, userId, doc.organization_id))) fail(403, 'Só administradores, gestores ou quem enviou removem este documento.', 'forbidden');
+        doc.removed_at = nowIso();
+        event(state, doc.organization_id, doc.entity_type, doc.entity_id, 'document_removed', userId, { document_id: doc.id });
+        return { ok: true };
+      }
+      fail(404, 'Operação de documento desconhecida.', 'not_found');
+    },
+
+    // Console operacional de exemplo: mesmas categorias do real, números fictícios, nenhum dado de cliente.
+    'GET ops': (state, { sub, query }) => {
+      if (sub === 'trace') {
+        const id = clean(query.get('entity_id') || query.get('request_id'));
+        return { ok: true, trace: { jobs: id === 'demo-req-0930' ? [{ job: 'renewals', status: 'failed', processed: 0, error_code: 'upstream_unavailable', finished_at: new Date(now().getTime() - 31 * 3600000).toISOString() }] : [],
+          events: state.data.events.filter((row) => row.entity_id === id || row.organization_id === id).slice(0, 50)
+            .map(({ organization_id, entity_type, entity_id, event_type, happened_at }) => ({ organization_id, entity_type, entity_id, event_type, happened_at })) } };
+      }
+      if (sub !== 'overview') fail(404, 'Recurso não encontrado.', 'not_found');
+      const hour = (h) => new Date(now().getTime() - h * 3600000).toISOString();
+      return { ok: true, demo: true, health: { database_configured: false, server_key_configured: false, cron_secret_configured: false, email_provider_configured: false, deployment: 'demo', commit: null },
+        overview: { schema_version: 'financial-pilot-grade-1', generated_at: nowIso(), email_enabled: false,
+          jobs: [{ job: 'renewals', status: 'succeeded', processed: 1, request_id: 'demo-req-0931', error_code: null, started_at: hour(7.01), finished_at: hour(7) },
+            { job: 'renewals', status: 'failed', processed: 0, request_id: 'demo-req-0930', error_code: 'upstream_unavailable', started_at: hour(31.01), finished_at: hour(31) }],
+          last_renewal_success: hour(7), renewal_milestones_24h: state.data.renewal_milestones.length ? 1 : 0,
+          outbox: { by_status: { delivered: 14, pending: 1, dead: 1 }, oldest_pending_minutes: 3, recent_failures: [{ id: 'demo-outbox-7', status: 'dead', attempts: 5, error_code: 'provider_rejected', created_at: hour(20) }] },
+          documents: { pending_over_1h: 0, failed_24h: 0, available_total: state.data.document_versions.filter((row) => row.status === 'available').length },
+          notifications_24h: state.data.notifications.filter((row) => Date.parse(row.created_at) > now().getTime() - DAY).length } };
+    }
   };
+
+  function canReadDocument(state, userId, doc) {
+    if (doc.removed_at) return false;
+    if (hasRole(state, userId, doc.organization_id)) return true;
+    if (doc.visibility !== 'shared') return false;
+    if (doc.organization_id === doc.buyer_organization_id) return Boolean(doc.rfq_id) && providerCanSee(state, userId, doc.rfq_id);
+    return hasRole(state, userId, doc.buyer_organization_id);
+  }
 
   function approvalStale(state, request) {
     if (request.status !== 'pending' && request.status !== 'approved') return false;
@@ -960,7 +1085,7 @@ export function createDemoEngine({ storage, now = () => new Date(), latency = 0 
       save(state);
       throw new DemoError(503, 'Falha simulada de rede (demonstração). Nada foi salvo — tente novamente.', 'simulated_failure');
     }
-    const result = handler(state, { ...context(state), query: url.searchParams, body: body && typeof body === 'object' ? body : {}, method });
+    const result = handler(state, { ...context(state), query: url.searchParams, body: body && typeof body === 'object' ? body : {}, method, sub: segments[1] || '' });
     if (method !== 'GET') save(state);
     return clone(result);
   }
@@ -969,6 +1094,11 @@ export function createDemoEngine({ storage, now = () => new Date(), latency = 0 
     mode: 'demo',
     storageKey: DEMO_STORAGE_KEY,
     request,
+    // Nenhum arquivo sai do navegador nem é guardado: só a reserva de metadados existe.
+    async putFile(url) {
+      if (!String(url).startsWith('demo://upload/')) throw new DemoError(400, 'Endereço de envio inválido.', 'invalid_upload_url');
+      if (latency) await new Promise((resolve) => setTimeout(resolve, latency));
+    },
     persistent: () => persistent,
     recovered: () => recovered,
     snapshot: () => clone(load()),

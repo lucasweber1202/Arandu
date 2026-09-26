@@ -2,10 +2,10 @@
 // tarefas, notificações e configurações.
 
 import { PRODUCTS } from '../../../lib/finance/products.mjs';
-import { el, icon, money, percent, formatDate, formatDateTime, relativeDays, daysUntil, productLabel, demandHeadline, RFQ_STATUS, CONTRACT_STATUS, PROPOSAL_STATUS, PROVIDER_KINDS, ROLE_LABELS, timeAgo, fold, todayIso, renewalStage } from '../core.js';
+import { el, icon, money, percent, formatDate, formatDateTime, relativeDays, daysUntil, productLabel, demandHeadline, RFQ_STATUS, CONTRACT_STATUS, PROPOSAL_STATUS, PROVIDER_KINDS, ROLE_LABELS, timeAgo, fold, todayIso, renewalStage, humanizeKey, slugKey } from '../core.js';
 import { card, pill, tag, button, linkButton, emptyState, errorState, loading, tabs, definitionList, toast, confirmDialog, drawer, field, person, avatar } from '../ui.js';
 import { memberName, currentStep, approvalSummaryLine, comparisonMatrix, revisionTimeline, approvalActions, approvalSteps, coverage } from './shared.js';
-import { approvalCard } from './rfq.js';
+import { approvalCard, lazyDocuments } from './rfq.js';
 import { NOTIFICATION_META, notificationItem } from '../shell.js';
 
 // ------------------------------------------------------------ aprovações
@@ -66,7 +66,7 @@ function approvalContext(ctx, request, rfq) {
   const proposal = (rfq.proposals || []).find((item) => item.id === request.proposal_id);
   const step = currentStep(request);
   const body = [
-    el('section', { class: 'drawer-section' }, [el('h3', { text: 'Demanda' }), el('p', { class: 'muted small', text: `${productLabel(rfq.product)} · revisão ${rfq.revision || 1} · prazo ${formatDate(rfq.response_deadline)}` }),
+    el('section', { class: 'drawer-section' }, [el('h3', { text: 'Demanda' }), el('p', { class: 'muted small', text: `${productLabel(rfq.product)} · revisão ${rfq.revision || 1} · prazo de resposta ${formatDate(rfq.response_deadline)}` }),
       rfq.description ? el('p', { class: 'prose', text: rfq.description }) : null, definitionList(PRODUCTS[rfq.product].demandFields, rfq.demand)]),
     el('section', { class: 'drawer-section' }, [el('h3', { text: 'Por que esta proposta' }), el('blockquote', { class: 'rationale' }, [el('span', { class: 'rationale-label', text: memberName(ctx.members, request.requested_by) }), el('p', { text: request.rationale || 'Sem justificativa.' })])]),
     el('section', { class: 'drawer-section' }, [el('h3', { text: 'Comparação com as demais propostas' }), el('p', { class: 'muted small', text: `A proposta de ${proposal?.provider_name || '—'} está na primeira coluna.` }),
@@ -190,6 +190,7 @@ export async function contracts(ctx) {
         ['Custo registrado', contract.cost_summary || 'Não informado'], contract.main_conditions ? ['Condições', contract.main_conditions] : null,
         contract.document_reference ? ['Documento', contract.document_reference] : null
       ].filter(Boolean).map(([label, value]) => el('div', { class: 'deflist-row' }, [el('dt', { text: label }), el('dd', { class: value === 'Não informado' ? 'missing' : '', text: value })]))),
+      lazyDocuments(ctx, 'contract', contract.id, 'Documentos do contrato', { canUpload: ctx.can('upload_document') }),
       source ? el('a', { class: 'contract-link', href: ctx.href(`/finance/rfq.html?id=${source.id}#decisao`) }, [el('span', { text: 'Ver processo e decisão de origem' }), icon('arrowRight', { size: 14 })]) : null
     ]));
   }
@@ -392,6 +393,23 @@ export async function settings(ctx) {
   });
   add('empresa', 'Empresa', organization.legal_name, orgForm);
 
+  // Identidade de quem usa: aparece em aprovações, comentários, tarefas e responsáveis.
+  const me = (ctx.members || []).find((member) => member.user_id === ctx.viewer?.id);
+  if (me) {
+    const nameInput = el('input', { name: 'display_name', maxlength: '120', value: me.display_name || '', autocomplete: 'name', required: true });
+    const titleInput = el('input', { name: 'title', maxlength: '80', value: me.title || '', autocomplete: 'organization-title', placeholder: 'Ex.: Gerente Financeira' });
+    const meForm = el('form', { class: 'inline-form', novalidate: true, id: 'member-profile-form' }, [
+      field({ label: 'Seu nome', control: nameInput, required: true }), field({ label: 'Cargo', control: titleInput, optionalLabel: true }),
+      button('Salvar', { type: 'submit', iconName: 'check' })]);
+    meForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (nameInput.value.trim().length < 2) { toast('Informe seu nome, com pelo menos 2 caracteres.', 'error'); nameInput.focus(); return; }
+      try { await ctx.api('members/me', { method: 'PATCH', body: JSON.stringify({ organization_id: ctx.organization.id, display_name: nameInput.value.trim(), title: titleInput.value.trim() }) }); toast('Nome e cargo atualizados.'); ctx.reload(); }
+      catch (error) { toast(error.message, 'error'); }
+    });
+    add('voce', 'Seu nome e cargo', 'Como a equipe vê você em aprovações, comentários e tarefas. O e-mail nunca aparece nessas telas.', meForm);
+  }
+
   // Perfil financeiro reaproveitável.
   const profile = ctx.data.profile || [];
   const table = el('table', { class: 'data-table compact' });
@@ -400,20 +418,25 @@ export async function settings(ctx) {
   for (const row of profile) {
     const age = -daysUntil(row.updated_at);
     const state = age >= 180 ? ['desatualizado', 'danger'] : age >= 150 ? ['revisar em breve', 'warning'] : ['atualizado', 'success'];
-    tbody.append(el('tr', {}, [el('td', { 'data-label': 'Campo', class: 'cell-primary', text: row.field_key.replaceAll('_', ' ') }), el('td', { 'data-label': 'Valor', text: row.field_value }),
-      el('td', { 'data-label': 'Origem', text: String(row.source || '').replaceAll('_', ' ') }), el('td', { 'data-label': 'Atualizado', text: formatDate(row.updated_at) }),
+    tbody.append(el('tr', {}, [el('td', { 'data-label': 'Campo', class: 'cell-primary', text: humanizeKey(row.field_key) }), el('td', { 'data-label': 'Valor', text: row.field_value }),
+      el('td', { 'data-label': 'Origem', text: humanizeKey(row.source) }), el('td', { 'data-label': 'Atualizado', text: formatDate(row.updated_at) }),
       el('td', { 'data-label': 'Situação' }, tag(state[0], state[1]))]));
   }
   table.append(tbody);
   const profileForm = el('form', { class: 'inline-form', novalidate: true });
-  const key = el('input', { name: 'field_key', pattern: '[a-z][a-z0-9_]{1,48}', placeholder: 'faturamento_anual' });
+  // A pessoa escreve o nome do campo; a chave técnica é derivada dele.
+  const key = el('input', { name: 'field_label', maxlength: '60', placeholder: 'Ex.: Faturamento anual', list: 'profile-field-suggestions' });
+  const suggestions = el('datalist', { id: 'profile-field-suggestions' }, profile.map((row) => el('option', { value: humanizeKey(row.field_key) })));
   const value = el('input', { name: 'field_value', maxlength: '500' });
   const sourceSelect = el('select', { name: 'source' });
-  for (const option of ['declarado_pela_empresa', 'documento_interno', 'extrato', 'contrato_vigente', 'outro']) sourceSelect.add(new Option(option.replaceAll('_', ' '), option));
-  profileForm.append(field({ label: 'Campo', control: key }), field({ label: 'Valor', control: value }), field({ label: 'Origem', control: sourceSelect }), button('Salvar campo', { type: 'submit' }));
+  for (const option of ['declarado_pela_empresa', 'documento_interno', 'extrato', 'contrato_vigente', 'outro']) sourceSelect.add(new Option(humanizeKey(option), option));
+  profileForm.append(suggestions, field({ label: 'Campo', control: key }), field({ label: 'Valor', control: value }), field({ label: 'Origem', control: sourceSelect }), button('Salvar campo', { type: 'submit' }));
   profileForm.addEventListener('submit', async (event) => {
     event.preventDefault();
-    try { await ctx.api('profile', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, ...Object.fromEntries(new FormData(profileForm)) }) }); toast('Campo do perfil salvo.'); ctx.reload(); }
+    const { field_label: label, ...rest } = Object.fromEntries(new FormData(profileForm));
+    const fieldKey = slugKey(label);
+    if (fieldKey.length < 2 || !String(rest.field_value || '').trim()) { toast('Informe o nome do campo e o valor.', 'error'); (fieldKey.length < 2 ? key : value).focus(); return; }
+    try { await ctx.api('profile', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, field_key: fieldKey, ...rest }) }); toast('Campo do perfil salvo.'); ctx.reload(); }
     catch (error) { toast(error.message, 'error'); }
   });
   add('perfil', 'Perfil financeiro', 'Informado uma vez, reaproveitado em cada solicitação. Campos com mais de 180 dias aparecem como desatualizados.',
@@ -432,7 +455,7 @@ export async function settings(ctx) {
     });
     policyBox.replaceChildren(el('label', { class: 'switch-row' }, [toggle, el('span', {}, [el('strong', { text: 'Exigir aprovação antes de registrar qualquer decisão' }),
       el('span', { class: 'muted small', text: policy.updated_at ? ` Atualizada em ${formatDateTime(policy.updated_at)}.` : ' Nenhuma exigência configurada.' })])]),
-    ctx.viewer?.role && ctx.viewer.role !== 'admin' ? el('p', { class: 'muted small', text: 'Somente administradores alteram esta regra. Troque para a persona Admin para experimentar.' }) : el('p', { class: 'muted small', text: 'Mudanças ficam registradas na trilha da organização.' }));
+    ctx.viewer?.role && ctx.viewer.role !== 'admin' ? el('p', { class: 'muted small', text: `Somente administradores alteram esta regra.${ctx.mode === 'demo' ? ' Troque para a persona Admin para experimentar.' : ''}` }) : el('p', { class: 'muted small', text: 'Mudanças ficam registradas na trilha da organização.' }));
   }).catch((error) => policyBox.replaceChildren(errorState({ error })));
   add('aprovacao', 'Política de aprovação', 'Quando ligada, nenhuma decisão é registrada sem um pedido aprovado para a mesma proposta e versão.', policyBox);
 
@@ -474,7 +497,9 @@ export async function settings(ctx) {
   if (ctx.mode === 'demo') {
     const fail = button('Simular falha na próxima gravação', { iconName: 'alert', onClick: () => { ctx.transport.simulateFailure(); toast('A próxima ação que grava dados vai falhar uma vez. Veja a mensagem de erro e tente de novo.', 'info'); } });
     add('demonstracao', 'Demonstração', 'Ferramentas para experimentar estados de erro. Existem só no ambiente demonstrativo.', [
-      el('p', { class: 'muted small', text: `Estado salvo neste navegador (chave ${ctx.transport.storageKey}). ${ctx.transport.counts().emails} e-mail(s) simulado(s) — nenhum enviado.` }), fail]);
+      el('p', { class: 'muted small', text: `Estado salvo neste navegador (chave ${ctx.transport.storageKey}). ${ctx.transport.counts().emails} e-mail(s) simulado(s) — nenhum enviado.` }), fail,
+      el('p', { class: 'muted small', text: 'O console operacional da plataforma (saúde de jobs, outbox e envios, sem dados de clientes) também tem uma versão de exemplo.' }),
+      linkButton('Ver console operacional de exemplo', ctx.href('/finance/ops.html'), { iconName: 'shield', size: 'sm' })]);
   }
   const layout = el('div', { class: 'settings-layout' }, [nav, el('div', { class: 'stack' }, sections)]);
   if (location.hash) queueMicrotask(() => document.querySelector(location.hash)?.scrollIntoView({ block: 'start' }));

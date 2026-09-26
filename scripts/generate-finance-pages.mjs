@@ -11,7 +11,7 @@ const COMPANY_NAV = [
   ['Propostas', '/finance/proposals.html'], ['Contratos', '/finance/contracts.html'], ['Provedores', '/finance/providers.html'],
   ['Tarefas', '/finance/tasks.html'], ['Configurações', '/finance/settings.html']
 ];
-const PROVIDER_NAV = [['Início', '/provider/index.html'], ['Oportunidades', '/provider/rfqs.html'], ['Aceitar convite', '/provider/invite.html']];
+const PROVIDER_NAV = [['Início', '/provider/index.html'], ['Oportunidades', '/provider/rfqs.html'], ['Código de convite', '/provider/invite.html']];
 
 export const PAGES = [
   { path: 'finance/index.html', view: 'dashboard', audience: 'company', title: 'Painel', h1: 'Painel', description: 'O que precisa da sua atenção no procurement financeiro da empresa.' },
@@ -27,6 +27,7 @@ export const PAGES = [
   { path: 'finance/notifications.html', view: 'notifications', audience: 'company', title: 'Notificações', h1: 'Notificações', description: 'Central de avisos: aprovações, propostas, menções, prazos e renovações.' },
   { path: 'finance/settings.html', view: 'settings', audience: 'company', title: 'Configurações', h1: 'Configurações', description: 'Empresa, perfil financeiro, política de aprovação, notificações e equipe.' },
   { path: 'finance/boundaries.html', view: 'boundaries', audience: 'company', title: 'Limites do produto', h1: 'Limites do produto', description: 'O que o Arandu faz e o que deliberadamente não faz.', lede: 'Esta página descreve, em linguagem direta, o que o Arandu faz e o que ele deliberadamente não faz na vertical de procurement financeiro B2B.', staticBody: 'boundaries' },
+  { path: 'finance/ops.html', view: 'ops', audience: 'company', title: 'Console operacional', h1: 'Console operacional', description: 'Saúde de jobs, outbox de e-mail e envios de documentos, sem dados de clientes.', lede: 'Saúde da plataforma para operadores com segundo fator. Mostra estados, contagens e identificadores; nunca valores, termos, documentos ou conteúdo de clientes.' },
   { path: 'provider/index.html', view: 'providerHome', audience: 'provider', title: 'Portal do provedor', h1: 'Portal do provedor', description: 'Oportunidades, convites e propostas da sua instituição.' },
   { path: 'provider/rfqs.html', view: 'providerRfqs', audience: 'provider', title: 'Oportunidades', h1: 'Oportunidades', description: 'Solicitações para as quais a sua instituição foi convidada.' },
   { path: 'provider/proposal.html', view: 'providerProposal', audience: 'provider', title: 'Responder proposta', h1: 'Responder proposta', description: 'Responda à solicitação com as condições da sua instituição.' },
@@ -88,7 +89,7 @@ export function renderPage(page, { demo = false } = {}) {
     .map(([label, href]) => `<li><a class="side-link" href="${link(href)}"${`/${page.path}` === href || (page.path === 'finance/index.html' && href === '/finance/dashboard.html') ? ' aria-current="page"' : ''}>${label}</a></li>`).join('');
   const home = page.audience === 'provider' ? '/provider/index.html' : '/finance/dashboard.html';
   const banner = demo ? `<div class="demo-banner" role="region" aria-label="Ambiente demonstrativo"><p class="demo-text"><strong>Ambiente demonstrativo</strong> <span class="demo-sub">Dados fictícios. Nenhuma operação financeira real será executada.</span></p></div>\n` : '';
-  const body = page.staticBody === 'boundaries' ? BOUNDARIES : '<noscript><p class="empty">Este painel depende de JavaScript para carregar dados da sua organizacao. A navegacao entre as paginas continua funcionando sem ele.</p></noscript>';
+  const body = page.staticBody === 'boundaries' ? BOUNDARIES : '<noscript><p class="empty">Este painel depende de JavaScript para carregar dados da sua organização. A navegação entre as páginas continua funcionando sem ele.</p></noscript>';
   return `<!doctype html>
 <html lang="pt-BR">
 <head>
@@ -102,7 +103,7 @@ ${page.referrer ? '<meta name="referrer" content="no-referrer">\n' : ''}<meta na
 <link rel="stylesheet" href="/finance/style.css">
 </head>
 <body data-view="${page.view}" data-audience="${page.audience}"${demo ? ' data-mode="demo"' : ''}>
-<a class="skip-link" href="#main">Pular para o conteudo</a>
+<a class="skip-link" href="#main">Pular para o conteúdo</a>
 ${banner}<div class="app-shell">
   <aside class="sidebar">
     <a class="brand" href="${link(home)}"><span class="brand-mark" aria-hidden="true">A</span><span class="brand-text"><span class="brand-name">Arandu</span><span class="brand-sub">Financial Procurement</span></span></a>
