@@ -241,3 +241,26 @@ export function uid() {
   if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
   return 'xxxxxxxx-xxxx-4xxx-8xxx-xxxxxxxxxxxx'.replace(/x/g, () => Math.floor(Math.random() * 16).toString(16));
 }
+
+/**
+ * Estágio de renovação de um contrato.
+ *
+ * O prazo que importa é o do aviso prévio (fim − dias de aviso): depois dele,
+ * a empresa já não consegue avisar a não renovação dentro do contrato. A
+ * janela de decisão abre 30 dias antes desse prazo (ou 90 dias antes do fim,
+ * o que vier primeiro) e fecha no próprio prazo.
+ */
+export const RENEWAL_WINDOW_DAYS = 30;
+export function renewalStage(contract) {
+  const ends = parseDay(contract?.ends_on);
+  if (!ends || !['active', 'renewing'].includes(contract?.status)) return { stage: 'inactive' };
+  const iso = (date) => new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())).toISOString().slice(0, 10);
+  const deadline = new Date(ends.getTime() - Number(contract.renewal_notice_days || 0) * 86400000);
+  const opensAt = new Date(Math.min(deadline.getTime() - RENEWAL_WINDOW_DAYS * 86400000, ends.getTime() - 90 * 86400000));
+  const today = parseDay(todayIso());
+  const stage = today > ends ? 'expired' : today > deadline ? 'past_notice' : today >= opensAt ? 'window' : 'upcoming';
+  return { stage, deadline: iso(deadline), opensAt: iso(opensAt), endsOn: contract.ends_on, daysToDeadline: daysUntil(iso(deadline)), daysToEnd: daysUntil(contract.ends_on) };
+}
+export function needsRenewalAttention(contract) {
+  return ['window', 'past_notice'].includes(renewalStage(contract).stage);
+}

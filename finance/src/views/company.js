@@ -2,7 +2,7 @@
 // tarefas, notificações e configurações.
 
 import { PRODUCTS } from '../../../lib/finance/products.mjs';
-import { el, icon, money, percent, formatDate, formatDateTime, relativeDays, daysUntil, productLabel, demandHeadline, RFQ_STATUS, CONTRACT_STATUS, PROPOSAL_STATUS, PROVIDER_KINDS, ROLE_LABELS, timeAgo, fold, todayIso } from '../core.js';
+import { el, icon, money, percent, formatDate, formatDateTime, relativeDays, daysUntil, productLabel, demandHeadline, RFQ_STATUS, CONTRACT_STATUS, PROPOSAL_STATUS, PROVIDER_KINDS, ROLE_LABELS, timeAgo, fold, todayIso, renewalStage } from '../core.js';
 import { card, pill, tag, button, linkButton, emptyState, errorState, loading, tabs, definitionList, toast, confirmDialog, drawer, field, person, avatar } from '../ui.js';
 import { memberName, currentStep, approvalSummaryLine, comparisonMatrix, revisionTimeline, approvalActions, approvalSteps, coverage } from './shared.js';
 import { approvalCard } from './rfq.js';
@@ -116,10 +116,12 @@ function lifecycleBar(contract) {
   if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return el('p', { class: 'muted small', text: 'Datas de vigência incompletas.' });
   const pos = (time) => `${Math.max(0, Math.min(100, ((time - start) / (end - start)) * 100)).toFixed(2)}%`;
   const notice = end - Number(contract.renewal_notice_days || 0) * 86400000;
+  const opens = Date.parse(`${renewalStage(contract).opensAt}T00:00:00Z`);
   const marks = [['90 dias', end - 90 * 86400000], ['60 dias', end - 60 * 86400000], ['30 dias', end - 30 * 86400000]].filter(([, time]) => time > start);
   const bar = el('div', { class: 'life-track' }, [
     el('span', { class: 'life-elapsed', style: `width:${pos(today)}` }),
-    el('span', { class: 'life-window', style: `left:${pos(notice)};width:calc(100% - ${pos(notice)})`, title: 'Janela de renovação' }),
+    el('span', { class: 'life-window', style: `left:${pos(opens)};width:calc(${pos(notice)} - ${pos(opens)})`, title: 'Janela de decisão (até o aviso prévio)' }),
+    el('span', { class: 'life-after', style: `left:${pos(notice)};width:calc(100% - ${pos(notice)})`, title: 'Depois do prazo de aviso prévio' }),
     ...marks.map(([label, time]) => el('span', { class: `life-mark${today >= time ? ' reached' : ''}`, style: `left:${pos(time)}`, title: `${label} antes do vencimento` })),
     el('span', { class: 'life-notice', style: `left:${pos(notice)}`, title: 'Data limite do aviso prévio' }),
     today >= start && today <= end ? el('span', { class: 'life-today', style: `left:${pos(today)}` }, el('span', { class: 'life-today-label', text: 'Hoje' })) : null
@@ -128,17 +130,18 @@ function lifecycleBar(contract) {
     ['Início', contract.starts_on, today >= start], ['90 dias', new Date(end - 90 * 86400000).toISOString().slice(0, 10), today >= end - 90 * 86400000],
     ['60 dias', new Date(end - 60 * 86400000).toISOString().slice(0, 10), today >= end - 60 * 86400000], ['30 dias', new Date(end - 30 * 86400000).toISOString().slice(0, 10), today >= end - 30 * 86400000],
     ['Aviso prévio', new Date(notice).toISOString().slice(0, 10), today >= notice], ['Vencimento', contract.ends_on, today >= end]
-  ].map(([label, date, reached]) => el('li', { class: `life-point${reached ? ' reached' : ''}` }, [el('span', { class: 'life-point-label', text: label }), el('span', { class: 'life-point-date', text: formatDate(date, { withYear: false }) }), reached ? el('span', { class: 'sr-only', text: '(alcançado)' }) : null])));
+  ].filter(([, date]) => date >= contract.starts_on).sort((a, b) => a[1].localeCompare(b[1]) || (a[0] === 'Aviso prévio' ? -1 : 1)).map(([label, date, reached]) => el('li', { class: `life-point${reached ? ' reached' : ''}` }, [el('span', { class: 'life-point-label', text: label }), el('span', { class: 'life-point-date', text: formatDate(date, { withYear: false }) }), reached ? el('span', { class: 'sr-only', text: '(alcançado)' }) : null])));
   return el('div', { class: 'lifecycle-bar', role: 'img', 'aria-label': `Vigência de ${formatDate(contract.starts_on)} a ${formatDate(contract.ends_on)}; aviso prévio em ${formatDate(new Date(notice).toISOString().slice(0, 10))}` }, [bar, legend]);
 }
 
 function contractNextAction(contract) {
-  const inWindow = contract.review_from && daysUntil(contract.review_from) <= 0;
-  if (contract.status === 'renewing') return { tone: 'info', icon: 'repeat', text: 'Nova concorrência em andamento. Compare as propostas antes do aviso prévio.' };
-  if (!['active'].includes(contract.status)) return { tone: 'neutral', icon: 'clock', text: 'Contrato encerrado. Mantido para histórico.' };
-  if (inWindow) return { tone: 'warning', icon: 'alert', text: `Janela de renovação aberta. Decida até ${formatDate(contract.review_from)} (aviso prévio) se renova, renegocia ou troca.`, cta: true };
-  const days = daysUntil(contract.review_from);
-  return { tone: 'success', icon: 'checkCircle', text: `Nada a fazer agora. A revisão começa ${days !== null ? relativeDays(contract.review_from) : 'antes do aviso prévio'}.` };
+  if (!['active', 'renewing'].includes(contract.status)) return { tone: 'neutral', icon: 'clock', text: 'Contrato encerrado. Mantido para histórico.' };
+  const stage = renewalStage(contract);
+  if (contract.status === 'renewing' && stage.stage !== 'past_notice') return { tone: 'info', icon: 'repeat', text: `Nova concorrência em andamento. Compare as propostas antes do aviso prévio (${formatDate(stage.deadline)}).` };
+  if (stage.stage === 'window') return { tone: 'warning', icon: 'alert', text: `Janela de renovação aberta. Decida até ${formatDate(stage.deadline)} (${relativeDays(stage.deadline)}, prazo do aviso prévio) se renova, renegocia ou troca.`, cta: true };
+  if (stage.stage === 'past_notice') return { tone: 'danger', icon: 'alert', text: `O prazo do aviso prévio passou em ${formatDate(stage.deadline)}. Negocie com o provedor ou prepare a substituição antes do vencimento (${formatDate(contract.ends_on)}).`, cta: true };
+  if (stage.stage === 'expired') return { tone: 'neutral', icon: 'clock', text: 'Vigência encerrada. Atualize o status do contrato.' };
+  return { tone: 'success', icon: 'checkCircle', text: `Nada a fazer agora. A janela de decisão abre ${relativeDays(stage.opensAt)} (${formatDate(stage.opensAt)}).` };
 }
 
 export async function contracts(ctx) {
@@ -156,6 +159,7 @@ export async function contracts(ctx) {
   ctx.header({ title: 'Contratos e renovações', subtitle: 'Vigência, marcos de 90/60/30 dias, aviso prévio e próxima ação de cada contrato.', actions: refresh ? [refresh] : [] });
   if (!rows.length) return emptyState({ title: 'Nenhum contrato registrado ainda', text: 'Depois de uma decisão, registre o contrato com vigência e aviso prévio. O Arandu acompanha a renovação.', iconName: 'briefcase' });
   const ordered = [...rows].sort((a, b) => (['active', 'renewing'].includes(b.status) - ['active', 'renewing'].includes(a.status)) || String(a.review_from).localeCompare(String(b.review_from)));
+  // Contratos que pedem ação primeiro.
   const root = el('div', { class: 'stack' });
   for (const contract of ordered) {
     const next = contractNextAction(contract);
@@ -182,7 +186,7 @@ export async function contracts(ctx) {
       ['active', 'renewing'].includes(contract.status) ? lifecycleBar(contract) : null,
       el('div', { class: `next-action-box tone-${next.tone}` }, [icon(next.icon, { size: 16 }), el('span', { class: 'next-action-label', text: 'Próxima ação' }), el('span', { class: 'next-action-text', text: next.text }), restart]),
       el('dl', { class: 'deflist deflist-3' }, [
-        ['Vigência', `${formatDate(contract.starts_on)} → ${formatDate(contract.ends_on)}`], ['Aviso prévio', `${contract.renewal_notice_days} dias (${formatDate(contract.review_from)})`],
+        ['Vigência', `${formatDate(contract.starts_on)} → ${formatDate(contract.ends_on)}`], ['Prazo do aviso prévio', `${contract.renewal_notice_days} dias antes do fim · ${formatDate(contract.review_from)}`],
         ['Custo registrado', contract.cost_summary || 'Não informado'], contract.main_conditions ? ['Condições', contract.main_conditions] : null,
         contract.document_reference ? ['Documento', contract.document_reference] : null
       ].filter(Boolean).map(([label, value]) => el('div', { class: 'deflist-row' }, [el('dt', { text: label }), el('dd', { class: value === 'Não informado' ? 'missing' : '', text: value })]))),

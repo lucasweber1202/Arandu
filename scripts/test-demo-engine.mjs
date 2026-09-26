@@ -25,7 +25,8 @@ const org = O.acme;
 let overview = await call(`overview?organization_id=${org}`);
 const statuses = new Set(overview.rfqs.map((row) => row.status));
 for (const status of ['draft', 'open', 'collecting', 'comparing', 'decided', 'contracted']) assert.ok(statuses.has(status), `seed sem RFQ ${status}`);
-assert.ok(overview.contracts.some((row) => row.review_from <= '2026-09-26' && row.status === 'active'), 'seed sem contrato em janela de renovação');
+// Janela de decisão aberta: prazo do aviso prévio no futuro próximo (até 30 dias).
+assert.ok(overview.contracts.some((row) => row.status === 'active' && row.review_from > '2026-09-26' && row.review_from <= '2026-10-26'), 'seed sem contrato em janela de renovação');
 assert.ok(JSON.stringify(overview).includes('— DEMO'));
 assert.equal(overview.rfqs.find((row) => row.id === R.capital).revision, 3);
 const lineage = overview.rfqs.find((row) => row.id === R.capital).proposals.map((row) => row.rfq_revision).sort();

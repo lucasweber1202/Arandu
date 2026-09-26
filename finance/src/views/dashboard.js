@@ -1,6 +1,6 @@
 // Painel: começa pelo que precisa da pessoa agora, não por números.
 
-import { el, icon, daysUntil, relativeDays, formatDate, productLabel, demandHeadline, RFQ_STATUS, timeAgo, money } from '../core.js';
+import { el, icon, daysUntil, relativeDays, formatDate, productLabel, demandHeadline, RFQ_STATUS, timeAgo, money, renewalStage } from '../core.js';
 import { card, pill, linkButton, emptyState, person, progress, button, toast } from '../ui.js';
 import { memberName, currentStep, approvalSummaryLine } from './shared.js';
 
@@ -69,10 +69,16 @@ export function actionItems(ctx, approvals) {
       if (rfq.status === 'draft' && rfq.owner_id === viewer) items.push({ rank: 3, tone: 'neutral', icon: 'edit', kind: 'Rascunho', title: `Revisar e abrir: ${rfq.title}`, detail: 'Rascunho ainda não enviado a nenhum provedor.', cta: 'Abrir', href: ctx.href(`/finance/rfq.html?id=${rfq.id}`) });
     }
     for (const contract of data.contracts || []) {
-      if (!['active', 'renewing'].includes(contract.status) || !contract.review_from) continue;
-      if (daysUntil(contract.review_from) <= 0) {
-        items.push({ rank: contract.status === 'renewing' ? 3 : 1, tone: 'warning', icon: 'repeat', kind: 'Renovação', title: `${contract.status === 'renewing' ? 'Renovação em andamento' : 'Janela de renovação aberta'}: ${contract.provider_name}`,
-          detail: `${productLabel(contract.product, { short: true })} · vence ${relativeDays(contract.ends_on)} (${formatDate(contract.ends_on)})`, cta: contract.status === 'renewing' ? 'Acompanhar' : 'Decidir', href: ctx.href(`/finance/contracts.html#contract-${contract.id}`) });
+      const stage = renewalStage(contract);
+      if (stage.stage === 'window' && contract.status === 'active') {
+        items.push({ rank: stage.daysToDeadline <= 7 ? 1 : 2, tone: 'warning', icon: 'repeat', kind: 'Renovação', title: `Decidir renovação: ${contract.provider_name}`,
+          detail: `${productLabel(contract.product, { short: true })} · aviso prévio ${relativeDays(stage.deadline)} (${formatDate(stage.deadline)}) · vence ${formatDate(contract.ends_on)}`, cta: 'Decidir', href: ctx.href(`/finance/contracts.html#contract-${contract.id}`) });
+      } else if (stage.stage === 'past_notice') {
+        items.push({ rank: 1, tone: 'danger', icon: 'alert', kind: 'Renovação', title: `Aviso prévio vencido: ${contract.provider_name}`,
+          detail: `Vence ${relativeDays(contract.ends_on)} (${formatDate(contract.ends_on)}). Negocie ou prepare a substituição.`, cta: 'Ver', href: ctx.href(`/finance/contracts.html#contract-${contract.id}`) });
+      } else if (stage.stage === 'window' && contract.status === 'renewing') {
+        items.push({ rank: 3, tone: 'accent', icon: 'repeat', kind: 'Renovação', title: `Renovação em andamento: ${contract.provider_name}`,
+          detail: `Compare as propostas antes de ${formatDate(stage.deadline)}.`, cta: 'Acompanhar', href: ctx.href(`/finance/contracts.html#contract-${contract.id}`) });
       }
     }
   }
@@ -158,12 +164,13 @@ export async function dashboard(ctx) {
   const upcoming = contracts.sort((a, b) => String(a.review_from).localeCompare(String(b.review_from))).slice(0, 3);
   const contractList = el('ul', { class: 'mini-list', role: 'list' }, upcoming.map((contract) => {
     const days = daysUntil(contract.ends_on);
-    const inWindow = daysUntil(contract.review_from) <= 0;
+    const stage = renewalStage(contract);
+    const inWindow = ['window', 'past_notice'].includes(stage.stage);
     return el('li', { class: 'mini-row' }, [
       el('span', { class: `mini-icon ${inWindow ? 'tone-warning' : 'tone-neutral'}` }, icon(inWindow ? 'repeat' : 'calendar', { size: 14 })),
       el('div', { class: 'mini-main' }, [
         el('a', { class: 'mini-title stretched', href: ctx.href(`/finance/contracts.html#contract-${contract.id}`), text: contract.provider_name }),
-        el('span', { class: 'mini-meta', text: `${productLabel(contract.product, { short: true })} · ${inWindow ? 'janela de renovação aberta' : `revisar a partir de ${formatDate(contract.review_from, { withYear: false })}`}` })
+        el('span', { class: 'mini-meta', text: `${productLabel(contract.product, { short: true })} · ${stage.stage === 'past_notice' ? 'aviso prévio vencido' : inWindow ? `decidir até ${formatDate(stage.deadline, { withYear: false })}` : `janela abre ${formatDate(stage.opensAt, { withYear: false })}`}` })
       ]),
       el('span', { class: `mini-side${inWindow ? ' warn' : ''}`, text: days !== null ? `${days} dias` : '—' })
     ]);

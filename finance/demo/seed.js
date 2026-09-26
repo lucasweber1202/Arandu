@@ -261,7 +261,7 @@ export function createSeed(now = new Date()) {
   const contracts = [
     { id: C.ecommerce, organization_id: O.acme, decision_id: demoId(8, 2), rfq_id: R.ecommerce, proposal_id: demoId(6, 9), provider_id: P.cadencia,
       provider_name: 'Cadência Adquirência — DEMO', product: 'acquiring', status: 'active', owner_id: U.marina,
-      starts_on: day(-310), ends_on: day(55), renewal_notice_days: 60,
+      starts_on: day(-285), ends_on: day(80), renewal_notice_days: 60,
       cost_summary: 'MDR crédito à vista 2,15% · débito 0,99% · PIX 0,45% · gateway R$ 390/mês',
       main_conditions: 'Liquidação em D+2. Multa rescisória de R$ 15 mil antes de 12 meses.', document_reference: null, created_at: at(-310) },
     { id: C.capital2025, organization_id: O.acme, decision_id: demoId(8, 3), rfq_id: R.capital2025, proposal_id: demoId(6, 10), provider_id: P.horizonte,
@@ -274,7 +274,7 @@ export function createSeed(now = new Date()) {
       cost_summary: 'Contrato anterior de adquirência das lojas físicas.', main_conditions: null, document_reference: null, created_at: at(-1100) }
   ];
   const renewalMilestones = [
-    { contract_id: C.ecommerce, milestone: 'notice', due_on: day(-5), processed_at: at(-5, 7), task_id: demoId(10, 1) }
+    { contract_id: C.ecommerce, milestone: 'd90', due_on: day(-10), processed_at: at(-10, 7), task_id: demoId(10, 1) }
   ];
 
   const task = (n, title, due, related, relatedId, assignee = U.marina, status = 'open') => ({
@@ -282,7 +282,7 @@ export function createSeed(now = new Date()) {
     assignee_id: assignee, created_at: at(-6)
   });
   const tasks = [
-    task(1, 'Revisar renovação — adquirência do e-commerce', day(2), 'contract', C.ecommerce),
+    task(1, 'Decidir renovação — adquirência do e-commerce', day(15), 'contract', C.ecommerce),
     task(2, 'Conferir garantias exigidas pela Atlas', day(1), 'rfq', R.capital, U.joao),
     task(3, 'Atualizar faturamento anual no perfil financeiro', day(-2), null, null),
     task(4, 'Registrar contrato do refinanciamento', day(5), 'rfq', R.refinancing),
@@ -310,7 +310,7 @@ export function createSeed(now = new Date()) {
     notification(2, U.ricardo, O.acme, 'mention', 'rfq', R.capital, 'Marina Costa mencionou você', 'Capital de giro — R$ 3 milhões', [-4, 11]),
     notification(3, U.ricardo, O.acme, 'approval_approved', 'rfq', R.refinancing, 'Aprovação concluída', 'Refinanciamento de CCB — R$ 1,8 milhão', [-3, 11], true),
     notification(10, U.marina, O.acme, 'proposal_received', 'rfq', R.acquiring, 'Nova proposta recebida', 'Cadência Adquirência — DEMO respondeu a Revisão de adquirência', [-2, 10, 5]),
-    notification(11, U.marina, O.acme, 'renewal_due', 'contract', C.ecommerce, 'Contrato entrou na janela de renovação', 'Adquirência do e-commerce · vence em 55 dias', [-5, 7]),
+    notification(11, U.marina, O.acme, 'renewal_due', 'contract', C.ecommerce, 'Contrato entrou na janela de renovação', 'Adquirência do e-commerce · aviso prévio em 20 dias', [-10, 7]),
     notification(12, U.marina, O.acme, 'proposal_revised', 'rfq', R.capital, 'Proposta revisada', 'Atlas Bank — DEMO enviou a versão 2 para a revisão 3', [-4, 10, 2], true),
     notification(13, U.marina, O.acme, 'comment', 'rfq', R.capital, 'Novo comentário de provedor', 'Nexa Crédito — DEMO perguntou sobre garantias', [-8, 10], true),
     notification(14, U.marina, O.acme, 'approval_approved', 'rfq', R.refinancing, 'Aprovação concluída', 'Refinanciamento de CCB — R$ 1,8 milhão · registre a decisão', [-3, 11], true),
@@ -352,7 +352,7 @@ export function createSeed(now = new Date()) {
     event('rfq', R.anticipation, 'rfq_open', U.marina, [-3, 14, 5]),
     event('rfq', R.expansion, 'rfq_created', U.joao, [-1, 17]),
     event('rfq', R.refinancing, 'decision_recorded', U.marina, [-2, 15], { provider: 'Banco Horizonte Sul — DEMO' }),
-    event('contract', C.ecommerce, 'renewal_task_created', null, [-5, 7], { milestone: 'notice' })
+    event('contract', C.ecommerce, 'renewal_task_created', null, [-10, 7], { milestone: 'd90' })
   ];
 
   const profile = [

@@ -11,7 +11,7 @@
 // por trás. Não há `if (demo)` espalhado: as diferenças de modo ficam aqui e
 // no motor.
 
-import { el, icon, ROLE_LABELS } from './src/core.js';
+import { el, icon, ROLE_LABELS, needsRenewalAttention } from './src/core.js';
 import { emptyState, linkButton, errorState, loading, toast } from './src/ui.js';
 import { renderSidebar, renderTopbar, renderMobileNav, renderDemoBanner, installCommandCenter, installNotificationCenter } from './src/shell.js';
 /* global __ARANDU_DEMO__ */
@@ -172,7 +172,7 @@ function counts(ctx) {
       providerHome: (ctx.data.pending_invites || []).length || null };
   }
   const rfqs = ctx.data.rfqs || [];
-  const contractsInWindow = (ctx.data.contracts || []).filter((row) => row.status === 'active' && row.review_from && row.review_from <= new Date().toISOString().slice(0, 10)).length;
+  const contractsInWindow = (ctx.data.contracts || []).filter((row) => row.status === 'active' && needsRenewalAttention(row)).length;
   return { rfqs: rfqs.filter((rfq) => ['open', 'collecting', 'comparing'].includes(rfq.status)).length || null, contracts: contractsInWindow || null,
     tasks: (ctx.data.tasks || []).filter((task) => !task.assignee_id || task.assignee_id === ctx.viewer?.id).length || null };
 }

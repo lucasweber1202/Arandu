@@ -140,7 +140,7 @@ test('jornada completa: comprador → provedor → comprador → aprovador → d
   await expect(page.locator('.contract-card.highlighted')).toContainText('Atlas Bank — DEMO');
   await expect(page.locator('.contract-card.highlighted .lifecycle-bar')).toBeVisible();
   const renewal = page.locator('.contract-card', { hasText: 'Cadência Adquirência — DEMO' }).first();
-  await expect(renewal).toContainText('Janela de renovação aberta');
+  await expect(renewal).toContainText('Janela de renovação aberta. Decida até');
   await renewal.getByRole('button', { name: 'Iniciar nova concorrência' }).click();
   await confirm(page, 'Criar rascunho');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Renovação de adquirência');

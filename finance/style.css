@@ -731,6 +731,7 @@ a.mini-title:hover{color:var(--accent-text)}
 .life-track{position:relative;height:10px;border-radius:5px;background:var(--surface-sunken);margin:22px 0 0}
 .life-elapsed{position:absolute;left:0;top:0;bottom:0;border-radius:5px;background:#c7cdda}
 .life-window{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(135deg,#fde7bd 0 6px,#fbd99a 6px 12px);border-radius:0 5px 5px 0}
+.life-after{position:absolute;top:0;bottom:0;background:#f3d6d2;border-radius:0 5px 5px 0}
 .life-mark{position:absolute;top:-3px;width:2px;height:16px;background:var(--border-strong);transform:translateX(-1px)}
 .life-mark.reached{background:var(--warning)}
 .life-notice{position:absolute;top:-6px;width:3px;height:22px;background:var(--warning);border-radius:2px;transform:translateX(-1px)}
@@ -800,7 +801,8 @@ a.mini-title:hover{color:var(--accent-text)}
 .opportunity-deadline.urgent{color:var(--danger);font-weight:650}
 .opportunity-cta{display:inline-flex;align-items:center;gap:2px;font-size:var(--fs-sm);font-weight:600;color:var(--accent-text)}
 .proposal-status .callout{margin-bottom:0}
-.proposal-form{display:grid;gap:var(--s5)}
+.proposal-form{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--s5)}
+.proposal-form>*,.wizard-form>*{min-width:0}
 .form-section{display:grid;gap:var(--s3);border:1px solid var(--border);border-radius:var(--r-md);padding:var(--s4)}
 .form-section-title{font-weight:650;font-size:var(--fs-md)}
 details.form-section>summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between}
@@ -927,8 +929,9 @@ body.demo-landing{background:var(--surface)}
   .opportunity-side{justify-items:start;grid-auto-flow:column;align-items:center}
   .invite-card{flex-direction:column;align-items:stretch}
   .proposal-bar{bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom))}
-  .proposal-bar-actions{width:100%}
-  .proposal-bar-actions .btn{flex:1}
+  .proposal-bar-actions{width:100%;flex-wrap:wrap}
+  .proposal-bar-actions .btn{flex:1 1 140px;white-space:normal;min-height:40px}
+  .provider-proposal .deflist-1{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:var(--s4)}
   .pref-table td{width:auto}
   .persona-grid{grid-template-columns:minmax(0,1fr)}
   .landing{padding:var(--s4) var(--s4) var(--s8)}
