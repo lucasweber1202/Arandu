@@ -9,6 +9,7 @@ import { createAccountsDomain } from '../lib/api/domains/accounts.mjs';
 import { createPrivacyDomain } from '../lib/api/domains/privacy.mjs';
 import { createDashboardDomain } from '../lib/api/domains/dashboard.mjs';
 import { handleFinance } from '../lib/api/domains/finance.mjs';
+import { handleFinanceJobs } from '../lib/api/domains/finance-jobs.mjs';
 
 import { AdminAuthError, applyAdminResponseHeaders, requireAdmin } from '../lib/admin-auth.mjs';
 import { requireAdminPermission } from '../lib/admin-rbac.mjs';
@@ -390,6 +391,8 @@ export default async function handler(req, res) {
     if (route === 'security-contact') return await handleSecurityText(req, res);
     // Procurement financeiro B2B: domínio próprio, com sessão de usuário e
     // isolamento multi-tenant garantidos pelo RLS do Supabase.
+    // Agenda de renovação (cron do Vercel, segredo obrigatório, service role).
+    if (route === 'jobs/renewals') return await handleFinanceJobs(req, res, 'renewals');
     if (route.startsWith('finance/')) return await handleFinance(req, res, route.slice('finance/'.length), { requireUser, enforceRateLimit });
     if (route === 'forms') return await handleForms(req, res);
     if (route === 'reservations') return await handleReservations(req, res);

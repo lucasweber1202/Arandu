@@ -23,7 +23,7 @@ select r.id,r.revision,r.organization_id,jsonb_build_object('title',r.title,'des
 from public.fin_rfqs r on conflict(rfq_id,revision) do nothing;
 
 create or replace function public.fin_seed_rfq_revision()
-returns trigger language plpgsql security definer set search_path = '' as $
+returns trigger language plpgsql security definer set search_path = '' as $$
 begin
  insert into public.fin_rfq_revisions(rfq_id,revision,organization_id,snapshot,changed_by)
  values(new.id,new.revision,new.organization_id,
@@ -31,7 +31,7 @@ begin
    'response_deadline',new.response_deadline),auth.uid())
  on conflict(rfq_id,revision) do nothing;
  return new;
-end $;
+end $$;
 drop trigger if exists fin_seed_rfq_revision on public.fin_rfqs;
 create trigger fin_seed_rfq_revision after insert on public.fin_rfqs
 for each row execute function public.fin_seed_rfq_revision();
@@ -81,6 +81,11 @@ begin
  or jsonb_typeof(p_demand)<>'object' then raise exception 'invalid demand'; end if;
  update public.fin_rfqs set title=trim(p_title),description=p_description,demand=p_demand,
    response_deadline=p_deadline,updated_at=now() where id=p_rfq returning revision into v_revision;
+ -- Mantém o rastro de auditoria da edição legada: mudança após abertura é nomeada.
+ insert into public.fin_events(organization_id,entity_type,entity_id,event_type,actor_id,metadata)
+ values(v_rfq.organization_id,'rfq',p_rfq,
+  case when v_rfq.status='draft' then 'rfq_demand_updated' else 'rfq_demand_updated_after_open' end,
+  auth.uid(),jsonb_build_object('status',v_rfq.status,'revision',v_revision));
  return v_revision;
 end $$;
 revoke all on function public.fin_seed_rfq_revision(),public.fin_capture_rfq_revision(),public.fin_log_rfq_revision(),
@@ -95,7 +100,7 @@ create or replace function public.fin_stamp_proposal_rfq_revision()
 returns trigger language plpgsql security definer set search_path = '' as $$
 begin
  select r.revision into new.rfq_revision from public.fin_proposals p
- join public.fin_rfqs r on r.id=p.rfq_id where p.id=new.proposal_id;
+ join public.fin_rfqs r on r.id=p.rfq_id where p.id=new.proposal_id for share of r;
  if new.rfq_revision is null then raise exception 'rfq not found'; end if;
  return new;
 end $$;

@@ -252,7 +252,7 @@ begin
   v_rfq := public.fin_create_rfq((select value from hard_ids where key = 'buyer'), 'acquiring',
     'RFQ adquirência hardening DEMO', null, '{"monthly_volume":100000}'::jsonb, null);
   perform public.fin_transition('rfq', v_rfq, 'open');
-  perform public.fin_update_rfq_demand(v_rfq, null, null, '{"monthly_volume":120000}'::jsonb, null);
+  perform public.fin_revise_rfq(v_rfq, 1, 'RFQ adquirência hardening DEMO', null, '{"monthly_volume":120000}'::jsonb, null);
   select count(*) into v_events from public.fin_events
     where entity_id = v_rfq and event_type = 'rfq_demand_updated_after_open';
   if v_events <> 1 then raise exception 'mudança de demanda após abertura não deixou rastro (%)', v_events; end if;

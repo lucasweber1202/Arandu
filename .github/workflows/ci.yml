@@ -201,10 +201,32 @@ jobs:
           VERCEL_ENV: preview
         run: npm run vercel-build
 
+      - name: Preview publishes the labelled demo sandbox
+        run: node scripts/test-demo-mode.mjs --dist --expect-demo
+
       - name: Simulate Vercel production technical deploy
         env:
           VERCEL_ENV: production
         run: npm run vercel-build
+
+      - name: Production bundle contains no demo page or engine
+        run: node scripts/test-demo-mode.mjs --dist
+
+      - name: Demo mode cannot be forced into financial production
+        env:
+          VERCEL_ENV: production
+          ARANDU_DEMO_MODE: 'true'
+        run: |
+          set +e
+          npm run build > /tmp/arandu-demo-prod.log 2>&1
+          status=$?
+          set -e
+          cat /tmp/arandu-demo-prod.log | tail -5
+          test "$status" -ne 0
+          grep -q "não pode ser ativado na produção financeira" /tmp/arandu-demo-prod.log
+
+      - name: Standalone demo build without real credentials
+        run: npm run build:demo
 
       - name: Confirm final go-live remains fail-closed
         run: |

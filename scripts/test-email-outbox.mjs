@@ -23,7 +23,8 @@ function restore(name, value) {
 
 try {
   const templates = listTransactionalTemplates();
-  assert.equal(templates.length, 23);
+  assert.equal(templates.length, 24);
+  assert.equal(templates.includes('finance_notification'), true);
   assert.equal(templates.includes('finance_provider_invite'), true);
   const financial = renderTransactionalEmail('finance_provider_invite', {
     buyer: 'Empresa Exemplo', product: 'crédito empresarial', deadline: '2026-10-01',
@@ -47,6 +48,19 @@ try {
   assert.match(readyEmail.text, /#token=/);
   assert.ok(!readyEmail.text.includes('?token='));
   assert.ok(!JSON.stringify({ invite_ref: inviteRef }).includes('a'.repeat(64)));
+  // Aviso por preferência: link só para tela do portal, sem conteúdo do processo.
+  const notice = await prepareFinancialEmail({ template: 'finance_notification',
+    payload: { kind: 'approval', event: 'approval_requested', path: '/finance/rfq.html?id=00000000-0000-4000-8000-00000000cb03', title: 'Capital de giro R$ 3 mi' } },
+  { baseUrl: 'https://arandu.example' });
+  assert.deepEqual(Object.keys(notice).sort(), ['kind', 'link']);
+  const noticeEmail = renderTransactionalEmail('finance_notification', notice);
+  assert.match(noticeEmail.subject, /aprovação/);
+  assert.match(noticeEmail.text, /https:\/\/arandu\.example\/finance\/rfq\.html\?id=/);
+  assert.doesNotMatch(noticeEmail.text, /Capital de giro|R\$/);
+  for (const path of ['https://evil.example/x', '//evil.example', '/finance/../admin.html', 'javascript:alert(1)']) {
+    await assert.rejects(prepareFinancialEmail({ template: 'finance_notification', payload: { kind: 'mention', path } }, { baseUrl: 'https://arandu.example' }), /invalid_notification_path/);
+  }
+  await assert.rejects(prepareFinancialEmail({ template: 'finance_notification', payload: { kind: 'mention', path: '/finance/notifications.html' } }, { baseUrl: 'http://insecure.example' }), /base_url/);
   for (const template of ['order_created', 'order_confirmed', 'payment_confirmed', 'order_shipped', 'order_delivered', 'order_completed', 'order_cancelled', 'order_refunded']) {
     assert.equal(templates.includes(template), true);
   }

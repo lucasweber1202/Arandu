@@ -12,6 +12,10 @@
     {
       "path": "/api/email-dispatch",
       "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/jobs/renewals",
+      "schedule": "15 9 * * *"
     }
   ],
   "redirects": [
@@ -24,6 +28,16 @@
       "source": "/acervo.html",
       "destination": "/",
       "permanent": true
+    },
+    {
+      "source": "/demo",
+      "destination": "/demo/index.html",
+      "permanent": false
+    },
+    {
+      "source": "/demo/",
+      "destination": "/demo/index.html",
+      "permanent": false
     }
   ],
   "rewrites": [

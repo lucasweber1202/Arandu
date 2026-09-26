@@ -34,7 +34,15 @@ const server = http.createServer((req, res) => {
   }
   const file = resolveFile(req.url || '/');
   if (!file) {
-    const api = new URL(req.url || '/', 'http://localhost').pathname.startsWith('/api/');
+    const pathname = new URL(req.url || '/', 'http://localhost').pathname;
+    const api = pathname.startsWith('/api/');
+    // Sem backend, o servidor de teste se comporta como a API real sem sessão:
+    // rotas financeiras exigem autenticação e respondem 401.
+    if (pathname.startsWith('/api/finance/')) {
+      res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ ok: false, error: 'Sessão ausente.', mode: 'test-static' }));
+      return;
+    }
     res.writeHead(404, { 'Content-Type': api ? 'application/json; charset=utf-8' : 'text/plain; charset=utf-8' });
     res.end(api ? JSON.stringify({ ok:false, mode:'test-static', error:'API não simulada.' }) : 'Não encontrado');
     return;

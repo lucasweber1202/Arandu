@@ -55,8 +55,10 @@ const runtimeCopy = read('scripts/copy-runtime-assets.mjs');
 if (/copyDir\(|artworks\.json|artists\.json|certificates\.json/.test(runtimeCopy)) {
   issues.push('scripts/copy-runtime-assets.mjs: cópia ampla pode publicar fixtures de arte.');
 }
-if (!runtimeCopy.includes("if (assertPresentationModeIsSafe())") || !runtimeCopy.includes('data/finance/demo.json')) {
-  issues.push('scripts/copy-runtime-assets.mjs: fixture financeira não está restrita a preview explícito.');
+// O portal real não publica fixture financeira; o dado fictício vive só no
+// motor da demonstração em /demo, decidido no build.
+if (!runtimeCopy.includes('assertPresentationModeIsSafe()') || runtimeCopy.includes('data/finance/demo.json')) {
+  issues.push('scripts/copy-runtime-assets.mjs: fixture financeira publicada fora da demonstração isolada.');
 }
 if (read('js/catalog-quality.js').includes('data/artworks.json') || read('js/catalog-quality.js').includes('data/artists.json')) {
   issues.push('js/catalog-quality.js: diagnóstico interno ainda usa fixture demonstrativa.');
@@ -84,7 +86,8 @@ const viteConfig = read('vite.config.js');
 if (/<script>window\.ARANDU_PILOT_ENABLED=/.test(viteConfig)) {
   issues.push('vite.config.js: bootstrap do piloto voltou a usar script inline incompatível com CSP.');
 }
-requireText('vite.config.js', 'name="arandu-presentation-mode"', 'modo demonstrativo financeiro não usa metadado compatível com CSP.');
+requireText('vite.config.js', '__ARANDU_DEMO__: JSON.stringify(demoMode)', 'modo demonstrativo financeiro não é decidido por constante de build compatível com CSP.');
+requireText('vite.config.js', 'assertDemoModeIsSafe()', 'build não falha ao pedir a demonstração na produção financeira.');
 
 const uploadApi = read('api/upload.js');
 [
