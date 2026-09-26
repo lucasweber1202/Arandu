@@ -63,8 +63,12 @@ e-mail.
 
 - Acesso: usuário presente em `public.fin_platform_operators` **e** sessão com MFA
   (`aal2`). Papéis das empresas (admin, finance_manager…) não dão acesso.
-- Conceder acesso é ação do responsável, direto no banco:
-  `insert into public.fin_platform_operators (user_id, granted_by) values ('<uuid>', '<quem autorizou>');`
+- Conceder acesso é ação do responsável, em três passos (detalhe em
+  `FINANCIAL_PILOT_GO_LIVE.md` → Operador):
+  1. `insert into public.fin_platform_operators (user_id, granted_by) values ('<uuid>', '<quem autorizou>');`
+  2. `app_metadata.arandu_role = 'operator'` na conta (é o que permite concluir o
+     MFA pelo `/admin-login.html`; esse papel também abre o admin legado de arte);
+  3. o próprio operador cadastra o TOTP com `npm run finance:operator:mfa`.
 - Mostra: saúde da configuração (booleanos), últimas execuções do job de
   renovação com request ID e código de erro, outbox de avisos financeiros por
   estado e falhas recentes (id, tentativas, código), envios de documentos
@@ -82,6 +86,19 @@ e-mail.
 registrada em `fin_job_runs` com o request ID (`x-vercel-id`). A idempotência é
 da função SQL: rodar duas vezes no mesmo dia não duplica tarefa, notificação nem
 evento (provado em `tests/database/financial-delivery.sql`).
+
+Cada marco novo (90, 60 e 30 dias, aviso prévio, vencido) gera **um** aviso
+`renewal_due` para o responsável pelo contrato, chaveado pelo marco; a tarefa de
+revisão continua única (a aberta no registro do contrato é reaproveitada). Até
+`docs/supabase-financial-pilot-operations.sql`, contratos registrados pelo
+produto nunca geravam esse aviso.
+
+## Envio de documentos
+
+A URL de envio é assinada pelo Storage com o prazo configurado **no Storage**
+(60 s no self-hosted, 2 h no Supabase hospedado); a API informa o prazo real em
+`expires_in`. A reserva do envio vale 10 minutos (`complete_within`): concluir
+depois disso é recusado e a versão fica `failed`, sem nunca ficar disponível.
 
 ## E-mail de avisos
 

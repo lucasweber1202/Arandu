@@ -1,5 +1,10 @@
 # GO / NO-GO do primeiro piloto
 
+> Estado item a item (DONE / BLOCKED / OWNER_ACTION_REQUIRED) em
+> [`FINANCIAL_PILOT_GO_LIVE.md`](FINANCIAL_PILOT_GO_LIVE.md). Rodada de 26/09/2026:
+> CI do GitHub sem minutos até 01/10 — evidência local em
+> [`FINANCIAL_RELEASE_EVIDENCE_2026-09-26.md`](FINANCIAL_RELEASE_EVIDENCE_2026-09-26.md).
+
 Critérios objetivos. Cada linha é verificável por comando ou por evidência — e
 nenhuma delas é marcada pelo software sozinho.
 
