@@ -334,9 +334,9 @@ await rejects('POST', 'comparison', { body: { rfq_id: RFQ } }, 400);
 
 reset((entry) => {
   if (entry.url.includes('fin_organizations')) return orgRow(PROVIDER_ORG, 'PROVIDER');
-  if (entry.url.includes('fin_proposal_versions')) return [{ proposal_id: PROPOSAL, version: 1, terms: { institution: 'Meu Banco' }, submitted_at: '2026-01-01T00:00:00Z' }];
+  if (entry.url.includes('fin_proposal_versions')) return [{ proposal_id: PROPOSAL, version: 1, terms: { institution: 'Meu Banco' }, submitted_at: '2026-01-01T00:00:00Z', rfq_revision: 2 }];
   if (entry.url.includes('fin_proposals')) return [{ id: PROPOSAL, rfq_id: RFQ, product: 'credit', status: 'submitted', current_version: 1 }];
-  if (entry.url.includes('fin_rfqs')) return [{ id: RFQ, title: 'RFQ', product: 'credit', status: 'collecting', demand: { amount: 500000 }, description: 'necessidade' }];
+  if (entry.url.includes('fin_rfqs')) return [{ id: RFQ, title: 'RFQ', product: 'credit', status: 'collecting', demand: { amount: 500000 }, description: 'necessidade', revision: 3 }];
   return [];
 });
 {
@@ -345,6 +345,12 @@ reset((entry) => {
   // O provedor recebe a necessidade para conseguir responder...
   assert.equal(row.demand.amount, 500000);
   assert.equal(row.title, 'RFQ');
+  // A linhagem vem da versão enviada: a proposta respondeu à revisão 2 e a
+  // RFQ já está na 3. Antes, o campo não era lido e aparecia sempre como 1.
+  assert.equal(row.submitted_rfq_revision, 2);
+  assert.equal(row.rfq_revision, 3);
+  assert.equal(row.history[0].rfq_revision, 2);
+  assert.match(sent.find((entry) => entry.url.includes('fin_proposal_versions')).url, /rfq_revision/);
   // ...e nada sobre concorrentes, notas internas ou comparação.
   const serialized = JSON.stringify(res.payload);
   assert.ok(!/notes|comparison|weights|decision/i.test(serialized), 'visão do provedor expôs campo indevido');
