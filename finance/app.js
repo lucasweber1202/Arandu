@@ -38,9 +38,12 @@ const VIEWS = {
   providerHome: lazy(providerViews, 'providerHome'), providerRfqs: lazy(providerViews, 'providerRfqs'),
   providerProposal: lazy(providerViews, 'providerProposal'), providerInvite: lazy(providerViews, 'providerInvite'),
   // Página estática: o conteúdo já está no HTML; só o shell é montado.
+  ops: lazy(() => import('./src/views/ops.js'), 'opsConsole'),
   boundaries: () => null
 };
 const PUBLIC_WHEN_SIGNED_OUT = new Set(['providerInvite', 'boundaries']);
+// Operadores da plataforma não precisam pertencer a uma empresa.
+const ORGANIZATION_OPTIONAL = new Set(['ops']);
 
 // ------------------------------------------------------------- transporte
 const httpTransport = {
@@ -58,6 +61,12 @@ const httpTransport = {
     error.status = response.status;
     error.code = payload.code;
     throw error;
+  },
+  /** Envia o arquivo direto ao Storage pela URL assinada de curta duração. */
+  async putFile(url, file) {
+    if (!/^https:\/\/[a-z0-9-]+\.supabase\.co\/storage\/v1\/object\/upload\/sign\//.test(String(url))) throw new Error('Endereço de envio inválido.');
+    const response = await fetch(url, { method: 'PUT', headers: { 'Content-Type': file.type, 'x-upsert': 'false' }, body: file });
+    if (!response.ok) { const error = new Error('O envio do arquivo falhou. Verifique a conexão e tente de novo.'); error.status = response.status; throw error; }
   }
 };
 
@@ -87,10 +96,12 @@ function createContext(transport) {
       }
       return transport.request(path, options);
     },
+    putFile(url, file) { return transport.putFile(url, file); },
     can(permission) {
       const role = ctx.viewer?.role;
       if (!role) return ctx.audience === 'company';
       if (permission === 'admin') return role === 'admin';
+      if (permission === 'upload_document') return ['admin', 'finance_manager', 'analyst', 'provider_user'].includes(role);
       return ['admin', 'finance_manager'].includes(role);
     },
     approvalsPromise: null,
@@ -253,13 +264,31 @@ async function render({ refresh = false } = {}) {
     if (failure && failure.status !== 401 && failure.status !== 403) node = errorState({ title: 'Não foi possível carregar o portal', error: failure, onRetry: () => render() });
     else if (failure && PUBLIC_WHEN_SIGNED_OUT.has(view)) { ctx.signedOut = true; node = await VIEWS[view](ctx); }
     else if (failure) node = signedOutView(ctx, failure);
-    else if (session?.empty) node = PUBLIC_WHEN_SIGNED_OUT.has(view) ? await VIEWS[view](ctx) : createOrganizationView(ctx);
+    else if (session?.empty) node = PUBLIC_WHEN_SIGNED_OUT.has(view) || ORGANIZATION_OPTIONAL.has(view) ? await VIEWS[view](ctx) : createOrganizationView(ctx);
     else node = await VIEWS[view](ctx);
   } catch (error) {
     node = errorState({ title: 'Esta tela não pôde ser exibida', error, onRetry: () => render({ refresh: true }) });
   }
   if (node) root.replaceChildren(node);
   root.setAttribute('aria-busy', 'false');
+  focusDeepLink();
+}
+
+// Link direto para um item (busca, notificação, e-mail): leva o foco até ele,
+// mesmo quando a lista chega depois da tela.
+const DEEP_LINK = /^#(provider|task|contract|proposal|comment|document)-[0-9a-f-]{36}$/;
+function focusDeepLink() {
+  if (!DEEP_LINK.test(location.hash)) return;
+  let tries = 0;
+  const attempt = () => {
+    const target = document.getElementById(location.hash.slice(1));
+    if (!target) { if (++tries < 20) setTimeout(attempt, 100); return; }
+    target.classList.add('highlighted');
+    if (!target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1');
+    target.scrollIntoView({ block: 'center' });
+    target.focus({ preventScroll: true });
+  };
+  attempt();
 }
 
 async function boot() {

@@ -238,3 +238,112 @@ test('busca global e central de comando funcionam por teclado na demo', async ({
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/\/demo\/finance\/(rfq|contracts)\.html/);
 });
+
+const OVERDRAFT = 'de000000-0000-4000-8000-000400000008';
+
+test('provedor aceita convite do conjunto inicial, salva parcial, recarrega e vê processo encerrado só para leitura', async ({ page }) => {
+  const offending = watchNetwork(page);
+  await page.goto('/demo/index.html');
+  await page.getByRole('link', { name: 'Explorar demonstração' }).click();
+  await asPersona(page, 'Provedor');
+  // O rascunho que vence antes (3 dias) é a próxima ação, não o convite que vence em 6.
+  await expect(page.locator('#provider-status')).toContainText('Revisão de adquirência');
+  const invite = page.locator('#convites li', { hasText: 'Antecipação de recebíveis' });
+  await invite.getByRole('button', { name: 'Aceitar' }).click();
+  await expect(page).toHaveURL(/\/demo\/provider\/proposal\.html\?proposal=/);
+  const form = page.locator('#proposal-form');
+  await form.getByLabel('Produto ofertado').fill('Antecipação Atlas QA');
+  await form.getByLabel('Valor ofertado (R$)').fill('1200000');
+  await expect(page.locator('.save-indicator')).toContainText(/Rascunho salvo/);
+  await page.reload();
+  await expect(form.getByLabel('Valor ofertado (R$)')).toHaveValue('1200000');
+  await expect(page.locator('.completion')).toContainText('falta Taxa, Prazo');
+  // Processo em avaliação: nada editável, nada de botão de envio.
+  await page.goto('/demo/provider/rfqs.html');
+  await page.locator('#view').getByRole('link', { name: /Capital de giro — R\$ 3 milhões/ }).click();
+  await expect(page.locator('#view')).toContainText('Condições enviadas (versão 2)');
+  await expect(page.locator('#proposal-form')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /Revisar e enviar/ })).toHaveCount(0);
+  expect(offending).toEqual([]);
+});
+
+test('aprovador pede alterações em um caso e aprova outro; o comprador vê cada retorno uma vez', async ({ page }) => {
+  await page.goto('/demo/index.html');
+  await page.getByRole('link', { name: 'Explorar demonstração' }).click();
+  await asPersona(page, 'Aprovador');
+  await page.goto('/demo/finance/approvals.html');
+  const overdraft = page.locator('.inbox-row', { hasText: 'Conta garantida' });
+  await overdraft.getByRole('button', { name: 'Ver contexto' }).click();
+  const context = page.getByRole('dialog', { name: /Conta garantida/ });
+  // O aprovador decide sem sair do painel: demanda, motivo, comparação e histórico.
+  await expect(context).toContainText('Por que esta proposta');
+  await expect(context).toContainText('Mesma taxa nas duas propostas');
+  await expect(context).toContainText('Nexa Crédito — DEMO');
+  await expect(context).toContainText('Mudanças na solicitação');
+  await context.getByRole('button', { name: 'Pedir alterações' }).click();
+  const reason = page.getByRole('dialog').last();
+  await reason.getByRole('button', { name: 'Pedir alterações' }).click();
+  await expect(reason.getByLabel('Motivo')).toHaveAttribute('aria-invalid', 'true');
+  await reason.getByLabel('Motivo').fill('Peça à Nexa o CET e confirme o limite de R$ 800 mil.');
+  await reason.getByRole('button', { name: 'Pedir alterações' }).click();
+  await expect(page.locator('.inbox-row', { hasText: 'Conta garantida' })).toHaveCount(0);
+  const capital = page.locator('.inbox-row', { hasText: 'Capital de giro' });
+  await capital.getByRole('button', { name: 'Aprovar' }).click();
+  await confirm(page, 'Aprovar');
+  await expect(page.locator('#view')).toContainText('Nenhuma decisão esperando por você');
+
+  await asPersona(page, 'Comprador');
+  await page.goto('/demo/finance/dashboard.html');
+  const attention = page.locator('#precisa-de-voce');
+  await expect(attention).toContainText('Alterações pedidas: Conta garantida');
+  await expect(attention).toContainText('Peça à Nexa o CET');
+  await expect(attention).toContainText('Registrar decisão: Capital de giro');
+  await expect(attention).not.toContainText('Avaliar propostas: Conta garantida');
+  await page.goto(`/demo/finance/rfq.html?id=${OVERDRAFT}`);
+  await expect(page.locator('.next-step')).toContainText('Alterações pedidas na aprovação');
+});
+
+test('confidencialidade entre provedores: pergunta de concorrente e documentos internos nunca chegam ao Atlas', async ({ page }) => {
+  const offending = watchNetwork(page);
+  await page.goto('/demo/index.html');
+  await page.getByRole('link', { name: 'Explorar demonstração' }).click();
+  // Comprador anexa um arquivo compartilhado; só metadados existem na demonstração.
+  await page.goto(`/demo/finance/rfq.html?id=${CAPITAL}`);
+  const docs = page.locator('#documentos');
+  await expect(docs).toContainText('Balanço patrimonial 2025');
+  await docs.getByText('Anexar documento', { exact: true }).first().click();
+  await docs.locator('.document-form input[type=file]').setInputFiles({ name: 'Cronograma de garantias.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4') });
+  await docs.getByRole('radio', { name: /Visível aos provedores/ }).check();
+  await docs.locator('.document-form').getByRole('button', { name: 'Anexar documento' }).click();
+  await expect(docs.locator('.document-status')).toContainText('Documento anexado');
+  await docs.getByRole('button', { name: /Baixar Cronograma de garantias/ }).click();
+  await expect(page.locator('.toast-region')).toContainText('nenhum arquivo é armazenado');
+
+  await asPersona(page, 'Provedor');
+  await page.goto('/demo/provider/rfqs.html');
+  await page.locator('#view').getByRole('link', { name: /Capital de giro — R\$ 3 milhões/ }).click();
+  const view = page.locator('#view');
+  await expect(view).toContainText('Minuta de garantias aceitas');
+  await expect(view).toContainText('Cronograma de garantias');
+  await expect(view).not.toContainText('Balanço patrimonial 2025');
+  await expect(view).not.toContainText('Vocês aceitam garantia 100%');
+  await expect(view).toContainText('Resposta da empresa a uma pergunta enviada por outra instituição');
+  await expect(view).toContainText('Da empresa a todos os provedores convidados');
+  const stored = await page.evaluate(() => localStorage.getItem('arandu_demo_state_v1'));
+  expect(stored).not.toContain('%PDF');
+  expect(offending).toEqual([]);
+});
+
+test('console operacional de exemplo mostra saúde, não dados de clientes', async ({ page }) => {
+  await page.goto('/demo/index.html');
+  await page.getByRole('link', { name: 'Explorar demonstração' }).click();
+  await page.goto('/demo/finance/ops.html');
+  const view = page.locator('#view');
+  await expect(view).toContainText('Execuções de jobs');
+  await expect(view).toContainText('upstream_unavailable');
+  await expect(view).toContainText('Outbox de e-mail');
+  await expect(view).not.toContainText(/R\$|Capital de giro|Atlas Bank|%/);
+  await view.getByLabel('Rastrear').fill('demo-req-0930');
+  await view.getByRole('button', { name: 'Rastrear' }).click();
+  await expect(view).toContainText('Nenhum evento para este identificador');
+});

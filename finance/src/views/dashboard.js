@@ -1,8 +1,8 @@
 // Painel: começa pelo que precisa da pessoa agora, não por números.
 
-import { el, icon, daysUntil, relativeDays, formatDate, productLabel, demandHeadline, RFQ_STATUS, timeAgo, money, renewalStage } from '../core.js';
+import { el, icon, daysUntil, relativeDays, formatDate, formatDateTime, productLabel, demandHeadline, RFQ_STATUS, timeAgo, money, renewalStage } from '../core.js';
 import { card, pill, linkButton, emptyState, person, progress, button, toast } from '../ui.js';
-import { memberName, currentStep, approvalSummaryLine } from './shared.js';
+import { memberName, currentStep, approvalSummaryLine, eventTitle } from './shared.js';
 
 const PIPELINE = [['draft', 'Rascunho'], ['open', 'Aberta'], ['collecting', 'Em coleta'], ['comparing', 'Em avaliação'], ['decided', 'Decidida'], ['contracted', 'Contratada']];
 
@@ -55,14 +55,15 @@ export function actionItems(ctx, approvals) {
         const invited = (rfq.invites || []).length || rfq.invites_count || 0;
         const answered = (rfq.proposals || []).length;
         if (days !== null && days >= 0 && days <= 7) {
-          items.push({ rank: days <= 2 ? 1 : 2, tone: days <= 2 ? 'danger' : 'warning', icon: 'clock', kind: 'Prazo', title: `Encerra ${relativeDays(rfq.response_deadline)}: ${rfq.title}`,
+          items.push({ rank: days <= 2 ? 1 : 2, due: days, tone: days <= 2 ? 'danger' : 'warning', icon: 'clock', kind: 'Prazo', title: `Encerra ${relativeDays(rfq.response_deadline)}: ${rfq.title}`,
             detail: `${answered} de ${invited || '—'} provedores responderam`, cta: 'Acompanhar', href: ctx.href(`/finance/rfq.html?id=${rfq.id}`) });
         } else if (days !== null && days < 0) {
-          items.push({ rank: 1, tone: 'warning', icon: 'clock', kind: 'Prazo', title: `Prazo encerrado: ${rfq.title}`, detail: `${answered} proposta(s). Encerre a coleta para avaliar.`, cta: 'Avaliar', href: ctx.href(`/finance/rfq.html?id=${rfq.id}#comparacao`) });
+          items.push({ rank: 1, due: days, tone: 'warning', icon: 'clock', kind: 'Prazo', title: `Prazo encerrado: ${rfq.title}`, detail: `${answered} proposta(s). Encerre a coleta para avaliar.`, cta: 'Avaliar', href: ctx.href(`/finance/rfq.html?id=${rfq.id}#comparacao`) });
         }
         if (!invited) items.push({ rank: 2, tone: 'accent', icon: 'send', kind: 'Convites', title: `Convide provedores: ${rfq.title}`, detail: 'A solicitação está aberta, mas ninguém foi convidado.', cta: 'Convidar', href: ctx.href(`/finance/rfq.html?id=${rfq.id}#visao-geral`) });
       }
-      if (rfq.status === 'comparing' && !rfq.pending_approval && !approvals.some((row) => row.rfq_id === rfq.id && row.status === 'approved')) {
+      // Com pedido de aprovação em qualquer estado, a ação já aparece pela aprovação.
+      if (rfq.status === 'comparing' && !rfq.pending_approval && !['pending', 'approved', 'changes_requested', 'rejected'].includes(latestByRfq.get(rfq.id)?.status)) {
         items.push({ rank: 2, tone: 'accent', icon: 'scale', kind: 'Avaliação', title: `Avaliar propostas: ${rfq.title}`, detail: `${(rfq.proposals || []).length} proposta(s) prontas para comparar`, cta: 'Comparar', href: ctx.href(`/finance/rfq.html?id=${rfq.id}#comparacao`) });
       }
       if (rfq.status === 'decided') items.push({ rank: 2, tone: 'accent', icon: 'briefcase', kind: 'Contrato', title: `Registrar contrato: ${rfq.title}`, detail: 'Decisão registrada. Informe vigência e aviso prévio para acompanhar a renovação.', cta: 'Registrar', href: ctx.href(`/finance/rfq.html?id=${rfq.id}#decisao`) });
@@ -71,10 +72,10 @@ export function actionItems(ctx, approvals) {
     for (const contract of data.contracts || []) {
       const stage = renewalStage(contract);
       if (stage.stage === 'window' && contract.status === 'active') {
-        items.push({ rank: stage.daysToDeadline <= 7 ? 1 : 2, tone: 'warning', icon: 'repeat', kind: 'Renovação', title: `Decidir renovação: ${contract.provider_name}`,
+        items.push({ rank: stage.daysToDeadline <= 7 ? 1 : 2, due: stage.daysToDeadline, tone: 'warning', icon: 'repeat', kind: 'Renovação', title: `Decidir renovação: ${contract.provider_name}`,
           detail: `${productLabel(contract.product, { short: true })} · aviso prévio ${relativeDays(stage.deadline)} (${formatDate(stage.deadline)}) · vence ${formatDate(contract.ends_on)}`, cta: 'Decidir', href: ctx.href(`/finance/contracts.html#contract-${contract.id}`) });
       } else if (stage.stage === 'past_notice') {
-        items.push({ rank: 1, tone: 'danger', icon: 'alert', kind: 'Renovação', title: `Aviso prévio vencido: ${contract.provider_name}`,
+        items.push({ rank: 1, due: stage.daysToDeadline, tone: 'danger', icon: 'alert', kind: 'Renovação', title: `Aviso prévio vencido: ${contract.provider_name}`,
           detail: `Vence ${relativeDays(contract.ends_on)} (${formatDate(contract.ends_on)}). Negocie ou prepare a substituição.`, cta: 'Ver', href: ctx.href(`/finance/contracts.html#contract-${contract.id}`) });
       } else if (stage.stage === 'window' && contract.status === 'renewing') {
         items.push({ rank: 3, tone: 'accent', icon: 'repeat', kind: 'Renovação', title: `Renovação em andamento: ${contract.provider_name}`,
@@ -85,10 +86,12 @@ export function actionItems(ctx, approvals) {
   for (const task of data.tasks || []) {
     const days = daysUntil(task.due_on);
     if (task.assignee_id && task.assignee_id !== viewer) continue;
-    if (days !== null && days <= 2) items.push({ rank: days < 0 ? 1 : 3, tone: days < 0 ? 'danger' : 'neutral', icon: 'tasks', kind: 'Tarefa', title: task.title,
+    if (days !== null && days <= 2) items.push({ rank: days < 0 ? 1 : 3, due: days, tone: days < 0 ? 'danger' : 'neutral', icon: 'tasks', kind: 'Tarefa', title: task.title,
       detail: days < 0 ? `Vencida ${relativeDays(task.due_on)}` : `Prazo ${relativeDays(task.due_on)}`, cta: 'Ver', href: ctx.href(`/finance/tasks.html#task-${task.id}`) });
   }
-  return items.sort((a, b) => a.rank - b.rank);
+  // Mesmo nível de prioridade: o que vence antes vem primeiro.
+  const due = (item) => (Number.isFinite(item.due) ? item.due : 9999);
+  return items.sort((a, b) => a.rank - b.rank || due(a) - due(b));
 }
 
 function actionRow(item) {
@@ -114,6 +117,17 @@ export async function dashboard(ctx) {
   });
   const approvals = await ctx.loadApprovals();
   const items = actionItems(ctx, approvals);
+  // Rascunho do assistente ainda não criado: sem isso, quem sai no meio só
+  // reencontra o que digitou abrindo "Nova solicitação" por acaso.
+  if (ctx.can('create_rfq')) {
+    const editor = await ctx.api(`rfq-editor?organization_id=${encodeURIComponent(ctx.organization.id)}`).catch(() => null);
+    const payload = editor?.draft?.payload;
+    if (payload && (payload.title || payload.product)) {
+      items.push({ rank: 2, tone: 'neutral', icon: 'edit', kind: 'Rascunho em edição', title: `Continuar: ${payload.title || 'nova solicitação sem título'}`,
+        detail: `Salvo ${formatDateTime(editor.draft.updated_at)}. Ainda não foi criado nem enviado a provedores.`, cta: 'Continuar', href: ctx.href('/finance/new-rfq.html') });
+      items.sort((a, b) => a.rank - b.rank || (Number.isFinite(a.due) ? a.due : 9999) - (Number.isFinite(b.due) ? b.due : 9999));
+    }
+  }
 
   const root = el('div', { class: 'dashboard' });
   const attention = el('section', { class: 'attention card', id: 'precisa-de-voce', 'aria-labelledby': 'attention-title' });
@@ -207,9 +221,7 @@ export async function dashboard(ctx) {
     feed.replaceChildren();
     const titles = new Map(rfqs.map((rfq) => [rfq.id, rfq.title]));
     for (const row of (rows || []).slice(0, 6)) {
-      const label = { proposal_submitted: 'Nova proposta', proposal_revised: 'Proposta revisada', approval_requested: 'Aprovação solicitada', approval_approved: 'Aprovação concluída',
-        approval_step_approved: 'Etapa aprovada', decision_recorded: 'Decisão registrada', contract_registered: 'Contrato registrado', rfq_revised: 'Nova revisão', rfq_created: 'Solicitação criada',
-        rfq_open: 'Aberta para propostas', provider_invited: 'Provedor convidado', invite_accepted: 'Convite aceito', comment_added: 'Comentário', renewal_task_created: 'Renovação em atenção' }[row.event_type] || row.event_type.replaceAll('_', ' ');
+      const label = eventTitle(row.event_type);
       feed.append(el('li', { class: 'activity-item' }, [el('span', { class: 'activity-dot', 'aria-hidden': 'true' }), el('span', { class: 'activity-text' }, [
         el('strong', { text: label }), ` · ${row.metadata?.provider || titles.get(row.entity_id) || ''}`.replace(/ · $/, '')]), el('time', { class: 'activity-time', datetime: row.happened_at, text: timeAgo(row.happened_at) })]));
     }

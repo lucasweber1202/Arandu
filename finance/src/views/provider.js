@@ -12,6 +12,8 @@ const OPEN = ['open', 'collecting'];
 function assignmentState(row) {
   const open = OPEN.includes(row.rfq_status);
   if (!open && !row.version) return { key: 'closed', label: 'Encerrada sem resposta', tone: 'neutral', icon: 'clock' };
+  // Coleta encerrada não é processo encerrado: a empresa ainda está avaliando.
+  if (row.rfq_status === 'comparing') return { key: 'sent', label: 'Em avaliação pela empresa', tone: 'accent', icon: 'scale' };
   if (!open) return { key: 'closed', label: row.selected ? 'Proposta escolhida' : 'Processo encerrado', tone: row.selected ? 'success' : 'neutral', icon: row.selected ? 'checkCircle' : 'clock' };
   if (row.version && row.submitted_rfq_revision && row.rfq_revision > row.submitted_rfq_revision) return { key: 'outdated', label: 'Solicitação mudou', tone: 'warning', icon: 'alert' };
   if (!row.version) return { key: 'todo', label: row.has_draft ? 'Rascunho salvo' : 'Responder', tone: 'accent', icon: 'edit' };
@@ -22,7 +24,7 @@ function proposalHref(ctx, row) { return ctx.href(`/provider/proposal.html?propo
 function opportunityRow(ctx, row) {
   const state = assignmentState(row);
   const days = daysUntil(row.response_deadline);
-  const cta = { todo: row.has_draft ? 'Continuar' : 'Responder', outdated: 'Revisar proposta', sent: 'Ver ou revisar', closed: 'Ver' }[state.key];
+  const cta = { todo: row.has_draft ? 'Continuar' : 'Responder', outdated: 'Revisar proposta', sent: row.rfq_status === 'comparing' ? 'Ver' : 'Ver ou revisar', closed: 'Ver' }[state.key];
   return el('article', { class: `opportunity state-${state.key}`, id: `rfq-${row.rfq_id}` }, [
     el('div', { class: 'opportunity-main' }, [
       el('p', { class: 'opportunity-kicker', text: [row.buyer_name, productLabel(row.product, { short: true })].filter(Boolean).join(' · ') }),
@@ -61,8 +63,12 @@ export async function providerHome(ctx) {
   const todo = rows.filter((row) => ['todo', 'outdated'].includes(assignmentState(row).key))
     .sort((a, b) => String(a.response_deadline || '9999').localeCompare(String(b.response_deadline || '9999')));
   let hero;
-  if (invites.length) {
-    const invite = invites[0];
+  // O que vence primeiro manda: um rascunho que encerra em 3 dias vem antes de
+  // um convite que encerra em 6.
+  const deadline = (value) => String(value || '9999');
+  const inviteFirst = invites.length && (!todo.length || deadline([...invites].sort((a, b) => deadline(a.response_deadline).localeCompare(deadline(b.response_deadline)))[0].response_deadline) <= deadline(todo[0].response_deadline));
+  if (inviteFirst) {
+    const invite = [...invites].sort((a, b) => deadline(a.response_deadline).localeCompare(deadline(b.response_deadline)))[0];
     const accept = button('Aceitar convite', { variant: 'primary', iconName: 'check', onClick: (event) => acceptInvite(ctx, invite.demo_token, { button: event.currentTarget }) });
     hero = { title: `Aceite o convite de ${invite.buyer_name}`, text: `${invite.title} · ${productLabel(invite.product, { short: true })}${invite.response_deadline ? ` · prazo ${relativeDays(invite.response_deadline)}` : ''}`, action: accept };
   } else if (todo.length) {
@@ -184,7 +190,9 @@ export async function providerProposal(ctx) {
   const completion = el('p', { class: 'completion', role: 'status', 'aria-live': 'polite' });
   const indicator = saveIndicator('idle', 'Rascunho ainda não salvo');
   const saveButton = button('Salvar agora', { size: 'sm', iconName: 'check', attrs: { id: 'save-draft' } });
-  const submit = el('button', { type: 'submit', class: 'btn btn-primary' }, [icon('send'), el('span', { class: 'btn-label', text: 'Revisar e enviar proposta' })]);
+  // O nome acessível é completo; no celular o texto visível encurta para caber em uma linha.
+  const submitLabel = () => [el('span', { text: 'Revisar e enviar' }), el('span', { class: 'label-extra', text: ' proposta' })];
+  const submit = el('button', { type: 'submit', class: 'btn btn-primary', 'aria-label': 'Revisar e enviar proposta' }, [icon('send'), el('span', { class: 'btn-label' }, submitLabel())]);
   form.append(el('div', { class: 'proposal-bar' }, [el('div', { class: 'proposal-bar-status' }, [completion, indicator.node]), el('div', { class: 'proposal-bar-actions' }, [saveButton, submit])]),
     el('p', { class: 'muted small', text: 'Depois do envio, cada alteração cria uma nova versão. A empresa vê todas as versões, com data e a revisão da solicitação que cada uma respondeu.' }));
 
@@ -281,11 +289,28 @@ export async function providerProposal(ctx) {
     } catch (error) {
       toast(error.status === 401 ? 'Entre na sua conta de provedor para enviar a proposta.' : error.message, 'error');
       submit.disabled = false;
-      submit.querySelector('.btn-label').textContent = 'Revisar e enviar proposta';
+      submit.querySelector('.btn-label').replaceChildren(...submitLabel());
     }
   });
 
-  const main = el('div', { class: 'split-main' }, [status, card({ title: assignment.version ? 'Suas condições' : 'Sua proposta', subtitle: 'Preencha o essencial; os demais blocos são opcionais e ajudam a empresa a comparar.', body: form })]);
+  // No celular o resumo do pedido vem antes do formulário: ninguém responde sem saber o que foi pedido.
+  const peek = el('details', { class: 'demand-peek card' }, [
+    el('summary', {}, [el('span', { class: 'demand-peek-title', text: 'O que a empresa pediu' }), el('span', { class: 'muted small', text: demandHeadline({ product: assignment.product, demand: assignment.demand }) })]),
+    el('div', { class: 'card-body' }, definitionList(PRODUCTS[assignment.product].demandFields, assignment.demand, { columns: 1 }))
+  ]);
+  // Processo sem coleta aberta: nada editável na tela, só o que foi enviado.
+  const formCard = open
+    ? card({ title: assignment.version ? 'Suas condições' : 'Sua proposta', subtitle: 'Preencha o essencial; os demais blocos são opcionais e ajudam a empresa a comparar.', body: form })
+    : card({ title: assignment.version ? `Condições enviadas (versão ${assignment.version})` : 'Nenhuma proposta enviada', subtitle: assignment.version ? 'Registro somente leitura. A coleta desta solicitação está encerrada.' : null,
+      body: assignment.version ? definitionList(spec.proposalFields, assignment.terms, { showMissing: true }) : emptyState({ title: 'A coleta encerrou sem proposta da sua instituição', compact: true }) });
+  const proposalDocs = card({ title: 'Documentos da proposta', headingLevel: 3, subtitle: 'Anexe term sheet, minuta ou planilha de condições para a empresa compradora.', body: el('div', {}, loading()) });
+  const buyerDocs = card({ title: 'Documentos da empresa', headingLevel: 3, subtitle: 'Arquivos que a empresa compartilhou com os provedores convidados.', body: el('div', {}, loading()) });
+  import('./documents.js').then(({ documentsPanel }) => {
+    proposalDocs.querySelector('.card-body').replaceChildren(documentsPanel(ctx, { entityType: 'proposal', entityId: assignment.proposal_id, canUpload: open,
+      shareLabel: 'Compartilhado com a empresa compradora', ownerLabel: 'Somente sua instituição' }));
+    buyerDocs.querySelector('.card-body').replaceChildren(documentsPanel(ctx, { entityType: 'rfq', entityId: assignment.rfq_id, canUpload: false }));
+  });
+  const main = el('div', { class: 'split-main' }, [status, peek, formCard, proposalDocs]);
   const history = (assignment.history || []).length ? card({ title: 'Histórico de versões', headingLevel: 3, body: el('ol', { class: 'timeline' }, assignment.history.map((entry) => el('li', { class: 'timeline-item' }, [
     el('span', { class: 'timeline-dot', 'aria-hidden': 'true' }), el('div', { class: 'timeline-content' }, [el('p', { class: 'timeline-title' }, [el('strong', { text: `Versão ${entry.version}` }), entry.rfq_revision ? tag(`rev. ${entry.rfq_revision}`) : null]),
       el('p', { class: 'timeline-meta', text: formatDateTime(entry.submitted_at) }), entry.note ? el('p', { class: 'muted small', text: entry.note }) : null])]))) }) : null;
@@ -295,6 +320,7 @@ export async function providerProposal(ctx) {
       definitionList(PRODUCTS[assignment.product].demandFields, assignment.demand, { columns: 1 }),
       el('p', { class: 'callout callout-info compact' }, [icon('lock', { size: 14 }), el('span', { text: 'Você não vê propostas de outros provedores, notas internas nem a comparação da empresa.' })])
     ] }),
+    buyerDocs,
     history,
     card({ title: 'Perguntas e esclarecimentos', headingLevel: 3, body: collaboration(ctx, { id: assignment.rfq_id, title: assignment.title }, { provider: true }) })
   ]);

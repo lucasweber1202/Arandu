@@ -21,7 +21,8 @@ const COMPANY_PAGES = [
   ['/finance/tasks.html', 'Tarefas'],
   ['/finance/notifications.html', 'Notificações'],
   ['/finance/settings.html', 'Configurações'],
-  ['/finance/boundaries.html', 'Limites do produto']
+  ['/finance/boundaries.html', 'Limites do produto'],
+  ['/finance/ops.html', 'Console operacional']
 ];
 const PROVIDER_PAGES = [
   ['/provider/index.html', 'Portal do provedor'],
@@ -47,7 +48,7 @@ function overview(extra = {}) {
   };
 }
 /** Sessão simulada: responde as rotas que a interface usa. */
-async function mockSession(page, { organizations = [{ id: ORG, kind: 'BUYER', legal_name: 'Empresa de teste' }], data = overview(), editor = {}, onSearch = null } = {}) {
+async function mockSession(page, { organizations = [{ id: ORG, kind: 'BUYER', legal_name: 'Empresa de teste' }], data = overview(), editor = {}, onSearch = null, onDocuments = null } = {}) {
   const calls = [];
   await page.route('**/api/finance/**', (route) => {
     const request = route.request();
@@ -57,7 +58,8 @@ async function mockSession(page, { organizations = [{ id: ORG, kind: 'BUYER', le
     const json = (body, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
     if (path === 'organizations') return json({ ok: true, rows: organizations });
     if (path === 'overview') return json(data);
-    if (path === 'members') return json({ ok: true, rows: [{ user_id: 'u1', role: 'finance_manager' }], viewer_id: 'u1' });
+    if (path === 'members') return json({ ok: true, rows: [{ user_id: 'u1', role: 'finance_manager', display_name: 'Paula Nogueira', title: 'Gerente Financeira' }, { user_id: 'u2', role: 'analyst', display_name: 'Rui Tavares', title: 'Analista de Crédito' }], viewer_id: 'u1' });
+    if (path.startsWith('private-documents') || path.startsWith('ops/')) return onDocuments ? onDocuments(path, request, json) : json({ ok: true, rows: [] });
     if (path === 'search') { onSearch?.(url); return json({ ok: true, rows: [{ kind: 'rfq', id: RFQ, title: 'Crédito expansão', detail: 'comparing', href: `/finance/rfq.html?id=${RFQ}` }] }); }
     if (path === 'rfq-editor' && request.method() === 'GET') return json({ ok: true, draft: editor.draft || null });
     if (path === 'rfq-editor' && request.method() === 'PATCH') return editor.patchStatus ? json({ ok: false, error: 'Esta solicitação foi alterada em outra aba.' }, editor.patchStatus) : json({ ok: true, revision: (editor.revision = (editor.revision || 0) + 1), updated_at: new Date().toISOString() });
@@ -89,7 +91,7 @@ test('portais da empresa e do provedor abrem, são acessíveis e cabem na viewpo
   for (const [path, heading] of [...COMPANY_PAGES, ...PROVIDER_PAGES]) {
     await page.goto(path);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(heading);
-    await expect(page.getByRole('link', { name: 'Pular para o conteudo' })).toHaveAttribute('href', '#main');
+    await expect(page.getByRole('link', { name: 'Pular para o conteúdo' })).toHaveAttribute('href', '#main');
     await expect(page.locator('#view [aria-busy=true], #view .loading-state')).toHaveCount(0);
     const unlabeled = await page.locator('input:not([type=hidden]),select,textarea')
       .evaluateAll((nodes) => nodes.filter((node) => !node.getAttribute('aria-label') && !node.labels?.length).map((node) => node.outerHTML));
@@ -220,7 +222,7 @@ test('uma conta sem organização recebe o formulário de criação, não um bec
 test('o teclado alcança a navegação e o conteúdo principal', async ({ page }) => {
   await page.goto('/finance/rfqs.html');
   await page.keyboard.press('Tab');
-  await expect(page.locator(':focus')).toHaveText('Pular para o conteudo');
+  await expect(page.locator(':focus')).toHaveText('Pular para o conteúdo');
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/#main$/);
 });
@@ -310,4 +312,59 @@ test('busca por teclado e duplicação da demanda preservam o contexto da empres
   await expect(form.getByLabel('Título da solicitação')).toHaveValue(/Nova solicitação/);
   await form.getByRole('button', { name: 'Continuar' }).click();
   await expect(form.getByLabel('Valor desejado (R$)')).toHaveValue('500000');
+});
+
+test('app real: console operacional exige login e não é atalho para dados de empresas', async ({ page }) => {
+  await page.goto('/finance/ops.html');
+  await expect(page.locator('#view')).toContainText('Entre para usar o portal');
+  // Sessão de empresa sem papel de operador: o servidor nega e a tela explica.
+  await mockSession(page, { onDocuments: (path, request, json) => json({ ok: false, error: 'Sua conta não tem permissão para esta operação nesta organização.', code: 'forbidden' }, 403) });
+  await page.goto('/finance/ops.html');
+  await expect(page.locator('#view')).toContainText('Acesso restrito a operadores da plataforma');
+  await expect(page.locator('#view')).not.toContainText(/Crédito expansão|Banco Um/);
+});
+
+test('app real: documento privado sobe por URL assinada, baixa sob demanda e nenhuma URL fica guardada', async ({ page }) => {
+  const DOC = '00000000-0000-4000-8000-0000000000d9';
+  const uploads = [];
+  let available = false;
+  const signedUpload = 'https://proj.supabase.co/storage/v1/object/upload/sign/fin-documents/a/b/v1-c?token=up';
+  const signedDownload = 'https://proj.supabase.co/storage/v1/object/sign/fin-documents/a/b/v1-c?token=down';
+  await page.route('https://proj.supabase.co/**', (route) => {
+    uploads.push(`${route.request().method()} ${route.request().url()} ${route.request().headers()['content-type']}`);
+    return route.fulfill({ status: 200, contentType: 'application/pdf', body: '%PDF-1.4' });
+  });
+  const calls = await mockSession(page, { onDocuments: (path, request, json) => {
+    if (path === 'private-documents' && request.method() === 'GET') {
+      return json({ ok: true, rows: available ? [{ id: DOC, organization_id: ORG, buyer_organization_id: ORG, entity_type: 'rfq', entity_id: RFQ, title: 'Balanço 2025', visibility: 'internal', current_version: 1, created_by: 'u2', created_at: '2026-09-26T10:00:00Z',
+        versions: [{ document_id: DOC, version: 1, mime_type: 'application/pdf', size_bytes: 8, uploaded_by: 'u2', completed_at: '2026-09-26T10:00:00Z' }] }] : [] });
+    }
+    if (path === 'private-documents/upload') {
+      const body = request.postDataJSON();
+      expect(body).toMatchObject({ organization_id: ORG, entity_type: 'rfq', entity_id: RFQ, mime_type: 'application/pdf', size: 8, title: 'Balanço 2025' });
+      expect(body.sha256).toMatch(/^[0-9a-f]{64}$/);
+      return json({ ok: true, document_id: DOC, version: 1, upload_url: signedUpload, expires_in: 120 }, 201);
+    }
+    if (path === 'private-documents/complete') { available = true; return json({ ok: true, status: 'available' }); }
+    if (path === 'private-documents/download') return json({ ok: true, url: signedDownload, version: 1, expires_in: 60 });
+    return json({ ok: false }, 404);
+  } });
+  await page.goto(`/finance/rfq.html?id=${RFQ}`);
+  const docs = page.locator('#documentos');
+  await expect(docs).toContainText('Nenhum documento anexado');
+  await docs.getByText('Anexar documento', { exact: true }).first().click();
+  // Tipo fora da lista é recusado antes de qualquer rede.
+  await docs.locator('.document-form input[type=file]').setInputFiles({ name: 'macro.exe', mimeType: 'application/x-msdownload', buffer: Buffer.from('MZ') });
+  await expect(docs.locator('.document-status')).toContainText('Tipo de arquivo não aceito');
+  await docs.locator('.document-form input[type=file]').setInputFiles({ name: 'Balanço 2025.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4') });
+  await docs.locator('.document-form').getByRole('button', { name: 'Anexar documento' }).click();
+  await expect(docs.locator('.document-status')).toContainText('Documento anexado');
+  await expect(docs).toContainText('Balanço 2025');
+  await expect(docs).toContainText('Rui Tavares');
+  expect(uploads[0]).toMatch(/^PUT https:\/\/proj\.supabase\.co\/storage\/v1\/object\/upload\/sign\/.* application\/pdf$/);
+  expect(calls).toEqual(expect.arrayContaining(['POST private-documents/upload', 'POST private-documents/complete']));
+  await docs.getByRole('button', { name: /Baixar Balanço 2025/ }).click();
+  await expect.poll(() => uploads.some((entry) => entry.startsWith('GET ') && entry.includes('token=down'))).toBe(true);
+  const stored = await page.evaluate(() => JSON.stringify({ ...localStorage }) + JSON.stringify({ ...sessionStorage }));
+  expect(stored).not.toMatch(/token=|supabase\.co/);
 });
