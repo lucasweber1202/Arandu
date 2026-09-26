@@ -63,7 +63,12 @@ report.push('');
 report.push('Supabase:');
 describe('SUPABASE_URL', { required: needsSupabase, pattern: /^https:\/\/[a-z0-9.-]+$/i });
 describe('SUPABASE_ANON_KEY', { required: needsSupabase, minLength: 20, secret: true });
-const serviceRole = describe('SUPABASE_SERVICE_ROLE_KEY', { minLength: 20, secret: true });
+// Só no servidor: assina URLs curtas de documentos privados e roda a agenda de
+// renovação. Nunca vai ao navegador (check:security e o build demo recusam).
+const serviceRole = describe('SUPABASE_SERVICE_ROLE_KEY', { required: environment === 'pilot', minLength: 20, secret: true });
+report.push('');
+report.push('Cron:');
+const cronSecret = describe('CRON_SECRET', { required: environment === 'pilot', minLength: 32, secret: true });
 
 report.push('');
 report.push('Aplicação:');
@@ -88,14 +93,17 @@ if (presentation && environment === 'pilot') {
   problems.push('ARANDU_PRESENTATION_MODE ligado no piloto: dado de demonstração misturaria com dado real da empresa piloto.');
 }
 
-// A service role atravessa o RLS. O domínio financeiro não a usa, e ela não
-// tem por que existir no ambiente que serve o navegador.
-if (serviceRole && environment === 'pilot') {
-  warnings.push('SUPABASE_SERVICE_ROLE_KEY presente no ambiente de piloto. O domínio financeiro não a usa; confirme que ela é exigida por outra parte do Arandu antes de mantê-la.');
+// A service role atravessa o RLS. O procurement a usa só no servidor, depois
+// de uma RPC com o token do usuário autorizar: documentos privados (assinar URL
+// e conferir o objeto) e a agenda de renovação do cron.
+if (cronSecret && cronSecret === serviceRole) {
+  problems.push('CRON_SECRET igual ao service role. Use um segredo próprio, aleatório, com 32+ caracteres.');
 }
 
+// A allowlist falha fechada: com a tabela vazia, NINGUÉM cria organização
+// (fin_pilot_access_allowed). Lembrete, não risco de abertura.
 if (environment === 'pilot' && !flag('ARANDU_PILOT_ALLOWLIST_CONFIRMED')) {
-  warnings.push('Confirme que a allowlist do piloto (fin_pilot_allowlist) tem ao menos uma entrada; com a tabela vazia o acesso fica aberto. Defina ARANDU_PILOT_ALLOWLIST_CONFIRMED=true depois de conferir.');
+  warnings.push('Confirme que fin_pilot_allowlist tem as entradas do piloto; com a tabela vazia ninguém consegue criar organização. Defina ARANDU_PILOT_ALLOWLIST_CONFIRMED=true depois de conferir.');
 }
 
 report.push('');
