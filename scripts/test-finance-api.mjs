@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { Readable } from 'node:stream';
 import { handleFinance } from '../lib/api/domains/finance.mjs';
+import { createDocumentStorage, downloadName } from '../lib/finance/document-storage.mjs';
 
 // Testes de fronteira da API financeira. Nada aqui fala com o Supabase real:
 // o `fetch` é substituído para inspecionar exatamente o que sairia daqui.
@@ -502,3 +503,104 @@ reset((entry) => {
 }
 reset(() => []);
 await rejects('GET', 'approvals', { url: `/api/finance/approvals?organization_id=${OTHER_ORG}` }, 403);
+
+/* Documentos privados: autorização no banco, assinatura curta no servidor, nada persistido. */
+{
+  const DOC = '00000000-0000-4000-8000-0000000000a9';
+  const PATH = `${BUYER}/${DOC}/v1-00000000-0000-4000-8000-0000000000aa`;
+  const signed = [];
+  const adminCalls = [];
+  const storage = {
+    signUpload: async (path) => { signed.push(['upload', path]); return `https://supabase.example.invalid/storage/v1/object/upload/sign/fin-documents/${path}?token=t`; },
+    inspect: async () => ({ size: 2048, mime: 'application/pdf' }),
+    signDownload: async (path, name) => { signed.push(['download', path, name]); return `https://supabase.example.invalid/storage/v1/object/sign/fin-documents/${path}?token=d`; }
+  };
+  const docDeps = { ...deps, documentStorage: storage, adminRpc: async (name, body) => { adminCalls.push([name, body]); return 'available'; } };
+  const docCall = async (method, path, options = {}) => {
+    const res = response();
+    await handleFinance(request(method, { ...options, url: options.url || `/api/finance/${path}` }), res, path, docDeps);
+    return res;
+  };
+  const docRejects = async (method, path, options, code) => assert.rejects(() => docCall(method, path, options), (error) => { assert.equal(error.status, code, `${path}: ${error.message}`); return true; });
+
+  // Tipo fora da lista e tamanho acima do limite não chegam ao banco nem ao Storage.
+  reset((entry) => entry.url.includes('fin_organizations') ? orgRow(BUYER, 'BUYER') : []);
+  await docRejects('POST', 'private-documents/upload', { body: { organization_id: BUYER, entity_type: 'rfq', entity_id: RFQ, title: 'Script', mime_type: 'text/html', size: 10 } }, 400);
+  await docRejects('POST', 'private-documents/upload', { body: { organization_id: BUYER, entity_type: 'rfq', entity_id: RFQ, title: 'Grande', mime_type: 'application/pdf', size: 10 * 1024 * 1024 + 1 } }, 413);
+  assert.equal(sent.filter((entry) => entry.url.includes('rpc/')).length, 0);
+  assert.equal(signed.length, 0);
+
+  reset((entry) => entry.url.includes('fin_organizations') ? orgRow(BUYER, 'BUYER')
+    : entry.url.includes('rpc/fin_document_begin_upload') ? [{ document_id: DOC, version: 1, bucket: 'fin-documents', path: PATH }] : []);
+  {
+    const res = await docCall('POST', 'private-documents/upload', { body: { organization_id: BUYER, entity_type: 'rfq', entity_id: RFQ, title: 'Balanço', visibility: 'internal', mime_type: 'application/pdf', size: 2048, sha256: 'A'.repeat(64) } });
+    assert.equal(res.statusCode, 201);
+    assert.equal(res.payload.expires_in, 120);
+    assert.match(res.payload.upload_url, /upload\/sign\/fin-documents\//);
+    const begin = sent.find((entry) => entry.url.includes('rpc/fin_document_begin_upload'));
+    assert.equal(begin.authorization, 'Bearer user-jwt', 'reserva do envio precisa rodar como o usuário');
+    assert.equal(begin.body.p_sha256, 'a'.repeat(64));
+    assert.deepEqual(signed[0], ['upload', PATH]);
+  }
+  // Concluir: só o próprio envio pendente, conferido no Storage, publicado pelo service role.
+  reset((entry) => entry.url.includes('rpc/fin_document_pending_upload') ? [{ bucket: 'fin-documents', path: PATH, mime_type: 'application/pdf', size_bytes: 2048 }] : []);
+  {
+    const res = await docCall('POST', 'private-documents/complete', { body: { document_id: DOC, version: 1 } });
+    assert.equal(res.payload.status, 'available');
+    assert.deepEqual(adminCalls[0], ['fin_document_finalize_upload', { p_document: DOC, p_version: 1, p_size: 2048, p_mime: 'application/pdf' }]);
+  }
+  reset(() => []);
+  await docRejects('POST', 'private-documents/complete', { body: { document_id: DOC, version: 1 } }, 404);
+  // Download: URL assinada gerada sob demanda e só depois da RPC de autorização.
+  reset((entry) => entry.url.includes('rpc/fin_document_authorize_download') ? [{ bucket: 'fin-documents', path: PATH, mime_type: 'application/pdf', title: 'Balanço 2025', version: 2 }] : []);
+  {
+    const res = await docCall('POST', 'private-documents/download', { body: { document_id: DOC } });
+    assert.equal(res.payload.expires_in, 60);
+    assert.match(res.payload.url, /token=d/);
+    assert.equal(res.headers['Cache-Control'], 'no-store');
+    assert.deepEqual(signed.at(-1), ['download', PATH, 'Balanco-2025-v2.pdf']);
+  }
+  reset(() => { throw Object.assign(new Error('x'), { status: 400 }); });
+  globalThis.fetch = (fetchImpl => async (url, options) => {
+    if (String(url).includes('rpc/fin_document_authorize_download')) return new Response(JSON.stringify({ message: 'forbidden' }), { status: 403 });
+    return fetchImpl(url, options);
+  })(globalThis.fetch);
+  const before = signed.length;
+  await docRejects('POST', 'private-documents/download', { body: { document_id: DOC } }, 403);
+  assert.equal(signed.length, before, 'negado no banco não pode gerar URL assinada');
+}
+
+/* Console operacional: exige MFA antes de qualquer chamada. */
+{
+  const token = (aal) => `x.${Buffer.from(JSON.stringify({ sub: ACTOR, aal })).toString('base64url')}.y`;
+  const opsDeps = (aal) => ({ ...deps, requireUser: async () => ({ user: { id: ACTOR }, accessToken: token(aal), headers: {} }), env: { SUPABASE_URL: 'https://x', SUPABASE_ANON_KEY: 'k', CRON_SECRET: 'curto' } });
+  reset(() => ({ jobs: [] }));
+  await assert.rejects(async () => { const res = response(); await handleFinance(request('GET', { url: '/api/finance/ops/overview' }), res, 'ops/overview', opsDeps('aal1')); },
+    (error) => error.status === 403 && error.code === 'mfa_required');
+  assert.equal(sent.length, 0, 'sem MFA nada chega ao banco');
+  const res = response();
+  await handleFinance(request('GET', { url: '/api/finance/ops/overview' }), res, 'ops/overview', opsDeps('aal2'));
+  assert.equal(res.payload.health.cron_secret_configured, false);
+  assert.equal(res.payload.health.server_key_configured, false);
+  assert.doesNotMatch(JSON.stringify(res.payload.health), /curto|https:\/\/x/, 'saúde expõe só booleanos, nunca valores');
+  assert.match(sent[0].url, /rpc\/fin_ops_overview$/);
+}
+console.log('Financial Procurement API: documentos privados (autorização antes da assinatura, limites, sem persistir URL) e console operacional com MFA aprovados.');
+
+/* Storage: só caminhos gerados pelo banco, service role só no servidor, URLs curtas. */
+{
+  const seen = [];
+  const fake = async (url, init) => { seen.push({ url, init }); return new Response(JSON.stringify({ url: '/object/upload/sign/fin-documents/p?token=u', signedURL: '/object/sign/fin-documents/p?token=s' }), { status: 200, headers: { 'content-length': '10', 'content-type': 'application/pdf' } }); };
+  const env = { SUPABASE_URL: 'https://proj.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'service' };
+  const store = createDocumentStorage({ env, fetchImpl: fake });
+  const path = '00000000-0000-4000-8000-0000000000b1/00000000-0000-4000-8000-0000000000a9/v1-00000000-0000-4000-8000-0000000000aa';
+  assert.match(await store.signUpload(path), /^https:\/\/proj\.supabase\.co\/storage\/v1\/object\/upload\/sign\//);
+  assert.equal(JSON.parse(seen[0].init.body).expiresIn, 120);
+  const url = await store.signDownload(path, 'x.pdf');
+  assert.equal(JSON.parse(seen[1].init.body).expiresIn, 60);
+  assert.match(url, /download=x\.pdf$/);
+  await assert.rejects(() => store.signDownload('../outra-empresa/arquivo'), /inválido/);
+  await assert.rejects(() => createDocumentStorage({ env: {}, fetchImpl: fake }).signUpload(path), /indisponível/);
+  assert.equal(downloadName('Balanço <script> 2025', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 3), 'Balanco-script-2025-v3.xlsx');
+}
+console.log('Document storage: caminhos validados, TTL de 120 s para envio e 60 s para download.');
