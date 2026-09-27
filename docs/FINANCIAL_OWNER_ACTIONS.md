@@ -39,12 +39,12 @@ um controle.
 ## 3. Ambiente do piloto
 
 * criar um projeto **Supabase dedicado**, separado de produção e de preview;
-* aplicar as 33 migrations de `docs/supabase-migrations.json` (`cleanInstall`), na ordem;
+* aplicar as 34 migrations de `docs/supabase-migrations.json` (`cleanInstall`), na ordem;
 * definir `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
   (só servidor), `CRON_SECRET` (32+), `ARANDU_SITE_URL` e `ARANDU_ENV=pilot`;
 * escolher e apontar um subdomínio — **nenhum domínio foi comprado ou
   registrado**;
-* rodar `ARANDU_ENV=pilot npm run finance:env:check` e resolver o que ele apontar.
+* rodar `ARANDU_ENV=pilot npm run finance:pilot:doctor` e resolver o que ele apontar (0 = GO).
 
 Detalhes em [`FINANCIAL_PILOT_ENVIRONMENT.md`](FINANCIAL_PILOT_ENVIRONMENT.md).
 

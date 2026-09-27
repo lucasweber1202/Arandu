@@ -19,11 +19,11 @@ navegador desligado, nenhum `|| true`, nenhum check obrigatório mudado.
 
 ## Quando a quota voltar (01/10/2026)
 
-1. Abrir a PR desta rodada → **Checks** → **Re-run all jobs** (ou fazer um push
-   qualquer na branch). Reexecutar, sem mudar nada:
-   `validate`, `database`, `deploy-boundaries`, `presentation`.
-2. Reexecutar também o run da `main` (`4c2a933`) para limpar o vermelho de quota.
-3. Só mesclar com os quatro verdes.
+1. PR do hardening final → **Checks** → **Re-run all jobs**. Reexecutar, sem
+   mudar nada: `validate`, `database`, `deploy-boundaries`, `presentation`.
+   Esse run também é a primeira validação das otimizações do workflow (abaixo).
+2. Reexecutar o último run da `main` (a #73 foi mesclada sem CI hospedado).
+3. Só mesclar com os quatro verdes. Firefox, WebKit e Safari móvel só rodam aí.
 
 ## Onde os minutos foram consumidos
 
@@ -53,20 +53,36 @@ anterior, mas cada job iniciado já cobra pelo menos 1 minuto. 83 cancelamentos
 × 4 jobs ≈ 330 minutos cobrados em pouco mais de um dia, sem nenhum resultado
 aproveitável.
 
-## Recomendações (nenhuma aplicada nesta rodada)
+## Otimizações aplicadas em 27/09/2026 (sem reduzir cobertura)
+
+| Otimização | Antes | Depois | Cobertura |
+| --- | --- | --- | --- |
+| Ordem dos jobs | 4 jobs começam juntos; um push novo cancela quando os jobs com navegador já estão rodando (≥ 4 min cobrados por run cancelado) | `validate` e `presentation` esperam o `deploy-boundaries` (~1 min) e rodam mesmo se ele falhar (`if: !cancelled()`). Push em rajada cancela com ~2 min cobrados (`database` + `deploy-boundaries`) | Nenhuma mudança: os 4 jobs continuam obrigatórios e completos |
+| Navegadores do Playwright | Download a cada run nos 2 jobs com navegador | `actions/cache` v6.1.0 (SHA fixado) em `~/.cache/ms-playwright`, chave SO + versão do Playwright + hash do lockfile; `playwright install --with-deps chromium firefox webkit` roda sempre e só baixa o que faltar | Nenhuma: os 3 motores e os 5 projetos continuam, e `check:governance` falha se a instalação passar a ser pulada ou se um projeto sumir |
+| Cliente PostgreSQL | `apt-get update && install postgresql-client` em todo run (~10 s) | Instala só se `psql` não existir; imprime a versão usada | Nenhuma |
+| Cache do npm | Já existia (`setup-node` com `cache: npm` nos 3 jobs que instalam dependências; `database` não instala) | Mantido | — |
+| Reuso de build entre jobs | Cada job compila o próprio bundle | **Não aplicado**: `validate` (produção), `presentation` (modo apresentação) e `deploy-boundaries` (preview, produção e demo) geram bundles diferentes de propósito; compartilhar misturaria fronteiras demo/produção | — |
+| Política de push | Pushes commit a commit por agentes | `CONTRIBUTING.md` e `CLAUDE.md`: validar localmente e fazer um push por lote | — |
+
+**Limites.** Nenhum mecanismo do Actions evita cobrar o job que já começou; o
+ganho depende de o push seguinte chegar durante o `deploy-boundaries`. O
+ganho do cache depende da velocidade de restauração em relação ao download, e
+o primeiro run após 01/10 ainda baixa (cache vazio).
+
+**Só mensurável a partir de 01/10/2026:** tempo e minutos por run com as
+mudanças acima, taxa de acerto do cache, versão do `psql` da imagem. O primeiro
+run também valida a própria otimização (sintaxe do workflow, `needs`/`if`,
+chave do cache). Se ele falhar por causa dela, reverter o commit do workflow,
+não enfraquecer os jobs.
+
+## Recomendações ainda não aplicadas
+
 
 Por ordem de ganho, sem reduzir cobertura:
 
-1. **Push em lote.** Validar localmente e enviar uma vez por conjunto de commits
-   (é o que esta rodada fez). Maior economia, zero mudança de cobertura.
-2. **Cache dos navegadores do Playwright** (`~/.cache/ms-playwright`, chave pela
-   versão do `@playwright/test`) em `validate` e `presentation`: ~1,5 min por run.
-   Não aplicado porque não há como executar o workflow alterado antes de
-   01/10 — mudar CI sem poder rodá-lo arrisca deixar a `main` vermelha na volta.
-3. **Postgres client já presente na imagem** do runner (`psql` existe em
-   `ubuntu-latest`): remover o `apt-get install` economiza ~10 s por run.
-   Confirmar na primeira execução após a volta da quota antes de remover.
-4. **Avaliar** (decisão do proprietário, reduz execução por push): rodar a
+1. **Push em lote** (agora documentado em `CONTRIBUTING.md` e `CLAUDE.md`): a
+   maior economia, e depende de disciplina, não de configuração.
+2. **Avaliar** (decisão do proprietário, reduz execução por push): rodar a
    matriz completa de 5 motores do job `presentation` só em PR marcada como
    pronta (`ready_for_review`) e na `main`, com Chromium em cada push. Só vale a
    pena se o item 1 não bastar.

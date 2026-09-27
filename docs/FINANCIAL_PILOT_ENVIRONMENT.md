@@ -40,7 +40,9 @@ concretos: o rollback do procurement financeiro remove tabelas; a allowlist é
 por instância; e dado de uma empresa real não pode conviver com dado de teste.
 
 Aplicar **todos** os arquivos de `docs/supabase-migrations.json` → `cleanInstall`,
-na ordem (33 arquivos; o último é `docs/supabase-financial-pilot-operations.sql`).
+na ordem (34 arquivos; o último é `docs/supabase-financial-final-hardening.sql`).
+Depois, `ARANDU_ENV=pilot npm run finance:pilot:doctor` confere banco, Storage, Auth,
+allowlist, operador, e-mail, cron e a API publicada, somente lendo.
 A sequência foi ensaiada no Postgres 15 da Supabase com `npm run pilot:local:up`.
 
 ## Domínio
