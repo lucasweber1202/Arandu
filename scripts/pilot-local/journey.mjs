@@ -78,10 +78,14 @@ const people = {
   providerA: { email: `gerente.${RUN}@banco-a-piloto.example`, name: 'Gerente Banco A' },
   providerB: { email: `gerente.${RUN}@banco-b-piloto.example`, name: 'Gerente Banco B' },
   outsider: { email: `curioso.${RUN}@externo-nao-convidado.example`, name: 'Pessoa Externa' },
-  operator: { email: `operador.${RUN}@arandu-ops.example`, name: 'Operador Arandu', app: { arandu_role: 'operator' } }
+  // Colega no mesmo banco (mesmo domínio), e-mail diferente do contato do convite.
+  colleagueA: { email: `colega.${RUN}@banco-a-piloto.example`, name: 'Colega Banco A' },
+  // Operador financeiro de plataforma e operador legado do admin de arte.
+  operator: { email: `operador.${RUN}@arandu-ops.example`, name: 'Operador Arandu', app: { arandu_role: 'finance_ops' } },
+  legacyOperator: { email: `operador-legado.${RUN}@arandu-ops.example`, name: 'Operador legado', app: { arandu_role: 'operator' } }
 };
 
-await step('Contas de piloto criadas no Supabase Auth (buyer, approver, provider A/B, externo, operador)', async () => {
+await step('Contas de piloto criadas no Supabase Auth (buyer, approver, provider A/B, colega de A, externo, finance_ops, operador legado)', async () => {
   for (const person of Object.values(people)) {
     const response = await fetch(`${SB}/auth/v1/admin/users`, {
       method: 'POST', headers: { apikey: SERVICE, Authorization: `Bearer ${SERVICE}`, 'Content-Type': 'application/json' },
@@ -139,7 +143,10 @@ await step('Aprovador entra por convite de membro (papel viewer)', async () => {
 await step('Provedores A e B criam suas organizações', async () => {
   ctx.orgA = ok(await api(people.providerA, 'POST', '/api/finance/organizations', { legal_name: `Banco A Piloto ${RUN} S.A.`, kind: 'PROVIDER' }), 'org A').id;
   ctx.orgB = ok(await api(people.providerB, 'POST', '/api/finance/organizations', { legal_name: `Banco B Piloto ${RUN} S.A.`, kind: 'PROVIDER' }), 'org B').id;
-  return 'duas organizações PROVIDER';
+  // Colega entra na organização do Banco A (mesmo domínio, outro e-mail).
+  const invite = ok(await api(people.providerA, 'POST', '/api/finance/members/invite', { organization_id: ctx.orgA, email: people.colleagueA.email, role: 'provider_user' }), 'convite colega');
+  ok(await api(people.colleagueA, 'POST', '/api/finance/members/accept', { token: invite.invitationToken }), 'aceite colega');
+  return 'duas organizações PROVIDER; colega de A é membro do Banco A';
 });
 
 // ------------------------------------------------------------ 3. e-mail
@@ -161,13 +168,21 @@ await step('RFQ de crédito criada, provedores cadastrados e convidados', async 
   ctx.provA = ok(await api(people.buyer, 'POST', '/api/finance/providers', { organization_id: ctx.buyerOrg, name: `Banco A Piloto ${RUN}`, kind: 'bank', contact_email: people.providerA.email }), 'prov A').row.id;
   ctx.provB = ok(await api(people.buyer, 'POST', '/api/finance/providers', { organization_id: ctx.buyerOrg, name: `Banco B Piloto ${RUN}`, kind: 'bank', contact_email: people.providerB.email }), 'prov B').row.id;
   ok(await api(people.buyer, 'POST', '/api/finance/transition', { kind: 'rfq', id: ctx.rfq, from: 'draft', status: 'open' }), 'abrir');
-  ctx.tokenA = ok(await api(people.buyer, 'POST', '/api/finance/invites/send', { rfq_id: ctx.rfq, provider_id: ctx.provA }), 'convite A').invitationToken;
-  ctx.tokenB = ok(await api(people.buyer, 'POST', '/api/finance/invites/send', { rfq_id: ctx.rfq, provider_id: ctx.provB }), 'convite B').invitationToken;
-  return `rfq ${ctx.rfq.slice(0, 8)}…, dois convites de uso único`;
+  const sentA = ok(await api(people.buyer, 'POST', '/api/finance/invites/send', { rfq_id: ctx.rfq, provider_id: ctx.provA }), 'convite A');
+  const sentB = ok(await api(people.buyer, 'POST', '/api/finance/invites/send', { rfq_id: ctx.rfq, provider_id: ctx.provB }), 'convite B');
+  ctx.tokenA = sentA.invitationToken; ctx.tokenB = sentB.invitationToken;
+  must(sentA.recipient_mode === 'exact_email' && sentB.recipient_mode === 'exact_email', 'convite com contato deveria ser exact_email');
+  return `rfq ${ctx.rfq.slice(0, 8)}…, dois convites de uso único vinculados ao e-mail do contato`;
 });
 await step('Provedor B aceita o próprio convite', async () => {
   ok(await api(people.providerB, 'POST', '/api/finance/invites/accept', { token: ctx.tokenB, provider_organization_id: ctx.orgB }), 'aceite B');
   return 'vaga B ocupada pela conta B';
+});
+await attack('Colega do Banco A (mesmo domínio, outro e-mail) aceita o convite de A', 'recusado, erro genérico', async () => {
+  const result = await api(people.colleagueA, 'POST', '/api/finance/invites/accept', { token: ctx.tokenA, provider_organization_id: ctx.orgA });
+  const used = await api(people.providerB, 'POST', '/api/finance/invites/accept', { token: 'f'.repeat(64), provider_organization_id: ctx.orgB });
+  const generic = result.data?.error === used.data?.error && !/@|piloto\.example/.test(JSON.stringify(result.data));
+  return { ok: result.status === 409 && result.data?.code === 'invite_invalid' && generic, observed: `${result.status} ${result.data?.code}; mesma mensagem de token inexistente=${generic}` };
 });
 await attack('Provedor B (já na RFQ) aceita o link encaminhado do provedor A', 'recusado', async () => {
   const result = await api(people.providerB, 'POST', '/api/finance/invites/accept', { token: ctx.tokenA, provider_organization_id: ctx.orgB });
@@ -184,11 +199,34 @@ await attack('Nova RFQ: B usa o link de "Banco A" (cadastro já vinculado à con
   const rfq2 = ok(await api(people.buyer, 'POST', '/api/finance/rfqs', {
     organization_id: ctx.buyerOrg, product: 'acquiring', title: `Adquirência piloto ${RUN}`, demand: { monthly_volume: 8000000 }, response_deadline: addDays(10)
   }), 'rfq2').id;
+  ctx.rfq2 = rfq2;
   ok(await api(people.buyer, 'POST', '/api/finance/transition', { kind: 'rfq', id: rfq2, from: 'draft', status: 'open' }), 'abrir rfq2');
   const tokenA2 = ok(await api(people.buyer, 'POST', '/api/finance/invites/send', { rfq_id: rfq2, provider_id: ctx.provA }), 'convite A2').invitationToken;
   const hijack = await api(people.providerB, 'POST', '/api/finance/invites/accept', { token: tokenA2, provider_organization_id: ctx.orgB });
   const legit = await api(people.providerA, 'POST', '/api/finance/invites/accept', { token: tokenA2, provider_organization_id: ctx.orgA });
   return { ok: hijack.status >= 400 && legit.status === 200, observed: `B ${hijack.status} ${hijack.data?.code}; A ${legit.status}` };
+});
+await attack('Convite expirado (e-mail certo)', 'recusado', async () => {
+  const tokenB2 = ok(await api(people.buyer, 'POST', '/api/finance/invites/send', { rfq_id: ctx.rfq2, provider_id: ctx.provB }), 'convite B2').invitationToken;
+  ctx.tokenB2 = tokenB2;
+  sql(`update public.fin_rfq_invites set expires_at = now() - interval '1 minute' where rfq_id = '${ctx.rfq2}' and provider_id = '${ctx.provB}'`);
+  const r = await api(people.providerB, 'POST', '/api/finance/invites/accept', { token: tokenB2, provider_organization_id: ctx.orgB });
+  return { ok: r.status === 409 && r.data?.code === 'invite_invalid', observed: `${r.status} ${r.data?.code}` };
+});
+await attack('Convite revogado (e-mail certo, dentro do prazo)', 'recusado', async () => {
+  sql(`update public.fin_rfq_invites set expires_at = now() + interval '7 days', status = 'revoked' where rfq_id = '${ctx.rfq2}' and provider_id = '${ctx.provB}'`);
+  const r = await api(people.providerB, 'POST', '/api/finance/invites/accept', { token: ctx.tokenB2, provider_organization_id: ctx.orgB });
+  return { ok: r.status === 409 && r.data?.code === 'invite_invalid', observed: `${r.status} ${r.data?.code}` };
+});
+await step('Convite sem contato cadastrado é explicitamente organization_open', async () => {
+  const provC = ok(await api(people.buyer, 'POST', '/api/finance/providers', { organization_id: ctx.buyerOrg, name: `Correspondente Piloto ${RUN}`, kind: 'other' }), 'prov C').row.id;
+  const sent = ok(await api(people.buyer, 'POST', '/api/finance/invites/send', { rfq_id: ctx.rfq2, provider_id: provC }), 'convite C');
+  must(sent.recipient_mode === 'organization_open', `modo ${sent.recipient_mode}`);
+  ok(await api(people.providerB, 'POST', '/api/finance/invites/accept', { token: sent.invitationToken, provider_organization_id: ctx.orgB }), 'aceite aberto');
+  const reasons = sql(`select string_agg(reason, ',' order by reason) from public.fin_invite_acceptance_denials where rfq_id in ('${ctx.rfq}','${ctx.rfq2}')`);
+  const leaked = Number(sql(`select count(*) from public.fin_invite_acceptance_denials d where d.rfq_id in ('${ctx.rfq}','${ctx.rfq2}') and d.reason ~ '@'`));
+  must(reasons && leaked === 0, 'trilha de recusas ausente');
+  return `API avisa "organization_open"; conta provedora com o link aceitou; recusas auditadas internamente: ${reasons}`;
 });
 
 // ------------------------------------------------------------ 5. propostas
@@ -441,6 +479,20 @@ await step('Cron com segredo: marcos 90/60/30/aviso pela rota HTTP, duas execuç
   return `${seen.join(' ')} (tarefas criadas por execução); final ${JSON.stringify(final)}; 1 tarefa aberta, 0 marco/aviso/evento duplicado; ${runs} execuções registradas`;
 });
 
+await attack('Duas execuções simultâneas do cron no mesmo dia', '1 marco, 1 aviso', async () => {
+  // Contrato vencendo hoje: marco novo "expired". Duas chamadas concorrentes.
+  sql(`update public.fin_contracts set ends_on = current_date where id = '${ctx.contract}'`);
+  const [a, b] = await Promise.all([cron(CRON), cron(CRON)]);
+  const expired = Number(sql(`select count(*) from public.fin_renewal_milestones where contract_id = '${ctx.contract}' and milestone = 'expired'`));
+  const notices = Number(sql(`select count(*) from public.fin_notifications n join public.fin_renewal_milestones m on m.id = n.event_id where m.contract_id = '${ctx.contract}' and m.milestone = 'expired'`));
+  return { ok: a.status === 200 && b.status === 200 && expired === 1 && notices === 1, observed: `${a.status}/${b.status}; marcos expired=${expired}, avisos=${notices}` };
+});
+await attack('Sessão expirada sem refresh token', '401', async () => {
+  const stale = { cookie: `arandu_session=${encodeURIComponent(Buffer.from(JSON.stringify({ access_token: accessToken(people.buyer), expires_at: Math.floor(Date.now() / 1000) - 60 })).toString('base64url'))}` };
+  const r = await api(stale, 'GET', `/api/finance/overview?organization_id=${ctx.buyerOrg}`);
+  return { ok: r.status === 401, observed: show(r) };
+});
+
 // ---------------------------------------------------------------- 10. e-mail
 await step('E-mail: mention, approval_requested, proposal_received, renewal_due na fila, sem conteúdo do processo', async () => {
   const rows = JSON.parse(sql(`select coalesce(json_agg(json_build_object('event', payload->>'event', 'kind', payload->>'kind', 'path', payload->>'path', 'keys', (select array_agg(k order by k) from jsonb_object_keys(payload) k), 'key', idempotency_key)), '[]') from public.transactional_email_outbox where template = 'finance_notification' and recipient_address in ('${people.buyer.email}','${people.approver.email}')`));
@@ -468,36 +520,82 @@ await step('E-mail: preferência desligada e limite de 20/h por destinatário', 
   must(lastHour === 20, `limite: ${lastHour}`);
   return `preferência respeitada; 30 avisos → ${lastHour} e-mails na última hora`;
 });
+// Sem provedor de e-mail configurado, o piloto roda com email_enabled=false
+// (convites entregues à mão). O ensaio devolve o ambiente a esse estado.
+sql(`update public.fin_settings set value = 'false' where key = 'email_enabled'`);
 
 // ------------------------------------------------------------ 11. operador
-await attack('Admin de empresa (aal1, não operador) abre o console', '403', async () => { const r = await api(people.buyer, 'GET', '/api/finance/ops/overview'); return { ok: r.status === 403, observed: show(r) }; });
-await attack('Operador sem MFA (aal1) abre o console', '403 mfa_required', async () => {
-  sql(`insert into public.fin_platform_operators (user_id, granted_by) values ('${people.operator.id}', 'piloto local ${RUN}') on conflict do nothing`);
+// finance_ops = papel de plataforma (app_metadata) + registro + aal2. O operador
+// legado (admin de arte) mantém o admin de arte e não abre o console financeiro.
+const LEGACY_ADMIN = [
+  ['GET', '/api/admin-auth?action=session'], ['POST', '/api/admin-auth?action=challenge'],
+  ['GET', '/api/admin?panel=artworks'], ['GET', '/api/dashboard'], ['GET', '/api/admin/quality'],
+  ['GET', '/api/operational?resource=artwork'], ['GET', '/api/media'], ['GET', '/api/catalog-review'],
+  ['GET', '/api/artist-accounts'], ['POST', '/api/admin-update'], ['GET', '/api/orders'], ['GET', '/api/commercial'],
+  ['POST', '/api/upload'], ['GET', '/api/mvp-dashboard'], ['GET', '/api/readiness'], ['GET', '/api/internal-page?page=admin.html'],
+  ['GET', '/api/pilot/metrics']
+];
+sql(`insert into public.fin_platform_operators (user_id, granted_by) values ('${people.operator.id}', 'piloto local ${RUN}'), ('${people.legacyOperator.id}', 'grant antigo ${RUN}') on conflict do nothing`);
+await attack('Admin de empresa (aal1) abre o console', '403 finance_ops_required', async () => { const r = await api(people.buyer, 'GET', '/api/finance/ops/overview'); return { ok: r.status === 403 && r.data?.code === 'finance_ops_required', observed: show(r) }; });
+await attack('Admin de provedor abre o console', '403 finance_ops_required', async () => { const r = await api(people.providerA, 'GET', '/api/finance/ops/overview'); return { ok: r.status === 403 && r.data?.code === 'finance_ops_required', observed: show(r) }; });
+await attack('Externo abre o console', '403', async () => { const r = await api(O, 'GET', '/api/finance/ops/overview'); return { ok: r.status === 403, observed: show(r) }; });
+await attack('finance_ops sem MFA (aal1) abre o console', '403 mfa_required', async () => {
   const r = await api(people.operator, 'GET', '/api/finance/ops/overview');
   return { ok: r.status === 403 && r.data?.code === 'mfa_required', observed: show(r) };
 });
-await attack('Admin de empresa com MFA (aal2), sem registro de operador', 'recusado', async () => {
+await attack('Admin de empresa com MFA (aal2), sem papel finance_ops', '403 finance_ops_required', async () => {
   const enrolled = await enrollTotp({ url: SB, anonKey: ANON, accessToken: accessToken(people.buyer) });
   const session = await verifyTotp({ url: SB, anonKey: ANON, accessToken: accessToken(people.buyer), factorId: enrolled.factorId, code: totpCode(enrolled.secret) });
   const elevated = { cookie: sessionCookie(session) };
   const r = await api(elevated, 'GET', '/api/finance/ops/overview');
-  return { ok: jwtAal(session.access_token) === 'aal2' && r.status >= 400, observed: `aal=${jwtAal(session.access_token)}; ${show(r)}` };
+  const mfa = await api(elevated, 'POST', '/api/finance/ops/mfa', { step: 'challenge' });
+  return { ok: jwtAal(session.access_token) === 'aal2' && r.status === 403 && r.data?.code === 'finance_ops_required' && mfa.status === 403, observed: `aal=${jwtAal(session.access_token)}; console ${show(r)}; MFA do console ${show(mfa)}` };
 });
-await step('Operador: cadastra TOTP (scripts/finance-operator-mfa.mjs), MFA pelo login administrativo, console abre', async () => {
+await attack('Operador legado (arandu_role=operator) com MFA e registro antigo abre o console', '403 finance_ops_required; admin legado intacto', async () => {
+  const enrolled = await enrollTotp({ url: SB, anonKey: ANON, accessToken: accessToken(people.legacyOperator) });
+  await verifyTotp({ url: SB, anonKey: ANON, accessToken: accessToken(people.legacyOperator), factorId: enrolled.factorId, code: totpCode(enrolled.secret) });
+  const challenge = ok(await api(people.legacyOperator, 'POST', '/api/admin-auth?action=challenge', {}), 'desafio legado');
+  ok(await api(people.legacyOperator, 'POST', '/api/admin-auth?action=verify', { factorId: challenge.factorId, challengeId: challenge.challengeId, code: totpCode(enrolled.secret) }), 'verificar legado');
+  const legacySession = await api(people.legacyOperator, 'GET', '/api/admin-auth?action=session');
+  const r = await api(people.legacyOperator, 'GET', '/api/finance/ops/overview');
+  return { ok: jwtAal(accessToken(people.legacyOperator)) === 'aal2' && legacySession.status === 200 && r.status === 403 && r.data?.code === 'finance_ops_required',
+    observed: `admin legado ${legacySession.status} (role ${legacySession.data?.actor?.role}); console ${show(r)}` };
+});
+await attack('finance_ops tenta o MFA do admin legado', '403 admin_role_required', async () => {
+  const r = await api(people.operator, 'POST', '/api/admin-auth?action=challenge', {});
+  return { ok: r.status === 403 && r.data?.code === 'admin_role_required', observed: show(r) };
+});
+await step('finance_ops: cadastra TOTP (npm run finance:operator:mfa), confirma no próprio console e abre o console', async () => {
   const enrolled = await enrollTotp({ url: SB, anonKey: ANON, accessToken: accessToken(people.operator) });
   await verifyTotp({ url: SB, anonKey: ANON, accessToken: accessToken(people.operator), factorId: enrolled.factorId, code: totpCode(enrolled.secret) });
-  ok(await api(people.operator, 'POST', '/api/auth/login', { email: people.operator.email, password: PASSWORD }), 'novo login');
-  const challenge = ok(await api(people.operator, 'POST', '/api/admin-auth?action=challenge', {}), 'desafio');
+  const wrong = await api(people.operator, 'POST', '/api/finance/ops/mfa', { step: 'challenge' });
+  const bad = await api(people.operator, 'POST', '/api/finance/ops/mfa', { step: 'verify', factor_id: wrong.data.factor_id, challenge_id: wrong.data.challenge_id, code: totpCode(enrolled.secret, Date.now() - 300_000) });
+  must(bad.status === 401 && jwtAal(accessToken(people.operator)) === 'aal1', `código errado aceito (${bad.status})`);
+  const challenge = ok(await api(people.operator, 'POST', '/api/finance/ops/mfa', { step: 'challenge' }), 'desafio');
   await new Promise((resolve) => setTimeout(resolve, 1100));
-  ok(await api(people.operator, 'POST', '/api/admin-auth?action=verify', { factorId: challenge.factorId, challengeId: challenge.challengeId, code: totpCode(enrolled.secret) }), 'verificar');
+  ok(await api(people.operator, 'POST', '/api/finance/ops/mfa', { step: 'verify', factor_id: challenge.factor_id, challenge_id: challenge.challenge_id, code: totpCode(enrolled.secret) }), 'verificar');
   must(jwtAal(accessToken(people.operator)) === 'aal2', 'cookie sem aal2');
   const overview = ok(await api(people.operator, 'GET', '/api/finance/ops/overview'), 'console');
   const text = JSON.stringify(overview);
   for (const forbidden of ['@', '3000000', '1.52', '1.39', 'Banco A', 'Banco B', 'Capital de giro', 'Parecer', 'aval', 'teto']) must(!text.includes(forbidden), `console expõe "${forbidden}"`);
+  must(overview.overview.schema_version === 'financial-final-hardening-1', `schema ${overview.overview.schema_version}`);
   const trace = ok(await api(people.operator, 'GET', `/api/finance/ops/trace?entity_id=${ctx.rfq}`), 'rastreio');
-  must(!JSON.stringify(trace).includes('Capital de giro'), 'rastreio com título');
+  const denials = trace.trace.invite_denials || [];
+  must(denials.length >= 2 && !JSON.stringify(trace).includes('@') && !JSON.stringify(trace).includes('Capital de giro'), 'rastreio sem recusas ou com dado de cliente');
   const logged = Number(sql(`select count(*) from public.fin_ops_access_log where user_id = '${people.operator.id}'`));
-  return `health=${JSON.stringify(overview.health)}; sem e-mail/valor/título/comentário; ${logged} acessos auditados`;
+  return `código errado recusado (401); overview sem e-mail/valor/título; recusas de convite no rastreio (${denials.map((row) => row.reason).join(', ')}); ${logged} acessos auditados`;
+});
+await attack(`finance_ops com MFA nas ${LEGACY_ADMIN.length} rotas do admin legado de arte`, '403 admin_role_required em todas', async () => {
+  const results = [];
+  for (const [method, path] of LEGACY_ADMIN) {
+    const r = await api(people.operator, method, path, method === 'POST' ? {} : undefined);
+    // internal-page responde texto (é uma página), não JSON: mesma mensagem do admin_role_required.
+    const code = r.data?.code || (r.data?.raw === 'Esta conta não possui papel administrativo.' ? 'admin_role_required' : undefined);
+    results.push([path, r.status, code]);
+  }
+  const open = results.filter(([, status, code]) => !(status === 403 && code === 'admin_role_required'));
+  return { ok: jwtAal(accessToken(people.operator)) === 'aal2' && open.length === 0,
+    observed: open.length ? `abertas/inesperadas: ${open.map(([path, status, code]) => `${path} ${status} ${code}`).join('; ')}` : `${results.length}/${results.length} recusadas com admin_role_required` };
 });
 
 // ----------------------------------------------------------------- relatório
