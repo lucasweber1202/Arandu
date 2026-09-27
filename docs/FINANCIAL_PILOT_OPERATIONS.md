@@ -61,14 +61,16 @@ e-mail.
 
 ## Console operacional (`/finance/ops.html`)
 
-- Acesso: usuário presente em `public.fin_platform_operators` **e** sessão com MFA
-  (`aal2`). Papéis das empresas (admin, finance_manager…) não dão acesso.
-- Conceder acesso é ação do responsável, em três passos (detalhe em
-  `FINANCIAL_PILOT_GO_LIVE.md` → Operador):
-  1. `insert into public.fin_platform_operators (user_id, granted_by) values ('<uuid>', '<quem autorizou>');`
-  2. `app_metadata.arandu_role = 'operator'` na conta (é o que permite concluir o
-     MFA pelo `/admin-login.html`; esse papel também abre o admin legado de arte);
-  3. o próprio operador cadastra o TOTP com `npm run finance:operator:mfa`.
+- Acesso: papel de plataforma `finance_ops` (`app_metadata.arandu_role`) **e**
+  registro em `public.fin_platform_operators` **e** sessão com MFA (`aal2`),
+  conferidos na API e no banco. Papéis das empresas e os papéis legados de arte
+  (`admin`, `operator`, `curator`) não dão acesso; `finance_ops` não abre nenhuma
+  tela do admin legado (`FINANCIAL_AUTHORIZATION_MAP.md`).
+- Conceder acesso: passos em `FINANCIAL_PILOT_GO_LIVE.md` → Operador. O TOTP é
+  cadastrado pelo próprio operador (`npm run finance:operator:mfa`) e confirmado
+  no próprio console, que pede o código quando a sessão ainda é `aal1`.
+- Operadores antigos com `arandu_role = 'operator'` continuam no admin de arte e
+  deixam de abrir este console até receberem `finance_ops`.
 - Mostra: saúde da configuração (booleanos), últimas execuções do job de
   renovação com request ID e código de erro, outbox de avisos financeiros por
   estado e falhas recentes (id, tentativas, código), envios de documentos

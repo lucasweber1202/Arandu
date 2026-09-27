@@ -177,11 +177,11 @@ end $$;
 
 -- Convite expirado não é aceito.
 reset role;
-insert into public.fin_rfq_invites (buyer_organization_id, rfq_id, provider_id, token_hash, created_by, expires_at)
+insert into public.fin_rfq_invites (buyer_organization_id, rfq_id, provider_id, token_hash, created_by, expires_at, recipient_mode)
   select (select value from fin_ids where key = 'org_a'), (select value from fin_ids where key = 'rfq'),
          (select value from fin_ids where key = 'provider_1'),
          encode(sha256(convert_to(repeat('b', 64), 'UTF8')), 'hex'),
-         '00000000-0000-4000-8000-00000000fa01', now() - interval '1 day'
+         '00000000-0000-4000-8000-00000000fa01', now() - interval '1 day', 'organization_open'
   on conflict do nothing;
 set role authenticated;
 do $$

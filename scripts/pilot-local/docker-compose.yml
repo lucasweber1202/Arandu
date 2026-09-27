@@ -38,7 +38,9 @@ services:
       GOTRUE_JWT_EXP: 3600
       GOTRUE_JWT_SECRET: ${JWT_SECRET}
       GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
-      GOTRUE_MAILER_AUTOCONFIRM: "true"
+      # Como no Supabase hospedado: e-mail só vale depois de confirmado. O vínculo
+      # do convite ao e-mail exato depende disso (o doctor recusa autoconfirm).
+      GOTRUE_MAILER_AUTOCONFIRM: "false"
       GOTRUE_MFA_TOTP_ENROLL_ENABLED: "true"
       GOTRUE_MFA_TOTP_VERIFY_ENABLED: "true"
       GOTRUE_MFA_MAX_ENROLLED_FACTORS: 10

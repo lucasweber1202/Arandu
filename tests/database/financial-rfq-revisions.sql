@@ -35,10 +35,10 @@ select set_config('request.jwt.claim.sub','',false);
 insert into public.fin_rfqs(id,organization_id,product,title,owner_id,status,demand)
 values('00000000-0000-4000-8000-00000000cc41','00000000-0000-4000-8000-00000000bb01',
  'credit','Linhagem de revisão DEMO','00000000-0000-4000-8000-00000000ba01','open','{"amount":200000}'::jsonb);
-insert into public.fin_rfq_invites(id,buyer_organization_id,rfq_id,provider_id,provider_organization_id,token_hash,created_by,status) values
+insert into public.fin_rfq_invites(id,buyer_organization_id,rfq_id,provider_id,provider_organization_id,token_hash,created_by,status,recipient_mode) values
 ('00000000-0000-4000-8000-00000000cc42','00000000-0000-4000-8000-00000000bb01',
  '00000000-0000-4000-8000-00000000cc41','00000000-0000-4000-8000-00000000bb03',
- '00000000-0000-4000-8000-00000000bb02',repeat('e',64),'00000000-0000-4000-8000-00000000ba01','accepted');
+ '00000000-0000-4000-8000-00000000bb02',repeat('e',64),'00000000-0000-4000-8000-00000000ba01','accepted','organization_open');
 insert into public.fin_proposals(id,invite_id,rfq_id,buyer_organization_id,provider_id,provider_organization_id,product,status,current_version) values
 ('00000000-0000-4000-8000-00000000cc43','00000000-0000-4000-8000-00000000cc42',
  '00000000-0000-4000-8000-00000000cc41','00000000-0000-4000-8000-00000000bb01',

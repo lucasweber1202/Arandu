@@ -1,6 +1,8 @@
 # Financial Procurement — checklist única de go-live do piloto
 
-Estado em **26/09/2026**, base `4c2a933` (merge da #72) + a PR desta rodada.
+Estado em **27/09/2026**, base `a0f85df` (merge da #73) + a PR do hardening final.
+Primeiro comando no ambiente real: `ARANDU_ENV=pilot npm run finance:pilot:doctor`
+(somente leitura; 0 = GO, 1 = NO-GO, 2 = UNSAFE).
 Cada linha tem um único estado:
 
 - **DONE** — feito e verificado; a evidência está na coluna ao lado.
@@ -10,7 +12,8 @@ Cada linha tem um único estado:
   credencial privada, decisão jurídica ou comercial, domínio, DNS, confirmação
   humana). O passo exato está escrito.
 
-Evidência completa desta rodada: [`FINANCIAL_RELEASE_EVIDENCE_2026-09-26.md`](FINANCIAL_RELEASE_EVIDENCE_2026-09-26.md).
+Evidências: [`FINANCIAL_RELEASE_EVIDENCE_2026-09-26.md`](FINANCIAL_RELEASE_EVIDENCE_2026-09-26.md) e
+[`FINANCIAL_RELEASE_EVIDENCE_2026-09-27.md`](FINANCIAL_RELEASE_EVIDENCE_2026-09-27.md). Autorização: [`FINANCIAL_AUTHORIZATION_MAP.md`](FINANCIAL_AUTHORIZATION_MAP.md).
 
 ## SOFTWARE
 
@@ -26,7 +29,11 @@ Evidência completa desta rodada: [`FINANCIAL_RELEASE_EVIDENCE_2026-09-26.md`](F
 | S8 | Suíte local equivalente ao CI | DONE | audit, SBOM, `check:all`, build, dist, tamanho, SEO, banco (PG16), E2E e apresentação em Chromium desktop + mobile, fronteiras de deploy, `build:demo`, `git diff --check` |
 | S9 | E2E e apresentação em Firefox, WebKit e Safari móvel | BLOCKED | Motores não instalados neste ambiente (proibido baixar navegador). Rodam no job `validate`/`presentation` do CI quando a quota voltar |
 | S10 | CI formal do GitHub nesta PR | BLOCKED | Quota de minutos do GitHub Actions esgotada até 01/10/2026 (jobs com `runner_id: 0`, sem passos). Reexecutar `validate`, `database`, `deploy-boundaries`, `presentation` sem alterações — ver [`GITHUB_ACTIONS_MINUTES.md`](GITHUB_ACTIONS_MINUTES.md) |
-| S11 | Papel administrativo mínimo para o operador financeiro | BLOCKED | Hoje o operador precisa de `app_metadata.arandu_role = 'operator'` para concluir o MFA, e esse papel também dá escrita no admin legado de arte (leads, reservas, propostas). Um papel `finance_ops` sem permissões legadas exige auditar cada rota administrativa antiga; ver CODE_PENDING na evidência |
+| S11 | Papel de plataforma `finance_ops`, isolado do admin legado | DONE | `finance_ops` + registro + `aal2` na API e no banco; fora de `ADMIN_ROLES`; 17/17 rotas legadas recusam; MFA no próprio console (`/api/finance/ops/mfa`). O papel `operator` legado não abre mais o console |
+| S12 | Convite vinculado ao e-mail do contato | DONE | `recipient_mode = exact_email` quando o provedor tem contato: só aceita a conta com esse e-mail confirmado; recusa com erro genérico e motivo interno em `fin_invite_acceptance_denials` |
+| S13 | `check:all` inclui governança e staging, sem recursão | DONE | `check:governance` e `check:staging` passam e fazem parte de `check:all`; guarda de recursão no checker |
+| S14 | `npm run finance:pilot:doctor` | DONE | Somente leitura, saída humana e `--json`, 9 categorias; ensaio: completo GO, incompleto NO-GO, chave trocada e bucket público UNSAFE |
+| S15 | CI mais barato sem reduzir cobertura | DONE | Jobs com navegador esperam o `deploy-boundaries` (cancelamento antes de gastar), cache dos navegadores, `psql` condicional, política de push em lote. Medição só a partir de 01/10 |
 
 ## ENVIRONMENT
 
@@ -34,9 +41,10 @@ Evidência completa desta rodada: [`FINANCIAL_RELEASE_EVIDENCE_2026-09-26.md`](F
 | --- | --- | --- | --- |
 | E1 | Demo pública sem login (projeto Vercel `arandu-demo`) | OWNER_ACTION_REQUIRED | Sem acesso à Vercel nesta sessão (`api.vercel.com` 403). Passo a passo em [Demo pública](#demo-pública). `npm run build:demo` gera o `dist` correto (verificado) |
 | E2 | Produção atual (`arandu-bice.vercel.app`) no ar, sem demo | DONE | `GET /` 200, `/api/health` 200, `/demo/index.html` 404, `/finance/ops.html` 200 |
-| E3 | Rotas de vários segmentos respondendo em produção | BLOCKED | Depende do merge desta PR e do deploy automático. Conferir: `curl -s https://arandu-bice.vercel.app/api/jobs/renewals` → `{"code":"cron_unauthorized"}` (e não a página `NOT_FOUND`) |
+| E3 | Rotas de vários segmentos respondendo em produção | DONE | Após o merge da #73: `/api/jobs/renewals` → 401 `cron_unauthorized`, `/api/finance/me` → 401, `/api/auth/session` → 200 |
+| E3b | Banco do deployment de produção sem as migrations | OWNER_ACTION_REQUIRED | Em produção, `/api/auth/login` e `/api/finance/*` respondem 503 `rate_limit_unavailable` (`consume_rate_limit` ausente) e o catálogo diz `catalog_migration_pending`. Aplicar `docs/supabase-migrations.json` no banco que esse deployment usa, ou apontá-lo para o Supabase do piloto; conferir com o doctor |
 | E4 | Projeto Supabase dedicado ao piloto | OWNER_ACTION_REQUIRED | Criar projeto (região São Paulo), sem dados de produção. Nenhuma credencial Supabase existe nesta sessão (`api.supabase.com` 401) |
-| E5 | Migrations aplicadas no piloto | OWNER_ACTION_REQUIRED | Aplicar os 33 arquivos de `docs/supabase-migrations.json` → `cleanInstall`, em ordem, pelo SQL Editor ou `psql`. **Ensaiado nesta rodada** no Postgres 15 da Supabase: 33/33 aplicam, as 13 financeiras reaplicam sem erro |
+| E5 | Migrations aplicadas no piloto | OWNER_ACTION_REQUIRED | Aplicar os 34 arquivos de `docs/supabase-migrations.json` → `cleanInstall`, em ordem (o último grava `schema_version = financial-final-hardening-1`, conferido pelo doctor). Ensaiado no Postgres 15 da Supabase |
 | E6 | Bucket `fin-documents` privado, 10 MB, 5 tipos | OWNER_ACTION_REQUIRED | A migration cria. Conferir no painel: Storage → `fin-documents` → *Public* desligado. Ensaiado: `public=false`, `10485760`, 5 MIME |
 | E7 | Variáveis do deployment do piloto | OWNER_ACTION_REQUIRED | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (Server-only), `CRON_SECRET` (`openssl rand -hex 32`), `ARANDU_SITE_URL`, `ARANDU_ENV=pilot`. Depois: `ARANDU_ENV=pilot npm run finance:env:check` |
 | E8 | Domínio / subdomínio do piloto | OWNER_ACTION_REQUIRED | Nenhum domínio foi comprado. Escolher, registrar e apontar DNS |
@@ -51,9 +59,9 @@ Evidência completa desta rodada: [`FINANCIAL_RELEASE_EVIDENCE_2026-09-26.md`](F
 | C1 | RLS em todas as tabelas `fin_*` | DONE | 32/32 com RLS no Postgres da Supabase; ataques diretos ao PostgREST com JWT de concorrente e de externo → 0 linhas |
 | C2 | Isolamento entre provedores (propostas, versões, rascunhos, comentários, respostas, menções, documentos, comparação, avisos, busca, exportação, revisões) | DONE | 46 ataques na jornada real, todos recusados ou vazios; 0 falhas |
 | C3 | Sequestro de convite por concorrente já vinculado | DONE | S3 |
-| C4 | Primeiro aceite de um provedor nunca vinculado depende só do token | OWNER_ACTION_REQUIRED | Token de uso único, com validade, revogável, entregue ao contato cadastrado. Se o link vazar antes do primeiro aceite, outra conta provedora pode ocupar a vaga (o comprador vê qual organização aceitou). Decidir: aceitar o risco no piloto ou exigir que o domínio do e-mail de quem aceita bata com o contato cadastrado |
+| C4 | Convite sem contato cadastrado (`organization_open`) | OWNER_ACTION_REQUIRED | Com contato, o convite exige o e-mail exato (S12). Sem contato, a API avisa o comprador de que qualquer conta provedora com o link aceita. Decidir: permitir no piloto ou exigir contato em todo provedor convidado |
 | C5 | Service role nunca no navegador; demo recusa segredos reais | DONE | `check:security`, `test-demo-mode.mjs`; build demo com `SUPABASE_SERVICE_ROLE_KEY`/`RESEND_API_KEY`/`CRON_SECRET` falha |
-| C6 | Console operacional: operador + MFA, sem dados de cliente | DONE | Ataques: admin de empresa (aal1) 403; operador sem MFA 403 `mfa_required`; admin de empresa com MFA sem registro de operador 403; operador com MFA 200, sem e-mail, valor, título ou comentário; acessos gravados em `fin_ops_access_log` |
+| C6 | Console operacional: `finance_ops` + MFA, sem dados de cliente | DONE | Ensaio: admin de empresa (aal1 e aal2), admin de provedor, externo e operador legado com MFA → 403 `finance_ops_required`; `finance_ops` sem MFA → 403 `mfa_required`; com MFA → 200, sem e-mail, valor, título ou comentário |
 | C7 | Cron só com segredo | DONE | Sem segredo 401, segredo errado 401, correto 200 (duas vezes, sem duplicar) |
 | C8 | Allowlist fail-closed | DONE | Vazia → comprador 403; parcial → provedor fora dela 403; externo 403 |
 | C9 | Proteção da branch `main` (status checks obrigatórios) | OWNER_ACTION_REQUIRED | API recusa pela integração (403). Settings → Branches → `main` → exigir `validate`, `database`, `deploy-boundaries`, `presentation` |
@@ -64,7 +72,7 @@ Evidência completa desta rodada: [`FINANCIAL_RELEASE_EVIDENCE_2026-09-26.md`](F
 | --- | --- | --- | --- |
 | O1 | Contas reais do piloto (comprador, aprovador, provedor, operador) | OWNER_ACTION_REQUIRED | Precisa do Supabase do piloto e dos e-mails autorizados. Procedimento em [Usuários do piloto](#usuários-do-piloto); ensaiado com contas `*.example` |
 | O2 | Allowlist preenchida | OWNER_ACTION_REQUIRED | SQL em [Usuários do piloto](#usuários-do-piloto) |
-| O3 | Primeiro operador (registro + papel + TOTP) | OWNER_ACTION_REQUIRED | Três passos em [Operador](#operador); o TOTP é cadastrado pelo próprio operador com `npm run finance:operator:mfa` |
+| O3 | Primeiro operador `finance_ops` (papel + registro + TOTP) | OWNER_ACTION_REQUIRED | Passos em [Operador](#operador); o TOTP é cadastrado pelo próprio operador com `npm run finance:operator:mfa` e confirmado no console |
 | O4 | Cron de renovação agendado | DONE | `vercel.json`: `/api/jobs/renewals` diário às 09:15 UTC. Só executa com `CRON_SECRET` (E7) |
 | O5 | E-mail de aviso ligado | OWNER_ACTION_REQUIRED | Depois de E9: `update public.fin_settings set value = 'true' where key = 'email_enabled';` (nasce `false`; ensaiado nos dois estados) |
 | O6 | Runbooks de suporte, incidentes e operação | DONE | `FINANCIAL_PILOT_OPERATIONS.md`, `FINANCIAL_PILOT_SUPPORT.md`, `FINANCIAL_PILOT_PLAYBOOK.md` |
@@ -137,18 +145,23 @@ insert into public.fin_pilot_allowlist (pattern, created_by, note) values
 
 ## Operador
 
-1. Conta no Supabase Auth (Authentication → Add user).
-2. Papel administrativo — SQL Editor:
+1. Conta no Supabase Auth (Authentication → Add user, e-mail confirmado).
+2. Papel de plataforma e registro — SQL Editor:
 
 ```sql
-update auth.users set raw_app_meta_data = raw_app_meta_data || '{"arandu_role":"operator"}'
+update auth.users set raw_app_meta_data = raw_app_meta_data || '{"arandu_role":"finance_ops"}'
  where email = 'operador@seu-dominio';
 insert into public.fin_platform_operators (user_id, granted_by)
 select id, 'aprovado por <nome>, <data>' from auth.users where email = 'operador@seu-dominio';
 ```
 
+   `finance_ops` não abre nenhuma tela do admin legado de arte. Um operador
+   antigo com `arandu_role = 'operator'` mantém o admin de arte e **não** abre o
+   console financeiro até receber `finance_ops`.
 3. O **próprio operador**, no terminal dele:
    `SUPABASE_URL=… SUPABASE_ANON_KEY=… npm run finance:operator:mfa` — pede
    e-mail e senha, mostra o segredo TOTP para o aplicativo autenticador e
    confirma o primeiro código.
-4. Entrar em `/admin-login.html`, confirmar o código e abrir `/finance/ops.html`.
+4. Entrar no Arandu, abrir `/finance/ops.html` e digitar o código do aplicativo
+   (o console pede o segundo fator na primeira abertura de cada sessão).
+5. Conferir: `ARANDU_ENV=pilot npm run finance:pilot:doctor` → `finance_ops com MFA` = 1.
