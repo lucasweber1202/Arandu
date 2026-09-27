@@ -14,6 +14,18 @@ O Arandu ainda está em fase de preparação operacional. Toda mudança deve pre
 4. Abra PR em modo draft enquanto houver testes ou evidências pendentes.
 5. Remova a branch remota depois do merge, salvo quando ela for uma base empilhada ainda ativa.
 
+## Push em lote (minutos do GitHub Actions)
+
+Cada push em uma branch com PR dispara os quatro jobs do CI. O push seguinte
+cancela o run anterior, mas cada job já iniciado cobra pelo menos um minuto: em
+setembro de 2026, 83 dos 100 runs mais recentes foram cancelados por pushes
+feitos commit a commit, e a quota mensal acabou (`docs/GITHUB_ACTIONS_MINUTES.md`).
+
+- rode a validação local abaixo **antes** de enviar;
+- agrupe os commits e faça **um push por lote validado**, não um por commit;
+- não use push para "ver se o CI passa" — reproduza a falha localmente;
+- não faça push vazio nem feche e reabra PR para disparar o CI.
+
 ## Validação mínima
 
 ```bash

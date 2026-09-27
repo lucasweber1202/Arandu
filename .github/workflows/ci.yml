@@ -39,15 +39,26 @@ jobs:
         with:
           node-version: 24
 
-      - name: Install PostgreSQL client
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      # A imagem ubuntu-latest costuma trazer o psql; instala só se faltar.
+      - name: PostgreSQL client
+        run: |
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update && sudo apt-get install -y postgresql-client
+          fi
+          psql --version
 
       - name: Clean install, upgrade, rollback, RLS and transaction tests
         env:
           ARANDU_DATABASE_TEST_URL: postgresql://postgres:postgres@localhost:5432/postgres
         run: npm run test:database
 
+  # Os dois jobs com navegadores (os mais caros) começam depois do
+  # deploy-boundaries (~1 min). Um push novo na mesma branch cancela o run antes
+  # de eles gastarem minutos; se o deploy-boundaries falhar, eles rodam mesmo
+  # assim (`!cancelled()`), então nenhum sinal de cobertura se perde.
   validate:
+    needs: deploy-boundaries
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
@@ -108,6 +119,21 @@ jobs:
       - name: Published financial surface and navigation
         run: npm run check:financial-surface && npm run check:financial-navigation
 
+      - name: Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      # Navegadores em cache por SO + versão do Playwright + lockfile. O passo de
+      # instalação roda sempre: com cache ele só confere os binários e instala as
+      # dependências do sistema; sem cache (ou binário faltando) baixa como antes.
+      - name: Restore Playwright browsers
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-
+
       - name: Install Chromium, Firefox and WebKit
         run: npx playwright install --with-deps chromium firefox webkit
 
@@ -153,6 +179,8 @@ jobs:
           retention-days: 7
 
   presentation:
+    needs: deploy-boundaries
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
@@ -171,6 +199,21 @@ jobs:
           cache: npm
       - name: Install
         run: npm ci --include=optional
+      - name: Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      # Navegadores em cache por SO + versão do Playwright + lockfile. O passo de
+      # instalação roda sempre: com cache ele só confere os binários e instala as
+      # dependências do sistema; sem cache (ou binário faltando) baixa como antes.
+      - name: Restore Playwright browsers
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-
+
       - name: Install browsers
         run: npx playwright install --with-deps chromium firefox webkit
       - name: Presentation journeys

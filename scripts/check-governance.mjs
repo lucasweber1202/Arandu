@@ -57,6 +57,18 @@ if (exists('package.json') && exists('package-lock.json')) {
   if (!String(packageJson.scripts?.['check:all'] || '').includes('check:governance')) {
     problems.push('package.json: check:all não executa check:governance.');
   }
+  // Hierarquia sem ciclo: check:all agrega; nenhum check agregado chama check:all
+  // de volta (direta ou indiretamente por outro script npm).
+  const scripts = packageJson.scripts || {};
+  const invoked = (name) => [...String(scripts[name] || '').matchAll(/npm run ([\w:-]+)/g)].map((match) => match[1]);
+  const reachesAll = (name, seen = new Set()) => {
+    if (seen.has(name)) return false;
+    seen.add(name);
+    return invoked(name).some((child) => child === 'check:all' || reachesAll(child, seen));
+  };
+  for (const child of invoked('check:all')) {
+    if (reachesAll(child)) problems.push(`package.json: ${child} chama check:all de volta (recursão).`);
+  }
   if (!packageJson.scripts?.['audit:ci']) {
     problems.push('package.json: script audit:ci ausente.');
   }
@@ -94,6 +106,24 @@ if (exists('.github/workflows/ci.yml')) {
   }
   if (!ci.includes('persist-credentials: false')) {
     problems.push('.github/workflows/ci.yml: checkout mantém credenciais sem necessidade.');
+  }
+  // Otimizar minutos não pode encolher a cobertura final: os dois jobs com
+  // navegador instalam os três motores e as duas configs têm os cinco projetos.
+  for (const job of ['validate', 'presentation', 'database', 'deploy-boundaries']) {
+    if (!new RegExp(`^  ${job}:`, 'm').test(ci)) problems.push(`.github/workflows/ci.yml: job ${job} ausente.`);
+  }
+  if ((ci.match(/npx playwright install --with-deps chromium firefox webkit/g) || []).length < 2) {
+    problems.push('.github/workflows/ci.yml: validate e presentation precisam instalar Chromium, Firefox e WebKit.');
+  }
+  if (/if:\s*steps\.[\w-]+\.outputs\.cache-hit/.test(ci)) {
+    problems.push('.github/workflows/ci.yml: a instalação dos navegadores não pode ser pulada por cache; ela confere os binários.');
+  }
+  if (/\|\|\s*true/.test(ci)) problems.push('.github/workflows/ci.yml: `|| true` mascara falha.');
+  for (const config of ['playwright.config.js', 'playwright.presentation.config.js']) {
+    const projects = exists(config) ? read(config) : '';
+    for (const name of ['chromium-desktop', 'firefox-desktop', 'webkit-desktop', 'mobile-chrome', 'mobile-safari']) {
+      if (!projects.includes(`name: '${name}'`)) problems.push(`${config}: projeto ${name} ausente.`);
+    }
   }
 }
 

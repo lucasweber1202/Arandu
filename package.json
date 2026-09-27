@@ -76,7 +76,7 @@
     "audit:ci": "npm audit --audit-level=high",
     "sbom:ci": "node scripts/create-sbom.mjs",
     "check:supply-chain": "node scripts/check-supply-chain.mjs",
-    "check:all": "npm run check:deploy-release-separation && npm run check:vercel-routing && npm run check:finance && node scripts/test-email-outbox.mjs && npm run check:migrations && npm run check:platform && npm run check:backend && npm run check:security && npm run check:env && npm run check:supply-chain",
+    "check:all": "npm run check:deploy-release-separation && npm run check:vercel-routing && npm run check:finance && node scripts/test-email-outbox.mjs && npm run check:migrations && npm run check:platform && npm run check:backend && npm run check:security && npm run check:env && npm run check:supply-chain && npm run check:governance && npm run check:staging",
     "release:status": "node scripts/release-status.mjs",
     "release:check": "node scripts/release-status.mjs --require-ready",
     "migrations:bundle": "node scripts/build-supabase-migration-bundle.mjs",
