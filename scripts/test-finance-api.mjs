@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { Readable } from 'node:stream';
 import { handleFinance } from '../lib/api/domains/finance.mjs';
 import { createDocumentStorage, downloadName, signedUrlTtl } from '../lib/finance/document-storage.mjs';
+import { createOpsMfa } from '../lib/finance/ops-access.mjs';
 
 // Testes de fronteira da API financeira. Nada aqui fala com o Supabase real:
 // o `fetch` é substituído para inspecionar exatamente o que sairia daqui.
@@ -291,6 +292,23 @@ await assert.rejects(
   }
 );
 
+// Recusa por destinatário ou vínculo chega como null do banco (a trilha fica só
+// no console operacional) e sai exatamente como um token inválido.
+let invalidMessage = null;
+await assert.rejects(() => call('POST', 'invites/accept', { body: { token: 'a'.repeat(64), provider_organization_id: PROVIDER_ORG } }),
+  (error) => { invalidMessage = error.message; return true; });
+reset((entry) => (entry.url.includes('fin_organizations') ? orgRow(PROVIDER_ORG, 'PROVIDER') : null));
+await assert.rejects(
+  () => call('POST', 'invites/accept', { body: { token: 'a'.repeat(64), provider_organization_id: PROVIDER_ORG } }),
+  (error) => {
+    assert.equal(error.status, 409);
+    assert.equal(error.code, 'invite_invalid');
+    assert.equal(error.message, invalidMessage, 'recusa por destinatário precisa ser indistinguível de token inválido');
+    assert.doesNotMatch(error.message, /@|organiza/i, 'erro externo não pode citar e-mail ou organização esperada');
+    return true;
+  }
+);
+
 reset((entry) => {
   if (entry.url.includes('fin_rfqs')) return [{ id: RFQ, organization_id: BUYER, product: 'credit', status: 'comparing', demand: {} }];
   const error = new Error('decision already recorded'); error.status = 400; throw error;
@@ -504,6 +522,15 @@ reset((entry) => {
 reset(() => []);
 await rejects('GET', 'approvals', { url: `/api/finance/approvals?organization_id=${OTHER_ORG}` }, 403);
 
+// Contato do provedor define quem pode aceitar o convite: formato conferido.
+reset((entry) => (entry.url.includes('fin_organizations') ? orgRow(BUYER, 'BUYER') : [{ id: 'p1' }]));
+await rejects('POST', 'providers', { body: { organization_id: BUYER, name: 'Banco X', kind: 'bank', contact_email: 'joao@' } }, 400);
+{
+  const res = await call('POST', 'providers', { body: { organization_id: BUYER, name: 'Banco X', kind: 'bank', contact_email: ' Joao@Banco.Example ' } });
+  assert.equal(res.statusCode, 201);
+  assert.equal(sent.at(-1).body.contact_email, 'joao@banco.example', 'contato normalizado');
+}
+
 /* Documentos privados: autorização no banco, assinatura curta no servidor, nada persistido. */
 {
   const DOC = '00000000-0000-4000-8000-0000000000a9';
@@ -575,22 +602,50 @@ await rejects('GET', 'approvals', { url: `/api/finance/approvals?organization_id
   assert.equal(signed.length, before, 'negado no banco não pode gerar URL assinada');
 }
 
-/* Console operacional: exige MFA antes de qualquer chamada. */
+/* Console operacional: papel de plataforma finance_ops + MFA antes de qualquer chamada. */
 {
-  const token = (aal) => `x.${Buffer.from(JSON.stringify({ sub: ACTOR, aal })).toString('base64url')}.y`;
-  const opsDeps = (aal) => ({ ...deps, requireUser: async () => ({ user: { id: ACTOR }, accessToken: token(aal), headers: {} }), env: { SUPABASE_URL: 'https://x', SUPABASE_ANON_KEY: 'k', CRON_SECRET: 'curto' } });
+  const token = (aal, role) => `x.${Buffer.from(JSON.stringify({ sub: ACTOR, aal, ...(role ? { app_metadata: { arandu_role: role } } : {}) })).toString('base64url')}.y`;
+  const opsDeps = (aal, role, extra = {}) => ({ ...deps, requireUser: async () => ({ user: { id: ACTOR }, accessToken: token(aal, role), headers: {} }), env: { SUPABASE_URL: 'https://x', SUPABASE_ANON_KEY: 'k', CRON_SECRET: 'curto' }, ...extra });
+  const opsRejects = async (aal, role, code) => assert.rejects(async () => { const res = response(); await handleFinance(request('GET', { url: '/api/finance/ops/overview' }), res, 'ops/overview', opsDeps(aal, role)); },
+    (error) => { assert.equal(error.status, 403); assert.equal(error.code, code, `${role || 'sem papel'}/${aal}`); return true; });
   reset(() => ({ jobs: [] }));
-  await assert.rejects(async () => { const res = response(); await handleFinance(request('GET', { url: '/api/finance/ops/overview' }), res, 'ops/overview', opsDeps('aal1')); },
-    (error) => error.status === 403 && error.code === 'mfa_required');
-  assert.equal(sent.length, 0, 'sem MFA nada chega ao banco');
+  await opsRejects('aal2', null, 'finance_ops_required');       // admin/gestor de empresa, com MFA
+  await opsRejects('aal2', 'operator', 'finance_ops_required'); // operador legado de arte, com MFA
+  await opsRejects('aal2', 'admin', 'finance_ops_required');    // admin legado de arte, com MFA
+  await opsRejects('aal1', 'finance_ops', 'mfa_required');      // finance_ops sem MFA
+  assert.equal(sent.length, 0, 'sem papel e MFA nada chega ao banco');
   const res = response();
-  await handleFinance(request('GET', { url: '/api/finance/ops/overview' }), res, 'ops/overview', opsDeps('aal2'));
+  await handleFinance(request('GET', { url: '/api/finance/ops/overview' }), res, 'ops/overview', opsDeps('aal2', 'finance_ops'));
   assert.equal(res.payload.health.cron_secret_configured, false);
   assert.equal(res.payload.health.server_key_configured, false);
   assert.doesNotMatch(JSON.stringify(res.payload.health), /curto|https:\/\/x/, 'saúde expõe só booleanos, nunca valores');
   assert.match(sent[0].url, /rpc\/fin_ops_overview$/);
+
+  // Segundo fator do finance_ops pelo próprio console (o login administrativo
+  // legado não aceita finance_ops).
+  const FACTOR = '00000000-0000-4000-8000-00000000fac7';
+  const CHALLENGE = '00000000-0000-4000-8000-00000000c4a1';
+  const authCalls = [];
+  const fakeAuth = async (url, init) => {
+    authCalls.push([String(url).replace('https://x/auth/v1/', ''), init.method]);
+    if (String(url).endsWith('/user')) return new Response(JSON.stringify({ factors: [{ id: FACTOR, factor_type: 'totp', status: 'verified' }] }), { status: 200 });
+    if (String(url).endsWith('/challenge')) return new Response(JSON.stringify({ id: CHALLENGE }), { status: 200 });
+    if (String(url).endsWith('/verify')) return new Response(JSON.stringify({ access_token: token('aal2', 'finance_ops'), refresh_token: 'r', expires_in: 3600 }), { status: 200 });
+    return new Response('{}', { status: 404 });
+  };
+  const opsMfa = createOpsMfa({ env: { SUPABASE_URL: 'https://x', SUPABASE_ANON_KEY: 'k' }, fetchImpl: fakeAuth });
+  const mfaCall = async (aal, role, body) => { const r = response(); await handleFinance(request('POST', { url: '/api/finance/ops/mfa', body }), r, 'ops/mfa', opsDeps(aal, role, { opsMfa })); return r; };
+  await assert.rejects(() => mfaCall('aal1', 'operator', { step: 'challenge' }), (error) => error.code === 'finance_ops_required');
+  assert.equal(authCalls.length, 0, 'papel errado não chega ao Supabase Auth');
+  const challenge = await mfaCall('aal1', 'finance_ops', { step: 'challenge' });
+  assert.deepEqual([challenge.payload.factor_id, challenge.payload.challenge_id], [FACTOR, CHALLENGE]);
+  await assert.rejects(() => mfaCall('aal1', 'finance_ops', { step: 'verify', factor_id: FACTOR, challenge_id: CHALLENGE, code: '12ab56' }), (error) => error.code === 'mfa_payload_invalid');
+  const verified = await mfaCall('aal1', 'finance_ops', { step: 'verify', factor_id: FACTOR, challenge_id: CHALLENGE, code: '123456' });
+  assert.equal(verified.payload.mfa_verified, true);
+  assert.match(verified.headers['Set-Cookie'], /^arandu_session=.+HttpOnly; SameSite=Lax; Secure/);
+  assert.doesNotMatch(JSON.stringify(verified.payload), /access_token|refresh/, 'tokens só no cookie HttpOnly');
 }
-console.log('Financial Procurement API: documentos privados (autorização antes da assinatura, limites, sem persistir URL) e console operacional com MFA aprovados.');
+console.log('Financial Procurement API: documentos privados (autorização antes da assinatura, limites, sem persistir URL) e console operacional só para finance_ops com MFA aprovados.');
 
 /* Storage: só caminhos gerados pelo banco, service role só no servidor, URLs curtas. */
 {

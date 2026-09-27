@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 // Cadastro do segundo fator (TOTP) de um operador da plataforma.
 //
-// O console operacional (/finance/ops.html) exige sessão `aal2`, e o login
-// administrativo só emite `aal2` para quem já tem um fator TOTP verificado. O
-// Arandu não tinha como cadastrar esse fator: esta ferramenta faz isso uma vez,
-// no terminal do próprio operador, com a chave pública (anon) do Supabase.
+// O console operacional (/finance/ops.html) exige o papel de plataforma
+// finance_ops e sessão `aal2`; o console pede o código TOTP, mas só depois de
+// existir um fator verificado. Esta ferramenta cadastra esse fator uma vez, no
+// terminal do próprio operador, com a chave pública (anon) do Supabase.
 //
 //   SUPABASE_URL=https://<projeto>.supabase.co SUPABASE_ANON_KEY=<anon> \
 //     npm run finance:operator:mfa
@@ -109,7 +109,7 @@ async function main() {
   const code = await ask('Código de 6 dígitos mostrado pelo aplicativo: ');
   const verified = await verifyTotp({ url, anonKey, accessToken: session.access_token, factorId: enrolled.factorId, code });
   if (jwtAal(verified.access_token) !== 'aal2') throw new Error('O Supabase não confirmou o segundo fator.');
-  console.log('Segundo fator confirmado (aal2). Entre por /admin-login.html e depois abra /finance/ops.html.');
+  console.log('Segundo fator confirmado (aal2). Entre no Arandu, abra /finance/ops.html e confirme o código do aplicativo.');
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

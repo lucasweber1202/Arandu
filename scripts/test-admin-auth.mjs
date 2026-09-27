@@ -80,6 +80,19 @@ try {
     (error) => error.status === 403 && error.code === 'admin_role_required'
   );
 
+  // finance_ops é papel de plataforma financeira: com MFA e tudo, não entra em
+  // nenhuma superfície administrativa legada, nem no desafio MFA legado.
+  global.fetch = async () => json(testAdminUser({ role: 'finance_ops' }));
+  await assert.rejects(
+    () => requireAdmin(request('GET', '/', undefined, { cookie: testAdminCookie() })),
+    (error) => error.status === 403 && error.code === 'admin_role_required'
+  );
+  const financeOpsReadiness = await call(readinessHandler, 'GET', '/api/readiness', undefined, { cookie: testAdminCookie() });
+  assert.equal(financeOpsReadiness.status, 403);
+  assert.equal(financeOpsReadiness.body.code, 'admin_role_required');
+  const financeOpsChallenge = await call(adminAuthHandler, 'POST', '/api/admin-auth?action=challenge', {}, { cookie: testAdminCookie() });
+  assert.equal(financeOpsChallenge.status, 403);
+
   global.fetch = async () => json(testAdminUser());
   await assert.rejects(
     () => requireAdmin(request('GET', '/', undefined, {
@@ -150,7 +163,7 @@ try {
   assert.match(verified.headers['set-cookie'], /HttpOnly/);
 
   console.log('Arandu Admin Auth Contract Tests');
-  console.log('11 cenários aprovados.');
+  console.log('12 cenários aprovados (inclui finance_ops recusado no admin legado).');
 } finally {
   global.fetch = originalFetch;
   restoreEnv('VERCEL_ENV', originalVercelEnv);

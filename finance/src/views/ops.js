@@ -24,14 +24,40 @@ function table(headers, rows, empty) {
   ]));
 }
 
+// Segundo fator do operador financeiro, no próprio console: o login
+// administrativo legado não aceita o papel finance_ops.
+function mfaForm(ctx) {
+  const code = el('input', { name: 'code', inputmode: 'numeric', autocomplete: 'one-time-code', pattern: '[0-9]{6}', maxlength: '6', required: true, class: 'input mono' });
+  const status = el('p', { class: 'field-hint', role: 'status', 'aria-live': 'polite' });
+  const form = el('form', { class: 'inline-form', novalidate: true });
+  form.append(field({ label: 'Código do aplicativo autenticador', control: code }), button('Confirmar', { type: 'submit', iconName: 'lock' }));
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (!/^[0-9]{6}$/.test(code.value.trim())) { status.textContent = 'Digite os 6 dígitos mostrados no aplicativo.'; code.focus(); return; }
+    status.textContent = 'Verificando…';
+    try {
+      const challenge = await ctx.api('ops/mfa', { method: 'POST', body: JSON.stringify({ step: 'challenge' }) });
+      await ctx.api('ops/mfa', { method: 'POST', body: JSON.stringify({ step: 'verify', factor_id: challenge.factor_id, challenge_id: challenge.challenge_id, code: code.value.trim() }) });
+      location.reload();
+    } catch (error) {
+      status.textContent = error.code === 'mfa_not_enrolled'
+        ? 'Esta conta ainda não tem aplicativo autenticador cadastrado. Cadastre com npm run finance:operator:mfa.'
+        : (error.message || 'Não foi possível confirmar o código.');
+      code.select();
+    }
+  });
+  return card({ title: 'Confirme o segundo fator', subtitle: 'O console operacional exige autenticação com dois fatores (MFA).', body: [form, status] });
+}
+
 export async function opsConsole(ctx) {
   ctx.header({ title: 'Console operacional' });
   let data;
   try {
     data = await ctx.api('ops/overview');
   } catch (error) {
-    if (error.code === 'mfa_required') {
-      return emptyState({ title: 'Confirme o segundo fator', text: 'O console operacional exige autenticação com dois fatores (MFA). Entre de novo e confirme o código do aplicativo autenticador.', iconName: 'lock' });
+    if (error.code === 'mfa_required') return mfaForm(ctx);
+    if (error.code === 'finance_ops_required') {
+      return emptyState({ title: 'Acesso restrito a operadores financeiros da plataforma', text: 'É preciso o papel de plataforma finance_ops. Papéis das empresas (administrador, gestor financeiro) e o operador do admin legado não dão acesso a este console.', iconName: 'shield' });
     }
     if (error.status === 403 || error.status === 401) {
       return emptyState({ title: 'Acesso restrito a operadores da plataforma', text: 'Esta área não faz parte do espaço das empresas. Papéis como administrador ou gestor financeiro não dão acesso a ela.', iconName: 'shield' });

@@ -210,7 +210,10 @@ function inviteForm(ctx, rfq) {
       if (ctx.mode === 'demo') {
         toast(`Convite simulado para ${name}. Nenhum e-mail foi enviado. Troque para “Provedor” no topo para responder como a Atlas.`, 'info');
       } else if (result.invitationToken) {
-        await confirmDialog({ title: 'Convite criado', confirmLabel: 'Pronto', description: 'Se o e-mail do provedor estiver cadastrado, o convite é enviado automaticamente. Você também pode entregar este link de uso único por um canal seguro:',
+        const description = result.recipient_mode === 'organization_open'
+          ? 'Este provedor não tem e-mail de contato cadastrado: qualquer conta provedora que receber este link poderá aceitá-lo. Entregue por um canal seguro — ou cadastre o contato e convide de novo para restringir ao e-mail dele:'
+          : 'Só a conta com o e-mail de contato cadastrado para este provedor pode aceitar. O convite é enviado a esse e-mail quando o envio estiver ligado; você também pode entregar este link de uso único por um canal seguro:';
+        await confirmDialog({ title: 'Convite criado', confirmLabel: 'Pronto', description,
           body: el('input', { class: 'input mono', readonly: true, value: `${location.origin}/provider/invite.html#token=${result.invitationToken}`, 'aria-label': 'Link de convite' }) });
       }
       ctx.reload();

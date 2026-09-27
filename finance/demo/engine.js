@@ -438,7 +438,7 @@ export function createDemoEngine({ storage, now = () => new Date(), latency = 0 
         }
       }
       state.data.simulated_emails.push({ template: 'provider_invite', provider: providerRow.name, created_at: nowIso(), sent: false });
-      return { ok: true, invitationToken: token, simulated_delivery: true };
+      return { ok: true, invitationToken: token, simulated_delivery: true, recipient_mode: providerRow.contact_email ? 'exact_email' : 'organization_open' };
     },
     'POST invites/accept': (state, { userId, body }) => {
       const token = clean(body.token);
