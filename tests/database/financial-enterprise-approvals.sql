@@ -20,10 +20,10 @@ insert into public.fin_providers(id,organization_id,name,kind,created_by) values
  'Banco approval DEMO','bank','00000000-0000-4000-8000-00000000ba01');
 insert into public.fin_organizations(id,legal_name,kind,created_by) values
 ('00000000-0000-4000-8000-00000000bb02','Provider approval DEMO','PROVIDER','00000000-0000-4000-8000-00000000ba01');
-insert into public.fin_rfq_invites(id,buyer_organization_id,rfq_id,provider_id,provider_organization_id,token_hash,created_by,status) values
+insert into public.fin_rfq_invites(id,buyer_organization_id,rfq_id,provider_id,provider_organization_id,token_hash,created_by,status,recipient_mode) values
 ('00000000-0000-4000-8000-00000000bb04','00000000-0000-4000-8000-00000000bb01',
  '00000000-0000-4000-8000-00000000bb11','00000000-0000-4000-8000-00000000bb03',
- '00000000-0000-4000-8000-00000000bb02',repeat('b',64),'00000000-0000-4000-8000-00000000ba01','accepted');
+ '00000000-0000-4000-8000-00000000bb02',repeat('b',64),'00000000-0000-4000-8000-00000000ba01','accepted','organization_open');
 insert into public.fin_proposals(id,invite_id,rfq_id,buyer_organization_id,provider_id,provider_organization_id,product,status,current_version) values
 ('00000000-0000-4000-8000-00000000bb12','00000000-0000-4000-8000-00000000bb04',
  '00000000-0000-4000-8000-00000000bb11','00000000-0000-4000-8000-00000000bb01',

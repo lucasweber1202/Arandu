@@ -16,9 +16,9 @@ on conflict do nothing;
 insert into public.fin_providers(id,organization_id,name,kind,created_by) values
 ('00000000-0000-4000-8000-0000000000e2','00000000-0000-4000-8000-00000000bb01','Provedor B cadastro DEMO','bank','00000000-0000-4000-8000-00000000ba01')
 on conflict do nothing;
-insert into public.fin_rfq_invites(id,buyer_organization_id,rfq_id,provider_id,provider_organization_id,token_hash,created_by,status) values
+insert into public.fin_rfq_invites(id,buyer_organization_id,rfq_id,provider_id,provider_organization_id,token_hash,created_by,status,recipient_mode) values
 ('00000000-0000-4000-8000-0000000000e3','00000000-0000-4000-8000-00000000bb01','00000000-0000-4000-8000-00000000bb11',
- '00000000-0000-4000-8000-0000000000e2','00000000-0000-4000-8000-0000000000e1',repeat('9',64),'00000000-0000-4000-8000-00000000ba01','accepted')
+ '00000000-0000-4000-8000-0000000000e2','00000000-0000-4000-8000-0000000000e1',repeat('9',64),'00000000-0000-4000-8000-00000000ba01','accepted','organization_open')
 on conflict do nothing;
 insert into public.fin_proposals(id,invite_id,rfq_id,buyer_organization_id,provider_id,provider_organization_id,product,status,current_version) values
 ('00000000-0000-4000-8000-0000000000e4','00000000-0000-4000-8000-0000000000e3','00000000-0000-4000-8000-00000000bb11',
@@ -339,6 +339,8 @@ begin
  if has_function_privilege('authenticated','public.fin_record_job_run(text,text,integer,text,text,timestamptz)','EXECUTE') then raise exception 'browser records job runs'; end if;
 end $$;
 select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-0000000000d2',false);
+-- Operador de plataforma: papel finance_ops no JWT (docs/supabase-financial-final-hardening.sql).
+select set_config('request.jwt.claim.app_metadata','{"arandu_role":"finance_ops"}',false);
 select set_config('request.jwt.claim.aal','aal1',false);
 do $$
 begin
@@ -371,4 +373,5 @@ begin
  if (select count(*) from public.fin_ops_access_log where user_id='00000000-0000-4000-8000-0000000000d2')<3 then raise exception 'ops access not audited'; end if;
 end $$;
 select set_config('request.jwt.claim.aal','',false);
+select set_config('request.jwt.claim.app_metadata','',false);
 \echo 'Provider-confidential comments, member identity, private versioned documents with cross-tenant denial and MFA-gated ops console validated.'

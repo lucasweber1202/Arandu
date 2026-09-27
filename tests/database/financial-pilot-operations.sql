@@ -39,11 +39,15 @@ insert into ib_tokens values
 -- B aceita o próprio convite; depois tenta ocupar também a vaga de A.
 select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-00000000f103',false);
 select public.fin_accept_provider_invite((select token from ib_tokens where key='b1'),'00000000-0000-4000-8000-00000000f203');
-do $$ begin
-  perform public.fin_accept_provider_invite((select token from ib_tokens where key='a1'),'00000000-0000-4000-8000-00000000f203');
-  raise exception 'provedor B ocupou a vaga de A na mesma RFQ';
-exception when others then
-  if sqlerrm <> 'invalid invitation' then raise; end if;
+-- Recusa devolve null (erro genérico na API) desde o hardening final; antes era exceção.
+do $$ declare v uuid; begin
+  begin
+    v := public.fin_accept_provider_invite((select token from ib_tokens where key='a1'),'00000000-0000-4000-8000-00000000f203');
+  exception when others then
+    if sqlerrm <> 'invalid invitation' then raise; end if;
+    v := null;
+  end;
+  if v is not null then raise exception 'provedor B ocupou a vaga de A na mesma RFQ'; end if;
 end $$;
 
 -- A continua podendo aceitar o próprio convite (não foi consumido pela tentativa).
@@ -52,11 +56,15 @@ select public.fin_accept_provider_invite((select token from ib_tokens where key=
 
 -- Em outra RFQ, o cadastro "Banco A" já é da conta A: B não o assume com o link.
 select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-00000000f103',false);
-do $$ begin
-  perform public.fin_accept_provider_invite((select token from ib_tokens where key='a2'),'00000000-0000-4000-8000-00000000f203');
-  raise exception 'provedor B assumiu o cadastro canônico de A';
-exception when others then
-  if sqlerrm <> 'invalid invitation' then raise; end if;
+-- Recusa devolve null (erro genérico na API) desde o hardening final; antes era exceção.
+do $$ declare v uuid; begin
+  begin
+    v := public.fin_accept_provider_invite((select token from ib_tokens where key='a2'),'00000000-0000-4000-8000-00000000f203');
+  exception when others then
+    if sqlerrm <> 'invalid invitation' then raise; end if;
+    v := null;
+  end;
+  if v is not null then raise exception 'provedor B assumiu o cadastro canônico de A'; end if;
 end $$;
 select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-00000000f102',false);
 select public.fin_accept_provider_invite((select token from ib_tokens where key='a2'),'00000000-0000-4000-8000-00000000f202');

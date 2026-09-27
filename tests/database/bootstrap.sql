@@ -18,6 +18,8 @@ create table if not exists auth.users (
   banned_until timestamptz,
   created_at timestamptz not null default now()
 );
+-- Como no Supabase: e-mail confirmado ou não. Contas de teste nascem confirmadas.
+alter table auth.users add column if not exists email_confirmed_at timestamptz default now();
 
 create or replace function auth.uid()
 returns uuid

@@ -14,10 +14,10 @@ insert into public.fin_rfqs(id,organization_id,product,title,owner_id,status) va
  '00000000-0000-4000-8000-00000000bc01','open');
 insert into public.fin_providers(id,organization_id,name,kind,created_by) values
 ('00000000-0000-4000-8000-00000000bc14','00000000-0000-4000-8000-00000000bc11','Draft Bank','bank','00000000-0000-4000-8000-00000000bc01');
-insert into public.fin_rfq_invites(id,buyer_organization_id,rfq_id,provider_id,provider_organization_id,token_hash,created_by,status) values
+insert into public.fin_rfq_invites(id,buyer_organization_id,rfq_id,provider_id,provider_organization_id,token_hash,created_by,status,recipient_mode) values
 ('00000000-0000-4000-8000-00000000bc15','00000000-0000-4000-8000-00000000bc11',
  '00000000-0000-4000-8000-00000000bc13','00000000-0000-4000-8000-00000000bc14',
- '00000000-0000-4000-8000-00000000bc12',repeat('c',64),'00000000-0000-4000-8000-00000000bc01','accepted');
+ '00000000-0000-4000-8000-00000000bc12',repeat('c',64),'00000000-0000-4000-8000-00000000bc01','accepted','organization_open');
 insert into public.fin_proposals(id,invite_id,rfq_id,buyer_organization_id,provider_id,provider_organization_id,product) values
 ('00000000-0000-4000-8000-00000000bc16','00000000-0000-4000-8000-00000000bc15',
  '00000000-0000-4000-8000-00000000bc13','00000000-0000-4000-8000-00000000bc11',
