@@ -40,7 +40,7 @@ concretos: o rollback do procurement financeiro remove tabelas; a allowlist é
 por instância; e dado de uma empresa real não pode conviver com dado de teste.
 
 Aplicar **todos** os arquivos de `docs/supabase-migrations.json` → `cleanInstall`,
-na ordem (34 arquivos; o último é `docs/supabase-financial-final-hardening.sql`).
+na ordem (35 arquivos; o último é `docs/supabase-financial-pilot-surface-hardening.sql`).
 Depois, `ARANDU_ENV=pilot npm run finance:pilot:doctor` confere banco, Storage, Auth,
 allowlist, operador, e-mail, cron e a API publicada, somente lendo.
 A sequência foi ensaiada no Postgres 15 da Supabase com `npm run pilot:local:up`.
@@ -88,33 +88,38 @@ empresa acreditar que o convite saiu.
 
 ## Backups
 
-**Não executei nenhum teste de restore, e não há RPO/RTO medido.** O que segue é
-procedimento, não evidência.
-
-O Supabase oferece backup automático conforme o plano do projeto. Para o piloto:
-
-1. confirmar, no painel do projeto, que o backup automático está ativo e qual é
-   a frequência real do plano contratado;
-2. antes de qualquer migration ou rollback, exportar as tabelas financeiras:
+O Supabase faz backup automático conforme o plano; confirme no painel que está
+ativo e qual é a frequência real. Isso restaura o projeto inteiro. Para provar
+recuperação **fora** do projeto — e medir o tempo — existe o ensaio:
 
 ```bash
-pg_dump "$PILOT_DATABASE_URL" \
-  --table='public.fin_*' --data-only --column-inserts \
-  > backup-finance-$(date +%Y%m%d-%H%M).sql
+PILOT_SOURCE_DATABASE_URL='<string de conexão do painel, papel postgres>' npm run pilot:restore:drill
 ```
 
-3. testar o restore **em um banco vazio**, não no do piloto, e registrar o
-   tempo que levou. Só depois desse teste existe RTO; antes dele, qualquer
-   número seria invenção.
+Somente leitura na origem. Faz backup lógico (schema `public` com dados e
+grants, `auth.users`/`auth.identities` e `storage.buckets`), sobe um Postgres
+da Supabase novo com as migrations de Auth e Storage, restaura e compara origem
+e destino: fingerprint do schema, linhas de cada `fin_*`, funções, gatilhos
+(inclusive os de `auth.users`), políticas, constraints, grants de
+anon/authenticated, RLS, bucket e `schema_version`. Depois roda o canário de
+isolamento (`npm run pilot:canary`) no banco restaurado. O backup, que contém
+e-mails, fica num diretório temporário `0700` apagado no fim; o relatório
+`reports/pilot-restore-drill.json` tem só tempos, hashes e contagens.
 
-Tabelas que importam: `fin_organizations`, `fin_members`,
-`fin_company_profiles`, `fin_providers`, `fin_rfqs`, `fin_rfq_invites`,
-`fin_proposals`, `fin_proposal_versions`, `fin_decisions`, `fin_contracts`,
-`fin_documents`, `fin_tasks`, `fin_events`, `fin_terms_acceptances`.
+Ensaio de 28/09/2026 contra o piloto local (Postgres 15 da Supabase, jornada
+completa executada, 8 contas, 35 migrations): **24/24 comparações iguais**,
+backup 0,6 s, destino novo 6,2 s, restore 1,8 s, probes + canário < 1 s.
 
-As três últimas linhas de defesa são independentes: backup do Supabase, export
-manual antes de operação de risco, e o fato de que decisões e versões de
-proposta são append-only.
+**Armadilha que o ensaio achou:** `pg_restore` direto num projeto Supabase novo
+reabre a `anon` **todas** as funções de `public` — inclusive as internas
+SECURITY DEFINER (retenção, fila de e-mail, idempotência). Os default privileges
+do projeto concedem na criação e o `pg_dump` não grava "anon sem EXECUTE". O
+ensaio suspende os default privileges durante o restore e os devolve no fim;
+também recria o gatilho de `auth.users`, que não está no dump de `public`.
+Qualquer restore manual precisa fazer o mesmo — use o script.
+
+RTO medido só vale para o tamanho de banco ensaiado; repita contra o piloto real
+e registre o tempo na #25.
 
 ## Logs e monitoramento de erro
 

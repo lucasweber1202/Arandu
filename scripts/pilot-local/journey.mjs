@@ -15,6 +15,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import { enrollTotp, verifyTotp, totpCode, jwtAal } from '../finance-operator-mfa.mjs';
 import { renderTransactionalEmail } from '../../lib/email.mjs';
+import { EXPECTED_SCHEMA_VERSION } from '../../lib/finance/pilot-doctor.mjs';
 
 const APP = process.env.PILOT_APP_URL || 'https://localhost:4443';
 const DB = process.env.PILOT_DB_URL;
@@ -439,6 +440,27 @@ await attack('PostgREST direto com JWT externo: fin_rfqs / fin_proposal_versions
   const a = await rest(O, 'fin_rfqs?select=id'); const b = await rest(O, 'fin_proposal_versions?select=proposal_id');
   return { ok: a.rows?.length === 0 && b.rows?.length === 0, observed: `rfqs=${a.rows?.length}, versions=${b.rows?.length}` };
 });
+async function rpc(who, name, body) {
+  const headers = { apikey: ANON, 'Content-Type': 'application/json' };
+  if (who) headers.Authorization = `Bearer ${accessToken(who)}`;
+  const response = await fetch(`${SB}/rest/v1/rpc/${name}`, { method: 'POST', headers, body: JSON.stringify(body) });
+  return { status: response.status, data: await response.json().catch(() => null) };
+}
+// Auxiliares internas expostas pelos default privileges do Supabase
+// (docs/supabase-financial-pilot-surface-hardening.sql).
+await attack('Externo pergunta à allowlist se um domínio participa do piloto', 'recusado (42501)', async () => {
+  const r = await rpc(O, 'fin_pilot_access_allowed', { p_email: people.buyer.email });
+  return { ok: r.status >= 400 && r.data?.code === '42501', observed: `${r.status} ${r.data?.code || JSON.stringify(r.data)}` };
+});
+await attack('Externo descobre a organização dona da RFQ pelo UUID', 'recusado (42501)', async () => {
+  const r = await rpc(O, 'fin_comment_object_org', { p_type: 'rfq', p_id: ctx.rfq });
+  return { ok: r.status >= 400 && r.data?.code === '42501', observed: `${r.status} ${r.data?.code || JSON.stringify(r.data)}` };
+});
+await attack('Anônimo chama RPC financeira e lê view legada de arte', 'recusado', async () => {
+  const a = await rpc(null, 'fin_create_organization', { p_name: 'Anon', p_kind: 'BUYER', p_country: 'BR' });
+  const v = await fetch(`${SB}/rest/v1/v_commercial_pipeline?select=*`, { headers: { apikey: ANON } });
+  return { ok: a.status >= 400 && v.status >= 400, observed: `rpc ${a.status} ${a.data?.code || ''}; view ${v.status}` };
+});
 await attack('Storage direto com JWT de A (objeto do bucket privado)', 'recusado', async () => {
   const path = sql(`select storage_path from public.fin_document_versions where document_id = '${ctx.docShared}' and version = 1`);
   const r = await fetch(`${SB}/storage/v1/object/fin-documents/${path}`, { headers: { apikey: ANON, Authorization: `Bearer ${accessToken(people.providerA)}` } });
@@ -551,19 +573,19 @@ await attack('Admin de empresa com MFA (aal2), sem papel finance_ops', '403 fina
   const mfa = await api(elevated, 'POST', '/api/finance/ops/mfa', { step: 'challenge' });
   return { ok: jwtAal(session.access_token) === 'aal2' && r.status === 403 && r.data?.code === 'finance_ops_required' && mfa.status === 403, observed: `aal=${jwtAal(session.access_token)}; console ${show(r)}; MFA do console ${show(mfa)}` };
 });
-await attack('Operador legado (arandu_role=operator) com MFA e registro antigo abre o console', '403 finance_ops_required; admin legado intacto', async () => {
+await attack('Operador legado (arandu_role=operator) com MFA e registro antigo abre o console', '403 finance_ops_required; admin legado fechado no piloto (404)', async () => {
   const enrolled = await enrollTotp({ url: SB, anonKey: ANON, accessToken: accessToken(people.legacyOperator) });
-  await verifyTotp({ url: SB, anonKey: ANON, accessToken: accessToken(people.legacyOperator), factorId: enrolled.factorId, code: totpCode(enrolled.secret) });
-  const challenge = ok(await api(people.legacyOperator, 'POST', '/api/admin-auth?action=challenge', {}), 'desafio legado');
-  ok(await api(people.legacyOperator, 'POST', '/api/admin-auth?action=verify', { factorId: challenge.factorId, challengeId: challenge.challengeId, code: totpCode(enrolled.secret) }), 'verificar legado');
+  const session = await verifyTotp({ url: SB, anonKey: ANON, accessToken: accessToken(people.legacyOperator), factorId: enrolled.factorId, code: totpCode(enrolled.secret) });
+  people.legacyOperator.cookie = sessionCookie(session);
   const legacySession = await api(people.legacyOperator, 'GET', '/api/admin-auth?action=session');
   const r = await api(people.legacyOperator, 'GET', '/api/finance/ops/overview');
-  return { ok: jwtAal(accessToken(people.legacyOperator)) === 'aal2' && legacySession.status === 200 && r.status === 403 && r.data?.code === 'finance_ops_required',
-    observed: `admin legado ${legacySession.status} (role ${legacySession.data?.actor?.role}); console ${show(r)}` };
+  return { ok: jwtAal(accessToken(people.legacyOperator)) === 'aal2' && legacySession.status === 404 && legacySession.data?.code === 'legacy_surface_closed'
+      && r.status === 403 && r.data?.code === 'finance_ops_required',
+    observed: `admin legado ${show(legacySession)}; console ${show(r)}` };
 });
-await attack('finance_ops tenta o MFA do admin legado', '403 admin_role_required', async () => {
+await attack('finance_ops tenta o MFA do admin legado', '404 legacy_surface_closed', async () => {
   const r = await api(people.operator, 'POST', '/api/admin-auth?action=challenge', {});
-  return { ok: r.status === 403 && r.data?.code === 'admin_role_required', observed: show(r) };
+  return { ok: r.status === 404 && r.data?.code === 'legacy_surface_closed', observed: show(r) };
 });
 await step('finance_ops: cadastra TOTP (npm run finance:operator:mfa), confirma no próprio console e abre o console', async () => {
   const enrolled = await enrollTotp({ url: SB, anonKey: ANON, accessToken: accessToken(people.operator) });
@@ -578,24 +600,28 @@ await step('finance_ops: cadastra TOTP (npm run finance:operator:mfa), confirma 
   const overview = ok(await api(people.operator, 'GET', '/api/finance/ops/overview'), 'console');
   const text = JSON.stringify(overview);
   for (const forbidden of ['@', '3000000', '1.52', '1.39', 'Banco A', 'Banco B', 'Capital de giro', 'Parecer', 'aval', 'teto']) must(!text.includes(forbidden), `console expõe "${forbidden}"`);
-  must(overview.overview.schema_version === 'financial-final-hardening-1', `schema ${overview.overview.schema_version}`);
+  must(overview.overview.schema_version === EXPECTED_SCHEMA_VERSION, `schema ${overview.overview.schema_version}`);
   const trace = ok(await api(people.operator, 'GET', `/api/finance/ops/trace?entity_id=${ctx.rfq}`), 'rastreio');
   const denials = trace.trace.invite_denials || [];
   must(denials.length >= 2 && !JSON.stringify(trace).includes('@') && !JSON.stringify(trace).includes('Capital de giro'), 'rastreio sem recusas ou com dado de cliente');
   const logged = Number(sql(`select count(*) from public.fin_ops_access_log where user_id = '${people.operator.id}'`));
   return `código errado recusado (401); overview sem e-mail/valor/título; recusas de convite no rastreio (${denials.map((row) => row.reason).join(', ')}); ${logged} acessos auditados`;
 });
-await attack(`finance_ops com MFA nas ${LEGACY_ADMIN.length} rotas do admin legado de arte`, '403 admin_role_required em todas', async () => {
+await attack(`finance_ops com MFA nas ${LEGACY_ADMIN.length} rotas legadas de arte`, '404 legacy_surface_closed em todas (ARANDU_ENV=pilot)', async () => {
   const results = [];
   for (const [method, path] of LEGACY_ADMIN) {
     const r = await api(people.operator, method, path, method === 'POST' ? {} : undefined);
-    // internal-page responde texto (é uma página), não JSON: mesma mensagem do admin_role_required.
-    const code = r.data?.code || (r.data?.raw === 'Esta conta não possui papel administrativo.' ? 'admin_role_required' : undefined);
-    results.push([path, r.status, code]);
+    results.push([path, r.status, r.data?.code]);
   }
-  const open = results.filter(([, status, code]) => !(status === 403 && code === 'admin_role_required'));
+  const open = results.filter(([, status, code]) => !(status === 404 && code === 'legacy_surface_closed'));
   return { ok: jwtAal(accessToken(people.operator)) === 'aal2' && open.length === 0,
-    observed: open.length ? `abertas/inesperadas: ${open.map(([path, status, code]) => `${path} ${status} ${code}`).join('; ')}` : `${results.length}/${results.length} recusadas com admin_role_required` };
+    observed: open.length ? `abertas/inesperadas: ${open.map(([path, status, code]) => `${path} ${status} ${code}`).join('; ')}` : `${results.length}/${results.length} fechadas` };
+});
+await attack('Anônimo grava lead pelo formulário legado de arte no banco do piloto', '404; nenhuma linha em leads', async () => {
+  const before = Number(sql('select count(*) from public.leads'));
+  const r = await api(null, 'POST', '/api/forms', { type: 'contact', name: 'Spam', email: `spam.${RUN}@example.invalid`, message: 'x', consent: true });
+  const after = Number(sql('select count(*) from public.leads'));
+  return { ok: r.status === 404 && after === before, observed: `${show(r)}; leads ${before}->${after}` };
 });
 
 // ----------------------------------------------------------------- relatório

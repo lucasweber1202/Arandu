@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { applyApiSecurityHeaders } from '../lib/http-security.mjs';
 import { hasSupabaseAccess, userSupabaseRequest } from '../lib/supabase.mjs';
+import { legacyArtSurfaceClosed, rejectLegacyArtRoute } from '../lib/legacy-surface.mjs';
 
 const COOKIE_NAME = 'arandu_session';
 const MAX_AGE = 60 * 60 * 24 * 7;
@@ -159,6 +160,7 @@ function safeOrder(record) {
 }
 
 export default async function handler(req, res) {
+  if (legacyArtSurfaceClosed()) return rejectLegacyArtRoute(res);
   const requestId = safeRequestId(req.headers?.['x-request-id']);
   res.setHeader('X-Request-ID', requestId);
   try {

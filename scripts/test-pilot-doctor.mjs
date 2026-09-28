@@ -6,6 +6,7 @@ import { runDoctor, formatDoctor, EXPECTED_SCHEMA_VERSION, REQUIRED_TABLES, REQU
 import { DOCUMENT_MIME_TYPES } from '../lib/finance/document-storage.mjs';
 
 const jwt = (role) => `eyJhbGciOiJIUzI1NiJ9.${Buffer.from(JSON.stringify({ role, iss: 'supabase' })).toString('base64url')}.assinatura-${role}-0123456789`;
+const jwtRef = (role, ref) => `eyJhbGciOiJIUzI1NiJ9.${Buffer.from(JSON.stringify({ role, iss: 'supabase', ref })).toString('base64url')}.assinatura-${role}-${ref}-0123456789`;
 const ANON = jwt('anon');
 const SERVICE = jwt('service_role');
 const CRON = 'c'.repeat(24) + 'segredo-do-cron-0123456789abcdef';
@@ -20,7 +21,7 @@ function fakeSupabase(overrides = {}) {
   const methods = [];
   const state = {
     bucketPublic: false, autoconfirm: false, allowlist: 3, anonLeak: false, schema: EXPECTED_SCHEMA_VERSION, missingRpc: null,
-    productsStatus: 200, renewalsStatus: 401,
+    productsStatus: 200, renewalsStatus: 401, anonRpcs: ['fin_document_mime_allowed', 'fin_jwt_aal'], anonRelations: ['artists'], legacyOpen: false,
     users: [
       { id: 'u-ops', email: 'ops@example.invalid', app_metadata: { arandu_role: 'finance_ops' }, factors: [{ factor_type: 'totp', status: 'verified' }] },
       { id: 'u-buyer', email: 'comprador@example.invalid', app_metadata: {}, factors: [] }
@@ -34,8 +35,13 @@ function fakeSupabase(overrides = {}) {
     const key = init.headers?.apikey;
     if (u.hostname === 'piloto.example.com') {
       if (u.pathname === '/api/health') return reply({ ok: true, status: 'alive' });
-      if (u.pathname === '/api/finance/products') return reply(state.productsStatus === 200 ? { ok: true } : { ok: false, code: 'rate_limit_unavailable' }, state.productsStatus);
+      if (u.pathname === '/api/finance/products') return reply(state.productsStatus === 200 ? { ok: true } : { ok: false, code: 'rate_limit_unavailable' }, state.productsStatus, { 'x-request-id': 'b1c2d3e4-0000-4000-8000-000000000001' });
+      if (u.pathname === '/api/forms') return state.legacyOpen ? reply({ ok: false, error: 'Método não permitido.' }, 405) : reply({ ok: false, code: 'legacy_surface_closed' }, 404);
       if (u.pathname === '/api/jobs/renewals') return reply({ ok: false, code: state.renewalsStatus === 401 ? 'cron_unauthorized' : 'x' }, state.renewalsStatus);
+    }
+    if (u.pathname === '/rest/v1/' && key === ANON) {
+      return reply({ definitions: Object.fromEntries(state.anonRelations.map((name) => [name, {}])),
+        paths: Object.fromEntries(state.anonRpcs.map((rpc) => [`/rpc/${rpc}`, {}])) });
     }
     if (u.pathname === '/rest/v1/') {
       return reply({ definitions: Object.fromEntries(REQUIRED_TABLES.map((table) => [table, {}])),
@@ -100,6 +106,10 @@ assert.equal((await doctor(baseEnv, { missingRpc: 'consume_rate_limit' })).exit_
 assert.equal((await doctor(baseEnv, { productsStatus: 503 })).exit_code, 1, 'API financeira em 503 bloqueia');
 assert.equal((await doctor(baseEnv, { renewalsStatus: 404 })).exit_code, 1, 'rota do cron sem chegar à função bloqueia');
 assert.equal((await doctor({ ...baseEnv, ARANDU_ENV: 'production' })).exit_code, 1);
+assert.equal((await doctor(baseEnv, { legacyOpen: true })).exit_code, 1, 'rotas legadas de arte abertas no piloto bloqueiam');
+assert.equal(levelOf(await doctor({ ...baseEnv, SUPABASE_URL: 'https://proj.supabase.co', SUPABASE_ANON_KEY: jwtRef('anon', 'proj'), SUPABASE_SERVICE_ROLE_KEY: jwtRef('service_role', 'proj') }), 'chaves do mesmo projeto'), 'OK');
+assert.equal(levelOf(complete, 'identificador de requisição'), 'OK');
+assert.equal(levelOf(complete, 'RPCs executáveis pela chave pública'), 'OK');
 const emailOn = await doctor(baseEnv, { emailEnabled: true });
 assert.equal(levelOf(emailOn, 'provedor'), 'ERROR', 'email_enabled=true sem provedor deixa avisos presos na fila');
 assert.equal(emailOn.exit_code, 1);
@@ -113,7 +123,11 @@ const unsafeCases = [
   [baseEnv, { bucketPublic: true }, 'bucket privado'],
   [baseEnv, { autoconfirm: true }, 'confirmação de e-mail'],
   [baseEnv, { anonLeak: true }, 'RLS/grants contra a chave pública'],
-  [{ ...partial, SUPABASE_ANON_KEY: SERVICE }, {}, 'chave pública é anon']
+  [{ ...partial, SUPABASE_ANON_KEY: SERVICE }, {}, 'chave pública é anon'],
+  [{ ...baseEnv, SUPABASE_URL: 'https://igacnfjeuqhxcmfyepgj.supabase.co' }, {}, 'projeto Supabase do piloto'],
+  [{ ...baseEnv, SUPABASE_ANON_KEY: jwtRef('anon', 'outroprojeto') }, {}, 'chaves do mesmo projeto'],
+  [baseEnv, { anonRpcs: ['fin_document_mime_allowed', 'fin_jwt_aal', 'fin_pilot_access_allowed', 'execute_data_retention'] }, 'RPCs executáveis pela chave pública'],
+  [baseEnv, { anonRelations: ['artists', 'v_commercial_pipeline'] }, 'tabelas financeiras e views legadas fora da chave pública']
 ];
 for (const [env, overrides, name] of unsafeCases) {
   const report = await doctor(env, overrides);

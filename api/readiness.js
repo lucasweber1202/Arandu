@@ -5,6 +5,7 @@ import { applyApiSecurityHeaders } from '../lib/http-security.mjs';
 import { enforceSensitiveRateLimit } from '../lib/rate-limit.mjs';
 import { inspectCommercialPolicy } from '../lib/commercial-policy.mjs';
 import { inspectEmailConfiguration } from '../lib/email.mjs';
+import { legacyArtSurfaceClosed, rejectLegacyArtRoute } from '../lib/legacy-surface.mjs';
 
 const PROBE_TIMEOUT_MS = 6000;
 const REQUIRED_TABLES = [
@@ -121,6 +122,7 @@ function json(res, status, payload, headers = {}) {
 }
 
 export default async function handler(req, res) {
+  if (legacyArtSurfaceClosed()) return rejectLegacyArtRoute(res);
   const requestId = clean(req.headers?.['x-request-id']).slice(0, 80) || randomUUID();
   res.setHeader('X-Request-ID', requestId);
   try {

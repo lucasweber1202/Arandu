@@ -75,7 +75,7 @@ begin
     raise exception using message = 'Evento transacional inválido.', errcode = '22023';
   end if;
 
-  v_hash := encode(digest(v_email, 'sha256'), 'hex');
+  v_hash := encode(sha256(convert_to(v_email, 'UTF8')), 'hex');
 
   insert into public.transactional_email_outbox (
     event_type, entity_type, entity_id, template,

@@ -5,6 +5,7 @@ import { requireCommercialPolicy } from '../lib/commercial-policy.mjs';
 import { reportError } from '../lib/observability.mjs';
 import { applyApiSecurityHeaders, crossOriginRejection } from '../lib/http-security.mjs';
 import { enforceSensitiveRateLimit } from '../lib/rate-limit.mjs';
+import { legacyArtSurfaceClosed, rejectLegacyArtRoute } from '../lib/legacy-surface.mjs';
 import {
   adminSupabaseRequest,
   adminSupabaseRpc,
@@ -190,6 +191,7 @@ async function updateRecord(req, res, admin, requestId) {
 }
 
 export default async function handler(req, res) {
+  if (legacyArtSurfaceClosed()) return rejectLegacyArtRoute(res);
   const requestId = limited(req.headers?.['x-request-id'], 80) || randomUUID();
   res.setHeader('X-Request-ID', requestId);
   try {

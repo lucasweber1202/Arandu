@@ -6,6 +6,7 @@ import { INTERNAL_PAGE_SET, permissionForInternalPage } from '../lib/internal-pa
 import { presentationModeEnabled, withPresentationAssets } from '../lib/presentation-mode.mjs';
 import { applyOwnerConsole, renderConsole } from '../lib/owner-console.mjs';
 import { escapeHtml as escapeDocHtml, isSafeDocName, renderDoc, renderDocIndex } from '../lib/owner-docs.mjs';
+import { legacyArtSurfaceClosed, rejectLegacyArtRoute } from '../lib/legacy-surface.mjs';
 
 const PRESENTATION_PAGES = new Set(['demo.html', 'admin-preview.html']);
 const CONSOLE_ASSETS = '<link rel="stylesheet" href="/css/arandu-admin.css?v=20260825-console-1">';
@@ -51,6 +52,7 @@ function redirectToLogin(res, target) {
 }
 
 export default async function handler(req, res) {
+  if (legacyArtSurfaceClosed()) return rejectLegacyArtRoute(res);
   const page = pageName(req);
   const doc = docName(req);
   if (req.method !== 'GET') {

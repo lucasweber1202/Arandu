@@ -1,4 +1,5 @@
 import { applyApiSecurityHeaders } from '../lib/http-security.mjs';
+import { legacyArtSurfaceClosed, rejectLegacyArtRoute } from '../lib/legacy-surface.mjs';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
@@ -75,6 +76,7 @@ async function requireCatalogReadiness() {
 }
 
 export default async function handler(req, res) {
+  if (legacyArtSurfaceClosed()) return rejectLegacyArtRoute(res);
   try {
     if (req.method !== 'GET') return json(res, 405, { ok: false, error: 'Método não permitido.' });
     const readiness = await requireCatalogReadiness();
