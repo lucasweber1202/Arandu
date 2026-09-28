@@ -3,6 +3,7 @@ import { AdminAuthError, applyAdminResponseHeaders, requireAdmin } from '../lib/
 import { requireAdminPermission } from '../lib/admin-rbac.mjs';
 import { applyApiSecurityHeaders, crossOriginRejection } from '../lib/http-security.mjs';
 import { enforceSensitiveRateLimit } from '../lib/rate-limit.mjs';
+import { legacyArtSurfaceClosed, rejectLegacyArtRoute } from '../lib/legacy-surface.mjs';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -135,6 +136,7 @@ async function insertMedia(record) {
 }
 
 export default async function handler(req, res) {
+  if (legacyArtSurfaceClosed()) return rejectLegacyArtRoute(res);
   try {
     const rejection = crossOriginRejection(req);
     if (rejection) return json(res, rejection.status, { ok: false, error: rejection.error, code: rejection.code });

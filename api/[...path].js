@@ -34,6 +34,7 @@ import {
 import { requireCommercialPolicy } from '../lib/commercial-policy.mjs';
 import { reportError } from '../lib/observability.mjs';
 import { crossOriginRejection } from '../lib/http-security.mjs';
+import { legacyArtSurfaceClosed, pilotRouteAllowed, rejectLegacyArtRoute } from '../lib/legacy-surface.mjs';
 import {
   HttpError,
   clean,
@@ -394,6 +395,7 @@ export default async function handler(req, res) {
   try {
     enforceSameOrigin(req);
     const route = routeFrom(req);
+    if (legacyArtSurfaceClosed() && !pilotRouteAllowed(route)) return rejectLegacyArtRoute(res);
     if (route === 'security-contact') return await handleSecurityText(req, res);
     // Procurement financeiro B2B: domínio próprio, com sessão de usuário e
     // isolamento multi-tenant garantidos pelo RLS do Supabase.

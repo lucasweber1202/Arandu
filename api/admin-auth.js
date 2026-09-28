@@ -8,6 +8,7 @@ import {
 } from '../lib/admin-auth.mjs';
 import { applyApiSecurityHeaders, crossOriginRejection } from '../lib/http-security.mjs';
 import { enforceSensitiveRateLimit } from '../lib/rate-limit.mjs';
+import { legacyArtSurfaceClosed, rejectLegacyArtRoute } from '../lib/legacy-surface.mjs';
 
 const MAX_BODY_BYTES = 16 * 1024;
 
@@ -36,6 +37,7 @@ async function readBody(req) {
 }
 
 export default async function handler(req, res) {
+  if (legacyArtSurfaceClosed()) return rejectLegacyArtRoute(res);
   const requestId = String(req.headers?.['x-request-id'] || randomUUID()).slice(0, 80);
   res.setHeader('X-Request-ID', requestId);
   try {
