@@ -80,3 +80,13 @@ restore 1,8 s; probes 0,7 s; canário 0,1 s.
 | Erro canário por request ID | PASS (local) | 503 `upstream_unavailable` com o mesmo `requestId` na resposta e no log estruturado |
 | Vite 8.3.1 (#77) | PASS | `dist/` byte-idêntico ao 8.3.0 (56 arquivos), `check:all`, audit 0 |
 | CI remoto | QUOTA_BLOCKED | jobs terminam em 1–3 s sem steps (runner não inicia) |
+
+## Reconciliação pós-merge (`main` = `1bab2b0`: #78 → #76 → #77)
+
+- O merge tardio da #76 trouxe de volta `docs/supabase-financial-pilot-advisor-hardening.sql`, fora do manifesto. Os 6 comandos dele estão contidos em `docs/supabase-financial-pilot-surface-hardening.sql`, e nenhum teste, script ou runbook o referenciava. O arquivo foi removido. `check:migrations` agora recusa SQL em `docs/` fora do manifesto e rollback sem migration correspondente.
+- Vite 8.3.1 (#77): o `dist/` da `main` é byte-idêntico ao do head da #78 com Vite 8.3.0 (55 arquivos).
+- Validação clean-room da `main`, sem reaproveitar o banco local:
+  - todos os gates locais, `test:database` (clean, upgrade, reapply, rollback, matriz adversarial) e Playwright Chromium (finance 40/40, apresentação 27 + 1 skip);
+  - `pilot:local` do zero, com 35 migrations: jornada de 24 passos e 60 ataques, sem falhas;
+  - doctor GO/NO-GO/UNSAFE/UNSAFE, restore 24/24 e canário OK;
+  - `schema_version = financial-surface-hardening-1`.
