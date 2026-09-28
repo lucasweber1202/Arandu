@@ -67,9 +67,13 @@ for (const [method, url] of [['GET', '/api/finance/rfqs'], ['GET', '/api/jobs/re
 }
 assert.equal((await call('health', 'GET', '/api/health')).status, 200);
 
-// Fora do piloto nada muda.
+// A produção oficial é o mesmo produto: também fechada.
 process.env.ARANDU_ENV = 'production';
+assert.deepEqual(await call('[...path]', 'POST', '/api/forms', { name: 'x' }), { status: 404, code: 'legacy_surface_closed' });
+assert.deepEqual(await call('orders', 'GET', '/api/orders'), { status: 404, code: 'legacy_surface_closed' });
+// Sem ARANDU_ENV (desenvolvimento/preview legado) nada muda.
+delete process.env.ARANDU_ENV;
 assert.notEqual((await call('[...path]', 'GET', '/api/catalog')).code, 'legacy_surface_closed');
 
 process.env = previous;
-console.log(`Legacy art surface: ${legacy.length} rotas de arte fechadas com 404 no piloto, sem tocar a rede; finance/*, auth/*, cron e health abertos.`);
+console.log(`Legacy art surface: ${legacy.length} rotas de arte fechadas com 404 no piloto e na produção, sem tocar a rede; finance/*, auth/*, cron e health abertos.`);

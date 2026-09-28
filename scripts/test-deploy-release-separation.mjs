@@ -16,4 +16,12 @@ assert.match(scripts['release:check'], /--require-ready/);
 assert.match(vercelBuild, /const target = 'deploy:check'/);
 assert.doesNotMatch(vercelBuild, /target\s*=.*predeploy|VERCEL_ENV\s*===\s*['"]production['"]/);
 
+// Piloto e produção passam pelo checker de topologia antes do build.
+assert.match(vercelBuild, /\['pilot', 'production'\]\.includes\(arandu\)/);
+assert.match(vercelBuild, /scripts\/check-finance-env\.mjs/);
+import { spawnSync } from 'node:child_process';
+const blocked = spawnSync(process.execPath, ['scripts/vercel-build.mjs'], { encoding: 'utf8', env: { PATH: process.env.PATH, ARANDU_ENV: 'production', SUPABASE_URL: 'https://offgpyysgdhfemjlchod.supabase.co' } });
+assert.notEqual(blocked.status, 0, 'deploy de produção apontando para o piloto não pode seguir');
+assert.match(blocked.stderr, /deploy interrompido/);
+
 console.log('Technical deploy and final go-live gates are separated and fail-closed.');

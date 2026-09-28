@@ -21,33 +21,89 @@ precisam de parecer humano. Os mais próximos do piloto:
 O software registra o aceite e diz na tela que o texto não foi revisado. Ele
 não trata isso como aceite legal válido, e não deve passar a tratar sem parecer.
 
-## 2. Proteção da branch `main`
+## 2. Proteção das branches `main` e `pilot`
 
-A API recusa a configuração a partir desta integração, nas duas tentativas:
+A integração não tem permissão administrativa: a API responde 403
+("Resource not accessible by integration"). Em GitHub → Settings → Branches →
+Add rule:
 
-```
-GET /repos/lucasweber1202/Arandu/branches/main/protection
-403 — "Resource not accessible by integration"
-```
+- **`main`**: Require a pull request; Require status checks (`validate`,
+  `database`, `deploy-boundaries`, `presentation`); Require branches to be up to
+  date; bloquear force push e deleção.
+- **`pilot`**: Require a pull request; bloquear force push e deleção. Os mesmos
+  status checks, quando a quota do Actions voltar.
 
-Os toggles exatos estão em [`FINANCIAL_REPO_GOVERNANCE.md`](FINANCIAL_REPO_GOVERNANCE.md).
-O que mais falta é **Require status checks** com `validate`, `database` e
-`deploy-boundaries`: as PRs #64 e #65 foram mescladas com o `validate` ainda em
-execução. Nas duas vezes deu certo — mas isso é sorte observada duas vezes, não
-um controle.
+Enquanto a quota estiver esgotada, os status checks obrigatórios travam todo
+merge. Ligue-os depois de 01/10, com a primeira run verde. Os toggles estão em
+[`FINANCIAL_REPO_GOVERNANCE.md`](FINANCIAL_REPO_GOVERNANCE.md).
 
-## 3. Ambiente do piloto
+## 3. Os três ambientes (Vercel e Supabase)
 
-* criar um projeto **Supabase dedicado**, separado de produção e de preview;
-* aplicar as 35 migrations de `docs/supabase-migrations.json` (`cleanInstall`), na ordem
-  (o piloto já tem as 34 primeiras: falta só `docs/supabase-financial-pilot-surface-hardening.sql`);
-* definir `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
-  (só servidor), `CRON_SECRET` (32+), `ARANDU_SITE_URL` e `ARANDU_ENV=pilot`;
-* escolher e apontar um subdomínio — **nenhum domínio foi comprado ou
-  registrado**;
-* rodar `ARANDU_ENV=pilot npm run finance:pilot:doctor` e resolver o que ele apontar (0 = GO).
+Topologia e fluxo em [`FINANCIAL_DEPLOYMENT_WORKFLOW.md`](FINANCIAL_DEPLOYMENT_WORKFLOW.md).
+A branch `pilot` já existe. Nesta sessão não havia conector nem credencial de
+Vercel ou Supabase (APIs 403/401), por isso os passos abaixo são seus.
 
-Detalhes em [`FINANCIAL_PILOT_ENVIRONMENT.md`](FINANCIAL_PILOT_ENVIRONMENT.md).
+**3.1 `arandu-demo` (Vercel)**: Add New → Project → este repositório.
+- Nome `arandu-demo`, Production Branch `main`.
+- Build Command `npm run build:demo`, Output `dist`.
+- Nenhuma variável de ambiente. O build falha se houver credencial real.
+- Deployment Protection desligada, para ser público.
+- Verificar: `https://arandu-demo.vercel.app/demo/index.html` abre com a faixa
+  "Ambiente demonstrativo". As funções de `api/` existem no projeto, mas sem
+  credencial: `/api/finance/*` responde indisponível, e a demo não as chama.
+
+**3.2 Supabase do piloto (`offgpyysgdhfemjlchod`)**: SQL Editor.
+1. `select value from public.fin_settings where key = 'schema_version';` deve
+   dar `financial-final-hardening-1` (34 aplicadas).
+2. Cole e rode `docs/supabase-financial-pilot-surface-hardening.sql`
+   (**só esse**; o antigo `…-advisor-hardening.sql` foi removido e não deve ser
+   aplicado).
+3. Repita a consulta do passo 1: esperado `financial-surface-hardening-1`.
+4. Advisors → Security e Performance: esperado nenhum item de
+   `rls_disabled_in_public`, `security_definer_view` ou
+   `function_search_path_mutable`.
+5. Storage → `fin-documents`: *Public* desligado, 10 MB, 5 tipos.
+6. Allowlist: `insert into public.fin_pilot_allowlist (pattern, created_by, note) values (...)`
+   só com quem foi autorizado (e-mail completo ou `@dominio`). Nada disso vai
+   para o Git.
+
+**3.3 `arandu-pilot` (Vercel)**: Add New → Project → este repositório.
+- Nome `arandu-pilot`, Production Branch **`pilot`**, Build Command padrão
+  (`npm run vercel-build`, já em `vercel.json`).
+- Environment Variables, **só no escopo Production**:
+  - `ARANDU_ENV=pilot`
+  - `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (Sensitive), todos do piloto
+  - `CRON_SECRET` (`openssl rand -hex 32`)
+  - `ARANDU_SITE_URL` (a URL do projeto, ex. `https://arandu-pilot.vercel.app`)
+  - `ARANDU_PILOT_ALLOWLIST_CONFIRMED=true`
+- Nunca definir `ARANDU_DEMO_MODE` nem `ARANDU_PRESENTATION_MODE`.
+- O deploy falha sozinho se alguma variável estiver errada.
+- Verificar, na sua máquina, com as mesmas variáveis:
+  - `ARANDU_ENV=pilot npm run finance:env:check`
+  - `ARANDU_ENV=pilot npm run finance:pilot:doctor` → exit 0
+  - `PILOT_DATABASE_URL='…' npm run pilot:canary`
+  - `PILOT_SOURCE_DATABASE_URL='…' npm run pilot:restore:drill`
+
+**3.4 Supabase de produção**: criar um projeto **novo** (região São Paulo),
+por exemplo "ARANDU PRODUCTION". Nunca reaproveitar o do piloto nem o legado.
+- Aplicar os 35 arquivos de `cleanInstall`, em ordem (`npm run migrations:bundle
+  -- --flow=cleanInstall` gera um SQL único em `reports/`).
+- Conferir `schema_version = financial-surface-hardening-1`, Advisors e bucket.
+- Nenhum dado do piloto é copiado.
+
+**3.5 `arandu` (Vercel, produção)**: no projeto existente, Production Branch
+`main`, variáveis no escopo Production:
+- `ARANDU_ENV=production`
+- `SUPABASE_*` e `CRON_SECRET` **próprios da produção**; nenhum valor do piloto
+- `ARANDU_SITE_URL` oficial
+
+Depois: `ARANDU_ENV=production npm run finance:pilot:doctor` → exit 0, e smoke
+de `/`, `/api/health`, `/api/finance/me` (401), `/api/forms` (404
+`legacy_surface_closed`) e `/demo/index.html` (404).
+
+**3.6 Domínios** (opcional): `demo.`, `pilot.` e `app.` no domínio escolhido.
+Enquanto não houver domínio, os `.vercel.app` bastam, com `ARANDU_SITE_URL`
+igual à URL usada.
 
 ## 4. Backup e restore
 
