@@ -11,6 +11,8 @@
 // Sai com código 1 quando falta algo obrigatório para o ambiente declarado, ou
 // quando encontra uma combinação que não deveria existir.
 
+import { LEGACY_SUPABASE_REFS } from '../lib/finance/pilot-doctor.mjs';
+
 const env = process.env;
 const problems = [];
 const warnings = [];
@@ -98,6 +100,22 @@ if (presentation && environment === 'pilot') {
 // e conferir o objeto) e a agenda de renovação do cron.
 if (cronSecret && cronSecret === serviceRole) {
   problems.push('CRON_SECRET igual ao service role. Use um segredo próprio, aleatório, com 32+ caracteres.');
+}
+
+// O piloto tem Supabase dedicado; o projeto histórico de arte nunca recebe a
+// stack financeira nem dado de empresa piloto.
+const supabaseRef = (() => { try { const host = new URL(String(env.SUPABASE_URL || '')).hostname.toLowerCase(); return host.endsWith('.supabase.co') ? host.split('.')[0] : null; } catch { return null; } })();
+if (environment === 'pilot' && supabaseRef && LEGACY_SUPABASE_REFS.includes(supabaseRef)) {
+  problems.push('SUPABASE_URL do piloto aponta para o projeto legado de arte. Use o projeto dedicado ao piloto financeiro.');
+}
+const keyRef = (key) => { try { return JSON.parse(Buffer.from(String(key || '').split('.')[1] || '', 'base64url').toString('utf8')).ref || null; } catch { return null; } };
+for (const name of ['SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY']) {
+  const ref = keyRef(env[name]);
+  if (supabaseRef && ref && ref !== supabaseRef) problems.push(`${name} pertence a outro projeto Supabase (ref diferente de SUPABASE_URL).`);
+}
+const roleOf = (key) => { const value = String(key || ''); if (value.startsWith('sb_secret_')) return 'service_role'; try { return JSON.parse(Buffer.from(value.split('.')[1] || '', 'base64url').toString('utf8')).role || null; } catch { return null; } };
+if (roleOf(env.SUPABASE_ANON_KEY) === 'service_role') {
+  problems.push('SUPABASE_ANON_KEY é uma chave de serviço: ela atravessa o RLS e chegaria ao navegador.');
 }
 
 // A allowlist falha fechada: com a tabela vazia, NINGUÉM cria organização
