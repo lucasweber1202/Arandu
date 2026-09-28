@@ -39,7 +39,8 @@ um controle.
 ## 3. Ambiente do piloto
 
 * criar um projeto **Supabase dedicado**, separado de produção e de preview;
-* aplicar as 34 migrations de `docs/supabase-migrations.json` (`cleanInstall`), na ordem;
+* aplicar as 35 migrations de `docs/supabase-migrations.json` (`cleanInstall`), na ordem
+  (o piloto já tem as 34 primeiras: falta só `docs/supabase-financial-pilot-surface-hardening.sql`);
 * definir `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
   (só servidor), `CRON_SECRET` (32+), `ARANDU_SITE_URL` e `ARANDU_ENV=pilot`;
 * escolher e apontar um subdomínio — **nenhum domínio foi comprado ou
@@ -50,9 +51,12 @@ Detalhes em [`FINANCIAL_PILOT_ENVIRONMENT.md`](FINANCIAL_PILOT_ENVIRONMENT.md).
 
 ## 4. Backup e restore
 
-Existe procedimento documentado. **Nenhum restore foi testado**, e sem teste não
-existe RTO — só hipótese. Testar em banco vazio e registrar o tempo é ação de
-quem tem acesso ao projeto Supabase.
+Restore **testado e automatizado** (`npm run pilot:restore:drill`): backup lógico,
+restore num Postgres da Supabase novo, 24 comparações origem × restaurado e o
+canário de isolamento. Ensaiado contra o piloto local em 28/09/2026. Falta só
+rodar contra o piloto real, com `PILOT_SOURCE_DATABASE_URL` (string de conexão
+do painel, nunca em arquivo versionado) — ver
+[`FINANCIAL_PILOT_ENVIRONMENT.md`](FINANCIAL_PILOT_ENVIRONMENT.md#backups).
 
 ## 5. E-mail transacional
 
