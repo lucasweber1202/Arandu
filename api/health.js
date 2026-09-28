@@ -1,6 +1,10 @@
 import { applyApiSecurityHeaders } from '../lib/http-security.mjs';
+import { safeRequestId } from '../lib/api-core.mjs';
 
 export default function handler(req, res) {
+  // Mesmo identificador da API principal: um health check lento ou com erro
+  // no proxy pode ser achado nos logs pelo X-Request-ID.
+  res.setHeader('X-Request-ID', safeRequestId(req.headers?.['x-request-id']));
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     res.statusCode = 405;
     res.setHeader('Allow', 'GET, HEAD');

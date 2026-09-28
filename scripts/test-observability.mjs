@@ -34,5 +34,15 @@ assert.equal(result.delivered, true);
 assert.equal(delivered.requestId, 'request-2');
 delete process.env.ARANDU_ERROR_MONITORING_ENDPOINT;
 
+// /api/health devolve o identificador recebido (ou gera um) para rastreio no log.
+const { default: health } = await import('../api/health.js');
+for (const [incoming, expected] of [['canario-obs-0001', 'canario-obs-0001'], [undefined, null]]) {
+  const headers = new Map();
+  health({ method: 'GET', headers: incoming ? { 'x-request-id': incoming } : {} }, { setHeader: (k, v) => headers.set(k, v), end() {} });
+  const id = headers.get('X-Request-ID');
+  if (expected) assert.equal(id, expected);
+  else assert.match(String(id), /^[A-Za-z0-9-]{8,}$/);
+}
+
 console.log('Arandu Observability Tests');
 console.log('Redação, transporte HTTPS e falha fechada validados.');
