@@ -15,6 +15,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import { enrollTotp, verifyTotp, totpCode, jwtAal } from '../finance-operator-mfa.mjs';
 import { renderTransactionalEmail } from '../../lib/email.mjs';
+import { EXPECTED_SCHEMA_VERSION } from '../../lib/finance/pilot-doctor.mjs';
 
 const APP = process.env.PILOT_APP_URL || 'https://localhost:4443';
 const DB = process.env.PILOT_DB_URL;
@@ -439,6 +440,27 @@ await attack('PostgREST direto com JWT externo: fin_rfqs / fin_proposal_versions
   const a = await rest(O, 'fin_rfqs?select=id'); const b = await rest(O, 'fin_proposal_versions?select=proposal_id');
   return { ok: a.rows?.length === 0 && b.rows?.length === 0, observed: `rfqs=${a.rows?.length}, versions=${b.rows?.length}` };
 });
+async function rpc(who, name, body) {
+  const headers = { apikey: ANON, 'Content-Type': 'application/json' };
+  if (who) headers.Authorization = `Bearer ${accessToken(who)}`;
+  const response = await fetch(`${SB}/rest/v1/rpc/${name}`, { method: 'POST', headers, body: JSON.stringify(body) });
+  return { status: response.status, data: await response.json().catch(() => null) };
+}
+// Auxiliares internas expostas pelos default privileges do Supabase
+// (docs/supabase-financial-pilot-surface-hardening.sql).
+await attack('Externo pergunta à allowlist se um domínio participa do piloto', 'recusado (42501)', async () => {
+  const r = await rpc(O, 'fin_pilot_access_allowed', { p_email: people.buyer.email });
+  return { ok: r.status >= 400 && r.data?.code === '42501', observed: `${r.status} ${r.data?.code || JSON.stringify(r.data)}` };
+});
+await attack('Externo descobre a organização dona da RFQ pelo UUID', 'recusado (42501)', async () => {
+  const r = await rpc(O, 'fin_comment_object_org', { p_type: 'rfq', p_id: ctx.rfq });
+  return { ok: r.status >= 400 && r.data?.code === '42501', observed: `${r.status} ${r.data?.code || JSON.stringify(r.data)}` };
+});
+await attack('Anônimo chama RPC financeira e lê view legada de arte', 'recusado', async () => {
+  const a = await rpc(null, 'fin_create_organization', { p_name: 'Anon', p_kind: 'BUYER', p_country: 'BR' });
+  const v = await fetch(`${SB}/rest/v1/v_commercial_pipeline?select=*`, { headers: { apikey: ANON } });
+  return { ok: a.status >= 400 && v.status >= 400, observed: `rpc ${a.status} ${a.data?.code || ''}; view ${v.status}` };
+});
 await attack('Storage direto com JWT de A (objeto do bucket privado)', 'recusado', async () => {
   const path = sql(`select storage_path from public.fin_document_versions where document_id = '${ctx.docShared}' and version = 1`);
   const r = await fetch(`${SB}/storage/v1/object/fin-documents/${path}`, { headers: { apikey: ANON, Authorization: `Bearer ${accessToken(people.providerA)}` } });
@@ -578,7 +600,7 @@ await step('finance_ops: cadastra TOTP (npm run finance:operator:mfa), confirma 
   const overview = ok(await api(people.operator, 'GET', '/api/finance/ops/overview'), 'console');
   const text = JSON.stringify(overview);
   for (const forbidden of ['@', '3000000', '1.52', '1.39', 'Banco A', 'Banco B', 'Capital de giro', 'Parecer', 'aval', 'teto']) must(!text.includes(forbidden), `console expõe "${forbidden}"`);
-  must(overview.overview.schema_version === 'financial-final-hardening-1', `schema ${overview.overview.schema_version}`);
+  must(overview.overview.schema_version === EXPECTED_SCHEMA_VERSION, `schema ${overview.overview.schema_version}`);
   const trace = ok(await api(people.operator, 'GET', `/api/finance/ops/trace?entity_id=${ctx.rfq}`), 'rastreio');
   const denials = trace.trace.invite_denials || [];
   must(denials.length >= 2 && !JSON.stringify(trace).includes('@') && !JSON.stringify(trace).includes('Capital de giro'), 'rastreio sem recusas ou com dado de cliente');

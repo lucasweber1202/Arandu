@@ -1,8 +1,11 @@
 # Componentes reais do Supabase para o ensaio local do piloto (scripts/pilot-local/up.sh).
 # Imagens públicas em public.ecr.aws/supabase, as mesmas da stack self-hosted.
+# Se o ECR recusar (cota/"Data limit exceeded"), use o Docker Hub:
+#   PILOT_LOCAL_DB_IMAGE=supabase/postgres:15.14.1.064 PILOT_LOCAL_AUTH_IMAGE=supabase/gotrue:v2.181.0 \
+#   PILOT_LOCAL_REST_IMAGE=postgrest/postgrest:v12.2.9 PILOT_LOCAL_STORAGE_IMAGE=supabase/storage-api:v1.25.3
 services:
   db:
-    image: public.ecr.aws/supabase/postgres:15.14.1.064
+    image: ${PILOT_LOCAL_DB_IMAGE:-public.ecr.aws/supabase/postgres:15.14.1.064}
     environment:
       POSTGRES_PASSWORD: ${PGPW}
       POSTGRES_HOST: /var/run/postgresql
@@ -19,7 +22,7 @@ services:
       interval: 3s
       retries: 40
   auth:
-    image: public.ecr.aws/supabase/gotrue:v2.181.0
+    image: ${PILOT_LOCAL_AUTH_IMAGE:-public.ecr.aws/supabase/gotrue:v2.181.0}
     depends_on: { db: { condition: service_healthy } }
     restart: on-failure
     ports: ["9999:9999"]
@@ -46,7 +49,7 @@ services:
       GOTRUE_MFA_MAX_ENROLLED_FACTORS: 10
       GOTRUE_RATE_LIMIT_EMAIL_SENT: 1000
   rest:
-    image: public.ecr.aws/supabase/postgrest:v12.2.9
+    image: ${PILOT_LOCAL_REST_IMAGE:-public.ecr.aws/supabase/postgrest:v12.2.9}
     depends_on: { db: { condition: service_healthy } }
     restart: on-failure
     ports: ["3000:3000"]
@@ -59,7 +62,7 @@ services:
       PGRST_APP_SETTINGS_JWT_SECRET: ${JWT_SECRET}
       PGRST_APP_SETTINGS_JWT_EXP: 3600
   storage:
-    image: public.ecr.aws/supabase/storage-api:v1.25.3
+    image: ${PILOT_LOCAL_STORAGE_IMAGE:-public.ecr.aws/supabase/storage-api:v1.25.3}
     depends_on: { db: { condition: service_healthy }, rest: { condition: service_started } }
     restart: on-failure
     ports: ["5000:5000"]
