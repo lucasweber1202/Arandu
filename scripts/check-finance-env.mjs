@@ -11,7 +11,7 @@
 // Sai com código 1 quando falta algo obrigatório para o ambiente declarado, ou
 // quando encontra uma combinação que não deveria existir.
 
-import { LEGACY_SUPABASE_REFS } from '../lib/finance/pilot-doctor.mjs';
+import { LEGACY_SUPABASE_REFS, PILOT_SUPABASE_REFS } from '../lib/finance/pilot-doctor.mjs';
 
 const env = process.env;
 const problems = [];
@@ -67,10 +67,10 @@ describe('SUPABASE_URL', { required: needsSupabase, pattern: /^https:\/\/[a-z0-9
 describe('SUPABASE_ANON_KEY', { required: needsSupabase, minLength: 20, secret: true });
 // Só no servidor: assina URLs curtas de documentos privados e roda a agenda de
 // renovação. Nunca vai ao navegador (check:security e o build demo recusam).
-const serviceRole = describe('SUPABASE_SERVICE_ROLE_KEY', { required: environment === 'pilot', minLength: 20, secret: true });
+const serviceRole = describe('SUPABASE_SERVICE_ROLE_KEY', { required: ['pilot', 'production'].includes(environment), minLength: 20, secret: true });
 report.push('');
 report.push('Cron:');
-const cronSecret = describe('CRON_SECRET', { required: environment === 'pilot', minLength: 32, secret: true });
+const cronSecret = describe('CRON_SECRET', { required: ['pilot', 'production'].includes(environment), minLength: 32, secret: true });
 
 report.push('');
 report.push('Aplicação:');
@@ -107,6 +107,23 @@ if (cronSecret && cronSecret === serviceRole) {
 const supabaseRef = (() => { try { const host = new URL(String(env.SUPABASE_URL || '')).hostname.toLowerCase(); return host.endsWith('.supabase.co') ? host.split('.')[0] : null; } catch { return null; } })();
 if (environment === 'pilot' && supabaseRef && LEGACY_SUPABASE_REFS.includes(supabaseRef)) {
   problems.push('SUPABASE_URL do piloto aponta para o projeto legado de arte. Use o projeto dedicado ao piloto financeiro.');
+}
+if (environment === 'pilot' && supabaseRef && !LEGACY_SUPABASE_REFS.includes(supabaseRef) && !PILOT_SUPABASE_REFS.includes(supabaseRef)) {
+  warnings.push('SUPABASE_URL do piloto não é o projeto piloto conhecido. Se o piloto mudou de projeto, atualize PILOT_SUPABASE_REFS em lib/finance/pilot-doctor.mjs.');
+}
+// Piloto e produção não compartilham banco, e nenhum dos dois usa o legado.
+if (environment === 'production' && supabaseRef && (PILOT_SUPABASE_REFS.includes(supabaseRef) || LEGACY_SUPABASE_REFS.includes(supabaseRef))) {
+  problems.push(`SUPABASE_URL da produção aponta para o projeto ${PILOT_SUPABASE_REFS.includes(supabaseRef) ? 'do piloto' : 'legado de arte'}. A produção tem Supabase próprio, que começa vazio.`);
+}
+// Cada ambiente real sai de uma única branch: pilot → piloto, main → produção.
+const expectedBranch = { pilot: 'pilot', production: 'main' }[environment];
+const branch = String(env.VERCEL_GIT_COMMIT_REF || '').trim();
+if (expectedBranch && branch && branch !== expectedBranch) {
+  problems.push(`Deploy com ARANDU_ENV=${environment} a partir da branch "${branch}"; só a branch ${expectedBranch} publica esse ambiente. No Vercel, deixe as variáveis desse ambiente só no escopo Production.`);
+}
+// Demonstração nunca convive com credencial real.
+if (['pilot', 'production'].includes(environment) && (flag('ARANDU_DEMO_MODE') || String(env.ARANDU_DEPLOYMENT_KIND || '').trim().toLowerCase() === 'demo')) {
+  problems.push(`Modo de demonstração ligado em ${environment}. A demo é publicada só pelo projeto arandu-demo (npm run build:demo), sem credenciais.`);
 }
 const keyRef = (key) => { try { return JSON.parse(Buffer.from(String(key || '').split('.')[1] || '', 'base64url').toString('utf8')).ref || null; } catch { return null; } };
 for (const name of ['SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY']) {
