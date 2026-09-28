@@ -127,6 +127,21 @@ for (const [flow, files] of Object.entries(manifest)) {
   if (surfaceHardening !== -1 && surfaceHardening !== files.length - 1) issues.push(`${flow}: hardening da superfície deve encerrar a sequência atual.`);
 }
 
+// Catraca de inventário: todo .sql direto em docs/ é migration do manifesto,
+// e todo rollback aponta para uma migration do manifesto. Um SQL fora dos dois
+// (ex.: hotfix substituído que voltou por merge tardio) seria aplicável por
+// engano. Arquivos SQL que não são migration moram fora de docs/ (ops/sql, tests).
+const NON_MIGRATION_SQL = new Set([]);
+const listed = new Set(Object.values(manifest).flat());
+for (const file of fs.readdirSync(path.join(root, 'docs')).filter((name) => name.endsWith('.sql'))) {
+  const relative = `docs/${file}`;
+  if (!listed.has(relative) && !NON_MIGRATION_SQL.has(relative)) issues.push(`inventário: ${relative} não está em supabase-migrations.json (migration órfã ou substituída — remova ou registre).`);
+}
+for (const file of fs.readdirSync(path.join(root, 'docs/rollback')).filter((name) => name.endsWith('.sql'))) {
+  const target = `docs/${file.replace(/\.rollback\.sql$/, '.sql')}`;
+  if (!file.endsWith('.rollback.sql') || !listed.has(target)) issues.push(`inventário: rollback docs/rollback/${file} sem migration correspondente no manifesto.`);
+}
+
 console.log('Arandu Migration Order Check');
 console.log(`Fluxos: ${Object.keys(manifest).length}`);
 console.log(`Erros: ${issues.length}`);
