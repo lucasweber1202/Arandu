@@ -43,3 +43,19 @@ create table if not exists storage.buckets (
   allowed_mime_types text[],
   created_at timestamptz default now()
 );
+
+-- Fidelidade ao Supabase hospedado: toda tabela, view, sequência e função nova
+-- do schema public nasce com ALL para anon, authenticated e service_role, e o
+-- pgcrypto mora no schema extensions. Sem isso, um `revoke ... from public`
+-- parece suficiente aqui e deixa a função exposta lá (ver
+-- docs/supabase-financial-pilot-surface-hardening.sql).
+create schema if not exists extensions;
+grant usage on schema extensions to anon, authenticated, service_role;
+create extension if not exists pgcrypto with schema extensions;
+do $$ begin
+  execute format('alter database %I set search_path = "$user", public, extensions', current_database());
+end $$;
+set search_path = "$user", public, extensions;
+alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
+alter default privileges in schema public grant all on functions to anon, authenticated, service_role;
+alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
