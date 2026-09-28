@@ -121,7 +121,10 @@ for (const [flow, files] of Object.entries(manifest)) {
   const finalHardening = files.indexOf('docs/supabase-financial-final-hardening.sql');
   if (finalHardening === -1) issues.push(`${flow}: hardening final (finance_ops e destinatário do convite) ausente.`);
   if (pilotOperations !== -1 && finalHardening !== -1 && finalHardening !== pilotOperations + 1) issues.push(`${flow}: hardening final deve vir depois da operação do piloto.`);
-  if (finalHardening !== -1 && finalHardening !== files.length - 1) issues.push(`${flow}: hardening final deve encerrar a sequência atual.`);
+  const surfaceHardening = files.indexOf('docs/supabase-financial-pilot-surface-hardening.sql');
+  if (surfaceHardening === -1) issues.push(`${flow}: hardening da superfície do piloto (advisors, grants diretos, views legadas) ausente.`);
+  if (finalHardening !== -1 && surfaceHardening !== -1 && surfaceHardening !== finalHardening + 1) issues.push(`${flow}: hardening da superfície deve vir depois do hardening final.`);
+  if (surfaceHardening !== -1 && surfaceHardening !== files.length - 1) issues.push(`${flow}: hardening da superfície deve encerrar a sequência atual.`);
 }
 
 console.log('Arandu Migration Order Check');
