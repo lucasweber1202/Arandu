@@ -49,6 +49,8 @@
     "pilot:local:journey": "bash scripts/pilot-local/journey.sh",
     "pilot:local:doctor": "bash scripts/pilot-local/doctor.sh",
     "pilot:local:down": "bash scripts/pilot-local/down.sh",
+    "pilot:restore:drill": "bash scripts/pilot-restore-drill.sh",
+    "pilot:canary": "bash scripts/pilot-canary.sh",
     "test:pilot": "node scripts/test-pilot-readiness.mjs",
     "finance:seed:demo": "node scripts/seed-finance-demo.mjs",
     "check:pilot:release": "node scripts/check-pilot-readiness.mjs --require-ready",
