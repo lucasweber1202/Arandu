@@ -10,4 +10,8 @@
 - Migration nova: arquivo aditivo em `docs/`, rollback em `docs/rollback/`,
   registro em `docs/supabase-migrations.json`, `scripts/check-migrations.mjs` e
   `scripts/test-database.sh`, teste em `tests/database/`.
-- Ambiente real do piloto: `ARANDU_ENV=pilot npm run finance:pilot:doctor`.
+- Branches: `feature/*` sai de `pilot` e volta para `pilot` por PR; `main` só
+  recebe `pilot → main` e `hotfix/*` (depois `main → pilot`). Ver
+  `docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md`.
+- Ambientes reais: `ARANDU_ENV=pilot|production npm run finance:pilot:doctor`.
+  Piloto e produção nunca compartilham Supabase; nenhum usa o projeto legado.
