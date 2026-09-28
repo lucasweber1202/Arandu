@@ -1,19 +1,26 @@
 # Ambiente do piloto
 
-## Os quatro ambientes
+## Ambientes
 
-| Ambiente | `ARANDU_ENV` | Dados | Supabase | Demo |
-| --- | --- | --- | --- | --- |
-| Desenvolvimento | `development` | descartáveis | local ou nenhum | permitido |
-| Preview | `preview` | descartáveis | preview | permitido |
-| **Piloto** | `pilot` | **reais, de uma empresa real** | **dedicado** | **proibido** |
-| Produção | `production` | reais | produção | proibido pelo build |
+| Ambiente | Projeto Vercel | Branch | `ARANDU_ENV` | Supabase | Demo |
+| --- | --- | --- | --- | --- | --- |
+| Desenvolvimento | — | `feature/*` | `development` | local (`pilot:local`) ou nenhum | permitida |
+| Preview | qualquer projeto, deploy de PR | `feature/*` | não definido | nenhum | permitida |
+| Demo | `arandu-demo` | `main` (`build:demo`) | não definido | nenhum | é o próprio produto |
+| **Piloto** | `arandu-pilot` | **`pilot`** | `pilot` | **dedicado** (`offgpyysgdhfemjlchod`) | **proibida** |
+| Produção | `arandu` | `main` | `production` | **próprio**, nunca o do piloto | **proibida** |
 
-O checker (`npm run finance:env:check`) infere o ambiente de `ARANDU_ENV`, ou de
-`VERCEL_ENV` quando o primeiro não existe, e **recusa** duas combinações:
-modo de demonstração em produção e modo de demonstração no piloto. A segunda é a
-que mais importa aqui: dado DEMO misturado com dado real de empresa destrói a
-confiança em tudo que o piloto medir.
+Fluxo entre eles: [`FINANCIAL_DEPLOYMENT_WORKFLOW.md`](FINANCIAL_DEPLOYMENT_WORKFLOW.md).
+Com `ARANDU_ENV` `pilot` ou `production`, `npm run vercel-build` roda
+`finance:env:check` antes do build. O deploy falha nestes casos:
+- demonstração ou apresentação ligada;
+- banco compartilhado (produção no piloto, qualquer um no legado);
+- chave de outro projeto;
+- branch errada;
+- falta de segredo de servidor.
+
+Dado DEMO misturado com dado real de empresa destruiria a confiança em tudo que
+o piloto medir.
 
 ## Variáveis
 

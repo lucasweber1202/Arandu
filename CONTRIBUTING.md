@@ -4,13 +4,14 @@ O Arandu ainda está em fase de preparação operacional. Toda mudança deve pre
 
 ## Fluxo de trabalho
 
-1. Parta da `main` atualizada.
+1. Parta da `pilot` atualizada. Mudanças vão para `pilot` e são promovidas para `main` por PR
+   depois de testadas no piloto (fluxo e hotfix em `docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md`).
 2. Crie uma branch curta e descritiva:
    - `agent/<descricao>` para pacotes implementados por agentes;
    - `feature/<descricao>` para funcionalidade;
    - `fix/<descricao>` para correção;
    - `chore/<descricao>` para manutenção.
-3. Não faça commits diretamente na `main`.
+3. Não faça commits diretamente na `main` nem na `pilot`; `main` só recebe a promoção `pilot → main` e `hotfix/*`.
 4. Abra PR em modo draft enquanto houver testes ou evidências pendentes.
 5. Remova a branch remota depois do merge, salvo quando ela for uma base empilhada ainda ativa.
 

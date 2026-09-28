@@ -105,7 +105,11 @@ assert.equal((await doctor(baseEnv, { schema: 'financial-pilot-grade-1' })).exit
 assert.equal((await doctor(baseEnv, { missingRpc: 'consume_rate_limit' })).exit_code, 1, 'limitador ausente bloqueia');
 assert.equal((await doctor(baseEnv, { productsStatus: 503 })).exit_code, 1, 'API financeira em 503 bloqueia');
 assert.equal((await doctor(baseEnv, { renewalsStatus: 404 })).exit_code, 1, 'rota do cron sem chegar à função bloqueia');
-assert.equal((await doctor({ ...baseEnv, ARANDU_ENV: 'production' })).exit_code, 1);
+assert.equal((await doctor({ ...baseEnv, ARANDU_ENV: 'staging' })).exit_code, 1, 'ambiente desconhecido');
+assert.equal((await doctor({ ...baseEnv, ARANDU_ENV: 'production' })).exit_code, 0, 'produção com banco próprio');
+const prodOnPilot = await doctor({ ...baseEnv, ARANDU_ENV: 'production', SUPABASE_URL: 'https://offgpyysgdhfemjlchod.supabase.co' });
+assert.equal(prodOnPilot.exit_code, 2, 'produção no banco do piloto');
+assert.equal(levelOf(prodOnPilot, 'projeto Supabase do piloto'), 'UNSAFE');
 assert.equal((await doctor(baseEnv, { legacyOpen: true })).exit_code, 1, 'rotas legadas de arte abertas no piloto bloqueiam');
 assert.equal(levelOf(await doctor({ ...baseEnv, SUPABASE_URL: 'https://proj.supabase.co', SUPABASE_ANON_KEY: jwtRef('anon', 'proj'), SUPABASE_SERVICE_ROLE_KEY: jwtRef('service_role', 'proj') }), 'chaves do mesmo projeto'), 'OK');
 assert.equal(levelOf(complete, 'identificador de requisição'), 'OK');
