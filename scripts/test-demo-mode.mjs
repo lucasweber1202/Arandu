@@ -58,6 +58,14 @@ if (process.argv.includes('--dist')) {
   if (expectDemo) {
     assert.ok(existsSync('dist/demo/index.html') && existsSync('dist/demo/finance/dashboard.html'), 'build demonstrativo sem /demo');
     assert.ok(withEngine.length, 'build demonstrativo sem motor');
+    // Projeto independente: a raiz é a entrada da demo (link único para enviar).
+    if (process.env.ARANDU_DEPLOYMENT_KIND === 'demo') {
+      const root = readFileSync('dist/index.html', 'utf8');
+      assert.match(root, /id="start-demo"/, 'raiz do projeto demonstrativo não abre a entrada da demo');
+      assert.match(root, /Ambiente demonstrativo/);
+      assert.match(root, /noindex,nofollow/);
+      assert.doesNotMatch(root, /speed-insights/, 'raiz da demo carrega analytics');
+    }
     for (const file of files.filter((path) => path.startsWith('dist/demo/') && path.endsWith('.html'))) {
       const html = readFileSync(file, 'utf8');
       assert.match(html, /Ambiente demonstrativo/, `${file} sem faixa de demonstração`);
