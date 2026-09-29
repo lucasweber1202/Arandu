@@ -1,5 +1,7 @@
 # Checklist de qualidade — Arandu
 
+> **Legado — vertical de arte (aposentada).** Documento histórico: não descreve o produto atual (Arandu Financial Procurement). Ver [`LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md) e [`OPERATIONS_INDEX.md`](OPERATIONS_INDEX.md).
+
 Use este checklist antes de apresentar o site para artistas, arquitetos, compradores ou possíveis parceiros.
 
 ## Visual

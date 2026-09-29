@@ -43,14 +43,12 @@ Topologia e fluxo em [`FINANCIAL_DEPLOYMENT_WORKFLOW.md`](FINANCIAL_DEPLOYMENT_W
 A branch `pilot` já existe. Nesta sessão não havia conector nem credencial de
 Vercel ou Supabase (APIs 403/401), por isso os passos abaixo são seus.
 
-**3.1 `arandu-demo` (Vercel)**: Add New → Project → este repositório.
-- Nome `arandu-demo`, Production Branch `main`.
-- Build Command `npm run build:demo`, Output `dist`.
-- Nenhuma variável de ambiente. O build falha se houver credencial real.
-- Deployment Protection desligada, para ser público.
-- Verificar: `https://arandu-demo.vercel.app/demo/index.html` abre com a faixa
-  "Ambiente demonstrativo". As funções de `api/` existem no projeto, mas sem
-  credencial: `/api/finance/*` responde indisponível, e a demo não as chama.
+**3.1 `arandu-demo` (Vercel)**: passo a passo único em
+[`FINANCIAL_DEPLOYMENT_WORKFLOW.md#demo`](FINANCIAL_DEPLOYMENT_WORKFLOW.md#demo).
+Resumo: projeto novo da branch `main`, **uma** variável
+(`ARANDU_DEPLOYMENT_KIND=demo`), Build Command padrão, Vercel Authentication
+desligada. Atenção: configurar só o Build Command `npm run build:demo` no painel
+**não funciona** — o `vercel.json` sobrepõe esse campo.
 
 **3.2 Supabase do piloto (`offgpyysgdhfemjlchod`)**: SQL Editor.
 1. `select value from public.fin_settings where key = 'schema_version';` deve
@@ -91,8 +89,10 @@ por exemplo "ARANDU PRODUCTION". Nunca reaproveitar o do piloto nem o legado.
 - Conferir `schema_version = financial-surface-hardening-1`, Advisors e bucket.
 - Nenhum dado do piloto é copiado.
 
-**3.5 `arandu` (Vercel, produção)**: no projeto existente, Production Branch
-`main`, variáveis no escopo Production:
+**3.5 `arandu` (Vercel, produção)**: no projeto existente
+(`arandu-bice.vercel.app`), Production Branch `main`, variáveis no escopo
+Production. Hoje ele está no ar **sem** `ARANDU_ENV`; o próximo deploy de `main`
+falha até isso ser corrigido (o deploy atual continua no ar):
 - `ARANDU_ENV=production`
 - `SUPABASE_*` e `CRON_SECRET` **próprios da produção**; nenhum valor do piloto
 - `ARANDU_SITE_URL` oficial
@@ -142,12 +142,9 @@ modelo ligado a sucesso na contratação volta para o item 1.
 
 ## 8. Dependabot
 
-[#60](https://github.com/lucasweber1202/Arandu/pull/60) (vite 8.2.2 → 8.3.0) e
-[#61](https://github.com/lucasweber1202/Arandu/pull/61) (@playwright/test
-1.62.1 → 1.63.0). As duas branches foram atualizadas contra a `main` atual nesta
-rodada para que o CI delas rode contra o código de hoje. **Mesclar é decisão de
-quem tem permissão**, e deve ser feito separado desta PR, para que uma eventual
-regressão tenha causa identificável.
+Nada pendente. As antigas #60 (vite 8.3.0) e #61 (@playwright/test 1.63.0)
+estão fechadas e absorvidas: o `package-lock.json` atual tem vite 8.3.1 e
+@playwright/test 1.63.0 (conferido em 29/09/2026).
 
 ---
 

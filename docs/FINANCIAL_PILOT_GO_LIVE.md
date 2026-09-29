@@ -1,6 +1,6 @@
 # Financial Procurement — checklist única de go-live do piloto
 
-Estado em **27/09/2026**, base `a0f85df` (merge da #73) + a PR do hardening final.
+Estado revisado em **29/09/2026** (depois da #82 em `pilot`). Branches: confira no Git (`FINANCIAL_DEPLOYMENT_WORKFLOW.md#estado-atual-das-branches`); `main` não recebeu a #82 e só recebe a promoção.
 Primeiro comando no ambiente real: `ARANDU_ENV=pilot npm run finance:pilot:doctor`
 (somente leitura; 0 = GO, 1 = NO-GO, 2 = UNSAFE).
 Cada linha tem um único estado:
@@ -12,8 +12,10 @@ Cada linha tem um único estado:
   credencial privada, decisão jurídica ou comercial, domínio, DNS, confirmação
   humana). O passo exato está escrito.
 
-Evidências: [`FINANCIAL_RELEASE_EVIDENCE_2026-09-26.md`](FINANCIAL_RELEASE_EVIDENCE_2026-09-26.md) e
-[`FINANCIAL_RELEASE_EVIDENCE_2026-09-27.md`](FINANCIAL_RELEASE_EVIDENCE_2026-09-27.md). Autorização: [`FINANCIAL_AUTHORIZATION_MAP.md`](FINANCIAL_AUTHORIZATION_MAP.md).
+Evidências: [`FINANCIAL_RELEASE_EVIDENCE_2026-09-26.md`](FINANCIAL_RELEASE_EVIDENCE_2026-09-26.md),
+[`FINANCIAL_RELEASE_EVIDENCE_2026-09-27.md`](FINANCIAL_RELEASE_EVIDENCE_2026-09-27.md),
+[`FINANCIAL_RELEASE_EVIDENCE_2026-09-28.md`](FINANCIAL_RELEASE_EVIDENCE_2026-09-28.md) e
+[`FINANCIAL_RELEASE_EVIDENCE_2026-09-29.md`](FINANCIAL_RELEASE_EVIDENCE_2026-09-29.md). Autorização: [`FINANCIAL_AUTHORIZATION_MAP.md`](FINANCIAL_AUTHORIZATION_MAP.md).
 
 ## SOFTWARE
 
@@ -28,7 +30,7 @@ Evidências: [`FINANCIAL_RELEASE_EVIDENCE_2026-09-26.md`](FINANCIAL_RELEASE_EVID
 | S7 | `finance:env:check` coerente com o produto | DONE | Exige `SUPABASE_SERVICE_ROLE_KEY` (só servidor) e `CRON_SECRET` ≥ 32 no piloto; texto da allowlist corrigido (vazia = ninguém entra) |
 | S8 | Suíte local equivalente ao CI | DONE | audit, SBOM, `check:all`, build, dist, tamanho, SEO, banco (PG16), E2E e apresentação em Chromium desktop + mobile, fronteiras de deploy, `build:demo`, `git diff --check` |
 | S9 | E2E e apresentação em Firefox, WebKit e Safari móvel | BLOCKED | Motores não instalados neste ambiente (proibido baixar navegador). Rodam no job `validate`/`presentation` do CI quando a quota voltar |
-| S10 | CI formal do GitHub nesta PR | BLOCKED | Quota de minutos do GitHub Actions esgotada até 01/10/2026 (jobs com `runner_id: 0`, sem passos). Reexecutar `validate`, `database`, `deploy-boundaries`, `presentation` sem alterações — ver [`GITHUB_ACTIONS_MINUTES.md`](GITHUB_ACTIONS_MINUTES.md) |
+| S10 | CI formal do GitHub | BLOCKED | Quota de minutos do GitHub Actions esgotada até 01/10/2026: as runs de #79, #80 e #81 terminam em ~7 s sem passos. Equivalente local rodado em 29/09 (ver evidência do dia). Reexecutar `validate`, `database`, `deploy-boundaries`, `presentation` quando a quota voltar — ver [`GITHUB_ACTIONS_MINUTES.md`](GITHUB_ACTIONS_MINUTES.md) |
 | S11 | Papel de plataforma `finance_ops`, isolado do admin legado | DONE | `finance_ops` + registro + `aal2` na API e no banco; fora de `ADMIN_ROLES`; 17/17 rotas legadas recusam; MFA no próprio console (`/api/finance/ops/mfa`). O papel `operator` legado não abre mais o console |
 | S12 | Convite vinculado ao e-mail do contato | DONE | `recipient_mode = exact_email` quando o provedor tem contato: só aceita a conta com esse e-mail confirmado; recusa com erro genérico e motivo interno em `fin_invite_acceptance_denials` |
 | S13 | `check:all` inclui governança e staging, sem recursão | DONE | `check:governance` e `check:staging` passam e fazem parte de `check:all`; guarda de recursão no checker |
@@ -39,11 +41,12 @@ Evidências: [`FINANCIAL_RELEASE_EVIDENCE_2026-09-26.md`](FINANCIAL_RELEASE_EVID
 
 | # | Item | Estado | Evidência / próximo passo |
 | --- | --- | --- | --- |
-| E1 | Demo pública sem login (projeto Vercel `arandu-demo`) | OWNER_ACTION_REQUIRED | Sem acesso à Vercel nesta sessão (`api.vercel.com` 403). Passo a passo em [Demo pública](#demo-pública). `npm run build:demo` gera o `dist` correto (verificado) |
-| E2 | Produção atual (`arandu-bice.vercel.app`) no ar, sem demo | DONE | `GET /` 200, `/api/health` 200, `/demo/index.html` 404, `/finance/ops.html` 200 |
+| E1 | Demo pública sem login (projeto Vercel `arandu-demo`) | OWNER_ACTION_REQUIRED | Código pronto e verificado em 29/09: `vercel-build` escolhe `build:demo` por `ARANDU_DEPLOYMENT_KIND=demo`, `/` abre a demo, API inteira 404. Falta criar o projeto (nenhum token Vercel nesta sessão; `arandu-demo.vercel.app` → `DEPLOYMENT_NOT_FOUND`). Passo a passo em [Demo pública](#demo-pública) |
+| E2 | Produção atual (`arandu-bice.vercel.app`) no ar, sem demo | DONE (com ressalva E2b) | 29/09: `GET /` 200, `/api/health` 200, `/api/finance/me` 401, `/demo/index.html` 404 |
+| E2b | Produção sem `ARANDU_ENV=production` | OWNER_ACTION_REQUIRED | 29/09: `/api/forms` 405 e `/api/catalog` 503 mostram a API legada roteada. Corrigido no código (qualquer produção Vercel fecha a API legada; deploy de produção sem ambiente declarado falha). Falta definir `ARANDU_ENV=production` e o Supabase próprio no projeto `arandu` |
 | E3 | Rotas de vários segmentos respondendo em produção | DONE | Após o merge da #73: `/api/jobs/renewals` → 401 `cron_unauthorized`, `/api/finance/me` → 401, `/api/auth/session` → 200 |
-| E3b | Banco do deployment de produção sem as migrations | OWNER_ACTION_REQUIRED | Em produção, `/api/auth/login` e `/api/finance/*` respondem 503 `rate_limit_unavailable` (`consume_rate_limit` ausente) e o catálogo diz `catalog_migration_pending`. Aplicar `docs/supabase-migrations.json` no banco que esse deployment usa, ou apontá-lo para o Supabase do piloto; conferir com o doctor |
-| E4 | Projeto Supabase dedicado ao piloto | OWNER_ACTION_REQUIRED | Criar projeto (região São Paulo), sem dados de produção. Nenhuma credencial Supabase existe nesta sessão (`api.supabase.com` 401) |
+| E3b | Banco do deployment de produção sem as migrations | OWNER_ACTION_REQUIRED | 29/09: `/api/pilot/metrics` → 503 `rate_limit_unavailable`, `/api/catalog` → 503 `catalog_migration_pending`. Criar o Supabase **próprio** da produção e aplicar `cleanInstall` de `docs/supabase-migrations.json` (35 arquivos). Nunca apontar a produção para o banco do piloto nem para o legado: `finance:env:check` e o doctor recusam |
+| E4 | Projeto Supabase dedicado ao piloto | DONE | `offgpyysgdhfemjlchod` (sa-east-1), criado em 27/09/2026, separado do legado (#75) |
 | E5 | Migrations aplicadas no piloto | OWNER_ACTION_REQUIRED | As 34 primeiras foram aplicadas em 27/09 (+ hotfix manual da PR #76). Falta `docs/supabase-financial-pilot-surface-hardening.sql` (grava `schema_version = financial-surface-hardening-1`, conferido pelo doctor). Ensaiado no Postgres 15 da Supabase por cima do estado real (34 + PR #76), duas vezes. O arquivo avulso da #76 (`supabase-financial-pilot-advisor-hardening.sql`) foi removido: está contido na migration 35 e não deve ser aplicado |
 | E6 | Bucket `fin-documents` privado, 10 MB, 5 tipos | OWNER_ACTION_REQUIRED | A migration cria. Conferir no painel: Storage → `fin-documents` → *Public* desligado. Ensaiado: `public=false`, `10485760`, 5 MIME |
 | E7 | Variáveis do deployment do piloto | OWNER_ACTION_REQUIRED | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (Server-only), `CRON_SECRET` (`openssl rand -hex 32`), `ARANDU_SITE_URL`, `ARANDU_ENV=pilot`. Depois: `ARANDU_ENV=pilot npm run finance:env:check` |
@@ -98,26 +101,11 @@ Evidências: [`FINANCIAL_RELEASE_EVIDENCE_2026-09-26.md`](FINANCIAL_RELEASE_EVID
 ## Demo pública
 
 A demonstração roda só no navegador, com dados fictícios, sem Supabase. Em
-produção ela não existe (`/demo/index.html` → 404, verificado). Para uma URL
-pública, sem conta Vercel e sem conta Arandu:
-
-1. Vercel → **Add New… → Project** → importar `lucasweber1202/Arandu`, nome
-   **`arandu-demo`**.
-2. **Build & Development Settings**: Build Command `npm run build:demo`;
-   Output Directory `dist`; Install Command padrão do `vercel.json`.
-3. **Environment Variables**: nenhuma. O build falha se encontrar
-   `SUPABASE_*`, `RESEND_API_KEY` ou `CRON_SECRET`.
-4. **Settings → Deployment Protection → Vercel Authentication: Disabled**
-   (só neste projeto; o projeto `arandu` continua como está).
-5. **Settings → Cron Jobs**: desativar (a demo não tem banco; sem `CRON_SECRET`
-   a rota responderia 401 de qualquer forma).
-6. Deploy. Conferir de uma janela anônima:
-
-```bash
-curl -sI https://arandu-demo.vercel.app/ | head -1              # HTTP/2 200 (sem 302 para vercel.com/sso-api)
-curl -sI https://arandu-demo.vercel.app/demo | grep -i location  # /demo/index.html
-curl -s  https://arandu-demo.vercel.app/demo/index.html | grep -c "Explorar demonstração"
-```
+produção e no piloto ela não existe (`/demo/index.html` → 404). Passo a passo
+único do projeto `arandu-demo` e verificação por `curl`:
+[`FINANCIAL_DEPLOYMENT_WORKFLOW.md#demo`](FINANCIAL_DEPLOYMENT_WORKFLOW.md#demo).
+Resumo: uma variável (`ARANDU_DEPLOYMENT_KIND=demo`), Build Command padrão,
+Vercel Authentication desligada; `/` abre a demo e toda a API responde 404.
 
 ## Usuários do piloto
 

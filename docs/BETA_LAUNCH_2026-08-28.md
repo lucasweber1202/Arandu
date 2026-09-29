@@ -1,5 +1,7 @@
 # Beta pública Arandu — 28 de agosto de 2026
 
+> **Legado — vertical de arte (aposentada).** Documento histórico: não descreve o produto atual (Arandu Financial Procurement). Ver [`LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md) e [`OPERATIONS_INDEX.md`](OPERATIONS_INDEX.md).
+
 Estado desta branch: `claude/arandu-beta-launch-2026-08-28`, a partir de `main@35952a4`
 (merge do PR #49, 18/08).
 

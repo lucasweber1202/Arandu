@@ -1,5 +1,7 @@
 # Estrategia comercial
 
+> **Legado — vertical de arte (aposentada).** Documento histórico: não descreve o produto atual (Arandu Financial Procurement). Ver [`LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md) e [`OPERATIONS_INDEX.md`](OPERATIONS_INDEX.md).
+
 ## Posicionamento
 
 A Arandu deve vender curadoria, confianca e acesso a artistas brasileiros contemporaneos. A venda da obra e consequencia da relacao.

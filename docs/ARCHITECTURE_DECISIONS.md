@@ -1,5 +1,7 @@
 # Decisoes de arquitetura
 
+> **Legado — vertical de arte (aposentada).** Documento histórico: não descreve o produto atual (Arandu Financial Procurement). Ver [`LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md) e [`OPERATIONS_INDEX.md`](OPERATIONS_INDEX.md).
+
 ## ADR 001 - Comecar leve
 
 A primeira versao propria da Arandu deve priorizar velocidade, clareza e validacao. Por isso, a base atual usa Vite e TypeScript para um MVP simples.

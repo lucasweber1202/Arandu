@@ -1,5 +1,7 @@
 # Camada de conversão e clareza — Arandu
 
+> **Legado — vertical de arte (aposentada).** Documento histórico: não descreve o produto atual (Arandu Financial Procurement). Ver [`LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md) e [`OPERATIONS_INDEX.md`](OPERATIONS_INDEX.md).
+
 Esta rodada implementou melhorias antes do backend para tornar a experiência mais clara, consultiva e comercial.
 
 ## O que entrou

@@ -1,5 +1,7 @@
 # Arandu — checklist de domínio e go-live
 
+> **Legado — vertical de arte (aposentada).** Documento histórico: não descreve o produto atual (Arandu Financial Procurement). Ver [`LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md) e [`OPERATIONS_INDEX.md`](OPERATIONS_INDEX.md).
+
 Este roteiro é para o dia em que a Vercel liberar novos deploys e o domínio for comprado.
 
 ## 1. Antes de comprar o domínio

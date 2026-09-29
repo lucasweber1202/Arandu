@@ -27,11 +27,16 @@ Object.entries(requiredDocs).forEach(([file, terms]) => {
   });
 });
 
-if (existsSync('README.md')) {
-  const readme = readFileSync('README.md', 'utf8');
+// Material da vertical de arte aposentada: indexado no documento de
+// aposentadoria, não no README do produto atual (Financial Procurement).
+const legacyIndex = 'docs/LEGACY_ART_RETIREMENT.md';
+if (existsSync(legacyIndex)) {
+  const index = readFileSync(legacyIndex, 'utf8');
   Object.keys(requiredDocs).forEach((file) => {
-    if (!readme.includes(file)) issues.push(`README não referencia ${file}`);
+    if (!index.includes(file)) issues.push(`${legacyIndex} não referencia ${file}`);
   });
+} else {
+  issues.push(`Índice legado ausente: ${legacyIndex}`);
 }
 
 console.log('Arandu Commercial Docs Check');

@@ -1,5 +1,7 @@
 # Arandu — Checklist de Pré-Deploy
 
+> **Legado — vertical de arte (aposentada).** Documento histórico: não descreve o produto atual (Arandu Financial Procurement). Ver [`LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md) e [`OPERATIONS_INDEX.md`](OPERATIONS_INDEX.md).
+
 Use este checklist antes de um deploy técnico ou de uma beta pública no Vercel. O go-live comercial completo possui gates adicionais.
 
 ## 1. Validação técnica

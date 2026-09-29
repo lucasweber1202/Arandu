@@ -6,7 +6,7 @@
 | --- | --- | --- | --- | --- | --- |
 | Desenvolvimento | — | `feature/*` | `development` | local (`pilot:local`) ou nenhum | permitida |
 | Preview | qualquer projeto, deploy de PR | `feature/*` | não definido | nenhum | permitida |
-| Demo | `arandu-demo` | `main` (`build:demo`) | não definido | nenhum | é o próprio produto |
+| Demo | `arandu-demo` | `main` (`ARANDU_DEPLOYMENT_KIND=demo`) | não definido | nenhum | é o próprio produto |
 | **Piloto** | `arandu-pilot` | **`pilot`** | `pilot` | **dedicado** (`offgpyysgdhfemjlchod`) | **proibida** |
 | Produção | `arandu` | `main` | `production` | **próprio**, nunca o do piloto | **proibida** |
 

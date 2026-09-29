@@ -1,5 +1,7 @@
 # Novo pacote de 20 melhorias implementadas — Arandu
 
+> **Legado — vertical de arte (aposentada).** Documento histórico: não descreve o produto atual (Arandu Financial Procurement). Ver [`LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md) e [`OPERATIONS_INDEX.md`](OPERATIONS_INDEX.md).
+
 Este documento registra a nova rodada de melhorias solicitada para deixar o MVP mais próximo de uma operação real.
 
 ## 1. Preparação para estrutura mais limpa

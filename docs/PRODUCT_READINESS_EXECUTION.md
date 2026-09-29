@@ -1,5 +1,7 @@
 # Product readiness execution — Arandu
 
+> **Legado — vertical de arte (aposentada).** Documento histórico: não descreve o produto atual (Arandu Financial Procurement). Ver [`LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md) e [`OPERATIONS_INDEX.md`](OPERATIONS_INDEX.md).
+
 Este pacote implementa a parte de código do plano de prontidão executado pelo Work sem promover dependências externas como concluídas.
 
 ## O que entrou

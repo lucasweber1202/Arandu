@@ -1,5 +1,7 @@
 # Arquitetura técnica — Arandu
 
+> **Legado — vertical de arte (aposentada).** Documento histórico: não descreve o produto atual (Arandu Financial Procurement). Ver [`LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md) e [`OPERATIONS_INDEX.md`](OPERATIONS_INDEX.md).
+
 ## Estado atual
 
 O projeto está como MVP estático navegável, com HTML, CSS e JavaScript simples. Essa decisão permite validar marca, jornada, catálogo, artistas, arquitetos e formulários antes de investir em backend completo.

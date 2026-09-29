@@ -1,5 +1,7 @@
 # Métricas e funil — Arandu
 
+> **Legado — vertical de arte (aposentada).** Documento histórico: não descreve o produto atual (Arandu Financial Procurement). Ver [`LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md) e [`OPERATIONS_INDEX.md`](OPERATIONS_INDEX.md).
+
 Este documento define as métricas mínimas para acompanhar o lançamento real.
 
 ## 1. Por que medir

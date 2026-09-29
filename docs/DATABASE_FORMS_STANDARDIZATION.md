@@ -1,5 +1,7 @@
 # Bases de dados, cadastros, formulários e padronizações — Arandu
 
+> **Legado — vertical de arte (aposentada).** Documento histórico: não descreve o produto atual (Arandu Financial Procurement). Ver [`LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md) e [`OPERATIONS_INDEX.md`](OPERATIONS_INDEX.md).
+
 Esta etapa iniciou a base operacional real da Arandu para catálogo, CRM, submissões, empresas, certificados e cadastros internos.
 
 ## 1. Banco de dados

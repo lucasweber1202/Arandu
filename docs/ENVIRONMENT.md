@@ -1,5 +1,7 @@
 # Variáveis de ambiente — Arandu
 
+> **Legado — vertical de arte (aposentada).** Documento histórico: não descreve o produto atual (Arandu Financial Procurement). Ver [`LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md) e [`OPERATIONS_INDEX.md`](OPERATIONS_INDEX.md).
+
 O MVP atual é estático e não depende de variáveis de ambiente para rodar. Este documento prepara a migração futura.
 
 ## ARANDU_WHATSAPP_NUMBER

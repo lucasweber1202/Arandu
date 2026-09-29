@@ -1,5 +1,7 @@
 # Implementação de lançamento — 25/06/2026
 
+> **Legado — vertical de arte (aposentada).** Documento histórico: não descreve o produto atual (Arandu Financial Procurement). Ver [`LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md) e [`OPERATIONS_INDEX.md`](OPERATIONS_INDEX.md).
+
 Este documento consolida o estado do repositório Arandu e o que foi implementado nesta rodada para aproximar o site de um lançamento público controlado.
 
 ## Já existe no repositório

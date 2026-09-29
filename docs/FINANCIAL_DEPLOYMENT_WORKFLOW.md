@@ -5,12 +5,37 @@ projeto Vercel, variáveis e projeto Supabase, nunca por cópias do código.
 
 | Ambiente | Projeto Vercel | Origem | `ARANDU_ENV` | Banco | Para quê |
 | --- | --- | --- | --- | --- | --- |
-| Demo | `arandu-demo` | `main`, `npm run build:demo` | (não definir) | nenhum; dados fictícios no navegador | mostrar o produto sem expor ambiente real |
+| Demo | `arandu-demo` | `main`, com `ARANDU_DEPLOYMENT_KIND=demo` (o build vira `build:demo`) | (não definir) | nenhum; dados fictícios no navegador | mostrar o produto sem expor ambiente real |
 | Piloto | `arandu-pilot` | branch `pilot` | `pilot` | Supabase do piloto (`offgpyysgdhfemjlchod`) | testar de verdade, com os primeiros usuários |
 | Produção | `arandu` | branch `main` | `production` | Supabase de produção, próprio e vazio no início | uso oficial |
 
 O projeto Supabase legado de arte (`igacnfjeuqhxcmfyepgj`) não é usado por
 nenhum dos três.
+
+## Demo
+
+Uma URL pública, sem login de nenhum tipo, que abre direto a demonstração.
+
+1. Vercel → **Add New… → Project** → importar `lucasweber1202/Arandu`, nome
+   **`arandu-demo`**, Production Branch `main`.
+2. **Não** altere o Build Command: o `vercel.json` fixa `npm run vercel-build` e
+   sobrepõe o campo do painel. O que escolhe o build da demo é a variável.
+3. **Environment Variables** (escopos Production e Preview): **só**
+   `ARANDU_DEPLOYMENT_KIND=demo`. Nenhuma outra. Com ela, `vercel-build` roda
+   `deploy:check:demo` (`build:demo` + fronteira da demo + tamanho + assets), e
+   o build falha se aparecer `SUPABASE_*`, `RESEND_API_KEY`, `CRON_SECRET` ou
+   `ARANDU_ENV`.
+4. **Settings → Deployment Protection → Vercel Authentication: Disabled**
+   (só neste projeto; piloto e produção continuam como estão).
+5. Deploy. A raiz `/` é a entrada da demonstração; `/demo/…` continua valendo.
+   Toda a API responde 404 nesse projeto (não há banco), exceto `/api/health`.
+6. Conferir de uma janela anônima:
+
+```bash
+curl -sI https://arandu-demo.vercel.app/ | head -1                 # HTTP/2 200, sem 302 para vercel.com/sso-api
+curl -s  https://arandu-demo.vercel.app/ | grep -c 'id="start-demo"' # 1
+curl -s  https://arandu-demo.vercel.app/api/finance/me             # 404 legacy_surface_closed
+```
 
 ## Branches
 
@@ -73,8 +98,40 @@ O normal é `pilot` estar à frente de `main`, com o que ainda está em teste. S
   `npm run test:database`. Faça backup antes (`npm run pilot:restore:drill`
   mostra o procedimento seguro).
 
+## Estado atual das branches
+
+Não confie num SHA escrito aqui: confira sempre no Git.
+
+```bash
+git fetch origin main pilot
+git rev-list --left-right --count origin/main...origin/pilot   # "0 N": pilot N commits à frente, 0 atrás
+git log --oneline origin/main..origin/pilot                     # o que ainda não foi promovido
+```
+
+O esperado entre promoções é `pilot` à frente e `0` atrás. Se o primeiro
+número for maior que zero, há hotfix em `main` sem volta para `pilot`: faça a
+PR `main → pilot` antes de qualquer outra coisa.
+
+Histórico: a #81 promoveu `pilot → main` antes de o piloto existir na Vercel e
+com o CI sem quota. O conteúdo era só topologia e documentação (sem migration
+nem dado), e nada passou a apontar para o piloto; não houve o que reverter.
+Desde então as mudanças vão para `pilot` (#82 em diante) e `main` só recebe a
+promoção com os cinco itens acima atendidos.
+
+O projeto `arandu` (produção) roda sem `ARANDU_ENV` desde antes da #82. O
+código fecha a API legada em qualquer deployment de produção da Vercel, e o
+próximo deploy de `main` **falha** até `ARANDU_ENV=production` e o Supabase
+próprio da produção estarem configurados. O deploy atual continua no ar.
+
 ## O que impede os erros de topologia
 
+- `scripts/vercel-build.mjs` recusa um deploy de produção da Vercel que não
+  declara o ambiente (`ARANDU_ENV` `pilot`/`production` ou
+  `ARANDU_DEPLOYMENT_KIND=demo`).
+- No deploy, os testes de contrato do `check:all` rodam sem o ambiente de
+  deploy (`scripts/run-hermetic.mjs`), como no CI: nada de `ARANDU_ENV`,
+  `SUPABASE_*` ou segredos herdados. O build e o `finance:env:check` usam o
+  ambiente completo.
 - `scripts/vercel-build.mjs` roda `finance:env:check` antes do build sempre que
   `ARANDU_ENV` é `pilot` ou `production`. O deploy falha quando:
   - a produção aponta para o banco do piloto ou para o legado;
@@ -86,7 +143,8 @@ O normal é `pilot` estar à frente de `main`, com o que ainda está em teste. S
 - O build (`lib/demo-mode.mjs`) nunca publica `/demo` com `ARANDU_ENV` `pilot`
   ou `production`, nem nos previews. Pedir a demo ali falha o build. O build da
   demo falha se houver qualquer credencial real no ambiente.
-- Com `ARANDU_ENV` `pilot` ou `production`, as rotas legadas de arte respondem
-  404 (`lib/legacy-surface.mjs`).
+- Com `ARANDU_ENV` `pilot` ou `production`, em qualquer deployment de produção
+  da Vercel e na demo, as rotas legadas de arte respondem 404
+  (`lib/legacy-surface.mjs`). Na demo, toda a API responde 404.
 - `finance:pilot:doctor` aceita `ARANDU_ENV=pilot` e `production`. Ele marca
   UNSAFE quando a produção aponta para o banco do piloto.
