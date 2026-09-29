@@ -43,6 +43,12 @@ Topologia e fluxo em [`FINANCIAL_DEPLOYMENT_WORKFLOW.md`](FINANCIAL_DEPLOYMENT_W
 A branch `pilot` já existe. Nesta sessão não havia conector nem credencial de
 Vercel ou Supabase (APIs 403/401), por isso os passos abaixo são seus.
 
+> **Estado em 29/09 (tarde):** `arandu-demo` e `arandu-pilot` estão no ar e
+> passam nas verificações externas (ver adendo de
+> [`FINANCIAL_RELEASE_EVIDENCE_2026-09-29.md`](FINANCIAL_RELEASE_EVIDENCE_2026-09-29.md)).
+> Dos itens 3.1–3.3 falta só rodar o doctor completo, o canário e o restore
+> drill do 3.3 com as variáveis do projeto.
+
 **3.1 `arandu-demo` (Vercel)**: passo a passo único em
 [`FINANCIAL_DEPLOYMENT_WORKFLOW.md#demo`](FINANCIAL_DEPLOYMENT_WORKFLOW.md#demo).
 Resumo: projeto novo da branch `main`, **uma** variável
