@@ -142,12 +142,9 @@ modelo ligado a sucesso na contratação volta para o item 1.
 
 ## 8. Dependabot
 
-[#60](https://github.com/lucasweber1202/Arandu/pull/60) (vite 8.2.2 → 8.3.0) e
-[#61](https://github.com/lucasweber1202/Arandu/pull/61) (@playwright/test
-1.62.1 → 1.63.0). As duas branches foram atualizadas contra a `main` atual nesta
-rodada para que o CI delas rode contra o código de hoje. **Mesclar é decisão de
-quem tem permissão**, e deve ser feito separado desta PR, para que uma eventual
-regressão tenha causa identificável.
+Nada pendente. As antigas #60 (vite 8.3.0) e #61 (@playwright/test 1.63.0)
+estão fechadas e absorvidas: o `package-lock.json` atual tem vite 8.3.1 e
+@playwright/test 1.63.0 (conferido em 29/09/2026).
 
 ---
 

@@ -60,6 +60,8 @@ branch limpa e sem Export Compliance.
 
 ## Dependabot
 
+> Estado em 29/09/2026: #60 e #61 fechadas; o `package-lock.json` já tem vite 8.3.1 e @playwright/test 1.63.0. O texto abaixo é histórico.
+
 `#60` (vite 8.2.2 → 8.3.0) e `#61` (@playwright/test 1.62.1 → 1.63.0). Ambas são
 incrementos de versão menor dentro da mesma maior, sem breaking change
 declarado.
