@@ -83,3 +83,35 @@ requisições fora da origem ou para `/api/`, 0 rolagem horizontal, `h1` único.
 Bundle da demo sem JWT, `service_role`, host Supabase nem analytics.
 Screenshots 1440×900 e 390×844 (home, painel, RFQ, comparação, aprovações,
 contratos, ciclo de vida, portal do provedor) guardadas fora do Git.
+
+## Adendo — reconciliação pós-#82 (mesmo dia)
+
+Base: `pilot` `be37c7e` (merge da #82), `main` `fd796e6`; `main...pilot` = `0 8`.
+
+**Achado:** com `ARANDU_ENV=pilot` (ou `production`) válido, `vercel-build`
+passava o `finance:env:check` e reprovava no `check:all`: os testes de contrato
+herdavam o ambiente de deploy e viam a API legada fechada
+(`test-operational-status.mjs`). Todo deploy real de `arandu-pilot` e `arandu`
+teria falhado. Correção: `scripts/run-hermetic.mjs` roda o `check:all` do deploy
+sem `ARANDU_*` (exceto `ARANDU_SITE_URL`), `SUPABASE_*`, `VERCEL*`, `RESEND_*`,
+`PILOT_*` e `CRON_SECRET`, como no CI. Regressão em
+`test-deploy-release-separation.mjs`.
+
+Matriz do `vercel-build` (chaves sintéticas, nenhum segredo real):
+
+| Cenário | Resultado |
+| --- | --- |
+| demo + `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` / `CRON_SECRET` | FAIL (esperado) |
+| demo + `ARANDU_ENV=pilot` / `production` | FAIL (esperado) |
+| `VERCEL_ENV=production` sem `ARANDU_ENV` | FAIL (esperado) |
+| produção no banco do piloto / no legado | FAIL (esperado) |
+| piloto válido (branch `pilot`, banco do piloto, service role, cron) | PASS (antes: FAIL no `check:all`) |
+| produção válida (branch `main`, banco próprio) | PASS (antes: FAIL no `check:all`) |
+
+Ensaio local com Supabase real em contêineres (Docker):
+`pilot:local:up` (35 migrations, bucket privado 10 MB/5 tipos),
+`pilot:local:journey` 24 passos / 60 ataques / 0 falhas,
+`pilot:local:doctor` GO / NO-GO / UNSAFE / UNSAFE nos quatro cenários,
+`pilot:canary` 144 verificações / 0 vazamentos,
+`pilot:restore:drill` passed (backup 566 ms, restore 1765 ms).
+`test:database` (clean install, upgrade, reaplicação, rollback) verde.

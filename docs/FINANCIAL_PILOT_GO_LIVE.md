@@ -1,6 +1,6 @@
 # Financial Procurement — checklist única de go-live do piloto
 
-Estado em **29/09/2026**, `main` `fd796e6` / `pilot` `67b3404` (árvores idênticas) + a PR de fechamento operacional.
+Estado revisado em **29/09/2026** (depois da #82 em `pilot`). Branches: confira no Git (`FINANCIAL_DEPLOYMENT_WORKFLOW.md#estado-atual-das-branches`); `main` não recebeu a #82 e só recebe a promoção.
 Primeiro comando no ambiente real: `ARANDU_ENV=pilot npm run finance:pilot:doctor`
 (somente leitura; 0 = GO, 1 = NO-GO, 2 = UNSAFE).
 Cada linha tem um único estado:

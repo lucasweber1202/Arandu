@@ -98,28 +98,40 @@ O normal é `pilot` estar à frente de `main`, com o que ainda está em teste. S
   `npm run test:database`. Faça backup antes (`npm run pilot:restore:drill`
   mostra o procedimento seguro).
 
-## Estado da topologia em 29/09/2026
+## Estado atual das branches
 
-- `main` = `fd796e6` (merge da #81, `pilot → main`); `pilot` = `67b3404` (merge
-  da #80). As árvores são idênticas: `main` só tem o commit de merge a mais.
-  Não há código em `main` que não esteja em `pilot`.
-- A #81 promoveu `pilot → main` antes de o piloto existir na Vercel, antes do
-  doctor GO e com o CI bloqueado pela quota. O conteúdo promovido era só
-  topologia e documentação (nenhuma migration, nenhuma mudança de dados), e o
-  projeto `arandu` não tem `ARANDU_ENV` — então nada passou a apontar para o
-  piloto. Não há o que reverter. Regra a partir daqui: a PR de promoção só é
-  aberta com os cinco itens de "Promover `pilot → main`" atendidos, e as PRs de
-  `feature/*` vão para `pilot`.
-- O projeto `arandu` (produção) está no ar sem `ARANDU_ENV`. Desde esta rodada o
-  código fecha a API legada em qualquer deployment de produção da Vercel, e o
-  próximo deploy de `main` **falha** até `ARANDU_ENV=production` (e o Supabase
-  próprio da produção) estar configurado. O deploy atual continua no ar.
+Não confie num SHA escrito aqui: confira sempre no Git.
+
+```bash
+git fetch origin main pilot
+git rev-list --left-right --count origin/main...origin/pilot   # "0 N": pilot N commits à frente, 0 atrás
+git log --oneline origin/main..origin/pilot                     # o que ainda não foi promovido
+```
+
+O esperado entre promoções é `pilot` à frente e `0` atrás. Se o primeiro
+número for maior que zero, há hotfix em `main` sem volta para `pilot`: faça a
+PR `main → pilot` antes de qualquer outra coisa.
+
+Histórico: a #81 promoveu `pilot → main` antes de o piloto existir na Vercel e
+com o CI sem quota. O conteúdo era só topologia e documentação (sem migration
+nem dado), e nada passou a apontar para o piloto; não houve o que reverter.
+Desde então as mudanças vão para `pilot` (#82 em diante) e `main` só recebe a
+promoção com os cinco itens acima atendidos.
+
+O projeto `arandu` (produção) roda sem `ARANDU_ENV` desde antes da #82. O
+código fecha a API legada em qualquer deployment de produção da Vercel, e o
+próximo deploy de `main` **falha** até `ARANDU_ENV=production` e o Supabase
+próprio da produção estarem configurados. O deploy atual continua no ar.
 
 ## O que impede os erros de topologia
 
 - `scripts/vercel-build.mjs` recusa um deploy de produção da Vercel que não
   declara o ambiente (`ARANDU_ENV` `pilot`/`production` ou
   `ARANDU_DEPLOYMENT_KIND=demo`).
+- No deploy, os testes de contrato do `check:all` rodam sem o ambiente de
+  deploy (`scripts/run-hermetic.mjs`), como no CI: nada de `ARANDU_ENV`,
+  `SUPABASE_*` ou segredos herdados. O build e o `finance:env:check` usam o
+  ambiente completo.
 - `scripts/vercel-build.mjs` roda `finance:env:check` antes do build sempre que
   `ARANDU_ENV` é `pilot` ou `production`. O deploy falha quando:
   - a produção aponta para o banco do piloto ou para o legado;
