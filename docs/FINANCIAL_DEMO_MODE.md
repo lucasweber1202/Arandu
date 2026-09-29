@@ -82,8 +82,8 @@ navegador não guarda rascunho real — os testes E2E verificam isso.
 
 ## Vercel: por que a URL de preview ainda pede login
 
-> Passo a passo atualizado do projeto `arandu-demo` e verificação por `curl`:
-> [`FINANCIAL_PILOT_GO_LIVE.md`](FINANCIAL_PILOT_GO_LIVE.md#demo-pública).
+> Passo a passo canônico do projeto `arandu-demo` e verificação por `curl`:
+> [`FINANCIAL_DEPLOYMENT_WORKFLOW.md`](FINANCIAL_DEPLOYMENT_WORKFLOW.md#demo).
 
 O bloqueio observado **não é** a autenticação do Arandu. Em 26/09/2026 todas as
 URLs do projeto `arandu` (`…-lucas-projects467.vercel.app`) respondiam
@@ -95,13 +95,13 @@ Opções, da mais recomendada para a menos:
 
 1. **Projeto de demonstração separado (recomendado).**
    Vercel → Add New → Project → importar `lucasweber1202/Arandu` com o nome
-   `arandu-demo` → Settings → General → Build & Development Settings →
-   Build Command `npm run build:demo`, Output Directory `dist` →
-   Settings → Environment Variables: **nenhuma** variável real (o build falha
-   se houver `SUPABASE_*`, `RESEND_API_KEY` ou segredos de cron) →
+   `arandu-demo` → Settings → Environment Variables: **só**
+   `ARANDU_DEPLOYMENT_KIND=demo` (o `vercel.json` sobrepõe o Build Command do
+   painel; a variável é o que liga o `build:demo`, e o build falha se houver
+   `SUPABASE_*`, `RESEND_API_KEY`, segredos de cron ou `ARANDU_ENV`) →
    Settings → Deployment Protection → **Vercel Authentication: Disabled**.
    O domínio de produção desse projeto (`arandu-demo.vercel.app` ou similar)
-   fica público e mostra só a demonstração; o portal real nele não tem banco.
+   fica público e abre a demonstração na raiz; toda a API nele responde 404.
 2. **Liberar os previews do projeto atual.** Vercel → Project `arandu` →
    Settings → Deployment Protection → Vercel Authentication → trocar de
    “Standard Protection” para **Disabled** (ou “Only Production Deployments”,
