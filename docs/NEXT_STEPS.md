@@ -1,5 +1,7 @@
 # Próximos passos técnicos — Arandu
 
+> **Legado — vertical de arte (aposentada).** Documento histórico: não descreve o produto atual (Arandu Financial Procurement). Ver [`LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md) e [`OPERATIONS_INDEX.md`](OPERATIONS_INDEX.md).
+
 Este documento separa o que já foi entregue no MVP estático e o que deve ser priorizado para transformar a Arandu em uma plataforma completa.
 
 ## 1. Curto prazo — acabamento antes de apresentar

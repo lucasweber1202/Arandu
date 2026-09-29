@@ -1,5 +1,7 @@
 # Diretrizes de Marca da Arandu
 
+> **Legado — vertical de arte (aposentada).** Documento histórico: não descreve o produto atual (Arandu Financial Procurement). Ver [`LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md) e [`OPERATIONS_INDEX.md`](OPERATIONS_INDEX.md).
+
 ## Essência
 
 A Arandu é uma plataforma de curadoria de arte brasileira contemporânea.

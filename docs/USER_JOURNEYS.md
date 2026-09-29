@@ -1,5 +1,7 @@
 # Jornadas de Usuário da Arandu
 
+> **Legado — vertical de arte (aposentada).** Documento histórico: não descreve o produto atual (Arandu Financial Procurement). Ver [`LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md) e [`OPERATIONS_INDEX.md`](OPERATIONS_INDEX.md).
+
 ## Princípio central
 
 A Arandu deve conduzir pessoas até obras com sentido. A jornada não deve começar pela pergunta “qual obra você quer comprar?”, mas sim por:

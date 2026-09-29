@@ -1,5 +1,7 @@
 # User stories
 
+> **Legado — vertical de arte (aposentada).** Documento histórico: não descreve o produto atual (Arandu Financial Procurement). Ver [`LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md) e [`OPERATIONS_INDEX.md`](OPERATIONS_INDEX.md).
+
 ## Comprador
 
 Como comprador, quero encontrar obras por ambiente para nao depender de conhecimento tecnico sobre arte.

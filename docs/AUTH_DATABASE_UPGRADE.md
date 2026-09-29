@@ -1,5 +1,7 @@
 # Upgrade de conta e banco — Arandu
 
+> **Legado — vertical de arte (aposentada).** Documento histórico: não descreve o produto atual (Arandu Financial Procurement). Ver [`LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md) e [`OPERATIONS_INDEX.md`](OPERATIONS_INDEX.md).
+
 > Registro histórico. A arquitetura atual está consolidada em `api/[...path].js`; para o rollout vigente, use `docs/SETUP_PRODUCAO.md` e aplique `docs/supabase-sprint1-auth-ownership.sql` antes do deploy.
 
 Esta rodada iniciou a transformação da Arandu em produto real com rotas serverless na Vercel e preparação para Supabase.

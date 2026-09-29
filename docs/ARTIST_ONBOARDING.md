@@ -1,5 +1,7 @@
 # Fluxo operacional de artistas — Arandu
 
+> **Legado — vertical de arte (aposentada).** Documento histórico: não descreve o produto atual (Arandu Financial Procurement). Ver [`LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md) e [`OPERATIONS_INDEX.md`](OPERATIONS_INDEX.md).
+
 ## 1. Prospecção
 
 Mapear artistas por linguagem, território, consistência de produção, faixa de preço e aderência à curadoria.

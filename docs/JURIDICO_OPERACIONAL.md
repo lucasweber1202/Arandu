@@ -1,5 +1,7 @@
 # Arandu — Jurídico operacional
 
+> **Legado — vertical de arte (aposentada).** Documento histórico: não descreve o produto atual (Arandu Financial Procurement). Ver [`LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md) e [`OPERATIONS_INDEX.md`](OPERATIONS_INDEX.md).
+
 ## Papel recomendado da Arandu no início
 
 Recomendação inicial: plataforma curatorial/intermediadora.

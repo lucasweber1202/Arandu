@@ -1,5 +1,7 @@
 # Pendências resumidas — Arandu
 
+> **Legado — vertical de arte (aposentada).** Documento histórico: não descreve o produto atual (Arandu Financial Procurement). Ver [`LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md) e [`OPERATIONS_INDEX.md`](OPERATIONS_INDEX.md).
+
 Documento resumido. O detalhamento canônico está em
 `docs/RELEASE_CANDIDATE_1.md`; evidências externas vivem em
 `ops/release-evidence.json`.

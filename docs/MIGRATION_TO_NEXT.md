@@ -1,5 +1,7 @@
 # Plano de migração para Next.js — Arandu
 
+> **Legado — vertical de arte (aposentada).** Documento histórico: não descreve o produto atual (Arandu Financial Procurement). Ver [`LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md) e [`OPERATIONS_INDEX.md`](OPERATIONS_INDEX.md).
+
 ## Por que migrar
 
 O MVP estático é suficiente para validar a proposta. A migração para Next.js faz sentido quando houver catálogo dinâmico, banco de dados, painel e SEO em escala.

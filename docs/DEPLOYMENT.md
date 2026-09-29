@@ -1,5 +1,7 @@
 # Deploy
 
+> **Legado — vertical de arte (aposentada).** Documento histórico: não descreve o produto atual (Arandu Financial Procurement). Ver [`LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md) e [`OPERATIONS_INDEX.md`](OPERATIONS_INDEX.md).
+
 ## Fase MVP
 
 A primeira versao pode ser publicada em Vercel, Netlify ou outro servico estatico compatível com Vite.

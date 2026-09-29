@@ -1,5 +1,7 @@
 # Transações, RLS, RBAC e auditoria
 
+> **Legado — vertical de arte (aposentada).** Documento histórico: não descreve o produto atual (Arandu Financial Procurement). Ver [`LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md) e [`OPERATIONS_INDEX.md`](OPERATIONS_INDEX.md).
+
 Esta camada é introduzida por `docs/supabase-transactions-rbac-audit.sql`.
 Ela deve ser aplicada somente depois de `docs/supabase-commercial.sql` e
 `docs/supabase-sprint6-12-platform.sql`.

@@ -1,5 +1,7 @@
 # Go-live Arandu — decisão de lançamento
 
+> **Legado — vertical de arte (aposentada).** Documento histórico: não descreve o produto atual (Arandu Financial Procurement). Ver [`LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md) e [`OPERATIONS_INDEX.md`](OPERATIONS_INDEX.md).
+
 O Arandu deve sair do preview fechado somente quando os gates abaixo estiverem comprovados. A existência das páginas ou o sucesso do build, isoladamente, não autoriza abertura pública.
 
 ## 1. Sequência obrigatória

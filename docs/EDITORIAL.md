@@ -1,5 +1,7 @@
 # Editorial
 
+> **Legado — vertical de arte (aposentada).** Documento histórico: não descreve o produto atual (Arandu Financial Procurement). Ver [`LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md) e [`OPERATIONS_INDEX.md`](OPERATIONS_INDEX.md).
+
 O conteudo da Arandu deve educar sem parecer aula e vender sem parecer anuncio.
 
 Linhas principais: primeira obra, arte no espaco, trajetoria de artistas, curadoria para projetos e autenticidade.

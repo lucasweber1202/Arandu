@@ -1,5 +1,7 @@
 # Guia de imagens — Arandu
 
+> **Legado — vertical de arte (aposentada).** Documento histórico: não descreve o produto atual (Arandu Financial Procurement). Ver [`LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md) e [`OPERATIONS_INDEX.md`](OPERATIONS_INDEX.md).
+
 ## Objetivo
 
 Padronizar imagens de obras, artistas e compartilhamento antes de iniciar prospecção real.

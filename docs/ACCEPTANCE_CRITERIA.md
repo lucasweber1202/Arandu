@@ -1,5 +1,7 @@
 # Criterios de aceite
 
+> **Legado — vertical de arte (aposentada).** Documento histórico: não descreve o produto atual (Arandu Financial Procurement). Ver [`LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md) e [`OPERATIONS_INDEX.md`](OPERATIONS_INDEX.md).
+
 ## Home
 
 - A proposta da Arandu deve ficar clara em ate cinco segundos.

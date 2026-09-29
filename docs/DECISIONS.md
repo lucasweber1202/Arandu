@@ -1,5 +1,7 @@
 # Decisões de produto e tecnologia — Arandu
 
+> **Legado — vertical de arte (aposentada).** Documento histórico: não descreve o produto atual (Arandu Financial Procurement). Ver [`LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md) e [`OPERATIONS_INDEX.md`](OPERATIONS_INDEX.md).
+
 ## 1. MVP estático antes de backend
 
 Decisão: começar com HTML, CSS e JavaScript simples.

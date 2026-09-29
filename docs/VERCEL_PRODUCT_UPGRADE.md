@@ -1,5 +1,7 @@
 # Upgrade para produto real com Vercel — Arandu
 
+> **Legado — vertical de arte (aposentada).** Documento histórico: não descreve o produto atual (Arandu Financial Procurement). Ver [`LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md) e [`OPERATIONS_INDEX.md`](OPERATIONS_INDEX.md).
+
 Este pacote começa a tirar a Arandu do modo apenas estático e aproxima o projeto de uma operação real em Vercel.
 
 ## O que foi implementado
