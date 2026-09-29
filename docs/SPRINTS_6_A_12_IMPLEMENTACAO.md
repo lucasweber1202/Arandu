@@ -1,5 +1,7 @@
 # Sprints 6 a 12 — hardening, operação e crescimento responsável
 
+> **Legado — vertical de arte (aposentada).** Documento histórico: não descreve o produto atual (Arandu Financial Procurement). Ver [`LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md) e [`OPERATIONS_INDEX.md`](OPERATIONS_INDEX.md).
+
 Esta etapa amplia a base dos Sprints 1–5 sem liberar produção artificialmente. Recursos dependentes de Supabase, domínio, dados reais ou decisão humana continuam bloqueados até existir evidência operacional.
 
 ## Sprint 6 — hardening de produção

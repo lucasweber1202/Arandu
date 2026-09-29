@@ -1,5 +1,7 @@
 # Auditoria de endurecimento para produção
 
+> **Legado — vertical de arte (aposentada).** Documento histórico: não descreve o produto atual (Arandu Financial Procurement). Ver [`LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md) e [`OPERATIONS_INDEX.md`](OPERATIONS_INDEX.md).
+
 Data da revisão: 2026-07-30  
 Base revisada: PR #23, commit `352f07b`  
 Branch complementar: `agent/arandu-production-gates-ops`

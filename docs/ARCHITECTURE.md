@@ -1,5 +1,7 @@
 # Arquitetura da Arandu
 
+> **Legado — vertical de arte (aposentada).** Documento histórico: não descreve o produto atual (Arandu Financial Procurement). Ver [`LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md) e [`OPERATIONS_INDEX.md`](OPERATIONS_INDEX.md).
+
 ## Visão geral
 
 A Arandu deve ser estruturada como uma plataforma de curadoria de arte brasileira contemporânea, não como um e-commerce tradicional.

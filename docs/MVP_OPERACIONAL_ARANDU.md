@@ -1,5 +1,7 @@
 # Arandu — MVP operacional programável
 
+> **Legado — vertical de arte (aposentada).** Documento histórico: não descreve o produto atual (Arandu Financial Procurement). Ver [`LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md) e [`OPERATIONS_INDEX.md`](OPERATIONS_INDEX.md).
+
 Este pacote transforma a definição estratégica do Arandu em fluxo navegável e mensurável dentro do site.
 
 ## O que foi implementado

@@ -1,5 +1,7 @@
 # Arandu — Pacote Final 300
 
+> **Legado — vertical de arte (aposentada).** Documento histórico: não descreve o produto atual (Arandu Financial Procurement). Ver [`LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md) e [`OPERATIONS_INDEX.md`](OPERATIONS_INDEX.md).
+
 > **Camada desativada e removida.** O pacote foi desligado no site público
 > (`js/arandu-loader.js` carrega com `disabledLegacyLayers: true`) e os arquivos
 > abaixo viraram stubs sem referência em nenhuma página, script ou etapa de

@@ -1,5 +1,7 @@
 # Deploy da Arandu
 
+> **Legado — vertical de arte (aposentada).** Documento histórico: não descreve o produto atual (Arandu Financial Procurement). Ver [`LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md) e [`OPERATIONS_INDEX.md`](OPERATIONS_INDEX.md).
+
 A versão atual da Arandu funciona como MVP estático. Isso significa que pode ser publicada sem backend em serviços como Vercel, Netlify, GitHub Pages, Cloudflare Pages ou uma hospedagem tradicional.
 
 ## Estrutura principal

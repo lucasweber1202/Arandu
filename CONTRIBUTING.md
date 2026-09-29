@@ -1,6 +1,6 @@
 # Contribuindo com o Arandu
 
-O Arandu ainda está em fase de preparação operacional. Toda mudança deve preservar a separação entre o que foi implementado no código e o que foi comprovado em staging, produção ou por aprovação humana.
+O Arandu (Financial Procurement) está em preparação para o piloto. Toda mudança deve preservar a separação entre o que foi implementado no código e o que foi comprovado em staging, produção ou por aprovação humana.
 
 ## Fluxo de trabalho
 
@@ -61,7 +61,10 @@ npm run test:e2e
 
 ## Evidências e release
 
-`ops/release-evidence.json` é a fonte oficial dos gates externos.
+Financial Procurement: o estado de cada item do piloto fica em
+`docs/FINANCIAL_PILOT_GO_LIVE.md`, com evidência datada em
+`docs/FINANCIAL_RELEASE_EVIDENCE_*.md`. `ops/release-evidence.json` guarda os
+gates externos herdados da vertical de arte.
 
 Um gate só pode sair de `not_started` quando houver:
 
@@ -70,7 +73,7 @@ Um gate só pode sair de `not_started` quando houver:
 - referência verificável;
 - nível de evidência compatível com o ambiente realmente testado.
 
-CI não comprova staging. Staging não comprova produção. Teste automatizado não substitui aprovação comercial, jurídica, curatorial ou do piloto.
+CI não comprova staging. Staging não comprova produção. Teste automatizado não substitui aprovação comercial, jurídica ou do piloto.
 
 ## Pull requests
 

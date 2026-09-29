@@ -5,6 +5,7 @@ import { dispatchTransactionalOutbox } from '../lib/email-outbox.mjs';
 import { applyApiSecurityHeaders, crossOriginRejection } from '../lib/http-security.mjs';
 import { enforceSensitiveRateLimit } from '../lib/rate-limit.mjs';
 import { hasSupabaseAccess } from '../lib/supabase.mjs';
+import { demoDeployment, rejectLegacyArtRoute } from '../lib/legacy-surface.mjs';
 
 function json(res, status, payload, headers = {}) {
   res.statusCode = status;
@@ -25,6 +26,8 @@ function authorizedCron(req) {
 }
 
 export default async function handler(req, res) {
+  // A demonstração não tem banco nem fila de e-mail: o cron dela não existe.
+  if (demoDeployment()) return rejectLegacyArtRoute(res);
   const requestId = safeRequestId(req.headers?.['x-request-id']);
   res.setHeader('X-Request-ID', requestId);
   try {

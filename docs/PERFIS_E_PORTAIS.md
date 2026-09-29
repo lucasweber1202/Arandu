@@ -1,5 +1,7 @@
 # Perfis, capacidades e portais — Arandu
 
+> **Legado — vertical de arte (aposentada).** Documento histórico: não descreve o produto atual (Arandu Financial Procurement). Ver [`LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md) e [`OPERATIONS_INDEX.md`](OPERATIONS_INDEX.md).
+
 A Arandu tem **dois sistemas de identidade separados**, que nunca se cruzam.
 
 | Sistema | Onde vive o papel | Como é concedido | Documento |

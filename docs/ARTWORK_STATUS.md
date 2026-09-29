@@ -1,5 +1,7 @@
 # Matriz de status das obras — Arandu
 
+> **Legado — vertical de arte (aposentada).** Documento histórico: não descreve o produto atual (Arandu Financial Procurement). Ver [`LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md) e [`OPERATIONS_INDEX.md`](OPERATIONS_INDEX.md).
+
 Esta é a matriz **operacional** da obra, aplicada por
 `public.apply_operational_status_atomic`. As rotas válidas entre estes status,
 as permissões exigidas e a trilha de histórico estão em

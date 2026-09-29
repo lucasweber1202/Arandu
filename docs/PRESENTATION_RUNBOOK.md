@@ -1,5 +1,7 @@
 # Roteiro de apresentação da Arandu
 
+> **Legado — vertical de arte (aposentada).** Documento histórico: não descreve o produto atual (Arandu Financial Procurement). Ver [`LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md) e [`OPERATIONS_INDEX.md`](OPERATIONS_INDEX.md).
+
 ## Escopo e limites
 
 O modo de apresentação demonstra a experiência do produto sem declarar prontidão de lançamento. O catálogo, as reservas, os indicadores operacionais e os certificados exibidos nesse modo são demonstrativos. Nenhum deles comprova estoque, preço, venda, autorização, procedência ou operação real.

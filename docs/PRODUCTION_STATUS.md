@@ -1,5 +1,7 @@
 # Arandu — estado de produção
 
+> **Legado — vertical de arte (aposentada).** Documento histórico: não descreve o produto atual (Arandu Financial Procurement). Ver [`LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md) e [`OPERATIONS_INDEX.md`](OPERATIONS_INDEX.md).
+
 ## Fonte de verdade
 
 Este documento resume o estado operacional. Em caso de divergência, siga

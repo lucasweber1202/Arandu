@@ -1,5 +1,7 @@
 # Arandu — guia rápido de produção
 
+> **Legado — vertical de arte (aposentada).** Este guia descreve o go-live da vertical de arte. Para o produto atual (Financial Procurement), comece pelo [`README.md`](README.md) e por [`docs/FINANCIAL_PILOT_GO_LIVE.md`](docs/FINANCIAL_PILOT_GO_LIVE.md).
+
 O Arandu está em pré-produção para um piloto fechado de vendas assistidas. Build verde não libera lançamento: catálogo, política comercial, ambiente real, jurídico, monitoramento, backup e piloto precisam de evidência.
 
 ## Validação técnica

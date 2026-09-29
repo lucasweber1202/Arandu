@@ -1,5 +1,7 @@
 # Manutenção do MVP — Arandu
 
+> **Legado — vertical de arte (aposentada).** Documento histórico: não descreve o produto atual (Arandu Financial Procurement). Ver [`LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md) e [`OPERATIONS_INDEX.md`](OPERATIONS_INDEX.md).
+
 ## Como adicionar uma nova obra
 
 1. Criar página `obra-nome-da-obra.html` a partir de uma página existente.

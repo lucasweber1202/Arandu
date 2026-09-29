@@ -1,262 +1,228 @@
-# Arandu
+# Arandu — Financial Procurement
 
-Arandu é uma plataforma de curadoria, apresentação e intermediação de arte brasileira contemporânea. A experiência relaciona obra, artista, território, procedência e acompanhamento humano, sem tratar o catálogo como um e-commerce genérico.
+**Arandu é uma plataforma B2B de procurement financeiro.** Ela ajuda empresas a
+estruturar uma demanda financeira, solicitar propostas a vários bancos e
+provedores, comparar as condições lado a lado, decidir com aprovação interna e
+acompanhar o contrato até a renovação.
 
-## Arandu — Financial Procurement (B2B)
+Produtos cobertos hoje:
 
-Além da vertical de Arte, o repositório abriga a plataforma de **procurement
-financeiro B2B**: a empresa estrutura uma necessidade (crédito empresarial ou
-adquirência), solicita propostas a múltiplos provedores, compara condições
-normalizadas, registra a decisão humana e acompanha contrato e renovação.
+- **crédito empresarial** (capital de giro, antecipação de recebíveis e afins);
+- **adquirência** (MDR, PIX, antecipação, liquidação, gateway).
 
-O Arandu **não** concede crédito, não decide crédito, não movimenta recursos,
-não executa pagamentos e não recomenda instituições — ver
+O Arandu **não** concede crédito, **não** decide crédito, **não** movimenta
+dinheiro, **não** executa pagamentos e **não** recomenda instituição. A decisão
+é sempre da empresa. Limites completos em
 [`docs/FINANCIAL_PRODUCT_BOUNDARIES.md`](docs/FINANCIAL_PRODUCT_BOUNDARIES.md).
 
-* Portais: `/finance/` (empresa) e `/provider/` (provedor).
-* API: `/api/finance/*`.
-* Banco: `docs/supabase-financial-procurement.sql` (aditiva, com rollback).
-* Piloto: [`docs/FINANCIAL_PILOT_GO_NOGO.md`](docs/FINANCIAL_PILOT_GO_NOGO.md),
-  [`docs/FIRST_FINANCIAL_PILOT.md`](docs/FIRST_FINANCIAL_PILOT.md),
-  [`docs/FINANCIAL_OWNER_ACTIONS.md`](docs/FINANCIAL_OWNER_ACTIONS.md).
-* Comandos: `npm run finance:env:check`, `npm run test:pilot`, `npm run check:finance`.
-* Documentação: [`docs/FINANCIAL_PROCUREMENT_PRODUCT.md`](docs/FINANCIAL_PROCUREMENT_PRODUCT.md),
-  [`docs/FINANCIAL_DATA_MODEL.md`](docs/FINANCIAL_DATA_MODEL.md),
-  [`docs/FINANCIAL_SECURITY_MODEL.md`](docs/FINANCIAL_SECURITY_MODEL.md),
-  [`docs/FINANCIAL_MVP_RUNBOOK.md`](docs/FINANCIAL_MVP_RUNBOOK.md),
-  [`docs/FINANCIAL_PIVOT_AUDIT.md`](docs/FINANCIAL_PIVOT_AUDIT.md).
+> **Demonstração pública:** o projeto Vercel `arandu-demo` publica uma demo
+> interativa, sem login e com dados fictícios, na raiz do domínio. Como
+> publicar: [`docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md`](docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md#demo).
 
-## Estado operacional
+## O problema
 
-A base técnica está pronta para uma **beta pública honesta**, com catálogo e comércio explicitamente fechados. Catálogo real, operação comercial e go-live completo continuam bloqueados até existirem as respectivas evidências.
+Uma tesouraria que quer crédito ou trocar de adquirente costuma pedir proposta
+por e-mail, receber cada banco num formato, montar a comparação em planilha e
+aprovar por mensagem. Não fica registro de quem pediu o quê, qual versão da
+proposta foi comparada, quem aprovou e por quê, nem de quando o contrato vence.
+O Arandu dá forma a esse processo, com trilha de auditoria, sem tomar a decisão
+no lugar da empresa.
 
-Já estão implementados no código:
+## Como funciona
 
-- autenticação de compradores com Supabase Auth;
-- administração com sessão `HttpOnly`, papéis em `app_metadata` e MFA TOTP `aal2`;
-- catálogo público fail-closed, sem promover fixtures como acervo real;
-- reservas, propostas e registros comerciais transacionais;
-- RLS, idempotência, concorrência e auditoria minimizada;
-- política comercial versionada e snapshots imutáveis;
-- intake validado de catálogo;
-- piloto fechado, telemetria mínima e feedback estruturado;
-- SEO, PWA, acessibilidade e jornadas desktop/mobile;
-- migrations, rollback, probes, canário e evidências de release;
-- CI com PostgreSQL 16, contratos, segurança, build, SEO e Playwright.
+### Empresa compradora (`/finance/`)
 
-Para a beta, faltam ambiente Supabase, migrations, variáveis, contatos, domínio
-HTTPS e smoke tests reais. Para catálogo/comércio/go-live completo, continuam
-bloqueadores externos: staging e restore, política comercial, 5 artistas e 20
-obras reais, monitoramento/LGPD e piloto fechado.
+1. **Demanda** — cria uma solicitação (RFQ) guiada por produto; o rascunho é
+   salvo no servidor enquanto se escreve.
+2. **Convite** — convida provedores; cada convite é de uso único e, quando o
+   provedor tem contato cadastrado, vinculado ao e-mail exato.
+3. **Revisões** — ajusta a demanda em novas revisões; cada provedor vê o que
+   mudou e responde à revisão atual.
+4. **Comparação** — compara propostas normalizadas campo a campo, com
+   cobertura por proposta e pesos definidos pelo próprio usuário (o Arandu não
+   pontua nem recomenda).
+5. **Aprovação** — política de aprovação sequencial por etapas; quem pediu não
+   aprova, e uma aprovação dada a uma versão antiga não vale para a nova.
+6. **Decisão e contrato** — decisão humana registrada, contrato com ciclo de
+   vida, marcos de 90/60/30 dias, aviso prévio e renovação.
+7. **Colaboração** — tarefas, comentários com menções, visibilidade interna ou
+   para o provedor, notificações, busca e central de comandos, documentos
+   privados com URL assinada e versionamento.
 
-O estado oficial dos 13 gates fica em `ops/release-evidence.json`. Nenhum gate deve ser promovido sem responsável, data e referência verificável.
+### Provedor financeiro (`/provider/`)
 
-## Começar
+1. Aceita o convite e passa a ver a demanda completa só depois de aceitar.
+2. Responde com proposta versionada, com rascunho salvo automaticamente.
+3. Vê apenas o próprio processo: nunca propostas, perguntas, comentários ou
+   documentos de concorrentes.
+4. Depois do encerramento, o processo fica somente leitura.
 
-Requisitos:
+### Operação (`/finance/ops.html`)
 
-- Node.js 24;
-- npm;
-- PostgreSQL 16 apenas para a suíte de banco;
-- Chromium para executar Playwright localmente.
-
-```bash
-npm ci --include=optional
-npm run dev
-```
-
-## Validação local
-
-Validação completa de código, contratos e governança:
-
-```bash
-npm run check:all
-npm run build
-npm run audit:ci
-```
-
-Integridade do que é publicado (exige `npm run build` antes):
-
-```bash
-npm run check:dist-assets
-```
-
-Toda referência local do build precisa existir em `dist/`. Sem esse gate, uma
-tag injetada fora de ordem no `vite.config.js` gera 404 em todas as páginas
-publicadas sem quebrar o build.
-
-Jornadas de navegador:
-
-```bash
-npx playwright install chromium
-npm run test:e2e
-```
-
-A suíte cobre catálogo, seleção, reserva, login e 404 em desktop e mobile, e
-inclui duas catracas de qualidade sobre o build:
-
-- `tests/e2e/contrast.spec.js` mede o contraste das páginas publicadas. As que
-  ainda têm dívida estão em `PAGINAS_COM_DIVIDA`; a lista só pode encolher, e
-  qualquer página fora dela precisa passar em WCAG AA.
-- `buyer-journeys.spec.js` exige rótulo acessível em todo campo de formulário,
-  `h1` único por página e ação de consentimento livre de sobreposição.
-
-Banco descartável:
-
-```bash
-ARANDU_DATABASE_TEST_URL=postgresql://postgres:postgres@localhost:5432/postgres \
-  npm run test:database
-```
-
-Os checks de desenvolvimento não afirmam que staging ou produção foram validados. A liberação exige:
-
-```bash
-npm run release:status
-npm run release:check
-npm run predeploy
-```
-
-`release:check` e `predeploy` devem falhar enquanto os gates externos não estiverem comprovados.
-
-## Staging rehearsal
-
-O workflow manual `.github/workflows/staging-rehearsal.yml` ensaia o pacote de staging sem usar segredos, conectar ao Supabase real ou aplicar migrations.
-
-Ele executa auditoria, `check:all`, build, SEO, bundle determinístico, dry-run de migration, PostgreSQL 16 descartável, Playwright opcional e smoke remoto opcional em uma origem HTTPS.
-
-A execução gera relatórios classificados como `ci_rehearsal_only`. Esses relatórios não promovem `ops/release-evidence.json` e não podem ser tratados como `staging_validated`.
-
-```bash
-npm run check:staging
-npm run staging:evidence
-```
-
-Procedimento completo: `docs/STAGING_REHEARSAL.md`.
-
-O caminho real protegido, a validação de project ref, a máquina de estados de
-pedidos, o verificador de restore e o formato v3 das evidências estão em
-`docs/PRODUCTION_READINESS_FINAL.md`.
+Console de saúde para o papel de plataforma `finance_ops`, com MFA obrigatório,
+métricas operacionais e outbox — sem dados de clientes.
 
 ## Arquitetura
 
-O front-end é multipágina e construído com Vite. A coerência visual vem do pipeline de build, do shell global em `js/site.js` e das camadas CSS documentadas em `docs/ARQUITETURA_FRONTEND.md`.
+| Camada | Tecnologia | Onde |
+| --- | --- | --- |
+| Front-end | HTML multipágina + JavaScript modular, build com Vite | `finance/`, `provider/`, `demo/`, páginas públicas na raiz |
+| API | Funções serverless da Vercel; roteador único | `api/[...path].js`, domínio financeiro em `lib/api/domains/finance.mjs` e `lib/finance/` |
+| Banco | Supabase (PostgreSQL, Auth, Storage), RLS em todas as tabelas `fin_*` | migrations em `docs/*.sql`, ordem em `docs/supabase-migrations.json` |
+| Jobs | Vercel Cron com segredo (`/api/jobs/renewals`) | `lib/api/domains/finance-jobs.mjs` |
+| Demo | Motor no navegador, sem rede, dados fictícios | `finance/demo/` |
 
-A API é formada por funções serverless, com `api/[...path].js` como roteador principal e funções complementares para autenticação, readiness, operação comercial, upload e painéis.
+Modelo de dados: [`docs/FINANCIAL_DATA_MODEL.md`](docs/FINANCIAL_DATA_MODEL.md).
+Interface: [`docs/FINANCIAL_UI_ARCHITECTURE.md`](docs/FINANCIAL_UI_ARCHITECTURE.md).
+Produto: [`docs/FINANCIAL_PROCUREMENT_PRODUCT.md`](docs/FINANCIAL_PROCUREMENT_PRODUCT.md).
 
-Rotas importantes:
+## Segurança
 
-```text
-/api/catalog
-/api/artists
-/api/forms
-/api/reservations
-/api/proposals
-/api/account
-/api/auth/session
-/api/auth/login
-/api/auth/signup
-/api/auth/logout
-/api/admin
-/api/admin-update
-/api/readiness
-/api/health
-/api/pilot/session
-/api/pilot/feedback
-/api/certificates
-```
+- **Multi-tenant no banco**: RLS em todas as tabelas `fin_*`; RPCs com
+  `search_path` fixo e inventário travado em teste; 43 ataques diretos entre
+  tenants e papéis recusados sem efeito colateral (`npm run test:database`).
+- **RBAC** por organização (comprador, aprovador, provedor, admin) e papel de
+  plataforma `finance_ops` com MFA `aal2`.
+- **Allowlist fail-closed** no piloto: tabela vazia = ninguém cria organização.
+- **Documentos privados** no bucket `fin-documents` (privado, 10 MB, 5 tipos),
+  acesso só por URL assinada emitida depois da autorização.
+- **Service role só no servidor**; o build falha se credencial real acompanhar a
+  demo, e `finance:env:check` recusa chave de outro projeto.
+- **Superfície legada de arte fechada** (404) em piloto, produção, qualquer
+  deployment Vercel de produção e na demo.
+- **Request ID** em toda resposta de API, rate limit no banco, cabeçalhos de
+  segurança e CSP em `vercel.json`.
 
-`/api/health` expõe somente liveness. `/api/readiness` exige identidade administrativa, papel autorizado e MFA.
+Modelo completo: [`docs/FINANCIAL_SECURITY_MODEL.md`](docs/FINANCIAL_SECURITY_MODEL.md),
+[`docs/FINANCIAL_THREAT_MODEL.md`](docs/FINANCIAL_THREAT_MODEL.md),
+[`docs/FINANCIAL_AUTHORIZATION_MAP.md`](docs/FINANCIAL_AUTHORIZATION_MAP.md).
+Vulnerabilidades: [`SECURITY.md`](SECURITY.md).
 
-## Supabase e migrations
+## Ambientes
 
-A ordem canônica está em `docs/supabase-migrations.json`. Antes de executar qualquer migration real, leia:
+Uma base de código, três ambientes. Eles diferem por branch, projeto Vercel,
+variáveis e projeto Supabase, nunca por cópias do código.
 
-- `docs/TRANSACTIONS_RLS_RBAC.md`;
-- `docs/MIGRATION_RELEASE_RUNBOOK.md`;
-- `docs/INCIDENT_BACKUP_OBSERVABILITY_RUNBOOK.md`.
+| Ambiente | Projeto Vercel | Branch | Declarado por | Banco |
+| --- | --- | --- | --- | --- |
+| **Demo** | `arandu-demo` | `main` | `ARANDU_DEPLOYMENT_KIND=demo` | nenhum (navegador) |
+| **Pilot** | `arandu-pilot` | `pilot` | `ARANDU_ENV=pilot` | Supabase do piloto |
+| **Production** | `arandu` | `main` | `ARANDU_ENV=production` | Supabase próprio da produção |
 
-Comandos principais:
+Piloto e produção nunca compartilham banco, e nenhum usa o projeto legado de
+arte. O build recusa a topologia errada (banco trocado, branch errada, demo em
+ambiente real, credencial na demo, produção sem ambiente declarado). Fluxo
+`feature/* → pilot → main`, hotfix e rollback:
+[`docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md`](docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md).
+
+- **Demo**: [`docs/FINANCIAL_DEMO_MODE.md`](docs/FINANCIAL_DEMO_MODE.md).
+- **Pilot**: [`docs/FINANCIAL_PILOT_GO_LIVE.md`](docs/FINANCIAL_PILOT_GO_LIVE.md)
+  (checklist única), [`docs/FINANCIAL_PILOT_ENVIRONMENT.md`](docs/FINANCIAL_PILOT_ENVIRONMENT.md),
+  [`docs/FINANCIAL_PILOT_OPERATIONS.md`](docs/FINANCIAL_PILOT_OPERATIONS.md).
+- **Production**: mesmas migrations e o mesmo `finance:pilot:doctor` com
+  `ARANDU_ENV=production`; nenhum dado do piloto é copiado.
+
+## Estado operacional
+
+Estado em 29/09/2026 (detalhe item a item em
+[`docs/FINANCIAL_PILOT_GO_LIVE.md`](docs/FINANCIAL_PILOT_GO_LIVE.md)):
+
+- **Software do piloto**: completo e testado (banco, API, interface, demo).
+- **Supabase do piloto**: 34 migrations aplicadas em 27/09; falta aplicar a
+  35ª (`docs/supabase-financial-pilot-surface-hardening.sql`, esperado
+  `schema_version = financial-surface-hardening-1`).
+- **Vercel**: produção (`arandu`) no ar sem `ARANDU_ENV`; `arandu-demo` e
+  `arandu-pilot` ainda não criados.
+- **Dependências humanas**: revisão jurídica, escolha da empresa e dos
+  provedores do piloto, e-mail transacional, domínio — lista curta em
+  [`docs/FINANCIAL_OWNER_ACTIONS.md`](docs/FINANCIAL_OWNER_ACTIONS.md).
+
+Nenhum item acima é declarado pronto sem evidência verificável. Os 13 gates
+herdados do go-live comercial da vertical de arte continuam registrados em
+`ops/release-evidence.json` e não bloqueiam o piloto financeiro.
+
+## Rodar localmente
+
+Requisitos: Node.js 24, npm; PostgreSQL 16 para a suíte de banco; Chromium para
+Playwright.
 
 ```bash
-npm run check:migrations
-npm run migrations:bundle
-npm run migrations:release -- --dry-run --environment staging
-npm run seed:supabase:dry
-npm run staging:validate
+npm ci --include=optional
+npm run dev                                    # app em http://localhost:5173
+ARANDU_DEMO_MODE=true npm run dev              # com /demo/ habilitada
+ARANDU_DEPLOYMENT_KIND=demo npm run build:demo # build igual ao do arandu-demo
 ```
 
-`check:migrations` inclui `scripts/check-sql-security.mjs`, que exige `set
-search_path` em toda função `security definer` e lista fechada de perfis em
-todo gatilho que lê `profile_type` do cadastro — esse campo é escrito pelo
-próprio usuário no signup e a coluna aceita valores administrativos.
+Piloto completo em contêineres (Postgres, GoTrue, PostgREST e Storage da
+Supabase): `npm run pilot:local:up && npm run pilot:local:journey`.
 
-Nunca aplique migrations sem backup referenciado, preflight aprovado e plano de rollback.
+## Validação local
 
-## Catálogo e operação comercial
+Antes de qualquer push (cada push custa minutos do GitHub Actions — ver
+[`docs/GITHUB_ACTIONS_MINUTES.md`](docs/GITHUB_ACTIONS_MINUTES.md)):
 
-Os arquivos de demonstração não contam como catálogo real. A publicação exige autorizações, procedência, disponibilidade, preço, moeda, dimensões, técnica, certificado, consentimento e aprovação editorial.
+```bash
+npm run audit:ci
+npm run check:all            # contratos, segurança, finanças, migrations, governança
+npm run build
+npm run check:dist-assets && npm run check:build-size && npm run check:seo:dist
+npm run check:financial-surface && npm run check:financial-navigation
+npm run test:e2e             # jornadas financeiras (5 motores de navegador)
+npm run test:e2e:presentation # demo e modo de apresentação
+ARANDU_DATABASE_TEST_URL=postgresql://postgres:postgres@localhost:5432/postgres \
+  npm run test:database      # instalação limpa, upgrade, rollback, RLS, ataques
+```
 
-A operação comercial permanece fail-closed enquanto a política não estiver completa e aprovada. Valores enviados pelo navegador não substituem cálculo no servidor e no banco.
+Ambientes reais (somente leitura, nunca imprimem segredos):
 
-Documentação comercial e de crescimento mantida como referência obrigatória:
+```bash
+ARANDU_ENV=pilot npm run finance:env:check
+ARANDU_ENV=pilot npm run finance:pilot:doctor   # 0 = GO, 1 = NO-GO, 2 = UNSAFE
+npm run pilot:canary                            # isolamento buyer/provider/outsider
+npm run pilot:restore:drill                     # backup lógico + restore + 24 comparações
+```
 
-- `docs/OPERACAO_COMERCIAL_INDEX.md` — índice da operação comercial;
-- `docs/GO_LIVE_ARANDU.md` — roteiro de promoção e abertura;
-- `docs/PRIMEIROS_30_DIAS.md` — operação inicial após o lançamento;
-- `docs/PROSPECCAO_ARTISTAS_PLAYBOOK.md` — prospecção e qualificação de artistas;
-- `docs/CHECKLIST_PARCEIRA_ARTISTA.md` — autorizações e parceria;
-- `docs/PROSPECCAO_COMPRADORES_EMPRESAS.md` — aquisição B2C e B2B;
-- `docs/FLUXO_COMPRA_RESERVA.md` — jornada comercial;
-- `docs/OBJECOES_E_RESPOSTAS.md` — respostas comerciais padronizadas;
-- `docs/CALENDARIO_CONTEUDO_30_DIAS.md` — preparação editorial;
-- `docs/METRICAS_FUNIL_ARANDU.md` — métricas de aquisição e conversão;
-- `docs/SEO_DOMINIO_CHECKLIST.md` — domínio, indexação e SEO final.
+O CI (`.github/workflows/ci.yml`) roda os jobs `validate`, `database`,
+`deploy-boundaries` e `presentation`.
+
+## Contribuir
+
+Leia [`CONTRIBUTING.md`](CONTRIBUTING.md). Em resumo: branch `feature/*` a
+partir de `pilot`, PR para `pilot`, validação local completa e **um push por
+lote**. `main` só recebe a promoção `pilot → main` e `hotfix/*`. Nunca registre
+segredo, e-mail real ou PII no Git.
 
 ## Governança do repositório
 
-Leia antes de contribuir:
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — branches, validação e PRs;
+- [`SECURITY.md`](SECURITY.md) — reporte responsável;
+- [`docs/FINANCIAL_REPO_GOVERNANCE.md`](docs/FINANCIAL_REPO_GOVERNANCE.md) — proteção de branches e checks obrigatórios;
+- [`docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md`](docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md) — ambientes e promoção;
+- [`docs/OPERATIONS_INDEX.md`](docs/OPERATIONS_INDEX.md) — índice operacional;
+- [`CLAUDE.md`](CLAUDE.md) — regras para agentes.
 
-- `CONTRIBUTING.md` — fluxo de branches, validação e PRs;
-- `SECURITY.md` — reporte responsável de vulnerabilidades;
-- `docs/OPERATIONS_INDEX.md` — documentação operacional canônica;
-- `docs/BRANCH_PROTECTION.md` — configuração recomendada da `main`;
-- `docs/REPOSITORY_HYGIENE.md` — política para branches e documentos históricos;
-- `docs/VERSIONING.md` — estratégia de versões antes do lançamento público.
-
-A CI executa `scripts/check-governance.mjs` e `scripts/check-staging-rehearsal.mjs` para impedir regressões nos controles mínimos do repositório e no workflow de preparação de staging.
-
-## Variáveis de produção
-
-Use `.env.example` como fonte de verdade. Os grupos essenciais incluem:
-
-```bash
-SUPABASE_URL=
-SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
-
-ARANDU_SITE_URL=
-ARANDU_WHATSAPP_NUMBER=
-ARANDU_CONTACT_EMAIL=
-
-ARANDU_BRAND_READY=false
-ARANDU_COMMERCIAL_READY=false
-ARANDU_PILOT_ENABLED=false
-ARANDU_PILOT_APPROVED=false
-```
-
-Segredos pertencem somente ao ambiente do servidor. Não registre valores reais no Git, em issues, logs ou evidências.
+A CI executa `scripts/check-governance.mjs` para impedir regressões nos
+controles mínimos do repositório.
 
 ## Critério de lançamento
 
-### Go-live comercial completo
+**Piloto** (GO quando todos valerem):
 
-A beta pública segue o checklist menor de `docs/RELEASE_CANDIDATE_1.md`. O catálogo e o comércio só devem abrir quando:
+1. migration 35 aplicada no Supabase do piloto e `finance:pilot:doctor` = GO;
+2. `arandu-pilot` publicado da branch `pilot` com `ARANDU_ENV=pilot`;
+3. `pilot:canary` e `pilot:restore:drill` aprovados contra o piloto real;
+4. CI verde no head de `pilot`;
+5. revisão jurídica concluída e empresa/provedores do piloto na allowlist.
 
-- migrations e probes tiverem sido executados em staging;
-- backup e restauração estiverem comprovados;
-- RLS, concorrência, idempotência e canário real estiverem aprovados;
-- catálogo mínimo real estiver autorizado e revisado;
-- política comercial estiver aprovada;
-- domínio, contato LGPD e monitoramento estiverem ativos;
-- piloto fechado estiver concluído;
-- `npm run predeploy` terminar com sucesso.
+**Produção**: Supabase próprio com as mesmas migrations, `ARANDU_ENV=production`
+no projeto `arandu`, doctor GO contra ele e promoção `pilot → main` com o piloto
+realmente utilizado.
+
+## Legado: vertical de arte
+
+O Arandu começou como plataforma de curadoria de arte brasileira. Essa vertical
+foi aposentada: nenhuma página de arte é publicada, e as APIs de arte respondem
+404 em ambiente real. O código, as migrations e a documentação histórica
+permanecem no repositório para auditoria e porque o banco ainda carrega esse
+esquema. Nada disso é produto atual. Índice do material histórico:
+[`docs/LEGACY_ART_RETIREMENT.md`](docs/LEGACY_ART_RETIREMENT.md).

@@ -107,7 +107,7 @@ code{font-family:var(--mono);font-size:.92em;background:var(--surface-sunken);pa
 .sidebar{position:fixed;inset:0 auto 0 0;width:var(--sidebar-w);background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;gap:var(--s4);padding:var(--s4) var(--s3);z-index:30;overflow-y:auto}
 body:has(.demo-banner) .sidebar{top:var(--banner-h,44px)}
 .brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text);padding:2px 6px}
-.brand-mark{display:grid;place-items:center;width:30px;height:30px;border-radius:8px;background:var(--text);color:#fff;font-weight:800;font-size:15px}
+.brand-mark{display:grid;place-items:center;width:30px;height:30px;border-radius:8px;background:var(--text);color:#fff;font-weight:800;font-size:15px;flex:0 0 auto}
 .brand-text{display:grid;line-height:1.15}
 .brand-name{font-weight:700;font-size:15px}
 .brand-sub{font-size:11px;color:var(--text-muted);letter-spacing:.02em}
@@ -824,7 +824,7 @@ details.form-section[open]>summary{margin-bottom:var(--s3)}
 /* ---------------------------------------------------------- demo landing */
 body.demo-landing{background:var(--surface)}
 .landing-header{display:flex;align-items:center;justify-content:space-between;max-width:1120px;margin:0 auto;padding:var(--s4) var(--s6)}
-.landing{max-width:1120px;margin:0 auto;padding:var(--s6) var(--s6) var(--s10)}
+main#main.landing{max-width:1120px;margin:0 auto;padding:var(--s6) var(--s6) var(--s10)}
 .landing-hero{padding:var(--s8) 0 var(--s6);max-width:760px}
 .landing-kicker{font-size:var(--fs-sm);font-weight:700;color:var(--accent-text)}
 .landing h1{font-size:clamp(30px,5vw,44px);letter-spacing:-.025em;line-height:1.1;margin:var(--s2) 0 var(--s4)}
@@ -942,7 +942,7 @@ body.demo-landing{background:var(--surface)}
   .provider-proposal .deflist-1{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:var(--s4)}
   .pref-table td{width:auto}
   .persona-grid{grid-template-columns:minmax(0,1fr)}
-  .landing{padding:var(--s4) var(--s4) var(--s8)}
+  main#main.landing{padding:var(--s4) var(--s4) var(--s8)}
   .landing-header{padding:var(--s3) var(--s4)}
   .dialog-actions .btn,.drawer-foot .btn{flex:1}
   .drawer{width:100vw}

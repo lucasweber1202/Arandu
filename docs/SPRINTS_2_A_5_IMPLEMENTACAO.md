@@ -1,5 +1,7 @@
 # Sprints 2 a 5 — implementação e passagem para lançamento
 
+> **Legado — vertical de arte (aposentada).** Documento histórico: não descreve o produto atual (Arandu Financial Procurement). Ver [`LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md) e [`OPERATIONS_INDEX.md`](OPERATIONS_INDEX.md).
+
 Este documento registra a sequência implementada e o que depende de execução operacional externa. A ordem dos sprints foi preservada para que nenhum gate posterior oculte uma dependência anterior.
 
 ## Visão geral

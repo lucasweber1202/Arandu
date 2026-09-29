@@ -1,8 +1,31 @@
 # Índice operacional canônico — Arandu
 
-Este arquivo é o ponto de entrada para operação, staging e lançamento. Quando documentos antigos divergirem, siga os arquivos listados aqui e o estado registrado em `ops/release-evidence.json`.
+Ponto de entrada para operar o **Arandu Financial Procurement**. Quando um
+documento divergir, vale este índice, nesta ordem.
 
-## Estado e decisão de release
+## Financial Procurement (produto atual)
+
+- `docs/FINANCIAL_PILOT_GO_LIVE.md` — checklist única de go-live do piloto, com estado por item.
+- `docs/FINANCIAL_OWNER_ACTIONS.md` — o que só o proprietário pode fazer.
+- `docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md` — três ambientes (demo, pilot, production), `feature/* → pilot → main`, hotfix e rollback.
+- `docs/FINANCIAL_PILOT_ENVIRONMENT.md` — variáveis, Supabase do piloto, backups.
+- `docs/FINANCIAL_PILOT_OPERATIONS.md`, `docs/FINANCIAL_PILOT_SUPPORT.md`, `docs/FINANCIAL_PILOT_PLAYBOOK.md` — operação, suporte e incidentes.
+- `docs/FINANCIAL_DEMO_MODE.md` — demonstração pública sem backend.
+- `docs/FINANCIAL_SECURITY_MODEL.md`, `docs/FINANCIAL_THREAT_MODEL.md`, `docs/FINANCIAL_AUTHORIZATION_MAP.md` — segurança.
+- `docs/FINANCIAL_REPO_GOVERNANCE.md` — proteção de branches e checks obrigatórios.
+- `docs/supabase-migrations.json` — ordem canônica das migrations (35 no `cleanInstall`; a última grava `schema_version = financial-surface-hardening-1`).
+- Comandos: `finance:env:check`, `finance:pilot:doctor`, `pilot:canary`, `pilot:restore:drill`, `test:database`.
+
+Evidências de rodada (históricas, datadas): `docs/FINANCIAL_RELEASE_EVIDENCE_*.md`.
+
+## Legado: vertical de arte
+
+Tudo abaixo descreve a vertical de arte, aposentada (ver
+`docs/LEGACY_ART_RETIREMENT.md`). Continua no repositório para auditoria e
+porque o banco ainda carrega esse esquema; não é produto atual e não bloqueia o
+piloto financeiro.
+
+### Estado e decisão de release (arte)
 
 - `ops/release-evidence.json` — fonte oficial dos 13 gates externos.
 - `ops/pilot-evidence.json` — evidências do piloto fechado.
@@ -12,7 +35,7 @@ Este arquivo é o ponto de entrada para operação, staging e lançamento. Quand
 - `npm run release:check` — falha enquanto os requisitos mínimos não forem atingidos.
 - `npm run predeploy` — gate do go-live comercial completo; não é requisito da beta.
 
-## Preparação de staging
+### Preparação de staging (arte)
 
 - `docs/STAGING_REHEARSAL.md` — ensaio manual e não destrutivo antes do staging real.
 - `.github/workflows/staging-rehearsal.yml` — workflow `workflow_dispatch` sem segredos.
@@ -21,7 +44,7 @@ Este arquivo é o ponto de entrada para operação, staging e lançamento. Quand
 
 Um rehearsal verde comprova somente preparação técnica em CI. Ele não equivale a `staging_validated` e não altera `ops/release-evidence.json`.
 
-## Banco e migrations
+### Banco e migrations (arte)
 
 1. `docs/supabase-migrations.json` — ordem canônica.
 2. `docs/TRANSACTIONS_RLS_RBAC.md` — modelo transacional, RLS, RBAC e auditoria.
@@ -31,7 +54,7 @@ Um rehearsal verde comprova somente preparação técnica em CI. Ele não equiva
 
 Nunca aplique migration real sem backup referenciado e ambiente explicitamente identificado.
 
-## Administração e segurança
+### Administração e segurança (arte)
 
 - `docs/ADMIN_AUTH_MFA.md` — provisionamento, papéis, MFA e revogação.
 - `docs/ADMIN_OPERACAO_ARANDU.md` — operação diária dos painéis.
@@ -41,7 +64,7 @@ Nunca aplique migration real sem backup referenciado e ambiente explicitamente i
 - `SECURITY.md` — reporte privado de vulnerabilidades.
 - `.github/CODEOWNERS` — responsáveis pelas superfícies críticas.
 
-## Catálogo
+### Catálogo (arte)
 
 - `docs/GUIA_CADASTRO_OBRAS_REAIS.md` — campos e preparação do acervo.
 - `docs/CHECKLIST_PARCEIRA_ARTISTA.md` — autorizações e parceria.
@@ -51,7 +74,7 @@ Nunca aplique migration real sem backup referenciado e ambiente explicitamente i
 
 Fixtures e demonstrações não contam como catálogo publicado.
 
-## Política comercial
+### Política comercial (arte)
 
 - `docs/OPERACAO_COMERCIAL_INDEX.md` — índice comercial.
 - `docs/FLUXO_COMPRA_RESERVA.md` — jornada de seleção e reserva.
@@ -60,7 +83,7 @@ Fixtures e demonstrações não contam como catálogo publicado.
 
 Decisões de comissão, pagamento, frete, seguro, devolução e modelo fiscal exigem aprovação humana.
 
-## Beta, piloto, domínio e go-live
+### Beta, piloto, domínio e go-live (arte)
 
 - `docs/GO_LIVE_ARANDU.md` — sequência de promoção.
 - `docs/DEPLOY_DOMINIO_VERCEL.md` — domínio e hospedagem.
@@ -72,7 +95,8 @@ Decisões de comissão, pagamento, frete, seguro, devolução e modelo fiscal ex
 ## Governança do repositório
 
 - `CONTRIBUTING.md` — branches, checks e PRs.
-- `docs/BRANCH_PROTECTION.md` — regras recomendadas da `main`.
+- `docs/FINANCIAL_REPO_GOVERNANCE.md` — proteção de `main` e `pilot` e checks obrigatórios (canônico).
+- `docs/BRANCH_PROTECTION.md` — versão anterior das regras; vale o documento acima.
 - `docs/REPOSITORY_HYGIENE.md` — limpeza de branches e documentos históricos.
 - `docs/VERSIONING.md` — estratégia de versões.
 

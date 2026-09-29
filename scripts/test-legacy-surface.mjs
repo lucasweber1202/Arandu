@@ -71,9 +71,36 @@ assert.equal((await call('health', 'GET', '/api/health')).status, 200);
 process.env.ARANDU_ENV = 'production';
 assert.deepEqual(await call('[...path]', 'POST', '/api/forms', { name: 'x' }), { status: 404, code: 'legacy_surface_closed' });
 assert.deepEqual(await call('orders', 'GET', '/api/orders'), { status: 404, code: 'legacy_surface_closed' });
-// Sem ARANDU_ENV (desenvolvimento/preview legado) nada muda.
+// Deployment de produção da Vercel sem ARANDU_ENV (variável esquecida): fechado.
 delete process.env.ARANDU_ENV;
+process.env.VERCEL_ENV = 'production';
+assert.deepEqual(await call('[...path]', 'POST', '/api/forms', { name: 'x' }), { status: 404, code: 'legacy_surface_closed' }, 'produção sem ARANDU_ENV reabriu /api/forms');
+assert.deepEqual(await call('[...path]', 'GET', '/api/pilot/metrics'), { status: 404, code: 'legacy_surface_closed' });
+assert.deepEqual(await call('commercial', 'GET', '/api/commercial'), { status: 404, code: 'legacy_surface_closed' });
+assert.notEqual((await call('[...path]', 'GET', '/api/finance/me')).code, 'legacy_surface_closed', 'finance/* fechado na produção sem ARANDU_ENV');
+delete process.env.VERCEL_ENV;
+// Sem ARANDU_ENV (desenvolvimento/preview legado) nada muda.
 assert.notEqual((await call('[...path]', 'GET', '/api/catalog')).code, 'legacy_surface_closed');
 
+// Projeto demonstrativo: sem banco, toda a API fecha — inclusive finance/*,
+// auth/*, os crons e o despacho de e-mail. Só health e security.txt respondem.
+for (const key of ['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY']) delete process.env[key];
+calls.length = 0;
+process.env.ARANDU_DEPLOYMENT_KIND = 'demo';
+process.env.ARANDU_EMAIL_DISPATCH_ENABLED = 'true';
+const demoClosed = [
+  ...legacy,
+  ['[...path]', 'GET', '/api/finance/me'], ['[...path]', 'GET', '/api/finance/rfqs'], ['[...path]', 'POST', '/api/finance/rfqs', {}],
+  ['[...path]', 'GET', '/api/jobs/renewals'], ['[...path]', 'GET', '/api/auth/session'], ['[...path]', 'POST', '/api/auth/otp', {}],
+  ['email-dispatch', 'GET', '/api/email-dispatch']
+];
+for (const [file, method, url, body] of demoClosed) {
+  const result = await call(file, method, url, body);
+  assert.deepEqual(result, { status: 404, code: 'legacy_surface_closed' }, `${method} ${url} aberta no projeto demonstrativo`);
+}
+assert.equal((await call('health', 'GET', '/api/health')).status, 200);
+assert.notEqual((await call('[...path]', 'GET', '/.well-known/security.txt')).code, 'legacy_surface_closed', 'security.txt fechado na demo');
+assert.equal(calls.length, 0, `demo chegou à rede: ${calls.join(', ')}`);
+
 process.env = previous;
-console.log(`Legacy art surface: ${legacy.length} rotas de arte fechadas com 404 no piloto e na produção, sem tocar a rede; finance/*, auth/*, cron e health abertos.`);
+console.log(`Legacy art surface: ${legacy.length} rotas de arte fechadas com 404 no piloto e na produção, sem tocar a rede; finance/*, auth/*, cron e health abertos. Demo: ${demoClosed.length} rotas fechadas, só health e security.txt.`);

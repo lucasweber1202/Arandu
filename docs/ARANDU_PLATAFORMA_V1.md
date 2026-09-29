@@ -1,5 +1,7 @@
 # Arandu Plataforma v1
 
+> **Legado — vertical de arte (aposentada).** Documento histórico: não descreve o produto atual (Arandu Financial Procurement). Ver [`LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md) e [`OPERATIONS_INDEX.md`](OPERATIONS_INDEX.md).
+
 Este documento organiza a próxima fase do Arandu antes da entrada de WhatsApp real, logo final e prospecção comercial.
 
 ## Objetivo
