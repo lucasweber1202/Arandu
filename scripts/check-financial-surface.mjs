@@ -15,7 +15,10 @@ const html = output.filter(path => path.endsWith('.html'));
 const forbiddenFiles = /(?:^|\/)(?:comprar-arte|artistas|colecoes|obra|para-artistas|arte-para-[^/]+|portal-artista)\.html$/i;
 const forbiddenCopy = /arte brasileira contemporânea|comprar arte|curadoria antes da vitrine|enviar portfólio|obras salvas|arandu arte|portal do artista|empresas e arquitetos/i;
 for (const path of output) assert.ok(!forbiddenFiles.test(relative(dist, path)), 'Página de arte publicada: ' + relative(dist, path));
-for (const path of html) assert.ok(!forbiddenCopy.test(readFileSync(path, 'utf8')), 'Texto de arte publicado: ' + relative(dist, path));
+// Metadados também são superfície: o manifesto PWA aparece na instalação e em
+// prévias de compartilhamento. Em 29/09/2026 ele ainda descrevia arte.
+const textual = output.filter(path => /\.(?:html|webmanifest|json|txt|xml|svg)$/.test(path));
+for (const path of textual) assert.ok(!forbiddenCopy.test(readFileSync(path, 'utf8')), 'Texto de arte publicado: ' + relative(dist, path));
 for (const path of html) {
   const name = relative(dist, path);
   if (/^(?:finance|provider)\//.test(name) || /^(?:login|cadastro)\.html$/.test(name)) {
@@ -23,6 +26,9 @@ for (const path of html) {
   }
 }
 assert.match(readFileSync(join(dist, 'index.html'), 'utf8'), /Procurement financeiro B2B/i);
+for (const manifest of ['manifest.webmanifest', 'site.webmanifest']) {
+  assert.match(JSON.parse(readFileSync(join(dist, manifest), 'utf8')).description, /procurement financeiro/i, 'Manifesto sem descrição financeira: ' + manifest);
+}
 assert.match(readFileSync(join(dist, 'login.html'), 'utf8'), /acesso corporativo/i);
 const invite = readFileSync(join(dist, 'provider/invite.html'), 'utf8');
 assert.ok(!invite.includes('vercel-speed-insights'));
