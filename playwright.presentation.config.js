@@ -10,7 +10,7 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
   testDir: './tests/e2e',
-  testMatch: ['**/presentation-journeys.spec.js', '**/demo-journeys.spec.js'],
+  testMatch: ['**/presentation-journeys.spec.js', '**/demo-journeys.spec.js', '**/demo-workspace.spec.js'],
   timeout: 30000,
   fullyParallel: true,
   retries: process.env.CI ? 2 : 0,
