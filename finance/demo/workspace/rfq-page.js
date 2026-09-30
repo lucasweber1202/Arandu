@@ -13,7 +13,7 @@
 // Timeline, renomeia abas (os ids e deep links não mudam) e liga a bandeja de
 // comparação às propostas.
 
-import { el, icon, money, formatDate, relativeDays, daysUntil, productLabel, RFQ_STATUS } from '../../src/core.js';
+import { el, icon, money, formatDate, relativeDays, daysUntil, productLabel, RFQ_STATUS, timeAgo } from '../../src/core.js';
 import { button, toast } from '../../src/ui.js';
 import * as prefs from './preferences.js';
 import { rfqStages, timeline } from './timeline.js';
@@ -23,24 +23,17 @@ import { openQuickView, workContext } from './quick-view.js';
 import { rfqNext, proposalFacts, currentApprovalStep, STAGES } from './next-action.js';
 import { nextBlock } from './work-ui.js';
 import { rfqHandoff } from './handoff.js';
+import { presenceLine, announcePresence, rfqPresence } from './collaboration/presence.js';
+import { activityStream } from './collaboration/activity.js';
+import { integrationChips } from './integrations/chips.js';
+import { policyLine } from './workflows/policy-line.js';
+
+import { starButton } from './star.js';
+
+export { starButton };
 
 const TAB_LABELS = { aprovacoes: 'Aprovação', atividade: 'Histórico' };
 
-export function starButton(type, id, title, { compact = true, announce = () => {} } = {}) {
-  const on = prefs.isFavorite(type, id);
-  const node = el('button', { type: 'button', class: `${compact ? 'row-star' : 'icon-btn page-star'}${on ? ' is-on' : ''}`, 'aria-pressed': String(on), 'aria-label': `Favoritar ${title}`, title: on ? 'Remover dos favoritos' : 'Favoritar' }, icon('star', { size: compact ? 15 : 18 }));
-  node.addEventListener('click', (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    const next = prefs.toggleFavorite(type, id, title);
-    node.setAttribute('aria-pressed', String(next));
-    node.classList.toggle('is-on', next);
-    node.title = next ? 'Remover dos favoritos' : 'Favoritar';
-    toast(next ? 'Adicionado aos favoritos.' : 'Removido dos favoritos.', 'info');
-    announce(next ? `${title} adicionado aos favoritos.` : `${title} removido dos favoritos.`);
-  });
-  return node;
-}
 
 function enhanceProposalCards(ctx, rfq) {
   for (const card of document.querySelectorAll('#panel-propostas .proposal-card')) {
@@ -104,7 +97,11 @@ export async function enhanceRfq(ctx, { lastListHref, markRestore, focusButton }
     rfq.response_deadline ? item(live ? `Prazo ${relativeDays(rfq.response_deadline)}` : `Prazo ${formatDate(rfq.response_deadline)}`, live && days !== null && days <= 2 ? 'is-urgent' : '') : item('Sem prazo'),
     item(invited ? `${invited} convidados · ${(rfq.proposals || []).length} respostas` : 'Nenhum convite'),
     rfq.owner_name ? item(rfq.owner_name) : null].filter(Boolean));
-  main.replaceChildren(back, el('div', { class: 'rfq-title-row' }, [h1, tools]), el('p', { class: 'rfq-figure num', text: figure }), el('p', { class: 'rfq-sub', text: sub }), meta || '');
+  // Presença discreta: quem mais está com este processo (dados do processo + outras abas).
+  const presenceKey = `rfq:${rfq.id}`;
+  announcePresence({ object: presenceKey, name: ctx.viewer?.name, activity: 'está vendo esta solicitação' });
+  main.replaceChildren(back, el('div', { class: 'rfq-title-row' }, [h1, tools]), el('p', { class: 'rfq-figure num', text: figure }), el('p', { class: 'rfq-sub', text: sub }), meta || '',
+    presenceLine(presenceKey, rfqPresence(ctx, rfq, { timeAgo }), { viewerName: ctx.viewer?.name }), integrationChips(ctx, ['communication', 'erp']) || '');
   main.querySelector('.lede')?.remove();
 
   // Abas: rótulos da nova estrutura; ids e âncoras continuam os mesmos.
@@ -129,10 +126,22 @@ export async function enhanceRfq(ctx, { lastListHref, markRestore, focusButton }
 
   // Propostas: bandeja de comparação e resumo lateral em cada cartão.
   const panels = document.querySelector('#view .tab-panels');
-  if (panels) new MutationObserver(() => enhanceProposalCards(ctx, rfq)).observe(panels, { childList: true, subtree: true });
+  if (panels) new MutationObserver(() => { enhanceProposalCards(ctx, rfq); enhanceActivity(ctx, rfq); }).observe(panels, { childList: true, subtree: true });
   enhanceProposalCards(ctx, rfq);
+  enhanceActivity(ctx, rfq);
   installCompare(ctx, rfq);
   return rfq;
+}
+
+/** Histórico → linha do tempo universal (motor + camada), com filtros. */
+function enhanceActivity(ctx, rfq) {
+  const side = document.querySelector('#panel-atividade .split-side .card');
+  if (!side || side.querySelector('.astream')) return;
+  side.querySelector('.card-title').textContent = 'Atividade';
+  const subtitle = side.querySelector('.card-subtitle');
+  if (subtitle) subtitle.textContent = 'Tudo o que aconteceu neste processo: pessoa, ação, momento e origem.';
+  const approvals = (ctx.demoApprovals || []).filter((row) => row.rfq_id === rfq.id).map((row) => row.id);
+  side.querySelector('.card-body').replaceChildren(activityStream(ctx, { rfq, extraIds: approvals }));
 }
 
 /** Detalhe da fase atual: o que a pessoa precisa saber para dar o próximo passo. */
@@ -174,7 +183,8 @@ function stagePanel(ctx, rfq, approvals) {
   const next = rfqNext(rfq, { ...workContext(ctx), approvals });
   const handoff = rfqHandoff(ctx, rfq, next);
   const detail = stageDetail(ctx, rfq, next, approvals);
-  const block = nextBlock(ctx, next, { extra: [detail, handoff].filter(Boolean).length ? el('div', { class: 'stage-extra' }, [detail, handoff].filter(Boolean)) : null, id: 'stage-panel' });
+  const policy = ['approval', 'evaluation', 'decided'].includes(next.stage) ? policyLine(ctx, rfq) : null;
+  const block = nextBlock(ctx, next, { extra: [detail, policy, handoff].filter(Boolean).length ? el('div', { class: 'stage-extra' }, [detail, policy, handoff].filter(Boolean)) : null, id: 'stage-panel' });
   block.classList.add('stage-panel');
   block.prepend(el('p', { class: 'stage-name', text: `Fase: ${STAGES[next.stage]?.label || next.state}` }));
   return block;

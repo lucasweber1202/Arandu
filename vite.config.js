@@ -4,7 +4,7 @@ import { deploymentBaseUrl, renderSeoHead } from './scripts/seo-meta.mjs';
 import { ownSiteUrl } from './lib/public-site-url.mjs';
 import { assertPresentationModeIsSafe } from './lib/presentation-mode.mjs';
 import { assertDemoModeIsSafe } from './lib/demo-mode.mjs';
-import { PAGES as FINANCE_PAGES } from './scripts/generate-finance-pages.mjs';
+import { PAGES as FINANCE_PAGES, DEMO_ONLY_PAGES } from './scripts/generate-finance-pages.mjs';
 
 const root = process.cwd();
 const siteUrl = ownSiteUrl(process.env.ARANDU_SITE_URL);
@@ -15,7 +15,8 @@ const demoMode = assertDemoModeIsSafe();
 const publicPages = new Set(['index.html', 'produto.html', 'credito.html', 'adquirencia.html', 'seguranca.html', 'limites.html']);
 // Explicit production surface: legacy HTML is never discovered automatically.
 const financePages = FINANCE_PAGES.map((page) => page.path);
-const demoPages = demoMode ? ['demo/index.html', ...financePages.map((page) => `demo/${page}`)] : [];
+// Telas exclusivas da demo (Work OS) só entram no build demonstrativo.
+const demoPages = demoMode ? ['demo/index.html', ...financePages.map((page) => `demo/${page}`), ...DEMO_ONLY_PAGES.map((page) => `demo/${page.path}`)] : [];
 const pages = [...publicPages, 'login.html', 'cadastro.html', '404.html', ...financePages, ...demoPages];
 const input = Object.fromEntries(pages.map(page => [page.replace(/\.html$/, ''), resolve(root, page)]));
 const speedInsightsTag = '<script type="module" src="/src/vercel-speed-insights.js"></script>';

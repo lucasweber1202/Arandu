@@ -3,7 +3,9 @@
 // Governança responsável: a linha da caixa nunca aprova. Ela leva a
 // "Revisar decisão", o contexto aparece ao lado (ou numa folha, no celular)
 // e só ali estão as ações — Pedir alterações · Rejeitar · Aprovar — que são as
-// do produto (approvalActions: mesma regra, mesma confirmação, mesmo registro).
+// do produto (mesma rota approvals/act, mesma confirmação, mesmo motivo
+// obrigatório). Work OS: a decisão é otimista — sai da fila na hora e sobe em
+// segundo plano (ou entra na fila offline); falha desfaz e explica.
 //
 // O contexto responde, nesta ordem:
 //   1 Quanto?  2 Qual proposta?  3 Quais condições?  4 Por que esta proposta?
@@ -12,12 +14,18 @@
 
 import { PRODUCTS } from '../../../lib/finance/products.mjs';
 import { el, icon, money, fieldValue, formatDate, timeAgo, productLabel, demandHeadline, PROVIDER_KINDS } from '../../src/core.js';
-import { drawer, linkButton, emptyState } from '../../src/ui.js';
-import { approvalSteps, approvalActions, memberName, revisionTimeline } from '../../src/views/shared.js';
+import { drawer, linkButton, emptyState, button, confirmDialog, promptDialog, toast } from '../../src/ui.js';
+import { approvalSteps, memberName, revisionTimeline } from '../../src/views/shared.js';
+import { optimistic, registerExecutor } from './platform/sync.js';
+import { emit } from './platform/bus.js';
+import { mark, track } from './platform/telemetry.js';
 import { approvalNext } from './next-action.js';
 import { stateLabel } from './work-ui.js';
 import { handoffButton } from './handoff.js';
 import { announce } from './shell.js';
+import { presenceLine, announcePresence, rfqPresence } from './collaboration/presence.js';
+import { commentThread } from './collaboration/comments.js';
+import { policyLine } from './workflows/policy-line.js';
 
 const SPLIT_QUERY = '(min-width: 1100px)';
 const TERMS = {
@@ -67,21 +75,53 @@ function materialDifferences(rfq, chosen) {
   ]);
 }
 
+// Envio real da decisão ao motor (mesma rota e regra do produto). Roda na hora
+// ou, offline (simulado), quando a fila é enviada.
+registerExecutor('approval.act', async (ctx, payload) => {
+  const result = await ctx.api('approvals/act', { method: 'POST', body: JSON.stringify({ request_id: payload.request_id, action: payload.action, comment: payload.comment || '' }) });
+  ctx.approvalsPromise = null;
+  emit(`approval.${payload.action}`, { object: { type: 'approval', id: payload.request_id, title: payload.title, rfq_id: payload.rfq_id }, actor: payload.actor, detail: { comment: payload.comment || null, requested_by: payload.requested_by } });
+  return result;
+});
+const VERB = { approved: 'Aprovar', changes_requested: 'Pedir alterações', rejected: 'Rejeitar' };
+
+/** Botões de decisão: mesma confirmação e mesmo motivo obrigatório do produto; o envio é otimista. */
+function decisionButtons(onDecide) {
+  const ask = async (action) => {
+    if (action === 'approved') {
+      const ok = await confirmDialog({ title: 'Aprovar esta proposta?', description: 'Sua aprovação fica registrada com data e hora. Se houver próximo aprovador, ele será avisado.', confirmLabel: 'Aprovar' });
+      if (ok) onDecide(action, '');
+      return;
+    }
+    const comment = await promptDialog({ title: action === 'rejected' ? 'Rejeitar a proposta' : 'Pedir alterações', description: 'O motivo fica registrado na trilha da solicitação e é enviado a quem pediu a aprovação.',
+      label: 'Motivo', minLength: 3, confirmLabel: action === 'rejected' ? 'Rejeitar' : 'Pedir alterações', tone: action === 'rejected' ? 'danger' : 'primary' });
+    if (comment !== null) onDecide(action, comment);
+  };
+  return el('div', { class: 'approval-actions' }, [
+    button('Pedir alterações', { iconName: 'edit', onClick: () => ask('changes_requested') }),
+    button('Rejeitar', { variant: 'danger-ghost', iconName: 'x', onClick: () => ask('rejected') }),
+    el('span', { class: 'dc-spacer', 'aria-hidden': 'true' }),
+    button('Aprovar', { variant: 'primary', iconName: 'check', onClick: () => ask('approved') })
+  ]);
+}
+
 function section(number, title, body, { id = null } = {}) {
   return el('section', { class: 'dc-section', id, 'aria-labelledby': `dc-${number}` }, [
     el('h3', { class: 'dc-q', id: `dc-${number}` }, [el('span', { class: 'dc-n num', 'aria-hidden': 'true', text: String(number) }), el('span', { text: title })]), body]);
 }
 
 /** Contexto completo de uma decisão (usado no painel ao lado e na folha do celular). */
-export function decisionContext(ctx, request, rfq, { onDone }) {
+export function decisionContext(ctx, request, rfq, { onDecide }) {
   const proposal = (rfq.proposals || []).find((item) => item.id === request.proposal_id);
+  announcePresence({ object: `approval:${request.id}`, name: ctx.viewer?.name, activity: 'está revisando esta decisão' });
   const next = approvalNext(request, rfq, { viewerId: ctx.viewer?.id, members: ctx.members });
   const credit = rfq.product === 'credit';
   const amount = credit ? money(rfq.demand?.amount) : `${money(rfq.demand?.monthly_volume)}/mês`;
   const body = [
     el('header', { class: 'dc-head' }, [
       el('p', { class: 'dc-kicker' }, [stateLabel(next), el('span', { class: 'dc-kicker-sep', 'aria-hidden': 'true', text: '·' }), el('span', { text: `Etapa ${next.position || '—'} de ${next.total}` })]),
-      el('h2', { class: 'dc-title', id: 'decision-title', text: rfq.title })
+      el('h2', { class: 'dc-title', id: 'decision-title', text: rfq.title }),
+      presenceLine(`approval:${request.id}`, rfqPresence(ctx, rfq, { timeAgo }), { viewerName: ctx.viewer?.name })
     ]),
     section(1, 'Quanto?', el('div', {}, [el('p', { class: 'dc-amount num', text: amount }), el('p', { class: 'dc-sub', text: `${productLabel(rfq.product)} · ${demandHeadline(rfq)} · revisão ${rfq.revision || 1}` })])),
     section(2, 'Qual proposta?', proposal ? el('p', { class: 'dc-provider' }, [el('strong', { text: proposal.provider_name }),
@@ -93,7 +133,10 @@ export function decisionContext(ctx, request, rfq, { onDone }) {
     section(4, 'Por que esta proposta?', el('blockquote', { class: 'dc-quote' }, [el('p', { text: request.rationale || 'Sem justificativa registrada.' }), el('footer', { text: `— ${memberName(ctx.members, request.requested_by)}` })])),
     section(5, 'Quais diferenças materiais existem?', proposal ? materialDifferences(rfq, proposal) : el('p', { class: 'muted', text: '—' })),
     section(6, 'Quem pediu?', el('p', { class: 'dc-who' }, [el('strong', { text: memberName(ctx.members, request.requested_by) }), el('span', { class: 'muted', text: ` · ${timeAgo(request.requested_at)} · prazo de resposta da solicitação ${formatDate(rfq.response_deadline)}` })])),
-    section(7, 'Em que etapa está?', approvalSteps(request, ctx.members)),
+    section(7, 'Em que etapa está?', el('div', {}, [approvalSteps(request, ctx.members), policyLine(ctx, rfq)])),
+    el('section', { class: 'dc-section dc-conversation', 'aria-labelledby': `dc-conv-${request.id}` }, [el('h3', { class: 'dc-q', id: `dc-conv-${request.id}`, text: 'Conversa interna' }),
+      commentThread(ctx, { objectType: 'approval', objectId: request.id, title: rfq.title, href: `/finance/approvals.html#request-${request.id}`,
+        people: (ctx.members || []).filter((member) => member.user_id !== ctx.viewer?.id).map((member) => ({ id: member.user_id, name: member.display_name, title: member.title })) })]),
     el('details', { class: 'dc-more' }, [el('summary', { text: `Mudanças na solicitação · revisão ${rfq.revision || 1}` }), revisionTimeline(ctx, rfq)]),
     el('p', { class: 'dc-links' }, [
       linkButton('Ver comparação completa', ctx.href(`/finance/rfq.html?id=${rfq.id}#comparacao`), { variant: 'ghost', size: 'sm', iconName: 'scale' }),
@@ -102,16 +145,14 @@ export function decisionContext(ctx, request, rfq, { onDone }) {
   ];
   let decision;
   if (next.mine && !request.stale) {
-    const actions = approvalActions(ctx, request, { onDone });
     // Ordem de leitura da decisão: pedir alterações, rejeitar e, por último, aprovar.
-    const [approve, changes, reject] = [...actions.children];
-    actions.replaceChildren(changes, reject, el('span', { class: 'dc-spacer', 'aria-hidden': 'true' }), approve);
+    const actions = decisionButtons((action, comment) => onDecide(request, action, comment));
     decision = section(8, 'Decisão', el('div', {}, [el('p', { class: 'dc-sub', text: 'Sua decisão fica registrada com data e hora na trilha da solicitação.' }), actions]), { id: 'decision-actions' });
   } else {
     const approved = request.status === 'approved' && !request.stale;
     decision = section(8, 'Decisão', el('div', { class: 'dc-waiting' }, [
       el('p', { class: 'muted' }, [icon(approved ? 'checkCircle' : 'clock', { size: 14 }), el('span', { text: ` ${next.action}. ${next.why}` })]),
-      approved ? handoffButton(ctx, { userId: request.requested_by, path: `/finance/rfq.html?id=${rfq.id}#decisao`, note: 'Registrar a decisão aprovada' })
+      approved ? handoffButton(ctx, { userId: request.requested_by, path: `/finance/rfq.html?id=${rfq.id}#decisao`, label: `Voltar ao processo como ${memberName(ctx.members, request.requested_by).split(' ')[0]}`, note: 'Registrar a decisão aprovada' })
         : request.status === 'pending' ? handoffButton(ctx, { userId: next.owner?.id, path: `/finance/approvals.html#request-${request.id}`, note: 'Ver o mesmo pedido como quem decide' }) : null
     ].filter(Boolean)), { id: 'decision-actions' });
   }
@@ -124,11 +165,13 @@ export async function decisionInbox(ctx) {
   const rfqs = new Map((ctx.data.rfqs || []).map((rfq) => [rfq.id, rfq]));
   const viewer = ctx.viewer?.id;
   const rows = approvals.filter((request) => rfqs.has(request.rfq_id));
-  const groups = {
+  const groups = {};
+  const regroup = () => Object.assign(groups, {
     mine: rows.filter((request) => approvalNext(request, rfqs.get(request.rfq_id), { viewerId: viewer, members: ctx.members }).mine),
     requested: rows.filter((request) => request.requested_by === viewer && request.status === 'pending'),
     done: rows.filter((request) => request.status !== 'pending')
-  };
+  });
+  regroup();
   const wanted = location.hash.startsWith('#request-') ? rows.find((request) => `#request-${request.id}` === location.hash) : null;
   let filter = wanted ? (groups.mine.includes(wanted) ? 'mine' : groups.requested.includes(wanted) ? 'requested' : groups.done.includes(wanted) ? 'done' : 'all') : groups.mine.length ? 'mine' : groups.requested.length ? 'requested' : 'mine';
   let selected = wanted?.id || null;
@@ -138,11 +181,11 @@ export async function decisionInbox(ctx) {
   const segments = el('div', { class: 'seg dinbox-filter', role: 'group', 'aria-label': 'Filtrar aprovações' });
   const list = el('ul', { class: 'dinbox-list', role: 'list', 'aria-label': 'Pedidos de aprovação' });
   const context = el('section', { class: 'dinbox-context', id: 'decision-context', 'aria-labelledby': 'decision-title', tabindex: '-1' });
-  const options = [['mine', 'Aguardando você', groups.mine.length], ['requested', 'Solicitadas por você', groups.requested.length], ['done', 'Concluídas', groups.done.length], ['all', 'Todas', rows.length]];
+  const options = () => [['mine', 'Aguardando você', groups.mine.length], ['requested', 'Solicitadas por você', groups.requested.length], ['done', 'Concluídas', groups.done.length], ['all', 'Todas', rows.length]];
   const visible = () => (filter === 'all' ? rows : groups[filter]);
 
   function drawSegments() {
-    segments.replaceChildren(...options.map(([value, label, count]) => {
+    segments.replaceChildren(...options().map(([value, label, count]) => {
       const node = el('button', { type: 'button', class: 'seg-item', 'aria-pressed': String(value === filter), dataset: { filter: value } }, [el('span', { text: label }), el('span', { class: 'seg-count num', text: String(count) })]);
       node.addEventListener('click', () => { filter = value; drawSegments(); drawList(); if (split()) select(visible()[0]?.id || null, { focus: false }); });
       return node;
@@ -165,8 +208,45 @@ export async function decisionInbox(ctx) {
       return el('li', {}, link);
     }) : [el('li', {}, emptyState({ title: filter === 'mine' ? 'Nenhuma decisão esperando por você' : 'Nada neste filtro', text: filter === 'mine' ? 'Quando alguém pedir sua aprovação, ela aparece aqui.' : null, iconName: 'checkCircle', compact: true }))]));
   }
-  // Depois de decidir, volta para a fila: o próximo pedido pendente assume o contexto.
-  const onDone = () => { history.replaceState(null, '', location.pathname + location.search); ctx.reload(); };
+  // Decisão otimista: o item sai da fila na hora, o próximo assume o contexto e o
+  // envio acontece em segundo plano (ou entra na fila, offline). Falha desfaz.
+  let sheet = null;
+  function onDecide(request, action, comment) {
+    const rfq = rfqs.get(request.rfq_id);
+    const snapshot = structuredClone({ status: request.status, steps: request.steps });
+    const step = (request.steps || []).filter((item) => item.status === 'pending').sort((a, b) => a.position - b.position)[0];
+    const started = performance.now();
+    sheet?.close();
+    optimistic({
+      ctx, kind: 'approval.act', label: `${VERB[action]}: ${rfq.title}`,
+      payload: { request_id: request.id, action, comment, title: rfq.title, rfq_id: rfq.id, requested_by: request.requested_by, actor: { id: viewer, name: ctx.viewer?.name } },
+      apply: () => {
+        if (step) Object.assign(step, { status: action, comment: comment || null, acted_at: new Date().toISOString() });
+        const remaining = (request.steps || []).some((item) => item.status === 'pending');
+        if (action !== 'approved' || !remaining) request.status = action;
+        regroup();
+        history.replaceState(null, '', location.pathname + location.search);
+        drawSegments();
+        drawList();
+        const nextId = groups.mine[0]?.id || null;
+        if (split()) select(nextId, { focus: Boolean(nextId) }); else selected = null;
+        mark('optimistic', performance.now() - started, { action });
+        track('approval_decided', { action });
+        announce(`${VERB[action]}: registrado. ${groups.mine.length ? `${groups.mine.length} decisão${groups.mine.length === 1 ? '' : 'ões'} ainda aguarda${groups.mine.length === 1 ? '' : 'm'} você.` : 'Nenhuma decisão aguarda você.'}`);
+      },
+      rollback: () => {
+        Object.assign(request, structuredClone(snapshot));
+        regroup();
+        drawSegments();
+        drawList();
+        select(request.id, { focus: true });
+      }
+    }).then((outcome) => {
+      toast(outcome.queued ? `${VERB[action]} · salvo neste dispositivo. Sobe ao reconectar.` : `${VERB[action]} · sincronizado.`, 'info');
+    }).catch((error) => {
+      toast(`A decisão não pôde ser sincronizada: ${error.message} Nada foi registrado; o pedido voltou para a sua fila.`, 'error');
+    });
+  }
   function select(id, { focus = false, push = false } = {}) {
     selected = id;
     for (const node of list.querySelectorAll('.dinbox-item')) { if (node.dataset.id === id) node.setAttribute('aria-current', 'true'); else node.removeAttribute('aria-current'); }
@@ -179,14 +259,15 @@ export async function decisionInbox(ctx) {
     const rfq = rfqs.get(request.rfq_id);
     if (!split()) {
       // Celular e tablet: o mesmo contexto numa folha que ocupa a tela.
-      const nodes = decisionContext(ctx, request, rfq, { onDone: () => { dialog.close(); onDone(); } });
+      const nodes = decisionContext(ctx, request, rfq, { onDecide });
       const actions = nodes.pop();
-      const dialog = drawer({ title: rfq.title, subtitle: 'Contexto da decisão', body: nodes.slice(1), footer: [actions], className: 'quick-view decision-sheet',
+      const dialog = sheet = drawer({ title: rfq.title, subtitle: 'Contexto da decisão', body: nodes.slice(1), footer: [actions], className: 'quick-view decision-sheet',
         onClose: () => { if (location.hash.startsWith('#request-')) history.replaceState(null, '', location.pathname + location.search); } });
       dialog.dataset.entity = `approval:${request.id}`;
       return;
     }
-    context.replaceChildren(...decisionContext(ctx, request, rfq, { onDone }));
+    context.replaceChildren(...decisionContext(ctx, request, rfq, { onDecide }));
+    emit('approval.opened', { object: { type: 'approval', id: request.id, title: rfq.title, rfq_id: rfq.id }, actor: { id: viewer, name: ctx.viewer?.name } });
     context.scrollTop = 0;
     announce(`Contexto da decisão: ${rfq.title}.`);
     if (focus) context.focus({ preventScroll: true });

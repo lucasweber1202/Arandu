@@ -15,41 +15,58 @@
 //   table-preferences.js, saved-views.js, contracts.js, timeline.js
 //   command.js        Ctrl/⌘+K; assist.js (ações factuais, política de IA)
 //   preferences.js    registro local versionado (v2, migra v1)
+//
+// Work OS (v3), organizado por domínio:
+//   platform/         os-store (registro local), bus (eventos + auditoria),
+//                     local-first (cache SWR), sync (otimista + fila offline),
+//                     telemetry (desempenho, flags, analytics), conflict
+//   collaboration/    presença, atividade, comentários com escopo, notificações
+//   workflows/        políticas versionadas, construtor, intake com modelos
+//   integrations/     conectores simulados (adaptadores), central, ERP, Open Finance
+//   analytics/        Uso da demonstração (funil, sessão, auditoria, flags)
+//   help/             atalhos de teclado e ajuda (?)
 
 import { el, icon, registerIcons } from '../../src/core.js';
 import { button, linkButton, toast, drawer, saveIndicator } from '../../src/ui.js';
 import { WORKSPACE_ICONS } from './icons.js';
 import * as prefs from './preferences.js';
 import { closeOpenPopover } from './popover.js';
-import { installPalette } from './command.js';
 import { openQuickView, setInspectorHook } from './quick-view.js';
 import { installInspector, openInspector, resetInspector } from './inspector.js';
 import { installFilterBar } from './filters.js';
-import { enhanceProviderProposal, enhanceOpportunities } from './provider-portal.js';
-import { organizeSettings } from './settings-architecture.js';
 import { installRouteBar } from './route.js';
 import { renderSidebar, renderTopbar, toggleSidebar, toggleFocus, syncShell, announce, openRestore, sidebarPersonal, viewHref } from './shell.js';
 import { renderMobileNav } from './responsive.js';
-import { enhanceRfq } from './rfq-page.js';
 import { leaveCompare } from './compare.js';
 import { installTray } from './comparison-tray.js';
 import { enhanceRfqTable } from './table-preferences.js';
+import { starButton } from './star.js';
 import { installViewsBar, activeView, builtinViews } from './saved-views.js';
-import { enhanceContracts } from './contracts.js';
 import { contextActions } from './assist.js';
 import { PRESETS, PRESET_ORDER, applyPreset } from './presets.js';
+import { on, listenerCount } from './platform/bus.js';
+import { flag, mark, track, sessionNote, wireAnalytics, perfSummary, PERF_BUDGETS } from './platform/telemetry.js';
+import { cacheStats } from './platform/local-first.js';
+import { syncIndicator, setNetwork, isOffline } from './platform/sync.js';
+import { wireNotifications } from './collaboration/notify.js';
+import { installShortcuts, openHelp } from './help/keyboard.js';
 
 registerIcons(WORKSPACE_ICONS);
 
 export const dashboard = async (ctx) => (await import('./dashboard.js')).dashboard(ctx);
-/** Telas que a demonstração substitui por inteiro (mesmos dados, mesmas ações do produto). */
+/** Telas que a demonstração substitui ou acrescenta (mesmos dados, mesmas regras do produto). */
 export const views = {
-  approvals: async (ctx) => (await import('./decision-inbox.js')).decisionInbox(ctx)
+  ...(flag('decisionInbox') ? { approvals: async (ctx) => (await import('./decision-inbox.js')).decisionInbox(ctx) } : {}),
+  notifications: async (ctx) => (await import('./collaboration/center.js')).notificationCenter(ctx),
+  workIntake: async (ctx) => (await import('./workflows/intake.js')).intakePage(ctx),
+  workPolicies: async (ctx) => (await import('./workflows/builder.js')).policyBuilder(ctx),
+  workIntegrations: async (ctx) => (await import('./integrations/center.js')).integrationCenter(ctx),
+  workUsage: async (ctx) => (await import('./analytics/usage.js')).usagePage(ctx)
 };
 
 // Visão pedida pela barra lateral (?visao=): lida antes de a lista reescrever o endereço.
 const initialViewId = new URLSearchParams(location.search).get('visao');
-const state = { ctx: null, palette: null, globalsInstalled: false, counts: {}, renderSeq: 0 };
+const state = { ctx: null, palette: null, globalsInstalled: false, counts: {}, renderSeq: 0, firstRender: true, lastReload: 0 };
 
 // --------------------------------------------------------------- hooks
 function hooks(ctx) {
@@ -73,6 +90,21 @@ export function customizeDashboard(ctx) {
   location.assign(ctx.href('/finance/dashboard.html#personalizar'));
 }
 
+// A central de comando carrega no primeiro uso (Ctrl/⌘+K ou clique): o
+// pacote inicial fica leve e a abertura continua imediata depois disso.
+function lazyPalette(ctx, paletteHooks) {
+  let real = null;
+  let loading = null;
+  const load = () => (loading ||= import('./command.js').then(({ installPalette }) => { real = installPalette(ctx, paletteHooks); return real; }));
+  // Pré-carrega quando o navegador estiver ocioso.
+  (globalThis.requestIdleCallback || ((run) => setTimeout(run, 1200)))(() => load());
+  return {
+    open: (query = '') => load().then((palette) => palette.open(query)),
+    close: () => real?.close(),
+    get isOpen() { return Boolean(real?.isOpen); }
+  };
+}
+
 // ------------------------------------------------------------ shell
 export function installShell(ctx) {
   state.ctx = ctx;
@@ -87,6 +119,7 @@ export function installShell(ctx) {
       toggleFocus: () => toggleFocus(), toggleSidebar,
       openPreferences: shellHooks.openPreferences, openRestore: shellHooks.openRestore,
       customizeDashboard: shellHooks.customizeDashboard, switchPersona: shellHooks.switchPersona,
+      openHelp, toggleOffline: () => { setNetwork(isOffline() ? 'online' : 'offline', ctx); announce(isOffline() ? 'Offline simulado: alterações ficam na fila.' : 'Reconectado. Enviando a fila.'); },
       reopen: (query) => setTimeout(() => state.palette.open(query), 0),
       views: () => [...builtinViews(ctx, 'rfqs').filter((view) => view.id !== 'all').map((view) => ({ ...view, page: 'rfqs', href: ctx.href(`/finance/rfqs.html?${view.query ? `${view.query}&` : ''}visao=${view.id}`) })),
         ...prefs.readState().savedViews.map((view) => ({ ...view, href: viewHref(ctx, view) }))],
@@ -96,14 +129,63 @@ export function installShell(ctx) {
         openHistory: () => { document.querySelector('#tab-visao-geral')?.click(); setTimeout(() => document.querySelector('#revisoes')?.scrollIntoView({ block: 'start' }), 60); }
       })
     };
-    state.palette = installPalette(ctx, paletteHooks);
+    state.palette = lazyPalette(ctx, paletteHooks);
     topbar.search.addEventListener('click', () => state.palette.open());
     if (ctx.audience === 'company') ctx.loadApprovals?.().then((rows) => {
       paletteHooks.pendingApprovals = rows.filter((row) => row.status === 'pending' && (row.steps || []).filter((step) => step.status === 'pending').sort((a, b) => a.position - b.position)[0]?.approver_id === ctx.viewer?.id).length;
     }).catch(() => {});
   }
   installGlobals();
+  installWorkOS(ctx, topbar);
   setInspectorHook((context, type, id) => openInspector(context, type, id));
+}
+
+// ------------------------------------------------------------- Work OS
+let debugTimer = null;
+function togglePerfDebug() {
+  const existing = document.getElementById('perf-debug');
+  if (existing) { existing.remove(); clearInterval(debugTimer); return; }
+  const panel = el('aside', { id: 'perf-debug', class: 'perf-debug', 'aria-label': 'Depuração de desempenho (demonstração)' });
+  const draw = () => {
+    const stats = cacheStats();
+    panel.replaceChildren(el('p', { class: 'perf-debug-title', text: 'Depuração · Alt+Shift+D' }),
+      el('p', { text: `Ouvintes: ${listenerCount()} · Cache: ${stats.entries} (${stats.hits} acertos, ${stats.revalidations} revalidações)` }),
+      el('ul', {}, perfSummary().map((row) => el('li', { class: PERF_BUDGETS[row.name] && row.p95 > PERF_BUDGETS[row.name] ? 'is-over' : '', text: `${row.name}: mediana ${row.median} ms · p95 ${row.p95} ms${PERF_BUDGETS[row.name] ? ` / ${PERF_BUDGETS[row.name]}` : ''}` }))));
+  };
+  draw();
+  debugTimer = setInterval(draw, 2000);
+  document.body.append(panel);
+}
+
+function installWorkOS(ctx, topbar) {
+  // Topbar: sincronização (simulada) e ajuda, ao lado das notificações.
+  const actions = document.querySelector('.topbar .topbar-actions');
+  if (actions && ctx.organization) {
+    if (flag('offlineSim')) actions.insertBefore(syncIndicator(ctx), actions.querySelector('#notification-trigger') || actions.firstChild);
+    if (!actions.querySelector('#help-trigger')) actions.insertBefore(el('button', { type: 'button', class: 'icon-btn', id: 'help-trigger', 'aria-label': 'Ajuda e atalhos (?)', title: 'Ajuda e atalhos (?)', 'aria-keyshortcuts': 'Shift+?', onclick: openHelp }, icon('help', { size: 17 })),
+      actions.querySelector('#notification-trigger') || null);
+  }
+  void topbar;
+  if (state.workOSInstalled) return;
+  state.workOSInstalled = true;
+  wireAnalytics();
+  wireNotifications(() => (state.ctx?.members || []).map((member) => ({ ...member, self: member.user_id === state.ctx?.viewer?.id })));
+  installShortcuts(ctx, { go: (path) => location.assign(state.ctx.href(path)), announce });
+  // Painel de depuração escondido: ?debug=1 ou Alt+Shift+D. Só na demonstração.
+  globalThis.__aranduWorkOS = Object.freeze({ listenerCount, cacheStats, perfSummary });
+  if (new URLSearchParams(location.search).has('debug')) togglePerfDebug();
+  document.addEventListener('keydown', (event) => { if (event.altKey && event.shiftKey && event.key.toLowerCase() === 'd') { event.preventDefault(); togglePerfDebug(); } });
+  try { if (!sessionStorage.getItem('arandu-demo-started')) { sessionStorage.setItem('arandu-demo-started', '1'); track('demo_started', { persona: ctx.persona?.key }); } } catch { /* sem sessão */ }
+  // Cache local-first: se a revalidação trouxe algo novo (outra aba, outra persona), a tela se atualiza sem piscar.
+  let timer = null;
+  on('sync.revalidated', () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      if (Date.now() - state.lastReload < 3000 || document.querySelector('dialog[open], html[data-inspector=on]') || document.activeElement?.matches?.('input, textarea, select')) return;
+      state.lastReload = Date.now();
+      state.ctx?.reload();
+    }, 250);
+  });
 }
 export function decorateSidebar(ctx, counts = {}) {
   state.counts = counts;
@@ -250,7 +332,7 @@ function enhanceProposals(ctx) {
   if (!document.getElementById('quick-hint')) document.body.append(el('p', { id: 'quick-hint', class: 'sr-only', text: 'Abre um resumo lateral. Use Ctrl ou ⌘ com clique para abrir a página completa.' }));
 }
 function enhanceProviders(ctx) {
-  import('./rfq-page.js').then(({ starButton }) => {
+  Promise.resolve({ starButton }).then(({ starButton }) => {
     for (const row of document.querySelectorAll('#view tr[data-entity="provider"]')) {
       const provider = (ctx.data.providers || []).find((item) => item.id === row.dataset.id);
       const cell = row.querySelector('td.cell-primary');
@@ -308,6 +390,10 @@ export function afterRender(ctx, { failure = null } = {}) {
   document.body.dataset.view = ctx.view;
   if (!failure && ctx.organization) renderMobileNav(ctx, state.counts, hooks(ctx));
   if (failure || !ctx.organization) return;
+  // Medições locais: primeira tela desde a navegação; depois, cada re-render.
+  if (state.firstRender) { state.firstRender = false; mark('route', performance.now(), { view: ctx.view }); track('page_viewed', { view: ctx.view }); sessionNote(`abriu ${document.querySelector('.page-head h1')?.textContent?.trim() || ctx.view}`, { persona: ctx.persona?.name }); }
+  if (ctx.view === 'rfq') track('rfq_opened');
+  if (ctx.view === 'contracts') track('contract_opened');
   document.querySelector('.sidebar .side-personal')?.replaceWith(sidebarPersonal(ctx));
   sectionCrumb(ctx);
   installInspector(ctx);
@@ -325,16 +411,36 @@ function enhanceView(ctx) {
   if (ctx.view === 'rfqs') enhanceRfqList(ctx);
   if (ctx.view === 'proposals') enhanceProposals(ctx);
   if (ctx.view === 'providers') enhanceProviders(ctx);
-  if (ctx.view === 'contracts') enhanceContracts(ctx, { initialViewId });
+  if (ctx.view === 'contracts') import('./contracts.js').then(({ enhanceContracts }) => enhanceContracts(ctx, { initialViewId }));
   if (ctx.view === 'tasks') setTimeout(() => enhanceTasks(ctx), 300);
-  if (ctx.view === 'rfq') enhanceRfq(ctx, { lastListHref: () => lastListHref(ctx), markRestore: markRestore(ctx), focusButton });
+  if (ctx.view === 'rfq') import('./rfq-page.js').then(({ enhanceRfq }) => enhanceRfq(ctx, { lastListHref: () => lastListHref(ctx), markRestore: markRestore(ctx), focusButton }));
   if (ctx.view === 'newRfq') document.querySelector('.page-actions')?.prepend(focusButton());
-  if (ctx.view === 'providerProposal') enhanceProviderProposal(ctx);
-  if (['providerHome', 'providerRfqs'].includes(ctx.view)) enhanceOpportunities(ctx);
-  if (ctx.view === 'settings') organizeSettings({ openRestore: () => openRestore(ctx) });
+  if (ctx.view === 'providerProposal') import('./provider-portal.js').then(({ enhanceProviderProposal }) => enhanceProviderProposal(ctx));
+  if (['providerHome', 'providerRfqs'].includes(ctx.view)) import('./provider-portal.js').then(({ enhanceOpportunities }) => enhanceOpportunities(ctx));
+  if (ctx.view === 'settings') import('./settings-architecture.js').then(({ organizeSettings }) => { organizeSettings({ openRestore: () => openRestore(ctx) }); enhanceProfileProvenance(ctx); if (/^#[a-z-]+$/.test(location.hash)) document.querySelector(location.hash)?.scrollIntoView({ block: 'start' }); });
   if (ctx.view === 'settings' && /^#[a-z-]+$/.test(location.hash)) requestAnimationFrame(() => document.querySelector(location.hash)?.scrollIntoView({ block: 'start' }));
   installTray(ctx);
   restorePlace(ctx);
+}
+
+/** Perfil financeiro: de onde veio cada dado (Fonte · Atualizado · Responsável). */
+function enhanceProfileProvenance(ctx) {
+  const section = document.querySelector('#perfil');
+  if (!section || section.querySelector('#provenance-table')) return;
+  import('./integrations/center.js').then(({ provenanceTable }) => {
+    if (section.querySelector('#provenance-table')) return;
+    section.append(el('div', { class: 'provenance-wrap' }, [el('h3', { class: 'pref-section', text: 'Procedência dos dados' }),
+      el('p', { class: 'pref-hint' }, ['Fonte, data e responsável de cada campo. ', el('a', { href: ctx.href('/finance/integrations.html#open-finance'), text: 'Conectar Open Finance (simulado)' })]),
+      provenanceTable(ctx)]));
+  });
+}
+
+// Pré-carrega a próxima página ao passar o mouse (navegação sem espera).
+const prefetched = new Set();
+function prefetch(href) {
+  if (prefetched.has(href) || prefetched.size > 24) return;
+  prefetched.add(href);
+  document.head.append(el('link', { rel: 'prefetch', href, as: 'document' }));
 }
 
 // ------------------------------------------------------------- globais
@@ -366,6 +472,10 @@ function installGlobals() {
     if (event.target.closest?.('a[href]')) rememberPlace();
   });
   addEventListener('pagehide', rememberPlace);
+  document.addEventListener('pointerover', (event) => {
+    const link = event.target.closest?.('a[href^="/demo/"]');
+    if (link && !link.target && link.origin === location.origin && link.pathname !== location.pathname) prefetch(link.pathname);
+  }, { passive: true });
   addEventListener('popstate', () => { if (state.ctx?.view === 'rfqs') state.ctx.rerender(); });
   addEventListener('resize', () => syncShell(), { passive: true });
   prefs.subscribe(() => {

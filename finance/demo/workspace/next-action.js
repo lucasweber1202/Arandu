@@ -88,10 +88,31 @@ export function rfqNext(rfq, { approvals = [], viewerId = null, members = [], co
   const due = live || rfq.status === 'draft' ? dueOf(rfq.response_deadline, { live })
     : rfq.status === 'comparing' && facts.nearestValidity ? dueOf(facts.nearestValidity.date, { label: 'Proposta vence' }) : null;
   const status = RFQ_STATUS[rfq.status] || { label: rfq.status, tone: 'neutral' };
+  // Quem espera quem, e o que fica travado até a ação acontecer.
+  const dependencyOf = (next) => {
+    const firstName = (name) => String(name || '').split(' ')[0];
+    if (next.stage === 'approval' && next.requestId) {
+      const request = (approvals || []).find((row) => row.id === next.requestId);
+      const requester = nameOf(members, request?.requested_by, 'quem pediu');
+      return next.mine ? { text: `${firstName(requester)} está esperando sua decisão.`, blocks: 'Bloqueia o registro da decisão.' }
+        : { text: `${firstName(owner.name)} aguarda ${firstName(next.owner?.name)}.`, blocks: 'Bloqueia o registro da decisão.' };
+    }
+    if (next.stage === 'approval' && next.cta === 'Registrar') return { text: 'Aprovação concluída; o contrato depende deste registro.', blocks: 'Bloqueia o registro do contrato.' };
+    if (next.stage === 'collecting' && invited > answered) {
+      const answeredIds = new Set((rfq.proposals || []).map((proposal) => proposal.provider_id));
+      const waiting = (rfq.invites || []).filter((invite) => !(invite.responded ?? answeredIds.has(invite.provider_id))).map((invite) => String(invite.provider_name || '').replace(/ — DEMO$/, '')).filter(Boolean);
+      return { text: waiting.length ? `Aguardando ${waiting.join(', ')}.` : `Aguardando ${invited - answered} resposta${invited - answered === 1 ? '' : 's'}.`, blocks: 'A comparação completa depende das respostas.' };
+    }
+    if (next.stage === 'evaluation') return { text: null, blocks: 'O pedido de aprovação depende desta comparação.' };
+    if (next.stage === 'decided') return { text: null, blocks: 'Sem contrato registrado, a renovação não é acompanhada.' };
+    if (next.stage === 'draft') return { text: null, blocks: 'Provedores só veem a solicitação depois de abertos os convites.' };
+    return null;
+  };
   const make = (fields) => {
     const result = { kind: 'rfq', id: rfq.id, title: rfq.title, product: rfq.product, state: status.label, stateTone: status.tone, owner, due, invited, answered,
       mine: Boolean(viewerId && (fields.owner?.id ?? owner.id) === viewerId), ...fields };
     result.compact = [invited ? `${answered}/${invited} respostas` : null, result.due && live ? result.due.short : null].filter(Boolean).join(' · ');
+    result.dependency = dependencyOf(result);
     return result;
   };
 

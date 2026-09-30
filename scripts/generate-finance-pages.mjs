@@ -34,6 +34,14 @@ export const PAGES = [
   { path: 'provider/invite.html', view: 'providerInvite', audience: 'provider', title: 'Aceitar convite', h1: 'Aceitar convite', description: 'Aceite o convite recebido para responder a uma solicitação.', referrer: true }
 ];
 
+// Telas que existem SÓ na demonstração (Work OS): nunca geradas em /finance.
+export const DEMO_ONLY_PAGES = [
+  { path: 'finance/intake.html', view: 'workIntake', audience: 'company', title: 'O que você precisa fazer?', h1: 'O que você precisa fazer?', description: 'Comece pelo trabalho: crédito, adquirência, renovação ou comparação — com modelos e perguntas relevantes.' },
+  { path: 'finance/policies.html', view: 'workPolicies', audience: 'company', title: 'Políticas de aprovação', h1: 'Políticas de aprovação', description: 'Regras versionadas de quem aprova o quê, com condições, etapas e pré-visualização.' },
+  { path: 'finance/integrations.html', view: 'workIntegrations', audience: 'company', title: 'Integrações', h1: 'Integrações', description: 'Comunicação, ERP, identidade, arquivos, Open Finance e analytics — conectores simulados na demonstração.' },
+  { path: 'finance/usage.html', view: 'workUsage', audience: 'company', title: 'Uso da demonstração', h1: 'Uso da demonstração', description: 'Funil, linha do tempo da sessão, auditoria, feature flags e desempenho — tudo local.' }
+];
+
 const BOUNDARIES = `
 <section class="card"><div class="card-body prose-block">
   <h2>O que o Arandu faz</h2>
@@ -138,6 +146,7 @@ export function expectedFiles() {
     files.set(page.path, renderPage(page));
     files.set(`demo/${page.path}`, renderPage(page, { demo: true }));
   }
+  for (const page of DEMO_ONLY_PAGES) files.set(`demo/${page.path}`, renderPage(page, { demo: true }));
   return files;
 }
 
@@ -155,5 +164,5 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     console.error(`Páginas financeiras fora da especificação (rode node scripts/generate-finance-pages.mjs):\n  ${drift.join('\n  ')}`);
     process.exit(1);
   }
-  console.log(check ? `Páginas financeiras: ${PAGES.length * 2} cascas conferidas com a especificação.` : `Páginas financeiras: ${PAGES.length * 2} cascas geradas.`);
+  console.log(check ? `Páginas financeiras: ${PAGES.length * 2 + DEMO_ONLY_PAGES.length} cascas conferidas com a especificação.` : `Páginas financeiras: ${PAGES.length * 2 + DEMO_ONLY_PAGES.length} cascas geradas.`);
 }

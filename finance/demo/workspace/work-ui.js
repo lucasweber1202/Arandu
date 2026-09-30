@@ -16,6 +16,13 @@ export function stateLabel(next) {
   return el('span', { class: 'na-state' }, [STATE_DOT(next.stateTone), el('span', { text: next.state })]);
 }
 
+/** "Quem espera quem" e o que fica travado — linha discreta, com texto (não só cor). */
+export function dependencyLine(next) {
+  const dep = next.dependency;
+  if (!dep || (!dep.text && !dep.blocks)) return null;
+  return el('p', { class: 'dep' }, [icon('link', { size: 12 }), el('span', { class: 'dep-text', text: [dep.text, dep.blocks].filter(Boolean).join(' ') })]);
+}
+
 /** Bloco completo: estado · próxima ação · por quê · prazo · responsável · ação. */
 export function nextBlock(ctx, next, { heading = 'Próxima ação', action = true, extra = null, id = null } = {}) {
   const meta = [
@@ -27,6 +34,7 @@ export function nextBlock(ctx, next, { heading = 'Próxima ação', action = tru
     el('p', { class: 'na-kicker', text: heading }),
     el('p', { class: 'na-action', text: next.action }),
     next.why ? el('p', { class: 'na-why', text: next.why }) : null,
+    dependencyLine(next),
     meta.length ? el('dl', { class: 'na-meta' }, meta.map(([label, value, className]) => el('div', {}, [el('dt', { text: label }), el('dd', { class: `num ${className}`.trim(), text: value })]))) : null,
     extra,
     action && next.href && next.cta ? el('div', { class: 'na-actions' }, linkButton(next.cta, ctx.href(next.href), { variant: next.mine || next.stage === 'evaluation' ? 'primary' : 'secondary', size: 'sm', iconName: 'arrowRight', attrs: { 'data-next-cta': '' } })) : null
@@ -39,7 +47,8 @@ export function queueRow(ctx, next, { quick = null } = {}) {
     el('span', { class: 'wq-rail', 'aria-hidden': 'true' }),
     el('div', { class: 'wq-main' }, [
       el('p', { class: 'wq-action' }, [el('a', { class: 'wq-link', href: ctx.href(next.href), text: next.action, ...(quick ? { 'data-quick': quick } : {}) }), next.kind !== 'task' ? el('span', { class: 'wq-object', text: ` — ${next.title}` }) : null]),
-      el('p', { class: 'wq-why' }, [stateLabel(next), next.why ? el('span', { class: 'wq-sep', 'aria-hidden': 'true', text: '·' }) : null, next.why ? el('span', { text: next.why.replace(/\.$/, '') }) : null])
+      el('p', { class: 'wq-why' }, [stateLabel(next), next.why ? el('span', { class: 'wq-sep', 'aria-hidden': 'true', text: '·' }) : null, next.why ? el('span', { text: next.why.replace(/\.$/, '') }) : null]),
+      dependencyLine(next)
     ]),
     el('p', { class: `wq-due num${next.due?.urgent ? ' is-urgent' : ''}`, text: next.due ? next.due.text : '' }),
     el('a', { class: 'btn btn-sm wq-cta', href: ctx.href(next.href), tabindex: '-1', 'aria-hidden': 'true' }, [el('span', { class: 'btn-label', text: next.cta }), icon('arrowRight', { size: 14 })])
