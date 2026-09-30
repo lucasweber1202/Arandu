@@ -22,8 +22,12 @@ import { WORKSPACE_ICONS } from './icons.js';
 import * as prefs from './preferences.js';
 import { closeOpenPopover } from './popover.js';
 import { installPalette } from './command.js';
-import { openQuickView } from './quick-view.js';
-import { openApproval } from './approval.js';
+import { openQuickView, setInspectorHook } from './quick-view.js';
+import { installInspector, openInspector, resetInspector } from './inspector.js';
+import { installFilterBar } from './filters.js';
+import { enhanceProviderProposal, enhanceOpportunities } from './provider-portal.js';
+import { organizeSettings } from './settings-architecture.js';
+import { installRouteBar } from './route.js';
 import { renderSidebar, renderTopbar, toggleSidebar, toggleFocus, syncShell, announce, openRestore, sidebarPersonal, viewHref } from './shell.js';
 import { renderMobileNav } from './responsive.js';
 import { enhanceRfq } from './rfq-page.js';
@@ -38,10 +42,14 @@ import { PRESETS, PRESET_ORDER, applyPreset } from './presets.js';
 registerIcons(WORKSPACE_ICONS);
 
 export const dashboard = async (ctx) => (await import('./dashboard.js')).dashboard(ctx);
+/** Telas que a demonstração substitui por inteiro (mesmos dados, mesmas ações do produto). */
+export const views = {
+  approvals: async (ctx) => (await import('./decision-inbox.js')).decisionInbox(ctx)
+};
 
 // Visão pedida pela barra lateral (?visao=): lida antes de a lista reescrever o endereço.
 const initialViewId = new URLSearchParams(location.search).get('visao');
-const state = { ctx: null, palette: null, globalsInstalled: false, counts: {} };
+const state = { ctx: null, palette: null, globalsInstalled: false, counts: {}, renderSeq: 0 };
 
 // --------------------------------------------------------------- hooks
 function hooks(ctx) {
@@ -95,6 +103,7 @@ export function installShell(ctx) {
     }).catch(() => {});
   }
   installGlobals();
+  setInspectorHook((context, type, id) => openInspector(context, type, id));
 }
 export function decorateSidebar(ctx, counts = {}) {
   state.counts = counts;
@@ -128,26 +137,36 @@ function preferencesPanel(ctx) {
     options: [...PRESET_ORDER.map((key) => [key, PRESETS[key].label]), ['custom', 'Personalizado']],
     hint: 'Pontos de partida: densidade, barra lateral, detalhe e módulos do painel. Ajustes manuais viram “Personalizado”.',
     onChange: (value, label) => { if (value !== 'custom') applyPreset(value); else prefs.setAppearance('preset', 'custom', { keepPreset: true }); syncShell(); saved.set('saved', `Workspace ${label.toLowerCase()} aplicado.`); } });
-  const sections = [
+  // Superfície principal: só tema e densidade. O resto vive em "Preferências avançadas".
+  // Enquanto a densidade é automática, nenhuma das duas fica marcada: escolher é explícito.
+  const effectiveDensity = () => (['compact', 'comfortable'].includes(prefs.readState().appearance.density) ? prefs.readState().appearance.density : null);
+  const simpleDensity = radioGroup({ key: 'density-simple', legend: 'Densidade', name: `${prefix}-density-simple`, current: effectiveDensity(),
+    options: [['comfortable', 'Confortável', 'layers'], ['compact', 'Compacta', 'menu']], hint: 'Sem escolha, a densidade acompanha a tela: compacta em notebooks, confortável em telas grandes.',
+    onChange: (value, label) => { prefs.setAppearance('density', value); syncShell(); saved.set('saved', `Densidade: ${label}. Salvo.`); } });
+  const advanced = [
     el('h3', { class: 'pref-section', text: 'Workspace' }), preset,
-    appearance('density', 'Densidade', [['auto', 'Automática', 'monitor'], ['compact', 'Compacta', 'menu'], ['comfortable', 'Confortável', 'layers'], ['spacious', 'Espaçosa', 'maximize']],
+    appearance('density', 'Densidade detalhada', [['auto', 'Automática', 'monitor'], ['compact', 'Compacta', 'menu'], ['comfortable', 'Confortável', 'layers'], ['spacious', 'Espaçosa', 'maximize']],
       { hint: 'Automática: compacta em notebooks, confortável em telas grandes e tablets. A escolha manual tem precedência.' }),
     appearance('sidebar', 'Barra lateral', [['auto', 'Automática', 'monitor'], ['expanded', 'Expandida', 'sidebar'], ['compact', 'Compacta', 'grip'], ['hidden', 'Oculta', 'eyeOff']],
       { hint: 'Automática: expandida em telas largas, compacta em notebooks e tablets. Alterne a qualquer momento com Ctrl/⌘+B.' }),
     appearance('detail', 'Informação secundária', [['full', 'Completa', 'layers'], ['essential', 'Essencial', 'minimize']], { hint: 'Essencial esconde metadados de apoio em listas e no painel.' }),
-    el('h3', { class: 'pref-section', text: 'Aparência' }),
-    appearance('theme', 'Tema', [['light', 'Claro', 'sun'], ['dark', 'Escuro', 'moon'], ['system', 'Sistema', 'monitor']]),
-    appearance('accent', 'Cor de destaque', [['indigo', 'Índigo'], ['blue', 'Azul'], ['emerald', 'Esmeralda'], ['graphite', 'Grafite'], ['violet', 'Violeta']], { swatches: true, hint: 'Paleta controlada: todas as opções mantêm o contraste de botões e links.' }),
+    appearance('accent', 'Cor de destaque', [['indigo', 'Arandu'], ['blue', 'Azul'], ['emerald', 'Esmeralda'], ['graphite', 'Grafite'], ['violet', 'Violeta']], { swatches: true, hint: 'Paleta controlada: todas as opções mantêm o contraste de botões e links.' }),
     appearance('motion', 'Movimento', [['normal', 'Normal', 'sparkles'], ['reduced', 'Reduzido', 'minimize']], { hint: prefs.systemPrefersReducedMotion() ? 'Seu sistema pede movimento reduzido: ele é respeitado mesmo com “Normal”.' : 'Reduzido remove transições e animações.' }),
     ctx.audience === 'company' ? el('h3', { class: 'pref-section', text: 'Comportamento' }) : null,
     ctx.audience === 'company' ? behavior('rfqClick', 'Ao clicar numa solicitação', [['quick', 'Abrir resumo lateral', 'eye'], ['page', 'Abrir a página', 'arrowRight']]) : null,
     ctx.audience === 'company' ? behavior('home', 'Página inicial', [['overview', 'Visão geral', 'home'], ['rfqs', 'Solicitações', 'file'], ['approvals', 'Aprovações', 'checkCircle']], { hint: 'Para onde levam a marca Arandu, “Início” no celular e a troca de persona.' }) : null,
     ctx.audience === 'company' ? behavior('afterCreate', 'Depois de criar uma solicitação', [['stay', 'Permanecer nela', 'file'], ['list', 'Voltar para a lista', 'menu']]) : null
   ].filter(Boolean);
+  const sections = [
+    appearance('theme', 'Tema', [['system', 'Sistema', 'monitor'], ['light', 'Claro', 'sun'], ['dark', 'Escuro', 'moon']]),
+    simpleDensity,
+    el('details', { class: 'pref-advanced', id: 'pref-advanced' }, [el('summary', { class: 'pref-advanced-summary', text: 'Preferências avançadas' }),
+      el('p', { class: 'pref-hint', text: 'Preset do workspace, barra lateral, cor, movimento e comportamento de cliques.' }), ...advanced])
+  ].filter(Boolean);
   const unsubscribe = prefs.subscribe((next) => {
-    for (const fieldset of sections.filter((node) => node.dataset?.pref)) {
+    for (const fieldset of node.querySelectorAll('fieldset[data-pref]')) {
       const key = fieldset.dataset.pref;
-      const value = key.startsWith('b-') ? next.behavior[key.slice(2)] : next.appearance[key];
+      const value = key === 'density-simple' ? effectiveDensity() : key.startsWith('b-') ? next.behavior[key.slice(2)] : next.appearance[key];
       for (const input of fieldset.querySelectorAll('input')) input.checked = input.value === value;
     }
   });
@@ -251,24 +270,6 @@ function enhanceTasks(ctx) {
     item.append(peek);
   }
 }
-function enhanceApprovals(ctx) {
-  // "Ver contexto" abre a experiência de aprovação da demonstração.
-  ctx.loadApprovals().then((rows) => {
-    for (const row of document.querySelectorAll('#view .inbox-row')) {
-      const request = rows.find((item) => `request-${item.id}` === row.id);
-      const rfq = request && (ctx.data.rfqs || []).find((item) => item.id === request.rfq_id);
-      const open = [...row.querySelectorAll('button')].find((node) => node.textContent.trim() === 'Ver contexto');
-      if (!request || !rfq || !open || open.dataset.dw) continue;
-      open.dataset.dw = '1';
-      open.addEventListener('click', (event) => { event.stopImmediatePropagation(); openApproval(ctx, request, rfq); }, true);
-    }
-    if (location.hash.startsWith('#request-')) {
-      const request = rows.find((item) => `#request-${item.id}` === location.hash);
-      const rfq = request && (ctx.data.rfqs || []).find((item) => item.id === request.rfq_id);
-      if (request && rfq) setTimeout(() => { for (const dialog of document.querySelectorAll('dialog.drawer[open]:not(.quick-view)')) dialog.close(); openApproval(ctx, request, rfq); }, 0);
-    }
-  });
-}
 function enhanceRfqList(ctx) {
   const page = document.querySelector('#view .list-page');
   const toolbar = page?.querySelector('.toolbar');
@@ -279,6 +280,9 @@ function enhanceRfqList(ctx) {
     ctx.rerender();
   } });
   enhanceRfqTable(ctx, { extra, announce });
+  // A barra de filtros salvos se redesenha sozinha quando um filtro é salvo (prefs.subscribe).
+  const filters = installFilterBar(ctx, { page: 'rfqs', announce, activeViewId: () => activeView(ctx, 'rfqs')?.id });
+  if (filters) new MutationObserver(() => filters.redraw()).observe(document.querySelector('#view .list-page tbody') || document.body, { childList: true });
   let flash = null;
   try { flash = sessionStorage.getItem('arandu-demo-flash'); sessionStorage.removeItem('arandu-demo-flash'); } catch { flash = null; }
   if (flash) toast(flash);
@@ -294,6 +298,7 @@ function sectionCrumb(ctx) {
 
 export function afterRender(ctx, { failure = null } = {}) {
   state.ctx = ctx;
+  resetInspector();
   const view = document.querySelector('#view');
   if (view) {
     view.classList.remove('is-switching', 'dw-enter');
@@ -305,14 +310,28 @@ export function afterRender(ctx, { failure = null } = {}) {
   if (failure || !ctx.organization) return;
   document.querySelector('.sidebar .side-personal')?.replaceWith(sidebarPersonal(ctx));
   sectionCrumb(ctx);
+  installInspector(ctx);
+  installRouteBar(ctx);
+  // A gramática da próxima ação precisa das aprovações; as telas esperam por elas.
+  const seq = ++state.renderSeq;
+  ctx.loadApprovals().catch(() => []).then((rows) => {
+    ctx.demoApprovals = rows;
+    if (seq !== state.renderSeq) return;
+    enhanceView(ctx);
+  });
+}
+
+function enhanceView(ctx) {
   if (ctx.view === 'rfqs') enhanceRfqList(ctx);
   if (ctx.view === 'proposals') enhanceProposals(ctx);
   if (ctx.view === 'providers') enhanceProviders(ctx);
   if (ctx.view === 'contracts') enhanceContracts(ctx, { initialViewId });
   if (ctx.view === 'tasks') setTimeout(() => enhanceTasks(ctx), 300);
-  if (ctx.view === 'approvals') enhanceApprovals(ctx);
   if (ctx.view === 'rfq') enhanceRfq(ctx, { lastListHref: () => lastListHref(ctx), markRestore: markRestore(ctx), focusButton });
   if (ctx.view === 'newRfq') document.querySelector('.page-actions')?.prepend(focusButton());
+  if (ctx.view === 'providerProposal') enhanceProviderProposal(ctx);
+  if (['providerHome', 'providerRfqs'].includes(ctx.view)) enhanceOpportunities(ctx);
+  if (ctx.view === 'settings') organizeSettings({ openRestore: () => openRestore(ctx) });
   if (ctx.view === 'settings' && /^#[a-z-]+$/.test(location.hash)) requestAnimationFrame(() => document.querySelector(location.hash)?.scrollIntoView({ block: 'start' }));
   installTray(ctx);
   restorePlace(ctx);

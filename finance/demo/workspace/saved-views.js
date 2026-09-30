@@ -1,6 +1,10 @@
-// Minhas visões: a forma como cada pessoa olha para uma lista.
+// Filtros rápidos e filtros salvos: a forma como cada pessoa olha para uma lista.
 //
-//   Todas · Minhas · Urgentes · Aguardando resposta · Em avaliação · Fila CFO · + Nova visão
+//   Todas · Minhas · Urgentes · Aguardando resposta · Em avaliação │ Fila CFO
+//
+// Descoberta progressiva: ninguém precisa aprender "visões" antes de filtrar.
+// Em Solicitações, "Salvar filtro" aparece na barra de filtros (filters.js)
+// quando há um filtro aplicado; em Contratos, no fim desta barra.
 //
 // Uma visão guarda o que a lista entende (busca, status, produto,
 // responsável, ordenação), um filtro extra da própria visão (ex.: urgentes,
@@ -48,7 +52,7 @@ export function activeExtra(ctx, page) { return activeView(ctx, page)?.extra || 
 
 export function installViewsBar(ctx, { page, anchor, onApply, currentHidden = () => [] }) {
   if (!anchor || anchor.parentElement?.querySelector('.views-bar')) return;
-  const bar = el('nav', { class: 'views-bar', 'aria-label': 'Visões' });
+  const bar = el('nav', { class: 'views-bar', 'aria-label': 'Filtros rápidos e salvos' });
   anchor.before(bar);
 
   const draw = () => {
@@ -61,10 +65,10 @@ export function installViewsBar(ctx, { page, anchor, onApply, currentHidden = ()
       node.addEventListener('click', () => apply(view));
       return node;
     };
-    const create = el('button', { type: 'button', class: 'view-tab view-new', id: 'save-view' }, [icon('plus', { size: 13 }), el('span', { text: 'Nova visão' })]);
-    create.addEventListener('click', () => nameDialog({ title: 'Nova visão', hint: page === 'rfqs' ? 'Guarda a busca, os filtros, a ordenação e as colunas atuais.' : 'Guarda o filtro atual da lista de contratos.' }, (name) => {
+    const create = page === 'rfqs' ? null : el('button', { type: 'button', class: 'view-tab view-new', id: 'save-view' }, [icon('bookmark', { size: 13 }), el('span', { text: 'Salvar filtro' })]);
+    create?.addEventListener('click', () => nameDialog({ title: 'Salvar filtro', hint: 'Guarda o filtro atual da lista de contratos.' }, (name) => {
       saveCurrent(name);
-      toast(`Visão “${name}” salva.`);
+      toast(`Filtro “${name}” salvo.`);
     }));
     const items = [...builtinViews(ctx, page).map((view) => tab(view)), saved.length ? el('span', { class: 'views-sep', 'aria-hidden': 'true' }) : null, ...saved.map((view) => tab(view, { user: true })), create];
     const userActive = current && saved.find((view) => view.id === current.id);
@@ -86,25 +90,25 @@ export function installViewsBar(ctx, { page, anchor, onApply, currentHidden = ()
   }
   function manageMenu(view) {
     const wrap = el('div', { class: 'dw-anchor' });
-    const trigger = el('button', { type: 'button', class: 'icon-btn sm view-manage', id: 'view-manage', 'aria-label': `Gerenciar visão “${view.name}”`, title: 'Gerenciar visão' }, icon('more', { size: 16 }));
+    const trigger = el('button', { type: 'button', class: 'icon-btn sm view-manage', id: 'view-manage', 'aria-label': `Gerenciar filtro salvo “${view.name}”`, title: 'Gerenciar filtro salvo' }, icon('more', { size: 16 }));
     const item = (label, iconName, run, danger = false) => {
       const node = el('button', { type: 'button', role: 'menuitem', class: `dw-menu-item${danger ? ' is-danger' : ''}` }, [icon(iconName, { size: 16 }), el('span', { class: 'dw-menu-label', text: label })]);
       node.addEventListener('click', () => { menu.hide({ restore: false }); run(); });
       return node;
     };
-    const panel = el('div', { class: 'dw-menu dw-menu-sm', 'aria-label': `Visão ${view.name}` }, [
-      item('Renomear…', 'edit', () => nameDialog({ title: 'Renomear visão', value: view.name }, (name) => { prefs.editView(view.id, { name }); draw(); toast('Visão renomeada.', 'info'); })),
-      item('Atualizar com os filtros atuais', 'refresh', () => { prefs.editView(view.id, { query: location.search, extra: view.extra, hiddenColumns: currentHidden() }); draw(); toast('Visão atualizada.', 'info'); }),
-      item(view.pinned ? 'Desafixar da barra lateral' : 'Fixar na barra lateral', 'pin', () => { prefs.toggleViewPin(view.id); draw(); toast(view.pinned ? 'Visão removida da barra lateral.' : 'Visão fixada na barra lateral.', 'info'); }),
+    const panel = el('div', { class: 'dw-menu dw-menu-sm', 'aria-label': `Filtro salvo ${view.name}` }, [
+      item('Renomear…', 'edit', () => nameDialog({ title: 'Renomear filtro', value: view.name }, (name) => { prefs.editView(view.id, { name }); draw(); toast('Filtro renomeado.', 'info'); })),
+      item('Atualizar com os filtros atuais', 'refresh', () => { prefs.editView(view.id, { query: location.search, extra: view.extra, hiddenColumns: currentHidden() }); draw(); toast('Filtro atualizado.', 'info'); }),
+      item(view.pinned ? 'Desafixar da barra lateral' : 'Fixar na barra lateral', 'pin', () => { prefs.toggleViewPin(view.id); draw(); toast(view.pinned ? 'Filtro removido da barra lateral.' : 'Filtro fixado na barra lateral.', 'info'); }),
       el('hr', { class: 'dw-menu-sep' }),
-      item('Excluir visão', 'x', () => {
+      item('Excluir filtro', 'x', () => {
         const views = prefs.readState().savedViews;
         const index = views.findIndex((entry) => entry.id === view.id);
         prefs.removeView(view.id);
         writeActive(page, '');
         draw();
         const undo = button('Desfazer', { size: 'sm', onClick: () => { prefs.restoreView(view, index); writeActive(page, view.id); draw(); undo.closest('.toast')?.remove(); } });
-        toast(`Visão “${view.name}” excluída.`, 'info', { action: undo });
+        toast(`Filtro “${view.name}” excluído.`, 'info', { action: undo });
       }, true)
     ]);
     const menu = popover({ trigger, panel, role: 'menu' });
@@ -117,17 +121,17 @@ export function installViewsBar(ctx, { page, anchor, onApply, currentHidden = ()
   for (const chip of page$.querySelectorAll('.toolbar-chips .chip')) chip.addEventListener('click', () => setTimeout(draw, 0));
   prefs.subscribe(() => { if (bar.isConnected) draw(); });
   draw();
-  return { redraw: draw };
+  return { redraw: draw, saveCurrent };
 }
 
-export function nameDialog({ title, value = '', hint = null }, onSave) {
+export function nameDialog({ title, value = '', hint = null, label = 'Nome do filtro' }, onSave) {
   const opener = document.activeElement;
   const dialog = el('dialog', { class: 'dialog', 'aria-labelledby': 'view-dialog-title' });
   const input = el('input', { id: 'view-name', maxlength: '60', required: true, autocomplete: 'off', value, placeholder: 'Ex.: Crédito acima de R$ 1 milhão' });
-  const error = el('p', { class: 'field-error', id: 'view-name-error', hidden: true, text: 'Dê um nome curto à visão.' });
+  const error = el('p', { class: 'field-error', id: 'view-name-error', hidden: true, text: 'Dê um nome curto ao filtro.' });
   input.setAttribute('aria-describedby', 'view-name-error');
   const form = el('form', { method: 'dialog', class: 'dialog-body' }, [
-    el('label', { class: 'field' }, [el('span', { class: 'field-label', text: 'Nome da visão' }), input]), error,
+    el('label', { class: 'field' }, [el('span', { class: 'field-label', text: label }), input]), error,
     hint ? el('p', { class: 'muted small', text: `${hint} Fica só neste navegador.` }) : null,
     el('div', { class: 'dialog-actions' }, [button('Cancelar', { variant: 'ghost', onClick: () => dialog.close() }), button('Salvar', { variant: 'primary', type: 'submit', iconName: 'check' })])
   ]);

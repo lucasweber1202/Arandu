@@ -26,7 +26,7 @@ test('troca de persona pelo topo é instantânea e adapta o painel', async ({ pa
   const offending = watchNetwork(page);
   await ready(page, '/demo/finance/dashboard.html');
   await expect(page.locator('#precisa-de-voce')).toBeVisible();
-  await expect(page.locator('[data-module="pipeline"]')).toBeVisible();
+  await expect(page.locator('[data-module="inflight"]')).toBeVisible();
   let loads = 0;
   page.on('load', () => { loads += 1; });
   await page.locator('#persona-trigger').click();
@@ -63,6 +63,9 @@ test('tema, densidade e cor persistem após recarregar e ficam só na demonstra�
   const panel = page.getByRole('dialog', { name: 'Aparência e preferências' });
   await panel.getByRole('radio', { name: 'Escuro' }).check();
   await panel.getByRole('radio', { name: 'Compacta' }).first().check();
+  // Cor e movimento ficam nas preferências avançadas: a superfície principal é só tema e densidade.
+  await expect(panel.getByRole('radio', { name: 'Esmeralda' })).toBeHidden();
+  await panel.getByText('Preferências avançadas').click();
   await panel.getByRole('radio', { name: 'Esmeralda' }).check();
   await panel.getByRole('radio', { name: 'Reduzido' }).check();
   await expect(html(page)).toHaveAttribute('data-theme', 'dark');
@@ -127,12 +130,14 @@ test('barra lateral compacta com tooltip, persistida, e modo foco', async ({ pag
 test('painel personalizável: ocultar, mover, redimensionar, persistir e restaurar', async ({ page }) => {
   await ready(page, '/demo/finance/dashboard.html');
   const order = () => page.locator('.dash-modules > [data-module]').evaluateAll((nodes) => nodes.map((node) => node.dataset.module));
-  expect((await order()).slice(0, 3)).toEqual(['attention', 'summary', 'pipeline']);
+  // Trabalho primeiro: fila pessoal, processos em andamento; números só depois.
+  expect((await order()).slice(0, 3)).toEqual(['attention', 'inflight', 'renewals']);
+  expect((await order()).indexOf('summary')).toBeGreaterThan(2);
   await page.getByRole('button', { name: 'Personalizar' }).click();
-  await page.getByRole('button', { name: 'Mover Pipeline para cima' }).click();
-  expect((await order()).slice(0, 3)).toEqual(['attention', 'pipeline', 'summary']);
-  await expect(page.getByRole('button', { name: 'Mover Pipeline para cima' })).toBeFocused();
-  await page.getByRole('button', { name: 'Ocultar Atividade recente' }).click();
+  await page.getByRole('button', { name: 'Mover Renovações para cima' }).click();
+  expect((await order()).slice(0, 3)).toEqual(['attention', 'renewals', 'inflight']);
+  await expect(page.getByRole('button', { name: 'Mover Renovações para cima' })).toBeFocused();
+  await page.getByRole('button', { name: 'Ocultar Indicadores' }).click();
   await page.getByRole('button', { name: 'Exibir Aprovações' }).click();
   await page.getByRole('button', { name: 'Largura inteira: Tarefas' }).click();
   await expect(page.getByRole('button', { name: 'Largura inteira: Tarefas' })).toHaveAttribute('aria-pressed', 'true');
@@ -140,23 +145,23 @@ test('painel personalizável: ocultar, mover, redimensionar, persistir e restaur
   await page.reload();
   await expect(page.locator('#precisa-de-voce')).toBeVisible();
   const after = await order();
-  expect(after.slice(0, 3)).toEqual(['attention', 'pipeline', 'summary']);
-  expect(after).not.toContain('activity');
+  expect(after.slice(0, 3)).toEqual(['attention', 'renewals', 'inflight']);
+  expect(after).not.toContain('summary');
   expect(after).toContain('approvals');
   await expect(page.locator('[data-module="tasks"]')).toHaveClass(/dm-full/);
-  expect((await stored(page)).dashboard.buyer.hidden).toContain('activity');
+  expect((await stored(page)).dashboard.buyer.hidden).toContain('summary');
   // Cada persona tem o seu layout: o do comprador não vaza para o aprovador.
   await page.locator('#persona-trigger').click();
   await page.getByRole('menuitemradio', { name: /^Aprovador:/ }).click();
   await expect(page.locator('#dashboard')).toHaveAttribute('data-persona', 'approver');
-  await expect(page.locator('[data-module="activity"]')).toBeVisible();
+  await expect(page.locator('[data-module="summary"]')).toBeVisible();
   await page.locator('#persona-trigger').click();
   await page.getByRole('menuitemradio', { name: /^Comprador:/ }).click();
   await expect(page.locator('#dashboard')).toHaveAttribute('data-persona', 'buyer');
   await page.getByRole('button', { name: 'Personalizar' }).click();
   await page.getByRole('button', { name: 'Restaurar layout padrão' }).click();
-  expect((await order()).slice(0, 3)).toEqual(['attention', 'summary', 'pipeline']);
-  await expect(page.locator('[data-module="activity"]')).toBeVisible();
+  expect((await order()).slice(0, 3)).toEqual(['attention', 'inflight', 'renewals']);
+  await expect(page.locator('[data-module="summary"]')).toBeVisible();
 });
 
 test('quick view de solicitação preserva filtros e rolagem, fecha com Escape e devolve o foco', async ({ page }, testInfo) => {
@@ -262,39 +267,51 @@ test('central de comando: ações, tema, persona e busca por teclado', async ({ 
   await expect(page.locator('#persona-trigger')).toHaveAttribute('aria-label', /Ricardo Alves/);
 });
 
-test('minhas visões: sugeridas, criar, renomear, fixar na barra, excluir com desfazer', async ({ page }, testInfo) => {
+test('filtros salvos: sugeridos, filtrar como frase, salvar, renomear, fixar na barra, excluir com desfazer', async ({ page }, testInfo) => {
   await ready(page, '/demo/finance/rfqs.html');
-  const views = page.getByRole('navigation', { name: 'Visões' });
+  const views = page.getByRole('navigation', { name: 'Filtros rápidos e salvos' });
   await expect(views.getByRole('button', { name: 'Todas' })).toHaveAttribute('aria-pressed', 'true');
-  // Visão sugerida com filtro próprio: só prazos nos próximos 7 dias.
+  // Ninguém precisa aprender "visões" antes de filtrar: sem filtro, nada de "Salvar filtro".
+  await expect(page.getByRole('button', { name: 'Salvar filtro' })).toBeHidden();
   await views.getByRole('button', { name: 'Urgentes' }).click();
   await expect(views.getByRole('button', { name: 'Urgentes' })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('tr[data-entity="rfq"]:not([hidden])')).toHaveCount(2);
   await views.getByRole('button', { name: 'Todas' }).click();
-  await page.locator('.toolbar-chips').getByRole('button', { name: /Em avaliação/ }).click();
+  // Filtro como frase: [Status: Em avaliação].
+  await page.getByRole('button', { name: /^Status: Todos/ }).click();
+  await page.getByRole('menuitemradio', { name: /Em avaliação/ }).click();
   await expect(page).toHaveURL(/status=comparing/);
-  await views.getByRole('button', { name: 'Nova visão' }).click();
-  await page.getByLabel('Nome da visão').fill('Fila de avaliação');
+  await expect(page.getByRole('button', { name: /^Status: Em avaliação/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Limpar filtro Status' })).toBeVisible();
+  // "Em avaliação" já é um filtro rápido: só aparece "Salvar filtro" para uma combinação nova.
+  await expect(page.getByRole('button', { name: 'Salvar filtro' })).toBeHidden();
+  await page.getByRole('button', { name: /^Produto: Todos/ }).click();
+  await page.getByRole('menuitemradio', { name: 'Crédito' }).click();
+  await expect(page).toHaveURL(/product=credit/);
+  await page.getByRole('button', { name: 'Salvar filtro' }).click();
+  await page.getByLabel('Nome do filtro').fill('Fila de avaliação');
   await page.getByRole('button', { name: 'Salvar', exact: true }).click();
-  await expect(views.getByRole('button', { name: 'Fila de avaliação', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(views.getByRole('button', { name: 'Fila de avaliação', exact: true })).toBeVisible();
   await page.goto('/demo/finance/rfqs.html');
   await views.getByRole('button', { name: 'Fila de avaliação', exact: true }).click();
   await expect(page).toHaveURL(/status=comparing/);
   await expect(page.locator('tr[data-entity="rfq"]')).toHaveCount(2);
-  await page.getByRole('button', { name: /Gerenciar visão/ }).click();
+  await expect(page.getByRole('button', { name: 'Salvar filtro' })).toBeHidden();
+  await page.getByRole('button', { name: /Gerenciar filtro salvo/ }).click();
   await page.getByRole('menuitem', { name: 'Renomear…' }).click();
-  await page.getByLabel('Nome da visão').fill('Avaliação CFO');
+  await page.getByLabel('Nome do filtro').fill('Avaliação CFO');
   await page.getByRole('button', { name: 'Salvar', exact: true }).click();
   await expect(views.getByRole('button', { name: 'Avaliação CFO', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: /Gerenciar visão/ }).click();
+  await page.getByRole('button', { name: /Gerenciar filtro salvo/ }).click();
   await page.getByRole('menuitem', { name: 'Fixar na barra lateral' }).click();
   if (!isMobile(testInfo)) {
-    await page.locator('.sidebar').getByRole('link', { name: 'Avaliação CFO' }).click();
+    const pinned = page.locator('.sidebar .side-section', { hasText: 'Filtros salvos' });
+    await pinned.getByRole('link', { name: 'Avaliação CFO' }).click();
     await expect(page).toHaveURL(/status=comparing/);
     await expect(page.locator('.sidebar').getByRole('link', { name: 'Avaliação CFO' })).toHaveAttribute('aria-current', 'page');
   }
-  await page.getByRole('button', { name: /Gerenciar visão/ }).click();
-  await page.getByRole('menuitem', { name: 'Excluir visão' }).click();
+  await page.getByRole('button', { name: /Gerenciar filtro salvo/ }).click();
+  await page.getByRole('menuitem', { name: 'Excluir filtro' }).click();
   expect((await stored(page)).savedViews).toEqual([]);
   await page.locator('.toast').getByRole('button', { name: 'Desfazer' }).click();
   expect((await stored(page)).savedViews.map((view) => view.name)).toEqual(['Avaliação CFO']);
@@ -426,9 +443,8 @@ test('capturas de evidência da nova experiência', async ({ page }, testInfo) =
   await page.keyboard.press('Escape');
   await persona('approver');
   await ready(page, '/demo/finance/approvals.html');
-  await page.locator('.inbox-row', { hasText: 'Capital de giro' }).getByRole('button', { name: 'Ver contexto' }).click();
+  await page.locator('.dinbox-item', { hasText: 'Capital de giro' }).click();
   await shot('desktop', '13-aprovacao');
-  await page.keyboard.press('Escape');
   await page.keyboard.press('Control+k');
   await page.keyboard.type('tema escuro');
   await page.keyboard.press('Enter');

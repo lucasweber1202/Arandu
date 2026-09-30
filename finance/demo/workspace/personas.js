@@ -32,19 +32,20 @@ export const PERSONA_ORDER = ['buyer', 'approver', 'admin', 'provider'];
  * half = meia largura) e o que começa oculto. A pessoa pode mudar tudo.
  */
 export const DEFAULT_DASHBOARDS = Object.freeze({
+  // Trabalho primeiro: fila pessoal, processos em andamento; números só no fim.
   buyer: {
-    order: ['attention', 'summary', 'pipeline', 'recent-rfqs', 'renewals', 'tasks', 'activity', 'favorites', 'approvals', 'contracts', 'providers', 'shortcuts', 'governance'],
-    hidden: ['favorites', 'approvals', 'contracts', 'providers', 'shortcuts', 'governance'],
-    sizes: { attention: 'full', summary: 'full', pipeline: 'full' }
+    order: ['attention', 'inflight', 'renewals', 'tasks', 'activity', 'summary', 'pipeline', 'recent-rfqs', 'favorites', 'approvals', 'contracts', 'providers', 'shortcuts', 'governance'],
+    hidden: ['pipeline', 'recent-rfqs', 'favorites', 'approvals', 'contracts', 'providers', 'shortcuts', 'governance'],
+    sizes: { attention: 'full', inflight: 'full' }
   },
   approver: {
-    order: ['attention', 'approvals', 'summary', 'renewals', 'activity', 'contracts', 'pipeline', 'recent-rfqs', 'tasks', 'favorites', 'providers', 'shortcuts', 'governance'],
-    hidden: ['pipeline', 'recent-rfqs', 'tasks', 'favorites', 'providers', 'shortcuts', 'governance'],
-    sizes: { attention: 'full', approvals: 'full', summary: 'full' }
+    order: ['attention', 'approvals', 'inflight', 'renewals', 'summary', 'activity', 'contracts', 'pipeline', 'recent-rfqs', 'tasks', 'favorites', 'providers', 'shortcuts', 'governance'],
+    hidden: ['activity', 'contracts', 'pipeline', 'recent-rfqs', 'tasks', 'favorites', 'providers', 'shortcuts', 'governance'],
+    sizes: { attention: 'full', approvals: 'full', inflight: 'full' }
   },
   admin: {
-    order: ['attention', 'governance', 'shortcuts', 'summary', 'providers', 'activity', 'tasks', 'pipeline', 'recent-rfqs', 'approvals', 'renewals', 'contracts', 'favorites'],
+    order: ['attention', 'governance', 'inflight', 'shortcuts', 'providers', 'activity', 'summary', 'tasks', 'pipeline', 'recent-rfqs', 'approvals', 'renewals', 'contracts', 'favorites'],
     hidden: ['tasks', 'pipeline', 'recent-rfqs', 'approvals', 'renewals', 'contracts', 'favorites'],
-    sizes: { attention: 'full', governance: 'full', summary: 'full' }
+    sizes: { attention: 'full', governance: 'full', inflight: 'full' }
   }
 });

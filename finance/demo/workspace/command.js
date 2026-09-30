@@ -8,9 +8,13 @@
 import { el, icon, fold, productLabel, formatDate, RFQ_STATUS, CONTRACT_STATUS, PROVIDER_KINDS } from '../../src/core.js';
 import { readState } from './preferences.js';
 import { PERSONA_META, PERSONA_ORDER } from './personas.js';
+import { workQueue, approvalNext } from './next-action.js';
 
-const TYPE_ICONS = { view: 'bookmark', context: 'search', invite: 'send', rfq: 'file', contract: 'briefcase', provider: 'building', proposal: 'inbox', task: 'tasks', action: 'arrowRight', nav: 'arrowRight', persona: 'user', pref: 'sliders' };
-const GROUP_ORDER = ['Ações', 'Nesta página', 'Recentes', 'Favoritos', 'Navegação', 'Visões', 'Convites', 'Oportunidades', 'Solicitações', 'Contratos', 'Provedores', 'Propostas', 'Tarefas', 'Personas', 'Aparência'];
+const TYPE_ICONS = { view: 'bookmark', context: 'search', invite: 'send', rfq: 'file', contract: 'briefcase', provider: 'building', proposal: 'inbox', task: 'tasks', approval: 'checkCircle', work: 'arrowRight', action: 'arrowRight', nav: 'arrowRight', admin: 'settings', persona: 'user', pref: 'sliders' };
+// Prioridade: 1 objetos de trabalho · 2 páginas · 3 ações de trabalho · 4 filtros ·
+// 5 administração · 6 personas e aparência. O cosmético nunca disputa com o trabalho.
+const GROUP_ORDER = ['Seu trabalho', 'Nesta página', 'Solicitações', 'Aprovações', 'Propostas', 'Contratos', 'Provedores', 'Tarefas', 'Oportunidades', 'Convites', 'Recentes', 'Favoritos',
+  'Navegação', 'Ações', 'Filtros salvos', 'Administração', 'Personas', 'Aparência'];
 const isMac = () => /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent || '');
 
 function commands(ctx, hooks) {
@@ -23,24 +27,26 @@ function commands(ctx, hooks) {
     if (ctx.can('create_rfq')) add({ id: 'new-rfq', title: 'Nova solicitação', detail: 'Crédito ou adquirência', icon: 'plus', keywords: 'criar rfq pedido', run: go('/finance/new-rfq.html') });
     add({ id: 'my-approvals', title: 'Minhas aprovações', detail: hooks.pendingApprovals ? `${hooks.pendingApprovals} aguardando você` : 'Caixa de aprovação', icon: 'checkCircle', keywords: 'aprovar pendentes cfo', run: go('/finance/approvals.html') });
     add({ id: 'find-provider', title: 'Encontrar provedor', detail: 'Buscar por nome, tipo ou região', icon: 'building', keywords: 'banco fintech adquirente', run: () => hooks.reopen('provedor ') });
-    add({ id: 'customize-dashboard', title: 'Personalizar painel', detail: 'Presets, módulos e ordem', icon: 'layout', keywords: 'layout modulos dashboard editar preset', run: hooks.customizeDashboard });
+    list.push({ type: 'pref', id: 'customize-dashboard', group: 'Aparência', title: 'Personalizar painel', detail: 'Presets, módulos e ordem', icon: 'layout', keywords: 'layout modulos dashboard editar preset', run: hooks.customizeDashboard });
     for (const [id, title, path, iconName, keywords] of [
       ['go-dashboard', 'Início', '/finance/dashboard.html', 'home', 'painel dashboard inicio'], ['go-rfqs', 'Solicitações', '/finance/rfqs.html', 'file', 'rfq lista concorrencias'],
       ['go-approvals', 'Aprovações', '/finance/approvals.html', 'checkCircle', 'aprovar caixa'], ['go-proposals', 'Propostas', '/finance/proposals.html', 'inbox', 'ofertas'],
       ['go-contracts', 'Contratos e renovações', '/finance/contracts.html', 'briefcase', 'renovacao vigencia'], ['go-providers', 'Provedores', '/finance/providers.html', 'building', 'bancos fintechs'],
-      ['go-tasks', 'Tarefas', '/finance/tasks.html', 'tasks', 'pendencias'], ['go-notifications', 'Notificações', '/finance/notifications.html', 'bell', 'avisos'],
-      ['go-settings', 'Configurações', '/finance/settings.html', 'settings', 'empresa'], ['go-team', 'Equipe e papéis', '/finance/settings.html#equipe', 'users', 'membros rbac'],
-      ['go-policy', 'Política de aprovação', '/finance/settings.html#aprovacao', 'shield', 'regra aprovacao'], ['go-profile', 'Perfil financeiro', '/finance/settings.html#perfil', 'layers', 'dados empresa faturamento']
+      ['go-tasks', 'Tarefas', '/finance/tasks.html', 'tasks', 'pendencias'], ['go-notifications', 'Notificações', '/finance/notifications.html', 'bell', 'avisos']
     ]) nav(id, title, path, iconName, keywords);
-    for (const view of hooks.views?.() || []) list.push({ type: 'view', id: `view-${view.id}`, group: 'Visões', title: view.name, detail: view.page === 'contracts' ? 'Contratos' : 'Solicitações', icon: 'bookmark', keywords: 'visao filtro lista', run: () => location.assign(view.href) });
+    for (const [id, title, path, iconName, keywords] of [
+      ['go-settings', 'Configurações', '/finance/settings.html', 'settings', 'empresa conta'], ['go-team', 'Equipe e papéis', '/finance/settings.html#equipe', 'users', 'membros rbac governanca'],
+      ['go-policy', 'Política de aprovação', '/finance/settings.html#aprovacao', 'shield', 'regra aprovacao governanca'], ['go-profile', 'Perfil financeiro', '/finance/settings.html#perfil', 'layers', 'dados empresa faturamento']
+    ]) list.push({ type: 'admin', id, group: 'Administração', title, detail: 'Configurações', icon: iconName, keywords, run: go(path) });
+    for (const view of hooks.views?.() || []) list.push({ type: 'view', id: `view-${view.id}`, group: 'Filtros salvos', title: view.name, detail: view.page === 'contracts' ? 'Contratos' : 'Solicitações', icon: 'bookmark', keywords: 'visao filtro lista salvo', run: () => location.assign(view.href) });
   } else {
     nav('go-provider-home', 'Início do portal', '/provider/index.html', 'home', 'inicio');
-    nav('go-provider-invites', 'Convites recebidos', '/provider/index.html#convites', 'send', 'convite aceitar');
-    nav('go-provider-rfqs', 'Oportunidades e propostas', '/provider/rfqs.html', 'inbox', 'propostas prazos responder');
-    nav('go-provider-invite', 'Código de convite', '/provider/invite.html', 'send', 'token codigo');
+    nav('go-provider-invites', 'Convites', '/provider/index.html#convites', 'send', 'convite aceitar recebidos');
+    nav('go-provider-rfqs', 'Oportunidades', '/provider/rfqs.html', 'inbox', 'propostas prazos responder demandas');
+    nav('go-provider-invite', 'Aceitar convite por código', '/provider/invite.html', 'lock', 'token codigo convite');
   }
   for (const action of hooks.contextActions?.() || []) list.push({ type: 'context', group: 'Nesta página', ...action });
-  add({ id: 'restore-demo', title: 'Restaurar demonstração…', detail: 'Dados, aparência ou tudo', icon: 'refresh', keywords: 'reset reiniciar limpar', run: hooks.openRestore });
+  list.push({ type: 'admin', id: 'restore-demo', group: 'Administração', title: 'Restaurar demonstração…', detail: 'Dados, aparência ou tudo', icon: 'refresh', keywords: 'reset reiniciar limpar', run: hooks.openRestore });
   const pref = (item) => list.push({ type: 'pref', group: 'Aparência', ...item });
   pref({ id: 'open-preferences', title: 'Aparência e preferências', detail: 'Tema, densidade, preset, comportamento', icon: 'sliders', keywords: 'configurar tema', run: hooks.openPreferences });
   const theme = readState().appearance.theme;
@@ -68,6 +74,12 @@ function records(ctx) {
     }
     for (const contract of data.contracts || []) rows.push({ type: 'contract', id: contract.id, group: 'Contratos', title: contract.provider_name || 'Contrato', detail: `${productLabel(contract.product, { short: true })} · ${CONTRACT_STATUS[contract.status]?.label || ''} · vence ${formatDate(contract.ends_on)}`, href: ctx.href(`/finance/contracts.html#contract-${contract.id}`), peek: true });
     for (const provider of data.providers || []) rows.push({ type: 'provider', id: provider.id, group: 'Provedores', title: provider.name, detail: `${PROVIDER_KINDS[provider.kind] || 'Provedor'} · ${provider.region || '—'}`, href: ctx.href(`/finance/providers.html#provider-${provider.id}`), peek: true });
+    for (const request of ctx.demoApprovals || []) {
+      const rfq = (data.rfqs || []).find((item) => item.id === request.rfq_id);
+      if (!rfq) continue;
+      const next = approvalNext(request, rfq, { viewerId: ctx.viewer?.id, members: ctx.members });
+      rows.push({ type: 'approval', id: request.id, group: 'Aprovações', title: `Aprovação: ${rfq.title}`, detail: `${next.state} · ${next.action}`, keywords: 'aprovar aprovacao decisao', href: ctx.href(`/finance/approvals.html#request-${request.id}`) });
+    }
     for (const task of data.tasks || []) rows.push({ type: 'task', id: task.id, group: 'Tarefas', title: task.title, detail: task.due_on ? `prazo ${formatDate(task.due_on)}` : 'sem prazo', href: ctx.href(`/finance/tasks.html#task-${task.id}`) });
   } else {
     for (const row of data.pending_invites || []) rows.push({ type: 'invite', id: row.invite_id, group: 'Convites', icon: 'send', title: row.title || 'Convite', detail: `${row.buyer_name || ''} · responder até ${formatDate(row.response_deadline)}`, href: ctx.href('/provider/index.html#convites') });
@@ -136,8 +148,11 @@ export function installPalette(ctx, hooks) {
         return row ? { ...row, group } : null;
       };
       const priority = [...suggestions];
+      const work = ctx.audience === 'company' ? workQueue({ rfqs: ctx.data?.rfqs || [], approvals: ctx.demoApprovals || [], contracts: ctx.data?.contracts || [], tasks: ctx.data?.tasks || [], viewerId: ctx.viewer?.id, members: ctx.members, canManage: ctx.can('create_rfq') })
+        .slice(0, 4).map((item) => ({ type: 'work', id: `work-${item.kind}-${item.id}`, group: 'Seu trabalho', title: `${item.action}${item.kind === 'task' ? '' : ` — ${item.title}`}`, detail: [item.state, item.due?.text].filter(Boolean).join(' · '), icon: 'arrowRight', href: ctx.href(item.href) })) : [];
       const rows = [
-        ...pool.filter((row) => row.type === 'action' && row.id !== 'restore-demo').sort((a, b) => (priority.includes(a.id) ? priority.indexOf(a.id) : 50) - (priority.includes(b.id) ? priority.indexOf(b.id) : 50)).slice(0, 4),
+        ...work,
+        ...pool.filter((row) => row.type === 'action').sort((a, b) => (priority.includes(a.id) ? priority.indexOf(a.id) : 50) - (priority.includes(b.id) ? priority.indexOf(b.id) : 50)).slice(0, 4),
         ...pool.filter((row) => row.type === 'context'),
         ...state.recents.map((entry) => entity(entry, 'Recentes')).filter(Boolean).slice(0, 4),
         ...state.favorites.map((entry) => entity(entry, 'Favoritos')).filter(Boolean).slice(0, 4),
@@ -155,7 +170,8 @@ export function installPalette(ctx, hooks) {
       if (terms.every((term) => title.includes(term))) return 1;
       return 2;
     };
-    const ordered = hits.map((row, index) => ({ row, index })).sort((a, b) => rank(a.row) - rank(b.row) || GROUP_ORDER.indexOf(a.row.group) - GROUP_ORDER.indexOf(b.row.group) || a.index - b.index).map(({ row }) => row);
+    const tier = (row) => (GROUP_ORDER.includes(row.group) ? GROUP_ORDER.indexOf(row.group) : 99);
+    const ordered = hits.map((row, index) => ({ row, index })).sort((a, b) => rank(a.row) - rank(b.row) || tier(a.row) - tier(b.row) || a.index - b.index).map(({ row }) => row);
     // Agrupa mantendo a ordem de relevância do primeiro de cada grupo.
     const groups = [];
     for (const row of ordered.slice(0, 30)) { let bucket = groups.find((entry) => entry.name === row.group); if (!bucket) groups.push(bucket = { name: row.group, rows: [] }); bucket.rows.push(row); }

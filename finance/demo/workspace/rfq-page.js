@@ -19,7 +19,10 @@ import * as prefs from './preferences.js';
 import { rfqStages, timeline } from './timeline.js';
 import { trayCheckbox } from './comparison-tray.js';
 import { installCompare } from './compare.js';
-import { openQuickView } from './quick-view.js';
+import { openQuickView, workContext } from './quick-view.js';
+import { rfqNext, proposalFacts, currentApprovalStep, STAGES } from './next-action.js';
+import { nextBlock } from './work-ui.js';
+import { rfqHandoff } from './handoff.js';
 
 const TAB_LABELS = { aprovacoes: 'Aprovação', atividade: 'Histórico' };
 
@@ -120,6 +123,9 @@ export async function enhanceRfq(ctx, { lastListHref, markRestore, focusButton }
   const line = timeline(rfqStages(rfq, { approvals, decision, contract }), { label: 'Onde a solicitação está' });
   line.classList.add('rfq-timeline');
   if (lifecycle) lifecycle.replaceWith(line); else document.querySelector('#view .detail')?.prepend(line);
+  // Fase atual em destaque: só a ação que importa agora tem peso visual.
+  document.querySelector('#stage-panel')?.remove();
+  line.after(stagePanel(ctx, rfq, approvals));
 
   // Propostas: bandeja de comparação e resumo lateral em cada cartão.
   const panels = document.querySelector('#view .tab-panels');
@@ -127,6 +133,51 @@ export async function enhanceRfq(ctx, { lastListHref, markRestore, focusButton }
   enhanceProposalCards(ctx, rfq);
   installCompare(ctx, rfq);
   return rfq;
+}
+
+/** Detalhe da fase atual: o que a pessoa precisa saber para dar o próximo passo. */
+function stageDetail(ctx, rfq, next, approvals) {
+  const memberName = (id) => (ctx.members || []).find((member) => member.user_id === id)?.display_name || '';
+  if (next.stage === 'draft') {
+    const current = next.steps.indexOf(next.invited ? 'Abrir para propostas' : 'Completar demanda');
+    return el('ol', { class: 'stage-steps', 'aria-label': 'Etapas do rascunho' }, next.steps.map((label, index) => el('li', { class: index < current ? 'is-done' : index === current ? 'is-current' : '', 'aria-current': index === current ? 'step' : null }, [
+      el('span', { class: 'stage-step-dot', 'aria-hidden': 'true' }, index < current ? icon('check', { size: 10 }) : null), el('span', { text: label })])));
+  }
+  if (next.stage === 'collecting' && next.invited) {
+    const ratio = Math.round((next.answered / next.invited) * 100);
+    return el('div', { class: 'stage-progress' }, [
+      el('p', { class: 'stage-figure num' }, [el('strong', { text: `${next.answered}/${next.invited}` }), el('span', { text: ' responderam' })]),
+      el('span', { class: 'stage-bar', role: 'progressbar', 'aria-valuemin': '0', 'aria-valuemax': String(next.invited), 'aria-valuenow': String(next.answered), 'aria-label': `${next.answered} de ${next.invited} provedores responderam` }, el('span', { style: `width:${ratio}%` }))
+    ]);
+  }
+  if (next.stage === 'evaluation') {
+    const facts = proposalFacts(rfq);
+    return el('ul', { class: 'stage-facts', role: 'list' }, [
+      el('li', { text: `${facts.total} proposta${facts.total === 1 ? '' : 's'}` }),
+      el('li', { text: `${facts.complete} completa${facts.complete === 1 ? '' : 's'}` }),
+      facts.incomplete.length ? el('li', { class: 'is-warn', text: `${facts.incomplete.length} com campos ausentes` }) : null,
+      facts.outdated.length ? el('li', { text: `${facts.outdated.length} responde${facts.outdated.length === 1 ? '' : 'm'} à revisão anterior` }) : null
+    ].filter(Boolean));
+  }
+  if (next.stage === 'approval') {
+    const request = approvals.find((row) => row.id === next.requestId);
+    if (!request) return null;
+    const step = currentApprovalStep(request);
+    return el('ol', { class: 'stage-steps is-approval', 'aria-label': 'Etapas de aprovação' }, [...(request.steps || [])].sort((a, b) => a.position - b.position).map((item) => el('li', {
+      class: item.status === 'approved' ? 'is-done' : item === step ? 'is-current' : '', 'aria-current': item === step ? 'step' : null }, [
+      el('span', { class: 'stage-step-dot', 'aria-hidden': 'true' }, item.status === 'approved' ? icon('check', { size: 10 }) : null),
+      el('span', { text: `Etapa ${item.position} · ${memberName(item.approver_id)}${item.status === 'approved' ? ' · aprovou' : item === step ? ' · aguardando' : ''}`.replace(/ · $/, '') })])));
+  }
+  return null;
+}
+function stagePanel(ctx, rfq, approvals) {
+  const next = rfqNext(rfq, { ...workContext(ctx), approvals });
+  const handoff = rfqHandoff(ctx, rfq, next);
+  const detail = stageDetail(ctx, rfq, next, approvals);
+  const block = nextBlock(ctx, next, { extra: [detail, handoff].filter(Boolean).length ? el('div', { class: 'stage-extra' }, [detail, handoff].filter(Boolean)) : null, id: 'stage-panel' });
+  block.classList.add('stage-panel');
+  block.prepend(el('p', { class: 'stage-name', text: `Fase: ${STAGES[next.stage]?.label || next.state}` }));
+  return block;
 }
 
 export const statusLabel = (rfq) => RFQ_STATUS[rfq.status]?.label || rfq.status;
