@@ -9,44 +9,51 @@ import { el, icon, fold, productLabel, formatDate, RFQ_STATUS, CONTRACT_STATUS, 
 import { readState } from './preferences.js';
 import { PERSONA_META, PERSONA_ORDER } from './personas.js';
 
-const TYPE_ICONS = { rfq: 'file', contract: 'briefcase', provider: 'building', proposal: 'inbox', task: 'tasks', action: 'arrowRight', nav: 'arrowRight', persona: 'user', pref: 'sliders' };
-const GROUP_ORDER = ['Recentes', 'Favoritos', 'Sugestões', 'Ações', 'Ir para', 'Convites', 'Oportunidades', 'Solicitações', 'Contratos', 'Provedores', 'Propostas', 'Tarefas', 'Trocar persona', 'Aparência'];
+const TYPE_ICONS = { view: 'bookmark', context: 'search', invite: 'send', rfq: 'file', contract: 'briefcase', provider: 'building', proposal: 'inbox', task: 'tasks', action: 'arrowRight', nav: 'arrowRight', persona: 'user', pref: 'sliders' };
+const GROUP_ORDER = ['Ações', 'Nesta página', 'Recentes', 'Favoritos', 'Navegação', 'Visões', 'Convites', 'Oportunidades', 'Solicitações', 'Contratos', 'Provedores', 'Propostas', 'Tarefas', 'Personas', 'Aparência'];
 const isMac = () => /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent || '');
 
 function commands(ctx, hooks) {
   const company = ctx.audience === 'company';
   const go = (path) => () => location.assign(ctx.href(path));
   const list = [];
-  const add = (item) => list.push({ type: 'action', ...item });
+  const add = (item) => list.push({ type: 'action', group: 'Ações', ...item });
+  const nav = (id, title, path, iconName, keywords = '') => list.push({ type: 'nav', id, group: 'Navegação', title, detail: 'Ir para', icon: iconName, keywords, run: go(path) });
   if (company) {
-    if (ctx.can('create_rfq')) add({ id: 'new-rfq', group: 'Ações', title: 'Nova solicitação', detail: 'Crédito ou adquirência', icon: 'plus', keywords: 'criar rfq pedido', run: go('/finance/new-rfq.html') });
-    const nav = [
-      ['go-dashboard', 'Painel', '/finance/dashboard.html', 'home', 'inicio home dashboard'], ['go-rfqs', 'Solicitações', '/finance/rfqs.html', 'file', 'rfq lista concorrencias'],
+    if (ctx.can('create_rfq')) add({ id: 'new-rfq', title: 'Nova solicitação', detail: 'Crédito ou adquirência', icon: 'plus', keywords: 'criar rfq pedido', run: go('/finance/new-rfq.html') });
+    add({ id: 'my-approvals', title: 'Minhas aprovações', detail: hooks.pendingApprovals ? `${hooks.pendingApprovals} aguardando você` : 'Caixa de aprovação', icon: 'checkCircle', keywords: 'aprovar pendentes cfo', run: go('/finance/approvals.html') });
+    add({ id: 'find-provider', title: 'Encontrar provedor', detail: 'Buscar por nome, tipo ou região', icon: 'building', keywords: 'banco fintech adquirente', run: () => hooks.reopen('provedor ') });
+    add({ id: 'customize-dashboard', title: 'Personalizar painel', detail: 'Presets, módulos e ordem', icon: 'layout', keywords: 'layout modulos dashboard editar preset', run: hooks.customizeDashboard });
+    for (const [id, title, path, iconName, keywords] of [
+      ['go-dashboard', 'Início', '/finance/dashboard.html', 'home', 'painel dashboard inicio'], ['go-rfqs', 'Solicitações', '/finance/rfqs.html', 'file', 'rfq lista concorrencias'],
       ['go-approvals', 'Aprovações', '/finance/approvals.html', 'checkCircle', 'aprovar caixa'], ['go-proposals', 'Propostas', '/finance/proposals.html', 'inbox', 'ofertas'],
       ['go-contracts', 'Contratos e renovações', '/finance/contracts.html', 'briefcase', 'renovacao vigencia'], ['go-providers', 'Provedores', '/finance/providers.html', 'building', 'bancos fintechs'],
       ['go-tasks', 'Tarefas', '/finance/tasks.html', 'tasks', 'pendencias'], ['go-notifications', 'Notificações', '/finance/notifications.html', 'bell', 'avisos'],
       ['go-settings', 'Configurações', '/finance/settings.html', 'settings', 'empresa'], ['go-team', 'Equipe e papéis', '/finance/settings.html#equipe', 'users', 'membros rbac'],
       ['go-policy', 'Política de aprovação', '/finance/settings.html#aprovacao', 'shield', 'regra aprovacao'], ['go-profile', 'Perfil financeiro', '/finance/settings.html#perfil', 'layers', 'dados empresa faturamento']
-    ];
-    for (const [id, title, path, iconName, keywords] of nav) list.push({ type: 'nav', id, group: 'Ir para', title, detail: 'Abrir', icon: iconName, keywords, run: go(path) });
-    add({ id: 'customize-dashboard', group: 'Ações', title: 'Personalizar painel', detail: 'Mostrar, ocultar e reorganizar módulos', icon: 'layout', keywords: 'layout modulos dashboard editar', run: hooks.customizeDashboard });
+    ]) nav(id, title, path, iconName, keywords);
+    for (const view of hooks.views?.() || []) list.push({ type: 'view', id: `view-${view.id}`, group: 'Visões', title: view.name, detail: view.page === 'contracts' ? 'Contratos' : 'Solicitações', icon: 'bookmark', keywords: 'visao filtro lista', run: () => location.assign(view.href) });
   } else {
-    for (const [id, title, path, iconName] of [['go-provider-home', 'Início do portal', '/provider/index.html', 'home'], ['go-provider-rfqs', 'Oportunidades', '/provider/rfqs.html', 'inbox'], ['go-provider-invite', 'Código de convite', '/provider/invite.html', 'send']]) {
-      list.push({ type: 'nav', id, group: 'Ir para', title, detail: 'Abrir', icon: iconName, keywords: 'convites propostas prazos', run: go(path) });
-    }
+    nav('go-provider-home', 'Início do portal', '/provider/index.html', 'home', 'inicio');
+    nav('go-provider-invites', 'Convites recebidos', '/provider/index.html#convites', 'send', 'convite aceitar');
+    nav('go-provider-rfqs', 'Oportunidades e propostas', '/provider/rfqs.html', 'inbox', 'propostas prazos responder');
+    nav('go-provider-invite', 'Código de convite', '/provider/invite.html', 'send', 'token codigo');
   }
-  add({ id: 'open-preferences', group: 'Aparência', title: 'Aparência e preferências', detail: 'Tema, densidade, cor, barra lateral, movimento', icon: 'sliders', keywords: 'configurar tema', run: hooks.openPreferences });
+  for (const action of hooks.contextActions?.() || []) list.push({ type: 'context', group: 'Nesta página', ...action });
+  add({ id: 'restore-demo', title: 'Restaurar demonstração…', detail: 'Dados, aparência ou tudo', icon: 'refresh', keywords: 'reset reiniciar limpar', run: hooks.openRestore });
+  const pref = (item) => list.push({ type: 'pref', group: 'Aparência', ...item });
+  pref({ id: 'open-preferences', title: 'Aparência e preferências', detail: 'Tema, densidade, preset, comportamento', icon: 'sliders', keywords: 'configurar tema', run: hooks.openPreferences });
   const theme = readState().appearance.theme;
   for (const [value, label, iconName] of [['light', 'Tema claro', 'sun'], ['dark', 'Tema escuro', 'moon'], ['system', 'Tema do sistema', 'monitor']]) {
-    if (value !== theme) add({ id: `theme-${value}`, group: 'Aparência', title: label, detail: 'Alternar tema', icon: iconName, keywords: 'tema dark light modo escuro claro', run: () => hooks.setAppearance('theme', value) });
+    if (value !== theme) pref({ id: `theme-${value}`, title: label, detail: 'Alternar tema', icon: iconName, keywords: 'tema dark light modo escuro claro', run: () => hooks.setAppearance('theme', value) });
   }
-  add({ id: 'toggle-focus', group: 'Aparência', title: readState().shell.focus ? 'Sair do modo foco' : 'Ativar modo foco', detail: 'Esconde a barra lateral e o que é periférico', icon: 'maximize', keywords: 'foco tela cheia concentrar', run: hooks.toggleFocus });
-  add({ id: 'toggle-sidebar', group: 'Aparência', title: 'Alternar barra lateral', detail: `Expandida ou compacta · ${isMac() ? '⌘B' : 'Ctrl+B'}`, icon: 'sidebar', keywords: 'menu lateral recolher', run: hooks.toggleSidebar });
-  add({ id: 'restore-demo', group: 'Ações', title: 'Restaurar demonstração…', detail: 'Dados, aparência ou tudo', icon: 'refresh', keywords: 'reset reiniciar limpar', run: hooks.openRestore });
+  for (const [value, label] of hooks.presets || []) pref({ id: `preset-${value}`, title: `Workspace ${label.toLowerCase()}`, detail: 'Aplicar preset', icon: 'layout', keywords: 'preset densidade executivo operacional compacto equilibrado', run: () => hooks.applyPreset(value) });
+  pref({ id: 'toggle-focus', title: readState().shell.focus ? 'Sair do modo foco' : 'Ativar modo foco', detail: 'Esconde a barra lateral e o que é periférico', icon: 'maximize', keywords: 'foco tela cheia concentrar', run: hooks.toggleFocus });
+  pref({ id: 'toggle-sidebar', title: 'Alternar barra lateral', detail: `Expandida ou compacta · ${isMac() ? '⌘B' : 'Ctrl+B'}`, icon: 'sidebar', keywords: 'menu lateral recolher', run: hooks.toggleSidebar });
   for (const key of PERSONA_ORDER) {
     const meta = PERSONA_META[key];
     if (ctx.persona?.key === key) continue;
-    list.push({ type: 'persona', id: `persona-${key}`, group: 'Trocar persona', title: `Ver como ${meta.name}`, detail: `${meta.group} · ${meta.title}`, icon: 'user', keywords: `persona papel ${meta.group} ${meta.area}`, run: () => hooks.switchPersona(key) });
+    list.push({ type: 'persona', id: `persona-${key}`, group: 'Personas', title: `Ver como ${meta.name}`, detail: `${meta.group} · ${meta.title}`, icon: 'user', keywords: `persona papel ${meta.group} ${meta.area}`, run: () => hooks.switchPersona(key) });
   }
   return list;
 }
@@ -128,14 +135,16 @@ export function installPalette(ctx, hooks) {
         const row = byId.get(`${entry.type}:${entry.id}`);
         return row ? { ...row, group } : null;
       };
+      const priority = [...suggestions];
       const rows = [
+        ...pool.filter((row) => row.type === 'action' && row.id !== 'restore-demo').sort((a, b) => (priority.includes(a.id) ? priority.indexOf(a.id) : 50) - (priority.includes(b.id) ? priority.indexOf(b.id) : 50)).slice(0, 4),
+        ...pool.filter((row) => row.type === 'context'),
         ...state.recents.map((entry) => entity(entry, 'Recentes')).filter(Boolean).slice(0, 4),
         ...state.favorites.map((entry) => entity(entry, 'Favoritos')).filter(Boolean).slice(0, 4),
-        ...pool.filter((row) => suggestions.has(row.id) && ['action', 'nav'].includes(row.type)).sort((a, b) => [...suggestions].indexOf(a.id) - [...suggestions].indexOf(b.id)).map((row) => ({ ...row, group: 'Sugestões' })),
-        ...pool.filter((row) => row.type === 'persona'),
-        ...pool.filter((row) => row.group === 'Aparência').slice(0, 4)
+        ...pool.filter((row) => row.type === 'nav').sort((a, b) => (priority.includes(a.id) ? priority.indexOf(a.id) : 50) - (priority.includes(b.id) ? priority.indexOf(b.id) : 50)).slice(0, 5),
+        ...pool.filter((row) => row.type === 'persona')
       ];
-      draw(rows, rows.length ? 'Digite para buscar em tudo. Shift+Enter espia um item sem sair da página.' : '');
+      draw(rows, 'Digite para buscar solicitações, contratos, provedores, visões e ações. Shift+Enter espia sem sair da página.');
       return;
     }
     const haystack = (row) => fold(`${row.title} ${row.detail || ''} ${row.group} ${row.keywords || ''}`);

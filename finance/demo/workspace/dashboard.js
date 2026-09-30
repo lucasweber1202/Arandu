@@ -10,6 +10,7 @@ import { pill, linkButton, button, emptyState, progress, toast, avatar } from '.
 import { actionItems, greeting } from '../../src/views/dashboard.js';
 import { memberName, currentStep, approvalSummaryLine, eventTitle } from '../../src/views/shared.js';
 import { DEFAULT_DASHBOARDS } from './personas.js';
+import { PRESETS, PRESET_ORDER, applyPreset } from './presets.js';
 import { dashboardLayout, saveDashboardLayout, resetDashboardLayout, readState } from './preferences.js';
 
 const PIPELINE = [['draft', 'Rascunho'], ['open', 'Aberta'], ['collecting', 'Em coleta'], ['comparing', 'Em avaliação'], ['decided', 'Decidida'], ['contracted', 'Contratada']];
@@ -49,7 +50,7 @@ function attentionModule(ctx, model) {
   } }) : null;
   const body = items.length ? [list, more] : [emptyState({ title: 'Tudo em dia', text: ctx.can('create_rfq') ? 'Nenhuma aprovação, prazo ou renovação exige ação agora.' : 'Nenhuma aprovação aguarda você.', iconName: 'checkCircle', compact: true,
     action: ctx.can('create_rfq') ? linkButton('Nova solicitação', ctx.href('/finance/new-rfq.html'), { iconName: 'plus', size: 'sm' }) : null })];
-  return { id: 'precisa-de-voce', title: 'Precisa de você', count: items.length || null, subtitle: items.length ? 'Do mais urgente ao menos urgente.' : null, body, className: 'dm-attention' };
+  return { id: 'precisa-de-voce', title: 'Precisa de você', count: items.length || null, body, className: 'dm-attention' };
 }
 
 function summaryModule(ctx, model) {
@@ -67,17 +68,21 @@ function summaryModule(ctx, model) {
     const credit = active.filter((rfq) => rfq.product === 'credit').reduce((sum, rfq) => sum + Number(rfq.demand?.amount || 0), 0);
     if (credit) figures.push(['Crédito em concorrência', money(credit, { compact: true }), ctx.href('/finance/rfqs.html?product=credit')]);
   }
-  return { id: 'resumo', title: 'Resumo', body: el('dl', { class: 'figures' }, figures.map(([label, value, href]) => el('div', { class: 'figure' }, [
+  return { id: 'resumo', title: 'Em andamento', body: el('dl', { class: 'figures' }, figures.map(([label, value, href]) => el('div', { class: 'figure' }, [
     el('dt', {}, el('a', { href, text: label })), el('dd', { class: 'num', text: String(value) })]))) };
 }
 
 function pipelineModule(ctx, model) {
   const { rfqs } = model;
   const total = rfqs.length || 1;
-  const bar = el('ol', { class: 'stage-bar', 'aria-label': 'Solicitações por etapa' }, PIPELINE.map(([status, label]) => {
+  void total;
+  // Fluxo do procurement com a contagem de cada etapa; cada etapa filtra a lista.
+  const bar = el('ol', { class: 'flow', 'aria-label': 'Solicitações por etapa' }, PIPELINE.map(([status, label], index) => {
     const count = rfqs.filter((rfq) => rfq.status === status).length;
-    return el('li', { class: `stage${count ? '' : ' is-empty'}`, dataset: { status }, style: `flex-grow:${Math.max(count, 0.6) / total}` },
-      el('a', { href: ctx.href(`/finance/rfqs.html?status=${status}`) }, [el('span', { class: 'stage-count num', text: String(count) }), el('span', { class: 'stage-label', text: label })]));
+    return el('li', { class: `flow-step${count ? '' : ' is-empty'}`, dataset: { status } }, [
+      index ? el('span', { class: 'flow-arrow', 'aria-hidden': 'true' }, icon('chevronRight', { size: 14 })) : null,
+      el('a', { href: ctx.href(`/finance/rfqs.html?status=${status}`), 'aria-label': `${label}: ${count}` }, [el('span', { class: 'flow-count num', text: String(count) }), el('span', { class: 'flow-label', text: label })])
+    ]);
   }));
   const inFlight = rfqs.filter((rfq) => ACTIVE.includes(rfq.status)).sort((a, b) => String(a.response_deadline || '9999').localeCompare(String(b.response_deadline || '9999')));
   const list = moduleList(inFlight.map((rfq) => {
@@ -92,7 +97,7 @@ function pipelineModule(ctx, model) {
       el('span', { class: `dm-row-side num${['open', 'collecting'].includes(rfq.status) && days !== null && days <= 2 ? ' is-urgent' : ''}`, text: deadlineText(rfq) })
     ]);
   }), emptyState({ title: 'Nenhuma concorrência em andamento', compact: true }));
-  return { id: 'pipeline', title: 'Pipeline', subtitle: 'Da abertura à avaliação, com prazo e respostas.', link: ['Solicitações', ctx.href('/finance/rfqs.html')], body: [bar, list] };
+  return { id: 'pipeline', title: 'Pipeline', subtitle: 'Concorrências em andamento, com prazo e respostas.', link: ['Solicitações', ctx.href('/finance/rfqs.html')], body: [bar, list] };
 }
 
 function recentRfqsModule(ctx, model) {
@@ -307,6 +312,7 @@ export async function dashboard(ctx) {
   const tray = el('section', { class: 'dash-tray', hidden: true, 'aria-labelledby': 'tray-title' });
   const editBar = el('div', { class: 'dash-editbar', hidden: true }, [
     el('p', { class: 'dash-editbar-text' }, [icon('layout', { size: 16 }), el('span', { text: 'Personalizando o painel. Arraste pela alça ou use as setas; as mudanças ficam salvas neste navegador.' })]),
+    presetPicker(),
     el('div', { class: 'dash-editbar-actions' }, [
       button('Restaurar layout padrão', { variant: 'ghost', size: 'sm', iconName: 'refresh', attrs: { id: 'dashboard-reset' }, onClick: () => {
         resetDashboardLayout(persona);
@@ -319,6 +325,26 @@ export async function dashboard(ctx) {
     ])
   ]);
 
+  function presetPicker() {
+    const current = readState().appearance.preset;
+    const group = el('div', { class: 'preset-picker', role: 'group', 'aria-label': 'Preset do workspace' });
+    for (const key of PRESET_ORDER) {
+      const option = el('button', { type: 'button', class: 'preset-option', 'aria-pressed': String(current === key), title: PRESETS[key].text, dataset: { preset: key }, text: PRESETS[key].label });
+      option.addEventListener('click', () => {
+        applyPreset(key);
+        layout = resolveLayout(persona);
+        for (const node of group.children) node.setAttribute('aria-pressed', String(node.dataset.preset === key));
+        custom.hidden = true;
+        draw();
+        announce(`Preset ${PRESETS[key].label} aplicado.`);
+        toast(`Workspace ${PRESETS[key].label.toLowerCase()} aplicado. Você ainda pode ajustar tudo.`, 'info');
+      });
+      group.append(option);
+    }
+    const custom = el('span', { class: 'preset-custom', hidden: current !== 'custom', text: 'Personalizado' });
+    group.append(custom);
+    return group;
+  }
   const announce = (text) => { live.textContent = ''; requestAnimationFrame(() => { live.textContent = text; }); };
   const persist = () => saveDashboardLayout(persona, { order: layout.order, hidden: layout.hidden, sizes: layout.sizes });
   const visibleIds = () => layout.order.filter((id) => !layout.hidden.includes(id));

@@ -7,22 +7,22 @@ export const PERSONA_META = Object.freeze({
   buyer: {
     key: 'buyer', group: 'Comprador', area: 'Tesouraria', name: 'Marina Costa', title: 'Gerente Financeira', org: 'Acme Indústria Ltda. — DEMO', audience: 'company',
     focus: 'Solicitações, propostas, prazos, decisões e contratos.',
-    suggestions: ['new-rfq', 'go-rfqs', 'go-proposals', 'go-contracts', 'go-approvals', 'go-tasks']
+    suggestions: ['new-rfq', 'my-approvals', 'find-provider', 'customize-dashboard', 'go-rfqs', 'go-proposals', 'go-contracts', 'go-tasks']
   },
   approver: {
     key: 'approver', group: 'Aprovador', area: 'Diretoria financeira', name: 'Ricardo Alves', title: 'CFO', org: 'Acme Indústria Ltda. — DEMO', audience: 'company',
     focus: 'Aprovações, valores, condições e justificativas.',
-    suggestions: ['go-approvals', 'go-rfqs', 'go-contracts', 'go-proposals', 'go-dashboard']
+    suggestions: ['my-approvals', 'find-provider', 'customize-dashboard', 'go-approvals', 'go-rfqs', 'go-contracts', 'go-proposals']
   },
   admin: {
     key: 'admin', group: 'Administração', area: 'Controladoria', name: 'Helena Prado', title: 'Controller', org: 'Acme Indústria Ltda. — DEMO', audience: 'company',
     focus: 'Equipe, política de aprovação, perfil financeiro e configurações.',
-    suggestions: ['go-team', 'go-policy', 'go-profile', 'go-settings', 'go-providers', 'open-preferences']
+    suggestions: ['customize-dashboard', 'find-provider', 'my-approvals', 'go-team', 'go-policy', 'go-profile', 'go-settings', 'go-providers']
   },
   provider: {
     key: 'provider', group: 'Provedor', area: 'Instituição financeira', name: 'Camila Rocha', title: 'Gerente de Relacionamento PJ', org: 'Atlas Bank — DEMO', audience: 'provider',
     focus: 'Convites, propostas, prazos e solicitações recebidas.',
-    suggestions: ['go-provider-home', 'go-provider-rfqs', 'go-provider-invite']
+    suggestions: ['go-provider-invites', 'go-provider-rfqs', 'go-provider-home', 'go-provider-invite']
   }
 });
 export const PERSONA_ORDER = ['buyer', 'approver', 'admin', 'provider'];

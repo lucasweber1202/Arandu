@@ -273,7 +273,7 @@ async function render({ refresh = false, rebuildShell = false } = {}) {
   } else bellApi?.refresh();
   const navCounts = failure || session?.empty ? {} : counts(ctx);
   renderSidebar(ctx, navCounts);
-  workspace?.decorateSidebar(ctx);
+  workspace?.decorateSidebar(ctx, navCounts);
   if (!failure && !session?.empty) renderMobileNav(ctx, navCounts);
   document.body.classList.toggle('is-signed-out', Boolean(failure));
 

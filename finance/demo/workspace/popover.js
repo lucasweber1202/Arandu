@@ -68,3 +68,26 @@ export function popover({ trigger, panel, role = 'menu', onOpen = null, onClose 
 }
 
 export function closeOpenPopover() { current?.hide({ restore: false }); }
+
+/**
+ * Menu ••• para ações contextuais de uma linha ou cartão. Itens:
+ * { label, icon, onClick } ou { label, icon, href, newTab }; `danger` fica por último, separado.
+ */
+export function contextMenu(label, items, { el, icon }) {
+  const wrap = el('div', { class: 'dw-anchor' });
+  const trigger = el('button', { type: 'button', class: 'icon-btn sm row-more', 'aria-label': label, title: 'Mais ações' }, icon('more', { size: 16 }));
+  const panel = el('div', { class: 'dw-menu dw-menu-sm' });
+  const list = items.filter(Boolean);
+  list.forEach((item, index) => {
+    if (item.danger && index > 0 && !list[index - 1].danger) panel.append(el('hr', { class: 'dw-menu-sep' }));
+    const node = item.href
+      ? el('a', { role: 'menuitem', class: 'dw-menu-item', href: item.href, target: item.newTab ? '_blank' : null, rel: item.newTab ? 'noopener' : null }, [icon(item.icon, { size: 16 }), el('span', { class: 'dw-menu-label', text: item.label })])
+      : el('button', { type: 'button', role: 'menuitem', class: `dw-menu-item${item.danger ? ' is-danger' : ''}` }, [icon(item.icon, { size: 16 }), el('span', { class: 'dw-menu-label', text: item.label })]);
+    node.addEventListener('click', (event) => { event.stopPropagation(); menu.hide({ restore: false }); item.onClick?.(); });
+    panel.append(node);
+  });
+  const menu = popover({ trigger, panel, role: 'menu' });
+  wrap.addEventListener('click', (event) => event.stopPropagation());
+  wrap.append(trigger, panel);
+  return wrap;
+}
