@@ -16,11 +16,15 @@ function watchNetwork(page) {
   });
   return offending;
 }
-const banner = (page) => page.getByRole('region', { name: 'Ambiente demonstrativo' });
+// Indicador "● DEMO" na barra superior: sempre visível, detalhes num popover.
+const demoIndicator = (page) => page.locator('#demo-indicator');
+const PERSONA_NAMES = { Comprador: 'Marina Costa', Aprovador: 'Ricardo Alves', Provedor: 'Camila Rocha', 'Administração': 'Helena Prado' };
+/** Troca de persona pelo seletor "Visualizando como"; na mesma área a troca é instantânea, sem recarregar. */
 async function asPersona(page, label) {
-  await banner(page).getByRole('radio', { name: label }).click();
-  await page.waitForEvent('load');
-  await expect(banner(page).getByRole('radio', { name: label })).toHaveAttribute('aria-checked', 'true');
+  await page.locator('#persona-trigger').click();
+  await page.getByRole('menuitemradio', { name: new RegExp(`^${label}:`) }).click();
+  await expect(page.locator('#persona-trigger')).toHaveAttribute('aria-label', new RegExp(PERSONA_NAMES[label]));
+  await expect(page.locator('#view.is-switching')).toHaveCount(0);
   await expect(page.locator('#view [role=status].loading-state')).toHaveCount(0);
 }
 async function confirm(page, label) {
@@ -32,7 +36,7 @@ const tab = (page, name) => page.getByRole('tab', { name: new RegExp(`^${name}`)
 /** Entra pela página inicial e só segue depois que o painel terminou de carregar. */
 async function enterDemo(page) {
   await page.goto('/demo/index.html');
-  await page.getByRole('link', { name: 'Explorar demonstração' }).click();
+  await page.locator('#start-demo').click();
   await expect(page).toHaveURL(/\/demo\/finance\/dashboard\.html$/);
   await expect(page.locator('#precisa-de-voce')).toBeVisible();
 }
@@ -40,16 +44,25 @@ async function enterDemo(page) {
 test('abre /demo sem login e deixa claro que é demonstrativo', async ({ page }) => {
   const offending = watchNetwork(page);
   await page.goto('/demo/index.html');
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Explorar demonstração');
-  await expect(banner(page)).toContainText('Dados fictícios. Nenhuma operação financeira real será executada.');
-  await page.getByRole('link', { name: 'Explorar demonstração' }).click();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Procurement financeiro, do pedido à renovação.');
+  await expect(page.locator('#sobre')).toContainText('dados fictícios. Nenhuma operação financeira real será executada.');
+  await page.getByRole('link', { name: 'Explorar como empresa' }).click();
   await expect(page).toHaveURL(/\/demo\/finance\/dashboard\.html$/);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Painel');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(/^(Bom dia|Boa tarde|Boa noite), Marina$/);
   await expect(page.locator('#precisa-de-voce')).toContainText('Precisa de você');
-  await expect(banner(page).getByRole('radio', { name: 'Comprador' })).toHaveAttribute('aria-checked', 'true');
+  await expect(page.locator('#persona-trigger')).toHaveAttribute('aria-label', /Marina Costa \(Comprador\)/);
+  // A informação de segurança continua a um clique: "● DEMO" abre os detalhes.
+  await demoIndicator(page).click();
+  const details = page.getByRole('dialog', { name: 'Ambiente demonstrativo' });
+  await expect(details).toContainText('Dados fictícios');
+  await expect(details).toContainText('Nenhuma operação financeira real');
+  await expect(details).toContainText('Nenhum e-mail externo');
+  await page.keyboard.press('Escape');
+  await expect(details).toBeHidden();
+  await expect(demoIndicator(page)).toBeFocused();
   for (const path of ['/demo/finance/rfqs.html', '/demo/finance/contracts.html', '/demo/finance/approvals.html', '/demo/provider/index.html']) {
     await page.goto(path);
-    await expect(banner(page)).toContainText('Ambiente demonstrativo');
+    await expect(demoIndicator(page)).toHaveAccessibleName(/Ambiente demonstrativo/);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     expect(overflow, path).toBeLessThanOrEqual(1);
   }
@@ -190,8 +203,10 @@ test('o estado da demo sobrevive a recarregar e o reset restaura o conjunto inic
   await page.goBack();
   await page.goForward();
   await expect(page.locator('.task-list')).toContainText('Tarefa criada no teste de persistência');
-  await banner(page).getByRole('button', { name: 'Restaurar demonstração' }).click();
-  await confirm(page, 'Restaurar dados iniciais');
+  await demoIndicator(page).click();
+  await page.getByRole('button', { name: 'Restaurar demonstração…' }).click();
+  await expect(page.getByRole('radio', { name: /Dados demonstrativos/ })).toBeChecked();
+  await confirm(page, 'Restaurar');
   await expect(page).toHaveURL(/\/demo\/finance\/dashboard\.html$/);
   await page.goto('/demo/finance/tasks.html');
   await expect(page.locator('.task-list')).toContainText('Conferir garantias exigidas pela Atlas');
@@ -231,14 +246,16 @@ test('persona muda superfície, não credencial', async ({ page, context }) => {
   // Nenhum cookie ou token é criado pela troca de persona.
   expect(await context.cookies()).toEqual([]);
   const keys = await page.evaluate(() => Object.keys(localStorage));
-  expect(keys).toEqual(['arandu_demo_state_v1']);
+  // Só o estado fictício e, quando houver, preferências de tela da demonstração.
+  expect(keys.filter((key) => !['arandu_demo_state_v1', 'arandu-demo-workspace'].includes(key))).toEqual([]);
+  expect(keys).toContain('arandu_demo_state_v1');
 });
 
 test('busca global e central de comando funcionam por teclado na demo', async ({ page }) => {
   await page.goto('/demo/finance/dashboard.html');
   await expect(page.getByRole('button', { name: /Buscar/ })).toBeVisible();
   await page.keyboard.press('Control+k');
-  const dialog = page.getByRole('dialog', { name: 'Buscar no espaço da empresa' });
+  const dialog = page.getByRole('dialog', { name: 'Central de comando' });
   await dialog.getByRole('combobox').fill('adquirencia');
   await expect(dialog.getByRole('option', { name: /Revisão de adquirência/ }).first()).toBeVisible();
   await page.keyboard.press('Enter');

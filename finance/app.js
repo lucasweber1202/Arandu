@@ -77,6 +77,15 @@ async function createTransport() {
   return createDemoEngine({ latency: 140 });
 }
 
+// Camada de experiência da demonstração (laboratório de UX): mesma trava do
+// motor — só em página /demo de build demonstrativo. Em produção nem entra no
+// pacote; as telas reais continuam exatamente como são.
+let workspace = null;
+async function loadWorkspace() {
+  if (!demoPage || !DEMO_BUILD) return null;
+  return import('./demo/workspace/index.js');
+}
+
 // ------------------------------------------------------------------ ctx
 function createContext(transport) {
   const base = demoPage ? '/demo' : '';
@@ -112,11 +121,18 @@ function createContext(transport) {
     },
     header: setHeader,
     reload: () => render({ refresh: true }),
+    rerender: (options) => render(options),
     async switchPersona(key) {
       transport.setPersona(key);
       const persona = transport.persona();
-      toast(`Visualizando como ${persona.name} (${persona.title}).`, 'info');
       const stay = persona.audience === audience && audience === 'company' && view !== 'newRfq';
+      // Na camada de experiência a troca é instantânea: mesma página, novo papel.
+      if (stay && workspace) {
+        await render({ refresh: true, rebuildShell: true });
+        toast(`Visualizando como ${persona.name} (${persona.title}).`, 'info');
+        return;
+      }
+      toast(`Visualizando como ${persona.name} (${persona.title}).`, 'info');
       const target = persona.audience === 'provider' ? '/provider/index.html' : '/finance/dashboard.html';
       // Mesma página: recarrega (mudar só a âncora não recarregaria o conteúdo).
       setTimeout(() => (stay ? location.reload() : location.assign(ctx.href(target))), 250);
@@ -236,7 +252,7 @@ function createOrganizationView(ctx) {
 // ---------------------------------------------------------- render
 let shellReady = false;
 let bellApi = null;
-async function render({ refresh = false } = {}) {
+async function render({ refresh = false, rebuildShell = false } = {}) {
   const ctx = window.__aranduCtx;
   if (refresh) { ctx.approvalsPromise = null; }
   if (!refresh && view !== 'boundaries') root.replaceChildren(loading());
@@ -244,18 +260,20 @@ async function render({ refresh = false } = {}) {
   let failure = null;
   try { session = await loadSession(ctx); } catch (error) { failure = error; }
 
-  if (!shellReady) {
-    renderDemoBanner(ctx);
+  if (!shellReady || rebuildShell) {
+    if (!workspace) renderDemoBanner(ctx);
     const { searchButton, bell } = renderTopbar(ctx);
     if (!failure && !session?.empty) {
-      installCommandCenter(ctx, searchButton);
+      if (!workspace) installCommandCenter(ctx, searchButton);
       bellApi = installNotificationCenter(ctx, bell);
       ctx.refreshBell = () => bellApi?.refresh();
     }
+    workspace?.installShell(ctx);
     shellReady = true;
   } else bellApi?.refresh();
   const navCounts = failure || session?.empty ? {} : counts(ctx);
   renderSidebar(ctx, navCounts);
+  workspace?.decorateSidebar(ctx);
   if (!failure && !session?.empty) renderMobileNav(ctx, navCounts);
   document.body.classList.toggle('is-signed-out', Boolean(failure));
 
@@ -271,6 +289,7 @@ async function render({ refresh = false } = {}) {
   }
   if (node) root.replaceChildren(node);
   root.setAttribute('aria-busy', 'false');
+  workspace?.afterRender(ctx, { failure });
   focusDeepLink();
 }
 
@@ -304,6 +323,11 @@ async function boot() {
   }
   const ctx = createContext(transport);
   window.__aranduCtx = ctx;
+  workspace = await loadWorkspace();
+  if (workspace) {
+    VIEWS.dashboard = VIEWS.home = workspace.dashboard;
+    ctx.demoSettings = workspace.settingsSection(ctx);
+  }
   await render();
   if (ctx.mode === 'demo' && transport.recovered?.()) toast('O estado salvo da demonstração era inválido ou de outra versão e foi restaurado para o conjunto inicial.', 'info');
   if (ctx.mode === 'demo' && !transport.persistent?.()) toast('Este navegador não permite guardar dados locais: a demonstração funciona, mas não sobrevive a recarregar a página.', 'info');

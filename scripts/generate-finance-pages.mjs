@@ -80,6 +80,10 @@ const BOUNDARIES = `
   <p>Um provedor cadastrado aparece como <b>não verificado</b> até que autoridade, número de registro, evidência e data de consulta sejam informados. O Arandu não afirma que um provedor é regulado apenas porque ele foi cadastrado.</p>
 </div></section>`;
 
+// Só as cascas /demo carregam a camada de experiência (tema, densidade,
+// quick view, painel personalizável…). As páginas reais não mudam.
+const DEMO_HEAD = '<link rel="stylesheet" href="/finance/demo/experience.css">\n<script type="module" src="/finance/demo/workspace/boot.js"></script>\n';
+
 const escape = (value) => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 export function renderPage(page, { demo = false } = {}) {
@@ -101,7 +105,7 @@ ${page.referrer ? '<meta name="referrer" content="no-referrer">\n' : ''}<meta na
 <meta name="theme-color" content="#f6f7f9">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/finance/style.css">
-</head>
+${demo ? DEMO_HEAD : ''}</head>
 <body data-view="${page.view}" data-audience="${page.audience}"${demo ? ' data-mode="demo"' : ''}>
 <a class="skip-link" href="#main">Pular para o conteúdo</a>
 ${banner}<div class="app-shell">

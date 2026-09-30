@@ -9,8 +9,11 @@ torná-la pública.
 `/demo` é um sandbox do produto inteiro que roda **só no navegador**, com dados
 fictícios. Não pede cadastro, OTP, e-mail nem Supabase.
 
-- **Entrada:** `/demo/index.html` → “Explorar demonstração”.
-- **Personas** (faixa superior, “Visualizar como”):
+- **Entrada:** `/demo/index.html` → “Explorar como empresa” (ou outro papel).
+- **Interface:** a demonstração usa a camada de experiência descrita em
+  `docs/FINANCIAL_DEMO_EXPERIENCE.md` (indicador `● DEMO`, preferências,
+  painel personalizável, quick view). A aplicação oficial não a carrega.
+- **Personas** (topbar, “Visualizando como”):
   - Comprador — Marina Costa, Gerente Financeira, Acme Indústria Ltda. — DEMO (`finance_manager`)
   - Aprovador — Ricardo Alves, CFO (`viewer`, aprova quando é a vez dele)
   - Provedor — Camila Rocha, Atlas Bank — DEMO (`provider_user`)
@@ -58,8 +61,9 @@ idempotentes).
   interface avisa).
 - Sobrevive a recarregar, voltar e avançar. Duas abas compartilham o estado, o
   que deixa o conflito de rascunho entre abas reproduzível.
-- “Restaurar demonstração” (faixa superior ou página de entrada) apaga o
-  estado deste navegador, com confirmação.
+- “Restaurar demonstração” (`● DEMO` na topbar, Ctrl+K ou página de entrada)
+  restaura dados, aparência/layout ou tudo, com confirmação. Preferências de
+  tela ficam em `arandu-demo-workspace`, separadas do estado fictício.
 - Em Configurações → Demonstração é possível simular uma falha de rede na
   próxima gravação para ver os estados de erro e “Tentar novamente”.
 

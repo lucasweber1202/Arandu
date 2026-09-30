@@ -77,6 +77,9 @@ const ICONS = {
   sparkles: ['M12 3v4', 'M12 17v4', 'M3 12h4', 'M17 12h4']
 };
 
+/** Ícones extras de uma camada de interface (ex.: a demonstração) sem inflar o pacote real. */
+export function registerIcons(extra) { Object.assign(ICONS, extra); }
+
 export function icon(name, { size = 16, label = null, className = '' } = {}) {
   const svg = document.createElementNS(SVG, 'svg');
   svg.setAttribute('viewBox', '0 0 24 24');
