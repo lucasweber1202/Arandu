@@ -9,14 +9,17 @@ import { R, demoId } from '../seed.js';
 import { PERSONA_META } from './personas.js';
 
 export const ROUTE_KEY = 'arandu-demo-route';
+// Storyline 3.0: nove passos, o mesmo processo do pedido ao registro no ERP.
 export const ROUTE = Object.freeze([
-  { persona: 'buyer', path: '/finance/dashboard.html', title: 'O que precisa da Marina', text: 'A fila de trabalho: prazos, decisões e renovações, cada um com a próxima ação.' },
-  { persona: 'buyer', path: `/finance/rfq.html?id=${R.capital}`, title: 'Capital de giro, na fase de aprovação', text: 'Fase atual, próxima ação, prazo e responsável no topo da solicitação.' },
+  { persona: 'buyer', path: '/finance/dashboard.html', title: 'O que precisa da Marina', text: 'Precisa de você: motivo, quem espera, o que fica travado — agrupado por prazo.' },
+  { persona: 'buyer', path: '/finance/intake.html', title: 'Uma nova necessidade', text: 'O que você precisa fazer? Modelos determinísticos, perfil financeiro pré-preenchido e a política que vai valer.' },
+  { persona: 'buyer', path: `/finance/rfq.html?id=${R.capital}`, title: 'Capital de giro, na fase de aprovação', text: 'Fase atual, presença, política v2 e a atividade completa do processo.' },
   { persona: 'buyer', path: `/finance/rfq.html?id=${R.capital}#comparacao`, title: 'Comparação factual', text: 'Onde as propostas diferem, campos ausentes e estimativas separadas do que foi informado.' },
-  { persona: 'provider', path: `/provider/proposal.html?proposal=${demoId(6, 1)}`, title: 'Camila responde pelo Atlas Bank', text: 'A mesma solicitação, do lado do provedor: revisões, versões e o que a empresa pediu.' },
-  { persona: 'approver', path: `/finance/approvals.html#request-${demoId(7, 1)}`, title: 'Ricardo revisa e decide', text: 'Quanto, qual proposta, por quê e as diferenças materiais — antes de aprovar.' },
-  { persona: 'buyer', path: '/finance/contracts.html', title: 'Contrato e renovação', text: 'Depois da decisão, o prazo que importa passa a ser o do aviso prévio.' },
-  { persona: 'admin', path: '/finance/settings.html#governanca', title: 'Helena cuida da governança', text: 'Equipe, papéis e a política de aprovação que valeu para todo o processo.' }
+  { persona: 'provider', path: `/provider/proposal.html?proposal=${demoId(6, 1)}`, title: 'Camila responde pelo Atlas Bank', text: 'Do lado do provedor: revisões, versões e só as mensagens que a empresa tornou visíveis a ele.' },
+  { persona: 'approver', path: `/finance/approvals.html#request-${demoId(7, 1)}`, title: 'Ricardo revisa e decide', text: 'Contexto da decisão, conversa interna e decisão otimista — funciona até offline.' },
+  { persona: 'admin', path: '/finance/policies.html', title: 'Helena versiona a política', text: 'Crédito acima de R$ 5 mi exige o CEO na v3; processos em andamento seguem na v2.' },
+  { persona: 'admin', path: '/finance/integrations.html', title: 'Integrações (simuladas)', text: 'Slack avisa sem aprovar, ERP reconhece fornecedores, SSO mapeia grupos, Open Finance preenche o perfil.' },
+  { persona: 'buyer', path: '/finance/contracts.html', title: 'Contrato, renovação e ERP', text: 'O prazo que importa vira o aviso prévio; o registro no ERP sai preparado, sem enviar nada.' }
 ]);
 
 export function readRoute() { try { const value = Number(sessionStorage.getItem(ROUTE_KEY)); return Number.isInteger(value) && value >= 0 && value < ROUTE.length && sessionStorage.getItem(ROUTE_KEY) !== null ? value : null; } catch { return null; } }

@@ -32,22 +32,38 @@ function row({ href, title, meta, side = null, sideClass = '', iconName = null, 
 }
 
 // ----------------------------------------------------------------- módulos
+// Agrupamento opcional por horizonte: Hoje · Em breve · Depois (sem esconder nada).
+export function horizonOf(item) {
+  const days = item.due?.days;
+  if (item.tone === 'danger' || (days !== undefined && days !== null && days <= 1) || (item.mine && item.stage === 'approval')) return 'today';
+  if (days !== undefined && days !== null && days <= 7) return 'soon';
+  return 'later';
+}
+const HORIZONS = [['today', 'Hoje'], ['soon', 'Em breve'], ['later', 'Depois']];
+const GROUP_KEY = 'arandu-demo-queue-grouped';
+
 function attentionModule(ctx, model) {
   const { items } = model;
-  const visible = 6;
-  const list = el('ul', { class: 'wq', role: 'list' }, items.map((item, index) => {
-    const node = queueRow(ctx, item, { quick: item.kind === 'rfq' && item.cta !== 'Revisar decisão' ? `rfq:${item.id}` : item.kind === 'contract' ? `contract:${item.id}` : null });
-    node.hidden = index >= visible;
-    return node;
-  }));
-  const more = items.length > visible ? button(`Mostrar mais ${items.length - visible}`, { variant: 'ghost', size: 'sm', iconName: 'chevronDown', onClick: () => {
-    for (const node of list.children) node.hidden = false;
-    more.remove();
-    list.children[visible]?.querySelector('a')?.focus();
-  } }) : null;
-  const body = items.length ? [list, more] : [emptyState({ title: 'Tudo em dia', text: ctx.can('create_rfq') ? 'Nenhuma aprovação, prazo ou renovação exige ação agora.' : 'Nenhuma aprovação aguarda você.', iconName: 'checkCircle', compact: true,
-    action: ctx.can('create_rfq') ? linkButton('Nova solicitação', ctx.href('/finance/new-rfq.html'), { iconName: 'plus', size: 'sm' }) : null })];
-  return { id: 'precisa-de-voce', title: 'Precisa de você', count: items.length || null, subtitle: items.length ? 'O que depende de você agora, do mais urgente ao menos urgente.' : null, body, className: 'dm-attention' };
+  const row = (item) => queueRow(ctx, item, { quick: item.kind === 'rfq' && item.cta !== 'Revisar decisão' ? `rfq:${item.id}` : item.kind === 'contract' ? `contract:${item.id}` : null });
+  let grouped = true;
+  try { grouped = sessionStorage.getItem(GROUP_KEY) !== 'off'; } catch { grouped = true; }
+  const content = el('div', { class: 'wq-groups' });
+  const toggle = el('button', { type: 'button', class: 'ft-token wq-group-toggle', 'aria-pressed': String(grouped), id: 'queue-group' }, [icon('calendar', { size: 13 }), el('span', { class: 'ft-value', text: 'Agrupar por prazo' })]);
+  const draw = () => {
+    toggle.setAttribute('aria-pressed', String(grouped));
+    toggle.classList.toggle('is-active', grouped);
+    if (!grouped) { content.replaceChildren(el('ul', { class: 'wq', role: 'list' }, items.map(row))); return; }
+    content.replaceChildren(...HORIZONS.map(([key, label]) => {
+      const list = items.filter((item) => horizonOf(item) === key);
+      if (!list.length) return null;
+      return el('section', { class: 'wq-horizon', 'aria-label': `${label}: ${list.length}` }, [el('h3', { class: 'wq-horizon-title' }, [el('span', { text: label }), el('span', { class: 'num', text: String(list.length) })]), el('ul', { class: 'wq', role: 'list' }, list.map(row))]);
+    }).filter(Boolean));
+  };
+  toggle.addEventListener('click', () => { grouped = !grouped; try { sessionStorage.setItem(GROUP_KEY, grouped ? 'on' : 'off'); } catch { /* sem sessão */ } draw(); });
+  draw();
+  const body = items.length ? [items.length > 2 ? el('div', { class: 'wq-tools' }, toggle) : null, content].filter(Boolean) : [emptyState({ title: 'Nada precisa de você agora', text: ctx.can('create_rfq') ? 'Quando um prazo, uma decisão ou uma renovação exigir ação sua, aparece aqui com o motivo e o próximo passo.' : 'Quando alguém pedir sua aprovação, ela aparece aqui com o contexto da decisão.', iconName: 'checkCircle', compact: true,
+    action: linkButton('Ver processos em andamento', ctx.href('/finance/rfqs.html'), { size: 'sm', iconName: 'arrowRight' }) })];
+  return { id: 'precisa-de-voce', title: 'Precisa de você', count: items.length || null, subtitle: items.length ? 'O que depende de você, com o motivo, quem espera e o que fica travado.' : null, body, className: 'dm-attention' };
 }
 
 /** Processos em andamento: a mesma solicitação, com estado e próxima ação, fora da fila pessoal. */

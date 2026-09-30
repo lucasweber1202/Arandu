@@ -12,6 +12,8 @@ import * as prefs from './preferences.js';
 import { PERSONA_META, PERSONA_ORDER } from './personas.js';
 import { popover, closeOpenPopover } from './popover.js';
 import { activeView } from './saved-views.js';
+import { resetOS } from './platform/os-store.js';
+import { clearCache } from './platform/local-first.js';
 
 export const isMac = () => /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent || '');
 export const mod = () => (isMac() ? '⌘' : 'Ctrl+');
@@ -52,14 +54,21 @@ export function navModel(ctx) {
       { key: 'tasks', label: 'Tarefas', icon: 'tasks', href: ctx.href('/finance/tasks.html') }
     ] },
     { group: 'Processos', items: [
+      ctx.can('create_rfq') ? { key: 'workIntake', label: 'Nova solicitação', icon: 'plus', href: ctx.href('/finance/intake.html'), views: ['workIntake'] } : null,
       { key: 'rfqs', label: 'Solicitações', icon: 'file', href: ctx.href('/finance/rfqs.html'), views: ['rfqs', 'rfq', 'newRfq'] },
       { key: 'proposals', label: 'Propostas', icon: 'inbox', href: ctx.href('/finance/proposals.html') },
       { key: 'contracts', label: 'Contratos', icon: 'briefcase', href: ctx.href('/finance/contracts.html') }
     ] },
     { group: 'Rede', items: [
       { key: 'providers', label: 'Provedores', icon: 'building', href: ctx.href('/finance/providers.html') }
+    ] },
+    // Governança do Work OS (demo): políticas versionadas, integrações simuladas e uso.
+    { group: 'Governança', items: [
+      { key: 'workPolicies', label: 'Políticas', icon: 'workflow', href: ctx.href('/finance/policies.html') },
+      { key: 'workIntegrations', label: 'Integrações', icon: 'plug', href: ctx.href('/finance/integrations.html') },
+      ctx.can('admin') ? { key: 'workUsage', label: 'Uso da demo', icon: 'chart', href: ctx.href('/finance/usage.html') } : null
     ] }
-  ];
+  ].map((group) => (group.items ? { ...group, items: group.items.filter(Boolean) } : group));
 }
 const isActive = (ctx, item) => item.key === ctx.view || item.views?.includes(ctx.view);
 
@@ -352,6 +361,9 @@ export async function openRestore(ctx) {
     return;
   }
   ctx.transport.reset();
+  // O Work OS (integrações, comentários, políticas, auditoria) e o cache local voltam junto.
+  resetOS();
+  clearCache();
   try { sessionStorage.removeItem('arandu-demo-tray'); } catch { /* sem memória de sessão */ }
   if (scope === 'all') prefs.resetWorkspace();
   toast(scope === 'all' ? 'Demonstração restaurada: dados e preferências voltaram ao início.' : 'Dados demonstrativos restaurados ao conjunto inicial.');

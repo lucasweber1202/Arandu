@@ -51,6 +51,15 @@ export function enhanceProviderProposal(ctx) {
   // Continuidade: a mesma solicitação, do lado da empresa que compara.
   const handoff = assignment.version ? handoffButton(ctx, { persona: 'buyer', path: `/finance/rfq.html?id=${assignment.rfq_id}#comparacao`, label: 'Ver como Marina (empresa)', note: 'A mesma solicitação, na comparação da empresa' }) : null;
   if (handoff) queueMicrotask(() => status.after(el('div', { class: 'provider-handoff' }, handoff)));
+  // Mensagens com a empresa: o provedor só lê o que a empresa marcou como visível a ELE.
+  if (assignment.version) import('./collaboration/comments.js').then(({ commentThread }) => {
+    if (document.querySelector('#provider-conversation')) return;
+    (document.querySelector('#proposal-form') || status).before(el('section', { class: 'card provider-conversation', id: 'provider-conversation', 'aria-labelledby': 'provider-conversation-title' }, [
+      el('div', { class: 'card-head' }, el('div', { class: 'card-head-text' }, [el('h2', { class: 'card-title', id: 'provider-conversation-title', text: 'Mensagens com a empresa' }),
+        el('p', { class: 'card-subtitle', text: 'Só você e a empresa leem. Outros provedores não veem, e você não vê a conversa interna da empresa.' })])),
+      el('div', { class: 'card-body' }, commentThread(ctx, { objectType: 'proposal', objectId: assignment.proposal_id, title: assignment.title || 'Proposta', href: null, viewerOrgKind: 'provider', providerOrg: ctx.organization?.id }))
+    ]));
+  });
   const justSent = Number.isFinite(previous) && assignment.version > previous && latest && Date.now() - Date.parse(latest.submitted_at) < 10 * 60000;
 
   if (justSent) {

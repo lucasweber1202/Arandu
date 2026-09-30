@@ -98,3 +98,10 @@ assert.deepEqual(approverQueue.map((item) => item.id).sort(), [R.capital, R.over
 assert.ok(approverQueue.every((item) => item.cta === 'Revisar decisão'));
 
 console.log('Próxima ação da demonstração: estado, ação, motivo, prazo e responsável coerentes em todos os objetos.');
+
+// Dependências: quem espera quem e o que fica travado.
+assert.equal(capitalAsRicardo.dependency.text, 'Marina está esperando sua decisão.');
+assert.equal(capitalAsRicardo.dependency.blocks, 'Bloqueia o registro da decisão.');
+assert.equal(acquiring.dependency.text, 'Aguardando Atlas Bank.');
+assert.match(rfqNext(rfq(R.refinancing), context(U.marina)).dependency.blocks, /renovação/);
+console.log('Dependências operacionais: quem espera quem e o que bloqueia, derivados dos dados.');

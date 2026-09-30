@@ -12,7 +12,7 @@ import { el, icon, daysUntil } from '../../src/core.js';
 import * as prefs from './preferences.js';
 import { popover, contextMenu } from './popover.js';
 import { openQuickView, copyLink } from './quick-view.js';
-import { starButton } from './rfq-page.js';
+import { starButton } from './star.js';
 import { rfqNext } from './next-action.js';
 import { stateLabel, nextInline } from './work-ui.js';
 import { workContext } from './quick-view.js';

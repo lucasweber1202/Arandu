@@ -149,10 +149,21 @@ function proposalView(ctx, rfq, proposal) {
         ['Responde à revisão', proposal.rfq_revision ? `${proposal.rfq_revision} de ${rfq.revision || 1}` : '—', proposal.rfq_revision && proposal.rfq_revision < (rfq.revision || 1) ? 'warn-text' : ''],
         ['Versões enviadas', String(proposal.versions_count || proposal.version || 1)]
       ]),
-      proposal.note ? section('Nota do provedor', el('p', { class: 'qv-prose', text: proposal.note })) : null
+      proposal.note ? section('Nota do provedor', el('p', { class: 'qv-prose', text: proposal.note })) : null,
+      // Conversa sobre a proposta: interna (só a empresa) ou visível só a ESTE provedor.
+      section('Conversa', lazyThread(() => ({ objectType: 'proposal', objectId: proposal.id, title: `Proposta ${proposal.provider_name}`, href: `/finance/rfq.html?id=${rfq.id}#propostas`,
+        people: (ctx.members || []).filter((member) => member.user_id !== ctx.viewer?.id).map((member) => ({ id: member.user_id, name: member.display_name, title: member.title })),
+        providerOrg: (ctx.data.providers || []).find((row) => row.id === proposal.provider_id)?.provider_organization_id || null, allowProviderScope: true }), ctx))
     ],
     footer: [trayCheckbox(rfq, proposal, { label: 'Comparar' }), copyButton(href), openButton('Abrir na solicitação', href)]
   };
+}
+
+/** Conversa carregada sob demanda (mantém o resumo leve). */
+function lazyThread(options, ctx) {
+  const slot = el('div', { class: 'cthread-slot' }, el('p', { class: 'muted', text: 'Carregando conversa…' }));
+  import('./collaboration/comments.js').then(({ commentThread }) => slot.replaceChildren(commentThread(ctx, options())));
+  return slot;
 }
 
 // -------------------------------------------------------------- provedor

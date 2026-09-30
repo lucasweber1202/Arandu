@@ -104,8 +104,8 @@ test('barra lateral compacta com tooltip, persistida, e modo foco', async ({ pag
   await expect(collapse).toHaveAttribute('aria-expanded', 'true');
   await collapse.click();
   await expect(html(page)).toHaveAttribute('data-sidebar-state', 'compact');
-  const width = await page.locator('.sidebar').evaluate((node) => node.getBoundingClientRect().width);
-  expect(width).toBeLessThan(80);
+  // A largura anima (180 ms): espera a transição terminar em vez de medir no meio.
+  await expect.poll(() => page.locator('.sidebar').evaluate((node) => node.getBoundingClientRect().width)).toBeLessThan(80);
   // Rótulo acessível continua; tooltip visual ao focar.
   const link = page.getByRole('navigation', { name: 'Navegacao do portal' }).getByRole('link', { name: 'Contratos' });
   await link.focus();

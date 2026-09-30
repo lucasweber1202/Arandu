@@ -9,7 +9,7 @@ import { el, icon, renewalStage } from '../../src/core.js';
 import { contextMenu } from './popover.js';
 import { openQuickView, copyLink } from './quick-view.js';
 import { contractStages, timeline } from './timeline.js';
-import { starButton } from './rfq-page.js';
+import { starButton } from './star.js';
 import { installViewsBar, activeView } from './saved-views.js';
 
 const EXTRA = {
@@ -29,6 +29,8 @@ export function enhanceContracts(ctx, { initialViewId = null } = {}) {
     status.append(starButton('contract', contract.id, contract.provider_name || 'Contrato'), contextMenu(`Mais ações: ${contract.provider_name}`, [
       { label: 'Ver resumo', icon: 'eye', onClick: () => openQuickView(ctx, 'contract', contract.id) },
       { label: 'Copiar link', icon: 'copy', onClick: () => copyLink(href) },
+      { label: 'Preparar registro no ERP', icon: 'database', onClick: () => import('./integrations/center.js').then(({ openErpPreview }) => openErpPreview(ctx, contract)) },
+      { label: 'Comentários internos', icon: 'message', onClick: () => openContractComments(ctx, contract) },
       source ? { label: 'Abrir processo de origem', icon: 'file', href: ctx.href(`/finance/rfq.html?id=${source.id}#decisao`) } : null,
       { label: 'Abrir em nova aba', icon: 'external', href, newTab: true }
     ], { el, icon }));
@@ -58,4 +60,12 @@ export function enhanceContracts(ctx, { initialViewId = null } = {}) {
   activeView(ctx, 'contracts', initialViewId);
   installViewsBar(ctx, { page: 'contracts', anchor: list.firstElementChild, onApply: () => { history.replaceState(null, '', location.pathname); apply(); } });
   apply();
+}
+
+/** Conversa interna do contrato (nunca visível a provedores). */
+export async function openContractComments(ctx, contract) {
+  const [{ commentThread }, { drawer }] = await Promise.all([import('./collaboration/comments.js'), import('../../src/ui.js')]);
+  const people = (ctx.members || []).filter((member) => member.user_id !== ctx.viewer?.id).map((member) => ({ id: member.user_id, name: member.display_name, title: member.title }));
+  drawer({ title: 'Comentários internos', subtitle: contract.provider_name, className: 'comments-drawer',
+    body: commentThread(ctx, { objectType: 'contract', objectId: contract.id, title: `Contrato ${contract.provider_name}`, href: `/finance/contracts.html#contract-${contract.id}`, people }) });
 }

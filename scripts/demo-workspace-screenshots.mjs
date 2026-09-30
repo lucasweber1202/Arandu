@@ -1,7 +1,12 @@
 #!/usr/bin/env node
 // Evidência visual da demonstração (Workspace Architecture & Design System 2.0).
 //
-// Uso:  npm run build:demo && node scripts/demo-workspace-screenshots.mjs <before|after>
+// Uso:  npm run build:demo && node scripts/demo-workspace-screenshots.mjs <before|after> [--round=v3]
+//
+// Rodadas: v2 (Workspace 2.0, artifacts/demo-workspace-v2) e v3 (Work OS,
+// artifacts/demo-work-os-v3). Na v3, telas que só passam a existir depois
+// (políticas, integrações…) são capturadas "antes" na superfície equivalente
+// que já existia — cada linha diz qual.
 //
 // Captura o MESMO roteiro em qualquer versão da demo: mesmas URLs, mesma
 // persona (gravada direto no estado fictício do motor), mesmo objeto
@@ -21,7 +26,8 @@ if (!['before', 'after'].includes(phase)) {
   process.exit(1);
 }
 const force = process.argv.includes('--force');
-const outDir = path.resolve('artifacts/demo-workspace-v2', phase);
+const round = (process.argv.find((arg) => arg.startsWith('--round=')) || '--round=v2').slice(8);
+const outDir = path.resolve(round === 'v3' ? 'artifacts/demo-work-os-v3' : 'artifacts/demo-workspace-v2', phase);
 if (fs.existsSync(outDir) && fs.readdirSync(outDir).some((name) => name.endsWith('.png')) && !force) {
   console.error(`${outDir} já tem capturas. O baseline nunca é sobrescrito (use --force só para "after").`);
   process.exit(1);
@@ -78,6 +84,36 @@ const SHOTS = [
   ['29-rfqs-320', 'buyer', '/demo/finance/rfqs.html', TINY]
 ];
 
+const LAPTOP = { width: 1366, height: 768 };
+// v3: [arquivo, persona, caminho, viewport, { before?: caminho antes, action?: 'palette' }]
+const SHOTS_V3 = [
+  ['01-landing-desktop', 'buyer', '/demo/index.html', DESKTOP],
+  ['02-home-desktop', 'buyer', '/demo/finance/dashboard.html', DESKTOP],
+  ['03-rfq-list-desktop', 'buyer', '/demo/finance/rfqs.html', DESKTOP],
+  ['04-rfq-detail-desktop', 'buyer', `/demo/finance/rfq.html?id=${CAPITAL}`, DESKTOP],
+  ['05-comparison-desktop', 'buyer', `/demo/finance/rfq.html?id=${CAPITAL}#comparacao`, DESKTOP],
+  ['06-approval-desktop', 'approver', `/demo/finance/approvals.html#request-${APPROVAL_CAPITAL}`, DESKTOP],
+  ['07-provider-desktop', 'provider', `/demo/provider/proposal.html?proposal=${ATLAS_CAPITAL_PROPOSAL}`, DESKTOP],
+  ['08-contract-desktop', 'buyer', '/demo/finance/contracts.html', DESKTOP],
+  ['09-admin-desktop', 'admin', '/demo/finance/settings.html', DESKTOP],
+  ['10-workflow-builder-desktop', 'admin', '/demo/finance/policies.html', DESKTOP, { before: '/demo/finance/settings.html#aprovacao' }],
+  ['11-integrations-desktop', 'admin', '/demo/finance/integrations.html', DESKTOP, { before: '/demo/finance/settings.html#demonstracao' }],
+  ['12-financial-profile-desktop', 'admin', '/demo/finance/settings.html#perfil', DESKTOP],
+  ['13-notifications-desktop', 'buyer', '/demo/finance/notifications.html', DESKTOP],
+  ['14-command-palette-desktop', 'buyer', '/demo/finance/dashboard.html', DESKTOP, { action: 'palette' }],
+  ['15-intake-desktop', 'buyer', '/demo/finance/intake.html', DESKTOP, { before: '/demo/finance/new-rfq.html' }],
+  ['16-usage-desktop', 'admin', '/demo/finance/usage.html', DESKTOP, { before: '/demo/finance/ops.html' }],
+  ['17-home-1366', 'buyer', '/demo/finance/dashboard.html', LAPTOP],
+  ['18-rfq-list-1366', 'buyer', '/demo/finance/rfqs.html', LAPTOP],
+  ['19-home-1280', 'buyer', '/demo/finance/dashboard.html', NOTEBOOK],
+  ['20-rfq-list-1280', 'buyer', '/demo/finance/rfqs.html', NOTEBOOK],
+  ['21-home-mobile', 'buyer', '/demo/finance/dashboard.html', MOBILE],
+  ['22-rfq-mobile', 'buyer', `/demo/finance/rfq.html?id=${CAPITAL}`, MOBILE],
+  ['23-approval-mobile', 'approver', '/demo/finance/approvals.html', MOBILE],
+  ['24-provider-mobile', 'provider', '/demo/provider/index.html', MOBILE],
+  ['25-notifications-mobile', 'buyer', '/demo/finance/notifications.html', MOBILE]
+];
+
 function startServer() {
   const child = spawn(process.execPath, ['scripts/serve-dist.mjs'], { env: { ...process.env, PORT: String(PORT) }, stdio: 'ignore' });
   return child;
@@ -107,7 +143,9 @@ async function main() {
     // Chromium local do ambiente quando a versão empacotada não estiver instalada.
     const executablePath = process.env.ARANDU_CHROMIUM || undefined;
     const browser = await chromium.launch({ executablePath });
-    for (const [name, persona, target, viewport] of SHOTS) {
+    const list = round === 'v3' ? SHOTS_V3 : SHOTS;
+    for (const [name, persona, defaultTarget, viewport, options = {}] of list) {
+      const target = (phase === 'before' && options.before) || defaultTarget;
       const mobile = viewport.width < 600;
       const context = await browser.newContext({ viewport, deviceScaleFactor: 1, isMobile: mobile, hasTouch: mobile, reducedMotion: 'reduce', colorScheme: 'light', locale: 'pt-BR' });
       const page = await context.newPage();
@@ -127,6 +165,7 @@ async function main() {
       }, persona);
       await page.goto(`${BASE}${target}`);
       await settle(page);
+      if (options.action === 'palette') { await page.keyboard.press('Control+k'); await page.waitForTimeout(400); }
       await page.screenshot({ path: path.join(outDir, `${name}.png`) });
       console.log(`✓ ${phase}/${name}.png`);
       await context.close();

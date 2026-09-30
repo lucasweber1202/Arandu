@@ -74,7 +74,9 @@ async function createTransport() {
   if (!demoPage) return httpTransport;
   if (!DEMO_BUILD) return null;
   const { createDemoEngine } = await import('./demo/engine.js');
-  return createDemoEngine({ latency: 140 });
+  // Work OS da demo: cache local-first (stale-while-revalidate) sobre o motor fictício.
+  const { withLocalFirst } = await import('./demo/workspace/platform/local-first.js');
+  return withLocalFirst(createDemoEngine({ latency: 140 }));
 }
 
 // Camada de experiência da demonstração (laboratório de UX): mesma trava do
@@ -311,7 +313,8 @@ function focusDeepLink() {
 }
 
 async function boot() {
-  if (!root || !VIEWS[view]) return;
+  // Telas exclusivas da demo (Work OS) só existem depois que a camada da demo carrega.
+  if (!root || (!VIEWS[view] && !demoPage)) return;
   root.setAttribute('aria-busy', 'true');
   const transport = await createTransport();
   if (!transport) {
@@ -329,6 +332,7 @@ async function boot() {
     Object.assign(VIEWS, workspace.views || {});
     ctx.demoSettings = workspace.settingsSection(ctx);
   }
+  if (!VIEWS[view]) return;
   await render();
   if (ctx.mode === 'demo' && transport.recovered?.()) toast('O estado salvo da demonstração era inválido ou de outra versão e foi restaurado para o conjunto inicial.', 'info');
   if (ctx.mode === 'demo' && !transport.persistent?.()) toast('Este navegador não permite guardar dados locais: a demonstração funciona, mas não sobrevive a recarregar a página.', 'info');

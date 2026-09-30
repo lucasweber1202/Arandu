@@ -14,13 +14,26 @@
 import { el, icon } from '../../src/core.js';
 import { resolveEntity } from './quick-view.js';
 import { announce } from './shell.js';
+import { flag } from './platform/telemetry.js';
 
 export const INSPECTOR_QUERY = '(min-width: 1360px)';
 const LIST_VIEWS = new Set(['rfqs', 'proposals', 'contracts', 'providers', 'tasks']);
 const TYPE_LABEL = { rfq: 'Solicitação', proposal: 'Proposta', contract: 'Contrato', provider: 'Provedor', task: 'Tarefa' };
 const state = { ctx: null, current: null, opener: null };
 
-export const inspectorAvailable = (ctx) => LIST_VIEWS.has(ctx?.view) && ctx.audience === 'company' && matchMedia(INSPECTOR_QUERY).matches;
+// Adaptativo (Work OS): decide pela largura ÚTIL medida (tela menos a barra
+// lateral como está agora), não por um breakpoint fixo. Lista (≥ 680 px) +
+// inspector (420 px) precisam caber; em 1280 com barra compacta cabe, com a
+// barra expandida não. Com a flag desligada, volta ao breakpoint fixo.
+export const INSPECTOR_MIN_WORKSPACE = 1100;
+export function workspaceWidth() {
+  const sidebar = document.querySelector('.sidebar');
+  const rect = sidebar?.getBoundingClientRect();
+  const overlay = sidebar && getComputedStyle(sidebar).position === 'fixed' && document.documentElement.dataset.sidebarState !== 'expanded';
+  return Math.round(window.innerWidth - (rect && !overlay && rect.width < window.innerWidth / 2 ? rect.width : 0));
+}
+export const inspectorFits = () => (flag('inspectorV2') ? window.innerWidth >= 1180 && workspaceWidth() >= INSPECTOR_MIN_WORKSPACE : matchMedia(INSPECTOR_QUERY).matches);
+export const inspectorAvailable = (ctx) => LIST_VIEWS.has(ctx?.view) && ctx.audience === 'company' && inspectorFits();
 const isOpen = () => document.documentElement.dataset.inspector === 'on';
 
 function markSelection(type, id) {
@@ -106,7 +119,9 @@ export function installInspector(ctx) {
     if (event.key === 'ArrowUp' || event.key === 'k') { event.preventDefault(); step(-1); }
   });
   // Ficou estreito: o inspector sai de cena (a quick view assume dali em diante).
-  matchMedia(INSPECTOR_QUERY).addEventListener?.('change', (event) => { if (!event.matches) closeInspector({ restore: false }); });
+  matchMedia(INSPECTOR_QUERY).addEventListener?.('change', (event) => { if (!event.matches && !flag('inspectorV2')) closeInspector({ restore: false }); });
+  let frame = 0;
+  addEventListener('resize', () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(() => { document.documentElement.dataset.workspaceWidth = String(workspaceWidth()); if (isOpen() && !inspectorFits()) closeInspector({ restore: false }); }); }, { passive: true });
 }
 /** Chamado a cada render: o inspector não sobrevive a uma troca de tela. */
 export function resetInspector() { if (isOpen()) closeInspector({ restore: false }); else document.documentElement.dataset.inspector = 'off'; }
