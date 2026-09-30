@@ -41,12 +41,25 @@ async function enterDemo(page) {
   await expect(page.locator('#precisa-de-voce')).toBeVisible();
 }
 
+/** Abre o contexto de uma decisão: ao lado da caixa (≥ 1100 px) ou numa folha (celular). */
+async function openDecision(page, text) {
+  await page.locator('.dinbox-item', { hasText: text }).click();
+  if ((page.viewportSize()?.width || 0) >= 1100) {
+    const panel = page.locator('#decision-context');
+    await expect(panel.getByRole('heading', { level: 2 })).toContainText(text);
+    return panel;
+  }
+  const sheet = page.getByRole('dialog', { name: new RegExp(text) });
+  await expect(sheet).toBeVisible();
+  return sheet;
+}
+
 test('abre /demo sem login e deixa claro que é demonstrativo', async ({ page }) => {
   const offending = watchNetwork(page);
   await page.goto('/demo/index.html');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Procurement financeiro, do pedido à renovação.');
   await expect(page.locator('#sobre')).toContainText('dados fictícios. Nenhuma operação financeira real será executada.');
-  await page.getByRole('link', { name: 'Explorar como empresa' }).click();
+  await page.getByRole('link', { name: 'Explorar livremente' }).click();
   await expect(page).toHaveURL(/\/demo\/finance\/dashboard\.html$/);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(/^(Bom dia|Boa tarde|Boa noite), Marina$/);
   await expect(page.locator('#precisa-de-voce')).toContainText('Precisa de você');
@@ -123,7 +136,9 @@ test('jornada completa: comprador → provedor → comprador → aprovador → d
   await expect(page.locator('.save-indicator')).toContainText(/Rascunho salvo/);
   await proposal.getByRole('button', { name: 'Revisar e enviar proposta' }).click();
   await confirm(page, 'Enviar proposta');
-  await expect(page.locator('.proposal-status')).toContainText('Proposta enviada · versão 1');
+  // Depois de enviar: estado de sucesso claro, não só um aviso passageiro.
+  await expect(page.locator('.proposal-status')).toContainText('Proposta v1 enviada');
+  await expect(page.locator('.proposal-status')).toContainText('Responde à revisão 2');
 
   // Comprador compara e pede aprovação ao CFO.
   await asPersona(page, 'Comprador');
@@ -136,17 +151,17 @@ test('jornada completa: comprador → provedor → comprador → aprovador → d
   await page.getByRole('button', { name: 'Solicitar aprovação' }).click();
   await expect(page.locator('.approval-card')).toContainText('Etapa 1 de 1');
 
-  // Aprovador aprova com contexto.
+  // Aprovador revisa o contexto e só então aprova (a linha da caixa não aprova).
   await asPersona(page, 'Aprovador');
   await page.goto('/demo/finance/approvals.html');
-  const row = page.locator('.inbox-row', { hasText: 'Giro E2E' });
+  const row = page.locator('.dinbox-item', { hasText: 'Giro E2E' });
   await expect(row).toContainText('Aguardando você');
-  await row.getByRole('button', { name: 'Ver contexto' }).click();
-  const context = page.getByRole('dialog', { name: /Giro E2E/ });
+  await expect(row.getByRole('button', { name: 'Aprovar' })).toHaveCount(0);
+  const context = await openDecision(page, 'Giro E2E');
   await expect(context).toContainText('Por que esta proposta');
   await context.getByRole('button', { name: 'Aprovar' }).click();
   await confirm(page, 'Aprovar');
-  await expect(page.locator('.inbox-row', { hasText: 'Giro E2E' })).toHaveCount(0);
+  await expect(page.locator('.dinbox-item', { hasText: 'Giro E2E' })).toHaveCount(0);
 
   // Comprador decide, registra contrato e vê a renovação.
   await asPersona(page, 'Comprador');
@@ -240,7 +255,7 @@ test('persona muda superfície, não credencial', async ({ page, context }) => {
   await asPersona(page, 'Aprovador');
   await page.goto('/demo/finance/dashboard.html');
   await expect(page.getByRole('link', { name: 'Nova solicitação' })).toHaveCount(0);
-  await expect(page.locator('#precisa-de-voce')).toContainText('Aprovar: Capital de giro');
+  await expect(page.locator('#precisa-de-voce')).toContainText('Revisar e decidir a aprovação — Capital de giro');
   await page.goto('/demo/finance/new-rfq.html');
   await expect(page.locator('#view')).toContainText('Seu papel não cria solicitações');
   // Nenhum cookie ou token é criado pela troca de persona.
@@ -293,9 +308,7 @@ test('aprovador pede alterações em um caso e aprova outro; o comprador vê cad
   await enterDemo(page);
   await asPersona(page, 'Aprovador');
   await page.goto('/demo/finance/approvals.html');
-  const overdraft = page.locator('.inbox-row', { hasText: 'Conta garantida' });
-  await overdraft.getByRole('button', { name: 'Ver contexto' }).click();
-  const context = page.getByRole('dialog', { name: /Conta garantida/ });
+  const context = await openDecision(page, 'Conta garantida');
   // O aprovador decide sem sair do painel: demanda, motivo, comparação e histórico.
   await expect(context).toContainText('Por que esta proposta');
   await expect(context).toContainText('Mesma taxa nas duas propostas');
@@ -307,8 +320,8 @@ test('aprovador pede alterações em um caso e aprova outro; o comprador vê cad
   await expect(reason.getByLabel('Motivo')).toHaveAttribute('aria-invalid', 'true');
   await reason.getByLabel('Motivo').fill('Peça à Nexa o CET e confirme o limite de R$ 800 mil.');
   await reason.getByRole('button', { name: 'Pedir alterações' }).click();
-  await expect(page.locator('.inbox-row', { hasText: 'Conta garantida' })).toHaveCount(0);
-  const capital = page.locator('.inbox-row', { hasText: 'Capital de giro' });
+  await expect(page.locator('.dinbox-item', { hasText: 'Conta garantida' })).toHaveCount(0);
+  const capital = await openDecision(page, 'Capital de giro');
   await capital.getByRole('button', { name: 'Aprovar' }).click();
   await confirm(page, 'Aprovar');
   await expect(page.locator('#view')).toContainText('Nenhuma decisão esperando por você');
@@ -316,12 +329,12 @@ test('aprovador pede alterações em um caso e aprova outro; o comprador vê cad
   await asPersona(page, 'Comprador');
   await page.goto('/demo/finance/dashboard.html');
   const attention = page.locator('#precisa-de-voce');
-  await expect(attention).toContainText('Alterações pedidas: Conta garantida');
+  await expect(attention).toContainText('Ajustar e pedir aprovação de novo — Conta garantida');
   await expect(attention).toContainText('Peça à Nexa o CET');
-  await expect(attention).toContainText('Registrar decisão: Capital de giro');
-  await expect(attention).not.toContainText('Avaliar propostas: Conta garantida');
+  await expect(attention).toContainText('Registrar a decisão — Capital de giro');
+  await expect(attention).not.toContainText('Comparar as 2 propostas recebidas — Conta garantida');
   await page.goto(`/demo/finance/rfq.html?id=${OVERDRAFT}`);
-  await expect(page.locator('.next-step')).toContainText('Alterações pedidas na aprovação');
+  await expect(page.locator('#stage-panel')).toContainText('Ajustar e pedir aprovação de novo');
 });
 
 test('confidencialidade entre provedores: pergunta de concorrente e documentos internos nunca chegam ao Atlas', async ({ page }) => {

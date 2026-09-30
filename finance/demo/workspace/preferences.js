@@ -11,10 +11,13 @@
 //   v1 (PR #86): aparência, painel, favoritos, visões de Solicitações, recentes.
 //   v2: + densidade/barra "auto"/"hidden", preset, detalhe, comportamento,
 //       visões de Contratos com filtro extra e colunas, colunas por tabela.
-// A migração v1 → v2 preserva tudo o que a pessoa já tinha escolhido.
+//   v3 (Workspace 2.0): o painel ganha o módulo "Em andamento" (processos com a
+//       próxima ação) logo depois de "Precisa de você", inclusive em layouts
+//       já personalizados. Nada é removido.
+// As migrações v1 → v2 → v3 preservam tudo o que a pessoa já tinha escolhido.
 
 export const WORKSPACE_KEY = 'arandu-demo-workspace';
-export const WORKSPACE_VERSION = 2;
+export const WORKSPACE_VERSION = 3;
 
 export const APPEARANCE_OPTIONS = Object.freeze({
   theme: ['light', 'dark', 'system'],
@@ -85,21 +88,35 @@ function sanitizeView(view) {
     hiddenColumns: columns(view.hiddenColumns), pinned: view.pinned === true };
 }
 
-/** Converte um registro v1 no formato v2 sem perder escolhas. */
+/** v2 → v3: "Em andamento" entra visível logo depois de "Precisa de você". */
+function migrateV2(raw) {
+  const dashboard = {};
+  for (const [persona, layout] of Object.entries(raw.dashboard || {})) {
+    if (!layout || typeof layout !== 'object' || !Array.isArray(layout.order) || layout.order.includes('inflight')) { dashboard[persona] = layout; continue; }
+    const order = [...layout.order];
+    const at = order.indexOf('attention');
+    order.splice(at < 0 ? 0 : at + 1, 0, 'inflight');
+    dashboard[persona] = { ...layout, order, hidden: (layout.hidden || []).filter((id) => id !== 'inflight') };
+  }
+  return { ...raw, version: 3, dashboard };
+}
+
+/** Converte registros antigos (v1, v2) no formato atual sem perder escolhas. */
 export function migrate(raw) {
   if (!raw || typeof raw !== 'object') return {};
   if (raw.version === WORKSPACE_VERSION) return raw;
+  if (raw.version === 2) return migrateV2(raw);
   if (raw.version === 1) {
-    return {
+    return migrateV2({
       ...raw,
-      version: WORKSPACE_VERSION,
+      version: 2,
       // Quem já escolheu densidade e barra mantém; o preset vira "personalizado"
       // se algo foge do padrão antigo, para não sobrescrever a escolha.
       appearance: { ...raw.appearance, preset: raw.appearance && (raw.appearance.density !== 'comfortable' || raw.appearance.sidebar !== 'auto') ? 'custom' : 'balanced', detail: 'full' },
       behavior: { ...DEFAULT_BEHAVIOR },
       savedViews: (raw.savedViews || []).map((view) => ({ ...view, extra: '', hiddenColumns: [] })),
       tables: {}
-    };
+    });
   }
   return {};
 }
@@ -142,8 +159,8 @@ export function readState() {
   let parsed = null;
   try { parsed = JSON.parse(storage?.getItem(WORKSPACE_KEY) || 'null'); } catch { parsed = null; }
   cache = sanitize(parsed);
-  // Registro antigo (v1) é regravado já migrado: a próxima leitura é direta.
-  if (parsed?.version === 1) { try { storage?.setItem(WORKSPACE_KEY, JSON.stringify(cache)); } catch { /* segue em memória */ } }
+  // Registro antigo (v1, v2) é regravado já migrado: a próxima leitura é direta.
+  if (parsed && [1, 2].includes(parsed.version)) { try { storage?.setItem(WORKSPACE_KEY, JSON.stringify(cache)); } catch { /* segue em memória */ } }
   return cache;
 }
 

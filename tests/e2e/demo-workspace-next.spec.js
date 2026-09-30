@@ -26,7 +26,7 @@ async function noOverflow(page, label) {
   expect(overflow, `rolagem horizontal em ${label}`).toBeLessThanOrEqual(1);
 }
 
-test('registro v1 (PR #86) migra para v2 sem perder escolhas', async ({ page }) => {
+test('registro v1 (PR #86) migra até v3 sem perder escolhas', async ({ page }) => {
   await page.goto('/demo/index.html');
   await page.evaluate((key) => localStorage.setItem(key, JSON.stringify({
     version: 1, appearance: { theme: 'dark', density: 'compact', sidebar: 'compact', motion: 'normal', accent: 'violet' }, shell: { focus: false },
@@ -39,13 +39,16 @@ test('registro v1 (PR #86) migra para v2 sem perder escolhas', async ({ page }) 
   await expect(html(page)).toHaveAttribute('data-accent', 'violet');
   await expect(html(page)).toHaveAttribute('data-density', 'compact');
   const state = await stored(page);
-  expect(state.version).toBe(2);
+  expect(state.version).toBe(3);
+  // v3: "Em andamento" entra logo depois de "Precisa de você", mesmo em layout personalizado.
+  expect(state.dashboard.buyer.order.slice(0, 3)).toEqual(['attention', 'inflight', 'tasks']);
   expect(state.appearance).toMatchObject({ theme: 'dark', density: 'compact', sidebar: 'compact', accent: 'violet', preset: 'custom' });
   expect(state.behavior).toEqual({ rfqClick: 'quick', home: 'overview', afterCreate: 'stay' });
   expect(state.dashboard.buyer.hidden).toContain('pipeline');
   expect(state.favorites).toHaveLength(1);
   expect(state.savedViews[0]).toMatchObject({ name: 'Fila antiga', pinned: true, extra: '', hiddenColumns: [] });
   await expect(page.locator('[data-module="pipeline"]')).toHaveCount(0);
+  await expect(page.locator('[data-module="inflight"]')).toBeVisible();
 });
 
 test('presets de workspace: executivo reduz o painel, operacional adensa, e mexer à mão vira personalizado', async ({ page }) => {
@@ -55,15 +58,15 @@ test('presets de workspace: executivo reduz o painel, operacional adensa, e mexe
   await picker.getByRole('button', { name: 'Executivo' }).click();
   await expect(html(page)).toHaveAttribute('data-detail', 'essential');
   const modules = () => page.locator('.dash-modules > [data-module]').evaluateAll((nodes) => nodes.map((node) => node.dataset.module));
-  expect(await modules()).toEqual(['attention', 'summary', 'renewals']);
+  expect(await modules()).toEqual(['attention', 'inflight', 'renewals']);
   await picker.getByRole('button', { name: 'Operacional' }).click();
   await expect(html(page)).toHaveAttribute('data-density', 'compact');
-  expect(await modules()).toEqual(['attention', 'pipeline', 'tasks', 'recent-rfqs', 'renewals', 'activity']);
+  expect(await modules()).toEqual(['attention', 'inflight', 'pipeline', 'tasks', 'recent-rfqs', 'renewals', 'activity']);
   await page.getByRole('button', { name: 'Ocultar Atividade recente' }).click();
   expect((await stored(page)).appearance.preset).toBe('custom');
   await picker.getByRole('button', { name: 'Equilibrado' }).click();
   expect((await stored(page)).appearance.preset).toBe('balanced');
-  expect((await modules()).slice(0, 3)).toEqual(['attention', 'summary', 'pipeline']);
+  expect((await modules()).slice(0, 3)).toEqual(['attention', 'inflight', 'renewals']);
 });
 
 test('comportamento: abrir página em vez do resumo, página inicial e voltar para a lista após criar', async ({ page }) => {
@@ -71,6 +74,7 @@ test('comportamento: abrir página em vez do resumo, página inicial e voltar pa
   await page.locator('#persona-trigger').click();
   await page.getByRole('menuitem', { name: 'Aparência e preferências…' }).click();
   const panel = page.getByRole('dialog', { name: 'Aparência e preferências' });
+  await panel.getByText('Preferências avançadas').click();
   await panel.getByRole('radio', { name: 'Abrir a página' }).check();
   await panel.getByRole('radio', { name: 'Aprovações' }).check();
   await panel.getByRole('radio', { name: 'Voltar para a lista' }).check();
@@ -174,25 +178,43 @@ test('workspace de comparação: mostrar/ocultar propostas e critérios, destaca
   await expect(page.locator('.sidebar')).toBeVisible();
 });
 
-test('aprovação do CFO: valor, proposta, justificativa e ações com peso visual distinto', async ({ page }) => {
+test('aprovação do CFO: revisar antes de agir, contexto na ordem da decisão e ações com peso distinto', async ({ page }, testInfo) => {
   await ready(page, '/demo/finance/dashboard.html');
   await asPersona(page, 'approver', 'Ricardo Alves');
   await ready(page, '/demo/finance/approvals.html');
-  await page.locator('.inbox-row', { hasText: 'Capital de giro' }).getByRole('button', { name: 'Ver contexto' }).click();
-  const view = page.getByRole('dialog', { name: 'Capital de giro — R$ 3 milhões' });
-  await expect(view.locator('.ap-amount')).toHaveText('R$ 3.000.000');
+  const row = page.locator('.dinbox-item', { hasText: 'Capital de giro' });
+  // A linha da caixa não aprova: só leva à revisão.
+  await expect(row).toContainText('Revisar decisão');
+  await expect(page.locator('.dinbox-list').getByRole('button', { name: /Aprovar|Rejeitar/ })).toHaveCount(0);
+  await row.click();
+  const view = isMobile(testInfo) ? page.getByRole('dialog', { name: 'Capital de giro — R$ 3 milhões' }) : page.locator('#decision-context');
+  if (!isMobile(testInfo)) await expect(row).toHaveAttribute('aria-current', 'true');
+  await expect(view.locator('.dc-amount')).toHaveText('R$ 3.000.000');
   await expect(view).toContainText('Atlas Bank — DEMO');
   await expect(view).toContainText('1,39% a.m.');
-  await expect(view).toContainText('Por que esta proposta');
-  await expect(view).toContainText('Solicitado por');
+  // Ordem: quanto → proposta → condições → por quê → diferenças → quem pediu → etapa → decisão.
+  const questions = await view.locator('.dc-q').evaluateAll((nodes) => nodes.map((node) => node.textContent.replace(/^\d+/, '').trim()).filter(Boolean));
+  const expected = ['Quanto?', 'Qual proposta?', 'Quais condições?', 'Por que esta proposta?', 'Quais diferenças materiais existem?', 'Quem pediu?', 'Em que etapa está?'];
+  expect(questions.slice(0, expected.length)).toEqual(expected);
+  await expect(view.locator('.dx')).toContainText('Horizonte');
+  await expect(view).not.toContainText(/vencedor|recomendad/i);
   const approve = view.getByRole('button', { name: 'Aprovar' });
   const reject = view.getByRole('button', { name: 'Rejeitar' });
+  const changes = view.getByRole('button', { name: 'Pedir alterações' });
   expect(await approve.evaluate((node) => node.classList.contains('btn-primary'))).toBe(true);
   expect(await reject.evaluate((node) => node.classList.contains('btn-danger-ghost'))).toBe(true);
-  const [a, r] = [await approve.boundingBox(), await reject.boundingBox()];
-  expect(r.x).toBeLessThan(a.x);
+  // Ordem de leitura: pedir alterações, rejeitar e, por último, aprovar (à direita no desktop).
+  const labels = await view.locator('.approval-actions .btn').evaluateAll((nodes) => nodes.map((node) => node.textContent.trim()));
+  expect(labels).toEqual(['Pedir alterações', 'Rejeitar', 'Aprovar']);
+  if (!isMobile(testInfo)) {
+    const [a, r, c] = [await approve.boundingBox(), await reject.boundingBox(), await changes.boundingBox()];
+    expect(c.x).toBeLessThan(r.x);
+    expect(r.x).toBeLessThan(a.x);
+  }
+  // Aprovar ainda pede confirmação.
+  await approve.click();
+  await expect(page.getByRole('dialog', { name: 'Aprovar esta proposta?' })).toBeVisible();
   await page.keyboard.press('Escape');
-  await expect(view).toBeHidden();
 });
 
 test('quick view universal: contrato e tarefa seguem o mesmo modelo', async ({ page }) => {
@@ -205,7 +227,7 @@ test('quick view universal: contrato e tarefa seguem o mesmo modelo', async ({ p
   await ready(page, '/demo/finance/contracts.html');
   const card = page.locator('article[data-entity="contract"]', { hasText: 'Cadência Adquirência — DEMO' }).first();
   await expect(card.getByRole('list', { name: /Ciclo de vida/ })).toContainText('Aviso prévio');
-  await page.getByRole('navigation', { name: 'Visões' }).getByRole('button', { name: 'Encerrados' }).click();
+  await page.getByRole('navigation', { name: 'Filtros rápidos e salvos' }).getByRole('button', { name: 'Encerrados' }).click();
   await expect(page.locator('article[data-entity="contract"]:not([hidden])')).toHaveCount(1);
 });
 
@@ -225,7 +247,7 @@ test('navegação móvel deriva da persona e o "Mais" traz o restante', async ({
   await page.keyboard.press('Escape');
   await asPersona(page, 'provider', 'Camila Rocha');
   await expect(page).toHaveURL(/provider\/index\.html/);
-  await expect(page.getByRole('navigation', { name: 'Navegação principal' }).locator('.tab-label')).toHaveText(['Início', 'Convites', 'Propostas', 'Mais']);
+  await expect(page.getByRole('navigation', { name: 'Navegação principal' }).locator('.tab-label')).toHaveText(['Início', 'Oportunidades', 'Convites', 'Mais']);
   await noOverflow(page, 'portal do provedor');
 });
 
@@ -261,7 +283,7 @@ test('checagens visuais: zoom 125%, texto grande, movimento reduzido e tema escu
   await page.evaluate((key) => localStorage.setItem(key, JSON.stringify({ version: 2, appearance: { theme: 'dark' } })), KEY);
   await ready(page, `/demo/finance/rfq.html?id=${CAPITAL}`);
   const colors = await page.evaluate(() => ({ body: getComputedStyle(document.body).backgroundColor, h1: getComputedStyle(document.querySelector('h1')).color, table: getComputedStyle(document.querySelector('.topbar')).borderBottomColor }));
-  expect(colors.body).toBe('rgb(14, 15, 17)');
+  expect(colors.body).toBe('rgb(15, 16, 18)');
   expect(colors.h1).toBe('rgb(236, 236, 238)');
 });
 

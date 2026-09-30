@@ -35,31 +35,36 @@ export function homeHref(ctx) {
 export function navModel(ctx) {
   if (ctx.audience === 'provider') {
     return [
-      { key: 'providerHome', label: 'Início', icon: 'home', href: ctx.href('/provider/index.html') },
-      { group: 'Trabalho', items: [
+      { key: 'providerHome', label: 'Início', icon: 'home', href: ctx.href('/provider/index.html'), count: 'none' },
+      // Oportunidade = demanda que dá para responder; Proposta = a resposta; Convite = o acesso.
+      { group: 'Meu trabalho', items: [
         { key: 'providerRfqs', label: 'Oportunidades', icon: 'inbox', href: ctx.href('/provider/rfqs.html'), views: ['providerRfqs', 'providerProposal'] },
-        { key: 'providerInvite', label: 'Código de convite', icon: 'send', href: ctx.href('/provider/invite.html') }
+        { key: 'providerInvites', label: 'Convites', icon: 'send', href: ctx.href('/provider/index.html#convites'), count: 'providerHome' },
+        { key: 'providerInvite', label: 'Aceitar por código', icon: 'lock', href: ctx.href('/provider/invite.html') }
       ] }
     ];
   }
   return [
-    { key: 'dashboard', label: 'Início', icon: 'home', href: ctx.href('/finance/dashboard.html'), views: ['dashboard', 'home'] },
-    { group: 'Trabalho', items: [
-      { key: 'rfqs', label: 'Solicitações', icon: 'file', href: ctx.href('/finance/rfqs.html'), views: ['rfqs', 'rfq', 'newRfq'] },
+    // Meu trabalho (o que precisa de mim) → Processos (objetos em andamento) → Rede (contexto).
+    { group: 'Meu trabalho', items: [
+      { key: 'dashboard', label: 'Início', icon: 'home', href: ctx.href('/finance/dashboard.html'), views: ['dashboard', 'home'] },
       { key: 'approvals', label: 'Aprovações', icon: 'checkCircle', href: ctx.href('/finance/approvals.html') },
-      { key: 'proposals', label: 'Propostas', icon: 'inbox', href: ctx.href('/finance/proposals.html') }
-    ] },
-    { group: 'Gestão', items: [
-      { key: 'contracts', label: 'Contratos', icon: 'briefcase', href: ctx.href('/finance/contracts.html') },
-      { key: 'providers', label: 'Provedores', icon: 'building', href: ctx.href('/finance/providers.html') },
       { key: 'tasks', label: 'Tarefas', icon: 'tasks', href: ctx.href('/finance/tasks.html') }
+    ] },
+    { group: 'Processos', items: [
+      { key: 'rfqs', label: 'Solicitações', icon: 'file', href: ctx.href('/finance/rfqs.html'), views: ['rfqs', 'rfq', 'newRfq'] },
+      { key: 'proposals', label: 'Propostas', icon: 'inbox', href: ctx.href('/finance/proposals.html') },
+      { key: 'contracts', label: 'Contratos', icon: 'briefcase', href: ctx.href('/finance/contracts.html') }
+    ] },
+    { group: 'Rede', items: [
+      { key: 'providers', label: 'Provedores', icon: 'building', href: ctx.href('/finance/providers.html') }
     ] }
   ];
 }
 const isActive = (ctx, item) => item.key === ctx.view || item.views?.includes(ctx.view);
 
 function navLink(ctx, item, counts) {
-  const count = counts?.[item.key];
+  const count = counts?.[item.count || item.key];
   return el('li', {}, el('a', { class: 'side-link', href: item.href, 'aria-current': isActive(ctx, item) ? 'page' : null, dataset: { tip: item.label } }, [
     icon(item.icon, { size: 17 }), el('span', { class: 'side-label', text: item.label }),
     count ? el('span', { class: 'side-count', 'aria-label': `${count} pendentes`, text: String(count) }) : null
@@ -93,10 +98,10 @@ export function sidebarPersonal(ctx) {
   const pinned = state.savedViews.filter((view) => view.pinned);
   const currentView = new URLSearchParams(location.search).get('visao') || (['rfqs', 'contracts'].includes(ctx.view) ? activeView(ctx, ctx.view)?.id : null);
   box.append(el('section', { class: 'side-section', 'aria-labelledby': 'side-views' }, [
-    el('h2', { class: 'side-section-title', id: 'side-views' }, [icon('bookmark', { size: 12 }), el('span', { text: 'Minhas visões' })]),
+    el('h2', { class: 'side-section-title', id: 'side-views' }, [icon('bookmark', { size: 12 }), el('span', { text: 'Filtros salvos' })]),
     pinned.length ? el('ul', { role: 'list' }, pinned.map((view) => el('li', {}, el('a', { class: 'side-link side-sub', href: viewHref(ctx, view), 'aria-current': currentView === view.id ? 'page' : null, dataset: { tip: view.name } }, [
       icon('bookmark', { size: 15 }), el('span', { class: 'side-label', text: view.name })]))))
-      : el('p', { class: 'side-empty', text: 'Fixe uma visão de Solicitações ou Contratos para vê-la aqui.' })
+      : el('p', { class: 'side-empty', text: 'Salve um filtro em Solicitações ou Contratos e fixe-o aqui.' })
   ]));
   return box;
 }

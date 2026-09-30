@@ -19,6 +19,14 @@ import { isFavorite, toggleFavorite, recordRecent } from './preferences.js';
 import { rfqStages, contractStages, timeline } from './timeline.js';
 import { trayCheckbox } from './comparison-tray.js';
 import { openApproval } from './approval.js';
+import { rfqNext, contractNext, taskNext } from './next-action.js';
+import { nextBlock } from './work-ui.js';
+
+/** Contexto da gramática da próxima ação (aprovações vêm do cache da camada). */
+export const workContext = (ctx) => ({ approvals: ctx.demoApprovals || [], viewerId: ctx.viewer?.id, members: ctx.members, contracts: ctx.data?.contracts || [] });
+// Inspector ancorado (telas largas, listas): registrado por index.js para evitar import circular.
+let inspectorHook = null;
+export function setInspectorHook(hook) { inspectorHook = hook; }
 
 const KEY_TERMS = {
   credit: ['offered_amount', 'interest_rate_month', 'cet_year', 'term_months', 'grace_months', 'valid_until'],
@@ -103,6 +111,7 @@ function rfqView(ctx, rfq) {
     body: [
       summary({ state: pill(rfq.pending_approval ? { label: 'Em aprovação', tone: 'warning', icon: 'clock' } : RFQ_STATUS[rfq.status], { size: 'sm' }), kicker: 'Solicitação', figure, sub,
         chips: [rfq.response_deadline && live ? chip(`Prazo ${relativeDays(rfq.response_deadline)}`, { urgent: days !== null && days <= 2 }) : null, invited ? chip(`${(rfq.proposals || []).length} de ${invited} responderam`, { iconName: 'inbox' }) : null] }),
+      nextBlock(ctx, rfqNext(rfq, workContext(ctx))),
       timeline(rfqStages(rfq), { compact: true, label: 'Etapa do processo' }),
       facts([
         ['Prazo de resposta', rfq.response_deadline ? formatDate(rfq.response_deadline) : 'Sem prazo', live && days !== null && days <= 2 ? 'is-urgent' : ''],
@@ -178,18 +187,9 @@ function providerView(ctx, provider) {
 }
 
 // -------------------------------------------------------------- contrato
-export function contractNext(contract) {
-  if (!['active', 'renewing'].includes(contract.status)) return 'Contrato encerrado, mantido para histórico.';
-  const stage = renewalStage(contract);
-  if (contract.status === 'renewing' && stage.stage !== 'past_notice') return `Nova concorrência em andamento. Compare antes do aviso prévio (${formatDate(stage.deadline)}).`;
-  if (stage.stage === 'window') return `Janela de renovação aberta. Decida até ${formatDate(stage.deadline)} (${relativeDays(stage.deadline)}).`;
-  if (stage.stage === 'past_notice') return `O prazo do aviso prévio passou em ${formatDate(stage.deadline)}. Vence ${relativeDays(contract.ends_on)}.`;
-  return `Nada a fazer agora. A janela de decisão abre ${relativeDays(stage.opensAt)} (${formatDate(stage.opensAt)}).`;
-}
 function contractView(ctx, contract) {
   const stage = renewalStage(contract);
   const source = (ctx.data.rfqs || []).find((rfq) => rfq.id === contract.rfq_id);
-  const attention = ['window', 'past_notice'].includes(stage.stage);
   const href = ctx.href(`/finance/contracts.html#contract-${contract.id}`);
   const live = ['active', 'renewing'].includes(contract.status);
   return {
@@ -197,7 +197,7 @@ function contractView(ctx, contract) {
     body: [
       summary({ state: pill(CONTRACT_STATUS[contract.status], { size: 'sm' }), kicker: productLabel(contract.product), figure: live && Number.isFinite(contract.days_to_end) ? (contract.days_to_end >= 0 ? `${contract.days_to_end} dias` : 'Vencido') : null,
         sub: live ? `até o vencimento em ${formatDate(contract.ends_on)}` : `${formatDate(contract.starts_on)} → ${formatDate(contract.ends_on)}` }),
-      el('p', { class: `qv-next${attention ? ' is-attention' : ''}` }, [icon(attention ? 'alert' : 'checkCircle', { size: 16 }), el('span', { text: contractNext(contract) })]),
+      nextBlock(ctx, contractNext(contract, workContext(ctx)), { action: false }),
       live ? timeline(contractStages(contract), { label: 'Ciclo de vida do contrato', hereText: '' }) : null,
       facts([
         ['Vigência', `${formatDate(contract.starts_on)} → ${formatDate(contract.ends_on)}`],
@@ -234,6 +234,7 @@ function taskView(ctx, task) {
       summary({ state: pill(task.status === 'done' ? { label: 'Concluída', tone: 'success', icon: 'checkCircle' } : { label: 'Aberta', tone: 'neutral', icon: 'clock' }, { size: 'sm' }), kicker: 'Tarefa',
         figure: task.due_on ? relativeDays(task.due_on) : 'Sem prazo', sub: task.due_on ? `prazo ${formatDate(task.due_on)}` : null,
         chips: [days !== null && days < 0 && task.status !== 'done' ? chip('Vencida', { urgent: true }) : null] }),
+      nextBlock(ctx, taskNext(task, workContext(ctx)), { action: false }),
       facts([['Responsável', task.assignee_name || 'Sem responsável'], related ? ['Relacionada a', related.title] : null, task.related_type === 'contract' ? ['Relacionada a', 'Contrato'] : null])
     ],
     footer: [related ? linkButton('Abrir solicitação', ctx.href(`/finance/rfq.html?id=${related.id}`), { size: 'sm', iconName: 'file' }) : null, done, openButton('Abrir em Tarefas', href)]
@@ -268,6 +269,7 @@ export function openQuickView(ctx, type, id) {
   }
   const entity = resolveEntity(ctx, type, id);
   if (!entity) return false;
+  if (inspectorHook?.(ctx, type, id)) return true;
   openDialog?.close();
   const view = entity.build();
   if (['rfq', 'contract', 'provider'].includes(type)) recordRecent(type, id, entity.title);

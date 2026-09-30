@@ -7,11 +7,13 @@
 
 import { el, icon, daysUntil, relativeDays, formatDate, formatDateTime, productLabel, demandHeadline, RFQ_STATUS, CONTRACT_STATUS, ROLE_LABELS, PROVIDER_KINDS, timeAgo, money, renewalStage, humanizeKey } from '../../src/core.js';
 import { pill, linkButton, button, emptyState, progress, toast, avatar } from '../../src/ui.js';
-import { actionItems, greeting } from '../../src/views/dashboard.js';
+import { greeting } from '../../src/views/dashboard.js';
 import { memberName, currentStep, approvalSummaryLine, eventTitle } from '../../src/views/shared.js';
 import { DEFAULT_DASHBOARDS } from './personas.js';
 import { PRESETS, PRESET_ORDER, applyPreset } from './presets.js';
 import { dashboardLayout, saveDashboardLayout, resetDashboardLayout, readState } from './preferences.js';
+import { workQueue, rfqNext, approvalNext } from './next-action.js';
+import { queueRow, stateLabel, nextInline } from './work-ui.js';
 
 const PIPELINE = [['draft', 'Rascunho'], ['open', 'Aberta'], ['collecting', 'Em coleta'], ['comparing', 'Em avaliação'], ['decided', 'Decidida'], ['contracted', 'Contratada']];
 const ACTIVE = ['open', 'collecting', 'comparing'];
@@ -28,21 +30,16 @@ function row({ href, title, meta, side = null, sideClass = '', iconName = null, 
     side ? el('span', { class: `dm-row-side ${sideClass}`.trim() }, side) : null
   ]);
 }
-const deadlineText = (rfq) => (rfq.response_deadline ? relativeDays(rfq.response_deadline) : 'sem prazo');
 
 // ----------------------------------------------------------------- módulos
 function attentionModule(ctx, model) {
   const { items } = model;
   const visible = 6;
-  const list = el('ul', { class: 'need-list', role: 'list' }, items.map((item, index) => el('li', { class: `need tone-${item.tone}`, hidden: index >= visible }, [
-    el('span', { class: 'need-icon' }, icon(item.icon, { size: 16 })),
-    el('span', { class: 'need-main' }, [
-      el('a', { class: 'need-title stretched', href: item.href, text: item.title }),
-      el('span', { class: 'need-detail', text: item.detail }),
-      el('span', { class: 'need-meta' }, [el('span', { class: 'need-kind', text: item.kind }), item.when ? el('span', { text: ` · ${item.when}` }) : null])
-    ]),
-    el('span', { class: 'need-cta', 'aria-hidden': 'true' }, [el('span', { text: item.cta }), icon('arrowRight', { size: 14 })])
-  ])));
+  const list = el('ul', { class: 'wq', role: 'list' }, items.map((item, index) => {
+    const node = queueRow(ctx, item, { quick: item.kind === 'rfq' && item.cta !== 'Revisar decisão' ? `rfq:${item.id}` : item.kind === 'contract' ? `contract:${item.id}` : null });
+    node.hidden = index >= visible;
+    return node;
+  }));
   const more = items.length > visible ? button(`Mostrar mais ${items.length - visible}`, { variant: 'ghost', size: 'sm', iconName: 'chevronDown', onClick: () => {
     for (const node of list.children) node.hidden = false;
     more.remove();
@@ -50,7 +47,26 @@ function attentionModule(ctx, model) {
   } }) : null;
   const body = items.length ? [list, more] : [emptyState({ title: 'Tudo em dia', text: ctx.can('create_rfq') ? 'Nenhuma aprovação, prazo ou renovação exige ação agora.' : 'Nenhuma aprovação aguarda você.', iconName: 'checkCircle', compact: true,
     action: ctx.can('create_rfq') ? linkButton('Nova solicitação', ctx.href('/finance/new-rfq.html'), { iconName: 'plus', size: 'sm' }) : null })];
-  return { id: 'precisa-de-voce', title: 'Precisa de você', count: items.length || null, body, className: 'dm-attention' };
+  return { id: 'precisa-de-voce', title: 'Precisa de você', count: items.length || null, subtitle: items.length ? 'O que depende de você agora, do mais urgente ao menos urgente.' : null, body, className: 'dm-attention' };
+}
+
+/** Processos em andamento: a mesma solicitação, com estado e próxima ação, fora da fila pessoal. */
+function inflightModule(ctx, model) {
+  const queued = new Set(model.items.filter((item) => item.kind === 'rfq').map((item) => item.id));
+  const context = { approvals: model.approvals, viewerId: ctx.viewer?.id, members: ctx.members, contracts: model.contracts };
+  const rows = model.rfqs.filter((rfq) => ['draft', 'open', 'collecting', 'comparing', 'decided'].includes(rfq.status) && !queued.has(rfq.id))
+    .map((rfq) => ({ rfq, next: rfqNext(rfq, context) }))
+    .sort((a, b) => (a.next.due?.days ?? 999) - (b.next.due?.days ?? 999));
+  const list = el('ul', { class: 'pl', role: 'list', 'aria-label': 'Processos em andamento' }, rows.map(({ rfq, next }) => el('li', { class: 'pl-row', dataset: { id: rfq.id } }, [
+    el('div', { class: 'pl-object' }, [el('a', { class: 'pl-title', href: ctx.href(`/finance/rfq.html?id=${rfq.id}`), text: rfq.title, ...quick('rfq', rfq.id) }),
+      el('span', { class: 'pl-sub', text: `${productLabel(rfq.product, { short: true })} · ${demandHeadline(rfq)}` })]),
+    el('div', { class: 'pl-state' }, stateLabel(next)),
+    el('div', { class: 'pl-next' }, nextInline(next)),
+    el('div', { class: 'pl-owner', text: next.owner?.name || '—' }),
+    el('div', { class: `pl-progress num${next.due?.urgent ? ' is-urgent' : ''}`, text: next.compact || (next.due ? next.due.text : '—') })
+  ])));
+  return { id: 'em-andamento', title: 'Em andamento', count: rows.length || null, subtitle: 'Processos ativos e o próximo passo de cada um, mesmo quando não depende de você.', link: ['Solicitações', ctx.href('/finance/rfqs.html')],
+    body: rows.length ? list : emptyState({ title: 'Nenhum processo em andamento', compact: true, iconName: 'file' }) };
 }
 
 function summaryModule(ctx, model) {
@@ -68,14 +84,12 @@ function summaryModule(ctx, model) {
     const credit = active.filter((rfq) => rfq.product === 'credit').reduce((sum, rfq) => sum + Number(rfq.demand?.amount || 0), 0);
     if (credit) figures.push(['Crédito em concorrência', money(credit, { compact: true }), ctx.href('/finance/rfqs.html?product=credit')]);
   }
-  return { id: 'resumo', title: 'Em andamento', body: el('dl', { class: 'figures' }, figures.map(([label, value, href]) => el('div', { class: 'figure' }, [
+  return { id: 'resumo', title: 'Indicadores', subtitle: 'Contagens reais, sem projeção.', body: el('dl', { class: 'figures' }, figures.map(([label, value, href]) => el('div', { class: 'figure' }, [
     el('dt', {}, el('a', { href, text: label })), el('dd', { class: 'num', text: String(value) })]))) };
 }
 
 function pipelineModule(ctx, model) {
   const { rfqs } = model;
-  const total = rfqs.length || 1;
-  void total;
   // Fluxo do procurement com a contagem de cada etapa; cada etapa filtra a lista.
   const bar = el('ol', { class: 'flow', 'aria-label': 'Solicitações por etapa' }, PIPELINE.map(([status, label], index) => {
     const count = rfqs.filter((rfq) => rfq.status === status).length;
@@ -84,20 +98,7 @@ function pipelineModule(ctx, model) {
       el('a', { href: ctx.href(`/finance/rfqs.html?status=${status}`), 'aria-label': `${label}: ${count}` }, [el('span', { class: 'flow-count num', text: String(count) }), el('span', { class: 'flow-label', text: label })])
     ]);
   }));
-  const inFlight = rfqs.filter((rfq) => ACTIVE.includes(rfq.status)).sort((a, b) => String(a.response_deadline || '9999').localeCompare(String(b.response_deadline || '9999')));
-  const list = moduleList(inFlight.map((rfq) => {
-    const invited = (rfq.invites || []).length || rfq.invites_count || 0;
-    const answered = (rfq.proposals || []).length;
-    const days = daysUntil(rfq.response_deadline);
-    return el('li', { class: 'dm-row dm-process' }, [
-      el('span', { class: 'dm-row-main' }, [el('a', { class: 'dm-row-title stretched', href: ctx.href(`/finance/rfq.html?id=${rfq.id}`), text: rfq.title, ...quick('rfq', rfq.id) }),
-        el('span', { class: 'dm-row-meta', text: `${productLabel(rfq.product, { short: true })} · ${demandHeadline(rfq)}` })]),
-      pill(rfq.pending_approval ? { label: 'Em aprovação', tone: 'warning', icon: 'clock' } : RFQ_STATUS[rfq.status], { size: 'sm' }),
-      progress(answered, Math.max(invited, answered), { label: `${answered} de ${invited} responderam` }),
-      el('span', { class: `dm-row-side num${['open', 'collecting'].includes(rfq.status) && days !== null && days <= 2 ? ' is-urgent' : ''}`, text: deadlineText(rfq) })
-    ]);
-  }), emptyState({ title: 'Nenhuma concorrência em andamento', compact: true }));
-  return { id: 'pipeline', title: 'Pipeline', subtitle: 'Concorrências em andamento, com prazo e respostas.', link: ['Solicitações', ctx.href('/finance/rfqs.html')], body: [bar, list] };
+  return { id: 'pipeline', title: 'Pipeline', subtitle: 'Quantas solicitações há em cada etapa. Cada etapa abre a lista filtrada.', link: ['Solicitações', ctx.href('/finance/rfqs.html')], body: bar };
 }
 
 function recentRfqsModule(ctx, model) {
@@ -118,9 +119,11 @@ function approvalsModule(ctx, model) {
     const step = currentStep(request);
     const mine = step?.approver_id === ctx.viewer?.id;
     const approved = (request.steps || []).filter((item) => item.status === 'approved').length;
+    const next = approvalNext(request, rfq, { viewerId: ctx.viewer?.id, members: ctx.members });
     return el('li', { class: `dm-row dm-approval${mine ? ' is-mine' : ''}` }, [
       el('span', { class: 'dm-row-main' }, [
         el('a', { class: 'dm-row-title stretched', href: ctx.href(`/finance/approvals.html#request-${request.id}`), text: rfq.title }),
+        el('span', { class: 'dm-row-meta' }, [stateLabel(next), el('span', { text: ` · ${next.action}` })]),
         el('span', { class: 'dm-row-meta', text: `${proposal?.provider_name || 'Proposta'} · ${demandHeadline(rfq)} · pedido por ${memberName(ctx.members, request.requested_by)} ${timeAgo(request.requested_at)}` }),
         request.rationale ? el('span', { class: 'dm-row-quote', text: `“${request.rationale}”` }) : null
       ]),
@@ -252,7 +255,8 @@ function governanceModule(ctx) {
 
 export const MODULES = Object.freeze({
   attention: { label: 'Precisa de você', render: attentionModule },
-  summary: { label: 'Resumo', render: summaryModule },
+  inflight: { label: 'Em andamento', render: inflightModule },
+  summary: { label: 'Indicadores', render: summaryModule },
   pipeline: { label: 'Pipeline', render: pipelineModule },
   'recent-rfqs': { label: 'Solicitações recentes', render: recentRfqsModule },
   approvals: { label: 'Aprovações', render: approvalsModule },
@@ -283,14 +287,14 @@ const sizeOf = (layout, id) => layout.sizes[id] || 'half';
 export async function dashboard(ctx) {
   const persona = ctx.persona?.key || 'buyer';
   const approvals = await ctx.loadApprovals();
-  const items = actionItems(ctx, approvals);
+  // A fila vem da gramática da próxima ação: o mesmo texto do detalhe e da lista.
+  const items = workQueue({ rfqs: ctx.data.rfqs || [], approvals, contracts: ctx.data.contracts || [], tasks: ctx.data.tasks || [], viewerId: ctx.viewer?.id, members: ctx.members, canManage: ctx.can('create_rfq') });
   if (ctx.can('create_rfq')) {
     const editor = await ctx.api(`rfq-editor?organization_id=${encodeURIComponent(ctx.organization.id)}`).catch(() => null);
     const payload = editor?.draft?.payload;
     if (payload && (payload.title || payload.product)) {
-      items.push({ rank: 2, tone: 'neutral', icon: 'edit', kind: 'Rascunho em edição', title: `Continuar: ${payload.title || 'nova solicitação sem título'}`,
-        detail: `Salvo ${formatDateTime(editor.draft.updated_at)}. Ainda não foi criado nem enviado a provedores.`, cta: 'Continuar', href: ctx.href('/finance/new-rfq.html') });
-      items.sort((a, b) => a.rank - b.rank || (Number.isFinite(a.due) ? a.due : 9999) - (Number.isFinite(b.due) ? b.due : 9999));
+      items.push({ kind: 'editor', id: 'editor', title: payload.title || 'Nova solicitação sem título', state: 'Rascunho em edição', stateTone: 'neutral', tone: 'neutral', action: 'Continuar a nova solicitação',
+        why: `Salvo ${formatDateTime(editor.draft.updated_at)}; ainda não foi criado nem enviado a provedores.`, cta: 'Continuar', href: '/finance/new-rfq.html', due: null });
     }
   }
   const model = { items, approvals, rfqs: ctx.data.rfqs || [], contracts: ctx.data.contracts || [], tasks: ctx.data.tasks || [] };

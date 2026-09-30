@@ -326,6 +326,7 @@ async function boot() {
   workspace = await loadWorkspace();
   if (workspace) {
     VIEWS.dashboard = VIEWS.home = workspace.dashboard;
+    Object.assign(VIEWS, workspace.views || {});
     ctx.demoSettings = workspace.settingsSection(ctx);
   }
   await render();

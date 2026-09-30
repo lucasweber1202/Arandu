@@ -13,6 +13,9 @@ import * as prefs from './preferences.js';
 import { popover, contextMenu } from './popover.js';
 import { openQuickView, copyLink } from './quick-view.js';
 import { starButton } from './rfq-page.js';
+import { rfqNext } from './next-action.js';
+import { stateLabel, nextInline } from './work-ui.js';
+import { workContext } from './quick-view.js';
 
 export const RFQ_COLUMNS = [
   { key: 'solicitacao', label: 'Solicitação', fixed: true, sort: 'recent' },
@@ -97,6 +100,12 @@ export function enhanceRfqTable(ctx, { extra = '', announce }) {
       if (pass) shown += 1;
       if (row.dataset.dw) continue;
       row.dataset.dw = '1';
+      // Mesma gramática da fila e do detalhe: estado, próxima ação e motivo.
+      const next = rfqNext(rfq, workContext(ctx));
+      row.querySelector('td[data-label="Status"]')?.replaceChildren(stateLabel(next));
+      row.querySelector('td.next-action')?.replaceChildren(nextInline(next));
+      const responses = row.querySelector('td[data-label="Respostas"]');
+      if (responses && next.compact) responses.append(el('span', { class: 'responses-compact num', text: next.compact }));
       if (quick) { link.dataset.quick = `rfq:${rfq.id}`; link.setAttribute('aria-describedby', 'quick-hint'); }
       const href = link.getAttribute('href');
       const actions = el('span', { class: 'row-actions-dw' }, [

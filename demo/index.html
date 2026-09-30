@@ -29,9 +29,10 @@
       <h1 class="dl-title" id="landing-title">Procurement financeiro, do pedido à renovação.</h1>
       <p class="dl-lede">Peça propostas de crédito e adquirência a vários provedores, compare as condições lado a lado, aprove com a sua equipe e acompanhe o contrato até a renovação.</p>
       <div class="dl-actions">
-        <a class="btn btn-primary btn-lg" href="/demo/finance/dashboard.html" data-persona="buyer" id="start-demo">Explorar como empresa</a>
-        <span class="dl-as">Você entra como Marina Costa, Gerente Financeira, e troca de papel a qualquer momento.</span>
+        <a class="btn btn-primary btn-lg" href="/demo/finance/dashboard.html" data-persona="buyer" id="start-demo">Explorar livremente</a>
+        <a class="btn btn-lg" href="/demo/finance/dashboard.html" id="start-route">Ver processo completo</a>
       </div>
+      <p class="dl-as">Você entra como Marina Costa, Gerente Financeira, e troca de papel a qualquer momento. O processo completo percorre o mesmo pedido pelas quatro pessoas, em sete passos.</p>
       <p class="dl-roles" id="roles"><span class="dl-roles-label">Ou entre como:</span>
         <a class="dl-role" href="/demo/finance/dashboard.html" data-persona="approver">Aprovador</a>
         <a class="dl-role" href="/demo/provider/index.html" data-persona="provider">Provedor</a>
@@ -41,16 +42,33 @@
     <figure class="dl-preview" aria-hidden="true">
       <div class="dl-preview-bar"><span class="brand-mark">A</span><span>Acme Indústria Ltda. — DEMO</span></div>
       <div class="dl-preview-body">
-        <p class="dl-preview-greet">Bom dia, Marina</p>
+        <p class="dl-preview-greet">Boa tarde, Marina</p>
         <p class="dl-preview-title">Precisa de você <span class="dl-preview-count">4</span></p>
         <ul class="dl-preview-list">
-          <li class="dl-preview-item"><span class="dl-preview-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"/><path d="m8 12.5 3 3 5-6"/></svg></span><span><strong>Aprovar Capital de giro</strong><span>R$ 3 mi · etapa 2 de 2 · há 2 h</span></span><span class="dl-preview-cta">Revisar →</span></li>
-          <li class="dl-preview-item"><span class="dl-preview-icon is-info"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"/><path d="M12 7v5l3 2"/></svg></span><span><strong>Prazo da Adquirência em 5 dias</strong><span>2 de 3 provedores responderam</span></span><span class="dl-preview-cta">Acompanhar →</span></li>
-          <li class="dl-preview-item"><span class="dl-preview-icon is-ok"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m17 2 4 4-4 4"/><path d="M3 11V9a3 3 0 0 1 3-3h15"/></svg></span><span><strong>Decidir renovação</strong><span>Aviso prévio em 19 dias</span></span><span class="dl-preview-cta">Decidir →</span></li>
+          <li class="dl-preview-item is-warn"><span class="dl-preview-rail"></span><span><strong>Decidir renovação — Cadência</strong><span>Vigente · janela de renovação aberta</span></span><span class="dl-preview-cta">Aviso prévio em 20 dias</span></li>
+          <li class="dl-preview-item"><span class="dl-preview-rail"></span><span><strong>Aguardando 1 provedor — Adquirência</strong><span>Em coleta · 2 de 3 responderam</span></span><span class="dl-preview-cta">Prazo em 3 dias</span></li>
+          <li class="dl-preview-item is-accent"><span class="dl-preview-rail"></span><span><strong>Registrar o contrato — Refinanciamento</strong><span>Decidida · informe vigência e aviso prévio</span></span><span class="dl-preview-cta">Registrar</span></li>
         </ul>
-        <div class="dl-preview-figures"><div><b>4</b><span>concorrências</span></div><div><b>11</b><span>propostas</span></div><div><b>2</b><span>aprovações</span></div><div><b>2</b><span>contratos</span></div></div>
+        <p class="dl-preview-title">Em andamento</p>
+        <ul class="dl-preview-list is-quiet">
+          <li class="dl-preview-item"><span class="dl-preview-rail"></span><span><strong>Capital de giro — R$ 3 milhões</strong><span>Em aprovação · aguardando Ricardo Alves · etapa 2 de 2</span></span><span class="dl-preview-cta">3/3 respostas</span></li>
+        </ul>
       </div>
     </figure>
+  </section>
+
+  <section class="dl-section dl-flow" aria-labelledby="flow-title">
+    <h2 class="dl-section-title" id="flow-title">Um processo, do pedido à renovação</h2>
+    <p class="dl-section-lede">Cada etapa é o mesmo objeto — a solicitação — visto por quem age naquele momento.</p>
+    <ol class="dl-flow-list">
+      <li><span class="dl-flow-n">1</span><strong>Necessidade</strong><span>A empresa descreve o que precisa</span></li>
+      <li><span class="dl-flow-n">2</span><strong>Convites</strong><span>Provedores escolhidos recebem acesso</span></li>
+      <li><span class="dl-flow-n">3</span><strong>Propostas</strong><span>Cada provedor responde, com versões</span></li>
+      <li><span class="dl-flow-n">4</span><strong>Comparação</strong><span>Condições lado a lado, só fatos</span></li>
+      <li><span class="dl-flow-n">5</span><strong>Aprovação</strong><span>Quem decide revisa o contexto</span></li>
+      <li><span class="dl-flow-n">6</span><strong>Contrato</strong><span>Vigência e aviso prévio registrados</span></li>
+      <li><span class="dl-flow-n">7</span><strong>Renovação</strong><span>A janela de decisão volta a tempo</span></li>
+    </ol>
   </section>
 
   <section class="dl-section" aria-labelledby="personas-title">
@@ -106,10 +124,10 @@
       <details>
         <summary>Experimente também</summary>
         <ul class="check-list">
-          <li>Ctrl+K (⌘K no Mac) abre a central de comando: navegar, trocar de papel, mudar o tema</li>
-          <li>Clique numa solicitação da lista para ver o resumo lateral sem sair da página</li>
-          <li>“Personalizar” no painel mostra, oculta e reorganiza os módulos</li>
-          <li>Tema claro ou escuro, densidade, cor de destaque e modo foco no menu de preferências</li>
+          <li>Ctrl+K (⌘K no Mac) abre a central de comando: primeiro o seu trabalho, depois páginas, ações e preferências</li>
+          <li>Em telas largas, clique numa solicitação da lista para ver o resumo ao lado; ↑ ↓ trocam de item, Esc fecha</li>
+          <li>Na solicitação, “Continuar como Ricardo” mostra o mesmo processo do ponto de vista de quem decide</li>
+          <li>Filtre a lista de solicitações e use “Salvar filtro” para guardar a combinação</li>
         </ul>
       </details>
     </div>

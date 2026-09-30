@@ -8,16 +8,16 @@ import { update, applyAppearance, readState } from './preferences.js';
 import { DEFAULT_DASHBOARDS } from './personas.js';
 
 const layout = (order, hidden, sizes = {}) => ({ order, hidden, sizes });
-const ALL = ['attention', 'summary', 'pipeline', 'recent-rfqs', 'approvals', 'renewals', 'tasks', 'contracts', 'activity', 'providers', 'favorites', 'shortcuts', 'governance'];
+const ALL = ['attention', 'inflight', 'summary', 'pipeline', 'recent-rfqs', 'approvals', 'renewals', 'tasks', 'contracts', 'activity', 'providers', 'favorites', 'shortcuts', 'governance'];
 const only = (visible, sizes = {}) => layout([...visible, ...ALL.filter((id) => !visible.includes(id))], ALL.filter((id) => !visible.includes(id)), sizes);
 
 export const PRESETS = Object.freeze({
   balanced: { label: 'Equilibrado', text: 'O padrão: fila de trabalho, resumo e andamento.', appearance: { density: 'auto', sidebar: 'auto', detail: 'full' }, dashboards: null },
   compact: { label: 'Compacto', text: 'Alta densidade para quem opera o dia inteiro.', appearance: { density: 'compact', sidebar: 'compact', detail: 'full' }, dashboards: null },
   executive: { label: 'Executivo', text: 'Menos elementos: decisões pendentes e números que importam.', appearance: { density: 'comfortable', sidebar: 'compact', detail: 'essential' },
-    dashboards: { buyer: only(['attention', 'summary', 'renewals'], { summary: 'full', renewals: 'full' }), approver: only(['attention', 'approvals', 'summary'], { approvals: 'full', summary: 'full' }), admin: only(['attention', 'governance', 'summary'], { governance: 'full', summary: 'full' }) } },
+    dashboards: { buyer: only(['attention', 'inflight', 'renewals'], { inflight: 'full', renewals: 'full' }), approver: only(['attention', 'approvals', 'summary'], { approvals: 'full', summary: 'full' }), admin: only(['attention', 'governance', 'summary'], { governance: 'full', summary: 'full' }) } },
   operational: { label: 'Operacional', text: 'Prazos, processos, tarefas e filas, com todos os detalhes.', appearance: { density: 'compact', sidebar: 'expanded', detail: 'full' },
-    dashboards: { buyer: only(['attention', 'pipeline', 'tasks', 'recent-rfqs', 'renewals', 'activity'], { pipeline: 'full' }), approver: only(['attention', 'approvals', 'pipeline', 'recent-rfqs', 'activity'], { approvals: 'full', pipeline: 'full' }), admin: only(['attention', 'governance', 'tasks', 'providers', 'activity'], { governance: 'full' }) } }
+    dashboards: { buyer: only(['attention', 'inflight', 'pipeline', 'tasks', 'recent-rfqs', 'renewals', 'activity'], { inflight: 'full', pipeline: 'full' }), approver: only(['attention', 'approvals', 'inflight', 'pipeline', 'activity'], { approvals: 'full', inflight: 'full' }), admin: only(['attention', 'governance', 'tasks', 'providers', 'activity'], { governance: 'full' }) } }
 });
 export const PRESET_ORDER = ['balanced', 'compact', 'executive', 'operational'];
 

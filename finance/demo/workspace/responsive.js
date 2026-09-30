@@ -2,7 +2,7 @@
 //
 //   Comprador   Início · Solicitações · Propostas · Mais
 //   Aprovador   Início · Aprovações · Solicitações · Mais
-//   Provedor    Início · Convites · Propostas · Mais
+//   Provedor    Início · Oportunidades · Convites · Mais
 //   Admin       Início · Equipe · Configuração · Mais
 //
 // "Mais" abre uma folha com o restante da navegação (a mesma do desktop),
@@ -16,7 +16,7 @@ const TABS = {
   buyer: ['home', 'rfqs', 'proposals'],
   approver: ['home', 'approvals', 'rfqs'],
   admin: ['home', 'team', 'settings'],
-  provider: ['home', 'invites', 'providerRfqs']
+  provider: ['home', 'providerRfqs', 'invites']
 };
 
 function tabDefs(ctx) {
@@ -28,7 +28,7 @@ function tabDefs(ctx) {
     team: { label: 'Equipe', icon: 'users', href: ctx.href('/finance/settings.html#equipe'), active: ctx.view === 'settings' && location.hash === '#equipe' },
     settings: { label: 'Configuração', icon: 'settings', href: ctx.href('/finance/settings.html'), active: ctx.view === 'settings' && location.hash !== '#equipe' },
     invites: { label: 'Convites', icon: 'send', href: ctx.href('/provider/index.html#convites'), active: ctx.view === 'providerHome' && location.hash.startsWith('#convites'), count: 'providerHome' },
-    providerRfqs: { label: 'Propostas', icon: 'inbox', href: ctx.href('/provider/rfqs.html'), active: ['providerRfqs', 'providerProposal'].includes(ctx.view), count: 'providerRfqs' }
+    providerRfqs: { label: 'Oportunidades', icon: 'inbox', href: ctx.href('/provider/rfqs.html'), active: ['providerRfqs', 'providerProposal'].includes(ctx.view), count: 'providerRfqs' }
   };
 }
 
