@@ -1,18 +1,24 @@
-// Quick view: consultar sem trocar de página.
+// Quick view universal: consultar sem trocar de página.
 //
-// Um painel lateral (folha inferior no celular) com o essencial de uma
-// solicitação, proposta, provedor ou contrato e um atalho para "Abrir
-// completo". Usa o <dialog> modal do produto: foco preso dentro do painel,
-// Escape fecha, o foco volta para quem abriu e a página por trás — rolagem,
-// filtros, busca — não se mexe.
+// Todo resumo segue o mesmo modelo:
+//   CABEÇALHO  estado + título (no topo do painel)
+//   RESUMO     o essencial: valor, prazo, situação
+//   CONTEXTO   o secundário: listas, notas, histórico curto
+//   AÇÕES      favoritar, copiar link, comparar… e "Abrir completo"
+// Painel lateral no desktop, folha inferior no celular. Usa o <dialog> modal
+// do produto: foco preso, Escape fecha, o foco volta para quem abriu e a
+// página por trás — rolagem, filtros, busca — não se mexe.
 //
-// Neutralidade: propostas aparecem em ordem alfabética e só com valores
-// informados pelo provedor. Nada aqui ordena, pontua ou recomenda.
+// Neutralidade: propostas em ordem alfabética, só com valores informados.
+// Nada aqui ordena, pontua ou recomenda.
 
 import { PRODUCTS } from '../../../lib/finance/products.mjs';
 import { el, icon, money, fieldValue, formatDate, relativeDays, daysUntil, productLabel, demandHeadline, RFQ_STATUS, CONTRACT_STATUS, PROPOSAL_STATUS, PROVIDER_KINDS, renewalStage, timeAgo } from '../../src/core.js';
 import { drawer, pill, tag, linkButton, button, emptyState, toast } from '../../src/ui.js';
 import { isFavorite, toggleFavorite, recordRecent } from './preferences.js';
+import { rfqStages, contractStages, timeline } from './timeline.js';
+import { trayCheckbox } from './comparison-tray.js';
+import { openApproval } from './approval.js';
 
 const KEY_TERMS = {
   credit: ['offered_amount', 'interest_rate_month', 'cet_year', 'term_months', 'grace_months', 'valid_until'],
@@ -21,7 +27,7 @@ const KEY_TERMS = {
 const HEADLINE_TERM = { credit: 'interest_rate_month', acquiring: 'mdr_credit_cash' };
 
 function spec(product, key) { return PRODUCTS[product]?.proposalFields.find((field) => field.key === key) || null; }
-function termValue(product, key, terms) {
+export function termValue(product, key, terms) {
   const field = spec(product, key);
   if (!field) return null;
   const raw = fieldValue(field, terms?.[key]);
@@ -31,13 +37,24 @@ function termValue(product, key, terms) {
 }
 const shortLabel = (product, key) => (spec(product, key)?.label || key).replace(/\s*\(.*\)$/, '');
 
+// ------------------------------------------------------------ moldura
 function facts(rows) {
   return el('dl', { class: 'qv-facts' }, rows.filter(Boolean).map(([label, value, className = '']) =>
     el('div', { class: 'qv-fact' }, [el('dt', { text: label }), el('dd', { class: className, text: value ?? '—' })])));
 }
 function section(title, body, { count = null } = {}) {
-  return el('section', { class: 'qv-section' }, [el('h3', { class: 'qv-section-title' }, [el('span', { text: title }), count !== null ? el('span', { class: 'qv-count', text: String(count) }) : null]), body]);
+  return el('section', { class: 'qv-section' }, [el('h3', { class: 'qv-section-title' }, [el('span', { text: title }), count !== null ? el('span', { class: 'qv-count num', text: String(count) }) : null]), body]);
 }
+/** Resumo no topo: estado, rótulo, número principal e detalhe. */
+function summary({ state = null, kicker, figure, sub = null, chips = [] }) {
+  return el('div', { class: 'qv-hero' }, [
+    el('p', { class: 'qv-kicker' }, [state, el('span', { text: kicker })]),
+    figure ? el('p', { class: 'qv-figure num', text: figure }) : null,
+    sub ? el('p', { class: 'qv-figure-sub', text: sub }) : null,
+    chips.filter(Boolean).length ? el('div', { class: 'qv-badges' }, chips.filter(Boolean)) : null
+  ]);
+}
+function chip(text, { urgent = false, iconName = 'clock' } = {}) { return el('span', { class: `qv-chip${urgent ? ' is-urgent' : ''}` }, [icon(iconName, { size: 12 }), el('span', { text })]); }
 
 function favoriteButton(type, id, title) {
   const on = isFavorite(type, id);
@@ -47,17 +64,16 @@ function favoriteButton(type, id, title) {
     node.setAttribute('aria-pressed', String(next));
     node.classList.toggle('is-on', next);
     node.querySelector('.btn-label').textContent = next ? 'Favorito' : 'Favoritar';
-    toast(next ? `“${title}” está nos favoritos.` : `“${title}” saiu dos favoritos.`, 'info');
+    toast(next ? 'Adicionado aos favoritos.' : 'Removido dos favoritos.', 'info');
   });
   return node;
 }
-function copyLinkButton(href) {
-  return button('Copiar link', { variant: 'ghost', size: 'sm', iconName: 'copy', onClick: async () => {
-    const url = new URL(href, location.origin).toString();
-    try { await navigator.clipboard.writeText(url); toast('Link copiado.', 'info'); }
-    catch { toast(`Copie o link: ${url}`, 'info'); }
-  } });
+export function copyLink(href) {
+  const url = new URL(href, location.origin).toString();
+  navigator.clipboard?.writeText(url).then(() => toast('Link copiado.', 'info'), () => toast(`Copie o link: ${url}`, 'info'));
 }
+const copyButton = (href) => button('Copiar link', { variant: 'ghost', size: 'sm', iconName: 'copy', onClick: () => copyLink(href) });
+const openButton = (label, href) => linkButton(label, href, { variant: 'primary', size: 'sm', iconName: 'arrowRight', attrs: { 'data-qv-open': '' } });
 
 // ----------------------------------------------------------- solicitação
 function rfqView(ctx, rfq) {
@@ -66,78 +82,67 @@ function rfqView(ctx, rfq) {
   const invited = (rfq.invites || []).length || rfq.invites_count || 0;
   const proposals = [...(rfq.proposals || [])].sort((a, b) => String(a.provider_name).localeCompare(String(b.provider_name), 'pt-BR'));
   const demand = rfq.demand || {};
-  const figure = rfq.product === 'credit' ? money(demand.amount, { compact: true }) : `${money(demand.monthly_volume, { compact: true })}/mês`;
-  const figureSub = rfq.product === 'credit'
-    ? [demand.term_months ? `${demand.term_months} meses` : null, demand.grace_months ? `${demand.grace_months} de carência` : null, demand.purpose ? fieldValue({ type: 'enum' }, demand.purpose) : null].filter(Boolean).join(' · ')
-    : [demand.average_ticket ? `ticket médio ${money(demand.average_ticket)}` : null, demand.average_installments ? `${demand.average_installments} parcelas em média` : null].filter(Boolean).join(' · ');
-  const hero = el('div', { class: 'qv-hero' }, [
-    el('p', { class: 'qv-kicker', text: `${productLabel(rfq.product)} · revisão ${rfq.revision || 1}` }),
-    el('p', { class: 'qv-figure num', text: figure }),
-    figureSub ? el('p', { class: 'qv-figure-sub', text: figureSub }) : null,
-    el('div', { class: 'qv-badges' }, [pill(rfq.pending_approval ? { label: 'Em aprovação', tone: 'warning', icon: 'clock' } : RFQ_STATUS[rfq.status], { size: 'sm' }),
-      rfq.response_deadline && live ? el('span', { class: `qv-chip${days !== null && days <= 2 ? ' is-urgent' : ''}` }, [icon('clock', { size: 12 }), el('span', { text: `Prazo ${relativeDays(rfq.response_deadline)}` })]) : null])
-  ]);
+  const figure = rfq.product === 'credit' ? money(demand.amount) : `${money(demand.monthly_volume)}/mês`;
+  const sub = rfq.product === 'credit'
+    ? [productLabel(rfq.product), demand.term_months ? `${demand.term_months} meses` : null, demand.grace_months ? `${demand.grace_months} de carência` : null, `revisão ${rfq.revision || 1}`].filter(Boolean).join(' · ')
+    : [productLabel(rfq.product), demand.average_ticket ? `ticket médio ${money(demand.average_ticket)}` : null, `revisão ${rfq.revision || 1}`].filter(Boolean).join(' · ');
   const list = el('ul', { class: 'qv-list', role: 'list' }, proposals.map((proposal) => {
     const key = HEADLINE_TERM[rfq.product];
     const value = termValue(rfq.product, key, proposal.terms);
     const outdated = proposal.rfq_revision && proposal.rfq_revision < (rfq.revision || 1);
     return el('li', { class: 'qv-item' }, [
+      trayCheckbox(rfq, proposal, { label: '' }),
       el('span', { class: 'qv-item-main' }, [el('span', { class: 'qv-item-title', text: proposal.provider_name }),
         el('span', { class: `qv-item-meta${outdated ? ' warn-text' : ''}`, text: `v${proposal.version} · responde à rev. ${proposal.rfq_revision || '—'}${outdated ? ' (desatualizada)' : ''}` })]),
       el('span', { class: 'qv-item-side num' }, [el('span', { class: 'qv-item-value', text: value || 'não informado' }), el('span', { class: 'qv-item-meta', text: shortLabel(rfq.product, key) })])
     ]);
   }));
-  const body = [
-    hero,
-    facts([
-      ['Prazo de resposta', rfq.response_deadline ? `${formatDate(rfq.response_deadline)}${live ? ` · ${relativeDays(rfq.response_deadline)}` : ''}` : 'Sem prazo', live && days !== null && days <= 2 ? 'is-urgent' : ''],
-      ['Responsável', rfq.owner_name || '—'],
-      ['Provedores convidados', invited ? `${invited} · ${(rfq.proposals || []).length} responderam` : 'Nenhum convite ainda'],
-      ['Atualizada', timeAgo(rfq.updated_at || rfq.created_at)]
-    ]),
-    section('Propostas', proposals.length
-      ? el('div', {}, [list, el('p', { class: 'qv-note', text: 'Ordem alfabética, com valores informados pelos provedores. A comparação completa fica na solicitação.' })])
-      : emptyState({ title: 'Nenhuma proposta recebida', text: live ? 'As respostas aparecem aqui assim que os provedores enviarem.' : 'Esta solicitação não recebeu propostas.', compact: true, iconName: 'inbox' }), { count: proposals.length }),
-    rfq.description ? section('Contexto', el('p', { class: 'qv-prose', text: rfq.description })) : null
-  ];
   const href = ctx.href(`/finance/rfq.html?id=${encodeURIComponent(rfq.id)}`);
   return {
-    title: rfq.title, subtitle: `${productLabel(rfq.product, { short: true })} · ${demandHeadline(rfq)}`, body, href,
-    footer: [favoriteButton('rfq', rfq.id, rfq.title), copyLinkButton(href),
+    title: rfq.title, subtitle: `${productLabel(rfq.product, { short: true })} · ${demandHeadline(rfq)}`, href,
+    body: [
+      summary({ state: pill(rfq.pending_approval ? { label: 'Em aprovação', tone: 'warning', icon: 'clock' } : RFQ_STATUS[rfq.status], { size: 'sm' }), kicker: 'Solicitação', figure, sub,
+        chips: [rfq.response_deadline && live ? chip(`Prazo ${relativeDays(rfq.response_deadline)}`, { urgent: days !== null && days <= 2 }) : null, invited ? chip(`${(rfq.proposals || []).length} de ${invited} responderam`, { iconName: 'inbox' }) : null] }),
+      timeline(rfqStages(rfq), { compact: true, label: 'Etapa do processo' }),
+      facts([
+        ['Prazo de resposta', rfq.response_deadline ? formatDate(rfq.response_deadline) : 'Sem prazo', live && days !== null && days <= 2 ? 'is-urgent' : ''],
+        ['Responsável', rfq.owner_name || '—'],
+        ['Provedores convidados', invited ? `${invited} · ${(rfq.proposals || []).length} responderam` : 'Nenhum convite ainda'],
+        ['Atualizada', timeAgo(rfq.updated_at || rfq.created_at)]
+      ]),
+      section('Propostas', proposals.length
+        ? el('div', {}, [list, el('p', { class: 'qv-note', text: 'Ordem alfabética, com valores informados. Marque para comparar; a comparação completa fica na solicitação.' })])
+        : emptyState({ title: 'Nenhuma proposta recebida ainda', text: invited ? `${invited} provedor${invited > 1 ? 'es foram convidados' : ' foi convidado'}${rfq.response_deadline && live ? `. O prazo termina ${relativeDays(rfq.response_deadline)}.` : '.'}` : 'Convide provedores para começar a receber propostas.', compact: true, iconName: 'inbox' }), { count: proposals.length }),
+      rfq.description ? section('Contexto', el('p', { class: 'qv-prose', text: rfq.description })) : null
+    ],
+    footer: [favoriteButton('rfq', rfq.id, rfq.title), copyButton(href),
       proposals.length > 1 ? linkButton('Comparar', `${href}#comparacao`, { size: 'sm', iconName: 'scale' }) : null,
-      linkButton('Abrir solicitação completa', href, { variant: 'primary', size: 'sm', iconName: 'arrowRight', attrs: { 'data-qv-open': '' } })]
+      openButton('Abrir solicitação completa', href)]
   };
 }
 
 // --------------------------------------------------------------- proposta
 function proposalView(ctx, rfq, proposal) {
-  const keys = KEY_TERMS[rfq.product] || [];
   const validDays = daysUntil(proposal.terms?.valid_until);
-  const body = [
-    el('div', { class: 'qv-hero' }, [
-      el('p', { class: 'qv-kicker', text: `${PROVIDER_KINDS[proposal.provider_kind] || 'Provedor'} · versão ${proposal.version}` }),
-      el('p', { class: 'qv-figure', text: proposal.provider_name }),
-      el('p', { class: 'qv-figure-sub', text: rfq.title }),
-      el('div', { class: 'qv-badges' }, [pill(PROPOSAL_STATUS[proposal.status] || PROPOSAL_STATUS.submitted, { size: 'sm' }),
-        proposal.terms?.valid_until ? el('span', { class: `qv-chip${validDays !== null && validDays < 5 ? ' is-urgent' : ''}` }, [icon('calendar', { size: 12 }),
-          el('span', { text: validDays !== null && validDays < 0 ? 'Validade vencida' : `Válida até ${formatDate(proposal.terms.valid_until, { withYear: false })}` })]) : null])
-    ]),
-    section('Condições informadas', el('dl', { class: 'qv-terms' }, keys.map((key) => {
-      const value = termValue(rfq.product, key, proposal.terms);
-      return el('div', { class: 'qv-term' }, [el('dt', { text: shortLabel(rfq.product, key) }), el('dd', { class: value === null ? 'missing' : 'num', text: value ?? 'Não informado' })]);
-    }))),
-    facts([
-      ['Enviada', proposal.submitted_at ? `${formatDate(proposal.submitted_at)} · ${timeAgo(proposal.submitted_at)}` : '—'],
-      ['Responde à revisão', proposal.rfq_revision ? `${proposal.rfq_revision} de ${rfq.revision || 1}` : '—', proposal.rfq_revision && proposal.rfq_revision < (rfq.revision || 1) ? 'warn-text' : ''],
-      ['Versões enviadas', String(proposal.versions_count || proposal.version || 1)]
-    ]),
-    proposal.note ? section('Nota do provedor', el('p', { class: 'qv-prose', text: proposal.note })) : null
-  ];
   const href = ctx.href(`/finance/rfq.html?id=${encodeURIComponent(rfq.id)}#propostas`);
   return {
-    title: proposal.provider_name, subtitle: `Proposta para ${rfq.title}`, body, href,
-    footer: [copyLinkButton(href), linkButton('Comparar', ctx.href(`/finance/rfq.html?id=${encodeURIComponent(rfq.id)}#comparacao`), { size: 'sm', iconName: 'scale' }),
-      linkButton('Abrir na solicitação', href, { variant: 'primary', size: 'sm', iconName: 'arrowRight', attrs: { 'data-qv-open': '' } })]
+    title: proposal.provider_name, subtitle: `Proposta para ${rfq.title}`, href,
+    body: [
+      summary({ state: pill(PROPOSAL_STATUS[proposal.status] || PROPOSAL_STATUS.submitted, { size: 'sm' }), kicker: `${PROVIDER_KINDS[proposal.provider_kind] || 'Provedor'} · versão ${proposal.version}`,
+        figure: termValue(rfq.product, HEADLINE_TERM[rfq.product], proposal.terms) || proposal.provider_name, sub: `${shortLabel(rfq.product, HEADLINE_TERM[rfq.product])} · ${rfq.title}`,
+        chips: [proposal.terms?.valid_until ? chip(validDays !== null && validDays < 0 ? 'Validade vencida' : `Válida até ${formatDate(proposal.terms.valid_until, { withYear: false })}`, { urgent: validDays !== null && validDays < 5, iconName: 'calendar' }) : null] }),
+      section('Condições informadas', el('dl', { class: 'qv-terms' }, (KEY_TERMS[rfq.product] || []).map((key) => {
+        const value = termValue(rfq.product, key, proposal.terms);
+        return el('div', { class: 'qv-term' }, [el('dt', { text: shortLabel(rfq.product, key) }), el('dd', { class: value === null ? 'missing' : 'num', text: value ?? 'Não informado' })]);
+      }))),
+      facts([
+        ['Enviada', proposal.submitted_at ? `${formatDate(proposal.submitted_at)} · ${timeAgo(proposal.submitted_at)}` : '—'],
+        ['Responde à revisão', proposal.rfq_revision ? `${proposal.rfq_revision} de ${rfq.revision || 1}` : '—', proposal.rfq_revision && proposal.rfq_revision < (rfq.revision || 1) ? 'warn-text' : ''],
+        ['Versões enviadas', String(proposal.versions_count || proposal.version || 1)]
+      ]),
+      proposal.note ? section('Nota do provedor', el('p', { class: 'qv-prose', text: proposal.note })) : null
+    ],
+    footer: [trayCheckbox(rfq, proposal, { label: 'Comparar' }), copyButton(href), openButton('Abrir na solicitação', href)]
   };
 }
 
@@ -150,32 +155,30 @@ function providerView(ctx, provider) {
     if (invite || proposal) rows.push({ rfq, invite, proposal });
   }
   const contracts = (ctx.data.contracts || []).filter((contract) => contract.provider_id === provider.id);
-  const body = [
-    el('div', { class: 'qv-hero' }, [
-      el('p', { class: 'qv-kicker', text: `${PROVIDER_KINDS[provider.kind] || 'Provedor'} · ${provider.region || 'região não informada'}` }),
-      el('p', { class: 'qv-figure', text: provider.name }),
-      el('div', { class: 'qv-badges' }, [provider.verification_state === 'EVIDENCIA_REGISTRADA' ? tag(`Evidência registrada em ${formatDate(provider.regulator_checked_at)}`, 'success') : tag('Sem verificação registrada'),
-        ...(provider.products || []).map((product) => tag(productLabel(product, { short: true })))])
-    ]),
-    section('Participações', rows.length ? el('ul', { class: 'qv-list', role: 'list' }, rows.map(({ rfq, invite, proposal }) => el('li', { class: 'qv-item' }, [
-      el('span', { class: 'qv-item-main' }, [el('a', { class: 'qv-item-title', href: ctx.href(`/finance/rfq.html?id=${rfq.id}`), text: rfq.title }),
-        el('span', { class: 'qv-item-meta', text: proposal ? `Proposta v${proposal.version} enviada ${timeAgo(proposal.submitted_at)}` : invite?.status === 'accepted' ? 'Convite aceito · sem proposta ainda' : 'Convidado · aguardando aceite' })]),
-      pill(RFQ_STATUS[rfq.status], { size: 'sm' })
-    ]))) : emptyState({ title: 'Ainda não participou de solicitações', compact: true, iconName: 'send' }), { count: rows.length }),
-    contracts.length ? section('Contratos', el('ul', { class: 'qv-list', role: 'list' }, contracts.map((contract) => el('li', { class: 'qv-item' }, [
-      el('span', { class: 'qv-item-main' }, [el('span', { class: 'qv-item-title', text: productLabel(contract.product) }), el('span', { class: 'qv-item-meta', text: `${formatDate(contract.starts_on)} → ${formatDate(contract.ends_on)}` })]),
-      pill(CONTRACT_STATUS[contract.status], { size: 'sm' })
-    ])))) : null,
-    provider.notes ? section('Notas internas', el('p', { class: 'qv-prose', text: provider.notes })) : null,
-    el('p', { class: 'qv-note', text: 'O cadastro é uma referência da sua empresa, não uma atestação de regularidade.' })
-  ];
   const href = ctx.href(`/finance/providers.html#provider-${provider.id}`);
-  return { title: provider.name, subtitle: PROVIDER_KINDS[provider.kind] || 'Provedor', body, href,
-    footer: [favoriteButton('provider', provider.id, provider.name), copyLinkButton(href), linkButton('Abrir em Provedores', href, { variant: 'primary', size: 'sm', iconName: 'arrowRight', attrs: { 'data-qv-open': '' } })] };
+  return {
+    title: provider.name, subtitle: PROVIDER_KINDS[provider.kind] || 'Provedor', href,
+    body: [
+      summary({ state: provider.verification_state === 'EVIDENCIA_REGISTRADA' ? tag('Evidência registrada', 'success') : tag('Sem verificação registrada'), kicker: `${PROVIDER_KINDS[provider.kind] || 'Provedor'} · ${provider.region || 'região não informada'}`,
+        figure: null, sub: null, chips: (provider.products || []).map((product) => tag(productLabel(product, { short: true }))) }),
+      section('Participações', rows.length ? el('ul', { class: 'qv-list', role: 'list' }, rows.map(({ rfq, invite, proposal }) => el('li', { class: 'qv-item' }, [
+        el('span', { class: 'qv-item-main' }, [el('a', { class: 'qv-item-title', href: ctx.href(`/finance/rfq.html?id=${rfq.id}`), text: rfq.title }),
+          el('span', { class: 'qv-item-meta', text: proposal ? `Proposta v${proposal.version} enviada ${timeAgo(proposal.submitted_at)}` : invite?.status === 'accepted' ? 'Convite aceito · sem proposta ainda' : 'Convidado · aguardando aceite' })]),
+        pill(RFQ_STATUS[rfq.status], { size: 'sm' })
+      ]))) : emptyState({ title: 'Ainda não participou de solicitações', text: 'Convide este provedor numa solicitação aberta.', compact: true, iconName: 'send' }), { count: rows.length }),
+      contracts.length ? section('Contratos', el('ul', { class: 'qv-list', role: 'list' }, contracts.map((contract) => el('li', { class: 'qv-item' }, [
+        el('span', { class: 'qv-item-main' }, [el('span', { class: 'qv-item-title', text: productLabel(contract.product) }), el('span', { class: 'qv-item-meta num', text: `${formatDate(contract.starts_on)} → ${formatDate(contract.ends_on)}` })]),
+        pill(CONTRACT_STATUS[contract.status], { size: 'sm' })
+      ])))) : null,
+      provider.notes ? section('Notas internas', el('p', { class: 'qv-prose', text: provider.notes })) : null,
+      el('p', { class: 'qv-note', text: 'O cadastro é uma referência da sua empresa, não uma atestação de regularidade.' })
+    ],
+    footer: [favoriteButton('provider', provider.id, provider.name), copyButton(href), openButton('Abrir em Provedores', href)]
+  };
 }
 
 // -------------------------------------------------------------- contrato
-function contractNext(contract) {
+export function contractNext(contract) {
   if (!['active', 'renewing'].includes(contract.status)) return 'Contrato encerrado, mantido para histórico.';
   const stage = renewalStage(contract);
   if (contract.status === 'renewing' && stage.stage !== 'past_notice') return `Nova concorrência em andamento. Compare antes do aviso prévio (${formatDate(stage.deadline)}).`;
@@ -187,27 +190,54 @@ function contractView(ctx, contract) {
   const stage = renewalStage(contract);
   const source = (ctx.data.rfqs || []).find((rfq) => rfq.id === contract.rfq_id);
   const attention = ['window', 'past_notice'].includes(stage.stage);
-  const body = [
-    el('div', { class: 'qv-hero' }, [
-      el('p', { class: 'qv-kicker', text: productLabel(contract.product) }),
-      el('p', { class: 'qv-figure', text: contract.provider_name || 'Provedor' }),
-      el('div', { class: 'qv-badges' }, [pill(CONTRACT_STATUS[contract.status], { size: 'sm' }),
-        ['active', 'renewing'].includes(contract.status) && Number.isFinite(contract.days_to_end) ? el('span', { class: `qv-chip${contract.days_to_end <= 60 ? ' is-urgent' : ''}` }, [icon('calendar', { size: 12 }), el('span', { text: contract.days_to_end >= 0 ? `vence em ${contract.days_to_end} dias` : 'vencido' })]) : null])
-    ]),
-    el('p', { class: `qv-next${attention ? ' is-attention' : ''}` }, [icon(attention ? 'alert' : 'checkCircle', { size: 16 }), el('span', { text: contractNext(contract) })]),
-    facts([
-      ['Vigência', `${formatDate(contract.starts_on)} → ${formatDate(contract.ends_on)}`],
-      ['Aviso prévio', `${contract.renewal_notice_days} dias · ${formatDate(contract.review_from)}`],
-      ['Custo registrado', contract.cost_summary || 'Não informado', contract.cost_summary ? '' : 'missing'],
-      contract.main_conditions ? ['Condições', contract.main_conditions] : null,
-      source ? ['Processo de origem', source.title] : null
-    ])
-  ];
   const href = ctx.href(`/finance/contracts.html#contract-${contract.id}`);
-  return { title: contract.provider_name || 'Contrato', subtitle: `Contrato · ${productLabel(contract.product, { short: true })}`, body, href,
-    footer: [favoriteButton('contract', contract.id, contract.provider_name || 'Contrato'), copyLinkButton(href),
+  const live = ['active', 'renewing'].includes(contract.status);
+  return {
+    title: contract.provider_name || 'Contrato', subtitle: `Contrato · ${productLabel(contract.product, { short: true })}`, href,
+    body: [
+      summary({ state: pill(CONTRACT_STATUS[contract.status], { size: 'sm' }), kicker: productLabel(contract.product), figure: live && Number.isFinite(contract.days_to_end) ? (contract.days_to_end >= 0 ? `${contract.days_to_end} dias` : 'Vencido') : null,
+        sub: live ? `até o vencimento em ${formatDate(contract.ends_on)}` : `${formatDate(contract.starts_on)} → ${formatDate(contract.ends_on)}` }),
+      el('p', { class: `qv-next${attention ? ' is-attention' : ''}` }, [icon(attention ? 'alert' : 'checkCircle', { size: 16 }), el('span', { text: contractNext(contract) })]),
+      live ? timeline(contractStages(contract), { label: 'Ciclo de vida do contrato', hereText: '' }) : null,
+      facts([
+        ['Vigência', `${formatDate(contract.starts_on)} → ${formatDate(contract.ends_on)}`],
+        ['Aviso prévio', `${contract.renewal_notice_days} dias · ${formatDate(contract.review_from)}`],
+        ['Custo registrado', contract.cost_summary || 'Não informado', contract.cost_summary ? '' : 'missing'],
+        contract.main_conditions ? ['Condições', contract.main_conditions] : null,
+        source ? ['Processo de origem', source.title] : null
+      ])
+    ],
+    footer: [favoriteButton('contract', contract.id, contract.provider_name || 'Contrato'), copyButton(href),
       source ? linkButton('Processo de origem', ctx.href(`/finance/rfq.html?id=${source.id}#decisao`), { size: 'sm', iconName: 'file' }) : null,
-      linkButton('Abrir em Contratos', href, { variant: 'primary', size: 'sm', iconName: 'arrowRight', attrs: { 'data-qv-open': '' } })] };
+      openButton('Abrir em Contratos', href)]
+  };
+}
+
+// ----------------------------------------------------------------- tarefa
+function taskView(ctx, task) {
+  const days = daysUntil(task.due_on);
+  const related = task.related_type === 'rfq' ? (ctx.data.rfqs || []).find((rfq) => rfq.id === task.related_id) : null;
+  const href = ctx.href(`/finance/tasks.html#task-${task.id}`);
+  const done = button(task.status === 'done' ? 'Concluída' : 'Concluir tarefa', { size: 'sm', iconName: 'check', attrs: { disabled: task.status === 'done' } });
+  done.addEventListener('click', async () => {
+    done.disabled = true;
+    try {
+      await ctx.api('tasks', { method: 'PATCH', body: JSON.stringify({ organization_id: ctx.organization.id, task_id: task.id, status: 'done' }) });
+      done.querySelector('.btn-label').textContent = 'Concluída';
+      toast('Tarefa concluída.');
+      ctx.reload();
+    } catch (error) { done.disabled = false; toast(error.message, 'error'); }
+  });
+  return {
+    title: task.title, subtitle: 'Tarefa', href,
+    body: [
+      summary({ state: pill(task.status === 'done' ? { label: 'Concluída', tone: 'success', icon: 'checkCircle' } : { label: 'Aberta', tone: 'neutral', icon: 'clock' }, { size: 'sm' }), kicker: 'Tarefa',
+        figure: task.due_on ? relativeDays(task.due_on) : 'Sem prazo', sub: task.due_on ? `prazo ${formatDate(task.due_on)}` : null,
+        chips: [days !== null && days < 0 && task.status !== 'done' ? chip('Vencida', { urgent: true }) : null] }),
+      facts([['Responsável', task.assignee_name || 'Sem responsável'], related ? ['Relacionada a', related.title] : null, task.related_type === 'contract' ? ['Relacionada a', 'Contrato'] : null])
+    ],
+    footer: [related ? linkButton('Abrir solicitação', ctx.href(`/finance/rfq.html?id=${related.id}`), { size: 'sm', iconName: 'file' }) : null, done, openButton('Abrir em Tarefas', href)]
+  };
 }
 
 // ------------------------------------------------------------------ API
@@ -220,6 +250,7 @@ export function resolveEntity(ctx, type, id) {
   }
   if (type === 'provider') { const provider = (ctx.data.providers || []).find((row) => row.id === id); return provider ? { title: provider.name, build: () => providerView(ctx, provider) } : null; }
   if (type === 'contract') { const contract = (ctx.data.contracts || []).find((row) => row.id === id); return contract ? { title: contract.provider_name || 'Contrato', build: () => contractView(ctx, contract) } : null; }
+  if (type === 'task') { const task = (ctx.data.tasks || []).find((row) => row.id === id); return task ? { title: task.title, build: () => taskView(ctx, task) } : null; }
   return null;
 }
 
@@ -227,12 +258,20 @@ let openDialog = null;
 /** Abre a quick view; devolve false quando o item não está disponível (o chamador segue o link). */
 export function openQuickView(ctx, type, id) {
   if (ctx.audience !== 'company') return false;
+  if (type === 'approval') {
+    ctx.loadApprovals().then((rows) => {
+      const request = rows.find((row) => row.id === id);
+      const rfq = request && (ctx.data.rfqs || []).find((row) => row.id === request.rfq_id);
+      if (request && rfq) { openDialog?.close(); openDialog = openApproval(ctx, request, rfq); }
+    });
+    return true;
+  }
   const entity = resolveEntity(ctx, type, id);
   if (!entity) return false;
   openDialog?.close();
   const view = entity.build();
-  if (type !== 'proposal') recordRecent(type, id, entity.title);
-  const dialog = drawer({ title: view.title, subtitle: view.subtitle, body: view.body, footer: view.footer.filter(Boolean), className: 'quick-view', onClose: () => { if (openDialog === dialog) openDialog = null; } });
+  if (['rfq', 'contract', 'provider'].includes(type)) recordRecent(type, id, entity.title);
+  const dialog = drawer({ title: view.title, subtitle: view.subtitle, body: view.body.filter(Boolean), footer: view.footer.filter(Boolean), className: `quick-view qv-${type}`, onClose: () => { if (openDialog === dialog) openDialog = null; } });
   dialog.dataset.entity = `${type}:${id}`;
   openDialog = dialog;
   return true;

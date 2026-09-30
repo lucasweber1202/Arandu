@@ -1,99 +1,134 @@
-// Visualizações de Solicitações: sugeridas (derivadas do papel de quem usa) e
-// salvas pela pessoa (filtros atuais com um nome). Uma visualização é só um
-// conjunto de filtros da própria lista — busca, status, produto, responsável
-// e ordenação — guardado neste navegador.
+// Minhas visões: a forma como cada pessoa olha para uma lista.
+//
+//   Todas · Minhas · Urgentes · Aguardando resposta · Em avaliação · Fila CFO · + Nova visão
+//
+// Uma visão guarda o que a lista entende (busca, status, produto,
+// responsável, ordenação), um filtro extra da própria visão (ex.: urgentes,
+// renovação próxima) e as colunas visíveis. Vale para Solicitações e
+// Contratos; fica neste navegador e pode ir para a barra lateral.
 
 import { el, icon } from '../../src/core.js';
 import { button, toast } from '../../src/ui.js';
-import { readState, saveView, removeView, restoreView, toggleViewPin, cleanQuery } from './preferences.js';
+import * as prefs from './preferences.js';
 import { popover } from './popover.js';
 
-export function suggestedViews(ctx) {
-  const views = [
-    ctx.viewer?.id && (ctx.data.rfqs || []).some((rfq) => rfq.owner_id === ctx.viewer.id) ? { id: 'mine', name: 'Minhas solicitações', query: `owner=${ctx.viewer.id}` } : null,
-    { id: 'waiting-provider', name: 'Aguardando provedor', query: 'status=collecting' },
-    { id: 'comparing', name: 'Em comparação', query: 'status=comparing' },
-    { id: 'drafts', name: 'Rascunhos', query: 'status=draft' },
-    { id: 'recent', name: 'Atualizadas recentemente', query: 'sort=recent' }
+const ACTIVE = (page) => `arandu-demo-view:${page}`;
+export function builtinViews(ctx, page) {
+  if (page === 'contracts') {
+    return [
+      { id: 'all', name: 'Todos', query: '', extra: '' },
+      { id: 'renewal', name: 'Renovação próxima', query: '', extra: 'renewal' },
+      { id: 'active', name: 'Vigentes', query: '', extra: 'active' },
+      { id: 'ended', name: 'Encerrados', query: '', extra: 'ended' }
+    ];
+  }
+  const mine = ctx.viewer?.id && (ctx.data.rfqs || []).some((rfq) => rfq.owner_id === ctx.viewer.id);
+  return [
+    { id: 'all', name: 'Todas', query: '', extra: '' },
+    mine ? { id: 'mine', name: 'Minhas', query: prefs.cleanQuery(`owner=${ctx.viewer.id}`), extra: '' } : null,
+    { id: 'urgent', name: 'Urgentes', query: '', extra: 'urgent' },
+    { id: 'waiting', name: 'Aguardando resposta', query: '', extra: 'waiting' },
+    { id: 'comparing', name: 'Em avaliação', query: 'status=comparing', extra: '' }
   ].filter(Boolean);
-  return views.map((view) => ({ ...view, query: cleanQuery(view.query) }));
 }
 
-const currentQuery = () => cleanQuery(location.search);
+function readActive(page) { try { return sessionStorage.getItem(ACTIVE(page)) || ''; } catch { return ''; } }
+function writeActive(page, id) { try { if (id) sessionStorage.setItem(ACTIVE(page), id); else sessionStorage.removeItem(ACTIVE(page)); } catch { /* sem sessão */ } }
 
-/** Barra de visualizações acima dos filtros da lista de solicitações. */
-export function installViewsBar(ctx, { apply }) {
-  const page = document.querySelector('#view .list-page');
-  const toolbar = page?.querySelector('.toolbar');
-  if (!page || !toolbar || page.querySelector('.views-bar')) return;
-  const bar = el('div', { class: 'views-bar' });
-  const trigger = el('button', { type: 'button', class: 'btn btn-sm views-trigger', id: 'views-trigger' }, [icon('bookmark', { size: 14 }), el('span', { class: 'views-current', text: 'Visualizações' }), icon('chevronDown', { size: 14 })]);
-  const panel = el('div', { class: 'dw-menu views-menu' });
-  const save = button('Salvar visualização', { variant: 'ghost', size: 'sm', iconName: 'plus', attrs: { id: 'save-view' } });
-  bar.append(trigger, panel, save);
-  toolbar.before(bar);
-  const menu = popover({ trigger, panel, role: 'menu', onOpen: () => drawMenu() });
+/** Visão ativa: a escolhida, desde que o endereço ainda corresponda aos filtros dela. */
+export function activeView(ctx, page, initialId = null) {
+  if (initialId) writeActive(page, initialId);
+  const all = [...builtinViews(ctx, page), ...prefs.readState().savedViews.filter((view) => view.page === page)];
+  const query = prefs.cleanQuery(location.search, page);
+  const chosen = all.find((view) => view.id === readActive(page));
+  if (chosen && chosen.query === query) return chosen;
+  return all.find((view) => view.query === query && !view.extra && !view.hiddenColumns?.length) || null;
+}
+export function activeExtra(ctx, page) { return activeView(ctx, page)?.extra || ''; }
 
-  function label() {
-    const query = currentQuery();
-    const all = [...readState().savedViews, ...suggestedViews(ctx)];
-    const match = query ? all.find((view) => view.query === query) : null;
-    trigger.querySelector('.views-current').textContent = match ? match.name : query ? 'Filtros personalizados' : 'Todas as solicitações';
-    save.hidden = !query || Boolean(readState().savedViews.find((view) => view.query === query));
+export function installViewsBar(ctx, { page, anchor, onApply, currentHidden = () => [] }) {
+  if (!anchor || anchor.parentElement?.querySelector('.views-bar')) return;
+  const bar = el('nav', { class: 'views-bar', 'aria-label': 'Visões' });
+  anchor.before(bar);
+
+  const draw = () => {
+    const current = activeView(ctx, page);
+    const saved = prefs.readState().savedViews.filter((view) => view.page === page);
+    const tab = (view, { user = false } = {}) => {
+      const active = current?.id === view.id;
+      const node = el('button', { type: 'button', class: `view-tab${user ? ' is-user' : ''}`, 'aria-pressed': String(active), dataset: { view: view.id } }, [
+        user && view.pinned ? icon('pin', { size: 12 }) : null, el('span', { text: view.name })]);
+      node.addEventListener('click', () => apply(view));
+      return node;
+    };
+    const create = el('button', { type: 'button', class: 'view-tab view-new', id: 'save-view' }, [icon('plus', { size: 13 }), el('span', { text: 'Nova visão' })]);
+    create.addEventListener('click', () => nameDialog({ title: 'Nova visão', hint: page === 'rfqs' ? 'Guarda a busca, os filtros, a ordenação e as colunas atuais.' : 'Guarda o filtro atual da lista de contratos.' }, (name) => {
+      saveCurrent(name);
+      toast(`Visão “${name}” salva.`);
+    }));
+    const items = [...builtinViews(ctx, page).map((view) => tab(view)), saved.length ? el('span', { class: 'views-sep', 'aria-hidden': 'true' }) : null, ...saved.map((view) => tab(view, { user: true })), create];
+    const userActive = current && saved.find((view) => view.id === current.id);
+    if (userActive) items.push(manageMenu(userActive));
+    bar.replaceChildren(el('div', { class: 'views-scroll' }, items.filter(Boolean)));
+  };
+
+  function saveCurrent(name) {
+    const query = prefs.cleanQuery(location.search, page);
+    const id = prefs.saveView({ name, page, query, extra: activeExtra(ctx, page), hiddenColumns: currentHidden() });
+    writeActive(page, id);
+    draw();
   }
-  function item(view, { removable = false } = {}) {
-    const active = view.query === currentQuery();
-    const entry = el('button', { type: 'button', role: 'menuitemradio', class: 'dw-menu-item', 'aria-checked': String(active) }, [
-      icon(active ? 'check' : 'bookmark', { size: 14 }), el('span', { class: 'dw-menu-label', text: view.name }), view.pinned ? el('span', { class: 'dw-menu-hint', text: 'fixada' }) : null
+  function apply(view) {
+    writeActive(page, view.id);
+    if (view.hiddenColumns?.length) prefs.setHiddenColumns(page, view.hiddenColumns);
+    onApply(view);
+    if (bar.isConnected) draw();
+  }
+  function manageMenu(view) {
+    const wrap = el('div', { class: 'dw-anchor' });
+    const trigger = el('button', { type: 'button', class: 'icon-btn sm view-manage', id: 'view-manage', 'aria-label': `Gerenciar visão “${view.name}”`, title: 'Gerenciar visão' }, icon('more', { size: 16 }));
+    const item = (label, iconName, run, danger = false) => {
+      const node = el('button', { type: 'button', role: 'menuitem', class: `dw-menu-item${danger ? ' is-danger' : ''}` }, [icon(iconName, { size: 16 }), el('span', { class: 'dw-menu-label', text: label })]);
+      node.addEventListener('click', () => { menu.hide({ restore: false }); run(); });
+      return node;
+    };
+    const panel = el('div', { class: 'dw-menu dw-menu-sm', 'aria-label': `Visão ${view.name}` }, [
+      item('Renomear…', 'edit', () => nameDialog({ title: 'Renomear visão', value: view.name }, (name) => { prefs.editView(view.id, { name }); draw(); toast('Visão renomeada.', 'info'); })),
+      item('Atualizar com os filtros atuais', 'refresh', () => { prefs.editView(view.id, { query: location.search, extra: view.extra, hiddenColumns: currentHidden() }); draw(); toast('Visão atualizada.', 'info'); }),
+      item(view.pinned ? 'Desafixar da barra lateral' : 'Fixar na barra lateral', 'pin', () => { prefs.toggleViewPin(view.id); draw(); toast(view.pinned ? 'Visão removida da barra lateral.' : 'Visão fixada na barra lateral.', 'info'); }),
+      el('hr', { class: 'dw-menu-sep' }),
+      item('Excluir visão', 'x', () => {
+        const views = prefs.readState().savedViews;
+        const index = views.findIndex((entry) => entry.id === view.id);
+        prefs.removeView(view.id);
+        writeActive(page, '');
+        draw();
+        const undo = button('Desfazer', { size: 'sm', onClick: () => { prefs.restoreView(view, index); writeActive(page, view.id); draw(); undo.closest('.toast')?.remove(); } });
+        toast(`Visão “${view.name}” excluída.`, 'info', { action: undo });
+      }, true)
     ]);
-    entry.addEventListener('click', () => { menu.hide({ restore: false }); apply(view.query); });
-    if (!removable) return entry;
-    const pin = el('button', { type: 'button', role: 'menuitemcheckbox', class: 'dw-menu-icon', 'aria-checked': String(view.pinned), 'aria-label': `${view.pinned ? 'Desafixar' : 'Fixar'} “${view.name}” na barra lateral`, title: view.pinned ? 'Desafixar da barra lateral' : 'Fixar na barra lateral' }, icon('pin', { size: 14 }));
-    pin.addEventListener('click', (event) => { event.stopPropagation(); toggleViewPin(view.id); drawMenu(); pin.focus?.(); });
-    const remove = el('button', { type: 'button', role: 'menuitem', class: 'dw-menu-icon is-danger', 'aria-label': `Excluir visualização “${view.name}”`, title: 'Excluir visualização' }, icon('x', { size: 14 }));
-    remove.addEventListener('click', (event) => {
-      event.stopPropagation();
-      const views = readState().savedViews;
-      const index = views.findIndex((entryView) => entryView.id === view.id);
-      removeView(view.id);
-      menu.hide();
-      label();
-      const undo = button('Desfazer', { size: 'sm', onClick: () => { restoreView(view, index); label(); undo.closest('.toast')?.remove(); } });
-      toast(`Visualização “${view.name}” excluída.`, 'info', { action: undo });
-    });
-    return el('div', { class: 'dw-menu-row' }, [entry, pin, remove]);
+    const menu = popover({ trigger, panel, role: 'menu' });
+    wrap.append(trigger, panel);
+    return wrap;
   }
-  function drawMenu() {
-    const saved = readState().savedViews;
-    panel.replaceChildren(
-      el('p', { class: 'dw-menu-group', text: 'Sugeridas', 'aria-hidden': 'true' }),
-      item({ id: 'all', name: 'Todas as solicitações', query: '' }),
-      ...suggestedViews(ctx).map((view) => item(view)),
-      el('p', { class: 'dw-menu-group', text: 'Minhas visualizações', 'aria-hidden': 'true' }),
-      ...(saved.length ? saved.map((view) => item(view, { removable: true })) : [el('p', { class: 'dw-menu-empty', text: 'Filtre a lista e use “Salvar visualização”.' })])
-    );
-  }
-  save.addEventListener('click', () => nameDialog((name) => {
-    saveView(name, currentQuery());
-    label();
-    toast(`Visualização “${name}” salva. Ela aparece no menu Visualizações.`);
-  }));
-  // A lista atualiza o endereço a cada filtro; o rótulo acompanha.
-  for (const control of page.querySelectorAll('.toolbar input, .toolbar select')) control.addEventListener(control.type === 'search' ? 'input' : 'change', () => setTimeout(label, 0));
-  for (const chip of page.querySelectorAll('.toolbar-chips .chip')) chip.addEventListener('click', () => setTimeout(label, 0));
-  page.querySelector('.empty .btn')?.addEventListener('click', () => setTimeout(label, 0));
-  label();
+  // Filtros mudam o endereço; a barra acompanha (e a visão deixa de estar ativa se divergir).
+  const page$ = anchor.closest('.list-page, .stack') || anchor.parentElement;
+  for (const control of page$.querySelectorAll('.toolbar input, .toolbar select')) control.addEventListener(control.type === 'search' ? 'input' : 'change', () => setTimeout(draw, 0));
+  for (const chip of page$.querySelectorAll('.toolbar-chips .chip')) chip.addEventListener('click', () => setTimeout(draw, 0));
+  prefs.subscribe(() => { if (bar.isConnected) draw(); });
+  draw();
+  return { redraw: draw };
 }
 
-function nameDialog(onSave) {
+export function nameDialog({ title, value = '', hint = null }, onSave) {
   const opener = document.activeElement;
   const dialog = el('dialog', { class: 'dialog', 'aria-labelledby': 'view-dialog-title' });
-  const input = el('input', { id: 'view-name', maxlength: '60', required: true, autocomplete: 'off', placeholder: 'Ex.: Crédito acima de R$ 1 milhão' });
-  const error = el('p', { class: 'field-error', id: 'view-name-error', hidden: true, text: 'Dê um nome curto à visualização.' });
+  const input = el('input', { id: 'view-name', maxlength: '60', required: true, autocomplete: 'off', value, placeholder: 'Ex.: Crédito acima de R$ 1 milhão' });
+  const error = el('p', { class: 'field-error', id: 'view-name-error', hidden: true, text: 'Dê um nome curto à visão.' });
   input.setAttribute('aria-describedby', 'view-name-error');
   const form = el('form', { method: 'dialog', class: 'dialog-body' }, [
-    el('label', { class: 'field' }, [el('span', { class: 'field-label', text: 'Nome da visualização' }), input]), error,
-    el('p', { class: 'muted small', text: 'Guarda a busca, os filtros e a ordenação atuais. Fica só neste navegador.' }),
+    el('label', { class: 'field' }, [el('span', { class: 'field-label', text: 'Nome da visão' }), input]), error,
+    hint ? el('p', { class: 'muted small', text: `${hint} Fica só neste navegador.` }) : null,
     el('div', { class: 'dialog-actions' }, [button('Cancelar', { variant: 'ghost', onClick: () => dialog.close() }), button('Salvar', { variant: 'primary', type: 'submit', iconName: 'check' })])
   ]);
   form.addEventListener('submit', (event) => {
@@ -103,9 +138,10 @@ function nameDialog(onSave) {
     dialog.close();
     onSave(name);
   });
-  dialog.append(el('div', { class: 'dialog-head' }, [el('h2', { class: 'dialog-title', id: 'view-dialog-title', text: 'Salvar visualização' })]), form);
+  dialog.append(el('div', { class: 'dialog-head' }, [el('h2', { class: 'dialog-title', id: 'view-dialog-title', text: title })]), form);
   dialog.addEventListener('close', () => { opener?.focus?.(); setTimeout(() => dialog.remove(), 0); });
   document.body.append(dialog);
   dialog.showModal();
   input.focus();
+  input.select();
 }
