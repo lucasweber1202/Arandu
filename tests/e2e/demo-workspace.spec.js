@@ -30,7 +30,7 @@ test('troca de persona pelo topo é instantânea e adapta o painel', async ({ pa
   let loads = 0;
   page.on('load', () => { loads += 1; });
   await page.locator('#persona-trigger').click();
-  const menu = page.getByRole('menu', { name: 'Trocar persona' });
+  const menu = page.getByRole('menu', { name: 'Conta, persona e preferências' });
   await expect(menu.getByRole('menuitemradio')).toHaveCount(4);
   await expect(menu.getByRole('menuitemradio', { name: /^Comprador: Marina Costa/ })).toHaveAttribute('aria-checked', 'true');
   await page.keyboard.press('ArrowDown');
@@ -58,7 +58,7 @@ test('troca de persona pelo topo é instantânea e adapta o painel', async ({ pa
 test('tema, densidade e cor persistem após recarregar e ficam só na demonstração', async ({ page }) => {
   await ready(page, '/demo/finance/dashboard.html');
   await expect(html(page)).toHaveAttribute('data-theme', 'light');
-  await page.locator('#workspace-menu-trigger').click();
+  await page.locator('#persona-trigger').click();
   await page.getByRole('menuitem', { name: 'Aparência e preferências…' }).click();
   const panel = page.getByRole('dialog', { name: 'Aparência e preferências' });
   await panel.getByRole('radio', { name: 'Escuro' }).check();
@@ -90,8 +90,8 @@ test('preferência adulterada no navegador volta ao padrão', async ({ page }) =
   await ready(page, '/demo/finance/dashboard.html');
   await expect(html(page)).toHaveAttribute('data-theme', 'light');
   await expect(html(page)).toHaveAttribute('data-accent', 'indigo');
-  await expect(html(page)).toHaveAttribute('data-density', 'comfortable');
-  await expect(page.locator('.side-extra')).not.toContainText('<img>');
+  await expect(html(page)).toHaveAttribute('data-density-pref', 'auto');
+  await expect(page.locator('.side-personal')).not.toContainText('<img>');
 });
 
 test('barra lateral compacta com tooltip, persistida, e modo foco', async ({ page }, testInfo) => {
@@ -112,7 +112,7 @@ test('barra lateral compacta com tooltip, persistida, e modo foco', async ({ pag
   await page.keyboard.press('Control+b');
   await expect(html(page)).toHaveAttribute('data-sidebar-state', 'expanded');
   // Modo foco: barra lateral oculta, saída explícita; Escape não desfaz nada.
-  await page.locator('#workspace-menu-trigger').click();
+  await page.locator('#persona-trigger').click();
   await page.getByRole('menuitemcheckbox', { name: 'Modo foco' }).click();
   await expect(html(page)).toHaveAttribute('data-focus', 'on');
   await page.keyboard.press('Escape');
@@ -170,7 +170,7 @@ test('quick view de solicitação preserva filtros e rolagem, fecha com Escape e
   await link.click();
   const drawer = page.getByRole('dialog', { name: 'Capital de giro — R$ 3 milhões' });
   await expect(drawer).toBeVisible();
-  await expect(drawer).toContainText('R$ 3 mi');
+  await expect(drawer).toContainText('R$ 3.000.000');
   await expect(drawer).toContainText('Atlas Bank — DEMO');
   await expect(drawer).toContainText('Ordem alfabética');
   await expect(drawer.getByRole('link', { name: 'Abrir solicitação completa' })).toBeVisible();
@@ -208,7 +208,13 @@ test('quick views de proposta, provedor e contrato; favoritos na barra lateral',
   await expect(page.getByRole('dialog').filter({ hasText: 'Condições informadas' })).toBeVisible();
   await page.keyboard.press('Escape');
   await ready(page, '/demo/finance/providers.html');
-  await page.getByRole('button', { name: 'Ver resumo de Atlas Bank — DEMO' }).click();
+  // A linha inteira abre o resumo; pelo teclado, o botão da linha faz o mesmo.
+  const region = await page.locator('tr', { hasText: 'Atlas Bank — DEMO' }).getByRole('cell', { name: 'Nacional' }).boundingBox();
+  await page.mouse.click(region.x + region.width / 2, region.y + region.height / 2);
+  await expect(page.getByRole('dialog', { name: 'Atlas Bank — DEMO' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Ver resumo de Atlas Bank — DEMO' }).focus();
+  await page.keyboard.press('Enter');
   const provider = page.getByRole('dialog', { name: 'Atlas Bank — DEMO' });
   await expect(provider).toContainText('Participações');
   await provider.getByRole('button', { name: 'Favoritar' }).click();
@@ -256,24 +262,42 @@ test('central de comando: ações, tema, persona e busca por teclado', async ({ 
   await expect(page.locator('#persona-trigger')).toHaveAttribute('aria-label', /Ricardo Alves/);
 });
 
-test('visualização salva de solicitações: salvar, reabrir, fixar e excluir', async ({ page }, testInfo) => {
+test('minhas visões: sugeridas, criar, renomear, fixar na barra, excluir com desfazer', async ({ page }, testInfo) => {
   await ready(page, '/demo/finance/rfqs.html');
-  await page.getByRole('button', { name: /Em avaliação/ }).click();
+  const views = page.getByRole('navigation', { name: 'Visões' });
+  await expect(views.getByRole('button', { name: 'Todas' })).toHaveAttribute('aria-pressed', 'true');
+  // Visão sugerida com filtro próprio: só prazos nos próximos 7 dias.
+  await views.getByRole('button', { name: 'Urgentes' }).click();
+  await expect(views.getByRole('button', { name: 'Urgentes' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('tr[data-entity="rfq"]:not([hidden])')).toHaveCount(2);
+  await views.getByRole('button', { name: 'Todas' }).click();
+  await page.locator('.toolbar-chips').getByRole('button', { name: /Em avaliação/ }).click();
   await expect(page).toHaveURL(/status=comparing/);
-  await page.getByRole('button', { name: 'Salvar visualização' }).click();
-  await page.getByLabel('Nome da visualização').fill('Minha fila de avaliação');
+  await views.getByRole('button', { name: 'Nova visão' }).click();
+  await page.getByLabel('Nome da visão').fill('Fila de avaliação');
   await page.getByRole('button', { name: 'Salvar', exact: true }).click();
-  await expect(page.locator('#views-trigger')).toContainText('Minha fila de avaliação');
+  await expect(views.getByRole('button', { name: 'Fila de avaliação', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await page.goto('/demo/finance/rfqs.html');
-  await page.locator('#views-trigger').click();
-  await page.getByRole('menuitemradio', { name: /Minha fila de avaliação/ }).click();
+  await views.getByRole('button', { name: 'Fila de avaliação', exact: true }).click();
   await expect(page).toHaveURL(/status=comparing/);
   await expect(page.locator('tr[data-entity="rfq"]')).toHaveCount(2);
-  await page.locator('#views-trigger').click();
-  await page.getByRole('menuitemcheckbox', { name: /Fixar “Minha fila de avaliação”/ }).click();
-  if (!isMobile(testInfo)) await expect(page.locator('.sidebar').getByRole('link', { name: 'Minha fila de avaliação' })).toBeVisible();
-  await page.getByRole('menuitem', { name: /Excluir visualização “Minha fila de avaliação”/ }).click();
+  await page.getByRole('button', { name: /Gerenciar visão/ }).click();
+  await page.getByRole('menuitem', { name: 'Renomear…' }).click();
+  await page.getByLabel('Nome da visão').fill('Avaliação CFO');
+  await page.getByRole('button', { name: 'Salvar', exact: true }).click();
+  await expect(views.getByRole('button', { name: 'Avaliação CFO', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: /Gerenciar visão/ }).click();
+  await page.getByRole('menuitem', { name: 'Fixar na barra lateral' }).click();
+  if (!isMobile(testInfo)) {
+    await page.locator('.sidebar').getByRole('link', { name: 'Avaliação CFO' }).click();
+    await expect(page).toHaveURL(/status=comparing/);
+    await expect(page.locator('.sidebar').getByRole('link', { name: 'Avaliação CFO' })).toHaveAttribute('aria-current', 'page');
+  }
+  await page.getByRole('button', { name: /Gerenciar visão/ }).click();
+  await page.getByRole('menuitem', { name: 'Excluir visão' }).click();
   expect((await stored(page)).savedViews).toEqual([]);
+  await page.locator('.toast').getByRole('button', { name: 'Desfazer' }).click();
+  expect((await stored(page)).savedViews.map((view) => view.name)).toEqual(['Avaliação CFO']);
 });
 
 test('restaurar só aparência preserva os dados; restaurar dados preserva a aparência', async ({ page }) => {
@@ -320,55 +344,110 @@ test('layout móvel e desktop sem rolagem horizontal, com e sem tema escuro', as
 });
 
 // Evidência visual (não é regressão por pixel): `ARANDU_DEMO_SCREENSHOTS=1`.
+// Desktop 1440×900 e tablet 1024×768 no projeto de desktop; celular 390×844.
 test('capturas de evidência da nova experiência', async ({ page }, testInfo) => {
   test.skip(!process.env.ARANDU_DEMO_SCREENSHOTS, 'Só quando ARANDU_DEMO_SCREENSHOTS=1.');
-  test.setTimeout(120000);
+  test.setTimeout(180000);
   const dir = process.env.ARANDU_DEMO_SCREENSHOTS_DIR || 'reports/demo-ux';
-  const device = isMobile(testInfo) ? 'mobile' : 'desktop';
-  const shot = (name) => page.screenshot({ path: `${dir}/${device}-${name}.png` });
+  const RFQ = '/demo/finance/rfq.html?id=de000000-0000-4000-8000-000400000001';
+  const settle = () => page.waitForTimeout(350);
+  const shot = async (device, name) => { await settle(); await page.screenshot({ path: `${dir}/${device}-${name}.png` }); };
+  const reset = async () => page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+  const persona = async (key) => {
+    await page.locator('#persona-trigger').click();
+    await page.locator(`.persona-item[data-persona="${key}"]`).click();
+    await expect(page.locator('#view.is-switching')).toHaveCount(0);
+  };
+
+  if (isMobile(testInfo)) {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/demo/index.html');
+    await reset();
+    await page.goto('/demo/index.html');
+    await shot('mobile', '01-landing');
+    await ready(page, '/demo/finance/dashboard.html');
+    await shot('mobile', '02-dashboard');
+    await ready(page, RFQ);
+    await shot('mobile', '03-solicitacao');
+    await ready(page, '/demo/finance/rfqs.html');
+    await page.getByRole('link', { name: 'Capital de giro — R$ 3 milhões' }).click();
+    await shot('mobile', '04-quick-view');
+    await page.keyboard.press('Escape');
+    await persona('approver');
+    await ready(page, '/demo/finance/approvals.html');
+    await shot('mobile', '05-aprovacoes');
+    await page.getByRole('navigation', { name: 'Navegação principal' }).getByRole('button', { name: 'Mais' }).click();
+    await shot('mobile', '06-navegacao-inferior-mais');
+    await page.keyboard.press('Escape');
+    await ready(page, `${RFQ}#comparacao`);
+    await shot('mobile', '07-comparacao');
+    return;
+  }
+
+  await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/demo/index.html');
-  await shot('01-landing');
+  await reset();
+  await page.goto('/demo/index.html');
+  await shot('desktop', '01-landing');
   await ready(page, '/demo/finance/dashboard.html');
-  await shot('02-dashboard-comprador');
-  await ready(page, '/demo/finance/rfqs.html');
-  await shot('03-solicitacoes');
-  await page.getByRole('link', { name: 'Capital de giro — R$ 3 milhões' }).click();
-  await page.waitForTimeout(400);
-  await shot('04-quick-view');
-  if (device === 'mobile') return;
-  await page.keyboard.press('Escape');
-  await ready(page, '/demo/finance/rfq.html?id=de000000-0000-4000-8000-000400000001#comparacao');
-  await shot('05-comparacao');
-  await ready(page, '/demo/finance/contracts.html');
-  await shot('06-contratos');
-  await ready(page, '/demo/finance/dashboard.html');
+  await shot('desktop', '02-dashboard-comprador');
   await page.getByRole('button', { name: 'Personalizar' }).click();
-  await page.getByRole('button', { name: 'Mover Pipeline para cima' }).click();
-  await shot('07-dashboard-personalizando');
+  const presets = page.getByRole('group', { name: 'Preset do workspace' });
+  await presets.getByRole('button', { name: 'Executivo' }).click();
   await page.getByRole('button', { name: 'Concluir' }).click();
+  await shot('desktop', '03-dashboard-executivo');
+  await page.getByRole('button', { name: 'Personalizar' }).click();
+  await presets.getByRole('button', { name: 'Operacional' }).click();
+  await page.getByRole('button', { name: 'Concluir' }).click();
+  await shot('desktop', '04-dashboard-operacional');
+  await page.getByRole('button', { name: 'Personalizar' }).click();
+  await presets.getByRole('button', { name: 'Equilibrado' }).click();
+  await page.getByRole('button', { name: 'Concluir' }).click();
+  await ready(page, RFQ);
+  await shot('desktop', '05-solicitacao-visao-geral');
+  await ready(page, `${RFQ}#propostas`);
+  await shot('desktop', '06-solicitacao-propostas');
+  await ready(page, `${RFQ}#comparacao`);
+  await shot('desktop', '07-comparacao-foco');
+  await page.locator('#compare-back').click();
+  await ready(page, '/demo/finance/rfqs.html');
+  await shot('desktop', '08-solicitacoes-tabela');
+  await page.getByRole('link', { name: 'Capital de giro — R$ 3 milhões' }).click();
+  await shot('desktop', '09-quick-view');
+  await page.keyboard.press('Escape');
+  await ready(page, '/demo/finance/contracts.html');
+  await shot('desktop', '10-contratos');
+  await page.keyboard.press('Control+k');
+  await shot('desktop', '11-central-de-comando');
+  await page.keyboard.press('Escape');
+  await page.locator('#persona-trigger').click();
+  await page.getByRole('menuitem', { name: 'Aparência e preferências…' }).click();
+  await shot('desktop', '12-preferencias-workspace');
+  await page.keyboard.press('Escape');
+  await persona('approver');
+  await ready(page, '/demo/finance/approvals.html');
+  await page.locator('.inbox-row', { hasText: 'Capital de giro' }).getByRole('button', { name: 'Ver contexto' }).click();
+  await shot('desktop', '13-aprovacao');
+  await page.keyboard.press('Escape');
   await page.keyboard.press('Control+k');
   await page.keyboard.type('tema escuro');
   await page.keyboard.press('Enter');
-  await page.waitForTimeout(250);
-  await shot('08-dark-mode');
-  await page.locator('#persona-trigger').click();
-  await shot('09-seletor-persona');
-  await page.getByRole('menuitemradio', { name: /^Aprovador:/ }).click();
-  await expect(page.locator('#dashboard')).toHaveAttribute('data-persona', 'approver');
-  await expect(page.locator('#view.is-switching')).toHaveCount(0);
-  await page.waitForTimeout(300);
-  await shot('10-aprovador');
+  await ready(page, '/demo/finance/dashboard.html');
+  await shot('desktop', '14-dark-mode');
   await page.keyboard.press('Control+k');
   await page.keyboard.type('tema claro');
   await page.keyboard.press('Enter');
-  await page.locator('#persona-trigger').click();
-  await page.getByRole('menuitemradio', { name: /^Provedor:/ }).click();
-  await expect(page).toHaveURL(/provider/);
-  await page.waitForTimeout(600);
-  await shot('11-provedor');
-  await page.locator('#demo-indicator').click();
-  await shot('12-indicador-demo');
+  await persona('buyer');
+
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await ready(page, '/demo/finance/dashboard.html');
+  await shot('tablet', '01-dashboard');
+  await ready(page, RFQ);
+  await shot('tablet', '02-solicitacao');
+  await page.locator('.side-collapse').click();
+  await expect(page.locator('html')).toHaveAttribute('data-sidebar-overlay', 'on');
+  await shot('tablet', '03-barra-lateral-sobreposta');
   await page.keyboard.press('Escape');
-  await page.keyboard.press('Control+k');
-  await shot('13-central-de-comando');
+  await ready(page, `${RFQ}#comparacao`);
+  await shot('tablet', '04-comparacao');
 });

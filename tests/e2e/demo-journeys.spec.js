@@ -130,7 +130,7 @@ test('jornada completa: comprador → provedor → comprador → aprovador → d
   await page.goto(`${rfqUrl}#comparacao`);
   await expect(page.locator('#comparison-notice')).toBeVisible();
   await expect(page.locator('#view')).toContainText('Atlas Bank — DEMO');
-  await tab(page, 'Aprovações').click();
+  await tab(page, 'Aprovação').click();
   await page.getByRole('checkbox', { name: /Ricardo Alves/ }).check();
   await page.getByLabel('Contexto para quem aprova').fill('Única proposta com o valor integral.');
   await page.getByRole('button', { name: 'Solicitar aprovação' }).click();
@@ -157,7 +157,7 @@ test('jornada completa: comprador → provedor → comprador → aprovador → d
   await page.locator('#contract-form').getByRole('button', { name: 'Registrar contrato' }).click();
   await expect(page).toHaveURL(/\/demo\/finance\/contracts\.html#contract-/);
   await expect(page.locator('.contract-card.highlighted')).toContainText('Atlas Bank — DEMO');
-  await expect(page.locator('.contract-card.highlighted .lifecycle-bar')).toBeVisible();
+  await expect(page.locator('.contract-card.highlighted .contract-timeline')).toBeVisible();
   const renewal = page.locator('.contract-card', { hasText: 'Cadência Adquirência — DEMO' }).first();
   await expect(renewal).toContainText('Janela de renovação aberta. Decida até');
   await renewal.getByRole('button', { name: 'Iniciar nova concorrência' }).click();
@@ -184,7 +184,7 @@ test('comentário com menção gera notificação com deep link para o mencionad
   const mention = panel.getByRole('link', { name: /Marina Costa mencionou você/ }).first();
   await mention.click();
   await expect(page).toHaveURL(new RegExp(`rfq\\.html\\?id=${CAPITAL}#atividade`));
-  await expect(tab(page, 'Atividade')).toHaveAttribute('aria-selected', 'true');
+  await expect(tab(page, 'Histórico')).toHaveAttribute('aria-selected', 'true');
   await expect(page.locator('.thread')).toContainText('Podemos fechar hoje?');
   await page.goto('/demo/finance/notifications.html');
   const unreadMention = page.locator('#view .notice.unread', { hasText: 'Marina Costa mencionou você' });
