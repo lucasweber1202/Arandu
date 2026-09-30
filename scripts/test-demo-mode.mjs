@@ -76,6 +76,14 @@ if (process.argv.includes('--dist')) {
     assert.ok(!existsSync('dist/demo'), 'build sem demonstração publicou /demo');
     assert.deepEqual(withEngine, [], 'motor da demonstração entrou no pacote sem demonstração');
     assert.doesNotMatch(readFileSync('dist/index.html', 'utf8'), /data-demo-cta/);
+    // Camada de experiência da demo (Workspace 2.0): nenhum módulo, CSS, chave
+    // de armazenamento ou dado fictício dela no pacote oficial.
+    const DEMO_ONLY = ['arandu-demo-workspace', 'arandu-demo-route', 'arandu-demo-proposal-seen', 'decisionInbox', 'installInspector', 'installFilterBar',
+      'Calculado pelo Arandu com hipóteses', 'Ver processo completo', 'Onde as propostas mais diferem', 'data-inspector', 'wq-row', 'dinbox', 'Marina Costa', '— DEMO'];
+    for (const file of files.filter((path) => /\.(js|css|html)$/.test(path))) {
+      const text = readFileSync(file, 'utf8');
+      for (const marker of DEMO_ONLY) assert.ok(!text.includes(marker), `${file} contém "${marker}", exclusivo da demonstração`);
+    }
   }
   console.log(`Demo boundary (dist): ${expectDemo ? 'demonstração publicada com faixa, noindex e sem analytics' : 'nenhuma página nem código da demonstração no pacote'}.`);
 }

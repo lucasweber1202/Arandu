@@ -1343,5 +1343,21 @@ body.has-route .tray{bottom:92px}
 .provider-handoff{margin:4px 0 8px}
 .dc-more{padding:12px 0;border-bottom:1px solid var(--border-subtle)}
 .dc-more>summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--text-secondary);min-height:32px;display:flex;align-items:center}
-@media (min-width:1360px){ .dw[data-inspector=on] .table-card{overflow-x:auto} }
+@media (min-width:1360px){
+  /* Lista ao lado do inspector: a tabela cabe na coluna (sem rolagem que quebraria o cabeçalho fixo). */
+  .dw[data-inspector=on] .rfq-table{table-layout:fixed;width:100%}
+  .dw[data-inspector=on] .rfq-table th[data-col=solicitacao]{width:36%}
+  .dw[data-inspector=on] .rfq-table th[data-col=status]{width:20%}
+  .dw[data-inspector=on] .rfq-table th[data-col=prazo]{width:14%}
+  .dw[data-inspector=on] .rfq-table .cell-primary{max-width:none}
+  .dw[data-inspector=on] .rfq-table td{overflow-wrap:anywhere}
+  .dw[data-inspector=on] .rfq-table td[data-label=Status],.dw[data-inspector=on] .rfq-table td.next-action,.dw[data-inspector=on] .rfq-table td.next-action *{white-space:normal}
+}
 @media (min-width:960px){ .dc-section .approval-actions{flex-wrap:nowrap} }
+.dw .rfq-table td.next-action{white-space:normal;min-width:180px}
+@media (max-width:959px){
+  .cmp-facts{display:grid;gap:2px}
+  .cmp-facts li+li::before{content:none}
+}
+/* No celular a comparação é o seletor de pares do produto: os modos valem para a matriz larga. */
+@media (max-width:759px){ .cmp-modebar{display:none} }

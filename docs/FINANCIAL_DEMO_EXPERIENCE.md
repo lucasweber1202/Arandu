@@ -49,6 +49,17 @@ finance/demo/workspace/
   command.js           Central de comando 2.0 (Ctrl/⌘+K)
   assist.js            assistência contextual determinística (arquitetura para IA)
   personas.js, popover.js, icons.js
+  — Workspace 2.0 (ver docs/DEMO_WORKSPACE_V2_REVIEW.md) —
+  next-action.js       gramática única: estado · próxima ação · por quê · prazo ·
+                       responsável (módulo puro; scripts/test-demo-next-action.mjs)
+  work-ui.js           bloco, linha de fila e célula da próxima ação
+  inspector.js         lista | resumo ancorado (≥ 1360 px), ↑↓, Esc
+  filters.js           filtros como frase + "Salvar filtro"
+  decision-inbox.js    Aprovações: caixa | contexto da decisão (substitui a tela)
+  handoff.js           "Continuar como …" entre personas no mesmo processo
+  provider-portal.js   revisões explicadas, sucesso após enviar, nomes coerentes
+  settings-architecture.js  Minha conta · Empresa · Governança · Demonstração
+  route.js             roteiro "Ver processo completo" (7 passos, 4 personas)
 ```
 
 Carregamento: `finance/app.js` importa `demo/workspace/index.js` **somente**
@@ -63,7 +74,7 @@ por `scripts/generate-finance-pages.mjs` e por `demo/index.html`.
 
 | Arquivo | Mudança |
 | --- | --- |
-| `finance/app.js` | carrega a camada sob a trava acima; `ctx.rerender`; troca de persona sem recarregar quando a camada existe; nesta rodada, `workspace?.decorateSidebar(ctx, navCounts)` (o `?.` é nulo fora da demo) |
+| `finance/app.js` | carrega a camada sob a trava acima; `ctx.rerender`; troca de persona sem recarregar quando a camada existe; `workspace?.decorateSidebar(ctx, navCounts)` (o `?.` é nulo fora da demo); Workspace 2.0: `Object.assign(VIEWS, workspace.views || {})` dentro do bloco `if (workspace)` (Aprovações da demo) |
 | `finance/src/core.js` | `registerIcons()` para ícones extras |
 | `finance/src/ui.js` | `drawer({ className })` opcional |
 | `finance/src/views/rfqs.js`, `company.js` | atributos `data-entity`/`data-id` nas linhas; gancho `ctx.demoSettings?.(add)` dentro do bloco já exclusivo da demo |
@@ -74,7 +85,10 @@ migration. Nenhuma dependência nova.
 
 ## Preferências e armazenamento
 
-Uma chave no `localStorage`: **`arandu-demo-workspace`** (versão 2).
+Uma chave no `localStorage`: **`arandu-demo-workspace`** (versão 3 desde o
+Workspace 2.0; v1 e v2 migram na primeira leitura — a v3 insere o módulo
+"Em andamento" (`inflight`) logo depois de "Precisa de você", inclusive em
+layouts personalizados). O formato abaixo é o da v2, que a v3 mantém.
 
 ```json
 {
@@ -104,7 +118,9 @@ se a pessoa já tinha densidade ou barra fora do padrão, o preset vira
 `q,status,product,owner,sort`); registro adulterado volta ao padrão.
 `sessionStorage`: `arandu-demo-context` (rolagem e última URL filtrada das
 listas), `arandu-demo-view:<página>` (visão ativa), `arandu-demo-tray` (bandeja),
-`arandu-demo-flash` (aviso após criar). Estado fictício: `arandu_demo_state_v1`.
+`arandu-demo-flash` (aviso após criar), `arandu-demo-route` (passo do roteiro
+guiado) e `arandu-demo-proposal-seen` (versão vista, para o estado de sucesso
+do provedor). Estado fictício: `arandu_demo_state_v1`.
 
 ## Presets e comportamento
 
@@ -249,8 +265,8 @@ e navegação móvel por persona. **Nada disso foi promovido para produção.**
 
 ## Testes e evidências
 
-- `npm run test:e2e:presentation` inclui `tests/e2e/demo-workspace.spec.js` e
-  `tests/e2e/demo-workspace-next.spec.js` (presets, comportamento, migração v1→v2,
+- `npm run test:e2e:presentation` inclui `tests/e2e/demo-workspace.spec.js`,
+  `tests/e2e/demo-workspace-next.spec.js` e `tests/e2e/demo-workspace-v2.spec.js` (presets, comportamento, migração v1→v2,
   bandeja, comparação, abas, aprovação, quick view universal, navegação móvel por
   persona, tablet, zoom 125%, texto grande, movimento reduzido, tema escuro).
 - Capturas: `ARANDU_DEMO_SCREENSHOTS=1 ARANDU_DEMO_SCREENSHOTS_DIR=docs/evidence/demo-ux-AAAA-MM-DD npm run test:e2e:presentation -- -g capturas`.

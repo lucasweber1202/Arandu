@@ -334,3 +334,17 @@ test('semântica: navegação agrupada com aria-current, modos com aria-pressed 
   await expect(page.locator('html')).not.toHaveClass(/\bdw\b/);
   await expect(page.locator('.ft-bar, #inspector, .wq, #stage-panel, .route-bar')).toHaveCount(0);
 });
+
+test('zoom 200% e 400% (1440 px → 720 e 360 px úteis) sem rolagem horizontal e com a próxima ação visível', async ({ page }, testInfo) => {
+  test.skip(isMobile(testInfo), 'Zoom de navegador de desktop.');
+  for (const [width, height] of [[720, 450], [360, 225]]) {
+    await page.setViewportSize({ width, height });
+    for (const path of ['/demo/finance/dashboard.html', '/demo/finance/rfqs.html', `/demo/finance/rfq.html?id=${CAPITAL}`, '/demo/finance/approvals.html', '/demo/finance/settings.html']) {
+      await ready(page, path);
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      expect(overflow, `zoom ${width}px ${path}`).toBeLessThanOrEqual(1);
+    }
+    await ready(page, `/demo/finance/rfq.html?id=${CAPITAL}`);
+    await expect(page.locator('#stage-panel .na-action')).toHaveText('Aguardando Ricardo Alves');
+  }
+});
