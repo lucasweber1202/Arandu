@@ -202,10 +202,11 @@ test('comentário com menção gera notificação com deep link para o mencionad
   await expect(tab(page, 'Histórico')).toHaveAttribute('aria-selected', 'true');
   await expect(page.locator('.thread')).toContainText('Podemos fechar hoje?');
   await page.goto('/demo/finance/notifications.html');
-  const unreadMention = page.locator('#view .notice.unread', { hasText: 'Marina Costa mencionou você' });
+  // Central de notificações do Work OS (demo): mesma leitura, agora por categoria.
+  const unreadMention = page.locator('#view .ncenter-item:not(.is-read)', { hasText: 'Marina Costa mencionou você' });
   await expect(unreadMention).toHaveCount(1); // a menção antiga do conjunto inicial; a nova já foi lida
   await page.getByRole('button', { name: 'Marcar todas como lidas' }).click();
-  await expect(page.locator('#view .notice.unread')).toHaveCount(0);
+  await expect(page.locator('#view .ncenter-item:not(.is-read)')).toHaveCount(0);
 });
 
 test('o estado da demo sobrevive a recarregar e o reset restaura o conjunto inicial', async ({ page }) => {
@@ -262,7 +263,8 @@ test('persona muda superfície, não credencial', async ({ page, context }) => {
   expect(await context.cookies()).toEqual([]);
   const keys = await page.evaluate(() => Object.keys(localStorage));
   // Só o estado fictício e, quando houver, preferências de tela da demonstração.
-  expect(keys.filter((key) => !['arandu_demo_state_v1', 'arandu-demo-workspace'].includes(key))).toEqual([]);
+  // arandu-demo-os: registro local do Work OS (integrações simuladas, comentários, auditoria), também só da demo.
+  expect(keys.filter((key) => !['arandu_demo_state_v1', 'arandu-demo-workspace', 'arandu-demo-os'].includes(key))).toEqual([]);
   expect(keys).toContain('arandu_demo_state_v1');
 });
 
