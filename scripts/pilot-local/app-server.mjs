@@ -27,6 +27,8 @@ https.createServer({ key: fs.readFileSync(path.join(certDir, 'key.pem')), cert: 
     let pathname = url.pathname;
     const rewrite = rewrites.find((r) => r.source === pathname);
     if (rewrite) pathname = rewrite.destination;
+    // Script injetado pela Vercel (Speed Insights): localmente não existe; responde vazio para não poluir o console.
+    if (pathname.startsWith('/_vercel/')) { res.writeHead(200, { 'Content-Type': 'text/javascript', 'Cache-Control': 'no-store' }); return res.end(''); }
     if (pathname.startsWith('/api/')) {
       const segments = pathname.slice(5).split('/').filter(Boolean);
       const own = segments.length === 1 && functions.has(segments[0]);

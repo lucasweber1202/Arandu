@@ -38,6 +38,12 @@ fi
 set -a; . "$state/.env"; set +a
 
 compose() { docker compose -p "$project" --env-file "$state/.env" -f "$here/docker-compose.yml" "$@"; }
+# O ECR público às vezes recusa (cota); as mesmas imagens oficiais estão no Docker Hub.
+if [ -z "${PILOT_LOCAL_DB_IMAGE:-}" ] && ! compose pull -q >/dev/null 2>&1; then
+  echo "ECR público indisponível; usando as imagens oficiais do Docker Hub."
+  export PILOT_LOCAL_DB_IMAGE=supabase/postgres:15.14.1.064 PILOT_LOCAL_AUTH_IMAGE=supabase/gotrue:v2.181.0 \
+    PILOT_LOCAL_REST_IMAGE=postgrest/postgrest:v12.2.9 PILOT_LOCAL_STORAGE_IMAGE=supabase/storage-api:v1.25.3
+fi
 compose up -d db
 for _ in $(seq 1 60); do
   [ "$(compose ps db --format '{{.Health}}')" = "healthy" ] && break
@@ -66,8 +72,9 @@ psql "$db_url" -Atc "select 'bucket '||id||' public='||public||' limite='||file_
 
 [ -d dist ] || npm run build
 ( node "$here/gateway.mjs" > "$state/gateway.log" 2>&1 & echo $! > "$state/gateway.pid" )
+# ARANDU_ENV=demo (npm run demo:setup) sobe o MESMO app como ambiente de demonstração.
 ( SUPABASE_URL=https://localhost:8443 SUPABASE_ANON_KEY="$ANON_KEY" SUPABASE_SERVICE_ROLE_KEY="$SERVICE_KEY" \
-  ARANDU_SITE_URL=https://localhost:4443 ARANDU_ENV=pilot CRON_SECRET="$CRON_SECRET" \
+  ARANDU_SITE_URL=https://localhost:4443 ARANDU_ENV="${PILOT_LOCAL_ARANDU_ENV:-pilot}" CRON_SECRET="$CRON_SECRET" \
   NODE_EXTRA_CA_CERTS="$state/cert.pem" node "$here/app-server.mjs" > "$state/app.log" 2>&1 & echo $! > "$state/app.pid" )
 sleep 2
 echo
