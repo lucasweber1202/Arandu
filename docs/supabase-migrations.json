@@ -34,7 +34,8 @@
     "docs/supabase-financial-pilot-grade.sql",
     "docs/supabase-financial-pilot-operations.sql",
     "docs/supabase-financial-final-hardening.sql",
-    "docs/supabase-financial-pilot-surface-hardening.sql"
+    "docs/supabase-financial-pilot-surface-hardening.sql",
+    "docs/supabase-financial-approval-handoff.sql"
   ],
   "existingDatabase": [
     "docs/supabase-sprint1-auth-ownership.sql",
@@ -70,6 +71,7 @@
     "docs/supabase-financial-pilot-grade.sql",
     "docs/supabase-financial-pilot-operations.sql",
     "docs/supabase-financial-final-hardening.sql",
-    "docs/supabase-financial-pilot-surface-hardening.sql"
+    "docs/supabase-financial-pilot-surface-hardening.sql",
+    "docs/supabase-financial-approval-handoff.sql"
   ]
 }
