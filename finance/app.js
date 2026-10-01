@@ -168,10 +168,19 @@ function setHeader({ title = null, subtitle = null, crumbs = null, meta = null, 
 
 // ---------------------------------------------------------- dados
 async function loadSession(ctx) {
-  const organizations = (await ctx.api('organizations')).rows || [];
+  const listing = await ctx.api('organizations');
+  const organizations = listing.rows || [];
+  // Ambiente declarado pelo servidor (ARANDU_ENV=demo): só muda o selo da barra.
+  ctx.environment = listing.environment || null;
   const kind = audience === 'provider' ? 'PROVIDER' : 'BUYER';
   ctx.organizations = organizations.filter((organization) => organization.kind === kind);
-  if (!ctx.organizations.length) return { empty: true };
+  if (!ctx.organizations.length) {
+    // Conta só do outro lado (ex.: provedor que entrou por /login.html): leva ao
+    // espaço certo em vez de sugerir criar uma organização do tipo errado.
+    const other = organizations.some((organization) => organization.kind === (kind === 'BUYER' ? 'PROVIDER' : 'BUYER'));
+    if (other && !demoPage && !PUBLIC_WHEN_SIGNED_OUT.has(view)) return { empty: true, redirect: kind === 'BUYER' ? '/provider/index.html' : '/finance/dashboard.html' };
+    return { empty: true };
+  }
   let remembered = '';
   try { remembered = sessionStorage.getItem('arandu-finance-org') || ''; } catch { remembered = ''; }
   ctx.organization = ctx.organizations.find((organization) => organization.id === remembered) || ctx.organizations[0];
@@ -179,7 +188,14 @@ async function loadSession(ctx) {
   if (audience === 'provider') {
     const result = await ctx.api(`assignments?organization_id=${encodeURIComponent(ctx.organization.id)}`);
     ctx.data = { assignments: result.rows || [], pending_invites: result.pending_invites || [] };
-    ctx.viewer = ctx.persona ? { id: ctx.persona.user, name: ctx.persona.name, title: ctx.persona.title, role: ctx.persona.role } : { id: null, role: 'provider_user', name: null };
+    if (ctx.persona) {
+      ctx.viewer = { id: ctx.persona.user, name: ctx.persona.name, title: ctx.persona.title, role: ctx.persona.role };
+    } else {
+      // Nome e cargo de quem está no portal (sem e-mail), como no espaço da empresa.
+      const members = await ctx.api(`members?organization_id=${encodeURIComponent(ctx.organization.id)}`).catch(() => ({ rows: [], viewer_id: null }));
+      const me = (members.rows || []).find((member) => member.user_id === members.viewer_id);
+      ctx.viewer = { id: members.viewer_id || null, role: me?.role || 'provider_user', name: me?.display_name || null, title: me?.title || null };
+    }
     return {};
   }
   const [overview, members] = await Promise.all([
@@ -261,6 +277,7 @@ async function render({ refresh = false, rebuildShell = false } = {}) {
   let session = null;
   let failure = null;
   try { session = await loadSession(ctx); } catch (error) { failure = error; }
+  if (session?.redirect) { location.replace(session.redirect); return; }
 
   if (!shellReady || rebuildShell) {
     if (!workspace) renderDemoBanner(ctx);

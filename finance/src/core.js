@@ -231,7 +231,7 @@ export const APPROVAL_STATUS = Object.freeze({
   cancelled: { label: 'Cancelada', tone: 'neutral', icon: 'x' }
 });
 export const ROLE_LABELS = Object.freeze({
-  admin: 'Administrador', finance_manager: 'Gestão financeira', viewer: 'Leitura e aprovação', provider_user: 'Provedor'
+  admin: 'Administrador', finance_manager: 'Gestão financeira', analyst: 'Análise financeira', viewer: 'Leitura e aprovação', provider_user: 'Provedor'
 });
 export const PROVIDER_KINDS = Object.freeze({
   bank: 'Banco', fintech: 'Fintech', acquirer: 'Adquirente', subacquirer: 'Subadquirente',

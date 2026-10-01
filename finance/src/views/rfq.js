@@ -119,7 +119,7 @@ export async function rfqDetail(ctx) {
   const tabset = tabs([
     { id: 'visao-geral', label: 'Visão geral', render: () => overviewTab(ctx, rfq, { manage, pending, approvals, decision, contract, policy }) },
     { id: 'propostas', label: 'Propostas', count: proposals.length, render: () => proposalsTab(ctx, rfq) },
-    { id: 'comparacao', label: 'Comparação', render: () => comparisonTab(ctx, rfq) },
+    { id: 'comparacao', label: 'Comparação', render: () => comparisonTab(ctx, rfq, decision) },
     { id: 'aprovacoes', label: 'Aprovações', count: pending ? 1 : null, render: () => approvalsTab(ctx, rfq, approvals, { manage }) },
     { id: 'decisao', label: 'Decisão', render: () => decisionTab(ctx, rfq, { decision, contract, policy, approvals, manage }) },
     { id: 'atividade', label: 'Atividade', render: () => activityTab(ctx, rfq) }
@@ -292,11 +292,15 @@ function proposalsTab(ctx, rfq) {
 }
 
 // ------------------------------------------------------------ comparação
-function comparisonTab(ctx, rfq) {
+function comparisonTab(ctx, rfq, decision = null) {
   const proposals = rfq.proposals || [];
   const wrap = el('div', { class: 'stack' });
   wrap.append(comparisonMatrix(rfq, proposals));
-  if (proposals.length > 1) wrap.append(weightsPanel(rfq, proposals, { onApplied: (weights) => { ctx.weights[rfq.id] = weights; } }));
+  // Processo já decidido: a conta abre com os pesos que a empresa registrou na decisão.
+  const recorded = ctx.weights[rfq.id] ? null : decision?.criteria?.weights;
+  if (proposals.length > 1) wrap.append(weightsPanel(rfq, proposals, { initial: ctx.weights[rfq.id] || recorded,
+    initialNote: recorded && Object.keys(recorded).length ? 'Pesos registrados na decisão desta solicitação.' : null,
+    onApplied: (weights) => { ctx.weights[rfq.id] = weights; } }));
   if (proposals.length) {
     ctx.api('signals', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, event: 'comparison_viewed', entity_type: 'rfq', entity_id: rfq.id }) }).catch(() => {});
     wrap.append(el('div', { class: 'row-actions' }, [button('Exportar processo (JSON)', { size: 'sm', iconName: 'download', attrs: { id: 'export-rfq' }, onClick: () => exportProcess(ctx, rfq) }),
