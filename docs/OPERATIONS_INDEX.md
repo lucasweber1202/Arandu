@@ -3,6 +3,12 @@
 Ponto de entrada para operar o **Arandu Financial Procurement**. Quando um
 documento divergir, vale este índice, nesta ordem.
 
+## Direção estratégica e produto
+
+- `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md` — **diretriz mestra normativa** para evolução de produto e engenharia: tese B2B, princípios, limites, arquitetura futura, IA, integrações, roadmap, priorização e Definition of Done. Toda mudança relevante deve ser confrontada com este documento antes de implementação.
+- `docs/FINANCIAL_PRODUCT_BOUNDARIES.md` — limites funcionais/regulatórios do produto atual; prevalece para o que o software pode ou não afirmar/fazer nesta fase.
+- Documentos técnicos especializados abaixo governam a implementação concreta sem contradizer a direção estratégica acima sem decisão explícita e atualização documental.
+
 ## Financial Procurement (produto atual)
 
 - `docs/FINANCIAL_PILOT_GO_LIVE.md` — checklist única de go-live do piloto, com estado por item.
@@ -95,6 +101,8 @@ Decisões de comissão, pagamento, frete, seguro, devolução e modelo fiscal ex
 ## Governança do repositório
 
 - `CONTRIBUTING.md` — branches, checks e PRs.
+- `CLAUDE.md` — regras obrigatórias para agentes; exige leitura da guideline mestra.
+- `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md` — direção estratégica de produto e engenharia.
 - `docs/FINANCIAL_REPO_GOVERNANCE.md` — proteção de `main` e `pilot` e checks obrigatórios (canônico).
 - `docs/BRANCH_PROTECTION.md` — versão anterior das regras; vale o documento acima.
 - `docs/REPOSITORY_HYGIENE.md` — limpeza de branches e documentos históricos.
