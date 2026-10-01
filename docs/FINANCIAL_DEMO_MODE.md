@@ -1,4 +1,11 @@
-# Demonstração interativa do Arandu Financial Procurement
+# Demonstração interativa do Arandu Financial Procurement (sandbox legado)
+
+> **Não é mais a demonstração canônica.** A demo oficial é o produto real da
+> `main` com `ARANDU_ENV=demo` e um Supabase DEMO semeado com a Vitta Foods
+> ([`docs/demo/README.md`](demo/README.md)). Este sandbox (motor fictício no
+> navegador, que reimplementa as regras do servidor) fica em operação só até o
+> projeto `arandu-demo` migrar; depois será aposentado. Não acrescente
+> funcionalidade aqui.
 
 Esta página explica como a demonstração funciona, por que ela não enfraquece o
 ambiente real e o que o responsável pelo projeto precisa configurar para

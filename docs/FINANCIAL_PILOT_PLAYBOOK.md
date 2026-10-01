@@ -21,7 +21,7 @@ Não é validar PMF, não é medir receita e não é operação financeira.
 - [ ] `npm run test:pilot` aprovado;
 - [ ] allowlist (`fin_pilot_allowlist`) preenchida — com a tabela vazia o acesso fica aberto;
 - [ ] `ARANDU_PRESENTATION_MODE` **desligado** (dado demo não convive com dado real; o checker recusa);
-- [ ] nenhum dado de `finance:seed:demo` no banco do piloto;
+- [ ] nenhum dado da demonstração (`npm run demo:seed`, contas `*.example`) no banco do piloto;
 - [ ] CI verde na `main`;
 - [ ] backup conferido e restore testado em banco vazio — ver [`FINANCIAL_PILOT_ENVIRONMENT.md`](FINANCIAL_PILOT_ENVIRONMENT.md);
 - [ ] `docs/FINANCIAL_PRODUCT_BOUNDARIES.md` lido por quem vai falar com a empresa;
