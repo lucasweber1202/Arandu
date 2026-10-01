@@ -760,8 +760,10 @@
 
 /* ============================================================ 16. landing */
 .dw body.demo-landing{background:var(--background)}
-.dl-header{display:flex;align-items:center;justify-content:space-between;gap:var(--s3);max-width:1120px;margin:0 auto;padding:var(--s4) var(--s6)}
-.dl-header-actions{display:flex;align-items:center;gap:8px}
+/* Brand and actions keep their natural size and move to a second row when
+   Safari's font metrics exceed the available width at 360/320 px. */
+.dl-header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--s3);max-width:1120px;margin:0 auto;padding:var(--s4) var(--s6)}
+.dl-header-actions{display:flex;flex-wrap:wrap;min-width:0;align-items:center;gap:8px}
 .dl-main,.dw main#main.dl-main{max-width:1120px;margin:0 auto;padding:0 var(--s6) var(--s10)}
 .dl-hero{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:56px;align-items:center;padding:56px 0 64px}
 .dl-kicker{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:550;color:var(--text-muted)}

@@ -2,6 +2,10 @@
 
 ## Proteção da branch `main` — `OWNER_ACTION_REQUIRED`
 
+> Observação de 01/10/2026: `GET /repos/lucasweber1202/Arandu/branches/main`
+> informa `protected: false`. As regras abaixo continuam pendentes; não são
+> apresentadas como proteção já aplicada.
+
 **Não foi possível configurar nem sequer ler as regras de proteção a partir
 desta sessão.** Tentado novamente nesta rodada, com o mesmo resultado. A API
 respondeu, nas duas tentativas:
@@ -44,7 +48,7 @@ nos cinco navegadores e leva cerca de vinte minutos; ele é exatamente o que
 "Require status checks" existe para esperar.
 
 Enquanto a regra não existir, a recomendação operacional é simples: **não
-mesclar antes de os três jobs fecharem**, e conferir na aba Actions.
+mesclar antes de os quatro jobs fecharem**, e conferir na aba Actions.
 
 ## PR #63 — encerrada como obsoleta
 
