@@ -104,11 +104,13 @@ await step('cadastro da empresa é completado com CNPJ conferido', {
 
 await step('perfil financeiro reutilizável recebe um campo', {
   method: 'POST', path: 'profile',
-  body: { organization_id: BUYER, field_key: 'faturamento_anual', field_value: 'R$ 62.000.000', source: 'declarado_pela_empresa' },
-  respond: (entry) => (isOrg(entry) ? orgRow('BUYER') : [{ id: id(20) }]),
+  body: { organization_id: BUYER, field_key: 'receita_anual', field_value: '62000000', source: 'declarado_pela_empresa' },
+  respond: (entry) => (isOrg(entry) ? orgRow('BUYER') : id(20)),
   check: (payload, calls) => {
-    const write = calls.find((entry) => entry.method === 'POST' && entry.url.includes('fin_company_profiles'));
-    assert.equal(write.body.updated_by, ACTOR);
+    // A escrita passa pela RPC: autoria (auth.uid) e histórico ficam no banco.
+    const write = calls.find((entry) => entry.url.includes('rpc/fin_passport_set_field'));
+    assert.equal(write.body.p_key, 'receita_anual');
+    assert.ok(!calls.some((entry) => entry.method === 'POST' && entry.url.includes('fin_company_profiles')));
   }
 });
 
