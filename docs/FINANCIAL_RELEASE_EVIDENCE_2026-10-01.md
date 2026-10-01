@@ -76,7 +76,7 @@ em Chromium móvel com a viewport explícita. A suíte local completa registrou
 43,999969 px pelo Chromium temporário. Sua repetição isolada passou; o critério
 de 44 px permaneceu intacto. Não é declarado CI verde por esse resultado.
 
-## Ambientes externos observados (somente leitura)
+## Ambientes externos e tentativa de provisionamento
 
 | Ambiente | Evidência em 01/10 | Limite da observação |
 | --- | --- | --- |
