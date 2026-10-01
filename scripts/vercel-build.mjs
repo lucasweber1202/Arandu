@@ -15,19 +15,21 @@ const run = (args) => spawnSync(args[0], args.slice(1), { cwd: process.cwd(), en
 console.log(`Arandu Vercel build: technical deployment gate (${target}, environment=${environment}${arandu ? `, ARANDU_ENV=${arandu}` : ''})`);
 console.log('Final public go-live remains protected by npm run predeploy / npm run release:check.');
 
-// Deploy de produção da Vercel precisa dizer qual ambiente é: arandu-demo
+// Deploy de produção da Vercel precisa dizer qual ambiente é: demonstração
+// canônica (ARANDU_ENV=demo, banco DEMO), sandbox legado sem banco
 // (ARANDU_DEPLOYMENT_KIND=demo), arandu-pilot (ARANDU_ENV=pilot) ou arandu
 // (ARANDU_ENV=production). Sem isso a topologia não é verificada e o build
 // seguiria sem saber a que banco pertence.
-if (environment === 'production' && !demo && !['pilot', 'production'].includes(arandu)) {
-  console.error('Deploy de produção sem ARANDU_ENV (pilot|production) nem ARANDU_DEPLOYMENT_KIND=demo: deploy interrompido. Ver docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md.');
+const SERVER_ENVIRONMENTS = ['demo', 'pilot', 'production'];
+if (environment === 'production' && !demo && !SERVER_ENVIRONMENTS.includes(arandu)) {
+  console.error('Deploy de produção sem ARANDU_ENV (demo|pilot|production) nem ARANDU_DEPLOYMENT_KIND=demo: deploy interrompido. Ver docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md.');
   process.exit(1);
 }
 
-// Piloto e produção só publicam com a topologia certa: banco próprio (nunca o
+// Demo, piloto e produção só publicam com a topologia certa: banco próprio (nunca o
 // do outro ambiente nem o legado), branch certa, sem demonstração, segredos de
 // servidor presentes. O checker nunca imprime valores.
-if (['pilot', 'production'].includes(arandu)) {
+if (SERVER_ENVIRONMENTS.includes(arandu)) {
   const topology = run([process.execPath, 'scripts/check-finance-env.mjs']);
   if (topology.error || topology.status !== 0) {
     console.error(`finance:env:check reprovou o ambiente ${arandu}: deploy interrompido.`);

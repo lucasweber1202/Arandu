@@ -11,14 +11,16 @@
 // Sai com código 1 quando falta algo obrigatório para o ambiente declarado, ou
 // quando encontra uma combinação que não deveria existir.
 
-import { LEGACY_SUPABASE_REFS, PILOT_SUPABASE_REFS } from '../lib/finance/pilot-doctor.mjs';
+import { LEGACY_SUPABASE_REFS, PILOT_SUPABASE_REFS, foreignSupabaseRef } from '../lib/finance/pilot-doctor.mjs';
 
 const env = process.env;
 const problems = [];
 const warnings = [];
 const report = [];
 
-const ENVIRONMENTS = ['development', 'preview', 'pilot', 'production'];
+const ENVIRONMENTS = ['development', 'preview', 'demo', 'pilot', 'production'];
+// Ambientes servidos com banco próprio: mesmas exigências de configuração.
+const SERVER_ENVIRONMENTS = ['demo', 'pilot', 'production'];
 const declared = String(env.ARANDU_ENV || '').trim().toLowerCase();
 const vercelEnv = String(env.VERCEL_ENV || '').trim().toLowerCase();
 const environment = ENVIRONMENTS.includes(declared)
@@ -58,7 +60,7 @@ function describe(name, { required = false, pattern = null, minLength = 0, secre
 const TRUTHY = new Set(['1', 'true', 'yes', 'sim']);
 const flag = (name) => TRUTHY.has(String(env[name] || '').trim().toLowerCase());
 
-const needsSupabase = ['pilot', 'production'].includes(environment);
+const needsSupabase = SERVER_ENVIRONMENTS.includes(environment);
 
 report.push(`Ambiente: ${environment}${declared ? ' (declarado)' : ' (inferido)'}`);
 report.push('');
@@ -67,10 +69,10 @@ describe('SUPABASE_URL', { required: needsSupabase, pattern: /^https:\/\/[a-z0-9
 describe('SUPABASE_ANON_KEY', { required: needsSupabase, minLength: 20, secret: true });
 // Só no servidor: assina URLs curtas de documentos privados e roda a agenda de
 // renovação. Nunca vai ao navegador (check:security e o build demo recusam).
-const serviceRole = describe('SUPABASE_SERVICE_ROLE_KEY', { required: ['pilot', 'production'].includes(environment), minLength: 20, secret: true });
+const serviceRole = describe('SUPABASE_SERVICE_ROLE_KEY', { required: needsSupabase, minLength: 20, secret: true });
 report.push('');
 report.push('Cron:');
-const cronSecret = describe('CRON_SECRET', { required: ['pilot', 'production'].includes(environment), minLength: 32, secret: true });
+const cronSecret = describe('CRON_SECRET', { required: needsSupabase, minLength: 32, secret: true });
 
 report.push('');
 report.push('Aplicação:');
@@ -111,19 +113,30 @@ if (environment === 'pilot' && supabaseRef && LEGACY_SUPABASE_REFS.includes(supa
 if (environment === 'pilot' && supabaseRef && !LEGACY_SUPABASE_REFS.includes(supabaseRef) && !PILOT_SUPABASE_REFS.includes(supabaseRef)) {
   warnings.push('SUPABASE_URL do piloto não é o projeto piloto conhecido. Se o piloto mudou de projeto, atualize PILOT_SUPABASE_REFS em lib/finance/pilot-doctor.mjs.');
 }
-// Piloto e produção não compartilham banco, e nenhum dos dois usa o legado.
+// Demo, piloto e produção não compartilham banco, e nenhum usa o legado.
 if (environment === 'production' && supabaseRef && (PILOT_SUPABASE_REFS.includes(supabaseRef) || LEGACY_SUPABASE_REFS.includes(supabaseRef))) {
   problems.push(`SUPABASE_URL da produção aponta para o projeto ${PILOT_SUPABASE_REFS.includes(supabaseRef) ? 'do piloto' : 'legado de arte'}. A produção tem Supabase próprio, que começa vazio.`);
+} else if (['demo', 'production'].includes(environment) && foreignSupabaseRef(environment, supabaseRef)) {
+  problems.push(`SUPABASE_URL: ${foreignSupabaseRef(environment, supabaseRef)}.`);
 }
-// Cada ambiente real sai de uma única branch: pilot → piloto, main → produção.
-const expectedBranch = { pilot: 'pilot', production: 'main' }[environment];
+// Cada ambiente real sai de uma única branch: pilot → piloto; main → produção
+// e demonstração (a demo é a main com outra configuração, nunca outra branch).
+const expectedBranch = { pilot: 'pilot', production: 'main', demo: 'main' }[environment];
 const branch = String(env.VERCEL_GIT_COMMIT_REF || '').trim();
 if (expectedBranch && branch && branch !== expectedBranch) {
   problems.push(`Deploy com ARANDU_ENV=${environment} a partir da branch "${branch}"; só a branch ${expectedBranch} publica esse ambiente. No Vercel, deixe as variáveis desse ambiente só no escopo Production.`);
 }
 // Demonstração nunca convive com credencial real.
-if (['pilot', 'production'].includes(environment) && (flag('ARANDU_DEMO_MODE') || String(env.ARANDU_DEPLOYMENT_KIND || '').trim().toLowerCase() === 'demo')) {
-  problems.push(`Modo de demonstração ligado em ${environment}. A demo é publicada só pelo projeto arandu-demo (npm run build:demo), sem credenciais.`);
+if (SERVER_ENVIRONMENTS.includes(environment) && (flag('ARANDU_DEMO_MODE') || String(env.ARANDU_DEPLOYMENT_KIND || '').trim().toLowerCase() === 'demo')) {
+  problems.push(`Sandbox de demonstração ligado em ${environment}. Ambientes com banco próprio nunca publicam o sandbox /demo (ARANDU_DEMO_MODE / ARANDU_DEPLOYMENT_KIND=demo).`);
+}
+if (presentation && environment === 'demo') {
+  problems.push('ARANDU_PRESENTATION_MODE ligado no ambiente de demonstração: a demo canônica é o produto real com dados fictícios no banco, não o sandbox.');
+}
+// Seed e reset da demonstração existem só como comandos manuais
+// (npm run demo:seed / demo:reset); nada no deploy os executa.
+if (environment !== 'demo' && String(env.ARANDU_DEMO_PASSWORD || '').trim()) {
+  problems.push(`ARANDU_DEMO_PASSWORD presente em ${environment}. Credencial das personas fictícias só existe na máquina de quem roda o seed da demonstração.`);
 }
 const keyRef = (key) => { try { return JSON.parse(Buffer.from(String(key || '').split('.')[1] || '', 'base64url').toString('utf8')).ref || null; } catch { return null; } };
 for (const name of ['SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY']) {
@@ -166,6 +179,8 @@ console.log(`Erros: ${problems.length}`);
 for (const problem of problems) console.log(`  - ${problem}`);
 if (problems.length) process.exit(1);
 console.log('');
-console.log(needsSupabase
+console.log(environment === 'demo'
+  ? 'Ambiente de demonstração apto: produto real, banco DEMO próprio. Dados fictícios entram só por npm run demo:seed.'
+  : needsSupabase
   ? 'Ambiente apto a operar o Financial Procurement com dados reais.'
   : 'Ambiente de desenvolvimento: Supabase não é exigido, e as rotas financeiras respondem como indisponíveis sem ele.');

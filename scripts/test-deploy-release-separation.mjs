@@ -22,8 +22,15 @@ assert.doesNotMatch(scripts['deploy:check:demo'], /predeploy|release:check|--req
 assert.match(scripts['build:demo'], /test-demo-mode\.mjs --dist --expect-demo/);
 assert.doesNotMatch(vercelBuild, /target\s*=.*predeploy|VERCEL_ENV\s*===\s*['"]production['"]/);
 
-// Piloto e produção passam pelo checker de topologia antes do build.
-assert.match(vercelBuild, /\['pilot', 'production'\]\.includes\(arandu\)/);
+// Demo, piloto e produção passam pelo checker de topologia antes do build.
+assert.match(vercelBuild, /SERVER_ENVIRONMENTS = \['demo', 'pilot', 'production'\]/);
+assert.match(vercelBuild, /if \(SERVER_ENVIRONMENTS\.includes\(arandu\)\)/);
+// Nenhum caminho de build ou deploy semeia ou reseta a demonstração: dado
+// fictício só entra por comando manual (npm run demo:seed / demo:reset).
+for (const name of ['build', 'vercel-build', 'deploy:check', 'deploy:check:demo', 'predeploy', 'build:demo', 'postinstall', 'prebuild', 'postbuild']) {
+  assert.doesNotMatch(String(scripts[name] || ''), /demo:(seed|reset|setup)|scripts\/demo\//, `${name} executa o seed da demonstração`);
+}
+assert.doesNotMatch(vercelBuild, /demo:(seed|reset|setup)|scripts\/demo\//, 'vercel-build executa o seed da demonstração');
 assert.match(vercelBuild, /scripts\/check-finance-env\.mjs/);
 import { spawnSync } from 'node:child_process';
 const blocked = spawnSync(process.execPath, ['scripts/vercel-build.mjs'], { encoding: 'utf8', env: { PATH: process.env.PATH, ARANDU_ENV: 'production', SUPABASE_URL: 'https://offgpyysgdhfemjlchod.supabase.co' } });

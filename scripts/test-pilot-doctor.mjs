@@ -54,6 +54,7 @@ function fakeSupabase(overrides = {}) {
         const total = table === 'fin_pilot_allowlist' ? state.allowlist : table === 'fin_organizations' ? 2 : table === 'fin_approval_policies' ? 1 : 0;
         return reply(null, 200, { 'content-range': `*/${total}` });
       }
+      if (table === 'fin_settings' && u.searchParams.get('key') === 'eq.deployment_environment') return reply(state.marker ? [{ value: state.marker }] : []);
       if (table === 'fin_settings') return reply(u.searchParams.get('key') === 'eq.schema_version' ? (state.schema ? [{ value: state.schema }] : []) : [{ value: state.emailEnabled ? 'true' : 'false' }]);
       if (table === 'fin_platform_operators') return reply([{ user_id: 'u-ops' }]);
       if (table === 'fin_job_runs') return reply([{ status: 'succeeded', error_code: null, finished_at: '2026-10-02T09:16:00Z' }]);
@@ -109,7 +110,17 @@ assert.equal((await doctor({ ...baseEnv, ARANDU_ENV: 'staging' })).exit_code, 1,
 assert.equal((await doctor({ ...baseEnv, ARANDU_ENV: 'production' })).exit_code, 0, 'produção com banco próprio');
 const prodOnPilot = await doctor({ ...baseEnv, ARANDU_ENV: 'production', SUPABASE_URL: 'https://offgpyysgdhfemjlchod.supabase.co' });
 assert.equal(prodOnPilot.exit_code, 2, 'produção no banco do piloto');
-assert.equal(levelOf(prodOnPilot, 'projeto Supabase do piloto'), 'UNSAFE');
+assert.equal(levelOf(prodOnPilot, 'projeto Supabase do ambiente'), 'UNSAFE');
+// Demonstração canônica: mesmo diagnóstico, banco próprio e marcado como demo.
+assert.equal((await doctor({ ...baseEnv, ARANDU_ENV: 'demo' }, { marker: 'demo' })).exit_code, 0, 'demo com banco marcado');
+assert.equal(levelOf(await doctor({ ...baseEnv, ARANDU_ENV: 'demo' }), 'marcador de ambiente'), 'WARN', 'demo ainda sem seed');
+const demoOnPilot = await doctor({ ...baseEnv, ARANDU_ENV: 'demo', SUPABASE_URL: 'https://offgpyysgdhfemjlchod.supabase.co' }, { marker: 'demo' });
+assert.equal(levelOf(demoOnPilot, 'projeto Supabase do ambiente'), 'UNSAFE', 'demo no banco do piloto');
+for (const environment of ['pilot', 'production']) {
+  const onDemoDb = await doctor({ ...baseEnv, ARANDU_ENV: environment }, { marker: 'demo' });
+  assert.equal(levelOf(onDemoDb, 'marcador de ambiente'), 'UNSAFE', `${environment} ligado a um banco de demonstração`);
+  assert.equal(onDemoDb.exit_code, 2);
+}
 assert.equal((await doctor(baseEnv, { legacyOpen: true })).exit_code, 1, 'rotas legadas de arte abertas no piloto bloqueiam');
 assert.equal(levelOf(await doctor({ ...baseEnv, SUPABASE_URL: 'https://proj.supabase.co', SUPABASE_ANON_KEY: jwtRef('anon', 'proj'), SUPABASE_SERVICE_ROLE_KEY: jwtRef('service_role', 'proj') }), 'chaves do mesmo projeto'), 'OK');
 assert.equal(levelOf(complete, 'identificador de requisição'), 'OK');
@@ -123,12 +134,12 @@ const unsafeCases = [
   [{ ...baseEnv, SUPABASE_ANON_KEY: SERVICE }, {}, 'chave pública é anon'],
   [{ ...baseEnv, CRON_SECRET: SERVICE }, {}, 'CRON_SECRET próprio'],
   [{ ...baseEnv, VITE_SUPABASE_SERVICE_ROLE_KEY: SERVICE }, {}, 'segredo fora de variável pública'],
-  [{ ...baseEnv, ARANDU_DEMO_MODE: 'true' }, {}, 'modo demonstração desligado'],
+  [{ ...baseEnv, ARANDU_DEMO_MODE: 'true' }, {}, 'sandbox de demonstração desligado'],
   [baseEnv, { bucketPublic: true }, 'bucket privado'],
   [baseEnv, { autoconfirm: true }, 'confirmação de e-mail'],
   [baseEnv, { anonLeak: true }, 'RLS/grants contra a chave pública'],
   [{ ...partial, SUPABASE_ANON_KEY: SERVICE }, {}, 'chave pública é anon'],
-  [{ ...baseEnv, SUPABASE_URL: 'https://igacnfjeuqhxcmfyepgj.supabase.co' }, {}, 'projeto Supabase do piloto'],
+  [{ ...baseEnv, SUPABASE_URL: 'https://igacnfjeuqhxcmfyepgj.supabase.co' }, {}, 'projeto Supabase do ambiente'],
   [{ ...baseEnv, SUPABASE_ANON_KEY: jwtRef('anon', 'outroprojeto') }, {}, 'chaves do mesmo projeto'],
   [baseEnv, { anonRpcs: ['fin_document_mime_allowed', 'fin_jwt_aal', 'fin_pilot_access_allowed', 'execute_data_retention'] }, 'RPCs executáveis pela chave pública'],
   [baseEnv, { anonRelations: ['artists', 'v_commercial_pipeline'] }, 'tabelas financeiras e views legadas fora da chave pública']
