@@ -1,6 +1,7 @@
 // Detalhe da solicitação: contexto no topo, operação separada em abas.
 
 import { PRODUCTS } from '../../../lib/finance/products.mjs';
+import { SOURCE_LABELS, fieldLabel } from '../../../lib/finance/passport.mjs';
 import { el, icon, money, percent, fieldValue, formatDate, formatDateTime, relativeDays, daysUntil, productLabel, RFQ_STATUS, PROPOSAL_STATUS, APPROVAL_STATUS, PROVIDER_KINDS, todayIso, timeAgo } from '../core.js';
 import { card, pill, tag, button, linkButton, emptyState, errorState, loading, tabs, definitionList, toast, confirmDialog, drawer, field, catalogControl, person, menu, progress } from '../ui.js';
 import { comparisonMatrix, weightsPanel, revisionTimeline, collaboration, activityLog, approvalSteps, approvalActions, currentStep, memberName, memberTitle, coverage, approvalSummaryLine } from './shared.js';
@@ -159,8 +160,38 @@ function overviewTab(ctx, rfq, { manage, pending, approvals, decision, contract,
   const documents = card({ title: 'Documentos', subtitle: 'Balanços, minutas e anexos do processo, em armazenamento privado.', id: 'documentos', body: el('div', {}, loading()) });
   import('./documents.js').then(({ documentsPanel }) => documents.querySelector('.card-body').replaceChildren(documentsPanel(ctx, {
     entityType: 'rfq', entityId: rfq.id, canUpload: manage || ctx.can('upload_document'), shareLabel: 'Visível aos provedores convidados' })));
-  grid.append(el('div', { class: 'split-main' }, [demand, revisions]), el('div', { class: 'split-side' }, [nextStepCard(ctx, rfq, { pending, approvals, decision, contract, policy }), inviteCard, documents, reuse]));
+  grid.append(el('div', { class: 'split-main' }, [demand, passportSnapshotCard(ctx, rfq), revisions]), el('div', { class: 'split-side' }, [nextStepCard(ctx, rfq, { pending, approvals, decision, contract, policy }), inviteCard, documents, reuse]));
   return grid;
+}
+
+// Fotografia dos campos do Financial Passport usados na criação. Só a
+// compradora lê (RLS); o cartão some quando a RFQ não veio do Passport.
+function passportSnapshotCard(ctx, rfq) {
+  // Marcador vazio: o cartão só entra quando há fotografia (sem estado de carga sobrando).
+  const slot = el('div', { hidden: true });
+  const body = el('div');
+  const node = card({ title: 'Dados do Financial Passport', subtitle: 'Fotografia do perfil no momento da criação. Mudanças posteriores no Passport não alteram este processo.', id: 'passport', body });
+  ctx.api(`rfq-passport?organization_id=${encodeURIComponent(ctx.organization.id)}&rfq_id=${encodeURIComponent(rfq.id)}`).then(({ rows }) => {
+    if (!rows?.length) return;
+    const spec = PRODUCTS[rfq.product];
+    body.replaceChildren(el('ul', { class: 'passport-snapshot', role: 'list' }, rows.map((row) => {
+      const demandSpec = spec.demandFields.find((item) => item.key === row.demand_key);
+      const numeric = demandSpec && ['money', 'percent', 'number', 'int'].includes(demandSpec.type);
+      const shown = demandSpec ? fieldValue(demandSpec, numeric ? Number(row.field_value) : row.field_value) : null;
+      return el('li', { class: 'passport-snapshot-row' }, [
+      el('span', { class: 'passport-label', text: demandSpec?.label || fieldLabel(row.field_key) }),
+      el('span', { class: 'passport-value', text: shown ?? row.field_value }),
+      el('span', { class: 'passport-meta', text: [
+        SOURCE_LABELS[row.source] || row.source,
+        row.profile_updated_at ? `atualizado em ${formatDate(row.profile_updated_at)}` : null,
+        row.freshness === 'stale' ? 'desatualizado na criação' : row.freshness === 'review_due' ? 'revisão próxima na criação' : null,
+        row.used_as_is ? 'usado sem alteração' : 'alterado na solicitação'
+      ].filter(Boolean).join(' · ') })
+      ]);
+    })));
+    slot.replaceWith(node);
+  }).catch(() => {});
+  return slot;
 }
 
 function nextStepCard(ctx, rfq, { pending, approvals = [], decision, contract, policy } = {}) {

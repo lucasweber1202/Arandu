@@ -19,6 +19,7 @@ import { PRODUCTS, normalizeDemand, normalizeProposal, normalize, demandFields, 
 import { canTransition, nextStates } from '../../lib/finance/workflow.mjs';
 import { comparableFields, NEUTRAL_RANKING_NOTICE } from '../../lib/finance/comparison.mjs';
 import { createSeed, DEMO_SEED_ID, PERSONAS } from './seed.js';
+import { buildPassport, validatePassportValue, WRITABLE_SOURCES } from '../../lib/finance/passport.mjs';
 
 export const DEMO_STORAGE_KEY = 'arandu_demo_state_v1';
 export const DEMO_SCHEMA = 1;
@@ -858,17 +859,46 @@ export function createDemoEngine({ storage, now = () => new Date(), latency = 0 
       state.data.providers.push(row);
       return { ok: true, row: clone(row) };
     },
+    // Financial Passport: mesmas regras de fin_passport_set_field / confirm.
+    'GET profile': (state, { userId, query }) => {
+      const { organization } = memberOrganization(state, userId, query.get('organization_id'), ['BUYER']);
+      const rows = clone(state.data.profile.filter((row) => row.organization_id === organization.id)).sort((a, b) => a.field_key.localeCompare(b.field_key));
+      const names = new Map(state.data.users.map((user) => [user.id, user.name]));
+      return { ok: true, rows, documents: [], passport: buildPassport({ organization, rows, documents: [], members: names }) };
+    },
     'POST profile': (state, { userId, body }) => {
       const { organization } = memberOrganization(state, userId, body.organization_id, ['BUYER']);
-      requireRole(state, userId, organization.id, ['admin', 'finance_manager']);
+      requireRole(state, userId, organization.id, ['admin', 'finance_manager', 'analyst']);
       const key = clean(body.field_key).toLowerCase();
       if (!/^[a-z][a-z0-9_]{1,48}$/.test(key)) fail(400, 'Identificador de campo inválido.', 'invalid_field_key');
-      const value = limited(body.field_value, 500);
-      if (!value) fail(400, 'Informe um valor para o campo.', 'invalid_field_value');
+      const checked = validatePassportValue(key, body.field_value);
+      if (!checked.ok) fail(400, checked.error, 'invalid_field_value');
+      const source = clean(body.source) || 'declarado_pela_empresa';
+      if (!WRITABLE_SOURCES.includes(source)) fail(400, 'Origem do dado inválida.', 'invalid_source');
       let row = state.data.profile.find((item) => item.organization_id === organization.id && item.field_key === key);
       if (!row) { row = { id: uuid(), organization_id: organization.id, field_key: key, valid_until: null }; state.data.profile.push(row); }
-      Object.assign(row, { field_value: value, source: clean(body.source) || 'declarado_pela_empresa', status: 'informado', updated_at: nowIso() });
-      return { ok: true, row: clone(row) };
+      const unchanged = row.field_value === checked.value && row.source === source;
+      Object.assign(row, { field_value: checked.value, source, status: 'informado', updated_at: nowIso(), updated_by: userId,
+        valid_until: clean(body.valid_until) || null, review_after_days: Number(body.review_after_days) || row.review_after_days || null,
+        verified_at: unchanged ? row.verified_at || null : null, verified_by: unchanged ? row.verified_by || null : null });
+      return { ok: true, id: row.id };
+    },
+    'POST profile/confirm': (state, { userId, body }) => {
+      const { organization } = memberOrganization(state, userId, body.organization_id, ['BUYER']);
+      requireRole(state, userId, organization.id, ['admin', 'finance_manager', 'analyst']);
+      const row = state.data.profile.find((item) => item.organization_id === organization.id && item.field_key === clean(body.field_key));
+      if (!row) fail(400, 'Campo do perfil inválido ou inexistente.', 'invalid_field_key');
+      Object.assign(row, { verified_at: nowIso(), verified_by: userId, status: 'revisado' });
+      return { ok: true, verified_at: row.verified_at };
+    },
+    // O sandbox não guarda histórico nem snapshot: respostas vazias e honestas.
+    'GET profile/history': (state, { userId, query }) => {
+      memberOrganization(state, userId, query.get('organization_id'), ['BUYER']);
+      return { ok: true, rows: [] };
+    },
+    'GET rfq-passport': (state, { userId, query }) => {
+      memberOrganization(state, userId, query.get('organization_id'), ['BUYER']);
+      return { ok: true, rows: [] };
     },
     'POST terms': (state, { userId, body }) => {
       const { organization } = memberOrganization(state, userId, body.organization_id);

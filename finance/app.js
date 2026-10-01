@@ -34,6 +34,7 @@ const VIEWS = {
   newRfq: lazy(() => import('./src/views/rfqs.js'), 'newRfq'),
   rfq: lazy(() => import('./src/views/rfq.js'), 'rfqDetail'),
   approvals: lazy(company, 'approvalsInbox'), proposals: lazy(company, 'proposalsList'), contracts: lazy(company, 'contracts'),
+  passport: lazy(() => import('./src/views/passport.js'), 'passport'),
   providers: lazy(company, 'providers'), tasks: lazy(company, 'tasks'), notifications: lazy(company, 'notifications'), settings: lazy(company, 'settings'),
   providerHome: lazy(providerViews, 'providerHome'), providerRfqs: lazy(providerViews, 'providerRfqs'),
   providerProposal: lazy(providerViews, 'providerProposal'), providerInvite: lazy(providerViews, 'providerInvite'),
@@ -113,6 +114,8 @@ function createContext(transport) {
       if (!role) return ctx.audience === 'company';
       if (permission === 'admin') return role === 'admin';
       if (permission === 'upload_document') return ['admin', 'finance_manager', 'analyst', 'provider_user'].includes(role);
+      // Mesmos papéis que a RPC fin_passport_set_field aceita.
+      if (permission === 'edit_profile') return ['admin', 'finance_manager', 'analyst'].includes(role);
       return ['admin', 'finance_manager'].includes(role);
     },
     approvalsPromise: null,

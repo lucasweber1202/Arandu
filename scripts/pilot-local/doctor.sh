@@ -8,7 +8,13 @@ here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 root="$(cd "$here/../.." && pwd)"
 set -a; . "$here/.state/.env"; set +a
 db="postgresql://postgres:${PGPW}@localhost:54322/postgres"
-export ARANDU_ENV=pilot ARANDU_SITE_URL=https://localhost:4443 SUPABASE_URL=https://localhost:8443 \
+# O mesmo Supabase local serve o piloto (up.sh) e a demo (npm run demo:setup);
+# o doctor roda no ambiente que o próprio banco declara, para que o cenário
+# completo dê GO nos dois. Um banco de demo checado como piloto continua UNSAFE.
+local_env="$(psql "$db" -Atc "select value from public.fin_settings where key = 'deployment_environment'" 2>/dev/null || true)"
+case "$local_env" in demo|pilot) ;; *) local_env=pilot ;; esac
+echo "ambiente declarado pelo banco local: $local_env"
+export ARANDU_ENV="$local_env" ARANDU_SITE_URL=https://localhost:4443 SUPABASE_URL=https://localhost:8443 \
   SUPABASE_ANON_KEY="$ANON_KEY" SUPABASE_SERVICE_ROLE_KEY="$SERVICE_KEY" CRON_SECRET="$CRON_SECRET" \
   NODE_EXTRA_CA_CERTS="$here/.state/cert.pem"
 cd "$root"

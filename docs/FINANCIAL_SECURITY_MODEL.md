@@ -36,6 +36,13 @@ CSP, sanitização, DTO com allowlist, auditoria e retenção.
 ## Isolamento entre organizações
 
 * Uma organização nunca lê RFQ, proposta, contrato, provedor ou perfil de outra.
+* O Financial Passport (perfil, histórico e fotografia na RFQ) é lido só por
+  membros da compradora; o provedor com convite aceito não o alcança. A escrita
+  é só por RPC (`fin_passport_set_field`, `fin_passport_confirm_field`,
+  `fin_create_rfq_from_passport`), que conferem papel, origem e documento; o
+  INSERT/UPDATE direto foi revogado. Histórico e fotografia são imutáveis; só o
+  reset de um banco marcado `deployment_environment=demo` os apaga, com a chave
+  de serviço. Testes: `tests/database/financial-passport.sql`.
 * Um provedor lê apenas: as RFQs cujo convite **aceitou** e a **própria**
   proposta, com as próprias versões.
 * Um provedor nunca lê proposta de concorrente, nota interna da empresa nem a

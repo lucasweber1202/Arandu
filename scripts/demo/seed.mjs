@@ -25,6 +25,7 @@ import {
   DEMO_EMAIL_DOMAINS, DEMO_MARKER_KEY, DEMO_MARKER_VALUE, isDemoEmail
 } from '../../lib/finance/demo-guard.mjs';
 import * as data from './dataset.mjs';
+import { PASSPORT_TO_DEMAND } from '../../lib/finance/passport.mjs';
 import { demoPdf } from './pdf.mjs';
 
 const args = new Set(process.argv.slice(2));
@@ -205,8 +206,12 @@ function scopedTables(scope) {
     ['fin_rfq_invites', ['id'], `buyer_organization_id=${inList(scope.orgs)}`, ['created_at', 'accepted_at']],
     ['fin_rfq_revisions', ['rfq_id', 'revision'], org, ['published_at']],
     ['fin_rfq_editor_drafts', null, org, []],
+    // Snapshot e histórico do Passport são imutáveis: sem remapeamento de data,
+    // e só o banco marcado como demo aceita apagá-los (reset).
+    ['fin_rfq_profile_snapshots', ['id'], org, []],
     ['fin_rfqs', ['id'], org, ['created_at', 'updated_at']],
     ['fin_providers', ['id'], org, ['created_at', 'updated_at']],
+    ['fin_company_profile_history', ['id'], org, []],
     ['fin_company_profiles', ['id'], org, ['created_at', 'updated_at']],
     ['fin_terms_acceptances', ['id'], org, ['accepted_at']],
     ['fin_approval_policies', ['organization_id'], org, ['updated_at']],
@@ -295,9 +300,10 @@ function proposalTerms(terms, submitDay) {
 
 async function openRfq(spec, owner, hhmm = '09:20') {
   await at(spec.start, hhmm);
+  const passport_fields = (spec.passport || []).map((key) => ({ demand_key: key, field_key: PASSPORT_TO_DEMAND[spec.product][key] }));
   const id = (await post(owner, 'rfqs', {
     organization_id: ctx.org, product: spec.product, title: spec.title, description: spec.description,
-    demand: spec.demand, response_deadline: isoDate(spec.deadline)
+    demand: spec.demand, response_deadline: isoDate(spec.deadline), passport_fields
   })).id;
   ctx.rfq[spec.key] = id;
   return id;
@@ -437,6 +443,11 @@ async function seedStory() {
   await upload('juliana', 'acquiringContract', 'internal', data.DOCUMENTS[4].title);
   await upload('juliana', 'creditCurrentContract', 'internal', data.DOCUMENTS[5].title);
 
+  // --- Financial Passport revisado pelo analista antes da nova linha ---------
+  await at(-23, '11:15');
+  for (const [key, value, source] of data.COMPANY.profileRefresh) await post(people.rafael, 'profile', { organization_id: ctx.org, field_key: key, field_value: value, source });
+  for (const key of data.COMPANY.profileConfirm) await post(people.rafael, 'profile/confirm', { organization_id: ctx.org, field_key: key });
+
   // --- RFQ 2: nova linha de crédito em negociação ----------------------------
   const s2 = data.RFQ_CREDIT;
   await openRfq(s2, juliana);
@@ -561,6 +572,12 @@ async function sanity() {
     const rfq = byTitle(title);
     check(`RFQ "${title}"`, rfq?.status === status && (rfq?.proposals || []).length === proposals, rfq ? `${rfq.status}, ${(rfq.proposals || []).length} proposta(s)` : 'ausente');
   }
+  const credit = byTitle(data.RFQ_CREDIT.title);
+  const snapshot = credit ? (await api(juliana, 'GET', `rfq-passport?organization_id=${org.id}&rfq_id=${credit.id}`)).rows : [];
+  check('RFQ de crédito com fotografia do Passport', snapshot.length === data.RFQ_CREDIT.passport.length && snapshot.every((row) => row.used_as_is), `${snapshot.length} campo(s) fotografado(s)`);
+  const passport = (await api(juliana, 'GET', `profile?organization_id=${org.id}`)).passport;
+  check('Passport com cobertura e campo a revisar', passport?.coverage?.filled > 10 && passport.attention.some((item) => item.key === 'volume_cartoes_mensal'),
+    passport ? `${passport.coverage.filled}/${passport.coverage.relevant} campos, ${passport.attention.length} a revisar` : 'ausente');
   const contracts = overview.contracts || [];
   check('Contrato de adquirência vigente', contracts.some((row) => row.product === 'acquiring' && row.status === 'active'), `${contracts.length} contrato(s)`);
   const renewing = contracts.find((row) => row.product === 'credit');

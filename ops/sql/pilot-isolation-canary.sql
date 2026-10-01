@@ -39,6 +39,8 @@ begin
       ('fin_approval_requests',  'not (organization_id = any($1))'),
       ('fin_providers',          'not (organization_id = any($1))'),
       ('fin_company_profiles',   'not (organization_id = any($1))'),
+      ('fin_company_profile_history', 'not (organization_id = any($1))'),
+      ('fin_rfq_profile_snapshots', 'not (organization_id = any($1))'),
       ('fin_renewal_milestones', 'not (organization_id = any($1))'),
       ('fin_rfq_revisions',      'not (organization_id = any($1) or rfq_id = any($2))'),
       ('fin_rfqs',               'not (organization_id = any($1) or id = any($2))'),

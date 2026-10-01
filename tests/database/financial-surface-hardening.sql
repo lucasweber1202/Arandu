@@ -26,7 +26,9 @@ begin
     ('fin_search(uuid,text,text,integer,integer)'),('fin_set_approval_policy(uuid,boolean)'),
     ('fin_set_notification_preference(uuid,text,boolean,boolean)'),('fin_start_contract_rfq(uuid)'),
     ('fin_submit_proposal(uuid,jsonb,text)'),('fin_transition(text,uuid,text)'),('fin_update_my_member_profile(uuid,text,text)'),
-    ('fin_update_organization(uuid,text,text,text,text)'),('fin_withdraw_proposal(uuid)')
+    ('fin_update_organization(uuid,text,text,text,text)'),('fin_withdraw_proposal(uuid)'),
+    ('fin_passport_set_field(uuid,text,text,text,uuid,date,integer)'),('fin_passport_confirm_field(uuid,text)'),
+    ('fin_create_rfq_from_passport(uuid,text,text,text,jsonb,date,jsonb)')
   ), actual as (
     select p.oid::regprocedure::text sig from pg_proc p
     where p.pronamespace = 'public'::regnamespace and has_function_privilege('authenticated', p.oid, 'EXECUTE')
@@ -68,7 +70,7 @@ begin
      and has_table_privilege('anon', c.oid, p.privilege_type);
   if v_extra is not null then raise exception 'anon com escrita em tabela financeira: %', v_extra; end if;
 
-  if (select value from public.fin_settings where key = 'schema_version') not in ('financial-surface-hardening-1', 'financial-approval-handoff-1') then
+  if (select value from public.fin_settings where key = 'schema_version') not in ('financial-surface-hardening-1', 'financial-approval-handoff-1', 'financial-passport-1') then
     raise exception 'schema_version não avançou';
   end if;
 end $$;

@@ -16,6 +16,7 @@ const COMPANY_PAGES = [
   ['/finance/rfq.html', 'Detalhe da solicitação'],
   ['/finance/approvals.html', 'Aprovações'],
   ['/finance/providers.html', 'Provedores'],
+  ['/finance/passport.html', 'Financial Passport'],
   ['/finance/proposals.html', 'Propostas recebidas'],
   ['/finance/contracts.html', 'Contratos e renovações'],
   ['/finance/tasks.html', 'Tarefas'],

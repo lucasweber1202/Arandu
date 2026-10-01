@@ -18,7 +18,8 @@ auth.users
     ├── fin_members ──────── fin_organizations (BUYER | PROVIDER)
     │                              │
     │                              ├── fin_member_invitations   (token de uso único)
-    │                              ├── fin_company_profiles     (perfil reutilizável)
+    │                              ├── fin_company_profiles     (Financial Passport)
+    │                              │      └── fin_company_profile_history (append-only)
     │                              ├── fin_providers            (diretório da empresa)
     │                              ├── fin_documents            (referência https)
     │                              ├── fin_tasks
@@ -26,6 +27,7 @@ auth.users
     │
     └── fin_rfqs (organization_id, product: credit | acquiring, status)
              │
+             ├── fin_rfq_profile_snapshots (fotografia do Passport, imutável)
              ├── fin_rfq_invites (rfq_id, provider_id, token_hash, expires_at)
              │        │
              │        └── fin_proposals (1:1 com o convite aceito)
@@ -67,11 +69,35 @@ exato: o porte é necessário para o produto, o faturamento exato não.
 Papéis: `admin`, `finance_manager`, `analyst`, `provider_user`, `viewer`.
 `viewer` lê e nunca escreve — verificado em `tests/database/financial-procurement.sql`.
 
-### `fin_company_profiles`
+### `fin_company_profiles` (Financial Passport)
 Um registro por campo, com a proveniência exigida pelo produto: `source`
-(origem), `updated_at` (data), `updated_by` (responsável), `status` e
-`valid_until` (validade). Chave única `(organization_id, field_key)` permite
-reaproveitar o perfil entre RFQs sem duplicar.
+(origem), `updated_at` (data), `updated_by` (responsável), `verified_at` /
+`verified_by` (última confirmação como atual), `review_after_days` (período de
+revisão declarado, 7–1825 dias), `valid_until` (validade da fonte) e
+`document_id` (documento privado **do perfil** da mesma organização). Chave
+única `(organization_id, field_key)` permite reaproveitar o perfil entre RFQs
+sem duplicar. O catálogo de campos e a regra de frescor estão em
+`lib/finance/passport.mjs`; a mesma regra existe no banco
+(`fin_passport_review_due`, `fin_passport_freshness`).
+
+Escrita só por `fin_passport_set_field` e `fin_passport_confirm_field`
+(`docs/supabase-financial-passport.sql`); `authenticated` não tem INSERT/UPDATE
+direto. Origens `importacao`, `integracao`, `informado_pelo_provedor`,
+`calculado` e `ia_confirmado` existem no banco para caminhos futuros e são
+recusadas pela RPC de formulário.
+
+### `fin_company_profile_history`
+Append-only, escrito pelo gatilho `fin_company_profiles_history` em toda
+criação (`created`), alteração (`updated`, com valor e origem anteriores) e
+confirmação (`confirmed`). Imutável (`fin_immutable_row`). Leitura: membros da
+compradora.
+
+### `fin_rfq_profile_snapshots`
+Fotografia, no momento da criação da RFQ, de cada campo do Passport usado
+(`fin_create_rfq_from_passport`): valor, origem, datas, vencimento da revisão,
+frescor naquele dia e `used_as_is` (a pessoa manteve ou alterou o valor na
+demanda). Chave `(organization_id, rfq_id) → fin_rfqs`. Imutável; só a
+compradora lê — o provedor convidado lê a demanda, nunca a fotografia.
 
 ### `fin_providers`
 Tipos: `bank`, `fintech`, `acquirer`, `subacquirer`, `credit_provider`,

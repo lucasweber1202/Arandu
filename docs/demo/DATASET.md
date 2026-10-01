@@ -18,6 +18,16 @@ dia da semeadura (D0 = hoje), então a história é a mesma em qualquer dia.
 | Dívida líquida/EBITDA | 1,6x |
 | Política de aprovação | decisão exige aprovação (ativa) |
 
+### Financial Passport
+
+Criado por Helena no dia −730 (`COMPANY.profile`) e revisado por Rafael no dia
+−23 (`COMPANY.profileRefresh`: faturamento de R$ 158 mi → R$ 182 mi, tempo de
+operação, adquirente atual e dívida líquida/EBITDA; `profileConfirm`:
+garantias e bancos confirmados como atuais). O volume em cartões fica de fora
+da revisão de propósito e aparece **desatualizado**. A RFQ "Capital de giro —
+nova linha" é criada a partir do Passport (`RFQ_CREDIT.passport`) e guarda a
+fotografia de faturamento, setor, tempo de operação e garantias.
+
 ## Pessoas
 
 | E-mail | Nome | Cargo | Papel |

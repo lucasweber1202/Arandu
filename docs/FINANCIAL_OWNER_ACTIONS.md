@@ -57,12 +57,18 @@ desligada. Atenção: configurar só o Build Command `npm run build:demo` no pai
 **não funciona** — o `vercel.json` sobrepõe esse campo.
 
 **3.2 Supabase do piloto (`offgpyysgdhfemjlchod`)**: SQL Editor.
-1. `select value from public.fin_settings where key = 'schema_version';` deve
-   dar `financial-final-hardening-1` (34 aplicadas).
-2. Cole e rode `docs/supabase-financial-pilot-surface-hardening.sql`
-   (**só esse**; o antigo `…-advisor-hardening.sql` foi removido e não deve ser
-   aplicado).
-3. Repita a consulta do passo 1: esperado `financial-surface-hardening-1`.
+1. `select value from public.fin_settings where key = 'schema_version';` — o
+   último valor observado (01/10/2026) foi `financial-surface-hardening-1`.
+2. Faça backup (`npm run pilot:restore:drill` descreve o procedimento) e rode,
+   **nesta ordem e só os que faltam** depois do marcador do passo 1:
+   `docs/supabase-financial-approval-handoff.sql` (→ `financial-approval-handoff-1`)
+   e, depois que a PR do Financial Passport estiver em `pilot`,
+   `docs/supabase-financial-passport.sql` (→ `financial-passport-1`). Os dois
+   são aditivos, idempotentes e têm rollback em `docs/rollback/`; foram
+   ensaiados por cima de um banco povoado no Supabase local
+   (`scripts/pilot-local`) e no `test:database` (upgrade, rollback e reaplicação).
+3. Repita a consulta do passo 1: esperado o `EXPECTED_SCHEMA_VERSION` de
+   `lib/finance/pilot-doctor.mjs` (hoje `financial-passport-1`).
 4. Advisors → Security e Performance: esperado nenhum item de
    `rls_disabled_in_public`, `security_definer_view` ou
    `function_search_path_mutable`.
@@ -90,9 +96,11 @@ desligada. Atenção: configurar só o Build Command `npm run build:demo` no pai
 
 **3.4 Supabase de produção**: criar um projeto **novo** (região São Paulo),
 por exemplo "ARANDU PRODUCTION". Nunca reaproveitar o do piloto nem o legado.
-- Aplicar os 35 arquivos de `cleanInstall`, em ordem (`npm run migrations:bundle
-  -- --flow=cleanInstall` gera um SQL único em `reports/`).
-- Conferir `schema_version = financial-surface-hardening-1`, Advisors e bucket.
+- Aplicar todos os arquivos de `cleanInstall`, em ordem (`npm run migrations:bundle
+  -- --flow=cleanInstall` gera um SQL único em `reports/`), com o código da
+  `main` que será publicado.
+- Conferir `schema_version` igual ao `EXPECTED_SCHEMA_VERSION` desse código,
+  Advisors e bucket.
 - Nenhum dado do piloto é copiado.
 
 **3.5 `arandu` (Vercel, produção)**: no projeto existente

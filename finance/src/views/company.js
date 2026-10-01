@@ -2,11 +2,12 @@
 // tarefas, notificações e configurações.
 
 import { PRODUCTS } from '../../../lib/finance/products.mjs';
-import { el, icon, money, percent, formatDate, formatDateTime, relativeDays, daysUntil, productLabel, demandHeadline, RFQ_STATUS, CONTRACT_STATUS, PROPOSAL_STATUS, PROVIDER_KINDS, ROLE_LABELS, timeAgo, fold, todayIso, renewalStage, humanizeKey, slugKey } from '../core.js';
+import { el, icon, money, percent, formatDate, formatDateTime, relativeDays, daysUntil, productLabel, demandHeadline, RFQ_STATUS, CONTRACT_STATUS, PROPOSAL_STATUS, PROVIDER_KINDS, ROLE_LABELS, timeAgo, fold, todayIso, renewalStage } from '../core.js';
 import { card, pill, tag, button, linkButton, emptyState, errorState, loading, tabs, definitionList, toast, confirmDialog, drawer, field, person, avatar } from '../ui.js';
 import { memberName, currentStep, approvalSummaryLine, comparisonMatrix, revisionTimeline, approvalActions, approvalSteps, coverage } from './shared.js';
 import { approvalCard, lazyDocuments } from './rfq.js';
 import { NOTIFICATION_META, notificationItem } from '../shell.js';
+import { buildPassport } from '../../../lib/finance/passport.mjs';
 
 // ------------------------------------------------------------ aprovações
 export async function approvalsInbox(ctx) {
@@ -410,37 +411,14 @@ export async function settings(ctx) {
     add('voce', 'Seu nome e cargo', 'Como a equipe vê você em aprovações, comentários e tarefas. O e-mail nunca aparece nessas telas.', meForm);
   }
 
-  // Perfil financeiro reaproveitável.
+  // Perfil financeiro reaproveitável: mora no Financial Passport, com
+  // proveniência, frescor e histórico por campo. Aqui fica só o resumo.
   const profile = ctx.data.profile || [];
-  const table = el('table', { class: 'data-table compact' });
-  table.append(el('thead', {}, el('tr', {}, ['Campo', 'Valor', 'Origem', 'Atualizado', 'Situação'].map((label) => el('th', { scope: 'col', text: label })))));
-  const tbody = el('tbody');
-  for (const row of profile) {
-    const age = -daysUntil(row.updated_at);
-    const state = age >= 180 ? ['desatualizado', 'danger'] : age >= 150 ? ['revisar em breve', 'warning'] : ['atualizado', 'success'];
-    tbody.append(el('tr', {}, [el('td', { 'data-label': 'Campo', class: 'cell-primary', text: humanizeKey(row.field_key) }), el('td', { 'data-label': 'Valor', text: row.field_value }),
-      el('td', { 'data-label': 'Origem', text: humanizeKey(row.source) }), el('td', { 'data-label': 'Atualizado', text: formatDate(row.updated_at) }),
-      el('td', { 'data-label': 'Situação' }, tag(state[0], state[1]))]));
-  }
-  table.append(tbody);
-  const profileForm = el('form', { class: 'inline-form', novalidate: true });
-  // A pessoa escreve o nome do campo; a chave técnica é derivada dele.
-  const key = el('input', { name: 'field_label', maxlength: '60', placeholder: 'Ex.: Faturamento anual', list: 'profile-field-suggestions' });
-  const suggestions = el('datalist', { id: 'profile-field-suggestions' }, profile.map((row) => el('option', { value: humanizeKey(row.field_key) })));
-  const value = el('input', { name: 'field_value', maxlength: '500' });
-  const sourceSelect = el('select', { name: 'source' });
-  for (const option of ['declarado_pela_empresa', 'documento_interno', 'extrato', 'contrato_vigente', 'outro']) sourceSelect.add(new Option(humanizeKey(option), option));
-  profileForm.append(suggestions, field({ label: 'Campo', control: key }), field({ label: 'Valor', control: value }), field({ label: 'Origem', control: sourceSelect }), button('Salvar campo', { type: 'submit' }));
-  profileForm.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    const { field_label: label, ...rest } = Object.fromEntries(new FormData(profileForm));
-    const fieldKey = slugKey(label);
-    if (fieldKey.length < 2 || !String(rest.field_value || '').trim()) { toast('Informe o nome do campo e o valor.', 'error'); (fieldKey.length < 2 ? key : value).focus(); return; }
-    try { await ctx.api('profile', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, field_key: fieldKey, ...rest }) }); toast('Campo do perfil salvo.'); ctx.reload(); }
-    catch (error) { toast(error.message, 'error'); }
-  });
-  add('perfil', 'Perfil financeiro', 'Informado uma vez, reaproveitado em cada solicitação. Campos com mais de 180 dias aparecem como desatualizados.',
-    [profile.length ? el('div', { class: 'table-card inner' }, table) : emptyState({ title: 'Perfil vazio', text: 'Faturamento, setor e garantias preenchem as próximas solicitações automaticamente.', compact: true }), canEdit ? profileForm : null]);
+  const passportSummary = buildPassport({ organization: ctx.organization, rows: profile });
+  add('perfil', 'Perfil financeiro', 'Informado uma vez, reaproveitado em cada solicitação, com origem, responsável e revisão de cada dado.', [
+    el('p', { class: 'muted', text: `${passportSummary.coverage.filled} de ${passportSummary.coverage.relevant} campos do catálogo preenchidos${passportSummary.attention.length ? ` · ${passportSummary.attention.length} pedem revisão` : ''}.` }),
+    linkButton('Abrir o Financial Passport', ctx.href('/finance/passport.html'), { variant: 'secondary', iconName: 'shield' })
+  ]);
 
   // Política de aprovação.
   const policyBox = el('div', {}, loading());
