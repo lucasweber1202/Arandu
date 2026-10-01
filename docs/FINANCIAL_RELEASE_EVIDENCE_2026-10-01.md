@@ -82,6 +82,12 @@ em Chromium móvel com a viewport explícita. A suíte local completa registrou
 43,999969 px pelo Chromium temporário. Sua repetição isolada passou; o critério
 de 44 px permaneceu intacto. Não é declarado CI verde por esse resultado.
 
+No código com a aparência fechada explícita dos selects, a repetição local
+completa passou: **117 passed, 19 skips condicionais existentes**, 3,5 minutos,
+sem retries locais. Comparação inclui a troca de proposta em cada largura;
+393 e 320 px têm capturas anexadas ao teste. O smoke publica essas capturas
+antes da matriz completa, para comparação com a evidência da falha anterior.
+
 O smoke Safari de `ea1adb0c` confirmou o reflow da RFQ a 320 px; comparação
 continuou com 42 px. O diagnóstico de `b9a2d2a7` excluiu animação e barra de abas:
 42 px após a transição, 42 px sem abas, zero ao retirar `.compare-mobile`.

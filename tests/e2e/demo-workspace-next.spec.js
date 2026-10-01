@@ -271,6 +271,11 @@ test('comparação no celular usa duas propostas lado a lado, sem espremer a tab
     await page.getByRole('combobox', { name: 'Primeira proposta' }).selectOption('2');
     await expect(page.getByRole('combobox', { name: 'Primeira proposta' })).toHaveValue('2');
     await noOverflow(page, `comparação após troca ${width}px`);
+    if (width === 393 || width === 320) {
+      const capture = testInfo.outputPath(`comparison-${width}.png`);
+      await page.screenshot({ path: capture, fullPage: true, animations: 'disabled' });
+      await testInfo.attach(`comparação-${width}px`, { path: capture, contentType: 'image/png' });
+    }
   }
 });
 
