@@ -256,6 +256,13 @@ test('comparação no celular usa duas propostas lado a lado, sem espremer a tab
   await ready(page, `/demo/finance/rfq.html?id=${CAPITAL}#comparacao`);
   await expect(page.locator('.compare-mobile')).toBeVisible();
   await expect(page.locator('.comparison-wide')).toBeHidden();
+  for (const picker of await page.locator('.pair-picker select').all()) {
+    expect(await picker.evaluate((select) => {
+      const control = select.getBoundingClientRect();
+      const parent = select.closest('.pair-picker').getBoundingClientRect();
+      return control.left >= parent.left - 1 && control.right <= parent.right + 1;
+    }), 'seletor de proposta cabe na própria coluna').toBe(true);
+  }
   await noOverflow(page, 'comparação');
 });
 

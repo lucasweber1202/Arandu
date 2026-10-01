@@ -302,9 +302,9 @@ test('celular: contexto compacto no lugar de esconder, alvos de toque e navegaç
   await expect(sheet).toBeHidden();
 });
 
-test('larguras estreitas (360 e 320 px) sem rolagem horizontal nas telas de trabalho', async ({ page }, testInfo) => {
+test('larguras estreitas (390, 375, 360 e 320 px) sem rolagem horizontal nas telas de trabalho', async ({ page }, testInfo) => {
   test.skip(!isMobile(testInfo), 'Só no celular.');
-  for (const width of [360, 320]) {
+  for (const width of [390, 375, 360, 320]) {
     await page.setViewportSize({ width, height: width === 320 ? 568 : 800 });
     for (const path of ['/demo/finance/dashboard.html', '/demo/finance/rfqs.html', `/demo/finance/rfq.html?id=${CAPITAL}`, '/demo/finance/approvals.html', '/demo/provider/index.html', '/demo/index.html']) {
       await page.goto(path);

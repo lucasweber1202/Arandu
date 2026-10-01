@@ -159,9 +159,12 @@ próprio da produção estarem configurados. O deploy atual continua no ar.
   - falta service role ou `CRON_SECRET`.
 - O build (`lib/demo-mode.mjs`) nunca publica `/demo` com `ARANDU_ENV` `pilot`
   ou `production`, nem nos previews. Pedir a demo ali falha o build. O build da
-  demo falha se houver qualquer credencial real no ambiente.
-- Com `ARANDU_ENV` `pilot` ou `production`, em qualquer deployment de produção
-  da Vercel e na demo, as rotas legadas de arte respondem 404
-  (`lib/legacy-surface.mjs`). Na demo, toda a API responde 404.
-- `finance:pilot:doctor` aceita `ARANDU_ENV=pilot` e `production`. Ele marca
+  sandbox legado falha se houver qualquer credencial real no ambiente. A demo
+  canônica (`ARANDU_ENV=demo`) exige as credenciais do Supabase DEMO próprio e
+  não publica o sandbox.
+- Com `ARANDU_ENV` `demo`, `pilot` ou `production`, em qualquer deployment de
+  produção da Vercel e no sandbox, as rotas legadas de arte respondem 404
+  (`lib/legacy-surface.mjs`). Só no sandbox legado toda a API de domínio responde
+  404; a demo canônica usa autenticação e a API financeira reais.
+- `finance:pilot:doctor` aceita `ARANDU_ENV=demo`, `pilot` e `production`. Ele marca
   UNSAFE quando a produção aponta para o banco do piloto.

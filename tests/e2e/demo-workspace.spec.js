@@ -184,6 +184,7 @@ test('quick view de solicitação preserva filtros e rolagem, fecha com Escape e
   expect(await page.evaluate(() => Boolean(document.activeElement?.closest('dialog.quick-view')))).toBe(true);
   await page.keyboard.press('Escape');
   await expect(drawer).toBeHidden();
+  await expect(page.locator('dialog.quick-view')).toHaveCount(0);
   await expect(page).toHaveURL(/\/demo\/finance\/rfqs\.html\?product=credit$/);
   await expect(rows).toHaveCount(count);
   expect(Math.abs(await page.evaluate(() => scrollY) - before)).toBeLessThanOrEqual(2);
@@ -202,7 +203,16 @@ test('quick view de solicitação preserva filtros e rolagem, fecha com Escape e
   await expect(page).toHaveURL(/rfq\.html\?id=/);
   // Desktop volta pela trilha (que lembra os filtros); no celular, pelo botão voltar.
   if (isMobile(testInfo)) await page.goBack();
-  else await page.locator('#breadcrumbs').getByRole('link', { name: 'Solicitações' }).click();
+  else {
+    const breadcrumb = page.locator('#breadcrumbs').getByRole('link', { name: 'Solicitações' });
+    // The center used by a real pointer click must belong to the link, even
+    // when the current-page title needs ellipsis in a crowded topbar.
+    await expect.poll(() => breadcrumb.evaluate((link) => {
+      const rect = link.getBoundingClientRect();
+      return link.contains(document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2));
+    })).toBe(true);
+    await breadcrumb.click();
+  }
   await expect(page).toHaveURL(/rfqs\.html\?product=credit$/);
   await expect(rows).toHaveCount(count);
 });

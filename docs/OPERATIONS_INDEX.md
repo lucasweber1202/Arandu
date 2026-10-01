@@ -16,13 +16,15 @@ documento divergir, vale este índice, nesta ordem.
 - `docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md` — três ambientes (demo, pilot, production), `feature/* → pilot → main`, hotfix e rollback.
 - `docs/FINANCIAL_PILOT_ENVIRONMENT.md` — variáveis, Supabase do piloto, backups.
 - `docs/FINANCIAL_PILOT_OPERATIONS.md`, `docs/FINANCIAL_PILOT_SUPPORT.md`, `docs/FINANCIAL_PILOT_PLAYBOOK.md` — operação, suporte e incidentes.
-- `docs/FINANCIAL_DEMO_MODE.md` — demonstração pública sem backend.
+- `docs/demo/README.md` — demo canônica: produto real com Supabase DEMO dedicado e Vitta Foods fictícia.
+- `docs/FINANCIAL_DEMO_MODE.md` — sandbox público temporário sem backend, preservado até a demo canônica ser comprovada.
 - `docs/FINANCIAL_SECURITY_MODEL.md`, `docs/FINANCIAL_THREAT_MODEL.md`, `docs/FINANCIAL_AUTHORIZATION_MAP.md` — segurança.
 - `docs/FINANCIAL_REPO_GOVERNANCE.md` — proteção de branches e checks obrigatórios.
-- `docs/supabase-migrations.json` — ordem canônica das migrations (35 no `cleanInstall`; a última grava `schema_version = financial-surface-hardening-1`).
+- `docs/supabase-migrations.json` — ordem canônica das migrations; consulte o manifesto atual. A última migration desta baseline grava `schema_version = financial-approval-handoff-1`.
 - Comandos: `finance:env:check`, `finance:pilot:doctor`, `pilot:canary`, `pilot:restore:drill`, `test:database`.
 
 Evidências de rodada (históricas, datadas): `docs/FINANCIAL_RELEASE_EVIDENCE_*.md`.
+Fechamento da Onda 0 em andamento: [`FINANCIAL_RELEASE_EVIDENCE_2026-10-01.md`](FINANCIAL_RELEASE_EVIDENCE_2026-10-01.md).
 
 ## Legado: vertical de arte
 
