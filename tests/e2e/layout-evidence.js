@@ -1,8 +1,7 @@
 // Geometry evidence is collected only when the document overflows. Keep the
 // assertion strict; internal scroll areas remain visible in the evidence.
 export async function layoutEvidence(page) {
-  return page.evaluate(() => {
-    const viewport = window.innerWidth;
+  return page.evaluate((viewport) => {
     const overflow = document.documentElement.scrollWidth - viewport;
     const elements = overflow > 1 ? [...document.body.querySelectorAll('*')].flatMap((element) => {
       const rect = element.getBoundingClientRect();
@@ -13,6 +12,6 @@ export async function layoutEvidence(page) {
         scroll: element.scrollWidth, client: element.clientWidth, display: style.display,
         overflowX: style.overflowX, text: element.textContent?.trim().slice(0, 100) }];
     }).slice(-40) : [];
-    return { overflow, viewport, elements };
-  });
+    return { overflow, viewport, innerWidth: window.innerWidth, elements };
+  }, page.viewportSize().width);
 }

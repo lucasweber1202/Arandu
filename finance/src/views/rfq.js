@@ -154,7 +154,7 @@ function overviewTab(ctx, rfq, { manage, pending, approvals, decision, contract,
     body: [invites.length ? inviteList : emptyState({ title: 'Convide pelo menos três provedores', text: 'Com menos de três propostas, a comparação diz pouco.', iconName: 'users', compact: true }),
       manage && ['draft', 'open', 'collecting'].includes(rfq.status) ? inviteForm(ctx, rfq) : null] });
 
-  const reuse = card({ title: 'Reaproveitar', body: [el('p', { class: 'muted small', text: 'Comece outra solicitação com esta demanda. Convites, propostas e decisões não são copiados.' }),
+  const reuse = card({ title: 'Reaproveitar', id: 'reaproveitar', body: [el('p', { class: 'muted small', text: 'Comece outra solicitação com esta demanda. Convites, propostas e decisões não são copiados.' }),
     linkButton('Criar nova solicitação com estes dados', ctx.href(`/finance/new-rfq.html?clone=${encodeURIComponent(rfq.id)}`), { size: 'sm', iconName: 'repeat' })] });
   const documents = card({ title: 'Documentos', subtitle: 'Balanços, minutas e anexos do processo, em armazenamento privado.', id: 'documentos', body: el('div', {}, loading()) });
   import('./documents.js').then(({ documentsPanel }) => documents.querySelector('.card-body').replaceChildren(documentsPanel(ctx, {
