@@ -565,8 +565,11 @@ a.mini-title:hover{color:var(--accent-text)}
 .tip:hover .tip-text,.tip:focus-within .tip-text{visibility:visible;opacity:1}
 .compare-mobile{display:none}
 .pair-pickers{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:end;gap:var(--s2);margin-bottom:var(--s3)}
-.pair-picker{display:grid;grid-template-columns:minmax(0,1fr);min-width:0;gap:4px}
-.pair-picker select{min-width:0;max-width:100%;width:100%}
+.pair-picker{position:relative;display:grid;grid-template-columns:minmax(0,1fr);min-width:0;gap:4px}
+/* WebKit's native menu-list can propagate its option width beyond the sized
+   control. Keep the native select semantics with an explicit closed skin. */
+.pair-picker select{appearance:none;min-width:0;max-width:100%;width:100%;padding-right:30px;text-overflow:ellipsis}
+.pair-picker::after{content:"";position:absolute;right:12px;bottom:18px;width:7px;height:7px;border-right:2px solid var(--text-muted);border-bottom:2px solid var(--text-muted);transform:rotate(45deg);pointer-events:none}
 .pair-vs{font-size:var(--fs-xs);color:var(--text-muted);padding-bottom:10px}
 .pair-group{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:4px var(--s3);margin-bottom:var(--s3)}
 .pair-title{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-muted);padding:8px 0 4px}

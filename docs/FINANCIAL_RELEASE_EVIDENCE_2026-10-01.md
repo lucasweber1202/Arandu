@@ -10,7 +10,9 @@ iniciado Financial Passport v2 nem removido o sandbox temporário.
   o link tem uma caixa de bloco. Isso evita o centro de clique do link inline
   cair sobre o item seguinte quando a topbar precisa truncar o título.
 - Comparação móvel: as colunas e o grid interno dos seletores usam
-  `minmax(0,1fr)`; o controle nativo pode encolher dentro da própria coluna.
+  `minmax(0,1fr)`. Os seletores mantêm semântica e opções nativas, com aparência
+  fechada explícita, indicador de abertura e espaço reservado para ele. O teste
+  confere geometria e troca de proposta em 393/390/375/360/320 px.
 - RFQ estreita: a ação de reaproveitar permite quebra do texto dentro do
   cartão. A asserção usa a viewport configurada, pois `innerWidth` pode crescer
   no Chromium móvel e mascarar o vazamento.
@@ -21,7 +23,11 @@ iniciado Financial Passport v2 nem removido o sandbox temporário.
   390, 375, 360 e 320 px. Nenhum `overflow-x:hidden` global foi introduzido.
 - A matriz de apresentação mantém os cinco projetos, com dois workers no CI.
   A execução anterior rodava 340 casos em um worker e terminou cancelada perto
-  do limite do job, depois de registrar as regressões conhecidas.
+  do limite do job, depois de registrar as regressões conhecidas. O orçamento
+  agora é 35 minutos: uma instalação de dependências pelo mirror Ubuntu levou
+  15,5 minutos (menos de um minuto na rodada anterior). Um smoke complementar
+  publica evidência Safari cedo; a matriz completa continua obrigatória mesmo
+  se ele falhar.
 
 ## Validação local do hotfix
 
@@ -75,6 +81,14 @@ em Chromium móvel com a viewport explícita. A suíte local completa registrou
 116 passed, 19 skipped e uma falha numérica: alvo de 44 px medido como
 43,999969 px pelo Chromium temporário. Sua repetição isolada passou; o critério
 de 44 px permaneceu intacto. Não é declarado CI verde por esse resultado.
+
+O smoke Safari de `ea1adb0c` confirmou o reflow da RFQ a 320 px; comparação
+continuou com 42 px. O diagnóstico de `b9a2d2a7` excluiu animação e barra de abas:
+42 px após a transição, 42 px sem abas, zero ao retirar `.compare-mobile`.
+Nenhum elemento visível dessa região excedia a viewport por sua caixa. A
+correção da aparência fechada dos selects e o teste com troca de proposta ainda
+precisam da matriz oficial do novo head; resultados anteriores não lhe são
+atribuídos.
 
 ## Ambientes externos e tentativa de provisionamento
 

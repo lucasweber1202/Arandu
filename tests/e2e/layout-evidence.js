@@ -28,13 +28,14 @@ export async function layoutEvidence(page) {
       }).slice(-20);
       // Isolate overflow contributors only in failed test diagnostics. Restore
       // every inline style immediately; no layout suppression is a solution.
-      evidence.contributors = [...document.querySelectorAll('.tabs-scroll, .cmp-bar, .cmp-synthesis, .comparison, .compare-mobile, .est, .sidebar, .topbar, .mobile-tabbar')].map((element) => {
+      evidence.contributors = [...document.querySelectorAll('.tabs-scroll, .cmp-bar, .cmp-synthesis, .comparison, .compare-mobile, .pair-pickers, .pair-picker select, .pair-body, .est, .sidebar, .topbar, .mobile-tabbar')].map((element) => {
         const original = element.getAttribute('style');
         element.style.setProperty('display', 'none', 'important');
         const without = document.documentElement.scrollWidth - viewport;
         if (original === null) element.removeAttribute('style'); else element.setAttribute('style', original);
         return { class: element.className, without };
       });
+      evidence.controls = [...document.querySelectorAll('.pair-picker select')].map((select) => ({ label: select.getAttribute('aria-label'), scroll: select.scrollWidth, client: select.clientWidth, appearance: getComputedStyle(select).appearance }));
       evidence.restoredOverflow = document.documentElement.scrollWidth - viewport;
     }
     return evidence;
