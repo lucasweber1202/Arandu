@@ -2,10 +2,12 @@
 
 O Arandu (Financial Procurement) está em preparação para o piloto. Toda mudança deve preservar a separação entre o que foi implementado no código e o que foi comprovado em staging, produção ou por aprovação humana.
 
+Antes de propor ou implementar mudança relevante de produto, UX, arquitetura, dados, IA, integrações ou operação, leia `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md`. Esse documento é a referência estratégica principal do Arandu. Mudanças que contradigam tese, limites, princípios, arquitetura de longo prazo ou papel da IA exigem decisão explícita e atualização da guideline; não devem entrar como efeito colateral de uma PR comum.
+
 ## Fluxo de trabalho
 
 1. Parta da `pilot` atualizada. Mudanças vão para `pilot` e são promovidas para `main` por PR
-   depois de testadas no piloto (fluxo e hotfix em `docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md`).
+   depois de testadas no piloto (fluxo e hotfix em `docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md`). Se `pilot` estiver atrás de `main`, reconcilie a topologia antes de iniciar uma nova feature.
 2. Crie uma branch curta e descritiva:
    - `agent/<descricao>` para pacotes implementados por agentes;
    - `feature/<descricao>` para funcionalidade;
@@ -58,6 +60,7 @@ npm run test:e2e
 - Não aceite preço, comissão ou autorização privilegiada calculados no navegador.
 - Não torne páginas internas parte do artefato público.
 - Mudanças de autenticação, RLS, upload e operação comercial precisam de testes negativos.
+- Preserve decisão humana, neutralidade de comparação e proveniência conforme `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md` e `docs/FINANCIAL_PRODUCT_BOUNDARIES.md`.
 
 ## Evidências e release
 
@@ -81,13 +84,17 @@ A descrição da PR deve explicar:
 
 - problema e causa;
 - solução;
-- impacto para usuário e operação;
+- objetos afetados e impacto para usuário/operação;
+- segurança, privacidade e autorização;
+- banco/migrations quando aplicável;
 - riscos e rollback;
 - testes executados;
-- gates externos deliberadamente não alterados.
+- evidência visual quando aplicável;
+- gates externos deliberadamente não alterados;
+- compatibilidade com `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md` quando a mudança for relevante para produto, dados, IA, cálculos, comparação ou integrações.
 
 Não marque a PR como pronta enquanto checks obrigatórios estiverem falhando ou enquanto o texto atribuir ao código uma validação externa que não ocorreu.
 
 ## Documentação
 
-Use `docs/OPERATIONS_INDEX.md` para encontrar a documentação canônica. Documentos históricos devem ser claramente marcados e não podem competir com os runbooks atuais.
+Use `docs/OPERATIONS_INDEX.md` para encontrar a documentação canônica. `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md` governa a direção estratégica de produto e engenharia; documentos especializados governam a implementação concreta. Documentos históricos devem ser claramente marcados e não podem competir com os runbooks atuais.
