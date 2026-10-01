@@ -12,7 +12,7 @@ assert.equal(demoModeEnabled({ VERCEL_ENV: 'preview' }), true);
 assert.equal(demoModeEnabled({ VERCEL_ENV: 'preview', ARANDU_DEMO_MODE: 'false' }), false);
 assert.equal(demoModeEnabled({ ARANDU_DEMO_MODE: 'true' }), true);
 // Piloto e produção: nem preview do projeto publica /demo, e pedir falha o build.
-for (const environment of ['pilot', 'production']) {
+for (const environment of ['demo', 'pilot', 'production']) {
   assert.equal(demoModeEnabled({ ARANDU_ENV: environment, VERCEL_ENV: 'preview' }), false, `preview de ${environment} publicou /demo`);
   assert.equal(assertDemoModeIsSafe({ ARANDU_ENV: environment, VERCEL_ENV: 'preview' }), false);
   for (const request of [{ ARANDU_DEMO_MODE: 'true' }, { ARANDU_PRESENTATION_MODE: 'true' }, { ARANDU_DEPLOYMENT_KIND: 'demo' }]) {
@@ -74,8 +74,22 @@ if (process.argv.includes('--dist')) {
     }
   } else {
     assert.ok(!existsSync('dist/demo'), 'build sem demonstração publicou /demo');
+    // Telas exclusivas do Work OS nunca existem fora da demonstração.
+    for (const page of ['intake', 'policies', 'integrations', 'usage']) assert.ok(!existsSync(`dist/finance/${page}.html`), `build oficial publicou /finance/${page}.html`);
     assert.deepEqual(withEngine, [], 'motor da demonstração entrou no pacote sem demonstração');
     assert.doesNotMatch(readFileSync('dist/index.html', 'utf8'), /data-demo-cta/);
+    // Camada de experiência da demo (Workspace 2.0): nenhum módulo, CSS, chave
+    // de armazenamento ou dado fictício dela no pacote oficial.
+    const DEMO_ONLY = ['arandu-demo-workspace', 'arandu-demo-route', 'arandu-demo-proposal-seen', 'decisionInbox', 'installInspector', 'installFilterBar',
+      'Calculado pelo Arandu com hipóteses', 'Ver processo completo', 'Onde as propostas mais diferem', 'data-inspector', 'wq-row', 'dinbox', 'Marina Costa', '— DEMO',
+      // Work OS (v3): registro local, cache, barramento, presença, conectores simulados, políticas, intake e uso.
+      'arandu-demo-os', 'arandu-demo-swr', 'arandu-demo-bus', 'arandu-demo-presence', 'arandu-demo-started', 'arandu-demo-queue-grouped',
+      'Pluggy', 'Belvo', 'WorkOS', 'NetSuite', 'PostHog', 'Nenhum banco real', 'Autorizar (simulado)', 'workPolicies', 'workIntegrations', 'workUsage', 'workIntake',
+      'Uso da demonstração', 'cthread', 'ncenter-cat', 'int-card', 'policy-version', 'intake-card', 'conflict-dialog', 'help-dialog', 'Dados simulados', 'sync-indicator', 'Simular offline'];
+    for (const file of files.filter((path) => /\.(js|css|html)$/.test(path))) {
+      const text = readFileSync(file, 'utf8');
+      for (const marker of DEMO_ONLY) assert.ok(!text.includes(marker), `${file} contém "${marker}", exclusivo da demonstração`);
+    }
   }
   console.log(`Demo boundary (dist): ${expectDemo ? 'demonstração publicada com faixa, noindex e sem analytics' : 'nenhuma página nem código da demonstração no pacote'}.`);
 }

@@ -16,11 +16,15 @@ function watchNetwork(page) {
   });
   return offending;
 }
-const banner = (page) => page.getByRole('region', { name: 'Ambiente demonstrativo' });
+// Indicador "● DEMO" na barra superior: sempre visível, detalhes num popover.
+const demoIndicator = (page) => page.locator('#demo-indicator');
+const PERSONA_NAMES = { Comprador: 'Marina Costa', Aprovador: 'Ricardo Alves', Provedor: 'Camila Rocha', 'Administração': 'Helena Prado' };
+/** Troca de persona pelo seletor "Visualizando como"; na mesma área a troca é instantânea, sem recarregar. */
 async function asPersona(page, label) {
-  await banner(page).getByRole('radio', { name: label }).click();
-  await page.waitForEvent('load');
-  await expect(banner(page).getByRole('radio', { name: label })).toHaveAttribute('aria-checked', 'true');
+  await page.locator('#persona-trigger').click();
+  await page.getByRole('menuitemradio', { name: new RegExp(`^${label}:`) }).click();
+  await expect(page.locator('#persona-trigger')).toHaveAttribute('aria-label', new RegExp(PERSONA_NAMES[label]));
+  await expect(page.locator('#view.is-switching')).toHaveCount(0);
   await expect(page.locator('#view [role=status].loading-state')).toHaveCount(0);
 }
 async function confirm(page, label) {
@@ -32,24 +36,46 @@ const tab = (page, name) => page.getByRole('tab', { name: new RegExp(`^${name}`)
 /** Entra pela página inicial e só segue depois que o painel terminou de carregar. */
 async function enterDemo(page) {
   await page.goto('/demo/index.html');
-  await page.getByRole('link', { name: 'Explorar demonstração' }).click();
+  await page.locator('#start-demo').click();
   await expect(page).toHaveURL(/\/demo\/finance\/dashboard\.html$/);
   await expect(page.locator('#precisa-de-voce')).toBeVisible();
+}
+
+/** Abre o contexto de uma decisão: ao lado da caixa (≥ 1100 px) ou numa folha (celular). */
+async function openDecision(page, text) {
+  await page.locator('.dinbox-item', { hasText: text }).click();
+  if ((page.viewportSize()?.width || 0) >= 1100) {
+    const panel = page.locator('#decision-context');
+    await expect(panel.getByRole('heading', { level: 2 })).toContainText(text);
+    return panel;
+  }
+  const sheet = page.getByRole('dialog', { name: new RegExp(text) });
+  await expect(sheet).toBeVisible();
+  return sheet;
 }
 
 test('abre /demo sem login e deixa claro que é demonstrativo', async ({ page }) => {
   const offending = watchNetwork(page);
   await page.goto('/demo/index.html');
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Explorar demonstração');
-  await expect(banner(page)).toContainText('Dados fictícios. Nenhuma operação financeira real será executada.');
-  await page.getByRole('link', { name: 'Explorar demonstração' }).click();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Procurement financeiro, do pedido à renovação.');
+  await expect(page.locator('#sobre')).toContainText('dados fictícios. Nenhuma operação financeira real será executada.');
+  await page.getByRole('link', { name: 'Explorar livremente' }).click();
   await expect(page).toHaveURL(/\/demo\/finance\/dashboard\.html$/);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Painel');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(/^(Bom dia|Boa tarde|Boa noite), Marina$/);
   await expect(page.locator('#precisa-de-voce')).toContainText('Precisa de você');
-  await expect(banner(page).getByRole('radio', { name: 'Comprador' })).toHaveAttribute('aria-checked', 'true');
+  await expect(page.locator('#persona-trigger')).toHaveAttribute('aria-label', /Marina Costa \(Comprador\)/);
+  // A informação de segurança continua a um clique: "● DEMO" abre os detalhes.
+  await demoIndicator(page).click();
+  const details = page.getByRole('dialog', { name: 'Ambiente demonstrativo' });
+  await expect(details).toContainText('Dados fictícios');
+  await expect(details).toContainText('Nenhuma operação financeira real');
+  await expect(details).toContainText('Nenhum e-mail externo');
+  await page.keyboard.press('Escape');
+  await expect(details).toBeHidden();
+  await expect(demoIndicator(page)).toBeFocused();
   for (const path of ['/demo/finance/rfqs.html', '/demo/finance/contracts.html', '/demo/finance/approvals.html', '/demo/provider/index.html']) {
     await page.goto(path);
-    await expect(banner(page)).toContainText('Ambiente demonstrativo');
+    await expect(demoIndicator(page)).toHaveAccessibleName(/Ambiente demonstrativo/);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     expect(overflow, path).toBeLessThanOrEqual(1);
   }
@@ -110,30 +136,32 @@ test('jornada completa: comprador → provedor → comprador → aprovador → d
   await expect(page.locator('.save-indicator')).toContainText(/Rascunho salvo/);
   await proposal.getByRole('button', { name: 'Revisar e enviar proposta' }).click();
   await confirm(page, 'Enviar proposta');
-  await expect(page.locator('.proposal-status')).toContainText('Proposta enviada · versão 1');
+  // Depois de enviar: estado de sucesso claro, não só um aviso passageiro.
+  await expect(page.locator('.proposal-status')).toContainText('Proposta v1 enviada');
+  await expect(page.locator('.proposal-status')).toContainText('Responde à revisão 2');
 
   // Comprador compara e pede aprovação ao CFO.
   await asPersona(page, 'Comprador');
   await page.goto(`${rfqUrl}#comparacao`);
   await expect(page.locator('#comparison-notice')).toBeVisible();
   await expect(page.locator('#view')).toContainText('Atlas Bank — DEMO');
-  await tab(page, 'Aprovações').click();
+  await tab(page, 'Aprovação').click();
   await page.getByRole('checkbox', { name: /Ricardo Alves/ }).check();
   await page.getByLabel('Contexto para quem aprova').fill('Única proposta com o valor integral.');
   await page.getByRole('button', { name: 'Solicitar aprovação' }).click();
   await expect(page.locator('.approval-card')).toContainText('Etapa 1 de 1');
 
-  // Aprovador aprova com contexto.
+  // Aprovador revisa o contexto e só então aprova (a linha da caixa não aprova).
   await asPersona(page, 'Aprovador');
   await page.goto('/demo/finance/approvals.html');
-  const row = page.locator('.inbox-row', { hasText: 'Giro E2E' });
+  const row = page.locator('.dinbox-item', { hasText: 'Giro E2E' });
   await expect(row).toContainText('Aguardando você');
-  await row.getByRole('button', { name: 'Ver contexto' }).click();
-  const context = page.getByRole('dialog', { name: /Giro E2E/ });
+  await expect(row.getByRole('button', { name: 'Aprovar' })).toHaveCount(0);
+  const context = await openDecision(page, 'Giro E2E');
   await expect(context).toContainText('Por que esta proposta');
   await context.getByRole('button', { name: 'Aprovar' }).click();
   await confirm(page, 'Aprovar');
-  await expect(page.locator('.inbox-row', { hasText: 'Giro E2E' })).toHaveCount(0);
+  await expect(page.locator('.dinbox-item', { hasText: 'Giro E2E' })).toHaveCount(0);
 
   // Comprador decide, registra contrato e vê a renovação.
   await asPersona(page, 'Comprador');
@@ -144,7 +172,7 @@ test('jornada completa: comprador → provedor → comprador → aprovador → d
   await page.locator('#contract-form').getByRole('button', { name: 'Registrar contrato' }).click();
   await expect(page).toHaveURL(/\/demo\/finance\/contracts\.html#contract-/);
   await expect(page.locator('.contract-card.highlighted')).toContainText('Atlas Bank — DEMO');
-  await expect(page.locator('.contract-card.highlighted .lifecycle-bar')).toBeVisible();
+  await expect(page.locator('.contract-card.highlighted .contract-timeline')).toBeVisible();
   const renewal = page.locator('.contract-card', { hasText: 'Cadência Adquirência — DEMO' }).first();
   await expect(renewal).toContainText('Janela de renovação aberta. Decida até');
   await renewal.getByRole('button', { name: 'Iniciar nova concorrência' }).click();
@@ -171,13 +199,14 @@ test('comentário com menção gera notificação com deep link para o mencionad
   const mention = panel.getByRole('link', { name: /Marina Costa mencionou você/ }).first();
   await mention.click();
   await expect(page).toHaveURL(new RegExp(`rfq\\.html\\?id=${CAPITAL}#atividade`));
-  await expect(tab(page, 'Atividade')).toHaveAttribute('aria-selected', 'true');
+  await expect(tab(page, 'Histórico')).toHaveAttribute('aria-selected', 'true');
   await expect(page.locator('.thread')).toContainText('Podemos fechar hoje?');
   await page.goto('/demo/finance/notifications.html');
-  const unreadMention = page.locator('#view .notice.unread', { hasText: 'Marina Costa mencionou você' });
+  // Central de notificações do Work OS (demo): mesma leitura, agora por categoria.
+  const unreadMention = page.locator('#view .ncenter-item:not(.is-read)', { hasText: 'Marina Costa mencionou você' });
   await expect(unreadMention).toHaveCount(1); // a menção antiga do conjunto inicial; a nova já foi lida
   await page.getByRole('button', { name: 'Marcar todas como lidas' }).click();
-  await expect(page.locator('#view .notice.unread')).toHaveCount(0);
+  await expect(page.locator('#view .ncenter-item:not(.is-read)')).toHaveCount(0);
 });
 
 test('o estado da demo sobrevive a recarregar e o reset restaura o conjunto inicial', async ({ page }) => {
@@ -190,8 +219,10 @@ test('o estado da demo sobrevive a recarregar e o reset restaura o conjunto inic
   await page.goBack();
   await page.goForward();
   await expect(page.locator('.task-list')).toContainText('Tarefa criada no teste de persistência');
-  await banner(page).getByRole('button', { name: 'Restaurar demonstração' }).click();
-  await confirm(page, 'Restaurar dados iniciais');
+  await demoIndicator(page).click();
+  await page.getByRole('button', { name: 'Restaurar demonstração…' }).click();
+  await expect(page.getByRole('radio', { name: /Dados demonstrativos/ })).toBeChecked();
+  await confirm(page, 'Restaurar');
   await expect(page).toHaveURL(/\/demo\/finance\/dashboard\.html$/);
   await page.goto('/demo/finance/tasks.html');
   await expect(page.locator('.task-list')).toContainText('Conferir garantias exigidas pela Atlas');
@@ -225,20 +256,23 @@ test('persona muda superfície, não credencial', async ({ page, context }) => {
   await asPersona(page, 'Aprovador');
   await page.goto('/demo/finance/dashboard.html');
   await expect(page.getByRole('link', { name: 'Nova solicitação' })).toHaveCount(0);
-  await expect(page.locator('#precisa-de-voce')).toContainText('Aprovar: Capital de giro');
+  await expect(page.locator('#precisa-de-voce')).toContainText('Revisar e decidir a aprovação — Capital de giro');
   await page.goto('/demo/finance/new-rfq.html');
   await expect(page.locator('#view')).toContainText('Seu papel não cria solicitações');
   // Nenhum cookie ou token é criado pela troca de persona.
   expect(await context.cookies()).toEqual([]);
   const keys = await page.evaluate(() => Object.keys(localStorage));
-  expect(keys).toEqual(['arandu_demo_state_v1']);
+  // Só o estado fictício e, quando houver, preferências de tela da demonstração.
+  // arandu-demo-os: registro local do Work OS (integrações simuladas, comentários, auditoria), também só da demo.
+  expect(keys.filter((key) => !['arandu_demo_state_v1', 'arandu-demo-workspace', 'arandu-demo-os'].includes(key))).toEqual([]);
+  expect(keys).toContain('arandu_demo_state_v1');
 });
 
 test('busca global e central de comando funcionam por teclado na demo', async ({ page }) => {
   await page.goto('/demo/finance/dashboard.html');
   await expect(page.getByRole('button', { name: /Buscar/ })).toBeVisible();
   await page.keyboard.press('Control+k');
-  const dialog = page.getByRole('dialog', { name: 'Buscar no espaço da empresa' });
+  const dialog = page.getByRole('dialog', { name: 'Central de comando' });
   await dialog.getByRole('combobox').fill('adquirencia');
   await expect(dialog.getByRole('option', { name: /Revisão de adquirência/ }).first()).toBeVisible();
   await page.keyboard.press('Enter');
@@ -276,9 +310,7 @@ test('aprovador pede alterações em um caso e aprova outro; o comprador vê cad
   await enterDemo(page);
   await asPersona(page, 'Aprovador');
   await page.goto('/demo/finance/approvals.html');
-  const overdraft = page.locator('.inbox-row', { hasText: 'Conta garantida' });
-  await overdraft.getByRole('button', { name: 'Ver contexto' }).click();
-  const context = page.getByRole('dialog', { name: /Conta garantida/ });
+  const context = await openDecision(page, 'Conta garantida');
   // O aprovador decide sem sair do painel: demanda, motivo, comparação e histórico.
   await expect(context).toContainText('Por que esta proposta');
   await expect(context).toContainText('Mesma taxa nas duas propostas');
@@ -290,8 +322,8 @@ test('aprovador pede alterações em um caso e aprova outro; o comprador vê cad
   await expect(reason.getByLabel('Motivo')).toHaveAttribute('aria-invalid', 'true');
   await reason.getByLabel('Motivo').fill('Peça à Nexa o CET e confirme o limite de R$ 800 mil.');
   await reason.getByRole('button', { name: 'Pedir alterações' }).click();
-  await expect(page.locator('.inbox-row', { hasText: 'Conta garantida' })).toHaveCount(0);
-  const capital = page.locator('.inbox-row', { hasText: 'Capital de giro' });
+  await expect(page.locator('.dinbox-item', { hasText: 'Conta garantida' })).toHaveCount(0);
+  const capital = await openDecision(page, 'Capital de giro');
   await capital.getByRole('button', { name: 'Aprovar' }).click();
   await confirm(page, 'Aprovar');
   await expect(page.locator('#view')).toContainText('Nenhuma decisão esperando por você');
@@ -299,12 +331,12 @@ test('aprovador pede alterações em um caso e aprova outro; o comprador vê cad
   await asPersona(page, 'Comprador');
   await page.goto('/demo/finance/dashboard.html');
   const attention = page.locator('#precisa-de-voce');
-  await expect(attention).toContainText('Alterações pedidas: Conta garantida');
+  await expect(attention).toContainText('Ajustar e pedir aprovação de novo — Conta garantida');
   await expect(attention).toContainText('Peça à Nexa o CET');
-  await expect(attention).toContainText('Registrar decisão: Capital de giro');
-  await expect(attention).not.toContainText('Avaliar propostas: Conta garantida');
+  await expect(attention).toContainText('Registrar a decisão — Capital de giro');
+  await expect(attention).not.toContainText('Comparar as 2 propostas recebidas — Conta garantida');
   await page.goto(`/demo/finance/rfq.html?id=${OVERDRAFT}`);
-  await expect(page.locator('.next-step')).toContainText('Alterações pedidas na aprovação');
+  await expect(page.locator('#stage-panel')).toContainText('Ajustar e pedir aprovação de novo');
 });
 
 test('confidencialidade entre provedores: pergunta de concorrente e documentos internos nunca chegam ao Atlas', async ({ page }) => {

@@ -74,7 +74,18 @@ async function createTransport() {
   if (!demoPage) return httpTransport;
   if (!DEMO_BUILD) return null;
   const { createDemoEngine } = await import('./demo/engine.js');
-  return createDemoEngine({ latency: 140 });
+  // Work OS da demo: cache local-first (stale-while-revalidate) sobre o motor fictício.
+  const { withLocalFirst } = await import('./demo/workspace/platform/local-first.js');
+  return withLocalFirst(createDemoEngine({ latency: 140 }));
+}
+
+// Camada de experiência da demonstração (laboratório de UX): mesma trava do
+// motor — só em página /demo de build demonstrativo. Em produção nem entra no
+// pacote; as telas reais continuam exatamente como são.
+let workspace = null;
+async function loadWorkspace() {
+  if (!demoPage || !DEMO_BUILD) return null;
+  return import('./demo/workspace/index.js');
 }
 
 // ------------------------------------------------------------------ ctx
@@ -112,11 +123,18 @@ function createContext(transport) {
     },
     header: setHeader,
     reload: () => render({ refresh: true }),
+    rerender: (options) => render(options),
     async switchPersona(key) {
       transport.setPersona(key);
       const persona = transport.persona();
-      toast(`Visualizando como ${persona.name} (${persona.title}).`, 'info');
       const stay = persona.audience === audience && audience === 'company' && view !== 'newRfq';
+      // Na camada de experiência a troca é instantânea: mesma página, novo papel.
+      if (stay && workspace) {
+        await render({ refresh: true, rebuildShell: true });
+        toast(`Visualizando como ${persona.name} (${persona.title}).`, 'info');
+        return;
+      }
+      toast(`Visualizando como ${persona.name} (${persona.title}).`, 'info');
       const target = persona.audience === 'provider' ? '/provider/index.html' : '/finance/dashboard.html';
       // Mesma página: recarrega (mudar só a âncora não recarregaria o conteúdo).
       setTimeout(() => (stay ? location.reload() : location.assign(ctx.href(target))), 250);
@@ -150,10 +168,19 @@ function setHeader({ title = null, subtitle = null, crumbs = null, meta = null, 
 
 // ---------------------------------------------------------- dados
 async function loadSession(ctx) {
-  const organizations = (await ctx.api('organizations')).rows || [];
+  const listing = await ctx.api('organizations');
+  const organizations = listing.rows || [];
+  // Ambiente declarado pelo servidor (ARANDU_ENV=demo): só muda o selo da barra.
+  ctx.environment = listing.environment || null;
   const kind = audience === 'provider' ? 'PROVIDER' : 'BUYER';
   ctx.organizations = organizations.filter((organization) => organization.kind === kind);
-  if (!ctx.organizations.length) return { empty: true };
+  if (!ctx.organizations.length) {
+    // Conta só do outro lado (ex.: provedor que entrou por /login.html): leva ao
+    // espaço certo em vez de sugerir criar uma organização do tipo errado.
+    const other = organizations.some((organization) => organization.kind === (kind === 'BUYER' ? 'PROVIDER' : 'BUYER'));
+    if (other && !demoPage && !PUBLIC_WHEN_SIGNED_OUT.has(view)) return { empty: true, redirect: kind === 'BUYER' ? '/provider/index.html' : '/finance/dashboard.html' };
+    return { empty: true };
+  }
   let remembered = '';
   try { remembered = sessionStorage.getItem('arandu-finance-org') || ''; } catch { remembered = ''; }
   ctx.organization = ctx.organizations.find((organization) => organization.id === remembered) || ctx.organizations[0];
@@ -161,7 +188,14 @@ async function loadSession(ctx) {
   if (audience === 'provider') {
     const result = await ctx.api(`assignments?organization_id=${encodeURIComponent(ctx.organization.id)}`);
     ctx.data = { assignments: result.rows || [], pending_invites: result.pending_invites || [] };
-    ctx.viewer = ctx.persona ? { id: ctx.persona.user, name: ctx.persona.name, title: ctx.persona.title, role: ctx.persona.role } : { id: null, role: 'provider_user', name: null };
+    if (ctx.persona) {
+      ctx.viewer = { id: ctx.persona.user, name: ctx.persona.name, title: ctx.persona.title, role: ctx.persona.role };
+    } else {
+      // Nome e cargo de quem está no portal (sem e-mail), como no espaço da empresa.
+      const members = await ctx.api(`members?organization_id=${encodeURIComponent(ctx.organization.id)}`).catch(() => ({ rows: [], viewer_id: null }));
+      const me = (members.rows || []).find((member) => member.user_id === members.viewer_id);
+      ctx.viewer = { id: members.viewer_id || null, role: me?.role || 'provider_user', name: me?.display_name || null, title: me?.title || null };
+    }
     return {};
   }
   const [overview, members] = await Promise.all([
@@ -236,26 +270,29 @@ function createOrganizationView(ctx) {
 // ---------------------------------------------------------- render
 let shellReady = false;
 let bellApi = null;
-async function render({ refresh = false } = {}) {
+async function render({ refresh = false, rebuildShell = false } = {}) {
   const ctx = window.__aranduCtx;
   if (refresh) { ctx.approvalsPromise = null; }
   if (!refresh && view !== 'boundaries') root.replaceChildren(loading());
   let session = null;
   let failure = null;
   try { session = await loadSession(ctx); } catch (error) { failure = error; }
+  if (session?.redirect) { location.replace(session.redirect); return; }
 
-  if (!shellReady) {
-    renderDemoBanner(ctx);
+  if (!shellReady || rebuildShell) {
+    if (!workspace) renderDemoBanner(ctx);
     const { searchButton, bell } = renderTopbar(ctx);
     if (!failure && !session?.empty) {
-      installCommandCenter(ctx, searchButton);
+      if (!workspace) installCommandCenter(ctx, searchButton);
       bellApi = installNotificationCenter(ctx, bell);
       ctx.refreshBell = () => bellApi?.refresh();
     }
+    workspace?.installShell(ctx);
     shellReady = true;
   } else bellApi?.refresh();
   const navCounts = failure || session?.empty ? {} : counts(ctx);
   renderSidebar(ctx, navCounts);
+  workspace?.decorateSidebar(ctx, navCounts);
   if (!failure && !session?.empty) renderMobileNav(ctx, navCounts);
   document.body.classList.toggle('is-signed-out', Boolean(failure));
 
@@ -271,6 +308,7 @@ async function render({ refresh = false } = {}) {
   }
   if (node) root.replaceChildren(node);
   root.setAttribute('aria-busy', 'false');
+  workspace?.afterRender(ctx, { failure });
   focusDeepLink();
 }
 
@@ -292,7 +330,8 @@ function focusDeepLink() {
 }
 
 async function boot() {
-  if (!root || !VIEWS[view]) return;
+  // Telas exclusivas da demo (Work OS) só existem depois que a camada da demo carrega.
+  if (!root || (!VIEWS[view] && !demoPage)) return;
   root.setAttribute('aria-busy', 'true');
   const transport = await createTransport();
   if (!transport) {
@@ -304,6 +343,13 @@ async function boot() {
   }
   const ctx = createContext(transport);
   window.__aranduCtx = ctx;
+  workspace = await loadWorkspace();
+  if (workspace) {
+    VIEWS.dashboard = VIEWS.home = workspace.dashboard;
+    Object.assign(VIEWS, workspace.views || {});
+    ctx.demoSettings = workspace.settingsSection(ctx);
+  }
+  if (!VIEWS[view]) return;
   await render();
   if (ctx.mode === 'demo' && transport.recovered?.()) toast('O estado salvo da demonstração era inválido ou de outra versão e foi restaurado para o conjunto inicial.', 'info');
   if (ctx.mode === 'demo' && !transport.persistent?.()) toast('Este navegador não permite guardar dados locais: a demonstração funciona, mas não sobrevive a recarregar a página.', 'info');

@@ -95,7 +95,7 @@ export async function proposalsList(ctx) {
     const outdated = proposal.rfq_revision && proposal.rfq_revision < (rfq.revision || 1);
     const cov = coverage(rfq.product, proposal.terms);
     const validDays = daysUntil(proposal.terms?.valid_until);
-    body.append(el('tr', { class: 'row-link' }, [
+    body.append(el('tr', { class: 'row-link', dataset: { entity: 'proposal', id: proposal.id, rfq: rfq.id } }, [
       el('td', { 'data-label': 'Provedor', class: 'cell-primary' }, [el('a', { class: 'row-title stretched', href: ctx.href(`/finance/rfq.html?id=${rfq.id}#propostas`), text: proposal.provider_name }), el('span', { class: 'row-sub', text: PROVIDER_KINDS[proposal.provider_kind] || 'Provedor' })]),
       el('td', { 'data-label': 'Solicitação' }, [el('span', { text: rfq.title }), el('span', { class: 'row-sub', text: RFQ_STATUS[rfq.status]?.label })]),
       el('td', { 'data-label': 'Versão' }, [el('span', { text: `v${proposal.version}` }), proposal.rfq_revision ? el('span', { class: `row-sub${outdated ? ' warn-text' : ''}`, text: `rev. ${proposal.rfq_revision}${outdated ? ` (atual ${rfq.revision})` : ''}` }) : null]),
@@ -174,7 +174,7 @@ export async function contracts(ctx) {
       } catch (error) { toast(error.message, 'error'); target.disabled = false; }
     } }) : null;
     const source = (ctx.data.rfqs || []).find((rfq) => rfq.id === contract.rfq_id);
-    root.append(el('article', { class: `contract-card${location.hash === `#contract-${contract.id}` ? ' highlighted' : ''}`, id: `contract-${contract.id}`, tabindex: '-1' }, [
+    root.append(el('article', { class: `contract-card${location.hash === `#contract-${contract.id}` ? ' highlighted' : ''}`, id: `contract-${contract.id}`, tabindex: '-1', dataset: { entity: 'contract', id: contract.id } }, [
       el('header', { class: 'contract-head' }, [
         el('div', {}, [
           el('p', { class: 'contract-kicker', text: `${productLabel(contract.product)}${source ? ` · ${source.title}` : ''}` }),
@@ -218,7 +218,7 @@ export async function providers(ctx) {
     body.replaceChildren();
     const visible = rows.filter((row) => fold(`${row.name} ${row.region} ${PROVIDER_KINDS[row.kind]}`).includes(term));
     for (const provider of visible) {
-      body.append(el('tr', { id: `provider-${provider.id}` }, [
+      body.append(el('tr', { id: `provider-${provider.id}`, dataset: { entity: 'provider', id: provider.id } }, [
         el('td', { 'data-label': 'Provedor', class: 'cell-primary' }, person(provider.name, provider.website || null)),
         el('td', { 'data-label': 'Tipo', text: PROVIDER_KINDS[provider.kind] || provider.kind }),
         el('td', { 'data-label': 'Região', text: provider.region || '—' }),
@@ -500,6 +500,8 @@ export async function settings(ctx) {
       el('p', { class: 'muted small', text: `Estado salvo neste navegador (chave ${ctx.transport.storageKey}). ${ctx.transport.counts().emails} e-mail(s) simulado(s) — nenhum enviado.` }), fail,
       el('p', { class: 'muted small', text: 'O console operacional da plataforma (saúde de jobs, outbox e envios, sem dados de clientes) também tem uma versão de exemplo.' }),
       linkButton('Ver console operacional de exemplo', ctx.href('/finance/ops.html'), { iconName: 'shield', size: 'sm' })]);
+    // Aparência e layout: preferências locais da camada de experiência da demo.
+    ctx.demoSettings?.(add);
   }
   const layout = el('div', { class: 'settings-layout' }, [nav, el('div', { class: 'stack' }, sections)]);
   if (location.hash) queueMicrotask(() => document.querySelector(location.hash)?.scrollIntoView({ block: 'start' }));

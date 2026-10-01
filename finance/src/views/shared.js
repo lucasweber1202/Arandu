@@ -206,7 +206,7 @@ export function comparisonMatrix(rfq, proposals, { currentRevision = rfq.revisio
 }
 
 /** Pesos definidos pela empresa. O resultado sempre carrega o aviso de autoria. */
-export function weightsPanel(rfq, proposals, { onApplied = null } = {}) {
+export function weightsPanel(rfq, proposals, { onApplied = null, initial = null, initialNote = null } = {}) {
   const specs = PRODUCTS[rfq.product].proposalFields.filter((field) => field.comparable && field.direction).slice(0, 8);
   const panel = el('section', { class: 'card weights' });
   panel.append(el('div', { class: 'card-head' }, el('div', { class: 'card-head-text' }, [
@@ -215,8 +215,9 @@ export function weightsPanel(rfq, proposals, { onApplied = null } = {}) {
   ])));
   const form = el('form', { id: 'weights-form', class: 'weights-form' });
   for (const spec of specs) {
-    const range = el('input', { type: 'range', min: '0', max: '100', step: '5', value: '0', name: spec.key, 'aria-label': `Peso de ${spec.label}` });
-    const output = el('output', { class: 'weight-value', text: '0' });
+    const start = String(Number(initial?.[spec.key]) > 0 ? Number(initial[spec.key]) : 0);
+    const range = el('input', { type: 'range', min: '0', max: '100', step: '5', value: start, name: spec.key, 'aria-label': `Peso de ${spec.label}` });
+    const output = el('output', { class: 'weight-value', text: start });
     range.addEventListener('input', () => { output.textContent = range.value; });
     form.append(el('div', { class: 'weight-row' }, [el('span', { class: 'weight-label', text: spec.label }), range, output]));
   }
@@ -224,8 +225,7 @@ export function weightsPanel(rfq, proposals, { onApplied = null } = {}) {
   const clear = button('Zerar', { variant: 'ghost', onClick: () => { for (const input of form.querySelectorAll('input[type=range]')) { input.value = '0'; input.dispatchEvent(new Event('input')); } output.replaceChildren(); } });
   form.append(el('div', { class: 'form-actions' }, [clear, apply]));
   const output = el('div', { id: 'weights-output', role: 'status', 'aria-live': 'polite' });
-  form.addEventListener('submit', (event) => {
-    event.preventDefault();
+  const run = () => {
     const weights = {};
     for (const [key, value] of new FormData(form)) if (Number(value) > 0) weights[key] = Number(value);
     const scored = applyUserWeights(rfq.product, proposals, weights);
@@ -247,8 +247,11 @@ export function weightsPanel(rfq, proposals, { onApplied = null } = {}) {
     if (scored.has_low_coverage) output.append(el('p', { class: 'callout callout-warning', id: 'coverage-warning' }, [icon('alert', { size: 14 }), el('span', { text: `Há proposta pontuada sobre menos de ${(scored.coverage_threshold * 100).toFixed(0)}% do peso definido; ela aparece por último e não é comparável com uma proposta completa.` })]));
     if (!scored.ranking_meaningful) output.append(el('p', { class: 'muted small', text: 'Com menos de duas propostas comparáveis, a ordem não diz nada.' }));
     output.append(el('p', { class: 'muted small', text: `Pesos: ${scored.criteria.map((item) => `${item.label} ${(item.share * 100).toFixed(0)}%`).join(' · ')}` }));
-  });
-  panel.append(el('div', { class: 'card-body' }, [form, output]));
+  };
+  form.addEventListener('submit', (event) => { event.preventDefault(); run(); });
+  panel.append(el('div', { class: 'card-body' }, [initialNote ? el('p', { class: 'muted small', id: 'weights-origin', text: initialNote }) : null, form, output].filter(Boolean)));
+  // Com pesos de partida (já aplicados ou registrados na decisão), o resultado aparece de imediato.
+  if (initial && Object.values(initial).some((value) => Number(value) > 0)) run();
   return panel;
 }
 

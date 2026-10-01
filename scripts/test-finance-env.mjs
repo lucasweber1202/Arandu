@@ -46,4 +46,15 @@ assert.equal(onPilot.status, 1);
 assert.match(onPilot.stdout, /produção aponta para o projeto do piloto/);
 assert.match(run({ ...production, VERCEL_GIT_COMMIT_REF: 'pilot' }).stdout, /só a branch main publica/);
 assert.equal(run({ ...production, CRON_SECRET: '' }).status, 1, 'produção sem CRON_SECRET');
-console.log('finance:env:check: piloto e produção dedicados aceitos; produção no banco do piloto, branch errada, projeto legado, chave de outro projeto, service key como anon e demo no piloto recusados, sem imprimir segredo.');
+// Demonstração canônica: a main com banco DEMO próprio; nunca o do piloto,
+// nunca outra branch, nunca o sandbox; e a senha das personas não vai à produção.
+const demoRef = 'demonstracaoarandu00';
+const demo = { ARANDU_ENV: 'demo', ARANDU_SITE_URL: 'https://demo.example.com', SUPABASE_URL: `https://${demoRef}.supabase.co`, SUPABASE_ANON_KEY: key({ role: 'anon', ref: demoRef }), SUPABASE_SERVICE_ROLE_KEY: key({ role: 'service_role', ref: demoRef }), VERCEL_GIT_COMMIT_REF: 'main' };
+assert.equal(run(demo).status, 0, 'demo dedicada deveria passar');
+assert.match(run(demo).stdout, /Ambiente de demonstração apto/);
+assert.match(run({ ...demo, SUPABASE_URL: base.SUPABASE_URL, SUPABASE_ANON_KEY: base.SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY: base.SUPABASE_SERVICE_ROLE_KEY }).stdout, /demo apontando para o Supabase do piloto/);
+assert.match(run({ ...demo, VERCEL_GIT_COMMIT_REF: 'demo' }).stdout, /só a branch main publica/);
+assert.equal(run({ ...demo, ARANDU_DEPLOYMENT_KIND: 'demo' }).status, 1, 'sandbox junto da demo com banco');
+assert.equal(run({ ...demo, CRON_SECRET: '' }).status, 1, 'demo sem CRON_SECRET');
+assert.equal(run({ ...production, ARANDU_DEMO_PASSWORD: 'x'.repeat(20) }).status, 1, 'senha das personas na produção');
+console.log('finance:env:check: piloto e produção dedicados aceitos; produção no banco do piloto, branch errada, projeto legado, chave de outro projeto, service key como anon demo no piloto e demonstração fora da main ou no banco do piloto recusados, sem imprimir segredo.');

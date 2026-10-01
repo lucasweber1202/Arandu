@@ -247,10 +247,25 @@ jobs:
       - name: Preview publishes the labelled demo sandbox
         run: node scripts/test-demo-mode.mjs --dist --expect-demo
 
-      - name: Simulate Vercel production technical deploy
+      # Desde a #82 um deploy de produção da Vercel sem ambiente declarado
+      # (ARANDU_ENV demo|pilot|production ou ARANDU_DEPLOYMENT_KIND=demo) é
+      # recusado; os ambientes reais exigem credenciais que o CI não tem.
+      - name: Vercel production deploy without a declared environment fails closed
         env:
           VERCEL_ENV: production
-        run: npm run vercel-build
+        run: |
+          set +e
+          npm run vercel-build > /tmp/arandu-vercel-prod.log 2>&1
+          status=$?
+          set -e
+          tail -3 /tmp/arandu-vercel-prod.log
+          test "$status" -ne 0
+          grep -q "Deploy de produção sem ARANDU_ENV" /tmp/arandu-vercel-prod.log
+
+      - name: Build the production bundle
+        env:
+          VERCEL_ENV: production
+        run: npm run build
 
       - name: Production bundle contains no demo page or engine
         run: node scripts/test-demo-mode.mjs --dist

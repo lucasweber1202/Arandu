@@ -1,17 +1,13 @@
 # Instruções para agentes (Claude Code e similares)
 
-- **Push em lote.** Rode localmente `npm run check:all`, `npm run build` e os
-  testes da área alterada (`npm run test:database` para SQL, `npm run test:e2e`
-  para interface) e só então faça **um** push com os commits do lote. Nunca
-  faça push commit a commit: cada push inicia quatro jobs pagos no GitHub Actions
-  (ver `docs/GITHUB_ACTIONS_MINUTES.md` e `CONTRIBUTING.md`).
+- **Leia primeiro a diretriz mestra.** Antes de planejar ou implementar qualquer alteração relevante, leia `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md` e `docs/FINANCIAL_PRODUCT_BOUNDARIES.md`. A guideline é a referência estratégica principal de produto e engenharia; documentos técnicos mais específicos regem a implementação concreta sem poder contradizer os limites e a direção de produto sem decisão explícita e atualização documental.
+- **Preserve a tese B2B.** O Arandu evolui como Financial Procurement OS / Financial Vendor Management & Decision Infrastructure. Não abra uma frente consumer, não crie ERP financeiro genérico, não transforme o produto em banco/fintech transacional e não introduza recomendação automática de instituição sem revisão explícita da guideline.
+- **Decisão humana e proveniência são invariantes.** Não crie ranking default de provedores, “melhor proposta”, savings sem metodologia, dado financeiro inventado ou ação material tomada por IA. Pesos, critérios, aprovações e decisão pertencem ao cliente; cálculos e extrações precisam de fonte/premissas rastreáveis.
+- **Push em lote.** Rode localmente `npm run check:all`, `npm run build` e os testes da área alterada (`npm run test:database` para SQL, `npm run test:e2e` para interface) e só então faça **um** push com os commits do lote. Nunca faça push commit a commit: cada push inicia quatro jobs pagos no GitHub Actions (ver `docs/GITHUB_ACTIONS_MINUTES.md` e `CONTRIBUTING.md`).
 - Não faça push vazio nem feche/reabra PR para disparar o CI.
 - Não desative checks, navegadores ou jobs, e não use `|| true` para ficar verde.
-- Migration nova: arquivo aditivo em `docs/`, rollback em `docs/rollback/`,
-  registro em `docs/supabase-migrations.json`, `scripts/check-migrations.mjs` e
-  `scripts/test-database.sh`, teste em `tests/database/`.
-- Branches: `feature/*` sai de `pilot` e volta para `pilot` por PR; `main` só
-  recebe `pilot → main` e `hotfix/*` (depois `main → pilot`). Ver
-  `docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md`.
+- Migration nova: arquivo aditivo em `docs/`, rollback em `docs/rollback/`, registro em `docs/supabase-migrations.json`, `scripts/check-migrations.mjs` e `scripts/test-database.sh`, teste em `tests/database/`.
+- Branches: `feature/*` sai de `pilot` e volta para `pilot` por PR; `main` só recebe `pilot → main` e `hotfix/*` (depois `main → pilot`). Ver `docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md`. Se `pilot` estiver atrás de `main`, reconcilie a topologia antes de iniciar nova feature; não desenvolva silenciosamente sobre uma baseline obsoleta.
 - Ambientes reais: `ARANDU_ENV=pilot|production npm run finance:pilot:doctor`.
   Piloto e produção nunca compartilham Supabase; nenhum usa o projeto legado.
+- Antes de considerar uma mudança pronta, aplique a Definition of Done e os gates da seção correspondente da guideline mestra, incluindo testes negativos, cross-browser/mobile quando aplicável, ausência de overflow horizontal, documentação e evidência verificável.

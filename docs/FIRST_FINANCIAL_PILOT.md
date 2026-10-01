@@ -137,5 +137,5 @@ Responsável na empresa:          [ definir ]
 * preencher a RFQ ou aplicar os pesos pela empresa — o que se quer medir é se
   **ela** consegue;
 * alterar dados direto no banco para "consertar" algo durante a sessão;
-* rodar `finance:seed:demo` no ambiente do piloto (o script recusa, mas não
+* rodar `demo:seed` no ambiente do piloto (o script recusa, mas não
   tente).

@@ -233,9 +233,9 @@ export function promptDialog({ title, description = null, label, minLength = 0, 
 }
 
 /** Painel lateral para contexto (aprovação, cadastro) sem perder a página. */
-export function drawer({ title, subtitle = null, body, footer = null, onClose = null }) {
+export function drawer({ title, subtitle = null, body, footer = null, onClose = null, className = '' }) {
   const opener = document.activeElement;
-  const dialog = el('dialog', { class: 'drawer', 'aria-labelledby': 'drawer-title' });
+  const dialog = el('dialog', { class: `drawer ${className}`.trim(), 'aria-labelledby': 'drawer-title' });
   dialog.append(el('div', { class: 'drawer-head' }, [
     el('div', {}, [el('h2', { id: 'drawer-title', class: 'drawer-title', text: title }), subtitle ? el('p', { class: 'drawer-subtitle', text: subtitle }) : null]),
     iconButton('x', 'Fechar painel', { onClick: () => dialog.close() })

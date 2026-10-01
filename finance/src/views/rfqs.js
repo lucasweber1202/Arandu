@@ -71,7 +71,7 @@ export async function rfqList(ctx) {
       const days = daysUntil(rfq.response_deadline);
       const live = ['open', 'collecting'].includes(rfq.status);
       const invited = (rfq.invites || []).length || rfq.invites_count || 0;
-      body.append(el('tr', { class: 'row-link' }, [
+      body.append(el('tr', { class: 'row-link', dataset: { entity: 'rfq', id: rfq.id } }, [
         el('td', { 'data-label': 'Solicitação', class: 'cell-primary' }, [
           el('a', { class: 'row-title stretched', href: ctx.href(`/finance/rfq.html?id=${encodeURIComponent(rfq.id)}`), text: rfq.title }),
           el('span', { class: 'row-sub', text: `${productLabel(rfq.product, { short: true })} · ${demandHeadline(rfq)} · rev. ${rfq.revision || 1}` })

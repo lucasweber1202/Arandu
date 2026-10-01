@@ -975,7 +975,9 @@ body.public{margin:0;line-height:1.5;font-size:16px}
 .public h1{line-height:1.15}
 
 /* ------------------------------------------------------------ documentos */
-.documents{display:grid;gap:var(--s3)}
+.documents{display:grid;gap:var(--s3);container-type:inline-size}
+/* Na coluna lateral do processo o cartão é estreito mesmo no desktop: ações vão para baixo. */
+@container (max-width:520px){.document-row{grid-template-columns:auto minmax(0,1fr)}.document-actions{grid-column:1/-1;justify-content:flex-start}.document-main .pill,.document-main .tag{white-space:nowrap}}
 .document-list{display:grid;gap:var(--s2);margin:0;padding:0;list-style:none}
 .document-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:var(--s3);align-items:start;padding:var(--s3);border:1px solid var(--border);border-radius:var(--r-md);background:var(--surface)}
 .document-icon{display:grid;place-items:center;width:34px;height:34px;border-radius:var(--r-sm);background:var(--surface-sunken);color:var(--text-secondary)}
@@ -1013,6 +1015,9 @@ body.public{margin:0;line-height:1.5;font-size:16px}
 .callout-neutral{background:var(--surface-sunken);border-color:var(--border);color:var(--text-secondary)}
 .demo-chip{display:none;align-items:center;gap:4px;padding:2px 8px;border-radius:var(--r-pill);background:var(--warning-weak);border:1px solid var(--warning-border);color:#7a4a00;font-size:11px;font-weight:650;white-space:nowrap}
 @media (max-width:959px){.demo-chip{display:inline-flex}}
+.env-chip{display:inline-flex}
+.env-chip .env-short{display:none}
+@media (max-width:479px){.env-chip .env-long{display:none}.env-chip .env-short{display:inline}}
 @media (max-width:759px){.label-extra{display:none}}
 tr.highlighted>td,.proposal-card.highlighted,.document-row.highlighted,.comment.highlighted{background:var(--accent-weak)}
 .highlighted:focus{outline:2px solid var(--accent);outline-offset:2px}
