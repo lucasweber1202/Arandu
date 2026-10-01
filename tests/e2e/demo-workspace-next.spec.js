@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { layoutEvidence } from './layout-evidence.js';
 
 // Próxima geração da demonstração: presets, comportamento, migração do
 // registro local, bandeja e workspace de comparação, tela de solicitação,
@@ -22,8 +23,8 @@ async function asPersona(page, key, name) {
   await expect(page.locator('#view.is-switching')).toHaveCount(0);
 }
 async function noOverflow(page, label) {
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-  expect(overflow, `rolagem horizontal em ${label}`).toBeLessThanOrEqual(1);
+  const evidence = await layoutEvidence(page);
+  expect(evidence.overflow, `rolagem horizontal em ${label}: ${JSON.stringify(evidence)}`).toBeLessThanOrEqual(1);
 }
 
 test('registro v1 (PR #86) migra até v3 sem perder escolhas', async ({ page }) => {
@@ -253,10 +254,30 @@ test('navegação móvel deriva da persona e o "Mais" traz o restante', async ({
 
 test('comparação no celular usa duas propostas lado a lado, sem espremer a tabela', async ({ page }, testInfo) => {
   test.skip(!isMobile(testInfo), 'Só no celular.');
-  await ready(page, `/demo/finance/rfq.html?id=${CAPITAL}#comparacao`);
-  await expect(page.locator('.compare-mobile')).toBeVisible();
-  await expect(page.locator('.comparison-wide')).toBeHidden();
-  await noOverflow(page, 'comparação');
+  const height = page.viewportSize().height;
+  for (const width of [...new Set([page.viewportSize().width, 390, 375, 360, 320])]) {
+    await page.setViewportSize({ width, height });
+    await ready(page, `/demo/finance/rfq.html?id=${CAPITAL}#comparacao`);
+    await expect(page.locator('.compare-mobile')).toBeVisible();
+    await expect(page.locator('.comparison-wide')).toBeHidden();
+    for (const picker of await page.locator('.pair-picker select').all()) {
+      expect(await picker.evaluate((select) => {
+        const control = select.getBoundingClientRect();
+        const parent = select.closest('.pair-picker').getBoundingClientRect();
+        return control.left >= parent.left - 1 && control.right <= parent.right + 1;
+      }), 'seletor de proposta cabe na própria coluna').toBe(true);
+    }
+    await expect(page.getByRole('combobox', { name: 'Segunda proposta' }).locator('option').filter({ hasText: 'Banco Horizonte Sul — DEMO' })).toHaveText('Banco Horizonte Sul — DEMO');
+    await noOverflow(page, `comparação ${width}px`);
+    await page.getByRole('combobox', { name: 'Primeira proposta' }).selectOption('2');
+    await expect(page.getByRole('combobox', { name: 'Primeira proposta' })).toHaveValue('2');
+    await noOverflow(page, `comparação após troca ${width}px`);
+    if (width === 393 || width === 320) {
+      const capture = testInfo.outputPath(`comparison-${width}.png`);
+      await page.screenshot({ path: capture, fullPage: true, animations: 'disabled' });
+      await testInfo.attach(`comparação-${width}px`, { path: capture, contentType: 'image/png' });
+    }
+  }
 });
 
 test('checagens visuais: zoom 125%, texto grande, movimento reduzido e tema escuro sem vazamento', async ({ page }, testInfo) => {

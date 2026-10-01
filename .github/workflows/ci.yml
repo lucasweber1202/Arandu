@@ -182,7 +182,7 @@ jobs:
     needs: deploy-boundaries
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     env:
       ARANDU_SITE_URL: https://arandu.example.com
       ARANDU_PRESENTATION_MODE: "true"
@@ -216,8 +216,40 @@ jobs:
 
       - name: Install browsers
         run: npx playwright install --with-deps chromium firefox webkit
+      # Supplemental smoke publishes the geometry of the known regressions
+      # promptly. Its failure never replaces or prevents the complete matrix.
+      - name: Build presentation for Safari layout smoke
+        run: npm run pretest:e2e:presentation
+      - name: Safari layout smoke
+        continue-on-error: true
+        run: |
+          mkdir -p reports/safari-layout
+          npx playwright test --config playwright.presentation.config.js --project mobile-safari --grep 'comparação no celular|larguras estreitas' --reporter=list 2>&1 | tee reports/safari-layout/result.log
+      - name: Retain early Safari layout evidence
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: arandu-safari-layout-${{ github.sha }}
+          path: |
+            reports/safari-layout
+            test-results
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Presentation journeys
+        if: ${{ !cancelled() }}
         run: npm run test:e2e:presentation
+      - name: Upload presentation browser evidence on failure
+        if: failure()
+        continue-on-error: true
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: arandu-presentation-evidence-${{ github.sha }}
+          path: |
+            reports/playwright-presentation
+            test-results
+          if-no-files-found: ignore
+          retention-days: 7
 
   deploy-boundaries:
     runs-on: ubuntu-latest

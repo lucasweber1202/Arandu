@@ -63,6 +63,9 @@ code{font-family:var(--mono);font-size:.92em;background:var(--surface-sunken);pa
 .btn-sm{min-height:30px;padding:0 10px;font-size:var(--fs-sm);gap:6px}
 .btn-lg{min-height:44px;padding:0 20px;font-size:var(--fs-lg)}
 .btn-icon-only{width:36px;padding:0}
+/* A long RFQ reuse action must reflow inside its card on narrow viewports. */
+#reaproveitar .btn{max-width:100%;min-width:0;white-space:normal;line-height:1.4;padding-top:6px;padding-bottom:6px}
+#reaproveitar .btn-label{min-width:0}
 .icon-btn{display:inline-grid;place-items:center;width:36px;height:36px;border-radius:var(--r-md);border:0;background:transparent;color:var(--text-secondary);cursor:pointer;position:relative}
 .icon-btn:hover{background:var(--surface-hover);color:var(--text)}
 .icon-btn:focus-visible{outline:none;box-shadow:var(--focus-ring)}
@@ -139,7 +142,10 @@ body:has(.demo-banner) .topbar{top:var(--banner-h,44px)}
 .topbar-crumbs{flex:1;min-width:0}
 .crumbs{display:flex;align-items:center;gap:6px;list-style:none;margin:0;padding:0;font-size:var(--fs-sm);color:var(--text-muted);min-width:0}
 .crumbs li{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.crumbs a{color:var(--text-muted);text-decoration:none}.crumbs a:hover{color:var(--text);text-decoration:underline}
+/* Keep navigable crumbs at their text width. An inline link can otherwise
+   retain a hit box wider than its shrunken flex item in WebKit. */
+.crumbs li:not(:last-child){flex-shrink:0}
+.crumbs a{display:block;color:var(--text-muted);text-decoration:none}.crumbs a:hover{color:var(--text);text-decoration:underline}
 .crumbs [aria-current]{color:var(--text);font-weight:500}
 .crumb-sep{flex:none;display:flex;color:var(--border-strong)}
 .topbar-actions{display:flex;align-items:center;gap:var(--s2);position:relative}
@@ -558,8 +564,12 @@ a.mini-title:hover{color:var(--accent-text)}
 .tip-text{position:absolute;left:0;top:calc(100% + 6px);z-index:10;width:260px;padding:8px 10px;border-radius:var(--r-md);background:#161b26;color:#fff;font-size:var(--fs-xs);font-weight:400;line-height:1.45;text-align:left;text-transform:none;letter-spacing:0;box-shadow:var(--shadow-lg);visibility:hidden;opacity:0;transition:opacity .12s}
 .tip:hover .tip-text,.tip:focus-within .tip-text{visibility:visible;opacity:1}
 .compare-mobile{display:none}
-.pair-pickers{display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:var(--s2);margin-bottom:var(--s3)}
-.pair-picker{display:grid;gap:4px}
+.pair-pickers{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:end;gap:var(--s2);margin-bottom:var(--s3)}
+.pair-picker{position:relative;display:grid;grid-template-columns:minmax(0,1fr);min-width:0;gap:4px}
+/* WebKit's native menu-list can propagate its option width beyond the sized
+   control. Bound only its closed label for ellipsis; native options stay intact. */
+.pair-picker select{appearance:none;min-width:0;max-width:100%;width:100%;padding-right:30px;overflow:hidden;text-overflow:ellipsis}
+.pair-picker::after{content:"";position:absolute;right:12px;bottom:18px;width:7px;height:7px;border-right:2px solid var(--text-muted);border-bottom:2px solid var(--text-muted);transform:rotate(45deg);pointer-events:none}
 .pair-vs{font-size:var(--fs-xs);color:var(--text-muted);padding-bottom:10px}
 .pair-group{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:4px var(--s3);margin-bottom:var(--s3)}
 .pair-title{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-muted);padding:8px 0 4px}
