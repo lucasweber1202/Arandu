@@ -11,7 +11,9 @@ iniciado Financial Passport v2 nem removido o sandbox temporário.
   cair sobre o item seguinte quando a topbar precisa truncar o título.
 - Comparação móvel: as colunas e o grid interno dos seletores usam
   `minmax(0,1fr)`. Os seletores mantêm semântica e opções nativas, com aparência
-  fechada explícita, indicador de abertura e espaço reservado para ele. O teste
+  fechada explícita, indicador de abertura e espaço reservado para ele. Apenas
+  o rótulo fechado é contido para ellipsis; as opções mantêm os nomes completos.
+  Não há clipping do documento ou dos wrappers da comparação. O teste
   confere geometria e troca de proposta em 393/390/375/360/320 px.
 - RFQ estreita: a ação de reaproveitar permite quebra do texto dentro do
   cartão. A asserção usa a viewport configurada, pois `innerWidth` pode crescer
@@ -94,7 +96,10 @@ continuou com 42 px. O diagnóstico de `b9a2d2a7` excluiu animação e barra de 
 Nenhum elemento visível dessa região excedia a viewport por sua caixa. A
 correção da aparência fechada dos selects e o teste com troca de proposta ainda
 precisam da matriz oficial do novo head; resultados anteriores não lhe são
-atribuídos.
+atribuídos. O diagnóstico posterior isolou o segundo select: removê-lo zerou
+37 px de overflow, enquanto remover o corpo de valores não mudou o resultado.
+Sua caixa cabia na coluna; a contenção do rótulo fechado para ellipsis é local
+a esse controle. O teste também exige o nome completo da opção, além da troca.
 
 ## Ambientes externos e tentativa de provisionamento
 

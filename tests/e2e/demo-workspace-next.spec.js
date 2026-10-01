@@ -267,6 +267,7 @@ test('comparação no celular usa duas propostas lado a lado, sem espremer a tab
         return control.left >= parent.left - 1 && control.right <= parent.right + 1;
       }), 'seletor de proposta cabe na própria coluna').toBe(true);
     }
+    await expect(page.getByRole('combobox', { name: 'Segunda proposta' }).locator('option').filter({ hasText: 'Banco Horizonte Sul — DEMO' })).toHaveText('Banco Horizonte Sul — DEMO');
     await noOverflow(page, `comparação ${width}px`);
     await page.getByRole('combobox', { name: 'Primeira proposta' }).selectOption('2');
     await expect(page.getByRole('combobox', { name: 'Primeira proposta' })).toHaveValue('2');
