@@ -124,7 +124,10 @@ for (const [flow, files] of Object.entries(manifest)) {
   const surfaceHardening = files.indexOf('docs/supabase-financial-pilot-surface-hardening.sql');
   if (surfaceHardening === -1) issues.push(`${flow}: hardening da superfície do piloto (advisors, grants diretos, views legadas) ausente.`);
   if (finalHardening !== -1 && surfaceHardening !== -1 && surfaceHardening !== finalHardening + 1) issues.push(`${flow}: hardening da superfície deve vir depois do hardening final.`);
-  if (surfaceHardening !== -1 && surfaceHardening !== files.length - 1) issues.push(`${flow}: hardening da superfície deve encerrar a sequência atual.`);
+  const approvalHandoff = files.indexOf('docs/supabase-financial-approval-handoff.sql');
+  if (approvalHandoff === -1) issues.push(`${flow}: aviso ao próximo aprovador (aprovação sequencial) ausente.`);
+  if (surfaceHardening !== -1 && approvalHandoff !== -1 && approvalHandoff !== surfaceHardening + 1) issues.push(`${flow}: aviso ao próximo aprovador deve vir depois do hardening da superfície.`);
+  if (approvalHandoff !== -1 && approvalHandoff !== files.length - 1) issues.push(`${flow}: aviso ao próximo aprovador deve encerrar a sequência atual.`);
 }
 
 // Catraca de inventário: todo .sql direto em docs/ é migration do manifesto,

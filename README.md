@@ -15,9 +15,10 @@ dinheiro, **não** executa pagamentos e **não** recomenda instituição. A deci
 é sempre da empresa. Limites completos em
 [`docs/FINANCIAL_PRODUCT_BOUNDARIES.md`](docs/FINANCIAL_PRODUCT_BOUNDARIES.md).
 
-> **Demonstração pública:** o projeto Vercel `arandu-demo` publica uma demo
-> interativa, sem login e com dados fictícios, na raiz do domínio. Como
-> publicar: [`docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md`](docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md#demo).
+> **Demonstração:** a demo canônica é o próprio produto (`main`) com
+> `ARANDU_ENV=demo`, um Supabase DEMO e a empresa fictícia Vitta Foods S.A.
+> Localmente: `npm run demo:setup`. Roteiro, dados, reset e travas:
+> [`docs/demo/README.md`](docs/demo/README.md).
 
 ## O problema
 
@@ -70,7 +71,7 @@ métricas operacionais e outbox — sem dados de clientes.
 | API | Funções serverless da Vercel; roteador único | `api/[...path].js`, domínio financeiro em `lib/api/domains/finance.mjs` e `lib/finance/` |
 | Banco | Supabase (PostgreSQL, Auth, Storage), RLS em todas as tabelas `fin_*` | migrations em `docs/*.sql`, ordem em `docs/supabase-migrations.json` |
 | Jobs | Vercel Cron com segredo (`/api/jobs/renewals`) | `lib/api/domains/finance-jobs.mjs` |
-| Demo | Motor no navegador, sem rede, dados fictícios | `finance/demo/` |
+| Demo | Produto real com `ARANDU_ENV=demo` e Supabase DEMO semeado (Vitta Foods); sandbox legado no navegador até a migração | `scripts/demo/`, `finance/demo/` (legado) |
 
 Modelo de dados: [`docs/FINANCIAL_DATA_MODEL.md`](docs/FINANCIAL_DATA_MODEL.md).
 Interface: [`docs/FINANCIAL_UI_ARCHITECTURE.md`](docs/FINANCIAL_UI_ARCHITECTURE.md).
@@ -105,7 +106,7 @@ variáveis e projeto Supabase, nunca por cópias do código.
 
 | Ambiente | Projeto Vercel | Branch | Declarado por | Banco |
 | --- | --- | --- | --- | --- |
-| **Demo** | `arandu-demo` | `main` | `ARANDU_DEPLOYMENT_KIND=demo` | nenhum (navegador) |
+| **Demo** | `arandu-demo` | `main` | `ARANDU_ENV=demo` | Supabase DEMO próprio (Vitta Foods, fictícia) |
 | **Pilot** | `arandu-pilot` | `pilot` | `ARANDU_ENV=pilot` | Supabase do piloto |
 | **Production** | `arandu` | `main` | `ARANDU_ENV=production` | Supabase próprio da produção |
 
@@ -115,7 +116,9 @@ ambiente real, credencial na demo, produção sem ambiente declarado). Fluxo
 `feature/* → pilot → main`, hotfix e rollback:
 [`docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md`](docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md).
 
-- **Demo**: [`docs/FINANCIAL_DEMO_MODE.md`](docs/FINANCIAL_DEMO_MODE.md).
+- **Demo**: [`docs/demo/README.md`](docs/demo/README.md) (canônica). O sandbox
+  antigo no navegador (`ARANDU_DEPLOYMENT_KIND=demo`) está em
+  [`docs/FINANCIAL_DEMO_MODE.md`](docs/FINANCIAL_DEMO_MODE.md) até ser aposentado.
 - **Pilot**: [`docs/FINANCIAL_PILOT_GO_LIVE.md`](docs/FINANCIAL_PILOT_GO_LIVE.md)
   (checklist única), [`docs/FINANCIAL_PILOT_ENVIRONMENT.md`](docs/FINANCIAL_PILOT_ENVIRONMENT.md),
   [`docs/FINANCIAL_PILOT_OPERATIONS.md`](docs/FINANCIAL_PILOT_OPERATIONS.md).

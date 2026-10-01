@@ -71,6 +71,12 @@ assert.equal((await call('health', 'GET', '/api/health')).status, 200);
 process.env.ARANDU_ENV = 'production';
 assert.deepEqual(await call('[...path]', 'POST', '/api/forms', { name: 'x' }), { status: 404, code: 'legacy_surface_closed' });
 assert.deepEqual(await call('orders', 'GET', '/api/orders'), { status: 404, code: 'legacy_surface_closed' });
+// A demonstração canônica (ARANDU_ENV=demo, banco DEMO) é o mesmo produto: fechada,
+// com o domínio financeiro aberto.
+process.env.ARANDU_ENV = 'demo';
+assert.deepEqual(await call('[...path]', 'POST', '/api/forms', { name: 'x' }), { status: 404, code: 'legacy_surface_closed' }, 'demo reabriu /api/forms');
+assert.deepEqual(await call('orders', 'GET', '/api/orders'), { status: 404, code: 'legacy_surface_closed' });
+assert.notEqual((await call('[...path]', 'GET', '/api/finance/rfqs')).code, 'legacy_surface_closed', 'finance/* fechado na demo com banco');
 // Deployment de produção da Vercel sem ARANDU_ENV (variável esquecida): fechado.
 delete process.env.ARANDU_ENV;
 process.env.VERCEL_ENV = 'production';

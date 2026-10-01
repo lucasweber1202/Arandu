@@ -5,7 +5,7 @@ projeto Vercel, variáveis e projeto Supabase, nunca por cópias do código.
 
 | Ambiente | Projeto Vercel | Origem | `ARANDU_ENV` | Banco | Para quê |
 | --- | --- | --- | --- | --- | --- |
-| Demo | `arandu-demo` | `main`, com `ARANDU_DEPLOYMENT_KIND=demo` (o build vira `build:demo`) | (não definir) | nenhum; dados fictícios no navegador | mostrar o produto sem expor ambiente real |
+| Demo | `arandu-demo` | `main` | `demo` | Supabase DEMO próprio, com a empresa fictícia Vitta Foods | mostrar o produto real com dados fictícios |
 | Piloto | `arandu-pilot` | branch `pilot` | `pilot` | Supabase do piloto (`offgpyysgdhfemjlchod`) | testar de verdade, com os primeiros usuários |
 | Produção | `arandu` | branch `main` | `production` | Supabase de produção, próprio e vazio no início | uso oficial |
 
@@ -14,28 +14,41 @@ nenhum dos três.
 
 ## Demo
 
-Uma URL pública, sem login de nenhum tipo, que abre direto a demonstração.
+A demonstração é **a mesma `main`** com outra configuração e outro banco. Não
+há branch de demo nem código exclusivo de demo: o que muda é `ARANDU_ENV=demo`,
+o projeto Supabase DEMO e os dados fictícios semeados por comando manual.
+Detalhes: [`docs/demo/ARCHITECTURE.md`](demo/ARCHITECTURE.md).
 
-1. Vercel → **Add New… → Project** → importar `lucasweber1202/Arandu`, nome
-   **`arandu-demo`**, Production Branch `main`.
-2. **Não** altere o Build Command: o `vercel.json` fixa `npm run vercel-build` e
-   sobrepõe o campo do painel. O que escolhe o build da demo é a variável.
-3. **Environment Variables** (escopos Production e Preview): **só**
-   `ARANDU_DEPLOYMENT_KIND=demo`. Nenhuma outra. Com ela, `vercel-build` roda
-   `deploy:check:demo` (`build:demo` + fronteira da demo + tamanho + assets), e
-   o build falha se aparecer `SUPABASE_*`, `RESEND_API_KEY`, `CRON_SECRET` ou
-   `ARANDU_ENV`.
-4. **Settings → Deployment Protection → Vercel Authentication: Disabled**
-   (só neste projeto; piloto e produção continuam como estão).
-5. Deploy. A raiz `/` é a entrada da demonstração; `/demo/…` continua valendo.
-   Toda a API responde 404 nesse projeto (não há banco), exceto `/api/health`.
-6. Conferir de uma janela anônima:
-
-```bash
-curl -sI https://arandu-demo.vercel.app/ | head -1                 # HTTP/2 200, sem 302 para vercel.com/sso-api
-curl -s  https://arandu-demo.vercel.app/ | grep -c 'id="start-demo"' # 1
-curl -s  https://arandu-demo.vercel.app/api/finance/me             # 404 legacy_surface_closed
+```text
+main ──┬── ARANDU_ENV=demo       + Supabase DEMO  ──▶ arandu-demo (Vitta Foods, fictícia)
+       └── ARANDU_ENV=production + Supabase PROD  ──▶ arandu      (clientes reais)
 ```
+
+1. Supabase → criar o projeto **DEMO** (nunca reutilizar piloto, produção ou o
+   legado) e aplicar `docs/supabase-migrations.json` (`cleanInstall`), como na
+   produção. Confirmação de e-mail ligada, como nos outros ambientes.
+2. Vercel → projeto `arandu-demo` (Production Branch `main`) → Environment
+   Variables (escopo Production): `ARANDU_ENV=demo`, `SUPABASE_URL`,
+   `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (do projeto DEMO),
+   `CRON_SECRET` (32+ caracteres, próprio), `ARANDU_SITE_URL` (URL https da
+   demo). **Remover** `ARANDU_DEPLOYMENT_KIND`. O build roda `finance:env:check`
+   e falha se o Supabase for o do piloto/legado, se a branch não for `main` ou
+   se o sandbox estiver ligado.
+3. Deploy. Depois, da sua máquina (nunca no Vercel):
+   `ARANDU_ENV=demo ARANDU_DEMO_CONFIRM=<ref DEMO> ARANDU_DEMO_APP_URL=<URL> … npm run demo:seed`
+   — passo a passo em [`docs/demo/RESET.md`](demo/RESET.md).
+4. `ARANDU_ENV=demo npm run finance:pilot:doctor` com as variáveis do projeto
+   DEMO deve dar GO (o marcador `deployment_environment=demo` só existe nesse banco).
+5. Registre o ref DEMO em `DEMO_SUPABASE_REFS` (`lib/finance/pilot-doctor.mjs`)
+   por PR: a produção passa a recusar esse banco também pelo ref.
+
+A Deployment Protection da Vercel pode ficar ligada ou não: o acesso ao produto
+é pelo login normal com as contas das personas (senha fora do Git).
+
+O sandbox antigo (motor no navegador, `ARANDU_DEPLOYMENT_KIND=demo`, sem banco)
+continua funcionando enquanto o projeto `arandu-demo` não migra; ver
+[`FINANCIAL_DEMO_MODE.md`](FINANCIAL_DEMO_MODE.md). Ele não é a demonstração
+canônica e será aposentado depois da migração.
 
 ## Branches
 
@@ -126,8 +139,12 @@ próprio da produção estarem configurados. O deploy atual continua no ar.
 ## O que impede os erros de topologia
 
 - `scripts/vercel-build.mjs` recusa um deploy de produção da Vercel que não
-  declara o ambiente (`ARANDU_ENV` `pilot`/`production` ou
+  declara o ambiente (`ARANDU_ENV` `demo`/`pilot`/`production` ou
   `ARANDU_DEPLOYMENT_KIND=demo`).
+- Nenhum script de build ou deploy executa `demo:seed`/`demo:reset`
+  (`scripts/test-deploy-release-separation.mjs`); o seed recusa rodar com
+  `VERCEL_ENV` definido, fora de `ARANDU_ENV=demo` explícito, contra o banco do
+  piloto/legado/produção ou contra um banco com dados e sem o marcador de demo.
 - No deploy, os testes de contrato do `check:all` rodam sem o ambiente de
   deploy (`scripts/run-hermetic.mjs`), como no CI: nada de `ARANDU_ENV`,
   `SUPABASE_*` ou segredos herdados. O build e o `finance:env:check` usam o

@@ -12,7 +12,7 @@ assert.equal(demoModeEnabled({ VERCEL_ENV: 'preview' }), true);
 assert.equal(demoModeEnabled({ VERCEL_ENV: 'preview', ARANDU_DEMO_MODE: 'false' }), false);
 assert.equal(demoModeEnabled({ ARANDU_DEMO_MODE: 'true' }), true);
 // Piloto e produção: nem preview do projeto publica /demo, e pedir falha o build.
-for (const environment of ['pilot', 'production']) {
+for (const environment of ['demo', 'pilot', 'production']) {
   assert.equal(demoModeEnabled({ ARANDU_ENV: environment, VERCEL_ENV: 'preview' }), false, `preview de ${environment} publicou /demo`);
   assert.equal(assertDemoModeIsSafe({ ARANDU_ENV: environment, VERCEL_ENV: 'preview' }), false);
   for (const request of [{ ARANDU_DEMO_MODE: 'true' }, { ARANDU_PRESENTATION_MODE: 'true' }, { ARANDU_DEPLOYMENT_KIND: 'demo' }]) {

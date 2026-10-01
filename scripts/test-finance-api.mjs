@@ -405,8 +405,11 @@ reset((entry) => {
 });
 {
   await call('GET', 'overview', { url: `/api/finance/overview?organization_id=${BUYER}` });
-  // Com 12 RFQs o número de consultas não pode crescer com a quantidade.
-  assert.ok(sent.length <= 8, `overview fez ${sent.length} consultas para 12 RFQs`);
+  // Com 12 RFQs o número de consultas não pode crescer com a quantidade: é o
+  // mesmo conjunto fixo (RFQs, provedores, contratos, perfil, tarefas, termos,
+  // convites, membros, aprovações pendentes, decisões e propostas).
+  assert.ok(sent.length <= 12, `overview fez ${sent.length} consultas para 12 RFQs`);
+  assert.equal(sent.filter((entry) => entry.url.includes('fin_rfq_invites')).length, 1, 'convites lidos uma vez para todas as RFQs');
 }
 
 // =========================================================================

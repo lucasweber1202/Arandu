@@ -124,6 +124,8 @@ export function renderTopbar(ctx) {
   const actions = el('div', { class: 'topbar-actions' });
   // No celular a faixa da demonstração rola para fora da tela: este selo fica sempre visível.
   if (ctx.mode === 'demo') actions.append(el('span', { class: 'demo-chip', title: 'Ambiente demonstrativo. Dados fictícios.' }, [icon('info', { size: 12 }), el('span', { text: 'Demo · dados fictícios' })]));
+  // Ambiente de demonstração com banco próprio: o produto real, com empresa fictícia.
+  else if (ctx.environment === 'demo') actions.append(el('span', { class: 'demo-chip env-chip', id: 'environment-chip', title: 'Ambiente de demonstração: produto real, empresa e instituições fictícias.' }, [icon('info', { size: 12 }), el('span', { class: 'env-long', text: 'Ambiente de demonstração' }), el('span', { class: 'env-short', text: 'Demo' })]));
   let searchButton = null;
   if (ctx.audience === 'company' && ctx.organization) {
     searchButton = el('button', { type: 'button', id: 'command-trigger', class: 'search-trigger', 'aria-keyshortcuts': 'Control+K Meta+K', 'aria-label': 'Buscar (Ctrl+K)' }, [
