@@ -15,16 +15,35 @@ export const COMPANY = {
   trade_name: 'Vitta Foods',
   sector: 'Alimentos e bebidas',
   revenue_band: '30m_300m',
+  // Financial Passport: campos do catálogo (lib/finance/passport.mjs) com valor
+  // tipado e origem declarada; os dois últimos são campos livres.
   profile: [
-    ['receita_anual', 'R$ 182 milhões (último exercício, auditado)', 'documento_interno'],
-    ['colaboradores', '612 colaboradores em 3 unidades fabris e 2 centros de distribuição', 'declarado_pela_empresa'],
-    ['operacao', 'Brasil: fábricas em Chapecó (SC), Rio Verde (GO) e Feira de Santana (BA)', 'declarado_pela_empresa'],
-    ['canais_de_venda', 'Varejo alimentar (68%), food service (21%), loja on-line e lojas próprias (11%)', 'declarado_pela_empresa'],
-    ['volume_cartoes_mensal', 'R$ 12,4 milhões/mês em cartões e PIX (média dos últimos 8 meses)', 'extrato'],
-    ['divida_liquida_ebitda', '1,6x (último balancete semestral)', 'documento_interno'],
+    ['receita_anual', '158000000', 'documento_interno'],
+    ['natureza_juridica', 'sa_fechada', 'documento_interno'],
+    ['porte', 'grande', 'declarado_pela_empresa'],
+    ['moeda_base', 'BRL', 'declarado_pela_empresa'],
+    ['tempo_operacao_anos', '21', 'declarado_pela_empresa'],
+    ['colaboradores', '612', 'declarado_pela_empresa'],
+    ['bancos_relacionamento', 'Atlas Bank (folha e cobrança) e Meridian Financial (câmbio)', 'contrato_vigente'],
+    ['linhas_credito_contratadas', 'Capital de giro Atlas Bank — R$ 8 milhões em 24 meses', 'contrato_vigente'],
+    ['divida_liquida_ebitda', '1.6', 'documento_interno'],
     ['garantias_disponiveis', 'Recebíveis de cartão, duplicatas de varejo e equipamentos industriais', 'declarado_pela_empresa'],
+    ['adquirente_atual', 'Credenciadora anterior (contrato no fim da vigência)', 'contrato_vigente'],
+    ['volume_cartoes_mensal', '12400000', 'extrato'],
+    ['canais_de_venda', 'Varejo alimentar (68%), food service (21%), loja on-line e lojas próprias (11%)', 'declarado_pela_empresa'],
+    ['operacao', 'Brasil: fábricas em Chapecó (SC), Rio Verde (GO) e Feira de Santana (BA)', 'declarado_pela_empresa'],
     ['banco_principal', 'Atlas Bank (domicílio da folha e cobrança)', 'contrato_vigente']
-  ]
+  ],
+  // Revisão do Passport pelo analista antes da nova linha de crédito (dia −23).
+  // O volume em cartões fica de fora de propósito: aparece desatualizado.
+  profileRefresh: [
+    ['receita_anual', '182000000', 'documento_interno'],
+    ['tempo_operacao_anos', '23', 'declarado_pela_empresa'],
+    ['adquirente_atual', 'Lumina Pay (contrato de 24 meses)', 'contrato_vigente'],
+    ['divida_liquida_ebitda', '1.6', 'documento_interno']
+  ],
+  // Confirmados como atuais na mesma revisão, sem mudança de valor.
+  profileConfirm: ['garantias_disponiveis', 'bancos_relacionamento']
 };
 
 /** Pessoas da Vitta Foods. `role` é o papel real do RBAC do Arandu. */
@@ -119,6 +138,8 @@ export const RFQ_ACQUIRING = {
 /** RFQ 2 — crédito em negociação: propostas em estados diferentes e aprovação na etapa da CFO. */
 export const RFQ_CREDIT = {
   key: 'credit', product: 'credit', start: -21,
+  // Criada a partir do Financial Passport: a RFQ guarda a fotografia destes campos.
+  passport: ['annual_revenue', 'sector', 'operating_years', 'collateral'],
   title: 'Capital de giro — nova linha de R$ 12 milhões / 36 meses',
   description: 'Financiamento do capital de giro da nova linha de bebidas vegetais (Rio Verde) e alongamento do perfil da dívida. Substitui a linha vigente com o Atlas Bank, que vence nos próximos três meses.',
   deadline: -3,

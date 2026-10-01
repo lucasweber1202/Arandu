@@ -128,7 +128,8 @@ await attack('Conta fora da allowlist cria organização', 'recusado', async () 
 await step('Comprador: organização, perfil e nome', async () => {
   ctx.buyerOrg = ok(await api(people.buyer, 'POST', '/api/finance/organizations', { legal_name: `Empresa Piloto ${RUN} Ltda`, kind: 'BUYER' }), 'org').id;
   ok(await api(people.buyer, 'PATCH', '/api/finance/organizations', { organization_id: ctx.buyerOrg, trade_name: 'Empresa Piloto', sector: 'Indústria', revenue_band: '30m_300m' }), 'perfil org');
-  ok(await api(people.buyer, 'POST', '/api/finance/profile', { organization_id: ctx.buyerOrg, field_key: 'faturamento_anual', field_value: 'R$ 120 milhões', source: 'declarado_pela_empresa' }), 'perfil financeiro');
+  ok(await api(people.buyer, 'POST', '/api/finance/profile', { organization_id: ctx.buyerOrg, field_key: 'receita_anual', field_value: '120000000', source: 'documento_interno' }), 'Financial Passport');
+  ok(await api(people.buyer, 'POST', '/api/finance/profile/confirm', { organization_id: ctx.buyerOrg, field_key: 'receita_anual' }), 'confirmação do Passport');
   ok(await api(people.buyer, 'PATCH', '/api/finance/members/me', { organization_id: ctx.buyerOrg, display_name: 'Marina Piloto', title: 'Gerente Financeira' }), 'nome');
   ok(await api(people.buyer, 'POST', '/api/finance/terms', { organization_id: ctx.buyerOrg, terms_version: '2026-09-26-piloto', context: 'test' }), 'termos');
   return `org ${ctx.buyerOrg.slice(0, 8)}…`;
@@ -164,8 +165,13 @@ const outboxCount = () => Number(sql(`select count(*) from public.transactional_
 await step('RFQ de crédito criada, provedores cadastrados e convidados', async () => {
   ctx.rfq = ok(await api(people.buyer, 'POST', '/api/finance/rfqs', {
     organization_id: ctx.buyerOrg, product: 'credit', title: `Capital de giro piloto ${RUN}`, description: 'Linha para o ciclo de estoque.',
-    demand: { amount: 3000000, purpose: 'capital_de_giro', term_months: 24 }, response_deadline: addDays(14)
+    demand: { amount: 3000000, purpose: 'capital_de_giro', term_months: 24, annual_revenue: 120000000, sector: 'Indústria' }, response_deadline: addDays(14),
+    passport_fields: [{ demand_key: 'annual_revenue', field_key: 'receita_anual' }, { demand_key: 'sector', field_key: 'sector' }]
   }), 'rfq').id;
+  // A RFQ guarda a fotografia do Passport; mudar o Passport depois não a alcança.
+  ok(await api(people.buyer, 'POST', '/api/finance/profile', { organization_id: ctx.buyerOrg, field_key: 'receita_anual', field_value: '130000000', source: 'documento_interno' }), 'Passport alterado depois');
+  must(sql(`select string_agg(field_key || '=' || field_value || ':' || used_as_is, ',' order by field_key) from public.fin_rfq_profile_snapshots where rfq_id = '${ctx.rfq}'`) === 'receita_anual=120000000:true,sector=Indústria:true', 'snapshot do Passport ausente ou alterado');
+  must(Number(sql(`select count(*) from public.fin_company_profile_history where organization_id = '${ctx.buyerOrg}' and field_key = 'receita_anual'`)) === 3, 'histórico do Passport incompleto');
   ctx.provA = ok(await api(people.buyer, 'POST', '/api/finance/providers', { organization_id: ctx.buyerOrg, name: `Banco A Piloto ${RUN}`, kind: 'bank', contact_email: people.providerA.email }), 'prov A').row.id;
   ctx.provB = ok(await api(people.buyer, 'POST', '/api/finance/providers', { organization_id: ctx.buyerOrg, name: `Banco B Piloto ${RUN}`, kind: 'bank', contact_email: people.providerB.email }), 'prov B').row.id;
   ok(await api(people.buyer, 'POST', '/api/finance/transition', { kind: 'rfq', id: ctx.rfq, from: 'draft', status: 'open' }), 'abrir');
@@ -377,6 +383,9 @@ await attack('B lista propostas da RFQ (?rfq_id)', 'só a própria', async () =>
   const ids = (result.data?.rows || []).map((row) => row.id);
   return { ok: !ids.includes(ctx.propA), observed: `${result.status}; ids=${ids.length}, A ${ids.includes(ctx.propA) ? 'VISÍVEL' : 'ausente'}` };
 });
+await attack('B (convidado na RFQ) lê o Financial Passport da compradora', 'recusado', async () => { const r = await api(B, 'GET', `/api/finance/profile?organization_id=${ctx.buyerOrg}`); return { ok: r.status >= 400 && !JSON.stringify(r.data).includes('120000000'), observed: show(r) }; });
+await attack('B lê a fotografia do Passport na RFQ', 'recusado', async () => { const r = await api(B, 'GET', `/api/finance/rfq-passport?organization_id=${ctx.buyerOrg}&rfq_id=${ctx.rfq}`); return { ok: r.status >= 400, observed: show(r) }; });
+await attack('B grava no Passport da compradora', 'recusado', async () => { const r = await api(B, 'POST', '/api/finance/profile', { organization_id: ctx.buyerOrg, field_key: 'porte', field_value: 'me', source: 'outro' }); return { ok: r.status >= 400, observed: show(r) }; });
 await attack('B abre a comparação', 'recusado', async () => { const r = await api(B, 'POST', '/api/finance/comparison', { rfq_id: ctx.rfq }); return { ok: r.status >= 400, observed: show(r) }; });
 await attack('B lê o rascunho da proposta de A', 'recusado', async () => { const r = await api(B, 'GET', `/api/finance/proposal-draft?proposal_id=${ctx.propA}`); return { ok: r.status >= 400 || !r.data?.draft, observed: show(r) }; });
 await attack('B grava no rascunho de A', 'recusado', async () => { const r = await api(B, 'PATCH', '/api/finance/proposal-draft', { proposal_id: ctx.propA, terms: { interest_rate_month: 9 }, expected_revision: 1, base_version: 2 }); return { ok: r.status >= 400, observed: show(r) }; });

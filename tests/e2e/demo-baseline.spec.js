@@ -122,3 +122,38 @@ test('provedor: entra pelo login comum e cai no próprio portal, sem ver concorr
   for (const competitor of ['Orbe Capital', 'Meridian', 'Nexo', 'Lumina']) expect(text).not.toContain(competitor);
   expect(problems, problems.join('\n')).toEqual([]);
 });
+
+test('Financial Passport: cobertura, proveniência, histórico e fotografia na RFQ; provedor não alcança', async ({ page, browser }) => {
+  const problems = watch(page);
+  await login(page, 'juliana');
+  await page.waitForFunction(() => Boolean(window.__aranduCtx?.organization?.id));
+  const org = await page.evaluate(() => window.__aranduCtx.organization.id);
+  await page.goto('/finance/passport.html');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Financial Passport');
+  await expect(page.locator('#field-receita_anual')).toContainText('R$ 182.000.000');
+  await expect(page.locator('#field-receita_anual')).toContainText('Rafael Menezes');
+  await expect(page.locator('#field-volume_cartoes_mensal [data-freshness]')).toHaveAttribute('data-freshness', 'stale');
+  await expect(page.locator('#field-garantias_disponiveis')).toContainText('confirmado');
+  await expect(page.locator('.passport-notice')).toContainText('Não é nota de risco');
+  await page.getByRole('button', { name: 'Histórico de Faturamento anual (R$)' }).click();
+  await expect(page.getByRole('dialog')).toContainText('R$ 158.000.000 → R$ 182.000.000');
+  await page.keyboard.press('Escape');
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+
+  await openRfq(page, 'Capital de giro — nova linha');
+  await expect(page.locator('#passport')).toContainText('Mudanças posteriores no Passport não alteram este processo');
+  await expect(page.locator('#passport')).toContainText('usado sem alteração');
+  expect(problems, problems.join('\n')).toEqual([]);
+
+  // Provedor convidado na mesma RFQ: sessão real, nenhuma linha do Passport.
+  const context = await browser.newContext({ ignoreHTTPSErrors: true });
+  const provider = await context.newPage();
+  await login(provider, 'eduardo');
+  for (const path of [`profile?organization_id=${org}`, `profile/history?organization_id=${org}&field_key=receita_anual`]) {
+    const response = await provider.request.get(`/api/finance/${path}`);
+    expect(response.status(), path).toBe(403);
+    expect(await response.text()).not.toContain('182000000');
+  }
+  await context.close();
+});
