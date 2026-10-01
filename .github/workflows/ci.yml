@@ -218,6 +218,17 @@ jobs:
         run: npx playwright install --with-deps chromium firefox webkit
       - name: Presentation journeys
         run: npm run test:e2e:presentation
+      - name: Upload presentation browser evidence on failure
+        if: failure()
+        continue-on-error: true
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: arandu-presentation-evidence-${{ github.sha }}
+          path: |
+            reports/playwright-presentation
+            test-results
+          if-no-files-found: ignore
+          retention-days: 7
 
   deploy-boundaries:
     runs-on: ubuntu-latest

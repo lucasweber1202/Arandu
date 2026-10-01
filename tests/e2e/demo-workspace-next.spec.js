@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { layoutEvidence } from './layout-evidence.js';
 
 // Próxima geração da demonstração: presets, comportamento, migração do
 // registro local, bandeja e workspace de comparação, tela de solicitação,
@@ -22,8 +23,8 @@ async function asPersona(page, key, name) {
   await expect(page.locator('#view.is-switching')).toHaveCount(0);
 }
 async function noOverflow(page, label) {
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-  expect(overflow, `rolagem horizontal em ${label}`).toBeLessThanOrEqual(1);
+  const evidence = await layoutEvidence(page);
+  expect(evidence.overflow, `rolagem horizontal em ${label}: ${JSON.stringify(evidence)}`).toBeLessThanOrEqual(1);
 }
 
 test('registro v1 (PR #86) migra até v3 sem perder escolhas', async ({ page }) => {

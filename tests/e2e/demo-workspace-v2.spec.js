@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { layoutEvidence } from './layout-evidence.js';
 
 // Workspace Architecture & Design System 2.0 (demonstração): gramática da
 // próxima ação, inspector, continuidade entre personas, comparação como
@@ -309,8 +310,8 @@ test('larguras estreitas (390, 375, 360 e 320 px) sem rolagem horizontal nas tel
     for (const path of ['/demo/finance/dashboard.html', '/demo/finance/rfqs.html', `/demo/finance/rfq.html?id=${CAPITAL}`, '/demo/finance/approvals.html', '/demo/provider/index.html', '/demo/index.html']) {
       await page.goto(path);
       await page.waitForTimeout(300);
-      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-      expect(overflow, `${width}px ${path}`).toBeLessThanOrEqual(1);
+      const evidence = await layoutEvidence(page);
+      expect(evidence.overflow, `${width}px ${path}: ${JSON.stringify(evidence)}`).toBeLessThanOrEqual(1);
     }
   }
 });
