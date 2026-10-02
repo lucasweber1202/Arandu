@@ -6,12 +6,12 @@
 | --- | --- | --- | --- | --- | --- |
 | Desenvolvimento | — | `feature/*` | `development` | local (`pilot:local`) ou nenhum | permitida |
 | Preview | qualquer projeto, deploy de PR | `feature/*` | não definido | nenhum | permitida |
-| Demo | `arandu-demo` | `main` (`ARANDU_DEPLOYMENT_KIND=demo`) | não definido | nenhum | é o próprio produto |
+| Demo canônica | `arandu-demo` | `main` | `demo` | **dedicado** (Vitta Foods) | produto real com dados fictícios |
 | **Piloto** | `arandu-pilot` | **`pilot`** | `pilot` | **dedicado** (`offgpyysgdhfemjlchod`) | **proibida** |
 | Produção | `arandu` | `main` | `production` | **próprio**, nunca o do piloto | **proibida** |
 
 Fluxo entre eles: [`FINANCIAL_DEPLOYMENT_WORKFLOW.md`](FINANCIAL_DEPLOYMENT_WORKFLOW.md).
-Com `ARANDU_ENV` `pilot` ou `production`, `npm run vercel-build` roda
+Com `ARANDU_ENV` `demo`, `pilot` ou `production`, `npm run vercel-build` roda
 `finance:env:check` antes do build. O deploy falha nestes casos:
 - demonstração ou apresentação ligada;
 - banco compartilhado (produção no piloto, qualquer um no legado);
@@ -21,6 +21,9 @@ Com `ARANDU_ENV` `pilot` ou `production`, `npm run vercel-build` roda
 
 Dado DEMO misturado com dado real de empresa destruiria a confiança em tudo que
 o piloto medir.
+
+O sandbox público temporário continua separado da demo canônica. Estado
+hospedado e bloqueios datados: [ARANDU_CURRENT_STATE_2026-10-02.md](ARANDU_CURRENT_STATE_2026-10-02.md).
 
 ## Variáveis
 
@@ -47,7 +50,17 @@ concretos: o rollback do procurement financeiro remove tabelas; a allowlist é
 por instância; e dado de uma empresa real não pode conviver com dado de teste.
 
 Aplicar **todos** os arquivos de `docs/supabase-migrations.json` → `cleanInstall`,
-na ordem (35 arquivos; o último é `docs/supabase-financial-pilot-surface-hardening.sql`).
+na ordem atual do manifesto. A baseline do Passport tem 37 arquivos; o último
+é `docs/supabase-financial-passport.sql` (`financial-passport-1`).
+Para um banco existente, consulte o marcador e gere só o trecho pendente:
+
+```bash
+npm run migrations:bundle -- --flow=existingDatabase --after-schema=financial-surface-hardening-1
+```
+
+O comando acima gera aprovação sequencial e Passport, nessa ordem, e não
+aplica SQL. Recusa marcador desconhecido e instalação limpa com salto. Backup
+e restore verificados continuam obrigatórios antes de DDL remota.
 Depois, `ARANDU_ENV=pilot npm run finance:pilot:doctor` confere banco, Storage, Auth,
 allowlist, operador, e-mail, cron e a API publicada, somente lendo.
 A sequência foi ensaiada no Postgres 15 da Supabase com `npm run pilot:local:up`.

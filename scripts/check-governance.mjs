@@ -112,11 +112,20 @@ if (exists('.github/workflows/ci.yml')) {
   for (const job of ['validate', 'presentation', 'database', 'deploy-boundaries']) {
     if (!new RegExp(`^  ${job}:`, 'm').test(ci)) problems.push(`.github/workflows/ci.yml: job ${job} ausente.`);
   }
-  if ((ci.match(/npx playwright install --with-deps chromium firefox webkit/g) || []).length < 2) {
-    problems.push('.github/workflows/ci.yml: validate e presentation precisam instalar Chromium, Firefox e WebKit.');
-  }
-  if (/if:\s*steps\.[\w-]+\.outputs\.cache-hit/.test(ci)) {
-    problems.push('.github/workflows/ci.yml: a instalação dos navegadores não pode ser pulada por cache; ela confere os binários.');
+  // Evaluate each browser job: setup must run on cache hit and on cache miss.
+  for (const job of ['validate', 'presentation']) {
+    const section = ci.split(new RegExp(`^  ${job}:`, 'm'))[1]?.split(/^  [a-z][\w-]*:/m)[0] || '';
+    const steps = section.split(/      - name:/).slice(1);
+    const binarySteps = steps.filter((step) => /run: npx playwright install (?:--with-deps )?chromium firefox webkit/.test(step));
+    const depsSteps = steps.filter((step) => /run: npx playwright install(?:-deps| --with-deps) chromium firefox webkit/.test(step));
+    if (!binarySteps.length || !depsSteps.length) {
+      problems.push(`.github/workflows/ci.yml: ${job} precisa instalar dependências e os três motores.`);
+    }
+    for (const step of new Set([...binarySteps, ...depsSteps])) {
+      if (/\n\s+if:|continue-on-error: true/.test(step)) {
+        problems.push(`.github/workflows/ci.yml: instalação de ${job} deve ser incondicional e bloquear em falha.`);
+      }
+    }
   }
   if (/\|\|\s*true/.test(ci)) problems.push('.github/workflows/ci.yml: `|| true` mascara falha.');
   for (const config of ['playwright.config.js', 'playwright.presentation.config.js']) {

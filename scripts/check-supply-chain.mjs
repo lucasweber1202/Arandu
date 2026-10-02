@@ -6,7 +6,7 @@ const root = process.cwd();
 const workflowDir = path.join(root, '.github/workflows');
 const issues = [];
 const workflows = fs.readdirSync(workflowDir).filter((file) => /\.ya?ml$/i.test(file)).sort();
-const pinnedAction = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+@[a-f0-9]{40}(?:\s+#\s+.+)?$/;
+const pinnedAction = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_-]+)*@[a-f0-9]{40}(?:\s+#\s+.+)?$/;
 
 for (const file of workflows) {
   const relative = `.github/workflows/${file}`;
