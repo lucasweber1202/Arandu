@@ -77,7 +77,7 @@
     "check:evidence": "node scripts/test-release-evidence.mjs && node scripts/check-release-evidence.mjs",
     "check:evidence:release": "node scripts/check-release-evidence.mjs --require-ready",
     "check:governance": "node scripts/check-governance.mjs",
-    "check:staging": "node scripts/test-operational-tooling.mjs && node scripts/test-staging-workflow.mjs && node scripts/check-staging-rehearsal.mjs && node scripts/test-pending-migration-bundle.mjs",
+    "check:staging": "node scripts/test-operational-tooling.mjs && node scripts/test-staging-workflow.mjs && node scripts/check-staging-rehearsal.mjs && node scripts/test-pending-migration-bundle.mjs && node scripts/test-pilot-backup-preflight.mjs",
     "check:product-readiness": "node scripts/check-product-readiness.mjs",
     "check:catalog:intake": "node scripts/test-catalog-intake.mjs",
     "catalog:intake:validate": "node scripts/validate-catalog-csv.mjs",
@@ -116,7 +116,8 @@
     "check:css": "node scripts/check-css-architecture.mjs",
     "check:navigation": "node scripts/check-navigation.mjs",
     "pretest:e2e:commerce": "ARANDU_COMMERCIAL_READY=true npm run build",
-    "test:e2e:commerce": "playwright test --config playwright.commerce.config.js"
+    "test:e2e:commerce": "playwright test --config playwright.commerce.config.js",
+    "pilot:backup:preflight": "node scripts/pilot-backup-preflight.mjs"
   },
   "dependencies": {
     "@vercel/speed-insights": "^2.0.0",

@@ -121,8 +121,18 @@ apply_file "$upgrade_db" "docs/supabase-financial-pilot-grade.sql"
 apply_file "$upgrade_db" "docs/supabase-financial-pilot-operations.sql"
 apply_file "$upgrade_db" "docs/supabase-financial-final-hardening.sql"
 apply_file "$upgrade_db" "docs/supabase-financial-pilot-surface-hardening.sql"
+apply_file "$upgrade_db" "ops/sql/pilot-isolation-canary.sql"
+# A wrong marker cannot skip Passport checks or turn a partial schema green.
+for marker in unknown financial-passport-1; do
+  if rejection="$(psql "$(database_url "$upgrade_db")" -X -v ON_ERROR_STOP=1 -c "begin; update public.fin_settings set value='${marker}' where key='schema_version';" -f "$root_dir/ops/sql/pilot-isolation-canary.sql" 2>&1)"; then
+    echo "Canary accepted an inconsistent schema marker" >&2; exit 1
+  fi
+  if [ "$marker" = unknown ]; then expected='CANÁRIO: schema não suportado'; else expected='CANÁRIO: schema_version e tabelas Passport divergentes'; fi
+  [[ "$rejection" == *"$expected"* ]] || { echo "Canary failed for an unexpected reason" >&2; exit 1; }
+done
 apply_file "$upgrade_db" "docs/supabase-financial-approval-handoff.sql"
 apply_file "$upgrade_db" "docs/supabase-financial-passport.sql"
+apply_file "$upgrade_db" "ops/sql/pilot-isolation-canary.sql"
 apply_file "$upgrade_db" "tests/database/financial-passport.sql"
 apply_file "$upgrade_db" "docs/rollback/supabase-financial-passport.rollback.sql"
 psql "$(database_url "$upgrade_db")" -v ON_ERROR_STOP=1 -c "do \$\$ begin if to_regclass('public.fin_rfq_profile_snapshots') is not null or to_regclass('public.fin_company_profile_history') is not null or exists(select 1 from information_schema.columns where table_name='fin_company_profiles' and column_name='verified_at') or not has_table_privilege('authenticated','public.fin_company_profiles','INSERT') or (select value from public.fin_settings where key='schema_version') <> 'financial-approval-handoff-1' then raise exception 'rollback do Financial Passport incompleto'; end if; end \$\$;"

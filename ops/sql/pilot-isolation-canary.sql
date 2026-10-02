@@ -22,8 +22,17 @@ grant select on canary_expected to authenticated;
 do $$
 declare
   p record; v_leaks text := ''; v_count bigint; v_people integer := 0; v_checks integer := 0;
-  v_tbl text; v_rule text;
+  v_tbl text; v_rule text; v_schema text; v_passport boolean;
 begin
+  select value into v_schema from public.fin_settings where key='schema_version';
+  if v_schema is null or v_schema not in ('financial-surface-hardening-1','financial-approval-handoff-1','financial-passport-1') then
+    raise exception 'CANÁRIO: schema não suportado';
+  end if;
+  v_passport := v_schema = 'financial-passport-1';
+  if (to_regclass('public.fin_company_profile_history') is not null) <> v_passport
+     or (to_regclass('public.fin_rfq_profile_snapshots') is not null) <> v_passport then
+    raise exception 'CANÁRIO: schema_version e tabelas Passport divergentes';
+  end if;
   for p in select * from canary_expected loop
     v_people := v_people + 1;
     perform set_config('request.jwt.claim.sub', p.user_id::text, true);
@@ -50,6 +59,9 @@ begin
       ('fin_notifications',      'user_id <> $3'),
       ('fin_private_documents',  'not (organization_id = any($1) or buyer_organization_id = any($1) or (visibility = ''shared'' and rfq_id = any($2)))')
     ) t(tbl, rule) loop
+      -- Before Passport, these two tables must be absent (checked above).
+      -- At financial-passport-1 every check is mandatory, including both.
+      if not v_passport and v_tbl in ('fin_company_profile_history','fin_rfq_profile_snapshots') then continue; end if;
       execute format('select count(*) from public.%I where %s', v_tbl, v_rule) into v_count using p.orgs, p.invited_rfqs, p.user_id;
       v_checks := v_checks + 1;
       if v_count > 0 then v_leaks := v_leaks || format('pessoa#%s:%s=%s; ', v_people, v_tbl, v_count); end if;
@@ -67,6 +79,6 @@ begin
     execute 'reset role';
   end loop;
   if v_leaks <> '' then raise exception 'CANÁRIO: vazamento entre tenants: %', v_leaks; end if;
-  raise notice 'CANÁRIO OK: % pessoas (inclui 1 externa sintética), % verificações, 0 vazamentos', v_people, v_checks;
+  raise notice 'CANÁRIO OK: schema %, % pessoas (inclui 1 externa sintética), % verificações, 0 vazamentos', v_schema, v_people, v_checks;
 end $$;
 rollback;

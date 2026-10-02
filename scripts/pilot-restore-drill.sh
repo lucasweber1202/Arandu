@@ -13,30 +13,30 @@
 #
 # Sem PILOT_SOURCE_DATABASE_URL, usa o ensaio local (scripts/pilot-local).
 # O backup contém dados reais e e-mails: fica fora do repositório, em diretório
-# 0700 que é apagado ao final (PILOT_DRILL_KEEP=1 mantém). O relatório em
+# 0700; no hosted é mantido para rollback, no local é apagado ao final.
+# PILOT_DRILL_KEEP_BACKUP=1 mantém apenas o backup; PILOT_DRILL_KEEP=1 também o destino. O relatório em
 # reports/pilot-restore-drill.json tem só tempos, hashes e contagens.
 # Nunca aponte o destino para o piloto: o destino é sempre um contêiner novo.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-image="${PILOT_LOCAL_DB_IMAGE:-public.ecr.aws/supabase/postgres:15.14.1.064}"
+cd "$root"
+image="${PILOT_DRILL_DB_IMAGE:-${PILOT_LOCAL_DB_IMAGE:-}}"
 auth_image="${PILOT_LOCAL_AUTH_IMAGE:-public.ecr.aws/supabase/gotrue:v2.181.0}"
 storage_image="${PILOT_LOCAL_STORAGE_IMAGE:-public.ecr.aws/supabase/storage-api:v1.25.3}"
 storage_port="${PILOT_DRILL_STORAGE_PORT:-54330}"
 port="${PILOT_DRILL_PORT:-54329}"
 container="arandu-restore-drill-$$"
-work="$(mktemp -d "${TMPDIR:-/tmp}/arandu-restore-drill.XXXXXX")"
-chmod 700 "$work"
 report="$root/reports/pilot-restore-drill.json"
 mkdir -p "$root/reports"
+# A previous PASS must never survive a blocked or failed new attempt.
+rm -f "$report"
 
 cleanup() {
   docker rm -f "$container-storage" >/dev/null 2>&1 || true
   if [ "${PILOT_DRILL_KEEP:-0}" != "1" ]; then docker rm -f "$container" >/dev/null 2>&1 || true; else echo "destino mantido: contêiner $container, porta $port"; fi
-  if [ "${PILOT_DRILL_KEEP:-0}" != "1" ]; then rm -rf "$work"; else echo "backup mantido em $work"; fi
+  if [ "${PILOT_DRILL_KEEP:-0}" != "1" ] && [ "$keep_backup" != "1" ]; then rm -rf "$work"; else echo "backup mantido em $work"; fi
 }
-trap cleanup EXIT
-
 source_url="${PILOT_SOURCE_DATABASE_URL:-}"
 source_kind="pilot"
 if [ -z "$source_url" ]; then
@@ -46,9 +46,28 @@ if [ -z "$source_url" ]; then
   source_url="postgresql://supabase_admin:${PGPW}@localhost:54322/postgres"
   source_kind="pilot-local"
 fi
+if [ -z "$image" ]; then
+  if [ "$source_kind" = pilot ]; then
+    image="$(node --input-type=module -e "import { HOSTED_DRILL_IMAGE } from './lib/pilot-backup-preflight.mjs'; console.log(HOSTED_DRILL_IMAGE)")"
+  else image="public.ecr.aws/supabase/postgres:15.14.1.064"; fi
+fi
+keep_backup="${PILOT_DRILL_KEEP_BACKUP:-0}"
+if [ "$source_kind" = pilot ]; then keep_backup=1; fi
+export PILOT_SOURCE_DATABASE_URL="$source_url" PILOT_DRILL_SOURCE_KIND="$source_kind" PILOT_DRILL_DB_IMAGE="$image"
+# Fail before generating sensitive dumps or provisioning a destination.
+node "$root/scripts/pilot-backup-preflight.mjs"
+umask 077
+work="$(mktemp -d "${TMPDIR:-/tmp}/arandu-restore-drill.XXXXXX")"
+chmod 700 "$work"
+trap cleanup EXIT
 redact() { sed -E 's#postgres(ql)?://[^[:space:]]+#[DATABASE_URL]#g'; }
 now_ms() { date +%s%3N; }
-q() { psql "$1" -X -A -t -v ON_ERROR_STOP=1 -c "$2"; }
+source_psql() { node "$root/scripts/pilot-db-client.mjs" psql "$@"; }
+source_dump() { node "$root/scripts/pilot-db-client.mjs" pg_dump "$@"; }
+q() {
+  if [ "$1" = "$source_url" ]; then source_psql -X -A -t -v ON_ERROR_STOP=1 -c "$2";
+  else psql "$1" -X -A -t -v ON_ERROR_STOP=1 -c "$2"; fi
+}
 
 # Somente leitura na origem: nada abaixo escreve nela.
 [ "$(q "$source_url" "select count(*) from pg_namespace where nspname in ('auth','storage')" 2>&1 | redact)" = "2" ] \
@@ -56,12 +75,15 @@ q() { psql "$1" -X -A -t -v ON_ERROR_STOP=1 -c "$2"; }
 
 # ------------------------------------------------------------------ backup
 t0=$(now_ms)
-pg_dump "$source_url" --format=custom --schema=public --no-owner --file="$work/public.dump" 2> >(redact >&2)
-pg_dump "$source_url" --format=custom --data-only --table=auth.users --table=auth.identities --no-owner --file="$work/auth.dump" 2> >(redact >&2)
-pg_dump "$source_url" --format=custom --data-only --table=storage.buckets --no-owner --file="$work/storage.dump" 2> >(redact >&2)
+source_dump --format=custom --schema=public --no-owner --file="$work/public.dump"
+source_dump --format=custom --data-only --table=auth.users --table=auth.identities --no-owner --file="$work/auth.dump"
+source_dump --format=custom --data-only --table=storage.buckets --no-owner --file="$work/storage.dump"
+source_dump --format=custom --schema-only --schema=storage --no-owner --file="$work/storage-schema.dump"
+# Application triggers in Auth are outside the public dump, but part of backup.
+q "$source_url" "select pg_get_triggerdef(t.oid) || ';' from pg_trigger t join pg_class c on c.oid=t.tgrelid join pg_proc p on p.oid=t.tgfoid where c.relnamespace='auth'::regnamespace and p.pronamespace='public'::regnamespace and not t.tgisinternal order by t.tgname" > "$work/auth-triggers.sql"
 t1=$(now_ms)
-backup_sha=$(cat "$work/public.dump" "$work/auth.dump" "$work/storage.dump" | sha256sum | cut -d' ' -f1)
-backup_bytes=$(cat "$work/public.dump" "$work/auth.dump" "$work/storage.dump" | wc -c)
+backup_sha=$(cat "$work/public.dump" "$work/auth.dump" "$work/storage.dump" "$work/storage-schema.dump" "$work/auth-triggers.sql" | sha256sum | cut -d' ' -f1)
+backup_bytes=$(cat "$work/public.dump" "$work/auth.dump" "$work/storage.dump" "$work/storage-schema.dump" "$work/auth-triggers.sql" | wc -c)
 
 # ------------------------------------------------------- destino descartável
 pw="$(openssl rand -hex 18)"
@@ -73,6 +95,8 @@ for _ in $(seq 1 90); do
   sleep 2
 done
 sleep 3
+[ "$(q "$source_url" "select current_setting('server_version_num')::int/10000")" = "$(q "$target" "select current_setting('server_version_num')::int/10000")" ] \
+  || { echo "Major PostgreSQL real do destino diverge da origem; restore recusado." >&2; exit 1; }
 t2=$(now_ms)
 # Um projeto Supabase novo já nasce com Auth e Storage migrados: o destino passa
 # pelas mesmas migrations (GoTrue migrate; Storage aplica as suas ao subir).
@@ -122,14 +146,21 @@ pg_restore --list "$work/public.dump" | grep -v -E '^[0-9]+; [0-9]+ [0-9]+ (SCHE
 pg_restore --dbname="$target_postgres" --no-owner --exit-on-error --use-list="$work/public.list" "$work/public.dump"
 default_privileges grant to
 # Gatilhos em auth.* que chamam funções de public não estão no dump de public.
-q "$source_url" "select pg_get_triggerdef(t.oid) || ';' from pg_trigger t join pg_class c on c.oid = t.tgrelid join pg_proc p on p.oid = t.tgfoid where c.relnamespace = 'auth'::regnamespace and p.pronamespace = 'public'::regnamespace and not t.tgisinternal" 2> >(redact >&2) > "$work/auth-triggers.sql"
 psql "$target" -q -X -v ON_ERROR_STOP=1 -f "$work/auth-triggers.sql"
 pg_restore --dbname="$target" --data-only --no-owner --exit-on-error "$work/storage.dump"
+# Storage service migrations do not recreate the application's policies. The
+# destination is the fresh container above; no existing project is modified.
+pg_restore --list "$work/storage-schema.dump" | awk '/^[0-9]+; [0-9]+ [0-9]+ POLICY storage /' > "$work/storage-policies.list"
+psql "$target" -q -X -v ON_ERROR_STOP=1 -c "do \$\$ declare p record; begin for p in select tablename,policyname from pg_policies where schemaname='storage' loop execute format('drop policy %I on storage.%I',p.policyname,p.tablename); end loop; end \$\$;"
+if [ -s "$work/storage-policies.list" ]; then
+  pg_restore --dbname="$target" --no-owner --exit-on-error --use-list="$work/storage-policies.list" "$work/storage-schema.dump"
+fi
 t3=$(now_ms)
 
 # ----------------------------------------------------------------- probes
 probe_sql="
 select json_build_object(
+  'settings_sha256', (select encode(sha256(convert_to(coalesce(string_agg(key || ':' || length(value)::text || ':' || value, E'\\n' order by key),''),'UTF8')),'hex') from public.fin_settings),
   'schema_version', (select value from public.fin_settings where key = 'schema_version'),
   'invite_secret_ok', (select length(value) >= 64 from public.fin_settings where key = 'invite_secret'),
   'fin_tables', (select count(*) from pg_class where relnamespace = 'public'::regnamespace and relkind = 'r' and relname like 'fin\_%'),
@@ -140,6 +171,9 @@ select json_build_object(
   'triggers', (select count(*) from pg_trigger t join pg_class c on c.oid = t.tgrelid where c.relnamespace = 'public'::regnamespace and not t.tgisinternal),
   'auth_triggers', (select count(*) from pg_trigger t join pg_class c on c.oid = t.tgrelid where c.relnamespace = 'auth'::regnamespace and not t.tgisinternal),
   'policies', (select count(*) from pg_policies where schemaname = 'public'),
+  'storage_rls', (select coalesce(json_agg(json_build_object('table',relname,'rls',relrowsecurity,'forced',relforcerowsecurity) order by relname),'[]'::json) from pg_class where relnamespace='storage'::regnamespace and relname in ('buckets','objects')),
+  'definer_owners', (select coalesce(string_agg(p.oid::regprocedure::text || ':' || r.rolname || ':' || r.rolsuper::text, ',' order by p.oid::regprocedure::text), '') from pg_proc p join pg_roles r on r.oid=p.proowner where p.pronamespace='public'::regnamespace and p.prosecdef),
+  'storage_policies', (select coalesce(json_agg(json_build_object('table',tablename,'name',policyname,'roles',roles,'command',cmd,'qual',qual,'check',with_check) order by tablename,policyname), '[]'::json) from pg_policies where schemaname='storage'),
   'constraints', (select count(*) from pg_constraint where connamespace = 'public'::regnamespace),
   'anon_functions', (select coalesce(string_agg(p.oid::regprocedure::text, ',' order by p.oid::regprocedure::text), '') from pg_proc p where p.pronamespace = 'public'::regnamespace and has_function_privilege('anon', p.oid, 'EXECUTE')),
   'authenticated_functions', (select coalesce(string_agg(p.oid::regprocedure::text, ',' order by p.oid::regprocedure::text), '') from pg_proc p where p.pronamespace = 'public'::regnamespace and has_function_privilege('authenticated', p.oid, 'EXECUTE')),
@@ -156,11 +190,12 @@ source_probe="$(q "$source_url" "$probe_sql" 2> >(redact >&2))"
 target_probe="$(q "$target" "$probe_sql")"
 # Canonização: o restore reescreve CHECKs com AND aninhado sem os parênteses
 # redundantes ((a AND b) AND c) -> (a AND b AND c); mesma árvore lógica.
-schema_fp() { pg_dump "$1" --schema=public --schema-only --no-owner --no-acl | grep -v -E '^(--|\\(un)?restrict|SET |SELECT pg_catalog.set_config)' | sed -E 's/[[:space:]]+$//' | sed -E '/CONSTRAINT .* CHECK /s/[()]//g' | sha256sum | cut -d' ' -f1; }
+schema_fp() { if [ "$1" = "$source_url" ]; then source_dump --schema=public --schema-only --no-owner --no-acl; else pg_dump "$1" --schema=public --schema-only --no-owner --no-acl; fi | grep -v -E '^(--|\\(un)?restrict|SET |SELECT pg_catalog.set_config)' | sed -E 's/[[:space:]]+$//' | sed -E '/CONSTRAINT .* CHECK /s/[()]//g' | sha256sum | cut -d' ' -f1; }
 source_fp="$(schema_fp "$source_url" 2> >(redact >&2))"
 target_fp="$(schema_fp "$target")"
 t4=$(now_ms)
-canary="$(psql "$target" -X -v ON_ERROR_STOP=1 -f "$root/ops/sql/pilot-isolation-canary.sql" 2>&1 | grep -o 'CANÁRIO[^\"]*' || true)"
+if canary_output="$(psql "$target" -X -v ON_ERROR_STOP=1 -f "$root/ops/sql/pilot-isolation-canary.sql" 2>&1)"; then canary_status=0; else canary_status=$?; fi
+canary="$(printf '%s\n' "$canary_output" | grep -o 'CANÁRIO[^\"]*' || true)"
 t5=$(now_ms)
 
 node - "$source_probe" "$target_probe" "$source_fp" "$target_fp" "$canary" "$report" <<NODE
@@ -173,11 +208,11 @@ for (const key of Object.keys(s)) eq(key, s[key], d[key]);
 checks.push({ name: 'schema_version_set', ok: typeof d.schema_version === 'string' && d.schema_version.length > 0, restored: d.schema_version });
 checks.push({ name: 'fin_tables_all_rls_forced', ok: d.fin_tables > 0 && d.fin_tables === d.fin_tables_rls_forced, restored: \`\${d.fin_tables_rls_forced}/\${d.fin_tables}\` });
 checks.push({ name: 'bucket_private', ok: d.bucket?.public === false, restored: d.bucket });
-checks.push({ name: 'isolation_canary', ok: /CANÁRIO OK/.test(canary), restored: canary });
+checks.push({ name: 'isolation_canary', ok: ${canary_status} === 0 && /CANÁRIO OK/.test(canary), restored: canary });
 const report = {
   classification: 'pilot_restore_drill', generatedAt: new Date().toISOString(), source: '${source_kind}',
   target: 'disposable Supabase Postgres (${image##*/}) + Auth and Storage migrations',
-  backup: { method: 'pg_dump custom: public (schema+data+grants), auth.users/identities (data), storage.buckets (data)', sha256: '${backup_sha}', bytes: ${backup_bytes} },
+  backup: { method: 'pg_dump custom: public (schema+data+grants), auth.users/identities, storage.buckets, storage policies, Auth application triggers', scope: 'application; Storage binaries and MFA absent by verified preflight', sha256: '${backup_sha}', bytes: ${backup_bytes}, retained: '${keep_backup}' === '1' },
   durations_ms: { backup: ${t1} - ${t0}, provision_target: ${t2b} - ${t2}, restore: ${t3} - ${t2b}, probes: ${t4} - ${t3}, canary: ${t5} - ${t4}, backup_to_verified: ${t5} - ${t0} - (${t2b} - ${t1}) },
   result: checks.every((c) => c.ok) ? 'passed' : 'failed',
   checks: checks.map((c) => (c.name === 'rows' ? { ...c, source: undefined, restored: undefined, tables: Object.keys(d.rows || {}).length, total_rows: Object.values(d.rows || {}).reduce((a, b) => a + b, 0) } : c))

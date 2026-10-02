@@ -184,7 +184,8 @@ Ambientes reais (somente leitura, nunca imprimem segredos):
 ARANDU_ENV=pilot npm run finance:env:check
 ARANDU_ENV=pilot npm run finance:pilot:doctor   # 0 = GO, 1 = NO-GO, 2 = UNSAFE
 npm run pilot:canary                            # isolamento buyer/provider/outsider
-npm run pilot:restore:drill                     # backup lógico + restore + 24 comparações
+npm run pilot:backup:preflight                  # identidade, dependências e escopo
+npm run pilot:restore:drill                     # backup lógico + restore + comparações de integridade
 ```
 
 O CI (`.github/workflows/ci.yml`) roda os jobs `validate`, `database`,

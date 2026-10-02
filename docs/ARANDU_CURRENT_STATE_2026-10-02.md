@@ -7,8 +7,9 @@ segredo, usuário real ou dado de cliente consta deste documento.
 ## CODE
 
 - `main`: `fe5f5f47e6fdec2c1cedaf9d55fffea63c5549e8` (#93, Onda 0).
-- `pilot`: `8a5861442e7f2efd1999a668acb607ec81a7e92d` (#95, Passport v2).
-- Compare `main...pilot`: 11 à frente, 0 atrás; nenhuma PR aberta na consulta inicial.
+- `pilot`: `187c032c084857eb4ddf42ab3d7117ee366e495a` (#96, closure CI).
+  Baseline anterior: `8a5861442e7f2efd1999a668acb607ec81a7e92d` (#95, Passport v2).
+- Compare `main...pilot`: 13 à frente, 0 atrás; nenhuma PR aberta na consulta inicial.
 - Passport, aprovação sequencial, APIs, UI, dataset, RLS e rollback já existem.
   Não foram reimplementados. Nenhum pack novo, cálculo de savings, recomendação,
   política de autorização ou regra de domínio foi alterado.
@@ -30,11 +31,19 @@ segredo, usuário real ou dado de cliente consta deste documento.
 | #721 — database | success |
 | #721 — validate | success |
 | #721 — presentation | cancelled; não equivale a verde |
+| #722 / `37068711721` — deploy-boundaries | SUCCESS |
+| #722 — database | SUCCESS |
+| #722 — validate | SUCCESS |
+| #722 — presentation | SUCCESS |
 
 O job presentation de #721 gastou **19min40s** em `Install browsers`, passou no
 Safari smoke e foi cancelado após 35 minutos, durante a matriz completa, perto
-do caso 336/340. O cache era salvo no post-job, pulado no cancelamento. A PR
-desta rodada precisa comprovar a nova configuração em CI antes de merge.
+do caso 336/340. O cache era salvo no post-job, pulado no cancelamento. A PR #96 comprovou a correção no run #722 e foi integrada. Instalação em
+47s; financial E2E 159 passed / 21 skipped; presentation 295 passed / 44 skipped
+e 1 flaky que passou no retry, com limiar inalterado. Safari smoke: 2 passed.
+O merge `187c032c` tem a mesma árvore `509d4ecb34ae697d760a88cb3bc6c02b04373009`
+do commit validado `2c17d740`; não existe run completo disparado no merge de
+`pilot`, pois o workflow roda em PR e push de `main`.
 
 Validação local desta rodada: `npm ci --include=optional`, audit (0
 vulnerabilidades), SBOM (21 componentes), `check:all`, testes do bundle pendente
@@ -70,8 +79,8 @@ não está instalado. Isso é limite desta sessão, não teste aprovado.
   descartável, o drill não pôde ser feito. A integração SQL não substitui dump.
 - Storage `fin-documents`: privado, 10 MB, 5 MIME types.
 - Alias `https://arandu-pilot.vercel.app`: deploy
-  `dpl_4tpsc1igDmuyfQX9BomQUbefUsY5`, READY, target production, `pilot`,
-  SHA `8a586144`.
+  `dpl_FnbgaWfULcqh1j1vYBPkPDhuYJAK`, READY, target production, `pilot`,
+  SHA `187c032c`. GETs repetidos após #96: os mesmos oito resultados esperados.
 - Smoke público: home/health/products/Passport HTML 200; me 401; cron sem segredo
   401 `cron_unauthorized`; forms 404 `legacy_surface_closed`; sandbox 404.
   Todas as respostas API conferidas trazem request ID.
@@ -117,7 +126,8 @@ Branch. Bypass protegido também retornou 403. Os GETs públicos acima passaram
 diretamente; presença, valores e escopos de envs **não foram atestados**.
 E-mail segue desligado, MFA de operador requer enrolamento humano, e nenhum
 participante real foi inventado/cadastrado. Nenhuma promoção para main foi aberta:
-DB Passport, CI completo, doctor GO, canary, restore e jornada hospedada faltam.
+DB Passport, doctor GO, canary, restore e jornada hospedada faltam. CI #722
+está GREEN; não é um blocker pendente da baseline.
 
 ## OWNER_ACTION_REQUIRED
 
@@ -134,3 +144,71 @@ DB Passport, CI completo, doctor GO, canary, restore e jornada hospedada faltam.
 Próxima Onda 1 após convergência: Contract & Renewal Center v2 → Savings Ledger
 v1 → Provider Relationship Management v1 → Policy/Approval Engine v2 → Executive
 Portfolio v1, conforme guideline; nenhum desses módulos foi antecipado aqui.
+
+## HOSTED PILOT CLOSURE — reconfirmação às 20h33 BRT
+
+| Gate | Estado | Evidência/limite |
+| --- | --- | --- |
+| SUPABASE AUTH | OK | MCP lista projetos e lê fin_settings; não houve falha OAuth |
+| PILOT SCHEMA | financial-surface-hardening-1 | consulta direta; tabelas Passport ausentes |
+| BACKUP | BLOCKED | conector não exporta pg_dump; runtime sem conexão administrativa segura |
+| RESTORE | BLOCKED | psql/pg_dump/pg_restore/Docker ausentes; nenhum destino descartável disponível |
+| CI baseline | GREEN | quatro gates #722; árvore igual ao merge #96 |
+| DOCTOR | BLOCKED | tentativa no runtime retorna NO-GO por envs ausentes; não é execução no servidor Vercel |
+| CANARY | BLOCKED | conexão ausente; nenhum PASS hospedado atribuído ao smoke |
+| PASSPORT HOSTED | PARTIAL | HTML 200; jornada autenticada BLOCKED BY HUMAN SETUP e schema antigo |
+| PROMOTION | BLOCKED | DB, backup/restore, doctor, canary e jornada ainda não comprovados |
+
+MCP autenticado oferece consulta e migration; não oferece export lógico completo,
+conexão libpq nem execução do doctor no runtime Vercel. Dashboard de backups foi
+retestado e redireciona para sign-in; sessão do navegador e OAuth MCP são distintas.
+Não foram solicitados secrets no chat, feito novo loop de login ou aplicado DDL.
+Branches Supabase: nenhuma. Restore para projeto novo poderia exigir capacidade/
+custo; nenhum recurso pago foi provisionado. Backup do serviço não foi listado ou
+baixado, portanto sua existência não é uma prova de recuperação nesta rodada.
+
+Postgres hospedado: 17.6 / release 17.6.1.166. Auth users/MFA, objetos Storage,
+policies Auth e policies Storage: todos 0. RLS: 33/33 fin_* forçadas; 0 tabelas
+públicas sem RLS, 0 definers sem search_path fixo; postgres não é superuser.
+Advisors repetidos: 30 INFO RLS sem policy, 43 WARN definer; performance 66/21/74,
+sem novo finding de RLS desligado, view definer ou search_path mutável. Nenhum
+RPC foi revogado sem revisão do modelo de autorização.
+
+Logs Supabase, janela desta rodada: edge_logs 1 e pgbouncer_logs 62, sem mensagem
+contendo error. Isso cobre só fontes retornadas e não comprova ausência geral de
+incidentes. Vercel runtime logs agregados do deploy atual: 403 Forbidden; leitura
+da proteção main: 403 Resource not accessible by integration. Não houve workaround.
+Branch do deploy comprovada; ARANDU_ENV e ref do backend Vercel permanecem sem
+atestação direta, pois o conector não expõe as variáveis do servidor.
+
+Bundle pendente canônico: somente approval-handoff → Passport. SHA-256:
+`9b75f1949aad6c740ca2423255a3a9d3f9e394ed5118457413d43236d2d63747`.
+Nenhum arquivo SQL de migration, grant, RLS ou schema_version foi alterado.
+
+Tooling do restore corrigido: major PostgreSQL alinhado e conferido no destino
+real, políticas de Storage exportadas/restauradas/comparadas, RLS Storage e donos
+das funções definer comparados, gatilhos Auth incluídos no hash, backup hospedado
+mantido privado para rollback, credencial da origem fora de argv/erros. Preflight
+bloqueia outro projeto, pooler transacional, TLS desativado, major incompatível,
+MFA/objetos Storage/policies Auth fora do escopo. Ready não significa backup PASS.
+Canary reconhece explicitamente os três schemas suportados: antes do Passport
+exige ausência das duas tabelas; depois exige presença e executa todos os ataques.
+Um marcador desconhecido ou schema parcial falha fechado; testes negativos no CI.
+
+Procedimento e mínimo de infraestrutura restante:
+[FINANCIAL_PILOT_PASSPORT_ROLLOUT.md](FINANCIAL_PILOT_PASSPORT_ROLLOUT.md).
+
+Validação deste lote: npm ci, audit (0 vulnerabilidades), SBOM (21 componentes),
+check:all, testes negativos do preflight e bundle, build, assets, budgets,
+superfície/navegação e diff check aprovados. SEO exige VERCEL_URL no contexto do
+build de preview; rodada repetida com o alias do Pilot. test:database bloqueado
+por psql ausente; E2E e presentation tentados com max-failures=1, interrompidos
+por Chromium headless ausente, sem atribuir PASS local. CI da nova PR precisa
+validar especialmente os casos SQL adicionados. O checkout local foi reconstruído
+para validação e não possui origin; baseline/histórico vieram da API GitHub e o
+commit remoto parte do pai real pilot, preservando o histórico original.
+
+No navegador, Passport carregou e mostrou “Entre para usar o portal”. Nenhum dado
+foi carregado sem sessão. Não houve edição, provenance, freshness, history ou
+snapshot RFQ autenticados nesta sessão. A disponibilidade e a guarda estão
+comprovadas; a jornada completa continua BLOCKED BY HUMAN SETUP.
