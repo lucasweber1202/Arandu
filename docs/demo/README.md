@@ -59,10 +59,18 @@ rascunho em preparação.
 E-mails `nome.sobrenome@<instituição>.example` (domínios reservados para
 documentação: nunca recebem mensagem). Lista completa em [DATASET.md](DATASET.md).
 
+## Financial Passport v2
+
+A baseline de `pilot` inclui proveniência, confirmação, frescor, histórico
+append-only, documentos privados e fotografia imutável dos campos reutilizados
+na RFQ. O dataset e o roteiro incluem o Passport. Ele só aparece na demo
+pública depois da promoção para `main` e da instalação do Supabase DEMO.
+Estado hospedado: [evidência de 02/10](../ARANDU_CURRENT_STATE_2026-10-02.md).
+
 ## O que não faz parte do baseline
 
 Registrado como próxima fase, não implementado nesta rodada: Savings Ledger
-(o painel não estima economia por decisão de produto), Financial Passport,
+(o painel não estima economia por decisão de produto),
 inteligência de propostas e extração de PDF por IA, normalização automática,
 AI Analyst, benchmarking, Open Finance, integrações ERP/bancárias, negociação
 assistida e memorando de decisão gerado por IA. Limites conhecidos da demo em

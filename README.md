@@ -127,18 +127,20 @@ ambiente real, credencial na demo, produção sem ambiente declarado). Fluxo
 
 ## Estado operacional
 
-Estado em 29/09/2026 (detalhe item a item em
-[`docs/FINANCIAL_PILOT_GO_LIVE.md`](docs/FINANCIAL_PILOT_GO_LIVE.md)):
+Estado observado em 02/10/2026, separado por código e ambiente em
+[`docs/ARANDU_CURRENT_STATE_2026-10-02.md`](docs/ARANDU_CURRENT_STATE_2026-10-02.md):
 
-- **Software do piloto**: completo e testado (banco, API, interface, demo).
-- **Supabase do piloto**: 34 migrations aplicadas em 27/09; falta aplicar a
-  35ª (`docs/supabase-financial-pilot-surface-hardening.sql`, esperado
-  `schema_version = financial-surface-hardening-1`).
-- **Vercel**: produção (`arandu`) no ar sem `ARANDU_ENV`; `arandu-demo` e
-  `arandu-pilot` ainda não criados.
-- **Dependências humanas**: revisão jurídica, escolha da empresa e dos
-  provedores do piloto, e-mail transacional, domínio — lista curta em
-  [`docs/FINANCIAL_OWNER_ACTIONS.md`](docs/FINANCIAL_OWNER_ACTIONS.md).
+- **Código**: `main` com Onda 0 e CI verde; `pilot` 11 commits à frente,
+  com Financial Passport v2. A suíte de apresentação do Passport foi cancelada
+  após consumir quase 20 minutos na instalação dos navegadores.
+- **Supabase Pilot**: `financial-surface-hardening-1`; aprovação sequencial e
+  Passport pendentes. Allowlist vazia, e-mail desligado, Storage privado.
+- **Demo pública**: ainda sandbox em `main`; o Supabase DEMO dedicado não
+  pôde ser criado por limite de dois projetos ativos no Free.
+- **Produção**: deploy oficial antigo; não há Supabase Production dedicado.
+- **Dependências externas**: backup/restore do Pilot, configuração Vercel,
+  capacidade Supabase, proteção de branches e preparação jurídica/comercial.
+  Lista em [`docs/FINANCIAL_OWNER_ACTIONS.md`](docs/FINANCIAL_OWNER_ACTIONS.md).
 
 Nenhum item acima é declarado pronto sem evidência verificável. Os 13 gates
 herdados do go-live comercial da vertical de arte continuam registrados em
@@ -211,7 +213,7 @@ controles mínimos do repositório.
 
 **Piloto** (GO quando todos valerem):
 
-1. migration 35 aplicada no Supabase do piloto e `finance:pilot:doctor` = GO;
+1. migrations do manifesto aplicadas até o schema esperado pelo código do piloto e `finance:pilot:doctor` = GO;
 2. `arandu-pilot` publicado da branch `pilot` com `ARANDU_ENV=pilot`;
 3. `pilot:canary` e `pilot:restore:drill` aprovados contra o piloto real;
 4. CI verde no head de `pilot`;
