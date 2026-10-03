@@ -663,7 +663,7 @@
 .at-compact .at-step{min-width:0;gap:5px}
 .at-compact .at-step:not(.is-current) .at-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .at-compact .at-step.is-current{flex:2 1 0}
-.contract-timeline{margin:6px 0 4px}
+.contract-timeline{margin:6px 0 4px;min-width:0;max-width:100%}
 
 /* ============================================ 12. comparação e bandeja */
 .dw[data-compare=on] .page-head,.dw[data-compare=on] .rfq-timeline{display:none}
@@ -737,7 +737,7 @@
 .dw .approval-card.mine{border-color:var(--warning-border);box-shadow:none}
 
 /* ========================================================= 14. contratos */
-.dw .contract-card{border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:18px 20px;gap:14px}
+.dw .contract-card{border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:18px 20px;gap:14px;min-width:0}
 .dw .contract-card.highlighted,.dw .contract-card:focus{box-shadow:0 0 0 3px var(--accent-soft);border-color:var(--accent)}
 .dw .contract-title{font-size:18px;font-weight:600;letter-spacing:-.015em}
 .dw .contract-status{gap:8px}

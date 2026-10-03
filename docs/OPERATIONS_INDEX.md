@@ -23,7 +23,7 @@ documento divergir, vale este índice, nesta ordem.
 - `docs/FINANCIAL_DEMO_MODE.md` — sandbox público temporário sem backend, preservado até a demo canônica ser comprovada.
 - `docs/FINANCIAL_SECURITY_MODEL.md`, `docs/FINANCIAL_THREAT_MODEL.md`, `docs/FINANCIAL_AUTHORIZATION_MAP.md` — segurança.
 - `docs/FINANCIAL_REPO_GOVERNANCE.md` — proteção de branches e checks obrigatórios.
-- `docs/supabase-migrations.json` — ordem canônica das migrations; consulte o manifesto atual. A última migration desta baseline grava `schema_version = financial-multi-entity-1` (`docs/supabase-financial-multi-entity.sql`).
+- `docs/supabase-migrations.json` — ordem canônica das migrations; consulte o manifesto atual. A última migration desta baseline grava `schema_version = financial-relationships-portfolio-1` (`docs/supabase-financial-relationships-portfolio.sql`).
 - `docs/IMPLEMENTATION_MATRIX.md` — matriz viva guideline → capacidade, com status, evidência, lacunas e blockers; ponto de partida de qualquer rodada de implementação.
 - Comandos: `finance:env:check`, `finance:pilot:doctor`, `pilot:canary`, `pilot:restore:drill`, `test:database`.
 
