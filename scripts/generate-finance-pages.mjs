@@ -8,7 +8,7 @@ import { dirname } from 'node:path';
 
 const COMPANY_NAV = [
   ['Painel', '/finance/dashboard.html'], ['Solicitações', '/finance/rfqs.html'], ['Aprovações', '/finance/approvals.html'],
-  ['Propostas', '/finance/proposals.html'], ['Contratos', '/finance/contracts.html'], ['Provedores', '/finance/providers.html'],
+  ['Propostas', '/finance/proposals.html'], ['Contratos', '/finance/contracts.html'], ['Portfólio', '/finance/portfolio.html'], ['Provedores', '/finance/providers.html'],
   ['Passport', '/finance/passport.html'], ['Tarefas', '/finance/tasks.html'], ['Configurações', '/finance/settings.html']
 ];
 const PROVIDER_NAV = [['Início', '/provider/index.html'], ['Oportunidades', '/provider/rfqs.html'], ['Código de convite', '/provider/invite.html']];
@@ -22,6 +22,7 @@ export const PAGES = [
   { path: 'finance/approvals.html', view: 'approvals', audience: 'company', title: 'Aprovações', h1: 'Aprovações', description: 'Caixa de aprovação com o contexto completo de cada pedido.' },
   { path: 'finance/proposals.html', view: 'proposals', audience: 'company', title: 'Propostas', h1: 'Propostas recebidas', description: 'Propostas recebidas de provedores, com versão e revisão respondida.' },
   { path: 'finance/contracts.html', view: 'contracts', audience: 'company', title: 'Contratos', h1: 'Contratos e renovações', description: 'Ciclo de vida dos contratos: vigência, marcos de renovação e aviso prévio.' },
+  { path: 'finance/portfolio.html', view: 'portfolio', audience: 'company', title: 'Portfólio financeiro', h1: 'Dívida, limites e garantias', description: 'Facilities, limites aprovados e usados, vencimentos, indexadores, concentração por provedor e garantias, por moeda e com a origem de cada dado.' },
   { path: 'finance/providers.html', view: 'providers', audience: 'company', title: 'Provedores', h1: 'Provedores', description: 'Bancos, fintechs e adquirentes cadastrados pela empresa.' },
   { path: 'finance/passport.html', view: 'passport', audience: 'company', title: 'Financial Passport', h1: 'Financial Passport', description: 'Perfil financeiro reutilizável da empresa, com origem, responsável, data e revisão de cada dado.' },
   { path: 'finance/tasks.html', view: 'tasks', audience: 'company', title: 'Tarefas', h1: 'Tarefas', description: 'Pendências da equipe financeira.' },

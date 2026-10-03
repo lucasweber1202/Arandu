@@ -22,14 +22,26 @@ grant select on canary_expected to authenticated;
 do $$
 declare
   p record; v_leaks text := ''; v_count bigint; v_people integer := 0; v_checks integer := 0;
-  v_tbl text; v_rule text; v_schema text; v_passport boolean; v_multi boolean; r record;
+  v_tbl text; v_rule text; v_schema text; v_passport boolean; v_multi boolean; v_contracts boolean; v_order integer; r record;
 begin
   select value into v_schema from public.fin_settings where key='schema_version';
-  if v_schema is null or v_schema not in ('financial-surface-hardening-1','financial-approval-handoff-1','financial-passport-1','financial-multi-entity-1') then
+  -- Marcadores suportados, em ordem de aplicação: cada tabela nova é exigida a
+  -- partir do marcador que a cria.
+  v_order := array_position(array['financial-surface-hardening-1','financial-approval-handoff-1','financial-passport-1',
+                                   'financial-multi-entity-1','financial-contracts-v2-1',
+                                   'financial-relationships-portfolio-1'], v_schema);
+  if v_order is null then
     raise exception 'CANÁRIO: schema não suportado';
   end if;
-  v_passport := v_schema in ('financial-passport-1','financial-multi-entity-1');
-  v_multi := v_schema = 'financial-multi-entity-1';
+  v_passport := v_order >= 3;
+  v_multi := v_order >= 4;
+  v_contracts := v_order >= 5;
+  if (to_regclass('public.fin_facilities') is not null) <> (v_order >= 6) then
+    raise exception 'CANÁRIO: schema_version e tabelas de financial-relationships-portfolio-1 divergentes';
+  end if;
+  if (to_regclass('public.fin_contract_versions') is not null) <> v_contracts then
+    raise exception 'CANÁRIO: schema_version e tabelas do Contract Center divergentes';
+  end if;
   if (to_regclass('public.fin_legal_entities') is not null) <> v_multi then
     raise exception 'CANÁRIO: schema_version e tabelas multi-entity divergentes';
   end if;
@@ -62,13 +74,25 @@ begin
       ('fin_proposal_drafts',    'not (provider_organization_id = any($1))'),
       ('fin_notifications',      'user_id <> $3'),
       ('fin_legal_entities',     'not (organization_id = any($1))'),
+      ('fin_contract_versions',  'not (organization_id = any($1))'),
+      ('fin_contract_amendments', 'not (organization_id = any($1))'),
+      ('fin_contract_milestones', 'not (organization_id = any($1))'),
       ('fin_member_entity_grants', 'not (organization_id = any($1))'),
+      ('fin_facilities', 'not (organization_id = any($1))'),
+      ('fin_facility_balances', 'not (organization_id = any($1))'),
+      ('fin_guarantees', 'not (organization_id = any($1))'),
+      ('fin_provider_issues', 'not (organization_id = any($1))'),
+      ('fin_provider_relationships', 'not (organization_id = any($1))'),
+      ('fin_provider_reviews', 'not (organization_id = any($1))'),
+      ('fin_provider_contacts', 'not (organization_id = any($1))'),
       ('fin_private_documents',  'not (organization_id = any($1) or buyer_organization_id = any($1) or (visibility = ''shared'' and rfq_id = any($2)))')
     ) t(tbl, rule) loop
       -- Before Passport, these two tables must be absent (checked above).
       -- From financial-passport-1 on every check is mandatory, including both.
       if not v_passport and v_tbl in ('fin_company_profile_history','fin_rfq_profile_snapshots') then continue; end if;
       if not v_multi and v_tbl in ('fin_legal_entities','fin_member_entity_grants') then continue; end if;
+      if v_order < 6 and v_tbl in ('fin_facilities','fin_facility_balances','fin_guarantees','fin_provider_issues','fin_provider_relationships','fin_provider_reviews','fin_provider_contacts') then continue; end if;
+      if not v_contracts and v_tbl in ('fin_contract_versions','fin_contract_amendments','fin_contract_milestones') then continue; end if;
       execute format('select count(*) from public.%I where %s', v_tbl, v_rule) into v_count using p.orgs, p.invited_rfqs, p.user_id;
       v_checks := v_checks + 1;
       if v_count > 0 then v_leaks := v_leaks || format('pessoa#%s:%s=%s; ', v_people, v_tbl, v_count); end if;
@@ -98,7 +122,8 @@ begin
       perform set_config('request.jwt.claim.sub', r.user_id::text, true);
       perform set_config('request.jwt.claims', json_build_object('sub', r.user_id, 'role', 'authenticated', 'aal', 'aal1')::text, true);
       execute 'set local role authenticated';
-      foreach v_tbl in array array['fin_rfqs','fin_contracts','fin_events','fin_legal_entities'] loop
+      foreach v_tbl in array array['fin_rfqs','fin_contracts','fin_events','fin_legal_entities']
+          || case when v_order >= 6 then array['fin_facilities','fin_guarantees','fin_provider_relationships'] else '{}'::text[] end loop
         execute format('select count(*) from public.%I where organization_id = $1 and not (coalesce(%s, ''00000000-0000-0000-0000-000000000000''::uuid) = any($2))',
                        v_tbl, case when v_tbl = 'fin_legal_entities' then 'id' else 'legal_entity_id' end)
           into v_count using r.organization_id, r.entities;

@@ -161,3 +161,10 @@ exigem a organização provedora, e o job agendado roda sem `auth.uid()`.
 | Consolidado do restrito sem contagem de outra entidade | idem + `scripts/test-finance-entities.mjs` |
 | Outro tenant, provedor e externo sem acesso a entidades | idem |
 | Canário por membro restrito no banco real | `ops/sql/pilot-isolation-canary.sql` |
+
+## Contract Center v2 e Relationship & Portfolio
+
+* Toda tabela nova tem RLS forçada, só `SELECT` para `authenticated` e escrita por RPC SECURITY DEFINER com `search_path` fixo.
+* Leitura: objetos de contrato pela visibilidade do contrato; facilities, garantias, relações e saldos pela entidade; contatos/issues/avaliações de nível de grupo legíveis por qualquer membro da compradora (`fin_group_or_entity_visible`, que exige organização BUYER). O provedor — inclusive o vinculado por `provider_organization_id` — nunca lê contatos, notas, issues, avaliações ou facilities do comprador.
+* Imutabilidade: versões de termos, aditivos, avaliações, saldos, cronogramas e histórico de facility recusam `UPDATE`/`DELETE` (só o reset do banco marcado `demo` apaga).
+* Testes: `tests/database/financial-contracts-v2.sql`, `tests/database/financial-relationships-portfolio.sql`, `scripts/test-finance-contracts.mjs`, `scripts/test-finance-portfolio.mjs`; canário com as tabelas novas.
