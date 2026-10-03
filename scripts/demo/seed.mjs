@@ -217,6 +217,11 @@ function scopedTables(scope) {
     ['fin_approval_policies', ['organization_id'], org, ['updated_at']],
     ['fin_member_invitations', ['id'], org, ['created_at', 'accepted_at']],
     ['fin_events', ['id'], org, ['happened_at']],
+    // Multi-entity: concessões antes das entidades; unidades antes das entidades
+    // legais. Sem remapeamento de data (o estado arquivado depende de archived_at).
+    ['fin_member_entity_grants', null, org, []],
+    ['fin_legal_entities', ['id'], `${org}&parent_id=not.is.null`, []],
+    ['fin_legal_entities', ['id'], org, []],
     ['fin_members', ['organization_id', 'user_id'], org, ['created_at']],
     ['fin_organizations', ['id'], `id=${inList(scope.orgs)}`, ['created_at']]
   ];
