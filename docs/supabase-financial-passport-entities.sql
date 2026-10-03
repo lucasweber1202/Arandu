@@ -279,11 +279,11 @@ language plpgsql stable security invoker set search_path='' as $$ begin
  if length(trim(coalesce(p_query,''))) not between 2 and 100 or p_limit is null or p_offset is null or p_limit not between 1 and 50 or p_offset not between 0 and 1000 then raise exception 'invalid search'; end if;
  return query select r.id,r.field_key,r.field_value,r.legal_entity_id,r.source,r.updated_at from (
   select distinct on (cp.field_key) cp.* from public.fin_company_profiles cp
-  where cp.organization_id=p_org and (cp.legal_entity_id is not distinct from p_entity or (p_entity is not null and cp.legal_entity_id is null and public.fin_passport_inheritable(cp.field_key)))
+  where cp.organization_id=p_org and (cp.legal_entity_id is not distinct from p_entity or (p_entity is not null and cp.legal_entity_id is null and cp.field_key in ('sector','moeda_base','necessidades_recorrentes','canais_de_venda')))
   order by cp.field_key,(cp.legal_entity_id is not null) desc
  ) r where position(lower(trim(p_query)) in lower(r.field_key||' '||r.field_value))>0 order by r.field_key limit p_limit offset p_offset;
 end $$;
 revoke all on function public.fin_search_passport(uuid,uuid,text,integer,integer) from public,anon;
 grant execute on function public.fin_search_passport(uuid,uuid,text,integer,integer) to authenticated;
-grant execute on function public.fin_passport_inheritable(text) to authenticated;
+revoke all on function public.fin_passport_inheritable(text) from authenticated;
 insert into public.fin_settings(key,value) values('schema_version', 'financial-passport-entities-1') on conflict(key) do update set value=excluded.value,updated_at=now();

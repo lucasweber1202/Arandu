@@ -29,6 +29,10 @@ begin
     ('fin_update_organization(uuid,text,text,text,text)'),('fin_withdraw_proposal(uuid)'),
     ('fin_passport_set_field(uuid,text,text,text,uuid,date,integer)'),('fin_passport_confirm_field(uuid,text)'),
     ('fin_create_rfq_from_passport(uuid,text,text,text,jsonb,date,jsonb)'),
+    -- Passport entity-aware: role/entity guard, RLS predicate and invoker search.
+    ('fin_passport_set_scoped_field(uuid,uuid,text,text,text,uuid,date,integer)'),
+    ('fin_passport_confirm_scoped_field(uuid,uuid,text)'),('fin_passport_visible(uuid,uuid,text)'),
+    ('fin_search_passport(uuid,uuid,text,integer,integer)'),
     -- Multi-entity: RPCs de administração e auxiliares de policy (só dizem
     -- se o próprio chamador alcança uma entidade/objeto).
     ('fin_create_legal_entity(uuid,text,text,text,text,text,text,uuid)'),('fin_update_legal_entity(uuid,text,text,text,text)'),
