@@ -2,20 +2,23 @@
 
 O Arandu (Financial Procurement) está em preparação para o piloto. Toda mudança deve preservar a separação entre o que foi implementado no código e o que foi comprovado em staging, produção ou por aprovação humana.
 
-Antes de propor ou implementar mudança relevante de produto, UX, arquitetura, dados, IA, integrações ou operação, leia `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md`. Esse documento é a referência estratégica principal do Arandu. Mudanças que contradigam tese, limites, princípios, arquitetura de longo prazo ou papel da IA exigem decisão explícita e atualização da guideline; não devem entrar como efeito colateral de uma PR comum.
+Antes de propor ou implementar mudança relevante de produto, UX, arquitetura, dados, IA, integrações ou operação, leia `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md`, `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES_V2_1_ADDENDUM.md` e `docs/FINANCIAL_PRODUCT_BOUNDARIES.md`. A guideline é a referência estratégica principal do Arandu; enquanto o addendum v2.1 existir, ele é normativo e prevalece em conflito. Mudanças que contradigam tese, limites, princípios, arquitetura de longo prazo, enterprise resilience, data governance ou papel da IA exigem decisão explícita e atualização documental; não devem entrar como efeito colateral de uma PR comum.
+
+A guideline descreve o **target-state**, não uma autorização para implementar todo o roadmap. Cada PR deve respeitar a missão explícita da rodada, dependências e prioridade atual. Não antecipe Product Packs, network, benchmark ou refactors apenas porque aparecem como requisitos futuros.
 
 ## Fluxo de trabalho
 
-1. Parta da `pilot` atualizada. Mudanças vão para `pilot` e são promovidas para `main` por PR
-   depois de testadas no piloto (fluxo e hotfix em `docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md`). Se `pilot` estiver atrás de `main`, reconcilie a topologia antes de iniciar uma nova feature.
-2. Crie uma branch curta e descritiva:
+1. Parta da `pilot` atualizada. Mudanças funcionais vão para `pilot` e são promovidas para `main` por PR depois de testadas no piloto (fluxo e hotfix em `docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md`). Se `pilot` estiver atrás de `main`, reconcilie a topologia antes de iniciar uma nova feature.
+2. Se `main` estiver com guideline estratégica mais antiga que uma guideline já aprovada em `pilot`, não inicie feature nova a partir dessa documentação obsoleta. Resolva por `pilot → main` ou, quando promover todo o `pilot` for incorreto, por backport **docs-only** explícito para `main`, seguido de reconciliação `main → pilot` antes da próxima feature relevante. Essa é a exceção de canonicality definida no addendum v2.1.
+3. Crie uma branch curta e descritiva:
    - `agent/<descricao>` para pacotes implementados por agentes;
    - `feature/<descricao>` para funcionalidade;
    - `fix/<descricao>` para correção;
-   - `chore/<descricao>` para manutenção.
-3. Não faça commits diretamente na `main` nem na `pilot`; `main` só recebe a promoção `pilot → main` e `hotfix/*`.
-4. Abra PR em modo draft enquanto houver testes ou evidências pendentes.
-5. Remova a branch remota depois do merge, salvo quando ela for uma base empilhada ainda ativa.
+   - `chore/<descricao>` para manutenção;
+   - `docs/<descricao>` para documentação normativa/operacional.
+4. Não faça commits diretamente na `main` nem na `pilot`; `main` só recebe a promoção `pilot → main`, `hotfix/*` e a exceção docs-only de canonicality documentada acima.
+5. Abra PR em modo draft enquanto houver testes ou evidências pendentes.
+6. Remova a branch remota depois do merge, salvo quando ela for uma base empilhada ainda ativa.
 
 ## Push em lote (minutos do GitHub Actions)
 
@@ -52,7 +55,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-## Regras de segurança e privacidade
+## Regras de segurança, privacidade e enterprise readiness
 
 - Nunca registre segredos, tokens, strings de conexão, e-mails reais ou PII no Git.
 - Não use `user_metadata` para conceder privilégios.
@@ -60,7 +63,11 @@ npm run test:e2e
 - Não aceite preço, comissão ou autorização privilegiada calculados no navegador.
 - Não torne páginas internas parte do artefato público.
 - Mudanças de autenticação, RLS, upload e operação comercial precisam de testes negativos.
-- Preserve decisão humana, neutralidade de comparação e proveniência conforme `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md` e `docs/FINANCIAL_PRODUCT_BOUNDARIES.md`.
+- Preserve decisão humana, neutralidade de comparação e proveniência conforme a guideline, o addendum v2.1 e `docs/FINANCIAL_PRODUCT_BOUNDARIES.md`.
+- Integrações devem declarar source of truth, direção de sync, idempotência, conflito, fallback e observabilidade.
+- Mudanças que afetem dados devem avaliar classificação, minimização, retenção, exclusão/offboarding e impacto em backup conforme aplicável.
+- Mudanças que afetem produção, migrations ou recuperação devem avaliar backup, restore, rollback/forward-fix, canário e runbook. **Backup existente não equivale a restore comprovado.**
+- Não alegue RPO, RTO, SLA, data residency, branch protection, certificação ou compliance sem evidência operacional/contratual adequada.
 
 ## Evidências e release
 
@@ -91,10 +98,11 @@ A descrição da PR deve explicar:
 - testes executados;
 - evidência visual quando aplicável;
 - gates externos deliberadamente não alterados;
-- compatibilidade com `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md` quando a mudança for relevante para produto, dados, IA, cálculos, comparação ou integrações.
+- compatibilidade com `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md` + `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES_V2_1_ADDENDUM.md` quando a mudança for relevante para produto, dados, IA, cálculos, comparação, integrações ou enterprise readiness;
+- quando aplicável, impacto em data governance, operational resilience e source of truth.
 
 Não marque a PR como pronta enquanto checks obrigatórios estiverem falhando ou enquanto o texto atribuir ao código uma validação externa que não ocorreu.
 
 ## Documentação
 
-Use `docs/OPERATIONS_INDEX.md` para encontrar a documentação canônica. `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md` governa a direção estratégica de produto e engenharia; documentos especializados governam a implementação concreta. Documentos históricos devem ser claramente marcados e não podem competir com os runbooks atuais.
+Use `docs/OPERATIONS_INDEX.md` para encontrar a documentação canônica. `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md` governa a direção estratégica de produto e engenharia e, enquanto existir, o addendum v2.1 completa/override essa direção. Documentos especializados governam a implementação concreta. Documentos históricos devem ser claramente marcados e não podem competir com os runbooks atuais.
