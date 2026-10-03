@@ -74,32 +74,39 @@ locais; Firefox/WebKit no CI), canário `ops/sql/pilot-isolation-canary.sql` por
 
 ### P0.4 — Contract & Renewal Center v2
 
+Migration `docs/supabase-financial-contracts-v2.sql` (`financial-contracts-v2-1`) + rollback fail-closed; testes
+`tests/database/financial-contracts-v2.sql`, `scripts/test-finance-contracts.mjs`, `tests/e2e/finance-contracts.spec.js`.
+
 | ID | Guideline | Capability | Pri | Dependency | Status | Evidence | Gaps | Risk | Next action | PR/commit |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| P0.4-01 | §14.2 | Marcos de renovação D-180/120/90/60/30/7, tarefa e aviso idempotentes, nova RFQ a partir do contrato | P0 | — | implemented | `docs/supabase-financial-renewals.sql`, `docs/supabase-financial-delivery.sql` (`fin_run_renewal_schedule`), `/api/jobs/renewals`, `tests/database/financial-renewals.sql` | marcos fixos; sem marcos customizados | — | P0.4-02 | — |
-| P0.4-02 | §14.1 | Termos estruturados: partes, entidade, valores/limites, pricing, indexador, fees, garantias, covenants, SLAs, notice, auto-renewal, repricing, termination | P0 | P0.2 | missing | `fin_contracts` tem só vigência, aviso, custo/condições texto livre | — | contrato como PDF | migration contracts v2 | — |
-| P0.4-03 | §14.3 | Aditivos com versão temporal, contrato pai/filho | P0 | P0.4-02 | missing | — | — | sobrescrever histórico | idem | — |
-| P0.4-04 | §14.2 | Marcos customizados e obrigações recorrentes | P0 | P0.4-02 | missing | — | — | — | idem | — |
-| P0.4-05 | §14.1 | Contrato registrado fora de RFQ (legado/importado) | P0 | P0.4-02 | missing | contrato exige decisão | — | carteira existente fora do produto | idem | — |
+| P0.4-01 | §14.2 | Marcos de renovação D-180/120/90/60/30/7, tarefa e aviso idempotentes, nova RFQ a partir do contrato | P0 | — | implemented | `docs/supabase-financial-renewals.sql`, `fin_run_renewal_schedule`, `/api/jobs/renewals`, `fin_start_contract_rfq` (agora também para contrato importado, herdando entidade) | — | — | — | PR contratos/portfólio |
+| P0.4-02 | §14.1 | Termos estruturados (partes, valores/limites, pricing, indexador, spread, fees, garantias, covenants, SLA, rescisão, repricing, renovação, campos de adquirência) | P0 | P0.2 | implemented | `lib/finance/contract-terms.mjs` (allowlist), `fin_contract_versions`, `fin_record_contract_terms`, UI "Abrir contrato" | covenants seguem como texto contratual (monitor estruturado é P1.8) | termo inferido | P1.8 | PR contratos/portfólio |
+| P0.4-03 | §14.3 | Aditivos imutáveis com versão temporal e contrato pai/filho | P0 | P0.4-02 | implemented | `fin_contract_amendments`, `fin_record_contract_amendment` (preserva fim/aviso anteriores), `parent_contract_id`, diff factual (`diffContractTerms`) | — | — | — | PR contratos/portfólio |
+| P0.4-04 | §14.2 | Marcos próprios e obrigações recorrentes com tarefa por ocorrência e job | P0 | P0.4-02 | implemented | `fin_contract_milestones`, `fin_contract_milestone_runs`, `fin_process_contract_milestones`, `fin_run_contract_milestones` no cron | notificação por e-mail do marco depende do provedor de e-mail (owner) | — | — | PR contratos/portfólio |
+| P0.4-05 | §14.1 | Contrato existente da carteira (fora de RFQ) e categorias além de crédito/adquirência | P0 | P0.4-02 | implemented | `origin='imported'`, `fin_import_contract`, botão "Registrar contrato existente" | importação em lote (CSV/ERP) é P2.6 | — | P2.6 | PR contratos/portfólio |
 
 ### P0.5 — Provider / Bank Relationship Management
+
+Migration `docs/supabase-financial-relationships-portfolio.sql` (`financial-relationships-portfolio-1`); testes
+`tests/database/financial-relationships-portfolio.sql`, `scripts/test-finance-portfolio.mjs`, `tests/e2e/finance-portfolio.spec.js`.
 
 | ID | Guideline | Capability | Pri | Dependency | Status | Evidence | Gaps | Risk | Next action | PR/commit |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | P0.5-01 | §12.1 | Cadastro do provedor (tipo, contato, região, evidência regulatória) | P0 | — | implemented | `fin_providers`, `fin_record_provider_evidence`, `/finance/providers.html` | — | — | — | — |
-| P0.5-02 | §12.1 | Múltiplos contatos, categorias, relação por entidade | P0 | P0.2 | missing | um contato por provedor | — | — | provider RM migration | — |
-| P0.5-03 | §12.1 | Métricas factuais: processos convidados, taxa e tempo de resposta, propostas, contratos | P0 | — | missing | dados existem em convites/propostas; não há visão | — | métrica inventada | relationship view | — |
-| P0.5-04 | §12.1, §25 | Issues/follow-ups, performance records, timeline | P0 | P0.5-02 | missing | — | — | — | idem | — |
-| P0.5-05 | §12.3, §25 | Scorecards definidos pelo cliente (sem score default) | P0 | P0.5-04 | missing | — | — | score subjetivo | idem | — |
-| P0.5-06 | §12.2 | Relationship map provedor × entidade × produto × contrato × limites | P0 | P0.4, P0.6 | missing | — | — | — | idem | — |
+| P0.5-02 | §12.1 | Múltiplos contatos (grupo/entidade), relação provedor × entidade com owner e categorias | P0 | P0.2 | implemented | `fin_provider_contacts`, `fin_provider_relationships`, painel "Relacionamento" | — | — | — | PR contratos/portfólio |
+| P0.5-03 | §12.1 | Métricas factuais: convidados, respondidos, taxa e mediana de resposta, contratos, facilities, issues | P0 | — | implemented | `relationshipMetrics` com definições; `GET /api/finance/provider-relationship` sob RLS | — | métrica inventada | — | PR contratos/portfólio |
+| P0.5-04 | §12.1, §25 | Issues/follow-ups com resolução e linha do tempo | P0 | P0.5-02 | implemented | `fin_provider_issues`, `fin_open_provider_issue`/`fin_update_provider_issue`, timeline no painel | performance records importados (SLA de serviço) são P1.9 | — | P1.9 | PR contratos/portfólio |
+| P0.5-05 | §12.3, §25 | Scorecards definidos pelo cliente, versionados, avaliação imutável, sem score default | P0 | P0.5-04 | implemented | `fin_scorecard_templates`, `fin_provider_reviews`, Configurações → Scorecards | — | score subjetivo | — | PR contratos/portfólio |
+| P0.5-06 | §12.2 | Relationship map provedor × entidade × categoria × contratos × limites | P0 | P0.4, P0.6 | implemented | `relationshipMap` + tabela no painel | participação no wallet (exige spend, P1.7) | — | P1.7 | PR contratos/portfólio |
 
 ### P0.6 — Debt / Facilities / Limits / Guarantees
 
 | ID | Guideline | Capability | Pri | Dependency | Status | Evidence | Gaps | Risk | Next action | PR/commit |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| P0.6-01 | §13.1 | Registro de facility/dívida com provenance (principal, saldo declarado, moeda, indexador, spread, vencimento, amortização, entidade, contrato fonte, owner) | P0 | P0.2, P0.4 | missing | — | — | ledger paralelo | migration debt/facilities | — |
-| P0.6-02 | §13.1 | Garantias e compromissos | P0 | P0.6-01 | missing | — | — | — | idem | — |
-| P0.6-03 | §13.2 | Visões: maturity wall, indexer/currency mix, concentração, limite aprovado/usado/disponível, janelas de refinanciamento, garantias comprometidas | P0 | P0.6-01 | missing | — | — | soma de moedas incompatíveis | idem | — |
+| P0.6-01 | §13.1 | Facility com provenance (origem, referência, verificado em, revisar depois de), histórico de alterações | P0 | P0.2, P0.4 | implemented | `fin_facilities`, `fin_facility_history` (gatilho), `fin_save_facility`, `fin_confirm_facility`, `/finance/portfolio.html` | importação/integração automática (P2.6/P2.7) | ledger paralelo | — | PR contratos/portfólio |
+| P0.6-02 | §13.1 | Saldo/uso point-in-time e cronograma declarado versionado | P0 | P0.6-01 | implemented | `fin_facility_balances` (append-only), `fin_facility_repayments` (`schedule_version`) | — | — | — | PR contratos/portfólio |
+| P0.6-03 | §13.1 | Garantias comprometidas | P0 | P0.6-01 | implemented | `fin_guarantees`, `fin_save_guarantee` | — | — | — | PR contratos/portfólio |
+| P0.6-04 | §13.2 | Visões por moeda: limites aprovado/usado/disponível, maturity wall, mix de indexadores, concentração, refinanciamento, garantias, revisão vencida | P0 | P0.6-01 | implemented | `portfolioViews` (`lib/finance/portfolio.mjs`), definições por métrica | conversão entre moedas deliberadamente ausente | soma de moedas | — | PR contratos/portfólio |
 
 ### P0.7 — Policy & Approval Engine v2
 
@@ -151,7 +158,7 @@ locais; Firefox/WebKit no CI), canário `ops/sql/pilot-isolation-canary.sql` por
 | P1.3 | §18 | Opportunity Engine determinístico | P1 | P0.4–P0.6 | missing | — | — | virar recomendação | — | — |
 | P1.4 | §23 | Proposal & Document Intelligence | P1 | docs privados | missing | upload privado existe (`fin_private_documents`) | extração exige provedor de IA/OCR | extração errada | foundation com confirmação humana | — |
 | P1.5 | §33, Add. F.2 | SCIM / JIT / access reviews / service accounts | P1 | P0.9 | missing | — | — | misconfiguration | — | — |
-| P1.6 | §26 | Executive Portfolio | P1 | P0.4–P0.6 | partial | `/finance/dashboard.html` (pipeline, tarefas, prazos) | sem dívida, facilities, concentração, fees | dashboard sem ação | — | — |
+| P1.6 | §26 | Executive Portfolio | P1 | P0.4–P0.6 | partial | `/finance/dashboard.html` (pipeline, tarefas, prazos, consolidado por entidade), `/finance/portfolio.html` (dívida, limites, concentração, garantias) | sem fees, savings, opportunities, cycle times numa visão executiva única | dashboard sem ação | após P1.1–P1.3 | — |
 | P1.7 | §16 | Financial Spend Analytics | P1 | P1.2 | missing | — | — | dupla contagem | — | — |
 | P1.8 | §15 | Covenant & Obligation Monitor | P1 | P0.4 | missing | — | — | breach falso | com contracts v2 | — |
 | P1.9 | §25 | Provider Performance | P1 | P0.5 | missing | — | — | score universal | — | — |
@@ -196,5 +203,6 @@ locais; Firefox/WebKit no CI), canário `ops/sql/pilot-isolation-canary.sql` por
 3. P0.2 implementado (migration, RLS, guardas, API, UI, testes, docs). Validação local: `test:database`
    verde (clean/upgrade/reapply/rollback/canário com membros restritos: 0 vazamentos), `check:all` verde,
    build + gates de dist, E2E financeiro em Chromium desktop/mobile (65 + 14 passaram, 7 pulados por
-   projeto), `audit:ci` 0 vulnerabilidades. Próximo: P0.4 Contract Center v2 → P0.5 Provider RM →
-   P0.6 Debt/Facilities.
+   projeto), `audit:ci` 0 vulnerabilidades. PR #101.
+4. P0.4 Contract Center v2, P0.5 Provider RM e P0.6 Debt/Facilities implementados em `agent/contract-center-v2`
+   (PR empilhada sobre #101). Próximo: P0.7 Policy & Approval Engine v2 → P0.8 API/Webhooks → P0.9 IAM/SSO.

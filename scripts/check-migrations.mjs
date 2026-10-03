@@ -136,7 +136,10 @@ for (const [flow, files] of Object.entries(manifest)) {
   const contractsV2 = files.indexOf('docs/supabase-financial-contracts-v2.sql');
   if (contractsV2 === -1) issues.push(`${flow}: Contract Center v2 (termos versionados, aditivos, marcos) ausente.`);
   if (multiEntity !== -1 && contractsV2 !== -1 && contractsV2 !== multiEntity + 1) issues.push(`${flow}: Contract Center v2 deve vir depois do multi-entity.`);
-  if (contractsV2 !== -1 && contractsV2 !== files.length - 1) issues.push(`${flow}: Contract Center v2 deve encerrar a sequência atual.`);
+  const relationshipsPortfolio = files.indexOf('docs/supabase-financial-relationships-portfolio.sql');
+  if (relationshipsPortfolio === -1) issues.push(`${flow}: Relationship & Portfolio (provedores, facilities, garantias) ausente.`);
+  if (contractsV2 !== -1 && relationshipsPortfolio !== -1 && relationshipsPortfolio !== contractsV2 + 1) issues.push(`${flow}: Relationship & Portfolio (provedores, facilities, garantias) deve vir depois de ${'docs/supabase-financial-contracts-v2.sql'}.`);
+  if (relationshipsPortfolio !== -1 && relationshipsPortfolio !== files.length - 1) issues.push(`${flow}: Relationship & Portfolio (provedores, facilities, garantias) deve encerrar a sequência atual.`);
 }
 
 // Catraca de inventário: todo .sql direto em docs/ é migration do manifesto,

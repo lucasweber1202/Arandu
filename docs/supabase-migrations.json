@@ -38,7 +38,8 @@
     "docs/supabase-financial-approval-handoff.sql",
     "docs/supabase-financial-passport.sql",
     "docs/supabase-financial-multi-entity.sql",
-    "docs/supabase-financial-contracts-v2.sql"
+    "docs/supabase-financial-contracts-v2.sql",
+    "docs/supabase-financial-relationships-portfolio.sql"
   ],
   "existingDatabase": [
     "docs/supabase-sprint1-auth-ownership.sql",
@@ -78,6 +79,7 @@
     "docs/supabase-financial-approval-handoff.sql",
     "docs/supabase-financial-passport.sql",
     "docs/supabase-financial-multi-entity.sql",
-    "docs/supabase-financial-contracts-v2.sql"
+    "docs/supabase-financial-contracts-v2.sql",
+    "docs/supabase-financial-relationships-portfolio.sql"
   ]
 }

@@ -10,6 +10,7 @@ import { NOTIFICATION_META, notificationItem } from '../shell.js';
 import { buildPassport } from '../../../lib/finance/passport.mjs';
 import { CONTRACT_CATEGORIES } from '../../../lib/finance/contract-terms.mjs';
 import { importContractButton, openContract } from './contract-center.js';
+import { openProviderRelationship, scorecardSettings } from './provider-relationship.js';
 import { loadEntities, entitySettings, memberScopes, entityContextSelect, inContext, contractEntityControl, entityName } from './entities.js';
 
 // ------------------------------------------------------------ aprovações
@@ -212,6 +213,8 @@ export async function contracts(ctx) {
 // -------------------------------------------------------------- provedores
 export async function providers(ctx) {
   const rows = ctx.data.providers || [];
+  // Memória de relacionamento (contatos, issues, avaliações da empresa, mapa).
+  const relationshipEnabled = (await loadEntities(ctx)).available;
   const manage = ctx.can('create_rfq');
   const add = manage ? button('Cadastrar provedor', { variant: 'primary', iconName: 'plus', onClick: () => providerDrawer(ctx) }) : null;
   ctx.header({ title: 'Provedores', subtitle: 'Bancos, fintechs e adquirentes com quem a empresa cota. É um cadastro da empresa, não uma atestação.', actions: add ? [add] : [] });
@@ -230,7 +233,8 @@ export async function providers(ctx) {
     const visible = rows.filter((row) => fold(`${row.name} ${row.region} ${PROVIDER_KINDS[row.kind]}`).includes(term));
     for (const provider of visible) {
       body.append(el('tr', { id: `provider-${provider.id}`, dataset: { entity: 'provider', id: provider.id } }, [
-        el('td', { 'data-label': 'Provedor', class: 'cell-primary' }, person(provider.name, provider.website || null)),
+        el('td', { 'data-label': 'Provedor', class: 'cell-primary' }, [person(provider.name, provider.website || null),
+          relationshipEnabled ? button('Relacionamento', { size: 'sm', variant: 'ghost', iconName: 'users', attrs: { 'aria-label': `Relacionamento com ${provider.name}` }, onClick: () => openProviderRelationship(ctx, provider) }) : null]),
         el('td', { 'data-label': 'Tipo', text: PROVIDER_KINDS[provider.kind] || provider.kind }),
         el('td', { 'data-label': 'Região', text: provider.region || '—' }),
         el('td', { 'data-label': 'Participações', text: `${participation.get(provider.id) || 0} solicitação(ões)` }),
@@ -435,6 +439,10 @@ export async function settings(ctx) {
   if (entities.available) {
     add('entidades', 'Entidades do grupo', 'Entidades legais e unidades. Processos e contratos de uma entidade só aparecem para quem tem o grupo inteiro ou aquela entidade no escopo.', entitySettings(ctx, entities));
     add('escopos', 'Escopo de acesso por entidade', 'Tesouraria do grupo enxerga tudo; escopo restrito enxerga só as entidades concedidas. O banco aplica a regra em toda leitura e escrita.', memberScopes(ctx, entities));
+  }
+
+  if (entities.available) {
+    add('scorecards', 'Scorecards de provedores', 'Critérios e pesos definidos pela sua empresa para avaliar provedores. Versionados; o Arandu não fornece nota própria.', scorecardSettings(ctx));
   }
 
   // Política de aprovação.

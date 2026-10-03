@@ -109,6 +109,9 @@ declarada.
 | Módulo | Onde vive |
 | --- | --- |
 | Organizações, membros e papéis | `fin_organizations`, `fin_members`, `fin_member_invitations` |
+| Contract & Renewal Center v2 (termos versionados, aditivos, carteira importada, marcos e obrigações recorrentes) | `fin_contract_versions`, `fin_contract_amendments`, `fin_contract_milestones`, `lib/finance/contract-terms.mjs` |
+| Provider/Bank Relationship Management (contatos, relação por entidade, issues, scorecards do cliente, mapa e métricas factuais) | `fin_provider_*`, `fin_scorecard_templates`, `lib/finance/portfolio.mjs` |
+| Dívida, facilities, limites e garantias (visão por moeda, não ledger) | `fin_facilities`, `fin_facility_balances`, `fin_facility_repayments`, `fin_guarantees`, `/finance/portfolio.html` |
 | Grupo multi-entity (entidades legais, unidades, escopo de acesso por entidade, consolidado) | `fin_legal_entities`, `fin_member_entity_grants`, `lib/finance/entities.mjs`, `/api/finance/entities*` |
 | Financial Passport (perfil reutilizável com proveniência, frescor, histórico e snapshot na RFQ) | `fin_company_profiles`, `fin_company_profile_history`, `fin_rfq_profile_snapshots`, `lib/finance/passport.mjs` |
 | Provedores | `fin_providers` |

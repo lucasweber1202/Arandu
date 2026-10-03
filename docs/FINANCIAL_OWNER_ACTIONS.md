@@ -62,14 +62,14 @@ o Pilot nem o legado. A mesma dependência vale para Production.
    **nesta ordem e só os que faltam** depois do marcador do passo 1:
    `docs/supabase-financial-approval-handoff.sql` (→ `financial-approval-handoff-1`),
    `docs/supabase-financial-passport.sql` (já em `pilot` pela #95) (→ `financial-passport-1`)
-   e `docs/supabase-financial-multi-entity.sql` (→ `financial-multi-entity-1`). Os três
+   `docs/supabase-financial-multi-entity.sql` (→ `financial-multi-entity-1`), `docs/supabase-financial-contracts-v2.sql` (→ `financial-contracts-v2-1`) e `docs/supabase-financial-relationships-portfolio.sql` (→ `financial-relationships-portfolio-1`). Os cinco
    são aditivos, idempotentes e têm rollback em `docs/rollback/`; foram
    ensaiados por cima de um banco povoado no Supabase local
    (`scripts/pilot-local`) e no `test:database` (upgrade, rollback e reaplicação).
    O bundle pendente pode ser gerado sem aplicar SQL:
    `npm run migrations:bundle -- --flow=existingDatabase --after-schema=financial-surface-hardening-1`.
 3. Repita a consulta do passo 1: esperado o `EXPECTED_SCHEMA_VERSION` de
-   `lib/finance/pilot-doctor.mjs` (hoje `financial-multi-entity-1`). Depois, `ops/sql/pilot-isolation-canary.sql`
+   `lib/finance/pilot-doctor.mjs` (hoje `financial-relationships-portfolio-1`). Depois, `ops/sql/pilot-isolation-canary.sql`
    confere também o isolamento por entidade de membros com escopo restrito.
 4. Advisors → Security e Performance: esperado nenhum item de
    `rls_disabled_in_public`, `security_definer_view` ou

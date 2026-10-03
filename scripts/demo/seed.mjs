@@ -186,6 +186,16 @@ function scopedTables(scope) {
   const org = `organization_id=${inList(scope.orgs)}`;
   const list = (ids) => inList(ids.length ? ids : ['00000000-0000-0000-0000-000000000000']);
   return [
+    ['fin_guarantees', ['id'], org, ['created_at', 'updated_at']],
+    ['fin_facility_repayments', null, org, []],
+    ['fin_facility_balances', null, org, []],
+    ['fin_facility_history', null, org, []],
+    ['fin_facilities', ['id'], org, ['created_at', 'updated_at']],
+    ['fin_provider_reviews', null, org, []],
+    ['fin_scorecard_templates', null, org, []],
+    ['fin_provider_issues', ['id'], org, ['created_at', 'updated_at']],
+    ['fin_provider_relationships', null, org, []],
+    ['fin_provider_contacts', ['id'], org, ['created_at']],
     ['fin_contract_milestone_runs', null, org, []],
     ['fin_contract_milestones', ['id'], org, ['created_at', 'updated_at']],
     ['fin_contract_versions', null, org, []],

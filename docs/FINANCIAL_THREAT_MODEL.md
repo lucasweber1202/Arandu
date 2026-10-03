@@ -96,3 +96,16 @@ são tratados pelos controles gerais do Arandu, não por esta vertical.
 | 47 | **Vazamento por consolidado** — contagem de entidade não autorizada | consolidado calculado sobre linhas do RLS; sem linha de grupo para restrito | idem + `test-finance-entities.mjs` |
 | 48 | **Busca/autores como canal lateral** (SECURITY DEFINER) | `fin_search` e `fin_comment_authors` reescritas com o filtro de entidade | idem |
 | 49 | **Admin restrito / escalada de escopo** | constraint `fin_members_admin_group_scope`; só admin altera escopo | idem |
+
+## Contratos v2, relacionamento e portfólio
+
+| # | Ataque | Defesa | Teste |
+| --- | --- | --- | --- |
+| 50 | **Reescrever termos/aditivo** para apagar o histórico | versões e aditivos imutáveis; correção = versão nova com justificativa | `financial-contracts-v2.sql` |
+| 51 | **Duas abas gravando termos** | versão esperada (`contract version conflict`) | idem + `test-finance-contracts.mjs` |
+| 52 | **Termo fora do catálogo** (campo "rating", HTML) | allowlist na API + `fin_valid_contract_terms` no banco | idem |
+| 53 | **Marco duplicando tarefa** por reprocessamento | `fin_contract_milestone_runs` (uma tarefa por ocorrência) | `financial-contracts-v2.sql` |
+| 54 | **Score oculto do Arandu** sobre provedor | não existe; scorecard é template do cliente, resultado rotulado como dele, critério fora do template recusado | `financial-relationships-portfolio.sql` |
+| 55 | **Provedor lendo avaliação/contatos/notas** | policies exigem membro da compradora | idem |
+| 56 | **Saldo/uso adulterado** depois de registrado | fotografias append-only; uso acima do limite recusado | idem |
+| 57 | **Soma entre moedas** induzindo leitura errada | visões por moeda; nenhum total agregado entre moedas | `test-finance-portfolio.mjs` |
