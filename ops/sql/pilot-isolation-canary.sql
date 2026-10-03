@@ -29,7 +29,7 @@ begin
   -- partir do marcador que a cria.
   v_order := array_position(array['financial-surface-hardening-1','financial-approval-handoff-1','financial-passport-1',
                                    'financial-multi-entity-1','financial-contracts-v2-1',
-                                   'financial-relationships-portfolio-1','financial-passport-entities-1'], v_schema);
+                                   'financial-relationships-portfolio-1','financial-passport-entities-1','financial-graph-1'], v_schema);
   if v_order is null then
     raise exception 'CANÁRIO: schema não suportado';
   end if;

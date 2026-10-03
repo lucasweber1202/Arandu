@@ -27,7 +27,7 @@ function initialRows() {
 }
 
 /** Sessão simulada com Passport de estado: o que é salvo volta na recarga. */
-async function mockPassport(page, { role = 'finance_manager', kind = 'BUYER', snapshot = [], entities = [] } = {}) {
+async function mockPassport(page, { role = 'finance_manager', kind = 'BUYER', snapshot = [], entities = [], graph = null } = {}) {
   const state = { rows: initialRows(), writes: [], confirms: [], creates: [], forbidden: [] };
   const members = { u1: 'Helena Duarte', u2: 'Rafael Menezes' };
   const documents = [{ id: DOC, title: 'Contrato social consolidado', current_version: 2 }];
@@ -37,6 +37,7 @@ async function mockPassport(page, { role = 'finance_manager', kind = 'BUYER', sn
     const path = url.pathname.replace('/api/finance/', '');
     const json = (body, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
     const organization = kind === 'BUYER' ? ORGANIZATION : { id: PROVIDER_ORG, kind: 'PROVIDER', legal_name: 'Atlas Bank' };
+    if (path === 'graph/organization' && graph) return json(graph(url));
     if (path === 'entities') return json({ok:true,rows:entities,scope:'group'});
     if (path === 'organizations') return json({ ok: true, rows: [organization] });
     if (path === 'members') return json({ ok: true, rows: [{ user_id: 'u1', role, display_name: 'Helena Duarte', title: 'CFO' }], viewer_id: 'u1' });
@@ -270,4 +271,37 @@ test('Passport mantém identidade e saldos no escopo da entidade selecionada', a
  await expect(page.locator('#field-legal_name')).toContainText('Entity B');
  await expect(page.locator('#field-receita_anual .passport-value')).toContainText('200');
  await noOverflow(page,'Passport entity scope');
+});
+
+
+test('Passport consulta snapshots autorizados no Graph com paginação e filtro', async ({ page }) => {
+  const queries=[];
+  await mockPassport(page,{graph:url=>{
+    queries.push(Object.fromEntries(url.searchParams));
+    if(url.searchParams.get('kind') !== 'passport_snapshot') return {ok:true,rows:[],has_more:false};
+    const next=url.searchParams.get('offset')==='20';
+    return {ok:true,rows:[{object_type:'passport_snapshot',object_id:next?'snap2':'snap1',rfq_id:RFQ,title:next?'Capital de giro 2':'Capital de giro 1',facts:{value:'100',source:'extrato',original_scope:'entity',vintage:'2026-10-03'}}],has_more:!next,next_offset:next?null:20};
+  }});
+  await page.goto('/finance/passport.html');
+  await page.getByRole('button',{name:'Ver relações financeiras'}).click();
+  await expect(page.getByRole('link',{name:'Capital de giro 1',exact:true})).toHaveAttribute('href',`/finance/rfq.html?id=${RFQ}`);
+  await expect(page.locator('.graph-list')).toContainText('100 · origem: extrato · escopo: entity');
+  await page.getByRole('button',{name:'Próximas relações'}).click();
+  await expect(page.getByRole('link',{name:'Capital de giro 2',exact:true})).toBeVisible();
+  await page.getByRole('combobox',{name:'Tipo de relação financeira'}).selectOption('contract');
+  await expect(page.getByText('Nenhuma relação neste filtro')).toBeVisible();
+  expect(queries.map(q=>q.offset)).toEqual(['0','20','0']);
+  expect(queries.every(q=>q.organization_id===ORG)).toBeTruthy();
+  await noOverflow(page,'Graph context');
+});
+
+test('Graph mantém filtro da entidade e mostra estado vazio factual', async ({page})=>{
+  const A='00000000-0000-4000-8000-000000000e01';
+  const queries=[];
+  await mockPassport(page,{entities:[{id:A,legal_name:'Entity A',kind:'legal_entity',status:'active'}],graph:url=>{queries.push(Object.fromEntries(url.searchParams));return {ok:true,rows:[],has_more:false};}});
+  await page.goto(`/finance/passport.html?legal_entity_id=${A}`);
+  await page.getByRole('button',{name:'Ver relações financeiras'}).click();
+  await expect(page.getByText('Nenhuma relação neste filtro')).toBeVisible();
+  expect(queries[0].legal_entity_id).toBe(A);
+  await noOverflow(page,'Graph entity');
 });
