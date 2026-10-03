@@ -1090,3 +1090,23 @@ tr.highlighted>td,.proposal-card.highlighted,.document-row.highlighted,.comment.
   .entity-context-select{max-width:100%;width:100%}
   .entity-row.depth-1{margin-left:var(--s3)}
 }
+
+/* Contract & Renewal Center v2. */
+.drawer-wide{width:min(760px,100vw)}
+.contract-center .cc-section{border-top:1px solid var(--border);padding-top:var(--s4);display:grid;gap:var(--s3)}
+.contract-center .cc-section:first-child{border-top:0;padding-top:0}
+.cc-head{display:flex;flex-wrap:wrap;gap:var(--s3);align-items:center;justify-content:space-between}
+.cc-head h3{font-size:var(--fs-lg)}
+.version-list,.milestone-list{list-style:none;margin:0;padding:0;display:grid;gap:var(--s2)}
+.version-row,.milestone-row{border:1px solid var(--border);border-radius:var(--r-md);padding:var(--s3);display:grid;gap:var(--s1);overflow-wrap:anywhere}
+.version-head{display:flex;flex-wrap:wrap;gap:var(--s2);align-items:center}
+.diff-list{margin:0;padding-left:var(--s5);font-size:var(--fs-sm)}
+.milestone-row{grid-template-columns:1fr auto;align-items:center}
+.milestone-main{display:flex;flex-direction:column;min-width:0}
+.contract-open{display:flex;flex-wrap:wrap;gap:var(--s2);align-items:center;margin:var(--s2) 0}
+.fee-rows{display:grid;gap:var(--s2)}
+.fee-row{display:grid;grid-template-columns:2fr 1.4fr 1fr auto;gap:var(--s2);align-items:center}
+@media (max-width:719px){
+  .fee-row{grid-template-columns:1fr 1fr}
+  .milestone-row{grid-template-columns:1fr}
+}

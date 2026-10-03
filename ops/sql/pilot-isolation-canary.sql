@@ -22,14 +22,22 @@ grant select on canary_expected to authenticated;
 do $$
 declare
   p record; v_leaks text := ''; v_count bigint; v_people integer := 0; v_checks integer := 0;
-  v_tbl text; v_rule text; v_schema text; v_passport boolean; v_multi boolean; r record;
+  v_tbl text; v_rule text; v_schema text; v_passport boolean; v_multi boolean; v_contracts boolean; v_order integer; r record;
 begin
   select value into v_schema from public.fin_settings where key='schema_version';
-  if v_schema is null or v_schema not in ('financial-surface-hardening-1','financial-approval-handoff-1','financial-passport-1','financial-multi-entity-1') then
+  -- Marcadores suportados, em ordem de aplicação: cada tabela nova é exigida a
+  -- partir do marcador que a cria.
+  v_order := array_position(array['financial-surface-hardening-1','financial-approval-handoff-1','financial-passport-1',
+                                   'financial-multi-entity-1','financial-contracts-v2-1'], v_schema);
+  if v_order is null then
     raise exception 'CANÁRIO: schema não suportado';
   end if;
-  v_passport := v_schema in ('financial-passport-1','financial-multi-entity-1');
-  v_multi := v_schema = 'financial-multi-entity-1';
+  v_passport := v_order >= 3;
+  v_multi := v_order >= 4;
+  v_contracts := v_order >= 5;
+  if (to_regclass('public.fin_contract_versions') is not null) <> v_contracts then
+    raise exception 'CANÁRIO: schema_version e tabelas do Contract Center divergentes';
+  end if;
   if (to_regclass('public.fin_legal_entities') is not null) <> v_multi then
     raise exception 'CANÁRIO: schema_version e tabelas multi-entity divergentes';
   end if;
@@ -62,6 +70,9 @@ begin
       ('fin_proposal_drafts',    'not (provider_organization_id = any($1))'),
       ('fin_notifications',      'user_id <> $3'),
       ('fin_legal_entities',     'not (organization_id = any($1))'),
+      ('fin_contract_versions',  'not (organization_id = any($1))'),
+      ('fin_contract_amendments', 'not (organization_id = any($1))'),
+      ('fin_contract_milestones', 'not (organization_id = any($1))'),
       ('fin_member_entity_grants', 'not (organization_id = any($1))'),
       ('fin_private_documents',  'not (organization_id = any($1) or buyer_organization_id = any($1) or (visibility = ''shared'' and rfq_id = any($2)))')
     ) t(tbl, rule) loop
@@ -69,6 +80,7 @@ begin
       -- From financial-passport-1 on every check is mandatory, including both.
       if not v_passport and v_tbl in ('fin_company_profile_history','fin_rfq_profile_snapshots') then continue; end if;
       if not v_multi and v_tbl in ('fin_legal_entities','fin_member_entity_grants') then continue; end if;
+      if not v_contracts and v_tbl in ('fin_contract_versions','fin_contract_amendments','fin_contract_milestones') then continue; end if;
       execute format('select count(*) from public.%I where %s', v_tbl, v_rule) into v_count using p.orgs, p.invited_rfqs, p.user_id;
       v_checks := v_checks + 1;
       if v_count > 0 then v_leaks := v_leaks || format('pessoa#%s:%s=%s; ', v_people, v_tbl, v_count); end if;

@@ -51,6 +51,7 @@ apply_file "$clean_db" "tests/database/financial-surface-hardening.sql"
 apply_file "$clean_db" "tests/database/financial-approval-handoff.sql"
 apply_file "$clean_db" "tests/database/financial-passport.sql"
 apply_file "$clean_db" "tests/database/financial-multi-entity.sql"
+apply_file "$clean_db" "tests/database/financial-contracts-v2.sql"
 # Reaplicação da migration financeira sobre a base já povoada: a rodada precisa
 # ser idempotente antes de o rollback ser exercitado.
 apply_file "$clean_db" "docs/supabase-financial-procurement.sql"
@@ -71,6 +72,7 @@ apply_file "$clean_db" "docs/supabase-financial-pilot-surface-hardening.sql"
 apply_file "$clean_db" "docs/supabase-financial-approval-handoff.sql"
 apply_file "$clean_db" "docs/supabase-financial-passport.sql"
 apply_file "$clean_db" "docs/supabase-financial-multi-entity.sql"
+apply_file "$clean_db" "docs/supabase-financial-contracts-v2.sql"
 psql "$(database_url "$clean_db")" -v ON_ERROR_STOP=1 -c "do \$\$ begin if (select count(*) from public.fin_legal_entities) < 3 or (select count(*) from public.fin_member_entity_grants) < 2 or not exists(select 1 from public.fin_rfqs where legal_entity_id is not null) or not exists(select 1 from public.fin_members where entity_scope='entities') then raise exception 'reaplicação do multi-entity perdeu escopo ou entidades'; end if; end \$\$;"
 bash "$root_dir/tests/database/reservation-concurrency.sh" "$(database_url "$clean_db")"
 bash "$root_dir/tests/database/order-concurrency.sh" "$(database_url "$clean_db")"
@@ -126,13 +128,13 @@ apply_file "$upgrade_db" "docs/supabase-financial-final-hardening.sql"
 apply_file "$upgrade_db" "docs/supabase-financial-pilot-surface-hardening.sql"
 apply_file "$upgrade_db" "ops/sql/pilot-isolation-canary.sql"
 # A wrong marker cannot skip Passport checks or turn a partial schema green.
-for marker in unknown financial-passport-1 financial-multi-entity-1; do
+for marker in unknown financial-passport-1 financial-multi-entity-1 financial-contracts-v2-1; do
   if rejection="$(psql "$(database_url "$upgrade_db")" -X -v ON_ERROR_STOP=1 -c "begin; update public.fin_settings set value='${marker}' where key='schema_version';" -f "$root_dir/ops/sql/pilot-isolation-canary.sql" 2>&1)"; then
     echo "Canary accepted an inconsistent schema marker" >&2; exit 1
   fi
   case "$marker" in
     unknown) expected='CANÁRIO: schema não suportado' ;;
-    financial-multi-entity-1) expected='CANÁRIO: schema_version e tabelas multi-entity divergentes' ;;
+    financial-multi-entity-1|financial-contracts-v2-1) expected='CANÁRIO: schema_version e tabelas' ;;
     *) expected='CANÁRIO: schema_version e tabelas Passport divergentes' ;;
   esac
   [[ "$rejection" == *"$expected"* ]] || { echo "Canary failed for an unexpected reason" >&2; exit 1; }
@@ -144,6 +146,13 @@ apply_file "$upgrade_db" "tests/database/financial-passport.sql"
 # Multi-entity sobre base povoada pelo Passport: upgrade, canário, rollback e reaplicação.
 apply_file "$upgrade_db" "docs/supabase-financial-multi-entity.sql"
 apply_file "$upgrade_db" "ops/sql/pilot-isolation-canary.sql"
+# Contract Center v2 sobre a mesma base: upgrade, canário, rollback e reaplicação.
+apply_file "$upgrade_db" "docs/supabase-financial-contracts-v2.sql"
+apply_file "$upgrade_db" "ops/sql/pilot-isolation-canary.sql"
+apply_file "$upgrade_db" "docs/rollback/supabase-financial-contracts-v2.rollback.sql"
+psql "$(database_url "$upgrade_db")" -v ON_ERROR_STOP=1 -c "do \$\$ begin if to_regclass('public.fin_contract_versions') is not null or to_regclass('public.fin_contract_milestones') is not null or exists(select 1 from information_schema.columns where table_name='fin_contracts' and column_name in ('origin','current_version')) or (select is_nullable from information_schema.columns where table_name='fin_contracts' and column_name='decision_id') <> 'NO' or (select value from public.fin_settings where key='schema_version') <> 'financial-multi-entity-1' then raise exception 'rollback do Contract Center v2 incompleto'; end if; end \$\$;"
+apply_file "$upgrade_db" "docs/supabase-financial-contracts-v2.sql"
+apply_file "$upgrade_db" "docs/rollback/supabase-financial-contracts-v2.rollback.sql"
 apply_file "$upgrade_db" "docs/rollback/supabase-financial-multi-entity.rollback.sql"
 psql "$(database_url "$upgrade_db")" -v ON_ERROR_STOP=1 -c "do \$\$ begin if to_regclass('public.fin_legal_entities') is not null or exists(select 1 from information_schema.columns where table_name in ('fin_rfqs','fin_contracts','fin_tasks','fin_events') and column_name='legal_entity_id') or to_regprocedure('public.fin_entity_visible(uuid,uuid)') is not null or (select value from public.fin_settings where key='schema_version') <> 'financial-passport-1' or (select pg_get_expr(polqual, polrelid) from pg_policy where polname='fin_rfq_read') like '%entity%' then raise exception 'rollback multi-entity incompleto'; end if; end \$\$;"
 apply_file "$upgrade_db" "docs/supabase-financial-multi-entity.sql"
@@ -205,6 +214,7 @@ apply_file "$upgrade_db" "docs/supabase-financial-pilot-surface-hardening.sql"
 apply_file "$upgrade_db" "docs/supabase-financial-approval-handoff.sql"
 apply_file "$upgrade_db" "docs/supabase-financial-passport.sql"
 apply_file "$upgrade_db" "docs/supabase-financial-multi-entity.sql"
+apply_file "$upgrade_db" "docs/supabase-financial-contracts-v2.sql"
 apply_file "$upgrade_db" "tests/database/financial-procurement.sql"
 apply_file "$upgrade_db" "tests/database/financial-procurement-hardening.sql"
 apply_file "$upgrade_db" "tests/database/financial-pilot.sql"
@@ -223,8 +233,9 @@ apply_file "$upgrade_db" "tests/database/financial-surface-hardening.sql"
 apply_file "$upgrade_db" "tests/database/financial-approval-handoff.sql"
 apply_file "$upgrade_db" "tests/database/financial-passport.sql"
 apply_file "$upgrade_db" "tests/database/financial-multi-entity.sql"
+apply_file "$upgrade_db" "tests/database/financial-contracts-v2.sql"
 apply_file "$upgrade_db" "ops/sql/pilot-isolation-canary.sql"
 bash "$root_dir/tests/database/email-outbox-concurrency.sh" "$(database_url "$upgrade_db")"
 
 echo "Arandu Database Integration Tests"
-echo "Instalação limpa, upgrade, reaplicação, rollback, RLS, transações, pedidos, invariantes PR38, outbox, fencing de workers, retenção, procurement financeiro e operação real do piloto (convite, janela de envio, aviso de renovação), finance_ops, destinatário do convite superfície exposta ao PostgREST (fidelidade aos default privileges do Supabase, matriz adversarial entre tenants) aviso ao próximo aprovador da cadeia Financial Passport (proveniência, histórico, snapshot imutável na RFQ, negação a provedor e a outro tenant) e multi-entity (escopo por entidade, RLS, guarda de escrita, consolidação, trilha, rollback) aprovados."
+echo "Instalação limpa, upgrade, reaplicação, rollback, RLS, transações, pedidos, invariantes PR38, outbox, fencing de workers, retenção, procurement financeiro e operação real do piloto (convite, janela de envio, aviso de renovação), finance_ops, destinatário do convite superfície exposta ao PostgREST (fidelidade aos default privileges do Supabase, matriz adversarial entre tenants) aviso ao próximo aprovador da cadeia Financial Passport (proveniência, histórico, snapshot imutável na RFQ, negação a provedor e a outro tenant) multi-entity (escopo por entidade, RLS, guarda de escrita, consolidação, trilha, rollback) e Contract Center v2 (importado, termos versionados, aditivo imutável, marcos idempotentes) aprovados."

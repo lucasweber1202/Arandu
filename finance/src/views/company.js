@@ -8,6 +8,8 @@ import { memberName, currentStep, approvalSummaryLine, comparisonMatrix, revisio
 import { approvalCard, lazyDocuments } from './rfq.js';
 import { NOTIFICATION_META, notificationItem } from '../shell.js';
 import { buildPassport } from '../../../lib/finance/passport.mjs';
+import { CONTRACT_CATEGORIES } from '../../../lib/finance/contract-terms.mjs';
+import { importContractButton, openContract } from './contract-center.js';
 import { loadEntities, entitySettings, memberScopes, entityContextSelect, inContext, contractEntityControl, entityName } from './entities.js';
 
 // ------------------------------------------------------------ aprovações
@@ -160,7 +162,8 @@ export async function contracts(ctx) {
     } catch (error) { toast(error.message, 'error'); } finally { target.disabled = false; }
   } }) : null;
   const context = entityContextSelect(entities, { onChange: () => ctx.rerender() });
-  ctx.header({ title: 'Contratos e renovações', subtitle: 'Vigência, marcos de 90/60/30 dias, aviso prévio e próxima ação de cada contrato.', actions: [context, refresh].filter(Boolean) });
+  const importButton = importContractButton(ctx, entities);
+  ctx.header({ title: 'Contratos e renovações', subtitle: 'Termos versionados, aditivos, marcos próprios, aviso prévio e próxima ação de cada contrato.', actions: [context, importButton, refresh].filter(Boolean) });
   if (!rows.length && (ctx.data.contracts || []).length) return emptyState({ title: 'Nenhum contrato nesta entidade', text: 'Troque a entidade em foco para ver os demais contratos que você pode ler.', iconName: 'building' });
   if (!rows.length) return emptyState({ title: 'Nenhum contrato registrado ainda', text: 'Depois de uma decisão, registre o contrato com vigência e aviso prévio. O Arandu acompanha a renovação.', iconName: 'briefcase' });
   const ordered = [...rows].sort((a, b) => (['active', 'renewing'].includes(b.status) - ['active', 'renewing'].includes(a.status)) || String(a.review_from).localeCompare(String(b.review_from)));
@@ -182,7 +185,7 @@ export async function contracts(ctx) {
     root.append(el('article', { class: `contract-card${location.hash === `#contract-${contract.id}` ? ' highlighted' : ''}`, id: `contract-${contract.id}`, tabindex: '-1', dataset: { entity: 'contract', id: contract.id } }, [
       el('header', { class: 'contract-head' }, [
         el('div', {}, [
-          el('p', { class: 'contract-kicker', text: `${productLabel(contract.product)}${source ? ` · ${source.title}` : ''}` }),
+          el('p', { class: 'contract-kicker', text: `${CONTRACT_CATEGORIES[contract.product] || productLabel(contract.product)}${source ? ` · ${source.title}` : contract.title ? ` · ${contract.title}` : ''}` }),
           el('h2', { class: 'contract-title', text: contract.provider_name || 'Provedor' }),
           entities.rows.length ? el('p', { class: 'contract-entity', 'aria-label': `Entidade: ${entityName(entities, contract.legal_entity_id)}` }, contractEntityControl(ctx, entities, contract)) : null
         ]),
@@ -196,6 +199,8 @@ export async function contracts(ctx) {
         ['Custo registrado', contract.cost_summary || 'Não informado'], contract.main_conditions ? ['Condições', contract.main_conditions] : null,
         contract.document_reference ? ['Documento', contract.document_reference] : null
       ].filter(Boolean).map(([label, value]) => el('div', { class: 'deflist-row' }, [el('dt', { text: label }), el('dd', { class: value === 'Não informado' ? 'missing' : '', text: value })]))),
+      el('div', { class: 'contract-open' }, [button('Abrir contrato: termos, aditivos e marcos', { size: 'sm', iconName: 'file', onClick: () => openContract(ctx, contract) }),
+        contract.origin === 'imported' ? tag('Carteira existente') : null, contract.current_version ? tag(`Termos v${contract.current_version}`, 'accent') : tag('Termos não estruturados', 'warning')]),
       lazyDocuments(ctx, 'contract', contract.id, 'Documentos do contrato', { canUpload: ctx.can('upload_document') }),
       source ? el('a', { class: 'contract-link', href: ctx.href(`/finance/rfq.html?id=${source.id}#decisao`) }, [el('span', { text: 'Ver processo e decisão de origem' }), icon('arrowRight', { size: 14 })]) : null
     ]));
