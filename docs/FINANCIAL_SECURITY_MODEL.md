@@ -129,3 +129,35 @@ sujeitas ao modelo já existente: sessão administrativa, MFA, RBAC, auditoria e
 motivo. Nenhuma função `fin_*` concede acesso a `service_role` além do que o
 Supabase já concede por padrão, e nenhuma delas aceita "agir como" outro
 usuário.
+
+## Isolamento entre entidades do mesmo grupo (multi-entity)
+
+Dentro de uma organização compradora, membros com escopo `entities` só leem e
+escrevem objetos das entidades concedidas (e das unidades abaixo delas). A regra
+mora no banco:
+
+* **Leitura** — `fin_entity_visible` em todas as policies do lado comprador e na
+  busca (`fin_search`, SECURITY DEFINER, reescrita com o filtro em cada ramo),
+  em `fin_can_read_document` e em `fin_comment_authors`.
+* **Escrita** — gatilhos `BEFORE INSERT/UPDATE` em RFQ, contrato, decisão,
+  aprovação (pedido e etapa), convite, tarefa, comentário e documento privado
+  chamam `fin_assert_entity_write`. Por estarem nas tabelas, cobrem toda RPC
+  existente e futura; não dependem de cada função lembrar a regra.
+* **Aprovador** — a etapa só é criada para quem alcança a entidade, e quem perde
+  o escopo no meio do fluxo não consegue mais agir.
+* **Consolidado** — calculado sobre linhas já filtradas pelo RLS.
+* **Mudança de escopo** — só admin do grupo (`fin_set_member_entity_scope`),
+  com evento na trilha; administrador nunca é restrito.
+
+Provedores e jobs sem sessão não passam por essa guarda: as RPCs de provedor já
+exigem a organização provedora, e o job agendado roda sem `auth.uid()`.
+
+| Cenário | Arquivo |
+| --- | --- |
+| Membro restrito não lê RFQ, proposta, decisão, contrato, marco, tarefa, convite, evento ou comentário de outra entidade | `tests/database/financial-multi-entity.sql` |
+| Escrita fora do escopo via RPC existente (transição, convite, comentário, decisão, tarefa, renovação) | idem |
+| Aprovador sem escopo / escopo revogado no meio do fluxo | idem |
+| Reatribuição silenciosa de entidade (UPDATE direto) | idem |
+| Consolidado do restrito sem contagem de outra entidade | idem + `scripts/test-finance-entities.mjs` |
+| Outro tenant, provedor e externo sem acesso a entidades | idem |
+| Canário por membro restrito no banco real | `ops/sql/pilot-isolation-canary.sql` |

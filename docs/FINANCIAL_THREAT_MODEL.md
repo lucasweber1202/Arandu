@@ -84,3 +84,15 @@ pelo nosso frontend nem pela nossa API.
 
 Comprometimento da conta Supabase, do provedor de e-mail, do DNS ou do CI. Esses
 são tratados pelos controles gerais do Arandu, não por esta vertical.
+
+## Multi-entity (fundação de grupo)
+
+| # | Ataque | Defesa | Teste |
+| --- | --- | --- | --- |
+| 43 | **Cross-entity read** — membro restrito lê processo/contrato de outra entidade pela REST direta | `fin_entity_visible` nas policies do comprador, com `force row level security` | `financial-multi-entity.sql` |
+| 44 | **Cross-entity write via RPC existente** (transição, convite, decisão, comentário, tarefa) | gatilhos `fin_*_entity_guard` nas tabelas, independentes da RPC | idem |
+| 45 | **Aprovador fora do escopo** ou com escopo revogado | gatilho na etapa (`fin_approval_step_entity_guard`) na criação e na ação | idem |
+| 46 | **Reescopo silencioso** — mover RFQ/contrato para outra entidade sem trilha | coluna só muda pelas RPCs dedicadas, com evento; UPDATE direto recusado | idem |
+| 47 | **Vazamento por consolidado** — contagem de entidade não autorizada | consolidado calculado sobre linhas do RLS; sem linha de grupo para restrito | idem + `test-finance-entities.mjs` |
+| 48 | **Busca/autores como canal lateral** (SECURITY DEFINER) | `fin_search` e `fin_comment_authors` reescritas com o filtro de entidade | idem |
+| 49 | **Admin restrito / escalada de escopo** | constraint `fin_members_admin_group_scope`; só admin altera escopo | idem |

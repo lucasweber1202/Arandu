@@ -109,6 +109,7 @@ declarada.
 | Módulo | Onde vive |
 | --- | --- |
 | Organizações, membros e papéis | `fin_organizations`, `fin_members`, `fin_member_invitations` |
+| Grupo multi-entity (entidades legais, unidades, escopo de acesso por entidade, consolidado) | `fin_legal_entities`, `fin_member_entity_grants`, `lib/finance/entities.mjs`, `/api/finance/entities*` |
 | Financial Passport (perfil reutilizável com proveniência, frescor, histórico e snapshot na RFQ) | `fin_company_profiles`, `fin_company_profile_history`, `fin_rfq_profile_snapshots`, `lib/finance/passport.mjs` |
 | Provedores | `fin_providers` |
 | RFQ e máquina de estados | `fin_rfqs`, `lib/finance/workflow.mjs` |
@@ -165,7 +166,7 @@ campos em quatro contextos — Empresa, Crédito, Adquirência e Documentação.
   demanda que a empresa enviou, nunca o Passport nem a fotografia.
 
 Fora desta versão, de propósito: importação/integração (Onda 4), extração por
-IA com confirmação (Onda 2) e múltiplas entidades legais (fundação multi-entity).
+IA com confirmação (Onda 2) e Passport por entidade legal (a fundação multi-entity já separa processos, contratos e acessos por entidade; o Passport continua de nível de grupo).
 
 Portal do provedor (`/provider/`): início, aceite de convite com estado
 explícito, RFQs atribuídas com a necessidade declarada, e resposta de proposta

@@ -28,7 +28,14 @@ begin
     ('fin_submit_proposal(uuid,jsonb,text)'),('fin_transition(text,uuid,text)'),('fin_update_my_member_profile(uuid,text,text)'),
     ('fin_update_organization(uuid,text,text,text,text)'),('fin_withdraw_proposal(uuid)'),
     ('fin_passport_set_field(uuid,text,text,text,uuid,date,integer)'),('fin_passport_confirm_field(uuid,text)'),
-    ('fin_create_rfq_from_passport(uuid,text,text,text,jsonb,date,jsonb)')
+    ('fin_create_rfq_from_passport(uuid,text,text,text,jsonb,date,jsonb)'),
+    -- Multi-entity: RPCs de administração e auxiliares de policy (só dizem
+    -- se o próprio chamador alcança uma entidade/objeto).
+    ('fin_create_legal_entity(uuid,text,text,text,text,text,text,uuid)'),('fin_update_legal_entity(uuid,text,text,text,text)'),
+    ('fin_set_base_currency(uuid,text)'),('fin_set_member_entity_scope(uuid,uuid,text,uuid[])'),
+    ('fin_create_rfq_in_entity(uuid,uuid,text,text,text,jsonb,date,jsonb)'),('fin_set_rfq_entity(uuid,uuid)'),
+    ('fin_assign_contract_entity(uuid,uuid)'),('fin_entity_scope(uuid)'),('fin_entity_allows(uuid,uuid,text[])'),
+    ('fin_entity_visible(uuid,uuid)'),('fin_object_visible(uuid,text,uuid)'),('fin_rfq_visible(uuid)'),('fin_contract_visible(uuid)')
   ), actual as (
     select p.oid::regprocedure::text sig from pg_proc p
     where p.pronamespace = 'public'::regnamespace and has_function_privilege('authenticated', p.oid, 'EXECUTE')
@@ -70,7 +77,7 @@ begin
      and has_table_privilege('anon', c.oid, p.privilege_type);
   if v_extra is not null then raise exception 'anon com escrita em tabela financeira: %', v_extra; end if;
 
-  if (select value from public.fin_settings where key = 'schema_version') not in ('financial-surface-hardening-1', 'financial-approval-handoff-1', 'financial-passport-1') then
+  if (select value from public.fin_settings where key = 'schema_version') not in ('financial-surface-hardening-1', 'financial-approval-handoff-1', 'financial-passport-1', 'financial-multi-entity-1') then
     raise exception 'schema_version não avançou';
   end if;
 end $$;

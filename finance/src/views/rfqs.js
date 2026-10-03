@@ -4,6 +4,7 @@ import { PRODUCTS, PRODUCT_IDS, checkAcquiringShares } from '../../../lib/financ
 import { passportPrefill, SOURCE_LABELS } from '../../../lib/finance/passport.mjs';
 import { el, icon, fold, daysUntil, relativeDays, formatDate, formatDateTime, productLabel, demandHeadline, RFQ_STATUS, fieldValue, todayIso } from '../core.js';
 import { pill, linkButton, button, emptyState, person, progress, field, catalogControl, saveIndicator, toast, confirmDialog, tag } from '../ui.js';
+import { loadEntities, entityContextSelect, inContext, entityName, entityField } from './entities.js';
 
 const NEXT_ACTION = {
   draft: 'Convidar e abrir', open: 'Aguardar respostas', collecting: 'Acompanhar respostas', comparing: 'Avaliar e decidir',
@@ -16,6 +17,7 @@ function nextAction(rfq) {
 }
 
 export async function rfqList(ctx) {
+  const entities = await loadEntities(ctx);
   const rfqs = ctx.data.rfqs || [];
   ctx.header({
     title: 'Solicitações', subtitle: 'Todas as concorrências de crédito e adquirência da empresa.',
@@ -50,6 +52,7 @@ export async function rfqList(ctx) {
   const sort = el('select', { class: 'input', 'aria-label': 'Ordenar solicitações' });
   for (const [value, label] of [['deadline', 'Prazo mais próximo'], ['recent', 'Mais recentes'], ['responses', 'Mais respostas']]) sort.add(new Option(label, value));
   sort.value = params.get('sort') || 'deadline';
+  const entitySelect = entityContextSelect(entities, { label: 'Filtrar por entidade' });
   const count = el('span', { class: 'result-count', role: 'status', 'aria-live': 'polite' });
   const clear = button('Limpar filtros', { variant: 'ghost', size: 'sm', onClick: () => { search.value = ''; product.value = ''; owner.value = ''; activeStatus = ''; for (const node of status.children) node.setAttribute('aria-pressed', String(node.dataset.status === '')); draw(); } });
 
@@ -63,7 +66,8 @@ export async function rfqList(ctx) {
     const term = fold(search.value.trim());
     const visible = rfqs.filter((rfq) => (!activeStatus || rfq.status === activeStatus)
       && (!product.value || rfq.product === product.value) && (!owner.value || rfq.owner_id === owner.value)
-      && (!term || fold(`${rfq.title} ${rfq.description || ''}`).includes(term)));
+      && (!term || fold(`${rfq.title} ${rfq.description || ''}`).includes(term))
+      && (!entitySelect || inContext(entities, rfq, entitySelect.value)));
     visible.sort((a, b) => sort.value === 'recent' ? String(b.created_at).localeCompare(String(a.created_at))
       : sort.value === 'responses' ? (b.proposals || []).length - (a.proposals || []).length
         : String(['open', 'collecting', 'comparing', 'draft'].includes(a.status) ? a.response_deadline || '9999' : 'z').localeCompare(String(['open', 'collecting', 'comparing', 'draft'].includes(b.status) ? b.response_deadline || '9999' : 'z')));
@@ -75,7 +79,7 @@ export async function rfqList(ctx) {
       body.append(el('tr', { class: 'row-link', dataset: { entity: 'rfq', id: rfq.id } }, [
         el('td', { 'data-label': 'Solicitação', class: 'cell-primary' }, [
           el('a', { class: 'row-title stretched', href: ctx.href(`/finance/rfq.html?id=${encodeURIComponent(rfq.id)}`), text: rfq.title }),
-          el('span', { class: 'row-sub', text: `${productLabel(rfq.product, { short: true })} · ${demandHeadline(rfq)} · rev. ${rfq.revision || 1}` })
+          el('span', { class: 'row-sub', text: `${productLabel(rfq.product, { short: true })} · ${demandHeadline(rfq)} · rev. ${rfq.revision || 1}${entities.rows.length ? ` · ${entityName(entities, rfq.legal_entity_id)}` : ''}` })
         ]),
         el('td', { 'data-label': 'Status' }, pill(RFQ_STATUS[rfq.status], { size: 'sm' })),
         el('td', { 'data-label': 'Responsável' }, person(rfq.owner_name || 'Membro')),
@@ -97,9 +101,9 @@ export async function rfqList(ctx) {
     if (sort.value !== 'deadline') next.set('sort', sort.value);
     history.replaceState(null, '', `${location.pathname}${next.toString() ? `?${next}` : ''}`);
   }
-  for (const control of [search, product, owner, sort]) control.addEventListener(control === search ? 'input' : 'change', draw);
+  for (const control of [search, product, owner, sort, entitySelect].filter(Boolean)) control.addEventListener(control === search ? 'input' : 'change', draw);
   root.append(
-    el('div', { class: 'toolbar' }, [el('div', { class: 'toolbar-search' }, [icon('search'), search]), product, owner, sort, count]),
+    el('div', { class: 'toolbar' }, [el('div', { class: 'toolbar-search' }, [icon('search'), search]), entitySelect, product, owner, sort, count].filter(Boolean)),
     el('div', { class: 'toolbar-chips' }, status),
     el('div', { class: 'table-card' }, [table, empty])
   );
@@ -176,7 +180,10 @@ export async function newRfq(ctx) {
   const titleField = field({ label: 'Título da solicitação', control: title, required: true, hint: 'Os provedores veem este título. Seja específico e evite dados sigilosos.' });
   const description = el('textarea', { name: 'description', rows: '3', maxlength: '4000', placeholder: 'Contexto que ajuda o provedor a ofertar melhor.' });
   const descriptionField = field({ label: 'Contexto da necessidade', control: description, optionalLabel: true });
-  productStep.append(productCards, titleField, descriptionField);
+  // Entidade do grupo em que o processo nasce (quem o enxerga depende dela).
+  const entities = await loadEntities(ctx);
+  const entityWrap = entityField(entities);
+  productStep.append(productCards, titleField, descriptionField, ...(entityWrap ? [entityWrap] : []));
   wraps.set('title', titleField);
 
   const deadline = el('input', { name: 'response_deadline', type: 'date', min: todayIso() });
@@ -497,7 +504,8 @@ export async function newRfq(ctx) {
     try {
       clearTimeout(timer);
       if (pending) await pending.catch(() => {});
-      const result = await ctx.api('rfqs', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, ...payload() }) });
+      const entityId = entityWrap?.querySelector('select')?.value || null;
+      const result = await ctx.api('rfqs', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, ...payload(), ...(entityId ? { legal_entity_id: entityId } : {}) }) });
       if (editorRevision) await ctx.api('rfq-editor', { method: 'DELETE', body: JSON.stringify({ organization_id: ctx.organization.id, expected_revision: editorRevision }) }).catch(() => {});
       dirty = false;
       toast(['Solicitação criada como rascunho.', ...(result.warnings || [])].join(' '));
