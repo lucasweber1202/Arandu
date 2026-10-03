@@ -197,6 +197,17 @@ Migration `docs/supabase-financial-relationships-portfolio.sql` (`financial-rela
 
 ## Log de execução da rodada (03/10/2026)
 
+### Estabilização pós-#103
+
+Baseline viva `pilot@742fc1f`; ver `PILOT_STABILIZATION_2026-10-03.md`.
+`presentation` no run 37148718617 falhou por overflow determinístico de 31 px
+no Mobile Safari, causado pelo rótulo nowrap da ação de Contract Center. Correção
+localizada nos botões de contratos e teste 320/393 px, light/dark, teclado e scroll
+de marcos. Gates locais e resultados remotos constam na PR de estabilização.
+Os deploys dos três projetos Vercel falharam nesse SHA; logs/configuração bloqueados
+por 403 de acesso à equipe. Causa do deploy ainda não comprovada. Pilot **não** é
+declarada saudável. P0.3-02/P0.3-03 continuam `missing`; P0.7 não foi antecipado.
+
 1. Sincronizado `pilot` (`6ad0d4f`), confirmado `main` ⊂ `pilot`, branch de trabalho a partir de `pilot`.
 2. Auditoria acima. Primeiro gap P0 não bloqueado: **P0.2 Multi-Entity Foundation** (P0.1
    restante é externo/owner).

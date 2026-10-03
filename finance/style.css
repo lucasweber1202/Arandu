@@ -1104,6 +1104,9 @@ tr.highlighted>td,.proposal-card.highlighted,.document-row.highlighted,.comment.
 .milestone-row{grid-template-columns:1fr auto;align-items:center}
 .milestone-main{display:flex;flex-direction:column;min-width:0}
 .contract-open{display:flex;flex-wrap:wrap;gap:var(--s2);align-items:center;margin:var(--s2) 0}
+/* Long lifecycle actions must fit the card even at spacious mobile density. */
+.contract-card .btn,body[data-view=contracts] .page-actions .btn{max-width:100%;min-width:0;white-space:normal;line-height:1.4;padding-top:6px;padding-bottom:6px;text-align:left}
+.contract-card .btn-label,body[data-view=contracts] .page-actions .btn-label{min-width:0}
 .fee-rows{display:grid;gap:var(--s2)}
 .fee-row{display:grid;grid-template-columns:2fr 1.4fr 1fr auto;gap:var(--s2);align-items:center}
 @media (max-width:719px){

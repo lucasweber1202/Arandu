@@ -357,6 +357,36 @@ test('restaurar só aparência preserva os dados; restaurar dados preserva a apa
   await expect(page.locator('.task-list')).not.toContainText('Tarefa que deve sobreviver');
 });
 
+test('contrato: ação de lifecycle cabe no cartão e abre por teclado em telas estreitas', async ({ page }) => {
+  for (const width of [320, 393]) {
+    await page.setViewportSize({ width, height: 852 });
+    for (const theme of ['light', 'dark']) {
+      await page.goto('/demo/index.html');
+      await page.evaluate(([key, value]) => localStorage.setItem(key, JSON.stringify({ version: 1, appearance: { theme: value, density: 'spacious' } })), [KEY, theme]);
+      await ready(page, '/demo/finance/contracts.html');
+      const action = page.getByRole('button', { name: 'Abrir contrato: termos, aditivos e marcos' }).first();
+      await expect(action).toBeVisible();
+      const geometry = await action.evaluate((button) => {
+        const card = button.closest('.contract-card').getBoundingClientRect();
+        const rect = button.getBoundingClientRect();
+        return { left: rect.left - card.left, right: rect.right - card.right, overflow: document.documentElement.scrollWidth - innerWidth };
+      });
+      expect(geometry.left).toBeGreaterThanOrEqual(0);
+      expect(geometry.right).toBeLessThanOrEqual(1);
+      expect(geometry.overflow).toBeLessThanOrEqual(1);
+      const timeline = page.locator('.contract-timeline').first();
+      expect(await timeline.evaluate((line) => { line.scrollLeft = line.scrollWidth; return line.scrollLeft; })).toBeGreaterThan(0);
+      await action.focus();
+      await page.keyboard.press('Enter');
+      await expect(page.getByRole('dialog')).toBeVisible();
+      await expect(page.getByRole('dialog').locator('.contract-center')).toBeVisible();
+      await page.keyboard.press('Escape');
+      await expect(page.getByRole('dialog')).toBeHidden();
+      await expect(action).toBeFocused();
+    }
+  }
+});
+
 test('layout móvel e desktop sem rolagem horizontal, com e sem tema escuro', async ({ page }) => {
   for (const theme of ['light', 'dark']) {
     await page.goto('/demo/index.html');
