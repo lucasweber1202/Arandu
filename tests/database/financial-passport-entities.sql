@@ -6,7 +6,7 @@ insert into pe_ids select 'B',id from public.fin_legal_entities where organizati
 grant all on pe_ids to authenticated;
 create or replace function pg_temp.pe_denied(p_sql text) returns void language plpgsql as $$ begin
  execute p_sql; raise exception 'probe unexpectedly succeeded';
-exception when others then if sqlerrm not in ('forbidden','immutable record','invalid passport usage') then raise; end if; end $$;
+exception when others then if sqlerrm not in ('forbidden','immutable record','invalid passport usage','invalid search') then raise; end if; end $$;
 grant execute on function pg_temp.pe_denied(text) to authenticated;
 set role authenticated;
 select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-0000000ee001',false);
@@ -27,6 +27,9 @@ do $$ begin
  if not exists(select 1 from public.fin_rfq_profile_snapshots where rfq_id=(select value from pe_ids where key='rfq') and field_value='100' and original_scope='entity' and legal_entity_id=(select value from pe_ids where key='A') and source_legal_entity_id=legal_entity_id and vintage is not null and profile_updated_by is not null) then raise exception 'snapshot scope/provenance missing'; end if;
 end $$;
 select public.fin_passport_set_scoped_field('00000000-0000-4000-8000-0000000ef001',(select value from pe_ids where key='A'),'receita_anual','101','extrato');
+do $$ begin if exists(select 1 from public.fin_search_passport('00000000-0000-4000-8000-0000000ef001',(select value from pe_ids where key='A'),'200')) then raise exception 'search sibling leak'; end if; end $$;
+select pg_temp.pe_denied($q$select * from public.fin_search_passport('00000000-0000-4000-8000-0000000ef001',(select value from pe_ids where key='B'),'200')$q$);
+select pg_temp.pe_denied($q$select * from public.fin_search_passport('00000000-0000-4000-8000-0000000ef001',(select value from pe_ids where key='A'),'100',null,0)$q$);
 do $$ begin
  if (select field_value from public.fin_rfq_profile_snapshots where rfq_id=(select value from pe_ids where key='rfq'))<>'100' then raise exception 'snapshot mutated after update'; end if;
 end $$;
