@@ -33,6 +33,7 @@ begin
     ('fin_passport_set_scoped_field(uuid,uuid,text,text,text,uuid,date,integer)'),
     ('fin_passport_confirm_scoped_field(uuid,uuid,text)'),('fin_passport_visible(uuid,uuid,text)'),
     ('fin_search_passport(uuid,uuid,text,integer,integer)'),
+    ('fin_query_graph(uuid,text,uuid,text,uuid,text,text,date,integer,integer)'),
     -- Multi-entity: RPCs de administração e auxiliares de policy (só dizem
     -- se o próprio chamador alcança uma entidade/objeto).
     ('fin_create_legal_entity(uuid,text,text,text,text,text,text,uuid)'),('fin_update_legal_entity(uuid,text,text,text,text)'),
@@ -74,7 +75,7 @@ begin
 
   select string_agg(c.relname, ', ') into v_extra from pg_class c
    where c.relnamespace = 'public'::regnamespace and c.relkind = 'v'
-     and (has_table_privilege('anon', c.oid, 'SELECT') or has_table_privilege('authenticated', c.oid, 'SELECT')
+     and (has_table_privilege('anon', c.oid, 'SELECT') or (has_table_privilege('authenticated', c.oid, 'SELECT') and c.relname not in ('fin_graph_objects','fin_financial_graph'))
           or not coalesce('security_invoker=on' = any(c.reloptions) or 'security_invoker=true' = any(c.reloptions), false));
   if v_extra is not null then raise exception 'view legível pelo cliente ou sem security_invoker: %', v_extra; end if;
 
@@ -88,7 +89,7 @@ begin
      and has_table_privilege('anon', c.oid, p.privilege_type);
   if v_extra is not null then raise exception 'anon com escrita em tabela financeira: %', v_extra; end if;
 
-  if (select value from public.fin_settings where key = 'schema_version') not in ('financial-surface-hardening-1', 'financial-approval-handoff-1', 'financial-passport-1', 'financial-multi-entity-1', 'financial-contracts-v2-1', 'financial-relationships-portfolio-1', 'financial-passport-entities-1') then
+  if (select value from public.fin_settings where key = 'schema_version') not in ('financial-surface-hardening-1', 'financial-approval-handoff-1', 'financial-passport-1', 'financial-multi-entity-1', 'financial-contracts-v2-1', 'financial-relationships-portfolio-1', 'financial-passport-entities-1', 'financial-graph-1') then
     raise exception 'schema_version não avançou';
   end if;
 end $$;

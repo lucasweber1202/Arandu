@@ -1134,3 +1134,5 @@ tr.highlighted>td,.proposal-card.highlighted,.document-row.highlighted,.comment.
 .schedule-rows{display:grid;gap:var(--s2)}
 .schedule-rows .fee-row{grid-template-columns:1fr 1fr auto}
 .portfolio-grid>*,.portfolio-stats>*{min-width:0}
+
+.graph-context select{max-width:100%;margin-bottom:12px}.graph-list{display:grid;gap:12px;padding-left:20px}.graph-list li{overflow-wrap:anywhere}.graph-list li>a,.graph-list li>strong{display:block}

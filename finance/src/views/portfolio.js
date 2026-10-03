@@ -1,3 +1,4 @@
+import { graphContextCard } from './graph-context.js';
 // Financial Portfolio: dívida, facilities, limites e garantias.
 //
 // Visão de procurement e relacionamento, não ledger: saldo e uso de limite
@@ -141,12 +142,12 @@ function facilityTable(ctx, entities, facilities, result) {
       el('td', { 'data-label': 'Último saldo / uso', text: snapshot ? `${amount(snapshot.outstanding_amount ?? snapshot.used_limit_amount, facility.currency)} em ${formatDate(snapshot.as_of)} (${SOURCES[snapshot.source] || snapshot.source})` : 'Sem fotografia registrada' }),
       el('td', { 'data-label': 'Vencimento', text: facility.maturity_on ? formatDate(facility.maturity_on) : '—' }),
       el('td', { 'data-label': 'Origem', text: `${SOURCES[facility.source] || facility.source}${facility.verified_at ? ` · confirmado ${formatDate(facility.verified_at)}` : ''}` }),
-      el('td', { 'data-label': 'Ações' }, manage ? el('div', { class: 'row-actions' }, [
+      el('td', { 'data-label': 'Ações' }, [button('Relações', { size: 'sm', onClick: () => drawer({ title: facility.name, body: graphContextCard(ctx, { type: 'facility', id: facility.id }) }) }), manage ? el('div', { class: 'row-actions' }, [
         button('Saldo', { size: 'sm', onClick: () => balanceForm(ctx, facility) }),
         button('Cronograma', { size: 'sm', variant: 'ghost', onClick: () => scheduleForm(ctx, facility) }),
         button('Confirmar', { size: 'sm', variant: 'ghost', onClick: async () => { try { await ctx.api('facilities/confirm', { method: 'POST', body: JSON.stringify({ facility_id: facility.id }) }); toast('Dado confirmado como atual.'); ctx.reload(); } catch (error) { toast(error.message, 'error'); } } }),
         button('Editar', { size: 'sm', variant: 'ghost', onClick: () => facilityForm(ctx, entities, facility) })
-      ]) : null)
+      ]) : null])
     ]));
   }
   table.append(body);

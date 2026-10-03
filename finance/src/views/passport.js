@@ -1,3 +1,4 @@
+import { graphContextCard } from './graph-context.js';
 // Financial Passport: o perfil financeiro reutilizável da empresa.
 //
 // Cada dado mostra valor, origem, quem gravou, quando, até quando vale e se foi
@@ -117,6 +118,7 @@ export async function passport(ctx) {
   if (canEdit) {
     root.append(card({ title: 'Novo campo livre', subtitle: 'Use apenas quando nenhum campo do catálogo servir. Campos livres não preenchem solicitações.', body: customForm(ctx) }));
   }
+  root.append(graphContextCard(ctx, { type: 'organization', id: ctx.organization.id, entity: entityId, kind: 'passport_snapshot', title: 'Processos que usaram o Passport' }));
   return root;
 }
 
