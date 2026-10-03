@@ -1,11 +1,13 @@
 # Arandu — Diretrizes Mestras de Produto, Engenharia e Evolução
 
-**Versão 1.0 — 1º de outubro de 2026**  
-**Baseline técnica:** `main` @ `8adbc429` (merge da PR #90)  
+**Versão 2.0 — 3 de outubro de 2026**  
+**Baseline técnica de referência:** `pilot` @ `a7708025ed4d51d0fe9d9df746552bc10a776955`  
 **Status:** documento normativo de direção futura  
-**Escopo:** produto, UX, engenharia, dados, segurança, IA, integrações, operação, roadmap e critérios de aceite
+**Escopo:** produto, arquitetura funcional, UX, engenharia, dados, segurança, IA, integrações, operação, enterprise readiness, roadmap e critérios de aceite
 
-> **Propósito deste documento.** Este é o documento-mestre para orientar toda evolução futura do Arandu. Ele deve funcionar como referência de produto e engenharia para pessoas e agentes de IA. Mudanças futuras podem ampliar o produto, mas não devem contradizer estes princípios sem uma decisão explícita, documentada e versionada.
+> **Propósito deste documento.** Esta é a referência estratégica principal para a evolução do Arandu. Ela governa pessoas e agentes de IA que alterem o produto. Documentos técnicos especializados continuam regendo detalhes concretos de implementação, mas nenhuma implementação futura deve contradizer esta direção sem decisão humana explícita, documentada e versionada.
+
+> **Mudança principal da v2.0.** O Arandu deixa de ser definido apenas como um sistema de Financial Procurement e passa a ser definido como um **Financial Procurement & Vendor Management OS**: a camada de registro, ação e inteligência usada por empresas para administrar necessidades, provedores, produtos financeiros, concorrências, propostas, políticas, decisões, contratos, custos financeiros, obrigações, renovações e oportunidades de renegociação ao longo de todo o ciclo de relacionamento financeiro.
 
 ---
 
@@ -13,184 +15,246 @@
 
 Estas diretrizes usam quatro níveis normativos:
 
-- **DEVE**: requisito obrigatório. Uma mudança que viola um item “DEVE” não deve ser mergeada.
-- **NÃO DEVE**: proibição explícita. Exceções exigem decisão humana, justificativa e atualização deste documento.
-- **DEVERIA**: padrão recomendado. Pode ser desviado quando houver motivo técnico ou de produto documentado.
-- **PODE**: possibilidade legítima, mas não prioridade automática.
+- **DEVE**: requisito obrigatório. Uma mudança incompatível não deve ser mergeada.
+- **NÃO DEVE**: proibição explícita. Exceção exige decisão humana, justificativa e atualização desta guideline.
+- **DEVERIA**: padrão recomendado. Desvio exige motivo técnico ou de produto documentado.
+- **PODE**: possibilidade legítima, sem prioridade automática.
 
 A hierarquia de decisão é:
 
 1. segurança, isolamento, privacidade, integridade dos dados e limites regulatórios;
-2. decisão humana e rastreabilidade;
-3. coerência com a tese B2B do produto;
-4. qualidade do fluxo ponta a ponta;
-5. clareza e eficiência operacional;
-6. inteligência, automação e conveniência;
-7. expansão de categorias e integrações.
+2. decisão humana, proveniência e rastreabilidade;
+3. coerência com a tese B2B e enterprise;
+4. qualidade do workflow ponta a ponta;
+5. utilidade recorrente e redução de trabalho manual;
+6. qualidade dos dados estruturados e memória institucional;
+7. interoperabilidade com o stack corporativo;
+8. inteligência, automação e IA;
+9. expansão de categorias e efeitos de rede.
 
-Quando duas diretrizes entrarem em tensão, a regra mais alta nessa hierarquia prevalece.
+Quando duas regras entrarem em tensão, a regra mais alta nessa hierarquia prevalece.
 
 ---
 
-# 2. Resumo executivo
+# 2. Tese central do produto
 
-## 2.1 Tese central
-
-O Arandu deve evoluir de uma plataforma de **Financial Procurement** para um **Financial Procurement OS**: a infraestrutura de trabalho usada por empresas para estruturar necessidades financeiras, conduzir concorrências, receber e normalizar propostas, governar decisões, administrar fornecedores financeiros, acompanhar contratos e renovações e gerar inteligência sobre todo esse ciclo.
-
-A expansão do Arandu não deve ser orientada por “adicionar o maior número possível de produtos financeiros”. Ela deve ser orientada por quatro efeitos:
-
-1. **profundidade**: fazer melhor e de forma mais completa o trabalho que uma tesouraria, financeiro, procurement e CFO já executam;
-2. **recorrência**: tornar o Arandu útil semanal ou diariamente, não apenas no momento de uma nova RFQ;
-3. **dados estruturados**: transformar processos fragmentados em histórico comparável, auditável e reutilizável;
-4. **rede operacional**: conectar comprador, aprovadores, provedores, documentos, contratos, políticas e integrações sem perder neutralidade.
-
-## 2.2 O que o Arandu deve se tornar
+## 2.1 Posicionamento
 
 O norte do produto é:
 
-**Arandu Financial Procurement OS**  
-*Financial Vendor Management & Decision Infrastructure for Companies*
+**Arandu Financial Procurement & Vendor Management OS**  
+*Financial Sourcing, Relationship, Contract and Decision Infrastructure for Companies*
 
-Na prática, o Arandu deve ser o local onde a empresa responde:
+O Arandu deve ser a camada em que uma empresa responde continuamente:
 
-- O que precisamos contratar ou renegociar?
-- Quem está envolvido?
-- Quais provedores foram convidados?
-- O que cada um ofereceu e em qual versão?
-- Quais dados estão faltando?
-- Onde as propostas realmente diferem?
-- Quais critérios e pesos a empresa decidiu usar?
-- Quem precisa revisar ou aprovar?
-- Qual decisão foi tomada, por quem e com qual justificativa?
-- Qual contrato resultou dessa decisão?
-- Quanto foi contratado, em quais condições e com quais obrigações?
-- Quando precisamos renegociar ou renovar?
-- Qual ganho foi efetivamente realizado e como ele foi calculado?
-- Qual é o histórico da relação com cada provedor?
-- Quais processos estão parados, vencendo ou dependem de alguém?
+- quais necessidades financeiras existem ou estão surgindo;
+- quais provedores atendem cada necessidade;
+- quais produtos e limites estão contratados;
+- quais custos financeiros são pagos;
+- quais contratos, obrigações, covenants e janelas de repricing existem;
+- quais concorrências estão abertas;
+- o que cada provedor ofereceu e em qual versão;
+- onde propostas e contratos realmente diferem;
+- quais políticas e aprovações se aplicam;
+- qual decisão foi tomada, por quem e com qual justificativa;
+- qual contrato resultou da decisão;
+- qual valor negociado foi efetivamente realizado;
+- quais relacionamentos estão concentrados;
+- quais vencimentos, tarifas, limites ou eventos merecem uma nova concorrência;
+- qual é a memória histórica da relação com cada instituição financeira.
 
-## 2.3 O que o Arandu não deve se tornar
+## 2.2 O problema que o Arandu resolve
 
-O Arandu NÃO DEVE virar:
+O trabalho financeiro corporativo é fragmentado entre:
 
-- um banco;
-- uma fintech que movimenta dinheiro;
-- uma corretora ou gestora;
-- um motor de underwriting;
-- um robô que escolhe instituição financeira;
-- um marketplace consumidor de “melhor taxa”;
-- um ERP financeiro genérico;
-- um CRM genérico;
-- um sistema de contas a pagar;
-- uma plataforma de recomendação automatizada;
-- uma coleção de features desconectadas;
-- uma interface bonita sem profundidade operacional;
-- um produto que inventa economia, CET, benchmarks ou conclusões sem proveniência verificável.
+- e-mail;
+- planilhas;
+- PDFs;
+- portais de bancos e provedores;
+- ERP;
+- TMS;
+- sistemas de procurement genérico;
+- contratos;
+- arquivos locais;
+- conversas em Teams/Slack/WhatsApp;
+- conhecimento informal de tesouraria e procurement.
+
+O Arandu DEVE transformar esse trabalho em objetos, estados, workflows e histórico estruturado sem tentar substituir sistemas que possuem outras responsabilidades.
+
+## 2.3 O espaço estratégico
+
+O Arandu deve ocupar a interseção entre três mundos:
+
+1. **procurement suites**, fortes em intake, sourcing, fornecedores, contratos e governança genérica;
+2. **treasury management systems**, fortes em caixa, liquidez, dívida, bancos, risco, hedge e operação de tesouraria;
+3. **instituições financeiras e provedores**, que originam propostas, contratos, preços e serviços.
+
+O Arandu NÃO DEVE tentar reconstruir integralmente nenhum desses mundos. Deve funcionar como a **camada especializada de procurement, relacionamento, decisão e lifecycle de produtos e fornecedores financeiros**, conectada a eles.
+
+## 2.4 System of record + system of action + system of intelligence
+
+O Arandu deve ser simultaneamente:
+
+- **system of record**: fatos, versões, documentos, contratos, decisões, políticas, relacionamentos e histórico;
+- **system of action**: intake, tarefas, RFQs/RFPs, follow-ups, aprovações, renovações e workflows;
+- **system of intelligence**: alertas, análises determinísticas, diferenças, custos, oportunidades e IA factual baseada em dados autorizados.
+
+Nenhuma dessas três dimensões deve existir isoladamente.
 
 ---
 
-# 3. Missão, visão e posição de mercado
+# 3. O que o Arandu deve construir, integrar e evitar
 
-## 3.1 Missão
+## 3.1 Construir como core proprietário
 
-Dar às empresas uma infraestrutura confiável para **comprar, negociar, decidir e administrar produtos e fornecedores financeiros com organização, competição, governança e memória institucional**.
+O Arandu DEVE priorizar capacidades em que a especialização financeira e a memória institucional criem diferenciação:
 
-## 3.2 Visão
+- Financial Passport / Financial Graph;
+- multi-entity financial model;
+- financial intake;
+- RFQ/RFP e strategic sourcing financeiro;
+- propostas e versões;
+- normalização e comparação;
+- provider/bank relationship management;
+- debt, facilities, limits e guarantees view;
+- contract lifecycle financeiro;
+- covenant/obligation monitoring;
+- bank-fee intelligence;
+- financial-spend analytics;
+- opportunity engine;
+- savings/value-realization ledger;
+- políticas e aprovações;
+- scenario builder e split award;
+- performance de provedores;
+- executive financial procurement portfolio;
+- benchmarking interno e, futuramente, agregado;
+- financial provider discovery network;
+- Proposal Intelligence e AI Analyst factual.
 
-Ser a camada de sistema de registro e sistema de trabalho da contratação financeira corporativa: da necessidade inicial ao histórico de renovação, com dados estruturados, decisões humanas e integração ao ecossistema financeiro da empresa.
+## 3.2 Integrar, não reconstruir
 
-## 3.3 Posicionamento
+O Arandu DEVE preferir integração quando outro sistema já é o source of truth ou executa uma atividade especializada:
 
-O Arandu é software B2B para empresas. Seu comprador econômico tende a ser CFO, diretor financeiro, tesouraria, procurement, controladoria ou liderança financeira. Seus usuários cotidianos incluem analistas, gerentes financeiros, tesoureiros, controllers, aprovadores, administradores, procurement e, do lado externo, provedores financeiros.
+- ERP e contabilidade;
+- TMS;
+- bancos;
+- Open Finance;
+- assinatura eletrônica;
+- market data;
+- data warehouse / BI;
+- sistemas de identidade corporativa;
+- e-mail, Teams e Slack;
+- provedores de KYC/compliance/risco;
+- APIs dos próprios provedores financeiros.
 
-O produto deve comunicar cinco atributos:
+## 3.3 O que o Arandu NÃO DEVE se tornar
 
-- **organização**;
-- **rastreabilidade**;
-- **clareza**;
-- **confiança**;
-- **rigor**.
+O Arandu NÃO DEVE virar:
 
-A estética pode ser moderna e premium, mas nunca deve substituir esses atributos por aparência de “fintech promocional”.
+- ERP contábil;
+- ledger financeiro corporativo;
+- sistema de contas a pagar;
+- TMS completo;
+- banco;
+- fintech que movimenta dinheiro;
+- motor de pagamentos;
+- core banking;
+- custodiante;
+- corretora ou gestora;
+- motor de underwriting;
+- sistema de concessão de crédito;
+- plataforma de execução de hedge;
+- plataforma de investimento discricionário;
+- sistema de reconciliação bancária completo;
+- marketplace consumidor de “melhor taxa”;
+- robô que escolhe banco ou instituição;
+- coleção de features desconectadas.
 
 ---
 
 # 4. Princípios não negociáveis de produto
 
-## 4.1 B2B primeiro
+## 4.1 B2B e enterprise first
 
-O Arandu DEVE permanecer focado em empresas. Funcionalidades para pessoa física NÃO DEVEM ser priorizadas enquanto não houver uma razão estratégica extraordinária e explicitamente aprovada.
+O Arandu DEVE permanecer focado em empresas. O produto deve funcionar para empresas médias e escalar arquiteturalmente para grandes grupos e companhias globais.
 
-Toda nova feature deve responder a uma pergunta: **isso melhora o trabalho financeiro de uma organização?**
+Pessoa física NÃO DEVE ser prioridade enquanto não houver decisão estratégica extraordinária e explícita.
 
 ## 4.2 A decisão pertence à empresa
 
-O Arandu pode organizar, calcular, resumir, alertar, normalizar, comparar e explicar. Ele NÃO DEVE decidir em nome da empresa.
+O Arandu pode estruturar, calcular, resumir, alertar, comparar, simular e explicar. Ele NÃO DEVE decidir em nome do cliente.
 
-Pesos, preferências, critérios eliminatórios, aprovações e decisão final pertencem ao cliente. Sempre que houver uma ordenação derivada de critérios, ela deve ser identificada como resultado das regras definidas pelo próprio cliente.
+Pesos, critérios eliminatórios, políticas, alçadas, estratégia de alocação e decisão final pertencem à empresa.
 
 ## 4.3 Fato antes de opinião
 
-O produto DEVE preferir fatos verificáveis a conclusões subjetivas. Exemplos legítimos:
+O produto DEVE preferir fatos verificáveis e cálculos reproduzíveis.
+
+Exemplos legítimos:
 
 - taxa informada;
-- prazo;
+- spread;
 - CET informado;
-- validade;
-- garantia exigida;
-- prazo de liquidação;
-- cobertura dos campos;
-- data da proposta;
-- diferença em relação à versão anterior;
-- economia calculada por metodologia explícita.
+- prazo;
+- limite;
+- utilização;
+- garantia;
+- fee contratado;
+- fee efetivamente observado;
+- vencimento;
+- janela de repricing;
+- concentração factual;
+- diferença entre versões;
+- savings calculado por metodologia explícita.
 
-Exemplos proibidos sem critério humano explícito:
+Sem metodologia e decisão humana, NÃO usar linguagem como:
 
-- “melhor banco”;
-- “melhor proposta”;
-- “instituição recomendada”;
-- “vale a pena”;
-- “baixo risco” sem metodologia e dados adequados;
-- “economia” sem baseline, fórmula e evidência.
+- melhor banco;
+- melhor proposta;
+- recomendado;
+- vale a pena;
+- risco baixo/alto sem modelo autorizado;
+- economia estimada sem baseline e fórmula.
 
 ## 4.4 Proveniência sempre visível
 
-Todo número calculado pelo Arandu DEVE permitir responder:
+Todo dado crítico ou número calculado deve permitir responder:
 
-- qual é a fonte;
-- quais insumos foram usados;
-- quando foram obtidos;
-- qual fórmula foi aplicada;
-- quais premissas existem;
-- se o valor é informado, derivado ou estimado.
+- origem;
+- data/vintage;
+- owner;
+- nível de confirmação;
+- insumos;
+- fórmula;
+- premissas;
+- documento ou integração fonte;
+- se é informado, importado, extraído, derivado ou estimado.
 
 ## 4.5 Completo antes de amplo
 
-É preferível ter dois produtos financeiros excelentes do que dez fluxos incompletos. A expansão de categorias só deve ocorrer quando o core estiver suficientemente genérico e os módulos existentes estiverem operacionais do intake à renovação.
+É preferível ter poucos Product Packs profundos sobre um core robusto do que dezenas de categorias rasas.
 
 ## 4.6 Workflow antes de dashboard
 
-O principal valor do Arandu vem da execução e governança do trabalho. Dashboards devem emergir de dados gerados pelo workflow real, e não substituir o workflow.
+Dashboards devem emergir de trabalho real executado no produto. Uma nova visualização sem workflow, ação, source of truth ou consequência operacional possui prioridade baixa.
 
-## 4.7 Sistema de registro + sistema de ação
+## 4.7 Recorrência como critério de produto
 
-Cada objeto relevante deve ter um estado confiável e uma próxima ação clara. O Arandu deve ser simultaneamente:
-
-- **system of record**: histórico, versões, documentos, decisões, contratos e auditoria;
-- **system of action**: tarefas, aprovações, follow-ups, renovações, notificações e automações.
+O Arandu deve deixar de ser usado somente quando alguém decide abrir uma RFQ. Contratos, fees, obrigações, limites, vencimentos, políticas, tarefas e oportunidades devem criar utilidade semanal ou diária.
 
 ## 4.8 Segurança e isolamento são features
 
-RLS, RBAC, MFA, auditabilidade, storage privado, fail-closed e separação de ambientes não são infraestrutura invisível descartável. São características do produto e condições de existência do SaaS.
+RLS, RBAC, MFA, segregação de funções, auditabilidade, storage privado, fail-closed e separação de ambientes são características do produto.
+
+## 4.9 Integração é parte do produto enterprise
+
+Para clientes grandes, integração não é conveniência. É requisito de adoção. APIs, webhooks, identidade e conectores devem ser tratados como infraestrutura estratégica.
 
 ---
 
 # 5. Limites regulatórios e funcionais permanentes
 
-Estas regras permanecem válidas salvo revisão jurídica e alteração explícita do produto.
-
-O Arandu NÃO DEVE:
+Salvo revisão jurídica explícita, o Arandu NÃO DEVE:
 
 - conceder ou aprovar crédito;
 - emprestar recursos próprios;
@@ -199,125 +263,124 @@ O Arandu NÃO DEVE:
 - executar pagamentos ou transferências;
 - assinar contratos financeiros automaticamente;
 - executar investimentos;
-- gerenciar carteira de forma discricionária;
+- realizar gestão discricionária;
+- executar hedge ou derivativos;
 - prometer aprovação de crédito;
-- recomendar instituição de forma automática ou individualizada;
-- classificar uma instituição como “melhor” sem critérios definidos pela empresa;
-- apresentar conformidade regulatória como fato sem evidência e revisão apropriadas;
-- gerar aconselhamento jurídico ou regulatório como conclusão definitiva.
+- recomendar instituição de forma autônoma ou individualizada;
+- classificar instituição como “melhor” sem critérios definidos pela empresa;
+- representar conformidade jurídica/regulatória como fato sem evidência e revisão adequada;
+- gerar aconselhamento jurídico definitivo.
 
-A expansão para novas categorias — câmbio, hedge, seguros, garantias, caixa, investimentos corporativos ou outros — deve manter exatamente a mesma separação entre **software de procurement/decision support** e **execução regulada**.
+Novos Product Packs devem preservar a separação entre **software de procurement/decision support** e **atividade regulada**.
 
 ---
 
-# 6. Usuários e personas
+# 6. Personas e responsabilidades
 
-## 6.1 Comprador / tesouraria
+## 6.1 Tesouraria / comprador financeiro
 
-Objetivo: estruturar a necessidade, convidar instituições, acompanhar respostas, comparar propostas, negociar e encaminhar decisão.
+Deve estruturar necessidades, administrar relações bancárias, convidar instituições, negociar, comparar, acompanhar contratos, fees, limites, obrigações e renovações.
 
-Deve ter:
+## 6.2 CFO / diretoria financeira
 
-- work queue;
-- RFQs próprias e compartilhadas;
-- templates;
-- saved views;
-- follow-ups;
-- comparação;
-- negociação/versionamento;
-- contratos e renovações;
-- relacionamento com provedores.
-
-## 6.2 CFO / diretor financeiro
-
-Objetivo: governar decisões, aprovar exceções, visualizar exposição, contratos, renovações e resultados.
-
-Deve ter:
-
-- approval inbox;
-- visão executiva;
-- políticas e alçadas;
-- decisões com contexto;
-- portfólio de contratos;
-- savings realizados e metodologia;
-- riscos de renovação e concentração.
+Deve governar decisões, exceções, concentração, vencimentos, políticas, savings, exposição de relacionamento, portfolio financeiro e oportunidades.
 
 ## 6.3 Controller / aprovador
 
-Objetivo: revisar aderência à política e aprovar dentro da alçada.
-
-Deve receber contexto suficiente para decidir sem reconstruir o processo manualmente.
+Deve receber contexto suficiente para revisar aderência à política sem reconstruir manualmente o processo.
 
 ## 6.4 Analista financeiro
 
-Objetivo: operar grande parte do fluxo, organizar dados, solicitar informações, preparar comparação e acompanhar tarefas.
-
-É uma persona fundamental para recorrência. O produto deve reduzir trabalho de planilha, e-mail e follow-up manual.
+É persona central de recorrência. O produto deve reduzir planilhas, preenchimento repetitivo, follow-up manual, consolidação de propostas, conferência de contratos e busca por documentos.
 
 ## 6.5 Procurement corporativo
 
-Objetivo: governar fornecedores, concorrência, documentos, termos, negociação e políticas de contratação.
+Deve colaborar na concorrência, fornecedores, política, documentação e negociação sem apagar o ownership financeiro da tesouraria.
 
-O Arandu deve permitir colaboração entre procurement e financeiro sem confundir ownership.
+## 6.6 Group Treasury
 
-## 6.6 Administrador da organização
+Em clientes multi-entity, deve conseguir visualizar e governar entidades, políticas globais, concentrações e processos consolidados sem quebrar isolamento local.
 
-Objetivo: usuários, papéis, políticas, integrações, segurança, unidades, configurações e governança.
+## 6.7 Administrador da organização
 
-## 6.7 Provedor financeiro
+Responsável por usuários, grupos, entidades, policies, integrações, identidade, segurança, auditoria e configuração.
 
-Objetivo: receber apenas oportunidades autorizadas, esclarecer dúvidas, responder propostas, versionar ofertas, anexar documentos e acompanhar processos próprios.
+## 6.8 Provedor financeiro
 
-O provedor NÃO DEVE ver qualquer informação de concorrentes.
+Deve receber apenas oportunidades autorizadas, responder propostas, enviar versões, documentos e esclarecimentos e acompanhar processos próprios. Nunca vê concorrentes.
 
-## 6.8 Finance Ops do Arandu
+## 6.9 Finance Ops do Arandu
 
-Objetivo: operar a plataforma sem acessar dados de clientes além do estritamente necessário e permitido. Deve existir separação entre observabilidade operacional e conteúdo de cliente.
+Deve operar a plataforma com mínimo acesso possível a conteúdo de clientes e separação explícita entre observabilidade e dados sensíveis.
 
 ---
 
-# 7. Modelo mental do produto
+# 7. Modelo mental e objetos canônicos
 
-O Arandu deve ser orientado por **objetos, estados, relações e ações**, não por páginas isoladas.
+O Arandu deve ser orientado por **objetos, estados, relações e ações**, não por páginas.
 
-Objetos canônicos:
+Objetos canônicos devem incluir progressivamente:
 
+- grupo econômico;
 - organização;
-- unidade / entidade legal;
+- entidade legal;
+- unidade;
 - membro;
-- contraparte / provedor;
-- perfil financeiro;
+- grupo de acesso;
+- provedor / contraparte;
+- relacionamento financeiro;
+- Financial Passport / Financial Graph;
+- conta ou relacionamento bancário referencial;
+- produto financeiro contratado;
+- facility / limite;
+- dívida / obrigação financeira;
+- garantia;
+- exposição declarada;
 - necessidade;
-- RFQ / processo;
+- intake;
+- RFI/RFP/RFQ/processo;
+- lote;
 - convite;
-- revisão da demanda;
+- revisão de demanda;
+- questionário;
 - proposta;
 - versão da proposta;
 - critério;
 - comparação;
+- cenário;
+- allocation / split award;
 - política;
 - aprovação;
 - decisão;
 - contrato;
+- aditivo;
+- obrigação;
+- covenant;
 - marco contratual;
+- fee schedule;
+- charge/fee observado;
 - renovação / repricing;
+- opportunity;
+- savings record;
+- performance record;
 - tarefa;
 - comentário;
 - documento;
 - evento;
 - notificação;
 - integração;
-- métrica / registro de valor realizado.
+- consentimento;
+- audit event.
 
-Todo objeto importante DEVE ter:
+Todo objeto importante DEVE ter, conforme aplicável:
 
-- identificador estável;
-- organização proprietária;
-- autor ou origem;
+- ID estável;
+- tenant e entidade proprietária;
+- origem/autor;
 - timestamps confiáveis;
 - estado explícito;
-- histórico ou versionamento quando aplicável;
-- autorização no servidor;
+- point-in-time ou histórico;
+- autorização server-side;
 - representação auditável;
 - próxima ação quando houver trabalho pendente.
 
@@ -325,84 +388,121 @@ Todo objeto importante DEVE ter:
 
 # 8. Arquitetura funcional de longo prazo
 
-A arquitetura de produto deve ser composta por camadas, não por verticais completamente separadas.
+O produto deve evoluir por camadas reutilizáveis.
 
 ## 8.1 Camada A — Enterprise Core
 
-Capacidades comuns a todo o produto:
-
-- organizações e entidades legais;
+- organizações, grupos e entidades legais;
 - usuários, papéis e grupos;
 - RLS/RBAC/MFA;
-- documentos e anexos;
-- comentários e menções;
+- SSO/SCIM;
+- documentos;
+- comentários/menções;
 - tarefas;
 - notificações;
 - eventos e auditoria;
-- políticas e aprovações;
-- busca e command center;
+- policies e approvals;
+- busca;
 - saved views;
 - templates;
+- APIs/webhooks;
 - integrações;
-- APIs e webhooks;
 - preferências e acessibilidade.
 
 ## 8.2 Camada B — Procurement Core
 
-- intake de necessidade;
-- RFQ;
-- fornecedores convidados;
-- revisões;
+- intake;
+- RFI/RFP/RFQ;
+- convites;
+- questionnaires;
+- lotes;
 - propostas e versões;
 - normalização;
 - comparação;
 - negociação;
+- clarification rounds;
+- BAFO;
 - decisão;
-- award;
+- split award;
 - contrato;
-- renovação.
+- renewal/repricing.
 
-## 8.3 Camada C — Financial Intelligence
+## 8.3 Camada C — Financial Graph
 
-- perfil financeiro reutilizável;
-- dados históricos;
-- analytics;
-- savings ledger;
-- proposta intelligence;
-- benchmark anonimizado quando permitido;
-- alertas;
-- assistente de IA;
-- cenários e explicações.
+- Passport;
+- entidades;
+- bancos/provedores atuais;
+- facilities e limites;
+- dívidas;
+- garantias;
+- produtos financeiros;
+- contratos;
+- custos financeiros;
+- recebíveis declarados;
+- exposições;
+- documentação reutilizável;
+- owners, fontes e vintages.
 
-## 8.4 Camada D — Product Packs
+## 8.4 Camada D — Financial Relationship & Portfolio
 
-Cada categoria financeira deve ser um “pack” sobre o mesmo core, contendo:
+- provider/bank relationship management;
+- contract lifecycle;
+- performance;
+- concentration;
+- obligations/covenants;
+- financial spend;
+- bank fees;
+- savings;
+- opportunities;
+- executive portfolio.
+
+## 8.5 Camada E — Intelligence
+
+- document/proposal ingestion;
+- Proposal Intelligence;
+- semantic diff;
+- deterministic analytics;
+- Opportunity Engine;
+- AI Analyst;
+- internal benchmarks;
+- external benchmarks quando permitido.
+
+## 8.6 Camada F — Product Packs
+
+Cada categoria financeira deve ser uma extensão do mesmo core, contendo:
 
 - schema de necessidade;
 - schema de proposta;
-- estados específicos, se necessários;
-- regras de validação;
 - campos de comparação;
+- documentos típicos;
 - cálculos permitidos;
 - regras de proveniência;
-- documentos típicos;
-- templates;
-- testes de domínio.
+- lifecycle pós-decisão;
+- regras de domínio;
+- testes.
 
-Essa arquitetura permite adicionar categorias sem reconstruir organizações, convites, propostas, decisões, contratos ou auditoria.
+## 8.7 Camada G — Ecosystem & Network
+
+- ERP/TMS/Open Finance;
+- provider APIs;
+- identity providers;
+- BI/data warehouse;
+- assinatura externa;
+- provider discovery;
+- network intelligence com privacy by design.
 
 ---
 
-# 9. Módulos atuais que devem permanecer como fundação
+# 9. Fundação atual que deve ser preservada
 
-Os seguintes módulos são fundacionais e NÃO DEVEM ser substituídos por implementações paralelas sem necessidade:
+A base existente é fundacional e NÃO DEVE ser substituída por implementações paralelas sem necessidade:
 
 - organizações e membros;
 - RFQs;
 - convites;
 - propostas versionadas;
 - comparação factual;
-- pesos definidos pelo usuário;
+- pesos definidos pelo cliente;
 - aprovação sequencial;
 - decisão com snapshot;
 - contratos;
@@ -415,1367 +515,1709 @@ Os seguintes módulos são fundacionais e NÃO DEVEM ser substituídos por imple
 - RLS/RBAC/MFA;
 - trilha de auditoria;
 - outbox;
-- CI e testes de banco/E2E.
+- CI e testes de banco/E2E;
+- Financial Passport v2 com proveniência, frescor, histórico e snapshot de RFQ.
 
-Nova funcionalidade DEVERIA estender estes objetos e workflows, não duplicá-los.
+Nova funcionalidade DEVERIA estender esses objetos e workflows.
 
 ---
 
-# 10. Próxima geração de funcionalidades
+# 10. Financial Passport → Financial Graph
 
-## 10.1 Financial Profile / Financial Passport
+O Passport deve evoluir de perfil reutilizável para representação estruturada do contexto financeiro corporativo.
 
-### Objetivo
+## 10.1 Capacidades alvo
 
-Transformar o perfil financeiro em um ativo reutilizável da empresa, reduzindo preenchimento repetitivo e melhorando a qualidade das RFQs.
+Por entidade legal, suportar progressivamente:
 
-### Deve conter, progressivamente
-
-- dados cadastrais e entidades legais;
+- dados cadastrais;
 - setor, porte e receita;
+- indicadores declarados;
 - perfil de recebimentos;
-- endividamento declarado;
 - bancos e provedores atuais;
-- limites e produtos contratados;
-- calendário de vencimentos;
-- políticas e preferências internas;
+- facilities e limites;
+- utilização declarada/importada;
+- dívida e vencimentos;
+- garantias;
+- produtos contratados;
+- contratos;
+- fee schedules;
+- exposições declaradas;
 - documentos reutilizáveis;
-- fontes e data de atualização;
-- campos com owner e validade.
+- responsáveis;
+- políticas relevantes;
+- fontes e vintages.
 
-### Regras
+## 10.2 Regras permanentes
 
-- nunca inferir informação crítica sem rotular;
-- separar dado informado, importado e derivado;
-- permitir reuso seletivo por RFQ;
-- manter controle de quem pode ver cada classe de dado;
-- suportar múltiplas entidades legais no futuro.
+- dado crítico nunca deve ser inferido silenciosamente;
+- manual, provider, integração, documento, IA confirmada e cálculo devem ser distinguíveis;
+- cada campo relevante deve poder ter owner, fonte, verified_at e review_after;
+- reutilização em RFQs deve ser seletiva;
+- snapshots históricos devem ser imutáveis;
+- provedores não devem ter acesso ao Graph fora do explicitamente compartilhado.
 
-## 10.2 Contract & Renewal Center
+## 10.3 Objetivo de longo prazo
 
-Deve evoluir de uma lista de contratos para o sistema de lifecycle dos relacionamentos financeiros.
+O Financial Graph deve permitir que o Arandu entenda **contexto suficiente para detectar trabalho financeiro**, não apenas preencher formulários.
+
+---
+
+# 11. Multi-entity / Group Management — requisito enterprise prioritário
+
+Multi-entity deixa de ser uma melhoria tardia. É fundação para grandes clientes.
+
+O modelo DEVE ser projetado antes de espalhar `entity_id` sem semântica coerente.
 
 Capacidades alvo:
 
-- timeline contratual;
-- D-120/90/60/30 configurável;
-- avisos prévios;
-- obrigações e covenants;
-- anexos e versões;
-- owner;
-- auto-renewal flag;
-- repricing window;
-- renegociação vinculada ao contrato anterior;
-- contrato pai/filho quando houver aditivos;
-- visão de concentração por fornecedor e categoria;
-- vencimentos por entidade/unidade;
-- geração de nova RFQ a partir de contrato.
+- grupo controlador;
+- entidades legais;
+- unidades;
+- relações entre entidades;
+- usuários com escopo por entidade;
+- group treasury;
+- políticas globais e locais;
+- contratos por entidade;
+- facilities por entidade;
+- consolidação executiva;
+- isolation modes;
+- aprovações cruzadas;
+- ownership local vs global;
+- moeda base e moedas locais;
+- auditoria do escopo em que a ação ocorreu.
 
-## 10.3 Savings Ledger
+Uma consulta consolidada NÃO DEVE permitir acesso a detalhe de entidade que o usuário não possa ler individualmente.
 
-O Savings Ledger deve registrar valor gerado de forma auditável, evitando “savings de marketing”.
+---
 
-Cada registro DEVE ter:
+# 12. Provider & Bank Relationship Management
 
-- baseline explícito;
-- fonte do baseline;
-- proposta/contrato escolhido;
-- fórmula;
-- período;
-- unidade;
-- owner;
-- data;
-- distinção entre estimado e realizado;
-- ajustes e justificativas;
-- link para evidência.
+O Arandu deve construir memória institucional de cada provedor financeiro.
 
-Tipos possíveis:
+## 12.1 Perfil de relacionamento
 
-- redução de MDR;
-- redução de tarifa fixa;
-- redução de spread;
-- redução de CET informado;
-- redução de custo contratual comparável;
-- fee evitado;
-- ganho por prazo/condição apenas se houver metodologia econômica documentada.
-
-O produto NÃO DEVE somar métricas economicamente incomparáveis em um único número sem metodologia declarada.
-
-## 10.4 Provider Relationship Management
-
-O Arandu deve construir memória institucional sobre cada provedor.
-
-Perfil do provedor pode conter:
+Pode conter:
 
 - categorias atendidas;
 - contatos;
+- entidades relacionadas;
 - status cadastral;
 - processos convidados;
 - taxa de resposta factual;
-- tempo médio de resposta;
-- propostas enviadas;
+- tempos de resposta;
+- propostas e versões;
 - contratos ativos;
+- facilities/limites;
+- garantias;
+- fees;
 - renovações;
 - documentos;
-- issues e follow-ups;
+- issues/follow-ups;
+- performance records;
 - histórico de relacionamento;
-- evidências regulatórias quando aplicável;
-- scorecards definidos pela empresa.
+- scorecards definidos pelo cliente.
 
-Qualquer “score” DEVE ser definido pela empresa ou baseado em critérios objetivos transparentes. O Arandu não deve criar reputação subjetiva própria sem política, dados e governança.
+## 12.2 Relationship map
 
-## 10.5 Policy & Approval Engine
+O produto DEVERIA permitir visualizar, por provedor e entidade:
 
-Deve evoluir para políticas configuráveis e versionadas.
+- produtos contratados;
+- volume/exposição declarada;
+- limites aprovados e utilizados;
+- contratos ativos;
+- participação no wallet quando metodologicamente definida;
+- dependências críticas;
+- vencimentos e processos em curso.
+
+## 12.3 Neutralidade
+
+Qualquer score deve ser criado pela empresa ou derivado de critérios transparentes. O Arandu NÃO DEVE criar reputação subjetiva própria de instituições.
+
+---
+
+# 13. Debt, Credit Facilities, Limits & Guarantees
+
+O Arandu deve manter uma visão de procurement e relacionamento sobre dívida e capacidade financeira sem se tornar ledger contábil.
+
+## 13.1 Debt & Facilities Manager
+
+Deve suportar progressivamente:
+
+- principal contratado;
+- saldo quando importado/declarado;
+- moeda;
+- indexador;
+- spread;
+- prazo;
+- maturity;
+- amortização resumida;
+- instituição;
+- entidade;
+- garantias;
+- covenants;
+- contrato fonte;
+- owner;
+- status;
+- origem/vintage.
+
+## 13.2 Visões necessárias
+
+- maturity wall;
+- indexer mix;
+- currency mix quando aplicável;
+- provider concentration;
+- facilities aprovadas;
+- facilities utilizadas;
+- disponibilidade;
+- vencimentos por período;
+- janelas de refinanciamento;
+- garantias comprometidas.
+
+## 13.3 Boundary
+
+O Arandu pode importar ou registrar fatos. NÃO DEVE substituir o sistema contábil/TMS como source of truth quando estes existirem.
+
+---
+
+# 14. Contract & Renewal Center v2
+
+Contratos financeiros devem se tornar objetos operacionais, não PDFs arquivados.
+
+## 14.1 Estrutura alvo
+
+Um contrato pode conter:
+
+- partes;
+- entidade;
+- produto;
+- valores/limites;
+- pricing;
+- indexador;
+- fees;
+- garantias;
+- covenants;
+- SLAs;
+- obrigações;
+- notice periods;
+- renewal terms;
+- auto-renewal;
+- repricing windows;
+- termination rights;
+- documentos;
+- aditivos;
+- contrato pai/filho;
+- processo de sourcing de origem;
+- owner.
+
+## 14.2 Lifecycle
+
+Deve suportar:
+
+- D-120/90/60/30 configurável;
+- marcos próprios;
+- obrigações recorrentes;
+- repricing;
+- renovação;
+- renegociação;
+- encerramento;
+- geração de nova RFQ a partir do contrato anterior.
+
+## 14.3 Imutabilidade e aditivos
+
+Mudanças contratuais materiais NÃO DEVEM apagar o histórico. Aditivos devem preservar a relação temporal com versões anteriores.
+
+---
+
+# 15. Covenant & Obligation Monitor
+
+O Arandu deve permitir registrar e acompanhar obrigações financeiras e operacionais contidas em contratos.
+
+Cada item deveria conter:
+
+- tipo;
+- descrição;
+- fórmula ou condição quando aplicável;
+- limite/threshold;
+- periodicidade;
+- próxima data;
+- owner;
+- entidade;
+- contrato fonte;
+- evidência;
+- status;
+- confirmação humana.
+
+O produto PODE futuramente comparar métricas importadas a thresholds, mas não deve declarar breach sem dados e regras confiáveis.
+
+---
+
+# 16. Financial Spend Analytics
+
+O Arandu deve permitir entender o **custo de fornecedores e produtos financeiros**.
+
+Categorias podem incluir:
+
+- juros;
+- spreads;
+- tarifas bancárias;
+- fees de cash management;
+- MDR;
+- antecipação;
+- garantias/fianças;
+- seguros;
+- custos de FX/hedge quando metodologicamente comparáveis;
+- fees contratuais;
+- outros custos financeiros de fornecedor.
+
+Dimensões:
+
+- entidade;
+- provedor;
+- produto;
+- contrato;
+- período;
+- centro/unidade quando importado;
+- moeda.
+
+Financial Spend Analytics deve servir de insumo para sourcing e oportunidades, não virar contabilidade paralela.
+
+---
+
+# 17. Bank Fee Intelligence
+
+Bank-fee intelligence é um módulo prioritário porque conecta contrato, consumo, divergência, renegociação e savings.
+
+## 17.1 Modelo mínimo
+
+- serviço;
+- unidade de cobrança;
+- fee contratado;
+- fee observado;
+- volume;
+- período;
+- entidade;
+- banco;
+- contrato/fee schedule fonte;
+- origem do observado;
+- diferença calculada;
+- status de revisão.
+
+## 17.2 Casos de uso
+
+O produto pode apontar factual e auditavelmente:
+
+- cobrança acima do contrato;
+- serviço contratado sem uso;
+- aumento de fee;
+- divergência entre entidades;
+- contrato próximo de repricing;
+- oportunidade de revisão.
+
+## 17.3 Regra
+
+Uma divergência observada não deve ser automaticamente classificada como erro do banco sem revisão e contexto contratual.
+
+---
+
+# 18. Opportunity Engine
+
+O Opportunity Engine é uma das principais teses de diferenciação do Arandu.
+
+O objetivo é transformar procurement financeiro de **reativo** em **contínuo**.
+
+## 18.1 Fontes permitidas
+
+O engine pode avaliar eventos e fatos provenientes de:
+
+- contratos;
+- renewals;
+- repricing windows;
+- debt/facilities;
+- maturity schedule;
+- limits;
+- guarantees;
+- bank fees;
+- financial spend;
+- performance;
+- Passport/Graph;
+- histórico da própria empresa;
+- integrações autorizadas;
+- tarefas e políticas.
+
+## 18.2 Tipos de opportunity
+
+- refinanciar;
+- renovar;
+- repricing;
+- renegociar fee;
+- revisar fornecedor;
+- abrir concorrência;
+- regularizar obrigação;
+- diversificar relacionamento quando política do cliente exigir;
+- revisar facility próxima de vencimento;
+- contestar divergência factual;
+- consolidar ou dividir processo quando configurado pelo cliente.
+
+## 18.3 Regra central
+
+Opportunity NÃO é recomendação. Deve explicar:
+
+- fato observado;
+- regra/gatilho;
+- fonte;
+- data;
+- possível ação;
+- quem deve revisar.
+
+A abertura de RFQ/RFP ou qualquer ação material exige decisão humana ou automação explicitamente autorizada e reversível.
+
+---
+
+# 19. Savings & Value Realization Ledger
+
+O Savings Ledger deve provar valor sem “savings de marketing”.
+
+## 19.1 Tipos distintos
+
+- **negotiated savings**;
+- **realized savings**;
+- **cost avoidance**;
+- outros tipos somente com definição explícita.
+
+Esses tipos NÃO DEVEM ser misturados silenciosamente.
+
+## 19.2 Cada registro DEVE conter
+
+- baseline;
+- fonte do baseline;
+- contrato/proposta de destino;
+- fórmula;
+- período;
+- unidade/moeda;
+- owner;
+- entidade;
+- data;
+- estimado vs realizado;
+- ajustes;
+- justificativa;
+- evidência;
+- versão da metodologia.
+
+## 19.3 Exemplos
+
+- redução de MDR;
+- redução de tarifa fixa;
+- redução de spread quando economicamente comparável;
+- redução de CET informado;
+- fee evitado;
+- ganho de repricing com metodologia explícita.
+
+Métricas economicamente incomparáveis não devem ser somadas sem metodologia declarada.
+
+---
+
+# 20. Strategic Financial Sourcing
+
+O procurement core deve evoluir além de RFQ simples para suportar empresas de maior porte.
+
+## 20.1 Tipos de processo
+
+- RFI;
+- RFP;
+- RFQ;
+- sealed bid quando aplicável;
+- clarification round;
+- negotiation round;
+- BAFO;
+- renewal/repricing process.
+
+## 20.2 Capacidades
+
+- templates;
+- questionnaires;
+- documentos obrigatórios;
+- deadlines;
+- lotes;
+- eligibility rules;
+- critérios eliminatórios definidos pelo cliente;
+- múltiplas rodadas;
+- versão de demanda;
+- Q&A;
+- propostas versionadas;
+- cenários;
+- split award;
+- decisão com snapshot;
+- trilha completa.
+
+## 20.3 Confidencialidade
+
+Fornecedor nunca deve ver concorrente, preço concorrente, documentos concorrentes ou ranking privado do comprador.
+
+---
+
+# 21. Scenario Builder & Allocation
+
+A plataforma deve permitir comparar **estruturas de decisão**, não apenas propostas individuais.
 
 Exemplos:
 
-- aprovação por valor;
-- aprovação por categoria;
-- aprovação por exceção;
-- exigência de três propostas ou justificativa;
-- segregação de funções;
-- critérios obrigatórios;
-- alçada por entidade;
-- fallback e escalonamento;
-- política vigente no momento da decisão preservada como snapshot.
+- 100% com um provedor;
+- 60/40 entre dois provedores;
+- três bancos com limites distintos;
+- lotes separados;
+- solução A vs solução B para a mesma necessidade.
 
-Processos em andamento NÃO DEVEM mudar silenciosamente quando uma política é atualizada.
+O cenário pode calcular fatos autorizados como custo, quantidade de provedores, alocação, cobertura, garantias e limites.
 
-## 10.6 Executive Portfolio
-
-Visão executiva deve ser uma consequência do sistema de registro, com:
-
-- pipeline de RFQs;
-- decisões pendentes;
-- contratos por categoria;
-- vencimentos;
-- concentração de provedores;
-- savings realizados;
-- coverage de propostas;
-- tempos de ciclo;
-- gargalos de aprovação;
-- aderência a políticas;
-- riscos operacionais de renovação.
-
-## 10.7 Multi-entity / Group Management
-
-Para clientes maiores, o Arandu deve suportar grupo econômico sem misturar permissões.
-
-Necessidades futuras:
-
-- organização controladora;
-- entidades legais;
-- unidades;
-- políticas globais vs. locais;
-- usuários multi-entidade;
-- contratos por entidade;
-- consolidação executiva;
-- isolamento de dados configurável;
-- aprovações cruzadas.
-
-Essa evolução deve ser desenhada antes de simplesmente adicionar `entity_id` em várias tabelas sem modelo coerente.
+O Arandu NÃO DEVE escolher o cenário pela empresa.
 
 ---
 
-# 11. Proposal Intelligence
+# 22. Enterprise Intake
 
-Proposal Intelligence é uma das maiores oportunidades de diferenciação do Arandu, desde que seja tratada como **extração e organização de fatos**, e não recomendação.
+O intake deve permitir que o usuário expresse a necessidade antes de conhecer o produto financeiro ou o workflow exato.
 
-## 11.1 Capacidades permitidas
+Exemplo legítimo:
 
-O sistema pode:
+> “Preciso financiar R$ 80 milhões por 24 meses.”
 
-- ler documentos de proposta;
-- extrair campos estruturados;
-- sugerir mapeamento para o schema;
+O sistema pode estruturar campos, identificar dados faltantes, aplicar template e sugerir o tipo de processo.
+
+O intake DEVE:
+
+- preservar texto original;
+- mostrar campos derivados;
+- exigir confirmação para informação crítica;
+- respeitar policies;
+- encaminhar para owner adequado;
+- suportar templates por entidade/categoria;
+- evitar criação duplicada.
+
+---
+
+# 23. Proposal & Document Intelligence
+
+Proposal Intelligence deve ser **extração e organização de fatos**, nunca autoridade decisória.
+
+## 23.1 Capacidades permitidas
+
+- ler documentos;
+- extrair campos;
+- sugerir mapeamento;
+- localizar trecho fonte;
 - detectar campos ausentes;
-- mostrar divergências entre documento e formulário;
+- identificar divergência entre documento e formulário;
 - comparar versões;
-- destacar alterações materiais;
-- identificar cláusulas para revisão humana;
+- destacar mudanças materiais;
+- detectar inconsistências numéricas;
 - gerar perguntas de follow-up;
-- apontar inconsistências numéricas;
-- apresentar confiança de extração;
-- solicitar confirmação humana antes de persistir campos sensíveis.
+- identificar cláusulas para revisão humana;
+- gerar resumo factual.
 
-## 11.2 Regras de confiança
+## 23.2 Proveniência de IA
 
-Campos extraídos por IA DEVERIAM armazenar:
+Campo extraído por IA deveria armazenar:
 
-- origem documental;
-- trecho ou localização;
-- modelo/versão quando relevante;
+- documento;
+- página/localização;
+- trecho ou referência;
+- modelo/versão quando aplicável;
 - confiança;
-- usuário que confirmou;
+- status de confirmação;
+- usuário confirmador;
 - timestamp.
 
-Campos críticos NÃO DEVEM ser silenciosamente gravados como “informados pelo provedor” sem confirmação ou proveniência.
+Campo crítico NÃO DEVE ser promovido silenciosamente a “informado pelo provedor”.
 
-## 11.3 Diferença entre inteligência e recomendação
+## 23.3 Semantic diff
 
-Permitido:
+O produto deveria responder de forma auditável:
 
-> “A proposta B informa CET de 18,4% a.a.; a proposta A não informa CET.”
-
-Permitido:
-
-> “O prazo mudou de 24 para 36 meses entre v1 e v2.”
-
-Permitido:
-
-> “Com os pesos definidos pela sua empresa, a proposta X obtém maior pontuação, com cobertura de 92%.”
-
-Proibido:
-
-> “Escolha a proposta X.”
-
-Proibido:
-
-> “O Banco X é a melhor instituição para sua empresa.”
+- o que mudou;
+- de qual versão para qual versão;
+- campo anterior;
+- campo novo;
+- documento fonte;
+- impacto factual, sem recomendação.
 
 ---
 
-# 12. AI Analyst — diretrizes
+# 24. AI Financial Procurement Analyst
 
-A IA deve ser uma **camada assistiva** sobre dados e permissões existentes.
+A IA deve operar como camada assistiva sobre dados, regras e permissões existentes.
 
-## 12.1 Usos prioritários
+## 24.1 Usos prioritários
 
 - resumir processo;
+- responder “o que precisa da minha atenção?”;
 - explicar diferenças;
 - montar briefing;
-- transformar texto em RFQ estruturada;
-- sugerir campos faltantes;
+- transformar texto em intake/RFQ estruturado;
 - preparar follow-ups;
 - resumir contrato;
-- explicar mudanças de versão;
+- explicar mudança de versão;
 - organizar tarefas;
 - gerar executive summary factual;
-- responder perguntas sobre dados da própria organização;
-- identificar processos sem owner, vencimentos ou gaps;
+- responder perguntas sobre dados autorizados da organização;
+- localizar contratos/processos/documentos;
 - explicar cálculos e proveniência;
-- gerar drafts de comunicação, nunca enviá-los sem autorização quando houver impacto externo.
+- preparar rascunhos de comunicação.
 
-## 12.2 IA não é autoridade
+## 24.2 IA não é autoridade
 
 A IA NÃO DEVE:
 
 - aprovar;
 - rejeitar;
 - decidir;
-- executar contratação;
 - assinar;
+- contratar;
+- executar transação;
 - recomendar instituição de forma autônoma;
 - inventar benchmark;
-- preencher dado ausente com suposição não explicitada;
-- contornar RBAC/RLS;
-- acessar dados de outro tenant;
-- enviar informação confidencial a um provedor sem ação autorizada.
+- preencher dado crítico por suposição;
+- contornar autorização;
+- acessar outro tenant;
+- compartilhar informação com provedor sem autorização.
 
-## 12.3 UX da IA
+## 24.3 Grounding e autorização
 
-A interface DEVE diferenciar:
-
-- dado original;
-- cálculo determinístico;
-- resumo gerado;
-- sugestão;
-- informação que requer confirmação.
-
-A IA deve citar/ligar para os objetos que fundamentam sua resposta dentro do produto sempre que possível.
+Toda resposta sobre dados corporativos deve respeitar o mesmo RBAC/RLS dos objetos de origem. RAG, embeddings ou índices NÃO PODEM virar caminho alternativo para leitura indevida.
 
 ---
 
-# 13. Expansão de categorias financeiras
+# 25. Provider Performance & Service-Level Management
 
-A expansão deve seguir **reutilização do core + profundidade de domínio**.
+A contratação não encerra o lifecycle do provedor.
 
-## 13.1 Ordem recomendada
+O produto deve permitir performance factual e scorecards configurados pela empresa.
 
-### Onda A — consolidar o existente
+Métricas possíveis:
 
-- crédito empresarial;
-- adquirência e meios de pagamento.
+- response rate;
+- response time;
+- implementation SLA;
+- issue count;
+- resolution time;
+- contract obligations;
+- service incidents importados;
+- settlement/service metrics por categoria quando disponíveis;
+- review completion;
+- performance definida pelo cliente.
 
-### Onda B — adjacências com forte fit de procurement
-
-- câmbio corporativo;
-- hedge cambial simples / cotações estruturadas para comparação;
-- garantias e fianças;
-- seguros corporativos selecionados;
-- serviços bancários / cash management.
-
-### Onda C — gestão de fornecedores financeiros recorrentes
-
-- cartões corporativos e despesas como contratação de fornecedor;
-- bancos transacionais;
-- cobrança e recebimento;
-- gateways e antifraude como fornecedor;
-- serviços de folha/pagamentos apenas no aspecto de procurement, sem execução de recursos pelo Arandu.
-
-### Onda D — categorias de maior sensibilidade
-
-- investimentos de caixa corporativo;
-- operações estruturadas;
-- derivativos mais complexos;
-- crédito estruturado.
-
-Essas categorias só devem avançar após revisão jurídica, desenho de limites e clareza sobre onde termina o software de procurement e começa atividade regulada.
-
-## 13.2 Gate para um novo Product Pack
-
-Uma nova categoria só deve entrar quando houver:
-
-- usuário real e problema recorrente;
-- schema da necessidade;
-- schema da proposta;
-- comparação factual possível;
-- lifecycle pós-decisão;
-- documentos típicos;
-- regras de cálculo definidas;
-- limites regulatórios documentados;
-- testes de domínio;
-- jornada E2E;
-- design coerente com o core;
-- hipótese de valor comercial.
+Nenhum score default do Arandu deve pretender medir “qualidade” universal de instituição.
 
 ---
 
-# 14. Benchmarking e inteligência de mercado
+# 26. Executive Financial Procurement Portfolio
 
-Benchmarking é valioso, mas é um estágio posterior.
+A visão executiva deve ser consequência do sistema de registro.
 
-## 14.1 Requisitos mínimos
+Deve poder mostrar, com escopo adequado:
 
-Nenhum benchmark agregado deve ser exibido antes de existir:
+- pipeline de sourcing;
+- valor/volume sob processos quando disponível;
+- contratos monitorados;
+- vencimentos;
+- debt maturity;
+- facilities;
+- concentração de provedores;
+- financial spend;
+- fees;
+- savings realizados;
+- opportunities abertas;
+- obrigações próximas;
+- decisões pendentes;
+- tempos de ciclo;
+- gargalos;
+- policy exceptions;
+- coverage de propostas.
+
+Toda métrica deve ter definição e source of truth claros.
+
+---
+
+# 27. Policy & Approval Engine v2
+
+O engine deve evoluir para policies configuráveis, versionadas e aplicáveis por entidade/categoria.
+
+Exemplos:
+
+- aprovação por valor;
+- aprovação por categoria;
+- aprovação por exceção;
+- exigência de N propostas ou justificativa;
+- segregação de funções;
+- critérios obrigatórios;
+- alçada por entidade;
+- group treasury approval;
+- fornecedor novo exige etapa adicional;
+- prazo, garantia ou covenant excepcional exige revisão;
+- fallback/escalonamento;
+- prazo de aprovação;
+- policies globais vs locais.
+
+A policy vigente no momento do processo deve ser preservada como snapshot. Atualização de policy NÃO DEVE mudar processo em andamento silenciosamente.
+
+---
+
+# 28. Provider Discovery Network
+
+A rede de provedores é uma etapa posterior ao fortalecimento do lado comprador.
+
+## 28.1 Princípio
+
+O sistema pode identificar provedores potencialmente compatíveis por:
+
+- produto;
+- ticket;
+- moeda;
+- região;
+- porte;
+- perfil declarado;
+- capacidade cadastrada;
+- critérios objetivos.
+
+A empresa escolhe quem recebe a oportunidade.
+
+## 28.2 Privacy by design
+
+Uma opportunity não deve expor identidade, dados financeiros ou documentos além do consentido pelo comprador.
+
+## 28.3 Efeito de rede
+
+A rede deve aumentar valor para compradores e provedores sem comprometer neutralidade ou transformar o produto em marketplace promocional.
+
+---
+
+# 29. Benchmarking e Network Intelligence
+
+Benchmarking possui alto valor e alto risco de governança.
+
+## 29.1 Ordem obrigatória
+
+1. benchmark contra histórico próprio;
+2. benchmark por entidade/grupo;
+3. benchmarks externos agregados somente após gates de dados.
+
+## 29.2 Benchmark interno
+
+Exemplos:
+
+- faixa histórica de spread;
+- fees históricos;
+- response rate;
+- ciclo médio;
+- número de propostas;
+- dispersão das condições;
+- performance histórica.
+
+## 29.3 Benchmark externo
+
+Nenhum benchmark externo deve ser exibido antes de existir:
 
 - volume estatisticamente razoável;
+- consentimento/base contratual adequada;
 - política de anonimização;
-- política de uso de dados contratualmente clara;
-- revisão jurídica;
 - proteção contra reidentificação;
 - segmentação coerente;
 - tratamento de outliers;
-- data/vintage do benchmark;
-- tamanho da amostra visível quando apropriado.
-
-## 14.2 Formas preferíveis
-
-- percentis de taxa por categoria e recorte;
-- dispersão de propostas;
-- tempo de resposta;
-- taxas de cobertura;
-- prazo de contratação;
-- faixa histórica da própria empresa;
-- benchmark contra o próprio histórico antes de benchmark externo.
-
-O primeiro benchmark do Arandu deve ser **a própria memória da empresa**: “como este processo se compara às suas últimas contratações?”.
+- vintage;
+- tamanho de amostra quando apropriado;
+- revisão jurídica;
+- governança de acesso.
 
 ---
 
-# 15. Dados, versionamento e proveniência
+# 30. Product Packs e expansão de categorias
 
-## 15.1 Imutabilidade lógica
+A expansão deve usar o mesmo procurement core, Graph, Relationship model, Contract lifecycle e Policy Engine.
 
-Objetos que representam fatos históricos críticos não devem ser sobrescritos sem histórico:
+## 30.1 Core atual
 
-- versões de proposta;
+- crédito empresarial;
+- adquirência/meios de pagamento.
+
+Esses packs devem ser aprofundados antes de expansão indiscriminada.
+
+## 30.2 Próximas adjacências prioritárias
+
+### FX / câmbio corporativo
+
+Inicialmente como sourcing, comparação e governança. Sem execução.
+
+### Garantias / fianças / seguro-garantia quando juridicamente adequado
+
+Comparar instrumentos e provedores diferentes para a mesma necessidade.
+
+### Cash management / transactional banking RFP
+
+Pode abranger pricing e serviço de contas, pagamentos, cobrança, PIX, conectividade, APIs, implantação e SLAs, sem executar os fluxos monetários.
+
+### Working capital & receivables sourcing
+
+A necessidade pode anteceder o produto. O sistema pode comparar estruturas como capital de giro, antecipação, receivables finance, FIDC ou instrumentos equivalentes, sem recomendar.
+
+### Acquiring Intelligence
+
+Aprofundar MDR, antecipação, settlement, bandeira, parcelamento, volume, chargeback e fee efetivo, sempre com metodologia e fontes.
+
+## 30.3 Categorias posteriores
+
+- seguros corporativos selecionados;
+- cartões corporativos/expense providers;
+- cobrança e gateways;
+- serviços de folha apenas como procurement;
+- investimentos de caixa corporativo somente após revisão jurídica e boundary específico;
+- derivativos e crédito estruturado apenas em estágio posterior.
+
+## 30.4 Gate para novo pack
+
+Nova categoria só entra quando houver:
+
+- usuário/problema real;
+- schema de necessidade;
+- schema de proposta;
+- comparação factual;
+- lifecycle pós-decisão;
+- documentos típicos;
+- cálculos autorizados;
+- limits regulatórios;
+- testes de domínio;
+- jornada E2E;
+- integração com Graph/Provider/Contract/Policy;
+- hipótese comercial.
+
+---
+
+# 31. Integrações, APIs e interoperabilidade — requisito enterprise
+
+Integração deixa de ser horizonte tardio. É parte da fundação de enterprise readiness.
+
+## 31.1 Public API e webhooks
+
+O Arandu DEVE caminhar para uma API pública/versionada e webhooks idempotentes para objetos autorizados.
+
+Requisitos:
+
+- auth forte;
+- scopes;
+- rate limiting;
+- idempotency keys quando aplicável;
+- versionamento;
+- retries seguros;
+- assinatura de webhook;
+- replay protection;
+- audit trail;
+- tenant isolation;
+- documentação;
+- deprecation policy.
+
+## 31.2 Prioridades de integração
+
+1. SSO/SCIM;
+2. e-mail transacional;
+3. API/webhooks;
+4. ERP/TMS/accounting para contexto e cadastro;
+5. Open Finance;
+6. Teams/Slack para notificação/deep link;
+7. provider APIs;
+8. assinatura externa;
+9. BI/data warehouse;
+10. market/reference data quando necessário.
+
+## 31.3 Source of truth
+
+Toda integração deve declarar:
+
+- quem é source of truth;
+- direção do sync;
+- frequência;
+- idempotência;
+- conflito;
+- ownership;
+- fallback;
+- observabilidade;
+- dados armazenados.
+
+## 31.4 Ações externas
+
+Notificação externa pode direcionar ao Arandu. Aprovar, decidir ou compartilhar informação sensível deveria ocorrer no contexto autenticado do produto salvo design explícito e seguro.
+
+---
+
+# 32. Open Finance
+
+Open Finance pode funcionar como fonte autorizada para o Financial Graph, nunca como justificativa para o Arandu virar banco.
+
+Usos legítimos futuros:
+
+- preencher Passport/Graph;
+- validar dados declarados;
+- reduzir envio manual de documentos;
+- contextualizar recebimentos e caixa;
+- informar produtos/relacionamentos quando permitido;
+- medir resultados pós-contrato;
+- suportar oportunidades e cenários.
+
+Toda importação deve registrar:
+
+- consentimento;
+- escopo;
+- instituição origem;
+- timestamp;
+- validade;
+- minimização;
+- revogação quando aplicável.
+
+---
+
+# 33. Enterprise Identity, Administration & Security
+
+Para empresas grandes, identidade e administração são critérios de compra.
+
+Capacidades alvo:
+
+- SAML/OIDC SSO;
+- SCIM;
+- JIT provisioning quando apropriado;
+- grupos corporativos;
+- delegated admin;
+- role mapping;
+- access reviews;
+- MFA policies;
+- session policies;
+- IP/network restrictions quando necessário;
+- fine-grained permissions;
+- enterprise audit export;
+- retention settings;
+- security-event visibility.
+
+Certificações e atestados de segurança NÃO DEVEM ser declarados antes de existirem de fato.
+
+---
+
+# 34. Audit & Compliance Center
+
+A auditabilidade existente deve evoluir para superfície de produto.
+
+O centro de auditoria deve permitir, conforme autorização:
+
+- quem;
+- fez o quê;
+- em qual objeto;
+- em nome de qual entidade;
+- quando;
+- origem;
+- estado anterior/novo quando relevante;
+- policy aplicada;
+- request/correlation ID;
+- filtros;
+- export;
+- retention;
+- exception events;
+- security events relevantes.
+
+Logs operacionais e audit trail de negócio devem ser conceitualmente separados.
+
+---
+
+# 35. Enterprise Search & Knowledge Retrieval
+
+Com histórico crescente, busca passa a ser feature central.
+
+Busca deve cobrir, respeitando autorização:
+
+- RFQs/RFPs;
+- propostas;
+- contratos;
+- documentos;
+- provedores;
+- entities;
+- comments;
+- obligations;
+- opportunities;
+- policies;
+- tasks.
+
+A busca deve suportar filtros, entidades, datas, categoria, provider e estado.
+
+Busca semântica/IA NÃO PODE contornar RLS/RBAC.
+
+---
+
+# 36. Dados, versionamento e proveniência
+
+## 36.1 Imutabilidade lógica
+
+Fatos históricos críticos não devem ser sobrescritos sem histórico:
+
+- proposal versions;
 - decisões;
-- aprovações;
-- políticas aplicadas;
-- contratos/aditivos;
-- registros de savings;
-- documentos relevantes.
+- approvals;
+- policy snapshots;
+- contracts/aditivos;
+- savings;
+- obligations;
+- fee observations;
+- documentos relevantes;
+- opportunities encerradas quando usadas em decisão.
 
-## 15.2 Point-in-time
+## 36.2 Point-in-time
 
-Decisões devem preservar a fotografia do que existia no momento:
+Decisões devem preservar a fotografia de:
 
 - propostas elegíveis;
 - versões;
 - critérios;
 - pesos;
-- cobertura;
-- aprovadores;
-- política;
-- justificativa.
+- cenários;
+- approvals;
+- policy;
+- justificativa;
+- documentação relevante.
 
-## 15.3 Fonte do dado
+## 36.3 Tipos de origem
 
-Campos estruturados futuros deveriam suportar metadata de fonte:
+Campos estruturados devem caminhar para metadata consistente:
 
 - manual;
-- provedor;
-- importação;
-- integração;
-- documento;
-- IA confirmada;
-- cálculo determinístico.
+- provider;
+- import;
+- integration;
+- document;
+- AI-confirmed;
+- deterministic calculation.
 
-## 15.4 Idempotência
+## 36.4 Datas
 
-Imports, webhooks, jobs e seeds devem ser idempotentes sempre que possível.
+Distinguir, quando relevante:
 
-## 15.5 Datas e vintages
+- effective_at;
+- occurred_at;
+- received_at;
+- recorded_at;
+- updated_at;
+- observed_at;
+- source_checked_at.
 
-O sistema deve distinguir:
+## 36.5 Idempotência
 
-- quando o fato ocorreu;
-- quando foi recebido;
-- quando foi registrado;
-- quando foi alterado;
-- quando a fonte foi consultada.
-
----
-
-# 16. Segurança, privacidade e autorização
-
-## 16.1 Multi-tenancy
-
-RLS no banco é a primeira linha de isolamento e NÃO DEVE ser substituída por filtragem apenas no front-end ou API.
-
-## 16.2 Least privilege
-
-- service role apenas em funções de servidor estritamente necessárias;
-- cliente usa anon key + sessão;
-- operações privilegiadas explicitamente separadas;
-- finance_ops com MFA;
-- provider nunca recebe dados de concorrente.
-
-## 16.3 Storage
-
-Documentos financeiros devem permanecer privados. Download deve ocorrer por autorização server-side e URL assinada curta.
-
-## 16.4 Logs
-
-Logs NÃO DEVEM conter:
-
-- tokens;
-- senhas;
-- documentos completos;
-- dados financeiros sensíveis desnecessários;
-- PII além do mínimo operacional.
-
-## 16.5 Segurança por teste
-
-Cada nova superfície deve adicionar testes negativos para:
-
-- outsider;
-- membro de outra organização;
-- provedor concorrente;
-- papel insuficiente;
-- sessão inválida;
-- objeto inexistente;
-- replay quando relevante.
-
-## 16.6 Fail closed
-
-Na dúvida de configuração, autorização ou ambiente, o sistema deve falhar fechado.
+Imports, webhooks, jobs, seeds e syncs devem ser idempotentes sempre que possível.
 
 ---
 
-# 17. Arquitetura de software
+# 37. Arquitetura de software
 
-## 17.1 Uma base de código
+## 37.1 Uma base de código
 
-Demo, pilot e production devem continuar sendo a mesma aplicação e o mesmo código de domínio. Divergência de ambiente deve vir de configuração, dados e infraestrutura, nunca de forks funcionais.
+Demo, pilot e production devem usar a mesma aplicação e domínio. Divergência vem de configuração, dados e infraestrutura, nunca de forks funcionais.
 
-## 17.2 Modularidade por domínio
+## 37.2 Modularidade por domínio
 
-Novas features devem preferir módulos coesos e APIs claras. Evitar um novo “mega app.js” ou lógica de domínio misturada a renderização.
+Novas features devem preferir módulos coesos, contratos claros e limites explícitos.
 
-## 17.3 Domínio no servidor
+## 37.3 Regra crítica no servidor
 
-Regras críticas devem ser validadas no servidor/banco. Front-end pode melhorar UX, mas não deve ser a única barreira para:
+Permissão, transição de estado, aprovação, decisão, cálculo crítico e acesso a documento devem ser validados server-side/banco.
 
-- permissão;
-- transição de estado;
-- aprovação;
-- decisão;
-- cálculo crítico;
-- acesso a documento.
+## 37.4 Product Packs
 
-## 17.4 Product Packs
+Não duplicar RFQ/proposal/decision/contract por categoria. Product Packs devem ser schemas e regras sobre o core.
 
-Campos e regras específicas de categoria devem viver em estruturas extensíveis. Não duplicar RFQ/proposal/decision/contract por produto.
+## 37.5 Graph e analytics
 
-## 17.5 Dependências
+Não usar o Graph como justificativa para copiar indiscriminadamente dados de sistemas externos. Guardar o mínimo necessário com source of truth explícito.
 
-Adicionar dependência nova apenas quando:
+## 37.6 Dependências
 
-- resolve problema real;
-- reduz complexidade total;
-- tem manutenção adequada;
-- não aumenta superfície de risco de forma desproporcional;
-- cabe no budget de bundle/runtime.
+Nova dependência só entra se resolver problema real, reduzir complexidade total, possuir manutenção adequada e caber em risco/performance.
 
 ---
 
-# 18. Ambientes, branches e promoção
+# 38. Ambientes, branches, migrations e promoção
 
-## 18.1 Código canônico
+## 38.1 Código canônico
 
-A `main` é a versão canônica do produto. Demo e production usam `main` com ambientes diferentes.
+`main` permanece a versão canônica publicada. `pilot` é gate de staging/promoção.
 
-## 18.2 Fluxo de mudança recomendado
-
-Para preservar um gate de staging/piloto, o padrão futuro DEVERIA ser:
+## 38.2 Fluxo recomendado
 
 `feature/* -> pilot -> main`
 
-Interpretação:
+- feature parte de base alinhada com pilot;
+- PR entra em pilot após validação;
+- ambiente pilot valida integração real;
+- promoção `pilot -> main` libera a mesma árvore para demo/prod;
+- hotfix nasce de main e é reconciliado em pilot.
 
-- features nascem de uma base alinhada com `pilot`;
-- PR entra em `pilot` após testes;
-- `arandu-pilot` valida ambiente real de staging/piloto;
-- promoção `pilot -> main` libera a mesma base para demo e production;
-- `main` permanece a verdade do produto publicado;
-- hotfix nasce de `main`, volta a `main` e depois é reconciliado em `pilot`.
+PR direta `feature -> main` é exceção documentada.
 
-Isso resolve a aparente tensão entre “main é a demo/prod canônica” e “pilot é gate de promoção”.
+## 38.3 Ambientes
 
-## 18.3 Exceções
-
-PR direta `feature -> main` deve ser exceção documentada, não padrão silencioso.
-
-## 18.4 Ambientes
-
-- **demo**: `main` + `ARANDU_ENV=demo` + Supabase DEMO;
-- **pilot**: `pilot` + `ARANDU_ENV=pilot` + Supabase PILOT;
-- **production**: `main` + `ARANDU_ENV=production` + Supabase PROD.
+- demo: `main` + `ARANDU_ENV=demo` + banco DEMO;
+- pilot: `pilot` + `ARANDU_ENV=pilot` + banco PILOT;
+- production: `main` + `ARANDU_ENV=production` + banco PROD.
 
 Nenhum banco deve ser compartilhado entre ambientes.
 
----
+## 38.4 Migrations
 
-# 19. Migrations e banco
+Toda migration relevante DEVE:
 
-Toda migration nova DEVE:
-
-- ser aditiva sempre que possível;
-- ter rollback quando tecnicamente plausível;
+- ser aditiva quando possível;
 - entrar no manifesto;
-- ter ordem determinística;
-- ter teste de clean install;
-- ter teste de upgrade;
-- ter teste de rollback/reapply quando relevante;
-- preservar RLS e grants;
-- evitar defaults ou triggers que vazem entre tenants;
-- evitar alterações destrutivas sem migração em fases.
-
-Mudanças destrutivas devem seguir padrão expand/migrate/contract, nunca “ALTER e torcer”.
+- possuir ordem determinística;
+- preservar RLS/grants;
+- ter clean-install test;
+- upgrade test;
+- rollback/reapply quando aplicável;
+- seguir expand/migrate/contract em mudanças destrutivas.
 
 ---
 
-# 20. UX e design system
+# 39. UX e arquitetura de navegação
 
-## 20.1 Princípio de interface
+## 39.1 Princípio
 
-O Arandu deve parecer um **workspace corporativo moderno**, não um site institucional depois do login.
+O Arandu deve parecer um **workspace corporativo de alta confiança**, não um site institucional ou fintech promocional.
 
-Referências conceituais úteis incluem produtos que valorizam hierarquia, densidade controlada, command palette, objetos, estados e ações — mas o design não deve copiar uma marca específica.
+## 39.2 Gramática universal
 
-## 20.2 Gramática universal
-
-Sempre que possível, o usuário deve entender:
+Sempre que houver trabalho, mostrar:
 
 **estado -> próxima ação -> por quê -> prazo -> responsável**
 
-Essa gramática deve aparecer em:
+## 39.3 Navegação alvo
 
-- home;
-- listas;
-- quick views;
-- objeto detalhado;
-- aprovações;
-- notificações;
-- busca.
+### Meu trabalho
 
-## 20.3 Arquitetura de navegação
+- precisa de você;
+- tasks;
+- approvals;
+- follow-ups.
 
-Direção recomendada:
+### Procurement
 
-- **Meu trabalho**: precisa de você, tarefas, aprovações, follow-ups;
-- **Processos**: RFQs, propostas, contratos, renovações;
-- **Rede**: provedores e relacionamentos;
-- **Gestão**: perfil financeiro, políticas, integrações, usuários, auditoria.
+- requests/intake;
+- RFQs/RFPs;
+- proposals;
+- negotiations;
+- decisions.
 
-## 20.4 Progressive disclosure
+### Financial Portfolio
 
-A tela deve mostrar primeiro o necessário para agir e deixar detalhes avançados acessíveis sem sobrecarregar.
+- Passport/Graph;
+- debt/facilities;
+- limits;
+- guarantees;
+- financial spend;
+- banking costs;
+- opportunities.
 
-## 20.5 Quick view / inspector
+### Relationships
 
-Listas operacionais devem permitir inspeção sem perder contexto quando isso reduzir navegação e tempo de trabalho.
+- banks/providers;
+- contracts;
+- performance;
+- renewals.
 
-## 20.6 Aprovações
+### Governance
 
-Aprovar é uma decisão, não um botão de tabela. O usuário deve ver contexto suficiente antes da ação.
+- policies;
+- entities;
+- users/groups;
+- integrations;
+- savings;
+- audit.
 
-## 20.7 Comparação
-
-A comparação deve ser um workspace de decisão:
+## 39.4 Comparison workspace
 
 - diferenças primeiro;
-- campos ausentes visíveis;
-- cobertura;
-- proveniência;
+- missing data visível;
 - versões;
-- filtros de critérios;
-- pesos do usuário;
+- proveniência;
+- filtros;
+- pesos do cliente;
+- cenários;
 - sem recomendação do Arandu.
 
-## 20.8 Mobile
+## 39.5 Progressive disclosure
 
-Mobile deve suportar ações relevantes e leitura, mas não precisa reproduzir densidade desktop. Bottom sheets, stack vertical e seleção 2-a-2 são preferíveis a tabelas impossíveis de ler.
+Mostrar primeiro o necessário para agir. Complexidade enterprise deve existir sem destruir legibilidade para clientes menores.
 
-## 20.9 Acessibilidade
+## 39.6 Acessibilidade e mobile
 
-DEVE haver:
-
-- navegação por teclado;
-- foco visível;
-- targets adequados;
-- labels;
-- contraste;
-- reduced motion;
-- sem dependência exclusiva de cor;
-- sem horizontal overflow não intencional.
+Preservar navegação por teclado, foco, targets, labels, contraste, reduced motion e ausência de overflow não intencional. Mobile deve adaptar densidade, não copiar desktop cegamente.
 
 ---
 
-# 21. Integrações
+# 40. Analytics e métricas
 
-Integrações devem reduzir duplicidade de trabalho e aumentar qualidade do dado.
+## 40.1 Valor para cliente
 
-## 21.1 Prioridades
+- time-to-RFQ;
+- time-to-first-response;
+- response rate;
+- proposal coverage;
+- negotiation cycle;
+- approval cycle;
+- time-to-decision;
+- monitored-contract coverage;
+- renewals iniciadas antes do prazo crítico;
+- fees revisados;
+- opportunities convertidas em processo;
+- realized savings;
+- policy adherence;
+- reduction de follow-ups manuais;
+- provider response/performance.
 
-1. SSO / SCIM para empresas maiores;
-2. e-mail transacional confiável;
-3. Slack / Microsoft Teams para notificação e deep link;
-4. ERP / contabilidade / TMS para contexto e cadastro;
-5. Open Finance para dados autorizados da própria empresa;
-6. APIs de provedores quando trouxerem propostas/estados de forma segura;
-7. assinatura eletrônica como integração externa, sem o Arandu se tornar signatário;
-8. data warehouse / BI exports;
-9. API pública e webhooks.
-
-## 21.2 Regra de ação externa
-
-Notificações externas podem levar o usuário ao Arandu. Ações materiais — aprovar, decidir, compartilhar informação confidencial — deveriam ocorrer dentro de um contexto autenticado do produto, salvo desenho explícito e seguro.
-
----
-
-# 22. Open Finance
-
-Open Finance pode ser útil como fonte autorizada, não como justificativa para transformar Arandu em banco.
-
-Usos legítimos futuros:
-
-- preencher perfil financeiro;
-- validar dados declarados;
-- construir histórico de recebimentos;
-- reduzir documentos manuais;
-- contextualizar necessidade de caixa;
-- medir resultado pós-contrato;
-- suportar cenários.
-
-Toda informação importada deve guardar consentimento/escopo/origem/data e respeitar minimização de dados.
-
----
-
-# 23. Analytics e métricas de produto
-
-## 23.1 Métricas de valor para o cliente
-
-- tempo da necessidade à RFQ publicada;
-- tempo para primeira resposta;
-- response rate por processo;
-- cobertura média de propostas;
-- tempo de negociação;
-- tempo de aprovação;
-- tempo até decisão;
-- contratos com renovação monitorada;
-- renovações iniciadas antes do prazo crítico;
-- savings realizados com metodologia;
-- taxa de processos com trilha completa;
-- redução de follow-ups manuais quando mensurável.
-
-## 23.2 Métricas de saúde do SaaS
+## 40.2 Saúde do SaaS
 
 - organizações ativas;
-- usuários ativos por função;
-- RFQs criadas e concluídas;
+- WAU/MAU por persona;
+- processos completos;
 - contratos ativos;
-- retenção por organização;
-- profundidade de uso por módulos;
-- ativação: organização -> primeiro processo completo;
-- tempo para valor;
-- expansão de seats/entidades/categorias;
-- uso do portal do provedor;
-- erros e latência.
+- retention por organização;
+- módulos usados;
+- activation time;
+- time-to-value;
+- expansão de seats/entities/packs;
+- provider portal usage;
+- API/integration usage;
+- errors/latency.
 
-## 23.3 Métricas que não devem virar vaidade
+## 40.3 Métricas de vaidade
 
-Número bruto de telas, quantidade de integrações ou total de features não representam sucesso se não aumentarem processos completos, recorrência, retenção e confiança.
+Quantidade de telas, integrações ou features não representa sucesso isoladamente.
 
 ---
 
-# 24. Produto comercial e packaging
+# 41. Produto comercial e packaging
 
-O Arandu deve ser vendido como software, não como promessa de obter “a melhor taxa”.
+O Arandu deve ser vendido como software e infraestrutura de trabalho, não como promessa de “melhor taxa”.
 
-Eixos naturais de packaging futuros:
+Eixos naturais de packaging:
 
-- número de entidades;
-- número de usuários;
-- módulos/categorias habilitadas;
+- usuários;
+- entidades legais;
+- Product Packs;
 - volume de processos;
-- integrações;
-- SSO/SCIM;
-- analytics avançado;
-- API;
-- retenção/auditoria avançada;
-- suporte e SLA.
-
-O modelo comercial NÃO DEVERIA depender exclusivamente de comissão por transação, pois isso pode criar conflito com a neutralidade do produto. Qualquer remuneração ligada a provedor ou contratação deve ser transparente, juridicamente revisada e claramente separada de lógica de comparação.
-
----
-
-# 25. Roadmap por ondas
-
-O roadmap abaixo é uma **sequência de maturidade**, não uma promessa de calendário.
-
-## Onda 0 — Fechar a fundação atual
-
-Objetivo: tornar a baseline da PR #90 verdade operacional.
-
-Entregas:
-
-- CI completamente verde no head da `main`;
-- Supabase DEMO dedicado;
-- migration `financial-approval-handoff-1` aplicada em pilot e production;
-- `arandu-demo` com `ARANDU_ENV=demo` e banco correto;
-- seed real da Vitta Foods;
-- doctor/canary/restore onde aplicável;
-- ref DEMO registrado nos guards;
-- sandbox legado removido depois da migração;
-- branch governance reconciliada;
-- este documento versionado no repositório e referenciado por `CLAUDE.md`.
-
-## Onda 1 — Financial Procurement Management
-
-Objetivo: aumentar recorrência e profundidade sem expandir muitas categorias.
-
-Prioridades:
-
-1. Financial Profile / Passport;
-2. Contract & Renewal Center;
-3. Savings Ledger;
-4. Provider Relationship Management;
-5. Policy & Approval Engine versionado;
-6. Executive Portfolio;
-7. multi-entity foundation;
-8. templates e intake configuráveis;
-9. tarefas/follow-ups e notificações mais inteligentes.
-
-## Onda 2 — Intelligence
-
-Objetivo: reduzir trabalho manual e transformar o histórico em vantagem.
-
-Prioridades:
-
-1. document/proposal ingestion;
-2. Proposal Intelligence;
-3. diff semântico de versões;
-4. AI Analyst factual;
-5. insights baseados no histórico da própria empresa;
-6. analytics de ciclo e fornecedor;
-7. benchmark externo somente quando os gates de dados permitirem.
-
-## Onda 3 — Novas categorias
-
-Objetivo: ampliar wallet share usando o mesmo core.
-
-Ordem preferencial:
-
-1. FX/câmbio;
-2. garantias/fianças;
-3. cash management e serviços bancários;
-4. seguros corporativos selecionados;
-5. cartões/expense providers;
-6. outras categorias após validação.
-
-## Onda 4 — Ecosystem OS
-
-Objetivo: integrar o Arandu ao stack corporativo e criar switching costs positivos.
-
-- SSO/SCIM;
-- ERP/TMS/accounting;
-- Open Finance;
-- Slack/Teams;
+- contratos monitorados;
+- integrations;
 - API/webhooks;
-- assinatura externa;
-- provider APIs;
-- data warehouse;
-- network intelligence com privacy by design.
+- SSO/SCIM;
+- analytics;
+- retention/audit;
+- AI/document intelligence;
+- support/SLA.
+
+O modelo comercial NÃO DEVERIA depender exclusivamente de comissão por transação. Qualquer remuneração ligada a fornecedor/contratação deve ser transparente e separada da lógica de comparação.
 
 ---
 
-# 26. Framework de priorização
+# 42. Roadmap por prioridades
 
-Toda iniciativa relevante deve ser avaliada pelas perguntas abaixo.
+O roadmap é uma **sequência de maturidade**, não calendário.
+
+## P0 — Fundação comercial e enterprise blockers
+
+Objetivo: tornar a plataforma segura, operável e arquiteturalmente apta a clientes reais de maior porte.
+
+Prioridades:
+
+1. concluir e manter Demo/Pilot/Production separados e verificáveis;
+2. fechar migrations e runbooks pendentes;
+3. multi-entity foundation;
+4. Contract & Renewal Center v2;
+5. Provider/Bank Relationship Management v1;
+6. Debt / Facilities / Limits / Guarantees model v1;
+7. Policy & Approval Engine v2;
+8. public API/webhook foundation;
+9. manter Passport/Graph evoluindo sobre v2;
+10. branch/environment governance e observabilidade.
+
+## P1 — Recorrência, ROI e diferenciação
+
+Objetivo: tornar Arandu uma ferramenta semanal/diária e provar valor econômico.
+
+Prioridades:
+
+1. Savings Ledger v1;
+2. Bank Fee Intelligence v1;
+3. Opportunity Engine v1;
+4. Proposal/Document Intelligence v1;
+5. SSO/SCIM + enterprise admin;
+6. Executive Portfolio v1;
+7. Financial Spend Analytics v1;
+8. Covenant/Obligation Monitor;
+9. Provider Performance;
+10. Enterprise Search;
+11. Enterprise Intake;
+12. Scenario Builder / split award.
+
+## P2 — Wallet share e ecosystem integration
+
+Objetivo: usar o mesmo core em novas necessidades e automatizar contexto.
+
+Prioridades:
+
+1. FX pack;
+2. Guarantees/Surety pack;
+3. Cash Management RFP pack;
+4. Working Capital/Receivables sourcing;
+5. deeper Acquiring Intelligence;
+6. ERP/TMS connectors;
+7. Open Finance;
+8. Teams/Slack;
+9. provider APIs;
+10. BI/data warehouse.
+
+## P3 — Network effects e data moat
+
+Objetivo: ampliar valor acumulado da rede preservando privacy e neutralidade.
+
+Prioridades:
+
+1. Provider Discovery Network;
+2. internal benchmark avançado;
+3. external benchmark após gates jurídicos/estatísticos;
+4. network intelligence;
+5. seguros e outros packs após validação;
+6. advanced hedging/structured products somente com boundary específico.
+
+---
+
+# 43. Gates antes de expandir
+
+## 43.1 Antes de novo Product Pack
+
+Responder “sim” a:
+
+- o core suporta o processo sem fork?
+- há lifecycle pós-decisão?
+- Provider model atende?
+- Contract Center atende?
+- Policy Engine atende?
+- Graph fornece contexto?
+- existe hipótese comercial e usuário real?
+- existem limites regulatórios claros?
+- há testes de domínio e E2E?
+
+## 43.2 Antes de benchmarking externo
+
+- volume suficiente;
+- anonimização;
+- contrato/consentimento;
+- reidentification controls;
+- metodologia;
+- vintage;
+- legal review.
+
+## 43.3 Antes de IA autônoma
+
+O Arandu não deve introduzir decisão autônoma. Automação de tarefas pode avançar apenas quando reversível, autorizada e auditável.
+
+---
+
+# 44. Framework de priorização
+
+Toda iniciativa deve ser avaliada por:
 
 | Dimensão | Pergunta |
 | --- | --- |
-| Dor | Resolve um problema real e recorrente de uma equipe financeira? |
-| Recorrência | Aumenta uso semanal/mensal ou só adiciona uma tela rara? |
-| Profundidade | Completa melhor um workflow existente? |
-| Dados | Cria histórico estruturado reutilizável? |
-| Governança | Melhora decisão, trilha, política ou controle? |
-| Diferenciação | Faz algo difícil de reproduzir com e-mail + planilha? |
-| Reuso | Serve a mais de uma categoria ou persona? |
-| Segurança | Preserva isolamento, mínimo privilégio e auditabilidade? |
-| Neutralidade | Mantém a decisão com o cliente? |
-| Operação | É testável, observável e suportável? |
-| Complexidade | O valor compensa dívida técnica e cognitiva? |
+| Dor | Resolve trabalho financeiro real e recorrente? |
+| Recorrência | Aumenta uso frequente? |
+| Profundidade | Completa um lifecycle existente? |
+| Dados | Gera histórico estruturado reutilizável? |
+| Governança | Melhora política, decisão ou controle? |
+| Diferenciação | É melhor que e-mail + planilha + portal? |
+| Enterprise | Remove blocker de médio/grande porte? |
+| Reuso | Serve a múltiplas categorias/personas? |
+| Integração | Conecta adequadamente sources of truth? |
+| Segurança | Preserva isolamento e least privilege? |
+| Neutralidade | Mantém decisão com o cliente? |
+| Operação | É testável/observável/suportável? |
 | Comercial | Melhora ativação, retenção, expansão ou disposição a pagar? |
+| Complexidade | O valor compensa custo técnico/cognitivo? |
 
-Features que pontuam alto em “wow” e baixo em workflow, dados e recorrência deveriam ser adiadas.
+Features com “wow” alto e workflow/dados/recorrência baixos devem ser adiadas.
 
 ---
 
-# 27. Lifecycle de uma feature
+# 45. Lifecycle de uma feature e Definition of Done
 
-## 27.1 Descoberta
+## 45.1 Descoberta
 
 Antes de implementar:
 
-- definir usuário;
+- usuário;
 - problema;
 - comportamento atual;
-- dado necessário;
 - objeto afetado;
-- estado inicial/final;
+- source of truth;
+- estados/transições;
 - permissões;
+- entidade/tenant;
 - risco;
-- métrica de sucesso;
-- o que explicitamente fica fora.
+- métrica;
+- fora de escopo.
 
-## 27.2 Design
+## 45.2 Design
 
-Deve incluir:
+Cobrir:
 
 - fluxo principal;
-- empty state;
-- loading;
-- erro;
-- permissão negada;
+- empty/loading/error;
+- denied;
+- audit;
+- notifications;
 - mobile;
-- teclado;
-- audit trail;
-- notificações;
-- impacto em documentos/dados;
-- rollback/migration se houver.
+- accessibility;
+- integrações;
+- source metadata;
+- migration/rollback.
 
-## 27.3 Implementação
-
-Ordem preferida:
+## 45.3 Implementação preferida
 
 1. modelo e contratos;
 2. autorização;
 3. domínio;
 4. API;
 5. UI;
-6. instrumentação;
+6. instrumentation;
 7. testes negativos;
 8. E2E;
-9. documentação;
-10. evidência visual.
+9. docs;
+10. visual evidence.
 
-## 27.4 Validação
+## 45.4 Definition of Done
 
-Nunca considerar “pronto” apenas porque a UI parece funcionar.
+Conforme aplicável:
 
----
-
-# 28. Definition of Done
-
-Uma mudança relevante só está pronta quando, conforme aplicável:
-
-- requisito de produto está documentado;
-- limites foram respeitados;
+- requisito documentado;
+- boundaries preservados;
 - RLS/RBAC testados;
 - API valida permissão;
-- migrations estão no manifesto;
-- rollback existe ou a ausência está justificada;
-- `check:all` passa;
-- build passa;
-- budgets passam;
-- E2E da jornada passa;
-- banco passa;
-- navegadores suportados passam no CI;
-- mobile foi verificado;
-- console não tem erro novo;
-- não há overflow horizontal;
-- textos não fazem alegação proibida;
-- audit trail registra o necessário;
-- docs canônicas foram atualizadas;
-- evidência foi anexada ao PR;
-- mudanças externas não são declaradas feitas sem prova.
+- migrations no manifesto;
+- rollback ou justificativa;
+- `check:all`;
+- build/budgets;
+- E2E;
+- database tests;
+- cross-browser;
+- mobile;
+- console limpo;
+- sem overflow;
+- audit trail;
+- provenance;
+- docs;
+- evidência;
+- claims revisadas;
+- nenhum estado externo declarado sem prova.
 
 ---
 
-# 29. QA e testes
+# 46. QA, performance e escala
 
-## 29.1 Pirâmide prática
+## 46.1 Pirâmide prática
 
-- testes puros para domínio e cálculos;
-- testes de contrato/API;
-- testes de banco para RLS, funções e migrations;
-- E2E para jornadas reais;
-- visual/regression evidence para superfícies críticas.
+- unit/domain tests;
+- API/contract tests;
+- DB/RLS/migration tests;
+- integration tests;
+- E2E;
+- visual evidence.
 
-## 29.2 Casos negativos obrigatórios
+## 46.2 Casos negativos
 
 - sem sessão;
 - outro tenant;
-- provedor concorrente;
-- papel incorreto;
-- estado inválido;
-- versão antiga;
-- campo ausente;
-- dado malformado;
-- replay/idempotência quando aplicável;
-- ambiente incorreto.
+- outra entity;
+- provider concorrente;
+- role insuficiente;
+- state inválido;
+- stale version;
+- malformed data;
+- replay;
+- wrong environment;
+- webhook forged;
+- integration conflict;
+- AI retrieval sem permissão.
 
-## 29.3 Cross-browser
-
-CI deve continuar cobrindo Chromium, Firefox e WebKit quando a matriz suportada assim exigir. Não reduzir browsers para “ficar verde”.
-
----
-
-# 30. Performance
-
-O Arandu deve permanecer rápido mesmo com histórico crescente.
-
-Diretrizes:
+## 46.3 Performance
 
 - evitar N+1;
-- paginação e filtros server-side onde necessário;
-- índices baseados em queries reais;
-- budgets de bundle;
-- lazy load de módulos pesados;
+- server-side pagination/filter;
+- índices por query real;
+- bundle budgets;
+- lazy loading;
 - anexos fora do bundle;
-- observabilidade de queries e funções críticas;
-- não trazer dados de toda a organização para filtrar no navegador.
+- observabilidade de queries;
+- analytics incrementais quando necessário;
+- não carregar tenant inteiro para filtrar no browser.
 
-Dashboards devem ter limites previsíveis de consultas e não crescer linearmente de forma invisível com o número de RFQs.
+## 46.4 Enterprise scale
 
----
-
-# 31. Documentação como parte do produto
-
-A documentação deve ter uma hierarquia canônica e evitar documentos concorrentes.
-
-## 31.1 Documentos normativos
-
-Este documento deve ser a referência estratégica principal. Documentos técnicos existentes continuam especializados em:
-
-- limites do produto;
-- segurança;
-- threat model;
-- data model;
-- UI architecture;
-- deployment;
-- pilot operations;
-- migrations.
-
-## 31.2 Regra para agentes de IA
-
-`CLAUDE.md` (e arquivos equivalentes para outros agentes) DEVE apontar para este guideline e dizer explicitamente que qualquer feature nova precisa respeitá-lo.
-
-## 31.3 Atualização
-
-Mudança de tese, limite, arquitetura de ambientes ou papel da IA exige atualização deste documento no mesmo PR ou em PR imediatamente anterior.
+Novos módulos devem considerar milhares de RFQs, propostas, contratos, documentos e eventos, não apenas datasets de demo.
 
 ---
 
-# 32. Anti-patterns proibidos
+# 47. Segurança, privacidade e autorização
+
+## 47.1 Multi-tenancy
+
+RLS no banco continua primeira linha de isolamento e NÃO DEVE ser substituída por filtro apenas em API/front-end.
+
+## 47.2 Least privilege
+
+- service role somente server-side e minimizada;
+- anon + session no cliente;
+- privileged ops separadas;
+- MFA onde exigido;
+- provider nunca vê concorrente;
+- cross-entity permissions explícitas.
+
+## 47.3 Storage
+
+Documentos financeiros permanecem privados; acesso por autorização server-side e signed URL curta quando aplicável.
+
+## 47.4 Logs
+
+Não registrar tokens, senhas, documentos completos, dados financeiros sensíveis desnecessários ou PII além do mínimo.
+
+## 47.5 Fail closed
+
+Configuração, integração, autorização ou environment ambíguos devem falhar fechados.
+
+---
+
+# 48. Documentação e instruções para agentes de IA
+
+## 48.1 Hierarquia documental
+
+Esta guideline é autoridade estratégica. Documentos especializados continuam autoridade técnica para limites, segurança, dados, UI, deploy, migrations e operações.
+
+## 48.2 Regra para agentes
+
+Antes de qualquer implementação relevante, agente DEVE:
+
+1. ler esta guideline;
+2. ler `docs/FINANCIAL_PRODUCT_BOUNDARIES.md`;
+3. identificar módulos existentes;
+4. verificar se está estendendo ou duplicando;
+5. declarar fora de escopo;
+6. preservar decisão humana;
+7. preservar RLS/RBAC/MFA;
+8. preservar ambientes;
+9. validar integration source of truth;
+10. provar mudança com testes/evidência.
+
+## 48.3 Durante implementação
+
+- preferir extensão a reconstrução;
+- não remover guardas para facilitar testes;
+- não criar auth bypass;
+- não inventar claims/dados;
+- não confundir mock com produção;
+- não declarar deploy externo sem prova;
+- manter PR coesa;
+- atualizar docs no mesmo PR quando arquitetura ou tese mudar.
+
+---
+
+# 49. Anti-patterns proibidos
 
 NÃO FAZER:
 
-- criar uma segunda implementação de comparação;
-- criar um “demo engine” separado do produto real;
-- esconder feature incompleta atrás de UI convincente e chamar de pronta;
-- duplicar entidades por categoria financeira;
-- colocar lógica crítica apenas no browser;
-- inserir service role no cliente;
-- criar ranking default de provedores;
-- inventar savings;
-- mostrar “recommended” sem decisão humana;
-- aplicar migration manual fora do manifesto e esquecer o código;
-- compartilhar Supabase entre ambientes;
-- usar dados reais na demo;
-- adicionar product pack sem lifecycle pós-decisão;
-- construir uma integração sem source-of-truth e idempotência;
-- transformar notificações em spam;
-- criar dashboard sem ações;
-- criar IA sem proveniência;
-- fazer “big bang refactor” sem necessidade;
-- reabrir a vertical de arte no produto financeiro;
-- expandir para consumidor antes de consolidar B2B.
+- segunda implementação de comparação;
+- novo demo engine paralelo ao produto real;
+- duplicar entidades por Product Pack;
+- lógica crítica somente no browser;
+- service role no cliente;
+- ranking default de provedores;
+- recommendation default;
+- savings sem metodologia;
+- benchmark sem governança;
+- Graph como data lake indiscriminado;
+- integração sem source of truth/idempotência;
+- API sem scopes/audit/rate limit;
+- multi-entity implementado apenas adicionando IDs sem modelo;
+- dashboard sem workflow;
+- IA sem provenance/permission grounding;
+- Opportunity Engine que execute contratação sozinho;
+- migration fora do manifesto;
+- banco compartilhado entre ambientes;
+- dados reais em demo;
+- pack sem lifecycle;
+- big-bang refactor sem necessidade;
+- reabrir vertical de arte;
+- expandir consumidor antes do B2B enterprise.
 
 ---
 
-# 33. Próximos passos concretos a partir de 1º de outubro de 2026
+# 50. Decisões que exigem revisão formal desta guideline
 
-## Passo 1 — concluir a PR #90 operacionalmente
+Revisar antes de:
 
-- confirmar todos os jobs do CI verdes;
-- confirmar estados finais dos três projetos Vercel;
-- não tratar pending como sucesso.
-
-## Passo 2 — criar/configurar o Supabase DEMO dedicado
-
-- projeto separado;
-- clean install pelo manifesto;
-- marcador `deployment_environment=demo`;
-- storage privado;
-- sem dados reais.
-
-## Passo 3 — atualizar pilot e production
-
-Aplicar `docs/supabase-financial-approval-handoff.sql`, validar `schema_version=financial-approval-handoff-1` e rodar doctor.
-
-## Passo 4 — migrar `arandu-demo` para a demo real
-
-Definir:
-
-- `ARANDU_ENV=demo`;
-- `SUPABASE_URL` DEMO;
-- `SUPABASE_ANON_KEY` DEMO;
-- `SUPABASE_SERVICE_ROLE_KEY` DEMO;
-- `CRON_SECRET` adequado;
-- `ARANDU_SITE_URL` correto;
-- remover `ARANDU_DEPLOYMENT_KIND` legado.
-
-## Passo 5 — executar e validar o seed canônico
-
-Rodar `demo:seed`, `demo:check` e jornada E2E com as personas fictícias.
-
-## Passo 6 — registrar o ref DEMO nos guards
-
-Adicionar o ref em `DEMO_SUPABASE_REFS` por PR e testar fronteiras negativas.
-
-## Passo 7 — retirar o sandbox legado
-
-Somente depois de a demo real estar estável. Remover engine, build legado, testes e docs que não tenham mais função. Fazer em PR própria para rollback simples.
-
-## Passo 8 — resolver governança de branches
-
-Atualizar `CLAUDE.md`, `CONTRIBUTING.md` e `FINANCIAL_DEPLOYMENT_WORKFLOW.md` para o modelo canônico: `feature/* -> pilot -> main`, com main sendo código canônico de demo/prod.
-
-## Passo 9 — versionar este guideline no repositório
-
-Caminho recomendado:
-
-`docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md`
-
-E referenciá-lo em:
-
-- `README.md`;
-- `CLAUDE.md`;
-- `CONTRIBUTING.md`;
-- `docs/OPERATIONS_INDEX.md`.
-
-## Passo 10 — iniciar a Onda 1
-
-Primeiro grande lote recomendado:
-
-1. Financial Profile / Passport v2;
-2. Contract & Renewal Center v2;
-3. Savings Ledger v1;
-4. Provider Relationship Management v1;
-5. Policy/Approval Engine v2;
-6. Executive Portfolio v1.
-
-A Onda 1 deve aumentar o uso recorrente antes de adicionar FX, seguros ou outras categorias.
-
----
-
-# 34. Sequência recomendada da Onda 1
-
-## 34.1 Primeiro: Financial Profile v2
-
-Motivo: alimenta intake, comparação, integrações futuras e reduz retrabalho.
-
-Entregas mínimas:
-
-- entidades;
-- perfil reutilizável;
-- documentos reutilizáveis;
-- metadata de fonte/validade;
-- permissões;
-- preenchimento seletivo de RFQ;
-- coverage do perfil.
-
-## 34.2 Segundo: Contract & Renewal Center v2
-
-Motivo: gera recorrência natural e transforma Arandu em sistema contínuo, não episódico.
-
-## 34.3 Terceiro: Savings Ledger
-
-Motivo: cria prova de ROI, desde que rigorosamente metodológico.
-
-## 34.4 Quarto: Provider Relationship Management
-
-Motivo: cria memória institucional e valor acumulado por uso.
-
-## 34.5 Quinto: Policy Engine
-
-Motivo: aumenta fit com empresas maiores e reduz processos paralelos.
-
-## 34.6 Sexto: Executive Portfolio
-
-Motivo: só deve consolidar depois de contratos, savings e provider data estarem estruturados.
-
----
-
-# 35. Critério para iniciar Intelligence / IA
-
-A camada de Intelligence deve começar quando:
-
-- o core de documentos estiver sólido;
-- proposta versionada for confiável;
-- proveniência de campos existir;
-- autorização de documentos estiver madura;
-- houver dados suficientes para validar extração;
-- o produto já conseguir funcionar sem IA.
-
-IA deve acelerar um bom workflow, nunca mascarar um workflow ruim.
-
----
-
-# 36. Critério para expansão de categoria
-
-Antes de adicionar FX, garantias ou seguros, responder “sim” a:
-
-- O usuário volta ao Arandu regularmente com crédito/adquirência e lifecycle?
-- O core suporta template/schema sem fork de produto?
-- Contratos e renovações estão maduros?
-- Policy engine suporta a nova categoria?
-- O provider model é reutilizável?
-- Existe clareza jurídica?
-- Existe comprador potencial real?
-- O novo pack aumenta receita/retention sem dispersar a equipe?
-
-Se a maioria for “não”, aprofundar o core primeiro.
-
----
-
-# 37. Instruções permanentes para agentes de IA que alterem o Arandu
-
-Antes de implementar qualquer pedido:
-
-1. ler este documento;
-2. ler `FINANCIAL_PRODUCT_BOUNDARIES.md`;
-3. identificar objetos e módulos já existentes;
-4. evitar duplicação;
-5. listar explicitamente o que não será alterado;
-6. preservar RLS/RBAC/MFA;
-7. preservar decisão humana;
-8. preservar separação demo/pilot/prod;
-9. usar migration aditiva e testes se houver banco;
-10. provar a mudança com testes e evidência.
-
-Durante a implementação:
-
-- preferir extensão a reconstrução;
-- não remover guardas para facilitar teste;
-- não criar bypass de autenticação;
-- não inventar dados ou claims;
-- não confundir mock com produção;
-- não declarar deploy externo realizado sem evidência;
-- não fazer vários pushes pequenos sem necessidade;
-- manter escopo da PR coeso.
-
-Antes de abrir/mergear PR:
-
-- `npm run audit:ci`;
-- `npm run check:all`;
-- `npm run build`;
-- checks de assets/size/SEO/surface/navigation;
-- testes da área;
-- `test:database` para SQL;
-- E2E para UI/fluxo;
-- `git diff --check`;
-- revisar claims e textos;
-- atualizar docs;
-- anexar before/after quando visual;
-- registrar riscos, rollback e dependências humanas.
-
----
-
-# 38. Template de avaliação de uma nova feature
-
-Toda proposta de feature relevante deveria responder:
-
-**Problema**  
-Que trabalho corporativo real está fragmentado, manual, lento ou sem governança?
-
-**Usuário**  
-Quem sente esse problema?
-
-**Objeto**  
-Qual objeto canônico será criado ou alterado?
-
-**Workflow**  
-Qual é o estado inicial, transições e estado final?
-
-**Dado**  
-Quais campos entram, de onde vêm e como são versionados?
-
-**Permissão**  
-Quem pode ler, criar, alterar, aprovar e compartilhar?
-
-**Decisão**  
-A empresa continua controlando decisão e critérios?
-
-**Integração**  
-Existe source-of-truth externo? Como idempotência será garantida?
-
-**Métrica**  
-Como saberemos se gerou valor?
-
-**Risco**  
-Segurança, privacidade, regulatório, dívida técnica e UX.
-
-**Fora de escopo**  
-O que deliberadamente não será feito nesta rodada?
-
----
-
-# 39. Template de PR de produto
-
-Toda PR relevante deveria conter:
-
-- problema;
-- solução;
-- objetos afetados;
-- impacto ao usuário;
-- impacto operacional;
-- segurança e privacidade;
-- banco/migrations;
-- validação executada;
-- evidência visual quando aplicável;
-- evidências externas separadas de validação local;
-- risco;
-- rollback;
-- ações humanas restantes;
-- docs atualizadas;
-- declaração explícita sobre limites do produto quando a feature tocar cálculos, comparações, IA, dados financeiros ou integrações.
-
----
-
-# 40. Decisões estratégicas que exigem revisão deste documento
-
-Revisar formalmente esta guideline antes de:
-
-- oferecer produto para pessoa física;
+- oferecer B2C;
 - executar pagamentos;
 - custodiar fundos;
 - conceder crédito;
-- cobrar success fee que possa afetar neutralidade;
-- criar marketplace aberto de produtos financeiros;
-- gerar recomendação automatizada;
-- introduzir decisão por IA;
+- executar hedge/investimento;
+- assumir underwriting;
+- success fee que afete neutralidade;
+- recomendação automatizada;
+- decisão autônoma por IA;
+- marketplace aberto com compartilhamento automático de dados;
 - compartilhar dados agregados com provedores;
-- criar benchmark externo;
-- entrar em investimentos/derivativos complexos;
+- benchmark externo;
 - mudar topologia de ambientes;
-- abandonar RLS como isolamento principal;
-- criar uma segunda base de código para demo;
-- mudar o modelo de branches;
-- armazenar dados em provedores de IA de forma persistente.
+- abandonar RLS;
+- criar segunda codebase de demo;
+- mudar modelo de branches;
+- permitir armazenamento persistente de dados sensíveis em provedor de IA sem revisão.
 
 ---
 
-# 41. North Star do Arandu
+# 51. North Star
 
-A North Star não é “quantos produtos financeiros o Arandu suporta”.
+A North Star não é quantidade de produtos suportados.
 
 É:
 
-> **Quantos processos financeiros corporativos relevantes uma empresa consegue executar e administrar no Arandu, de ponta a ponta, com dados confiáveis, concorrência, governança, decisão humana, contrato, renovação e memória institucional — sem voltar para planilhas, e-mails e decisões sem trilha.**
+> **Quantos relacionamentos e processos financeiros corporativos relevantes uma empresa consegue administrar no Arandu, de ponta a ponta e continuamente, com dados confiáveis, competição, governança, decisão humana, contrato, obrigações, renovação, custos, savings e memória institucional — sem voltar para planilhas, e-mails e decisões sem trilha.**
 
-O produto vence quando o cliente sente que remover o Arandu faria sua operação financeira voltar a ser fragmentada e opaca.
+O produto vence quando remover Arandu significaria voltar a uma operação financeira fragmentada e opaca.
 
 ---
 
-# 42. Regra final
+# 52. Regra final
 
-Em qualquer dúvida sobre uma evolução, priorizar esta sequência:
+Na dúvida sobre evolução, priorizar:
 
-**fortalecer o core -> aumentar recorrência -> estruturar dados -> automatizar trabalho -> gerar inteligência -> integrar ecossistema -> expandir categorias.**
+**estabilizar -> modelar entidades e relacionamentos -> aprofundar lifecycle -> estruturar dados -> integrar sources of truth -> detectar oportunidades -> automatizar trabalho -> gerar inteligência -> expandir categorias -> ativar network effects.**
 
 Nunca inverter essa ordem apenas para produzir uma demo mais impressionante.
 
 ---
 
-# Apêndice A — Matriz de módulos futuros
+# Apêndice A — Matriz de prioridades
 
-| Módulo | Horizonte | Valor primário | Dependência principal | Risco principal |
+| Módulo | Prioridade | Valor primário | Dependência principal | Risco principal |
 | --- | --- | --- | --- | --- |
-| Financial Profile v2 | Onda 1 | reuso de dados | entidades/permissões | dado desatualizado |
-| Contract Center v2 | Onda 1 | recorrência | contratos | lifecycle incompleto |
-| Savings Ledger | Onda 1 | prova de ROI | baseline/metodologia | savings inventado |
-| Provider RM | Onda 1 | memória institucional | provider model | score subjetivo |
-| Policy Engine v2 | Onda 1 | governança | approvals | política mudar processo antigo |
-| Executive Portfolio | Onda 1 | gestão | dados estruturados | dashboard sem ação |
-| Proposal Intelligence | Onda 2 | automação | documentos/proveniência | extração errada |
-| AI Analyst | Onda 2 | produtividade | dados + RBAC | recomendação indevida |
-| Benchmark interno | Onda 2 | inteligência | histórico | amostra pequena |
-| Benchmark externo | Onda 2+ | inteligência de mercado | volume + anonimização | reidentificação |
-| FX Product Pack | Onda 3 | expansão | procurement core | complexidade regulatória |
-| Guarantees Pack | Onda 3 | expansão | provider/contract | documentação específica |
-| Cash Management Pack | Onda 3 | expansão | profile/integrations | escopo virar banking |
-| Insurance Pack | Onda 3 | expansão | lifecycle | intermediação/regulação |
-| SSO/SCIM | Onda 4 | enterprise readiness | IAM | configuração |
-| ERP/TMS | Onda 4 | redução de retrabalho | integrations | source-of-truth |
-| Open Finance | Onda 4 | dados autorizados | consent/data model | privacidade |
-| Public API/Webhooks | Onda 4 | ecossistema | auth/idempotency | abuso/vazamento |
+| Financial Passport / Graph | P0 contínuo | contexto reutilizável | provenance/entities | dado desatualizado |
+| Multi-entity foundation | P0 | enterprise readiness | auth/data model | vazamento cross-entity |
+| Contract Center v2 | P0 | recorrência | contracts | lifecycle incompleto |
+| Provider/Bank RM | P0 | memória institucional | provider model | score subjetivo |
+| Debt/Facilities/Limits | P0 | contexto financeiro | Graph/contracts | virar ledger paralelo |
+| Policy Engine v2 | P0 | governança | approvals/entities | policy mutar processo antigo |
+| API/Webhooks | P0 | integração enterprise | auth/idempotency | abuso/vazamento |
+| Savings Ledger | P1 | prova de ROI | baseline | savings inventado |
+| Bank Fee Intelligence | P1 | ROI e oportunidade | contract/usage data | falso positivo |
+| Opportunity Engine | P1 | recorrência/diferenciação | contracts/Graph | virar recomendação |
+| Proposal Intelligence | P1 | produtividade | docs/provenance | extração errada |
+| SSO/SCIM | P1 | enterprise adoption | IAM | misconfiguration |
+| Executive Portfolio | P1 | gestão CFO | structured data | dashboard sem ação |
+| Financial Spend | P1 | oportunidade | integrations | dupla contagem |
+| Covenant Monitor | P1 | controle | contract data | falsa conclusão |
+| Enterprise Search | P1 | produtividade | indexing/auth | leakage |
+| Scenario Builder | P1 | decisão | comparison | parecer recomendação |
+| FX Pack | P2 | wallet share | sourcing core | boundary regulatório |
+| Guarantees Pack | P2 | wallet share | contract/provider | instrumento heterogêneo |
+| Cash Mgmt RFP | P2 | strategic sourcing | fee/provider model | escopo virar TMS |
+| Working Capital | P2 | sourcing | need schemas | comparação inadequada |
+| ERP/TMS Connectors | P2 | automation | API framework | source conflict |
+| Open Finance | P2 | authorized data | consent | privacy |
+| Provider Network | P3 | network effect | buyer-side maturity | privacy/neutrality |
+| External Benchmark | P3 | data moat | scale/legal | reidentificação |
 
 ---
 
-# Apêndice B — Checklist rápido antes de dizer “sim” a uma ideia
+# Apêndice B — Build vs Integrate vs Avoid
 
-- É B2B?
+| Construir | Integrar | Não construir como core |
+| --- | --- | --- |
+| Financial Graph | ERP | contabilidade |
+| financial sourcing | TMS | ledger |
+| provider RM | bancos | pagamentos |
+| contract lifecycle | Open Finance | core banking |
+| fee intelligence | assinatura | custódia |
+| debt/limit view | market data | underwriting |
+| Opportunity Engine | e-mail/Teams | concessão de crédito |
+| savings | BI/DWH | execução de hedge |
+| policy/approval | KYC/compliance | gestão discricionária |
+| financial analytics | IdP | reconciliação bancária completa |
+| benchmarking | provider APIs | ERP genérico |
+| network | legal tools | TMS completo |
+
+---
+
+# Apêndice C — Dependency map recomendado
+
+```text
+Enterprise Core
+   |
+   +--> Multi-entity + Identity + Policy
+   |
+Financial Graph
+   |
+   +--> Provider/Bank RM
+   +--> Debt/Facilities/Limits
+   +--> Contract Lifecycle
+          |
+          +--> Obligations/Covenants
+          +--> Bank Fee Intelligence
+          +--> Financial Spend
+                 |
+                 +--> Opportunity Engine
+                        |
+                        +--> Sourcing / RFQ / RFP
+                               |
+                               +--> Proposal Intelligence
+                               +--> Scenario Builder
+                               +--> Decision / Approval
+                                      |
+                                      +--> Contract
+                                      +--> Savings Ledger
+
+API / Integrations feed all layers with explicit source-of-truth rules.
+```
+
+---
+
+# Apêndice D — Checklist rápido antes de dizer “sim” a uma ideia
+
+- É B2B/enterprise?
 - Resolve trabalho financeiro real?
-- Reutiliza o core?
 - Aumenta recorrência ou profundidade?
+- Reutiliza o core?
 - Cria dados estruturados úteis?
+- Tem source of truth?
 - Mantém decisão humana?
-- Tem proveniência?
-- É autorizável por tenant/papel?
-- Tem lifecycle completo?
-- É testável?
-- Tem rollback?
-- Evita nova superfície regulada?
-- Melhora retenção ou valor comercial?
-- É melhor do que aprofundar um módulo já existente?
+- Tem provenance?
+- Funciona em multi-entity?
+- É autorizável por tenant/entity/role?
+- Tem lifecycle pós-decisão?
+- É integrável via API?
+- É testável e observável?
+- Tem rollback quando aplicável?
+- Evita nova atividade regulada?
+- Melhora retenção, ROI ou disposição a pagar?
+- É melhor que aprofundar módulo existente?
 
-Se várias respostas forem “não”, a ideia não deve entrar no roadmap agora.
+Se várias respostas forem “não”, a iniciativa não deve entrar no roadmap agora.
 
 ---
 
-# Apêndice C — Referências canônicas existentes no repositório
+# Apêndice E — Referências canônicas do repositório
 
-Este documento foi elaborado para complementar, e não substituir, os documentos especializados existentes na `main`:
+Esta guideline complementa, e não substitui, documentos especializados como:
 
 - `README.md`;
 - `CLAUDE.md`;
+- `CONTRIBUTING.md`;
 - `docs/FINANCIAL_PRODUCT_BOUNDARIES.md`;
 - `docs/FINANCIAL_PROCUREMENT_PRODUCT.md`;
 - `docs/FINANCIAL_DATA_MODEL.md`;
@@ -1789,4 +2231,4 @@ Este documento foi elaborado para complementar, e não substituir, os documentos
 - `docs/demo/RUNBOOK.md`;
 - `docs/supabase-migrations.json`.
 
-Em caso de conflito técnico, o documento mais específico rege a implementação concreta; em caso de conflito de direção de produto, esta guideline rege até que seja atualizada por decisão explícita.
+Em conflito técnico, o documento especializado rege a implementação concreta. Em conflito de direção de produto, esta guideline rege até ser alterada por decisão explícita e versionada.
