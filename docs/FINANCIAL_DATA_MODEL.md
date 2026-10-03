@@ -210,3 +210,40 @@ RPCs: `fin_create_legal_entity`, `fin_update_legal_entity`, `fin_set_base_curren
 `fin_assign_contract_entity`. Testes: `tests/database/financial-multi-entity.sql`,
 `scripts/test-finance-entities.mjs`, `tests/e2e/finance-entities.spec.js`; o canário
 (`ops/sql/pilot-isolation-canary.sql`) confere o isolamento de cada membro restrito.
+
+## Contract & Renewal Center v2 (`docs/supabase-financial-contracts-v2.sql`)
+
+| Tabela / coluna | Conteúdo |
+| --- | --- |
+| `fin_contracts.origin` | `sourcing` (nasce de decisão) ou `imported` (carteira existente, fora de RFQ; `decision_id`/`proposal_id` nulos). Categorias além de crédito/adquirência (`cash_management`, `guarantee`, `fx`, `insurance`, `other`) só para importado. |
+| `fin_contracts.parent_contract_id`, `title`, `currency`, `current_version`, `terms_updated_at` | contrato pai/filho, título, moeda e ponteiro da versão de termos vigente. |
+| `fin_contract_versions` | termos estruturados (catálogo em `lib/finance/contract-terms.mjs`) por versão, **append-only**: `import`, `registration` (1ª estruturação), `correction` (exige justificativa) ou `amendment` (aponta o aditivo). `effective_from` permite aditivo futuro. |
+| `fin_contract_amendments` | aditivo **imutável**: número, vigência, assinatura, resumo, documento privado e os valores anteriores e novos de fim e aviso prévio. |
+| `fin_contract_milestones` | marcos próprios (aviso, repricing, decisão de renovação, janela de rescisão, obrigação recorrente, custom) com antecedência, recorrência, término e responsável. |
+| `fin_contract_milestone_runs` | uma tarefa por ocorrência (idempotência); concluir a ocorrência fecha a tarefa e avança a recorrência. |
+
+Escrita só por RPC (`fin_import_contract`, `fin_record_contract_terms`, `fin_record_contract_amendment`, `fin_create_contract_milestone`, `fin_settle_contract_milestone`, `fin_process_contract_milestones`), com papel `admin`/`finance_manager` e escopo de entidade (`fin_entity_allows`). O job diário (`/api/jobs/renewals`) também roda `fin_run_contract_milestones` e registra `contract_milestones` em `fin_job_runs`. A trilha guarda contagens e versões, nunca valores de termos. O rollback aborta se existir contrato importado, para não apagar carteira em silêncio.
+
+## Relationship & Portfolio (`docs/supabase-financial-relationships-portfolio.sql`)
+
+Provedor/banco (memória institucional, sem score do Arandu):
+
+| Tabela | Conteúdo |
+| --- | --- |
+| `fin_provider_contacts` | contatos do provedor, de grupo ou de uma entidade; arquivamento lógico. |
+| `fin_provider_relationships` | relação provedor × entidade: estado, owner, categorias atendidas, desde quando. |
+| `fin_provider_issues` | issues/follow-ups com categoria, severidade, prazo, resolução obrigatória e vínculo opcional a contrato. |
+| `fin_scorecard_templates` | scorecard **da empresa** (critérios, pesos, escala), versionado; critérios imutáveis por versão. |
+| `fin_provider_reviews` | avaliação imutável; resultado = média ponderada pelos pesos da empresa, só sobre critérios respondidos, com o peso respondido. |
+
+Dívida, facilities, limites e garantias (visão de procurement, **não ledger**):
+
+| Tabela | Conteúdo |
+| --- | --- |
+| `fin_facilities` | facility por entidade/provedor/contrato: tipo, moeda, limite aprovado, principal, indexador, spread, amortização, vencimento, estado, owner, origem, referência, `verified_at` e período de revisão. |
+| `fin_facility_history` | antes/depois de cada alteração material (gatilho, append-only). |
+| `fin_facility_balances` | fotografias datadas de saldo devedor e uso de limite (`declared`/`statement`/`import`/`integration`), append-only; uso acima do limite aprovado é recusado. |
+| `fin_facility_repayments` | cronograma declarado por versão (`schedule_version`); substituir cria versão nova. |
+| `fin_guarantees` | garantias comprometidas por entidade, ligadas a facility/contrato/provedor. |
+
+As visões (`lib/finance/portfolio.mjs`, `GET /api/finance/portfolio`) são sempre **por moeda**: limites aprovado/usado/disponível, saldo conhecido (ausência contada à parte), maturity wall (cronograma vigente ou saldo no vencimento final), mix de indexadores, participação factual por provedor, janelas de refinanciamento, garantias e dados vencidos para revisão. As métricas de relacionamento (`relationshipMetrics`) têm definição explícita e nulas quando não há base.

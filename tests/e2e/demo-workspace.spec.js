@@ -365,7 +365,27 @@ test('layout móvel e desktop sem rolagem horizontal, com e sem tema escuro', as
       await page.goto(path);
       await page.waitForTimeout(250);
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-      expect(overflow, `${theme} ${path}`).toBeLessThanOrEqual(1);
+      const overflowSources = overflow > 1 ? await page.evaluate(() => [...document.querySelectorAll('body *')]
+        .map((element) => {
+          const rect = element.getBoundingClientRect();
+          const style = getComputedStyle(element);
+          return {
+            node: element.tagName.toLowerCase(),
+            id: element.id || undefined,
+            className: typeof element.className === 'string' ? element.className : undefined,
+            left: Math.round(rect.left),
+            right: Math.round(rect.right),
+            width: Math.round(rect.width),
+            scrollWidth: element.scrollWidth,
+            clientWidth: element.clientWidth,
+            overflowX: style.overflowX,
+            position: style.position
+          };
+        })
+        .filter((item) => item.width > 0 && item.right > innerWidth + 1)
+        .sort((a, b) => b.right - a.right)
+        .slice(0, 12)) : [];
+      expect(overflow, `${theme} ${path}; overflowing elements: ${JSON.stringify(overflowSources)}`).toBeLessThanOrEqual(1);
     }
   }
 });

@@ -186,6 +186,20 @@ function scopedTables(scope) {
   const org = `organization_id=${inList(scope.orgs)}`;
   const list = (ids) => inList(ids.length ? ids : ['00000000-0000-0000-0000-000000000000']);
   return [
+    ['fin_guarantees', ['id'], org, ['created_at', 'updated_at']],
+    ['fin_facility_repayments', null, org, []],
+    ['fin_facility_balances', null, org, []],
+    ['fin_facility_history', null, org, []],
+    ['fin_facilities', ['id'], org, ['created_at', 'updated_at']],
+    ['fin_provider_reviews', null, org, []],
+    ['fin_scorecard_templates', null, org, []],
+    ['fin_provider_issues', ['id'], org, ['created_at', 'updated_at']],
+    ['fin_provider_relationships', null, org, []],
+    ['fin_provider_contacts', ['id'], org, ['created_at']],
+    ['fin_contract_milestone_runs', null, org, []],
+    ['fin_contract_milestones', ['id'], org, ['created_at', 'updated_at']],
+    ['fin_contract_versions', null, org, []],
+    ['fin_contract_amendments', ['id'], org, []],
     ['fin_renewal_milestones', ['id'], org, ['triggered_at']],
     ['fin_notifications', ['id'], org, ['created_at', 'read_at']],
     ['fin_notification_preferences', null, org, []],
@@ -197,6 +211,8 @@ function scopedTables(scope) {
     ['fin_document_versions', ['document_id', 'version'], `document_id=${list(scope.documents)}`, ['created_at', 'completed_at']],
     ['fin_private_documents', ['id'], org, ['created_at', 'removed_at']],
     ['fin_documents', ['id'], org, ['created_at']],
+    // Filhos antes dos pais; sem colunas aqui para o remapeamento não duplicar datas.
+    ['fin_contracts', ['id'], `${org}&parent_contract_id=not.is.null`, []],
     ['fin_contracts', ['id'], org, ['created_at', 'updated_at']],
     ['fin_decisions', ['id'], org, ['decided_at']],
     ['fin_proposal_drafts', ['proposal_id'], `proposal_id=${list(scope.proposals)}`, ['updated_at']],

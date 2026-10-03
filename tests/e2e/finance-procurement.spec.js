@@ -19,6 +19,7 @@ const COMPANY_PAGES = [
   ['/finance/passport.html', 'Financial Passport'],
   ['/finance/proposals.html', 'Propostas recebidas'],
   ['/finance/contracts.html', 'Contratos e renovações'],
+  ['/finance/portfolio.html', 'Dívida, limites e garantias'],
   ['/finance/tasks.html', 'Tarefas'],
   ['/finance/notifications.html', 'Notificações'],
   ['/finance/settings.html', 'Configurações'],

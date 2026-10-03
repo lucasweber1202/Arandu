@@ -35,6 +35,7 @@ const VIEWS = {
   rfq: lazy(() => import('./src/views/rfq.js'), 'rfqDetail'),
   approvals: lazy(company, 'approvalsInbox'), proposals: lazy(company, 'proposalsList'), contracts: lazy(company, 'contracts'),
   passport: lazy(() => import('./src/views/passport.js'), 'passport'),
+  portfolio: lazy(() => import('./src/views/portfolio.js'), 'portfolio'),
   providers: lazy(company, 'providers'), tasks: lazy(company, 'tasks'), notifications: lazy(company, 'notifications'), settings: lazy(company, 'settings'),
   providerHome: lazy(providerViews, 'providerHome'), providerRfqs: lazy(providerViews, 'providerRfqs'),
   providerProposal: lazy(providerViews, 'providerProposal'), providerInvite: lazy(providerViews, 'providerInvite'),
