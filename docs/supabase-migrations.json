@@ -41,7 +41,8 @@
     "docs/supabase-financial-contracts-v2.sql",
     "docs/supabase-financial-relationships-portfolio.sql",
     "docs/supabase-financial-passport-entities.sql",
-    "docs/supabase-financial-graph.sql"
+    "docs/supabase-financial-graph.sql",
+    "docs/supabase-financial-policy-engine.sql"
   ],
   "existingDatabase": [
     "docs/supabase-sprint1-auth-ownership.sql",
@@ -84,6 +85,7 @@
     "docs/supabase-financial-contracts-v2.sql",
     "docs/supabase-financial-relationships-portfolio.sql",
     "docs/supabase-financial-passport-entities.sql",
-    "docs/supabase-financial-graph.sql"
+    "docs/supabase-financial-graph.sql",
+    "docs/supabase-financial-policy-engine.sql"
   ]
 }

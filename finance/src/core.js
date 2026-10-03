@@ -228,7 +228,9 @@ export const APPROVAL_STATUS = Object.freeze({
   approved: { label: 'Aprovada', tone: 'success', icon: 'checkCircle' },
   rejected: { label: 'Rejeitada', tone: 'danger', icon: 'x' },
   changes_requested: { label: 'Alterações pedidas', tone: 'warning', icon: 'edit' },
-  cancelled: { label: 'Cancelada', tone: 'neutral', icon: 'x' }
+  cancelled: { label: 'Cancelada', tone: 'neutral', icon: 'x' },
+  expired: { label: 'Expirada', tone: 'danger', icon: 'clock' },
+  superseded: { label: 'Substituída', tone: 'neutral', icon: 'more' }
 });
 export const ROLE_LABELS = Object.freeze({
   admin: 'Administrador', finance_manager: 'Gestão financeira', analyst: 'Análise financeira', viewer: 'Leitura e aprovação', provider_user: 'Provedor'

@@ -323,8 +323,13 @@ export function currentStep(request) {
 }
 
 /** Botões de decisão do aprovador, com motivo obrigatório para recusar. */
+const REASON_LABELS = { insufficient_competition: 'Competição insuficiente', terms_outside_policy: 'Condições fora da policy', missing_documentation: 'Documentação faltando',
+  pricing_review: 'Revisar preço', risk_review: 'Revisar risco', compliance_review: 'Revisar compliance', budget: 'Orçamento', other: 'Outro' };
 export function approvalActions(ctx, request, { onDone }) {
   const actions = el('div', { class: 'approval-actions' });
+  // Pedido com policy: motivo estruturado (opcional) ao devolver ou rejeitar.
+  const reason = request.policy_snapshot ? el('select', { 'aria-label': 'Motivo ao devolver ou rejeitar (opcional)', class: 'reason-select' },
+    [el('option', { value: '', text: 'Motivo (opcional)' }), ...Object.entries(REASON_LABELS).map(([value, text]) => el('option', { value, text }))]) : null;
   const act = async (action) => {
     let comment = '';
     if (action !== 'approved') {
@@ -340,7 +345,7 @@ export function approvalActions(ctx, request, { onDone }) {
     }
     for (const node of actions.querySelectorAll('button')) node.disabled = true;
     try {
-      const result = await ctx.api('approvals/act', { method: 'POST', body: JSON.stringify({ request_id: request.id, action, comment }) });
+      const result = await ctx.api('approvals/act', { method: 'POST', body: JSON.stringify({ request_id: request.id, action, comment, ...(reason?.value && action !== 'approved' ? { reason_code: reason.value } : {}) }) });
       toast({ approved: result.status === 'pending' ? 'Aprovação registrada. O próximo aprovador foi avisado.' : 'Aprovação registrada.', rejected: 'Rejeição registrada.', changes_requested: 'Pedido de alterações registrado.' }[action]);
       onDone?.();
     } catch (error) {
@@ -348,6 +353,7 @@ export function approvalActions(ctx, request, { onDone }) {
       for (const node of actions.querySelectorAll('button')) node.disabled = false;
     }
   };
+  if (reason) actions.append(reason);
   actions.append(
     button('Aprovar', { variant: 'primary', iconName: 'check', onClick: () => act('approved') }),
     button('Pedir alterações', { iconName: 'edit', onClick: () => act('changes_requested') }),

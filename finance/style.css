@@ -1136,3 +1136,29 @@ tr.highlighted>td,.proposal-card.highlighted,.document-row.highlighted,.comment.
 .portfolio-grid>*,.portfolio-stats>*{min-width:0}
 
 .graph-context select{max-width:100%;margin-bottom:12px}.graph-list{display:grid;gap:12px;padding-left:20px}.graph-list li{overflow-wrap:anywhere}.graph-list li>a,.graph-list li>strong{display:block}
+/* Policy & Approval Engine v2: governança, editor, plano e linha do tempo. */
+.stack-sm{display:grid;gap:var(--s2);min-width:0}
+.stack-xs{display:grid;gap:var(--s1,4px);min-width:0}
+.plain-list{list-style:none;margin:0;padding:0;display:grid;gap:var(--s2);min-width:0}
+.plain-list>li{min-width:0;overflow-wrap:anywhere}
+.check-row{flex-wrap:wrap;border:0;margin:0;padding:0;min-width:0}
+.check-option{display:inline-flex;gap:var(--s2);align-items:flex-start;min-width:0;overflow-wrap:anywhere}
+.policy-head{display:flex;flex-wrap:wrap;gap:var(--s2);align-items:flex-start;justify-content:space-between;min-width:0}
+.policy-head-text{min-width:0;flex:1 1 220px}
+.policy-title{margin:0;font-size:1rem;overflow-wrap:anywhere}
+.policy-tags{display:flex;flex-wrap:wrap;gap:var(--s1,4px)}
+.policy-rules{margin:0;padding-left:1.2rem;display:grid;gap:var(--s3);min-width:0}
+.policy-rule{display:grid;gap:2px;min-width:0;overflow-wrap:anywhere}
+.policy-inline{display:flex;flex-wrap:wrap;gap:var(--s3);align-items:flex-end;min-width:0}
+.policy-inline>*{flex:1 1 140px;min-width:0}
+.policy-condition{display:flex;flex-wrap:wrap;gap:var(--s2);align-items:center;min-width:0}
+.policy-condition>select,.policy-condition>input,.policy-condition>div{flex:1 1 150px;min-width:0;max-width:100%}
+.policy-stage-editor{display:grid;gap:var(--s2);padding:var(--s3);border:1px solid var(--line,#e3e6ea);border-radius:10px;min-width:0}
+.policy-plan{list-style:none;margin:0;padding:0;display:grid;gap:var(--s2);min-width:0}
+.policy-plan>li{display:flex;gap:var(--s2);align-items:flex-start;flex-wrap:wrap;min-width:0}
+.policy-plan>li>div{flex:1 1 200px;min-width:0;overflow-wrap:anywhere}
+.policy-plan-seq{display:inline-grid;place-items:center;width:1.6rem;height:1.6rem;border-radius:50%;background:var(--surface-2,#eef1f4);font-weight:600;flex:0 0 auto}
+.policy-plan-box,.policy-timeline{min-width:0;overflow-wrap:anywhere}
+.input-currency{max-width:6rem;text-transform:uppercase}
+.reason-select{max-width:100%;min-width:0}
+textarea.mono{width:100%;max-width:100%;min-width:0}

@@ -247,3 +247,18 @@ Dívida, facilities, limites e garantias (visão de procurement, **não ledger**
 | `fin_guarantees` | garantias comprometidas por entidade, ligadas a facility/contrato/provedor. |
 
 As visões (`lib/finance/portfolio.mjs`, `GET /api/finance/portfolio`) são sempre **por moeda**: limites aprovado/usado/disponível, saldo conhecido (ausência contada à parte), maturity wall (cronograma vigente ou saldo no vencimento final), mix de indexadores, participação factual por provedor, janelas de refinanciamento, garantias e dados vencidos para revisão. As métricas de relacionamento (`relationshipMetrics`) têm definição explícita e nulas quando não há base.
+
+## Policy & Approval Engine v2 (`docs/supabase-financial-policy-engine.sql`)
+
+Especificação e precedência: [`FINANCIAL_POLICY_ENGINE.md`](FINANCIAL_POLICY_ENGINE.md).
+
+| Tabela | Papel | Invariantes |
+| --- | --- | --- |
+| `fin_policies` | uma policy por escopo (grupo = `legal_entity_id` nulo; ou entidade/unidade) | `unique nulls not distinct (organization_id, legal_entity_id)`; FK composta para a entidade do mesmo grupo |
+| `fin_policy_versions` | versões `draft → active → superseded/retired` | um ativo e um rascunho por policy; documento validado por `fin_policy_valid_document`; versão ativada imutável (gatilho) |
+| `fin_policy_flags` | sinalizadores de exceção/risco/compliance do cliente | chave por organização |
+| `fin_approval_requests` (+colunas) | `policy_snapshot`, `policy_version_ids`, `evaluated_at`, `justification`, `declared_facts`, `expires_at`, `resolution_note`; estados `expired`/`superseded` | snapshot imutável; estado só sai de `pending` |
+| `fin_approval_stages` | etapas do plano (sequência, papéis, escopo, mínimo, prazo, origens) | definição imutável; FK composta ao pedido da mesma organização |
+| `fin_approval_steps` (+colunas) | `stage_id`, `acted_by`, `delegation_id`, `reason_code`; posições até 25; estados `not_required`/`waived`/`expired`/`superseded`/`cancelled` | `unique(request_id, approver_id)` continua: ninguém ocupa duas etapas |
+| `fin_policy_exceptions` | exceção explícita a uma regra do snapshot | uma aberta/aprovada por regra; decisor ≠ solicitante |
+| `fin_approval_delegations` | substituto temporário | ≤ 90 dias; titular ≠ substituto; revogação com autor |

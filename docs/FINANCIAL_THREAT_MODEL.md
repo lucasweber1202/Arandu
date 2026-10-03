@@ -109,3 +109,18 @@ são tratados pelos controles gerais do Arandu, não por esta vertical.
 | 55 | **Provedor lendo avaliação/contatos/notas** | policies exigem membro da compradora | idem |
 | 56 | **Saldo/uso adulterado** depois de registrado | fotografias append-only; uso acima do limite recusado | idem |
 | 57 | **Soma entre moedas** induzindo leitura errada | visões por moeda; nenhum total agregado entre moedas | `test-finance-portfolio.mjs` |
+
+## Policy & Approval Engine v2
+
+| # | Ataque | Defesa | Teste |
+| --- | --- | --- | --- |
+| 60 | **Trocar a policy depois do pedido** para afrouxar o fluxo | snapshot imutável no pedido; versão ativada imutável; nova versão só vale para pedidos novos | `financial-policy-engine.sql` §3, §8 |
+| 61 | **Indicar aprovador de outra entidade** para ganhar acesso ou atalho | elegibilidade exige entidade + escopo da etapa; aprovar não amplia RLS | §6, §7 |
+| 62 | **Autoaprovação** ou acumular etapas | quem pede não aprova; `unique(request_id, approver_id)`; substituto fora das demais etapas | §6, §11 |
+| 63 | **Aprovador revogado** votando com indicação antiga | elegibilidade reconferida no voto | §10 |
+| 64 | **Provedor/outro tenant** votando, lendo policy ou exceção | membro da compradora exigido; RLS | §5, §15 |
+| 65 | **Pular a policy pelo pedido v1** | `fin_request_approval` recusa quando há plano | §6 |
+| 66 | **Exceção decidida por quem pediu** | decisor ≠ solicitante da exceção e da aprovação; papel da policy dona | §12 |
+| 67 | **Moeda trocada** para escapar do limite | sem câmbio: valor em outra moeda casa por conservadorismo | §4 |
+| 68 | **Aprovação por decurso de prazo** | prazo só escala ou expira; nunca aprova | §15 |
+| 69 | **Score oculto** como critério de alçada | fatos fechados no validador (banco e API) | §2, `test-finance-policy.mjs` |
