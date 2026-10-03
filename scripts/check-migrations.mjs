@@ -140,6 +140,7 @@ for (const [flow, files] of Object.entries(manifest)) {
   if (relationshipsPortfolio === -1) issues.push(`${flow}: Relationship & Portfolio (provedores, facilities, garantias) ausente.`);
   if (contractsV2 !== -1 && relationshipsPortfolio !== -1 && relationshipsPortfolio !== contractsV2 + 1) issues.push(`${flow}: Relationship & Portfolio (provedores, facilities, garantias) deve vir depois de ${'docs/supabase-financial-contracts-v2.sql'}.`);
   if (relationshipsPortfolio !== -1 && relationshipsPortfolio !== files.indexOf('docs/supabase-financial-passport-entities.sql') - 1) issues.push(`${flow}: Relationship & Portfolio (provedores, facilities, garantias) deve preceder Passport por entidade.`);
+  if (files.indexOf('docs/supabase-financial-graph.sql') !== files.indexOf('docs/supabase-financial-passport-entities.sql') + 1) issues.push(`${flow}: Graph deve seguir Passport por entidade.`);
 }
 
 // Catraca de inventário: todo .sql direto em docs/ é migration do manifesto,

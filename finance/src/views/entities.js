@@ -1,3 +1,4 @@
+import { graphContextCard } from './graph-context.js';
 // Multi-entity na interface: contexto de entidade, administração do grupo,
 // escopo dos membros e consolidado por entidade.
 //
@@ -7,7 +8,7 @@
 // que não as conhece), tudo continua funcionando como antes.
 
 import { el, icon, formatDate } from '../core.js';
-import { card, button, tag, field, emptyState, errorState, loading, toast, confirmDialog, person } from '../ui.js';
+import { card, button, tag, field, emptyState, errorState, loading, toast, confirmDialog, person, drawer } from '../ui.js';
 import { entityLabel, entityTree } from '../../../lib/finance/entities.mjs';
 
 const CONTEXT_KEY = 'arandu-finance-entity';
@@ -101,7 +102,7 @@ export function entitySummaryCard(ctx) {
     const body = el('tbody');
     for (const row of rows) {
       body.append(el('tr', { class: row.depth ? 'entity-child' : '' }, [
-        el('td', { 'data-label': 'Entidade', class: 'cell-primary' }, [el('span', { text: `${row.depth ? '— ' : ''}${row.label}` }), row.status === 'archived' ? tag('arquivada') : null]),
+        el('td', { 'data-label': 'Entidade', class: 'cell-primary' }, [el('span', { text: `${row.depth ? '— ' : ''}${row.label}` }), row.status === 'archived' ? tag('arquivada') : null, row.key !== 'group' ? button('Relações', { size: 'sm', onClick: () => drawer({ title: row.label, body: graphContextCard(ctx, { type: 'entity', id: row.key }) }) }) : null]),
         el('td', { 'data-label': 'Moeda', text: row.currency || '—' }),
         el('td', { 'data-label': 'Processos em aberto', text: String(row.rfqs_open) }),
         el('td', { 'data-label': 'Decididos', text: String(row.rfqs_decided) }),
@@ -113,7 +114,7 @@ export function entitySummaryCard(ctx) {
     table.append(body);
     box.replaceChildren(el('div', { class: 'table-scroll' }, table), el('p', { class: 'muted small', text: `${result.definition}${result.truncated ? ' Lista truncada em 5.000 registros.' : ''}` }));
   }).catch((error) => box.replaceChildren(errorState({ error })));
-  return card({ title: 'Consolidado por entidade', subtitle: 'Somente o que o seu escopo permite ler. Unidades aparecem abaixo da entidade legal.', body: box, className: 'entity-summary' });
+  return card({ title: 'Consolidado por entidade', subtitle: 'Somente o que o seu escopo permite ler. Unidades aparecem abaixo da entidade legal.', body: [box, graphContextCard(ctx, { type: 'organization', id: ctx.organization.id })], className: 'entity-summary' });
 }
 
 /** Seção de Configurações: entidades, moeda base e escopo dos membros. */
