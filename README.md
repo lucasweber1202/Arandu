@@ -130,9 +130,10 @@ ambiente real, credencial na demo, produção sem ambiente declarado). Fluxo
 Estado observado em 02/10/2026, separado por código e ambiente em
 [`docs/ARANDU_CURRENT_STATE_2026-10-02.md`](docs/ARANDU_CURRENT_STATE_2026-10-02.md):
 
-- **Código**: `main` com Onda 0 e CI verde; `pilot` 11 commits à frente,
-  com Financial Passport v2. A suíte de apresentação do Passport foi cancelada
-  após consumir quase 20 minutos na instalação dos navegadores.
+- **Código**: `main` com Onda 0 e CI verde; `pilot` 13 commits à frente e
+  0 atrás, em `187c032c` após a PR #96, com Financial Passport v2.
+  O run #721 teve presentation cancelado; o #722 concluiu os quatro gates
+  com SUCCESS. A árvore validada é idêntica à do merge #96.
 - **Supabase Pilot**: `financial-surface-hardening-1`; aprovação sequencial e
   Passport pendentes. Allowlist vazia, e-mail desligado, Storage privado.
 - **Demo pública**: ainda sandbox em `main`; o Supabase DEMO dedicado não
@@ -184,7 +185,8 @@ Ambientes reais (somente leitura, nunca imprimem segredos):
 ARANDU_ENV=pilot npm run finance:env:check
 ARANDU_ENV=pilot npm run finance:pilot:doctor   # 0 = GO, 1 = NO-GO, 2 = UNSAFE
 npm run pilot:canary                            # isolamento buyer/provider/outsider
-npm run pilot:restore:drill                     # backup lógico + restore + 24 comparações
+npm run pilot:backup:preflight                  # identidade, dependências e escopo
+npm run pilot:restore:drill                     # backup lógico + restore + comparações de integridade
 ```
 
 O CI (`.github/workflows/ci.yml`) roda os jobs `validate`, `database`,

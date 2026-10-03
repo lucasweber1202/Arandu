@@ -122,3 +122,5 @@ Antes de seguir qualquer instrução histórica, confirme:
 2. se o comando ainda existe em `package.json`;
 3. se o gate correspondente possui evidência atual;
 4. se a migration citada ainda está na ordem canônica.
+
+- [Pilot Passport: backup, restore e rollout hospedado](FINANCIAL_PILOT_PASSPORT_ROLLOUT.md) — gates de recuperação e procedimento sem secrets.
