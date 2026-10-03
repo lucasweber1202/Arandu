@@ -5,9 +5,12 @@ documento divergir, vale este índice, nesta ordem.
 
 ## Direção estratégica e produto
 
-- `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md` — **diretriz mestra normativa** para evolução de produto e engenharia: tese B2B, princípios, limites, arquitetura futura, IA, integrações, roadmap, priorização e Definition of Done. Toda mudança relevante deve ser confrontada com este documento antes de implementação.
+- `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES_V2_1_ADDENDUM.md` — **addendum normativo v2.1** para enterprise hardening. Enquanto existir, deve ser lido junto da guideline mestra e prevalece em conflito sobre target-state vs. escopo de rodada, Financial Graph, core vs. capacidades futuras, data governance, operational resilience, prioridades de API/identity e canonicality de branches.
+- `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md` — **diretriz mestra normativa** para evolução de produto e engenharia: tese B2B/enterprise, princípios, limites, arquitetura futura, IA, integrações, roadmap, priorização e Definition of Done. Na `main`, sua versão pode temporariamente ficar atrás da estratégia aprovada em `pilot`; o addendum v2.1 existe justamente para impedir que isso gere direção obsoleta.
 - `docs/FINANCIAL_PRODUCT_BOUNDARIES.md` — limites funcionais/regulatórios do produto atual; prevalece para o que o software pode ou não afirmar/fazer nesta fase.
 - Documentos técnicos especializados abaixo governam a implementação concreta sem contradizer a direção estratégica acima sem decisão explícita e atualização documental.
+
+**Regra temporária de consolidação:** guideline mestra + addendum v2.1 = guideline estratégica efetiva. Quando a v2.1 for incorporada integralmente no arquivo mestre, o addendum e suas referências devem ser removidos no mesmo PR para voltar a uma única fonte estratégica.
 
 ## Financial Procurement (produto atual)
 
@@ -102,9 +105,10 @@ Decisões de comissão, pagamento, frete, seguro, devolução e modelo fiscal ex
 
 ## Governança do repositório
 
-- `CONTRIBUTING.md` — branches, checks e PRs.
-- `CLAUDE.md` — regras obrigatórias para agentes; exige leitura da guideline mestra.
-- `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md` — direção estratégica de produto e engenharia.
+- `CONTRIBUTING.md` — branches, checks e PRs; inclui a exceção docs-only de canonicality da v2.1.
+- `CLAUDE.md` — regras obrigatórias para agentes; exige leitura da guideline mestra, addendum v2.1 e boundaries.
+- `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES_V2_1_ADDENDUM.md` — hardening enterprise normativo e regra de consolidação.
+- `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md` — direção estratégica base de produto e engenharia.
 - `docs/FINANCIAL_REPO_GOVERNANCE.md` — proteção de `main` e `pilot` e checks obrigatórios (canônico).
 - `docs/BRANCH_PROTECTION.md` — versão anterior das regras; vale o documento acima.
 - `docs/REPOSITORY_HYGIENE.md` — limpeza de branches e documentos históricos.
