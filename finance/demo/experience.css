@@ -663,7 +663,8 @@
 .at-compact .at-step{min-width:0;gap:5px}
 .at-compact .at-step:not(.is-current) .at-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .at-compact .at-step.is-current{flex:2 1 0}
-.contract-timeline{margin:6px 0 4px;min-width:0;max-width:100%}
+.dw .contract-card>*{min-width:0}
+.contract-timeline{margin:6px 0 4px;width:100%;min-width:0;max-width:100%;overflow-x:auto}
 
 /* ============================================ 12. comparação e bandeja */
 .dw[data-compare=on] .page-head,.dw[data-compare=on] .rfq-timeline{display:none}
