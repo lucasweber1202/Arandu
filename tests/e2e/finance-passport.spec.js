@@ -27,7 +27,7 @@ function initialRows() {
 }
 
 /** Sessão simulada com Passport de estado: o que é salvo volta na recarga. */
-async function mockPassport(page, { role = 'finance_manager', kind = 'BUYER', snapshot = [] } = {}) {
+async function mockPassport(page, { role = 'finance_manager', kind = 'BUYER', snapshot = [], entities = [] } = {}) {
   const state = { rows: initialRows(), writes: [], confirms: [], creates: [], forbidden: [] };
   const members = { u1: 'Helena Duarte', u2: 'Rafael Menezes' };
   const documents = [{ id: DOC, title: 'Contrato social consolidado', current_version: 2 }];
@@ -37,13 +37,14 @@ async function mockPassport(page, { role = 'finance_manager', kind = 'BUYER', sn
     const path = url.pathname.replace('/api/finance/', '');
     const json = (body, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
     const organization = kind === 'BUYER' ? ORGANIZATION : { id: PROVIDER_ORG, kind: 'PROVIDER', legal_name: 'Atlas Bank' };
+    if (path === 'entities') return json({ok:true,rows:entities,scope:'group'});
     if (path === 'organizations') return json({ ok: true, rows: [organization] });
     if (path === 'members') return json({ ok: true, rows: [{ user_id: 'u1', role, display_name: 'Helena Duarte', title: 'CFO' }], viewer_id: 'u1' });
     if (path === 'overview') return json({ ok: true, organization, profile: state.rows, providers: [], contracts: [], tasks: [], rfqs: kind === 'BUYER' ? [{ id: RFQ, title: 'Capital de giro', product: 'credit', status: 'draft', revision: 1, demand: { amount: 500000, purpose: 'capital_de_giro', term_months: 24, annual_revenue: 182000000 }, invites: [], proposals: [], created_at: daysAgo(3) }] : [] });
     if (path === 'profile' && request.method() === 'GET') {
       // A API real recusa organização de provedor (organization_kind).
       if (kind !== 'BUYER') { state.forbidden.push(path); return json({ ok: false, error: 'Tipo de organização incompatível com a operação.' }, 400); }
-      return json({ ok: true, rows: state.rows, documents, passport: buildPassport({ organization: ORGANIZATION, rows: state.rows, documents, members: new Map(Object.entries(members)) }) });
+      return json({ ok: true, rows: state.rows, documents, passport: buildPassport({ organization: ORGANIZATION, rows: state.rows, documents, members: new Map(Object.entries(members)), legalEntityId:url.searchParams.get('legal_entity_id'), entity:entities.find(row=>row.id===url.searchParams.get('legal_entity_id')) }) });
     }
     if (path === 'profile' && request.method() === 'POST') {
       const body = request.postDataJSON();
@@ -255,3 +256,18 @@ for (const width of [320, 360, 375, 390, 768, 1024, 1440]) {
     await noOverflow(page, `edição do Passport ${width}px`);
   });
 }
+
+test('Passport mantém identidade e saldos no escopo da entidade selecionada', async ({page}) => {
+ const A='00000000-0000-4000-8000-000000000e01',B='00000000-0000-4000-8000-000000000e02';
+ const state=await mockPassport(page,{entities:[{id:A,legal_name:'Entity A',kind:'legal_entity',status:'active'},{id:B,legal_name:'Entity B',kind:'legal_entity',status:'active'}]});
+ state.rows.push({field_key:'receita_anual',field_value:'100',legal_entity_id:A,source:'extrato',updated_at:daysAgo(1)},{field_key:'receita_anual',field_value:'200',legal_entity_id:B,source:'extrato',updated_at:daysAgo(1)});
+ await page.goto(`/finance/passport.html?legal_entity_id=${A}`);
+ await expect(page.getByRole('combobox',{name:'Escopo do Passport'})).toHaveValue(A);
+ await expect(page.locator('#field-legal_name')).toContainText('Entity A');
+ await expect(page.locator('#field-receita_anual .passport-value')).toContainText('100');
+ await expect(page.locator('#field-receita_anual')).toContainText('Entidade legal');
+ await page.getByRole('combobox',{name:'Escopo do Passport'}).selectOption(B);
+ await expect(page.locator('#field-legal_name')).toContainText('Entity B');
+ await expect(page.locator('#field-receita_anual .passport-value')).toContainText('200');
+ await noOverflow(page,'Passport entity scope');
+});

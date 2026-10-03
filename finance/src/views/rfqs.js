@@ -186,6 +186,13 @@ export async function newRfq(ctx) {
   productStep.append(productCards, titleField, descriptionField, ...(entityWrap ? [entityWrap] : []));
   wraps.set('title', titleField);
 
+  entityWrap?.querySelector('select')?.addEventListener('change', () => {
+    for (const [key, suggestion] of passportUsed) {
+      const control = form.elements.namedItem(key);
+      if (control && control.value === String(suggestion.value)) control.value = '';
+    }
+    renderFields();
+  });
   const deadline = el('input', { name: 'response_deadline', type: 'date', min: todayIso() });
   const deadlineField = field({ label: 'Prazo de resposta dos provedores', control: deadline, hint: 'Depois desta data a solicitação deixa de aparecer como aberta para resposta.' });
   wraps.set('response_deadline', deadlineField);
@@ -193,7 +200,7 @@ export async function newRfq(ctx) {
   function renderFields() {
     const spec = PRODUCTS[productSelect.value];
     const previous = Object.fromEntries(new FormData(form));
-    const suggestions = new Map(passportPrefill(productSelect.value, { organization: ctx.organization, rows: profile }).map((item) => [item.demand_key, item]));
+    const suggestions = new Map(passportPrefill(productSelect.value, { organization: ctx.organization, rows: profile, legalEntityId: form.elements.namedItem('legal_entity_id')?.value || null }).map((item) => [item.demand_key, item]));
     passportUsed.clear();
     needStep.replaceChildren(el('legend', { class: 'step-legend', text: 'Necessidade' }), el('p', { class: 'step-intro', text: productSelect.value === 'credit' ? 'O essencial para qualquer provedor cotar crédito.' : 'O perfil de recebimentos define quanto cada taxa pesa no custo.' }));
     conditionStep.replaceChildren(el('legend', { class: 'step-legend', text: 'Condições' }), el('p', { class: 'step-intro', text: 'Detalhes que refinam a proposta. Tudo aqui é opcional, exceto o que estiver marcado.' }));

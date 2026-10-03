@@ -164,7 +164,7 @@ declare v jsonb; t jsonb;
 begin
   if not public.fin_is_operator() then raise exception 'finance_ops não reconhecido'; end if;
   v := public.fin_ops_overview();
-  if v->>'schema_version' not in ('financial-final-hardening-1','financial-surface-hardening-1','financial-approval-handoff-1','financial-passport-1','financial-multi-entity-1', 'financial-contracts-v2-1', 'financial-relationships-portfolio-1') then raise exception 'versão do schema: %', v->>'schema_version'; end if;
+  if v->>'schema_version' not in ('financial-final-hardening-1','financial-surface-hardening-1','financial-approval-handoff-1','financial-passport-1','financial-multi-entity-1', 'financial-contracts-v2-1', 'financial-relationships-portfolio-1', 'financial-passport-entities-1') then raise exception 'versão do schema: %', v->>'schema_version'; end if;
   if coalesce((v->'invite_denials_24h'->>'recipient_mismatch')::int, 0) < 2 then raise exception 'recusas de convite não contadas'; end if;
   t := public.fin_ops_trace(null, '00000000-0000-4000-8000-000000001401');
   if jsonb_array_length(t->'invite_denials') < 4 then raise exception 'rastreio sem recusas de convite'; end if;

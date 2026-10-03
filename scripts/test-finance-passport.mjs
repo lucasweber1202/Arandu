@@ -268,3 +268,36 @@ await rejects('POST', 'rfqs', {
 assert.ok(!sent.some((entry) => entry.url.includes('rpc/')));
 
 console.log('Financial Passport: catálogo, validação, frescor, cobertura, reuso em RFQ e fronteira da API aprovados.');
+
+// Entity resolution never imports another entity's balances or custom fields.
+{
+ const A = '00000000-0000-4000-8000-000000000e01', B = '00000000-0000-4000-8000-000000000e02';
+ const rows = [
+  {field_key:'receita_anual',field_value:'900'},
+  {field_key:'moeda_base',field_value:'BRL'},
+  {field_key:'receita_anual',field_value:'100',legal_entity_id:A,source:'extrato',updated_at:'2026-10-01',updated_by:ACTOR},
+  {field_key:'receita_anual',field_value:'200',legal_entity_id:B},
+  {field_key:'campo_livre',field_value:'secret B',legal_entity_id:B}
+ ];
+ const view = buildPassport({rows,legalEntityId:A,entity:{legal_name:'Entity A',tax_identifier:'11222333000181'}});
+ const fields=view.domains.flatMap(d=>d.fields);
+ assert.equal(fields.find(f=>f.key==='receita_anual').value,'100');
+ assert.equal(fields.find(f=>f.key==='moeda_base').inherited,true);
+ assert.equal(fields.find(f=>f.key==='legal_name').value,'Entity A');
+ assert.equal(view.custom.length,0);
+ assert(!JSON.stringify(view).includes('secret B'));
+ assert.equal(passportPrefill('credit',{rows,legalEntityId:A}).find(f=>f.field_key==='receita_anual').value,100);
+ assert.equal(passportPrefill('credit',{rows,legalEntityId:'unknown'}).some(f=>f.field_key==='receita_anual'),false);
+ assert.equal(passportPrefill('credit',{rows}).find(f=>f.field_key==='receita_anual').value,900);
+ reset(entry=>buyerOrg(entry) || (entry.url.includes('fin_legal_entities') ? [{id:A,kind:'legal_entity',legal_name:'Entity A'}] : entry.url.includes('fin_company_profiles') ? rows : []));
+ const res=await call('GET',`profile?organization_id=${BUYER}&legal_entity_id=${A}`);
+ assert.equal(res.payload.passport.legal_entity_id,A);
+ assert(!JSON.stringify(res.payload).includes('secret B'));
+ reset(entry=>buyerOrg(entry) || []);
+ await rejects('GET',`profile?organization_id=${BUYER}&legal_entity_id=${B}`,null,404,'entity_not_found');
+ assert(!sent.some(entry=>entry.url.includes('fin_company_profiles')));
+ reset(entry=>buyerOrg(entry) || (entry.url.includes('fin_legal_entities') ? [{id:A,kind:'legal_entity'}] : 'id'));
+ await call('POST','profile',{organization_id:BUYER,legal_entity_id:A,field_key:'receita_anual',field_value:'100'});
+ assert.equal(sent.find(entry=>entry.url.endsWith('rpc/fin_passport_set_scoped_field')).body.p_entity,A);
+}
+console.log('Passport entity scope: precedence, no sibling leakage, identity, prefill and API negatives passed.');

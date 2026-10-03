@@ -46,7 +46,7 @@ const sections = files.map((file, index) => {
 const sql = `${afterSchema ? `-- Upgrade após schema_version=${afterSchema}; ${files.length} migration(s) pendente(s).\n-- Backup/restore verificado é pré-condição externa; este comando não aplica SQL.\n\n` : ''}-- Arandu — bundle auditável de migrations (${flow})\n-- Conteúdo determinístico: o horário de geração fica somente no relatório JSON.\n-- Execute somente no projeto Supabase correto e preserve o relatório JSON.\n\n${sections.map((item) => item.sql).join('\n')}`;
 
 if (process.argv.includes('--stdout')) {
-  process.stdout.write(sql);
+  await new Promise((resolve, reject) => process.stdout.write(sql, (error) => error ? reject(error) : resolve()));
   process.exit(0);
 }
 

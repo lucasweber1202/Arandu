@@ -8,6 +8,7 @@
 import { el, icon, money, formatDate, formatDateTime, timeAgo } from '../core.js';
 import { card, tag, button, linkButton, emptyState, errorState, toast, drawer, field, progress } from '../ui.js';
 import { buildPassport, SOURCE_LABELS, WRITABLE_SOURCES, FRESHNESS, MIN_REVIEW_DAYS, MAX_REVIEW_DAYS, catalogField, fieldLabel } from '../../../lib/finance/passport.mjs';
+import { loadEntities } from './entities.js';
 import { lazyDocuments } from './rfq.js';
 
 const REVENUE_BANDS = { ate_360k: 'Até R$ 360 mil', '360k_4_8m': 'R$ 360 mil a R$ 4,8 mi', '4_8m_30m': 'R$ 4,8 mi a R$ 30 mi', '30m_300m': 'R$ 30 mi a R$ 300 mi', acima_300m: 'Acima de R$ 300 mi' };
@@ -38,9 +39,13 @@ export async function passport(ctx) {
   ctx.header({ title: 'Financial Passport', subtitle: 'O perfil financeiro reutilizável da empresa: cada dado com origem, responsável, data e revisão.' });
   if (ctx.audience !== 'company') return emptyState({ title: 'Disponível só para a empresa compradora', iconName: 'lock' });
   const org = ctx.organization.id;
+  const entities = await loadEntities(ctx);
+  const requested = new URLSearchParams(location.search).get('legal_entity_id');
+  const entityId = entities.rows.some(row => row.id === requested && row.kind === 'legal_entity') ? requested : null;
+  ctx.passportEntityId = entityId;
   let payload;
   try {
-    payload = await ctx.api(`profile?organization_id=${encodeURIComponent(org)}`);
+    payload = await ctx.api(`profile?organization_id=${encodeURIComponent(org)}${entityId ? `&legal_entity_id=${encodeURIComponent(entityId)}` : ''}`);
   } catch (error) {
     return errorState({ error, onRetry: () => ctx.reload() });
   }
@@ -48,9 +53,25 @@ export async function passport(ctx) {
   // demonstração legada pode devolver só as linhas.
   const view = payload.passport || buildPassport({ organization: ctx.organization, rows: payload.rows || [], documents: payload.documents || [] });
   const documents = payload.documents || [];
-  const canEdit = ctx.can('edit_profile');
+  const canEdit = ctx.can('edit_profile') && (Boolean(entityId) || entities.scope === 'group');
   const root = el('div', { class: 'stack passport' });
+  const scopeSelect = el('select', { 'aria-label': 'Escopo do Passport' });
+  scopeSelect.add(new Option('Grupo', ''));
+  for (const row of entities.rows.filter(row => row.kind === 'legal_entity')) scopeSelect.add(new Option(row.legal_name, row.id));
+  scopeSelect.value = entityId || '';
+  scopeSelect.addEventListener('change', () => {
+    const url = new URL(location.href);
+    if (scopeSelect.value) url.searchParams.set('legal_entity_id', scopeSelect.value); else url.searchParams.delete('legal_entity_id');
+    location.assign(url.href);
+  });
+  root.append(field({ label: 'Escopo do Passport', control: scopeSelect, hint: 'A entidade substitui apenas defaults descritivos permitidos do grupo. Identidade, saldos, garantias e documentos nunca são herdados.' }));
 
+  const search = el('input', { type: 'search', 'aria-label': 'Buscar campos no Passport', placeholder: 'Buscar campo ou valor neste escopo' });
+  search.addEventListener('input', () => {
+    const text = search.value.trim().toLocaleLowerCase('pt-BR');
+    for (const row of root.querySelectorAll('.passport-field')) row.hidden = !row.textContent.toLocaleLowerCase('pt-BR').includes(text);
+  });
+  root.append(field({ label: 'Buscar neste escopo', control: search }));
   // Cobertura factual por contexto.
   const summary = el('ul', { class: 'passport-coverage', role: 'list', 'aria-label': 'Cobertura do Passport por contexto' }, view.domains.map((domain) => {
     const status = domain.stale ? `${domain.stale} desatualizado${domain.stale > 1 ? 's' : ''}` : domain.review_due ? `${domain.review_due} a revisar` : 'Nada vencido';
@@ -83,7 +104,7 @@ export async function passport(ctx) {
     const body = [list];
     if (domain.id === 'documentacao') {
       body.push(el('p', { class: 'muted small', text: 'Os arquivos ficam no armazenamento privado da empresa e são baixados por link temporário. Um campo só conta como preenchido com arquivo disponível vinculado.' }));
-      body.push(lazyDocuments(ctx, 'profile', org, `Arquivos do perfil (${documents.length})`, { canUpload: ctx.can('upload_document') && canEdit }));
+      body.push(lazyDocuments(ctx, 'profile', entityId || org, `Arquivos do perfil (${documents.length})`, { canUpload: ctx.can('upload_document') && canEdit }));
     }
     root.append(card({ id: `passport-${domain.id}`, title: domain.label, subtitle: domain.summary, body,
       actions: [el('span', { class: 'passport-domain-count', text: `${domain.coverage.filled}/${domain.coverage.relevant}` })] }));
@@ -101,7 +122,7 @@ export async function passport(ctx) {
 
 function fieldRow(ctx, item, { canEdit, documents }) {
   const shown = passportValue(item);
-  const meta = [];
+  const meta = [el('span', { text: item.scope === 'entity' ? 'Entidade legal' : item.inherited ? 'Default do grupo (herdado)' : 'Grupo' })];
   if (item.origin === 'organization') {
     meta.push(el('span', { text: item.filled ? SOURCE_LABELS.cadastro_organizacao : 'Não informado no cadastro' }));
   } else if (item.filled || item.value) {
@@ -116,7 +137,7 @@ function fieldRow(ctx, item, { canEdit, documents }) {
     if (ctx.can('admin') || canEdit) actions.push(linkButton('Editar no cadastro', ctx.href('/finance/settings.html#empresa'), { variant: 'ghost', size: 'sm' }));
   } else if (canEdit) {
     actions.push(button(item.value ? 'Editar' : 'Preencher', { size: 'sm', variant: item.value ? 'ghost' : 'secondary', attrs: { 'aria-label': `${item.value ? 'Editar' : 'Preencher'} ${item.label}` }, onClick: () => editField(ctx, item, documents) }));
-    if (item.value && ['review_due', 'stale'].includes(item.freshness)) {
+    if (!item.inherited && item.value && ['review_due', 'stale'].includes(item.freshness)) {
       actions.push(button('Confirmar como atual', { size: 'sm', variant: 'ghost', iconName: 'check', attrs: { 'aria-label': `Confirmar ${item.label} como atual` }, onClick: (event) => confirmField(ctx, item, event.currentTarget) }));
     }
   }
@@ -197,7 +218,7 @@ function editField(ctx, item, documents) {
     save.disabled = true;
     try {
       await ctx.api('profile', { method: 'POST', body: JSON.stringify({
-        organization_id: ctx.organization.id, field_key: item.key, field_value: value.value, source: source.value,
+        organization_id: ctx.organization.id, legal_entity_id: ctx.passportEntityId || null, field_key: item.key, field_value: value.value, source: source.value,
         document_id: documentSelect?.value || null, valid_until: validUntil.value || null, review_after_days: Number(review.value)
       }) });
       panel.close();
@@ -214,7 +235,7 @@ function editField(ctx, item, documents) {
 async function confirmField(ctx, item, trigger) {
   trigger.disabled = true;
   try {
-    await ctx.api('profile/confirm', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, field_key: item.key }) });
+    await ctx.api('profile/confirm', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, legal_entity_id: item.legal_entity_id || null, field_key: item.key }) });
     toast(`${item.label} confirmado como atual.`);
     ctx.reload();
   } catch (error) {
@@ -228,7 +249,7 @@ async function showHistory(ctx, item) {
   const body = el('div', { class: 'stack' }, el('p', { class: 'muted', text: 'Carregando histórico…' }));
   drawer({ title: `Histórico — ${item.label}`, subtitle: 'Registro append-only: nenhuma linha é editada ou apagada.', body });
   try {
-    const { rows } = await ctx.api(`profile/history?organization_id=${encodeURIComponent(ctx.organization.id)}&field_key=${encodeURIComponent(item.key)}`);
+    const { rows } = await ctx.api(`profile/history?organization_id=${encodeURIComponent(ctx.organization.id)}&field_key=${encodeURIComponent(item.key)}${item.legal_entity_id ? `&legal_entity_id=${encodeURIComponent(item.legal_entity_id)}` : ''}`);
     body.replaceChildren(rows?.length ? el('ol', { class: 'passport-history' }, rows.map((row) => el('li', { class: 'passport-history-item' }, [
       el('p', {}, [el('strong', { text: CHANGE_LABELS[row.change_type] || row.change_type }), el('span', { class: 'muted', text: ` · ${formatDateTime(row.changed_at)}${row.changed_by_name ? ` · ${row.changed_by_name}` : ''}` })]),
       row.change_type === 'updated' ? el('p', { class: 'small', text: `${passportValue({ ...item, value: row.previous_value, typed: undefined }) ?? '—'} → ${passportValue({ ...item, value: row.new_value, typed: undefined }) ?? '—'}` })
@@ -254,7 +275,7 @@ function customForm(ctx) {
     if (key.length < 2) { toast('Dê um nome com letras ao campo.', 'error'); return; }
     if (catalogField(key)) { toast(`${fieldLabel(key)} já existe no catálogo: preencha pelo campo correspondente.`, 'error'); return; }
     try {
-      await ctx.api('profile', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, field_key: key, field_value: value.value, source: source.value }) });
+      await ctx.api('profile', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, legal_entity_id: ctx.passportEntityId || null, field_key: key, field_value: value.value, source: source.value }) });
       toast('Campo salvo.');
       ctx.reload();
     } catch (error) { toast(error.message, 'error'); }
