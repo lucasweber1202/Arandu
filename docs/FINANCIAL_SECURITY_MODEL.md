@@ -168,3 +168,12 @@ exigem a organização provedora, e o job agendado roda sem `auth.uid()`.
 * Leitura: objetos de contrato pela visibilidade do contrato; facilities, garantias, relações e saldos pela entidade; contatos/issues/avaliações de nível de grupo legíveis por qualquer membro da compradora (`fin_group_or_entity_visible`, que exige organização BUYER). O provedor — inclusive o vinculado por `provider_organization_id` — nunca lê contatos, notas, issues, avaliações ou facilities do comprador.
 * Imutabilidade: versões de termos, aditivos, avaliações, saldos, cronogramas e histórico de facility recusam `UPDATE`/`DELETE` (só o reset do banco marcado `demo` apaga).
 * Testes: `tests/database/financial-contracts-v2.sql`, `tests/database/financial-relationships-portfolio.sql`, `scripts/test-finance-contracts.mjs`, `scripts/test-finance-portfolio.mjs`; canário com as tabelas novas.
+
+## Policy & Approval Engine v2
+
+* Tabelas novas com RLS forçada, só `SELECT` para `authenticated`; escrita por RPC SECURITY DEFINER com `search_path` fixo. Auxiliares de avaliação (`fin_policy_evaluate`, `fin_policy_facts`, `fin_approval_member_eligible`, `fin_approval_refresh`) não são executáveis pelo cliente.
+* Leitura: policy do grupo para membros da compradora; policy de entidade só para quem alcança a entidade (`fin_group_or_entity_visible`); rascunho só para admin; etapas/exceções pela visibilidade da RFQ; delegação só para titular, substituto e admin. Provedor e outro tenant não leem nada.
+* Ser aprovador não amplia acesso: indicação e voto exigem papel + entidade + escopo da etapa, reconferidos no voto (aprovador revogado é recusado).
+* SoD padrão no banco (quem pede não aprova; uma etapa por pessoa; só membros da compradora); SoD configurável na policy aplicada na decisão.
+* Snapshot e definição das etapas imutáveis; versão ativada imutável; exceção e delegação com autor e data.
+* Testes: `tests/database/financial-policy-engine.sql` (negativos de entidade, tenant, provedor, revogação, SoD, versão no meio do processo), `scripts/test-finance-policy.mjs`; canário de isolamento com as tabelas novas.

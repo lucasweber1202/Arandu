@@ -34,6 +34,15 @@ begin
     ('fin_passport_confirm_scoped_field(uuid,uuid,text)'),('fin_passport_visible(uuid,uuid,text)'),
     ('fin_search_passport(uuid,uuid,text,integer,integer)'),
     ('fin_query_graph(uuid,text,uuid,text,uuid,text,text,date,integer,integer)'),
+    -- Policy & Approval Engine v2: administração (admin), prévia sob RLS da RFQ,
+    -- pedido/voto/exceção/delegação com SoD e prazos (docs/FINANCIAL_POLICY_ENGINE.md).
+    ('fin_save_policy_draft(uuid,uuid,text,jsonb,text)'),('fin_activate_policy_version(uuid)'),('fin_discard_policy_draft(uuid)'),
+    ('fin_retire_policy(uuid)'),('fin_set_policy_flag(uuid,text,text,text,boolean)'),('fin_preview_approval_policy(uuid,uuid,jsonb)'),
+    ('fin_simulate_policy_version(uuid,jsonb)'),('fin_request_policy_approval(uuid,uuid,jsonb,text,text,jsonb)'),
+    ('fin_act_on_approval_v2(uuid,text,text,text)'),('fin_supersede_approval(uuid,text)'),
+    ('fin_request_policy_exception(uuid,uuid,text,text,text,jsonb)'),('fin_decide_policy_exception(uuid,text,text)'),('fin_cancel_policy_exception(uuid)'),
+    ('fin_set_approval_delegation(uuid,uuid,timestamp with time zone,timestamp with time zone,text)'),('fin_revoke_approval_delegation(uuid)'),
+    ('fin_process_approval_deadlines(uuid)'),
     -- Multi-entity: RPCs de administração e auxiliares de policy (só dizem
     -- se o próprio chamador alcança uma entidade/objeto).
     ('fin_create_legal_entity(uuid,text,text,text,text,text,text,uuid)'),('fin_update_legal_entity(uuid,text,text,text,text)'),
@@ -89,7 +98,7 @@ begin
      and has_table_privilege('anon', c.oid, p.privilege_type);
   if v_extra is not null then raise exception 'anon com escrita em tabela financeira: %', v_extra; end if;
 
-  if (select value from public.fin_settings where key = 'schema_version') not in ('financial-surface-hardening-1', 'financial-approval-handoff-1', 'financial-passport-1', 'financial-multi-entity-1', 'financial-contracts-v2-1', 'financial-relationships-portfolio-1', 'financial-passport-entities-1', 'financial-graph-1') then
+  if (select value from public.fin_settings where key = 'schema_version') not in ('financial-surface-hardening-1', 'financial-approval-handoff-1', 'financial-passport-1', 'financial-multi-entity-1', 'financial-contracts-v2-1', 'financial-relationships-portfolio-1', 'financial-passport-entities-1', 'financial-graph-1', 'financial-policy-engine-1') then
     raise exception 'schema_version não avançou';
   end if;
 end $$;

@@ -12,6 +12,7 @@ import { CONTRACT_CATEGORIES } from '../../../lib/finance/contract-terms.mjs';
 import { importContractButton, openContract } from './contract-center.js';
 import { openProviderRelationship, scorecardSettings } from './provider-relationship.js';
 import { loadEntities, entitySettings, memberScopes, entityContextSelect, inContext, contractEntityControl, entityName } from './entities.js';
+import { policySettings, delegationSettings, policyTimeline } from './policy.js';
 
 // ------------------------------------------------------------ aprovações
 export async function approvalsInbox(ctx) {
@@ -19,7 +20,9 @@ export async function approvalsInbox(ctx) {
   const approvals = await ctx.loadApprovals();
   const rfqs = new Map((ctx.data.rfqs || []).map((rfq) => [rfq.id, rfq]));
   const viewer = ctx.viewer?.id;
-  const mine = approvals.filter((row) => currentStep(row)?.approver_id === viewer);
+  // Pedido com policy: o servidor diz se a pessoa tem etapa ativa (própria ou delegada).
+  const isTurn = (row) => row.viewer_can_act ?? (currentStep(row)?.approver_id === viewer);
+  const mine = approvals.filter(isTurn);
   const requested = approvals.filter((row) => row.requested_by === viewer && row.status === 'pending');
   const done = approvals.filter((row) => row.status !== 'pending');
 
@@ -28,7 +31,7 @@ export async function approvalsInbox(ctx) {
     if (!rfq) return null;
     const proposal = (rfq.proposals || []).find((item) => item.id === request.proposal_id);
     const step = currentStep(request);
-    const isMine = step?.approver_id === viewer;
+    const isMine = isTurn(request);
     const total = (request.steps || []).length;
     const dots = el('span', { class: 'step-dots', 'aria-hidden': 'true' }, (request.steps || []).sort((a, b) => a.position - b.position)
       .map((item) => el('span', { class: `step-dot ${item.status}${item === step ? ' current' : ''}` })));
@@ -42,10 +45,10 @@ export async function approvalsInbox(ctx) {
         el('p', { class: 'inbox-progress' }, [dots, el('span', { text: request.status === 'pending' ? `${approvalSummaryLine(request)} · ${(request.steps || []).filter((item) => item.status === 'approved').length} de ${total} aprovadores` : `${(request.steps || []).filter((item) => item.status === 'approved').length} de ${total} aprovaram` })])
       ]),
       el('div', { class: 'inbox-side' }, [
-        pill(request.stale && request.status === 'pending' ? { label: 'Desatualizada', tone: 'danger', icon: 'alert' } : isMine ? { label: 'Aguardando você', tone: 'warning', icon: 'clock' } : { pending: { label: 'Em andamento', tone: 'info', icon: 'clock' } }[request.status] || { label: { approved: 'Aprovada', rejected: 'Rejeitada', changes_requested: 'Alterações pedidas', cancelled: 'Cancelada' }[request.status], tone: request.status === 'approved' ? 'success' : request.status === 'rejected' ? 'danger' : 'neutral' }),
+        pill(request.stale && request.status === 'pending' ? { label: 'Desatualizada', tone: 'danger', icon: 'alert' } : isMine ? { label: 'Aguardando você', tone: 'warning', icon: 'clock' } : { pending: { label: 'Em andamento', tone: 'info', icon: 'clock' } }[request.status] || { label: { approved: 'Aprovada', rejected: 'Rejeitada', changes_requested: 'Alterações pedidas', cancelled: 'Cancelada', expired: 'Expirada', superseded: 'Substituída' }[request.status], tone: request.status === 'approved' ? 'success' : request.status === 'rejected' ? 'danger' : 'neutral' }),
         el('div', { class: 'inbox-actions' }, [
           button('Ver contexto', { size: 'sm', iconName: 'eye', onClick: open }),
-          ...(isMine && !request.stale ? [...approvalActions(ctx, request, { onDone: () => ctx.reload() }).children].map((node) => { node.classList.add('btn-sm'); return node; }) : [])
+          ...(isMine && !request.stale ? [...approvalActions(ctx, request, { onDone: () => ctx.reload() }).children].map((node) => { if (node.tagName === 'BUTTON') node.classList.add('btn-sm'); return node; }) : [])
         ])
       ])
     ]);
@@ -77,9 +80,10 @@ function approvalContext(ctx, request, rfq) {
     el('section', { class: 'drawer-section' }, [el('h3', { text: 'Comparação com as demais propostas' }), el('p', { class: 'muted small', text: `A proposta de ${proposal?.provider_name || '—'} está na primeira coluna.` }),
       comparisonMatrix(rfq, [proposal, ...(rfq.proposals || []).filter((item) => item.id !== request.proposal_id)].filter(Boolean))]),
     el('section', { class: 'drawer-section' }, [el('h3', { text: 'Mudanças na solicitação' }), revisionTimeline(ctx, rfq)]),
-    el('section', { class: 'drawer-section' }, [el('h3', { text: 'Etapas de aprovação' }), approvalSteps(request, ctx.members)])
+    el('section', { class: 'drawer-section' }, [el('h3', { text: request.policy_snapshot ? 'Fluxo pela policy' : 'Etapas de aprovação' }),
+      request.policy_snapshot ? policyTimeline(ctx, request, { onChange: () => ctx.reload() }) : approvalSteps(request, ctx.members)])
   ];
-  const footer = step?.approver_id === ctx.viewer?.id && !request.stale
+  const footer = (request.viewer_can_act ?? step?.approver_id === ctx.viewer?.id) && !request.stale
     ? [approvalActions(ctx, request, { onDone: () => { dialog.close(); ctx.reload(); } })]
     : [linkButton('Abrir a solicitação', ctx.href(`/finance/rfq.html?id=${rfq.id}#aprovacoes`), { iconName: 'arrowRight' })];
   const dialog = drawer({ title: rfq.title, subtitle: `${approvalSummaryLine(request)} · ${proposal?.provider_name || ''}`, body, footer,
@@ -460,7 +464,14 @@ export async function settings(ctx) {
       el('span', { class: 'muted small', text: policy.updated_at ? ` Atualizada em ${formatDateTime(policy.updated_at)}.` : ' Nenhuma exigência configurada.' })])]),
     ctx.viewer?.role && ctx.viewer.role !== 'admin' ? el('p', { class: 'muted small', text: `Somente administradores alteram esta regra.${ctx.mode === 'demo' ? ' Troque para a persona Admin para experimentar.' : ''}` }) : el('p', { class: 'muted small', text: 'Mudanças ficam registradas na trilha da organização.' }));
   }).catch((error) => policyBox.replaceChildren(errorState({ error })));
-  add('aprovacao', 'Política de aprovação', 'Quando ligada, nenhuma decisão é registrada sem um pedido aprovado para a mesma proposta e versão.', policyBox);
+  add('aprovacao', 'Regra geral de aprovação', 'Quando ligada, nenhuma decisão é registrada sem um pedido aprovado para a mesma proposta e versão. Policies abaixo detalham quem aprova e em que ordem.', policyBox);
+
+  // Governança: Policy & Approval Engine v2 e delegação temporária. O
+  // transporte da demonstração não tem o engine; lá vale só a regra geral.
+  if (ctx.mode !== 'demo') {
+    add('governanca', 'Governança: policies de aprovação', 'Regras da sua empresa, por grupo e por entidade: quem aprova, em que ordem, sob qual versão. Versões ativadas são imutáveis.', policySettings(ctx, entities));
+    add('delegacao', 'Delegação de aprovação', 'Substituto temporário para as suas etapas de aprovação, com trilha.', delegationSettings(ctx));
+  }
 
   // Preferências de notificação.
   const prefBox = el('div', {}, loading());
