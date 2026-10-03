@@ -10,11 +10,17 @@ create function pg_temp.graph_denied(p_sql text,p_error text) returns void langu
  execute p_sql; raise exception 'Graph probe unexpectedly succeeded';
 exception when others then if sqlerrm<>p_error then raise; end if; end $$;
 grant execute on function pg_temp.graph_denied(text,text) to authenticated;
--- A visible guarantee with a legacy link into B must never reveal that ID.
+-- Existing guarantee RLS hides a legacy link into B entirely.
+-- A facility itself is entity-scoped; its legacy hidden contract must be redacted.
 insert into public.fin_facilities(id,organization_id,legal_entity_id,provider_id,kind,name,currency,principal_amount,source,created_by)
 values ('00000000-0000-4000-8000-0000000ab099','00000000-0000-4000-8000-0000000ab001',(select value from graph_ids where key='B'),'00000000-0000-4000-8000-0000000ab010','term_loan','Hidden Graph B','BRL',100,'declared','00000000-0000-4000-8000-0000000aa001');
 insert into public.fin_guarantees(organization_id,legal_entity_id,kind,description,currency,committed_amount,facility_id,source,created_by)
 values ('00000000-0000-4000-8000-0000000ab001',(select value from graph_ids where key='A'),'receivables','Legacy visible guarantee','BRL',10,'00000000-0000-4000-8000-0000000ab099','declared','00000000-0000-4000-8000-0000000aa001');
+select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-0000000aa001',false);
+insert into public.fin_contracts(id,organization_id,legal_entity_id,provider_id,origin,title,product,starts_on,ends_on,owner_id)
+values ('00000000-0000-4000-8000-0000000ab098','00000000-0000-4000-8000-0000000ab001',(select value from graph_ids where key='B'),'00000000-0000-4000-8000-0000000ab010','imported','Hidden Graph contract B','credit',current_date,current_date+365,'00000000-0000-4000-8000-0000000aa001');
+insert into public.fin_facilities(organization_id,legal_entity_id,provider_id,contract_id,kind,name,currency,principal_amount,source,created_by)
+values ('00000000-0000-4000-8000-0000000ab001',(select value from graph_ids where key='A'),'00000000-0000-4000-8000-0000000ab010','00000000-0000-4000-8000-0000000ab098','term_loan','Legacy visible facility','BRL',100,'declared','00000000-0000-4000-8000-0000000aa001');
 set role authenticated;
 select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-0000000aa002',false);
 do $$ begin
@@ -22,7 +28,8 @@ do $$ begin
  if not exists(select 1 from public.fin_query_graph('00000000-0000-4000-8000-0000000ab001','facility',(select value from graph_ids where key='facility'),'guarantee')) then raise exception 'facility guarantee relation missing'; end if;
  if exists(select 1 from public.fin_financial_graph where legal_entity_id=(select value from graph_ids where key='B') or title='Hidden Graph B' or facility_id='00000000-0000-4000-8000-0000000ab099') then raise exception 'cross entity or hidden ancestor leak'; end if;
  if exists(select 1 from public.fin_query_graph('00000000-0000-4000-8000-0000000ab001','provider','00000000-0000-4000-8000-0000000ab010',p_query=>'Hidden Graph B')) then raise exception 'Graph search leak'; end if;
- if not exists(select 1 from public.fin_financial_graph where title='Legacy visible guarantee' and facility_id is null) then raise exception 'hidden parent not redacted'; end if;
+ if exists(select 1 from public.fin_financial_graph where title='Legacy visible guarantee') then raise exception 'hidden guarantee discovered'; end if;
+ if not exists(select 1 from public.fin_financial_graph where title='Legacy visible facility' and contract_id is null) or exists(select 1 from public.fin_financial_graph where contract_id='00000000-0000-4000-8000-0000000ab098') then raise exception 'hidden contract not redacted'; end if;
  if (select count(*) from public.fin_query_graph('00000000-0000-4000-8000-0000000ab001','provider','00000000-0000-4000-8000-0000000ab010',p_limit=>1))<>2 then raise exception 'pagination sentinel wrong'; end if;
 end $$;
 select pg_temp.graph_denied($q$select * from public.fin_query_graph('00000000-0000-4000-8000-0000000ab001','entity',(select value from graph_ids where key='B'))$q$,'graph root unavailable');
