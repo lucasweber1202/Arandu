@@ -8,6 +8,7 @@ import { memberName, currentStep, approvalSummaryLine, comparisonMatrix, revisio
 import { approvalCard, lazyDocuments } from './rfq.js';
 import { NOTIFICATION_META, notificationItem } from '../shell.js';
 import { buildPassport } from '../../../lib/finance/passport.mjs';
+import { loadEntities, entitySettings, memberScopes, entityContextSelect, inContext, contractEntityControl, entityName } from './entities.js';
 
 // ------------------------------------------------------------ aprovações
 export async function approvalsInbox(ctx) {
@@ -146,7 +147,8 @@ function contractNextAction(contract) {
 }
 
 export async function contracts(ctx) {
-  const rows = ctx.data.contracts || [];
+  const entities = await loadEntities(ctx);
+  const rows = (ctx.data.contracts || []).filter((row) => inContext(entities, row));
   const manage = ctx.can('create_rfq');
   const refresh = manage ? button('Atualizar marcos de renovação', { size: 'sm', iconName: 'refresh', onClick: async (event) => {
     const target = event.currentTarget;
@@ -157,7 +159,9 @@ export async function contracts(ctx) {
       if (result.tasks_created) ctx.reload();
     } catch (error) { toast(error.message, 'error'); } finally { target.disabled = false; }
   } }) : null;
-  ctx.header({ title: 'Contratos e renovações', subtitle: 'Vigência, marcos de 90/60/30 dias, aviso prévio e próxima ação de cada contrato.', actions: refresh ? [refresh] : [] });
+  const context = entityContextSelect(entities, { onChange: () => ctx.rerender() });
+  ctx.header({ title: 'Contratos e renovações', subtitle: 'Vigência, marcos de 90/60/30 dias, aviso prévio e próxima ação de cada contrato.', actions: [context, refresh].filter(Boolean) });
+  if (!rows.length && (ctx.data.contracts || []).length) return emptyState({ title: 'Nenhum contrato nesta entidade', text: 'Troque a entidade em foco para ver os demais contratos que você pode ler.', iconName: 'building' });
   if (!rows.length) return emptyState({ title: 'Nenhum contrato registrado ainda', text: 'Depois de uma decisão, registre o contrato com vigência e aviso prévio. O Arandu acompanha a renovação.', iconName: 'briefcase' });
   const ordered = [...rows].sort((a, b) => (['active', 'renewing'].includes(b.status) - ['active', 'renewing'].includes(a.status)) || String(a.review_from).localeCompare(String(b.review_from)));
   // Contratos que pedem ação primeiro.
@@ -179,7 +183,8 @@ export async function contracts(ctx) {
       el('header', { class: 'contract-head' }, [
         el('div', {}, [
           el('p', { class: 'contract-kicker', text: `${productLabel(contract.product)}${source ? ` · ${source.title}` : ''}` }),
-          el('h2', { class: 'contract-title', text: contract.provider_name || 'Provedor' })
+          el('h2', { class: 'contract-title', text: contract.provider_name || 'Provedor' }),
+          entities.rows.length ? el('p', { class: 'contract-entity', 'aria-label': `Entidade: ${entityName(entities, contract.legal_entity_id)}` }, contractEntityControl(ctx, entities, contract)) : null
         ]),
         el('div', { class: 'contract-status' }, [pill(CONTRACT_STATUS[contract.status]), contract.days_to_end !== null && contract.days_to_end !== undefined && ['active', 'renewing'].includes(contract.status)
           ? el('span', { class: `contract-days${contract.days_to_end <= 60 ? ' warn' : ''}`, text: contract.days_to_end >= 0 ? `vence em ${contract.days_to_end} dias` : 'vencido' }) : null])
@@ -419,6 +424,13 @@ export async function settings(ctx) {
     el('p', { class: 'muted', text: `${passportSummary.coverage.filled} de ${passportSummary.coverage.relevant} campos do catálogo preenchidos${passportSummary.attention.length ? ` · ${passportSummary.attention.length} pedem revisão` : ''}.` }),
     linkButton('Abrir o Financial Passport', ctx.href('/finance/passport.html'), { variant: 'secondary', iconName: 'shield' })
   ]);
+
+  // Entidades do grupo e escopo de acesso por entidade (multi-entity).
+  const entities = await loadEntities(ctx);
+  if (entities.available) {
+    add('entidades', 'Entidades do grupo', 'Entidades legais e unidades. Processos e contratos de uma entidade só aparecem para quem tem o grupo inteiro ou aquela entidade no escopo.', entitySettings(ctx, entities));
+    add('escopos', 'Escopo de acesso por entidade', 'Tesouraria do grupo enxerga tudo; escopo restrito enxerga só as entidades concedidas. O banco aplica a regra em toda leitura e escrita.', memberScopes(ctx, entities));
+  }
 
   // Política de aprovação.
   const policyBox = el('div', {}, loading());

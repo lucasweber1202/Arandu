@@ -22,13 +22,17 @@ grant select on canary_expected to authenticated;
 do $$
 declare
   p record; v_leaks text := ''; v_count bigint; v_people integer := 0; v_checks integer := 0;
-  v_tbl text; v_rule text; v_schema text; v_passport boolean;
+  v_tbl text; v_rule text; v_schema text; v_passport boolean; v_multi boolean; r record;
 begin
   select value into v_schema from public.fin_settings where key='schema_version';
-  if v_schema is null or v_schema not in ('financial-surface-hardening-1','financial-approval-handoff-1','financial-passport-1') then
+  if v_schema is null or v_schema not in ('financial-surface-hardening-1','financial-approval-handoff-1','financial-passport-1','financial-multi-entity-1') then
     raise exception 'CANÁRIO: schema não suportado';
   end if;
-  v_passport := v_schema = 'financial-passport-1';
+  v_passport := v_schema in ('financial-passport-1','financial-multi-entity-1');
+  v_multi := v_schema = 'financial-multi-entity-1';
+  if (to_regclass('public.fin_legal_entities') is not null) <> v_multi then
+    raise exception 'CANÁRIO: schema_version e tabelas multi-entity divergentes';
+  end if;
   if (to_regclass('public.fin_company_profile_history') is not null) <> v_passport
      or (to_regclass('public.fin_rfq_profile_snapshots') is not null) <> v_passport then
     raise exception 'CANÁRIO: schema_version e tabelas Passport divergentes';
@@ -57,11 +61,14 @@ begin
       ('fin_rfq_invites',        'not (buyer_organization_id = any($1) or provider_organization_id = any($1))'),
       ('fin_proposal_drafts',    'not (provider_organization_id = any($1))'),
       ('fin_notifications',      'user_id <> $3'),
+      ('fin_legal_entities',     'not (organization_id = any($1))'),
+      ('fin_member_entity_grants', 'not (organization_id = any($1))'),
       ('fin_private_documents',  'not (organization_id = any($1) or buyer_organization_id = any($1) or (visibility = ''shared'' and rfq_id = any($2)))')
     ) t(tbl, rule) loop
       -- Before Passport, these two tables must be absent (checked above).
-      -- At financial-passport-1 every check is mandatory, including both.
+      -- From financial-passport-1 on every check is mandatory, including both.
       if not v_passport and v_tbl in ('fin_company_profile_history','fin_rfq_profile_snapshots') then continue; end if;
+      if not v_multi and v_tbl in ('fin_legal_entities','fin_member_entity_grants') then continue; end if;
       execute format('select count(*) from public.%I where %s', v_tbl, v_rule) into v_count using p.orgs, p.invited_rfqs, p.user_id;
       v_checks := v_checks + 1;
       if v_count > 0 then v_leaks := v_leaks || format('pessoa#%s:%s=%s; ', v_people, v_tbl, v_count); end if;
@@ -78,6 +85,34 @@ begin
     end loop;
     execute 'reset role';
   end loop;
+  -- Multi-entity: membro com escopo restrito só lê, na organização em que é
+  -- restrito, RFQs/contratos/eventos/tarefas das entidades concedidas (ou das
+  -- unidades abaixo delas). Linhas sem entidade são de nível de grupo.
+  if v_multi then
+    for r in select m.user_id, m.organization_id,
+                    coalesce((select array_agg(e.id) from public.fin_member_entity_grants g
+                               join public.fin_legal_entities e on e.organization_id = g.organization_id and (e.id = g.entity_id or e.parent_id = g.entity_id)
+                              where g.organization_id = m.organization_id and g.user_id = m.user_id), '{}') as entities
+               from public.fin_members m where m.entity_scope = 'entities' loop
+      v_people := v_people + 1;
+      perform set_config('request.jwt.claim.sub', r.user_id::text, true);
+      perform set_config('request.jwt.claims', json_build_object('sub', r.user_id, 'role', 'authenticated', 'aal', 'aal1')::text, true);
+      execute 'set local role authenticated';
+      foreach v_tbl in array array['fin_rfqs','fin_contracts','fin_events','fin_legal_entities'] loop
+        execute format('select count(*) from public.%I where organization_id = $1 and not (coalesce(%s, ''00000000-0000-0000-0000-000000000000''::uuid) = any($2))',
+                       v_tbl, case when v_tbl = 'fin_legal_entities' then 'id' else 'legal_entity_id' end)
+          into v_count using r.organization_id, r.entities;
+        v_checks := v_checks + 1;
+        if v_count > 0 then v_leaks := v_leaks || format('restrito#%s:%s=%s; ', v_people, v_tbl, v_count); end if;
+      end loop;
+      select count(*) into v_count from public.fin_tasks t where t.organization_id = r.organization_id
+        and not (coalesce(t.legal_entity_id, '00000000-0000-0000-0000-000000000000'::uuid) = any(r.entities))
+        and not (t.related_type is null and t.created_by = r.user_id);
+      v_checks := v_checks + 1;
+      if v_count > 0 then v_leaks := v_leaks || format('restrito#%s:fin_tasks=%s; ', v_people, v_count); end if;
+      execute 'reset role';
+    end loop;
+  end if;
   if v_leaks <> '' then raise exception 'CANÁRIO: vazamento entre tenants: %', v_leaks; end if;
   raise notice 'CANÁRIO OK: schema %, % pessoas (inclui 1 externa sintética), % verificações, 0 vazamentos', v_schema, v_people, v_checks;
 end $$;

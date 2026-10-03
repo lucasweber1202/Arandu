@@ -50,8 +50,8 @@ concretos: o rollback do procurement financeiro remove tabelas; a allowlist é
 por instância; e dado de uma empresa real não pode conviver com dado de teste.
 
 Aplicar **todos** os arquivos de `docs/supabase-migrations.json` → `cleanInstall`,
-na ordem atual do manifesto. A baseline do Passport tem 37 arquivos; o último
-é `docs/supabase-financial-passport.sql` (`financial-passport-1`).
+na ordem atual do manifesto. A baseline multi-entity tem 38 arquivos; o último
+é `docs/supabase-financial-multi-entity.sql` (`financial-multi-entity-1`).
 Para um banco existente, consulte o marcador e gere só o trecho pendente:
 
 ```bash

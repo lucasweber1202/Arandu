@@ -36,7 +36,8 @@
     "docs/supabase-financial-final-hardening.sql",
     "docs/supabase-financial-pilot-surface-hardening.sql",
     "docs/supabase-financial-approval-handoff.sql",
-    "docs/supabase-financial-passport.sql"
+    "docs/supabase-financial-passport.sql",
+    "docs/supabase-financial-multi-entity.sql"
   ],
   "existingDatabase": [
     "docs/supabase-sprint1-auth-ownership.sql",
@@ -74,6 +75,7 @@
     "docs/supabase-financial-final-hardening.sql",
     "docs/supabase-financial-pilot-surface-hardening.sql",
     "docs/supabase-financial-approval-handoff.sql",
-    "docs/supabase-financial-passport.sql"
+    "docs/supabase-financial-passport.sql",
+    "docs/supabase-financial-multi-entity.sql"
   ]
 }

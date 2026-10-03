@@ -130,7 +130,10 @@ for (const [flow, files] of Object.entries(manifest)) {
   const passport = files.indexOf('docs/supabase-financial-passport.sql');
   if (passport === -1) issues.push(`${flow}: Financial Passport v2 (proveniência, histórico e snapshot do perfil) ausente.`);
   if (approvalHandoff !== -1 && passport !== -1 && passport !== approvalHandoff + 1) issues.push(`${flow}: Financial Passport deve vir depois do aviso ao próximo aprovador.`);
-  if (passport !== -1 && passport !== files.length - 1) issues.push(`${flow}: Financial Passport deve encerrar a sequência atual.`);
+  const multiEntity = files.indexOf('docs/supabase-financial-multi-entity.sql');
+  if (multiEntity === -1) issues.push(`${flow}: fundação multi-entity (entidades legais, escopo por membro, RLS por entidade) ausente.`);
+  if (passport !== -1 && multiEntity !== -1 && multiEntity !== passport + 1) issues.push(`${flow}: multi-entity deve vir depois do Financial Passport.`);
+  if (multiEntity !== -1 && multiEntity !== files.length - 1) issues.push(`${flow}: multi-entity deve encerrar a sequência atual.`);
 }
 
 // Catraca de inventário: todo .sql direto em docs/ é migration do manifesto,

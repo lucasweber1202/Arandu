@@ -20,7 +20,9 @@ decisão de cotação não deve existir no schema.
 | Contato do provedor (nome, e-mail, telefone) | `fin_providers` | operar a cotação | média (PII de terceiro) | só o comprador que cadastrou | enquanto a relação existir |
 | Notas internas sobre o provedor | `fin_providers.notes` | memória do comprador | média | só o comprador | idem |
 | Referência documental (URL) | `fin_documents.reference_url` | apontar o documento | média | membros | idem |
-| Trilha de eventos | `fin_events` | auditoria e métricas | baixa | membros | ver retenção geral |
+| Trilha de eventos | `fin_events` | auditoria e métricas | baixa | membros (por entidade) | ver retenção geral |
+| Entidades do grupo (razão social, CNPJ, país, moeda) | `fin_legal_entities` | separar processos, contratos e acesso por entidade | baixa (dado cadastral público) | membros que alcançam a entidade | enquanto o grupo existir; arquivar preserva histórico |
+| Escopo de acesso por entidade | `fin_members.entity_scope`, `fin_member_entity_grants` | autorização | média | admin do grupo; cada membro vê o próprio | enquanto o vínculo existir (cai com o membro) |
 
 ## O que deliberadamente NÃO é coletado
 

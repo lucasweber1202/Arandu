@@ -3,6 +3,7 @@
 import { el, icon, daysUntil, relativeDays, formatDate, formatDateTime, productLabel, demandHeadline, RFQ_STATUS, timeAgo, money, renewalStage } from '../core.js';
 import { card, pill, linkButton, emptyState, person, progress, button, toast } from '../ui.js';
 import { memberName, currentStep, approvalSummaryLine, eventTitle } from './shared.js';
+import { loadEntities, entitySummaryCard } from './entities.js';
 
 const PIPELINE = [['draft', 'Rascunho'], ['open', 'Aberta'], ['collecting', 'Em coleta'], ['comparing', 'Em avaliação'], ['decided', 'Decidida'], ['contracted', 'Contratada']];
 
@@ -229,8 +230,11 @@ export async function dashboard(ctx) {
   }).catch(() => feed.replaceChildren(el('li', { class: 'muted', text: 'Atividade indisponível no momento.' })));
   const activityCard = card({ title: 'Atividade recente', body: feed });
 
+  // Consolidado por entidade: só aparece quando o grupo tem entidades.
+  const entities = await loadEntities(ctx);
+  const entityCard = entities.rows.length ? entitySummaryCard(ctx) : null;
   root.append(attention, summary, el('div', { class: 'dash-grid' }, [
-    el('div', { class: 'dash-main' }, [pipelineCard, activityCard]),
+    el('div', { class: 'dash-main' }, [entityCard, pipelineCard, activityCard].filter(Boolean)),
     el('div', { class: 'dash-side' }, [contractsCard, tasksCard])
   ]));
   if (!rfqs.length) root.prepend(firstUse(ctx));

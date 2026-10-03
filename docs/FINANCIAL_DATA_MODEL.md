@@ -170,3 +170,43 @@ Não há tabela de produto financeiro em banco: o catálogo de produtos e campos
 código versionado (`lib/finance/products.mjs`), porque mudar um campo é uma
 mudança de software que exige revisão, migração de UI e teste — não um registro
 editável em runtime.
+
+## Multi-entity (`docs/supabase-financial-multi-entity.sql`)
+
+O **grupo econômico** é a organização compradora (`fin_organizations` BUYER):
+continua sendo o tenant e a fronteira entre clientes. Abaixo dela:
+
+| Tabela / coluna | Conteúdo |
+| --- | --- |
+| `fin_organizations.base_currency` | moeda base do grupo (ISO 4217). Contexto de leitura; nada é convertido. |
+| `fin_legal_entities` | entidades legais (`legal_entity`) e unidades de negócio (`business_unit`, um nível abaixo de uma entidade legal), com CNPJ opcional (único por grupo), país, moeda local e estado `active`/`archived` (arquivar não apaga processos nem contratos). |
+| `fin_members.entity_scope` | `group` (tesouraria do grupo: tudo, inclusive objetos sem entidade) ou `entities` (só as concedidas). Membros existentes nascem `group`. Administrador é sempre `group` (constraint `fin_members_admin_group_scope`). |
+| `fin_member_entity_grants` | concessões de entidade para membros restritos; a concessão de uma entidade legal cobre as unidades abaixo dela. |
+| `fin_rfqs.legal_entity_id`, `fin_contracts.legal_entity_id` | entidade do processo/contrato. `NULL` = nível de grupo, visível só para escopo `group`. O contrato herda a entidade da RFQ de origem. |
+| `fin_tasks.legal_entity_id` | herdada do objeto relacionado (gatilho); tarefa avulsa de quem a cria segue visível para ela. |
+| `fin_events.legal_entity_id` | entidade em que a ação ocorreu, gravada no momento do evento (gatilho) — o escopo fica na trilha. |
+
+Leitura: as policies do lado comprador passam por `fin_entity_visible(org, entity)`
+(RFQ, convite, proposta, versão, decisão, contrato, aprovação, etapa, revisão,
+fotografia do Passport, marco de renovação, tarefa, evento, comentário,
+documento privado e busca). Provedor (diretório do grupo) e Financial Passport
+(perfil do grupo) continuam de nível de grupo.
+
+Escrita: gatilhos centrais (`fin_*_entity_guard`) recusam, para membro da
+compradora, criação ou alteração em objeto de entidade que ele não alcança —
+inclusive quando a escrita vem de uma RPC existente (`fin_transition`,
+`fin_record_decision`, `fin_invite_provider`, `fin_add_comment`…). A entidade de
+uma RFQ só muda por `fin_set_rfq_entity` (antes da decisão, com evento
+`rfq_entity_changed`); contrato anterior à fundação recebe entidade uma única vez
+por `fin_assign_contract_entity`. Mudança direta da coluna é recusada
+(`legal entity change requires rpc`).
+
+Consolidação: `GET /api/finance/entity-summary` conta processos e contratos a
+partir das linhas que o RLS devolveu para quem pergunta — um consolidado nunca
+inclui entidade que a pessoa não leria sozinha — e não soma valores entre moedas.
+
+RPCs: `fin_create_legal_entity`, `fin_update_legal_entity`, `fin_set_base_currency`,
+`fin_set_member_entity_scope`, `fin_create_rfq_in_entity`, `fin_set_rfq_entity`,
+`fin_assign_contract_entity`. Testes: `tests/database/financial-multi-entity.sql`,
+`scripts/test-finance-entities.mjs`, `tests/e2e/finance-entities.spec.js`; o canário
+(`ops/sql/pilot-isolation-canary.sql`) confere o isolamento de cada membro restrito.

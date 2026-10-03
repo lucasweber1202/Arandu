@@ -4,6 +4,7 @@ import { PRODUCTS } from '../../../lib/finance/products.mjs';
 import { SOURCE_LABELS, fieldLabel } from '../../../lib/finance/passport.mjs';
 import { el, icon, money, percent, fieldValue, formatDate, formatDateTime, relativeDays, daysUntil, productLabel, RFQ_STATUS, PROPOSAL_STATUS, APPROVAL_STATUS, PROVIDER_KINDS, todayIso, timeAgo } from '../core.js';
 import { card, pill, tag, button, linkButton, emptyState, errorState, loading, tabs, definitionList, toast, confirmDialog, drawer, field, catalogControl, person, menu, progress } from '../ui.js';
+import { loadEntities, rfqEntityControl } from './entities.js';
 import { comparisonMatrix, weightsPanel, revisionTimeline, collaboration, activityLog, approvalSteps, approvalActions, currentStep, memberName, memberTitle, coverage, approvalSummaryLine } from './shared.js';
 
 const FLOW = [['draft', 'Rascunho'], ['open', 'Aberta'], ['collecting', 'Coleta'], ['comparing', 'Avaliação'], ['decided', 'Decisão'], ['contracted', 'Contrato']];
@@ -98,6 +99,7 @@ export async function rfqDetail(ctx) {
     manage && ['draft', 'open', 'collecting', 'comparing'].includes(rfq.status) ? { label: 'Cancelar solicitação', icon: 'x', danger: true, onClick: () => transition('cancelled', { title: 'Cancelar esta solicitação?', description: 'O processo é encerrado sem decisão. O histórico é preservado. Esta ação não pode ser desfeita.', confirmLabel: 'Cancelar solicitação', tone: 'danger' }) } : null
   ].filter(Boolean);
   actions.push(menu('Mais ações', more, { visibleLabel: 'Mais' }));
+  const entities = await loadEntities(ctx);
   ctx.header({
     crumbs: [{ label: 'Solicitações', href: ctx.href('/finance/rfqs.html') }, { label: rfq.title }],
     title: rfq.title,
@@ -105,6 +107,7 @@ export async function rfqDetail(ctx) {
       tag(productLabel(rfq.product, { short: true })), pill(pending ? { label: 'Em aprovação', tone: 'warning', icon: 'clock' } : RFQ_STATUS[rfq.status]),
       el('span', { class: 'meta-item', title: 'Revisão publicada atual' }, [icon('repeat', { size: 14 }), el('span', { text: `Revisão ${rfq.revision || 1}` })]),
       el('span', { class: 'meta-item' }, [icon('users', { size: 14 }), el('span', { text: rfq.owner_name || memberName(ctx.members, rfq.owner_id) })]),
+      entities.rows.length ? el('span', { class: 'meta-item meta-entity' }, rfqEntityControl(ctx, entities, rfq)) : null,
       el('span', { class: `meta-item${live && days !== null && days <= 2 ? ' urgent' : ''}` }, [icon('calendar', { size: 14 }),
         el('span', { text: rfq.response_deadline ? `Prazo de resposta ${formatDate(rfq.response_deadline)}${live ? ` · ${relativeDays(rfq.response_deadline)}` : ''}` : 'Sem prazo definido' })])
     ],

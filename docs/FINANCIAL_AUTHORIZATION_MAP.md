@@ -54,3 +54,14 @@ falham se isso mudar.
 - O papel vai no JWT: depois de mudar `app_metadata`, a pessoa entra de novo.
 - `npm run finance:pilot:doctor` lista registros em `fin_platform_operators`
   sem papel `finance_ops` e contas com o papel legado `operator`.
+
+## Escopo por entidade (multi-entity)
+
+| Dimensão | Onde vive | Quem concede | Efeito |
+| --- | --- | --- | --- |
+| `entity_scope = group` | `fin_members.entity_scope` | padrão de todo membro; admin é sempre `group` | lê e escreve, conforme o papel, em todo o grupo, inclusive objetos sem entidade |
+| `entity_scope = entities` | `fin_members.entity_scope` + `fin_member_entity_grants` | admin do grupo (`fin_set_member_entity_scope`) | papel vale só nas entidades concedidas e nas unidades abaixo delas; objetos de nível de grupo ficam invisíveis |
+
+O papel (`admin`, `finance_manager`, `analyst`, `viewer`) continua decidindo **o
+que** a pessoa faz; o escopo decide **onde**. As duas checagens são
+cumulativas e ficam no banco.

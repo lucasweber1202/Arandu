@@ -1064,3 +1064,29 @@ tr.highlighted>td,.proposal-card.highlighted,.document-row.highlighted,.comment.
 .passport-badge{margin-left:6px;height:18px;padding:0 6px}
 .field-passport[data-freshness="stale"] .field-hint{color:var(--danger)}
 @media (max-width:599px){.passport-field-side{justify-content:flex-start}}
+
+/* Multi-entity: contexto de entidade, administração e consolidado. */
+.entity-context-select{max-width:260px;min-width:0}
+.table-scroll{overflow-x:auto;max-width:100%}
+.entity-list{list-style:none;margin:0 0 var(--s4);padding:0;display:grid;gap:var(--s2)}
+.entity-row{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s3);padding:var(--s3);border:1px solid var(--border);border-radius:var(--r-md);background:var(--surface)}
+.entity-row.depth-1{margin-left:var(--s6);border-style:dashed}
+.entity-row-main{display:flex;flex-direction:column;flex:1 1 220px;min-width:0;overflow-wrap:anywhere}
+.entity-create{margin-top:var(--s4)}
+.entity-create>summary,.scope-details>summary,.inline-details>summary{cursor:pointer;color:var(--accent-text);font-weight:600}
+.input-short{max-width:96px}
+.scope-row{flex-wrap:wrap}
+.scope-details{flex:1 1 100%}
+.scope-editor{display:grid;gap:var(--s3);margin-top:var(--s2)}
+.scope-entities{border:1px solid var(--border);border-radius:var(--r-md);padding:var(--s3);margin:0;display:grid;gap:var(--s1)}
+.check-row{display:flex;gap:var(--s2);align-items:center}
+.entity-control{display:inline-flex;flex-wrap:wrap;gap:var(--s2);align-items:center;min-width:0}
+.entity-current{display:inline-flex;gap:var(--s1);align-items:center}
+.inline-details{display:inline-block}
+.inline-details .inline-form{display:inline-flex;flex-wrap:wrap;gap:var(--s2);margin-top:var(--s1)}
+.contract-entity{margin-top:var(--s1)}
+.entity-summary-table tr.entity-child td.cell-primary{padding-left:var(--s6)}
+@media (max-width:719px){
+  .entity-context-select{max-width:100%;width:100%}
+  .entity-row.depth-1{margin-left:var(--s3)}
+}
