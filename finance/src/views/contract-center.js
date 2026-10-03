@@ -1,3 +1,4 @@
+import { graphContextCard } from './graph-context.js';
 // Contract & Renewal Center v2 na interface: contrato como objeto operacional.
 //
 // Termos estruturados por versão (nunca sobrescritos), diff factual entre
@@ -176,6 +177,7 @@ export function openContract(ctx, contract) {
         el('ul', { class: 'plain-list' }, detail.children.map((child) => el('li', { text: `${child.title || CONTRACT_CATEGORIES[child.product]} · até ${formatDate(child.ends_on)}` })))]));
     }
     if (current.parent_contract_id) sections.push(el('p', { class: 'muted small', text: 'Este contrato é filho de outro contrato da carteira.' }));
+    sections.push(graphContextCard(ctx, { type: 'contract', id: current.id }));
     return sections;
   }
 

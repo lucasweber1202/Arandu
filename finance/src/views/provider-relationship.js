@@ -1,3 +1,4 @@
+import { graphContextCard } from './graph-context.js';
 // Provider / Bank Relationship Management: memória institucional do provedor.
 //
 // Tudo aqui é fato do histórico da própria empresa (convites, propostas,
@@ -98,6 +99,7 @@ export async function openProviderRelationship(ctx, provider) {
     sections.push(el('section', { class: 'cc-section' }, [el('h3', { text: 'Linha do tempo' }),
       detail.timeline.length ? el('ol', { class: 'plain-list timeline-list' }, detail.timeline.map((row) => el('li', { text: `${formatDateTime(row.at)} — ${row.text}` }))) : el('p', { class: 'muted', text: 'Sem histórico.' })]));
     if (detail.facilities.length) sections.push(el('p', { class: 'muted small', text: `Facilities com este provedor: ${detail.facilities.map((row) => `${row.name} (${FACILITY_KINDS[row.kind]})`).join(', ')}.` }));
+    sections.push(graphContextCard(ctx, { type: 'provider', id: provider.id }));
     return sections;
   }
 
