@@ -1129,3 +1129,9 @@ tr.highlighted>td,.proposal-card.highlighted,.document-row.highlighted,.comment.
 .schedule-rows{display:grid;gap:var(--s2)}
 .schedule-rows .fee-row{grid-template-columns:1fr 1fr auto}
 .portfolio-grid>*,.portfolio-stats>*{min-width:0}
+
+/* Policy & Approval Engine v2. */
+.policy-list{list-style:none;margin:0;padding:0;display:grid;gap:var(--s2)}
+.rule-editor{border:1px solid var(--border);border-radius:var(--r-md);padding:var(--s3);display:grid;gap:var(--s3);min-width:0}
+.rule-editor legend{font-weight:600;padding:0 var(--s1)}
+.policy-preview{border:1px solid var(--info-border);background:var(--info-weak);border-radius:var(--r-md);padding:var(--s3);display:grid;gap:var(--s1)}

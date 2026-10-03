@@ -5,6 +5,7 @@ import { SOURCE_LABELS, fieldLabel } from '../../../lib/finance/passport.mjs';
 import { el, icon, money, percent, fieldValue, formatDate, formatDateTime, relativeDays, daysUntil, productLabel, RFQ_STATUS, PROPOSAL_STATUS, APPROVAL_STATUS, PROVIDER_KINDS, todayIso, timeAgo } from '../core.js';
 import { card, pill, tag, button, linkButton, emptyState, errorState, loading, tabs, definitionList, toast, confirmDialog, drawer, field, catalogControl, person, menu, progress } from '../ui.js';
 import { loadEntities, rfqEntityControl } from './entities.js';
+import { policyPreview } from './policies.js';
 import { comparisonMatrix, weightsPanel, revisionTimeline, collaboration, activityLog, approvalSteps, approvalActions, currentStep, memberName, memberTitle, coverage, approvalSummaryLine } from './shared.js';
 
 const FLOW = [['draft', 'Rascunho'], ['open', 'Aberta'], ['collecting', 'Coleta'], ['comparing', 'Avaliação'], ['decided', 'Decisão'], ['contracted', 'Contrato']];
@@ -435,16 +436,25 @@ function approvalRequestForm(ctx, rfq, latest) {
   const rationaleField = field({ label: 'Contexto para quem aprova', control: rationale, required: true, hint: 'Quem aprova vê este texto junto com a proposta e a comparação.' });
   const error = el('p', { class: 'field-error', role: 'alert', hidden: true });
   const submit = button('Solicitar aprovação', { variant: 'primary', type: 'submit', iconName: 'send' });
-  body.append(proposalGroup, approverGroup, rationaleField, error, el('div', { class: 'form-actions' }, submit));
+  // Política v2: prévia do que será exigido, avaliada no banco para a proposta escolhida.
+  const preview = policyPreview(ctx, rfq);
+  const justification = el('textarea', { name: 'justification', rows: '3', maxlength: '2000', placeholder: 'Ex.: só um banco ofertou no prazo; os demais declinaram por apetite.' });
+  const justificationField = field({ label: 'Justificativa exigida pela política', control: justification, hint: 'Fica gravada no pedido e na trilha.' });
+  justificationField.hidden = true;
+  preview.box.addEventListener('policy', (event) => { justificationField.hidden = !event.detail?.justification_required; });
+  proposalGroup.addEventListener('change', () => preview.box.refresh(new FormData(form).get('proposal_id')));
+  queueMicrotask(() => preview.box.refresh(new FormData(form).get('proposal_id')));
+  body.append(proposalGroup, approverGroup, rationaleField, preview.box, justificationField, error, el('div', { class: 'form-actions' }, submit));
   form.append(body);
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     error.hidden = true;
     if (!order.length) { error.textContent = 'Escolha pelo menos um aprovador.'; error.hidden = false; return; }
     if (!rationale.value.trim()) { rationaleField.setError('Explique o contexto para quem vai aprovar.'); rationale.focus(); return; }
+    if (!justificationField.hidden && justification.value.trim().length < 10) { justificationField.setError('A política exige justificativa (pelo menos 10 caracteres).'); justification.focus(); return; }
     submit.disabled = true;
     try {
-      await ctx.api('approvals/request', { method: 'POST', body: JSON.stringify({ rfq_id: rfq.id, proposal_id: new FormData(form).get('proposal_id'), approver_ids: order, rationale: rationale.value }) });
+      await ctx.api('approvals/request', { method: 'POST', body: JSON.stringify({ rfq_id: rfq.id, proposal_id: new FormData(form).get('proposal_id'), approver_ids: order, rationale: rationale.value, ...(justification.value.trim() ? { justification: justification.value.trim() } : {}) }) });
       toast(`Aprovação solicitada. ${memberName(ctx.members, order[0])} foi avisado(a).`);
       ctx.reload();
     } catch (failure) { error.textContent = failure.message; error.hidden = false; submit.disabled = false; }

@@ -139,7 +139,10 @@ for (const [flow, files] of Object.entries(manifest)) {
   const relationshipsPortfolio = files.indexOf('docs/supabase-financial-relationships-portfolio.sql');
   if (relationshipsPortfolio === -1) issues.push(`${flow}: Relationship & Portfolio (provedores, facilities, garantias) ausente.`);
   if (contractsV2 !== -1 && relationshipsPortfolio !== -1 && relationshipsPortfolio !== contractsV2 + 1) issues.push(`${flow}: Relationship & Portfolio (provedores, facilities, garantias) deve vir depois de ${'docs/supabase-financial-contracts-v2.sql'}.`);
-  if (relationshipsPortfolio !== -1 && relationshipsPortfolio !== files.length - 1) issues.push(`${flow}: Relationship & Portfolio (provedores, facilities, garantias) deve encerrar a sequência atual.`);
+  const policyEngine = files.indexOf('docs/supabase-financial-policy-engine.sql');
+  if (policyEngine === -1) issues.push(`${flow}: Policy & Approval Engine v2 ausente.`);
+  if (relationshipsPortfolio !== -1 && policyEngine !== -1 && policyEngine !== relationshipsPortfolio + 1) issues.push(`${flow}: Policy & Approval Engine v2 deve vir depois de ${'docs/supabase-financial-relationships-portfolio.sql'}.`);
+  if (policyEngine !== -1 && policyEngine !== files.length - 1) issues.push(`${flow}: Policy & Approval Engine v2 deve encerrar a sequência atual.`);
 }
 
 // Catraca de inventário: todo .sql direto em docs/ é migration do manifesto,

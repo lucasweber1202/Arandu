@@ -231,6 +231,7 @@ function scopedTables(scope) {
     ['fin_company_profiles', ['id'], org, ['created_at', 'updated_at']],
     ['fin_terms_acceptances', ['id'], org, ['accepted_at']],
     ['fin_approval_policies', ['organization_id'], org, ['updated_at']],
+    ['fin_policy_versions', null, org, []],
     ['fin_member_invitations', ['id'], org, ['created_at', 'accepted_at']],
     ['fin_events', ['id'], org, ['happened_at']],
     // Multi-entity: concessões antes das entidades; unidades antes das entidades

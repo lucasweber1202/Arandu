@@ -51,7 +51,7 @@ por instância; e dado de uma empresa real não pode conviver com dado de teste.
 
 Aplicar **todos** os arquivos de `docs/supabase-migrations.json` → `cleanInstall`,
 na ordem atual do manifesto. A baseline atual tem 40 arquivos; o último
-é `docs/supabase-financial-relationships-portfolio.sql` (`financial-relationships-portfolio-1`).
+é `docs/supabase-financial-policy-engine.sql` (`financial-policy-engine-1`).
 Para um banco existente, consulte o marcador e gere só o trecho pendente:
 
 ```bash

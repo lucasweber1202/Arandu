@@ -109,3 +109,7 @@ são tratados pelos controles gerais do Arandu, não por esta vertical.
 | 55 | **Provedor lendo avaliação/contatos/notas** | policies exigem membro da compradora | idem |
 | 56 | **Saldo/uso adulterado** depois de registrado | fotografias append-only; uso acima do limite recusado | idem |
 | 57 | **Soma entre moedas** induzindo leitura errada | visões por moeda; nenhum total agregado entre moedas | `test-finance-portfolio.mjs` |
+| 58 | **Policy alterada para mudar processo já em aprovação** | avaliação fotografada no pedido; versões imutáveis; decisão usa a fotografia | `financial-policy-engine.sql` |
+| 59 | **Solicitante aprovando/decidindo o próprio pedido** | etapas recusam o solicitante; `sod_decider` impede que ele registre a decisão | idem |
+| 60 | **Alçada contornada escolhendo aprovador local** | grupo obrigatório exige papel e escopo de grupo; recusa no banco | idem |
+| 61 | **Policy usada como recomendação de instituição** | condições/requisitos fechados; nada escolhe proposta ou provedor | `fin_valid_policy_rules`, `test-finance-policy.mjs` |

@@ -247,3 +247,14 @@ Dívida, facilities, limites e garantias (visão de procurement, **não ledger**
 | `fin_guarantees` | garantias comprometidas por entidade, ligadas a facility/contrato/provedor. |
 
 As visões (`lib/finance/portfolio.mjs`, `GET /api/finance/portfolio`) são sempre **por moeda**: limites aprovado/usado/disponível, saldo conhecido (ausência contada à parte), maturity wall (cronograma vigente ou saldo no vencimento final), mix de indexadores, participação factual por provedor, janelas de refinanciamento, garantias e dados vencidos para revisão. As métricas de relacionamento (`relationshipMetrics`) têm definição explícita e nulas quando não há base.
+
+## Policy & Approval Engine v2 (`docs/supabase-financial-policy-engine.sql`)
+
+| Objeto | Conteúdo |
+| --- | --- |
+| `fin_policy_versions` | policy **da empresa**, versionada por `policy_key`: nome, escopo (global do grupo ou local de uma entidade), regras (`when` → `require`), `active`/`retired`. Regras imutáveis por versão (`fin_policy_version_guard`); publicar de novo cria versão nova e aposenta a anterior. |
+| `fin_approval_requests.policy_evaluation` | fotografia da avaliação no momento do pedido (regras aplicadas, versões, requisitos combinados). A decisão usa essa fotografia; mudar a policy depois não altera pedido aberto nem decisão registrada. |
+| `fin_approval_requests.justification` | justificativa de exceção, exigida quando a policy pede (sempre, ou abaixo do mínimo de propostas). |
+| `fin_approval_steps.due_at` / `escalated_at` | prazo por etapa (`step_hours`) e marca de escalação feita pelo job `approval_deadlines`. |
+
+Condições disponíveis: produto, valor (≥ / <), prazo (> meses), garantia exigida pela proposta, provedor sem contrato anterior com o grupo, número de propostas. Requisitos: aprovação, mínimo de aprovadores (1–5), grupos obrigatórios por papel e escopo (ex.: tesouraria do grupo = admin/gestão com escopo de grupo), mínimo de propostas ou justificativa, justificativa sempre, prazo por etapa, escalação para um membro, segregação (quem pediu não registra a decisão). Global e local se somam e vale o mais restrito (`fin_evaluate_policies`). A flag v1 `required_for_decision` continua valendo como regra implícita.

@@ -114,6 +114,7 @@ declarada.
 | Dívida, facilities, limites e garantias (visão por moeda, não ledger) | `fin_facilities`, `fin_facility_balances`, `fin_facility_repayments`, `fin_guarantees`, `/finance/portfolio.html` |
 | Grupo multi-entity (entidades legais, unidades, escopo de acesso por entidade, consolidado) | `fin_legal_entities`, `fin_member_entity_grants`, `lib/finance/entities.mjs`, `/api/finance/entities*` |
 | Financial Passport (perfil reutilizável com proveniência, frescor, histórico e snapshot na RFQ) | `fin_company_profiles`, `fin_company_profile_history`, `fin_rfq_profile_snapshots`, `lib/finance/passport.mjs` |
+| Policy & Approval Engine v2 (alçadas versionadas, global/local, justificativa, prazos e escalação, segregação de funções) | `fin_policy_versions`, `lib/finance/policy.mjs`, Configurações → Políticas |
 | Provedores | `fin_providers` |
 | RFQ e máquina de estados | `fin_rfqs`, `lib/finance/workflow.mjs` |
 | Convite de provedor (uso único) | `fin_rfq_invites` |

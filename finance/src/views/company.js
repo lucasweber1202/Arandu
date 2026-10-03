@@ -11,6 +11,7 @@ import { buildPassport } from '../../../lib/finance/passport.mjs';
 import { CONTRACT_CATEGORIES } from '../../../lib/finance/contract-terms.mjs';
 import { importContractButton, openContract } from './contract-center.js';
 import { openProviderRelationship, scorecardSettings } from './provider-relationship.js';
+import { policySettings } from './policies.js';
 import { loadEntities, entitySettings, memberScopes, entityContextSelect, inContext, contractEntityControl, entityName } from './entities.js';
 
 // ------------------------------------------------------------ aprovações
@@ -461,6 +462,9 @@ export async function settings(ctx) {
     ctx.viewer?.role && ctx.viewer.role !== 'admin' ? el('p', { class: 'muted small', text: `Somente administradores alteram esta regra.${ctx.mode === 'demo' ? ' Troque para a persona Admin para experimentar.' : ''}` }) : el('p', { class: 'muted small', text: 'Mudanças ficam registradas na trilha da organização.' }));
   }).catch((error) => policyBox.replaceChildren(errorState({ error })));
   add('aprovacao', 'Política de aprovação', 'Quando ligada, nenhuma decisão é registrada sem um pedido aprovado para a mesma proposta e versão.', policyBox);
+  if (entities.available) {
+    add('politicas', 'Políticas de aprovação v2', 'Alçadas por valor, produto, prazo, garantia, provedor novo e número de propostas; globais ou por entidade, versionadas.', policySettings(ctx, entities));
+  }
 
   // Preferências de notificação.
   const prefBox = el('div', {}, loading());

@@ -168,3 +168,11 @@ exigem a organização provedora, e o job agendado roda sem `auth.uid()`.
 * Leitura: objetos de contrato pela visibilidade do contrato; facilities, garantias, relações e saldos pela entidade; contatos/issues/avaliações de nível de grupo legíveis por qualquer membro da compradora (`fin_group_or_entity_visible`, que exige organização BUYER). O provedor — inclusive o vinculado por `provider_organization_id` — nunca lê contatos, notas, issues, avaliações ou facilities do comprador.
 * Imutabilidade: versões de termos, aditivos, avaliações, saldos, cronogramas e histórico de facility recusam `UPDATE`/`DELETE` (só o reset do banco marcado `demo` apaga).
 * Testes: `tests/database/financial-contracts-v2.sql`, `tests/database/financial-relationships-portfolio.sql`, `scripts/test-finance-contracts.mjs`, `scripts/test-finance-portfolio.mjs`; canário com as tabelas novas.
+
+## Policy & Approval Engine v2
+
+* `fin_policy_versions` tem RLS forçada; lê quem é membro da compradora com visibilidade da entidade da policy; só admin publica/aposenta (`fin_publish_policy`, `fin_retire_policy`), e o banco revalida a forma das regras (`fin_valid_policy_rules`) — condições ou requisitos desconhecidos são recusados, inclusive qualquer coisa que pareça score ou recomendação.
+* A avaliação acontece só no banco (`fin_evaluate_policies`), com o JWT do usuário; a prévia (`fin_preview_policy`) exige leitura da RFQ.
+* O pedido (`fin_request_approval_v2`) recusa aprovadores insuficientes, grupo obrigatório ausente (papel **e** escopo de grupo), escalação para não-membro e justificativa faltante; a decisão (`fin_record_decision`) aplica a fotografia do pedido, inclusive a segregação de funções (`segregation of duties` → 403).
+* Prazos vencidos geram notificação e tarefa para o membro de escalação (ou admins do grupo) em `fin_run_approval_deadlines`, com execução idempotente registrada em `fin_job_runs`.
+* Testes: `tests/database/financial-policy-engine.sql` (negativos: não-admin publicando, regra inválida, grupo errado, SoD, mutação de versão), `scripts/test-finance-policy.mjs`, `tests/e2e/finance-policy.spec.js`.

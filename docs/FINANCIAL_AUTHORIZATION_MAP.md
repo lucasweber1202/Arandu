@@ -65,3 +65,13 @@ falham se isso mudar.
 O papel (`admin`, `finance_manager`, `analyst`, `viewer`) continua decidindo **o
 que** a pessoa faz; o escopo decide **onde**. As duas checagens são
 cumulativas e ficam no banco.
+
+## Policies de aprovação (v2)
+
+| Ação | Quem | Onde é checado |
+| --- | --- | --- |
+| Ler policies | membro da compradora com visibilidade da entidade da policy (global: todos) | RLS de `fin_policy_versions` |
+| Publicar / aposentar | admin | `fin_publish_policy`, `fin_retire_policy` |
+| Prévia para um processo | quem lê a RFQ | `fin_preview_policy` |
+| Pedir aprovação | finance_manager/admin com escrita na entidade; aprovadores conforme a policy | `fin_request_approval_v2` |
+| Registrar decisão | finance_manager/admin; nunca o solicitante quando a policy exige segregação | `fin_record_decision` |

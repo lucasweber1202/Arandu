@@ -62,7 +62,7 @@ locais; Firefox/WebKit no CI), canário `ops/sql/pilot-isolation-canary.sql` por
 | P0.2-06 | §11 | Moeda base do grupo e moeda local por entidade | P0 | P0.2-01 | implemented | `fin_organizations.base_currency`, `fin_legal_entities.currency`, `fin_set_base_currency` | sem câmbio por decisão (boundary); objetos financeiros ainda sem moeda própria (P0.4/P0.6) | — | P0.4/P0.6 | PR multi-entity |
 | P0.2-07 | §11, §34 | Escopo de entidade na trilha | P0 | P0.2-01 | implemented | `fin_events.legal_entity_id` (gatilho `fin_event_entity_stamp`), eventos `rfq_entity_changed`, `contract_entity_assigned`, `member_entity_scope_set`, `legal_entity_*` | Audit Center como superfície (§34) | — | P1 | PR multi-entity |
 | P0.2-08 | §11, §39 | UI: contexto/filtro de entidade, entidade na criação de RFQ (obrigatória para restrito), reatribuição auditada, atribuição única de contrato legado, consolidado | P0 | P0.2-01..04 | implemented | `finance/src/views/entities.js` + integrações em `rfqs.js`, `rfq.js`, `company.js`, `dashboard.js`; E2E com overflow check | demo sandbox legado não emula entidades (degrada sem a seção) | — | aposentar sandbox (P0.1-01) | PR multi-entity |
-| P0.2-09 | §11 | Aprovação cruzada / group treasury approval por policy | P0 | P0.2, P0.7 | missing | aprovador de qualquer entidade com escopo pode ser escolhido; não há regra de alçada | — | alçada sem regra | P0.7 | — |
+| P0.2-09 | §11 | Aprovação cruzada / group treasury approval por policy | P0 | P0.2, P0.7 | implemented | `require.approver_groups` com `scope: group` em `docs/supabase-financial-policy-engine.sql`; recusa de aprovador local em `tests/database/financial-policy-engine.sql` | — | — | — | PR P0.7 |
 
 ### P0.3 — Financial Passport → Financial Graph
 
@@ -113,8 +113,8 @@ Migration `docs/supabase-financial-relationships-portfolio.sql` (`financial-rela
 | ID | Guideline | Capability | Pri | Dependency | Status | Evidence | Gaps | Risk | Next action | PR/commit |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | P0.7-01 | §27 | Aprovação sequencial com snapshot, stale detection, segregação solicitante ≠ aprovador | P0 | — | implemented | `docs/supabase-financial-enterprise-approvals.sql`, `docs/supabase-financial-approval-handoff.sql`, `tests/database/financial-enterprise-approvals.sql`, `/finance/approvals.html` | — | — | — | — |
-| P0.7-02 | §27 | Policies por valor/categoria/entidade/N propostas/provedor novo/garantia/covenant/prazo, versionadas, global vs local, snapshot no processo | P0 | P0.2 | missing | só flag `required_for_decision` por organização | — | policy mutar processo antigo | Policy v2 | — |
-| P0.7-03 | §27 | Escalonamento, prazos de aprovação, justificativa de exceção, group treasury approval | P0 | P0.7-02 | missing | — | — | — | idem | — |
+| P0.7-02 | §27 | Policies por valor/categoria/entidade/N propostas/provedor novo/garantia/covenant/prazo, versionadas, global vs local, snapshot no processo | P0 | P0.2 | partial | `fin_policy_versions` (imutável por versão), `fin_evaluate_policies` (global+local, mais restrito vence), `policy_evaluation` fotografada no pedido; `tests/database/financial-policy-engine.sql`, `scripts/test-finance-policy.mjs`, `tests/e2e/finance-policy.spec.js` | condição por covenant depende de P1 Covenants; categoria = produto (crédito/adquirência) | — | condição `covenant_*` quando P1.8 existir | PR P0.7 |
+| P0.7-03 | §27 | Escalonamento, prazos de aprovação, justificativa de exceção, group treasury approval | P0 | P0.7-02 | implemented | `due_at` por etapa, `fin_run_approval_deadlines` no cron `/api/finance/jobs/run` (notificação + tarefa, idempotente), `justification` exigida, `sod_decider`; testes DB + `test-finance-jobs.mjs` + E2E | envio de e-mail continua desligado (só notificação in-app) | — | — | PR P0.7 |
 
 ### P0.8 — Public API & Webhooks Foundation
 
@@ -206,3 +206,7 @@ Migration `docs/supabase-financial-relationships-portfolio.sql` (`financial-rela
    projeto), `audit:ci` 0 vulnerabilidades. PR #101.
 4. P0.4 Contract Center v2, P0.5 Provider RM e P0.6 Debt/Facilities implementados em `agent/contract-center-v2`
    (PR empilhada sobre #101). Próximo: P0.7 Policy & Approval Engine v2 → P0.8 API/Webhooks → P0.9 IAM/SSO.
+5. P0.7 Policy & Approval Engine v2 em `agent/policy-engine-v2` (PR empilhada sobre #102): policies versionadas
+   global/local, avaliação fotografada no pedido, grupos obrigatórios, justificativa, prazos/escalação, SoD.
+   Corrigido também o truncamento em 64 KB de `migrations:bundle -- --stdout` (regressão coberta em
+   `scripts/test-pending-migration-bundle.mjs`). Próximo: P0.8 Public API & Webhooks.

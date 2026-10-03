@@ -29,7 +29,8 @@ begin
   -- partir do marcador que a cria.
   v_order := array_position(array['financial-surface-hardening-1','financial-approval-handoff-1','financial-passport-1',
                                    'financial-multi-entity-1','financial-contracts-v2-1',
-                                   'financial-relationships-portfolio-1'], v_schema);
+                                   'financial-relationships-portfolio-1',
+                                   'financial-policy-engine-1'], v_schema);
   if v_order is null then
     raise exception 'CANÁRIO: schema não suportado';
   end if;
@@ -38,6 +39,9 @@ begin
   v_contracts := v_order >= 5;
   if (to_regclass('public.fin_facilities') is not null) <> (v_order >= 6) then
     raise exception 'CANÁRIO: schema_version e tabelas de financial-relationships-portfolio-1 divergentes';
+  end if;
+  if (to_regclass('public.fin_policy_versions') is not null) <> (v_order >= 7) then
+    raise exception 'CANÁRIO: schema_version e tabelas de financial-policy-engine-1 divergentes';
   end if;
   if (to_regclass('public.fin_contract_versions') is not null) <> v_contracts then
     raise exception 'CANÁRIO: schema_version e tabelas do Contract Center divergentes';
@@ -85,6 +89,7 @@ begin
       ('fin_provider_relationships', 'not (organization_id = any($1))'),
       ('fin_provider_reviews', 'not (organization_id = any($1))'),
       ('fin_provider_contacts', 'not (organization_id = any($1))'),
+      ('fin_policy_versions', 'not (organization_id = any($1))'),
       ('fin_private_documents',  'not (organization_id = any($1) or buyer_organization_id = any($1) or (visibility = ''shared'' and rfq_id = any($2)))')
     ) t(tbl, rule) loop
       -- Before Passport, these two tables must be absent (checked above).
@@ -92,6 +97,7 @@ begin
       if not v_passport and v_tbl in ('fin_company_profile_history','fin_rfq_profile_snapshots') then continue; end if;
       if not v_multi and v_tbl in ('fin_legal_entities','fin_member_entity_grants') then continue; end if;
       if v_order < 6 and v_tbl in ('fin_facilities','fin_facility_balances','fin_guarantees','fin_provider_issues','fin_provider_relationships','fin_provider_reviews','fin_provider_contacts') then continue; end if;
+      if v_order < 7 and v_tbl in ('fin_policy_versions') then continue; end if;
       if not v_contracts and v_tbl in ('fin_contract_versions','fin_contract_amendments','fin_contract_milestones') then continue; end if;
       execute format('select count(*) from public.%I where %s', v_tbl, v_rule) into v_count using p.orgs, p.invited_rfqs, p.user_id;
       v_checks := v_checks + 1;
