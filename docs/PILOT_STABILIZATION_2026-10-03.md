@@ -108,3 +108,13 @@ Only contract action layout and regression coverage change. Long labels can make
 buttons taller on small screens. Revert the stabilization PR to roll back; no
 database migration, data change or environment mutation is involved. Do not merge
 or mark Pilot healthy without the relevant CI and deployment evidence.
+
+## Continuação após merge #104
+
+Pilot confirmado em `69e14723e82f4ae0859ca0c7cad6d9c4f76d54d1`; #104 mergeado pelo owner. CI run 37151733366: database, deploy-boundaries, validate e presentation success. A execução local anterior (300 pass / 44 skips / 1 falha de tooltip) continua registrada; três execuções isoladas passaram, sem alteração de limites.
+
+**BLOCKER:** deploy hospedado. **CAUSE:** três status Vercel failure no merge; logs inacessíveis, 403 para equipe lucas-projects467. **WHO MUST ACT:** owner Vercel da equipe. **EXACT ACTION:** reconectar integração na equipe team_BBpDcLVx5izJjXz5qBEq2cRy, inspecionar primeiro arandu-pilot deploy 59Gk5trtp2bCvSP4V4by6FGwaQDE, depois arandu EUzkaMmCvNr9up9MNA4KZpDD6gyi e arandu-demo APMQ7mZhtvBLYv6cuDRW2J8s8wyg; corrigir somente causa do log. **WHAT IS READY:** fix de contratos e quatro gates CI verdes. **HOW TO VERIFY:** deploy READY do SHA vivo, health autenticado, doctor e jornada Pilot.
+
+**BLOCKER:** upgrade do banco Pilot. **CAUSE:** leitura anterior confirmou financial-surface-hardening-1; executor disponível não consegue backup/restore verificado. **WHO MUST ACT:** owner do Supabase Pilot. **EXACT ACTION:** confirmar offgpyysgdhfemjlchod, executar backup e restore drill em destino descartável, gerar bundle canônico após schema observado, aplicar e validar conforme runbook. **WHAT IS READY:** migrations ordenadas, bundle e preflight existentes; esta rodada acrescenta migration entity-aware, sem aplicar no banco hospedado. **HOW TO VERIFY:** marcador final do manifesto, canário/RLS/doctor e jornada autenticada. Não reutilizar hash do bundle anterior após nova migration.
+
+Estes blockers não impedem desenvolvimento/teste de código. Não atestam deploy nem operação hospedada.

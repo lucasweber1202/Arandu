@@ -1044,6 +1044,8 @@ tr.highlighted>td,.proposal-card.highlighted,.document-row.highlighted,.comment.
 .passport-attention li{margin:2px 0}
 .passport-fields,.passport-snapshot{list-style:none;margin:0;padding:0}
 .passport-field{display:flex;flex-wrap:wrap;justify-content:space-between;gap:var(--s2) var(--s4);padding:var(--s3) 0;border-top:1px solid var(--border)}
+.passport .field{grid-template-columns:minmax(0,1fr)}
+.passport select{appearance:none;min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;padding-right:30px}
 .passport-field:first-child{border-top:0}
 .passport-field-main{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 260px}
 .passport-field-side{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:var(--s2);flex:0 1 auto;max-width:100%}

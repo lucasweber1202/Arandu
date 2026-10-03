@@ -185,6 +185,7 @@ function passportSnapshotCard(ctx, rfq) {
       el('span', { class: 'passport-label', text: demandSpec?.label || fieldLabel(row.field_key) }),
       el('span', { class: 'passport-value', text: shown ?? row.field_value }),
       el('span', { class: 'passport-meta', text: [
+        row.original_scope === 'entity' ? 'Origem: entidade legal' : 'Origem: grupo',
         SOURCE_LABELS[row.source] || row.source,
         row.profile_updated_at ? `atualizado em ${formatDate(row.profile_updated_at)}` : null,
         row.freshness === 'stale' ? 'desatualizado na criação' : row.freshness === 'review_due' ? 'revisão próxima na criação' : null,

@@ -69,7 +69,7 @@ locais; Firefox/WebKit no CI), canário `ops/sql/pilot-isolation-canary.sql` por
 | ID | Guideline | Capability | Pri | Dependency | Status | Evidence | Gaps | Risk | Next action | PR/commit |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | P0.3-01 | §10.2 | Proveniência por campo (source, owner, verified_at, review_after, valid_until), histórico append-only, snapshot imutável na RFQ | P0 | — | implemented | `docs/supabase-financial-passport.sql`, `lib/finance/passport.mjs`, `tests/database/financial-passport.sql`, `scripts/test-finance-passport.mjs`, `tests/e2e/finance-passport.spec.js`, `/finance/passport.html` | — | — | manter | #95 |
-| P0.3-02 | §10.1 | Passport por entidade legal | P0 | P0.2 | missing | Passport é por organização | — | dado de uma entidade usado em outra | após P0.2 | — |
+| P0.3-02 | §10.1 | Passport por entidade legal | P0 | P0.2 | partial | migration aditiva, RLS, history, snapshot, API, resolver, UI e prefill; docs/FINANCIAL_PASSPORT_ENTITIES.md | aguarda gate PostgreSQL/CI e rollout hospedado | Vercel 403; banco antigo sem backup/restore executor | herança financeira indevida evitada por whitelist; rollback recusa dados de entidade | domínio/API aprovados; E2E e CI no PR | feature/passport-legal-entity |
 | P0.3-03 | §10.1, Add. B | Graph relacional: entidades × provedores × contratos × facilities × garantias × obrigações × fees, consultável | P0 | P0.2, P0.4–P0.6 | missing | — | — | Graph virar data lake | vistas relacionais (sem graph DB) após P0.4–P0.6 | — |
 
 ### P0.4 — Contract & Renewal Center v2
@@ -217,3 +217,7 @@ declarada saudável. P0.3-02/P0.3-03 continuam `missing`; P0.7 não foi antecipa
    projeto), `audit:ci` 0 vulnerabilidades. PR #101.
 4. P0.4 Contract Center v2, P0.5 Provider RM e P0.6 Debt/Facilities implementados em `agent/contract-center-v2`
    (PR empilhada sobre #101). Próximo: P0.7 Policy & Approval Engine v2 → P0.8 API/Webhooks → P0.9 IAM/SSO.
+
+### Continuação P0.3 após #104
+
+Baseline pilot 69e1472, #104 mergeado; quatro jobs CI success (run 37151733366). Blockers hospedados permanecem no documento de estabilização, com owner/ação/verificação. Passport entity-aware está em implementação/teste, sem claim de operação hospedada. Próximo passo independente: Financial Graph relacional; Policy v2 depende desta base.

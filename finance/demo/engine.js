@@ -19,7 +19,7 @@ import { PRODUCTS, normalizeDemand, normalizeProposal, normalize, demandFields, 
 import { canTransition, nextStates } from '../../lib/finance/workflow.mjs';
 import { comparableFields, NEUTRAL_RANKING_NOTICE } from '../../lib/finance/comparison.mjs';
 import { createSeed, DEMO_SEED_ID, PERSONAS } from './seed.js';
-import { buildPassport, validatePassportValue, WRITABLE_SOURCES } from '../../lib/finance/passport.mjs';
+import { buildPassport, resolvePassportRows, validatePassportValue, WRITABLE_SOURCES } from '../../lib/finance/passport.mjs';
 
 export const DEMO_STORAGE_KEY = 'arandu_demo_state_v1';
 export const DEMO_SCHEMA = 1;
@@ -862,9 +862,10 @@ export function createDemoEngine({ storage, now = () => new Date(), latency = 0 
     // Financial Passport: mesmas regras de fin_passport_set_field / confirm.
     'GET profile': (state, { userId, query }) => {
       const { organization } = memberOrganization(state, userId, query.get('organization_id'), ['BUYER']);
-      const rows = clone(state.data.profile.filter((row) => row.organization_id === organization.id)).sort((a, b) => a.field_key.localeCompare(b.field_key));
+      const legalEntityId = query.get('legal_entity_id') || null;
+      const rows = resolvePassportRows(clone(state.data.profile.filter((row) => row.organization_id === organization.id)), legalEntityId);
       const names = new Map(state.data.users.map((user) => [user.id, user.name]));
-      return { ok: true, rows, documents: [], passport: buildPassport({ organization, rows, documents: [], members: names }) };
+      return { ok: true, rows, documents: [], passport: buildPassport({ organization, rows, legalEntityId, documents: [], members: names }) };
     },
     'POST profile': (state, { userId, body }) => {
       const { organization } = memberOrganization(state, userId, body.organization_id, ['BUYER']);
@@ -875,8 +876,8 @@ export function createDemoEngine({ storage, now = () => new Date(), latency = 0 
       if (!checked.ok) fail(400, checked.error, 'invalid_field_value');
       const source = clean(body.source) || 'declarado_pela_empresa';
       if (!WRITABLE_SOURCES.includes(source)) fail(400, 'Origem do dado inválida.', 'invalid_source');
-      let row = state.data.profile.find((item) => item.organization_id === organization.id && item.field_key === key);
-      if (!row) { row = { id: uuid(), organization_id: organization.id, field_key: key, valid_until: null }; state.data.profile.push(row); }
+      let row = state.data.profile.find((item) => item.organization_id === organization.id && (item.legal_entity_id || null) === (body.legal_entity_id || null) && item.field_key === key);
+      if (!row) { row = { id: uuid(), organization_id: organization.id, legal_entity_id: body.legal_entity_id || null, field_key: key, valid_until: null }; state.data.profile.push(row); }
       const unchanged = row.field_value === checked.value && row.source === source;
       Object.assign(row, { field_value: checked.value, source, status: 'informado', updated_at: nowIso(), updated_by: userId,
         valid_until: clean(body.valid_until) || null, review_after_days: Number(body.review_after_days) || row.review_after_days || null,
@@ -886,7 +887,7 @@ export function createDemoEngine({ storage, now = () => new Date(), latency = 0 
     'POST profile/confirm': (state, { userId, body }) => {
       const { organization } = memberOrganization(state, userId, body.organization_id, ['BUYER']);
       requireRole(state, userId, organization.id, ['admin', 'finance_manager', 'analyst']);
-      const row = state.data.profile.find((item) => item.organization_id === organization.id && item.field_key === clean(body.field_key));
+      const row = state.data.profile.find((item) => item.organization_id === organization.id && (item.legal_entity_id || null) === (body.legal_entity_id || null) && item.field_key === clean(body.field_key));
       if (!row) fail(400, 'Campo do perfil inválido ou inexistente.', 'invalid_field_key');
       Object.assign(row, { verified_at: nowIso(), verified_by: userId, status: 'revisado' });
       return { ok: true, verified_at: row.verified_at };
