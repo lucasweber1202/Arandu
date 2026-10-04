@@ -30,7 +30,7 @@ Em um único ponto de configuração: o servidor lê `ARANDU_ENV` e devolve
 selo "Ambiente de demonstração" (`finance/src/shell.js`). Nenhuma tela,
 regra de negócio, permissão ou rota muda. Fora isso, `ARANDU_ENV=demo` é
 tratado como piloto e produção: superfície legada de arte fechada
-(`lib/legacy-surface.mjs`), sandbox proibido (`lib/demo-mode.mjs`), topologia
+(`lib/deployment-surface.mjs`), sandbox proibido (`lib/demo-mode.mjs`), topologia
 verificada no build (`scripts/check-finance-env.mjs`, `scripts/vercel-build.mjs`)
 e diagnóstico pelo `finance:pilot:doctor`.
 

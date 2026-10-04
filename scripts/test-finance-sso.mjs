@@ -211,8 +211,6 @@ process.env.SUPABASE_URL = 'https://arandu-test.supabase.co';
 process.env.SUPABASE_ANON_KEY = 'anon-test-key';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-test-key';
 delete process.env.VERCEL_ENV; delete process.env.ARANDU_DISTRIBUTED_RATE_LIMIT;
-const { configureTestCommercialPolicy } = await import('./test-helpers/commercial-policy-env.mjs');
-configureTestCommercialPolicy('policy-sso-test-v1');
 const { default: handler } = await import(`../api/[...path].js?sso=${Date.now()}`);
 async function login(rpcAnswer) {
   const seen = [];

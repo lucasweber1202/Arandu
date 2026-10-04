@@ -162,9 +162,10 @@ próprio da produção estarem configurados. O deploy atual continua no ar.
   sandbox legado falha se houver qualquer credencial real no ambiente. A demo
   canônica (`ARANDU_ENV=demo`) exige as credenciais do Supabase DEMO próprio e
   não publica o sandbox.
-- Com `ARANDU_ENV` `demo`, `pilot` ou `production`, em qualquer deployment de
-  produção da Vercel e no sandbox, as rotas legadas de arte respondem 404
-  (`lib/legacy-surface.mjs`). Só no sandbox legado toda a API de domínio responde
+- A API só tem rotas financeiras (finance/*, auth/*, v1/*, crons, security.txt);
+  o resto responde 404 `route_not_found`. Com `ARANDU_ENV` `demo`, `pilot` ou
+  `production` e em qualquer deployment de produção da Vercel, a mesma lista é
+  conferida antes do roteamento (`lib/deployment-surface.mjs`). Só no sandbox legado toda a API de domínio responde
   404; a demo canônica usa autenticação e a API financeira reais.
 - `finance:pilot:doctor` aceita `ARANDU_ENV=demo`, `pilot` e `production`. Ele marca
   UNSAFE quando a produção aponta para o banco do piloto.

@@ -1,5 +1,7 @@
-// Com ARANDU_ENV=pilot, toda rota legada de arte responde 404 antes de tocar
-// no banco; o domínio financeiro, auth/*, o cron e o health seguem vivos.
+// Superfície da API por deployment: rotas da antiga vertical de arte (sem
+// handler desde a aposentadoria) e qualquer rota fora da lista respondem 404
+// route_not_found sem tocar a rede; o domínio financeiro, auth/*, v1/*, os crons
+// e o health seguem vivos. No projeto demonstrativo, toda a API fecha.
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 
@@ -59,35 +61,36 @@ const legacy = [
 ];
 for (const [file, method, url, body] of legacy) {
   const result = await call(file, method, url, body);
-  assert.deepEqual(result, { status: 404, code: 'legacy_surface_closed' }, `${method} ${url} continua aberta no piloto`);
+  assert.deepEqual(result, { status: 404, code: 'route_not_found' }, `${method} ${url} continua aberta no piloto`);
 }
 assert.equal(calls.length, 0, `rota legada chegou à rede: ${calls.join(', ')}`);
 
 // O que o piloto usa continua roteado (sem sessão: 401, não 404).
 for (const [method, url] of [['GET', '/api/finance/rfqs'], ['GET', '/api/jobs/renewals'], ['GET', '/api/jobs/webhooks'], ['GET', '/api/jobs/governance'], ['GET', '/api/auth/session']]) {
   const result = await call('[...path]', method, url);
-  assert.notEqual(result.code, 'legacy_surface_closed', `${url} fechada por engano`);
+  assert.notEqual(result.code, 'route_not_found', `${url} fechada por engano`);
   assert.notEqual(result.status, 404, `${url} sem rota no piloto`);
 }
 assert.equal((await call('health', 'GET', '/api/health')).status, 200);
 
 // A produção oficial é o mesmo produto: também fechada.
 process.env.ARANDU_ENV = 'production';
-assert.deepEqual(await call('[...path]', 'POST', '/api/forms', { name: 'x' }), { status: 404, code: 'legacy_surface_closed' });
+assert.deepEqual(await call('[...path]', 'POST', '/api/forms', { name: 'x' }), { status: 404, code: 'route_not_found' });
 // A demonstração canônica (ARANDU_ENV=demo, banco DEMO) é o mesmo produto: fechada,
 // com o domínio financeiro aberto.
 process.env.ARANDU_ENV = 'demo';
-assert.deepEqual(await call('[...path]', 'POST', '/api/forms', { name: 'x' }), { status: 404, code: 'legacy_surface_closed' }, 'demo reabriu /api/forms');
-assert.notEqual((await call('[...path]', 'GET', '/api/finance/rfqs')).code, 'legacy_surface_closed', 'finance/* fechado na demo com banco');
+assert.deepEqual(await call('[...path]', 'POST', '/api/forms', { name: 'x' }), { status: 404, code: 'route_not_found' }, 'demo reabriu /api/forms');
+assert.notEqual((await call('[...path]', 'GET', '/api/finance/rfqs')).code, 'route_not_found', 'finance/* fechado na demo com banco');
 // Deployment de produção da Vercel sem ARANDU_ENV (variável esquecida): fechado.
 delete process.env.ARANDU_ENV;
 process.env.VERCEL_ENV = 'production';
-assert.deepEqual(await call('[...path]', 'POST', '/api/forms', { name: 'x' }), { status: 404, code: 'legacy_surface_closed' }, 'produção sem ARANDU_ENV reabriu /api/forms');
-assert.deepEqual(await call('[...path]', 'GET', '/api/pilot/metrics'), { status: 404, code: 'legacy_surface_closed' });
-assert.notEqual((await call('[...path]', 'GET', '/api/finance/me')).code, 'legacy_surface_closed', 'finance/* fechado na produção sem ARANDU_ENV');
+assert.deepEqual(await call('[...path]', 'POST', '/api/forms', { name: 'x' }), { status: 404, code: 'route_not_found' }, 'produção sem ARANDU_ENV reabriu /api/forms');
+assert.deepEqual(await call('[...path]', 'GET', '/api/pilot/metrics'), { status: 404, code: 'route_not_found' });
+assert.notEqual((await call('[...path]', 'GET', '/api/finance/me')).code, 'route_not_found', 'finance/* fechado na produção sem ARANDU_ENV');
 delete process.env.VERCEL_ENV;
-// Sem ARANDU_ENV (desenvolvimento/preview legado) nada muda.
-assert.notEqual((await call('[...path]', 'GET', '/api/catalog')).code, 'legacy_surface_closed');
+// Sem ARANDU_ENV (desenvolvimento/preview) o roteador também não tem handler de arte.
+assert.deepEqual(await call('[...path]', 'GET', '/api/catalog'), { status: 404, code: 'route_not_found' });
+assert.equal(calls.length, 0, `rota aposentada chegou à rede: ${calls.join(', ')}`);
 
 // Projeto demonstrativo: sem banco, toda a API fecha — inclusive finance/*,
 // auth/*, os crons e o despacho de e-mail. Só health e security.txt respondem.
@@ -103,11 +106,11 @@ const demoClosed = [
 ];
 for (const [file, method, url, body] of demoClosed) {
   const result = await call(file, method, url, body);
-  assert.deepEqual(result, { status: 404, code: 'legacy_surface_closed' }, `${method} ${url} aberta no projeto demonstrativo`);
+  assert.deepEqual(result, { status: 404, code: 'route_not_found' }, `${method} ${url} aberta no projeto demonstrativo`);
 }
 assert.equal((await call('health', 'GET', '/api/health')).status, 200);
-assert.notEqual((await call('[...path]', 'GET', '/.well-known/security.txt')).code, 'legacy_surface_closed', 'security.txt fechado na demo');
+assert.notEqual((await call('[...path]', 'GET', '/.well-known/security.txt')).code, 'route_not_found', 'security.txt fechado na demo');
 assert.equal(calls.length, 0, `demo chegou à rede: ${calls.join(', ')}`);
 
 process.env = previous;
-console.log(`Legacy art surface: ${legacy.length} rotas de arte fechadas com 404 no piloto e na produção, sem tocar a rede; finance/*, auth/*, cron e health abertos. Demo: ${demoClosed.length} rotas fechadas, só health e security.txt.`);
+console.log(`Deployment surface: ${legacy.length} rotas da antiga vertical de arte em 404 no piloto, na produção e sem ARANDU_ENV, sem tocar a rede; finance/*, auth/*, cron e health abertos. Demo: ${demoClosed.length} rotas fechadas, só health e security.txt.`);
