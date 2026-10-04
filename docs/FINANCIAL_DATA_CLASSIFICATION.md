@@ -1,5 +1,11 @@
 # Classificação de dados — Financial Procurement
 
+> **Fonte canônica a partir de P0.11:** `lib/finance/data-governance.mjs` (registro por
+> tabela, verificado contra as migrations) e `docs/FINANCIAL_DATA_GOVERNANCE.md`
+> (taxonomia `PUBLIC`…`AUDIT_EVIDENCE`, retenção, exclusão, export, legal hold,
+> offboarding). A tabela abaixo é o inventário narrativo original; em divergência,
+> vale o registro.
+
 Princípio: guardar o mínimo que o procurement exige. Um dado que não muda uma
 decisão de cotação não deve existir no schema.
 
@@ -28,7 +34,7 @@ decisão de cotação não deve existir no schema.
 | Entidades do grupo (razão social, CNPJ, país, moeda) | `fin_legal_entities` | separar processos, contratos e acesso por entidade | baixa (dado cadastral público) | membros que alcançam a entidade | enquanto o grupo existir; arquivar preserva histórico |
 | Escopo de acesso por entidade | `fin_members.entity_scope`, `fin_member_entity_grants` | autorização | média | admin do grupo; cada membro vê o próprio | enquanto o vínculo existir (cai com o membro) |
 
-| Leases e execuções de jobs | `fin_job_leases`, `fin_job_runs` | fencing, correlação e diagnóstico de plataforma | **alta** (token de fencing exclusivo do servidor; console recebe apenas estados/contagens) | service role; console finance_ops com MFA recebe somente contagens/estados | histórico preservado; prazos de retenção pendentes de governance |
+| Leases e execuções de jobs | `fin_job_leases`, `fin_job_runs` | fencing, correlação e diagnóstico de plataforma | **alta** (token de fencing exclusivo do servidor; console recebe apenas estados/contagens) | service role; console finance_ops com MFA recebe somente contagens/estados | histórico preservado; retenção por política de plataforma (`PLATFORM_TELEMETRY`), ver `FINANCIAL_DATA_GOVERNANCE.md` |
 
 ## O que deliberadamente NÃO é coletado
 

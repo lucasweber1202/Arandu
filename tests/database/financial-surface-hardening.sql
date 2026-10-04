@@ -8,7 +8,7 @@
 do $$
 declare v_extra text; v_missing text;
 begin
-  with expected(sig) as (values
+  with expected_base(sig) as (values
     ('fin_accept_member_invitation(text)'),('fin_accept_provider_invite(text,uuid)'),('fin_accept_terms(uuid,text,text)'),
     ('fin_act_on_approval(uuid,text,text)'),('fin_add_comment(text,uuid,text,text,uuid[],uuid)'),('fin_can_read_document(uuid)'),
     ('fin_cancel_approval(uuid)'),('fin_clear_rfq_editor(uuid,integer)'),('fin_comment_authors(text,uuid)'),
@@ -66,6 +66,21 @@ begin
     ('fin_create_contract_milestone(uuid,text,text,date,integer,text,date,uuid)'),
     ('fin_settle_contract_milestone(uuid,text)'),('fin_process_contract_milestones(uuid,date)'),
     ('fin_add_provider_contact(uuid,uuid,text,text,text,text,uuid,boolean)'),('fin_archive_provider_contact(uuid)'),('fin_set_provider_relationship(uuid,uuid,uuid,text,uuid,text[],date,text)'),('fin_open_provider_issue(uuid,uuid,text,text,text,text,uuid,uuid,date,uuid)'),('fin_update_provider_issue(uuid,text,text)'),('fin_create_scorecard_template(uuid,text,text,jsonb)'),('fin_record_provider_review(uuid,uuid,uuid,date,date,jsonb,uuid,text)'),('fin_save_facility(uuid,uuid,uuid,uuid,text,text,text,numeric,numeric,text,numeric,numeric,text,date,date,text,uuid,text,text,integer,text,uuid)'),('fin_confirm_facility(uuid)'),('fin_record_facility_balance(uuid,date,numeric,numeric,text,text)'),('fin_record_facility_schedule(uuid,jsonb,integer)'),('fin_save_guarantee(uuid,uuid,uuid,text,text,text,numeric,uuid,uuid,uuid,date,date,text,text)'),('fin_facility_visible(uuid)'),('fin_group_or_entity_visible(uuid,uuid)')
+  ), expected as (
+    select sig from expected_base
+    union all
+    -- Data Governance (P0.11): administração humana (admin da compradora) e,
+    -- para política de plataforma, prévia e fechamento, operador finance_ops
+    -- com MFA verificado dentro da função. Build, revogação e avanço do
+    -- offboarding são exclusivos do service role.
+    select sig from (values ('fin_retention_class_catalog()'),('fin_governance_summary(uuid)'),
+      ('fin_governance_save_retention_policy(uuid,text,integer,text,text)'),('fin_governance_activate_retention_policy(uuid)'),
+      ('fin_governance_retire_retention_policy(uuid)'),('fin_governance_create_legal_hold(uuid,text,uuid,text,text,text)'),
+      ('fin_governance_release_legal_hold(uuid,text)'),('fin_governance_retention_run(boolean,integer,uuid,text)'),
+      ('fin_governance_request_export(uuid,text)'),('fin_governance_export_manifest(uuid)'),('fin_governance_export_part(uuid,text)'),('fin_governance_export_parts(uuid)'),
+      ('fin_governance_request_offboarding(uuid,text)'),('fin_governance_offboarding_action(uuid,text,jsonb)'),
+      ('fin_governance_deletion_preview(uuid)'),('fin_governance_offboarding_close(uuid,text)'),('fin_governance_offboarding_operator_cancel(uuid)')
+    ) g(sig) where to_regclass('public.fin_legal_holds') is not null
   ), actual as (
     select p.oid::regprocedure::text sig from pg_proc p
     where p.pronamespace = 'public'::regnamespace and has_function_privilege('authenticated', p.oid, 'EXECUTE')
@@ -107,7 +122,7 @@ begin
      and has_table_privilege('anon', c.oid, p.privilege_type);
   if v_extra is not null then raise exception 'anon com escrita em tabela financeira: %', v_extra; end if;
 
-  if (select value from public.fin_settings where key = 'schema_version') not in ('financial-surface-hardening-1', 'financial-approval-handoff-1', 'financial-passport-1', 'financial-multi-entity-1', 'financial-contracts-v2-1', 'financial-relationships-portfolio-1', 'financial-passport-entities-1', 'financial-graph-1', 'financial-policy-engine-1', 'financial-public-api-1','financial-sso-1','financial-operational-resilience-1') then
+  if (select value from public.fin_settings where key = 'schema_version') not in ('financial-surface-hardening-1', 'financial-approval-handoff-1', 'financial-passport-1', 'financial-multi-entity-1', 'financial-contracts-v2-1', 'financial-relationships-portfolio-1', 'financial-passport-entities-1', 'financial-graph-1', 'financial-policy-engine-1', 'financial-public-api-1','financial-sso-1','financial-operational-resilience-1','financial-data-governance-1') then
     raise exception 'schema_version não avançou';
   end if;
 end $$;

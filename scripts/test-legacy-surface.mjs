@@ -60,7 +60,7 @@ for (const [file, method, url, body] of legacy) {
 assert.equal(calls.length, 0, `rota legada chegou à rede: ${calls.join(', ')}`);
 
 // O que o piloto usa continua roteado (sem sessão: 401, não 404).
-for (const [method, url] of [['GET', '/api/finance/rfqs'], ['GET', '/api/jobs/renewals'], ['GET', '/api/auth/session']]) {
+for (const [method, url] of [['GET', '/api/finance/rfqs'], ['GET', '/api/jobs/renewals'], ['GET', '/api/jobs/webhooks'], ['GET', '/api/jobs/governance'], ['GET', '/api/auth/session']]) {
   const result = await call('[...path]', method, url);
   assert.notEqual(result.code, 'legacy_surface_closed', `${url} fechada por engano`);
   assert.notEqual(result.status, 404, `${url} sem rota no piloto`);

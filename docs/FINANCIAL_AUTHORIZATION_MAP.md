@@ -83,3 +83,21 @@ validados na conclusão. Cron exige segredo de pelo menos 32 bytes e comparaçã
 em tempo constante, antes de qualquer acesso administrativo. Console mantém
 finance_ops + AAL2 + operador registrado; overview exclui fencing tokens, URLs,
 segredos e payloads. SSO indisponível continua fechado; nenhum fallback novo.
+
+## Data Governance (P0.11)
+
+| Ação | Quem | Onde a regra vive |
+| --- | --- | --- |
+| Ver resumo, políticas, holds, exports, offboarding | `admin` da organização compradora | RLS `fin_*_read` (`fin_has_role(org, admin)`) + `fin_governance_require_admin` |
+| Criar/ativar/aposentar política de retenção da organização | `admin` da compradora | `fin_governance_*_retention_policy` |
+| Política de plataforma (`PLATFORM_*`) | operador `finance_ops` com AAL2 | `fin_require_operator()` dentro da RPC |
+| Prévia de retenção | `admin` (só a própria organização) | `fin_governance_retention_run(dry_run=true)` |
+| Executar retenção, montar export, avançar offboarding | service role (job com segredo) | RPC recusa `auth.uid()` não nulo |
+| Criar/liberar legal hold | `admin` da compradora | `fin_governance_*_legal_hold` |
+| Pedir/baixar export | `admin` atual, export pronto e não vencido | `fin_governance_request_export`, `fin_governance_export_*`; `fin_data_export_parts` sem grant de cliente |
+| Pedir offboarding, exportar, revogar, cancelar | `admin` da compradora | `fin_governance_offboarding_action` |
+| Fechar ou cancelar offboarding pós-revogação, prévia de exclusão | operador `finance_ops` com AAL2 | `fin_governance_offboarding_close/operator_cancel`, `fin_governance_deletion_preview` |
+
+`finance_manager`, `analyst`, `viewer`, escopo restrito a entidade, provedor,
+outro tenant, conta sem vínculo e membro revogado não alcançam nenhuma dessas
+ações nem leituras (testado em `tests/database/financial-data-governance.sql`).

@@ -52,6 +52,7 @@ const prefixes = [...router.matchAll(/route\.startsWith\('([a-z-]+\/)'\)/g)].map
 const nested = ['/api/finance/rfqs', '/api/finance/documents/download', '/api/finance/ops/overview', '/api/auth/login'];
 const multiSegment = [...new Set([...exact, ...prefixes, ...nested])];
 assert.ok(exact.includes('/api/jobs/renewals'), 'Roteador deixou de declarar /api/jobs/renewals.');
+assert.ok(exact.includes('/api/jobs/governance'), 'Roteador deixou de declarar /api/jobs/governance.');
 assert.ok(prefixes.some((path) => path.startsWith('/api/finance/')), 'Roteador deixou de declarar /api/finance/*.');
 for (const path of multiSegment) assert.match(path, matcher, `${path} não chega a api/[...path].js na Vercel.`);
 

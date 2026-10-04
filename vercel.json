@@ -20,6 +20,10 @@
     {
       "path": "/api/jobs/webhooks",
       "schedule": "45 9 * * *"
+    },
+    {
+      "path": "/api/jobs/governance",
+      "schedule": "30 4 * * *"
     }
   ],
   "redirects": [

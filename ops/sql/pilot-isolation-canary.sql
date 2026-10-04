@@ -30,11 +30,12 @@ begin
   v_order := array_position(array['financial-surface-hardening-1','financial-approval-handoff-1','financial-passport-1',
                                    'financial-multi-entity-1','financial-contracts-v2-1',
                                    'financial-relationships-portfolio-1','financial-passport-entities-1','financial-graph-1','financial-policy-engine-1','financial-public-api-1',
-                                   'financial-sso-1','financial-operational-resilience-1'], v_schema);
+                                   'financial-sso-1','financial-operational-resilience-1','financial-data-governance-1'], v_schema);
   if v_order is null then
     raise exception 'CANÁRIO: schema não suportado';
   end if;
   if (to_regclass('public.fin_job_leases') is not null) <> (v_order >= 12) then raise exception 'CANÁRIO: schema e job leases divergentes'; end if;
+  if (to_regclass('public.fin_legal_holds') is not null) <> (v_order >= 13) then raise exception 'CANÁRIO: schema_version e tabelas de Data Governance divergentes'; end if;
   v_passport := v_order >= 3;
   v_multi := v_order >= 4;
   v_contracts := v_order >= 5;
@@ -110,6 +111,11 @@ begin
       ('fin_sso_connections', 'not (organization_id = any($1))'),
       ('fin_sso_domains', 'not (organization_id = any($1))'),
       ('fin_sso_events', 'not (organization_id = any($1))'),
+      ('fin_retention_policies', 'not (organization_id = any($1))'),
+      ('fin_legal_holds', 'not (organization_id = any($1))'),
+      ('fin_data_exports', 'not (organization_id = any($1))'),
+      ('fin_offboarding_requests', 'not (organization_id = any($1))'),
+      ('fin_governance_log', 'not (organization_id = any($1))'),
       ('fin_private_documents',  'not (organization_id = any($1) or buyer_organization_id = any($1) or (visibility = ''shared'' and rfq_id = any($2)))')
     ) t(tbl, rule) loop
       -- Before Passport, these two tables must be absent (checked above).
@@ -121,6 +127,7 @@ begin
       if v_order < 9 and v_tbl in ('fin_policies','fin_policy_versions','fin_policy_flags','fin_approval_stages','fin_policy_exceptions','fin_approval_delegations') then continue; end if;
       if v_order < 10 and v_tbl in ('fin_service_accounts','fin_service_account_entities','fin_api_credentials','fin_webhook_endpoints','fin_webhook_deliveries') then continue; end if;
       if v_order < 11 and v_tbl in ('fin_sso_connections','fin_sso_domains','fin_sso_events') then continue; end if;
+      if v_order < 13 and v_tbl in ('fin_retention_policies','fin_legal_holds','fin_data_exports','fin_offboarding_requests','fin_governance_log') then continue; end if;
       execute format('select count(*) from public.%I where %s', v_tbl, v_rule) into v_count using p.orgs, p.invited_rfqs, p.user_id;
       v_checks := v_checks + 1;
       if v_count > 0 then v_leaks := v_leaks || format('pessoa#%s:%s=%s; ', v_people, v_tbl, v_count); end if;
@@ -128,7 +135,8 @@ begin
     -- Tabelas que nenhuma conta cliente pode ler.
     foreach v_tbl in array array['fin_pilot_allowlist','fin_settings','fin_platform_operators','fin_invite_acceptance_denials',
                                  'fin_job_runs','fin_ops_access_log','fin_member_invitations']
-                           || case when v_order >= 10 then array['fin_api_idempotency','fin_webhook_events'] else '{}'::text[] end loop
+                           || case when v_order >= 10 then array['fin_api_idempotency','fin_webhook_events'] else '{}'::text[] end
+                           || case when v_order >= 13 then array['fin_data_export_parts','fin_offboarding_member_archive'] else '{}'::text[] end loop
       begin
         execute format('select count(*) from public.%I', v_tbl) into v_count;
         v_checks := v_checks + 1;
