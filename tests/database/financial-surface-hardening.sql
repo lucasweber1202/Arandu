@@ -48,6 +48,10 @@ begin
     ('fin_create_service_account(uuid,text,text,text[],text,uuid[])'),('fin_update_service_account(uuid,text[],text,uuid[],text)'),
     ('fin_revoke_service_account(uuid)'),('fin_issue_api_credential(uuid,text,text,timestamp with time zone)'),('fin_revoke_api_credential(uuid)'),
     ('fin_create_webhook_endpoint(uuid,text,text[],text,text,uuid[])'),('fin_set_webhook_status(uuid,boolean)'),('fin_replay_webhook_delivery(uuid)'),
+    -- Enterprise SSO: só administração humana (admin). Descoberta, autorização,
+    -- validade de sessão e trilha são exclusivas do service role.
+    ('fin_sso_save_connection(uuid,uuid,text,text,text,text,text,text,text,jsonb,integer)'),('fin_sso_claim_domain(uuid,text,text)'),
+    ('fin_sso_link_domain(text,uuid)'),('fin_sso_set_status(uuid,text,boolean)'),('fin_sso_revoke_sessions(uuid)'),
     -- Multi-entity: RPCs de administração e auxiliares de policy (só dizem
     -- se o próprio chamador alcança uma entidade/objeto).
     ('fin_create_legal_entity(uuid,text,text,text,text,text,text,uuid)'),('fin_update_legal_entity(uuid,text,text,text,text)'),
@@ -103,7 +107,7 @@ begin
      and has_table_privilege('anon', c.oid, p.privilege_type);
   if v_extra is not null then raise exception 'anon com escrita em tabela financeira: %', v_extra; end if;
 
-  if (select value from public.fin_settings where key = 'schema_version') not in ('financial-surface-hardening-1', 'financial-approval-handoff-1', 'financial-passport-1', 'financial-multi-entity-1', 'financial-contracts-v2-1', 'financial-relationships-portfolio-1', 'financial-passport-entities-1', 'financial-graph-1', 'financial-policy-engine-1', 'financial-public-api-1') then
+  if (select value from public.fin_settings where key = 'schema_version') not in ('financial-surface-hardening-1', 'financial-approval-handoff-1', 'financial-passport-1', 'financial-multi-entity-1', 'financial-contracts-v2-1', 'financial-relationships-portfolio-1', 'financial-passport-entities-1', 'financial-graph-1', 'financial-policy-engine-1', 'financial-public-api-1','financial-sso-1') then
     raise exception 'schema_version não avançou';
   end if;
 end $$;

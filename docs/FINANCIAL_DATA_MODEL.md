@@ -275,3 +275,13 @@ Especificação: [`FINANCIAL_PUBLIC_API.md`](FINANCIAL_PUBLIC_API.md).
 | `fin_webhook_endpoints` | URL https pública, eventos, filtro de entidades, segredo cifrado | URL validada no banco; `secret_ciphertext` sem privilégio para `authenticated`; criador humano XOR conta de serviço |
 | `fin_webhook_events` | evento mínimo derivado de `fin_events` | um por evento de origem; payload ≤ 4 KB, sem termos |
 | `fin_webhook_deliveries` | entrega por endpoint/evento, tentativas, lease, último código | uma entrega original por (endpoint, evento); replay referencia a original |
+
+## Enterprise SSO (`docs/supabase-financial-sso.sql`)
+
+Especificação: [`FINANCIAL_SSO.md`](FINANCIAL_SSO.md).
+
+| Tabela | Papel | Invariantes |
+| --- | --- | --- |
+| `fin_sso_connections` | conexão SAML/OIDC da organização com broker, metadados, estado, exigência e limite de sessão | `mock` nunca `active`; `enforce_sso` só com `active`; ativação exige domínio verificado e login de teste bem-sucedido; leitura só admin |
+| `fin_sso_domains` | domínio de e-mail da organização, reivindicado e verificado por TXT | domínio globalmente único; domínios pessoais recusados; `verification_token_hash` sem privilégio para `authenticated` |
+| `fin_sso_events` | trilha de tentativas de login SSO | sem e-mail em claro (domínio + `sha256(issuer|subject)`); motivo estável; escrita só pelo service role |
