@@ -1,3 +1,0 @@
-# O build libera indexação somente quando ARANDU_SITE_URL aponta para domínio próprio.
-User-agent: *
-Disallow: /

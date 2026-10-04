@@ -32,11 +32,9 @@ falham se isso mudar.
 | `/api/auth/login` (exigência de SSO) | AUTH | `fin_sso_password_allowed` (service role) antes da senha: 403 `sso_required`; 503 se a política não puder ser lida |
 | `sso*` (`/api/finance`) | FINANCE | sessão + papel `admin` confirmado antes de qualquer RPC; verificação de domínio lê o DNS no servidor e envia só o hash do token (service role) |
 | `approval-policies*`, `approval-exceptions*`, `approval-delegations*` | FINANCE | sessão + RLS; administração de policy e sinalizadores só `admin`; prévia sob o RLS da RFQ; exceção decidida pelo papel da policy dona da regra; delegação pelo titular (ou admin para revogar) — `docs/FINANCIAL_POLICY_ENGINE.md` |
-| `api/commercial.js`, `api/orders.js`, `api/upload.js`, `api/mvp-dashboard.js`, `api/internal-page.js` | LEGACY_ART | `requireAdmin` (papel legado + `aal2`) + permissão RBAC |
-| `lib/api/domains/admin-operations.mjs`, `accounts.mjs`, `dashboard.mjs`, `pilot.mjs` (métricas) | LEGACY_ART | `adminGuard` → `requireAdmin` + RBAC; tabelas fixas (`TABLES`), nenhuma `fin_*` |
-| `api/admin-auth.js` (sessão, desafio e verificação MFA) | SHARED_INFRA (legado) | papel legado; recusa `finance_ops` |
-| `api/readiness.js` | SHARED_INFRA | `requireAdmin` + `diagnostics:read` |
-| `api/email-dispatch.js` | SHARED_INFRA | GET: `CRON_SECRET`; POST: `requireAdmin` + `commercial:update` |
+| `lib/api/domains/admin-operations.mjs`, `accounts.mjs`, `dashboard.mjs`, `pilot.mjs` (métricas) | LEGACY_ART (aposentado) | 404 `legacy_surface_closed` em piloto/produção/demo; em preview, `adminGuard` → `requireAdmin` + RBAC; tabelas fixas, nenhuma `fin_*`. Remoção pendente (`docs/LEGACY_ART_RETIREMENT.md`) |
+| `api/email-dispatch.js` | SHARED_INFRA | só GET de cron com `CRON_SECRET`; o gatilho manual da administração de arte foi removido |
+| `/api/jobs/governance` | FINANCE | `CRON_SECRET`; retenção, export e offboarding com service role só depois do segredo |
 | `lib/http-security.mjs` (mesma origem), limitador `consume_rate_limit`, cookie `arandu_session` | SHARED_INFRA | — (não concedem privilégio) |
 
 ## Superfície compartilhada com o legado
@@ -47,8 +45,8 @@ falham se isso mudar.
 | Guardas de API | Rotas financeiras não aceitam `requireAdmin`; rotas legadas não aceitam `finance_ops` (17/17 recusadas no ensaio real) | NO ACTION REQUIRED |
 | Service role | Legado usa service role só depois de `requireAdmin`, e só em tabelas de arte listadas; nenhum arquivo legado referencia `fin_*` | NO ACTION REQUIRED |
 | Rotas | Mesma função (`api/[...path].js`), prefixos disjuntos (`finance/`, `jobs/` × rotas de arte) | NO ACTION REQUIRED |
-| Tabelas | `transactional_email_outbox` é compartilhada. Um admin legado com `commercial:update` pode disparar o despacho, que também envia avisos financeiros; a resposta traz só contagens | Acoplamento aceito: operacional, sem leitura de conteúdo |
-| Build | Mesmo build Vite; páginas legadas administrativas são servidas por `api/internal-page.js` com `requireAdmin` | NO ACTION REQUIRED |
+| Tabelas | `transactional_email_outbox` é compartilhada; só o cron dispara o despacho | Acoplamento removido com o gatilho manual de arte |
+| Build | Páginas administrativas de arte e `api/internal-page.js` foram removidas do código | Gate `check:legacy-art` |
 | Middleware | Cookie `arandu_session` único; o MFA do `finance_ops` troca o cookie por uma sessão `aal2` da mesma conta | NO ACTION REQUIRED |
 
 ## Compatibilidade

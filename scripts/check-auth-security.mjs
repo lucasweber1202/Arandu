@@ -20,25 +20,12 @@ const api = [
 ].join('\n');
 const apiCore = source('lib/api-core.mjs');
 const apiDtos = source('lib/api-dtos.mjs');
-const mvpApi = source('api/mvp-dashboard.js');
 const health = source('api/health.js');
-const readiness = source('api/readiness.js');
 const adminAuth = source('lib/admin-auth.mjs');
-const adminAuthApi = source('api/admin-auth.js');
 const rateLimit = source('lib/rate-limit.mjs');
-const internalPage = source('api/internal-page.js');
-const commercialApi = source('api/commercial.js');
-const uploadApi = source('api/upload.js');
 const schema = source('docs/supabase-schema.sql');
 const productionSql = source('docs/supabase-production.sql');
 const migration = source('docs/supabase-sprint1-auth-ownership.sql');
-const auth = source('js/auth.js');
-const site = source('js/site.js');
-const selections = source('js/selection-tools.js');
-const reservations = source('js/reservation.js');
-const adminDashboard = source('js/admin-dashboard.js');
-const launchDashboard = source('js/launch-dashboard.js');
-const launchChecklist = source('js/launch-checklist.js');
 
 requireTerm('lib/api-core.mjs', apiCore, 'MAX_BODY_BYTES', 'requisições ainda não possuem limite de tamanho.');
 requireTerm('api/[...path].js', api, 'enforceRateLimit', 'rotas públicas ainda não possuem contenção de abuso.');
@@ -75,36 +62,22 @@ if (/saved_selections\?public_token[^\n]+select=\*/.test(api)) {
   issues.push('api/[...path].js: seleção pública ainda usa select=* e pode expor dados pessoais.');
 }
 
-requireTerm('api/mvp-dashboard.js', mvpApi, 'requireAdmin(req)', 'dashboard MVP continua público.');
-requireTerm('api/commercial.js', commercialApi, 'MAX_BODY_BYTES', 'API comercial não limita o corpo da requisição.');
-requireTerm('api/commercial.js', commercialApi, 'requireAdmin(req)', 'API comercial não exige sessão administrativa.');
-requireTerm('api/upload.js', uploadApi, 'MAX_BODY_BYTES', 'upload acumula o corpo sem limite prévio.');
-requireTerm('api/upload.js', uploadApi, 'requireAdmin(req)', 'upload não exige sessão administrativa.');
 requireTerm('api/[...path].js', api, 'verification_status=eq.valid', 'consulta pública pode retornar certificado ainda não validado.');
 requireTerm('api/health.js', health, "status: 'alive'", 'health público não está limitado à liveness.');
 if (/SUPABASE|process\.env|routes|missing|checks/i.test(health)) {
   issues.push('api/health.js: liveness pública ainda expõe detalhes internos.');
 }
-requireTerm('api/readiness.js', readiness, 'requireAdmin(req)', 'readiness detalhada não exige sessão administrativa.');
-requireTerm('api/readiness.js', readiness, "'saved_selections'", 'readiness não detecta migration de propriedade ausente.');
-requireTerm('api/readiness.js', readiness, "'reservations'", 'readiness não valida propriedade das reservas.');
 requireTerm('lib/admin-auth.mjs', adminAuth, 'app_metadata', 'papel administrativo não vem de metadados imutáveis.');
 requireTerm('lib/admin-auth.mjs', adminAuth, "aal !== 'aal2'", 'MFA aal2 não é obrigatório.');
 requireTerm('lib/admin-auth.mjs', adminAuth, 'arandu_disabled', 'contas administrativas não podem ser desativadas.');
 requireTerm('lib/admin-auth.mjs', adminAuth, "'admin-session-refresh'", 'refresh administrativo não possui rate limit por conta e IP.');
-requireTerm('api/admin-auth.js', adminAuthApi, "'admin-mfa-challenge'", 'desafio MFA administrativo não possui rate limit.');
-requireTerm('api/admin-auth.js', adminAuthApi, "'admin-mfa-verify'", 'verificação TOTP administrativa não possui rate limit.');
 requireTerm('lib/rate-limit.mjs', rateLimit, 'consume_rate_limit', 'rate limit administrativo não usa contador distribuído.');
-requireTerm('api/commercial.js', commercialApi, "'admin-commercial-write'", 'mutações comerciais administrativas não possuem rate limit.');
-requireTerm('api/upload.js', uploadApi, "'admin-upload'", 'upload administrativo não possui rate limit.');
-requireTerm('api/internal-page.js', internalPage, 'requireAdmin(req)', 'HTML interno ainda pode ser servido sem autorização.');
 const legacySecret = ['ARANDU', 'ADMIN', 'TOKEN'].join('_');
 const legacyHeader = ['x-arandu', 'admin-token'].join('-');
-if ((api + mvpApi + commercialApi + uploadApi + adminAuth).includes(legacySecret)
-  || (api + mvpApi + commercialApi + uploadApi + adminAuth).includes(legacyHeader)) {
+if ((api + adminAuth).includes(legacySecret) || (api + adminAuth).includes(legacyHeader)) {
   issues.push('APIs privilegiadas ainda aceitam o segredo administrativo compartilhado.');
 }
-if (/SUPABASE_SERVICE_KEY\s*\|\|\s*SUPABASE_ANON_KEY/.test(api + mvpApi + commercialApi)) {
+if (/SUPABASE_SERVICE_KEY\s*\|\|\s*SUPABASE_ANON_KEY/.test(api)) {
   issues.push('Service role ainda possui fallback inseguro para anon key.');
 }
 requireTerm('docs/supabase-schema.sql', schema, 'gen_random_bytes(16)', 'token público de seleção possui menos de 128 bits no schema.');
@@ -116,16 +89,6 @@ requireTerm('docs/supabase-sprint1-auth-ownership.sql', migration, 'drop policy 
 requireTerm('docs/supabase-sprint1-auth-ownership.sql', migration, 'grant update (full_name, phone)', 'perfil autenticado ainda pode alterar campos de autorização.');
 requireTerm('docs/supabase-production.sql', productionSql, '(auth.uid() is not null and auth.uid() = user_id)', 'políticas de inserção não validam a propriedade informada.');
 
-requireTerm('js/auth.js', auth, '/api/account', 'Minha Conta não carrega apenas dados do usuário.');
-requireTerm('js/auth.js', auth, 'syncLocalSelectionAfterAuth', 'login/cadastro não migram a seleção local para a conta.');
-requireTerm('js/site.js', site, 'syncAuthNavigation', 'navegação pública não reconhece a conta autenticada.');
-requireTerm('js/selection-tools.js', selections, 'hydrateSelectionFromAccount', 'Minha Seleção não recupera dados da conta em outro dispositivo.');
-requireTerm('js/selection-tools.js', selections, 'syncSelectionWithAccount', 'Minha Seleção não sincroniza alterações autenticadas.');
-requireTerm('js/selection-tools.js', selections, "credentials:'include'", 'sincronização não envia o cookie de sessão explicitamente.');
-requireTerm('js/reservation.js', reservations, "credentials: 'include'", 'reserva não envia o cookie de sessão explicitamente.');
-requireTerm('js/admin-dashboard.js', adminDashboard, "credentials: 'include'", 'painel administrativo não usa a sessão HttpOnly.');
-requireTerm('js/launch-dashboard.js', launchDashboard, "json('/api/dashboard')", 'painel de lançamento não usa a sessão administrativa.');
-requireTerm('js/launch-checklist.js', launchChecklist, "json('/api/dashboard')", 'checklist de lançamento não usa a sessão administrativa.');
 
 console.log('Arandu Auth & Security Check');
 console.log(`Erros: ${issues.length}`);

@@ -87,9 +87,9 @@ Reaproveitado sem alteração:
 **Nada da vertical de Arte foi destruído.** Nenhuma tabela foi removida, nenhuma
 página foi apagada, nenhuma rota foi desligada e nenhuma migration destrutiva
 foi criada. As páginas de arte continuam publicadas e cobertas pelos mesmos
-testes de antes. A estratégia de convivência está descrita em
-`FINANCIAL_ART_COEXISTENCE.md` e, nesta
-rodada, é simplesmente: **coexistência aditiva**, com prefixo `fin_` no banco e
+testes de antes. A estratégia de convivência daquela rodada (documento
+`FINANCIAL_ART_COEXISTENCE.md`, hoje só no histórico do Git; a vertical foi
+aposentada depois, ver `LEGACY_ART_RETIREMENT.md`) era simplesmente: **coexistência aditiva**, com prefixo `fin_` no banco e
 diretórios `finance/` e `provider/` no front.
 
 ## O que ficou fora de escopo

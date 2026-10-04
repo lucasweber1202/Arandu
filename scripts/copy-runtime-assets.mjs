@@ -2,6 +2,7 @@ import { existsSync, copyFileSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { assertPresentationModeIsSafe } from '../lib/presentation-mode.mjs';
 import { ownSiteUrl } from '../lib/public-site-url.mjs';
+import { PUBLIC_PAGES } from './seo-meta.mjs';
 import { assertDemoModeIsSafe, standaloneDemo } from '../lib/demo-mode.mjs';
 
 const dist = join(process.cwd(), 'dist');
@@ -12,7 +13,7 @@ for (const file of ['favicon.svg', 'manifest.webmanifest', 'financial-og.png', '
 // abaixo continua falhando o build se a apresentação for pedida em produção.
 assertPresentationModeIsSafe();
 const site = ownSiteUrl(process.env.ARANDU_SITE_URL);
-const pages = ['/', '/produto.html', '/credito.html', '/adquirencia.html', '/seguranca.html', '/limites.html'];
+const pages = PUBLIC_PAGES.map((page) => (page === 'index.html' ? '/' : `/${page}`));
 writeFileSync(join(dist, 'sitemap.xml'), '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' + (site ? pages.map(path => '<url><loc>' + site + path + '</loc></url>').join('') : '') + '</urlset>');
 writeFileSync(join(dist, 'robots.txt'), site
   ? 'User-agent: *\nAllow: /\nDisallow: /finance/\nDisallow: /provider/\nDisallow: /login.html\nDisallow: /cadastro.html\nSitemap: ' + site + '/sitemap.xml\n'

@@ -7,50 +7,6 @@ const requireText = (file, text, message) => {
   if (!read(file).includes(text)) issues.push(`${file}: ${message}`);
 };
 
-const adminDashboard = read('js/admin-dashboard.js');
-if (adminDashboard.includes('root.innerHTML')) {
-  issues.push('js/admin-dashboard.js: dados administrativos ainda são renderizados com innerHTML.');
-}
-['itemTitle(item, activePanel)', 'itemSubtitle(item, activePanel)', 'label(status)'].forEach((expression) => {
-  if (!adminDashboard.includes(`textContent = ${expression}`)) {
-    issues.push(`js/admin-dashboard.js: "${expression}" não passa por uma renderização textual segura.`);
-  }
-});
-
-const tokenFiles = [
-  'js/admin-dashboard.js',
-  'js/admin-console.js',
-  'js/admin-cadastros.js',
-  'js/artwork-editor.js',
-  'js/artist-editor.js',
-  'js/certificates-admin.js',
-  'js/funnel-metrics.js',
-  'js/history-tools.js',
-  'js/lead-detail.js',
-  'js/media-upload.js',
-  'js/proposals-admin.js',
-  'js/record-editor.js',
-  'js/sales-kanban.js'
-];
-tokenFiles.forEach((file) => {
-  const source = read(file);
-  if (/localStorage\.(?:getItem|setItem|removeItem)/.test(source)) {
-    issues.push(`${file}: credencial administrativa ainda pode persistir no localStorage.`);
-  }
-});
-
-const certificates = read('js/certificates.js');
-// A base estática só pode ser lida atrás do modo de apresentação, e o resultado
-// precisa ser rotulado como demonstrativo. A defesa em profundidade está logo
-// abaixo: em produção o arquivo é removido do dist, então nem o caminho existe.
-if (certificates.includes('data/certificates.json')) {
-  if (!certificates.includes('arandu-presentation-mode')) {
-    issues.push('js/certificates.js: base estática não está restrita ao modo explícito de apresentação.');
-  }
-  if (!certificates.includes("'demonstration'")) {
-    issues.push('js/certificates.js: registro estático não é rotulado como demonstrativo.');
-  }
-}
 const runtimeCopy = read('scripts/copy-runtime-assets.mjs');
 if (/copyDir\(|artworks\.json|artists\.json|certificates\.json/.test(runtimeCopy)) {
   issues.push('scripts/copy-runtime-assets.mjs: cópia ampla pode publicar fixtures de arte.');
@@ -60,26 +16,16 @@ if (/copyDir\(|artworks\.json|artists\.json|certificates\.json/.test(runtimeCopy
 if (!runtimeCopy.includes('assertPresentationModeIsSafe()') || runtimeCopy.includes('data/finance/demo.json')) {
   issues.push('scripts/copy-runtime-assets.mjs: fixture financeira publicada fora da demonstração isolada.');
 }
-if (read('js/catalog-quality.js').includes('data/artworks.json') || read('js/catalog-quality.js').includes('data/artists.json')) {
-  issues.push('js/catalog-quality.js: diagnóstico interno ainda usa fixture demonstrativa.');
-}
-requireText('js/certificate-print.js', "verification_status:'não verificado'", 'impressão não falha de forma fechada.');
-
-requireText('js/forms.js', 'ARANDU_LOCAL_DRAFT_TTL_MS', 'rascunhos de formulário não possuem expiração.');
-requireText('js/forms.js', 'ARANDU_MAX_LOCAL_DRAFTS = 5', 'rascunhos de formulário não possuem limite mínimo de retenção.');
-requireText('js/forms.js', 'clearLocalDrafts();', 'dados locais não são apagados após envio.');
-requireText('js/reservation.js', 'ARANDU_RESERVATION_TTL_MS', 'reservas locais não possuem expiração.');
-requireText('politica-de-privacidade.html', 'data-clear-local-personal-data', 'titular não possui ação de limpeza local.');
-
-for (const file of fs.readdirSync('.').filter((name) => name.endsWith('.html'))) {
+// Toda página publicada (site, portal da empresa, portal do provedor) segue a
+// CSP estrita: nada de script inline nem handler inline.
+const publishedHtml = [
+  ...fs.readdirSync('.').filter((name) => name.endsWith('.html')),
+  ...['finance', 'provider'].flatMap((dir) => fs.readdirSync(dir).filter((name) => name.endsWith('.html')).map((name) => `${dir}/${name}`))
+];
+for (const file of publishedHtml) {
   const html = read(file);
   if (/<script(?![^>]*\bsrc=)[^>]*>/i.test(html)) issues.push(`${file}: script inline incompatível com a CSP estrita.`);
   if (/\son[a-z]+\s*=/i.test(html)) issues.push(`${file}: handler JavaScript inline incompatível com a CSP estrita.`);
-}
-for (const file of fs.readdirSync('js').filter((name) => name.endsWith('.js'))) {
-  if (/\son[a-z]+\s*=/i.test(read(`js/${file}`))) {
-    issues.push(`js/${file}: runtime ainda gera handler JavaScript inline incompatível com a CSP estrita.`);
-  }
 }
 
 const viteConfig = read('vite.config.js');
@@ -88,22 +34,6 @@ if (/<script>window\.ARANDU_PILOT_ENABLED=/.test(viteConfig)) {
 }
 requireText('vite.config.js', '__ARANDU_DEMO__: JSON.stringify(demoMode)', 'modo demonstrativo financeiro não é decidido por constante de build compatível com CSP.');
 requireText('vite.config.js', 'assertDemoModeIsSafe()', 'build não falha ao pedir a demonstração na produção financeira.');
-
-const uploadApi = read('api/upload.js');
-[
-  ['randomUUID()', 'nome do objeto não usa UUID criptográfico'],
-  ["'x-upsert': 'false'", 'upload novo ainda permite sobrescrita'],
-  ['if (!response.ok)', 'falha de metadados não é verificada'],
-  ['await storageDelete(path)', 'objeto órfão não é removido quando metadados falham'],
-  ['AbortSignal.timeout', 'integração de upload sem timeout'],
-  ['canonicalBase64', 'upload não rejeita codificação base64 não canônica'],
-  ['MAX_IMAGE_PIXELS', 'upload não limita decompression bombs por dimensões'],
-  ['containsSensitiveMetadata', 'upload não trata metadados EXIF/XMP'],
-  ['ALLOWED_ENTITY_TYPES', 'upload não restringe namespaces de entidade']
-].forEach(([text, message]) => {
-  if (!uploadApi.includes(text)) issues.push(`api/upload.js: ${message}.`);
-});
-if (uploadApi.includes("'x-upsert': 'true'")) issues.push('api/upload.js: upload ainda pode sobrescrever objeto existente.');
 
 const catchAll = [read('api/[...path].js'), ...fs.readdirSync('lib/api/domains').filter((file) => file.endsWith('.mjs')).map((file) => read(`lib/api/domains/${file}`))].join('\n');
 const formStart = catchAll.indexOf('function normalizeFormPayload(body)');
@@ -136,4 +66,4 @@ if (issues.length) {
   issues.forEach((issue) => console.error(`- ${issue}`));
   process.exit(1);
 }
-console.log('XSS administrativo, credenciais, certificados, privacidade local e CSP validados.');
+console.log('Fixtures fora do build, CSP estrita nas páginas publicadas, demonstração decidida no build e workflow de staging validados.');

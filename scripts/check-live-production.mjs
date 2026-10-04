@@ -4,14 +4,17 @@ const DEFAULT_BASE_URL = process.env.ARANDU_SITE_URL || 'http://localhost:4173';
 const baseUrl = String(process.argv[2] || DEFAULT_BASE_URL).replace(/\/$/, '');
 const timeoutMs = Number(process.env.ARANDU_LIVE_CHECK_TIMEOUT_MS || 10000);
 
+// Produto financeiro: health, site público, portal e sessão. As rotas da
+// antiga vertical de arte precisam responder 404 (superfície aposentada).
 const checks = [
   { path: '/api/health', type: 'json', required: true, name: 'Health público' },
-  { path: '/api/catalog', type: 'json', required: true, name: 'Catálogo público' },
-  { path: '/api/artists', type: 'json', required: true, name: 'Artistas públicos' },
-  { path: '/api/collections', type: 'json', required: true, name: 'Coleções públicas' },
-  { path: '/api/auth/session', type: 'json', required: true, name: 'Sessão Auth' },
-  { path: '/api/certificates?code=ARANDU-TESTE', type: 'json', required: false, name: 'Certificado público' }
+  { path: '/', type: 'html', required: true, name: 'Site público' },
+  { path: '/finance/dashboard.html', type: 'html', required: true, name: 'Portal financeiro' },
+  { path: '/api/finance/products', type: 'json', required: true, name: 'Catálogo de produtos financeiros' },
+  { path: '/api/auth/session', type: 'json', required: false, name: 'Sessão Auth' }
 ];
+// Páginas da vertical de arte removidas do código: 404 em qualquer ambiente.
+const RETIRED_ART_PATHS = ['/comprar-arte.html', '/artistas.html', '/obra.html', '/certificado-autenticidade.html', '/painel.html'];
 
 const failures = [];
 const warnings = [];
@@ -78,6 +81,17 @@ for (const check of checks) {
     if (check.required) failures.push(`${check.name} não respondeu: ${message}`);
     else warnings.push(`${check.name} não respondeu: ${message}`);
     console.log(`${check.required ? 'ERRO' : 'ALERTA'} ${check.name} — ${message} ${check.path}`);
+  }
+}
+
+for (const path of RETIRED_ART_PATHS) {
+  try {
+    const result = await request(path);
+    const retired = result.status === 404 || result.status === 410 || (result.status >= 300 && result.status < 400);
+    console.log(`${retired ? 'OK' : 'ERRO'} Rota de arte aposentada — ${result.status} ${path}`);
+    if (!retired) failures.push(`Rota da vertical de arte aposentada ainda responde ${result.status}: ${path}`);
+  } catch (error) {
+    warnings.push(`Rota aposentada não respondeu (${path}): ${safeMessage(error)}`);
   }
 }
 

@@ -38,79 +38,27 @@ Estado hospedado observado em 02/10: [`ARANDU_CURRENT_STATE_2026-10-02.md`](ARAN
 Evidências de rodada (históricas, datadas): `docs/FINANCIAL_RELEASE_EVIDENCE_*.md`.
 Fechamento da Onda 0 em andamento: [`FINANCIAL_RELEASE_EVIDENCE_2026-10-01.md`](FINANCIAL_RELEASE_EVIDENCE_2026-10-01.md).
 
-## Legado: vertical de arte
+## Release, staging e migrations (plataforma)
 
-Tudo abaixo descreve a vertical de arte, aposentada (ver
-`docs/LEGACY_ART_RETIREMENT.md`). Continua no repositório para auditoria e
-porque o banco ainda carrega esse esquema; não é produto atual e não bloqueia o
-piloto financeiro.
-
-### Estado e decisão de release (arte)
-
-- `ops/release-evidence.json` — fonte oficial dos 13 gates externos.
-- `ops/pilot-evidence.json` — evidências do piloto fechado.
-- `docs/RELEASE_CANDIDATE_1.md` — checklist da beta pública com catálogo e comércio fechados.
-- `npm run deploy:check` — gate de deploy técnico e base do deploy da beta.
-- `npm run release:status` — relatório legível do estado atual.
-- `npm run release:check` — falha enquanto os requisitos mínimos não forem atingidos.
-- `npm run predeploy` — gate do go-live comercial completo; não é requisito da beta.
-
-### Preparação de staging (arte)
-
-- `docs/STAGING_REHEARSAL.md` — ensaio manual e não destrutivo antes do staging real.
-- `.github/workflows/staging-rehearsal.yml` — workflow `workflow_dispatch` sem segredos.
-- `npm run check:staging` — impede que o rehearsal aplique migrations ou altere gates.
-- `npm run staging:evidence` — gera relatório local classificado como simulação.
-
-Um rehearsal verde comprova somente preparação técnica em CI. Ele não equivale a `staging_validated` e não altera `ops/release-evidence.json`.
-
-### Banco e migrations (arte)
-
-1. `docs/supabase-migrations.json` — ordem canônica.
-2. `docs/TRANSACTIONS_RLS_RBAC.md` — modelo transacional, RLS, RBAC e auditoria.
-3. `docs/MIGRATION_RELEASE_RUNBOOK.md` — preflight, dry-run, aplicação, probes e canário.
-4. `docs/rollback/supabase-transactions-rbac-audit.rollback.sql` — rollback da camada transacional.
-5. `docs/INCIDENT_BACKUP_OBSERVABILITY_RUNBOOK.md` — backup, restore, incidente e observabilidade.
+- `npm run deploy:check` — gate de deploy técnico.
+- `npm run release:status` / `npm run release:check` — frentes de go-live de produção (código, ambiente, evidências externas, domínio, plataforma e backup); falha enquanto houver frente bloqueada.
+- `npm run predeploy` — gate final; o CI exige que ele continue falhando fechado.
+- `ops/release-evidence.json` — gates externos de produção (migration, backup/restore, RLS, monitoramento, contato de privacidade, domínio). Alguns gates herdados nomeiam conceitos da vertical aposentada; nenhum é atendido por este repositório sem evidência real.
+- `docs/STAGING_REHEARSAL.md` + `.github/workflows/staging-rehearsal.yml` — ensaio de staging sem segredos; `npm run check:staging` impede que ele aplique migrations ou altere gates.
+- `docs/MIGRATION_RELEASE_RUNBOOK.md` — preflight, dry-run, aplicação, probes e canário.
+- `docs/INCIDENT_BACKUP_OBSERVABILITY_RUNBOOK.md` — backup, restore, incidente e observabilidade.
+- `docs/TRANSACTIONAL_EMAIL_OUTBOX.md` — outbox transacional usada pelos avisos financeiros.
 
 Nunca aplique migration real sem backup referenciado e ambiente explicitamente identificado.
 
-### Administração e segurança (arte)
+## Legado: vertical de arte (aposentada)
 
-- `docs/ADMIN_AUTH_MFA.md` — provisionamento, papéis, MFA e revogação.
-- `docs/ADMIN_OPERACAO_ARANDU.md` — operação diária dos painéis.
-- `docs/OPERATIONAL_STATUS_FLOW.md` — máquina de estados operacional, permissões por transição e trilha de histórico.
-- `docs/PERFIS_E_PORTAIS.md` — perfis do público, capacidades verificadas e portais de artista e empresa.
-- `docs/ARTWORK_STATUS.md` — matriz operacional das obras.
-- `SECURITY.md` — reporte privado de vulnerabilidades.
-- `.github/CODEOWNERS` — responsáveis pelas superfícies críticas.
-
-### Catálogo (arte)
-
-- `docs/GUIA_CADASTRO_OBRAS_REAIS.md` — campos e preparação do acervo.
-- `docs/CHECKLIST_PARCEIRA_ARTISTA.md` — autorizações e parceria.
-- `data/catalog-intake-template.csv` — modelo de intake.
-- `npm run catalog:intake:validate` — validação do CSV.
-- `npm run check:catalog:release` — gate do catálogo real.
-
-Fixtures e demonstrações não contam como catálogo publicado.
-
-### Política comercial (arte)
-
-- `docs/OPERACAO_COMERCIAL_INDEX.md` — índice comercial.
-- `docs/FLUXO_COMPRA_RESERVA.md` — jornada de seleção e reserva.
-- `data/commercial-policy.json` — configuração pública não sensível e estado da política.
-- `npm run check:commercial:release` — validação de completude e aprovação.
-
-Decisões de comissão, pagamento, frete, seguro, devolução e modelo fiscal exigem aprovação humana.
-
-### Beta, piloto, domínio e go-live (arte)
-
-- `docs/GO_LIVE_ARANDU.md` — sequência de promoção.
-- `docs/DEPLOY_DOMINIO_VERCEL.md` — domínio e hospedagem.
-- `docs/SEO_DOMINIO_CHECKLIST.md` — indexação e SEO final.
-- `docs/PRIMEIROS_30_DIAS.md` — operação inicial.
-- `npm run check:pilot:release` — gate do piloto.
-- `npm run check:domain:release` — gate do domínio.
+A antiga vertical de marketplace de arte foi aposentada e removida da árvore
+atual. Contexto, inventário, o que permanece (migrations históricas, objetos de
+banco até a migration de aposentadoria) e como recuperar algo pelo Git:
+[`docs/LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md). Não reintroduza
+código, páginas ou documentos de arte a partir do histórico sem uma tarefa
+explícita de recuperação.
 
 ## Governança do repositório
 
@@ -122,6 +70,8 @@ Decisões de comissão, pagamento, frete, seguro, devolução e modelo fiscal ex
 - `docs/BRANCH_PROTECTION.md` — versão anterior das regras; vale o documento acima.
 - `docs/REPOSITORY_HYGIENE.md` — limpeza de branches e documentos históricos.
 - `docs/VERSIONING.md` — estratégia de versões.
+- `SECURITY.md` — reporte privado de vulnerabilidades.
+- `.github/CODEOWNERS` — responsáveis pelas superfícies críticas.
 
 ## Documentos históricos
 
