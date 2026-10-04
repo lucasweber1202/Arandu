@@ -71,6 +71,12 @@ piloto nem as da produção: elas ficam só no escopo *Production* de cada
 projeto. Um preview é código sem banco real. Nunca teste uma feature
 experimental na produção.
 
+O sandbox `/demo` também passa a exigir ativação explícita nos previews:
+`ARANDU_DEMO_MODE=true` ou `ARANDU_PRESENTATION_MODE=true`. O build padrão de
+preview contém somente o produto financeiro. A demo independente continua no
+projeto `arandu-demo` com `ARANDU_DEPLOYMENT_KIND=demo`; nenhum acesso a banco
+real é adicionado pelo modo demonstrativo.
+
 ## Promover `pilot → main`
 
 Abra a PR `pilot → main` só quando todos os itens abaixo valerem:

@@ -5,6 +5,7 @@ import { ownSiteUrl } from './lib/public-site-url.mjs';
 import { assertPresentationModeIsSafe } from './lib/presentation-mode.mjs';
 import { assertDemoModeIsSafe } from './lib/demo-mode.mjs';
 import { PAGES as FINANCE_PAGES, DEMO_ONLY_PAGES } from './scripts/generate-finance-pages.mjs';
+import { bundleProfile } from './scripts/bundle-profile.mjs';
 
 const root = process.cwd();
 const siteUrl = ownSiteUrl(process.env.ARANDU_SITE_URL);
@@ -23,7 +24,7 @@ const speedInsightsTag = '<script type="module" src="/src/vercel-speed-insights.
 
 export default defineConfig({
   appType: 'mpa',
-  plugins: [{
+  plugins: [bundleProfile(), {
     name: 'financial-head',
     transformIndexHtml: {
       order: 'pre',
