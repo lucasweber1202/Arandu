@@ -40,6 +40,10 @@ select pg_temp.value_expect_error(format('select public.fin_record_value(%L,%L,%
 select pg_temp.value_expect_error(format('select public.fin_record_value(%L,%L,%L::jsonb)','00000000-0000-4000-8000-0000000aa201',(select id from value_fixture where key='contract'),pg_temp.value_input()||'{"kind":"REALIZED_SAVINGS"}'),'invalid value kind');
 select pg_temp.value_expect_error(format('select public.fin_observe_value(%L,%L::jsonb)',(select id from value_fixture where key='record'),'{"observed_amount":700,"currency":"BRL","coverage":"partial"}'),'value observation incomplete');
 insert into value_fixture select 'realized',public.fin_observe_value((select id from value_fixture where key='record'),'{"observed_amount":900,"currency":"BRL","period_start":"2025-01-01","period_end":"2025-12-31","coverage":"complete","verified":true,"source":"statement","evidence_reference":"TEST-OBS-001","verification_reason":"Verified full period statement"}');
+select pg_temp.value_expect_error(format('select public.fin_observe_value(%L,%L::jsonb)',(select id from value_fixture where key='record'),'{}'),'value already realized');
+select pg_temp.value_expect_error(format('select public.fin_observe_value(%L,%L::jsonb)',(select id from value_fixture where key='avoidance'),'{}'),'value not realizable');
+select pg_temp.value_expect_error(format('select public.fin_record_value(%L,%L,%L::jsonb)','00000000-0000-4000-8000-0000000aa201',(select id from value_fixture where key='contract'),pg_temp.value_input()||'{"target_amount":800.001}'),'invalid value baseline');
+select pg_temp.value_expect_error(format('update public.fin_value_records set title=%L where id=%L','Direct mutation',(select id from value_fixture where key='record')),'permission denied');
 do $$ begin
  if (select value_amount from public.fin_value_records where id=(select id from value_fixture where key='record'))<>200 then raise exception 'estimated amount wrong'; end if;
  if (select value_amount from public.fin_value_records where id=(select id from value_fixture where key='realized'))<>100 then raise exception 'realized confused with negotiated'; end if;
@@ -72,6 +76,14 @@ set role authenticated;
 select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-0000000aa101',true);
 select public.fin_invalidate_value((select id from value_fixture where key='realized'),'{"reason":"Corrected statement requires new evidence"}');
 do $$ begin if exists(select 1 from public.fin_value_totals('00000000-0000-4000-8000-0000000aa201','2025-01-01','2025-12-31') where kind='REALIZED_SAVINGS') then raise exception 'invalidated amount still counted'; end if; end $$;
+reset role;
+-- Freeze blocks every value write while membership and JWT still exist.
+insert into public.fin_offboarding_requests(organization_id,status,reason,requested_by)
+values('00000000-0000-4000-8000-0000000aa201','access_revocation','Freeze fixture for negative value authorization','00000000-0000-4000-8000-0000000aa101');
+set role authenticated;
+select pg_temp.value_expect_error(format('select public.fin_record_value(%L,%L,%L::jsonb)','00000000-0000-4000-8000-0000000aa201',(select id from value_fixture where key='contract'),pg_temp.value_input()),'organization offboarding');
+select pg_temp.value_expect_error(format('select public.fin_observe_value(%L,%L::jsonb)',(select id from value_fixture where key='record'),'{}'),'organization offboarding');
+select pg_temp.value_expect_error(format('select public.fin_invalidate_value(%L,%L::jsonb)',(select id from value_fixture where key='record'),'{"reason":"Must reject while frozen"}'),'organization offboarding');
 reset role;
 -- Revocation is enforced by membership reads, including an existing JWT.
 delete from public.fin_members where organization_id='00000000-0000-4000-8000-0000000aa201' and user_id='00000000-0000-4000-8000-0000000aa101';
