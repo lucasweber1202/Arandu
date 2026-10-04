@@ -47,7 +47,8 @@ for (const name of ['fin_financial_graph', 'fin_graph_objects']) assert.equal(DA
 for (const key of ['financial_graph', 'search', 'dashboard']) assert.match(SOURCE_OF_TRUTH[key], /^derived/);
 
 // 3. Paridade SQL ↔ JS.
-const datasetBlock = migration.slice(migration.indexOf('fin_governance_export_datasets()\nreturns'), migration.indexOf('revoke all on function public.fin_governance_export_datasets'));
+const exportMigration = JSON.parse(readFileSync('docs/supabase-migrations.json', 'utf8')).cleanInstall.map((path) => readFileSync(path, 'utf8')).filter((sql) => sql.includes('fin_governance_export_datasets()\nreturns')).at(-1);
+const datasetBlock = exportMigration.slice(exportMigration.indexOf('fin_governance_export_datasets()\nreturns'), exportMigration.indexOf('revoke all on function public.fin_governance_export_datasets'));
 const sqlDatasets = [...datasetBlock.matchAll(/\('([a-z_]+)', 'select/g)].map((match) => match[1]);
 assert.deepEqual([...sqlDatasets].sort(), [...EXPORT_DATASETS].sort(), 'conjuntos de export divergentes entre SQL e registro');
 const secretKeys = /v_secret_keys text\[\] := array\[([^\]]+)\]/.exec(migration)[1];

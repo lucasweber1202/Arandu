@@ -35,10 +35,10 @@ export function perfSummary() {
   });
 }
 /** Orçamentos (ms) usados no painel e nos testes. */
-export const PERF_BUDGETS = Object.freeze({ route: 1500, render: 800, inspector: 120, search: 50, filter: 80, comparison: 400, optimistic: 50 });
+export const PERF_BUDGETS = /* @__PURE__ */ Object.freeze({ route: 1500, render: 800, inspector: 120, search: 50, filter: 80, comparison: 400, optimistic: 50 });
 
 // ----------------------------------------------------------------- flags
-export const FLAGS = Object.freeze({
+export const FLAGS = /* @__PURE__ */ Object.freeze({
   inspectorV2: { label: 'Inspector adaptativo', text: 'Lista | resumo quando a largura útil permite (medido, não por breakpoint).', default: true },
   decisionInbox: { label: 'Caixa de decisão', text: 'Aprovações como caixa | contexto, com ação otimista.', default: true },
   presence: { label: 'Presença', text: 'Quem mais está olhando o mesmo objeto (simulado, determinístico).', default: true },
@@ -57,7 +57,7 @@ export function setFlag(name, value) {
 }
 
 // ------------------------------------------------------------- analytics
-export const ANALYTICS_EVENTS = Object.freeze(['demo_started', 'page_viewed', 'rfq_opened', 'comparison_opened', 'approval_reviewed', 'approval_decided', 'proposal_submitted',
+export const ANALYTICS_EVENTS = /* @__PURE__ */ Object.freeze(['demo_started', 'page_viewed', 'rfq_opened', 'comparison_opened', 'approval_reviewed', 'approval_decided', 'proposal_submitted',
   'integration_connected', 'workflow_created', 'contract_opened', 'search_performed', 'intake_started', 'persona_switched', 'comment_created']);
 export function track(name, props = {}) {
   const entry = { name, at: new Date().toISOString(), props };
@@ -68,7 +68,7 @@ export function track(name, props = {}) {
 export function sessionNote(text, { persona = null } = {}) {
   updateOS((draft) => { draft.session.push({ at: new Date().toISOString(), text, persona }); });
 }
-export const FUNNEL = Object.freeze([
+export const FUNNEL = /* @__PURE__ */ Object.freeze([
   ['Início', ['demo_started', 'page_viewed']],
   ['Solicitação', ['rfq_opened', 'intake_started']],
   ['Comparação', ['comparison_opened']],

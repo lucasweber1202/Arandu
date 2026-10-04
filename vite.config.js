@@ -43,5 +43,5 @@ export default defineConfig({
     }
   }],
   define: { __ARANDU_DEMO__: JSON.stringify(demoMode) },
-  build: { rollupOptions: { input } }
+  build: { modulePreload: false, rollupOptions: { input } }
 });

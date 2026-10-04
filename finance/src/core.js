@@ -31,51 +31,9 @@ export function frag(children = []) {
 }
 
 // ------------------------------------------------------------------ ícones
+const iconSprite = new URL('./icons.svg', import.meta.url).href;
 const SVG = 'http://www.w3.org/2000/svg';
-const ICONS = {
-  home: ['M3 10.5 12 3l9 7.5', 'M5 9.5V21h14V9.5'],
-  inbox: ['M3 13h5l1.5 3h5L16 13h5', 'M5 5h14l2 8v6H3v-6z'],
-  file: ['M14 3H6v18h12V7z', 'M14 3v4h4', 'M9 12h6', 'M9 16h6'],
-  check: ['M5 12.5 10 17l9-10'],
-  checkCircle: ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z', 'm8 12.5 3 3 5-6'],
-  layers: ['m12 3 9 5-9 5-9-5z', 'm3 13 9 5 9-5'],
-  briefcase: ['M4 7h16v13H4z', 'M9 7V4h6v3', 'M4 12h16'],
-  users: ['M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z', 'M2 21v-1a6 6 0 0 1 12 0v1', 'M16 3.5a4 4 0 0 1 0 7.5', 'M18 14a6 6 0 0 1 4 6v1'],
-  settings: ['M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z', 'M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z'],
-  bell: ['M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9', 'M13.7 21a2 2 0 0 1-3.4 0'],
-  search: ['M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14z', 'm20 20-3.5-3.5'],
-  plus: ['M12 5v14', 'M5 12h14'],
-  chevronRight: ['m9 6 6 6-6 6'],
-  chevronDown: ['m6 9 6 6 6-6'],
-  chevronUp: ['m6 15 6-6 6 6'],
-  chevronLeft: ['m15 6-6 6 6 6'],
-  alert: ['M12 3 2 20h20z', 'M12 10v4', 'M12 17h.01'],
-  clock: ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z', 'M12 7v5l3 2'],
-  lock: ['M5 11h14v10H5z', 'M8 11V7a4 4 0 0 1 8 0v4'],
-  eye: ['M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z', 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z'],
-  message: ['M21 12a8 8 0 0 1-11.6 7.1L3 21l1.9-6.4A8 8 0 1 1 21 12z'],
-  at: ['M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0z', 'M16 12v1.5a2.5 2.5 0 0 0 5 0V12a9 9 0 1 0-3.5 7.1'],
-  calendar: ['M4 6h16v15H4z', 'M4 10h16', 'M8 3v4', 'M16 3v4'],
-  refresh: ['M20 11a8 8 0 0 0-14.3-4.9L4 8', 'M4 3v5h5', 'M4 13a8 8 0 0 0 14.3 4.9L20 16', 'M20 21v-5h-5'],
-  x: ['M6 6l12 12', 'M18 6 6 18'],
-  menu: ['M4 6h16', 'M4 12h16', 'M4 18h16'],
-  arrowRight: ['M5 12h14', 'm13 6 6 6-6 6'],
-  download: ['M12 4v12', 'm7 11 5 5 5-5', 'M5 20h14'],
-  send: ['m22 2-7 20-4-9-9-4z', 'M22 2 11 13'],
-  building: ['M5 21V4h10v17', 'M15 9h4v12', 'M8 8h4', 'M8 12h4', 'M8 16h4', 'M3 21h18'],
-  repeat: ['m17 2 4 4-4 4', 'M3 11V9a3 3 0 0 1 3-3h15', 'm7 22-4-4 4-4', 'M21 13v2a3 3 0 0 1-3 3H3'],
-  more: ['M12 6h.01', 'M12 12h.01', 'M12 18h.01'],
-  scale: ['M12 3v18', 'M5 7h14', 'm5 7-3 7a3 3 0 0 0 6 0z', 'm19 7-3 7a3 3 0 0 0 6 0z', 'M8 21h8'],
-  flag: ['M4 21V4', 'M4 4h13l-2 4 2 4H4'],
-  info: ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z', 'M12 11v5', 'M12 8h.01'],
-  edit: ['M4 20h4L19 9l-4-4L4 16z', 'm13.5 6.5 4 4'],
-  reply: ['m9 17-5-5 5-5', 'M20 18v-2a4 4 0 0 0-4-4H4'],
-  shield: ['M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z'],
-  swap: ['M7 4 3 8l4 4', 'M3 8h14', 'm17 20 4-4-4-4', 'M21 16H7'],
-  tasks: ['M9 6h11', 'M9 12h11', 'M9 18h11', 'm3 6 1 1 2-2', 'm3 12 1 1 2-2', 'm3 18 1 1 2-2'],
-  logout: ['M9 21H4V3h5', 'm16 17 5-5-5-5', 'M21 12H9'],
-  sparkles: ['M12 3v4', 'M12 17v4', 'M3 12h4', 'M17 12h4']
-};
+const ICONS = Object.fromEntries(["home","inbox","file","check","checkCircle","layers","briefcase","users","settings","bell","search","plus","chevronRight","chevronDown","chevronUp","chevronLeft","alert","clock","lock","eye","message","at","calendar","refresh","x","menu","arrowRight","download","send","building","repeat","more","scale","flag","info","edit","reply","shield","swap","tasks","logout","sparkles"].map(name => [name, iconSprite + '#' + name]));
 
 /** Ícones extras de uma camada de interface (ex.: a demonstração) sem inflar o pacote real. */
 export function registerIcons(extra) { Object.assign(ICONS, extra); }
@@ -93,7 +51,14 @@ export function icon(name, { size = 16, label = null, className = '' } = {}) {
   svg.setAttribute('class', `icon ${className}`.trim());
   if (label) { svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', label); }
   else svg.setAttribute('aria-hidden', 'true');
-  for (const d of ICONS[name] || ICONS.info) {
+  const source = Object.hasOwn(ICONS, name) ? ICONS[name] : ICONS.info;
+  if (typeof source === 'string') {
+    const use = document.createElementNS(SVG, 'use');
+    use.setAttribute('href', source);
+    svg.append(use);
+    return svg;
+  }
+  for (const d of source) {
     const path = document.createElementNS(SVG, 'path');
     path.setAttribute('d', d);
     svg.append(path);

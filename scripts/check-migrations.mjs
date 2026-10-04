@@ -17,6 +17,7 @@ for (const [flow, files] of Object.entries(manifest)) {
     if (!fs.existsSync(absolute)) issues.push(`${flow}: arquivo ausente ${file}.`);
     else if (!fs.readFileSync(absolute, 'utf8').trim()) issues.push(`${flow}: arquivo vazio ${file}.`);
   });
+  if (files.indexOf('docs/supabase-financial-value-realization.sql') !== files.indexOf('docs/supabase-financial-p0-closure.sql') + 1) issues.push(`${flow}: value realization deve seguir P0 closure.`);
   const sprint2 = files.indexOf('docs/supabase-sprint2-catalog-readiness.sql');
   const collections = files.indexOf('docs/arandu-mvp-collections.sql');
   const sprint5 = files.indexOf('docs/supabase-sprint5-pilot.sql');
