@@ -6,9 +6,6 @@ const api = [
   'api/[...path].js',
   ...fs.readdirSync('lib/api/domains').filter((name) => name.endsWith('.mjs')).map((name) => `lib/api/domains/${name}`)
 ].map((file) => fs.readFileSync(file, 'utf8')).join('\n');
-const commercial = fs.readFileSync('api/commercial.js', 'utf8');
-const ordersApi = fs.readFileSync('api/orders.js', 'utf8');
-const accountOrdersApi = fs.readFileSync('api/account-orders.js', 'utf8');
 const stateMachine = fs.readFileSync('docs/supabase-order-state-machine.sql', 'utf8');
 const ordersHardening = fs.readFileSync('docs/supabase-orders-hardening.sql', 'utf8');
 const outbox = fs.readFileSync('docs/supabase-transactional-email-outbox.sql', 'utf8');
@@ -27,7 +24,6 @@ requirePattern(migration, /identity_hash/i, 'Idempotência não está vinculada 
 requirePattern(migration, /request_hash/i, 'Idempotência não está vinculada ao payload.');
 requirePattern(migration, /policy_snapshot jsonb/i, 'Snapshot imutável da política comercial não é persistido.');
 requirePattern(api, /p_policy_snapshot: policy/i, 'API pública não envia o snapshot completo da política do servidor.');
-requirePattern(commercial, /p_policy_snapshot: commercialPolicy/i, 'API comercial não envia o snapshot completo da política do servidor.');
 requirePattern(migration, /status in \('processing', 'completed', 'failed'\)/i, 'Estados de idempotência estão incompletos.');
 requirePattern(migration, /revoke insert, update, delete on public\.reservations from anon, authenticated/i, 'Escrita direta em reservas continua aberta.');
 requirePattern(migration, /revoke insert, update, delete on public\.proposals from anon, authenticated/i, 'Escrita direta em propostas continua aberta.');
@@ -41,9 +37,6 @@ requirePattern(api, /adminSupabaseRpc\('create_reservation_atomic'/, 'API de res
 requirePattern(api, /adminSupabaseRpc\('create_proposal_atomic'/, 'API de proposta não usa RPC atômica.');
 requirePattern(api, /userSupabaseRequest\(session\.accessToken/, 'Rotas de conta não exercitam JWT e RLS.');
 requirePattern(api, /adminSupabaseRpc\('apply_catalog_review_atomic'/, 'Revisão editorial não usa RPC transacional.');
-requirePattern(commercial, /create_commercial_record_atomic/, 'Operação comercial não é transacional.');
-requirePattern(commercial, /requireCommercialPolicy/, 'Comissão não vem da política completa e versionada do servidor.');
-if (/\bbody\.(total|platform_fee|artist_amount)\b/.test(commercial)) issues.push('API comercial ainda confia em valores monetários do cliente.');
 
 requirePattern(stateMachine, /select \* into v_order from public\.orders where id = p_order_id for update/i, 'State machine base não bloqueia o pedido.');
 requirePattern(stateMachine, /Pagamento pago exige pedido confirmado/i, 'State machine base perdeu a invariante de pagamento.');
@@ -68,15 +61,7 @@ requirePattern(ordersHardening, /set_config\('request\.headers'/i, 'Hardening n�
 requirePattern(ordersHardening, /update public\.artworks set status = 'sold'/i, 'Hardening não sincroniza obra concluída.');
 requirePattern(ordersHardening, /from public, anon, authenticated, service_role/i, 'Assinatura antiga não é revogada do service_role durante o hardening.');
 
-requirePattern(ordersApi, /adminSupabaseRpc\('transition_order_atomic'/, 'API de orders não usa RPC atômica.');
-requirePattern(ordersApi, /justification\.length < 8/, 'API de orders não exige justificativa.');
-requirePattern(ordersApi, /p_tracking_code:/, 'API de orders não encaminha tracking.');
-requirePattern(ordersApi, /p_shipping_provider:/, 'API de orders não encaminha transportadora.');
-if (/adminSupabaseRequest\(`orders\?id=.*method: 'PATCH'/s.test(ordersApi)) issues.push('Orders ainda permite PATCH direto no banco.');
 
-requirePattern(accountOrdersApi, /hasSupabaseAccess\('user'\)/, 'Conta de pedidos não exige acesso Supabase de usuário.');
-requirePattern(accountOrdersApi, /userSupabaseRequest\(/, 'Conta de pedidos não usa JWT/RLS do comprador.');
-if (/policy_snapshot|platform_fee|artist_amount/.test(accountOrdersApi)) issues.push('Conta de pedidos expõe campos comerciais internos desnecessários.');
 
 for (const pattern of [
   /create table if not exists public\.transactional_email_outbox/i,

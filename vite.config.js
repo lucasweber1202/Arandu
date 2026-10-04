@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite';
 import { resolve, relative, sep } from 'node:path';
-import { deploymentBaseUrl, renderSeoHead } from './scripts/seo-meta.mjs';
+import { deploymentBaseUrl, renderSeoHead, PUBLIC_PAGES } from './scripts/seo-meta.mjs';
 import { ownSiteUrl } from './lib/public-site-url.mjs';
 import { assertPresentationModeIsSafe } from './lib/presentation-mode.mjs';
 import { assertDemoModeIsSafe } from './lib/demo-mode.mjs';
@@ -12,7 +12,7 @@ assertPresentationModeIsSafe();
 // Demonstração interativa: decidida no build, nunca por parâmetro de URL. Em
 // produção financeira a constante é false e o motor não entra no pacote.
 const demoMode = assertDemoModeIsSafe();
-const publicPages = new Set(['index.html', 'produto.html', 'credito.html', 'adquirencia.html', 'seguranca.html', 'limites.html']);
+const publicPages = new Set(PUBLIC_PAGES);
 // Explicit production surface: legacy HTML is never discovered automatically.
 const financePages = FINANCE_PAGES.map((page) => page.path);
 // Telas exclusivas da demo (Work OS) só entram no build demonstrativo.

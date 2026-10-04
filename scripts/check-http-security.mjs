@@ -99,40 +99,9 @@ if (!publicCdnCache.includes('max-age=300') || !publicCdnCache.includes('stale-w
   issues.push('vercel.json: HTML público precisa de cache curto na CDN com stale-while-revalidate.');
 }
 
-const internalRule = (vercel.headers || []).find((entry) => entry.source.includes('admin-preview|admin|artista-editor'));
-const internalHeaders = new Map((internalRule?.headers || []).map((header) => [header.key, header.value]));
-if (!String(internalHeaders.get('Cache-Control') || '').includes('no-store')) {
-  issues.push('vercel.json: superfícies internas HTML precisam permanecer no-store.');
-}
-if (internalHeaders.get('Vercel-CDN-Cache-Control') !== 'no-store') {
-  issues.push('vercel.json: CDN não pode armazenar superfícies internas HTML.');
-}
-if (!String(internalHeaders.get('X-Robots-Tag') || '').includes('noindex')) {
-  issues.push('vercel.json: superfícies internas HTML precisam permanecer noindex.');
-}
-const genericIndex = (vercel.headers || []).findIndex((entry) => entry.source === '/(.*).html');
-const internalIndex = (vercel.headers || []).indexOf(internalRule);
-if (genericIndex < 0 || internalIndex <= genericIndex) {
-  issues.push('vercel.json: regra privada deve vir depois do cache HTML genérico para sobrescrevê-lo.');
-}
-const protectedInternalPages = new Set(String(internalRule?.source || '').replace(/^\/\(/, '').replace(/\)\.html$/, '').split('|').filter(Boolean));
-const rewrittenInternalPages = new Set((vercel.rewrites || []).map((rewrite) => String(rewrite.source || '').match(/^\/([^/]+)\.html$/)?.[1]).filter(Boolean));
-for (const page of rewrittenInternalPages) {
-  if (!protectedInternalPages.has(page)) issues.push(`vercel.json: rewrite interno ${page}.html ficou fora da regra privada de cache.`);
-}
-// Retired pages may keep a defensive private header without a public rewrite.
-// The inverse condition above still rejects every unprotected rewrite.
 if (!String(apiHeaders.get('X-Robots-Tag') || '').includes('noindex')) {
   issues.push('vercel.json: respostas de /api precisam de X-Robots-Tag noindex.');
 }
-
-['/js/(.*)', '/css/(.*)'].forEach((source) => {
-  const value = String(headersFor(source).get('Cache-Control') || '');
-  if (!value) issues.push(`vercel.json: Cache-Control ausente para ${source}.`);
-  else if (!value.includes('must-revalidate')) {
-    issues.push(`vercel.json: ${source} precisa revalidar (must-revalidate) para não servir asset obsoleto.`);
-  }
-});
 
 // --- Guarda de mesma origem -------------------------------------------------
 
@@ -166,10 +135,7 @@ originCases.forEach(([label, req, shouldBlock]) => {
 // --- A guarda está de fato ligada nos handlers ------------------------------
 
 const GUARDED_APIS = {
-  'api/[...path].js': 'enforceSameOrigin(req)',
-  'api/admin-auth.js': 'crossOriginRejection(req)',
-  'api/commercial.js': 'crossOriginRejection(req)',
-  'api/upload.js': 'crossOriginRejection(req)'
+  'api/[...path].js': 'enforceSameOrigin(req)'
 };
 
 Object.entries(GUARDED_APIS).forEach(([file, needle]) => {
@@ -182,7 +148,7 @@ Object.entries(GUARDED_APIS).forEach(([file, needle]) => {
   }
 });
 
-['api/admin-auth.js', 'api/collections.js', 'api/commercial.js', 'api/mvp-dashboard.js', 'api/readiness.js', 'api/upload.js'].forEach((file) => {
+['api/email-dispatch.js'].forEach((file) => {
   if (fs.existsSync(file) && !fs.readFileSync(file, 'utf8').includes('applyApiSecurityHeaders')) {
     issues.push(`${file}: respostas sem os cabeçalhos de segurança compartilhados.`);
   }

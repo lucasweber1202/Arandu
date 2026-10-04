@@ -1,6 +1,13 @@
 // Com ARANDU_ENV=pilot, toda rota legada de arte responde 404 antes de tocar
 // no banco; o domínio financeiro, auth/*, o cron e o health seguem vivos.
 import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
+
+// Funções serverless da vertical de arte foram removidas do código: não existe
+// mais handler para fechar, e a ausência é o gate.
+for (const retired of ['account-orders', 'admin-auth', 'collections', 'commercial', 'internal-page', 'mvp-dashboard', 'orders', 'readiness', 'upload']) {
+  assert.equal(existsSync(`api/${retired}.js`), false, `api/${retired}.js voltou ao código`);
+}
 
 const calls = [];
 globalThis.fetch = async (url) => { calls.push(String(url)); throw new Error('rede proibida neste teste'); };
@@ -48,10 +55,7 @@ const legacy = [
   ['[...path]', 'POST', '/api/admin-update', {}], ['[...path]', 'GET', '/api/operational?resource=artwork'], ['[...path]', 'GET', '/api/media'],
   ['[...path]', 'GET', '/api/selections'], ['[...path]', 'GET', '/api/account'], ['[...path]', 'GET', '/api/portal/artist'],
   ['[...path]', 'GET', '/api/dashboard'], ['[...path]', 'GET', '/api/admin/quality'], ['[...path]', 'GET', '/api/catalog-review'],
-  ['[...path]', 'GET', '/api/artist-accounts'], ['[...path]', 'GET', '/api/certificates'], ['[...path]', 'GET', '/api/index'],
-  ['account-orders', 'GET', '/api/account-orders'], ['admin-auth', 'GET', '/api/admin-auth?action=session'], ['collections', 'GET', '/api/collections'],
-  ['commercial', 'GET', '/api/commercial'], ['internal-page', 'GET', '/api/internal-page?page=admin.html'], ['mvp-dashboard', 'GET', '/api/mvp-dashboard'],
-  ['orders', 'GET', '/api/orders'], ['readiness', 'GET', '/api/readiness'], ['upload', 'POST', '/api/upload', {}]
+  ['[...path]', 'GET', '/api/artist-accounts'], ['[...path]', 'GET', '/api/certificates'], ['[...path]', 'GET', '/api/index']
 ];
 for (const [file, method, url, body] of legacy) {
   const result = await call(file, method, url, body);
@@ -70,19 +74,16 @@ assert.equal((await call('health', 'GET', '/api/health')).status, 200);
 // A produção oficial é o mesmo produto: também fechada.
 process.env.ARANDU_ENV = 'production';
 assert.deepEqual(await call('[...path]', 'POST', '/api/forms', { name: 'x' }), { status: 404, code: 'legacy_surface_closed' });
-assert.deepEqual(await call('orders', 'GET', '/api/orders'), { status: 404, code: 'legacy_surface_closed' });
 // A demonstração canônica (ARANDU_ENV=demo, banco DEMO) é o mesmo produto: fechada,
 // com o domínio financeiro aberto.
 process.env.ARANDU_ENV = 'demo';
 assert.deepEqual(await call('[...path]', 'POST', '/api/forms', { name: 'x' }), { status: 404, code: 'legacy_surface_closed' }, 'demo reabriu /api/forms');
-assert.deepEqual(await call('orders', 'GET', '/api/orders'), { status: 404, code: 'legacy_surface_closed' });
 assert.notEqual((await call('[...path]', 'GET', '/api/finance/rfqs')).code, 'legacy_surface_closed', 'finance/* fechado na demo com banco');
 // Deployment de produção da Vercel sem ARANDU_ENV (variável esquecida): fechado.
 delete process.env.ARANDU_ENV;
 process.env.VERCEL_ENV = 'production';
 assert.deepEqual(await call('[...path]', 'POST', '/api/forms', { name: 'x' }), { status: 404, code: 'legacy_surface_closed' }, 'produção sem ARANDU_ENV reabriu /api/forms');
 assert.deepEqual(await call('[...path]', 'GET', '/api/pilot/metrics'), { status: 404, code: 'legacy_surface_closed' });
-assert.deepEqual(await call('commercial', 'GET', '/api/commercial'), { status: 404, code: 'legacy_surface_closed' });
 assert.notEqual((await call('[...path]', 'GET', '/api/finance/me')).code, 'legacy_surface_closed', 'finance/* fechado na produção sem ARANDU_ENV');
 delete process.env.VERCEL_ENV;
 // Sem ARANDU_ENV (desenvolvimento/preview legado) nada muda.

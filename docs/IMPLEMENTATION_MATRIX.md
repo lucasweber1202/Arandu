@@ -150,6 +150,16 @@ Migration `docs/supabase-financial-relationships-portfolio.sql` (`financial-rela
 
 ---
 
+### Legacy Art Marketplace Decommission
+
+Inventário, categorias e procedimento em `docs/LEGACY_ART_RETIREMENT.md` (ponte para o Git: `76c50bf` último estado só de arte, `cfd51ea` último `pilot` com o runtime de arte no tree).
+
+| ID | Capability | Status | Evidence | Gaps / blockers | Next action | PR/commit |
+| --- | --- | --- | --- | --- | --- | --- |
+| LEG-01 | Runtime, assets, client JS/CSS, dados estáticos, funções serverless e libs só de arte fora do tree | implemented | ~150 páginas, `js/`, `css/`, `assets/`, `data/`, `content/`, `types/`, `supabase/`, stack Next/TS, 9 funções `api/*`, 4 libs removidas; `check:legacy-art` (tree) e `check:financial-surface --dist` | rotas de arte dentro de `api/[...path].js` e módulos que só ele importa continuam (404 em ambiente real) — BLOCKER de permissão de leitura do arquivo | owner libera leitura/edição do roteador ou remove as rotas (passos no documento) | PR legacy runtime cleanup |
+| LEG-02 | Scripts, testes, dependências e documentos de arte fora do tree | implemented | ~35 scripts e scripts npm, 5 specs E2E, `typescript`, ~115 documentos removidos; gates reescritos para a superfície financeira | variáveis de ambiente de arte ainda lidas pelos módulos bloqueados | junto com LEG-01 | PR legacy runtime cleanup |
+| LEG-03 | Objetos de banco e storage da arte | partial | migration de aposentadoria com recusa sem export reconhecido (PR seguinte) | aplicação hospedada e bucket de mídia hospedado BLOCKED (backup/restore/export/decisão do owner) | PR de decommission do banco | — |
+
 ## P1 — Recorrência, ROI e diferenciação
 
 | ID | Guideline | Capability | Pri | Dependency | Status | Evidence | Gaps | Risk | Next action | PR/commit |
@@ -287,3 +297,8 @@ P0.10 permanece **partial**: nomes e escala de responsáveis, restore/DR hospeda
 ## P0.11 Data Governance — 2026-10-04
 
 Partiu de `pilot` @ `cfd51ea` (merge da #112, P0.10), sem PR posterior e com `feature/data-governance` idêntica à `pilot`. Entregue no código: registro de classificação/SoR, retenção versionada, legal hold, export portável, offboarding com revogação, semântica de exclusão, trilha, UI, job e documentação (`docs/FINANCIAL_DATA_GOVERNANCE.md`). Local: `npm run test:database` verde (clean install, reaplicação, upgrade sobre base povoada, rollback recusado com estado e aceito sem uso, canário com as tabelas novas, concorrência), `npm run check:all` verde, build e budgets aprovados (governança em chunk próprio sob demanda), E2E financeiro em Chromium desktop + mobile. Firefox/WebKit ficam para o CI. Hospedado: nada aplicado; P0.11 permanece `partial` até a exclusão física (decisão jurídica) e o rollout do piloto. Próximo: aposentadoria do legado de arte (runtime, depois banco/storage).
+
+
+## Legacy art runtime cleanup — 2026-10-04
+
+Partiu de `pilot` @ `07f6221` (merge da #113, P0.11). Removido do tree: 567 arquivos (−35,6 mil linhas): tracked files 1259 → 721; bytes versionados 31,6 MB → 28,6 MB (o restante é majoritariamente evidência visual da demo financeira). Artefato publicado inalterado em superfície (JS 421 kB / 800 kB, sem página, texto, asset ou SEO de arte, conferido pelo novo `check-legacy-art --dist`). Blocker registrado: a leitura do roteador `api/[...path].js` foi negada pela política de permissões desta sessão; as rotas de arte dentro dele seguem fechadas (404) em piloto/produção/demo e são o próximo passo do owner.

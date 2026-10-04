@@ -42,7 +42,7 @@ npm run build
 npm run test:e2e:list
 ```
 
-Mudanças em migrations, RLS, reservas, propostas ou política comercial também exigem:
+Mudanças em migrations, RLS, autorização, governança de dados ou propostas também exigem:
 
 ```bash
 npm run test:database
@@ -65,7 +65,8 @@ npm run test:e2e
 - Mudanças de autenticação, RLS, upload e operação comercial precisam de testes negativos.
 - Preserve decisão humana, neutralidade de comparação e proveniência conforme a guideline, o addendum v2.1 e `docs/FINANCIAL_PRODUCT_BOUNDARIES.md`.
 - Integrações devem declarar source of truth, direção de sync, idempotência, conflito, fallback e observabilidade.
-- Mudanças que afetem dados devem avaliar classificação, minimização, retenção, exclusão/offboarding e impacto em backup conforme aplicável.
+- Mudanças que afetem dados devem avaliar classificação, minimização, retenção, exclusão/offboarding e impacto em backup conforme aplicável. Tabela nova entra no registro `lib/finance/data-governance.mjs`.
+- A vertical de marketplace de arte está aposentada (`docs/LEGACY_ART_RETIREMENT.md`): não reintroduza código, páginas, assets, scripts, testes, rotas, variáveis ou documentos de arte a partir do histórico sem tarefa explícita de recuperação.
 - Mudanças que afetem produção, migrations ou recuperação devem avaliar backup, restore, rollback/forward-fix, canário e runbook. **Backup existente não equivale a restore comprovado.**
 - Não alegue RPO, RTO, SLA, data residency, branch protection, certificação ou compliance sem evidência operacional/contratual adequada.
 
@@ -74,7 +75,7 @@ npm run test:e2e
 Financial Procurement: o estado de cada item do piloto fica em
 `docs/FINANCIAL_PILOT_GO_LIVE.md`, com evidência datada em
 `docs/FINANCIAL_RELEASE_EVIDENCE_*.md`. `ops/release-evidence.json` guarda os
-gates externos herdados da vertical de arte.
+gates externos de produção.
 
 Um gate só pode sair de `not_started` quando houver:
 

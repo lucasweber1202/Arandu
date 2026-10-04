@@ -143,9 +143,9 @@ Estado observado em 02/10/2026, separado por código e ambiente em
   capacidade Supabase, proteção de branches e preparação jurídica/comercial.
   Lista em [`docs/FINANCIAL_OWNER_ACTIONS.md`](docs/FINANCIAL_OWNER_ACTIONS.md).
 
-Nenhum item acima é declarado pronto sem evidência verificável. Os 13 gates
-herdados do go-live comercial da vertical de arte continuam registrados em
-`ops/release-evidence.json` e não bloqueiam o piloto financeiro.
+Nenhum item acima é declarado pronto sem evidência verificável. Gates externos
+de produção ficam em `ops/release-evidence.json` e não bloqueiam o piloto
+financeiro.
 
 ## Rodar localmente
 
@@ -225,11 +225,8 @@ controles mínimos do repositório.
 no projeto `arandu`, doctor GO contra ele e promoção `pilot → main` com o piloto
 realmente utilizado.
 
-## Legado: vertical de arte
+## Nota histórica
 
-O Arandu começou como plataforma de curadoria de arte brasileira. Essa vertical
-foi aposentada: nenhuma página de arte é publicada, e as APIs de arte respondem
-404 em ambiente real. O código, as migrations e a documentação histórica
-permanecem no repositório para auditoria e porque o banco ainda carrega esse
-esquema. Nada disso é produto atual. Índice do material histórico:
-[`docs/LEGACY_ART_RETIREMENT.md`](docs/LEGACY_ART_RETIREMENT.md).
+O Arandu começou como marketplace de arte brasileira. Essa vertical foi
+aposentada e removida da árvore atual; o Git preserva a história. Detalhes e
+regras para não reintroduzi-la: [`docs/LEGACY_ART_RETIREMENT.md`](docs/LEGACY_ART_RETIREMENT.md).
