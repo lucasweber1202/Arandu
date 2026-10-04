@@ -158,7 +158,7 @@ Inventário, categorias e procedimento em `docs/LEGACY_ART_RETIREMENT.md` (ponte
 | --- | --- | --- | --- | --- | --- | --- |
 | LEG-01 | Runtime, assets, client JS/CSS, dados estáticos, funções serverless e libs só de arte fora do tree | implemented | ~150 páginas, `js/`, `css/`, `assets/`, `data/`, `content/`, `types/`, `supabase/`, stack Next/TS, 9 funções `api/*`, 4 libs removidas; `check:legacy-art` (tree) e `check:financial-surface --dist` | rotas de arte dentro de `api/[...path].js` e módulos que só ele importa continuam (404 em ambiente real) — BLOCKER de permissão de leitura do arquivo | owner libera leitura/edição do roteador ou remove as rotas (passos no documento) | PR legacy runtime cleanup |
 | LEG-02 | Scripts, testes, dependências e documentos de arte fora do tree | implemented | ~35 scripts e scripts npm, 5 specs E2E, `typescript`, ~115 documentos removidos; gates reescritos para a superfície financeira | variáveis de ambiente de arte ainda lidas pelos módulos bloqueados | junto com LEG-01 | PR legacy runtime cleanup |
-| LEG-03 | Objetos de banco e storage da arte | partial | migration de aposentadoria com recusa sem export reconhecido (PR seguinte) | aplicação hospedada e bucket de mídia hospedado BLOCKED (backup/restore/export/decisão do owner) | PR de decommission do banco | — |
+| LEG-03 | Objetos de banco e storage da arte | partial | migration nova `docs/supabase-financial-legacy-art-decommission.sql` (marker `financial-legacy-art-decommission-1`): recusa sem `arandu.legacy_art_decommission_ack=export-verified:<ref>`, grava evidência só de contagens, remove ~36 tabelas, 18 views, ~29 funções e o trigger de perfil sem CASCADE, preserva rate limit e outbox transacional; rollback recusa (restore + forward-fix); clean install, upgrade povoado, reaplicação, canário e probes no `test:database` | aplicação hospedada e bucket de mídia hospedado BLOCKED (backup/restore verificado, export, decisão do owner) | owner executa o procedimento hospedado de `docs/LEGACY_ART_RETIREMENT.md` | PR legacy database decommission |
 
 ## P1 — Recorrência, ROI e diferenciação
 
@@ -302,3 +302,8 @@ Partiu de `pilot` @ `cfd51ea` (merge da #112, P0.10), sem PR posterior e com `fe
 ## Legacy art runtime cleanup — 2026-10-04
 
 Partiu de `pilot` @ `07f6221` (merge da #113, P0.11). Removido do tree: 567 arquivos (−35,6 mil linhas): tracked files 1259 → 721; bytes versionados 31,6 MB → 28,6 MB (o restante é majoritariamente evidência visual da demo financeira). Artefato publicado inalterado em superfície (JS 421 kB / 800 kB, sem página, texto, asset ou SEO de arte, conferido pelo novo `check-legacy-art --dist`). Blocker registrado: a leitura do roteador `api/[...path].js` foi negada pela política de permissões desta sessão; as rotas de arte dentro dele seguem fechadas (404) em piloto/produção/demo e são o próximo passo do owner.
+
+
+## Legacy art database decommission — 2026-10-04
+
+Partiu de `pilot` @ `0738693` (merge da #114). Migration aditiva nova; nenhuma migration histórica editada. Local: `npm run test:database` verde (clean install em passada única com 25 suítes financeiras, upgrade sobre base com dados de arte recusado sem ack e com ack inválido e aceito com ack, reaplicação idempotente, canário, probes pós-migração, rollback recusado). Hospedado: nada aplicado; piloto e produção só recebem a migration depois de backup com restore verificado, export dos dados de arte e decisão registrada do owner (BLOCKER em `docs/LEGACY_ART_RETIREMENT.md`).
