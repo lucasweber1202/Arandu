@@ -147,6 +147,7 @@ for (const [flow, files] of Object.entries(manifest)) {
   if (files.indexOf('docs/supabase-financial-operational-resilience.sql') !== files.indexOf('docs/supabase-financial-sso.sql') + 1) issues.push(`${flow}: Operational Resilience deve seguir SSO.`);
   if (files.indexOf('docs/supabase-financial-data-governance.sql') !== files.indexOf('docs/supabase-financial-operational-resilience.sql') + 1) issues.push(`${flow}: Data Governance deve seguir Operational Resilience.`);
   if (files.indexOf('docs/supabase-financial-legacy-art-decommission.sql') !== files.indexOf('docs/supabase-financial-data-governance.sql') + 1) issues.push(`${flow}: Aposentadoria da vertical de arte deve seguir Data Governance.`);
+  if (files.indexOf('docs/supabase-financial-p0-closure.sql') !== files.indexOf('docs/supabase-financial-legacy-art-decommission.sql') + 1) issues.push(`${flow}: P0 closure deve seguir a aposentadoria da vertical de arte.`);
 }
 
 // Catraca de inventário: todo .sql direto em docs/ é migration do manifesto,

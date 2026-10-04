@@ -114,14 +114,14 @@ Migration `docs/supabase-financial-relationships-portfolio.sql` (`financial-rela
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | P0.7-01 | §27 | Aprovação sequencial com snapshot, stale detection, segregação solicitante ≠ aprovador | P0 | — | implemented | `docs/supabase-financial-enterprise-approvals.sql`, `docs/supabase-financial-approval-handoff.sql`, `tests/database/financial-enterprise-approvals.sql`, `/finance/approvals.html`; preservado como caminho `legacy` sem policy | — | — | — | — |
 | P0.7-02 | §27 | Policies por valor/categoria/entidade/N propostas/provedor novo/garantia/covenant/prazo, versionadas, global vs local, snapshot no processo | P0 | P0.2 | partial | `docs/supabase-financial-policy-engine.sql`, `docs/FINANCIAL_POLICY_ENGINE.md` (fatos, precedência determinística grupo+entidade+fallback, fronteira de moeda), versões imutáveis, snapshot no pedido, `lib/finance/policy.mjs`, Configurações → Governança; testes DB/unit/API/E2E | rollout hospedado pendente; covenant é fato declarado (sem covenant estruturado); sem câmbio por desenho | regra do cliente incompleta (mitigado por fato desconhecido = conservador) | rollout com backup/restore drill/doctor/canário | feature/policy-engine-v2 |
-| P0.7-03 | §27 | Escalonamento, prazos de aprovação, justificativa de exceção, group treasury approval | P0 | P0.7-02 | partial | prazos por etapa, escalação idempotente e expiração (`fin_process_approval_deadlines`, job `approval_deadlines`), exceção explícita (`fin_policy_exceptions`), delegação (`fin_approval_delegations`), SoD padrão + configurável, devolução com `reason_code`, substituição explícita | escalação na cadência do cron diário (+ acionamento manual); aviso de exceção sem notificação própria; rollout pendente | prazo vencido sem ação humana (mitigado por tarefa + aviso) | idem | feature/policy-engine-v2 |
+| P0.7-03 | §27 | Escalonamento, prazos de aprovação, justificativa de exceção, group treasury approval | P0 | P0.7-02 | partial | prazos por etapa, escalação idempotente e expiração (`fin_process_approval_deadlines`, job `approval_deadlines`), exceção explícita (`fin_policy_exceptions`), delegação (`fin_approval_delegations`), SoD padrão + configurável, devolução com `reason_code`, substituição explícita | escalação na cadência do cron diário (+ acionamento manual); rollout pendente (aviso próprio de exceção pedida/decidida entregue em `financial-p0-closure-1`) | prazo vencido sem ação humana (mitigado por tarefa + aviso) | idem | feature/policy-engine-v2 |
 
 ### P0.8 — Public API & Webhooks Foundation
 
 | ID | Guideline | Capability | Pri | Dependency | Status | Evidence | Gaps | Risk | Next action | PR/commit |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | P0.8-01 | §31.1 | API versionada com service accounts/API keys, scopes, tenant/entity auth, paginação, rate limit, idempotency, audit | P0 | P0.2 | partial | `/api/v1/*` (`lib/api/domains/public-api.mjs`), `docs/supabase-financial-public-api.sql` (token só por hash, credencial AND organização AND entidade AND escopo AND objeto em `fin_api_*`), keyset, filtros fechados, rate limit por credencial fail-closed, `Idempotency-Key`, correlação, trilha em `fin_events`; administração em Configurações → Integrações; `docs/FINANCIAL_PUBLIC_API.md`, OpenAPI | rollout hospedado pendente; escrita v1 só cria rascunho de RFQ | token vazado (mitigado: expiração, revogação imediata, last_used, prefixo por ambiente) | rollout + chave de cifragem por ambiente | feature/public-api-webhooks |
-| P0.8-02 | §31.1 | Webhooks: registro, assinatura HMAC, replay protection, retries, delivery log, dead-letter | P0 | P0.8-01 | partial | outbox por gatilho em `fin_events` (payload mínimo), `fin_webhook_claim`/`complete` com lease/fencing, backoff 1 min→24 h, dead-letter na 8ª, auto-desativação em 20 falhas, replay manual, HMAC sobre `t.delivery_id.body`, segredo AES-256-GCM, SSRF (URL + DNS na entrega), `lib/finance/webhook-dispatch.mjs`, job `webhooks` | cadência diária do cron (blocker: agendador em minutos); DNS rebinding residual documentado | receptor sem verificação (doc + exemplo) | blockers em `docs/FINANCIAL_PUBLIC_API.md` | feature/public-api-webhooks |
+| P0.8-02 | §31.1 | Webhooks: registro, assinatura HMAC, replay protection, retries, delivery log, dead-letter | P0 | P0.8-01 | partial | outbox por gatilho em `fin_events` (payload mínimo), `fin_webhook_claim`/`complete` com lease/fencing, backoff 1 min→24 h, dead-letter na 8ª, auto-desativação em 20 falhas, replay manual, HMAC sobre `t.delivery_id.body`, segredo AES-256-GCM, SSRF (URL + DNS na entrega), `lib/finance/webhook-dispatch.mjs`, job `webhooks` | cadência diária do cron (blocker: agendador em minutos); DNS rebinding resolvido (IP validado fixado no socket, `test-operational-resilience`) | receptor sem verificação (doc + exemplo) | blockers em `docs/FINANCIAL_PUBLIC_API.md` | feature/public-api-webhooks |
 | P0.8-03 | §31.1 | Docs, versioning e deprecation policy | P0 | P0.8-01 | implemented | `docs/FINANCIAL_PUBLIC_API.md` (compatibilidade, deprecação ≥ 180 dias com `Deprecation`/`Sunset`, envelopes, erros), `docs/openapi/arandu-public-api-v1.json` com teste de paridade rota↔contrato | — | — | manter Histórico a cada mudança | feature/public-api-webhooks |
 
 ### P0.9 — Enterprise IAM / SSO Foundation
@@ -145,7 +145,7 @@ Migration `docs/supabase-financial-relationships-portfolio.sql` (`financial-rela
 | ID | Guideline | Capability | Pri | Dependency | Status | Evidence | Gaps | Risk | Next action | PR/commit |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | P0.11-01 | Add. D.1–D.2 | Classificação, minimização e source of truth consultáveis | P0 | — | implemented | registro por tabela `lib/finance/data-governance.mjs` (77 tabelas/views + infra compartilhada: SoR, classificação, PII/financeiro/credencial, retenção, exclusão, export, hold, dono), gate de cobertura contra as migrations em `scripts/test-finance-data-governance.mjs`, mapa SoR (Graph/busca/painel derivados), gate de minimização da trilha em `tests/database/financial-data-governance.sql`; `docs/FINANCIAL_DATA_GOVERNANCE.md` | metadado não é consultável por SQL (vive no código, verificado em CI) | tabela nova sem classificação (mitigado: gate falha) | P1 nasce classificada | branch `claude/stoic-archimedes-5tb1jj` |
-| P0.11-02 | Add. D.4–D.5 | Retenção, legal hold, export, offboarding de tenant, revogação de integrações | P0 | P0.8, P0.9, P0.10 | partial | `docs/supabase-financial-data-governance.sql` (`financial-data-governance-1`): políticas versionadas sem prazo padrão (pisos/tetos técnicos), executor em lote com dry-run, lock, rerun idempotente, hold-aware e trilha `fin_governance_log`; legal hold com escopo validado; export assíncrono com manifesto + sha256 por conjunto, sem segredos, expiração 7 dias; offboarding determinístico com revogação idempotente (contas de serviço, credenciais, webhooks, SSO, convites, membros) sem cascade; job `/api/jobs/governance` com lease em `fin_job_runs`; UI Configurações → Governança de dados; card no console; rollback só sem uso; testes DB (matriz negativa: outro tenant, provedor, viewer, analista, escopo de entidade, sem vínculo, membro e conta de serviço revogados, export/hold/offboarding cross-tenant), JS, concorrência e E2E | exclusão física do tenant não implementada (`closed` exige zero linhas); export > 4 MB/conjunto falha; offboarding de organização provedora; rollout hospedado | exclusão descrita como total (mitigado: docs e UI dizem o contrário) | decisão jurídica de retenção pós-contrato → executor de purge; rollout piloto | branch `claude/stoic-archimedes-5tb1jj` |
+| P0.11-02 | Add. D.4–D.5 | Retenção, legal hold, export, offboarding de tenant, revogação de integrações | P0 | P0.8, P0.9, P0.10 | partial | `docs/supabase-financial-data-governance.sql` (`financial-data-governance-1`): políticas versionadas sem prazo padrão (pisos/tetos técnicos), executor em lote com dry-run, lock, rerun idempotente, hold-aware e trilha `fin_governance_log`; legal hold com escopo validado; export assíncrono com manifesto + sha256 por conjunto, sem segredos, expiração 7 dias; offboarding determinístico com revogação idempotente (contas de serviço, credenciais, webhooks, SSO, convites, membros) sem cascade; job `/api/jobs/governance` com lease em `fin_job_runs`; UI Configurações → Governança de dados; card no console; rollback só sem uso; testes DB (matriz negativa: outro tenant, provedor, viewer, analista, escopo de entidade, sem vínculo, membro e conta de serviço revogados, export/hold/offboarding cross-tenant), JS, concorrência e E2E | exclusão física do tenant não implementada (`closed` exige zero linhas); export até 64 MB/conjunto com download em faixas de 4 MB e checksum (`financial-p0-closure-1`); offboarding de organização provedora; rollout hospedado | exclusão descrita como total (mitigado: docs e UI dizem o contrário) | decisão jurídica de retenção pós-contrato → executor de purge; rollout piloto | branch `claude/stoic-archimedes-5tb1jj` |
 | P0.11-03 | Add. D.6 | Superfície de subprocessadores e readiness jurídica | P0 | — | blocked | `docs/FINANCIAL_LEGAL_REVIEW_REQUIRED.md` | parecer jurídico | claim LGPD | owner/jurídico | — |
 
 ---
@@ -312,3 +312,78 @@ Partiu de `pilot` @ `0738693` (merge da #114). Migration aditiva nova; nenhuma m
 ## Final legacy runtime cleanup — 2026-10-04
 
 Partiu de `pilot` @ `051f10f` (merge da #115). `api/[...path].js` lido por inteiro e reescrito para a superfície financeira (finance/*, auth/*, v1/*, crons, security.txt); 23 rotas de arte, 8 módulos de domínio e 6 libs de arte removidos; `authSessionCookie` (console finance_ops) e security.txt preservados em módulos próprios; modelos de e-mail de arte e 27 variáveis de ambiente de arte removidos; `lib/legacy-surface.mjs` → `lib/deployment-surface.mjs` (`route_not_found`). Gate `check:legacy-art` ampliado (módulos, imports, rotas do roteador, env, modelos de e-mail) com prova negativa. Login, cadastro, refresh, logout, recuperação, SSO, MFA do console, API financeira, Public API, crons, health e security.txt cobertos por `test-auth-api`, `test-finance-sso`, `test-finance-public-api`, `test-deployment-surface`, `check-security-contact` e E2E.
+
+
+## Clean-room final e P0 closure — 2026-10-04
+
+Clean-room num clone limpo de `pilot` @ `63dddd5` (merge da #116), sem artefato do checkout de trabalho: `npm ci --include=optional`, `audit:ci`, `sbom:ci`, `check:all`, `build`, `check:dist-assets`, `check:build-size`, `check:seo:dist`, `check:financial-surface`, `check:legacy-art`, `test:e2e:list`, `test:database`, `test:e2e`, `test:e2e:presentation`, `git diff --check` — todos verdes: audit 0 vulnerabilidades, SBOM 21 componentes, E2E Chromium desktop+mobile 135 aprovados (7 skipped), apresentação 119 aprovados (19 skipped), 0 falhas. Estado final da arte em `docs/LEGACY_ART_RETIREMENT.md`: runtime, rotas, assets, dependências e variáveis = 0; testes de arte = só ausência/aposentadoria (testes de comportamento de reserva, pedido, perfil, status operacional e retenção de arte saíram do `test:database`; a outbox compartilhada passou a ser testada pelo caminho financeiro); migrations históricas preservadas; limpeza hospedada de banco e storage controlada por blocker.
+
+Revisão de todos os P0 `partial`/`missing`:
+
+| ID | Gap | Classe | Resultado |
+| --- | --- | --- | --- |
+| P0.7-03 | aviso de exceção sem notificação própria | CODE_IMPLEMENTABLE | **feito**: `financial-p0-closure-1` (pedida → quem decide; decidida → quem pediu), preferência própria, teste DB |
+| P0.11-02 | export > 4 MB por conjunto falha | CODE_IMPLEMENTABLE | **feito**: teto 64 MB, `fin_governance_export_part_range`, manifesto isolado, download em faixas conferido por sha256 na interface |
+| P0.8-02 | DNS rebinding residual | CODE_IMPLEMENTABLE | **já resolvido no código** (P0.10); documentação corrigida |
+| P0.7-02 | covenant estruturado; câmbio | INTENTIONAL_BOUNDARY | Covenant Monitor é P1 (addendum P1.8); sem câmbio por desenho |
+| P0.8-01 | escrita v1 só rascunho de RFQ | INTENTIONAL_BOUNDARY | ação material permanece humana |
+| P0.9-02 | adapter OIDC direto sem callback | INTENTIONAL_BOUNDARY | a sessão é emitida pelo broker (Supabase Auth); adapter direto só com cliente que exija, sem broker |
+| P0.11-02 | offboarding de organização provedora | EXTERNAL_BLOCKER | exige decisão de produto sobre propostas que pertencem a compradores |
+| P0.11-02 | exclusão física do tenant | EXTERNAL_BLOCKER | exige decisão jurídica de retenção pós-contrato |
+| P0.1-01, P0.1-05, P0.1-07, P0.2-09, P0.3-02, P0.3-03, P0.7-02/03, P0.8-01/02, P0.9-02/03, P0.10-01/02, P0.11-02 | rollout/drill/DR/IdP/cron/DEMO/produção | EXTERNAL_BLOCKER | blocos abaixo |
+
+```
+BLOCKER: rollout hospedado das migrations financeiras (piloto; produção depois)
+WHY: o banco do piloto está atrás do código; aplicar exige ambiente confirmado e restore verificado
+WHO MUST ACT: owner com acesso ao Supabase do piloto
+EXACT ACTION: ARANDU_ENV=pilot npm run finance:pilot:doctor; npm run pilot:backup:preflight; npm run pilot:restore:drill (destino descartável); npm run migrations:bundle -- --after-schema=<marker atual>; aplicar; doctor, canário e jornada autenticada. A aposentadoria da arte só com o procedimento de docs/LEGACY_ART_RETIREMENT.md
+WHAT IS READY: migrations com rollback/forward-fix, bundle por marker, canário, probes, doctor com marker esperado
+HOW TO VERIFY: doctor GO com o marker esperado; canário sem falha; jornada autenticada
+```
+
+```
+BLOCKER: restore drill e ensaio de DR hospedados; RPO/RTO medidos
+WHY: nenhum restore hospedado foi executado; sem medição não há RPO/RTO declarável
+WHO MUST ACT: owner / responsável pela plataforma
+EXACT ACTION: npm run pilot:restore:drill contra o backup real em destino descartável, cronometrado; registrar em docs/FINANCIAL_RELEASE_EVIDENCE_<data>.md
+WHAT IS READY: scripts de preflight, drill e probes pós-restore
+HOW TO VERIFY: evidência datada com tempo de restore e probes verdes
+```
+
+```
+BLOCKER: login real com IdP de cliente (SSO)
+WHY: o caminho broker foi testado com IdP de teste; nenhum IdP corporativo real
+WHO MUST ACT: owner + primeiro cliente com IdP
+EXACT ACTION: configurar SSO no Supabase do ambiente, domínio verificado por TXT, login de teste registrado (docs/FINANCIAL_SSO.md)
+WHAT IS READY: fluxo fail-closed, prontidão honesta na interface, testes
+HOW TO VERIFY: login SSO real registrado; prontidão "operacional" na tela
+```
+
+```
+BLOCKER: cadência de cron em minutos (webhooks, escalação de aprovação, governança)
+WHY: o plano atual do Vercel executa cron diariamente
+WHO MUST ACT: responsável pela plataforma
+EXACT ACTION: agendar /api/jobs/* com CRON_SECRET a cada 1–5 min (plano Vercel adequado, pg_cron + pg_net, ou agendador externo)
+WHAT IS READY: endpoints idempotentes com lease e fin_job_runs
+HOW TO VERIFY: fin_job_runs na cadência configurada
+```
+
+```
+BLOCKER: ambiente DEMO com Supabase próprio e produção com banco próprio
+WHY: limite do plano Supabase e configuração de projetos fora do repositório
+WHO MUST ACT: owner
+EXACT ACTION: criar projetos dedicados e definir ARANDU_ENV/SUPABASE_* por projeto Vercel (docs/FINANCIAL_OWNER_ACTIONS.md)
+WHAT IS READY: build e doctor por ambiente, guarda contra banco legado
+HOW TO VERIFY: ARANDU_ENV=<env> npm run finance:pilot:doctor GO em cada ambiente
+```
+
+```
+BLOCKER: proteção de branch no GitHub
+WHY: não verificada nesta sessão (sem permissão de administração); não se afirma que está ativa
+WHO MUST ACT: owner do repositório
+EXACT ACTION: exigir os quatro checks (database, validate, presentation, deploy-boundaries) e PR para pilot e main
+WHAT IS READY: CI com os quatro jobs
+HOW TO VERIFY: Settings → Branches mostra as regras
+```
+
+Status de entrega: **code complete** e **CI validated** para o que entra por PR; **hosted validated** e **production ready** continuam dependentes dos blockers acima.

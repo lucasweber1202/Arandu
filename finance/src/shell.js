@@ -328,6 +328,8 @@ export function installCommandCenter(ctx, trigger) {
 // ------------------------------------------------------ notificações
 export const NOTIFICATION_META = Object.freeze({
   approval_requested: { label: 'Aprovação', icon: 'checkCircle', priority: 0, tone: 'warning' },
+  policy_exception_requested: { label: 'Exceção', icon: 'alert', priority: 0, tone: 'warning' },
+  policy_exception_decided: { label: 'Exceção', icon: 'checkCircle', priority: 2, tone: 'info' },
   mention: { label: 'Menção', icon: 'at', priority: 1, tone: 'accent' },
   invite_received: { label: 'Convite', icon: 'send', priority: 1, tone: 'accent' },
   approval_changes_requested: { label: 'Aprovação', icon: 'edit', priority: 1, tone: 'warning' },
@@ -351,7 +353,7 @@ export function notificationHref(ctx, row) {
   const id = encodeURIComponent(row.object_id);
   if (row.object_type === 'rfq') {
     const tab = { approval_requested: 'aprovacoes', approval_approved: 'decisao', approval_rejected: 'aprovacoes', approval_changes_requested: 'aprovacoes',
-      mention: 'atividade', comment: 'atividade', proposal_received: 'propostas', proposal_revised: 'propostas' }[row.event_type];
+      policy_exception_requested: 'aprovacoes', policy_exception_decided: 'aprovacoes', mention: 'atividade', comment: 'atividade', proposal_received: 'propostas', proposal_revised: 'propostas' }[row.event_type];
     return ctx.href(`/finance/rfq.html?id=${id}${tab ? `#${tab}` : ''}`);
   }
   if (row.object_type === 'contract') return ctx.href(`/finance/contracts.html#contract-${id}`);

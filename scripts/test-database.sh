@@ -25,19 +25,21 @@ apply_file() {
   psql "$(database_url "$database")" -v ON_ERROR_STOP=1 -f "$root_dir/$file"
 }
 
+# Migrations posteriores à aposentadoria da arte (o guarda de marker dela é
+# imutável e só aceita o estado anterior): aplicadas depois dela, duas vezes.
+after_decommission() {
+  node -e "const m=require('./docs/supabase-migrations.json'); const i=m.cleanInstall.indexOf('docs/supabase-financial-legacy-art-decommission.sql'); for (const f of m.cleanInstall.slice(i+1)) console.log(f)"
+}
+
 apply_file "$clean_db" "tests/database/bootstrap.sql"
 # Os testes históricos abaixo exercitam o schema antes da aposentadoria da
 # vertical de arte; a aposentadoria é aplicada e verificada no fim deste banco.
 while IFS= read -r file; do
   apply_file "$clean_db" "$file"
-done < <(node -e "const m=require('./docs/supabase-migrations.json'); for (const f of m.cleanInstall) if (f !== 'docs/supabase-financial-legacy-art-decommission.sql') console.log(f)")
-apply_file "$clean_db" "tests/database/transactions.sql"
-apply_file "$clean_db" "tests/database/orders.sql"
-apply_file "$clean_db" "tests/database/order-pr38-invariants.sql"
-apply_file "$clean_db" "tests/database/email-outbox.sql"
-apply_file "$clean_db" "tests/database/retention.sql"
-apply_file "$clean_db" "tests/database/operational-status.sql"
-apply_file "$clean_db" "tests/database/profile-access.sql"
+done < <(node -e "const m=require('./docs/supabase-migrations.json'); const i=m.cleanInstall.indexOf('docs/supabase-financial-legacy-art-decommission.sql'); for (const f of m.cleanInstall.slice(0,i)) console.log(f)")
+# Dado fictício de arte: a aposentadoria no fim deste banco passa pelo caminho
+# "há dado a aposentar" (com reconhecimento de export).
+apply_file "$clean_db" "tests/database/legacy-art-fixture.sql"
 apply_file "$clean_db" "tests/database/financial-procurement.sql"
 apply_file "$clean_db" "tests/database/financial-procurement-hardening.sql"
 apply_file "$clean_db" "tests/database/financial-pilot.sql"
@@ -104,13 +106,17 @@ apply_file "$clean_db" "ops/sql/pilot-isolation-canary.sql"
 bash "$root_dir/tests/database/governance-concurrency.sh" "$(database_url "$clean_db")"
 bash "$root_dir/tests/database/job-lease-concurrency.sh" "$(database_url "$clean_db")"
 psql "$(database_url "$clean_db")" -v ON_ERROR_STOP=1 -c "do \$\$ begin if (select count(*) from public.fin_legal_entities) < 3 or (select count(*) from public.fin_member_entity_grants) < 2 or not exists(select 1 from public.fin_rfqs where legal_entity_id is not null) or not exists(select 1 from public.fin_members where entity_scope='entities') then raise exception 'reaplicação do multi-entity perdeu escopo ou entidades'; end if; end \$\$;"
-bash "$root_dir/tests/database/reservation-concurrency.sh" "$(database_url "$clean_db")"
-bash "$root_dir/tests/database/order-concurrency.sh" "$(database_url "$clean_db")"
 # Aposentadoria da vertical de arte sobre a base povoada pelos testes históricos.
 apply_file "$clean_db" "tests/database/legacy-art-decommission-before.sql"
 PGOPTIONS="-c arandu.legacy_art_decommission_ack=export-verified:CI-CLEAN" apply_file "$clean_db" "docs/supabase-financial-legacy-art-decommission.sql"
 apply_file "$clean_db" "tests/database/legacy-art-decommission.sql"
 apply_file "$clean_db" "docs/supabase-financial-legacy-art-decommission.sql"
+apply_file "$clean_db" "tests/database/email-outbox.sql"
+while IFS= read -r file; do
+  apply_file "$clean_db" "$file"
+  apply_file "$clean_db" "$file"
+done < <(after_decommission)
+apply_file "$clean_db" "tests/database/financial-p0-closure.sql"
 apply_file "$clean_db" "ops/sql/pilot-isolation-canary.sql"
 apply_file "$clean_db" "ops/sql/post-migration-probes.sql"
 
@@ -142,11 +148,7 @@ apply_file "$upgrade_db" "docs/supabase-transactional-email-outbox.sql"
 apply_file "$upgrade_db" "docs/supabase-retention-controls.sql"
 apply_file "$upgrade_db" "docs/supabase-email-outbox-fencing.sql"
 
-apply_file "$upgrade_db" "tests/database/transactions.sql"
-apply_file "$upgrade_db" "tests/database/orders.sql"
-apply_file "$upgrade_db" "tests/database/order-pr38-invariants.sql"
-apply_file "$upgrade_db" "tests/database/email-outbox.sql"
-apply_file "$upgrade_db" "tests/database/retention.sql"
+apply_file "$upgrade_db" "tests/database/legacy-art-fixture.sql"
 # Rollback do procurement financeiro e reaplicação, no banco de upgrade.
 apply_file "$upgrade_db" "docs/supabase-financial-procurement.sql"
 apply_file "$upgrade_db" "docs/supabase-financial-procurement-hardening.sql"
@@ -368,6 +370,14 @@ apply_file "$upgrade_db" "ops/sql/post-restore-probes.sql"
 if psql "$(database_url "$upgrade_db")" -X -q -v ON_ERROR_STOP=1 -f "$root_dir/docs/rollback/supabase-financial-legacy-art-decommission.rollback.sql" >/dev/null 2>&1; then
   echo "Rollback da aposentadoria fingiu restaurar dados" >&2; exit 1
 fi
+# Depois da aposentadoria: P0 closure com rollback sem uso e reaplicação.
+apply_file "$upgrade_db" "docs/supabase-financial-p0-closure.sql"
+apply_file "$upgrade_db" "docs/rollback/supabase-financial-p0-closure.rollback.sql"
+apply_file "$upgrade_db" "docs/supabase-financial-p0-closure.sql"
+while IFS= read -r file; do
+  apply_file "$upgrade_db" "$file"
+done < <(after_decommission)
+apply_file "$upgrade_db" "tests/database/email-outbox.sql"
 bash "$root_dir/tests/database/email-outbox-concurrency.sh" "$(database_url "$upgrade_db")"
 
 # Instalação limpa em uma passada (o que um ambiente novo recebe): a cadeia
@@ -376,15 +386,18 @@ bash "$root_dir/tests/database/email-outbox-concurrency.sh" "$(database_url "$up
 apply_file "$fresh_db" "tests/database/bootstrap.sql"
 while IFS= read -r file; do
   apply_file "$fresh_db" "$file"
-done < <(node -e "const m=require('./docs/supabase-migrations.json'); for (const f of m.cleanInstall) console.log(f)")
+done < <(node -e "const m=require('./docs/supabase-migrations.json'); const i=m.cleanInstall.indexOf('docs/supabase-financial-legacy-art-decommission.sql'); for (const f of m.cleanInstall.slice(0,i+1)) console.log(f)")
 apply_file "$fresh_db" "tests/database/legacy-art-decommission-before.sql"
 apply_file "$fresh_db" "docs/supabase-financial-legacy-art-decommission.sql"
 apply_file "$fresh_db" "tests/database/legacy-art-decommission.sql"
+while IFS= read -r file; do
+  apply_file "$fresh_db" "$file"
+done < <(after_decommission)
 for suite in financial-procurement financial-procurement-hardening financial-pilot financial-enterprise-approvals financial-enterprise-drafts \
   financial-collaboration financial-operational-search financial-renewals financial-rfq-editor financial-rfq-revisions financial-delivery \
   financial-pilot-grade financial-pilot-operations financial-final-hardening financial-approval-handoff financial-passport \
   financial-multi-entity financial-contracts-v2 financial-relationships-portfolio financial-passport-entities financial-graph \
-  financial-policy-engine financial-public-api financial-sso financial-data-governance; do
+  financial-policy-engine financial-public-api financial-sso financial-data-governance financial-p0-closure; do
   apply_file "$fresh_db" "tests/database/${suite}.sql"
 done
 apply_file "$fresh_db" "ops/sql/pilot-isolation-canary.sql"

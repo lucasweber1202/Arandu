@@ -122,6 +122,12 @@ if (distMode) {
     if (match) issues.push(`variável de ambiente da vertical de arte em ${relative(root, path)}: ${match[0]}`);
   }
 
+  // 10b. Domínio antigo da vertical de arte em código executável (fixtures usam domínio neutro).
+  for (const path of runtimeFiles) {
+    if (gateFiles.has(path)) continue;
+    if (/\barandu\.art\b/.test(readFileSync(path, 'utf8'))) issues.push(`domínio da vertical de arte em ${relative(root, path)}: arandu.art`);
+  }
+
   // 10. Modelos de e-mail da antiga operação comercial.
   const email = readFileSync(join(root, 'lib/email.mjs'), 'utf8');
   const template = email.match(/\b(reservation_(?:received|confirmed|expired)|order_(?:created|confirmed|shipped|delivered|completed|cancelled|refunded)|payment_confirmed|contact_received)\b/);

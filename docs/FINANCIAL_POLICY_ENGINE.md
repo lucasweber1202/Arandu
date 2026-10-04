@@ -190,6 +190,10 @@ outra etapa do pedido. A trilha guarda `acted_by` e `delegation_id`.
   Gestores podem processar a própria organização na hora
   (`POST /api/finance/approval-policies/process-deadlines`). **Limite**: com o
   cron diário, a escalação acontece na cadência do cron, não na hora exata.
+* Avisos de exceção (desde `financial-p0-closure-1`): pedida → quem pode decidir
+  pela policy dona da regra, com acesso à entidade, sem o solicitante (até 50);
+  decidida → quem pediu. Tipos `policy_exception_requested` e
+  `policy_exception_decided`, com preferência própria e sem conteúdo do processo.
 * Avisos: ao abrir/avançar sequência, todos os indicados das etapas ativas
   recebem "Aprovação solicitada".
 
@@ -248,7 +252,6 @@ validação isolada, depois de exportar a trilha e com backup verificado.
 * Sem conversão cambial; sem fatos de covenant estruturados (covenant é
   declarado); `maturity_date` é estimativa (data do pedido + prazo).
 * Delegação é por pessoa (todas as etapas delegáveis do titular), não por etapa.
-* Avisos de exceção pedida/decidida aparecem no processo, sem notificação própria.
 * Cadência de escalação = cadência do cron (diária no plano atual) + acionamento manual.
 * Nenhuma afirmação de conformidade regulatória: SoD e alçadas aqui são
   mecanismos de software configurados pelo cliente.

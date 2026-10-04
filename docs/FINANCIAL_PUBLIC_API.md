@@ -230,9 +230,9 @@ webhooks derruba todo o acesso sem apagar histórico.
 
 ## Limites declarados
 
-* DNS rebinding entre a resolução e a conexão não é eliminado (a conexão não é
-  fixada no IP resolvido); mitigado por revalidação a cada entrega, sem
-  redirecionamento e só porta 443.
+* DNS rebinding: o endereço validado é fixado no socket (`pinnedWebhookRequest`,
+  sem segunda resolução, sem reaproveitar conexão, sem redirecionamento, só
+  porta 443) — coberto por `scripts/test-operational-resilience.mjs`.
 * Escrita v1 cobre só rascunho de RFQ; demais ações materiais permanecem humanas.
 * Sem SLA de entrega declarado; cadência depende do agendador (blocker acima).
 

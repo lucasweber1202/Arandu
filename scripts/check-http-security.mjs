@@ -110,19 +110,19 @@ function fakeRequest(method, headers = {}) {
 }
 
 const originCases = [
-  ['POST sem Origin (cliente não-navegador)', fakeRequest('POST', { host: 'arandu.art' }), false],
-  ['GET de outra origem', fakeRequest('GET', { host: 'arandu.art', origin: 'https://malicioso.example' }), false],
-  ['POST de mesma origem', fakeRequest('POST', { host: 'arandu.art', origin: 'https://arandu.art' }), false],
-  ['POST ignora x-forwarded-host conflitante', fakeRequest('POST', { host: 'arandu.art', 'x-forwarded-host': 'malicioso.example', origin: 'https://arandu.art' }), false],
-  ['POST não confia só em x-forwarded-host', fakeRequest('POST', { host: 'interno', 'x-forwarded-host': 'arandu.art', origin: 'https://arandu.art' }), true],
-  ['POST com protocolo divergente', fakeRequest('POST', { host: 'arandu.art', 'x-forwarded-proto': 'https', origin: 'http://arandu.art' }), true],
-  ['POST com host malformado', fakeRequest('POST', { host: 'arandu.art@malicioso.example', origin: 'https://arandu.art' }), true],
-  ['POST de outra origem', fakeRequest('POST', { host: 'arandu.art', origin: 'https://malicioso.example' }), true],
-  ['DELETE de outra origem', fakeRequest('DELETE', { host: 'arandu.art', origin: 'https://malicioso.example' }), true],
-  ['POST com Sec-Fetch-Site cross-site', fakeRequest('POST', { host: 'arandu.art', 'sec-fetch-site': 'cross-site' }), true],
-  ['POST com Origin null', fakeRequest('POST', { host: 'arandu.art', origin: 'null', 'sec-fetch-site': 'same-origin' }), true],
-  ['POST de navegador sem Origin', fakeRequest('POST', { host: 'arandu.art', 'sec-fetch-site': 'same-origin' }), true],
-  ['POST com Origin malformada', fakeRequest('POST', { host: 'arandu.art', origin: 'nao-e-uma-url' }), true]
+  ['POST sem Origin (cliente não-navegador)', fakeRequest('POST', { host: 'arandu-procurement.test' }), false],
+  ['GET de outra origem', fakeRequest('GET', { host: 'arandu-procurement.test', origin: 'https://malicioso.example' }), false],
+  ['POST de mesma origem', fakeRequest('POST', { host: 'arandu-procurement.test', origin: 'https://arandu-procurement.test' }), false],
+  ['POST ignora x-forwarded-host conflitante', fakeRequest('POST', { host: 'arandu-procurement.test', 'x-forwarded-host': 'malicioso.example', origin: 'https://arandu-procurement.test' }), false],
+  ['POST não confia só em x-forwarded-host', fakeRequest('POST', { host: 'interno', 'x-forwarded-host': 'arandu-procurement.test', origin: 'https://arandu-procurement.test' }), true],
+  ['POST com protocolo divergente', fakeRequest('POST', { host: 'arandu-procurement.test', 'x-forwarded-proto': 'https', origin: 'http://arandu-procurement.test' }), true],
+  ['POST com host malformado', fakeRequest('POST', { host: 'arandu-procurement.test@malicioso.example', origin: 'https://arandu-procurement.test' }), true],
+  ['POST de outra origem', fakeRequest('POST', { host: 'arandu-procurement.test', origin: 'https://malicioso.example' }), true],
+  ['DELETE de outra origem', fakeRequest('DELETE', { host: 'arandu-procurement.test', origin: 'https://malicioso.example' }), true],
+  ['POST com Sec-Fetch-Site cross-site', fakeRequest('POST', { host: 'arandu-procurement.test', 'sec-fetch-site': 'cross-site' }), true],
+  ['POST com Origin null', fakeRequest('POST', { host: 'arandu-procurement.test', origin: 'null', 'sec-fetch-site': 'same-origin' }), true],
+  ['POST de navegador sem Origin', fakeRequest('POST', { host: 'arandu-procurement.test', 'sec-fetch-site': 'same-origin' }), true],
+  ['POST com Origin malformada', fakeRequest('POST', { host: 'arandu-procurement.test', origin: 'nao-e-uma-url' }), true]
 ];
 
 originCases.forEach(([label, req, shouldBlock]) => {
@@ -180,7 +180,7 @@ function collectingResponse() {
 const forgedRequest = Readable.from([Buffer.from(JSON.stringify({ email: 'alvo@example.com' }))]);
 forgedRequest.method = 'POST';
 forgedRequest.url = '/api/forms';
-forgedRequest.headers = { host: 'arandu.art', origin: 'https://malicioso.example', 'content-type': 'application/json' };
+forgedRequest.headers = { host: 'arandu-procurement.test', origin: 'https://malicioso.example', 'content-type': 'application/json' };
 forgedRequest.socket = { remoteAddress: '127.0.0.1' };
 
 const forgedResponse = collectingResponse();
