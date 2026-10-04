@@ -13,7 +13,7 @@ alter table public.fin_job_runs alter column finished_at set not null;
 alter table public.fin_job_runs alter column finished_at set default now();
 create or replace function public.fin_run_renewal_schedule(p_day date default current_date)
 returns integer language plpgsql security definer set search_path = '' as $$
-declare c record; v_days integer; v_mark text; v_task uuid; v_created integer := 0; v_inserted integer; v_new boolean;
+declare c record; v_days integer; v_mark text; v_task uuid; v_created integer := 0; v_milestone uuid; v_new boolean;
 begin
   if p_day is null or abs(p_day - current_date) > 1 then raise exception 'invalid date'; end if;
   perform pg_advisory_xact_lock(hashtext('fin_run_renewal_schedule'));
@@ -41,22 +41,24 @@ begin
       returning id into v_task;
     end if;
     insert into public.fin_renewal_milestones(organization_id, contract_id, milestone, task_id)
-    values (c.organization_id, c.id, v_mark, v_task) on conflict (contract_id, milestone) do nothing;
-    get diagnostics v_inserted = row_count;
-    if v_inserted = 0 then
+    values (c.organization_id, c.id, v_mark, v_task) on conflict (contract_id, milestone) do nothing
+    returning id into v_milestone;
+    if v_milestone is null then
       if v_new then delete from public.fin_tasks where id = v_task; end if;
       continue;
     end if;
     insert into public.fin_events(organization_id, entity_type, entity_id, event_type, actor_id, metadata)
     values (c.organization_id, 'contract', c.id, 'renewal_milestone_reached', null,
       jsonb_build_object('milestone', v_mark, 'task_id', v_task, 'scheduled', true));
-    if v_new then
-      insert into public.fin_notifications(organization_id, user_id, event_type, object_type, object_id, event_id, title, body)
-      values (c.organization_id, c.owner_id, 'renewal_due', 'contract', c.id, v_task, 'Contrato em revisão de renovação',
-        'Há um marco de renovação para acompanhar.')
-      on conflict (user_id, event_type, event_id) do nothing;
-      v_created := v_created + 1;
-    end if;
+    -- Um aviso por marco novo (chave = marco), com ou sem tarefa nova: o contrato
+    -- registrado pelo produto já nasce com a tarefa de revisão aberta.
+    insert into public.fin_notifications(organization_id, user_id, event_type, object_type, object_id, event_id, title, body)
+    values (c.organization_id, c.owner_id, 'renewal_due', 'contract', c.id, v_milestone, 'Contrato em revisão de renovação',
+      case v_mark when 'expired' then 'O contrato chegou ao fim. Registre a decisão de renovação.'
+                  when 'notice' then 'O prazo de aviso prévio do contrato chegou.'
+                  else 'Faltam ' || substr(v_mark, 2) || ' dias para o fim do contrato.' end)
+    on conflict (user_id, event_type, event_id) do nothing;
+    if v_new then v_created := v_created + 1; end if;
     if v_days <= c.renewal_notice_days and c.status = 'active' then
       update public.fin_contracts set status = 'renewing', updated_at = now() where id = c.id;
     end if;
