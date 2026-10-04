@@ -31,13 +31,11 @@ Branch name pattern: `main`
 | → Required status checks | `validate`, `database`, `deploy-boundaries`, `presentation` | os quatro jobs do `Arandu CI` |
 | Require branches to be up to date before merging | ligado | evita merge verde contra base velha |
 | Require conversation resolution before merging | ligado | nenhum comentário aberto some no merge |
-| Do not allow bypassing the above settings | **desligado** | mantém o acesso de emergência do proprietário |
+| Do not allow bypassing the above settings | **ligado** | aplica os quatro gates também ao administrador; incidente exige procedimento explícito |
 | Allow force pushes | desligado | histórico da `main` não é reescrito |
 | Allow deletions | desligado | a `main` não pode ser apagada |
 
-O toggle "Do not allow bypassing" fica **desligado de propósito**: ligá-lo
-bloquearia o próprio proprietário em uma emergência sem que haja um segundo
-administrador para destravar.
+Regra atual para `pilot` e `main`: sem bypass permanente. A orientação histórica de emergência abaixo foi substituída pelo addendum v2.1 e `BRANCH_PROTECTION.md`. Exceções precisam de incidente documentado. Em 04/10 ambas continuam `protected=false`; nada foi configurado pelo conector.
 
 ### Por que isso importa — agora com duas ocorrências
 

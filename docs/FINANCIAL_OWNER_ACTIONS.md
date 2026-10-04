@@ -3,7 +3,7 @@
 > Checklist única e atualizada, com estado por item: [`FINANCIAL_PILOT_GO_LIVE.md`](FINANCIAL_PILOT_GO_LIVE.md).
 
 Lista curta e fechada. **Só entra aqui o que é impossível resolver por código.**
-Tudo que era implementável foi implementado.
+Esta lista separa ações externas de implementação. Ela não declara o roadmap completo; P1.4 ainda está ausente. Estado atual: `FINANCIAL_RELEASE_EVIDENCE_2026-10-04.md`.
 
 ---
 

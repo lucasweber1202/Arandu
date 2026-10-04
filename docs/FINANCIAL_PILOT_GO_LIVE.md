@@ -1,6 +1,6 @@
 # Financial Procurement — checklist única de go-live do piloto
 
-Estado revisado em **29/09/2026** (depois da #82 em `pilot`). Branches: confira no Git (`FINANCIAL_DEPLOYMENT_WORKFLOW.md#estado-atual-das-branches`); `main` não recebeu a #82 e só recebe a promoção.
+Estado técnico revalidado em **04/10/2026**: pilot `7a0a839…` (#122), main `201adb4…` (#99). **PILOT NO-GO**: schema atrás, backup/restore e jornada hospedada atuais não comprovados. Observações antigas abaixo são históricas, não atestam o ambiente atual. Ver [`FINANCIAL_RELEASE_EVIDENCE_2026-10-04.md`](FINANCIAL_RELEASE_EVIDENCE_2026-10-04.md) e [`FIRST_CUSTOMER_PILOT_CHECKLIST.md`](FIRST_CUSTOMER_PILOT_CHECKLIST.md).
 Primeiro comando no ambiente real: `ARANDU_ENV=pilot npm run finance:pilot:doctor`
 (somente leitura; 0 = GO, 1 = NO-GO, 2 = UNSAFE).
 Cada linha tem um único estado:
@@ -30,7 +30,7 @@ Evidências: [`FINANCIAL_RELEASE_EVIDENCE_2026-09-26.md`](FINANCIAL_RELEASE_EVID
 | S7 | `finance:env:check` coerente com o produto | DONE | Exige `SUPABASE_SERVICE_ROLE_KEY` (só servidor) e `CRON_SECRET` ≥ 32 no piloto; texto da allowlist corrigido (vazia = ninguém entra) |
 | S8 | Suíte local equivalente ao CI | DONE | audit, SBOM, `check:all`, build, dist, tamanho, SEO, banco (PG16), E2E e apresentação em Chromium desktop + mobile, fronteiras de deploy, `build:demo`, `git diff --check` |
 | S9 | E2E e apresentação em Firefox, WebKit e Safari móvel | BLOCKED | Motores não instalados neste ambiente (proibido baixar navegador). Rodam no job `validate`/`presentation` do CI quando a quota voltar |
-| S10 | CI formal do GitHub | BLOCKED | Quota de minutos do GitHub Actions esgotada até 01/10/2026: as runs de #79, #80 e #81 terminam em ~7 s sem passos. Equivalente local rodado em 29/09 (ver evidência do dia). Reexecutar `validate`, `database`, `deploy-boundaries`, `presentation` quando a quota voltar — ver [`GITHUB_ACTIONS_MINUTES.md`](GITHUB_ACTIONS_MINUTES.md) |
+| S10 | CI formal do GitHub | DONE para baseline #122 | Quatro checks completed/success no HEAD 805494c3fb5c4a73ddfa1a0dda1f270800e2826a; novos PRs precisam de seus próprios quatro gates |
 | S11 | Papel de plataforma `finance_ops`, isolado do admin legado | DONE | `finance_ops` + registro + `aal2` na API e no banco; fora de `ADMIN_ROLES`; 17/17 rotas legadas recusam; MFA no próprio console (`/api/finance/ops/mfa`). O papel `operator` legado não abre mais o console |
 | S12 | Convite vinculado ao e-mail do contato | DONE | `recipient_mode = exact_email` quando o provedor tem contato: só aceita a conta com esse e-mail confirmado; recusa com erro genérico e motivo interno em `fin_invite_acceptance_denials` |
 | S13 | `check:all` inclui governança e staging, sem recursão | DONE | `check:governance` e `check:staging` passam e fazem parte de `check:all`; guarda de recursão no checker |
@@ -47,12 +47,12 @@ Evidências: [`FINANCIAL_RELEASE_EVIDENCE_2026-09-26.md`](FINANCIAL_RELEASE_EVID
 | E3 | Rotas de vários segmentos respondendo em produção | DONE | Após o merge da #73: `/api/jobs/renewals` → 401 `cron_unauthorized`, `/api/finance/me` → 401, `/api/auth/session` → 200 |
 | E3b | Banco do deployment de produção sem as migrations | OWNER_ACTION_REQUIRED | 29/09: `/api/pilot/metrics` → 503 `rate_limit_unavailable`, `/api/catalog` → 503 `catalog_migration_pending`. Criar o Supabase **próprio** da produção e aplicar `cleanInstall` de `docs/supabase-migrations.json` (35 arquivos). Nunca apontar a produção para o banco do piloto nem para o legado: `finance:env:check` e o doctor recusam |
 | E4 | Projeto Supabase dedicado ao piloto | DONE | `offgpyysgdhfemjlchod` (sa-east-1), criado em 27/09/2026, separado do legado (#75) |
-| E5 | Migrations aplicadas no piloto | OWNER_ACTION_REQUIRED | Último marcador observado no piloto (01/10/2026): `financial-surface-hardening-1`. Faltam, em ordem, `docs/supabase-financial-approval-handoff.sql`, `docs/supabase-financial-passport.sql`, `docs/supabase-financial-multi-entity.sql`, `docs/supabase-financial-contracts-v2.sql` e `docs/supabase-financial-relationships-portfolio.sql`; o doctor espera `financial-relationships-portfolio-1`. Ambas ensaiadas sobre banco povoado no Supabase local e no `test:database` (upgrade, rollback, reaplicação). Sem credencial do projeto nesta sessão: nada foi aplicado remotamente |
-| E6 | Bucket `fin-documents` privado, 10 MB, 5 tipos | OWNER_ACTION_REQUIRED | A migration cria. Conferir no painel: Storage → `fin-documents` → *Public* desligado. Ensaiado: `public=false`, `10485760`, 5 MIME |
-| E7 | Projeto `arandu-pilot` e variáveis do piloto | DONE (externo) / doctor completo pendente | 29/09 (tarde), medido de fora: `arandu-pilot.vercel.app` no ar; os 5 checks de "app publicada" do doctor passam (`/api/health` 200, `/api/finance/products` 200 com `X-Request-ID`, `/api/jobs/renewals` 401 `cron_unauthorized`, `/api/forms` 404 `legacy_surface_closed`); login com conta inexistente → 401 `invalid_credentials` (Supabase e rate limit respondendo). Não verificável de fora: qual Supabase (piloto × legado), commit publicado e escopo das variáveis — é o que `ARANDU_ENV=pilot npm run finance:pilot:doctor` completo confere, com as variáveis do projeto |
+| E5 | Migrations aplicadas no piloto | BLOCKED | 04/10 19:15:32Z: financial-surface-hardening-1; código espera financial-opportunity-engine-1; 17 migrations pendentes. Bundle completo e prefixo de 12 antes do decommission gerados; não aplicados. Backup/restore e decisão destrutiva faltam |
+| E6 | Bucket fin-documents privado, 10 MB, 5 tipos | DONE (leitura hospedada) | 04/10: único bucket, public=false, 10485760, cinco MIME; zero objetos. Isto não atesta upload/RLS/jornada no schema atual |
+| E7 | Projeto arandu-pilot e variáveis do piloto | partial | 04/10: deployment READY production SHA 7a0a839…; configuração ARANDU_ENV=pilot e URL Supabase esperada observadas. Doctor hospedado completo e jornada atuais pendentes |
 | E8 | Domínio / subdomínio do piloto | OWNER_ACTION_REQUIRED | Nenhum domínio foi comprado. Escolher, registrar e apontar DNS |
 | E9 | Provedor de e-mail (Resend) | OWNER_ACTION_REQUIRED | Conta Resend, domínio verificado (SPF/DKIM), `ARANDU_EMAIL_PROVIDER=resend`, `ARANDU_EMAIL_FROM`, `RESEND_API_KEY`, `ARANDU_RECIPIENT_HMAC_SECRET` (32+), `ARANDU_TRANSACTIONAL_EMAIL_READY=true`, `ARANDU_EMAIL_DISPATCH_ENABLED=true` |
-| E10 | Backup e teste de restore | OWNER_ACTION_REQUIRED (só a execução contra o piloto real) | `npm run pilot:restore:drill` testado contra o piloto local: 24/24 comparações, restore 1,8 s. Rodar com `PILOT_SOURCE_DATABASE_URL` do piloto real |
+| E10 | Backup e teste de restore | BLOCKED | Preflight local recusou origem administrativa ausente; backup real, restore e duração não medidos nesta sessão; histórico local não é prova hospedada |
 | E11 | Ensaio completo com componentes reais da Supabase | DONE | `bash scripts/pilot-local/up.sh && bash scripts/pilot-local/journey.sh` (Postgres 15, GoTrue, PostgREST, Storage). Reproduzido do zero nesta rodada |
 
 ## SECURITY
@@ -67,7 +67,7 @@ Evidências: [`FINANCIAL_RELEASE_EVIDENCE_2026-09-26.md`](FINANCIAL_RELEASE_EVID
 | C6 | Console operacional: `finance_ops` + MFA, sem dados de cliente | DONE | Ensaio: admin de empresa (aal1 e aal2), admin de provedor, externo e operador legado com MFA → 403 `finance_ops_required`; `finance_ops` sem MFA → 403 `mfa_required`; com MFA → 200, sem e-mail, valor, título ou comentário |
 | C7 | Cron só com segredo | DONE | Sem segredo 401, segredo errado 401, correto 200 (duas vezes, sem duplicar) |
 | C8 | Allowlist fail-closed | DONE | Vazia → comprador 403; parcial → provedor fora dela 403; externo 403 |
-| C9 | Proteção da branch `main` (status checks obrigatórios) | OWNER_ACTION_REQUIRED | API recusa pela integração (403). Settings → Branches → `main` → exigir `validate`, `database`, `deploy-boundaries`, `presentation` |
+| C9 | Proteção de pilot e main | OWNER_ACTION_REQUIRED | 04/10: ambas protected=false; conector sem administração utilizável. Configurar rulesets strict com quatro checks, PR, sem force push/deleção/bypass; executar merge:gates antes de merge |
 
 ## OPERATIONS
 
@@ -76,7 +76,7 @@ Evidências: [`FINANCIAL_RELEASE_EVIDENCE_2026-09-26.md`](FINANCIAL_RELEASE_EVID
 | O1 | Contas reais do piloto (comprador, aprovador, provedor, operador) | OWNER_ACTION_REQUIRED | Precisa do Supabase do piloto e dos e-mails autorizados. Procedimento em [Usuários do piloto](#usuários-do-piloto); ensaiado com contas `*.example` |
 | O2 | Allowlist preenchida | OWNER_ACTION_REQUIRED | SQL em [Usuários do piloto](#usuários-do-piloto) |
 | O3 | Primeiro operador `finance_ops` (papel + registro + TOTP) | OWNER_ACTION_REQUIRED | Passos em [Operador](#operador); o TOTP é cadastrado pelo próprio operador com `npm run finance:operator:mfa` e confirmado no console |
-| O4 | Cron de renovação agendado | DONE | `vercel.json`: `/api/jobs/renewals` diário às 09:15 UTC. Só executa com `CRON_SECRET` (E7) |
+| O4 | Cron de renovação agendado | partial | Fonte diária 09:15 UTC; banco tem quatro renewals succeeded, 30/09–03/10 ~09:26 UTC. Webhooks/governance/opportunities/deadlines não comprovados hospedadamente; não near-real-time |
 | O5 | E-mail de aviso ligado | OWNER_ACTION_REQUIRED | Depois de E9: `update public.fin_settings set value = 'true' where key = 'email_enabled';` (nasce `false`; ensaiado nos dois estados) |
 | O6 | Runbooks de suporte, incidentes e operação | DONE | `FINANCIAL_PILOT_OPERATIONS.md`, `FINANCIAL_PILOT_SUPPORT.md`, `FINANCIAL_PILOT_PLAYBOOK.md` |
 
