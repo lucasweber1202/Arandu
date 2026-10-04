@@ -10,7 +10,7 @@ import { graphContextCard } from './graph-context.js';
 // novo custa uma configuração, não uma tela inteira no pacote.
 //
 // Página: { cards:[{title, lines, note, href, link, actions}], columns, rows:[{id, cells}], next, empty, options, forms }
-// Detalhe: { title, lines, sections:[{title, items}], graph:{type,id,kind,title}, actions:[form] }
+// Detalhe: { title, lines, links:[{href, text}], sections:[{title, items}], graph:{type,id,kind,title}, actions:[form] }
 // Formulário: { label, primary, title, intro, fields:[[chave, rótulo, tipo|opções, atributos]], post, fixed }
 
 const post = (ctx, path, body) => ctx.api(path, { method: 'POST', body: JSON.stringify(body) });
@@ -28,7 +28,7 @@ export async function ledgerPage(ctx, { resource, title, subtitle, filters, scop
   };
   const controls = {};
   const grid = el('div', { class: 'form-grid' }, filters.map(([key, label, kind]) => {
-    const control = kind === 'start' || kind === 'end' ? el('input', { type: 'date', value: `${year}-${kind === 'start' ? '01-01' : '12-31'}` })
+    const control = kind === 'date' ? el('input', { type: 'date' }) : kind === 'start' || kind === 'end' ? el('input', { type: 'date', value: `${year}-${kind === 'start' ? '01-01' : '12-31'}` })
       : el('select', {}, (sources[kind] || [['', 'Todos']]).map(([value, text]) => el('option', { value, text })));
     if (params.get(key)) control.value = params.get(key);
     controls[key] = control;
@@ -78,7 +78,7 @@ export async function ledgerPage(ctx, { resource, title, subtitle, filters, scop
   async function detail(id) {
     try {
       const d = await ctx.api(`${resource}/detail?${new URLSearchParams({ id, organization_id: ctx.organization.id })}`);
-      const body = el('div', { class: 'stack' }, [...lines(d.lines), ...(d.sections || []).map((s) => card({ title: s.title, body: s.items.length ? el('ol', { class: 'plain-list small' }, s.items.map((text) => el('li', { text }))) : el('p', { class: 'muted', text: s.empty }) }))]);
+      const body = el('div', { class: 'stack' }, [...lines(d.lines), ...(d.links || []).map((l) => el('p', {}, el('a', { href: l.href, text: l.text }))), ...(d.sections || []).map((s) => card({ title: s.title, body: s.items.length ? el('ol', { class: 'plain-list small' }, s.items.map((text) => el('li', { text }))) : el('p', { class: 'muted', text: s.empty }) }))]);
       if (d.graph) body.append(await graphContextCard(ctx, d.graph));
       let dialog;
       const done = () => { dialog.close(); return reload(); };

@@ -1,6 +1,6 @@
 # Bank Fee Intelligence v1 (P1.2)
 
-Status: implementado em branch `feature/bank-fee-intelligence`; CI e rollout hospedado conforme `IMPLEMENTATION_MATRIX.md`. O Arandu registra fatos de tarifa — o que foi contratado, o que foi cobrado, se é comparável e o que uma pessoa concluiu. Não é ledger contábil, conciliação bancária automática, ERP/TMS nem sistema de cobrança, e não acusa provedor.
+Status: code complete e CI validated (#120, `pilot@4f97e16`); rollout hospedado conforme `IMPLEMENTATION_MATRIX.md`. O Arandu registra fatos de tarifa — o que foi contratado, o que foi cobrado, se é comparável e o que uma pessoa concluiu. Não é ledger contábil, conciliação bancária automática, ERP/TMS nem sistema de cobrança, e não acusa provedor.
 
 O módulo responde, com fonte: quanto deveria custar (referência contratada vigente no período), quanto foi observado, se é economicamente comparável, se há diferença e se ela foi revisada.
 
