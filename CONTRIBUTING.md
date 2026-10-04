@@ -104,6 +104,8 @@ A descrição da PR deve explicar:
 
 Não marque a PR como pronta enquanto checks obrigatórios estiverem falhando ou enquanto o texto atribuir ao código uma validação externa que não ocorreu.
 
+**Merge somente com os quatro gates verdes no HEAD exato.** Antes de mergear, rode `npm run merge:gates -- <número-da-PR>` (com `GITHUB_TOKEN` de leitura): o script lê o SHA atual do HEAD da PR e exige `database`, `deploy-boundaries`, `validate` e `presentation` concluídos com sucesso nesse SHA. Pending, in_progress, falha, cancelamento, skip, ausência ou run de commit anterior bloqueiam. A #118 foi mergeada com `validate`/`presentation` ainda rodando e falhou depois; a regra existe para isso não se repetir. O script não substitui a proteção de branch no GitHub (ver `docs/BRANCH_PROTECTION.md`).
+
 ## Documentação
 
 Use `docs/OPERATIONS_INDEX.md` para encontrar a documentação canônica. `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md` governa a direção estratégica de produto e engenharia e, enquanto existir, o addendum v2.1 completa/override essa direção. Documentos especializados governam a implementação concreta. Documentos históricos devem ser claramente marcados e não podem competir com os runbooks atuais.

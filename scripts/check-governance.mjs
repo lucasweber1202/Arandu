@@ -161,6 +161,15 @@ if (exists('ops/release-evidence.json')) {
   }
 }
 
+// Merge só com os quatro gates verdes no HEAD exato (incidente da #118).
+if (exists('.github/pull_request_template.md')) {
+  const template = read('.github/pull_request_template.md');
+  for (const required of ['npm run merge:gates', 'HEAD exato', 'database', 'deploy-boundaries', 'validate', 'presentation']) {
+    if (!template.includes(required)) problems.push(`.github/pull_request_template.md: regra de merge sem "${required}".`);
+  }
+}
+if (exists('CONTRIBUTING.md') && !read('CONTRIBUTING.md').includes('npm run merge:gates')) problems.push('CONTRIBUTING.md: regra de merge no HEAD exato ausente.');
+
 console.log('Arandu Governance Check');
 console.log(`Arquivos obrigatórios: ${requiredFiles.length}`);
 console.log(`Problemas: ${problems.length}`);

@@ -23,7 +23,7 @@ async function setup(page,{role='admin',fail=false}={}) {
 test('valor separado por tipo e moeda, filtros no servidor, detalhe com baseline e metodologia',async({page})=>{
   const calls=await setup(page);await page.goto('/finance/value.html');
   await expect(page.getByRole('heading',{name:'Valor de procurement',exact:true})).toBeVisible();
-  await expect.poll(async () => page.locator('svg.icon use').first().evaluate((use) => use.ownerSVGElement.getBBox().width)).toBeGreaterThan(0);
+  await expect.poll(async () => page.locator('svg.icon:visible use').first().evaluate((use) => use.ownerSVGElement.getBBox().width)).toBeGreaterThan(0);
   await expect(page.getByRole('heading',{name:'Economia negociada · BRL'})).toBeVisible();
   await expect(page.getByRole('heading',{name:'Custo evitado · USD'})).toBeVisible();
   await expect(page.getByText('Sem cálculo defensável')).toBeVisible();

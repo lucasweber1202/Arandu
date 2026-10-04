@@ -22,7 +22,7 @@
     6 overlays          12 comparação e bandeja 18 movimento */
 
 /* ============================================================== 1. tokens */
-.dw{
+html.dw{
   /* superfícies */
   --background:#f7f7f5;--surface:#ffffff;--surface-raised:#ffffff;--surface-hover:#f0f0ec;--surface-subtle:#f2f2ee;
   /* texto */
@@ -838,7 +838,7 @@
   .dw .rfq-head .page-actions{justify-content:flex-start}
 }
 @media (max-width:959px){
-  .dw{--page-px:16px;--page-pt:16px}
+  html.dw{--page-px:16px;--page-pt:16px}
   .dw .topbar{padding:0 10px;gap:4px}
   .dw .topbar-sidebar-toggle,.dw .topbar-crumbs{display:none}
   .dw .topbar-brand{display:flex;flex:1 1 auto;min-width:0}
@@ -935,7 +935,7 @@
    esquerda do que pede ação (fila, próxima ação, decisão), no tom do estado.
    Tudo continua sob html.dw: nada disto existe fora da demonstração. */
 
-.dw{
+html.dw{
   --background:#f6f5f1;--surface:#fdfcfa;--surface-raised:#ffffff;--surface-hover:#efeee9;--surface-subtle:#f0efea;
   --text-primary:#131418;--text-secondary:#43464f;--text-muted:#676b75;
   --border-subtle:#e4e2db;--border-strong:#cfccc2;
