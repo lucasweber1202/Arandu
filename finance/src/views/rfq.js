@@ -62,7 +62,7 @@ export async function rfqDetail(ctx) {
   document.title = `${rfq.title} | Arandu Financial Procurement`;
   const manage = ctx.can('create_rfq');
   const proposals = rfq.proposals || [];
-  const [approvals, decisions, generalPolicy, evaluation] = await Promise.all([
+  const [approvals, decisions, generalPolicy, evaluation, entities] = await Promise.all([
     ctx.loadApprovals().then((rows) => rows.filter((row) => row.rfq_id === rfq.id)),
     ctx.api(`decisions?organization_id=${encodeURIComponent(ctx.organization.id)}`).then((result) => result.rows || []).catch(() => []),
     ctx.api(`approval-policy?organization_id=${encodeURIComponent(ctx.organization.id)}`).catch(() => ({ required_for_decision: false })),
@@ -70,7 +70,10 @@ export async function rfqDetail(ctx) {
     // pedido só passa quando nenhuma policy pede etapa ou bloqueio.
     ['collecting', 'comparing'].includes(rfq.status) && proposals.length
       ? ctx.api('approval-policies/preview', { method: 'POST', body: JSON.stringify({ rfq_id: rfq.id }) }).then((out) => out.evaluation).catch(() => null)
-      : Promise.resolve(null)
+      : Promise.resolve(null),
+    // Entidades não dependem da avaliação da política. Não serializar uma
+    // consulta de contexto depois das consultas de aprovação.
+    loadEntities(ctx)
   ]);
   const policy = { ...generalPolicy, required_for_decision: Boolean(generalPolicy.required_for_decision || evaluation?.approval_required), evaluation };
   const decision = decisions.find((row) => row.rfq_id === rfq.id) || null;
@@ -108,7 +111,6 @@ export async function rfqDetail(ctx) {
     manage && ['draft', 'open', 'collecting', 'comparing'].includes(rfq.status) ? { label: 'Cancelar solicitação', icon: 'x', danger: true, onClick: () => transition('cancelled', { title: 'Cancelar esta solicitação?', description: 'O processo é encerrado sem decisão. O histórico é preservado. Esta ação não pode ser desfeita.', confirmLabel: 'Cancelar solicitação', tone: 'danger' }) } : null
   ].filter(Boolean);
   actions.push(menu('Mais ações', more, { visibleLabel: 'Mais' }));
-  const entities = await loadEntities(ctx);
   ctx.header({
     crumbs: [{ label: 'Solicitações', href: ctx.href('/finance/rfqs.html') }, { label: rfq.title }],
     title: rfq.title,

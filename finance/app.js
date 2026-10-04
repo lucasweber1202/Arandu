@@ -24,7 +24,13 @@ const demoPage = document.body.dataset.mode === 'demo';
 const root = document.querySelector('#view');
 
 // Cada tela é carregada sob demanda: uma página baixa só o código que exibe.
-const lazy = (load, name) => async (ctx) => (await load())[name](ctx);
+const lazy = (load, name) => {
+  let pending;
+  const preload = () => (pending ||= load());
+  const renderView = async (ctx) => (await preload())[name](ctx);
+  renderView.preload = preload;
+  return renderView;
+};
 const company = () => import('./src/views/company.js');
 const providerViews = () => import('./src/views/provider.js');
 const VIEWS = {
@@ -75,9 +81,12 @@ const httpTransport = {
 async function createTransport() {
   if (!demoPage) return httpTransport;
   if (!DEMO_BUILD) return null;
-  const { createDemoEngine } = await import('./demo/engine.js');
-  // Work OS da demo: cache local-first (stale-while-revalidate) sobre o motor fictício.
-  const { withLocalFirst } = await import('./demo/workspace/platform/local-first.js');
+  // Os dois módulos são independentes: baixar em paralelo evita uma cascata
+  // de imports no primeiro acesso, especialmente no WebKit.
+  const [{ createDemoEngine }, { withLocalFirst }] = await Promise.all([
+    import('./demo/engine.js'),
+    import('./demo/workspace/platform/local-first.js')
+  ]);
   return withLocalFirst(createDemoEngine({ latency: 140 }));
 }
 
@@ -337,7 +346,12 @@ async function boot() {
   // Telas exclusivas da demo (Work OS) só existem depois que a camada da demo carrega.
   if (!root || (!VIEWS[view] && !demoPage)) return;
   root.setAttribute('aria-busy', 'true');
-  const transport = await createTransport();
+  // Só a tela atual: sobrepor download/parse ao transporte e à sessão, sem
+  // carregar todas as telas. Uma falha continua sendo exibida pelo render.
+  VIEWS[view]?.preload?.().catch(() => {});
+  // A camada da demo e seu transporte são independentes. Ambas preservam a
+  // trava de build/página, e o portal real não importa nenhum módulo da demo.
+  const [transport, loadedWorkspace] = await Promise.all([createTransport(), loadWorkspace()]);
   if (!transport) {
     // Página de demonstração servida por um build que não a habilita: falha
     // fechada, sem motor, sem dado fictício e sem acesso ao servidor.
@@ -347,7 +361,7 @@ async function boot() {
   }
   const ctx = createContext(transport);
   window.__aranduCtx = ctx;
-  workspace = await loadWorkspace();
+  workspace = loadedWorkspace;
   if (workspace) {
     VIEWS.dashboard = VIEWS.home = workspace.dashboard;
     Object.assign(VIEWS, workspace.views || {});
