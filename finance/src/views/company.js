@@ -477,6 +477,11 @@ export async function settings(ctx) {
     if (ctx.viewer?.role === 'admin') {
       add('integracoes', 'Integrações: API e webhooks', 'Contas de serviço com escopo e entidades, tokens que expiram e webhooks assinados. Para ERP, TMS e plataformas de dados.', integrationSettings(ctx, entities));
       add('sso', 'Segurança: SSO corporativo', 'Login pelo provedor de identidade da empresa (SAML/OIDC), com domínio verificado, exigência opcional de SSO e revogação de sessões.', ssoSettings(ctx));
+      // Carregado sob demanda: só administradores abrem esta seção.
+      const governanceBox = el('div', {}, loading());
+      import('./governance.js').then(({ governanceSettings }) => governanceBox.replaceChildren(governanceSettings(ctx)))
+        .catch((error) => governanceBox.replaceChildren(errorState({ error })));
+      add('dados', 'Governança de dados', 'Classificação, retenção, legal hold, export portável e offboarding da organização.', governanceBox);
     }
   }
 

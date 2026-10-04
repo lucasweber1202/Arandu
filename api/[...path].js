@@ -404,6 +404,8 @@ export default async function handler(req, res) {
     if (route === 'jobs/renewals') return await handleFinanceJobs(req, res, 'renewals');
     // Entrega de webhooks (cron/agendador externo com o mesmo segredo, service role).
     if (route === 'jobs/webhooks') return await handleFinanceJobs(req, res, 'webhooks');
+    // Governança de dados: retenção, export e offboarding (mesmo segredo, service role).
+    if (route === 'jobs/governance') return await handleFinanceJobs(req, res, 'governance');
     // Public API v1: máquina-a-máquina com token de conta de serviço; o envelope
     // de erro é o da v1 (docs/FINANCIAL_PUBLIC_API.md).
     if (route === 'v1' || route.startsWith('v1/')) return await handlePublicApi(req, res, route.slice(2).replace(/^\//, ''));

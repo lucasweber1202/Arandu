@@ -97,6 +97,16 @@ export async function opsConsole(ctx) {
     table(['Dependência', 'Configuração'], (health.dependencies || []).map(row => [row.name, row.state === 'configured' ? 'Configurada; disponibilidade não medida' : 'Não configurada']), 'Sem evidência de configuração')
   ] }));
 
+  const governance = overview.governance;
+  if (governance) {
+    const count = (map) => Object.entries(map || {}).map(([status, total]) => `${status}: ${total}`).join(' · ') || 'nenhum';
+    root.append(card({ title: 'Governança de dados', subtitle: 'Contagens de exports, offboarding, holds e retenção; nenhum dado de cliente.', body: el('dl', { class: 'summary-strip compact' }, [
+      ['Exports', count(governance.exports_by_status)], ['Offboarding', count(governance.offboarding_by_status)],
+      ['Legal holds ativos', governance.active_legal_holds ?? 0], ['Registros removidos ou anonimizados pela retenção em 24 h', governance.retention_purged_24h ?? 0],
+      ['Última retenção com sucesso', governance.last_retention_run ? timeAgo(governance.last_retention_run) : 'nunca']
+    ].map(([label, value]) => el('div', { class: 'summary-item' }, [el('dt', { text: label }), el('dd', { text: String(value) })]))) }));
+  }
+
   const outbox = overview.outbox || {};
   const byStatus = Object.entries(outbox.by_status || {});
   root.append(card({ title: 'Outbox de e-mail (avisos financeiros)', subtitle: outbox.oldest_pending_minutes != null ? `Pendente mais antigo há ${outbox.oldest_pending_minutes} min` : 'Nada pendente', body: [
