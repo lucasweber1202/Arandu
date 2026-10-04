@@ -6,6 +6,7 @@ select set_config('request.jwt.claims','{}',false);
 do $$
 declare a jsonb; b jsonb; c record; org uuid; owner uuid; n integer;
 begin
+  if (select value from public.fin_settings where key='schema_version') <> 'financial-operational-resilience-1' then raise exception 'resilience marker mismatch'; end if;
   if has_function_privilege('anon','public.fin_job_begin(text,text,timestamptz,integer)','EXECUTE')
     or has_function_privilege('authenticated','public.fin_job_finish(uuid,uuid,text,integer,integer,text)','EXECUTE')
     or has_table_privilege('authenticated','public.fin_job_leases','SELECT')
