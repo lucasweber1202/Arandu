@@ -15,7 +15,7 @@
 
 import { PRODUCTS } from '../../../lib/finance/products.mjs';
 
-export const ASSIST_POLICY = Object.freeze({
+export const ASSIST_POLICY = /* @__PURE__ */ Object.freeze({
   may: ['resumir', 'explicar', 'localizar', 'organizar', 'preencher rascunhos', 'identificar dados ausentes', 'comparar fatos'],
   mayNot: ['escolher banco', 'recomendar instituição', 'escolher proposta', 'tomar decisão financeira', 'aprovar automaticamente']
 });

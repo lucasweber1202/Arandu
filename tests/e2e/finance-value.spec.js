@@ -23,6 +23,7 @@ async function setup(page,{role='admin',fail=false}={}) {
 test('valor separado por tipo e moeda, filtros no servidor, detalhe com baseline e metodologia',async({page})=>{
   const calls=await setup(page);await page.goto('/finance/value.html');
   await expect(page.getByRole('heading',{name:'Valor de procurement',exact:true})).toBeVisible();
+  await expect.poll(async () => page.locator('svg.icon use').first().evaluate((use) => use.ownerSVGElement.getBBox().width)).toBeGreaterThan(0);
   await expect(page.getByRole('heading',{name:'Economia negociada · BRL'})).toBeVisible();
   await expect(page.getByRole('heading',{name:'Custo evitado · USD'})).toBeVisible();
   await expect(page.getByText('Sem cálculo defensável')).toBeVisible();
@@ -47,11 +48,11 @@ test('estimativa incompleta não vira realização automática',async({page})=>{
   const calls=await setup(page);await page.goto('/finance/value.html');
   await page.getByRole('button',{name:'Registrar estimativa'}).click();
   const dialog=page.getByRole('dialog');
-  await dialog.getByLabel('Título',{exact:true}).fill('Economia declarada teste');
+  await dialog.getByLabel(/^Título/).fill('Economia declarada teste');
   await dialog.getByLabel('Contrato de destino').selectOption(ID);
   await dialog.getByLabel('Início do período').fill('2025-01-01');await dialog.getByLabel('Fim do período').fill('2025-12-31');
   await dialog.getByLabel('Referência do baseline').fill('BASELINE-TEST');await dialog.getByLabel('Data do baseline').fill('2024-12-01');
-  await dialog.getByLabel('Custo total do baseline').fill('1000');await dialog.getByLabel('Custo total negociado ou evitado').fill('800');
+  await dialog.getByLabel('Custo do baseline').fill('1000');await dialog.getByLabel('Custo de destino').fill('800');
   await dialog.getByLabel('Referência da evidência').fill('EVIDENCE-TEST');await dialog.getByLabel('Justificativa e ajustes').fill('Comparação incompleta teste');
   await dialog.getByRole('button',{name:'Registrar',exact:true}).click();
   await expect.poll(()=>calls.find(c=>c.path==='value'&&c.method==='POST')?.body.comparability).toBe('incomplete');

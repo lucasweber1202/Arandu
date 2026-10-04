@@ -126,8 +126,8 @@ begin
      or b->>'as_of' is null or (b->>'as_of')::date>v_start
      or b->>'currency' is distinct from p_input->>'currency' or b->>'unit' is distinct from 'period_total'
      or (b->>'period_start')::date is distinct from v_start or (b->>'period_end')::date is distinct from v_end
-     or v_base is null or v_base<0 or v_base>1000000000000 or v_base::text='NaN'
-     or v_target is null or v_target<0 or v_target>1000000000000 or v_target::text='NaN'
+     or v_base is null or v_base<0 or v_base>1000000000000 or v_base::text='NaN' or v_base<>round(v_base,2)
+     or v_target is null or v_target<0 or v_target>1000000000000 or v_target::text='NaN' or v_target<>round(v_target,2)
      or exists(select 1 from jsonb_object_keys(b) k where k not in ('source','reference','as_of','amount','currency','unit','period_start','period_end','dimensions'))
      or length(b::text)>6000 or b::text ~ '[<>]' then raise exception 'invalid value baseline'; end if;
   if jsonb_typeof(b->'dimensions') is distinct from 'object' or jsonb_typeof(ds) is distinct from 'object'
@@ -167,7 +167,7 @@ begin
   if r.kind<>'NEGOTIATED_SAVINGS' or r.status<>'active' or r.comparability<>'comparable' then raise exception 'value not realizable'; end if;
   if exists(select 1 from public.fin_value_records where parent_id=r.id) then raise exception 'value already realized'; end if;
   v_amount:=(p_input->>'observed_amount')::numeric;
-  if v_amount is null or v_amount<0 or v_amount>1000000000000 or v_amount::text='NaN'
+  if v_amount is null or v_amount<0 or v_amount>1000000000000 or v_amount::text='NaN' or v_amount<>round(v_amount,2)
     or p_input->>'currency' is distinct from r.currency or p_input->>'coverage' is distinct from 'complete'
     or (p_input->>'period_start')::date is distinct from r.period_start or (p_input->>'period_end')::date is distinct from r.period_end
     or r.period_end>=current_date or r.period_start<=(r.baseline->>'as_of')::date

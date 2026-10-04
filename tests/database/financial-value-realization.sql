@@ -31,7 +31,7 @@ end $$;
 grant execute on function pg_temp.value_input(),pg_temp.value_expect_error(text,text) to authenticated;
 set role authenticated;
 select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-0000000aa101',true);
-insert into value_fixture values('contract',public.fin_import_contract('00000000-0000-4000-8000-0000000aa201',null,'00000000-0000-4000-8000-0000000aa301','credito','Value contract fixture','2025-01-01','2025-12-31',30,false,'BRL','{}',null));
+insert into value_fixture values('contract',public.fin_import_contract('00000000-0000-4000-8000-0000000aa201',null,'00000000-0000-4000-8000-0000000aa301','credit','Value contract fixture','2025-01-01','2025-12-31',30,false,'BRL','{}',null));
 insert into value_fixture select 'record',public.fin_record_value('00000000-0000-4000-8000-0000000aa201',(select id from value_fixture where key='contract'),pg_temp.value_input());
 insert into value_fixture select 'avoidance',public.fin_record_value('00000000-0000-4000-8000-0000000aa201',(select id from value_fixture where key='contract'),pg_temp.value_input()||'{"kind":"COST_AVOIDANCE"}');
 insert into value_fixture select 'incomparable',public.fin_record_value('00000000-0000-4000-8000-0000000aa201',(select id from value_fixture where key='contract'),pg_temp.value_input()||'{"comparability":"not_comparable"}');

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { Readable } from 'node:stream';
-import { validateValueInput, valueAmount, valueFilters, VALUE_DIMENSIONS } from '../lib/finance/value-realization.mjs';
+import { validateValueInput, valueAmount, valueFilters, validateObservation, VALUE_DIMENSIONS } from '../lib/finance/value-realization.mjs';
 import { handleFinance } from '../lib/api/domains/finance.mjs';
 import { graphHref } from '../lib/finance/graph.mjs';
 const ORG='00000000-0000-4000-8000-0000000000a1';
@@ -9,6 +9,10 @@ const dimensions=Object.fromEntries(VALUE_DIMENSIONS.map((k)=>[k,'explicit fixtu
 const input={organization_id:ORG,contract_id:RECORD,kind:'NEGOTIATED_SAVINGS',title:'Fixture cost reduction',currency:'BRL',period_start:'2025-01-01',period_end:'2025-12-31',target_amount:800,baseline:{amount:1000,source:'manual',reference:'FIXTURE-BASE',as_of:'2024-12-01',currency:'BRL',unit:'period_total',period_start:'2025-01-01',period_end:'2025-12-31',dimensions},target_dimensions:dimensions,comparability:'comparable',reason:'Explicit fixture comparison',evidence_reference:'FIXTURE-DOC'};
 assert.equal(validateValueInput(input),null);
 assert.equal(valueAmount(input),200);
+assert.ok(validateValueInput({...input,target_amount:800.001}));
+const observation={observed_amount:900,currency:'BRL',period_start:'2025-01-01',period_end:'2025-12-31',coverage:'complete',verified:true,source:'statement',evidence_reference:'FIXTURE-OBS',verification_reason:'Complete evidence verified'};
+assert.equal(validateObservation(observation),null);
+for(const patch of [{coverage:'partial'},{verified:false},{observed_amount:NaN},{currency:'ZZZ'},{period_end:'2099-01-01'},{source:'invented'},{verification_reason:''}]) assert.ok(validateObservation({...observation,...patch}));
 assert.equal(valueAmount({...input,target_amount:1200}),-200,'negative differences must stay factual');
 assert.equal(valueAmount({...input,comparability:'incomplete'}),null);
 for(const patch of [{baseline:null},{kind:'REALIZED_SAVINGS'},{currency:'ZZZ'},{period_start:'2025-02-31'},{period_end:'2025-99-01'},{target_amount:NaN},{target_amount:Infinity},{target_amount:-1},{reason:'<script>'},{target_dimensions:{...dimensions,indexer:'different'}},{target_dimensions:{spread_pct_year:1}}]) assert.ok(validateValueInput({...input,...patch}),JSON.stringify(patch));
@@ -49,6 +53,8 @@ sent=[];
 data=await call('POST','value',input);assert.equal(data.id,RECORD);
 assert.deepEqual(sent.find((s)=>s.url.endsWith('fin_record_value')).payload.p_input.baseline,input.baseline);
 forbidden=true;await assert.rejects(()=>call('POST','value',input),e=>e.status===403);forbidden=false;
+sent=[];await assert.rejects(()=>call('POST','value/observe',{record_id:RECORD,...observation,coverage:'partial'}),e=>e.status===400);
+assert.ok(!sent.some(s=>s.url.endsWith('fin_observe_value')));
 invisible=true;await assert.rejects(()=>call('GET',`value/detail?id=${RECORD}`),e=>e.status===404);
 await assert.rejects(()=>call('GET',`value/detail?id=forged`),e=>e.status===400);
 await assert.rejects(()=>call('GET',`value?organization_id=${ORG}&limit=1000`),e=>e.status===400);
