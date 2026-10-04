@@ -20,7 +20,7 @@
     "check:domain": "node scripts/check-domain-config.mjs",
     "check:domain:release": "node scripts/check-domain-config.mjs --require-ready",
     "test:database": "bash scripts/test-database.sh",
-    "check:platform": "node scripts/check-platform-hardening.mjs && node scripts/test-operational-status.mjs && node scripts/test-profile-access.mjs && node scripts/test-platform-api.mjs && node scripts/test-transaction-api.mjs && node scripts/test-email-outbox.mjs && node scripts/test-observability.mjs && node scripts/test-presentation-mode.mjs",
+    "check:platform": "node scripts/check-platform-hardening.mjs && node scripts/test-email-outbox.mjs && node scripts/test-observability.mjs && node scripts/test-presentation-mode.mjs",
     "check:platform:release": "node scripts/check-platform-release.mjs",
     "check:finance": "node scripts/test-finance-domain.mjs && node scripts/test-finance-entities.mjs && node scripts/test-finance-contracts.mjs && node scripts/test-finance-portfolio.mjs && node scripts/test-finance-graph.mjs && node scripts/test-finance-policy.mjs && node scripts/test-finance-public-api.mjs && node scripts/test-finance-sso.mjs && node scripts/test-finance-data-governance.mjs && node scripts/test-finance-integrations.mjs && node scripts/test-finance-env.mjs && node scripts/test-finance-api.mjs && node scripts/test-finance-passport.mjs && node scripts/test-finance-jobs.mjs && node scripts/test-operational-resilience.mjs && node scripts/test-pilot-doctor.mjs && node scripts/test-finance-command-center.mjs && node scripts/test-pilot-readiness.mjs && npm run check:finance-pages && node scripts/test-demo-engine.mjs && node scripts/test-demo-next-action.mjs && node scripts/test-demo-work-os.mjs && node scripts/test-demo-mode.mjs && node scripts/test-demo-guard.mjs",
     "check:finance-pages": "node scripts/generate-finance-pages.mjs --check",
@@ -47,8 +47,8 @@
     "demo:local:check": "bash scripts/demo/local.sh check",
     "demo:down": "bash scripts/demo/local.sh down",
     "test:e2e:demo": "playwright test --config playwright.demo.config.js",
-    "check:backend": "node scripts/check-backend.mjs && node scripts/check-api-modules.mjs && node scripts/test-api-domains.mjs && node scripts/test-api-core.mjs && node scripts/test-api-dtos.mjs",
-    "check:security": "node scripts/check-auth-security.mjs && node scripts/test-auth-api.mjs && node scripts/test-admin-rbac.mjs && node scripts/check-admin-surface.mjs && node scripts/check-http-security.mjs && node scripts/check-p0-security.mjs && node scripts/check-secret-exposure.mjs && node scripts/check-security-contact.mjs && node scripts/test-admin-url-security.mjs && node scripts/test-legacy-surface.mjs",
+    "check:backend": "node scripts/check-backend.mjs && node scripts/check-api-modules.mjs && node scripts/test-api-core.mjs",
+    "check:security": "node scripts/check-auth-security.mjs && node scripts/test-auth-api.mjs && node scripts/check-admin-surface.mjs && node scripts/check-http-security.mjs && node scripts/check-p0-security.mjs && node scripts/check-secret-exposure.mjs && node scripts/check-security-contact.mjs && node scripts/test-deployment-surface.mjs",
     "check:http": "node scripts/check-http-security.mjs",
     "check:seo": "node scripts/check-seo.mjs",
     "check:seo:dist": "node scripts/check-seo.mjs --dist",
@@ -88,7 +88,7 @@
     "pretest:e2e:presentation": "ARANDU_PRESENTATION_MODE=true VERCEL_ENV=preview npm run build",
     "test:e2e:presentation": "playwright test --config playwright.presentation.config.js",
     "pilot:backup:preflight": "node scripts/pilot-backup-preflight.mjs",
-    "check:legacy-art": "node scripts/check-legacy-art.mjs"
+    "check:legacy-art": "node scripts/check-legacy-art.mjs && node scripts/test-legacy-art-gate.mjs"
   },
   "dependencies": {
     "@vercel/speed-insights": "^2.0.0",

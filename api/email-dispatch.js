@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { dispatchTransactionalOutbox } from '../lib/email-outbox.mjs';
 import { applyApiSecurityHeaders } from '../lib/http-security.mjs';
 import { adminSupabaseRpc, hasSupabaseAccess } from '../lib/supabase.mjs';
-import { demoDeployment, rejectLegacyArtRoute } from '../lib/legacy-surface.mjs';
+import { demoDeployment, rejectClosedRoute } from '../lib/deployment-surface.mjs';
 
 // Despacho da outbox transacional (avisos financeiros): só o cron, com o
 // segredo compartilhado e lease em fin_job_runs. O gatilho manual pela antiga
@@ -35,7 +35,7 @@ async function dispatchWithRun(requestId, workerRef) {
 
 export default async function handler(req, res) {
   // A demonstração não tem banco nem fila de e-mail: o cron dela não existe.
-  if (demoDeployment()) return rejectLegacyArtRoute(res);
+  if (demoDeployment()) return rejectClosedRoute(res);
   const requestId = safeRequestId(req.headers?.['x-request-id']);
   res.setHeader('X-Request-ID', requestId);
   try {

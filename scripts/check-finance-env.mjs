@@ -82,10 +82,8 @@ report.push('');
 report.push('Modos:');
 const presentation = flag('ARANDU_PRESENTATION_MODE');
 const financeEnabled = env.ARANDU_FINANCE_ENABLED === undefined ? true : flag('ARANDU_FINANCE_ENABLED');
-const commercial = flag('ARANDU_COMMERCIAL_READY');
 report.push(`  ARANDU_FINANCE_ENABLED: ${financeEnabled ? 'ligado' : 'desligado'}${env.ARANDU_FINANCE_ENABLED === undefined ? ' (padrão)' : ''}`);
 report.push(`  ARANDU_PRESENTATION_MODE: ${presentation ? 'ligado' : 'desligado'}`);
-report.push(`  ARANDU_COMMERCIAL_READY: ${commercial ? 'ligado' : 'desligado'}`);
 
 // --- combinações que não devem existir -------------------------------------
 

@@ -1,9 +1,11 @@
-# Mapa de autorização — Financial Procurement × legado de Arte
+# Mapa de autorização — Financial Procurement
 
 Auditoria de 27/09/2026 (base `a0f85df`). Cada ponto que decide acesso foi
 classificado pelo domínio que protege. Resultado: o papel de plataforma
 `finance_ops` não entra em nenhuma superfície legada, e nenhum papel legado abre
-o console financeiro.
+o console financeiro. Desde 04/10/2026 a API não tem mais nenhuma rota da antiga
+vertical de arte (`docs/LEGACY_ART_RETIREMENT.md`): o admin legado e seus papéis
+não têm handler.
 
 ## Papéis
 
@@ -11,11 +13,11 @@ o console financeiro.
 | --- | --- | --- | --- |
 | `admin`, `finance_manager`, `analyst`, `provider_user`, `viewer` | `fin_members.role` (por organização) | a própria empresa (convite de membro) | dados da **própria** organização, via RLS |
 | `finance_ops` | `auth.users.app_metadata.arandu_role` + linha em `fin_platform_operators` | responsável da plataforma (service role / SQL) | só `/finance/ops.html` e `/api/finance/ops/*`, com `aal2` |
-| `admin`, `operator`, `curator` (legado) | `app_metadata.arandu_role` | responsável da plataforma | admin legado de arte (`requireAdmin` + RBAC em `lib/admin-rbac.mjs`) |
+| `admin`, `operator`, `curator` (aposentados) | `app_metadata.arandu_role` em contas antigas | ninguém (sem handler) | nada: o admin de arte foi removido; o console financeiro recusa esses papéis com 403 `finance_ops_required` |
 
-`finance_ops` **não** está em `ADMIN_ROLES` (`lib/admin-auth.mjs`) nem na matriz
-RBAC legada; `scripts/test-admin-rbac.mjs` e `scripts/test-admin-auth.mjs`
-falham se isso mudar.
+`check-auth-security` falha se o guard administrativo aposentado (`adminGuard`,
+`ADMIN_ROLES`, RBAC legada) voltar à API; `check-legacy-art` falha se os módulos
+`admin-auth`/`admin-rbac` voltarem ao tree.
 
 ## Pontos de decisão
 
@@ -32,7 +34,7 @@ falham se isso mudar.
 | `/api/auth/login` (exigência de SSO) | AUTH | `fin_sso_password_allowed` (service role) antes da senha: 403 `sso_required`; 503 se a política não puder ser lida |
 | `sso*` (`/api/finance`) | FINANCE | sessão + papel `admin` confirmado antes de qualquer RPC; verificação de domínio lê o DNS no servidor e envia só o hash do token (service role) |
 | `approval-policies*`, `approval-exceptions*`, `approval-delegations*` | FINANCE | sessão + RLS; administração de policy e sinalizadores só `admin`; prévia sob o RLS da RFQ; exceção decidida pelo papel da policy dona da regra; delegação pelo titular (ou admin para revogar) — `docs/FINANCIAL_POLICY_ENGINE.md` |
-| `lib/api/domains/admin-operations.mjs`, `accounts.mjs`, `dashboard.mjs`, `pilot.mjs` (métricas) | LEGACY_ART (aposentado) | 404 `legacy_surface_closed` em piloto/produção/demo; em preview, `adminGuard` → `requireAdmin` + RBAC; tabelas fixas, nenhuma `fin_*`. Remoção pendente (`docs/LEGACY_ART_RETIREMENT.md`) |
+| Qualquer outra rota `/api/*` | — | 404 `route_not_found` em todos os ambientes (sem handler); em piloto/produção/demo a lista de `lib/deployment-surface.mjs` é conferida antes do roteamento |
 | `api/email-dispatch.js` | SHARED_INFRA | só GET de cron com `CRON_SECRET`; o gatilho manual da administração de arte foi removido |
 | `/api/jobs/governance` | FINANCE | `CRON_SECRET`; retenção, export e offboarding com service role só depois do segredo |
 | `lib/http-security.mjs` (mesma origem), limitador `consume_rate_limit`, cookie `arandu_session` | SHARED_INFRA | — (não concedem privilégio) |
@@ -42,17 +44,17 @@ falham se isso mudar.
 | Item | Achado | Ação |
 | --- | --- | --- |
 | Papéis administrativos | O operador financeiro precisava do papel legado `operator` para ter `aal2`, e esse papel escreve em leads, reservas, propostas e pedidos de arte | **Corrigido**: papel `finance_ops` + MFA no próprio console; `operator` não abre mais o console |
-| Guardas de API | Rotas financeiras não aceitam `requireAdmin`; rotas legadas não aceitam `finance_ops` (17/17 recusadas no ensaio real) | NO ACTION REQUIRED |
-| Service role | Legado usa service role só depois de `requireAdmin`, e só em tabelas de arte listadas; nenhum arquivo legado referencia `fin_*` | NO ACTION REQUIRED |
-| Rotas | Mesma função (`api/[...path].js`), prefixos disjuntos (`finance/`, `jobs/` × rotas de arte) | NO ACTION REQUIRED |
+| Guardas de API | O guard administrativo de arte (`requireAdmin` + RBAC) foi removido com as rotas; as rotas antigas respondem 404 também para `finance_ops` com MFA (ensaio local) | **Removido** (04/10/2026) |
+| Service role | Só domínio financeiro, crons e outbox usam service role | NO ACTION REQUIRED |
+| Rotas | `api/[...path].js` só atende `finance/`, `auth/`, `v1/`, `jobs/` e security.txt | **Removido** o restante (04/10/2026) |
 | Tabelas | `transactional_email_outbox` é compartilhada; só o cron dispara o despacho | Acoplamento removido com o gatilho manual de arte |
 | Build | Páginas administrativas de arte e `api/internal-page.js` foram removidas do código | Gate `check:legacy-art` |
 | Middleware | Cookie `arandu_session` único; o MFA do `finance_ops` troca o cookie por uma sessão `aal2` da mesma conta | NO ACTION REQUIRED |
 
 ## Compatibilidade
 
-- `operator` continua sendo o papel legado de arte, com as mesmas permissões.
-  Ele **deixa de abrir** o console financeiro, mesmo com registro em
+- `operator` era o papel do admin de arte, que não existe mais. Uma conta antiga
+  com esse papel **não abre** o console financeiro, mesmo com registro em
   `fin_platform_operators` e MFA (ensaio: 403 `finance_ops_required`).
 - Migrar um operador existente: trocar o papel para `finance_ops`
   (`FINANCIAL_PILOT_GO_LIVE.md` → Operador). Nada é migrado automaticamente.

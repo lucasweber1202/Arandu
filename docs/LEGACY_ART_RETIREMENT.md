@@ -21,7 +21,9 @@ O Git preserva tudo; nada foi reescrito.
 | Último estado só de arte antes do primeiro schema financeiro | `76c50bf` (merge da #62, 2026-09-15) |
 | Primeiro schema financeiro (`fin_*`) | `644fa2b` (2026-09-23) |
 | Último `pilot` com o runtime de arte inteiro no tree | `cfd51ea` (merge da #112, 2026-10-03) |
-| Remoção do runtime, assets, scripts, testes e documentos de arte | PR "Legacy art runtime & repository cleanup" para `pilot` |
+| Remoção do runtime, assets, scripts, testes e documentos de arte | merge da #114 (`0738693`) |
+| Aposentadoria dos objetos de banco de arte (migration nova) | merge da #115 (`051f10f`) |
+| Remoção das rotas de arte do roteador, módulos, variáveis e testes restantes | PR "final legacy runtime cleanup" para `pilot` |
 
 Para consultar um arquivo antigo: `git show cfd51ea:<caminho>` ou
 `git log --all -- <caminho>`.
@@ -40,8 +42,7 @@ Categorias: `LEGACY_DEAD_CODE` (removido do tree), `LEGACY_DOC_ONLY` (removido;
 fica no Git), `LEGACY_TEST` (removido ou trocado por teste de ausência),
 `LEGACY_DEPENDENCY` (removida), `LEGACY_HISTORICAL_MIGRATION` (preservada),
 `LEGACY_DATABASE_OBJECT` / `LEGACY_DATA` / `LEGACY_STORAGE` (banco/storage,
-tratados por migration de aposentadoria), `LEGACY_RUNTIME_ACTIVE` (ainda no
-código, fechado em ambiente real), `SHARED_INFRASTRUCTURE` (nasceu na arte,
+tratados por migration de aposentadoria), `SHARED_INFRASTRUCTURE` (nasceu na arte,
 usado pelo financeiro: mantido), `UNKNOWN_REQUIRES_INVESTIGATION`.
 
 ### Runtime e repositório
@@ -53,11 +54,17 @@ usado pelo financeiro: mantido), `UNKNOWN_REQUIRES_INVESTIGATION`.
 | `src/*.ts|css` e `tsconfig.json`, `next.config.ts`, `next-env.d.ts`, `tailwind.config.ts`, `lib/recommend.ts` (stack Next/TS antiga) | `LEGACY_DEAD_CODE` | removidos; `src/vercel-speed-insights.js` fica (usado pelo build) |
 | `supabase/` (schemas/seed manuais antigos, fora do manifesto) | `LEGACY_DEAD_CODE` | removido |
 | `sitemap.xml`, `sitemap-interno.xml`, `robots.txt` da raiz | `LEGACY_DEAD_CODE` | removidos; o build gera os do produto financeiro |
-| `api/internal-page.js`, `admin-auth.js`, `readiness.js`, `collections.js`, `commercial.js`, `mvp-dashboard.js`, `upload.js`, `orders.js`, `account-orders.js` | `LEGACY_DEAD_CODE` | removidas (9 funções serverless); `check-backend` e `test-legacy-surface` falham se voltarem |
+| `api/internal-page.js`, `admin-auth.js`, `readiness.js`, `collections.js`, `commercial.js`, `mvp-dashboard.js`, `upload.js`, `orders.js`, `account-orders.js` | `LEGACY_DEAD_CODE` | removidas (9 funções serverless); `check-backend` e `test-deployment-surface` falham se voltarem |
 | `lib/internal-pages.mjs`, `owner-console.mjs`, `owner-docs.mjs`, `public-shell.mjs` | `LEGACY_DEAD_CODE` | removidos |
 | Gatilho manual (admin de arte) do despacho de e-mail | `LEGACY_DEAD_CODE` | removido; `api/email-dispatch.js` é só cron |
-| Rotas de arte dentro de `api/[...path].js` (forms, reservations, proposals, certificates, catalog, artists, events, pilot, privacy, admin, operational, media, selections, account, portal, dashboard) e os módulos que elas importam (`lib/api/domains/{accounts,admin-operations,dashboard,intake,pilot,privacy,public-content,selections}.mjs`, `lib/{admin-auth,admin-rbac,api-dtos,commercial-policy,operational-status,profile-access}.mjs`) | `LEGACY_RUNTIME_ACTIVE` | **ainda no código**, respondem 404 (`legacy_surface_closed`) em piloto, produção, demo e qualquer deploy de produção da Vercel. Remoção bloqueada nesta rodada (ver Blockers) |
-| Variáveis `ARANDU_WHATSAPP_NUMBER`, `ARANDU_COMMERCIAL_*`, `ARANDU_*_POLICY_REFERENCE`, `ARANDU_PILOT_*`, `ARANDU_BRAND_READY`, `ARANDU_CONTACT_EMAIL`, `ARANDU_PLATFORM_FEE_RATE`, `ARANDU_RESERVATION_HOURS`, `ARANDU_CONSENT_VERSION` | `LEGACY_RUNTIME_ACTIVE` | continuam documentadas enquanto os módulos acima existirem; `ARANDU_AUTH_TIMEOUT_MS`, `ARANDU_STORAGE_BUCKET` e `PUBLIC_ANALYTICS_ID` (sem uso) saíram do `.env.example` |
+| Rotas de arte dentro de `api/[...path].js` (forms, reservations, proposals, certificates, certificate-document, catalog, artists, public-config, events, conversion-events, pilot/*, privacy/*, catalog-review, admin, admin-update, operational, media, selections, account, portal/*, artist-accounts, dashboard, admin/quality) | `LEGACY_DEAD_CODE` | removidas; o roteador só atende `finance/*`, `auth/*`, `v1/*`, os crons e o security.txt; qualquer outra rota é 404 `route_not_found` em todos os ambientes. `check-legacy-art` falha se surgir `route === '…'` fora dessa lista |
+| `lib/api/domains/{accounts,admin-operations,dashboard,intake,pilot,privacy,public-content,selections}.mjs`, `lib/{admin-rbac,api-dtos,commercial-policy,operational-status,profile-access,rate-limit}.mjs` | `LEGACY_DEAD_CODE` | removidos (só as rotas de arte os importavam) |
+| `lib/admin-auth.mjs` | `SHARED_INFRASTRUCTURE` → `LEGACY_DEAD_CODE` | só `authSessionCookie` era usado pelo console `finance_ops`: foi para `lib/finance/ops-access.mjs`; o resto (papéis admin/operator/curator) saiu |
+| `security.txt` e `publicSiteUrl` (em `public-content.mjs`) | `SHARED_INFRASTRUCTURE` | movidos para `lib/api/domains/security-contact.mjs` |
+| `lib/legacy-surface.mjs` | `SHARED_INFRASTRUCTURE` | virou `lib/deployment-surface.mjs` (allowlist de rotas por deployment e fechamento da API no projeto demonstrativo), código `route_not_found` |
+| Modelos de e-mail de reserva, pedido, pagamento, envio, proposta curatorial, contato e alerta admin em `lib/email.mjs` | `LEGACY_DEAD_CODE` | removidos; só os modelos financeiros renderizam |
+| Testes `test-api-domains`, `test-admin-url-security`, `test-admin-rbac`, `test-api-dtos`, `test-operational-status`, `test-profile-access`, `test-platform-api`, `test-transaction-api`, `test-helpers/commercial-policy-env` | `LEGACY_TEST` | removidos; os cenários de auth que viviam neles (recuperação de senha, rate limit distribuído) foram para `test-auth-api`, que também prova 404 nas 23 rotas antigas; `test-legacy-art-gate` prova que o gate reprova as regressões |
+| Variáveis `ARANDU_WHATSAPP_NUMBER`, `ARANDU_CONTACT_EMAIL`, `ARANDU_BRAND_READY`, `ARANDU_CONSENT_VERSION`, `ARANDU_COMMERCIAL_*`, `ARANDU_*_POLICY_REFERENCE`, `ARANDU_FISCAL_MODEL_REFERENCE`, `ARANDU_PLATFORM_FEE_RATE`, `ARANDU_RESERVATION_HOURS`, `ARANDU_PILOT_{ENABLED,APPROVED,ACCESS_CODE,SECRET}`, `ARANDU_PRIVACY_CONTACT_EMAIL` | `LEGACY_DEAD_CODE` | removidas do `.env.example`, dos validadores (`check-production-env`, `check-domain-config`, `check-finance-env`, `check-platform-release`, `demo-mode`) e dos testes; `check-legacy-art` falha se voltarem. `ARANDU_PILOT_ALLOWLIST_CONFIRMED` é do piloto financeiro e fica. Em projetos Vercel antigos podem continuar definidas: não são lidas por nada (limpeza opcional no painel) |
 | `typescript` (dependência) | `LEGACY_DEPENDENCY` | removida (só servia à stack Next/TS) |
 | ~35 scripts de verificação de arte (`check-static`, catálogo, coleções, comercial, piloto fechado, UX/SEO de páginas de arte, navegação e CSS do site antigo, seed, intake de CSV…) e scripts npm correspondentes (`check:catalog*`, `check:commercial*`, `check:pilot*`, `check:ux`, `seed:supabase*`, `test:e2e:commerce`…) | `LEGACY_TEST` | removidos; frentes de arte saíram do `release:status` |
 | Specs E2E `buyer-journeys`, `commerce-journeys`, `public-journeys`, `contrast`, `performance-budgets` (páginas de arte, fora do CI) e `playwright.commerce.config.js` | `LEGACY_TEST` | removidos; substituídos pelos gates de ausência |
@@ -132,17 +139,14 @@ Páginas de arte removidas respondem 404 (arquivo estático inexistente). Não h
 410: a hospedagem estática não emite 410 sem função, as páginas nunca estiveram
 no sitemap/robots do produto financeiro e já não eram publicadas desde a
 aposentadoria inicial. Os dois aliases mais conhecidos (`/obras.html`,
-`/acervo.html`) seguem com 301 para `/` em `vercel.json`. As rotas de API de arte
-que ainda existem no roteador respondem 404 `legacy_surface_closed` em ambiente
-real.
+`/acervo.html`) seguem com 301 para `/` em `vercel.json`. As antigas rotas de API
+de arte não têm handler: respondem 404 `route_not_found` em qualquer ambiente
+(deploys anteriores a esta remoção respondiam `legacy_surface_closed`; o doctor
+aceita os dois).
 
 ## Blockers
 
-```
-BLOCKER: remoção das rotas de arte do roteador api/[...path].js e dos módulos que só ele importa
-WHY: a leitura completa do arquivo foi negada pela política de permissões da sessão de automação; reescrever o roteador sem lê-lo arriscaria o login e o domínio financeiro
-WHO MUST ACT: owner do repositório (liberar a leitura/edição do arquivo para o agente, ou fazer a remoção)
-EXACT ACTION: remover de api/[...path].js os handlers de forms, reservations, proposals, certificates, certificate-document, catalog, artists, public-config, events, conversion-events, pilot/*, privacy/*, catalog-review, admin, admin-update, operational, media, selections, account, portal/*, artist-accounts, dashboard, admin/quality; depois apagar os módulos listados como LEGACY_RUNTIME_ACTIVE, as variáveis de ambiente correspondentes e os testes que só cobrem essas rotas (test-api-domains, test-platform-api, test-transaction-api, test-operational-status, test-profile-access, test-api-dtos, test-admin-rbac)
-WHAT IS READY: as rotas já respondem 404 em piloto/produção/demo (test-legacy-surface); check-backend, check-admin-surface e check-legacy-art já descrevem o estado-alvo
-HOW TO VERIFY: npm run check:all, npm run check:legacy-art, npm run test:e2e (login, cadastro, portal) e test-legacy-surface com as rotas removidas devolvendo 404 de rota inexistente
-```
+Os únicos blockers restantes são hospedados: a aplicação da migration de
+decommission e o bucket de mídia de arte (seção "Procedimento hospedado"). O
+blocker de leitura do roteador foi resolvido: o arquivo foi lido por inteiro e
+as rotas de arte, removidas.

@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 
 const api = fs.readFileSync('api/[...path].js', 'utf8');
-const domain = fs.readFileSync('lib/api/domains/public-content.mjs', 'utf8');
+const domain = fs.readFileSync('lib/api/domains/security-contact.mjs', 'utf8');
 const vercel = JSON.parse(fs.readFileSync('vercel.json', 'utf8'));
 const env = fs.readFileSync('.env.example', 'utf8');
 const issues = [];

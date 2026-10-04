@@ -556,8 +556,9 @@ await step('E-mail: preferência desligada e limite de 20/h por destinatário', 
 sql(`update public.fin_settings set value = 'false' where key = 'email_enabled'`);
 
 // ------------------------------------------------------------ 11. operador
-// finance_ops = papel de plataforma (app_metadata) + registro + aal2. O operador
-// legado (admin de arte) mantém o admin de arte e não abre o console financeiro.
+// finance_ops = papel de plataforma (app_metadata) + registro + aal2. Um papel de
+// plataforma antigo (arandu_role=operator, da vertical de arte aposentada) não
+// abre o console financeiro, e as rotas do antigo admin não existem mais (404).
 const LEGACY_ADMIN = [
   ['GET', '/api/admin-auth?action=session'], ['POST', '/api/admin-auth?action=challenge'],
   ['GET', '/api/admin?panel=artworks'], ['GET', '/api/dashboard'], ['GET', '/api/admin/quality'],
@@ -588,13 +589,13 @@ await attack('Operador legado (arandu_role=operator) com MFA e registro antigo a
   people.legacyOperator.cookie = sessionCookie(session);
   const legacySession = await api(people.legacyOperator, 'GET', '/api/admin-auth?action=session');
   const r = await api(people.legacyOperator, 'GET', '/api/finance/ops/overview');
-  return { ok: jwtAal(accessToken(people.legacyOperator)) === 'aal2' && legacySession.status === 404 && legacySession.data?.code === 'legacy_surface_closed'
+  return { ok: jwtAal(accessToken(people.legacyOperator)) === 'aal2' && legacySession.status === 404 && legacySession.data?.code === 'route_not_found'
       && r.status === 403 && r.data?.code === 'finance_ops_required',
     observed: `admin legado ${show(legacySession)}; console ${show(r)}` };
 });
-await attack('finance_ops tenta o MFA do admin legado', '404 legacy_surface_closed', async () => {
+await attack('finance_ops tenta o MFA do admin legado', '404 route_not_found', async () => {
   const r = await api(people.operator, 'POST', '/api/admin-auth?action=challenge', {});
-  return { ok: r.status === 404 && r.data?.code === 'legacy_surface_closed', observed: show(r) };
+  return { ok: r.status === 404 && r.data?.code === 'route_not_found', observed: show(r) };
 });
 await step('finance_ops: cadastra TOTP (npm run finance:operator:mfa), confirma no próprio console e abre o console', async () => {
   const enrolled = await enrollTotp({ url: SB, anonKey: ANON, accessToken: accessToken(people.operator) });
@@ -616,21 +617,20 @@ await step('finance_ops: cadastra TOTP (npm run finance:operator:mfa), confirma 
   const logged = Number(sql(`select count(*) from public.fin_ops_access_log where user_id = '${people.operator.id}'`));
   return `código errado recusado (401); overview sem e-mail/valor/título; recusas de convite no rastreio (${denials.map((row) => row.reason).join(', ')}); ${logged} acessos auditados`;
 });
-await attack(`finance_ops com MFA nas ${LEGACY_ADMIN.length} rotas legadas de arte`, '404 legacy_surface_closed em todas (ARANDU_ENV=pilot)', async () => {
+await attack(`finance_ops com MFA nas ${LEGACY_ADMIN.length} rotas legadas de arte`, '404 route_not_found em todas (ARANDU_ENV=pilot)', async () => {
   const results = [];
   for (const [method, path] of LEGACY_ADMIN) {
     const r = await api(people.operator, method, path, method === 'POST' ? {} : undefined);
     results.push([path, r.status, r.data?.code]);
   }
-  const open = results.filter(([, status, code]) => !(status === 404 && code === 'legacy_surface_closed'));
+  const open = results.filter(([, status, code]) => !(status === 404 && code === 'route_not_found'));
   return { ok: jwtAal(accessToken(people.operator)) === 'aal2' && open.length === 0,
     observed: open.length ? `abertas/inesperadas: ${open.map(([path, status, code]) => `${path} ${status} ${code}`).join('; ')}` : `${results.length}/${results.length} fechadas` };
 });
-await attack('Anônimo grava lead pelo formulário legado de arte no banco do piloto', '404; nenhuma linha em leads', async () => {
-  const before = Number(sql('select count(*) from public.leads'));
+await attack('Anônimo grava lead pelo formulário legado de arte no banco do piloto', '404; tabela de leads inexistente (decommission)', async () => {
   const r = await api(null, 'POST', '/api/forms', { type: 'contact', name: 'Spam', email: `spam.${RUN}@example.invalid`, message: 'x', consent: true });
-  const after = Number(sql('select count(*) from public.leads'));
-  return { ok: r.status === 404 && after === before, observed: `${show(r)}; leads ${before}->${after}` };
+  const table = sql("select coalesce(to_regclass('public.leads')::text, 'ausente')");
+  return { ok: r.status === 404 && table === 'ausente', observed: `${show(r)}; public.leads ${table}` };
 });
 
 // ----------------------------------------------------------------- relatório

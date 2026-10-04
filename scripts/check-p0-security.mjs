@@ -29,22 +29,8 @@ for (const file of publishedHtml) {
 }
 
 const viteConfig = read('vite.config.js');
-if (/<script>window\.ARANDU_PILOT_ENABLED=/.test(viteConfig)) {
-  issues.push('vite.config.js: bootstrap do piloto voltou a usar script inline incompatível com CSP.');
-}
 requireText('vite.config.js', '__ARANDU_DEMO__: JSON.stringify(demoMode)', 'modo demonstrativo financeiro não é decidido por constante de build compatível com CSP.');
 requireText('vite.config.js', 'assertDemoModeIsSafe()', 'build não falha ao pedir a demonstração na produção financeira.');
-
-const catchAll = [read('api/[...path].js'), ...fs.readdirSync('lib/api/domains').filter((file) => file.endsWith('.mjs')).map((file) => read(`lib/api/domains/${file}`))].join('\n');
-const formStart = catchAll.indexOf('function normalizeFormPayload(body)');
-const formEnd = catchAll.indexOf('function normalizeSelection', formStart);
-const formNormalizer = catchAll.slice(formStart, formEnd);
-if (formNormalizer.includes('payload: body')) {
-  issues.push('api/[...path].js: formulário público ainda persiste payload bruto.');
-}
-if (catchAll.includes('onclick="window.print()"')) {
-  issues.push('api/[...path].js: certificado público ainda gera onclick inline.');
-}
 
 const stagingRelease = read('.github/workflows/staging-release.yml');
 const stagingLines = stagingRelease.split(/\r?\n/);

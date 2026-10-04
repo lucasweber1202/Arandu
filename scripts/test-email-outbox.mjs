@@ -23,7 +23,7 @@ function restore(name, value) {
 
 try {
   const templates = listTransactionalTemplates();
-  assert.equal(templates.length, 24);
+  assert.equal(templates.length, 9);
   assert.equal(templates.includes('finance_notification'), true);
   assert.equal(templates.includes('finance_provider_invite'), true);
   const financial = renderTransactionalEmail('finance_provider_invite', {
@@ -71,16 +71,18 @@ try {
     await assert.rejects(prepareFinancialEmail({ template: 'finance_notification', payload: { kind: 'mention', path } }, { baseUrl: 'https://arandu.example' }), /invalid_notification_path/);
   }
   await assert.rejects(prepareFinancialEmail({ template: 'finance_notification', payload: { kind: 'mention', path: '/finance/notifications.html' } }, { baseUrl: 'http://insecure.example' }), /base_url/);
-  for (const template of ['order_created', 'order_confirmed', 'payment_confirmed', 'order_shipped', 'order_delivered', 'order_completed', 'order_cancelled', 'order_refunded']) {
-    assert.equal(templates.includes(template), true);
+  // Só modelos financeiros: os da antiga vertical de arte não renderizam.
+  assert.ok(templates.length > 0 && templates.every((template) => template.startsWith('finance_')));
+  for (const retired of ['order_created', 'order_shipped', 'reservation_received', 'proposal_received', 'contact_received', 'admin_alert']) {
+    assert.equal(templates.includes(retired), false);
+    assert.throws(() => renderTransactionalEmail(retired, {}), /desconhecido/);
   }
 
-  const escaped = renderTransactionalEmail('order_shipped', {
-    orderNumber: '<pedido>',
-    trackingCode: '<script>alert(1)</script>'
+  const escaped = renderTransactionalEmail('finance_member_invite', {
+    organization: '<script>alert(1)</script>', role: 'viewer', link: 'https://arandu.example/x'
   });
   assert.equal(escaped.html.includes('<script>'), false);
-  assert.equal(escaped.html.includes('&lt;pedido&gt;'), true);
+  assert.equal(escaped.html.includes('&lt;script&gt;'), true);
 
   process.env.ARANDU_EMAIL_PROVIDER = 'disabled';
   delete process.env.ARANDU_TRANSACTIONAL_EMAIL_READY;
@@ -106,10 +108,10 @@ try {
   let outboundBody = null;
   let outboundHeaders = null;
   const delivered = await sendTransactionalEmail({
-    template: 'order_created',
+    template: 'finance_member_invite',
     to: 'buyer@example.com',
-    data: { orderNumber: 'ARANDU-20260807-ABC123' },
-    idempotencyKey: 'email-test-order-created',
+    data: { organization: 'Grupo Teste', role: 'viewer', link: 'https://arandu.example/x' },
+    idempotencyKey: 'email-test-member-invite',
     fetchImpl: async (_url, options) => {
       outboundBody = JSON.parse(options.body);
       outboundHeaders = options.headers;
@@ -120,14 +122,14 @@ try {
     }
   });
   assert.equal(delivered.delivered, true);
-  const malformed = await sendTransactionalEmail({ template: 'order_created', to: 'fixture@example.invalid', fetchImpl: async () => Response.json({}) });
+  const malformed = await sendTransactionalEmail({ template: 'finance_member_invite', to: 'fixture@example.invalid', data: { organization: 'Grupo', role: 'viewer', link: 'https://arandu.example/x' }, fetchImpl: async () => Response.json({}) });
   assert.equal(malformed.delivered, false);
   assert.equal(malformed.reason, 'invalid_response');
   assert.equal(delivered.providerReference, 'email-provider-ref-1');
   assert.match(delivered.event.recipientRef, /^v1:[0-9a-f]{24}$/);
   assert.equal(JSON.stringify(delivered).includes('buyer@example.com'), false);
   assert.deepEqual(outboundBody.to, ['buyer@example.com']);
-  assert.equal(outboundHeaders['Idempotency-Key'], 'email-test-order-created');
+  assert.equal(outboundHeaders['Idempotency-Key'], 'email-test-member-invite');
 
   console.log('Arandu Transactional Email & Outbox Tests');
   console.log('Templates, escaping, disabled-by-default e provider reference validados.');

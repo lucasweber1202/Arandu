@@ -115,7 +115,7 @@ falha até isso ser corrigido (o deploy atual continua no ar):
 
 Depois: `ARANDU_ENV=production npm run finance:pilot:doctor` → exit 0, e smoke
 de `/`, `/api/health`, `/api/finance/me` (401), `/api/forms` (404
-`legacy_surface_closed`) e `/demo/index.html` (404).
+`route_not_found`) e `/demo/index.html` (404).
 
 **3.6 Domínios** (opcional): `demo.`, `pilot.` e `app.` no domínio escolhido.
 Enquanto não houver domínio, os `.vercel.app` bastam, com `ARANDU_SITE_URL`
