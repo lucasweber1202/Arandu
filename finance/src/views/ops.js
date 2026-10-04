@@ -90,22 +90,13 @@ export async function opsConsole(ctx) {
       ['Leases de job vencidos', overview.expired_job_leases ?? 0],
       ['Webhooks pendentes', webhooks.by_status?.pending ?? 0], ['Webhooks em retry', webhooks.by_status?.failed ?? 0],
       ['Dead letters', webhooks.by_status?.dead ?? 0], ['Pendente mais antigo (min)', webhooks.oldest_pending_minutes ?? '—'],
-      ['Recusas de SSO em 24 h', overview.sso?.failures_24h ?? 0]
+      ['Recusas de SSO em 24 h', overview.sso?.failures_24h ?? 0],
+      ['Exports na fila', overview.governance?.exports_by_status?.requested ?? 0], ['Legal holds ativos', overview.governance?.active_legal_holds ?? 0]
     ].map(([label,value]) => el('div', { class: 'summary-item' }, [el('dt', { text: label }),el('dd', { text: String(value) })]))),
     table(['ID', 'Estado', 'Tentativas', 'Erro', 'Criado'], (webhooks.recent_failures || []).map(row => [el('code', { text: String(row.id).slice(0,13) }), row.status, String(row.attempts), row.error_code || '—', formatDateTime(row.created_at)]), 'Nenhuma falha recente de webhook'),
     el('p', { class: 'field-hint', text: 'Presença de configuração não comprova disponibilidade ou recuperação da dependência.' }),
     table(['Dependência', 'Configuração'], (health.dependencies || []).map(row => [row.name, row.state === 'configured' ? 'Configurada; disponibilidade não medida' : 'Não configurada']), 'Sem evidência de configuração')
   ] }));
-
-  const governance = overview.governance;
-  if (governance) {
-    const count = (map) => Object.entries(map || {}).map(([status, total]) => `${status}: ${total}`).join(' · ') || 'nenhum';
-    root.append(card({ title: 'Governança de dados', subtitle: 'Contagens de exports, offboarding, holds e retenção; nenhum dado de cliente.', body: el('dl', { class: 'summary-strip compact' }, [
-      ['Exports', count(governance.exports_by_status)], ['Offboarding', count(governance.offboarding_by_status)],
-      ['Legal holds ativos', governance.active_legal_holds ?? 0], ['Registros removidos ou anonimizados pela retenção em 24 h', governance.retention_purged_24h ?? 0],
-      ['Última retenção com sucesso', governance.last_retention_run ? timeAgo(governance.last_retention_run) : 'nunca']
-    ].map(([label, value]) => el('div', { class: 'summary-item' }, [el('dt', { text: label }), el('dd', { text: String(value) })]))) }));
-  }
 
   const outbox = overview.outbox || {};
   const byStatus = Object.entries(outbox.by_status || {});
