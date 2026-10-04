@@ -31,6 +31,7 @@ documento divergir, vale este índice, nesta ordem.
 - `docs/FINANCIAL_OPERATIONAL_RESILIENCE.md` + `docs/FINANCIAL_INCIDENT_POSTMORTEM.md` — severidade, incidentes, dependências, jobs/leases, DR e targets RPO/RTO não medidos.
 - `docs/FINANCIAL_DATA_GOVERNANCE.md` + `lib/finance/data-governance.mjs` — Data Governance (P0.11): classificação por tabela, source of truth, retenção versionada, legal hold, export portável, offboarding com revogação, semântica de exclusão e lacunas.
 - `docs/FINANCIAL_VALUE_REALIZATION.md` — P1.1: baseline, metodologia versionada, economia negociada/realizada e custo evitado, provenance, observação humana, rollout e rollback.
+- `docs/FINANCIAL_VALUE_INTELLIGENCE_EXECUTIVE.md` — fatia de P1.6: valor, tarifas e oportunidades no Painel por moeda, entidade e período, com cobertura e links de ação; sem SoR novo.
 - `docs/FINANCIAL_OPPORTUNITY_ENGINE.md` — P1.3: regras versionadas da empresa, oportunidades determinísticas com fatos congelados, dedupe/cooldown/expiração, job com lease, revisão humana, rascunho de RFQ com confirmação, Graph e governança.
 - `docs/FINANCIAL_FEE_INTELLIGENCE.md` — P1.2: tarifa contratada versionada × cobrança observada, comparabilidade, proveniência, revisão humana com linguagem segura, Graph, governança, rollout e rollback.
 - `docs/IMPLEMENTATION_MATRIX.md` — matriz viva guideline → capacidade, com status, evidência, lacunas e blockers; ponto de partida de qualquer rodada de implementação.
