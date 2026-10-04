@@ -139,3 +139,16 @@ são tratados pelos controles gerais do Arandu, não por esta vertical.
 | 77 | **Vazamento por payload** | evento mínimo (ids/estado), sem termos ou texto | §5 |
 | 78 | **Worker duplicado** concluindo entrega alheia | lease com fencing (`stale lease`) | §6 |
 | 79 | **Abuso de volume** | rate limit por credencial no banco, falha fechada | `test-finance-public-api.mjs` |
+
+## Enterprise SSO
+
+| # | Ataque | Defesa | Teste |
+| --- | --- | --- | --- |
+| 80 | **Login CSRF / replay de callback** | state aleatório em cookie HttpOnly assinado (10 min, path restrito) + PKCE S256; comparação em tempo constante | `test-finance-sso.mjs` |
+| 81 | **id_token forjado** (alg none, HS256 com chave pública, outra chave) | só RS256/ES256 por JWK; assinatura, `iss`, `aud`/`azp`, `nonce`, `exp`/`nbf`/`iat` | `test-finance-sso.mjs` |
+| 82 | **Tomada de domínio / organização** | TXT no DNS; domínio globalmente único; domínios pessoais recusados; conexão do state = conexão do domínio | `financial-sso.sql`, `test-finance-sso.mjs` |
+| 83 | **Usuário fora da organização ou bloqueado** entrando por SSO | `fin_sso_authorize` exige membro ativo (SSO não cria acesso); falha fechada | `financial-sso.sql` |
+| 84 | **Downgrade para senha** com SSO exigido | 403 `sso_required` antes da senha; 503 se a política não puder ser lida | `test-finance-sso.mjs` |
+| 85 | **Sessão após revogação/desligamento** | limite de sessão por conexão; `fin_sso_session_valid` a cada refresh; `sessions_valid_after` | `financial-sso.sql`, `test-finance-sso.mjs` |
+| 86 | **Open redirect pós-login** | `next` limitado a páginas fixas de `/finance` e `/provider` | `test-finance-sso.mjs` |
+| 87 | **Enumeração de clientes** pela descoberta | resposta mínima (`sso`, `required`), rate limit por IP (`lib/api/domains/sso.mjs`) | `test-finance-sso.mjs` (resposta mínima) |

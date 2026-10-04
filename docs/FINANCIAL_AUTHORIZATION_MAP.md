@@ -28,6 +28,9 @@ falham se isso mudar.
 | `/api/v1/*` | FINANCE (máquina) | `Authorization: Bearer` de conta de serviço → hash → `fin_api_*` (service role no servidor): credencial + organização + entidade + escopo + objeto; rate limit por credencial — `docs/FINANCIAL_PUBLIC_API.md` |
 | `/api/jobs/webhooks` | FINANCE | `CRON_SECRET`; worker `fin_webhook_claim/complete` (service role, só depois do segredo) |
 | `service-accounts*`, `webhooks*` (`/api/finance`) | FINANCE | sessão + papel `admin` confirmado no banco antes de qualquer RPC; "enviar pendentes" usa service role só no worker, filtrado pela organização |
+| `/api/auth/sso/discover`, `/start`, `/callback` | AUTH | público com rate limit por IP; state HMAC + PKCE; `fin_sso_discover`/`fin_sso_authorize`/`fin_record_sso_event` só com service role, depois de validar state e identidade; sessão emitida pelo broker (Supabase) — `docs/FINANCIAL_SSO.md` |
+| `/api/auth/login` (exigência de SSO) | AUTH | `fin_sso_password_allowed` (service role) antes da senha: 403 `sso_required`; 503 se a política não puder ser lida |
+| `sso*` (`/api/finance`) | FINANCE | sessão + papel `admin` confirmado antes de qualquer RPC; verificação de domínio lê o DNS no servidor e envia só o hash do token (service role) |
 | `approval-policies*`, `approval-exceptions*`, `approval-delegations*` | FINANCE | sessão + RLS; administração de policy e sinalizadores só `admin`; prévia sob o RLS da RFQ; exceção decidida pelo papel da policy dona da regra; delegação pelo titular (ou admin para revogar) — `docs/FINANCIAL_POLICY_ENGINE.md` |
 | `api/commercial.js`, `api/orders.js`, `api/upload.js`, `api/mvp-dashboard.js`, `api/internal-page.js` | LEGACY_ART | `requireAdmin` (papel legado + `aal2`) + permissão RBAC |
 | `lib/api/domains/admin-operations.mjs`, `accounts.mjs`, `dashboard.mjs`, `pilot.mjs` (métricas) | LEGACY_ART | `adminGuard` → `requireAdmin` + RBAC; tabelas fixas (`TABLES`), nenhuma `fin_*` |

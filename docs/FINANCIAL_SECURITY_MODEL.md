@@ -185,3 +185,11 @@ exigem a organização provedora, e o job agendado roda sem `auth.uid()`.
 * Webhooks: URL https pública validada no banco e na API; DNS revalidado na entrega contra endereços internos; sem redirect; HMAC sobre `timestamp.delivery_id.body`; segredo cifrado com AES-256-GCM e chave por ambiente.
 * Limites: rate limit por credencial (contador no banco, falha fechada), corpo ≤ 64 KB, página ≤ 100, filtros fechados, ordem determinística.
 * Testes: `tests/database/financial-public-api.sql`, `scripts/test-finance-public-api.mjs`, `scripts/test-finance-integrations.mjs`; canário com as tabelas novas.
+
+## Enterprise SSO (fundação)
+
+* Broker: Supabase Auth (SAML) emite a sessão; RLS e `auth.uid()` continuam valendo, sem segundo sistema de auth. Asserções SAML são validadas pelo broker; o Arandu revalida identidade (e-mail verificado, domínio, provedor, emissão) e autoriza no banco (`fin_sso_authorize`, falha fechada).
+* SSO autentica, não concede acesso: membro ativo e convidado, papel e entidades continuam no Arandu.
+* Exigência opcional de SSO por conexão ativa; limite e revogação de sessão; trilha sem e-mail em claro.
+* Estado: fundação testada com IdP de teste; nenhum login real com IdP de cliente comprovado (blockers em `docs/FINANCIAL_SSO.md`). MFA de quem entra por SSO é responsabilidade do IdP.
+* Testes: `tests/database/financial-sso.sql`, `scripts/test-finance-sso.mjs`, `tests/e2e/finance-sso.spec.js`; canário com as tabelas novas.

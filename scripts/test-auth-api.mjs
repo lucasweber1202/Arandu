@@ -14,6 +14,19 @@ process.env.SUPABASE_ANON_KEY = 'anon-test-key';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-test-key';
 configureTestCommercialPolicy('policy-auth-test-v1');
 
+// SSO (P0.9): nestes cenários o domínio não exige SSO, então a consulta de
+// exigência responde "senha permitida"; os demais mocks seguem como antes. A
+// exigência (403 sso_required) e a falha fechada têm teste próprio
+// (scripts/test-finance-sso.mjs).
+let currentFetch = globalThis.fetch;
+Object.defineProperty(globalThis, 'fetch', {
+  configurable: true,
+  get: () => async (url, init) => (String(url).includes('/rpc/fin_sso_password_allowed')
+    ? new Response('true', { status: 200, headers: { 'Content-Type': 'application/json' } })
+    : currentFetch(url, init)),
+  set: (fn) => { currentFetch = fn; }
+});
+
 const { default: handler } = await import(`../api/[...path].js?test=${Date.now()}`);
 
 function request(method, url, body, headers = {}) {
