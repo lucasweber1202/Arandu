@@ -30,7 +30,7 @@ begin
   v_order := array_position(array['financial-surface-hardening-1','financial-approval-handoff-1','financial-passport-1',
                                    'financial-multi-entity-1','financial-contracts-v2-1',
                                    'financial-relationships-portfolio-1','financial-passport-entities-1','financial-graph-1','financial-policy-engine-1','financial-public-api-1',
-                                   'financial-sso-1','financial-operational-resilience-1','financial-data-governance-1','financial-legacy-art-decommission-1','financial-p0-closure-1','financial-value-realization-1'], v_schema);
+                                   'financial-sso-1','financial-operational-resilience-1','financial-data-governance-1','financial-legacy-art-decommission-1','financial-p0-closure-1','financial-value-realization-1','financial-fee-intelligence-1'], v_schema);
   if v_order is null then
     raise exception 'CANÁRIO: schema não suportado';
   end if;
@@ -39,6 +39,7 @@ begin
   if (to_regprocedure('public.fin_governance_export_part_range(uuid,text,integer,integer)') is not null) <> (v_order >= 15) then raise exception 'CANÁRIO: schema_version e P0 closure divergentes'; end if;
   if v_order >= 14 and (to_regclass('public.artworks') is not null or to_regclass('public.profiles') is not null) then raise exception 'CANÁRIO: objetos da vertical de arte presentes depois da aposentadoria'; end if;
   if (to_regclass('public.fin_value_records') is not null) <> (v_order >= 16) or (to_regclass('public.fin_value_methodologies') is not null) <> (v_order >= 16) or (to_regclass('public.fin_value_observations') is not null) <> (v_order >= 16) then raise exception 'CANÁRIO: schema e value realization divergentes'; end if;
+  if (to_regclass('public.fin_fee_schedules') is not null) <> (v_order >= 17) or (to_regclass('public.fin_fee_observations') is not null) <> (v_order >= 17) or (to_regclass('public.fin_fee_variances') is not null) <> (v_order >= 17) then raise exception 'CANÁRIO: schema e fee intelligence divergentes'; end if;
   v_passport := v_order >= 3;
   v_multi := v_order >= 4;
   v_contracts := v_order >= 5;
@@ -121,6 +122,11 @@ begin
       ('fin_value_records', 'not (organization_id = any($1))'),
       ('fin_value_methodologies', 'not (organization_id = any($1))'),
       ('fin_value_observations', 'not (organization_id = any($1))'),
+      ('fin_fee_schedules', 'not (organization_id = any($1))'),
+      ('fin_fee_schedule_versions', 'not (organization_id = any($1))'),
+      ('fin_fee_observations', 'not (organization_id = any($1))'),
+      ('fin_fee_variances', 'not (organization_id = any($1))'),
+      ('fin_fee_reviews', 'not (organization_id = any($1))'),
       ('fin_governance_log', 'not (organization_id = any($1))'),
       ('fin_private_documents',  'not (organization_id = any($1) or buyer_organization_id = any($1) or (visibility = ''shared'' and rfq_id = any($2)))')
     ) t(tbl, rule) loop
@@ -135,6 +141,7 @@ begin
       if v_order < 11 and v_tbl in ('fin_sso_connections','fin_sso_domains','fin_sso_events') then continue; end if;
       if v_order < 13 and v_tbl in ('fin_retention_policies','fin_legal_holds','fin_data_exports','fin_offboarding_requests','fin_governance_log') then continue; end if;
       if v_order < 16 and v_tbl in ('fin_value_records','fin_value_methodologies','fin_value_observations') then continue; end if;
+      if v_order < 17 and v_tbl in ('fin_fee_schedules','fin_fee_schedule_versions','fin_fee_observations','fin_fee_variances','fin_fee_reviews') then continue; end if;
       execute format('select count(*) from public.%I where %s', v_tbl, v_rule) into v_count using p.orgs, p.invited_rfqs, p.user_id;
       v_checks := v_checks + 1;
       if v_count > 0 then v_leaks := v_leaks || format('pessoa#%s:%s=%s; ', v_people, v_tbl, v_count); end if;
@@ -168,7 +175,8 @@ begin
       execute 'set local role authenticated';
       foreach v_tbl in array array['fin_rfqs','fin_contracts','fin_events','fin_legal_entities']
           || case when v_order >= 6 then array['fin_facilities','fin_guarantees','fin_provider_relationships'] else '{}'::text[] end
-          || case when v_order >= 16 then array['fin_value_records'] else '{}'::text[] end loop
+          || case when v_order >= 16 then array['fin_value_records'] else '{}'::text[] end
+          || case when v_order >= 17 then array['fin_fee_schedules','fin_fee_observations','fin_fee_variances'] else '{}'::text[] end loop
         execute format('select count(*) from public.%I where organization_id = $1 and not (coalesce(%s, ''00000000-0000-0000-0000-000000000000''::uuid) = any($2))',
                        v_tbl, case when v_tbl = 'fin_legal_entities' then 'id' else 'legal_entity_id' end)
           into v_count using r.organization_id, r.entities;

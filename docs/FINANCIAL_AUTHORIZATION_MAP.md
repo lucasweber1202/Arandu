@@ -101,3 +101,14 @@ segredos e payloads. SSO indisponível continua fechado; nenhum fallback novo.
 `finance_manager`, `analyst`, `viewer`, escopo restrito a entidade, provedor,
 outro tenant, conta sem vínculo e membro revogado não alcançam nenhuma dessas
 ações nem leituras (testado em `tests/database/financial-data-governance.sql`).
+
+
+## Bank Fee Intelligence (P1.2)
+
+| Ação | Quem | Onde a regra vive |
+| --- | --- | --- |
+| Ler tarifas, observações, diferenças e revisões | `admin`, `finance_manager`, `analyst`, `viewer` no escopo da entidade do contrato | RLS `fin_fee_*_read` (`fin_entity_allows` + contrato legível) |
+| Registrar/versionar tarifa contratada, registrar cobrança observada | `admin`, `finance_manager` no escopo da entidade do contrato, compradora, sem offboarding | `fin_create_fee_schedule`, `fin_version_fee_schedule`, `fin_record_fee_observation` |
+| Verificar observação, revisar diferença | `admin`, `finance_manager` no escopo, estado esperado | `fin_verify_fee_observation`, `fin_review_fee_variance` |
+
+Provedor, outro tenant, membro revogado e escopo de outra entidade não leem nem escrevem (testado em `tests/database/financial-fee-intelligence.sql`). Nenhuma credencial de API alcança tarifas.

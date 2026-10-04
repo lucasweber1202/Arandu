@@ -2,7 +2,7 @@
 
 O Graph consulta os systems of record existentes. Não há banco adicional, tabela de edges, cópia de saldo ou decisão automática. As views `fin_graph_objects` e `fin_financial_graph` usam SECURITY INVOKER (PostgreSQL 15+) em ambas as camadas. Cada tabela de origem continua aplicando seu RLS ao JWT do usuário.
 
-Os objetos cobertos são grupo, entidade, provedor, relacionamento, RFQ, proposta, decisão, contrato, facility, limite, garantia, snapshot do Passport, marco, obrigação, documento e responsável. Limite é uma faceta da facility com approved_limit; obrigação é marco contratual ou parcela da versão vigente do cronograma. Responsável representa a atribuição no contexto de um objeto, não um cadastro paralelo. Não se somam moedas nem se inferem obrigações ausentes.
+Os objetos cobertos são grupo, entidade, provedor, relacionamento, RFQ, proposta, decisão, contrato, facility, limite, garantia, snapshot do Passport, marco, obrigação, documento, responsável, valor de procurement (P1.1) e tarifas (P1.2: tarifa contratada, observação, diferença e revisão). Limite é uma faceta da facility com approved_limit; obrigação é marco contratual ou parcela da versão vigente do cronograma. Responsável representa a atribuição no contexto de um objeto, não um cadastro paralelo. Não se somam moedas nem se inferem obrigações ausentes.
 
 ## Consulta
 

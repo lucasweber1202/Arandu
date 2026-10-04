@@ -65,6 +65,8 @@ O detalhe por tabela está no registro (fonte única; não duplicar aqui).
 Financial Graph, busca e painéis são **derivados**: nunca fonte, nunca exportados
 como verdade própria.
 
+Fatos de tarifa (P1.2) — `fin_fee_schedules`, `fin_fee_schedule_versions`, `fin_fee_observations`, `fin_fee_variances`, `fin_fee_reviews` — são system of record próprios, imutáveis, exportados como `fee_*`, contados na prévia de exclusão e protegidos por legal hold (`docs/FINANCIAL_FEE_INTELLIGENCE.md`).
+
 ## Semântica de exclusão
 
 | Semântica | Significado |

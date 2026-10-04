@@ -1,4 +1,6 @@
 import { test, expect } from '@playwright/test';
+import { presentValuePage, presentValueDetail } from '../../lib/finance/value-presenter.mjs';
+// Mocks usam o apresentador real do servidor: o teste cobre a cópia que o usuário vê.
 const ORG='00000000-0000-4000-8000-0000000000a1';
 const ID='00000000-0000-4000-8000-0000000000b1';
 async function setup(page,{role='admin',fail=false}={}) {
@@ -12,8 +14,8 @@ async function setup(page,{role='admin',fail=false}={}) {
     if(path==='overview')return json({ok:true,organization:{id:ORG,kind:'BUYER',legal_name:'Value test group'},providers:[],contracts:[{id:ID,title:'Contrato teste',status:'active'}],rfqs:[],tasks:[]});
     if(path==='members')return json({ok:true,rows:[{user_id:'u1',role,display_name:'Test actor'}],viewer_id:'u1'});
     if(path==='entities')return json({ok:true,rows:[],scope:'group',can_admin:role==='admin'});
-    if(path==='value'&&req.method()==='GET')return fail?json({ok:false,error:'Falha controlada no teste'},503):json({ok:true,rows:[r],totals:[{kind:'NEGOTIATED_SAVINGS',currency:'BRL',records:1,comparable:1,value_amount:200},{kind:'COST_AVOIDANCE',currency:'USD',records:1,comparable:0,value_amount:null}],next:null});
-    if(path==='value/detail')return json({ok:true,record:r,methodology:{version:1},observations:[]});
+    if(path==='value'&&req.method()==='GET')return fail?json({ok:false,error:'Falha controlada no teste'},503):json({ok:true,...presentValuePage({rows:[r],totals:[{kind:'NEGOTIATED_SAVINGS',currency:'BRL',records:1,comparable:1,value_amount:200},{kind:'COST_AVOIDANCE',currency:'USD',records:1,comparable:0,value_amount:null}],next:null,contracts:[{id:ID,title:'Contrato teste'}]})});
+    if(path==='value/detail')return json({ok:true,...presentValueDetail({record:r,methodology:{version:1},observations:[]})});
     if(path==='value'||path==='value/observe'||path==='value/invalidate')return json({ok:true,id:ID},201);
     if(path.startsWith('graph'))return json({ok:true,rows:[],next_offset:null});
     return json({ok:true,rows:[]});
