@@ -1034,7 +1034,7 @@ export function createDemoEngine({ storage, now = () => new Date(), latency = 0 
       if (sub !== 'overview') fail(404, 'Recurso não encontrado.', 'not_found');
       const hour = (h) => new Date(now().getTime() - h * 3600000).toISOString();
       return { ok: true, demo: true, health: { database_configured: false, server_key_configured: false, cron_secret_configured: false, email_provider_configured: false, deployment: 'demo', commit: null },
-        overview: { schema_version: 'financial-data-governance-1', generated_at: nowIso(), email_enabled: false,
+        overview: { schema_version: 'financial-legacy-art-decommission-1', generated_at: nowIso(), email_enabled: false,
           jobs: [{ job: 'renewals', status: 'succeeded', processed: 1, request_id: 'demo-req-0931', error_code: null, started_at: hour(7.01), finished_at: hour(7) },
             { job: 'renewals', status: 'failed', processed: 0, request_id: 'demo-req-0930', error_code: 'upstream_unavailable', started_at: hour(31.01), finished_at: hour(31) }],
           webhooks: { by_status: { pending: 2, failed: 1, dead: 1 }, oldest_pending_minutes: 8, recent_failures: [] },

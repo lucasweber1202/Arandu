@@ -5,11 +5,14 @@ base_url="${ARANDU_DATABASE_TEST_URL:-postgresql://postgres:postgres@localhost:5
 root_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 clean_db="arandu_clean_test"
 upgrade_db="arandu_upgrade_test"
+fresh_db="arandu_fresh_test"
 
 psql "$base_url" -v ON_ERROR_STOP=1 -c "drop database if exists ${clean_db};"
 psql "$base_url" -v ON_ERROR_STOP=1 -c "drop database if exists ${upgrade_db};"
+psql "$base_url" -v ON_ERROR_STOP=1 -c "drop database if exists ${fresh_db};"
 psql "$base_url" -v ON_ERROR_STOP=1 -c "create database ${clean_db};"
 psql "$base_url" -v ON_ERROR_STOP=1 -c "create database ${upgrade_db};"
+psql "$base_url" -v ON_ERROR_STOP=1 -c "create database ${fresh_db};"
 
 database_url() {
   local name="$1"
@@ -23,9 +26,11 @@ apply_file() {
 }
 
 apply_file "$clean_db" "tests/database/bootstrap.sql"
+# Os testes históricos abaixo exercitam o schema antes da aposentadoria da
+# vertical de arte; a aposentadoria é aplicada e verificada no fim deste banco.
 while IFS= read -r file; do
   apply_file "$clean_db" "$file"
-done < <(node -e "const m=require('./docs/supabase-migrations.json'); for (const f of m.cleanInstall) console.log(f)")
+done < <(node -e "const m=require('./docs/supabase-migrations.json'); for (const f of m.cleanInstall) if (f !== 'docs/supabase-financial-legacy-art-decommission.sql') console.log(f)")
 apply_file "$clean_db" "tests/database/transactions.sql"
 apply_file "$clean_db" "tests/database/orders.sql"
 apply_file "$clean_db" "tests/database/order-pr38-invariants.sql"
@@ -101,6 +106,13 @@ bash "$root_dir/tests/database/job-lease-concurrency.sh" "$(database_url "$clean
 psql "$(database_url "$clean_db")" -v ON_ERROR_STOP=1 -c "do \$\$ begin if (select count(*) from public.fin_legal_entities) < 3 or (select count(*) from public.fin_member_entity_grants) < 2 or not exists(select 1 from public.fin_rfqs where legal_entity_id is not null) or not exists(select 1 from public.fin_members where entity_scope='entities') then raise exception 'reaplicação do multi-entity perdeu escopo ou entidades'; end if; end \$\$;"
 bash "$root_dir/tests/database/reservation-concurrency.sh" "$(database_url "$clean_db")"
 bash "$root_dir/tests/database/order-concurrency.sh" "$(database_url "$clean_db")"
+# Aposentadoria da vertical de arte sobre a base povoada pelos testes históricos.
+apply_file "$clean_db" "tests/database/legacy-art-decommission-before.sql"
+PGOPTIONS="-c arandu.legacy_art_decommission_ack=export-verified:CI-CLEAN" apply_file "$clean_db" "docs/supabase-financial-legacy-art-decommission.sql"
+apply_file "$clean_db" "tests/database/legacy-art-decommission.sql"
+apply_file "$clean_db" "docs/supabase-financial-legacy-art-decommission.sql"
+apply_file "$clean_db" "ops/sql/pilot-isolation-canary.sql"
+apply_file "$clean_db" "ops/sql/post-migration-probes.sql"
 
 apply_file "$upgrade_db" "tests/database/bootstrap.sql"
 while IFS= read -r file; do
@@ -337,7 +349,46 @@ apply_file "$upgrade_db" "ops/sql/pilot-isolation-canary.sql"
 if psql "$(database_url "$upgrade_db")" -X -q -v ON_ERROR_STOP=1 -f "$root_dir/docs/rollback/supabase-financial-data-governance.rollback.sql" >/dev/null 2>&1; then
   echo "Rollback de governança aceitou apagar estado existente" >&2; exit 1
 fi
+# Upgrade com dados fictícios de arte: sem reconhecimento de export/backup a
+# aposentadoria recusa; com ele, remove só a vertical e preserva o financeiro.
+if rejection="$(psql "$(database_url "$upgrade_db")" -X -q -v ON_ERROR_STOP=1 -f "$root_dir/docs/supabase-financial-legacy-art-decommission.sql" 2>&1)"; then
+  echo "Aposentadoria apagou dados de arte sem reconhecimento de export" >&2; exit 1
+fi
+[[ "$rejection" == *"legacy art data present"* ]] || { echo "Aposentadoria falhou por motivo inesperado: $rejection" >&2; exit 1; }
+if PGOPTIONS="-c arandu.legacy_art_decommission_ack=sim" psql "$(database_url "$upgrade_db")" -X -q -v ON_ERROR_STOP=1 -f "$root_dir/docs/supabase-financial-legacy-art-decommission.sql" >/dev/null 2>&1; then
+  echo "Aposentadoria aceitou reconhecimento sem referência" >&2; exit 1
+fi
+apply_file "$upgrade_db" "tests/database/legacy-art-decommission-before.sql"
+PGOPTIONS="-c arandu.legacy_art_decommission_ack=export-verified:CI-UPGRADE" apply_file "$upgrade_db" "docs/supabase-financial-legacy-art-decommission.sql"
+apply_file "$upgrade_db" "tests/database/legacy-art-decommission.sql"
+apply_file "$upgrade_db" "docs/supabase-financial-legacy-art-decommission.sql"
+apply_file "$upgrade_db" "ops/sql/pilot-isolation-canary.sql"
+apply_file "$upgrade_db" "ops/sql/post-migration-probes.sql"
+apply_file "$upgrade_db" "ops/sql/post-restore-probes.sql"
+if psql "$(database_url "$upgrade_db")" -X -q -v ON_ERROR_STOP=1 -f "$root_dir/docs/rollback/supabase-financial-legacy-art-decommission.rollback.sql" >/dev/null 2>&1; then
+  echo "Rollback da aposentadoria fingiu restaurar dados" >&2; exit 1
+fi
 bash "$root_dir/tests/database/email-outbox-concurrency.sh" "$(database_url "$upgrade_db")"
 
+# Instalação limpa em uma passada (o que um ambiente novo recebe): a cadeia
+# canônica inteira, inclusive a aposentadoria da arte, e as suítes financeiras
+# sobre o schema final.
+apply_file "$fresh_db" "tests/database/bootstrap.sql"
+while IFS= read -r file; do
+  apply_file "$fresh_db" "$file"
+done < <(node -e "const m=require('./docs/supabase-migrations.json'); for (const f of m.cleanInstall) console.log(f)")
+apply_file "$fresh_db" "tests/database/legacy-art-decommission-before.sql"
+apply_file "$fresh_db" "docs/supabase-financial-legacy-art-decommission.sql"
+apply_file "$fresh_db" "tests/database/legacy-art-decommission.sql"
+for suite in financial-procurement financial-procurement-hardening financial-pilot financial-enterprise-approvals financial-enterprise-drafts \
+  financial-collaboration financial-operational-search financial-renewals financial-rfq-editor financial-rfq-revisions financial-delivery \
+  financial-pilot-grade financial-pilot-operations financial-final-hardening financial-approval-handoff financial-passport \
+  financial-multi-entity financial-contracts-v2 financial-relationships-portfolio financial-passport-entities financial-graph \
+  financial-policy-engine financial-public-api financial-sso financial-data-governance; do
+  apply_file "$fresh_db" "tests/database/${suite}.sql"
+done
+apply_file "$fresh_db" "ops/sql/pilot-isolation-canary.sql"
+apply_file "$fresh_db" "ops/sql/post-migration-probes.sql"
+
 echo "Arandu Database Integration Tests"
-echo "Instalação limpa, upgrade, reaplicação, rollback, RLS, transações, pedidos, invariantes PR38, outbox, fencing de workers, retenção, procurement financeiro e operação real do piloto (convite, janela de envio, aviso de renovação), finance_ops, destinatário do convite superfície exposta ao PostgREST (fidelidade aos default privileges do Supabase, matriz adversarial entre tenants) aviso ao próximo aprovador da cadeia Financial Passport (proveniência, histórico, snapshot imutável na RFQ, negação a provedor e a outro tenant) multi-entity (escopo por entidade, RLS, guarda de escrita, consolidação, trilha, rollback) Contract Center v2 (importado, termos versionados, aditivo imutável, marcos idempotentes) Policy & Approval Engine v2 (precedência grupo/entidade, versão imutável, snapshot, SoD, exceção, delegação, prazos, rollback) e Public API v1/Webhooks (credencial por hash, escopo+entidade, keyset, idempotência, outbox mínimo, lease/backoff/dead-letter/replay, rollback) e Enterprise SSO (domínio verificado, autorização fail-closed, revogação de sessões, enforcement, rollback) e Data Governance (retenção versionada com hold, lote e rerun, export isolado sem segredo, offboarding com revogação idempotente, rollback só sem uso) aprovados."
+echo "Instalação limpa, upgrade, reaplicação, rollback, RLS, transações, pedidos, invariantes PR38, outbox, fencing de workers, retenção, procurement financeiro e operação real do piloto (convite, janela de envio, aviso de renovação), finance_ops, destinatário do convite superfície exposta ao PostgREST (fidelidade aos default privileges do Supabase, matriz adversarial entre tenants) aviso ao próximo aprovador da cadeia Financial Passport (proveniência, histórico, snapshot imutável na RFQ, negação a provedor e a outro tenant) multi-entity (escopo por entidade, RLS, guarda de escrita, consolidação, trilha, rollback) Contract Center v2 (importado, termos versionados, aditivo imutável, marcos idempotentes) Policy & Approval Engine v2 (precedência grupo/entidade, versão imutável, snapshot, SoD, exceção, delegação, prazos, rollback) e Public API v1/Webhooks (credencial por hash, escopo+entidade, keyset, idempotência, outbox mínimo, lease/backoff/dead-letter/replay, rollback) e Enterprise SSO (domínio verificado, autorização fail-closed, revogação de sessões, enforcement, rollback) e Data Governance (retenção versionada com hold, lote e rerun, export isolado sem segredo, offboarding com revogação idempotente, rollback só sem uso) e aposentadoria da vertical de arte (recusa sem export reconhecido, estado final sem arte, financeiro intacto, reaplicação, instalação limpa em uma passada) aprovados."

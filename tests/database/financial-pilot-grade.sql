@@ -65,8 +65,16 @@ end $$;
 
 -- ------------------------------------------------------------ identidade
 reset role;
-insert into public.profiles(id,email,full_name) values ('00000000-0000-4000-8000-0000000000d3','named-member@example.invalid','Paula Nogueira')
-on conflict (id) do update set full_name = excluded.full_name;
+-- Antes da aposentadoria da arte o nome vinha de public.profiles; depois, dos
+-- metadados da conta (docs/supabase-financial-legacy-art-decommission.sql).
+do $$ begin
+  if to_regclass('public.profiles') is not null then
+    execute $q$insert into public.profiles(id,email,full_name) values ('00000000-0000-4000-8000-0000000000d3','named-member@example.invalid','Paula Nogueira')
+      on conflict (id) do update set full_name = excluded.full_name$q$;
+  else
+    update auth.users set raw_user_meta_data = raw_user_meta_data || '{"full_name":"Paula Nogueira"}'::jsonb where id = '00000000-0000-4000-8000-0000000000d3';
+  end if;
+end $$;
 insert into public.fin_members(organization_id,user_id,role) values
 ('00000000-0000-4000-8000-00000000bb01','00000000-0000-4000-8000-0000000000d3','analyst') on conflict do nothing;
 do $$

@@ -1,5 +1,6 @@
 \set ON_ERROR_STOP on
-
+-- Probes do restore descartável (verify-backup-restore): o schema financeiro
+-- voltou inteiro e com RLS. Só leitura; a saída tem contagens, nunca conteúdo.
 begin read only;
 
 do $$
@@ -10,10 +11,11 @@ begin
     raise exception 'Schema public ausente no restore.';
   end if;
 
-  if to_regclass('public.reservations') is null
-    or to_regclass('public.proposals') is null
-    or to_regclass('public.audit_logs') is null then
-    raise exception 'Tabelas operacionais obrigatórias ausentes no restore.';
+  if to_regclass('public.fin_organizations') is null
+    or to_regclass('public.fin_rfqs') is null
+    or to_regclass('public.fin_contracts') is null
+    or to_regclass('public.fin_events') is null then
+    raise exception 'Tabelas financeiras obrigatórias ausentes no restore.';
   end if;
 
   select array_agg(c.relname order by c.relname)
@@ -21,7 +23,8 @@ begin
   from pg_class c
   join pg_namespace n on n.oid = c.relnamespace
   where n.nspname = 'public'
-    and c.relname = any(array['reservations', 'proposals', 'audit_logs'])
+    and c.relkind = 'r'
+    and c.relname like 'fin\_%'
     and not c.relrowsecurity;
 
   if coalesce(array_length(missing_rls, 1), 0) > 0 then
@@ -30,8 +33,10 @@ begin
 end;
 $$;
 
-select count(*) from public.reservations;
-select count(*) from public.proposals;
-select count(*) from public.audit_logs;
+select value as schema_version from public.fin_settings where key = 'schema_version';
+select count(*) as organizations from public.fin_organizations;
+select count(*) as rfqs from public.fin_rfqs;
+select count(*) as contracts from public.fin_contracts;
+select count(*) as events from public.fin_events;
 
 rollback;
