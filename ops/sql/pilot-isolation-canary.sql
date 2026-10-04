@@ -29,7 +29,7 @@ begin
   -- partir do marcador que a cria.
   v_order := array_position(array['financial-surface-hardening-1','financial-approval-handoff-1','financial-passport-1',
                                    'financial-multi-entity-1','financial-contracts-v2-1',
-                                   'financial-relationships-portfolio-1','financial-passport-entities-1','financial-graph-1','financial-policy-engine-1'], v_schema);
+                                   'financial-relationships-portfolio-1','financial-passport-entities-1','financial-graph-1','financial-policy-engine-1','financial-public-api-1'], v_schema);
   if v_order is null then
     raise exception 'CANÁRIO: schema não suportado';
   end if;
@@ -41,6 +41,9 @@ begin
   end if;
   if (to_regclass('public.fin_policy_versions') is not null) <> (v_order >= 9) then
     raise exception 'CANÁRIO: schema_version e tabelas do Policy Engine v2 divergentes';
+  end if;
+  if (to_regclass('public.fin_service_accounts') is not null) <> (v_order >= 10) then
+    raise exception 'CANÁRIO: schema_version e tabelas da Public API divergentes';
   end if;
   if (to_regclass('public.fin_contract_versions') is not null) <> v_contracts then
     raise exception 'CANÁRIO: schema_version e tabelas do Contract Center divergentes';
@@ -94,6 +97,11 @@ begin
       ('fin_approval_stages', 'not (organization_id = any($1))'),
       ('fin_policy_exceptions', 'not (organization_id = any($1))'),
       ('fin_approval_delegations', 'not (organization_id = any($1))'),
+      ('fin_service_accounts', 'not (organization_id = any($1))'),
+      ('fin_service_account_entities', 'not (organization_id = any($1))'),
+      ('fin_api_credentials', 'not (organization_id = any($1))'),
+      ('fin_webhook_endpoints', 'not (organization_id = any($1))'),
+      ('fin_webhook_deliveries', 'not (organization_id = any($1))'),
       ('fin_private_documents',  'not (organization_id = any($1) or buyer_organization_id = any($1) or (visibility = ''shared'' and rfq_id = any($2)))')
     ) t(tbl, rule) loop
       -- Before Passport, these two tables must be absent (checked above).
@@ -103,13 +111,15 @@ begin
       if v_order < 6 and v_tbl in ('fin_facilities','fin_facility_balances','fin_guarantees','fin_provider_issues','fin_provider_relationships','fin_provider_reviews','fin_provider_contacts') then continue; end if;
       if not v_contracts and v_tbl in ('fin_contract_versions','fin_contract_amendments','fin_contract_milestones') then continue; end if;
       if v_order < 9 and v_tbl in ('fin_policies','fin_policy_versions','fin_policy_flags','fin_approval_stages','fin_policy_exceptions','fin_approval_delegations') then continue; end if;
+      if v_order < 10 and v_tbl in ('fin_service_accounts','fin_service_account_entities','fin_api_credentials','fin_webhook_endpoints','fin_webhook_deliveries') then continue; end if;
       execute format('select count(*) from public.%I where %s', v_tbl, v_rule) into v_count using p.orgs, p.invited_rfqs, p.user_id;
       v_checks := v_checks + 1;
       if v_count > 0 then v_leaks := v_leaks || format('pessoa#%s:%s=%s; ', v_people, v_tbl, v_count); end if;
     end loop;
     -- Tabelas que nenhuma conta cliente pode ler.
     foreach v_tbl in array array['fin_pilot_allowlist','fin_settings','fin_platform_operators','fin_invite_acceptance_denials',
-                                 'fin_job_runs','fin_ops_access_log','fin_member_invitations'] loop
+                                 'fin_job_runs','fin_ops_access_log','fin_member_invitations']
+                           || case when v_order >= 10 then array['fin_api_idempotency','fin_webhook_events'] else '{}'::text[] end loop
       begin
         execute format('select count(*) from public.%I', v_tbl) into v_count;
         v_checks := v_checks + 1;

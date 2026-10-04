@@ -13,6 +13,7 @@ import { importContractButton, openContract } from './contract-center.js';
 import { openProviderRelationship, scorecardSettings } from './provider-relationship.js';
 import { loadEntities, entitySettings, memberScopes, entityContextSelect, inContext, contractEntityControl, entityName } from './entities.js';
 import { policySettings, delegationSettings, policyTimeline } from './policy.js';
+import { integrationSettings } from './integrations.js';
 
 // ------------------------------------------------------------ aprovações
 export async function approvalsInbox(ctx) {
@@ -471,6 +472,10 @@ export async function settings(ctx) {
   if (ctx.mode !== 'demo') {
     add('governanca', 'Governança: policies de aprovação', 'Regras da sua empresa, por grupo e por entidade: quem aprova, em que ordem, sob qual versão. Versões ativadas são imutáveis.', policySettings(ctx, entities));
     add('delegacao', 'Delegação de aprovação', 'Substituto temporário para as suas etapas de aprovação, com trilha.', delegationSettings(ctx));
+    // Public API v1 & Webhooks: administração da organização.
+    if (ctx.viewer?.role === 'admin') {
+      add('integracoes', 'Integrações: API e webhooks', 'Contas de serviço com escopo e entidades, tokens que expiram e webhooks assinados. Para ERP, TMS e plataformas de dados.', integrationSettings(ctx, entities));
+    }
   }
 
   // Preferências de notificação.

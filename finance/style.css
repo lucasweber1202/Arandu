@@ -1162,3 +1162,4 @@ tr.highlighted>td,.proposal-card.highlighted,.document-row.highlighted,.comment.
 .input-currency{max-width:6rem;text-transform:uppercase}
 .reason-select{max-width:100%;min-width:0}
 textarea.mono{width:100%;max-width:100%;min-width:0}
+.secret-once{display:block;overflow-wrap:anywhere;word-break:break-all;max-width:100%}

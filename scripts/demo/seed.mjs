@@ -177,6 +177,7 @@ async function demoScope() {
     rfqs: await ids('fin_rfqs', `organization_id=${inList(orgs)}`),
     proposals: await ids('fin_proposals', `buyer_organization_id=${inList(orgs)}`),
     requests: await ids('fin_approval_requests', `organization_id=${inList(orgs)}`),
+    serviceAccounts: await ids('fin_service_accounts', `organization_id=${inList(orgs)}`),
     documents: await ids('fin_private_documents', `organization_id=${inList(orgs)}`)
   };
 }
@@ -206,6 +207,13 @@ function scopedTables(scope) {
     ['fin_comments', ['id'], `${org}&parent_id=not.is.null`, ['created_at']],
     ['fin_comments', ['id'], org, ['created_at']],
     ['fin_tasks', ['id'], org, ['created_at']],
+    ['fin_webhook_deliveries', ['id'], org, ['created_at']],
+    ['fin_webhook_events', ['id'], org, ['occurred_at']],
+    ['fin_webhook_endpoints', ['id'], org, ['created_at', 'updated_at']],
+    ['fin_api_idempotency', null, `service_account_id=${list(scope.serviceAccounts || [])}`, []],
+    ['fin_api_credentials', ['id'], org, ['created_at']],
+    ['fin_service_account_entities', null, org, []],
+    ['fin_service_accounts', ['id'], org, ['created_at', 'updated_at']],
     ['fin_policy_exceptions', ['id'], org, ['created_at', 'decided_at']],
     ['fin_approval_steps', ['id'], `request_id=${list(scope.requests)}`, ['acted_at']],
     ['fin_approval_stages', ['id'], org, ['opened_at', 'due_at', 'escalated_at', 'completed_at']],

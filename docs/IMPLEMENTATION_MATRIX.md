@@ -120,9 +120,9 @@ Migration `docs/supabase-financial-relationships-portfolio.sql` (`financial-rela
 
 | ID | Guideline | Capability | Pri | Dependency | Status | Evidence | Gaps | Risk | Next action | PR/commit |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| P0.8-01 | §31.1 | API versionada com service accounts/API keys, scopes, tenant/entity auth, paginação, rate limit, idempotency, audit | P0 | P0.2 | missing | API interna de sessão `/api/finance/*` | — | abuso/vazamento | API foundation | — |
-| P0.8-02 | §31.1 | Webhooks: registro, assinatura HMAC, replay protection, retries, delivery log, dead-letter | P0 | P0.8-01 | missing | outbox de e-mail existe (`lib/email-outbox.mjs`) como padrão reaproveitável | — | webhook forjado | idem | — |
-| P0.8-03 | §31.1 | Docs, versioning e deprecation policy | P0 | P0.8-01 | missing | — | — | — | idem | — |
+| P0.8-01 | §31.1 | API versionada com service accounts/API keys, scopes, tenant/entity auth, paginação, rate limit, idempotency, audit | P0 | P0.2 | partial | `/api/v1/*` (`lib/api/domains/public-api.mjs`), `docs/supabase-financial-public-api.sql` (token só por hash, credencial AND organização AND entidade AND escopo AND objeto em `fin_api_*`), keyset, filtros fechados, rate limit por credencial fail-closed, `Idempotency-Key`, correlação, trilha em `fin_events`; administração em Configurações → Integrações; `docs/FINANCIAL_PUBLIC_API.md`, OpenAPI | rollout hospedado pendente; escrita v1 só cria rascunho de RFQ | token vazado (mitigado: expiração, revogação imediata, last_used, prefixo por ambiente) | rollout + chave de cifragem por ambiente | feature/public-api-webhooks |
+| P0.8-02 | §31.1 | Webhooks: registro, assinatura HMAC, replay protection, retries, delivery log, dead-letter | P0 | P0.8-01 | partial | outbox por gatilho em `fin_events` (payload mínimo), `fin_webhook_claim`/`complete` com lease/fencing, backoff 1 min→24 h, dead-letter na 8ª, auto-desativação em 20 falhas, replay manual, HMAC sobre `t.delivery_id.body`, segredo AES-256-GCM, SSRF (URL + DNS na entrega), `lib/finance/webhook-dispatch.mjs`, job `webhooks` | cadência diária do cron (blocker: agendador em minutos); DNS rebinding residual documentado | receptor sem verificação (doc + exemplo) | blockers em `docs/FINANCIAL_PUBLIC_API.md` | feature/public-api-webhooks |
+| P0.8-03 | §31.1 | Docs, versioning e deprecation policy | P0 | P0.8-01 | implemented | `docs/FINANCIAL_PUBLIC_API.md` (compatibilidade, deprecação ≥ 180 dias com `Deprecation`/`Sunset`, envelopes, erros), `docs/openapi/arandu-public-api-v1.json` com teste de paridade rota↔contrato | — | — | manter Histórico a cada mudança | feature/public-api-webhooks |
 
 ### P0.9 — Enterprise IAM / SSO Foundation
 
@@ -137,7 +137,7 @@ Migration `docs/supabase-financial-relationships-portfolio.sql` (`financial-rela
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | P0.10-01 | Add. E.1 | Backup preflight, restore drill, probes pós-restore | P0 | — | partial | ver P0.1-05 | hospedado | — | owner | — |
 | P0.10-02 | Add. E.4 | Severidade, incident runbook, postmortem, dependency failure modes, RPO/RTO honestos | P0 | — | partial | ver P0.1-07 | — | claim sem prova | runbook canônico | — |
-| P0.10-03 | Add. E.5 | Health, request IDs, job runs, outbox retry/backoff | P0 | — | implemented | `/api/health`, `X-Request-ID`, `fin_job_runs`, `lib/email-outbox.mjs`, `scripts/test-observability.mjs` | métricas de webhook/integração inexistentes (dependem de P0.8) | — | P0.8 | — |
+| P0.10-03 | Add. E.5 | Health, request IDs, job runs, outbox retry/backoff | P0 | — | implemented | `/api/health`, `X-Request-ID`, `fin_job_runs` (inclui `approval_deadlines`, `webhooks`), `lib/email-outbox.mjs`, estado por entrega de webhook, `X-Correlation-Id` na API v1, `scripts/test-observability.mjs` | painel agregado de integração no console operacional | — | P0.10 | — |
 
 ### P0.11 — Data Governance Baseline
 
@@ -233,3 +233,7 @@ O #106 foi mergeado em `feature/passport-legal-entity` (PR empilhada), não na `
 ## P0.7 Policy & Approval Engine v2 — 2026-10-03
 
 Branch `feature/policy-engine-v2` nasce de `pilot@dc43f57` (merge do #107, Graph integrado), sem empilhamento. Entrega: migration `financial-policy-engine-1` (aditiva, idempotente, rollback que aborta diante de trilha), domínio, API, UI (Governança, aba Aprovações, caixa de aprovações), job de prazos e docs (`docs/FINANCIAL_POLICY_ENGINE.md`). Evidência local: `test:database` completo (clean, upgrade sobre aprovações v1, reaplicação, rollback), `check:all`, testes de domínio/API e E2E. Status `partial` (não `implemented`) porque o rollout hospedado segue bloqueado pelos gates do piloto. Próximo: P0.8 Public API & Webhooks a partir da `pilot` após o merge.
+
+## P0.8 Public API v1 & Webhooks — 2026-10-03
+
+Branch `feature/public-api-webhooks` rebaseada sobre `pilot@582291c` (merge do #108), sem empilhamento. Entrega: migration `financial-public-api-1` (contas de serviço, credenciais por hash, idempotência, endpoints, eventos, entregas; rollback que aborta diante de trilha), borda `/api/v1/*` com contrato estável e OpenAPI, administração em Configurações → Integrações, worker de entrega e job `webhooks`. Evidência local: `test:database` completo, testes de domínio/API/integrações, E2E. Blockers externos (chave de cifragem por ambiente, agendador em minutos, rollout hospedado) com BLOCKER/WHY/WHO/ACTION/READY/VERIFY em `docs/FINANCIAL_PUBLIC_API.md`. Próximo: P0.9 Enterprise IAM/SSO foundation a partir da `pilot` após o merge.
