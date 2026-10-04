@@ -45,7 +45,8 @@
     "docs/supabase-financial-policy-engine.sql",
     "docs/supabase-financial-public-api.sql",
     "docs/supabase-financial-sso.sql",
-    "docs/supabase-financial-operational-resilience.sql"
+    "docs/supabase-financial-operational-resilience.sql",
+    "docs/supabase-financial-data-governance.sql"
   ],
   "existingDatabase": [
     "docs/supabase-sprint1-auth-ownership.sql",
@@ -92,6 +93,7 @@
     "docs/supabase-financial-policy-engine.sql",
     "docs/supabase-financial-public-api.sql",
     "docs/supabase-financial-sso.sql",
-    "docs/supabase-financial-operational-resilience.sql"
+    "docs/supabase-financial-operational-resilience.sql",
+    "docs/supabase-financial-data-governance.sql"
   ]
 }
