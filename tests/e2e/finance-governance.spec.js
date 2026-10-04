@@ -15,14 +15,14 @@ const CLASSES = [
   { retention_class: 'WEBHOOK_DELIVERY', min_days: 30, max_days: 3650, action: 'delete' }
 ];
 
-async function mockSession(page, { role = 'admin', offboarding = [] } = {}) {
+async function mockSession(page, { role = 'admin', offboarding = [], bigExport = false, tamper = false } = {}) {
   const calls = [];
   await page.route('**/api/finance/**', async (route) => {
     const request = route.request();
     const url = new URL(request.url());
     const path = url.pathname.replace('/api/finance/', '');
     const body = request.postData() ? JSON.parse(request.postData()) : null;
-    calls.push({ method: request.method(), path, body });
+    calls.push({ method: request.method(), path, body, query: Object.fromEntries(url.searchParams) });
     const json = (payload, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(payload) });
     if (path === 'organizations') return json({ ok: true, rows: [{ id: ORG, kind: 'BUYER', legal_name: 'Grupo Vitta' }] });
     if (path === 'overview') return json({ ok: true, organization: { id: ORG, kind: 'BUYER', legal_name: 'Grupo Vitta' }, profile: [], providers: [], contracts: [], tasks: [], rfqs: [] });
@@ -34,7 +34,14 @@ async function mockSession(page, { role = 'admin', offboarding = [] } = {}) {
       summary: { retention_classes: CLASSES, active_holds: 0, offboarding: offboarding[0] || null, last_retention: null },
       policies: [{ id: 'p1', retention_class: 'TEMPORARY_OPERATIONAL', version: 1, retention_days: 90, status: 'draft', reason: 'Avisos antigos perdem utilidade' }],
       holds: [], log: [], offboarding,
-      exports: [{ id: EXPORT, purpose: 'portability', status: 'ready', requested_at: '2026-10-03T10:00:00Z', completed_at: '2026-10-03T10:01:00Z', expires_at: '2026-10-10T10:01:00Z', dataset_count: 50, row_count: 1234, byte_size: 250000 }] });
+      exports: [{ id: EXPORT, purpose: 'portability', status: 'ready', requested_at: '2026-10-03T10:00:00Z', completed_at: '2026-10-03T10:01:00Z', expires_at: '2026-10-10T10:01:00Z', dataset_count: 50, row_count: 1234, byte_size: bigExport ? 5000000 : 250000 }] });
+    // Conjunto grande em duas faixas; sha256('abcdefghijkl') no manifesto.
+    if (path === 'governance/export-download' && url.searchParams.get('manifest') === '1') return json({ ok: true, range_max_chars: 4000000,
+      manifest: { datasets: [{ dataset: 'events', bytes: 12, sha256: 'd682ed4ca4d989c134ec94f1551e1ec580dd6d5a6ecde9f3d35e6e4a717fbde4' }] } });
+    if (path === 'governance/export-download' && url.searchParams.get('dataset') === 'events') {
+      const offset = Number(url.searchParams.get('offset'));
+      return json(offset === 0 ? { ok: true, content: 'abcdef', total_chars: 12, next_offset: 6 } : { ok: true, content: tamper ? 'XXXXXX' : 'ghijkl', total_chars: 12, next_offset: null });
+    }
     if (path === 'governance/retention-policies') return json({ ok: true, id: 'p2', status: 'draft' }, 201);
     if (path === 'governance/retention-activate') return json({ ok: true });
     if (path === 'governance/retention-preview') return json({ ok: true, preview: { dry_run: true, items: [{ retention_class: 'TEMPORARY_OPERATIONAL', eligible: 12, policy_version: 1, held: false }] } });
@@ -110,4 +117,30 @@ test('quem não administra o grupo não vê a seção de governança', async ({ 
   await expect(page.getByRole('heading', { name: 'Configurações' })).toBeVisible();
   await expect(page.locator('#dados')).toHaveCount(0);
   expect(calls.some((call) => call.path.startsWith('governance'))).toBe(false);
+});
+
+test('pacote grande: baixa por conjunto em faixas e confere o checksum do manifesto', async ({ page }) => {
+  const calls = await mockSession(page, { bigExport: true });
+  await page.goto('/finance/settings.html#dados');
+  const section = page.locator('#dados');
+  await expect(section.getByRole('link', { name: 'Baixar pacote (JSON)' })).toHaveCount(0);
+  const downloads = [];
+  page.on('download', (download) => downloads.push(download.suggestedFilename()));
+  await section.getByRole('button', { name: 'Baixar por conjunto' }).click();
+  await expect(page.getByText('Conjuntos baixados e conferidos com o manifesto.')).toBeVisible();
+  const ranges = calls.filter((call) => call.path === 'governance/export-download' && call.query.dataset === 'events').map((call) => call.query.offset);
+  expect(ranges).toEqual(['0', '6']);
+  expect(calls.some((call) => call.path === 'governance/export-download' && call.query.manifest === '1')).toBe(true);
+  await expect.poll(() => downloads.sort()).toEqual(['arandu-export-' + EXPORT + '-manifest.json', 'events.json']);
+  await noHorizontalOverflow(page);
+});
+
+test('pacote grande com faixa adulterada não salva o conjunto', async ({ page }) => {
+  await mockSession(page, { bigExport: true, tamper: true });
+  await page.goto('/finance/settings.html#dados');
+  const downloads = [];
+  page.on('download', (download) => downloads.push(download.suggestedFilename()));
+  await page.locator('#dados').getByRole('button', { name: 'Baixar por conjunto' }).click();
+  await expect(page.getByText(/não conferiu com o checksum do manifesto/)).toBeVisible();
+  expect(downloads.includes('events.json')).toBe(false);
 });

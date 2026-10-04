@@ -160,6 +160,49 @@ function holdSection(ctx, data, render) {
     el('p', { class: 'small muted', text: 'Enquanto houver hold ativo, a retenção automática da organização fica suspensa e a exclusão do offboarding não é agendada.' }), list, form]);
 }
 
+// Download por conjunto: o manifesto lista os conjuntos; conjunto acima do
+// corpo máximo da função chega em faixas, é remontado aqui e só é salvo se o
+// sha256 bater com o do manifesto (o servidor nunca monta o arquivo inteiro).
+async function sha256Hex(text) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+async function getJson(url) {
+  const response = await fetch(url, { credentials: 'same-origin' });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.error || `Falha ${response.status}.`);
+  return payload;
+}
+function saveFile(name, text) {
+  const link = el('a', { href: URL.createObjectURL(new Blob([text], { type: 'application/json' })), download: name });
+  document.body.append(link); link.click(); link.remove();
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+}
+async function downloadByDataset(exportId, trigger) {
+  const base = `/api/finance/governance/export-download?export_id=${encodeURIComponent(exportId)}`;
+  if (trigger) trigger.disabled = true;
+  try {
+    const { manifest } = await getJson(`${base}&manifest=1`);
+    saveFile(`arandu-export-${exportId}-manifest.json`, JSON.stringify(manifest, null, 2));
+    for (const item of manifest?.datasets || []) {
+      let text = '';
+      let offset = 0;
+      do {
+        const part = await getJson(`${base}&dataset=${encodeURIComponent(item.dataset)}&offset=${offset}`);
+        text += part.content;
+        offset = part.next_offset;
+      } while (offset !== null && offset !== undefined);
+      if (await sha256Hex(text) !== item.sha256) throw new Error(`O conjunto ${item.dataset} não conferiu com o checksum do manifesto. Nada foi salvo para ele; tente de novo.`);
+      saveFile(`${item.dataset}.json`, text);
+    }
+    toast('Conjuntos baixados e conferidos com o manifesto.');
+  } catch (error) {
+    toast(error.message, 'error');
+  } finally {
+    if (trigger) trigger.disabled = false;
+  }
+}
+
 function exportSection(ctx, data, render) {
   const exports = data.exports || [];
   const max = data.bundle_max_bytes || 4000000;
@@ -170,7 +213,10 @@ function exportSection(ctx, data, render) {
       el('span', { class: 'small muted', text: `Pedido em ${formatDateTime(item.requested_at)}${item.status === 'ready' ? ` · ${item.dataset_count} conjuntos, ${item.row_count} registros, ${bytes(item.byte_size)} · disponível até ${formatDateTime(item.expires_at)}` : ''}${item.error_code ? ` · ${item.error_code}` : ''}` }),
       item.status === 'ready' ? (item.byte_size <= max
         ? linkButton('Baixar pacote (JSON)', href, { size: 'sm', iconName: 'download', attrs: { download: '' } })
-        : el('p', { class: 'small muted', text: 'Pacote grande: baixe por conjunto (o manifesto traz o checksum de cada um).' })) : null
+        : el('div', { class: 'stack-sm' }, [
+          el('p', { class: 'small muted', text: 'Pacote grande: baixe por conjunto. Cada arquivo é conferido com o sha256 do manifesto antes de ser salvo.' }),
+          button('Baixar por conjunto', { size: 'sm', iconName: 'download', onClick: (event) => downloadByDataset(item.id, event.currentTarget) })
+        ])) : null
     ]));
   })) : emptyState({ title: 'Nenhum export', text: 'Pacote com os dados da organização para portabilidade ou auditoria.', compact: true });
   const request = button('Pedir export dos dados', { size: 'sm', iconName: 'download', onClick: async () => {

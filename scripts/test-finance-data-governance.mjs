@@ -171,6 +171,36 @@ const part = await call('GET', `governance/export-download?export_id=${EXPORT}&d
 assert.equal(createHash('sha256').update(part.raw, 'utf8').digest('hex'), checksum, 'conteúdo da parte não confere com o checksum');
 responder = (entry) => (entry.url.includes('rpc/fin_governance_export_manifest') ? { datasets: [{ dataset: 'events', bytes: 5_000_000 }] } : []);
 await rejects('GET', `governance/export-download?export_id=${EXPORT}`, null, 413);
+// Pacote grande: manifesto sozinho e conjunto em faixas; o checksum confere
+// sobre as faixas concatenadas; faixa inválida não chega ao banco.
+const bigContent = '[' + Array.from({ length: 40 }, (_, i) => `{"id":${i},"t":"ação"}`).join(',') + ']';
+const bigChecksum = createHash('sha256').update(bigContent, 'utf8').digest('hex');
+responder = (entry) => {
+  if (entry.url.includes('rpc/fin_governance_export_manifest')) return { datasets: [{ dataset: 'events', bytes: 5_000_000, sha256: bigChecksum }] };
+  if (entry.url.includes('rpc/fin_governance_export_part_range')) {
+    const { p_offset: offset, p_length: length } = entry.body;
+    const next = offset + 100 >= bigContent.length ? null : offset + 100;
+    assert.equal(length, 4_000_000);
+    return [{ content: bigContent.slice(offset, offset + 100), total_chars: bigContent.length, next_offset: next }];
+  }
+  return [];
+};
+const manifestOnly = await call('GET', `governance/export-download?export_id=${EXPORT}&manifest=1`);
+assert.equal(manifestOnly.statusCode, 200);
+assert.equal(manifestOnly.payload.manifest.datasets[0].sha256, bigChecksum);
+assert.equal(manifestOnly.headers['Cache-Control'], 'no-store');
+let assembled = '';
+for (let offset = 0; offset !== null;) {
+  const range = await call('GET', `governance/export-download?export_id=${EXPORT}&dataset=events&offset=${offset}`);
+  assert.equal(range.statusCode, 200);
+  assembled += range.payload.content;
+  offset = range.payload.next_offset;
+}
+assert.equal(createHash('sha256').update(assembled, 'utf8').digest('hex'), bigChecksum, 'faixas não remontam o conjunto');
+sent = [];
+await rejects('GET', `governance/export-download?export_id=${EXPORT}&dataset=events&offset=-1`, null, 400);
+await rejects('GET', `governance/export-download?export_id=${EXPORT}&dataset=events&offset=1.5`, null, 400);
+assert.equal(rpcs().length, 0, 'faixa inválida chegou ao banco');
 // Mensagens do banco viram mensagens fixas, sem detalhe interno.
 globalThis.fetch = async (url, options = {}) => {
   if (String(url).includes('fin_organizations?select=id')) return Response.json([{ id: ORG, kind: 'BUYER' }]);

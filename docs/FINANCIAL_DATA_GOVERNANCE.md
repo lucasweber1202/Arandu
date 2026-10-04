@@ -121,14 +121,19 @@ offboarding avance para `scheduled_for_deletion` e o fechamento.
   outro tenant recusados), idempotente (um pedido aberto por organização).
 - Montado em segundo plano pelo job (`fin_governance_build_export`), numa
   subtransação: falha nunca deixa `ready` nem parte órfã; vira `failed` com
-  código. Limite de 4 MB por conjunto (pilot-scale; acima disso o export falha
-  com `export_too_large` — ver lacunas).
+  código. Teto de 64 MB por conjunto (memória do job; acima disso o export
+  falha com `export_too_large`), desde `financial-p0-closure-1` (antes, 4 MB).
 - Formato: `manifest` (`format`, `format_version`, `schema_version`,
   `generated_at`, organização, finalidade, conjuntos com linhas, bytes e
   `sha256`, lista do que foi excluído) + `data/<conjunto>.json`. O checksum é
   sobre os bytes UTF-8 de cada parte; a parte individual
   (`GET /api/finance/governance/export-download?export_id=…&dataset=…`) é
-  devolvida intacta para verificação. O pacote único é servido até 4 MB.
+  devolvida intacta para verificação. O pacote único é servido até 4 MB (corpo
+  máximo da função). Acima disso: `&manifest=1` devolve só o manifesto e
+  `&dataset=…&offset=N` devolve faixas de até 4 MB (`content`, `total_chars`,
+  `next_offset`) via `fin_governance_export_part_range`, com as mesmas checagens
+  (admin atual, pronto, não vencido); a interface remonta as faixas e só salva
+  o arquivo se o sha256 do manifesto conferir.
 - 50 conjuntos: organização, entidades, membros (sem e-mail), escopos, Passport
   e histórico, RFQs, revisões, snapshots, convites, propostas e versões,
   decisões, contratos/versões/aditivos/marcos, provedores e relacionamento,
@@ -203,8 +208,8 @@ registros continuam durante a janela.
   lotes, depende de decisão jurídica sobre retenção pós-contrato. Até lá, o
   offboarding para em `scheduled_for_deletion` (dados preservados, acesso
   revogado).
-- Export acima de 4 MB por conjunto falha; tenants maiores exigirão entrega por
-  Storage com URL assinada.
+- Conjunto acima de 64 MB falha (`export_too_large`); acima disso, entrega por
+  Storage com URL assinada continua como evolução.
 - Documentos privados: o export traz metadados; os binários continuam no bucket
   privado `fin-documents` e são baixados pela rota existente com URL assinada.
 - Offboarding de organização **provedora** não está coberto (só compradora).

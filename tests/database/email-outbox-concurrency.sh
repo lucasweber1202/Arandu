@@ -6,7 +6,7 @@ psql "$database_url" -v ON_ERROR_STOP=1 -c "
   update public.transactional_email_outbox
   set status='pending', next_attempt_at=now(), claimed_at=null, worker_ref=null,
       claim_token=null, lease_expires_at=null, attempts=0
-  where idempotency_key='email-test:payment-confirmed';
+  where idempotency_key='email-test:second';
 " >/dev/null
 
 claim() {
@@ -33,7 +33,7 @@ declare
 begin
   select id, claim_token into v_id, v_old_token
   from public.transactional_email_outbox
-  where idempotency_key='email-test:payment-confirmed';
+  where idempotency_key='email-test:second';
   update public.transactional_email_outbox set lease_expires_at=now()-interval '1 second' where id=v_id;
   perform public.claim_transactional_email_batch_v2('replacement-email-worker',1);
   select claim_token into v_new_token from public.transactional_email_outbox where id=v_id;

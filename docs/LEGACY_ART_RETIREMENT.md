@@ -144,6 +144,43 @@ de arte não têm handler: respondem 404 `route_not_found` em qualquer ambiente
 (deploys anteriores a esta remoção respondiam `legacy_surface_closed`; o doctor
 aceita os dois).
 
+## Estado final (clean-room de 04/10/2026)
+
+Medido num clone limpo de `pilot` @ `63dddd5` (merge da #116), sem artefato do
+checkout de trabalho: `npm ci --include=optional`, `audit:ci`, `sbom:ci`,
+`check:all`, `build`, `check:dist-assets`, `check:build-size`, `check:seo:dist`,
+`check:financial-surface`, `check:legacy-art` (com a prova negativa),
+`test:e2e:list`, `test:database`, `test:e2e`, `test:e2e:presentation` e
+`git diff --check` (evidência e contagens na matriz, seção "Clean-room final").
+
+| Item | Estado |
+| --- | --- |
+| runtime de arte | nenhum (o roteador só atende `finance/*`, `auth/*`, `v1/*`, crons e security.txt; o resto é 404 `route_not_found`) |
+| páginas públicas de arte | nenhuma (gate `--dist` e sitemap) |
+| assets de arte | nenhum |
+| handlers de API de arte | nenhum (gate falha com `route === '…'` fora da lista) |
+| dependências npm de arte | nenhuma |
+| variáveis de ambiente de arte | nenhuma no `.env.example`, validadores ou runtime (gate) |
+| testes de arte | só ausência e aposentadoria: `test-auth-api` (23 rotas em 404), `test-deployment-surface`, `test-legacy-art-gate`, `check-legacy-art`, `check-admin-surface`, `legacy-art-decommission*.sql` e a fixture fictícia `legacy-art-fixture.sql` (prova da recusa sem export reconhecido). Os testes de comportamento de reserva, pedido, perfil, status operacional e retenção de arte saíram do `test:database` |
+| migrations históricas | preservadas e imutáveis na cadeia canônica |
+| limpeza do banco hospedado | **bloqueada/pronta**: migration e procedimento prontos; depende de backup + restore verificado, export e decisão do owner (Procedimento hospedado) |
+| limpeza do storage hospedado | **bloqueada**: inventário do bucket de mídia de arte depende do owner no projeto hospedado; `fin-documents` não é tocado |
+
+### Ocorrências restantes de termos de arte (classificação)
+
+Busca: `git grep -iP '\b(arte|art|artist|artista|artwork|obra|gallery|galeria|collection|coleção|catalog|catálogo|curadoria|curator|certificate|certificado|reservation|reserva|marketplace|commission|comissão|acervo)s?\b'`.
+
+| Onde | Classe | Motivo |
+| --- | --- | --- |
+| `docs/supabase-*.sql`, `docs/arandu-mvp-*.sql`, `docs/rollback/*` | migration histórica | imutáveis; a migration de decommission remove os objetos |
+| `tests/database/legacy-art-*.sql`, `scripts/test-database.sh` | teste de aposentadoria | prova recusa sem export, estado final sem arte e reaplicação |
+| `scripts/check-legacy-art.mjs`, `test-legacy-art-gate.mjs`, `check-admin-surface.mjs`, `check-financial-surface.mjs`, `check-http-security.mjs`, `check-live-production.mjs`, `check-migrations.mjs`, `check-backend.mjs`, `test-auth-api.mjs`, `test-deployment-surface.mjs`, `tests/e2e/*` (`not.toContainText`), `scripts/pilot-local/journey.mjs` (ataques) | teste/gate de ausência | os termos são o que se proíbe |
+| `lib/finance/pilot-doctor.mjs` (recusa o projeto Supabase legado, aceita os dois códigos de 404) | guarda operacional | impede apontar piloto/produção para o banco antigo |
+| `vercel.json` (`/obras.html`, `/acervo.html` → `/`) | redirecionamento intencional | links antigos não caem em 404 |
+| comentários em `api/[...path].js`, `api/email-dispatch.js`, `lib/email.mjs`, `lib/api/domains/auth.mjs` | comentário necessário | explicam a aposentadoria e o metadado fixo do cadastro |
+| "catálogo" (de campos, termos, produtos, escopos, conjuntos de export), "reserva" (lock de rascunho do provedor), "obras" (finalidade de financiamento) em `lib/finance/*`, `finance/src/*`, `lib/api/domains/finance*.mjs` | vocabulário financeiro | não é a vertical de arte |
+| `README.md`, `CONTRIBUTING.md`, `CHANGELOG.md`, `SECURITY.md`, `docs/FINANCIAL_*` (evidências e auditorias datadas), `docs/IMPLEMENTATION_MATRIX.md`, `docs/OPERATIONS_INDEX.md`, `docs/REPOSITORY_HYGIENE.md`, este documento | histórico/aviso | registro da aposentadoria; não descrevem capacidade atual |
+
 ## Blockers
 
 Os únicos blockers restantes são hospedados: a aplicação da migration de
