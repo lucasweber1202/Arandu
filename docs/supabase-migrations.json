@@ -49,7 +49,8 @@
     "docs/supabase-financial-data-governance.sql",
     "docs/supabase-financial-legacy-art-decommission.sql",
     "docs/supabase-financial-p0-closure.sql",
-    "docs/supabase-financial-value-realization.sql"
+    "docs/supabase-financial-value-realization.sql",
+    "docs/supabase-financial-fee-intelligence.sql"
   ],
   "existingDatabase": [
     "docs/supabase-sprint1-auth-ownership.sql",
@@ -100,6 +101,7 @@
     "docs/supabase-financial-data-governance.sql",
     "docs/supabase-financial-legacy-art-decommission.sql",
     "docs/supabase-financial-p0-closure.sql",
-    "docs/supabase-financial-value-realization.sql"
+    "docs/supabase-financial-value-realization.sql",
+    "docs/supabase-financial-fee-intelligence.sql"
   ]
 }

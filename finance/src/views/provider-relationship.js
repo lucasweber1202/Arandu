@@ -99,7 +99,10 @@ export async function openProviderRelationship(ctx, provider) {
     sections.push(el('section', { class: 'cc-section' }, [el('h3', { text: 'Linha do tempo' }),
       detail.timeline.length ? el('ol', { class: 'plain-list timeline-list' }, detail.timeline.map((row) => el('li', { text: `${formatDateTime(row.at)} — ${row.text}` }))) : el('p', { class: 'muted', text: 'Sem histórico.' })]));
     if (detail.facilities.length) sections.push(el('p', { class: 'muted small', text: `Facilities com este provedor: ${detail.facilities.map((row) => `${row.name} (${FACILITY_KINDS[row.kind]})`).join(', ')}.` }));
-    sections.push(graphContextCard(ctx, { type: 'provider', id: provider.id }));
+    // Tarifas: fatos contratado × observado, carregados sob demanda (sem score).
+    const fees = el('div');
+    import('./fees.js').then((m) => m.providerFeeFacts(ctx, provider.id)).then((node) => fees.replaceWith(node)).catch(() => fees.remove());
+    sections.push(fees, graphContextCard(ctx, { type: 'provider', id: provider.id }));
     return sections;
   }
 
