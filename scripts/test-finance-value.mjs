@@ -18,6 +18,7 @@ assert.equal(valueAmount({...input,comparability:'incomplete'}),null);
 for(const patch of [{baseline:null},{kind:'REALIZED_SAVINGS'},{currency:'ZZZ'},{period_start:'2025-02-31'},{period_end:'2025-99-01'},{target_amount:NaN},{target_amount:Infinity},{target_amount:-1},{reason:'<script>'},{target_dimensions:{...dimensions,indexer:'different'}},{target_dimensions:{spread_pct_year:1}}]) assert.ok(validateValueInput({...input,...patch}),JSON.stringify(patch));
 assert.throws(()=>valueFilters(new URLSearchParams('start=2020-01-01&end=2026-01-01')));
 assert.throws(()=>valueFilters(new URLSearchParams('limit=51')));
+assert.throws(()=>valueFilters(new URLSearchParams('product=invented')));
 assert.equal(graphHref({object_type:'value_realization',object_id:RECORD}),`/finance/value.html?id=${RECORD}`);
 assert.equal(graphHref({object_type:'value_realization',object_id:'javascript:evil'}),null);
 
@@ -41,10 +42,12 @@ async function call(method,path,body=null){
  const res={setHeader(){},end(raw){this.payload=JSON.parse(raw);}};
  await handleFinance(req,res,path.split('?')[0],deps);return res.payload;
 }
-let data=await call('GET',`value?organization_id=${ORG}&start=2025-01-01&end=2025-12-31&limit=1`);
+let data=await call('GET',`value?organization_id=${ORG}&start=2025-01-01&end=2025-12-31&product=credit&limit=1`);
 assert.equal(data.rows.length,1);assert.equal(data.next,RECORD);
 assert.equal(sent.find((s)=>s.url.endsWith('fin_list_value')).payload.p_limit,1);
 assert.equal(sent.find((s)=>s.url.endsWith('fin_value_totals')).payload.p_start,'2025-01-01');
+assert.equal(sent.find((s)=>s.url.endsWith('fin_value_totals')).payload.p_product,'credit');
+assert.equal(sent.find((s)=>s.url.endsWith('fin_list_value')).payload.p_product,'credit');
 for(const s of sent) assert.equal(s.headers.Authorization,'Bearer caller-jwt','no service role read fallback');
 sent=[];
 await assert.rejects(()=>call('POST','value',{...input,baseline:null}),e=>e.status===400);

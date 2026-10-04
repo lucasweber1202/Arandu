@@ -124,8 +124,8 @@ revoke all on function public.fin_governance_export_datasets() from public, anon
 drop function public.fin_record_value(uuid,uuid,jsonb);
 drop function public.fin_observe_value(uuid,jsonb);
 drop function public.fin_invalidate_value(uuid,jsonb);
-drop function public.fin_list_value(uuid,date,date,text,text,uuid,uuid,uuid,integer);
-drop function public.fin_value_totals(uuid,date,date,text,text,uuid,uuid);
+drop function public.fin_list_value(uuid,date,date,text,text,uuid,uuid,uuid,integer,text);
+drop function public.fin_value_totals(uuid,date,date,text,text,uuid,uuid,text);
 drop table public.fin_value_observations;
 drop table public.fin_value_records;
 drop table public.fin_value_methodologies;

@@ -15,6 +15,7 @@ export async function value(ctx) {
   const year = new Date().getUTCFullYear();
   const filters = {
     start: el('input', { type: 'date', value: `${year}-01-01` }), end: el('input', { type: 'date', value: `${year}-12-31` }),
+    product: select([['', 'Categorias'], ['credit', 'Crédito'], ['acquiring', 'Adquirência']]),
     kind: select([['', 'Tipos'], ...Object.entries(VALUE_KINDS)]),
     currency: select([['', 'Moedas'], ...VALUE_CURRENCIES.map((x) => [x, x])]),
     legal_entity_id: select([['', 'Meu escopo'], ...entities.rows.map((x) => [x.id, entityName(entities, x.id)])]),
@@ -23,7 +24,7 @@ export async function value(ctx) {
   const result = el('div', { class: 'stack' }, loading());
   let cursor = null;
   let busy = false;
-  const labels = { start: 'Período inicial', end: 'Período final', kind: 'Tipo de valor', currency: 'Moeda', legal_entity_id: 'Entidade', provider_id: 'Provedor' };
+  const labels = { start: 'Período inicial', end: 'Período final', product: 'Categoria', kind: 'Tipo de valor', currency: 'Moeda', legal_entity_id: 'Entidade', provider_id: 'Provedor' };
   const apply = button('Aplicar filtros', { onClick: () => { cursor = null; load(); } });
   root.append(card({ title: 'Escopo da apuração', body: [el('div', { class: 'form-grid' }, Object.entries(filters).map(([name, control]) => field({ label: labels[name], control }))), apply] }), result);
   const manage = ['admin', 'finance_manager'].includes(ctx.viewer?.role);
@@ -40,7 +41,7 @@ export async function value(ctx) {
       const totals = data.totals.map((t) => card({ title: `${VALUE_KINDS[t.kind]} · ${t.currency}`, body: [el('strong', { text: money(t.value_amount, t.currency) }), el('p', { class: 'muted small', text: `${t.comparable} de ${t.records} registros comparáveis. Registros ativos dos filtros.` })] }));
       const rows = data.rows.length ? el('div', { class: 'table-scroll' }, el('table', { class: 'data-table compact' }, [
         el('thead', {}, el('tr', {}, ['Registro', 'Tipo', 'Período', 'Valor', 'Estado', 'Detalhe'].map((text) => el('th', { scope: 'col', text })))),
-        el('tbody', {}, data.rows.map((r) => el('tr', {}, [el('td', { text: r.title }), el('td', { text: VALUE_KINDS[r.kind] }), el('td', { text: `${r.period_start} – ${r.period_end}` }), el('td', { text: money(r.value_amount, r.currency) }), el('td', { text: `${r.status === 'active' ? 'Ativo' : 'Invalidado'} · ${r.comparability}` }), el('td', {}, button('Ver evidência', { onClick: () => detail(r.id) }))])))
+        el('tbody', {}, data.rows.map((r) => el('tr', {}, [el('td', { text: r.title }), el('td', { text: VALUE_KINDS[r.kind] }), el('td', { text: `${r.period_start} – ${r.period_end}` }), el('td', { text: money(r.value_amount, r.currency) }), el('td', { text: `${r.status === 'active' ? 'Ativo' : 'Invalidado'} · ${r.comparability} · ${r.product || ''} · ${r.kind === 'REALIZED_SAVINGS' ? 'Verificado' : 'Declarado'}` }), el('td', {}, button('Ver evidência', { onClick: () => detail(r.id) }))])))
       ])) : emptyState({ title: 'Sem registros no período', text: 'Sem dado não é zero. Informe baseline e custos comparáveis.' });
       result.replaceChildren(...totals, rows, ...(data.next ? [button('Próxima página', { onClick: () => { cursor = data.next; load(); } })] : []), ...(cursor ? [button('Primeira página', { onClick: () => { cursor = null; load(); } })] : []));
     } catch (error) { result.replaceChildren(errorState({ error, onRetry: load })); }
@@ -110,7 +111,7 @@ function estimateForm(ctx, reload) {
     baselineDimensions[k] = el('input', { maxlength: 200 }); targetDimensions[k] = el('input', { maxlength: 200 });
     return el('div', { class: 'form-grid' }, [field({ label: `${DIMENSIONS[k]} — baseline`, control: baselineDimensions[k] }), field({ label: `${DIMENSIONS[k]} — destino`, control: targetDimensions[k] })]);
   });
-  submitForm('Registrar estimativa de valor', [el('p', { class: 'muted small', text: 'Custos totais, mesmo período e critérios iguais. Spread isolado não prova economia.' }), ...Object.entries(inputs).map(([k, control]) => field({ label: labels[k], control, required: true })), ...dimensions], async () => {
+  submitForm('Registrar estimativa de valor', [el('p', { class: 'muted small', text: 'Custos totais, mesmo período e critérios iguais. Spread isolado não prova economia. Custo evitado usa despesa contrafactual declarada; não é caixa economizado.' }), ...Object.entries(inputs).map(([k, control]) => field({ label: labels[k], control, required: true })), ...dimensions], async () => {
     const vals = Object.fromEntries(Object.entries(inputs).map(([k, c]) => [k, c.value]));
     const ds = (controls) => Object.fromEntries(Object.entries(controls).filter(([, c]) => c.value.trim()).map(([k, c]) => [k, c.value.trim()]));
     const b = { organization_id: ctx.organization.id, ...vals, target_amount: Number(vals.target_amount), target_dimensions: ds(targetDimensions), baseline: { source: vals.source, reference: vals.reference, as_of: vals.as_of, amount: Number(vals.amount), currency: vals.currency, unit: 'period_total', period_start: vals.period_start, period_end: vals.period_end, dimensions: ds(baselineDimensions) } };

@@ -111,7 +111,7 @@ revoke all on function public.fin_value_record_guard() from public,anon,authenti
 create or replace function public.fin_record_value(p_org uuid,p_contract uuid,p_input jsonb)
 returns uuid language plpgsql security definer set search_path='' as $$
 declare c public.fin_contracts%rowtype; cv public.fin_contract_versions%rowtype; m public.fin_value_methodologies%rowtype;
-  b jsonb; ds jsonb; v_id uuid; v_start date; v_end date; v_base numeric; v_target numeric;
+  b jsonb; ds jsonb; v_id uuid; v_start date; v_end date; v_base numeric; v_target numeric; v_method text; v_definition jsonb;
 begin
   select * into c from public.fin_contracts where organization_id=p_org and id=p_contract for share;
   if c.id is null or auth.uid() is null or not public.fin_entity_allows(p_org,c.legal_entity_id,array['admin','finance_manager'])
@@ -141,10 +141,13 @@ begin
   if c.currency is not null and c.currency is distinct from p_input->>'currency' then raise exception 'value currency mismatch'; end if;
   select * into cv from public.fin_contract_versions where contract_id=c.id and organization_id=p_org order by version desc limit 1;
   if cv.contract_id is null then raise exception 'value target version unavailable'; end if;
-  insert into public.fin_value_methodologies(organization_id,definition,created_by) values(p_org,
-    '{"formula":"baseline_period_total - target_period_total","version":1,"unit":"period_total","rounding":"2 decimal places","verification":"human declared total costs and equal economic dimensions; no spread projection"}',auth.uid())
+  v_method:=case when p_input->>'kind'='COST_AVOIDANCE' then 'counterfactual_period_total_avoidance' else 'period_total_difference' end;
+  v_definition:=jsonb_build_object('formula',case when p_input->>'kind'='COST_AVOIDANCE' then 'counterfactual_period_total - target_period_total' else 'baseline_period_total - target_period_total' end,
+    'version',1,'unit','period_total','rounding','2 decimal places',
+    'verification',case when p_input->>'kind'='COST_AVOIDANCE' then 'Customer declared counterfactual expense avoided; not cash saved or observed realization' else 'Human declared total costs and equal economic dimensions; no spread projection' end);
+  insert into public.fin_value_methodologies(organization_id,method_key,definition,created_by) values(p_org,v_method,v_definition,auth.uid())
     on conflict(organization_id,method_key,version) do nothing;
-  select * into m from public.fin_value_methodologies where organization_id=p_org and method_key='period_total_difference' and version=1;
+  select * into m from public.fin_value_methodologies where organization_id=p_org and method_key=v_method and version=1;
   insert into public.fin_value_records(organization_id,contract_id,contract_version,legal_entity_id,provider_id,product,owner_id,kind,title,currency,period_start,period_end,baseline,target_amount,target_snapshot,target_dimensions,comparability,value_amount,methodology_id,methodology_snapshot,evidence_reference,reason)
   values(p_org,c.id,cv.version,c.legal_entity_id,c.provider_id,c.product,auth.uid(),p_input->>'kind',p_input->>'title',p_input->>'currency',v_start,v_end,b,v_target,
     jsonb_build_object('contract_id',c.id,'version',cv.version,'terms',cv.terms,'effective_from',cv.effective_from),ds,p_input->>'comparability',
@@ -158,7 +161,7 @@ grant execute on function public.fin_record_value(uuid,uuid,jsonb) to authentica
 
 create or replace function public.fin_observe_value(p_record uuid,p_input jsonb)
 returns uuid language plpgsql security definer set search_path='' as $$
-declare r public.fin_value_records%rowtype; v_id uuid:=gen_random_uuid(); v_amount numeric;
+declare r public.fin_value_records%rowtype; v_id uuid:=gen_random_uuid(); v_amount numeric; m public.fin_value_methodologies%rowtype;
 begin
   select * into r from public.fin_value_records where id=p_record for update;
   if r.id is null or auth.uid() is null or not public.fin_entity_allows(r.organization_id,r.legal_entity_id,array['admin','finance_manager'])
@@ -172,8 +175,13 @@ begin
     or (p_input->>'period_start')::date is distinct from r.period_start or (p_input->>'period_end')::date is distinct from r.period_end
     or r.period_end>=current_date or r.period_start<=(r.baseline->>'as_of')::date
     or p_input->'verified' is distinct from 'true'::jsonb then raise exception 'value observation incomplete'; end if;
+  insert into public.fin_value_methodologies(organization_id,method_key,definition,created_by)
+    values(r.organization_id,'observed_period_total_difference',
+      '{"formula":"baseline_period_total - observed_period_total","version":1,"unit":"period_total","rounding":"2 decimal places","verification":"Human verified evidence for complete closed period; negotiated amount is not realized amount"}',auth.uid())
+    on conflict(organization_id,method_key,version) do nothing;
+  select * into m from public.fin_value_methodologies where organization_id=r.organization_id and method_key='observed_period_total_difference' and version=1;
   insert into public.fin_value_records(id,organization_id,contract_id,contract_version,legal_entity_id,provider_id,product,owner_id,kind,title,currency,period_start,period_end,baseline,target_amount,target_snapshot,target_dimensions,comparability,value_amount,methodology_id,methodology_snapshot,evidence_reference,reason,parent_id)
-  values(v_id,r.organization_id,r.contract_id,r.contract_version,r.legal_entity_id,r.provider_id,r.product,auth.uid(),'REALIZED_SAVINGS',r.title,r.currency,r.period_start,r.period_end,r.baseline,v_amount,r.target_snapshot,r.target_dimensions,'comparable',round((r.baseline->>'amount')::numeric-v_amount,2),r.methodology_id,r.methodology_snapshot,p_input->>'evidence_reference',p_input->>'verification_reason',r.id);
+  values(v_id,r.organization_id,r.contract_id,r.contract_version,r.legal_entity_id,r.provider_id,r.product,auth.uid(),'REALIZED_SAVINGS',r.title,r.currency,r.period_start,r.period_end,r.baseline,v_amount,r.target_snapshot,r.target_dimensions,'comparable',round((r.baseline->>'amount')::numeric-v_amount,2),m.id,m.definition,p_input->>'evidence_reference',p_input->>'verification_reason',r.id);
   insert into public.fin_value_observations(organization_id,record_id,realized_record_id,observed_amount,currency,period_start,period_end,coverage,source,evidence_reference,verification_reason,verified_by)
   values(r.organization_id,r.id,v_id,v_amount,r.currency,r.period_start,r.period_end,'complete',p_input->>'source',p_input->>'evidence_reference',p_input->>'verification_reason',auth.uid());
   insert into public.fin_events(organization_id,entity_type,entity_id,event_type,actor_id,metadata)
@@ -200,29 +208,31 @@ revoke all on function public.fin_invalidate_value(uuid,jsonb) from public,anon;
 grant execute on function public.fin_invalidate_value(uuid,jsonb) to authenticated;
 
 -- List and totals share exactly the same authorized, bounded date filters.
-create or replace function public.fin_list_value(p_org uuid,p_start date,p_end date,p_kind text default null,p_currency text default null,p_entity uuid default null,p_provider uuid default null,p_after uuid default null,p_limit integer default 25)
+create or replace function public.fin_list_value(p_org uuid,p_start date,p_end date,p_kind text default null,p_currency text default null,p_entity uuid default null,p_provider uuid default null,p_after uuid default null,p_limit integer default 25,p_product text default null)
 returns setof public.fin_value_records language plpgsql stable security invoker set search_path='' as $$
 begin
   if p_org is null or auth.uid() is null or not public.fin_has_role(p_org,array['admin','finance_manager','analyst','viewer']) then raise exception 'forbidden'; end if;
   if p_start is null or p_end is null or p_end<p_start or p_end-p_start>366*5 or p_limit is null or p_limit not between 1 and 50 then raise exception 'invalid value filters'; end if;
+  if p_product is not null and p_product not in ('credit','acquiring') then raise exception 'invalid value filters'; end if;
   return query select r.* from public.fin_value_records r where r.organization_id=p_org and r.period_start>=p_start and r.period_end<=p_end
    and (p_kind is null or r.kind=p_kind) and (p_currency is null or r.currency=p_currency) and (p_entity is null or r.legal_entity_id=p_entity)
-   and (p_provider is null or r.provider_id=p_provider) and (p_after is null or r.id>p_after) order by r.id limit p_limit+1;
+   and (p_product is null or r.product=p_product) and (p_provider is null or r.provider_id=p_provider) and (p_after is null or r.id>p_after) order by r.id limit p_limit+1;
 end $$;
-revoke all on function public.fin_list_value(uuid,date,date,text,text,uuid,uuid,uuid,integer) from public,anon;
-grant execute on function public.fin_list_value(uuid,date,date,text,text,uuid,uuid,uuid,integer) to authenticated;
-create or replace function public.fin_value_totals(p_org uuid,p_start date,p_end date,p_kind text default null,p_currency text default null,p_entity uuid default null,p_provider uuid default null)
+revoke all on function public.fin_list_value(uuid,date,date,text,text,uuid,uuid,uuid,integer,text) from public,anon;
+grant execute on function public.fin_list_value(uuid,date,date,text,text,uuid,uuid,uuid,integer,text) to authenticated;
+create or replace function public.fin_value_totals(p_org uuid,p_start date,p_end date,p_kind text default null,p_currency text default null,p_entity uuid default null,p_provider uuid default null,p_product text default null)
 returns table(kind text,currency text,records bigint,comparable bigint,value_amount numeric) language plpgsql stable security invoker set search_path='' as $$
 begin
   if p_org is null or auth.uid() is null or not public.fin_has_role(p_org,array['admin','finance_manager','analyst','viewer']) then raise exception 'forbidden'; end if;
   if p_start is null or p_end is null or p_end<p_start or p_end-p_start>366*5 then raise exception 'invalid value filters'; end if;
+  if p_product is not null and p_product not in ('credit','acquiring') then raise exception 'invalid value filters'; end if;
   return query select r.kind,r.currency,count(*),count(r.value_amount),sum(r.value_amount) from public.fin_value_records r
    where r.organization_id=p_org and r.status='active' and r.period_start>=p_start and r.period_end<=p_end
    and (p_kind is null or r.kind=p_kind) and (p_currency is null or r.currency=p_currency) and (p_entity is null or r.legal_entity_id=p_entity)
-   and (p_provider is null or r.provider_id=p_provider) group by r.kind,r.currency;
+   and (p_product is null or r.product=p_product) and (p_provider is null or r.provider_id=p_provider) group by r.kind,r.currency;
 end $$;
-revoke all on function public.fin_value_totals(uuid,date,date,text,text,uuid,uuid) from public,anon;
-grant execute on function public.fin_value_totals(uuid,date,date,text,text,uuid,uuid) to authenticated;
+revoke all on function public.fin_value_totals(uuid,date,date,text,text,uuid,uuid,text) from public,anon;
+grant execute on function public.fin_value_totals(uuid,date,date,text,text,uuid,uuid,text) to authenticated;
 
 create or replace function public.fin_governance_export_datasets()
 returns table(dataset text, query text) language sql immutable set search_path = '' as $$

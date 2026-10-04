@@ -28,8 +28,10 @@ test('valor separado por tipo e moeda, filtros no servidor, detalhe com baseline
   await expect(page.getByRole('heading',{name:'Custo evitado · USD'})).toBeVisible();
   await expect(page.getByText('Sem cálculo defensável')).toBeVisible();
   await page.getByLabel('Período inicial').fill('2025-01-01');await page.getByLabel('Período final').fill('2025-12-31');
+  await page.getByLabel('Categoria',{exact:true}).selectOption('credit');
   await page.getByRole('button',{name:'Aplicar filtros'}).click();
   await expect.poll(()=>calls.filter(c=>c.path==='value').at(-1)?.query.start).toBe('2025-01-01');
+  expect(calls.filter(c=>c.path==='value').at(-1)?.query.product).toBe('credit');
   await page.getByRole('button',{name:'Ver evidência'}).click();
   const dialog=page.getByRole('dialog');await expect(dialog.getByText(/BASELINE-TEST/)).toBeVisible();
   await expect(dialog.getByText(/Metodologia v1/)).toBeVisible();
