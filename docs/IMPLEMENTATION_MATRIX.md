@@ -242,3 +242,34 @@ Branch `feature/public-api-webhooks` rebaseada sobre `pilot@582291c` (merge do #
 ## P0.9 Enterprise SSO foundation — 2026-10-04
 
 Branch `feature/enterprise-sso-foundation` nasce da `pilot` após o merge do #109, sem empilhamento. Entrega: migration `financial-sso-1` (aditiva, idempotente, rollback que aborta diante de configuração ou trilha), validação estrita de identidade com IdP de teste de chaves reais, adapter Supabase SAML, callback com motivos estáveis, exigência de SSO no login por senha, limite e revogação de sessão, administração e prontidão em Configurações → Segurança, "Entrar com SSO" no login, runbook e threat model. Status `partial`: não houve login real com IdP de cliente e o rollout hospedado segue bloqueado; não há claim de SSO funcionando. Próximo: P0.10 Operational Resilience a partir da `pilot` após o merge.
+
+## Correção do gate pós-#110 — 2026-10-04
+
+Baseline viva `pilot@13532e188bc7547e4042440e61b45988d5278e80`.
+O run `37165743881` terminou com `validate`, `database` e `deploy-boundaries`
+aprovados; `presentation` falhou no teste de desempenho da RFQ em WebKit desktop:
+p95 de navegação de 1892 ms, 1592 ms e 1557 ms nas três tentativas, contra o
+orçamento obrigatório de 1500 ms. Os limites, navegadores, retries e assertions
+permanecem intactos.
+
+Branch `fix/pilot-webkit-route-performance`, diretamente desta `pilot`, remove
+cascatas independentes no caminho crítico: imports do transporte local em
+paralelo, transporte e workspace em paralelo, preload apenas do módulo da tela
+atual durante o bootstrap, e consulta de entidades em paralelo às consultas de
+aprovação no detalhe da RFQ. Regras de autorização e validação da política
+continuam no servidor; somente a ordem de início das leituras independentes muda.
+
+Validação local: `npm ci --include=optional`; `check:all` executado sem
+credenciais herdadas e com conexões reais de rede bloqueadas; build aprovado.
+WebKit local não pôde iniciar por bibliotecas de sistema ausentes; a instalação
+das dependências também foi recusada pelo ambiente de execução. Evidência
+cross-browser e os quatro gates completos ficam pendentes do CI desta PR.
+Nenhum merge está autorizado enquanto algum gate obrigatório estiver pendente
+ou falhando. P0.10, P0.11 e P1 permanecem com seus estados anteriores.
+
+A revisão cirúrgica identificou para P0.10: preflight de backup com allowlist
+de marcadores desatualizada, conclusão de webhook com falha ocultada, cron de
+renovação respondendo sucesso apesar de falhas nos jobs dependentes e resolução
+DNS de webhook sem timeout próprio. São lacunas encontradas, ainda não corrigidas
+nesta PR de estabilização. Próximo: concluir os gates desta correção, merge
+verde e nova branch da `pilot` para P0.10.
