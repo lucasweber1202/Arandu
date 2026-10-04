@@ -10,6 +10,7 @@ import { createPrivacyDomain } from '../lib/api/domains/privacy.mjs';
 import { createDashboardDomain } from '../lib/api/domains/dashboard.mjs';
 import { handleFinance } from '../lib/api/domains/finance.mjs';
 import { handleFinanceJobs } from '../lib/api/domains/finance-jobs.mjs';
+import { handlePublicApi } from '../lib/api/domains/public-api.mjs';
 
 import { AdminAuthError, applyAdminResponseHeaders, requireAdmin } from '../lib/admin-auth.mjs';
 import { requireAdminPermission } from '../lib/admin-rbac.mjs';
@@ -401,6 +402,11 @@ export default async function handler(req, res) {
     // isolamento multi-tenant garantidos pelo RLS do Supabase.
     // Agenda de renovação (cron do Vercel, segredo obrigatório, service role).
     if (route === 'jobs/renewals') return await handleFinanceJobs(req, res, 'renewals');
+    // Entrega de webhooks (cron/agendador externo com o mesmo segredo, service role).
+    if (route === 'jobs/webhooks') return await handleFinanceJobs(req, res, 'webhooks');
+    // Public API v1: máquina-a-máquina com token de conta de serviço; o envelope
+    // de erro é o da v1 (docs/FINANCIAL_PUBLIC_API.md).
+    if (route === 'v1' || route.startsWith('v1/')) return await handlePublicApi(req, res, route.slice(2).replace(/^\//, ''));
     if (route.startsWith('finance/')) return await handleFinance(req, res, route.slice('finance/'.length), { requireUser, enforceRateLimit });
     if (route === 'forms') return await handleForms(req, res);
     if (route === 'reservations') return await handleReservations(req, res);

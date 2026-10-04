@@ -177,3 +177,11 @@ exigem a organização provedora, e o job agendado roda sem `auth.uid()`.
 * SoD padrão no banco (quem pede não aprova; uma etapa por pessoa; só membros da compradora); SoD configurável na policy aplicada na decisão.
 * Snapshot e definição das etapas imutáveis; versão ativada imutável; exceção e delegação com autor e data.
 * Testes: `tests/database/financial-policy-engine.sql` (negativos de entidade, tenant, provedor, revogação, SoD, versão no meio do processo), `scripts/test-finance-policy.mjs`; canário de isolamento com as tabelas novas.
+
+## Public API v1 & Webhooks
+
+* Autenticação de máquina: token de 256 bits mostrado uma vez; o banco guarda só `sha256`. Toda função `fin_api_*` começa por `fin_api_context` (credencial válida, conta ativa, organização compradora, escopo) e filtra por entidade/objeto; só o service role executa essas funções, chamado pelo servidor — nunca pelo navegador.
+* Administração por admin da compradora com JWT; contas de serviço e credenciais nunca expõem o hash; endpoints nunca expõem o segredo cifrado (privilégio por coluna).
+* Webhooks: URL https pública validada no banco e na API; DNS revalidado na entrega contra endereços internos; sem redirect; HMAC sobre `timestamp.delivery_id.body`; segredo cifrado com AES-256-GCM e chave por ambiente.
+* Limites: rate limit por credencial (contador no banco, falha fechada), corpo ≤ 64 KB, página ≤ 100, filtros fechados, ordem determinística.
+* Testes: `tests/database/financial-public-api.sql`, `scripts/test-finance-public-api.mjs`, `scripts/test-finance-integrations.mjs`; canário com as tabelas novas.

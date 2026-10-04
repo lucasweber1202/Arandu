@@ -124,3 +124,18 @@ são tratados pelos controles gerais do Arandu, não por esta vertical.
 | 67 | **Moeda trocada** para escapar do limite | sem câmbio: valor em outra moeda casa por conservadorismo | §4 |
 | 68 | **Aprovação por decurso de prazo** | prazo só escala ou expira; nunca aprova | §15 |
 | 69 | **Score oculto** como critério de alçada | fatos fechados no validador (banco e API) | §2, `test-finance-policy.mjs` |
+
+## Public API v1 & Webhooks
+
+| # | Ataque | Defesa | Teste |
+| --- | --- | --- | --- |
+| 70 | **Token vazado do banco** | só `sha256` persistido; sem privilégio de coluna | `financial-public-api.sql` §1–2 |
+| 71 | **Credencial de outro tenant/entidade** lendo dados | contexto + filtro de organização/entidade/objeto em cada `fin_api_*` | §3 |
+| 72 | **Escopo amplo por padrão** | escopos explícitos do catálogo; revogação/alteração vale na próxima chamada | §2, §8 |
+| 73 | **Repetição duplicando escrita** / payload trocado com a mesma chave | idempotência por conta + impressão; `idempotency key reuse` | §4, `test-finance-public-api.mjs` |
+| 74 | **Exportação do tenant** por paginação/filtro ignorado | página ≤ 100, keyset, filtro desconhecido = 400 | `test-finance-public-api.mjs` |
+| 75 | **SSRF via webhook** (metadata, rede interna) | URL pública validada no banco/API; DNS revalidado na entrega; sem redirect | §5, `test-finance-public-api.mjs` |
+| 76 | **Webhook forjado/reenviado** contra o receptor | HMAC sobre timestamp + delivery id + corpo; janela de 5 min; dedupe documentado | `test-finance-public-api.mjs` |
+| 77 | **Vazamento por payload** | evento mínimo (ids/estado), sem termos ou texto | §5 |
+| 78 | **Worker duplicado** concluindo entrega alheia | lease com fencing (`stale lease`) | §6 |
+| 79 | **Abuso de volume** | rate limit por credencial no banco, falha fechada | `test-finance-public-api.mjs` |

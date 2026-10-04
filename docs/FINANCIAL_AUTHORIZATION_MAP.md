@@ -25,6 +25,9 @@ falham se isso mudar.
 | `/api/finance/ops/*` | FINANCE | `finance_ops` + `aal2` na API (`lib/finance/ops-access.mjs`) **e** no banco (`fin_require_operator`: papel no JWT verificado + `fin_platform_operators` + `aal2`) |
 | `/api/finance/ops/mfa` | FINANCE | sessão com papel `finance_ops` (aal1); desafio/verificação TOTP no Supabase Auth |
 | `/api/jobs/renewals` | FINANCE | `CRON_SECRET` (32+, comparação em tempo constante); inclui `fin_run_approval_deadlines` (service role, só depois do segredo) |
+| `/api/v1/*` | FINANCE (máquina) | `Authorization: Bearer` de conta de serviço → hash → `fin_api_*` (service role no servidor): credencial + organização + entidade + escopo + objeto; rate limit por credencial — `docs/FINANCIAL_PUBLIC_API.md` |
+| `/api/jobs/webhooks` | FINANCE | `CRON_SECRET`; worker `fin_webhook_claim/complete` (service role, só depois do segredo) |
+| `service-accounts*`, `webhooks*` (`/api/finance`) | FINANCE | sessão + papel `admin` confirmado no banco antes de qualquer RPC; "enviar pendentes" usa service role só no worker, filtrado pela organização |
 | `approval-policies*`, `approval-exceptions*`, `approval-delegations*` | FINANCE | sessão + RLS; administração de policy e sinalizadores só `admin`; prévia sob o RLS da RFQ; exceção decidida pelo papel da policy dona da regra; delegação pelo titular (ou admin para revogar) — `docs/FINANCIAL_POLICY_ENGINE.md` |
 | `api/commercial.js`, `api/orders.js`, `api/upload.js`, `api/mvp-dashboard.js`, `api/internal-page.js` | LEGACY_ART | `requireAdmin` (papel legado + `aal2`) + permissão RBAC |
 | `lib/api/domains/admin-operations.mjs`, `accounts.mjs`, `dashboard.mjs`, `pilot.mjs` (métricas) | LEGACY_ART | `adminGuard` → `requireAdmin` + RBAC; tabelas fixas (`TABLES`), nenhuma `fin_*` |

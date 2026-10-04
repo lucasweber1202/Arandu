@@ -262,3 +262,16 @@ Especificação e precedência: [`FINANCIAL_POLICY_ENGINE.md`](FINANCIAL_POLICY_
 | `fin_approval_steps` (+colunas) | `stage_id`, `acted_by`, `delegation_id`, `reason_code`; posições até 25; estados `not_required`/`waived`/`expired`/`superseded`/`cancelled` | `unique(request_id, approver_id)` continua: ninguém ocupa duas etapas |
 | `fin_policy_exceptions` | exceção explícita a uma regra do snapshot | uma aberta/aprovada por regra; decisor ≠ solicitante |
 | `fin_approval_delegations` | substituto temporário | ≤ 90 dias; titular ≠ substituto; revogação com autor |
+
+## Public API v1 & Webhooks (`docs/supabase-financial-public-api.sql`)
+
+Especificação: [`FINANCIAL_PUBLIC_API.md`](FINANCIAL_PUBLIC_API.md).
+
+| Tabela | Papel | Invariantes |
+| --- | --- | --- |
+| `fin_service_accounts` / `fin_service_account_entities` | conta de máquina por organização compradora, escopos do catálogo, alcance grupo ou entidades | escopos ⊂ `fin_api_scope_catalog()`; entidades do mesmo grupo (FK composta) |
+| `fin_api_credentials` | token por conta (só `sha256` + prefixo) | expira ≤ 366 dias; até 2 ativas por conta; hash único; coluna `token_hash` sem privilégio para `authenticated` |
+| `fin_api_idempotency` | chave + impressão + resultado por conta (24 h) | só service role |
+| `fin_webhook_endpoints` | URL https pública, eventos, filtro de entidades, segredo cifrado | URL validada no banco; `secret_ciphertext` sem privilégio para `authenticated`; criador humano XOR conta de serviço |
+| `fin_webhook_events` | evento mínimo derivado de `fin_events` | um por evento de origem; payload ≤ 4 KB, sem termos |
+| `fin_webhook_deliveries` | entrega por endpoint/evento, tentativas, lease, último código | uma entrega original por (endpoint, evento); replay referencia a original |

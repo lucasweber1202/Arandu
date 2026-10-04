@@ -43,6 +43,11 @@ begin
     ('fin_request_policy_exception(uuid,uuid,text,text,text,jsonb)'),('fin_decide_policy_exception(uuid,text,text)'),('fin_cancel_policy_exception(uuid)'),
     ('fin_set_approval_delegation(uuid,uuid,timestamp with time zone,timestamp with time zone,text)'),('fin_revoke_approval_delegation(uuid)'),
     ('fin_process_approval_deadlines(uuid)'),
+    -- Public API v1 & Webhooks: só administração humana (admin). A superfície de
+    -- máquina (fin_api_*, worker) é exclusiva do service role.
+    ('fin_create_service_account(uuid,text,text,text[],text,uuid[])'),('fin_update_service_account(uuid,text[],text,uuid[],text)'),
+    ('fin_revoke_service_account(uuid)'),('fin_issue_api_credential(uuid,text,text,timestamp with time zone)'),('fin_revoke_api_credential(uuid)'),
+    ('fin_create_webhook_endpoint(uuid,text,text[],text,text,uuid[])'),('fin_set_webhook_status(uuid,boolean)'),('fin_replay_webhook_delivery(uuid)'),
     -- Multi-entity: RPCs de administração e auxiliares de policy (só dizem
     -- se o próprio chamador alcança uma entidade/objeto).
     ('fin_create_legal_entity(uuid,text,text,text,text,text,text,uuid)'),('fin_update_legal_entity(uuid,text,text,text,text)'),
@@ -98,7 +103,7 @@ begin
      and has_table_privilege('anon', c.oid, p.privilege_type);
   if v_extra is not null then raise exception 'anon com escrita em tabela financeira: %', v_extra; end if;
 
-  if (select value from public.fin_settings where key = 'schema_version') not in ('financial-surface-hardening-1', 'financial-approval-handoff-1', 'financial-passport-1', 'financial-multi-entity-1', 'financial-contracts-v2-1', 'financial-relationships-portfolio-1', 'financial-passport-entities-1', 'financial-graph-1', 'financial-policy-engine-1') then
+  if (select value from public.fin_settings where key = 'schema_version') not in ('financial-surface-hardening-1', 'financial-approval-handoff-1', 'financial-passport-1', 'financial-multi-entity-1', 'financial-contracts-v2-1', 'financial-relationships-portfolio-1', 'financial-passport-entities-1', 'financial-graph-1', 'financial-policy-engine-1', 'financial-public-api-1') then
     raise exception 'schema_version não avançou';
   end if;
 end $$;
