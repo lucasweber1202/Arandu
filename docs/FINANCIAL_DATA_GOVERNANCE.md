@@ -67,6 +67,8 @@ como verdade própria.
 
 Fatos de tarifa (P1.2) — `fin_fee_schedules`, `fin_fee_schedule_versions`, `fin_fee_observations`, `fin_fee_variances`, `fin_fee_reviews` — são system of record próprios, imutáveis, exportados como `fee_*`, contados na prévia de exclusão e protegidos por legal hold (`docs/FINANCIAL_FEE_INTELLIGENCE.md`).
 
+Oportunidades (P1.3) — `fin_opportunity_rules` (política da empresa, imutável), `fin_opportunities` (itens derivados com fatos congelados; os fatos continuam no SoR de origem), `fin_opportunity_events` (histórico) — exportadas como `opportunity_*`, contadas na prévia de exclusão e sob legal hold; `fin_opportunity_scans` é cursor operacional sem export (`docs/FINANCIAL_OPPORTUNITY_ENGINE.md`).
+
 ## Semântica de exclusão
 
 | Semântica | Significado |

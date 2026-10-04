@@ -43,6 +43,7 @@ const VIEWS = {
   passport: lazy(() => import('./src/views/passport.js'), 'passport'),
   value: lazy(() => import('./src/views/value.js'), 'value'),
   fees: lazy(() => import('./src/views/fees.js'), 'fees'),
+  opportunities: lazy(() => import('./src/views/opportunities.js'), 'opportunities'),
   portfolio: lazy(() => import('./src/views/portfolio.js'), 'portfolio'),
   providers: lazy(company, 'providers'), tasks: lazy(company, 'tasks'), notifications: lazy(company, 'notifications'), settings: lazy(company, 'settings'),
   providerHome: lazy(providerViews, 'providerHome'), providerRfqs: lazy(providerViews, 'providerRfqs'),

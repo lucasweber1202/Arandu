@@ -112,3 +112,13 @@ ações nem leituras (testado em `tests/database/financial-data-governance.sql`)
 | Verificar observação, revisar diferença | `admin`, `finance_manager` no escopo, estado esperado | `fin_verify_fee_observation`, `fin_review_fee_variance` |
 
 Provedor, outro tenant, membro revogado e escopo de outra entidade não leem nem escrevem (testado em `tests/database/financial-fee-intelligence.sql`). Nenhuma credencial de API alcança tarifas.
+
+## Opportunity Engine (P1.3)
+
+| Ação | Quem | Onde a regra vive |
+| --- | --- | --- |
+| Ler oportunidades e histórico | `admin`, `finance_manager`, `analyst`, `viewer` no escopo da entidade (itens de grupo só para escopo de grupo) | RLS `fin_opportunity_read`, `fin_opportunity_event_read` |
+| Ler regras | papéis compradores da organização | RLS `fin_opportunity_rule_read` |
+| Criar versão de regra | `admin` da compradora, sem offboarding | `fin_set_opportunity_rule` |
+| Transicionar estado, criar rascunho de RFQ | `admin`/`finance_manager` no escopo; em revisão, só o revisor ou `admin` conclui; revisor precisa ter o papel e o escopo | `fin_transition_opportunity`, `fin_opportunity_start_rfq` |
+| Avaliar (motor) | service role (job com lease) ou gatilho de diferença de tarifa | `fin_run_opportunity_engine`, `fin_evaluate_opportunities` (sem `EXECUTE` para usuários) |

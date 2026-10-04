@@ -25,13 +25,15 @@ for (const [request, status] of [[{ method: 'GET', headers: {} }, 401], [{ ...re
 assert.equal((await run({ ...fixture(), databaseReady: () => false })).statusCode, 503);
 let out = await run(fixture());
 assert.equal(out.statusCode, 200); assert.equal(out.payload.ok, true);
-assert.equal(out.payload.tasks_created, 2); assert.equal(out.payload.milestone_tasks_created, 3); assert.equal(out.payload.approval_deadline_actions, 4);
-assert.equal(calls.filter(([name]) => name === 'fin_job_begin').length, 3);
-assert.equal(calls.filter(([name]) => name === 'fin_job_finish').length, 3);
+assert.equal(out.payload.tasks_created, 2); assert.equal(out.payload.milestone_tasks_created, 3); assert.equal(out.payload.approval_deadline_actions, 4); assert.equal(out.payload.opportunities_touched, 4);
+assert.deepEqual(calls.find(([name]) => name === 'fin_run_opportunity_engine')[1], { p_day: '2026-10-04', p_org_limit: 50 }, 'motor em lote limitado, nunca varredura sem limite');
+assert.equal(calls.filter(([name]) => name === 'fin_job_begin').length, 4);
+assert.equal(calls.filter(([name]) => name === 'fin_job_finish').length, 4);
+assert.deepEqual(calls.filter(([name]) => name === 'fin_job_begin').map(([, args]) => args.p_job), ['renewals', 'contract_milestones', 'approval_deadlines', 'opportunities']);
 assert.equal(calls[0][1].p_request_id, 'gru1--abc-script-');
-for (const name of ['fin_run_renewal_schedule', 'fin_run_contract_milestones', 'fin_run_approval_deadlines']) {
+for (const name of ['fin_run_renewal_schedule', 'fin_run_contract_milestones', 'fin_run_approval_deadlines', 'fin_run_opportunity_engine']) {
   out = await run(fixture(name)); assert.equal(out.statusCode, 502); assert.equal(out.payload.ok, false);
-  assert.equal(Object.values(out.payload.jobs).filter(row => row.status === 'succeeded').length, 2, 'falha parcial não impede jobs independentes');
+  assert.equal(Object.values(out.payload.jobs).filter(row => row.status === 'succeeded').length, 3, 'falha parcial não impede jobs independentes');
   assert.equal(calls.filter(([rpc]) => rpc === name).length, 1, 'escrita não sofre retry cego');
   assert.doesNotMatch(JSON.stringify(out.payload)+JSON.stringify(calls), /password_secret|password=|token=/, 'código arbitrário e mensagem não entram na trilha');
 }
@@ -39,7 +41,7 @@ for (const bad of [null, -1, '3', {}, 2.5, Infinity]) { out = await run(fixture(
 out = await run(fixture('fin_job_finish')); assert.equal(out.statusCode, 502); assert.equal(out.payload.jobs.renewals.error_code, 'job_record_failed');
 out = await run(fixture('fin_job_begin')); assert.equal(out.statusCode, 502); assert.equal(calls.some(([name]) => name === 'fin_run_renewal_schedule'), false);
 const busy = fixture(); busy.rpc = async name => { calls.push([name]); return null; };
-out = await run(busy); assert.equal(out.statusCode, 202); assert.equal(out.payload.ok, false); assert.equal(calls.length, 3);
+out = await run(busy); assert.equal(out.statusCode, 202); assert.equal(out.payload.ok, false); assert.equal(calls.length, 4);
 const hanging = fixture(); const original = hanging.rpc; hanging.rpc = (name, args) => name === 'fin_run_renewal_schedule' ? new Promise(() => {}) : original(name,args);
 out = await run(hanging); assert.equal(out.statusCode, 502); assert.equal(out.payload.jobs.renewals.error_code, 'timeout');
 const webhook = fixture(); webhook.dispatch = async () => ({ claimed: 4, succeeded: 1, failed: 1, dead: 0, completion_failed: 1, deferred: 1 });

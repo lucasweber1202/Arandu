@@ -19,6 +19,7 @@ for (const [flow, files] of Object.entries(manifest)) {
   });
   if (files.indexOf('docs/supabase-financial-value-realization.sql') !== files.indexOf('docs/supabase-financial-p0-closure.sql') + 1) issues.push(`${flow}: value realization deve seguir P0 closure.`);
   if (files.indexOf('docs/supabase-financial-fee-intelligence.sql') !== files.indexOf('docs/supabase-financial-value-realization.sql') + 1) issues.push(`${flow}: fee intelligence deve seguir value realization.`);
+  if (files.indexOf('docs/supabase-financial-opportunity-engine.sql') !== files.indexOf('docs/supabase-financial-fee-intelligence.sql') + 1) issues.push(`${flow}: opportunity engine deve seguir fee intelligence.`);
   const sprint2 = files.indexOf('docs/supabase-sprint2-catalog-readiness.sql');
   const collections = files.indexOf('docs/arandu-mvp-collections.sql');
   const sprint5 = files.indexOf('docs/supabase-sprint5-pilot.sql');
