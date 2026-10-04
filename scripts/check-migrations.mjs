@@ -144,6 +144,7 @@ for (const [flow, files] of Object.entries(manifest)) {
   if (files.indexOf('docs/supabase-financial-policy-engine.sql') !== files.indexOf('docs/supabase-financial-graph.sql') + 1) issues.push(`${flow}: Policy Engine v2 deve seguir o Graph.`);
   if (files.indexOf('docs/supabase-financial-public-api.sql') !== files.indexOf('docs/supabase-financial-policy-engine.sql') + 1) issues.push(`${flow}: Public API/Webhooks deve seguir o Policy Engine v2.`);
   if (files.indexOf('docs/supabase-financial-sso.sql') !== files.indexOf('docs/supabase-financial-public-api.sql') + 1) issues.push(`${flow}: Enterprise SSO deve seguir a Public API/Webhooks.`);
+  if (files.indexOf('docs/supabase-financial-operational-resilience.sql') !== files.indexOf('docs/supabase-financial-sso.sql') + 1) issues.push(`${flow}: Operational Resilience deve seguir SSO.`);
 }
 
 // Catraca de inventário: todo .sql direto em docs/ é migration do manifesto,

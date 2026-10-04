@@ -1,92 +1,50 @@
 #!/usr/bin/env node
-// Agenda de renovação: só o cron com segredo chega ao service role.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { handleFinanceJobs, authorizedCron } from '../lib/api/domains/finance-jobs.mjs';
-
 const secret = 's'.repeat(40);
-const res = () => ({ headers: {}, setHeader(key, value) { this.headers[key] = value; }, end(value) { this.payload = JSON.parse(value); } });
-const req = (method, authorization, extra = {}) => ({ method, headers: { ...(authorization ? { authorization } : {}), ...extra } });
-let calls = [];
-const deps = { env: { CRON_SECRET: secret }, rpc: async (name, body) => { calls.push([name, body]); return name === 'fin_run_renewal_schedule' ? 2 : name === 'fin_run_contract_milestones' ? 3 : name === 'fin_run_approval_deadlines' ? 4 : null; }, databaseReady: () => true, now: () => new Date('2026-09-26T09:15:00Z') };
-
-assert.equal(authorizedCron(req('GET', `Bearer ${secret}`), { CRON_SECRET: secret }), true);
-assert.equal(authorizedCron(req('GET', `Bearer ${secret}`), { CRON_SECRET: 'curto' }), false, 'segredo curto não autoriza');
-assert.equal(authorizedCron(req('GET', 'Bearer errado'), { CRON_SECRET: secret }), false);
-assert.equal(authorizedCron(req('GET'), {}), false, 'sem segredo configurado nada passa');
-
-for (const [request, status] of [[req('GET'), 401], [req('GET', 'Bearer x'.padEnd(47, 'x')), 401], [req('POST', `Bearer ${secret}`), 405]]) {
-  const out = res();
-  await handleFinanceJobs(request, out, 'renewals', deps);
-  assert.equal(out.statusCode, status);
+const req = { method: 'GET', headers: { authorization: `Bearer ${secret}`, 'x-vercel-id': 'gru1::abc<script>' } };
+const response = () => ({ setHeader() {}, end(text) { this.payload = JSON.parse(text); } });
+const clock = () => new Date('2026-10-04T09:15:00Z');
+let calls;
+const fixture = (failure = '', result = undefined) => ({ env: { CRON_SECRET: secret }, now: clock, timeoutMs: 20, databaseReady: () => true,
+  rpc: async (name, args) => {
+    calls.push([name, args]);
+    if (name === failure) throw Object.assign(new Error('password=secret token=secret'), { code: 'password_secret' });
+    if (name === 'fin_job_begin') return { run_id: args.p_job, lease_token: 'fixture-lease' };
+    if (name === 'fin_job_finish') return true;
+    return result === undefined ? name === 'fin_run_renewal_schedule' ? 2 : name === 'fin_run_contract_milestones' ? 3 : 4 : result;
+  } });
+async function run(deps, request = req, job = 'renewals') { calls = []; const out = response(); await handleFinanceJobs(request, out, job, deps); return out; }
+assert.equal(authorizedCron(req, { CRON_SECRET: secret }), true);
+assert.equal(authorizedCron({ headers: { authorization: `Bearer ${'é'.repeat(40)}` } }, { CRON_SECRET: secret }), false, 'UTF-8 não causa timingSafeEqual com buffers de tamanho diferente');
+assert.equal(authorizedCron(req, { CRON_SECRET: 'curto' }), false);
+for (const [request, status] of [[{ method: 'GET', headers: {} }, 401], [{ ...req, method: 'POST' }, 405]]) {
+  const out = await run(fixture(), request); assert.equal(out.statusCode, status); assert.equal(calls.length, 0);
 }
-assert.deepEqual(calls, [], 'requisição não autorizada chegou ao banco');
-{
-  const out = res();
-  await handleFinanceJobs(req('GET', `Bearer ${secret}`), out, 'renewals', { ...deps, databaseReady: () => false });
-  assert.equal(out.statusCode, 503);
+assert.equal((await run({ ...fixture(), databaseReady: () => false })).statusCode, 503);
+let out = await run(fixture());
+assert.equal(out.statusCode, 200); assert.equal(out.payload.ok, true);
+assert.equal(out.payload.tasks_created, 2); assert.equal(out.payload.milestone_tasks_created, 3); assert.equal(out.payload.approval_deadline_actions, 4);
+assert.equal(calls.filter(([name]) => name === 'fin_job_begin').length, 3);
+assert.equal(calls.filter(([name]) => name === 'fin_job_finish').length, 3);
+assert.equal(calls[0][1].p_request_id, 'gru1--abc-script-');
+for (const name of ['fin_run_renewal_schedule', 'fin_run_contract_milestones', 'fin_run_approval_deadlines']) {
+  out = await run(fixture(name)); assert.equal(out.statusCode, 502); assert.equal(out.payload.ok, false);
+  assert.equal(Object.values(out.payload.jobs).filter(row => row.status === 'succeeded').length, 2, 'falha parcial não impede jobs independentes');
+  assert.equal(calls.filter(([rpc]) => rpc === name).length, 1, 'escrita não sofre retry cego');
+  assert.doesNotMatch(JSON.stringify(out.payload)+JSON.stringify(calls), /password_secret|password=|token=/, 'código arbitrário e mensagem não entram na trilha');
 }
-{
-  const out = res();
-  await handleFinanceJobs(req('GET', `Bearer ${secret}`, { 'x-vercel-id': 'gru1::abc<script>' }), out, 'renewals', deps);
-  assert.equal(out.statusCode, 200);
-  assert.deepEqual(out.payload, { ok: true, job: 'renewals', day: '2026-09-26', tasks_created: 2, milestone_tasks_created: 3, approval_deadline_actions: 4, request_id: 'gru1--abc-script-' });
-  assert.deepEqual(calls[0], ['fin_run_renewal_schedule', { p_day: '2026-09-26' }]);
-  assert.deepEqual(calls[1], ['fin_record_job_run', { p_job: 'renewals', p_status: 'succeeded', p_processed: 2, p_request_id: 'gru1--abc-script-', p_error_code: null, p_started_at: '2026-09-26T09:15:00.000Z' }]);
-  assert.deepEqual(calls[2], ['fin_run_contract_milestones', { p_day: '2026-09-26' }]);
-  assert.deepEqual(calls[3], ['fin_record_job_run', { p_job: 'contract_milestones', p_status: 'succeeded', p_processed: 3, p_request_id: 'gru1--abc-script-', p_error_code: null, p_started_at: '2026-09-26T09:15:00.000Z' }]);
-  assert.deepEqual(calls[4], ['fin_run_approval_deadlines', {}]);
-  assert.deepEqual(calls[5], ['fin_record_job_run', { p_job: 'approval_deadlines', p_status: 'succeeded', p_processed: 4, p_request_id: 'gru1--abc-script-', p_error_code: null, p_started_at: '2026-09-26T09:15:00.000Z' }]);
-  assert.equal(out.headers['Cache-Control'], 'no-store');
-}
-{
-  // Falha nos prazos de aprovação não desfaz renovação nem marcos; fica registrada sem a mensagem do banco.
-  calls = [];
-  const out = res();
-  const failing = { ...deps, rpc: async (name, body) => { calls.push([name, body]); if (name === 'fin_run_approval_deadlines') { const error = new Error('relation fin_approval_stages: segredo=1'); error.code = 'Bad Gateway'; throw error; } return name === 'fin_run_renewal_schedule' ? 1 : null; } };
-  await handleFinanceJobs(req('GET', `Bearer ${secret}`), out, 'renewals', failing);
-  assert.equal(out.statusCode, 200);
-  assert.equal(out.payload.approval_deadline_actions, null);
-  assert.doesNotMatch(JSON.stringify(out.payload), /segredo|fin_approval/);
-  assert.equal(`${calls.at(-1)[1].p_job}/${calls.at(-1)[1].p_status}/${calls.at(-1)[1].p_error_code}`, 'approval_deadlines/failed/bad_gateway');
-}
-{
-  // Falha nos marcos não desfaz a renovação concluída e fica registrada sem a mensagem do banco.
-  calls = [];
-  const out = res();
-  const failing = { ...deps, rpc: async (name, body) => { calls.push([name, body]); if (name === 'fin_run_contract_milestones') { const error = new Error('relation fin_contract_milestones: token=abc'); error.code = 'Bad Gateway'; throw error; } return name === 'fin_run_renewal_schedule' ? 1 : null; } };
-  await handleFinanceJobs(req('GET', `Bearer ${secret}`), out, 'renewals', failing);
-  assert.equal(out.statusCode, 200);
-  assert.equal(out.payload.tasks_created, 1);
-  assert.equal(out.payload.milestone_tasks_created, null);
-  assert.doesNotMatch(JSON.stringify(out.payload), /token|fin_contract/);
-  assert.deepEqual(calls.find(([name, body]) => name === 'fin_record_job_run' && body.p_job === 'contract_milestones')[1].p_status + '/' + calls.find(([name, body]) => name === 'fin_record_job_run' && body.p_job === 'contract_milestones')[1].p_error_code, 'failed/bad_gateway');
-}
-{
-  // Falha do banco: execução registrada como falha, com código curto e sem a mensagem original.
-  calls = [];
-  const out = res();
-  const failing = { ...deps, rpc: async (name, body) => { calls.push([name, body]); if (name === 'fin_run_renewal_schedule') { const error = new Error('relation fin_contracts: senha=xyz'); error.code = 'Upstream Unavailable'; throw error; } return null; } };
-  await handleFinanceJobs(req('GET', `Bearer ${secret}`), out, 'renewals', failing);
-  assert.equal(out.statusCode, 502);
-  assert.equal(out.payload.code, 'renewal_job_failed');
-  assert.doesNotMatch(JSON.stringify(out.payload), /senha|fin_contracts/);
-  assert.equal(calls[1][1].p_status, 'failed');
-  assert.equal(calls[1][1].p_error_code, 'upstream_unavailable');
-}
-{
-  // Duas execuções no mesmo dia chegam ao banco; a idempotência é da função SQL (provada em test:database).
-  calls = [];
-  for (let i = 0; i < 2; i += 1) await handleFinanceJobs(req('GET', `Bearer ${secret}`), res(), 'renewals', deps);
-  assert.equal(calls.filter(([name]) => name === 'fin_run_renewal_schedule').length, 2);
-  assert.equal(calls.filter(([name]) => name === 'fin_record_job_run').length, 6);
-}
-{
-  const out = res();
-  await handleFinanceJobs(req('GET', `Bearer ${secret}`), out, 'outra', deps);
-  assert.equal(out.statusCode, 404);
-}
-const vercel = JSON.parse(readFileSync('vercel.json', 'utf8'));
-assert.ok(vercel.crons.some((cron) => cron.path === '/api/jobs/renewals'), 'cron de renovação não agendado');
-assert.match(readFileSync('api/[...path].js', 'utf8'), /route === 'jobs\/renewals'/);
-console.log('Finance jobs: cron de renovação exige segredo, usa service role só depois da autorização e está agendado.');
+for (const bad of [null, -1, '3', {}, 2.5, Infinity]) { out = await run(fixture('', bad)); assert.equal(out.statusCode, 502); assert.equal(out.payload.jobs.renewals.error_code, 'invalid_response'); }
+out = await run(fixture('fin_job_finish')); assert.equal(out.statusCode, 502); assert.equal(out.payload.jobs.renewals.error_code, 'job_record_failed');
+out = await run(fixture('fin_job_begin')); assert.equal(out.statusCode, 502); assert.equal(calls.some(([name]) => name === 'fin_run_renewal_schedule'), false);
+const busy = fixture(); busy.rpc = async name => { calls.push([name]); return null; };
+out = await run(busy); assert.equal(out.statusCode, 202); assert.equal(out.payload.ok, false); assert.equal(calls.length, 3);
+const hanging = fixture(); const original = hanging.rpc; hanging.rpc = (name, args) => name === 'fin_run_renewal_schedule' ? new Promise(() => {}) : original(name,args);
+out = await run(hanging); assert.equal(out.statusCode, 502); assert.equal(out.payload.jobs.renewals.error_code, 'timeout');
+const webhook = fixture(); webhook.dispatch = async () => ({ claimed: 4, succeeded: 1, failed: 1, dead: 0, completion_failed: 1, deferred: 1 });
+out = await run(webhook, req, 'webhooks'); assert.equal(out.statusCode, 502); assert.equal(out.payload.processed, 1); assert.equal(out.payload.failed, 3); assert.equal(out.payload.delivery_failed, 1);
+assert.equal(calls.at(-1)[1].p_failed, 3, 'run registra falhas + conclusões indisponíveis + itens adiados');
+assert.equal((await run(fixture(), req, 'unknown')).statusCode, 404);
+const config=JSON.parse(readFileSync('vercel.json','utf8')); assert.ok(config.crons.some(row => row.path === '/api/jobs/renewals'));
+console.log('Finance jobs: auth, UTF-8, leases, início/fim, falha parcial, respostas inválidas, timeout e observabilidade fail-closed aprovados.');

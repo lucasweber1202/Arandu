@@ -1034,9 +1034,11 @@ export function createDemoEngine({ storage, now = () => new Date(), latency = 0 
       if (sub !== 'overview') fail(404, 'Recurso não encontrado.', 'not_found');
       const hour = (h) => new Date(now().getTime() - h * 3600000).toISOString();
       return { ok: true, demo: true, health: { database_configured: false, server_key_configured: false, cron_secret_configured: false, email_provider_configured: false, deployment: 'demo', commit: null },
-        overview: { schema_version: 'financial-pilot-grade-1', generated_at: nowIso(), email_enabled: false,
+        overview: { schema_version: 'financial-operational-resilience-1', generated_at: nowIso(), email_enabled: false,
           jobs: [{ job: 'renewals', status: 'succeeded', processed: 1, request_id: 'demo-req-0931', error_code: null, started_at: hour(7.01), finished_at: hour(7) },
             { job: 'renewals', status: 'failed', processed: 0, request_id: 'demo-req-0930', error_code: 'upstream_unavailable', started_at: hour(31.01), finished_at: hour(31) }],
+          webhooks: { by_status: { pending: 2, failed: 1, dead: 1 }, oldest_pending_minutes: 8, recent_failures: [] },
+          expired_job_leases: 0, sso: { failures_24h: 0 },
           last_renewal_success: hour(7), renewal_milestones_24h: state.data.renewal_milestones.length ? 1 : 0,
           outbox: { by_status: { delivered: 14, pending: 1, dead: 1 }, oldest_pending_minutes: 3, recent_failures: [{ id: 'demo-outbox-7', status: 'dead', attempts: 5, error_code: 'provider_rejected', created_at: hour(20) }] },
           documents: { pending_over_1h: 0, failed_24h: 0, available_total: state.data.document_versions.filter((row) => row.status === 'available').length },

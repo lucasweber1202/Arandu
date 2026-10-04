@@ -120,6 +120,9 @@ try {
     }
   });
   assert.equal(delivered.delivered, true);
+  const malformed = await sendTransactionalEmail({ template: 'order_created', to: 'fixture@example.invalid', fetchImpl: async () => Response.json({}) });
+  assert.equal(malformed.delivered, false);
+  assert.equal(malformed.reason, 'invalid_response');
   assert.equal(delivered.providerReference, 'email-provider-ref-1');
   assert.match(delivered.event.recipientRef, /^v1:[0-9a-f]{24}$/);
   assert.equal(JSON.stringify(delivered).includes('buyer@example.com'), false);

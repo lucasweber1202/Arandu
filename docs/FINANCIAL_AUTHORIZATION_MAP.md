@@ -72,3 +72,14 @@ falham se isso mudar.
 O papel (`admin`, `finance_manager`, `analyst`, `viewer`) continua decidindo **o
 que** a pessoa faz; o escopo decide **onde**. As duas checagens são
 cumulativas e ficam no banco.
+
+
+## Operational Resilience (P0.10)
+
+`fin_job_begin`/`fin_job_finish`, `fin_job_leases` e mutação de `fin_job_runs`
+são exclusivos de service role, sem grants de cliente e com FORCE RLS nas
+tabelas. RPCs recusam `auth.uid()` não nulo; lease/token atual e prazo são
+validados na conclusão. Cron exige segredo de pelo menos 32 bytes e comparação
+em tempo constante, antes de qualquer acesso administrativo. Console mantém
+finance_ops + AAL2 + operador registrado; overview exclui fencing tokens, URLs,
+segredos e payloads. SSO indisponível continua fechado; nenhum fallback novo.
