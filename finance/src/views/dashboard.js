@@ -233,8 +233,11 @@ export async function dashboard(ctx) {
   // Consolidado por entidade: só aparece quando o grupo tem entidades.
   const entities = await loadEntities(ctx);
   const entityCard = entities.rows.length ? entitySummaryCard(ctx) : null;
+  // Inteligência de valor só no produto real (a demo não simula esses SoR);
+  // carregada sob demanda para não pesar no bundle do Painel.
+  const valueCard = ctx.mode === 'demo' ? null : await import('./executive.js').then((m) => m.executiveSection(ctx, entities)).catch(() => null);
   root.append(attention, summary, el('div', { class: 'dash-grid' }, [
-    el('div', { class: 'dash-main' }, [entityCard, pipelineCard, activityCard].filter(Boolean)),
+    el('div', { class: 'dash-main' }, [entityCard, valueCard, pipelineCard, activityCard].filter(Boolean)),
     el('div', { class: 'dash-side' }, [contractsCard, tasksCard])
   ]));
   if (!rfqs.length) root.prepend(firstUse(ctx));

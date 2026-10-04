@@ -1,6 +1,6 @@
 # Opportunity Engine v1 (P1.3)
 
-Status: implementado em branch `feature/opportunity-engine`; CI e rollout hospedado conforme `IMPLEMENTATION_MATRIX.md`. O motor transforma fatos estruturados do Arandu em trabalho financeiro explicável. Uma oportunidade é **fato + regra versionada da empresa + fonte + data + ação possível + pessoa revisora**. Não é recomendação, ranking nem decisão: o Arandu nunca seleciona provedor, aprova crédito, aceita proposta, movimenta recursos, paga, contrata hedge, investe ou assina.
+Status: code complete e CI validated (#121, `pilot@5c4b88a`); rollout hospedado conforme `IMPLEMENTATION_MATRIX.md`. O motor transforma fatos estruturados do Arandu em trabalho financeiro explicável. Uma oportunidade é **fato + regra versionada da empresa + fonte + data + ação possível + pessoa revisora**. Não é recomendação, ranking nem decisão: o Arandu nunca seleciona provedor, aprova crédito, aceita proposta, movimenta recursos, paga, contrata hedge, investe ou assina.
 
 ## Modelo
 

@@ -122,3 +122,9 @@ Provedor, outro tenant, membro revogado e escopo de outra entidade não leem nem
 | Criar versão de regra | `admin` da compradora, sem offboarding | `fin_set_opportunity_rule` |
 | Transicionar estado, criar rascunho de RFQ | `admin`/`finance_manager` no escopo; em revisão, só o revisor ou `admin` conclui; revisor precisa ter o papel e o escopo | `fin_transition_opportunity`, `fin_opportunity_start_rfq` |
 | Avaliar (motor) | service role (job com lease) ou gatilho de diferença de tarifa | `fin_run_opportunity_engine`, `fin_evaluate_opportunities` (sem `EXECUTE` para usuários) |
+
+## Value Intelligence executivo (Painel)
+
+| Ação | Quem | Onde a regra vive |
+| --- | --- | --- |
+| Ler resumo executivo (`GET /api/finance/executive`) | `admin`, `finance_manager`, `analyst`, `viewer` da compradora, no escopo de entidade de cada SoR | `fin_value_totals`, `fin_fee_summary`, `fin_opportunity_summary` (security invoker sob RLS de quem chama); sem escrita |
