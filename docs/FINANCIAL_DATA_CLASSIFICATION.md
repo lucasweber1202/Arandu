@@ -28,6 +28,8 @@ decisão de cotação não deve existir no schema.
 | Entidades do grupo (razão social, CNPJ, país, moeda) | `fin_legal_entities` | separar processos, contratos e acesso por entidade | baixa (dado cadastral público) | membros que alcançam a entidade | enquanto o grupo existir; arquivar preserva histórico |
 | Escopo de acesso por entidade | `fin_members.entity_scope`, `fin_member_entity_grants` | autorização | média | admin do grupo; cada membro vê o próprio | enquanto o vínculo existir (cai com o membro) |
 
+| Leases e execuções de jobs | `fin_job_leases`, `fin_job_runs` | fencing, correlação e diagnóstico de plataforma | **alta** (token de fencing exclusivo do servidor; console recebe apenas estados/contagens) | service role; console finance_ops com MFA recebe somente contagens/estados | histórico preservado; prazos de retenção pendentes de governance |
+
 ## O que deliberadamente NÃO é coletado
 
 O schema **não tem campo** para nada abaixo, e não deve ganhar sem revisão:

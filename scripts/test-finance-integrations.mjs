@@ -100,3 +100,10 @@ assert.equal(claim.apikey, 'service-role-test');
 assert.equal(claim.body.p_org, ORG);
 assert.ok(sent.filter((entry) => entry.apikey === 'service-role-test').every((entry) => /rpc\/fin_webhook_(claim|complete)/.test(entry.url)), 'service role fora do worker');
 console.log('Integrações: admin exigido, token/segredo uma vez, banco só com hash/cifrado e service role restrito ao worker da própria organização.');
+
+responder=entry=>entry.url.includes('rpc/fin_webhook_claim')?[{delivery_id:'fixture',lease_token:'lease',url:'http://invalid.example/hook'}]:entry.url.includes('rpc/fin_webhook_complete')?'failed':[];
+const partial=await call('POST','webhooks/dispatch',{organization_id:ORG});
+assert.equal(partial.statusCode,502);assert.equal(partial.payload.ok,false);assert.equal(partial.payload.failed,1);
+responder=entry=>{if(entry.url.includes('rpc/fin_webhook_claim'))return[{delivery_id:'fixture',lease_token:'lease',url:'http://invalid.example/hook'}];if(entry.url.includes('rpc/fin_webhook_complete'))throw new Error('password=secret');return[];};
+const completion=await call('POST','webhooks/dispatch',{organization_id:ORG});
+assert.equal(completion.statusCode,502);assert.equal(completion.payload.completion_failed,1);assert.doesNotMatch(JSON.stringify(completion.payload),/password=|secret/);

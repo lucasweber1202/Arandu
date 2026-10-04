@@ -239,3 +239,17 @@ webhooks derruba todo o acesso sem apagar histórico.
 ## Histórico
 
 * `v1` — 2026-10: primeira versão (este documento).
+
+
+### Resiliência do worker (P0.10)
+
+DNS tem limite de 2 s; conexão TLS usa o endereço público validado, preserva
+hostname/SNI e não segue redirects. Request tem limite de 10 s e o cron
+orçamento de 45 s. Completion com lease vencido é recusada; erro ao persistir
+conclusão aparece em `completion_failed`, e itens sem orçamento em `deferred`.
+Entrega segue at-least-once e receptor deve deduplicar delivery ID. 4xx
+semântico vira dead letter sem retry automático (408/429 permanecem elegíveis);
+backoff persistido recebe jitter de até 20%. Replay é ação explícita do admin.
+Cron tem lease global e registra início/fim, processed/failed e correlação,
+retornando falha em lote parcial ou telemetria indisponível. Ver
+`FINANCIAL_OPERATIONAL_RESILIENCE.md`; não há claim de disponibilidade real.

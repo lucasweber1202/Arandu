@@ -30,10 +30,11 @@ begin
   v_order := array_position(array['financial-surface-hardening-1','financial-approval-handoff-1','financial-passport-1',
                                    'financial-multi-entity-1','financial-contracts-v2-1',
                                    'financial-relationships-portfolio-1','financial-passport-entities-1','financial-graph-1','financial-policy-engine-1','financial-public-api-1',
-                                   'financial-sso-1'], v_schema);
+                                   'financial-sso-1','financial-operational-resilience-1'], v_schema);
   if v_order is null then
     raise exception 'CANÁRIO: schema não suportado';
   end if;
+  if (to_regclass('public.fin_job_leases') is not null) <> (v_order >= 12) then raise exception 'CANÁRIO: schema e job leases divergentes'; end if;
   v_passport := v_order >= 3;
   v_multi := v_order >= 4;
   v_contracts := v_order >= 5;

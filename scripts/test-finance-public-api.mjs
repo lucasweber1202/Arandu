@@ -216,10 +216,10 @@ let out = jobRes();
 await handleFinanceJobs({ method: 'GET', headers: {} }, out, 'webhooks', { env: { CRON_SECRET: cronSecret }, rpc: async (name, args) => { jobCalls.push([name, args]); return []; }, databaseReady: () => true });
 assert.equal(out.statusCode, 401); assert.equal(jobCalls.length, 0);
 out = jobRes();
-await handleFinanceJobs({ method: 'GET', headers: { authorization: `Bearer ${cronSecret}` } }, out, 'webhooks', { env: { CRON_SECRET: cronSecret, ...KEY_ENV }, rpc: async (name, args) => { jobCalls.push([name, args]); return name === 'fin_api_purge_idempotency' ? 3 : []; }, databaseReady: () => true, now: () => new Date(now) });
+await handleFinanceJobs({ method: 'GET', headers: { authorization: `Bearer ${cronSecret}` } }, out, 'webhooks', { env: { CRON_SECRET: cronSecret, ...KEY_ENV }, rpc: async (name, args) => { jobCalls.push([name, args]); return name === 'fin_api_purge_idempotency' ? 3 : name === 'fin_job_begin' ? { run_id: 'run', lease_token: 'lease' } : name === 'fin_job_finish' ? true : []; }, databaseReady: () => true, now: () => new Date(now) });
 assert.equal(out.statusCode, 200);
 assert.equal(out.payload.idempotency_purged, 3);
-assert.ok(jobCalls.some(([name, args]) => name === 'fin_record_job_run' && args.p_job === 'webhooks' && args.p_status === 'succeeded'));
+assert.ok(jobCalls.some(([name, args]) => name === 'fin_job_finish' && args.p_status === 'succeeded'));
 console.log('Public API v1 & Webhooks: token por hash, envelopes estáveis, limites, keyset, idempotência, assinatura com anti-replay, cifragem com rotação, SSRF e worker aprovados.');
 
 // Contrato publicado: cada rota tratada pela borda está no OpenAPI e vice-versa.

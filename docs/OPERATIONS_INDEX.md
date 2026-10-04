@@ -23,11 +23,12 @@ documento divergir, vale este índice, nesta ordem.
 - `docs/FINANCIAL_DEMO_MODE.md` — sandbox público temporário sem backend, preservado até a demo canônica ser comprovada.
 - `docs/FINANCIAL_SECURITY_MODEL.md`, `docs/FINANCIAL_THREAT_MODEL.md`, `docs/FINANCIAL_AUTHORIZATION_MAP.md` — segurança.
 - `docs/FINANCIAL_REPO_GOVERNANCE.md` — proteção de branches e checks obrigatórios.
-- `docs/supabase-migrations.json` — ordem canônica das migrations; consulte o manifesto atual. A última migration desta baseline grava `schema_version = financial-sso-1` (`docs/supabase-financial-sso.sql`).
+- `docs/supabase-migrations.json` — ordem canônica das migrations; consulte o manifesto atual. A última migration desta baseline grava `schema_version = financial-operational-resilience-1` (`docs/supabase-financial-operational-resilience.sql`).
 - `docs/FINANCIAL_GRAPH.md` — Financial Graph relacional (camada de consulta autorizada, sem novo datastore).
 - `docs/FINANCIAL_POLICY_ENGINE.md` — Policy & Approval Engine v2: policies versionadas por grupo/entidade, precedência, snapshot, SoD, exceções, delegação e prazos.
 - `docs/FINANCIAL_PUBLIC_API.md` + `docs/openapi/arandu-public-api-v1.json` — Public API v1 e webhooks: autenticação de máquina, escopos, versionamento/deprecação, idempotência, assinatura e operação.
 - `docs/FINANCIAL_SSO.md` — Enterprise SSO foundation: domínio verificado, broker Supabase (SAML), autorização fail-closed, exigência de SSO, sessão e revogação, prontidão, runbook e blockers.
+- `docs/FINANCIAL_OPERATIONAL_RESILIENCE.md` + `docs/FINANCIAL_INCIDENT_POSTMORTEM.md` — severidade, incidentes, dependências, jobs/leases, DR e targets RPO/RTO não medidos.
 - `docs/IMPLEMENTATION_MATRIX.md` — matriz viva guideline → capacidade, com status, evidência, lacunas e blockers; ponto de partida de qualquer rodada de implementação.
 - Comandos: `finance:env:check`, `finance:pilot:doctor`, `pilot:canary`, `pilot:restore:drill`, `test:database`.
 

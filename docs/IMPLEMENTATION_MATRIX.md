@@ -41,8 +41,8 @@ de capacidade completa. "Verde no CI" só vale quando o run existe; aqui, salvo 
 | P0.1-03 | §38.4, Add. E.6 | Migrations aplicadas no Pilot hospedado | P0 | P0.1-02 | blocked | Pilot em `financial-surface-hardening-1` (02/10); bundle `npm run migrations:bundle -- --after-schema` | sem credencial administrativa do Supabase nesta sessão; restore drill hospedado é pré-condição | piloto atrás do código | Owner aplica bundle após backup+drill | — |
 | P0.1-04 | §38.1–38.2, Add. G.3 | Branch protection/rulesets em `main` e `pilot` | P0 | — | blocked | `docs/FINANCIAL_REPO_GOVERNANCE.md` (403 da integração); `scripts/check-governance.mjs` | permissão administrativa ausente | merge com CI vermelho | Owner configura Settings → Branches/Rulesets; ver `FINANCIAL_REPO_GOVERNANCE.md` | — |
 | P0.1-05 | Add. E.1 | Restore drill local e procedimento hospedado | P0 | — | partial | `scripts/pilot-restore-drill.sh`, `scripts/pilot-backup-preflight.mjs`, `ops/sql/post-restore-probes.sql`, `docs/FINANCIAL_PILOT_PASSPORT_ROLLOUT.md` | drill hospedado nunca executado (sem DB URL) | backup ≠ restore | Owner roda `pilot:restore:drill` com `PILOT_SOURCE_DATABASE_URL` | — |
-| P0.1-06 | §38, Add. E.6 | Doctor, canary e env check | P0 | — | implemented | `scripts/finance-pilot-doctor.mjs`, `lib/finance/pilot-doctor.mjs` (espera `financial-multi-entity-1`), `scripts/pilot-canary.sh`, `ops/sql/pilot-isolation-canary.sql` (inclui isolamento por entidade), `scripts/test-pilot-doctor.mjs` | marcador esperado precisa acompanhar cada migration | GO falso | manter a cada migration | PR multi-entity |
-| P0.1-07 | Add. E.4 | Incident severity model, runbook, postmortem template | P0 | — | partial | `docs/FINANCIAL_PILOT_PLAYBOOK.md`, `docs/FINANCIAL_PILOT_SUPPORT.md`, `docs/INCIDENT_BACKUP_OBSERVABILITY_RUNBOOK.md` (legado arte) | sem modelo de severidade financeiro canônico, sem template de postmortem, sem matriz de dependências | resposta improvisada | ver P0.10 | — |
+| P0.1-06 | §38, Add. E.6 | Doctor, canary e env check | P0 | — | implemented | `scripts/finance-pilot-doctor.mjs`, `lib/finance/pilot-doctor.mjs` (espera `financial-operational-resilience-1`), `scripts/pilot-canary.sh`, `ops/sql/pilot-isolation-canary.sql` (inclui isolamento por entidade), `scripts/test-pilot-doctor.mjs` | marcador esperado precisa acompanhar cada migration | GO falso | manter a cada migration | PR multi-entity |
+| P0.1-07 | Add. E.4 | Incident severity model, runbook, postmortem template | P0 | — | partial | `docs/FINANCIAL_OPERATIONAL_RESILIENCE.md`, `docs/FINANCIAL_INCIDENT_POSTMORTEM.md` | nomeação de responsáveis e exercício de resposta/DR hospedado | procedimento não exercitado | owner + P0.10 | — |
 
 ### P0.2 — Multi-Entity Foundation
 
@@ -137,8 +137,8 @@ Migration `docs/supabase-financial-relationships-portfolio.sql` (`financial-rela
 | ID | Guideline | Capability | Pri | Dependency | Status | Evidence | Gaps | Risk | Next action | PR/commit |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | P0.10-01 | Add. E.1 | Backup preflight, restore drill, probes pós-restore | P0 | — | partial | ver P0.1-05 | hospedado | — | owner | — |
-| P0.10-02 | Add. E.4 | Severidade, incident runbook, postmortem, dependency failure modes, RPO/RTO honestos | P0 | — | partial | ver P0.1-07 | — | claim sem prova | runbook canônico | — |
-| P0.10-03 | Add. E.5 | Health, request IDs, job runs, outbox retry/backoff | P0 | — | implemented | `/api/health`, `X-Request-ID`, `fin_job_runs` (inclui `approval_deadlines`, `webhooks`), `lib/email-outbox.mjs`, estado por entrega de webhook, `X-Correlation-Id` na API v1, `scripts/test-observability.mjs` | painel agregado de integração no console operacional | — | P0.10 | — |
+| P0.10-02 | Add. E.4 | Severidade, incident runbook, postmortem, dependency failure modes, RPO/RTO honestos | P0 | — | partial | `FINANCIAL_OPERATIONAL_RESILIENCE.md`, `FINANCIAL_INCIDENT_POSTMORTEM.md` | nomeação de responsáveis e ensaio DR hospedado | não há SLA/RPO/RTO garantidos | owner + drill | CI pendente |
+| P0.10-03 | Add. E.5 | Health, request IDs, job runs, outbox retry/backoff | P0 | — | implemented | `/api/health`, `X-Request-ID`, `fin_job_runs` (inclui `approval_deadlines`, `webhooks`), `lib/email-outbox.mjs`, estado por entrega de webhook, `X-Correlation-Id` na API v1, `scripts/test-observability.mjs` | console ampliado; CI da rodada pendente | nenhuma disponibilidade inferida de configuração | P0.10 | CI pendente |
 
 ### P0.11 — Data Governance Baseline
 
@@ -273,3 +273,12 @@ renovação respondendo sucesso apesar de falhas nos jobs dependentes e resoluç
 DNS de webhook sem timeout próprio. São lacunas encontradas, ainda não corrigidas
 nesta PR de estabilização. Próximo: concluir os gates desta correção, merge
 verde e nova branch da `pilot` para P0.10.
+
+
+### P0.10 — rodada de resiliência, 2026-10-04
+
+A PR #111 foi mergeada em `3be02b4c60631dfb592184e1d42bed1063239586` após os quatro gates verdes ([CI](https://github.com/lucasweber1202/Arandu/actions/runs/37167183736)): validate 319 passed/21 skips preexistentes; presentation 301 passed/44 skips preexistentes, sem flaky e performance desktop aprovada na primeira tentativa nos três motores. Branch de resiliência nasce diretamente desse merge.
+
+Entrega da rodada: schema `financial-operational-resilience-1`; jobs running/início/fim/failed e leases com fencing; conclusão idempotente, expiração e retomada; lotes limitados e sem starvation de ocorrências já processadas; falha parcial/telemetria não vira sucesso HTTP; resposta externa inválida não vira zero; DNS com prazo, IP de webhook fixado no TLS, completion_failed/deferred visíveis, lease vencido rejeitado, 4xx semântico terminal e backoff com jitter; preflight reconhece os marcadores recentes sem liberar origem/escopo desconhecido; console existente ampliado mantendo finance_ops + MFA e auditoria; runbook canônico, severidades, dependências, DR e postmortem.
+
+P0.10 permanece **partial**: nomes e escala de responsáveis, restore/DR hospedados, RPO/RTO medidos, IdP real e jornada hospedada dependem do owner/executor. Nenhum banco hospedado alterado, nenhum gate externo marcado pronto, nenhum SLA ou recovery garantido. Testes locais de contratos, banco/upgrade/rollback e quatro gates remotos são necessários; Local: check:all sem credenciais/rede real, build limpo, assets e budgets aprovados (406236 bytes JS/800000); testes de timeout, DNS, respostas malformadas, lote parcial, UTF-8 e códigos seguros aprovados. Banco/concorrência/upgrade/rollback e CI desta rodada ainda pendentes. P0.11 e P1 não avançaram antes do merge verde de P0.10.
