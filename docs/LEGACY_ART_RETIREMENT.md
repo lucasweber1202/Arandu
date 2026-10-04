@@ -71,9 +71,60 @@ usado pelo financeiro: mantido), `UNKNOWN_REQUIRES_INVESTIGATION`.
 | Item | Categoria | Destino |
 | --- | --- | --- |
 | Migrations `supabase-schema`, `production`, `sprint1…sprint6-12`, `arandu-mvp-*`, `commercial`, `transactions-rbac-audit`, `orders*`, `retention-controls`, `operational-*`, `profile-access`, `beta-conversion-events` | `LEGACY_HISTORICAL_MIGRATION` | preservadas e imutáveis; continuam no clean install |
-| Tabelas de arte (`artists`, `artworks`, `certificates`, `curated_collections`, `collection_artworks`, `reservations`, `proposals`, `proposal_items`, `orders`, `order_status_history`, `commercial_*`, `consignments`, `logistics_records`, `leads`, `company_briefs`, `artist_*`, `saved_selections`, `crm_notes`, `tasks`, `media_assets`, `newsletter_subscriptions`, `catalog_*`, `pilot_*`, `artwork_events`, `operational_status_history`, `privacy_requests`, `conversion_events`, `idempotency_keys`, `audit_logs`, `data_retention_policies`, `data_legal_holds`, `profiles`), 18 views `v_*`, funções/gatilhos de arte (inclui `handle_new_user_profile` em `auth.users`) | `LEGACY_DATABASE_OBJECT` / `LEGACY_DATA` | aposentadoria por migration nova e testada (clean install, upgrade com dados fictícios, reaplicação, forward-fix); aplicação hospedada bloqueada por backup/restore/export (ver abaixo) |
-| `api_rate_limits` + `consume_rate_limit`, `transactional_email_outbox` + funções de claim/complete/fail, `set_updated_at` | `SHARED_INFRASTRUCTURE` | mantidos |
+| Tabelas de arte (`artists`, `artworks`, `certificates`, `curated_collections`, `collection_artworks`, `reservations`, `proposals`, `proposal_items`, `orders`, `order_status_history`, `commercial_*`, `consignments`, `logistics_records`, `leads`, `company_briefs`, `artist_*`, `saved_selections`, `crm_notes`, `tasks`, `media_assets`, `newsletter_subscriptions`, `catalog_*`, `pilot_*`, `artwork_events`, `operational_status_history`, `privacy_requests`, `conversion_events`, `idempotency_keys`, `audit_logs`, `data_retention_policies`, `data_legal_holds`, `profiles`), 18 views `v_*`, 29 funções/gatilhos de arte (inclui `handle_new_user_profile` em `auth.users` e `set_updated_at`) | `LEGACY_DATABASE_OBJECT` / `LEGACY_DATA` | removidos por `docs/supabase-financial-legacy-art-decommission.sql` (marker `financial-legacy-art-decommission-1`), sem cascade; testado em clean install de uma passada, upgrade com dados fictícios, reaplicação e canário. **Aplicação hospedada bloqueada** (ver procedimento) |
+| `fin_member_default_name` (financeiro) lia `profiles.full_name` | `SHARED_INFRASTRUCTURE` | passou a ler `auth.users.raw_user_meta_data.full_name` na mesma migration; comportamento preservado |
+| `api_rate_limits` + `consume_rate_limit`, `transactional_email_outbox` + funções de claim/complete/fail | `SHARED_INFRASTRUCTURE` | mantidos |
 | Bucket de mídia de arte no Storage hospedado (nome configurável, não versionado; o bucket `fin-documents` é financeiro) | `UNKNOWN_REQUIRES_INVESTIGATION` | inventariar no projeto hospedado: contagem, políticas, referências; export se exigido; remoção em lotes só com backup e decisão do owner |
+
+## Aposentadoria do banco: o que a migration faz
+
+1. Recusa rodar fora de um schema com Data Governance (`financial-data-governance-1`).
+2. Conta as linhas de todas as tabelas de arte (exceto as semeadas pelas
+   próprias migrations históricas: a linha `catalog_releases/production` e as 4
+   coleções editoriais de exemplo). Havendo qualquer linha, **recusa** se a
+   sessão não trouxer `arandu.legacy_art_decommission_ack =
+   'export-verified:<referência>'`. Valores como `sim`/`ok` são recusados.
+3. Grava em `fin_settings.legacy_art_decommission` só contagens por tabela, a
+   data e a referência do reconhecimento — nunca o dado.
+4. Troca a leitura de `profiles` do produto financeiro pelos metadados da conta.
+5. Remove gatilho em `auth.users`, views, tabelas e funções de arte, sem cascade.
+
+`public.profiles` também guardava nome/telefone de contas do produto financeiro
+(o gatilho de cadastro criava uma linha para toda conta). A remoção é
+minimização (o dado continua nos metadados da conta no Supabase Auth), mas é
+dado pessoal: por isso entra na contagem e exige o reconhecimento.
+
+### Procedimento hospedado (piloto; produção só depois)
+
+```
+BLOCKER: aplicação hospedada da aposentadoria do banco de arte
+WHY: é destrutiva; exige ambiente confirmado, backup e restore verificados, export dos dados de arte que o owner decidir preservar e decisão do owner sobre dados pessoais em public.profiles
+WHO MUST ACT: owner do repositório / responsável pelo projeto Supabase do piloto
+EXACT ACTION:
+  1. confirmar o projeto (ARANDU_ENV=pilot npm run finance:pilot:doctor) e o marker atual (deve ser financial-data-governance-1; antes disso, aplicar as migrations pendentes pelo bundle);
+  2. npm run pilot:backup:preflight e backup lógico; npm run pilot:restore:drill num destino descartável, conferindo as contagens;
+  3. exportar (fora do repositório, em local controlado) as tabelas de arte com linhas, se a decisão for preservar; registrar a referência;
+  4. dry-run: rodar a migration num restore descartável com o reconhecimento e conferir tests/database/legacy-art-decommission.sql;
+  5. aplicar com: PGOPTIONS="-c arandu.legacy_art_decommission_ack=export-verified:<referência>" psql "$PILOT_DATABASE_URL" -v ON_ERROR_STOP=1 -f docs/supabase-financial-legacy-art-decommission.sql;
+  6. doctor, canário (npm run pilot:canary), ops/sql/post-migration-probes.sql e jornada autenticada (login, cadastro de membro, RFQ).
+WHAT IS READY: migration, teste de estado final, recusa sem reconhecimento, bundle por marker (npm run migrations:bundle -- --after-schema=financial-data-governance-1), probes e canário atualizados
+HOW TO VERIFY: fin_settings.schema_version = financial-legacy-art-decommission-1; fin_settings.legacy_art_decommission com contagens e referência; canário e doctor GO
+```
+
+```
+BLOCKER: inventário e remoção do bucket de mídia de arte no Storage hospedado
+WHY: o bucket foi criado fora das migrations versionadas (nome configurável, padrão histórico arandu-media); o repositório não sabe se ele existe, quantos objetos tem nem se há referência externa
+WHO MUST ACT: owner / responsável pelo projeto Supabase de cada ambiente
+EXACT ACTION: no painel ou via API de Storage com service role: listar buckets; para o bucket de arte, contar objetos, conferir políticas e se é público; exportar se decidido; apagar objetos em lotes; conferir zero objetos; remover políticas; remover o bucket. Nunca tocar fin-documents
+WHAT IS READY: nenhum código do produto financeiro referencia o bucket de arte (api/upload.js foi removida); fin-documents segue privado e testado
+HOW TO VERIFY: lista de buckets do projeto sem o bucket de arte; doctor GO; upload/download de documento financeiro funcionando
+```
+
+Rollback: não existe rollback de schema que restaure dados
+(`docs/rollback/supabase-financial-legacy-art-decommission.rollback.sql` só
+recusa). Código: reverter o merge basta (o runtime financeiro não depende dos
+objetos removidos). Dados: restore do backup verificado em banco descartável e
+cópia seletiva por forward-fix, com decisão do owner.
 
 ## 404, 410 e redirecionamentos
 
