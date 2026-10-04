@@ -164,7 +164,7 @@ Inventário, categorias e procedimento em `docs/LEGACY_ART_RETIREMENT.md` (ponte
 
 | ID | Guideline | Capability | Pri | Dependency | Status | Evidence | Gaps | Risk | Next action | PR/commit |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| P1.1 | §19 | Savings & Value Realization Ledger | P1 | P0.4, P0.2 | partial | Branch `feature/savings-value-realization` de `pilot@0445e750`: tabelas próprias, baseline documentado, metodologias v1 próprias por tipo e imutáveis, observação e verificação humana, RLS/FORCE/entity scope, API JWT, tela `/finance/value.html`, totais separados por tipo/moeda, Graph derivado, registry/export/hold, migration/rollback e testes negativos | validação SQL/browser/CI ainda pendente; destino apenas contrato versionado e unidade period_total; baseline documental declarado, sem ingestão automática | savings sem evidência; mitigação fail-closed para incomparáveis | concluir gates e merge antes de P1.2 | `docs/FINANCIAL_VALUE_REALIZATION.md` |
+| P1.1 | §19 | Savings & Value Realization Ledger | P1 | P0.4, P0.2 | partial | Mergeado na #118 (`pilot@d0d5deb`): tabelas próprias, baseline documentado, metodologias v1 imutáveis por tipo, observação e verificação humana, RLS/FORCE/entity scope, API JWT, `/finance/value.html`, totais por tipo/moeda, Graph derivado, registry/export/hold, migration/rollback, testes negativos. **CI do HEAD final `f4b78a2` falhou** (validate: teste de sprite no mobile; presentation: tema escuro da demo) — corrigido em `fix/value-realization-post-merge` | code complete; CI validated só após a PR de correção ter os quatro gates verdes; hosted rollout pendente | merge com gate pendente (ocorreu); mitigado por `npm run merge:gates` + template; branch protection = BLOCKER | merge verde da correção, depois P1.2 | #118 + PR de correção |
 | P1.2 | §17 | Bank Fee Intelligence | P1 | P0.4, P0.5 | missing | — | — | falso positivo | — | — |
 | P1.3 | §18 | Opportunity Engine determinístico | P1 | P0.4–P0.6 | missing | — | — | virar recomendação | — | — |
 | P1.4 | §23 | Proposal & Document Intelligence | P1 | docs privados | missing | upload privado existe (`fin_private_documents`) | extração exige provedor de IA/OCR | extração errada | foundation com confirmação humana | — |
@@ -409,3 +409,20 @@ WHO MUST ACT: owner do ambiente e operador autorizado.
 EXACT ACTION: confirmar projeto e markers vivos; backup; restore em alvo descartável; comparação pós-restore; gerar bundle exato após marker observado; doctor e canário; jornada autenticada. Para decommission com dados, export verificado e reconhecimento export-verified:<ref> são obrigatórios.
 WHAT IS READY: manifest, bundle determinístico, doctor e canário incluindo financial-value-realization-1; não houve aplicação hospedada.
 HOW TO VERIFY: docs/FINANCIAL_PILOT_GO_LIVE.md e evidência datada dos comandos, checks e jornada no ambiente correto.
+
+
+## P1.1 pós-merge — reconciliação da #118, 2026-10-04
+
+A #118 foi mergeada em `pilot` (`d0d5deb`) com `validate` e `presentation` ainda em execução no HEAD final `f4b78a2`. Resultado final do run `37210594484` nesse SHA: `database` success, `deploy-boundaries` success, **`validate` failure**, **`presentation` failure**. P1.1, portanto, **não** estava CI validated; P1.2 não foi iniciada sobre essa base.
+
+Causas raiz (reproduzidas localmente com Chromium antes de corrigir):
+
+- `presentation` (chromium/firefox/webkit desktop, `demo-workspace-next` "tema escuro sem vazamento"): o `h1` saía com `--text` claro (`#101828`) sobre fundo escuro. A #118 desligou `modulePreload` para caber no orçamento de JS; com isso o Vite passou a emitir o CSS da demo (`boot-*.css`, de `finance/demo/experience.css`) antes de `finance/style.css`. Os aliases de token da demo ficavam em `.dw{}` e os do produto em `:root{}` — mesma especificidade — e a ordem passou a decidir. Correção: os três blocos-base da demo passam a `html.dw{}` (0-1-1), tornando a precedência independente da ordem de carregamento; relação com os seletores de atributo (`.dw[data-theme=dark]`, 0-2-0) inalterada. Restaurar o `modulePreload` padrão também corrigia, mas estourava o orçamento (804.226/800.000); preload só de CSS não corrigia (o problema é ordem, não ausência).
+- `validate` (mobile-chrome, mobile-safari, `finance-value`): o teste do sprite media o primeiro `svg.icon use` do DOM, que no celular está na barra lateral oculta (bbox 0). No mesmo celular, os ícones visíveis (topbar, tabbar, estado vazio) desenham com bbox 16–18. O produto estava correto; o teste passa a medir o primeiro ícone **visível**, com a mesma asserção (bbox > 0).
+- `presentation` também registrou um *flaky* em webkit-desktop (`demo-workspace-v2` aria-expanded após Escape) que passou no retry; não é causa da falha do job e não foi alterado.
+
+Sem aumento de orçamento, threshold, retry ou skip; nenhum navegador ou assertion removido. Orçamento preview inalterado: JS 798.701/800.000 (maior chunk 88.479/100.000); produção 426.641.
+
+Trava de governança nova: `lib/merge-gates.mjs` + `npm run merge:gates -- <PR>` exigem os quatro jobs concluídos com sucesso no SHA exato do HEAD da PR (pending/in_progress/falha/cancelado/skip/ausente/run de outro SHA bloqueiam), testado em `check:governance` (`scripts/test-merge-gates.mjs`, inclui o cenário exato da #118). Template de PR e CONTRIBUTING exigem a verificação. Branch protection: `pilot` e `main` observadas com `protected=false` via API nesta sessão; sem permissão administrativa, permanece BLOCKER em `docs/BRANCH_PROTECTION.md`.
+
+Status P1.1: code complete; CI validated somente quando a PR de correção tiver os quatro gates verdes no seu HEAD exato; hosted validated e production ready pendentes (BLOCKER de rollout acima).

@@ -1,6 +1,6 @@
 # Savings & Value Realization v1
 
-Status: implementação em branch; validação SQL/browser/CI e rollout pendentes. Arandu organiza evidência de procurement; este módulo não é ledger contábil, banco, motor de pagamentos ou recomendação financeira.
+Status: mergeado em `pilot` (#118); o CI do HEAD final falhou depois do merge e foi corrigido em `fix/value-realization-post-merge` (ver `IMPLEMENTATION_MATRIX.md`). Rollout hospedado pendente. Arandu organiza evidência de procurement; este módulo não é ledger contábil, banco, motor de pagamentos ou recomendação financeira.
 
 `/finance/value.html` separa economia negociada, economia realizada e custo evitado. Nenhum total combina tipos ou moedas. Totais são calculados no PostgreSQL sob o JWT e RLS do chamador, com os mesmos filtros de período, categoria, entidade e provedor da lista. Lista keyset por UUID, até 50 linhas, sem offset crescente; o intervalo de consulta é limitado a cinco anos. Linhas incomparáveis permanecem visíveis sem número, e perdas/diferenças negativas permanecem negativas. Ausência de dado não é zero.
 

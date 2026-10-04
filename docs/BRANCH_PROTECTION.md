@@ -1,10 +1,10 @@
-# Proteção recomendada da branch `main`
+# Proteção recomendada das branches `pilot` e `main`
 
 Estas configurações são aplicadas nas configurações do GitHub, não por arquivos do repositório. Elas devem ser habilitadas depois do merge deste pacote.
 
 ## Regra obrigatória
 
-Crie uma ruleset para a branch padrão `main` com:
+Crie uma ruleset para `pilot` (integração das features) e para `main` (promoção `pilot → main`, `hotfix/*` e exceção docs-only) com:
 
 - exigir pull request antes do merge;
 - exigir que a conversa seja resolvida;
@@ -17,11 +17,28 @@ Crie uma ruleset para a branch padrão `main` com:
 
 ## Checks obrigatórios
 
-Use os nomes efetivamente publicados pelo workflow:
+Use os nomes efetivamente publicados pelo workflow `.github/workflows/ci.yml`:
 
-- `validate`;
 - `database`;
+- `deploy-boundaries`;
+- `validate`;
+- `presentation`;
 - `Vercel`, quando o deploy preview for requisito da revisão visual.
+
+Enquanto a ruleset não estiver ativa, a única barreira é processual: `npm run merge:gates -- <PR>` antes de qualquer merge (ver `CONTRIBUTING.md`). Ela não substitui a proteção no GitHub.
+
+## Estado observado (2026-10-04)
+
+`pilot` foi observada com `protected=false`, e a #118 foi mergeada com `validate` e `presentation` ainda em execução no HEAD final; os dois falharam depois. A sessão de agente que registrou isto **não tem permissão administrativa** no repositório (só leitura/escrita de conteúdo e PRs via conector), portanto não configurou nem verificou ruleset. Nenhuma proteção ativa é afirmada aqui.
+
+```
+BLOCKER: proteção de branch para pilot e main
+WHY: sem ruleset, merge com gate pendente/falho é possível (ocorreu na #118)
+WHO MUST ACT: owner do repositório (admin)
+EXACT ACTION: Settings → Rules → Rulesets → nova ruleset para pilot e main: exigir PR, os quatro checks acima (strict/atualizada), bloquear force push e exclusão, sem bypass
+WHAT IS READY: CI com os quatro jobs; npm run merge:gates; template de PR com a regra
+HOW TO VERIFY: Settings → Rules mostra a ruleset ativa; a API de branches retorna protected=true para pilot e main
+```
 
 Não torne Dependabot ou jobs opcionais em checks obrigatórios sem antes confirmar que eles executam em todas as PRs.
 
