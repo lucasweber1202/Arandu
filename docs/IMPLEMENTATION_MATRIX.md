@@ -164,7 +164,7 @@ Inventário, categorias e procedimento em `docs/LEGACY_ART_RETIREMENT.md` (ponte
 
 | ID | Guideline | Capability | Pri | Dependency | Status | Evidence | Gaps | Risk | Next action | PR/commit |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| P1.1 | §19 | Savings & Value Realization Ledger | P1 | P0.4, P0.2 | missing | painel expõe `savings: null` | — | savings inventado | após PR contratos | — |
+| P1.1 | §19 | Savings & Value Realization Ledger | P1 | P0.4, P0.2 | partial | Branch `feature/savings-value-realization` de `pilot@0445e750`: tabelas próprias, baseline documentado, metodologia v1 imutável, observação e verificação humana, RLS/FORCE/entity scope, API JWT, tela `/finance/value.html`, totais separados por tipo/moeda, Graph derivado, registry/export/hold, migration/rollback e testes negativos | validação SQL/browser/CI ainda pendente; destino apenas contrato versionado e unidade period_total; baseline documental declarado, sem ingestão automática | savings sem evidência; mitigação fail-closed para incomparáveis | concluir gates e merge antes de P1.2 | `docs/FINANCIAL_VALUE_REALIZATION.md` |
 | P1.2 | §17 | Bank Fee Intelligence | P1 | P0.4, P0.5 | missing | — | — | falso positivo | — | — |
 | P1.3 | §18 | Opportunity Engine determinístico | P1 | P0.4–P0.6 | missing | — | — | virar recomendação | — | — |
 | P1.4 | §23 | Proposal & Document Intelligence | P1 | docs privados | missing | upload privado existe (`fin_private_documents`) | extração exige provedor de IA/OCR | extração errada | foundation com confirmação humana | — |
@@ -387,3 +387,23 @@ HOW TO VERIFY: Settings → Branches mostra as regras
 ```
 
 Status de entrega: **code complete** e **CI validated** para o que entra por PR; **hosted validated** e **production ready** continuam dependentes dos blockers acima.
+
+## P1.1 — implementação em andamento, 2026-10-04
+
+Base viva: `pilot@0445e750525f7671e04fe1c482fd7e7cc88970b3`, PR #117 mergeada; run `37195610327` com os quatro jobs verdes. `main...pilot`: ahead 63, behind 0. Branch nova `feature/savings-value-realization`, sem PR empilhada. Novas fontes canônicas: `fin_value_records`, `fin_value_methodologies`, `fin_value_observations`. Graph, totais e busca contextual são projeções. Custos incomparáveis não recebem número; realização exige observação posterior ao baseline, período encerrado, cobertura completa, mesma moeda e verificação humana.
+
+Local: domínio/API de valor passou; check:all hermético final passou (inclui domínio/API de valor, paridade registry/export, manifest e preflight); build passou, JS 435602/800000, maior chunk 82339/100000, sem aumento de thresholds. SBOM gerado (21 componentes); assets 30 páginas/232 referências, navegação 30 páginas e financial-surface/legacy-art passaram. SEO dist passou com ARANDU_SITE_URL de fixture igual ao CI (30 páginas, zero erros), sem claim de domínio real. npm ci/audit bloqueados por DNS de registry.npmjs.org. test:database não executou SQL: psql ausente. E2E tentou os cinco projetos, falhou na inicialização por executáveis Playwright ausentes; não constitui evidência de comportamento da UI. Nenhum gate externo foi marcado pronto.
+
+BLOCKER: validação local de banco/browser e dependências novas.
+WHY: este executor não tem psql nem browsers e DNS de registry.npmjs.org não resolve.
+WHO MUST ACT: executor com PostgreSQL e navegadores disponíveis; CI valida o lote em PR draft.
+EXACT ACTION: executar npm ci --include=optional, gates completos e testes SQL clean/upgrade/reapply/rollback, todos os projetos Playwright; corrigir qualquer falha antes do merge.
+WHAT IS READY: implementação, migration aditiva, rollback fail-closed, canário, testes negativos e documentação nesta branch.
+HOW TO VERIFY: quatro jobs obrigatórios no SHA exato da PR, sem falhas, além de revisão do diff e evidência local declarada.
+
+BLOCKER: rollout do Pilot hospedado.
+WHY: não foi disponibilizado acesso autenticado ao banco/ambiente, backup e restore drill verificáveis.
+WHO MUST ACT: owner do ambiente e operador autorizado.
+EXACT ACTION: confirmar projeto e markers vivos; backup; restore em alvo descartável; comparação pós-restore; gerar bundle exato após marker observado; doctor e canário; jornada autenticada. Para decommission com dados, export verificado e reconhecimento export-verified:<ref> são obrigatórios.
+WHAT IS READY: manifest, bundle determinístico, doctor e canário incluindo financial-value-realization-1; não houve aplicação hospedada.
+HOW TO VERIFY: docs/FINANCIAL_PILOT_GO_LIVE.md e evidência datada dos comandos, checks e jornada no ambiente correto.

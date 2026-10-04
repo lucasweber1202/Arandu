@@ -1,0 +1,37 @@
+# Savings & Value Realization v1
+
+Status: implementação em branch; validação SQL/browser/CI e rollout pendentes. Arandu organiza evidência de procurement; este módulo não é ledger contábil, banco, motor de pagamentos ou recomendação financeira.
+
+`/finance/value.html` separa economia negociada, economia realizada e custo evitado. Nenhum total combina tipos ou moedas. Totais são calculados no PostgreSQL sob o JWT e RLS do chamador, com os mesmos filtros de período, entidade e provedor da lista. Lista keyset por UUID, até 50 linhas, sem offset crescente; o intervalo de consulta é limitado a cinco anos. Linhas incomparáveis permanecem visíveis sem número, e perdas/diferenças negativas permanecem negativas. Ausência de dado não é zero.
+
+## Fontes e metodologia
+
+`fin_value_records` é a fonte dos registros; `fin_value_methodologies` preserva a definição e versão; `fin_value_observations` guarda evidência da realização. A metodologia v1 é `baseline_period_total - target_period_total`, arredondada a duas casas. Cada registro congela a metodologia e a versão/termos do contrato de destino. Mudanças posteriores do contrato não reescrevem o valor histórico.
+
+O baseline exige fonte, referência documental, data, moeda, unidade, período, custo total e dimensões econômicas. O cliente declara os custos e a comparabilidade; o Arandu não autentica o conteúdo da referência nem inventa CET. A unidade disponível é `period_total`; destino nesta versão é contrato com termos versionados. Baselines de contrato, proposta, orçamento, importação ou declaração manual são referências documentais declaradas pelo cliente, sem extração automática. Moedas disponíveis estão no catálogo `VALUE_CURRENCIES`; moeda fora do catálogo é recusada, sem conversão.
+
+Só há cálculo se serviço, unidade, volume, indexador, prazo, amortização, tarifas, garantia e carência forem conhecidos e iguais. Critérios não aplicáveis devem ser declarados com evidência; não há default preenchido para tornar uma comparação válida. Spread isolado não é input de cálculo. Condições distintas ou dados incompletos persistem com `value_amount = null`. A comparação de custos totais declarados não projeta fluxo de crédito nem substitui análise econômica humana.
+
+Realização usa um registro negociado ativo e comparável. O cliente informa o custo observado do mesmo período/moeda, fonte (extrato, fatura, importação ou declaração), evidência, justificativa e confirmação humana de cobertura completa. O período deve estar encerrado e começar depois da data do baseline. A realização gera um registro próprio `REALIZED_SAVINGS`; nunca substitui o negociado. Custo evitado nunca gera realização automaticamente. Apenas uma realização por estimativa evita dupla contagem. Correções exigem invalidar e registrar nova estimativa/evidência; não há alteração dos números históricos ou ajuste automático de cobertura parcial.
+
+## Acesso, auditoria e governança
+
+Admin/finance_manager registram, realizam e invalidam; analyst/viewer leem seu escopo. Todos os novos objetos usam RLS e FORCE RLS, sem INSERT/UPDATE/DELETE direto por authenticated, sem SELECT/EXECUTE anônimo. As RPCs de escrita verificam tenant comprador, papel, escopo da entidade e freeze de offboarding. Observações herdam o acesso do registro pai; a leitura do contrato corrente também é exigida, evitando acesso a um contrato reatribuído a uma entidade inacessível. Nenhuma credencial de API ganha acesso a esta capability e nenhuma rota `/api/v1` foi adicionada.
+
+Invalidar exige motivo e preserva os fatos; invalidação de uma estimativa também invalida sua realização ativa. Eventos `value_recorded`, `value_realized`, `value_invalidated` apontam ao contrato e IDs/tipo/versão, sem copiar valores ou evidência para os logs. O Graph deriva relações para contrato, provedor, entidade e RFQ de origem com joins sob RLS, sem tabela de edges ou fonte duplicada.
+
+As três tabelas estão classificadas no registry, exportadas integralmente sob o export administrativo existente e incluídas na prévia de exclusão de tenant. Retenção é FINANCIAL_RECORD/AUDIT_EVIDENCE: não há purge cotidiano, nem prazo fiscal inventado. Holds e offboarding seguem `FINANCIAL_DATA_GOVERNANCE.md`. Invalidar não apaga dados nem backups. Backups permanecem sob a retenção do ambiente; nenhum claim de eliminação total, residência, LGPD ou restore hospedado é feito. Reset demo remove as novas tabelas em ordem; não há savings fictício sem baseline na demonstração.
+
+## Migration, operação e rollback
+
+`docs/supabase-financial-value-realization.sql`, marker `financial-value-realization-1`, segue `financial-p0-closure-1` no manifest. Migration aditiva, reaplicável; export e Graph recebem overrides apenas na nova migration. Doctor, canário e preflight reconhecem o marker. Nenhuma migration histórica foi reescrita.
+
+Bundle do banco existente deve partir do marker **observado**, usando `npm run migrations:bundle -- --flow=existingDatabase --after-schema=<marker>`. Antes de aplicar no hosted: identificação do ambiente, backup, restore drill descartável, verificação pós-restore, bundle exato, doctor/canário e jornada autenticada. Não executar a migration de decommission sem export verificado e decisão do owner. Não há alteração destrutiva em `fin-documents`.
+
+Rollback SQL em `docs/rollback/supabase-financial-value-realization.rollback.sql` só funciona sem nenhum dado/metodologia/observação. Restaura Graph/export anteriores e marker P0. Após uso, rollback de código preserva tabelas e evidências; forward-fix é obrigatório. Restore exige o procedimento do ambiente, nunca uma promessa de recuperação.
+
+## Verificação
+
+`scripts/test-finance-value.mjs`: baseline ausente, datas inválidas, moeda fora do catálogo, condições distintas, números não finitos/negativos, ausência versus perdas, filtros limitados, JWT em todas as consultas, erro de papel e objetos invisíveis, links tipados. `tests/database/financial-value-realization.sql`: registros separados, realização observada versus estimada, imutabilidade, escrita direta, viewer/outro tenant, Graph, export, minimização de audit e invalidação. Driver inclui instalação limpa/final, upgrade, reaplicação e rollback sem uso. `tests/e2e/finance-value.spec.js`: filtros servidor, métricas separadas, ausência de cálculo, drilldown, permissão viewer, formulário sem realização automática e overflow; executado em todos os projetos existentes, sem omissões.
+
+Estado dos comandos e blockers está em `IMPLEMENTATION_MATRIX.md`. Testes com fixture não comprovam autenticação/restore no Pilot hospedado.

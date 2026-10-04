@@ -11,6 +11,7 @@ const COMPANY_NAV = [
   { key: 'proposals', label: 'Propostas', path: '/finance/proposals.html', icon: 'inbox' },
   { key: 'contracts', label: 'Contratos', path: '/finance/contracts.html', icon: 'briefcase' },
   { key: 'portfolio', label: 'Portfólio', path: '/finance/portfolio.html', icon: 'layers' },
+  { key: 'value', label: 'Valor', path: '/finance/value.html', icon: 'layers' },
   { key: 'providers', label: 'Provedores', path: '/finance/providers.html', icon: 'building' },
   { key: 'passport', label: 'Passport', path: '/finance/passport.html', icon: 'shield' },
   { key: 'tasks', label: 'Tarefas', path: '/finance/tasks.html', icon: 'tasks' },

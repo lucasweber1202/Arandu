@@ -1,0 +1,55 @@
+import assert from 'node:assert/strict';
+import { Readable } from 'node:stream';
+import { validateValueInput, valueAmount, valueFilters, VALUE_DIMENSIONS } from '../lib/finance/value-realization.mjs';
+import { handleFinance } from '../lib/api/domains/finance.mjs';
+import { graphHref } from '../lib/finance/graph.mjs';
+const ORG='00000000-0000-4000-8000-0000000000a1';
+const RECORD='00000000-0000-4000-8000-0000000000b1';
+const dimensions=Object.fromEntries(VALUE_DIMENSIONS.map((k)=>[k,'explicit fixture criterion']));
+const input={organization_id:ORG,contract_id:RECORD,kind:'NEGOTIATED_SAVINGS',title:'Fixture cost reduction',currency:'BRL',period_start:'2025-01-01',period_end:'2025-12-31',target_amount:800,baseline:{amount:1000,source:'manual',reference:'FIXTURE-BASE',as_of:'2024-12-01',currency:'BRL',unit:'period_total',period_start:'2025-01-01',period_end:'2025-12-31',dimensions},target_dimensions:dimensions,comparability:'comparable',reason:'Explicit fixture comparison',evidence_reference:'FIXTURE-DOC'};
+assert.equal(validateValueInput(input),null);
+assert.equal(valueAmount(input),200);
+assert.equal(valueAmount({...input,target_amount:1200}),-200,'negative differences must stay factual');
+assert.equal(valueAmount({...input,comparability:'incomplete'}),null);
+for(const patch of [{baseline:null},{kind:'REALIZED_SAVINGS'},{currency:'ZZZ'},{period_start:'2025-02-31'},{period_end:'2025-99-01'},{target_amount:NaN},{target_amount:Infinity},{target_amount:-1},{reason:'<script>'},{target_dimensions:{...dimensions,indexer:'different'}},{target_dimensions:{spread_pct_year:1}}]) assert.ok(validateValueInput({...input,...patch}),JSON.stringify(patch));
+assert.throws(()=>valueFilters(new URLSearchParams('start=2020-01-01&end=2026-01-01')));
+assert.throws(()=>valueFilters(new URLSearchParams('limit=51')));
+assert.equal(graphHref({object_type:'value_realization',object_id:RECORD}),`/finance/value.html?id=${RECORD}`);
+assert.equal(graphHref({object_type:'value_realization',object_id:'javascript:evil'}),null);
+
+process.env.SUPABASE_URL='https://fixture.example.invalid';
+process.env.SUPABASE_ANON_KEY='fixture-public';
+delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+let sent=[]; let forbidden=false; let invisible=false;
+globalThis.fetch=async(url,options={})=>{
+ const u=new URL(url); const payload=options.body?JSON.parse(options.body):null;
+ sent.push({url:u.pathname,query:u.searchParams,headers:options.headers,payload});
+ if(u.pathname.endsWith('/fin_organizations')) return new Response(JSON.stringify([{id:ORG,kind:'BUYER'}]));
+ if(u.pathname.endsWith('/fin_list_value')) return new Response(JSON.stringify([{id:RECORD},{id:ORG}]));
+ if(u.pathname.endsWith('/fin_value_totals')) return new Response(JSON.stringify([{kind:'NEGOTIATED_SAVINGS',currency:'BRL',value_amount:200}]));
+ if(u.pathname.endsWith('/fin_value_records')) return new Response(JSON.stringify(invisible?[]:[{id:RECORD,methodology_id:ORG}]));
+ if(u.pathname.endsWith('/fin_record_value')) return forbidden?new Response(JSON.stringify({message:'forbidden'}),{status:403}):new Response(JSON.stringify(RECORD));
+ return new Response('[]');
+};
+const deps={requireUser:async()=>({user:{id:ORG},accessToken:'caller-jwt',headers:{}}),enforceRateLimit:async()=>{}};
+async function call(method,path,body=null){
+ const req=Object.assign(Readable.from(body?[Buffer.from(JSON.stringify(body))]:[]),{method,url:`/api/finance/${path}`,headers:{}});
+ const res={setHeader(){},end(raw){this.payload=JSON.parse(raw);}};
+ await handleFinance(req,res,path.split('?')[0],deps);return res.payload;
+}
+let data=await call('GET',`value?organization_id=${ORG}&start=2025-01-01&end=2025-12-31&limit=1`);
+assert.equal(data.rows.length,1);assert.equal(data.next,RECORD);
+assert.equal(sent.find((s)=>s.url.endsWith('fin_list_value')).payload.p_limit,1);
+assert.equal(sent.find((s)=>s.url.endsWith('fin_value_totals')).payload.p_start,'2025-01-01');
+for(const s of sent) assert.equal(s.headers.Authorization,'Bearer caller-jwt','no service role read fallback');
+sent=[];
+await assert.rejects(()=>call('POST','value',{...input,baseline:null}),e=>e.status===400);
+assert.ok(!sent.some((s)=>s.url.endsWith('fin_record_value')),'invalid financial input reached write RPC');
+sent=[];
+data=await call('POST','value',input);assert.equal(data.id,RECORD);
+assert.deepEqual(sent.find((s)=>s.url.endsWith('fin_record_value')).payload.p_input.baseline,input.baseline);
+forbidden=true;await assert.rejects(()=>call('POST','value',input),e=>e.status===403);forbidden=false;
+invisible=true;await assert.rejects(()=>call('GET',`value/detail?id=${RECORD}`),e=>e.status===404);
+await assert.rejects(()=>call('GET',`value/detail?id=forged`),e=>e.status===400);
+await assert.rejects(()=>call('GET',`value?organization_id=${ORG}&limit=1000`),e=>e.status===400);
+console.log('Value realization: baseline, finite costs, currency, comparability, missing vs negative values, bounded filters, JWT-only API, cross-scope absence and safe links passed.');
