@@ -55,7 +55,8 @@ const VIEWS = {
   ...(__ARANDU_DEMO__ ? {} : {
     extractions: lazy(() => import('./src/views/extractions.js'), 'extractions'),
     qualifications: lazy(() => import('./src/views/qualifications.js'), 'qualifications'),
-    implementations: lazy(() => import('./src/views/implementations.js'), 'implementations')
+    implementations: lazy(() => import('./src/views/implementations.js'), 'implementations'),
+    covenants: lazy(() => import('./src/views/covenants.js'), 'covenants')
   })
 };
 const PUBLIC_WHEN_SIGNED_OUT = new Set(['providerInvite', 'boundaries']);

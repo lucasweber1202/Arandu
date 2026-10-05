@@ -123,6 +123,7 @@ apply_file "$clean_db" "tests/database/financial-opportunity-engine.sql"
 apply_file "$clean_db" "tests/database/financial-document-intelligence.sql"
 apply_file "$clean_db" "tests/database/financial-provider-qualification.sql"
 apply_file "$clean_db" "tests/database/financial-implementation.sql"
+apply_file "$clean_db" "tests/database/financial-covenants.sql"
 apply_file "$clean_db" "ops/sql/pilot-isolation-canary.sql"
 apply_file "$clean_db" "ops/sql/post-migration-probes.sql"
 
@@ -383,6 +384,7 @@ apply_file "$upgrade_db" "docs/supabase-financial-p0-closure.sql"
 while IFS= read -r file; do
   apply_file "$upgrade_db" "$file"
 done < <(after_decommission)
+apply_file "$upgrade_db" "docs/rollback/supabase-financial-covenants.rollback.sql"
 apply_file "$upgrade_db" "docs/rollback/supabase-financial-implementation.rollback.sql"
 apply_file "$upgrade_db" "docs/rollback/supabase-financial-value-realization.rollback.sql"
 apply_file "$upgrade_db" "docs/supabase-financial-value-realization.sql"
@@ -408,6 +410,11 @@ apply_file "$upgrade_db" "docs/rollback/supabase-financial-implementation.rollba
 apply_file "$upgrade_db" "docs/supabase-financial-implementation.sql"
 apply_file "$upgrade_db" "docs/supabase-financial-implementation.sql"
 apply_file "$upgrade_db" "tests/database/financial-implementation.sql"
+apply_file "$upgrade_db" "docs/supabase-financial-covenants.sql"
+apply_file "$upgrade_db" "docs/rollback/supabase-financial-covenants.rollback.sql"
+apply_file "$upgrade_db" "docs/supabase-financial-covenants.sql"
+apply_file "$upgrade_db" "docs/supabase-financial-covenants.sql"
+apply_file "$upgrade_db" "tests/database/financial-covenants.sql"
 apply_file "$upgrade_db" "tests/database/email-outbox.sql"
 bash "$root_dir/tests/database/email-outbox-concurrency.sh" "$(database_url "$upgrade_db")"
 
@@ -428,7 +435,7 @@ for suite in financial-procurement financial-procurement-hardening financial-pil
   financial-collaboration financial-operational-search financial-renewals financial-rfq-editor financial-rfq-revisions financial-delivery \
   financial-pilot-grade financial-pilot-operations financial-final-hardening financial-approval-handoff financial-passport \
   financial-multi-entity financial-contracts-v2 financial-relationships-portfolio financial-passport-entities financial-graph \
-  financial-policy-engine financial-public-api financial-sso financial-data-governance financial-p0-closure financial-value-realization financial-fee-intelligence financial-opportunity-engine financial-document-intelligence financial-provider-qualification financial-implementation; do
+  financial-policy-engine financial-public-api financial-sso financial-data-governance financial-p0-closure financial-value-realization financial-fee-intelligence financial-opportunity-engine financial-document-intelligence financial-provider-qualification financial-implementation financial-covenants; do
   apply_file "$fresh_db" "tests/database/${suite}.sql"
 done
 apply_file "$fresh_db" "ops/sql/pilot-isolation-canary.sql"
