@@ -8,12 +8,13 @@ import { dirname } from 'node:path';
 
 const COMPANY_NAV = [
   ['Painel', '/finance/dashboard.html'], ['Solicitações', '/finance/rfqs.html'], ['Aprovações', '/finance/approvals.html'],
-  ['Propostas', '/finance/proposals.html'], ['Implantação', '/finance/implementations.html', 'production'], ['Documentos', '/finance/extractions.html', 'production'], ['Contratos', '/finance/contracts.html'], ['Portfólio', '/finance/portfolio.html'], ['Valor', '/finance/value.html'], ['Tarifas', '/finance/fees.html'], ['Oportunidades', '/finance/opportunities.html'], ['Provedores', '/finance/providers.html'], ['Qualificação', '/finance/qualifications.html', 'production'],
+  ['Propostas', '/finance/proposals.html'], ['Implantação', '/finance/implementations.html', 'production'], ['Covenants', '/finance/covenants.html', 'production'], ['Documentos', '/finance/extractions.html', 'production'], ['Contratos', '/finance/contracts.html'], ['Portfólio', '/finance/portfolio.html'], ['Valor', '/finance/value.html'], ['Tarifas', '/finance/fees.html'], ['Oportunidades', '/finance/opportunities.html'], ['Provedores', '/finance/providers.html'], ['Qualificação', '/finance/qualifications.html', 'production'],
   ['Passport', '/finance/passport.html'], ['Tarefas', '/finance/tasks.html'], ['Configurações', '/finance/settings.html']
 ];
 const PROVIDER_NAV = [['Início', '/provider/index.html'], ['Oportunidades', '/provider/rfqs.html'], ['Código de convite', '/provider/invite.html']];
 
 export const PAGES = [
+  { path: 'finance/covenants.html', view: 'covenants', audience: 'company', title: 'Covenants e obrigações', h1: 'Covenants e obrigações', description: 'Medições, prazos e evidência com revisão humana independente.', productionOnly: true },
   { path: 'finance/implementations.html', view: 'implementations', audience: 'company', title: 'Implantação pós-award', h1: 'Implantação pós-award', description: 'Marcos, responsáveis, prazos e aceite humano de go-live.', productionOnly: true },
   { path: 'finance/index.html', view: 'dashboard', audience: 'company', title: 'Painel', h1: 'Painel', description: 'O que precisa da sua atenção no procurement financeiro da empresa.' },
   { path: 'finance/dashboard.html', view: 'dashboard', audience: 'company', title: 'Painel', h1: 'Painel', description: 'Aprovações, prazos, renovações e concorrências em andamento.' },

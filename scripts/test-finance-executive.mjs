@@ -76,11 +76,13 @@ async function call(method, path) {
   return res.payload;
 }
 const data = await call('GET', `executive?organization_id=${ORG}&start=2026-01-01&end=2026-06-30&legal_entity_id=${ENT}`);
-assert.equal(data.cards.length, 3);
+assert.equal(data.cards.length, 4);
+assert.match(data.cards[3].note,/Dados ausentes não são conformidade/);
 assert.deepEqual(data.filters, { start: '2026-01-01', end: '2026-06-30', entity: ENT });
 const rpcs = sent.filter((s) => s.url.includes('/rpc/')).map((s) => s.url.split('/').at(-1)).sort();
-assert.deepEqual(rpcs, ['fin_fee_summary', 'fin_opportunity_summary', 'fin_value_totals']);
+assert.deepEqual(rpcs, ['fin_fee_summary', 'fin_obligation_summary', 'fin_opportunity_summary', 'fin_value_totals']);
 assert.equal(sent.find((s) => s.url.endsWith('fin_value_totals')).payload.p_entity, ENT);
+assert.equal(sent.find((s)=>s.url.endsWith('fin_obligation_summary')).payload.p_entity,ENT);
 for (const s of sent) assert.equal(s.headers.Authorization, 'Bearer caller-jwt');
 sent = [];
 for (const bad of ['start=2026-02-31', 'start=2026-07-01&end=2026-01-01', 'start=2020-01-01&end=2026-12-31', 'legal_entity_id=x']) {

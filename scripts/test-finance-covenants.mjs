@@ -1,0 +1,24 @@
+import assert from 'node:assert/strict';
+import {Readable} from 'node:stream';
+import {covenantComparison,reviewChoices} from '../lib/finance/covenants.mjs';
+import {presentCovenantPage,presentCovenantDetail,presentCovenantSummary} from '../lib/finance/covenant-presenter.mjs';
+import {handleFinance} from '../lib/api/domains/finance.mjs';
+assert.equal(covenantComparison('1.00000000000000001','gt','1'),true);
+assert.equal(covenantComparison('999999999999999999','lt','1000000000000000000'),true);
+assert.equal(covenantComparison(null,'le',3),null);assert.equal(covenantComparison('','le',3),null);assert.equal(covenantComparison('NaN','le',3),null);assert.equal(covenantComparison(2,'le',3),true);assert.equal(covenantComparison(4,'le',3),false);assert.equal(covenantComparison(3,'eq',3),true);assert.equal(covenantComparison(3,'invented',3),null);
+assert.ok(!reviewChoices({has_data:false}).some(([s])=>s==='compliant'));
+assert.ok(!reviewChoices({has_data:true,metric:'Ratio',factual_result:false}).some(([s])=>s==='compliant'));
+const ID='00000000-0000-4000-8000-000000000001';const period={id:ID,obligation_id:ID,contract_id:ID,title:'Covenant teste',kind:'financial_covenant',due_on:'2026-10-05',source_clause:'Cláusula 1',facts:{status:'awaiting_data',has_data:false,metric:'Ratio',operator:'le',threshold:3,unit:'ratio',measured_value:null,factual_result:null,observed_at:'2026-10-05',formula:'measured value <= contractual threshold'}};
+const out=presentCovenantDetail({period,measurements:[],evidence:[],reviews:[],waivers:[]});assert.match(JSON.stringify(out),/dados ausentes/);assert.ok(!out.actions.find(a=>a.post==='covenants/review').fields[0][2].some(([s])=>s==='compliant'));
+assert.equal(presentCovenantPage({rows:[period],contracts:[],members:[],next:null}).rows[0].cells[1],'Aguardando dados');
+assert.match(presentCovenantSummary({rows:[{kind:'financial_covenant',status:'awaiting_data',periods:2,with_data:0}],observed_at:'2026-10-05'},null).note,/0\/2/);
+process.env.SUPABASE_URL='https://fixture.example.invalid';process.env.SUPABASE_ANON_KEY='fixture-public';delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+const sent=[];globalThis.fetch=async(url,options={})=>{const u=new URL(url);sent.push({url:u.pathname,headers:options.headers,body:options.body?JSON.parse(options.body):null});if(u.pathname.endsWith('/fin_organizations'))return new Response(JSON.stringify([{id:ID,kind:'BUYER'}]));if(u.pathname.endsWith('/fin_obligation_monitor'))return new Response('[]');if(u.pathname.endsWith('/fin_obligation_summary'))return new Response(JSON.stringify({rows:[],observed_at:'2026-10-05'}));return new Response(u.pathname.includes('/rpc/')?JSON.stringify(ID):'[]');};
+const deps={requireUser:async()=>({user:{id:ID},accessToken:'caller-jwt',headers:{}}),enforceRateLimit:async()=>{}};
+async function call(method,path,body){const req=Object.assign(Readable.from(body?[Buffer.from(JSON.stringify(body))]:[]),{method,url:`/api/finance/${path}`,headers:{}});const res={setHeader(){},end(raw){this.payload=JSON.parse(raw);}};await handleFinance(req,res,path.split('?')[0],deps);return res.payload;}
+await call('GET',`covenants?organization_id=${ID}`);await call('GET',`covenants/summary?organization_id=${ID}`);
+await assert.rejects(()=>call('GET',`covenants/detail?id=${ID}`),e=>e.status===404);
+await assert.rejects(()=>call('POST','covenants/decide-waiver',{period_id:ID,waiver_id:ID,expected_version:0}),e=>e.status===400);
+await call('POST','covenants/open',{contract_id:ID,title:'Teste de isolamento',organization_id:'forged',kind:'reporting_covenant'});
+assert.equal(sent.find(s=>s.url.endsWith('/fin_open_obligation')).body.p_input.organization_id,undefined);for(const s of sent)assert.equal(s.headers.Authorization,'Bearer caller-jwt');assert.ok(!sent.some(s=>/fin_run_|fin_evaluate_/.test(s.url)));
+console.log('Covenants: unknown vs numeric facts, review choices, coverage, empty/hidden scopes, user JWT and server-derived tenant passed.');
