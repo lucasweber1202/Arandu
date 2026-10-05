@@ -11,7 +11,7 @@ const ORG = '00000000-0000-4000-8000-0000000000a1';
 const ID = '00000000-0000-4000-8000-0000000000b1';
 
 // Catálogo JS = catálogo SQL; limiares financeiros sem padrão.
-const sql = readFileSync('docs/supabase-financial-covenants.sql', 'utf8');
+const sql = readFileSync('docs/supabase-financial-provider-performance.sql', 'utf8');
 const sqlKeys = [...sql.matchAll(/^\s+\('([a-z_]+)', (?:'\{\}'::text\[\]|array\[)/gm)].map((m) => m[1]);
 assert.deepEqual([...sqlKeys].sort(), Object.keys(RULES).sort(), 'rule catalog diverged between SQL and JS');
 for (const key of ['proposal_count_below', 'provider_concentration', 'facility_utilization', 'approval_exception_frequency', 'contract_without_sourcing']) {

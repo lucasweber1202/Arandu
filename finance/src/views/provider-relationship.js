@@ -57,6 +57,7 @@ export async function openProviderRelationship(ctx, provider) {
         ])))
       ]) : el('p', { class: 'muted', text: 'Sem contratos ou facilities com este provedor no seu escopo.' })]));
 
+    if (!__ARANDU_DEMO__) sections.push(el('p', {}, el('a', {href:`/finance/performance.html?provider_id=${encodeURIComponent(provider.id)}`,text:'Performance: períodos, metas e fontes'})));
     // Relação por entidade.
     const relList = el('ul', { class: 'plain-list' }, detail.relationships.map((row) => el('li', {}, [el('strong', { text: entityName(entities, row.legal_entity_id) }),
       el('span', { text: ` · ${REL_STATUS[row.status]}${row.categories.length ? ` · ${row.categories.map((item) => CONTRACT_CATEGORIES[item] || item).join(', ')}` : ''}${row.since_on ? ` · desde ${formatDate(row.since_on)}` : ''}` })])));
