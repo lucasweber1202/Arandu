@@ -314,9 +314,18 @@ jobs:
       - name: Install
         run: npm ci --include=optional
 
-      - name: Simulate Vercel preview technical deploy
+      - name: Financial preview excludes implicit demo code
         env:
           VERCEL_ENV: preview
+        run: npm run vercel-build
+
+      - name: Financial preview has no demo pages or engine
+        run: node scripts/test-demo-mode.mjs --dist
+
+      - name: Simulate explicit demonstration preview technical deploy
+        env:
+          VERCEL_ENV: preview
+          ARANDU_DEMO_MODE: 'true'
         run: npm run vercel-build
 
       - name: Preview publishes the labelled demo sandbox
