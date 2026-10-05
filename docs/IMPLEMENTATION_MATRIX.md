@@ -5,7 +5,7 @@ Documento vivo. Decompõe a guideline efetiva (`docs/ARANDU_PRODUCT_ENGINEERING_
 requisitos implementáveis e registra, com evidência no repositório, o estado de cada um.
 Outra sessão deve conseguir continuar a partir daqui sem refazer a auditoria.
 
-- **Baseline reconciliada em 04/10/2026:** `pilot` @ `7a0a839776bdaf1e95e6a67505f5f49289c51a59` (merge #122); `main` @ `201adb475a62eb05d6da33b9f563b7132cf28a45` (merge #99). Quatro checks success na #122, HEAD `805494c3fb5c4a73ddfa1a0dda1f270800e2826a`. Hosted Pilot permanece NO-GO; ver `FINANCIAL_RELEASE_EVIDENCE_2026-10-04.md`.
+- **Baseline reconciliada em 05/10/2026:** `pilot` @ `556258c0329a321fd6b2df8daf151195be4327f1` (merge #124 sobre #123); `main` @ `201adb475a62eb05d6da33b9f563b7132cf28a45` (merge #99). A #124 entrou com `presentation` vermelho e a combinação #123+#124 nunca rodou CI; a PR de baseline de 05/10 corrige a causa (central de comando perdia digitação durante o carregamento) e só vale como baseline limpa com os quatro gates verdes no HEAD exato. Hosted Pilot permanece NO-GO; ver `FINANCIAL_RELEASE_EVIDENCE_2026-10-05.md`.
 - **Autorização de escopo:** missão humana explícita desta rodada autoriza P0, P1, P2 (com
   pré-requisitos) e P3 (somente com gates). Não elimina dependency order, boundaries,
   decisão humana, gates jurídicos/segurança, provenance, isolamento nem DoD.
@@ -38,7 +38,7 @@ de capacidade completa. "Verde no CI" só vale quando o run existe; aqui, salvo 
 | P0.1-01 | §38.3, Add. H.1 | Demo/Pilot/Production por configuração, mesma árvore | P0 | — | partial | `docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md`, `scripts/vercel-build.mjs`, `scripts/check-finance-env.mjs`, `lib/demo-mode.mjs`, `lib/deployment-surface.mjs` | Supabase DEMO não existe (limite Free 2 projetos); produção sem `ARANDU_ENV=production` nem banco próprio (`ARANDU_CURRENT_STATE_2026-10-02.md`) | demo/prod mal configurados | Owner: criar Supabase DEMO/PROD, setar env (ver lista de blockers) | — |
 | P0.1-02 | §38.4 | Manifesto de migrations, clean install, upgrade, reapply, rollback | P0 | — | implemented | `docs/supabase-migrations.json`, `scripts/check-migrations.mjs`, `scripts/test-database.sh` (clean+upgrade+reapply+rollback), `docs/rollback/*` | — (cada migration nova deve repetir o padrão) | migration fora do manifesto | manter | — |
 | P0.1-03 | §38.4, Add. E.6 | Migrations aplicadas no Pilot hospedado | P0 | P0.1-02 | blocked | Pilot em `financial-surface-hardening-1` (02/10); bundle `npm run migrations:bundle -- --after-schema` | sem credencial administrativa do Supabase nesta sessão; restore drill hospedado é pré-condição | piloto atrás do código | Owner aplica bundle após backup+drill | — |
-| P0.1-04 | §38.1–38.2, Add. G.3 | Branch protection/rulesets em `main` e `pilot` | P0 | — | blocked | `docs/FINANCIAL_REPO_GOVERNANCE.md` (403 da integração); `scripts/check-governance.mjs` | permissão administrativa ausente | merge com CI vermelho | Owner configura Settings → Branches/Rulesets; ver `FINANCIAL_REPO_GOVERNANCE.md` | — |
+| P0.1-04 | §38.1–38.2, Add. G.3 | Branch protection/rulesets em `main` e `pilot` | P0 | — | blocked | rulesets versionados e testados `.github/rulesets/{pilot,main}.json` (`scripts/test-merge-gates.mjs`), `npm run merge:gates` com frescor de base, `.github/workflows/merge-audit.yml` (detecção pós-merge), `docs/BRANCH_PROTECTION.md` | OWNER_ACTION_REQUIRED: importar as rulesets (executor sem administração; 05/10 `protected=false`) | merge com CI vermelho (ocorreu na #118 e na #124) | Owner importa as rulesets; verificar `protected=true` | PR de baseline 05/10 |
 | P0.1-05 | Add. E.1 | Restore drill local e procedimento hospedado | P0 | — | partial | `scripts/pilot-restore-drill.sh`, `scripts/pilot-backup-preflight.mjs`, `ops/sql/post-restore-probes.sql`, `docs/FINANCIAL_PILOT_PASSPORT_ROLLOUT.md` | drill hospedado nunca executado (sem DB URL) | backup ≠ restore | Owner roda `pilot:restore:drill` com `PILOT_SOURCE_DATABASE_URL` | — |
 | P0.1-06 | §38, Add. E.6 | Doctor, canary e env check | P0 | — | implemented | `scripts/finance-pilot-doctor.mjs`, `lib/finance/pilot-doctor.mjs` (espera `financial-operational-resilience-1`), `scripts/pilot-canary.sh`, `ops/sql/pilot-isolation-canary.sql` (inclui isolamento por entidade), `scripts/test-pilot-doctor.mjs` | marcador esperado precisa acompanhar cada migration | GO falso | manter a cada migration | PR multi-entity |
 | P0.1-07 | Add. E.4 | Incident severity model, runbook, postmortem template | P0 | — | partial | `docs/FINANCIAL_OPERATIONAL_RESILIENCE.md`, `docs/FINANCIAL_INCIDENT_POSTMORTEM.md` | nomeação de responsáveis e exercício de resposta/DR hospedado | procedimento não exercitado | owner + P0.10 | — |
@@ -465,3 +465,19 @@ Nesta sessão: npm ci limpo, audit zero vulnerabilidades, SBOM, check:all e
 builds/fronteiras aprovados. Banco local indisponível (psql ausente); download
 de browsers inválido, portanto E2E/p95 não comprovados localmente. Não confundir
 CI da baseline com CI desta entrega nem ferramenta de avaliação com hosted proof.
+
+## Baseline da pilot e fechamento operacional — 05/10/2026
+
+Partiu de `pilot@556258c` (#123 + #124). Detalhes, comandos e números em `FINANCIAL_RELEASE_EVIDENCE_2026-10-05.md`.
+
+| Bloco | Status | Código / evidência | CI / hosted | Gap / próxima ação |
+| --- | --- | --- | --- | --- |
+| Regressão de reset da demo (#124) | DONE no código; CI pendente no HEAD da PR | causa-raiz: `lazyPalette` perdia teclas e executava o 1º item da lista vazia; buffer em captura com Enter pendente/Esc (`finance/demo/workspace/index.js`, `command.js`); 2 testes determinísticos que falham sem a correção + asserção mais estrita no cenário original | local Chromium desktop + mobile: apresentação 123/0 falhas; Firefox/WebKit só no CI | quatro gates no HEAD exato |
+| Mock de download divergente | DONE no código | `tests/e2e/finance-procurement.spec.js` espelha `download=` + anexo de `document-storage.mjs`; exige o GET assinado e permanência na solicitação (evento `download` não existe no WebKit para resposta interceptada) | local 30/30; `test:e2e` 167/0 falhas | — |
+| Jornada local com cron concorrente | DONE no código | verificação ajustada ao lease do P0.10 e mais estrita (cada job `succeeded` em alguma execução, nenhum falho, sem duplicação) | local 24 passos, 63 ataques, 0 falhas | jornada **hospedada** (owner) |
+| Prevenção de merge vermelho | PARTIAL | rulesets versionados, `merge:gates` com frescor de base, `merge-audit` | testes Node aprovados | OWNER_ACTION_REQUIRED: importar rulesets |
+| Restore drill | PARTIAL | mecanismo PASS local com dados (28 sondas + canário); clientes PG 15/16/17 no executor | hospedado não executado | conexão administrativa (owner); binários do Storage e MFA fora do drill — rodar antes de O3/uploads |
+| Pilot hospedado | BLOCKED | sondas públicas 05/10: fronteiras corretas, cabeçalhos presentes, chunks coerentes com o HEAD | schema/backup/restore/jornada não observados | ações 1–4 da evidência de 05/10 |
+| Produção | BLOCKED | sondas 05/10: API legada ainda roteada (`/api/forms` 405, `/api/catalog` 503) | não pronta | Supabase próprio + `ARANDU_ENV=production` (owner) |
+| P0.11 Data Governance | partial (inalterado) | `test:database` e `check:finance` verdes em 05/10 | — | exclusão física (jurídico), offboarding de provedor (produto), rollout |
+| P1.4 | NOT_STARTED | §23 da guideline; ordem da missão exige fechamento hospedado antes | — | após ações do owner; provedor de extração e headroom (demo a 1.162 bytes do teto) |

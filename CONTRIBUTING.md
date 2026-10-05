@@ -104,7 +104,7 @@ A descrição da PR deve explicar:
 
 Não marque a PR como pronta enquanto checks obrigatórios estiverem falhando ou enquanto o texto atribuir ao código uma validação externa que não ocorreu.
 
-**Merge somente com os quatro gates verdes no HEAD exato.** Antes de mergear, rode `npm run merge:gates -- <número-da-PR>` (com `GITHUB_TOKEN` de leitura): o script lê o SHA atual do HEAD da PR e exige `database`, `deploy-boundaries`, `validate` e `presentation` concluídos com sucesso nesse SHA. Pending, in_progress, falha, cancelamento, skip, ausência ou run de commit anterior bloqueiam. A #118 foi mergeada com `validate`/`presentation` ainda rodando e falhou depois; a regra existe para isso não se repetir. O script não substitui a proteção de branch no GitHub (ver `docs/BRANCH_PROTECTION.md`).
+**Merge somente com os quatro gates verdes no HEAD exato.** Antes de mergear, rode `npm run merge:gates -- <número-da-PR>` (com `GITHUB_TOKEN` de leitura): o script lê o SHA atual do HEAD da PR e exige `database`, `deploy-boundaries`, `validate` e `presentation` concluídos com sucesso nesse SHA. Pending, in_progress, falha, cancelamento, skip, ausência ou run de commit anterior bloqueiam, assim como PR que não contém a ponta atual da base (atualize a branch e espere os quatro gates no novo HEAD). A #118 foi mergeada com `validate`/`presentation` ainda rodando e a #124 com `presentation` vermelho e base desatualizada; a regra existe para isso não se repetir. `.github/workflows/merge-audit.yml` acusa, depois do push em `pilot`/`main`, um merge que escapou da regra. O script não substitui a proteção de branch no GitHub (ver `docs/BRANCH_PROTECTION.md`).
 
 ## Documentação
 

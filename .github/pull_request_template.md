@@ -55,7 +55,7 @@ Nenhum merge enquanto qualquer gate obrigatório do **HEAD exato** da PR estiver
 pending, in_progress, failed, cancelled, skipped ou stale. Run de commit anterior
 não atesta o HEAD posterior.
 
-- [ ] `npm run merge:gates -- <número>` aprovado no HEAD exato: `database`, `deploy-boundaries`, `validate` e `presentation` concluídos com sucesso.
+- [ ] `npm run merge:gates -- <número>` aprovado no HEAD exato: `database`, `deploy-boundaries`, `validate` e `presentation` concluídos com sucesso, com a branch contendo a ponta atual da base.
 - [ ] Nenhum push depois dessa verificação (um push novo exige verificar de novo).
 
 ## Checklist final

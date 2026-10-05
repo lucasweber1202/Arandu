@@ -331,10 +331,13 @@ test('app real: documento privado sobe por URL assinada, baixa sob demanda e nen
   const uploads = [];
   let available = false;
   const signedUpload = 'https://proj.supabase.co/storage/v1/object/upload/sign/fin-documents/a/b/v1-c?token=up';
-  const signedDownload = 'https://proj.supabase.co/storage/v1/object/sign/fin-documents/a/b/v1-c?token=down';
+  // Como em lib/finance/document-storage.mjs: a URL assinada leva `download=<nome>`
+  // e o Storage responde como anexo — o navegador baixa sem sair da página.
+  const signedDownload = 'https://proj.supabase.co/storage/v1/object/sign/fin-documents/a/b/v1-c?token=down&download=Balan%C3%A7o%202025.pdf';
   await page.route('https://proj.supabase.co/**', (route) => {
     uploads.push(`${route.request().method()} ${route.request().url()} ${route.request().headers()['content-type']}`);
-    return route.fulfill({ status: 200, contentType: 'application/pdf', body: '%PDF-1.4' });
+    const attachment = route.request().method() === 'GET' && new URL(route.request().url()).searchParams.has('download');
+    return route.fulfill({ status: 200, contentType: 'application/pdf', body: '%PDF-1.4', headers: attachment ? { 'Content-Disposition': 'attachment; filename="balanco-2025.pdf"' } : {} });
   });
   const calls = await mockSession(page, { onDocuments: (path, request, json) => {
     if (path === 'private-documents' && request.method() === 'GET') {
@@ -365,8 +368,13 @@ test('app real: documento privado sobe por URL assinada, baixa sob demanda e nen
   await expect(docs).toContainText('Rui Tavares');
   expect(uploads[0]).toMatch(/^PUT https:\/\/proj\.supabase\.co\/storage\/v1\/object\/upload\/sign\/.* application\/pdf$/);
   expect(calls).toEqual(expect.arrayContaining(['POST private-documents/upload', 'POST private-documents/complete']));
+  // Sem esperar o evento `download` do Playwright: no WebKit ele não dispara para
+  // resposta interceptada como anexo. O que importa é o GET assinado e a
+  // permanência na solicitação.
   await docs.getByRole('button', { name: /Baixar Balanço 2025/ }).click();
   await expect.poll(() => uploads.some((entry) => entry.startsWith('GET ') && entry.includes('token=down'))).toBe(true);
+  // O download não tira a pessoa da solicitação.
+  await expect(page).toHaveURL(new RegExp(`/finance/rfq\\.html\\?id=${RFQ}$`));
   const stored = await page.evaluate(() => JSON.stringify({ ...localStorage }) + JSON.stringify({ ...sessionStorage }));
   expect(stored).not.toMatch(/token=|supabase\.co/);
 });

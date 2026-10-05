@@ -510,13 +510,21 @@ await step('Cron com segredo: marcos 90/60/30/aviso pela rota HTTP, duas execuç
   return `${seen.join(' ')} (tarefas criadas por execução); final ${JSON.stringify(final)}; 1 tarefa aberta, 0 marco/aviso/evento duplicado; ${runs} execuções registradas`;
 });
 
-await attack('Duas execuções simultâneas do cron no mesmo dia', '1 marco, 1 aviso', async () => {
+await attack('Duas execuções simultâneas do cron no mesmo dia', '1 marco, 1 aviso; cada job concluído por uma das execuções, nenhum falho', async () => {
   // Contrato vencendo hoje: marco novo "expired". Duas chamadas concorrentes.
+  // Desde o P0.10 cada job tem lease: a execução que não obtém o lease de um
+  // job responde 202 job_busy para ele. O invariante é que todo job termine
+  // (succeeded) em alguma das duas, nenhum falhe e nada se duplique.
   sql(`update public.fin_contracts set ends_on = current_date where id = '${ctx.contract}'`);
   const [a, b] = await Promise.all([cron(CRON), cron(CRON)]);
   const expired = Number(sql(`select count(*) from public.fin_renewal_milestones where contract_id = '${ctx.contract}' and milestone = 'expired'`));
   const notices = Number(sql(`select count(*) from public.fin_notifications n join public.fin_renewal_milestones m on m.id = n.event_id where m.contract_id = '${ctx.contract}' and m.milestone = 'expired'`));
-  return { ok: a.status === 200 && b.status === 200 && expired === 1 && notices === 1, observed: `${a.status}/${b.status}; marcos expired=${expired}, avisos=${notices}` };
+  const names = [...new Set([...Object.keys(a.data.jobs || {}), ...Object.keys(b.data.jobs || {})])];
+  const states = (name) => [a.data.jobs?.[name]?.status, b.data.jobs?.[name]?.status];
+  const done = names.length >= 4 && names.every((name) => states(name).includes('succeeded') && !states(name).includes('failed'));
+  const codes = [a, b].every((r) => r.status === 200 || (r.status === 202 && r.data.code === 'job_busy'));
+  return { ok: codes && done && expired === 1 && notices === 1,
+    observed: `${a.status}/${b.status}; jobs ${names.map((name) => `${name}=${states(name).join('|')}`).join(', ')}; marcos expired=${expired}, avisos=${notices}` };
 });
 await attack('Sessão expirada sem refresh token', '401', async () => {
   const stale = { cookie: `arandu_session=${encodeURIComponent(Buffer.from(JSON.stringify({ access_token: accessToken(people.buyer), expires_at: Math.floor(Date.now() / 1000) - 60 })).toString('base64url'))}` };

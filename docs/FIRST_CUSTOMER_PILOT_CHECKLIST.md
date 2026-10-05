@@ -1,7 +1,8 @@
 # Primeiro cliente Pilot — checklist
 
-Estado de 04/10/2026: **não pronto**. Evidência técnica e blockers em
-[`FINANCIAL_RELEASE_EVIDENCE_2026-10-04.md`](FINANCIAL_RELEASE_EVIDENCE_2026-10-04.md).
+Estado de 05/10/2026: **não pronto**. Evidência técnica e blockers em
+[`FINANCIAL_RELEASE_EVIDENCE_2026-10-05.md`](FINANCIAL_RELEASE_EVIDENCE_2026-10-05.md)
+(observações hospedadas de 04/10 em `FINANCIAL_RELEASE_EVIDENCE_2026-10-04.md`).
 Demo sandbox, código validado e Pilot autenticado são estados distintos.
 
 | Item | Estado | Ação e verificação |
@@ -24,9 +25,9 @@ Demo sandbox, código validado e Pilot autenticado são estados distintos.
 | Documentos privados | partial | Bucket privado observado; testar upload/view/download e RLS no schema atual |
 | Extração/revisão/mapping P1.4 | missing | Implementar foundation e todos os gates de segurança, provenance, review e mappings antes de declarar o fluxo documental pronto |
 | Jobs | partial | Agenda diária e renewals observados; validar webhooks/governance/opportunities/deadlines depois do upgrade; registrar cadência real |
-| Backup e restore | BLOCKED | Backup real, SHA, destino descartável, probes e duração observada; não afirmar RTO garantido |
+| Backup e restore | BLOCKED | Mecanismo comprovado só localmente (05/10). Hospedado: backup real, SHA, destino descartável, probes e duração observada, antes de MFA/uploads; binários do Storage e MFA fora do drill; não afirmar RTO garantido |
 | Suporte/escalation | OWNER_ACTION_REQUIRED | Responsáveis, canais, severidades e exercício de incidente; runbooks existentes |
-| Proteção e merge | BLOCKED | Rulesets pilot/main e quatro checks no SHA atual, merge:gates imediatamente antes do merge |
+| Proteção e merge | OWNER_ACTION_REQUIRED | Importar `.github/rulesets/{pilot,main}.json`; merge:gates (quatro checks + base contida) imediatamente antes do merge |
 | GO operacional | BLOCKED | Doctor, canário, jornada real e gate de evidência GO; zero blocker P0 requerido pelo Pilot |
 
 ## Critérios de sucesso a acordar
