@@ -5,12 +5,11 @@ Documento vivo. Decompõe a guideline efetiva (`docs/ARANDU_PRODUCT_ENGINEERING_
 requisitos implementáveis e registra, com evidência no repositório, o estado de cada um.
 Outra sessão deve conseguir continuar a partir daqui sem refazer a auditoria.
 
-- **Baseline auditada:** `pilot` @ `6ad0d4f` (merge main → pilot após guideline v2.1),
-  `main` contida em `pilot` (0 atrás), sem divergência de canonicality, em 03/10/2026.
+- **Baseline reconciliada em 04/10/2026:** `pilot` @ `7a0a839776bdaf1e95e6a67505f5f49289c51a59` (merge #122); `main` @ `201adb475a62eb05d6da33b9f563b7132cf28a45` (merge #99). Quatro checks success na #122, HEAD `805494c3fb5c4a73ddfa1a0dda1f270800e2826a`. Hosted Pilot permanece NO-GO; ver `FINANCIAL_RELEASE_EVIDENCE_2026-10-04.md`.
 - **Autorização de escopo:** missão humana explícita desta rodada autoriza P0, P1, P2 (com
   pré-requisitos) e P3 (somente com gates). Não elimina dependency order, boundaries,
   decisão humana, gates jurídicos/segurança, provenance, isolamento nem DoD.
-- **Validação local de referência:** PostgreSQL 16 local (`npm run test:database` verde),
+- **Validação local histórica de referência (outra sessão):** PostgreSQL 16 local (`npm run test:database` verde),
   `npm run check:all` verde, Chromium do Playwright em `/opt/pw-browsers`. Firefox/WebKit
   **não** instalados nesta sessão: cross-browser fica para o job `validate` do CI.
 
@@ -167,9 +166,9 @@ Inventário, categorias e procedimento em `docs/LEGACY_ART_RETIREMENT.md` (ponte
 | P1.1 | §19 | Savings & Value Realization Ledger | P1 | P0.4, P0.2 | implemented | Mergeado na #118 (`pilot@d0d5deb`): tabelas próprias, baseline documentado, metodologias v1 imutáveis por tipo, observação e verificação humana, RLS/FORCE/entity scope, API JWT, `/finance/value.html`, totais por tipo/moeda, Graph derivado, registry/export/hold, migration/rollback, testes negativos. CI do HEAD final `f4b78a2` falhou e foi corrigido na #119 (`pilot@1016b0f`, quatro gates verdes no HEAD exato `189bc9d`, run `37212668535`) | **code complete + CI validated**; hosted validated e production ready pendentes (rollout) | merge com gate pendente (ocorreu); mitigado por `npm run merge:gates` + template; branch protection = BLOCKER | rollout hospedado (BLOCKER) | #118, #119 |
 | P1.2 | §17 | Bank Fee Intelligence | P1 | P0.4, P0.5 | implemented | Mergeado na #120 (`pilot@4f97e16`): `fin_fee_schedules`/`_versions` (versionadas, vinculadas a `fin_contract_versions`), `fin_fee_observations` (origem, referência, evidência, verificação humana, dedupe idempotente), `fin_fee_variances` (snapshot imutável, comparabilidade com motivos, sem número forçado), `fin_fee_reviews` (máquina de estados humana); RLS/FORCE/entity scope; RPCs; API JWT; `/finance/fees.html` (renderer genérico + apresentador no servidor, linguagem segura); painel do provedor; Graph; registry/export/hold/offboarding; migration/rollback; testes SQL/API/E2E (`docs/FINANCIAL_FEE_INTELLIGENCE.md`) | ingestão automática (API/ERP/arquivo/extração) inexistente por desenho; API pública sem `fees:read`; hosted pendente | falso positivo de diferença (mitigado: só comparável calcula, linguagem segura, revisão humana); **code complete + CI validated** (run `37214713845`, quatro gates success no HEAD exato `e889aff`); hosted validated e production ready pendentes | rollout hospedado (BLOCKER) | #120 |
 | P1.3 | §18 | Opportunity Engine determinístico | P1 | P0.4–P0.6, P0.10, P1.1, P1.2 | implemented | Mergeado na #121 (`pilot@5c4b88a`): regras versionadas da empresa (14 tipos, limiares financeiros sem padrão), `fin_opportunities` com fatos congelados, fingerprint/dedupe, cooldown, reabertura por mudança material, expiração com motivo, máquina de estados humana com revisor, job `opportunities` (lease/fencing/lotes/cursor) na cron diária, gatilho incremental de tarifas, rascunho de RFQ com confirmação, worklist `/finance/opportunities.html`, Graph, registry/export/hold, migration/rollback, testes (`docs/FINANCIAL_OPPORTUNITY_ENGINE.md`) | notificações por oportunidade; API pública sem `opportunities:read`; cadência da cron diária (BLOCKER P0.10); hosted pendente | virar recomendação (mitigado: fato+regra da empresa+ação possível, sem ranking, linguagem testada); **code complete + CI validated** (run `37217236168`, quatro gates success no HEAD exato `70df5d3`); hosted validated e production ready pendentes | rollout hospedado (BLOCKER) | #121 |
-| P1.4 | §23 | Proposal & Document Intelligence | P1 | docs privados | missing | upload privado existe (`fin_private_documents`) | extração exige provedor de IA/OCR | extração errada | foundation com confirmação humana | — |
+| P1.4 | §23 | Proposal & Document Intelligence | P1 | docs privados | missing | upload privado existe (`fin_private_documents`) | foundation ainda não implementada; provider real não configurado; PR de headroom/gates pendentes | extração errada | foundation com fixtures honestas e confirmação humana | — |
 | P1.5 | §33, Add. F.2 | SCIM / JIT / access reviews / service accounts | P1 | P0.9 | missing | — | — | misconfiguration | — | — |
-| P1.6 | §26 | Executive Portfolio | P1 | P0.4–P0.6 | partial | `/finance/dashboard.html` (pipeline, tarefas, prazos, consolidado por entidade, **Inteligência de valor**: valor negociado/realizado/evitado, diferenças e revisões de tarifa, cobertura, oportunidades — por moeda, entidade e período, com links de ação; `docs/FINANCIAL_VALUE_INTELLIGENCE_EXECUTIVE.md`), `/finance/portfolio.html` (dívida, limites, concentração, garantias) | cycle times; P1.7 Spend Analytics; export executivo | dashboard sem ação (mitigado: cada cartão leva ao trabalho); soma entre moedas/tipos (proibida e testada) | CI verde no HEAD exato e merge | — |
+| P1.6 | §26 | Executive Portfolio | P1 | P0.4–P0.6 | partial | `/finance/dashboard.html` (pipeline, tarefas, prazos, consolidado por entidade, **Inteligência de valor**: valor negociado/realizado/evitado, diferenças e revisões de tarifa, cobertura, oportunidades — por moeda, entidade e período, com links de ação; `docs/FINANCIAL_VALUE_INTELLIGENCE_EXECUTIVE.md`), `/finance/portfolio.html` (dívida, limites, concentração, garantias) | cycle times; P1.7 Spend Analytics; export executivo | dashboard sem ação (mitigado: cada cartão leva ao trabalho); soma entre moedas/tipos (proibida e testada) | fatia executiva CI validated e mergeada na #122; validar hosted | #122 |
 | P1.7 | §16 | Financial Spend Analytics | P1 | P1.2 | missing | — | — | dupla contagem | — | — |
 | P1.8 | §15 | Covenant & Obligation Monitor | P1 | P0.4 | missing | — | — | breach falso | com contracts v2 | — |
 | P1.9 | §25 | Provider Performance | P1 | P0.5 | missing | — | — | score universal | — | — |
@@ -449,3 +448,20 @@ Branch `feature/value-intelligence-executive`, PR pequena e separada, criada da 
 Status: code complete na branch; CI validated só com os quatro gates no HEAD exato; hosted validated e production ready pendentes (rollout de P1.1–P1.3).
 
 Avaliação de P1.4 (Proposal & Document Intelligence) nesta rodada: **não iniciada**. Uma vertical robusta exige provedor de extração (IA/OCR) com contrato, minimização de dados e avaliação de erro — inexistente no ambiente e sem decisão de produto registrada — e interface nova, que hoje caberia só com redução prévia de bundle (margem de ~1,9 kB no preview). Começar sem esses pré-requisitos produziria extração inventada ou tela fora do orçamento; fica como próxima prioridade com esses pré-requisitos explícitos.
+
+
+## Pilot hosted closure e headroom — 04/10/2026
+
+| Bloco | Status | Código / evidência | CI / hosted | Gap / próxima ação |
+| --- | --- | --- | --- | --- |
+| Gate de evidência Pilot | partial | lib/finance/pilot-release.mjs, scripts/check-pilot-release.mjs, test-pilot-release.mjs, FINANCIAL_PILOT_RELEASE_GATE.md | testes Node aprovados; novos checks ainda pendentes | avaliar comprovantes reais; não autentica a origem sozinho |
+| Bundle staged | code_complete | --stop-before no gerador, testes de prefixo determinístico sem saltos | local aprovado; sem aplicação hospedada | backup/restore e decisão destrutiva específicos |
+| Pilot hospedado | blocked | FINANCIAL_RELEASE_EVIDENCE_2026-10-04.md: marker surface-hardening, 17 pendentes; identidade/bucket/inventário reais | NO-GO | conexão de dump, restore descartável, rollout, doctor/canário/jornada |
+| Headroom financeiro | partial | mudança proposta em perf/bundle-headroom: preview sem sandbox implícito, perfil de chunks | medição local 426.007 JS, maior 82.324; CI da PR pendente | merge com quatro gates; demo independente ainda 798.135 JS |
+| P1.4 | missing | upload privado anterior preservado; nenhum domínio de extração/review/mapping novo nesta entrega | sem validação P1.4 | completar pré-requisito de headroom/merge e implementar foundation com provider fixture sem claim de IA real |
+| Primeiro cliente | blocked | FIRST_CUSTOMER_PILOT_CHECKLIST.md | não pronto | recuperação, schema, jornada, jurídico/dados, contas, proteção e P1.4 |
+
+Nesta sessão: npm ci limpo, audit zero vulnerabilidades, SBOM, check:all e
+builds/fronteiras aprovados. Banco local indisponível (psql ausente); download
+de browsers inválido, portanto E2E/p95 não comprovados localmente. Não confundir
+CI da baseline com CI desta entrega nem ferramenta de avaliação com hosted proof.

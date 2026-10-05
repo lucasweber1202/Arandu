@@ -67,3 +67,25 @@ for (const args of [
   assert.equal(result.stdout, '', 'Invalid target must not emit applicable SQL');
 }
 console.log('Pending migration bundles: order, contents, deterministic output, current schema and fail-closed targets passed.');
+
+const boundary = 'docs/supabase-financial-legacy-art-decommission.sql';
+const stagedArgs = ['--flow=existingDatabase', '--after-schema=financial-surface-hardening-1', `--stop-before=${boundary}`];
+const staged = command(stagedArgs);
+assert.equal(staged.status, 0, staged.stderr);
+assert(staged.stdout.includes(approval));
+assert(staged.stdout.includes(readFileSync('docs/supabase-financial-data-governance.sql', 'utf8').trim()));
+assert(!staged.stdout.includes(readFileSync(boundary, 'utf8').trim()));
+assert(!staged.stdout.includes(readFileSync('docs/supabase-financial-p0-closure.sql', 'utf8').trim()));
+assert(!staged.stdout.includes(readFileSync('docs/supabase-financial-opportunity-engine.sql', 'utf8').trim()));
+assert.equal(staged.stdout, command(stagedArgs).stdout);
+for (const args of [
+  ['--flow=cleanInstall', `--stop-before=${boundary}`],
+  ['--flow=existingDatabase', `--stop-before=${boundary}`],
+  ['--flow=existingDatabase', '--after-schema=financial-legacy-art-decommission-1', `--stop-before=${boundary}`],
+  ['--flow=existingDatabase', '--after-schema=financial-surface-hardening-1', '--stop-before=unknown']
+]) {
+  const invalid = command(args);
+  assert.equal(invalid.status, 1);
+  assert.equal(invalid.stdout, '');
+}
+console.log('Staged migration prefix: explicit observed marker, destructive boundary, no skipping and deterministic SQL passed.');

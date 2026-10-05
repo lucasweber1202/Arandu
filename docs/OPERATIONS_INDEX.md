@@ -14,6 +14,9 @@ documento divergir, vale este índice, nesta ordem.
 
 ## Financial Procurement (produto atual)
 
+- `docs/FINANCIAL_PILOT_RELEASE_GATE.md` — gate binário de comprovantes hospedados, SHA, freshness, restore, cronologia e jornada.
+- `docs/FINANCIAL_RELEASE_EVIDENCE_2026-10-04.md` — reconciliação viva e NO-GO atual do Pilot.
+- `docs/FIRST_CUSTOMER_PILOT_CHECKLIST.md` — configuração, dados, suporte e critérios de primeiro cliente.
 - `docs/FINANCIAL_PILOT_GO_LIVE.md` — checklist única de go-live do piloto, com estado por item.
 - `docs/FINANCIAL_OWNER_ACTIONS.md` — o que só o proprietário pode fazer.
 - `docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md` — três ambientes (demo, pilot, production), `feature/* → pilot → main`, hotfix e rollback.
