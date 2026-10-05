@@ -107,6 +107,7 @@ que contém a capability. `Ambiente validado` = onde a evidência mais alta foi 
 | P1.3 | Opportunity Engine determinístico | implemented | M2 | E2 | CI | BL-V3 (primeira: `70df5d3`) | 05/10 | rollout; cadência do cron | M3 |
 | P1.4 | Proposal & Document Intelligence | partial (foundation completa) | M1 | E1 | local (PostgreSQL 16 + Chromium desktop/mobile) | — (CI bloqueado por cobrança do Actions) | 05/10 | CI do GitHub Actions (cobrança); OCR/modelo externo (contrato de dados); Stage 0 hospedado | M2: quatro gates no HEAD da PR |
 | PQ-01 | Provider Qualification & Due Diligence (v3 §11) | partial (core completo) | M1 | E1 | local (PostgreSQL 16 + Chromium desktop/mobile) | — (CI bloqueado) | 05/10 | CI (cobrança); Stage 0 | M2 |
+| PA-01 | Post-Award Implementation & Transition | partial (core implementado) | M1 | E1 | local, fixtures sintéticas | — (CI obrigatório pendente) | 05/10 | CI e Stage 0 | M2 com quatro gates no SHA |
 | P1.5 | SCIM / JIT / access reviews | missing | NOT_STARTED | — | — | — | — | — | — |
 | P1.6 | Executive Portfolio | partial | M2 (fatia executiva) | E2 | CI | BL-V3 | 05/10 | rollout hospedado | M3 |
 | P1.7–P1.9 | Spend, Covenant Monitor, Provider Performance | missing | NOT_STARTED | — | — | — | — | — | — |
@@ -650,3 +651,5 @@ Implementada a foundation completa (M1, evidência local E1). CI indisponível: 
 | Leitores + evals (10 casos sintéticos, 5 falhas fechadas) | `scripts/test-document-intelligence.mjs` no `check:finance` |
 | UI | `tests/e2e/finance-extractions.spec.js`: 10/10 Chromium desktop + mobile |
 | Bundle | financeiro 426.603 (+429); demo 799.005 (**inalterado**: página e código fora do pacote demonstrativo) |
+
+| PA-01 | v3 lifecycle / Phase 3 | Post-Award Implementation & Transition | P1 | contratos, Value Realization, Graph | partial | `docs/FINANCIAL_IMPLEMENTATION.md`, migration/rollback, 5 tabelas, RPCs, API JWT, UI, tasks, reminders, Search, Graph, Opportunity Engine | templates editáveis, portal de provedor, UI analyst, hosted | aceite sem evidência e acesso fora do escopo recusados no banco | M2 após CI no SHA | feature/post-award-implementation |

@@ -12,6 +12,7 @@ select public.fin_job_begin('renewals','parallel-resilience-a',now(),90) is not 
 select pg_sleep(2);
 commit;
 SQL
+: > "$work/holder.log"
 psql "$url" -X -A -t -v ON_ERROR_STOP=1 -f "$work/holder.sql" > "$work/holder.log" &
 holder=$!
 ready=0

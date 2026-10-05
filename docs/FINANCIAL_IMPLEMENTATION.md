@@ -1,0 +1,17 @@
+# Post-Award Implementation & Transition
+
+M1/E1 local; M2 requires the four GitHub Actions gates and `merge:gates` for the exact SHA. No hosted validation or feature merge is implied.
+
+A buyer administrator or financial manager opens one plan per active/renewing contract. Organization, entity, provider, product and decision come from the contract. Credit v1 has ten sequential milestones (documentation through drawdown readiness/go-live); acquiring v1 has eight (commercial setup through settlement validation/go-live); other products have five. All deadlines initially use the target and can be adjusted with a milestone version token. Provider-owner contact is buyer metadata and confers no provider access.
+
+`fin_implementation_plans`, `fin_implementation_milestones`, `fin_implementation_dependencies`, `fin_implementation_issues` and `fin_implementation_acceptances` are governed and exported. Acceptance and dependencies are immutable; deletes are denied. Cancellation retains the justification. Rollback is allowed only before records or related Opportunity rules/opportunities exist; after use, apply a forward fix. Roll back this capability before Value Realization.
+
+All writes use authenticated RPCs: `fin_open_implementation`, `fin_update_implementation_milestone`, `fin_implementation_issue`, `fin_accept_implementation`, `fin_cancel_implementation`. They check live membership, buyer kind, entity scope and offboarding; owner and evidence must share the source scope. Analysts can work on milestones/issues by API. The shared UI presently exposes management forms to administrators/managers. Providers and other tenants have no read or write access. No service-role reads in the user API.
+
+Dependencies must stay within the plan and follow increasing positions. Incomplete dependencies block starting/completing a milestone. Completion requires evidence. Open issues or blocked milestones block readiness. Acceptance requires every milestone completed, no open issues, expected plan version, explicit human confirmation, factual go-live date and evidence. An optional existing Value Realization record must belong to the same contract/entity; accepting does not create or verify savings.
+
+Existing contract tasks are synchronized. The existing leased contract-milestones job sends idempotent in-app reminders keyed by milestone, only to live authorized owners. Search and Financial Graph include authorized plans. Opportunity Engine adds configurable `implementation_overdue` and `implementation_blocked` rules using contract sources and plan facts; they are inactive until configured by the customer. The interface is `/finance/implementations.html`; JWT API is `/api/finance/implementations` and `/detail`, `/open`, `/milestone`, `/issue`, `/resolve-issue`, `/accept`, `/cancel`.
+
+Evidence: `scripts/test-finance-implementation.mjs`, `tests/database/financial-implementation.sql`, `tests/e2e/finance-implementations.spec.js`. Database covers roles, tenant/entity/provider isolation, dependencies, stale versions, missing evidence, explicit acceptance, audit and stale JWT revocation. E2E uses real presenters with synthetic API fixtures; it is not a hosted journey.
+
+Remaining: customer-editable templates/dependency graphs, direct provider participation, analyst forms in the shared renderer, external notifications and hosted recovery/journey evidence. A go-live acceptance does not execute a drawdown, payment, signature or bank integration.
