@@ -35,7 +35,7 @@ Branch name pattern: `main`
 | Allow force pushes | desligado | histórico da `main` não é reescrito |
 | Allow deletions | desligado | a `main` não pode ser apagada |
 
-Regra atual para `pilot` e `main`: sem bypass permanente. A orientação histórica de emergência abaixo foi substituída pelo addendum v2.1 e `BRANCH_PROTECTION.md`. Exceções precisam de incidente documentado. Em 04/10 ambas continuam `protected=false`; nada foi configurado pelo conector.
+Regra atual para `pilot` e `main`: sem bypass permanente. A orientação histórica de emergência abaixo foi substituída por `BRANCH_PROTECTION.md` (originalmente pelo addendum v2.1, hoje histórico; a Guideline v3 §23.5 mantém a regra). Exceções precisam de incidente documentado. Em 05/10 ambas continuam `protected=false`; nada foi configurado pelo conector.
 
 ### Por que isso importa — agora com duas ocorrências
 
@@ -47,6 +47,49 @@ nos cinco navegadores e leva cerca de vinte minutos; ele é exatamente o que
 
 Enquanto a regra não existir, a recomendação operacional é simples: **não
 mesclar antes de os quatro jobs fecharem**, e conferir na aba Actions.
+
+## Incidentes de governança de merge
+
+Registro factual, sem culpa individual (modelo de `FINANCIAL_INCIDENT_POSTMORTEM.md`).
+Classe: **merge governance incident** — não é falha do produto.
+
+### MGI-2026-10-05-01 — PR #127 mergeada com gates em execução e base desatualizada
+
+| Campo | Fato |
+| --- | --- |
+| Severidade | baixa (diff só de documentação; nenhum ambiente hospedado afetado), mas quebra a invariante "`pilot` = árvore validada" |
+| PR | #127 `docs: guideline v3 — operational maturity and enterprise lifecycle` (HEAD `c16ae6642fdc2ac18080347ce19cc8731193c69f`, criada sobre `pilot@556258c`) |
+| Merge | `pilot@d828a44027506a9d4a4eddd807914f85dd8dde4c`, 05/10 13:28:36Z — 25 s depois do merge da #125 (`399b7ac`, 13:28:11Z) |
+| Estado dos gates no merge | run `37316477732` sobre `c16ae66`: `database` e `deploy-boundaries` success; **`validate` e `presentation` `in_progress`** (`validate` terminou success às 13:39:46Z, depois do merge) |
+| Base | a branch da #127 **não continha** a ponta da `pilot` após a #125; a combinação #125 + #127 nunca rodou CI (o CI não roda em push para `pilot`) |
+| Detecção | `merge-audit` (workflow introduzido pela #125) no push de `d828a44`: run `37317090124` **failure** em 16 s — "validate: in_progress", "presentation: in_progress", "PR desatualizada: pilot avançou depois do HEAD testado". O run anterior (`37317037072`, merge da #125) ficou success |
+| Causa | merge manual pela interface enquanto não há ruleset ativa (`protected=false`); `npm run merge:gates -- 127` não foi executado (teria bloqueado pelos dois motivos) |
+| Fator contribuinte | três merges em 25 s (#125 → `pilot`, #126 → `main`, #127 → `pilot`); a #126 (Dependabot) entrou direto em `main` com CI verde, criando divergência de dependência `main` × `pilot` (Vite 8.3.2 só em `main`). `main` não tem `merge-audit` até a próxima promoção `pilot → main`, por isso a #126 não foi auditada pós-merge |
+| Impacto | `pilot@d828a44` deixou de ser baseline limpa até nova validação; nenhum dado, deploy hospedado, migration ou segurança afetados |
+
+**Por que a história não é reescrita.** `pilot` é branch compartilhada; reverter/forçar
+apagaria a evidência que o próprio controle detectivo produziu e invalidaria checkouts de
+terceiros. A correção é sempre **para frente, por PR nova**.
+
+**Correção.** PR de reconciliação v3 (05/10): parte da ponta atual da `pilot`, incorpora
+#125 + #127 + o bump da #126 (merge consciente de `main`), migra a
+`IMPLEMENTATION_MATRIX` para M0–M6 e só é mergeada com os quatro gates verdes no HEAD
+exato, `merge:gates` verde e base contida; depois do merge, o `merge-audit` do novo HEAD
+precisa ficar verde. Evidência: `FINANCIAL_RELEASE_EVIDENCE_2026-10-05_V3_BASELINE.md`.
+
+**Preventivo × detectivo.**
+
+| Controle | Tipo | Quando atua | Limite |
+| --- | --- | --- | --- |
+| `npm run merge:gates -- <PR>` | preventivo **manual** | antes do merge, se alguém o executar | depende de disciplina; não impede o botão de merge |
+| `.github/workflows/merge-audit.yml` | **detectivo** pós-merge | a cada push em `pilot`/`main` | o merge já aconteceu quando falha; só existe em `main` após a promoção |
+| Rulesets `.github/rulesets/{pilot,main}.json` | preventivo **definitivo** | o GitHub bloqueia o merge sem os quatro checks success e branch atualizada | **OWNER_ACTION_REQUIRED** — ainda não aplicadas (`protected=false`) |
+
+**Prevenção.** (1) Owner importa as rulesets (`BRANCH_PROTECTION.md`) — é o único controle
+que torna este incidente impossível. (2) Até lá, `merge:gates` antes de qualquer merge.
+(3) Dependabot passa a abrir PR contra `pilot` (`target-branch: "pilot"` em
+`.github/dependabot.yml`, verificado em `check:governance`); efetivo quando o arquivo
+chegar a `main`, que é de onde o Dependabot lê a configuração.
 
 ## PR #63 — encerrada como obsoleta
 

@@ -1,8 +1,8 @@
 # Primeiro cliente Pilot — checklist
 
 Estado de 05/10/2026: **não pronto**. Evidência técnica e blockers em
-[`FINANCIAL_RELEASE_EVIDENCE_2026-10-05.md`](FINANCIAL_RELEASE_EVIDENCE_2026-10-05.md)
-(observações hospedadas de 04/10 em `FINANCIAL_RELEASE_EVIDENCE_2026-10-04.md`).
+[`FINANCIAL_RELEASE_EVIDENCE_2026-10-05_V3_BASELINE.md`](FINANCIAL_RELEASE_EVIDENCE_2026-10-05_V3_BASELINE.md)
+(rodada anterior em `FINANCIAL_RELEASE_EVIDENCE_2026-10-05.md`; observações hospedadas de 04/10 em `FINANCIAL_RELEASE_EVIDENCE_2026-10-04.md`).
 Demo sandbox, código validado e Pilot autenticado são estados distintos.
 
 | Item | Estado | Ação e verificação |

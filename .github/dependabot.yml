@@ -1,7 +1,11 @@
 version: 2
 updates:
+  # Dependências entram por pilot (feature/* -> pilot -> main): uma PR direto em
+  # main cria divergência main x pilot (ocorreu com a #126). O Dependabot lê esta
+  # configuração da branch padrão, então vale depois da promoção pilot -> main.
   - package-ecosystem: "npm"
     directory: "/"
+    target-branch: "pilot"
     schedule:
       interval: "weekly"
       day: "monday"
@@ -20,6 +24,7 @@ updates:
 
   - package-ecosystem: "github-actions"
     directory: "/"
+    target-branch: "pilot"
     schedule:
       interval: "weekly"
       day: "monday"

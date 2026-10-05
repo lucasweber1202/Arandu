@@ -1,31 +1,150 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
-Documento vivo. Decompõe a guideline efetiva (`docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md`
-+ `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES_V2_1_ADDENDUM.md`, que prevalece) em
-requisitos implementáveis e registra, com evidência no repositório, o estado de cada um.
+Documento vivo. É o **estado vivo** exigido pela Guideline v3 (§1.3): decompõe
+`docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md` (**v3.0, autoridade estratégica**)
+em capabilities e registra, por capability, escopo, maturity state (M0–M6),
+evidência, blockers, dependências, última validação, ambiente validado e próximo gate.
 Outra sessão deve conseguir continuar a partir daqui sem refazer a auditoria.
 
-- **Baseline reconciliada em 05/10/2026:** `pilot` @ `556258c0329a321fd6b2df8daf151195be4327f1` (merge #124 sobre #123); `main` @ `201adb475a62eb05d6da33b9f563b7132cf28a45` (merge #99). A #124 entrou com `presentation` vermelho e a combinação #123+#124 nunca rodou CI; a PR de baseline de 05/10 corrige a causa (central de comando perdia digitação durante o carregamento) e só vale como baseline limpa com os quatro gates verdes no HEAD exato. Hosted Pilot permanece NO-GO; ver `FINANCIAL_RELEASE_EVIDENCE_2026-10-05.md`.
-- **Autorização de escopo:** missão humana explícita desta rodada autoriza P0, P1, P2 (com
-  pré-requisitos) e P3 (somente com gates). Não elimina dependency order, boundaries,
-  decisão humana, gates jurídicos/segurança, provenance, isolamento nem DoD.
-- **Validação local histórica de referência (outra sessão):** PostgreSQL 16 local (`npm run test:database` verde),
-  `npm run check:all` verde, Chromium do Playwright em `/opt/pw-browsers`. Firefox/WebKit
-  **não** instalados nesta sessão: cross-browser fica para o job `validate` do CI.
+- **Autoridade.** A direção estratégica é a Guideline v3. Documentos especializados
+  (`FINANCIAL_PRODUCT_BOUNDARIES.md`, data model/migrations, segurança, deployment,
+  operação, runbooks, releases) regem a implementação concreta (v3 §1.3 e Apêndice D).
+  `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES_V2_1_ADDENDUM.md` é **histórico/superseded**:
+  continua como referência técnica para os IDs `Add. X.Y` citados nas tabelas abaixo,
+  mas **não prevalece** sobre a v3. As colunas `Guideline` das tabelas detalhadas citam
+  seções da v2/v2.1 vigentes quando cada linha foi escrita; a numeração não foi
+  reescrita para não perder rastreabilidade.
+- **Estado atual (05/10/2026, rodada de reconciliação pós-merge v3).** `pilot` @
+  `d828a44027506a9d4a4eddd807914f85dd8dde4c` (merge #127, Guideline v3) **não é baseline
+  limpa**: a #127 foi mergeada com `validate`/`presentation` ainda em execução e sem conter
+  a ponta da `pilot` após a #125 (incidente de governança de merge, ver
+  `FINANCIAL_REPO_GOVERNANCE.md`). `main` @ `ed5da41c5244040d9e3b1ddb501053280d692622`
+  (merge #126, Vite 8.3.2). A PR de reconciliação v3 incorpora #125 + #127 + o bump da #126
+  e revalida a árvore combinada; HEAD e runs ficam registrados na PR e em
+  `FINANCIAL_RELEASE_EVIDENCE_2026-10-05_V3_BASELINE.md` (um commit não pode conter o
+  próprio SHA). **Pilot hospedado: NO-GO.**
+- **Baselines anteriores (históricas, superseded):** `pilot@556258c` + `main@201adb4`
+  (baseline de 05/10 antes da #125); `pilot@399b7ac` (merge #125, `merge-audit` verde).
+  Evidência de CI da árvore completa ainda válida como referência: `e2212af` (HEAD da #125,
+  run `37258668278`, quatro gates success).
+- **Escopo de rodada.** A matriz não autoriza ampliar missão (v3 §33 e `CLAUDE.md`). P1.4
+  (Proposal & Document Intelligence) só começa depois de baseline limpa + fechamento
+  hospedado suficiente do Pilot + operational readiness (Stage 0, v3 §29).
 
-## Legenda
+## Modelo de maturidade (Guideline v3 §5)
+
+`implemented` **nunca** significa `PRODUCTION_READY`. A coluna `Status` das tabelas
+detalhadas mede **completude de escopo** (o que existe no código frente ao escopo da linha);
+a **maturidade** é a coluna `Maturity` do registro abaixo. Um estado superior exige evidência
+dos anteriores; incidente ou regressão pode rebaixar; blocker externo não eleva estado.
+
+| Estado | Critério objetivo de promoção (entrada) | Não implica |
+| --- | --- | --- |
+| `NOT_STARTED` | nada além da definição normativa na guideline | — |
+| **M0 — DESIGNED** | problema, persona, boundaries e source of truth definidos; modelo/fluxo alvo em documento técnico; sem claim de implementação | código |
+| **M1 — CODE_COMPLETE** | código existe (domínio/modelo/API/UI conforme aplicável); migration + rollback + registro no manifesto quando houver SQL; testes locais relevantes (incluindo negativos) existem; documentação técnica acompanha | CI verde, deploy, ambiente real |
+| **M2 — CI_VALIDATED** | `database`, `deploy-boundaries`, `validate`, `presentation` = `success` no **HEAD exato** que contém a capability, com a ponta da base contida (`merge:gates`); banco e os cinco projetos de navegador aplicáveis verdes; nenhuma evidência herdada de SHA anterior | ambiente hospedado saudável |
+| **M3 — HOSTED_VALIDATED** | migration/config aplicada no ambiente hospedado alvo; schema (marker) e deploy observados correspondem ao release; doctor/canário/probes relevantes passam; evidência vinculada a ambiente + SHA. Local ≠ hospedado | uso por pessoas, recuperação exercitada |
+| **M4 — PILOT_VALIDATED** | jornada autenticada real ou representativa ponta a ponta no Pilot; restore/recovery aplicável exercitado; runbook, observabilidade e suporte exercitados; evidência ligada ao SHA; `pilot:release:check` GO; blockers críticos fechados ou aceitos por responsável nomeado | produção |
+| **M5 — PRODUCTION_READY** | ambiente PROD dedicado (`ARANDU_ENV=production`, Supabase próprio, migrations próprias, secrets corretos); backup + restore provados; security/admin blockers relevantes fechados; owner, suporte, rollback/forward-fix e resposta a incidente definidos; promoção `pilot → main` da mesma árvore | validação por cliente |
+| **M6 — CUSTOMER_VALIDATED** | uso real por cliente/design partner no problema alvo; jornada observada; valor/usabilidade medidos; feedback e gaps registrados | fim da evolução |
+
+**Nível de evidência** (coluna `Evidence level`): `E0` documento; `E1` teste local; `E2` CI no
+HEAD exato; `E3` sonda/doctor/canário hospedado ligado ao release; `E4` jornada + recuperação
+no Pilot; `E5` produção; `E6` uso por cliente.
+
+**Baselines de validação** usadas no registro:
+
+| Código | SHA | Evidência | Estado |
+| --- | --- | --- | --- |
+| `BL-125` | `e2212af5a49707cf9ecd44b3384a2eaccf270756` (HEAD da #125, contém tudo até #124) | run `37258668278`: quatro gates success em 05/10 | válida como última validação da árvore funcional; **superseded** pela BL-V3 quando ela ficar verde |
+| `BL-V3` | HEAD da PR de reconciliação v3 (registrado na PR e na release evidence) | quatro gates no HEAD exato + `merge:gates` + `merge-audit` pós-merge | **pendente até o CI concluir**; nenhuma linha usa BL-V3 como prova antes disso |
+
+Regras de leitura: nenhuma capability está em **M3+** — o Pilot hospedado foi observado pela
+última vez no marker `financial-surface-hardening-1` (04/10), sem doctor/canário/jornada
+hospedados vinculados a um release, e produção não tem `ARANDU_ENV=production` nem Supabase
+próprio. Nenhuma capability é **M6**: não há cliente real em operação.
+
+## Registro de maturidade por capability (v3)
+
+Detalhe de escopo, evidência de código, riscos e histórico de PRs permanece nas tabelas
+por bloco abaixo (IDs preservados). `Validated SHA` = última árvore com quatro gates verdes
+que contém a capability. `Ambiente validado` = onde a evidência mais alta foi obtida.
+
+| ID | Capability | Escopo | Maturity | Evidence level | Ambiente validado | Validated SHA | Última validação | Blockers externos | Próximo gate |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| P0.1-01 | Demo/Pilot/Production por configuração | partial | M2 | E2 | CI (`deploy-boundaries`) | BL-125 | 05/10 | Supabase DEMO/PROD; `ARANDU_ENV=production` | M3: env hospedado por ambiente observado |
+| P0.1-02 | Manifesto de migrations, clean/upgrade/reapply/rollback | implemented | M2 | E2 | CI (`database`) | BL-125 | 05/10 | — | manter por migration |
+| P0.1-03 | Migrations aplicadas no Pilot hospedado | blocked | M2 (bundle/ferramenta) · hosted não atingido | E2 | CI | BL-125 | 05/10 | credencial administrativa Supabase; restore drill hospedado antes | M3: bundle aplicado + doctor GO |
+| P0.1-04 | Rulesets `pilot`/`main` | blocked | M2 (artefatos versionados) · **não aplicada** (`protected=false`) | E2 | CI (`check:governance`) | BL-125 | 05/10 | **OWNER_ACTION_REQUIRED** (admin GitHub) | owner importa; API `protected=true` |
+| P0.1-05 | Restore drill local + procedimento hospedado | partial | M2 (mecanismo) | E1/E2 | local + CI (preflight) | BL-125 | 05/10 | `PILOT_SOURCE_DATABASE_URL` | M4: drill hospedado PASS |
+| P0.1-06 | Doctor, canary, env check | implemented | M2 | E2 | CI | BL-125 | 05/10 | credencial do Pilot | M3: doctor/canário hospedado no SHA |
+| P0.1-07 | Severidade, runbook, postmortem | partial | M1 | E0 | documento | — | 05/10 | responsáveis nomeados | M4: exercício de resposta |
+| P0.2-01..08 | Multi-entity (grupo, escopo, RLS, guardas, consolidado, moeda, trilha, UI) | implemented | M2 | E2 | CI | BL-125 | 05/10 | rollout hospedado | M3 |
+| P0.2-09 | Aprovação cruzada / tesouraria por policy | partial | M2 | E2 | CI | BL-125 | 05/10 | rollout hospedado | M3 |
+| P0.3-01 | Passport com proveniência por campo | implemented | M2 | E2 | CI | BL-125 | 05/10 | rollout hospedado | M3 |
+| P0.3-02 | Passport por entidade legal | partial | M2 | E2 | CI | BL-125 | 05/10 | rollout hospedado | M3 |
+| P0.3-03 | Financial Graph consultável | partial | M2 | E2 | CI | BL-125 | 05/10 | rollout hospedado | M3 |
+| P0.4-01..05 | Contract & Renewal Center v2 | implemented | M2 | E2 | CI | BL-125 | 05/10 | rollout; provedor de e-mail | M3 |
+| P0.5-01..06 | Provider / Bank Relationship | implemented | M2 | E2 | CI | BL-125 | 05/10 | rollout hospedado | M3 |
+| P0.6-01..04 | Debt / Facilities / Limits / Guarantees | implemented | M2 | E2 | CI | BL-125 | 05/10 | rollout hospedado | M3 |
+| P0.7-01 | Aprovação sequencial com snapshot e SoD | implemented | M2 | E2 | CI | BL-125 | 05/10 | rollout hospedado | M3 |
+| P0.7-02..03 | Policy engine v2, prazos, escalonamento, exceção | partial | M2 | E2 | CI | BL-125 | 05/10 | rollout; agendador em minutos | M3 |
+| P0.8-01..02 | API v1 e webhooks | partial | M2 | E2 | CI | BL-125 | 05/10 | rollout; chave de cifragem por ambiente; agendador | M3 |
+| P0.8-03 | Docs/versioning/deprecation da API | implemented | M2 | E2 | CI (paridade OpenAPI) | BL-125 | 05/10 | — | manter |
+| P0.9-01 | MFA do operador da plataforma | implemented | M2 | E2 | CI | BL-125 | 05/10 | cadastro de MFA do `finance_ops` (O3) | M3 |
+| P0.9-02..03 | SSO SAML/OIDC fail-closed | partial | M2 | E2 | CI (IdP de teste) | BL-125 | 05/10 | SSO no Supabase, IdP real, DNS, segredos | M3: login real com IdP |
+| P0.10-01 | Backup preflight / restore drill | partial | M2 (mecanismo) | E1/E2 | local + CI | BL-125 | 05/10 | conexão administrativa do Pilot | M4 |
+| P0.10-02 | Incident/DR/RPO-RTO honestos | partial | M1 | E0 | documento | — | 05/10 | responsáveis; ensaio DR hospedado | M4 |
+| P0.10-03 | Health, request IDs, job runs, outbox | implemented | M2 | E2 | CI | BL-125 | 05/10 | — | M3 |
+| P0.11-01 | Classificação, minimização, SoR | implemented | M2 | E2 | CI | BL-125 | 05/10 | — | M3 |
+| P0.11-02 | Retenção, hold, export, offboarding | partial | M2 | E2 | CI | BL-125 | 05/10 | jurídico (exclusão física); decisão de produto (offboarding de provedor) | M3 |
+| P0.11-03 | Subprocessadores / readiness jurídica | blocked | M0 | E0 | documento | — | 05/10 | parecer jurídico | decisão jurídica |
+| LEG-01..02 | Runtime e artefatos de arte fora do tree | implemented | M2 | E2 | CI (`check:legacy-art`, superfície) | BL-125 | 05/10 | deploy de produção antigo ainda serve API legada | M3 após deploy |
+| LEG-03 | Objetos de banco/storage da arte | partial | M2 (migration) | E2 | CI | BL-125 | 05/10 | backup/restore + export + decisão do owner | M3 |
+| P1.1 | Savings & Value Realization Ledger | implemented | M2 | E2 | CI | BL-125 (primeira: `189bc9d`) | 05/10 | rollout hospedado | M3 |
+| P1.2 | Bank Fee Intelligence | implemented | M2 | E2 | CI | BL-125 (primeira: `e889aff`) | 05/10 | rollout hospedado | M3 |
+| P1.3 | Opportunity Engine determinístico | implemented | M2 | E2 | CI | BL-125 (primeira: `70df5d3`) | 05/10 | rollout; cadência do cron | M3 |
+| P1.4 | Proposal & Document Intelligence | missing | NOT_STARTED | — | — | — | — | provedor de extração; Stage 0 | **não iniciar** antes de Stage 0 |
+| P1.5 | SCIM / JIT / access reviews | missing | NOT_STARTED | — | — | — | — | — | — |
+| P1.6 | Executive Portfolio | partial | M2 (fatia executiva) | E2 | CI | BL-125 | 05/10 | rollout hospedado | M3 |
+| P1.7–P1.9 | Spend, Covenant Monitor, Provider Performance | missing | NOT_STARTED | — | — | — | — | — | — |
+| P1.10 | Enterprise Search | partial | M2 (escopo limitado) | E2 | CI | BL-125 | 05/10 | — | — |
+| P1.11–P1.12 | Enterprise Intake, Scenario Builder | missing | NOT_STARTED | — | — | — | — | — | — |
+| P2.1–P2.4, P2.6, P2.8 | Product Packs e integrações | missing | NOT_STARTED | — | — | — | — | gate §43.1 / Stage 4 | — |
+| P2.5 | Acquiring Intelligence (v1 existente) | partial | M2 (v1) | E2 | CI | BL-125 | 05/10 | — | — |
+| P2.7 | Open Finance | blocked | NOT_STARTED | — | — | — | — | consentimento/parceiro | — |
+| P3.1–P3.3 | Network, benchmarks | missing/blocked | NOT_STARTED | — | — | — | — | maturidade buyer-side; jurídico | não iniciar |
+| AI-01 | Assistente factual | missing | NOT_STARTED | — | — | — | — | provedor de modelo; revisão de dados | — |
+
+Estados agregados (05/10): **Código/CI** — M2 em `BL-125`; a árvore combinada pós-#127
+só volta a ser CI baseline com a BL-V3 verde. **Pilot hospedado** — NO-GO (nenhuma
+capability M3/M4). **Produção** — não pronta (nenhuma capability M5). **Cliente** —
+M6 = false para todas.
+
+## Legenda de escopo (coluna `Status` das tabelas detalhadas)
 
 | Status | Significado |
 | --- | --- |
-| `implemented` | domínio + persistência + autorização + API + UI/workflow + estados + auditoria + testes + docs, conforme aplicável, com evidência no repositório |
+| `implemented` | escopo da linha completo no código (domínio + persistência + autorização + API + UI/workflow + estados + auditoria + testes + docs, conforme aplicável). **Não** é maturidade: ver `Maturity` |
 | `partial` | existe parte da capacidade; as lacunas estão listadas |
 | `missing` | não há implementação |
 | `blocked` | depende de algo externo (credencial, decisão humana/jurídica/comercial, parceiro, dado licenciado, permissão administrativa); o que já foi preparado está listado |
 | `not-applicable` | não se aplica nesta fase por boundary documentado |
 
 Evidência sempre aponta arquivo, migration, API, teste ou UI. Página sozinha não é evidência
-de capacidade completa. "Verde no CI" só vale quando o run existe; aqui, salvo indicação,
-"testado" significa testado **localmente** nesta sessão.
+de capacidade completa. "Verde no CI" só vale quando o run existe no HEAD exato. Linhas
+históricas abaixo que dizem "testado" sem run referem-se a validação **local** da sessão
+que as escreveu.
+
+### Contexto histórico do cabeçalho anterior (superseded)
+
+- Baseline reconciliada em 05/10/2026 antes da #125: `pilot@556258c` (merge #124 sobre
+  #123) e `main@201adb4` (merge #99). Superseded por este cabeçalho.
+- Autorização de escopo da rodada de 03–04/10 (P0, P1, P2 com pré-requisitos, P3 com gates)
+  não se estende a rodadas seguintes.
+- Validação local histórica de referência: PostgreSQL 16 local e Chromium do Playwright;
+  Firefox/WebKit sempre pelo job `validate` do CI.
 
 ---
 
@@ -481,3 +600,18 @@ Partiu de `pilot@556258c` (#123 + #124). Detalhes, comandos e números em `FINAN
 | Produção | BLOCKED | sondas 05/10: API legada ainda roteada (`/api/forms` 405, `/api/catalog` 503) | não pronta | Supabase próprio + `ARANDU_ENV=production` (owner) |
 | P0.11 Data Governance | partial (inalterado) | `test:database` e `check:finance` verdes em 05/10 | — | exclusão física (jurídico), offboarding de provedor (produto), rollout |
 | P1.4 | NOT_STARTED | §23 da guideline; ordem da missão exige fechamento hospedado antes | — | após ações do owner; provedor de extração e headroom (demo a 1.162 bytes do teto) |
+
+## Reconciliação pós-merge + Guideline v3 — 05/10/2026
+
+Partiu de `pilot@d828a44` (#125 + #127) e `main@ed5da41` (#126). Sem feature nova.
+Detalhes, comandos e números em `FINANCIAL_RELEASE_EVIDENCE_2026-10-05_V3_BASELINE.md`.
+
+| Bloco | Status | Código / evidência | CI / hosted | Gap / próxima ação |
+| --- | --- | --- | --- | --- |
+| `main → pilot` | DONE | merge consciente de `main@ed5da41`: única mudança exclusiva de `main` desde o merge-base `201adb4` é `cba84af` (Vite 8.3.1 → 8.3.2); lock regenerado; `typescript` legado de `main` **não** reintroduzido | `main...pilot` passa a `behind_by=0` depois do merge desta PR | Dependabot passa a mirar `pilot` (efetivo quando `.github/dependabot.yml` chegar a `main`) |
+| Matriz v3 | DONE | autoridade v3, M0–M6 com critérios de promoção, registro de maturidade por capability, addendum v2.1 marcado histórico | — | atualizar `Maturity`/`Validated SHA` a cada gate |
+| Incidente #127 | DONE (registro) | `FINANCIAL_REPO_GOVERNANCE.md` → incidentes de governança de merge | `merge-audit` run `37317090124` failure (detecção correta) | prevenção definitiva = rulesets (OWNER_ACTION_REQUIRED) |
+| Rulesets | OWNER_ACTION_REQUIRED | `.github/rulesets/{pilot,main}.json` inalterados e testados | `protected=false` | owner importa |
+| Capacity headroom | RISK | financeiro 426.174 / 800.000; demo 799.005 / 800.000 (995 bytes) | — | `technical capacity risk` na demo; ver `FINANCIAL_BUNDLE_HEADROOM.md` |
+| Pilot hospedado | BLOCKED / NO-GO | nada hospedado executado nesta rodada | — | Stage 0 hosted closure (ações do owner) |
+| P1.4 | NOT_STARTED | fora desta rodada por desenho | — | após baseline limpa + Stage 0 |

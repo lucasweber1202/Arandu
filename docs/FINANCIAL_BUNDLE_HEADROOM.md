@@ -59,3 +59,27 @@ capability para reduzir downloads por rota, independentemente do teto total.
 Desempenho WebKit p95, mobile startup e E2E precisam ser verificados pelos
 jobs `validate` e `presentation` no HEAD da PR. Build e testes de fronteira
 locais não substituem esses resultados.
+
+## Hard limit × healthy operating envelope (Guideline v3 §24) — 05/10/2026
+
+Medição local da baseline de reconciliação v3 (`pilot@d828a44` + Vite 8.3.2), com
+`ARANDU_SITE_URL` igual ao CI. O **hard limit** é o que `check:build-size` aplica e
+**não foi alterado**. O **healthy operating envelope** proposto aqui é ≥ 10% de margem
+sobre cada hard limit (JS total ≤ 720.000; maior chunk ≤ 90.000): abaixo dele, nova
+capability de peso material precisa trazer modularização, lazy loading, split de
+superfície ou remoção de duplicação (v3 §24.2).
+
+| Build | JS total | Margem até 800.000 | Margem % | Maior chunk | Margem até 100.000 | Dentro do envelope? |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| Produção/preview financeiro (`npm run build`) | 426.174 | 373.826 | 46,7% | 82.324 (`company`) | 17.676 (17,7%) | sim |
+| Demo independente (`npm run build:demo`) | 799.005 | **995** | **0,12%** | 89.125 | 10.875 (10,9%) | **não** |
+
+Variação frente à medição da #125 (05/10, Vite 8.3.1): financeiro 426.007 → 426.174
+(+167); demo 798.838 → 799.005 (+167) — o delta é do Vite 8.3.2, não de código do produto.
+
+**Technical capacity risk (demo).** A demo independente está 995 bytes abaixo do hard
+limit de JS total. Qualquer acréscimo ao sandbox legado ou à demo — inclusive P1.4 — falha o
+CI. Ação recomendada, fora desta rodada: dividir `workspace`/central de comando por rota ou
+aposentar o sandbox legado quando a demo canônica (Supabase DEMO) existir. **Não** aumentar o
+limite para fazer CI passar. O build financeiro, que é o que vai para Pilot/Produção, tem
+folga confortável.

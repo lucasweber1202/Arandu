@@ -1,5 +1,11 @@
 # Baseline da pilot e fechamento operacional — 05/10/2026
 
+> **Histórico / superseded como estado vivo.** Registra a rodada da #125 (baseline sobre
+> `pilot@556258c` + `main@201adb4`). O estado atual está em
+> [`FINANCIAL_RELEASE_EVIDENCE_2026-10-05_V3_BASELINE.md`](FINANCIAL_RELEASE_EVIDENCE_2026-10-05_V3_BASELINE.md).
+> Continuam válidos como evidência: a causa-raiz da #124, as sondas públicas de 05/10, o
+> limite do restore drill e a lista de ações externas (seção final).
+
 **PILOT NO-GO.** Fonte canônica do estado atual (substitui
 `FINANCIAL_RELEASE_EVIDENCE_2026-10-04.md` como referência viva; aquele
 documento continua válido como registro histórico das observações hospedadas de
