@@ -57,8 +57,8 @@ no Pilot; `E5` produção; `E6` uso por cliente.
 
 | Código | SHA | Evidência | Estado |
 | --- | --- | --- | --- |
-| `BL-125` | `e2212af5a49707cf9ecd44b3384a2eaccf270756` (HEAD da #125, contém tudo até #124) | run `37258668278`: quatro gates success em 05/10 | válida como última validação da árvore funcional; **superseded** pela BL-V3 quando ela ficar verde |
-| `BL-V3` | HEAD da PR de reconciliação v3 (registrado na PR e na release evidence) | quatro gates no HEAD exato + `merge:gates` + `merge-audit` pós-merge | **pendente até o CI concluir**; nenhuma linha usa BL-V3 como prova antes disso |
+| `BL-125` | `e2212af5a49707cf9ecd44b3384a2eaccf270756` (HEAD da #125, contém tudo até #124) | run `37258668278`: quatro gates success em 05/10 | **superseded** pela BL-V3 |
+| `BL-V3` | `4a93fa60b51ae4c094e95d25cee8be4748363cfb` (HEAD da #128; árvore idêntica a `pilot@d4d6c22`) | run `37320266260`: `database`, `deploy-boundaries`, `validate`, `presentation` success no HEAD exato (05/10 14:15Z) | **árvore CI-validada**; a #128 foi mergeada antes do fim do CI (MGI-2026-10-05-02, `merge-audit` `37320702496` failure). Baseline limpa = esta árvore + merge-audit verde da PR documental de seguimento |
 
 Regras de leitura: nenhuma capability está em **M3+** — o Pilot hospedado foi observado pela
 última vez no marker `financial-surface-hardening-1` (04/10), sem doctor/canário/jornada
@@ -73,52 +73,52 @@ que contém a capability. `Ambiente validado` = onde a evidência mais alta foi 
 
 | ID | Capability | Escopo | Maturity | Evidence level | Ambiente validado | Validated SHA | Última validação | Blockers externos | Próximo gate |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| P0.1-01 | Demo/Pilot/Production por configuração | partial | M2 | E2 | CI (`deploy-boundaries`) | BL-125 | 05/10 | Supabase DEMO/PROD; `ARANDU_ENV=production` | M3: env hospedado por ambiente observado |
-| P0.1-02 | Manifesto de migrations, clean/upgrade/reapply/rollback | implemented | M2 | E2 | CI (`database`) | BL-125 | 05/10 | — | manter por migration |
-| P0.1-03 | Migrations aplicadas no Pilot hospedado | blocked | M2 (bundle/ferramenta) · hosted não atingido | E2 | CI | BL-125 | 05/10 | credencial administrativa Supabase; restore drill hospedado antes | M3: bundle aplicado + doctor GO |
-| P0.1-04 | Rulesets `pilot`/`main` | blocked | M2 (artefatos versionados) · **não aplicada** (`protected=false`) | E2 | CI (`check:governance`) | BL-125 | 05/10 | **OWNER_ACTION_REQUIRED** (admin GitHub) | owner importa; API `protected=true` |
-| P0.1-05 | Restore drill local + procedimento hospedado | partial | M2 (mecanismo) | E1/E2 | local + CI (preflight) | BL-125 | 05/10 | `PILOT_SOURCE_DATABASE_URL` | M4: drill hospedado PASS |
-| P0.1-06 | Doctor, canary, env check | implemented | M2 | E2 | CI | BL-125 | 05/10 | credencial do Pilot | M3: doctor/canário hospedado no SHA |
+| P0.1-01 | Demo/Pilot/Production por configuração | partial | M2 | E2 | CI (`deploy-boundaries`) | BL-V3 | 05/10 | Supabase DEMO/PROD; `ARANDU_ENV=production` | M3: env hospedado por ambiente observado |
+| P0.1-02 | Manifesto de migrations, clean/upgrade/reapply/rollback | implemented | M2 | E2 | CI (`database`) | BL-V3 | 05/10 | — | manter por migration |
+| P0.1-03 | Migrations aplicadas no Pilot hospedado | blocked | M2 (bundle/ferramenta) · hosted não atingido | E2 | CI | BL-V3 | 05/10 | credencial administrativa Supabase; restore drill hospedado antes | M3: bundle aplicado + doctor GO |
+| P0.1-04 | Rulesets `pilot`/`main` | blocked | M2 (artefatos versionados) · **não aplicada** (`protected=false`) | E2 | CI (`check:governance`) | BL-V3 | 05/10 | **OWNER_ACTION_REQUIRED** (admin GitHub) | owner importa; API `protected=true` |
+| P0.1-05 | Restore drill local + procedimento hospedado | partial | M2 (mecanismo) | E1/E2 | local + CI (preflight) | BL-V3 | 05/10 | `PILOT_SOURCE_DATABASE_URL` | M4: drill hospedado PASS |
+| P0.1-06 | Doctor, canary, env check | implemented | M2 | E2 | CI | BL-V3 | 05/10 | credencial do Pilot | M3: doctor/canário hospedado no SHA |
 | P0.1-07 | Severidade, runbook, postmortem | partial | M1 | E0 | documento | — | 05/10 | responsáveis nomeados | M4: exercício de resposta |
-| P0.2-01..08 | Multi-entity (grupo, escopo, RLS, guardas, consolidado, moeda, trilha, UI) | implemented | M2 | E2 | CI | BL-125 | 05/10 | rollout hospedado | M3 |
-| P0.2-09 | Aprovação cruzada / tesouraria por policy | partial | M2 | E2 | CI | BL-125 | 05/10 | rollout hospedado | M3 |
-| P0.3-01 | Passport com proveniência por campo | implemented | M2 | E2 | CI | BL-125 | 05/10 | rollout hospedado | M3 |
-| P0.3-02 | Passport por entidade legal | partial | M2 | E2 | CI | BL-125 | 05/10 | rollout hospedado | M3 |
-| P0.3-03 | Financial Graph consultável | partial | M2 | E2 | CI | BL-125 | 05/10 | rollout hospedado | M3 |
-| P0.4-01..05 | Contract & Renewal Center v2 | implemented | M2 | E2 | CI | BL-125 | 05/10 | rollout; provedor de e-mail | M3 |
-| P0.5-01..06 | Provider / Bank Relationship | implemented | M2 | E2 | CI | BL-125 | 05/10 | rollout hospedado | M3 |
-| P0.6-01..04 | Debt / Facilities / Limits / Guarantees | implemented | M2 | E2 | CI | BL-125 | 05/10 | rollout hospedado | M3 |
-| P0.7-01 | Aprovação sequencial com snapshot e SoD | implemented | M2 | E2 | CI | BL-125 | 05/10 | rollout hospedado | M3 |
-| P0.7-02..03 | Policy engine v2, prazos, escalonamento, exceção | partial | M2 | E2 | CI | BL-125 | 05/10 | rollout; agendador em minutos | M3 |
-| P0.8-01..02 | API v1 e webhooks | partial | M2 | E2 | CI | BL-125 | 05/10 | rollout; chave de cifragem por ambiente; agendador | M3 |
-| P0.8-03 | Docs/versioning/deprecation da API | implemented | M2 | E2 | CI (paridade OpenAPI) | BL-125 | 05/10 | — | manter |
-| P0.9-01 | MFA do operador da plataforma | implemented | M2 | E2 | CI | BL-125 | 05/10 | cadastro de MFA do `finance_ops` (O3) | M3 |
-| P0.9-02..03 | SSO SAML/OIDC fail-closed | partial | M2 | E2 | CI (IdP de teste) | BL-125 | 05/10 | SSO no Supabase, IdP real, DNS, segredos | M3: login real com IdP |
-| P0.10-01 | Backup preflight / restore drill | partial | M2 (mecanismo) | E1/E2 | local + CI | BL-125 | 05/10 | conexão administrativa do Pilot | M4 |
+| P0.2-01..08 | Multi-entity (grupo, escopo, RLS, guardas, consolidado, moeda, trilha, UI) | implemented | M2 | E2 | CI | BL-V3 | 05/10 | rollout hospedado | M3 |
+| P0.2-09 | Aprovação cruzada / tesouraria por policy | partial | M2 | E2 | CI | BL-V3 | 05/10 | rollout hospedado | M3 |
+| P0.3-01 | Passport com proveniência por campo | implemented | M2 | E2 | CI | BL-V3 | 05/10 | rollout hospedado | M3 |
+| P0.3-02 | Passport por entidade legal | partial | M2 | E2 | CI | BL-V3 | 05/10 | rollout hospedado | M3 |
+| P0.3-03 | Financial Graph consultável | partial | M2 | E2 | CI | BL-V3 | 05/10 | rollout hospedado | M3 |
+| P0.4-01..05 | Contract & Renewal Center v2 | implemented | M2 | E2 | CI | BL-V3 | 05/10 | rollout; provedor de e-mail | M3 |
+| P0.5-01..06 | Provider / Bank Relationship | implemented | M2 | E2 | CI | BL-V3 | 05/10 | rollout hospedado | M3 |
+| P0.6-01..04 | Debt / Facilities / Limits / Guarantees | implemented | M2 | E2 | CI | BL-V3 | 05/10 | rollout hospedado | M3 |
+| P0.7-01 | Aprovação sequencial com snapshot e SoD | implemented | M2 | E2 | CI | BL-V3 | 05/10 | rollout hospedado | M3 |
+| P0.7-02..03 | Policy engine v2, prazos, escalonamento, exceção | partial | M2 | E2 | CI | BL-V3 | 05/10 | rollout; agendador em minutos | M3 |
+| P0.8-01..02 | API v1 e webhooks | partial | M2 | E2 | CI | BL-V3 | 05/10 | rollout; chave de cifragem por ambiente; agendador | M3 |
+| P0.8-03 | Docs/versioning/deprecation da API | implemented | M2 | E2 | CI (paridade OpenAPI) | BL-V3 | 05/10 | — | manter |
+| P0.9-01 | MFA do operador da plataforma | implemented | M2 | E2 | CI | BL-V3 | 05/10 | cadastro de MFA do `finance_ops` (O3) | M3 |
+| P0.9-02..03 | SSO SAML/OIDC fail-closed | partial | M2 | E2 | CI (IdP de teste) | BL-V3 | 05/10 | SSO no Supabase, IdP real, DNS, segredos | M3: login real com IdP |
+| P0.10-01 | Backup preflight / restore drill | partial | M2 (mecanismo) | E1/E2 | local + CI | BL-V3 | 05/10 | conexão administrativa do Pilot | M4 |
 | P0.10-02 | Incident/DR/RPO-RTO honestos | partial | M1 | E0 | documento | — | 05/10 | responsáveis; ensaio DR hospedado | M4 |
-| P0.10-03 | Health, request IDs, job runs, outbox | implemented | M2 | E2 | CI | BL-125 | 05/10 | — | M3 |
-| P0.11-01 | Classificação, minimização, SoR | implemented | M2 | E2 | CI | BL-125 | 05/10 | — | M3 |
-| P0.11-02 | Retenção, hold, export, offboarding | partial | M2 | E2 | CI | BL-125 | 05/10 | jurídico (exclusão física); decisão de produto (offboarding de provedor) | M3 |
+| P0.10-03 | Health, request IDs, job runs, outbox | implemented | M2 | E2 | CI | BL-V3 | 05/10 | — | M3 |
+| P0.11-01 | Classificação, minimização, SoR | implemented | M2 | E2 | CI | BL-V3 | 05/10 | — | M3 |
+| P0.11-02 | Retenção, hold, export, offboarding | partial | M2 | E2 | CI | BL-V3 | 05/10 | jurídico (exclusão física); decisão de produto (offboarding de provedor) | M3 |
 | P0.11-03 | Subprocessadores / readiness jurídica | blocked | M0 | E0 | documento | — | 05/10 | parecer jurídico | decisão jurídica |
-| LEG-01..02 | Runtime e artefatos de arte fora do tree | implemented | M2 | E2 | CI (`check:legacy-art`, superfície) | BL-125 | 05/10 | deploy de produção antigo ainda serve API legada | M3 após deploy |
-| LEG-03 | Objetos de banco/storage da arte | partial | M2 (migration) | E2 | CI | BL-125 | 05/10 | backup/restore + export + decisão do owner | M3 |
-| P1.1 | Savings & Value Realization Ledger | implemented | M2 | E2 | CI | BL-125 (primeira: `189bc9d`) | 05/10 | rollout hospedado | M3 |
-| P1.2 | Bank Fee Intelligence | implemented | M2 | E2 | CI | BL-125 (primeira: `e889aff`) | 05/10 | rollout hospedado | M3 |
-| P1.3 | Opportunity Engine determinístico | implemented | M2 | E2 | CI | BL-125 (primeira: `70df5d3`) | 05/10 | rollout; cadência do cron | M3 |
+| LEG-01..02 | Runtime e artefatos de arte fora do tree | implemented | M2 | E2 | CI (`check:legacy-art`, superfície) | BL-V3 | 05/10 | deploy de produção antigo ainda serve API legada | M3 após deploy |
+| LEG-03 | Objetos de banco/storage da arte | partial | M2 (migration) | E2 | CI | BL-V3 | 05/10 | backup/restore + export + decisão do owner | M3 |
+| P1.1 | Savings & Value Realization Ledger | implemented | M2 | E2 | CI | BL-V3 (primeira: `189bc9d`) | 05/10 | rollout hospedado | M3 |
+| P1.2 | Bank Fee Intelligence | implemented | M2 | E2 | CI | BL-V3 (primeira: `e889aff`) | 05/10 | rollout hospedado | M3 |
+| P1.3 | Opportunity Engine determinístico | implemented | M2 | E2 | CI | BL-V3 (primeira: `70df5d3`) | 05/10 | rollout; cadência do cron | M3 |
 | P1.4 | Proposal & Document Intelligence | missing | NOT_STARTED | — | — | — | — | provedor de extração; Stage 0 | **não iniciar** antes de Stage 0 |
 | P1.5 | SCIM / JIT / access reviews | missing | NOT_STARTED | — | — | — | — | — | — |
-| P1.6 | Executive Portfolio | partial | M2 (fatia executiva) | E2 | CI | BL-125 | 05/10 | rollout hospedado | M3 |
+| P1.6 | Executive Portfolio | partial | M2 (fatia executiva) | E2 | CI | BL-V3 | 05/10 | rollout hospedado | M3 |
 | P1.7–P1.9 | Spend, Covenant Monitor, Provider Performance | missing | NOT_STARTED | — | — | — | — | — | — |
-| P1.10 | Enterprise Search | partial | M2 (escopo limitado) | E2 | CI | BL-125 | 05/10 | — | — |
+| P1.10 | Enterprise Search | partial | M2 (escopo limitado) | E2 | CI | BL-V3 | 05/10 | — | — |
 | P1.11–P1.12 | Enterprise Intake, Scenario Builder | missing | NOT_STARTED | — | — | — | — | — | — |
 | P2.1–P2.4, P2.6, P2.8 | Product Packs e integrações | missing | NOT_STARTED | — | — | — | — | gate §43.1 / Stage 4 | — |
-| P2.5 | Acquiring Intelligence (v1 existente) | partial | M2 (v1) | E2 | CI | BL-125 | 05/10 | — | — |
+| P2.5 | Acquiring Intelligence (v1 existente) | partial | M2 (v1) | E2 | CI | BL-V3 | 05/10 | — | — |
 | P2.7 | Open Finance | blocked | NOT_STARTED | — | — | — | — | consentimento/parceiro | — |
 | P3.1–P3.3 | Network, benchmarks | missing/blocked | NOT_STARTED | — | — | — | — | maturidade buyer-side; jurídico | não iniciar |
 | AI-01 | Assistente factual | missing | NOT_STARTED | — | — | — | — | provedor de modelo; revisão de dados | — |
 
-Estados agregados (05/10): **Código/CI** — M2 em `BL-125`; a árvore combinada pós-#127
-só volta a ser CI baseline com a BL-V3 verde. **Pilot hospedado** — NO-GO (nenhuma
+Estados agregados (05/10): **Código/CI** — M2 em `BL-V3` (`4a93fa6`, quatro gates verdes);
+a governança de merge da #128 falhou (MGI-02) e é corrigida pela PR documental de seguimento. **Pilot hospedado** — NO-GO (nenhuma
 capability M3/M4). **Produção** — não pronta (nenhuma capability M5). **Cliente** —
 M6 = false para todas.
 
@@ -608,10 +608,19 @@ Detalhes, comandos e números em `FINANCIAL_RELEASE_EVIDENCE_2026-10-05_V3_BASEL
 
 | Bloco | Status | Código / evidência | CI / hosted | Gap / próxima ação |
 | --- | --- | --- | --- | --- |
-| `main → pilot` | DONE | merge consciente de `main@ed5da41`: única mudança exclusiva de `main` desde o merge-base `201adb4` é `cba84af` (Vite 8.3.1 → 8.3.2); lock regenerado; `typescript` legado de `main` **não** reintroduzido | `main...pilot` passa a `behind_by=0` depois do merge desta PR | Dependabot passa a mirar `pilot` (efetivo quando `.github/dependabot.yml` chegar a `main`) |
+| `main → pilot` | DONE (`main...pilot` behind 0 após #128) | merge consciente de `main@ed5da41`: única mudança exclusiva de `main` desde o merge-base `201adb4` é `cba84af` (Vite 8.3.1 → 8.3.2); lock regenerado; `typescript` legado de `main` **não** reintroduzido | `main...pilot` passa a `behind_by=0` depois do merge desta PR | Dependabot passa a mirar `pilot` (efetivo quando `.github/dependabot.yml` chegar a `main`) |
 | Matriz v3 | DONE | autoridade v3, M0–M6 com critérios de promoção, registro de maturidade por capability, addendum v2.1 marcado histórico | — | atualizar `Maturity`/`Validated SHA` a cada gate |
 | Incidente #127 | DONE (registro) | `FINANCIAL_REPO_GOVERNANCE.md` → incidentes de governança de merge | `merge-audit` run `37317090124` failure (detecção correta) | prevenção definitiva = rulesets (OWNER_ACTION_REQUIRED) |
 | Rulesets | OWNER_ACTION_REQUIRED | `.github/rulesets/{pilot,main}.json` inalterados e testados | `protected=false` | owner importa |
 | Capacity headroom | RISK | financeiro 426.174 / 800.000; demo 799.005 / 800.000 (995 bytes) | — | `technical capacity risk` na demo; ver `FINANCIAL_BUNDLE_HEADROOM.md` |
 | Pilot hospedado | BLOCKED / NO-GO | nada hospedado executado nesta rodada | — | Stage 0 hosted closure (ações do owner) |
 | P1.4 | NOT_STARTED | fora desta rodada por desenho | — | após baseline limpa + Stage 0 |
+
+### Seguimento pós-#128 — 05/10/2026
+
+A #128 entrou em `pilot@d4d6c22` às 13:56Z com `validate`/`presentation` em execução
+(MGI-2026-10-05-02). Os quatro gates terminaram **success** no HEAD `4a93fa6` (run
+`37320266260`), e a árvore de `pilot` é idêntica a ele: a capability do registro passa a
+`Validated SHA = BL-V3`. O `merge-audit` do merge falhou (`37320702496`); esta PR documental
+corrige o registro e precisa ser mergeada com os gates limpos para fechar a baseline.
+`main...pilot`: behind 0.
