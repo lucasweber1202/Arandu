@@ -2,14 +2,14 @@
 
 O Arandu (Financial Procurement) está em preparação para o piloto. Toda mudança deve preservar a separação entre o que foi implementado no código e o que foi comprovado em staging, produção ou por aprovação humana.
 
-Antes de propor ou implementar mudança relevante de produto, UX, arquitetura, dados, IA, integrações ou operação, leia `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md`, `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES_V2_1_ADDENDUM.md` e `docs/FINANCIAL_PRODUCT_BOUNDARIES.md`. A guideline é a referência estratégica principal do Arandu; enquanto o addendum v2.1 existir, ele é normativo e prevalece em conflito. Mudanças que contradigam tese, limites, princípios, arquitetura de longo prazo, enterprise resilience, data governance ou papel da IA exigem decisão explícita e atualização documental; não devem entrar como efeito colateral de uma PR comum.
+Antes de propor ou implementar mudança relevante de produto, UX, arquitetura, dados, IA, integrações ou operação, leia `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md` (v3), `docs/IMPLEMENTATION_MATRIX.md` e `docs/FINANCIAL_PRODUCT_BOUNDARIES.md`. A guideline v3 é a referência estratégica do Arandu; o addendum v2.1 é histórico/superseded e não prevalece sobre ela. Mudanças que contradigam tese, limites, princípios, arquitetura de longo prazo, enterprise resilience, data governance ou papel da IA exigem decisão explícita e atualização documental; não devem entrar como efeito colateral de uma PR comum.
 
 A guideline descreve o **target-state**, não uma autorização para implementar todo o roadmap. Cada PR deve respeitar a missão explícita da rodada, dependências e prioridade atual. Não antecipe Product Packs, network, benchmark ou refactors apenas porque aparecem como requisitos futuros.
 
 ## Fluxo de trabalho
 
 1. Parta da `pilot` atualizada. Mudanças funcionais vão para `pilot` e são promovidas para `main` por PR depois de testadas no piloto (fluxo e hotfix em `docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md`). Se `pilot` estiver atrás de `main`, reconcilie a topologia antes de iniciar uma nova feature.
-2. Se `main` estiver com guideline estratégica mais antiga que uma guideline já aprovada em `pilot`, não inicie feature nova a partir dessa documentação obsoleta. Resolva por `pilot → main` ou, quando promover todo o `pilot` for incorreto, por backport **docs-only** explícito para `main`, seguido de reconciliação `main → pilot` antes da próxima feature relevante. Essa é a exceção de canonicality definida no addendum v2.1.
+2. Se `main` estiver com guideline estratégica mais antiga que uma guideline já aprovada em `pilot`, não inicie feature nova a partir dessa documentação obsoleta. Resolva por `pilot → main` ou, quando promover todo o `pilot` for incorreto, por backport **docs-only** explícito para `main`, seguido de reconciliação `main → pilot` antes da próxima feature relevante. Essa é a exceção de canonicality (originalmente definida no addendum v2.1, hoje histórico; a v3 §23.5 mantém a obrigação de reconciliar hotfix de `main` em `pilot`).
 3. Crie uma branch curta e descritiva:
    - `agent/<descricao>` para pacotes implementados por agentes;
    - `feature/<descricao>` para funcionalidade;
@@ -63,7 +63,7 @@ npm run test:e2e
 - Não aceite preço, comissão ou autorização privilegiada calculados no navegador.
 - Não torne páginas internas parte do artefato público.
 - Mudanças de autenticação, RLS, upload e operação comercial precisam de testes negativos.
-- Preserve decisão humana, neutralidade de comparação e proveniência conforme a guideline, o addendum v2.1 e `docs/FINANCIAL_PRODUCT_BOUNDARIES.md`.
+- Preserve decisão humana, neutralidade de comparação e proveniência conforme a guideline v3 e `docs/FINANCIAL_PRODUCT_BOUNDARIES.md`.
 - Integrações devem declarar source of truth, direção de sync, idempotência, conflito, fallback e observabilidade.
 - Mudanças que afetem dados devem avaliar classificação, minimização, retenção, exclusão/offboarding e impacto em backup conforme aplicável. Tabela nova entra no registro `lib/finance/data-governance.mjs`.
 - A vertical de marketplace de arte está aposentada (`docs/LEGACY_ART_RETIREMENT.md`): não reintroduza código, páginas, assets, scripts, testes, rotas, variáveis ou documentos de arte a partir do histórico sem tarefa explícita de recuperação.
@@ -99,7 +99,7 @@ A descrição da PR deve explicar:
 - testes executados;
 - evidência visual quando aplicável;
 - gates externos deliberadamente não alterados;
-- compatibilidade com `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md` + `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES_V2_1_ADDENDUM.md` quando a mudança for relevante para produto, dados, IA, cálculos, comparação, integrações ou enterprise readiness;
+- compatibilidade com `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md` (v3) e maturity state atualizado em `docs/IMPLEMENTATION_MATRIX.md` quando a mudança for relevante para produto, dados, IA, cálculos, comparação, integrações ou enterprise readiness;
 - quando aplicável, impacto em data governance, operational resilience e source of truth.
 
 Não marque a PR como pronta enquanto checks obrigatórios estiverem falhando ou enquanto o texto atribuir ao código uma validação externa que não ocorreu.
@@ -108,4 +108,4 @@ Não marque a PR como pronta enquanto checks obrigatórios estiverem falhando ou
 
 ## Documentação
 
-Use `docs/OPERATIONS_INDEX.md` para encontrar a documentação canônica. `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md` governa a direção estratégica de produto e engenharia e, enquanto existir, o addendum v2.1 completa/override essa direção. Documentos especializados governam a implementação concreta. Documentos históricos devem ser claramente marcados e não podem competir com os runbooks atuais.
+Use `docs/OPERATIONS_INDEX.md` para encontrar a documentação canônica. `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md` (v3) governa a direção estratégica de produto e engenharia; o addendum v2.1 é histórico e não a sobrepõe. Documentos especializados governam a implementação concreta. Documentos históricos devem ser claramente marcados e não podem competir com os runbooks atuais.

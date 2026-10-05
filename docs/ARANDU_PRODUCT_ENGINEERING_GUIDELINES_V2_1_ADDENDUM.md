@@ -1,7 +1,15 @@
 # Arandu — Guideline v2.1 Enterprise Hardening Addendum
 
+> **HISTÓRICO / SUPERSEDED (05/10/2026).** A Guideline v3.0
+> (`docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md`, PR #127) consolidou a direção
+> estratégica e é a única autoridade estratégica vigente. Este addendum **não prevalece**
+> mais sobre a guideline mestra; a regra de precedência abaixo é registro histórico.
+> O arquivo permanece porque migrations, documentos técnicos e a
+> `IMPLEMENTATION_MATRIX` citam seus IDs (`Add. X.Y`) como rastreabilidade. Estado vivo e
+> maturidade: `docs/IMPLEMENTATION_MATRIX.md`.
+
 **Versão:** 2.1 — 3 de outubro de 2026  
-**Status:** normativo  
+**Status:** histórico — superseded pela Guideline v3.0 (05/10/2026)\
 **Escopo:** enterprise operational readiness, data governance, execution scope, branch governance e clarificações da estratégia v2  
 **Base estratégica:** Financial Procurement & Vendor Management OS definida na v2.0 da `pilot`  
 

@@ -151,6 +151,15 @@ if (exists('.github/dependabot.yml')) {
   if (!dependabot.includes('package-ecosystem: "github-actions"')) {
     problems.push('.github/dependabot.yml: ecossistema GitHub Actions ausente.');
   }
+  // Cada ecossistema abre PR contra pilot; PR de dependência direto em main
+  // diverge main x pilot sem passar pela integração (#126).
+  const ecosystems = dependabot.split(/^  - package-ecosystem:/m).slice(1);
+  for (const block of ecosystems) {
+    const name = block.split('\n')[0].trim();
+    if (!/^    target-branch: "pilot"$/m.test(block)) {
+      problems.push(`.github/dependabot.yml: ${name} sem target-branch "pilot".`);
+    }
+  }
 }
 
 if (exists('ops/release-evidence.json')) {

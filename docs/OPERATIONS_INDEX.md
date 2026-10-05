@@ -5,17 +5,19 @@ documento divergir, vale este índice, nesta ordem.
 
 ## Direção estratégica e produto
 
-- `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES_V2_1_ADDENDUM.md` — **addendum normativo v2.1** para enterprise hardening. Enquanto existir, deve ser lido junto da guideline mestra e prevalece em conflito sobre target-state vs. escopo de rodada, Financial Graph, core vs. capacidades futuras, data governance, operational resilience, prioridades de API/identity e canonicality de branches.
-- `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md` — **diretriz mestra normativa** para evolução de produto e engenharia: tese B2B/enterprise, princípios, limites, arquitetura futura, IA, integrações, roadmap, priorização e Definition of Done. Na `main`, sua versão pode temporariamente ficar atrás da estratégia aprovada em `pilot`; o addendum v2.1 existe justamente para impedir que isso gere direção obsoleta.
+- `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md` — **diretriz mestra normativa v3** (autoridade estratégica): tese B2B/enterprise, boundaries, princípios, modelo de maturidade M0–M6, arquitetura funcional, engenharia, capacity headroom, Definition of Done e sequência de maturidade (Stage 0–5). Na `main`, a versão pode ficar atrás da `pilot` até a promoção `pilot → main`.
+- `docs/IMPLEMENTATION_MATRIX.md` — **estado vivo** exigido pela v3 §1.3: maturity state por capability, evidência, blockers, ambiente/SHA validados e próximo gate.
+- `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES_V2_1_ADDENDUM.md` — **histórico/superseded** pela v3. Mantido como referência técnica para os IDs `Add. X.Y` citados em documentos e migrations antigos; não prevalece sobre a v3.
 - `docs/FINANCIAL_PRODUCT_BOUNDARIES.md` — limites funcionais/regulatórios do produto atual; prevalece para o que o software pode ou não afirmar/fazer nesta fase.
 - Documentos técnicos especializados abaixo governam a implementação concreta sem contradizer a direção estratégica acima sem decisão explícita e atualização documental.
 
-**Regra temporária de consolidação:** guideline mestra + addendum v2.1 = guideline estratégica efetiva. Quando a v2.1 for incorporada integralmente no arquivo mestre, o addendum e suas referências devem ser removidos no mesmo PR para voltar a uma única fonte estratégica.
+**Fonte estratégica única:** desde a v3 (PR #127) a guideline mestra consolidou a direção da v2/v2.1. O addendum permanece no repositório apenas como histórico (referências `Add. X.Y` em migrations e documentos não são reescritas); não deve ser lido como regra vigente.
 
 ## Financial Procurement (produto atual)
 
 - `docs/FINANCIAL_PILOT_RELEASE_GATE.md` — gate binário de comprovantes hospedados, SHA, freshness, restore, cronologia e jornada.
-- `docs/FINANCIAL_RELEASE_EVIDENCE_2026-10-05.md` — reconciliação viva e NO-GO atual do Pilot (baseline, gates, ambientes, ações externas).
+- `docs/FINANCIAL_RELEASE_EVIDENCE_2026-10-05_V3_BASELINE.md` — **evidência viva**: baseline de código/CI reconciliada pós-#125/#126/#127, gates, headroom e NO-GO atual do Pilot.
+- `docs/FINANCIAL_RELEASE_EVIDENCE_2026-10-05.md` — histórico: baseline da #125 (causa-raiz da #124, ambientes sondados em 05/10, ações externas ainda válidas).
 - `docs/FINANCIAL_RELEASE_EVIDENCE_2026-10-04.md` — histórico: observações hospedadas (schema, bucket, Vercel) de 04/10.
 - `docs/FIRST_CUSTOMER_PILOT_CHECKLIST.md` — configuração, dados, suporte e critérios de primeiro cliente.
 - `docs/FINANCIAL_PILOT_GO_LIVE.md` — checklist única de go-live do piloto, com estado por item.
@@ -38,7 +40,7 @@ documento divergir, vale este índice, nesta ordem.
 - `docs/FINANCIAL_VALUE_INTELLIGENCE_EXECUTIVE.md` — fatia de P1.6: valor, tarifas e oportunidades no Painel por moeda, entidade e período, com cobertura e links de ação; sem SoR novo.
 - `docs/FINANCIAL_OPPORTUNITY_ENGINE.md` — P1.3: regras versionadas da empresa, oportunidades determinísticas com fatos congelados, dedupe/cooldown/expiração, job com lease, revisão humana, rascunho de RFQ com confirmação, Graph e governança.
 - `docs/FINANCIAL_FEE_INTELLIGENCE.md` — P1.2: tarifa contratada versionada × cobrança observada, comparabilidade, proveniência, revisão humana com linguagem segura, Graph, governança, rollout e rollback.
-- `docs/IMPLEMENTATION_MATRIX.md` — matriz viva guideline → capacidade, com status, evidência, lacunas e blockers; ponto de partida de qualquer rodada de implementação.
+- `docs/IMPLEMENTATION_MATRIX.md` — matriz viva guideline v3 → capacidade, com maturity state (M0–M6), evidência, lacunas e blockers; ponto de partida de qualquer rodada de implementação.
 - Comandos: `finance:env:check`, `finance:pilot:doctor`, `pilot:canary`, `pilot:restore:drill`, `test:database`.
 
 Estado hospedado observado em 02/10: [`ARANDU_CURRENT_STATE_2026-10-02.md`](ARANDU_CURRENT_STATE_2026-10-02.md). Não substitui gates nem guideline.
@@ -70,11 +72,11 @@ explícita de recuperação.
 
 ## Governança do repositório
 
-- `CONTRIBUTING.md` — branches, checks e PRs; inclui a exceção docs-only de canonicality da v2.1.
-- `CLAUDE.md` — regras obrigatórias para agentes; exige leitura da guideline mestra, addendum v2.1 e boundaries.
-- `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES_V2_1_ADDENDUM.md` — hardening enterprise normativo e regra de consolidação.
-- `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md` — direção estratégica base de produto e engenharia.
-- `docs/FINANCIAL_REPO_GOVERNANCE.md` — proteção de `main` e `pilot` e checks obrigatórios (canônico).
+- `CONTRIBUTING.md` — branches, checks e PRs; inclui a exceção docs-only de canonicality.
+- `CLAUDE.md` — regras obrigatórias para agentes; exige leitura da guideline mestra v3, da matriz viva e dos boundaries.
+- `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md` — direção estratégica v3 de produto e engenharia.
+- `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES_V2_1_ADDENDUM.md` — histórico/superseded pela v3.
+- `docs/FINANCIAL_REPO_GOVERNANCE.md` — proteção de `main` e `pilot`, checks obrigatórios e registro de incidentes de governança de merge (canônico).
 - `docs/BRANCH_PROTECTION.md` — versão anterior das regras; vale o documento acima.
 - `docs/REPOSITORY_HYGIENE.md` — limpeza de branches e documentos históricos.
 - `docs/VERSIONING.md` — estratégia de versões.
