@@ -1,6 +1,6 @@
 # Financial Procurement — checklist única de go-live do piloto
 
-Estado técnico revalidado em **04/10/2026**: pilot `7a0a839…` (#122), main `201adb4…` (#99). **PILOT NO-GO**: schema atrás, backup/restore e jornada hospedada atuais não comprovados. Observações antigas abaixo são históricas, não atestam o ambiente atual. Ver [`FINANCIAL_RELEASE_EVIDENCE_2026-10-04.md`](FINANCIAL_RELEASE_EVIDENCE_2026-10-04.md) e [`FIRST_CUSTOMER_PILOT_CHECKLIST.md`](FIRST_CUSTOMER_PILOT_CHECKLIST.md).
+Estado técnico revalidado em **05/10/2026**: pilot `556258c…` (#123 + #124, combinação corrigida e validada pela PR de baseline desta data), main `201adb4…` (#99). **PILOT NO-GO**: schema hospedado atrás (último observado 04/10), backup/restore hospedado e jornada hospedada não comprovados; rulesets não aplicados. Observações antigas abaixo são históricas, não atestam o ambiente atual. Fonte viva: [`FINANCIAL_RELEASE_EVIDENCE_2026-10-05.md`](FINANCIAL_RELEASE_EVIDENCE_2026-10-05.md); histórico hospedado de 04/10: [`FINANCIAL_RELEASE_EVIDENCE_2026-10-04.md`](FINANCIAL_RELEASE_EVIDENCE_2026-10-04.md). Primeiro cliente: [`FIRST_CUSTOMER_PILOT_CHECKLIST.md`](FIRST_CUSTOMER_PILOT_CHECKLIST.md).
 Primeiro comando no ambiente real: `ARANDU_ENV=pilot npm run finance:pilot:doctor`
 (somente leitura; 0 = GO, 1 = NO-GO, 2 = UNSAFE).
 Cada linha tem um único estado:
@@ -30,7 +30,7 @@ Evidências: [`FINANCIAL_RELEASE_EVIDENCE_2026-09-26.md`](FINANCIAL_RELEASE_EVID
 | S7 | `finance:env:check` coerente com o produto | DONE | Exige `SUPABASE_SERVICE_ROLE_KEY` (só servidor) e `CRON_SECRET` ≥ 32 no piloto; texto da allowlist corrigido (vazia = ninguém entra) |
 | S8 | Suíte local equivalente ao CI | DONE | audit, SBOM, `check:all`, build, dist, tamanho, SEO, banco (PG16), E2E e apresentação em Chromium desktop + mobile, fronteiras de deploy, `build:demo`, `git diff --check` |
 | S9 | E2E e apresentação em Firefox, WebKit e Safari móvel | BLOCKED | Motores não instalados neste ambiente (proibido baixar navegador). Rodam no job `validate`/`presentation` do CI quando a quota voltar |
-| S10 | CI formal do GitHub | DONE para baseline #122 | Quatro checks completed/success no HEAD 805494c3fb5c4a73ddfa1a0dda1f270800e2826a; novos PRs precisam de seus próprios quatro gates |
+| S10 | CI formal do GitHub | BLOCKED até o merge verde da PR de baseline de 05/10 | A #124 entrou com `presentation` vermelho e a combinação #123+#124 nunca rodou CI; a PR de baseline corrige a causa e precisa dos quatro gates no HEAD exato (`npm run merge:gates`) |
 | S11 | Papel de plataforma `finance_ops`, isolado do admin legado | DONE | `finance_ops` + registro + `aal2` na API e no banco; fora de `ADMIN_ROLES`; 17/17 rotas legadas recusam; MFA no próprio console (`/api/finance/ops/mfa`). O papel `operator` legado não abre mais o console |
 | S12 | Convite vinculado ao e-mail do contato | DONE | `recipient_mode = exact_email` quando o provedor tem contato: só aceita a conta com esse e-mail confirmado; recusa com erro genérico e motivo interno em `fin_invite_acceptance_denials` |
 | S13 | `check:all` inclui governança e staging, sem recursão | DONE | `check:governance` e `check:staging` passam e fazem parte de `check:all`; guarda de recursão no checker |
@@ -52,7 +52,7 @@ Evidências: [`FINANCIAL_RELEASE_EVIDENCE_2026-09-26.md`](FINANCIAL_RELEASE_EVID
 | E7 | Projeto arandu-pilot e variáveis do piloto | partial | 04/10: deployment READY production SHA 7a0a839…; configuração ARANDU_ENV=pilot e URL Supabase esperada observadas. Doctor hospedado completo e jornada atuais pendentes |
 | E8 | Domínio / subdomínio do piloto | OWNER_ACTION_REQUIRED | Nenhum domínio foi comprado. Escolher, registrar e apontar DNS |
 | E9 | Provedor de e-mail (Resend) | OWNER_ACTION_REQUIRED | Conta Resend, domínio verificado (SPF/DKIM), `ARANDU_EMAIL_PROVIDER=resend`, `ARANDU_EMAIL_FROM`, `RESEND_API_KEY`, `ARANDU_RECIPIENT_HMAC_SECRET` (32+), `ARANDU_TRANSACTIONAL_EMAIL_READY=true`, `ARANDU_EMAIL_DISPATCH_ENABLED=true` |
-| E10 | Backup e teste de restore | BLOCKED | Preflight local recusou origem administrativa ausente; backup real, restore e duração não medidos nesta sessão; histórico local não é prova hospedada |
+| E10 | Backup e teste de restore | BLOCKED (hospedado) | 05/10: mecanismo comprovado **localmente** (drill PASS com dados da jornada, 28 sondas + canário, restore 2,35 s); hospedado não executado (sem conexão administrativa). O drill não cobre binários do Storage nem MFA e recusa rodar quando existem: executar o hospedado antes de O3 e do primeiro upload |
 | E11 | Ensaio completo com componentes reais da Supabase | DONE | `bash scripts/pilot-local/up.sh && bash scripts/pilot-local/journey.sh` (Postgres 15, GoTrue, PostgREST, Storage). Reproduzido do zero nesta rodada |
 
 ## SECURITY
@@ -67,7 +67,7 @@ Evidências: [`FINANCIAL_RELEASE_EVIDENCE_2026-09-26.md`](FINANCIAL_RELEASE_EVID
 | C6 | Console operacional: `finance_ops` + MFA, sem dados de cliente | DONE | Ensaio: admin de empresa (aal1 e aal2), admin de provedor, externo e operador legado com MFA → 403 `finance_ops_required`; `finance_ops` sem MFA → 403 `mfa_required`; com MFA → 200, sem e-mail, valor, título ou comentário |
 | C7 | Cron só com segredo | DONE | Sem segredo 401, segredo errado 401, correto 200 (duas vezes, sem duplicar) |
 | C8 | Allowlist fail-closed | DONE | Vazia → comprador 403; parcial → provedor fora dela 403; externo 403 |
-| C9 | Proteção de pilot e main | OWNER_ACTION_REQUIRED | 04/10: ambas protected=false; conector sem administração utilizável. Configurar rulesets strict com quatro checks, PR, sem force push/deleção/bypass; executar merge:gates antes de merge |
+| C9 | Proteção de pilot e main | OWNER_ACTION_REQUIRED | 05/10: ambas protected=false. Rulesets prontos para importar em `.github/rulesets/` (testados); passo a passo em `BRANCH_PROTECTION.md`. Até lá: `merge:gates` (agora com frescor de base) e `merge-audit` pós-merge |
 
 ## OPERATIONS
 

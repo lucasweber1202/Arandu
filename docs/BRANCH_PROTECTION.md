@@ -27,17 +27,35 @@ Use os nomes efetivamente publicados pelo workflow `.github/workflows/ci.yml`:
 
 Enquanto a ruleset não estiver ativa, a única barreira é processual: `npm run merge:gates -- <PR>` antes de qualquer merge (ver `CONTRIBUTING.md`). Ela não substitui a proteção no GitHub.
 
-## Estado observado (2026-10-04)
+## Rulesets versionados (prontos para importar)
 
-`pilot` foi observada com `protected=false`, e a #118 foi mergeada com `validate` e `presentation` ainda em execução no HEAD final; os dois falharam depois. A sessão de agente que registrou isto **não tem permissão administrativa** no repositório (só leitura/escrita de conteúdo e PRs via conector), portanto não configurou nem verificou ruleset. Nenhuma proteção ativa é afirmada aqui.
+`.github/rulesets/pilot.json` e `.github/rulesets/main.json` são a configuração exata, no formato de import do GitHub, e são verificados em `check:governance` (`scripts/test-merge-gates.mjs`): ativa, sem bypass, PR obrigatória, conversas resolvidas, bloqueio de deleção e force push, e os quatro checks `database`, `deploy-boundaries`, `validate`, `presentation` com `strict` (branch atualizada) e `integration_id` 15368 (GitHub Actions — um status manual com o mesmo nome não satisfaz o gate). `required_approving_review_count` é 0 e CODEOWNER review está desligado porque o repositório tem um único mantenedor e o GitHub não deixa aprovar a própria PR; quando houver segundo revisor, suba para 1 e ligue `require_code_owner_review`.
+
+Passo a passo (owner/admin, ~2 minutos):
+
+1. GitHub → repositório → **Settings → Rules → Rulesets → New ruleset → Import a ruleset**.
+2. Selecione `.github/rulesets/pilot.json` (baixado da `pilot`) → **Create**.
+3. Repita com `.github/rulesets/main.json`.
+4. Verifique: a API `GET /repos/lucasweber1202/Arandu/rules/branches/pilot` lista `pull_request`, `required_status_checks`, `non_fast_forward` e `deletion`; uma PR com qualquer dos quatro checks vermelho ou desatualizada mostra o botão de merge bloqueado.
+5. Rollback: Settings → Rules → Rulesets → a ruleset → **Disable** (ou Delete). Nenhum dado é afetado.
+
+## Barreiras versionadas enquanto a ruleset não existe
+
+- `npm run merge:gates -- <PR>`: quatro checks `completed/success` no SHA exato do HEAD **e** a ponta atual da base contida nesse HEAD (`compare` `ahead`/`identical`). Dois PRs verdes contra a mesma base antiga, mergeados em sequência, deixam a combinação sem CI — foi o que aconteceu em `pilot@556258c` (#123 + #124, a #124 ainda com `presentation` vermelho).
+- `.github/workflows/merge-audit.yml`: a cada push em `pilot`/`main`, um job curto e só leitura (`scripts/audit-merge.mjs`) falha se o commit não veio de PR com os quatro gates verdes no HEAD mergeado e com a base contida. É **detecção**, não prevenção: o merge já aconteceu quando ele falha; a correção é uma PR nova, nunca reescrever a história.
+
+## Estado observado (2026-10-05)
+
+`pilot` e `main` continuam `protected=false` (API de branches, 05/10). A sessão de agente não tem permissão administrativa (o conector não expõe rulesets e o `GH_TOKEN` do executor é inválido), portanto **não** configurou nem verificou ruleset. Nenhuma proteção ativa é afirmada aqui. Histórico: a #118 foi mergeada com `validate`/`presentation` rodando; a #124 foi mergeada com `presentation` vermelho (run `37228221232`).
 
 ```
-BLOCKER: proteção de branch para pilot e main
-WHY: sem ruleset, merge com gate pendente/falho é possível (ocorreu na #118)
+OWNER_ACTION_REQUIRED: proteção de branch para pilot e main
+WHY: sem ruleset, merge com gate pendente/falho/desatualizado é possível (ocorreu na #118 e na #124)
 WHO MUST ACT: owner do repositório (admin)
-EXACT ACTION: Settings → Rules → Rulesets → nova ruleset para pilot e main: exigir PR, os quatro checks acima (strict/atualizada), bloquear force push e exclusão, sem bypass
-WHAT IS READY: CI com os quatro jobs; npm run merge:gates; template de PR com a regra
-HOW TO VERIFY: Settings → Rules mostra a ruleset ativa; a API de branches retorna protected=true para pilot e main
+EXACT ACTION: importar .github/rulesets/pilot.json e .github/rulesets/main.json (passo a passo acima)
+WHAT IS READY: rulesets versionados e testados; merge:gates com frescor de base; merge-audit pós-merge
+HOW TO VERIFY: API de branches retorna protected=true para pilot e main; rules/branches/<branch> lista as quatro regras
+ROLLBACK: desativar a ruleset em Settings → Rules
 ```
 
 Não torne Dependabot ou jobs opcionais em checks obrigatórios sem antes confirmar que eles executam em todas as PRs.

@@ -350,11 +350,54 @@ test('restaurar só aparência preserva os dados; restaurar dados preserva a apa
   await page.keyboard.press('Control+k');
   await page.keyboard.type('tema escuro');
   await page.keyboard.press('Enter');
+  // A preferência precisa estar aplicada ANTES do reset de dados: é ela que o reset deve preservar.
+  await expect(html(page)).toHaveAttribute('data-theme', 'dark');
   await restore('Dados demonstrativos');
   await expect(page).toHaveURL(/dashboard\.html$/);
   await expect(html(page)).toHaveAttribute('data-theme', 'dark');
   await page.goto('/demo/finance/tasks.html');
   await expect(page.locator('.task-list')).not.toContainText('Tarefa que deve sobreviver');
+});
+
+test('central de comando: o que se digita enquanto o módulo carrega não se perde nem executa outro item', async ({ page }) => {
+  // Segura o pacote da central (carregado sob demanda) para reproduzir, de forma
+  // determinística, a pessoa que aperta Ctrl+K e digita antes de ele chegar.
+  let release;
+  const gate = new Promise((resolve) => { release = resolve; });
+  await page.route(/\/assets\/command-[^/]+\.js$/, async (route) => { await gate; await route.continue(); });
+  await ready(page, '/demo/finance/tasks.html');
+  await expect(html(page)).toHaveAttribute('data-theme', 'light');
+  await page.keyboard.press('Control+k');
+  await page.keyboard.type('tema escurx');
+  await page.keyboard.press('Backspace');
+  await page.keyboard.type('o');
+  await page.keyboard.press('Enter');
+  // Nada foi para a página enquanto a central carregava.
+  await expect(page.getByLabel('Nova tarefa')).toHaveValue('');
+  release();
+  await expect(html(page)).toHaveAttribute('data-theme', 'dark');
+  await expect(page).toHaveURL(/\/demo\/finance\/tasks\.html$/);
+  await expect(page.locator('#command-center')).not.toHaveAttribute('open', '');
+  expect((await stored(page)).appearance.theme).toBe('dark');
+});
+
+test('central de comando: Esc durante o carregamento cancela a abertura', async ({ page }) => {
+  let release;
+  const gate = new Promise((resolve) => { release = resolve; });
+  await page.route(/\/assets\/command-[^/]+\.js$/, async (route) => { await gate; await route.continue(); });
+  await ready(page, '/demo/finance/tasks.html');
+  await page.keyboard.press('Control+k');
+  await page.keyboard.type('tema escuro');
+  await page.keyboard.press('Escape');
+  release();
+  // Depois de cancelada, a digitação volta à página normalmente.
+  await page.getByLabel('Nova tarefa').fill('texto livre');
+  await expect(page.getByLabel('Nova tarefa')).toHaveValue('texto livre');
+  await expect(page.locator('dialog#command-center[open]')).toHaveCount(0);
+  await expect(html(page)).toHaveAttribute('data-theme', 'light');
+  // A central continua funcionando depois do cancelamento.
+  await page.keyboard.press('Control+k');
+  await expect(page.locator('dialog#command-center[open]')).toHaveCount(1);
 });
 
 test('contrato: ação de lifecycle cabe no cartão e abre por teclado em telas estreitas', async ({ page }) => {

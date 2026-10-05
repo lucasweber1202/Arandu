@@ -3,7 +3,7 @@
 > Checklist única e atualizada, com estado por item: [`FINANCIAL_PILOT_GO_LIVE.md`](FINANCIAL_PILOT_GO_LIVE.md).
 
 Lista curta e fechada. **Só entra aqui o que é impossível resolver por código.**
-Esta lista separa ações externas de implementação. Ela não declara o roadmap completo; P1.4 ainda está ausente. Estado atual: `FINANCIAL_RELEASE_EVIDENCE_2026-10-04.md`.
+Esta lista separa ações externas de implementação. Ela não declara o roadmap completo; P1.4 ainda está ausente. Estado atual: `FINANCIAL_RELEASE_EVIDENCE_2026-10-05.md`.
 
 ---
 
@@ -23,9 +23,11 @@ não trata isso como aceite legal válido, e não deve passar a tratar sem parec
 
 ## 2. Proteção das branches `main` e `pilot`
 
-A integração não tem permissão administrativa: a API responde 403
-("Resource not accessible by integration"). Em GitHub → Settings → Branches →
-Add rule:
+A integração não tem permissão administrativa. **Caminho preferido (05/10):**
+Settings → Rules → Rulesets → New ruleset → Import a ruleset, com
+`.github/rulesets/pilot.json` e `.github/rulesets/main.json` (versionados e
+testados; detalhes e rollback em `BRANCH_PROTECTION.md`). Equivalente manual em
+GitHub → Settings → Branches → Add rule:
 
 - **`main`**: Require a pull request; Require status checks (`validate`,
   `database`, `deploy-boundaries`, `presentation`); Require branches to be up to

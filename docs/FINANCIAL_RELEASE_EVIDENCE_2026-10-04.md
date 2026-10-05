@@ -1,5 +1,7 @@
 # Pilot hosted closure — 04/10/2026
 
+> **Histórico.** Estado vivo em [`FINANCIAL_RELEASE_EVIDENCE_2026-10-05.md`](FINANCIAL_RELEASE_EVIDENCE_2026-10-05.md). As observações hospedadas abaixo continuam sendo as mais recentes disponíveis, mas a baseline de CI descrita aqui foi superada.
+
 **PILOT NO-GO.** Nenhuma migration ou exclusão hospedada foi executada nesta
 rodada. Observações por conectores autenticados, apenas leitura. A consulta
 final do banco tem timestamp `2026-10-04T19:15:32.569408Z`.
