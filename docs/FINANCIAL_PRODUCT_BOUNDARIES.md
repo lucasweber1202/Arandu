@@ -53,6 +53,7 @@ O Arandu **não**:
 | Não inventa CET | `estimateCreditTotalCost` retorna `null` sem insumos completos e nunca escreve em `cet_year`. |
 | Não inventa economia | O painel expõe `savings: null` com nota explícita sobre metodologia. |
 | Não transforma alerta em decisão | Oportunidades (P1.3) são fato + regra da empresa + fonte + ação possível; o motor só abre, reabre e expira. Limiares financeiros são da empresa (sem padrão); nenhuma ação material é automática e rascunho de RFQ exige confirmação humana (`docs/FINANCIAL_OPPORTUNITY_ENGINE.md`). |
+| Não trata documento como autoridade | Extração (P1.4) produz fatos com proveniência por campo; campo crítico só vale confirmado por administração/gestão financeira; texto do documento é dado não confiável e nunca altera instruções, autorização ou schema; sem provedor de modelo configurado, nada sai para terceiros (`docs/FINANCIAL_DOCUMENT_INTELLIGENCE.md`). |
 | Não acusa provedor | Tarifas (P1.2) só dizem "acima/abaixo da referência contratada", "não comparável" ou "revisão necessária"; interpretação material é humana (`fin_review_fee_variance`) e diferença de tarifa nunca vira economia (`docs/FINANCIAL_FEE_INTELLIGENCE.md`). |
 | Não atesta regulação | `fin_providers` nasce em `NAO_VERIFICADO`; a constraint `fin_provider_evidence_required` impede o estado verificado sem autoridade, registro, evidência e data de consulta. |
 | Não assina contrato | `fin_contracts` guarda apenas referência documental (`https://`); não há integração de assinatura. |

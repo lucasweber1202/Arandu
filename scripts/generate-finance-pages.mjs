@@ -8,7 +8,7 @@ import { dirname } from 'node:path';
 
 const COMPANY_NAV = [
   ['Painel', '/finance/dashboard.html'], ['Solicitações', '/finance/rfqs.html'], ['Aprovações', '/finance/approvals.html'],
-  ['Propostas', '/finance/proposals.html'], ['Contratos', '/finance/contracts.html'], ['Portfólio', '/finance/portfolio.html'], ['Valor', '/finance/value.html'], ['Tarifas', '/finance/fees.html'], ['Oportunidades', '/finance/opportunities.html'], ['Provedores', '/finance/providers.html'],
+  ['Propostas', '/finance/proposals.html'], ['Documentos', '/finance/extractions.html', 'production'], ['Contratos', '/finance/contracts.html'], ['Portfólio', '/finance/portfolio.html'], ['Valor', '/finance/value.html'], ['Tarifas', '/finance/fees.html'], ['Oportunidades', '/finance/opportunities.html'], ['Provedores', '/finance/providers.html'],
   ['Passport', '/finance/passport.html'], ['Tarefas', '/finance/tasks.html'], ['Configurações', '/finance/settings.html']
 ];
 const PROVIDER_NAV = [['Início', '/provider/index.html'], ['Oportunidades', '/provider/rfqs.html'], ['Código de convite', '/provider/invite.html']];
@@ -22,6 +22,8 @@ export const PAGES = [
   { path: 'finance/approvals.html', view: 'approvals', audience: 'company', title: 'Aprovações', h1: 'Aprovações', description: 'Caixa de aprovação com o contexto completo de cada pedido.' },
   { path: 'finance/proposals.html', view: 'proposals', audience: 'company', title: 'Propostas', h1: 'Propostas recebidas', description: 'Propostas recebidas de provedores, com versão e revisão respondida.' },
   { path: 'finance/contracts.html', view: 'contracts', audience: 'company', title: 'Contratos', h1: 'Contratos e renovações', description: 'Ciclo de vida dos contratos: vigência, marcos de renovação e aviso prévio.' },
+  // productionOnly: capability sem emulação no sandbox — nunca espelhada em /demo.
+  { path: 'finance/extractions.html', view: 'extractions', audience: 'company', title: 'Documentos e fatos extraídos', h1: 'Documentos e fatos extraídos', description: 'Fatos lidos de propostas, contratos e tabelas de tarifas, com a origem de cada campo e confirmação humana.', productionOnly: true },
   { path: 'finance/opportunities.html', view: 'opportunities', audience: 'company', title: 'Oportunidades', h1: 'Oportunidades', description: 'Fatos que pedem atenção, com a regra da empresa que disparou, a fonte e uma ação possível para uma pessoa avaliar.' },
   { path: 'finance/fees.html', view: 'fees', audience: 'company', title: 'Tarifas bancárias', h1: 'Tarifas bancárias', description: 'Tarifa contratada versus cobrança observada, com fonte, comparabilidade e revisão humana.' },
   { path: 'finance/value.html', view: 'value', audience: 'company', title: 'Valor de procurement', h1: 'Valor de procurement', description: 'Economia negociada, realizada e custo evitado com baseline, metodologia e evidência.' },
@@ -103,6 +105,7 @@ export function renderPage(page, { demo = false } = {}) {
   const prefix = demo ? '/demo' : '';
   const link = (href) => (demo && /^\/(finance|provider)\//.test(href) ? prefix + href : href);
   const nav = (page.audience === 'provider' ? PROVIDER_NAV : COMPANY_NAV)
+    .filter(([, , scope]) => !(demo && scope === 'production'))
     .map(([label, href]) => `<li><a class="side-link" href="${link(href)}"${`/${page.path}` === href || (page.path === 'finance/index.html' && href === '/finance/dashboard.html') ? ' aria-current="page"' : ''}>${label}</a></li>`).join('');
   const home = page.audience === 'provider' ? '/provider/index.html' : '/finance/dashboard.html';
   const banner = demo ? `<div class="demo-banner" role="region" aria-label="Ambiente demonstrativo"><p class="demo-text"><strong>Ambiente demonstrativo</strong> <span class="demo-sub">Dados fictícios. Nenhuma operação financeira real será executada.</span></p></div>\n` : '';
@@ -149,7 +152,7 @@ export function expectedFiles() {
   const files = new Map();
   for (const page of PAGES) {
     files.set(page.path, renderPage(page));
-    files.set(`demo/${page.path}`, renderPage(page, { demo: true }));
+    if (!page.productionOnly) files.set(`demo/${page.path}`, renderPage(page, { demo: true }));
   }
   for (const page of DEMO_ONLY_PAGES) files.set(`demo/${page.path}`, renderPage(page, { demo: true }));
   return files;
@@ -169,5 +172,5 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     console.error(`Páginas financeiras fora da especificação (rode node scripts/generate-finance-pages.mjs):\n  ${drift.join('\n  ')}`);
     process.exit(1);
   }
-  console.log(check ? `Páginas financeiras: ${PAGES.length * 2 + DEMO_ONLY_PAGES.length} cascas conferidas com a especificação.` : `Páginas financeiras: ${PAGES.length * 2 + DEMO_ONLY_PAGES.length} cascas geradas.`);
+  console.log(check ? `Páginas financeiras: ${expectedFiles().size} cascas conferidas com a especificação.` : `Páginas financeiras: ${expectedFiles().size} cascas geradas.`);
 }

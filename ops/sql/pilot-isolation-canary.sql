@@ -30,7 +30,7 @@ begin
   v_order := array_position(array['financial-surface-hardening-1','financial-approval-handoff-1','financial-passport-1',
                                    'financial-multi-entity-1','financial-contracts-v2-1',
                                    'financial-relationships-portfolio-1','financial-passport-entities-1','financial-graph-1','financial-policy-engine-1','financial-public-api-1',
-                                   'financial-sso-1','financial-operational-resilience-1','financial-data-governance-1','financial-legacy-art-decommission-1','financial-p0-closure-1','financial-value-realization-1','financial-fee-intelligence-1','financial-opportunity-engine-1'], v_schema);
+                                   'financial-sso-1','financial-operational-resilience-1','financial-data-governance-1','financial-legacy-art-decommission-1','financial-p0-closure-1','financial-value-realization-1','financial-fee-intelligence-1','financial-opportunity-engine-1','financial-document-intelligence-1'], v_schema);
   if v_order is null then
     raise exception 'CANÁRIO: schema não suportado';
   end if;
@@ -41,6 +41,7 @@ begin
   if (to_regclass('public.fin_value_records') is not null) <> (v_order >= 16) or (to_regclass('public.fin_value_methodologies') is not null) <> (v_order >= 16) or (to_regclass('public.fin_value_observations') is not null) <> (v_order >= 16) then raise exception 'CANÁRIO: schema e value realization divergentes'; end if;
   if (to_regclass('public.fin_fee_schedules') is not null) <> (v_order >= 17) or (to_regclass('public.fin_fee_observations') is not null) <> (v_order >= 17) or (to_regclass('public.fin_fee_variances') is not null) <> (v_order >= 17) then raise exception 'CANÁRIO: schema e fee intelligence divergentes'; end if;
   if (to_regclass('public.fin_opportunities') is not null) <> (v_order >= 18) or (to_regclass('public.fin_opportunity_rules') is not null) <> (v_order >= 18) then raise exception 'CANÁRIO: schema e opportunity engine divergentes'; end if;
+  if (to_regclass('public.fin_extraction_facts') is not null) <> (v_order >= 19) or (to_regclass('public.fin_document_extractions') is not null) <> (v_order >= 19) then raise exception 'CANÁRIO: schema e document intelligence divergentes'; end if;
   v_passport := v_order >= 3;
   v_multi := v_order >= 4;
   v_contracts := v_order >= 5;
@@ -131,6 +132,9 @@ begin
       ('fin_opportunity_rules', 'not (organization_id = any($1))'),
       ('fin_opportunities', 'not (organization_id = any($1))'),
       ('fin_opportunity_events', 'not (organization_id = any($1))'),
+      ('fin_document_extractions', 'not (organization_id = any($1))'),
+      ('fin_extraction_facts', 'not (organization_id = any($1))'),
+      ('fin_extraction_reviews', 'not (organization_id = any($1))'),
       ('fin_governance_log', 'not (organization_id = any($1))'),
       ('fin_private_documents',  'not (organization_id = any($1) or buyer_organization_id = any($1) or (visibility = ''shared'' and rfq_id = any($2)))')
     ) t(tbl, rule) loop
@@ -147,6 +151,7 @@ begin
       if v_order < 16 and v_tbl in ('fin_value_records','fin_value_methodologies','fin_value_observations') then continue; end if;
       if v_order < 17 and v_tbl in ('fin_fee_schedules','fin_fee_schedule_versions','fin_fee_observations','fin_fee_variances','fin_fee_reviews') then continue; end if;
       if v_order < 18 and v_tbl in ('fin_opportunity_rules','fin_opportunities','fin_opportunity_events') then continue; end if;
+      if v_order < 19 and v_tbl in ('fin_document_extractions','fin_extraction_facts','fin_extraction_reviews') then continue; end if;
       execute format('select count(*) from public.%I where %s', v_tbl, v_rule) into v_count using p.orgs, p.invited_rfqs, p.user_id;
       v_checks := v_checks + 1;
       if v_count > 0 then v_leaks := v_leaks || format('pessoa#%s:%s=%s; ', v_people, v_tbl, v_count); end if;

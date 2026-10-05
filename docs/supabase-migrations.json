@@ -51,7 +51,8 @@
     "docs/supabase-financial-p0-closure.sql",
     "docs/supabase-financial-value-realization.sql",
     "docs/supabase-financial-fee-intelligence.sql",
-    "docs/supabase-financial-opportunity-engine.sql"
+    "docs/supabase-financial-opportunity-engine.sql",
+    "docs/supabase-financial-document-intelligence.sql"
   ],
   "existingDatabase": [
     "docs/supabase-sprint1-auth-ownership.sql",
@@ -104,6 +105,7 @@
     "docs/supabase-financial-p0-closure.sql",
     "docs/supabase-financial-value-realization.sql",
     "docs/supabase-financial-fee-intelligence.sql",
-    "docs/supabase-financial-opportunity-engine.sql"
+    "docs/supabase-financial-opportunity-engine.sql",
+    "docs/supabase-financial-document-intelligence.sql"
   ]
 }
