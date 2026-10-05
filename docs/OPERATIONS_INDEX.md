@@ -39,6 +39,8 @@ documento divergir, vale este índice, nesta ordem.
 - `docs/FINANCIAL_VALUE_REALIZATION.md` — P1.1: baseline, metodologia versionada, economia negociada/realizada e custo evitado, provenance, observação humana, rollout e rollback.
 - `docs/FINANCIAL_VALUE_INTELLIGENCE_EXECUTIVE.md` — fatia de P1.6: valor, tarifas e oportunidades no Painel por moeda, entidade e período, com cobertura e links de ação; sem SoR novo.
 - `docs/FINANCIAL_OPPORTUNITY_ENGINE.md` — P1.3: regras versionadas da empresa, oportunidades determinísticas com fatos congelados, dedupe/cooldown/expiração, job com lease, revisão humana, rascunho de RFQ com confirmação, Graph e governança.
+- `docs/FINANCIAL_PROVIDER_QUALIFICATION.md` — qualificação de provedores: exigências do cliente, evidências com origem e validade (serviço especializado = evidência externa), exceções com SoD, decisão humana e consulta informativa.
+- `docs/FINANCIAL_DOCUMENT_INTELLIGENCE.md` — P1.4: fatos extraídos de documentos privados com proveniência por campo, leitores determinísticos (PDF texto/XLSX/DOCX) atrás de interface única, conteúdo não confiável, evals por criticidade, confirmação humana e diff semântico.
 - `docs/FINANCIAL_FEE_INTELLIGENCE.md` — P1.2: tarifa contratada versionada × cobrança observada, comparabilidade, proveniência, revisão humana com linguagem segura, Graph, governança, rollout e rollback.
 - `docs/IMPLEMENTATION_MATRIX.md` — matriz viva guideline v3 → capacidade, com maturity state (M0–M6), evidência, lacunas e blockers; ponto de partida de qualquer rodada de implementação.
 - Comandos: `finance:env:check`, `finance:pilot:doctor`, `pilot:canary`, `pilot:restore:drill`, `test:database`.

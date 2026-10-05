@@ -50,7 +50,12 @@ const VIEWS = {
   providerProposal: lazy(providerViews, 'providerProposal'), providerInvite: lazy(providerViews, 'providerInvite'),
   // Página estática: o conteúdo já está no HTML; só o shell é montado.
   ops: lazy(() => import('./src/views/ops.js'), 'opsConsole'),
-  boundaries: () => null
+  boundaries: () => null,
+  // Capabilities sem emulação na demonstração: fora do pacote demonstrativo.
+  ...(__ARANDU_DEMO__ ? {} : {
+    extractions: lazy(() => import('./src/views/extractions.js'), 'extractions'),
+    qualifications: lazy(() => import('./src/views/qualifications.js'), 'qualifications')
+  })
 };
 const PUBLIC_WHEN_SIGNED_OUT = new Set(['providerInvite', 'boundaries']);
 // Operadores da plataforma não precisam pertencer a uma empresa.

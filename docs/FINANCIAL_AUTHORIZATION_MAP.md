@@ -113,6 +113,31 @@ ações nem leituras (testado em `tests/database/financial-data-governance.sql`)
 
 Provedor, outro tenant, membro revogado e escopo de outra entidade não leem nem escrevem (testado em `tests/database/financial-fee-intelligence.sql`). Nenhuma credencial de API alcança tarifas.
 
+## Provider Qualification
+
+| Ação | Quem | Onde a regra vive |
+| --- | --- | --- |
+| Ler qualificações, evidências, exceções, trilha | papéis compradores no escopo da entidade (grupo = escopo de grupo) | RLS `fin_provider_qualification_read` e dependentes |
+| Definir/aposentar exigência | `admin` | `fin_set_qualification_requirement`, `fin_retire_qualification_requirement` |
+| Abrir qualificação | `admin`, `finance_manager` no escopo; responsável com papel interno | `fin_open_provider_qualification` |
+| Registrar evidência, pedir exceção, mover fluxo | `admin`, `finance_manager`, `analyst` no escopo | `fin_record_qualification_evidence`, `fin_request_qualification_exception`, `fin_transition_provider_qualification` |
+| Aceitar/recusar evidência, decidir exceção, decidir qualificação | `admin`, `finance_manager` no escopo; SoD (não aceita a própria evidência, não decide a própria exceção) | `fin_review_qualification_evidence`, `fin_decide_qualification_exception`, `fin_transition_provider_qualification` |
+| Vencer | service role | `fin_run_qualification_expiry` |
+
+Provedor, outro tenant e escopo de outra entidade são recusados (`tests/database/financial-provider-qualification.sql`).
+
+## Proposal & Document Intelligence (P1.4)
+
+| Ação | Quem | Onde a regra vive |
+| --- | --- | --- |
+| Ler extrações, fatos e revisões | `admin`, `finance_manager`, `analyst`, `viewer` da compradora **e** documento legível agora (escopo de entidade) | RLS `fin_document_extraction_read`, `fin_extraction_fact_read`, `fin_extraction_review_read` (`fin_can_read_document`) |
+| Iniciar extração | `admin`, `finance_manager`, `analyst` da compradora dona do documento, sem offboarding | `fin_document_extraction_begin` (devolve a chave do objeto só ao servidor, para leitor automático) |
+| Registrar fatos / falha | quem iniciou a extração, enquanto `processing` | `fin_document_extraction_record`, `fin_document_extraction_fail` |
+| Confirmar/corrigir campo crítico | `admin`, `finance_manager` | `fin_review_extraction_fact` |
+| Confirmar/rejeitar/corrigir campo padrão; rejeitar crítico | `admin`, `finance_manager`, `analyst` | `fin_review_extraction_fact` (estado esperado obrigatório) |
+
+Provedor (inclusive dono do documento compartilhado), outro tenant, viewer (escrita) e membro restrito a outra entidade são recusados (testado em `tests/database/financial-document-intelligence.sql`).
+
 ## Opportunity Engine (P1.3)
 
 | Ação | Quem | Onde a regra vive |
