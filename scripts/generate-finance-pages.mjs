@@ -8,7 +8,7 @@ import { dirname } from 'node:path';
 
 const COMPANY_NAV = [
   ['Painel', '/finance/dashboard.html'], ['Solicitações', '/finance/rfqs.html'], ['Aprovações', '/finance/approvals.html'],
-  ['Propostas', '/finance/proposals.html'], ['Documentos', '/finance/extractions.html', 'production'], ['Contratos', '/finance/contracts.html'], ['Portfólio', '/finance/portfolio.html'], ['Valor', '/finance/value.html'], ['Tarifas', '/finance/fees.html'], ['Oportunidades', '/finance/opportunities.html'], ['Provedores', '/finance/providers.html'],
+  ['Propostas', '/finance/proposals.html'], ['Documentos', '/finance/extractions.html', 'production'], ['Contratos', '/finance/contracts.html'], ['Portfólio', '/finance/portfolio.html'], ['Valor', '/finance/value.html'], ['Tarifas', '/finance/fees.html'], ['Oportunidades', '/finance/opportunities.html'], ['Provedores', '/finance/providers.html'], ['Qualificação', '/finance/qualifications.html', 'production'],
   ['Passport', '/finance/passport.html'], ['Tarefas', '/finance/tasks.html'], ['Configurações', '/finance/settings.html']
 ];
 const PROVIDER_NAV = [['Início', '/provider/index.html'], ['Oportunidades', '/provider/rfqs.html'], ['Código de convite', '/provider/invite.html']];
@@ -24,6 +24,7 @@ export const PAGES = [
   { path: 'finance/contracts.html', view: 'contracts', audience: 'company', title: 'Contratos', h1: 'Contratos e renovações', description: 'Ciclo de vida dos contratos: vigência, marcos de renovação e aviso prévio.' },
   // productionOnly: capability sem emulação no sandbox — nunca espelhada em /demo.
   { path: 'finance/extractions.html', view: 'extractions', audience: 'company', title: 'Documentos e fatos extraídos', h1: 'Documentos e fatos extraídos', description: 'Fatos lidos de propostas, contratos e tabelas de tarifas, com a origem de cada campo e confirmação humana.', productionOnly: true },
+  { path: 'finance/qualifications.html', view: 'qualifications', audience: 'company', title: 'Qualificação de provedores', h1: 'Qualificação de provedores', description: 'Exigências da empresa, evidências com origem e validade, exceções e a decisão humana sobre cada provedor.', productionOnly: true },
   { path: 'finance/opportunities.html', view: 'opportunities', audience: 'company', title: 'Oportunidades', h1: 'Oportunidades', description: 'Fatos que pedem atenção, com a regra da empresa que disparou, a fonte e uma ação possível para uma pessoa avaliar.' },
   { path: 'finance/fees.html', view: 'fees', audience: 'company', title: 'Tarifas bancárias', h1: 'Tarifas bancárias', description: 'Tarifa contratada versus cobrança observada, com fonte, comparabilidade e revisão humana.' },
   { path: 'finance/value.html', view: 'value', audience: 'company', title: 'Valor de procurement', h1: 'Valor de procurement', description: 'Economia negociada, realizada e custo evitado com baseline, metodologia e evidência.' },
