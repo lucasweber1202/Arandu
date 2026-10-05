@@ -129,3 +129,70 @@ Demo: **technical capacity risk** (fora do envelope saudável de 10%). Limites i
 
 Merge desta PR com gates limpos → owner aplica rulesets → Stage 0 hosted closure do Pilot
 (restore drill, schema, doctor/canário/jornada, release gate). P1.4 só depois de Stage 0.
+
+---
+
+## Governança pós-#129 e tentativa de Stage 0 hospedado — 05/10/2026 (tarde)
+
+### Estado vivo (14:55Z)
+
+| Item | Observado |
+| --- | --- |
+| `pilot` | `280490b36b083a98bec720e0ac57bd22823bc8f3` (merge #129; árvore = `5cecd14`) |
+| `main` | `ed5da41c5244040d9e3b1ddb501053280d692622` |
+| `main...pilot` | ahead 92, **behind 0** |
+| #129 | quatro gates success no HEAD `5cecd14`, mas mergeada com `presentation` em execução → `merge-audit` `37326353933` failure (**MGI-2026-10-05-03**) |
+| PRs abertas / posteriores | nenhuma |
+| Proteção | `pilot`/`main` `protected=false`; **rulesets indisponíveis no plano** (repositório privado em GitHub Free: API 403 "Upgrade to GitHub Pro or make this repository public") |
+| Credenciais nesta sessão | nenhuma de Supabase, Vercel, `PILOT_SOURCE_DATABASE_URL`, `CRON_SECRET`, Resend ou IdP. O token GitHub do executor tem `admin` no repositório, o que não supera o limite do plano |
+
+### Stage 0 — o que foi executado e com que resultado
+
+| Passo (ordem v3) | Resultado | Evidência |
+| --- | --- | --- |
+| 1. Identificar o ambiente | **PARCIAL (público)** | `arandu-pilot.vercel.app`: `/api/health` 200 alive; `/api/finance/me` 401; `/api/jobs/{renewals,webhooks,governance}` 401 `cron_unauthorized`; `/api/email-dispatch` 503 `email_dispatch_disabled`; `/api/v1/rfqs` 401; `/api/catalog` 404 (legado fechado); `/demo/` 404. Assets de `/finance/dashboard.html` **idênticos** ao build local de `280490b` (4/4; consistência, não prova de SHA). Supabase `offgpyysgdhfemjlchod` responde 401 sem chave (o anon key é só de servidor, padrão BFF). Projeto/env/bucket/marker **não verificáveis** sem credencial |
+| 2. Backup preflight | **BLOCKED** | `npm run pilot:backup:preflight` → `result: blocked`, `source_identity: Conexão administrativa ausente ou inválida`, backup/restore `NOT RUN` (fail-closed correto) |
+| 3. Restore drill | **BLOCKED** | `npm run pilot:restore:drill` → "Sem PILOT_SOURCE_DATABASE_URL…", exit 1. Drill local com dados já PASS em 05/10 (28 sondas + canário) — não substitui o hospedado |
+| 4. Plano de migration | **DONE (contra o último marker observado)** | a partir de `financial-surface-hardening-1` (observado em 04/10, **não reconfirmado**): **17 pendentes**. Etapa 1 segura: 12 arquivos até `financial-data-governance-1`, bundle `reports/supabase-migrations-existingDatabase-staged.sql` SHA-256 `ce5797561d35d3e02c1e0c889318cb2d34cd7df2dacb554f4cbe967ff3f7aac0`. Etapa 2: decommission da arte (exige ack do owner) + `p0-closure`, `value-realization`, `fee-intelligence`, `opportunity-engine` → `financial-opportunity-engine-1`; bundle completo SHA-256 `8abfeffa2a3a13bbd6ed77f3bb48f418afbd9364795e1d74aeb327d8b54d203a`. Bundles são determinísticos: regenerar com os mesmos argumentos deve reproduzir os hashes |
+| 4b. Ensaio do rollout (local, banco descartável) | **PASS** | PostgreSQL 16 local: `cleanInstall` até `pilot-surface-hardening` + fixture de arte → marker `financial-surface-hardening-1`; bundle staged **exato** → `financial-data-governance-1`; reaplicação idempotente; decommission **sem ack recusado** ("legacy art data present (7 rows)…"), marker preservado; canário de isolamento PASS; continuação com ack **local de ensaio** → `financial-opportunity-engine-1`; `post-migration-probes` PASS; canário PASS |
+| 5–6. Rollout + marker hospedados | **BLOCKED** | dependem de 2–3 PASS e de conexão administrativa |
+| 7. Doctor | **NO-GO (sem credencial)** | `ARANDU_ENV=pilot finance:pilot:doctor --json`: 7 OK, 2 WARN, 10 ERROR — todos ausência de `ARANDU_SITE_URL`/`SUPABASE_*`/`CRON_SECRET` e conexões consequentes; 0 UNSAFE. Não é diagnóstico do Pilot, só prova do fail-closed |
+| 8. Canário | **BLOCKED** | `pilot:canary` → "Defina PILOT_DATABASE_URL…", exit 1 |
+| 9. Jornada autenticada | **BLOCKED** | sem contas/credenciais do Pilot. Jornada local com Supabase real (GoTrue/PostgREST/Storage) já PASS em 05/10 |
+| 10. Jobs | **GAP OPERACIONAL** | `vercel.json` agenda tudo 1×/dia (`renewals` 09:15, `webhooks` 09:45, `governance` 04:30, `email-dispatch` 12:00 UTC). `approval_deadlines`/`opportunities` rodam dentro da cron diária. Webhooks e prazos de aprovação **não** são near-real-time. Não alterado: crons sub-diárias exigem plano Vercel que as suporte ou agendador externo com o mesmo `CRON_SECRET` |
+| 11. Release evidence | **DONE** | esta seção |
+| 12. `pilot:release:check` | **NO-GO** | sem evidência JSON, exit 1 (fail-closed; invalida resultado anterior antes de ler) |
+
+E-mail: desligado de forma honesta no Pilot (`email_dispatch_disabled`). SSO, API pública,
+data governance e storage: sem ambiente autenticado, nada além do M2 foi provado. Nenhum
+upload, MFA ou dado foi criado.
+
+### Maturidade
+
+Nenhuma promoção. Nenhuma capability passa de M2: não houve migration, doctor, canário nem
+probe autenticado no Pilot vinculado a release. **Pilot hosted remains NO-GO.**
+
+### Runbook exato para o owner (ordem obrigatória)
+
+1. Exportar no shell local, sem gravar em arquivo versionado: `PILOT_SOURCE_DATABASE_URL`
+   (conexão administrativa direta, TLS, projeto `offgpyysgdhfemjlchod`).
+2. `PATH=/usr/lib/postgresql/17/bin:$PATH npm run pilot:backup:preflight` → exigir `result: ok`
+   e conferir `source_identity`, objetos de Storage e fatores MFA (o drill recusa se houver).
+3. `PILOT_DRILL_KEEP=1 npm run pilot:restore:drill` → exigir `reports/pilot-restore-drill.json`
+   `passed`; anotar SHA do backup e durações.
+4. Ensaio sobre a cópia restaurada mantida (dados reais, banco descartável):
+   ler o marker (`select value from public.fin_settings where key='schema_version'`), gerar
+   `npm run migrations:bundle -- --flow=existingDatabase --after-schema=<marker observado>
+   --stop-before=docs/supabase-financial-legacy-art-decommission.sql`, aplicar no contêiner
+   indicado em "destino mantido" (`docker exec -i <contêiner> psql -U postgres -v ON_ERROR_STOP=1
+   < reports/supabase-migrations-existingDatabase-staged.sql`), conferir marker
+   `financial-data-governance-1` e rodar `ops/sql/post-migration-probes.sql` e
+   `ops/sql/pilot-isolation-canary.sql`. Se o marker observado for `financial-surface-hardening-1`,
+   o SHA-256 do bundle precisa ser `ce5797561d35…`.
+5. Só então aplicar o mesmo bundle no Pilot hospedado; conferir marker; `ARANDU_ENV=pilot
+   npm run finance:pilot:doctor -- --json` (exigir exit 0) e `PILOT_DATABASE_URL=… npm run
+   pilot:canary`.
+6. Decommission da arte: procedimento de `docs/LEGACY_ART_RETIREMENT.md` com export verificado e
+   ack `export-verified:<ref real>` — **decisão do owner**; depois as 4 migrations restantes.
+7. Jornada autenticada hospedada com contas de teste dedicadas; montar a evidência JSON e
+   `npm run pilot:release:check -- --evidence=<arquivo> --commit=<SHA>`.

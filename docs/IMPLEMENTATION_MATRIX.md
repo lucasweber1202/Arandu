@@ -75,8 +75,8 @@ que contém a capability. `Ambiente validado` = onde a evidência mais alta foi 
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | P0.1-01 | Demo/Pilot/Production por configuração | partial | M2 | E2 | CI (`deploy-boundaries`) | BL-V3 | 05/10 | Supabase DEMO/PROD; `ARANDU_ENV=production` | M3: env hospedado por ambiente observado |
 | P0.1-02 | Manifesto de migrations, clean/upgrade/reapply/rollback | implemented | M2 | E2 | CI (`database`) | BL-V3 | 05/10 | — | manter por migration |
-| P0.1-03 | Migrations aplicadas no Pilot hospedado | blocked | M2 (bundle/ferramenta) · hosted não atingido | E2 | CI | BL-V3 | 05/10 | credencial administrativa Supabase; restore drill hospedado antes | M3: bundle aplicado + doctor GO |
-| P0.1-04 | Rulesets `pilot`/`main` | blocked | M2 (artefatos versionados) · **não aplicada** (`protected=false`) | E2 | CI (`check:governance`) | BL-V3 | 05/10 | **OWNER_ACTION_REQUIRED** (admin GitHub) | owner importa; API `protected=true` |
+| P0.1-03 | Migrations aplicadas no Pilot hospedado | blocked | M2 (bundle/ferramenta) · hosted não atingido | E2 | CI | BL-V3 | 05/10 | credencial administrativa Supabase; restore drill hospedado antes | M3: bundle staged (`ce57975…`, 12 arquivos, ensaiado localmente PASS) aplicado + doctor GO |
+| P0.1-04 | Rulesets `pilot`/`main` | blocked | M2 (artefatos versionados) · **não aplicada** (`protected=false`) | E2 | CI (`check:governance`) | BL-V3 | 05/10 | **OWNER_ACTION_REQUIRED**: plano GitHub Pro/Team (repositório privado no Free não suporta rulesets — API 403) e depois importar | upgrade + import; API `protected=true` |
 | P0.1-05 | Restore drill local + procedimento hospedado | partial | M2 (mecanismo) | E1/E2 | local + CI (preflight) | BL-V3 | 05/10 | `PILOT_SOURCE_DATABASE_URL` | M4: drill hospedado PASS |
 | P0.1-06 | Doctor, canary, env check | implemented | M2 | E2 | CI | BL-V3 | 05/10 | credencial do Pilot | M3: doctor/canário hospedado no SHA |
 | P0.1-07 | Severidade, runbook, postmortem | partial | M1 | E0 | documento | — | 05/10 | responsáveis nomeados | M4: exercício de resposta |
@@ -624,3 +624,15 @@ A #128 entrou em `pilot@d4d6c22` às 13:56Z com `validate`/`presentation` em exe
 `Validated SHA = BL-V3`. O `merge-audit` do merge falhou (`37320702496`); esta PR documental
 corrige o registro e precisa ser mergeada com os gates limpos para fechar a baseline.
 `main...pilot`: behind 0.
+
+### Governança pós-#129 e Stage 0 — 05/10/2026 (tarde)
+
+| Bloco | Status | Evidência | Próxima ação |
+| --- | --- | --- | --- |
+| MGI-2026-10-05-03 (#129 com `presentation` em execução) | registrado | `FINANCIAL_REPO_GOVERNANCE.md`; `merge-audit` `37326353933` failure | merge desta PR só com quatro gates + `merge:gates` |
+| Rulesets | OWNER_ACTION_REQUIRED (plano) | API 403 "Upgrade to GitHub Pro or make this repository public" | owner decide upgrade; depois importar |
+| Plano de migration do Pilot | DONE (contra marker observado em 04/10) | 17 pendentes; etapa 1 = 12 até `financial-data-governance-1` | reconfirmar marker real |
+| Ensaio do rollout staged | PASS local | bundle exato, idempotência, recusa do decommission sem ack, canário e probes | repetir sobre a cópia restaurada do Pilot |
+| Preflight / drill / doctor / canário / jornada / release gate hospedados | BLOCKED (credencial) | todos fail-closed sem credencial | runbook em `FINANCIAL_RELEASE_EVIDENCE_2026-10-05_V3_BASELINE.md` |
+| Cadência de jobs | GAP | crons 1×/dia em `vercel.json` | plano Vercel com crons sub-diárias ou agendador externo |
+| Promoções de maturidade | nenhuma | — | — |
