@@ -40,4 +40,4 @@ Database tests cover tenant/entity isolation, factual target deviation, unsuppor
 
 Local evidence: `check:all` passed; canonical PostgreSQL 16 harness passed with 7,124 canary checks and zero leaks; production JavaScript 429,004/800,000 bytes; demo JavaScript 799,569/800,000 bytes; dist references passed; npm audit reported zero vulnerabilities; E2E discovery found 495 tests across 17 files (including 15 PP-01 cases across five browser/device projects).
 
-Browser download currently returns a truncated archive in this environment. Browser execution and hosted staging are unproven. Aggregate customer-weighted scoring, statistical trend deltas, bulk ingestion and external integrations are not part of this slice. Financial Spend remains NOT_STARTED until PP-01 gates are resolved.
+Browser download currently returns a truncated archive in this environment. Browser execution and hosted staging are unproven. Aggregate customer-weighted scoring, statistical trend deltas, bulk ingestion and external integrations are not part of this slice. Financial Spend now has a stacked M1/E1 evidence slice; its depth gaps and gates are recorded in FINANCIAL_SPEND_INTELLIGENCE.md.
