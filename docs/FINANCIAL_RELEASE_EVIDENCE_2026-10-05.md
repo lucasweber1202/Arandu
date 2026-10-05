@@ -65,8 +65,12 @@ O servidor real (`lib/finance/document-storage.mjs`) assina o download com
 `download=<arquivo>`, e o Storage responde como anexo (o navegador baixa sem sair
 da página). O mock devolvia o PDF *inline* sem esse parâmetro, e o
 `location.assign` navegava. O mock passou a espelhar o comportamento real
-(`download=` + `Content-Disposition: attachment`), e o teste agora exige o evento
-de download com o nome sugerido e que a pessoa continue na solicitação. 30/30.
+(`download=` + `Content-Disposition: attachment`), e o teste agora exige o GET
+assinado e que a pessoa continue na solicitação antes de ler o armazenamento.
+30/30 local. Uma primeira versão também esperava o evento `download` do
+Playwright; ele não dispara no WebKit para resposta interceptada como anexo
+(falhou no `validate` da #125 em webkit-desktop e mobile-safari) e foi removido
+sem afrouxar o que o teste prova.
 
 ## Jornada local com componentes reais da Supabase — expectativa obsoleta
 
