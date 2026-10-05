@@ -113,7 +113,7 @@ select pg_temp.expect_error(format($q$select * from public.fin_governance_export
 reset role;
 do $$ begin
   if has_function_privilege('anon', 'public.fin_governance_export_part_range(uuid,text,integer,integer)', 'EXECUTE') then raise exception 'faixa do export exposta a anon'; end if;
-  if (select value from public.fin_settings where key = 'schema_version') not in ('financial-p0-closure-1', 'financial-value-realization-1', 'financial-fee-intelligence-1', 'financial-opportunity-engine-1','financial-document-intelligence-1','financial-provider-qualification-1') then
+  if (select value from public.fin_settings where key = 'schema_version') not in ('financial-p0-closure-1', 'financial-value-realization-1', 'financial-fee-intelligence-1', 'financial-opportunity-engine-1','financial-document-intelligence-1','financial-provider-qualification-1','financial-implementation-1') then
     raise exception 'marker do P0 closure ausente';
   end if;
 end $$;

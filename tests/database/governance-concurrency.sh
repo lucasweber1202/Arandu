@@ -15,6 +15,7 @@ select (public.fin_governance_retention_run(false, 10, null, 'parallel-gov-a')->
 select pg_sleep(2);
 commit;
 SQL
+: > "$work/holder.log"
 psql "$url" -X -A -t -v ON_ERROR_STOP=1 -f "$work/holder.sql" > "$work/holder.log" &
 holder=$!
 ready=0

@@ -54,7 +54,8 @@ const VIEWS = {
   // Capabilities sem emulação na demonstração: fora do pacote demonstrativo.
   ...(__ARANDU_DEMO__ ? {} : {
     extractions: lazy(() => import('./src/views/extractions.js'), 'extractions'),
-    qualifications: lazy(() => import('./src/views/qualifications.js'), 'qualifications')
+    qualifications: lazy(() => import('./src/views/qualifications.js'), 'qualifications'),
+    implementations: lazy(() => import('./src/views/implementations.js'), 'implementations')
   })
 };
 const PUBLIC_WHEN_SIGNED_OUT = new Set(['providerInvite', 'boundaries']);
