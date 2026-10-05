@@ -83,7 +83,7 @@ precisa ficar verde. Evidência: `FINANCIAL_RELEASE_EVIDENCE_2026-10-05_V3_BASEL
 | --- | --- | --- | --- |
 | `npm run merge:gates -- <PR>` | preventivo **manual** | antes do merge, se alguém o executar | depende de disciplina; não impede o botão de merge |
 | `.github/workflows/merge-audit.yml` | **detectivo** pós-merge | a cada push em `pilot`/`main` | o merge já aconteceu quando falha; só existe em `main` após a promoção |
-| Rulesets `.github/rulesets/{pilot,main}.json` | preventivo **definitivo** | o GitHub bloqueia o merge sem os quatro checks success e branch atualizada | **OWNER_ACTION_REQUIRED** — ainda não aplicadas (`protected=false`) |
+| Rulesets `.github/rulesets/{pilot,main}.json` | preventivo **definitivo** | o GitHub bloqueia o merge sem os quatro checks success e branch atualizada | **OWNER_ACTION_REQUIRED** — exige plano GitHub Pro/Team (repositório privado no Free; ver MGI-03) e depois importar; `protected=false` |
 
 **Prevenção.** (1) Owner importa as rulesets (`BRANCH_PROTECTION.md`) — é o único controle
 que torna este incidente impossível. (2) Até lá, `merge:gates` antes de qualquer merge.
@@ -109,6 +109,38 @@ os quatro gates verdes no HEAD exato, `merge:gates` verde e `merge-audit` verde 
 merge. Lição: duas ocorrências no mesmo dia, inclusive na PR que documentava a primeira,
 mostram que controle processual não basta — **as rulesets são a única prevenção efetiva**
 (OWNER_ACTION_REQUIRED).
+
+### MGI-2026-10-05-03 — PR #129 (registro da MGI-02) mergeada com `presentation` em execução
+
+| Campo | Fato |
+| --- | --- |
+| PR | #129 `docs(governance): registra incidente de merge da #128 e resultado de CI da BL-V3` (HEAD `5cecd140407204013545f6a6606b5f788fc5bd82`, base `d4d6c22` contida) |
+| Merge | `pilot@280490b36b083a98bec720e0ac57bd22823bc8f3`, 05/10 14:38:35Z, merge manual; árvore idêntica a `5cecd14` |
+| Gates no merge | `database` success 14:20:35Z, `deploy-boundaries` success 14:19:44Z, `validate` success 14:30:05Z; **`presentation` `in_progress`** |
+| Desfecho | `presentation` success 14:40:35Z — quatro gates verdes no HEAD, dois minutos **depois** do merge |
+| Detecção | `merge-audit` run `37326353933` **failure** (`presentation: in_progress`) |
+| Impacto funcional | nenhum (diff só documental; árvore verde) |
+| Impacto de governança | terceiro merge consecutivo sem esperar os quatro gates; a evidência veio depois da decisão |
+| Causa | merge manual sem `npm run merge:gates -- 129` e **sem nenhum controle técnico possível no plano atual** (ver abaixo) |
+
+**Causa estrutural confirmada em 05/10 (15:00Z).** O repositório é **privado** e a conta está no
+plano **GitHub Free**. A API responde, com a identidade do owner (permissão `admin`):
+
+```
+GET /repos/lucasweber1202/Arandu/rulesets
+403 "Upgrade to GitHub Pro or make this repository public to enable this feature."
+```
+
+Ou seja: nem rulesets nem branch protection clássica podem ser ativadas neste repositório
+no plano atual. A ação "importar as rulesets" registrada antes era **inexequível** sem
+upgrade de plano. Os arquivos `.github/rulesets/{pilot,main}.json` continuam corretos e
+testados; ficam prontos para o dia do upgrade.
+
+Prevenção (inalterada em conteúdo, corrigida no pré-requisito): plano que suporte rulesets em
+repositório privado (GitHub Pro/Team) → importar as rulesets (quatro checks obrigatórios,
+`strict`/base atualizada, sem bypass) → `merge:gates` antes do merge → `merge-audit`
+detectivo depois. Até o upgrade, **a única barreira é humana**: não clicar em merge antes de
+`npm run merge:gates -- <PR>` aprovar.
 
 ## PR #63 — encerrada como obsoleta
 
