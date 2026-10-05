@@ -73,13 +73,25 @@ jobs `validate` e `presentation` do CI. O Chromium local é o binário pré-inst
 executor (rev. 1194) apontado para o caminho que o Playwright 1.63 espera; não altera
 config, browsers nem retries do projeto. Skips são os condicionais documentados nos specs.
 
-## CI no HEAD exato e merge
+## CI no HEAD exato e merge (#128)
 
-Um commit não pode conter o próprio SHA. O HEAD final desta PR, os quatro gates
-(`database`, `deploy-boundaries`, `validate`, `presentation`), o resultado de
-`npm run merge:gates -- <PR>` e o `merge-audit` pós-merge ficam registrados **no corpo da
-PR**. Regras: nenhum gate `pending`/`in_progress`/`failed`/`cancelled`/`skipped`/ausente
-é aceitável; qualquer push depois da validação exige novo CI e novo `merge:gates`.
+| Item | Resultado |
+| --- | --- |
+| HEAD | `4a93fa60b51ae4c094e95d25cee8be4748363cfb` |
+| `database` | success (13:55:12Z) |
+| `deploy-boundaries` | success (13:54:34Z) |
+| `validate` | success (14:09:41Z) |
+| `presentation` | success (14:15:20Z) |
+| Run | `37320266260` |
+| `merge:gates` | **não executado antes do merge**: a #128 foi mergeada às 13:56:23Z por ação manual, com `validate`/`presentation` ainda `in_progress` (teria bloqueado) |
+| Merge | `pilot@d4d6c22`, árvore idêntica a `4a93fa6` |
+| `merge-audit` | run `37320702496` **failure** (gates em execução no momento do merge) |
+| `main...pilot` | `pilot` ahead 90, behind **0** |
+
+Leitura: a **árvore** de `pilot` está CI-validada (quatro gates verdes no HEAD exato); a
+**governança** do merge falhou de novo (MGI-2026-10-05-02 em `FINANCIAL_REPO_GOVERNANCE.md`).
+A baseline só é declarada limpa quando a PR documental de seguimento for mergeada com os
+quatro gates verdes, `merge:gates` verde e `merge-audit` pós-merge verde.
 
 ## Capacity headroom (v3 §24)
 
@@ -94,7 +106,7 @@ Demo: **technical capacity risk** (fora do envelope saudável de 10%). Limites i
 
 | Dimensão | Estado |
 | --- | --- |
-| Código/CI | M2 em `BL-125`; `BL-V3` (esta PR) quando os quatro gates estiverem verdes no HEAD exato e o `merge-audit` pós-merge ficar verde |
+| Código/CI | M2 em `BL-V3` (`4a93fa6`, quatro gates success); governança de merge pendente do seguimento (MGI-02) |
 | Pilot hospedado | **NO-GO** — nenhuma capability M3/M4; último marker observado `financial-surface-hardening-1` (04/10) |
 | Produção | não pronta — nenhuma capability M5 (`ARANDU_ENV=production` e Supabase próprio ausentes; API legada ainda roteada em 05/10) |
 | Cliente | M6 = false para todas as capabilities |

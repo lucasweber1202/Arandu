@@ -91,6 +91,25 @@ que torna este incidente impossível. (2) Até lá, `merge:gates` antes de qualq
 `.github/dependabot.yml`, verificado em `check:governance`); efetivo quando o arquivo
 chegar a `main`, que é de onde o Dependabot lê a configuração.
 
+### MGI-2026-10-05-02 — PR #128 (a correção da MGI-01) mergeada com gates em execução
+
+| Campo | Fato |
+| --- | --- |
+| Severidade | baixa (docs + bump patch do Vite); repete o padrão da MGI-01 na própria PR que a corrigia |
+| PR | #128 `fix(pilot): baseline v3 reconciliada` (HEAD `4a93fa60b51ae4c094e95d25cee8be4748363cfb`) |
+| Merge | `pilot@d4d6c22`, 05/10 13:56:23Z, ~3 min depois do push; árvore idêntica a `4a93fa6`; base `d828a44` contida (frescor OK) |
+| Estado dos gates no merge | run `37320266260`: `database` (13:55:12Z) e `deploy-boundaries` (13:54:34Z) success; **`validate` e `presentation` `in_progress`** |
+| Desfecho dos gates | `validate` success 14:09:41Z, `presentation` success 14:15:20Z — quatro gates verdes no HEAD, **depois** do merge |
+| Detecção | `merge-audit` run `37320702496` **failure** no push de `d4d6c22` |
+| Causa | merge manual pela interface antes do fim do CI, sem ruleset ativa e sem `npm run merge:gates -- 128` (que bloquearia por `validate`/`presentation` `in_progress`) |
+| Impacto | nenhum funcional: a árvore mergeada ficou verde nos quatro gates. A **governança** não foi cumprida: a evidência chegou depois da decisão, que é exatamente o que a regra proíbe |
+
+Por que não reescrever: idem MGI-01. Correção: PR documental de seguimento, mergeada só com
+os quatro gates verdes no HEAD exato, `merge:gates` verde e `merge-audit` verde depois do
+merge. Lição: duas ocorrências no mesmo dia, inclusive na PR que documentava a primeira,
+mostram que controle processual não basta — **as rulesets são a única prevenção efetiva**
+(OWNER_ACTION_REQUIRED).
+
 ## PR #63 — encerrada como obsoleta
 
 A PR #63 ("Draft: núcleo B2B e pilotos Export Compliance / Financial

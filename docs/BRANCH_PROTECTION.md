@@ -44,13 +44,13 @@ Passo a passo (owner/admin, ~2 minutos):
 - `npm run merge:gates -- <PR>`: quatro checks `completed/success` no SHA exato do HEAD **e** a ponta atual da base contida nesse HEAD (`compare` `ahead`/`identical`). Dois PRs verdes contra a mesma base antiga, mergeados em sequência, deixam a combinação sem CI — foi o que aconteceu em `pilot@556258c` (#123 + #124, a #124 ainda com `presentation` vermelho).
 - `.github/workflows/merge-audit.yml`: a cada push em `pilot`/`main`, um job curto e só leitura (`scripts/audit-merge.mjs`) falha se o commit não veio de PR com os quatro gates verdes no HEAD mergeado e com a base contida. É **detecção**, não prevenção: o merge já aconteceu quando ele falha; a correção é uma PR nova, nunca reescrever a história.
 
-## Estado observado (2026-10-05, após #125/#126/#127)
+## Estado observado (2026-10-05, após #125/#126/#127/#128)
 
-`pilot` e `main` continuam `protected=false` (API de branches, 05/10). A sessão de agente não tem permissão administrativa (o conector não expõe rulesets e o `GH_TOKEN` do executor é inválido), portanto **não** configurou nem verificou ruleset. Nenhuma proteção ativa é afirmada aqui. Histórico: a #118 foi mergeada com `validate`/`presentation` rodando; a #124 foi mergeada com `presentation` vermelho (run `37228221232`); a #127 foi mergeada com `validate`/`presentation` em execução e sem a ponta da `pilot` após a #125 — detectada pelo `merge-audit` (run `37317090124`) e registrada como MGI-2026-10-05-01 em `FINANCIAL_REPO_GOVERNANCE.md`.
+`pilot` e `main` continuam `protected=false` (API de branches, 05/10). A sessão de agente não tem permissão administrativa (o conector não expõe rulesets e o `GH_TOKEN` do executor é inválido), portanto **não** configurou nem verificou ruleset. Nenhuma proteção ativa é afirmada aqui. Histórico: a #118 foi mergeada com `validate`/`presentation` rodando; a #124 foi mergeada com `presentation` vermelho (run `37228221232`); a #127 foi mergeada com `validate`/`presentation` em execução e sem a ponta da `pilot` após a #125 — detectada pelo `merge-audit` (run `37317090124`) e registrada como MGI-2026-10-05-01 em `FINANCIAL_REPO_GOVERNANCE.md`; a #128 (correção da MGI-01) foi mergeada com `validate`/`presentation` em execução — `merge-audit` run `37320702496` failure, MGI-2026-10-05-02 (os quatro gates terminaram verdes depois do merge).
 
 ```
 OWNER_ACTION_REQUIRED: proteção de branch para pilot e main
-WHY: sem ruleset, merge com gate pendente/falho/desatualizado é possível (ocorreu na #118, na #124 e na #127)
+WHY: sem ruleset, merge com gate pendente/falho/desatualizado é possível (ocorreu na #118, na #124, na #127 e na #128)
 WHO MUST ACT: owner do repositório (admin)
 EXACT ACTION: importar .github/rulesets/pilot.json e .github/rulesets/main.json (passo a passo acima)
 WHAT IS READY: rulesets versionados e testados; merge:gates com frescor de base; merge-audit pós-merge
