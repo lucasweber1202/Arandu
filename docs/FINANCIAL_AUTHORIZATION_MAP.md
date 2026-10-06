@@ -153,3 +153,18 @@ Provedor (inclusive dono do documento compartilhado), outro tenant, viewer (escr
 | Ação | Quem | Onde a regra vive |
 | --- | --- | --- |
 | Ler resumo executivo (`GET /api/finance/executive`) | `admin`, `finance_manager`, `analyst`, `viewer` da compradora, no escopo de entidade de cada SoR | `fin_value_totals`, `fin_fee_summary`, `fin_opportunity_summary` (security invoker sob RLS de quem chama); sem escrita |
+
+## Entrada de demonstração (06/10/2026)
+
+`/api/auth/demo-personas` e `/api/auth/demo-login` exigem
+`resolveRuntime().canUseDemoPersonas`, alvo separado permitido e marker de
+Demo. Única leitura administrativa adicional: `fin_settings` filtrada em
+`deployment_environment`, antes da emissão da sessão. Sem escrita administrativa,
+criação de usuário ou concessão de papel. A sessão continua sendo um JWT real
+de conta sintética fixa, submetido a RBAC/RLS e rate limit. Fora de Demo: 404
+antes de qualquer consulta. Teste: `scripts/test-demo-personas.mjs`.
+
+Spend e Performance resolvem referências por `presentationContext`, com o
+JWT do caller e filtro de organização. Não há lookup administrativo; objetos
+ocultos ficam indisponíveis, sem ID cru como fallback. Limite de cobertura:
+500 referências por tabela; acima dele a tela falha explicitamente.

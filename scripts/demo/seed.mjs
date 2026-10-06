@@ -677,7 +677,7 @@ async function seedPerformance() {
 async function seedSpend() {
   for (const spec of L().spend) {
     const record = (await post(people[spec.by], 'spend/record', {
-      contract_id: ctx.contract[spec.contract], period_start: isoDate(spec.start), period_end: isoDate(spec.end), currency: 'BRL', value_kind: spec.kind,
+      contract_id: ctx.contract[spec.contract], period_start: isoDate(spec.start), period_end: isoDate(spec.end), currency: spec.currency || 'BRL', value_kind: spec.kind,
       amount: spec.amount, source_type: spec.sourceType, source_reference: spec.reference, source_line: spec.line, provenance: spec.provenance
     })).id;
     if (spec.reconcile) await post(people[spec.reconcile.by], 'spend/reconcile', { record_id: record, status: 'confirmed', no_duplicate_confirmed: true, reason: spec.reconcile.reason });
@@ -727,12 +727,27 @@ async function seedOpportunityRules() {
   }
 }
 
+
+async function seedPortfolioAndFees() {
+  const f=L().facility;
+  const {provider,contract,starts,maturity,balance,...input}=f;
+  const facility=(await post(people.juliana,'facilities',{organization_id:ctx.org,...input,provider_id:ctx.providerRow[provider],contract_id:ctx.contract[contract],starts_on:isoDate(starts),maturity_on:isoDate(maturity)})).id;
+  await post(people.rafael,'facility-balances',{facility_id:facility,as_of:isoDate(-1),...balance});
+  const fee=L().fees;
+  const {contract:feeContract,observation,...schedule}=fee;
+  const start=isoDate(-28),end=isoDate(-1);
+  await post(people.juliana,'fees/schedules',{organization_id:ctx.org,contract_id:ctx.contract[feeContract],...schedule,effective_from:isoDate(-30)});
+  const observed=(await post(people.rafael,'fees/observe',{organization_id:ctx.org,contract_id:ctx.contract[feeContract],service:fee.service,charging_unit:fee.charging_unit,currency:fee.currency,period_start:start,period_end:end,...observation})).id;
+  await post(people.juliana,'fees/verify',{observation_id:observed,status:'verified',reason:'Extrato sintético e quantidade de terminais conferidos independentemente; diferença exige revisão humana.'});
+}
+
 async function seedLifecycle() {
   log('Registrando o pós-contrato (implantação, obrigações, performance, spend, qualificação, documento)…');
   await seedImplementation();
   await seedCovenants();
   await seedPerformance();
   await seedSpend();
+  await seedPortfolioAndFees();
   await seedQualification();
   await seedExtraction();
   await seedOpportunityRules();
@@ -856,7 +871,12 @@ async function sanity() {
   const performance = await page('performance');
   check('Performance do provedor com período aberto', performance.rows.length === 1, `${performance.rows.length} período(s)`);
   const spend = await page('spend');
-  check('Spend por moeda/tipo, com e sem reconciliação', spend.rows.length === 3 && spend.cards[0].lines.some((line) => line.startsWith('BRL · Observado')), `${spend.rows.length} registro(s)`);
+  check('Spend por moeda/tipo, com e sem reconciliação', spend.rows.length >= 5 && spend.cards[0].lines.some((line) => line.startsWith('BRL · Observado')), `${spend.rows.length} registro(s)`);
+  check('Spend preserva USD estimado sem conversão', spend.rows.some(r=>r.cells[0]==='Estimado · USD' && r.cells[1].includes('1.234,50')), 'USD separado de BRL');
+  const portfolio=await page('portfolio');
+  check('Portfolio com limite, uso e saldo documentados', portfolio.facilities.some(f=>f.name===L().facility.name) && portfolio.balances.length>=1, `${portfolio.facilities.length} linha(s)`);
+  const fees=await page('fees');
+  check('Fee Intelligence com observação e referência contratada', fees.rows.length>=1, `${fees.rows.length} comparação(ões)`);
   const qualifications = await page('qualifications');
   check('Qualificação do Atlas aguardando decisão humana', qualifications.rows.length === 1, `${qualifications.rows.length} qualificação(ões)`);
   const extractions = await page('extractions');

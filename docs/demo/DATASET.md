@@ -114,3 +114,22 @@ função (quem registra não revisa). Valores em BRL; nenhuma conversão de moed
 Não há. O produto não estima economia sem metodologia explícita
 (`summarize()` em `lib/api/domains/finance.mjs`); a justificativa da decisão
 descreve o raciocínio da empresa sem inventar um número.
+
+## Fechamento de apresentação — 06/10/2026
+
+O seed passa a registrar pela API real:
+
+- Portfolio: linha Atlas em BRL, limite/principal de R$ 8 milhões, saldo e uso
+  documentados de R$ 6 milhões, CDI + 3,4% a.a., SAC e vencimento em D+85.
+- Fee Intelligence: 140 terminais a R$ 49 na referência contratada (R$ 6.860)
+  versus R$ 51 no extrato sintético (R$ 7.140). Rafael registra e Juliana
+  verifica a fonte. A diferença de R$ 280 permanece sujeita a interpretação
+  humana; não é savings nem acusação de cobrança indevida.
+- Spend: MDR BRL reconciliado, encargos BRL observados e análise internacional
+  USD estimada (US$ 1.234,50). A observação de tarifa e sua projeção entram pelo
+  mecanismo de Fee Intelligence já existente; o aluguel manual duplicado sai
+  do seed. BRL e USD permanecem separados, sem FX.
+
+O código amplia as checagens de sanidade em três verificações. **Esse dataset
+ampliado ainda não foi executado contra Supabase nesta rodada** (executor sem
+Docker/psql). Os 29/29 anteriores não validam estas adições.

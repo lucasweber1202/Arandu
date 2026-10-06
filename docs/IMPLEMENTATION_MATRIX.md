@@ -670,3 +670,13 @@ Implementada a foundation completa (M1, evidência local E1). CI indisponível: 
 | PA-01 | v3 lifecycle / Phase 3 | Post-Award Implementation & Transition | P1 | contratos, Value Realization, Graph | partial | `docs/FINANCIAL_IMPLEMENTATION.md`, migration/rollback, 5 tabelas, RPCs, API JWT, UI, tasks, reminders, Search, Graph, Opportunity Engine | templates editáveis, portal de provedor, UI analyst, hosted | aceite sem evidência e acesso fora do escopo recusados no banco | M2 após CI no SHA | feature/post-award-implementation |
 
 | CO-01 | v3 lifecycle / Phase 4 | Covenant & Obligation Monitor | P1 | contratos, Post-Award shared job/owner scope | partial | `docs/FINANCIAL_COVENANTS.md`, migration/rollback, 7 tabelas, fatos invoker, revisão independente/waiver SoD, API/UI, recorrência, tarefas/lembretes, Search, Graph, export e Executive | editor versionado, calendário avançado, analyst UI, notificações externas, hosted | dados ausentes nunca estabelecem conformidade | M2 após CI no SHA | feature/covenant-obligation-monitor |
+
+## Continuidade da Demo — 06/10/2026
+
+Personas, apresentação de Spend/Performance, seed de Portfolio/Fee Intelligence
+com USD estimado e rehearsal descartável preparados em
+`feature/demo-presentation-closure`. Evidência:
+`FINANCIAL_RELEASE_EVIDENCE_2026-10-06_DEMO_CLOSURE.md`. Sem alteração de
+maturidade: testes Node/build passam, SQL/seed/E2E/visual QA ainda dependem de
+executor com ferramentas; CI sem runner. Pilot com 24 migrations pendentes;
+ARANDU_ENV=production configurado na Vercel oficial, sem deploy ou claim de M5.

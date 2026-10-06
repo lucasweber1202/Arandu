@@ -82,3 +82,21 @@ o runtime `demo` nunca envia documento a provedor externo), normalização autom
 AI Analyst, benchmarking, Open Finance, integrações ERP/bancárias, negociação
 assistida e memorando de decisão gerado por IA. Limites conhecidos da demo em
 [ARCHITECTURE.md](ARCHITECTURE.md#limites-conhecidos).
+
+## Entrada por persona
+
+A página compartilhada de login oferece personas quando
+`GET /api/auth/demo-personas` expõe a capability do servidor. A senha fica
+somente no servidor Demo (`ARANDU_DEMO_PASSWORD`, igual à usada no seed).
+`POST /api/auth/demo-login` aceita exclusivamente uma chave do catálogo
+`lib/finance/demo-personas.mjs`, usa a autenticação Supabase real e emite o
+cookie seguro existente. Não aceita e-mail, senha ou papel arbitrário.
+
+O servidor exige runtime canônico Demo, alvo local ou ref explicitamente
+cadastrado em `DEMO_SUPABASE_REFS`, banco com marker `deployment_environment=demo`
+e configuração de autenticação. Pilot, Oficial, sandbox e configuração ambígua
+recusam a capability. Nunca configure essa senha em Preview/Pilot/Oficial.
+
+O catálogo de pessoas é compartilhado com o seed. O teste de navegador cobre
+nomes como texto e a indisponibilidade da capability; execução cross-browser
+continua pendente no executor de 06/10/2026.
