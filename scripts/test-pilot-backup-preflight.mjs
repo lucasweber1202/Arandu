@@ -25,7 +25,7 @@ const fake = (overrides = {}, failure = null) => (binary, args, options) => {
   if (binary === 'docker') return { status: 0, stdout: '28.0.0' };
   return { status: 0, stdout: JSON.stringify({ ...state, ...overrides }) };
 };
-for (const schema_version of ['financial-passport-entities-1','financial-graph-1','financial-policy-engine-1','financial-public-api-1','financial-sso-1','financial-operational-resilience-1','financial-data-governance-1','financial-legacy-art-decommission-1','financial-p0-closure-1','financial-value-realization-1','financial-fee-intelligence-1','financial-opportunity-engine-1','financial-document-intelligence-1','financial-provider-qualification-1','financial-implementation-1','financial-covenants-1','financial-provider-performance-1','financial-spend-intelligence-1']) assert.equal(runBackupPreflight({env,run:fake({schema_version})}).result,'ready');
+for (const schema_version of ['financial-passport-entities-1','financial-graph-1','financial-policy-engine-1','financial-public-api-1','financial-sso-1','financial-operational-resilience-1','financial-data-governance-1','financial-legacy-art-decommission-1','financial-p0-closure-1','financial-value-realization-1','financial-fee-intelligence-1','financial-opportunity-engine-1','financial-document-intelligence-1','financial-provider-qualification-1','financial-implementation-1','financial-covenants-1','financial-provider-performance-1','financial-spend-intelligence-1','financial-opportunity-discriminator-1']) assert.equal(runBackupPreflight({env,run:fake({schema_version})}).result,'ready');
 const ready = runBackupPreflight({ env, run: fake() });
 assert.equal(ready.result, 'ready');
 assert.equal(ready.backup, 'NOT RUN');
