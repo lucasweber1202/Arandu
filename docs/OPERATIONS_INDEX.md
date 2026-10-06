@@ -25,6 +25,8 @@ documento divergir, vale este índice, nesta ordem.
 - `docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md` — **canônico**: `main` única branch de produto; ambientes demo/staging(pilot)/official da mesma árvore; runtime (`lib/runtime-mode.mjs`), dados, release e rollback.
 - `docs/FINANCIAL_PILOT_ENVIRONMENT.md` — variáveis, Supabase do piloto, backups.
 - `docs/FINANCIAL_PILOT_OPERATIONS.md`, `docs/FINANCIAL_PILOT_SUPPORT.md`, `docs/FINANCIAL_PILOT_PLAYBOOK.md` — operação, suporte e incidentes.
+- `docs/FINANCIAL_RELEASE_EVIDENCE_2026-10-06_MAIN_CONSOLIDATION.md` — evidência local da consolidação `main` canônica (DAG, #135, testes, CI sem runner).
+- `docs/FINANCIAL_BUNDLE_HEADROOM.md` — budgets de produto, sandbox congelado e por rota.
 - `docs/demo/README.md` — demo canônica: produto real com Supabase DEMO dedicado e Vitta Foods fictícia.
 - `docs/FINANCIAL_DEMO_MODE.md` — sandbox público temporário sem backend, preservado até a demo canônica ser comprovada.
 - `docs/FINANCIAL_SECURITY_MODEL.md`, `docs/FINANCIAL_THREAT_MODEL.md`, `docs/FINANCIAL_AUTHORIZATION_MAP.md` — segurança.
