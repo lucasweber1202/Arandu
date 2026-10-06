@@ -47,46 +47,7 @@ export const COMPANY = {
 };
 
 /** Pessoas da Vitta Foods. `role` é o papel real do RBAC do Arandu. */
-export const BUYERS = {
-  helena: { email: 'helena.duarte@vittafoods.example', name: 'Helena Duarte', title: 'CFO', role: 'admin' },
-  juliana: { email: 'juliana.ramos@vittafoods.example', name: 'Juliana Ramos', title: 'Gerente de Tesouraria', role: 'finance_manager' },
-  rafael: { email: 'rafael.menezes@vittafoods.example', name: 'Rafael Menezes', title: 'Analista Financeiro Sênior', role: 'analyst' },
-  carlos: { email: 'carlos.tavares@vittafoods.example', name: 'Carlos Tavares', title: 'Controller', role: 'viewer' }
-};
-
-/** Instituições fictícias: organização provedora, pessoa de contato e cadastro na Vitta. */
-export const PROVIDERS = {
-  atlas: {
-    org: 'Atlas Bank S.A.', name: 'Atlas Bank', kind: 'bank', region: 'Nacional — São Paulo (SP)',
-    person: { email: 'eduardo.lima@atlasbank.example', name: 'Eduardo Lima', title: 'Gerente de Relacionamento Corporate' },
-    products: ['credit', 'acquiring'], website: 'https://atlasbank.example',
-    notes: 'Banco principal da Vitta: folha, cobrança e a linha de capital de giro vigente.'
-  },
-  nexo: {
-    org: 'Nexo Payments Instituição de Pagamento Ltda.', name: 'Nexo Payments', kind: 'acquirer', region: 'Nacional — Curitiba (PR)',
-    person: { email: 'camila.torres@nexopay.example', name: 'Camila Torres', title: 'Executiva de Contas Enterprise' },
-    products: ['acquiring'], website: 'https://nexopay.example',
-    notes: 'Adquirente com foco em varejo e e-commerce; integração nativa com o ERP da Vitta.'
-  },
-  orbe: {
-    org: 'Orbe Capital Sociedade de Crédito Direto S.A.', name: 'Orbe Capital', kind: 'credit_provider', region: 'Nacional — Belo Horizonte (MG)',
-    person: { email: 'bruno.sato@orbecapital.example', name: 'Bruno Sato', title: 'Diretor de Crédito Corporativo' },
-    products: ['credit'], website: 'https://orbecapital.example',
-    notes: 'Crédito estruturado para médias empresas; decisão de comitê em até 7 dias.'
-  },
-  meridian: {
-    org: 'Meridian Financial Banco Múltiplo S.A.', name: 'Meridian Financial', kind: 'bank', region: 'Nacional — Rio de Janeiro (RJ)',
-    person: { email: 'patricia.alves@meridianfinancial.example', name: 'Patrícia Alves', title: 'Gerente Corporate Banking' },
-    products: ['credit'], website: 'https://meridianfinancial.example',
-    notes: 'Banco médio com mesa de agronegócio e alimentos; participou da concorrência da linha vigente.'
-  },
-  lumina: {
-    org: 'Lumina Pay Instituição de Pagamento S.A.', name: 'Lumina Pay', kind: 'acquirer', region: 'Nacional — São Paulo (SP)',
-    person: { email: 'diego.freitas@luminapay.example', name: 'Diego Freitas', title: 'Head Comercial Grandes Contas' },
-    products: ['acquiring'], website: 'https://luminapay.example',
-    notes: 'Credenciadora atual da Vitta (contrato de 24 meses, escolhida na última concorrência de adquirência).'
-  }
-};
+export {BUYERS,PROVIDERS} from '../../lib/finance/demo-personas.mjs';
 
 /**
  * RFQ 0 — capital de giro contratado há quase dois anos. O contrato vence em ~85 dias:
@@ -213,7 +174,7 @@ export const DOCUMENTS = [
  * Pós-contrato (lifecycle): implantação, obrigações, performance, spend,
  * qualificação e leitura de documento — tudo fictício e registrado pela API
  * real, com segregação de função (quem registra não revisa).
- * Datas: dias relativos a hoje. Valores sempre em BRL, sem conversão de moeda.
+ * Datas: dias relativos a hoje. Valores na moeda de origem, sem conversão de moeda.
  */
 export const LIFECYCLE = {
   implementation: {
@@ -250,9 +211,24 @@ export const LIFECYCLE = {
   },
   spend: [
     { contract: 'acquiring', by: 'rafael', start: -28, end: -1, kind: 'observed', amount: '212480.55', sourceType: 'imported', reference: 'Extrato de MDR Lumina Pay — mês corrente (fictício)', line: 'total-mdr', provenance: 'Soma das tarifas de MDR descontadas na agenda de recebíveis do período', reconcile: { by: 'juliana', reason: 'Conferido com a agenda de recebíveis e com a tabela de tarifas; sem lançamento duplicado.' } },
-    { contract: 'acquiring', by: 'rafael', start: -28, end: -1, kind: 'contracted', amount: '6860.00', sourceType: 'declared', reference: 'Contrato Lumina Pay — aluguel de terminais', line: 'clausula-5', provenance: '140 terminais × R$ 49,00 por mês, conforme o contrato (valor contratado, não observado)' },
-    { contract: 'creditCurrent', by: 'rafael', start: -31, end: -1, kind: 'observed', amount: '118904.10', sourceType: 'declared', reference: 'Extrato de encargos Atlas Bank — mês anterior (fictício)', line: 'encargos', provenance: 'Juros e encargos debitados em conta pelo Atlas Bank no período' }
+    { contract: 'creditCurrent', by: 'rafael', start: -31, end: -1, kind: 'observed', amount: '118904.10', sourceType: 'declared', reference: 'Extrato de encargos Atlas Bank — mês anterior (fictício)', line: 'encargos', provenance: 'Juros e encargos debitados em conta pelo Atlas Bank no período' },
+    { contract: 'creditCurrent', by: 'rafael', start: -28, end: -1, currency: 'USD', kind: 'estimated', amount: '1234.50', sourceType: 'declared', reference: 'Estimativa de custos de análise internacional Atlas (fictícia)', line: 'analise-usd', provenance: 'Estimativa documentada em USD para análise internacional; não cobrada, não convertida e sem compensação com BRL' }
   ],
+  facility: {
+    name: 'Capital de giro — linha vigente Atlas Bank', provider: 'atlas', contract: 'creditCurrent',
+    kind: 'term_loan', currency: 'BRL', approved_limit: 8000000, principal_amount: 8000000,
+    indexer: 'cdi', spread_pct_year: 3.4, amortization: 'sac', starts: -645, maturity: 85,
+    source: 'contract', source_reference: 'Cédula Atlas — linha vigente (fictícia)',
+    balance: { outstanding_amount: 6000000, used_limit_amount: 6000000, source: 'statement', source_reference: 'Extrato Atlas de principal e uso — fechamento (fictício)' }
+  },
+  fees: {
+    contract: 'acquiring', service: 'Aluguel de terminais', category: 'acquiring', charging_unit: 'per_item',
+    pricing_model: 'per_unit', currency: 'BRL', rate: 49, source: 'contract_terms',
+    source_reference: 'Contrato Lumina — cláusula 5: 140 terminais a R$ 49 (fictício)',
+    observation: { volume: 140, observed_amount: 7140, source_type: 'bank_statement',
+      source_reference: 'Extrato Lumina — aluguel de terminais (fictício)',
+      evidence_reference: 'Conciliação de terminais: 140 unidades a R$ 51 no extrato (fictício)' }
+  },
   qualification: {
     provider: 'atlas', category: 'credit', opener: 'juliana', owner: 'rafael', reviewDue: 20,
     requirements: [

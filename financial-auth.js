@@ -81,3 +81,26 @@ document.querySelectorAll('[data-finance-auth]').forEach(form => form.addEventLi
     form.querySelectorAll('input').forEach(input => input.setAttribute('aria-invalid', 'true'));
   } finally { button.disabled = false; }
 }));
+
+// The shared login only offers demo entry when the server exposes the capability.
+if (loginForm) fetch('/api/auth/demo-personas',{credentials:'same-origin'}).then(async response=>{
+  if(!response.ok)return;
+  const data=await response.json();
+  if(!Array.isArray(data.personas)||!data.personas.length)return;
+  const panel=document.createElement('section');panel.setAttribute('aria-label','Entrar na demonstração');
+  const heading=document.createElement('h2');heading.textContent='Explore a demonstração';panel.append(heading);
+  const status=document.createElement('p');status.setAttribute('role','status');
+  for(const persona of data.personas){
+    const button=document.createElement('button');button.type='button';button.className='button secondary';
+    button.textContent=`${persona.name} · ${persona.title}`;
+    button.addEventListener('click',async()=>{
+      const buttons=panel.querySelectorAll('button');buttons.forEach(b=>b.disabled=true);status.textContent='Entrando…';
+      try{
+        const response=await fetch('/api/auth/demo-login',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({persona:persona.key})});
+        const result=await response.json();if(!response.ok)throw new Error(result.error||'Demonstração indisponível.');
+        location.assign('/finance/index.html');
+      }catch(error){status.textContent=error.message;buttons.forEach(b=>b.disabled=false);}
+    });panel.append(button);
+  }
+  panel.append(status);loginForm.parentElement.prepend(panel);
+}).catch(()=>{});
