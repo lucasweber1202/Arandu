@@ -12,15 +12,14 @@
 // quando encontra uma combinação que não deveria existir.
 
 import { LEGACY_SUPABASE_REFS, PILOT_SUPABASE_REFS, foreignSupabaseRef } from '../lib/finance/pilot-doctor.mjs';
+import { SERVER_ENVIRONMENTS, CANONICAL_BRANCH, resolveRuntime } from '../lib/runtime-mode.mjs';
 
 const env = process.env;
 const problems = [];
 const warnings = [];
 const report = [];
 
-const ENVIRONMENTS = ['development', 'preview', 'demo', 'pilot', 'production'];
-// Ambientes servidos com banco próprio: mesmas exigências de configuração.
-const SERVER_ENVIRONMENTS = ['demo', 'pilot', 'production'];
+const ENVIRONMENTS = ['development', 'preview', ...SERVER_ENVIRONMENTS];
 const declared = String(env.ARANDU_ENV || '').trim().toLowerCase();
 const vercelEnv = String(env.VERCEL_ENV || '').trim().toLowerCase();
 const environment = ENVIRONMENTS.includes(declared)
@@ -63,6 +62,11 @@ const flag = (name) => TRUTHY.has(String(env[name] || '').trim().toLowerCase());
 const needsSupabase = SERVER_ENVIRONMENTS.includes(environment);
 
 report.push(`Ambiente: ${environment}${declared ? ' (declarado)' : ' (inferido)'}`);
+{
+  const runtime = resolveRuntime(env);
+  const blocked = ['canSendEmail', 'canDispatchWebhooks', 'canCallExternalProviders'].filter((key) => !runtime[key]);
+  report.push(`Runtime: ${runtime.mode} (datasource ${runtime.datasource}${blocked.length ? `; bloqueado: ${blocked.join(', ')}` : ''})`);
+}
 report.push('');
 report.push('Supabase:');
 describe('SUPABASE_URL', { required: needsSupabase, pattern: /^https:\/\/[a-z0-9.-]+$/i });
@@ -117,9 +121,10 @@ if (environment === 'production' && supabaseRef && (PILOT_SUPABASE_REFS.includes
 } else if (['demo', 'production'].includes(environment) && foreignSupabaseRef(environment, supabaseRef)) {
   problems.push(`SUPABASE_URL: ${foreignSupabaseRef(environment, supabaseRef)}.`);
 }
-// Cada ambiente real sai de uma única branch: pilot → piloto; main → produção
-// e demonstração (a demo é a main com outra configuração, nunca outra branch).
-const expectedBranch = { pilot: 'pilot', production: 'main', demo: 'main' }[environment];
+// Todo ambiente hospedado (demo, staging/piloto, oficial) sai da mesma branch
+// canônica, `main`: ambientes diferem por configuração e banco, nunca por
+// branch de produto (lib/runtime-mode.mjs, docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md).
+const expectedBranch = SERVER_ENVIRONMENTS.includes(environment) ? CANONICAL_BRANCH : null;
 const branch = String(env.VERCEL_GIT_COMMIT_REF || '').trim();
 if (expectedBranch && branch && branch !== expectedBranch) {
   problems.push(`Deploy com ARANDU_ENV=${environment} a partir da branch "${branch}"; só a branch ${expectedBranch} publica esse ambiente. No Vercel, deixe as variáveis desse ambiente só no escopo Production.`);

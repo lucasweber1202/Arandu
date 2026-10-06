@@ -35,8 +35,9 @@ assert.match(swapped.stdout, /SUPABASE_ANON_KEY é uma chave de serviço/);
 assert.equal(run({ ARANDU_PRESENTATION_MODE: 'true' }).status, 1, 'demo no piloto');
 assert.equal(run({ ARANDU_DEMO_MODE: 'true' }).status, 1, 'ARANDU_DEMO_MODE no piloto');
 assert.equal(run({ ARANDU_DEPLOYMENT_KIND: 'demo' }).status, 1, 'build demo com variáveis do piloto');
-assert.equal(run({ VERCEL_GIT_COMMIT_REF: 'pilot' }).status, 0, 'piloto a partir da branch pilot');
-assert.match(run({ VERCEL_GIT_COMMIT_REF: 'feature/x' }).stdout, /só a branch pilot publica/);
+assert.equal(run({ VERCEL_GIT_COMMIT_REF: 'main' }).status, 0, 'staging/piloto publica a partir da main canônica');
+assert.match(run({ VERCEL_GIT_COMMIT_REF: 'pilot' }).stdout, /só a branch main publica/, 'a branch pilot não é mais linha de produto');
+assert.match(run({ VERCEL_GIT_COMMIT_REF: 'feature/x' }).stdout, /só a branch main publica/);
 // Produção: banco próprio, branch main, service role e cron obrigatórios.
 const prodRef = 'producaoarandu000000';
 const production = { ARANDU_ENV: 'production', SUPABASE_URL: `https://${prodRef}.supabase.co`, SUPABASE_ANON_KEY: key({ role: 'anon', ref: prodRef }), SUPABASE_SERVICE_ROLE_KEY: key({ role: 'service_role', ref: prodRef }), VERCEL_GIT_COMMIT_REF: 'main' };

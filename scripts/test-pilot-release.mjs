@@ -12,7 +12,7 @@ const base = { environment: 'pilot', project_ref: 'offgpyysgdhfemjlchod', commit
 const e = {
   format_version: 1, environment: 'pilot', project_ref: base.project_ref, database_hostname: `db.${base.project_ref}.supabase.co`, vercel_project: 'arandu-pilot', commit,
   schema_before: 'financial-surface-hardening-1', schema_after: EXPECTED_SCHEMA_VERSION,
-  deployment: { ...base, project: 'arandu-pilot', branch: 'pilot', target: 'production', state: 'READY' },
+  deployment: { ...base, project: 'arandu-pilot', branch: 'main', target: 'production', state: 'READY' },
   backup: { ...base, result: 'PASS', sha256: 'b'.repeat(64), schema_version: 'financial-surface-hardening-1', observed_at: '2026-10-04T15:00:00Z' },
   restore: { ...base, result: 'PASS', target_kind: 'disposable', schema_version: 'financial-surface-hardening-1', backup_sha256: 'b'.repeat(64), post_restore_probes: 'PASS', row_comparison: 'PASS', duration_ms: 1500, observed_at: '2026-10-04T16:00:00Z' },
   migration: { ...base, result: 'PASS', schema_before: 'financial-surface-hardening-1', schema_after: EXPECTED_SCHEMA_VERSION, bundle_sha256: 'c'.repeat(64), started_at: '2026-10-04T16:15:00Z', observed_at: '2026-10-04T16:30:00Z' },
@@ -41,6 +41,7 @@ denied(x => { x.project_ref = 'igacnfjeuqhxcmfyepgj'; });
 denied(x => { x.environment = 'production'; });
 denied(x => { x.schema_after = 'financial-data-governance-1'; });
 denied(x => { x.deployment.target = 'preview'; });
+denied(x => { x.deployment.branch = 'pilot'; }); // staging publica só a partir da main canônica
 denied(x => { x.authenticated_journey.transport = 'demo'; });
 denied(x => { x.restore.backup_sha256 = 'c'.repeat(64); });
 denied(x => { x.restore.duration_ms = Infinity; });

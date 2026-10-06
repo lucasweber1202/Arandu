@@ -131,6 +131,8 @@ export function renderTopbar(ctx) {
   if (ctx.mode === 'demo') actions.append(el('span', { class: 'demo-chip', title: 'Ambiente demonstrativo. Dados fictícios.' }, [icon('info', { size: 12 }), el('span', { text: 'Demo · dados fictícios' })]));
   // Ambiente de demonstração com banco próprio: o produto real, com empresa fictícia.
   else if (ctx.environment === 'demo') actions.append(el('span', { class: 'demo-chip env-chip', id: 'environment-chip', title: 'Ambiente de demonstração: produto real, empresa e instituições fictícias.' }, [icon('info', { size: 12 }), el('span', { class: 'env-long', text: 'Ambiente de demonstração' }), el('span', { class: 'env-short', text: 'Demo' })]));
+  // Staging/Pilot: o mesmo produto num banco de validação; ninguém confunde com o oficial.
+  else if (ctx.environment === 'staging') actions.append(el('span', { class: 'demo-chip env-chip', id: 'environment-chip', title: 'Ambiente de validação: mesmo produto, banco separado do oficial.' }, [icon('info', { size: 12 }), el('span', { class: 'env-long', text: 'Ambiente de validação' }), el('span', { class: 'env-short', text: 'Validação' })]));
   let searchButton = null;
   if (ctx.audience === 'company' && ctx.organization) {
     searchButton = el('button', { type: 'button', id: 'command-trigger', class: 'search-trigger', 'aria-keyshortcuts': 'Control+K Meta+K', 'aria-label': 'Buscar (Ctrl+K)' }, [
