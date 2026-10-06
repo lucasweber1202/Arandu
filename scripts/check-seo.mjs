@@ -1,15 +1,14 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';
-import { deploymentBaseUrl, renderSeoHead, SEO_MARKER_START, SEO_THEME_COLOR } from './seo-meta.mjs';
+import { deploymentBaseUrl, renderSeoHead, SEO_MARKER_START, SEO_THEME_COLOR, PUBLIC_PAGES } from './seo-meta.mjs';
 import { ownSiteUrl } from '../lib/public-site-url.mjs';
 
 const root = process.cwd();
 const distMode = process.argv.includes('--dist');
 const contentRoot = distMode ? path.join(root, 'dist') : root;
 const errors = [];
-const routeManifest = JSON.parse(fs.readFileSync(path.join(root, 'data/public-routes.json'), 'utf8'));
-const canonicalPages = new Set(routeManifest.canonical);
+const canonicalPages = new Set(PUBLIC_PAGES);
 const ignoredDirs = new Set(['node_modules', '.git', 'dist', 'reports', 'tests', 'test-results', 'playwright-report']);
 // Sem domínio próprio o build emite deliberadamente uma prévia não indexável:
 // sem canonical, sem JSON-LD e com robots noindex em toda página. Exigir uma

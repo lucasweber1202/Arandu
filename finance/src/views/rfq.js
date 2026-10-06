@@ -1,9 +1,14 @@
+import { graphContextCard } from './graph-context.js';
 // Detalhe da solicitação: contexto no topo, operação separada em abas.
 
 import { PRODUCTS } from '../../../lib/finance/products.mjs';
+import { SOURCE_LABELS, fieldLabel } from '../../../lib/finance/passport.mjs';
 import { el, icon, money, percent, fieldValue, formatDate, formatDateTime, relativeDays, daysUntil, productLabel, RFQ_STATUS, PROPOSAL_STATUS, APPROVAL_STATUS, PROVIDER_KINDS, todayIso, timeAgo } from '../core.js';
-import { card, pill, tag, button, linkButton, emptyState, errorState, loading, tabs, definitionList, toast, confirmDialog, drawer, field, catalogControl, person, menu, progress } from '../ui.js';
-import { comparisonMatrix, weightsPanel, revisionTimeline, collaboration, activityLog, approvalSteps, approvalActions, currentStep, memberName, memberTitle, coverage, approvalSummaryLine } from './shared.js';
+import { card, pill, tag, button, linkButton, emptyState, errorState, loading, tabs, definitionList, toast, confirmDialog, promptDialog, drawer, field, catalogControl, person, menu, progress } from '../ui.js';
+import { loadEntities, rfqEntityControl } from './entities.js';
+import { comparisonMatrix, weightsPanel, revisionTimeline, collaboration, activityLog, approvalSteps, approvalActions, currentStep, memberName, memberTitle, coverage, approvalSummaryLine, lazyDocuments } from './shared.js';
+import { planSummary, policyTimeline, stageAssignments, loadPolicies } from './policy.js';
+import { POLICY_FACTS } from '../../../lib/finance/policy.mjs';
 
 const FLOW = [['draft', 'Rascunho'], ['open', 'Aberta'], ['collecting', 'Coleta'], ['comparing', 'Avaliação'], ['decided', 'Decisão'], ['contracted', 'Contrato']];
 
@@ -22,16 +27,6 @@ function lifecycle(rfq, pendingApproval) {
 }
 
 /** Documentos carregados só quando a pessoa abre a seção: evita uma chamada por cartão. */
-export function lazyDocuments(ctx, entityType, entityId, label, options = {}) {
-  const details = el('details', { class: 'lazy-documents' }, [el('summary', {}, [icon('file', { size: 14 }), el('span', { text: label })])]);
-  details.addEventListener('toggle', () => {
-    if (!details.open || details.dataset.loaded) return;
-    details.dataset.loaded = '1';
-    import('./documents.js').then(({ documentsPanel }) => details.append(documentsPanel(ctx, { entityType, entityId, ...options })));
-  });
-  return details;
-}
-
 function keyTerms(product, terms) {
   const keys = product === 'credit' ? ['offered_amount', 'interest_rate_month', 'cet_year', 'term_months', 'grace_months']
     : ['mdr_debit', 'mdr_credit_cash', 'mdr_credit_installment', 'pix_fee', 'anticipation_rate', 'settlement_days'];
@@ -57,11 +52,20 @@ export async function rfqDetail(ctx) {
   document.title = `${rfq.title} | Arandu Financial Procurement`;
   const manage = ctx.can('create_rfq');
   const proposals = rfq.proposals || [];
-  const [approvals, decisions, policy] = await Promise.all([
+  const [approvals, decisions, generalPolicy, evaluation, entities] = await Promise.all([
     ctx.loadApprovals().then((rows) => rows.filter((row) => row.rfq_id === rfq.id)),
     ctx.api(`decisions?organization_id=${encodeURIComponent(ctx.organization.id)}`).then((result) => result.rows || []).catch(() => []),
-    ctx.api(`approval-policy?organization_id=${encodeURIComponent(ctx.organization.id)}`).catch(() => ({ required_for_decision: false }))
+    ctx.api(`approval-policy?organization_id=${encodeURIComponent(ctx.organization.id)}`).catch(() => ({ required_for_decision: false })),
+    // Exigência pela policy v2 (sem proposta escolhida ainda): a decisão sem
+    // pedido só passa quando nenhuma policy pede etapa ou bloqueio.
+    ['collecting', 'comparing'].includes(rfq.status) && proposals.length
+      ? ctx.api('approval-policies/preview', { method: 'POST', body: JSON.stringify({ rfq_id: rfq.id }) }).then((out) => out.evaluation).catch(() => null)
+      : Promise.resolve(null),
+    // Entidades não dependem da avaliação da política. Não serializar uma
+    // consulta de contexto depois das consultas de aprovação.
+    loadEntities(ctx)
   ]);
+  const policy = { ...generalPolicy, required_for_decision: Boolean(generalPolicy.required_for_decision || evaluation?.approval_required), evaluation };
   const decision = decisions.find((row) => row.rfq_id === rfq.id) || null;
   const contract = decision ? (ctx.data.contracts || []).find((row) => row.decision_id === decision.id) : null;
   const pending = approvals.find((row) => row.status === 'pending') || null;
@@ -104,6 +108,7 @@ export async function rfqDetail(ctx) {
       tag(productLabel(rfq.product, { short: true })), pill(pending ? { label: 'Em aprovação', tone: 'warning', icon: 'clock' } : RFQ_STATUS[rfq.status]),
       el('span', { class: 'meta-item', title: 'Revisão publicada atual' }, [icon('repeat', { size: 14 }), el('span', { text: `Revisão ${rfq.revision || 1}` })]),
       el('span', { class: 'meta-item' }, [icon('users', { size: 14 }), el('span', { text: rfq.owner_name || memberName(ctx.members, rfq.owner_id) })]),
+      entities.rows.length ? el('span', { class: 'meta-item meta-entity' }, rfqEntityControl(ctx, entities, rfq)) : null,
       el('span', { class: `meta-item${live && days !== null && days <= 2 ? ' urgent' : ''}` }, [icon('calendar', { size: 14 }),
         el('span', { text: rfq.response_deadline ? `Prazo de resposta ${formatDate(rfq.response_deadline)}${live ? ` · ${relativeDays(rfq.response_deadline)}` : ''}` : 'Sem prazo definido' })])
     ],
@@ -159,8 +164,39 @@ function overviewTab(ctx, rfq, { manage, pending, approvals, decision, contract,
   const documents = card({ title: 'Documentos', subtitle: 'Balanços, minutas e anexos do processo, em armazenamento privado.', id: 'documentos', body: el('div', {}, loading()) });
   import('./documents.js').then(({ documentsPanel }) => documents.querySelector('.card-body').replaceChildren(documentsPanel(ctx, {
     entityType: 'rfq', entityId: rfq.id, canUpload: manage || ctx.can('upload_document'), shareLabel: 'Visível aos provedores convidados' })));
-  grid.append(el('div', { class: 'split-main' }, [demand, revisions]), el('div', { class: 'split-side' }, [nextStepCard(ctx, rfq, { pending, approvals, decision, contract, policy }), inviteCard, documents, reuse]));
+  grid.append(el('div', { class: 'split-main' }, [demand, passportSnapshotCard(ctx, rfq), revisions, graphContextCard(ctx, { type: 'rfq', id: rfq.id })]), el('div', { class: 'split-side' }, [nextStepCard(ctx, rfq, { pending, approvals, decision, contract, policy }), inviteCard, documents, reuse]));
   return grid;
+}
+
+// Fotografia dos campos do Financial Passport usados na criação. Só a
+// compradora lê (RLS); o cartão some quando a RFQ não veio do Passport.
+function passportSnapshotCard(ctx, rfq) {
+  // Marcador vazio: o cartão só entra quando há fotografia (sem estado de carga sobrando).
+  const slot = el('div', { hidden: true });
+  const body = el('div');
+  const node = card({ title: 'Dados do Financial Passport', subtitle: 'Fotografia do perfil no momento da criação. Mudanças posteriores no Passport não alteram este processo.', id: 'passport', body });
+  ctx.api(`rfq-passport?organization_id=${encodeURIComponent(ctx.organization.id)}&rfq_id=${encodeURIComponent(rfq.id)}`).then(({ rows }) => {
+    if (!rows?.length) return;
+    const spec = PRODUCTS[rfq.product];
+    body.replaceChildren(el('ul', { class: 'passport-snapshot', role: 'list' }, rows.map((row) => {
+      const demandSpec = spec.demandFields.find((item) => item.key === row.demand_key);
+      const numeric = demandSpec && ['money', 'percent', 'number', 'int'].includes(demandSpec.type);
+      const shown = demandSpec ? fieldValue(demandSpec, numeric ? Number(row.field_value) : row.field_value) : null;
+      return el('li', { class: 'passport-snapshot-row' }, [
+      el('span', { class: 'passport-label', text: demandSpec?.label || fieldLabel(row.field_key) }),
+      el('span', { class: 'passport-value', text: shown ?? row.field_value }),
+      el('span', { class: 'passport-meta', text: [
+        row.original_scope === 'entity' ? 'Origem: entidade legal' : 'Origem: grupo',
+        SOURCE_LABELS[row.source] || row.source,
+        row.profile_updated_at ? `atualizado em ${formatDate(row.profile_updated_at)}` : null,
+        row.freshness === 'stale' ? 'desatualizado na criação' : row.freshness === 'review_due' ? 'revisão próxima na criação' : null,
+        row.used_as_is ? 'usado sem alteração' : 'alterado na solicitação'
+      ].filter(Boolean).join(' · ') })
+      ]);
+    })));
+    slot.replaceWith(node);
+  }).catch(() => {});
+  return slot;
 }
 
 function nextStepCard(ctx, rfq, { pending, approvals = [], decision, contract, policy } = {}) {
@@ -170,6 +206,12 @@ function nextStepCard(ctx, rfq, { pending, approvals = [], decision, contract, p
     if (pending) {
       const step = currentStep(pending);
       const total = (pending.steps || []).length;
+      if (pending.policy_snapshot) {
+        const active = (pending.stages || []).filter((stage) => stage.status === 'active').map((stage) => stage.label);
+        return pending.viewer_can_act
+          ? ['Sua aprovação é necessária', `Etapa ativa: ${active.join(' e ')}. Veja a policy e o contexto na aba Aprovações.`]
+          : [active.length ? `Aguardando: ${active.join(' e ')}` : 'Aguardando exceção pendente', 'O fluxo segue a policy gravada no pedido. Você será avisado quando avançar.'];
+      }
       return step?.approver_id === ctx.viewer?.id
         ? ['Sua aprovação é necessária', `Etapa ${step.position} de ${total}. Veja o contexto na aba Aprovações e decida.`]
         : [`Aguardando ${step ? memberName(ctx.members, step.approver_id) : 'aprovação'}`, `Etapa ${step?.position || '—'} de ${total}. Você será avisado quando a etapa for concluída.`];
@@ -327,11 +369,12 @@ async function exportProcess(ctx, rfq) {
 export function approvalCard(ctx, request, rfq, { onChange, compact = false } = {}) {
   const proposal = (rfq.proposals || []).find((row) => row.id === request.proposal_id);
   const step = currentStep(request);
-  const mine = step && step.approver_id === ctx.viewer?.id;
+  const mine = request.viewer_can_act ?? (step && step.approver_id === ctx.viewer?.id);
+  const summary = request.policy_snapshot ? `${(request.stages || []).filter((stage) => ['approved', 'waived'].includes(stage.status)).length} de ${(request.stages || []).length} etapas` : approvalSummaryLine(request);
   const node = el('article', { class: `approval-card${mine ? ' mine' : ''}`, id: `request-${request.id}` }, [
     el('header', { class: 'approval-head' }, [
       el('div', {}, [
-        el('p', { class: 'approval-kicker', text: `${approvalSummaryLine(request)} · solicitado por ${memberName(ctx.members, request.requested_by)} ${timeAgo(request.requested_at)}` }),
+        el('p', { class: 'approval-kicker', text: `${summary} · solicitado por ${memberName(ctx.members, request.requested_by)} ${timeAgo(request.requested_at)}` }),
         el('h3', { class: 'approval-title', text: proposal ? `${proposal.provider_name} · proposta v${request.proposal_version}` : `Proposta v${request.proposal_version}` })
       ]),
       pill(request.stale && request.status === 'pending' ? { label: 'Desatualizada', tone: 'danger', icon: 'alert' } : APPROVAL_STATUS[request.status])
@@ -339,9 +382,17 @@ export function approvalCard(ctx, request, rfq, { onChange, compact = false } = 
     request.stale ? el('p', { class: 'callout callout-warning compact' }, [icon('alert', { size: 14 }), el('span', { text: 'A solicitação ou a proposta mudou depois do pedido. Esta aprovação não vale para a versão atual; peça uma nova.' })]) : null,
     request.rationale ? el('blockquote', { class: 'rationale' }, [el('span', { class: 'rationale-label', text: 'Contexto do solicitante' }), el('p', { text: request.rationale })]) : null,
     proposal && !compact ? keyTerms(rfq.product, proposal.terms) : null,
-    approvalSteps(request, ctx.members)
+    request.policy_snapshot ? policyTimeline(ctx, request, { onChange }) : approvalSteps(request, ctx.members)
   ]);
-  if (mine && !request.stale) node.append(el('div', { class: 'approval-cta' }, [el('p', { class: 'approval-your-turn' }, [icon('clock', { size: 14 }), el('span', { text: 'Sua decisão é a próxima etapa.' })]), approvalActions(ctx, request, { onDone: onChange })]));
+  if (mine && !request.stale) node.append(el('div', { class: 'approval-cta' }, [el('p', { class: 'approval-your-turn' }, [icon('clock', { size: 14 }), el('span', { text: request.policy_snapshot ? 'Você é aprovador(a) de uma etapa ativa.' : 'Sua decisão é a próxima etapa.' })]), approvalActions(ctx, request, { onDone: onChange })]));
+  if (request.status === 'pending' && request.policy_snapshot && ctx.can?.('create_rfq')) {
+    node.append(el('div', { class: 'row-actions' }, button('Substituir este pedido', { variant: 'ghost', size: 'sm', iconName: 'edit', onClick: async () => {
+      const reason = await promptDialog({ title: 'Substituir o pedido?', description: 'O pedido atual é encerrado como substituído (por exemplo, para reavaliar sob a versão nova da policy). Nada muda sozinho: depois você pede uma nova aprovação.', label: 'Motivo', minLength: 3, confirmLabel: 'Substituir', tone: 'danger' });
+      if (reason === null) return;
+      try { await ctx.api('approvals/supersede', { method: 'POST', body: JSON.stringify({ request_id: request.id, reason }) }); toast('Pedido substituído. Solicite uma nova aprovação.'); onChange?.(); }
+      catch (error) { toast(error.message, 'error'); }
+    } })));
+  }
   if (request.status === 'pending' && request.requested_by === ctx.viewer?.id) {
     node.append(el('div', { class: 'row-actions' }, button('Cancelar pedido de aprovação', { variant: 'ghost', size: 'sm', iconName: 'x', onClick: async () => {
       if (!await confirmDialog({ title: 'Cancelar o pedido?', description: 'Os aprovadores deixam de ver a pendência. O histórico é mantido.', confirmLabel: 'Cancelar pedido', tone: 'danger' })) return;
@@ -368,9 +419,9 @@ function approvalRequestForm(ctx, rfq, latest) {
   const proposals = rfq.proposals || [];
   const eligible = (ctx.members || []).filter((member) => member.user_id !== ctx.viewer?.id && member.role !== 'provider_user');
   const form = el('form', { class: 'card approval-form', id: 'approval-request', novalidate: true });
+  const subtitle = el('p', { class: 'card-subtitle', text: 'Escolha a proposta e explique o porquê. A policy da empresa, quando existir, define quem aprova e em que ordem.' });
   form.append(el('div', { class: 'card-head' }, el('div', { class: 'card-head-text' }, [
-    el('h3', { class: 'card-title', text: latest && latest.status !== 'pending' ? 'Solicitar nova aprovação' : 'Solicitar aprovação' }),
-    el('p', { class: 'card-subtitle', text: 'Escolha a proposta, os aprovadores (em ordem) e explique o porquê. Cada aprovador é avisado na sua vez.' })
+    el('h3', { class: 'card-title', text: latest && latest.status !== 'pending' ? 'Solicitar nova aprovação' : 'Solicitar aprovação' }), subtitle
   ])));
   const body = el('div', { class: 'card-body stack' });
   const proposalGroup = el('fieldset', { class: 'radio-cards' }, el('legend', { class: 'field-label', text: 'Proposta para aprovação' }));
@@ -380,6 +431,8 @@ function approvalRequestForm(ctx, rfq, latest) {
       el('span', { class: 'radio-card-text' }, [el('strong', { text: proposal.provider_name }), el('span', { class: 'muted small', text: `v${proposal.version} · ${rfq.product === 'credit' ? `${percent(proposal.terms?.interest_rate_month)} a.m. · ${money(proposal.terms?.offered_amount, { compact: true })}` : `MDR crédito ${percent(proposal.terms?.mdr_credit_cash)} · PIX ${percent(proposal.terms?.pix_fee)}`}` })])
     ]));
   });
+
+  // Modo manual (sem policy): aprovadores em ordem, como antes.
   const order = [];
   const approverGroup = el('fieldset', { class: 'approver-pick' }, el('legend', { class: 'field-label', text: 'Aprovadores, na ordem em que devem decidir' }));
   const orderNote = el('p', { class: 'field-hint', text: 'Marque na ordem desejada. O solicitante não pode aprovar o próprio pedido.' });
@@ -397,24 +450,84 @@ function approvalRequestForm(ctx, rfq, latest) {
   }
   if (!eligible.length) approverGroup.append(el('p', { class: 'muted', text: 'Convide outro membro da empresa para poder solicitar aprovação.' }));
   approverGroup.append(orderNote);
+
+  // Modo policy: prévia do plano, indicação por etapa, fatos declarados.
+  const modeBox = el('div', { class: 'stack' }, loading('Conferindo a policy da empresa…'));
+  const declared = {};
+  let evaluation = null;
+  let flags = [];
+  let assignments = {};
+  const justification = el('textarea', { name: 'justification', rows: '3', maxlength: '2000', placeholder: 'Ex.: única instituição com linha disponível no prazo da operação.' });
+  const justificationField = field({ label: 'Justificativa exigida pela policy', control: justification, hint: 'Ao menos 10 caracteres. Fica gravada no pedido.' });
+  const declaredBox = () => {
+    const needsCovenant = (evaluation.unknown_facts || []).includes('covenant_present') || declared.covenant_present !== undefined;
+    const parts = [];
+    if (needsCovenant) {
+      const covenant = el('select', {}, [el('option', { value: '', text: 'Não informado (a policy assume o caso mais exigente)' }), el('option', { value: 'true', text: 'Sim' }), el('option', { value: 'false', text: 'Não' })]);
+      covenant.value = declared.covenant_present === undefined ? '' : String(declared.covenant_present);
+      covenant.addEventListener('change', () => { if (covenant.value === '') delete declared.covenant_present; else declared.covenant_present = covenant.value === 'true'; refresh(); });
+      parts.push(field({ label: POLICY_FACTS.covenant_present.label, control: covenant }));
+    }
+    if (flags.length) {
+      const group = el('fieldset', { class: 'check-row' }, el('legend', { class: 'field-label', text: 'Sinalizadores da empresa que se aplicam a esta operação' }));
+      for (const flag of flags) {
+        const box = el('input', { type: 'checkbox', value: flag.key, checked: (declared.flags || []).includes(flag.key) });
+        box.addEventListener('change', () => { declared.flags = [...group.querySelectorAll('input:checked')].map((input) => input.value); refresh(); });
+        group.append(el('label', { class: 'check-option' }, [box, el('span', { text: flag.label })]));
+      }
+      parts.push(group, el('p', { class: 'field-hint', text: 'A declaração fica gravada no pedido, com seu nome.' }));
+    }
+    return parts.length ? el('div', { class: 'stack-sm' }, parts) : null;
+  };
+  const refresh = async () => {
+    const proposalId = new FormData(form).get('proposal_id');
+    try {
+      const out = await ctx.api('approval-policies/preview', { method: 'POST', body: JSON.stringify({ rfq_id: rfq.id, proposal_id: proposalId, declared }) });
+      evaluation = out.evaluation;
+    } catch { evaluation = null; }
+    const policyMode = evaluation?.engine === 'policy' && ((evaluation.stages || []).length || (evaluation.blockers || []).length);
+    if (!policyMode) {
+      evaluation = null;
+      modeBox.replaceChildren(approverGroup);
+      return;
+    }
+    flags = ((await loadPolicies(ctx))?.flags || []).filter((flag) => flag.active);
+    const keep = assignments;
+    assignments = {};
+    for (const stage of evaluation.stages || []) assignments[stage.key] = (keep[stage.key] || []).slice();
+    subtitle.textContent = 'A policy da empresa define as etapas abaixo. Indique quem aprova cada uma; o banco confere papel, escopo e segregação de funções.';
+    modeBox.replaceChildren(planSummary(ctx, evaluation), declaredBox() || el('span'), stageAssignments(ctx, evaluation.stages || [], assignments),
+      evaluation.requirements?.justification ? justificationField : el('span'));
+  };
+  proposalGroup.addEventListener('change', () => { refresh(); });
+
   const rationale = el('textarea', { name: 'rationale', rows: '4', maxlength: '4000', placeholder: 'Ex.: menor custo total estimado e valor integral; garantias validadas com o jurídico.' });
   const rationaleField = field({ label: 'Contexto para quem aprova', control: rationale, required: true, hint: 'Quem aprova vê este texto junto com a proposta e a comparação.' });
   const error = el('p', { class: 'field-error', role: 'alert', hidden: true });
   const submit = button('Solicitar aprovação', { variant: 'primary', type: 'submit', iconName: 'send' });
-  body.append(proposalGroup, approverGroup, rationaleField, error, el('div', { class: 'form-actions' }, submit));
+  body.append(proposalGroup, modeBox, rationaleField, error, el('div', { class: 'form-actions' }, submit));
   form.append(body);
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     error.hidden = true;
-    if (!order.length) { error.textContent = 'Escolha pelo menos um aprovador.'; error.hidden = false; return; }
     if (!rationale.value.trim()) { rationaleField.setError('Explique o contexto para quem vai aprovar.'); rationale.focus(); return; }
+    const proposalId = new FormData(form).get('proposal_id');
+    if (evaluation) {
+      const missing = (evaluation.stages || []).find((stage) => (assignments[stage.key] || []).length < stage.min_approvals);
+      if (missing) { error.textContent = `Indique ${missing.min_approvals} aprovador(es) para "${missing.label}".`; error.hidden = false; return; }
+      if (evaluation.requirements?.justification && justification.value.trim().length < 10) { justificationField.setError('A policy exige justificativa com ao menos 10 caracteres.'); justification.focus(); return; }
+    } else if (!order.length) { error.textContent = 'Escolha pelo menos um aprovador.'; error.hidden = false; return; }
     submit.disabled = true;
     try {
-      await ctx.api('approvals/request', { method: 'POST', body: JSON.stringify({ rfq_id: rfq.id, proposal_id: new FormData(form).get('proposal_id'), approver_ids: order, rationale: rationale.value }) });
-      toast(`Aprovação solicitada. ${memberName(ctx.members, order[0])} foi avisado(a).`);
+      const payload = evaluation
+        ? { rfq_id: rfq.id, proposal_id: proposalId, assignments, rationale: rationale.value, justification: justification.value.trim() || null, declared }
+        : { rfq_id: rfq.id, proposal_id: proposalId, approver_ids: order, rationale: rationale.value };
+      await ctx.api('approvals/request', { method: 'POST', body: JSON.stringify(payload) });
+      toast(evaluation ? 'Aprovação solicitada pela policy. Os aprovadores da primeira etapa foram avisados.' : `Aprovação solicitada. ${memberName(ctx.members, order[0])} foi avisado(a).`);
       ctx.reload();
     } catch (failure) { error.textContent = failure.message; error.hidden = false; submit.disabled = false; }
   });
+  queueMicrotask(refresh);
   return form;
 }
 

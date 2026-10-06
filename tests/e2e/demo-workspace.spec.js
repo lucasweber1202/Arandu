@@ -350,11 +350,84 @@ test('restaurar só aparência preserva os dados; restaurar dados preserva a apa
   await page.keyboard.press('Control+k');
   await page.keyboard.type('tema escuro');
   await page.keyboard.press('Enter');
+  // A preferência precisa estar aplicada ANTES do reset de dados: é ela que o reset deve preservar.
+  await expect(html(page)).toHaveAttribute('data-theme', 'dark');
   await restore('Dados demonstrativos');
   await expect(page).toHaveURL(/dashboard\.html$/);
   await expect(html(page)).toHaveAttribute('data-theme', 'dark');
   await page.goto('/demo/finance/tasks.html');
   await expect(page.locator('.task-list')).not.toContainText('Tarefa que deve sobreviver');
+});
+
+test('central de comando: o que se digita enquanto o módulo carrega não se perde nem executa outro item', async ({ page }) => {
+  // Segura o pacote da central (carregado sob demanda) para reproduzir, de forma
+  // determinística, a pessoa que aperta Ctrl+K e digita antes de ele chegar.
+  let release;
+  const gate = new Promise((resolve) => { release = resolve; });
+  await page.route(/\/assets\/command-[^/]+\.js$/, async (route) => { await gate; await route.continue(); });
+  await ready(page, '/demo/finance/tasks.html');
+  await expect(html(page)).toHaveAttribute('data-theme', 'light');
+  await page.keyboard.press('Control+k');
+  await page.keyboard.type('tema escurx');
+  await page.keyboard.press('Backspace');
+  await page.keyboard.type('o');
+  await page.keyboard.press('Enter');
+  // Nada foi para a página enquanto a central carregava.
+  await expect(page.getByLabel('Nova tarefa')).toHaveValue('');
+  release();
+  await expect(html(page)).toHaveAttribute('data-theme', 'dark');
+  await expect(page).toHaveURL(/\/demo\/finance\/tasks\.html$/);
+  await expect(page.locator('#command-center')).not.toHaveAttribute('open', '');
+  expect((await stored(page)).appearance.theme).toBe('dark');
+});
+
+test('central de comando: Esc durante o carregamento cancela a abertura', async ({ page }) => {
+  let release;
+  const gate = new Promise((resolve) => { release = resolve; });
+  await page.route(/\/assets\/command-[^/]+\.js$/, async (route) => { await gate; await route.continue(); });
+  await ready(page, '/demo/finance/tasks.html');
+  await page.keyboard.press('Control+k');
+  await page.keyboard.type('tema escuro');
+  await page.keyboard.press('Escape');
+  release();
+  // Depois de cancelada, a digitação volta à página normalmente.
+  await page.getByLabel('Nova tarefa').fill('texto livre');
+  await expect(page.getByLabel('Nova tarefa')).toHaveValue('texto livre');
+  await expect(page.locator('dialog#command-center[open]')).toHaveCount(0);
+  await expect(html(page)).toHaveAttribute('data-theme', 'light');
+  // A central continua funcionando depois do cancelamento.
+  await page.keyboard.press('Control+k');
+  await expect(page.locator('dialog#command-center[open]')).toHaveCount(1);
+});
+
+test('contrato: ação de lifecycle cabe no cartão e abre por teclado em telas estreitas', async ({ page }) => {
+  for (const width of [320, 393]) {
+    await page.setViewportSize({ width, height: 852 });
+    for (const theme of ['light', 'dark']) {
+      await page.goto('/demo/index.html');
+      await page.evaluate(([key, value]) => localStorage.setItem(key, JSON.stringify({ version: 1, appearance: { theme: value, density: 'spacious' } })), [KEY, theme]);
+      await ready(page, '/demo/finance/contracts.html');
+      const action = page.getByRole('button', { name: 'Abrir contrato: termos, aditivos e marcos' }).first();
+      await expect(action).toBeVisible();
+      const geometry = await action.evaluate((button) => {
+        const card = button.closest('.contract-card').getBoundingClientRect();
+        const rect = button.getBoundingClientRect();
+        return { left: rect.left - card.left, right: rect.right - card.right, overflow: document.documentElement.scrollWidth - innerWidth };
+      });
+      expect(geometry.left).toBeGreaterThanOrEqual(0);
+      expect(geometry.right).toBeLessThanOrEqual(1);
+      expect(geometry.overflow).toBeLessThanOrEqual(1);
+      const timeline = page.locator('.contract-timeline').first();
+      expect(await timeline.evaluate((line) => { line.scrollLeft = line.scrollWidth; return line.scrollLeft; })).toBeGreaterThan(0);
+      await action.focus();
+      await page.keyboard.press('Enter');
+      await expect(page.getByRole('dialog')).toBeVisible();
+      await expect(page.getByRole('dialog').locator('.contract-center')).toBeVisible();
+      await page.keyboard.press('Escape');
+      await expect(page.getByRole('dialog')).toBeHidden();
+      await expect(action).toBeFocused();
+    }
+  }
 });
 
 test('layout móvel e desktop sem rolagem horizontal, com e sem tema escuro', async ({ page }) => {
@@ -365,7 +438,27 @@ test('layout móvel e desktop sem rolagem horizontal, com e sem tema escuro', as
       await page.goto(path);
       await page.waitForTimeout(250);
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-      expect(overflow, `${theme} ${path}`).toBeLessThanOrEqual(1);
+      const overflowSources = overflow > 1 ? await page.evaluate(() => [...document.querySelectorAll('body *')]
+        .map((element) => {
+          const rect = element.getBoundingClientRect();
+          const style = getComputedStyle(element);
+          return {
+            node: element.tagName.toLowerCase(),
+            id: element.id || undefined,
+            className: typeof element.className === 'string' ? element.className : undefined,
+            left: Math.round(rect.left),
+            right: Math.round(rect.right),
+            width: Math.round(rect.width),
+            scrollWidth: element.scrollWidth,
+            clientWidth: element.clientWidth,
+            overflowX: style.overflowX,
+            position: style.position
+          };
+        })
+        .filter((item) => item.width > 0 && item.right > innerWidth + 1)
+        .sort((a, b) => b.right - a.right)
+        .slice(0, 12)) : [];
+      expect(overflow, `${theme} ${path}; overflowing elements: ${JSON.stringify(overflowSources)}`).toBeLessThanOrEqual(1);
     }
   }
 });

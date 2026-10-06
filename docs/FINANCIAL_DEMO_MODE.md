@@ -33,6 +33,13 @@ fictícios. Não pede cadastro, OTP, e-mail nem Supabase.
 
 ## Arquitetura
 
+Previews financeiros não incluem este sandbox automaticamente. Para revisar
+explicitamente a demonstração em um preview, use `ARANDU_DEMO_MODE=true` ou
+`ARANDU_PRESENTATION_MODE=true`. O projeto independente continua usando
+`ARANDU_DEPLOYMENT_KIND=demo`. O CI verifica tanto a ausência no preview
+financeiro quanto a presença no demonstrativo explícito; a cobertura E2E de
+apresentação continua ativando o modo explicitamente.
+
 ```
 finance/app.js ── ctx.api(path, options)
                       │

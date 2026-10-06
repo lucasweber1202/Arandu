@@ -24,7 +24,13 @@ const demoPage = document.body.dataset.mode === 'demo';
 const root = document.querySelector('#view');
 
 // Cada tela é carregada sob demanda: uma página baixa só o código que exibe.
-const lazy = (load, name) => async (ctx) => (await load())[name](ctx);
+const lazy = (load, name) => {
+  let pending;
+  const preload = () => (pending ||= load());
+  const renderView = async (ctx) => (await preload())[name](ctx);
+  renderView.preload = preload;
+  return renderView;
+};
 const company = () => import('./src/views/company.js');
 const providerViews = () => import('./src/views/provider.js');
 const VIEWS = {
@@ -34,12 +40,25 @@ const VIEWS = {
   newRfq: lazy(() => import('./src/views/rfqs.js'), 'newRfq'),
   rfq: lazy(() => import('./src/views/rfq.js'), 'rfqDetail'),
   approvals: lazy(company, 'approvalsInbox'), proposals: lazy(company, 'proposalsList'), contracts: lazy(company, 'contracts'),
+  passport: lazy(() => import('./src/views/passport.js'), 'passport'),
+  value: lazy(() => import('./src/views/value.js'), 'value'),
+  fees: lazy(() => import('./src/views/fees.js'), 'fees'),
+  opportunities: lazy(() => import('./src/views/opportunities.js'), 'opportunities'),
+  portfolio: lazy(() => import('./src/views/portfolio.js'), 'portfolio'),
   providers: lazy(company, 'providers'), tasks: lazy(company, 'tasks'), notifications: lazy(company, 'notifications'), settings: lazy(company, 'settings'),
   providerHome: lazy(providerViews, 'providerHome'), providerRfqs: lazy(providerViews, 'providerRfqs'),
   providerProposal: lazy(providerViews, 'providerProposal'), providerInvite: lazy(providerViews, 'providerInvite'),
   // Página estática: o conteúdo já está no HTML; só o shell é montado.
   ops: lazy(() => import('./src/views/ops.js'), 'opsConsole'),
-  boundaries: () => null
+  boundaries: () => null,
+  // Pós-contrato e inteligência documental: as mesmas telas em todo build e
+  // ambiente (Oficial, Staging, Demo). Nenhuma capability some por modo de build.
+  extractions: lazy(() => import('./src/views/extractions.js'), 'extractions'),
+  qualifications: lazy(() => import('./src/views/qualifications.js'), 'qualifications'),
+  implementations: lazy(() => import('./src/views/implementations.js'), 'implementations'),
+  spend: lazy(() => import('./src/views/spend.js'), 'spend'),
+  performance: lazy(() => import('./src/views/performance.js'), 'performance'),
+  covenants: lazy(() => import('./src/views/covenants.js'), 'covenants')
 };
 const PUBLIC_WHEN_SIGNED_OUT = new Set(['providerInvite', 'boundaries']);
 // Operadores da plataforma não precisam pertencer a uma empresa.
@@ -73,9 +92,12 @@ const httpTransport = {
 async function createTransport() {
   if (!demoPage) return httpTransport;
   if (!DEMO_BUILD) return null;
-  const { createDemoEngine } = await import('./demo/engine.js');
-  // Work OS da demo: cache local-first (stale-while-revalidate) sobre o motor fictício.
-  const { withLocalFirst } = await import('./demo/workspace/platform/local-first.js');
+  // Os dois módulos são independentes: baixar em paralelo evita uma cascata
+  // de imports no primeiro acesso, especialmente no WebKit.
+  const [{ createDemoEngine }, { withLocalFirst }] = await Promise.all([
+    import('./demo/engine.js'),
+    import('./demo/workspace/platform/local-first.js')
+  ]);
   return withLocalFirst(createDemoEngine({ latency: 140 }));
 }
 
@@ -113,6 +135,8 @@ function createContext(transport) {
       if (!role) return ctx.audience === 'company';
       if (permission === 'admin') return role === 'admin';
       if (permission === 'upload_document') return ['admin', 'finance_manager', 'analyst', 'provider_user'].includes(role);
+      // Mesmos papéis que a RPC fin_passport_set_field aceita.
+      if (permission === 'edit_profile') return ['admin', 'finance_manager', 'analyst'].includes(role);
       return ['admin', 'finance_manager'].includes(role);
     },
     approvalsPromise: null,
@@ -333,7 +357,12 @@ async function boot() {
   // Telas exclusivas da demo (Work OS) só existem depois que a camada da demo carrega.
   if (!root || (!VIEWS[view] && !demoPage)) return;
   root.setAttribute('aria-busy', 'true');
-  const transport = await createTransport();
+  // Só a tela atual: sobrepor download/parse ao transporte e à sessão, sem
+  // carregar todas as telas. Uma falha continua sendo exibida pelo render.
+  VIEWS[view]?.preload?.().catch(() => {});
+  // A camada da demo e seu transporte são independentes. Ambas preservam a
+  // trava de build/página, e o portal real não importa nenhum módulo da demo.
+  const [transport, loadedWorkspace] = await Promise.all([createTransport(), loadWorkspace()]);
   if (!transport) {
     // Página de demonstração servida por um build que não a habilita: falha
     // fechada, sem motor, sem dado fictício e sem acesso ao servidor.
@@ -343,7 +372,7 @@ async function boot() {
   }
   const ctx = createContext(transport);
   window.__aranduCtx = ctx;
-  workspace = await loadWorkspace();
+  workspace = loadedWorkspace;
   if (workspace) {
     VIEWS.dashboard = VIEWS.home = workspace.dashboard;
     Object.assign(VIEWS, workspace.views || {});

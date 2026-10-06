@@ -5,114 +5,87 @@ documento divergir, vale este índice, nesta ordem.
 
 ## Direção estratégica e produto
 
-- `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES_V2_1_ADDENDUM.md` — **addendum normativo v2.1** para enterprise hardening. Enquanto existir, deve ser lido junto da guideline mestra e prevalece em conflito sobre target-state vs. escopo de rodada, Financial Graph, core vs. capacidades futuras, data governance, operational resilience, prioridades de API/identity e canonicality de branches.
-- `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md` — **diretriz mestra normativa** para evolução de produto e engenharia: tese B2B/enterprise, princípios, limites, arquitetura futura, IA, integrações, roadmap, priorização e Definition of Done. Na `main`, sua versão pode temporariamente ficar atrás da estratégia aprovada em `pilot`; o addendum v2.1 existe justamente para impedir que isso gere direção obsoleta.
+- `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md` — **diretriz mestra normativa v3** (autoridade estratégica): tese B2B/enterprise, boundaries, princípios, modelo de maturidade M0–M6, arquitetura funcional, engenharia, capacity headroom, Definition of Done e sequência de maturidade (Stage 0–5). Na `main`, a versão pode ficar atrás da `pilot` até a promoção `pilot → main`.
+- `docs/IMPLEMENTATION_MATRIX.md` — **estado vivo** exigido pela v3 §1.3: maturity state por capability, evidência, blockers, ambiente/SHA validados e próximo gate.
+- `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES_V2_1_ADDENDUM.md` — **histórico/superseded** pela v3. Mantido como referência técnica para os IDs `Add. X.Y` citados em documentos e migrations antigos; não prevalece sobre a v3.
 - `docs/FINANCIAL_PRODUCT_BOUNDARIES.md` — limites funcionais/regulatórios do produto atual; prevalece para o que o software pode ou não afirmar/fazer nesta fase.
 - Documentos técnicos especializados abaixo governam a implementação concreta sem contradizer a direção estratégica acima sem decisão explícita e atualização documental.
 
-**Regra temporária de consolidação:** guideline mestra + addendum v2.1 = guideline estratégica efetiva. Quando a v2.1 for incorporada integralmente no arquivo mestre, o addendum e suas referências devem ser removidos no mesmo PR para voltar a uma única fonte estratégica.
+**Fonte estratégica única:** desde a v3 (PR #127) a guideline mestra consolidou a direção da v2/v2.1. O addendum permanece no repositório apenas como histórico (referências `Add. X.Y` em migrations e documentos não são reescritas); não deve ser lido como regra vigente.
 
 ## Financial Procurement (produto atual)
 
+- `docs/FINANCIAL_PILOT_RELEASE_GATE.md` — gate binário de comprovantes hospedados, SHA, freshness, restore, cronologia e jornada.
+- `docs/FINANCIAL_RELEASE_EVIDENCE_2026-10-05_V3_BASELINE.md` — **evidência viva**: baseline de código/CI reconciliada pós-#125/#126/#127, gates, headroom e NO-GO atual do Pilot.
+- `docs/FINANCIAL_RELEASE_EVIDENCE_2026-10-05.md` — histórico: baseline da #125 (causa-raiz da #124, ambientes sondados em 05/10, ações externas ainda válidas).
+- `docs/FINANCIAL_RELEASE_EVIDENCE_2026-10-04.md` — histórico: observações hospedadas (schema, bucket, Vercel) de 04/10.
+- `docs/FIRST_CUSTOMER_PILOT_CHECKLIST.md` — configuração, dados, suporte e critérios de primeiro cliente.
 - `docs/FINANCIAL_PILOT_GO_LIVE.md` — checklist única de go-live do piloto, com estado por item.
 - `docs/FINANCIAL_OWNER_ACTIONS.md` — o que só o proprietário pode fazer.
-- `docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md` — três ambientes (demo, pilot, production), `feature/* → pilot → main`, hotfix e rollback.
+- `docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md` — **canônico**: `main` única branch de produto; ambientes demo/staging(pilot)/official da mesma árvore; runtime (`lib/runtime-mode.mjs`), dados, release e rollback.
 - `docs/FINANCIAL_PILOT_ENVIRONMENT.md` — variáveis, Supabase do piloto, backups.
 - `docs/FINANCIAL_PILOT_OPERATIONS.md`, `docs/FINANCIAL_PILOT_SUPPORT.md`, `docs/FINANCIAL_PILOT_PLAYBOOK.md` — operação, suporte e incidentes.
+- `docs/FINANCIAL_RELEASE_EVIDENCE_2026-10-06_MAIN_CONSOLIDATION.md` — evidência local da consolidação `main` canônica (DAG, #135, testes, CI sem runner).
+- `docs/FINANCIAL_BUNDLE_HEADROOM.md` — budgets de produto, sandbox congelado e por rota.
 - `docs/demo/README.md` — demo canônica: produto real com Supabase DEMO dedicado e Vitta Foods fictícia.
 - `docs/FINANCIAL_DEMO_MODE.md` — sandbox público temporário sem backend, preservado até a demo canônica ser comprovada.
 - `docs/FINANCIAL_SECURITY_MODEL.md`, `docs/FINANCIAL_THREAT_MODEL.md`, `docs/FINANCIAL_AUTHORIZATION_MAP.md` — segurança.
 - `docs/FINANCIAL_REPO_GOVERNANCE.md` — proteção de branches e checks obrigatórios.
-- `docs/supabase-migrations.json` — ordem canônica das migrations; consulte o manifesto atual. A última migration desta baseline grava `schema_version = financial-approval-handoff-1`.
+- `docs/supabase-migrations.json` — ordem canônica das migrations; consulte o manifesto atual. A migration P1.1 grava `schema_version = financial-value-realization-1` após `financial-p0-closure-1`; a P1.2 grava `financial-fee-intelligence-1` e a P1.3 `financial-opportunity-engine-1` em seguida. A aposentadoria destrutiva anterior continua sujeita ao procedimento de `docs/LEGACY_ART_RETIREMENT.md`; a ordem do manifest não autoriza aplicação hospedada.
+- `docs/FINANCIAL_GRAPH.md` — Financial Graph relacional (camada de consulta autorizada, sem novo datastore).
+- `docs/FINANCIAL_POLICY_ENGINE.md` — Policy & Approval Engine v2: policies versionadas por grupo/entidade, precedência, snapshot, SoD, exceções, delegação e prazos.
+- `docs/FINANCIAL_PUBLIC_API.md` + `docs/openapi/arandu-public-api-v1.json` — Public API v1 e webhooks: autenticação de máquina, escopos, versionamento/deprecação, idempotência, assinatura e operação.
+- `docs/FINANCIAL_SSO.md` — Enterprise SSO foundation: domínio verificado, broker Supabase (SAML), autorização fail-closed, exigência de SSO, sessão e revogação, prontidão, runbook e blockers.
+- `docs/FINANCIAL_OPERATIONAL_RESILIENCE.md` + `docs/FINANCIAL_INCIDENT_POSTMORTEM.md` — severidade, incidentes, dependências, jobs/leases, DR e targets RPO/RTO não medidos.
+- `docs/FINANCIAL_DATA_GOVERNANCE.md` + `lib/finance/data-governance.mjs` — Data Governance (P0.11): classificação por tabela, source of truth, retenção versionada, legal hold, export portável, offboarding com revogação, semântica de exclusão e lacunas.
+- `docs/FINANCIAL_VALUE_REALIZATION.md` — P1.1: baseline, metodologia versionada, economia negociada/realizada e custo evitado, provenance, observação humana, rollout e rollback.
+- `docs/FINANCIAL_VALUE_INTELLIGENCE_EXECUTIVE.md` — fatia de P1.6: valor, tarifas e oportunidades no Painel por moeda, entidade e período, com cobertura e links de ação; sem SoR novo.
+- `docs/FINANCIAL_OPPORTUNITY_ENGINE.md` — P1.3: regras versionadas da empresa, oportunidades determinísticas com fatos congelados, dedupe/cooldown/expiração, job com lease, revisão humana, rascunho de RFQ com confirmação, Graph e governança.
+- `docs/FINANCIAL_PROVIDER_QUALIFICATION.md` — qualificação de provedores: exigências do cliente, evidências com origem e validade (serviço especializado = evidência externa), exceções com SoD, decisão humana e consulta informativa.
+- `docs/FINANCIAL_DOCUMENT_INTELLIGENCE.md` — P1.4: fatos extraídos de documentos privados com proveniência por campo, leitores determinísticos (PDF texto/XLSX/DOCX) atrás de interface única, conteúdo não confiável, evals por criticidade, confirmação humana e diff semântico.
+- `docs/FINANCIAL_FEE_INTELLIGENCE.md` — P1.2: tarifa contratada versionada × cobrança observada, comparabilidade, proveniência, revisão humana com linguagem segura, Graph, governança, rollout e rollback.
+- `docs/IMPLEMENTATION_MATRIX.md` — matriz viva guideline v3 → capacidade, com maturity state (M0–M6), evidência, lacunas e blockers; ponto de partida de qualquer rodada de implementação.
 - Comandos: `finance:env:check`, `finance:pilot:doctor`, `pilot:canary`, `pilot:restore:drill`, `test:database`.
+
+Estado hospedado observado em 02/10: [`ARANDU_CURRENT_STATE_2026-10-02.md`](ARANDU_CURRENT_STATE_2026-10-02.md). Não substitui gates nem guideline.
 
 Evidências de rodada (históricas, datadas): `docs/FINANCIAL_RELEASE_EVIDENCE_*.md`.
 Fechamento da Onda 0 em andamento: [`FINANCIAL_RELEASE_EVIDENCE_2026-10-01.md`](FINANCIAL_RELEASE_EVIDENCE_2026-10-01.md).
 
-## Legado: vertical de arte
+## Release, staging e migrations (plataforma)
 
-Tudo abaixo descreve a vertical de arte, aposentada (ver
-`docs/LEGACY_ART_RETIREMENT.md`). Continua no repositório para auditoria e
-porque o banco ainda carrega esse esquema; não é produto atual e não bloqueia o
-piloto financeiro.
-
-### Estado e decisão de release (arte)
-
-- `ops/release-evidence.json` — fonte oficial dos 13 gates externos.
-- `ops/pilot-evidence.json` — evidências do piloto fechado.
-- `docs/RELEASE_CANDIDATE_1.md` — checklist da beta pública com catálogo e comércio fechados.
-- `npm run deploy:check` — gate de deploy técnico e base do deploy da beta.
-- `npm run release:status` — relatório legível do estado atual.
-- `npm run release:check` — falha enquanto os requisitos mínimos não forem atingidos.
-- `npm run predeploy` — gate do go-live comercial completo; não é requisito da beta.
-
-### Preparação de staging (arte)
-
-- `docs/STAGING_REHEARSAL.md` — ensaio manual e não destrutivo antes do staging real.
-- `.github/workflows/staging-rehearsal.yml` — workflow `workflow_dispatch` sem segredos.
-- `npm run check:staging` — impede que o rehearsal aplique migrations ou altere gates.
-- `npm run staging:evidence` — gera relatório local classificado como simulação.
-
-Um rehearsal verde comprova somente preparação técnica em CI. Ele não equivale a `staging_validated` e não altera `ops/release-evidence.json`.
-
-### Banco e migrations (arte)
-
-1. `docs/supabase-migrations.json` — ordem canônica.
-2. `docs/TRANSACTIONS_RLS_RBAC.md` — modelo transacional, RLS, RBAC e auditoria.
-3. `docs/MIGRATION_RELEASE_RUNBOOK.md` — preflight, dry-run, aplicação, probes e canário.
-4. `docs/rollback/supabase-transactions-rbac-audit.rollback.sql` — rollback da camada transacional.
-5. `docs/INCIDENT_BACKUP_OBSERVABILITY_RUNBOOK.md` — backup, restore, incidente e observabilidade.
+- `npm run deploy:check` — gate de deploy técnico.
+- `npm run release:status` / `npm run release:check` — frentes de go-live de produção (código, ambiente, evidências externas, domínio, plataforma e backup); falha enquanto houver frente bloqueada.
+- `npm run predeploy` — gate final; o CI exige que ele continue falhando fechado.
+- `ops/release-evidence.json` — gates externos de produção (migration, backup/restore, RLS, monitoramento, contato de privacidade, domínio). Alguns gates herdados nomeiam conceitos da vertical aposentada; nenhum é atendido por este repositório sem evidência real.
+- `docs/STAGING_REHEARSAL.md` + `.github/workflows/staging-rehearsal.yml` — ensaio de staging sem segredos; `npm run check:staging` impede que ele aplique migrations ou altere gates.
+- `docs/MIGRATION_RELEASE_RUNBOOK.md` — preflight, dry-run, aplicação, probes e canário.
+- `docs/INCIDENT_BACKUP_OBSERVABILITY_RUNBOOK.md` — backup, restore, incidente e observabilidade.
+- `docs/TRANSACTIONAL_EMAIL_OUTBOX.md` — outbox transacional usada pelos avisos financeiros.
 
 Nunca aplique migration real sem backup referenciado e ambiente explicitamente identificado.
 
-### Administração e segurança (arte)
+## Legado: vertical de arte (aposentada)
 
-- `docs/ADMIN_AUTH_MFA.md` — provisionamento, papéis, MFA e revogação.
-- `docs/ADMIN_OPERACAO_ARANDU.md` — operação diária dos painéis.
-- `docs/OPERATIONAL_STATUS_FLOW.md` — máquina de estados operacional, permissões por transição e trilha de histórico.
-- `docs/PERFIS_E_PORTAIS.md` — perfis do público, capacidades verificadas e portais de artista e empresa.
-- `docs/ARTWORK_STATUS.md` — matriz operacional das obras.
-- `SECURITY.md` — reporte privado de vulnerabilidades.
-- `.github/CODEOWNERS` — responsáveis pelas superfícies críticas.
-
-### Catálogo (arte)
-
-- `docs/GUIA_CADASTRO_OBRAS_REAIS.md` — campos e preparação do acervo.
-- `docs/CHECKLIST_PARCEIRA_ARTISTA.md` — autorizações e parceria.
-- `data/catalog-intake-template.csv` — modelo de intake.
-- `npm run catalog:intake:validate` — validação do CSV.
-- `npm run check:catalog:release` — gate do catálogo real.
-
-Fixtures e demonstrações não contam como catálogo publicado.
-
-### Política comercial (arte)
-
-- `docs/OPERACAO_COMERCIAL_INDEX.md` — índice comercial.
-- `docs/FLUXO_COMPRA_RESERVA.md` — jornada de seleção e reserva.
-- `data/commercial-policy.json` — configuração pública não sensível e estado da política.
-- `npm run check:commercial:release` — validação de completude e aprovação.
-
-Decisões de comissão, pagamento, frete, seguro, devolução e modelo fiscal exigem aprovação humana.
-
-### Beta, piloto, domínio e go-live (arte)
-
-- `docs/GO_LIVE_ARANDU.md` — sequência de promoção.
-- `docs/DEPLOY_DOMINIO_VERCEL.md` — domínio e hospedagem.
-- `docs/SEO_DOMINIO_CHECKLIST.md` — indexação e SEO final.
-- `docs/PRIMEIROS_30_DIAS.md` — operação inicial.
-- `npm run check:pilot:release` — gate do piloto.
-- `npm run check:domain:release` — gate do domínio.
+A antiga vertical de marketplace de arte foi aposentada e removida da árvore
+atual. Contexto, inventário, o que permanece (migrations históricas, objetos de
+banco até a migration de aposentadoria) e como recuperar algo pelo Git:
+[`docs/LEGACY_ART_RETIREMENT.md`](LEGACY_ART_RETIREMENT.md). Não reintroduza
+código, páginas ou documentos de arte a partir do histórico sem uma tarefa
+explícita de recuperação.
 
 ## Governança do repositório
 
-- `CONTRIBUTING.md` — branches, checks e PRs; inclui a exceção docs-only de canonicality da v2.1.
-- `CLAUDE.md` — regras obrigatórias para agentes; exige leitura da guideline mestra, addendum v2.1 e boundaries.
-- `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES_V2_1_ADDENDUM.md` — hardening enterprise normativo e regra de consolidação.
-- `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md` — direção estratégica base de produto e engenharia.
-- `docs/FINANCIAL_REPO_GOVERNANCE.md` — proteção de `main` e `pilot` e checks obrigatórios (canônico).
+- `CONTRIBUTING.md` — branches, checks e PRs; inclui a exceção docs-only de canonicality.
+- `CLAUDE.md` — regras obrigatórias para agentes; exige leitura da guideline mestra v3, da matriz viva e dos boundaries.
+- `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md` — direção estratégica v3 de produto e engenharia.
+- `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES_V2_1_ADDENDUM.md` — histórico/superseded pela v3.
+- `docs/FINANCIAL_REPO_GOVERNANCE.md` — proteção de `main` e `pilot`, checks obrigatórios e registro de incidentes de governança de merge (canônico).
 - `docs/BRANCH_PROTECTION.md` — versão anterior das regras; vale o documento acima.
 - `docs/REPOSITORY_HYGIENE.md` — limpeza de branches e documentos históricos.
 - `docs/VERSIONING.md` — estratégia de versões.
+- `SECURITY.md` — reporte privado de vulnerabilidades.
+- `.github/CODEOWNERS` — responsáveis pelas superfícies críticas.
 
 ## Documentos históricos
 
@@ -124,3 +97,5 @@ Antes de seguir qualquer instrução histórica, confirme:
 2. se o comando ainda existe em `package.json`;
 3. se o gate correspondente possui evidência atual;
 4. se a migration citada ainda está na ordem canônica.
+
+- [Pilot Passport: backup, restore e rollout hospedado](FINANCIAL_PILOT_PASSPORT_ROLLOUT.md) — gates de recuperação e procedimento sem secrets.

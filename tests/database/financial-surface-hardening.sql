@@ -8,7 +8,7 @@
 do $$
 declare v_extra text; v_missing text;
 begin
-  with expected(sig) as (values
+  with expected_base(sig) as (values
     ('fin_accept_member_invitation(text)'),('fin_accept_provider_invite(text,uuid)'),('fin_accept_terms(uuid,text,text)'),
     ('fin_act_on_approval(uuid,text,text)'),('fin_add_comment(text,uuid,text,text,uuid[],uuid)'),('fin_can_read_document(uuid)'),
     ('fin_cancel_approval(uuid)'),('fin_clear_rfq_editor(uuid,integer)'),('fin_comment_authors(text,uuid)'),
@@ -26,7 +26,61 @@ begin
     ('fin_search(uuid,text,text,integer,integer)'),('fin_set_approval_policy(uuid,boolean)'),
     ('fin_set_notification_preference(uuid,text,boolean,boolean)'),('fin_start_contract_rfq(uuid)'),
     ('fin_submit_proposal(uuid,jsonb,text)'),('fin_transition(text,uuid,text)'),('fin_update_my_member_profile(uuid,text,text)'),
-    ('fin_update_organization(uuid,text,text,text,text)'),('fin_withdraw_proposal(uuid)')
+    ('fin_update_organization(uuid,text,text,text,text)'),('fin_withdraw_proposal(uuid)'),
+    ('fin_passport_set_field(uuid,text,text,text,uuid,date,integer)'),('fin_passport_confirm_field(uuid,text)'),
+    ('fin_create_rfq_from_passport(uuid,text,text,text,jsonb,date,jsonb)'),
+    -- Passport entity-aware: role/entity guard, RLS predicate and invoker search.
+    ('fin_passport_set_scoped_field(uuid,uuid,text,text,text,uuid,date,integer)'),
+    ('fin_passport_confirm_scoped_field(uuid,uuid,text)'),('fin_passport_visible(uuid,uuid,text)'),
+    ('fin_search_passport(uuid,uuid,text,integer,integer)'),
+    ('fin_query_graph(uuid,text,uuid,text,uuid,text,text,date,integer,integer)'),
+    -- Policy & Approval Engine v2: administração (admin), prévia sob RLS da RFQ,
+    -- pedido/voto/exceção/delegação com SoD e prazos (docs/FINANCIAL_POLICY_ENGINE.md).
+    ('fin_save_policy_draft(uuid,uuid,text,jsonb,text)'),('fin_activate_policy_version(uuid)'),('fin_discard_policy_draft(uuid)'),
+    ('fin_retire_policy(uuid)'),('fin_set_policy_flag(uuid,text,text,text,boolean)'),('fin_preview_approval_policy(uuid,uuid,jsonb)'),
+    ('fin_simulate_policy_version(uuid,jsonb)'),('fin_request_policy_approval(uuid,uuid,jsonb,text,text,jsonb)'),
+    ('fin_act_on_approval_v2(uuid,text,text,text)'),('fin_supersede_approval(uuid,text)'),
+    ('fin_request_policy_exception(uuid,uuid,text,text,text,jsonb)'),('fin_decide_policy_exception(uuid,text,text)'),('fin_cancel_policy_exception(uuid)'),
+    ('fin_set_approval_delegation(uuid,uuid,timestamp with time zone,timestamp with time zone,text)'),('fin_revoke_approval_delegation(uuid)'),
+    ('fin_process_approval_deadlines(uuid)'),
+    -- Public API v1 & Webhooks: só administração humana (admin). A superfície de
+    -- máquina (fin_api_*, worker) é exclusiva do service role.
+    ('fin_create_service_account(uuid,text,text,text[],text,uuid[])'),('fin_update_service_account(uuid,text[],text,uuid[],text)'),
+    ('fin_revoke_service_account(uuid)'),('fin_issue_api_credential(uuid,text,text,timestamp with time zone)'),('fin_revoke_api_credential(uuid)'),
+    ('fin_create_webhook_endpoint(uuid,text,text[],text,text,uuid[])'),('fin_set_webhook_status(uuid,boolean)'),('fin_replay_webhook_delivery(uuid)'),
+    -- Enterprise SSO: só administração humana (admin). Descoberta, autorização,
+    -- validade de sessão e trilha são exclusivas do service role.
+    ('fin_sso_save_connection(uuid,uuid,text,text,text,text,text,text,text,jsonb,integer)'),('fin_sso_claim_domain(uuid,text,text)'),
+    ('fin_sso_link_domain(text,uuid)'),('fin_sso_set_status(uuid,text,boolean)'),('fin_sso_revoke_sessions(uuid)'),
+    -- Multi-entity: RPCs de administração e auxiliares de policy (só dizem
+    -- se o próprio chamador alcança uma entidade/objeto).
+    ('fin_create_legal_entity(uuid,text,text,text,text,text,text,uuid)'),('fin_update_legal_entity(uuid,text,text,text,text)'),
+    ('fin_set_base_currency(uuid,text)'),('fin_set_member_entity_scope(uuid,uuid,text,uuid[])'),
+    ('fin_create_rfq_in_entity(uuid,uuid,text,text,text,jsonb,date,jsonb)'),('fin_set_rfq_entity(uuid,uuid)'),
+    ('fin_assign_contract_entity(uuid,uuid)'),('fin_entity_scope(uuid)'),('fin_entity_allows(uuid,uuid,text[])'),
+    ('fin_entity_visible(uuid,uuid)'),('fin_object_visible(uuid,text,uuid)'),('fin_rfq_visible(uuid)'),('fin_contract_visible(uuid)'),
+    -- Contract Center v2.
+    ('fin_import_contract(uuid,uuid,uuid,text,text,date,date,integer,boolean,text,jsonb,uuid)'),
+    ('fin_record_contract_terms(uuid,jsonb,integer,text,date)'),
+    ('fin_record_contract_amendment(uuid,text,date,date,text,jsonb,date,integer,uuid,integer)'),
+    ('fin_create_contract_milestone(uuid,text,text,date,integer,text,date,uuid)'),
+    ('fin_settle_contract_milestone(uuid,text)'),('fin_process_contract_milestones(uuid,date)'),
+    ('fin_add_provider_contact(uuid,uuid,text,text,text,text,uuid,boolean)'),('fin_archive_provider_contact(uuid)'),('fin_set_provider_relationship(uuid,uuid,uuid,text,uuid,text[],date,text)'),('fin_open_provider_issue(uuid,uuid,text,text,text,text,uuid,uuid,date,uuid)'),('fin_update_provider_issue(uuid,text,text)'),('fin_create_scorecard_template(uuid,text,text,jsonb)'),('fin_record_provider_review(uuid,uuid,uuid,date,date,jsonb,uuid,text)'),('fin_save_facility(uuid,uuid,uuid,uuid,text,text,text,numeric,numeric,text,numeric,numeric,text,date,date,text,uuid,text,text,integer,text,uuid)'),('fin_confirm_facility(uuid)'),('fin_record_facility_balance(uuid,date,numeric,numeric,text,text)'),('fin_record_facility_schedule(uuid,jsonb,integer)'),('fin_save_guarantee(uuid,uuid,uuid,text,text,text,numeric,uuid,uuid,uuid,date,date,text,text)'),('fin_facility_visible(uuid)'),('fin_group_or_entity_visible(uuid,uuid)')
+  ), expected as (
+    select sig from expected_base
+    union all
+    -- Data Governance (P0.11): administração humana (admin da compradora) e,
+    -- para política de plataforma, prévia e fechamento, operador finance_ops
+    -- com MFA verificado dentro da função. Build, revogação e avanço do
+    -- offboarding são exclusivos do service role.
+    select sig from (values ('fin_retention_class_catalog()'),('fin_governance_summary(uuid)'),
+      ('fin_governance_save_retention_policy(uuid,text,integer,text,text)'),('fin_governance_activate_retention_policy(uuid)'),
+      ('fin_governance_retire_retention_policy(uuid)'),('fin_governance_create_legal_hold(uuid,text,uuid,text,text,text)'),
+      ('fin_governance_release_legal_hold(uuid,text)'),('fin_governance_retention_run(boolean,integer,uuid,text)'),
+      ('fin_governance_request_export(uuid,text)'),('fin_governance_export_manifest(uuid)'),('fin_governance_export_part(uuid,text)'),('fin_governance_export_parts(uuid)'),
+      ('fin_governance_request_offboarding(uuid,text)'),('fin_governance_offboarding_action(uuid,text,jsonb)'),
+      ('fin_governance_deletion_preview(uuid)'),('fin_governance_offboarding_close(uuid,text)'),('fin_governance_offboarding_operator_cancel(uuid)')
+    ) g(sig) where to_regclass('public.fin_legal_holds') is not null
   ), actual as (
     select p.oid::regprocedure::text sig from pg_proc p
     where p.pronamespace = 'public'::regnamespace and has_function_privilege('authenticated', p.oid, 'EXECUTE')
@@ -54,7 +108,7 @@ begin
 
   select string_agg(c.relname, ', ') into v_extra from pg_class c
    where c.relnamespace = 'public'::regnamespace and c.relkind = 'v'
-     and (has_table_privilege('anon', c.oid, 'SELECT') or has_table_privilege('authenticated', c.oid, 'SELECT')
+     and (has_table_privilege('anon', c.oid, 'SELECT') or (has_table_privilege('authenticated', c.oid, 'SELECT') and c.relname not in ('fin_graph_objects','fin_financial_graph'))
           or not coalesce('security_invoker=on' = any(c.reloptions) or 'security_invoker=true' = any(c.reloptions), false));
   if v_extra is not null then raise exception 'view legível pelo cliente ou sem security_invoker: %', v_extra; end if;
 
@@ -68,7 +122,7 @@ begin
      and has_table_privilege('anon', c.oid, p.privilege_type);
   if v_extra is not null then raise exception 'anon com escrita em tabela financeira: %', v_extra; end if;
 
-  if (select value from public.fin_settings where key = 'schema_version') not in ('financial-surface-hardening-1', 'financial-approval-handoff-1') then
+  if (select value from public.fin_settings where key = 'schema_version') not in ('financial-surface-hardening-1', 'financial-approval-handoff-1', 'financial-passport-1', 'financial-multi-entity-1', 'financial-contracts-v2-1', 'financial-relationships-portfolio-1', 'financial-passport-entities-1', 'financial-graph-1', 'financial-policy-engine-1', 'financial-public-api-1','financial-sso-1','financial-operational-resilience-1','financial-data-governance-1','financial-legacy-art-decommission-1','financial-p0-closure-1','financial-value-realization-1','financial-fee-intelligence-1','financial-opportunity-engine-1','financial-document-intelligence-1','financial-provider-qualification-1','financial-implementation-1','financial-covenants-1','financial-provider-performance-1','financial-spend-intelligence-1','financial-opportunity-discriminator-1') then
     raise exception 'schema_version não avançou';
   end if;
 end $$;

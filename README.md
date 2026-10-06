@@ -107,13 +107,15 @@ variáveis e projeto Supabase, nunca por cópias do código.
 | Ambiente | Projeto Vercel | Branch | Declarado por | Banco |
 | --- | --- | --- | --- | --- |
 | **Demo** | `arandu-demo` | `main` | `ARANDU_ENV=demo` | Supabase DEMO próprio (Vitta Foods, fictícia) |
-| **Pilot** | `arandu-pilot` | `pilot` | `ARANDU_ENV=pilot` | Supabase do piloto |
+| **Staging/Pilot** | `arandu-pilot` | `main` | `ARANDU_ENV=pilot` | Supabase do piloto (validação) |
 | **Production** | `arandu` | `main` | `ARANDU_ENV=production` | Supabase próprio da produção |
 
-Piloto e produção nunca compartilham banco, e nenhum usa o projeto legado de
-arte. O build recusa a topologia errada (banco trocado, branch errada, demo em
-ambiente real, credencial na demo, produção sem ambiente declarado). Fluxo
-`feature/* → pilot → main`, hotfix e rollback:
+Os três ambientes publicam a **mesma `main`** e nunca compartilham banco; nenhum
+usa o projeto legado de arte. A diferença de comportamento (e-mail, webhooks,
+modelo externo, documentos reais, fixtures) vem só de `lib/runtime-mode.mjs`.
+O build recusa a topologia errada (banco trocado, branch diferente de `main`,
+sandbox em ambiente real, credencial no sandbox, produção sem ambiente
+declarado). Fluxo `feature/* → PR → main → ambientes`, release e rollback:
 [`docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md`](docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md).
 
 - **Demo**: [`docs/demo/README.md`](docs/demo/README.md) (canônica). O sandbox
@@ -127,22 +129,25 @@ ambiente real, credencial na demo, produção sem ambiente declarado). Fluxo
 
 ## Estado operacional
 
-Estado em 29/09/2026 (detalhe item a item em
-[`docs/FINANCIAL_PILOT_GO_LIVE.md`](docs/FINANCIAL_PILOT_GO_LIVE.md)):
+Estado histórico observado em 02/10/2026 (anterior à consolidação `main` canônica de 06/10/2026), separado por código e ambiente em
+[`docs/ARANDU_CURRENT_STATE_2026-10-02.md`](docs/ARANDU_CURRENT_STATE_2026-10-02.md):
 
-- **Software do piloto**: completo e testado (banco, API, interface, demo).
-- **Supabase do piloto**: 34 migrations aplicadas em 27/09; falta aplicar a
-  35ª (`docs/supabase-financial-pilot-surface-hardening.sql`, esperado
-  `schema_version = financial-surface-hardening-1`).
-- **Vercel**: produção (`arandu`) no ar sem `ARANDU_ENV`; `arandu-demo` e
-  `arandu-pilot` ainda não criados.
-- **Dependências humanas**: revisão jurídica, escolha da empresa e dos
-  provedores do piloto, e-mail transacional, domínio — lista curta em
-  [`docs/FINANCIAL_OWNER_ACTIONS.md`](docs/FINANCIAL_OWNER_ACTIONS.md).
+- **Código**: `main` com Onda 0 e CI verde; `pilot` 13 commits à frente e
+  0 atrás, em `187c032c` após a PR #96, com Financial Passport v2.
+  O run #721 teve presentation cancelado; o #722 concluiu os quatro gates
+  com SUCCESS. A árvore validada é idêntica à do merge #96.
+- **Supabase Pilot**: `financial-surface-hardening-1`; aprovação sequencial e
+  Passport pendentes. Allowlist vazia, e-mail desligado, Storage privado.
+- **Demo pública**: ainda sandbox em `main`; o Supabase DEMO dedicado não
+  pôde ser criado por limite de dois projetos ativos no Free.
+- **Produção**: deploy oficial antigo; não há Supabase Production dedicado.
+- **Dependências externas**: backup/restore do Pilot, configuração Vercel,
+  capacidade Supabase, proteção de branches e preparação jurídica/comercial.
+  Lista em [`docs/FINANCIAL_OWNER_ACTIONS.md`](docs/FINANCIAL_OWNER_ACTIONS.md).
 
-Nenhum item acima é declarado pronto sem evidência verificável. Os 13 gates
-herdados do go-live comercial da vertical de arte continuam registrados em
-`ops/release-evidence.json` e não bloqueiam o piloto financeiro.
+Nenhum item acima é declarado pronto sem evidência verificável. Gates externos
+de produção ficam em `ops/release-evidence.json` e não bloqueiam o piloto
+financeiro.
 
 ## Rodar localmente
 
@@ -182,7 +187,8 @@ Ambientes reais (somente leitura, nunca imprimem segredos):
 ARANDU_ENV=pilot npm run finance:env:check
 ARANDU_ENV=pilot npm run finance:pilot:doctor   # 0 = GO, 1 = NO-GO, 2 = UNSAFE
 npm run pilot:canary                            # isolamento buyer/provider/outsider
-npm run pilot:restore:drill                     # backup lógico + restore + 24 comparações
+npm run pilot:backup:preflight                  # identidade, dependências e escopo
+npm run pilot:restore:drill                     # backup lógico + restore + comparações de integridade
 ```
 
 O CI (`.github/workflows/ci.yml`) roda os jobs `validate`, `database`,
@@ -191,9 +197,9 @@ O CI (`.github/workflows/ci.yml`) roda os jobs `validate`, `database`,
 ## Contribuir
 
 Leia [`CONTRIBUTING.md`](CONTRIBUTING.md). Em resumo: branch `feature/*` a
-partir de `pilot`, PR para `pilot`, validação local completa e **um push por
-lote**. `main` só recebe a promoção `pilot → main` e `hotfix/*`. Nunca registre
-segredo, e-mail real ou PII no Git.
+partir de `main`, PR para `main` com os quatro gates verdes no HEAD exato,
+validação local completa e **um push por lote**. `pilot` está congelada
+(histórica). Nunca registre segredo, e-mail real ou PII no Git.
 
 ## Governança do repositório
 
@@ -211,21 +217,18 @@ controles mínimos do repositório.
 
 **Piloto** (GO quando todos valerem):
 
-1. migration 35 aplicada no Supabase do piloto e `finance:pilot:doctor` = GO;
-2. `arandu-pilot` publicado da branch `pilot` com `ARANDU_ENV=pilot`;
+1. migrations do manifesto aplicadas até o schema esperado pelo código do piloto e `finance:pilot:doctor` = GO;
+2. `arandu-pilot` publicado da `main` com `ARANDU_ENV=pilot`;
 3. `pilot:canary` e `pilot:restore:drill` aprovados contra o piloto real;
-4. CI verde no head de `pilot`;
+4. CI verde no SHA de `main` publicado no piloto;
 5. revisão jurídica concluída e empresa/provedores do piloto na allowlist.
 
 **Produção**: Supabase próprio com as mesmas migrations, `ARANDU_ENV=production`
-no projeto `arandu`, doctor GO contra ele e promoção `pilot → main` com o piloto
-realmente utilizado.
+no projeto `arandu`, doctor GO contra ele e o mesmo SHA de `main` validado no
+piloto realmente utilizado.
 
-## Legado: vertical de arte
+## Nota histórica
 
-O Arandu começou como plataforma de curadoria de arte brasileira. Essa vertical
-foi aposentada: nenhuma página de arte é publicada, e as APIs de arte respondem
-404 em ambiente real. O código, as migrations e a documentação histórica
-permanecem no repositório para auditoria e porque o banco ainda carrega esse
-esquema. Nada disso é produto atual. Índice do material histórico:
-[`docs/LEGACY_ART_RETIREMENT.md`](docs/LEGACY_ART_RETIREMENT.md).
+O Arandu começou como marketplace de arte brasileira. Essa vertical foi
+aposentada e removida da árvore atual; o Git preserva a história. Detalhes e
+regras para não reintroduzi-la: [`docs/LEGACY_ART_RETIREMENT.md`](docs/LEGACY_ART_RETIREMENT.md).

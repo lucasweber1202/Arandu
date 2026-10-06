@@ -1,57 +1,37 @@
 \set ON_ERROR_STOP on
-
+-- Probes depois de aplicar migrations (release-migrations): superfície do
+-- produto financeiro, sem tocar dado. Rodam numa transação desfeita.
 begin;
 
 do $$
+declare v_unforced text; v_anon text;
 begin
-  if exists (
-    select 1
-    from public.reservations
-    where status in ('requested', 'confirmed')
-    group by artwork_id
-    having count(*) > 1
-  ) then
-    raise exception 'Há reservas ativas duplicadas após a migration.';
+  if to_regclass('public.fin_organizations') is null or to_regclass('public.fin_members') is null or to_regclass('public.fin_events') is null then
+    raise exception 'Tabelas financeiras obrigatórias ausentes depois da migration.';
   end if;
 
-  if has_table_privilege('anon', 'public.reservations', 'INSERT')
-    or has_table_privilege('authenticated', 'public.reservations', 'INSERT') then
-    raise exception 'Escrita direta de reservas continua aberta.';
+  select string_agg(c.relname, ', ' order by c.relname) into v_unforced
+    from pg_class c join pg_namespace n on n.oid = c.relnamespace
+   where n.nspname = 'public' and c.relkind = 'r' and c.relname like 'fin\_%' and not c.relrowsecurity;
+  if v_unforced is not null then raise exception 'Tabela financeira sem RLS: %', v_unforced; end if;
+
+  select string_agg(c.relname, ', ' order by c.relname) into v_anon
+    from pg_class c join pg_namespace n on n.oid = c.relnamespace
+   where n.nspname = 'public' and c.relkind in ('r','v','m') and c.relname like 'fin\_%' and has_table_privilege('anon', c.oid, 'SELECT');
+  if v_anon is not null then raise exception 'Tabela financeira visível para anon: %', v_anon; end if;
+
+  if to_regclass('public.transactional_email_outbox') is null
+     or not has_function_privilege('service_role', 'public.consume_rate_limit(text,text,integer,integer)', 'EXECUTE')
+     or has_function_privilege('anon', 'public.consume_rate_limit(text,text,integer,integer)', 'EXECUTE') then
+    raise exception 'Infraestrutura compartilhada (outbox/rate limit) ausente ou exposta.';
   end if;
 
-  if has_table_privilege('anon', 'public.proposals', 'SELECT')
-    or has_table_privilege('anon', 'public.audit_logs', 'SELECT') then
-    raise exception 'Tabela privada está visível para anon.';
-  end if;
-
-  if not has_function_privilege(
-    'service_role',
-    'public.create_reservation_atomic(text,uuid,text,text,text,text,text,timestamptz,text,text,jsonb,text,text,text,text,text,text,text,text)',
-    'EXECUTE'
-  ) then
-    raise exception 'service_role não pode executar a RPC de reserva.';
-  end if;
-
-  if has_function_privilege(
-    'authenticated',
-    'public.create_reservation_atomic(text,uuid,text,text,text,text,text,timestamptz,text,text,jsonb,text,text,text,text,text,text,text,text)',
-    'EXECUTE'
-  ) then
-    raise exception 'authenticated pode contornar a API e executar a RPC de reserva.';
-  end if;
-
-  if not exists (
-    select 1
-    from pg_indexes
-    where schemaname = 'public'
-      and indexname = 'uq_reservations_one_active_artwork'
-  ) then
-    raise exception 'Índice único de reserva ativa ausente.';
+  -- Depois da aposentadoria, a vertical de arte não pode reaparecer no schema.
+  if coalesce((select value from public.fin_settings where key = 'schema_version'), '') in ('financial-legacy-art-decommission-1','financial-p0-closure-1','financial-value-realization-1','financial-fee-intelligence-1','financial-opportunity-engine-1','financial-document-intelligence-1','financial-provider-qualification-1','financial-implementation-1','financial-covenants-1','financial-provider-performance-1','financial-spend-intelligence-1','financial-opportunity-discriminator-1')
+     and (to_regclass('public.artworks') is not null or to_regclass('public.reservations') is not null or to_regclass('public.profiles') is not null) then
+    raise exception 'Objetos da vertical de arte presentes depois da aposentadoria.';
   end if;
 end;
 $$;
-
-select public.expire_reservations(true, 'release-probe', 'release-probe');
-select public.cleanup_idempotency(true);
 
 rollback;

@@ -52,10 +52,10 @@ for (const extra of [{ ARANDU_ENV: 'pilot' }, { SUPABASE_SERVICE_ROLE_KEY: 'x' }
 // ambiente de deploy. Antes, ARANDU_ENV=pilot herdado reprovava o deploy real.
 assert.match(scripts['deploy:check'], /node scripts\/run-hermetic\.mjs npm run check:all/);
 const { hermeticEnv } = await import('./run-hermetic.mjs');
-const deployEnv = { PATH: '/bin', HOME: '/h', ARANDU_ENV: 'pilot', ARANDU_SITE_URL: 'https://p.example.com', VERCEL_ENV: 'production', VERCEL_GIT_COMMIT_REF: 'pilot',
+const deployEnv = { PATH: '/bin', HOME: '/h', ARANDU_ENV: 'pilot', ARANDU_SITE_URL: 'https://p.example.com', VERCEL_ENV: 'production', VERCEL_GIT_COMMIT_REF: 'main',
   SUPABASE_URL: 'https://x.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 's', CRON_SECRET: 'c', RESEND_API_KEY: 'r', ARANDU_PILOT_ALLOWLIST_CONFIRMED: 'true', ARANDU_DEPLOYMENT_KIND: 'demo' };
 assert.deepEqual(hermeticEnv(deployEnv), { PATH: '/bin', HOME: '/h', ARANDU_SITE_URL: 'https://p.example.com' });
-const pilotContract = spawnSync(process.execPath, ['scripts/run-hermetic.mjs', process.execPath, 'scripts/test-operational-status.mjs'], { encoding: 'utf8', env: { ...process.env, ARANDU_ENV: 'pilot', VERCEL_ENV: 'production' } });
+const pilotContract = spawnSync(process.execPath, ['scripts/run-hermetic.mjs', process.execPath, 'scripts/test-auth-api.mjs'], { encoding: 'utf8', env: { ...process.env, ARANDU_ENV: 'pilot', VERCEL_ENV: 'production' } });
 assert.equal(pilotContract.status, 0, 'teste de contrato reprovou com o ambiente do piloto herdado:\n' + pilotContract.stderr);
 
 console.log('Technical deploy and final go-live gates are separated and fail-closed.');

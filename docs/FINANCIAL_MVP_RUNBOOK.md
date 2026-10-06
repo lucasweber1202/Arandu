@@ -101,8 +101,8 @@ git diff --check
 ARANDU_PRESENTATION_MODE=true VERCEL_ENV=preview npm run build
 ```
 
-O conjunto fictício está em `data/finance/demo.json`, com organizações,
-provedores, RFQs e propostas claramente marcadas como `DEMO`. O build **falha**
+O conjunto fictício vive no motor da demonstração (`finance/demo/`), com
+organizações, provedores, RFQs e propostas claramente marcadas como `DEMO`. O build **falha**
 se `ARANDU_PRESENTATION_MODE` for ligado com `VERCEL_ENV=production`
 (`assertPresentationModeIsSafe`). No build publicado normal, nenhuma página do
 portal carrega dado demonstrativo — há teste E2E que verifica isso.

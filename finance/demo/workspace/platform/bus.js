@@ -12,13 +12,13 @@
 
 import { readOS, updateOS, uid } from './os-store.js';
 
-export const EVENT_TYPES = Object.freeze([
+export const EVENT_TYPES = /* @__PURE__ */ Object.freeze([
   'rfq.updated', 'rfq.created', 'proposal.submitted', 'approval.requested', 'approval.approved', 'approval.rejected', 'approval.changes_requested',
   'approval.opened', 'contract.created', 'comment.created', 'comment.resolved', 'mention.created', 'integration.connected', 'integration.disconnected',
   'integration.synced', 'directory.imported', 'erp.imported', 'financial_profile.updated', 'policy.published', 'policy.draft_saved',
   'sync.queued', 'sync.flushed', 'sync.revalidated', 'sync.conflict', 'sync.conflict_resolved', 'data.changed', 'task.completed', 'flag.changed', 'notification.read'
 ]);
-export const ORIGINS = Object.freeze({ web: 'Web', slack: 'Slack', teams: 'Microsoft Teams', erp: 'ERP', open_finance: 'Open Finance', automation: 'Automação', directory: 'Diretório' });
+export const ORIGINS = /* @__PURE__ */ Object.freeze({ web: 'Web', slack: 'Slack', teams: 'Microsoft Teams', erp: 'ERP', open_finance: 'Open Finance', automation: 'Automação', directory: 'Diretório' });
 
 const listeners = new Map();
 let channel = null;

@@ -99,40 +99,9 @@ if (!publicCdnCache.includes('max-age=300') || !publicCdnCache.includes('stale-w
   issues.push('vercel.json: HTML público precisa de cache curto na CDN com stale-while-revalidate.');
 }
 
-const internalRule = (vercel.headers || []).find((entry) => entry.source.includes('admin-preview|admin|artista-editor'));
-const internalHeaders = new Map((internalRule?.headers || []).map((header) => [header.key, header.value]));
-if (!String(internalHeaders.get('Cache-Control') || '').includes('no-store')) {
-  issues.push('vercel.json: superfícies internas HTML precisam permanecer no-store.');
-}
-if (internalHeaders.get('Vercel-CDN-Cache-Control') !== 'no-store') {
-  issues.push('vercel.json: CDN não pode armazenar superfícies internas HTML.');
-}
-if (!String(internalHeaders.get('X-Robots-Tag') || '').includes('noindex')) {
-  issues.push('vercel.json: superfícies internas HTML precisam permanecer noindex.');
-}
-const genericIndex = (vercel.headers || []).findIndex((entry) => entry.source === '/(.*).html');
-const internalIndex = (vercel.headers || []).indexOf(internalRule);
-if (genericIndex < 0 || internalIndex <= genericIndex) {
-  issues.push('vercel.json: regra privada deve vir depois do cache HTML genérico para sobrescrevê-lo.');
-}
-const protectedInternalPages = new Set(String(internalRule?.source || '').replace(/^\/\(/, '').replace(/\)\.html$/, '').split('|').filter(Boolean));
-const rewrittenInternalPages = new Set((vercel.rewrites || []).map((rewrite) => String(rewrite.source || '').match(/^\/([^/]+)\.html$/)?.[1]).filter(Boolean));
-for (const page of rewrittenInternalPages) {
-  if (!protectedInternalPages.has(page)) issues.push(`vercel.json: rewrite interno ${page}.html ficou fora da regra privada de cache.`);
-}
-// Retired pages may keep a defensive private header without a public rewrite.
-// The inverse condition above still rejects every unprotected rewrite.
 if (!String(apiHeaders.get('X-Robots-Tag') || '').includes('noindex')) {
   issues.push('vercel.json: respostas de /api precisam de X-Robots-Tag noindex.');
 }
-
-['/js/(.*)', '/css/(.*)'].forEach((source) => {
-  const value = String(headersFor(source).get('Cache-Control') || '');
-  if (!value) issues.push(`vercel.json: Cache-Control ausente para ${source}.`);
-  else if (!value.includes('must-revalidate')) {
-    issues.push(`vercel.json: ${source} precisa revalidar (must-revalidate) para não servir asset obsoleto.`);
-  }
-});
 
 // --- Guarda de mesma origem -------------------------------------------------
 
@@ -141,19 +110,19 @@ function fakeRequest(method, headers = {}) {
 }
 
 const originCases = [
-  ['POST sem Origin (cliente não-navegador)', fakeRequest('POST', { host: 'arandu.art' }), false],
-  ['GET de outra origem', fakeRequest('GET', { host: 'arandu.art', origin: 'https://malicioso.example' }), false],
-  ['POST de mesma origem', fakeRequest('POST', { host: 'arandu.art', origin: 'https://arandu.art' }), false],
-  ['POST ignora x-forwarded-host conflitante', fakeRequest('POST', { host: 'arandu.art', 'x-forwarded-host': 'malicioso.example', origin: 'https://arandu.art' }), false],
-  ['POST não confia só em x-forwarded-host', fakeRequest('POST', { host: 'interno', 'x-forwarded-host': 'arandu.art', origin: 'https://arandu.art' }), true],
-  ['POST com protocolo divergente', fakeRequest('POST', { host: 'arandu.art', 'x-forwarded-proto': 'https', origin: 'http://arandu.art' }), true],
-  ['POST com host malformado', fakeRequest('POST', { host: 'arandu.art@malicioso.example', origin: 'https://arandu.art' }), true],
-  ['POST de outra origem', fakeRequest('POST', { host: 'arandu.art', origin: 'https://malicioso.example' }), true],
-  ['DELETE de outra origem', fakeRequest('DELETE', { host: 'arandu.art', origin: 'https://malicioso.example' }), true],
-  ['POST com Sec-Fetch-Site cross-site', fakeRequest('POST', { host: 'arandu.art', 'sec-fetch-site': 'cross-site' }), true],
-  ['POST com Origin null', fakeRequest('POST', { host: 'arandu.art', origin: 'null', 'sec-fetch-site': 'same-origin' }), true],
-  ['POST de navegador sem Origin', fakeRequest('POST', { host: 'arandu.art', 'sec-fetch-site': 'same-origin' }), true],
-  ['POST com Origin malformada', fakeRequest('POST', { host: 'arandu.art', origin: 'nao-e-uma-url' }), true]
+  ['POST sem Origin (cliente não-navegador)', fakeRequest('POST', { host: 'arandu-procurement.test' }), false],
+  ['GET de outra origem', fakeRequest('GET', { host: 'arandu-procurement.test', origin: 'https://malicioso.example' }), false],
+  ['POST de mesma origem', fakeRequest('POST', { host: 'arandu-procurement.test', origin: 'https://arandu-procurement.test' }), false],
+  ['POST ignora x-forwarded-host conflitante', fakeRequest('POST', { host: 'arandu-procurement.test', 'x-forwarded-host': 'malicioso.example', origin: 'https://arandu-procurement.test' }), false],
+  ['POST não confia só em x-forwarded-host', fakeRequest('POST', { host: 'interno', 'x-forwarded-host': 'arandu-procurement.test', origin: 'https://arandu-procurement.test' }), true],
+  ['POST com protocolo divergente', fakeRequest('POST', { host: 'arandu-procurement.test', 'x-forwarded-proto': 'https', origin: 'http://arandu-procurement.test' }), true],
+  ['POST com host malformado', fakeRequest('POST', { host: 'arandu-procurement.test@malicioso.example', origin: 'https://arandu-procurement.test' }), true],
+  ['POST de outra origem', fakeRequest('POST', { host: 'arandu-procurement.test', origin: 'https://malicioso.example' }), true],
+  ['DELETE de outra origem', fakeRequest('DELETE', { host: 'arandu-procurement.test', origin: 'https://malicioso.example' }), true],
+  ['POST com Sec-Fetch-Site cross-site', fakeRequest('POST', { host: 'arandu-procurement.test', 'sec-fetch-site': 'cross-site' }), true],
+  ['POST com Origin null', fakeRequest('POST', { host: 'arandu-procurement.test', origin: 'null', 'sec-fetch-site': 'same-origin' }), true],
+  ['POST de navegador sem Origin', fakeRequest('POST', { host: 'arandu-procurement.test', 'sec-fetch-site': 'same-origin' }), true],
+  ['POST com Origin malformada', fakeRequest('POST', { host: 'arandu-procurement.test', origin: 'nao-e-uma-url' }), true]
 ];
 
 originCases.forEach(([label, req, shouldBlock]) => {
@@ -166,10 +135,7 @@ originCases.forEach(([label, req, shouldBlock]) => {
 // --- A guarda está de fato ligada nos handlers ------------------------------
 
 const GUARDED_APIS = {
-  'api/[...path].js': 'enforceSameOrigin(req)',
-  'api/admin-auth.js': 'crossOriginRejection(req)',
-  'api/commercial.js': 'crossOriginRejection(req)',
-  'api/upload.js': 'crossOriginRejection(req)'
+  'api/[...path].js': 'enforceSameOrigin(req)'
 };
 
 Object.entries(GUARDED_APIS).forEach(([file, needle]) => {
@@ -182,7 +148,7 @@ Object.entries(GUARDED_APIS).forEach(([file, needle]) => {
   }
 });
 
-['api/admin-auth.js', 'api/collections.js', 'api/commercial.js', 'api/mvp-dashboard.js', 'api/readiness.js', 'api/upload.js'].forEach((file) => {
+['api/email-dispatch.js'].forEach((file) => {
   if (fs.existsSync(file) && !fs.readFileSync(file, 'utf8').includes('applyApiSecurityHeaders')) {
     issues.push(`${file}: respostas sem os cabeçalhos de segurança compartilhados.`);
   }
@@ -214,7 +180,7 @@ function collectingResponse() {
 const forgedRequest = Readable.from([Buffer.from(JSON.stringify({ email: 'alvo@example.com' }))]);
 forgedRequest.method = 'POST';
 forgedRequest.url = '/api/forms';
-forgedRequest.headers = { host: 'arandu.art', origin: 'https://malicioso.example', 'content-type': 'application/json' };
+forgedRequest.headers = { host: 'arandu-procurement.test', origin: 'https://malicioso.example', 'content-type': 'application/json' };
 forgedRequest.socket = { remoteAddress: '127.0.0.1' };
 
 const forgedResponse = collectingResponse();

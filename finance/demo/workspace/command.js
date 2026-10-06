@@ -216,6 +216,12 @@ export function installPalette(ctx, hooks) {
     updateOS((draft) => { draft.recentSearches = [...draft.recentSearches.filter((value) => value !== query), query]; });
     track('search_performed', { length: query.length });
   };
+  // Executa o item ativo da busca atual (Enter, ou Enter digitado enquanto a central carregava).
+  const submit = ({ peek = false } = {}) => {
+    if (active < 0 || !options[active]) return;
+    const index = Number(options[active].id.replace('command-option-', ''));
+    execute(currentRows[index], { peek });
+  };
   input.addEventListener('input', search);
   input.addEventListener('keydown', (event) => {
     // Escape fecha mesmo com texto digitado (o campo de busca nativo só o limparia).
@@ -224,8 +230,7 @@ export function installPalette(ctx, hooks) {
     if (event.key === 'ArrowUp') { event.preventDefault(); setActive(active - 1); }
     if (event.key === 'Enter' && active >= 0) {
       event.preventDefault();
-      const index = Number(options[active].id.replace('command-option-', ''));
-      execute(currentRows[index], { peek: event.shiftKey });
+      submit({ peek: event.shiftKey });
     }
   });
   dialog.addEventListener('click', (event) => { if (event.target === dialog) dialog.close(); });
@@ -245,6 +250,7 @@ export function installPalette(ctx, hooks) {
       input.focus();
     },
     close() { if (dialog.open) dialog.close(); },
+    submit,
     get isOpen() { return dialog.open; }
   };
   return api;

@@ -31,7 +31,7 @@ const report = {
   backupReference: backupReference || null,
   restoreReference: restoreReference || null,
   bundleSha256: null,
-  duplicateActiveReservations: null,
+  schemaVersion: null,
   steps: [],
   status: 'blocked'
 };
@@ -96,7 +96,7 @@ report.steps.push({
 if (dryRun) {
   report.status = 'planned';
   report.steps.push(
-    { name: 'duplicate-preflight', ok: null, detail: 'Será executado antes de qualquer DDL.' },
+    { name: 'schema-preflight', ok: null, detail: 'Será executado antes de qualquer DDL.' },
     { name: 'backup', ok: null, detail: 'Backup local ou referência externa obrigatória.' },
     { name: 'apply', ok: null, detail: 'Migrations serão aplicadas na ordem canônica.' },
     { name: 'post-migration-probes', ok: null, detail: 'Grants, RLS, expiração e integridade serão verificados.' },
@@ -122,16 +122,18 @@ if (apply && environment === 'production' && databaseUrl !== String(process.env.
 }
 
 try {
-  const duplicateCount = Number(run('psql', [
+  // O marker do schema diz de onde o bundle parte; banco sem marker financeiro
+  // não é alvo desta ferramenta.
+  const schemaVersion = String(run('psql', [
     databaseUrl,
     '-XAt',
     '-v', 'ON_ERROR_STOP=1',
     '-c',
-    "select count(*) from (select artwork_id from public.reservations where status in ('requested','confirmed') group by artwork_id having count(*) > 1) duplicates;"
-  ]));
-  report.duplicateActiveReservations = duplicateCount;
-  report.steps.push({ name: 'duplicate-preflight', ok: duplicateCount === 0, detail: { groups: duplicateCount } });
-  if (duplicateCount > 0) fail(`Foram encontrados ${duplicateCount} grupo(s) de reservas ativas duplicadas.`);
+    "select coalesce((select value from public.fin_settings where key = 'schema_version'), '') where to_regclass('public.fin_settings') is not null;"
+  ]) || '').trim();
+  report.schemaVersion = schemaVersion || null;
+  report.steps.push({ name: 'schema-preflight', ok: /^financial-[a-z0-9-]+$/.test(schemaVersion), detail: { schema_version: schemaVersion || null } });
+  if (!/^financial-[a-z0-9-]+$/.test(schemaVersion)) fail('Banco sem marker financeiro em fin_settings.schema_version: confirme o ambiente antes de aplicar.');
 
   if (apply) {
     if (!backupPath || !path.isAbsolute(backupPath)) fail('Aplicação exige ARANDU_BACKUP_PATH absoluto fora do repositório.');

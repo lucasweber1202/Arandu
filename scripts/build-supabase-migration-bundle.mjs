@@ -7,10 +7,50 @@ const root = process.cwd();
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'docs/supabase-migrations.json'), 'utf8'));
 const flowArgument = process.argv.find((argument) => argument.startsWith('--flow='));
 const flow = flowArgument ? flowArgument.split('=')[1] : 'cleanInstall';
-const files = manifest[flow];
+let files = manifest[flow];
 if (!Array.isArray(files)) {
   console.error(`Fluxo inválido: ${flow}. Use ${Object.keys(manifest).join(' ou ')}.`);
   process.exit(1);
+}
+
+// A hosted upgrade must start after its observed marker, never from a guessed
+// migration number. Derive the position and target from the canonical SQL.
+const afterArgument = process.argv.find((argument) => argument.startsWith('--after-schema='));
+const afterSchema = afterArgument ? afterArgument.slice('--after-schema='.length) : null;
+const stopArgument = process.argv.find(argument => argument.startsWith('--stop-before='));
+const stopBefore = stopArgument ? stopArgument.slice('--stop-before='.length) : null;
+if (afterSchema !== null) {
+  if (flow !== 'existingDatabase') {
+    console.error('--after-schema exige --flow=existingDatabase; instalação limpa nunca pula migrations.');
+    process.exit(1);
+  }
+  const matches = files.map((file, index) => {
+    const sql = fs.readFileSync(path.join(root, file), 'utf8');
+    const markers = [...sql.matchAll(/\(\s*'schema_version'\s*,\s*'([^']+)'\s*\)/g)];
+    return { index, marker: markers.at(-1)?.[1] };
+  }).filter(({ marker }) => marker === afterSchema);
+  if (matches.length !== 1) {
+    console.error('schema_version desconhecido ou ambíguo no manifesto; nenhum SQL foi gerado.');
+    process.exit(1);
+  }
+  files = files.slice(matches[0].index + 1);
+}
+
+// A staged upgrade is a contiguous prefix. Never skip a destructive migration
+// and continue with later SQL: its marker and dependencies would be false.
+let deferredFiles = [];
+if (stopBefore !== null) {
+  if (flow !== 'existingDatabase' || afterSchema === null) {
+    console.error('--stop-before exige existingDatabase e --after-schema observado.');
+    process.exit(1);
+  }
+  const matches = files.map((file, index) => ({ file, index })).filter(({ file }) => file === stopBefore);
+  if (matches.length !== 1) {
+    console.error('Limite desconhecido ou não pendente; nenhum SQL foi gerado.');
+    process.exit(1);
+  }
+  deferredFiles = files.slice(matches[0].index);
+  files = files.slice(0, matches[0].index);
 }
 
 const digest = (content) => createHash('sha256').update(content).digest('hex');
@@ -22,21 +62,28 @@ const sections = files.map((file, index) => {
     sql: `-- ============================================================\n-- ${index + 1}/${files.length}: ${file}\n-- sha256: ${digest(content)}\n-- ============================================================\n\n${content}\n`
   };
 });
-const sql = `-- Arandu — bundle auditável de migrations (${flow})\n-- Conteúdo determinístico: o horário de geração fica somente no relatório JSON.\n-- Execute somente no projeto Supabase correto e preserve o relatório JSON.\n\n${sections.map((item) => item.sql).join('\n')}`;
+const finalMarker = [...sections.at(-1)?.sql.matchAll(/\(\s*'schema_version'\s*,\s*'([^']+)'\s*\)/g) || []].at(-1)?.[1] || afterSchema;
+const sql = `${stopBefore ? `-- Etapa encerrada antes de ${stopBefore}; ${deferredFiles.length} migration(s) adiada(s), sem saltos.\n` : ''}${afterSchema ? `-- Upgrade após schema_version=${afterSchema}; ${files.length} migration(s) pendente(s).\n-- Backup/restore verificado é pré-condição externa; este comando não aplica SQL.\n\n` : ''}-- Arandu — bundle auditável de migrations (${flow})\n-- Conteúdo determinístico: o horário de geração fica somente no relatório JSON.\n-- Execute somente no projeto Supabase correto e preserve o relatório JSON.\n\n${sections.map((item) => item.sql).join('\n')}`;
 
 if (process.argv.includes('--stdout')) {
-  process.stdout.write(sql);
+  await new Promise((resolve, reject) => process.stdout.write(sql, (error) => error ? reject(error) : resolve()));
   process.exit(0);
 }
 
 const reports = path.join(root, 'reports');
 fs.mkdirSync(reports, { recursive: true });
-const sqlPath = path.join(reports, `supabase-migrations-${flow}.sql`);
-const reportPath = path.join(reports, `supabase-migrations-${flow}.json`);
+const suffix = stopBefore ? '-staged' : '';
+const sqlPath = path.join(reports, `supabase-migrations-${flow}${suffix}.sql`);
+const reportPath = path.join(reports, `supabase-migrations-${flow}${suffix}.json`);
 fs.writeFileSync(sqlPath, sql);
 fs.writeFileSync(reportPath, JSON.stringify({
   generatedAt: new Date().toISOString(),
   flow,
+  afterSchema,
+  stopBefore,
+  finalMarker,
+  deferredFiles,
+  pendingCount: files.length,
   bundleSha256: digest(sql),
   files: sections.map(({ file, sha256 }) => ({ file, sha256 }))
 }, null, 2));

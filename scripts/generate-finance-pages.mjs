@@ -8,12 +8,16 @@ import { dirname } from 'node:path';
 
 const COMPANY_NAV = [
   ['Painel', '/finance/dashboard.html'], ['Solicitações', '/finance/rfqs.html'], ['Aprovações', '/finance/approvals.html'],
-  ['Propostas', '/finance/proposals.html'], ['Contratos', '/finance/contracts.html'], ['Provedores', '/finance/providers.html'],
-  ['Tarefas', '/finance/tasks.html'], ['Configurações', '/finance/settings.html']
+  ['Propostas', '/finance/proposals.html'], ['Implantação', '/finance/implementations.html', 'sandboxExcluded'], ['Spend', '/finance/spend.html', 'sandboxExcluded'], ['Performance', '/finance/performance.html', 'sandboxExcluded'], ['Covenants', '/finance/covenants.html', 'sandboxExcluded'], ['Documentos', '/finance/extractions.html', 'sandboxExcluded'], ['Contratos', '/finance/contracts.html'], ['Portfólio', '/finance/portfolio.html'], ['Valor', '/finance/value.html'], ['Tarifas', '/finance/fees.html'], ['Oportunidades', '/finance/opportunities.html'], ['Provedores', '/finance/providers.html'], ['Qualificação', '/finance/qualifications.html', 'sandboxExcluded'],
+  ['Passport', '/finance/passport.html'], ['Tarefas', '/finance/tasks.html'], ['Configurações', '/finance/settings.html']
 ];
 const PROVIDER_NAV = [['Início', '/provider/index.html'], ['Oportunidades', '/provider/rfqs.html'], ['Código de convite', '/provider/invite.html']];
 
 export const PAGES = [
+  { path: 'finance/spend.html', view: 'spend', audience: 'company', title: 'Financial Spend', h1: 'Financial Spend', description: 'Tipos separados, por moeda, entidade, provedor e produto.', sandboxExcluded: true },
+  { path: 'finance/performance.html', view: 'performance', audience: 'company', title: 'Performance do provedor', h1: 'Performance do provedor', description: 'Metas da empresa, fontes, cobertura e revisão independente.', sandboxExcluded: true },
+  { path: 'finance/covenants.html', view: 'covenants', audience: 'company', title: 'Covenants e obrigações', h1: 'Covenants e obrigações', description: 'Medições, prazos e evidência com revisão humana independente.', sandboxExcluded: true },
+  { path: 'finance/implementations.html', view: 'implementations', audience: 'company', title: 'Implantação pós-award', h1: 'Implantação pós-award', description: 'Marcos, responsáveis, prazos e aceite humano de go-live.', sandboxExcluded: true },
   { path: 'finance/index.html', view: 'dashboard', audience: 'company', title: 'Painel', h1: 'Painel', description: 'O que precisa da sua atenção no procurement financeiro da empresa.' },
   { path: 'finance/dashboard.html', view: 'dashboard', audience: 'company', title: 'Painel', h1: 'Painel', description: 'Aprovações, prazos, renovações e concorrências em andamento.' },
   { path: 'finance/rfqs.html', view: 'rfqs', audience: 'company', title: 'Solicitações', h1: 'Solicitações', description: 'Solicitações de crédito empresarial e adquirência com status, prazo e respostas.' },
@@ -22,7 +26,17 @@ export const PAGES = [
   { path: 'finance/approvals.html', view: 'approvals', audience: 'company', title: 'Aprovações', h1: 'Aprovações', description: 'Caixa de aprovação com o contexto completo de cada pedido.' },
   { path: 'finance/proposals.html', view: 'proposals', audience: 'company', title: 'Propostas', h1: 'Propostas recebidas', description: 'Propostas recebidas de provedores, com versão e revisão respondida.' },
   { path: 'finance/contracts.html', view: 'contracts', audience: 'company', title: 'Contratos', h1: 'Contratos e renovações', description: 'Ciclo de vida dos contratos: vigência, marcos de renovação e aviso prévio.' },
+  // sandboxExcluded: presente em todo build e ambiente (Oficial, Staging e Demo
+  // canônica ARANDU_ENV=demo); só não é espelhada no sandbox legado /demo, cujo
+  // motor no navegador está congelado (docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md).
+  { path: 'finance/extractions.html', view: 'extractions', audience: 'company', title: 'Documentos e fatos extraídos', h1: 'Documentos e fatos extraídos', description: 'Fatos lidos de propostas, contratos e tabelas de tarifas, com a origem de cada campo e confirmação humana.', sandboxExcluded: true },
+  { path: 'finance/qualifications.html', view: 'qualifications', audience: 'company', title: 'Qualificação de provedores', h1: 'Qualificação de provedores', description: 'Exigências da empresa, evidências com origem e validade, exceções e a decisão humana sobre cada provedor.', sandboxExcluded: true },
+  { path: 'finance/opportunities.html', view: 'opportunities', audience: 'company', title: 'Oportunidades', h1: 'Oportunidades', description: 'Fatos que pedem atenção, com a regra da empresa que disparou, a fonte e uma ação possível para uma pessoa avaliar.' },
+  { path: 'finance/fees.html', view: 'fees', audience: 'company', title: 'Tarifas bancárias', h1: 'Tarifas bancárias', description: 'Tarifa contratada versus cobrança observada, com fonte, comparabilidade e revisão humana.' },
+  { path: 'finance/value.html', view: 'value', audience: 'company', title: 'Valor de procurement', h1: 'Valor de procurement', description: 'Economia negociada, realizada e custo evitado com baseline, metodologia e evidência.' },
+  { path: 'finance/portfolio.html', view: 'portfolio', audience: 'company', title: 'Portfólio financeiro', h1: 'Dívida, limites e garantias', description: 'Facilities, limites aprovados e usados, vencimentos, indexadores, concentração por provedor e garantias, por moeda e com a origem de cada dado.' },
   { path: 'finance/providers.html', view: 'providers', audience: 'company', title: 'Provedores', h1: 'Provedores', description: 'Bancos, fintechs e adquirentes cadastrados pela empresa.' },
+  { path: 'finance/passport.html', view: 'passport', audience: 'company', title: 'Financial Passport', h1: 'Financial Passport', description: 'Perfil financeiro reutilizável da empresa, com origem, responsável, data e revisão de cada dado.' },
   { path: 'finance/tasks.html', view: 'tasks', audience: 'company', title: 'Tarefas', h1: 'Tarefas', description: 'Pendências da equipe financeira.' },
   { path: 'finance/notifications.html', view: 'notifications', audience: 'company', title: 'Notificações', h1: 'Notificações', description: 'Central de avisos: aprovações, propostas, menções, prazos e renovações.' },
   { path: 'finance/settings.html', view: 'settings', audience: 'company', title: 'Configurações', h1: 'Configurações', description: 'Empresa, perfil financeiro, política de aprovação, notificações e equipe.' },
@@ -98,6 +112,7 @@ export function renderPage(page, { demo = false } = {}) {
   const prefix = demo ? '/demo' : '';
   const link = (href) => (demo && /^\/(finance|provider)\//.test(href) ? prefix + href : href);
   const nav = (page.audience === 'provider' ? PROVIDER_NAV : COMPANY_NAV)
+    .filter(([, , scope]) => !(demo && scope === 'sandboxExcluded'))
     .map(([label, href]) => `<li><a class="side-link" href="${link(href)}"${`/${page.path}` === href || (page.path === 'finance/index.html' && href === '/finance/dashboard.html') ? ' aria-current="page"' : ''}>${label}</a></li>`).join('');
   const home = page.audience === 'provider' ? '/provider/index.html' : '/finance/dashboard.html';
   const banner = demo ? `<div class="demo-banner" role="region" aria-label="Ambiente demonstrativo"><p class="demo-text"><strong>Ambiente demonstrativo</strong> <span class="demo-sub">Dados fictícios. Nenhuma operação financeira real será executada.</span></p></div>\n` : '';
@@ -144,7 +159,7 @@ export function expectedFiles() {
   const files = new Map();
   for (const page of PAGES) {
     files.set(page.path, renderPage(page));
-    files.set(`demo/${page.path}`, renderPage(page, { demo: true }));
+    if (!page.sandboxExcluded) files.set(`demo/${page.path}`, renderPage(page, { demo: true }));
   }
   for (const page of DEMO_ONLY_PAGES) files.set(`demo/${page.path}`, renderPage(page, { demo: true }));
   return files;
@@ -164,5 +179,5 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     console.error(`Páginas financeiras fora da especificação (rode node scripts/generate-finance-pages.mjs):\n  ${drift.join('\n  ')}`);
     process.exit(1);
   }
-  console.log(check ? `Páginas financeiras: ${PAGES.length * 2 + DEMO_ONLY_PAGES.length} cascas conferidas com a especificação.` : `Páginas financeiras: ${PAGES.length * 2 + DEMO_ONLY_PAGES.length} cascas geradas.`);
+  console.log(check ? `Páginas financeiras: ${expectedFiles().size} cascas conferidas com a especificação.` : `Páginas financeiras: ${expectedFiles().size} cascas geradas.`);
 }

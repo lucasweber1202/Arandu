@@ -5,14 +5,14 @@ import { spawnSync } from 'node:child_process';
 
 const root = process.cwd();
 const requireReady = process.argv.includes('--require-ready');
+// Frentes do go-live de produção. As frentes da vertical de arte aposentada
+// (catálogo real, operação comercial, piloto fechado de vendas) saíram com ela;
+// o piloto financeiro tem checklist própria em docs/FINANCIAL_PILOT_GO_LIVE.md.
 const checks = [
   ['Código e contratos', ['run', 'check:all']],
   ['Ambiente de produção', ['run', 'check:env:release']],
   ['Evidências externas', ['run', 'check:evidence:release']],
-  ['Catálogo real', ['run', 'check:catalog:release']],
   ['Domínio e marca', ['run', 'check:domain:release']],
-  ['Operação comercial', ['run', 'check:commercial:release']],
-  ['Piloto fechado', ['run', 'check:pilot:release']],
   ['Plataforma e backup', ['run', 'check:platform:release']]
 ];
 const results = checks.map(([name, args]) => {

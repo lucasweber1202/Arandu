@@ -109,7 +109,11 @@ declarada.
 | Módulo | Onde vive |
 | --- | --- |
 | Organizações, membros e papéis | `fin_organizations`, `fin_members`, `fin_member_invitations` |
-| Perfil financeiro reutilizável | `fin_company_profiles` |
+| Contract & Renewal Center v2 (termos versionados, aditivos, carteira importada, marcos e obrigações recorrentes) | `fin_contract_versions`, `fin_contract_amendments`, `fin_contract_milestones`, `lib/finance/contract-terms.mjs` |
+| Provider/Bank Relationship Management (contatos, relação por entidade, issues, scorecards do cliente, mapa e métricas factuais) | `fin_provider_*`, `fin_scorecard_templates`, `lib/finance/portfolio.mjs` |
+| Dívida, facilities, limites e garantias (visão por moeda, não ledger) | `fin_facilities`, `fin_facility_balances`, `fin_facility_repayments`, `fin_guarantees`, `/finance/portfolio.html` |
+| Grupo multi-entity (entidades legais, unidades, escopo de acesso por entidade, consolidado) | `fin_legal_entities`, `fin_member_entity_grants`, `lib/finance/entities.mjs`, `/api/finance/entities*` |
+| Financial Passport (perfil reutilizável com proveniência, frescor, histórico e snapshot na RFQ) | `fin_company_profiles`, `fin_company_profile_history`, `fin_rfq_profile_snapshots`, `lib/finance/passport.mjs` |
 | Provedores | `fin_providers` |
 | RFQ e máquina de estados | `fin_rfqs`, `lib/finance/workflow.mjs` |
 | Convite de provedor (uso único) | `fin_rfq_invites` |
@@ -130,7 +134,42 @@ declarada.
 ## Interfaces
 
 Portal da empresa (`/finance/`): início, painel, solicitações, detalhe da RFQ,
-provedores, propostas, contratos, perfil financeiro e limites do produto.
+provedores, propostas, contratos, Financial Passport e limites do produto.
+
+## Financial Passport
+
+O perfil financeiro da empresa compradora é um ativo reutilizável, não um
+cadastro: cada campo guarda valor, origem declarada, quem gravou, quando, se
+foi confirmado como atual, até quando vale e, quando aplicável, o documento
+privado que o sustenta. O catálogo (`lib/finance/passport.mjs`) organiza os
+campos em quatro contextos — Empresa, Crédito, Adquirência e Documentação.
+
+* **Frescor determinístico.** Cada campo tem um período de revisão declarado
+  (padrão do catálogo ou escolhido pela empresa) e, se houver, a validade da
+  fonte. A partir de 30 dias antes do vencimento o campo fica *revisar em
+  breve*; depois, *desatualizado*. Confirmar como atual renova a referência sem
+  mudar o valor. O Arandu não inventa validade.
+* **Cobertura factual.** Campos preenchidos / campos do catálogo, por contexto.
+  Não é nota de risco, de crédito nem de qualidade, e não ordena nada.
+* **Origem.** O formulário aceita origens declaráveis por pessoa (declarado
+  pela empresa, documento interno, extrato, contrato vigente, outra). Importação,
+  integração, informado pelo provedor, cálculo e extração confirmada são
+  reservadas a caminhos próprios e recusadas pelo formulário e pelo banco.
+* **Documentos.** Um campo de documentação só conta com arquivo privado do
+  perfil vinculado (bucket privado, link assinado curto). Arquivo removido
+  deixa o campo descoberto e sinalizado.
+* **Histórico.** Toda gravação e confirmação vira linha append-only, escrita por
+  gatilho; ninguém a edita.
+* **Reuso na RFQ.** O assistente preenche, de forma visível, os campos da
+  demanda mapeados no catálogo, só quando vazios, com origem, data e frescor na
+  dica. A pessoa revisa; valor em formato livre não preenche. Ao criar, a RFQ
+  guarda uma fotografia imutável dos campos usados e se cada um foi mantido ou
+  alterado. Mudanças futuras no Passport não alteram o processo.
+* **Quem vê.** Só membros da empresa compradora. O provedor convidado lê a
+  demanda que a empresa enviou, nunca o Passport nem a fotografia.
+
+Fora desta versão, de propósito: importação/integração (Onda 4), extração por
+IA com confirmação (Onda 2) e Passport por entidade legal (a fundação multi-entity já separa processos, contratos e acessos por entidade; o Passport continua de nível de grupo).
 
 Portal do provedor (`/provider/`): início, aceite de convite com estado
 explícito, RFQs atribuídas com a necessidade declarada, e resposta de proposta

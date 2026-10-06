@@ -5,7 +5,7 @@
 import { el, icon, formatDateTime, timeAgo } from '../core.js';
 import { card, tag, button, emptyState, errorState, field, toast } from '../ui.js';
 
-const STATUS_TONE = { succeeded: 'success', failed: 'danger', delivered: 'success', pending: 'neutral', processing: 'neutral', retry: 'warning', dead: 'danger' };
+const STATUS_TONE = { running: 'warning', succeeded: 'success', failed: 'danger', delivered: 'success', pending: 'neutral', processing: 'neutral', retry: 'warning', dead: 'danger' };
 const OUTBOX_LABEL = { delivered: 'Entregues', pending: 'Pendentes', processing: 'Em envio', retry: 'Nova tentativa', dead: 'Falhas definitivas' };
 
 function check(label, ok, detail) {
@@ -80,9 +80,23 @@ export async function opsConsole(ctx) {
       check('E-mail de avisos', overview.email_enabled && health.email_provider_configured, overview.email_enabled ? 'Provedor de e-mail não configurado' : 'Desligado (email_enabled = false)')
     ]) }));
 
-  root.append(card({ title: 'Execuções de jobs', subtitle: 'Últimas 10. Use o request ID para rastrear nos logs.', body: table(['Job', 'Estado', 'Processados', 'Início', 'Fim', 'Request ID', 'Erro'],
-    (overview.jobs || []).map((job) => [job.job === 'renewals' ? 'Renovações' : job.job, tag(job.status === 'succeeded' ? 'Sucesso' : 'Falha', STATUS_TONE[job.status]), String(job.processed),
+  root.append(card({ title: 'Execuções de jobs', subtitle: 'Últimas 20. Use o request ID para rastrear nos logs.', body: table(['Job', 'Estado', 'Processados', 'Falhas', 'Duração (ms)', 'Início', 'Fim', 'Request ID', 'Erro'],
+    (overview.jobs || []).map((job) => [job.job === 'renewals' ? 'Renovações' : job.job, tag(job.status === 'succeeded' ? 'Sucesso' : job.status === 'running' ? 'Em execução' : 'Falha', STATUS_TONE[job.status]), String(job.processed), String(job.failed ?? 0), String(job.duration_ms ?? '—'),
       formatDateTime(job.started_at), formatDateTime(job.finished_at), el('code', { text: job.request_id || '—' }), job.error_code ? el('code', { text: job.error_code }) : '—']), 'Nenhuma execução registrada ainda') }));
+
+  const webhooks = overview.webhooks || {};
+  root.append(card({ title: 'Integrações e leases', subtitle: 'Contagens operacionais, sem URLs, segredos ou conteúdo financeiro.', body: [
+    el('dl', { class: 'summary-strip compact' }, [
+      ['Leases de job vencidos', overview.expired_job_leases ?? 0],
+      ['Webhooks pendentes', webhooks.by_status?.pending ?? 0], ['Webhooks em retry', webhooks.by_status?.failed ?? 0],
+      ['Dead letters', webhooks.by_status?.dead ?? 0], ['Pendente mais antigo (min)', webhooks.oldest_pending_minutes ?? '—'],
+      ['Recusas de SSO em 24 h', overview.sso?.failures_24h ?? 0],
+      ['Exports na fila', overview.governance?.exports_by_status?.requested ?? 0], ['Legal holds ativos', overview.governance?.active_legal_holds ?? 0]
+    ].map(([label,value]) => el('div', { class: 'summary-item' }, [el('dt', { text: label }),el('dd', { text: String(value) })]))),
+    table(['ID', 'Estado', 'Tentativas', 'Erro', 'Criado'], (webhooks.recent_failures || []).map(row => [el('code', { text: String(row.id).slice(0,13) }), row.status, String(row.attempts), row.error_code || '—', formatDateTime(row.created_at)]), 'Nenhuma falha recente de webhook'),
+    el('p', { class: 'field-hint', text: 'Presença de configuração não comprova disponibilidade ou recuperação da dependência.' }),
+    table(['Dependência', 'Configuração'], (health.dependencies || []).map(row => [row.name, row.state === 'configured' ? 'Configurada; disponibilidade não medida' : 'Não configurada']), 'Sem evidência de configuração')
+  ] }));
 
   const outbox = overview.outbox || {};
   const byStatus = Object.entries(outbox.by_status || {});

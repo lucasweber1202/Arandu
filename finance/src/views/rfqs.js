@@ -1,8 +1,10 @@
 // Lista operacional de solicitações e assistente de criação.
 
 import { PRODUCTS, PRODUCT_IDS, checkAcquiringShares } from '../../../lib/finance/products.mjs';
+import { passportPrefill, SOURCE_LABELS } from '../../../lib/finance/passport.mjs';
 import { el, icon, fold, daysUntil, relativeDays, formatDate, formatDateTime, productLabel, demandHeadline, RFQ_STATUS, fieldValue, todayIso } from '../core.js';
 import { pill, linkButton, button, emptyState, person, progress, field, catalogControl, saveIndicator, toast, confirmDialog, tag } from '../ui.js';
+import { loadEntities, entityContextSelect, inContext, entityName, entityField } from './entities.js';
 
 const NEXT_ACTION = {
   draft: 'Convidar e abrir', open: 'Aguardar respostas', collecting: 'Acompanhar respostas', comparing: 'Avaliar e decidir',
@@ -15,6 +17,7 @@ function nextAction(rfq) {
 }
 
 export async function rfqList(ctx) {
+  const entities = await loadEntities(ctx);
   const rfqs = ctx.data.rfqs || [];
   ctx.header({
     title: 'Solicitações', subtitle: 'Todas as concorrências de crédito e adquirência da empresa.',
@@ -49,6 +52,7 @@ export async function rfqList(ctx) {
   const sort = el('select', { class: 'input', 'aria-label': 'Ordenar solicitações' });
   for (const [value, label] of [['deadline', 'Prazo mais próximo'], ['recent', 'Mais recentes'], ['responses', 'Mais respostas']]) sort.add(new Option(label, value));
   sort.value = params.get('sort') || 'deadline';
+  const entitySelect = entityContextSelect(entities, { label: 'Filtrar por entidade' });
   const count = el('span', { class: 'result-count', role: 'status', 'aria-live': 'polite' });
   const clear = button('Limpar filtros', { variant: 'ghost', size: 'sm', onClick: () => { search.value = ''; product.value = ''; owner.value = ''; activeStatus = ''; for (const node of status.children) node.setAttribute('aria-pressed', String(node.dataset.status === '')); draw(); } });
 
@@ -62,7 +66,8 @@ export async function rfqList(ctx) {
     const term = fold(search.value.trim());
     const visible = rfqs.filter((rfq) => (!activeStatus || rfq.status === activeStatus)
       && (!product.value || rfq.product === product.value) && (!owner.value || rfq.owner_id === owner.value)
-      && (!term || fold(`${rfq.title} ${rfq.description || ''}`).includes(term)));
+      && (!term || fold(`${rfq.title} ${rfq.description || ''}`).includes(term))
+      && (!entitySelect || inContext(entities, rfq, entitySelect.value)));
     visible.sort((a, b) => sort.value === 'recent' ? String(b.created_at).localeCompare(String(a.created_at))
       : sort.value === 'responses' ? (b.proposals || []).length - (a.proposals || []).length
         : String(['open', 'collecting', 'comparing', 'draft'].includes(a.status) ? a.response_deadline || '9999' : 'z').localeCompare(String(['open', 'collecting', 'comparing', 'draft'].includes(b.status) ? b.response_deadline || '9999' : 'z')));
@@ -74,7 +79,7 @@ export async function rfqList(ctx) {
       body.append(el('tr', { class: 'row-link', dataset: { entity: 'rfq', id: rfq.id } }, [
         el('td', { 'data-label': 'Solicitação', class: 'cell-primary' }, [
           el('a', { class: 'row-title stretched', href: ctx.href(`/finance/rfq.html?id=${encodeURIComponent(rfq.id)}`), text: rfq.title }),
-          el('span', { class: 'row-sub', text: `${productLabel(rfq.product, { short: true })} · ${demandHeadline(rfq)} · rev. ${rfq.revision || 1}` })
+          el('span', { class: 'row-sub', text: `${productLabel(rfq.product, { short: true })} · ${demandHeadline(rfq)} · rev. ${rfq.revision || 1}${entities.rows.length ? ` · ${entityName(entities, rfq.legal_entity_id)}` : ''}` })
         ]),
         el('td', { 'data-label': 'Status' }, pill(RFQ_STATUS[rfq.status], { size: 'sm' })),
         el('td', { 'data-label': 'Responsável' }, person(rfq.owner_name || 'Membro')),
@@ -96,9 +101,9 @@ export async function rfqList(ctx) {
     if (sort.value !== 'deadline') next.set('sort', sort.value);
     history.replaceState(null, '', `${location.pathname}${next.toString() ? `?${next}` : ''}`);
   }
-  for (const control of [search, product, owner, sort]) control.addEventListener(control === search ? 'input' : 'change', draw);
+  for (const control of [search, product, owner, sort, entitySelect].filter(Boolean)) control.addEventListener(control === search ? 'input' : 'change', draw);
   root.append(
-    el('div', { class: 'toolbar' }, [el('div', { class: 'toolbar-search' }, [icon('search'), search]), product, owner, sort, count]),
+    el('div', { class: 'toolbar' }, [el('div', { class: 'toolbar-search' }, [icon('search'), search]), entitySelect, product, owner, sort, count].filter(Boolean)),
     el('div', { class: 'toolbar-chips' }, status),
     el('div', { class: 'table-card' }, [table, empty])
   );
@@ -121,8 +126,15 @@ const HINTS = {
   current_acquirer: 'Não é enviado como avaliação — só contexto para o provedor.',
   collateral: 'Garantias que a empresa pode oferecer. Evite dados pessoais.'
 };
-const PROFILE_TO_DEMAND = { sector: 'setor', collateral: 'garantias_disponiveis', current_acquirer: 'adquirente_atual' };
 const STEPS = ['Produto', 'Necessidade', 'Condições', 'Revisão'];
+
+function passportHint(item) {
+  const origin = SOURCE_LABELS[item.source] || item.source;
+  const when = item.updated_at ? `, atualizado em ${formatDate(item.updated_at)}` : '';
+  if (item.freshness === 'stale') return `Do Financial Passport (${origin}${when}). Desatualizado desde ${formatDate(item.due_on)}: confirme o valor antes de enviar.`;
+  if (item.freshness === 'review_due') return `Do Financial Passport (${origin}${when}). Revisão vence em ${formatDate(item.due_on)}.`;
+  return `Do Financial Passport (${origin}${when}). Revise; alterar aqui não muda o Passport.`;
+}
 
 export async function newRfq(ctx) {
   ctx.header({ title: 'Nova solicitação', subtitle: 'Quatro etapas. O rascunho é salvo automaticamente enquanto você preenche.',
@@ -144,6 +156,8 @@ export async function newRfq(ctx) {
   const wraps = new Map();
   let current = 0;
   let highest = 0;
+  // Campo da demanda → sugestão do Passport aplicada (para o snapshot da RFQ).
+  const passportUsed = new Map();
 
   // Etapa 1 — produto e título. Rádios nativos: teclado e leitor de tela de graça.
   form.append(...fieldsets);
@@ -166,9 +180,19 @@ export async function newRfq(ctx) {
   const titleField = field({ label: 'Título da solicitação', control: title, required: true, hint: 'Os provedores veem este título. Seja específico e evite dados sigilosos.' });
   const description = el('textarea', { name: 'description', rows: '3', maxlength: '4000', placeholder: 'Contexto que ajuda o provedor a ofertar melhor.' });
   const descriptionField = field({ label: 'Contexto da necessidade', control: description, optionalLabel: true });
-  productStep.append(productCards, titleField, descriptionField);
+  // Entidade do grupo em que o processo nasce (quem o enxerga depende dela).
+  const entities = await loadEntities(ctx);
+  const entityWrap = entityField(entities);
+  productStep.append(productCards, titleField, descriptionField, ...(entityWrap ? [entityWrap] : []));
   wraps.set('title', titleField);
 
+  entityWrap?.querySelector('select')?.addEventListener('change', () => {
+    for (const [key, suggestion] of passportUsed) {
+      const control = form.elements.namedItem(key);
+      if (control && control.value === String(suggestion.value)) control.value = '';
+    }
+    renderFields();
+  });
   const deadline = el('input', { name: 'response_deadline', type: 'date', min: todayIso() });
   const deadlineField = field({ label: 'Prazo de resposta dos provedores', control: deadline, hint: 'Depois desta data a solicitação deixa de aparecer como aberta para resposta.' });
   wraps.set('response_deadline', deadlineField);
@@ -176,6 +200,8 @@ export async function newRfq(ctx) {
   function renderFields() {
     const spec = PRODUCTS[productSelect.value];
     const previous = Object.fromEntries(new FormData(form));
+    const suggestions = new Map(passportPrefill(productSelect.value, { organization: ctx.organization, rows: profile, legalEntityId: form.elements.namedItem('legal_entity_id')?.value || null }).map((item) => [item.demand_key, item]));
+    passportUsed.clear();
     needStep.replaceChildren(el('legend', { class: 'step-legend', text: 'Necessidade' }), el('p', { class: 'step-intro', text: productSelect.value === 'credit' ? 'O essencial para qualquer provedor cotar crédito.' : 'O perfil de recebimentos define quanto cada taxa pesa no custo.' }));
     conditionStep.replaceChildren(el('legend', { class: 'step-legend', text: 'Condições' }), el('p', { class: 'step-intro', text: 'Detalhes que refinam a proposta. Tudo aqui é opcional, exceto o que estiver marcado.' }));
     const needKeys = new Set(NEED_KEYS[productSelect.value]);
@@ -184,15 +210,32 @@ export async function newRfq(ctx) {
     for (const spec2 of spec.demandFields) {
       const control = catalogControl(spec2, previous[spec2.key] ?? null);
       control.setAttribute('aria-label', spec2.label);
-      const reused = profile.find((row) => row.field_key === PROFILE_TO_DEMAND[spec2.key]);
-      if (reused && !control.value && spec2.type === 'text') control.value = reused.field_value;
+      // Financial Passport: preenche só campo vazio, e diz de onde veio.
+      const suggestion = suggestions.get(spec2.key);
+      const previousValue = previous[spec2.key];
+      if (suggestion && !source && (previousValue === undefined || previousValue === '')) control.value = String(suggestion.value);
+      if (suggestion && !source && control.value === String(suggestion.value)) passportUsed.set(spec2.key, suggestion);
+      const fromPassport = passportUsed.has(spec2.key);
       const wrap = field({ label: spec2.label, control, required: Boolean(spec2.required),
-        hint: reused ? `Preenchido com o perfil da empresa (atualizado em ${formatDate(reused.updated_at)}).` : HINTS[spec2.key] || null,
+        hint: fromPassport ? passportHint(suggestion) : HINTS[spec2.key] || null,
         className: spec2.type === 'text' && (spec2.max ?? 0) > 400 ? 'span-2' : '' });
+      if (fromPassport) {
+        wrap.classList.add('field-passport');
+        wrap.dataset.freshness = suggestion.freshness;
+        wrap.querySelector('.field-label')?.append(el('span', { class: `tag tag-${suggestion.freshness === 'stale' ? 'danger' : suggestion.freshness === 'review_due' ? 'warning' : 'neutral'} passport-badge`, text: 'Passport' }));
+      }
       wraps.set(spec2.key, wrap);
       (needKeys.has(spec2.key) ? needGrid : conditionGrid).append(wrap);
     }
     conditionGrid.prepend(deadlineField);
+    if (passportUsed.size) {
+      const stale = [...passportUsed.values()].filter((item) => item.freshness === 'stale').length;
+      needStep.append(el('p', { class: `callout ${stale ? 'callout-warning' : 'callout-info'} passport-callout`, role: 'status' }, [icon(stale ? 'alert' : 'shield'), el('span', {}, [
+        `${passportUsed.size} ${passportUsed.size === 1 ? 'campo veio' : 'campos vieram'} do Financial Passport. Revise antes de continuar: alterar aqui não muda o Passport, e a solicitação guarda uma fotografia do que foi usado.`,
+        stale ? ` ${stale} ${stale === 1 ? 'está desatualizado' : 'estão desatualizados'} no Passport.` : '',
+        ' ', el('a', { href: ctx.href('/finance/passport.html'), text: 'Abrir o Passport' })
+      ])]));
+    }
     needStep.append(needGrid);
     if (productSelect.value === 'acquiring') needStep.append(el('p', { class: 'share-meter', id: 'share-meter', role: 'status', 'aria-live': 'polite' }));
     conditionStep.append(conditionGrid);
@@ -217,7 +260,9 @@ export async function newRfq(ctx) {
     const product = entries.product;
     const demand = {};
     for (const spec of PRODUCTS[product].demandFields) if (entries[spec.key] !== undefined && entries[spec.key] !== '') demand[spec.key] = entries[spec.key];
-    return { product, title: (entries.title || '').trim(), description: (entries.description || '').trim(), response_deadline: entries.response_deadline || null, demand };
+    // Só o que continua preenchido: campo apagado pela pessoa sai do snapshot.
+    const passport_fields = [...passportUsed.entries()].filter(([key]) => demand[key] !== undefined).map(([key, item]) => ({ demand_key: key, field_key: item.field_key }));
+    return { product, title: (entries.title || '').trim(), description: (entries.description || '').trim(), response_deadline: entries.response_deadline || null, demand, passport_fields };
   }
   const submit = el('button', { type: 'submit', id: 'rfq-submit', class: 'btn btn-primary' }, [icon('check'), el('span', { class: 'btn-label', text: 'Criar solicitação' })]);
   function renderReview() {
@@ -236,6 +281,17 @@ export async function newRfq(ctx) {
       review.append(el('section', { class: 'review-block' }, [
         el('div', { class: 'review-head' }, [el('h3', { text: label }), edit]),
         el('dl', { class: 'deflist deflist-2' }, rows.map(([key, value]) => el('div', { class: 'deflist-row' }, [el('dt', { text: key }), el('dd', { class: value === 'Não informado' ? 'missing' : '', text: value })])))
+      ]));
+    }
+    if (data.passport_fields.length) {
+      review.append(el('section', { class: 'review-block passport-review' }, [
+        el('div', { class: 'review-head' }, [el('h3', { text: 'Dados do Financial Passport' })]),
+        el('ul', { class: 'plain-list' }, data.passport_fields.map(({ demand_key: key }) => {
+          const item = passportUsed.get(key);
+          const kept = String(data.demand[key]) === String(item.value);
+          return el('li', { text: `${spec.demandFields.find((entry) => entry.key === key)?.label || key}: ${kept ? 'mantido como no Passport' : 'alterado nesta solicitação'} (${SOURCE_LABELS[item.source] || item.source}${item.updated_at ? `, ${formatDate(item.updated_at)}` : ''}${item.freshness === 'stale' ? ', desatualizado' : ''}).` });
+        })),
+        el('p', { class: 'small muted', text: 'A solicitação guarda esta fotografia. Mudanças futuras no Passport não alteram este processo.' })
       ]));
     }
     let blocked = false;
@@ -424,6 +480,8 @@ export async function newRfq(ctx) {
         const input = form.elements.namedItem(key);
         if (input && value !== null && value !== undefined) input.value = String(value);
       }
+      // Valor recuperado do rascunho que difere do Passport não é atribuído a ele.
+      for (const [key, item] of [...passportUsed]) if (form.elements.namedItem(key)?.value !== String(item.value)) passportUsed.delete(key);
       updateShares();
       updateSummary();
       indicator.set('saved', `Rascunho recuperado (salvo ${formatDateTime(draft.updated_at)})`);
@@ -453,7 +511,8 @@ export async function newRfq(ctx) {
     try {
       clearTimeout(timer);
       if (pending) await pending.catch(() => {});
-      const result = await ctx.api('rfqs', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, ...payload() }) });
+      const entityId = entityWrap?.querySelector('select')?.value || null;
+      const result = await ctx.api('rfqs', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, ...payload(), ...(entityId ? { legal_entity_id: entityId } : {}) }) });
       if (editorRevision) await ctx.api('rfq-editor', { method: 'DELETE', body: JSON.stringify({ organization_id: ctx.organization.id, expected_revision: editorRevision }) }).catch(() => {});
       dirty = false;
       toast(['Solicitação criada como rascunho.', ...(result.warnings || [])].join(' '));

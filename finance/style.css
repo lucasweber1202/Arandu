@@ -1031,3 +1031,135 @@ body.public{margin:0;line-height:1.5;font-size:16px}
 @media (max-width:759px){.label-extra{display:none}}
 tr.highlighted>td,.proposal-card.highlighted,.document-row.highlighted,.comment.highlighted{background:var(--accent-weak)}
 .highlighted:focus{outline:2px solid var(--accent);outline-offset:2px}
+
+/* Financial Passport: cada campo com valor, origem, frescor e ações. Pilha no celular. */
+.passport-coverage{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:var(--s3)}
+.passport-coverage-item{height:100%;display:flex;flex-direction:column;gap:6px;min-width:0;padding:var(--s3);border:1px solid var(--border);border-radius:var(--r-md);color:inherit;text-decoration:none}
+.passport-coverage-item:hover{border-color:var(--border-strong)}
+.passport-coverage-item:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.passport-coverage-label{font-weight:600}
+.passport-coverage-meta{font-size:var(--fs-xs);color:var(--text-muted)}
+.passport-notice{display:flex;gap:6px;align-items:flex-start;margin-top:var(--s3)}
+.passport-attention{margin:4px 0 0;padding-left:18px}
+.passport-attention li{margin:2px 0}
+.passport-fields,.passport-snapshot{list-style:none;margin:0;padding:0}
+.passport-field{display:flex;flex-wrap:wrap;justify-content:space-between;gap:var(--s2) var(--s4);padding:var(--s3) 0;border-top:1px solid var(--border)}
+.passport .field{grid-template-columns:minmax(0,1fr)}
+.passport select{appearance:none;min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;padding-right:30px}
+.passport-field:first-child{border-top:0}
+.passport-field-main{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 260px}
+.passport-field-side{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:var(--s2);flex:0 1 auto;max-width:100%}
+.passport-label{font-size:var(--fs-sm);color:var(--text-secondary);font-weight:600}
+.passport-value{overflow-wrap:anywhere}
+.passport-value.missing{color:var(--text-muted);font-style:italic}
+.passport-meta{display:flex;flex-wrap:wrap;gap:2px 10px;font-size:var(--fs-xs);color:var(--text-muted)}
+.passport-doc{display:inline-flex;align-items:center;gap:4px;font-size:var(--fs-xs);color:var(--text-secondary);overflow-wrap:anywhere}
+.passport-warning{font-size:var(--fs-xs);color:var(--warning)}
+.passport-fresh{gap:4px;white-space:normal;height:auto;min-height:22px}
+.passport-actions{display:flex;flex-wrap:wrap;gap:var(--s1)}
+.passport-domain-count{font-variant-numeric:tabular-nums;color:var(--text-secondary);font-weight:600}
+.passport-history{list-style:none;margin:0;padding:0}
+.passport-history-item{padding:var(--s2) 0;border-top:1px solid var(--border)}
+.passport-history-item:first-child{border-top:0}
+.passport-snapshot-row{display:flex;flex-direction:column;gap:2px;padding:var(--s2) 0;border-top:1px solid var(--border)}
+.passport-snapshot-row:first-child{border-top:0}
+.passport-badge{margin-left:6px;height:18px;padding:0 6px}
+.field-passport[data-freshness="stale"] .field-hint{color:var(--danger)}
+@media (max-width:599px){.passport-field-side{justify-content:flex-start}}
+
+/* Multi-entity: contexto de entidade, administração e consolidado. */
+.entity-context-select{max-width:260px;min-width:0}
+.table-scroll{overflow-x:auto;max-width:100%}
+.entity-list{list-style:none;margin:0 0 var(--s4);padding:0;display:grid;gap:var(--s2)}
+.entity-row{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s3);padding:var(--s3);border:1px solid var(--border);border-radius:var(--r-md);background:var(--surface)}
+.entity-row.depth-1{margin-left:var(--s6);border-style:dashed}
+.entity-row-main{display:flex;flex-direction:column;flex:1 1 220px;min-width:0;overflow-wrap:anywhere}
+.entity-create{margin-top:var(--s4)}
+.entity-create>summary,.scope-details>summary,.inline-details>summary{cursor:pointer;color:var(--accent-text);font-weight:600}
+.input-short{max-width:96px}
+.scope-row{flex-wrap:wrap}
+.scope-details{flex:1 1 100%}
+.scope-editor{display:grid;gap:var(--s3);margin-top:var(--s2)}
+.scope-entities{border:1px solid var(--border);border-radius:var(--r-md);padding:var(--s3);margin:0;display:grid;gap:var(--s1)}
+.check-row{display:flex;gap:var(--s2);align-items:center}
+.entity-control{display:inline-flex;flex-wrap:wrap;gap:var(--s2);align-items:center;min-width:0}
+.entity-current{display:inline-flex;gap:var(--s1);align-items:center}
+.inline-details{display:inline-block}
+.inline-details .inline-form{display:inline-flex;flex-wrap:wrap;gap:var(--s2);margin-top:var(--s1)}
+.contract-entity{margin-top:var(--s1)}
+.entity-summary-table tr.entity-child td.cell-primary{padding-left:var(--s6)}
+@media (max-width:719px){
+  .entity-context-select{max-width:100%;width:100%}
+  .entity-row.depth-1{margin-left:var(--s3)}
+}
+
+/* Contract & Renewal Center v2. */
+.drawer-wide{width:min(760px,100vw)}
+.contract-center .cc-section{border-top:1px solid var(--border);padding-top:var(--s4);display:grid;gap:var(--s3)}
+.contract-center .cc-section:first-child{border-top:0;padding-top:0}
+.cc-head{display:flex;flex-wrap:wrap;gap:var(--s3);align-items:center;justify-content:space-between}
+.cc-head h3{font-size:var(--fs-lg)}
+.version-list,.milestone-list{list-style:none;margin:0;padding:0;display:grid;gap:var(--s2)}
+.version-row,.milestone-row{border:1px solid var(--border);border-radius:var(--r-md);padding:var(--s3);display:grid;gap:var(--s1);overflow-wrap:anywhere}
+.version-head{display:flex;flex-wrap:wrap;gap:var(--s2);align-items:center}
+.diff-list{margin:0;padding-left:var(--s5);font-size:var(--fs-sm)}
+.milestone-row{grid-template-columns:1fr auto;align-items:center}
+.milestone-main{display:flex;flex-direction:column;min-width:0}
+.contract-open{display:flex;flex-wrap:wrap;gap:var(--s2);align-items:center;margin:var(--s2) 0}
+/* Long lifecycle actions must fit the card even at spacious mobile density. */
+.contract-card .btn,body[data-view=contracts] .page-actions .btn{max-width:100%;min-width:0;white-space:normal;line-height:1.4;padding-top:6px;padding-bottom:6px;text-align:left}
+.contract-card .btn-label,body[data-view=contracts] .page-actions .btn-label{min-width:0}
+.fee-rows{display:grid;gap:var(--s2)}
+.fee-row{display:grid;grid-template-columns:2fr 1.4fr 1fr auto;gap:var(--s2);align-items:center}
+@media (max-width:719px){
+  .fee-row{grid-template-columns:1fr 1fr}
+  .milestone-row{grid-template-columns:1fr}
+}
+
+/* Financial Portfolio (dívida, limites, garantias). */
+.portfolio-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:var(--s3);margin-bottom:var(--s4)}
+.portfolio-stat{display:flex;flex-direction:column;gap:2px;padding:var(--s3);border:1px solid var(--border);border-radius:var(--r-md);background:var(--surface-sunken);min-width:0}
+.portfolio-stat-label{font-size:var(--fs-xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em}
+.portfolio-stat-value{font-size:var(--fs-xl);overflow-wrap:anywhere}
+.portfolio-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:var(--s5)}
+.portfolio-grid h3{font-size:var(--fs-md);margin-bottom:var(--s2)}
+.share-list{list-style:none;margin:0;padding:0;display:grid;gap:var(--s2)}
+.share-row{display:grid;grid-template-columns:minmax(80px,1fr) 2fr;gap:var(--s1) var(--s2);align-items:center;font-size:var(--fs-sm)}
+.share-label{overflow-wrap:anywhere}
+.share-bar{height:8px;background:var(--neutral-weak);border-radius:var(--r-pill);overflow:hidden}
+.share-fill{display:block;height:100%;background:var(--accent)}
+.share-value{grid-column:1 / -1;color:var(--text-muted)}
+.row-actions{display:flex;flex-wrap:wrap;gap:var(--s1)}
+.guarantee-list li{display:flex;flex-wrap:wrap;gap:var(--s2);align-items:center;padding:var(--s2) 0;border-bottom:1px solid var(--border)}
+.schedule-rows{display:grid;gap:var(--s2)}
+.schedule-rows .fee-row{grid-template-columns:1fr 1fr auto}
+.portfolio-grid>*,.portfolio-stats>*{min-width:0}
+
+.graph-context select{max-width:100%;margin-bottom:12px}.graph-list{display:grid;gap:12px;padding-left:20px}.graph-list li{overflow-wrap:anywhere}.graph-list li>a,.graph-list li>strong{display:block}
+/* Policy & Approval Engine v2: governança, editor, plano e linha do tempo. */
+.stack-sm{display:grid;gap:var(--s2);min-width:0}
+.stack-xs{display:grid;gap:var(--s1,4px);min-width:0}
+.plain-list{list-style:none;margin:0;padding:0;display:grid;gap:var(--s2);min-width:0}
+.plain-list>li{min-width:0;overflow-wrap:anywhere}
+.check-row{flex-wrap:wrap;border:0;margin:0;padding:0;min-width:0}
+.check-option{display:inline-flex;gap:var(--s2);align-items:flex-start;min-width:0;overflow-wrap:anywhere}
+.policy-head{display:flex;flex-wrap:wrap;gap:var(--s2);align-items:flex-start;justify-content:space-between;min-width:0}
+.policy-head-text{min-width:0;flex:1 1 220px}
+.policy-title{margin:0;font-size:1rem;overflow-wrap:anywhere}
+.policy-tags{display:flex;flex-wrap:wrap;gap:var(--s1,4px)}
+.policy-rules{margin:0;padding-left:1.2rem;display:grid;gap:var(--s3);min-width:0}
+.policy-rule{display:grid;gap:2px;min-width:0;overflow-wrap:anywhere}
+.policy-inline{display:flex;flex-wrap:wrap;gap:var(--s3);align-items:flex-end;min-width:0}
+.policy-inline>*{flex:1 1 140px;min-width:0}
+.policy-condition{display:flex;flex-wrap:wrap;gap:var(--s2);align-items:center;min-width:0}
+.policy-condition>select,.policy-condition>input,.policy-condition>div{flex:1 1 150px;min-width:0;max-width:100%}
+.policy-stage-editor{display:grid;gap:var(--s2);padding:var(--s3);border:1px solid var(--line,#e3e6ea);border-radius:10px;min-width:0}
+.policy-plan{list-style:none;margin:0;padding:0;display:grid;gap:var(--s2);min-width:0}
+.policy-plan>li{display:flex;gap:var(--s2);align-items:flex-start;flex-wrap:wrap;min-width:0}
+.policy-plan>li>div{flex:1 1 200px;min-width:0;overflow-wrap:anywhere}
+.policy-plan-seq{display:inline-grid;place-items:center;width:1.6rem;height:1.6rem;border-radius:50%;background:var(--surface-2,#eef1f4);font-weight:600;flex:0 0 auto}
+.policy-plan-box,.policy-timeline{min-width:0;overflow-wrap:anywhere}
+.input-currency{max-width:6rem;text-transform:uppercase}
+.reason-select{max-width:100%;min-width:0}
+textarea.mono{width:100%;max-width:100%;min-width:0}
+.secret-once{display:block;overflow-wrap:anywhere;word-break:break-all;max-width:100%}

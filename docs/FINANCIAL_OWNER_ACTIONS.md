@@ -3,7 +3,7 @@
 > Checklist única e atualizada, com estado por item: [`FINANCIAL_PILOT_GO_LIVE.md`](FINANCIAL_PILOT_GO_LIVE.md).
 
 Lista curta e fechada. **Só entra aqui o que é impossível resolver por código.**
-Tudo que era implementável foi implementado.
+Esta lista separa ações externas de implementação. Ela não declara o roadmap completo; P1.4 ainda está ausente. Estado atual: `FINANCIAL_RELEASE_EVIDENCE_2026-10-05_V3_BASELINE.md` (ações externas detalhadas em `FINANCIAL_RELEASE_EVIDENCE_2026-10-05.md`, ainda válidas).
 
 ---
 
@@ -23,40 +23,65 @@ não trata isso como aceite legal válido, e não deve passar a tratar sem parec
 
 ## 2. Proteção das branches `main` e `pilot`
 
-A integração não tem permissão administrativa: a API responde 403
-("Resource not accessible by integration"). Em GitHub → Settings → Branches →
-Add rule:
+A integração não tem permissão administrativa. **Caminho preferido (05/10):**
+Settings → Rules → Rulesets → New ruleset → Import a ruleset, com
+`.github/rulesets/pilot.json` e `.github/rulesets/main.json` (versionados e
+testados; detalhes e rollback em `BRANCH_PROTECTION.md`). Equivalente manual em
+GitHub → Settings → Branches → Add rule:
 
 - **`main`**: Require a pull request; Require status checks (`validate`,
   `database`, `deploy-boundaries`, `presentation`); Require branches to be up to
   date; bloquear force push e deleção.
 - **`pilot`**: Require a pull request; bloquear force push e deleção. Os mesmos
-  status checks, quando a quota do Actions voltar.
+  status checks obrigatórios.
 
-Enquanto a quota estiver esgotada, os status checks obrigatórios travam todo
-merge. Ligue-os depois de 01/10, com a primeira run verde. Os toggles estão em
-[`FINANCIAL_REPO_GOVERNANCE.md`](FINANCIAL_REPO_GOVERNANCE.md).
+A quota voltou e a `main` tem CI verde (run #720). As branches continuam
+`protected: false`; leitura administrativa de proteção retorna 403. Regras e
+permissões: [`FINANCIAL_REPO_GOVERNANCE.md`](FINANCIAL_REPO_GOVERNANCE.md).
 
 ## 3. Os três ambientes (Vercel e Supabase)
 
-Topologia e fluxo em [`FINANCIAL_DEPLOYMENT_WORKFLOW.md`](FINANCIAL_DEPLOYMENT_WORKFLOW.md).
-A branch `pilot` já existe. Nesta sessão não havia conector nem credencial de
-Vercel ou Supabase (APIs 403/401), por isso os passos abaixo são seus.
+**Consolidação de 06/10/2026 — ações do owner, em ordem:**
 
-**3.1 `arandu-demo` (Vercel)**: passo a passo único em
+1. GitHub → Billing → Actions: restabelecer minutos/limite de gasto (CI sem runner desde o run #771; `GITHUB_ACTIONS_MINUTES.md`) e re-executar a PR de consolidação.
+2. Merge da PR de consolidação em `main` só com os quatro gates verdes no HEAD exato.
+3. Vercel → `arandu-pilot` → Settings → Git → **Production Branch = `main`** (o build recusa `pilot` desde esta rodada).
+4. Supabase PILOT: aplicar as migrations pendentes até `financial-opportunity-discriminator-1` em ordem (`npm run migrations:release`, `MIGRATION_RELEASE_RUNBOOK.md`), com backup antes, e rodar doctor + canary.
+5. Supabase DEMO: criar o projeto (limite de projetos do plano Free bloqueou antes), aplicar `cleanInstall`, configurar `arandu-demo` com `ARANDU_ENV=demo` e rodar `npm run demo:seed` da máquina do operador (`docs/demo/RESET.md`).
+6. Confirmada a transição, arquivar `pilot` (tag) e remover as branches DELETE de `REPOSITORY_HYGIENE.md`.
+
+Topologia e fluxo em [`FINANCIAL_DEPLOYMENT_WORKFLOW.md`](FINANCIAL_DEPLOYMENT_WORKFLOW.md).
+A branch `pilot` e os três projetos Vercel existem. Evidência atual por alias,
+SHA e ambiente em [`ARANDU_CURRENT_STATE_2026-10-02.md`](ARANDU_CURRENT_STATE_2026-10-02.md).
+A integração lê metadados de deploy, mas não disponibiliza configuração de
+variáveis/branch nem permite acessar o bypass de proteção do Pilot.
+
+**3.1 Demo canônica**: `arandu-demo` deve continuar usando `main`, com
+`ARANDU_ENV=demo` e Supabase DEMO **dedicado**. Remover
+`ARANDU_DEPLOYMENT_KIND` só depois de configurar banco/variáveis e validar seed,
+reset e E2E. Procedimento único em
 [`FINANCIAL_DEPLOYMENT_WORKFLOW.md#demo`](FINANCIAL_DEPLOYMENT_WORKFLOW.md#demo).
-Resumo: projeto novo da branch `main`, **uma** variável
-(`ARANDU_DEPLOYMENT_KIND=demo`), Build Command padrão, Vercel Authentication
-desligada. Atenção: configurar só o Build Command `npm run build:demo` no painel
-**não funciona** — o `vercel.json` sobrepõe esse campo.
+A tentativa de criar Arandu Demo em 02/10 retornou limite de dois projetos
+ativos Free. É preciso liberar capacidade conscientemente ou aprovar mudança
+de plano/custo; nenhum projeto foi pausado/apagado pelo agente. Não reutilizar
+o Pilot nem o legado. A mesma dependência vale para Production.
 
 **3.2 Supabase do piloto (`offgpyysgdhfemjlchod`)**: SQL Editor.
-1. `select value from public.fin_settings where key = 'schema_version';` deve
-   dar `financial-final-hardening-1` (34 aplicadas).
-2. Cole e rode `docs/supabase-financial-pilot-surface-hardening.sql`
-   (**só esse**; o antigo `…-advisor-hardening.sql` foi removido e não deve ser
-   aplicado).
-3. Repita a consulta do passo 1: esperado `financial-surface-hardening-1`.
+1. `select value from public.fin_settings where key = 'schema_version';` — o
+   último valor observado (01/10/2026) foi `financial-surface-hardening-1`.
+2. Faça backup (`npm run pilot:restore:drill` descreve o procedimento) e rode,
+   **nesta ordem e só os que faltam** depois do marcador do passo 1:
+   `docs/supabase-financial-approval-handoff.sql` (→ `financial-approval-handoff-1`),
+   `docs/supabase-financial-passport.sql` (já em `pilot` pela #95) (→ `financial-passport-1`)
+   `docs/supabase-financial-multi-entity.sql` (→ `financial-multi-entity-1`), `docs/supabase-financial-contracts-v2.sql` (→ `financial-contracts-v2-1`) e `docs/supabase-financial-relationships-portfolio.sql` (→ `financial-relationships-portfolio-1`). Os cinco
+   são aditivos, idempotentes e têm rollback em `docs/rollback/`; foram
+   ensaiados por cima de um banco povoado no Supabase local
+   (`scripts/pilot-local`) e no `test:database` (upgrade, rollback e reaplicação).
+   O bundle pendente pode ser gerado sem aplicar SQL:
+   `npm run migrations:bundle -- --flow=existingDatabase --after-schema=financial-surface-hardening-1`.
+3. Repita a consulta do passo 1: esperado o `EXPECTED_SCHEMA_VERSION` de
+   `lib/finance/pilot-doctor.mjs` (hoje `financial-relationships-portfolio-1`). Depois, `ops/sql/pilot-isolation-canary.sql`
+   confere também o isolamento por entidade de membros com escopo restrito.
 4. Advisors → Security e Performance: esperado nenhum item de
    `rls_disabled_in_public`, `security_definer_view` ou
    `function_search_path_mutable`.
@@ -84,9 +109,11 @@ desligada. Atenção: configurar só o Build Command `npm run build:demo` no pai
 
 **3.4 Supabase de produção**: criar um projeto **novo** (região São Paulo),
 por exemplo "ARANDU PRODUCTION". Nunca reaproveitar o do piloto nem o legado.
-- Aplicar os 35 arquivos de `cleanInstall`, em ordem (`npm run migrations:bundle
-  -- --flow=cleanInstall` gera um SQL único em `reports/`).
-- Conferir `schema_version = financial-surface-hardening-1`, Advisors e bucket.
+- Aplicar todos os arquivos de `cleanInstall`, em ordem (`npm run migrations:bundle
+  -- --flow=cleanInstall` gera um SQL único em `reports/`), com o código da
+  `main` que será publicado.
+- Conferir `schema_version` igual ao `EXPECTED_SCHEMA_VERSION` desse código,
+  Advisors e bucket.
 - Nenhum dado do piloto é copiado.
 
 **3.5 `arandu` (Vercel, produção)**: no projeto existente
@@ -99,7 +126,7 @@ falha até isso ser corrigido (o deploy atual continua no ar):
 
 Depois: `ARANDU_ENV=production npm run finance:pilot:doctor` → exit 0, e smoke
 de `/`, `/api/health`, `/api/finance/me` (401), `/api/forms` (404
-`legacy_surface_closed`) e `/demo/index.html` (404).
+`route_not_found`) e `/demo/index.html` (404).
 
 **3.6 Domínios** (opcional): `demo.`, `pilot.` e `app.` no domínio escolhido.
 Enquanto não houver domínio, os `.vercel.app` bastam, com `ARANDU_SITE_URL`

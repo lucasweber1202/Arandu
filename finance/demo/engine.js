@@ -19,6 +19,7 @@ import { PRODUCTS, normalizeDemand, normalizeProposal, normalize, demandFields, 
 import { canTransition, nextStates } from '../../lib/finance/workflow.mjs';
 import { comparableFields, NEUTRAL_RANKING_NOTICE } from '../../lib/finance/comparison.mjs';
 import { createSeed, DEMO_SEED_ID, PERSONAS } from './seed.js';
+import { buildPassport, resolvePassportRows, validatePassportValue, WRITABLE_SOURCES } from '../../lib/finance/passport.mjs';
 
 export const DEMO_STORAGE_KEY = 'arandu_demo_state_v1';
 export const DEMO_SCHEMA = 1;
@@ -858,17 +859,47 @@ export function createDemoEngine({ storage, now = () => new Date(), latency = 0 
       state.data.providers.push(row);
       return { ok: true, row: clone(row) };
     },
+    // Financial Passport: mesmas regras de fin_passport_set_field / confirm.
+    'GET profile': (state, { userId, query }) => {
+      const { organization } = memberOrganization(state, userId, query.get('organization_id'), ['BUYER']);
+      const legalEntityId = query.get('legal_entity_id') || null;
+      const rows = resolvePassportRows(clone(state.data.profile.filter((row) => row.organization_id === organization.id)), legalEntityId);
+      const names = new Map(state.data.users.map((user) => [user.id, user.name]));
+      return { ok: true, rows, documents: [], passport: buildPassport({ organization, rows, legalEntityId, documents: [], members: names }) };
+    },
     'POST profile': (state, { userId, body }) => {
       const { organization } = memberOrganization(state, userId, body.organization_id, ['BUYER']);
-      requireRole(state, userId, organization.id, ['admin', 'finance_manager']);
+      requireRole(state, userId, organization.id, ['admin', 'finance_manager', 'analyst']);
       const key = clean(body.field_key).toLowerCase();
       if (!/^[a-z][a-z0-9_]{1,48}$/.test(key)) fail(400, 'Identificador de campo inválido.', 'invalid_field_key');
-      const value = limited(body.field_value, 500);
-      if (!value) fail(400, 'Informe um valor para o campo.', 'invalid_field_value');
-      let row = state.data.profile.find((item) => item.organization_id === organization.id && item.field_key === key);
-      if (!row) { row = { id: uuid(), organization_id: organization.id, field_key: key, valid_until: null }; state.data.profile.push(row); }
-      Object.assign(row, { field_value: value, source: clean(body.source) || 'declarado_pela_empresa', status: 'informado', updated_at: nowIso() });
-      return { ok: true, row: clone(row) };
+      const checked = validatePassportValue(key, body.field_value);
+      if (!checked.ok) fail(400, checked.error, 'invalid_field_value');
+      const source = clean(body.source) || 'declarado_pela_empresa';
+      if (!WRITABLE_SOURCES.includes(source)) fail(400, 'Origem do dado inválida.', 'invalid_source');
+      let row = state.data.profile.find((item) => item.organization_id === organization.id && (item.legal_entity_id || null) === (body.legal_entity_id || null) && item.field_key === key);
+      if (!row) { row = { id: uuid(), organization_id: organization.id, legal_entity_id: body.legal_entity_id || null, field_key: key, valid_until: null }; state.data.profile.push(row); }
+      const unchanged = row.field_value === checked.value && row.source === source;
+      Object.assign(row, { field_value: checked.value, source, status: 'informado', updated_at: nowIso(), updated_by: userId,
+        valid_until: clean(body.valid_until) || null, review_after_days: Number(body.review_after_days) || row.review_after_days || null,
+        verified_at: unchanged ? row.verified_at || null : null, verified_by: unchanged ? row.verified_by || null : null });
+      return { ok: true, id: row.id };
+    },
+    'POST profile/confirm': (state, { userId, body }) => {
+      const { organization } = memberOrganization(state, userId, body.organization_id, ['BUYER']);
+      requireRole(state, userId, organization.id, ['admin', 'finance_manager', 'analyst']);
+      const row = state.data.profile.find((item) => item.organization_id === organization.id && (item.legal_entity_id || null) === (body.legal_entity_id || null) && item.field_key === clean(body.field_key));
+      if (!row) fail(400, 'Campo do perfil inválido ou inexistente.', 'invalid_field_key');
+      Object.assign(row, { verified_at: nowIso(), verified_by: userId, status: 'revisado' });
+      return { ok: true, verified_at: row.verified_at };
+    },
+    // O sandbox não guarda histórico nem snapshot: respostas vazias e honestas.
+    'GET profile/history': (state, { userId, query }) => {
+      memberOrganization(state, userId, query.get('organization_id'), ['BUYER']);
+      return { ok: true, rows: [] };
+    },
+    'GET rfq-passport': (state, { userId, query }) => {
+      memberOrganization(state, userId, query.get('organization_id'), ['BUYER']);
+      return { ok: true, rows: [] };
     },
     'POST terms': (state, { userId, body }) => {
       const { organization } = memberOrganization(state, userId, body.organization_id);
@@ -1003,9 +1034,11 @@ export function createDemoEngine({ storage, now = () => new Date(), latency = 0 
       if (sub !== 'overview') fail(404, 'Recurso não encontrado.', 'not_found');
       const hour = (h) => new Date(now().getTime() - h * 3600000).toISOString();
       return { ok: true, demo: true, health: { database_configured: false, server_key_configured: false, cron_secret_configured: false, email_provider_configured: false, deployment: 'demo', commit: null },
-        overview: { schema_version: 'financial-pilot-grade-1', generated_at: nowIso(), email_enabled: false,
+        overview: { schema_version: 'financial-p0-closure-1', generated_at: nowIso(), email_enabled: false,
           jobs: [{ job: 'renewals', status: 'succeeded', processed: 1, request_id: 'demo-req-0931', error_code: null, started_at: hour(7.01), finished_at: hour(7) },
             { job: 'renewals', status: 'failed', processed: 0, request_id: 'demo-req-0930', error_code: 'upstream_unavailable', started_at: hour(31.01), finished_at: hour(31) }],
+          webhooks: { by_status: { pending: 2, failed: 1, dead: 1 }, oldest_pending_minutes: 8, recent_failures: [] },
+          expired_job_leases: 0, sso: { failures_24h: 0 },
           last_renewal_success: hour(7), renewal_milestones_24h: state.data.renewal_milestones.length ? 1 : 0,
           outbox: { by_status: { delivered: 14, pending: 1, dead: 1 }, oldest_pending_minutes: 3, recent_failures: [{ id: 'demo-outbox-7', status: 'dead', attempts: 5, error_code: 'provider_rejected', created_at: hour(20) }] },
           documents: { pending_over_1h: 0, failed_24h: 0, available_total: state.data.document_versions.filter((row) => row.status === 'available').length },

@@ -92,16 +92,47 @@ export function customizeDashboard(ctx) {
 
 // A central de comando carrega no primeiro uso (Ctrl/⌘+K ou clique): o
 // pacote inicial fica leve e a abertura continua imediata depois disso.
+//
+// Entre o pedido de abertura e a chegada do módulo, o que a pessoa digita não
+// pode se perder nem cair na página: as teclas vão para um buffer, o Enter fica
+// pendente e é executado sobre a busca completa assim que a central abre (antes,
+// o Enter executava o primeiro item da lista vazia — uma navegação). Esc cancela.
 function lazyPalette(ctx, paletteHooks) {
   let real = null;
   let loading = null;
-  const load = () => (loading ||= import('./command.js').then(({ installPalette }) => { real = installPalette(ctx, paletteHooks); return real; }));
+  let pending = null;
+  const load = () => (loading ||= import('./command.js').then(({ installPalette }) => { real = installPalette(ctx, paletteHooks); return real; })
+    // Falha de rede ao buscar o módulo: libera o teclado e permite tentar de novo.
+    .catch((error) => { stopBuffer(); loading = null; throw error; }));
+  const stopBuffer = () => { pending = null; document.removeEventListener('keydown', buffer, true); };
+  function buffer(event) {
+    if (!pending || event.isComposing || event.ctrlKey || event.metaKey || event.altKey) return;
+    const consume = () => { event.preventDefault(); event.stopImmediatePropagation(); };
+    if (event.key === 'Escape') { consume(); stopBuffer(); return; }
+    if (pending.submit) { consume(); return; }
+    if (event.key === 'Enter') { consume(); pending.submit = { peek: event.shiftKey }; return; }
+    if (event.key === 'Backspace') { consume(); pending.query = pending.query.slice(0, -1); return; }
+    if (event.key.length === 1) { consume(); pending.query += event.key; }
+  }
   // Pré-carrega quando o navegador estiver ocioso.
   (globalThis.requestIdleCallback || ((run) => setTimeout(run, 1200)))(() => load());
   return {
-    open: (query = '') => load().then((palette) => palette.open(query)),
-    close: () => real?.close(),
-    get isOpen() { return Boolean(real?.isOpen); }
+    open(query = '') {
+      if (real) { real.open(query); return Promise.resolve(real); }
+      if (pending) return loading;
+      pending = { query, submit: null };
+      document.addEventListener('keydown', buffer, true);
+      return load().then((palette) => {
+        const request = pending;
+        stopBuffer();
+        if (!request) return palette;
+        palette.open(request.query);
+        if (request.submit) palette.submit(request.submit);
+        return palette;
+      });
+    },
+    close: () => { if (pending) stopBuffer(); real?.close(); },
+    get isOpen() { return Boolean(pending) || Boolean(real?.isOpen); }
   };
 }
 

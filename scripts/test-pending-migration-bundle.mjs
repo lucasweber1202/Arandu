@@ -1,0 +1,111 @@
+import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+
+const command = (args) => spawnSync(process.execPath, ['scripts/build-supabase-migration-bundle.mjs', '--stdout', ...args], { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 });
+const pending = command(['--flow=existingDatabase', '--after-schema=financial-surface-hardening-1']);
+assert.equal(pending.status, 0, pending.stderr);
+const approval = readFileSync('docs/supabase-financial-approval-handoff.sql', 'utf8').trim();
+const passport = readFileSync('docs/supabase-financial-passport.sql', 'utf8').trim();
+const multiEntity = readFileSync('docs/supabase-financial-multi-entity.sql', 'utf8').trim();
+const contractsV2 = readFileSync('docs/supabase-financial-contracts-v2.sql', 'utf8').trim();
+const portfolio = readFileSync('docs/supabase-financial-relationships-portfolio.sql', 'utf8').trim();
+assert(pending.stdout.includes(approval));
+assert(pending.stdout.includes(passport));
+assert(pending.stdout.includes(multiEntity));
+assert(pending.stdout.indexOf(approval) < pending.stdout.indexOf(passport));
+assert(pending.stdout.indexOf(passport) < pending.stdout.indexOf(multiEntity));
+const afterPassport = command(['--flow=existingDatabase', '--after-schema=financial-passport-1']);
+assert.equal(afterPassport.status, 0, afterPassport.stderr);
+assert(afterPassport.stdout.includes('22 migration(s) pendente(s)'));
+assert(afterPassport.stdout.indexOf(contractsV2) < afterPassport.stdout.indexOf(portfolio));
+assert(afterPassport.stdout.indexOf(multiEntity) < afterPassport.stdout.indexOf(contractsV2));
+assert(afterPassport.stdout.includes(multiEntity));
+assert(!afterPassport.stdout.includes(passport));
+assert(!pending.stdout.includes('docs/supabase-financial-pilot-surface-hardening.sql'));
+assert.equal(pending.stdout, command(['--flow=existingDatabase', '--after-schema=financial-surface-hardening-1']).stdout);
+assert(afterPassport.stdout.includes(readFileSync('docs/supabase-financial-operational-resilience.sql','utf8').trim()));
+const afterSso=command(['--flow=existingDatabase','--after-schema=financial-sso-1']);
+assert.equal(afterSso.status,0,afterSso.stderr);
+assert(afterSso.stdout.includes('14 migration(s) pendente(s)'));
+assert(afterSso.stdout.includes(readFileSync('docs/supabase-financial-operational-resilience.sql','utf8').trim()));
+const afterResilience = command(['--flow=existingDatabase', '--after-schema=financial-operational-resilience-1']);
+assert.equal(afterResilience.status, 0, afterResilience.stderr);
+assert(afterResilience.stdout.includes('13 migration(s) pendente(s)'));
+assert(afterResilience.stdout.includes(readFileSync('docs/supabase-financial-data-governance.sql','utf8').trim()));
+const afterGovernance = command(['--flow=existingDatabase', '--after-schema=financial-data-governance-1']);
+assert.equal(afterGovernance.status, 0, afterGovernance.stderr);
+assert(afterGovernance.stdout.includes('12 migration(s) pendente(s)'));
+assert(afterGovernance.stdout.includes(readFileSync('docs/supabase-financial-legacy-art-decommission.sql','utf8').trim()));
+const afterDecommission = command(['--flow=existingDatabase', '--after-schema=financial-legacy-art-decommission-1']);
+assert.equal(afterDecommission.status, 0, afterDecommission.stderr);
+assert(afterDecommission.stdout.includes('11 migration(s) pendente(s)'));
+assert(afterDecommission.stdout.includes(readFileSync('docs/supabase-financial-p0-closure.sql','utf8').trim()));
+const afterClosure = command(['--flow=existingDatabase', '--after-schema=financial-p0-closure-1']);
+assert.equal(afterClosure.status, 0, afterClosure.stderr);
+assert(afterClosure.stdout.includes('10 migration(s) pendente(s)'));
+assert(afterClosure.stdout.includes(readFileSync('docs/supabase-financial-value-realization.sql','utf8').trim()));
+const afterValue = command(['--flow=existingDatabase', '--after-schema=financial-value-realization-1']);
+assert.equal(afterValue.status, 0, afterValue.stderr);
+assert(afterValue.stdout.includes('9 migration(s) pendente(s)'));
+assert(afterValue.stdout.includes(readFileSync('docs/supabase-financial-fee-intelligence.sql','utf8').trim()));
+const afterFees = command(['--flow=existingDatabase', '--after-schema=financial-fee-intelligence-1']);
+assert.equal(afterFees.status, 0, afterFees.stderr);
+assert(afterFees.stdout.includes('8 migration(s) pendente(s)'));
+assert(afterFees.stdout.includes(readFileSync('docs/supabase-financial-opportunity-engine.sql','utf8').trim()));
+const afterOpportunities = command(['--flow=existingDatabase', '--after-schema=financial-opportunity-engine-1']);
+assert.equal(afterOpportunities.status, 0, afterOpportunities.stderr);
+assert(afterOpportunities.stdout.includes('7 migration(s) pendente(s)'));
+assert(afterOpportunities.stdout.includes(readFileSync('docs/supabase-financial-document-intelligence.sql','utf8').trim()));
+const afterDocumentIntelligence = command(['--flow=existingDatabase', '--after-schema=financial-document-intelligence-1']);
+assert.equal(afterDocumentIntelligence.status, 0, afterDocumentIntelligence.stderr);
+assert(afterDocumentIntelligence.stdout.includes('6 migration(s) pendente(s)'));
+assert(afterDocumentIntelligence.stdout.includes(readFileSync('docs/supabase-financial-provider-qualification.sql','utf8').trim()));
+const afterQualification = command(['--flow=existingDatabase', '--after-schema=financial-provider-qualification-1']);
+assert(afterQualification.stdout.includes(readFileSync('docs/supabase-financial-implementation.sql','utf8').trim()));
+const afterImplementation = command(['--flow=existingDatabase', '--after-schema=financial-implementation-1']);
+assert.equal(afterImplementation.status,0,afterImplementation.stderr);
+assert(afterImplementation.stdout.includes(readFileSync('docs/supabase-financial-covenants.sql','utf8').trim()));
+const afterCovenants=command(['--flow=existingDatabase','--after-schema=financial-covenants-1']);
+assert(afterCovenants.stdout.includes(readFileSync('docs/supabase-financial-provider-performance.sql','utf8').trim()));
+const afterPerformance=command(['--flow=existingDatabase','--after-schema=financial-provider-performance-1']);
+assert(afterPerformance.stdout.includes(readFileSync('docs/supabase-financial-spend-intelligence.sql','utf8').trim()));
+const afterSpend=command(['--flow=existingDatabase','--after-schema=financial-spend-intelligence-1']);
+assert(afterSpend.stdout.includes(readFileSync('docs/supabase-financial-opportunity-discriminator.sql','utf8').trim()));
+assert(afterSpend.stdout.includes('1 migration(s) pendente(s)'));
+const current = command(['--flow=existingDatabase', '--after-schema=financial-opportunity-discriminator-1']);
+assert.equal(current.status, 0, current.stderr);
+assert(current.stdout.includes('0 migration(s) pendente(s)'));
+assert(!/create or replace|alter table|insert into/i.test(current.stdout));
+for (const args of [
+  ['--flow=existingDatabase', '--after-schema=unknown'],
+  ['--flow=existingDatabase', '--after-schema='],
+  ['--flow=cleanInstall', '--after-schema=financial-surface-hardening-1']
+]) {
+  const result = command(args);
+  assert.equal(result.status, 1);
+  assert.equal(result.stdout, '', 'Invalid target must not emit applicable SQL');
+}
+console.log('Pending migration bundles: order, contents, deterministic output, current schema and fail-closed targets passed.');
+
+const boundary = 'docs/supabase-financial-legacy-art-decommission.sql';
+const stagedArgs = ['--flow=existingDatabase', '--after-schema=financial-surface-hardening-1', `--stop-before=${boundary}`];
+const staged = command(stagedArgs);
+assert.equal(staged.status, 0, staged.stderr);
+assert(staged.stdout.includes(approval));
+assert(staged.stdout.includes(readFileSync('docs/supabase-financial-data-governance.sql', 'utf8').trim()));
+assert(!staged.stdout.includes(readFileSync(boundary, 'utf8').trim()));
+assert(!staged.stdout.includes(readFileSync('docs/supabase-financial-p0-closure.sql', 'utf8').trim()));
+assert(!staged.stdout.includes(readFileSync('docs/supabase-financial-opportunity-engine.sql', 'utf8').trim()));
+assert.equal(staged.stdout, command(stagedArgs).stdout);
+for (const args of [
+  ['--flow=cleanInstall', `--stop-before=${boundary}`],
+  ['--flow=existingDatabase', `--stop-before=${boundary}`],
+  ['--flow=existingDatabase', '--after-schema=financial-legacy-art-decommission-1', `--stop-before=${boundary}`],
+  ['--flow=existingDatabase', '--after-schema=financial-surface-hardening-1', '--stop-before=unknown']
+]) {
+  const invalid = command(args);
+  assert.equal(invalid.status, 1);
+  assert.equal(invalid.stdout, '');
+}
+console.log('Staged migration prefix: explicit observed marker, destructive boundary, no skipping and deterministic SQL passed.');

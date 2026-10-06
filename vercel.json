@@ -3,11 +3,6 @@
   "buildCommand": "npm run vercel-build",
   "outputDirectory": "dist",
   "cleanUrls": false,
-  "functions": {
-    "api/internal-page.js": {
-      "includeFiles": "{*.html,docs/*.md,docs/*.sql,docs/*.json,docs/*.txt}"
-    }
-  },
   "crons": [
     {
       "path": "/api/email-dispatch",
@@ -16,6 +11,14 @@
     {
       "path": "/api/jobs/renewals",
       "schedule": "15 9 * * *"
+    },
+    {
+      "path": "/api/jobs/webhooks",
+      "schedule": "45 9 * * *"
+    },
+    {
+      "path": "/api/jobs/governance",
+      "schedule": "30 4 * * *"
     }
   ],
   "redirects": [
@@ -110,58 +113,6 @@
       ]
     },
     {
-      "source": "/admin(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-store, no-cache, must-revalidate, proxy-revalidate"
-        },
-        {
-          "key": "X-Robots-Tag",
-          "value": "noindex, nofollow, noarchive"
-        }
-      ]
-    },
-    {
-      "source": "/painel(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-store, no-cache, must-revalidate, proxy-revalidate"
-        },
-        {
-          "key": "X-Robots-Tag",
-          "value": "noindex, nofollow, noarchive"
-        }
-      ]
-    },
-    {
-      "source": "/operacao(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-store, no-cache, must-revalidate, proxy-revalidate"
-        },
-        {
-          "key": "X-Robots-Tag",
-          "value": "noindex, nofollow, noarchive"
-        }
-      ]
-    },
-    {
-      "source": "/piloto(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-store, no-cache, must-revalidate, proxy-revalidate"
-        },
-        {
-          "key": "X-Robots-Tag",
-          "value": "noindex, nofollow, noarchive"
-        }
-      ]
-    },
-    {
       "source": "/(.*).html",
       "headers": [
         {
@@ -175,46 +126,11 @@
       ]
     },
     {
-      "source": "/(admin-preview|admin|artista-editor|benchmark-conversao|calendario-editorial|catalogo-intake|certificados-admin|certificado-imprimivel|checklist-lancamento|colecoes-admin|configuracao|demo|diagnostico-catalogo|dominio-go-live|editor-registro|funil-comercial|go-live|historico-artista|historico-obra|kanban-comercial|lancamento|lead-detalhe|mvp-operacional|obra-editor|onboarding-artista|operacao-obras|operacao|painel-admin|painel-artistas|painel-briefings|painel-cadastros|painel-certificados|painel-leads|painel-mvp|painel-obras|painel-pedidos|painel-piloto|painel-propostas|painel-qualidade|painel-reservas|painel-submissoes|painel-tarefas|painel|piloto|propostas-admin|proposta-pdf|prospeccao-artistas|revisao-catalogo|status|templates-comunicacao|upload-imagens).html",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-store, no-cache, must-revalidate, proxy-revalidate"
-        },
-        {
-          "key": "Vercel-CDN-Cache-Control",
-          "value": "no-store"
-        },
-        {
-          "key": "X-Robots-Tag",
-          "value": "noindex, nofollow, noarchive"
-        }
-      ]
-    },
-    {
       "source": "/assets/(.*)",
       "headers": [
         {
           "key": "Cache-Control",
           "value": "public, max-age=31536000, immutable"
-        }
-      ]
-    },
-    {
-      "source": "/js/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=0, must-revalidate"
-        }
-      ]
-    },
-    {
-      "source": "/css/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=0, must-revalidate"
         }
       ]
     },

@@ -8,7 +8,8 @@ import { demoModeEnabled, assertDemoModeIsSafe, REAL_CREDENTIAL_KEYS } from '../
 
 // Política.
 assert.equal(demoModeEnabled({}), false, 'build local sem pedido explícito não publica /demo');
-assert.equal(demoModeEnabled({ VERCEL_ENV: 'preview' }), true);
+assert.equal(demoModeEnabled({ VERCEL_ENV: 'preview' }), false, 'preview financeiro não inclui sandbox implicitamente');
+assert.equal(demoModeEnabled({ VERCEL_ENV: 'preview', ARANDU_DEMO_MODE: 'true' }), true, 'preview demonstrativo explícito continua disponível');
 assert.equal(demoModeEnabled({ VERCEL_ENV: 'preview', ARANDU_DEMO_MODE: 'false' }), false);
 assert.equal(demoModeEnabled({ ARANDU_DEMO_MODE: 'true' }), true);
 // Piloto e produção: nem preview do projeto publica /demo, e pedir falha o build.

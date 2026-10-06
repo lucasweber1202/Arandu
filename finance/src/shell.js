@@ -10,7 +10,12 @@ const COMPANY_NAV = [
   { key: 'approvals', label: 'Aprovações', path: '/finance/approvals.html', icon: 'checkCircle' },
   { key: 'proposals', label: 'Propostas', path: '/finance/proposals.html', icon: 'inbox' },
   { key: 'contracts', label: 'Contratos', path: '/finance/contracts.html', icon: 'briefcase' },
+  { key: 'portfolio', label: 'Portfólio', path: '/finance/portfolio.html', icon: 'layers' },
+  { key: 'value', label: 'Valor', path: '/finance/value.html', icon: 'layers' },
+  { key: 'fees', label: 'Tarifas', path: '/finance/fees.html', icon: 'scale' },
+  { key: 'opportunities', label: 'Oportunidades', path: '/finance/opportunities.html', icon: 'flag' },
   { key: 'providers', label: 'Provedores', path: '/finance/providers.html', icon: 'building' },
+  { key: 'passport', label: 'Passport', path: '/finance/passport.html', icon: 'shield' },
   { key: 'tasks', label: 'Tarefas', path: '/finance/tasks.html', icon: 'tasks' },
   { key: 'notifications', label: 'Notificações', path: '/finance/notifications.html', icon: 'bell', mobileOnly: true },
   { key: 'settings', label: 'Configurações', path: '/finance/settings.html', icon: 'settings' }
@@ -126,6 +131,8 @@ export function renderTopbar(ctx) {
   if (ctx.mode === 'demo') actions.append(el('span', { class: 'demo-chip', title: 'Ambiente demonstrativo. Dados fictícios.' }, [icon('info', { size: 12 }), el('span', { text: 'Demo · dados fictícios' })]));
   // Ambiente de demonstração com banco próprio: o produto real, com empresa fictícia.
   else if (ctx.environment === 'demo') actions.append(el('span', { class: 'demo-chip env-chip', id: 'environment-chip', title: 'Ambiente de demonstração: produto real, empresa e instituições fictícias.' }, [icon('info', { size: 12 }), el('span', { class: 'env-long', text: 'Ambiente de demonstração' }), el('span', { class: 'env-short', text: 'Demo' })]));
+  // Staging/Pilot: o mesmo produto num banco de validação; ninguém confunde com o oficial.
+  else if (ctx.environment === 'staging') actions.append(el('span', { class: 'demo-chip env-chip', id: 'environment-chip', title: 'Ambiente de validação: mesmo produto, banco separado do oficial.' }, [icon('info', { size: 12 }), el('span', { class: 'env-long', text: 'Ambiente de validação' }), el('span', { class: 'env-short', text: 'Validação' })]));
   let searchButton = null;
   if (ctx.audience === 'company' && ctx.organization) {
     searchButton = el('button', { type: 'button', id: 'command-trigger', class: 'search-trigger', 'aria-keyshortcuts': 'Control+K Meta+K', 'aria-label': 'Buscar (Ctrl+K)' }, [
@@ -326,6 +333,8 @@ export function installCommandCenter(ctx, trigger) {
 // ------------------------------------------------------ notificações
 export const NOTIFICATION_META = Object.freeze({
   approval_requested: { label: 'Aprovação', icon: 'checkCircle', priority: 0, tone: 'warning' },
+  policy_exception_requested: { label: 'Exceção', icon: 'alert', priority: 0, tone: 'warning' },
+  policy_exception_decided: { label: 'Exceção', icon: 'checkCircle', priority: 2, tone: 'info' },
   mention: { label: 'Menção', icon: 'at', priority: 1, tone: 'accent' },
   invite_received: { label: 'Convite', icon: 'send', priority: 1, tone: 'accent' },
   approval_changes_requested: { label: 'Aprovação', icon: 'edit', priority: 1, tone: 'warning' },
@@ -349,7 +358,7 @@ export function notificationHref(ctx, row) {
   const id = encodeURIComponent(row.object_id);
   if (row.object_type === 'rfq') {
     const tab = { approval_requested: 'aprovacoes', approval_approved: 'decisao', approval_rejected: 'aprovacoes', approval_changes_requested: 'aprovacoes',
-      mention: 'atividade', comment: 'atividade', proposal_received: 'propostas', proposal_revised: 'propostas' }[row.event_type];
+      policy_exception_requested: 'aprovacoes', policy_exception_decided: 'aprovacoes', mention: 'atividade', comment: 'atividade', proposal_received: 'propostas', proposal_revised: 'propostas' }[row.event_type];
     return ctx.href(`/finance/rfq.html?id=${id}${tab ? `#${tab}` : ''}`);
   }
   if (row.object_type === 'contract') return ctx.href(`/finance/contracts.html#contract-${id}`);

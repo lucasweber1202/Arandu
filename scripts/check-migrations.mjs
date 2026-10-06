@@ -17,6 +17,16 @@ for (const [flow, files] of Object.entries(manifest)) {
     if (!fs.existsSync(absolute)) issues.push(`${flow}: arquivo ausente ${file}.`);
     else if (!fs.readFileSync(absolute, 'utf8').trim()) issues.push(`${flow}: arquivo vazio ${file}.`);
   });
+  if (files.indexOf('docs/supabase-financial-value-realization.sql') !== files.indexOf('docs/supabase-financial-p0-closure.sql') + 1) issues.push(`${flow}: value realization deve seguir P0 closure.`);
+  if (files.indexOf('docs/supabase-financial-fee-intelligence.sql') !== files.indexOf('docs/supabase-financial-value-realization.sql') + 1) issues.push(`${flow}: fee intelligence deve seguir value realization.`);
+  if (files.indexOf('docs/supabase-financial-opportunity-engine.sql') !== files.indexOf('docs/supabase-financial-fee-intelligence.sql') + 1) issues.push(`${flow}: opportunity engine deve seguir fee intelligence.`);
+  if (files.indexOf('docs/supabase-financial-document-intelligence.sql') !== files.indexOf('docs/supabase-financial-opportunity-engine.sql') + 1) issues.push(`${flow}: document intelligence deve seguir opportunity engine.`);
+  if (files.indexOf('docs/supabase-financial-provider-qualification.sql') !== files.indexOf('docs/supabase-financial-document-intelligence.sql') + 1) issues.push(`${flow}: provider qualification deve seguir document-intelligence.`);
+  if (files.indexOf('docs/supabase-financial-covenants.sql') !== files.indexOf('docs/supabase-financial-implementation.sql') + 1) issues.push(`${flow}: covenants deve seguir implementation.`);
+  if (files.indexOf('docs/supabase-financial-implementation.sql') !== files.indexOf('docs/supabase-financial-provider-qualification.sql') + 1) issues.push(`${flow}: implementation deve seguir qualification.`);
+  if (files.indexOf('docs/supabase-financial-provider-performance.sql') !== files.indexOf('docs/supabase-financial-covenants.sql') + 1) issues.push(`${flow}: provider performance deve seguir covenants.`);
+  if (files.indexOf('docs/supabase-financial-spend-intelligence.sql') !== files.indexOf('docs/supabase-financial-provider-performance.sql')+1) issues.push(`${flow}: spend deve seguir provider performance.`);
+  if (files.indexOf('docs/supabase-financial-opportunity-discriminator.sql') !== files.indexOf('docs/supabase-financial-spend-intelligence.sql')+1) issues.push(`${flow}: discriminador de oportunidades deve seguir spend.`);
   const sprint2 = files.indexOf('docs/supabase-sprint2-catalog-readiness.sql');
   const collections = files.indexOf('docs/arandu-mvp-collections.sql');
   const sprint5 = files.indexOf('docs/supabase-sprint5-pilot.sql');
@@ -127,7 +137,27 @@ for (const [flow, files] of Object.entries(manifest)) {
   const approvalHandoff = files.indexOf('docs/supabase-financial-approval-handoff.sql');
   if (approvalHandoff === -1) issues.push(`${flow}: aviso ao próximo aprovador (aprovação sequencial) ausente.`);
   if (surfaceHardening !== -1 && approvalHandoff !== -1 && approvalHandoff !== surfaceHardening + 1) issues.push(`${flow}: aviso ao próximo aprovador deve vir depois do hardening da superfície.`);
-  if (approvalHandoff !== -1 && approvalHandoff !== files.length - 1) issues.push(`${flow}: aviso ao próximo aprovador deve encerrar a sequência atual.`);
+  const passport = files.indexOf('docs/supabase-financial-passport.sql');
+  if (passport === -1) issues.push(`${flow}: Financial Passport v2 (proveniência, histórico e snapshot do perfil) ausente.`);
+  if (approvalHandoff !== -1 && passport !== -1 && passport !== approvalHandoff + 1) issues.push(`${flow}: Financial Passport deve vir depois do aviso ao próximo aprovador.`);
+  const multiEntity = files.indexOf('docs/supabase-financial-multi-entity.sql');
+  if (multiEntity === -1) issues.push(`${flow}: fundação multi-entity (entidades legais, escopo por membro, RLS por entidade) ausente.`);
+  if (passport !== -1 && multiEntity !== -1 && multiEntity !== passport + 1) issues.push(`${flow}: multi-entity deve vir depois do Financial Passport.`);
+  const contractsV2 = files.indexOf('docs/supabase-financial-contracts-v2.sql');
+  if (contractsV2 === -1) issues.push(`${flow}: Contract Center v2 (termos versionados, aditivos, marcos) ausente.`);
+  if (multiEntity !== -1 && contractsV2 !== -1 && contractsV2 !== multiEntity + 1) issues.push(`${flow}: Contract Center v2 deve vir depois do multi-entity.`);
+  const relationshipsPortfolio = files.indexOf('docs/supabase-financial-relationships-portfolio.sql');
+  if (relationshipsPortfolio === -1) issues.push(`${flow}: Relationship & Portfolio (provedores, facilities, garantias) ausente.`);
+  if (contractsV2 !== -1 && relationshipsPortfolio !== -1 && relationshipsPortfolio !== contractsV2 + 1) issues.push(`${flow}: Relationship & Portfolio (provedores, facilities, garantias) deve vir depois de ${'docs/supabase-financial-contracts-v2.sql'}.`);
+  if (relationshipsPortfolio !== -1 && relationshipsPortfolio !== files.indexOf('docs/supabase-financial-passport-entities.sql') - 1) issues.push(`${flow}: Relationship & Portfolio (provedores, facilities, garantias) deve preceder Passport por entidade.`);
+  if (files.indexOf('docs/supabase-financial-graph.sql') !== files.indexOf('docs/supabase-financial-passport-entities.sql') + 1) issues.push(`${flow}: Graph deve seguir Passport por entidade.`);
+  if (files.indexOf('docs/supabase-financial-policy-engine.sql') !== files.indexOf('docs/supabase-financial-graph.sql') + 1) issues.push(`${flow}: Policy Engine v2 deve seguir o Graph.`);
+  if (files.indexOf('docs/supabase-financial-public-api.sql') !== files.indexOf('docs/supabase-financial-policy-engine.sql') + 1) issues.push(`${flow}: Public API/Webhooks deve seguir o Policy Engine v2.`);
+  if (files.indexOf('docs/supabase-financial-sso.sql') !== files.indexOf('docs/supabase-financial-public-api.sql') + 1) issues.push(`${flow}: Enterprise SSO deve seguir a Public API/Webhooks.`);
+  if (files.indexOf('docs/supabase-financial-operational-resilience.sql') !== files.indexOf('docs/supabase-financial-sso.sql') + 1) issues.push(`${flow}: Operational Resilience deve seguir SSO.`);
+  if (files.indexOf('docs/supabase-financial-data-governance.sql') !== files.indexOf('docs/supabase-financial-operational-resilience.sql') + 1) issues.push(`${flow}: Data Governance deve seguir Operational Resilience.`);
+  if (files.indexOf('docs/supabase-financial-legacy-art-decommission.sql') !== files.indexOf('docs/supabase-financial-data-governance.sql') + 1) issues.push(`${flow}: Aposentadoria da vertical de arte deve seguir Data Governance.`);
+  if (files.indexOf('docs/supabase-financial-p0-closure.sql') !== files.indexOf('docs/supabase-financial-legacy-art-decommission.sql') + 1) issues.push(`${flow}: P0 closure deve seguir a aposentadoria da vertical de arte.`);
 }
 
 // Catraca de inventário: todo .sql direto em docs/ é migration do manifesto,

@@ -84,3 +84,71 @@ pelo nosso frontend nem pela nossa API.
 
 Comprometimento da conta Supabase, do provedor de e-mail, do DNS ou do CI. Esses
 são tratados pelos controles gerais do Arandu, não por esta vertical.
+
+## Multi-entity (fundação de grupo)
+
+| # | Ataque | Defesa | Teste |
+| --- | --- | --- | --- |
+| 43 | **Cross-entity read** — membro restrito lê processo/contrato de outra entidade pela REST direta | `fin_entity_visible` nas policies do comprador, com `force row level security` | `financial-multi-entity.sql` |
+| 44 | **Cross-entity write via RPC existente** (transição, convite, decisão, comentário, tarefa) | gatilhos `fin_*_entity_guard` nas tabelas, independentes da RPC | idem |
+| 45 | **Aprovador fora do escopo** ou com escopo revogado | gatilho na etapa (`fin_approval_step_entity_guard`) na criação e na ação | idem |
+| 46 | **Reescopo silencioso** — mover RFQ/contrato para outra entidade sem trilha | coluna só muda pelas RPCs dedicadas, com evento; UPDATE direto recusado | idem |
+| 47 | **Vazamento por consolidado** — contagem de entidade não autorizada | consolidado calculado sobre linhas do RLS; sem linha de grupo para restrito | idem + `test-finance-entities.mjs` |
+| 48 | **Busca/autores como canal lateral** (SECURITY DEFINER) | `fin_search` e `fin_comment_authors` reescritas com o filtro de entidade | idem |
+| 49 | **Admin restrito / escalada de escopo** | constraint `fin_members_admin_group_scope`; só admin altera escopo | idem |
+
+## Contratos v2, relacionamento e portfólio
+
+| # | Ataque | Defesa | Teste |
+| --- | --- | --- | --- |
+| 50 | **Reescrever termos/aditivo** para apagar o histórico | versões e aditivos imutáveis; correção = versão nova com justificativa | `financial-contracts-v2.sql` |
+| 51 | **Duas abas gravando termos** | versão esperada (`contract version conflict`) | idem + `test-finance-contracts.mjs` |
+| 52 | **Termo fora do catálogo** (campo "rating", HTML) | allowlist na API + `fin_valid_contract_terms` no banco | idem |
+| 53 | **Marco duplicando tarefa** por reprocessamento | `fin_contract_milestone_runs` (uma tarefa por ocorrência) | `financial-contracts-v2.sql` |
+| 54 | **Score oculto do Arandu** sobre provedor | não existe; scorecard é template do cliente, resultado rotulado como dele, critério fora do template recusado | `financial-relationships-portfolio.sql` |
+| 55 | **Provedor lendo avaliação/contatos/notas** | policies exigem membro da compradora | idem |
+| 56 | **Saldo/uso adulterado** depois de registrado | fotografias append-only; uso acima do limite recusado | idem |
+| 57 | **Soma entre moedas** induzindo leitura errada | visões por moeda; nenhum total agregado entre moedas | `test-finance-portfolio.mjs` |
+
+## Policy & Approval Engine v2
+
+| # | Ataque | Defesa | Teste |
+| --- | --- | --- | --- |
+| 60 | **Trocar a policy depois do pedido** para afrouxar o fluxo | snapshot imutável no pedido; versão ativada imutável; nova versão só vale para pedidos novos | `financial-policy-engine.sql` §3, §8 |
+| 61 | **Indicar aprovador de outra entidade** para ganhar acesso ou atalho | elegibilidade exige entidade + escopo da etapa; aprovar não amplia RLS | §6, §7 |
+| 62 | **Autoaprovação** ou acumular etapas | quem pede não aprova; `unique(request_id, approver_id)`; substituto fora das demais etapas | §6, §11 |
+| 63 | **Aprovador revogado** votando com indicação antiga | elegibilidade reconferida no voto | §10 |
+| 64 | **Provedor/outro tenant** votando, lendo policy ou exceção | membro da compradora exigido; RLS | §5, §15 |
+| 65 | **Pular a policy pelo pedido v1** | `fin_request_approval` recusa quando há plano | §6 |
+| 66 | **Exceção decidida por quem pediu** | decisor ≠ solicitante da exceção e da aprovação; papel da policy dona | §12 |
+| 67 | **Moeda trocada** para escapar do limite | sem câmbio: valor em outra moeda casa por conservadorismo | §4 |
+| 68 | **Aprovação por decurso de prazo** | prazo só escala ou expira; nunca aprova | §15 |
+| 69 | **Score oculto** como critério de alçada | fatos fechados no validador (banco e API) | §2, `test-finance-policy.mjs` |
+
+## Public API v1 & Webhooks
+
+| # | Ataque | Defesa | Teste |
+| --- | --- | --- | --- |
+| 70 | **Token vazado do banco** | só `sha256` persistido; sem privilégio de coluna | `financial-public-api.sql` §1–2 |
+| 71 | **Credencial de outro tenant/entidade** lendo dados | contexto + filtro de organização/entidade/objeto em cada `fin_api_*` | §3 |
+| 72 | **Escopo amplo por padrão** | escopos explícitos do catálogo; revogação/alteração vale na próxima chamada | §2, §8 |
+| 73 | **Repetição duplicando escrita** / payload trocado com a mesma chave | idempotência por conta + impressão; `idempotency key reuse` | §4, `test-finance-public-api.mjs` |
+| 74 | **Exportação do tenant** por paginação/filtro ignorado | página ≤ 100, keyset, filtro desconhecido = 400 | `test-finance-public-api.mjs` |
+| 75 | **SSRF via webhook** (metadata, rede interna) | URL pública validada no banco/API; DNS revalidado na entrega; sem redirect | §5, `test-finance-public-api.mjs` |
+| 76 | **Webhook forjado/reenviado** contra o receptor | HMAC sobre timestamp + delivery id + corpo; janela de 5 min; dedupe documentado | `test-finance-public-api.mjs` |
+| 77 | **Vazamento por payload** | evento mínimo (ids/estado), sem termos ou texto | §5 |
+| 78 | **Worker duplicado** concluindo entrega alheia | lease com fencing (`stale lease`) | §6 |
+| 79 | **Abuso de volume** | rate limit por credencial no banco, falha fechada | `test-finance-public-api.mjs` |
+
+## Enterprise SSO
+
+| # | Ataque | Defesa | Teste |
+| --- | --- | --- | --- |
+| 80 | **Login CSRF / replay de callback** | state aleatório em cookie HttpOnly assinado (10 min, path restrito) + PKCE S256; comparação em tempo constante | `test-finance-sso.mjs` |
+| 81 | **id_token forjado** (alg none, HS256 com chave pública, outra chave) | só RS256/ES256 por JWK; assinatura, `iss`, `aud`/`azp`, `nonce`, `exp`/`nbf`/`iat` | `test-finance-sso.mjs` |
+| 82 | **Tomada de domínio / organização** | TXT no DNS; domínio globalmente único; domínios pessoais recusados; conexão do state = conexão do domínio | `financial-sso.sql`, `test-finance-sso.mjs` |
+| 83 | **Usuário fora da organização ou bloqueado** entrando por SSO | `fin_sso_authorize` exige membro ativo (SSO não cria acesso); falha fechada | `financial-sso.sql` |
+| 84 | **Downgrade para senha** com SSO exigido | 403 `sso_required` antes da senha; 503 se a política não puder ser lida | `test-finance-sso.mjs` |
+| 85 | **Sessão após revogação/desligamento** | limite de sessão por conexão; `fin_sso_session_valid` a cada refresh; `sessions_valid_after` | `financial-sso.sql`, `test-finance-sso.mjs` |
+| 86 | **Open redirect pós-login** | `next` limitado a páginas fixas de `/finance` e `/provider` | `test-finance-sso.mjs` |
+| 87 | **Enumeração de clientes** pela descoberta | resposta mínima (`sso`, `required`), rate limit por IP (`lib/api/domains/sso.mjs`) | `test-finance-sso.mjs` (resposta mínima) |

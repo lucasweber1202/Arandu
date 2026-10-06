@@ -1,6 +1,8 @@
 import { ownSiteUrl } from '../lib/public-site-url.mjs';
 import path from 'node:path';
 
+// Superfície pública indexável (única fonte: build, sitemap e gate de SEO).
+export const PUBLIC_PAGES = Object.freeze(['index.html', 'produto.html', 'credito.html', 'adquirencia.html', 'seguranca.html', 'limites.html']);
 export const SEO_MARKER_START = '<!-- arandu:seo:start -->';
 export const SEO_MARKER_END = '<!-- arandu:seo:end -->';
 export const SEO_THEME_COLOR = '#122536';

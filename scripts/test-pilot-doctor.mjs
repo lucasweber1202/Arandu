@@ -36,7 +36,7 @@ function fakeSupabase(overrides = {}) {
     if (u.hostname === 'piloto.example.com') {
       if (u.pathname === '/api/health') return reply({ ok: true, status: 'alive' });
       if (u.pathname === '/api/finance/products') return reply(state.productsStatus === 200 ? { ok: true } : { ok: false, code: 'rate_limit_unavailable' }, state.productsStatus, { 'x-request-id': 'b1c2d3e4-0000-4000-8000-000000000001' });
-      if (u.pathname === '/api/forms') return state.legacyOpen ? reply({ ok: false, error: 'Método não permitido.' }, 405) : reply({ ok: false, code: 'legacy_surface_closed' }, 404);
+      if (u.pathname === '/api/forms') return state.legacyOpen ? reply({ ok: false, error: 'Método não permitido.' }, 405) : reply({ ok: false, code: 'route_not_found' }, 404);
       if (u.pathname === '/api/jobs/renewals') return reply({ ok: false, code: state.renewalsStatus === 401 ? 'cron_unauthorized' : 'x' }, state.renewalsStatus);
     }
     if (u.pathname === '/rest/v1/' && key === ANON) {

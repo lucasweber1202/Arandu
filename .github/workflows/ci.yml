@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   database:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     services:
       postgres:
@@ -59,8 +59,8 @@ jobs:
   validate:
     needs: deploy-boundaries
     if: ${{ !cancelled() }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 35
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
     env:
       ARANDU_SITE_URL: https://arandu.example.com
     steps:
@@ -123,19 +123,40 @@ jobs:
         id: playwright
         run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
 
-      # Navegadores em cache por SO + versão do Playwright + lockfile. O passo de
-      # instalação roda sempre: com cache ele só confere os binários e instala as
-      # dependências do sistema; sem cache (ou binário faltando) baixa como antes.
+      # Cache de binários por ABI do runner, arquitetura, Playwright e lockfile.
+      # Dependências apt e verificação dos três motores rodam em todo job.
+      # Salvar antes dos testes preserva o cache mesmo se a suíte for cancelada.
       - name: Restore Playwright browsers
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: browser-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-${{ hashFiles('package-lock.json') }}
+          key: playwright-ubuntu-24.04-${{ runner.arch }}-${{ steps.playwright.outputs.version }}-${{ hashFiles('package-lock.json') }}
           restore-keys: |
-            playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-
+            playwright-ubuntu-24.04-${{ runner.arch }}-${{ steps.playwright.outputs.version }}-
 
-      - name: Install Chromium, Firefox and WebKit
-        run: npx playwright install --with-deps chromium firefox webkit
+      - name: Bound apt network retries
+        run: |
+          printf 'Acquire::Retries "2";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' | sudo tee /etc/apt/apt.conf.d/99-arandu-ci-network >/dev/null
+
+      - name: Install browser system dependencies
+        timeout-minutes: 12
+        run: npx playwright install-deps chromium firefox webkit
+
+      - name: Verify and install Chromium, Firefox and WebKit
+        timeout-minutes: 10
+        env:
+          PLAYWRIGHT_DOWNLOAD_CONNECTION_TIMEOUT: '60000'
+        run: npx playwright install chromium firefox webkit
+
+      # Cache persistence is best-effort; installation and tests remain gates.
+      - name: Save verified Playwright browsers before tests
+        if: steps.browser-cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ steps.browser-cache.outputs.cache-primary-key }}
 
       # Cobre jornadas públicas, do comprador, autenticação, seleção, contraste
       # e mobile nos três motores. A suíte de apresentação roda separada porque
@@ -181,8 +202,8 @@ jobs:
   presentation:
     needs: deploy-boundaries
     if: ${{ !cancelled() }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 35
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
     env:
       ARANDU_SITE_URL: https://arandu.example.com
       ARANDU_PRESENTATION_MODE: "true"
@@ -203,19 +224,40 @@ jobs:
         id: playwright
         run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
 
-      # Navegadores em cache por SO + versão do Playwright + lockfile. O passo de
-      # instalação roda sempre: com cache ele só confere os binários e instala as
-      # dependências do sistema; sem cache (ou binário faltando) baixa como antes.
+      # Cache de binários por ABI do runner, arquitetura, Playwright e lockfile.
+      # Dependências apt e verificação dos três motores rodam em todo job.
+      # Salvar antes dos testes preserva o cache mesmo se a suíte for cancelada.
       - name: Restore Playwright browsers
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: browser-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-${{ hashFiles('package-lock.json') }}
+          key: playwright-ubuntu-24.04-${{ runner.arch }}-${{ steps.playwright.outputs.version }}-${{ hashFiles('package-lock.json') }}
           restore-keys: |
-            playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-
+            playwright-ubuntu-24.04-${{ runner.arch }}-${{ steps.playwright.outputs.version }}-
 
-      - name: Install browsers
-        run: npx playwright install --with-deps chromium firefox webkit
+      - name: Bound apt network retries
+        run: |
+          printf 'Acquire::Retries "2";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' | sudo tee /etc/apt/apt.conf.d/99-arandu-ci-network >/dev/null
+
+      - name: Install browser system dependencies
+        timeout-minutes: 12
+        run: npx playwright install-deps chromium firefox webkit
+
+      - name: Verify and install Chromium, Firefox and WebKit
+        timeout-minutes: 10
+        env:
+          PLAYWRIGHT_DOWNLOAD_CONNECTION_TIMEOUT: '60000'
+        run: npx playwright install chromium firefox webkit
+
+      # Cache persistence is best-effort; installation and tests remain gates.
+      - name: Save verified Playwright browsers before tests
+        if: steps.browser-cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ steps.browser-cache.outputs.cache-primary-key }}
       # Supplemental smoke publishes the geometry of the known regressions
       # promptly. Its failure never replaces or prevents the complete matrix.
       - name: Build presentation for Safari layout smoke
@@ -237,6 +279,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
       - name: Presentation journeys
+        timeout-minutes: 25
         if: ${{ !cancelled() }}
         run: npm run test:e2e:presentation
       - name: Upload presentation browser evidence on failure
@@ -252,7 +295,7 @@ jobs:
           retention-days: 7
 
   deploy-boundaries:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 35
     env:
       ARANDU_SITE_URL: https://arandu.example.com
@@ -271,9 +314,18 @@ jobs:
       - name: Install
         run: npm ci --include=optional
 
-      - name: Simulate Vercel preview technical deploy
+      - name: Financial preview excludes implicit demo code
         env:
           VERCEL_ENV: preview
+        run: npm run vercel-build
+
+      - name: Financial preview has no demo pages or engine
+        run: node scripts/test-demo-mode.mjs --dist
+
+      - name: Simulate explicit demonstration preview technical deploy
+        env:
+          VERCEL_ENV: preview
+          ARANDU_DEMO_MODE: 'true'
         run: npm run vercel-build
 
       - name: Preview publishes the labelled demo sandbox

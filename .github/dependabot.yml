@@ -1,7 +1,11 @@
 version: 2
 updates:
+  # Dependências entram por PR em main, a única branch longa de produto
+  # (docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md). A divergência main x pilot da #126
+  # deixa de existir porque pilot não recebe mais evolução.
   - package-ecosystem: "npm"
     directory: "/"
+    target-branch: "main"
     schedule:
       interval: "weekly"
       day: "monday"
@@ -20,6 +24,7 @@ updates:
 
   - package-ecosystem: "github-actions"
     directory: "/"
+    target-branch: "main"
     schedule:
       interval: "weekly"
       day: "monday"

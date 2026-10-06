@@ -26,9 +26,7 @@ npm run migrations:release -- \
   --backup-reference=CHANGE-000123
 ```
 
-O preflight consulta apenas a quantidade de grupos com reservas ativas
-duplicadas. Nenhum ID, nome, contato ou outro dado pessoal entra no relatório.
-Qualquer duplicidade bloqueia a aplicação.
+O preflight lê apenas o marker `fin_settings.schema_version` e recusa banco sem marker financeiro; não lê dado de cliente.
 
 Se o processo também deve criar um backup, defina `ARANDU_BACKUP_PATH` com um
 caminho absoluto fora do repositório. O relatório guarda apenas o SHA-256 e a

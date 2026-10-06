@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import { Readable } from 'node:stream';
-import { configureTestCommercialPolicy } from './test-helpers/commercial-policy-env.mjs';
 
 const originalVercelEnv = process.env.VERCEL_ENV;
 const originalDistributedRateLimit = process.env.ARANDU_DISTRIBUTED_RATE_LIMIT;
@@ -12,7 +11,19 @@ delete process.env.ARANDU_DISTRIBUTED_RATE_LIMIT;
 process.env.SUPABASE_URL = 'https://arandu-test.supabase.co';
 process.env.SUPABASE_ANON_KEY = 'anon-test-key';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-test-key';
-configureTestCommercialPolicy('policy-auth-test-v1');
+
+// SSO (P0.9): nestes cenários o domínio não exige SSO, então a consulta de
+// exigência responde "senha permitida"; os demais mocks seguem como antes. A
+// exigência (403 sso_required) e a falha fechada têm teste próprio
+// (scripts/test-finance-sso.mjs).
+let currentFetch = globalThis.fetch;
+Object.defineProperty(globalThis, 'fetch', {
+  configurable: true,
+  get: () => async (url, init) => (String(url).includes('/rpc/fin_sso_password_allowed')
+    ? new Response('true', { status: 200, headers: { 'Content-Type': 'application/json' } })
+    : currentFetch(url, init)),
+  set: (fn) => { currentFetch = fn; }
+});
 
 const { default: handler } = await import(`../api/[...path].js?test=${Date.now()}`);
 
@@ -63,9 +74,26 @@ function restoreEnv(name, value) {
 const originalFetch = global.fetch;
 
 try {
-  global.fetch = async () => { throw new Error('Dashboard sem token não deve consultar o banco.'); };
-  const dashboardDenied = await call('GET', '/api/dashboard');
-  assert.equal(dashboardDenied.status, 401);
+  // A antiga vertical de arte não tem handler: as rotas respondem 404 de rota
+  // inexistente sem consultar banco nem provedor de identidade.
+  global.fetch = async () => { throw new Error('Rota aposentada não deve consultar o banco.'); };
+  const retiredRoutes = [
+    ['GET', '/api/dashboard'], ['GET', '/api/account'], ['POST', '/api/reservations'], ['DELETE', '/api/selections'],
+    ['POST', '/api/forms'], ['POST', '/api/proposals'], ['GET', '/api/catalog'], ['GET', '/api/artists'],
+    ['GET', '/api/certificates?code=ABCD'], ['GET', '/api/certificate-document?code=ABCD'], ['GET', '/api/public-config'],
+    ['POST', '/api/events'], ['POST', '/api/conversion-events'], ['GET', '/api/pilot/status'], ['GET', '/api/privacy/export'],
+    ['GET', '/api/catalog-review'], ['GET', '/api/admin'], ['POST', '/api/admin-update'], ['GET', '/api/operational'],
+    ['POST', '/api/media'], ['GET', '/api/portal/artist'], ['GET', '/api/artist-accounts'], ['GET', '/api/admin/quality']
+  ];
+  for (const [method, url] of retiredRoutes) {
+    const retired = await call(method, url, method === 'GET' ? undefined : {}, { cookie: sessionCookie() });
+    assert.equal(retired.status, 404, `${method} ${url}`);
+    assert.equal(retired.body.code, 'route_not_found', `${method} ${url}`);
+  }
+
+  // A API financeira exige sessão antes de qualquer consulta.
+  const financeDenied = await call('GET', '/api/finance/me');
+  assert.equal(financeDenied.status, 401);
 
   let signupPayload = null;
   global.fetch = async (url, options = {}) => {
@@ -88,100 +116,6 @@ try {
   assert.equal(signupPayload.email, 'compradora@example.com');
   assert.equal(signupPayload.data.profile_type, 'comprador');
   assert.match(signup.headers['set-cookie'], /HttpOnly/);
-
-  global.fetch = async (url) => {
-    assert.match(String(url), /select=public_token,status,items,briefing,created_at,updated_at/);
-    return jsonResponse([{
-      public_token: 'abcdefghijklmnop',
-      status: 'sent',
-      name: 'Não deve sair',
-      email: 'privado@example.com',
-      whatsapp: '5511999999999',
-      items: [{ id: 'obra-1', title: 'Obra 1', url: 'javascript:alert(1)' }],
-      briefing: { ambiente: 'Sala', nome: 'Pessoa', email: 'privado@example.com', whatsapp: '5511999999999' },
-      created_at: '2026-07-17T00:00:00.000Z'
-    }]);
-  };
-  const shared = await call('GET', '/api/selections?token=abcdefghijklmnop');
-  assert.equal(shared.status, 200);
-  assert.equal(shared.body.selection.name, undefined);
-  assert.equal(shared.body.selection.email, undefined);
-  assert.equal(shared.body.selection.whatsapp, undefined);
-  assert.equal(shared.body.selection.briefing.nome, undefined);
-  assert.equal(shared.body.selection.briefing.email, undefined);
-  assert.equal(shared.body.selection.items[0].url, '');
-
-  const accountDenied = await call('GET', '/api/account');
-  assert.equal(accountDenied.status, 401);
-
-  const accountQueries = [];
-  global.fetch = async (url) => {
-    const value = String(url);
-    if (value.endsWith('/auth/v1/user')) {
-      return jsonResponse({ id: 'user-123', email: 'compradora@example.com', user_metadata: { full_name: 'Compradora' } });
-    }
-    accountQueries.push(value);
-    if (value.includes('/saved_selections?')) return jsonResponse([{ id: 'selection-1', public_token: 'abcdefghijklmnop', status: 'open', items: [{ id: 'obra-1', title: 'Obra 1' }], briefing: {} }]);
-    if (value.includes('/reservations?')) return jsonResponse([{ id: 'reservation-1', artwork_id: 'obra-1', status: 'requested' }]);
-    if (value.includes('/artist_accounts?')) return jsonResponse([]);
-    if (value.includes('/company_briefs?')) return jsonResponse([]);
-    throw new Error(`URL inesperada: ${value}`);
-  };
-  const account = await call('GET', '/api/account', undefined, { cookie: sessionCookie() });
-  assert.equal(account.status, 200);
-  assert.equal(account.body.metrics.selections, 1);
-  assert.equal(account.body.metrics.reservations, 1);
-  assert.equal(accountQueries.length, 4);
-  assert.ok(accountQueries.every((url) => url.includes('user_id=eq.user-123')));
-  // Conta sem vínculo verificado só enxerga a própria área de comprador.
-  assert.deepEqual(account.body.capabilities, ['account:read']);
-  assert.equal(account.body.declaredProfileType, 'comprador');
-
-  let reservationPayload = null;
-  global.fetch = async (url, options = {}) => {
-    const value = String(url);
-    if (value.endsWith('/auth/v1/user')) return jsonResponse({ id: 'user-123', email: 'compradora@example.com', user_metadata: { full_name: 'Compradora' } });
-    if (value.includes('/rpc/acquire_idempotency')) return jsonResponse({ outcome: 'acquired' });
-    if (value.includes('/rpc/create_reservation_atomic')) {
-      reservationPayload = JSON.parse(options.body);
-      return jsonResponse({
-        ok: true,
-        stored: true,
-        reservation: {
-          id: 'reservation-2',
-          artwork_id: reservationPayload.p_artwork_id,
-          status: 'requested'
-        }
-      });
-    }
-    throw new Error(`URL inesperada: ${value}`);
-  };
-  const reservation = await call('POST', '/api/reservations', {
-    artwork_id: 'obra-2',
-    name: 'Compradora',
-    whatsapp: '(11) 99999-9999'
-  }, {
-    cookie: sessionCookie(),
-    'Idempotency-Key': 'auth-reservation-0001'
-  });
-  assert.equal(reservation.status, 201);
-  assert.equal(reservationPayload.p_user_id, 'user-123');
-  assert.equal(reservation.body.reservation.name, undefined);
-  assert.equal(reservation.body.reservation.whatsapp, undefined);
-
-  let deleteUrl = '';
-  global.fetch = async (url, options = {}) => {
-    const value = String(url);
-    if (value.endsWith('/auth/v1/user')) return jsonResponse({ id: 'user-123', email: 'compradora@example.com', user_metadata: {} });
-    deleteUrl = value;
-    assert.equal(options.method, 'DELETE');
-    return jsonResponse([{ id: 'selection-1' }]);
-  };
-  const deleted = await call('DELETE', '/api/selections', undefined, { cookie: sessionCookie() });
-  assert.equal(deleted.status, 200);
-  assert.equal(deleted.body.deleted, 1);
-  assert.match(deleteUrl, /user_id=eq\.user-123/);
-  assert.match(deleteUrl, /status=eq\.open/);
 
   global.fetch = async (url) => {
     assert.match(String(url), /grant_type=refresh_token/);
@@ -267,8 +201,28 @@ try {
   assert.equal(weakPassword.status, 400);
   assert.equal(weakPassword.body.code, 'weak_password');
 
+  global.fetch = async (url) => {
+    assert.match(String(url), /\/auth\/v1\/recover/);
+    return jsonResponse({});
+  };
+  const reset = await call('POST', '/api/auth/reset-password', { email: 'pessoa@example.com' });
+  assert.equal(reset.status, 202);
+  assert.match(reset.body.message, /existir uma conta/);
+
+  // Rate limit distribuído (Vercel): contador do banco recusa => 429.
+  process.env.VERCEL_ENV = 'preview';
+  const { default: distributedHandler } = await import(`../api/[...path].js?distributed-test=${Date.now()}`);
+  global.fetch = async (url) => {
+    assert.match(String(url), /rpc\/consume_rate_limit/);
+    return jsonResponse(false);
+  };
+  const res = response();
+  await distributedHandler(request('POST', '/api/auth/reset-password', { email: 'pessoa@example.com' }), res);
+  assert.equal(res.statusCode, 429);
+  delete process.env.VERCEL_ENV;
+
   console.log('Arandu Auth API Contract Tests');
-  console.log('16 cenários aprovados.');
+  console.log('Sessão, cadastro, login, logout, refresh, recuperação, rate limit distribuído, API financeira fechada sem sessão e 23 rotas aposentadas em 404 aprovados.');
 } finally {
   global.fetch = originalFetch;
   restoreEnv('VERCEL_ENV', originalVercelEnv);

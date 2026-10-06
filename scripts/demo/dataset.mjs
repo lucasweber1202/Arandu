@@ -15,16 +15,35 @@ export const COMPANY = {
   trade_name: 'Vitta Foods',
   sector: 'Alimentos e bebidas',
   revenue_band: '30m_300m',
+  // Financial Passport: campos do catálogo (lib/finance/passport.mjs) com valor
+  // tipado e origem declarada; os dois últimos são campos livres.
   profile: [
-    ['receita_anual', 'R$ 182 milhões (último exercício, auditado)', 'documento_interno'],
-    ['colaboradores', '612 colaboradores em 3 unidades fabris e 2 centros de distribuição', 'declarado_pela_empresa'],
-    ['operacao', 'Brasil: fábricas em Chapecó (SC), Rio Verde (GO) e Feira de Santana (BA)', 'declarado_pela_empresa'],
-    ['canais_de_venda', 'Varejo alimentar (68%), food service (21%), loja on-line e lojas próprias (11%)', 'declarado_pela_empresa'],
-    ['volume_cartoes_mensal', 'R$ 12,4 milhões/mês em cartões e PIX (média dos últimos 8 meses)', 'extrato'],
-    ['divida_liquida_ebitda', '1,6x (último balancete semestral)', 'documento_interno'],
+    ['receita_anual', '158000000', 'documento_interno'],
+    ['natureza_juridica', 'sa_fechada', 'documento_interno'],
+    ['porte', 'grande', 'declarado_pela_empresa'],
+    ['moeda_base', 'BRL', 'declarado_pela_empresa'],
+    ['tempo_operacao_anos', '21', 'declarado_pela_empresa'],
+    ['colaboradores', '612', 'declarado_pela_empresa'],
+    ['bancos_relacionamento', 'Atlas Bank (folha e cobrança) e Meridian Financial (câmbio)', 'contrato_vigente'],
+    ['linhas_credito_contratadas', 'Capital de giro Atlas Bank — R$ 8 milhões em 24 meses', 'contrato_vigente'],
+    ['divida_liquida_ebitda', '1.6', 'documento_interno'],
     ['garantias_disponiveis', 'Recebíveis de cartão, duplicatas de varejo e equipamentos industriais', 'declarado_pela_empresa'],
+    ['adquirente_atual', 'Credenciadora anterior (contrato no fim da vigência)', 'contrato_vigente'],
+    ['volume_cartoes_mensal', '12400000', 'extrato'],
+    ['canais_de_venda', 'Varejo alimentar (68%), food service (21%), loja on-line e lojas próprias (11%)', 'declarado_pela_empresa'],
+    ['operacao', 'Brasil: fábricas em Chapecó (SC), Rio Verde (GO) e Feira de Santana (BA)', 'declarado_pela_empresa'],
     ['banco_principal', 'Atlas Bank (domicílio da folha e cobrança)', 'contrato_vigente']
-  ]
+  ],
+  // Revisão do Passport pelo analista antes da nova linha de crédito (dia −23).
+  // O volume em cartões fica de fora de propósito: aparece desatualizado.
+  profileRefresh: [
+    ['receita_anual', '182000000', 'documento_interno'],
+    ['tempo_operacao_anos', '23', 'declarado_pela_empresa'],
+    ['adquirente_atual', 'Lumina Pay (contrato de 24 meses)', 'contrato_vigente'],
+    ['divida_liquida_ebitda', '1.6', 'documento_interno']
+  ],
+  // Confirmados como atuais na mesma revisão, sem mudança de valor.
+  profileConfirm: ['garantias_disponiveis', 'bancos_relacionamento']
 };
 
 /** Pessoas da Vitta Foods. `role` é o papel real do RBAC do Arandu. */
@@ -119,6 +138,8 @@ export const RFQ_ACQUIRING = {
 /** RFQ 2 — crédito em negociação: propostas em estados diferentes e aprovação na etapa da CFO. */
 export const RFQ_CREDIT = {
   key: 'credit', product: 'credit', start: -21,
+  // Criada a partir do Financial Passport: a RFQ guarda a fotografia destes campos.
+  passport: ['annual_revenue', 'sector', 'operating_years', 'collateral'],
   title: 'Capital de giro — nova linha de R$ 12 milhões / 36 meses',
   description: 'Financiamento do capital de giro da nova linha de bebidas vegetais (Rio Verde) e alongamento do perfil da dívida. Substitui a linha vigente com o Atlas Bank, que vence nos próximos três meses.',
   deadline: -3,
@@ -187,3 +208,71 @@ export const DOCUMENTS = [
   { as: 'juliana', entity: 'acquiringContract', visibility: 'internal', title: 'Contrato de credenciamento assinado — Lumina Pay' },
   { as: 'juliana', entity: 'creditCurrentContract', visibility: 'internal', title: 'Cédula de crédito bancário — Atlas Bank (linha vigente)' }
 ];
+
+/**
+ * Pós-contrato (lifecycle): implantação, obrigações, performance, spend,
+ * qualificação e leitura de documento — tudo fictício e registrado pela API
+ * real, com segregação de função (quem registra não revisa).
+ * Datas: dias relativos a hoje. Valores sempre em BRL, sem conversão de moeda.
+ */
+export const LIFECYCLE = {
+  implementation: {
+    contract: 'acquiring', owner: 'rafael', opener: 'juliana', starts: -28, goLive: 20,
+    title: 'Migração da adquirência para a Lumina Pay',
+    source: 'Contrato de credenciamento Lumina Pay — cláusula 4 (migração das lojas)',
+    completed: [
+      ['rafael', 'Checklist de documentação cadastral enviado e aceito pela Lumina (protocolo LUM-ONB-0412, fictício)'],
+      ['juliana', 'Parecer jurídico interno sobre o contrato de credenciamento (JUR-2026-118, fictício)']
+    ],
+    blocker: 'Remessa de 60 terminais para as lojas do Nordeste atrasada pela transportadora; sem os terminais a virada dessas lojas não acontece.',
+    issue: { title: 'Atraso na remessa de terminais (lojas do Nordeste)', due: 6 }
+  },
+  covenants: [
+    { key: 'leverage', title: 'Dívida líquida / EBITDA', kind: 'financial_covenant', frequency: 'quarterly', clause: 'Cédula de crédito bancário — cláusula 11.2: dívida líquida / EBITDA ≤ 2,5x, apuração trimestral', reference: 'CCB-ATLAS-11.2', metric: 'Dívida líquida / EBITDA', operator: 'le', threshold: 2.5, unit: 'ratio', grace: 10, firstQuarterBack: 2, lagDays: 3,
+      measured: { value: 2.1, by: 'rafael', reference: 'Demonstrações trimestrais revisadas (fictícias)', provenance: 'Dívida líquida de R$ 41,3 mi sobre EBITDA de 12 meses de R$ 19,7 mi, apurados pela controladoria' },
+      review: { by: 'juliana', status: 'compliant', reason: 'Cálculo e fontes conferidos pela tesouraria; limiar da cláusula 11.2 mantido.' } },
+    { key: 'coverage', title: 'Cobertura de juros (EBITDA / despesa financeira)', kind: 'financial_covenant', frequency: 'once', clause: 'Cédula de crédito bancário — cláusula 11.3: EBITDA / despesa financeira líquida ≥ 2,0x', reference: 'CCB-ATLAS-11.3', metric: 'EBITDA / despesa financeira', operator: 'ge', threshold: 2, unit: 'ratio', start: -120, end: -91, due: -60,
+      measured: { value: 1.8, by: 'rafael', reference: 'Fechamento do trimestre (fictício)', provenance: 'EBITDA de R$ 4,6 mi sobre despesa financeira líquida de R$ 2,55 mi no trimestre, apurados pela controladoria' },
+      review: { by: 'juliana', status: 'non_compliant', reason: 'Resultado factual abaixo do limiar contratual; seguir com pedido de waiver ao credor.' },
+      waiver: { by: 'juliana', until: 25, reason: 'Credor concedeu dispensa temporária por carta (fictícia) em razão da entressafra.', controls: 'Reporte mensal do índice ao credor e revisão semanal do caixa pela tesouraria.',
+        decision: { by: 'helena', status: 'approved', reason: 'Carta do credor conferida; controles compensatórios adequados ao prazo.' } } },
+    { key: 'reporting', title: 'Entrega das demonstrações financeiras auditadas', kind: 'reporting_covenant', frequency: 'once', clause: 'Cédula de crédito bancário — cláusula 12.1: entrega das demonstrações auditadas em até 120 dias do exercício', reference: 'CCB-ATLAS-12.1', start: -60, end: -30, due: 7 }
+  ],
+  performance: {
+    contract: 'acquiring', opener: 'juliana', measurer: 'rafael', reviewer: 'juliana', start: -28, end: -1, reviewDue: 5,
+    title: 'Primeiro mês da Lumina Pay',
+    dimensions: [
+      { key: 'settlement_sla', title: 'Liquidação em D+1', metric: 'sla_adherence', unit: 'percent', methodology: 'Lotes liquidados em D+1 sobre lotes previstos na agenda de recebíveis do período', operator: 'ge', threshold: '98', source: 'Contrato Lumina Pay — cláusula 7 (liquidação D+1)',
+        observation: { availability: 'measured', value: '99.2', source_type: 'imported', reference: 'Agenda de recebíveis Lumina — conciliação do mês (fictícia)', provenance: 'Lotes liquidados em D+1 sobre lotes previstos, conciliados pela tesouraria', covered: 22, expected: 22 }, reviewed: true },
+      { key: 'ticket_response', title: 'Resposta a chamados', metric: 'response_time', unit: 'days', methodology: 'Dias úteis entre abertura e primeira resposta do suporte da instituição', operator: 'le', threshold: '2', source: 'Contrato Lumina Pay — anexo III (atendimento)',
+        observation: { availability: 'not_available', source_type: 'declared', reference: 'Relatório de chamados não entregue pela Lumina (fictício)', provenance: 'A instituição ainda não enviou o relatório mensal de chamados; ausência não é desempenho bom nem ruim', covered: 0, expected: 1 }, reviewed: false }
+    ]
+  },
+  spend: [
+    { contract: 'acquiring', by: 'rafael', start: -28, end: -1, kind: 'observed', amount: '212480.55', sourceType: 'imported', reference: 'Extrato de MDR Lumina Pay — mês corrente (fictício)', line: 'total-mdr', provenance: 'Soma das tarifas de MDR descontadas na agenda de recebíveis do período', reconcile: { by: 'juliana', reason: 'Conferido com a agenda de recebíveis e com a tabela de tarifas; sem lançamento duplicado.' } },
+    { contract: 'acquiring', by: 'rafael', start: -28, end: -1, kind: 'contracted', amount: '6860.00', sourceType: 'declared', reference: 'Contrato Lumina Pay — aluguel de terminais', line: 'clausula-5', provenance: '140 terminais × R$ 49,00 por mês, conforme o contrato (valor contratado, não observado)' },
+    { contract: 'creditCurrent', by: 'rafael', start: -31, end: -1, kind: 'observed', amount: '118904.10', sourceType: 'declared', reference: 'Extrato de encargos Atlas Bank — mês anterior (fictício)', line: 'encargos', provenance: 'Juros e encargos debitados em conta pelo Atlas Bank no período' }
+  ],
+  qualification: {
+    provider: 'atlas', category: 'credit', opener: 'juliana', owner: 'rafael', reviewDue: 20,
+    requirements: [
+      { key: 'legal', area: 'legal', title: 'Contrato social, poderes e certidões', critical: true, validity: 365 },
+      { key: 'kyb', area: 'compliance', title: 'Verificação KYB e listas de sanções', critical: true, validity: 180 },
+      { key: 'security', area: 'security', title: 'Relatório de segurança da informação (SOC 2 ou equivalente)', category: 'credit', validity: 365 }
+    ],
+    evidence: [
+      { requirement: 'legal', by: 'rafael', source: 'provider', reference: 'Contrato social e procurações enviados pelo Atlas Bank (fictícios)', review: { by: 'juliana', status: 'accepted' } },
+      { requirement: 'kyb', by: 'rafael', source: 'external_service', service: 'Serviço de KYB contratado pela Vitta (fictício)', reference: 'Relatório KYB ATLAS-2026-09 (fictício)', review: { by: 'juliana', status: 'accepted' } },
+      { requirement: 'security', by: 'rafael', source: 'provider', reference: 'Relatório SOC 2 Tipo II — Atlas Bank (fictício)' }
+    ]
+  },
+  extraction: { document: 5, by: 'juliana', schema: 'contract_terms', confirm: ['notice_days', 'currency', 'indexer'] },
+  opportunityRules: [
+    ['covenant_due', { cooldown_days: 30, lead_days: 30 }],
+    ['covenant_awaiting_data', { cooldown_days: 30, lead_days: 30 }],
+    ['waiver_expiry', { cooldown_days: 30, lead_days: 30 }],
+    ['implementation_blocked', { cooldown_days: 30 }],
+    ['contract_renewal', { lead_days: 90, cooldown_days: 30 }],
+    ['performance_review_due', { cooldown_days: 30 }]
+  ]
+};

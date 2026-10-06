@@ -2,19 +2,39 @@
 // tarefas, notificações e configurações.
 
 import { PRODUCTS } from '../../../lib/finance/products.mjs';
-import { el, icon, money, percent, formatDate, formatDateTime, relativeDays, daysUntil, productLabel, demandHeadline, RFQ_STATUS, CONTRACT_STATUS, PROPOSAL_STATUS, PROVIDER_KINDS, ROLE_LABELS, timeAgo, fold, todayIso, renewalStage, humanizeKey, slugKey } from '../core.js';
+import { el, icon, money, percent, formatDate, formatDateTime, relativeDays, daysUntil, productLabel, demandHeadline, RFQ_STATUS, CONTRACT_STATUS, PROPOSAL_STATUS, PROVIDER_KINDS, ROLE_LABELS, timeAgo, fold, todayIso, renewalStage } from '../core.js';
 import { card, pill, tag, button, linkButton, emptyState, errorState, loading, tabs, definitionList, toast, confirmDialog, drawer, field, person, avatar } from '../ui.js';
-import { memberName, currentStep, approvalSummaryLine, comparisonMatrix, revisionTimeline, approvalActions, approvalSteps, coverage } from './shared.js';
-import { approvalCard, lazyDocuments } from './rfq.js';
+import { memberName, currentStep, approvalSummaryLine, comparisonMatrix, revisionTimeline, approvalActions, approvalSteps, coverage, lazyDocuments } from './shared.js';
 import { NOTIFICATION_META, notificationItem } from '../shell.js';
+import { CONTRACT_CATEGORIES } from '../../../lib/finance/contract-terms.mjs';
+import { loadEntities, entitySettings, memberScopes, entityContextSelect, inContext, contractEntityControl, entityName } from './entities.js';
+
+// Cada tela desta página baixa só o que usa: abrir Tarefas ou Notificações não
+// carrega contratos, relacionamento, policy, integrações nem SSO (code
+// splitting por capability; ver docs/FINANCIAL_BUNDLE_HEADROOM.md).
+const LAZY = {
+  policy: () => import('./policy.js'),
+  contractCenter: () => import('./contract-center.js'),
+  relationship: () => import('./provider-relationship.js'),
+  integrations: () => import('./integrations.js'),
+  sso: () => import('./sso.js'),
+  passport: () => import('../../../lib/finance/passport.mjs')
+};
+const mods = {};
+const need = (...keys) => Promise.all(keys.map(async (key) => { mods[key] ||= await LAZY[key](); }));
+
+/* global __ARANDU_DEMO__ */
+const DEMO_BUILD = typeof __ARANDU_DEMO__ !== 'undefined' && __ARANDU_DEMO__ === true;
 
 // ------------------------------------------------------------ aprovações
 export async function approvalsInbox(ctx) {
   ctx.header({ title: 'Aprovações', subtitle: 'Decisões que dependem de você e pedidos que você acompanha.' });
-  const approvals = await ctx.loadApprovals();
+  const [approvals] = await Promise.all([ctx.loadApprovals(), need('policy')]);
   const rfqs = new Map((ctx.data.rfqs || []).map((rfq) => [rfq.id, rfq]));
   const viewer = ctx.viewer?.id;
-  const mine = approvals.filter((row) => currentStep(row)?.approver_id === viewer);
+  // Pedido com policy: o servidor diz se a pessoa tem etapa ativa (própria ou delegada).
+  const isTurn = (row) => row.viewer_can_act ?? (currentStep(row)?.approver_id === viewer);
+  const mine = approvals.filter(isTurn);
   const requested = approvals.filter((row) => row.requested_by === viewer && row.status === 'pending');
   const done = approvals.filter((row) => row.status !== 'pending');
 
@@ -23,7 +43,7 @@ export async function approvalsInbox(ctx) {
     if (!rfq) return null;
     const proposal = (rfq.proposals || []).find((item) => item.id === request.proposal_id);
     const step = currentStep(request);
-    const isMine = step?.approver_id === viewer;
+    const isMine = isTurn(request);
     const total = (request.steps || []).length;
     const dots = el('span', { class: 'step-dots', 'aria-hidden': 'true' }, (request.steps || []).sort((a, b) => a.position - b.position)
       .map((item) => el('span', { class: `step-dot ${item.status}${item === step ? ' current' : ''}` })));
@@ -37,10 +57,10 @@ export async function approvalsInbox(ctx) {
         el('p', { class: 'inbox-progress' }, [dots, el('span', { text: request.status === 'pending' ? `${approvalSummaryLine(request)} · ${(request.steps || []).filter((item) => item.status === 'approved').length} de ${total} aprovadores` : `${(request.steps || []).filter((item) => item.status === 'approved').length} de ${total} aprovaram` })])
       ]),
       el('div', { class: 'inbox-side' }, [
-        pill(request.stale && request.status === 'pending' ? { label: 'Desatualizada', tone: 'danger', icon: 'alert' } : isMine ? { label: 'Aguardando você', tone: 'warning', icon: 'clock' } : { pending: { label: 'Em andamento', tone: 'info', icon: 'clock' } }[request.status] || { label: { approved: 'Aprovada', rejected: 'Rejeitada', changes_requested: 'Alterações pedidas', cancelled: 'Cancelada' }[request.status], tone: request.status === 'approved' ? 'success' : request.status === 'rejected' ? 'danger' : 'neutral' }),
+        pill(request.stale && request.status === 'pending' ? { label: 'Desatualizada', tone: 'danger', icon: 'alert' } : isMine ? { label: 'Aguardando você', tone: 'warning', icon: 'clock' } : { pending: { label: 'Em andamento', tone: 'info', icon: 'clock' } }[request.status] || { label: { approved: 'Aprovada', rejected: 'Rejeitada', changes_requested: 'Alterações pedidas', cancelled: 'Cancelada', expired: 'Expirada', superseded: 'Substituída' }[request.status], tone: request.status === 'approved' ? 'success' : request.status === 'rejected' ? 'danger' : 'neutral' }),
         el('div', { class: 'inbox-actions' }, [
           button('Ver contexto', { size: 'sm', iconName: 'eye', onClick: open }),
-          ...(isMine && !request.stale ? [...approvalActions(ctx, request, { onDone: () => ctx.reload() }).children].map((node) => { node.classList.add('btn-sm'); return node; }) : [])
+          ...(isMine && !request.stale ? [...approvalActions(ctx, request, { onDone: () => ctx.reload() }).children].map((node) => { if (node.tagName === 'BUTTON') node.classList.add('btn-sm'); return node; }) : [])
         ])
       ])
     ]);
@@ -72,9 +92,10 @@ function approvalContext(ctx, request, rfq) {
     el('section', { class: 'drawer-section' }, [el('h3', { text: 'Comparação com as demais propostas' }), el('p', { class: 'muted small', text: `A proposta de ${proposal?.provider_name || '—'} está na primeira coluna.` }),
       comparisonMatrix(rfq, [proposal, ...(rfq.proposals || []).filter((item) => item.id !== request.proposal_id)].filter(Boolean))]),
     el('section', { class: 'drawer-section' }, [el('h3', { text: 'Mudanças na solicitação' }), revisionTimeline(ctx, rfq)]),
-    el('section', { class: 'drawer-section' }, [el('h3', { text: 'Etapas de aprovação' }), approvalSteps(request, ctx.members)])
+    el('section', { class: 'drawer-section' }, [el('h3', { text: request.policy_snapshot ? 'Fluxo pela policy' : 'Etapas de aprovação' }),
+      request.policy_snapshot ? mods.policy.policyTimeline(ctx, request, { onChange: () => ctx.reload() }) : approvalSteps(request, ctx.members)])
   ];
-  const footer = step?.approver_id === ctx.viewer?.id && !request.stale
+  const footer = (request.viewer_can_act ?? step?.approver_id === ctx.viewer?.id) && !request.stale
     ? [approvalActions(ctx, request, { onDone: () => { dialog.close(); ctx.reload(); } })]
     : [linkButton('Abrir a solicitação', ctx.href(`/finance/rfq.html?id=${rfq.id}#aprovacoes`), { iconName: 'arrowRight' })];
   const dialog = drawer({ title: rfq.title, subtitle: `${approvalSummaryLine(request)} · ${proposal?.provider_name || ''}`, body, footer,
@@ -145,7 +166,8 @@ function contractNextAction(contract) {
 }
 
 export async function contracts(ctx) {
-  const rows = ctx.data.contracts || [];
+  const [entities] = await Promise.all([loadEntities(ctx), need('contractCenter')]);
+  const rows = (ctx.data.contracts || []).filter((row) => inContext(entities, row));
   const manage = ctx.can('create_rfq');
   const refresh = manage ? button('Atualizar marcos de renovação', { size: 'sm', iconName: 'refresh', onClick: async (event) => {
     const target = event.currentTarget;
@@ -156,7 +178,10 @@ export async function contracts(ctx) {
       if (result.tasks_created) ctx.reload();
     } catch (error) { toast(error.message, 'error'); } finally { target.disabled = false; }
   } }) : null;
-  ctx.header({ title: 'Contratos e renovações', subtitle: 'Vigência, marcos de 90/60/30 dias, aviso prévio e próxima ação de cada contrato.', actions: refresh ? [refresh] : [] });
+  const context = entityContextSelect(entities, { onChange: () => ctx.rerender() });
+  const importButton = mods.contractCenter.importContractButton(ctx, entities);
+  ctx.header({ title: 'Contratos e renovações', subtitle: 'Termos versionados, aditivos, marcos próprios, aviso prévio e próxima ação de cada contrato.', actions: [context, importButton, refresh].filter(Boolean) });
+  if (!rows.length && (ctx.data.contracts || []).length) return emptyState({ title: 'Nenhum contrato nesta entidade', text: 'Troque a entidade em foco para ver os demais contratos que você pode ler.', iconName: 'building' });
   if (!rows.length) return emptyState({ title: 'Nenhum contrato registrado ainda', text: 'Depois de uma decisão, registre o contrato com vigência e aviso prévio. O Arandu acompanha a renovação.', iconName: 'briefcase' });
   const ordered = [...rows].sort((a, b) => (['active', 'renewing'].includes(b.status) - ['active', 'renewing'].includes(a.status)) || String(a.review_from).localeCompare(String(b.review_from)));
   // Contratos que pedem ação primeiro.
@@ -177,8 +202,9 @@ export async function contracts(ctx) {
     root.append(el('article', { class: `contract-card${location.hash === `#contract-${contract.id}` ? ' highlighted' : ''}`, id: `contract-${contract.id}`, tabindex: '-1', dataset: { entity: 'contract', id: contract.id } }, [
       el('header', { class: 'contract-head' }, [
         el('div', {}, [
-          el('p', { class: 'contract-kicker', text: `${productLabel(contract.product)}${source ? ` · ${source.title}` : ''}` }),
-          el('h2', { class: 'contract-title', text: contract.provider_name || 'Provedor' })
+          el('p', { class: 'contract-kicker', text: `${CONTRACT_CATEGORIES[contract.product] || productLabel(contract.product)}${source ? ` · ${source.title}` : contract.title ? ` · ${contract.title}` : ''}` }),
+          el('h2', { class: 'contract-title', text: contract.provider_name || 'Provedor' }),
+          entities.rows.length ? el('p', { class: 'contract-entity', 'aria-label': `Entidade: ${entityName(entities, contract.legal_entity_id)}` }, contractEntityControl(ctx, entities, contract)) : null
         ]),
         el('div', { class: 'contract-status' }, [pill(CONTRACT_STATUS[contract.status]), contract.days_to_end !== null && contract.days_to_end !== undefined && ['active', 'renewing'].includes(contract.status)
           ? el('span', { class: `contract-days${contract.days_to_end <= 60 ? ' warn' : ''}`, text: contract.days_to_end >= 0 ? `vence em ${contract.days_to_end} dias` : 'vencido' }) : null])
@@ -190,6 +216,8 @@ export async function contracts(ctx) {
         ['Custo registrado', contract.cost_summary || 'Não informado'], contract.main_conditions ? ['Condições', contract.main_conditions] : null,
         contract.document_reference ? ['Documento', contract.document_reference] : null
       ].filter(Boolean).map(([label, value]) => el('div', { class: 'deflist-row' }, [el('dt', { text: label }), el('dd', { class: value === 'Não informado' ? 'missing' : '', text: value })]))),
+      el('div', { class: 'contract-open' }, [button('Abrir contrato: termos, aditivos e marcos', { size: 'sm', iconName: 'file', onClick: () => mods.contractCenter.openContract(ctx, contract) }),
+        contract.origin === 'imported' ? tag('Carteira existente') : null, contract.current_version ? tag(`Termos v${contract.current_version}`, 'accent') : tag('Termos não estruturados', 'warning')]),
       lazyDocuments(ctx, 'contract', contract.id, 'Documentos do contrato', { canUpload: ctx.can('upload_document') }),
       source ? el('a', { class: 'contract-link', href: ctx.href(`/finance/rfq.html?id=${source.id}#decisao`) }, [el('span', { text: 'Ver processo e decisão de origem' }), icon('arrowRight', { size: 14 })]) : null
     ]));
@@ -201,6 +229,9 @@ export async function contracts(ctx) {
 // -------------------------------------------------------------- provedores
 export async function providers(ctx) {
   const rows = ctx.data.providers || [];
+  // Memória de relacionamento (contatos, issues, avaliações da empresa, mapa).
+  const relationshipEnabled = (await loadEntities(ctx)).available;
+  if (relationshipEnabled) await need('relationship');
   const manage = ctx.can('create_rfq');
   const add = manage ? button('Cadastrar provedor', { variant: 'primary', iconName: 'plus', onClick: () => providerDrawer(ctx) }) : null;
   ctx.header({ title: 'Provedores', subtitle: 'Bancos, fintechs e adquirentes com quem a empresa cota. É um cadastro da empresa, não uma atestação.', actions: add ? [add] : [] });
@@ -219,7 +250,8 @@ export async function providers(ctx) {
     const visible = rows.filter((row) => fold(`${row.name} ${row.region} ${PROVIDER_KINDS[row.kind]}`).includes(term));
     for (const provider of visible) {
       body.append(el('tr', { id: `provider-${provider.id}`, dataset: { entity: 'provider', id: provider.id } }, [
-        el('td', { 'data-label': 'Provedor', class: 'cell-primary' }, person(provider.name, provider.website || null)),
+        el('td', { 'data-label': 'Provedor', class: 'cell-primary' }, [person(provider.name, provider.website || null),
+          relationshipEnabled ? button('Relacionamento', { size: 'sm', variant: 'ghost', iconName: 'users', attrs: { 'aria-label': `Relacionamento com ${provider.name}` }, onClick: () => mods.relationship.openProviderRelationship(ctx, provider) }) : null]),
         el('td', { 'data-label': 'Tipo', text: PROVIDER_KINDS[provider.kind] || provider.kind }),
         el('td', { 'data-label': 'Região', text: provider.region || '—' }),
         el('td', { 'data-label': 'Participações', text: `${participation.get(provider.id) || 0} solicitação(ões)` }),
@@ -358,10 +390,15 @@ export async function notifications(ctx) {
 const REVENUE_BANDS = [['ate_360k', 'Até R$ 360 mil'], ['360k_4_8m', 'R$ 360 mil a R$ 4,8 milhões'], ['4_8m_30m', 'R$ 4,8 a R$ 30 milhões'], ['30m_300m', 'R$ 30 a R$ 300 milhões'], ['acima_300m', 'Acima de R$ 300 milhões']];
 const PREFERENCE_TYPES = [['approval_requested', 'Aprovação solicitada a mim'], ['approval_approved', 'Aprovação concluída'], ['approval_rejected', 'Aprovação rejeitada'],
   ['approval_changes_requested', 'Alterações pedidas'], ['proposal_received', 'Nova proposta recebida'], ['proposal_revised', 'Proposta revisada'], ['mention', 'Menções'],
-  ['comment', 'Comentários de provedores'], ['renewal_due', 'Renovação de contrato'], ['task_assigned', 'Tarefa atribuída']];
+  ['comment', 'Comentários de provedores'], ['renewal_due', 'Renovação de contrato'], ['task_assigned', 'Tarefa atribuída'],
+  ['policy_exception_requested', 'Exceção de policy para decidir'], ['policy_exception_decided', 'Exceção de policy decidida']];
 
 export async function settings(ctx) {
   ctx.header({ title: 'Configurações', subtitle: 'Empresa, perfil financeiro, política de aprovação, notificações e equipe.' });
+  // Seções avançadas (policy, integrações, SSO) só existem para quem as vê.
+  const advanced = ctx.mode !== 'demo';
+  const admin = ctx.viewer?.role === 'admin';
+  await need('passport', 'relationship', ...(advanced ? ['policy'] : []), ...(advanced && admin ? ['integrations', 'sso'] : []));
   const organization = ctx.data.organization || ctx.organization;
   const sections = [];
   const nav = el('nav', { class: 'settings-nav', 'aria-label': 'Seções de configuração' });
@@ -410,37 +447,25 @@ export async function settings(ctx) {
     add('voce', 'Seu nome e cargo', 'Como a equipe vê você em aprovações, comentários e tarefas. O e-mail nunca aparece nessas telas.', meForm);
   }
 
-  // Perfil financeiro reaproveitável.
+  // Perfil financeiro reaproveitável: mora no Financial Passport, com
+  // proveniência, frescor e histórico por campo. Aqui fica só o resumo.
   const profile = ctx.data.profile || [];
-  const table = el('table', { class: 'data-table compact' });
-  table.append(el('thead', {}, el('tr', {}, ['Campo', 'Valor', 'Origem', 'Atualizado', 'Situação'].map((label) => el('th', { scope: 'col', text: label })))));
-  const tbody = el('tbody');
-  for (const row of profile) {
-    const age = -daysUntil(row.updated_at);
-    const state = age >= 180 ? ['desatualizado', 'danger'] : age >= 150 ? ['revisar em breve', 'warning'] : ['atualizado', 'success'];
-    tbody.append(el('tr', {}, [el('td', { 'data-label': 'Campo', class: 'cell-primary', text: humanizeKey(row.field_key) }), el('td', { 'data-label': 'Valor', text: row.field_value }),
-      el('td', { 'data-label': 'Origem', text: humanizeKey(row.source) }), el('td', { 'data-label': 'Atualizado', text: formatDate(row.updated_at) }),
-      el('td', { 'data-label': 'Situação' }, tag(state[0], state[1]))]));
+  const passportSummary = mods.passport.buildPassport({ organization: ctx.organization, rows: profile });
+  add('perfil', 'Perfil financeiro', 'Informado uma vez, reaproveitado em cada solicitação, com origem, responsável e revisão de cada dado.', [
+    el('p', { class: 'muted', text: `${passportSummary.coverage.filled} de ${passportSummary.coverage.relevant} campos do catálogo preenchidos${passportSummary.attention.length ? ` · ${passportSummary.attention.length} pedem revisão` : ''}.` }),
+    linkButton('Abrir o Financial Passport', ctx.href('/finance/passport.html'), { variant: 'secondary', iconName: 'shield' })
+  ]);
+
+  // Entidades do grupo e escopo de acesso por entidade (multi-entity).
+  const entities = await loadEntities(ctx);
+  if (entities.available) {
+    add('entidades', 'Entidades do grupo', 'Entidades legais e unidades. Processos e contratos de uma entidade só aparecem para quem tem o grupo inteiro ou aquela entidade no escopo.', entitySettings(ctx, entities));
+    add('escopos', 'Escopo de acesso por entidade', 'Tesouraria do grupo enxerga tudo; escopo restrito enxerga só as entidades concedidas. O banco aplica a regra em toda leitura e escrita.', memberScopes(ctx, entities));
   }
-  table.append(tbody);
-  const profileForm = el('form', { class: 'inline-form', novalidate: true });
-  // A pessoa escreve o nome do campo; a chave técnica é derivada dele.
-  const key = el('input', { name: 'field_label', maxlength: '60', placeholder: 'Ex.: Faturamento anual', list: 'profile-field-suggestions' });
-  const suggestions = el('datalist', { id: 'profile-field-suggestions' }, profile.map((row) => el('option', { value: humanizeKey(row.field_key) })));
-  const value = el('input', { name: 'field_value', maxlength: '500' });
-  const sourceSelect = el('select', { name: 'source' });
-  for (const option of ['declarado_pela_empresa', 'documento_interno', 'extrato', 'contrato_vigente', 'outro']) sourceSelect.add(new Option(humanizeKey(option), option));
-  profileForm.append(suggestions, field({ label: 'Campo', control: key }), field({ label: 'Valor', control: value }), field({ label: 'Origem', control: sourceSelect }), button('Salvar campo', { type: 'submit' }));
-  profileForm.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    const { field_label: label, ...rest } = Object.fromEntries(new FormData(profileForm));
-    const fieldKey = slugKey(label);
-    if (fieldKey.length < 2 || !String(rest.field_value || '').trim()) { toast('Informe o nome do campo e o valor.', 'error'); (fieldKey.length < 2 ? key : value).focus(); return; }
-    try { await ctx.api('profile', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, field_key: fieldKey, ...rest }) }); toast('Campo do perfil salvo.'); ctx.reload(); }
-    catch (error) { toast(error.message, 'error'); }
-  });
-  add('perfil', 'Perfil financeiro', 'Informado uma vez, reaproveitado em cada solicitação. Campos com mais de 180 dias aparecem como desatualizados.',
-    [profile.length ? el('div', { class: 'table-card inner' }, table) : emptyState({ title: 'Perfil vazio', text: 'Faturamento, setor e garantias preenchem as próximas solicitações automaticamente.', compact: true }), canEdit ? profileForm : null]);
+
+  if (entities.available) {
+    add('scorecards', 'Scorecards de provedores', 'Critérios e pesos definidos pela sua empresa para avaliar provedores. Versionados; o Arandu não fornece nota própria.', mods.relationship.scorecardSettings(ctx));
+  }
 
   // Política de aprovação.
   const policyBox = el('div', {}, loading());
@@ -457,7 +482,27 @@ export async function settings(ctx) {
       el('span', { class: 'muted small', text: policy.updated_at ? ` Atualizada em ${formatDateTime(policy.updated_at)}.` : ' Nenhuma exigência configurada.' })])]),
     ctx.viewer?.role && ctx.viewer.role !== 'admin' ? el('p', { class: 'muted small', text: `Somente administradores alteram esta regra.${ctx.mode === 'demo' ? ' Troque para a persona Admin para experimentar.' : ''}` }) : el('p', { class: 'muted small', text: 'Mudanças ficam registradas na trilha da organização.' }));
   }).catch((error) => policyBox.replaceChildren(errorState({ error })));
-  add('aprovacao', 'Política de aprovação', 'Quando ligada, nenhuma decisão é registrada sem um pedido aprovado para a mesma proposta e versão.', policyBox);
+  add('aprovacao', 'Regra geral de aprovação', 'Quando ligada, nenhuma decisão é registrada sem um pedido aprovado para a mesma proposta e versão. Policies abaixo detalham quem aprova e em que ordem.', policyBox);
+
+  // Governança: Policy & Approval Engine v2 e delegação temporária. O
+  // transporte da demonstração não tem o engine; lá vale só a regra geral.
+  if (ctx.mode !== 'demo') {
+    add('governanca', 'Governança: policies de aprovação', 'Regras da sua empresa, por grupo e por entidade: quem aprova, em que ordem, sob qual versão. Versões ativadas são imutáveis.', mods.policy.policySettings(ctx, entities));
+    add('delegacao', 'Delegação de aprovação', 'Substituto temporário para as suas etapas de aprovação, com trilha.', mods.policy.delegationSettings(ctx));
+    // Public API v1 & Webhooks: administração da organização.
+    if (ctx.viewer?.role === 'admin') {
+      add('integracoes', 'Integrações: API e webhooks', 'Contas de serviço com escopo e entidades, tokens que expiram e webhooks assinados. Para ERP, TMS e plataformas de dados.', mods.integrations.integrationSettings(ctx, entities));
+      add('sso', 'Segurança: SSO corporativo', 'Login pelo provedor de identidade da empresa (SAML/OIDC), com domínio verificado, exigência opcional de SSO e revogação de sessões.', mods.sso.ssoSettings(ctx));
+      // Carregado sob demanda: só administradores abrem esta seção. O build de
+      // demonstração não tem API (tudo responde 404) e não empacota o módulo.
+      if (!DEMO_BUILD) {
+        const governanceBox = el('div', {}, loading());
+        import('./governance.js').then(({ governanceSettings }) => governanceBox.replaceChildren(governanceSettings(ctx)))
+          .catch((error) => governanceBox.replaceChildren(errorState({ error })));
+        add('dados', 'Governança de dados', 'Classificação, retenção, legal hold, export portável e offboarding da organização.', governanceBox);
+      }
+    }
+  }
 
   // Preferências de notificação.
   const prefBox = el('div', {}, loading());

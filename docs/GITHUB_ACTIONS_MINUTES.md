@@ -1,5 +1,28 @@
 # GitHub Actions — quota de minutos e retomada do CI
 
+## Situação em 06/10/2026 (consolidação `main` canônica)
+
+Diagnóstico pela API do GitHub (conector da sessão de agente, só leitura):
+
+| Run | Branch / SHA | Duração | Jobs | `runner_id` | Logs |
+| --- | --- | --- | --- | --- | --- |
+| #770 `37329494085` | `claude/vibrant-lovelace-gnz9qs` `adc64bb` | 22 min | quatro, **success** | atribuído | sim |
+| #771–#776 (`37344614069` … `37357359617`) | #131, #132, #133 | 7–8 s | quatro, failure | **0** | 404 (não existem) |
+| #777 `37363958652`, #778 `37365130259` | #134 `621d97c`, #135 `e744947` | ~20 min na fila | failure/cancelled | **0** | 404 |
+
+Mesma assinatura de 26/09: nenhum runner foi atribuído, nenhum passo rodou,
+não há log. **Não é regressão de software** e não é diagnosticável pelo código;
+a causa está na conta (quota de minutos/limite de gasto/billing do GitHub
+Actions). Consequência registrada: #131–#135 foram mergeadas **sem nenhum gate
+executado** e o `merge-audit` falhou corretamente em cada push de `pilot`
+(runs `37346613622`, `37356267531`, `37358978611`, `37462653876`).
+
+O que esta rodada fez: nenhum job, navegador ou check foi alterado ou
+enfraquecido; a validação foi maximizada localmente (registrada na PR de
+consolidação). **Ação do owner:** Settings → Billing and plans → Actions
+(minutos/limite de gasto) e, depois, "Re-run all jobs" na PR de consolidação;
+merge só com os quatro gates verdes no HEAD exato (`npm run merge:gates`).
+
 ## Situação em 26/09/2026
 
 A conta atingiu **2.000 / 2.000 minutos** do GitHub Actions. Novos jobs falham

@@ -275,6 +275,34 @@ export function field({ label, control, hint = null, required = false, optionalL
   return wrap;
 }
 
+/**
+ * Formulário declarativo em painel. `specs`: [chave, rótulo, tipo | [[valor, texto]], atributos].
+ * `submit(valores)` recebe números como Number (vazio = null), caixas como boolean e
+ * texto vazio como null; o erro do servidor aparece no próprio formulário.
+ */
+export function formDrawer(title, intro, specs, submit, done = 'Registro preservado.') {
+  const values = {};
+  const read = [];
+  const form = el('form', { class: 'stack' }, [intro ? el('p', { class: 'muted small', text: intro }) : null, ...specs.map(([key, label, kind = 'text', attrs = {}]) => {
+    const control = Array.isArray(kind) ? el('select', {}, kind.map(([value, text]) => el('option', { value, text })))
+      : el(kind === 'textarea' ? 'textarea' : 'input', { type: kind === 'textarea' ? null : kind, maxlength: kind === 'text' ? 200 : kind === 'textarea' ? 1000 : null, ...(kind === 'number' ? { min: 0, step: '.01' } : {}), ...attrs });
+    read.push(() => { values[key] = kind === 'checkbox' ? control.checked : control.value === '' ? null : kind === 'number' ? Number(control.value) : control.value; });
+    return field({ label, control, required: Boolean(attrs.required) });
+  })]);
+  const errors = el('p', { class: 'callout callout-error', role: 'alert', hidden: true });
+  const save = button('Registrar', { variant: 'primary', type: 'submit' });
+  form.append(errors, save);
+  const dialog = drawer({ title, body: form });
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault(); save.disabled = true; errors.hidden = true;
+    read.forEach((fn) => fn());
+    try { await submit(values); dialog.close(); toast(done); }
+    catch (e) { errors.textContent = e.message; errors.hidden = false; }
+    finally { save.disabled = false; }
+  });
+  return dialog;
+}
+
 /** Controle para um campo do catálogo de produtos. */
 export function catalogControl(spec, value = null) {
   let control;

@@ -122,3 +122,92 @@ test('provedor: entra pelo login comum e cai no próprio portal, sem ver concorr
   for (const competitor of ['Orbe Capital', 'Meridian', 'Nexo', 'Lumina']) expect(text).not.toContain(competitor);
   expect(problems, problems.join('\n')).toEqual([]);
 });
+
+test('Financial Passport: cobertura, proveniência, histórico e fotografia na RFQ; provedor não alcança', async ({ page, browser }) => {
+  const problems = watch(page);
+  await login(page, 'juliana');
+  await page.waitForFunction(() => Boolean(window.__aranduCtx?.organization?.id));
+  const org = await page.evaluate(() => window.__aranduCtx.organization.id);
+  await page.goto('/finance/passport.html');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Financial Passport');
+  await expect(page.locator('#field-receita_anual')).toContainText('R$ 182.000.000');
+  await expect(page.locator('#field-receita_anual')).toContainText('Rafael Menezes');
+  await expect(page.locator('#field-volume_cartoes_mensal [data-freshness]')).toHaveAttribute('data-freshness', 'stale');
+  await expect(page.locator('#field-garantias_disponiveis')).toContainText('confirmado');
+  await expect(page.locator('.passport-notice')).toContainText('Não é nota de risco');
+  await page.getByRole('button', { name: 'Histórico de Faturamento anual (R$)' }).click();
+  await expect(page.getByRole('dialog')).toContainText('R$ 158.000.000 → R$ 182.000.000');
+  await page.keyboard.press('Escape');
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+
+  await openRfq(page, 'Capital de giro — nova linha');
+  await expect(page.locator('#passport')).toContainText('Mudanças posteriores no Passport não alteram este processo');
+  await expect(page.locator('#passport')).toContainText('usado sem alteração');
+  expect(problems, problems.join('\n')).toEqual([]);
+
+  // Provedor convidado na mesma RFQ: sessão real, nenhuma linha do Passport.
+  const context = await browser.newContext({ ignoreHTTPSErrors: true });
+  const provider = await context.newPage();
+  await login(provider, 'eduardo');
+  for (const path of [`profile?organization_id=${org}`, `profile/history?organization_id=${org}&field_key=receita_anual`]) {
+    const response = await provider.request.get(`/api/finance/${path}`);
+    expect(response.status(), path).toBe(403);
+    expect(await response.text()).not.toContain('182000000');
+  }
+  await context.close();
+});
+
+// Pós-contrato: a mesma demo canônica conta a história até a próxima renovação.
+// Só leitura. Dados de scripts/demo/dataset.mjs → LIFECYCLE.
+test('pós-contrato: implantação → covenants → performance → spend → qualificação → documento → oportunidades → executivo e busca', async ({ page }) => {
+  const problems = watch(page);
+  await login(page, 'juliana');
+  const noOverflow = async (label) => expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth), label).toBeLessThanOrEqual(1);
+  const open = async (path, heading) => {
+    await page.goto(path);
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(heading);
+    await expect(page.locator('#view [role=status].loading-state')).toHaveCount(0);
+    await noOverflow(path);
+  };
+
+  await open('/finance/implementations.html', 'Implantação pós-award');
+  await expect(page.locator('#view')).toContainText('Migração da adquirência para a Lumina Pay');
+  await expect(page.locator('#view')).toContainText('Bloqueada');
+  await page.getByRole('button', { name: 'Detalhe' }).first().click();
+  await expect(page.getByRole('dialog')).toContainText('Remessa de 60 terminais');
+  await expect(page.getByRole('dialog')).toContainText('Nenhum aceite. Serviço ativo não é inferido.');
+  await page.keyboard.press('Escape');
+
+  await open('/finance/covenants.html', 'Covenants e obrigações');
+  for (const state of ['Conforme após revisão', 'Waiver vigente']) await expect(page.locator('#view')).toContainText(state);
+  await expect(page.locator('#view')).toContainText(/Aguardando dados|Prazo próximo/);
+  await expect(page.locator('#view')).toContainText('Dados ausentes ≠ conformidade');
+
+  await open('/finance/performance.html', 'Performance do provedor');
+  await expect(page.locator('#view')).toContainText('Primeiro mês da Lumina Pay');
+  await expect(page.locator('#view')).toContainText('Sem nota universal ou recomendação de banco');
+
+  await open('/finance/spend.html', 'Financial Spend');
+  await expect(page.locator('#view')).toContainText('Não soma moedas ou tipos');
+  await expect(page.locator('#view')).toContainText('Observado · BRL');
+  await expect(page.locator('#view')).toContainText('Contratado · BRL');
+
+  await open('/finance/qualifications.html', 'Qualificação de provedores');
+  await expect(page.locator('#view')).toContainText('Atlas Bank');
+
+  await open('/finance/extractions.html', 'Documentos e fatos extraídos');
+  await expect(page.locator('#view')).toContainText('Cédula de crédito bancário');
+
+  await open('/finance/opportunities.html', 'Oportunidades');
+  await expect(page.locator('#view')).not.toContainText(/melhor proposta|recomendamos|vencedor/i);
+
+  // Executivo no painel e busca global.
+  await open('/finance/dashboard.html', 'Painel');
+  await page.keyboard.press('Control+k');
+  await page.locator('#command-query').fill('Lumina');
+  await expect(page.locator('#command-results')).toContainText('Lumina');
+  await page.keyboard.press('Escape');
+
+  expect(problems, problems.join('\n')).toEqual([]);
+});

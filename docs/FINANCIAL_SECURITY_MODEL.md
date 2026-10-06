@@ -36,6 +36,13 @@ CSP, sanitização, DTO com allowlist, auditoria e retenção.
 ## Isolamento entre organizações
 
 * Uma organização nunca lê RFQ, proposta, contrato, provedor ou perfil de outra.
+* O Financial Passport (perfil, histórico e fotografia na RFQ) é lido só por
+  membros da compradora; o provedor com convite aceito não o alcança. A escrita
+  é só por RPC (`fin_passport_set_field`, `fin_passport_confirm_field`,
+  `fin_create_rfq_from_passport`), que conferem papel, origem e documento; o
+  INSERT/UPDATE direto foi revogado. Histórico e fotografia são imutáveis; só o
+  reset de um banco marcado `deployment_environment=demo` os apaga, com a chave
+  de serviço. Testes: `tests/database/financial-passport.sql`.
 * Um provedor lê apenas: as RFQs cujo convite **aceitou** e a **própria**
   proposta, com as próprias versões.
 * Um provedor nunca lê proposta de concorrente, nota interna da empresa nem a
@@ -122,3 +129,67 @@ sujeitas ao modelo já existente: sessão administrativa, MFA, RBAC, auditoria e
 motivo. Nenhuma função `fin_*` concede acesso a `service_role` além do que o
 Supabase já concede por padrão, e nenhuma delas aceita "agir como" outro
 usuário.
+
+## Isolamento entre entidades do mesmo grupo (multi-entity)
+
+Dentro de uma organização compradora, membros com escopo `entities` só leem e
+escrevem objetos das entidades concedidas (e das unidades abaixo delas). A regra
+mora no banco:
+
+* **Leitura** — `fin_entity_visible` em todas as policies do lado comprador e na
+  busca (`fin_search`, SECURITY DEFINER, reescrita com o filtro em cada ramo),
+  em `fin_can_read_document` e em `fin_comment_authors`.
+* **Escrita** — gatilhos `BEFORE INSERT/UPDATE` em RFQ, contrato, decisão,
+  aprovação (pedido e etapa), convite, tarefa, comentário e documento privado
+  chamam `fin_assert_entity_write`. Por estarem nas tabelas, cobrem toda RPC
+  existente e futura; não dependem de cada função lembrar a regra.
+* **Aprovador** — a etapa só é criada para quem alcança a entidade, e quem perde
+  o escopo no meio do fluxo não consegue mais agir.
+* **Consolidado** — calculado sobre linhas já filtradas pelo RLS.
+* **Mudança de escopo** — só admin do grupo (`fin_set_member_entity_scope`),
+  com evento na trilha; administrador nunca é restrito.
+
+Provedores e jobs sem sessão não passam por essa guarda: as RPCs de provedor já
+exigem a organização provedora, e o job agendado roda sem `auth.uid()`.
+
+| Cenário | Arquivo |
+| --- | --- |
+| Membro restrito não lê RFQ, proposta, decisão, contrato, marco, tarefa, convite, evento ou comentário de outra entidade | `tests/database/financial-multi-entity.sql` |
+| Escrita fora do escopo via RPC existente (transição, convite, comentário, decisão, tarefa, renovação) | idem |
+| Aprovador sem escopo / escopo revogado no meio do fluxo | idem |
+| Reatribuição silenciosa de entidade (UPDATE direto) | idem |
+| Consolidado do restrito sem contagem de outra entidade | idem + `scripts/test-finance-entities.mjs` |
+| Outro tenant, provedor e externo sem acesso a entidades | idem |
+| Canário por membro restrito no banco real | `ops/sql/pilot-isolation-canary.sql` |
+
+## Contract Center v2 e Relationship & Portfolio
+
+* Toda tabela nova tem RLS forçada, só `SELECT` para `authenticated` e escrita por RPC SECURITY DEFINER com `search_path` fixo.
+* Leitura: objetos de contrato pela visibilidade do contrato; facilities, garantias, relações e saldos pela entidade; contatos/issues/avaliações de nível de grupo legíveis por qualquer membro da compradora (`fin_group_or_entity_visible`, que exige organização BUYER). O provedor — inclusive o vinculado por `provider_organization_id` — nunca lê contatos, notas, issues, avaliações ou facilities do comprador.
+* Imutabilidade: versões de termos, aditivos, avaliações, saldos, cronogramas e histórico de facility recusam `UPDATE`/`DELETE` (só o reset do banco marcado `demo` apaga).
+* Testes: `tests/database/financial-contracts-v2.sql`, `tests/database/financial-relationships-portfolio.sql`, `scripts/test-finance-contracts.mjs`, `scripts/test-finance-portfolio.mjs`; canário com as tabelas novas.
+
+## Policy & Approval Engine v2
+
+* Tabelas novas com RLS forçada, só `SELECT` para `authenticated`; escrita por RPC SECURITY DEFINER com `search_path` fixo. Auxiliares de avaliação (`fin_policy_evaluate`, `fin_policy_facts`, `fin_approval_member_eligible`, `fin_approval_refresh`) não são executáveis pelo cliente.
+* Leitura: policy do grupo para membros da compradora; policy de entidade só para quem alcança a entidade (`fin_group_or_entity_visible`); rascunho só para admin; etapas/exceções pela visibilidade da RFQ; delegação só para titular, substituto e admin. Provedor e outro tenant não leem nada.
+* Ser aprovador não amplia acesso: indicação e voto exigem papel + entidade + escopo da etapa, reconferidos no voto (aprovador revogado é recusado).
+* SoD padrão no banco (quem pede não aprova; uma etapa por pessoa; só membros da compradora); SoD configurável na policy aplicada na decisão.
+* Snapshot e definição das etapas imutáveis; versão ativada imutável; exceção e delegação com autor e data.
+* Testes: `tests/database/financial-policy-engine.sql` (negativos de entidade, tenant, provedor, revogação, SoD, versão no meio do processo), `scripts/test-finance-policy.mjs`; canário de isolamento com as tabelas novas.
+
+## Public API v1 & Webhooks
+
+* Autenticação de máquina: token de 256 bits mostrado uma vez; o banco guarda só `sha256`. Toda função `fin_api_*` começa por `fin_api_context` (credencial válida, conta ativa, organização compradora, escopo) e filtra por entidade/objeto; só o service role executa essas funções, chamado pelo servidor — nunca pelo navegador.
+* Administração por admin da compradora com JWT; contas de serviço e credenciais nunca expõem o hash; endpoints nunca expõem o segredo cifrado (privilégio por coluna).
+* Webhooks: URL https pública validada no banco e na API; DNS revalidado na entrega contra endereços internos; sem redirect; HMAC sobre `timestamp.delivery_id.body`; segredo cifrado com AES-256-GCM e chave por ambiente.
+* Limites: rate limit por credencial (contador no banco, falha fechada), corpo ≤ 64 KB, página ≤ 100, filtros fechados, ordem determinística.
+* Testes: `tests/database/financial-public-api.sql`, `scripts/test-finance-public-api.mjs`, `scripts/test-finance-integrations.mjs`; canário com as tabelas novas.
+
+## Enterprise SSO (fundação)
+
+* Broker: Supabase Auth (SAML) emite a sessão; RLS e `auth.uid()` continuam valendo, sem segundo sistema de auth. Asserções SAML são validadas pelo broker; o Arandu revalida identidade (e-mail verificado, domínio, provedor, emissão) e autoriza no banco (`fin_sso_authorize`, falha fechada).
+* SSO autentica, não concede acesso: membro ativo e convidado, papel e entidades continuam no Arandu.
+* Exigência opcional de SSO por conexão ativa; limite e revogação de sessão; trilha sem e-mail em claro.
+* Estado: fundação testada com IdP de teste; nenhum login real com IdP de cliente comprovado (blockers em `docs/FINANCIAL_SSO.md`). MFA de quem entra por SSO é responsabilidade do IdP.
+* Testes: `tests/database/financial-sso.sql`, `scripts/test-finance-sso.mjs`, `tests/e2e/finance-sso.spec.js`; canário com as tabelas novas.

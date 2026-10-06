@@ -1,170 +1,164 @@
-# Fluxo de desenvolvimento, piloto e produção
+# Fluxo de desenvolvimento, release e ambientes
 
-Uma única base de código, três ambientes. Os ambientes diferem por branch,
-projeto Vercel, variáveis e projeto Supabase, nunca por cópias do código.
+> **Modelo vigente desde 06/10/2026 (consolidação `main` canônica).** Uma
+> branch longa de produto (`main`), três ambientes que publicam a **mesma
+> árvore** com configuração, dados e banco diferentes. A branch `pilot` deixou
+> de ser linha de evolução: fica preservada, congelada e protegida até a
+> transição ser confirmada (ver "Transição" abaixo). Documentos datados que
+> descrevem `feature/* → pilot → main` são históricos.
 
-| Ambiente | Projeto Vercel | Origem | `ARANDU_ENV` | Banco | Para quê |
+```text
+feature/*  ──PR (4 gates verdes no HEAD exato)──▶  main
+                                                     │
+                     ┌───────────────────────────────┼───────────────────────────────┐
+                     ▼                               ▼                               ▼
+              arandu-demo                     arandu-pilot                        arandu
+         ARANDU_ENV=demo                  ARANDU_ENV=pilot                ARANDU_ENV=production
+         runtime "demo"                   runtime "staging"               runtime "official"
+         Supabase DEMO                    Supabase PILOT (validação)      Supabase PROD
+         empresa fictícia                 migrations, E2E, smoke,         dados reais,
+         (Vitta Foods)                    recovery, release candidate     só release aprovada
+```
+
+## Branching
+
+| Branch | Papel | Vida |
+| --- | --- | --- |
+| `main` | **única** linha de produto; fonte da verdade de código, migrations e documentação normativa | permanente |
+| `feature/*`, `fix/*`, `chore/*`, `docs/*`, `agent/*`, `claude/*`, `codex/*` | trabalho temporário; nasce da ponta atual de `main` e volta por PR para `main` | apagada depois do merge |
+| `hotfix/*` | correção urgente; mesmo fluxo (PR para `main`), prioridade de revisão | apagada depois do merge |
+| `pilot` | **histórica/congelada**: preservada até a confirmação da transição; não recebe PR | arquivar depois da confirmação |
+
+Regras:
+
+- PR só entra com `database`, `deploy-boundaries`, `validate` e `presentation`
+  concluídos com sucesso **no SHA exato do HEAD** e com a ponta atual de `main`
+  contida no HEAD (`npm run merge:gates -- <PR>`). Pending, failed, cancelled,
+  skipped ou SHA anterior bloqueiam.
+- Uma PR por capability; PR empilhada (base = outra feature) só com o merge na
+  ordem e a base retornando a `main` antes do merge final. A #135 foi mergeada
+  na branch da #134 (e não em `pilot`) e por isso nunca chegou ao produto
+  canônico até a consolidação: **"merged" no GitHub não prova que o código está
+  em `main`**. Confira com `git branch -r --contains <sha>` / `git merge-base --is-ancestor`.
+- Push em lote, validação local antes (CLAUDE.md, `CONTRIBUTING.md`).
+
+## Runtime: o que muda entre ambientes
+
+A política fica em um único módulo, [`lib/runtime-mode.mjs`](../lib/runtime-mode.mjs),
+testado em `scripts/test-runtime-mode.mjs`. `ARANDU_ENV` é o único seletor; não
+existe segunda variável que possa discordar dele. Configuração ambígua falha
+fechada (nunca vira `official` nem libera side effect).
+
+| Capability (`resolveRuntime(env)`) | official (`production`) | staging (`pilot`) | demo (`demo`) | sandbox legado (`ARANDU_DEPLOYMENT_KIND=demo`) | development / preview |
 | --- | --- | --- | --- | --- | --- |
-| Demo | `arandu-demo` | `main` | `demo` | Supabase DEMO próprio, com a empresa fictícia Vitta Foods | mostrar o produto real com dados fictícios |
-| Piloto | `arandu-pilot` | branch `pilot` | `pilot` | Supabase do piloto (`offgpyysgdhfemjlchod`) | testar de verdade, com os primeiros usuários |
-| Produção | `arandu` | branch `main` | `production` | Supabase de produção, próprio e vazio no início | uso oficial |
+| `datasource` | Supabase PROD | Supabase PILOT | Supabase DEMO | fixtures no navegador | nenhum banco real |
+| `canSendEmail` | sim¹ | sim¹ | **não** | não | só mock |
+| `canDispatchWebhooks` | sim¹ | sim¹ | **não** (nem reivindica a fila) | não | só mock |
+| `canCallExternalProviders` (modelo de extração) | sim¹ | sim¹ | **não** | não | só mock |
+| `canPersistRealDocuments` | sim | sim | **não** (documentos fictícios do seed) | não | — |
+| `canUseSyntheticFixtures` | **não** | **não** | sim | sim | — |
+| `canUseMockIdentity` (IdP de teste) | **não** | sim | sim | sim | sim (fora de deploy de produção) |
+| `expectedBranch` | `main` | `main` | `main` | — | — |
+| selo no shell | — | "Ambiente de validação" | "Ambiente de demonstração" | "Demo · dados fictícios" | — |
 
-O projeto Supabase legado de arte (`igacnfjeuqhxcmfyepgj`) não é usado por
-nenhum dos três.
+¹ Ainda sujeito à configuração própria de cada integração (provider, aprovação,
+segredo, contrato de dados). O runtime só **remove** permissões; nunca liga uma
+integração por conta própria.
 
-## Demo
+O que **não** muda: telas, rotas, APIs, regras de domínio, cálculos, RLS,
+RBAC, segregação de função, navegação, design system e capabilities. A demo é o
+produto real com outro banco e outro conjunto de dados.
 
-A demonstração é **a mesma `main`** com outra configuração e outro banco. Não
-há branch de demo nem código exclusivo de demo: o que muda é `ARANDU_ENV=demo`,
-o projeto Supabase DEMO e os dados fictícios semeados por comando manual.
-Detalhes: [`docs/demo/ARCHITECTURE.md`](demo/ARCHITECTURE.md).
+## Dados
 
-```text
-main ──┬── ARANDU_ENV=demo       + Supabase DEMO  ──▶ arandu-demo (Vitta Foods, fictícia)
-       └── ARANDU_ENV=production + Supabase PROD  ──▶ arandu      (clientes reais)
-```
+| Ambiente | Dados | Quem escreve | Reset |
+| --- | --- | --- | --- |
+| Demo | empresa fictícia **Vitta Foods** e instituições fictícias (`*.example`), semeadas **pela API real** (`scripts/demo/seed.mjs`) | `npm run demo:seed` / `demo:reset`, só da máquina do operador, com as travas de `lib/finance/demo-guard.mjs` | determinístico: `npm run demo:reset` apaga só o escopo da demo e semeia de novo |
+| Staging/Pilot | dados de validação e dos usuários do piloto | usuários reais autorizados | nunca resetado por script; recovery por backup/restore |
+| Official | dados reais de clientes | usuários reais | nunca resetado; backup + restore comprovado antes de M5 |
 
-1. Supabase → criar o projeto **DEMO** (nunca reutilizar piloto, produção ou o
-   legado) e aplicar `docs/supabase-migrations.json` (`cleanInstall`), como na
-   produção. Confirmação de e-mail ligada, como nos outros ambientes.
-2. Vercel → projeto `arandu-demo` (Production Branch `main`) → Environment
-   Variables (escopo Production): `ARANDU_ENV=demo`, `SUPABASE_URL`,
-   `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (do projeto DEMO),
-   `CRON_SECRET` (32+ caracteres, próprio), `ARANDU_SITE_URL` (URL https da
-   demo). **Remover** `ARANDU_DEPLOYMENT_KIND`. O build roda `finance:env:check`
-   e falha se o Supabase for o do piloto/legado, se a branch não for `main` ou
-   se o sandbox estiver ligado.
-3. Deploy. Depois, da sua máquina (nunca no Vercel):
-   `ARANDU_ENV=demo ARANDU_DEMO_CONFIRM=<ref DEMO> ARANDU_DEMO_APP_URL=<URL> … npm run demo:seed`
-   — passo a passo em [`docs/demo/RESET.md`](demo/RESET.md).
-4. `ARANDU_ENV=demo npm run finance:pilot:doctor` com as variáveis do projeto
-   DEMO deve dar GO (o marcador `deployment_environment=demo` só existe nesse banco).
-5. Registre o ref DEMO em `DEMO_SUPABASE_REFS` (`lib/finance/pilot-doctor.mjs`)
-   por PR: a produção passa a recusar esse banco também pelo ref.
+Nenhum banco é compartilhado. A produção recusa o banco do piloto, da demo
+(`DEMO_SUPABASE_REFS`) e o legado (`scripts/check-finance-env.mjs`,
+`finance:pilot:doctor`).
 
-A Deployment Protection da Vercel pode ficar ligada ou não: o acesso ao produto
-é pelo login normal com as contas das personas (senha fora do Git).
+## Release: da branch temporária à produção
 
-O sandbox antigo (motor no navegador, `ARANDU_DEPLOYMENT_KIND=demo`, sem banco)
-continua funcionando enquanto o projeto `arandu-demo` não migra; ver
-[`FINANCIAL_DEMO_MODE.md`](FINANCIAL_DEMO_MODE.md). Ele não é a demonstração
-canônica e será aposentado depois da migração.
+1. `feature/*` a partir de `main` → validação local (`check:all`, `build`,
+   `check:build-size`, `test:database`, E2E da área) → **um** push → PR para `main`.
+2. Os quatro gates verdes no HEAD exato → merge em `main`.
+3. Cada projeto Vercel publica `main` automaticamente. Migration nova não é
+   aplicada pelo deploy: o operador aplica primeiro em **staging/pilot**
+   (`npm run migrations:release`, `docs/MIGRATION_RELEASE_RUNBOOK.md`), roda
+   `ARANDU_ENV=pilot npm run finance:pilot:doctor` e `npm run pilot:canary`.
+4. Demo: aplicar a mesma migration no Supabase DEMO e `npm run demo:reset`
+   quando o dataset mudar.
+5. Official: só depois de staging verde **no mesmo SHA** — aplicar as mesmas
+   migrations, na mesma ordem, e `ARANDU_ENV=production npm run finance:pilot:doctor`.
+   Até M5 (guideline §5) o oficial continua bloqueado por `release:check`.
 
-## Branches
-
-```text
-feature/*  ──PR──▶  pilot  ──deploy automático──▶ arandu-pilot  (teste real)
-                      │
-                      └──PR (promoção)──▶  main  ──deploy──▶ arandu (produção)
-hotfix/*   ──PR──▶  main, e em seguida main ──PR──▶ pilot
-```
-
-- **`feature/*`**: trabalho temporário, criado a partir de `pilot`. Toda
-  mudança nasce aqui. A PR vai para `pilot`, nunca direto para `main`.
-- **`pilot`**: o que está no ar no piloto. Toda mudança passa por aqui antes da
-  produção. Só recebe PR com o CI verde.
-- **`main`**: o que está no ar na produção. Só recebe a PR de promoção
-  `pilot → main` e hotfixes.
-
-Os previews da Vercel (PRs e branches `feature/*`) não recebem as variáveis do
-piloto nem as da produção: elas ficam só no escopo *Production* de cada
-projeto. Um preview é código sem banco real. Nunca teste uma feature
-experimental na produção.
-
-## Promover `pilot → main`
-
-Abra a PR `pilot → main` só quando todos os itens abaixo valerem:
-
-1. o CI (`validate`, `database`, `deploy-boundaries`, `presentation`) está verde
-   no head de `pilot`;
-2. o deploy de `arandu-pilot` desse head foi usado de verdade;
-3. `ARANDU_ENV=pilot npm run finance:pilot:doctor` dá GO e `npm run pilot:canary`
-   passa contra o piloto;
-4. se há migration nova, ela foi aplicada no piloto antes, e o doctor confirmou
-   o `schema_version`;
-5. a produção recebe só código, migrations e configuração validados. Nunca
-   recebe usuários, RFQs, propostas, documentos, contratos nem allowlist do
-   piloto.
-
-Depois do merge, aplique as migrations novas na produção (as mesmas, na mesma
-ordem) e rode `ARANDU_ENV=production npm run finance:pilot:doctor` contra ela.
-
-## Hotfix de produção
-
-1. Crie `hotfix/*` a partir de `main`, abra a PR para `main` e faça o merge com
-   o CI verde.
-2. Logo depois, abra a PR `main → pilot` para trazer o hotfix, antes de
-   qualquer outra promoção. Um `pilot` sem o hotfix reintroduziria o bug na
-   próxima promoção.
-
-## Quando `pilot` diverge de `main`
-
-O normal é `pilot` estar à frente de `main`, com o que ainda está em teste. Se
-`main` tiver algo que `pilot` não tem (um hotfix), faça o merge de `main` em
-`pilot` por PR. Nunca force-push em nenhuma das duas.
+Código que depende de migration ainda não aplicada num ambiente precisa
+degradar com segurança (o doctor acusa `schema_version` divergente).
 
 ## Rollback
 
-- **Código**: *Instant Rollback* da Vercel no projeto afetado, para o deploy
-  anterior. Depois, reverta o commit por PR na branch do ambiente.
-- **Banco**: rollbacks em `docs/rollback/`, sempre ensaiados antes em
-  `npm run test:database`. Faça backup antes (`npm run pilot:restore:drill`
-  mostra o procedimento seguro).
+| O quê | Como |
+| --- | --- |
+| Aplicação | Vercel → projeto afetado → Instant Rollback para o deploy anterior; depois PR de revert em `main` (os três ambientes recebem o revert) |
+| Migration | `docs/rollback/<migration>.rollback.sql`, ensaiado em `npm run test:database`; rollbacks falham fechado quando há dado que seria perdido — aí vale forward-fix ou restore por backup (`npm run pilot:restore:drill`) |
+| Release | revert do merge em `main` + rollback de migration na ordem inversa, staging antes de official |
+| Capability por ambiente | política em `lib/runtime-mode.mjs` (side effects) ou feature flag de configuração; nunca branch |
+| Deployment errado | `finance:env:check` recusa no build: ambiente sem `ARANDU_ENV`, banco de outro ambiente, branch diferente de `main`, sandbox em ambiente com banco |
 
-## Estado atual das branches
+## Vercel
 
-Não confie num SHA escrito aqui: confira sempre no Git.
+| Projeto | Production Branch | Variáveis (escopo Production) |
+| --- | --- | --- |
+| `arandu` | `main` | `ARANDU_ENV=production`, Supabase PROD, `CRON_SECRET`, `ARANDU_SITE_URL` |
+| `arandu-pilot` | **`main`** (antes `pilot`) | `ARANDU_ENV=pilot`, Supabase PILOT (`offgpyysgdhfemjlchod`), `CRON_SECRET`, `ARANDU_SITE_URL` |
+| `arandu-demo` | `main` | alvo: `ARANDU_ENV=demo` + Supabase DEMO próprio. Enquanto o Supabase DEMO não existir, segue o sandbox legado (`ARANDU_DEPLOYMENT_KIND=demo`, sem credencial) |
 
-```bash
-git fetch origin main pilot
-git rev-list --left-right --count origin/main...origin/pilot   # "0 N": pilot N commits à frente, 0 atrás
-git log --oneline origin/main..origin/pilot                     # o que ainda não foi promovido
-```
+`scripts/check-finance-env.mjs` falha o build de qualquer ambiente com banco
+publicado a partir de outra branch que não `main`. **Ação do owner:** trocar a
+Production Branch do `arandu-pilot` para `main` (Settings → Git). Sem isso o
+próximo deploy do piloto a partir de `pilot` é recusado pelo build — falha
+fechada, o deploy atual continua no ar.
 
-O esperado entre promoções é `pilot` à frente e `0` atrás. Se o primeiro
-número for maior que zero, há hotfix em `main` sem volta para `pilot`: faça a
-PR `main → pilot` antes de qualquer outra coisa.
+Previews (PRs) não recebem variáveis de nenhum ambiente: são código sem banco.
 
-Histórico: a #81 promoveu `pilot → main` antes de o piloto existir na Vercel e
-com o CI sem quota. O conteúdo era só topologia e documentação (sem migration
-nem dado), e nada passou a apontar para o piloto; não houve o que reverter.
-Desde então as mudanças vão para `pilot` (#82 em diante) e `main` só recebe a
-promoção com os cinco itens acima atendidos.
+## Demo canônica e sandbox legado
 
-O projeto `arandu` (produção) roda sem `ARANDU_ENV` desde antes da #82. O
-código fecha a API legada em qualquer deployment de produção da Vercel, e o
-próximo deploy de `main` **falha** até `ARANDU_ENV=production` e o Supabase
-próprio da produção estarem configurados. O deploy atual continua no ar.
+A demo canônica é `ARANDU_ENV=demo` ([`docs/demo/`](demo/README.md)): todas as
+capabilities do produto, inclusive implantação pós-award, covenants e waiver,
+performance, spend, qualificação, leitura de documento e oportunidades, com a
+história da Vitta Foods semeada pela API real. Validada localmente com
+`npm run demo:setup` (Supabase local em Docker).
+
+O sandbox `/demo` (motor no navegador, `finance/demo/`) é **legado e
+congelado**: reimplementa regras do servidor, por isso não recebe capability
+nova, e seu tamanho de JS tem budget próprio congelado
+([`FINANCIAL_BUNDLE_HEADROOM.md`](FINANCIAL_BUNDLE_HEADROOM.md)). Ele sai em PR
+própria depois que `arandu-demo` migrar para `ARANDU_ENV=demo`.
+
+## Transição (`pilot` → `main` canônica)
+
+1. PR de consolidação para `main` com a árvore `pilot` + #135 (Financial Spend)
+   + runtime + demo + docs. `main` estava 0 commits à frente de `pilot`; nada
+   exclusivo de `main` se perde.
+2. Depois do merge: `git diff origin/pilot origin/main -- . ':!docs' ':!scripts' …`
+   deve mostrar só a consolidação; `git merge-base --is-ancestor origin/pilot origin/main` = verdadeiro.
+3. Owner: Production Branch do `arandu-pilot` → `main`; Dependabot já aponta para `main`.
+4. Confirmada a equivalência e um deploy de staging a partir de `main`, `pilot`
+   pode ser arquivada (tag `archive/pilot-2026-10-06`) e removida.
 
 ## O que impede os erros de topologia
 
-- `scripts/vercel-build.mjs` recusa um deploy de produção da Vercel que não
-  declara o ambiente (`ARANDU_ENV` `demo`/`pilot`/`production` ou
-  `ARANDU_DEPLOYMENT_KIND=demo`).
-- Nenhum script de build ou deploy executa `demo:seed`/`demo:reset`
-  (`scripts/test-deploy-release-separation.mjs`); o seed recusa rodar com
-  `VERCEL_ENV` definido, fora de `ARANDU_ENV=demo` explícito, contra o banco do
-  piloto/legado/produção ou contra um banco com dados e sem o marcador de demo.
-- No deploy, os testes de contrato do `check:all` rodam sem o ambiente de
-  deploy (`scripts/run-hermetic.mjs`), como no CI: nada de `ARANDU_ENV`,
-  `SUPABASE_*` ou segredos herdados. O build e o `finance:env:check` usam o
-  ambiente completo.
-- `scripts/vercel-build.mjs` roda `finance:env:check` antes do build sempre que
-  `ARANDU_ENV` é `pilot` ou `production`. O deploy falha quando:
-  - a produção aponta para o banco do piloto ou para o legado;
-  - o piloto aponta para o legado;
-  - uma chave pertence a outro projeto, ou há chave de serviço no lugar da anon;
-  - o deploy vem da branch errada (`pilot` ≠ piloto, `main` ≠ produção);
-  - a demo está ligada;
-  - falta service role ou `CRON_SECRET`.
-- O build (`lib/demo-mode.mjs`) nunca publica `/demo` com `ARANDU_ENV` `pilot`
-  ou `production`, nem nos previews. Pedir a demo ali falha o build. O build da
-  sandbox legado falha se houver qualquer credencial real no ambiente. A demo
-  canônica (`ARANDU_ENV=demo`) exige as credenciais do Supabase DEMO próprio e
-  não publica o sandbox.
-- Com `ARANDU_ENV` `demo`, `pilot` ou `production`, em qualquer deployment de
-  produção da Vercel e no sandbox, as rotas legadas de arte respondem 404
-  (`lib/legacy-surface.mjs`). Só no sandbox legado toda a API de domínio responde
-  404; a demo canônica usa autenticação e a API financeira reais.
-- `finance:pilot:doctor` aceita `ARANDU_ENV=demo`, `pilot` e `production`. Ele marca
-  UNSAFE quando a produção aponta para o banco do piloto.
+- `scripts/vercel-build.mjs` recusa deploy de produção da Vercel sem ambiente
+  declarado.
+- `scripts/check-finance-env.mjs` (no build de demo/pilot/production): banco
+  de outro ambiente, chave de outro projeto, service key no lugar da anon,
+  branch diferente de `main`, sandbox ligado em ambiente com banco.
+- `lib/demo-mode.mjs`: o sandbox nunca é publicado em ambiente com banco nem na
+  produção financeira; build do sandbox com credencial real falha.
+- Nenhum script de build/deploy executa `demo:seed`/`demo:reset`
+  (`scripts/test-deploy-release-separation.mjs`).
+- `lib/deployment-surface.mjs`: só rotas financeiras em ambiente hospedado.
