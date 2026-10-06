@@ -59,19 +59,26 @@ rascunho em preparação.
 E-mails `nome.sobrenome@<instituição>.example` (domínios reservados para
 documentação: nunca recebem mensagem). Lista completa em [DATASET.md](DATASET.md).
 
-## Financial Passport v2
+## Financial Passport v2 e pós-contrato
 
-A baseline de `pilot` inclui proveniência, confirmação, frescor, histórico
-append-only, documentos privados e fotografia imutável dos campos reutilizados
-na RFQ. O dataset e o roteiro incluem o Passport. Ele só aparece na demo
-pública depois da promoção para `main` e da instalação do Supabase DEMO.
-Estado hospedado: [evidência de 02/10](../ARANDU_CURRENT_STATE_2026-10-02.md).
+A demo é a `main` canônica: inclui o Passport (proveniência, confirmação,
+frescor, histórico append-only, fotografia imutável na RFQ) e o pós-contrato
+semeado pela API real — implantação com bloqueio, covenants (conforme, sem
+dados, waiver aprovado), performance com revisão independente, spend por
+moeda/tipo com reconciliação, qualificação do Atlas com evidência de serviço
+externo, cédula lida com fatos confirmados e oportunidades pelas regras da
+empresa. Tudo fictício (`*.example`, documentos com aviso de documento
+fictício). Validado localmente com `npm run demo:setup`/`demo:local:reset`
+(checagens de sanidade no fim do seed). A demo pública passa a mostrar isso
+quando o projeto `arandu-demo` usar `ARANDU_ENV=demo` com o Supabase DEMO
+([FINANCIAL_DEPLOYMENT_WORKFLOW.md](../FINANCIAL_DEPLOYMENT_WORKFLOW.md#vercel)).
 
 ## O que não faz parte do baseline
 
 Registrado como próxima fase, não implementado nesta rodada: Savings Ledger
 (o painel não estima economia por decisão de produto),
-inteligência de propostas e extração de PDF por IA, normalização automática,
+extração por modelo de IA de terceiros (a demo usa só o leitor determinístico;
+o runtime `demo` nunca envia documento a provedor externo), normalização automática,
 AI Analyst, benchmarking, Open Finance, integrações ERP/bancárias, negociação
 assistida e memorando de decisão gerado por IA. Limites conhecidos da demo em
 [ARCHITECTURE.md](ARCHITECTURE.md#limites-conhecidos).

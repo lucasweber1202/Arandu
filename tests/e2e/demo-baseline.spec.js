@@ -157,3 +157,57 @@ test('Financial Passport: cobertura, proveniência, histórico e fotografia na R
   }
   await context.close();
 });
+
+// Pós-contrato: a mesma demo canônica conta a história até a próxima renovação.
+// Só leitura. Dados de scripts/demo/dataset.mjs → LIFECYCLE.
+test('pós-contrato: implantação → covenants → performance → spend → qualificação → documento → oportunidades → executivo e busca', async ({ page }) => {
+  const problems = watch(page);
+  await login(page, 'juliana');
+  const noOverflow = async (label) => expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth), label).toBeLessThanOrEqual(1);
+  const open = async (path, heading) => {
+    await page.goto(path);
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(heading);
+    await expect(page.locator('#view [role=status].loading-state')).toHaveCount(0);
+    await noOverflow(path);
+  };
+
+  await open('/finance/implementations.html', 'Implantação pós-award');
+  await expect(page.locator('#view')).toContainText('Migração da adquirência para a Lumina Pay');
+  await expect(page.locator('#view')).toContainText('Bloqueada');
+  await page.getByRole('button', { name: 'Detalhe' }).first().click();
+  await expect(page.getByRole('dialog')).toContainText('Remessa de 60 terminais');
+  await expect(page.getByRole('dialog')).toContainText('Nenhum aceite. Serviço ativo não é inferido.');
+  await page.keyboard.press('Escape');
+
+  await open('/finance/covenants.html', 'Covenants e obrigações');
+  for (const state of ['Conforme após revisão', 'Waiver vigente']) await expect(page.locator('#view')).toContainText(state);
+  await expect(page.locator('#view')).toContainText(/Aguardando dados|Prazo próximo/);
+  await expect(page.locator('#view')).toContainText('Dados ausentes ≠ conformidade');
+
+  await open('/finance/performance.html', 'Performance do provedor');
+  await expect(page.locator('#view')).toContainText('Primeiro mês da Lumina Pay');
+  await expect(page.locator('#view')).toContainText('Sem nota universal ou recomendação de banco');
+
+  await open('/finance/spend.html', 'Financial Spend');
+  await expect(page.locator('#view')).toContainText('Não soma moedas ou tipos');
+  await expect(page.locator('#view')).toContainText('Observado · BRL');
+  await expect(page.locator('#view')).toContainText('Contratado · BRL');
+
+  await open('/finance/qualifications.html', 'Qualificação de provedores');
+  await expect(page.locator('#view')).toContainText('Atlas Bank');
+
+  await open('/finance/extractions.html', 'Documentos e fatos extraídos');
+  await expect(page.locator('#view')).toContainText('Cédula de crédito bancário');
+
+  await open('/finance/opportunities.html', 'Oportunidades');
+  await expect(page.locator('#view')).not.toContainText(/melhor proposta|recomendamos|vencedor/i);
+
+  // Executivo no painel e busca global.
+  await open('/finance/dashboard.html', 'Painel');
+  await page.keyboard.press('Control+k');
+  await page.locator('#command-query').fill('Lumina');
+  await expect(page.locator('#command-results')).toContainText('Lumina');
+  await page.keyboard.press('Escape');
+
+  expect(problems, problems.join('\n')).toEqual([]);
+});

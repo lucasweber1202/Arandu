@@ -94,6 +94,21 @@ liquidação 15, aluguel 10.
 - 6 documentos PDF fictícios no Storage privado (com aviso de documento
   fictício no corpo).
 
+## Pós-contrato (dados em `scripts/demo/dataset.mjs` → `LIFECYCLE`)
+
+Registrado pela API real depois da história de sourcing, com segregação de
+função (quem registra não revisa). Valores em BRL; nenhuma conversão de moeda.
+
+| Capability | O que existe | Quem |
+| --- | --- | --- |
+| Implantação pós-award | "Migração da adquirência para a Lumina Pay": 2 marcos concluídos com evidência, 1 bloqueado (terminais), 1 impedimento aberto; go-live previsto em +20 dias, sem aceite | Juliana abre; Rafael e Juliana atualizam |
+| Covenants e obrigações (cédula do Atlas) | Dívida líquida/EBITDA ≤ 2,5x trimestral: período medido 2,1x e revisado **conforme**; o período seguinte venceu sem dados (**aguardando dados** — ausência não é conformidade) e o corrente é criado pelo job. Cobertura de juros ≥ 2,0x: 1,8x, **não conforme**, waiver aprovado até +25 dias. Entrega das demonstrações auditadas: prazo em +7 dias, **sem dados** | Rafael mede; Juliana revisa; Helena decide o waiver |
+| Performance do provedor | "Primeiro mês da Lumina Pay": liquidação D+1 99,2% (meta ≥ 98%, revisada); resposta a chamados **indisponível** (relatório não entregue), sem revisão | Helena define método; Juliana abre; Rafael mede |
+| Financial Spend | MDR observado R$ 212.480,55 (reconciliado); aluguel de terminais contratado R$ 6.860,00 (sem reconciliação); encargos do Atlas observados R$ 118.904,10 (sem reconciliação) | Rafael registra; Juliana reconcilia |
+| Qualificação | Atlas Bank, crédito: contrato social (provedor, aceito), KYB (serviço externo fictício, aceito), SOC 2 (provedor, em revisão); estado "aguardando revisão interna" — sem decisão | Helena define exigências; Rafael anexa; Juliana revisa |
+| Documento lido | Cédula do Atlas (PDF fictício com rótulos): fatos extraídos pelo leitor determinístico, aviso prévio, moeda e indexador confirmados | Juliana |
+| Oportunidades | Regras ativas: covenant com prazo, covenant sem dados, waiver vencendo, implantação bloqueada, renovação (90 dias), revisão de performance; o job diário abre as oportunidades | Helena define as regras |
+
 ## Economia (savings)
 
 Não há. O produto não estima economia sem metodologia explícita

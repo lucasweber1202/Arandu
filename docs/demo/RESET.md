@@ -12,9 +12,18 @@
 O reset apaga as organizações criadas pelas contas `*.example` da demo e tudo
 o que pertence a elas (RFQs, convites, propostas e versões, aprovações,
 decisões, contratos, marcos, tarefas, comentários, avisos, eventos,
-documentos e objetos do Storage), os e-mails da fila dessas contas, as
-entradas de allowlist criadas por elas e as próprias contas. Nada fora desse
-escopo é tocado. Em seguida o seed recria a história e roda 20 checagens.
+documentos e objetos do Storage, e o pós-contrato: implantações, obrigações e
+covenants, performance, spend, qualificações, extrações de documento e
+oportunidades), os e-mails da fila dessas contas, as entradas de allowlist
+criadas por elas e as próprias contas. Registros imutáveis só saem porque o
+banco está marcado como demonstração (`fin_immutable_row` aceita o service
+role apenas ali). Nada fora desse escopo é tocado. Em seguida o seed recria a
+história (inclusive o capítulo pós-contrato, `LIFECYCLE` em
+`scripts/demo/dataset.mjs`) e roda 29 checagens de sanidade.
+
+Duração observada localmente em 06/10/2026: ~15–20 min. O seed respeita o rate
+limit real da API (240 requisições por conta a cada 10 min) e espera quando o
+atinge — não há atalho que pule a regra.
 
 ## Contra o Supabase DEMO hospedado
 

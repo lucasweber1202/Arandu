@@ -27,6 +27,7 @@ import {
 import * as data from './dataset.mjs';
 import { PASSPORT_TO_DEMAND } from '../../lib/finance/passport.mjs';
 import { demoPdf } from './pdf.mjs';
+import { schemaField } from '../../lib/finance/document-intelligence.mjs';
 
 const args = new Set(process.argv.slice(2));
 const MODE = args.has('--check') ? 'check' : args.has('--reset') ? 'reset' : 'seed';
@@ -187,6 +188,15 @@ function scopedTables(scope) {
   const org = `organization_id=${inList(scope.orgs)}`;
   const list = (ids) => inList(ids.length ? ids : ['00000000-0000-0000-0000-000000000000']);
   return [
+    // Pós-contrato: filhas antes das mães; registros imutáveis só saem num banco
+    // marcado como demonstração (fin_immutable_row aceita o service role ali).
+    ...['fin_extraction_reviews', 'fin_extraction_facts', 'fin_document_extractions',
+      'fin_qualification_events', 'fin_qualification_exceptions', 'fin_qualification_evidence', 'fin_provider_qualifications', 'fin_qualification_requirements',
+      'fin_spend_reconciliations', 'fin_spend_records',
+      'fin_provider_performance_reviews', 'fin_provider_performance_observations', 'fin_provider_performance_targets', 'fin_provider_performance_periods', 'fin_provider_performance_dimensions',
+      'fin_covenant_waivers', 'fin_obligation_reviews', 'fin_obligation_evidence', 'fin_covenant_measurements', 'fin_obligation_periods', 'fin_covenants', 'fin_obligations',
+      'fin_implementation_acceptances', 'fin_implementation_issues', 'fin_implementation_dependencies', 'fin_implementation_milestones', 'fin_implementation_plans'
+    ].map((table) => [table, null, org, []]),
     ['fin_guarantees', ['id'], org, ['created_at', 'updated_at']],
     ['fin_facility_repayments', null, org, []],
     ['fin_facility_balances', null, org, []],
@@ -416,7 +426,7 @@ async function compare(spec, person) {
   await post(person, 'signals', { organization_id: ctx.org, event: 'weights_applied', entity_type: 'rfq', entity_id: rfq });
 }
 
-async function upload(personKey, entity, visibility, title) {
+async function upload(personKey, entity, visibility, title, body = null) {
   const person = people[personKey];
   const providerSide = person.side === 'provider';
   const [entityKey, providerKey] = entity.split(':');
@@ -425,7 +435,7 @@ async function upload(personKey, entity, visibility, title) {
     : providerKey ? { type: 'proposal', id: ctx.proposal[`${entityKey}:${providerKey}`] } : { type: 'rfq', id: ctx.rfq[entityKey] };
   const organization = providerSide ? ctx.providerOrg[personKey] : ctx.org;
   const bytes = demoPdf({ title, organization: providerSide ? data.PROVIDERS[personKey].org : data.COMPANY.legal_name,
-    body: `${title}.\nDocumento de apoio da demonstração do Arandu, anexado ao processo da ${data.COMPANY.legal_name}. Conteúdo ilustrativo: nenhum valor, assinatura ou condição aqui representa operação real.` });
+    body: body || `${title}.\nDocumento de apoio da demonstração do Arandu, anexado ao processo da ${data.COMPANY.legal_name}. Conteúdo ilustrativo: nenhum valor, assinatura ou condição aqui representa operação real.` });
   const begin = await post(person, 'private-documents/upload', {
     organization_id: organization, entity_type: target.type, entity_id: target.id, title, visibility,
     mime_type: 'application/pdf', size: bytes.length, sha256: crypto.createHash('sha256').update(bytes).digest('hex')
@@ -433,6 +443,27 @@ async function upload(personKey, entity, visibility, title) {
   const put = await fetch(begin.upload_url, { method: 'PUT', headers: { 'Content-Type': 'application/pdf' }, body: bytes });
   must(put.ok, `envio de "${title}" ao Storage: ${put.status}`);
   await post(person, 'private-documents/complete', { document_id: begin.document_id, version: begin.version });
+  ctx.documents ||= {};
+  ctx.documents[title] = { id: begin.document_id, version: begin.version };
+}
+
+/** Corpo "Rótulo: valor" da cédula fictícia: o leitor determinístico extrai daqui, com origem por linha. */
+function creditContractBody() {
+  const c = data.RFQ_WORKING_CAPITAL_CURRENT.contract;
+  const br = (offset) => isoDate(offset).split('-').reverse().join('/');
+  return [
+    'Cédula de crédito bancário — linha de capital de giro (documento fictício da demonstração).',
+    `Início da vigência: ${br(c.starts)}`,
+    `Fim da vigência: ${br(c.ends)}`,
+    `Aviso prévio: ${c.notice} dias`,
+    'Valor do contrato: R$ 8.000.000,00',
+    'Moeda: BRL',
+    'Indexador: CDI',
+    'Spread: 3,20%',
+    'Renovação: mediante nova análise de crédito do credor, sem renovação automática',
+    'Rescisão: vencimento antecipado nas hipóteses da cláusula 14',
+    'Conteúdo ilustrativo: nenhum valor, assinatura ou condição aqui representa operação real.'
+  ].join('\n');
 }
 
 async function seedStory() {
@@ -487,7 +518,7 @@ async function seedStory() {
   });
   await at(s1.deadline + 8, '10:00');
   await upload('juliana', 'acquiringContract', 'internal', data.DOCUMENTS[4].title);
-  await upload('juliana', 'creditCurrentContract', 'internal', data.DOCUMENTS[5].title);
+  await upload('juliana', 'creditCurrentContract', 'internal', data.DOCUMENTS[5].title, creditContractBody());
 
   // --- Financial Passport revisado pelo analista antes da nova linha ---------
   await at(-23, '11:15');
@@ -550,12 +581,171 @@ async function seedStory() {
   await comment(juliana, ctx.org, 'contract', ctx.contract.creditCurrent, 'internal', C.contractRenewal[1], C.contractRenewal[2]);
 }
 
+
+// ------------------------------------------------- pós-contrato (lifecycle)
+// O que acontece depois da decisão: implantação, obrigações, performance,
+// spend, qualificação e leitura de documento. Tudo pela API real, com as regras
+// de segregação do produto (quem registra não revisa; waiver decidido por outra
+// pessoa). Os registros ficam com o horário real do seed: esses objetos são
+// imutáveis depois de criados e não são reposicionados na linha do tempo.
+const L = () => data.LIFECYCLE;
+const firstOfMonth = (monthsBack) => { const d = new Date(today); d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() - monthsBack); return d; };
+const iso = (date) => date.toISOString().slice(0, 10);
+const addDays = (date, days) => new Date(date.getTime() + days * DAY);
+const detailOf = (person, resource, id) => api(person, 'GET', `${resource}/detail?${new URLSearchParams({ id, organization_id: ctx.org })}`);
+const listOf = (person, resource, extra = '') => api(person, 'GET', `${resource}?organization_id=${ctx.org}${extra}`);
+const actionOf = (detail, predicate, what) => { const found = (detail.actions || []).find(predicate); must(found, `ação indisponível: ${what}`); return found; };
+
+async function seedImplementation() {
+  const spec = L().implementation;
+  const opener = people[spec.opener];
+  ctx.implementation = (await post(opener, 'implementations/open', {
+    contract_id: ctx.contract[spec.contract], title: spec.title, owner_id: people[spec.owner].id,
+    starts_on: isoDate(spec.starts), target_go_live: isoDate(spec.goLive), source_reference: spec.source
+  })).id;
+  for (const [who, evidence] of spec.completed) {
+    const detail = await detailOf(people[who], 'implementations', ctx.implementation);
+    const step = actionOf(detail, (action) => action.post === 'implementations/milestone', 'marco pendente');
+    await post(people[who], 'implementations/milestone', { ...step.fixed, status: 'completed', evidence_reference: evidence });
+  }
+  const detail = await detailOf(opener, 'implementations', ctx.implementation);
+  const next = actionOf(detail, (action) => action.post === 'implementations/milestone', 'marco seguinte');
+  await post(opener, 'implementations/milestone', { ...next.fixed, status: 'blocked', blocker: spec.blocker });
+  await post(opener, 'implementations/issue', { plan_id: ctx.implementation, title: spec.issue.title, due_on: isoDate(spec.issue.due), owner_id: people[spec.owner].id });
+}
+
+async function covenantPeriod(person, title) {
+  const page = await listOf(person, 'covenants');
+  const row = page.rows.find((item) => item.cells[0].startsWith(`${title} · `));
+  must(row, `período de "${title}" não encontrado`);
+  return row.id;
+}
+
+async function seedCovenants() {
+  const juliana = people.juliana;
+  for (const spec of L().covenants) {
+    let start, end, due;
+    if (spec.frequency === 'quarterly') {
+      const first = firstOfMonth(3 * spec.firstQuarterBack);
+      start = iso(first);
+      end = iso(addDays(new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + 3, 1)), -1));
+      due = iso(addDays(new Date(`${end}T00:00:00Z`), spec.lagDays));
+    } else {
+      start = isoDate(spec.start); end = isoDate(spec.end); due = isoDate(spec.due);
+    }
+    await post(juliana, 'covenants/open', {
+      contract_id: ctx.contract.creditCurrent, title: spec.title, kind: spec.kind, source_clause: spec.clause, source_reference: spec.reference,
+      frequency: spec.frequency, first_period_start: start, first_period_end: end, first_due_on: due, grace_days: spec.grace ?? 0, due_soon_days: 30,
+      ...(spec.metric ? { metric: spec.metric, operator: spec.operator, threshold: spec.threshold, unit: spec.unit } : {})
+    });
+    if (!spec.measured) continue;
+    const period = await covenantPeriod(juliana, spec.title);
+    await post(people[spec.measured.by], 'covenants/data', { period_id: period, measured_value: spec.measured.value, measured_on: isoDate(-2), source_reference: spec.measured.reference, provenance: spec.measured.provenance });
+    const review = actionOf(await detailOf(people[spec.review.by], 'covenants', period), (action) => action.post === 'covenants/review', 'revisão do período');
+    await post(people[spec.review.by], 'covenants/review', { ...review.fixed, status: spec.review.status, reason: spec.review.reason });
+    if (!spec.waiver) continue;
+    await post(people[spec.waiver.by], 'covenants/waiver', { period_id: period, valid_until: isoDate(spec.waiver.until), reason: spec.waiver.reason, controls: spec.waiver.controls });
+    const decision = spec.waiver.decision;
+    const decide = actionOf(await detailOf(people[decision.by], 'covenants', period), (action) => action.post === 'covenants/decide-waiver', 'decisão do waiver');
+    await post(people[decision.by], 'covenants/decide-waiver', { ...decide.fixed, status: decision.status, decision_reason: decision.reason });
+  }
+}
+
+async function seedPerformance() {
+  const spec = L().performance;
+  const opener = people[spec.opener];
+  const dimensions = [];
+  for (const dimension of spec.dimensions) {
+    // Método e meta são política da empresa: só administração define.
+    const id = await post(people.helena, 'performance/dimension', { organization_id: ctx.org, dimension_key: dimension.key, title: dimension.title, metric: dimension.metric, unit: dimension.unit, methodology: dimension.methodology });
+    dimensions.push({ ...dimension, id: id.id });
+  }
+  const period = (await post(opener, 'performance/open', {
+    contract_id: ctx.contract[spec.contract], title: spec.title, period_start: isoDate(spec.start), period_end: isoDate(spec.end), review_due_on: isoDate(spec.reviewDue),
+    dimensions: dimensions.map((dimension) => ({ dimension_id: dimension.id, operator: dimension.operator, threshold: dimension.threshold, source_reference: dimension.source }))
+  })).id;
+  for (const dimension of dimensions) {
+    const o = dimension.observation;
+    const observation = (await post(people[spec.measurer], 'performance/measure', {
+      period_id: period, dimension_id: dimension.id, availability: o.availability, ...(o.value ? { value: o.value } : {}), source_type: o.source_type,
+      source_reference: o.reference, provenance: o.provenance, coverage_numerator: o.covered, coverage_denominator: o.expected, observed_on: isoDate(spec.end)
+    })).id;
+    if (dimension.reviewed) await post(people[spec.reviewer], 'performance/review', { observation_id: observation, status: 'confirmed', reason: 'Fonte e cálculo conferidos de forma independente pela tesouraria.' });
+  }
+}
+
+async function seedSpend() {
+  for (const spec of L().spend) {
+    const record = (await post(people[spec.by], 'spend/record', {
+      contract_id: ctx.contract[spec.contract], period_start: isoDate(spec.start), period_end: isoDate(spec.end), currency: 'BRL', value_kind: spec.kind,
+      amount: spec.amount, source_type: spec.sourceType, source_reference: spec.reference, source_line: spec.line, provenance: spec.provenance
+    })).id;
+    if (spec.reconcile) await post(people[spec.reconcile.by], 'spend/reconcile', { record_id: record, status: 'confirmed', no_duplicate_confirmed: true, reason: spec.reconcile.reason });
+  }
+}
+
+async function seedQualification() {
+  const spec = L().qualification;
+  const helena = people.helena;
+  const requirements = {};
+  for (const requirement of spec.requirements) {
+    requirements[requirement.key] = (await post(helena, 'qualifications/requirement', {
+      organization_id: ctx.org, area: requirement.area, title: requirement.title, category: requirement.category || 'all', validity_days: requirement.validity, critical: Boolean(requirement.critical)
+    })).id;
+  }
+  const opener = people[spec.opener];
+  const qualification = (await post(opener, 'qualifications/open', { organization_id: ctx.org, provider_id: ctx.providerRow[spec.provider], category: spec.category, owner_id: people[spec.owner].id, review_due_on: isoDate(spec.reviewDue) })).id;
+  await post(opener, 'qualifications/transition', { qualification_id: qualification, expected_status: 'not_started', to_status: 'in_progress' });
+  for (const evidence of spec.evidence) {
+    const id = (await post(people[evidence.by], 'qualifications/evidence', {
+      qualification_id: qualification, requirement_id: requirements[evidence.requirement], source: evidence.source, evidence_reference: evidence.reference, ...(evidence.service ? { external_service: evidence.service } : {})
+    })).id;
+    if (evidence.review) await post(people[evidence.review.by], 'qualifications/evidence-review', { evidence_id: id, status: evidence.review.status });
+  }
+  await post(opener, 'qualifications/transition', { qualification_id: qualification, expected_status: 'in_progress', to_status: 'pending_internal_review' });
+}
+
+async function seedExtraction() {
+  const spec = L().extraction;
+  const person = people[spec.by];
+  const document = ctx.documents[data.DOCUMENTS[spec.document].title];
+  must(document, 'documento da extração não encontrado');
+  const started = await post(person, 'extractions/start', { organization_id: ctx.org, document_id: document.id, version: document.version, schema_key: spec.schema, provider: 'deterministic_v1' });
+  must(started.facts > 0, 'extração sem fatos');
+  for (const key of spec.confirm) {
+    const form = actionOf(await detailOf(person, 'extractions', started.id), (action) => action.post === 'extractions/review', 'revisão de fato');
+    const label = schemaField(spec.schema, key).label;
+    const option = form.fields[0][2].find(([, text]) => text.replace(/^◆ /, '').startsWith(`${label}:`));
+    must(option, `fato "${label}" não extraído`);
+    await post(person, 'extractions/review', { fact: option[0], action: 'confirm' });
+  }
+}
+
+async function seedOpportunityRules() {
+  for (const [key, parameters] of L().opportunityRules) {
+    await post(people.helena, 'opportunities/rules', { organization_id: ctx.org, rule: `${key}|0`, enabled: true, reason: 'Monitoramento definido pela CFO para a demonstração', ...parameters });
+  }
+}
+
+async function seedLifecycle() {
+  log('Registrando o pós-contrato (implantação, obrigações, performance, spend, qualificação, documento)…');
+  await seedImplementation();
+  await seedCovenants();
+  await seedPerformance();
+  await seedSpend();
+  await seedQualification();
+  await seedExtraction();
+  await seedOpportunityRules();
+}
+
 async function finishStory() {
   // Daqui em diante (cron do dia e leitura de avisos) os registros ficam com o horário real.
   closeStep();
   marks.push({ real: Date.now() + 500, narrative: Date.now() + 500 });
   await sleep(1_000);
-  // Marcos de renovação pelo mesmo cron que roda todo dia em produção.
+  await seedLifecycle();
+  // Marcos de renovação, obrigações, performance e oportunidades pelo mesmo
+  // cron que roda todo dia em produção.
   if (CRON) {
     const response = await fetch(`${APP}/api/jobs/renewals`, { headers: { Authorization: `Bearer ${CRON}` } });
     must(response.ok, `cron de renovação: ${response.status}`);
@@ -656,6 +846,25 @@ async function sanity() {
   const atlasRows = (await api(people.atlas, 'GET', `assignments?organization_id=${atlasOrg.id}`)).rows;
   const leaked = JSON.stringify(atlasRows).includes('Orbe Capital') || JSON.stringify(atlasRows).includes('Lumina');
   check('Provedor não vê concorrentes', atlasRows.length === 3 && !leaked, `${atlasRows.length} oportunidades, concorrentes ${leaked ? 'VISÍVEIS' : 'ausentes'}`);
+  // Pós-contrato: cada capability tem dado demonstrável e as regras do produto aparecem.
+  const page = async (resource) => api(juliana, 'GET', `${resource}?organization_id=${org.id}`);
+  const implementations = await page('implementations');
+  check('Implantação pós-award em andamento com bloqueio', implementations.rows.length === 1 && /Bloquead/.test(implementations.rows[0].cells[1]), implementations.rows.map((row) => row.cells[1]).join(', ') || 'nenhuma');
+  const covenants = await page('covenants');
+  const covenantStates = covenants.rows.map((row) => row.cells[1]);
+  check('Covenants: conforme, aguardando dados e waiver', covenants.rows.length >= 4 && covenantStates.includes('Conforme após revisão') && covenantStates.some((s) => ['Aguardando dados', 'Prazo próximo'].includes(s)) && covenantStates.includes('Waiver vigente'), covenantStates.join(' | '));
+  const performance = await page('performance');
+  check('Performance do provedor com período aberto', performance.rows.length === 1, `${performance.rows.length} período(s)`);
+  const spend = await page('spend');
+  check('Spend por moeda/tipo, com e sem reconciliação', spend.rows.length === 3 && spend.cards[0].lines.some((line) => line.startsWith('BRL · Observado')), `${spend.rows.length} registro(s)`);
+  const qualifications = await page('qualifications');
+  check('Qualificação do Atlas aguardando decisão humana', qualifications.rows.length === 1, `${qualifications.rows.length} qualificação(ões)`);
+  const extractions = await page('extractions');
+  check('Documento lido com fatos e proveniência', extractions.rows.length === 1, `${extractions.rows.length} extração(ões)`);
+  if (CRON) {
+    const opportunities = await page('opportunities');
+    check('Oportunidades detectadas pelas regras da empresa', (opportunities.rows || []).length >= 1, `${(opportunities.rows || []).length} oportunidade(s)`);
+  }
   const environment = (await api(juliana, 'GET', 'organizations')).environment;
   check('Aplicação em ARANDU_ENV=demo', environment === 'demo', String(environment));
   const marker = (await service(`fin_settings?select=value&key=eq.${DEMO_MARKER_KEY}`)).payload?.[0]?.value;
