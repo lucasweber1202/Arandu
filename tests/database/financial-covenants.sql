@@ -122,7 +122,13 @@ select public.fin_run_obligations(current_date);
 select public.fin_run_obligations(current_date);
 do $$ begin
  if (select count(*) from public.fin_obligation_periods where obligation_id=pg_temp.fx('obligation'))<>3 then raise exception 'recurrence missing or duplicate';end if;
- if (select count(*) from public.fin_notifications where event_id in(select id from public.fin_obligation_periods where obligation_id=pg_temp.fx('obligation')))<>1 then raise exception 'recurring reminder duplicate';end if;
+ -- Exatamente um aviso por período pendente dentro da janela due_soon e nenhum
+ -- fora dela. Não depende do dia do mês em que o teste roda: a partir do dia 6
+ -- o período corrente também entra na janela de 30 dias (falhava em 06/10/2026).
+ if exists(select 1 from public.fin_obligation_periods p where p.obligation_id=pg_temp.fx('obligation') and (select count(*) from public.fin_notifications n where n.event_id=p.id)>1) then raise exception 'recurring reminder duplicate';end if;
+ if exists(select 1 from public.fin_obligation_periods p join public.fin_obligations o on o.id=p.obligation_id where p.obligation_id=pg_temp.fx('obligation')
+   and ((select count(*) from public.fin_notifications n where n.event_id=p.id)=1) <> (p.due_on-o.due_soon_days<=current_date and public.fin_obligation_facts(p.id,current_date)->>'status' not in ('compliant','waived','not_applicable'))) then raise exception 'recurring reminder missing or unexpected';end if;
+ if (select count(*) from public.fin_notifications where event_id in(select id from public.fin_obligation_periods where obligation_id=pg_temp.fx('obligation')))<1 then raise exception 'recurring reminder missing';end if;
  if not exists(select 1 from public.fin_opportunity_candidates('00000000-0000-4000-8000-0000000a7201',current_date) where rule_key='covenant_awaiting_data') then raise exception 'awaiting opportunity missing';end if;
  if not exists(select 1 from public.fin_opportunity_candidates('00000000-0000-4000-8000-0000000a7201',current_date+11) where rule_key='waiver_expiry') then raise exception 'waiver expiry opportunity missing';end if;
  if not exists(select 1 from public.fin_governance_export_datasets() where dataset='covenant_measurements') then raise exception 'covenant export missing';end if;
