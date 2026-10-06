@@ -21,7 +21,7 @@ npm ci
 npm run demo:setup     # Supabase local real (Docker) + build + app em ARANDU_ENV=demo + seed da Vitta Foods
 ```
 
-O comando termina com 20 checagens de sanidade e a lista de personas. Abra
+O comando termina com 32 checagens de sanidade quando CRON_SECRET está configurado e a lista de personas. Abra
 `https://localhost:4443/login.html` (certificado autoassinado) e entre com uma
 persona; a senha é gerada por ambiente em
 `scripts/pilot-local/.state/demo.env` (fora do Git).
@@ -100,3 +100,16 @@ recusam a capability. Nunca configure essa senha em Preview/Pilot/Oficial.
 O catálogo de pessoas é compartilhado com o seed. O teste de navegador cobre
 nomes como texto e a indisponibilidade da capability; execução cross-browser
 continua pendente no executor de 06/10/2026.
+
+## Estado hospedado observado em 06/10/2026 após #138
+
+O endereço público `arandu-demo.vercel.app` ainda executa sandbox legado,
+embora seu deploy seja main@fcc68f91 READY. Persona entry e API financeira
+canônicas retornam 404. Supabase Demo dedicado ainda não existe no acesso
+atual. As capabilities descritas acima existem no código/dataset, mas não
+foram vistas numa Demo canônica hospedada nesta rodada: M1/E1, não M3/E3.
+Cutover preparado em [HOSTED_ALIGNMENT_2026-10-06.md](../HOSTED_ALIGNMENT_2026-10-06.md).
+
+32 checks completos dependem do cron real de renovação/oportunidades; sem
+CRON_SECRET só 30 checks e cobertura incompleta. Os 29 históricos não validam
+as adições Portfolio/Fee/USD da #137.
