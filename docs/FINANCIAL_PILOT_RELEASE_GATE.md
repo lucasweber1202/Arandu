@@ -42,7 +42,7 @@ Cada observação (`deployment`, `backup`, `restore`, `migration`, `doctor`,
 
 | Registro | Campos obrigatórios |
 | --- | --- |
-| deployment | `state: READY`, `target: production`, `branch: pilot`, `project: arandu-pilot`, `schema_version` final |
+| deployment | `state: READY`, `target: production`, `branch: main` (desde 06/10/2026 o staging publica a `main` canônica), `project: arandu-pilot`, `schema_version` final |
 | backup | `result: PASS`, `sha256`, `schema_version` anterior |
 | restore | `result: PASS`, `target_kind: disposable`, `schema_version` anterior, `backup_sha256`, `post_restore_probes: PASS`, `row_comparison: PASS`, `duration_ms` positivo finito |
 | migration | `result: PASS`, `schema_before`, `schema_after`, `bundle_sha256`, `started_at` depois do restore; `observed_at` depois do início |

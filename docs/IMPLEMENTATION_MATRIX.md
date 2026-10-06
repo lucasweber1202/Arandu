@@ -14,7 +14,20 @@ Outra sessão deve conseguir continuar a partir daqui sem refazer a auditoria.
   mas **não prevalece** sobre a v3. As colunas `Guideline` das tabelas detalhadas citam
   seções da v2/v2.1 vigentes quando cada linha foi escrita; a numeração não foi
   reescrita para não perder rastreabilidade.
-- **Estado atual (05/10/2026, rodada de reconciliação pós-merge v3).** `pilot` @
+- **Estado atual (06/10/2026, consolidação `main` canônica).** Árvore consolidada =
+  `pilot@2241d3b94568acfdb99c8b7b31b53810e356846e` (merges #131–#134) + merge de
+  `e7449477` (Financial Spend, #135 — mergeada em `codex/provider-performance`, nunca
+  em `pilot`) + runtime/demo/bundle/docs desta rodada, em PR para `main`. `main` estava
+  0 commits à frente de `pilot` (nada exclusivo perdido). Validação **local** completa
+  registrada na PR; CI hospedado indisponível desde o run #771 (jobs com
+  `runner_id: 0`, sem passos — quota/billing de Actions; `GITHUB_ACTIONS_MINUTES.md`).
+  Nenhuma maturidade foi elevada por isso: capabilities pós-contrato seguem M1/E1
+  (código + banco local + demo local), sem CI hospedado no HEAD exato. Correção de
+  produto desta rodada: **OD-01** (`docs/supabase-financial-opportunity-discriminator.sql`)
+  — o job de oportunidades abortava para todas as organizações quando um covenant ou
+  período de performance gerava candidato (discriminador UUID recusado pela constraint);
+  reproduzido pela demo, coberto por `tests/database/financial-opportunity-discriminator.sql`.
+- **Estado anterior (05/10/2026, rodada de reconciliação pós-merge v3; histórico).** `pilot` @
   `d828a44027506a9d4a4eddd807914f85dd8dde4c` (merge #127, Guideline v3) **não é baseline
   limpa**: a #127 foi mergeada com `validate`/`presentation` ainda em execução e sem conter
   a ponta da `pilot` após a #125 (incidente de governança de merge, ver

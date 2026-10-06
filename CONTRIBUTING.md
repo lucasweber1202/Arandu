@@ -8,15 +8,15 @@ A guideline descreve o **target-state**, não uma autorização para implementar
 
 ## Fluxo de trabalho
 
-1. Parta da `pilot` atualizada. Mudanças funcionais vão para `pilot` e são promovidas para `main` por PR depois de testadas no piloto (fluxo e hotfix em `docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md`). Se `pilot` estiver atrás de `main`, reconcilie a topologia antes de iniciar uma nova feature.
-2. Se `main` estiver com guideline estratégica mais antiga que uma guideline já aprovada em `pilot`, não inicie feature nova a partir dessa documentação obsoleta. Resolva por `pilot → main` ou, quando promover todo o `pilot` for incorreto, por backport **docs-only** explícito para `main`, seguido de reconciliação `main → pilot` antes da próxima feature relevante. Essa é a exceção de canonicality (originalmente definida no addendum v2.1, hoje histórico; a v3 §23.5 mantém a obrigação de reconciliar hotfix de `main` em `pilot`).
+1. Parta da ponta atual de `main`, a **única** branch longa de produto. Mudanças voltam para `main` por PR; Demo, Staging/Pilot e Oficial publicam a mesma `main` com configuração e banco próprios (`docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md`). A branch `pilot` está congelada (histórica) e não recebe PR.
+2. Diferenças entre ambientes ficam em `lib/runtime-mode.mjs` (side effects, datasource, fixtures). Não crie branch, build ou tela exclusiva de ambiente; capability nova entra também no seed da demo canônica (`scripts/demo/seed.mjs`).
 3. Crie uma branch curta e descritiva:
    - `agent/<descricao>` para pacotes implementados por agentes;
    - `feature/<descricao>` para funcionalidade;
    - `fix/<descricao>` para correção;
    - `chore/<descricao>` para manutenção;
    - `docs/<descricao>` para documentação normativa/operacional.
-4. Não faça commits diretamente na `main` nem na `pilot`; `main` só recebe a promoção `pilot → main`, `hotfix/*` e a exceção docs-only de canonicality documentada acima.
+4. Não faça commits diretamente na `main`; toda mudança (inclusive `hotfix/*` e dependências) entra por PR com os quatro gates verdes no HEAD exato. Confirme a integração com `git merge-base --is-ancestor <sha> origin/main` — PR "merged" em outra branch de feature não chegou ao produto (caso da #135).
 5. Abra PR em modo draft enquanto houver testes ou evidências pendentes.
 6. Remova a branch remota depois do merge, salvo quando ela for uma base empilhada ainda ativa.
 

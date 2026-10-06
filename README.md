@@ -107,13 +107,15 @@ variáveis e projeto Supabase, nunca por cópias do código.
 | Ambiente | Projeto Vercel | Branch | Declarado por | Banco |
 | --- | --- | --- | --- | --- |
 | **Demo** | `arandu-demo` | `main` | `ARANDU_ENV=demo` | Supabase DEMO próprio (Vitta Foods, fictícia) |
-| **Pilot** | `arandu-pilot` | `pilot` | `ARANDU_ENV=pilot` | Supabase do piloto |
+| **Staging/Pilot** | `arandu-pilot` | `main` | `ARANDU_ENV=pilot` | Supabase do piloto (validação) |
 | **Production** | `arandu` | `main` | `ARANDU_ENV=production` | Supabase próprio da produção |
 
-Piloto e produção nunca compartilham banco, e nenhum usa o projeto legado de
-arte. O build recusa a topologia errada (banco trocado, branch errada, demo em
-ambiente real, credencial na demo, produção sem ambiente declarado). Fluxo
-`feature/* → pilot → main`, hotfix e rollback:
+Os três ambientes publicam a **mesma `main`** e nunca compartilham banco; nenhum
+usa o projeto legado de arte. A diferença de comportamento (e-mail, webhooks,
+modelo externo, documentos reais, fixtures) vem só de `lib/runtime-mode.mjs`.
+O build recusa a topologia errada (banco trocado, branch diferente de `main`,
+sandbox em ambiente real, credencial no sandbox, produção sem ambiente
+declarado). Fluxo `feature/* → PR → main → ambientes`, release e rollback:
 [`docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md`](docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md).
 
 - **Demo**: [`docs/demo/README.md`](docs/demo/README.md) (canônica). O sandbox
@@ -127,7 +129,7 @@ ambiente real, credencial na demo, produção sem ambiente declarado). Fluxo
 
 ## Estado operacional
 
-Estado observado em 02/10/2026, separado por código e ambiente em
+Estado histórico observado em 02/10/2026 (anterior à consolidação `main` canônica de 06/10/2026), separado por código e ambiente em
 [`docs/ARANDU_CURRENT_STATE_2026-10-02.md`](docs/ARANDU_CURRENT_STATE_2026-10-02.md):
 
 - **Código**: `main` com Onda 0 e CI verde; `pilot` 13 commits à frente e
@@ -195,9 +197,9 @@ O CI (`.github/workflows/ci.yml`) roda os jobs `validate`, `database`,
 ## Contribuir
 
 Leia [`CONTRIBUTING.md`](CONTRIBUTING.md). Em resumo: branch `feature/*` a
-partir de `pilot`, PR para `pilot`, validação local completa e **um push por
-lote**. `main` só recebe a promoção `pilot → main` e `hotfix/*`. Nunca registre
-segredo, e-mail real ou PII no Git.
+partir de `main`, PR para `main` com os quatro gates verdes no HEAD exato,
+validação local completa e **um push por lote**. `pilot` está congelada
+(histórica). Nunca registre segredo, e-mail real ou PII no Git.
 
 ## Governança do repositório
 
@@ -216,14 +218,14 @@ controles mínimos do repositório.
 **Piloto** (GO quando todos valerem):
 
 1. migrations do manifesto aplicadas até o schema esperado pelo código do piloto e `finance:pilot:doctor` = GO;
-2. `arandu-pilot` publicado da branch `pilot` com `ARANDU_ENV=pilot`;
+2. `arandu-pilot` publicado da `main` com `ARANDU_ENV=pilot`;
 3. `pilot:canary` e `pilot:restore:drill` aprovados contra o piloto real;
-4. CI verde no head de `pilot`;
+4. CI verde no SHA de `main` publicado no piloto;
 5. revisão jurídica concluída e empresa/provedores do piloto na allowlist.
 
 **Produção**: Supabase próprio com as mesmas migrations, `ARANDU_ENV=production`
-no projeto `arandu`, doctor GO contra ele e promoção `pilot → main` com o piloto
-realmente utilizado.
+no projeto `arandu`, doctor GO contra ele e o mesmo SHA de `main` validado no
+piloto realmente utilizado.
 
 ## Nota histórica
 

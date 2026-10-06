@@ -41,6 +41,15 @@ permissões: [`FINANCIAL_REPO_GOVERNANCE.md`](FINANCIAL_REPO_GOVERNANCE.md).
 
 ## 3. Os três ambientes (Vercel e Supabase)
 
+**Consolidação de 06/10/2026 — ações do owner, em ordem:**
+
+1. GitHub → Billing → Actions: restabelecer minutos/limite de gasto (CI sem runner desde o run #771; `GITHUB_ACTIONS_MINUTES.md`) e re-executar a PR de consolidação.
+2. Merge da PR de consolidação em `main` só com os quatro gates verdes no HEAD exato.
+3. Vercel → `arandu-pilot` → Settings → Git → **Production Branch = `main`** (o build recusa `pilot` desde esta rodada).
+4. Supabase PILOT: aplicar as migrations pendentes até `financial-opportunity-discriminator-1` em ordem (`npm run migrations:release`, `MIGRATION_RELEASE_RUNBOOK.md`), com backup antes, e rodar doctor + canary.
+5. Supabase DEMO: criar o projeto (limite de projetos do plano Free bloqueou antes), aplicar `cleanInstall`, configurar `arandu-demo` com `ARANDU_ENV=demo` e rodar `npm run demo:seed` da máquina do operador (`docs/demo/RESET.md`).
+6. Confirmada a transição, arquivar `pilot` (tag) e remover as branches DELETE de `REPOSITORY_HYGIENE.md`.
+
 Topologia e fluxo em [`FINANCIAL_DEPLOYMENT_WORKFLOW.md`](FINANCIAL_DEPLOYMENT_WORKFLOW.md).
 A branch `pilot` e os três projetos Vercel existem. Evidência atual por alias,
 SHA e ambiente em [`ARANDU_CURRENT_STATE_2026-10-02.md`](ARANDU_CURRENT_STATE_2026-10-02.md).

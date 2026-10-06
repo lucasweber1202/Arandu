@@ -35,7 +35,7 @@ Branch name pattern: `main`
 | Allow force pushes | desligado | histórico da `main` não é reescrito |
 | Allow deletions | desligado | a `main` não pode ser apagada |
 
-Regra atual para `pilot` e `main`: sem bypass permanente. A orientação histórica de emergência abaixo foi substituída por `BRANCH_PROTECTION.md` (originalmente pelo addendum v2.1, hoje histórico; a Guideline v3 §23.5 mantém a regra). Exceções precisam de incidente documentado. Em 05/10 ambas continuam `protected=false`; nada foi configurado pelo conector.
+Regra atual: `main` é a única branch longa de produto e não tem bypass permanente; `pilot` está congelada (histórica) e mantém a ruleset só para não ser apagada/reescrita antes da confirmação da transição. A orientação histórica de emergência abaixo foi substituída por `BRANCH_PROTECTION.md` (originalmente pelo addendum v2.1, hoje histórico; a Guideline v3 §23.5 mantém a regra). Exceções precisam de incidente documentado. Em 05/10 ambas continuam `protected=false`; nada foi configurado pelo conector.
 
 ### Por que isso importa — agora com duas ocorrências
 
@@ -52,6 +52,17 @@ mesclar antes de os quatro jobs fecharem**, e conferir na aba Actions.
 
 Registro factual, sem culpa individual (modelo de `FINANCIAL_INCIDENT_POSTMORTEM.md`).
 Classe: **merge governance incident** — não é falha do produto.
+
+### MGI-2026-10-06-01 — #135 "merged" fora da linha de produto; #131–#135 sem gates executados
+
+| Campo | Fato |
+| --- | --- |
+| PR | #135 Financial Spend, base `codex/provider-performance` (branch da #134), HEAD `e7449477f32b1153125cfd03c2445df99556b0fe` |
+| Merge | `99c6f85ed81bb5b7db07b12638e2591f1e59f0ad` em `codex/provider-performance` — **não** em `pilot` nem `main` |
+| Efeito | GitHub mostra "merged", mas o código nunca chegou à linha de produto; `pilot@2241d3b` (merge da #134) não continha `docs/FINANCIAL_SPEND_INTELLIGENCE.md` |
+| CI | runs #771–#778 sem runner (`runner_id: 0`, zero passos, sem log): #131–#135 mergeadas sem nenhum gate executado; `merge-audit` falhou corretamente (`GITHUB_ACTIONS_MINUTES.md`) |
+| Recuperação | consolidação de 06/10: merge de `e7449477` (mesmo SHA) sobre `pilot@2241d3b`, sem conflito, árvore validada localmente (DB completo, check:all, builds, E2E) e PR para `main` |
+| Correção de processo | `main` é a única branch longa; PR empilhada precisa ter a base devolvida para `main` antes do merge final; integração se prova com `git merge-base --is-ancestor <sha> origin/main`, não com o rótulo "merged" (`FINANCIAL_DEPLOYMENT_WORKFLOW.md`) |
 
 ### MGI-2026-10-05-01 — PR #127 mergeada com gates em execução e base desatualizada
 

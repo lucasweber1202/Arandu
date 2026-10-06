@@ -22,7 +22,7 @@ documento divergir, vale este índice, nesta ordem.
 - `docs/FIRST_CUSTOMER_PILOT_CHECKLIST.md` — configuração, dados, suporte e critérios de primeiro cliente.
 - `docs/FINANCIAL_PILOT_GO_LIVE.md` — checklist única de go-live do piloto, com estado por item.
 - `docs/FINANCIAL_OWNER_ACTIONS.md` — o que só o proprietário pode fazer.
-- `docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md` — três ambientes (demo, pilot, production), `feature/* → pilot → main`, hotfix e rollback.
+- `docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md` — **canônico**: `main` única branch de produto; ambientes demo/staging(pilot)/official da mesma árvore; runtime (`lib/runtime-mode.mjs`), dados, release e rollback.
 - `docs/FINANCIAL_PILOT_ENVIRONMENT.md` — variáveis, Supabase do piloto, backups.
 - `docs/FINANCIAL_PILOT_OPERATIONS.md`, `docs/FINANCIAL_PILOT_SUPPORT.md`, `docs/FINANCIAL_PILOT_PLAYBOOK.md` — operação, suporte e incidentes.
 - `docs/demo/README.md` — demo canônica: produto real com Supabase DEMO dedicado e Vitta Foods fictícia.

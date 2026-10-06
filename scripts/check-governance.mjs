@@ -151,13 +151,13 @@ if (exists('.github/dependabot.yml')) {
   if (!dependabot.includes('package-ecosystem: "github-actions"')) {
     problems.push('.github/dependabot.yml: ecossistema GitHub Actions ausente.');
   }
-  // Cada ecossistema abre PR contra pilot; PR de dependência direto em main
-  // diverge main x pilot sem passar pela integração (#126).
+  // Cada ecossistema abre PR contra main, a única branch longa de produto
+  // (06/10/2026); PR contra a pilot congelada nunca chegaria ao produto.
   const ecosystems = dependabot.split(/^  - package-ecosystem:/m).slice(1);
   for (const block of ecosystems) {
     const name = block.split('\n')[0].trim();
-    if (!/^    target-branch: "pilot"$/m.test(block)) {
-      problems.push(`.github/dependabot.yml: ${name} sem target-branch "pilot".`);
+    if (!/^    target-branch: "main"$/m.test(block)) {
+      problems.push(`.github/dependabot.yml: ${name} sem target-branch "main" (única branch de produto).`);
     }
   }
 }

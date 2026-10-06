@@ -6,7 +6,7 @@ Branches de PR mesclada devem ser removidas depois que deixarem de servir como b
 
 Mantenha somente:
 
-- `main`;
+- `main` (única branch longa de produto desde 06/10/2026; `pilot` congelada até a confirmação da transição);
 - branches com PR aberta;
 - branches empilhadas ainda necessárias;
 - branches de recuperação explicitamente documentadas.
@@ -33,7 +33,27 @@ git branch -r --merged origin/main
 
 A exclusão deve ser deliberada e revisada. Não automatize a remoção de branches não mescladas.
 
-## Inventário de branches — 2026-10-04
+## Inventário de branches — 2026-10-06 (consolidação `main` canônica)
+
+Levantado contra a árvore consolidada (`pilot@2241d3b` + `e7449477`) com
+`git rev-list --count <consolidada>..<branch>` e `git cherry`. **Nada foi apagado.**
+A remoção é ação do owner, depois do merge da PR de consolidação em `main`
+(antes disso, "contida na consolidada" ainda não é "contida em `main`").
+
+**KEEP**
+- `main`.
+- `pilot` — congelada; preservar até a confirmação da transição (deploy de staging a partir de `main` + `git merge-base --is-ancestor origin/pilot origin/main`). Depois: tag `archive/pilot-2026-10-06` e remoção.
+- A branch da PR de consolidação, até o merge.
+
+**DELETE (depois do merge da consolidação em `main`; 0 commits fora da árvore consolidada)**
+`agent/arandu-admin-auth-mfa`, `agent/arandu-audit-320-batch-1`, `agent/arandu-final-consolidation`, `agent/arandu-integrate-pr42-post46`, `agent/arandu-product-readiness`, `agent/arandu-production-gap-closure`, `agent/arandu-production-readiness-final`, `agent/arandu-structural-debt-closure`, `agent/arandu-transactions-rls-operations`, `agent/arandu-vercel-release-gate-fixes`, `agent/recover-contract-provider-portfolio`, `chore/final-post-merge-reconciliation`, `claude/arandu-beta-launch-2026-08-28`, `claude/arandu-friday-ready-9fcxvs`, `claude/arandu-mudancas-a3r84y`, `claude/arandu-rc1-closure-taldyw`, `claude/arandu-readiness-audit-yjm9ny`, `claude/compassionate-darwin-fw23iw`, `claude/eager-franklin-0ew309`, `claude/eloquent-bohr-59fuk0`, `claude/friendly-goodall-n9k0as`, `claude/hopeful-archimedes-37u43x`, `claude/inspiring-clarke-0c7zaf`, `claude/lucid-hopper-6zcuqj`, `claude/pilot-operational-closure`, `claude/sleepy-dirac-nlmjia`, `claude/stoic-archimedes-5tb1jj`, `claude/vibrant-lovelace-gnz9qs`, `claude/vibrant-planck-m71705`, `codex/covenant-obligation-monitor`, `codex/financial-spend`, `codex/pilot-advisor-hardening`, `codex/post-award-implementation`, `docs/arandu-guideline-v2-1-enterprise-hardening`, `docs/arandu-master-guidelines-v1`, `docs/financial-procurement-os-guideline-v2`, `docs/guideline-v3-operational-maturity`, `feature/bank-fee-intelligence`, `feature/data-governance`, `feature/demo-baseline`, `feature/enterprise-sso-foundation`, `feature/environment-topology`, `feature/integrate-financial-graph`, `feature/operational-resilience`, `feature/opportunity-engine`, `feature/passport-operational-closure-2026-10-02`, `feature/pilot-hosted-closure`, `feature/pilot-passport-hosted-rollout-2026-10-02`, `feature/policy-engine-v2`, `feature/public-api-webhooks`, `feature/savings-value-realization`, `feature/stabilize-pilot-contract-actions`, `feature/value-intelligence-executive`, `fix/pilot-webkit-route-performance`, `fix/value-realization-post-merge`, `hotfix/arandu-wave0-safari-closure`, `noop-do-not-use`, `perf/bundle-headroom`, `work/arandu-enterprise-procurement-depth`, `work/arandu-final-beta-code-closure`, `work/arandu-financial-platform-deepening`, `work/arandu-financial-procurement-pilot-hardening`, `work/arandu-financial-productization`, `work/arandu-first-financial-pilot-readiness`, `work/arandu-operational-depth`.
+Também: `codex/provider-performance` (o único commit fora é o merge da #135, cujo conteúdo `e7449477` está na consolidada), `codex/financial-spend` (HEAD `e7449477`, incorporado com o mesmo SHA), `feature/financial-graph-foundations` e `feature/passport-legal-entity` (0 patches não aplicados), `agent/contract-center-v2`, `claude/modest-shannon-7vd88r` e `agent/policy-engine-v2` (conteúdo recuperado e evoluído na árvore: migrations `contracts-v2` e `relationships-portfolio` idênticas; `policy-engine` e `lib/finance/policy.mjs` mais novos na árvore que na branch).
+
+**ARCHIVE/HISTORICAL (não apagar sem decisão do owner; tag `archive/<nome>` antes de remover)**
+- Pré-consolidação com commits próprios, julho–setembro de 2026, superseded por trabalho posterior mas não revisados commit a commit: `work/arandu-b2b-platform-pivot` (10), `agent/arandu-launch-hardening-remote` (61), `agent/arandu-governance-release-hygiene` (14), `agent/arandu-staging-rehearsal-evidence` (7), `agent/arandu-presentation-readiness-hardening` (6), `agent/consolidate-pr37-after-pr38` (5), `agent/arandu-production-gates-ops` (2).
+- Era de arte (1.000+ commits fora, junho–julho de 2026; vertical aposentada, `LEGACY_ART_RETIREMENT.md`): as mesmas listadas no inventário de 04/10 abaixo.
+
+## Inventário de branches — 2026-10-04 (histórico)
 
 Levantado com `git rev-list --count origin/pilot..<branch>` e `git cherry origin/pilot <branch>` (88 branches remotas). Nada foi apagado: a remoção é ação separada, revisada pelo owner.
 

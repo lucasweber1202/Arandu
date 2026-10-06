@@ -16,7 +16,7 @@ Com `ARANDU_ENV` `demo`, `pilot` ou `production`, `npm run vercel-build` roda
 - demonstração ou apresentação ligada;
 - banco compartilhado (produção no piloto, qualquer um no legado);
 - chave de outro projeto;
-- branch errada;
+- branch diferente de `main` (única branch de produto desde 06/10/2026; a Production Branch do `arandu-pilot` precisa ser `main`);
 - falta de segredo de servidor.
 
 Dado DEMO misturado com dado real de empresa destruiria a confiança em tudo que

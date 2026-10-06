@@ -1,4 +1,8 @@
-# Proteção recomendada das branches `pilot` e `main`
+# Proteção recomendada das branches `main` e `pilot`
+
+> Desde 06/10/2026 `main` é a única branch longa de produto (`FINANCIAL_DEPLOYMENT_WORKFLOW.md`).
+> A ruleset de `pilot` continua útil só para impedir deleção/reescrita da branch
+> congelada até a confirmação da transição.
 
 Estas configurações são aplicadas nas configurações do GitHub, não por arquivos do repositório. Elas devem ser habilitadas depois do merge deste pacote.
 

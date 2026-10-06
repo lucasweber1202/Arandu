@@ -1175,23 +1175,26 @@ Permissão, transição, aprovação, decisão, cálculo crítico, acesso a docu
 
 ## 23.4 Ambientes
 
-- demo: código promovido + configuração DEMO + banco/estado DEMO;
-- pilot: `pilot` + configuração PILOT + banco PILOT;
-- production: `main` + configuração PRODUCTION + banco PROD.
+Revisão de 06/10/2026, decidida pelo owner (consolidação `main` canônica):
 
-Nenhum banco deve ser compartilhado entre ambientes.
+- demo: `main` + configuração DEMO (`ARANDU_ENV=demo`, runtime `demo`) + banco/estado DEMO com dados sintéticos;
+- staging/pilot: `main` + configuração PILOT (`ARANDU_ENV=pilot`, runtime `staging`) + banco PILOT — validação de migrations, E2E, smoke, recovery e release candidate;
+- official/production: `main` + configuração PRODUCTION (`ARANDU_ENV=production`, runtime `official`) + banco PROD — só release aprovada.
+
+Nenhum banco deve ser compartilhado entre ambientes. A diferença de comportamento entre ambientes (datasource, autenticação de teste, fixtures, e-mail, webhooks, provedores externos, documentos reais) DEVE ser decidida por uma política única e testada (`lib/runtime-mode.mjs`), nunca por condicionais espalhadas ou código de produto divergente.
 
 ## 23.5 Branches e promoção
 
 Fluxo normativo:
 
-`feature/* -> pilot -> main`
+`feature/* -> PR -> main -> ambientes`
 
-- feature nasce de base alinhada com `pilot`;
-- PR entra em `pilot` após gates;
-- Pilot prova integração hospedada;
-- promoção `pilot -> main` libera a mesma árvore;
-- hotfix de `main` deve ser reconciliado com `pilot`.
+- `main` é a única branch longa de produto;
+- feature nasce da ponta atual de `main` e é temporária;
+- PR entra em `main` após os gates;
+- staging/pilot prova a integração hospedada do mesmo SHA antes do oficial;
+- a branch `pilot` é histórica (congelada) desde a consolidação de 06/10/2026;
+- "merged" em outra branch não é integração: o SHA precisa ser ancestral de `main`.
 
 Merge NÃO DEVE ocorrer com gate obrigatório pending, failed, cancelled, skipped ou atestando SHA diferente do HEAD.
 
