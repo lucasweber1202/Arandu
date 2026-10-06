@@ -56,6 +56,7 @@ const VIEWS = {
     extractions: lazy(() => import('./src/views/extractions.js'), 'extractions'),
     qualifications: lazy(() => import('./src/views/qualifications.js'), 'qualifications'),
     implementations: lazy(() => import('./src/views/implementations.js'), 'implementations'),
+    performance: lazy(() => import('./src/views/performance.js'), 'performance'),
     covenants: lazy(() => import('./src/views/covenants.js'), 'covenants')
   })
 };

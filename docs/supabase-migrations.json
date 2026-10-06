@@ -55,7 +55,8 @@
     "docs/supabase-financial-document-intelligence.sql",
     "docs/supabase-financial-provider-qualification.sql",
     "docs/supabase-financial-implementation.sql",
-    "docs/supabase-financial-covenants.sql"
+    "docs/supabase-financial-covenants.sql",
+    "docs/supabase-financial-provider-performance.sql"
   ],
   "existingDatabase": [
     "docs/supabase-sprint1-auth-ownership.sql",
@@ -112,6 +113,7 @@
     "docs/supabase-financial-document-intelligence.sql",
     "docs/supabase-financial-provider-qualification.sql",
     "docs/supabase-financial-implementation.sql",
-    "docs/supabase-financial-covenants.sql"
+    "docs/supabase-financial-covenants.sql",
+    "docs/supabase-financial-provider-performance.sql"
   ]
 }

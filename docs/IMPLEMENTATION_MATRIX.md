@@ -111,7 +111,8 @@ que contém a capability. `Ambiente validado` = onde a evidência mais alta foi 
 | CO-01 | Covenant & Obligation Monitor | partial (core implementado) | M1 | E1 | local PostgreSQL 16 / fixtures | — (CI obrigatório pendente) | 05/10 | CI, E2E e Stage 0 | M2 com gates no SHA |
 | P1.5 | SCIM / JIT / access reviews | missing | NOT_STARTED | — | — | — | — | — | — |
 | P1.6 | Executive Portfolio | partial | M2 (fatia executiva) | E2 | CI | BL-V3 | 05/10 | rollout hospedado | M3 |
-| P1.7–P1.9 | Spend, Covenant Monitor, Provider Performance | missing | NOT_STARTED | — | — | — | — | — | — |
+| P1.7 | Financial Spend Intelligence | missing | NOT_STARTED | — | — | — | — | — | Phase 6 after Provider Performance |
+| PP-01 | Provider Performance | partial (core implementado) | M1 | E1 | local PostgreSQL 16; Node; build | — (CI obrigatório pendente) | 05/10 | CI, E2E e Stage 0 | M2 com gates no SHA |
 | P1.10 | Enterprise Search | partial | M2 (escopo limitado) | E2 | CI | BL-V3 | 05/10 | — | — |
 | P1.11–P1.12 | Enterprise Intake, Scenario Builder | missing | NOT_STARTED | — | — | — | — | — | — |
 | P2.1–P2.4, P2.6, P2.8 | Product Packs e integrações | missing | NOT_STARTED | — | — | — | — | gate §43.1 / Stage 4 | — |
@@ -293,8 +294,8 @@ Inventário, categorias e procedimento em `docs/LEGACY_ART_RETIREMENT.md` (ponte
 | P1.5 | §33, Add. F.2 | SCIM / JIT / access reviews / service accounts | P1 | P0.9 | missing | — | — | misconfiguration | — | — |
 | P1.6 | §26 | Executive Portfolio | P1 | P0.4–P0.6 | partial | `/finance/dashboard.html` (pipeline, tarefas, prazos, consolidado por entidade, **Inteligência de valor**: valor negociado/realizado/evitado, diferenças e revisões de tarifa, cobertura, oportunidades — por moeda, entidade e período, com links de ação; `docs/FINANCIAL_VALUE_INTELLIGENCE_EXECUTIVE.md`), `/finance/portfolio.html` (dívida, limites, concentração, garantias) | cycle times; P1.7 Spend Analytics; export executivo | dashboard sem ação (mitigado: cada cartão leva ao trabalho); soma entre moedas/tipos (proibida e testada) | fatia executiva CI validated e mergeada na #122; validar hosted | #122 |
 | P1.7 | §16 | Financial Spend Analytics | P1 | P1.2 | missing | — | — | dupla contagem | — | — |
-| P1.8 | §15 | Covenant & Obligation Monitor | P1 | P0.4 | missing | — | — | breach falso | com contracts v2 | — |
-| P1.9 | §25 | Provider Performance | P1 | P0.5 | missing | — | — | score universal | — | — |
+| P1.8 / CO-01 | v3 §13 | Covenant & Obligation Monitor | P1 | P0.4 | partial (core implementado, M1) | `FINANCIAL_COVENANTS.md`; #133 incorporated in pilot a2face3 without valid CI | hosted, independent CI | breach falso | M2 after exact-SHA gates | #133 |
+| P1.9 / PP-01 | v3 §12 | Provider Performance | P1 | P0.5 | partial (core implementado, M1/E1) | `FINANCIAL_PROVIDER_PERFORMANCE.md`; 5 SoRs; metas/métodos do cliente; observações/revisões imutáveis; fechamento; API/UI; Search/Graph/Executive/Opportunity/exports/lembretes | CI, browser execution, hosted; sem score agregado ou conector externo | score universal (proibido); dado ausente ≠ zero | M2 com gates exatos | draft provider-performance |
 | P1.10 | §35 | Enterprise Search | P1 | P0.2 | partial | `fin_search` (RFQ/proposta/provedor/contrato/tarefa, limitado), entity-aware desde a multi-entity | sem filtros de entidade/data/estado/categoria; não cobre documentos, comentários, obrigações | leakage | após P0.4–P0.6 | — |
 | P1.11 | §22 | Enterprise Intake | P1 | P0.2 | missing | intake só na demo (`DEMO_ONLY_PAGES`) | — | campo crítico inferido | — | — |
 | P1.12 | §21 | Scenario Builder / split award | P1 | comparação | missing | — | — | parecer recomendação | — | — |

@@ -30,7 +30,7 @@ begin
   v_order := array_position(array['financial-surface-hardening-1','financial-approval-handoff-1','financial-passport-1',
                                    'financial-multi-entity-1','financial-contracts-v2-1',
                                    'financial-relationships-portfolio-1','financial-passport-entities-1','financial-graph-1','financial-policy-engine-1','financial-public-api-1',
-                                   'financial-sso-1','financial-operational-resilience-1','financial-data-governance-1','financial-legacy-art-decommission-1','financial-p0-closure-1','financial-value-realization-1','financial-fee-intelligence-1','financial-opportunity-engine-1','financial-document-intelligence-1','financial-provider-qualification-1','financial-implementation-1','financial-covenants-1'], v_schema);
+                                   'financial-sso-1','financial-operational-resilience-1','financial-data-governance-1','financial-legacy-art-decommission-1','financial-p0-closure-1','financial-value-realization-1','financial-fee-intelligence-1','financial-opportunity-engine-1','financial-document-intelligence-1','financial-provider-qualification-1','financial-implementation-1','financial-covenants-1','financial-provider-performance-1'], v_schema);
   if v_order is null then
     raise exception 'CANÁRIO: schema não suportado';
   end if;
@@ -42,6 +42,7 @@ begin
   if (to_regclass('public.fin_fee_schedules') is not null) <> (v_order >= 17) or (to_regclass('public.fin_fee_observations') is not null) <> (v_order >= 17) or (to_regclass('public.fin_fee_variances') is not null) <> (v_order >= 17) then raise exception 'CANÁRIO: schema e fee intelligence divergentes'; end if;
   if (to_regclass('public.fin_opportunities') is not null) <> (v_order >= 18) or (to_regclass('public.fin_opportunity_rules') is not null) <> (v_order >= 18) then raise exception 'CANÁRIO: schema e opportunity engine divergentes'; end if;
   if (to_regclass('public.fin_extraction_facts') is not null) <> (v_order >= 19) or (to_regclass('public.fin_document_extractions') is not null) <> (v_order >= 19) then raise exception 'CANÁRIO: schema e document intelligence divergentes'; end if;
+  if (to_regclass('public.fin_provider_performance_periods') is not null) <> (v_order >= 23) then raise exception 'CANÁRIO: schema e performance divergentes'; end if;
   if (to_regclass('public.fin_obligations') is not null) <> (v_order >= 22) then raise exception 'CANÁRIO: schema e covenants divergentes'; end if;
   if (to_regclass('public.fin_implementation_plans') is not null) <> (v_order >= 21) then raise exception 'CANÁRIO: schema e implementation divergentes'; end if;
   if (to_regclass('public.fin_qualification_requirements') is not null) <> (v_order >= 20) then raise exception 'CANÁRIO: schema e provider qualification divergentes'; end if;
@@ -143,6 +144,11 @@ begin
       ('fin_qualification_evidence', 'not (organization_id = any($1))'),
       ('fin_qualification_exceptions', 'not (organization_id = any($1))'),
       ('fin_qualification_events', 'not (organization_id = any($1))'),
+      ('fin_provider_performance_dimensions', 'not (organization_id = any($1))'),
+      ('fin_provider_performance_periods', 'not (organization_id = any($1))'),
+      ('fin_provider_performance_targets', 'not (organization_id = any($1))'),
+      ('fin_provider_performance_observations', 'not (organization_id = any($1))'),
+      ('fin_provider_performance_reviews', 'not (organization_id = any($1))'),
       ('fin_obligations', 'not (organization_id = any($1))'),
       ('fin_covenants', 'not (organization_id = any($1))'),
       ('fin_obligation_periods', 'not (organization_id = any($1))'),
@@ -173,6 +179,7 @@ begin
       if v_order < 17 and v_tbl in ('fin_fee_schedules','fin_fee_schedule_versions','fin_fee_observations','fin_fee_variances','fin_fee_reviews') then continue; end if;
       if v_order < 18 and v_tbl in ('fin_opportunity_rules','fin_opportunities','fin_opportunity_events') then continue; end if;
       if v_order < 19 and v_tbl in ('fin_document_extractions','fin_extraction_facts','fin_extraction_reviews') then continue; end if;
+      if v_order < 23 and v_tbl like 'fin_provider_performance_%' then continue; end if;
       if v_order < 22 and v_tbl in ('fin_obligations','fin_covenants','fin_obligation_periods','fin_covenant_measurements','fin_obligation_evidence','fin_obligation_reviews','fin_covenant_waivers') then continue; end if;
       if v_order < 21 and v_tbl like 'fin_implementation_%' then continue; end if;
       if v_order < 20 and v_tbl in ('fin_qualification_requirements','fin_provider_qualifications','fin_qualification_evidence','fin_qualification_exceptions','fin_qualification_events') then continue; end if;

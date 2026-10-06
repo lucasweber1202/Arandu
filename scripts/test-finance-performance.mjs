@@ -1,0 +1,26 @@
+import assert from 'node:assert/strict';
+import {Readable} from 'node:stream';
+import {handleFinance} from '../lib/api/domains/finance.mjs';
+import {presentPerformanceDetail,presentPerformancePage,PERFORMANCE_METRICS} from '../lib/finance/performance-presenter.mjs';
+const ID='00000000-0000-4000-8000-000000000001';
+const p={id:ID,contract_id:ID,title:'Performance',status:'open',version:1};
+const metric={dimension_id:ID,dimension_title:'SLA',actual:null,target_met:null,availability:'not_available',observation_id:ID,review_id:null};
+const detail=presentPerformanceDetail({period:p,metrics:[metric],observations:[],reviews:[]});
+assert.match(JSON.stringify(detail),/indisponível/);assert.ok(!detail.actions.find(x=>x.post==='performance/review').fields[0][2].some(([s])=>s==='confirmed'));
+assert.equal(presentPerformanceDetail({period:{...p,status:'closed'},metrics:[metric],observations:[],reviews:[]}).actions.length,0);
+assert.equal(Object.keys(PERFORMANCE_METRICS).length,11);assert.equal(presentPerformancePage({rows:[],contracts:[],dimensions:[],members:[]}).rows.length,0);
+process.env.SUPABASE_URL='https://fixture.example.invalid';process.env.SUPABASE_ANON_KEY='fixture-public';delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+const sent=[];globalThis.fetch=async(url,options={})=>{const u=new URL(url);sent.push({url:u.pathname,headers:options.headers,body:options.body?JSON.parse(options.body):null});if(u.pathname.endsWith('/fin_organizations'))return new Response(JSON.stringify([{id:ID,kind:'BUYER'}]));return new Response(u.pathname.includes('/rpc/')?JSON.stringify(ID):'[]');};
+const deps={requireUser:async()=>({user:{id:ID},accessToken:'caller-jwt',headers:{}}),enforceRateLimit:async()=>{}};
+async function call(method,path,body){const req=Object.assign(Readable.from(body?[Buffer.from(JSON.stringify(body))]:[]),{method,url:`/api/finance/${path}`,headers:{}});const res={setHeader(){},end(raw){this.payload=JSON.parse(raw);}};await handleFinance(req,res,path.split('?')[0],deps);return res.payload;}
+await call('GET',`performance?organization_id=${ID}`);
+await assert.rejects(()=>call('GET',`performance/detail?id=${ID}`),e=>e.status===404);
+for(const path of ['performance?after=-1','performance?after=1.5','performance?provider_id=forged'])await assert.rejects(()=>call('GET',path),e=>e.status===400);
+await assert.rejects(()=>call('POST','performance/open',{contract_id:ID,dimensions:'{bad'}),e=>e.status===400);
+await assert.rejects(()=>call('POST','performance/close',{period_id:ID,expected_version:0}),e=>e.status===400);
+await call('POST','performance/open',{contract_id:ID,title:'Teste',organization_id:'forged',dimensions:[{dimension_id:ID,source_reference:'Cláusula 01'}]});
+assert.equal(sent.find(s=>s.url.endsWith('/fin_open_performance_period')).body.p_input.organization_id,undefined);
+await call('POST','performance/close',{period_id:ID,expected_version:1,confirm:'false',reason:'Revisão pelo cliente'});
+assert.equal(sent.find(s=>s.url.endsWith('/fin_close_performance')).body.p_input.confirm,false);
+for(const s of sent)assert.equal(s.headers.Authorization,'Bearer caller-jwt');assert.ok(!sent.some(s=>/fin_run_|fin_evaluate_/.test(s.url)));
+console.log('Performance: unavailable data, independent review choices, closed periods, invalid pages/UUIDs/JSON/versions, JWT-only access and derived tenant passed.');
