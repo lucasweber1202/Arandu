@@ -4,17 +4,24 @@
 import { PRODUCTS } from '../../../lib/finance/products.mjs';
 import { el, icon, money, percent, formatDate, formatDateTime, relativeDays, daysUntil, productLabel, demandHeadline, RFQ_STATUS, CONTRACT_STATUS, PROPOSAL_STATUS, PROVIDER_KINDS, ROLE_LABELS, timeAgo, fold, todayIso, renewalStage } from '../core.js';
 import { card, pill, tag, button, linkButton, emptyState, errorState, loading, tabs, definitionList, toast, confirmDialog, drawer, field, person, avatar } from '../ui.js';
-import { memberName, currentStep, approvalSummaryLine, comparisonMatrix, revisionTimeline, approvalActions, approvalSteps, coverage } from './shared.js';
-import { approvalCard, lazyDocuments } from './rfq.js';
+import { memberName, currentStep, approvalSummaryLine, comparisonMatrix, revisionTimeline, approvalActions, approvalSteps, coverage, lazyDocuments } from './shared.js';
 import { NOTIFICATION_META, notificationItem } from '../shell.js';
-import { buildPassport } from '../../../lib/finance/passport.mjs';
 import { CONTRACT_CATEGORIES } from '../../../lib/finance/contract-terms.mjs';
-import { importContractButton, openContract } from './contract-center.js';
-import { openProviderRelationship, scorecardSettings } from './provider-relationship.js';
 import { loadEntities, entitySettings, memberScopes, entityContextSelect, inContext, contractEntityControl, entityName } from './entities.js';
-import { policySettings, delegationSettings, policyTimeline } from './policy.js';
-import { integrationSettings } from './integrations.js';
-import { ssoSettings } from './sso.js';
+
+// Cada tela desta página baixa só o que usa: abrir Tarefas ou Notificações não
+// carrega contratos, relacionamento, policy, integrações nem SSO (code
+// splitting por capability; ver docs/FINANCIAL_BUNDLE_HEADROOM.md).
+const LAZY = {
+  policy: () => import('./policy.js'),
+  contractCenter: () => import('./contract-center.js'),
+  relationship: () => import('./provider-relationship.js'),
+  integrations: () => import('./integrations.js'),
+  sso: () => import('./sso.js'),
+  passport: () => import('../../../lib/finance/passport.mjs')
+};
+const mods = {};
+const need = (...keys) => Promise.all(keys.map(async (key) => { mods[key] ||= await LAZY[key](); }));
 
 /* global __ARANDU_DEMO__ */
 const DEMO_BUILD = typeof __ARANDU_DEMO__ !== 'undefined' && __ARANDU_DEMO__ === true;
@@ -22,7 +29,7 @@ const DEMO_BUILD = typeof __ARANDU_DEMO__ !== 'undefined' && __ARANDU_DEMO__ ===
 // ------------------------------------------------------------ aprovações
 export async function approvalsInbox(ctx) {
   ctx.header({ title: 'Aprovações', subtitle: 'Decisões que dependem de você e pedidos que você acompanha.' });
-  const approvals = await ctx.loadApprovals();
+  const [approvals] = await Promise.all([ctx.loadApprovals(), need('policy')]);
   const rfqs = new Map((ctx.data.rfqs || []).map((rfq) => [rfq.id, rfq]));
   const viewer = ctx.viewer?.id;
   // Pedido com policy: o servidor diz se a pessoa tem etapa ativa (própria ou delegada).
@@ -86,7 +93,7 @@ function approvalContext(ctx, request, rfq) {
       comparisonMatrix(rfq, [proposal, ...(rfq.proposals || []).filter((item) => item.id !== request.proposal_id)].filter(Boolean))]),
     el('section', { class: 'drawer-section' }, [el('h3', { text: 'Mudanças na solicitação' }), revisionTimeline(ctx, rfq)]),
     el('section', { class: 'drawer-section' }, [el('h3', { text: request.policy_snapshot ? 'Fluxo pela policy' : 'Etapas de aprovação' }),
-      request.policy_snapshot ? policyTimeline(ctx, request, { onChange: () => ctx.reload() }) : approvalSteps(request, ctx.members)])
+      request.policy_snapshot ? mods.policy.policyTimeline(ctx, request, { onChange: () => ctx.reload() }) : approvalSteps(request, ctx.members)])
   ];
   const footer = (request.viewer_can_act ?? step?.approver_id === ctx.viewer?.id) && !request.stale
     ? [approvalActions(ctx, request, { onDone: () => { dialog.close(); ctx.reload(); } })]
@@ -159,7 +166,7 @@ function contractNextAction(contract) {
 }
 
 export async function contracts(ctx) {
-  const entities = await loadEntities(ctx);
+  const [entities] = await Promise.all([loadEntities(ctx), need('contractCenter')]);
   const rows = (ctx.data.contracts || []).filter((row) => inContext(entities, row));
   const manage = ctx.can('create_rfq');
   const refresh = manage ? button('Atualizar marcos de renovação', { size: 'sm', iconName: 'refresh', onClick: async (event) => {
@@ -172,7 +179,7 @@ export async function contracts(ctx) {
     } catch (error) { toast(error.message, 'error'); } finally { target.disabled = false; }
   } }) : null;
   const context = entityContextSelect(entities, { onChange: () => ctx.rerender() });
-  const importButton = importContractButton(ctx, entities);
+  const importButton = mods.contractCenter.importContractButton(ctx, entities);
   ctx.header({ title: 'Contratos e renovações', subtitle: 'Termos versionados, aditivos, marcos próprios, aviso prévio e próxima ação de cada contrato.', actions: [context, importButton, refresh].filter(Boolean) });
   if (!rows.length && (ctx.data.contracts || []).length) return emptyState({ title: 'Nenhum contrato nesta entidade', text: 'Troque a entidade em foco para ver os demais contratos que você pode ler.', iconName: 'building' });
   if (!rows.length) return emptyState({ title: 'Nenhum contrato registrado ainda', text: 'Depois de uma decisão, registre o contrato com vigência e aviso prévio. O Arandu acompanha a renovação.', iconName: 'briefcase' });
@@ -209,7 +216,7 @@ export async function contracts(ctx) {
         ['Custo registrado', contract.cost_summary || 'Não informado'], contract.main_conditions ? ['Condições', contract.main_conditions] : null,
         contract.document_reference ? ['Documento', contract.document_reference] : null
       ].filter(Boolean).map(([label, value]) => el('div', { class: 'deflist-row' }, [el('dt', { text: label }), el('dd', { class: value === 'Não informado' ? 'missing' : '', text: value })]))),
-      el('div', { class: 'contract-open' }, [button('Abrir contrato: termos, aditivos e marcos', { size: 'sm', iconName: 'file', onClick: () => openContract(ctx, contract) }),
+      el('div', { class: 'contract-open' }, [button('Abrir contrato: termos, aditivos e marcos', { size: 'sm', iconName: 'file', onClick: () => mods.contractCenter.openContract(ctx, contract) }),
         contract.origin === 'imported' ? tag('Carteira existente') : null, contract.current_version ? tag(`Termos v${contract.current_version}`, 'accent') : tag('Termos não estruturados', 'warning')]),
       lazyDocuments(ctx, 'contract', contract.id, 'Documentos do contrato', { canUpload: ctx.can('upload_document') }),
       source ? el('a', { class: 'contract-link', href: ctx.href(`/finance/rfq.html?id=${source.id}#decisao`) }, [el('span', { text: 'Ver processo e decisão de origem' }), icon('arrowRight', { size: 14 })]) : null
@@ -224,6 +231,7 @@ export async function providers(ctx) {
   const rows = ctx.data.providers || [];
   // Memória de relacionamento (contatos, issues, avaliações da empresa, mapa).
   const relationshipEnabled = (await loadEntities(ctx)).available;
+  if (relationshipEnabled) await need('relationship');
   const manage = ctx.can('create_rfq');
   const add = manage ? button('Cadastrar provedor', { variant: 'primary', iconName: 'plus', onClick: () => providerDrawer(ctx) }) : null;
   ctx.header({ title: 'Provedores', subtitle: 'Bancos, fintechs e adquirentes com quem a empresa cota. É um cadastro da empresa, não uma atestação.', actions: add ? [add] : [] });
@@ -243,7 +251,7 @@ export async function providers(ctx) {
     for (const provider of visible) {
       body.append(el('tr', { id: `provider-${provider.id}`, dataset: { entity: 'provider', id: provider.id } }, [
         el('td', { 'data-label': 'Provedor', class: 'cell-primary' }, [person(provider.name, provider.website || null),
-          relationshipEnabled ? button('Relacionamento', { size: 'sm', variant: 'ghost', iconName: 'users', attrs: { 'aria-label': `Relacionamento com ${provider.name}` }, onClick: () => openProviderRelationship(ctx, provider) }) : null]),
+          relationshipEnabled ? button('Relacionamento', { size: 'sm', variant: 'ghost', iconName: 'users', attrs: { 'aria-label': `Relacionamento com ${provider.name}` }, onClick: () => mods.relationship.openProviderRelationship(ctx, provider) }) : null]),
         el('td', { 'data-label': 'Tipo', text: PROVIDER_KINDS[provider.kind] || provider.kind }),
         el('td', { 'data-label': 'Região', text: provider.region || '—' }),
         el('td', { 'data-label': 'Participações', text: `${participation.get(provider.id) || 0} solicitação(ões)` }),
@@ -387,6 +395,10 @@ const PREFERENCE_TYPES = [['approval_requested', 'Aprovação solicitada a mim']
 
 export async function settings(ctx) {
   ctx.header({ title: 'Configurações', subtitle: 'Empresa, perfil financeiro, política de aprovação, notificações e equipe.' });
+  // Seções avançadas (policy, integrações, SSO) só existem para quem as vê.
+  const advanced = ctx.mode !== 'demo';
+  const admin = ctx.viewer?.role === 'admin';
+  await need('passport', 'relationship', ...(advanced ? ['policy'] : []), ...(advanced && admin ? ['integrations', 'sso'] : []));
   const organization = ctx.data.organization || ctx.organization;
   const sections = [];
   const nav = el('nav', { class: 'settings-nav', 'aria-label': 'Seções de configuração' });
@@ -438,7 +450,7 @@ export async function settings(ctx) {
   // Perfil financeiro reaproveitável: mora no Financial Passport, com
   // proveniência, frescor e histórico por campo. Aqui fica só o resumo.
   const profile = ctx.data.profile || [];
-  const passportSummary = buildPassport({ organization: ctx.organization, rows: profile });
+  const passportSummary = mods.passport.buildPassport({ organization: ctx.organization, rows: profile });
   add('perfil', 'Perfil financeiro', 'Informado uma vez, reaproveitado em cada solicitação, com origem, responsável e revisão de cada dado.', [
     el('p', { class: 'muted', text: `${passportSummary.coverage.filled} de ${passportSummary.coverage.relevant} campos do catálogo preenchidos${passportSummary.attention.length ? ` · ${passportSummary.attention.length} pedem revisão` : ''}.` }),
     linkButton('Abrir o Financial Passport', ctx.href('/finance/passport.html'), { variant: 'secondary', iconName: 'shield' })
@@ -452,7 +464,7 @@ export async function settings(ctx) {
   }
 
   if (entities.available) {
-    add('scorecards', 'Scorecards de provedores', 'Critérios e pesos definidos pela sua empresa para avaliar provedores. Versionados; o Arandu não fornece nota própria.', scorecardSettings(ctx));
+    add('scorecards', 'Scorecards de provedores', 'Critérios e pesos definidos pela sua empresa para avaliar provedores. Versionados; o Arandu não fornece nota própria.', mods.relationship.scorecardSettings(ctx));
   }
 
   // Política de aprovação.
@@ -475,12 +487,12 @@ export async function settings(ctx) {
   // Governança: Policy & Approval Engine v2 e delegação temporária. O
   // transporte da demonstração não tem o engine; lá vale só a regra geral.
   if (ctx.mode !== 'demo') {
-    add('governanca', 'Governança: policies de aprovação', 'Regras da sua empresa, por grupo e por entidade: quem aprova, em que ordem, sob qual versão. Versões ativadas são imutáveis.', policySettings(ctx, entities));
-    add('delegacao', 'Delegação de aprovação', 'Substituto temporário para as suas etapas de aprovação, com trilha.', delegationSettings(ctx));
+    add('governanca', 'Governança: policies de aprovação', 'Regras da sua empresa, por grupo e por entidade: quem aprova, em que ordem, sob qual versão. Versões ativadas são imutáveis.', mods.policy.policySettings(ctx, entities));
+    add('delegacao', 'Delegação de aprovação', 'Substituto temporário para as suas etapas de aprovação, com trilha.', mods.policy.delegationSettings(ctx));
     // Public API v1 & Webhooks: administração da organização.
     if (ctx.viewer?.role === 'admin') {
-      add('integracoes', 'Integrações: API e webhooks', 'Contas de serviço com escopo e entidades, tokens que expiram e webhooks assinados. Para ERP, TMS e plataformas de dados.', integrationSettings(ctx, entities));
-      add('sso', 'Segurança: SSO corporativo', 'Login pelo provedor de identidade da empresa (SAML/OIDC), com domínio verificado, exigência opcional de SSO e revogação de sessões.', ssoSettings(ctx));
+      add('integracoes', 'Integrações: API e webhooks', 'Contas de serviço com escopo e entidades, tokens que expiram e webhooks assinados. Para ERP, TMS e plataformas de dados.', mods.integrations.integrationSettings(ctx, entities));
+      add('sso', 'Segurança: SSO corporativo', 'Login pelo provedor de identidade da empresa (SAML/OIDC), com domínio verificado, exigência opcional de SSO e revogação de sessões.', mods.sso.ssoSettings(ctx));
       // Carregado sob demanda: só administradores abrem esta seção. O build de
       // demonstração não tem API (tudo responde 404) e não empacota o módulo.
       if (!DEMO_BUILD) {

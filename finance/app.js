@@ -51,15 +51,14 @@ const VIEWS = {
   // Página estática: o conteúdo já está no HTML; só o shell é montado.
   ops: lazy(() => import('./src/views/ops.js'), 'opsConsole'),
   boundaries: () => null,
-  // Capabilities sem emulação na demonstração: fora do pacote demonstrativo.
-  ...(__ARANDU_DEMO__ ? {} : {
-    extractions: lazy(() => import('./src/views/extractions.js'), 'extractions'),
-    qualifications: lazy(() => import('./src/views/qualifications.js'), 'qualifications'),
-    implementations: lazy(() => import('./src/views/implementations.js'), 'implementations'),
-    spend: lazy(() => import('./src/views/spend.js'), 'spend'),
-    performance: lazy(() => import('./src/views/performance.js'), 'performance'),
-    covenants: lazy(() => import('./src/views/covenants.js'), 'covenants')
-  })
+  // Pós-contrato e inteligência documental: as mesmas telas em todo build e
+  // ambiente (Oficial, Staging, Demo). Nenhuma capability some por modo de build.
+  extractions: lazy(() => import('./src/views/extractions.js'), 'extractions'),
+  qualifications: lazy(() => import('./src/views/qualifications.js'), 'qualifications'),
+  implementations: lazy(() => import('./src/views/implementations.js'), 'implementations'),
+  spend: lazy(() => import('./src/views/spend.js'), 'spend'),
+  performance: lazy(() => import('./src/views/performance.js'), 'performance'),
+  covenants: lazy(() => import('./src/views/covenants.js'), 'covenants')
 };
 const PUBLIC_WHEN_SIGNED_OUT = new Set(['providerInvite', 'boundaries']);
 // Operadores da plataforma não precisam pertencer a uma empresa.

@@ -224,6 +224,11 @@ for (const file of ['lib/finance/document-intelligence.mjs', 'lib/finance/extrac
   const source = readFileSync(file, 'utf8').replace(/^\s*\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
   assert.doesNotMatch(source, /melhor proposta|recomendamos|recommended provider|best offer|vencedor sugerido|ranking/i, file);
 }
-// A view só existe no build financeiro (fora do pacote demonstrativo).
-assert.match(readFileSync('finance/app.js', 'utf8'), /__ARANDU_DEMO__ \? \{\} : \{\s*extractions:/);
+// A view existe em todo build e ambiente (Oficial, Staging, Demo canônica): nenhuma
+// capability some por modo de build. Só não é espelhada no sandbox legado /demo.
+const app = readFileSync('finance/app.js', 'utf8');
+assert.match(app, /\n  extractions: lazy\(\(\) => import\('\.\/src\/views\/extractions\.js'\), 'extractions'\)/);
+assert.doesNotMatch(app, /__ARANDU_DEMO__ \?/, 'telas não dependem do modo de build');
+const { PAGES } = await import('./generate-finance-pages.mjs');
+assert.equal(PAGES.find((page) => page.view === 'extractions')?.sandboxExcluded, true);
 console.log('Document intelligence: schema/normalização sem inventar, conteúdo não confiável, diff com proveniência, leitores PDF/XLSX/DOCX, evals por criticidade, paridade SQL/JS, API só com JWT e linguagem segura aprovados.');

@@ -10,7 +10,7 @@ import { el, icon, money, formatDate, formatDateTime, timeAgo } from '../core.js
 import { card, tag, button, linkButton, emptyState, errorState, toast, drawer, field, progress } from '../ui.js';
 import { buildPassport, SOURCE_LABELS, WRITABLE_SOURCES, FRESHNESS, MIN_REVIEW_DAYS, MAX_REVIEW_DAYS, catalogField, fieldLabel } from '../../../lib/finance/passport.mjs';
 import { loadEntities } from './entities.js';
-import { lazyDocuments } from './rfq.js';
+import { lazyDocuments } from './shared.js';
 
 const REVENUE_BANDS = { ate_360k: 'Até R$ 360 mil', '360k_4_8m': 'R$ 360 mil a R$ 4,8 mi', '4_8m_30m': 'R$ 4,8 mi a R$ 30 mi', '30m_300m': 'R$ 30 mi a R$ 300 mi', acima_300m: 'Acima de R$ 300 mi' };
 
