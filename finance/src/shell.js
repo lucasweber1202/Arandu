@@ -76,7 +76,7 @@ export function renderSidebar(ctx, counts = {}) {
       el('span', { class: 'side-user-role', text: ctx.viewer.title || ctx.viewer.roleLabel || '' })
     ])]) : null
   ]);
-  aside.replaceChildren(brand, workspace, nav, foot);
+  aside.replaceChildren(...[brand, workspace, nav, foot].filter(Boolean));
 }
 
 export function renderMobileNav(ctx, counts = {}) {

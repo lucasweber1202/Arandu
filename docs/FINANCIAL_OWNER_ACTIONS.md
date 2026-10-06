@@ -3,7 +3,10 @@
 > Checklist única e atualizada, com estado por item: [`FINANCIAL_PILOT_GO_LIVE.md`](FINANCIAL_PILOT_GO_LIVE.md).
 
 Lista curta e fechada. **Só entra aqui o que é impossível resolver por código.**
-Esta lista separa ações externas de implementação. Ela não declara o roadmap completo; P1.4 ainda está ausente. Estado atual: `FINANCIAL_RELEASE_EVIDENCE_2026-10-05_V3_BASELINE.md` (ações externas detalhadas em `FINANCIAL_RELEASE_EVIDENCE_2026-10-05.md`, ainda válidas).
+Esta lista separa ações externas de implementação. P1.4, Qualification,
+Implementation, Covenants, Performance e Spend existem em M1/E1; não são
+novas iniciativas a reconstruir. Estado vivo: `IMPLEMENTATION_MATRIX.md`,
+`main@07a059b9` (#136 + #137), observado em 06/10/2026.
 
 ---
 
@@ -23,7 +26,9 @@ não trata isso como aceite legal válido, e não deve passar a tratar sem parec
 
 ## 2. Proteção das branches `main` e `pilot`
 
-A integração não tem permissão administrativa. **Caminho preferido (05/10):**
+API de rulesets em 06/10: 403 exige GitHub Pro ou repositório público.
+**OWNER_ACTION_REQUIRED:** decidir plano adequado ao repositório privado;
+nenhuma regra foi aplicada. Depois do upgrade:
 Settings → Rules → Rulesets → New ruleset → Import a ruleset, com
 `.github/rulesets/pilot.json` e `.github/rulesets/main.json` (versionados e
 testados; detalhes e rollback em `BRANCH_PROTECTION.md`). Equivalente manual em
@@ -32,19 +37,18 @@ GitHub → Settings → Branches → Add rule:
 - **`main`**: Require a pull request; Require status checks (`validate`,
   `database`, `deploy-boundaries`, `presentation`); Require branches to be up to
   date; bloquear force push e deleção.
-- **`pilot`**: Require a pull request; bloquear force push e deleção. Os mesmos
-  status checks obrigatórios.
+- **`pilot`**: Require a pull request; bloquear force push e deleção. Histórica/congelada: não recebe novas features; arquivar só após transição comprovada.
 
-A quota voltou e a `main` tem CI verde (run #720). As branches continuam
-`protected: false`; leitura administrativa de proteção retorna 403. Regras e
-permissões: [`FINANCIAL_REPO_GOVERNANCE.md`](FINANCIAL_REPO_GOVERNANCE.md).
+Actions no HEAD atual: run #782 e sua reexecução falharam nos quatro jobs
+sem steps. Regularizar quota/billing ou acesso ao runner, reexecutar o run no
+SHA exato e exigir os quatro gates. `main` continua `protected: false`.
 
 ## 3. Os três ambientes (Vercel e Supabase)
 
 **Consolidação de 06/10/2026 — ações do owner, em ordem:**
 
-1. GitHub → Billing → Actions: restabelecer minutos/limite de gasto (CI sem runner desde o run #771; `GITHUB_ACTIONS_MINUTES.md`) e re-executar a PR de consolidação.
-2. Merge da PR de consolidação em `main` só com os quatro gates verdes no HEAD exato.
+1. GitHub → Billing → Actions: restabelecer minutos/limite de gasto (CI sem runner desde o run #771; `GITHUB_ACTIONS_MINUTES.md`) e reexecutar os quatro gates no HEAD atual; não usar run de outro SHA.
+2. #136 e #137 já estão em `main`; novas PRs só entram com quatro gates verdes e `merge:gates` no HEAD exato.
 3. Vercel → `arandu-pilot` → Settings → Git → **Production Branch = `main`** (o build recusa `pilot` desde esta rodada).
 4. Supabase PILOT: aplicar as migrations pendentes até `financial-opportunity-discriminator-1` em ordem (`npm run migrations:release`, `MIGRATION_RELEASE_RUNBOOK.md`), com backup antes, e rodar doctor + canary.
 5. Supabase DEMO: criar o projeto (limite de projetos do plano Free bloqueou antes), aplicar `cleanInstall`, configurar `arandu-demo` com `ARANDU_ENV=demo` e rodar `npm run demo:seed` da máquina do operador (`docs/demo/RESET.md`).
@@ -53,8 +57,10 @@ permissões: [`FINANCIAL_REPO_GOVERNANCE.md`](FINANCIAL_REPO_GOVERNANCE.md).
 Topologia e fluxo em [`FINANCIAL_DEPLOYMENT_WORKFLOW.md`](FINANCIAL_DEPLOYMENT_WORKFLOW.md).
 A branch `pilot` e os três projetos Vercel existem. Evidência atual por alias,
 SHA e ambiente em [`ARANDU_CURRENT_STATE_2026-10-02.md`](ARANDU_CURRENT_STATE_2026-10-02.md).
-A integração lê metadados de deploy, mas não disponibiliza configuração de
-variáveis/branch nem permite acessar o bypass de proteção do Pilot.
+O conector lê metadados e nomes de env vars e permite criar env vars, mas
+logs/bypass retornam 403 de scope `lucas-projects467`. Reautorizar esse team
+na conexão Vercel. Production Branch não está exposta pelo update_project
+disponível: trocar no painel, sem alterar proteção para facilitar acesso.
 
 **3.1 Demo canônica**: `arandu-demo` deve continuar usando `main`, com
 `ARANDU_ENV=demo` e Supabase DEMO **dedicado**. Remover
@@ -66,32 +72,28 @@ ativos Free. É preciso liberar capacidade conscientemente ou aprovar mudança
 de plano/custo; nenhum projeto foi pausado/apagado pelo agente. Não reutilizar
 o Pilot nem o legado. A mesma dependência vale para Production.
 
-**3.2 Supabase do piloto (`offgpyysgdhfemjlchod`)**: SQL Editor.
-1. `select value from public.fin_settings where key = 'schema_version';` — o
-   último valor observado (01/10/2026) foi `financial-surface-hardening-1`.
-2. Faça backup (`npm run pilot:restore:drill` descreve o procedimento) e rode,
-   **nesta ordem e só os que faltam** depois do marcador do passo 1:
-   `docs/supabase-financial-approval-handoff.sql` (→ `financial-approval-handoff-1`),
-   `docs/supabase-financial-passport.sql` (já em `pilot` pela #95) (→ `financial-passport-1`)
-   `docs/supabase-financial-multi-entity.sql` (→ `financial-multi-entity-1`), `docs/supabase-financial-contracts-v2.sql` (→ `financial-contracts-v2-1`) e `docs/supabase-financial-relationships-portfolio.sql` (→ `financial-relationships-portfolio-1`). Os cinco
-   são aditivos, idempotentes e têm rollback em `docs/rollback/`; foram
-   ensaiados por cima de um banco povoado no Supabase local
-   (`scripts/pilot-local`) e no `test:database` (upgrade, rollback e reaplicação).
-   O bundle pendente pode ser gerado sem aplicar SQL:
-   `npm run migrations:bundle -- --flow=existingDatabase --after-schema=financial-surface-hardening-1`.
-3. Repita a consulta do passo 1: esperado o `EXPECTED_SCHEMA_VERSION` de
-   `lib/finance/pilot-doctor.mjs` (hoje `financial-relationships-portfolio-1`). Depois, `ops/sql/pilot-isolation-canary.sql`
-   confere também o isolamento por entidade de membros com escopo restrito.
-4. Advisors → Security e Performance: esperado nenhum item de
-   `rls_disabled_in_public`, `security_definer_view` ou
-   `function_search_path_mutable`.
-5. Storage → `fin-documents`: *Public* desligado, 10 MB, 5 tipos.
-6. Allowlist: `insert into public.fin_pilot_allowlist (pattern, created_by, note) values (...)`
-   só com quem foi autorizado (e-mail completo ou `@dominio`). Nada disso vai
-   para o Git.
+**3.2 Supabase do piloto (`offgpyysgdhfemjlchod`)**:
+1. Marker confirmado em 06/10: `financial-surface-hardening-1`. PostgreSQL 17.6;
+   Storage objects = 0, MFA factors = 0, Auth policies = 0 por probes somente
+   de leitura. Isso não é backup/restore comprovado.
+2. Configurar `PILOT_SOURCE_DATABASE_URL` em ambiente seguro de operador com
+   PostgreSQL 17 e Docker; executar `pilot:backup:preflight` e
+   `pilot:restore:drill`. Conector SQL não fornece conexão de dump nem substitui
+   o restore. Preservar hash e evidência do mesmo backup.
+3. Repetir `npm run pilot:upgrade:rehearse` sobre executor local e testar upgrade
+   da cópia restaurada. Gerar prefixo de 12 migrations (sem pular etapas):
+   `npm run migrations:bundle -- --flow=existingDatabase --after-schema=financial-surface-hardening-1 --stop-before=docs/supabase-financial-legacy-art-decommission.sql`.
+   Só aplicar depois dos gates de recovery; esperado `financial-data-governance-1`.
+4. Para as 12 restantes, export verificado + decisão específica do owner +
+   acknowledgement antes do legacy art decommission (`LEGACY_ART_RETIREMENT.md`).
+   Não fabricar ack nem prosseguir saltando o decommission.
+5. Marker final `financial-opportunity-discriminator-1`; doctor GO, canário,
+   advisors, grants, bucket privado e jornada no mesmo release.
+6. `pilot:release:check` exige evidência v2 (CI exato, jornada completa e operação).
+   Ver `FINANCIAL_PILOT_RELEASE_GATE.md`; não preencher PASS sem exercício real.
 
 **3.3 `arandu-pilot` (Vercel)**: Add New → Project → este repositório.
-- Nome `arandu-pilot`, Production Branch **`pilot`**, Build Command padrão
+- Nome `arandu-pilot`, Production Branch **`main`**, Build Command padrão
   (`npm run vercel-build`, já em `vercel.json`).
 - Environment Variables, **só no escopo Production**:
   - `ARANDU_ENV=pilot`
@@ -117,9 +119,11 @@ por exemplo "ARANDU PRODUCTION". Nunca reaproveitar o do piloto nem o legado.
 - Nenhum dado do piloto é copiado.
 
 **3.5 `arandu` (Vercel, produção)**: no projeto existente
-(`arandu-bice.vercel.app`), Production Branch `main`, variáveis no escopo
-Production. Hoje ele está no ar **sem** `ARANDU_ENV`; o próximo deploy de `main`
-falha até isso ser corrigido (o deploy atual continua no ar):
+(`arandu-lucas-projects467.vercel.app`), Production Branch `main`, variáveis no escopo
+Production. `ARANDU_ENV=production` já existe em Production. O deploy de `main@07a059b9`
+falhou no vercel-build; a causa requer os logs reais após reautorizar o scope.
+Não recriar o runtime nem presumir a causa. `CRON_SECRET` não aparece no
+inventário Production. Banco próprio e recovery seguem pendentes:
 - `ARANDU_ENV=production`
 - `SUPABASE_*` e `CRON_SECRET` **próprios da produção**; nenhum valor do piloto
 - `ARANDU_SITE_URL` oficial
