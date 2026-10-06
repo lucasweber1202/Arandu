@@ -14,26 +14,35 @@ Outra sessão deve conseguir continuar a partir daqui sem refazer a auditoria.
   mas **não prevalece** sobre a v3. As colunas `Guideline` das tabelas detalhadas citam
   seções da v2/v2.1 vigentes quando cada linha foi escrita; a numeração não foi
   reescrita para não perder rastreabilidade.
-- **Estado vivo (06/10/2026, após #137).** `main` =
-  `07a059b9e3e5f1dcb4dc7bdcf5e2f52aede081b9`, árvore `7690dac661afe624c5fba8c633751e8ca20984e6`.
-  #136 consolidou `main`; #137 integrou personas Demo, Portfolio/Fee no seed,
-  Spend multi-moeda e apresentação humana de Spend/Performance. Nenhum commit
-  posterior ou PR aberta na leitura inicial desta rodada. Não reconstruir essas capabilities.
-  Run #782 (`37500603695`) no SHA atual: quatro gates failure, sem steps;
-  reexecução única também failure, sem steps. **M2 bloqueado externamente no release atual**;
-  BL-V3 abaixo é evidência histórica de outro SHA, não valida este release.
-- **Ambientes observados (06/10/2026).** Demo: `dpl_G71L2tL2pLM3BGujdeNVznkfVxxw`,
-  `main@07a059b9`, READY/production, ainda sandbox legado (somente
-  `ARANDU_DEPLOYMENT_KIND` em Production). Pilot: `dpl_2tjj6LD74ewYwzmXV6beTdcWLPfz`,
-  mesmo SHA, READY/preview, apenas alias git-main; Production Branch definitiva
-  ainda não comprovada. Banco Pilot confirmado por leitura:
-  `offgpyysgdhfemjlchod`, marker `financial-surface-hardening-1`, 24 migrations
-  pendentes; `deployment_environment` ausente. Oficial: `ARANDU_ENV=production`
-  **já existe** em Production; `dpl_ChaDUMxf9YiurcVgWgE7UegRmaTd` no mesmo SHA,
-  ERROR (`npm run vercel-build` exit 1). Logs retornam 403 de scope; causa
-  ainda desconhecida. `CRON_SECRET` ausente no inventário oficial. Só dois
-  projetos Supabase acessíveis (Pilot e legado/unknown): Demo/PROD próprios
-  não encontrados. Não elevar nenhuma capability a M3/M4/M5/M6.
+- **Estado vivo (06/10/2026, após #138).** `main` =
+  `fcc68f91c9dae997adcbacd7f82bdeaaf04ef2ed`, árvore `20c11ac3bbf58107e4f853d17e56eeb7f5a87a81`.
+  #136 consolidou `main`; #137 integrou personas e dataset Portfolio/Fee/Spend;
+  #138 ampliou doctor fail-closed e evidência operacional v2. As três PRs
+  já estão merged. Nenhum commit posterior ou PR aberta na leitura inicial.
+  Run #784 (`37505201208`) no SHA atual: quatro gates failure, steps vazios;
+  merge-audit #12 também failure. **M2 externally blocked** no release atual;
+  BL-V3 abaixo é evidência histórica, não valida este release.
+- **Ambientes observados (06/10/2026, rodada de alinhamento).** Demo:
+  `dpl_4PSczMxhAS73dmAB59w1MFziPhdu`, `main@fcc68f91`, READY/production,
+  alias `arandu-demo.vercel.app`, ainda sandbox legado (somente
+  `ARANDU_DEPLOYMENT_KIND` em Production). Pilot:
+  `dpl_6LupNLnhVq73y4Yoqf271tb1RDCN`, mesmo SHA, READY/preview, apenas
+  alias git-main; o alias público ainda resolve para `pilot@2241d3b9`
+  (`dpl_E8iHaoFCrjHiNDbnh2RrcNxtC4Cm`). Production Branch definitiva
+  não exposta pelo conector.
+  Banco Pilot `offgpyysgdhfemjlchod`, marker `financial-surface-hardening-1`,
+  24 migrations pendentes; `deployment_environment` ausente. Official:
+  `dpl_5h4GH8QVKkRxANzeo1bVgvtcDnKq`, mesmo SHA, ERROR/production
+  (`BUILD_UTILS_SPAWN_1`, vercel-build exit 1). `ARANDU_ENV=production` já
+  existe; `CRON_SECRET` ausente. Logs 403 mesmo com teamId explícito; causa
+  específica desconhecida. Alias oficial `arandu-bice.vercel.app` ainda serve
+  `main@fd796e6b` (#81, `dpl_4Dd6HusgFXDMiPeFRvF72J8Mo6mD`). Health
+  público 200 e organizations 401 nesses aliases antigos não validam fcc68f91.
+  Supabase só Pilot e legado acessíveis; Demo/PROD
+  dedicados não encontrados. Criação depende de escolha da organização e
+  confirmação de custo exigidas pelo conector; não inferir autorização.
+  Nenhuma capability M3/M4/M5/M6 promovida. Plano de cutover e artefatos:
+  `docs/HOSTED_ALIGNMENT_2026-10-06.md`.
 - **Estado anterior (05/10/2026, rodada de reconciliação pós-merge v3; histórico).** `pilot` @
   `d828a44027506a9d4a4eddd807914f85dd8dde4c` (merge #127, Guideline v3) **não é baseline
   limpa**: a #127 foi mergeada com `validate`/`presentation` ainda em execução e sem conter
@@ -81,7 +90,7 @@ no Pilot; `E5` produção; `E6` uso por cliente.
 | `BL-V3` | `4a93fa60b51ae4c094e95d25cee8be4748363cfb` (HEAD da #128; árvore idêntica a `pilot@d4d6c22`) | run `37320266260`: `database`, `deploy-boundaries`, `validate`, `presentation` success no HEAD exato (05/10 14:15Z) | **árvore CI-validada**; a #128 foi mergeada antes do fim do CI (MGI-2026-10-05-02, `merge-audit` `37320702496` failure). Baseline limpa = esta árvore + merge-audit verde da PR documental de seguimento |
 
 Regras de leitura: nenhuma capability está em **M3+** — o Pilot hospedado foi observado pela
-última vez no marker `financial-surface-hardening-1` (04/10), sem doctor/canário/jornada
+última vez no marker `financial-surface-hardening-1` (06/10), sem doctor/canário/jornada
 hospedados vinculados a um release, e produção já tem `ARANDU_ENV=production`, mas não há Supabase PROD
 próprio comprovado nem build saudável. Nenhuma capability é **M6**: não há cliente real em operação.
 
@@ -95,9 +104,9 @@ que contém a capability. `Ambiente validado` = onde a evidência mais alta foi 
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | P0.1-01 | Demo/Pilot/Production por configuração | partial | M2 | E2 | CI (`deploy-boundaries`) | BL-V3 | 05/10 | Supabase DEMO/PROD; CI atual; Pilot Production Branch; build oficial | M3: CI exato + banco isolado + doctor/canário/jornada |
 | P0.1-02 | Manifesto de migrations, clean/upgrade/reapply/rollback | implemented | M2 | E2 | CI (`database`) | BL-V3 | 05/10 | — | manter por migration |
-| P0.1-03 | Migrations aplicadas no Pilot hospedado | blocked | M2 (bundle/ferramenta) · hosted não atingido | E2 | CI | BL-V3 | 05/10 | conexão de dump/restore, backup e restore hospedados antes | M3: recovery do mesmo backup + prefixo de 12 migrations (`8e15a95…`) até data-governance; depois export/owner ack + restantes + doctor GO |
+| P0.1-03 | Migrations aplicadas no Pilot hospedado | blocked | M2 (bundle/ferramenta) · hosted não atingido | E2 | CI | BL-V3 | 05/10 | executor Docker/PG17; conexão direct com DNS failure; backup/restore antes | M3: recovery do mesmo backup + prefixo de 12 migrations (`8e15a95…`) até data-governance; depois export/owner ack + restantes + doctor GO |
 | P0.1-04 | Rulesets `pilot`/`main` | blocked | M2 (artefatos versionados) · **não aplicada** (`protected=false`) | E2 | CI (`check:governance`) | BL-V3 | 05/10 | **OWNER_ACTION_REQUIRED**: plano GitHub Pro/Team (repositório privado no Free não suporta rulesets — API 403) e depois importar | upgrade + import; API `protected=true` |
-| P0.1-05 | Restore drill local + procedimento hospedado | partial | M2 (mecanismo) | E1/E2 | local + CI (preflight) | BL-V3 | 05/10 | `PILOT_SOURCE_DATABASE_URL` | M4: drill hospedado PASS |
+| P0.1-05 | Restore drill local + procedimento hospedado | partial | M2 (mecanismo) | E1/E2 | local + CI (preflight) | BL-V3 | 05/10 | Docker/PG17 e conexão resolvível (identidade conhecida, DNS failure) | M4: drill hospedado PASS |
 | P0.1-06 | Doctor, canary, env check | implemented | M1 (cobertura atual ampliada) | E1 | Node local; canário E3 somente schema antigo | — (CI atual bloqueado) | 06/10 | CI; configuração/credencial de doctor; schema atrasado | M2 exato; M3 doctor/canário no marker final e mesmo SHA |
 | P0.1-07 | Severidade, runbook, postmortem | partial | M1 | E0 | documento | — | 05/10 | responsáveis nomeados | M4: exercício de resposta |
 | P0.2-01..08 | Multi-entity (grupo, escopo, RLS, guardas, consolidado, moeda, trilha, UI) | implemented | M2 | E2 | CI | BL-V3 | 05/10 | rollout hospedado | M3 |
@@ -705,3 +714,20 @@ reproduzida no executor atual: Docker ausente e servidor PostgreSQL local
 inutilizável. Nenhuma migration Demo/Pilot/Production foi aplicada. Prefixos
 regenerados (12 + 12) sem saltar o decommission. Etapa B não liberada pelo
 Stage 0; P1.5/P1.11/P1.12, P2/P3/AI não iniciados.
+
+## Alinhamento dos ambientes após #138 (06/10/2026)
+
+Estado e cutover: `HOSTED_ALIGNMENT_2026-10-06.md`. Nenhuma env/migration/
+release hospedada alterada nesta rodada. Demo ainda sandbox; Pilot público
+2241d3b9; Official público fd796e6b. Os três latest deployments em fcc68f91
+não equivalem a três releases canônicos saudáveis. Demo M1/E1, Pilot M1/E1
+do release atual (canário E3 só marker antigo), Official sem M5.
+
+CleanInstall 59 arquivos preparado, hash bed3fa64…; prefixo Pilot 12 arquivos
+8e15a95…; total pendente 24. Canary via SQL novamente passou com ROLLBACK,
+sem prova das capabilities pendentes. Catálogo SQL: 75 de 90 RPCs exigidas
+pelo doctor ausentes. Backup preflight aceita identidade do
+Pilot, mas executor sem Docker/cliente 17 e DNS direct falha; restore NOT RUN.
+Não arquivar pilot enquanto o alias ainda depende dela. Próximo gate: escolha
+de organização/custo e provisionamento Demo, CI exato, cleanInstall/seed/
+persona/QA reais; depois recovery e Pilot; Official somente após Pilot válido.

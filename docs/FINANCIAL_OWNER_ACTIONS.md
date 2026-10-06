@@ -6,7 +6,7 @@ Lista curta e fechada. **Só entra aqui o que é impossível resolver por códig
 Esta lista separa ações externas de implementação. P1.4, Qualification,
 Implementation, Covenants, Performance e Spend existem em M1/E1; não são
 novas iniciativas a reconstruir. Estado vivo: `IMPLEMENTATION_MATRIX.md`,
-`main@07a059b9` (#136 + #137), observado em 06/10/2026.
+`main@fcc68f91` (#136 + #137 + #138), observado em 06/10/2026.
 
 ---
 
@@ -39,7 +39,7 @@ GitHub → Settings → Branches → Add rule:
   date; bloquear force push e deleção.
 - **`pilot`**: Require a pull request; bloquear force push e deleção. Histórica/congelada: não recebe novas features; arquivar só após transição comprovada.
 
-Actions no HEAD atual: run #782 e sua reexecução falharam nos quatro jobs
+Actions no HEAD atual: run #784 falharam nos quatro jobs
 sem steps. Regularizar quota/billing ou acesso ao runner, reexecutar o run no
 SHA exato e exigir os quatro gates. `main` continua `protected: false`.
 
@@ -48,15 +48,16 @@ SHA exato e exigir os quatro gates. `main` continua `protected: false`.
 **Consolidação de 06/10/2026 — ações do owner, em ordem:**
 
 1. GitHub → Billing → Actions: restabelecer minutos/limite de gasto (CI sem runner desde o run #771; `GITHUB_ACTIONS_MINUTES.md`) e reexecutar os quatro gates no HEAD atual; não usar run de outro SHA.
-2. #136 e #137 já estão em `main`; novas PRs só entram com quatro gates verdes e `merge:gates` no HEAD exato.
-3. Vercel → `arandu-pilot` → Settings → Git → **Production Branch = `main`** (o build recusa `pilot` desde esta rodada).
-4. Supabase PILOT: aplicar as migrations pendentes até `financial-opportunity-discriminator-1` em ordem (`npm run migrations:release`, `MIGRATION_RELEASE_RUNBOOK.md`), com backup antes, e rodar doctor + canary.
-5. Supabase DEMO: criar o projeto (limite de projetos do plano Free bloqueou antes), aplicar `cleanInstall`, configurar `arandu-demo` com `ARANDU_ENV=demo` e rodar `npm run demo:seed` da máquina do operador (`docs/demo/RESET.md`).
-6. Confirmada a transição, arquivar `pilot` (tag) e remover as branches DELETE de `REPOSITORY_HYGIENE.md`.
+2. #136, #137 e #138 já estão em main. Novas PRs só entram com quatro gates verdes e merge:gates no HEAD exato.
+3. Escolher organização Supabase para Demo dedicado; consultar/confirmar custo e criar sem pausar/apagar projetos existentes. Preparação pronta em `HOSTED_ALIGNMENT_2026-10-06.md`: cleanInstall 59, seed real, persona/QA e cutover do mesmo arandu-demo. Não reutilizar Pilot/legado.
+4. Depois da Demo, Vercel arandu-pilot → Settings → Git → Production Branch main. Hoje o alias público serve pilot@2241d3b9; main@fcc68f91 é só preview. Reautorizar o scope para logs/acesso necessário.
+5. Supabase Pilot: executor Docker e clientes PostgreSQL 17, conexão de dump resolvível; backup/restauração do mesmo arquivo, rehearsal e prefixo 12. Depois export/owner ack específico para decommission e 12 restantes. Doctor/canary/jornada e release check v2.
+6. Official: só após Pilot válido no mesmo SHA. Alias arandu-bice.vercel.app serve main@fd796e6b (#81); deploy main@fcc68f91 falhou. Recuperar logs reais e configurar Supabase PROD próprio/CRON_SECRET; não recriar ARANDU_ENV=production.
+7. Confirmada a transição de tráfego do Pilot para main, arquivar pilot (tag); não apagar enquanto o alias depende dela.
 
 Topologia e fluxo em [`FINANCIAL_DEPLOYMENT_WORKFLOW.md`](FINANCIAL_DEPLOYMENT_WORKFLOW.md).
 A branch `pilot` e os três projetos Vercel existem. Evidência atual por alias,
-SHA e ambiente em [`ARANDU_CURRENT_STATE_2026-10-02.md`](ARANDU_CURRENT_STATE_2026-10-02.md).
+SHA e ambiente em [`HOSTED_ALIGNMENT_2026-10-06.md`](HOSTED_ALIGNMENT_2026-10-06.md).
 O conector lê metadados e nomes de env vars e permite criar env vars, mas
 logs/bypass retornam 403 de scope `lucas-projects467`. Reautorizar esse team
 na conexão Vercel. Production Branch não está exposta pelo update_project
@@ -78,8 +79,9 @@ o Pilot nem o legado. A mesma dependência vale para Production.
    de leitura. Isso não é backup/restore comprovado.
 2. Configurar `PILOT_SOURCE_DATABASE_URL` em ambiente seguro de operador com
    PostgreSQL 17 e Docker; executar `pilot:backup:preflight` e
-   `pilot:restore:drill`. Conector SQL não fornece conexão de dump nem substitui
-   o restore. Preservar hash e evidência do mesmo backup.
+   `pilot:restore:drill`. A conexão anteriormente fornecida teve identidade aceita, mas falhou em DNS
+   neste executor; clientes locais são 16 e Docker não existe. Conector SQL
+   não substitui o dump/restore. Nenhum backup foi gerado. Preservar hash e evidência do mesmo backup.
 3. Repetir `npm run pilot:upgrade:rehearse` sobre executor local e testar upgrade
    da cópia restaurada. Gerar prefixo de 12 migrations (sem pular etapas):
    `npm run migrations:bundle -- --flow=existingDatabase --after-schema=financial-surface-hardening-1 --stop-before=docs/supabase-financial-legacy-art-decommission.sql`.
@@ -120,7 +122,7 @@ por exemplo "ARANDU PRODUCTION". Nunca reaproveitar o do piloto nem o legado.
 
 **3.5 `arandu` (Vercel, produção)**: no projeto existente
 (`arandu-lucas-projects467.vercel.app`), Production Branch `main`, variáveis no escopo
-Production. `ARANDU_ENV=production` já existe em Production. O deploy de `main@07a059b9`
+Production. `ARANDU_ENV=production` já existe em Production. O deploy de `main@fcc68f91`
 falhou no vercel-build; a causa requer os logs reais após reautorizar o scope.
 Não recriar o runtime nem presumir a causa. `CRON_SECRET` não aparece no
 inventário Production. Banco próprio e recovery seguem pendentes:

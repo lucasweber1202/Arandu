@@ -19,7 +19,7 @@ criadas por elas e as próprias contas. Registros imutáveis só saem porque o
 banco está marcado como demonstração (`fin_immutable_row` aceita o service
 role apenas ali). Nada fora desse escopo é tocado. Em seguida o seed recria a
 história (inclusive o capítulo pós-contrato, `LIFECYCLE` em
-`scripts/demo/dataset.mjs`) e roda 29 checagens de sanidade.
+`scripts/demo/dataset.mjs`) e roda 32 checagens de sanidade com CRON_SECRET (30 sem cron, cobertura incompleta).
 
 Duração observada localmente em 06/10/2026: ~15–20 min. O seed respeita o rate
 limit real da API (240 requisições por conta a cada 10 min) e espera quando o
@@ -36,12 +36,12 @@ export SUPABASE_URL=https://<ref do projeto DEMO>.supabase.co
 export SUPABASE_ANON_KEY=… SUPABASE_SERVICE_ROLE_KEY=…  # do projeto DEMO
 export ARANDU_DEMO_APP_URL=https://<url da demo>      # app com ARANDU_ENV=demo
 export ARANDU_DEMO_PASSWORD=…                         # 12+ caracteres, maiúscula, minúscula e número
-export CRON_SECRET=…                                  # opcional: marcos de renovação na hora
+export CRON_SECRET=…                                  # necessário para cobertura completa de renovação/oportunidades
 npm run demo:reset
 ```
 
-Leva ~2 minutos (o seed espera entre os passos para separar os horários e
-respeita o rate limit da API). Depois: `npm run test:e2e:demo` com
+A duração depende do rate limit e do endpoint; a execução local histórica
+levou ~15–20 minutos. O seed espera os limites reais, sem atalho. Depois: `npm run test:e2e:demo` com
 `ARANDU_DEMO_APP_URL` e `ARANDU_DEMO_PASSWORD`.
 
 ## Travas (todas precisam passar; `lib/finance/demo-guard.mjs`)
