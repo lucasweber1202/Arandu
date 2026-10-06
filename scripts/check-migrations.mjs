@@ -25,6 +25,7 @@ for (const [flow, files] of Object.entries(manifest)) {
   if (files.indexOf('docs/supabase-financial-covenants.sql') !== files.indexOf('docs/supabase-financial-implementation.sql') + 1) issues.push(`${flow}: covenants deve seguir implementation.`);
   if (files.indexOf('docs/supabase-financial-implementation.sql') !== files.indexOf('docs/supabase-financial-provider-qualification.sql') + 1) issues.push(`${flow}: implementation deve seguir qualification.`);
   if (files.indexOf('docs/supabase-financial-provider-performance.sql') !== files.indexOf('docs/supabase-financial-covenants.sql') + 1) issues.push(`${flow}: provider performance deve seguir covenants.`);
+  if (files.indexOf('docs/supabase-financial-spend-intelligence.sql') !== files.indexOf('docs/supabase-financial-provider-performance.sql')+1) issues.push(`${flow}: spend deve seguir provider performance.`);
   const sprint2 = files.indexOf('docs/supabase-sprint2-catalog-readiness.sql');
   const collections = files.indexOf('docs/arandu-mvp-collections.sql');
   const sprint5 = files.indexOf('docs/supabase-sprint5-pilot.sql');
