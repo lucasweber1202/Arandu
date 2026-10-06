@@ -28,15 +28,21 @@ Resultado binário: `PILOT GO` ou `PILOT NO-GO`, exit code 0 ou 1. O relatório
 não replica dados de entrada, URLs, credenciais ou mensagens do documento.
 Entrada inválida também sobrescreve um GO anterior com NO-GO.
 
-## Contrato de entrada v1
+## Contrato de entrada v2
 
-Chaves da raiz: `format_version: 1`, `environment`, `project_ref`,
+Chaves da raiz: `format_version: 2`, `environment`, `project_ref`,
 `database_hostname`, `vercel_project`, `commit`, `schema_before`, `schema_after`,
-`deployment`, `backup`, `restore`, `migration`, `legacy_art_decommission`,
-`doctor`, `canary`, `authenticated_journey`, `p0_blockers`.
+`ci`, `deployment`, `backup`, `restore`, `migration`, `legacy_art_decommission`,
+`doctor`, `canary`, `authenticated_journey`, `observability`,
+`operational_exercise`, `p0_blockers`.
+
+O registro `ci` exige `commit` exato, `evidence_level: ci`, referência opaca
+ao run, `observed_at` recente e `gates` com `database`, `deploy-boundaries`,
+`validate`, `presentation` = `success`. Não aceita estado pending/skipped nem
+resultado local. Confirmar o run no GitHub; o avaliador não o consulta.
 
 Cada observação (`deployment`, `backup`, `restore`, `migration`, `doctor`,
-`canary`, `authenticated_journey`) inclui `environment`, `project_ref`, `commit`,
+`canary`, `authenticated_journey`, `observability`, `operational_exercise`) inclui `environment`, `project_ref`, `commit`,
 `evidence_level: hosted`, `reference` (ID opaco sem URL/segredo), `observed_at`
 (ISO UTC). Campos adicionais:
 
@@ -49,15 +55,30 @@ Cada observação (`deployment`, `backup`, `restore`, `migration`, `doctor`,
 | legacy_art_decommission | `environment`, `project_ref`, `inventory_rows` inteiro não negativo, `export_verified: true`, `export_reference`, `owner_decision_reference`, `ack`, `acknowledged_at` antes da aplicação |
 | doctor | `result: GO`, `schema_version` final, `errors: 0`, `unsafe: 0` |
 | canary | `result: PASS`, `schema_version` final, `probes` com cada probe PASS |
+| observability | `result: PASS`, `schema_version` final, `request_correlation`, `job_failure_detection`, `queue_backlog_detection` = `PASS` |
+| operational_exercise | `result: PASS`, `schema_version` final, `owner_role` e `runbook_reference` como IDs opacos, `incident_triage`, `support_handoff`, `rollback_forward_fix` = `PASS` |
 | authenticated_journey | `result: PASS`, `transport: real`, `schema_version` final, `steps` com cada etapa PASS |
 
 Probes: `tenant_isolation`, `entity_isolation`, `graph`, `rfq`, `contract`,
-`governance`, `value`, `fees`, `opportunities`.
+`governance`, `value`, `fees`, `opportunities`, `document_intelligence`,
+`qualification`, `implementation`, `covenants`, `performance`, `spend`.
 
 Etapas: `login`, `workspace`, `entity`, `rfq`, `proposal_compare`,
 `decision_approval`, `contract`, `provider`, `portfolio`, `value`, `fees`,
-`opportunities`, `governance`, `logout`.
+`opportunities`, `governance`, `documents`, `qualification`, `implementation`,
+`covenants`, `performance`, `spend`, `renewal`, `executive`, `jobs`,
+`notifications`, `search`, `audit`, `logout`.
 
 O gate complementa o doctor e a disciplina de merge. Não substitui rulesets,
 review do SQL, revisão jurídica, autorização de dados ou
 `npm run merge:gates -- <PR>` imediatamente antes de qualquer merge.
+
+## Migração de evidência v1 → v2
+
+A v1 não cobria as capabilities pós-contrato adicionadas até #137 nem o
+exercício operacional requerido por M4 ou o comprovante explícito de M2. Documentos v1 agora resultam em
+NO-GO. Não converter apenas o número da versão: executar e registrar os novos
+probes, etapas e exercícios reais. Todos precisam do mesmo SHA/projeto/schema,
+ser recentes e posteriores ao restore e à migration. O avaliador continua
+sem executar ou autenticar os comprovantes; revisar suas referências é
+responsabilidade do operador. Nenhum fixture é evidência hospedada.

@@ -156,3 +156,27 @@ como failed, restaura funções prévias e marker SSO; remover leases requer
 pausa dos agendadores. Reverter código junto do schema: código novo falha
 fechado sem RPCs novas. Não fazer restore sobre projeto existente sem plano
 aprovado, executor e evidência do destino exato.
+
+## Exercício hospedado para o gate Pilot v2
+
+Depois do restore e da migration, no mesmo SHA/projeto/schema, um operador
+autorizado deve exercitar o runbook e registrar IDs opacos de evidência
+conforme `FINANCIAL_PILOT_RELEASE_GATE.md`. Usar cenário sintético em Pilot
+ou destino descartável autorizado; não provocar indisponibilidade no Oficial.
+
+1. Localizar uma requisição de teste pelo request/correlation ID, sem registrar
+   corpo, credenciais ou PII: `request_correlation`.
+2. Observar falha controlada de job e backlog de fila no console com MFA;
+   conferir contagens/idade e reação operacional: `job_failure_detection`,
+   `queue_backlog_detection`. Teste unitário dessas funções não substitui isso.
+3. Registrar severidade, escopo, contenção e papel responsável no cenário:
+   `incident_triage`.
+4. Exercitar o handoff de suporte com responsável e evidência do recebimento,
+   sem dados de cliente: `support_handoff`.
+5. Provar, em destino descartável, rollback compatível ou forward-fix apropriado
+   ao cenário, seguido de doctor/canário/jornada: `rollback_forward_fix`.
+
+`owner_role` identifica o responsável funcional; `runbook_reference` resolve
+para o registro protegido do exercício. Não usar referência desta documentação
+como prova de execução. Os comprovantes são posteriores ao restore/migration e
+recentes (24 h). Esta rodada não executou exercício hospedado nem mediu RPO/RTO.

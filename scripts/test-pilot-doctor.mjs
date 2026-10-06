@@ -20,7 +20,7 @@ const now = () => new Date('2026-10-02T12:00:00Z');
 function fakeSupabase(overrides = {}) {
   const methods = [];
   const state = {
-    bucketPublic: false, autoconfirm: false, allowlist: 3, anonLeak: false, schema: EXPECTED_SCHEMA_VERSION, missingRpc: null,
+    bucketPublic: false, autoconfirm: false, allowlist: 3, anonLeak: false, anonLeakTable: null, anonProbeFailure: null, anonSpecFailure: false, anonSpecMalformed: false, schema: EXPECTED_SCHEMA_VERSION, missingRpc: null,
     productsStatus: 200, renewalsStatus: 401, anonRpcs: ['fin_document_mime_allowed', 'fin_jwt_aal'], anonRelations: ['artists'], legacyOpen: false,
     users: [
       { id: 'u-ops', email: 'ops@example.invalid', app_metadata: { arandu_role: 'finance_ops' }, factors: [{ factor_type: 'totp', status: 'verified' }] },
@@ -40,6 +40,8 @@ function fakeSupabase(overrides = {}) {
       if (u.pathname === '/api/jobs/renewals') return reply({ ok: false, code: state.renewalsStatus === 401 ? 'cron_unauthorized' : 'x' }, state.renewalsStatus);
     }
     if (u.pathname === '/rest/v1/' && key === ANON) {
+      if (state.anonSpecFailure) return reply({}, 503);
+      if (state.anonSpecMalformed) return reply({});
       return reply({ definitions: Object.fromEntries(state.anonRelations.map((name) => [name, {}])),
         paths: Object.fromEntries(state.anonRpcs.map((rpc) => [`/rpc/${rpc}`, {}])) });
     }
@@ -49,7 +51,8 @@ function fakeSupabase(overrides = {}) {
     }
     if (u.pathname.startsWith('/rest/v1/')) {
       const table = u.pathname.slice('/rest/v1/'.length);
-      if (key === ANON) return state.anonLeak && table === 'fin_rfqs' ? reply([{ id: 'x' }]) : reply({ code: '42501' }, 401);
+      if (key === ANON && table === 'fin_spend_records' && state.anonProbeFailure) return reply(state.anonProbeFailure.body, state.anonProbeFailure.status);
+      if (key === ANON) return ((state.anonLeak && table === 'fin_rfqs') || table === state.anonLeakTable) ? reply([{ id: 'x' }]) : reply({ code: '42501' }, 401);
       if (init.method === 'HEAD') {
         const total = table === 'fin_pilot_allowlist' ? state.allowlist : table === 'fin_organizations' ? 2 : table === 'fin_approval_policies' ? 1 : 0;
         return reply(null, 200, { 'content-range': `*/${total}` });
@@ -102,8 +105,30 @@ const incomplete = await doctor(partial);
 assert.equal(incomplete.exit_code, 1);
 assert.equal(levelOf(incomplete, 'CRON_SECRET'), 'ERROR');
 assert.equal((await doctor(baseEnv, { allowlist: 0 })).exit_code, 1, 'allowlist vazia bloqueia');
+for (const failure of [{ status: 503, body: {} }, { status: 200, body: {} }, { status: 404, body: { code: 'PGRST205' } }, { status: 401, body: {} }]) {
+  assert.equal((await doctor(baseEnv, { anonProbeFailure: failure })).result, 'NO-GO', 'inconclusive anon probe cannot be OK');
+}
+assert.equal((await doctor(baseEnv, { anonSpecFailure: true })).result, 'NO-GO', 'anonymous RPC inventory unavailable blocks GO');
+assert.equal((await doctor(baseEnv, { anonSpecMalformed: true })).result, 'NO-GO', 'malformed anonymous inventory cannot prove zero exposure');
+
 assert.equal((await doctor(baseEnv, { schema: 'financial-pilot-grade-1' })).exit_code, 1, 'migration antiga bloqueia');
 assert.equal((await doctor(baseEnv, { missingRpc: 'consume_rate_limit' })).exit_code, 1, 'limitador ausente bloqueia');
+// A final marker does not prove the post-award API or its anonymous isolation.
+// Names come from the actual capability contracts, independent of doctor fixtures.
+for (const rpc of ['fin_open_implementation', 'fin_update_implementation_milestone', 'fin_implementation_issue', 'fin_accept_implementation', 'fin_cancel_implementation',
+  'fin_open_obligation', 'fin_record_obligation_data', 'fin_review_obligation', 'fin_covenant_waiver', 'fin_obligation_facts', 'fin_cancel_obligation', 'fin_obligation_summary', 'fin_run_obligations',
+  'fin_performance_dimension', 'fin_open_performance_period', 'fin_performance_source', 'fin_measure_performance', 'fin_review_performance', 'fin_close_performance', 'fin_performance_summary', 'fin_run_performance',
+  'fin_record_spend', 'fin_reconcile_spend', 'fin_spend_summary']) {
+  assert.ok(REQUIRED_RPCS.includes(rpc), `doctor must inspect ${rpc}`);
+  assert.equal((await doctor(baseEnv, { missingRpc: rpc })).result, 'NO-GO', `marker current but missing ${rpc}`);
+}
+for (const table of ['fin_implementation_plans', 'fin_implementation_milestones', 'fin_implementation_dependencies', 'fin_implementation_issues', 'fin_implementation_acceptances',
+  'fin_obligations', 'fin_covenants', 'fin_obligation_periods', 'fin_covenant_measurements', 'fin_obligation_evidence', 'fin_obligation_reviews', 'fin_covenant_waivers',
+  'fin_provider_performance_dimensions', 'fin_provider_performance_periods', 'fin_provider_performance_targets', 'fin_provider_performance_observations', 'fin_provider_performance_reviews',
+  'fin_spend_records', 'fin_spend_reconciliations']) {
+  assert.equal((await doctor(baseEnv, { anonLeakTable: table })).result, 'UNSAFE', `anonymous row in ${table}`);
+}
+
 assert.equal((await doctor(baseEnv, { productsStatus: 503 })).exit_code, 1, 'API financeira em 503 bloqueia');
 assert.equal((await doctor(baseEnv, { renewalsStatus: 404 })).exit_code, 1, 'rota do cron sem chegar à função bloqueia');
 assert.equal((await doctor({ ...baseEnv, ARANDU_ENV: 'staging' })).exit_code, 1, 'ambiente desconhecido');

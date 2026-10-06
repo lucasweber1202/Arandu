@@ -14,19 +14,26 @@ Outra sessão deve conseguir continuar a partir daqui sem refazer a auditoria.
   mas **não prevalece** sobre a v3. As colunas `Guideline` das tabelas detalhadas citam
   seções da v2/v2.1 vigentes quando cada linha foi escrita; a numeração não foi
   reescrita para não perder rastreabilidade.
-- **Estado atual (06/10/2026, consolidação `main` canônica).** Árvore consolidada =
-  `pilot@2241d3b94568acfdb99c8b7b31b53810e356846e` (merges #131–#134) + merge de
-  `e7449477` (Financial Spend, #135 — mergeada em `codex/provider-performance`, nunca
-  em `pilot`) + runtime/demo/bundle/docs desta rodada, em PR para `main`. `main` estava
-  0 commits à frente de `pilot` (nada exclusivo perdido). Validação **local** completa
-  registrada na PR; CI hospedado indisponível desde o run #771 (jobs com
-  `runner_id: 0`, sem passos — quota/billing de Actions; `GITHUB_ACTIONS_MINUTES.md`).
-  Nenhuma maturidade foi elevada por isso: capabilities pós-contrato seguem M1/E1
-  (código + banco local + demo local), sem CI hospedado no HEAD exato. Correção de
-  produto desta rodada: **OD-01** (`docs/supabase-financial-opportunity-discriminator.sql`)
-  — o job de oportunidades abortava para todas as organizações quando um covenant ou
-  período de performance gerava candidato (discriminador UUID recusado pela constraint);
-  reproduzido pela demo, coberto por `tests/database/financial-opportunity-discriminator.sql`.
+- **Estado vivo (06/10/2026, após #137).** `main` =
+  `07a059b9e3e5f1dcb4dc7bdcf5e2f52aede081b9`, árvore `7690dac661afe624c5fba8c633751e8ca20984e6`.
+  #136 consolidou `main`; #137 integrou personas Demo, Portfolio/Fee no seed,
+  Spend multi-moeda e apresentação humana de Spend/Performance. Nenhum commit
+  posterior ou PR aberta na leitura inicial desta rodada. Não reconstruir essas capabilities.
+  Run #782 (`37500603695`) no SHA atual: quatro gates failure, sem steps;
+  reexecução única também failure, sem steps. **M2 bloqueado externamente no release atual**;
+  BL-V3 abaixo é evidência histórica de outro SHA, não valida este release.
+- **Ambientes observados (06/10/2026).** Demo: `dpl_G71L2tL2pLM3BGujdeNVznkfVxxw`,
+  `main@07a059b9`, READY/production, ainda sandbox legado (somente
+  `ARANDU_DEPLOYMENT_KIND` em Production). Pilot: `dpl_2tjj6LD74ewYwzmXV6beTdcWLPfz`,
+  mesmo SHA, READY/preview, apenas alias git-main; Production Branch definitiva
+  ainda não comprovada. Banco Pilot confirmado por leitura:
+  `offgpyysgdhfemjlchod`, marker `financial-surface-hardening-1`, 24 migrations
+  pendentes; `deployment_environment` ausente. Oficial: `ARANDU_ENV=production`
+  **já existe** em Production; `dpl_ChaDUMxf9YiurcVgWgE7UegRmaTd` no mesmo SHA,
+  ERROR (`npm run vercel-build` exit 1). Logs retornam 403 de scope; causa
+  ainda desconhecida. `CRON_SECRET` ausente no inventário oficial. Só dois
+  projetos Supabase acessíveis (Pilot e legado/unknown): Demo/PROD próprios
+  não encontrados. Não elevar nenhuma capability a M3/M4/M5/M6.
 - **Estado anterior (05/10/2026, rodada de reconciliação pós-merge v3; histórico).** `pilot` @
   `d828a44027506a9d4a4eddd807914f85dd8dde4c` (merge #127, Guideline v3) **não é baseline
   limpa**: a #127 foi mergeada com `validate`/`presentation` ainda em execução e sem conter
@@ -59,7 +66,7 @@ dos anteriores; incidente ou regressão pode rebaixar; blocker externo não elev
 | **M2 — CI_VALIDATED** | `database`, `deploy-boundaries`, `validate`, `presentation` = `success` no **HEAD exato** que contém a capability, com a ponta da base contida (`merge:gates`); banco e os cinco projetos de navegador aplicáveis verdes; nenhuma evidência herdada de SHA anterior | ambiente hospedado saudável |
 | **M3 — HOSTED_VALIDATED** | migration/config aplicada no ambiente hospedado alvo; schema (marker) e deploy observados correspondem ao release; doctor/canário/probes relevantes passam; evidência vinculada a ambiente + SHA. Local ≠ hospedado | uso por pessoas, recuperação exercitada |
 | **M4 — PILOT_VALIDATED** | jornada autenticada real ou representativa ponta a ponta no Pilot; restore/recovery aplicável exercitado; runbook, observabilidade e suporte exercitados; evidência ligada ao SHA; `pilot:release:check` GO; blockers críticos fechados ou aceitos por responsável nomeado | produção |
-| **M5 — PRODUCTION_READY** | ambiente PROD dedicado (`ARANDU_ENV=production`, Supabase próprio, migrations próprias, secrets corretos); backup + restore provados; security/admin blockers relevantes fechados; owner, suporte, rollback/forward-fix e resposta a incidente definidos; promoção `pilot → main` da mesma árvore | validação por cliente |
+| **M5 — PRODUCTION_READY** | ambiente PROD dedicado (`ARANDU_ENV=production`, Supabase próprio, migrations próprias, secrets corretos); backup + restore provados; security/admin blockers relevantes fechados; owner, suporte, rollback/forward-fix e resposta a incidente definidos; Pilot validado no mesmo SHA de `main` antes de liberar o Oficial | validação por cliente |
 | **M6 — CUSTOMER_VALIDATED** | uso real por cliente/design partner no problema alvo; jornada observada; valor/usabilidade medidos; feedback e gaps registrados | fim da evolução |
 
 **Nível de evidência** (coluna `Evidence level`): `E0` documento; `E1` teste local; `E2` CI no
@@ -75,8 +82,8 @@ no Pilot; `E5` produção; `E6` uso por cliente.
 
 Regras de leitura: nenhuma capability está em **M3+** — o Pilot hospedado foi observado pela
 última vez no marker `financial-surface-hardening-1` (04/10), sem doctor/canário/jornada
-hospedados vinculados a um release, e produção não tem `ARANDU_ENV=production` nem Supabase
-próprio. Nenhuma capability é **M6**: não há cliente real em operação.
+hospedados vinculados a um release, e produção já tem `ARANDU_ENV=production`, mas não há Supabase PROD
+próprio comprovado nem build saudável. Nenhuma capability é **M6**: não há cliente real em operação.
 
 ## Registro de maturidade por capability (v3)
 
@@ -86,12 +93,12 @@ que contém a capability. `Ambiente validado` = onde a evidência mais alta foi 
 
 | ID | Capability | Escopo | Maturity | Evidence level | Ambiente validado | Validated SHA | Última validação | Blockers externos | Próximo gate |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| P0.1-01 | Demo/Pilot/Production por configuração | partial | M2 | E2 | CI (`deploy-boundaries`) | BL-V3 | 05/10 | Supabase DEMO/PROD; `ARANDU_ENV=production` | M3: env hospedado por ambiente observado |
+| P0.1-01 | Demo/Pilot/Production por configuração | partial | M2 | E2 | CI (`deploy-boundaries`) | BL-V3 | 05/10 | Supabase DEMO/PROD; CI atual; Pilot Production Branch; build oficial | M3: CI exato + banco isolado + doctor/canário/jornada |
 | P0.1-02 | Manifesto de migrations, clean/upgrade/reapply/rollback | implemented | M2 | E2 | CI (`database`) | BL-V3 | 05/10 | — | manter por migration |
-| P0.1-03 | Migrations aplicadas no Pilot hospedado | blocked | M2 (bundle/ferramenta) · hosted não atingido | E2 | CI | BL-V3 | 05/10 | credencial administrativa Supabase; restore drill hospedado antes | M3: bundle staged (`ce57975…`, 12 arquivos, ensaiado localmente PASS) aplicado + doctor GO |
+| P0.1-03 | Migrations aplicadas no Pilot hospedado | blocked | M2 (bundle/ferramenta) · hosted não atingido | E2 | CI | BL-V3 | 05/10 | conexão de dump/restore, backup e restore hospedados antes | M3: recovery do mesmo backup + prefixo de 12 migrations (`8e15a95…`) até data-governance; depois export/owner ack + restantes + doctor GO |
 | P0.1-04 | Rulesets `pilot`/`main` | blocked | M2 (artefatos versionados) · **não aplicada** (`protected=false`) | E2 | CI (`check:governance`) | BL-V3 | 05/10 | **OWNER_ACTION_REQUIRED**: plano GitHub Pro/Team (repositório privado no Free não suporta rulesets — API 403) e depois importar | upgrade + import; API `protected=true` |
 | P0.1-05 | Restore drill local + procedimento hospedado | partial | M2 (mecanismo) | E1/E2 | local + CI (preflight) | BL-V3 | 05/10 | `PILOT_SOURCE_DATABASE_URL` | M4: drill hospedado PASS |
-| P0.1-06 | Doctor, canary, env check | implemented | M2 | E2 | CI | BL-V3 | 05/10 | credencial do Pilot | M3: doctor/canário hospedado no SHA |
+| P0.1-06 | Doctor, canary, env check | implemented | M1 (cobertura atual ampliada) | E1 | Node local; canário E3 somente schema antigo | — (CI atual bloqueado) | 06/10 | CI; configuração/credencial de doctor; schema atrasado | M2 exato; M3 doctor/canário no marker final e mesmo SHA |
 | P0.1-07 | Severidade, runbook, postmortem | partial | M1 | E0 | documento | — | 05/10 | responsáveis nomeados | M4: exercício de resposta |
 | P0.2-01..08 | Multi-entity (grupo, escopo, RLS, guardas, consolidado, moeda, trilha, UI) | implemented | M2 | E2 | CI | BL-V3 | 05/10 | rollout hospedado | M3 |
 | P0.2-09 | Aprovação cruzada / tesouraria por policy | partial | M2 | E2 | CI | BL-V3 | 05/10 | rollout hospedado | M3 |
@@ -118,14 +125,14 @@ que contém a capability. `Ambiente validado` = onde a evidência mais alta foi 
 | P1.1 | Savings & Value Realization Ledger | implemented | M2 | E2 | CI | BL-V3 (primeira: `189bc9d`) | 05/10 | rollout hospedado | M3 |
 | P1.2 | Bank Fee Intelligence | implemented | M2 | E2 | CI | BL-V3 (primeira: `e889aff`) | 05/10 | rollout hospedado | M3 |
 | P1.3 | Opportunity Engine determinístico | implemented | M2 | E2 | CI | BL-V3 (primeira: `70df5d3`) | 05/10 | rollout; cadência do cron | M3 |
-| P1.4 | Proposal & Document Intelligence | partial (foundation completa) | M1 | E1 | local (PostgreSQL 16 + Chromium desktop/mobile) | — (CI bloqueado por cobrança do Actions) | 05/10 | CI do GitHub Actions (cobrança); OCR/modelo externo (contrato de dados); Stage 0 hospedado | M2: quatro gates no HEAD da PR |
-| PQ-01 | Provider Qualification & Due Diligence (v3 §11) | partial (core completo) | M1 | E1 | local (PostgreSQL 16 + Chromium desktop/mobile) | — (CI bloqueado) | 05/10 | CI (cobrança); Stage 0 | M2 |
-| PA-01 | Post-Award Implementation & Transition | partial (core implementado) | M1 | E1 | local, fixtures sintéticas | — (CI obrigatório pendente) | 05/10 | CI e Stage 0 | M2 com quatro gates no SHA |
-| CO-01 | Covenant & Obligation Monitor | partial (core implementado) | M1 | E1 | local PostgreSQL 16 / fixtures | — (CI obrigatório pendente) | 05/10 | CI, E2E e Stage 0 | M2 com gates no SHA |
+| P1.4 | Proposal & Document Intelligence | partial (foundation completa) | M1 | E1 | local (Node/build + Chromium desktop/mobile; APIs com fixtures) | — (CI bloqueado por cobrança do Actions) | 06/10 | CI do GitHub Actions (cobrança); OCR/modelo externo (contrato de dados); Stage 0 hospedado | M2: quatro gates no HEAD da PR |
+| PQ-01 | Provider Qualification & Due Diligence (v3 §11) | partial (core completo) | M1 | E1 | local (Node/build + Chromium desktop/mobile; APIs com fixtures) | — (CI bloqueado) | 06/10 | CI (cobrança); Stage 0 | M2 |
+| PA-01 | Post-Award Implementation & Transition | partial (core implementado) | M1 | E1 | local (Node/build + Chromium desktop/mobile; APIs com fixtures) | — (CI obrigatório pendente) | 06/10 | CI e Stage 0 | M2 com quatro gates no SHA |
+| CO-01 | Covenant & Obligation Monitor | partial (core implementado) | M1 | E1 | local (Node/build + Chromium desktop/mobile; APIs com fixtures) | — (CI obrigatório pendente) | 06/10 | CI, E2E e Stage 0 | M2 com gates no SHA |
 | P1.5 | SCIM / JIT / access reviews | missing | NOT_STARTED | — | — | — | — | — | — |
 | P1.6 | Executive Portfolio | partial | M2 (fatia executiva) | E2 | CI | BL-V3 | 05/10 | rollout hospedado | M3 |
-| P1.7 / SI-01 | Financial Spend Intelligence | partial (reconciled evidence slice) | M1 | E1 | local PostgreSQL 16; Node; build | — (CI obrigatório pendente) | 05/10 | CI, E2E, Stage 0; allocation/wallet/Opportunity/tasks depth | M2 after exact-SHA gates |
-| PP-01 | Provider Performance | partial (core implementado) | M1 | E1 | local PostgreSQL 16; Node; build | — (CI obrigatório pendente) | 05/10 | CI, E2E e Stage 0 | M2 com gates no SHA |
+| P1.7 / SI-01 | Financial Spend Intelligence | partial (reconciled evidence slice) | M1 | E1 | local (Node/build + Chromium desktop/mobile; APIs com fixtures) | — (CI obrigatório pendente) | 06/10 | CI, E2E, Stage 0; allocation/wallet/Opportunity/tasks depth | M2 after exact-SHA gates |
+| PP-01 | Provider Performance | partial (core implementado) | M1 | E1 | local (Node/build + Chromium desktop/mobile; APIs com fixtures) | — (CI obrigatório pendente) | 06/10 | CI, E2E e Stage 0 | M2 com gates no SHA |
 | P1.10 | Enterprise Search | partial | M2 (escopo limitado) | E2 | CI | BL-V3 | 05/10 | — | — |
 | P1.11–P1.12 | Enterprise Intake, Scenario Builder | missing | NOT_STARTED | — | — | — | — | — | — |
 | P2.1–P2.4, P2.6, P2.8 | Product Packs e integrações | missing | NOT_STARTED | — | — | — | — | gate §43.1 / Stage 4 | — |
@@ -171,9 +178,9 @@ que as escreveu.
 
 | ID | Guideline | Capability | Pri | Dependency | Status | Evidence | Gaps | Risk | Next action | PR/commit |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| P0.1-01 | §38.3, Add. H.1 | Demo/Pilot/Production por configuração, mesma árvore | P0 | — | partial | `docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md`, `scripts/vercel-build.mjs`, `scripts/check-finance-env.mjs`, `lib/demo-mode.mjs`, `lib/deployment-surface.mjs` | Supabase DEMO não existe (limite Free 2 projetos); produção sem `ARANDU_ENV=production` nem banco próprio (`ARANDU_CURRENT_STATE_2026-10-02.md`) | demo/prod mal configurados | Owner: criar Supabase DEMO/PROD, setar env (ver lista de blockers) | — |
+| P0.1-01 | §38.3, Add. H.1 | Demo/Pilot/Production por configuração, mesma árvore | P0 | — | partial | `docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md`, `scripts/vercel-build.mjs`, `scripts/check-finance-env.mjs`, `lib/demo-mode.mjs`, `lib/deployment-surface.mjs` | Supabase DEMO não existe (limite Free 2 projetos); produção com `ARANDU_ENV=production` desde 06/10, mas sem banco próprio comprovado; build oficial ERROR | demo/prod mal configurados | Owner: criar Supabase DEMO/PROD, setar env (ver lista de blockers) | — |
 | P0.1-02 | §38.4 | Manifesto de migrations, clean install, upgrade, reapply, rollback | P0 | — | implemented | `docs/supabase-migrations.json`, `scripts/check-migrations.mjs`, `scripts/test-database.sh` (clean+upgrade+reapply+rollback), `docs/rollback/*` | — (cada migration nova deve repetir o padrão) | migration fora do manifesto | manter | — |
-| P0.1-03 | §38.4, Add. E.6 | Migrations aplicadas no Pilot hospedado | P0 | P0.1-02 | blocked | Pilot em `financial-surface-hardening-1` (02/10); bundle `npm run migrations:bundle -- --after-schema` | sem credencial administrativa do Supabase nesta sessão; restore drill hospedado é pré-condição | piloto atrás do código | Owner aplica bundle após backup+drill | — |
+| P0.1-03 | §38.4, Add. E.6 | Migrations aplicadas no Pilot hospedado | P0 | P0.1-02 | blocked | Pilot em `financial-surface-hardening-1` (02/10); bundle `npm run migrations:bundle -- --after-schema` | conector SQL administrativo disponível; sem conexão de dump/restore e drill hospedado comprovado; 24 migrations pendentes em 06/10 | piloto atrás do código | Owner aplica bundle após backup+drill | — |
 | P0.1-04 | §38.1–38.2, Add. G.3 | Branch protection/rulesets em `main` e `pilot` | P0 | — | blocked | rulesets versionados e testados `.github/rulesets/{pilot,main}.json` (`scripts/test-merge-gates.mjs`), `npm run merge:gates` com frescor de base, `.github/workflows/merge-audit.yml` (detecção pós-merge), `docs/BRANCH_PROTECTION.md` | OWNER_ACTION_REQUIRED: importar as rulesets (executor sem administração; 05/10 `protected=false`) | merge com CI vermelho (ocorreu na #118 e na #124) | Owner importa as rulesets; verificar `protected=true` | PR de baseline 05/10 |
 | P0.1-05 | Add. E.1 | Restore drill local e procedimento hospedado | P0 | — | partial | `scripts/pilot-restore-drill.sh`, `scripts/pilot-backup-preflight.mjs`, `ops/sql/post-restore-probes.sql`, `docs/FINANCIAL_PILOT_PASSPORT_ROLLOUT.md` | drill hospedado nunca executado (sem DB URL) | backup ≠ restore | Owner roda `pilot:restore:drill` com `PILOT_SOURCE_DATABASE_URL` | — |
 | P0.1-06 | §38, Add. E.6 | Doctor, canary e env check | P0 | — | implemented | `scripts/finance-pilot-doctor.mjs`, `lib/finance/pilot-doctor.mjs` (espera `financial-operational-resilience-1`), `scripts/pilot-canary.sh`, `ops/sql/pilot-isolation-canary.sql` (inclui isolamento por entidade), `scripts/test-pilot-doctor.mjs` | marcador esperado precisa acompanhar cada migration | GO falso | manter a cada migration | PR multi-entity |
@@ -306,9 +313,9 @@ Inventário, categorias e procedimento em `docs/LEGACY_ART_RETIREMENT.md` (ponte
 | PQ-01 | v3 §11 | Provider Qualification & Due Diligence | P1 | P0.5 | partial | `docs/supabase-financial-provider-qualification.sql` (exigências versionadas do cliente, qualificação por provedor×categoria×entidade, evidência com origem/validade incl. serviço externo, exceções com SoD, trilha, prontidão no banco, consulta `fin_provider_qualification_status`, job de vencimento), API `qualifications/*`, `/finance/qualifications.html`, testes Node/DB/E2E, `docs/FINANCIAL_PROVIDER_QUALIFICATION.md` | portal do provedor não envia evidência; job de vencimento fora da cron; policy ainda não consome o estado | virar "aprovação do Arandu" (mitigado: linguagem testada, serviço externo como evidência) | M2 quando o CI rodar | branch `claude/vibrant-lovelace-gnz9qs` |
 | P1.5 | §33, Add. F.2 | SCIM / JIT / access reviews / service accounts | P1 | P0.9 | missing | — | — | misconfiguration | — | — |
 | P1.6 | §26 | Executive Portfolio | P1 | P0.4–P0.6 | partial | `/finance/dashboard.html` (pipeline, tarefas, prazos, consolidado por entidade, **Inteligência de valor**: valor negociado/realizado/evitado, diferenças e revisões de tarifa, cobertura, oportunidades — por moeda, entidade e período, com links de ação; `docs/FINANCIAL_VALUE_INTELLIGENCE_EXECUTIVE.md`), `/finance/portfolio.html` (dívida, limites, concentração, garantias) | cycle times; P1.7 Spend Analytics; export executivo | dashboard sem ação (mitigado: cada cartão leva ao trabalho); soma entre moedas/tipos (proibida e testada) | fatia executiva CI validated e mergeada na #122; validar hosted | #122 |
-| P1.7 / SI-01 | v3 §16 | Financial Spend Intelligence | P1 | P1.2, PP-01 | partial (M1/E1 evidence slice) | `FINANCIAL_SPEND_INTELLIGENCE.md`; immutable records/reconciliation; fee projections; currency/type/entity/provider/product totals; API/UI; Search/Graph/export/Executive | allocation splits, wallet/concentration, Opportunity candidates, tasks/reminders, bulk imports, E2E/CI/hosted | duplicate references require independent human reconciliation; no FX or savings inferred | aprofundar antes de M2 | stacked spend draft |
+| P1.7 / SI-01 | v3 §16 | Financial Spend Intelligence | P1 | P1.2, PP-01 | partial (M1/E1 evidence slice) | `FINANCIAL_SPEND_INTELLIGENCE.md`; immutable records/reconciliation; fee projections; currency/type/entity/provider/product totals; API/UI; Search/Graph/export/Executive | allocation splits, wallet/concentration, Opportunity candidates, tasks/reminders, bulk imports, E2E/CI/hosted | duplicate references require independent human reconciliation; no FX or savings inferred | aprofundar antes de M2 | main #136/#137 |
 | P1.8 / CO-01 | v3 §13 | Covenant & Obligation Monitor | P1 | P0.4 | partial (core implementado, M1) | `FINANCIAL_COVENANTS.md`; #133 incorporated in pilot a2face3 without valid CI | hosted, independent CI | breach falso | M2 after exact-SHA gates | #133 |
-| P1.9 / PP-01 | v3 §12 | Provider Performance | P1 | P0.5 | partial (core implementado, M1/E1) | `FINANCIAL_PROVIDER_PERFORMANCE.md`; 5 SoRs; metas/métodos do cliente; observações/revisões imutáveis; fechamento; API/UI; Search/Graph/Executive/Opportunity/exports/lembretes | CI, browser execution, hosted; sem score agregado ou conector externo | score universal (proibido); dado ausente ≠ zero | M2 com gates exatos | draft provider-performance |
+| P1.9 / PP-01 | v3 §12 | Provider Performance | P1 | P0.5 | partial (core implementado, M1/E1) | `FINANCIAL_PROVIDER_PERFORMANCE.md`; 5 SoRs; metas/métodos do cliente; observações/revisões imutáveis; fechamento; API/UI; Search/Graph/Executive/Opportunity/exports/lembretes | CI, browser execution, hosted; sem score agregado ou conector externo | score universal (proibido); dado ausente ≠ zero | M2 com gates exatos | main #136/#137 |
 | P1.10 | §35 | Enterprise Search | P1 | P0.2 | partial | `fin_search` (RFQ/proposta/provedor/contrato/tarefa, limitado), entity-aware desde a multi-entity | sem filtros de entidade/data/estado/categoria; não cobre documentos, comentários, obrigações | leakage | após P0.4–P0.6 | — |
 | P1.11 | §22 | Enterprise Intake | P1 | P0.2 | missing | intake só na demo (`DEMO_ONLY_PAGES`) | — | campo crítico inferido | — | — |
 | P1.12 | §21 | Scenario Builder / split award | P1 | comparação | missing | — | — | parecer recomendação | — | — |
@@ -680,3 +687,21 @@ com USD estimado e rehearsal descartável preparados em
 maturidade: testes Node/build passam, SQL/seed/E2E/visual QA ainda dependem de
 executor com ferramentas; CI sem runner. Pilot com 24 migrations pendentes;
 ARANDU_ENV=production configurado na Vercel oficial, sem deploy ou claim de M5.
+
+## Fechamento operacional — 06/10/2026 após #137
+
+M2 do release atual permanece bloqueado externamente; M3/M4/M5/M6 não
+atingidos. As observações E3 de metadados/health e canário no schema antigo
+não são E3 suficiente para promover capabilities do release atual.
+
+| Gap executável | Mudança | Maturity / Evidence | Próximo gate |
+| --- | --- | --- | --- |
+| P0.1-06 doctor não exigia RPCs pós-contrato | 24 RPCs e 19 tabelas anônimas adicionais; probe inconclusivo e inventário anônimo indisponível bloqueiam GO | M1/E1; negativos Node passam | CI exato, doctor hospedado após upgrade |
+| P0.10-02 release assessor incompleto | contrato v2 exige CI exato, 26 etapas, 15 probes, observabilidade e exercício de runbook/suporte | M1/E1; negativos Node passam | executar os comprovantes E3/E4, `pilot:release:check` GO |
+| P1.4/PQ-01/PA-01/CO-01/PP-01/SI-01 UI sem execução nesta sessão | suíte financeira Chromium desktop/mobile: 209 passed, 7 skips preexistentes; APIs de fixture | M1/E1; não M2/M3 | Firefox/WebKit/Mobile Safari, SQL e quatro gates no SHA |
+
+Rehearsal da #137 preservado. A evidência E1 anterior de 297 checks não foi
+reproduzida no executor atual: Docker ausente e servidor PostgreSQL local
+inutilizável. Nenhuma migration Demo/Pilot/Production foi aplicada. Prefixos
+regenerados (12 + 12) sem saltar o decommission. Etapa B não liberada pelo
+Stage 0; P1.5/P1.11/P1.12, P2/P3/AI não iniciados.
