@@ -1,0 +1,18 @@
+name: Actions runner smoke
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Runner allocated
+        run: |
+          echo "runner-ok"
+          uname -a
