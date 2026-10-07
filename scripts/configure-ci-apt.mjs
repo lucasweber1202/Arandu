@@ -5,7 +5,9 @@ import { fileURLToPath } from 'node:url';
 // Only substitute the runner's failing Azure transport. Suites, components,
 // Signed-By and Ubuntu's package signature verification remain unchanged.
 export function useUbuntuArchive(source) {
-  return source.replace(/https?:\/\/azure\.archive\.ubuntu\.com\/ubuntu(?=[/\s]|$)/g, 'https://archive.ubuntu.com/ubuntu');
+  return source
+    .replace(/https?:\/\/azure\.archive\.ubuntu\.com\/ubuntu(?=[/\s]|$)/g, 'https://archive.ubuntu.com/ubuntu')
+    .replace(/mirror\+file:\/etc\/apt\/apt-mirrors\.txt(?=[/\s]|$)/g, 'https://archive.ubuntu.com/ubuntu');
 }
 
 export const networkConfig = `Acquire::Retries "3";

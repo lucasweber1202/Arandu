@@ -4,6 +4,9 @@ import { useUbuntuArchive, networkConfig } from './configure-ci-apt.mjs';
 
 const deb822 = 'Types: deb\nURIs: http://azure.archive.ubuntu.com/ubuntu/\nSuites: noble noble-updates noble-security\nComponents: main universe\nSigned-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg\n';
 assert.equal(useUbuntuArchive(deb822), deb822.replace('http://azure.archive.ubuntu.com', 'https://archive.ubuntu.com'));
+const runnerSource = deb822.replace('http://azure.archive.ubuntu.com/ubuntu/', 'mirror+file:/etc/apt/apt-mirrors.txt');
+assert.equal(useUbuntuArchive(runnerSource), deb822.replace('http://azure.archive.ubuntu.com', 'https://archive.ubuntu.com').replace('/ubuntu/', '/ubuntu'));
+assert.equal(useUbuntuArchive('mirror+file:/etc/apt/other-mirrors.txt'), 'mirror+file:/etc/apt/other-mirrors.txt');
 const legacy = 'deb https://azure.archive.ubuntu.com/ubuntu noble main\n';
 assert.equal(useUbuntuArchive(legacy), 'deb https://archive.ubuntu.com/ubuntu noble main\n');
 assert.equal(useUbuntuArchive('https://azure.archive.ubuntu.com/ubuntu-evil'), 'https://azure.archive.ubuntu.com/ubuntu-evil');

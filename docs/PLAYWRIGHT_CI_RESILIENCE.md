@@ -19,6 +19,8 @@ Referências: logs completos dos jobs validate 112956438134 e presentation
 
 configure-ci-apt.mjs troca somente a URL azure.archive.ubuntu.com/ubuntu por
 https://archive.ubuntu.com/ubuntu nas sources do runner Ubuntu 24.04 x64.
+Também substitui mirror+file:/etc/apt/apt-mirrors.txt, formato real do runner,
+que prioriza Azure e depois os arquivos Ubuntu. Outros mirrorlists não mudam.
 Mantém suites/components/Signed-By e verificação de assinatura; não adiciona
 repositórios, trusted=yes ou downloads externos. A troca é idempotente.
 Retries apt limitados a 3; timeouts HTTP/HTTPS 30 segundos; update Error-Mode any
@@ -55,3 +57,12 @@ Rollback: reverter a correção por PR sob os mesmos quatro gates, sem alterar a
 Validação local: npm ci --include=optional, audit:ci (0 vulnerabilidades),
 check:all, build, check:build-size, check:dist-assets e test:e2e:list PASS.
 Nenhum teste de browser é declarado aprovado neste executor.
+
+O primeiro HEAD da PR #144 passou validate (519 passed, 21 skipped) e probes
+dos três motores, mas o log do #797 mostrou 0 sources alteradas e seleção Azure
+a partir de file:/etc/apt/apt-mirrors.txt. Isso revelou que somente substituir
+URLs diretas não tratava a configuração real. A correção de seguimento cobre
+esse URI exato e tem teste de regressão deb822 com mirror+file. Exige novo run
+com quatro gates verdes no novo HEAD; o #797 anterior não autoriza merge.
+Fonte do formato: actions/runner-images, images/ubuntu/scripts/build/
+configure-apt-sources.sh (consultado em 07/10/2026).
