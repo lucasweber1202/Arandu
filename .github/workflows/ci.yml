@@ -60,7 +60,7 @@ jobs:
     needs: deploy-boundaries
     if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 50
+    timeout-minutes: 70
     env:
       ARANDU_SITE_URL: https://arandu.example.com
     steps:
@@ -135,12 +135,13 @@ jobs:
           restore-keys: |
             playwright-ubuntu-24.04-${{ runner.arch }}-${{ steps.playwright.outputs.version }}-
 
-      - name: Bound apt network retries
-        run: |
-          printf 'Acquire::Retries "2";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' | sudo tee /etc/apt/apt.conf.d/99-arandu-ci-network >/dev/null
+      - name: Prepare signed Ubuntu archive and bounded apt network retries
+        run: sudo "$(command -v node)" scripts/configure-ci-apt.mjs
 
       - name: Install browser system dependencies
-        timeout-minutes: 12
+        timeout-minutes: 25
+        env:
+          DEBIAN_FRONTEND: noninteractive
         run: npx playwright install-deps chromium firefox webkit
 
       - name: Verify and install Chromium, Firefox and WebKit
@@ -148,6 +149,10 @@ jobs:
         env:
           PLAYWRIGHT_DOWNLOAD_CONNECTION_TIMEOUT: '60000'
         run: npx playwright install chromium firefox webkit
+
+      - name: Verify browser launch and page rendering
+        timeout-minutes: 2
+        run: node scripts/verify-ci-browsers.mjs
 
       # Cache persistence is best-effort; installation and tests remain gates.
       - name: Save verified Playwright browsers before tests
@@ -203,7 +208,7 @@ jobs:
     needs: deploy-boundaries
     if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 50
+    timeout-minutes: 70
     env:
       ARANDU_SITE_URL: https://arandu.example.com
       ARANDU_PRESENTATION_MODE: "true"
@@ -236,12 +241,13 @@ jobs:
           restore-keys: |
             playwright-ubuntu-24.04-${{ runner.arch }}-${{ steps.playwright.outputs.version }}-
 
-      - name: Bound apt network retries
-        run: |
-          printf 'Acquire::Retries "2";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' | sudo tee /etc/apt/apt.conf.d/99-arandu-ci-network >/dev/null
+      - name: Prepare signed Ubuntu archive and bounded apt network retries
+        run: sudo "$(command -v node)" scripts/configure-ci-apt.mjs
 
       - name: Install browser system dependencies
-        timeout-minutes: 12
+        timeout-minutes: 25
+        env:
+          DEBIAN_FRONTEND: noninteractive
         run: npx playwright install-deps chromium firefox webkit
 
       - name: Verify and install Chromium, Firefox and WebKit
@@ -249,6 +255,10 @@ jobs:
         env:
           PLAYWRIGHT_DOWNLOAD_CONNECTION_TIMEOUT: '60000'
         run: npx playwright install chromium firefox webkit
+
+      - name: Verify browser launch and page rendering
+        timeout-minutes: 2
+        run: node scripts/verify-ci-browsers.mjs
 
       # Cache persistence is best-effort; installation and tests remain gates.
       - name: Save verified Playwright browsers before tests
@@ -280,7 +290,6 @@ jobs:
           retention-days: 7
       - name: Presentation journeys
         timeout-minutes: 25
-        if: ${{ !cancelled() }}
         run: npm run test:e2e:presentation
       - name: Upload presentation browser evidence on failure
         if: failure()
