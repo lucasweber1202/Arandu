@@ -5,6 +5,20 @@ hospedados permanentes: Demo e Production. Pilot significa estágio de validaç�
 de release. `main` é a única linha de produto; não desenvolver na branch `pilot`.
 Previews e bancos locais descartáveis não criam outro ambiente permanente.
 
+## Seguimento após #142 (07/10/2026)
+
+Snapshot atual em `FINANCIAL_DEPLOYMENT_FAILURE_2026-10-07.md`: main477ad8be,
+run #794 com os quatro gates success, **M2/E2 comprovado**. merge-audit failure
+registra MGI-2026-10-07-08 (merge antes do fim dos gates), sem rollback automático.
+Demo no SHA novo continua synthetic-fixtures, arandu-pilot tem status Vercel
+success para esse SHA, arandu failure. Leitura de logs/configuração segue 403.
+Não atribuir a causa do build a CI, código ou variável sem os logs.
+
+As observações restantes deste documento são o **snapshot histórico anterior
+ao merge #142**. Preservam inventários, hashes e condições de conversão;
+nenhuma configuração ou banco foi convertido nesta investigação. Destinos
+planejados ainda não são atribuições ativas. M3/M4/M5 não comprovados.
+
 ## Estado observado e trabalho executado
 
 Baseline remoto: `59806334e038f2b3a01f363a63e4ca577949b26b`, árvore

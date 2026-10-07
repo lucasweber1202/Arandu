@@ -203,3 +203,25 @@ to enable this feature. Branch protection GET retornou 403 Resource not accessib
 by integration. Não foi alterada a visibilidade, o plano ou o controle de acesso.
 Causa administrativa do CI ainda não confirmada; runner 0 não prova cobrança.
 O impedimento de CI é CI_EXTERNAL_BLOCKER; nenhuma flexibilização de gates.
+
+
+## MGI-2026-10-07-08 — #142 mergeada antes do término dos gates
+
+| Campo | Evidência observada em 07/10/2026 |
+| --- | --- |
+| PR / HEAD | #142, `85e95cd94a023a3012c6b20841c64f2fd159af36` |
+| Merge | `main@477ad8be5b95733e8ac97aa3a6f3e1c6a2e54d62`, 18:06:00Z |
+| Gates no merge | `database` e `deploy-boundaries` success; `validate` e `presentation` in_progress |
+| Detecção | merge-audit `37664210727`, job `112939139701`; log 18:06:10Z identifica os dois gates em execução e retorna exit 1 |
+| Run da PR | #793 (`37662454889`): presentation terminou success às 18:06:44Z; validate terminou failure às 18:07:58Z; nenhum desses resultados havia terminado no merge |
+| Validação posterior do commit mergeado | **Run #794 (`37664210563`) no SHA 477ad8be: quatro gates success**; database 18:08:03Z, deploy-boundaries 18:07:25Z, validate 18:18:46Z, presentation 18:21:39Z |
+| Estado de código | M2/E2 comprovado para a árvore mergeada pelo run #794; isso não comprova deployment ou readiness de Production |
+| Estado de governança | Incidente registrado; a prova posterior não retroage para autorizar o merge prematuro |
+| Deployment | Vercel arandu failure no mesmo SHA, deployment `dpl_Aj44zzVxwHt139cYZ3H4XZNLuZVE`; causa exata ainda não exposta pelos logs, leitura bloqueada 403 |
+| Proteção | branches/main informa protected=false nesta observação; repositório agora público. Limitação de plano do repositório privado relatada anteriormente é histórica, não foi reutilizada como diagnóstico atual |
+
+Não reescrever história, enfraquecer audit ou fazer rollback automático por
+este incidente. O audit detectou corretamente a decisão antes da evidência;
+o CI posterior validou a árvore efetivamente mergeada. Corrigir o deployment
+com base em seus próprios logs e preservar merge:gates para próximas PRs.
+Evidência complementar: `FINANCIAL_DEPLOYMENT_FAILURE_2026-10-07.md`.

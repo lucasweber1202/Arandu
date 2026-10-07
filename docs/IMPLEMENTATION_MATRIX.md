@@ -14,7 +14,26 @@ Outra sessão deve conseguir continuar a partir daqui sem refazer a auditoria.
   mas **não prevalece** sobre a v3. As colunas `Guideline` das tabelas detalhadas citam
   seções da v2/v2.1 vigentes quando cada linha foi escrita; a numeração não foi
   reescrita para não perder rastreabilidade.
-- **Estado vivo (07/10/2026, consolidação de dois ambientes).** `main` =
+- **Estado vivo (07/10/2026, após #142).** main =
+  `477ad8be5b95733e8ac97aa3a6f3e1c6a2e54d62`, árvore
+  `6575db8fb0dbf9895676464b07cef2ba75c6911c`. **M2/E2 comprovado** pelo run
+  #794 (`37664210563`): database/deploy-boundaries/validate/presentation success
+  no commit mergeado. O bloqueio de CI descrito nos snapshots anteriores é
+  histórico e não constitui regressão atual. merge-audit `37664210727` failure
+  é incidente separado: #142 entrou às 18:06:00Z com dois gates em execução
+  (MGI-2026-10-07-08). Nenhum rollback automático ou reescrita de histórico.
+  Vercel no mesmo SHA: arandu-demo e arandu-pilot com status success;
+  arandu failure (`dpl_Aj44zzVxwHt139cYZ3H4XZNLuZVE`). Health da Demo pública
+  confirma main477, runtime demo, synthetic-fixtures; portanto não promove M3
+  da Demo canônica. Official público ainda não expõe SHA e retorna 404 em
+  Passport/Portfolio. Logs/settings Vercel 403 no escopo lucas-projects467;
+  CLI/token autenticado indisponíveis. Causa exata do build não comprovada;
+  nenhuma configuração, credencial ou banco alterado. **M3/M4/M5 não
+  comprovados**. Registro de capabilities abaixo mantém o escopo/histórico;
+  a evidência CI atual da árvore é BL-794, sem claim de rollout hospedado.
+  Próximo gate: obter logs completos do deployment identificado e aplicar
+  somente a correção demonstrada. `FINANCIAL_DEPLOYMENT_FAILURE_2026-10-07.md`.
+- **Estado histórico (07/10/2026, antes do merge #142).** `main` =
   `59806334e038f2b3a01f363a63e4ca577949b26b`; #140/#141 merged com gates failure,
   incidente MG-I-07 registrado. Topologia alvo: Demo + Production permanentes;
   Pilot passa a release validation stage. `fix/two-environment-consolidation`
@@ -120,6 +139,7 @@ no Pilot; `E5` produção; `E6` uso por cliente.
 
 | Código | SHA | Evidência | Estado |
 | --- | --- | --- | --- |
+| `BL-794` | `477ad8be5b95733e8ac97aa3a6f3e1c6a2e54d62` | run `37664210563`, quatro gates success em 07/10 | **árvore atual CI-validada**; incidente de merge separado; hosted/recovery pendentes |
 | `BL-125` | `e2212af5a49707cf9ecd44b3384a2eaccf270756` (HEAD da #125, contém tudo até #124) | run `37258668278`: quatro gates success em 05/10 | **superseded** pela BL-V3 |
 | `BL-V3` | `4a93fa60b51ae4c094e95d25cee8be4748363cfb` (HEAD da #128; árvore idêntica a `pilot@d4d6c22`) | run `37320266260`: `database`, `deploy-boundaries`, `validate`, `presentation` success no HEAD exato (05/10 14:15Z) | **árvore CI-validada**; a #128 foi mergeada antes do fim do CI (MGI-2026-10-05-02, `merge-audit` `37320702496` failure). Baseline limpa = esta árvore + merge-audit verde da PR documental de seguimento |
 
