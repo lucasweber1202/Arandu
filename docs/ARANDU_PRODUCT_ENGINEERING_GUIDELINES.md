@@ -1,13 +1,15 @@
 # Arandu — Diretrizes Mestras de Produto, Engenharia e Evolução
 
-**Versão 3.0 — 5 de outubro de 2026**  
-**Baseline técnica de referência desta revisão:** `pilot` @ `556258c0329a321fd6b2df8daf151195be4327f1`  
+**Versão 3.1 — 7 de outubro de 2026**  
+**Baseline técnica de referência desta revisão:** `main` @ `84110305ae3fc86bc81a11cc901007ce8111fb46`  
 **Status:** constituição normativa de produto e engenharia  
 **Escopo:** tese de produto, boundaries, arquitetura funcional, maturidade, UX, engenharia, dados, segurança, IA, integrações, operação enterprise e critérios de evolução
 
 > **Propósito.** Esta guideline define o que o Arandu é, o que não é, como deve evoluir e quais garantias não podem ser sacrificadas. Ela governa pessoas e agentes de IA que alterem o produto.
 >
-> **Mudança principal da v3.0.** A guideline deixa de funcionar simultaneamente como constituição, inventário de implementação e backlog. A direção estratégica permanece aqui; o estado vivo de cada capacidade, blockers e evidências pertencem a `docs/IMPLEMENTATION_MATRIX.md` e aos documentos operacionais especializados.
+> **Mudança principal da v3.1.** A tese é refinada para deixar explícito que RFQ/RFP e comparação são capabilities do core, não o moat isolado. O diferencial defensável do Arandu é o lifecycle de procurement financeiro de ponta a ponta, sustentado pelo Financial Graph, memória institucional, governança, workflow recorrente, dados com proveniência e integrações. Market data, pricing e execution venues especializados devem ser integrados quando fizer sentido, não reconstruídos como um terminal/OMS/EMS paralelo.
+>
+> **Mudança estrutural preservada da v3.0.** A guideline não funciona simultaneamente como constituição, inventário de implementação e backlog. A direção estratégica permanece aqui; o estado vivo de cada capacidade, blockers e evidências pertencem a `docs/IMPLEMENTATION_MATRIX.md` e aos documentos operacionais especializados.
 >
 > **Regra de interpretação.** "Existe em código", "passa no CI", "está validado em ambiente hospedado", "está pronto para produção" e "foi validado por cliente" são estados diferentes e NÃO DEVEM ser tratados como sinônimos.
 
@@ -73,8 +75,8 @@ A guideline NÃO DEVE ser atualizada apenas para marcar uma feature como conclu�
 
 O norte do produto é:
 
-**Arandu Financial Procurement & Vendor Management OS**  
-*Financial Sourcing, Relationship, Contract and Decision Infrastructure for Companies*
+**Arandu Financial Procurement Lifecycle OS**  
+*Financial Sourcing, Relationship, Contract, Governance and Lifecycle Infrastructure for Companies*
 
 O Arandu é a camada especializada em que uma empresa administra continuamente:
 
@@ -114,9 +116,14 @@ O Arandu ocupa a interseção entre:
 
 1. procurement suites;
 2. treasury/finance systems;
-3. bancos e provedores financeiros.
+3. bancos e provedores financeiros;
+4. market data, pricing e execution venues especializados.
 
-Ele NÃO DEVE reconstruir integralmente nenhum desses mundos. Deve ser a camada especializada de **procurement, relacionamento, decisão e lifecycle de fornecedores e produtos financeiros**, conectada aos systems of record adequados.
+Ele NÃO DEVE reconstruir integralmente nenhum desses mundos. Deve ser a camada especializada de **procurement, relacionamento, decisão e lifecycle de fornecedores e produtos financeiros**, conectada aos systems of record e execution venues adequados.
+
+RFQ, RFP, comparação de propostas e negociação são capacidades essenciais, mas **NÃO constituem sozinhas a tese nem o moat**. Em categorias nas quais plataformas especializadas já oferecem descoberta de preço ou execução eletrônica — por exemplo FX, renda fixa e derivativos — o Arandu DEVERIA integrar, referenciar ou orquestrar essas plataformas, preservando contexto, política, aprovação, decisão, contrato, exposição, evidência e lifecycle no Arandu.
+
+O Arandu NÃO DEVE competir por replicação de terminal de mercado, feed proprietário, OMS/EMS, matching engine ou venue de execução sem revisão estratégica formal.
 
 ## 2.4 Três funções inseparáveis
 
@@ -127,6 +134,35 @@ O Arandu deve operar simultaneamente como:
 - **system of intelligence**: cálculos reproduzíveis, diferenças, custos, oportunidades e IA factual autorizada.
 
 Nenhuma das três dimensões deve ser construída isoladamente.
+
+## 2.5 Moat e defensabilidade
+
+A defensabilidade do Arandu DEVE ser construída como um **Financial Procurement Graph operacional**, não como uma coleção de telas de RFQ.
+
+Esse moat combina progressivamente:
+
+- histórico estruturado de necessidades, propostas, versões, decisões e contratos;
+- relacionamento entre grupos, entidades legais, provedores, produtos, facilities, fees, obrigações e owners;
+- memória institucional de negociação, implantação, performance, exceções, renovações e resultados;
+- políticas, aprovações, segregação de funções e trilha de auditoria;
+- dados com source, vintage, confirmação e metodologia;
+- workflow recorrente antes e depois do award;
+- integrações com ERP/TMS/Open Finance, provedores, market data e execution venues;
+- benchmarks internos e, somente após gates, inteligência de rede agregada.
+
+A vantagem acumulada deve aumentar com o uso legítimo do produto: mais contexto confiável, menos retrabalho, melhores processos e mais memória institucional. **Volume de RFQs, por si só, não é moat.**
+
+## 2.6 Relação com plataformas de mercado e execução
+
+Plataformas especializadas de informação e execução — incluindo, como exemplos, Bloomberg, 360T e venues bancários — podem resolver partes do fluxo financeiro, especialmente market data, pricing e execução de instrumentos padronizados.
+
+O Arandu DEVE tratar essas plataformas como possíveis **fontes, adapters ou execution endpoints** quando isso for melhor para o cliente.
+
+O papel do Arandu é manter e orquestrar o ciclo empresarial ao redor dessas etapas:
+
+**need → sourcing → competition → analysis → governance → decision → contract → implementation → obligations/performance → renewal → institutional memory**.
+
+Uma execução feita fora do Arandu pode ser referenciada como fato/proveniência do processo. Isso NÃO autoriza o Arandu a executar transações automaticamente nem a duplicar infraestrutura de mercado como core.
 
 ---
 
@@ -540,6 +576,8 @@ Consulta consolidada NÃO DEVE conceder detalhe de entidade que o usuário não 
 ---
 
 # 9. Strategic Financial Sourcing
+
+Strategic Financial Sourcing é uma etapa do lifecycle, não o produto inteiro. O Arandu NÃO DEVE ser reduzido a um "comparador de bancos" ou "RFQ multi-bank".
 
 O procurement core deve suportar:
 
@@ -1064,7 +1102,7 @@ Core inicial inclui crédito empresarial e adquirência/meios de pagamento.
 
 Próximas adjacências legítimas podem incluir:
 
-- FX sourcing;
+- FX sourcing, preferencialmente integrável a market data/execution venues quando execução eletrônica especializada já existir;
 - guarantees/surety;
 - cash management RFP;
 - working capital/receivables sourcing;
@@ -1551,7 +1589,8 @@ Toda iniciativa deve ser avaliada por:
 | Maturidade | A base dependente está pronta no ambiente necessário? |
 | Dados | Gera histórico estruturado reutilizável? |
 | Governança | Melhora decisão/controle? |
-| Diferenciação | É melhor que e-mail + planilha + portal? |
+| Diferenciação | É melhor que e-mail + planilha + portal sem tentar replicar infraestrutura especializada já existente? |
+| Memória/compounding | Acumula contexto, relações e histórico estruturado que tornam o workflow futuro melhor? |
 | Enterprise | Remove blocker de adoção? |
 | Reuso | Serve múltiplas categorias/personas? |
 | Integração | Respeita source of truth? |
@@ -1569,6 +1608,10 @@ Features com "wow" alto e workflow, maturidade, dados ou recorrência baixos dev
 
 NÃO FAZER:
 
+- transformar o produto em um RFQ-only / "comparador de bancos";
+- tratar volume de RFQs como moat suficiente;
+- reconstruir terminal de mercado, feed proprietário, OMS/EMS ou execution venue quando uma integração especializada resolver melhor;
+- iniciar feature war contra plataformas de mercado em vez de aprofundar lifecycle, Graph, memória e integrações;
 - segunda implementação de comparison;
 - demo engine paralelo ao produto real;
 - duplicar objetos por Product Pack;
@@ -1704,7 +1747,7 @@ Nunca inverter essa ordem apenas para produzir demo mais impressionante.
 | contract lifecycle | assinatura | custódia |
 | post-award workflow | implementation APIs externas | core banking |
 | fee intelligence | Open Finance | underwriting |
-| debt/limit view | market data | concessão de crédito |
+| debt/limit view | market data / execution venues (ex.: Bloomberg, 360T, venues bancários) | concessão de crédito |
 | Opportunity Engine | e-mail/Teams | execução de hedge |
 | savings | BI/DWH | gestão discricionária |
 | policy/approval | IdP | ERP genérico |
@@ -1712,6 +1755,7 @@ Nunca inverter essa ordem apenas para produzir demo mais impressionante.
 | Integration Platform | provider APIs | TMS completo |
 | benchmark interno | fontes externas autorizadas | benchmark inventado |
 | network | legal/compliance tools | marketplace consumidor de melhor taxa |
+| lifecycle orchestration | execution venues especializadas | terminal/OMS/EMS próprio como core |
 
 ---
 
