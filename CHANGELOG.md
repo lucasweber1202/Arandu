@@ -1,5 +1,14 @@
 # Changelog — Arandu
 
+## Não lançado — Verificação de ambientes hospedados (07/10/2026)
+
+- Doctor cobre o registro completo de relações financeiras e RPCs usadas pela API;
+  leituras inconclusivas de ambiente, Auth e contagens bloqueiam prontidão.
+- Health publica identidade segura de runtime/branch/SHA; doctor confere o SHA
+  esperado sem expor credenciais, banco ou dados de cliente.
+- Evidência hospedada, bundles e limites reais desta rodada registrados na matriz
+  e em `docs/HOSTED_ALIGNMENT_2026-10-07.md`, sem promoção de maturidade.
+
 ## Não lançado — Integridade transacional e autorização
 
 - Trilha operacional passa a ser gravada por gatilho e cobre também as transições

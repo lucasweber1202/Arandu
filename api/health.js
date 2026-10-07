@@ -1,5 +1,6 @@
 import { applyApiSecurityHeaders } from '../lib/http-security.mjs';
 import { safeRequestId } from '../lib/api-core.mjs';
+import { releaseIdentity } from '../lib/runtime-mode.mjs';
 
 export default function handler(req, res) {
   // Mesmo identificador da API principal: um health check lento ou com erro
@@ -20,6 +21,7 @@ export default function handler(req, res) {
   return res.end(JSON.stringify({
     ok: true,
     service: 'arandu-api',
-    status: 'alive'
+    status: 'alive',
+    release: releaseIdentity()
   }));
 }
