@@ -6,6 +6,14 @@
 > Nenhuma conclusão sobre enquadramento regulatório deve ser tirada daqui sem
 > análise jurídica humana.
 
+## Posicionamento estratégico do boundary
+
+O Arandu é a camada de **financial procurement lifecycle e vendor relationship management** da empresa.
+
+RFQ/RFP, comparação e negociação são capabilities do workflow, não uma alegação de que o Arandu substitui plataformas especializadas de market data, pricing ou execução. Quando a categoria possuir venue ou infraestrutura especializada — por exemplo FX/derivativos em plataformas como Bloomberg, 360T ou canais bancários — o Arandu pode integrar/referenciar essa etapa e manter no seu próprio domínio a necessidade, governança, decisão, contrato, evidência, implantação, obrigações, custos, performance e renovação.
+
+O Arandu NÃO deve transformar integração com venue externo em autorização implícita para executar transações, movimentar recursos ou decidir pelo cliente.
+
 ## O que o Arandu faz nesta fase
 
 * estrutura uma necessidade financeira da empresa em campos padronizados;
@@ -33,6 +41,8 @@ O Arandu **não**:
 * executa pagamentos ou transferências;
 * distribui valores mobiliários;
 * executa investimentos;
+* opera como terminal de market data, OMS/EMS, matching engine ou execution venue proprietário como core;
+* executa FX, hedge, derivativos ou ordens em venue de mercado;
 * faz gestão discricionária;
 * atua como banco, corretora ou gestora;
 * opera crowdfunding;
