@@ -1,0 +1,317 @@
+{
+  "format_version": 1,
+  "project_ref": "offgpyysgdhfemjlchod",
+  "database_hostname": "db.offgpyysgdhfemjlchod.supabase.co",
+  "destination": "demo",
+  "inventory": {
+    "observed_at": "2026-10-07T15:04:16.617Z",
+    "complete": true,
+    "count_method": "exact",
+    "sha256": "97890b0dc2570cc2f551050dd445af53e35f2186a5cb7c6e7494ec361b5ff22f",
+    "public_rows": 13,
+    "customer_rows": 0,
+    "personal_data_rows": null,
+    "auth_users": 0,
+    "mfa_factors": 0,
+    "storage_objects": 0,
+    "table_counts": [
+      {
+        "table_name": "api_rate_limits",
+        "rows": 1
+      },
+      {
+        "table_name": "artist_accounts",
+        "rows": 0
+      },
+      {
+        "table_name": "artist_submissions",
+        "rows": 0
+      },
+      {
+        "table_name": "artists",
+        "rows": 0
+      },
+      {
+        "table_name": "artwork_events",
+        "rows": 0
+      },
+      {
+        "table_name": "artworks",
+        "rows": 0
+      },
+      {
+        "table_name": "audit_logs",
+        "rows": 0
+      },
+      {
+        "table_name": "catalog_releases",
+        "rows": 1
+      },
+      {
+        "table_name": "catalog_review_history",
+        "rows": 0
+      },
+      {
+        "table_name": "certificates",
+        "rows": 0
+      },
+      {
+        "table_name": "collection_artworks",
+        "rows": 0
+      },
+      {
+        "table_name": "commercial_items",
+        "rows": 0
+      },
+      {
+        "table_name": "commercial_records",
+        "rows": 0
+      },
+      {
+        "table_name": "company_briefs",
+        "rows": 0
+      },
+      {
+        "table_name": "consignments",
+        "rows": 0
+      },
+      {
+        "table_name": "conversion_events",
+        "rows": 0
+      },
+      {
+        "table_name": "crm_notes",
+        "rows": 0
+      },
+      {
+        "table_name": "curated_collections",
+        "rows": 4
+      },
+      {
+        "table_name": "data_legal_holds",
+        "rows": 0
+      },
+      {
+        "table_name": "data_retention_policies",
+        "rows": 0
+      },
+      {
+        "table_name": "fin_approval_policies",
+        "rows": 0
+      },
+      {
+        "table_name": "fin_approval_requests",
+        "rows": 0
+      },
+      {
+        "table_name": "fin_approval_steps",
+        "rows": 0
+      },
+      {
+        "table_name": "fin_comments",
+        "rows": 0
+      },
+      {
+        "table_name": "fin_company_profiles",
+        "rows": 0
+      },
+      {
+        "table_name": "fin_contracts",
+        "rows": 0
+      },
+      {
+        "table_name": "fin_decisions",
+        "rows": 0
+      },
+      {
+        "table_name": "fin_document_versions",
+        "rows": 0
+      },
+      {
+        "table_name": "fin_documents",
+        "rows": 0
+      },
+      {
+        "table_name": "fin_events",
+        "rows": 0
+      },
+      {
+        "table_name": "fin_invite_acceptance_denials",
+        "rows": 0
+      },
+      {
+        "table_name": "fin_job_runs",
+        "rows": 4
+      },
+      {
+        "table_name": "fin_member_invitations",
+        "rows": 0
+      },
+      {
+        "table_name": "fin_members",
+        "rows": 0
+      },
+      {
+        "table_name": "fin_notification_preferences",
+        "rows": 0
+      },
+      {
+        "table_name": "fin_notifications",
+        "rows": 0
+      },
+      {
+        "table_name": "fin_ops_access_log",
+        "rows": 0
+      },
+      {
+        "table_name": "fin_organizations",
+        "rows": 0
+      },
+      {
+        "table_name": "fin_pilot_allowlist",
+        "rows": 0
+      },
+      {
+        "table_name": "fin_platform_operators",
+        "rows": 0
+      },
+      {
+        "table_name": "fin_private_documents",
+        "rows": 0
+      },
+      {
+        "table_name": "fin_proposal_drafts",
+        "rows": 0
+      },
+      {
+        "table_name": "fin_proposal_versions",
+        "rows": 0
+      },
+      {
+        "table_name": "fin_proposals",
+        "rows": 0
+      },
+      {
+        "table_name": "fin_providers",
+        "rows": 0
+      },
+      {
+        "table_name": "fin_renewal_milestones",
+        "rows": 0
+      },
+      {
+        "table_name": "fin_rfq_editor_drafts",
+        "rows": 0
+      },
+      {
+        "table_name": "fin_rfq_invites",
+        "rows": 0
+      },
+      {
+        "table_name": "fin_rfq_revisions",
+        "rows": 0
+      },
+      {
+        "table_name": "fin_rfqs",
+        "rows": 0
+      },
+      {
+        "table_name": "fin_settings",
+        "rows": 3
+      },
+      {
+        "table_name": "fin_tasks",
+        "rows": 0
+      },
+      {
+        "table_name": "fin_terms_acceptances",
+        "rows": 0
+      },
+      {
+        "table_name": "idempotency_keys",
+        "rows": 0
+      },
+      {
+        "table_name": "leads",
+        "rows": 0
+      },
+      {
+        "table_name": "logistics_records",
+        "rows": 0
+      },
+      {
+        "table_name": "media_assets",
+        "rows": 0
+      },
+      {
+        "table_name": "newsletter_subscriptions",
+        "rows": 0
+      },
+      {
+        "table_name": "operational_status_history",
+        "rows": 0
+      },
+      {
+        "table_name": "order_status_history",
+        "rows": 0
+      },
+      {
+        "table_name": "orders",
+        "rows": 0
+      },
+      {
+        "table_name": "pilot_events",
+        "rows": 0
+      },
+      {
+        "table_name": "pilot_feedback",
+        "rows": 0
+      },
+      {
+        "table_name": "privacy_requests",
+        "rows": 0
+      },
+      {
+        "table_name": "profiles",
+        "rows": 0
+      },
+      {
+        "table_name": "proposal_items",
+        "rows": 0
+      },
+      {
+        "table_name": "proposals",
+        "rows": 0
+      },
+      {
+        "table_name": "reservations",
+        "rows": 0
+      },
+      {
+        "table_name": "saved_selections",
+        "rows": 0
+      },
+      {
+        "table_name": "tasks",
+        "rows": 0
+      },
+      {
+        "table_name": "transactional_email_outbox",
+        "rows": 0
+      }
+    ],
+    "contact_risk": null
+  },
+  "backup": {
+    "result": "NOT RUN"
+  },
+  "restore": {
+    "result": "NOT RUN"
+  },
+  "plan": {
+    "clean_install": true,
+    "legacy_preserved": true,
+    "rollback_reference": "pending:verified-recovery",
+    "bundle_sha256": "bed3fa64c83a69c509c02ebda6381c7d9d2cc27c2996997c9b0ae269a5267555"
+  }
+}

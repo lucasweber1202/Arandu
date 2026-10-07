@@ -1,13 +1,15 @@
 # Arandu — Diretrizes Mestras de Produto, Engenharia e Evolução
 
-**Versão 3.1 — 7 de outubro de 2026**  
-**Baseline técnica de referência desta revisão:** `main` @ `84110305ae3fc86bc81a11cc901007ce8111fb46`  
-**Status:** constituição normativa de produto e engenharia  
+**Versão 3.2 — 7 de outubro de 2026**
+**Baseline técnica de referência desta revisão:** `main` @ `59806334e038f2b3a01f363a63e4ca577949b26b`
+**Status:** constituição normativa de produto e engenharia
 **Escopo:** tese de produto, boundaries, arquitetura funcional, maturidade, UX, engenharia, dados, segurança, IA, integrações, operação enterprise e critérios de evolução
 
 > **Propósito.** Esta guideline define o que o Arandu é, o que não é, como deve evoluir e quais garantias não podem ser sacrificadas. Ela governa pessoas e agentes de IA que alterem o produto.
 >
-> **Mudança principal da v3.1.** A tese é refinada para deixar explícito que RFQ/RFP e comparação são capabilities do core, não o moat isolado. O diferencial defensável do Arandu é o lifecycle de procurement financeiro de ponta a ponta, sustentado pelo Financial Graph, memória institucional, governança, workflow recorrente, dados com proveniência e integrações. Market data, pricing e execution venues especializados devem ser integrados quando fizer sentido, não reconstruídos como um terminal/OMS/EMS paralelo.
+> **Mudança operacional da v3.2.** Apenas Demo e Production são ambientes hospedados permanentes. Pilot é a etapa de validação de release, por CI, Demo canônica, previews temporários e ensaios descartáveis; não exige terceiro projeto, banco ou branch. A conversão dos dois slots existentes é condicionada a inventário, ausência de cliente/PII necessária, export e recovery verificados.
+>
+> **Mudança estratégica preservada da v3.1.** A tese é refinada para deixar explícito que RFQ/RFP e comparação são capabilities do core, não o moat isolado. O diferencial defensável do Arandu é o lifecycle de procurement financeiro de ponta a ponta, sustentado pelo Financial Graph, memória institucional, governança, workflow recorrente, dados com proveniência e integrações. Market data, pricing e execution venues especializados devem ser integrados quando fizer sentido, não reconstruídos como um terminal/OMS/EMS paralelo.
 >
 > **Mudança estrutural preservada da v3.0.** A guideline não funciona simultaneamente como constituição, inventário de implementação e backlog. A direção estratégica permanece aqui; o estado vivo de cada capacidade, blockers e evidências pertencem a `docs/IMPLEMENTATION_MATRIX.md` e aos documentos operacionais especializados.
 >
@@ -303,9 +305,9 @@ Toda capability material DEVE possuir um estado explícito na `IMPLEMENTATION_MA
 - doctor/canary/probes relevantes passam;
 - evidência é vinculada a ambiente e release.
 
-### M4 — PILOT_VALIDATED
+### M4 — RELEASE_VALIDATED (PILOT_VALIDATED histórico)
 
-- jornada real ou representativa ponta a ponta foi executada no Pilot;
+- jornada real ou representativa ponta a ponta foi executada na etapa de validação de release, na Demo canônica ou preview temporário;
 - runbook, observabilidade, recuperação e suporte foram exercitados;
 - blockers críticos para uso limitado estão fechados ou explicitamente aceitos por responsável.
 
@@ -1201,7 +1203,7 @@ Mobile deve adaptar densidade, não copiar desktop cegamente.
 
 ## 23.1 Uma base de código
 
-Demo, Pilot e Production devem usar a mesma aplicação e domínio. Diferenças vêm de configuração, dados e infraestrutura, nunca de forks funcionais.
+Demo e Production devem usar a mesma aplicação e domínio. Pilot designa a etapa de validação, não um terceiro produto hospedado. Diferenças vêm de configuração, dados e infraestrutura, nunca de forks funcionais.
 
 ## 23.2 Modularidade
 
@@ -1213,30 +1215,39 @@ Permissão, transição, aprovação, decisão, cálculo crítico, acesso a docu
 
 ## 23.4 Ambientes
 
-Revisão de 06/10/2026, decidida pelo owner (consolidação `main` canônica):
+Revisão de 07/10/2026, decidida pelo owner: **Permanent hosted environments: Demo e Production**.
 
-- demo: `main` + configuração DEMO (`ARANDU_ENV=demo`, runtime `demo`) + banco/estado DEMO com dados sintéticos;
-- staging/pilot: `main` + configuração PILOT (`ARANDU_ENV=pilot`, runtime `staging`) + banco PILOT — validação de migrations, E2E, smoke, recovery e release candidate;
-- official/production: `main` + configuração PRODUCTION (`ARANDU_ENV=production`, runtime `official`) + banco PROD — só release aprovada.
+- Demo: `main`, `ARANDU_ENV=demo`, runtime `demo`, Supabase exclusivo, Vitta Foods e personas 100% sintéticas, API/Auth/RLS reais; sem side effects externos reais.
+- Production: mesma `main`, `ARANDU_ENV=production`, runtime `official`, Supabase/Auth/Storage/segredos próprios; somente release aprovada.
+- Pilot: **release validation stage**. Usa CI, Demo canônica, previews temporários, doctor, canary, recovery, E2E e release checks. Não requer terceiro domínio, Supabase ou branch permanentes.
 
-Nenhum banco deve ser compartilhado entre ambientes. A diferença de comportamento entre ambientes (datasource, autenticação de teste, fixtures, e-mail, webhooks, provedores externos, documentos reais) DEVE ser decidida por uma política única e testada (`lib/runtime-mode.mjs`), nunca por condicionais espalhadas ou código de produto divergente.
+Destino planejado dos dois slots: `offgpyysgdhfemjlchod` de Pilot para Demo;
+`igacnfjeuqhxcmfyepgj` de legado para Production. **Planejamento não é atribuição ativa.**
+Nenhuma renomeação, reset ou reutilização libera o banco sem identidade, inventário,
+prova de ausência de dados necessários de clientes/PII, backup/export e recovery.
+Dados reais nunca entram na Demo. Legado com PII suspende apenas a operação destrutiva.
+
+`ARANDU_ENV=pilot`, projeto `arandu-pilot` e a branch histórica continuam aceitos
+**somente por compatibilidade transitória**, com estado `TO_BE_DECOMMISSIONED`.
+Não apagar antes de Demo funcional, dependências/automação inventariadas e cutover seguro.
+A política única de runtime continua em `lib/runtime-mode.mjs`; atribuições ativas e
+destinos de conversão ficam em `lib/deployment-topology.mjs`. Não criar seletor paralelo.
 
 ## 23.5 Branches e promoção
 
-Fluxo normativo:
+Fluxo normativo: `feature/* ou fix/* → PR → CI → main → Demo → validação de release → Production`.
 
-`feature/* -> PR -> main -> ambientes`
+- `main` é a única branch longa de produto; feature/fix nasce de sua ponta atual;
+- PR entra em main somente com database, deploy-boundaries, validate e presentation success no HEAD exato e base atual contida;
+- Demo canônica executa o mesmo código e comprova o candidato com backend real;
+- `release:candidate:check` exige provas de CI, schema, seed/reset, doctor, canário, jornada, recovery, observabilidade e exercício operacional;
+- Preview temporário serve a ensaio isolado, não é terceiro ambiente permanente nem prova automática de M4;
+- branch `pilot` é histórica/congelada e só pode ser removida quando não houver infraestrutura dependente;
+- merge em outra branch não integra o produto; o SHA precisa ser ancestral de main.
 
-- `main` é a única branch longa de produto;
-- feature nasce da ponta atual de `main` e é temporária;
-- PR entra em `main` após os gates;
-- staging/pilot prova a integração hospedada do mesmo SHA antes do oficial;
-- a branch `pilot` é histórica (congelada) desde a consolidação de 06/10/2026;
-- "merged" em outra branch não é integração: o SHA precisa ser ancestral de `main`.
-
-Merge NÃO DEVE ocorrer com gate obrigatório pending, failed, cancelled, skipped ou atestando SHA diferente do HEAD.
-
-A branch da PR DEVE conter a ponta atual da base antes do merge.
+Merge é proibido se qualquer dos quatro gates não for success, estiver stale ou
+atestar SHA diferente. READY na Vercel, evidência local ou pressão por progresso
+não autorizam bypass. Incidentes #140/#141 estão em FINANCIAL_REPO_GOVERNANCE.md.
 
 ## 23.6 Migrations
 
@@ -1509,7 +1520,7 @@ Antes de acelerar expansão:
 
 - baseline/CI limpa;
 - branch/ruleset governance;
-- Pilot hospedado reconciliado;
+- etapa de validação de release reconciliada, sem terceiro ambiente permanente;
 - migrations aplicadas com evidência;
 - backup/restore proporcional ao estado;
 - doctor/canary/journey;

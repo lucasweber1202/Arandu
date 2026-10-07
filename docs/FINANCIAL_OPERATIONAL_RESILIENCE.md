@@ -1,5 +1,11 @@
 # Resiliência operacional financeira — P0.10
 
+> Topologia vigente (07/10/2026): Demo e Production permanentes; Pilot é etapa
+> de validação. Nomes pilot:*/pilot-local são compatibilidade de ferramentas.
+> Conversão dos slots somente após os gates de TWO_ENVIRONMENT_CONSOLIDATION.md;
+> não reinterpretar referências históricas como autorização de reset ou terceiro banco.
+
+
 Documento canônico do produto financeiro. O runbook da vertical de arte é
 histórico. Esta foundation prepara a operação; não certifica disponibilidade,
 restore hospedado, SLA, RPO ou RTO. Controles hospedados continuam bloqueados

@@ -8,7 +8,7 @@ A guideline descreve o **target-state**, não uma autorização para implementar
 
 ## Fluxo de trabalho
 
-1. Parta da ponta atual de `main`, a **única** branch longa de produto. Mudanças voltam para `main` por PR; Demo, Staging/Pilot e Oficial publicam a mesma `main` com configuração e banco próprios (`docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md`). A branch `pilot` está congelada (histórica) e não recebe PR.
+1. Parta da ponta atual de `main`, a **única** branch longa de produto. Mudanças voltam para `main` por PR; Demo e Production são os dois ambientes permanentes e publicam a mesma `main` com configuração e bancos próprios; Pilot é etapa de validação por CI/ensaios/preview temporário (`docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md`). A branch `pilot` está congelada (histórica) e não recebe PR.
 2. Diferenças entre ambientes ficam em `lib/runtime-mode.mjs` (side effects, datasource, fixtures). Não crie branch, build ou tela exclusiva de ambiente; capability nova entra também no seed da demo canônica (`scripts/demo/seed.mjs`).
 3. Crie uma branch curta e descritiva:
    - `agent/<descricao>` para pacotes implementados por agentes;
@@ -109,3 +109,11 @@ Não marque a PR como pronta enquanto checks obrigatórios estiverem falhando ou
 ## Documentação
 
 Use `docs/OPERATIONS_INDEX.md` para encontrar a documentação canônica. `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md` (v3) governa a direção estratégica de produto e engenharia; o addendum v2.1 é histórico e não a sobrepõe. Documentos especializados governam a implementação concreta. Documentos históricos devem ser claramente marcados e não podem competir com os runbooks atuais.
+
+## Consolidação operacional (07/10/2026)
+
+`release:candidate:check` avalia M4 na Demo canônica, sem exigir arandu-pilot.
+`consolidation:check` verifica preparação de conversão; nunca executa reset.
+Atribuições ativas de Supabase só mudam após conversão comprovada; destinos
+planejados não autorizam reutilização. #140 e #141 foram mergeadas com CI falho:
+incidente registrado, sem flexibilizar database/deploy-boundaries/validate/presentation.
