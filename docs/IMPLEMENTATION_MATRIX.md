@@ -1,7 +1,7 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
 Documento vivo. É o **estado vivo** exigido pela Guideline v3 (§1.3): decompõe
-`docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md` (**v3.0, autoridade estratégica**)
+`docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md` (**v3.1, autoridade estratégica**)
 em capabilities e registra, por capability, escopo, maturity state (M0–M6),
 evidência, blockers, dependências, última validação, ambiente validado e próximo gate.
 Outra sessão deve conseguir continuar a partir daqui sem refazer a auditoria.
@@ -14,7 +14,25 @@ Outra sessão deve conseguir continuar a partir daqui sem refazer a auditoria.
   mas **não prevalece** sobre a v3. As colunas `Guideline` das tabelas detalhadas citam
   seções da v2/v2.1 vigentes quando cada linha foi escrita; a numeração não foi
   reescrita para não perder rastreabilidade.
-- **Estado vivo (06/10/2026, após #138).** `main` =
+- **Estado vivo (07/10/2026, fechamento operacional).** `main` =
+  `8be66cab705c8bdf41707a34848c0cf4afb3c65a`, árvore
+  `01d31ae879f72e565f9e337eba30a38305c37192`; #140 já merged.
+  Run #788 (`37628077116`): quatro gates failure, sem steps ou runner atribuído.
+  Correção proposta em `fix/hosted-release-verification`: doctor cobre 120
+  tabelas/views do registro canônico e 183 RPCs; bloqueia leituras inconclusivas,
+  demo sem seed, identidade pública incompatível e SHA esperado divergente.
+  Health publica apenas a projeção segura de runtime/branch/SHA.
+  `CRON_SECRET` criado no projeto Official, Sensitive/Production, presença
+  confirmada sem exposição. Nenhum alias promovido ou migration aplicada.
+  Demo pública `main@8be66cab`, READY, ainda sandbox; criação do Supabase DEMO
+  recusada por limite de dois projetos Free ativos, após seleção da organização
+  e consulta/confirmação de custo. Pilot público `pilot@2241d3b9`, marker
+  `financial-surface-hardening-1`; backup preflight bloqueado por conexão
+  administrativa ausente. Official público `main@fd796e6b`; build de 8be66cab
+  ERROR, logs 403, causa específica ainda não comprovada.
+  Evidência e comandos: `docs/HOSTED_ALIGNMENT_2026-10-07.md`.
+  **M1/E1 permanece; M2 bloqueado, M3/M4/M5 não atingidos no release integrado.**
+- **Estado histórico (06/10/2026, após #138).** `main` =
   `fcc68f91c9dae997adcbacd7f82bdeaaf04ef2ed`, árvore `20c11ac3bbf58107e4f853d17e56eeb7f5a87a81`.
   #136 consolidou `main`; #137 integrou personas e dataset Portfolio/Fee/Spend;
   #138 ampliou doctor fail-closed e evidência operacional v2. As três PRs
@@ -107,7 +125,7 @@ que contém a capability. `Ambiente validado` = onde a evidência mais alta foi 
 | P0.1-03 | Migrations aplicadas no Pilot hospedado | blocked | M2 (bundle/ferramenta) · hosted não atingido | E2 | CI | BL-V3 | 05/10 | executor Docker/PG17; conexão direct com DNS failure; backup/restore antes | M3: recovery do mesmo backup + prefixo de 12 migrations (`8e15a95…`) até data-governance; depois export/owner ack + restantes + doctor GO |
 | P0.1-04 | Rulesets `pilot`/`main` | blocked | M2 (artefatos versionados) · **não aplicada** (`protected=false`) | E2 | CI (`check:governance`) | BL-V3 | 05/10 | **OWNER_ACTION_REQUIRED**: plano GitHub Pro/Team (repositório privado no Free não suporta rulesets — API 403) e depois importar | upgrade + import; API `protected=true` |
 | P0.1-05 | Restore drill local + procedimento hospedado | partial | M2 (mecanismo) | E1/E2 | local + CI (preflight) | BL-V3 | 05/10 | Docker/PG17 e conexão resolvível (identidade conhecida, DNS failure) | M4: drill hospedado PASS |
-| P0.1-06 | Doctor, canary, env check | implemented | M1 (cobertura atual ampliada) | E1 | Node local; canário E3 somente schema antigo | — (CI atual bloqueado) | 06/10 | CI; configuração/credencial de doctor; schema atrasado | M2 exato; M3 doctor/canário no marker final e mesmo SHA |
+| P0.1-06 | Doctor, canary, env check | implemented | M1 (120 relações/183 RPCs; identidade e leitura fail-closed) | E1 | Node local; canário E3 somente schema antigo | — (CI atual bloqueado) | 07/10 | CI; configuração/credencial de doctor; schema atrasado | M2 exato; M3 doctor/canário no marker final e mesmo SHA |
 | P0.1-07 | Severidade, runbook, postmortem | partial | M1 | E0 | documento | — | 05/10 | responsáveis nomeados | M4: exercício de resposta |
 | P0.2-01..08 | Multi-entity (grupo, escopo, RLS, guardas, consolidado, moeda, trilha, UI) | implemented | M2 | E2 | CI | BL-V3 | 05/10 | rollout hospedado | M3 |
 | P0.2-09 | Aprovação cruzada / tesouraria por policy | partial | M2 | E2 | CI | BL-V3 | 05/10 | rollout hospedado | M3 |

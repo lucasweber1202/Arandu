@@ -10,6 +10,13 @@ import fs from 'node:fs';
 import { runDoctor, formatDoctor } from '../lib/finance/pilot-doctor.mjs';
 
 const vercelConfig = (() => { try { return JSON.parse(fs.readFileSync(new URL('../vercel.json', import.meta.url), 'utf8')); } catch { return null; } })();
-const report = await runDoctor({ vercelConfig });
+const args = process.argv.slice(2);
+const shaArgs = args.filter((arg) => arg.startsWith('--expected-commit='));
+if (args.some((arg) => arg !== '--json' && !arg.startsWith('--expected-commit=')) || shaArgs.length > 1
+  || (shaArgs.length && !/^--expected-commit=[a-f0-9]{40}$/.test(shaArgs[0]))) {
+  console.error('Uso: finance:pilot:doctor -- [--json] [--expected-commit=<SHA completo>]');
+  process.exit(1);
+}
+const report = await runDoctor({ vercelConfig, expectedCommit: shaArgs.length ? shaArgs[0].split('=')[1] : null });
 console.log(process.argv.includes('--json') ? JSON.stringify(report, null, 2) : formatDoctor(report));
 process.exit(report.exit_code);

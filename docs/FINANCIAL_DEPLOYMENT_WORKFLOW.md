@@ -162,3 +162,12 @@ própria depois que `arandu-demo` migrar para `ARANDU_ENV=demo`.
 - Nenhum script de build/deploy executa `demo:seed`/`demo:reset`
   (`scripts/test-deploy-release-separation.mjs`).
 - `lib/deployment-surface.mjs`: só rotas financeiras em ambiente hospedado.
+
+## Verificação pública do SHA (07/10/2026)
+
+`/api/health` inclui `release` com runtime, datasource, ambiente, branch canônica
+e SHA da Vercel; é liveness, sem promessa de prontidão. Depois do deploy aprovado,
+rode `npm run finance:pilot:doctor -- --json --expected-commit=<SHA_COMPLETO>`
+com o ambiente esperado. Ausência/malformação, sandbox, branch diferente de main
+ou SHA divergente bloqueiam GO. Credenciais nunca entram no health ou relatório.
+Ver evidência e limites em `HOSTED_ALIGNMENT_2026-10-07.md`.

@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { runDoctor, formatDoctor, EXPECTED_SCHEMA_VERSION, REQUIRED_TABLES, REQUIRED_RPCS } from '../lib/finance/pilot-doctor.mjs';
+import { releaseIdentity } from '../lib/runtime-mode.mjs';
 import { DOCUMENT_MIME_TYPES } from '../lib/finance/document-storage.mjs';
 
 const jwt = (role) => `eyJhbGciOiJIUzI1NiJ9.${Buffer.from(JSON.stringify({ role, iss: 'supabase' })).toString('base64url')}.assinatura-${role}-0123456789`;
@@ -33,8 +34,8 @@ function fakeSupabase(overrides = {}) {
     methods.push(init.method || 'GET');
     const u = new URL(url);
     const key = init.headers?.apikey;
-    if (u.hostname === 'piloto.example.com') {
-      if (u.pathname === '/api/health') return reply({ ok: true, status: 'alive' });
+    if (u.hostname === 'piloto.example.com' || u.hostname === 'localhost') {
+      if (u.pathname === '/api/health') return reply({ ok: true, status: 'alive', release: state.release === undefined ? releaseIdentity({ ARANDU_ENV: state.environment || 'pilot', VERCEL_GIT_COMMIT_REF: 'main', VERCEL_GIT_COMMIT_SHA: 'a'.repeat(40) }) : state.release });
       if (u.pathname === '/api/finance/products') return reply(state.productsStatus === 200 ? { ok: true } : { ok: false, code: 'rate_limit_unavailable' }, state.productsStatus, { 'x-request-id': 'b1c2d3e4-0000-4000-8000-000000000001' });
       if (u.pathname === '/api/forms') return state.legacyOpen ? reply({ ok: false, error: 'Método não permitido.' }, 405) : reply({ ok: false, code: 'route_not_found' }, 404);
       if (u.pathname === '/api/jobs/renewals') return reply({ ok: false, code: state.renewalsStatus === 401 ? 'cron_unauthorized' : 'x' }, state.renewalsStatus);
@@ -46,7 +47,8 @@ function fakeSupabase(overrides = {}) {
         paths: Object.fromEntries(state.anonRpcs.map((rpc) => [`/rpc/${rpc}`, {}])) });
     }
     if (u.pathname === '/rest/v1/') {
-      return reply({ definitions: Object.fromEntries(REQUIRED_TABLES.map((table) => [table, {}])),
+      if (state.serviceSpecMalformed) return reply({});
+      return reply({ definitions: Object.fromEntries(REQUIRED_TABLES.filter((table) => table !== state.missingTable).map((table) => [table, {}])),
         paths: Object.fromEntries(REQUIRED_RPCS.filter((rpc) => rpc !== state.missingRpc).map((rpc) => [`/rpc/${rpc}`, {}])) });
     }
     if (u.pathname.startsWith('/rest/v1/')) {
@@ -54,10 +56,11 @@ function fakeSupabase(overrides = {}) {
       if (key === ANON && table === 'fin_spend_records' && state.anonProbeFailure) return reply(state.anonProbeFailure.body, state.anonProbeFailure.status);
       if (key === ANON) return ((state.anonLeak && table === 'fin_rfqs') || table === state.anonLeakTable) ? reply([{ id: 'x' }]) : reply({ code: '42501' }, 401);
       if (init.method === 'HEAD') {
+        if (state.countMalformed) return reply(null, 200, { 'content-range': '*/' });
         const total = table === 'fin_pilot_allowlist' ? state.allowlist : table === 'fin_organizations' ? 2 : table === 'fin_approval_policies' ? 1 : 0;
         return reply(null, 200, { 'content-range': `*/${total}` });
       }
-      if (table === 'fin_settings' && u.searchParams.get('key') === 'eq.deployment_environment') return reply(state.marker ? [{ value: state.marker }] : []);
+      if (table === 'fin_settings' && u.searchParams.get('key') === 'eq.deployment_environment') return state.markerFailure ? reply({}, 503) : state.markerMalformed ? reply({}) : reply(state.marker ? [{ value: state.marker }] : []);
       if (table === 'fin_settings') return reply(u.searchParams.get('key') === 'eq.schema_version' ? (state.schema ? [{ value: state.schema }] : []) : [{ value: state.emailEnabled ? 'true' : 'false' }]);
       if (table === 'fin_platform_operators') return reply([{ user_id: 'u-ops' }]);
       if (table === 'fin_job_runs') return reply([{ status: 'succeeded', error_code: null, finished_at: '2026-10-02T09:16:00Z' }]);
@@ -67,6 +70,9 @@ function fakeSupabase(overrides = {}) {
       return reply({ id: 'fin-documents', public: state.bucketPublic, file_size_limit: 10485760, allowed_mime_types: Object.keys(DOCUMENT_MIME_TYPES) });
     }
     if (u.pathname === '/auth/v1/health') return reply({ name: 'GoTrue' });
+    if (u.pathname === '/auth/v1/settings' && state.authFailure) return reply({}, 503);
+    if (u.pathname === '/auth/v1/settings' && state.authMalformed) return reply({ external: { email: true } });
+    if (u.pathname === '/auth/v1/admin/users' && state.usersMalformed) return reply({});
     if (u.pathname === '/auth/v1/settings') return reply({ external: { email: true }, mailer_autoconfirm: state.autoconfirm });
     // Como o GoTrue real: a listagem não traz fatores; a leitura por usuário traz.
     if (u.pathname === '/auth/v1/admin/users') return reply({ users: state.users.map(({ factors, ...user }) => user) });
@@ -77,7 +83,7 @@ function fakeSupabase(overrides = {}) {
 }
 
 async function doctor(env, overrides) {
-  const fake = fakeSupabase(overrides);
+  const fake = fakeSupabase({ environment: env.ARANDU_ENV, ...overrides });
   const report = await runDoctor({ env, fetchImpl: fake.fetchImpl, vercelConfig, now, timeoutMs: 1000 });
   const outputs = [JSON.stringify(report), formatDoctor(report)].join('\n');
   // Nunca imprime segredo, chave, JWT nem e-mail, e nunca escreve.
@@ -138,7 +144,7 @@ assert.equal(prodOnPilot.exit_code, 2, 'produção no banco do piloto');
 assert.equal(levelOf(prodOnPilot, 'projeto Supabase do ambiente'), 'UNSAFE');
 // Demonstração canônica: mesmo diagnóstico, banco próprio e marcado como demo.
 assert.equal((await doctor({ ...baseEnv, ARANDU_ENV: 'demo' }, { marker: 'demo' })).exit_code, 0, 'demo com banco marcado');
-assert.equal(levelOf(await doctor({ ...baseEnv, ARANDU_ENV: 'demo' }), 'marcador de ambiente'), 'WARN', 'demo ainda sem seed');
+assert.equal(levelOf(await doctor({ ...baseEnv, ARANDU_ENV: 'demo' }), 'marcador de ambiente'), 'ERROR', 'demo ainda sem seed');
 const demoOnPilot = await doctor({ ...baseEnv, ARANDU_ENV: 'demo', SUPABASE_URL: 'https://offgpyysgdhfemjlchod.supabase.co' }, { marker: 'demo' });
 assert.equal(levelOf(demoOnPilot, 'projeto Supabase do ambiente'), 'UNSAFE', 'demo no banco do piloto');
 for (const environment of ['pilot', 'production']) {
@@ -188,3 +194,39 @@ const last = manifest.cleanInstall.at(-1);
 assert.match(fs.readFileSync(last, 'utf8'), new RegExp(`'schema_version', '${EXPECTED_SCHEMA_VERSION}'`), `${last} não grava ${EXPECTED_SCHEMA_VERSION}`);
 
 console.log(`Pilot doctor: GO/NO-GO/UNSAFE com saídas 0/1/2, ${unsafeCases.length} configurações inseguras detectadas, somente leitura e sem segredo ou e-mail na saída.`);
+
+// Prova negativa: indisponibilidade nunca se confunde com estado seguro.
+for (const key of ['markerFailure', 'markerMalformed', 'authFailure', 'authMalformed', 'usersMalformed', 'serviceSpecMalformed', 'countMalformed']) {
+  assert.equal((await doctor(baseEnv, { [key]: true })).result, 'NO-GO', key);
+}
+for (const table of ['fin_legal_entities', 'fin_data_exports', 'fin_facilities']) {
+  assert.ok(REQUIRED_TABLES.includes(table));
+  assert.equal((await doctor(baseEnv, { missingTable: table })).result, 'NO-GO', table);
+  assert.equal((await doctor(baseEnv, { anonLeakTable: table })).result, 'UNSAFE', table);
+}
+const identity = releaseIdentity({ ARANDU_ENV: 'pilot', VERCEL_GIT_COMMIT_REF: 'main', VERCEL_GIT_COMMIT_SHA: 'a'.repeat(40) });
+for (const release of [null, {}, { ...identity, branch: null }, { ...identity, datasource: 'synthetic-fixtures' }, { ...identity, environment: 'production' }, { ...identity, commit: null }]) {
+  assert.equal((await doctor(baseEnv, { release })).result, 'NO-GO');
+}
+for (const expectedCommit of ['a'.repeat(40), 'b'.repeat(40), 'short']) {
+  const { fetchImpl } = fakeSupabase();
+  const report = await runDoctor({ env: baseEnv, fetchImpl, vercelConfig, now, expectedCommit });
+  assert.equal(report.result, expectedCommit === 'a'.repeat(40) ? 'GO' : 'NO-GO');
+}
+// Contratos usados pela API (inclusive seletores condicionais) devem estar no inventário.
+for (const name of fs.readdirSync(new URL('../lib/api/domains/', import.meta.url)).filter((name) => name.endsWith('.mjs'))) {
+  const source = fs.readFileSync(new URL(`../lib/api/domains/${name}`, import.meta.url), 'utf8');
+  for (const call of source.matchAll(/\brpc\([^,]+,\s*([^,{]+)/g)) {
+    for (const [, rpc] of call[1].matchAll(/'(fin_[a-z_0-9]+)'/g)) assert.ok(REQUIRED_RPCS.includes(rpc), `${name}: ${rpc} não diagnosticada`);
+  }
+}
+
+for (const rpc of ['fin_governance_request_export', 'fin_governance_create_legal_hold', 'fin_create_legal_entity', 'fin_save_facility']) {
+  assert.ok(REQUIRED_RPCS.includes(rpc), rpc);
+  assert.equal((await doctor(baseEnv, { missingRpc: rpc })).result, 'NO-GO', rpc);
+}
+assert.equal((await doctor(baseEnv, { marker: 'production' })).result, 'UNSAFE');
+
+const localRelease = releaseIdentity({ ARANDU_ENV: 'pilot' });
+assert.equal((await doctor({ ...baseEnv, ARANDU_SITE_URL: 'https://localhost:4443' }, { release: localRelease })).result, 'GO', 'ensaio local não atesta deploy hospedado');
+assert.equal((await doctor(baseEnv, { release: localRelease })).result, 'NO-GO', 'mesma identidade incompleta bloqueia host remoto');

@@ -46,3 +46,22 @@ for (const [incoming, expected] of [['canario-obs-0001', 'canario-obs-0001'], [u
 
 console.log('Arandu Observability Tests');
 console.log('Redação, transporte HTTPS e falha fechada validados.');
+
+// Identidade pública: uma projeção da política única, nunca dump do ambiente.
+const { releaseIdentity } = await import('../lib/runtime-mode.mjs');
+for (const [environment, mode] of [['demo', 'demo'], ['pilot', 'staging'], ['production', 'official']]) {
+  assert.deepEqual(releaseIdentity({ ARANDU_ENV: environment, VERCEL_GIT_COMMIT_REF: 'main', VERCEL_GIT_COMMIT_SHA: 'a'.repeat(40), SUPABASE_SERVICE_ROLE_KEY: 'segredo' }),
+    { environment, mode, datasource: 'supabase', misconfigured: false, branch: 'main', commit: 'a'.repeat(40) });
+}
+const invalid = releaseIdentity({ ARANDU_ENV: 'segredo', VERCEL_GIT_COMMIT_REF: 'segredo', VERCEL_GIT_COMMIT_SHA: 'segredo' });
+assert.equal(invalid.misconfigured, true);
+assert.equal(JSON.stringify(invalid).includes('segredo'), false);
+assert.equal(releaseIdentity({ ARANDU_DEPLOYMENT_KIND: 'demo' }).datasource, 'synthetic-fixtures');
+for (const method of ['GET', 'HEAD', 'POST']) {
+  const headers = new Map(); let body;
+  const res = { setHeader: (k, v) => headers.set(k, v), end(value) { body = value; } };
+  health({ method, headers: {} }, res);
+  assert.equal(res.statusCode, method === 'POST' ? 405 : 200);
+  if (method === 'HEAD') assert.equal(body, undefined);
+  if (method === 'GET') assert.deepEqual(JSON.parse(body).release, releaseIdentity());
+}
