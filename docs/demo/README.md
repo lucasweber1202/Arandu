@@ -1,5 +1,11 @@
 # Arandu Financial Procurement — Demo Baseline
 
+> Topologia vigente (07/10/2026): Demo e Production permanentes; Pilot é etapa
+> de validação. Nomes pilot:*/pilot-local são compatibilidade de ferramentas.
+> Conversão dos slots somente após os gates de TWO_ENVIRONMENT_CONSOLIDATION.md;
+> não reinterpretar referências históricas como autorização de reset ou terceiro banco.
+
+
 A demonstração do Arandu é **o produto real** com uma empresa fictícia muito
 bem preparada. Não existe branch, build ou tela exclusiva de demonstração: a
 mesma `main` serve demo e produção, e o que muda é configuração, banco e dados.

@@ -57,7 +57,7 @@
     "check:env:release": "node scripts/check-production-env.mjs --require-ready",
     "check:evidence": "node scripts/test-release-evidence.mjs && node scripts/check-release-evidence.mjs",
     "check:evidence:release": "node scripts/check-release-evidence.mjs --require-ready",
-    "check:governance": "node scripts/check-governance.mjs && node scripts/test-merge-gates.mjs",
+    "check:governance": "node scripts/check-governance.mjs && node scripts/test-merge-gates.mjs && node scripts/test-consolidation.mjs && node scripts/test-release-candidate.mjs",
     "merge:gates": "node scripts/check-merge-gates.mjs",
     "check:staging": "node scripts/test-operational-tooling.mjs && node scripts/test-staging-workflow.mjs && node scripts/check-staging-rehearsal.mjs && node scripts/test-pending-migration-bundle.mjs && node scripts/test-pilot-backup-preflight.mjs",
     "check:live": "node scripts/check-live-production.mjs",
@@ -91,7 +91,12 @@
     "pilot:backup:preflight": "node scripts/pilot-backup-preflight.mjs",
     "check:legacy-art": "node scripts/check-legacy-art.mjs && node scripts/test-legacy-art-gate.mjs",
     "pilot:release:check": "node scripts/check-pilot-release.mjs",
-    "pilot:upgrade:rehearse": "node scripts/pilot-upgrade-rehearse.mjs"
+    "pilot:upgrade:rehearse": "node scripts/pilot-upgrade-rehearse.mjs",
+    "release:candidate:check": "node scripts/check-release-candidate.mjs",
+    "consolidation:check": "node scripts/check-consolidation.mjs",
+    "release:candidate:doctor": "node scripts/finance-pilot-doctor.mjs",
+    "release:candidate:canary": "bash scripts/pilot-canary.sh",
+    "release:candidate:restore:drill": "bash scripts/pilot-restore-drill.sh"
   },
   "dependencies": {
     "@vercel/speed-insights": "^2.0.0",

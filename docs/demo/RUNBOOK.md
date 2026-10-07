@@ -1,5 +1,11 @@
 # Roteiro da demonstração (5–10 minutos)
 
+> Topologia vigente (07/10/2026): Demo e Production permanentes; Pilot é etapa
+> de validação. Nomes pilot:*/pilot-local são compatibilidade de ferramentas.
+> Conversão dos slots somente após os gates de TWO_ENVIRONMENT_CONSOLIDATION.md;
+> não reinterpretar referências históricas como autorização de reset ou terceiro banco.
+
+
 Antes: `npm run demo:local:reset` (ou `npm run demo:reset` no ambiente
 hospedado) para começar do estado inicial. Use duas janelas: uma normal
 (Juliana) e uma anônima (Helena ou um provedor). Senha das personas em

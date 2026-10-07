@@ -1,5 +1,11 @@
 # Runbook de migrations
 
+> Topologia vigente (07/10/2026): Demo e Production permanentes; Pilot é etapa
+> de validação. Nomes pilot:*/pilot-local são compatibilidade de ferramentas.
+> Conversão dos slots somente após os gates de TWO_ENVIRONMENT_CONSOLIDATION.md;
+> não reinterpretar referências históricas como autorização de reset ou terceiro banco.
+
+
 Este fluxo não pressupõe que CI, staging ou produção já foram validados. Ele
 gera somente um relatório técnico sem credenciais ou PII em
 `reports/migration-release-report.json`.

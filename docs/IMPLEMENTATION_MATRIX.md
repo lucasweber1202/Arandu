@@ -1,7 +1,7 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
 Documento vivo. É o **estado vivo** exigido pela Guideline v3 (§1.3): decompõe
-`docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md` (**v3.1, autoridade estratégica**)
+`docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md` (**v3.2, autoridade estratégica e operacional**)
 em capabilities e registra, por capability, escopo, maturity state (M0–M6),
 evidência, blockers, dependências, última validação, ambiente validado e próximo gate.
 Outra sessão deve conseguir continuar a partir daqui sem refazer a auditoria.
@@ -14,7 +14,23 @@ Outra sessão deve conseguir continuar a partir daqui sem refazer a auditoria.
   mas **não prevalece** sobre a v3. As colunas `Guideline` das tabelas detalhadas citam
   seções da v2/v2.1 vigentes quando cada linha foi escrita; a numeração não foi
   reescrita para não perder rastreabilidade.
-- **Estado vivo (07/10/2026, fechamento operacional).** `main` =
+- **Estado vivo (07/10/2026, consolidação de dois ambientes).** `main` =
+  `59806334e038f2b3a01f363a63e4ca577949b26b`; #140/#141 merged com gates failure,
+  incidente MG-I-07 registrado. Topologia alvo: Demo + Production permanentes;
+  Pilot passa a release validation stage. `fix/two-environment-consolidation`
+  prepara guards, release candidate v3, inventários e travas de conversão/retirada.
+  Destinos offgpyysgdhfemjlchod → Demo e igacnfjeuqhxcmfyepgj → Production não
+  alteram as allowlists ativas antes de recovery/cutover. Legado contém 42 linhas,
+  8 registros com contato/destinatário sem classificação real/teste. Nenhum reset,
+  migration ou promoção. Metadata TO_BE_DECOMMISSIONED criada no Pilot Vercel;
+  releitura bloqueada 403. Demo main598 ainda sandbox; Official alias ainda
+  fd796e6b, build main598 ERROR. CI run37635735477 sem runner/steps, causa exata
+  externa não comprovada. PostgreSQL administrativo sem DNS, cliente 16 versus
+  servidor 17, sem Docker para restore; database local connection refused.
+  Chrome local desktop/mobile 209 pass + 7 skips com fixtures, não E2E hosted.
+  **M1/E1; M2/M3/M4/M5 não atingidos.** Evidência e próximos gates:
+  `docs/TWO_ENVIRONMENT_CONSOLIDATION.md`, `ops/consolidation/`.
+- **Estado histórico (07/10/2026, antes do merge #141).** `main` =
   `8be66cab705c8bdf41707a34848c0cf4afb3c65a`, árvore
   `01d31ae879f72e565f9e337eba30a38305c37192`; #140 já merged.
   Run #788 (`37628077116`): quatro gates failure, sem steps ou runner atribuído.

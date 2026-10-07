@@ -185,3 +185,21 @@ das duas causou uma regressão. Merge separado, depois do CI verde, é
 ## Verificação da rodada operacional (25/09/2026)
 
 A leitura de `GET /repos/lucasweber1202/Arandu/branches/main/protection` retornou novamente `403 Resource not accessible by integration`. A conexão GitHub não oferece permissão administrativa; portanto a proteção **não foi alterada nem considerada ativa**. O proprietário deve aplicar os quatro checks acima em Settings → Branches e impedir push direto, force push e deleção, com branch atualizada antes do merge.
+
+## MGI-07 — #140 e #141 mergeadas sem quatro gates (07/10/2026)
+
+#140: main 8be66cab705c8bdf41707a34848c0cf4afb3c65a; CI 37628077116 falhou.
+#141: HEAD ad40094ce1981d8a49f7c513365f2e22802c4ff8; CI 37634914967 falhou;
+merge em main 59806334e038f2b3a01f363a63e4ca577949b26b.
+CI da main 37635735477 e merge-audit 37635735484 falharam. Os quatro jobs
+obrigatórios terminaram failure, com steps vazios e runner_id 0. Mergeado
+não é M2. Nesta rodada o agente não executou merge.
+
+Regra: merge proibido se database != success; deploy-boundaries != success;
+validate != success; presentation != success, ou se o SHA/base forem divergentes.
+merge:gates continua fail-closed e seus testes negativos permanecem.
+Rulesets GET retornou 403: Upgrade to GitHub Pro or make this repository public
+to enable this feature. Branch protection GET retornou 403 Resource not accessible
+by integration. Não foi alterada a visibilidade, o plano ou o controle de acesso.
+Causa administrativa do CI ainda não confirmada; runner 0 não prova cobrança.
+O impedimento de CI é CI_EXTERNAL_BLOCKER; nenhuma flexibilização de gates.

@@ -1,5 +1,12 @@
 # Changelog — Arandu
 
+## Não lançado — Consolidação em dois ambientes
+
+- Demo e Production são permanentes; Pilot é etapa de validação, com runtime legado transitório até cutover seguro.
+- Gate de release candidate na Demo preserva CI, recovery, seed/reset, isolamento e exercícios operacionais sem terceiro projeto permanente.
+- Preparação da conversão dos dois slots falha fechado diante de PII, inventário/export/restore inconclusivos; nenhuma mutação é executada pelo checker.
+- Incidentes de merge #140/#141 registrados; guards existentes preservados durante a migração.
+
 ## Não lançado — Verificação de ambientes hospedados (07/10/2026)
 
 - Doctor cobre o registro completo de relações financeiras e RPCs usadas pela API;

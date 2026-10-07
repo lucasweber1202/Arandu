@@ -2,7 +2,7 @@
 // Política única de runtime: Oficial, Staging/Pilot e Demo são o mesmo código
 // com capacidades diferentes. Cada decisão aqui é uma fronteira de segurança.
 import assert from 'node:assert/strict';
-import { resolveRuntime, sideEffectBlockReason, CANONICAL_BRANCH, SERVER_ENVIRONMENTS } from '../lib/runtime-mode.mjs';
+import { resolveRuntime, sideEffectBlockReason, CANONICAL_BRANCH, SERVER_ENVIRONMENTS, PERMANENT_HOSTED_ENVIRONMENTS, TRANSITIONAL_ENVIRONMENTS } from '../lib/runtime-mode.mjs';
 import { inspectEmailConfiguration } from '../lib/email.mjs';
 import { dispatchWebhooks } from '../lib/finance/webhook-dispatch.mjs';
 import { createModelProvider } from '../lib/finance/extraction-providers.mjs';
@@ -10,11 +10,15 @@ import { mockSsoAdapter } from '../lib/finance/sso-adapters.mjs';
 import { SERVER_ENVIRONMENTS as DEMO_MODE_ENVIRONMENTS } from '../lib/demo-mode.mjs';
 
 assert.equal(CANONICAL_BRANCH, 'main');
+assert.deepEqual(PERMANENT_HOSTED_ENVIRONMENTS, ['demo', 'production']);
+assert.deepEqual(TRANSITIONAL_ENVIRONMENTS, ['pilot']);
 assert.deepEqual([...SERVER_ENVIRONMENTS], ['demo', 'pilot', 'production']);
 assert.equal(DEMO_MODE_ENVIRONMENTS, SERVER_ENVIRONMENTS, 'uma única lista de ambientes');
 
 const official = resolveRuntime({ ARANDU_ENV: 'production' });
 assert.equal(official.mode, 'official');
+assert.equal(official.isPermanentEnvironment, true);
+assert.equal(official.isTransitionalEnvironment, false);
 assert.ok(official.isOfficial && !official.isDemo && !official.isStaging);
 assert.equal(official.datasource, 'supabase');
 assert.equal(official.expectedBranch, 'main');
@@ -25,6 +29,8 @@ assert.equal(official.label, null);
 
 const staging = resolveRuntime({ ARANDU_ENV: 'pilot', VERCEL_ENV: 'production' });
 assert.equal(staging.mode, 'staging');
+assert.equal(staging.isPermanentEnvironment, false);
+assert.equal(staging.isTransitionalEnvironment, true);
 assert.ok(staging.isStaging && !staging.isOfficial && !staging.isDemo);
 assert.equal(staging.expectedBranch, 'main', 'staging não tem branch própria');
 assert.equal(staging.canUseSyntheticFixtures, false);
