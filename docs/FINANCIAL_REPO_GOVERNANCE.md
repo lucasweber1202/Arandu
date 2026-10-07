@@ -225,3 +225,25 @@ este incidente. O audit detectou corretamente a decisão antes da evidência;
 o CI posterior validou a árvore efetivamente mergeada. Corrigir o deployment
 com base em seus próprios logs e preservar merge:gates para próximas PRs.
 Evidência complementar: `FINANCIAL_DEPLOYMENT_FAILURE_2026-10-07.md`.
+
+## MGI-2026-10-07-09 — #143 mergeada fora da regra
+
+A PR #143 (HEAD `4cc68b52a2e2f221ac9777fbd75efc37171bcadb`) entrou em
+main como `b5ce6944faaa9108bc5cea588d9892c573da803e` em 07/10/2026
+19:04:19Z. O merge-audit `37671698546`, job `112964789995`, observou
+validate failure e presentation in_progress; database e deploy-boundaries
+success. O audit detectou corretamente o incidente e permanece inalterado.
+
+O run #795 (`37669076014`) terminou com ambos os gates de browser failure:
+install-deps esgotou 12 minutos nos dois jobs, com índices do mirror Ubuntu
+Azure indisponíveis/lentos. Presentation continuou após essa falha porque a
+suíte usava `if: !cancelled()`; WebKit não encontrou libevent-2.1.so.7.
+188 testes passed, 142 failed e 25 skipped nesse ambiente parcialmente preparado
+não constituem prova isolada de regressão funcional.
+
+O run #794 (`37664210563`) continua evidência dos quatro gates success no
+merge anterior `477ad8be5b95733e8ac97aa3a6f3e1c6a2e54d62`; não corrige o
+merge prematuro da #142 (MGI-2026-10-07-08) nem valida automaticamente #143.
+A correção dedicada de infraestrutura exige os quatro gates concluídos success
+no próprio HEAD antes do merge e CI do novo main depois dele. Nenhum histórico,
+audit, gate, assertion, screenshot ou projeto de browser deve ser removido.
