@@ -138,12 +138,12 @@ for (const table of ['fin_implementation_plans', 'fin_implementation_milestones'
 assert.equal((await doctor(baseEnv, { productsStatus: 503 })).exit_code, 1, 'API financeira em 503 bloqueia');
 assert.equal((await doctor(baseEnv, { renewalsStatus: 404 })).exit_code, 1, 'rota do cron sem chegar à função bloqueia');
 assert.equal((await doctor({ ...baseEnv, ARANDU_ENV: 'staging' })).exit_code, 1, 'ambiente desconhecido');
-assert.equal((await doctor({ ...baseEnv, ARANDU_ENV: 'production' })).exit_code, 0, 'produção com banco próprio');
+assert.equal((await doctor({ ...baseEnv, ARANDU_ENV: 'production' })).exit_code, 2, 'ref desconhecido não comprova banco de produção aprovado');
 const prodOnPilot = await doctor({ ...baseEnv, ARANDU_ENV: 'production', SUPABASE_URL: 'https://offgpyysgdhfemjlchod.supabase.co' });
 assert.equal(prodOnPilot.exit_code, 2, 'produção no banco do piloto');
 assert.equal(levelOf(prodOnPilot, 'projeto Supabase do ambiente'), 'UNSAFE');
 // Demonstração canônica: mesmo diagnóstico, banco próprio e marcado como demo.
-assert.equal((await doctor({ ...baseEnv, ARANDU_ENV: 'demo' }, { marker: 'demo' })).exit_code, 0, 'demo com banco marcado');
+assert.equal((await doctor({ ...baseEnv, ARANDU_ENV: 'demo' }, { marker: 'demo' })).exit_code, 2, 'marker demo não substitui atribuição ativa aprovada');
 assert.equal(levelOf(await doctor({ ...baseEnv, ARANDU_ENV: 'demo' }), 'marcador de ambiente'), 'ERROR', 'demo ainda sem seed');
 const demoOnPilot = await doctor({ ...baseEnv, ARANDU_ENV: 'demo', SUPABASE_URL: 'https://offgpyysgdhfemjlchod.supabase.co' }, { marker: 'demo' });
 assert.equal(levelOf(demoOnPilot, 'projeto Supabase do ambiente'), 'UNSAFE', 'demo no banco do piloto');
