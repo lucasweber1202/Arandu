@@ -6,6 +6,22 @@ em capabilities e registra, por capability, escopo, maturity state (M0–M6),
 evidência, blockers, dependências, última validação, ambiente validado e próximo gate.
 Outra sessão deve conseguir continuar a partir daqui sem refazer a auditoria.
 
+- **Estado vivo (08/10/2026, após #144).** `main` =
+  `296b0357383e09a49348307b2921b3cf496c589b`, árvore
+  `45497e6dff1306e49849cd6812fb471ccedac8d6`. **M2/E2 comprovado** pelo
+  run #799 (`37677370704`), quatro gates success no SHA exato; merge-audit
+  `37677370697` success. Sem PR aberta na leitura inicial. Não há blocker de CI
+  nessa baseline. GitHub público: `protected=false`, rulesets `[]`; leitura
+  administrativa 403. Falha Vercel `arandu` no mesmo SHA (`dpl_DPwnPBkBq5d22LzgS9YQ2PSRyjXL`)
+  é independente de CI; acesso à equipe retorna 403, causa específica não comprovada.
+  Demo no SHA atual ainda `synthetic-fixtures`; API de organizações 404.
+  Official: Passport/Portfolio 404, health sem SHA. Supabase: Pilot no marker
+  `financial-surface-hardening-1`, sem `deployment_environment`; 13 linhas,
+  zero Auth/MFA/objetos Storage. Legado: 42 linhas, oito registros com campos
+  de contato/destinatário sem classificação fictício/real. Inventário não é backup.
+  Nenhum banco, secret, alias ou allowlist alterado. **M3/M4/M5/M6 não comprovados**.
+  Ver `FINANCIAL_RELEASE_EVIDENCE_2026-10-08_STAGE0.md` e inventários de 08/10.
+  Ferramenta nova `governance:live`: M1/E1 até CI desta PR; não equivale a regra aplicada.
 - **Autoridade.** A direção estratégica é a Guideline v3. Documentos especializados
   (`FINANCIAL_PRODUCT_BOUNDARIES.md`, data model/migrations, segurança, deployment,
   operação, runbooks, releases) regem a implementação concreta (v3 §1.3 e Apêndice D).
@@ -14,7 +30,7 @@ Outra sessão deve conseguir continuar a partir daqui sem refazer a auditoria.
   mas **não prevalece** sobre a v3. As colunas `Guideline` das tabelas detalhadas citam
   seções da v2/v2.1 vigentes quando cada linha foi escrita; a numeração não foi
   reescrita para não perder rastreabilidade.
-- **Estado vivo (07/10/2026, após #142).** main =
+- **Estado histórico (07/10/2026, após #142).** main =
   `477ad8be5b95733e8ac97aa3a6f3e1c6a2e54d62`, árvore
   `6575db8fb0dbf9895676464b07cef2ba75c6911c`. **M2/E2 comprovado** pelo run
   #794 (`37664210563`): database/deploy-boundaries/validate/presentation success
@@ -127,8 +143,8 @@ dos anteriores; incidente ou regressão pode rebaixar; blocker externo não elev
 | **M1 — CODE_COMPLETE** | código existe (domínio/modelo/API/UI conforme aplicável); migration + rollback + registro no manifesto quando houver SQL; testes locais relevantes (incluindo negativos) existem; documentação técnica acompanha | CI verde, deploy, ambiente real |
 | **M2 — CI_VALIDATED** | `database`, `deploy-boundaries`, `validate`, `presentation` = `success` no **HEAD exato** que contém a capability, com a ponta da base contida (`merge:gates`); banco e os cinco projetos de navegador aplicáveis verdes; nenhuma evidência herdada de SHA anterior | ambiente hospedado saudável |
 | **M3 — HOSTED_VALIDATED** | migration/config aplicada no ambiente hospedado alvo; schema (marker) e deploy observados correspondem ao release; doctor/canário/probes relevantes passam; evidência vinculada a ambiente + SHA. Local ≠ hospedado | uso por pessoas, recuperação exercitada |
-| **M4 — PILOT_VALIDATED** | jornada autenticada real ou representativa ponta a ponta no Pilot; restore/recovery aplicável exercitado; runbook, observabilidade e suporte exercitados; evidência ligada ao SHA; `pilot:release:check` GO; blockers críticos fechados ou aceitos por responsável nomeado | produção |
-| **M5 — PRODUCTION_READY** | ambiente PROD dedicado (`ARANDU_ENV=production`, Supabase próprio, migrations próprias, secrets corretos); backup + restore provados; security/admin blockers relevantes fechados; owner, suporte, rollback/forward-fix e resposta a incidente definidos; Pilot validado no mesmo SHA de `main` antes de liberar o Oficial | validação por cliente |
+| **M4 — RELEASE_VALIDATED** | jornada autenticada real ou representativa ponta a ponta na Demo canônica ou preview temporário; restore/recovery aplicável exercitado; runbook, observabilidade e suporte exercitados; evidência ligada ao SHA; `release:candidate:check` GO; blockers críticos fechados ou aceitos por responsável nomeado | produção |
+| **M5 — PRODUCTION_READY** | ambiente PROD dedicado (`ARANDU_ENV=production`, Supabase próprio, migrations próprias, secrets corretos); backup + restore provados; security/admin blockers relevantes fechados; owner, suporte, rollback/forward-fix e resposta a incidente definidos; release validado na Demo canônica no mesmo SHA de `main` antes de liberar Production | validação por cliente |
 | **M6 — CUSTOMER_VALIDATED** | uso real por cliente/design partner no problema alvo; jornada observada; valor/usabilidade medidos; feedback e gaps registrados | fim da evolução |
 
 **Nível de evidência** (coluna `Evidence level`): `E0` documento; `E1` teste local; `E2` CI no
@@ -139,13 +155,14 @@ no Pilot; `E5` produção; `E6` uso por cliente.
 
 | Código | SHA | Evidência | Estado |
 | --- | --- | --- | --- |
-| `BL-794` | `477ad8be5b95733e8ac97aa3a6f3e1c6a2e54d62` | run `37664210563`, quatro gates success em 07/10 | **árvore atual CI-validada**; incidente de merge separado; hosted/recovery pendentes |
+| `BL-799` | `296b0357383e09a49348307b2921b3cf496c589b` | run `37677370704`, quatro gates success; merge-audit `37677370697` success em 07/10 | **baseline atual M2/E2**; hosted/recovery pendentes |
+| `BL-794` | `477ad8be5b95733e8ac97aa3a6f3e1c6a2e54d62` | run `37664210563`, quatro gates success em 07/10 | **baseline histórica CI-validada**; incidente de merge separado; hosted/recovery pendentes |
 | `BL-125` | `e2212af5a49707cf9ecd44b3384a2eaccf270756` (HEAD da #125, contém tudo até #124) | run `37258668278`: quatro gates success em 05/10 | **superseded** pela BL-V3 |
 | `BL-V3` | `4a93fa60b51ae4c094e95d25cee8be4748363cfb` (HEAD da #128; árvore idêntica a `pilot@d4d6c22`) | run `37320266260`: `database`, `deploy-boundaries`, `validate`, `presentation` success no HEAD exato (05/10 14:15Z) | **árvore CI-validada**; a #128 foi mergeada antes do fim do CI (MGI-2026-10-05-02, `merge-audit` `37320702496` failure). Baseline limpa = esta árvore + merge-audit verde da PR documental de seguimento |
 
 Regras de leitura: nenhuma capability está em **M3+** — o Pilot hospedado foi observado pela
-última vez no marker `financial-surface-hardening-1` (06/10), sem doctor/canário/jornada
-hospedados vinculados a um release, e produção já tem `ARANDU_ENV=production`, mas não há Supabase PROD
+em 08/10 no marker `financial-surface-hardening-1`, sem doctor/canário/jornada
+hospedados vinculados a um release, e a configuração histórica registra `ARANDU_ENV=production`, mas não há Supabase PROD
 próprio comprovado nem build saudável. Nenhuma capability é **M6**: não há cliente real em operação.
 
 ## Registro de maturidade por capability (v3)
@@ -156,58 +173,59 @@ que contém a capability. `Ambiente validado` = onde a evidência mais alta foi 
 
 | ID | Capability | Escopo | Maturity | Evidence level | Ambiente validado | Validated SHA | Última validação | Blockers externos | Próximo gate |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| P0.1-01 | Demo/Pilot/Production por configuração | partial | M2 | E2 | CI (`deploy-boundaries`) | BL-V3 | 05/10 | Supabase DEMO/PROD; CI atual; Pilot Production Branch; build oficial | M3: CI exato + banco isolado + doctor/canário/jornada |
-| P0.1-02 | Manifesto de migrations, clean/upgrade/reapply/rollback | implemented | M2 | E2 | CI (`database`) | BL-V3 | 05/10 | — | manter por migration |
-| P0.1-03 | Migrations aplicadas no Pilot hospedado | blocked | M2 (bundle/ferramenta) · hosted não atingido | E2 | CI | BL-V3 | 05/10 | executor Docker/PG17; conexão direct com DNS failure; backup/restore antes | M3: recovery do mesmo backup + prefixo de 12 migrations (`8e15a95…`) até data-governance; depois export/owner ack + restantes + doctor GO |
-| P0.1-04 | Rulesets `pilot`/`main` | blocked | M2 (artefatos versionados) · **não aplicada** (`protected=false`) | E2 | CI (`check:governance`) | BL-V3 | 05/10 | **OWNER_ACTION_REQUIRED**: plano GitHub Pro/Team (repositório privado no Free não suporta rulesets — API 403) e depois importar | upgrade + import; API `protected=true` |
-| P0.1-05 | Restore drill local + procedimento hospedado | partial | M2 (mecanismo) | E1/E2 | local + CI (preflight) | BL-V3 | 05/10 | Docker/PG17 e conexão resolvível (identidade conhecida, DNS failure) | M4: drill hospedado PASS |
-| P0.1-06 | Doctor, canary, env check | implemented | M1 (120 relações/183 RPCs; identidade e leitura fail-closed) | E1 | Node local; canário E3 somente schema antigo | — (CI atual bloqueado) | 07/10 | CI; configuração/credencial de doctor; schema atrasado | M2 exato; M3 doctor/canário no marker final e mesmo SHA |
-| P0.1-07 | Severidade, runbook, postmortem | partial | M1 | E0 | documento | — | 05/10 | responsáveis nomeados | M4: exercício de resposta |
-| P0.2-01..08 | Multi-entity (grupo, escopo, RLS, guardas, consolidado, moeda, trilha, UI) | implemented | M2 | E2 | CI | BL-V3 | 05/10 | rollout hospedado | M3 |
-| P0.2-09 | Aprovação cruzada / tesouraria por policy | partial | M2 | E2 | CI | BL-V3 | 05/10 | rollout hospedado | M3 |
-| P0.3-01 | Passport com proveniência por campo | implemented | M2 | E2 | CI | BL-V3 | 05/10 | rollout hospedado | M3 |
-| P0.3-02 | Passport por entidade legal | partial | M2 | E2 | CI | BL-V3 | 05/10 | rollout hospedado | M3 |
-| P0.3-03 | Financial Graph consultável | partial | M2 | E2 | CI | BL-V3 | 05/10 | rollout hospedado | M3 |
-| P0.4-01..05 | Contract & Renewal Center v2 | implemented | M2 | E2 | CI | BL-V3 | 05/10 | rollout; provedor de e-mail | M3 |
-| P0.5-01..06 | Provider / Bank Relationship | implemented | M2 | E2 | CI | BL-V3 | 05/10 | rollout hospedado | M3 |
-| P0.6-01..04 | Debt / Facilities / Limits / Guarantees | implemented | M2 | E2 | CI | BL-V3 | 05/10 | rollout hospedado | M3 |
-| P0.7-01 | Aprovação sequencial com snapshot e SoD | implemented | M2 | E2 | CI | BL-V3 | 05/10 | rollout hospedado | M3 |
-| P0.7-02..03 | Policy engine v2, prazos, escalonamento, exceção | partial | M2 | E2 | CI | BL-V3 | 05/10 | rollout; agendador em minutos | M3 |
-| P0.8-01..02 | API v1 e webhooks | partial | M2 | E2 | CI | BL-V3 | 05/10 | rollout; chave de cifragem por ambiente; agendador | M3 |
-| P0.8-03 | Docs/versioning/deprecation da API | implemented | M2 | E2 | CI (paridade OpenAPI) | BL-V3 | 05/10 | — | manter |
-| P0.9-01 | MFA do operador da plataforma | implemented | M2 | E2 | CI | BL-V3 | 05/10 | cadastro de MFA do `finance_ops` (O3) | M3 |
-| P0.9-02..03 | SSO SAML/OIDC fail-closed | partial | M2 | E2 | CI (IdP de teste) | BL-V3 | 05/10 | SSO no Supabase, IdP real, DNS, segredos | M3: login real com IdP |
-| P0.10-01 | Backup preflight / restore drill | partial | M2 (mecanismo) | E1/E2 | local + CI | BL-V3 | 05/10 | conexão administrativa do Pilot | M4 |
-| P0.10-02 | Incident/DR/RPO-RTO honestos | partial | M1 | E0 | documento | — | 05/10 | responsáveis; ensaio DR hospedado | M4 |
-| P0.10-03 | Health, request IDs, job runs, outbox | implemented | M2 | E2 | CI | BL-V3 | 05/10 | — | M3 |
-| P0.11-01 | Classificação, minimização, SoR | implemented | M2 | E2 | CI | BL-V3 | 05/10 | — | M3 |
-| P0.11-02 | Retenção, hold, export, offboarding | partial | M2 | E2 | CI | BL-V3 | 05/10 | jurídico (exclusão física); decisão de produto (offboarding de provedor) | M3 |
-| P0.11-03 | Subprocessadores / readiness jurídica | blocked | M0 | E0 | documento | — | 05/10 | parecer jurídico | decisão jurídica |
-| LEG-01..02 | Runtime e artefatos de arte fora do tree | implemented | M2 | E2 | CI (`check:legacy-art`, superfície) | BL-V3 | 05/10 | deploy de produção antigo ainda serve API legada | M3 após deploy |
-| LEG-03 | Objetos de banco/storage da arte | partial | M2 (migration) | E2 | CI | BL-V3 | 05/10 | backup/restore + export + decisão do owner | M3 |
-| P1.1 | Savings & Value Realization Ledger | implemented | M2 | E2 | CI | BL-V3 (primeira: `189bc9d`) | 05/10 | rollout hospedado | M3 |
-| P1.2 | Bank Fee Intelligence | implemented | M2 | E2 | CI | BL-V3 (primeira: `e889aff`) | 05/10 | rollout hospedado | M3 |
-| P1.3 | Opportunity Engine determinístico | implemented | M2 | E2 | CI | BL-V3 (primeira: `70df5d3`) | 05/10 | rollout; cadência do cron | M3 |
-| P1.4 | Proposal & Document Intelligence | partial (foundation completa) | M1 | E1 | local (Node/build + Chromium desktop/mobile; APIs com fixtures) | — (CI bloqueado por cobrança do Actions) | 06/10 | CI do GitHub Actions (cobrança); OCR/modelo externo (contrato de dados); Stage 0 hospedado | M2: quatro gates no HEAD da PR |
-| PQ-01 | Provider Qualification & Due Diligence (v3 §11) | partial (core completo) | M1 | E1 | local (Node/build + Chromium desktop/mobile; APIs com fixtures) | — (CI bloqueado) | 06/10 | CI (cobrança); Stage 0 | M2 |
-| PA-01 | Post-Award Implementation & Transition | partial (core implementado) | M1 | E1 | local (Node/build + Chromium desktop/mobile; APIs com fixtures) | — (CI obrigatório pendente) | 06/10 | CI e Stage 0 | M2 com quatro gates no SHA |
-| CO-01 | Covenant & Obligation Monitor | partial (core implementado) | M1 | E1 | local (Node/build + Chromium desktop/mobile; APIs com fixtures) | — (CI obrigatório pendente) | 06/10 | CI, E2E e Stage 0 | M2 com gates no SHA |
+| P0.1-01 | Demo/Production por configuração; Pilot transitório | partial | M2 | E2 | CI (`deploy-boundaries`) | BL-799 | 08/10 | conversão dos dois bancos com recovery; build oficial e settings | M3: banco isolado + doctor/canário |
+| P0.1-02 | Manifesto de migrations, clean/upgrade/reapply/rollback | implemented | M2 | E2 | CI (`database`) | BL-799 | 08/10 | — | manter por migration |
+| P0.1-03 | Migrations aplicadas no Pilot hospedado | blocked | M2 (bundle/ferramenta) · hosted não atingido | E2 | CI | BL-799 | 08/10 | executor Docker/PG17; conexão administrativa não provisionada nesta sessão; backup/restore antes | M3: recovery do mesmo backup + prefixo de 12 migrations (`8e15a95…`) até data-governance; depois export/owner ack + restantes + doctor GO |
+| P0.1-04 | Ruleset main e preservação histórica pilot | blocked | M2 (templates) · proteção não aplicada | E2 (templates); observação API | CI + API GitHub | BL-799 | 08/10 | permissão administrativa; main pública sem rulesets | importar main.json; governance:live PROTECTED |
+| P0.1-05 | Restore drill local + procedimento hospedado | partial | M2 (mecanismo) | E1/E2 | local + CI (preflight) | BL-799 | 08/10 | Docker/PG17 e conexão administrativa segura (DNS failure na rodada histórica) | M4: drill hospedado PASS |
+| P0.1-06 | Doctor, canary, env check | implemented | M2 (ferramentas) | E2 | CI | BL-799 | 08/10 | credencial operacional, schema atrasado e conversão | M3: doctor/canário no marker final e SHA correto |
+| P0.1-07 | Severidade, runbook, postmortem | partial | M1 | E0 | documento | — | 08/10 | responsáveis nomeados | M4: exercício de resposta |
+| P0.2-01..08 | Multi-entity (grupo, escopo, RLS, guardas, consolidado, moeda, trilha, UI) | implemented | M2 | E2 | CI | BL-799 | 08/10 | rollout hospedado | M3 |
+| P0.2-09 | Aprovação cruzada / tesouraria por policy | partial | M2 | E2 | CI | BL-799 | 08/10 | rollout hospedado | M3 |
+| P0.3-01 | Passport com proveniência por campo | implemented | M2 | E2 | CI | BL-799 | 08/10 | rollout hospedado | M3 |
+| P0.3-02 | Passport por entidade legal | partial | M2 | E2 | CI | BL-799 | 08/10 | rollout hospedado | M3 |
+| P0.3-03 | Financial Graph consultável | partial | M2 | E2 | CI | BL-799 | 08/10 | rollout hospedado | M3 |
+| P0.4-01..05 | Contract & Renewal Center v2 | implemented | M2 | E2 | CI | BL-799 | 08/10 | rollout; provedor de e-mail | M3 |
+| P0.5-01..06 | Provider / Bank Relationship | implemented | M2 | E2 | CI | BL-799 | 08/10 | rollout hospedado | M3 |
+| P0.6-01..04 | Debt / Facilities / Limits / Guarantees | implemented | M2 | E2 | CI | BL-799 | 08/10 | rollout hospedado | M3 |
+| P0.7-01 | Aprovação sequencial com snapshot e SoD | implemented | M2 | E2 | CI | BL-799 | 08/10 | rollout hospedado | M3 |
+| P0.7-02..03 | Policy engine v2, prazos, escalonamento, exceção | partial | M2 | E2 | CI | BL-799 | 08/10 | rollout; agendador em minutos | M3 |
+| P0.8-01..02 | API v1 e webhooks | partial | M2 | E2 | CI | BL-799 | 08/10 | rollout; chave de cifragem por ambiente; agendador | M3 |
+| P0.8-03 | Docs/versioning/deprecation da API | implemented | M2 | E2 | CI (paridade OpenAPI) | BL-799 | 08/10 | — | manter |
+| P0.9-01 | MFA do operador da plataforma | implemented | M2 | E2 | CI | BL-799 | 08/10 | cadastro de MFA do `finance_ops` (O3) | M3 |
+| P0.9-02..03 | SSO SAML/OIDC fail-closed | partial | M2 | E2 | CI (IdP de teste) | BL-799 | 08/10 | SSO no Supabase, IdP real, DNS, segredos | M3: login real com IdP |
+| P0.10-01 | Backup preflight / restore drill | partial | M2 (mecanismo) | E1/E2 | local + CI | BL-799 | 08/10 | conexão administrativa do Pilot | M4 |
+| P0.10-02 | Incident/DR/RPO-RTO honestos | partial | M1 | E0 | documento | — | 08/10 | responsáveis; ensaio DR hospedado | M4 |
+| P0.10-03 | Health, request IDs, job runs, outbox | implemented | M2 | E2 | CI | BL-799 | 08/10 | — | M3 |
+| P0.11-01 | Classificação, minimização, SoR | implemented | M2 | E2 | CI | BL-799 | 08/10 | — | M3 |
+| P0.11-02 | Retenção, hold, export, offboarding | partial | M2 | E2 | CI | BL-799 | 08/10 | jurídico (exclusão física); decisão de produto (offboarding de provedor) | M3 |
+| P0.11-03 | Subprocessadores / readiness jurídica | blocked | M0 | E0 | documento | — | 08/10 | parecer jurídico | decisão jurídica |
+| LEG-01..02 | Runtime e artefatos de arte fora do tree | implemented | M2 | E2 | CI (`check:legacy-art`, superfície) | BL-799 | 08/10 | deploy de produção antigo ainda serve API legada | M3 após deploy |
+| LEG-03 | Objetos de banco/storage da arte | partial | M2 (migration) | E2 | CI | BL-799 | 08/10 | backup/restore + export + decisão do owner | M3 |
+| P1.1 | Savings & Value Realization Ledger | implemented | M2 | E2 | CI | BL-799 (primeira: `189bc9d`) | 08/10 | rollout hospedado | M3 |
+| P1.2 | Bank Fee Intelligence | implemented | M2 | E2 | CI | BL-799 (primeira: `e889aff`) | 08/10 | rollout hospedado | M3 |
+| P1.3 | Opportunity Engine determinístico | implemented | M2 | E2 | CI | BL-799 (primeira: `70df5d3`) | 08/10 | rollout; cadência do cron | M3 |
+| P1.4 | Proposal & Document Intelligence | partial (foundation completa) | M2 | E2 | CI (DB, domínio, UI com fixtures) | BL-799 | 08/10 | OCR/modelo externo (contrato de dados); Stage 0 hospedado | M3: rollout isolado + doctor/canário/jornada real |
+| PQ-01 | Provider Qualification & Due Diligence (v3 §11) | partial (core completo) | M2 | E2 | CI (DB, domínio, UI com fixtures) | BL-799 | 08/10 | Stage 0 | M3: rollout isolado + doctor/canário/jornada real |
+| PA-01 | Post-Award Implementation & Transition | partial (core implementado) | M2 | E2 | CI (DB, domínio, UI com fixtures) | BL-799 | 08/10 | Stage 0 | M3: rollout isolado + doctor/canário/jornada real |
+| CO-01 | Covenant & Obligation Monitor | partial (core implementado) | M2 | E2 | CI (DB, domínio, UI com fixtures) | BL-799 | 08/10 | Stage 0 | M3: rollout isolado + doctor/canário/jornada real |
 | P1.5 | SCIM / JIT / access reviews | missing | NOT_STARTED | — | — | — | — | — | — |
-| P1.6 | Executive Portfolio | partial | M2 (fatia executiva) | E2 | CI | BL-V3 | 05/10 | rollout hospedado | M3 |
-| P1.7 / SI-01 | Financial Spend Intelligence | partial (reconciled evidence slice) | M1 | E1 | local (Node/build + Chromium desktop/mobile; APIs com fixtures) | — (CI obrigatório pendente) | 06/10 | CI, E2E, Stage 0; allocation/wallet/Opportunity/tasks depth | M2 after exact-SHA gates |
-| PP-01 | Provider Performance | partial (core implementado) | M1 | E1 | local (Node/build + Chromium desktop/mobile; APIs com fixtures) | — (CI obrigatório pendente) | 06/10 | CI, E2E e Stage 0 | M2 com gates no SHA |
-| P1.10 | Enterprise Search | partial | M2 (escopo limitado) | E2 | CI | BL-V3 | 05/10 | — | — |
+| P1.6 | Executive Portfolio | partial | M2 (fatia executiva) | E2 | CI | BL-799 | 08/10 | rollout hospedado | M3 |
+| P1.7 / SI-01 | Financial Spend Intelligence | partial (reconciled evidence slice) | M2 | E2 | CI (DB, domínio, UI com fixtures) | BL-799 | 08/10 | Stage 0; allocation/wallet/Opportunity/tasks depth | M3: rollout isolado + doctor/canário/jornada real |
+| PP-01 | Provider Performance | partial (core implementado) | M2 | E2 | CI (DB, domínio, UI com fixtures) | BL-799 | 08/10 | Stage 0 | M3: rollout isolado + doctor/canário/jornada real |
+| P1.10 | Enterprise Search | partial | M2 (escopo limitado) | E2 | CI | BL-799 | 08/10 | — | — |
 | P1.11–P1.12 | Enterprise Intake, Scenario Builder | missing | NOT_STARTED | — | — | — | — | — | — |
 | P2.1–P2.4, P2.6, P2.8 | Product Packs e integrações | missing | NOT_STARTED | — | — | — | — | gate §43.1 / Stage 4 | — |
-| P2.5 | Acquiring Intelligence (v1 existente) | partial | M2 (v1) | E2 | CI | BL-V3 | 05/10 | — | — |
+| P2.5 | Acquiring Intelligence (v1 existente) | partial | M2 (v1) | E2 | CI | BL-799 | 08/10 | — | — |
 | P2.7 | Open Finance | blocked | NOT_STARTED | — | — | — | — | consentimento/parceiro | — |
 | P3.1–P3.3 | Network, benchmarks | missing/blocked | NOT_STARTED | — | — | — | — | maturidade buyer-side; jurídico | não iniciar |
 | AI-01 | Assistente factual | missing | NOT_STARTED | — | — | — | — | provedor de modelo; revisão de dados | — |
 
-Estados agregados (05/10): **Código/CI** — M2 em `BL-V3` (`4a93fa6`, quatro gates verdes);
-a governança de merge da #128 falhou (MGI-02) e é corrigida pela PR documental de seguimento. **Pilot hospedado** — NO-GO (nenhuma
-capability M3/M4). **Produção** — não pronta (nenhuma capability M5). **Cliente** —
-M6 = false para todas.
+Estados agregados (08/10): **Código/CI** — M2 em `BL-799`, quatro gates verdes
+no SHA exato e merge-audit success. **Demo canônica** — BLOCKED (sandbox não
+prova M3). **Release validation** — NO-GO, sem M4. **Production** — BLOCKED,
+sem M5. **Cliente** — M6 não comprovado. A nova ferramenta desta PR continua
+M1/E1 até seus próprios quatro gates; BL-799 não a valida.
 
 ## Legenda de escopo (coluna `Status` das tabelas detalhadas)
 

@@ -2,9 +2,20 @@
 
 ## Proteção da branch `main` — `OWNER_ACTION_REQUIRED`
 
-> Observação de 01/10/2026: `GET /repos/lucasweber1202/Arandu/branches/main`
-> informa `protected: false`. As regras abaixo continuam pendentes; não são
-> apresentadas como proteção já aplicada.
+> Observação de 08/10/2026: `main@296b0357`, `protected: false`, rulesets `[]`.
+> O repositório agora é público: a antiga restrição de plano para repo privado
+> não é o blocker atual. O conector continua sem administração (403).
+> As regras abaixo continuam pendentes; não são proteção já aplicada.
+
+`npm run governance:live` verifica a API real, somente leitura. Exige identidade
+main/SHA, protected=true e uma política completa sem bypass: PR, quatro checks
+vinculados ao GitHub Actions, base atual, conversas resolvidas, sem force push
+ou deletion. Ruleset versionada, evaluate, aplicação em outra branch, ausência
+de leitura ou bypass não passa. O relatório sanitizado em
+`reports/live-governance.json` é invalidado antes da consulta. Em executores com
+proxy Node 24, usar `node --use-env-proxy scripts/check-live-governance.mjs`.
+O comando detecta configuração; **não aplica proteção nem bloqueia o botão de
+merge no GitHub**. `merge:gates` e merge-audit continuam necessários.
 
 **Não foi possível configurar nem sequer ler as regras de proteção a partir
 desta sessão.** Tentado novamente nesta rodada, com o mesmo resultado. A API
@@ -25,7 +36,7 @@ Branch name pattern: `main`
 | Toggle | Valor | Por quê |
 | --- | --- | --- |
 | Require a pull request before merging | ligado | impede push direto na `main` |
-| Require approvals | 1 | revisão humana antes do merge |
+| Require approvals | 0 no mantenedor único; 1 com segundo revisor | alinhado ao template main.json; GitHub não permite aprovar a própria PR |
 | Dismiss stale pull request approvals when new commits are pushed | ligado | aprovação não sobrevive a um push novo |
 | Require status checks to pass before merging | ligado | é o item que faltava: a PR #64 foi mesclada com o job `validate` ainda em execução |
 | → Required status checks | `validate`, `database`, `deploy-boundaries`, `presentation` | os quatro jobs do `Arandu CI` |

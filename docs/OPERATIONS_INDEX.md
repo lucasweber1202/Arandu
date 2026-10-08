@@ -15,14 +15,17 @@ documento divergir, vale este índice, nesta ordem.
 
 ## Financial Procurement (produto atual)
 
+- `docs/FINANCIAL_RELEASE_EVIDENCE_2026-10-08_STAGE0.md` — **snapshot atual**: main296b0357, CI #799/merge-audit verdes, inventários, governança real e blockers Stage 0.
+- `npm run governance:live` — leitura efetiva de proteção da main; não substitui aplicação da ruleset nem merge:gates.
+
 - `docs/FINANCIAL_PILOT_RELEASE_GATE.md` — gate binário de comprovantes hospedados, SHA, freshness, restore, cronologia e jornada.
-- `docs/FINANCIAL_RELEASE_EVIDENCE_2026-10-05_V3_BASELINE.md` — **evidência viva**: baseline de código/CI reconciliada pós-#125/#126/#127, gates, headroom e NO-GO atual do Pilot.
+- `docs/FINANCIAL_RELEASE_EVIDENCE_2026-10-05_V3_BASELINE.md` — **histórico**: baseline de código/CI reconciliada pós-#125/#126/#127, gates e headroom da época.
 - `docs/FINANCIAL_RELEASE_EVIDENCE_2026-10-05.md` — histórico: baseline da #125 (causa-raiz da #124, ambientes sondados em 05/10, ações externas ainda válidas).
 - `docs/FINANCIAL_RELEASE_EVIDENCE_2026-10-04.md` — histórico: observações hospedadas (schema, bucket, Vercel) de 04/10.
 - `docs/FIRST_CUSTOMER_PILOT_CHECKLIST.md` — configuração, dados, suporte e critérios de primeiro cliente.
 - `docs/FINANCIAL_PILOT_GO_LIVE.md` — checklist única de go-live do piloto, com estado por item.
 - `docs/FINANCIAL_OWNER_ACTIONS.md` — o que só o proprietário pode fazer.
-- `docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md` — **canônico**: `main` única branch de produto; ambientes demo/staging(pilot)/official da mesma árvore; runtime (`lib/runtime-mode.mjs`), dados, release e rollback.
+- `docs/FINANCIAL_DEPLOYMENT_WORKFLOW.md` — **canônico**: `main` única branch de produto; Demo e Production permanentes da mesma árvore; Pilot como etapa de release, runtime (`lib/runtime-mode.mjs`), dados e rollback.
 - `docs/FINANCIAL_PILOT_ENVIRONMENT.md` — variáveis, Supabase do piloto, backups.
 - `docs/FINANCIAL_PILOT_OPERATIONS.md`, `docs/FINANCIAL_PILOT_SUPPORT.md`, `docs/FINANCIAL_PILOT_PLAYBOOK.md` — operação, suporte e incidentes.
 - `docs/FINANCIAL_RELEASE_EVIDENCE_2026-10-06_MAIN_CONSOLIDATION.md` — evidência local da consolidação `main` canônica (DAG, #135, testes, CI sem runner).

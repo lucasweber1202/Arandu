@@ -8,11 +8,11 @@ Estas configurações são aplicadas nas configurações do GitHub, não por arq
 
 ## Regra obrigatória
 
-Crie uma ruleset para `pilot` (integração das features) e para `main` (promoção `pilot → main`, `hotfix/*` e exceção docs-only) com:
+Crie a ruleset de `main` (todas as branches temporárias retornam por PR) com:
 
 - exigir pull request antes do merge;
 - exigir que a conversa seja resolvida;
-- exigir aprovação do CODEOWNER quando arquivos críticos forem alterados;
+- exigir aprovação do CODEOWNER quando houver segundo revisor; hoje o template mantém 0 aprovações para o mantenedor único;
 - exigir checks de status antes do merge;
 - impedir force push;
 - impedir exclusão da branch;
@@ -37,13 +37,17 @@ Enquanto a ruleset não estiver ativa, a única barreira é processual: `npm run
 
 **Pré-requisito de plano:** em repositório privado, rulesets e branch protection exigem GitHub Pro (conta pessoal) ou Team (organização). No Free a API responde 403 "Upgrade to GitHub Pro or make this repository public" (verificado em 05/10).
 
-Passo a passo (owner/admin, ~2 minutos, depois do upgrade):
+Passo a passo atual (owner/admin; repositório público em 08/10/2026):
 
 1. GitHub → repositório → **Settings → Rules → Rulesets → New ruleset → Import a ruleset**.
-2. Selecione `.github/rulesets/pilot.json` (baixado da `pilot`) → **Create**.
-3. Repita com `.github/rulesets/main.json`.
-4. Verifique: a API `GET /repos/lucasweber1202/Arandu/rules/branches/pilot` lista `pull_request`, `required_status_checks`, `non_fast_forward` e `deletion`; uma PR com qualquer dos quatro checks vermelho ou desatualizada mostra o botão de merge bloqueado.
-5. Rollback: Settings → Rules → Rulesets → a ruleset → **Disable** (ou Delete). Nenhum dado é afetado.
+2. Selecione `.github/rulesets/main.json` da `main` → **Create**, enforcement Active, bypass list vazia.
+3. Verifique `npm run governance:live` (token de leitura com permissão adequada via ambiente) = PROTECTED e uma PR pendente/vermelha bloqueada na UI. Não use token em argumento de comando.
+4. Preserve `pilot` congelada: uma regra separada de preservação pode impedir updates/deletion/force push; não reative desenvolvimento nela nem use a main ruleset como prova de congelamento.
+5. Qualquer alteração emergencial de proteção exige o procedimento de incidente; não desative para liberar um merge pendente.
+
+Snapshot de 08/10: main `protected=false`, rulesets vazios; integração sem
+administração (403). A barreira de plano privado abaixo é **histórica**;
+não solicitar upgrade com base nela no repositório atualmente público.
 
 ## Barreiras versionadas enquanto a ruleset não existe
 
