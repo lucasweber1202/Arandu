@@ -89,6 +89,12 @@ retirada; não há evidência de dependências zero hoje.
 `lib/deployment-topology.mjs` separa destino planejado de atribuição ativa.
 As allowlists Demo/Production continuam vazias enquanto os refs ainda forem
 Pilot/legado. Escolher um ref para conversão não autoriza seed/reset.
+`finance:env:check` e o doctor exigem atribuição ativa positiva para Demo e
+Production: ref desconhecido e hostname sem ref verificável também bloqueiam.
+Um marker no banco não substitui a atribuição aprovada no código. Somente o
+PR de cutover, com recuperação e conversão comprovadas, ativa o ref; não há
+variável de ambiente que ignore essa regra. Esta trava não identifica a causa
+de um deployment cujo log ainda não foi observado.
 `ARANDU_ENV=pilot` é compatibilidade transitória e o doctor emite aviso de ciclo
 de vida. Os aliases antigos de tooling são preservados para não romper o
 runtime anterior ao cutover.
