@@ -111,6 +111,9 @@ inventa export/restore PASS. O assessor de conversão exige identidade exata,
 inventário com contagens/hashes consistentes e classificação zero PII/cliente,
 export vinculado ao mesmo inventário incluindo Auth/Storage, restore real em
 alvo descartável, comparação de linhas e probes, e reconstrução com rollback.
+O export deve ser observado no instante do inventário ou depois dele, e o
+restore no instante do export ou depois. Hash coincidente não torna um export
+anterior prova de preservação dos dados inventariados posteriormente.
 Todos esses comandos apenas avaliam provas; nenhum executa ação destrutiva.
 Relatórios anteriores são invalidados antes de ler uma nova prova.
 

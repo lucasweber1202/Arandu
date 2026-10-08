@@ -175,6 +175,16 @@ Portal do provedor (`/provider/`): início, aceite de convite com estado
 explícito, RFQs atribuídas com a necessidade declarada, e resposta de proposta
 com rascunho local e histórico de versões.
 
+## Validade das estimativas de custo
+
+Crédito e adquirência recusam taxas obrigatórias ausentes, em branco ou de
+tipo inválido: ausência não equivale a taxa zero. Zero explicitamente informado
+continua válido. Prazos, carência, terminais, percentuais e custos respeitam os
+limites do catálogo; custos negativos e mix acima da tolerância bloqueiam a
+estimativa. Campos opcionais mantêm seus defaults documentados. CET ausente
+continua ausente; a estimativa PRICE nunca o substitui. O cálculo PRICE usa
+uma expressão equivalente numericamente estável para taxas próximas de zero.
+
 ## Preparação para benchmarking (não implementado)
 
 A arquitetura já sustenta um benchmarking futuro — dados estruturados,

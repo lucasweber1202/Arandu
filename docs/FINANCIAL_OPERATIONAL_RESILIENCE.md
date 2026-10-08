@@ -139,6 +139,15 @@ cliente; reset local recria o banco, seed da demo não fabrica lease real.
    confirmado após backup/restore aprovados. Doctor + canário + jornada
    autenticada e teste de acesso de dois tenants são obrigatórios.
 
+O verificador de evidência de restore (`lib/backup-evidence.mjs`, usado pelo
+release de migrations) exige janela de frescor numérica, finita e positiva,
+relógio válido e metadados válidos do artefato. Relatório `passed` com check
+reprovado, inconclusivo, malformado ou nome duplicado é recusado; um `true`
+posterior não apaga uma falha anterior. Os cinco checks obrigatórios continuam
+necessários, com referências e hash correspondentes ao backup restaurado.
+Isso valida a consistência da prova fornecida, não autentica sua origem nem
+executa recovery hospedado.
+
 Executor/credencial, backup hospedado recente, drill hospedado, prova Auth/
 Storage/SSO e jornada real **não foram obtidos nesta rodada**. Estado BLOCKED;
 nenhuma migration hospedada foi aplicada. CI local/disposable não substitui

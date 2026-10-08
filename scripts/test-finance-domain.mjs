@@ -58,6 +58,69 @@ assert.ok(normalizeProposal('acquiring', { institution: 'A', product_name: 'B', 
 
 // --------------------------------------------------------- cálculos e CET
 
+// Ausência/tipos coercíveis não são uma taxa zero informada. A comparação
+// também recebe registros históricos, então o cálculo deve recusar sozinho.
+const validCredit = { offered_amount: 1000, interest_rate_month: 1, term_months: 12 };
+for (const invalid of [null, '', '   ', false, true, [], [1], {}, NaN, Infinity]) {
+  assert.equal(estimateCreditTotalCost({ ...validCredit, interest_rate_month: invalid }).estimate, false, `taxa inválida: ${String(invalid)}`);
+}
+for (const invalid of [-1, 12.5, 601, false, []]) {
+  assert.equal(estimateCreditTotalCost({ ...validCredit, term_months: invalid }).estimate, false);
+}
+for (const key of ['offered_amount', 'fees_amount']) {
+  for (const invalid of [-1, 1e13, false, [], 'invalid']) {
+    assert.equal(estimateCreditTotalCost({ ...validCredit, [key]: invalid }).estimate, false);
+  }
+}
+for (const invalid of [-1, 'invalid', 1.5, Infinity, false, []]) {
+  const result = estimateCreditTotalCost({ ...validCredit, grace_months: invalid });
+  assert.equal(result.estimate, false);
+  assert.match(result.reason, /carência/);
+}
+assert.equal(estimateCreditTotalCost({ ...validCredit, cet_year: null }).declared_cet_year, null);
+assert.equal(estimateCreditTotalCost({ ...validCredit, cet_year: '' }).declared_cet_year, null);
+assert.equal(estimateCreditTotalCost({ ...validCredit, interest_rate_month: 0 }).total_cost, 1000);
+assert.equal(estimateCreditTotalCost({ ...validCredit, interest_rate_month: '0' }).total_cost, 1000);
+// Taxa pequena é válida, mas a subtração 1 - (1+i)^-n perdia precisão.
+const tinyRate = estimateCreditTotalCost({ ...validCredit, interest_rate_month: 1e-15 });
+assert.equal(tinyRate.estimate, true);
+assert.equal(tinyRate.total_cost, 1000);
+assert.ok(Number.isFinite(tinyRate.installment));
+
+const acquiringDemand = { monthly_volume: 1000, share_pix: 100 };
+for (const invalid of [null, '', '   ', false, true, [], [1], {}, -1, 101, NaN, Infinity]) {
+  const result = estimateAcquiringMonthlyCost(acquiringDemand, { pix_fee: invalid });
+  assert.equal(result.estimate, false, `PIX inválido: ${String(invalid)}`);
+  assert.match(result.reason, /PIX/);
+}
+for (const invalid of [-1, 'invalid', 101, false, []]) {
+  assert.equal(estimateAcquiringMonthlyCost({ ...acquiringDemand, share_pix: invalid }, { pix_fee: 1 }).estimate, false);
+}
+for (const key of ['terminal_rent', 'gateway_cost']) {
+  for (const invalid of [-1, false, [], 'invalid']) {
+    assert.equal(estimateAcquiringMonthlyCost(acquiringDemand, { pix_fee: 1, [key]: invalid }).estimate, false);
+  }
+}
+for (const terminals of [-1, 1.5, false, []]) {
+  assert.equal(estimateAcquiringMonthlyCost({ ...acquiringDemand, terminals }, { pix_fee: 1 }).estimate, false);
+}
+assert.equal(estimateAcquiringMonthlyCost({ monthly_volume: 1000, share_pix: 80, share_debit: 80 }, { pix_fee: 1, mdr_debit: 1 }).estimate, false);
+assert.equal(estimateAcquiringMonthlyCost(acquiringDemand, { pix_fee: 0 }).total_cost, 0);
+assert.equal(estimateAcquiringMonthlyCost(acquiringDemand, { pix_fee: '0' }).total_cost, 0);
+for (const [share, rate] of [['share_debit', 'mdr_debit'], ['share_credit_cash', 'mdr_credit_cash'], ['share_credit_installment', 'mdr_credit_installment']]) {
+  assert.equal(estimateAcquiringMonthlyCost({ monthly_volume: 1000, [share]: 100 }, { [rate]: null }).estimate, false);
+  assert.equal(estimateAcquiringMonthlyCost({ monthly_volume: 1000, [share]: 100 }, { [rate]: 0 }).total_cost, 0);
+}
+// A saída usada no workspace recusa o custo da proposta sem taxa; não
+// publica um zero calculado nem confunde CET ausente com CET informado.
+const historical = buildComparison('credit', [
+  { id: 'incomplete', terms: { ...validCredit, interest_rate_month: null } },
+  { id: 'complete', terms: { ...validCredit, cet_year: null } }
+]);
+assert.equal(historical.estimates.incomplete.estimate, false);
+assert.equal(historical.estimates.complete.estimate, true);
+assert.equal(historical.estimates.complete.declared_cet_year, null);
+
 // Sem insumos completos não há estimativa: o Arandu não inventa custo — e diz
 // por que não calculou, em vez de devolver vazio sem explicação.
 {
