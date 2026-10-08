@@ -5,7 +5,20 @@ hospedados permanentes: Demo e Production. Pilot significa estágio de validaç�
 de release. `main` é a única linha de produto; não desenvolver na branch `pilot`.
 Previews e bancos locais descartáveis não criam outro ambiente permanente.
 
-## Seguimento após #142 (07/10/2026)
+## Seguimento de Stage 0 (08/10/2026)
+
+`main@296b0357`, run #799 e merge-audit verdes: M2/E2. Inventários atualizados
+em `ops/consolidation/*-inventory-2026-10-08.json`; observações agregadas e RLS
+em `*-observation-2026-10-08.json`. Query reproduzível de leitura:
+`ops/sql/consolidation-inventory.sql`. Exatidão e identidade passaram no
+assessor; conversão permanece BLOCKED por classificação e backup/restore.
+Pilot: 13 linhas, marker antigo; legado: 42 linhas, oito registros com campos
+de contato/destinatário. Nenhum dado, segredo ou atribuição foi alterado.
+Todas as tabelas observadas têm RLS enabled; isso não prova acesso autorizado,
+isolamento funcional nem aplicação do schema atual. Demo permanece sandbox.
+Detalhes e ações: `FINANCIAL_RELEASE_EVIDENCE_2026-10-08_STAGE0.md`.
+
+## Seguimento histórico após #142 (07/10/2026)
 
 Snapshot atual em `FINANCIAL_DEPLOYMENT_FAILURE_2026-10-07.md`: main477ad8be,
 run #794 com os quatro gates success, **M2/E2 comprovado**. merge-audit failure

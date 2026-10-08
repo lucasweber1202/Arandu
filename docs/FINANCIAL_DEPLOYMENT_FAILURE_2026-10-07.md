@@ -1,5 +1,10 @@
 # Deployment Official — investigação de 07/10/2026
 
+> Histórico preservado. Snapshot de 08/10 em
+> `FINANCIAL_RELEASE_EVIDENCE_2026-10-08_STAGE0.md`: deployment atual reprovado
+> `dpl_DPwnPBkBq5d22LzgS9YQ2PSRyjXL`, main296b0357; CI #799 e merge-audit
+> verdes, conector Vercel sem acesso ao escopo (403), causa exata não comprovada.
+
 Baseline: main `477ad8be5b95733e8ac97aa3a6f3e1c6a2e54d62`, árvore
 `6575db8fb0dbf9895676464b07cef2ba75c6911c`. Instruções e runbooks foram lidos
 integralmente antes de alterar este registro. Não houve mudança de runtime,
