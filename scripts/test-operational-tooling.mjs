@@ -38,6 +38,38 @@ assert.equal(inspectRestoreEvidence({ report: restoreReport, backupReference: 'B
 assert.equal(inspectRestoreEvidence({ report: restoreReport, backupReference: 'BACKUP-OTHER', restoreReference: 'RESTORE-12345', backupSha256: 'a'.repeat(64) }).ok, false);
 assert.equal(inspectRestoreEvidence({ report: restoreReport, backupReference: 'BACKUP-12345', restoreReference: 'RESTORE-12345', backupSha256: 'b'.repeat(64) }).ok, false);
 assert.equal(inspectRestoreEvidence({ report: { ...restoreReport, generatedAt: new Date(Date.now() - 7 * 3600000).toISOString() }, backupReference: 'BACKUP-12345', restoreReference: 'RESTORE-12345', backupSha256: 'a'.repeat(64) }).ok, false);
+const observedNow = Date.parse('2026-10-08T12:00:00Z');
+const artifactOptions = { stat: { isFile: () => true, size: 4096, mtimeMs: observedNow - 1000 }, reference: 'BACKUP-12345', now: observedNow };
+const restoreOptions = { report: { ...restoreReport, generatedAt: new Date(observedNow - 1000).toISOString() }, backupReference: 'BACKUP-12345', restoreReference: 'RESTORE-12345', backupSha256: 'a'.repeat(64), now: observedNow };
+for (const maxAgeHours of [NaN, Infinity, -Infinity, 0, -1, null, '48', Number.MAX_VALUE]) {
+  assert.equal(inspectBackupArtifact({ ...artifactOptions, maxAgeHours }).ok, false, 'Invalid backup age window must block');
+  assert.equal(inspectRestoreEvidence({ ...restoreOptions, maxAgeHours }).ok, false, 'Invalid restore age window must block');
+}
+for (const now of [NaN, Infinity, null, '1780000000000', -1]) {
+  assert.equal(inspectBackupArtifact({ ...artifactOptions, now }).ok, false, 'Invalid observation clock must block backup evidence');
+  assert.equal(inspectRestoreEvidence({ ...restoreOptions, now }).ok, false, 'Invalid observation clock must block restore evidence');
+}
+for (const invalidStat of [{ size: NaN }, { size: Infinity }, { size: '4096' }, { mtimeMs: String(observedNow - 1000) }, { mtimeMs: -1 }]) {
+  assert.equal(inspectBackupArtifact({ ...artifactOptions, stat: { ...artifactOptions.stat, ...invalidStat } }).ok, false);
+}
+for (const name of restoreReport.checks.map(check => check.name)) {
+  for (const ok of [false, null, 'true', true]) {
+    for (const first of [true, false]) {
+      const duplicate = { name, ok };
+      const checks = first ? [duplicate, ...restoreReport.checks] : [...restoreReport.checks, duplicate];
+      assert.equal(inspectRestoreEvidence({ ...restoreOptions, report: { ...restoreOptions.report, checks } }).ok, false, 'Duplicate checks must block regardless of order or final value');
+    }
+  }
+}
+for (const extra of [{ name: 'blocked', ok: false }, { name: 'source-schema-fingerprint', ok: null }, null, { name: '', ok: true }]) {
+  assert.equal(inspectRestoreEvidence({ ...restoreOptions, report: { ...restoreOptions.report, checks: [...restoreReport.checks, extra] } }).ok, false, 'Passed report must not conceal failed or malformed checks');
+}
+assert.equal(inspectRestoreEvidence({ ...restoreOptions, report: { ...restoreOptions.report, checks: [...restoreReport.checks, { name: 'source-schema-fingerprint', ok: true }] } }).ok, true);
+// Preserve the documented inclusive boundary; a millisecond older is stale.
+for (const beyond of [0, 1]) {
+  assert.equal(inspectBackupArtifact({ ...artifactOptions, maxAgeHours: 6, stat: { ...artifactOptions.stat, mtimeMs: observedNow - 6 * 3600000 - beyond } }).ok, beyond === 0);
+  assert.equal(inspectRestoreEvidence({ ...restoreOptions, maxAgeHours: 6, report: { ...restoreOptions.report, generatedAt: new Date(observedNow - 6 * 3600000 - beyond).toISOString() } }).ok, beyond === 0);
+}
 assert.equal(schemaFingerprint('-- dump\n\\restrict AAA\ncreate table x(id int);\n\\unrestrict AAA'), schemaFingerprint('-- other dump\n\\restrict BBB\ncreate table x(id int);\n\\unrestrict BBB'));
 assert.notEqual(schemaFingerprint('create table x(id int);'), schemaFingerprint('create table x(id text);'));
 console.log('Operational tooling tests approved.');

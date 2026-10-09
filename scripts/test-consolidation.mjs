@@ -19,6 +19,11 @@ deny(e => { e.project_ref = 'igacnfjeuqhxcmfyepgj'; });
 deny(e => { e.inventory.count_method = 'estimated'; });
 deny(e => { e.inventory.observed_at = '2026-10-06T12:00:00Z'; });
 deny(e => { e.backup.inventory_sha256 = 'd'.repeat(64); });
+// A matching inventory hash cannot make an earlier export cover later data.
+deny(e => { e.backup.observed_at = '2026-10-07T12:59:59Z'; });
+const simultaneousExport = structuredClone(input);
+simultaneousExport.backup.observed_at = simultaneousExport.inventory.observed_at;
+assert.equal(assess(simultaneousExport).result, 'PREPARED', 'same snapshot time is valid');
 deny(e => { e.restore.backup_sha256 = 'd'.repeat(64); });
 deny(e => { e.restore.observed_at = '2026-10-07T13:30:00Z'; });
 deny(e => { e.restore.target_kind = 'production'; });

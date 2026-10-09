@@ -6,7 +6,22 @@ em capabilities e registra, por capability, escopo, maturity state (M0–M6),
 evidência, blockers, dependências, última validação, ambiente validado e próximo gate.
 Outra sessão deve conseguir continuar a partir daqui sem refazer a auditoria.
 
-- **Estado vivo (08/10/2026, após #144).** `main` =
+- **Estado vivo (08/10/2026, após #146, reconciliação 20:46 UTC).**
+  `main@0b2a53dbf1fef9ac70a7865af89030e966024009`, CI #803
+  (`37834383887`) e merge-audit #20 (`37834383878`) success. Sem PR aberta
+  na leitura inicial. Vercel: Demo READY (`dpl_2QDbQzVp1aa5uWVj5MsGGkMHAYja`),
+  Pilot preview READY (`dpl_6iLZTK8KVLu1A6Q6SMiLYDEfpYcP`), Production ERROR
+  (`dpl_AvWtUbtgBgn4Fhz9f7Mfi9dENKkm`). A integração lê projetos/deployments;
+  somente build events retornam 403. Browser redirecionou ao login nesta
+  sessão; causa histórica anterior à #146 continua sem log comprovado.
+  `governance:live` BLOCKED: protected=false, regras efetivas vazias.
+  Ambos os Supabase permanecem ACTIVE_HEALTHY; não houve cutover, recovery,
+  migration ou alteração de configuração. M3/M4/M5/M6 continuam pendentes.
+  Lote local de hardening: cálculos com entradas inválidas, evidência de restore
+  contraditória e export anterior ao inventário corrigidos com regressões.
+  **M1/E1 para as correções novas**, sem herdar o CI #803. Evidência na seção
+  de continuação de `FINANCIAL_RELEASE_EVIDENCE_2026-10-08_STAGE0.md`.
+- **Estado histórico (08/10/2026, após #144).** `main` =
   `296b0357383e09a49348307b2921b3cf496c589b`, árvore
   `45497e6dff1306e49849cd6812fb471ccedac8d6`. **M2/E2 comprovado** pelo
   run #799 (`37677370704`), quatro gates success no SHA exato; merge-audit
@@ -155,7 +170,8 @@ no Pilot; `E5` produção; `E6` uso por cliente.
 
 | Código | SHA | Evidência | Estado |
 | --- | --- | --- | --- |
-| `BL-799` | `296b0357383e09a49348307b2921b3cf496c589b` | run `37677370704`, quatro gates success; merge-audit `37677370697` success em 07/10 | **baseline atual M2/E2**; hosted/recovery pendentes |
+| `BL-803` | `0b2a53dbf1fef9ac70a7865af89030e966024009` | run `37834383887`, CI success; merge-audit `37834383878` success em 08/10 | **baseline atual M2/E2**; correções locais posteriores exigem seu próprio CI |
+| `BL-799` | `296b0357383e09a49348307b2921b3cf496c589b` | run `37677370704`, quatro gates success; merge-audit `37677370697` success em 07/10 | **baseline histórica M2/E2**; hosted/recovery pendentes |
 | `BL-794` | `477ad8be5b95733e8ac97aa3a6f3e1c6a2e54d62` | run `37664210563`, quatro gates success em 07/10 | **baseline histórica CI-validada**; incidente de merge separado; hosted/recovery pendentes |
 | `BL-125` | `e2212af5a49707cf9ecd44b3384a2eaccf270756` (HEAD da #125, contém tudo até #124) | run `37258668278`: quatro gates success em 05/10 | **superseded** pela BL-V3 |
 | `BL-V3` | `4a93fa60b51ae4c094e95d25cee8be4748363cfb` (HEAD da #128; árvore idêntica a `pilot@d4d6c22`) | run `37320266260`: `database`, `deploy-boundaries`, `validate`, `presentation` success no HEAD exato (05/10 14:15Z) | **árvore CI-validada**; a #128 foi mergeada antes do fim do CI (MGI-2026-10-05-02, `merge-audit` `37320702496` failure). Baseline limpa = esta árvore + merge-audit verde da PR documental de seguimento |

@@ -1,5 +1,50 @@
 # Stage 0 — evidência operacional de 08/10/2026
 
+## Continuação após #146 — hardening de cálculos e recovery
+
+Reconciliação às 20:46 UTC: `main@0b2a53dbf1fef9ac70a7865af89030e966024009`,
+CI #803 (`37834383887`) e merge-audit #20 (`37834383878`) success, nenhuma
+PR aberta na consulta inicial. Demo READY, Pilot preview READY e Production
+ERROR no mesmo SHA. Projeto Official observado: Vite, Node 24.x, proteção
+SSO `all_except_custom_domains`. Build events continuam 403 mesmo sem equipe
+explícita; Browser desta sessão redirecionou ao login. Não atribuir causa
+histórica ao build sem o log. `governance:live` observou main protegida=false
+e regras efetivas vazias. Supabase Pilot e legado continuam ACTIVE_HEALTHY.
+
+Correções implementadas neste lote (M1/E1 até os próprios quatro gates):
+
+- `products.mjs`: taxa ausente/em branco/tipo coercível não vira zero; entradas
+  respeitam limites do catálogo; carência inválida, custo negativo, prazo ou
+  terminais fracionários e mix excessivo bloqueiam. Zero explícito e defaults
+  opcionais existentes preservados; CET ausente permanece null. PRICE usa
+  log1p/expm1, equivalente à fórmula documentada, evitando Infinity em taxa
+  muito pequena. A comparação utiliza o mesmo cálculo, sem ranking default.
+- `backup-evidence.mjs`: janela/relógio/metadados inválidos, checks duplicados,
+  inconclusivos ou falhos não podem sustentar um relatório passed. Reprodução
+  no código original provou NaN ignorando frescor e false sobrescrito por true.
+- `consolidation-readiness.mjs`: export anterior ao inventário bloqueia mesmo
+  com hash correspondente; timestamp igual continua válido. Restore continua
+  exigido depois do export. Nenhum gate ou atribuição ativa foi flexibilizado.
+
+Validação local: npm ci, testes de domínio/comparação, operational tooling,
+consolidação, check:staging, check:governance, check:migrations e supply-chain
+PASS; check:all PASS com rede externa bloqueada e respostas de fixture; build,
+budgets e assets PASS (435.886/800.000 bytes JS; 209.306/250.000 na maior rota;
+38 páginas e 258 referências). A primeira execução ampla foi interrompida pela
+revisão automática por suspeita de Supabase não identificado. Inspeção do teste
+SSO comprovou fakeFetch e global fetch simulado; a repetição segura bloqueou
+fetch real e sockets externos sem reduzir testes. Não houve leitura de dados
+privados por essa validação.
+
+`test:database` não executou SQL: psql ausente. Instalação PG16 não foi possível
+por restrições de identidade do executor. Download Playwright produziu arquivo
+inválido; matriz de browsers não executada localmente. CI completo no SHA da
+PR continua obrigatório, e a PR permanece draft até esses gates. Nada aplicado
+em ambiente hospedado: backup/restore, conversão, M3/M4 e promoção M5 pendentes.
+Rollback: revert dos módulos/testes deste lote; nenhum schema ou dado alterado.
+
+As seções abaixo preservam o snapshot anterior da #144 e seu histórico.
+
 ## Baseline e separação de maturidade
 
 Fonte: main `296b0357383e09a49348307b2921b3cf496c589b`, árvore
