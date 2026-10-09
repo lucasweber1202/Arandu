@@ -850,3 +850,15 @@ Pilot, mas executor sem Docker/cliente 17 e DNS direct falha; restore NOT RUN.
 Não arquivar pilot enquanto o alias ainda depende dela. Próximo gate: escolha
 de organização/custo e provisionamento Demo, CI exato, cleanInstall/seed/
 persona/QA reais; depois recovery e Pilot; Official somente após Pilot válido.
+
+
+## Recovery execution — 09/10/2026, continuação da PR #151
+
+M1/E1: alternativa GitHub-hosted ubuntu-24.04 com PG17/age fixados, destino S3
+privado aprovado por Environment, PUT sem sobrescrita e readback SHA-256.
+Runner privado preservado como fallback. `database` passa a exigir export real
+sintético e restore do mesmo dump, sem reduzir a suíte existente. Controles de
+identidade/TLS/topologia permanecem fail-closed. A aprovação do destino e seus
+atestados não são prova de lifecycle/IAM configurados. Backup e restore dos refs
+hospedados ainda NOT RUN; não promove M3/M4/M5, não ativa Demo/Production.
+Runbook: `SUPABASE_ENCRYPTED_PRESERVATION.md`. ARA-8 reaberta In Progress.
