@@ -323,6 +323,12 @@ jobs:
       - name: Install
         run: npm ci --include=optional
 
+      # This check is intentionally informational while Stage 0 is blocked:
+      # the branch's four real gates continue running without secrets or Vercel logs.
+      # It is NOT a release approval or an override of finance:env:check.
+      - name: Stage 0 static database assignment diagnosis
+        run: node scripts/stage0-static-preflight.mjs --github-summary
+
       - name: Financial preview excludes implicit demo code
         env:
           VERCEL_ENV: preview
