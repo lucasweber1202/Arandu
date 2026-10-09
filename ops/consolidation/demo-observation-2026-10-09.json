@@ -1,0 +1,1242 @@
+{
+  "project_ref": "offgpyysgdhfemjlchod",
+  "observed_at": "2026-10-09 17:20:19.229146+00",
+  "server_version": "17.6",
+  "table_counts": [
+    {
+      "rows": 1,
+      "table_name": "api_rate_limits"
+    },
+    {
+      "rows": 0,
+      "table_name": "artist_accounts"
+    },
+    {
+      "rows": 0,
+      "table_name": "artist_submissions"
+    },
+    {
+      "rows": 0,
+      "table_name": "artists"
+    },
+    {
+      "rows": 0,
+      "table_name": "artwork_events"
+    },
+    {
+      "rows": 0,
+      "table_name": "artworks"
+    },
+    {
+      "rows": 0,
+      "table_name": "audit_logs"
+    },
+    {
+      "rows": 1,
+      "table_name": "catalog_releases"
+    },
+    {
+      "rows": 0,
+      "table_name": "catalog_review_history"
+    },
+    {
+      "rows": 0,
+      "table_name": "certificates"
+    },
+    {
+      "rows": 0,
+      "table_name": "collection_artworks"
+    },
+    {
+      "rows": 0,
+      "table_name": "commercial_items"
+    },
+    {
+      "rows": 0,
+      "table_name": "commercial_records"
+    },
+    {
+      "rows": 0,
+      "table_name": "company_briefs"
+    },
+    {
+      "rows": 0,
+      "table_name": "consignments"
+    },
+    {
+      "rows": 0,
+      "table_name": "conversion_events"
+    },
+    {
+      "rows": 0,
+      "table_name": "crm_notes"
+    },
+    {
+      "rows": 4,
+      "table_name": "curated_collections"
+    },
+    {
+      "rows": 0,
+      "table_name": "data_legal_holds"
+    },
+    {
+      "rows": 0,
+      "table_name": "data_retention_policies"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_approval_policies"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_approval_requests"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_approval_steps"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_comments"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_company_profiles"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_contracts"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_decisions"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_document_versions"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_documents"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_events"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_invite_acceptance_denials"
+    },
+    {
+      "rows": 4,
+      "table_name": "fin_job_runs"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_member_invitations"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_members"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_notification_preferences"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_notifications"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_ops_access_log"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_organizations"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_pilot_allowlist"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_platform_operators"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_private_documents"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_proposal_drafts"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_proposal_versions"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_proposals"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_providers"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_renewal_milestones"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_rfq_editor_drafts"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_rfq_invites"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_rfq_revisions"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_rfqs"
+    },
+    {
+      "rows": 3,
+      "table_name": "fin_settings"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_tasks"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_terms_acceptances"
+    },
+    {
+      "rows": 0,
+      "table_name": "idempotency_keys"
+    },
+    {
+      "rows": 0,
+      "table_name": "leads"
+    },
+    {
+      "rows": 0,
+      "table_name": "logistics_records"
+    },
+    {
+      "rows": 0,
+      "table_name": "media_assets"
+    },
+    {
+      "rows": 0,
+      "table_name": "newsletter_subscriptions"
+    },
+    {
+      "rows": 0,
+      "table_name": "operational_status_history"
+    },
+    {
+      "rows": 0,
+      "table_name": "order_status_history"
+    },
+    {
+      "rows": 0,
+      "table_name": "orders"
+    },
+    {
+      "rows": 0,
+      "table_name": "pilot_events"
+    },
+    {
+      "rows": 0,
+      "table_name": "pilot_feedback"
+    },
+    {
+      "rows": 0,
+      "table_name": "privacy_requests"
+    },
+    {
+      "rows": 0,
+      "table_name": "profiles"
+    },
+    {
+      "rows": 0,
+      "table_name": "proposal_items"
+    },
+    {
+      "rows": 0,
+      "table_name": "proposals"
+    },
+    {
+      "rows": 0,
+      "table_name": "reservations"
+    },
+    {
+      "rows": 0,
+      "table_name": "saved_selections"
+    },
+    {
+      "rows": 0,
+      "table_name": "tasks"
+    },
+    {
+      "rows": 0,
+      "table_name": "transactional_email_outbox"
+    }
+  ],
+  "public_rows": "13",
+  "auth_users": 0,
+  "mfa_factors": 0,
+  "storage_objects": 0,
+  "storage_buckets": 1,
+  "public_storage_buckets": 0,
+  "rls": [
+    {
+      "rls_forced": false,
+      "table_name": "api_rate_limits",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "artist_accounts",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "artist_submissions",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "artists",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "artwork_events",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "artworks",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "audit_logs",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "catalog_releases",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "catalog_review_history",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "certificates",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "collection_artworks",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "commercial_items",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "commercial_records",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "company_briefs",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "consignments",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "conversion_events",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "crm_notes",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "curated_collections",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "data_legal_holds",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "data_retention_policies",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_approval_policies",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_approval_requests",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_approval_steps",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_comments",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_company_profiles",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_contracts",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_decisions",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_document_versions",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_documents",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_events",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_invite_acceptance_denials",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_job_runs",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_member_invitations",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_members",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_notification_preferences",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_notifications",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_ops_access_log",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_organizations",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_pilot_allowlist",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_platform_operators",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_private_documents",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_proposal_drafts",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_proposal_versions",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_proposals",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_providers",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_renewal_milestones",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_rfq_editor_drafts",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_rfq_invites",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_rfq_revisions",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_rfqs",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_settings",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_tasks",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_terms_acceptances",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "idempotency_keys",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "leads",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "logistics_records",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "media_assets",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "newsletter_subscriptions",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "operational_status_history",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "order_status_history",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "orders",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "pilot_events",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "pilot_feedback",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "privacy_requests",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "profiles",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "proposal_items",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "proposals",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "reservations",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "saved_selections",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "tasks",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "transactional_email_outbox",
+      "rls_enabled": true
+    }
+  ],
+  "policies": 51,
+  "views": 18,
+  "functions": 101,
+  "leads_with_contact": 0,
+  "reservations_with_contact": 0,
+  "certificates_with_recipient": 0,
+  "migrations": [
+    {
+      "version": "20260927151042",
+      "name": "arandu_pilot_clean_install_main_64a9bdc"
+    },
+    {
+      "version": "20260927151230",
+      "name": "pilot_advisor_hardening_9470493"
+    },
+    {
+      "version": "20260929142139",
+      "name": "financial_pilot_surface_hardening"
+    }
+  ],
+  "advisors": {
+    "security": [
+      {
+        "name": "rls_enabled_no_policy",
+        "level": "INFO",
+        "count": 30,
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy",
+        "objects": [
+          {
+            "name": "api_rate_limits",
+            "type": "table",
+            "schema": "public"
+          },
+          {
+            "name": "artist_submissions",
+            "type": "table",
+            "schema": "public"
+          },
+          {
+            "name": "artwork_events",
+            "type": "table",
+            "schema": "public"
+          },
+          {
+            "name": "audit_logs",
+            "type": "table",
+            "schema": "public"
+          },
+          {
+            "name": "catalog_releases",
+            "type": "table",
+            "schema": "public"
+          },
+          {
+            "name": "catalog_review_history",
+            "type": "table",
+            "schema": "public"
+          },
+          {
+            "name": "commercial_items",
+            "type": "table",
+            "schema": "public"
+          },
+          {
+            "name": "commercial_records",
+            "type": "table",
+            "schema": "public"
+          },
+          {
+            "name": "consignments",
+            "type": "table",
+            "schema": "public"
+          },
+          {
+            "name": "conversion_events",
+            "type": "table",
+            "schema": "public"
+          },
+          {
+            "name": "crm_notes",
+            "type": "table",
+            "schema": "public"
+          },
+          {
+            "name": "data_legal_holds",
+            "type": "table",
+            "schema": "public"
+          },
+          {
+            "name": "data_retention_policies",
+            "type": "table",
+            "schema": "public"
+          },
+          {
+            "name": "fin_invite_acceptance_denials",
+            "type": "table",
+            "schema": "public"
+          },
+          {
+            "name": "fin_job_runs",
+            "type": "table",
+            "schema": "public"
+          },
+          {
+            "name": "fin_member_invitations",
+            "type": "table",
+            "schema": "public"
+          },
+          {
+            "name": "fin_ops_access_log",
+            "type": "table",
+            "schema": "public"
+          },
+          {
+            "name": "fin_pilot_allowlist",
+            "type": "table",
+            "schema": "public"
+          },
+          {
+            "name": "fin_platform_operators",
+            "type": "table",
+            "schema": "public"
+          },
+          {
+            "name": "fin_settings",
+            "type": "table",
+            "schema": "public"
+          },
+          {
+            "name": "idempotency_keys",
+            "type": "table",
+            "schema": "public"
+          },
+          {
+            "name": "logistics_records",
+            "type": "table",
+            "schema": "public"
+          },
+          {
+            "name": "media_assets",
+            "type": "table",
+            "schema": "public"
+          },
+          {
+            "name": "newsletter_subscriptions",
+            "type": "table",
+            "schema": "public"
+          },
+          {
+            "name": "operational_status_history",
+            "type": "table",
+            "schema": "public"
+          },
+          {
+            "name": "order_status_history",
+            "type": "table",
+            "schema": "public"
+          },
+          {
+            "name": "pilot_events",
+            "type": "table",
+            "schema": "public"
+          },
+          {
+            "name": "pilot_feedback",
+            "type": "table",
+            "schema": "public"
+          },
+          {
+            "name": "tasks",
+            "type": "table",
+            "schema": "public"
+          },
+          {
+            "name": "transactional_email_outbox",
+            "type": "table",
+            "schema": "public"
+          }
+        ]
+      },
+      {
+        "name": "authenticated_security_definer_function_executable",
+        "level": "WARN",
+        "count": 43,
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable",
+        "objects": [
+          {
+            "name": "fin_accept_member_invitation",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_token text",
+            "security_definer": true
+          },
+          {
+            "name": "fin_accept_provider_invite",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_token text, p_provider_org uuid",
+            "security_definer": true
+          },
+          {
+            "name": "fin_accept_terms",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_org uuid, p_version text, p_context text",
+            "security_definer": true
+          },
+          {
+            "name": "fin_act_on_approval",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_request uuid, p_action text, p_comment text",
+            "security_definer": true
+          },
+          {
+            "name": "fin_add_comment",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_type text, p_id uuid, p_visibility text, p_body text, p_mention_ids uuid[], p_client_id uuid",
+            "security_definer": true
+          },
+          {
+            "name": "fin_can_read_document",
+            "schema": "public",
+            "language": "sql",
+            "arguments": "p_document uuid",
+            "security_definer": true
+          },
+          {
+            "name": "fin_cancel_approval",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_request uuid",
+            "security_definer": true
+          },
+          {
+            "name": "fin_clear_rfq_editor",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_org uuid, p_expected integer",
+            "security_definer": true
+          },
+          {
+            "name": "fin_comment_authors",
+            "schema": "public",
+            "language": "sql",
+            "arguments": "p_type text, p_id uuid",
+            "security_definer": true
+          },
+          {
+            "name": "fin_create_organization",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_name text, p_kind text, p_country text",
+            "security_definer": true
+          },
+          {
+            "name": "fin_create_rfq",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_org uuid, p_product text, p_title text, p_description text, p_demand jsonb, p_deadline date",
+            "security_definer": true
+          },
+          {
+            "name": "fin_document_authorize_download",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_document uuid, p_version integer",
+            "security_definer": true
+          },
+          {
+            "name": "fin_document_begin_upload",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_org uuid, p_entity_type text, p_entity_id uuid, p_title text, p_visibility text, p_mime text, p_size bigint, p_sha256 text, p_document_id uuid",
+            "security_definer": true
+          },
+          {
+            "name": "fin_document_pending_upload",
+            "schema": "public",
+            "language": "sql",
+            "arguments": "p_document uuid, p_version integer",
+            "security_definer": true
+          },
+          {
+            "name": "fin_document_remove",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_document uuid",
+            "security_definer": true
+          },
+          {
+            "name": "fin_has_role",
+            "schema": "public",
+            "language": "sql",
+            "arguments": "p_org uuid, p_roles text[]",
+            "security_definer": true
+          },
+          {
+            "name": "fin_invite_member",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_org uuid, p_email text, p_role text",
+            "security_definer": true
+          },
+          {
+            "name": "fin_invite_provider",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_rfq uuid, p_provider uuid",
+            "security_definer": true
+          },
+          {
+            "name": "fin_is_operator",
+            "schema": "public",
+            "language": "sql",
+            "arguments": "",
+            "security_definer": true
+          },
+          {
+            "name": "fin_mark_notifications",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_org uuid, p_ids uuid[]",
+            "security_definer": true
+          },
+          {
+            "name": "fin_ops_overview",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "",
+            "security_definer": true
+          },
+          {
+            "name": "fin_ops_trace",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_request_id text, p_entity_id uuid",
+            "security_definer": true
+          },
+          {
+            "name": "fin_process_renewals",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_org uuid, p_day date",
+            "security_definer": true
+          },
+          {
+            "name": "fin_provider_can_comment",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_type text, p_id uuid",
+            "security_definer": true
+          },
+          {
+            "name": "fin_provider_reads_comment",
+            "schema": "public",
+            "language": "sql",
+            "arguments": "p_org uuid, p_author uuid, p_type text, p_id uuid",
+            "security_definer": true
+          },
+          {
+            "name": "fin_record_client_event",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_org uuid, p_entity_type text, p_entity_id uuid, p_event text",
+            "security_definer": true
+          },
+          {
+            "name": "fin_record_decision",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_rfq uuid, p_proposal uuid, p_criteria jsonb, p_rationale text",
+            "security_definer": true
+          },
+          {
+            "name": "fin_record_provider_evidence",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_provider uuid, p_authority text, p_registry text, p_evidence_url text, p_checked_at date",
+            "security_definer": true
+          },
+          {
+            "name": "fin_register_contract",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_decision uuid, p_starts date, p_ends date, p_notice integer, p_cost text, p_conditions text, p_reference text",
+            "security_definer": true
+          },
+          {
+            "name": "fin_reply_comment",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_parent uuid, p_body text, p_mention_ids uuid[], p_client_id uuid",
+            "security_definer": true
+          },
+          {
+            "name": "fin_request_approval",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_rfq uuid, p_proposal uuid, p_approvers uuid[], p_rationale text",
+            "security_definer": true
+          },
+          {
+            "name": "fin_revise_rfq",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_rfq uuid, p_expected integer, p_title text, p_description text, p_demand jsonb, p_deadline date",
+            "security_definer": true
+          },
+          {
+            "name": "fin_save_proposal_draft",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_proposal uuid, p_terms jsonb, p_expected_revision integer, p_base_version integer",
+            "security_definer": true
+          },
+          {
+            "name": "fin_save_rfq_editor",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_org uuid, p_payload jsonb, p_expected integer",
+            "security_definer": true
+          },
+          {
+            "name": "fin_search",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_org uuid, p_query text, p_kind text, p_limit integer, p_offset integer",
+            "security_definer": true
+          },
+          {
+            "name": "fin_set_approval_policy",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_org uuid, p_required boolean",
+            "security_definer": true
+          },
+          {
+            "name": "fin_set_notification_preference",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_org uuid, p_event text, p_in_app boolean, p_email boolean",
+            "security_definer": true
+          },
+          {
+            "name": "fin_start_contract_rfq",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_contract uuid",
+            "security_definer": true
+          },
+          {
+            "name": "fin_submit_proposal",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_proposal uuid, p_terms jsonb, p_note text",
+            "security_definer": true
+          },
+          {
+            "name": "fin_transition",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_kind text, p_id uuid, p_status text",
+            "security_definer": true
+          },
+          {
+            "name": "fin_update_my_member_profile",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_org uuid, p_display_name text, p_job_title text",
+            "security_definer": true
+          },
+          {
+            "name": "fin_update_organization",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_org uuid, p_trade_name text, p_tax_identifier text, p_sector text, p_revenue_band text",
+            "security_definer": true
+          },
+          {
+            "name": "fin_withdraw_proposal",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "p_proposal uuid",
+            "security_definer": true
+          }
+        ]
+      }
+    ],
+    "performance": [
+      {
+        "name": "unindexed_foreign_keys",
+        "level": "INFO",
+        "count": 66,
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0001_unindexed_foreign_keys"
+      },
+      {
+        "name": "auth_rls_initplan",
+        "level": "WARN",
+        "count": 21,
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0003_auth_rls_initplan"
+      },
+      {
+        "name": "unused_index",
+        "level": "INFO",
+        "count": 74,
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0005_unused_index"
+      }
+    ]
+  },
+  "structure": {
+    "schemas": [
+      {
+        "name": "auth",
+        "tables": 27,
+        "functions": 4
+      },
+      {
+        "name": "extensions",
+        "tables": 0,
+        "functions": 55
+      },
+      {
+        "name": "graphql",
+        "tables": 0,
+        "functions": 0
+      },
+      {
+        "name": "graphql_public",
+        "tables": 0,
+        "functions": 1
+      },
+      {
+        "name": "public",
+        "tables": 71,
+        "functions": 101
+      },
+      {
+        "name": "realtime",
+        "tables": 3,
+        "functions": 15
+      },
+      {
+        "name": "storage",
+        "tables": 8,
+        "functions": 19
+      },
+      {
+        "name": "supabase_migrations",
+        "tables": 1,
+        "functions": 0
+      },
+      {
+        "name": "vault",
+        "tables": 1,
+        "functions": 5
+      }
+    ],
+    "triggers": 55,
+    "extensions": [
+      {
+        "name": "pg_stat_statements",
+        "version": "1.11"
+      },
+      {
+        "name": "pgcrypto",
+        "version": "1.3"
+      },
+      {
+        "name": "plpgsql",
+        "version": "1.0"
+      },
+      {
+        "name": "supabase_vault",
+        "version": "0.3.1"
+      },
+      {
+        "name": "uuid-ossp",
+        "version": "1.1"
+      }
+    ],
+    "constraints": 384,
+    "foreign_keys": 114,
+    "definer_functions": 93,
+    "public_grant_count": 178,
+    "public_views_without_invoker": 18
+  }
+}

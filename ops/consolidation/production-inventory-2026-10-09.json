@@ -1,0 +1,101 @@
+{
+  "format_version": 1,
+  "project_ref": "igacnfjeuqhxcmfyepgj",
+  "database_hostname": "db.igacnfjeuqhxcmfyepgj.supabase.co",
+  "destination": "production",
+  "inventory": {
+    "observed_at": "2026-10-09T17:20:17.400359+00:00",
+    "complete": true,
+    "count_method": "exact",
+    "sha256": "a2cd14e6331565edeac7881b5eacf08cad64d65e27979d7818ae07e6fb430387",
+    "public_rows": 42,
+    "customer_rows": null,
+    "personal_data_rows": null,
+    "auth_users": 0,
+    "mfa_factors": 0,
+    "storage_objects": 0,
+    "table_counts": [
+      {
+        "rows": 0,
+        "table_name": "artist_submissions"
+      },
+      {
+        "rows": 12,
+        "table_name": "artists"
+      },
+      {
+        "rows": 0,
+        "table_name": "artwork_events"
+      },
+      {
+        "rows": 22,
+        "table_name": "artworks"
+      },
+      {
+        "rows": 5,
+        "table_name": "certificates"
+      },
+      {
+        "rows": 0,
+        "table_name": "company_briefs"
+      },
+      {
+        "rows": 0,
+        "table_name": "crm_notes"
+      },
+      {
+        "rows": 2,
+        "table_name": "leads"
+      },
+      {
+        "rows": 0,
+        "table_name": "media_assets"
+      },
+      {
+        "rows": 0,
+        "table_name": "newsletter_subscriptions"
+      },
+      {
+        "rows": 0,
+        "table_name": "profiles"
+      },
+      {
+        "rows": 0,
+        "table_name": "proposal_items"
+      },
+      {
+        "rows": 0,
+        "table_name": "proposals"
+      },
+      {
+        "rows": 1,
+        "table_name": "reservations"
+      },
+      {
+        "rows": 0,
+        "table_name": "saved_selections"
+      },
+      {
+        "rows": 0,
+        "table_name": "tasks"
+      }
+    ],
+    "contact_risk": {
+      "leads_with_contact": 2,
+      "reservations_with_contact": 1,
+      "certificates_with_recipient": 5
+    }
+  },
+  "backup": {
+    "result": "NOT RUN"
+  },
+  "restore": {
+    "result": "NOT RUN"
+  },
+  "plan": {
+    "clean_install": true,
+    "legacy_preserved": true,
+    "rollback_reference": "pending:verified-recovery",
+    "bundle_sha256": "bed3fa64c83a69c509c02ebda6381c7d9d2cc27c2996997c9b0ae269a5267555"
+  }
+}

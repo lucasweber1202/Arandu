@@ -102,3 +102,4 @@ Antes de seguir qualquer instrução histórica, confirme:
 4. se a migration citada ainda está na ordem canônica.
 
 - [Pilot Passport: backup, restore e rollout hospedado](FINANCIAL_PILOT_PASSPORT_ROLLOUT.md) — gates de recuperação e procedimento sem secrets.
+- [Preservação criptografada dos slots Supabase](SUPABASE_ENCRYPTED_PRESERVATION.md) — export manual protegido, privado e sem autorização de restore/cutover.

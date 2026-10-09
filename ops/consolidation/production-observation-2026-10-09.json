@@ -1,0 +1,361 @@
+{
+  "project_ref": "igacnfjeuqhxcmfyepgj",
+  "observed_at": "2026-10-09 17:20:17.400359+00",
+  "server_version": "17.6",
+  "table_counts": [
+    {
+      "rows": 0,
+      "table_name": "artist_submissions"
+    },
+    {
+      "rows": 12,
+      "table_name": "artists"
+    },
+    {
+      "rows": 0,
+      "table_name": "artwork_events"
+    },
+    {
+      "rows": 22,
+      "table_name": "artworks"
+    },
+    {
+      "rows": 5,
+      "table_name": "certificates"
+    },
+    {
+      "rows": 0,
+      "table_name": "company_briefs"
+    },
+    {
+      "rows": 0,
+      "table_name": "crm_notes"
+    },
+    {
+      "rows": 2,
+      "table_name": "leads"
+    },
+    {
+      "rows": 0,
+      "table_name": "media_assets"
+    },
+    {
+      "rows": 0,
+      "table_name": "newsletter_subscriptions"
+    },
+    {
+      "rows": 0,
+      "table_name": "profiles"
+    },
+    {
+      "rows": 0,
+      "table_name": "proposal_items"
+    },
+    {
+      "rows": 0,
+      "table_name": "proposals"
+    },
+    {
+      "rows": 1,
+      "table_name": "reservations"
+    },
+    {
+      "rows": 0,
+      "table_name": "saved_selections"
+    },
+    {
+      "rows": 0,
+      "table_name": "tasks"
+    }
+  ],
+  "public_rows": "42",
+  "auth_users": 0,
+  "mfa_factors": 0,
+  "storage_objects": 0,
+  "storage_buckets": 0,
+  "public_storage_buckets": 0,
+  "rls": [
+    {
+      "rls_forced": false,
+      "table_name": "artist_submissions",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "artists",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "artwork_events",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "artworks",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "certificates",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "company_briefs",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "crm_notes",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "leads",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "media_assets",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "newsletter_subscriptions",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "profiles",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "proposal_items",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "proposals",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "reservations",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "saved_selections",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "tasks",
+      "rls_enabled": true
+    }
+  ],
+  "policies": 12,
+  "views": 5,
+  "functions": 2,
+  "leads_with_contact": 2,
+  "reservations_with_contact": 1,
+  "certificates_with_recipient": 5,
+  "migrations": [],
+  "advisors": {
+    "security": [
+      {
+        "name": "rls_enabled_no_policy",
+        "level": "INFO",
+        "count": 6,
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy",
+        "objects": [
+          {
+            "name": "artwork_events",
+            "type": "table",
+            "schema": "public"
+          },
+          {
+            "name": "crm_notes",
+            "type": "table",
+            "schema": "public"
+          },
+          {
+            "name": "media_assets",
+            "type": "table",
+            "schema": "public"
+          },
+          {
+            "name": "proposal_items",
+            "type": "table",
+            "schema": "public"
+          },
+          {
+            "name": "proposals",
+            "type": "table",
+            "schema": "public"
+          },
+          {
+            "name": "tasks",
+            "type": "table",
+            "schema": "public"
+          }
+        ]
+      },
+      {
+        "name": "security_definer_view",
+        "level": "ERROR",
+        "count": 2,
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0010_security_definer_view",
+        "objects": [
+          {
+            "name": "v_public_catalog",
+            "type": "view",
+            "schema": "public"
+          },
+          {
+            "name": "v_available_artworks",
+            "type": "view",
+            "schema": "public"
+          }
+        ]
+      },
+      {
+        "name": "function_search_path_mutable",
+        "level": "WARN",
+        "count": 1,
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable",
+        "objects": [
+          {
+            "name": "set_updated_at",
+            "type": "function",
+            "schema": "public"
+          }
+        ]
+      },
+      {
+        "name": "anon_security_definer_function_executable",
+        "level": "WARN",
+        "count": 1,
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable",
+        "objects": [
+          {
+            "name": "handle_new_user_profile",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "",
+            "security_definer": true
+          }
+        ]
+      },
+      {
+        "name": "authenticated_security_definer_function_executable",
+        "level": "WARN",
+        "count": 1,
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable",
+        "objects": [
+          {
+            "name": "handle_new_user_profile",
+            "schema": "public",
+            "language": "plpgsql",
+            "arguments": "",
+            "security_definer": true
+          }
+        ]
+      }
+    ],
+    "performance": [
+      {
+        "name": "unindexed_foreign_keys",
+        "level": "INFO",
+        "count": 7,
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0001_unindexed_foreign_keys"
+      },
+      {
+        "name": "auth_rls_initplan",
+        "level": "WARN",
+        "count": 2,
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0003_auth_rls_initplan"
+      },
+      {
+        "name": "unused_index",
+        "level": "INFO",
+        "count": 24,
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0005_unused_index"
+      }
+    ]
+  },
+  "structure": {
+    "schemas": [
+      {
+        "name": "auth",
+        "tables": 27,
+        "functions": 4
+      },
+      {
+        "name": "extensions",
+        "tables": 0,
+        "functions": 55
+      },
+      {
+        "name": "graphql",
+        "tables": 0,
+        "functions": 0
+      },
+      {
+        "name": "graphql_public",
+        "tables": 0,
+        "functions": 1
+      },
+      {
+        "name": "public",
+        "tables": 16,
+        "functions": 2
+      },
+      {
+        "name": "realtime",
+        "tables": 3,
+        "functions": 18
+      },
+      {
+        "name": "storage",
+        "tables": 8,
+        "functions": 19
+      },
+      {
+        "name": "vault",
+        "tables": 1,
+        "functions": 5
+      }
+    ],
+    "triggers": 11,
+    "extensions": [
+      {
+        "name": "pg_stat_statements",
+        "version": "1.11"
+      },
+      {
+        "name": "pgcrypto",
+        "version": "1.3"
+      },
+      {
+        "name": "plpgsql",
+        "version": "1.0"
+      },
+      {
+        "name": "supabase_vault",
+        "version": "0.3.1"
+      },
+      {
+        "name": "uuid-ossp",
+        "version": "1.1"
+      }
+    ],
+    "constraints": 47,
+    "foreign_keys": 12,
+    "definer_functions": 1,
+    "public_grant_count": 252,
+    "public_views_without_invoker": 5
+  }
+}

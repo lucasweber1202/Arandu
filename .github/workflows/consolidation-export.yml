@@ -1,0 +1,58 @@
+name: Arandu Encrypted Preservation Export
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_ref:
+        description: Origem aprovada; não executa conversão
+        required: true
+        type: choice
+        options:
+          - offgpyysgdhfemjlchod
+          - igacnfjeuqhxcmfyepgj
+      reviewed_sha:
+        description: SHA completo revisado da main que executará o export
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: arandu-encrypted-preservation
+  cancel-in-progress: false
+
+jobs:
+  preserve:
+    if: github.ref == 'refs/heads/main'
+    # Pre-existing dedicated private runner/mount. Never provisions a paid service.
+    runs-on: [self-hosted, linux, arandu-recovery]
+    environment: database-recovery
+    timeout-minutes: 25
+    steps:
+      - name: Verify reviewed code identity
+        env:
+          REVIEWED_SHA: ${{ inputs.reviewed_sha }}
+          EXECUTION_SHA: ${{ github.sha }}
+        run: |
+          node -e 'if (!/^[a-f0-9]{40}$/.test(process.env.REVIEWED_SHA || "") || process.env.REVIEWED_SHA !== process.env.EXECUTION_SHA) process.exit(1)'
+
+      - name: Checkout reviewed main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Negative preservation checks without credentials
+        run: node scripts/test-consolidation-export.mjs
+
+      - name: Export directly to approved private mount
+        env:
+          ARANDU_RECOVERY_PROJECT_REF: ${{ inputs.project_ref }}
+          ARANDU_RECOVERY_DATABASE_URL: ${{ inputs.project_ref == 'offgpyysgdhfemjlchod' && secrets.ARANDU_PILOT_RECOVERY_DATABASE_URL || secrets.ARANDU_LEGACY_RECOVERY_DATABASE_URL }}
+          ARANDU_RECOVERY_RECIPIENT: ${{ secrets.ARANDU_RECOVERY_RECIPIENT }}
+          ARANDU_RECOVERY_DIRECTORY: ${{ secrets.ARANDU_RECOVERY_DIRECTORY }}
+          ARANDU_RECOVERY_CONFIRM: ARANDU-ENCRYPTED-EXPORT
+        run: node scripts/consolidation-export.mjs
+
+      # No upload-artifact, network destination input, decrypt key or restore.

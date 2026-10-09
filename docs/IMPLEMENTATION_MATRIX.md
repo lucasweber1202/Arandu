@@ -1,5 +1,22 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## Recovery — preparação de 09/10/2026 (ARA-8)
+
+M1 tooling: export completo criptografado em streaming para mount privado,
+workflow_dispatch somente main/SHA revisado/Environment database-recovery,
+allowlist dos dois refs e testes negativos em check:staging. O drill existente
+continua Pilot-only; atribuições Demo/Production não mudaram. Não confundir
+export preparado com backup executado ou restore aprovado.
+
+Inventários e advisors atualizados em ops/consolidation/*-2026-10-09.json:
+Pilot 13 linhas; legado 42, oito registros com campos de contato/destinatário.
+customer_rows/personal_data_rows permanecem desconhecidos. Nenhuma alteração
+SQL, infraestrutura paga, seed, reset ou cutover executados. M3/M4/M5 pendentes.
+Próximo gate: revisar/merge com quatro checks no HEAD, configurar proteção do
+Environment e executor privado autorizado com PG17/age/credenciais/destino;
+export real e restore isolado do mesmo backup, classificação e owner approval.
+Runbook: SUPABASE_ENCRYPTED_PRESERVATION.md. Não declarar M2 antes do CI exato.
+
 Documento vivo. É o **estado vivo** exigido pela Guideline v3 (§1.3): decompõe
 `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md` (**v3.2, autoridade estratégica e operacional**)
 em capabilities e registra, por capability, escopo, maturity state (M0–M6),
