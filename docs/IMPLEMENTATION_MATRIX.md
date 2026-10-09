@@ -6,7 +6,20 @@ em capabilities e registra, por capability, escopo, maturity state (M0–M6),
 evidência, blockers, dependências, última validação, ambiente validado e próximo gate.
 Outra sessão deve conseguir continuar a partir daqui sem refazer a auditoria.
 
-- **Estado vivo (08/10/2026, após #146, reconciliação 20:46 UTC).**
+- **Estado vivo (09/10/2026, lote analytics em branch, M1/E1).**
+  Baseline `main@595796ca656863fd6c159ebbe6ca53388716c660`, CI #807 success;
+  merge-audit #22 failure (base stale em #148), main protected=false.
+  Adaptador PostHog server-only desativado por padrão, cinco operações
+  autorizadas, HMAC por tenant e Web Vitals com URL mínima. Junção de propostas
+  indexada, testes de API/analytics e deploy check locais aprovados. Dashboard
+  PostHog 2191077 preparado sem amostra; Linear P-ARA-1 e ARA-5–ARA-9 criados.
+  Coleta/privacidade/retention hospedadas não comprovadas. Production Vercel
+  ERROR; primeiro build log 403, browser em login. Recovery e conversão
+  Supabase não executadas. E2E/banco local bloqueados por binários ausentes;
+  quatro gates CI do novo HEAD pendentes. **Não elevar a M2–M6.** Contrato e
+  próximos gates: `PRODUCT_ANALYTICS.md` e
+  `FINANCIAL_RELEASE_EVIDENCE_2026-10-09_ANALYTICS.md`.
+- **Estado histórico (08/10/2026, após #146, reconciliação 20:46 UTC).**
   `main@0b2a53dbf1fef9ac70a7865af89030e966024009`, CI #803
   (`37834383887`) e merge-audit #20 (`37834383878`) success. Sem PR aberta
   na leitura inicial. Vercel: Demo READY (`dpl_2QDbQzVp1aa5uWVj5MsGGkMHAYja`),

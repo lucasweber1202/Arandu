@@ -13,7 +13,7 @@ export function hermeticEnv(env = process.env) {
   const clean = {};
   for (const [key, value] of Object.entries(env)) {
     if (KEEP.has(key)) { clean[key] = value; continue; }
-    if (/^(ARANDU_|SUPABASE_|VERCEL|RESEND_|CRON_SECRET$|PILOT_)/.test(key)) continue;
+    if (/^(ARANDU_|SUPABASE_|VERCEL|RESEND_|POSTHOG_|CRON_SECRET$|PILOT_)/.test(key)) continue;
     clean[key] = value;
   }
   return clean;
