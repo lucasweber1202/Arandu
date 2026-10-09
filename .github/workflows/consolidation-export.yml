@@ -3,6 +3,14 @@ name: Arandu Encrypted Preservation Export
 on:
   workflow_dispatch:
     inputs:
+      executor:
+        description: Executor aprovado (hosted requer destino S3 privado)
+        required: true
+        default: github-hosted
+        type: choice
+        options:
+          - github-hosted
+          - private-runner
       project_ref:
         description: Origem aprovada; não executa conversão
         required: true
@@ -24,7 +32,7 @@ concurrency:
 
 jobs:
   preserve:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && inputs.executor == 'private-runner'
     # Pre-existing dedicated private runner/mount. Never provisions a paid service.
     runs-on: [self-hosted, linux, arandu-recovery]
     environment: database-recovery
@@ -56,3 +64,39 @@ jobs:
         run: node scripts/consolidation-export.mjs
 
       # No upload-artifact, network destination input, decrypt key or restore.
+
+  preserve-hosted:
+    if: github.ref == 'refs/heads/main' && inputs.executor == 'github-hosted'
+    runs-on: ubuntu-24.04
+    environment: database-recovery
+    timeout-minutes: 45
+    steps:
+      - name: Verify reviewed code identity
+        env:
+          REVIEWED_SHA: ${{ inputs.reviewed_sha }}
+          EXECUTION_SHA: ${{ github.sha }}
+        run: |
+          node -e 'if (!/^[a-f0-9]{40}$/.test(process.env.REVIEWED_SHA || "") || process.env.REVIEWED_SHA !== process.env.EXECUTION_SHA) process.exit(1)'
+      - name: Checkout reviewed main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24
+      - name: Prepare signed Ubuntu archive
+        run: sudo "$(command -v node)" scripts/configure-ci-apt.mjs
+      - name: Install pinned recovery tools without secrets
+        run: bash scripts/install-recovery-tools.sh
+      - name: Negative checks without credentials
+        run: node scripts/test-consolidation-export.mjs && node scripts/test-recovery-transfer.mjs
+      - name: Export and verify approved private ciphertext destination
+        env:
+          ARANDU_RECOVERY_PROJECT_REF: ${{ inputs.project_ref }}
+          ARANDU_RECOVERY_DATABASE_URL: ${{ inputs.project_ref == 'offgpyysgdhfemjlchod' && secrets.ARANDU_PILOT_RECOVERY_DATABASE_URL || secrets.ARANDU_LEGACY_RECOVERY_DATABASE_URL }}
+          ARANDU_RECOVERY_RECIPIENT: ${{ secrets.ARANDU_RECOVERY_RECIPIENT }}
+          ARANDU_RECOVERY_DESTINATION: ${{ secrets.ARANDU_RECOVERY_DESTINATION }}
+          ARANDU_RECOVERY_CONFIRM: ARANDU-ENCRYPTED-EXPORT
+        run: node scripts/consolidation-hosted-export.mjs

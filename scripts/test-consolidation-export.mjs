@@ -11,6 +11,9 @@ assert(!/\n\s+(push|pull_request|schedule|workflow_run):/.test(workflow));
 assert.match(workflow,/if: github.ref == 'refs\/heads\/main'/);
 assert.match(workflow,/environment: database-recovery/);
 assert.match(workflow,/runs-on: \[self-hosted, linux, arandu-recovery\]/);
+assert.match(workflow,/runs-on: ubuntu-24.04/);
+assert.match(workflow,/ARANDU_RECOVERY_DESTINATION: \$\{\{ secrets.ARANDU_RECOVERY_DESTINATION \}\}/);
+assert.match(workflow,/install-recovery-tools.sh/);
 assert.match(workflow,/REVIEWED_SHA !== process.env.EXECUTION_SHA/);
 assert.match(workflow,/ref: \$\{\{ github.sha \}\}/);
 assert.match(workflow,/persist-credentials: false/);
@@ -24,6 +27,7 @@ assert.throws(() => sourceConnection(uri(legacy))); // Existing drill stays Pilo
 assert.equal(sourceConnection(uri(legacy), { projectRef: legacy }).projectRef, legacy);
 assert.throws(() => sourceConnection(uri(PILOT_REF), { projectRef: legacy }));
 assert.throws(() => sourceConnection(uri(legacy), { projectRef: 'unknown' }));
+assert.throws(() => sourceConnection(uri(legacy)+'?sslmode=disable', { projectRef: legacy }));
 assert.throws(() => sourceConnection(`postgresql://postgres.${legacy}:pw@aws-0-sa-east-1.pooler.supabase.com:6543/postgres`, { projectRef: legacy }));
 
 const dir = fs.mkdtempSync(path.join(tmpdir(), 'arandu-export-test-'));
@@ -33,13 +37,15 @@ const bin = path.join(dir, 'bin'); fs.mkdirSync(bin);
 const trace = path.join(dir, 'trace');
 const fake = `#!/usr/bin/env node
 const fs = require('node:fs');
+const tracePath = ${JSON.stringify(trace)};
+const ageFailure = ${JSON.stringify(path.join(dir, 'age-failure'))};
 const name = require('node:path').basename(process.argv[1]);
 const args = process.argv.slice(2);
-fs.appendFileSync(process.env.TRACE, JSON.stringify({name,args,hostaddr:process.env.PGHOSTADDR,options:process.env.PGOPTIONS})+'\\n');
+fs.appendFileSync(tracePath, JSON.stringify({name,args,hostaddr:process.env.PGHOSTADDR,options:process.env.PGOPTIONS})+'\\n');
 if(args.includes('--version')) {console.log(name==='age'?'v1.2.1':name+' (PostgreSQL) '+(process.env.TEST_MAJOR||'17')+'.6');process.exit(0);}
 if(name==='psql') {console.log(JSON.stringify({server_major:17,storage_objects:Number(process.env.TEST_OBJECTS||0),auth_users:0,mfa_factors:0}));process.exit(0);}
 if(name===process.env.TEST_FAIL) {console.error('private-fixture');process.exit(1);}
-if(name==='age') {process.stdin.resume();process.stdin.on('end',()=>process.stdout.write('age-encryption.org/v1\\n'+'ciphertext-fixture'.repeat(20)));}
+if(name==='age') {let bytes=0;process.stdin.on('data',c=>bytes+=c.length);process.stdin.on('end',()=>{if(bytes && fs.existsSync(ageFailure))process.exit(1);process.stdout.write('age-encryption.org/v1\\n'+'ciphertext-fixture'.repeat(20));});}
 else process.stdout.write('sensitive plaintext fixture');
 `;
 for (const name of ['psql','pg_dump','pg_dumpall','pg_restore','age']) fs.writeFileSync(path.join(bin,name),fake,{mode:0o700});
@@ -74,12 +80,12 @@ try {
     assert.match(file.sha256,/^[a-f0-9]{64}$/);assert.equal(fs.statSync(path.join(exported,file.name)).mode&0o777,0o600);
     assert(!fs.readFileSync(path.join(exported,file.name),'utf8').includes('sensitive plaintext'));
   }
-  await assert.rejects(exportRecovery({env:{...env,TEST_FAIL:'pg_dumpall'},root}));
+  for(const TEST_FAIL of ['pg_dump','pg_dumpall']) await assert.rejects(exportRecovery({env:{...env,TEST_FAIL},root}));
   const failed=fs.readdirSync(output).map(f=>path.join(output,f)).find(f=>JSON.parse(fs.readFileSync(path.join(f,'manifest.json'))).result==='failed');
   assert(failed);assert(!fs.existsSync(path.join(failed,'roles.sql.age')));
-  process.env.TEST_FAIL='age';
+  fs.writeFileSync(path.join(dir,'age-failure'),'fail');
   await assert.rejects(exportRecovery({env,root}));
-  assert.equal(fs.readdirSync(output).length,3,'Unique directories never overwrite earlier backups');
+  assert.equal(fs.readdirSync(output).length,4,'Unique directories never overwrite earlier backups');
 } finally {
   for(const [key,value] of Object.entries(original)) {if(value===undefined)delete process.env[key];else process.env[key]=value;}
   fs.rmSync(dir,{recursive:true,force:true});

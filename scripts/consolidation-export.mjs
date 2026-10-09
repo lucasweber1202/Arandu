@@ -7,9 +7,10 @@ import { spawn, spawnSync } from 'node:child_process';
 import { pipeline } from 'node:stream/promises';
 import { sourceConnection, majorVersion } from '../lib/pilot-backup-preflight.mjs';
 
-export async function exportRecovery({ env = process.env, root = process.cwd() } = {}) {
+export async function exportRecovery({ env = process.env, root = process.cwd(), syntheticLocal = false } = {}) {
   if (env.ARANDU_RECOVERY_CONFIRM !== 'ARANDU-ENCRYPTED-EXPORT') throw new Error('Confirmação de export ausente.');
-  const connection = sourceConnection(env.ARANDU_RECOVERY_DATABASE_URL, { projectRef: env.ARANDU_RECOVERY_PROJECT_REF });
+  const connection = sourceConnection(env.ARANDU_RECOVERY_DATABASE_URL, { projectRef: env.ARANDU_RECOVERY_PROJECT_REF, local: syntheticLocal });
+  if (syntheticLocal && connection.mode !== 'local') throw new Error('Ensaio sintético exige loopback.');
   if (!env.ARANDU_RECOVERY_PROJECT_REF || !/^age1[0-9a-z]{58}$/.test(env.ARANDU_RECOVERY_RECIPIENT || '')) throw new Error('Projeto e destinatário age X25519 obrigatórios.');
   // Resolve symlinks before checking boundaries; require an existing private mount.
   if (!path.isAbsolute(env.ARANDU_RECOVERY_DIRECTORY || '')) throw new Error('Diretório privado absoluto obrigatório.');
@@ -24,7 +25,7 @@ export async function exportRecovery({ env = process.env, root = process.cwd() }
   // No URI/password in argv, no libpq defaults inherited from the caller.
   for (const key of ['PGSERVICE', 'PGSERVICEFILE', 'PGPASSFILE', 'PGHOSTADDR', 'PGSSLNEGOTIATION', 'PGREQUIRESSL']) delete queryEnv[key];
   const run = (binary, args) => {
-    const result = spawnSync(binary, args, { env: queryEnv, encoding: 'utf8', timeout: 30000, maxBuffer: 1024 * 1024 });
+    const result = spawnSync(binary, args, { env: binary === 'age' ? { PATH: env.PATH } : queryEnv, input: '', encoding: 'utf8', timeout: 30000, maxBuffer: 1024 * 1024 });
     if (result.error || result.status !== 0) throw new Error(`Falha em ${binary}; detalhes sensíveis omitidos.`);
     return result.stdout;
   };
@@ -32,23 +33,25 @@ export async function exportRecovery({ env = process.env, root = process.cwd() }
     if (majorVersion(run(binary, ['--version'])) !== 17) throw new Error('Clientes PostgreSQL 17 obrigatórios.');
   }
   run('age', ['--version']);
+  // Validate the actual recipient checksum before touching the source database.
+  run('age', ['--encrypt', '--recipient', env.ARANDU_RECOVERY_RECIPIENT]);
   const state = JSON.parse(run('psql', ['-X', '-At', '-v', 'ON_ERROR_STOP=1', '-c',
     "select json_build_object('server_major',current_setting('server_version_num')::int/10000,'storage_objects',(select count(*) from storage.objects),'auth_users',(select count(*) from auth.users),'mfa_factors',(select count(*) from auth.mfa_factors))::text"]));
   if (state.server_major !== 17 || ![state.storage_objects, state.auth_users, state.mfa_factors].every(n => Number.isSafeInteger(n) && n >= 0)) throw new Error('Versão ou inventário inválido.');
   if (state.storage_objects !== 0) throw new Error('Storage possui arquivos; preparar export dos binários antes desta operação.');
   const directory = path.join(destination, `arandu-${connection.projectRef}-${randomUUID()}`);
   fs.mkdirSync(directory, { mode: 0o700 });
-  const manifest = { format_version: 1, classification: 'encrypted_logical_export', project_ref: connection.projectRef,
+  const manifest = { format_version: 1, classification: syntheticLocal ? 'synthetic_encrypted_export' : 'encrypted_logical_export', project_ref: connection.projectRef,
     started_at: new Date().toISOString(), result: 'failed', restore: 'NOT RUN', conversion: 'BLOCKED',
     scope: 'database including public/Auth/Storage metadata/migration history; roles without passwords; Storage binaries absent at preflight',
-    source_counts: state, files: [] };
+    source_counts: state, executor_sha: env.GITHUB_SHA || null, reconciliation: 'NOT RUN', subprocesses: [], files: [] };
   const manifestPath = path.join(directory, 'manifest.json');
   const writeManifest = () => fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', { mode: 0o600 });
   writeManifest();
   const encrypted = async (binary, args, filename) => {
     const file = path.join(directory, filename);
     const producer = spawn(binary, args, { env: queryEnv, stdio: ['ignore', 'pipe', 'ignore'] });
-    const encoder = spawn('age', ['--encrypt', '--recipient', env.ARANDU_RECOVERY_RECIPIENT], { stdio: ['pipe', 'pipe', 'ignore'] });
+    const encoder = spawn('age', ['--encrypt', '--recipient', env.ARANDU_RECOVERY_RECIPIENT], { env: { PATH: env.PATH }, stdio: ['pipe', 'pipe', 'ignore'] });
     const timer = setTimeout(() => { producer.kill('SIGKILL'); encoder.kill('SIGKILL'); }, 10 * 60 * 1000);
     const completed = child => new Promise((resolve, reject) => {
       child.once('error', () => reject(new Error('Executável indisponível.')));
@@ -63,6 +66,7 @@ export async function exportRecovery({ env = process.env, root = process.cwd() }
       const bytes = fs.statSync(file).size;
       if (bytes < 128) throw new Error('Artefato criptografado inválido.');
       manifest.files.push({ name: filename, bytes, sha256: hash.digest('hex') });
+      manifest.subprocesses.push({ producer: binary, producer_exit: 0, age_exit: 0 });
     } catch {
       producer.kill('SIGKILL'); encoder.kill('SIGKILL');
       await Promise.allSettled(tasks);
