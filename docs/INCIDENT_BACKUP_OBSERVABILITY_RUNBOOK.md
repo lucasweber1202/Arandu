@@ -15,6 +15,12 @@
 
 ## Severidades
 
+Analytics de produto não é trilha de auditoria ou monitoramento de erros.
+Falha de PostHog não interrompe transações. Para bloquear coleta, configure
+`ARANDU_ANALYTICS_ENABLED=false` no servidor e redeploy. Não envie payloads
+financeiros ou segredos em issues do Linear. Contrato, retenção/exclusão,
+verificação e rollback em [PRODUCT_ANALYTICS.md](PRODUCT_ANALYTICS.md).
+
 | Severidade | Exemplo | Ação |
 | --- | --- | --- |
 | crítica | exposição de segredo, bypass de autorização, perda de dados | bloquear deploy e iniciar incidente |
