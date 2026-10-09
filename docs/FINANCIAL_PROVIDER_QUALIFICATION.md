@@ -43,6 +43,33 @@ justificativa. Máquina de estados idêntica em SQL e JS (teste de paridade).
   exceções e qualificações e cria tarefa de revalidação 30 dias antes; o
   estado efetivo já aparece como vencido na leitura mesmo antes do job.
 
+## Agendamento e operação
+
+`GET /api/jobs/renewals`, protegido por CRON_SECRET, chama o vencimento de
+qualificação depois dos marcos contratuais, dentro do lease existente de
+`contract_milestones`. A data vem do servidor; nenhuma entrada do chamador
+escolhe o período. Não há novo job, endpoint, secret ou cron configurado.
+
+`qualification_expiry` publica somente contadores inteiros validados:
+`qualifications_expired`, `evidence_expired`, `tasks_created`.
+`milestone_tasks_created` conserva a contagem dos marcos; `processed` do job
+inclui as ações de qualificação. Sem autorização, banco ou lease, nada roda.
+Falha dos marcos impede o subpasso; RPC ausente, timeout, payload inválido ou
+falha ao concluir o lease resultam em HTTP 502, sem sucesso fabricado. Os
+outros jobs independentes continuam. Escritas já commitadas não são desfeitas;
+o rerun usa a idempotência existente da RPC e não repete HTTP cegamente.
+
+O schema hospedado precisa conter a migration de qualificação antes do
+rollout; o doctor já exige a RPC. Não ativar esta alteração no schema antigo
+como substituto de migration/recovery. Rollback é revert do handler; dados,
+decisões humanas, tasks e audit events existentes permanecem preservados.
+
+Evidência local de 08/10/2026: regressão reproduzida com RPC nunca chamada no
+handler anterior; testes de jobs cobrem autenticação, lease ocupado/falho,
+ordem, data, contadores, timeout, RPC indisponível, payload malformado e
+redação. `check:finance` e build passaram. Integração do cron: M1/E1 até os
+quatro gates no SHA exato e execução hospedada com schema correspondente.
+
 ## Consulta (RFQ/policy)
 
 `GET /api/finance/qualifications/status?provider_id=&legal_entity_id=&category=`
@@ -60,8 +87,8 @@ formulários por estado (decisão de qualificar só aparece quando permitida).
 
 - Portal do provedor ainda não envia evidência diretamente (a equipe registra
   com origem `provider`).
-- O job de vencimento existe como RPC de service role; ainda não está na cron
-  diária (próximo passo, junto com o detector de "qualificação vencendo" no
-  Opportunity Engine).
+- Detector de "qualificação vencendo" no Opportunity Engine ainda pendente.
+- Integração do vencimento na cron implementada em código; execução hospedada
+  e cadência observada ainda pendentes.
 - A policy de aprovação ainda não usa o estado de qualificação como fato.
 - Hosted (M3) bloqueado pelo Stage 0.
