@@ -57,7 +57,7 @@
     "check:env:release": "node scripts/check-production-env.mjs --require-ready",
     "check:evidence": "node scripts/test-release-evidence.mjs && node scripts/check-release-evidence.mjs",
     "check:evidence:release": "node scripts/check-release-evidence.mjs --require-ready",
-    "check:governance": "node scripts/check-governance.mjs && node scripts/test-merge-gates.mjs && node scripts/test-ci-browser-preparation.mjs && node scripts/test-consolidation.mjs && node scripts/test-release-candidate.mjs && node scripts/test-live-governance.mjs",
+    "check:governance": "node scripts/check-governance.mjs && node scripts/test-merge-gates.mjs && node scripts/test-ci-browser-preparation.mjs && node scripts/test-consolidation.mjs && node scripts/test-release-candidate.mjs && node scripts/test-live-governance.mjs && node scripts/test-stage0-static-preflight.mjs",
     "merge:gates": "node scripts/check-merge-gates.mjs",
     "check:staging": "node scripts/test-operational-tooling.mjs && node scripts/test-staging-workflow.mjs && node scripts/check-staging-rehearsal.mjs && node scripts/test-pending-migration-bundle.mjs && node scripts/test-pilot-backup-preflight.mjs",
     "check:live": "node scripts/check-live-production.mjs",
