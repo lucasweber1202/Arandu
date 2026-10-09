@@ -7,9 +7,15 @@ assert.equal(current.schema_version, 1);
 assert.equal(current.scope, 'repository-topology-only');
 assert.equal(current.release_ready, false);
 assert.deepEqual(current.environments.map(x => x.environment), ['demo', 'production']);
-assert.ok(current.environments.every(x => x.static_status === 'BLOCKED'));
-assert.ok(current.environments.every(x => x.reason_codes.includes('NO_APPROVED_DATABASE')));
-assert.ok(current.environments.every(x => x.reason_codes.includes('PLANNED_SOURCE_STILL_ASSIGNED_TO_OLD_ROLE')));
+const currentIsBlocked = current.environments.some(x => x.static_status === 'BLOCKED');
+
+const unapproved = inspectStaticStage0({
+  assignments: { demo: [], production: [], pilot: ['former-demo'], legacy: ['former-production'] },
+  targets: { demo: { sourceRef: 'former-demo', sourceKind: 'pilot' }, production: { sourceRef: 'former-production', sourceKind: 'legacy' } }
+});
+assert.ok(unapproved.environments.every(x => x.static_status === 'BLOCKED'));
+assert.ok(unapproved.environments.every(x => x.reason_codes.includes('NO_APPROVED_DATABASE')));
+assert.ok(unapproved.environments.every(x => x.reason_codes.includes('PLANNED_SOURCE_STILL_ASSIGNED_TO_OLD_ROLE')));
 
 const isolated = inspectStaticStage0({
   assignments: { demo: ['demo-isolated'], production: ['prod-isolated'], pilot: [], legacy: [] },
@@ -33,7 +39,7 @@ const result = spawnSync(process.execPath, ['scripts/stage0-static-preflight.mjs
   encoding: 'utf8',
   env: { ...process.env, SUPABASE_SERVICE_ROLE_KEY: token, CRON_SECRET: token }
 });
-assert.equal(result.status, 1, 'Strict mode must report the existing Stage 0 block');
+assert.equal(result.status, currentIsBlocked ? 1 : 0, 'Strict mode must follow the active topology rather than a frozen fixture');
 const parsed = JSON.parse(result.stdout);
 assert.equal(parsed.release_ready, false);
 assert.ok(!result.stdout.includes(token));
