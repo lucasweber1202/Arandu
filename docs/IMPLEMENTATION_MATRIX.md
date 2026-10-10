@@ -5,7 +5,7 @@
 Baseline `main@9c08f6c793c0084736f9f6ed5330eb40c1cdfde4` (#152), sem PR aberta.
 Sessão sem conector Vercel/Supabase: nada hospedado lido, alterado ou promovido.
 
-- **Seed da Demo canônica (P0-C): defeito corrigido, M1/E1.** Executado contra o
+- **Seed da Demo canônica (P0-C): defeito corrigido, M2/E2 (#153, quatro gates no HEAD `2a55e50`, merge `b41c91e`).** Executado contra o
   Supabase local real (`npm run demo:setup`: Postgres, GoTrue, PostgREST e
   Storage em Docker, app em `ARANDU_ENV=demo`), o seed parava no pós-contrato:
   `POST fees/schedules` → `400 fee_contract_version`. O contrato da Lumina nasce
@@ -16,7 +16,7 @@ Sessão sem conector Vercel/Supabase: nada hospedado lido, alterado ou promovido
   Reexecução ponta a ponta do seed depois da correção ainda pendente nesta
   sessão; passos seguintes (qualificação, documento, regras) não foram
   observados. Demo hospedada continua sem banco DEMO: nenhum M3.
-- **Recovery (P0-B): reconciliação e restore isolado executáveis, M1/E1.**
+- **Recovery (P0-B): reconciliação e restore isolado executáveis, M2/E2 (#154, quatro gates no HEAD `6b5eaef`, merge `d6786c3`).**
   Export conta as tabelas de public/auth/storage/supabase_migrations no mesmo
   snapshot exportado que o `pg_dump --snapshot` importa (manifest com
   `snapshot_counts` + digest); `npm run recovery:restore:verify` restaura só em
@@ -25,12 +25,18 @@ Sessão sem conector Vercel/Supabase: nada hospedado lido, alterado ou promovido
   sem tocar o manifest. Ensaio real PG17 + age local (usuário sem privilégio)
   aprovado com negativos. **Nenhum backup ou restore hospedado executado**:
   depende do executor privado aprovado, identidade age e destino aprovado.
-- **Busca e navegação (bugs), M1/E1.** A API recusava `type=performance|spend`
+- **Busca e navegação (bugs), M2/E2 (#155, quatro gates no HEAD `2e26312`, merge `2d83635`).** A API recusava `type=performance|spend`
   aceitos por `fin_search`; lista única `SEARCH_KINDS` testada contra a última
   definição SQL do manifesto. O menu montado em JS omitia Implantação, Spend,
   Performance, Covenants, Documentos e Qualificação (sem entrada após o boot);
   teste de paridade casca estática × runtime. E2E Chromium local 209/7 skip,
   presentation 123/19 skip (baseline).
+- **Readiness separada de liveness (P0-D/A6), M1/E1.** `/api/health?probe=ready`
+  (mesma função Vercel): ambiente, configuração, atribuição aprovada do banco e
+  Supabase Auth/REST alcançáveis; resposta pública só pronto/não pronto (200/503),
+  motivo no log estruturado sem valores. Testes
+  `scripts/test-readiness.mjs`. Não confere schema/SHA (doctor/canário seguem
+  obrigatórios); nenhuma sonda hospedada executada nesta sessão.
 - **Production `arandu` (`vercel-build` exit 1): causa reproduzida, sem correção
   de código cabível.** Árvore sem `.git`, `VERCEL_ENV=production`,
   `ARANDU_ENV=production` e credenciais sintéticas de formato válido:

@@ -44,7 +44,15 @@ compatibilidade, sem designar infraestrutura permanente. `PILOT_SOURCE_DATABASE_
 Os ensaios locais/containers são descartáveis, não terceiro ambiente hospedado.
 
 `/api/health` publica somente runtime/ambiente/datasource/branch/SHA. É liveness,
-sem garantia de readiness. Doctor remoto exige main e SHA completo; usar
+sem garantia de readiness. `/api/health?probe=ready` é a readiness: 200 só com
+ambiente declarado, configuração de servidor presente, banco com atribuição
+aprovada em `lib/deployment-topology.mjs` e Supabase Auth/REST respondendo
+(timeout 2,5 s, cache de 30 s); senão 503. A resposta pública só diz
+`ready`/`not_ready` (regra do `check-auth-security`); o motivo vai ao log
+estruturado do servidor (`route: health/ready`, `code` com nomes e estados como
+`topology:unassigned_database`, `supabase_auth:timeout`), nunca valores. Production sem atribuição aprovada responde 503
+`unassigned_database` por desenho. Readiness não substitui doctor nem canário
+(não confere schema nem SHA). Doctor remoto exige main e SHA completo; usar
 --expected-commit para o SHA exato. Sandbox ou identidade inconclusiva é NO-GO.
 
 ## Conversão dos slots
