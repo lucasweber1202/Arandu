@@ -6,6 +6,40 @@ import { createHash, randomUUID } from 'node:crypto';
 import { spawn, spawnSync } from 'node:child_process';
 import { pipeline } from 'node:stream/promises';
 import { sourceConnection, majorVersion } from '../lib/pilot-backup-preflight.mjs';
+import { COUNTS_SQL, parseCounts, countsDigest } from '../lib/recovery-reconciliation.mjs';
+
+const SESSION_END = '__ARANDU_SNAPSHOT_STEP__';
+// Sessão read-only que exporta um snapshot e o mantém aberto: as contagens da
+// reconciliação e o pg_dump enxergam exatamente o mesmo estado do banco.
+function snapshotSession(env) {
+  const child = spawn('psql', ['-X', '-At', '-q', '-v', 'ON_ERROR_STOP=1', '-f', '-'], { env, stdio: ['pipe', 'pipe', 'ignore'] });
+  let buffer = ''; let waiting = null; let failed = null;
+  const settle = () => {
+    if (!waiting) return;
+    const index = buffer.indexOf(`${SESSION_END}\n`);
+    if (index >= 0) { const lines = buffer.slice(0, index).split('\n').filter(Boolean); buffer = buffer.slice(index + SESSION_END.length + 1); const done = waiting; waiting = null; done.resolve(lines); }
+    else if (failed) { const done = waiting; waiting = null; done.reject(failed); }
+  };
+  child.stdout.setEncoding('utf8');
+  child.stdout.on('data', (chunk) => { buffer += chunk; settle(); });
+  const exited = new Promise((resolve) => child.once('close', (code) => { failed = new Error('Sessão de snapshot encerrada.'); settle(); resolve(code); }));
+  child.once('error', () => { failed = new Error('Executável indisponível.'); settle(); });
+  child.stdin.on('error', () => {});
+  const step = (sql) => new Promise((resolve, reject) => {
+    if (failed) return reject(failed);
+    waiting = { resolve, reject };
+    child.stdin.write(`${sql}\n\\echo ${SESSION_END}\n`);
+  });
+  return {
+    async open() {
+      const [snapshot, counts] = await step(`begin isolation level repeatable read read only;\nset local row_security = off;\nselect pg_export_snapshot();\n${COUNTS_SQL}`);
+      if (!/^[0-9A-F]{8}-[0-9A-F]{8}(-[0-9]+)?$/i.test(snapshot || '')) throw new Error('Snapshot inválido.');
+      return { snapshot, counts: parseCounts(counts) };
+    },
+    async close() { child.stdin.end('commit;\n'); if (await exited !== 0) throw new Error('Sessão de snapshot falhou.'); },
+    abort() { child.kill('SIGKILL'); }
+  };
+}
 
 export async function exportRecovery({ env = process.env, root = process.cwd(), syntheticLocal = false } = {}) {
   if (env.ARANDU_RECOVERY_CONFIRM !== 'ARANDU-ENCRYPTED-EXPORT') throw new Error('Confirmação de export ausente.');
@@ -74,16 +108,24 @@ export async function exportRecovery({ env = process.env, root = process.cwd(), 
       throw new Error('Export falhou; artefato incompleto removido e detalhes omitidos.');
     } finally { clearTimeout(timer); }
   };
+  let session = null;
   try {
-    // pg_dump owns one consistent snapshot for all database schemas/data/ACLs.
-    // Role definitions are a separate cluster snapshot, reconciled during restore.
-    await encrypted('pg_dump', ['--format=custom', '--lock-wait-timeout=10000'], 'database.dump.age');
+    // pg_dump importa o snapshot exportado pela sessão: contagens de
+    // reconciliação e dump descrevem o mesmo estado. Roles são outro snapshot
+    // do cluster, reconciliado no restore.
+    session = snapshotSession(queryEnv);
+    const { snapshot, counts } = await session.open();
+    manifest.snapshot = 'exported_snapshot_shared_with_pg_dump';
+    manifest.snapshot_counts = counts;
+    manifest.snapshot_counts_sha256 = countsDigest(counts);
+    await encrypted('pg_dump', ['--format=custom', '--lock-wait-timeout=10000', `--snapshot=${snapshot}`], 'database.dump.age');
+    await session.close(); session = null;
     await encrypted('pg_dumpall', ['--roles-only', '--no-role-passwords'], 'roles.sql.age');
     manifest.result = 'exported_unverified';
     manifest.completed_at = new Date().toISOString();
     writeManifest();
     return manifest;
-  } catch (error) { writeManifest(); throw error; }
+  } catch (error) { session?.abort(); writeManifest(); throw error; }
 }
 
 if (process.argv[1] && fs.realpathSync(process.argv[1]) === fs.realpathSync(new URL(import.meta.url))) {

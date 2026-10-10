@@ -182,6 +182,43 @@ confundir schemas sintéticos chamados auth/storage com serviços Auth/Storage
 funcionais do Supabase. Recovery GO continua bloqueado até esse ensaio real,
 classificação LGPD, reconciliação protegida e aprovação de conversão.
 
+## Reconciliação e restore isolado executáveis (10/10/2026)
+
+O export abre uma sessão read-only (`repeatable read`), exporta o snapshot com
+`pg_export_snapshot()`, conta as linhas de cada tabela de `public`, `auth`,
+`storage` e `supabase_migrations` **dentro desse snapshot** (`row_security=off`:
+conta tudo ou falha) e roda `pg_dump --snapshot=<id>`. O manifest passa a ter
+`snapshot_counts` (só nomes de tabela e contagens) e `snapshot_counts_sha256`.
+Sessão perdida antes do dump (ex.: timeout de transação ociosa) aborta o export.
+
+`npm run recovery:restore:verify`, num executor isolado com PG17 e age:
+
+```
+ARANDU_RESTORE_CONFIRM=ARANDU-ISOLATED-RESTORE \
+ARANDU_RESTORE_BACKUP=/caminho/privado/arandu-<ref>-<uuid> \
+ARANDU_RESTORE_IDENTITY=/caminho/privado/identity.txt   # 0600, fora do repo
+ARANDU_RESTORE_TARGET_URL=postgresql://postgres@127.0.0.1:<porta>/postgres?sslmode=disable \
+npm run recovery:restore:verify
+```
+
+Ordem fail-closed: confirmação; caminhos fora do repositório; identidade 0600;
+destino **somente loopback** (projeto hospedado, pooler e IP de rede recusados);
+manifest concluído com contagens do snapshot e digest íntegro; bytes e SHA-256
+dos dois ciphertexts; clientes e servidor PG17; destino **sem nenhuma linha**
+nos schemas reconciliados; `pg_restore --list`; restore
+`--exit-on-error --single-transaction --clean --if-exists` (role ausente aborta e
+reverte tudo); contagem no destino e comparação tabela a tabela. Grava
+`restore-verification-<data>.json` (0600, `wx`) ao lado do manifest, sem tocar o
+manifest: `reconciliation` MATCH/MISMATCH, diferenças, digests, tempo do
+restore, `roles_file: NOT APPLIED`, `conversion: BLOCKED`. MISMATCH sai com
+código 1. As roles de plataforma/negócio precisam existir no destino antes
+(revisadas; o arquivo de roles nunca é aplicado). Contagem igual não prova
+serviços Auth/Storage do Supabase nem conteúdo campo a campo; isso continua
+exigindo imagem Supabase compatível, canário e jornada. O ensaio sintético
+`scripts/test-recovery-real.mjs` exercita o fluxo e os negativos (hash e
+contagens adulterados, identidade errada, destino com dados, destino não
+loopback, role ausente com rollback total).
+
 Fontes de instalação e transporte:
 [PGDG Ubuntu](https://www.postgresql.org/download/linux/ubuntu/),
 [age 1.3.2](https://github.com/FiloSottile/age/releases/tag/v1.3.2),
