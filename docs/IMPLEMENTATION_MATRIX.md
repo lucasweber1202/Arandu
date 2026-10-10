@@ -25,6 +25,12 @@ Sessão sem conector Vercel/Supabase: nada hospedado lido, alterado ou promovido
   sem tocar o manifest. Ensaio real PG17 + age local (usuário sem privilégio)
   aprovado com negativos. **Nenhum backup ou restore hospedado executado**:
   depende do executor privado aprovado, identidade age e destino aprovado.
+- **Busca e navegação (bugs), M1/E1.** A API recusava `type=performance|spend`
+  aceitos por `fin_search`; lista única `SEARCH_KINDS` testada contra a última
+  definição SQL do manifesto. O menu montado em JS omitia Implantação, Spend,
+  Performance, Covenants, Documentos e Qualificação (sem entrada após o boot);
+  teste de paridade casca estática × runtime. E2E Chromium local 209/7 skip,
+  presentation 123/19 skip (baseline).
 - **Production `arandu` (`vercel-build` exit 1): causa reproduzida, sem correção
   de código cabível.** Árvore sem `.git`, `VERCEL_ENV=production`,
   `ARANDU_ENV=production` e credenciais sintéticas de formato válido:
