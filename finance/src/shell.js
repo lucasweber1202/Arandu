@@ -3,18 +3,27 @@
 
 import { el, icon, fold, timeAgo, productLabel, RFQ_STATUS, CONTRACT_STATUS, formatDate } from './core.js';
 import { avatar, iconButton, button, toast, confirmDialog } from './ui.js';
+import { SEARCH_KIND_LABELS } from '../../lib/finance/command-center.mjs';
 
 const COMPANY_NAV = [
   { key: 'dashboard', label: 'Painel', path: '/finance/dashboard.html', icon: 'home' },
   { key: 'rfqs', label: 'Solicitações', path: '/finance/rfqs.html', icon: 'file', views: ['rfqs', 'rfq', 'newRfq'] },
   { key: 'approvals', label: 'Aprovações', path: '/finance/approvals.html', icon: 'checkCircle' },
   { key: 'proposals', label: 'Propostas', path: '/finance/proposals.html', icon: 'inbox' },
+  // Ciclo de vida: páginas fora do sandbox legado /demo (sandboxExcluded no
+  // gerador de páginas); sem estas entradas o menu montado em JS as escondia.
+  { key: 'implementations', label: 'Implantação', path: '/finance/implementations.html', icon: 'tasks', sandboxExcluded: true },
+  { key: 'spend', label: 'Spend', path: '/finance/spend.html', icon: 'layers', sandboxExcluded: true },
+  { key: 'performance', label: 'Performance', path: '/finance/performance.html', icon: 'scale', sandboxExcluded: true },
+  { key: 'covenants', label: 'Covenants', path: '/finance/covenants.html', icon: 'calendar', sandboxExcluded: true },
+  { key: 'extractions', label: 'Documentos', path: '/finance/extractions.html', icon: 'file', sandboxExcluded: true },
   { key: 'contracts', label: 'Contratos', path: '/finance/contracts.html', icon: 'briefcase' },
   { key: 'portfolio', label: 'Portfólio', path: '/finance/portfolio.html', icon: 'layers' },
   { key: 'value', label: 'Valor', path: '/finance/value.html', icon: 'layers' },
   { key: 'fees', label: 'Tarifas', path: '/finance/fees.html', icon: 'scale' },
   { key: 'opportunities', label: 'Oportunidades', path: '/finance/opportunities.html', icon: 'flag' },
   { key: 'providers', label: 'Provedores', path: '/finance/providers.html', icon: 'building' },
+  { key: 'qualifications', label: 'Qualificação', path: '/finance/qualifications.html', icon: 'checkCircle', sandboxExcluded: true },
   { key: 'passport', label: 'Passport', path: '/finance/passport.html', icon: 'shield' },
   { key: 'tasks', label: 'Tarefas', path: '/finance/tasks.html', icon: 'tasks' },
   { key: 'notifications', label: 'Notificações', path: '/finance/notifications.html', icon: 'bell', mobileOnly: true },
@@ -27,11 +36,14 @@ const PROVIDER_NAV = [
 ];
 const MOBILE_TABS = { company: ['dashboard', 'rfqs', 'approvals', 'contracts'], provider: ['providerHome', 'providerRfqs', 'providerInvite'] };
 
-export function navFor(audience) { return audience === 'provider' ? PROVIDER_NAV : COMPANY_NAV; }
+export function navFor(audience, mode = 'real') {
+  if (audience === 'provider') return PROVIDER_NAV;
+  return mode === 'demo' ? COMPANY_NAV.filter((item) => !item.sandboxExcluded) : COMPANY_NAV;
+}
 
 function activeKey(ctx) {
   const view = ctx.view === 'home' ? 'dashboard' : ctx.view;
-  return navFor(ctx.audience).find((item) => item.key === view || item.views?.includes(view))?.key;
+  return navFor(ctx.audience, ctx.mode).find((item) => item.key === view || item.views?.includes(view))?.key;
 }
 
 export function renderSidebar(ctx, counts = {}) {
@@ -40,7 +52,7 @@ export function renderSidebar(ctx, counts = {}) {
   const current = activeKey(ctx);
   const nav = el('nav', { class: 'side-nav', 'aria-label': 'Navegacao do portal' });
   const list = el('ul', { role: 'list' });
-  for (const item of navFor(ctx.audience).filter((entry) => !entry.mobileOnly)) {
+  for (const item of navFor(ctx.audience, ctx.mode).filter((entry) => !entry.mobileOnly)) {
     const count = counts[item.key];
     list.append(el('li', {}, el('a', { href: ctx.href(item.path), class: 'side-link', 'aria-current': item.key === current ? 'page' : null }, [
       icon(item.icon, { size: 18 }), el('span', { class: 'side-label', text: item.label }),
@@ -82,7 +94,7 @@ export function renderSidebar(ctx, counts = {}) {
 export function renderMobileNav(ctx, counts = {}) {
   document.querySelector('.mobile-tabbar')?.remove();
   const current = activeKey(ctx);
-  const items = navFor(ctx.audience);
+  const items = navFor(ctx.audience, ctx.mode);
   const bar = el('nav', { class: 'mobile-tabbar', 'aria-label': 'Navegação principal' });
   for (const key of MOBILE_TABS[ctx.audience]) {
     const item = items.find((entry) => entry.key === key);
@@ -101,7 +113,7 @@ export function renderMobileNav(ctx, counts = {}) {
 function openMoreSheet(ctx, counts) {
   const sheet = el('dialog', { class: 'sheet', 'aria-label': 'Todas as seções' });
   const list = el('ul', { role: 'list', class: 'sheet-list' });
-  for (const item of navFor(ctx.audience)) {
+  for (const item of navFor(ctx.audience, ctx.mode)) {
     list.append(el('li', {}, el('a', { href: ctx.href(item.path), class: 'sheet-link' }, [icon(item.icon, { size: 18 }), el('span', { text: item.label }),
       counts[item.key] ? el('span', { class: 'side-count', text: String(counts[item.key]) }) : null])));
   }
@@ -218,8 +230,8 @@ export function renderDemoBanner(ctx) {
 }
 
 // ------------------------------------------------------------------ busca
-const KIND_LABELS = { rfq: 'Solicitação', proposal: 'Proposta', provider: 'Provedor', contract: 'Contrato', task: 'Tarefa', action: 'Ação' };
-const KIND_ICONS = { rfq: 'file', proposal: 'inbox', provider: 'building', contract: 'briefcase', task: 'tasks', action: 'arrowRight' };
+const KIND_LABELS = { ...SEARCH_KIND_LABELS, action: 'Ação' };
+const KIND_ICONS = { rfq: 'file', proposal: 'inbox', provider: 'building', contract: 'briefcase', task: 'tasks', implementation: 'tasks', covenant: 'calendar', performance: 'scale', spend: 'layers', action: 'arrowRight' };
 
 function localItems(ctx) {
   const data = ctx.data || {};
