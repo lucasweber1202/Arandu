@@ -225,6 +225,10 @@ export const LIFECYCLE = {
     contract: 'acquiring', service: 'Aluguel de terminais', category: 'acquiring', charging_unit: 'per_item',
     pricing_model: 'per_unit', currency: 'BRL', rate: 49, source: 'contract_terms',
     source_reference: 'Contrato Lumina — cláusula 5: 140 terminais a R$ 49 (fictício)',
+    // Termos versionados do contrato: a tarifa cita uma versão existente
+    // (fin_insert_fee_version recusa tabela sem termos registrados).
+    contractTerms: { reason: 'Registro dos termos assinados do credenciamento (fictício)',
+      terms: { contract_number: 'LUM-2026-0412', currency: 'BRL', fees: [{ service: 'Aluguel de terminais', unit: 'per_item', amount: 49 }] } },
     observation: { volume: 140, observed_amount: 7140, source_type: 'bank_statement',
       source_reference: 'Extrato Lumina — aluguel de terminais (fictício)',
       evidence_reference: 'Conciliação de terminais: 140 unidades a R$ 51 no extrato (fictício)' }

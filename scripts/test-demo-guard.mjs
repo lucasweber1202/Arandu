@@ -60,4 +60,18 @@ assert.doesNotMatch(dataset, /@(?!(vittafoods|atlasbank|nexopay|orbecapital|meri
 for (const brand of ['Itaú', 'Bradesco', 'Santander', 'Nubank', 'Cielo', 'Stone', 'Rede', 'Getnet', 'PagSeguro', 'Banco do Brasil', 'Caixa Econômica', 'BTG']) {
   assert.doesNotMatch(dataset, new RegExp(`\\b${brand}\\b`), `marca real no dataset: ${brand}`);
 }
+// Regressão: a tabela de tarifas da demo cita uma versão de termos do contrato.
+// Sem termos registrados antes, fees/schedules falhava com fee_contract_version
+// e o seed parava no meio do pós-contrato.
+{
+  const { LIFECYCLE } = await import('./demo/dataset.mjs');
+  const { normalizeContractTerms } = await import('../lib/finance/contract-terms.mjs');
+  const fee = LIFECYCLE.fees;
+  assert.ok(fee.contractTerms?.terms, 'dataset sem termos do contrato da tarifa');
+  const normalized = normalizeContractTerms(fee.category, fee.contractTerms.terms);
+  assert.deepEqual([normalized.errors, normalized.rejected], [[], []], 'termos da demo inválidos');
+  assert.ok(normalized.values.fees.some((item) => item.service === fee.service && item.unit === fee.charging_unit && item.amount === fee.rate), 'termos não contêm a tarifa cadastrada');
+  const fees = seed.slice(seed.indexOf('async function seedPortfolioAndFees'));
+  assert.ok(fees.indexOf("'contract-terms'") > 0 && fees.indexOf("'contract-terms'") < fees.indexOf("'fees/schedules'"), 'seed cria tarifa antes dos termos do contrato');
+}
 console.log('Demo guard: só ARANDU_ENV=demo explícito, fora de deploy, alvo confirmado, nunca piloto/legado/produção, chaves do mesmo projeto, banco vazio ou marcado e app em modo demo; dataset sem marca real nem senha.');

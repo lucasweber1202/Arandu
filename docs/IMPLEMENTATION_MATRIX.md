@@ -1,5 +1,34 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## Rodada de 10/10/2026 — seed da Demo canônica e build de Production
+
+Baseline `main@9c08f6c793c0084736f9f6ed5330eb40c1cdfde4` (#152), sem PR aberta.
+Sessão sem conector Vercel/Supabase: nada hospedado lido, alterado ou promovido.
+
+- **Seed da Demo canônica (P0-C): defeito corrigido, M1/E1.** Executado contra o
+  Supabase local real (`npm run demo:setup`: Postgres, GoTrue, PostgREST e
+  Storage em Docker, app em `ARANDU_ENV=demo`), o seed parava no pós-contrato:
+  `POST fees/schedules` → `400 fee_contract_version`. O contrato da Lumina nasce
+  da decisão sem termos (versão 0) e `fin_insert_fee_version` exige uma versão
+  de termos — regra correta de proveniência; o seed é que pulava o passo. Agora
+  registra os termos assinados (fictícios, via `contract-terms`) antes da
+  tabela. Regressão em `scripts/test-demo-guard.mjs` (falha no seed antigo).
+  Reexecução ponta a ponta do seed depois da correção ainda pendente nesta
+  sessão; passos seguintes (qualificação, documento, regras) não foram
+  observados. Demo hospedada continua sem banco DEMO: nenhum M3.
+- **Production `arandu` (`vercel-build` exit 1): causa reproduzida, sem correção
+  de código cabível.** Árvore sem `.git`, `VERCEL_ENV=production`,
+  `ARANDU_ENV=production` e credenciais sintéticas de formato válido:
+  `check-finance-env` reprova *qualquer* ref com "projeto Supabase sem atribuição
+  ativa aprovada para production" (`ACTIVE_SUPABASE_ASSIGNMENTS.production` vazio
+  em `lib/deployment-topology.mjs`, destino `PENDING_DATA_REVIEW`). Com a
+  topologia satisfeita, o `deploy:check` completo passa em modo production
+  (build, check:all hermético, dist, superfície, navegação, SEO, 520 testes E2E
+  listados). Controle fail-closed deliberado, já coberto por
+  `scripts/test-deploy-release-separation.mjs`; resolve-se com recovery +
+  cutover aprovados, nunca afrouxando a atribuição. Logs reais da Vercel não
+  lidos (sem conector); se mostrarem falha anterior, ela precede esta.
+
 ## Recovery — preparação de 09/10/2026 (ARA-8)
 
 M1 tooling: export completo criptografado em streaming para mount privado,
