@@ -16,6 +16,15 @@ Sessão sem conector Vercel/Supabase: nada hospedado lido, alterado ou promovido
   Reexecução ponta a ponta do seed depois da correção ainda pendente nesta
   sessão; passos seguintes (qualificação, documento, regras) não foram
   observados. Demo hospedada continua sem banco DEMO: nenhum M3.
+- **Recovery (P0-B): reconciliação e restore isolado executáveis, M1/E1.**
+  Export conta as tabelas de public/auth/storage/supabase_migrations no mesmo
+  snapshot exportado que o `pg_dump --snapshot` importa (manifest com
+  `snapshot_counts` + digest); `npm run recovery:restore:verify` restaura só em
+  PG17 loopback sem dados, confere hashes antes de descriptografar, aborta e
+  reverte se faltar role e reconcilia tabela a tabela, gravando registro 0600
+  sem tocar o manifest. Ensaio real PG17 + age local (usuário sem privilégio)
+  aprovado com negativos. **Nenhum backup ou restore hospedado executado**:
+  depende do executor privado aprovado, identidade age e destino aprovado.
 - **Production `arandu` (`vercel-build` exit 1): causa reproduzida, sem correção
   de código cabível.** Árvore sem `.git`, `VERCEL_ENV=production`,
   `ARANDU_ENV=production` e credenciais sintéticas de formato válido:
