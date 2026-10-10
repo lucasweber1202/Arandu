@@ -43,6 +43,7 @@ const name = require('node:path').basename(process.argv[1]);
 const args = process.argv.slice(2);
 fs.appendFileSync(tracePath, JSON.stringify({name,args,hostaddr:process.env.PGHOSTADDR,options:process.env.PGOPTIONS})+'\\n');
 if(args.includes('--version')) {console.log(name==='age'?'v1.2.1':name+' (PostgreSQL) '+(process.env.TEST_MAJOR||'17')+'.6');process.exit(0);}
+if(name==='psql'&&args.includes('-f')) {let input='';process.stdin.on('data',c=>{input+=c;if(input.includes('\\\\echo ')&&!input.includes('#answered')){input+='#answered';if(process.env.TEST_SNAPSHOT==='bad'){console.log('not-a-snapshot');}else{console.log('00000003-0000001B-1');console.log(JSON.stringify({'public.fin_rfqs':3,'auth.users':2}));}console.log('__ARANDU_SNAPSHOT_STEP__');}});process.stdin.on('end',()=>{fs.appendFileSync(tracePath,JSON.stringify({name:'psql-session',args:[],stdin:input})+'\\n');process.exit(input.includes('commit;')?0:1);});return;}
 if(name==='psql') {console.log(JSON.stringify({server_major:17,storage_objects:Number(process.env.TEST_OBJECTS||0),auth_users:0,mfa_factors:0}));process.exit(0);}
 if(name===process.env.TEST_FAIL) {console.error('private-fixture');process.exit(1);}
 if(name==='age') {let bytes=0;process.stdin.on('data',c=>bytes+=c.length);process.stdin.on('end',()=>{if(bytes && fs.existsSync(ageFailure))process.exit(1);process.stdout.write('age-encryption.org/v1\\n'+'ciphertext-fixture'.repeat(20));});}
@@ -70,7 +71,22 @@ try {
   const manifest=await exportRecovery({env,root});
   assert.equal(manifest.result,'exported_unverified');assert.equal(manifest.restore,'NOT RUN');
   assert.equal(manifest.conversion,'BLOCKED');assert.equal(manifest.files.length,2);
+  // Contagens e pg_dump no mesmo snapshot exportado, sessão read-only encerrada com commit.
+  assert.deepEqual(manifest.snapshot_counts,{'auth.users':2,'public.fin_rfqs':3});
+  assert.equal(manifest.snapshot,'exported_snapshot_shared_with_pg_dump');assert.match(manifest.snapshot_counts_sha256,/^[a-f0-9]{64}$/);
+  const traced=fs.readFileSync(trace,'utf8').trim().split('\n').map(JSON.parse);
+  assert(traced.find(c=>c.name==='pg_dump'&&!c.args.includes('--version')).args.includes('--snapshot=00000003-0000001B-1'));
+  const session=traced.find(c=>c.name==='psql-session');
+  assert.match(session.stdin,/begin isolation level repeatable read read only;/);assert.match(session.stdin,/pg_export_snapshot\(\)/);assert.match(session.stdin,/commit;/);assert(!session.stdin.includes('private-fixture'));
   assert(!JSON.stringify(manifest).includes('private-fixture'));
+  // Snapshot ilegível: export falha fechado e o manifest registra falha.
+  const before=new Set(fs.readdirSync(output));
+  await assert.rejects(exportRecovery({env:{...env,TEST_SNAPSHOT:'bad'},root}));
+  process.env.TEST_SNAPSHOT='';
+  const failedDir=fs.readdirSync(output).find(d=>!before.has(d));
+  const failedManifest=JSON.parse(fs.readFileSync(path.join(output,failedDir,'manifest.json'),'utf8'));
+  assert.equal(failedManifest.result,'failed');assert.equal(failedManifest.files.length,0);
+  fs.rmSync(path.join(output,failedDir),{recursive:true});
   const calls=fs.readFileSync(trace,'utf8').trim().split('\n').map(JSON.parse);
   assert(calls.every(c=>!JSON.stringify(c.args).includes('private-fixture')));
   assert(calls.every(c=>!c.hostaddr));

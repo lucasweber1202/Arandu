@@ -8,6 +8,8 @@ import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { exportRecovery } from './consolidation-export.mjs';
 import { digestFile } from '../lib/recovery-transfer.mjs';
+import { verifyRestore } from './consolidation-restore-verify.mjs';
+import { loopbackTarget } from '../lib/recovery-reconciliation.mjs';
 
 const dir = fs.mkdtempSync(path.join(tmpdir(),'arandu-real-recovery-'));
 fs.chmodSync(dir,0o700);
@@ -84,6 +86,11 @@ try {
   const backup=path.join(output,fs.readdirSync(output)[0]);
   assert.equal(manifest.classification,'synthetic_encrypted_export');assert.equal(manifest.project_ref,null);
   assert.equal(manifest.restore,'NOT RUN');
+  // Contagens tiradas no mesmo snapshot que o pg_dump importou.
+  assert.equal(manifest.snapshot,'exported_snapshot_shared_with_pg_dump');
+  assert.deepEqual(manifest.snapshot_counts,{'auth.mfa_factors':0,'auth.users':1,'public.child':2,'public.parent':2,'storage.buckets':1,'storage.objects':0,'supabase_migrations.schema_migrations':1});
+  const pgDumpSnapshot=fs.readFileSync(path.join(dir,'source.log'),'utf8');
+  assert(!/ERROR/.test(pgDumpSnapshot),'source cluster logged an error during snapshot export');
   for(const f of manifest.files)assert.deepEqual(await digestFile(path.join(backup,f.name)),{bytes:f.bytes,sha256:f.sha256});
   const cipher=path.join(backup,'database.dump.age');
   assert(!fs.readFileSync(cipher).includes(Buffer.from('synthetic-alpha')));
@@ -94,10 +101,37 @@ try {
   run('pg_restore',['--list'],{input:plain.stdout});
   const roles=run('age',['--decrypt','--identity',identity,path.join(backup,'roles.sql.age')]);
   assert(roles.includes('CREATE ROLE arandu_fixture_reader;'));assert(!/PASSWORD '/.test(roles));
+  const restoreEnv={...env,ARANDU_RESTORE_CONFIRM:'ARANDU-ISOLATED-RESTORE',ARANDU_RESTORE_BACKUP:backup,ARANDU_RESTORE_IDENTITY:identity,
+    ARANDU_RESTORE_TARGET_URL:'postgresql://postgres@127.0.0.1:55432/postgres?sslmode=disable'};
+  const code=(promise,expected)=>assert.rejects(promise,(e)=>e.code===expected);
+  // Fail-closed antes de qualquer descriptografia ou escrita no destino.
+  assert.throws(()=>loopbackTarget('postgresql://postgres:x@db.offgpyysgdhfemjlchod.supabase.co:5432/postgres'));
+  await assert.rejects(verifyRestore({root:process.cwd(),env:{...restoreEnv,ARANDU_RESTORE_TARGET_URL:'postgresql://postgres@10.0.0.5:5432/postgres'}}));
+  await assert.rejects(verifyRestore({root:process.cwd(),env:{...restoreEnv,ARANDU_RESTORE_CONFIRM:''}}));
+  fs.chmodSync(identity,0o644);await code(verifyRestore({root:process.cwd(),env:restoreEnv}),'invalid_input');fs.chmodSync(identity,0o600);
+  await code(verifyRestore({root:process.cwd(),env:{...restoreEnv,ARANDU_RESTORE_TARGET_URL:'postgresql://postgres@127.0.0.1:55431/postgres?sslmode=disable'}}),'target_not_empty');
+  const tampered=path.join(dir,'tampered');fs.cpSync(backup,tampered,{recursive:true});
+  const tamperedManifest=JSON.parse(fs.readFileSync(path.join(tampered,'manifest.json'),'utf8'));
+  fs.appendFileSync(path.join(tampered,'roles.sql.age'),'x');
+  await code(verifyRestore({root:process.cwd(),env:{...restoreEnv,ARANDU_RESTORE_BACKUP:tampered}}),'hash_mismatch');
+  fs.copyFileSync(path.join(backup,'roles.sql.age'),path.join(tampered,'roles.sql.age'));
+  tamperedManifest.snapshot_counts['public.parent']=3;fs.writeFileSync(path.join(tampered,'manifest.json'),JSON.stringify(tamperedManifest));
+  await code(verifyRestore({root:process.cwd(),env:{...restoreEnv,ARANDU_RESTORE_BACKUP:tampered}}),'invalid_manifest');
+  await code(verifyRestore({root:process.cwd(),env:{...restoreEnv,ARANDU_RESTORE_IDENTITY:wrong}}),'decrypt_failed');
+  // Role ausente no destino: restore em transação única aborta e reverte.
+  await code(verifyRestore({root:process.cwd(),env:restoreEnv}),'restore_failed');
+  assert.equal(sql(55432,"select count(*) from pg_tables where schemaname='public';").trim(),'0','restore abortado deixou objetos');
   // Explicit, reviewed role definition. Never blindly apply pg_dumpall roles.
   sql(55432,'CREATE ROLE arandu_fixture_reader NOSUPERUSER NOCREATEDB NOCREATEROLE NOLOGIN;');
-  // --clean applies ONLY to the new empty synthetic cluster initialized above.
-  run('pg_restore',['--exit-on-error','--single-transaction','--clean','--if-exists','--dbname=postgres'],{env:{...env,PGPORT:'55432'},input:plain.stdout});
+  const record=await verifyRestore({root:process.cwd(),env:restoreEnv});
+  assert.equal(record.reconciliation,'MATCH');assert.equal(record.tables,7);assert.equal(record.conversion,'BLOCKED');assert.equal(record.roles_file,'NOT APPLIED');
+  assert.equal(record.source_counts_sha256,record.target_counts_sha256);
+  const recordFile=fs.readdirSync(backup).find((f)=>f.startsWith('restore-verification-'));
+  assert.equal(fs.statSync(path.join(backup,recordFile)).mode&0o777,0o600);
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(backup,'manifest.json'),'utf8')),manifest,'manifest original alterado');
+  assert(!fs.readFileSync(path.join(backup,recordFile),'utf8').includes('synthetic-alpha'),'registro com conteúdo de dados');
+  // Destino agora tem dados: segunda verificação no mesmo cluster é recusada.
+  await code(verifyRestore({root:process.cwd(),env:restoreEnv}),'target_not_empty');
   const before=sql(55431,evidenceSql).trim(),after=sql(55432,evidenceSql).trim();
   assert.equal(after,before,'Data/schema/ACL/owners/RLS/defaults/Auth/Storage/migrations must match');
   assert.equal(sql(55432,'SET ROLE arandu_fixture_reader; SELECT count(*) FROM public.child;').trim().split('\n').at(-1),'1');
