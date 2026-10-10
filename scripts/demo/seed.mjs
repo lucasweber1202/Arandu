@@ -734,8 +734,12 @@ async function seedPortfolioAndFees() {
   const facility=(await post(people.juliana,'facilities',{organization_id:ctx.org,...input,provider_id:ctx.providerRow[provider],contract_id:ctx.contract[contract],starts_on:isoDate(starts),maturity_on:isoDate(maturity)})).id;
   await post(people.rafael,'facility-balances',{facility_id:facility,as_of:isoDate(-1),...balance});
   const fee=L().fees;
-  const {contract:feeContract,observation,...schedule}=fee;
+  const {contract:feeContract,observation,contractTerms,...schedule}=fee;
   const start=isoDate(-28),end=isoDate(-1);
+  // Contrato registrado pela decisão nasce sem termos (versão 0); a tarifa
+  // precisa citar uma versão de termos existente.
+  const current=(await api(people.juliana,'GET',`contracts?organization_id=${ctx.org}`)).rows?.find((row)=>row.id===ctx.contract[feeContract]);
+  if(!current?.current_version)await post(people.juliana,'contract-terms',{contract_id:ctx.contract[feeContract],expected_version:current?.current_version??0,...contractTerms});
   await post(people.juliana,'fees/schedules',{organization_id:ctx.org,contract_id:ctx.contract[feeContract],...schedule,effective_from:isoDate(-30)});
   const observed=(await post(people.rafael,'fees/observe',{organization_id:ctx.org,contract_id:ctx.contract[feeContract],service:fee.service,charging_unit:fee.charging_unit,currency:fee.currency,period_start:start,period_end:end,...observation})).id;
   await post(people.juliana,'fees/verify',{observation_id:observed,status:'verified',reason:'Extrato sintético e quantidade de terminais conferidos independentemente; diferença exige revisão humana.'});
