@@ -1,5 +1,38 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 11/10/2026 — Missão autônoma v3.3, lote A
+
+Baseline confirmada por GitHub/API: `15fe2b20bc0c3810be7032c43391c87ccc7fa375`,
+main protegida, sem PR aberta, CI `38144313278` com quatro gates success e
+merge-audit `38144313228` success. PRs #159–#161 integradas. D33-09/11/13
+recebem M2 somente para essa baseline; nenhuma promoção hospedada.
+
+Correções do lote A (M1 até CI próprio): facility usa `edit_profile`, como a
+RPC `fin_assert_portfolio_write` (admin/finance_manager/analyst); contrato,
+instituição, tarifa e renovação continuam admin/finance_manager. Papéis da UI
+centralizados em `lib/finance/permissions.mjs`, sem fallback permissivo para
+papel ausente ou capacidade desconhecida. Backend e grants não ampliados.
+Testes por papel, deep link e submissão em `finance-portfolio.spec.js`, recusa
+SQL de viewer, contrato unitário em `test-finance-command-center.mjs`.
+
+Índice de instituições declara o recorte carregado do overview: limites de
+200 instituições/contratos/RFQs, propostas submetidas não retiradas e convites
+só das RFQs presentes. Não afirma totais históricos nem ausência de contrato
+fora do recorte; contrato sem fim é “Vencimento não informado”. Primeiro valor
+não exige três instituições. Runbook corrigido para “Cadastrar instituições”.
+
+Vercel no SHA inicial: Production arandu ERROR `dpl_4rNFWhKTkM9ntbWXYzLbaxhgVwPY`;
+Demo READY `dpl_5kDPRD3hZBrF72j1PX87Upv2BbF3`; três previews READY.
+Build events retornaram 403 no escopo `lucas-projects467`; sem CLI autenticada,
+sem repetição ou browser. Atribuições ativas Demo/Production continuam vazias.
+READY não comprova Demo canônica nem M3/M4/M5. Nenhum dado/ambiente alterado.
+
+Validação local do lote A: `check:all`, `build`, `check:build-size`,
+`audit:ci` aprovados; E2E financeiro Chromium desktop/mobile **225 passed,
+7 skipped**, incluindo 64 testes direcionados aprovados. `test:database` não
+executável aqui (psql/Docker indisponíveis); nova asserção SQL aguarda CI.
+Firefox/WebKit e apresentação permanecem pendentes do CI deste HEAD.
+
 ## 11/10/2026 — Arandu 3.3: produto, design e prontidão comercial (lotes 1 e 2)
 
 Partiu de `main` @ `4271cca` (#158; `pilot` contida em `main`). Guideline v3.3 (§35) e
@@ -17,11 +50,11 @@ quatro gates verdes no HEAD exato da PR; antes disso, M1.
 | D33-06 | Início sem vazamento técnico | Performance/Spend/Covenants humanizados no servidor; feed com títulos e agrupamento; contagens viram atalhos; filtros em linha | — | P0 | implemented (M2 · CI #159 run 38138747566, HEAD 28aa8f5; merge 6c71ba6) | `lib/finance/executive-presenter.mjs`, `lib/api/domains/finance-executive.mjs`, `finance/src/views/{dashboard,executive,shared}.js`; `scripts/test-finance-executive.mjs` recusa UUID/enum/função/ISO | detalhe de covenants ainda mostra IDs (D33-11) | CI | — |
 | D33-07 | Design QA reprodutível | capturas autenticadas desktop/celular, overflow, falha em tela de erro, um login por persona | — | P1 | implemented (local) | `scripts/design/capture-surfaces.mjs` (`npm run design:capture`); 46 capturas antes/depois em `reports/design/` (fora do git) | depende da Demo local | CI com artefato | rodar no CI contra Demo efêmera |
 | D33-08 | Correção do site: título invisível | faixa escura com h2 tinta sobre tinta | — | P0 | implemented (M2 · CI #159 run 38138747566, HEAD 28aa8f5; merge 6c71ba6) | `financial-public.css`; guarda em `check-design-tokens.mjs` | — | CI | — |
-| D33-09 | Intake por objetivo | entrada "O que você precisa fazer?" no Início, por papel, levando aos fluxos existentes (crédito/adquirência pré-selecionados, `?acao=` abre o formulário de destino) | D33-05 | P1 | PARTIAL (lote 2, M1) | `lib/finance/intents.mjs`, `finance/src/views/intake.js`, `finance/app.js`, wizard `rfqs.js`; testes `test-finance-command-center.mjs` (fluxos existentes, permissão, lista fechada de ações) e E2E (gestor, leitor, ação inválida) | perguntas condicionais e conflito Passport ainda pelo wizard existente | CI | perguntas condicionais por objetivo; métrica de abandono |
+| D33-09 | Intake por objetivo | entrada "O que você precisa fazer?" no Início, por papel, levando aos fluxos existentes (crédito/adquirência pré-selecionados, `?acao=` abre o formulário de destino) | D33-05 | P1 | PARTIAL (lote 2 mergeado na #160; M2 no main `15fe2b20`, run `38144313278`; correções desta PR M1) | `lib/finance/intents.mjs`, `finance/src/views/intake.js`, `finance/app.js`, wizard `rfqs.js`; testes `test-finance-command-center.mjs` (fluxos existentes, permissão, lista fechada de ações) e E2E (gestor, leitor, ação inválida) | perguntas condicionais e conflito Passport ainda pelo wizard existente | CI | perguntas condicionais por objetivo; métrica de abandono |
 | D33-10 | Comparação profissional | agrupamento econômico, divergências, premissas, export | — | P1 | NOT_STARTED | comparação factual existente (P0) | — | lote D | — |
-| D33-11 | Relacionamento bancário integrado | visão por instituição sobre o Graph; detalhe de covenants sem IDs | — | P1 | PARTIAL (lote 2: detalhe de covenants com nomes; lote 3: lista de instituições vira índice de relacionamento — contratos vigentes, próximo vencimento, convites/propostas, ordem alfabética sem ranking; M1) | `lib/finance/covenant-presenter.mjs`, `lib/api/domains/finance-covenants.mjs`, `finance/src/views/company.js`; `test-finance-covenants.mjs` recusa UUID/ISO; captura 1440/390 px sem overflow | página de relacionamento por instituição (dívida, tarifas, covenants e performance juntos) pendente | CI | página integrada por instituição |
+| D33-11 | Relacionamento bancário integrado | visão por instituição sobre o Graph; detalhe de covenants sem IDs | — | P1 | PARTIAL (lote 2: detalhe de covenants com nomes; lote 3: lista de instituições vira índice de relacionamento — contratos vigentes, próximo vencimento, convites/propostas, ordem alfabética sem ranking; #160/#161 mergeadas, M2 no main `15fe2b20`, run `38144313278`; correções desta PR M1) | `lib/finance/covenant-presenter.mjs`, `lib/api/domains/finance-covenants.mjs`, `finance/src/views/company.js`; `test-finance-covenants.mjs` recusa UUID/ISO; captura 1440/390 px sem overflow | página de relacionamento por instituição (dívida, tarifas, covenants e performance juntos) pendente | CI | página integrada por instituição |
 | D33-12 | Portal do provedor | resposta de baixo atrito, estados, celular | — | P1 | NOT_STARTED | portal existente | — | lote F | — |
-| D33-13 | Site comercial redesenhado | homepage com narrativa de ciclo de vida, capturas reais da Demo rotuladas, escopo honesto; Plataforma em cinco áreas; ícones e OG com a marca nova | D33-04 | P1 | implemented (lote 2, M1) | `index.html`, `produto.html`, `financial-public.css`, `site/*.webp`, `scripts/design/capture-marketing.mjs` (só Demo local ou confirmação explícita), `financial-icon-*.png`, `financial-og.png` | claims (revisado contra §35.12) | CI; revisão humana do texto | páginas Crédito/Adquirência/Segurança no mesmo padrão |
+| D33-13 | Site comercial redesenhado | homepage com narrativa de ciclo de vida, capturas reais da Demo rotuladas, escopo honesto; Plataforma em cinco áreas; ícones e OG com a marca nova | D33-04 | P1 | implemented (lote 2 mergeado na #160; M2 no main `15fe2b20`, run `38144313278`) | `index.html`, `produto.html`, `financial-public.css`, `site/*.webp`, `scripts/design/capture-marketing.mjs` (só Demo local ou confirmação explícita), `financial-icon-*.png`, `financial-og.png` | claims (revisado contra §35.12) | CI; revisão humana do texto | páginas Crédito/Adquirência/Segurança no mesmo padrão |
 | D33-14 | Onboarding e métricas de ativação | primeiro valor, eventos mínimos sem PII | — | P1 | NOT_STARTED | — | telemetria/privacidade | decisão de ferramenta | — |
 | D33-15 | IA assistiva | só sobre objetos reais e infraestrutura autorizada | P1.4 | P2 | NOT_STARTED (sem fornecedor autorizado) | — | — | autorização de fornecedor | — |
 | D33-16 | Validação com usuários reais | sessões registradas | D33-05 | P1 | OWNER_ACTION_REQUIRED | — | — | recrutamento | — |
@@ -136,7 +169,7 @@ export real e restore isolado do mesmo backup, classificação e owner approval.
 Runbook: SUPABASE_ENCRYPTED_PRESERVATION.md. Não declarar M2 antes do CI exato.
 
 Documento vivo. É o **estado vivo** exigido pela Guideline v3 (§1.3): decompõe
-`docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md` (**v3.2, autoridade estratégica e operacional**)
+`docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md` (**v3.3, autoridade estratégica e operacional**)
 em capabilities e registra, por capability, escopo, maturity state (M0–M6),
 evidência, blockers, dependências, última validação, ambiente validado e próximo gate.
 Outra sessão deve conseguir continuar a partir daqui sem refazer a auditoria.
@@ -318,7 +351,8 @@ no Pilot; `E5` produção; `E6` uso por cliente.
 
 | Código | SHA | Evidência | Estado |
 | --- | --- | --- | --- |
-| `BL-803` | `0b2a53dbf1fef9ac70a7865af89030e966024009` | run `37834383887`, CI success; merge-audit `37834383878` success em 08/10 | **baseline atual M2/E2**; correções locais posteriores exigem seu próprio CI |
+| `BL-3.3` | `15fe2b20bc0c3810be7032c43391c87ccc7fa375` | run `38144313278`: database/deploy-boundaries/validate/presentation success; merge-audit `38144313228` success em 11/10 | **baseline atual M2/E2**; alterações posteriores exigem CI próprio; sem M3+ |
+| `BL-803` | `0b2a53dbf1fef9ac70a7865af89030e966024009` | run `37834383887`, CI success; merge-audit `37834383878` success em 08/10 | **baseline histórica M2/E2**; superseded por BL-3.3 |
 | `BL-799` | `296b0357383e09a49348307b2921b3cf496c589b` | run `37677370704`, quatro gates success; merge-audit `37677370697` success em 07/10 | **baseline histórica M2/E2**; hosted/recovery pendentes |
 | `BL-794` | `477ad8be5b95733e8ac97aa3a6f3e1c6a2e54d62` | run `37664210563`, quatro gates success em 07/10 | **baseline histórica CI-validada**; incidente de merge separado; hosted/recovery pendentes |
 | `BL-125` | `e2212af5a49707cf9ecd44b3384a2eaccf270756` (HEAD da #125, contém tudo até #124) | run `37258668278`: quatro gates success em 05/10 | **superseded** pela BL-V3 |

@@ -281,6 +281,16 @@ test('leitor não recebe ações de criação na entrada por objetivo', async ({
   await expect(page.getByRole('dialog')).toHaveCount(0);
 });
 
+test('índice de instituições declara recorte e distingue vencimento ausente', async ({ page }) => {
+  await mockSession(page, { data: overview({ providers: [{ id: 'x1', name: 'Banco Um', kind: 'bank' }], contracts: [{ id: 'c1', provider_id: 'x1', status: 'active', ends_on: null }] }) });
+  await page.goto('/finance/providers.html');
+  await expect(page.getByRole('note')).toContainText('Contagens e vencimentos não representam o histórico completo');
+  await expect(page.getByRole('columnheader', { name: 'Contratos vigentes carregados' })).toBeVisible();
+  await expect(page.locator('#provider-x1')).toContainText('Vencimento não informado');
+  await expect(page.locator('#provider-x1')).not.toContainText('Sem contrato vigente');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+});
+
 test('conflito de rascunho entre abas é explicado e para de salvar', async ({ page }) => {
   await mockSession(page, { editor: { patchStatus: 409 } });
   await page.goto('/finance/new-rfq.html');

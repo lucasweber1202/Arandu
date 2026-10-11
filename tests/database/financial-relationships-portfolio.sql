@@ -145,6 +145,7 @@ exception when others then if sqlerrm <> 'immutable record' then raise; end if; 
 -- 4. Viewer não escreve; outro tenant e provedor não leem.
 set role authenticated;
 select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-0000000aa003',false);
+select pg_temp.expect_error($q$select public.fin_save_facility('00000000-0000-4000-8000-0000000ab001',null,null,'00000000-0000-4000-8000-0000000ab010','term_loan','Viewer cria limite','BRL',1000)$q$, 'forbidden');
 select pg_temp.expect_error($q$select public.fin_add_provider_contact('00000000-0000-4000-8000-0000000ab001','00000000-0000-4000-8000-0000000ab010','Viewer escreve',null,null,null,null,false)$q$, 'forbidden');
 select pg_temp.expect_error($q$select public.fin_record_facility_balance((select value from rp_ids where key='fac_a'), current_date, null, 1, 'declared', null)$q$, 'facility not found');
 select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-0000000aa004',false);

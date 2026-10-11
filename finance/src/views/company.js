@@ -235,7 +235,7 @@ export async function providers(ctx) {
   const manage = ctx.can('create_rfq');
   const add = manage ? button('Cadastrar instituição', { variant: 'primary', iconName: 'plus', attrs: { 'data-intent': 'cadastrar-instituicao' }, onClick: () => providerDrawer(ctx) }) : null;
   ctx.header({ title: 'Instituições', subtitle: 'Bancos, fintechs e adquirentes com quem a empresa se relaciona: contratos, vencimentos e processos de cada uma. É um cadastro da empresa, não uma atestação.', actions: add ? [add] : [] });
-  if (!rows.length) return emptyState({ title: 'Nenhum provedor cadastrado', text: 'Cadastre ao menos três instituições para ter o que comparar.', iconName: 'building', action: add ? button('Cadastrar o primeiro provedor', { variant: 'primary', iconName: 'plus', onClick: () => providerDrawer(ctx) }) : null });
+  if (!rows.length) return emptyState({ title: 'Nenhuma instituição cadastrada', text: 'Registre a primeira instituição para organizar o relacionamento e as condições existentes.', iconName: 'building', action: add ? button('Cadastrar instituição', { variant: 'primary', iconName: 'plus', onClick: () => providerDrawer(ctx) }) : null });
   // Índice de relacionamento: fatos do histórico da própria empresa, em ordem alfabética (nada de ranking).
   const participation = new Map();
   const proposalsBy = new Map();
@@ -254,7 +254,7 @@ export async function providers(ctx) {
   const search = el('input', { type: 'search', class: 'input', placeholder: 'Buscar por nome, tipo ou região', 'aria-label': 'Buscar provedor' });
   const count = el('span', { class: 'result-count', role: 'status', 'aria-live': 'polite' });
   const table = el('table', { class: 'data-table' });
-  table.append(el('thead', {}, el('tr', {}, ['Instituição', 'Tipo e região', 'Contratos vigentes', 'Próximo vencimento', 'Processos', 'Verificação'].map((label) => el('th', { scope: 'col', text: label })))));
+  table.append(el('thead', {}, el('tr', {}, ['Instituição', 'Tipo e região', 'Contratos vigentes carregados', 'Próximo vencimento carregado', 'Processos carregados', 'Verificação'].map((label) => el('th', { scope: 'col', text: label })))));
   const body = el('tbody');
   table.append(body);
   const draw = () => {
@@ -269,7 +269,7 @@ export async function providers(ctx) {
         el('td', { 'data-label': 'Contratos vigentes', class: 'num', text: String((liveContracts.get(provider.id) || []).length) }),
         el('td', { 'data-label': 'Próximo vencimento' }, (() => {
           const next = (liveContracts.get(provider.id) || []).map((contract) => contract.ends_on).filter(Boolean).sort()[0];
-          return next ? [el('span', { text: formatDate(next) }), el('span', { class: 'cell-sub muted small', text: relativeDays(next) })] : el('span', { class: 'muted', text: 'Sem contrato vigente' });
+          return next ? [el('span', { text: formatDate(next) }), el('span', { class: 'cell-sub muted small', text: relativeDays(next) })] : el('span', { class: 'muted', text: (liveContracts.get(provider.id) || []).length ? 'Vencimento não informado' : 'Nenhum no recorte carregado' });
         })()),
         el('td', { 'data-label': 'Processos', text: `${plural(participation.get(provider.id) || 0, 'convite', 'convites')} · ${plural(proposalsBy.get(provider.id) || 0, 'proposta', 'propostas')}` }),
         el('td', { 'data-label': 'Verificação' }, provider.verification_state === 'EVIDENCIA_REGISTRADA'
@@ -281,7 +281,10 @@ export async function providers(ctx) {
   };
   search.addEventListener('input', draw);
   draw();
-  return el('div', { class: 'list-page' }, [el('div', { class: 'toolbar' }, [el('div', { class: 'toolbar-search' }, [icon('search'), search]), count]), el('div', { class: 'table-card' }, table)]);
+  return el('div', { class: 'list-page' }, [
+    el('p', { class: 'callout callout-info compact', role: 'note', text: 'Recorte dos registros carregados e autorizados: até 200 instituições, 200 contratos e 200 solicitações recentes. Convites e propostas se referem a essas solicitações; rascunhos e propostas retiradas não contam. Contagens e vencimentos não representam o histórico completo.' }),
+    el('div', { class: 'toolbar' }, [el('div', { class: 'toolbar-search' }, [icon('search'), search]), count]), el('div', { class: 'table-card' }, table)
+  ]);
 }
 
 function providerDrawer(ctx) {

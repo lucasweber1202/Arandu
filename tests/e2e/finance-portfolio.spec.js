@@ -42,7 +42,7 @@ const RELATIONSHIP = {
   neutrality: 'Fatos do histórico da sua empresa e avaliações definidas por ela. O Arandu não classifica nem recomenda instituições.'
 };
 
-async function mockSession(page) {
+async function mockSession(page, role = 'finance_manager') {
   const calls = [];
   await page.route('**/api/finance/**', async (route) => {
     const request = route.request();
@@ -54,7 +54,7 @@ async function mockSession(page) {
     if (path === 'organizations') return json({ ok: true, rows: [{ id: ORG, kind: 'BUYER', legal_name: 'Grupo Vitta' }] });
     if (path === 'overview') return json({ ok: true, organization: { id: ORG, kind: 'BUYER', legal_name: 'Grupo Vitta' }, profile: [], tasks: [], rfqs: [], contracts: [],
       providers: [{ id: PROVIDER, name: 'Banco Um', kind: 'bank', status: 'active' }] });
-    if (path === 'members') return json({ ok: true, rows: [{ user_id: 'u1', role: 'finance_manager', display_name: 'Paula Nogueira' }], viewer_id: 'u1' });
+    if (path === 'members') return json({ ok: true, rows: [{ user_id: 'u1', role, display_name: 'Paula Nogueira' }], viewer_id: 'u1' });
     if (path === 'entities') return json({ ok: true, rows: [], scope: 'group', can_admin: false, base_currency: 'BRL' });
     if (path === 'portfolio') return json(PORTFOLIO);
     if (path === 'provider-relationship') return json(RELATIONSHIP);
@@ -64,6 +64,35 @@ async function mockSession(page) {
     return json({ ok: false }, 404);
   });
   return calls;
+}
+
+for (const role of ['admin', 'finance_manager', 'analyst', 'approver', 'viewer']) {
+  test(`intake facility alcança a ação final conforme o papel: ${role}`, async ({ page }) => {
+    const calls = await mockSession(page, role);
+    const allowed = ['admin', 'finance_manager', 'analyst'].includes(role);
+    await page.goto('/finance/dashboard.html');
+    await page.getByRole('button', { name: 'Começar' }).click();
+    const entry = page.getByRole('dialog').getByRole('link', { name: /Registrar facility ou limite/ });
+    if (allowed) await entry.click();
+    else {
+      await expect(entry).toHaveCount(0);
+      await page.goto('/finance/portfolio.html?acao=registrar-facility');
+    }
+    const dialog = page.getByRole('dialog', { name: 'Registrar facility', exact: true });
+    if (!allowed) {
+      await expect(dialog).toHaveCount(0);
+      await expect(page.locator('[data-intent="registrar-facility"]')).toHaveCount(0);
+      expect(calls.some((call) => call.method === 'POST')).toBe(false);
+      return;
+    }
+    await expect(dialog).toBeVisible();
+    await dialog.getByLabel(/^Nome/).fill('Limite existente');
+    await dialog.getByLabel('Limite aprovado').fill('100000');
+    await dialog.getByRole('button', { name: 'Registrar', exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+    expect(calls.find((call) => call.path === 'facilities' && call.method === 'POST').body).toMatchObject({ organization_id: ORG, name: 'Limite existente', approved_limit: '100000' });
+    await noHorizontalOverflow(page);
+  });
 }
 
 async function noHorizontalOverflow(page) {
