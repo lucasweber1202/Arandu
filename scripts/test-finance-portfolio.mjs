@@ -131,10 +131,19 @@ reset((entry) => buyer(entry)
   ?? (entry.url.includes('fin_providers?select=id,name,kind') ? [{ id: PROVIDER, name: 'Banco Um' }]
     : entry.url.includes('fin_rfq_invites') ? [{ id: 'i1', rfq_id: 'r1', created_at: '2026-09-01T00:00:00Z' }]
       : entry.url.includes('fin_proposals') ? [{ id: '00000000-0000-4000-8000-0000000000e1', invite_id: 'i1', current_version: 1 }]
-        : entry.url.includes('fin_proposal_versions') ? [{ proposal_id: '00000000-0000-4000-8000-0000000000e1', submitted_at: '2026-09-03T00:00:00Z' }] : []));
+        : entry.url.includes('fin_proposal_versions') ? [{ proposal_id: '00000000-0000-4000-8000-0000000000e1', submitted_at: '2026-09-03T00:00:00Z' }]
+          : entry.url.includes('fin_events?') ? [{ event_type: 'provider_contact_added', happened_at: '2026-09-04T00:00:00Z' }] : []));
 {
   const res = await call('GET', 'provider-relationship', { url: `/api/finance/provider-relationship?organization_id=${ORG}&provider_id=${PROVIDER}` });
   assert.equal(res.payload.metrics.response_rate, 100);
+  assert.ok(res.payload.timeline.some(row => row.text === 'Contato adicionado'));
+  assert.ok(res.payload.timeline.every(row => !row.text.includes('provider_contact_added')));
+  assert.equal(res.payload.coverage.partial, true);
+  assert.equal(res.payload.coverage.limits.contracts, 200);
+  assert.equal(res.payload.invites.length, 1);
+  assert.ok(Array.isArray(res.payload.rfqs));
+  assert.ok(sent.find(entry => entry.url.includes('fin_rfqs?')).url.includes(`organization_id=eq.${ORG}`));
+  assert.ok(sent.find(entry => entry.url.includes('fin_rfqs?')).url.includes('id=in.'));
   assert.equal(res.payload.metrics.median_response_days, 2);
   assert.match(res.payload.neutrality, /não classifica nem recomenda/);
   for (const entry of sent.filter((item) => /fin_provider_|fin_rfq_invites|fin_proposals\?|fin_contracts|fin_facilities/.test(item.url))) {

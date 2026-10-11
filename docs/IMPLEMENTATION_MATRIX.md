@@ -1,8 +1,42 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 11/10/2026 — Relacionamento contextual por instituição (D33-11, lote C)
+
+Base: `main` @ `7b16978` (#163). M1 até CI próprio. Evolui o painel existente,
+sem segundo cadastro ou nova rota de API. `provider-relationship` entrega
+solicitações vinculadas aos convites/propostas, fotografias de saldo com data e
+referência, e limites de cobertura. Leituras mantêm JWT/RLS, organização e
+instituição; instituição invisível é recusada antes das consultas relacionadas.
+
+`relationship-context.js` apresenta contratos ativos/encerrados, facilities e
+limites sem somar moedas, saldos históricos ou ausência explícita, solicitações,
+convites/propostas submetidas e atalhos autorizados a tarifas, covenants,
+renovações, qualificação, performance e spend. Garantias/documentos e outros
+objetos usam a consulta paginada do Financial Graph, sob demanda. O painel declara
+que os indicadores antigos também representam o recorte; não declara histórico
+completo ou saldo atual. Preserva scorecards e avaliação humana existentes.
+
+`providers.html?provider_id=` abre a instituição do escopo carregado; fechar limpa
+o contexto da URL. Contrato e facility apontam para rotas existentes. Link contextual de contrato (`?abrir=contrato#contract-…`) abre termos e versões;
+as âncoras antigas preservam o comportamento de foco. Fora do overview consulta o endpoint
+existente e confere organização/entidade antes de mostrar. Destino da facility
+recebe foco após carregamento. Papéis leitores não ganham ações de
+escrita. Graph humaniza estados em vez de mostrar enums técnicos. Primeiro registro de
+facility sem instituição disponível explica o pré-requisito e só oferece
+cadastro para quem já pode fazê-lo. Edição preserva a instituição autorizada
+da própria facility quando ela está fora do índice carregado. Sem grants novos.
+
+Checks, testes de API/escopo e E2E local de desktop/mobile aprovados antes do
+push; evidência final na PR. Demo canônica local não disponível sem Docker;
+nenhuma validação hospedada ou promoção a M3/M4/M5. Ainda parcial: conteúdo de
+documentos, condições efetivas e cada obrigação são consultados nas jornadas
+originais; não agregados como se fossem verificados nesta tela.
+
 ## 11/10/2026 — Comparação financeira contextual (D33-10, lote B)
 
-Base: `main` @ `d0ba642` (#162). M1 até os quatro gates próprios. A matriz
+PR #163 mergeada em `7b16978`. M2 comprovado no HEAD `f5254afdd9f0b8d41e4dbf49f2506d0caf2f0445`: CI `38155196792`, quatro gates aprovados e merge audit aprovado. Sem validação hospedada.
+
+Base de implementação: `main` @ `d0ba642` (#162). M2 confirmado acima. A matriz
 existente usa grupos econômicos por produto, filtros de diferenças/pendências/
 alterações, resumo/detalhe e consulta da versão imediatamente anterior quando
 ela foi efetivamente carregada. Desktop mantém colunas alinhadas; mobile mantém
@@ -40,6 +74,7 @@ legado mantém a compatibilidade do fluxo compartilhado, sem novo motor/API.
 Limitações: só a versão imediatamente anterior carregada; propostas/versões têm
 limites declarados; revisão documental continua humana. Validação com usuários,
 Demo hospedada e M3/M4/M5 pendentes. Bundle não teve orçamento aumentado.
+
 
 ## 11/10/2026 — Missão autônoma v3.3, lote A
 
@@ -92,11 +127,12 @@ quatro gates verdes no HEAD exato da PR; antes disso, M1.
 | D33-07 | Design QA reprodutível | capturas autenticadas desktop/celular, overflow, falha em tela de erro, um login por persona | — | P1 | implemented (local) | `scripts/design/capture-surfaces.mjs` (`npm run design:capture`); 46 capturas antes/depois em `reports/design/` (fora do git) | depende da Demo local | CI com artefato | rodar no CI contra Demo efêmera |
 | D33-08 | Correção do site: título invisível | faixa escura com h2 tinta sobre tinta | — | P0 | implemented (M2 · CI #159 run 38138747566, HEAD 28aa8f5; merge 6c71ba6) | `financial-public.css`; guarda em `check-design-tokens.mjs` | — | CI | — |
 | D33-09 | Intake por objetivo | entrada "O que você precisa fazer?" no Início, por papel, levando aos fluxos existentes (crédito/adquirência pré-selecionados, `?acao=` abre o formulário de destino) | D33-05 | P1 | PARTIAL (lote 2 mergeado na #160; M2 no main `15fe2b20`, run `38144313278`; correções #162 M2 · `b1b1e699`, CI `38153272028`) | `lib/finance/intents.mjs`, `finance/src/views/intake.js`, `finance/app.js`, wizard `rfqs.js`; testes `test-finance-command-center.mjs` (fluxos existentes, permissão, lista fechada de ações) e E2E (gestor, leitor, ação inválida) | perguntas condicionais e conflito Passport ainda pelo wizard existente | CI | perguntas condicionais por objetivo; métrica de abandono |
-| D33-10 | Comparação profissional | grupos econômicos, diferenças, pendências, versões, premissas, origem e export | — | P1 | PARTIAL (lote B, M1 até CI próprio) | `comparison-context.mjs`, `comparison.mjs`, `finance.mjs`, `shared.js`, `rfq.js`; domínio/API/E2E | histórico completo e vínculo de evidência por campo pendentes | quatro gates no HEAD próprio; usuários reais | validar a jornada na Demo canônica/hospedada |
-| D33-11 | Relacionamento bancário integrado | visão por instituição sobre o Graph; detalhe de covenants sem IDs | — | P1 | PARTIAL (lote 2: detalhe de covenants com nomes; lote 3: lista de instituições vira índice de relacionamento — contratos vigentes, próximo vencimento, convites/propostas, ordem alfabética sem ranking; #160/#161 mergeadas, M2 no main `15fe2b20`, run `38144313278`; correções #162 M2 · `b1b1e699`, CI `38153272028`) | `lib/finance/covenant-presenter.mjs`, `lib/api/domains/finance-covenants.mjs`, `finance/src/views/company.js`; `test-finance-covenants.mjs` recusa UUID/ISO; captura 1440/390 px sem overflow | página de relacionamento por instituição (dívida, tarifas, covenants e performance juntos) pendente | CI | página integrada por instituição |
+| D33-10 | Comparação profissional | grupos econômicos, diferenças, pendências, versões, premissas, origem e export | — | P1 | PARTIAL (lote B M2 · #163 mergeada; HEAD `f5254afd`, CI `38155196792`, quatro gates aprovados) | `comparison-context.mjs`, `comparison.mjs`, `finance.mjs`, `shared.js`, `rfq.js`; domínio/API/E2E | histórico completo e vínculo de evidência por campo pendentes | quatro gates no HEAD próprio; usuários reais | validar a jornada na Demo canônica/hospedada |
+| D33-11 | Relacionamento bancário integrado | visão por instituição sobre o Graph; detalhe de covenants sem IDs | — | P1 | PARTIAL (lote 2: detalhe de covenants com nomes; lote 3: lista de instituições vira índice de relacionamento — contratos vigentes, próximo vencimento, convites/propostas, ordem alfabética sem ranking; #160/#161 mergeadas, M2 no main `15fe2b20`, run `38144313278`; correções #162 M2 · `b1b1e699`, CI `38153272028`; painel contextual deste lote M1) | `lib/finance/covenant-presenter.mjs`, `lib/api/domains/finance-covenants.mjs`, `finance/src/views/company.js`; `test-finance-covenants.mjs` recusa UUID/ISO; captura 1440/390 px sem overflow | histórico completo, documentos e revisão humana nas jornadas originais | CI | CI do painel contextual; validação com usuários |
+
 | D33-12 | Portal do provedor | resposta de baixo atrito, estados, celular | — | P1 | NOT_STARTED | portal existente | — | lote F | — |
 | D33-13 | Site comercial redesenhado | homepage com narrativa de ciclo de vida, capturas reais da Demo rotuladas, escopo honesto; Plataforma em cinco áreas; ícones e OG com a marca nova | D33-04 | P1 | implemented (lote 2 mergeado na #160; M2 no main `15fe2b20`, run `38144313278`) | `index.html`, `produto.html`, `financial-public.css`, `site/*.webp`, `scripts/design/capture-marketing.mjs` (só Demo local ou confirmação explícita), `financial-icon-*.png`, `financial-og.png` | claims (revisado contra §35.12) | CI; revisão humana do texto | páginas Crédito/Adquirência/Segurança no mesmo padrão |
-| D33-14 | Onboarding e métricas de ativação | primeiro valor, eventos mínimos sem PII | — | P1 | NOT_STARTED | — | telemetria/privacidade | decisão de ferramenta | — |
+| D33-14 | Onboarding e métricas de ativação | primeiro valor, eventos mínimos sem PII | — | P1 | PARTIAL (lote C: pré-requisito de instituição para primeiro registro de facility; M1 até CI próprio) | `portfolio.js`; E2E gestor/analista e instituição fora do índice | métricas não implementadas; sem novo fornecedor ou transmissão de dados | CI do lote; validação com usuários | continuidade e ativação com telemetria existente |
 | D33-15 | IA assistiva | só sobre objetos reais e infraestrutura autorizada | P1.4 | P2 | NOT_STARTED (sem fornecedor autorizado) | — | — | autorização de fornecedor | — |
 | D33-16 | Validação com usuários reais | sessões registradas | D33-05 | P1 | OWNER_ACTION_REQUIRED | — | — | recrutamento | — |
 

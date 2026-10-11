@@ -7,6 +7,7 @@ import { test, expect } from '@playwright/test';
 
 const ORG = '00000000-0000-4000-8000-0000000000a1';
 const PROVIDER = '00000000-0000-4000-8000-0000000000e1';
+const CONTRACT = '00000000-0000-4000-8000-000000000008';
 const FACILITY = '00000000-0000-4000-8000-0000000000f1';
 const DEFINITIONS = { approved_limit: 'Soma dos limites aprovados.', used_limit: 'Uso.', available_limit: 'Aprovado menos uso.', outstanding: 'Saldo.', maturity_wall: 'Principal a vencer por ano.',
   indexer_mix: 'Participação de cada indexador.', provider_concentration: 'Participação de cada provedor. É fato registrado, não avaliação.', refinancing_window: 'Vencimento no horizonte.', committed_guarantees: 'Garantias ativas.', review_due: 'Revisão.' };
@@ -35,14 +36,15 @@ const RELATIONSHIP = {
   relationships: [], issues: [{ id: 'i1', title: 'Tarifa em duplicidade', category: 'billing', severity: 'high', status: 'open', opened_on: '2026-09-20' }],
   reviews: [{ id: 'r1', template_id: 't1', period_start: '2026-01-01', period_end: '2026-06-30', weighted_result: '80.000', answered_weight: '60.000' }],
   templates: [{ id: 't1', name: 'Relacionamento bancário', version: 1, criteria: [{ key: 'atendimento', label: 'Atendimento', weight: 60, scale_max: 5 }, { key: 'prazo', label: 'Prazo', weight: 40, scale_max: 5 }] }],
-  contracts: [], facilities: [], map: [],
+  contracts: [{ id: CONTRACT, title: 'Contrato de crédito', status: 'active', ends_on: null }], facilities: [{ id: FACILITY, name: 'Limite sem saldo', kind: 'revolving_credit', currency: 'BRL', approved_limit: 100000 }], map: [],
+  rfqs: [{ id: '00000000-0000-4000-8000-000000000009', title: 'Renegociação de crédito', status: 'comparing' }], invites: [], proposals: [], balances: [],
   metrics: { invited: 3, responded: 2, response_rate: 66.67, median_response_days: 3, proposals: 2, active_contracts: 1, active_facilities: 1, open_issues: 1, median_resolution_days: null,
     definitions: { response_rate: 'Respondidos ÷ convidados. Fato do histórico, não nota.', responded: 'Convites com proposta.', median_response_days: 'Mediana.', active_contracts: 'Ativos.', open_issues: 'Abertas.', median_resolution_days: 'Mediana.', review: 'Avaliação conforme critérios e pesos definidos pela sua empresa. O Arandu não atribui nota própria a instituições.' } },
   timeline: [{ at: '2026-09-20T10:00:00Z', kind: 'issue', text: 'Issue aberta: Tarifa em duplicidade' }],
   neutrality: 'Fatos do histórico da sua empresa e avaliações definidas por ela. O Arandu não classifica nem recomenda instituições.'
 };
 
-async function mockSession(page, role = 'finance_manager') {
+async function mockSession(page, role = 'finance_manager', { providers = [{ id: PROVIDER, name: 'Banco Um', kind: 'bank', status: 'active' }] } = {}) {
   const calls = [];
   await page.route('**/api/finance/**', async (route) => {
     const request = route.request();
@@ -53,7 +55,7 @@ async function mockSession(page, role = 'finance_manager') {
     const json = (payload, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(payload) });
     if (path === 'organizations') return json({ ok: true, rows: [{ id: ORG, kind: 'BUYER', legal_name: 'Grupo Vitta' }] });
     if (path === 'overview') return json({ ok: true, organization: { id: ORG, kind: 'BUYER', legal_name: 'Grupo Vitta' }, profile: [], tasks: [], rfqs: [], contracts: [],
-      providers: [{ id: PROVIDER, name: 'Banco Um', kind: 'bank', status: 'active' }] });
+      providers });
     if (path === 'members') return json({ ok: true, rows: [{ user_id: 'u1', role, display_name: 'Paula Nogueira' }], viewer_id: 'u1' });
     if (path === 'entities') return json({ ok: true, rows: [], scope: 'group', can_admin: false, base_currency: 'BRL' });
     if (path === 'portfolio') return json(PORTFOLIO);
@@ -150,4 +152,66 @@ test('relacionamento com provedor: fatos, neutralidade e avaliação do cliente'
   await panel.getByRole('button', { name: 'Registrar avaliação' }).click();
   await expect.poll(() => calls.find((call) => call.path === 'provider-reviews')?.body).toMatchObject({ provider_id: PROVIDER, template_id: 't1', scores: { atendimento: 4 }, period_start: '2026-07-01' });
   await noHorizontalOverflow(page);
+});
+
+
+test('instituição: deep link reúne contratos, limites, processos e pendências sem zeros inventados', async ({ page }, testInfo) => {
+  await mockSession(page, 'viewer');
+  await page.goto(`/finance/providers.html?provider_id=${PROVIDER}`);
+  const dialog = page.getByRole('dialog', { name: 'Banco Um' });
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText('não o histórico completo');
+  await expect(dialog).toContainText('Saldo e utilização não registrados');
+  await expect(dialog.getByRole('link', { name: 'Contrato de crédito' })).toHaveAttribute('href', `/finance/contracts.html?abrir=contrato#contract-${CONTRACT}`);
+  await expect(dialog.getByRole('link', { name: 'Limite sem saldo' })).toHaveAttribute('href', `/finance/portfolio.html#facility-${FACILITY}`);
+  await expect(dialog.getByRole('link', { name: 'Renegociação de crédito' })).toHaveAttribute('href', /finance\/rfq.html\?id=/);
+  await expect(dialog.getByRole('link', { name: 'Obrigações e covenants' })).toHaveAttribute('href', `/finance/covenants.html?provider_id=${PROVIDER}`);
+  await expect(dialog.getByRole('button', { name: 'Adicionar contato' })).toHaveCount(0);
+  await expect(dialog.getByRole('button', { name: 'Registrar avaliação' })).toHaveCount(0);
+  await noHorizontalOverflow(page);
+  await testInfo.attach('instituicao-contextual-sintetica', { body: await page.screenshot(), contentType: 'image/png' });
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+  await expect(page).not.toHaveURL(/provider_id=/);
+});
+
+test('instituição de outro escopo em deep link não abre relacionamento', async ({ page }) => {
+  const calls = await mockSession(page);
+  await page.goto('/finance/providers.html?provider_id=00000000-0000-4000-8000-000000000099');
+  await expect(page.getByText('Instituição indisponível no seu escopo carregado.')).toBeVisible();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  expect(calls.some(call => call.path === 'provider-relationship')).toBe(false);
+});
+
+test('facility de origem contextual recebe foco no destino autorizado', async ({ page }) => {
+  await mockSession(page);
+  await page.goto(`/finance/portfolio.html#facility-${FACILITY}`);
+  await expect(page.locator(`[id="facility-${FACILITY}"]`)).toBeFocused();
+  await noHorizontalOverflow(page);
+});
+
+
+for (const role of ['finance_manager', 'analyst']) test(`primeiro registro sem instituição explica o pré-requisito para ${role}`, async ({ page }) => {
+  const calls = await mockSession(page, role, { providers: [] });
+  await page.goto('/finance/portfolio.html?acao=registrar-facility');
+  const dialog = page.getByRole('dialog', { name: 'Instituição necessária' });
+  await expect(dialog).toBeVisible();
+  await expect(page.locator('#facility-form')).toHaveCount(0);
+  if (role === 'finance_manager') {
+    await dialog.getByRole('link', { name: 'Cadastrar instituição' }).click();
+    const institution = page.getByRole('dialog', { name: 'Cadastrar instituição' });
+    await expect(institution).toBeVisible();
+    await expect(institution.getByLabel(/^Nome/)).toBeVisible();
+  } else {
+    await expect(dialog).toContainText('pessoa administradora ou gestora financeira');
+    await expect(dialog.getByRole('link', { name: 'Cadastrar instituição' })).toHaveCount(0);
+  }
+  expect(calls.some(call => call.path === 'facilities' && call.method === 'POST')).toBe(false);
+});
+
+test('edição reutiliza instituição da própria facility fora do índice carregado', async ({ page }) => {
+  await mockSession(page, 'analyst', { providers: [] });
+  await page.goto('/finance/portfolio.html');
+  await page.locator('.facility-table').getByRole('button', { name: 'Editar', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Editar facility' }).getByLabel('Provedor')).toHaveValue(PROVIDER);
 });

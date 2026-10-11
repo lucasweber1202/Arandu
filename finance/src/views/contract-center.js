@@ -123,9 +123,9 @@ export function importContractButton(ctx, entities) {
 }
 
 /** Painel do contrato: termos, versões, aditivos, marcos e contratos filhos. */
-export function openContract(ctx, contract) {
+export function openContract(ctx, contract, { initialDetail = null } = {}) {
   const body = el('div', { class: 'stack contract-center' }, loading('Carregando contrato…'));
-  const dialog = drawer({ title: contract.title || contract.provider_name || 'Contrato', subtitle: `${CONTRACT_CATEGORIES[contract.product] || contract.product} · ${formatDate(contract.starts_on)} → ${formatDate(contract.ends_on)}`, body, className: 'drawer-wide' });
+  const dialog = drawer({ title: contract.title || contract.provider_name || 'Contrato', subtitle: `${CONTRACT_CATEGORIES[contract.product] || contract.product} · ${formatDate(contract.starts_on)} → ${formatDate(contract.ends_on)}`, body, className: 'drawer-wide', onClose: () => { const url = new URL(location.href); if (url.searchParams.get('abrir') === 'contrato' && location.hash === `#contract-${contract.id}`) { url.searchParams.delete('abrir'); history.replaceState(null, '', url.pathname + url.search); } } });
   const manage = ctx.can('create_rfq');
   const load = () => ctx.api(`contract-detail?id=${encodeURIComponent(contract.id)}`).then((detail) => body.replaceChildren(...render(detail)))
     .catch((error) => body.replaceChildren(errorState({ error, onRetry: load })));
@@ -274,7 +274,8 @@ export function openContract(ctx, contract) {
     } catch (error) { toast(error.message, 'error'); }
   }
 
-  load();
+  if (initialDetail) body.replaceChildren(...render(initialDetail));
+  else load();
   return dialog;
 }
 
