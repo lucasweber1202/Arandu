@@ -127,6 +127,7 @@ apply_file "$clean_db" "tests/database/financial-covenants.sql"
 apply_file "$clean_db" "tests/database/financial-provider-performance.sql"
 apply_file "$clean_db" "tests/database/financial-spend-intelligence.sql"
 apply_file "$clean_db" "tests/database/financial-opportunity-discriminator.sql"
+apply_file "$clean_db" "tests/database/financial-demo-workspaces.sql"
 apply_file "$clean_db" "ops/sql/pilot-isolation-canary.sql"
 apply_file "$clean_db" "ops/sql/post-migration-probes.sql"
 
@@ -387,6 +388,7 @@ apply_file "$upgrade_db" "docs/supabase-financial-p0-closure.sql"
 while IFS= read -r file; do
   apply_file "$upgrade_db" "$file"
 done < <(after_decommission)
+apply_file "$upgrade_db" "docs/rollback/supabase-financial-demo-workspaces.rollback.sql"
 apply_file "$upgrade_db" "docs/rollback/supabase-financial-opportunity-discriminator.rollback.sql"
 apply_file "$upgrade_db" "docs/rollback/supabase-financial-spend-intelligence.rollback.sql"
 apply_file "$upgrade_db" "docs/rollback/supabase-financial-provider-performance.rollback.sql"
@@ -436,6 +438,11 @@ apply_file "$upgrade_db" "docs/rollback/supabase-financial-opportunity-discrimin
 apply_file "$upgrade_db" "docs/supabase-financial-opportunity-discriminator.sql"
 apply_file "$upgrade_db" "docs/supabase-financial-opportunity-discriminator.sql"
 apply_file "$upgrade_db" "tests/database/financial-opportunity-discriminator.sql"
+apply_file "$upgrade_db" "docs/supabase-financial-demo-workspaces.sql"
+apply_file "$upgrade_db" "docs/rollback/supabase-financial-demo-workspaces.rollback.sql"
+apply_file "$upgrade_db" "docs/supabase-financial-demo-workspaces.sql"
+apply_file "$upgrade_db" "docs/supabase-financial-demo-workspaces.sql"
+apply_file "$upgrade_db" "tests/database/financial-demo-workspaces.sql"
 apply_file "$upgrade_db" "tests/database/email-outbox.sql"
 bash "$root_dir/tests/database/email-outbox-concurrency.sh" "$(database_url "$upgrade_db")"
 
@@ -462,6 +469,7 @@ done
 apply_file "$fresh_db" "tests/database/financial-provider-performance.sql"
 apply_file "$fresh_db" "tests/database/financial-spend-intelligence.sql"
 apply_file "$fresh_db" "tests/database/financial-opportunity-discriminator.sql"
+apply_file "$fresh_db" "tests/database/financial-demo-workspaces.sql"
 apply_file "$fresh_db" "ops/sql/pilot-isolation-canary.sql"
 apply_file "$fresh_db" "ops/sql/post-migration-probes.sql"
 

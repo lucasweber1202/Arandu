@@ -141,6 +141,20 @@ for (const file of walk('finance', (p) => /\.(js|html)$/.test(p)).concat(walk('p
   if (SECRET.test(read(file))) fail(`${file} contém segredo ou leitura de ambiente no código do navegador`);
 }
 
+// ------------------------------------------------------------ 5b. isolamento de visitantes
+// O login público da Demo entra num workspace próprio (docs/demo/VISITOR_ISOLATION.md):
+// nunca na conta do baseline, nunca com a senha compartilhada, nunca por escolha do navegador.
+const auth = read('lib/api/domains/auth.mjs');
+const demoLogin = auth.slice(auth.indexOf("action === 'demo-personas' || action === 'demo-login'"), auth.indexOf("if (action === 'session')"));
+if (!demoLogin.includes('visitorWorkspace(req)') || !demoLogin.includes('personaEmailIn(') || !demoLogin.includes('workspacePassword(')) fail('demo-login não passa pelo workspace do visitante (visitorWorkspace, personaEmailIn, workspacePassword)');
+if (/email:persona\.email|password\}\)/.test(demoLogin.replace(/\s+/g, ''))) fail('demo-login autentica a conta do baseline ou com a senha compartilhada');
+if (/body\.(workspace|email|role|user)/.test(demoLogin)) fail('demo-login usa workspace, e-mail, papel ou usuário vindo do navegador');
+if (!/demoWorkspaceAllows\(user\)/.test(auth)) fail('sessão de conta de workspace não confere se o workspace está ativo');
+const migrations = JSON.parse(read('docs/supabase-migrations.json'));
+for (const [flow, files] of Object.entries(migrations)) if (!files.includes('docs/supabase-financial-demo-workspaces.sql')) fail(`migration de workspaces ausente do fluxo ${flow}`);
+if (!/fin_demo_workspaces:/.test(read('lib/finance/data-governance.mjs'))) fail('fin_demo_workspaces sem classificação em data governance');
+if (!/WORKSPACE/.test(seed) || !/saveWorkspace\(/.test(seed)) fail('seed sem modo workspace: o pool não pode ser montado pela história real');
+
 // ------------------------------------------------------------ 6. estado hospedado (eixo separado)
 const hostedState = ACTIVE_SUPABASE_ASSIGNMENTS.demo.length ? 'ASSIGNED_PENDING_EVIDENCE' : 'BLOCKED';
 

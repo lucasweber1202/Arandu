@@ -98,6 +98,14 @@ somente no servidor Demo (`ARANDU_DEMO_PASSWORD`, igual à usada no seed).
 `lib/finance/demo-personas.mjs`, usa a autenticação Supabase real e emite o
 cookie seguro existente. Não aceita e-mail, senha ou papel arbitrário.
 
+Desde 11/10/2026 cada visitante entra no **próprio workspace**: uma Vitta Foods
+inteira, montada pelo seed real com contas `+ws-<slug>`. O login retoma o
+workspace do cookie `arandu_demo_ws` ou reivindica um pronto do pool; com o pool
+vazio, responde 503 com mensagem clara. A troca de persona fica no mesmo
+workspace e encerra a sessão anterior. O workspace vale por 4 h sem uso e 24 h
+no total; vencido, as sessões caem na hora. O baseline nunca é entregue a
+visitante. Ver [VISITOR_ISOLATION.md](VISITOR_ISOLATION.md).
+
 O servidor exige runtime canônico Demo, alvo local ou ref explicitamente
 cadastrado em `DEMO_SUPABASE_REFS`, banco com marker `deployment_environment=demo`
 e configuração de autenticação. Pilot, Oficial, sandbox e configuração ambígua

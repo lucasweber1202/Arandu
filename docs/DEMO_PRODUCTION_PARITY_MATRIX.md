@@ -55,8 +55,8 @@ Não fazem parte da Demo canônica. Cada uma tem decisão registrada; saem junto
 
 ## Itens abertos fora do gate local
 
-- **OPS-CONCURRENCY** — Visitantes da Demo pública compartilham as mesmas personas e o mesmo dataset; falta isolamento por sessão/visitante (desenho em docs/demo/VISITOR_ISOLATION.md, não implementado).
-- **OPS-PERSONA-RATE** — O login por persona herda o limite por conta (20/h): uma Demo pública com vários visitantes esgota a persona. Redesenhar junto do isolamento.
+- **OPS-CONCURRENCY** — Isolamento por visitante implementado e validado localmente (pool de workspaces montados pelo seed real, docs/demo/VISITOR_ISOLATION.md); falta reabastecimento automático do pool e validação hospedada.
+- **OPS-PERSONA-RATE** — Resolvido localmente: cada workspace tem contas próprias, então limites por conta e por usuário deixam de ser compartilhados entre visitantes; a criação de workspace é limitada por origem.
 - **OPS-HOSTED** — Supabase DEMO sem atribuição ativa aprovada (lib/deployment-topology.mjs): a Demo canônica não pode ser publicada até o cutover com recuperação comprovada.
 - **OPS-SANDBOX** — arandu-demo ainda publica o sandbox legado (ARANDU_DEPLOYMENT_KIND=demo); retirar só depois da Demo canônica hospedada e validada.
 

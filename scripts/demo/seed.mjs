@@ -28,9 +28,15 @@ import * as data from './dataset.mjs';
 import { PASSPORT_TO_DEMAND } from '../../lib/finance/passport.mjs';
 import { demoPdf } from './pdf.mjs';
 import { schemaField } from '../../lib/finance/document-intelligence.mjs';
+import { BASELINE_VERSION, isSlug, workspaceEmail, workspacePassword, workspaceSlugFromEmail } from '../../lib/finance/demo-workspaces.mjs';
 
 const args = new Set(process.argv.slice(2));
-const MODE = args.has('--check') ? 'check' : args.has('--reset') ? 'reset' : 'seed';
+const MODE = args.has('--check') ? 'check' : args.has('--cleanup') ? 'cleanup' : args.has('--reset') ? 'reset' : 'seed';
+// Workspace isolado de visitante (docs/demo/VISITOR_ISOLATION.md): a mesma história,
+// com contas próprias `+ws-<slug>`. Sem a variável, o alvo é o baseline.
+const WORKSPACE = String(process.env.ARANDU_DEMO_WORKSPACE || '').trim();
+if (WORKSPACE && !isSlug(WORKSPACE)) { console.error('ARANDU_DEMO_WORKSPACE precisa ser um slug de 10 caracteres hexadecimais.'); process.exit(2); }
+if (MODE === 'cleanup' && !WORKSPACE) { console.error('--cleanup só vale para um workspace (ARANDU_DEMO_WORKSPACE); o baseline usa --reset.'); process.exit(2); }
 const QUIET = args.has('--quiet');
 const log = (...parts) => { if (!QUIET) console.log(...parts); };
 
@@ -74,6 +80,12 @@ const people = {};
 for (const [key, person] of Object.entries(data.BUYERS)) people[key] = { ...person, key, side: 'buyer' };
 for (const [key, provider] of Object.entries(data.PROVIDERS)) people[key] = { ...provider.person, key, side: 'provider', role: 'admin' };
 for (const person of Object.values(people)) must(isDemoEmail(person.email), `e-mail fora dos domínios fictícios: ${person.email}`);
+for (const person of Object.values(people)) {
+  if (WORKSPACE) person.email = workspaceEmail(person.email, WORKSPACE);
+  person.password = WORKSPACE ? workspacePassword(PASSWORD, person.email) : PASSWORD;
+}
+/** Conta pertence ao alvo deste comando: o baseline (sem +ws) ou o workspace indicado. */
+const inScope = (email) => isDemoEmail(email) && workspaceSlugFromEmail(email) === (WORKSPACE || null);
 
 async function listDemoUsers() {
   const users = [];
@@ -83,13 +95,13 @@ async function listDemoUsers() {
     users.push(...batch);
     if (batch.length < 500) break;
   }
-  return users.filter((user) => isDemoEmail(user.email));
+  return users.filter((user) => inScope(user.email));
 }
 
 async function signIn(person) {
   const response = await fetch(`${SB}/auth/v1/token?grant_type=password`, {
     method: 'POST', headers: { apikey: ANON, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: person.email, password: PASSWORD })
+    body: JSON.stringify({ email: person.email, password: person.password })
   });
   const session = await response.json();
   must(response.ok && session.access_token, `login de ${person.name}: ${response.status}`);
@@ -294,7 +306,7 @@ async function resetDemo() {
   if (scope.userIds.length) {
     const emails = scope.users.map((user) => user.email);
     await service(`transactional_email_outbox?recipient_address=${inList(emails.map((email) => `"${email}"`))}`, { method: 'DELETE' }).catch(() => null);
-    await service(`fin_pilot_allowlist?created_by=${inList(scope.userIds)}`, { method: 'DELETE' });
+    if (!WORKSPACE) await service(`fin_pilot_allowlist?created_by=${inList(scope.userIds)}`, { method: 'DELETE' });
   }
   for (const user of scope.users) await service(`admin/users/${user.id}`, { base: 'auth/v1', method: 'DELETE' });
 }
@@ -306,9 +318,17 @@ const uuid = () => crypto.randomUUID();
 async function createAccounts() {
   for (const person of Object.values(people)) {
     const { payload } = await service('admin/users', { base: 'auth/v1', method: 'POST', body: {
-      email: person.email, password: PASSWORD, email_confirm: true, user_metadata: { full_name: person.name, demo: true }
+      email: person.email, password: person.password, email_confirm: true, user_metadata: { full_name: person.name, demo: true }
     } });
     person.id = payload.id;
+  }
+  // Workspaces usam a allowlist dos domínios fictícios liberada pelo baseline;
+  // nunca a criam nem a apagam (um workspace não mexe em configuração do banco).
+  if (WORKSPACE) {
+    const allowed = (await service(`fin_pilot_allowlist?select=pattern&pattern=${inList(DEMO_EMAIL_DOMAINS.map((domain) => `"@${domain}"`))}`)).payload.length;
+    must(allowed === DEMO_EMAIL_DOMAINS.length, 'workspace exige a allowlist dos domínios fictícios criada pelo baseline (npm run demo:seed).');
+    for (const person of Object.values(people)) await signIn(person);
+    return;
   }
   const domains = DEMO_EMAIL_DOMAINS.map((domain) => ({ pattern: `@${domain}`, created_by: people.helena.id, note: 'Demonstração Vitta Foods (dados fictícios)' }));
   await service('fin_pilot_allowlist', { method: 'POST', body: domains, prefer: 'return=minimal' });
@@ -937,13 +957,35 @@ async function sanity() {
 }
 
 // ---------------------------------------------------------------- main
+// ------------------------------------------------- workspace de visitante
+async function saveWorkspace(fields) {
+  await service('fin_demo_workspaces?on_conflict=slug', { method: 'POST', body: { slug: WORKSPACE, baseline_version: BASELINE_VERSION, ...fields },
+    prefer: 'resolution=merge-duplicates,return=minimal' });
+}
+
+/** Apaga só o escopo deste workspace (dados, objetos, contas) e depois o registro; reexecutável após falha. */
+async function cleanupWorkspace(scope) {
+  const current = (await service(`fin_demo_workspaces?select=id,status,cleanup_attempts&slug=eq.${WORKSPACE}`)).payload?.[0] || null;
+  if (current) await service(`fin_demo_workspaces?slug=eq.${WORKSPACE}`, { method: 'PATCH', body: { status: 'cleaning', cleanup_attempts: Math.min(100, (current.cleanup_attempts || 0) + 1) }, prefer: 'return=minimal' });
+  try {
+    if (scope.orgs.length || scope.users.length) await resetDemo();
+    await service(`fin_demo_workspaces?slug=eq.${WORKSPACE}`, { method: 'DELETE', prefer: 'return=minimal' });
+    log(`Workspace ${WORKSPACE}: ${scope.orgs.length} organização(ões) e ${scope.users.length} conta(s) removidas.`);
+  } catch (error) {
+    if (current) await service(`fin_demo_workspaces?slug=eq.${WORKSPACE}`, { method: 'PATCH', body: { status: 'failed', last_error: String(error.message).slice(0, 500) }, prefer: 'return=minimal' }).catch(() => null);
+    throw error;
+  }
+}
+
 async function main() {
   const marker = (await service(`fin_settings?select=value&key=eq.${DEMO_MARKER_KEY}`)).payload?.[0]?.value || null;
   const organizations = await count('fin_organizations');
   const scope = await demoScope();
   // Trava 6. Num banco já marcado, as organizações existentes são as da própria demo.
   assertDemoDatabase({ marker, organizations: marker ? organizations : organizations - scope.orgs.length });
-  log(`Alvo: ${config.target.kind === 'local' ? 'Supabase local' : `Supabase ${config.target.ref}`} · app ${APP} · banco ${marker ? 'marcado como demonstração' : 'vazio'}.`);
+  log(`Alvo: ${config.target.kind === 'local' ? 'Supabase local' : `Supabase ${config.target.ref}`} · app ${APP} · banco ${marker ? 'marcado como demonstração' : 'vazio'}${WORKSPACE ? ` · workspace ${WORKSPACE}` : ''}.`);
+  if (WORKSPACE) must(marker === DEMO_MARKER_VALUE, 'workspace exige banco já marcado como demonstração (rode o seed do baseline antes).');
+  if (MODE === 'cleanup') return cleanupWorkspace(scope);
 
   if (MODE === 'check') {
     for (const person of Object.values(people)) await signIn(person);
@@ -953,6 +995,7 @@ async function main() {
       await resetDemo();
     }
     if (!marker) await service('fin_settings', { method: 'POST', body: { key: DEMO_MARKER_KEY, value: DEMO_MARKER_VALUE }, prefer: 'return=minimal' });
+    if (WORKSPACE) await saveWorkspace({ status: 'provisioning', baseline_version: BASELINE_VERSION, last_error: null });
     const started = Date.now();
     log('Criando contas das personas e liberando os domínios fictícios…');
     await createAccounts();
@@ -970,6 +1013,15 @@ async function main() {
   for (const row of checks) console.log(`  ${row.ok ? 'OK  ' : 'FAIL'} ${row.name.padEnd(width)}  ${row.detail}`);
   const failed = checks.filter((row) => !row.ok).length;
   console.log(`\n${checks.length - failed}/${checks.length} checagens OK.`);
+  if (WORKSPACE && MODE !== 'check') {
+    // Só entra no pool o workspace que passou em TODAS as checagens.
+    await saveWorkspace(failed
+      ? { status: 'failed', last_error: `${failed} checagem(ns) de sanidade falharam` }
+      : { status: 'ready', ready_at: new Date().toISOString(), buyer_organization_id: ctx.org,
+        provider_organization_ids: Object.values(ctx.providerOrg), user_ids: Object.values(people).map((person) => person.id),
+        personas: Object.fromEntries(Object.entries(people).map(([key, person]) => [key, person.email])) });
+    log(failed ? `Workspace ${WORKSPACE} marcado como falho.` : `Workspace ${WORKSPACE} pronto no pool.`);
+  }
   if (MODE !== 'check' && !failed) {
     console.log('\nPersonas (senha: a de ARANDU_DEMO_PASSWORD; nunca versionada):');
     for (const person of Object.values(people)) console.log(`  ${person.email.padEnd(44)} ${person.name} — ${person.title}${person.side === 'provider' ? ` (${data.PROVIDERS[person.key].name})` : ''}`);

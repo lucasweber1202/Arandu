@@ -66,6 +66,7 @@ case "$command" in
   reset) load_env; node "$here/seed.mjs" --reset ;;
   check) load_env; node "$here/seed.mjs" --check ;;
   app) load_env; start_app; echo "App local em modo demo: https://localhost:4443" ;;
+  workspaces) shift; load_env; node "$here/workspaces.mjs" "$@" ;;
   down) bash "$root/scripts/pilot-local/down.sh" ;;
-  *) echo "uso: bash scripts/demo/local.sh setup|reset|check|app|down"; exit 2 ;;
+  *) echo "uso: bash scripts/demo/local.sh setup|reset|check|app|workspaces|down"; exit 2 ;;
 esac

@@ -14,6 +14,13 @@
 | `npm run demo:reset` | apaga **só** os dados da demo e semeia de novo |
 | `npm run demo:check` | só as checagens de sanidade (não escreve) |
 | `npm run demo:setup` / `demo:local:reset` / `demo:local:check` | o mesmo no ambiente local (`scripts/demo/local.sh` preenche as variáveis) |
+| `npm run demo:workspaces -- provision --count=N` | monta N workspaces de visitante pelo seed real (`ARANDU_DEMO_WORKSPACE`); só entram no pool com todas as checagens OK; falha remove o escopo parcial |
+| `npm run demo:workspaces -- cleanup` | apaga **só** workspaces vencidos, falhos ou com limpeza interrompida (dados, objetos, contas); baseline e workspaces válidos ficam |
+| `npm run demo:workspaces -- list` / `demo:local:workspaces -- …` | estado do pool; versão local com as variáveis de `local.sh` |
+
+Reset do baseline (`demo:reset`) não toca workspaces (contas `+ws-`) nem o
+contrário: cada comando só vê o próprio escopo de contas. Ver
+[VISITOR_ISOLATION.md](VISITOR_ISOLATION.md).
 
 O reset apaga as organizações criadas pelas contas `*.example` da demo e tudo
 o que pertence a elas (RFQs, convites, propostas e versões, aprovações,
