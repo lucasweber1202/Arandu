@@ -1,5 +1,18 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 11/10/2026 — Seed canônico da Demo completo (Fee Intelligence)
+
+Executado em ambiente local descartável (`npm run demo:local:reset`, Supabase em
+Docker, `ARANDU_ENV=demo`), o seed parava em `POST fees/observe` com 403: a
+observação era feita por Rafael (analyst), mas `fin_record_fee_observation` e
+`fin_verify_fee_observation` exigem admin/finance_manager. O seed agora observa
+com Juliana (finance_manager) e verifica com Helena (admin) — quem registra não é
+quem verifica —, sem afrouxar a regra do banco. `scripts/test-demo-guard.mjs`
+falha se escrita de tarifa voltar a uma persona sem papel de gestão ou se
+observação e verificação forem da mesma pessoa. Resultado local: seed completo e
+**32/32 checagens OK**. Maturidade: seed canônico M1 até o CI verde no HEAD
+exato; Demo hospedada continua sem evidência nova (M3 não reivindicado).
+
 ## 11/10/2026 — `main` vermelha após #154/#156: duas corridas reais no WebKit
 
 CI de `main` #819 (`d6786c3`, após #154) e #823 (`0e444cd`, após #156) falharam

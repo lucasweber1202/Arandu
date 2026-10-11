@@ -741,8 +741,10 @@ async function seedPortfolioAndFees() {
   const current=(await api(people.juliana,'GET',`contracts?organization_id=${ctx.org}`)).rows?.find((row)=>row.id===ctx.contract[feeContract]);
   if(!current?.current_version)await post(people.juliana,'contract-terms',{contract_id:ctx.contract[feeContract],expected_version:current?.current_version??0,...contractTerms});
   await post(people.juliana,'fees/schedules',{organization_id:ctx.org,contract_id:ctx.contract[feeContract],...schedule,effective_from:isoDate(-30)});
-  const observed=(await post(people.rafael,'fees/observe',{organization_id:ctx.org,contract_id:ctx.contract[feeContract],service:fee.service,charging_unit:fee.charging_unit,currency:fee.currency,period_start:start,period_end:end,...observation})).id;
-  await post(people.juliana,'fees/verify',{observation_id:observed,status:'verified',reason:'Extrato sintético e quantidade de terminais conferidos independentemente; diferença exige revisão humana.'});
+  // Observação e verificação de tarifa são atos de gestão (admin/finance_manager);
+  // quem registra não é quem verifica.
+  const observed=(await post(people.juliana,'fees/observe',{organization_id:ctx.org,contract_id:ctx.contract[feeContract],service:fee.service,charging_unit:fee.charging_unit,currency:fee.currency,period_start:start,period_end:end,...observation})).id;
+  await post(people.helena,'fees/verify',{observation_id:observed,status:'verified',reason:'Extrato sintético e quantidade de terminais conferidos independentemente; diferença exige revisão humana.'});
 }
 
 async function seedLifecycle() {
