@@ -1,8 +1,8 @@
 // Blocos usados por mais de uma tela: comparação, pesos, revisões,
 // aprovação, colaboração e histórico.
 
-import { PRODUCTS, estimateCreditTotalCost, estimateAcquiringMonthlyCost } from '../../../lib/finance/products.mjs';
-import { applyUserWeights, USER_WEIGHTS_NOTICE, NEUTRAL_RANKING_NOTICE } from '../../../lib/finance/comparison.mjs';
+import { PRODUCTS } from '../../../lib/finance/products.mjs';
+import { buildComparison, applyUserWeights, USER_WEIGHTS_NOTICE, NEUTRAL_RANKING_NOTICE } from '../../../lib/finance/comparison.mjs';
 import { el, icon, money, fieldValue, formatDate, formatDateTime, timeAgo, uid, APPROVAL_STATUS, ROLE_LABELS, fold } from '../core.js';
 import { button, pill, avatar, emptyState, errorState, loading, toast, promptDialog, confirmDialog, field, tag } from '../ui.js';
 
@@ -19,21 +19,6 @@ export function memberTitle(members, id) {
 }
 
 // ------------------------------------------------------------ comparação
-const GROUPS = {
-  credit: [
-    ['Valor e prazo', ['offered_amount', 'term_months', 'grace_months', 'amortization']],
-    ['Custo', ['interest_rate_month', 'index', 'index_spread', 'cet_year', 'fees_amount', 'declared_total_cost']],
-    ['Garantias e condições', ['collateral_required', 'conditions_precedent']],
-    ['Operação', ['valid_until', 'contracting_days', 'product_name', 'notes']]
-  ],
-  acquiring: [
-    ['Taxas por modalidade', ['mdr_debit', 'mdr_credit_cash', 'mdr_credit_installment', 'pix_fee']],
-    ['Antecipação e liquidação', ['anticipation_rate', 'settlement_days']],
-    ['Custos fixos e saída', ['terminal_rent', 'gateway_cost', 'early_exit_penalty']],
-    ['Contrato', ['contract_months', 'chargeback_terms', 'extra_services']],
-    ['Operação', ['valid_until', 'contracting_days', 'product_name', 'notes']]
-  ]
-};
 export const DEFINITIONS = Object.freeze({
   interest_rate_month: 'Taxa nominal mensal informada pelo provedor. Não inclui tarifas nem tributos.',
   cet_year: 'Custo Efetivo Total anual declarado pelo provedor: juros, tarifas, tributos e seguros. O Arandu não calcula CET.',
@@ -55,29 +40,11 @@ export const DEFINITIONS = Object.freeze({
 
 function fieldsByKey(product) { return Object.fromEntries(PRODUCTS[product].proposalFields.map((field) => [field.key, field])); }
 
-function numeric(field, value) {
-  if (value === null || value === undefined || value === '') return null;
-  const number = field.type === 'date' ? Date.parse(`${value}T00:00:00Z`) : Number(value);
-  return Number.isFinite(number) ? number : null;
-}
-/** Para cada linha, marca quem tem o menor/maior valor — só entre valores presentes e diferentes. */
-function highlights(field, values) {
-  if (!field.comparable || !field.direction) return values.map(() => false);
-  const numbers = values.map((value) => numeric(field, value));
-  const present = numbers.filter((value) => value !== null);
-  if (present.length < 2 || new Set(present).size < 2) return values.map(() => false);
-  const target = field.direction === 'lower_is_better' ? Math.min(...present) : Math.max(...present);
-  return numbers.map((value) => value === target);
-}
 export function coverage(product, terms) {
   const comparable = PRODUCTS[product].proposalFields.filter((field) => field.comparable);
   const filled = comparable.filter((field) => terms?.[field.key] !== undefined && terms?.[field.key] !== null && terms?.[field.key] !== '').length;
   return { filled, total: comparable.length, ratio: comparable.length ? filled / comparable.length : 0 };
 }
-function estimateFor(rfq, proposal) {
-  return rfq.product === 'credit' ? estimateCreditTotalCost(proposal.terms || {}) : estimateAcquiringMonthlyCost(rfq.demand || {}, proposal.terms || {});
-}
-
 function definitionTip(key) {
   const text = DEFINITIONS[key];
   if (!text) return null;
@@ -88,8 +55,13 @@ function definitionTip(key) {
   ]);
 }
 
-function valueCell(field, value, best) {
-  const formatted = fieldValue(field, value);
+function comparisonValue(field, value, currency) {
+  if (value === null || value === undefined) return null;
+  if (field.type !== 'money') return fieldValue(field, value);
+  return currency ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency }).format(value) : `${new Intl.NumberFormat('pt-BR').format(value)} (moeda não identificada)`;
+}
+function valueCell(field, value, best, currency = 'BRL') {
+  const formatted = comparisonValue(field, value, currency);
   const cell = el('td', { class: `num${formatted === null ? ' missing' : ''}${best ? ' best' : ''}` });
   if (formatted === null) { cell.append(el('span', { class: 'missing-text', text: 'não informado' })); return cell; }
   cell.append(el('span', { text: formatted }));
@@ -100,114 +72,125 @@ function valueCell(field, value, best) {
   return cell;
 }
 
-export function comparisonMatrix(rfq, proposals, { currentRevision = rfq.revision } = {}) {
+export function comparisonMatrix(rfq, proposals, { currentRevision = rfq.revision, model = null } = {}) {
+  const data = model || buildComparison(rfq.product, proposals, rfq.demand, { revision: currentRevision });
   const wrap = el('div', { class: 'comparison' });
-  if (!proposals.length) {
+  if (!data.columns.length) {
     wrap.append(emptyState({ title: 'Ainda não há propostas para comparar', text: 'Assim que os provedores convidados enviarem condições, elas aparecem lado a lado aqui.', iconName: 'scale' }));
     return wrap;
   }
   const byKey = fieldsByKey(rfq.product);
-  wrap.append(el('p', { class: 'notice-line', id: 'comparison-notice' }, [icon('info', { size: 14 }), el('span', { text: NEUTRAL_RANKING_NOTICE })]));
-
-  // Tabela larga: primeira coluna e cabeçalho fixos.
-  const table = el('table', { class: 'matrix' });
-  const head = el('tr', {}, el('th', { scope: 'col', class: 'matrix-corner', text: 'Condição' }));
-  for (const proposal of proposals) {
-    const cov = coverage(rfq.product, proposal.terms);
-    const outdated = proposal.rfq_revision && currentRevision && proposal.rfq_revision < currentRevision;
-    head.append(el('th', { scope: 'col', class: 'matrix-provider' }, [
-      el('span', { class: 'matrix-name', text: proposal.provider_name }),
-      el('span', { class: 'matrix-meta', text: `v${proposal.version ?? 1}${proposal.rfq_revision ? ` · rev. ${proposal.rfq_revision}` : ''}` }),
-      outdated ? el('span', { class: 'matrix-flag' }, [icon('alert', { size: 12 }), el('span', { text: `Respondeu à revisão ${proposal.rfq_revision}` })]) : null,
-      el('span', { class: 'matrix-coverage', title: 'Campos comparáveis preenchidos' }, [
-        el('span', { class: 'coverage-bar' }, el('span', { class: 'coverage-fill', style: `width:${Math.round(cov.ratio * 100)}%` })),
-        el('span', { text: `${cov.filled}/${cov.total} campos` })
-      ])
-    ]));
-  }
-  table.append(el('thead', {}, head));
-  const body = el('tbody');
-  for (const [group, keys] of GROUPS[rfq.product]) {
-    const rows = keys.map((key) => byKey[key]).filter((field) => field && proposals.some((proposal) => proposal.terms?.[field.key] !== undefined && proposal.terms?.[field.key] !== null && proposal.terms?.[field.key] !== ''));
-    if (!rows.length) continue;
-    body.append(el('tr', { class: 'matrix-group' }, el('th', { scope: 'rowgroup', colspan: String(proposals.length + 1), text: group })));
-    for (const field of rows) {
-      const values = proposals.map((proposal) => proposal.terms?.[field.key] ?? null);
-      const best = highlights(field, values);
-      const tr = el('tr', {}, el('th', { scope: 'row', class: 'matrix-label' }, [el('span', { text: field.label }), definitionTip(field.key)]));
-      values.forEach((value, index) => tr.append(valueCell(field, value, best[index])));
-      body.append(tr);
-    }
-  }
-  // Estimativa do Arandu, separada do que o provedor declarou.
-  const estimates = proposals.map((proposal) => estimateFor(rfq, proposal));
-  body.append(el('tr', { class: 'matrix-group' }, el('th', { scope: 'rowgroup', colspan: String(proposals.length + 1), text: 'Estimativa do Arandu (não é CET)' })));
-  const estimateRow = el('tr', {}, el('th', { scope: 'row', class: 'matrix-label' }, [el('span', { text: rfq.product === 'credit' ? 'Custo total estimado' : 'Custo mensal estimado' }),
-    el('span', { class: 'tip' }, [el('button', { type: 'button', class: 'tip-trigger', 'aria-label': 'Como é calculado', 'aria-describedby': 'estimate-help' }, icon('info', { size: 13 })),
-      el('span', { role: 'tooltip', id: 'estimate-help', class: 'tip-text', text: rfq.product === 'credit' ? 'PRICE, pré-fixado, sem carência: parcela × prazo + tarifas. Sem tributos.' : 'Σ(volume × fatia × taxa) + custos fixos. Sem antecipação e sem tributos.' })])]));
-  const totals = estimates.map((item) => (item.estimate ? item.total_cost : null));
-  const presentTotals = totals.filter((value) => value !== null);
-  estimates.forEach((item, index) => {
-    const cell = el('td', { class: `num${item.estimate ? '' : ' missing'}` });
-    if (item.estimate) {
-      cell.append(el('span', { text: money(item.total_cost) }));
-      if (presentTotals.length > 1 && new Set(presentTotals).size > 1 && totals[index] === Math.min(...presentTotals)) {
-        cell.classList.add('best');
-        cell.append(el('span', { class: 'best-mark', title: 'menor valor estimado' }, [icon('chevronDown', { size: 12 }), el('span', { class: 'best-why', text: 'menor valor estimado' })]));
-      }
-    } else cell.append(el('span', { class: 'missing-text', text: item.reason.replace(/^Estimativa não calculável: /, 'Não calculável: ') }));
-    estimateRow.append(cell);
+  const rowsByKey = Object.fromEntries(data.rows.map(row => [row.key, row]));
+  const historical = new Set();
+  wrap.append(el('p', { class: 'notice-line', id: 'comparison-notice', text: data.notice }));
+  if (data.context_notices.length) wrap.append(el('details', { class: 'callout callout-warning comparison-context', open: true }, [el('summary', { text: 'Condições que exigem revisão de comparabilidade' }), el('ul', {}, data.context_notices.map(text => el('li', { text }))) ]));
+  wrap.append(el('p', { class: 'muted small', text: 'Recorte: até 500 propostas submetidas não retiradas; histórico carregado de até 2.000 versões. Ausência de evidência não significa verificação. Valores de versões anteriores são consulta histórica; os pesos usam a versão atual.' }));
+  const filter = el('select', { 'aria-label': 'Foco da comparação' }, [
+    el('option', { value: 'all', text: 'Todas as condições' }), el('option', { value: 'differences', text: 'Somente diferenças' }),
+    el('option', { value: 'missing', text: 'Informações pendentes' }), el('option', { value: 'changed', text: 'Alterações de versão' })
+  ]);
+  const detail = el('select', { 'aria-label': 'Detalhamento da comparação' }, [el('option', { value: 'detail', text: 'Visão detalhada' }), el('option', { value: 'summary', text: 'Visão resumida' })]);
+  const controls = el('div', { class: 'comparison-controls' }, [filter, detail]);
+  wrap.append(controls);
+  const versions = el('div', { class: 'comparison-versions' });
+  data.columns.forEach((column, index) => {
+    const select = el('select', { 'aria-label': `Versão de ${column.provider_name}` }, el('option', { value: 'current', text: column.version ? `Versão ${column.version} · atual` : 'Versão não informada' }));
+    if (column.previous_version) select.append(el('option', { value: 'previous', text: `Versão ${column.previous_version.version} · anterior` }));
+    select.addEventListener('change', () => { select.value === 'previous' ? historical.add(index) : historical.delete(index); draw(); });
+    versions.append(el('label', { class: 'comparison-version' }, [el('span', { text: column.provider_name }), select]));
   });
-  body.append(estimateRow);
-  table.append(body);
-  wrap.append(el('div', { class: 'matrix-scroll comparison-wide', tabindex: '0', role: 'region', 'aria-label': 'Tabela de comparação de propostas' }, table));
-
-  // Celular: escolha de duas propostas lado a lado.
-  const mobile = el('div', { class: 'comparison-cards compare-mobile' });
+  wrap.append(versions);
+  const wide = el('div', { class: 'matrix-scroll comparison-wide', tabindex: '0', role: 'region', 'aria-label': 'Tabela de comparação de propostas' });
+  const mobile = el('div', { class: 'compare-mobile' });
   const pickA = el('select', { 'aria-label': 'Primeira proposta' });
   const pickB = el('select', { 'aria-label': 'Segunda proposta' });
-  proposals.forEach((proposal, index) => { pickA.add(new Option(proposal.provider_name, String(index))); pickB.add(new Option(proposal.provider_name, String(index))); });
-  pickB.value = String(Math.min(1, proposals.length - 1));
+  data.columns.forEach((column, index) => { pickA.add(new Option(column.provider_name, String(index))); pickB.add(new Option(column.provider_name, String(index))); });
+  pickB.value = String(Math.min(1, data.columns.length - 1));
   const pairBody = el('div', { class: 'pair-body' });
-  const drawPair = () => {
-    const chosen = [proposals[Number(pickA.value)], proposals[Number(pickB.value)]];
+  const pairStatus = el('div', { class: 'comparison-versions' });
+  mobile.append(el('div', { class: 'pair-pickers' }, [pickA, pickB]), pairStatus, pairBody);
+  wrap.append(wide, mobile);
+  const visible = row => {
+    if (detail.value === 'summary' && !byKey[row.key].comparable && !['index', 'amortization', 'collateral_required'].includes(row.key)) return false;
+    return filter.value === 'all' || (filter.value === 'differences' && row.differs) ||
+      (filter.value === 'missing' && (row.missing_count || row.invalid_count)) ||
+      (filter.value === 'changed' && data.columns.some(column => column.changed_keys.includes(row.key)));
+  };
+  const value = (row, index) => historical.has(index) ? row.previous_values[index] : row.values[index];
+  const state = (row, index) => historical.has(index) ? row.previous_states[index] : row.states[index];
+  const evidence = (row, index) => {
+    const column = data.columns[index];
+    const version = historical.has(index) ? column.previous_version : column.provenance;
+    return el('details', { class: 'comparison-evidence' }, [el('summary', { text: 'Origem e contexto' }),
+      el('p', { text: `Origem: ${version?.submitted_at ? 'proposta enviada pelo provedor' : 'não disponível'}. Versão: ${version?.version ?? 'não informada'}. Envio: ${version?.submitted_at ? new Date(version.submitted_at).toLocaleString('pt-BR', { dateStyle: 'medium', timeStyle: 'short' }) : 'não informado'}. Autor: não disponível. Verificação: não verificado. Documento: sem vínculo de evidência por campo.` }),
+      el('p', { text: `Metodologia: condição declarada; sem cálculo pelo Arandu. ${DEFINITIONS[row.key] || ''}` }),
+      ...row.context_reasons.map(text => el('p', { text })),
+      !historical.has(index) && column.changed_keys.includes(row.key) ? el('p', { text: `Versão anterior: ${fieldValue(byKey[row.key], row.previous_values[index]) ?? 'não informado'}.` }) : null
+    ].filter(Boolean));
+  };
+  function draw() {
+    const table = el('table', { class: 'matrix' });
+    const head = el('tr', {}, el('th', { scope: 'col', class: 'matrix-corner', text: 'Condição' }));
+    data.columns.forEach((column, index) => {
+      head.append(el('th', { scope: 'col', class: 'matrix-provider' }, [el('span', { class: 'matrix-name', text: column.provider_name }),
+        el('span', { class: 'matrix-meta', text: `${historical.has(index) ? 'Consulta da versão anterior' : `v${column.version ?? '?'}`} · ${column.currency ?? 'moeda não identificada'}${column.currency_source === 'schema_brl_v1' ? ' (unidade do cadastro)' : ''}` }),
+        column.revision_mismatch ? el('span', { class: 'matrix-flag', text: `Respondeu à revisão ${column.rfq_revision}` }) : null,
+        column.expired ? el('span', { class: 'matrix-flag', text: 'Proposta vencida' }) : null,
+        column.validity_unknown ? el('span', { class: 'matrix-meta', text: 'Validade não informada' }) : null,
+        column.version > 1 && !column.history_available ? el('span', { class: 'matrix-meta', text: 'Versão anterior não disponível no recorte' }) : null
+      ].filter(Boolean)));
+    });
+    table.append(el('thead', {}, head));
+    const body = el('tbody');
     pairBody.replaceChildren();
-    for (const [group, keys] of GROUPS[rfq.product]) {
-      const rows = keys.map((key) => byKey[key]).filter((field) => field && chosen.some((proposal) => proposal.terms?.[field.key] !== undefined && proposal.terms?.[field.key] !== null));
+    let count = 0;
+    const chosen = [Number(pickA.value), Number(pickB.value)];
+    pairStatus.replaceChildren(...chosen.map(index => { const column = data.columns[index]; return el('p', { class: 'muted small', text: `${column.provider_name} · ${column.currency ?? 'moeda não identificada'} · ${column.expired ? 'versão atual vencida' : column.validity_unknown ? 'validade não informada' : 'consulte a validade informada'}${column.revision_mismatch ? ` · respondeu à revisão ${column.rfq_revision}` : ''}` }); }));
+    for (const [group, keys] of data.groups) {
+      const rows = keys.map(key => rowsByKey[key]).filter(row => row && visible(row));
       if (!rows.length) continue;
+      count += rows.length;
+      body.append(el('tr', { class: 'matrix-group' }, el('th', { scope: 'rowgroup', colspan: String(data.columns.length + 1), text: group })));
       const section = el('section', { class: 'pair-group' }, el('h4', { class: 'pair-title', text: group }));
-      for (const field of rows) {
-        const values = chosen.map((proposal) => proposal.terms?.[field.key] ?? null);
-        const best = highlights(field, values);
-        section.append(el('div', { class: 'pair-row' }, [
-          el('span', { class: 'pair-label', text: field.label }),
-          ...values.map((value, index) => {
-            const formatted = fieldValue(field, value);
-            return el('span', { class: `pair-value${best[index] ? ` best best-${field.direction === 'lower_is_better' ? 'down' : 'up'}` : ''}${formatted === null ? ' missing' : ''}${field.type === 'text' ? ' text' : ''}` }, [
-              el('span', { text: formatted ?? 'não informado' }),
-              best[index] ? el('span', { class: 'sr-only', text: field.direction === 'lower_is_better' ? ' (menor valor informado)' : ' (maior valor informado)' }) : null
-            ]);
-          })
-        ]));
+      for (const row of rows) {
+        const field = byKey[row.key];
+        const label = el('th', { scope: 'row', class: 'matrix-label' }, [el('span', { text: field.type === 'money' ? row.label.replace('(R$)', '(moeda da coluna)') : row.label }), definitionTip(row.key),
+          row.context_reasons.length ? el('span', { class: 'matrix-meta', text: 'Bases incompatíveis' }) : null]);
+        const tr = el('tr', { 'data-condition': row.key }, label);
+        data.columns.forEach((column, index) => {
+          const best = !historical.size && row.highlights.includes(column.id);
+          const cell = valueCell(field, value(row, index), best, column.currency);
+          if (state(row, index) === 'invalid') cell.querySelector('.missing-text').textContent = 'dado inválido; requer revisão';
+          cell.append(evidence(row, index));
+          tr.append(cell);
+        });
+        body.append(tr);
+        section.append(el('div', { class: 'pair-row', 'data-condition': row.key }, [el('span', { class: 'pair-label', text: field.type === 'money' ? row.label.replace('(R$)', '(moeda da coluna)') : row.label }), ...chosen.map(index => el('div', { class: `pair-value${!historical.size && row.highlights.includes(data.columns[index].id) ? ' best' : ''}` }, [el('span', { text: state(row, index) === 'invalid' ? 'dado inválido; requer revisão' : comparisonValue(field, value(row, index), data.columns[index].currency) ?? 'não informado' }), evidence(row, index)]))]));
       }
       pairBody.append(section);
     }
-  };
-  pickA.addEventListener('change', drawPair);
-  pickB.addEventListener('change', drawPair);
-  drawPair();
-  mobile.append(el('div', { class: 'pair-pickers' }, [
-    el('label', { class: 'pair-picker' }, [el('span', { class: 'field-label', text: 'Comparar' }), pickA]),
-    el('span', { class: 'pair-vs', 'aria-hidden': 'true', text: 'vs' }),
-    el('label', { class: 'pair-picker' }, [el('span', { class: 'field-label', text: 'com' }), pickB])
-  ]), pairBody, el('p', { class: 'muted small', text: proposals.length > 2 ? `Há ${proposals.length} propostas. Troque os seletores para ver as demais, ou gire o aparelho para a tabela completa.` : 'Valores destacados indicam o menor ou maior valor informado — um fato, não uma recomendação.' }));
-  wrap.append(mobile);
+    if (!count) { body.append(el('tr', {}, el('td', { colspan: String(data.columns.length + 1), text: 'Nenhuma condição neste filtro.' }))); pairBody.append(el('p', { text: 'Nenhuma condição neste filtro.' })); }
+    if (filter.value === 'all' && !historical.size) {
+      body.append(el('tr', { class: 'matrix-group' }, el('th', { scope: 'rowgroup', colspan: String(data.columns.length + 1), text: 'Estimativa do Arandu (não é CET)' })));
+      const tr = el('tr', {}, el('th', { scope: 'row', text: rfq.product === 'credit' ? 'Custo total estimado' : 'Custo mensal estimado' }));
+      data.columns.forEach(column => {
+        const estimate = data.estimates[column.id];
+        tr.append(el('td', { class: 'num' }, [el('span', { text: estimate.estimate ? money(estimate.total_cost) : estimate.reason }),
+          estimate.estimate ? el('details', { class: 'comparison-evidence' }, [el('summary', { text: 'Metodologia e premissas' }), el('p', { text: [estimate.formula, ...(estimate.assumptions || [])].filter(Boolean).join(' · ') })]) : null].filter(Boolean)));
+      });
+      body.append(tr);
+    }
+    table.append(body);
+    wide.replaceChildren(table);
+  }
+  for (const control of [filter, detail, pickA, pickB]) control.addEventListener('change', draw);
+  draw();
   return wrap;
 }
 
 /** Pesos definidos pela empresa. O resultado sempre carrega o aviso de autoria. */
-export function weightsPanel(rfq, proposals, { onApplied = null, initial = null, initialNote = null } = {}) {
-  const specs = PRODUCTS[rfq.product].proposalFields.filter((field) => field.comparable && field.direction).slice(0, 8);
+export function weightsPanel(rfq, proposals, { onApplied = null, initial = null, initialNote = null, calculate = null } = {}) {
+  const specs = PRODUCTS[rfq.product].proposalFields.filter((field) => field.comparable && field.direction);
   const panel = el('section', { class: 'card weights' });
   panel.append(el('div', { class: 'card-head' }, el('div', { class: 'card-head-text' }, [
     el('h3', { class: 'card-title', text: 'Seus critérios e pesos' }),
@@ -225,12 +208,17 @@ export function weightsPanel(rfq, proposals, { onApplied = null, initial = null,
   const clear = button('Zerar', { variant: 'ghost', onClick: () => { for (const input of form.querySelectorAll('input[type=range]')) { input.value = '0'; input.dispatchEvent(new Event('input')); } output.replaceChildren(); } });
   form.append(el('div', { class: 'form-actions' }, [clear, apply]));
   const output = el('div', { id: 'weights-output', role: 'status', 'aria-live': 'polite' });
-  const run = () => {
+  const run = async () => {
     const weights = {};
     for (const [key, value] of new FormData(form)) if (Number(value) > 0) weights[key] = Number(value);
-    const scored = applyUserWeights(rfq.product, proposals, weights);
+    let scored;
+    apply.disabled = true;
+    try { scored = calculate ? await calculate(weights) : applyUserWeights(rfq.product, proposals, weights); }
+    catch { output.replaceChildren(errorState({ title: 'Não foi possível calcular os pesos', text: 'Tente novamente. Nenhuma pontuação foi registrada.' })); return; }
+    finally { apply.disabled = false; }
     output.replaceChildren();
-    if (!scored.applied) { output.append(el('p', { class: 'muted', text: 'Defina ao menos um peso maior que zero. Sem pesos, a comparação continua estritamente factual.' })); return; }
+    for (const item of scored.excluded_criteria || []) output.append(el('p', { class: 'callout callout-warning', text: `${item.label}: excluído do cálculo. ${item.reasons.join(' ')}` }));
+    if (!scored.applied) { output.append(el('p', { class: 'muted', text: scored.notice })); return; }
     onApplied?.(weights);
     output.append(el('p', { class: 'weights-notice', id: 'weights-notice' }, [icon('info', { size: 14 }), el('strong', { text: USER_WEIGHTS_NOTICE })]));
     const list = el('ol', { class: 'score-list' });

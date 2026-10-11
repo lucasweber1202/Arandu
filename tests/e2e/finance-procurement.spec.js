@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
+import { buildComparison, applyUserWeights } from '../../lib/finance/comparison.mjs';
 
 // Jornadas do Arandu Financial Procurement no build publicado (sem
 // demonstração). Sem sessão, o portal pede login; com sessão simulada por
@@ -42,9 +43,9 @@ function overview(extra = {}) {
       demand: { amount: 500000, purpose: 'expansao', term_months: 24 }, invites_count: 2, owner_id: 'u1', created_at: '2026-09-01T10:00:00Z',
       proposals: [
         { id: 'p1', provider_id: 'x1', provider_name: 'Banco Um', status: 'submitted', version: 1, rfq_revision: 2, submitted_at: '2026-09-10T10:00:00Z',
-          terms: { offered_amount: 500000, interest_rate_month: 1.4, term_months: 24, cet_year: 19 } },
+          terms: { index: 'pre', offered_amount: 500000, interest_rate_month: 1.4, term_months: 24, cet_year: 19 } },
         { id: 'p2', provider_id: 'x2', provider_name: 'Banco Dois', status: 'submitted', version: 1, rfq_revision: 1, submitted_at: '2026-09-09T10:00:00Z',
-          terms: { offered_amount: 450000, interest_rate_month: 1.2, term_months: 24 } }
+          terms: { index: 'pre', offered_amount: 450000, interest_rate_month: 1.2, term_months: 24 } }
       ] }],
     ...extra
   };
@@ -67,6 +68,7 @@ async function mockSession(page, { organizations = [{ id: ORG, kind: 'BUYER', le
     if (path === 'rfq-editor' && request.method() === 'PATCH') return editor.patchStatus ? json({ ok: false, error: 'Esta solicitação foi alterada em outra aba.' }, editor.patchStatus) : json({ ok: true, revision: (editor.revision = (editor.revision || 0) + 1), updated_at: new Date().toISOString() });
     if (['approvals', 'notifications', 'decisions', 'events', 'comments', 'rfq-revisions', 'tasks'].includes(path)) return json({ ok: true, rows: [] });
     if (path === 'approval-policy') return json({ ok: true, required_for_decision: false });
+    if (path === 'comparison') { const rfq = data.rfqs.find(row => row.id === request.postDataJSON().rfq_id); return json({ ok: true, comparison: buildComparison(rfq.product, rfq.proposals, rfq.demand, { revision: rfq.revision }), weighted: applyUserWeights(rfq.product, rfq.proposals, request.postDataJSON().weights) }); }
     if (path === 'signals') return json({ ok: true });
     return json({ ok: false }, 404);
   });
@@ -199,10 +201,10 @@ test('a página de convite trata cada estado do token em vez de dar erro genéri
   await expect(page.locator('#view')).toContainText('vale uma vez e expira');
 });
 
-test('a página de convite não entrega o token a analytics, ao histórico nem ao referrer', async ({ page }) => {
+test('a página de convite não entrega o token a analytics, ao histórico nem ao referrer', async ({ page, baseURL }) => {
   const token = 'b'.repeat(64);
   const externalRequests = [];
-  page.on('request', (request) => { if (!request.url().startsWith('http://127.0.0.1:4173')) externalRequests.push(request.url()); });
+  page.on('request', (request) => { if (new URL(request.url()).origin !== new URL(baseURL).origin) externalRequests.push(request.url()); });
   await page.goto(`/provider/invite.html#token=${token}`);
   await expect(page.locator('#invite-state')).toContainText('Confirme a organização');
   await expect(page.getByLabel('Token do convite')).toHaveValue(token);
@@ -419,4 +421,58 @@ test('app real: documento privado sobe por URL assinada, baixa sob demanda e nen
   await expect(page).toHaveURL(new RegExp(`/finance/rfq\\.html\\?id=${RFQ}$`));
   const stored = await page.evaluate(() => JSON.stringify({ ...localStorage }) + JSON.stringify({ ...sessionStorage }));
   expect(stored).not.toMatch(/token=|supabase\.co/);
+});
+
+test('comparação financeira: filtros, versões, origem e moedas incompatíveis', async ({ page }) => {
+  const data = overview();
+  const [first, second] = data.rfqs[0].proposals;
+  first.version = 2;
+  first.terms.valid_until = '2020-01-01';
+  first.previous_version = { version: 1, submitted_at: '2026-08-01T10:00:00Z', terms: { ...first.terms, interest_rate_month: 2.5 } };
+  second.currency = 'USD';
+  second.terms.index = 'cdi';
+  await mockSession(page, { data });
+  await page.goto(`/finance/rfq.html?id=${RFQ}`);
+  await page.getByRole('tab', { name: 'Comparação' }).click();
+  await expect(page.locator('.comparison')).toContainText('Moedas diferentes');
+  await expect(page.locator('.comparison')).toContainText('Proposta vencida');
+  await expect(page.locator('.comparison .best')).toHaveCount(0);
+  const wide = page.locator('.comparison-wide');
+  const mobile = page.locator('.compare-mobile');
+  const surface = await wide.isVisible() ? wide : mobile;
+  const cell = surface.locator('[data-condition="interest_rate_month"]').first();
+  await cell.locator('summary').first().click();
+  await expect(cell).toContainText('sem vínculo de evidência por campo');
+  await expect(cell).toContainText('não verificado');
+  await page.getByLabel('Foco da comparação').selectOption('changed');
+  await expect(surface.locator('[data-condition="interest_rate_month"]')).toBeVisible();
+  await expect(surface.locator('[data-condition="term_months"]')).toHaveCount(0);
+  await page.getByLabel('Versão de Banco Um').selectOption('previous');
+  await expect(surface.locator('[data-condition="interest_rate_month"]')).toContainText('2,5%');
+  await page.getByLabel('Foco da comparação').selectOption('missing');
+  await expect(surface.locator('[data-condition="fees_amount"]')).toContainText('não informado');
+  await page.getByLabel('Peso de Taxa (% a.m.)', { exact: true }).focus();
+  await page.getByLabel('Peso de Taxa (% a.m.)', { exact: true }).press('End');
+  await page.getByRole('button', { name: 'Aplicar meus pesos' }).click();
+  await expect(page.locator('#weights-output')).toContainText('bases incompatíveis');
+  await expect(page.locator('.score-row')).toHaveCount(0);
+  await page.getByLabel('Foco da comparação').focus();
+  await expect(page.getByLabel('Foco da comparação')).toBeFocused();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+  await page.screenshot({ path: `reports/financial-visual/comparison-context-${Math.round((await page.viewportSize()).width)}.png`, fullPage: true });
+});
+
+test('comparação indisponível recusa cálculo local silencioso e oferece repetição', async ({ page }) => {
+  await mockSession(page);
+  await page.route('**/api/finance/comparison', route => route.fulfill({ status: 403, contentType: 'application/json', body: JSON.stringify({ ok: false, error: 'Acesso não autorizado.' }) }));
+  await page.goto(`/finance/rfq.html?id=${RFQ}`);
+  await page.getByRole('tab', { name: 'Comparação' }).click();
+  await expect(page.getByText('Comparação indisponível')).toBeVisible();
+  await expect(page.locator('.matrix')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Tentar novamente' })).toBeVisible();
+  await page.getByLabel('Peso de Taxa (% a.m.)', { exact: true }).focus();
+  await page.getByLabel('Peso de Taxa (% a.m.)', { exact: true }).press('End');
+  await page.getByRole('button', { name: 'Aplicar meus pesos' }).click();
+  await expect(page.locator('#weights-output')).toContainText('Não foi possível calcular');
+  await expect(page.locator('.score-row')).toHaveCount(0);
 });
