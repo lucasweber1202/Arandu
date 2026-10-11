@@ -1228,3 +1228,6 @@ textarea.mono{width:100%;max-width:100%;min-width:0}
 .comparison-context summary { cursor: pointer; font-weight: 600; }
 .comparison-context ul { padding-left: var(--s5); margin-block: var(--s2); }
 @media (max-width: 759px) { .comparison-controls select { width: 100%; min-width: 0; } }
+
+/* Atalhos contextuais: separação legível sem novos cartões. */
+.relationship-context .row-actions{gap:var(--s3) var(--s4)}
