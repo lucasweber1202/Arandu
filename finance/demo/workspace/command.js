@@ -248,6 +248,10 @@ export function installPalette(ctx, hooks) {
       search();
       if (!dialog.open) dialog.showModal();
       input.focus();
+      // WebKit põe o cursor no início ao focar por script: o que a pessoa
+      // continua digitando (depois das teclas guardadas durante o carregamento)
+      // entraria antes delas ("tema" virava "ema…t"). Cursor sempre no fim.
+      input.setSelectionRange(input.value.length, input.value.length);
     },
     close() { if (dialog.open) dialog.close(); },
     submit,

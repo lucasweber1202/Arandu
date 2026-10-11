@@ -1,6 +1,33 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
-## Rodada de 10/10/2026 — seed da Demo canônica e build de Production
+## 11/10/2026 — `main` vermelha após #154/#156: duas corridas reais no WebKit
+
+CI de `main` #819 (`d6786c3`, após #154) e #823 (`0e444cd`, após #156) falharam
+só em `presentation`; as PRs tinham passado (#818, #822). A árvore do HEAD da PR
+e a do commit de merge são idênticas nos dois casos (`git rev-parse <sha>^{tree}`),
+então não houve código diferente: eram falhas intermitentes, reproduzidas
+localmente no WebKit da imagem oficial Playwright 1.63.0 (`:330` falhou 10/30;
+`:100` 1/15), e as duas eram defeitos do produto, não do teste:
+
+- **Central de comando (sandbox):** o WebKit não tem `requestIdleCallback`, então
+  o pré-carregamento cai para 1,2 s e o Ctrl+K rápido chega antes do módulo. A
+  tecla guardada no buffer entra no campo e `input.focus()` no WebKit põe o
+  cursor no início: o resto da digitação ia antes dela (`"ema escurot"`), a
+  busca ficava vazia e Enter não executava. Correção: cursor no fim ao abrir.
+- **Dica da barra compacta:** qualquer `mouseover` fora da barra escondia a dica
+  aberta pelo foco; o WebKit dispara um `mouseover` sintético quando a barra
+  encolhe sob o ponteiro. Correção: a dica do foco persiste enquanto o foco
+  estiver no item (WCAG 1.4.13) e some quando o foco sai da barra ou com Esc.
+
+Regressões determinísticas: falhavam 6/6 no código antigo (WebKit/Safari móvel
+para a central; WebKit, Chromium e Firefox para a dica). Com a correção: 200/200
+e 75/75 em repetição; suíte de apresentação inteira sem retries nos cinco
+projetos 316 passed/44 skipped. O merge audit cumpriu seu contrato (detecção
+pós-merge de gates da PR) e o `release:candidate:check` já exige os quatro gates
+no SHA exato, então um `main` vermelho nunca vira candidato. Por isso as
+entradas M2 abaixo de #154 e #156 valem para o HEAD da PR; o commit de `main`
+só volta a valer como M2 com os quatro gates verdes no seu próprio CI.
+
 
 Baseline `main@9c08f6c793c0084736f9f6ed5330eb40c1cdfde4` (#152), sem PR aberta.
 Sessão sem conector Vercel/Supabase: nada hospedado lido, alterado ou promovido.
