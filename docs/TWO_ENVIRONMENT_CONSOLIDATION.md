@@ -5,6 +5,14 @@ hospedados permanentes: Demo e Production. Pilot significa estágio de validaç�
 de release. `main` é a única linha de produto; não desenvolver na branch `pilot`.
 Previews e bancos locais descartáveis não criam outro ambiente permanente.
 
+## Run 38179837512 e estratégia sem AWS (11/10/2026)
+
+Aprovado, o job `preserve-hosted` falhou na validação do destino, antes de
+conectar ao Supabase: os três secrets do Environment `database-recovery`
+estavam vazios. Pilot continua `RECOVERY_BLOCKED` (nível 1–2: código e testes
+sintéticos; nenhum acesso real). A estratégia `private-store` (sem S3) e o
+preflight por código estão em `SUPABASE_ENCRYPTED_PRESERVATION.md`.
+
 ## Seguimento de Stage 0 (11/10/2026)
 
 `main@a321888` (#169), CI run #850 e merge-audit #43 verdes. Sem alteração de

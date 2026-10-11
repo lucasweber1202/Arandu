@@ -3,13 +3,14 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { tmpdir } from 'node:os';
+import os, { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { exportRecovery } from './consolidation-export.mjs';
 import { digestFile } from '../lib/recovery-transfer.mjs';
 import { verifyRestore } from './consolidation-restore-verify.mjs';
 import { loopbackTarget } from '../lib/recovery-reconciliation.mjs';
+import { initStore, prepareKey, privateExport, verifyExport } from './recovery.mjs';
 
 const dir = fs.mkdtempSync(path.join(tmpdir(),'arandu-real-recovery-'));
 fs.chmodSync(dir,0o700);
@@ -138,6 +139,54 @@ try {
   const denied=spawnSync('psql',['-X','-v','ON_ERROR_STOP=1'],{env:{...env,PGPORT:'55432'},input:'SET ROLE arandu_fixture_reader; INSERT INTO public.child VALUES(5,2,5);',encoding:'utf8'});
   assert.notEqual(denied.status,0);
   assert.match(denied.stderr,/row-level security/);
+  // Estratégia private-store (sem AWS): identidade preparada fora do store, store
+  // durável marcado, export + verify, restore do MESMO ciphertext e nível 5.
+  {
+    const home=fs.mkdtempSync(path.join(os.homedir(),'.arandu-private-store-test-'));fs.chmodSync(home,0o700);
+    try{
+      const opEnv={PATH:process.env.PATH};
+      const keys=path.join(home,'keys');fs.mkdirSync(keys,{mode:0o700});
+      const storeDir=path.join(home,'store');
+      const key=prepareKey({env:{...opEnv,ARANDU_RECOVERY_IDENTITY_FILE:path.join(keys,'id.agekey')},args:['--generate']});
+      assert.equal(key.generated,true);assert.equal(key.roundtrip,'VERIFIED');
+      assert.equal(fs.statSync(path.join(keys,'id.agekey')).mode&0o777,0o600);
+      assert.equal(prepareKey({env:{...opEnv,ARANDU_RECOVERY_IDENTITY_FILE:path.join(keys,'id.agekey')}}).recipient,key.recipient,'identidade regenerada');
+      const store=initStore({env:{...opEnv,ARANDU_RECOVERY_DIRECTORY:storeDir},args:['--attest-persistent']});
+      const privEnv={...env,ARANDU_RECOVERY_CONFIRM:'ARANDU-ENCRYPTED-EXPORT',ARANDU_RECOVERY_PROJECT_REF:'offgpyysgdhfemjlchod',
+        ARANDU_RECOVERY_DATABASE_URL:'postgresql://postgres@127.0.0.1:55431/postgres?sslmode=disable',ARANDU_RECOVERY_RECIPIENT:key.recipient,ARANDU_RECOVERY_DIRECTORY:storeDir};
+      const quiet=()=>{};
+      // Falhas classificadas por estágio, sem artefato parcial no store.
+      await assert.rejects(privateExport({env:{...privEnv,ARANDU_RECOVERY_DATABASE_URL:'postgresql://postgres@127.0.0.1:55439/postgres?sslmode=disable'},syntheticLocal:true,log:quiet}),(e)=>e.code==='RECOVERY_CONNECTION_FAILED');
+      await assert.rejects(privateExport({env:{...privEnv,ARANDU_RECOVERY_RECIPIENT:''},syntheticLocal:true,log:quiet}),(e)=>e.code==='RECOVERY_RECIPIENT_MISSING');
+      await assert.rejects(privateExport({env:{...privEnv,ARANDU_RECOVERY_CONFIRM:''},syntheticLocal:true,log:quiet}),(e)=>e.code==='RECOVERY_CONFIRMATION_MISSING');
+      await assert.rejects(privateExport({env:{...privEnv,RUNNER_ENVIRONMENT:'github-hosted'},syntheticLocal:true,log:quiet}),(e)=>e.code==='RECOVERY_STORAGE_NOT_DURABLE');
+      const leftovers=fs.readdirSync(storeDir).filter(n=>n!=='.arandu-recovery-store.json');
+      for(const n of leftovers){const m=JSON.parse(fs.readFileSync(path.join(storeDir,n,'manifest.json'),'utf8'));assert.notEqual(m.result,'exported_unverified','falha deixou export dado como concluído');}
+      const {manifest:pm,verification}=await privateExport({env:privEnv,syntheticLocal:true,log:quiet});
+      assert.equal(verification.integrity,'VERIFIED');assert.equal(verification.level,4);assert.equal(verification.recovery,'RECOVERY_RESTORE_NOT_VERIFIED');
+      assert.equal(pm.storage.store_id,store.store_id);
+      const exportDir=path.join(storeDir,verification.export);
+      const vEnv={...opEnv,ARANDU_RECOVERY_BACKUP:exportDir};
+      assert.equal((await verifyExport({env:vEnv})).level,4);
+      // Adulteração e permissão detectadas pelo verify do store.
+      const copy=path.join(storeDir,'tampered-copy');fs.cpSync(exportDir,copy,{recursive:true});fs.chmodSync(copy,0o700);
+      fs.appendFileSync(path.join(copy,'database.dump.age'),'x');
+      await assert.rejects(verifyExport({env:{...opEnv,ARANDU_RECOVERY_BACKUP:copy}}),(e)=>e.code==='RECOVERY_READBACK_FAILED');
+      fs.rmSync(copy,{recursive:true,force:true});
+      fs.chmodSync(path.join(exportDir,'roles.sql.age'),0o644);
+      await assert.rejects(verifyExport({env:vEnv}),(e)=>e.code==='RECOVERY_DESTINATION_PERMISSIONS');
+      fs.chmodSync(path.join(exportDir,'roles.sql.age'),0o600);
+      // Restore isolado do MESMO export num cluster novo: só então nível 5.
+      const third=path.join(dir,'third');run('initdb',['-D',third,'-U','postgres','--auth=trust','--no-locale','--encoding=UTF8']);
+      run('pg_ctl',['-D',third,'-l',path.join(dir,'third.log'),'-o',`-h 127.0.0.1 -p 55433 -k ${dir}`,'-w','start']);started.push(third);
+      sql(55433,'CREATE ROLE arandu_fixture_reader NOSUPERUSER NOCREATEDB NOCREATEROLE NOLOGIN;');
+      const rec=await verifyRestore({root:process.cwd(),env:{...env,ARANDU_RESTORE_CONFIRM:'ARANDU-ISOLATED-RESTORE',ARANDU_RESTORE_BACKUP:exportDir,
+        ARANDU_RESTORE_IDENTITY:path.join(keys,'id.agekey'),ARANDU_RESTORE_TARGET_URL:'postgresql://postgres@127.0.0.1:55433/postgres?sslmode=disable'}});
+      assert.equal(rec.reconciliation,'MATCH');
+      const final=await verifyExport({env:vEnv});
+      assert.equal(final.level,5);assert.equal(final.recovery,'RECOVERY_VERIFIED');assert.equal(final.conversion,'BLOCKED');
+    } finally { fs.rmSync(home,{recursive:true,force:true}); }
+  }
   const corrupt=Buffer.from(fs.readFileSync(cipher));corrupt[corrupt.length-1]^=1;
   const corruptResult=spawnSync('age',['--decrypt','--identity',identity],{env,input:corrupt,timeout:30000});assert.notEqual(corruptResult.status,0);
   console.log(JSON.stringify({classification:'synthetic_postgresql17_age_same_backup_restore',result:'VALIDATED',
