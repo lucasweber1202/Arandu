@@ -1,5 +1,25 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 11/10/2026 — Isolamento de visitantes da Demo canônica (PR A–C da missão de conclusão)
+
+Base: `main` @ `9753b5e` (#167). Implementa `docs/demo/VISITOR_ISOLATION.md`,
+com uma adaptação justificada: um pool de workspaces montados pelo seed real
+substitui a cópia SQL com remapeamento de UUIDs. O schema tem 74 gatilhos,
+148 referências a `auth.users`, registros imutáveis e hashes sobre fatos com
+IDs, o que tornaria a cópia frágil.
+
+| Item | Estado | Evidência local | Limite |
+| --- | --- | --- | --- |
+| Migration `financial-demo-workspaces-1` (tabela sem policies, claim/resume/active só `service_role`, recusa fora de banco demo, quotas por gatilho) | M1 + DB | `npm run test:database` (Postgres 16, clean/upgrade/rollback/reaplicação) exit 0; PostgREST local: `anon` recebe 42501 na função e na tabela | não aplicada em banco hospedado |
+| Seed em modo workspace + `scripts/demo/workspaces.mjs` | E2 local | 2 workspaces em paralelo, **631 s cada, 36/36 checagens cada**; falha parcial removida automaticamente (observado com o primeiro erro de sessão); `cleanup` em 2 s removeu só o vencido (6 orgs, 9 contas) e manteve o baseline e o workspace ativo | reabastecimento automático do pool hospedado em aberto |
+| `demo-login` por workspace e sessão vinculada ao workspace | M1 local | `scripts/test-demo-personas.mjs` com reivindicação, retomada por hash, troca de persona com logout, token adulterado, pool vazio, mapa cruzado, 429 por origem, sessão derrubada com workspace inativo ou fora da Demo | — |
+| Dois visitantes simultâneos | E2 local | `tests/e2e/demo-workspaces.spec.js` contra o produto real (Chromium desktop): orgs distintas, leitura cruzada recusada, RFQ de A invisível para B, aprovação de A sem afetar B, troca de persona no mesmo workspace, portal do provedor isolado, cookie forjado, sessão de B derrubada ao vencer; `demo-baseline.spec.js` 5/5 | Firefox/WebKit e Demo hospedada não executados |
+| Gate de paridade | M1 | 31/31 local; 16 cenários (3 novos de isolamento) | hospedado `BLOCKED` |
+
+Achado corrigido no caminho: `tests/database/financial-public-api.sql` reprovava
+de forma intermitente quando o UUID aleatório continha `7777`. A regex agora
+usa fronteira de palavra.
+
 ## 11/10/2026 — Consolidação Demo × Oficial: contrato de paridade (lotes A–C)
 
 Base: `main` @ `c6363f8` (#165; merge audit success, CI do HEAD em execução na

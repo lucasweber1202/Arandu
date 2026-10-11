@@ -3,6 +3,7 @@
 // dois workspaces prontos (npm run demo:local:workspaces -- provision --count=2).
 // A jornada ESCREVE e consome dois workspaces; reponha o pool antes de repetir.
 import { test, expect } from '@playwright/test';
+import { RFQ_CREDIT } from '../../scripts/demo/dataset.mjs';
 
 const ENABLED = process.env.ARANDU_DEMO_WORKSPACE_E2E === '1';
 test.skip(!ENABLED, 'Defina ARANDU_DEMO_WORKSPACE_E2E=1 com o pool local abastecido (consome dois workspaces).');
@@ -48,7 +49,7 @@ test('dois visitantes simultâneos: workspaces, escritas, aprovações e sessõe
 
   // A cria uma RFQ; B não a vê.
   const title = `Isolamento A ${Date.now()}`;
-  const created = await api(a, 'POST', 'rfqs', { organization_id: orgA.id, product: 'credit', title, description: 'Teste de isolamento entre visitantes.', demand: {} });
+  const created = await api(a, 'POST', 'rfqs', { organization_id: orgA.id, product: 'credit', title, description: 'Teste de isolamento entre visitantes.', demand: RFQ_CREDIT.demand });
   expect(created.status, JSON.stringify(created.body)).toBeLessThan(300);
   const rfqsB = await api(b, 'GET', `overview?organization_id=${orgB.id}`);
   expect(JSON.stringify(rfqsB.body)).not.toContain(title);
