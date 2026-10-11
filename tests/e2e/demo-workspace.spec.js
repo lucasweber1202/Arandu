@@ -110,6 +110,15 @@ test('barra lateral compacta com tooltip, persistida, e modo foco', async ({ pag
   const link = page.getByRole('navigation', { name: 'Navegacao do portal' }).getByRole('link', { name: 'Contratos' });
   await link.focus();
   await expect(page.getByRole('tooltip')).toHaveText('Contratos');
+  // A dica do foco persiste quando o ponteiro passa por outra área (o WebKit
+  // dispara esse mouseover sozinho quando a barra encolhe sob o cursor).
+  const main = await page.locator('#main').boundingBox();
+  await page.mouse.move(main.x + main.width / 2, main.y + 40);
+  await expect(page.getByRole('tooltip')).toHaveText('Contratos');
+  await expect(link).toBeFocused();
+  // Escape continua dispensando a dica sem mover o foco.
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('tooltip')).toBeHidden();
   await ready(page, '/demo/finance/rfqs.html');
   await expect(html(page)).toHaveAttribute('data-sidebar-state', 'compact');
   await page.keyboard.press('Control+b');
@@ -379,6 +388,27 @@ test('central de comando: o que se digita enquanto o módulo carrega não se per
   await expect(page).toHaveURL(/\/demo\/finance\/tasks\.html$/);
   await expect(page.locator('#command-center')).not.toHaveAttribute('open', '');
   expect((await stored(page)).appearance.theme).toBe('dark');
+});
+
+test('central de comando: digitar durante e depois do carregamento mantém a ordem das teclas', async ({ page }) => {
+  // Regressão WebKit: a tecla guardada durante o carregamento entrava no campo
+  // e o foco por script punha o cursor no início, então o resto da digitação
+  // ia antes dela ("tema escuro" virava "ema escurot" e Enter não achava nada).
+  let release;
+  const gate = new Promise((resolve) => { release = resolve; });
+  await page.route(/\/assets\/command-[^/]+\.js$/, async (route) => { await gate; await route.continue(); });
+  await ready(page, '/demo/finance/tasks.html');
+  await page.keyboard.press('Control+k');
+  await page.keyboard.type('t');
+  release();
+  const query = page.locator('#command-query');
+  await expect(query).toBeFocused();
+  await expect(query).toHaveValue('t');
+  await page.keyboard.type('ema escuro');
+  await expect(query).toHaveValue('tema escuro');
+  await expect(page.locator('#command-results [role=option]').first()).toContainText('Tema escuro');
+  await page.keyboard.press('Enter');
+  await expect(html(page)).toHaveAttribute('data-theme', 'dark');
 });
 
 test('central de comando: Esc durante o carregamento cancela a abertura', async ({ page }) => {

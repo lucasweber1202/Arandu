@@ -235,8 +235,14 @@ function sidebarTooltip() {
     tip.style.top = `${Math.round(rect.top + rect.height / 2)}px`;
     tip.style.left = `${Math.round(rect.right + 10)}px`;
   };
-  document.addEventListener('mouseover', (event) => { const target = event.target.closest?.('.sidebar [data-tip]'); if (target) show(target); else tip.hidden = true; });
+  // Dica aberta pelo foco persiste enquanto o foco estiver no item (WCAG
+  // 1.4.13): passar o ponteiro por outra área — inclusive o mouseover sintético
+  // que o WebKit dispara quando a barra encolhe sob o cursor — volta para o item
+  // focado em vez de esconder a dica de quem navega pelo teclado.
+  const focusedTarget = () => document.activeElement?.closest?.('.sidebar [data-tip]') || null;
+  document.addEventListener('mouseover', (event) => { const target = event.target.closest?.('.sidebar [data-tip]') || focusedTarget(); if (target) show(target); else tip.hidden = true; });
   document.addEventListener('focusin', (event) => { const target = event.target.closest?.('.sidebar [data-tip]'); if (target) show(target); else tip.hidden = true; });
+  document.addEventListener('focusout', (event) => { if (event.target.closest?.('.sidebar [data-tip]') && !event.relatedTarget?.closest?.('.sidebar [data-tip]')) tip.hidden = true; });
   document.addEventListener('scroll', () => { tip.hidden = true; }, true);
   document.addEventListener('keydown', (event) => { if (event.key === 'Escape') tip.hidden = true; });
 }
