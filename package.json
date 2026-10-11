@@ -61,7 +61,7 @@
     "check:evidence:release": "node scripts/check-release-evidence.mjs --require-ready",
     "check:governance": "node scripts/check-governance.mjs && node scripts/test-merge-gates.mjs && node scripts/test-ci-browser-preparation.mjs && node scripts/test-consolidation.mjs && node scripts/test-release-candidate.mjs && node scripts/test-live-governance.mjs && node scripts/test-stage0-static-preflight.mjs",
     "merge:gates": "node scripts/check-merge-gates.mjs",
-    "check:staging": "node scripts/test-operational-tooling.mjs && node scripts/test-staging-workflow.mjs && node scripts/check-staging-rehearsal.mjs && node scripts/test-pending-migration-bundle.mjs && node scripts/test-pilot-backup-preflight.mjs && node scripts/test-consolidation-export.mjs && node scripts/test-recovery-transfer.mjs && node scripts/test-recovery-reconciliation.mjs",
+    "check:staging": "node scripts/test-operational-tooling.mjs && node scripts/test-staging-workflow.mjs && node scripts/check-staging-rehearsal.mjs && node scripts/test-pending-migration-bundle.mjs && node scripts/test-pilot-backup-preflight.mjs && node scripts/test-consolidation-export.mjs && node scripts/test-recovery-transfer.mjs && node scripts/test-recovery-doctor.mjs && node scripts/test-recovery-reconciliation.mjs",
     "check:live": "node scripts/check-live-production.mjs",
     "check:live:prod": "node scripts/check-live-production.mjs",
     "audit:ci": "npm audit --audit-level=high",
@@ -104,7 +104,12 @@
     "test:analytics": "node scripts/test-product-analytics.mjs && node scripts/test-product-analytics-api.mjs",
     "check:design": "node scripts/check-design-tokens.mjs",
     "check:demo-parity": "node scripts/check-demo-parity.mjs && node scripts/test-demo-parity.mjs",
-    "design:capture": "node scripts/design/capture-surfaces.mjs"
+    "design:capture": "node scripts/design/capture-surfaces.mjs",
+    "recovery:doctor": "node scripts/recovery.mjs doctor",
+    "recovery:key:prepare": "node scripts/recovery.mjs key",
+    "recovery:store:init": "node scripts/recovery.mjs store-init",
+    "recovery:export:private": "node scripts/recovery.mjs export",
+    "recovery:verify": "node scripts/recovery.mjs verify"
   },
   "dependencies": {
     "@vercel/functions": "3.1.0",

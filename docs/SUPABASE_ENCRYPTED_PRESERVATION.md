@@ -4,6 +4,62 @@ Estado: preparado, não executado contra Supabase; não comprova recovery.
 Continua a preparação de `TWO_ENVIRONMENT_CONSOLIDATION.md`, sem substituir
 o drill `scripts/pilot-restore-drill.sh` e sem mudar atribuições ativas.
 
+## Estratégias de destino e operação sem AWS (11/10/2026)
+
+A primeira execução real (run 38179837512, job `preserve-hosted`, `main@a321888`)
+falhou em `approvedDestination()` — antes de qualquer conexão com o Supabase —
+porque o Environment `database-recovery` não tinha
+`ARANDU_PILOT_RECOVERY_DATABASE_URL`, `ARANDU_RECOVERY_RECIPIENT` nem
+`ARANDU_RECOVERY_DESTINATION`. Não foi falha de autenticação, conexão nem backup.
+O workflow agora roda um preflight de configuração antes do export e nomeia a
+primeira falha por código (`RECOVERY_DATABASE_URL_MISSING`,
+`RECOVERY_RECIPIENT_MISSING`, `RECOVERY_DESTINATION_MISSING`, …), sem valores.
+
+| Estratégia | Onde roda | Destino do ciphertext | Dependência paga |
+| --- | --- | --- | --- |
+| `private-store` (A) | máquina confiável do operador ou runner dedicado `arandu-recovery` | diretório privado durável, fora do repo e de áreas temporárias, 0700, marcado por `store-init` | nenhuma |
+| `s3` (B) | `ubuntu-24.04` efêmero | URLs SigV4 aprovadas com PUT condicional e readback | bucket S3 |
+
+O runner hospedado do GitHub nunca vale como store (`RECOVERY_STORAGE_NOT_DURABLE`).
+
+Códigos (`lib/recovery-doctor.mjs`, `scripts/recovery.mjs`): configuração
+(`*_MISSING`, `*_INVALID`, `RECOVERY_STORE_NOT_INITIALIZED`,
+`RECOVERY_DESTINATION_PERMISSIONS`, `RECOVERY_STORAGE_NOT_DURABLE`), ferramentas
+(`RECOVERY_PG_VERSION_INVALID`, `RECOVERY_AGE_UNAVAILABLE`), conexão
+(`RECOVERY_CONNECTION_FAILED`, `RECOVERY_STORAGE_OBJECTS_PRESENT`), export
+(`RECOVERY_EXPORT_FAILED`), criptografia (`RECOVERY_ENCRYPTION_FAILED`),
+persistência (`RECOVERY_PERSISTENCE_FAILED`, `RECOVERY_TRANSFER_FAILED`),
+integridade (`RECOVERY_READBACK_FAILED`, `RECOVERY_MANIFEST_INVALID`) e
+recuperação (`RECOVERY_RESTORE_NOT_VERIFIED` até existir restore com `MATCH`).
+
+### Runbook da estratégia A (máquina do operador, Linux, PG17 + age 1.3.2)
+
+Variáveis só no shell local (nunca em arquivo do repositório nem em chat):
+
+1. Identidade, uma vez, em diretório 0700 fora do repo e do store:
+   `ARANDU_RECOVERY_IDENTITY_FILE=/caminho/seguro/arandu-recovery.agekey npm run recovery:key:prepare -- --generate`.
+   Imprime só o destinatário público e o fingerprint, após provar
+   criptografia/decriptação de um fixture. Recusa CI. Guarde uma cópia offline
+   da identidade separada do store; sem ela o ciphertext é irrecuperável.
+2. Store durável, uma vez: `ARANDU_RECOVERY_DIRECTORY=/disco/persistente/arandu-recovery npm run recovery:store:init -- --attest-persistent --retention-days=365`.
+3. Diagnóstico: `npm run recovery:doctor -- --export` com
+   `ARANDU_RECOVERY_PROJECT_REF`, `ARANDU_RECOVERY_DATABASE_URL` (conexão
+   PostgreSQL direct ou session pooler do próprio projeto; service role e anon
+   key não servem para `pg_dump`), `ARANDU_RECOVERY_RECIPIENT`,
+   `ARANDU_RECOVERY_DIRECTORY` e `ARANDU_RECOVERY_CONFIRM=ARANDU-ENCRYPTED-EXPORT`.
+   Não acessa o banco.
+4. Export: `npm run recovery:export:private` — preflight, snapshot read-only,
+   `pg_dump`/`pg_dumpall --roles-only --no-role-passwords` cifrados em streaming,
+   manifest com hashes e verificação imediata no store (nível 4).
+5. Restore isolado do mesmo export num PG17 loopback novo:
+   `npm run recovery:restore:verify` (inalterado). Depois
+   `ARANDU_RECOVERY_BACKUP=<export> npm run recovery:verify` só reporta
+   `RECOVERY_VERIFIED` (nível 5) se houver registro de restore `MATCH` dos mesmos
+   hashes. Conversão continua BLOCKED até aprovação explícita.
+
+No runner dedicado, `consolidation-export.yml` com `executor=private-runner`
+faz os passos 3–4 com os secrets do Environment; a identidade nunca vai ao runner.
+
 ## Executor e autorização
 
 Antes de habilitar o workflow manual `consolidation-export.yml`, o administrador
