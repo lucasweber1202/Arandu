@@ -1,5 +1,16 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 11/10/2026 — Operação contínua dos workspaces da Demo (DW-02)
+
+Base: `main` @ `5d48b18` (#168).
+
+| Item | Estado | Evidência local | Limite |
+| --- | --- | --- | --- |
+| Quota atômica por workspace | M1 + DB | race reproduzida (quota 1 → 3 RFQs) e corrigida (6 concorrentes, quota 2 → 2); `test:database` exit 0 com `demo-quota-concurrency.sh` | — |
+| Controlador do pool (`maintain`) com lease exclusivo | E2 local | 2 execuções simultâneas: 1 `skipped`; 3 workspaces em 1.256 s, 0 falhas; cleanup só do vencido | sem agendamento hospedado |
+| Workflow `demo-pool.yml` | M1 | manual, main revisada, environment `demo`, timeout 40 min | secrets do environment `demo` inexistentes até o cutover |
+| E2E dois visitantes + quota pela API | E2 local | Chromium desktop: 1 passed (24,6 s), 429 `demo_workspace_quota` sem detalhe interno | Firefox/WebKit e hospedado não executados |
+
 ## 11/10/2026 — Isolamento de visitantes da Demo canônica (PR A–C da missão de conclusão)
 
 Base: `main` @ `9753b5e` (#167). Implementa `docs/demo/VISITOR_ISOLATION.md`,
