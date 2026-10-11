@@ -63,7 +63,7 @@ export async function portfolio(ctx) {
   const entities = await loadEntities(ctx);
   const manage = ctx.can('edit_profile');
   const context = entityContextSelect(entities, { onChange: () => ctx.rerender() });
-  const add = manage ? button('Registrar facility', { variant: 'primary', iconName: 'plus', onClick: () => facilityForm(ctx, entities) }) : null;
+  const add = manage ? button('Registrar facility', { variant: 'primary', iconName: 'plus', attrs: { 'data-intent': 'registrar-facility' }, onClick: () => facilityForm(ctx, entities) }) : null;
   const addGuarantee = manage ? button('Registrar garantia', { iconName: 'shield', onClick: () => guaranteeForm(ctx, entities, null) }) : null;
   ctx.header({ title: 'Dívida, limites e garantias', subtitle: 'Visão de procurement e relacionamento, por moeda. Dados registrados pela empresa, com origem e data.', actions: [context, addGuarantee, add].filter(Boolean) });
   const root = el('div', { class: 'stack portfolio' }, loading('Carregando portfólio…'));

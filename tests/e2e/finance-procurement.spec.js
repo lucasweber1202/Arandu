@@ -50,7 +50,7 @@ function overview(extra = {}) {
   };
 }
 /** Sessão simulada: responde as rotas que a interface usa. */
-async function mockSession(page, { organizations = [{ id: ORG, kind: 'BUYER', legal_name: 'Empresa de teste' }], data = overview(), editor = {}, onSearch = null, onDocuments = null } = {}) {
+async function mockSession(page, { organizations = [{ id: ORG, kind: 'BUYER', legal_name: 'Empresa de teste' }], data = overview(), editor = {}, onSearch = null, onDocuments = null, viewerRole = 'finance_manager' } = {}) {
   const calls = [];
   await page.route('**/api/finance/**', (route) => {
     const request = route.request();
@@ -60,7 +60,7 @@ async function mockSession(page, { organizations = [{ id: ORG, kind: 'BUYER', le
     const json = (body, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
     if (path === 'organizations') return json({ ok: true, rows: organizations });
     if (path === 'overview') return json(data);
-    if (path === 'members') return json({ ok: true, rows: [{ user_id: 'u1', role: 'finance_manager', display_name: 'Paula Nogueira', title: 'Gerente Financeira' }, { user_id: 'u2', role: 'analyst', display_name: 'Rui Tavares', title: 'Analista de Crédito' }], viewer_id: 'u1' });
+    if (path === 'members') return json({ ok: true, rows: [{ user_id: 'u1', role: viewerRole, display_name: 'Paula Nogueira', title: 'Gerente Financeira' }, { user_id: 'u2', role: 'analyst', display_name: 'Rui Tavares', title: 'Analista de Crédito' }], viewer_id: 'u1' });
     if (path.startsWith('private-documents') || path.startsWith('ops/')) return onDocuments ? onDocuments(path, request, json) : json({ ok: true, rows: [] });
     if (path === 'search') { onSearch?.(url); return json({ ok: true, rows: [{ kind: 'rfq', id: RFQ, title: 'Crédito expansão', detail: 'comparing', href: `/finance/rfq.html?id=${RFQ}` }] }); }
     if (path === 'rfq-editor' && request.method() === 'GET') return json({ ok: true, draft: editor.draft || null });
@@ -247,6 +247,38 @@ test('o assistente avança por etapas, valida em linha e salva o rascunho no ser
   await expect(page.getByRole('button', { name: 'Voltar' })).toBeVisible();
   const stored = await page.evaluate(() => Object.keys(localStorage));
   expect(stored, 'rascunho real nunca vai ao navegador').toEqual([]);
+});
+
+test('entrada por objetivo leva ao fluxo existente e só oferece o que o papel permite', async ({ page }) => {
+  await mockSession(page);
+  await page.goto('/finance/dashboard.html');
+  await page.getByRole('button', { name: 'Começar' }).click();
+  const panel = page.getByRole('dialog', { name: 'O que você precisa fazer?' });
+  await expect(panel.getByRole('heading', { name: 'Contratar' })).toBeVisible();
+  await expect(panel.getByRole('link', { name: /Registrar um contrato existente/ })).toHaveAttribute('href', /contracts\.html\?acao=registrar-contrato$/);
+  await panel.getByRole('link', { name: /Contratar crédito/ }).click();
+  await expect(page).toHaveURL(/new-rfq\.html\?product=credit$/);
+  await expect(page.locator('#product-credit')).toBeChecked();
+  // Ação pedida pela URL abre o formulário do fluxo de destino e sai da URL.
+  await page.goto('/finance/contracts.html?acao=registrar-contrato');
+  await expect(page.getByRole('dialog', { name: 'Registrar contrato existente' })).toBeVisible();
+  await expect(page).toHaveURL(/contracts\.html$/);
+  // Valor fora da lista fechada não aciona nada.
+  await page.goto('/finance/contracts.html?acao=logout');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+});
+
+test('leitor não recebe ações de criação na entrada por objetivo', async ({ page }) => {
+  await mockSession(page, { viewerRole: 'viewer' });
+  await page.goto('/finance/dashboard.html');
+  await page.getByRole('button', { name: 'Começar' }).click();
+  const panel = page.getByRole('dialog', { name: 'O que você precisa fazer?' });
+  await expect(panel.getByRole('link', { name: /Comparar propostas recebidas/ })).toBeVisible();
+  for (const name of [/Contratar crédito/, /Avaliar adquirência/, /Registrar um contrato existente/, /Cadastrar uma instituição/, /Registrar tarifa/]) await expect(panel.getByRole('link', { name })).toHaveCount(0);
+  // Sem permissão, a ação pedida pela URL não encontra botão e nada abre.
+  await page.goto('/finance/contracts.html?acao=registrar-contrato');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
 });
 
 test('conflito de rascunho entre abas é explicado e para de salvar', async ({ page }) => {

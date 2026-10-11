@@ -502,6 +502,18 @@ a.mini-title:hover{color:var(--accent-text)}
 .exec-line{overflow-wrap:anywhere}
 @media (max-width:759px){.exec-filters{grid-template-columns:1fr}}
 
+/* Entrada por objetivo (painel "O que você precisa fazer?"). */
+.intent-groups{display:grid;gap:var(--s5)}
+.intent-group-title{font-size:11px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:var(--s2)}
+.intent-list{list-style:none;margin:0;padding:0;display:grid;gap:var(--s2)}
+.intent-link{display:flex;align-items:center;gap:var(--s3);padding:var(--s3);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);text-decoration:none;background:var(--surface)}
+.intent-link:hover{border-color:var(--petrol-line);background:var(--petrol-weak)}
+.intent-link:focus-visible{outline:none;box-shadow:var(--focus-ring)}
+.intent-icon{display:grid;place-items:center;width:34px;height:34px;border-radius:var(--r-md);background:var(--petrol-weak);color:var(--accent-text);flex:none}
+.intent-text{display:grid;flex:1;min-width:0;line-height:1.3}
+.intent-label{font-weight:600}
+.intent-detail{font-size:var(--fs-sm);color:var(--text-muted)}
+
 /* ---------------------------------------------------------------- RFQ */
 .lifecycle{list-style:none;margin:0 0 var(--s5);padding:0;display:flex;gap:4px;overflow-x:auto}
 .lifecycle-step{flex:1 1 0;min-width:88px;display:flex;align-items:center;gap:6px;padding:8px 10px;border-radius:var(--r-md);background:var(--surface);border:1px solid var(--border);font-size:var(--fs-sm);color:var(--text-muted)}

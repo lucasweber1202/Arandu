@@ -176,6 +176,8 @@ export async function newRfq(ctx) {
     set value(id) { for (const input of productCards.querySelectorAll('input')) input.checked = input.value === id; },
     addEventListener: (type, handler) => productCards.addEventListener(type, handler)
   };
+  // Intake por objetivo: "Contratar crédito"/"Avaliar adquirência" chegam com o produto escolhido.
+  if (PRODUCT_IDS.includes(params.get('product'))) productSelect.value = params.get('product');
   const title = el('input', { name: 'title', type: 'text', maxlength: '200', autocomplete: 'off', placeholder: 'Ex.: Capital de giro — R$ 3 milhões' });
   const titleField = field({ label: 'Título da solicitação', control: title, required: true, hint: 'Os provedores veem este título. Seja específico e evite dados sigilosos.' });
   const description = el('textarea', { name: 'description', rows: '3', maxlength: '4000', placeholder: 'Contexto que ajuda o provedor a ofertar melhor.' });
