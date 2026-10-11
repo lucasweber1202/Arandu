@@ -56,6 +56,20 @@ test('dois visitantes simultâneos: workspaces, escritas, aprovações e sessõe
   const rfqsA = await api(a, 'GET', `overview?organization_id=${orgA.id}`);
   expect(JSON.stringify(rfqsA.body)).toContain(title);
 
+  // Quota pela API real: com o limite de RFQs igual ao uso atual, a próxima
+  // criação recebe 429 com mensagem clara, sem detalhe interno.
+  if (SERVICE) {
+    const wsA = (await visitorA.cookies()).find((cookie) => cookie.name === 'arandu_demo_ws').value.split('.')[0];
+    const used = (rfqsA.body.rfqs || []).length;
+    const quota = await fetch(`${REST}/fin_demo_workspaces?id=eq.${wsA}`, { method: 'PATCH', headers: { apikey: SERVICE, Authorization: `Bearer ${SERVICE}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify({ quotas: { rfqs: used, documents: 40, invites: 80, organizations: 1 } }) });
+    expect(quota.ok).toBe(true);
+    const blocked = await api(a, 'POST', 'rfqs', { organization_id: orgA.id, product: 'credit', title: `${title} excedente`, description: 'Além da quota.', demand: RFQ_CREDIT.demand });
+    expect(blocked.status).toBe(429);
+    expect(blocked.body.code).toBe('demo_workspace_quota');
+    expect(JSON.stringify(blocked.body)).not.toMatch(/quota exceeded|fin_demo|plpgsql|trigger/);
+  }
+
   // Troca de persona em A (CFO) no mesmo workspace; A aprova a etapa pendente.
   await enter(a, 'Helena Duarte');
   expect((await buyerOrg(a)).id, 'troca de persona mantém o workspace').toBe(orgA.id);

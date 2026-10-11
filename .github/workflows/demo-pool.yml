@@ -1,0 +1,76 @@
+name: Arandu Demo Workspace Pool
+
+# Controlador do pool de workspaces da Demo canônica (docs/demo/VISITOR_ISOLATION.md).
+# Só execução manual: o agendamento recorrente fica desligado até o Supabase DEMO
+# ter atribuição ativa aprovada (lib/deployment-topology.mjs) e o cutover da Demo
+# estar validado. Não roda código de PR: só a main revisada, com secrets do
+# environment "demo", que nunca contém credencial de Production ou do Pilot.
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: maintain (limpa e repõe até o alvo), cleanup ou list
+        required: true
+        default: maintain
+        type: choice
+        options:
+          - maintain
+          - cleanup
+          - list
+      reviewed_sha:
+        description: SHA completo revisado da main que executará o controlador
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: arandu-demo-pool
+  cancel-in-progress: false
+
+jobs:
+  pool:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: demo
+    # 4 workspaces por execução, 2 em paralelo, ~630 s cada: ~21 min + limpeza.
+    timeout-minutes: 40
+    steps:
+      - name: Verify reviewed code identity
+        env:
+          REVIEWED_SHA: ${{ inputs.reviewed_sha }}
+          EXECUTION_SHA: ${{ github.sha }}
+        run: |
+          node -e 'if (!/^[a-f0-9]{40}$/.test(process.env.REVIEWED_SHA || "") || process.env.REVIEWED_SHA !== process.env.EXECUTION_SHA) process.exit(1)'
+
+      - name: Checkout reviewed main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+
+      - name: Install
+        run: npm ci --ignore-scripts
+
+      - name: Pool plan checks without credentials
+        run: node scripts/test-demo-pool.mjs
+
+      - name: Run pool controller
+        env:
+          ARANDU_ENV: demo
+          # Repete o ref do Supabase DEMO: as travas do seed recusam qualquer outro alvo.
+          ARANDU_DEMO_CONFIRM: ${{ secrets.ARANDU_DEMO_SUPABASE_REF }}
+          SUPABASE_URL: ${{ secrets.ARANDU_DEMO_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.ARANDU_DEMO_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.ARANDU_DEMO_SUPABASE_SERVICE_ROLE_KEY }}
+          ARANDU_DEMO_APP_URL: ${{ secrets.ARANDU_DEMO_APP_URL }}
+          ARANDU_DEMO_PASSWORD: ${{ secrets.ARANDU_DEMO_PASSWORD }}
+          CRON_SECRET: ${{ secrets.ARANDU_DEMO_CRON_SECRET }}
+          ACTION: ${{ inputs.action }}
+        run: node scripts/demo/workspaces.mjs "$ACTION"
