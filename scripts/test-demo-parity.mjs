@@ -10,6 +10,7 @@ import { spawnSync } from 'node:child_process';
 import assert from 'node:assert/strict';
 
 const COPY = ['finance', 'provider', 'lib', 'scripts', 'vercel.json', 'package.json', 'node_modules'];
+const DOCS = ['docs/DEMO_PRODUCTION_PARITY_MATRIX.md', 'docs/supabase-migrations.json'];
 function sandbox() {
   const dir = mkdtempSync(join(tmpdir(), 'arandu-parity-'));
   for (const item of COPY) {
@@ -17,7 +18,7 @@ function sandbox() {
     cpSync(item, join(dir, item), { recursive: true });
   }
   mkdirSync(join(dir, 'docs'));
-  cpSync('docs/DEMO_PRODUCTION_PARITY_MATRIX.md', join(dir, 'docs/DEMO_PRODUCTION_PARITY_MATRIX.md'));
+  for (const doc of DOCS) cpSync(doc, join(dir, doc));
   return dir;
 }
 const run = (dir) => spawnSync(process.execPath, ['scripts/check-demo-parity.mjs'], { cwd: dir, encoding: 'utf8' });
@@ -36,6 +37,9 @@ const cases = [
   ['capacidade sem cobertura nem lacuna', (d) => edit(d, 'lib/finance/parity-manifest.mjs', (s) => s.replace("sanity: ['Valor de procurement com metodologia e registro sem cálculo']", 'sanity: []')), /PRT-VALUE: sem cobertura de dataset/],
   ['recurso de API inexistente', (d) => edit(d, 'lib/finance/parity-manifest.mjs', (s) => s.replace("api: ['tasks']", "api: ['tarefas-fantasma']")), /recurso \/api\/finance\/tarefas-fantasma inexistente/],
   ['persona com papel fora do modelo', (d) => edit(d, 'lib/finance/demo-personas.mjs', (s) => s.replace("role: 'viewer'", "role: 'superuser'")), /papel fora do modelo canônico: superuser/],
+  ['login público volta a usar a conta do baseline', (d) => edit(d, 'lib/api/domains/auth.mjs', (s) => s.replace('const email=personaEmailIn(visitor.workspace,persona.key);', 'const email=persona.email;')), /não passa pelo workspace/],
+  ['login aceita workspace vindo do navegador', (d) => edit(d, 'lib/api/domains/auth.mjs', (s) => s.replace('const visitor=await visitorWorkspace(req);', 'const visitor=await visitorWorkspace(req,body.workspace);')), /vindo do navegador/],
+  ['sessão de workspace deixa de conferir validade', (d) => edit(d, 'lib/api/domains/auth.mjs', (s) => s.replaceAll('demoWorkspaceAllows(user)', 'true')), /não confere se o workspace está ativo/],
   ['matriz desatualizada', (d) => appendFileSync(join(d, 'docs/DEMO_PRODUCTION_PARITY_MATRIX.md'), '\nedição manual\n'), /diverge do manifesto/]
 ];
 

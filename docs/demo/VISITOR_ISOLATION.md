@@ -1,7 +1,8 @@
 # Isolamento de visitantes da Demo pública — desenho (lote D)
 
-Estado: **PLANEJADO** (11/10/2026). Nada aqui está implementado. Resolve os
-itens `OPS-CONCURRENCY` e `OPS-PERSONA-RATE` da
+Estado: **IMPLEMENTADO E VALIDADO LOCALMENTE** (11/10/2026, ver “Implementação”
+abaixo). Não hospedado: depende do cutover do Supabase DEMO. Resolve os itens
+`OPS-CONCURRENCY` e `OPS-PERSONA-RATE` da
 [matriz de paridade](../DEMO_PRODUCTION_PARITY_MATRIX.md).
 
 ## Problema
@@ -77,6 +78,44 @@ visível por corrupção silenciosa da apresentação.
    em `lib/finance/data-governance.mjs` como dado sintético de demonstração,
    retenção de 24 h e exclusão por job. Nenhum dado pessoal: só o hash do IP
    para o rate limit, com a retenção do mecanismo existente.
+
+## Implementação (11/10/2026) — adaptação do desenho
+
+A cópia SQL do baseline com remapeamento de UUIDs foi **substituída** por um
+**pool de workspaces montados pelo seed real**. O inventário do schema mostrou
+por que a cópia seria frágil:
+
+- 74 gatilhos;
+- 148 referências a `auth.users`;
+- registros imutáveis (`fin_immutable_row`);
+- hashes calculados sobre fatos que contêm IDs. Exemplo: `facts_hash` e
+  `closed_facts_hash` em `fin_opportunities`. Remapear os IDs deixaria esses
+  hashes inconsistentes e reabriria oportunidades por "mudança de fatos".
+
+O seed, em contrapartida, monta a história pelas mesmas APIs, RPCs e RLS de
+um cliente real e já é verificado por 36 checagens: correto por construção.
+
+| Peça | Onde |
+| --- | --- |
+| Registro e ciclo de vida | `docs/supabase-financial-demo-workspaces.sql` (`fin_demo_workspaces`, claim/resume/active só para `service_role`, recusa fora de banco marcado como demo, quotas por gatilho), rollback e `tests/database/financial-demo-workspaces.sql` |
+| Contas, senhas e cookie | `lib/finance/demo-workspaces.mjs`: `pessoa+ws-<slug>@<domínio>.example`, senha derivada por HMAC no servidor, cookie `arandu_demo_ws=<id>.<token>` (banco guarda só SHA-256) |
+| Montagem do pool | `scripts/demo/seed.mjs` com `ARANDU_DEMO_WORKSPACE=<slug>` (escopo só daquele workspace; entra como `ready` só se todas as checagens passarem) e `scripts/demo/workspaces.mjs provision\|cleanup\|list` |
+| Entrada pública | `POST /api/auth/demo-login` (`lib/api/domains/auth.mjs`): retoma o workspace do cookie ou reivindica um pronto; a persona é só uma chave; troca de persona encerra a sessão anterior no provedor; pool vazio → 503 `demo_capacity` |
+| Sessão | `resolveSession`: conta `+ws-` só opera com o workspace reivindicado e válido (ou em montagem pelo seed); vencido, em limpeza ou fora da Demo → sessão derrubada mesmo com JWT válido |
+| Quotas | gatilho `fin_demo_quota_guard` (RFQs, documentos, convites, organizações extras) só em workspace reivindicado; erro mapeado para 429 `demo_workspace_quota`; teto de ativos e reivindicação por origem no servidor |
+
+**Ajustes ao desenho original:**
+
+- **Storage:** sem compartilhamento. Cada workspace tem os próprios
+  documentos, enviados pelo seed ao Storage privado.
+- **Validade:** 4 h de ociosidade e 24 h no total, como planejado.
+- **Limpeza:** não há cron novo (evita mais um job no plano da Vercel). A
+  limpeza é feita por `scripts/demo/workspaces.mjs cleanup`; a validade é
+  aplicada a cada requisição pela sessão e na reivindicação.
+- **Reabastecimento:** cada workspace leva cerca de 10 minutos, quase todo
+  esse tempo esperando o rate limit legítimo da API. Por isso o pool é
+  reabastecido fora da requisição; workspaces diferentes podem ser montados em
+  paralelo. A automação do reabastecimento na Demo hospedada é item aberto.
 
 ## Gates antes de publicar
 

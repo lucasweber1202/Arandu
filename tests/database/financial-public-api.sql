@@ -178,7 +178,8 @@ begin
     '{"product":"credit","title":"Segunda via ERP com termos","demand":{"amount":7777},"owner_id":"00000000-0000-4000-8000-0000000c8002","legal_entity_id":"00000000-0000-4000-8000-0000000c8201"}'::jsonb);
   select * into e from public.fin_webhook_events where source_event_id = (select id from public.fin_events where entity_id = (v->>'id')::uuid and event_type = 'rfq_created');
   if e.event_type <> 'rfq.created' or e.payload->'data'->>'rfq_id' <> v->>'id' or e.legal_entity_id <> '00000000-0000-4000-8000-0000000c8201' then raise exception 'evento de webhook: %', row_to_json(e); end if;
-  if e.payload::text ~ '(7777|Segunda via|amount|title)' then raise exception 'payload além do necessário: %', e.payload; end if;
+  -- \m...\M: o valor 7777 como token próprio; UUID aleatório com "7777" no meio não é vazamento.
+  if e.payload::text ~ '(\m7777\M|Segunda via|amount|title)' then raise exception 'payload além do necessário: %', e.payload; end if;
   if (select count(*) from public.fin_webhook_deliveries where event_id = e.id) <> 2
      or exists (select 1 from public.fin_webhook_deliveries where event_id = e.id and endpoint_id = (select value from api_ids where key='hook_b')) then
     raise exception 'filtro de entidade do webhook';

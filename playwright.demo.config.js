@@ -14,7 +14,7 @@ import { defineConfig, devices } from '@playwright/test';
 const executablePath = process.env.PW_CHROMIUM || undefined;
 export default defineConfig({
   testDir: './tests/e2e',
-  testMatch: ['**/demo-baseline.spec.js'],
+  testMatch: ['**/demo-baseline.spec.js', '**/demo-workspaces.spec.js'],
   timeout: 60000,
   fullyParallel: false,
   workers: 1,
