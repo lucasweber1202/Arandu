@@ -1209,3 +1209,22 @@ tr.highlighted>td,.proposal-card.highlighted,.document-row.highlighted,.comment.
 .reason-select{max-width:100%;min-width:0}
 textarea.mono{width:100%;max-width:100%;min-width:0}
 .secret-once{display:block;overflow-wrap:anywhere;word-break:break-all;max-width:100%}
+
+/* Comparação factual: controles compactos e evidência por condição. */
+.comparison-controls, .comparison-versions { display: flex; flex-wrap: wrap; gap: var(--s3); margin-block: var(--s3); }
+.comparison-controls select, .comparison-version select { max-width: 100%; min-height: 36px; }
+.comparison-version { display: grid; gap: var(--s1); min-width: 0; font-size: var(--fs-sm); }
+.comparison-evidence { text-align: left; white-space: normal; font-size: var(--fs-xs); color: var(--text-secondary); max-width: 30ch; margin-top: var(--s2); }
+.comparison-evidence summary { cursor: pointer; }
+.comparison-evidence p { overflow-wrap: anywhere; margin-block: var(--s2); }
+.pair-value .comparison-evidence { max-width: 100%; }
+@media (max-width: 759px) {
+  .comparison-controls, .comparison-versions { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .comparison-controls select, .comparison-version select { width: 100%; }
+  .pair-value { overflow-wrap: anywhere; min-width: 0; }
+}
+
+.comparison-controls select { width: auto; flex: 1; min-width: 220px; }
+.comparison-context summary { cursor: pointer; font-weight: 600; }
+.comparison-context ul { padding-left: var(--s5); margin-block: var(--s2); }
+@media (max-width: 759px) { .comparison-controls select { width: 100%; min-width: 0; } }

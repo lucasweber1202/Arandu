@@ -1,5 +1,46 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 11/10/2026 — Comparação financeira contextual (D33-10, lote B)
+
+Base: `main` @ `d0ba642` (#162). M1 até os quatro gates próprios. A matriz
+existente usa grupos econômicos por produto, filtros de diferenças/pendências/
+alterações, resumo/detalhe e consulta da versão imediatamente anterior quando
+ela foi efetivamente carregada. Desktop mantém colunas alinhadas; mobile mantém
+pares e informa moeda, validade e revisão. Nenhum ranking universal.
+
+`lib/finance/comparison-context.mjs` valida células sem converter ausência,
+booleanos ou dados inválidos em zero; normaliza premissas equivalentes e impede
+destaques/pesos de taxas em bases de indexador incompatíveis, custo total em
+premissas diferentes/ausentes e ponderação em moedas incompatíveis. O schema
+atual continua em BRL: não há novo campo de entrada nem câmbio. Moeda histórica
+explícita é exibida e não é convertida. Estimativa de crédito exige indexador,
+amortização, carência e tarifas explícitos; adquirência exige mix, terminais e
+custos fixos aplicáveis explícitos. Ausência não é premissa padrão.
+
+Fluxo real reutiliza `POST comparison` para matriz e pesos com JWT/RLS; erro do
+servidor não cai em pontuação local. Exportação existente inclui o contexto,
+metodologia e metadados de origem. Origem por condição informa apenas envio,
+versão e data existentes; autor/documento por campo não disponíveis e verificação
+não realizada são explícitos. Não inventa vínculo documental ou CET calculado.
+Covenants não são campos estruturados neste catálogo; continuam nos documentos
+associados e no módulo existente, sem simular um novo schema.
+
+Testes: domínio (moedas, incompletude, indexadores, premissas, extremos, versões,
+vencimento e origem), API (comprador, provedor recusado antes da consulta,
+RFQ invisível/malformada, JWT e export), E2E (filtros, versões, teclado,
+mobile, recusa recuperável). Validação local: `check:all`, build, `check:build-size` e `audit:ci` aprovados;
+E2E financeiro Chromium desktop/mobile **229 passed, 7 skipped**. Apresentação
+local **125 passed, 19 skipped**. `deploy:check` aprovado com origem sintética
+`VERCEL_URL=arandu-local-validation.vercel.app` apenas para metadados de SEO
+do teste; sem essa origem o gate local recusa validação SEO de dist. Nenhuma
+URL sintética representa deployment real. CI final registrado na PR. Demo canônica/API real local não executável sem Docker;
+capturas locais de fixtures sintéticas não são evidência hospedada. Sandbox
+legado mantém a compatibilidade do fluxo compartilhado, sem novo motor/API.
+
+Limitações: só a versão imediatamente anterior carregada; propostas/versões têm
+limites declarados; revisão documental continua humana. Validação com usuários,
+Demo hospedada e M3/M4/M5 pendentes. Bundle não teve orçamento aumentado.
+
 ## 11/10/2026 — Missão autônoma v3.3, lote A
 
 Baseline confirmada por GitHub/API: `15fe2b20bc0c3810be7032c43391c87ccc7fa375`,
@@ -7,7 +48,7 @@ main protegida, sem PR aberta, CI `38144313278` com quatro gates success e
 merge-audit `38144313228` success. PRs #159–#161 integradas. D33-09/11/13
 recebem M2 somente para essa baseline; nenhuma promoção hospedada.
 
-Correções do lote A (M1 até CI próprio): facility usa `edit_profile`, como a
+Correções do lote A (M2 · #162 mergeada, HEAD `b1b1e699`, CI `38153272028` com quatro gates success; merge `d0ba642`): facility usa `edit_profile`, como a
 RPC `fin_assert_portfolio_write` (admin/finance_manager/analyst); contrato,
 instituição, tarifa e renovação continuam admin/finance_manager. Papéis da UI
 centralizados em `lib/finance/permissions.mjs`, sem fallback permissivo para
@@ -30,8 +71,8 @@ READY não comprova Demo canônica nem M3/M4/M5. Nenhum dado/ambiente alterado.
 Validação local do lote A: `check:all`, `build`, `check:build-size`,
 `audit:ci` aprovados; E2E financeiro Chromium desktop/mobile **225 passed,
 7 skipped**, incluindo 64 testes direcionados aprovados. `test:database` não
-executável aqui (psql/Docker indisponíveis); nova asserção SQL aguarda CI.
-Firefox/WebKit e apresentação permanecem pendentes do CI deste HEAD.
+executável aqui (psql/Docker indisponíveis); nova asserção SQL aprovada no gate database do CI `38153272028`.
+Firefox/WebKit e apresentação aprovados no CI do HEAD `b1b1e699`.
 
 ## 11/10/2026 — Arandu 3.3: produto, design e prontidão comercial (lotes 1 e 2)
 
@@ -47,12 +88,12 @@ quatro gates verdes no HEAD exato da PR; antes disso, M1.
 | D33-03 | Design Constitution + checador | tokens, cor, tipo, componentes, IA, QA | D33-02 | P0 | implemented (M2 · CI #159 run 38138747566, HEAD 28aa8f5; merge 6c71ba6) | `docs/ARANDU_DESIGN_CONSTITUTION.md`, `scripts/check-design-tokens.mjs` (`npm run check:design`, em `check:all`) | — | CI verde no HEAD | checador no CI |
 | D33-04 | Identidade unificada | tinta/petróleo no app e no site, monograma SVG, superfícies planas, numerais tabulares, avatares sóbrios; ícones PNG/OG regenerados no lote 2 | D33-03 | P0 | implemented (M2 · CI #159 run 38138747566, HEAD 28aa8f5; merge 6c71ba6) | `finance/style.css`, `financial-public.css`, `favicon.svg`, páginas públicas, `scripts/generate-finance-pages.mjs`, `finance/src/shell.js`; capturas antes/depois locais | — | CI + revisão visual | — |
 | D33-05 | Navegação em cinco áreas | fonte única, grupos recolhíveis, área na barra superior, folha "Mais" agrupada, rótulos curtos | D33-02 | P0 | implemented (M2 · CI #159 run 38138747566, HEAD 28aa8f5; merge 6c71ba6) · hipótese de UX não validada | `lib/finance/navigation.mjs`, `finance/src/shell.js`, `finance/app.js`, `scripts/test-finance-command-center.mjs` (rotas preservadas, deep links, isolamento do provedor) | aprendizado de quem usa o menu antigo | CI; sessões com usuários (§35.13) | validação com ≥ 3 pessoas do público |
-| D33-06 | Início sem vazamento técnico | Performance/Spend/Covenants humanizados no servidor; feed com títulos e agrupamento; contagens viram atalhos; filtros em linha | — | P0 | implemented (M2 · CI #159 run 38138747566, HEAD 28aa8f5; merge 6c71ba6) | `lib/finance/executive-presenter.mjs`, `lib/api/domains/finance-executive.mjs`, `finance/src/views/{dashboard,executive,shared}.js`; `scripts/test-finance-executive.mjs` recusa UUID/enum/função/ISO | detalhe de covenants ainda mostra IDs (D33-11) | CI | — |
+| D33-06 | Início sem vazamento técnico | Performance/Spend/Covenants humanizados no servidor; feed com títulos e agrupamento; contagens viram atalhos; filtros em linha | — | P0 | implemented (M2 · CI #159 run 38138747566, HEAD 28aa8f5; merge 6c71ba6) | `lib/finance/executive-presenter.mjs`, `lib/api/domains/finance-executive.mjs`, `finance/src/views/{dashboard,executive,shared}.js`; `scripts/test-finance-executive.mjs` recusa UUID/enum/função/ISO | detalhe de covenants humanizado na #160 | CI | — |
 | D33-07 | Design QA reprodutível | capturas autenticadas desktop/celular, overflow, falha em tela de erro, um login por persona | — | P1 | implemented (local) | `scripts/design/capture-surfaces.mjs` (`npm run design:capture`); 46 capturas antes/depois em `reports/design/` (fora do git) | depende da Demo local | CI com artefato | rodar no CI contra Demo efêmera |
 | D33-08 | Correção do site: título invisível | faixa escura com h2 tinta sobre tinta | — | P0 | implemented (M2 · CI #159 run 38138747566, HEAD 28aa8f5; merge 6c71ba6) | `financial-public.css`; guarda em `check-design-tokens.mjs` | — | CI | — |
-| D33-09 | Intake por objetivo | entrada "O que você precisa fazer?" no Início, por papel, levando aos fluxos existentes (crédito/adquirência pré-selecionados, `?acao=` abre o formulário de destino) | D33-05 | P1 | PARTIAL (lote 2 mergeado na #160; M2 no main `15fe2b20`, run `38144313278`; correções desta PR M1) | `lib/finance/intents.mjs`, `finance/src/views/intake.js`, `finance/app.js`, wizard `rfqs.js`; testes `test-finance-command-center.mjs` (fluxos existentes, permissão, lista fechada de ações) e E2E (gestor, leitor, ação inválida) | perguntas condicionais e conflito Passport ainda pelo wizard existente | CI | perguntas condicionais por objetivo; métrica de abandono |
-| D33-10 | Comparação profissional | agrupamento econômico, divergências, premissas, export | — | P1 | NOT_STARTED | comparação factual existente (P0) | — | lote D | — |
-| D33-11 | Relacionamento bancário integrado | visão por instituição sobre o Graph; detalhe de covenants sem IDs | — | P1 | PARTIAL (lote 2: detalhe de covenants com nomes; lote 3: lista de instituições vira índice de relacionamento — contratos vigentes, próximo vencimento, convites/propostas, ordem alfabética sem ranking; #160/#161 mergeadas, M2 no main `15fe2b20`, run `38144313278`; correções desta PR M1) | `lib/finance/covenant-presenter.mjs`, `lib/api/domains/finance-covenants.mjs`, `finance/src/views/company.js`; `test-finance-covenants.mjs` recusa UUID/ISO; captura 1440/390 px sem overflow | página de relacionamento por instituição (dívida, tarifas, covenants e performance juntos) pendente | CI | página integrada por instituição |
+| D33-09 | Intake por objetivo | entrada "O que você precisa fazer?" no Início, por papel, levando aos fluxos existentes (crédito/adquirência pré-selecionados, `?acao=` abre o formulário de destino) | D33-05 | P1 | PARTIAL (lote 2 mergeado na #160; M2 no main `15fe2b20`, run `38144313278`; correções #162 M2 · `b1b1e699`, CI `38153272028`) | `lib/finance/intents.mjs`, `finance/src/views/intake.js`, `finance/app.js`, wizard `rfqs.js`; testes `test-finance-command-center.mjs` (fluxos existentes, permissão, lista fechada de ações) e E2E (gestor, leitor, ação inválida) | perguntas condicionais e conflito Passport ainda pelo wizard existente | CI | perguntas condicionais por objetivo; métrica de abandono |
+| D33-10 | Comparação profissional | grupos econômicos, diferenças, pendências, versões, premissas, origem e export | — | P1 | PARTIAL (lote B, M1 até CI próprio) | `comparison-context.mjs`, `comparison.mjs`, `finance.mjs`, `shared.js`, `rfq.js`; domínio/API/E2E | histórico completo e vínculo de evidência por campo pendentes | quatro gates no HEAD próprio; usuários reais | validar a jornada na Demo canônica/hospedada |
+| D33-11 | Relacionamento bancário integrado | visão por instituição sobre o Graph; detalhe de covenants sem IDs | — | P1 | PARTIAL (lote 2: detalhe de covenants com nomes; lote 3: lista de instituições vira índice de relacionamento — contratos vigentes, próximo vencimento, convites/propostas, ordem alfabética sem ranking; #160/#161 mergeadas, M2 no main `15fe2b20`, run `38144313278`; correções #162 M2 · `b1b1e699`, CI `38153272028`) | `lib/finance/covenant-presenter.mjs`, `lib/api/domains/finance-covenants.mjs`, `finance/src/views/company.js`; `test-finance-covenants.mjs` recusa UUID/ISO; captura 1440/390 px sem overflow | página de relacionamento por instituição (dívida, tarifas, covenants e performance juntos) pendente | CI | página integrada por instituição |
 | D33-12 | Portal do provedor | resposta de baixo atrito, estados, celular | — | P1 | NOT_STARTED | portal existente | — | lote F | — |
 | D33-13 | Site comercial redesenhado | homepage com narrativa de ciclo de vida, capturas reais da Demo rotuladas, escopo honesto; Plataforma em cinco áreas; ícones e OG com a marca nova | D33-04 | P1 | implemented (lote 2 mergeado na #160; M2 no main `15fe2b20`, run `38144313278`) | `index.html`, `produto.html`, `financial-public.css`, `site/*.webp`, `scripts/design/capture-marketing.mjs` (só Demo local ou confirmação explícita), `financial-icon-*.png`, `financial-og.png` | claims (revisado contra §35.12) | CI; revisão humana do texto | páginas Crédito/Adquirência/Segurança no mesmo padrão |
 | D33-14 | Onboarding e métricas de ativação | primeiro valor, eventos mínimos sem PII | — | P1 | NOT_STARTED | — | telemetria/privacidade | decisão de ferramenta | — |

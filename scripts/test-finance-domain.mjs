@@ -114,8 +114,8 @@ for (const [share, rate] of [['share_debit', 'mdr_debit'], ['share_credit_cash',
 // A saída usada no workspace recusa o custo da proposta sem taxa; não
 // publica um zero calculado nem confunde CET ausente com CET informado.
 const historical = buildComparison('credit', [
-  { id: 'incomplete', terms: { ...validCredit, interest_rate_month: null } },
-  { id: 'complete', terms: { ...validCredit, cet_year: null } }
+  { id: 'incomplete', terms: { ...validCredit, index: 'pre', amortization: 'price', grace_months: 0, fees_amount: 0, interest_rate_month: null } },
+  { id: 'complete', terms: { ...validCredit, index: 'pre', amortization: 'price', grace_months: 0, fees_amount: 0, cet_year: null } }
 ]);
 assert.equal(historical.estimates.incomplete.estimate, false);
 assert.equal(historical.estimates.complete.estimate, true);
@@ -229,9 +229,9 @@ assert.equal(formatCnpj('11222333000181'), '11.222.333/0001-81');
 // ------------------------------------------------------- comparação factual
 
 const proposals = [
-  { id: 'a', provider_name: 'Banco Alfa Demo', terms: { institution: 'Banco Alfa Demo', product_name: 'Giro', offered_amount: 500000, interest_rate_month: 1.72, term_months: 24, grace_months: 3 } },
-  { id: 'b', provider_name: 'Fintech Beta Demo', terms: { institution: 'Fintech Beta Demo', product_name: 'Giro', offered_amount: 500000, interest_rate_month: 2.10, term_months: 36, grace_months: 0 } },
-  { id: 'c', provider_name: 'Credito Gama Demo', terms: { institution: 'Credito Gama Demo', product_name: 'Giro', offered_amount: 450000, interest_rate_month: 1.95, term_months: 30 } }
+  { id: 'a', provider_name: 'Banco Alfa Demo', terms: { index: 'pre', institution: 'Banco Alfa Demo', product_name: 'Giro', offered_amount: 500000, interest_rate_month: 1.72, term_months: 24, grace_months: 3 } },
+  { id: 'b', provider_name: 'Fintech Beta Demo', terms: { index: 'pre', institution: 'Fintech Beta Demo', product_name: 'Giro', offered_amount: 500000, interest_rate_month: 2.10, term_months: 36, grace_months: 0 } },
+  { id: 'c', provider_name: 'Credito Gama Demo', terms: { index: 'pre', institution: 'Credito Gama Demo', product_name: 'Giro', offered_amount: 450000, interest_rate_month: 1.95, term_months: 30 } }
 ];
 
 {
@@ -253,8 +253,8 @@ const proposals = [
 // Empate não gera destaque arbitrário de um único provedor.
 {
   const tie = buildComparison('credit', [
-    { id: 'x', terms: { interest_rate_month: 2, term_months: 12 } },
-    { id: 'y', terms: { interest_rate_month: 2, term_months: 12 } }
+    { id: 'x', terms: { index: 'pre', interest_rate_month: 2, term_months: 12 } },
+    { id: 'y', terms: { index: 'pre', interest_rate_month: 2, term_months: 12 } }
   ]);
   assert.deepEqual(tie.rows.find((row) => row.key === 'interest_rate_month').highlights, []);
 }
@@ -330,8 +330,8 @@ assert.equal(withRenewalWindow({ ends_on: 'invalido', renewal_notice_days: 30 })
 // os campos escolhidos, não conforme as condições.
 {
   const tied = [
-    { id: 'x', terms: { interest_rate_month: 2, term_months: 24 } },
-    { id: 'y', terms: { interest_rate_month: 2, term_months: 24 } }
+    { id: 'x', terms: { index: 'pre', interest_rate_month: 2, term_months: 24 } },
+    { id: 'y', terms: { index: 'pre', interest_rate_month: 2, term_months: 24 } }
   ];
   const lower = applyUserWeights('credit', tied, { interest_rate_month: 100 });
   const higher = applyUserWeights('credit', tied, { term_months: 100 });
@@ -352,8 +352,8 @@ assert.equal(applyUserWeights('credit', proposals, { interest_rate_month: 40 }).
 // Cobertura baixa não pode liderar em silêncio sobre uma proposta completa.
 {
   const mixed = applyUserWeights('credit', [
-    { id: 'completa', terms: { interest_rate_month: 2.0, term_months: 24, grace_months: 3, fees_amount: 1000 } },
-    { id: 'quase-vazia', terms: { interest_rate_month: 1.0 } }
+    { id: 'completa', terms: { index: 'pre', interest_rate_month: 2.0, term_months: 24, grace_months: 3, fees_amount: 1000 } },
+    { id: 'quase-vazia', terms: { index: 'pre', interest_rate_month: 1.0 } }
   ], { interest_rate_month: 25, term_months: 25, grace_months: 25, fees_amount: 25 });
   const sparse = mixed.results.find((row) => row.id === 'quase-vazia');
   const complete = mixed.results.find((row) => row.id === 'completa');
@@ -382,13 +382,66 @@ assert.equal(applyUserWeights('credit', proposals, { interest_rate_month: 'muito
 // Proposta sem nenhum critério respondido não recebe nota inventada.
 {
   const empty = applyUserWeights('credit', [
-    { id: 'a', terms: { interest_rate_month: 1 } },
-    { id: 'vazia', terms: {} }
+    { id: 'a', terms: { index: 'pre', interest_rate_month: 1 } },
+    { id: 'vazia', terms: { index: 'pre',} }
   ], { interest_rate_month: 100 });
   const blank = empty.results.find((row) => row.id === 'vazia');
   assert.equal(blank.score, null);
   assert.equal(blank.coverage, 0);
   assert.equal(blank.low_coverage, true);
+}
+
+// Contexte économique, absence, versions et provenance: contrat du serveur.
+{
+  const base = { index: 'pre', offered_amount: 1000, term_months: 12, grace_months: 0, amortization: 'price', interest_rate_month: 1, declared_total_cost: 1100 };
+  const list = [{ id: 'a', version: 2, rfq_revision: 1, submitted_at: '2026-10-01T12:00:00Z', terms: { ...base, valid_until: '2026-10-10' }, previous_version: { version: 1, submitted_at: '2026-09-01T12:00:00Z', terms: { ...base, interest_rate_month: 2 } } }, { id: 'b', terms: { ...base, interest_rate_month: null } }];
+  const comparison = buildComparison('credit', list, {}, { asOf: '2026-10-11', revision: 2 });
+  const row = key => comparison.rows.find(row => row.key === key);
+  assert.deepEqual(row('interest_rate_month').values, [1, null]);
+  assert.deepEqual(row('interest_rate_month').states, ['present', 'missing']);
+  assert.deepEqual(row('interest_rate_month').highlights, []);
+  assert.equal(row('interest_rate_month').differs, true);
+  assert.deepEqual(row('fees_amount').values, [null, null]);
+  assert.equal(comparison.estimates.a.estimate, false, 'tarifa ausente não vira zero na estimativa');
+  assert.equal(comparison.columns[0].expired, true);
+  assert.equal(comparison.columns[0].revision_mismatch, true);
+  assert.ok(comparison.columns[0].changed_keys.includes('interest_rate_month'));
+  assert.deepEqual(row('interest_rate_month').previous_values, [2, null]);
+  assert.equal(comparison.columns[0].provenance.document, null);
+  assert.equal(comparison.columns[0].provenance.verification, 'not_verified');
+  assert.equal(comparison.columns[1].provenance.source, 'not_available');
+  assert.equal(comparison.columns[1].validity_unknown, true);
+  for (const invalid of [false, true, {}, [], 'abc', Infinity, -1, 1e13]) {
+    const tested = buildComparison('credit', [{ id: 'bad', terms: { ...base, offered_amount: invalid } }]);
+    assert.equal(tested.rows.find(row => row.key === 'offered_amount').values[0], null);
+    assert.equal(tested.rows.find(row => row.key === 'offered_amount').states[0], 'invalid');
+  }
+  const zero = buildComparison('credit', [{ id: 'zero', terms: { ...base, fees_amount: 0 } }, { id: 'absent', terms: base }]);
+  assert.deepEqual(zero.rows.find(row => row.key === 'fees_amount').values, [0, null]);
+  for (const alternative of [{ index: 'cdi' }, { index: null }]) {
+    const mixed = [list[0], { id: 'other', terms: { ...base, ...alternative } }];
+    assert.equal(buildComparison('credit', mixed).rows.find(row => row.key === 'interest_rate_month').context_reasons.length > 0, true);
+    const weighted = applyUserWeights('credit', mixed, { interest_rate_month: 100 });
+    assert.equal(weighted.applied, false);
+    assert.equal(weighted.excluded_criteria[0].key, 'interest_rate_month');
+  }
+  const currencies = [list[0], { id: 'usd', currency: 'USD', terms: base }];
+  const mixed = buildComparison('credit', currencies);
+  assert.equal(mixed.columns[1].currency, 'USD');
+  assert.equal(mixed.estimates.usd.estimate, false);
+  assert.equal(mixed.rows.find(row => row.key === 'offered_amount').highlights.length, 0);
+  assert.equal(applyUserWeights('credit', currencies, { term_months: 100 }).applied, false);
+  const premises = buildComparison('credit', [list[0], { id: 'other', terms: { ...base, offered_amount: 2000, declared_total_cost: 2500 } }]);
+  assert.equal(premises.rows.find(row => row.key === 'declared_total_cost').context_reasons.length > 0, true);
+  // Representações numéricas equivalentes não criam incompatibilidade.
+  const equivalent = buildComparison('credit', [list[0], { id: 'same', terms: { ...base, offered_amount: '1000', term_months: '12' } }]);
+  assert.deepEqual(equivalent.rows.find(row => row.key === 'declared_total_cost').context_reasons, []);
+  const acquiring = buildComparison('acquiring', [{ id: 'a', terms: { mdr_debit: 0 } }, { id: 'b', terms: {} }]);
+  assert.deepEqual(acquiring.rows.find(row => row.key === 'mdr_debit').values, [0, null]);
+  assert.ok(acquiring.groups.some(([, keys]) => keys.includes('conditions_precedent')));
+  const acquiringDemand = { monthly_volume: 1000, share_debit: 100, share_credit_cash: 0, share_credit_installment: 0, share_pix: 0, terminals: 0 };
+  assert.equal(buildComparison('acquiring', [{ id: 'a', terms: { mdr_debit: 0 } }], acquiringDemand).estimates.a.estimate, false);
+  assert.equal(buildComparison('acquiring', [{ id: 'a', terms: { mdr_debit: 0, gateway_cost: 0 } }], acquiringDemand).estimates.a.total_cost, 0);
 }
 
 console.log('Financial Procurement domain: normalização, cálculos com proveniência, comparação factual, pesos do usuário e máquina de estados, empates, cobertura e CNPJ aprovados.');

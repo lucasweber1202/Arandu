@@ -196,7 +196,7 @@ await step('proposta é enviada e vira versão 1', {
   method: 'POST', path: 'proposals',
   body: {
     proposal_id: PROPOSAL,
-    terms: { institution: 'Banco Piloto SMOKE', product_name: 'Giro', offered_amount: 500000, interest_rate_month: 1.72, term_months: 24 }
+    terms: { index: 'pre', institution: 'Banco Piloto SMOKE', product_name: 'Giro', offered_amount: 500000, interest_rate_month: 1.72, term_months: 24 }
   },
   respond: (entry) => (entry.url.includes('fin_proposals') && entry.method === 'GET'
     ? [{ id: PROPOSAL, product: 'credit', status: 'draft', provider_organization_id: PROVIDER_ORG }]
@@ -215,8 +215,8 @@ const comparisonWorld = (entry) => {
   if (isOrg(entry)) return orgRow('BUYER');
   if (entry.url.includes('fin_rfqs')) return [{ id: RFQ, organization_id: BUYER, product: 'credit', status: 'comparing', demand: { amount: 500000 } }];
   if (entry.url.includes('fin_proposal_versions')) return [
-    { proposal_id: PROPOSAL, version: 1, terms: { institution: 'Banco Piloto SMOKE', interest_rate_month: 1.72, term_months: 24 }, submitted_at: '2026-09-23T00:00:00Z' },
-    { proposal_id: id(10), version: 1, terms: { institution: 'Fintech Piloto SMOKE', interest_rate_month: 2.1, term_months: 36 }, submitted_at: '2026-09-23T00:00:00Z' }
+    { proposal_id: PROPOSAL, version: 1, terms: { index: 'pre', institution: 'Banco Piloto SMOKE', interest_rate_month: 1.72, term_months: 24 }, submitted_at: '2026-09-23T00:00:00Z' },
+    { proposal_id: id(10), version: 1, terms: { index: 'pre', institution: 'Fintech Piloto SMOKE', interest_rate_month: 2.1, term_months: 36 }, submitted_at: '2026-09-23T00:00:00Z' }
   ];
   if (entry.url.includes('fin_proposals')) return [
     { id: PROPOSAL, rfq_id: RFQ, provider_id: PROVIDER, provider_organization_id: PROVIDER_ORG, status: 'submitted', current_version: 1 },

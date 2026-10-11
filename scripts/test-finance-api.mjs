@@ -172,13 +172,14 @@ reset((entry) => {
   if (entry.url.includes('fin_rfqs')) return [{ id: RFQ, product: 'credit', demand: { amount: 500000 }, status: 'comparing', organization_id: BUYER }];
   if (entry.url.includes('fin_proposal_versions')) {
     return [
-      { proposal_id: 'p1', version: 1, terms: { institution: 'Alfa Demo', interest_rate_month: 1.7, term_months: 24 }, submitted_at: '2026-01-02T00:00:00Z' },
-      { proposal_id: 'p2', version: 1, terms: { institution: 'Beta Demo', interest_rate_month: 2.2, term_months: 36 }, submitted_at: '2026-01-03T00:00:00Z' }
+      { proposal_id: 'p1', version: 2, terms: { index: 'pre', institution: 'Alfa Demo', interest_rate_month: 1.7, term_months: 24 }, submitted_at: '2026-01-02T00:00:00Z' },
+      { proposal_id: 'p1', version: 1, terms: { index: 'pre', interest_rate_month: 2.5 }, submitted_at: '2025-12-01T00:00:00Z' },
+      { proposal_id: 'p2', version: 1, terms: { index: 'pre', institution: 'Beta Demo', interest_rate_month: 2.2, term_months: 36 }, submitted_at: '2026-01-03T00:00:00Z' }
     ];
   }
   if (entry.url.includes('fin_proposals')) {
     return [
-      { id: 'p1', provider_id: BUYER, provider_organization_id: PROVIDER_ORG, status: 'submitted', current_version: 1 },
+      { id: 'p1', provider_id: BUYER, provider_organization_id: PROVIDER_ORG, status: 'submitted', current_version: 2 },
       { id: 'p2', provider_id: OTHER_ORG, provider_organization_id: OTHER_ORG, status: 'submitted', current_version: 1 }
     ];
   }
@@ -190,6 +191,10 @@ reset((entry) => {
   assert.equal(res.payload.comparison.columns.length, 2);
   assert.equal(res.payload.weighted.applied, false, 'sem pesos do usuário não existe ordenação ponderada');
   assert.ok(res.payload.comparison.notice.includes('não recomenda'));
+  assert.equal(res.payload.comparison.columns[0].previous_version.version, 1);
+  assert.ok(res.payload.comparison.columns[0].changed_keys.includes('interest_rate_month'));
+  assert.equal(res.payload.comparison.columns[0].provenance.document, null);
+  assert.ok(sent.every(entry => entry.authorization === 'Bearer user-jwt'), 'consulta usa JWT do usuário e RLS');
 
   const weightedRes = await call('POST', 'comparison', { body: { rfq_id: RFQ, weights: { interest_rate_month: 70, term_months: 30 } } });
   assert.equal(weightedRes.payload.weighted.applied, true);
@@ -348,6 +353,13 @@ reset((entry) => {
   return [];
 });
 await rejects('POST', 'comparison', { body: { rfq_id: RFQ } }, 400);
+assert.ok(!sent.some(entry => entry.url.includes('fin_proposals')), 'provedor recusado antes de consultar concorrentes');
+reset(() => []);
+await rejects('POST', 'comparison', { body: { rfq_id: RFQ } }, 404);
+assert.ok(!sent.some(entry => entry.url.includes('fin_proposals')), 'RFQ invisível de outro tenant não consulta propostas');
+reset(() => []);
+await rejects('POST', 'comparison', { body: { rfq_id: 'malformed' } }, 400);
+assert.equal(sent.length, 0);
 
 // --------------------------------- visão do provedor não vaza concorrente
 
@@ -465,6 +477,7 @@ reset((entry) => {
 {
   const res = await call('GET', 'export', { url: `/api/finance/export?rfq_id=${RFQ}` });
   assert.ok(res.payload.export.disclaimer.includes('não emite recomendação'));
+  assert.equal(res.payload.export.comparison.methodology, 'comparison-context-v1');
   assert.ok(!/recommended|best_provider|ranking/i.test(JSON.stringify(res.payload.export)));
 }
 
