@@ -118,3 +118,30 @@ test('correção de termos exige justificativa', async ({ page }) => {
   await expect.poll(() => calls.find((call) => call.path === 'contract-terms')?.body).toMatchObject({ contract_id: CONTRACT, expected_version: 2, reason: 'Indexador corrigido' });
   await noHorizontalOverflow(page);
 });
+
+
+test('contrato abre termos e histórico pelo link contextual', async ({ page }) => {
+  await mockSession(page);
+  await page.goto(`/finance/contracts.html?abrir=contrato#contract-${CONTRACT}`);
+  await expect(page.getByRole('dialog').getByRole('heading', { name: 'Termos vigentes (v2)' })).toBeVisible();
+  await noHorizontalOverflow(page);
+  await page.keyboard.press('Escape');
+  await expect(page).not.toHaveURL(/#contract-/);
+});
+
+test('contrato fora do recorte consulta API, mas não abre outra organização', async ({ page }) => {
+  await mockSession(page);
+  await page.route('**/api/finance/contract-detail**', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ...DETAIL, contract: { ...CONTRACT_ROW, organization_id: '00000000-0000-4000-8000-000000000099' } }) }));
+  await page.goto('/finance/contracts.html?abrir=contrato#contract-00000000-0000-4000-8000-000000000088');
+  await expect(page.getByText('Contrato indisponível neste contexto.')).toBeVisible();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+});
+
+
+test('contrato fora do overview usa o detalhe autorizado para continuar a jornada', async ({ page }) => {
+  await mockSession(page);
+  await page.route('**/api/finance/overview**', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, organization: { id: ORG, kind: 'BUYER', legal_name: 'Grupo Vitta' }, providers: [], contracts: [], rfqs: [], tasks: [], profile: [] }) }));
+  await page.goto(`/finance/contracts.html?abrir=contrato#contract-${CONTRACT}`);
+  await expect(page.getByRole('dialog').getByRole('heading', { name: 'Termos vigentes (v2)' })).toBeVisible();
+  await noHorizontalOverflow(page);
+});

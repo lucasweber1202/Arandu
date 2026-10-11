@@ -1,6 +1,8 @@
-import { el, formatDate } from '../core.js';
+import { el, formatDate, RFQ_STATUS, CONTRACT_STATUS } from '../core.js';
 import { card, button, errorState, emptyState } from '../ui.js';
 import { GRAPH_KINDS, GRAPH_LABELS, graphHref } from '../../../lib/finance/graph.mjs';
+
+const GRAPH_STATUS = { ...Object.fromEntries(Object.entries(RFQ_STATUS).map(([key, value]) => [key, value.label])), ...Object.fromEntries(Object.entries(CONTRACT_STATUS).map(([key, value]) => [key, value.label])), pending: 'Pendente', approved: 'Aprovado', submitted: 'Enviada', withdrawn: 'Retirada', verified: 'Verificado', not_verified: 'Não verificado', active: 'Ativo', inactive: 'Inativo', resolved: 'Resolvida', in_progress: 'Em andamento' };
 
 /** Lazy contextual traversal: no background financial request or duplicate state. */
 export function graphContextCard(ctx, { type, id, entity = null, kind = null, title = 'Relações financeiras' }) {
@@ -25,7 +27,7 @@ export function graphContextCard(ctx, { type, id, entity = null, kind = null, ti
       const list = rows.length ? el('ul', { class: 'graph-list', role: 'list' }, rows.map((row) => {
         const href = graphHref(row);
         const facts = row.facts || {};
-        const summary = [row.status, row.due_on ? `Data: ${formatDate(row.due_on)}` : null, facts.entity, facts.rfq ? `RFQ: ${facts.rfq}` : null,
+        const summary = [row.status ? GRAPH_STATUS[row.status] || 'Estado não apresentado' : null, row.due_on ? `Data: ${formatDate(row.due_on)}` : null, facts.entity, facts.rfq ? `RFQ: ${facts.rfq}` : null,
           row.object_type === 'passport_snapshot' ? `${facts.value} · origem: ${facts.source} · escopo: ${facts.original_scope} · vintage: ${facts.vintage || '—'}` : null].filter(Boolean).join(' · ');
         return el('li', {}, [el('span', { class: 'muted small', text: GRAPH_LABELS[row.object_type] || row.object_type }),
           href ? el('a', { href, text: row.title }) : el('strong', { text: row.title }), summary ? el('p', { class: 'small', text: summary }) : null]);

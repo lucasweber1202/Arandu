@@ -133,9 +133,11 @@ function facilityTable(ctx, entities, facilities, result) {
   const table = el('table', { class: 'data-table facility-table' });
   table.append(el('thead', {}, el('tr', {}, ['Facility', 'Entidade', 'Limite / principal', 'Último saldo / uso', 'Vencimento', 'Origem', ''].map((label) => el('th', { scope: 'col', text: label })))));
   const body = el('tbody');
+  const requested = location.hash.slice('#facility-'.length);
+  if (location.hash.startsWith('#facility-') && facilities.some(row => row.id === requested)) queueMicrotask(() => { const target = document.getElementById(`facility-${requested}`); target?.scrollIntoView({ block: 'center' }); target?.focus({ preventScroll: true }); });
   for (const facility of facilities) {
     const snapshot = latest.get(facility.id);
-    body.append(el('tr', { dataset: { entity: 'facility', id: facility.id } }, [
+    body.append(el('tr', { id: `facility-${facility.id}`, tabindex: '-1', dataset: { entity: 'facility', id: facility.id } }, [
       el('td', { 'data-label': 'Facility', class: 'cell-primary' }, [el('strong', { text: facility.name }), el('span', { class: 'row-sub', text: `${FACILITY_KINDS[facility.kind]} · ${facility.provider_name}${facility.indexer ? ` · ${facility.indexer.toUpperCase()}${facility.spread_pct_year !== null && facility.spread_pct_year !== undefined ? ` + ${percent(facility.spread_pct_year)} a.a.` : ''}` : ''}` })]),
       el('td', { 'data-label': 'Entidade', text: entityName(entities, facility.legal_entity_id) }),
       el('td', { 'data-label': 'Limite / principal', text: facility.approved_limit !== null && facility.approved_limit !== undefined ? amount(facility.approved_limit, facility.currency) : amount(facility.principal_amount, facility.currency) }),
@@ -179,12 +181,22 @@ function submitDrawer({ title, subtitle, form, onSubmit, label }) {
 }
 
 function facilityForm(ctx, entities, facility = null) {
+  const providers = [...(ctx.data.providers || [])];
+  if (facility?.provider_id && !providers.some(row => row.id === facility.provider_id)) providers.push({ id: facility.provider_id, name: facility.provider_name || 'Instituição desta operação' });
+  if (!facility && !providers.length) {
+    const canRegister = ctx.can('create_rfq');
+    return drawer({ title: 'Instituição necessária', body: emptyState({
+      title: 'Vincule a operação a uma instituição',
+      text: canRegister ? 'Cadastre a instituição no fluxo existente e depois registre a facility ou limite. Não é necessário configurar todas as entidades do grupo.' : 'Nenhuma instituição está disponível no seu recorte. Uma pessoa administradora ou gestora financeira precisa cadastrar a instituição antes do registro desta operação.',
+      action: canRegister ? el('a', { class: 'btn btn-primary', href: ctx.href('/finance/providers.html?acao=cadastrar-instituicao'), text: 'Cadastrar instituição' }) : null
+    }) });
+  }
   const value = (key) => facility?.[key] ?? '';
   const form = el('form', { class: 'field-grid', id: 'facility-form', novalidate: true });
   const controls = {
     name: el('input', { name: 'name', maxlength: '200', value: value('name') }),
     kind: select('kind', Object.entries(FACILITY_KINDS), value('kind') || 'term_loan'),
-    provider_id: select('provider_id', (ctx.data.providers || []).map((row) => [row.id, row.name]), value('provider_id')),
+    provider_id: select('provider_id', providers.map((row) => [row.id, row.name]), value('provider_id')),
     legal_entity_id: entitySelect(entities, value('legal_entity_id')),
     currency: el('input', { name: 'currency', maxlength: '3', class: 'input-short', value: value('currency') || 'BRL' }),
     approved_limit: el('input', { name: 'approved_limit', type: 'number', min: '0', step: 'any', value: value('approved_limit') }),

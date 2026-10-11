@@ -168,6 +168,19 @@ function contractNextAction(contract) {
 export async function contracts(ctx) {
   const [entities] = await Promise.all([loadEntities(ctx), need('contractCenter')]);
   const rows = (ctx.data.contracts || []).filter((row) => inContext(entities, row));
+  const requestedId = location.hash.startsWith('#contract-') ? location.hash.slice('#contract-'.length) : null;
+  if (new URLSearchParams(location.search).get('abrir') === 'contrato' && requestedId && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestedId)) {
+    const known = rows.find(row => row.id === requestedId);
+    if (known) queueMicrotask(() => mods.contractCenter.openContract(ctx, known));
+    else if (!(ctx.data.contracts || []).some(row => row.id === requestedId)) {
+      // Um contrato fora do recorte recente continua acessível pelo endpoint
+      // existente, sem aceitar objeto de outra organização/entidade em foco.
+      ctx.api(`contract-detail?id=${encodeURIComponent(requestedId)}`).then(detail => {
+        if (detail.contract?.id !== requestedId || detail.contract?.organization_id !== ctx.organization.id || !inContext(entities, detail.contract)) throw new Error('Contrato indisponível neste contexto.');
+        mods.contractCenter.openContract(ctx, detail.contract, { initialDetail: detail });
+      }).catch(error => toast(error.message, 'error'));
+    }
+  }
   const manage = ctx.can('create_rfq');
   const refresh = manage ? button('Atualizar marcos de renovação', { size: 'sm', iconName: 'refresh', onClick: async (event) => {
     const target = event.currentTarget;
@@ -222,7 +235,7 @@ export async function contracts(ctx) {
       source ? el('a', { class: 'contract-link', href: ctx.href(`/finance/rfq.html?id=${source.id}#decisao`) }, [el('span', { text: 'Ver processo e decisão de origem' }), icon('arrowRight', { size: 14 })]) : null
     ]));
   }
-  if (location.hash.startsWith('#contract-')) queueMicrotask(() => { const target = document.querySelector(location.hash); target?.scrollIntoView({ block: 'start' }); target?.focus({ preventScroll: true }); });
+  if (location.hash.startsWith('#contract-')) queueMicrotask(() => { const target = document.getElementById(location.hash.slice(1)); target?.scrollIntoView({ block: 'start' }); target?.focus({ preventScroll: true }); });
   return root;
 }
 
@@ -264,7 +277,7 @@ export async function providers(ctx) {
     for (const provider of visible) {
       body.append(el('tr', { id: `provider-${provider.id}`, dataset: { entity: 'provider', id: provider.id } }, [
         el('td', { 'data-label': 'Provedor', class: 'cell-primary' }, [person(provider.name, provider.website || null),
-          relationshipEnabled ? button('Relacionamento', { size: 'sm', variant: 'ghost', iconName: 'users', attrs: { 'aria-label': `Relacionamento com ${provider.name}` }, onClick: () => mods.relationship.openProviderRelationship(ctx, provider) }) : null]),
+          relationshipEnabled ? button('Relacionamento', { size: 'sm', variant: 'ghost', iconName: 'users', attrs: { 'aria-label': `Relacionamento com ${provider.name}` }, onClick: () => { const url = new URL(location.href); url.searchParams.set('provider_id', provider.id); history.replaceState(null, '', url.pathname + url.search + url.hash); mods.relationship.openProviderRelationship(ctx, provider); } }) : null]),
         el('td', { 'data-label': 'Tipo e região' }, [el('span', { text: PROVIDER_KINDS[provider.kind] || 'Tipo não informado' }), el('span', { class: 'cell-sub muted small', text: provider.region || 'Região não informada' })]),
         el('td', { 'data-label': 'Contratos vigentes', class: 'num', text: String((liveContracts.get(provider.id) || []).length) }),
         el('td', { 'data-label': 'Próximo vencimento' }, (() => {
@@ -280,6 +293,12 @@ export async function providers(ctx) {
     count.textContent = `${visible.length} de ${rows.length}`;
   };
   search.addEventListener('input', draw);
+  const requested = new URLSearchParams(location.search).get('provider_id');
+  if (requested && relationshipEnabled) {
+    const provider = rows.find(row => row.id === requested);
+    if (provider) queueMicrotask(() => mods.relationship.openProviderRelationship(ctx, provider));
+    else queueMicrotask(() => toast('Instituição indisponível no seu escopo carregado.', 'error'));
+  }
   draw();
   return el('div', { class: 'list-page' }, [
     el('p', { class: 'callout callout-info compact', role: 'note', text: 'Recorte dos registros carregados e autorizados: até 200 instituições, 200 contratos e 200 solicitações recentes. Convites e propostas se referem a essas solicitações; rascunhos e propostas retiradas não contam. Contagens e vencimentos não representam o histórico completo.' }),

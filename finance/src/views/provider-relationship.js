@@ -1,4 +1,3 @@
-import { graphContextCard } from './graph-context.js';
 // Provider / Bank Relationship Management: memória institucional do provedor.
 //
 // Tudo aqui é fato do histórico da própria empresa (convites, propostas,
@@ -10,6 +9,7 @@ import { el, icon, formatDate, formatDateTime, percent } from '../core.js';
 import { button, tag, field, drawer, toast, loading, errorState } from '../ui.js';
 import { CONTRACT_CATEGORIES } from '../../../lib/finance/contract-terms.mjs';
 import { FACILITY_KINDS } from '../../../lib/finance/portfolio.mjs';
+import { relationshipContext } from './relationship-context.js';
 import { entityTree } from '../../../lib/finance/entities.mjs';
 import { loadEntities, entityName } from './entities.js';
 
@@ -25,7 +25,7 @@ function metric(label, value, definition) {
 export async function openProviderRelationship(ctx, provider) {
   const entities = await loadEntities(ctx);
   const body = el('div', { class: 'stack contract-center' }, loading('Carregando relacionamento…'));
-  const dialog = drawer({ title: provider.name, subtitle: 'Relacionamento com o provedor: fatos do histórico da sua empresa.', body, className: 'drawer-wide' });
+  const dialog = drawer({ title: provider.name, subtitle: 'Relacionamento com o provedor: fatos do histórico da sua empresa.', body, className: 'drawer-wide', onClose: () => { const url = new URL(location.href); if (url.searchParams.get('provider_id') === provider.id) { url.searchParams.delete('provider_id'); history.replaceState(null, '', url.pathname + url.search + url.hash); } } });
   const write = ctx.can('edit_profile');
   const load = () => ctx.api(`provider-relationship?organization_id=${encodeURIComponent(ctx.organization.id)}&provider_id=${encodeURIComponent(provider.id)}`)
     .then((detail) => body.replaceChildren(...render(detail))).catch((error) => body.replaceChildren(errorState({ error, onRetry: load })));
@@ -34,8 +34,8 @@ export async function openProviderRelationship(ctx, provider) {
   function render(detail) {
     const m = detail.metrics;
     const d = m.definitions;
-    const sections = [el('p', { class: 'callout callout-info compact' }, [icon('shield', { size: 14 }), el('span', { text: detail.neutrality })])];
-    sections.push(el('section', { class: 'cc-section' }, [el('h3', { text: 'Histórico factual' }), el('div', { class: 'portfolio-stats' }, [
+    const sections = [relationshipContext(ctx, detail), el('p', { class: 'callout callout-info compact' }, [icon('shield', { size: 14 }), el('span', { text: detail.neutrality })])];
+    sections.push(el('section', { class: 'cc-section' }, [el('h3', { text: 'Indicadores do recorte carregado' }), el('div', { class: 'portfolio-stats' }, [
       metric('Convites', `${m.responded} de ${m.invited} respondidos`, d.response_rate),
       metric('Taxa de resposta', m.response_rate === null ? 'Sem convites' : percent(m.response_rate), d.responded),
       metric('Tempo de resposta (mediana)', m.median_response_days === null ? '—' : `${m.median_response_days} dias`, d.median_response_days),
@@ -104,7 +104,7 @@ export async function openProviderRelationship(ctx, provider) {
     // Tarifas: fatos contratado × observado, carregados sob demanda (sem score).
     const fees = el('div');
     import('./fees.js').then((m) => m.providerFeeFacts(ctx, provider.id)).then((node) => fees.replaceWith(node)).catch(() => fees.remove());
-    sections.push(fees, graphContextCard(ctx, { type: 'provider', id: provider.id }));
+    sections.push(fees);
     return sections;
   }
 
