@@ -27,7 +27,7 @@ npm ci
 npm run demo:setup     # Supabase local real (Docker) + build + app em ARANDU_ENV=demo + seed da Vitta Foods
 ```
 
-O comando termina com 32 checagens de sanidade quando CRON_SECRET está configurado e a lista de personas. Abra
+O comando termina com 36 checagens de sanidade quando CRON_SECRET está configurado e a lista de personas. Abra
 `https://localhost:4443/login.html` (certificado autoassinado) e entre com uma
 persona; a senha é gerada por ambiente em
 `scripts/pilot-local/.state/demo.env` (fora do Git).
@@ -116,6 +116,8 @@ atual. As capabilities descritas acima existem no código/dataset, mas não
 foram vistas numa Demo canônica hospedada nesta rodada: M1/E1, não M3/E3.
 Cutover preparado em [HOSTED_ALIGNMENT_2026-10-06.md](../HOSTED_ALIGNMENT_2026-10-06.md).
 
-32 checks completos dependem do cron real de renovação/oportunidades; sem
-CRON_SECRET só 30 checks e cobertura incompleta. Os 29 históricos não validam
+36 checks completos dependem do cron real de renovação/oportunidades; sem
+CRON_SECRET só 34 checks e cobertura incompleta. A paridade com o produto
+oficial é verificada por `npm run check:demo-parity`
+([matriz](../DEMO_PRODUCTION_PARITY_MATRIX.md)). Os 29 históricos não validam
 as adições Portfolio/Fee/USD da #137.

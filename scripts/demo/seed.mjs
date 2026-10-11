@@ -747,6 +747,20 @@ async function seedPortfolioAndFees() {
   await post(people.helena,'fees/verify',{observation_id:observed,status:'verified',reason:'Extrato sintético e quantidade de terminais conferidos independentemente; diferença exige revisão humana.'});
 }
 
+// Valor de procurement pela API real: o banco calcula a diferença só quando
+// todas as dimensões são conhecidas e iguais (fin_record_value).
+async function seedValue() {
+  const v=L().value;
+  const common={organization_id:ctx.org,contract_id:ctx.contract[v.contract],currency:'BRL',period_start:isoDate(v.start),period_end:isoDate(v.end)};
+  const baseline=(spec,dimensions)=>({...spec.baseline,as_of:isoDate(v.baselineAsOf),currency:'BRL',unit:'period_total',period_start:common.period_start,period_end:common.period_end,dimensions});
+  const c=v.comparable;
+  await post(people[v.by],'value',{...common,kind:c.kind,title:c.title,target_amount:c.target_amount,comparability:'comparable',evidence_reference:c.evidence_reference,reason:c.reason,
+    target_dimensions:c.dimensions,baseline:baseline(c,c.dimensions)});
+  const i=v.incomplete;
+  await post(people[v.by],'value',{...common,kind:i.kind,title:i.title,target_amount:i.target_amount,comparability:'incomplete',evidence_reference:i.evidence_reference,reason:i.reason,
+    target_dimensions:i.targetDimensions,baseline:baseline(i,i.baselineDimensions)});
+}
+
 async function seedLifecycle() {
   log('Registrando o pós-contrato (implantação, obrigações, performance, spend, qualificação, documento)…');
   await seedImplementation();
@@ -754,6 +768,8 @@ async function seedLifecycle() {
   await seedPerformance();
   await seedSpend();
   await seedPortfolioAndFees();
+  // Depois das tarifas: o contrato de adquirência já tem versão de termos.
+  await seedValue();
   await seedQualification();
   await seedExtraction();
   await seedOpportunityRules();
@@ -852,6 +868,15 @@ async function sanity() {
   const acquiring = byTitle(data.RFQ_ACQUIRING.title);
   const comparison = await post(juliana, 'comparison', { rfq_id: acquiring.id, weights: data.RFQ_ACQUIRING.weights });
   check('Comparação ponderada da adquirência', comparison.weighted?.applied && comparison.weighted.results?.length === 3, `${comparison.weighted?.results?.length || 0} propostas ponderadas`);
+  // Comparação contextual (#163) na negociação em curso: campo ausente continua
+  // ausente, premissas distintas bloqueiam critério e a estimativa não é inventada.
+  const creditComparison = (await post(juliana, 'comparison', { rfq_id: credit.id })).comparison || {};
+  const missingCet = (creditComparison.rows || []).some((row) => /CET/.test(row.label || '') && row.missing_count > 0);
+  const blockedCriteria = (creditComparison.rows || []).filter((row) => row.context_reasons?.length).length;
+  const noEstimate = Object.values(creditComparison.estimates || {}).some((item) => item.estimate === false && item.reason);
+  check('Comparação de crédito com CET ausente, premissas distintas e estimativa recusada',
+    creditComparison.methodology === 'comparison-context-v1' && missingCet && blockedCriteria >= 1 && (creditComparison.context_notices || []).length >= 1 && noEstimate,
+    `${(creditComparison.groups || []).length} grupos, ${blockedCriteria} critério(s) bloqueado(s), ${(creditComparison.context_notices || []).length} aviso(s)`);
   const tasks = overview.tasks || [];
   check('Tarefas abertas', tasks.length >= 5, `${tasks.length} abertas`);
   const comments = (await api(juliana, 'GET', `comments?organization_id=${org.id}&object_type=rfq&object_id=${byTitle(data.RFQ_CREDIT.title).id}`)).rows;
@@ -883,6 +908,19 @@ async function sanity() {
   check('Portfolio com limite, uso e saldo documentados', portfolio.facilities.some(f=>f.name===L().facility.name) && portfolio.balances.length>=1, `${portfolio.facilities.length} linha(s)`);
   const fees=await page('fees');
   check('Fee Intelligence com observação e referência contratada', fees.rows.length>=1, `${fees.rows.length} comparação(ões)`);
+  const value = await api(juliana, 'GET', `value?organization_id=${org.id}&start=${isoDate(-60)}&end=${isoDate(400)}`);
+  const valueStates = (value.rows || []).map((row) => row.cells[3]);
+  check('Valor de procurement com metodologia e registro sem cálculo', (value.rows || []).length === 2 && valueStates.includes('Sem cálculo defensável') && valueStates.some((cell) => cell.includes('162.233,40')), valueStates.join(' | ') || 'nenhum');
+  // Relacionamento por instituição (#164): fatos da própria empresa, com e sem contrato.
+  const providers = (await api(juliana, 'GET', `providers?organization_id=${org.id}`)).rows || [];
+  const providerId = (key) => providers.find((row) => row.name === data.PROVIDERS[key].name)?.id;
+  const relationship = async (key) => (providerId(key) ? api(juliana, 'GET', `provider-relationship?organization_id=${org.id}&provider_id=${providerId(key)}`) : null);
+  const atlasRel = await relationship('atlas');
+  check('Relacionamento do Atlas com contrato, facility e saldo', atlasRel?.contracts.length >= 1 && atlasRel.facilities.length >= 1 && atlasRel.balances.length >= 1 && atlasRel.rfqs.length >= 1,
+    atlasRel ? `${atlasRel.contracts.length} contrato(s), ${atlasRel.facilities.length} facility, ${atlasRel.balances.length} saldo(s), ${atlasRel.rfqs.length} RFQ(s)` : 'ausente');
+  const meridianRel = await relationship('meridian');
+  check('Instituição sem contrato com histórico de convites', meridianRel && meridianRel.contracts.length === 0 && meridianRel.invites.length >= 1,
+    meridianRel ? `${meridianRel.contracts.length} contrato(s), ${meridianRel.invites.length} convite(s)` : 'ausente');
   const qualifications = await page('qualifications');
   check('Qualificação do Atlas aguardando decisão humana', qualifications.rows.length === 1, `${qualifications.rows.length} qualificação(ões)`);
   const extractions = await page('extractions');

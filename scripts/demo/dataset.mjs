@@ -247,6 +247,30 @@ export const LIFECYCLE = {
     ]
   },
   extraction: { document: 5, by: 'juliana', schema: 'contract_terms', confirm: ['notice_days', 'currency', 'indexer'] },
+  // Valor de procurement declarado pela tesouraria sobre o contrato de
+  // adquirência. Um registro comparável (todas as dimensões econômicas
+  // conhecidas e iguais: o banco calcula a diferença pela metodologia
+  // versionada) e um incompleto, que fica sem número — ausência não é zero.
+  value: {
+    contract: 'acquiring', by: 'juliana', start: -28, end: 336, baselineAsOf: -40,
+    comparable: {
+      kind: 'NEGOTIATED_SAVINGS', title: 'MDR negociado na troca para a Lumina Pay (12 meses)',
+      baseline: { source: 'proposal', reference: 'Condições do credenciador anterior na concorrência de adquirência (fictícias)', amount: 2712000 },
+      target_amount: 2549766.6,
+      dimensions: { service: 'Credenciamento e captura de cartões', unit: 'custo total no período', volume: 'R$ 10 milhões/mês de referência', indexer: 'não se aplica', term_months: '12', amortization: 'não se aplica', fees: 'MDR débito, crédito à vista e parcelado', guarantee: 'sem garantia', grace_months: '0' },
+      evidence_reference: 'Mapa de comparação da concorrência de adquirência e contrato Lumina (fictícios)',
+      reason: 'Mesmo serviço, volume e prazo nos dois lados; diferença declarada pela tesouraria a partir das propostas.'
+    },
+    incomplete: {
+      kind: 'COST_AVOIDANCE', title: 'Antecipação de recebíveis evitada (volume ainda indefinido)',
+      baseline: { source: 'manual', reference: 'Estimativa interna da tesouraria (fictícia)', amount: 480000 },
+      target_amount: 0,
+      baselineDimensions: { service: 'Antecipação de recebíveis', unit: 'custo total no período' },
+      targetDimensions: { service: 'Antecipação de recebíveis', unit: 'custo total no período' },
+      evidence_reference: 'Plano de caixa da tesouraria (fictício)',
+      reason: 'Volume a antecipar ainda não definido; registro mantido como incompleto até haver base comparável.'
+    }
+  },
   opportunityRules: [
     ['covenant_due', { cooldown_days: 30, lead_days: 30 }],
     ['covenant_awaiting_data', { cooldown_days: 30, lead_days: 30 }],

@@ -109,11 +109,20 @@ função (quem registra não revisa). Valores em BRL; nenhuma conversão de moed
 | Documento lido | Cédula do Atlas (PDF fictício com rótulos): fatos extraídos pelo leitor determinístico, aviso prévio, moeda e indexador confirmados | Juliana |
 | Oportunidades | Regras ativas: covenant com prazo, covenant sem dados, waiver vencendo, implantação bloqueada, renovação (90 dias), revisão de performance; o job diário abre as oportunidades | Helena define as regras |
 
-## Economia (savings)
+## Economia (savings) — Valor de procurement
 
-Não há. O produto não estima economia sem metodologia explícita
-(`summarize()` em `lib/api/domains/finance.mjs`); a justificativa da decisão
-descreve o raciocínio da empresa sem inventar um número.
+O produto não estima economia sem metodologia explícita. Desde 11/10/2026 o
+seed registra, pela API real (`POST /api/finance/value` → `fin_record_value`),
+dois registros declarados pela tesouraria (Juliana) sobre o contrato de
+adquirência, todos fictícios (`LIFECYCLE.value`):
+
+- **Comparável:** MDR negociado na troca para a Lumina Pay (12 meses), com as
+  nove dimensões econômicas conhecidas e iguais nos dois lados. O **banco**
+  calcula a diferença pela metodologia versionada `period_total_difference`:
+  R$ 2.712.000,00 − R$ 2.549.766,60 = R$ 162.233,40. É economia **declarada**,
+  não realizada; realização exige observação verificada de período encerrado.
+- **Incompleto:** antecipação evitada com volume indefinido. Fica como
+  "Sem cálculo defensável": ausência não vira zero nem estimativa.
 
 ## Fechamento de apresentação — 06/10/2026
 
@@ -130,6 +139,15 @@ O seed passa a registrar pela API real:
   mecanismo de Fee Intelligence já existente; o aluguel manual duplicado sai
   do seed. BRL e USD permanecem separados, sem FX.
 
-O código amplia as checagens de sanidade em três verificações. **Esse dataset
-ampliado ainda não foi executado contra Supabase nesta rodada** (executor sem
-Docker/psql). Os 29/29 anteriores não validam estas adições.
+O código amplia as checagens de sanidade em três verificações.
+
+## Checagens de sanidade — 11/10/2026
+
+36/36 OK contra o Supabase local descartável (`npm run demo:setup`, Docker,
+com CRON_SECRET), `main` @ `c6363f8` + lote de paridade. Novas em relação às 32:
+valor de procurement com metodologia e registro sem cálculo; relacionamento do
+Atlas com contrato, facility e saldo; instituição sem contrato com convites
+(Meridian); comparação de crédito com CET ausente, premissas distintas e
+estimativa recusada (#163). Cada capacidade do produto aponta para pelo menos
+uma checagem em `lib/finance/parity-manifest.mjs`, e
+`npm run check:demo-parity` falha se uma delas sumir do seed.
