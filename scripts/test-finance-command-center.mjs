@@ -75,10 +75,20 @@ for (const kind of SEARCH_KINDS) assert.ok(SEARCH_KIND_LABELS[kind], `rótulo au
   const { PAGES } = await import('./generate-finance-pages.mjs');
   const pages = new Set(PAGES.map((page) => `/${page.path}`));
   for (const intent of INTENTS) assert.ok(pages.has(intent.path.split('?')[0]), `intenção sem página existente: ${intent.key}`);
-  const viewer = intentsFor((permission) => permission !== 'create_rfq');
+  const { canRole } = await import('../lib/finance/permissions.mjs');
+  const viewer = intentsFor((permission) => canRole('viewer', permission));
   assert.ok(viewer.every((intent) => !intent.permission), 'leitor recebeu ação de criação');
   assert.ok(viewer.some((intent) => intent.key === 'compare'));
   assert.equal(intentsFor(() => true).length, INTENTS.length);
+  for (const role of ['admin', 'finance_manager', 'analyst', 'approver', 'viewer', 'provider_user', null, 'unknown']) {
+    const keys = intentsFor((permission) => canRole(role, permission)).map((intent) => intent.key);
+    assert.equal(keys.includes('facility'), ['admin', 'finance_manager', 'analyst'].includes(role), `facility: ${role}`);
+    for (const key of ['credit', 'acquiring', 'renew', 'contract', 'institution', 'fees']) {
+      assert.equal(keys.includes(key), ['admin', 'finance_manager'].includes(role), `${key}: ${role}`);
+    }
+    assert.equal(canRole(role, 'unknown_permission'), false, 'permissão desconhecida falha fechada');
+  }
+  assert.equal(canRole(null, 'create_rfq'), false, 'sem papel confirmado não oferece escrita');
   assert.equal(requestedAction('?acao=registrar-contrato'), 'registrar-contrato');
   for (const bad of ['?acao=logout', '?acao=%5Bdata-intent%5D', '?acao=', '']) assert.equal(requestedAction(bad), null, bad);
   const sources = ['finance/src/views/contract-center.js', 'finance/src/views/company.js', 'finance/src/views/portfolio.js'].map((file) => readFileSync(file, 'utf8')).join('\n');

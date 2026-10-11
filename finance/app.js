@@ -16,6 +16,7 @@ import { emptyState, linkButton, errorState, loading, toast } from './src/ui.js'
 import { renderSidebar, renderTopbar, renderMobileNav, renderDemoBanner, installCommandCenter, installNotificationCenter } from './src/shell.js';
 import { locate } from '../lib/finance/navigation.mjs';
 import { requestedAction } from '../lib/finance/intents.mjs';
+import { canRole } from '../lib/finance/permissions.mjs';
 /* global __ARANDU_DEMO__ */
 const DEMO_BUILD = typeof __ARANDU_DEMO__ !== 'undefined' && __ARANDU_DEMO__ === true;
 
@@ -133,13 +134,7 @@ function createContext(transport) {
     },
     putFile(url, file) { return transport.putFile(url, file); },
     can(permission) {
-      const role = ctx.viewer?.role;
-      if (!role) return ctx.audience === 'company';
-      if (permission === 'admin') return role === 'admin';
-      if (permission === 'upload_document') return ['admin', 'finance_manager', 'analyst', 'provider_user'].includes(role);
-      // Mesmos papéis que a RPC fin_passport_set_field aceita.
-      if (permission === 'edit_profile') return ['admin', 'finance_manager', 'analyst'].includes(role);
-      return ['admin', 'finance_manager'].includes(role);
+      return canRole(ctx.viewer?.role, permission);
     },
     approvalsPromise: null,
     loadApprovals() {
