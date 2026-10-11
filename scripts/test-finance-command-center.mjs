@@ -42,21 +42,31 @@ for (const kind of SEARCH_KINDS) assert.ok(SEARCH_KIND_LABELS[kind], `rótulo au
   await assert.rejects(() => call(`search?organization_id=${ORG}&q=giro&type=artwork`), (e) => e.status === 400);
 }
 
-// Regressão: o menu montado em JS omitia módulos que a casca estática lista,
-// deixando-os sem entrada no menu depois do boot. Toda entrada estática existe
-// no menu de runtime, com a mesma exclusão do sandbox legado /demo.
+// Menu: fonte única (lib/finance/navigation.mjs) para a casca estática e o
+// runtime; nenhuma rota do menu anterior se perde na reorganização em áreas.
 {
+  const { COMPANY_AREAS, PROVIDER_AREAS, areasFor, navItems, locate } = await import('../lib/finance/navigation.mjs');
   const generator = readFileSync('scripts/generate-finance-pages.mjs', 'utf8');
-  const staticBlock = generator.slice(generator.indexOf('const COMPANY_NAV'), generator.indexOf('const PROVIDER_NAV'));
-  const staticNav = [...staticBlock.matchAll(/\['[^']+', '([^']+)'(, 'sandboxExcluded')?\]/g)].map((m) => ({ path: m[1], excluded: Boolean(m[2]) }));
   const shell = readFileSync('finance/src/shell.js', 'utf8');
-  const runtimeBlock = shell.slice(shell.indexOf('const COMPANY_NAV'), shell.indexOf('const PROVIDER_NAV'));
-  const runtime = new Map([...runtimeBlock.matchAll(/\{[^}]*path: '([^']+)'[^}]*\}/g)].map((m) => [m[1], /sandboxExcluded: true/.test(m[0])]));
-  assert.ok(staticNav.length > 10);
-  for (const item of staticNav) {
-    assert.ok(runtime.has(item.path), `menu de runtime sem ${item.path}`);
-    assert.equal(runtime.get(item.path), item.excluded, `exclusão do sandbox divergente em ${item.path}`);
-  }
-  assert.match(shell, /mode === 'demo' \? COMPANY_NAV\.filter\(\(item\) => !item\.sandboxExcluded\)/);
+  assert.match(generator, /from '\.\.\/lib\/finance\/navigation\.mjs'/);
+  assert.match(shell, /from '\.\.\/\.\.\/lib\/finance\/navigation\.mjs'/);
+  assert.doesNotMatch(generator, /const COMPANY_NAV/);
+  assert.doesNotMatch(shell, /const COMPANY_NAV/);
+  assert.deepEqual(COMPANY_AREAS.map((area) => area.label), ['Meu trabalho', 'Contratações', 'Portfólio financeiro', 'Relacionamentos', 'Governança']);
+  // Todas as rotas do menu plano de 21 itens (até a #158) continuam no menu.
+  const previous = ['dashboard', 'rfqs', 'approvals', 'proposals', 'implementations', 'spend', 'performance', 'covenants', 'extractions', 'contracts', 'portfolio', 'value', 'fees', 'opportunities', 'providers', 'qualifications', 'passport', 'tasks', 'notifications', 'settings'];
+  const paths = navItems('company').map((item) => item.path);
+  for (const key of previous) assert.ok(paths.includes(`/finance/${key}.html`), `rota perdida: ${key}`);
+  assert.equal(new Set(paths).size, paths.length, 'rota duplicada no menu');
+  // Sandbox legado /demo continua sem as páginas excluídas.
+  assert.ok(navItems('company', 'demo').every((item) => !item.sandboxExcluded));
+  assert.ok(navItems('company', 'demo').length < navItems('company').length);
+  assert.ok(areasFor('company', 'demo').every((area) => area.items.length));
+  // Views internas ficam na área certa (deep links mantêm o contexto).
+  assert.equal(locate('company', 'rfq').area, 'sourcing');
+  assert.equal(locate('company', 'newRfq').key, 'rfqs');
+  assert.equal(locate('company', 'home').key, 'dashboard');
+  assert.equal(locate('provider', 'providerProposal').key, 'providerRfqs');
+  assert.equal(PROVIDER_AREAS.flatMap((area) => area.items).some((item) => item.path.startsWith('/finance/')), false, 'provedor não recebe rota da empresa');
 }
 console.log('Financial command center: OK (search kinds SQL/API/labels and static/runtime navigation parity)');

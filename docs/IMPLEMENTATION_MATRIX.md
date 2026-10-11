@@ -1,5 +1,33 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 11/10/2026 — Arandu 3.3: produto, design e prontidão comercial (lote 1)
+
+Partiu de `main` @ `4271cca` (#158; `pilot` contida em `main`). Guideline v3.3 (§35) e
+Design Constitution criadas. Estados abaixo: **DONE** só com implementação e evidência
+verificável; documentação sozinha conta como `DONE (doc)`. Maturidade M2 só após os
+quatro gates verdes no HEAD exato da PR; antes disso, M1.
+
+| ID | Iniciativa | Escopo | Dep. | Prioridade | Estado | Evidência / arquivos / testes | Risco | Próximo gate | Critério de conclusão |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| D33-01 | Panorama competitivo | 23 empresas/referências, fonte, data, confiança | — | P0 | DONE (doc) | `docs/ARANDU_COMPETITIVE_LANDSCAPE.md` (páginas públicas lidas em 11/10; Coupa 403) | observação só pública | revisão trimestral (§35.16) | revisado com dados de demos/usuários |
+| D33-02 | Guideline v3.3 | capítulo 35 (20 temas), §22 atualizado | D33-01 | P0 | DONE (doc) | `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md` §35 | — | — | — |
+| D33-03 | Design Constitution + checador | tokens, cor, tipo, componentes, IA, QA | D33-02 | P0 | implemented (M1) | `docs/ARANDU_DESIGN_CONSTITUTION.md`, `scripts/check-design-tokens.mjs` (`npm run check:design`, em `check:all`) | — | CI verde no HEAD | checador no CI |
+| D33-04 | Identidade unificada | tinta/petróleo no app e no site, monograma SVG, superfícies planas, numerais tabulares, avatares sóbrios | D33-03 | P0 | implemented (M1) | `finance/style.css`, `financial-public.css`, `favicon.svg`, páginas públicas, `scripts/generate-finance-pages.mjs`, `finance/src/shell.js`; capturas antes/depois locais | ícones PNG/OG ainda com a marca antiga | CI + revisão visual | PNG/OG regenerados |
+| D33-05 | Navegação em cinco áreas | fonte única, grupos recolhíveis, área na barra superior, folha "Mais" agrupada, rótulos curtos | D33-02 | P0 | implemented (M1) · hipótese de UX não validada | `lib/finance/navigation.mjs`, `finance/src/shell.js`, `finance/app.js`, `scripts/test-finance-command-center.mjs` (rotas preservadas, deep links, isolamento do provedor) | aprendizado de quem usa o menu antigo | CI; sessões com usuários (§35.13) | validação com ≥ 3 pessoas do público |
+| D33-06 | Início sem vazamento técnico | Performance/Spend/Covenants humanizados no servidor; feed com títulos e agrupamento; contagens viram atalhos; filtros em linha | — | P0 | implemented (M1) | `lib/finance/executive-presenter.mjs`, `lib/api/domains/finance-executive.mjs`, `finance/src/views/{dashboard,executive,shared}.js`; `scripts/test-finance-executive.mjs` recusa UUID/enum/função/ISO | detalhe de covenants ainda mostra IDs (D33-11) | CI | — |
+| D33-07 | Design QA reprodutível | capturas autenticadas desktop/celular, overflow, falha em tela de erro, um login por persona | — | P1 | implemented (local) | `scripts/design/capture-surfaces.mjs` (`npm run design:capture`); 46 capturas antes/depois em `reports/design/` (fora do git) | depende da Demo local | CI com artefato | rodar no CI contra Demo efêmera |
+| D33-08 | Correção do site: título invisível | faixa escura com h2 tinta sobre tinta | — | P0 | implemented (M1) | `financial-public.css`; guarda em `check-design-tokens.mjs` | — | CI | — |
+| D33-09 | Intake por objetivo | entrada por intenção, perguntas condicionais, prefill com proveniência | D33-05 | P1 | NOT_STARTED | wizard de 4 etapas existente (`finance/src/views/rfqs.js`) | — | próximo lote | jornada nova empresa → RFQ testada |
+| D33-10 | Comparação profissional | agrupamento econômico, divergências, premissas, export | — | P1 | NOT_STARTED | comparação factual existente (P0) | — | lote D | — |
+| D33-11 | Relacionamento bancário integrado | visão por instituição sobre o Graph; IDs técnicos em detalhes (covenants) | — | P1 | NOT_STARTED | `provider-relationship.js` existente | — | lote E | — |
+| D33-12 | Portal do provedor | resposta de baixo atrito, estados, celular | — | P1 | NOT_STARTED | portal existente | — | lote F | — |
+| D33-13 | Site comercial redesenhado | narrativa de lifecycle, capturas reais da Demo, claims honestos | D33-04 | P1 | PARTIAL (identidade e correção) | — | claims | lote G | site revisado contra §35.12 |
+| D33-14 | Onboarding e métricas de ativação | primeiro valor, eventos mínimos sem PII | — | P1 | NOT_STARTED | — | telemetria/privacidade | decisão de ferramenta | — |
+| D33-15 | IA assistiva | só sobre objetos reais e infraestrutura autorizada | P1.4 | P2 | NOT_STARTED (sem fornecedor autorizado) | — | — | autorização de fornecedor | — |
+| D33-16 | Validação com usuários reais | sessões registradas | D33-05 | P1 | OWNER_ACTION_REQUIRED | — | — | recrutamento | — |
+
+Validação local deste lote: `check:all` verde; `test:e2e` (Chromium desktop + mobile) 209 passed / 0 failed / 7 skipped; `test:e2e:presentation` (Chromium desktop + mobile) 125 passed / 0 failed / 19 skipped; jornada da Demo canônica contra API real local 10/10; build e orçamentos aprovados (JS 440.810/800.000). Firefox/WebKit só no CI.
+
 ## 11/10/2026 — Seed canônico da Demo completo (Fee Intelligence)
 
 Executado em ambiente local descartável (`npm run demo:local:reset`, Supabase em

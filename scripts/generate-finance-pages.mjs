@@ -6,12 +6,10 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { dirname } from 'node:path';
 
-const COMPANY_NAV = [
-  ['Painel', '/finance/dashboard.html'], ['Solicitações', '/finance/rfqs.html'], ['Aprovações', '/finance/approvals.html'],
-  ['Propostas', '/finance/proposals.html'], ['Implantação', '/finance/implementations.html', 'sandboxExcluded'], ['Spend', '/finance/spend.html', 'sandboxExcluded'], ['Performance', '/finance/performance.html', 'sandboxExcluded'], ['Covenants', '/finance/covenants.html', 'sandboxExcluded'], ['Documentos', '/finance/extractions.html', 'sandboxExcluded'], ['Contratos', '/finance/contracts.html'], ['Portfólio', '/finance/portfolio.html'], ['Valor', '/finance/value.html'], ['Tarifas', '/finance/fees.html'], ['Oportunidades', '/finance/opportunities.html'], ['Provedores', '/finance/providers.html'], ['Qualificação', '/finance/qualifications.html', 'sandboxExcluded'],
-  ['Passport', '/finance/passport.html'], ['Tarefas', '/finance/tasks.html'], ['Configurações', '/finance/settings.html']
-];
-const PROVIDER_NAV = [['Início', '/provider/index.html'], ['Oportunidades', '/provider/rfqs.html'], ['Código de convite', '/provider/invite.html']];
+import { areasFor } from '../lib/finance/navigation.mjs';
+
+// Menu: fonte única em lib/finance/navigation.mjs (também lida pelo shell em runtime).
+const BRAND_MARK = '<svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect class="brand-mark-bg" width="32" height="32" rx="7"/><path class="brand-mark-a" d="M9.5 23 16 9.5 22.5 23"/><path class="brand-mark-bar" d="M12.2 18.4h7.6"/></svg>';
 
 export const PAGES = [
   { path: 'finance/spend.html', view: 'spend', audience: 'company', title: 'Financial Spend', h1: 'Financial Spend', description: 'Tipos separados, por moeda, entidade, provedor e produto.', sandboxExcluded: true },
@@ -111,9 +109,13 @@ const escape = (value) => String(value).replace(/&/g, '&amp;').replace(/</g, '&l
 export function renderPage(page, { demo = false } = {}) {
   const prefix = demo ? '/demo' : '';
   const link = (href) => (demo && /^\/(finance|provider)\//.test(href) ? prefix + href : href);
-  const nav = (page.audience === 'provider' ? PROVIDER_NAV : COMPANY_NAV)
-    .filter(([, , scope]) => !(demo && scope === 'sandboxExcluded'))
-    .map(([label, href]) => `<li><a class="side-link" href="${link(href)}"${`/${page.path}` === href || (page.path === 'finance/index.html' && href === '/finance/dashboard.html') ? ' aria-current="page"' : ''}>${label}</a></li>`).join('');
+  const current = (href) => `/${page.path}` === href || (page.path === 'finance/index.html' && href === '/finance/dashboard.html');
+  const nav = areasFor(page.audience === 'provider' ? 'provider' : 'company', demo ? 'demo' : 'real')
+    .map((area) => {
+      const items = area.items.filter((item) => !item.mobileOnly)
+        .map((item) => `<li><a class="side-link" href="${link(item.path)}"${current(item.path) ? ' aria-current="page"' : ''}>${item.label}</a></li>`).join('');
+      return `<div class="side-area" data-area="${area.key}">${page.audience === 'provider' ? '' : `<p class="side-area-label">${area.label}</p>`}<ul role="list">${items}</ul></div>`;
+    }).join('');
   const home = page.audience === 'provider' ? '/provider/index.html' : '/finance/dashboard.html';
   const banner = demo ? `<div class="demo-banner" role="region" aria-label="Ambiente demonstrativo"><p class="demo-text"><strong>Ambiente demonstrativo</strong> <span class="demo-sub">Dados fictícios. Nenhuma operação financeira real será executada.</span></p></div>\n` : '';
   const body = page.staticBody === 'boundaries' ? BOUNDARIES : '<noscript><p class="empty">Este painel depende de JavaScript para carregar dados da sua organização. A navegação entre as páginas continua funcionando sem ele.</p></noscript>';
@@ -133,8 +135,8 @@ ${demo ? DEMO_HEAD : ''}</head>
 <a class="skip-link" href="#main">Pular para o conteúdo</a>
 ${banner}<div class="app-shell">
   <aside class="sidebar">
-    <a class="brand" href="${link(home)}"><span class="brand-mark" aria-hidden="true">A</span><span class="brand-text"><span class="brand-name">Arandu</span><span class="brand-sub">Financial Procurement</span></span></a>
-    <nav class="side-nav" aria-label="Navegacao do portal"><ul role="list">${nav}</ul></nav>
+    <a class="brand" href="${link(home)}">${BRAND_MARK}<span class="brand-text"><span class="brand-name">Arandu</span><span class="brand-sub">Financial Procurement</span></span></a>
+    <nav class="side-nav" aria-label="Navegacao do portal">${nav}</nav>
   </aside>
   <div class="workspace">
     <header class="topbar"></header>
