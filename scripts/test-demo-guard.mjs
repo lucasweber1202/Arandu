@@ -74,4 +74,18 @@ for (const brand of ['Itaú', 'Bradesco', 'Santander', 'Nubank', 'Cielo', 'Stone
   const fees = seed.slice(seed.indexOf('async function seedPortfolioAndFees'));
   assert.ok(fees.indexOf("'contract-terms'") > 0 && fees.indexOf("'contract-terms'") < fees.indexOf("'fees/schedules'"), 'seed cria tarifa antes dos termos do contrato');
 }
+// Regressão: fees/observe por analista dava 403 (só admin/finance_manager
+// registram e verificam observações de tarifa) e o seed parava. Quem escreve
+// cada passo de tarifa tem papel de gestão, e quem verifica não é quem registrou.
+{
+  const { BUYERS: PERSONAS } = await import('../lib/finance/demo-personas.mjs');
+  const fees = seed.slice(seed.indexOf('async function seedPortfolioAndFees'));
+  const actor = (path) => /post\(people\.([a-z]+),\s*'([^']+)'/g;
+  const writers = Object.fromEntries([...fees.slice(0, fees.indexOf('\n}\n')).matchAll(actor())].map((m) => [m[2], m[1]]));
+  for (const path of ['fees/schedules', 'fees/observe', 'fees/verify']) {
+    assert.ok(writers[path], `seed sem ${path}`);
+    assert.ok(['admin', 'finance_manager'].includes(PERSONAS[writers[path]]?.role), `${path} por persona sem papel de gestão: ${writers[path]}`);
+  }
+  assert.notEqual(writers['fees/observe'], writers['fees/verify'], 'mesma persona registra e verifica a tarifa');
+}
 console.log('Demo guard: só ARANDU_ENV=demo explícito, fora de deploy, alvo confirmado, nunca piloto/legado/produção, chaves do mesmo projeto, banco vazio ou marcado e app em modo demo; dataset sem marca real nem senha.');
