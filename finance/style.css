@@ -292,7 +292,7 @@ legend{padding:0}
 .toolbar .input,.toolbar select{width:auto;min-width:160px}
 .toolbar-search{position:relative;flex:1 1 260px;display:flex;align-items:center}
 .toolbar-search .icon{position:absolute;left:10px;color:var(--text-muted);pointer-events:none}
-.toolbar-search input{padding-left:32px}
+.toolbar-search input:not([type=checkbox]):not([type=radio]):not([type=range]),.toolbar-search .input{padding-left:32px}
 .toolbar-chips{margin-bottom:var(--s3);overflow-x:auto}
 .result-count{font-size:var(--fs-sm);color:var(--text-muted);margin-left:auto}
 .list-page{min-width:0}
@@ -324,6 +324,7 @@ td.urgent,td.urgent .date-rel{color:var(--danger);font-weight:600}
 .progress-bar{width:56px;height:6px;border-radius:3px;background:var(--surface-sunken);overflow:hidden}
 .progress-fill{display:block;height:100%;background:var(--accent);border-radius:3px}
 .num{font-variant-numeric:tabular-nums}
+.cell-sub{display:block;margin-top:2px}
 
 /* -------------------------------------------------------------------- abas */
 .tabs-scroll{overflow-x:auto;border-bottom:1px solid var(--border);margin-bottom:var(--s5);scrollbar-width:none}
