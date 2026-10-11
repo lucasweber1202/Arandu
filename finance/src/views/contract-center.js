@@ -74,7 +74,7 @@ function termsEditor(category, initial = {}) {
 /** Botão + formulário de contrato existente (carteira fora de RFQ). */
 export function importContractButton(ctx, entities) {
   if (!ctx.can('create_rfq')) return null;
-  return button('Registrar contrato existente', { iconName: 'plus', onClick: () => {
+  return button('Registrar contrato existente', { iconName: 'plus', attrs: { 'data-intent': 'registrar-contrato' }, onClick: () => {
     const form = el('form', { class: 'stack', id: 'contract-import-form', novalidate: true });
     const category = el('select', { name: 'product' });
     for (const [value, label] of Object.entries(CONTRACT_CATEGORIES)) category.add(new Option(label, value));

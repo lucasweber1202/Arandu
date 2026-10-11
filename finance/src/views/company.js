@@ -233,7 +233,7 @@ export async function providers(ctx) {
   const relationshipEnabled = (await loadEntities(ctx)).available;
   if (relationshipEnabled) await need('relationship');
   const manage = ctx.can('create_rfq');
-  const add = manage ? button('Cadastrar provedor', { variant: 'primary', iconName: 'plus', onClick: () => providerDrawer(ctx) }) : null;
+  const add = manage ? button('Cadastrar provedor', { variant: 'primary', iconName: 'plus', attrs: { 'data-intent': 'cadastrar-instituicao' }, onClick: () => providerDrawer(ctx) }) : null;
   ctx.header({ title: 'Provedores', subtitle: 'Bancos, fintechs e adquirentes com quem a empresa cota. É um cadastro da empresa, não uma atestação.', actions: add ? [add] : [] });
   if (!rows.length) return emptyState({ title: 'Nenhum provedor cadastrado', text: 'Cadastre ao menos três instituições para ter o que comparar.', iconName: 'building', action: add ? button('Cadastrar o primeiro provedor', { variant: 'primary', iconName: 'plus', onClick: () => providerDrawer(ctx) }) : null });
   const participation = new Map();

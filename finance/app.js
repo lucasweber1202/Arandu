@@ -15,6 +15,7 @@ import { el, icon, ROLE_LABELS, needsRenewalAttention } from './src/core.js';
 import { emptyState, linkButton, errorState, loading, toast } from './src/ui.js';
 import { renderSidebar, renderTopbar, renderMobileNav, renderDemoBanner, installCommandCenter, installNotificationCenter } from './src/shell.js';
 import { locate } from '../lib/finance/navigation.mjs';
+import { requestedAction } from '../lib/finance/intents.mjs';
 /* global __ARANDU_DEMO__ */
 const DEMO_BUILD = typeof __ARANDU_DEMO__ !== 'undefined' && __ARANDU_DEMO__ === true;
 
@@ -338,6 +339,18 @@ async function render({ refresh = false, rebuildShell = false } = {}) {
   root.setAttribute('aria-busy', 'false');
   workspace?.afterRender(ctx, { failure });
   focusDeepLink();
+  openRequestedAction();
+}
+
+// Intake por objetivo: `?acao=` abre o formulário do fluxo de destino uma vez
+// (lista fechada em lib/finance/intents.mjs; sem botão — sem permissão — nada acontece).
+function openRequestedAction() {
+  const action = requestedAction(location.search);
+  if (!action) return;
+  const url = new URL(location.href);
+  url.searchParams.delete('acao');
+  history.replaceState(null, '', url.pathname + url.search + url.hash);
+  document.querySelector(`[data-intent="${action}"]`)?.click();
 }
 
 // Link direto para um item (busca, notificação, e-mail): leva o foco até ele,

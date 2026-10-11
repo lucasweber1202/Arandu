@@ -4,6 +4,7 @@ import { el, icon, daysUntil, relativeDays, formatDate, formatDateTime, productL
 import { card, pill, linkButton, emptyState, person, progress, button, toast } from '../ui.js';
 import { memberName, currentStep, approvalSummaryLine, eventTitle } from './shared.js';
 import { loadEntities, entitySummaryCard } from './entities.js';
+import { startButton } from './intake.js';
 
 const PIPELINE = [['draft', 'Rascunho'], ['open', 'Aberta'], ['collecting', 'Em coleta'], ['comparing', 'Em avaliação'], ['decided', 'Decidida'], ['contracted', 'Contratada']];
 
@@ -114,7 +115,8 @@ export async function dashboard(ctx) {
   ctx.header({
     title: 'Painel',
     subtitle: `${greeting(ctx.viewer?.name)} · ${ctx.organization.legal_name}`,
-    actions: ctx.can('create_rfq') ? [linkButton('Nova solicitação', ctx.href('/finance/new-rfq.html'), { variant: 'primary', iconName: 'plus' })] : []
+    // Entrada por objetivo: um único primário; cada intenção leva ao fluxo existente.
+    actions: [startButton(ctx)].filter(Boolean)
   });
   const approvals = await ctx.loadApprovals();
   const items = actionItems(ctx, approvals);

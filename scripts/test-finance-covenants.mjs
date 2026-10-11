@@ -21,4 +21,10 @@ await assert.rejects(()=>call('GET',`covenants/detail?id=${ID}`),e=>e.status===4
 await assert.rejects(()=>call('POST','covenants/decide-waiver',{period_id:ID,waiver_id:ID,expected_version:0}),e=>e.status===400);
 await call('POST','covenants/open',{contract_id:ID,title:'Teste de isolamento',organization_id:'forged',kind:'reporting_covenant'});
 assert.equal(sent.find(s=>s.url.endsWith('/fin_open_obligation')).body.p_input.organization_id,undefined);for(const s of sent)assert.equal(s.headers.Authorization,'Bearer caller-jwt');assert.ok(!sent.some(s=>/fin_run_|fin_evaluate_/.test(s.url)));
+// Detalhe sem UUID nem timestamp cru: contrato e pessoas por nome (Constitution §1.5).
+{const UUID=/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;const ISO=/T\d{2}:\d{2}/;
+ const shown=(o)=>JSON.stringify([o.lines,o.sections]);
+ const named=presentCovenantDetail({period,measurements:[],evidence:[],reviews:[],waivers:[],contracts:[{id:period.contract_id,title:'Contrato Atlas'}]});
+ assert.doesNotMatch(shown(named),UUID);assert.doesNotMatch(shown(named),ISO);assert.match(shown(named),/Contrato Atlas/);
+ const hidden=presentCovenantDetail({period,measurements:[],evidence:[],reviews:[],waivers:[]});assert.doesNotMatch(shown(hidden),UUID);assert.match(shown(hidden),/Contrato indisponível/);}
 console.log('Covenants: unknown vs numeric facts, review choices, coverage, empty/hidden scopes, user JWT and server-derived tenant passed.');
