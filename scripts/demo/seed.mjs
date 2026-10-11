@@ -868,6 +868,15 @@ async function sanity() {
   const acquiring = byTitle(data.RFQ_ACQUIRING.title);
   const comparison = await post(juliana, 'comparison', { rfq_id: acquiring.id, weights: data.RFQ_ACQUIRING.weights });
   check('Comparação ponderada da adquirência', comparison.weighted?.applied && comparison.weighted.results?.length === 3, `${comparison.weighted?.results?.length || 0} propostas ponderadas`);
+  // Comparação contextual (#163) na negociação em curso: campo ausente continua
+  // ausente, premissas distintas bloqueiam critério e a estimativa não é inventada.
+  const creditComparison = (await post(juliana, 'comparison', { rfq_id: credit.id })).comparison || {};
+  const missingCet = (creditComparison.rows || []).some((row) => /CET/.test(row.label || '') && row.missing_count > 0);
+  const blockedCriteria = (creditComparison.rows || []).filter((row) => row.context_reasons?.length).length;
+  const noEstimate = Object.values(creditComparison.estimates || {}).some((item) => item.estimate === false && item.reason);
+  check('Comparação de crédito com CET ausente, premissas distintas e estimativa recusada',
+    creditComparison.methodology === 'comparison-context-v1' && missingCet && blockedCriteria >= 1 && (creditComparison.context_notices || []).length >= 1 && noEstimate,
+    `${(creditComparison.groups || []).length} grupos, ${blockedCriteria} critério(s) bloqueado(s), ${(creditComparison.context_notices || []).length} aviso(s)`);
   const tasks = overview.tasks || [];
   check('Tarefas abertas', tasks.length >= 5, `${tasks.length} abertas`);
   const comments = (await api(juliana, 'GET', `comments?organization_id=${org.id}&object_type=rfq&object_id=${byTitle(data.RFQ_CREDIT.title).id}`)).rows;

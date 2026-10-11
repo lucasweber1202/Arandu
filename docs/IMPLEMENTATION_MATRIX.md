@@ -1,5 +1,25 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 11/10/2026 — Consolidação Demo × Oficial: contrato de paridade (lotes A–C)
+
+Base: `main` @ `c6363f8` (#165; merge audit success, CI do HEAD em execução na
+consulta). Escopo: tornar a fidelidade da Demo canônica verificável antes de
+qualquer cutover. Nada hospedado foi alterado.
+
+| Item | Estado | Evidência | Limite |
+| --- | --- | --- | --- |
+| Manifesto de paridade (`lib/finance/parity-manifest.mjs`) | M1 | 31 capacidades ligadas a telas canônicas, recursos reais da API e checagens do seed; decisões sobre as 4 telas exclusivas do sandbox | estado calculado, não escrito à mão |
+| Gate `npm run check:demo-parity` (em `check:all`) | M1 local | 31/31 `PARITY_VERIFIED` locais; 13 cenários negativos/positivos em `scripts/test-demo-parity.mjs` (um deles expôs import puro do sandbox que o primeiro rascunho não pegava; corrigido) | não prova publicação: eixo hospedado `BLOCKED` |
+| Matriz `docs/DEMO_PRODUCTION_PARITY_MATRIX.md` | M1 | gerada pelo gate; diverge → CI falha | — |
+| Seed: valor de procurement, relacionamento e comparação #163 | E2 local | `npm run demo:setup` em Supabase local descartável: **36/36** checagens OK (eram 32) | não executado em Supabase hospedado |
+| Demo canônica hospedada | BLOCKED | `ACTIVE_SUPABASE_ASSIGNMENTS.demo = []`; `arandu-demo` ainda publica o sandbox | depende de Stage 0 (recuperação comprovada) e cutover |
+| Production oficial | BLOCKED (fail-closed correto) | reproduzido localmente: `ARANDU_ENV=production` com o ref legado `igacnfjeuqhxcmfyepgj` reprova `finance:env:check` ("SUPABASE_URL da produção aponta para o projeto legado de arte") e `ARANDU_SITE_URL` ausente — coerente com o `npm run vercel-build exited with 1` observado | exige preservação/classificação do legado e Supabase de produção aprovado; não é defeito de código |
+
+Achados que ficam abertos (matriz de paridade, "Itens abertos"): visitantes
+compartilham personas e dataset (`OPS-CONCURRENCY`) e o login por persona herda
+o limite de 20 logins/h por conta (`OPS-PERSONA-RATE`), o que inviabiliza uma
+Demo pública com vários visitantes simultâneos sem redesenho (lote D).
+
 ## 11/10/2026 — Relacionamento contextual por instituição (D33-11, lote C)
 
 Base: `main` @ `7b16978` (#163). PR #164 mergeada em `39cf1af`.

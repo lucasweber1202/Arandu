@@ -81,6 +81,18 @@ Montar a demo em cima do produto real expôs lacunas que o sandbox escondia
 - **Comparação de RFQ decidida** abria com pesos zerados; agora abre com os
   pesos registrados na decisão.
 
+## Paridade verificável
+
+`lib/finance/parity-manifest.mjs` liga cada capacidade do produto às telas
+canônicas (`scripts/generate-finance-pages.mjs`), aos recursos reais da API e
+às checagens do seed. `npm run check:demo-parity` (em `check:all`) calcula o
+estado de cada uma, gera [a matriz](../DEMO_PRODUCTION_PARITY_MATRIX.md) e
+falha quando a Demo canônica deixaria de ser o mesmo produto: tela sem
+capacidade, check do seed apagado, ramo de comportamento por ambiente fora do
+selo e do login por persona, novo acoplamento com o sandbox, rota desviada para
+`/demo` ou segredo no navegador. O estado **hospedado** é outro eixo e fica
+`BLOCKED` até o Supabase DEMO ter atribuição ativa aprovada.
+
 ## Sandbox legado
 
 `/demo` (motor fictício no navegador, `finance/demo/`, `ARANDU_DEPLOYMENT_KIND=demo`)
@@ -102,5 +114,9 @@ depois deve ser removido em uma PR própria (motor, camada Work OS, páginas
   enviados pelo seed e o download funciona. No Supabase hospedado não há essa
   diferença.
 - O Supabase local usa certificado autoassinado (`https://localhost`).
-- Não há métrica de economia: o produto deliberadamente não estima savings sem
-  metodologia (próxima fase: Savings Ledger).
+- Economia só aparece como valor de procurement declarado, com baseline,
+  dimensões iguais e metodologia versionada calculada no banco; registro
+  incompleto fica sem número.
+- Visitantes compartilham personas e dataset (sem isolamento por sessão) e o
+  login por persona herda o limite por conta: itens abertos `OPS-CONCURRENCY`
+  e `OPS-PERSONA-RATE` da matriz de paridade.

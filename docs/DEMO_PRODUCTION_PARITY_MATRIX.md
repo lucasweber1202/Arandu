@@ -6,7 +6,7 @@ A Demo canônica (`ARANDU_ENV=demo`) é o mesmo build da `main` ligado a um Supa
 
 **Estado hospedado da Demo canônica:** `BLOCKED` — Supabase DEMO sem atribuição ativa aprovada em `lib/deployment-topology.mjs`; depende de recuperação comprovada e cutover (docs/TWO_ENVIRONMENT_CONSOLIDATION.md).
 
-**Denominador:** 31 capacidades. Verificadas localmente: 28. Parciais: 3. Limitadas pelo ambiente: 0. Não representadas: 0. Bloqueadas: 0.
+**Denominador:** 31 capacidades. Verificadas localmente: 31. Parciais: 0. Limitadas pelo ambiente: 0. Não representadas: 0. Bloqueadas: 0.
 
 | ID | Capacidade | Rotas (Oficial = Demo) | Recursos da API | Cobertura do dataset | Estado local | Lacuna / limitação |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -20,7 +20,7 @@ A Demo canônica (`ARANDU_ENV=demo`) é o mesmo build da `main` ligado a um Supa
 | SRC-RFQS | Solicitações (lista e estados) | `/finance/rfqs.html` | `rfqs` | “RFQ ” | `PARITY_VERIFIED` | — |
 | SRC-NEW | Nova solicitação por objetivo, com Passport | `/finance/new-rfq.html` | `rfqs`, `rfq-passport` | “RFQ de crédito com fotografia do Passport” | `PARITY_VERIFIED` | — |
 | SRC-RFQ | Detalhe da solicitação: convites, propostas, comentários | `/finance/rfq.html` | `rfqs`, `invites/send`, `comments` | “RFQ ”; “Comentários na negociação de crédito” | `PARITY_VERIFIED` | — |
-| SRC-COMPARE | Comparação financeira com pesos do comprador | `/finance/rfq.html` | `comparison` | “Comparação ponderada da adquirência” | `PARITY_PARTIAL` | Cenários da #163 (CET não informado, incompatibilidade econômica, diferença entre versões) não têm check próprio no seed |
+| SRC-COMPARE | Comparação financeira com pesos do comprador | `/finance/rfq.html` | `comparison` | “Comparação ponderada da adquirência”; “Comparação de crédito com CET ausente, premissas distintas e estimativa recusada” | `PARITY_VERIFIED` | — |
 | SRC-DECISION | Decisão registrada com justificativa | `/finance/rfq.html` | `decisions` | “Decisões com justificativa” | `PARITY_VERIFIED` | — |
 | SRC-PROPOSALS | Propostas recebidas e versões | `/finance/proposals.html` | `proposals` | “RFQ ”; “Portal do provedor (Lumina Pay) com histórico” | `PARITY_VERIFIED` | — |
 | SRC-EXTRACT | Documentos e fatos extraídos com proveniência | `/finance/extractions.html` | `extractions/start`, `extractions/review` | “Documento lido com fatos e proveniência” | `PARITY_VERIFIED` | — |
@@ -30,9 +30,9 @@ A Demo canônica (`ARANDU_ENV=demo`) é o mesmo build da `main` ligado a um Supa
 | PRT-COVENANTS | Covenants e obrigações | `/finance/covenants.html` | `covenants/open` | “Covenants: conforme, aguardando dados e waiver” | `PARITY_VERIFIED` | — |
 | PRT-FEES | Tarifas bancárias contratadas × observadas | `/finance/fees.html` | `fees/schedules`, `fees/observe`, `fees/verify` | “Fee Intelligence com observação e referência contratada” | `PARITY_VERIFIED` | — |
 | PRT-SPEND | Spend por moeda e tipo | `/finance/spend.html` | `spend` | “Spend por moeda/tipo, com e sem reconciliação”; “Spend preserva USD estimado sem conversão” | `PARITY_VERIFIED` | — |
-| PRT-VALUE | Valor e savings com metodologia | `/finance/value.html` | `value` | — | `PARITY_PARTIAL` | O seed não registra valor de procurement; a tela abre vazia sem demonstrar baseline e metodologia |
+| PRT-VALUE | Valor e savings com metodologia | `/finance/value.html` | `value` | “Valor de procurement com metodologia e registro sem cálculo” | `PARITY_VERIFIED` | — |
 | PRT-OPPS | Oportunidades por regra da empresa | `/finance/opportunities.html` | `opportunities/rules`, `signals` | “Oportunidades detectadas pelas regras da empresa” | `PARITY_VERIFIED` | — |
-| REL-INSTITUTIONS | Instituições e relacionamento contextual (#161, #164) | `/finance/providers.html` | `providers`, `provider-relationship` | “Contrato de adquirência vigente”; “Portfolio com limite, uso e saldo documentados” | `PARITY_PARTIAL` | Sem check próprio do contexto por instituição (instituição sem contrato, com facility e saldos) |
+| REL-INSTITUTIONS | Instituições e relacionamento contextual (#161, #164) | `/finance/providers.html` | `providers`, `provider-relationship` | “Relacionamento do Atlas com contrato, facility e saldo”; “Instituição sem contrato com histórico de convites” | `PARITY_VERIFIED` | — |
 | REL-QUALIFY | Qualificação de provedores | `/finance/qualifications.html` | `qualifications/open`, `qualifications/requirement`, `qualifications/transition` | “Qualificação do Atlas aguardando decisão humana” | `PARITY_VERIFIED` | — |
 | REL-PERF | Performance do provedor | `/finance/performance.html` | `performance/open`, `performance/dimension` | “Performance do provedor com período aberto” | `PARITY_VERIFIED` | — |
 | GOV-PASSPORT | Financial Passport | `/finance/passport.html` | `profile`, `profile/confirm` | “Passport com cobertura e campo a revisar” | `PARITY_VERIFIED` | — |
