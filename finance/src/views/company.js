@@ -233,15 +233,28 @@ export async function providers(ctx) {
   const relationshipEnabled = (await loadEntities(ctx)).available;
   if (relationshipEnabled) await need('relationship');
   const manage = ctx.can('create_rfq');
-  const add = manage ? button('Cadastrar provedor', { variant: 'primary', iconName: 'plus', attrs: { 'data-intent': 'cadastrar-instituicao' }, onClick: () => providerDrawer(ctx) }) : null;
-  ctx.header({ title: 'Provedores', subtitle: 'Bancos, fintechs e adquirentes com quem a empresa cota. É um cadastro da empresa, não uma atestação.', actions: add ? [add] : [] });
+  const add = manage ? button('Cadastrar instituição', { variant: 'primary', iconName: 'plus', attrs: { 'data-intent': 'cadastrar-instituicao' }, onClick: () => providerDrawer(ctx) }) : null;
+  ctx.header({ title: 'Instituições', subtitle: 'Bancos, fintechs e adquirentes com quem a empresa se relaciona: contratos, vencimentos e processos de cada uma. É um cadastro da empresa, não uma atestação.', actions: add ? [add] : [] });
   if (!rows.length) return emptyState({ title: 'Nenhum provedor cadastrado', text: 'Cadastre ao menos três instituições para ter o que comparar.', iconName: 'building', action: add ? button('Cadastrar o primeiro provedor', { variant: 'primary', iconName: 'plus', onClick: () => providerDrawer(ctx) }) : null });
+  // Índice de relacionamento: fatos do histórico da própria empresa, em ordem alfabética (nada de ranking).
   const participation = new Map();
-  for (const rfq of ctx.data.rfqs || []) for (const invite of rfq.invites || []) participation.set(invite.provider_id, (participation.get(invite.provider_id) || 0) + 1);
+  const proposalsBy = new Map();
+  for (const rfq of ctx.data.rfqs || []) {
+    for (const invite of rfq.invites || []) participation.set(invite.provider_id, (participation.get(invite.provider_id) || 0) + 1);
+    for (const proposal of rfq.proposals || []) proposalsBy.set(proposal.provider_id, (proposalsBy.get(proposal.provider_id) || 0) + 1);
+  }
+  const liveContracts = new Map();
+  for (const contract of ctx.data.contracts || []) {
+    if (!['active', 'renewing'].includes(contract.status) || !contract.provider_id) continue;
+    const list = liveContracts.get(contract.provider_id) || [];
+    list.push(contract);
+    liveContracts.set(contract.provider_id, list);
+  }
+  const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
   const search = el('input', { type: 'search', class: 'input', placeholder: 'Buscar por nome, tipo ou região', 'aria-label': 'Buscar provedor' });
   const count = el('span', { class: 'result-count', role: 'status', 'aria-live': 'polite' });
   const table = el('table', { class: 'data-table' });
-  table.append(el('thead', {}, el('tr', {}, ['Provedor', 'Tipo', 'Região', 'Participações', 'Verificação'].map((label) => el('th', { scope: 'col', text: label })))));
+  table.append(el('thead', {}, el('tr', {}, ['Instituição', 'Tipo e região', 'Contratos vigentes', 'Próximo vencimento', 'Processos', 'Verificação'].map((label) => el('th', { scope: 'col', text: label })))));
   const body = el('tbody');
   table.append(body);
   const draw = () => {
@@ -252,9 +265,13 @@ export async function providers(ctx) {
       body.append(el('tr', { id: `provider-${provider.id}`, dataset: { entity: 'provider', id: provider.id } }, [
         el('td', { 'data-label': 'Provedor', class: 'cell-primary' }, [person(provider.name, provider.website || null),
           relationshipEnabled ? button('Relacionamento', { size: 'sm', variant: 'ghost', iconName: 'users', attrs: { 'aria-label': `Relacionamento com ${provider.name}` }, onClick: () => mods.relationship.openProviderRelationship(ctx, provider) }) : null]),
-        el('td', { 'data-label': 'Tipo', text: PROVIDER_KINDS[provider.kind] || provider.kind }),
-        el('td', { 'data-label': 'Região', text: provider.region || '—' }),
-        el('td', { 'data-label': 'Participações', text: `${participation.get(provider.id) || 0} solicitação(ões)` }),
+        el('td', { 'data-label': 'Tipo e região' }, [el('span', { text: PROVIDER_KINDS[provider.kind] || 'Tipo não informado' }), el('span', { class: 'cell-sub muted small', text: provider.region || 'Região não informada' })]),
+        el('td', { 'data-label': 'Contratos vigentes', class: 'num', text: String((liveContracts.get(provider.id) || []).length) }),
+        el('td', { 'data-label': 'Próximo vencimento' }, (() => {
+          const next = (liveContracts.get(provider.id) || []).map((contract) => contract.ends_on).filter(Boolean).sort()[0];
+          return next ? [el('span', { text: formatDate(next) }), el('span', { class: 'cell-sub muted small', text: relativeDays(next) })] : el('span', { class: 'muted', text: 'Sem contrato vigente' });
+        })()),
+        el('td', { 'data-label': 'Processos', text: `${plural(participation.get(provider.id) || 0, 'convite', 'convites')} · ${plural(proposalsBy.get(provider.id) || 0, 'proposta', 'propostas')}` }),
         el('td', { 'data-label': 'Verificação' }, provider.verification_state === 'EVIDENCIA_REGISTRADA'
           ? tag(`Evidência registrada em ${formatDate(provider.regulator_checked_at)}`, 'success')
           : el('span', { class: 'muted small', title: 'O cadastro é uma referência da empresa, não uma atestação de regularidade.', text: 'Sem verificação registrada' }))
@@ -279,8 +296,8 @@ function providerDrawer(ctx) {
   form.append(nameField, field({ label: 'Tipo', control: kind }), field({ label: 'Região de atuação', control: region, optionalLabel: true }),
     field({ label: 'Site', control: website, optionalLabel: true, hint: 'Somente https.' }), field({ label: 'Notas internas', control: notes, optionalLabel: true, hint: 'Visíveis apenas para a sua empresa.' }),
     el('p', { class: 'callout callout-info compact' }, [icon('shield', { size: 14 }), el('span', { text: 'O Arandu não afirma que um provedor é regulado sem autoridade, registro, evidência e data de consulta.' })]));
-  const save = button('Cadastrar provedor', { variant: 'primary', type: 'submit', iconName: 'check', attrs: { form: 'provider-form' } });
-  const dialog = drawer({ title: 'Cadastrar provedor', body: form, footer: [button('Cancelar', { variant: 'ghost', onClick: () => dialog.close() }), save] });
+  const save = button('Cadastrar instituição', { variant: 'primary', type: 'submit', iconName: 'check', attrs: { form: 'provider-form' } });
+  const dialog = drawer({ title: 'Cadastrar instituição', body: form, footer: [button('Cancelar', { variant: 'ghost', onClick: () => dialog.close() }), save] });
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     if (name.value.trim().length < 2) { nameField.setError('Informe o nome do provedor.'); name.focus(); return; }

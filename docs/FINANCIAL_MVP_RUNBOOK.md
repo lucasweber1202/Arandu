@@ -38,7 +38,7 @@ O rollback remove as policies `fin_*` antes das tabelas, para não precisar de
    `format_valid` de `externally_verified`, que é sempre falso nesta fase.
 2. **Preencher o perfil financeiro** (opcional, reutilizável)
    `POST /api/finance/profile` — cada campo guarda origem, responsável e data.
-3. **Cadastrar provedores**
+3. **Cadastrar instituiçãoes**
    `POST /api/finance/providers`.
 4. **Criar a RFQ**
    `POST /api/finance/rfqs` com `product: "credit"` e a demanda. Nasce `draft`.
