@@ -117,6 +117,33 @@ um cliente real e já é verificado por 36 checagens: correto por construção.
   reabastecido fora da requisição; workspaces diferentes podem ser montados em
   paralelo. A automação do reabastecimento na Demo hospedada é item aberto.
 
+## Operação contínua (DW-02, 11/10/2026)
+
+- **Quota atômica:** o gatilho contava antes de inserir sem serializar.
+  - Reproduzido em Postgres 16 com quota 1: 3 transações concorrentes gravaram 3 RFQs.
+  - Correção em `docs/supabase-financial-demo-pool.sql`: o gatilho trava a linha do workspace antes de contar. Só escritas do mesmo workspace reivindicado se serializam.
+  - Teste permanente em `tests/database/demo-quota-concurrency.sh`: 6 transações com quota 2 gravam 2.
+- **Controlador do pool:** `node scripts/demo/workspaces.mjs maintain [--dry-run]`.
+  - Segura um lease exclusivo no banco (`fin_demo_pool_lease`, só `service_role`, só em banco demo).
+  - Limpa vencidos, falhos, limpezas interrompidas e montagens paradas há mais de 6 h.
+  - Repõe até o alvo com concorrência 2.
+  - Emite métricas sem segredo.
+- **Política medida (`POOL_POLICY`):**
+  - seed de ~630 s;
+  - dois em paralelo levam o mesmo tempo cada;
+  - alvo de 3 prontos;
+  - no máximo 4 novos por execução (~21 min);
+  - teto de 30 vivos;
+  - backoff após 3 falhas na última hora.
+- **Validação local:**
+  - duas execuções simultâneas: a segunda saiu `skipped`;
+  - a primeira montou 3 workspaces em 1.256 s (629, 629 e 627 s), sem falha;
+  - E2E de dois visitantes e quota pela API (429 `demo_workspace_quota`) aprovado.
+- **Onde roda:** `.github/workflows/demo-pool.yml`.
+  - Só manual, só a `main` revisada, environment `demo`.
+  - O agendamento recorrente fica desligado até o cutover da Demo ser aprovado.
+  - O seed nunca roda dentro de requisição nem de build da Vercel.
+
 ## Gates antes de publicar
 
 - Testes de banco: clone sem referência ao baseline (varredura de todo UUID);

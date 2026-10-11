@@ -59,7 +59,8 @@
     "docs/supabase-financial-provider-performance.sql",
     "docs/supabase-financial-spend-intelligence.sql",
     "docs/supabase-financial-opportunity-discriminator.sql",
-    "docs/supabase-financial-demo-workspaces.sql"
+    "docs/supabase-financial-demo-workspaces.sql",
+    "docs/supabase-financial-demo-pool.sql"
   ],
   "existingDatabase": [
     "docs/supabase-sprint1-auth-ownership.sql",
@@ -120,6 +121,7 @@
     "docs/supabase-financial-provider-performance.sql",
     "docs/supabase-financial-spend-intelligence.sql",
     "docs/supabase-financial-opportunity-discriminator.sql",
-    "docs/supabase-financial-demo-workspaces.sql"
+    "docs/supabase-financial-demo-workspaces.sql",
+    "docs/supabase-financial-demo-pool.sql"
   ]
 }
