@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { Readable } from 'node:stream';
-import { presentExecutive } from '../lib/finance/executive-presenter.mjs';
+import { presentExecutive, presentPerformanceSummary, presentSpendSummary } from '../lib/finance/executive-presenter.mjs';
+import { presentCovenantSummary } from '../lib/finance/covenant-presenter.mjs';
 import { handleFinance } from '../lib/api/domains/finance.mjs';
 
 const ORG = '00000000-0000-4000-8000-0000000000a1';
@@ -90,4 +91,23 @@ for (const bad of ['start=2026-02-31', 'start=2026-07-01&end=2026-01-01', 'start
 }
 assert.ok(!sent.some((s) => s.url.includes('/rpc/')), 'invalid filters reached an RPC');
 await assert.rejects(() => call('POST', `executive?organization_id=${ORG}`), (e) => e.status === 405);
+
+// Painel: performance e spend sem vazar estado técnico (UUID, enum, função, ISO).
+const TECH = /[0-9a-f]{8}-[0-9a-f]{4}-|\bopen\b|\bcontracted\b|\bacquiring\b|fin_[a-z_]+|T\d{2}:\d{2}:\d{2}/;
+const perf = presentPerformanceSummary({ observed_at: '2026-10-11T11:46:40.070316+00:00', source: 'fin_provider_performance_monitor', rows: [{ status: 'open', periods: 1, overdue: 0 }, { status: 'closed', periods: 2, overdue: 1 }], coverage: { registered: 2, confirmed: 1, not_available: 0 } });
+for (const text of [...perf.lines, perf.note]) assert.doesNotMatch(text, TECH, text);
+assert.deepEqual(perf.lines, ['Em acompanhamento: 1 período', 'Encerrado: 2 períodos · 1 revisão atrasada']);
+assert.match(perf.note, /11\/10\/2026/);
+assert.deepEqual(presentPerformanceSummary({}).lines, ['Nenhum período de performance registrado.']);
+const PROVIDER = '5050ac99-6618-42e4-9632-d24dde13b050';
+const spendCard = presentSpendSummary({ observed_at: '2026-10-11T11:46:40Z', rows: [
+  { currency: 'BRL', value_kind: 'contracted', product: 'acquiring', provider_id: PROVIDER, amount: 6860, records: 1, included_records: 1 },
+  { currency: 'USD', value_kind: 'estimated', product: 'credit', provider_id: '61b9e15f-6e4e-4097-a6ea-81aa329eb72f', amount: null, records: 1, included_records: 0 }
+] }, [{ id: PROVIDER, name: 'Lumina Pay' }]);
+for (const text of [...spendCard.lines, spendCard.note]) assert.doesNotMatch(text, TECH, text);
+assert.match(spendCard.lines[0], /^BRL · Contratado · Adquirência · Lumina Pay: R\$\s?6\.860,00 · cobertura 1\/1$/);
+// Provedor fora do RLS de quem chama nunca vira UUID; valor ausente nunca vira zero.
+assert.match(spendCard.lines[1], /Provedor indisponível: indisponível/);
+assert.doesNotMatch(spendCard.lines[1], /0,00/);
+assert.match(presentCovenantSummary({ observed_at: '2026-10-11T11:46:40Z', rows: [] }).note, /11\/10\/2026/);
 console.log('Value intelligence executive: per-currency and per-kind separation, coverage, safe language, scoped action links, lazy dashboard section and JWT-only read API passed.');

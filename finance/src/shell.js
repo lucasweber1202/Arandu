@@ -4,64 +4,83 @@
 import { el, icon, fold, timeAgo, productLabel, RFQ_STATUS, CONTRACT_STATUS, formatDate } from './core.js';
 import { avatar, iconButton, button, toast, confirmDialog } from './ui.js';
 import { SEARCH_KIND_LABELS } from '../../lib/finance/command-center.mjs';
+import { areasFor, navItems, locate } from '../../lib/finance/navigation.mjs';
 
-const COMPANY_NAV = [
-  { key: 'dashboard', label: 'Painel', path: '/finance/dashboard.html', icon: 'home' },
-  { key: 'rfqs', label: 'Solicitações', path: '/finance/rfqs.html', icon: 'file', views: ['rfqs', 'rfq', 'newRfq'] },
-  { key: 'approvals', label: 'Aprovações', path: '/finance/approvals.html', icon: 'checkCircle' },
-  { key: 'proposals', label: 'Propostas', path: '/finance/proposals.html', icon: 'inbox' },
-  // Ciclo de vida: páginas fora do sandbox legado /demo (sandboxExcluded no
-  // gerador de páginas); sem estas entradas o menu montado em JS as escondia.
-  { key: 'implementations', label: 'Implantação', path: '/finance/implementations.html', icon: 'tasks', sandboxExcluded: true },
-  { key: 'spend', label: 'Spend', path: '/finance/spend.html', icon: 'layers', sandboxExcluded: true },
-  { key: 'performance', label: 'Performance', path: '/finance/performance.html', icon: 'scale', sandboxExcluded: true },
-  { key: 'covenants', label: 'Covenants', path: '/finance/covenants.html', icon: 'calendar', sandboxExcluded: true },
-  { key: 'extractions', label: 'Documentos', path: '/finance/extractions.html', icon: 'file', sandboxExcluded: true },
-  { key: 'contracts', label: 'Contratos', path: '/finance/contracts.html', icon: 'briefcase' },
-  { key: 'portfolio', label: 'Portfólio', path: '/finance/portfolio.html', icon: 'layers' },
-  { key: 'value', label: 'Valor', path: '/finance/value.html', icon: 'layers' },
-  { key: 'fees', label: 'Tarifas', path: '/finance/fees.html', icon: 'scale' },
-  { key: 'opportunities', label: 'Oportunidades', path: '/finance/opportunities.html', icon: 'flag' },
-  { key: 'providers', label: 'Provedores', path: '/finance/providers.html', icon: 'building' },
-  { key: 'qualifications', label: 'Qualificação', path: '/finance/qualifications.html', icon: 'checkCircle', sandboxExcluded: true },
-  { key: 'passport', label: 'Passport', path: '/finance/passport.html', icon: 'shield' },
-  { key: 'tasks', label: 'Tarefas', path: '/finance/tasks.html', icon: 'tasks' },
-  { key: 'notifications', label: 'Notificações', path: '/finance/notifications.html', icon: 'bell', mobileOnly: true },
-  { key: 'settings', label: 'Configurações', path: '/finance/settings.html', icon: 'settings' }
-];
-const PROVIDER_NAV = [
-  { key: 'providerHome', label: 'Início', path: '/provider/index.html', icon: 'home' },
-  { key: 'providerRfqs', label: 'Oportunidades', path: '/provider/rfqs.html', icon: 'inbox', views: ['providerRfqs', 'providerProposal'] },
-  { key: 'providerInvite', label: 'Código de convite', path: '/provider/invite.html', icon: 'send' }
-];
-const MOBILE_TABS = { company: ['dashboard', 'rfqs', 'approvals', 'contracts'], provider: ['providerHome', 'providerRfqs', 'providerInvite'] };
-
-export function navFor(audience, mode = 'real') {
-  if (audience === 'provider') return PROVIDER_NAV;
-  return mode === 'demo' ? COMPANY_NAV.filter((item) => !item.sandboxExcluded) : COMPANY_NAV;
+// Monograma do Arandu: "A" em traço com a barra em petróleo (mesmo desenho do
+// favicon e do site público). SVG em linha, sem asset externo.
+const SVG_NS = 'http://www.w3.org/2000/svg';
+export function brandMark() {
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 32 32');
+  svg.setAttribute('class', 'brand-mark');
+  svg.setAttribute('aria-hidden', 'true');
+  const shape = (tag, attrs) => { const node = document.createElementNS(SVG_NS, tag); for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v); svg.append(node); };
+  shape('rect', { width: '32', height: '32', rx: '7', class: 'brand-mark-bg' });
+  shape('path', { d: 'M9.5 23 16 9.5 22.5 23', class: 'brand-mark-a' });
+  shape('path', { d: 'M12.2 18.4h7.6', class: 'brand-mark-bar' });
+  return svg;
 }
 
-function activeKey(ctx) {
-  const view = ctx.view === 'home' ? 'dashboard' : ctx.view;
-  return navFor(ctx.audience, ctx.mode).find((item) => item.key === view || item.views?.includes(view))?.key;
+// Menu em cinco áreas por objetivo (fonte única em lib/finance/navigation.mjs,
+// também usada pela casca estática). Nenhuma rota muda; deep links continuam.
+const MOBILE_TABS = { company: ['dashboard', 'rfqs', 'contracts', 'approvals'], provider: ['providerHome', 'providerRfqs', 'providerInvite'] };
+const COLLAPSED_KEY = 'arandu-nav-collapsed';
+
+export function navFor(audience, mode = 'real') { return navItems(audience, mode); }
+
+function activeKey(ctx) { return locate(ctx.audience, ctx.view, ctx.mode)?.key; }
+
+function collapsedAreas() {
+  try { return new Set(JSON.parse(localStorage.getItem(COLLAPSED_KEY) || '[]')); } catch { return new Set(); }
+}
+function rememberCollapsed(set) {
+  try { localStorage.setItem(COLLAPSED_KEY, JSON.stringify([...set])); } catch { /* segue sem memória */ }
 }
 
 export function renderSidebar(ctx, counts = {}) {
   const aside = document.querySelector('.sidebar');
   if (!aside) return;
   const current = activeKey(ctx);
+  const currentArea = locate(ctx.audience, ctx.view, ctx.mode)?.area;
+  const collapsed = collapsedAreas();
   const nav = el('nav', { class: 'side-nav', 'aria-label': 'Navegacao do portal' });
-  const list = el('ul', { role: 'list' });
-  for (const item of navFor(ctx.audience, ctx.mode).filter((entry) => !entry.mobileOnly)) {
-    const count = counts[item.key];
-    list.append(el('li', {}, el('a', { href: ctx.href(item.path), class: 'side-link', 'aria-current': item.key === current ? 'page' : null }, [
-      icon(item.icon, { size: 18 }), el('span', { class: 'side-label', text: item.label }),
-      count ? el('span', { class: 'side-count', 'aria-label': `${count} pendentes`, text: String(count) }) : null
-    ])));
+  for (const area of areasFor(ctx.audience, ctx.mode)) {
+    const items = area.items.filter((entry) => !entry.mobileOnly);
+    if (!items.length) continue;
+    const pending = items.reduce((sum, item) => sum + (Number(counts[item.key]) || 0), 0);
+    // A área da página atual nunca fica recolhida: a pessoa sempre vê onde está.
+    const open = area.key === currentArea || !collapsed.has(area.key);
+    const listId = `nav-area-${area.key}`;
+    const list = el('ul', { role: 'list', id: listId, hidden: !open });
+    for (const item of items) {
+      const count = counts[item.key];
+      list.append(el('li', {}, el('a', { href: ctx.href(item.path), class: 'side-link', 'aria-current': item.key === current ? 'page' : null }, [
+        icon(item.icon, { size: 16 }), el('span', { class: 'side-label', text: item.label }),
+        count ? el('span', { class: 'side-count', 'aria-label': `${count} pendentes`, text: String(count) }) : null
+      ])));
+    }
+    const section = el('div', { class: 'side-area', dataset: { area: area.key } });
+    if (ctx.audience === 'provider') {
+      section.append(list);
+    } else {
+      const toggle = el('button', { type: 'button', class: 'side-area-toggle', 'aria-expanded': String(open), 'aria-controls': listId, title: area.hint }, [
+        el('span', { class: 'side-area-label', text: area.label }),
+        !open && pending ? el('span', { class: 'side-count', 'aria-label': `${pending} pendentes nesta área`, text: String(pending) }) : null,
+        icon('chevronDown', { size: 14 })
+      ]);
+      toggle.addEventListener('click', () => {
+        const next = collapsedAreas();
+        if (next.has(area.key)) next.delete(area.key); else next.add(area.key);
+        rememberCollapsed(next);
+        renderSidebar(ctx, counts);
+        aside.querySelector(`[data-area="${area.key}"] .side-area-toggle`)?.focus();
+      });
+      section.append(toggle, list);
+    }
+    nav.append(section);
   }
-  nav.append(list);
   const brand = el('a', { class: 'brand', href: ctx.href(ctx.audience === 'provider' ? '/provider/index.html' : '/finance/dashboard.html') }, [
-    el('span', { class: 'brand-mark', 'aria-hidden': 'true', text: 'A' }),
+    brandMark(),
     el('span', { class: 'brand-text' }, [el('span', { class: 'brand-name', text: 'Arandu' }), el('span', { class: 'brand-sub', text: 'Financial Procurement' })])
   ]);
   const workspace = ctx.organization ? el('div', { class: 'workspace-switch' }, [
@@ -101,7 +120,7 @@ export function renderMobileNav(ctx, counts = {}) {
     const count = counts[key];
     bar.append(el('a', { href: ctx.href(item.path), class: 'tab-item', 'aria-current': key === current ? 'page' : null }, [
       el('span', { class: 'tab-icon' }, [icon(item.icon, { size: 20 }), count ? el('span', { class: 'tab-badge', text: String(count) }) : null]),
-      el('span', { class: 'tab-label', text: item.label })
+      el('span', { class: 'tab-label', text: item.short || item.label })
     ]));
   }
   const more = el('button', { type: 'button', class: 'tab-item', 'aria-haspopup': 'dialog' }, [el('span', { class: 'tab-icon' }, icon('menu', { size: 20 })), el('span', { class: 'tab-label', text: 'Mais' })]);
@@ -112,13 +131,18 @@ export function renderMobileNav(ctx, counts = {}) {
 
 function openMoreSheet(ctx, counts) {
   const sheet = el('dialog', { class: 'sheet', 'aria-label': 'Todas as seções' });
-  const list = el('ul', { role: 'list', class: 'sheet-list' });
-  for (const item of navFor(ctx.audience, ctx.mode)) {
-    list.append(el('li', {}, el('a', { href: ctx.href(item.path), class: 'sheet-link' }, [icon(item.icon, { size: 18 }), el('span', { text: item.label }),
-      counts[item.key] ? el('span', { class: 'side-count', text: String(counts[item.key]) }) : null])));
+  const body = el('div', { class: 'sheet-body' });
+  for (const area of areasFor(ctx.audience, ctx.mode)) {
+    const headingId = `sheet-area-${area.key}`;
+    const list = el('ul', { role: 'list', class: 'sheet-list', 'aria-labelledby': headingId });
+    for (const item of area.items) {
+      list.append(el('li', {}, el('a', { href: ctx.href(item.path), class: 'sheet-link', 'aria-current': item.key === activeKey(ctx) ? 'page' : null }, [icon(item.icon, { size: 18 }), el('span', { text: item.label }),
+        counts[item.key] ? el('span', { class: 'side-count', text: String(counts[item.key]) }) : null])));
+    }
+    body.append(el('p', { class: 'sheet-heading', id: headingId, text: area.label }), list);
   }
-  list.append(el('li', {}, el('a', { href: ctx.href('/finance/boundaries.html'), class: 'sheet-link' }, [icon('shield', { size: 18 }), el('span', { text: 'Limites do produto' })])));
-  sheet.append(el('div', { class: 'sheet-head' }, [el('span', { class: 'sheet-title', text: ctx.organization?.legal_name || 'Arandu' }), iconButton('x', 'Fechar', { onClick: () => sheet.close() })]), list);
+  body.append(el('ul', { role: 'list', class: 'sheet-list' }, el('li', {}, el('a', { href: ctx.href('/finance/boundaries.html'), class: 'sheet-link' }, [icon('shield', { size: 18 }), el('span', { text: 'Limites do produto' })]))));
+  sheet.append(el('div', { class: 'sheet-head' }, [el('span', { class: 'sheet-title', text: ctx.organization?.legal_name || 'Arandu' }), iconButton('x', 'Fechar', { onClick: () => sheet.close() })]), body);
   sheet.addEventListener('close', () => sheet.remove());
   sheet.addEventListener('click', (event) => { if (event.target === sheet) sheet.close(); });
   document.body.append(sheet);
@@ -137,7 +161,7 @@ export function renderTopbar(ctx) {
   const bar = document.querySelector('.topbar');
   if (!bar) return {};
   const mobileBrand = el('a', { class: 'topbar-brand', href: ctx.href(ctx.audience === 'provider' ? '/provider/index.html' : '/finance/dashboard.html'), 'aria-label': 'Arandu — início' },
-    [el('span', { class: 'brand-mark', 'aria-hidden': 'true', text: 'A' }), el('span', { class: 'topbar-org', text: ctx.organization?.legal_name || 'Arandu' })]);
+    [brandMark(), el('span', { class: 'topbar-org', text: ctx.organization?.legal_name || 'Arandu' })]);
   const actions = el('div', { class: 'topbar-actions' });
   // No celular a faixa da demonstração rola para fora da tela: este selo fica sempre visível.
   if (ctx.mode === 'demo') actions.append(el('span', { class: 'demo-chip', title: 'Ambiente demonstrativo. Dados fictícios.' }, [icon('info', { size: 12 }), el('span', { text: 'Demo · dados fictícios' })]));

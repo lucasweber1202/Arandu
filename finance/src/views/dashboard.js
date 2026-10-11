@@ -145,9 +145,11 @@ export async function dashboard(ctx) {
   const active = rfqs.filter((rfq) => ['open', 'collecting', 'comparing'].includes(rfq.status));
   const proposals = rfqs.reduce((sum, rfq) => sum + (rfq.proposals || []).length, 0);
   const contracts = (data.contracts || []).filter((row) => ['active', 'renewing'].includes(row.status));
+  // Cada contagem leva à lista que a explica: número sem consequência não entra (Constitution §2).
   const summary = el('dl', { class: 'summary-strip', 'aria-label': 'Resumo' }, [
-    ['Concorrências ativas', active.length], ['Propostas recebidas', proposals], ['Aguardando aprovação', approvals.filter((row) => row.status === 'pending').length], ['Contratos vigentes', contracts.length]
-  ].map(([label, value]) => el('div', { class: 'summary-item' }, [el('dt', { text: label }), el('dd', { text: String(value) })])));
+    ['Concorrências ativas', active.length, '/finance/rfqs.html'], ['Propostas recebidas', proposals, '/finance/proposals.html'],
+    ['Aguardando aprovação', approvals.filter((row) => row.status === 'pending').length, '/finance/approvals.html'], ['Contratos vigentes', contracts.length, '/finance/contracts.html']
+  ].map(([label, value, path]) => el('div', { class: 'summary-item' }, [el('dt', { text: label }), el('dd', {}, el('a', { class: 'summary-link', href: ctx.href(path), text: String(value), 'aria-label': `${label}: ${value}. Abrir lista` }))])));
 
   // Pipeline clicável.
   const pipeline = el('ol', { class: 'pipeline', 'aria-label': 'Solicitações por etapa' });
@@ -220,11 +222,23 @@ export async function dashboard(ctx) {
   const feed = el('ol', { class: 'activity compact' }, el('li', { class: 'muted', text: 'Carregando…' }));
   ctx.api(`events?organization_id=${encodeURIComponent(ctx.organization.id)}`).then(({ rows }) => {
     feed.replaceChildren();
-    const titles = new Map(rfqs.map((rfq) => [rfq.id, rfq.title]));
-    for (const row of (rows || []).slice(0, 6)) {
+    // Contexto legível do objeto: título da solicitação ou instituição do contrato.
+    const titles = new Map([...rfqs.map((rfq) => [rfq.id, rfq.title]), ...(data.contracts || []).map((contract) => [contract.id, contract.provider_name || contract.title])]);
+    // Eventos iguais em sequência (ex.: várias regras versionadas) viram uma linha com contagem.
+    const groups = [];
+    for (const row of rows || []) {
+      const last = groups.at(-1);
+      if (last && last.row.event_type === row.event_type && last.row.entity_id === row.entity_id) last.count += 1;
+      else groups.push({ row, count: 1 });
+    }
+    for (const { row, count } of groups.slice(0, 6)) {
       const label = eventTitle(row.event_type);
+      // metadata.provider só é nome de instituição em eventos de proposta/convite;
+      // em extração é o extrator técnico e nunca aparece na tela.
+      const providerEvent = /^(proposal_|provider_invited|invite_accepted)/.test(row.event_type);
+      const context = (providerEvent && row.metadata?.provider) || titles.get(row.entity_id) || '';
       feed.append(el('li', { class: 'activity-item' }, [el('span', { class: 'activity-dot', 'aria-hidden': 'true' }), el('span', { class: 'activity-text' }, [
-        el('strong', { text: label }), ` · ${row.metadata?.provider || titles.get(row.entity_id) || ''}`.replace(/ · $/, '')]), el('time', { class: 'activity-time', datetime: row.happened_at, text: timeAgo(row.happened_at) })]));
+        el('strong', { text: label }), count > 1 ? ` (${count})` : '', context ? ` · ${context}` : '']), el('time', { class: 'activity-time', datetime: row.happened_at, text: timeAgo(row.happened_at) })]));
     }
     if (!feed.children.length) feed.append(el('li', { class: 'muted', text: 'Sem atividade recente.' }));
   }).catch(() => feed.replaceChildren(el('li', { class: 'muted', text: 'Atividade indisponível no momento.' })));

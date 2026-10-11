@@ -65,7 +65,7 @@
     "audit:ci": "npm audit --audit-level=high",
     "sbom:ci": "node scripts/create-sbom.mjs",
     "check:supply-chain": "node scripts/check-supply-chain.mjs && node scripts/test-supply-chain-actions.mjs",
-    "check:all": "npm run check:deploy-release-separation && npm run check:legacy-art && npm run check:vercel-routing && npm run check:finance && node scripts/test-email-outbox.mjs && npm run check:migrations && npm run check:platform && npm run check:backend && npm run check:security && npm run check:env && npm run check:supply-chain && npm run check:governance && npm run check:staging",
+    "check:all": "npm run check:deploy-release-separation && npm run check:legacy-art && npm run check:design && npm run check:vercel-routing && npm run check:finance && node scripts/test-email-outbox.mjs && npm run check:migrations && npm run check:platform && npm run check:backend && npm run check:security && npm run check:env && npm run check:supply-chain && npm run check:governance && npm run check:staging",
     "release:status": "node scripts/release-status.mjs",
     "release:check": "node scripts/release-status.mjs --require-ready",
     "migrations:bundle": "node scripts/build-supabase-migration-bundle.mjs",
@@ -99,7 +99,9 @@
     "release:candidate:canary": "bash scripts/pilot-canary.sh",
     "release:candidate:restore:drill": "bash scripts/pilot-restore-drill.sh",
     "governance:live": "node scripts/check-live-governance.mjs",
-    "test:analytics": "node scripts/test-product-analytics.mjs && node scripts/test-product-analytics-api.mjs"
+    "test:analytics": "node scripts/test-product-analytics.mjs && node scripts/test-product-analytics-api.mjs",
+    "check:design": "node scripts/check-design-tokens.mjs",
+    "design:capture": "node scripts/design/capture-surfaces.mjs"
   },
   "dependencies": {
     "@vercel/functions": "3.1.0",

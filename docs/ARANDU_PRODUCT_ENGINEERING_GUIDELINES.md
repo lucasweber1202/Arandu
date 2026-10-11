@@ -1,13 +1,15 @@
 # Arandu — Diretrizes Mestras de Produto, Engenharia e Evolução
 
-**Versão 3.2 — 7 de outubro de 2026**
-**Baseline técnica de referência desta revisão:** `main` @ `59806334e038f2b3a01f363a63e4ca577949b26b`
+**Versão 3.3 — 11 de outubro de 2026**
+**Baseline técnica de referência desta revisão:** `main` @ `4271cca00c941c2275a452d35c092d8a4a79255c`
 **Status:** constituição normativa de produto e engenharia
 **Escopo:** tese de produto, boundaries, arquitetura funcional, maturidade, UX, engenharia, dados, segurança, IA, integrações, operação enterprise e critérios de evolução
 
 > **Propósito.** Esta guideline define o que o Arandu é, o que não é, como deve evoluir e quais garantias não podem ser sacrificadas. Ela governa pessoas e agentes de IA que alterem o produto.
 >
-> **Mudança operacional da v3.2.** Apenas Demo e Production são ambientes hospedados permanentes. Pilot é a etapa de validação de release, por CI, Demo canônica, previews temporários e ensaios descartáveis; não exige terceiro projeto, banco ou branch. A conversão dos dois slots existentes é condicionada a inventário, ausência de cliente/PII necessária, export e recovery verificados.
+> **Mudança de produto da v3.3.** Novo capítulo 35: posicionamento competitivo, personas, diferenciação, estratégia de design, Design Constitution normativa (`docs/ARANDU_DESIGN_CONSTITUTION.md`), anti-vibecode como critério objetivo, arquitetura de informação em cinco áreas, workspace orientado a tarefas, primeiro valor, experiência bilateral, claims comerciais, validação com usuários, métricas de experiência, QA visual, benchmark contínuo, supervisão humana da IA, prontidão comercial e integração marketing/produto/engenharia. Nenhuma garantia da v3.2 foi relaxada.
+>
+> **Mudança operacional preservada da v3.2.** Apenas Demo e Production são ambientes hospedados permanentes. Pilot é a etapa de validação de release, por CI, Demo canônica, previews temporários e ensaios descartáveis; não exige terceiro projeto, banco ou branch. A conversão dos dois slots existentes é condicionada a inventário, ausência de cliente/PII necessária, export e recovery verificados.
 >
 > **Mudança estratégica preservada da v3.1.** A tese é refinada para deixar explícito que RFQ/RFP e comparação são capabilities do core, não o moat isolado. O diferencial defensável do Arandu é o lifecycle de procurement financeiro de ponta a ponta, sustentado pelo Financial Graph, memória institucional, governança, workflow recorrente, dados com proveniência e integrações. Market data, pricing e execution venues especializados devem ser integrados quando fizer sentido, não reconstruídos como um terminal/OMS/EMS paralelo.
 >
@@ -1172,13 +1174,15 @@ Gramática universal:
 
 Navegação deve refletir trabalho e objetos, não a história técnica do sistema.
 
-Áreas alvo:
+Áreas alvo (implementadas no menu desde a v3.3, fonte única `lib/finance/navigation.mjs`; ver §35.7):
 
 - Meu trabalho;
-- Procurement;
-- Financial Portfolio;
-- Relationships;
-- Governance.
+- Contratações (procurement);
+- Portfólio financeiro;
+- Relacionamentos;
+- Governança.
+
+Aparência, tokens, componentes e QA visual seguem `docs/ARANDU_DESIGN_CONSTITUTION.md` (§35.5).
 
 Comparison workspace deve priorizar:
 
@@ -1723,6 +1727,92 @@ Nunca inverter essa ordem apenas para produzir demo mais impressionante.
 
 ---
 
+# 35. Produto, design e prontidão comercial (v3.3)
+
+Este capítulo consolida a direção de produto, experiência e posicionamento resultante da revisão de 11/10/2026. Ele **acrescenta** obrigações; nenhuma regra dos capítulos 1–34 é relaxada. Em conflito, prevalecem segurança, proveniência, neutralidade e decisão humana (§1.2).
+
+## 35.1 Posicionamento competitivo
+
+O Arandu é a plataforma operacional de **procurement financeiro, relacionamento institucional e ciclo de vida dos produtos financeiros corporativos**. Não é marketplace de crédito, comparador de bancos, suite S2P genérica, TMS nem ferramenta de spend de SaaS. O panorama observado e as fontes estão em `docs/ARANDU_COMPETITIVE_LANDSCAPE.md`; nenhum dado de concorrente é apresentado como fato no produto ou no site.
+
+## 35.2 Segmento e personas
+
+Público inicial: empresas médias e grandes (incluindo grupos econômicos com várias entidades legais) com relacionamento ativo com várias instituições. Personas canônicas: CFO/diretor financeiro (aprova, decide), gerente financeiro/tesouraria (conduz processos e portfólio), analista (avalia propostas, mantém dados), aprovador (decide etapa com SoD), administrador (governança) e usuário da instituição financeira (responde convites). Testes automatizados de persona **não** são pesquisa com usuários (§35.13).
+
+## 35.3 Diferenciação central
+
+Os eixos defensáveis são: objeto financeiro tipado (CET, indexador, spread, MDR, garantias, covenants); neutralidade comprovável (sem ranking default, sem remuneração por sucesso); continuidade pós-contratação (renovação, aditivos, covenants, tarifas contratadas × observadas, valor realizado); relacionamento bancário auditável pelo Financial Graph; experiência bilateral com isolamento entre instituições. Benchmark de mercado agregado **não** é diferencial atual e NÃO DEVE ser simulado (§21).
+
+## 35.4 Estratégia de design
+
+O Arandu DEVE parecer projetado por uma equipe de produto profissional: identidade própria, densidade adequada a decisões financeiras, consistência entre superfícies e linguagem de gente. Mudança visual existe para clareza, legibilidade e identidade — não para demonstrar atividade.
+
+## 35.5 Design Constitution
+
+`docs/ARANDU_DESIGN_CONSTITUTION.md` é normativa para tokens, tipografia, cor, espaço, componentes, navegação, acessibilidade, microcopy, dados fictícios e QA visual. Mudança de identidade (tokens de marca, monograma, escala tipográfica) exige atualização da constitution e do checador `scripts/check-design-tokens.mjs` na mesma PR.
+
+## 35.6 Anti-vibecode como qualidade objetiva
+
+"Aparência de template" é defeito de produto, não preferência estética. Os padrões listados na constitution §2 (KPIs genéricos, cards iguais sem hierarquia, decoração, copy vaga, múltiplos primários, vazamento técnico na tela) DEVEM ser evitados ou justificados por escrito. Vazamento de UUID, enum interno, nome de função/tabela ou timestamp ISO na interface é **bug**.
+
+## 35.7 Arquitetura de informação
+
+O menu DEVE refletir objetivos (Meu trabalho, Contratações, Portfólio financeiro, Relacionamentos, Governança — §22), com fonte única em `lib/finance/navigation.mjs`. Reorganização de menu NÃO DEVE remover rota, quebrar deep link, contornar autorização nem expor rota da empresa ao provedor.
+
+## 35.8 Workspace orientado a tarefas
+
+A página inicial responde, nesta ordem: o que exige atenção, por quê, prazo, responsável, próxima ação e o que mudou. Indicadores executivos só aparecem com dado válido, metodologia e cobertura; cada um leva a uma ação ou contexto verificável. Ações inacessíveis ao papel não aparecem como executáveis.
+
+## 35.9 Progressive disclosure
+
+Complexidade enterprise (multi-entity, policies, governança, integrações) DEVE ficar disponível sem ocupar a primeira leitura de quem não precisa dela: grupos recolhíveis, detalhes sob demanda, filtros avançados recolhidos. A área da página atual nunca é escondida.
+
+## 35.10 Primeiro valor e ativação
+
+O Arandu DEVE gerar valor antes da primeira proposta bancária: registrar instituição, contrato existente, facility, tarifa ou vencimento são caminhos de primeiro valor. Onboarding é progressivo (dados mínimos → objetivo → primeira ação útil) e reutiliza cadastro existente; nunca duplica objeto.
+
+## 35.11 Experiência bilateral com instituições financeiras
+
+O portal do provedor DEVE permitir responder a um convite sem orientação externa: contexto da solicitação, prazo, perguntas, documentos, versão e status claros, inclusive no celular. Baixo atrito NUNCA justifica permissão excessiva, bypass de autenticação ou visibilidade entre concorrentes.
+
+## 35.12 Demonstração comercial e claims
+
+Site e materiais usam capturas reais da Demo canônica, rotuladas como demonstração. São proibidos: depoimentos fictícios, logos não autorizados, estatísticas e economias inventadas, certificações inexistentes, promessas de segurança/SLA/RPO/RTO sem evidência e declaração de prontidão de produção sem maturidade M5 registrada na matriz.
+
+## 35.13 Validação com usuários reais
+
+Hipóteses de UX (inclusive as cinco áreas) só são consideradas validadas com sessões registradas com pessoas do público-alvo (data, papel, tarefa, resultado), sem PII no repositório. Até lá, permanecem "hipótese implementada" na matriz.
+
+## 35.14 Métricas de experiência
+
+Eventos mínimos de ativação: início/conclusão de onboarding, primeira instituição, primeiro contrato, primeira solicitação, primeira comparação válida, primeiro convite, primeira resposta, primeira decisão, primeiro retorno e abandono por etapa. Telemetria segue minimização (§19.3): sem PII, sem valor financeiro, sem conteúdo de proposta; ferramenta externa só com base e contrato apropriados.
+
+## 35.15 Design QA e regressão visual
+
+Mudança visual relevante DEVE ter captura renderizada antes/depois em desktop e celular (`npm run design:capture`), checagem de overflow e checklist da constitution §15. Revisão visual não pode ser declarada sem renderização efetiva.
+
+## 35.16 Benchmark competitivo contínuo
+
+`docs/ARANDU_COMPETITIVE_LANDSCAPE.md` DEVE ser revisado trimestralmente, com fonte, data e grau de confiança por observação. O benchmark orienta prioridade; não autoriza copiar identidade, texto ou layout.
+
+## 35.17 AI assistance e supervisão humana
+
+A IA PODE estruturar demandas, resumir e extrair documentos, explicar diferenças e metodologias, apontar campos ausentes, preparar follow-ups e sugerir a próxima ação de processo — sempre ligada a objetos reais, com proveniência e confirmação humana (§15–§16). A IA NÃO PODE aprovar, assinar, escolher banco, contratar, enviar dado reservado sem autorização, fabricar benchmark, alterar dado crítico silenciosamente, contornar policy ou cruzar tenants. Fornecedor de IA, envio externo de dados ou dependência paga exigem autorização explícita. Sem infraestrutura segura, entregam-se apenas contratos de interface — nunca respostas simuladas apresentadas como inteligência.
+
+## 35.18 Critérios de prontidão comercial
+
+Uma capability só é anunciada como disponível quando está em M3+ no ambiente anunciado; em M2 pode ser demonstrada **como demonstração**. Venda para cliente com dados reais exige os gates jurídicos (§3) e de recuperabilidade (§26.7) aplicáveis.
+
+## 35.19 Priorização baseada em resultado
+
+Cada melhoria é avaliada por clareza, valor financeiro operacional, recorrência, diferenciação, redução de trabalho manual, integração ao lifecycle, reaproveitamento do Graph, segurança, maturidade, custo, performance, capacidade de validação e impacto comercial (§30). Impressionar em apresentação não é critério.
+
+## 35.20 Integração entre marketing, produto e engenharia
+
+Site, produto e documentação contam a mesma história: o site só promete o que a matriz registra, as capturas vêm do produto real e a terminologia é a mesma do menu. Mudança de posicionamento atualiza esta guideline, a matriz e o site na mesma rodada.
+
+---
+
 # Apêndice A — Capability Map
 
 | Domínio | Papel |
@@ -1815,6 +1905,8 @@ Esta guideline complementa documentos especializados como:
 - `docs/FINANCIAL_REPO_GOVERNANCE.md`;
 - `docs/FINANCIAL_DATA_GOVERNANCE.md`;
 - `docs/FINANCIAL_OPERATIONAL_RESILIENCE.md`;
+- `docs/ARANDU_DESIGN_CONSTITUTION.md`;
+- `docs/ARANDU_COMPETITIVE_LANDSCAPE.md`;
 - `docs/demo/README.md`;
 - `docs/demo/RUNBOOK.md`;
 - `docs/supabase-migrations.json`.

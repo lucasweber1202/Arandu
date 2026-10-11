@@ -14,6 +14,7 @@
 import { el, icon, ROLE_LABELS, needsRenewalAttention } from './src/core.js';
 import { emptyState, linkButton, errorState, loading, toast } from './src/ui.js';
 import { renderSidebar, renderTopbar, renderMobileNav, renderDemoBanner, installCommandCenter, installNotificationCenter } from './src/shell.js';
+import { locate } from '../lib/finance/navigation.mjs';
 /* global __ARANDU_DEMO__ */
 const DEMO_BUILD = typeof __ARANDU_DEMO__ !== 'undefined' && __ARANDU_DEMO__ === true;
 
@@ -179,6 +180,9 @@ function setHeader({ title = null, subtitle = null, crumbs = null, meta = null, 
   const crumbsNode = document.querySelector('#breadcrumbs');
   if (crumbsNode) {
     crumbsNode.replaceChildren();
+    // Sem trilha própria, a página mostra a área do menu: a pessoa sempre sabe onde está.
+    const area = crumbs?.length ? null : locate(audience, view, demoPage ? 'demo' : 'real')?.areaLabel;
+    if (area) crumbsNode.append(el('ol', { class: 'crumbs', 'aria-label': 'Você está em' }, el('li', {}, el('span', { class: 'crumb-area', text: area }))));
     if (crumbs?.length) {
       const list = el('ol', { class: 'crumbs', 'aria-label': 'Você está em' });
       crumbs.forEach((crumb, index) => {

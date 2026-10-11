@@ -582,7 +582,23 @@ const EVENT_TITLES = Object.freeze({
   rfq_open: 'Aberta para propostas', rfq_collecting: 'Coleta reaberta', rfq_comparing: 'Coleta encerrada', rfq_cancelled: 'Solicitação cancelada', provider_invited: 'Provedor convidado',
   invite_accepted: 'Convite aceito', comment_added: 'Comentário', renewal_task_created: 'Renovação em atenção', renewal_milestone_reached: 'Marco de renovação',
   renewal_rfq_started: 'Nova concorrência de renovação', rfq_demand_updated: 'Demanda atualizada', rfq_demand_updated_after_open: 'Demanda alterada após abertura',
-  document_uploaded: 'Documento anexado', document_version_added: 'Nova versão de documento', document_removed: 'Documento removido'
+  document_uploaded: 'Documento anexado', document_version_added: 'Nova versão de documento', document_removed: 'Documento removido',
+  // Ciclo de vida pós-contratação e cadastros (eventos gravados pela API real).
+  profile_field_saved: 'Perfil financeiro atualizado', profile_field_confirmed: 'Dado do perfil confirmado', organization_created: 'Organização criada',
+  organization_updated: 'Organização atualizada', provider_onboarded: 'Instituição cadastrada', buyer_onboarded: 'Empresa cadastrada',
+  comparison_viewed: 'Comparação consultada', weights_applied: 'Pesos aplicados', rfq_passport_snapshot: 'Perfil fixado na solicitação',
+  opportunity_rule_versioned: 'Regra de oportunidade versionada', approval_policy_updated: 'Política de aprovação atualizada',
+  spend_recorded: 'Spend registrado', spend_reconciled: 'Spend reconciliado', implementation_opened: 'Implantação iniciada',
+  implementation_milestone_changed: 'Marco de implantação atualizado', implementation_issue_changed: 'Pendência de implantação atualizada',
+  extraction_fact_confirmed: 'Fato extraído confirmado', document_extraction_started: 'Extração de documento iniciada', document_extraction_completed: 'Extração de documento concluída',
+  qualification_requirement_set: 'Exigência de qualificação definida', provider_qualification_opened: 'Qualificação aberta',
+  provider_qualification_in_progress: 'Qualificação em andamento', provider_qualification_pending_internal_review: 'Qualificação aguardando revisão',
+  obligation_opened: 'Obrigação aberta', obligation_data_recorded: 'Medição de obrigação registrada', obligation_reviewed: 'Obrigação revisada',
+  obligation_waiver_changed: 'Waiver de obrigação alterado', performance_dimension_versioned: 'Dimensão de performance versionada',
+  performance_period_opened: 'Período de performance aberto', performance_measured: 'Performance medida', performance_reviewed: 'Performance revisada',
+  fee_schedule_created: 'Tarifa contratada registrada', fee_observation_recorded: 'Tarifa observada registrada', fee_observation_verified: 'Tarifa observada verificada',
+  fee_variance_detected: 'Diferença de tarifa identificada', contract_terms_registration: 'Termos do contrato registrados',
+  facility_created: 'Facility registrada', facility_balance_recorded: 'Saldo de facility registrado'
 });
 /** Título curto para feeds. */
 export function eventTitle(type) { return EVENT_TITLES[type] || 'Atualização'; }
