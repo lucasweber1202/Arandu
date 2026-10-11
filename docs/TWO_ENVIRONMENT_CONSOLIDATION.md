@@ -5,6 +5,31 @@ hospedados permanentes: Demo e Production. Pilot significa estágio de validaç�
 de release. `main` é a única linha de produto; não desenvolver na branch `pilot`.
 Previews e bancos locais descartáveis não criam outro ambiente permanente.
 
+## Seguimento de Stage 0 (11/10/2026)
+
+`main@a321888` (#169), CI run #850 e merge-audit #43 verdes. Sem alteração de
+dado, segredo, atribuição ou deploy.
+
+- Export criptografado do Pilot (`offgpyysgdhfemjlchod`): primeira execução de
+  `consolidation-export.yml` disparada (run 38179837512, executor
+  `github-hosted`, `reviewed_sha` = `a321888`). Estado `waiting`: o environment
+  `database-recovery` exige aprovação de revisor. Nada foi lido do banco até a
+  aprovação. Legado (`igacnfjeuqhxcmfyepgj`) não disparado: aguarda o resultado
+  do Pilot para validar destino e chave.
+- Restore isolado: depende do ciphertext acima; `consolidation:check` continua
+  BLOCKED. Classificação: Pilot `RECOVERY_BLOCKED` (aprovação do export);
+  legado `DATA_REVIEW_REQUIRED` (oito registros com contato, ver 08/10).
+- `vercel-build` com `ARANDU_DEPLOYMENT_KIND=demo` e `ARANDU_ENV=demo` juntos
+  já falha fechado (`finance:env:check`: sandbox ligado em ambiente com banco).
+  O cutover da Demo exige remover `ARANDU_DEPLOYMENT_KIND` e definir
+  `ARANDU_ENV=demo` só depois de `ACTIVE_SUPABASE_ASSIGNMENTS.demo` aprovado.
+- Canaries HTTP somente leitura: `arandu-demo` `/api/health` 200, modo `demo`,
+  `datasource` `synthetic-fixtures`, commit `a321888` (sandbox legado, não a
+  Demo canônica); `arandu-pilot` 200; alias `arandu` responde `/` mas
+  `/api/health` 404 (build antigo, Production com último deploy em ERROR). A
+  falha de Production é a trava esperada: ref legado sem atribuição e
+  `ARANDU_SITE_URL` ausente; reproduzida localmente, não contornada.
+
 ## Seguimento de Stage 0 (08/10/2026)
 
 `main@296b0357`, run #799 e merge-audit verdes: M2/E2. Inventários atualizados
