@@ -1,5 +1,18 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 12/10/2026 — Stage 0: recovery durável, probe de catálogo e Demo canônica local
+
+Base: `main` @ `51341fd` (#171; CI #854 e merge-audit #45 success). Nenhum dado,
+segredo, atribuição, deploy ou projeto hospedado alterado.
+
+| Item | Estado | Evidência | Limite |
+| --- | --- | --- | --- |
+| Export de recuperação durável (fsync) e registro de restore vinculado | M1 + E2 local | `test-recovery-real.mjs` com PostgreSQL 17.11 + age 1.3.2: export → verify nível 4 → restore isolado MATCH → nível 5; registro de outro export, symlink, 0644 e MATCH com diferenças não elevam o nível | Pilot e legado `RECOVERY_BLOCKED` (secrets do environment `database-recovery` ausentes; run 38179837512) |
+| Estados `RECOVERY_*` explícitos | M1 | doctor/export/verify emitem `state`; conversão sempre BLOCKED | — |
+| Probe de catálogo security definer / anon | M1 + DB | 271 funções security definer, todas com `search_path`, 0 executáveis por anon, 0 privilégios de anon em tabela/view; `test:database` prova a recusa de cada regressão | advisors hospedados não reexecutados (sem acesso) |
+| Build de Production (`arandu`) | BLOCKED (esperado) | reproduzido localmente: ref legado sem atribuição ativa + `ARANDU_SITE_URL` ausente; mensagem corrigida para não contradizer o destino planejado | causa do log hospedado não observada (403) |
+| Demo canônica local (Supabase em Docker) | E2 local | `demo:setup` 36/36; Chromium desktop 5/5 e mobile 5/5 (execuções separadas); dois visitantes isolados 1/1; pool 2 workspaces em 632 s cada | Firefox/WebKit e hospedado não executados; desktop+mobile seguidos esgotam o rate limit por usuário |
+
 ## 11/10/2026 — Operação contínua dos workspaces da Demo (DW-02)
 
 Base: `main` @ `5d48b18` (#168).

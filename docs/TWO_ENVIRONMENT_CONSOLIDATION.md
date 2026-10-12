@@ -5,6 +5,25 @@ hospedados permanentes: Demo e Production. Pilot significa estágio de validaç�
 de release. `main` é a única linha de produto; não desenvolver na branch `pilot`.
 Previews e bancos locais descartáveis não criam outro ambiente permanente.
 
+## Reconciliação de Stage 0 (12/10/2026)
+
+`main@51341fd` (#171), CI #854 e merge-audit #45 success; nenhuma execução nova
+de `consolidation-export.yml` depois da run 38179837512. Canaries HTTP somente
+leitura: `arandu-demo` `/api/health` 200, modo `demo`, `synthetic-fixtures`,
+commit `51341fd` (ainda o sandbox); `arandu-pilot` e `arandu-bice` 200 sem
+metadados de release; `arandu.vercel.app` 404. Este executor não tem credencial
+Vercel nem Supabase: estado de deploy, variáveis e catálogo hospedado não foram
+relidos, e nada hospedado foi alterado.
+
+- Recovery: `RECOVERY_CODE_READY` (export com fsync, registro de restore
+  vinculado, estados explícitos; PG17.11 + age 1.3.2 locais). Pilot e legado
+  seguem `RECOVERY_BLOCKED` pelos mesmos três secrets ausentes.
+- Production: falha de build reproduzida localmente (ref legado sem atribuição
+  ativa e `ARANDU_SITE_URL` ausente); a trava é mantida e a mensagem passou a
+  apontar o caminho correto (cutover move o ref de `legacy` para `production`).
+- Demo canônica: executada localmente de ponta a ponta (36/36, E2E Chromium
+  desktop e mobile, dois visitantes isolados). Publicação continua BLOCKED.
+
 ## Run 38179837512 e estratégia sem AWS (11/10/2026)
 
 Aprovado, o job `preserve-hosted` falhou na validação do destino, antes de
