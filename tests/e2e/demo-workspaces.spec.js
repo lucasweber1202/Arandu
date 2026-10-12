@@ -46,6 +46,23 @@ test('dois visitantes simultâneos: workspaces, escritas, aprovações e sessõe
   expect(orgB.legal_name).toBe('Vitta Foods S.A.');
   expect(orgA.id).not.toBe(orgB.id);
   expect((await api(a, 'GET', `overview?organization_id=${orgB.id}`)).status, 'A não lê a organização de B').toBeGreaterThanOrEqual(400);
+  // Cada módulo, inclusive o pós-contrato, nega a organização de outro tenant pela API.
+  for (const resource of ['rfqs', 'contracts', 'approvals', 'decisions', 'tasks', 'members', 'events', 'profile', 'portfolio', 'covenants',
+    'spend', 'opportunities', 'qualifications', 'performance', 'implementations', 'extractions', 'approval-policies',
+    'fees?start=2026-01-01&end=2026-12-31', 'value?start=2026-01-01&end=2026-12-31']) {
+    const [name, extra] = resource.split('?');
+    const denied = await api(a, 'GET', `${name}?organization_id=${orgB.id}${extra ? `&${extra}` : ''}`);
+    expect(denied.status, `A lê ${name} de B`).toBe(403);
+  }
+  // Objeto de B com a organização própria de A (IDOR): nada de B volta.
+  const rfqB = (await api(b, 'GET', `rfqs?organization_id=${orgB.id}`)).body.rows[0];
+  expect(rfqB?.id).toBeTruthy();
+  for (const path of [`rfq/${rfqB.id}`, `comparison?organization_id=${orgA.id}&rfq_id=${rfqB.id}`, `proposals?organization_id=${orgA.id}&rfq_id=${rfqB.id}`,
+    `rfq-passport?organization_id=${orgA.id}&rfq_id=${rfqB.id}`, `decisions?organization_id=${orgA.id}&rfq_id=${rfqB.id}`]) {
+    const probe = await api(a, 'GET', path);
+    expect(JSON.stringify(probe.body), `IDOR em ${path.split('?')[0]}`).not.toContain(rfqB.id);
+    expect(JSON.stringify(probe.body)).not.toContain(orgB.id);
+  }
 
   // A cria uma RFQ; B não a vê.
   const title = `Isolamento A ${Date.now()}`;
