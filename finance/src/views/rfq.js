@@ -297,7 +297,7 @@ function editDrawer(ctx, rfq) {
       save.disabled = false;
       save.querySelector('.btn-label').textContent = rfq.status === 'draft' ? 'Salvar alterações' : 'Publicar revisão';
       status.className = 'callout callout-danger';
-      status.replaceChildren(icon('alert'), el('span', { text: error.message }), error.status === 409 ? button('Recarregar versão atual', { size: 'sm', onClick: () => location.reload() }) : null);
+      status.replaceChildren(...[icon('alert'), el('span', { text: error.message }), error.status === 409 ? button('Recarregar versão atual', { size: 'sm', onClick: () => location.reload() }) : null].filter(Boolean));
     }
   });
 }

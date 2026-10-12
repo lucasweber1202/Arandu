@@ -212,7 +212,7 @@ function facilityForm(ctx, entities, facility = null) {
   };
   form.append(
     field({ label: 'Nome', control: controls.name, required: true }), field({ label: 'Tipo', control: controls.kind }),
-    field({ label: 'Provedor', control: controls.provider_id, required: true }), entities.rows.length ? field({ label: 'Entidade devedora', control: controls.legal_entity_id }) : null,
+    field({ label: 'Provedor', control: controls.provider_id, required: true }), ...(entities.rows.length ? [field({ label: 'Entidade devedora', control: controls.legal_entity_id })] : []),
     field({ label: 'Moeda', control: controls.currency }), field({ label: 'Limite aprovado', control: controls.approved_limit, optionalLabel: true }),
     field({ label: 'Principal contratado', control: controls.principal_amount, optionalLabel: true, hint: 'Informe limite ou principal (ou os dois).' }),
     field({ label: 'Indexador', control: controls.indexer }), field({ label: 'Spread (% a.a.)', control: controls.spread_pct_year, optionalLabel: true }),

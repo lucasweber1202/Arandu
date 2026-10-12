@@ -456,9 +456,10 @@ export async function settings(ctx) {
   for (const [value, label] of REVENUE_BANDS) band.add(new Option(label, value));
   band.value = organization.revenue_band || '';
   const canEdit = ctx.can('create_rfq');
-  orgForm.append(field({ label: 'Nome fantasia', control: trade }), field({ label: 'CNPJ', control: cnpj, hint: ctx.mode === 'demo' ? 'CNPJ fictício da demonstração.' : 'Conferimos formato e dígitos; não consultamos base oficial.' }),
+  // DOM append(null) imprime "null": quem só lê não recebe o botão, nem texto no lugar dele.
+  orgForm.append(...[field({ label: 'Nome fantasia', control: trade }), field({ label: 'CNPJ', control: cnpj, hint: ctx.mode === 'demo' ? 'CNPJ fictício da demonstração.' : 'Conferimos formato e dígitos; não consultamos base oficial.' }),
     field({ label: 'Setor', control: sector }), field({ label: 'Faixa de faturamento', control: band }),
-    canEdit ? el('div', { class: 'form-actions span-2' }, button('Salvar dados da empresa', { variant: 'primary', type: 'submit' })) : null);
+    canEdit ? el('div', { class: 'form-actions span-2' }, button('Salvar dados da empresa', { variant: 'primary', type: 'submit' })) : null].filter(Boolean));
   if (!canEdit) for (const control of orgForm.querySelectorAll('input,select')) control.disabled = true;
   orgForm.addEventListener('submit', async (event) => {
     event.preventDefault();

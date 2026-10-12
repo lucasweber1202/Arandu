@@ -36,6 +36,10 @@ assert.ok(ratio('#ffffff', token('petrol')) >= 4.5, 'texto branco sobre petróle
 // Numerais tabulares e movimento reduzido no CSS base.
 assert.match(app, /table,\.num,dd\{font-variant-numeric:tabular-nums\}/);
 assert.match(app, /prefers-reduced-motion:reduce/);
+// §11: alvo de toque ≥ 44 px para os controles compactos (botões, chips, abas, ícones).
+const coarse = app.match(/@media \(pointer:coarse\)\{([\s\S]*?)\n\}/)?.[1] || '';
+for (const selector of ['.btn', '.btn-sm', '.chip', '.tab', '.icon-btn']) assert.ok(coarse.includes(selector), `toque: ${selector} sem alvo mínimo em (pointer:coarse)`);
+assert.match(coarse, /min-height:44px/, 'toque: alvo mínimo de 44 px ausente');
 // Superfícies de conteúdo planas: sombra só em camadas sobrepostas.
 assert.doesNotMatch(app.match(/\n\.card\{[^}]*\}/)?.[0] || '', /box-shadow/, '.card com sombra');
 assert.doesNotMatch(app.match(/\n\.table-card\{[^}]*\}/)?.[0] || '', /box-shadow/, '.table-card com sombra');

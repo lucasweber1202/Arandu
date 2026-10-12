@@ -295,7 +295,7 @@ export function openPolicyEditor(ctx, { policy, scope, base, options, onChange }
           requirementEditor(rule)
         ]));
       }),
-      document.rules.length < 30 ? button('Adicionar regra', { iconName: 'plus', onClick: () => { document.rules.push(EMPTY_RULE(document.rules.length + 1)); rerender(); } }) : null,
+      ...(document.rules.length < 30 ? [button('Adicionar regra', { iconName: 'plus', onClick: () => { document.rules.push(EMPTY_RULE(document.rules.length + 1)); rerender(); } })] : []),
       el('section', { class: 'card' }, el('div', { class: 'card-body stack-sm' }, [
         el('h4', { text: 'Fallback (quando nenhuma regra desta policy casar)' }),
         document.fallback ? stagesSection(document.fallback, rerender) : button('Definir fallback', { size: 'sm', iconName: 'plus', onClick: () => { document.fallback = { stages: [EMPTY_STAGE()] }; rerender(); } }),
