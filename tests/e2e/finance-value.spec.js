@@ -68,3 +68,33 @@ test('indisponibilidade não exibe savings zero e oferece recuperação',async({
   await expect(page.getByRole('button',{name:'Tentar novamente'})).toBeVisible();
   await expect(page.getByRole('heading',{name:'Economia negociada · BRL'})).toHaveCount(0);
 });
+
+test('queda de rede: leitura em português; escrita avisa que o resultado é desconhecido', async ({ page }) => {
+  await setup(page);
+  let offline = false;
+  // Rotas mais recentes têm precedência: simula a conexão caindo só quando ligado.
+  await page.route('**/api/finance/value**', (route) => (offline ? route.abort('internetdisconnected') : route.fallback()));
+  await page.goto('/finance/value.html');
+  await expect(page.getByRole('heading', { name: 'Economia negociada · BRL' })).toBeVisible();
+  offline = true;
+  await page.getByRole('button', { name: 'Aplicar filtros' }).click();
+  await expect(page.getByText('Sem conexão com o servidor. Verifique a conexão e tente novamente.')).toBeVisible();
+  await expect(page.getByText(/Failed to fetch|NetworkError|Load failed/)).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Tentar novamente' })).toBeVisible();
+  offline = false;
+  await page.getByRole('button', { name: 'Tentar novamente' }).click();
+  await expect(page.getByRole('heading', { name: 'Economia negociada · BRL' })).toBeVisible();
+  // Escrita sem resposta: a pessoa sabe que precisa conferir antes de repetir.
+  await page.getByRole('button', { name: 'Registrar estimativa' }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByLabel(/^Título/).fill('Economia declarada teste');
+  await dialog.getByLabel('Contrato de destino').selectOption(ID);
+  await dialog.getByLabel('Início do período').fill('2025-01-01'); await dialog.getByLabel('Fim do período').fill('2025-12-31');
+  await dialog.getByLabel('Referência do baseline').fill('BASELINE-TEST'); await dialog.getByLabel('Data do baseline').fill('2024-12-01');
+  await dialog.getByLabel('Custo do baseline').fill('1000'); await dialog.getByLabel('Custo de destino').fill('800');
+  await dialog.getByLabel('Referência da evidência').fill('EVIDENCE-TEST'); await dialog.getByLabel('Justificativa e ajustes').fill('Teste de queda de rede');
+  offline = true;
+  await dialog.getByRole('button', { name: 'Registrar', exact: true }).click();
+  await expect(dialog.getByRole('alert')).toContainText('não foi possível confirmar se a operação foi registrada');
+  await expect(dialog.getByRole('button', { name: 'Registrar', exact: true })).toBeEnabled();
+});
