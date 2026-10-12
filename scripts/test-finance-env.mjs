@@ -48,6 +48,13 @@ const onPilot = run({ ...production, SUPABASE_URL: base.SUPABASE_URL, SUPABASE_A
 assert.equal(onPilot.status, 1);
 assert.match(onPilot.stdout, /produção aponta para o projeto do piloto/);
 assert.match(run({ ...production, VERCEL_GIT_COMMIT_REF: 'pilot' }).stdout, /só a branch main publica/);
+// Reprodução da falha do build de Production (arandu): ref legado e ARANDU_SITE_URL
+// ausente. O legado é destino planejado, não atribuição: bloqueia e diz o que destrava.
+const onLegacy = run({ ...production, ARANDU_SITE_URL: '', SUPABASE_URL: `https://${legacyRef}.supabase.co`, SUPABASE_ANON_KEY: key({ role: 'anon', ref: legacyRef }), SUPABASE_SERVICE_ROLE_KEY: key({ role: 'service_role', ref: legacyRef }) });
+assert.equal(onLegacy.status, 1);
+assert.match(onLegacy.stdout, /ARANDU_SITE_URL ausente/);
+assert.match(onLegacy.stdout, /projeto legado, que ainda não tem atribuição ativa para production/);
+assert.doesNotMatch(onLegacy.stdout, /começa vazio/, 'mensagem não pode contradizer o destino planejado da produção');
 assert.equal(run({ ...production, CRON_SECRET: '' }).status, 1, 'produção sem CRON_SECRET');
 // Demonstração canônica: a main com banco DEMO próprio; nunca o do piloto,
 // nunca outra branch, nunca o sandbox; e a senha das personas não vai à produção.

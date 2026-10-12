@@ -7,7 +7,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { pipeline } from 'node:stream/promises';
 import { sourceConnection, majorVersion } from '../lib/pilot-backup-preflight.mjs';
 import { COUNTS_SQL, parseCounts, countsDigest } from '../lib/recovery-reconciliation.mjs';
-import { recoveryFail, RecoveryError } from '../lib/recovery-doctor.mjs';
+import { recoveryFail, RecoveryError, syncPath } from '../lib/recovery-doctor.mjs';
 
 const SESSION_END = '__ARANDU_SNAPSHOT_STEP__';
 // Sessão read-only que exporta um snapshot e o mantém aberto: as contagens da
@@ -87,13 +87,16 @@ export async function exportRecovery({ env = process.env, root = process.cwd(), 
   if (state.storage_objects !== 0) recoveryFail('RECOVERY_STORAGE_OBJECTS_PRESENT', 'Storage possui arquivos; preparar export dos binários antes desta operação.');
   const directory = path.join(destination, `arandu-${connection.projectRef}-${randomUUID()}`);
   fs.mkdirSync(directory, { mode: 0o700 });
+  syncPath(destination);
   const manifest = { format_version: 1, classification: syntheticLocal ? 'synthetic_encrypted_export' : 'encrypted_logical_export', project_ref: connection.projectRef,
     started_at: new Date().toISOString(), result: 'failed', restore: 'NOT RUN', conversion: 'BLOCKED',
     scope: 'database including public/Auth/Storage metadata/migration history; roles without passwords; Storage binaries absent at preflight',
     source_counts: state, executor_sha: env.GITHUB_SHA || null, reconciliation: 'NOT RUN', subprocesses: [], files: [],
     ...(store ? { storage: { strategy: 'private-store', store_id: store.marker.store_id, retention_days: store.marker.retention_days } } : {}) };
   const manifestPath = path.join(directory, 'manifest.json');
-  const writeManifest = () => fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', { mode: 0o600 });
+  // O manifest nasce `failed`: interrupção em qualquer ponto deixa o export
+  // explicitamente incompleto, nunca um PASS parcial. Cada gravação vai ao disco.
+  const writeManifest = () => { fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', { mode: 0o600 }); syncPath(manifestPath); };
   writeManifest();
   const encrypted = async (binary, args, filename) => {
     const file = path.join(directory, filename);
@@ -112,6 +115,9 @@ export async function exportRecovery({ env = process.env, root = process.cwd(), 
       pipeline(encoder.stdout, fs.createWriteStream(file, { flags: 'wx', mode: 0o600 })).catch(mark('RECOVERY_PERSISTENCE_FAILED'))];
     try {
       await Promise.all(tasks);
+      stage = 'RECOVERY_PERSISTENCE_FAILED';
+      syncPath(file);
+      stage = null;
       const hash = createHash('sha256');
       for await (const chunk of fs.createReadStream(file)) hash.update(chunk);
       const bytes = fs.statSync(file).size;
@@ -143,9 +149,19 @@ export async function exportRecovery({ env = process.env, root = process.cwd(), 
     await encrypted('pg_dumpall', ['--roles-only', '--no-role-passwords'], 'roles.sql.age');
     manifest.result = 'exported_unverified';
     manifest.completed_at = new Date().toISOString();
+    manifest.durability = 'fsync_files_and_directory';
     writeManifest();
+    syncPath(directory);
     return manifest;
-  } catch (error) { session?.abort(); writeManifest(); throw error; }
+  } catch (error) {
+    session?.abort();
+    // Registra a falha (inclusive depois de marcado concluído, se o fsync final
+    // falhar) sem mascarar o código original do estágio.
+    manifest.result = 'failed';
+    manifest.failure = /^RECOVERY_[A-Z_]+$/.test(error?.code || '') ? error.code : 'RECOVERY_EXPORT_FAILED';
+    try { writeManifest(); } catch { /* código original prevalece */ }
+    throw error;
+  }
 }
 
 if (process.argv[1] && fs.realpathSync(process.argv[1]) === fs.realpathSync(new URL(import.meta.url))) {

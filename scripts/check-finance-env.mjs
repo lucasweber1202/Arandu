@@ -117,7 +117,11 @@ if (environment === 'pilot' && supabaseRef && !LEGACY_SUPABASE_REFS.includes(sup
 }
 // Demo, piloto e produção não compartilham banco, e nenhum usa o legado.
 if (environment === 'production' && supabaseRef && (PILOT_SUPABASE_REFS.includes(supabaseRef) || LEGACY_SUPABASE_REFS.includes(supabaseRef))) {
-  problems.push(`SUPABASE_URL da produção aponta para o projeto ${PILOT_SUPABASE_REFS.includes(supabaseRef) ? 'do piloto' : 'legado de arte'}. A produção tem Supabase próprio, que começa vazio.`);
+  // O legado é o destino PLANEJADO da produção (lib/deployment-topology.mjs), não
+  // atribuição ativa: a mensagem diz o que destrava, sem sugerir outro banco.
+  problems.push(PILOT_SUPABASE_REFS.includes(supabaseRef)
+    ? 'SUPABASE_URL da produção aponta para o projeto do piloto. Demo e Production nunca compartilham banco.'
+    : 'SUPABASE_URL da produção aponta para o projeto legado, que ainda não tem atribuição ativa para production. Só o PR de cutover, depois de export, restore isolado e classificação dos dados legados, move o ref de legacy para production (docs/TWO_ENVIRONMENT_CONSOLIDATION.md).');
 } else if (['demo', 'production'].includes(environment) && foreignSupabaseRef(environment, supabaseRef)) {
   problems.push(`SUPABASE_URL: ${foreignSupabaseRef(environment, supabaseRef)}.`);
 }

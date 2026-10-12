@@ -164,10 +164,17 @@ try {
       for(const n of leftovers){const m=JSON.parse(fs.readFileSync(path.join(storeDir,n,'manifest.json'),'utf8'));assert.notEqual(m.result,'exported_unverified','falha deixou export dado como concluído');}
       const {manifest:pm,verification}=await privateExport({env:privEnv,syntheticLocal:true,log:quiet});
       assert.equal(verification.integrity,'VERIFIED');assert.equal(verification.level,4);assert.equal(verification.recovery,'RECOVERY_RESTORE_NOT_VERIFIED');
-      assert.equal(pm.storage.store_id,store.store_id);
+      assert.equal(pm.storage.store_id,store.store_id);assert.equal(pm.durability,'fsync_files_and_directory');
+      assert.equal(verification.state,'RECOVERY_EXPORT_VERIFIED');
       const exportDir=path.join(storeDir,verification.export);
       const vEnv={...opEnv,ARANDU_RECOVERY_BACKUP:exportDir};
       assert.equal((await verifyExport({env:vEnv})).level,4);
+      // Registro MATCH de OUTRO export (copiado ou via symlink) não eleva o nível deste.
+      const foreign=path.join(exportDir,recordFile);fs.copyFileSync(path.join(backup,recordFile),foreign);fs.chmodSync(foreign,0o600);
+      assert.equal((await verifyExport({env:vEnv})).level,4,'registro de outro export aceito');
+      fs.rmSync(foreign);fs.symlinkSync(path.join(backup,recordFile),foreign);
+      assert.equal((await verifyExport({env:vEnv})).level,4,'registro via symlink aceito');
+      fs.rmSync(foreign);
       // Adulteração e permissão detectadas pelo verify do store.
       const copy=path.join(storeDir,'tampered-copy');fs.cpSync(exportDir,copy,{recursive:true});fs.chmodSync(copy,0o700);
       fs.appendFileSync(path.join(copy,'database.dump.age'),'x');
@@ -185,6 +192,14 @@ try {
       assert.equal(rec.reconciliation,'MATCH');
       const final=await verifyExport({env:vEnv});
       assert.equal(final.level,5);assert.equal(final.recovery,'RECOVERY_VERIFIED');assert.equal(final.conversion,'BLOCKED');
+      assert.equal(final.state,'RECOVERY_RESTORE_VERIFIED');
+      // O registro vinculado ao export só vale como arquivo privado 0600.
+      const own=path.join(exportDir,fs.readdirSync(exportDir).find((f)=>f.startsWith('restore-verification-')));
+      fs.chmodSync(own,0o644);assert.equal((await verifyExport({env:vEnv})).level,4,'registro legível por outros aceito');
+      fs.chmodSync(own,0o600);
+      const forged=JSON.parse(fs.readFileSync(own,'utf8'));fs.writeFileSync(own,JSON.stringify({...forged,differences:[{table:'public.parent'}]}));
+      assert.equal((await verifyExport({env:vEnv})).level,4,'MATCH com diferenças aceito');
+      fs.writeFileSync(own,JSON.stringify(forged));assert.equal((await verifyExport({env:vEnv})).level,5);
     } finally { fs.rmSync(home,{recursive:true,force:true}); }
   }
   const corrupt=Buffer.from(fs.readFileSync(cipher));corrupt[corrupt.length-1]^=1;

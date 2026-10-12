@@ -38,7 +38,7 @@ persona; a senha é gerada por ambiente em
 | `npm run demo:local:reset` | apaga só os dados da demo e semeia de novo |
 | `npm run demo:local:check` | só as checagens de sanidade |
 | `npm run demo:down` | derruba o ambiente local e apaga chaves e dados gerados |
-| `npm run test:e2e:demo` | jornada E2E da demo (exporte `ARANDU_DEMO_PASSWORD` antes) |
+| `npm run test:e2e:demo` | jornada E2E da demo (exporte `ARANDU_DEMO_PASSWORD` antes). Rode um projeto por vez (`-- --project=demo-desktop`, depois `--project=demo-mobile` após alguns minutos): as duas jornadas seguidas com as mesmas personas esgotam o limite real de requisições por usuário e falham com “Muitas tentativas” (12/10/2026) |
 | `npm run demo:seed` / `demo:reset` / `demo:check` | o mesmo contra um Supabase DEMO hospedado ([RESET.md](RESET.md)) |
 
 ## A empresa

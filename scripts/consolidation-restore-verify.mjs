@@ -10,6 +10,7 @@ import { pipeline } from 'node:stream/promises';
 import { digestFile } from '../lib/recovery-transfer.mjs';
 import { majorVersion } from '../lib/pilot-backup-preflight.mjs';
 import { COUNTS_SQL, parseCounts, compareCounts, countsDigest, loopbackTarget } from '../lib/recovery-reconciliation.mjs';
+import { syncPath } from '../lib/recovery-doctor.mjs';
 
 export class RestoreVerificationError extends Error {
   constructor(code, message) { super(message); this.code = code; }
@@ -89,7 +90,9 @@ export async function verifyRestore({ env = process.env, root = process.cwd() } 
     roles_file: 'NOT APPLIED', conversion: 'BLOCKED',
     supabase_services: 'NOT PROVEN (Auth/Storage como serviços exigem imagem Supabase e jornada; contagens cobrem só os metadados)'
   };
-  fs.writeFileSync(path.join(backup, `restore-verification-${record.verified_at.replace(/[:.]/g, '-')}.json`), JSON.stringify(record, null, 2) + '\n', { mode: 0o600, flag: 'wx' });
+  const recordFile = path.join(backup, `restore-verification-${record.verified_at.replace(/[:.]/g, '-')}.json`);
+  fs.writeFileSync(recordFile, JSON.stringify(record, null, 2) + '\n', { mode: 0o600, flag: 'wx' });
+  try { syncPath(recordFile); syncPath(backup); } catch { fail('tooling', 'Registro de verificação não pôde ser gravado de forma durável.'); }
   if (comparison.result !== 'MATCH') fail('reconciliation_mismatch', `Reconciliação divergente em ${comparison.differences.length} tabela(s); registro gravado, conversão continua bloqueada.`);
   return record;
 }
