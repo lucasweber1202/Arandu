@@ -1,4 +1,4 @@
-import { el } from '../core.js';
+import { el, productLabel, formatDate } from '../core.js';
 import { card, button, field, drawer, loading, errorState, emptyState, toast, formDrawer } from '../ui.js';
 import { loadEntities, entityName } from './entities.js';
 import { graphContextCard } from './graph-context.js';
@@ -24,7 +24,10 @@ export async function ledgerPage(ctx, { resource, title, subtitle, filters, scop
   const sources = {
     entities: [['', 'Meu escopo'], ...entities.rows.map((x) => [x.id, entityName(entities, x.id)])],
     providers: [['', 'Todos'], ...(ctx.data.providers || []).map((x) => [x.id, x.name])],
-    contracts: [['', 'Todos'], ...(ctx.data.contracts || []).map((x) => [x.id, x.title || x.id])]
+    // Contrato sem título é nomeado pelo que a pessoa reconhece (instituição,
+    // produto, vencimento), nunca pelo identificador interno.
+    contracts: [['', 'Todos'], ...(ctx.data.contracts || []).map((x) => [x.id, x.title
+      || [x.provider_name, productLabel(x.product, { short: true }), x.ends_on ? `vence ${formatDate(x.ends_on)}` : ''].filter(Boolean).join(' · ') || 'Contrato sem título'])]
   };
   const controls = {};
   const grid = el('div', { class: 'form-grid' }, filters.map(([key, label, kind]) => {

@@ -497,6 +497,8 @@ a.mini-title:hover{color:var(--accent-text)}
 /* Inteligência de valor no Início: filtros em linha, blocos planos em grade. */
 .exec-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto;gap:var(--s3);align-items:end;margin-bottom:var(--s4)}
 .exec-filters .btn{align-self:end}
+/* Filtros das listas de módulo (ledger): colunas fluidas, nunca um campo por linha no desktop. */
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:var(--s3) var(--s4);align-items:end}
 .exec-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:var(--s3)}
 .exec-block{display:grid;align-content:start;gap:var(--s2);padding:var(--s4);border:1px solid var(--border);border-radius:var(--r-md);background:var(--surface-sunken);min-width:0}
 .exec-title{font-size:var(--fs-md);font-weight:650}
@@ -1010,6 +1012,13 @@ main#main.landing{max-width:1120px;margin:0 auto;padding:var(--s6) var(--s6) var
   .pair-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"label label"}
   .pair-label{grid-column:1/-1}
   .persona-option{padding:0 8px}
+}
+/* Toque: alvo mínimo de 44 px (Design Constitution §11). Mouse mantém a densidade. */
+@media (pointer:coarse){
+  .btn,.btn-sm,.chip,.tab{min-height:44px}
+  .chip{height:auto}
+  .btn-icon-only,.icon-btn{min-width:44px;min-height:44px}
+  .toast .icon-btn{width:44px;height:44px}
 }
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}

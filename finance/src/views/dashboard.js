@@ -88,7 +88,7 @@ export function actionItems(ctx, approvals) {
   for (const task of data.tasks || []) {
     const days = daysUntil(task.due_on);
     if (task.assignee_id && task.assignee_id !== viewer) continue;
-    if (days !== null && days <= 2) items.push({ rank: days < 0 ? 1 : 3, due: days, tone: days < 0 ? 'danger' : 'neutral', icon: 'tasks', kind: 'Tarefa', title: task.title,
+    if (days !== null && days <= 2) items.push({ rank: days < 0 ? 1 : 3, due: days, taskId: task.id, tone: days < 0 ? 'danger' : 'neutral', icon: 'tasks', kind: 'Tarefa', title: task.title,
       detail: days < 0 ? `Vencida ${relativeDays(task.due_on)}` : `Prazo ${relativeDays(task.due_on)}`, cta: 'Ver', href: ctx.href(`/finance/tasks.html#task-${task.id}`) });
   }
   // Mesmo nível de prioridade: o que vence antes vem primeiro.
@@ -197,8 +197,9 @@ export async function dashboard(ctx) {
   const contractsCard = card({ title: 'Contratos e renovações', actions: [linkButton('Contratos', ctx.href('/finance/contracts.html'), { variant: 'ghost', size: 'sm', iconName: 'arrowRight' })],
     body: upcoming.length ? contractList : emptyState({ title: 'Nenhum contrato vigente', text: 'Contratos registrados depois de uma decisão aparecem aqui com as datas de renovação.', compact: true }) });
 
-  // Tarefas com conclusão rápida.
-  const tasks = (data.tasks || []).slice(0, 5);
+  // Tarefas com conclusão rápida. O que já está em "Precisa de você" não se repete aqui.
+  const listed = new Set(items.slice(0, 8).map((item) => item.taskId).filter(Boolean));
+  const tasks = (data.tasks || []).filter((task) => !listed.has(task.id)).slice(0, 5);
   const taskList = el('ul', { class: 'mini-list', role: 'list' });
   for (const task of tasks) {
     const days = daysUntil(task.due_on);
@@ -217,8 +218,8 @@ export async function dashboard(ctx) {
     ]), el('span', { class: `mini-side${days !== null && days < 0 ? ' danger' : ''}`, text: days === null ? '' : relativeDays(task.due_on) })]);
     taskList.append(row);
   }
-  const tasksCard = card({ title: 'Tarefas', actions: [linkButton('Todas', ctx.href('/finance/tasks.html'), { variant: 'ghost', size: 'sm', iconName: 'arrowRight' })],
-    body: tasks.length ? taskList : emptyState({ title: 'Nenhuma tarefa aberta', compact: true, iconName: 'checkCircle' }) });
+  const tasksCard = card({ title: listed.size ? 'Outras tarefas' : 'Tarefas', actions: [linkButton('Todas', ctx.href('/finance/tasks.html'), { variant: 'ghost', size: 'sm', iconName: 'arrowRight' })],
+    body: tasks.length ? taskList : emptyState({ title: listed.size ? 'Nenhuma outra tarefa aberta' : 'Nenhuma tarefa aberta', text: listed.size ? 'As tarefas com prazo próximo estão em "Precisa de você".' : undefined, compact: true, iconName: 'checkCircle' }) });
 
   // Atividade recente da organização.
   const feed = el('ol', { class: 'activity compact' }, el('li', { class: 'muted', text: 'Carregando…' }));

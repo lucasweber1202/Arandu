@@ -95,7 +95,7 @@ export function importContractButton(ctx, entities) {
       field({ label: 'Categoria', control: category }),
       field({ label: 'Provedor', control: provider, required: true, hint: (ctx.data.providers || []).length ? null : 'Cadastre o provedor antes em Provedores.' }),
       field({ label: 'Título', control: title, required: true }),
-      entities.rows.length ? field({ label: 'Entidade', control: entity }) : null,
+      ...(entities.rows.length ? [field({ label: 'Entidade', control: entity })] : []),
       el('div', { class: 'field-grid' }, [field({ label: 'Início', control: starts, required: true }), field({ label: 'Fim', control: ends, required: true }),
         field({ label: 'Aviso prévio (dias)', control: notice }), el('label', { class: 'check-row' }, [autoRenew, el('span', { text: 'Renovação automática' })])]),
       el('details', { class: 'terms-details' }, [el('summary', { text: 'Termos estruturados (opcional agora, versão 1)' }), editorSlot]),

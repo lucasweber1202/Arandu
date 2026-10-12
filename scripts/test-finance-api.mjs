@@ -388,6 +388,20 @@ reset((entry) => {
   // A consulta de propostas é sempre filtrada pela própria organização.
   const proposalQuery = sent.find((entry) => entry.url.includes('fin_proposals'));
   assert.match(proposalQuery.url, new RegExp(`provider_organization_id=eq.${PROVIDER_ORG}`));
+  assert.equal(row.has_draft, false, 'sem rascunho salvo');
+}
+// Rascunho salvo e não enviado vira "Continuar" no portal; a leitura usa o token do provedor (RLS).
+reset((entry) => {
+  if (entry.url.includes('fin_organizations')) return orgRow(PROVIDER_ORG, 'PROVIDER');
+  if (entry.url.includes('fin_proposal_drafts')) return [{ proposal_id: PROPOSAL }];
+  if (entry.url.includes('fin_proposals')) return [{ id: PROPOSAL, rfq_id: RFQ, product: 'credit', status: 'draft', current_version: 0 }];
+  if (entry.url.includes('fin_rfqs')) return [{ id: RFQ, title: 'RFQ', product: 'credit', status: 'collecting', demand: {}, revision: 1 }];
+  return [];
+});
+{
+  const res = await call('GET', 'assignments', { url: `/api/finance/assignments?organization_id=${PROVIDER_ORG}` });
+  assert.equal(res.payload.rows[0].has_draft, true);
+  assert.match(sent.find((entry) => entry.url.includes('fin_proposal_drafts')).url, new RegExp(`proposal_id=in.\\(${PROPOSAL}\\)`));
 }
 
 // ------------------------------------------ respostas usam o pai do banco

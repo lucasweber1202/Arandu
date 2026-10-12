@@ -271,8 +271,8 @@ function localItems(ctx) {
     for (const proposal of rfq.proposals || []) items.push({ kind: 'proposal', title: proposal.provider_name, detail: rfq.title, href: ctx.href(`/finance/rfq.html?id=${encodeURIComponent(rfq.id)}#propostas`) });
   }
   for (const provider of data.providers || []) items.push({ kind: 'provider', title: provider.name, detail: provider.region || '', href: ctx.href(`/finance/providers.html#provider-${provider.id}`) });
-  for (const contract of data.contracts || []) items.push({ kind: 'contract', title: contract.provider_name || 'Contrato', detail: `${productLabel(contract.product, { short: true })} · vence ${contract.ends_on}`, href: ctx.href(`/finance/contracts.html#contract-${contract.id}`) });
-  for (const task of data.tasks || []) items.push({ kind: 'task', title: task.title, detail: task.due_on ? `prazo ${task.due_on}` : '', href: ctx.href(`/finance/tasks.html#task-${task.id}`) });
+  for (const contract of data.contracts || []) items.push({ kind: 'contract', title: contract.provider_name || 'Contrato', detail: `${productLabel(contract.product, { short: true })}${contract.ends_on ? ` · vence ${formatDate(contract.ends_on)}` : ''}`, href: ctx.href(`/finance/contracts.html#contract-${contract.id}`) });
+  for (const task of data.tasks || []) items.push({ kind: 'task', title: task.title, detail: task.due_on ? `prazo ${formatDate(task.due_on)}` : '', href: ctx.href(`/finance/tasks.html#task-${task.id}`) });
   return items;
 }
 

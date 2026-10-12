@@ -1,5 +1,18 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 12/10/2026 — Varredura de UX/a11y e isolamento na Demo canônica local
+
+Base: `main` @ `1dcb4d9`. Varredura das 27 superfícies (comprador, CFO, provedor) em 1440 e 390 px contra o produto real local (Supabase em Docker, seed 36/36). Estado: M1 + E2 local; nada hospedado.
+
+| Defeito encontrado | Correção | Evidência |
+| --- | --- | --- |
+| Texto "null" na tela (Configurações para quem só lê; importação de contrato e facility em empresa sem entidades; política no limite; erro de salvamento da RFQ) | filhos condicionais filtrados; `check:design` recusa o padrão (`scripts/check-ui-null-children.mjs`) | checador acusa os 5 casos na base e passa após a correção |
+| Filtros dos 9 módulos (tarifas, covenants, spend…) um por linha: `.form-grid` sem CSS | grade fluida | Tarifas: altura da página 1.371 → 969 px; tabela acima da dobra |
+| UUID do contrato no filtro de Tarifas; data ISO na busca (Ctrl+K) | nome legível (instituição · produto · vencimento); `formatDate` | varredura sem vazamento |
+| Alvos de toque de 30 px (Aprovar/Rejeitar, filtros do portal) | `(pointer:coarse)` ≥ 44 px; verificado em `check:design` | varredura mobile sem alvo pequeno |
+| Painel repetia tarefas de "Precisa de você" | card "Outras tarefas" sem repetição | captura |
+| Isolamento: sem varredura dos módulos pós-contrato | `demo-workspaces.spec.js`: 19 módulos → 403 entre tenants; 5 caminhos IDOR sem dado do outro | E2E real local 1 passed |
+
 ## 12/10/2026 — Stage 0: recovery durável, probe de catálogo e Demo canônica local
 
 Base: `main` @ `51341fd` (#171; CI #854 e merge-audit #45 success). Nenhum dado,

@@ -102,7 +102,7 @@
     "release:candidate:restore:drill": "bash scripts/pilot-restore-drill.sh",
     "governance:live": "node scripts/check-live-governance.mjs",
     "test:analytics": "node scripts/test-product-analytics.mjs && node scripts/test-product-analytics-api.mjs",
-    "check:design": "node scripts/check-design-tokens.mjs",
+    "check:design": "node scripts/check-design-tokens.mjs && node scripts/check-ui-null-children.mjs",
     "check:demo-parity": "node scripts/check-demo-parity.mjs && node scripts/test-demo-parity.mjs",
     "design:capture": "node scripts/design/capture-surfaces.mjs",
     "recovery:doctor": "node scripts/recovery.mjs doctor",
