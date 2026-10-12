@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { Readable } from 'node:stream';
 import { handleFinance } from '../lib/api/domains/finance.mjs';
+import { UPSTREAM_MESSAGES } from '../lib/api/domains/finance-core.mjs';
+import { readFileSync } from 'node:fs';
 import { createDocumentStorage, downloadName, signedUrlTtl } from '../lib/finance/document-storage.mjs';
 import { createOpsMfa } from '../lib/finance/ops-access.mjs';
 
@@ -696,3 +698,32 @@ console.log('Financial Procurement API: documentos privados (autorização antes
   assert.equal(downloadName('Balanço <script> 2025', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 3), 'Balanco-script-2025-v3.xlsx');
 }
 console.log('Document storage: caminhos validados; pede 120 s (envio) e 60 s (download) e informa o prazo real lido do token.');
+
+// ------------------------- toda exceção do banco que alcança a pessoa é traduzida
+// Sem tradução, a API devolve só "Operação inválida ou sem permissão.": seguro,
+// mas não diz o que houve nem o que fazer. Exceções que nunca chegam a uma tela
+// (envelope próprio da Public API v1 e do SSO, jobs, guardas de migration e o
+// pool da Demo) ficam numa lista explícita e justificada.
+{
+  const INTERNAL = new Map([
+    [/^(api unauthorized|api scope denied|invalid api query|idempotency key required|idempotency key reuse|invalid api payload|api entity denied|invalid api owner|stale lease)$/, 'Public API v1: envelope próprio'],
+    [/^sso /, 'SSO: rotas próprias com motivo de recusa'],
+    [/^(invalid job|invalid job result|job already finished|export too large|unknown template)$/, 'jobs/cron: falha registrada no próprio job'],
+    [/ requires schema /, 'guarda de ordem de migration'],
+    [/^(demo workspaces unavailable outside demo|invalid demo workspace claim|invalid demo workspace resume|invalid demo pool lease)$/, 'pool da Demo: controlador e login por persona']
+  ]);
+  const manifest = JSON.parse(readFileSync('docs/supabase-migrations.json', 'utf8'));
+  const raised = new Set();
+  for (const file of manifest.cleanInstall.filter((f) => /financial/.test(f))) {
+    for (const match of readFileSync(file, 'utf8').matchAll(/raise exception '([^'%]+)'/g)) raised.add(match[1].trim());
+  }
+  const untranslated = [...raised].filter((message) => !UPSTREAM_MESSAGES.some(([pattern]) => pattern.test(message)) && ![...INTERNAL.keys()].some((pattern) => pattern.test(message)));
+  assert.deepEqual(untranslated, [], `exceções do banco sem mensagem para a pessoa: ${untranslated.join(', ')}`);
+  for (const [pattern, status, message, code] of UPSTREAM_MESSAGES) {
+    assert.ok([400, 401, 403, 404, 409, 410, 413, 422, 429].includes(status), `${pattern}: status ${status}`);
+    // client_id é o nome do campo OIDC que o admin preenche: vocabulário do público, não detalhe interno.
+    assert.ok(message.length >= 12 && !/[a-z]+_[a-z_]+|\bnull\b|exception|violat/i.test(message.replace(/\bclient_id\b/g, '')), `${pattern}: mensagem técnica`);
+    assert.match(code, /^[a-z][a-z0-9_]+$/);
+  }
+  console.log(`Exceções do banco: ${raised.size} distintas, todas traduzidas ou internas por desenho.`);
+}
