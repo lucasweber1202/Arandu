@@ -20,7 +20,7 @@ import { RECOVERY_REFS } from '../lib/pilot-backup-preflight.mjs';
 import { countsDigest, parseCounts } from '../lib/recovery-reconciliation.mjs';
 import {
   STORE_MARKER, RECIPIENT, RecoveryError, recoveryFail, assertPrivateStore, assertIdentityFile,
-  diagnoseRecovery, formatDiagnosis, ephemeralRoots
+  diagnoseRecovery, formatDiagnosis, ephemeralRoots, RECOVERY_STATES, syncPath
 } from '../lib/recovery-doctor.mjs';
 
 const ARTIFACTS = ['database.dump.age', 'roles.sql.age'];
@@ -50,6 +50,9 @@ export function initStore({ env = process.env, root = process.cwd(), args = [] }
     retention_days: retention, durability: 'operator_attested_persistent', content: 'age ciphertext + manifest only; identity kept elsewhere' };
   try { fs.writeFileSync(path.join(target, STORE_MARKER), JSON.stringify(marker, null, 2) + '\n', { mode: 0o600, flag: 'wx' }); }
   catch { recoveryFail('RECOVERY_DESTINATION_INVALID', 'Store já inicializado ou não gravável; nada foi sobrescrito.'); }
+  syncPath(path.join(target, STORE_MARKER));
+  syncPath(target);
+  syncPath(realParent);
   assertPrivateStore(target, { env, root });
   return { store_id: marker.store_id, retention_days: retention };
 }
@@ -89,6 +92,32 @@ export function prepareKey({ env = process.env, root = process.cwd(), args = [],
   return { recipient, fingerprint: createHash('sha256').update(recipient).digest('hex').slice(0, 16), generated, roundtrip: 'VERIFIED' };
 }
 
+/**
+ * Registros de restore que valem para ESTE export: arquivo regular 0600 (nunca
+ * symlink), gravado por consolidation-restore-verify para a mesma origem e o
+ * mesmo início de export, alvo loopback descartável, roles não aplicadas,
+ * reconciliação MATCH sem diferenças e contagens idênticas às do snapshot.
+ * Um registro copiado de outro export, ou com MATCH sem prova, não eleva o nível.
+ */
+export function restoreRecords(directory, manifest) {
+  const files = manifest.files.map(({ name, bytes, sha256 }) => ({ name, bytes, sha256 }));
+  return fs.readdirSync(directory).filter((name) => /^restore-verification-[0-9TZ-]+\.json$/.test(name)).flatMap((name) => {
+    const file = path.join(directory, name);
+    const stat = fs.lstatSync(file);
+    if (stat.isSymbolicLink() || !stat.isFile() || (stat.mode & 0o077) !== 0) return [];
+    if (typeof process.getuid === 'function' && stat.uid !== process.getuid()) return [];
+    let r;
+    try { r = JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return []; }
+    const valid = r?.format_version === 1 && r.restore === 'RESTORED_ISOLATED' && r.reconciliation === 'MATCH' &&
+      Array.isArray(r.differences) && r.differences.length === 0 && Number.isSafeInteger(r.tables) && r.tables > 0 &&
+      r.target === 'loopback_disposable_postgresql17' && r.roles_file === 'NOT APPLIED' &&
+      r.export_project_ref === manifest.project_ref && r.export_started_at === manifest.started_at &&
+      r.source_counts_sha256 === manifest.snapshot_counts_sha256 && r.target_counts_sha256 === manifest.snapshot_counts_sha256 &&
+      JSON.stringify(r.files) === JSON.stringify(files) && Date.parse(r.verified_at) >= Date.parse(manifest.completed_at || manifest.started_at);
+    return valid ? [{ name, verified_at: r.verified_at }] : [];
+  });
+}
+
 /** Integridade do export no store. Não é restore: só prova que o ciphertext persistido confere com o manifest. */
 export async function verifyExport({ env = process.env, root = process.cwd() } = {}) {
   const backup = env.ARANDU_RECOVERY_BACKUP;
@@ -119,15 +148,12 @@ export async function verifyExport({ env = process.env, root = process.cwd() } =
     const actual = await digestFile(read(entry.name));
     if (actual.bytes !== entry.bytes || actual.sha256 !== entry.sha256) recoveryFail('RECOVERY_READBACK_FAILED', 'Hash ou tamanho divergente do manifest.');
   }
-  const records = fs.readdirSync(real).filter((name) => /^restore-verification-.+\.json$/.test(name)).map((name) => {
-    try { return JSON.parse(fs.readFileSync(path.join(real, name), 'utf8')); } catch { return null; }
-  });
-  const restored = records.some((r) => r?.restore === 'RESTORED_ISOLATED' && r.reconciliation === 'MATCH' &&
-    r.source_counts_sha256 === manifest.snapshot_counts_sha256 && JSON.stringify(r.files) === JSON.stringify(manifest.files.map(({ name, bytes, sha256 }) => ({ name, bytes, sha256 }))));
+  const restored = restoreRecords(real, manifest).length > 0;
   return {
     classification: 'recovery_export_verification', export: path.basename(real), project_ref: manifest.project_ref,
     store_id: marker.store_id, retention_days: marker.retention_days, integrity: 'VERIFIED', files: manifest.files,
-    level: restored ? 5 : 4, recovery: restored ? 'RECOVERY_VERIFIED' : 'RECOVERY_RESTORE_NOT_VERIFIED', conversion: 'BLOCKED'
+    level: restored ? 5 : 4, recovery: restored ? 'RECOVERY_VERIFIED' : 'RECOVERY_RESTORE_NOT_VERIFIED',
+    state: restored ? RECOVERY_STATES.restoreVerified : RECOVERY_STATES.exportVerified, conversion: 'BLOCKED'
   };
 }
 
@@ -167,7 +193,7 @@ async function main() {
     case 'export': {
       const { manifest, verification } = await privateExport();
       console.log(JSON.stringify({ project_ref: manifest.project_ref, export: verification.export, store_id: verification.store_id,
-        files: manifest.files, integrity: verification.integrity, level: verification.level, recovery: verification.recovery, conversion: 'BLOCKED' }));
+        files: manifest.files, integrity: verification.integrity, level: verification.level, recovery: verification.recovery, state: verification.state, conversion: 'BLOCKED' }));
       console.log('Próximo passo: npm run recovery:restore:verify num PostgreSQL 17 loopback descartável.');
       return 0;
     }

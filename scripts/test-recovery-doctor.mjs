@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { diagnoseRecovery, formatDiagnosis, assertPrivateStore, assertIdentityFile, STORE_MARKER } from '../lib/recovery-doctor.mjs';
+import { diagnoseRecovery, formatDiagnosis, assertPrivateStore, assertIdentityFile, STORE_MARKER, syncPath } from '../lib/recovery-doctor.mjs';
 import { initStore, prepareKey } from './recovery.mjs';
 
 const REF = 'offgpyysgdhfemjlchod';
@@ -28,6 +28,8 @@ try {
   assert.equal(original.code, 'RECOVERY_DATABASE_URL_MISSING');
   assert.deepEqual(original.codes, ['RECOVERY_DATABASE_URL_MISSING', 'RECOVERY_RECIPIENT_MISSING', 'RECOVERY_DESTINATION_MISSING']);
   assert.equal(original.database_accessed, 'NO');
+  assert.equal(original.state, 'RECOVERY_BLOCKED');
+  assert.match(formatDiagnosis(original), /Recovery state: RECOVERY_BLOCKED/);
   assert.match(formatDiagnosis(original), /Database credentials:\s+NOT CONFIGURED/);
 
   // 2. Nada sensível aparece no relatório, mesmo com valores inválidos.
@@ -83,6 +85,11 @@ try {
     ARANDU_RECOVERY_DIRECTORY: storeDir, ARANDU_RECOVERY_CONFIRM: 'ARANDU-ENCRYPTED-EXPORT' }) });
   assert.equal(ready.result, 'READY', JSON.stringify(ready.codes));
   assert.equal(ready.store.id, store.store_id);
+  // Preflight pronto prova configuração, nunca export nem restore.
+  assert.equal(ready.state, 'RECOVERY_CONFIGURATION_READY');
+  assert.equal(ready.backup_generated, 'NO');
+  assert.throws(() => syncPath(path.join(storeDir, 'missing-artifact')), (e) => e.code === 'RECOVERY_PERSISTENCE_FAILED' && !e.message.includes(storeDir));
+  syncPath(storeDir);
   assert(!JSON.stringify(ready).includes(SECRET) && !JSON.stringify(ready).includes(storeDir), 'relatório com valor ou caminho privado');
 
   // 6. Identidade: fora do repo, fora do store, 0600; nunca preparada em CI.

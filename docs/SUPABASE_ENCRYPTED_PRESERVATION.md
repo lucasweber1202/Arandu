@@ -60,6 +60,29 @@ Variáveis só no shell local (nunca em arquivo do repositório nem em chat):
 No runner dedicado, `consolidation-export.yml` com `executor=private-runner`
 faz os passos 3–4 com os secrets do Environment; a identidade nunca vai ao runner.
 
+### Estados de recuperação e durabilidade (12/10/2026)
+
+`recovery:doctor`, `recovery:export:private` e `recovery:verify` emitem `state`
+(`RECOVERY_STATES` em `lib/recovery-doctor.mjs`), separado do nível numérico:
+
+| Estado | Prova exigida | Emitido por |
+| --- | --- | --- |
+| `RECOVERY_BLOCKED` | preflight com qualquer código de falha | doctor |
+| `RECOVERY_CODE_READY` | testes sintéticos verdes no CI (`test-recovery-*`); não depende do ambiente | CI |
+| `RECOVERY_CONFIGURATION_READY` | preflight READY; banco não acessado | doctor |
+| `RECOVERY_EXPORT_VERIFIED` | export persistido com fsync e hashes relidos do store (nível 4) | export / verify |
+| `RECOVERY_RESTORE_VERIFIED` | restore isolado do MESMO export com reconciliação `MATCH` (nível 5) | verify |
+
+Nenhum estado libera conversão (`conversion: BLOCKED` sempre). O exportador
+agora faz `fsync` de cada ciphertext, do manifest e das entradas de diretório
+(export e store); falha de gravação durável é `RECOVERY_PERSISTENCE_FAILED`, e
+qualquer falha depois de o manifest ter sido marcado concluído o volta para
+`failed` com o código do estágio. `recovery:verify` só considera um registro
+`restore-verification-*.json` que seja arquivo regular 0600 do mesmo operador
+(nunca symlink), grave a mesma origem e o mesmo `started_at` do export, alvo
+loopback descartável, roles não aplicadas, `MATCH` sem diferenças, contagens
+de origem e destino iguais às do snapshot e verificação posterior ao export.
+
 ## Executor e autorização
 
 Antes de habilitar o workflow manual `consolidation-export.yml`, o administrador
