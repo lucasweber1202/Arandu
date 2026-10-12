@@ -96,7 +96,9 @@ test('jornada completa: comprador → provedor → comprador → aprovador → d
   await page.reload();
   await expect(form.getByLabel('Título da solicitação')).toHaveValue('Giro E2E — R$ 1,5 milhão');
   await expect(page.locator('#view')).toContainText('Recuperamos o rascunho');
-  await page.getByRole('button', { name: 'Continuar' }).click();
+  // O rascunho retoma na primeira etapa incompleta (Necessidade), sem marcar erros.
+  await expect(page.locator('[aria-current="step"]')).toContainText('Necessidade');
+  await expect(page.locator('.field-error:visible')).toHaveCount(0);
   await form.getByLabel('Valor desejado (R$)').fill('1500000');
   await form.getByLabel('Finalidade').selectOption('capital_de_giro');
   await form.getByLabel('Prazo desejado (meses)').fill('18');

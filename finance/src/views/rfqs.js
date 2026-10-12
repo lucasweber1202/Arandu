@@ -317,19 +317,23 @@ export async function newRfq(ctx) {
     item.querySelector('button').addEventListener('click', () => { if (index <= highest) show(index, { focus: true }); });
     stepper.append(item);
   }
-  function validate(step) {
-    const scope = fieldsets[step];
+  // Mesmas regras para validar ao avançar e, em silêncio, para retomar um rascunho.
+  function checkStep(step, { mark = false } = {}) {
     const problems = [];
-    for (const control of scope.querySelectorAll('input, select, textarea')) {
+    for (const control of fieldsets[step].querySelectorAll('input, select, textarea')) {
       const wrap = control.closest('.field');
       let message = '';
       if (control.required && !String(control.value).trim()) message = 'Campo obrigatório.';
       else if (control.name === 'title' && control.value.trim().length < 3) message = 'Use pelo menos 3 caracteres.';
       else if (control.type === 'number' && control.value !== '' && !control.checkValidity()) message = control.validationMessage || 'Valor fora do permitido.';
       else if (control.name === 'response_deadline' && control.value && control.value < todayIso()) message = 'O prazo não pode estar no passado.';
-      wrap?.setError?.(message);
+      if (mark) wrap?.setError?.(message);
       if (message) problems.push({ control, label: wrap?.querySelector('.field-label')?.firstChild?.textContent || control.name, message });
     }
+    return problems;
+  }
+  function validate(step) {
+    const problems = checkStep(step, { mark: true });
     if (problems.length) {
       errorSummary.replaceChildren(icon('alert'), el('span', { text: `${problems.length === 1 ? 'Corrija 1 campo' : `Corrija ${problems.length} campos`} para continuar: ${problems.map((item) => item.label).join(', ')}.` }));
       errorSummary.hidden = false;
@@ -496,6 +500,10 @@ export async function newRfq(ctx) {
       } });
       recovered.replaceChildren(icon('refresh'), el('span', { text: `Recuperamos o rascunho que você deixou em ${formatDateTime(draft.updated_at)}.` }), discard);
       recovered.hidden = false;
+      // Retoma na primeira etapa ainda incompleta, não de volta ao início.
+      let resume = 0;
+      while (resume < 3 && !checkStep(resume).length) resume += 1;
+      if (resume > 0) show(resume);
     } else {
       indicator.set('idle', draft ? 'Rascunho anterior disponível' : 'Salvamento automático ativo');
     }
