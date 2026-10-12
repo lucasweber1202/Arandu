@@ -131,6 +131,17 @@ apply_file "$clean_db" "tests/database/financial-demo-workspaces.sql"
 bash "$root_dir/tests/database/demo-quota-concurrency.sh" "$(database_url "$clean_db")"
 apply_file "$clean_db" "ops/sql/pilot-isolation-canary.sql"
 apply_file "$clean_db" "ops/sql/post-migration-probes.sql"
+# O probe de catálogo precisa recusar cada regressão (numa transação desfeita).
+probe_rejects() {
+  local setup="$1" expected="$2" rejection
+  if rejection="$(psql "$(database_url "$clean_db")" -X -v ON_ERROR_STOP=1 -c "begin; ${setup}" -f "$root_dir/ops/sql/post-migration-probes.sql" 2>&1)"; then
+    echo "post-migration-probes aceitou: ${expected}" >&2; exit 1
+  fi
+  [[ "$rejection" == *"$expected"* ]] || { echo "post-migration-probes falhou por motivo inesperado (${expected})" >&2; exit 1; }
+}
+probe_rejects "create function public.fin_probe_unpinned() returns int language sql security definer as 'select 1'; revoke all on function public.fin_probe_unpinned() from public, anon;" 'security definer sem search_path fixo'
+probe_rejects "create function public.fin_probe_open() returns int language sql security definer set search_path = '' as 'select 1'; grant execute on function public.fin_probe_open() to anon;" 'security definer executável por anon'
+probe_rejects "create table public.probe_open_surface(id int); revoke all on public.probe_open_surface from anon; grant insert on public.probe_open_surface to anon;" 'privilégio para anon'
 
 apply_file "$upgrade_db" "tests/database/bootstrap.sql"
 while IFS= read -r file; do

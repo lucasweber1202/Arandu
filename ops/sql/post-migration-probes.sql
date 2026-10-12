@@ -20,6 +20,29 @@ begin
    where n.nspname = 'public' and c.relkind in ('r','v','m') and c.relname like 'fin\_%' and has_table_privilege('anon', c.oid, 'SELECT');
   if v_anon is not null then raise exception 'Tabela financeira visível para anon: %', v_anon; end if;
 
+  -- Superfície do catálogo inteiro, não só de funções conhecidas: security
+  -- definer sem search_path fixo é sombreável; executável por anon atravessa o
+  -- RLS sem sessão. Tabela/view de public não concede nada a anon. Objetos de
+  -- extensão ficam fora (não são migrations do Arandu).
+  select string_agg(p.oid::regprocedure::text, ', ' order by p.oid::regprocedure::text) into v_anon
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public' and p.prosecdef
+     and not exists (select 1 from pg_depend d where d.classid = 'pg_proc'::regclass and d.objid = p.oid and d.deptype = 'e')
+     and not exists (select 1 from unnest(coalesce(p.proconfig, '{}'::text[])) c where c like 'search_path=%');
+  if v_anon is not null then raise exception 'Função security definer sem search_path fixo: %', v_anon; end if;
+
+  select string_agg(p.oid::regprocedure::text, ', ' order by p.oid::regprocedure::text) into v_anon
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public' and p.prosecdef and has_function_privilege('anon', p.oid, 'EXECUTE')
+     and not exists (select 1 from pg_depend d where d.classid = 'pg_proc'::regclass and d.objid = p.oid and d.deptype = 'e');
+  if v_anon is not null then raise exception 'Função security definer executável por anon: %', v_anon; end if;
+
+  select string_agg(c.relname, ', ' order by c.relname) into v_anon
+    from pg_class c join pg_namespace n on n.oid = c.relnamespace
+   where n.nspname = 'public' and c.relkind in ('r','v','m','p')
+     and has_table_privilege('anon', c.oid, 'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER');
+  if v_anon is not null then raise exception 'Tabela ou view de public com privilégio para anon: %', v_anon; end if;
+
   if to_regclass('public.transactional_email_outbox') is null
      or not has_function_privilege('service_role', 'public.consume_rate_limit(text,text,integer,integer)', 'EXECUTE')
      or has_function_privilege('anon', 'public.consume_rate_limit(text,text,integer,integer)', 'EXECUTE') then
