@@ -6,7 +6,7 @@
 // docs/FINANCIAL_SSO.md.
 
 import { el, icon, formatDateTime } from '../core.js';
-import { button, tag, field, emptyState, errorState, loading, toast, confirmDialog } from '../ui.js';
+import { button, tag, field, emptyState, errorState, loading, toast, confirmDialog, onSubmit } from '../ui.js';
 
 const STATUS_LABEL = { draft: 'rascunho', testing: 'em teste', active: 'ativa', disabled: 'desativada' };
 const STATUS_TONE = { draft: 'neutral', testing: 'info', active: 'success', disabled: 'warning' };
@@ -76,7 +76,7 @@ function domainsSection(ctx, data, render, reveal) {
   const input = el('input', { maxlength: '253', placeholder: 'suaempresa.com.br', autocomplete: 'off' });
   const form = el('form', { class: 'stack-sm', novalidate: true }, [field({ label: 'Domínio de e-mail', control: input, hint: 'Domínios de e-mail pessoal (gmail.com, outlook.com…) são recusados.' }),
     button('Reivindicar domínio', { type: 'submit', size: 'sm', iconName: 'plus' })]);
-  form.addEventListener('submit', async (event) => {
+  onSubmit(form, async (event) => {
     event.preventDefault();
     try {
       const out = await post(ctx, 'sso/domains', { organization_id: ctx.organization.id, domain: input.value.trim() });
@@ -138,7 +138,7 @@ function connectionsSection(ctx, data, render) {
     field({ label: 'Identificador do provedor no broker', control: providerRef, hint: 'Criado pelo responsável pelo ambiente no Supabase Auth (SSO). Opcional no rascunho.' }),
     field({ label: 'URL de metadados / discovery', control: metadata }), oidc, field({ label: 'Sessão máxima (horas)', control: hours }),
     button('Salvar conexão', { type: 'submit', size: 'sm', iconName: 'plus' })]);
-  form.addEventListener('submit', async (event) => {
+  onSubmit(form, async (event) => {
     event.preventDefault();
     try {
       await post(ctx, 'sso/connections', { organization_id: ctx.organization.id, display_name: name.value.trim(), protocol: protocol.value, provider_ref: providerRef.value.trim(),

@@ -7,7 +7,7 @@ import { graphContextCard } from './graph-context.js';
 // ausência. Nenhuma métrica é nota, risco ou recomendação.
 
 import { el, icon, formatDate, percent, enumLabel } from '../core.js';
-import { card, button, tag, field, drawer, toast, emptyState, errorState, loading } from '../ui.js';
+import { card, button, tag, field, drawer, toast, emptyState, errorState, loading, onSubmit } from '../ui.js';
 import { FACILITY_KINDS, GUARANTEE_KINDS } from '../../../lib/finance/portfolio.mjs';
 import { INDEXERS, AMORTIZATION } from '../../../lib/finance/contract-terms.mjs';
 import { entityTree } from '../../../lib/finance/entities.mjs';

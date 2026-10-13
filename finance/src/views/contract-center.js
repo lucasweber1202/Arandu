@@ -7,7 +7,7 @@ import { graphContextCard } from './graph-context.js';
 // claramente não pode fazer e mostra o erro do servidor quando ele recusa.
 
 import { el, icon, formatDate, formatDateTime, money, percent, enumLabel } from '../core.js';
-import { button, tag, field, drawer, toast, loading, errorState, catalogControl, confirmDialog } from '../ui.js';
+import { button, tag, field, drawer, toast, loading, errorState, catalogControl, confirmDialog, onSubmit } from '../ui.js';
 import { CONTRACT_CATEGORIES, MILESTONE_KINDS, RECURRENCES, FEE_UNITS, contractTermFields } from '../../../lib/finance/contract-terms.mjs';
 import { entityTree } from '../../../lib/finance/entities.mjs';
 
@@ -158,7 +158,7 @@ export function importContractButton(ctx, entities) {
     );
     const save = button('Registrar contrato', { variant: 'primary', type: 'submit', iconName: 'check', attrs: { form: 'contract-import-form' } });
     const dialog = drawer({ title: 'Registrar contrato existente', subtitle: 'Carteira atual da empresa, fora de uma concorrência no Arandu.', body: form, footer: [button('Cancelar', { variant: 'ghost', onClick: () => dialog.close() }), save] });
-    form.addEventListener('submit', async (event) => {
+    onSubmit(form, async (event) => {
       event.preventDefault();
       if (title.value.trim().length < 2 || !starts.value || !ends.value || !provider.value) { toast('Preencha provedor, título, início e fim.', 'error'); return; }
       save.disabled = true;
@@ -247,7 +247,7 @@ export function openContract(ctx, contract, { initialDetail = null } = {}) {
     const reason = el('textarea', { rows: '2', maxlength: '1000' });
     const form = el('form', { class: 'stack', novalidate: true }, [confirmedFactsPanel(ctx, current.id, editor), editor, current.current_version ? field({ label: 'Justificativa da correção', control: reason, required: true, hint: 'A versão anterior continua no histórico.' }) : null,
       el('div', { class: 'form-actions' }, button(current.current_version ? 'Gravar nova versão' : 'Gravar versão 1', { variant: 'primary', type: 'submit', iconName: 'check' }))]);
-    form.addEventListener('submit', async (event) => {
+    onSubmit(form, async (event) => {
       event.preventDefault();
       if (current.current_version && reason.value.trim().length < 3) { toast('Explique a correção.', 'error'); return; }
       try {
@@ -276,7 +276,7 @@ export function openContract(ctx, contract, { initialDetail = null } = {}) {
       field({ label: 'O que mudou', control: summary, optionalLabel: true }),
       el('label', { class: 'check-row' }, [changeTerms, el('span', { text: 'O aditivo altera termos estruturados (gera nova versão)' })]), editor,
       el('div', { class: 'form-actions' }, button('Registrar aditivo', { variant: 'primary', type: 'submit', iconName: 'check' }))]);
-    form.addEventListener('submit', async (event) => {
+    onSubmit(form, async (event) => {
       event.preventDefault();
       if (!effectiveFrom.value) { toast('Informe a vigência do aditivo.', 'error'); return; }
       if (!await confirmDialog({ title: 'Registrar aditivo?', description: 'Aditivo é histórico: não pode ser editado nem apagado depois. Datas anteriores ficam preservadas nele.', confirmLabel: 'Registrar' })) return;
@@ -310,7 +310,7 @@ export function openContract(ctx, contract, { initialDetail = null } = {}) {
         field({ label: 'Recorrência', control: recurrence }), field({ label: 'Repetir até', control: until, optionalLabel: true }),
         field({ label: 'Responsável', control: owner })]),
       el('div', { class: 'form-actions' }, button('Criar marco', { variant: 'primary', type: 'submit', iconName: 'check' }))]);
-    form.addEventListener('submit', async (event) => {
+    onSubmit(form, async (event) => {
       event.preventDefault();
       if (title.value.trim().length < 2 || !due.value) { toast('Informe título e data do marco.', 'error'); return; }
       try {

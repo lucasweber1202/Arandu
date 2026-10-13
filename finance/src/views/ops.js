@@ -3,7 +3,7 @@
 // valores, termos, títulos, e-mails, payloads nem documentos.
 
 import { el, icon, formatDateTime, timeAgo } from '../core.js';
-import { card, tag, button, emptyState, errorState, field, toast } from '../ui.js';
+import { card, tag, button, emptyState, errorState, field, toast, onSubmit } from '../ui.js';
 
 const STATUS_TONE = { running: 'warning', succeeded: 'success', failed: 'danger', delivered: 'success', pending: 'neutral', processing: 'neutral', retry: 'warning', dead: 'danger' };
 const OUTBOX_LABEL = { delivered: 'Entregues', pending: 'Pendentes', processing: 'Em envio', retry: 'Nova tentativa', dead: 'Falhas definitivas' };
@@ -31,7 +31,7 @@ function mfaForm(ctx) {
   const status = el('p', { class: 'field-hint', role: 'status', 'aria-live': 'polite' });
   const form = el('form', { class: 'inline-form', novalidate: true });
   form.append(field({ label: 'Código do aplicativo autenticador', control: code }), button('Confirmar', { type: 'submit', iconName: 'lock' }));
-  form.addEventListener('submit', async (event) => {
+  onSubmit(form, async (event) => {
     event.preventDefault();
     if (!/^[0-9]{6}$/.test(code.value.trim())) { status.textContent = 'Digite os 6 dígitos mostrados no aplicativo.'; code.focus(); return; }
     status.textContent = 'Verificando…';
@@ -116,7 +116,7 @@ export async function opsConsole(ctx) {
   const lookup = el('input', { name: 'lookup', maxlength: '80', placeholder: 'request ID ou UUID de entidade/organização', autocomplete: 'off' });
   const output = el('div', { 'aria-live': 'polite' });
   form.append(field({ label: 'Rastrear', control: lookup }), button('Rastrear', { type: 'submit', iconName: 'search' }));
-  form.addEventListener('submit', async (event) => {
+  onSubmit(form, async (event) => {
     event.preventDefault();
     const value = lookup.value.trim();
     const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);

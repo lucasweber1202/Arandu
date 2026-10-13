@@ -4,7 +4,7 @@
 import { PRODUCTS } from '../../../lib/finance/products.mjs';
 import { buildComparison, applyUserWeights, USER_WEIGHTS_NOTICE, NEUTRAL_RANKING_NOTICE } from '../../../lib/finance/comparison.mjs';
 import { el, icon, money, fieldValue, formatDate, formatDateTime, timeAgo, uid, APPROVAL_STATUS, ROLE_LABELS, fold } from '../core.js';
-import { button, pill, avatar, emptyState, errorState, loading, toast, promptDialog, confirmDialog, field, tag } from '../ui.js';
+import { button, pill, avatar, emptyState, errorState, loading, toast, promptDialog, confirmDialog, field, tag, onSubmit } from '../ui.js';
 
 // ------------------------------------------------------------- membros
 export function memberName(members, id) {
@@ -466,7 +466,7 @@ export function collaboration(ctx, rfq, { provider = false } = {}) {
     setHelp();
     form.append(el('div', { class: 'composer-field' }, [text, suggestions]), controls, help, error, el('div', { class: 'composer-actions' }, [cancel, submit]));
     const clientId = { value: uid() };
-    form.addEventListener('submit', async (event) => {
+    onSubmit(form, async (event) => {
       event.preventDefault();
       const value = text.value.trim();
       error.hidden = true;

@@ -26,6 +26,26 @@ function onAction(node, handler) {
     Promise.resolve(result).finally(() => { pending = false; node.removeAttribute('aria-busy'); });
   });
 }
+// Envio de formulário em andamento: novo Enter ou clique em "Gravar" é
+// ignorado até a gravação terminar (antes, cada envio criava outra versão,
+// aditivo ou marco). Os botões de envio ficam com aria-busy.
+export function onSubmit(form, handler) {
+  let pending = false;
+  form.addEventListener('submit', (event) => {
+    if (pending) { event.preventDefault(); event.stopImmediatePropagation(); return; }
+    const result = handler(event);
+    if (!result || typeof result.then !== 'function') return;
+    pending = true;
+    const buttons = [...form.querySelectorAll('button[type=submit], button:not([type])')];
+    form.setAttribute('aria-busy', 'true');
+    for (const node of buttons) node.setAttribute('aria-busy', 'true');
+    Promise.resolve(result).finally(() => {
+      pending = false;
+      form.removeAttribute('aria-busy');
+      for (const node of buttons) node.removeAttribute('aria-busy');
+    });
+  });
+}
 export function linkButton(label, href, { variant = 'secondary', iconName = null, size = null, attrs = {} } = {}) {
   return el('a', { href, class: `btn btn-${variant}${size ? ` btn-${size}` : ''}`, ...attrs },
     [iconName ? icon(iconName) : null, el('span', { class: 'btn-label', text: label })]);

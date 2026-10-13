@@ -3,7 +3,7 @@
 
 import { PRODUCTS, PRODUCT_IDS } from '../../../lib/finance/products.mjs';
 import { el, icon, formatDate, formatDateTime, relativeDays, daysUntil, productLabel, demandHeadline, fieldValue, PROPOSAL_STATUS, timeAgo } from '../core.js';
-import { card, pill, tag, button, linkButton, emptyState, errorState, loading, definitionList, toast, confirmDialog, field, catalogControl, saveIndicator } from '../ui.js';
+import { card, pill, tag, button, linkButton, emptyState, errorState, loading, definitionList, toast, confirmDialog, field, catalogControl, saveIndicator, onSubmit } from '../ui.js';
 import { collaboration, revisionDiff } from './shared.js';
 import { greeting } from './dashboard.js';
 
@@ -276,7 +276,7 @@ export async function providerProposal(ctx) {
     });
   }
 
-  form.addEventListener('submit', async (event) => {
+  onSubmit(form, async (event) => {
     event.preventDefault();
     const terms = values();
     let firstInvalid = null;
@@ -372,7 +372,7 @@ export async function providerInvite(ctx) {
     select.value = ctx.organization?.id;
     const submit = button('Aceitar convite', { variant: 'primary', type: 'submit', iconName: 'check' });
     form.append(field({ label: 'Organização que vai responder', control: select }), el('div', { class: 'form-actions' }, submit));
-    form.addEventListener('submit', async (event) => {
+    onSubmit(form, async (event) => {
       event.preventDefault();
       if (!/^[0-9a-f]{64}$/.test(tokenInput.value.trim())) { tokenInput.closest('.field').setError('O token tem 64 caracteres (0-9, a-f).'); return; }
       submit.disabled = true;
