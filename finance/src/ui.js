@@ -361,8 +361,8 @@ export function menu(label, items, { iconName = 'more', visibleLabel = '' } = {}
   const wrap = el('div', { class: 'menu' });
   // Com rótulo visível o menu deixa de ser um ícone solto fácil de ignorar.
   const trigger = visibleLabel
-    ? el('button', { type: 'button', class: 'btn', 'aria-haspopup': 'true', 'aria-expanded': 'false', 'aria-label': label, title: label }, [el('span', { text: visibleLabel }), icon('chevronDown', { size: 16 })])
-    : el('button', { type: 'button', class: 'btn btn-ghost btn-icon-only', 'aria-haspopup': 'true', 'aria-expanded': 'false', 'aria-label': label, title: label }, icon(iconName));
+    ? el('button', { type: 'button', class: 'btn', 'aria-haspopup': 'menu', 'aria-expanded': 'false', 'aria-label': label, title: label }, [el('span', { text: visibleLabel }), icon('chevronDown', { size: 16 })])
+    : el('button', { type: 'button', class: 'btn btn-ghost btn-icon-only', 'aria-haspopup': 'menu', 'aria-expanded': 'false', 'aria-label': label, title: label }, icon(iconName));
   const list = el('div', { class: 'menu-list', role: 'menu', hidden: true });
   const closeMenu = () => { list.hidden = true; trigger.setAttribute('aria-expanded', 'false'); };
   for (const item of items.filter(Boolean)) {
@@ -384,7 +384,13 @@ export function menu(label, items, { iconName = 'more', visibleLabel = '' } = {}
     if (event.key === 'Escape') { closeMenu(); trigger.focus(); }
     if (event.key === 'ArrowDown') { event.preventDefault(); entries[(index + 1) % entries.length]?.focus(); }
     if (event.key === 'ArrowUp') { event.preventDefault(); entries[(index - 1 + entries.length) % entries.length]?.focus(); }
+    if (event.key === 'Home') { event.preventDefault(); entries[0]?.focus(); }
+    if (event.key === 'End') { event.preventDefault(); entries.at(-1)?.focus(); }
   });
+  // Tab para fora fecha o menu: antes ele ficava aberto por cima do conteúdo.
+  // Só fecha quando o foco vai para um elemento conhecido fora do menu; toque
+  // em navegador que não foca botões (relatedTarget nulo) fica com o clique.
+  wrap.addEventListener('focusout', (event) => { if (event.relatedTarget && !wrap.contains(event.relatedTarget)) closeMenu(); });
   document.addEventListener('click', (event) => { if (!wrap.contains(event.target)) closeMenu(); });
   wrap.append(trigger, list);
   return wrap;
