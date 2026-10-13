@@ -8,7 +8,7 @@ import { graphContextCard } from './graph-context.js';
 // que não as conhece), tudo continua funcionando como antes.
 
 import { el, icon, formatDate } from '../core.js';
-import { card, button, tag, field, emptyState, errorState, loading, toast, confirmDialog, person, drawer } from '../ui.js';
+import { card, button, tag, field, emptyState, errorState, loading, toast, confirmDialog, person, drawer, onSubmit } from '../ui.js';
 import { entityLabel, entityTree } from '../../../lib/finance/entities.mjs';
 
 const CONTEXT_KEY = 'arandu-finance-entity';
@@ -150,7 +150,7 @@ export function entitySettings(ctx, entities) {
     const baseForm = el('form', { class: 'inline-form', id: 'base-currency-form', novalidate: true }, [
       field({ label: 'Moeda base do grupo', control: base, hint: 'Código ISO (BRL, USD…). Usada como contexto; o Arandu não converte valores entre moedas.' }),
       button('Salvar moeda', { type: 'submit', iconName: 'check' })]);
-    baseForm.addEventListener('submit', async (event) => {
+    onSubmit(baseForm, async (event) => {
       event.preventDefault();
       try { await ctx.api('entities/currency', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, base_currency: base.value.trim().toUpperCase() }) }); toast('Moeda base atualizada.'); }
       catch (error) { toast(error.message, 'error'); }
@@ -177,7 +177,7 @@ export function entitySettings(ctx, entities) {
       field({ label: 'País (ISO)', control: country }), field({ label: 'Moeda local (ISO)', control: currency }),
       el('div', { class: 'form-actions span-2' }, button('Cadastrar entidade', { variant: 'primary', type: 'submit', iconName: 'plus' }))
     ]);
-    form.addEventListener('submit', async (event) => {
+    onSubmit(form, async (event) => {
       event.preventDefault();
       if (legalName.value.trim().length < 2) { toast('Informe a razão social ou o nome da unidade.', 'error'); legalName.focus(); return; }
       const body = Object.fromEntries(new FormData(form));
@@ -221,7 +221,7 @@ export function memberScopes(ctx, entities) {
         boxes.hidden = scope.value !== 'entities';
         scope.addEventListener('change', () => { boxes.hidden = scope.value !== 'entities'; });
         editor.append(scope, boxes, button('Salvar escopo', { size: 'sm', type: 'submit', iconName: 'check' }));
-        editor.addEventListener('submit', async (event) => {
+        onSubmit(editor, async (event) => {
           event.preventDefault();
           const ids = [...editor.querySelectorAll('input[name="entity_ids"]:checked')].map((input) => input.value);
           if (scope.value === 'entities' && !ids.length) { toast('Escolha ao menos uma entidade para o escopo restrito.', 'error'); return; }

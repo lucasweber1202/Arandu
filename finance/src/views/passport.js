@@ -7,7 +7,7 @@ import { graphContextCard } from './graph-context.js';
 // declarou ou anexou.
 
 import { el, icon, money, formatDate, formatDateTime, timeAgo } from '../core.js';
-import { card, tag, button, linkButton, emptyState, errorState, toast, drawer, field, progress } from '../ui.js';
+import { card, tag, button, linkButton, emptyState, errorState, toast, drawer, field, progress, onSubmit } from '../ui.js';
 import { buildPassport, SOURCE_LABELS, WRITABLE_SOURCES, FRESHNESS, MIN_REVIEW_DAYS, MAX_REVIEW_DAYS, catalogField, fieldLabel } from '../../../lib/finance/passport.mjs';
 import { loadEntities } from './entities.js';
 import { lazyDocuments } from './shared.js';
@@ -213,7 +213,7 @@ function editField(ctx, item, documents) {
   form.id = 'passport-edit-form';
   const panel = drawer({ title: item.label, subtitle: item.value ? 'Uma nova gravação fica no histórico; a confirmação anterior deixa de valer se o valor mudar.' : 'Preencha uma vez; as próximas solicitações reaproveitam.', body: form, footer: [button('Cancelar', { variant: 'ghost', onClick: () => panel.close() }), save] });
   value.focus();
-  form.addEventListener('submit', async (event) => {
+  onSubmit(form, async (event) => {
     event.preventDefault();
     error.hidden = true;
     if (!form.reportValidity()) return;
@@ -270,7 +270,7 @@ function customForm(ctx) {
   const source = el('select', { name: 'source' });
   for (const key of WRITABLE_SOURCES) source.add(new Option(SOURCE_LABELS[key], key));
   form.append(field({ label: 'Campo', control: label }), field({ label: 'Valor', control: value }), field({ label: 'Origem', control: source }), button('Salvar campo', { type: 'submit' }));
-  form.addEventListener('submit', async (event) => {
+  onSubmit(form, async (event) => {
     event.preventDefault();
     if (!form.reportValidity()) return;
     const key = label.value.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').replace(/^[^a-z]+/, '').slice(0, 48);

@@ -7,7 +7,7 @@
 // Docs: docs/FINANCIAL_DATA_GOVERNANCE.md.
 
 import { el, icon, formatDateTime, formatDate } from '../core.js';
-import { button, linkButton, tag, field, emptyState, errorState, loading, toast, confirmDialog, promptDialog } from '../ui.js';
+import { button, linkButton, tag, field, emptyState, errorState, loading, toast, confirmDialog, promptDialog, onSubmit } from '../ui.js';
 
 const CLASS_LABEL = {
   TEMPORARY_OPERATIONAL: 'Avisos no aplicativo', WEBHOOK_DELIVERY: 'Entregas de webhook encerradas',
@@ -95,7 +95,7 @@ function retentionSection(ctx, data, render) {
   const form = el('form', { class: 'field-grid', novalidate: true }, [field({ label: 'Classe', control: select }), field({ label: 'Prazo (dias)', control: days }),
     field({ label: 'Motivo', control: reason }), field({ label: 'Referência da decisão', control: ref, optionalLabel: true }),
     el('div', { class: 'form-actions span-2' }, [button('Criar rascunho de política', { type: 'submit', size: 'sm', iconName: 'plus' })])]);
-  form.addEventListener('submit', async (event) => {
+  onSubmit(form, async (event) => {
     event.preventDefault();
     try {
       await post(ctx, 'governance/retention-policies', { organization_id: ctx.organization.id, retention_class: select.value, retention_days: Number(days.value), reason: reason.value, decision_reference: ref.value });
@@ -149,7 +149,7 @@ function holdSection(ctx, data, render) {
   const form = el('form', { class: 'field-grid', novalidate: true }, [field({ label: 'Escopo', control: scope }), classField, idField,
     field({ label: 'Motivo (sem dado pessoal)', control: reason }), field({ label: 'Referência', control: ref, optionalLabel: true }),
     el('div', { class: 'form-actions span-2' }, button('Criar legal hold', { type: 'submit', size: 'sm', iconName: 'shield' }))]);
-  form.addEventListener('submit', async (event) => {
+  onSubmit(form, async (event) => {
     event.preventDefault();
     try {
       await post(ctx, 'governance/legal-holds', { organization_id: ctx.organization.id, scope_type: scope.value, scope_class: scopeClass.value, scope_id: scopeId.value.trim(), reason: reason.value, reference: ref.value });

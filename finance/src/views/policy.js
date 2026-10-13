@@ -8,7 +8,7 @@
 // tudo cai no fluxo de aprovação manual de antes.
 
 import { el, icon, formatDateTime, timeAgo, ROLE_LABELS } from '../core.js';
-import { button, tag, pill, field, emptyState, errorState, loading, toast, confirmDialog, promptDialog, drawer } from '../ui.js';
+import { button, tag, pill, field, emptyState, errorState, loading, toast, confirmDialog, promptDialog, drawer, onSubmit } from '../ui.js';
 import { memberName, memberTitle } from './shared.js';
 import {
   POLICY_FACTS, POLICY_ROLES, STAGE_SCOPES, PRODUCTS, PROVIDER_STATUS, STEP_REASON_CODES, EXCEPTION_REASON_CODES, FLAG_KINDS,
@@ -436,7 +436,7 @@ export function delegationSettings(ctx) {
     const reason = el('input', { maxlength: '500', placeholder: 'Ex.: férias de 10 a 20/11' });
     const form = el('form', { class: 'policy-inline', novalidate: true }, [field({ label: 'Substituto', control: delegate }), field({ label: 'Até', control: ends }), field({ label: 'Motivo', control: reason }),
       button('Delegar', { type: 'submit', size: 'sm', iconName: 'send' })]);
-    form.addEventListener('submit', async (event) => {
+    onSubmit(form, async (event) => {
       event.preventDefault();
       if (!delegate.value || !ends.value) { toast('Escolha o substituto e a data final.', 'error'); return; }
       try {

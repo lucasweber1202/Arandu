@@ -204,3 +204,30 @@ test('contrato fora do overview usa o detalhe autorizado para continuar a jornad
   await expect(page.getByRole('dialog').getByRole('heading', { name: 'Termos vigentes (v2)' })).toBeVisible();
   await noHorizontalOverflow(page);
 });
+
+test('termos: Gravar duas vezes enquanto a primeira gravação não volta cria uma versão só', async ({ page }) => {
+  await mockSession(page);
+  let release;
+  const gate = new Promise((resolve) => { release = resolve; });
+  const posts = [];
+  await page.route('**/api/finance/contract-terms', async (route) => {
+    if (route.request().method() !== 'POST') return route.fallback();
+    posts.push(route.request().postDataJSON());
+    await gate;
+    return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ ok: true, version: 2 }) });
+  });
+  await page.goto('/finance/contracts.html');
+  await page.getByRole('button', { name: /Abrir contrato/ }).click();
+  const panel = page.getByRole('dialog');
+  await panel.getByRole('button', { name: 'Corrigir termos (nova versão)' }).click();
+  await panel.getByLabel(/Justificativa da correção/).fill('Termos do contrato assinado');
+  const save = panel.getByRole('button', { name: 'Gravar nova versão' });
+  await save.click();
+  await expect(save).toHaveAttribute('aria-busy', 'true');
+  await panel.getByLabel(/Justificativa da correção/).press('Enter');
+  await save.click({ force: true });
+  release();
+  await expect.poll(() => posts.length).toBe(1);
+  await page.waitForTimeout(300);
+  expect(posts).toHaveLength(1);
+});

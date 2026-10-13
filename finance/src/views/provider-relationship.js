@@ -6,7 +6,7 @@
 // critérios e pesos dele, e o resultado é rotulado assim.
 
 import { el, icon, formatDate, formatDateTime, percent } from '../core.js';
-import { button, tag, field, drawer, toast, loading, errorState } from '../ui.js';
+import { button, tag, field, drawer, toast, loading, errorState, onSubmit } from '../ui.js';
 import { CONTRACT_CATEGORIES } from '../../../lib/finance/contract-terms.mjs';
 import { FACILITY_KINDS } from '../../../lib/finance/portfolio.mjs';
 import { relationshipContext } from './relationship-context.js';
@@ -129,7 +129,7 @@ export async function openProviderRelationship(ctx, provider) {
       field({ label: 'E-mail', control: email, optionalLabel: true }), field({ label: 'Telefone', control: phone, optionalLabel: true }),
       entities.rows.length ? field({ label: 'Entidade', control: entity }) : null, el('label', { class: 'check-row' }, [primary, el('span', { text: 'Contato principal' })]),
       el('div', { class: 'form-actions span-2' }, button('Salvar contato', { variant: 'primary', type: 'submit', iconName: 'check' }))]);
-    form.addEventListener('submit', async (event) => {
+    onSubmit(form, async (event) => {
       event.preventDefault();
       try {
         await ctx.api('provider-contacts', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, provider_id: provider.id, name: name.value.trim(), title: title.value.trim() || null,
@@ -149,7 +149,7 @@ export async function openProviderRelationship(ctx, provider) {
     const since = el('input', { type: 'date' });
     const form = el('form', { class: 'stack', novalidate: true }, [field({ label: 'Entidade', control: entity }), field({ label: 'Estado', control: status }), categories,
       field({ label: 'Relacionamento desde', control: since, optionalLabel: true }), el('div', { class: 'form-actions' }, button('Salvar relação', { variant: 'primary', type: 'submit', iconName: 'check' }))]);
-    form.addEventListener('submit', async (event) => {
+    onSubmit(form, async (event) => {
       event.preventDefault();
       try {
         await ctx.api('provider-relationships', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, provider_id: provider.id, legal_entity_id: entity.value,
@@ -177,7 +177,7 @@ export async function openProviderRelationship(ctx, provider) {
       field({ label: 'Severidade', control: severity }), field({ label: 'Contrato', control: contract }), entities.rows.length ? field({ label: 'Entidade', control: entity, hint: 'Com contrato, vale a entidade do contrato.' }) : null,
       field({ label: 'Prazo', control: due, optionalLabel: true }), field({ label: 'Descrição', control: description, optionalLabel: true, className: 'span-2' }),
       el('div', { class: 'form-actions span-2' }, button('Abrir issue', { variant: 'primary', type: 'submit', iconName: 'check' }))]);
-    form.addEventListener('submit', async (event) => {
+    onSubmit(form, async (event) => {
       event.preventDefault();
       if (title.value.trim().length < 3) { toast('Dê um título à issue.', 'error'); return; }
       try {
@@ -193,7 +193,7 @@ export async function openProviderRelationship(ctx, provider) {
     const resolution = el('textarea', { rows: '3', maxlength: '2000' });
     const form = el('form', { class: 'stack', novalidate: true }, [field({ label: 'Como foi resolvida', control: resolution, required: true }),
       el('div', { class: 'form-actions' }, button('Marcar como resolvida', { variant: 'primary', type: 'submit', iconName: 'check' }))]);
-    form.addEventListener('submit', async (event) => {
+    onSubmit(form, async (event) => {
       event.preventDefault();
       try { await ctx.api('provider-issues', { method: 'PATCH', body: JSON.stringify({ issue_id: issue.id, status: 'resolved', resolution: resolution.value.trim() }) }); after('Issue resolvida.'); }
       catch (error) { toast(error.message, 'error'); }
@@ -220,7 +220,7 @@ export async function openProviderRelationship(ctx, provider) {
       field({ label: 'Comentário', control: comment, optionalLabel: true }),
       el('p', { class: 'muted small', text: 'O resultado é a média ponderada pelos pesos do seu scorecard, só sobre os critérios respondidos, com a cobertura exibida. Avaliação registrada não é editada.' }),
       el('div', { class: 'form-actions' }, button('Registrar avaliação', { variant: 'primary', type: 'submit', iconName: 'check' }))]);
-    form.addEventListener('submit', async (event) => {
+    onSubmit(form, async (event) => {
       event.preventDefault();
       const values = Object.fromEntries([...scores.querySelectorAll('input')].filter((input) => input.value !== '').map((input) => [input.name, Number(input.value)]));
       if (!Object.keys(values).length || !start.value || !end.value) { toast('Informe o período e ao menos uma nota.', 'error'); return; }
@@ -251,7 +251,7 @@ export function scorecardSettings(ctx) {
       criteria.value = 'Atendimento; 40; 5\nPrazo de resposta; 30; 5\nQualidade da implantação; 30; 5';
       const form = el('form', { class: 'stack', novalidate: true }, [field({ label: 'Nome do scorecard', control: name }), field({ label: 'Critérios', control: criteria, hint: 'Salvar com o mesmo nome cria uma nova versão; avaliações antigas mantêm a versão delas.' }),
         el('div', { class: 'form-actions' }, button('Salvar scorecard', { type: 'submit', iconName: 'check' }))]);
-      form.addEventListener('submit', async (event) => {
+      onSubmit(form, async (event) => {
         event.preventDefault();
         const slug = (text) => text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').replace(/^([0-9])/, 'c_$1').slice(0, 40);
         const items = criteria.value.split('\n').map((line) => line.split(';').map((part) => part.trim())).filter((parts) => parts[0]).map(([label, weight, scale]) => ({ key: slug(label), label, weight: Number(weight), scale_max: Number(scale || 5) }));

@@ -4,7 +4,7 @@ import { graphContextCard } from './graph-context.js';
 import { PRODUCTS } from '../../../lib/finance/products.mjs';
 import { SOURCE_LABELS, fieldLabel } from '../../../lib/finance/passport.mjs';
 import { el, icon, money, percent, fieldValue, formatDate, formatDateTime, relativeDays, daysUntil, productLabel, RFQ_STATUS, PROPOSAL_STATUS, APPROVAL_STATUS, PROVIDER_KINDS, todayIso, timeAgo } from '../core.js';
-import { card, pill, tag, button, linkButton, emptyState, errorState, loading, tabs, definitionList, toast, confirmDialog, promptDialog, drawer, field, catalogControl, person, menu, progress } from '../ui.js';
+import { card, pill, tag, button, linkButton, emptyState, errorState, loading, tabs, definitionList, toast, confirmDialog, promptDialog, drawer, field, catalogControl, person, menu, progress, onSubmit } from '../ui.js';
 import { loadEntities, rfqEntityControl } from './entities.js';
 import { comparisonMatrix, weightsPanel, revisionTimeline, collaboration, activityLog, approvalSteps, approvalActions, currentStep, memberName, memberTitle, coverage, approvalSummaryLine, lazyDocuments, keyTerms } from './shared.js';
 import { planSummary, policyTimeline, stageAssignments, loadPolicies } from './policy.js';
@@ -229,7 +229,7 @@ function inviteForm(ctx, rfq) {
   for (const provider of options) select.add(new Option(`${provider.name} · ${PROVIDER_KINDS[provider.kind] || provider.kind}`, provider.id));
   const submit = button('Convidar', { variant: 'primary', type: 'submit', size: 'sm', iconName: 'send' });
   const form = el('form', { class: 'inline-form' }, [field({ label: 'Convidar provedor', control: select }), submit]);
-  form.addEventListener('submit', async (event) => {
+  onSubmit(form, async (event) => {
     event.preventDefault();
     submit.disabled = true;
     try {
@@ -266,7 +266,7 @@ function editDrawer(ctx, rfq) {
   const save = button(rfq.status === 'draft' ? 'Salvar alterações' : 'Publicar revisão', { variant: 'primary', type: 'submit', iconName: 'check' });
   const dialog = drawer({ title: 'Editar solicitação', subtitle: rfq.title, body: [status, form], footer: [button('Cancelar', { variant: 'ghost', onClick: () => dialog.close() }), save] });
   save.setAttribute('form', 'revision-form');
-  form.addEventListener('submit', async (event) => {
+  onSubmit(form, async (event) => {
     event.preventDefault();
     const entries = Object.fromEntries(new FormData(form));
     if ((entries.title || '').trim().length < 3) { form.querySelector('[name=title]').closest('.field').setError('Use pelo menos 3 caracteres.'); return; }
@@ -503,7 +503,7 @@ function approvalRequestForm(ctx, rfq, latest) {
   const submit = button('Solicitar aprovação', { variant: 'primary', type: 'submit', iconName: 'send' });
   body.append(proposalGroup, modeBox, rationaleField, error, el('div', { class: 'form-actions' }, submit));
   form.append(body);
-  form.addEventListener('submit', async (event) => {
+  onSubmit(form, async (event) => {
     event.preventDefault();
     error.hidden = true;
     if (!rationale.value.trim()) { rationaleField.setError('Explique o contexto para quem vai aprovar.'); rationale.focus(); return; }
@@ -582,7 +582,7 @@ function decisionTab(ctx, rfq, { decision, contract, policy, approvals, manage }
   el('div', { class: 'card-body stack' }, [group, field({ label: 'Justificativa', control: rationale, optionalLabel: true }),
     weights ? el('label', { class: 'check' }, [useWeights, el('span', { text: 'Registrar os pesos aplicados na comparação como critério desta decisão' })]) : null,
     el('div', { class: 'form-actions' }, submit)]));
-  form.addEventListener('submit', async (event) => {
+  onSubmit(form, async (event) => {
     event.preventDefault();
     const data = new FormData(form);
     const chosen = proposals.find((row) => row.id === data.get('proposal_id'));
@@ -622,7 +622,7 @@ function contractForm(ctx, rfq, decision, chosen) {
       field({ label: 'Resumo do custo', control: cost, className: 'span-2' }), field({ label: 'Condições principais', control: conditions, optionalLabel: true, className: 'span-2' })
     ]), el('div', { class: 'form-actions' }, submit)])
   ]);
-  form.addEventListener('submit', async (event) => {
+  onSubmit(form, async (event) => {
     event.preventDefault();
     if (ends.value < starts.value) { ends.closest('.field').setError('O fim não pode ser antes do início.'); ends.focus(); return; }
     if (reference.value && !/^https:\/\//.test(reference.value)) { reference.closest('.field').setError('Use um endereço https.'); reference.focus(); return; }

@@ -5,7 +5,7 @@
 // gerada na hora e nunca guardada. A tela só vê metadados.
 
 import { el, icon, formatDateTime } from '../core.js';
-import { button, emptyState, errorState, loading, toast, confirmDialog, field } from '../ui.js';
+import { button, emptyState, errorState, loading, toast, confirmDialog, field, onSubmit } from '../ui.js';
 import { memberName } from './shared.js';
 
 const TYPES = {
@@ -153,7 +153,7 @@ export function documentsPanel(ctx, { entityType, entityId, canUpload = false, s
     ]) : null;
     const submit = button('Anexar documento', { type: 'submit', variant: 'primary', size: 'sm', iconName: 'plus' });
     form.append(field({ label: 'Arquivo', control: fileInput, hint: 'PDF, JPG, PNG, XLSX ou DOCX até 10 MB.' }), field({ label: 'Nome do documento', control: titleInput }), choices, submit);
-    form.addEventListener('submit', async (event) => {
+    onSubmit(form, async (event) => {
       event.preventDefault();
       submit.disabled = true;
       const ok = await upload({ file: fileInput.files?.[0], title: titleInput.value.trim() || 'Documento', visibility: form.elements.namedItem('visibility')?.value || 'internal' });

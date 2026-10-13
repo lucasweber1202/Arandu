@@ -5,7 +5,7 @@
 // docs/FINANCIAL_PUBLIC_API.md.
 
 import { el, icon, formatDateTime } from '../core.js';
-import { button, tag, field, emptyState, errorState, loading, toast, confirmDialog } from '../ui.js';
+import { button, tag, field, emptyState, errorState, loading, toast, confirmDialog, onSubmit } from '../ui.js';
 import { SCOPE_LABELS, API_SCOPES, WEBHOOK_EVENTS } from '../../../lib/finance/api-catalog.mjs';
 
 const EVENT_LABELS = {
@@ -103,7 +103,7 @@ function accountsSection(ctx, result, entityOptions, render, reveal) {
   scope.addEventListener('change', () => { entities.hidden = scope.value !== 'entities'; });
   const form = el('form', { class: 'stack-sm', novalidate: true }, [field({ label: 'Nome do sistema', control: name }), scopes, field({ label: 'Alcance', control: scope }), entities,
     button('Criar conta de serviço', { type: 'submit', size: 'sm', iconName: 'plus' })]);
-  form.addEventListener('submit', async (event) => {
+  onSubmit(form, async (event) => {
     event.preventDefault();
     try {
       await ctx.api('service-accounts', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, name: name.value.trim(), scopes: checked(scopes),
@@ -140,7 +140,7 @@ function webhooksSection(ctx, result, entityOptions, render, reveal) {
   const entities = checkboxes('Filtrar entidades (opcional)', entityOptions.map((row) => row.id), Object.fromEntries(entityOptions.map((row) => [row.id, row.short_name || row.legal_name])));
   const form = el('form', { class: 'stack-sm', novalidate: true }, [field({ label: 'URL https pública', control: url, hint: 'Porta 443, sem usuário/senha; endereços internos são recusados.' }), events,
     entityOptions.length ? entities : el('span'), button('Criar webhook', { type: 'submit', size: 'sm', iconName: 'plus' })]);
-  form.addEventListener('submit', async (event) => {
+  onSubmit(form, async (event) => {
     event.preventDefault();
     try {
       const out = await ctx.api('webhooks', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, url: url.value.trim(), events: checked(events), entity_ids: checked(entities) }) });

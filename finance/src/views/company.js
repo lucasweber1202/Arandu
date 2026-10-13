@@ -3,7 +3,7 @@
 
 import { PRODUCTS } from '../../../lib/finance/products.mjs';
 import { el, icon, money, percent, formatDate, formatDateTime, relativeDays, daysUntil, productLabel, demandHeadline, RFQ_STATUS, CONTRACT_STATUS, PROPOSAL_STATUS, PROVIDER_KINDS, ROLE_LABELS, timeAgo, fold, todayIso, renewalStage } from '../core.js';
-import { card, pill, tag, button, linkButton, emptyState, errorState, loading, tabs, definitionList, toast, confirmDialog, drawer, field, person, avatar } from '../ui.js';
+import { card, pill, tag, button, linkButton, emptyState, errorState, loading, tabs, definitionList, toast, confirmDialog, drawer, field, person, avatar, onSubmit } from '../ui.js';
 import { memberName, currentStep, approvalSummaryLine, comparisonMatrix, revisionTimeline, approvalActions, approvalSteps, coverage, lazyDocuments, keyTerms } from './shared.js';
 import { NOTIFICATION_META, notificationItem } from '../shell.js';
 import { CONTRACT_CATEGORIES } from '../../../lib/finance/contract-terms.mjs';
@@ -323,7 +323,7 @@ function providerDrawer(ctx) {
     el('p', { class: 'callout callout-info compact' }, [icon('shield', { size: 14 }), el('span', { text: 'O Arandu não afirma que um provedor é regulado sem autoridade, registro, evidência e data de consulta.' })]));
   const save = button('Cadastrar instituição', { variant: 'primary', type: 'submit', iconName: 'check', attrs: { form: 'provider-form' } });
   const dialog = drawer({ title: 'Cadastrar instituição', body: form, footer: [button('Cancelar', { variant: 'ghost', onClick: () => dialog.close() }), save] });
-  form.addEventListener('submit', async (event) => {
+  onSubmit(form, async (event) => {
     event.preventDefault();
     if (name.value.trim().length < 2) { nameField.setError('Informe o nome do provedor.'); name.focus(); return; }
     if (website.value && !/^https:\/\//.test(website.value)) { website.closest('.field').setError('Use um endereço https.'); return; }
@@ -347,7 +347,7 @@ export async function tasks(ctx) {
   const title = el('input', { name: 'title', maxlength: '200', placeholder: 'Nova tarefa…' });
   const due = el('input', { name: 'due_on', type: 'date', min: todayIso() });
   form.append(field({ label: 'Nova tarefa', control: title }), field({ label: 'Prazo', control: due, optionalLabel: true }), button('Adicionar', { variant: 'primary', type: 'submit', iconName: 'plus' }));
-  form.addEventListener('submit', async (event) => {
+  onSubmit(form, async (event) => {
     event.preventDefault();
     if (title.value.trim().length < 2) { title.closest('.field').setError('Descreva a tarefa.'); title.focus(); return; }
     try {
@@ -464,7 +464,7 @@ export async function settings(ctx) {
     field({ label: 'Setor', control: sector }), field({ label: 'Faixa de faturamento', control: band }),
     canEdit ? el('div', { class: 'form-actions span-2' }, button('Salvar dados da empresa', { variant: 'primary', type: 'submit' })) : null].filter(Boolean));
   if (!canEdit) for (const control of orgForm.querySelectorAll('input,select')) control.disabled = true;
-  orgForm.addEventListener('submit', async (event) => {
+  onSubmit(orgForm, async (event) => {
     event.preventDefault();
     const body = Object.fromEntries(new FormData(orgForm));
     for (const [key, value] of Object.entries(body)) if (value === '') delete body[key];
@@ -481,7 +481,7 @@ export async function settings(ctx) {
     const meForm = el('form', { class: 'inline-form', novalidate: true, id: 'member-profile-form' }, [
       field({ label: 'Seu nome', control: nameInput, required: true }), field({ label: 'Cargo', control: titleInput, optionalLabel: true }),
       button('Salvar', { type: 'submit', iconName: 'check' })]);
-    meForm.addEventListener('submit', async (event) => {
+    onSubmit(meForm, async (event) => {
       event.preventDefault();
       if (nameInput.value.trim().length < 2) { toast('Informe seu nome, com pelo menos 2 caracteres.', 'error'); nameInput.focus(); return; }
       try { await ctx.api('members/me', { method: 'PATCH', body: JSON.stringify({ organization_id: ctx.organization.id, display_name: nameInput.value.trim(), title: titleInput.value.trim() }) }); toast('Nome e cargo atualizados.'); ctx.reload(); }

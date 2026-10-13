@@ -3,7 +3,7 @@
 import { PRODUCTS, PRODUCT_IDS, checkAcquiringShares } from '../../../lib/finance/products.mjs';
 import { passportPrefill, SOURCE_LABELS } from '../../../lib/finance/passport.mjs';
 import { el, icon, fold, daysUntil, relativeDays, formatDate, formatDateTime, productLabel, demandHeadline, RFQ_STATUS, fieldValue, todayIso } from '../core.js';
-import { pill, linkButton, button, emptyState, person, progress, field, catalogControl, saveIndicator, toast, confirmDialog, tag } from '../ui.js';
+import { pill, linkButton, button, emptyState, person, progress, field, catalogControl, saveIndicator, toast, confirmDialog, tag, onSubmit } from '../ui.js';
 import { loadEntities, entityContextSelect, inContext, entityName, entityField } from './entities.js';
 
 const NEXT_ACTION = {
@@ -528,7 +528,7 @@ export async function newRfq(ctx) {
   };
   const forgetRequestKey = () => { try { sessionStorage.removeItem(requestKeyStore); } catch {} };
 
-  form.addEventListener('submit', async (event) => {
+  onSubmit(form, async (event) => {
     event.preventDefault();
     for (const step of [0, 1, 2]) if (!validate(step)) { show(step, { focus: true }); validate(step); return; }
     if (conflicted) { toast('Resolva o conflito com a outra aba antes de criar.', 'error'); return; }
