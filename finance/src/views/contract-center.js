@@ -68,7 +68,54 @@ function termsEditor(category, initial = {}) {
     if (feeRows.length) terms.fees = feeRows;
     return terms;
   };
+  /** Preenche só campo vazio; devolve 'filled', 'same' ou 'kept' (a pessoa já digitou outro valor). */
+  wrap.fillIfEmpty = (key, value, hint) => {
+    const entry = controls.get(key);
+    if (!entry) return 'kept';
+    const current = String(entry.control.value || '').trim();
+    if (current && current.toLowerCase() !== String(value).toLowerCase() && Number(current) !== Number(value)) return 'kept';
+    if (current) return 'same';
+    entry.control.value = String(value);
+    entry.control.dispatchEvent(new Event('input', { bubbles: true }));
+    const holder = entry.control.closest('.field');
+    if (holder && hint) holder.append(el('p', { class: 'field-hint field-source', text: hint }));
+    return 'filled';
+  };
   return wrap;
+}
+
+const sourceText = (source) => [source.document_title ? `Do documento "${source.document_title}"` : 'De um documento do contrato',
+  source.page ? `pág. ${source.page}` : null, source.confirmed_at ? `confirmado em ${formatDate(source.confirmed_at)}` : 'confirmado'].filter(Boolean).join(', ');
+
+/**
+ * Valores já confirmados na revisão de documentos do contrato (e da proposta
+ * que o originou). Só preenche campos vazios; a pessoa revisa e grava a versão.
+ */
+function confirmedFactsPanel(ctx, contractId, editor) {
+  const panel = el('div', { class: 'callout compact', hidden: true, role: 'region', 'aria-label': 'Valores confirmados em documentos' });
+  ctx.api(`contract-fact-suggestions?contract_id=${encodeURIComponent(contractId)}`).then((out) => {
+    const suggestions = out.suggestions || [];
+    const conflicts = out.conflicts || [];
+    if (!suggestions.length && !conflicts.length) return;
+    const status = el('p', { class: 'small', role: 'status', 'aria-live': 'polite' });
+    const parts = [icon('file', { size: 14 }), el('span', { text: suggestions.length
+      ? `${suggestions.length} ${suggestions.length === 1 ? 'valor confirmado' : 'valores confirmados'} na revisão de documentos deste contrato.`
+      : 'Há valores confirmados em documentos deste contrato que não concordam entre si.' })];
+    if (suggestions.length) parts.push(button('Preencher campos vazios', { size: 'sm', onClick: () => {
+      let filled = 0, kept = 0;
+      for (const item of suggestions) {
+        const result = editor.fillIfEmpty(item.key, item.value, sourceText(item.source));
+        if (result === 'filled') filled += 1; else if (result === 'kept') kept += 1;
+      }
+      status.textContent = [`${filled} ${filled === 1 ? 'campo preenchido' : 'campos preenchidos'} com a origem indicada.`,
+        kept ? `${kept} mantido(s) como você digitou.` : null, 'Revise antes de gravar.'].filter(Boolean).join(' ');
+    } }));
+    const conflictList = conflicts.length ? el('ul', { class: 'plain-list small' }, conflicts.map((item) =>
+      el('li', { text: `${item.label}: ${item.reason === 'currency_mismatch' ? 'documentos em moedas diferentes' : `valores diferentes (${item.values.map((v) => v.value).join(' × ')})`}; preencha a partir do contrato assinado.` }))) : null;
+    panel.replaceChildren(el('div', { class: 'stack' }, [el('div', { class: 'callout-line' }, parts), conflictList, status].filter(Boolean)));
+    panel.hidden = false;
+  }).catch(() => {});
+  return panel;
 }
 
 /** Botão + formulário de contrato existente (carteira fora de RFQ). */
@@ -190,7 +237,7 @@ export function openContract(ctx, contract, { initialDetail = null } = {}) {
   function termsForm(current, terms) {
     const editor = termsEditor(current.product, terms);
     const reason = el('textarea', { rows: '2', maxlength: '1000' });
-    const form = el('form', { class: 'stack', novalidate: true }, [editor, current.current_version ? field({ label: 'Justificativa da correção', control: reason, required: true, hint: 'A versão anterior continua no histórico.' }) : null,
+    const form = el('form', { class: 'stack', novalidate: true }, [confirmedFactsPanel(ctx, current.id, editor), editor, current.current_version ? field({ label: 'Justificativa da correção', control: reason, required: true, hint: 'A versão anterior continua no histórico.' }) : null,
       el('div', { class: 'form-actions' }, button(current.current_version ? 'Gravar nova versão' : 'Gravar versão 1', { variant: 'primary', type: 'submit', iconName: 'check' }))]);
     form.addEventListener('submit', async (event) => {
       event.preventDefault();

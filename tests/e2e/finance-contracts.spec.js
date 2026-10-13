@@ -120,6 +120,43 @@ test('correção de termos exige justificativa', async ({ page }) => {
 });
 
 
+test('termos: valores confirmados em documentos preenchem só campos vazios, com origem, e nada é gravado sozinho', async ({ page }) => {
+  const calls = await mockSession(page);
+  const source = { document_title: 'Contrato assinado DEMO', page: 3, confirmed_at: '2026-10-01T12:00:00Z' };
+  await page.route('**/api/finance/contract-fact-suggestions**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true,
+    suggestions: [{ key: 'limit_amount', label: 'Limite contratado', value: 6000000, source }, { key: 'spread_pct_year', label: 'Spread (% a.a.)', value: 2.4, source },
+      { key: 'guarantees', label: 'Garantias', value: 'Cessão fiduciária de recebíveis', source }],
+    conflicts: [{ key: 'rate_pct_year', label: 'Taxa (% a.a.)', values: [{ value: 14.1 }, { value: 14.4 }] }], skipped: 1 }) }));
+  await page.goto('/finance/contracts.html');
+  await page.getByRole('button', { name: /Abrir contrato/ }).click();
+  const panel = page.getByRole('dialog');
+  await panel.getByRole('button', { name: 'Corrigir termos (nova versão)' }).click();
+  const facts = panel.getByRole('region', { name: 'Valores confirmados em documentos' });
+  await expect(facts).toContainText('3 valores confirmados');
+  await expect(facts).toContainText('Taxa (% a.a.): valores diferentes (14.1 × 14.4)');
+  await facts.getByRole('button', { name: 'Preencher campos vazios' }).click();
+  await expect(facts.getByRole('status')).toContainText('2 campos preenchidos com a origem indicada. 1 mantido(s) como você digitou. Revise antes de gravar.');
+  await expect(panel.getByLabel('Limite contratado')).toHaveValue('6000000');
+  await expect(panel.getByLabel('Spread (% a.a.)')).toHaveValue('2.1');
+  await expect(panel.getByText(/Do documento "Contrato assinado DEMO", pág\. 3, confirmado em/).first()).toBeVisible();
+  expect(calls.some((call) => call.path === 'contract-terms')).toBe(false);
+  await panel.getByLabel(/Justificativa da correção/).fill('Termos do contrato assinado');
+  await panel.getByRole('button', { name: 'Gravar nova versão' }).click();
+  await expect.poll(() => calls.find((call) => call.path === 'contract-terms')?.body?.terms).toMatchObject({ limit_amount: 6000000, spread_pct_year: 2.1, guarantees: 'Cessão fiduciária de recebíveis' });
+  await noHorizontalOverflow(page);
+});
+
+test('termos: sem valores confirmados, nenhum aviso aparece', async ({ page }) => {
+  await mockSession(page);
+  await page.route('**/api/finance/contract-fact-suggestions**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, suggestions: [], conflicts: [], skipped: 0 }) }));
+  await page.goto('/finance/contracts.html');
+  await page.getByRole('button', { name: /Abrir contrato/ }).click();
+  const panel = page.getByRole('dialog');
+  await panel.getByRole('button', { name: 'Corrigir termos (nova versão)' }).click();
+  await expect(panel.getByRole('button', { name: 'Gravar nova versão' })).toBeVisible();
+  await expect(panel.getByRole('region', { name: 'Valores confirmados em documentos' })).toHaveCount(0);
+});
+
 test('contrato abre termos e histórico pelo link contextual', async ({ page }) => {
   await mockSession(page);
   await page.goto(`/finance/contracts.html?abrir=contrato#contract-${CONTRACT}`);

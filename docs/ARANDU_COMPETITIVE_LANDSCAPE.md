@@ -1,6 +1,6 @@
 # Arandu — Panorama competitivo e mapa de diferenciação
 
-**Versão:** 1.0 — 11/10/2026 · **Normativo?** Não. É insumo da Guideline v3.3 (§35–§36) e deve ser revisado a cada trimestre (§36.16 da guideline).
+**Versão:** 1.1 — 13/10/2026 (incremento: §7) · **Normativo?** Não. É insumo da Guideline v3.3 (§35–§36) e deve ser revisado a cada trimestre (§36.16 da guideline).
 
 ## Método e limites
 
@@ -102,3 +102,12 @@
 ## 6. Parceiros de integração potenciais (não contratados)
 
 Kyriba, Trovata (dados bancários/tarifas), Nexxera (adquirência, conciliação, duplicata), Qive (documentos de serviço), DocuSign (assinatura, já citado como integração comum no mercado). Qualquer integração segue a guideline §17 (adapter, source of truth, fail closed) e exige contrato de dados.
+
+## 7. Incremento de 13/10/2026 — repositórios públicos e padrões de bid analysis
+
+| Fonte | Fato observado (13/10/2026) | Confiança | Licença | Estado no Arandu | Uso |
+| --- | --- | --- | --- | --- | --- |
+| ERPNext, `erpnext/buying/report/supplier_quotation_comparison/supplier_quotation_comparison.js` (leitura do arquivo público) | filtros por RFQ, fornecedor, item, estado e "incluir vencidas" (padrão desligado); agrupamento por fornecedor ou item; validade da cotação destacada a ≤ 1 e ≤ 7 dias; menor preço destacado | alta (código lido) | GPL-3.0 — **nenhum código reutilizado** | validade curta já sinalizada no cartão da proposta; comparação por versão e cobertura já existem; destaque de "menor preço" **não** é adotado (neutralidade: nada é "melhor" sem pesos da empresa) | confirma o padrão de validade visível; nada a implementar |
+| SAP Ariba, help "Bid analysis" | página renderizada só por JavaScript; conteúdo não lido pela ferramenta | não verificada | proprietária | — | nenhuma conclusão registrada |
+
+Observação de produto que virou código nesta rodada (padrão comum a suites de procurement e CLM: valor extraído e revisado por pessoa reaproveitado no registro, sem redigitar): fatos confirmados de documentos do contrato preenchem os termos estruturados com origem visível (`docs/FINANCIAL_DOCUMENT_INTELLIGENCE.md`). Hipótese, não medida: reduz redigitação de 5–7 termos por contrato importado com documento revisado.

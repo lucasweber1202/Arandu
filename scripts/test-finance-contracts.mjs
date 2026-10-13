@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { Readable } from 'node:stream';
 import { handleFinance } from '../lib/api/domains/finance.mjs';
+import { contractTermSuggestions } from '../lib/finance/fact-application.mjs';
 import { normalizeContractTerms, diffContractTerms, effectiveTerms, nextOccurrence, contractTermFields } from '../lib/finance/contract-terms.mjs';
 
 // Contract & Renewal Center v2: catálogo de termos (allowlist), diff factual,
@@ -142,6 +143,56 @@ reset((entry) => entry.url.includes(`fin_contracts?select=*&id=eq.${CONTRACT}`) 
   assert.deepEqual(res.payload.versions[0].changes, [{ key: 'spread_pct_year', label: 'Spread (% a.a.)', change: 'changed', before: 2.1, after: 1.9 }]);
   assert.deepEqual(res.payload.versions[1].changes, []);
   assert.ok(sent.every((entry) => entry.method === 'GET'), 'detalhe só lê');
+}
+
+// ------------------------------------- fatos confirmados → termos do contrato
+{
+  const fact = (field_key, normalized_value, extra = {}) => ({ schema_key: 'contract_terms', field_key, normalized_value, status: 'confirmed', value_state: 'present',
+    unit: null, currency: null, page: 2, confirmed_at: '2026-10-01T12:00:00Z', document_title: 'Contrato assinado DEMO', ...extra });
+  const out = contractTermSuggestions('credit', [
+    fact('amount_limit', 5000000, { currency: 'BRL' }), fact('currency', 'BRL'), fact('indexer', 'CDI'),
+    fact('spread_pct_year', 2.1, { unit: 'percent_per_year' }), fact('renewal', 'Renovação anual mediante aditivo'),
+    // Não viram sugestão: sem confirmação, ambíguo, unidade incompatível, campo do contrato (não termo), fora do intervalo.
+    fact('termination', 'Rescisão com 30 dias', { status: 'needs_review' }),
+    fact('notice_days', 30), { ...fact('amount_limit', null), value_state: 'ambiguous' },
+    { ...fact('spread_pct_year', 0.2, { unit: 'percent_per_month' }), schema_key: 'credit_proposal' }
+  ]);
+  assert.deepEqual(Object.fromEntries(out.suggestions.map((s) => [s.key, s.value])),
+    { limit_amount: 5000000, currency: 'BRL', indexer: 'cdi', spread_pct_year: 2.1, renewal_terms: 'Renovação anual mediante aditivo' });
+  assert.deepEqual(out.conflicts, []);
+  assert.equal(out.skipped, 4, 'não confirmado, campo fora do catálogo, ambíguo e % a.m. num campo % a.a. ficam de fora');
+  assert.equal(out.suggestions.find((s) => s.key === 'limit_amount').source.page, 2);
+  // Dois documentos confirmados que discordam: conflito declarado, sem escolha silenciosa.
+  const conflict = contractTermSuggestions('credit', [fact('spread_pct_year', 2.1, { unit: 'percent' }), fact('spread_pct_year', 2.4, { unit: 'percent', document_title: 'Aditivo DEMO' })]);
+  assert.deepEqual([conflict.suggestions.length, conflict.conflicts[0]?.key], [0, 'spread_pct_year']);
+  // Moedas diferentes entre documentos: nenhum valor monetário é sugerido.
+  const currencies = contractTermSuggestions('credit', [fact('amount_limit', 100, { currency: 'USD' }), fact('currency', 'BRL'), fact('indexer', 'IPCA')]);
+  assert.deepEqual(currencies.suggestions.map((s) => s.key), ['indexer']);
+  assert.ok(currencies.conflicts.every((c) => c.reason === 'currency_mismatch'));
+  // Termo de adquirência só existe em contrato de adquirência; MDR exige unidade %.
+  const acq = (k, v, u = 'percent') => ({ ...fact(k, v, { unit: u }), schema_key: 'acquiring_proposal' });
+  assert.deepEqual(contractTermSuggestions('credit', [acq('mdr_debit_pct', 1.1)]).suggestions, []);
+  assert.deepEqual(contractTermSuggestions('acquiring', [acq('mdr_debit_pct', 1.1), acq('settlement_days', 2, 'days'), acq('pix_fee_pct', 0.5)]).suggestions.map((s) => [s.key, s.value]),
+    [['mdr_debit_pct', 1.1], ['settlement_days', 2], ['pix_pct', 0.5]]);
+  // Texto com marcação não é sugerido.
+  assert.deepEqual(contractTermSuggestions('credit', [fact('renewal', '<script>x</script>')]).suggestions, []);
+}
+
+// Rota: só leitura com o JWT de quem chama; contrato invisível = 404 sem consultar documentos.
+{
+  const CONTRACT = '00000000-0000-4000-8000-0000000000c1';
+  const DOC = '00000000-0000-4000-8000-0000000000d1';
+  reset((entry) => entry.url.includes('fin_contracts') ? [] : []);
+  await rejects('GET', 'contract-fact-suggestions', { url: `/api/finance/contract-fact-suggestions?contract_id=${CONTRACT}` }, 404, 'contract_not_found');
+  assert.ok(!sent.some((entry) => entry.url.includes('fin_private_documents')), 'contrato invisível não consulta documentos');
+  await rejects('GET', 'contract-fact-suggestions', { url: '/api/finance/contract-fact-suggestions?contract_id=nao-e-uuid' }, 400);
+  reset((entry) => entry.url.includes('fin_contracts') ? [{ id: CONTRACT, product: 'credit', proposal_id: null, organization_id: ORG }]
+    : entry.url.includes('fin_private_documents') ? [{ id: DOC, title: 'Contrato assinado DEMO' }]
+    : entry.url.includes('fin_extraction_facts') ? [{ document_id: DOC, schema_key: 'contract_terms', field_key: 'indexer', status: 'confirmed', value_state: 'present', normalized_value: 'CDI', unit: null, currency: null, page: 1, confirmed_at: '2026-10-01T12:00:00Z' }] : []);
+  const ok = await call('GET', 'contract-fact-suggestions', { url: `/api/finance/contract-fact-suggestions?contract_id=${CONTRACT}` });
+  assert.deepEqual(ok.payload.suggestions.map((s) => [s.key, s.value, s.source.document_title]), [['indexer', 'cdi', 'Contrato assinado DEMO']]);
+  assert.ok(sent.every((entry) => entry.authorization === 'Bearer user-jwt' && entry.method === 'GET'), 'só leitura com o JWT do usuário');
+  assert.ok(sent.find((entry) => entry.url.includes('fin_extraction_facts')).url.includes('status=eq.confirmed'));
 }
 
 console.log('Contract Center v2: catálogo de termos (allowlist), diff factual, termos efetivos, recorrência e API (importação, versões, aditivos, marcos) aprovados.');

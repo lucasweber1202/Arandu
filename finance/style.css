@@ -102,6 +102,8 @@ code{font-family:var(--mono);font-size:.92em;background:var(--surface-sunken);pa
 .person-name{font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .person-detail{font-size:var(--fs-xs);color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .callout{display:flex;align-items:flex-start;gap:var(--s3);padding:var(--s3) var(--s4);border-radius:var(--r-md);border:1px solid;font-size:var(--fs-md)}
+.callout-line{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2)}
+.field-source{color:var(--text-muted)}
 .callout>.icon{margin-top:2px}
 .callout p{margin-top:2px}
 .callout.compact{padding:var(--s2) var(--s3);font-size:var(--fs-sm)}

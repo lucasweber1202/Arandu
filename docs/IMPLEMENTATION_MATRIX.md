@@ -1,5 +1,19 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 13/10/2026 — Fatos confirmados de documentos preenchem os termos do contrato
+
+Base: `main` @ `5725915` (#180). Estado: M1 + testes locais e E2E (mocks da API);
+nada hospedado.
+
+| Item | Antes | Agora | Evidência |
+| --- | --- | --- | --- |
+| Document Intelligence × Contract Center | valor confirmado na revisão era redigitado no formulário de termos (limitação registrada em `FINANCIAL_DOCUMENT_INTELLIGENCE.md`) | `GET contract-fact-suggestions` (só leitura, JWT/RLS) + `lib/finance/fact-application.mjs`: fatos **confirmados** de documentos do contrato e da proposta que o originou preenchem só campos vazios, com documento, página e data da confirmação; conflito entre documentos, unidade incompatível e moedas diferentes viram aviso; nada é gravado sem a pessoa gravar a versão | `test-finance-contracts` (mapeamento, 4 recusas, conflito, moeda, adquirência, marcação, 404 sem consultar documentos, só GET com JWT); E2E `finance-contracts` 18 passed (Chromium desktop + mobile); suíte financeira 257 passed / 7 skipped |
+| Benchmark | — | `ARANDU_COMPETITIVE_LANDSCAPE.md` §7: ERPNext (GPL-3.0, só leitura do código, nada reutilizado); SAP Ariba sem leitura possível (não verificado) | — |
+
+Limites: sem captura visual antes/depois (`design:capture` exige a Demo local
+com Docker, ausente: NOT RUN); Firefox/WebKit NOT RUN; ganho de redigitação é
+hipótese, não medida.
+
 ## 13/10/2026 — Fechamento técnico pós-#179: recuperação real local, build de Production e requisito externo mínimo
 
 Base: `main` @ `f00fd30` (#179; quatro gates success no HEAD `0ee4c79`). Nenhum
