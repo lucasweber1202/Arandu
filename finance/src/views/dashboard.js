@@ -191,7 +191,7 @@ export async function dashboard(ctx) {
         el('a', { class: 'mini-title stretched', href: ctx.href(`/finance/contracts.html#contract-${contract.id}`), text: contract.provider_name }),
         el('span', { class: 'mini-meta', text: `${productLabel(contract.product, { short: true })} · ${stage.stage === 'past_notice' ? 'aviso prévio vencido' : inWindow ? `decidir até ${formatDate(stage.deadline, { withYear: false })}` : `janela abre ${formatDate(stage.opensAt, { withYear: false })}`}` })
       ]),
-      el('span', { class: `mini-side${inWindow ? ' warn' : ''}`, text: days !== null ? `${days} dias` : '—' })
+      el('span', { class: `mini-side${inWindow ? ' warn' : ''}`, text: days === null ? '—' : days === 0 ? 'hoje' : days === 1 ? '1 dia' : days < 0 ? 'vencido' : `${days} dias` })
     ]);
   }));
   const contractsCard = card({ title: 'Contratos e renovações', actions: [linkButton('Contratos', ctx.href('/finance/contracts.html'), { variant: 'ghost', size: 'sm', iconName: 'arrowRight' })],

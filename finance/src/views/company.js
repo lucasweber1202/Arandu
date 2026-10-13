@@ -228,7 +228,7 @@ export async function contracts(ctx) {
           entities.rows.length ? el('p', { class: 'contract-entity', 'aria-label': `Entidade: ${entityName(entities, contract.legal_entity_id)}` }, contractEntityControl(ctx, entities, contract)) : null
         ]),
         el('div', { class: 'contract-status' }, [pill(CONTRACT_STATUS[contract.status]), contract.days_to_end !== null && contract.days_to_end !== undefined && ['active', 'renewing'].includes(contract.status)
-          ? el('span', { class: `contract-days${contract.days_to_end <= 60 ? ' warn' : ''}`, text: contract.days_to_end >= 0 ? `vence em ${contract.days_to_end} dias` : 'vencido' }) : null])
+          ? el('span', { class: `contract-days${contract.days_to_end <= 60 ? ' warn' : ''}`, text: contract.days_to_end === 0 ? 'vence hoje' : contract.days_to_end === 1 ? 'vence amanhã' : contract.days_to_end > 1 ? `vence em ${contract.days_to_end} dias` : 'vencido' }) : null])
       ]),
       ['active', 'renewing'].includes(contract.status) ? lifecycleBar(contract) : null,
       el('div', { class: `next-action-box tone-${next.tone}` }, [icon(next.icon, { size: 16 }), el('span', { class: 'next-action-label', text: 'Próxima ação' }), el('span', { class: 'next-action-text', text: next.text }), restart]),
