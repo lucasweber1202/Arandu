@@ -36,9 +36,18 @@ try {
   // Parágrafos preservados: texto com quebras de linha e HTML com <br>.
   assert.ok(financial.text.split('\n').length > 3, 'corpo em várias linhas');
   assert.ok(financial.html.includes('<br>'), 'quebras de linha no HTML');
-  const hostile = renderTransactionalEmail('finance_provider_invite', { buyer: '<script>x</script>\r\nBcc: x@y.z', product: 'crédito', deadline: '2026-10-01', link: 'https://arandu.example/provider/invite.html#token=' + 'a'.repeat(64) });
+  const invite = (buyer) => renderTransactionalEmail('finance_provider_invite', { buyer, product: 'crédito', deadline: '2026-10-01', link: 'https://arandu.example/provider/invite.html#token=' + 'a'.repeat(64) });
+  const hostile = invite('<script>x</script>\r\nBcc Ltda');
   assert.ok(!hostile.html.includes('<script>') && hostile.html.includes('&lt;script&gt;'), 'conteúdo escapado no HTML');
   assert.ok(!/[\r\n]/.test(hostile.subject), 'assunto sem quebra de linha');
+  // Nome da empresa com link ou endereço vira descrição neutra (phishing com o remetente do Arandu).
+  for (const buyer of ['Banco X — regularize em https://evil.example/login', 'Suporte www.evil-bank.com', 'Pague em evil.com.br', 'contato@evil.example']) {
+    const email = invite(buyer);
+    assert.ok(email.subject.startsWith('Uma empresa compradora convidou'), buyer);
+    assert.ok(!/evil/i.test(email.text) && !/evil/i.test(email.subject), `link do nome no e-mail: ${buyer}`);
+  }
+  assert.ok(invite('Vitta Foods S.A.').subject.startsWith('Vitta Foods S.A. convidou'), 'razão social comum preservada');
+  assert.ok(invite('x'.repeat(300)).subject.length < 200, 'nome longo cortado');
   const inviteRef = '00000000-0000-4000-8000-00000000cb02';
   const prepared = await prepareFinancialEmail({
     template: 'finance_provider_invite',

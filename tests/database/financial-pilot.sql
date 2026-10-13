@@ -165,6 +165,12 @@ end $$;
 -- --------------------------------------------- outbox de e-mail desligada
 
 reset role;
+-- Origem real do e-mail: a fila só aceita e-mail de RFQ existente, com a
+-- organização dona (teto e justiça por organização, followup-hardening).
+insert into public.fin_organizations(id,legal_name,kind,created_by) values
+  ('00000000-0000-4000-8000-00000000cb03','Empresa e-mail DEMO','BUYER','00000000-0000-4000-8000-00000000ca01') on conflict(id) do nothing;
+insert into public.fin_rfqs(id,organization_id,product,title,owner_id,status,demand) values
+  ('00000000-0000-4000-8000-00000000cb01','00000000-0000-4000-8000-00000000cb03','credit','RFQ e-mail DEMO','00000000-0000-4000-8000-00000000ca01','draft','{}') on conflict(id) do nothing;
 do $$
 declare v_enabled text; v_queued integer;
 begin
