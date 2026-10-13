@@ -64,7 +64,7 @@ function policyRequest({ viewerCanAct = false } = {}) {
     exceptions: [{ id: 'e1', request_id: REQUEST, policy_version_id: VERSION_GROUP, rule_id: 'competition', requested_by: U.rui, reason_code: 'market_constraint', reason: 'Só um banco atende no prazo', evidence: [{ label: 'Ata', reference: 'Comitê 2026-09' }], status: 'requested', created_at: '2026-10-02T11:00:00Z' }] };
 }
 
-async function mockSession(page, { approvals = [], preview = EVALUATION } = {}) {
+async function mockSession(page, { approvals = [], preview = EVALUATION, deadlinesGate = null } = {}) {
   const calls = [];
   await page.route('**/api/finance/**', async (route) => {
     const request = route.request();
@@ -82,6 +82,7 @@ async function mockSession(page, { approvals = [], preview = EVALUATION } = {}) 
     if (path === 'approval-policies' && request.method() === 'POST') return json({ ok: true, version_id: '00000000-0000-4000-8000-0000000001b9' }, 201);
     if (path === 'approval-policies/preview') return preview ? json({ ok: true, evaluation: preview }) : json({ ok: false }, 404);
     if (path === 'approval-policies/simulate') return json({ ok: true, evaluation: { ...EVALUATION, simulation: true } });
+    if (path === 'approval-policies/process-deadlines') { await deadlinesGate; return json({ ok: true, processed: 2 }); }
     if (path === 'approval-delegations') return json({ ok: true, rows: [], viewer_id: U.paula });
     if (path === 'approvals') return json({ ok: true, rows: approvals, viewer_id: U.paula });
     if (path === 'approvals/request') return json({ ok: true, id: REQUEST, engine: 'policy' }, 201);
@@ -203,6 +204,37 @@ test('caixa de aprovações usa a vez informada pelo servidor (etapa ativa próp
   await mockSession(page, { approvals: [policyRequest({ viewerCanAct: true })] });
   await page.goto('/finance/approvals.html');
   await expect(page.getByRole('tab', { name: /Aguardando você/ })).toContainText('1');
-  await expect(page.locator(`#request-${REQUEST}`).getByText('Aguardando você')).toBeVisible();
+  const row = page.locator(`#request-${REQUEST}`);
+  await expect(row.getByText('Aguardando você')).toBeVisible();
+  // Quem decide vê as condições-chave antes dos botões, sem abrir o contexto.
+  const terms = row.locator('.key-terms');
+  await expect(terms).toContainText('R$ 2.000.000');
+  await expect(terms).toContainText('1,4');
+  await expect(terms).toContainText('24 meses');
   await noHorizontalOverflow(page);
+});
+
+test('pedido desatualizado não conta como pendência de quem decide nem mostra botões', async ({ page }) => {
+  await mockSession(page, { approvals: [{ ...policyRequest({ viewerCanAct: true }), stale: true }] });
+  await page.goto('/finance/approvals.html');
+  await expect(page.getByRole('tab', { name: /Aguardando você/ })).not.toContainText('1');
+  await expect(page.getByText('Nenhuma decisão esperando por você')).toBeVisible();
+});
+
+test('ação em andamento: clicar de novo não manda a mesma gravação duas vezes', async ({ page }) => {
+  let release;
+  const calls = await mockSession(page, { deadlinesGate: new Promise((resolve) => { release = resolve; }) });
+  await page.goto('/finance/settings.html#governanca');
+  const run = page.getByRole('button', { name: 'Processar prazos de aprovação agora' });
+  await run.click();
+  await expect(run).toHaveAttribute('aria-busy', 'true');
+  await run.click();
+  await run.press('Enter');
+  release();
+  await expect(page.getByText('2 pendência(s) de prazo tratada(s): escaladas ou expiradas.')).toBeVisible();
+  await expect(run).not.toHaveAttribute('aria-busy', 'true');
+  expect(calls.filter((call) => call.path === 'approval-policies/process-deadlines')).toHaveLength(1);
+  // Terminada a primeira, a ação volta a funcionar.
+  await run.click();
+  await expect.poll(() => calls.filter((call) => call.path === 'approval-policies/process-deadlines').length).toBe(2);
 });

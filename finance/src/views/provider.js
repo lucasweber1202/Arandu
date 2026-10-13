@@ -217,11 +217,14 @@ export async function providerProposal(ctx) {
   let timer;
   let chain = Promise.resolve();
   let ready = Promise.resolve();
+  let saving = 0;
+  let sending = false;
   const save = async () => {
     if (!dirty || blocked || !open) return;
     clearTimeout(timer);
     const terms = values();
     dirty = false;
+    saving += 1;
     indicator.set('saving', 'Salvando…');
     chain = chain.then(async () => {
       await ready;
@@ -233,7 +236,7 @@ export async function providerProposal(ctx) {
       blocked = error.status === 409;
       indicator.set(blocked ? 'conflict' : 'error', blocked ? 'Rascunho alterado em outra aba — recarregue a página' : 'Falha ao salvar — use “Salvar agora”');
       if (blocked) toast('Este rascunho mudou em outra aba ou a proposta já foi enviada. Recarregue para continuar com a versão mais recente.', 'error', { action: button('Recarregar', { size: 'sm', onClick: () => location.reload() }) });
-    });
+    }).finally(() => { saving -= 1; });
     await chain;
   };
   if (open) {
@@ -260,6 +263,17 @@ export async function providerProposal(ctx) {
     form.addEventListener('input', touched);
     form.addEventListener('change', touched);
     saveButton.addEventListener('click', () => { if (!blocked) { dirty = true; save(); } });
+    // Mesma proteção do editor de solicitação: antes, fechar a aba na espera do
+    // salvamento automático (ou depois de uma falha de rede) perdia o que foi
+    // digitado sem aviso, e a volta da conexão não tentava salvar de novo.
+    const pendingChanges = () => form.isConnected && !blocked && !sending && (dirty || saving > 0);
+    window.addEventListener('online', () => { if (pendingChanges() && dirty) save(); });
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && pendingChanges() && dirty) save(); });
+    window.addEventListener('beforeunload', (event) => {
+      if (!pendingChanges()) return;
+      if (dirty) save();
+      if (ctx.mode !== 'demo') event.preventDefault();
+    });
   }
 
   form.addEventListener('submit', async (event) => {
@@ -281,6 +295,7 @@ export async function providerProposal(ctx) {
       description: `A empresa verá estas condições como resposta à revisão ${assignment.rfq_revision || 1} da solicitação.`, body: summary });
     if (!ok) return;
     submit.disabled = true;
+    sending = true;
     submit.querySelector('.btn-label').textContent = 'Enviando…';
     try {
       const result = await ctx.api('proposals', { method: 'POST', body: JSON.stringify({ proposal_id: assignment.proposal_id, terms, note: note.value || null }) });
@@ -289,6 +304,7 @@ export async function providerProposal(ctx) {
     } catch (error) {
       toast(error.status === 401 ? 'Entre na sua conta de provedor para enviar a proposta.' : error.message, 'error');
       submit.disabled = false;
+      sending = false;
       submit.querySelector('.btn-label').replaceChildren(...submitLabel());
     }
   });

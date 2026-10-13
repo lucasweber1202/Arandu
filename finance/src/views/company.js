@@ -4,7 +4,7 @@
 import { PRODUCTS } from '../../../lib/finance/products.mjs';
 import { el, icon, money, percent, formatDate, formatDateTime, relativeDays, daysUntil, productLabel, demandHeadline, RFQ_STATUS, CONTRACT_STATUS, PROPOSAL_STATUS, PROVIDER_KINDS, ROLE_LABELS, timeAgo, fold, todayIso, renewalStage } from '../core.js';
 import { card, pill, tag, button, linkButton, emptyState, errorState, loading, tabs, definitionList, toast, confirmDialog, drawer, field, person, avatar } from '../ui.js';
-import { memberName, currentStep, approvalSummaryLine, comparisonMatrix, revisionTimeline, approvalActions, approvalSteps, coverage, lazyDocuments } from './shared.js';
+import { memberName, currentStep, approvalSummaryLine, comparisonMatrix, revisionTimeline, approvalActions, approvalSteps, coverage, lazyDocuments, keyTerms } from './shared.js';
 import { NOTIFICATION_META, notificationItem } from '../shell.js';
 import { CONTRACT_CATEGORIES } from '../../../lib/finance/contract-terms.mjs';
 import { loadEntities, entitySettings, memberScopes, entityContextSelect, inContext, contractEntityControl, entityName } from './entities.js';
@@ -34,7 +34,8 @@ export async function approvalsInbox(ctx) {
   const viewer = ctx.viewer?.id;
   // Pedido com policy: o servidor diz se a pessoa tem etapa ativa (própria ou delegada).
   const isTurn = (row) => row.viewer_can_act ?? (currentStep(row)?.approver_id === viewer);
-  const mine = approvals.filter(isTurn);
+  // Pedido desatualizado não aceita decisão: não conta como pendência sua.
+  const mine = approvals.filter((row) => isTurn(row) && !(row.stale && row.status === 'pending'));
   const requested = approvals.filter((row) => row.requested_by === viewer && row.status === 'pending');
   const done = approvals.filter((row) => row.status !== 'pending');
 
@@ -54,6 +55,8 @@ export async function approvalsInbox(ctx) {
         el('h2', { class: 'inbox-title' }, el('a', { href: ctx.href(`/finance/rfq.html?id=${rfq.id}#aprovacoes`), text: rfq.title })),
         el('p', { class: 'inbox-meta', text: `Solicitado por ${memberName(ctx.members, request.requested_by)} ${timeAgo(request.requested_at)}` }),
         el('p', { class: 'inbox-proposal' }, [icon('inbox', { size: 14 }), el('span', { text: proposal ? `${proposal.provider_name} — proposta selecionada (v${request.proposal_version})` : 'Proposta selecionada' })]),
+        // Quem decide vê valor, taxa e prazo antes do botão, sem abrir outra tela.
+        isMine && !request.stale && proposal ? keyTerms(rfq.product, proposal.terms) : null,
         el('p', { class: 'inbox-progress' }, [dots, el('span', { text: request.status === 'pending' ? `${approvalSummaryLine(request)} · ${(request.steps || []).filter((item) => item.status === 'approved').length} de ${total} aprovadores` : `${(request.steps || []).filter((item) => item.status === 'approved').length} de ${total} aprovaram` })])
       ]),
       el('div', { class: 'inbox-side' }, [

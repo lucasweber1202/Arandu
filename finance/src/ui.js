@@ -8,8 +8,23 @@ import { el, icon, initials, fieldValue, enumLabel } from './core.js';
 export function button(label, { variant = 'secondary', iconName = null, type = 'button', size = null, onClick = null, attrs = {} } = {}) {
   const node = el('button', { type, class: `btn btn-${variant}${size ? ` btn-${size}` : ''}`, ...attrs },
     [iconName ? icon(iconName) : null, el('span', { class: 'btn-label', text: label })]);
-  if (onClick) node.addEventListener('click', onClick);
+  if (onClick) onAction(node, onClick);
   return node;
+}
+// Ação assíncrona em andamento: o botão fica ocupado (aria-busy) e novos
+// cliques são ignorados até ela terminar. Antes, clicar duas vezes em
+// "Ativar", "Aposentar" ou "Processar prazos" mandava duas gravações. O
+// `disabled` continua com o handler, que pode querer mantê-lo depois.
+function onAction(node, handler) {
+  let pending = false;
+  node.addEventListener('click', (event) => {
+    if (pending) { event.preventDefault(); event.stopImmediatePropagation(); return; }
+    const result = handler(event);
+    if (!result || typeof result.then !== 'function') return;
+    pending = true;
+    node.setAttribute('aria-busy', 'true');
+    Promise.resolve(result).finally(() => { pending = false; node.removeAttribute('aria-busy'); });
+  });
 }
 export function linkButton(label, href, { variant = 'secondary', iconName = null, size = null, attrs = {} } = {}) {
   return el('a', { href, class: `btn btn-${variant}${size ? ` btn-${size}` : ''}`, ...attrs },
@@ -17,7 +32,7 @@ export function linkButton(label, href, { variant = 'secondary', iconName = null
 }
 export function iconButton(name, label, { onClick = null, attrs = {} } = {}) {
   const node = el('button', { type: 'button', class: 'icon-btn', 'aria-label': label, title: label, ...attrs }, icon(name, { size: 18 }));
-  if (onClick) node.addEventListener('click', onClick);
+  if (onClick) onAction(node, onClick);
   return node;
 }
 

@@ -6,7 +6,7 @@ import { SOURCE_LABELS, fieldLabel } from '../../../lib/finance/passport.mjs';
 import { el, icon, money, percent, fieldValue, formatDate, formatDateTime, relativeDays, daysUntil, productLabel, RFQ_STATUS, PROPOSAL_STATUS, APPROVAL_STATUS, PROVIDER_KINDS, todayIso, timeAgo } from '../core.js';
 import { card, pill, tag, button, linkButton, emptyState, errorState, loading, tabs, definitionList, toast, confirmDialog, promptDialog, drawer, field, catalogControl, person, menu, progress } from '../ui.js';
 import { loadEntities, rfqEntityControl } from './entities.js';
-import { comparisonMatrix, weightsPanel, revisionTimeline, collaboration, activityLog, approvalSteps, approvalActions, currentStep, memberName, memberTitle, coverage, approvalSummaryLine, lazyDocuments } from './shared.js';
+import { comparisonMatrix, weightsPanel, revisionTimeline, collaboration, activityLog, approvalSteps, approvalActions, currentStep, memberName, memberTitle, coverage, approvalSummaryLine, lazyDocuments, keyTerms } from './shared.js';
 import { planSummary, policyTimeline, stageAssignments, loadPolicies } from './policy.js';
 import { POLICY_FACTS } from '../../../lib/finance/policy.mjs';
 
@@ -27,20 +27,6 @@ function lifecycle(rfq, pendingApproval) {
 }
 
 /** Documentos carregados só quando a pessoa abre a seção: evita uma chamada por cartão. */
-function keyTerms(product, terms) {
-  const keys = product === 'credit' ? ['offered_amount', 'interest_rate_month', 'cet_year', 'term_months', 'grace_months']
-    : ['mdr_debit', 'mdr_credit_cash', 'mdr_credit_installment', 'pix_fee', 'anticipation_rate', 'settlement_days'];
-  const specs = Object.fromEntries(PRODUCTS[product].proposalFields.map((spec) => [spec.key, spec]));
-  return el('dl', { class: 'key-terms' }, keys.map((key) => {
-    // O rótulo curto perde a unidade do parênteses; ela volta junto do valor.
-    const unit = (specs[key].label.match(/\(([^)]*)\)$/) || [])[1] || '';
-    const suffix = { meses: ' meses', dias: ' dias', '% a.m.': ' a.m.', '% a.a.': ' a.a.' }[unit] || '';
-    const raw = fieldValue(specs[key], terms?.[key]);
-    const value = raw === null ? null : `${raw}${suffix}`;
-    return el('div', { class: 'key-term' }, [el('dt', { text: specs[key].label.replace(/\s*\(.*\)$/, '') }), el('dd', { class: value === null ? 'missing' : '', text: value ?? '—' })]);
-  }));
-}
-
 export async function rfqDetail(ctx) {
   const id = new URLSearchParams(location.search).get('id');
   const rfq = (ctx.data.rfqs || []).find((item) => item.id === id);

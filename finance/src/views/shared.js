@@ -625,3 +625,18 @@ export function lazyDocuments(ctx, entityType, entityId, label, options = {}) {
   });
   return details;
 }
+
+// Condições-chave da proposta (crédito ou adquirência), com unidade junto do valor.
+export function keyTerms(product, terms) {
+  const keys = product === 'credit' ? ['offered_amount', 'interest_rate_month', 'cet_year', 'term_months', 'grace_months']
+    : ['mdr_debit', 'mdr_credit_cash', 'mdr_credit_installment', 'pix_fee', 'anticipation_rate', 'settlement_days'];
+  const specs = Object.fromEntries(PRODUCTS[product].proposalFields.map((spec) => [spec.key, spec]));
+  return el('dl', { class: 'key-terms' }, keys.map((key) => {
+    // O rótulo curto perde a unidade do parênteses; ela volta junto do valor.
+    const unit = (specs[key].label.match(/\(([^)]*)\)$/) || [])[1] || '';
+    const suffix = { meses: ' meses', dias: ' dias', '% a.m.': ' a.m.', '% a.a.': ' a.a.' }[unit] || '';
+    const raw = fieldValue(specs[key], terms?.[key]);
+    const value = raw === null ? null : `${raw}${suffix}`;
+    return el('div', { class: 'key-term' }, [el('dt', { text: specs[key].label.replace(/\s*\(.*\)$/, '') }), el('dd', { class: value === null ? 'missing' : '', text: value ?? '—' })]);
+  }));
+}
