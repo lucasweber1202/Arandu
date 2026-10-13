@@ -9,11 +9,11 @@ import {
   SCHEMAS, VALUE_STATES, schemaField, matchField, normalizeValue, untrustedText, initialStatus, validateFact,
   semanticDiff, factMap, evaluateExtraction, evalGate, EVAL_THRESHOLDS, REVIEW_THRESHOLD
 } from '../lib/finance/document-intelligence.mjs';
-import { pdfPages, deterministicProvider, createModelProvider, providerFor, readZip, ExtractionFailure, sha256Hex } from '../lib/finance/extraction-providers.mjs';
+import { pdfPages, xlsxRows, docxLines, deterministicProvider, createModelProvider, providerFor, readZip, ExtractionFailure, sha256Hex } from '../lib/finance/extraction-providers.mjs';
 import { presentExtractionPage, presentExtractionDetail, valueText, provenanceText } from '../lib/finance/extraction-presenter.mjs';
 import { DATA_REGISTRY } from '../lib/finance/data-governance.mjs';
 import { EVAL_CASES, FAILURE_CASES } from '../tests/fixtures/document-intelligence/eval-cases.mjs';
-import { makePdf, makeXlsx } from '../tests/fixtures/document-intelligence/builders.mjs';
+import { makePdf, makeXlsx, makeDocx, makeZip } from '../tests/fixtures/document-intelligence/builders.mjs';
 import { handleFinance } from '../lib/api/domains/finance.mjs';
 
 // ---------------------------------------------------------------- 1. domínio
@@ -242,5 +242,27 @@ assert.equal(PAGES.find((page) => page.view === 'extractions')?.sandboxExcluded,
   assert.ok(timed(() => pdfPages(openHex)) < 1500, 'hexadecimal sem fechamento termina');
   const valid = pdfPages(Buffer.from('%PDF-1.4\n1 0 obj << /Length 30 >>\nstream\nBT (Taxa: 1,5% a.m.) Tj ET\nendstream\nendobj\n', 'latin1'));
   assert.deepEqual(valid.map((page) => page.lines), [['Taxa: 1,5% a.m.']], 'fluxo comum continua lido');
+}
+// XLSX/DOCX hostis: aberturas sem fechamento, "<" sem ">" e entidade numérica
+// fora do Unicode terminam rápido (antes: 320 KB de "<si>" levavam 10 s; o teto
+// de 24 MB, horas) e não lançam erro cru.
+{
+  const timed = (fn) => { const t0 = performance.now(); try { fn(); } catch (error) { if (!(error instanceof ExtractionFailure)) throw error; } return performance.now() - t0; };
+  const types = '<?xml version="1.0"?><Types/>';
+  const hostileXlsx = makeZip({ '[Content_Types].xml': types, 'xl/sharedStrings.xml': `<sst>${'<si>'.repeat(400_000)}</sst>`,
+    'xl/worksheets/sheet1.xml': `<worksheet><sheetData>${'<row r="1">'.repeat(200_000)}${'<c r="A1">'.repeat(100_000)}</sheetData></worksheet>` });
+  assert.ok(timed(() => xlsxRows(hostileXlsx)) < 1500, 'XLSX com aberturas sem fechamento termina rápido');
+  const hostileDocx = makeZip({ '[Content_Types].xml': types, 'word/document.xml': `<w:document>${'<w:p>'.repeat(300_000)}<w:p><w:t>${'<'.repeat(300_000)}</w:t></w:p></w:document>` });
+  assert.ok(timed(() => docxLines(hostileDocx)) < 1500, 'DOCX com aberturas sem fechamento e "<" soltos termina rápido');
+  const entity = makeZip({ '[Content_Types].xml': types, 'word/document.xml': '<w:document><w:p><w:t>Taxa &#99999999; e &#65;</w:t></w:p></w:document>' });
+  assert.deepEqual(docxLines(entity).map((l) => l.text), ['Taxa \ufffd e A'], 'entidade fora do Unicode não lança erro cru');
+  // Célula autofechada não engole a seguinte; <w:tab/> não vira texto.
+  const mixed = makeZip({ '[Content_Types].xml': types, 'xl/sharedStrings.xml': '<sst><si><t>Taxa</t></si></sst>',
+    'xl/worksheets/sheet1.xml': '<worksheet><sheetData><row r="2"><c r="A2"/><c r="B2" t="s"><v>0</v></c><c r="C2"><v>1,5</v></c></row></sheetData></worksheet>' });
+  assert.deepEqual(xlsxRows(mixed), [{ cells: ['', 'Taxa', '1,5'], locator: 'sheet1!A2' }]);
+  const tabbed = makeZip({ '[Content_Types].xml': types, 'word/document.xml': '<w:document><w:p><w:r><w:t>Prazo:</w:t><w:tab/><w:t xml:space="preserve"> 24 meses</w:t></w:r></w:p></w:document>' });
+  assert.deepEqual(docxLines(tabbed).map((l) => l.text), ['Prazo: 24 meses']);
+  assert.deepEqual(xlsxRows(makeXlsx([['Taxa', '1,5% a.m.'], ['Prazo', '24']])).map((r) => r.cells), [['Taxa', '1,5% a.m.'], ['Prazo', '24']]);
+  assert.deepEqual(docxLines(makeDocx(['Taxa: 1,5% a.m.', '', 'Prazo: 24'])).map((l) => l.text), ['Taxa: 1,5% a.m.', 'Prazo: 24']);
 }
 console.log('Document intelligence: schema/normalização sem inventar, conteúdo não confiável, diff com proveniência, leitores PDF/XLSX/DOCX, evals por criticidade, paridade SQL/JS, API só com JWT e linguagem segura aprovados.');

@@ -187,3 +187,8 @@ Criação de RFQ pela interface com chave por intenção (`request_key`):
 recibo privado por pessoa (`fin_request_receipts`, RLS `actor_id = auth.uid()`),
 gravado só pelo gatilho na mesma transação da RFQ
 (`docs/supabase-financial-request-receipts.sql`).
+
+Evidência de exceção de policy (`financial-followup-hardening-1`): documento
+privado da compradora que a pessoa lê (`fin_can_read_document`) ou referência
+externa da compradora no escopo de entidade dela (`fin_object_visible`), via
+`fin_policy_evidence_document_allowed` (sem `EXECUTE` para usuários).

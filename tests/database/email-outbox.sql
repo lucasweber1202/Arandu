@@ -5,6 +5,17 @@
 -- dead-letter e minimização do endereço. Roda sobre o schema final.
 insert into public.fin_settings(key, value) values ('email_enabled', 'true')
   on conflict (key) do update set value = excluded.value;
+-- Origem real: a fila só aceita e-mail de RFQ/contrato existente, com a
+-- organização dona (teto e justiça por organização, followup-hardening).
+insert into auth.users(id,email) values ('00000000-0000-4000-8000-0000000e0101','outbox-owner@example.invalid') on conflict(id) do nothing;
+insert into public.fin_organizations(id,legal_name,kind,created_by) values
+  ('00000000-0000-4000-8000-0000000e0102','Outbox DEMO','BUYER','00000000-0000-4000-8000-0000000e0101') on conflict(id) do nothing;
+insert into public.fin_rfqs(id,organization_id,product,title,owner_id,status,demand) values
+  ('00000000-0000-4000-8000-0000000e0001','00000000-0000-4000-8000-0000000e0102','credit','Outbox RFQ DEMO','00000000-0000-4000-8000-0000000e0101','draft','{}') on conflict(id) do nothing;
+insert into public.fin_providers(id,organization_id,name,kind,created_by) values
+  ('00000000-0000-4000-8000-0000000e0103','00000000-0000-4000-8000-0000000e0102','Banco outbox DEMO','bank','00000000-0000-4000-8000-0000000e0101') on conflict(id) do nothing;
+insert into public.fin_contracts(id,organization_id,provider_id,product,starts_on,ends_on,owner_id,origin) values
+  ('00000000-0000-4000-8000-0000000e0002','00000000-0000-4000-8000-0000000e0102','00000000-0000-4000-8000-0000000e0103','credit',current_date,current_date + 365,'00000000-0000-4000-8000-0000000e0101','imported') on conflict(id) do nothing;
 select public.fin_enqueue_email('rfq_opened', 'comprador-outbox@example.com', 'rfq', '00000000-0000-4000-8000-0000000e0001',
   '{"title":"Teste"}'::jsonb, 'email-test:first');
 select public.fin_enqueue_email('deadline_near', 'comprador-outbox@example.com', 'rfq', '00000000-0000-4000-8000-0000000e0001',

@@ -6,6 +6,7 @@ import { handleFinanceJobs } from '../lib/api/domains/finance-jobs.mjs';
 import { handlePublicApi } from '../lib/api/domains/public-api.mjs';
 import { reportError } from '../lib/observability.mjs';
 import { crossOriginRejection } from '../lib/http-security.mjs';
+import { clientAddress } from '../lib/client-address.mjs';
 import { restrictedDeployment, routeAllowed, rejectClosedRoute } from '../lib/deployment-surface.mjs';
 import {
   HttpError,
@@ -41,8 +42,9 @@ function enforceSameOrigin(req) {
 // `acrossOrigins`: o limite vale para a identidade em qualquer IP (tentativas
 // contra uma mesma conta vindas de muitos endereços).
 function clientFingerprint(req, scope, identity = '', { acrossOrigins = false } = {}) {
-  const forwarded = String(req.headers?.['x-forwarded-for'] || '').split(',')[0].trim();
-  const ip = acrossOrigins && clean(identity) ? '*' : forwarded || req.socket?.remoteAddress || 'unknown';
+  // Política de proxies confiáveis em lib/client-address.mjs: fora da Vercel (ou
+  // de proxy declarado), cabeçalho de proxy enviado pelo cliente é ignorado.
+  const ip = acrossOrigins && clean(identity) ? '*' : clientAddress(req);
   return createHash('sha256').update(`${scope}:${ip}:${clean(identity).toLowerCase()}`).digest('hex');
 }
 

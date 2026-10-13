@@ -210,15 +210,20 @@ try {
 
   // Tentativas distribuídas contra a mesma conta: cada IP fica abaixo do seu
   // limite, mas o teto por conta (qualquer IP) corta na 101ª.
+  // Na Vercel (VERCEL=1) o IP vem da borda; o limitador segue em memória aqui.
   global.fetch = async () => jsonResponse({ error_code: 'invalid_credentials', msg: 'Invalid login credentials' }, 400);
+  process.env.VERCEL = '1';
   const sprayed = [];
-  for (let i = 0; i < 101; i += 1) {
-    sprayed.push((await call('POST', '/api/auth/login', { email: 'alvo@example.com', password: 'senha-errada-1' }, { 'x-forwarded-for': `198.51.100.${i}` })).status);
-  }
-  assert.deepEqual([...new Set(sprayed.slice(0, 100))], [401]);
-  assert.equal(sprayed[100], 429, 'teto por conta em qualquer IP');
-  const otherAccount = await call('POST', '/api/auth/login', { email: 'outra@example.com', password: 'senha-errada-1' }, { 'x-forwarded-for': '198.51.100.200' });
-  assert.equal(otherAccount.status, 401, 'outra conta não é afetada');
+  try {
+    for (let i = 0; i < 101; i += 1) {
+      sprayed.push((await call('POST', '/api/auth/login', { email: 'alvo@example.com', password: 'senha-errada-1' }, { 'x-vercel-forwarded-for': `198.51.100.${i}` })).status);
+    }
+    assert.deepEqual([...new Set(sprayed.slice(0, 100))], [401]);
+    assert.equal(sprayed[100], 429, 'teto por conta em qualquer IP');
+    const otherAccount = await call('POST', '/api/auth/login', { email: 'outra@example.com', password: 'senha-errada-1' }, { 'x-vercel-forwarded-for': '198.51.100.200' });
+    assert.equal(otherAccount.status, 401, 'outra conta não é afetada');
+  } finally { delete process.env.VERCEL; }
+
 
   global.fetch = async () => jsonResponse({ error_code: 'over_request_rate_limit', msg: 'Request rate limit reached' }, 429);
   const throttled = await call('POST', '/api/auth/login', { email: 'limitada@example.com', password: 'senha-teste-1' });
@@ -300,6 +305,15 @@ try {
   delete process.env.VERCEL_ENV;
 
   console.log('Arandu Auth API Contract Tests');
+  // (no fim: esgota o limite por origem de 127.0.0.1)
+  global.fetch = async (url) => (String(url).includes('/rpc/') ? jsonResponse(true) : jsonResponse({ error_code: 'invalid_credentials', msg: 'Invalid login credentials' }, 400));
+  // Fora da Vercel, girar X-Forwarded-For não renova o limite por origem
+  // (antes, cada valor forjado ganhava um limite novo de 12 tentativas).
+  const forgedProxy = [];
+  for (let i = 0; i < 13; i += 1) {
+    forgedProxy.push((await call('POST', '/api/auth/login', { email: `forjada-${i}@example.com`, password: 'senha-errada-1' }, { 'x-forwarded-for': `203.0.113.${i}`, 'x-real-ip': `203.0.113.${i}` })).status);
+  }
+  assert.equal(forgedProxy.at(-1), 429, 'cabeçalho de proxy forjado não contorna o limite por origem');
   console.log('Sessão, cadastro, login, logout, refresh, recuperação, rate limit distribuído, API financeira fechada sem sessão e 23 rotas aposentadas em 404 aprovados.');
 } finally {
   global.fetch = originalFetch;

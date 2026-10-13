@@ -65,3 +65,21 @@ A migration é aditiva e possui rollback próprio em:
 `docs/rollback/supabase-transactional-email-outbox.rollback.sql`
 
 Nunca execute o rollback em ambiente real sem avaliar eventos pendentes e preservar apenas as referências operacionais necessárias.
+
+## Tetos e justiça entre organizações (13/10/2026)
+
+`docs/supabase-financial-followup-hardening.sql` (`financial-followup-hardening-1`):
+
+| Controle | Padrão | Ao exceder | Chave em `fin_settings` (piso–teto) |
+| --- | --- | --- | --- |
+| E-mails por organização por hora | 60 | convite recusado (`email_volume_limit`, 429); nada criado | `email_org_hourly_limit` (5–1000) |
+| E-mails por organização por dia | 300 | idem | `email_org_daily_limit` (20–5000) |
+| Pendentes por organização | 200 | idem; aviso de notificação suprimido | `email_org_pending_limit` (20–2000) |
+| Mesmo destinatário, mesma organização, por dia | 3 | e-mail suprimido, convite e link manual seguem; evento `email_suppressed` na trilha | `email_org_recipient_daily_limit` (1–20) |
+| Mesmo destinatário, todas as organizações, por dia | 5 | idem | `email_recipient_daily_limit` (1–50) |
+
+- A outbox guarda `organization_id`; e-mail sem RFQ/contrato/organização de origem não entra.
+- As contagens são serializadas por organização (`pg_advisory_xact_lock`): rajada de 10 convites simultâneos com teto 5 grava 5 (sem o lock, 10 — `tests/database/email-fairness-concurrency.sh`).
+- O claim faz rodízio entre organizações (posição de cada item na fila da sua organização): uma organização com fila grande não ocupa o lote.
+- Nome livre da empresa com link/endereço vira "Uma empresa compradora" no assunto e no corpo (`displayName` em `lib/finance/email-templates.mjs`).
+- Já existiam e continuam: idempotência por `idempotency_key`, backoff exponencial com jitter (30 s → 24 h), `max_attempts` com dead-letter, lease com fencing e reivindicação após lease vencida.

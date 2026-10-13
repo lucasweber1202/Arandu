@@ -1,5 +1,30 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 13/10/2026 — Pendências da #178: fila de e-mail, IP de origem e evidência de exceção
+
+Base: `main` @ `7ccbfa6` (#176). Estado: M1 + testes locais; **nada hospedado
+alterado**; a migration `financial-followup-hardening-1` não foi aplicada em
+banco hospedado (as da #178 também não).
+
+| Pendência | Causa comprovada | Correção | Evidência local |
+| --- | --- | --- | --- |
+| P0-A fila de e-mail | sem teto por organização/destinatário; claim em ordem global (20/dia) permitia inanição; nome livre da empresa no assunto | tetos por organização (60/h, 300/dia, 200 pendentes → convite recusado) e por destinatário (3/dia por organização, 5/dia somando → e-mail suprimido com trilha); contagem serializada por organização; claim em rodízio; nome com link vira descrição neutra | `financial-followup-hardening.sql` (blocos 0–5 reprovam após o rollback); rajada 10 → 5 (sem o lock, 10); `test-email-outbox` |
+| P0-B `X-Forwarded-For` | primeiro valor do cabeçalho do cliente usado como IP em qualquer ambiente | `lib/client-address.mjs`: Vercel pela borda; proxy próprio só com `ARANDU_TRUSTED_PROXY_HOPS` (pela direita); senão só a conexão; IPv6 por /64 | `test-client-address`; `test-auth-api`: 13 logins com XFF girando → 429 |
+| P0-C `fin_request_policy_exception` | evidência buscada em `fin_documents` e conferida com `fin_can_read_document` (só `fin_private_documents`): toda evidência com documento recusada | aceita documento privado legível pela pessoa ou referência externa no escopo de entidade; outra empresa, outra entidade, removido e interno do provedor recusados | bloco 6 reprova após o rollback (evidência legítima recusada) |
+
+Lote 4 (segurança, mesma rodada): XLSX e DOCX ainda tinham regex preguiçoso sobre o
+arquivo inteiro (`<si>`, `<row>`, `<c>`, `<w:t>`) e `<[^>]+>` na remoção de
+marcação: 320 KB de `<si>` sem fechamento levavam 10 s (o teto de 24 MB, horas);
+`&#99999999;` lançava `RangeError`. Varredura linear com o mesmo recorte; célula
+autofechada não engole a seguinte e `<w:tab/>` não vira texto. O código anterior
+não terminou o teste em 60 s; o novo roda a suíte em 0,4 s.
+
+Ajustes de testes antigos: `email-outbox.sql` e `financial-pilot.sql` enfileiravam
+para RFQ/contrato inexistentes; agora criam a origem real (a fila recusa e-mail
+sem organização). `test:database` exit 0 (instalação limpa, upgrade, rollback,
+reaplicação). Lote 2 (legado de arte): runtime já limpo; quatro estados
+registrados em `docs/LEGACY_ART_RETIREMENT.md`.
+
 ## 13/10/2026 — Fechamento de segurança, criação idempotente de RFQ e recuperação de senha
 
 Base: `main` @ `1664fb7` (#174). Auditoria de fronteiras (sessão/CSRF, API/IDOR,
