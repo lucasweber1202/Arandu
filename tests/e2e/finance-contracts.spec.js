@@ -133,7 +133,7 @@ test('termos: valores confirmados em documentos preenchem só campos vazios, com
   await panel.getByRole('button', { name: 'Corrigir termos (nova versão)' }).click();
   const facts = panel.getByRole('region', { name: 'Valores confirmados em documentos' });
   await expect(facts).toContainText('3 valores confirmados');
-  await expect(facts).toContainText('Taxa (% a.a.): valores diferentes (14.1 × 14.4)');
+  await expect(facts).toContainText('Taxa (% a.a.): valores diferentes (14,1 × 14,4)');
   await facts.getByRole('button', { name: 'Preencher campos vazios' }).click();
   await expect(facts.getByRole('status')).toContainText('2 campos preenchidos com a origem indicada. 1 mantido(s) como você digitou. Revise antes de gravar.');
   await expect(panel.getByLabel('Limite contratado')).toHaveValue('6000000');
@@ -143,6 +143,28 @@ test('termos: valores confirmados em documentos preenchem só campos vazios, com
   await panel.getByLabel(/Justificativa da correção/).fill('Termos do contrato assinado');
   await panel.getByRole('button', { name: 'Gravar nova versão' }).click();
   await expect.poll(() => calls.find((call) => call.path === 'contract-terms')?.body?.terms).toMatchObject({ limit_amount: 6000000, spread_pct_year: 2.1, guarantees: 'Cessão fiduciária de recebíveis' });
+  await noHorizontalOverflow(page);
+});
+
+test('termos: valor confirmado em outra unidade é declarado, não convertido nem descartado em silêncio', async ({ page }) => {
+  const calls = await mockSession(page);
+  const source = { document_title: 'Proposta Banco Um', page: 5, confirmed_at: '2026-10-01T12:00:00Z' };
+  await page.route('**/api/finance/contract-fact-suggestions**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true,
+    suggestions: [], conflicts: [], skipped: 0,
+    unusable: [{ key: 'spread_pct_year', label: 'Spread (% a.a.)', reason: 'unit_mismatch', unit: 'percent_per_month', source },
+      { key: 'limit_amount', label: 'Limite contratado', reason: 'invalid_value', unit: null, source }] }) }));
+  await page.goto('/finance/contracts.html');
+  await page.getByRole('button', { name: /Abrir contrato/ }).click();
+  const panel = page.getByRole('dialog');
+  await panel.getByRole('button', { name: 'Corrigir termos (nova versão)' }).click();
+  const facts = panel.getByRole('region', { name: 'Valores confirmados em documentos' });
+  await expect(facts).toContainText('não preenchem os termos sozinhos');
+  await expect(facts).toContainText('Spread (% a.a.): o documento traz o valor em % ao mês, e o Arandu não converte (do documento "Proposta Banco Um", pág. 5, confirmado em');
+  await expect(facts).toContainText('Limite contratado: o valor confirmado não cabe neste campo');
+  await expect(facts.getByRole('button', { name: 'Preencher campos vazios' })).toHaveCount(0);
+  await expect(facts).not.toContainText('percent_per_month');
+  await expect(panel.getByLabel('Spread (% a.a.)')).toHaveValue('2.1');
+  expect(calls.some((call) => call.path === 'contract-terms')).toBe(false);
   await noHorizontalOverflow(page);
 });
 

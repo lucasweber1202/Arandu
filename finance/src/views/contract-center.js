@@ -86,6 +86,10 @@ function termsEditor(category, initial = {}) {
 
 const sourceText = (source) => [source.document_title ? `Do documento "${source.document_title}"` : 'De um documento do contrato',
   source.page ? `pág. ${source.page}` : null, source.confirmed_at ? `confirmado em ${formatDate(source.confirmed_at)}` : 'confirmado'].filter(Boolean).join(', ');
+const UNIT_TEXT = { percent: '%', percent_per_month: '% ao mês', percent_per_year: '% ao ano', days: 'dias' };
+const unusableText = (item) => `${item.label}: ${item.reason === 'unit_mismatch'
+  ? `o documento traz o valor em ${UNIT_TEXT[item.unit] || 'outra unidade'}, e o Arandu não converte`
+  : 'o valor confirmado não cabe neste campo'} (${sourceText(item.source).replace(/^D/, 'd')}). Preencha a partir do contrato assinado.`;
 
 /**
  * Valores já confirmados na revisão de documentos do contrato (e da proposta
@@ -96,11 +100,13 @@ function confirmedFactsPanel(ctx, contractId, editor) {
   ctx.api(`contract-fact-suggestions?contract_id=${encodeURIComponent(contractId)}`).then((out) => {
     const suggestions = out.suggestions || [];
     const conflicts = out.conflicts || [];
-    if (!suggestions.length && !conflicts.length) return;
+    const unusable = out.unusable || [];
+    if (!suggestions.length && !conflicts.length && !unusable.length) return;
     const status = el('p', { class: 'small', role: 'status', 'aria-live': 'polite' });
     const parts = [icon('file', { size: 14 }), el('span', { text: suggestions.length
       ? `${suggestions.length} ${suggestions.length === 1 ? 'valor confirmado' : 'valores confirmados'} na revisão de documentos deste contrato.`
-      : 'Há valores confirmados em documentos deste contrato que não concordam entre si.' })];
+      : conflicts.length ? 'Há valores confirmados em documentos deste contrato que não concordam entre si.'
+        : 'Há valores confirmados em documentos deste contrato que não preenchem os termos sozinhos.' })];
     if (suggestions.length) parts.push(button('Preencher campos vazios', { size: 'sm', onClick: () => {
       let filled = 0, kept = 0;
       for (const item of suggestions) {
@@ -111,8 +117,10 @@ function confirmedFactsPanel(ctx, contractId, editor) {
         kept ? `${kept} mantido(s) como você digitou.` : null, 'Revise antes de gravar.'].filter(Boolean).join(' ');
     } }));
     const conflictList = conflicts.length ? el('ul', { class: 'plain-list small' }, conflicts.map((item) =>
-      el('li', { text: `${item.label}: ${item.reason === 'currency_mismatch' ? 'documentos em moedas diferentes' : `valores diferentes (${item.values.map((v) => v.value).join(' × ')})`}; preencha a partir do contrato assinado.` }))) : null;
-    panel.replaceChildren(el('div', { class: 'stack' }, [el('div', { class: 'callout-line' }, parts), conflictList, status].filter(Boolean)));
+      el('li', { text: `${item.label}: ${item.reason === 'currency_mismatch' ? 'documentos em moedas diferentes' : `valores diferentes (${item.values.map((v) => (typeof v.value === 'number' ? v.value.toLocaleString('pt-BR') : v.value)).join(' × ')})`}; preencha a partir do contrato assinado.` }))) : null;
+    // Unidade ou formato que não serve ao campo: dito, nunca convertido nem descartado em silêncio.
+    const unusableList = unusable.length ? el('ul', { class: 'plain-list small' }, unusable.map((item) => el('li', { text: unusableText(item) }))) : null;
+    panel.replaceChildren(el('div', { class: 'stack' }, [el('div', { class: 'callout-line' }, parts), conflictList, unusableList, status].filter(Boolean)));
     panel.hidden = false;
   }).catch(() => {});
   return panel;

@@ -160,7 +160,12 @@ reset((entry) => entry.url.includes(`fin_contracts?select=*&id=eq.${CONTRACT}`) 
   assert.deepEqual(Object.fromEntries(out.suggestions.map((s) => [s.key, s.value])),
     { limit_amount: 5000000, currency: 'BRL', indexer: 'cdi', spread_pct_year: 2.1, renewal_terms: 'Renovação anual mediante aditivo' });
   assert.deepEqual(out.conflicts, []);
-  assert.equal(out.skipped, 4, 'não confirmado, campo fora do catálogo, ambíguo e % a.m. num campo % a.a. ficam de fora');
+  assert.equal(out.skipped, 3, 'não confirmado, campo fora do catálogo e ambíguo ficam de fora');
+  // % a.m. num campo % a.a.: declarado como não aproveitado, nunca convertido nem descartado em silêncio.
+  assert.deepEqual(out.unusable.map((u) => [u.key, u.reason, u.unit, u.source.page]), [['spread_pct_year', 'unit_mismatch', 'percent_per_month', 2]]);
+  assert.deepEqual(contractTermSuggestions('credit', [fact('amount_limit', -5)]).unusable.map((u) => u.reason), ['invalid_value']);
+  assert.deepEqual(contractTermSuggestions('credit', [fact('renewal', '<b>x</b>')]).unusable.map((u) => u.key), ['renewal_terms']);
+  assert.deepEqual(contractTermSuggestions('credit', [fact('notice_days', 30)]).unusable, [], 'campo sem termo no catálogo não é "não aproveitado"');
   assert.equal(out.suggestions.find((s) => s.key === 'limit_amount').source.page, 2);
   // Dois documentos confirmados que discordam: conflito declarado, sem escolha silenciosa.
   const conflict = contractTermSuggestions('credit', [fact('spread_pct_year', 2.1, { unit: 'percent' }), fact('spread_pct_year', 2.4, { unit: 'percent', document_title: 'Aditivo DEMO' })]);

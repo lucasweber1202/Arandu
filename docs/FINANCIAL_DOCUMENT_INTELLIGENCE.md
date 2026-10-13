@@ -139,6 +139,9 @@ recusa se existir extração, fato ou revisão (forward-fix).
   (documento, página, data da confirmação) e nada é gravado sem a pessoa gravar
   a versão. Fora disso: fato não confirmado, ambíguo, unidade incompatível,
   valores conflitantes entre documentos e moedas diferentes (viram aviso).
+  Fato confirmado de um termo que não o preenche (unidade diferente, valor fora
+  do intervalo) volta em `unusable` e aparece com a origem, separado de
+  conflito: nunca convertido nem descartado em silêncio.
   A proposta normalizada do provedor ainda não é preenchida por fatos; a
   integração com Opportunity Engine (fato não verificado), busca e Graph segue
   como próximo passo.
