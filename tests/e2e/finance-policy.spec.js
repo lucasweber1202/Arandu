@@ -238,3 +238,17 @@ test('ação em andamento: clicar de novo não manda a mesma gravação duas vez
   await run.click();
   await expect.poll(() => calls.filter((call) => call.path === 'approval-policies/process-deadlines').length).toBe(2);
 });
+
+test('erro da plataforma sem corpo da API: mensagem em português; escrita avisa que o resultado é incerto', async ({ page }) => {
+  await mockSession(page);
+  let status = 504;
+  await page.route('**/api/finance/approval-policies/process-deadlines', (route) => route.fulfill({ status, contentType: 'text/html', body: '<html><body>An error occurred with your deployment</body></html>' }));
+  await page.goto('/finance/settings.html#governanca');
+  const run = page.getByRole('button', { name: 'Processar prazos de aprovação agora' });
+  await run.click();
+  await expect(page.getByText(/O servidor não confirmou a operação: não foi possível saber se ela foi registrada\. Recarregue a página e confira antes de repetir\./)).toBeVisible();
+  await expect(page.getByText(/Falha 504|An error occurred/)).toHaveCount(0);
+  status = 503;
+  await run.click();
+  await expect(page.getByText(/O serviço está temporariamente indisponível\. Tente novamente em instantes\./)).toBeVisible();
+});

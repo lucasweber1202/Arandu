@@ -92,10 +92,19 @@ const httpTransport = {
     let payload = {};
     try { payload = await response.json(); } catch { payload = {}; }
     if (response.ok) return payload;
-    const reference = payload.requestId || response.headers.get('X-Request-ID');
+    const reference = payload.requestId || response.headers.get('X-Request-ID') || response.headers.get('x-vercel-id');
+    // Sem corpo da API (página de erro da plataforma, função que estourou o
+    // tempo): em vez de "Falha 504.", o que aconteceu e o que fazer. Em escrita,
+    // 502/504 não dizem se a operação chegou a ser registrada.
+    const gateway = !payload.error && [502, 503, 504].includes(response.status);
+    const fallback = gateway
+      ? (writing && response.status !== 503
+        ? 'O servidor não confirmou a operação: não foi possível saber se ela foi registrada. Recarregue a página e confira antes de repetir.'
+        : 'O serviço está temporariamente indisponível. Tente novamente em instantes.')
+      : `Falha ${response.status}.`;
     const message = response.status === 401 ? 'Sessão expirada ou ausente.'
       : response.status === 403 ? (payload.error || 'Acesso negado para esta organização.')
-        : `${payload.error || `Falha ${response.status}.`}${reference ? ` Código de referência: ${reference}` : ''}`;
+        : `${payload.error || fallback}${reference ? ` Código de referência: ${reference}` : ''}`;
     const error = new Error(message);
     error.status = response.status;
     error.code = payload.code;
