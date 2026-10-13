@@ -543,6 +543,16 @@ test('propostas recebidas: condições principais na lista, ausência como "não
   await expect(two).toContainText('Retirada');
   await expect(two).toContainText('não informado');
   await expect(two).not.toContainText(/:\s0(\D|$)/);
+  await expect(one).not.toContainText('após o prazo');
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(1);
+});
+
+test('propostas recebidas: resposta depois do prazo informado aparece como tal', async ({ page }) => {
+  const data = overview();
+  data.rfqs[0].response_deadline = '2026-09-09';
+  await mockSession(page, { data });
+  await page.goto('/finance/proposals.html');
+  await expect(page.locator('tr', { hasText: 'Banco Um' })).toContainText('após o prazo de resposta');
+  await expect(page.locator('tr', { hasText: 'Banco Dois' })).not.toContainText('após o prazo');
 });

@@ -126,7 +126,9 @@ export async function proposalsList(ctx) {
       el('td', { 'data-label': 'Versão' }, [el('span', { text: `v${proposal.version}` }),
         // Retirada ou em preparação não pode parecer resposta válida.
         proposal.status && !['submitted', 'revised'].includes(proposal.status) ? el('span', { class: 'row-sub warn-text', text: PROPOSAL_STATUS[proposal.status]?.label || 'Situação desconhecida' }) : null, proposal.rfq_revision ? el('span', { class: `row-sub${outdated ? ' warn-text' : ''}`, text: `rev. ${proposal.rfq_revision}${outdated ? ` (atual ${rfq.revision})` : ''}` }) : null]),
-      el('td', { 'data-label': 'Enviada', text: formatDate(proposal.submitted_at) }),
+      // Resposta depois do prazo informado é registrada como tal (fato, não juízo).
+      el('td', { 'data-label': 'Enviada' }, [el('span', { text: formatDate(proposal.submitted_at) }),
+        rfq.response_deadline && proposal.submitted_at && String(proposal.submitted_at).slice(0, 10) > rfq.response_deadline ? el('span', { class: 'row-sub warn-text', text: 'após o prazo de resposta' }) : null]),
       el('td', { 'data-label': 'Validade', class: validDays !== null && validDays < 5 ? 'urgent' : '' }, proposal.terms?.valid_until ? el('span', { text: `${formatDate(proposal.terms.valid_until, { withYear: false })}${validDays !== null && validDays >= 0 ? ` · ${relativeDays(proposal.terms.valid_until)}` : validDays < 0 ? ' · vencida' : ''}` }) : el('span', { class: 'muted', text: 'não informada' })),
       el('td', { 'data-label': 'Cobertura' }, el('span', { class: 'coverage-inline' }, [el('span', { class: 'coverage-bar' }, el('span', { class: 'coverage-fill', style: `width:${Math.round(cov.ratio * 100)}%` })), el('span', { class: 'small', text: `${cov.filled}/${cov.total}` })]))
     ]));
