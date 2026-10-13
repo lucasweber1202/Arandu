@@ -132,8 +132,14 @@ recusa se existir extração, fato ou revisão (forward-fix).
   exigem digitação.
 - Leitura determinística depende de rótulos reconhecíveis; layouts sem
   "rótulo: valor" geram `not_provided` e o aviso `no_known_labels`.
-- Fatos confirmados ainda não alimentam automaticamente a proposta normalizada
-  nem o contrato: a pessoa usa o valor confirmado nos formulários existentes.
-  A integração com Opportunity Engine (fato não verificado), busca e Graph é o
-  próximo passo da capability.
+- Fatos confirmados → termos do contrato (13/10/2026): ao estruturar ou
+  corrigir termos, o formulário mostra os valores **confirmados** em documentos
+  do contrato e da proposta que o originou (`GET /api/finance/contract-fact-suggestions`,
+  `lib/finance/fact-application.mjs`). Só preenche campos vazios, mostra a origem
+  (documento, página, data da confirmação) e nada é gravado sem a pessoa gravar
+  a versão. Fora disso: fato não confirmado, ambíguo, unidade incompatível,
+  valores conflitantes entre documentos e moedas diferentes (viram aviso).
+  A proposta normalizada do provedor ainda não é preenchida por fatos; a
+  integração com Opportunity Engine (fato não verificado), busca e Graph segue
+  como próximo passo.
 - Validação hospedada (M3) bloqueada pelo Stage 0 (credenciais do Pilot).
