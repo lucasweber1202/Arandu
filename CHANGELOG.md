@@ -1,5 +1,14 @@
 # Changelog — Arandu
 
+## Não lançado — Pendências da #178 (13/10/2026)
+
+- Fila de e-mail com tetos por organização e por destinatário e rodízio entre
+  organizações; convite acima do teto da organização é recusado com motivo
+  claro; nome de empresa com link não aparece em e-mail (`financial-followup-hardening-1`).
+- Limite de tentativas não confia mais em `X-Forwarded-For` enviado pelo cliente
+  fora da Vercel (`ARANDU_TRUSTED_PROXY_HOPS` para proxy próprio).
+- Pedido de exceção de policy volta a aceitar documento legítimo como evidência.
+
 ## Não lançado — Fechamento de segurança e criação idempotente (13/10/2026)
 
 - **Sessões existentes pedem novo login uma vez**: o cookie `arandu_session` passa a

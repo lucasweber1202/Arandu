@@ -181,6 +181,15 @@ Busca: `git grep -iP '\b(arte|art|artist|artista|artwork|obra|gallery|galeria|co
 | "catálogo" (de campos, termos, produtos, escopos, conjuntos de export), "reserva" (lock de rascunho do provedor), "obras" (finalidade de financiamento) em `lib/finance/*`, `finance/src/*`, `lib/api/domains/finance*.mjs` | vocabulário financeiro | não é a vertical de arte |
 | `README.md`, `CONTRIBUTING.md`, `CHANGELOG.md`, `SECURITY.md`, `docs/FINANCIAL_*` (evidências e auditorias datadas), `docs/IMPLEMENTATION_MATRIX.md`, `docs/OPERATIONS_INDEX.md`, `docs/REPOSITORY_HYGIENE.md`, este documento | histórico/aviso | registro da aposentadoria; não descrevem capacidade atual |
 
+## Quatro estados que não se confundem (13/10/2026)
+
+| Estado | Situação | Evidência |
+| --- | --- | --- |
+| Legado eliminado do runtime | **concluído** | `check:legacy-art` (tree) e `check:financial-surface` (dist) aprovados no HEAD; varredura de 13/10 sem página, rota, módulo, import, asset, variável ou bundle de arte. Restam apenas guardas/testes negativos, dois 301 intencionais para `/` e a checagem do doctor sobre `artwork_events` hospedado |
+| Dados legados preservados | **não comprovado** | nenhum export criptografado hospedado verificado; 42 registros de arte no legado (`igacnfjeuqhxcmfyepgj`), 8 com contato/destinatário ainda sem classificação de retenção (inventário de 09/10) |
+| Schema legado ainda hospedado | **sim**, nos dois projetos | estruturas de arte no Pilot e no legado (inventários em `ops/consolidation/`) |
+| Descomissionamento definitivo | **não executado** | `docs/supabase-financial-legacy-art-decommission.sql` pronta e testada localmente (recusa sem export reconhecido); aplicação hospedada exige export restaurável, classificação de retenção e decisão registrada |
+
 ## Blockers
 
 Os únicos blockers restantes são hospedados: a aplicação da migration de
