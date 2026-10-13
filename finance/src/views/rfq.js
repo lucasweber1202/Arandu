@@ -6,7 +6,7 @@ import { SOURCE_LABELS, fieldLabel } from '../../../lib/finance/passport.mjs';
 import { el, icon, money, percent, fieldValue, formatDate, formatDateTime, relativeDays, daysUntil, productLabel, RFQ_STATUS, PROPOSAL_STATUS, APPROVAL_STATUS, PROVIDER_KINDS, todayIso, timeAgo } from '../core.js';
 import { card, pill, tag, button, linkButton, emptyState, errorState, loading, tabs, definitionList, toast, confirmDialog, promptDialog, drawer, field, catalogControl, person, menu, progress, onSubmit } from '../ui.js';
 import { loadEntities, rfqEntityControl } from './entities.js';
-import { comparisonMatrix, weightsPanel, revisionTimeline, collaboration, activityLog, approvalSteps, approvalActions, currentStep, memberName, memberTitle, coverage, approvalSummaryLine, lazyDocuments, keyTerms } from './shared.js';
+import { comparisonMatrix, weightsPanel, revisionTimeline, collaboration, activityLog, approvalSteps, approvalActions, currentStep, memberName, memberTitle, coverage, approvalSummaryLine, lazyDocuments, keyTerms, isViewerTurn } from './shared.js';
 import { planSummary, policyTimeline, stageAssignments, loadPolicies } from './policy.js';
 import { POLICY_FACTS } from '../../../lib/finance/policy.mjs';
 
@@ -27,6 +27,13 @@ function lifecycle(rfq, pendingApproval) {
 }
 
 /** Documentos carregados só quando a pessoa abre a seção: evita uma chamada por cartão. */
+// Convites que não aceitam mais resposta: rótulo em português, nunca o código.
+const INVITE_CLOSED = Object.freeze({
+  declined: { label: 'Recusou', tone: 'neutral', icon: 'x', detail: 'Recusou o convite' },
+  revoked: { label: 'Revogado', tone: 'neutral', icon: 'x', detail: 'Convite revogado pela empresa' },
+  expired: { label: 'Expirado', tone: 'neutral', icon: 'clock', detail: 'Convite expirou sem aceite' }
+});
+
 export async function rfqDetail(ctx) {
   const id = new URLSearchParams(location.search).get('id');
   const rfq = (ctx.data.rfqs || []).find((item) => item.id === id);
@@ -79,7 +86,7 @@ export async function rfqDetail(ctx) {
     if (rfq.status === 'decided' && !contract) actions.push(linkButton('Registrar contrato', '#decisao', { variant: 'primary', iconName: 'briefcase' }));
     if (['draft', 'open', 'collecting'].includes(rfq.status)) actions.push(button('Editar', { iconName: 'edit', onClick: () => editDrawer(ctx, rfq) }));
   }
-  if (pending) actions.push(linkButton(currentStep(pending)?.approver_id === ctx.viewer?.id ? 'Decidir aprovação' : 'Acompanhar aprovação', '#aprovacoes', { variant: 'primary', iconName: 'clock' }));
+  if (pending) actions.push(linkButton(isViewerTurn(pending, ctx.viewer?.id) ? 'Decidir aprovação' : 'Acompanhar aprovação', '#aprovacoes', { variant: 'primary', iconName: 'clock' }));
   if (contract) actions.push(linkButton('Ver contrato', ctx.href(`/finance/contracts.html#contract-${contract.id}`), { iconName: 'briefcase' }));
   const more = [
     { label: 'Exportar processo (JSON)', icon: 'download', onClick: () => exportProcess(ctx, rfq) },
@@ -136,9 +143,9 @@ function overviewTab(ctx, rfq, { manage, pending, approvals, decision, contract,
     const proposal = answered.get(invite.provider_id);
     const state = proposal ? { label: 'Respondeu', tone: 'success', icon: 'checkCircle' }
       : invite.status === 'accepted' ? { label: 'Preparando', tone: 'info', icon: 'edit' }
-        : invite.status === 'invited' ? { label: 'Convidado', tone: 'neutral', icon: 'send' } : { label: invite.status, tone: 'neutral' };
+        : invite.status === 'invited' ? { label: 'Convidado', tone: 'neutral', icon: 'send' } : INVITE_CLOSED[invite.status] || { label: 'Convite encerrado', tone: 'neutral', icon: 'x' };
     const detail = proposal ? `Proposta v${proposal.version}${proposal.rfq_revision ? ` · respondeu à revisão ${proposal.rfq_revision}` : ''}`
-      : invite.status === 'accepted' ? 'Aceitou o convite' : 'Aguardando aceite';
+      : invite.status === 'accepted' ? 'Aceitou o convite' : invite.status === 'invited' ? 'Aguardando aceite' : INVITE_CLOSED[invite.status]?.detail || 'Não pode mais responder por este convite';
     inviteList.append(el('li', { class: 'invite-row' }, [person(invite.provider_name || 'Provedor', detail), pill(state, { size: 'sm' })]));
   }
   const inviteCard = card({ title: 'Provedores convidados', subtitle: invites.length ? `${invites.length} convidado(s) · ${answered.size} responderam` : 'Ninguém convidado ainda.', id: 'convites',
@@ -313,7 +320,8 @@ function proposalsTab(ctx, rfq) {
       lazyDocuments(ctx, 'proposal', proposal.id, 'Documentos enviados pelo provedor')
     ]));
   }
-  const waiting = (rfq.invites || []).filter((invite) => !proposals.some((proposal) => proposal.provider_id === invite.provider_id));
+  // Convite recusado, revogado ou expirado não está "aguardando".
+  const waiting = (rfq.invites || []).filter((invite) => ['invited', 'accepted'].includes(invite.status) && !proposals.some((proposal) => proposal.provider_id === invite.provider_id));
   if (waiting.length) wrap.append(card({ title: 'Ainda sem resposta', headingLevel: 3, body: el('ul', { class: 'invite-list', role: 'list' }, waiting.map((invite) =>
     el('li', { class: 'invite-row' }, [person(invite.provider_name), el('span', { class: 'muted small', text: invite.status === 'accepted' ? 'aceitou o convite e está preparando' : 'ainda não aceitou o convite' })]))) }));
   return wrap;

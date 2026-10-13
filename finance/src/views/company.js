@@ -4,7 +4,7 @@
 import { PRODUCTS } from '../../../lib/finance/products.mjs';
 import { el, icon, money, percent, formatDate, formatDateTime, relativeDays, daysUntil, productLabel, demandHeadline, RFQ_STATUS, CONTRACT_STATUS, PROPOSAL_STATUS, PROVIDER_KINDS, ROLE_LABELS, timeAgo, fold, todayIso, renewalStage } from '../core.js';
 import { card, pill, tag, button, linkButton, emptyState, errorState, loading, tabs, definitionList, toast, confirmDialog, drawer, field, person, avatar, onSubmit } from '../ui.js';
-import { memberName, currentStep, approvalSummaryLine, comparisonMatrix, revisionTimeline, approvalActions, approvalSteps, coverage, lazyDocuments, keyTerms } from './shared.js';
+import { memberName, currentStep, approvalSummaryLine, comparisonMatrix, revisionTimeline, approvalActions, approvalSteps, coverage, lazyDocuments, keyTerms, termsSummary, isViewerTurn } from './shared.js';
 import { NOTIFICATION_META, notificationItem } from '../shell.js';
 import { CONTRACT_CATEGORIES } from '../../../lib/finance/contract-terms.mjs';
 import { loadEntities, entitySettings, memberScopes, entityContextSelect, inContext, contractEntityControl, entityName } from './entities.js';
@@ -33,9 +33,9 @@ export async function approvalsInbox(ctx) {
   const rfqs = new Map((ctx.data.rfqs || []).map((rfq) => [rfq.id, rfq]));
   const viewer = ctx.viewer?.id;
   // Pedido com policy: o servidor diz se a pessoa tem etapa ativa (própria ou delegada).
-  const isTurn = (row) => row.viewer_can_act ?? (currentStep(row)?.approver_id === viewer);
+  const isTurn = (row) => isViewerTurn(row, viewer);
   // Pedido desatualizado não aceita decisão: não conta como pendência sua.
-  const mine = approvals.filter((row) => isTurn(row) && !(row.stale && row.status === 'pending'));
+  const mine = approvals.filter(isTurn);
   const requested = approvals.filter((row) => row.requested_by === viewer && row.status === 'pending');
   const done = approvals.filter((row) => row.status !== 'pending');
 
@@ -113,7 +113,7 @@ export async function proposalsList(ctx) {
   if (!rows.length) return emptyState({ title: 'Nenhuma proposta recebida ainda', text: 'Convide provedores em uma solicitação aberta. As respostas aparecem aqui.', iconName: 'inbox', action: linkButton('Ver solicitações', ctx.href('/finance/rfqs.html'), { iconName: 'arrowRight' }) });
   rows.sort((a, b) => String(b.proposal.submitted_at).localeCompare(String(a.proposal.submitted_at)));
   const table = el('table', { class: 'data-table' });
-  table.append(el('thead', {}, el('tr', {}, ['Provedor', 'Solicitação', 'Versão', 'Enviada', 'Validade', 'Cobertura'].map((label) => el('th', { scope: 'col', text: label })))));
+  table.append(el('thead', {}, el('tr', {}, ['Provedor', 'Solicitação', 'Condições', 'Versão', 'Enviada', 'Validade', 'Cobertura'].map((label) => el('th', { scope: 'col', text: label })))));
   const body = el('tbody');
   for (const { rfq, proposal } of rows) {
     const outdated = proposal.rfq_revision && proposal.rfq_revision < (rfq.revision || 1);
@@ -122,8 +122,13 @@ export async function proposalsList(ctx) {
     body.append(el('tr', { class: 'row-link', dataset: { entity: 'proposal', id: proposal.id, rfq: rfq.id } }, [
       el('td', { 'data-label': 'Provedor', class: 'cell-primary' }, [el('a', { class: 'row-title stretched', href: ctx.href(`/finance/rfq.html?id=${rfq.id}#propostas`), text: proposal.provider_name }), el('span', { class: 'row-sub', text: PROVIDER_KINDS[proposal.provider_kind] || 'Provedor' })]),
       el('td', { 'data-label': 'Solicitação' }, [el('span', { text: rfq.title }), el('span', { class: 'row-sub', text: RFQ_STATUS[rfq.status]?.label })]),
-      el('td', { 'data-label': 'Versão' }, [el('span', { text: `v${proposal.version}` }), proposal.rfq_revision ? el('span', { class: `row-sub${outdated ? ' warn-text' : ''}`, text: `rev. ${proposal.rfq_revision}${outdated ? ` (atual ${rfq.revision})` : ''}` }) : null]),
-      el('td', { 'data-label': 'Enviada', text: formatDate(proposal.submitted_at) }),
+      el('td', { 'data-label': 'Condições', class: 'small' }, termsSummary(rfq.product, proposal.terms)),
+      el('td', { 'data-label': 'Versão' }, [el('span', { text: `v${proposal.version}` }),
+        // Retirada ou em preparação não pode parecer resposta válida.
+        proposal.status && !['submitted', 'revised'].includes(proposal.status) ? el('span', { class: 'row-sub warn-text', text: PROPOSAL_STATUS[proposal.status]?.label || 'Situação desconhecida' }) : null, proposal.rfq_revision ? el('span', { class: `row-sub${outdated ? ' warn-text' : ''}`, text: `rev. ${proposal.rfq_revision}${outdated ? ` (atual ${rfq.revision})` : ''}` }) : null]),
+      // Resposta depois do prazo informado é registrada como tal (fato, não juízo).
+      el('td', { 'data-label': 'Enviada' }, [el('span', { text: formatDate(proposal.submitted_at) }),
+        rfq.response_deadline && proposal.submitted_at && String(proposal.submitted_at).slice(0, 10) > rfq.response_deadline ? el('span', { class: 'row-sub warn-text', text: 'após o prazo de resposta' }) : null]),
       el('td', { 'data-label': 'Validade', class: validDays !== null && validDays < 5 ? 'urgent' : '' }, proposal.terms?.valid_until ? el('span', { text: `${formatDate(proposal.terms.valid_until, { withYear: false })}${validDays !== null && validDays >= 0 ? ` · ${relativeDays(proposal.terms.valid_until)}` : validDays < 0 ? ' · vencida' : ''}` }) : el('span', { class: 'muted', text: 'não informada' })),
       el('td', { 'data-label': 'Cobertura' }, el('span', { class: 'coverage-inline' }, [el('span', { class: 'coverage-bar' }, el('span', { class: 'coverage-fill', style: `width:${Math.round(cov.ratio * 100)}%` })), el('span', { class: 'small', text: `${cov.filled}/${cov.total}` })]))
     ]));
@@ -223,7 +228,7 @@ export async function contracts(ctx) {
           entities.rows.length ? el('p', { class: 'contract-entity', 'aria-label': `Entidade: ${entityName(entities, contract.legal_entity_id)}` }, contractEntityControl(ctx, entities, contract)) : null
         ]),
         el('div', { class: 'contract-status' }, [pill(CONTRACT_STATUS[contract.status]), contract.days_to_end !== null && contract.days_to_end !== undefined && ['active', 'renewing'].includes(contract.status)
-          ? el('span', { class: `contract-days${contract.days_to_end <= 60 ? ' warn' : ''}`, text: contract.days_to_end >= 0 ? `vence em ${contract.days_to_end} dias` : 'vencido' }) : null])
+          ? el('span', { class: `contract-days${contract.days_to_end <= 60 ? ' warn' : ''}`, text: contract.days_to_end === 0 ? 'vence hoje' : contract.days_to_end === 1 ? 'vence amanhã' : contract.days_to_end > 1 ? `vence em ${contract.days_to_end} dias` : 'vencido' }) : null])
       ]),
       ['active', 'renewing'].includes(contract.status) ? lifecycleBar(contract) : null,
       el('div', { class: `next-action-box tone-${next.tone}` }, [icon(next.icon, { size: 16 }), el('span', { class: 'next-action-label', text: 'Próxima ação' }), el('span', { class: 'next-action-text', text: next.text }), restart]),

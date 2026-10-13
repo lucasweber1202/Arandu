@@ -12,14 +12,14 @@ const ASSIGNMENT = {
   version: null, terms: {}, has_draft: false
 };
 
-async function mockProvider(page, { patch = () => 200 } = {}) {
+async function mockProvider(page, { patch = () => 200, assignment = ASSIGNMENT } = {}) {
   const calls = [];
   await page.route('**/api/finance/**', async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname.replace('/api/finance/', '');
     const json = (payload, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(payload) });
     if (path === 'organizations') return json({ ok: true, rows: [{ id: PROVIDER, kind: 'PROVIDER', legal_name: 'Banco Atlas S.A.' }] });
-    if (path === 'assignments') return json({ ok: true, rows: [ASSIGNMENT] });
+    if (path === 'assignments') return json({ ok: true, rows: [assignment] });
     if (path === 'members') return json({ ok: true, rows: [], viewer_id: 'u1' });
     if (path === 'proposal-draft' && request.method() === 'GET') return json({ ok: true, draft: null });
     if (path === 'proposal-draft' && request.method() === 'PATCH') {
@@ -74,4 +74,24 @@ test('aba em segundo plano salva o rascunho na hora; sem alteração, sair não 
   page.on('dialog', (dialog) => { asked = true; dialog.accept(); });
   await page.close({ runBeforeUnload: true });
   expect(asked).toBe(false);
+});
+
+test('prazo de resposta vencido com coleta aberta: o provedor é avisado antes de enviar', async ({ page }) => {
+  await mockProvider(page, { assignment: { ...ASSIGNMENT, response_deadline: '2026-01-05' } });
+  await page.goto(`/provider/proposal.html?proposal=${PROPOSAL}`);
+  await expect(page.locator('.proposal-status')).toContainText('O prazo de resposta já passou.');
+  await expect(page.locator('.proposal-status')).toContainText('registrada como enviada após o prazo');
+});
+
+test('conflito de rascunho: o aviso com "Recarregar" é anunciado como alerta e não some sozinho', async ({ page }) => {
+  await page.clock.install();
+  await mockProvider(page, { patch: () => 409 });
+  await page.goto(`/provider/proposal.html?proposal=${PROPOSAL}`);
+  await page.getByLabel('Valor ofertado (R$)').fill('920000');
+  await page.clock.runFor(1500);
+  const alert = page.getByRole('alert').filter({ hasText: 'Este rascunho mudou em outra aba' });
+  await expect(alert).toBeVisible();
+  await expect(alert.getByRole('button', { name: 'Recarregar' })).toBeVisible();
+  await page.clock.runFor(30_000);
+  await expect(alert.getByRole('button', { name: 'Recarregar' })).toBeVisible();
 });

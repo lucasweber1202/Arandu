@@ -231,3 +231,15 @@ test('termos: Gravar duas vezes enquanto a primeira gravação não volta cria u
   await page.waitForTimeout(300);
   expect(posts).toHaveLength(1);
 });
+
+for (const [days, text] of [[0, 'vence hoje'], [1, 'vence amanhã'], [12, 'vence em 12 dias']]) {
+  test(`cartão do contrato: ${days} dia(s) para o fim aparece como "${text}"`, async ({ page }) => {
+    const previous = CONTRACT_ROW.days_to_end;
+    CONTRACT_ROW.days_to_end = days;
+    try {
+      await mockSession(page);
+      await page.goto('/finance/contracts.html');
+      await expect(page.locator(`#contract-${CONTRACT} .contract-days`)).toHaveText(text);
+    } finally { CONTRACT_ROW.days_to_end = previous; }
+  });
+}

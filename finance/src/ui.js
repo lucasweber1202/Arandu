@@ -179,20 +179,36 @@ export function tabs(items, { label, initial = null, onChange = null } = {}) {
 }
 
 // ---------------------------------------------------------- toast e status
+let alertRegion = null;
 let toastRegion = null;
 export function toast(text, tone = 'success', { action = null } = {}) {
+  // Erro vai para uma região assertiva (role=alert); o resto, polida.
+  const error = tone === 'error';
   if (!toastRegion) {
-    toastRegion = el('div', { class: 'toast-region', role: 'status', 'aria-live': 'polite' });
-    document.body.append(toastRegion);
+    alertRegion = el('div', { class: 'toast-list', role: 'alert', 'aria-live': 'assertive' });
+    toastRegion = el('div', { class: 'toast-list', role: 'status', 'aria-live': 'polite' });
+    document.body.append(el('div', { class: 'toast-region' }, [alertRegion, toastRegion]));
   }
-  const iconName = tone === 'error' ? 'alert' : tone === 'info' ? 'info' : 'checkCircle';
+  const iconName = error ? 'alert' : tone === 'info' ? 'info' : 'checkCircle';
   const node = el('div', { class: `toast toast-${tone}` }, [icon(iconName), el('span', { class: 'toast-text', text })]);
   if (action) node.append(action);
   const close = iconButton('x', 'Fechar aviso', { onClick: () => node.remove() });
   node.append(close);
-  toastRegion.append(node);
-  setTimeout(() => node.classList.add('toast-leave'), tone === 'error' ? 9000 : 4200);
-  setTimeout(() => node.remove(), tone === 'error' ? 9400 : 4600);
+  (error ? alertRegion : toastRegion).append(node);
+  // Aviso com ação (ex.: "Recarregar") fica até ser fechado; os demais saem
+  // sozinhos, mas não enquanto o ponteiro ou o foco estão neles.
+  if (!action) {
+    let timers = [];
+    const schedule = () => {
+      timers = [setTimeout(() => node.classList.add('toast-leave'), error ? 9000 : 4200), setTimeout(() => node.remove(), error ? 9400 : 4600)];
+    };
+    const hold = () => { timers.forEach(clearTimeout); node.classList.remove('toast-leave'); };
+    node.addEventListener('mouseenter', hold);
+    node.addEventListener('focusin', hold);
+    node.addEventListener('mouseleave', schedule);
+    node.addEventListener('focusout', (event) => { if (!node.contains(event.relatedTarget)) schedule(); });
+    schedule();
+  }
   return node;
 }
 

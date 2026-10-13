@@ -252,3 +252,24 @@ test('erro da plataforma sem corpo da API: mensagem em português; escrita avisa
   await run.click();
   await expect(page.getByText(/O serviço está temporariamente indisponível\. Tente novamente em instantes\./)).toBeVisible();
 });
+
+test('início e solicitação usam a mesma vez da caixa: etapa delegada aparece, pedido desatualizado não', async ({ page }) => {
+  // Etapa ativa delegada a quem vê: o próximo passo em ordem é de outra pessoa.
+  const delegated = policyRequest({ viewerCanAct: true });
+  delegated.steps = delegated.steps.map((step) => (step.status === 'pending' ? { ...step, approver_id: U.ana } : step));
+  await mockSession(page, { approvals: [delegated] });
+  await page.goto('/finance/dashboard.html');
+  await expect(page.getByText('Aprovar: Capital de giro Alimentos')).toBeVisible();
+  await page.goto(`/finance/rfq.html?id=${RFQ}`);
+  await expect(page.getByRole('link', { name: 'Decidir aprovação' })).toBeVisible();
+});
+
+test('pedido desatualizado não vira "Aprovar" no início nem "Decidir aprovação" na solicitação', async ({ page }) => {
+  await mockSession(page, { approvals: [{ ...policyRequest({ viewerCanAct: true }), stale: true }] });
+  await page.goto('/finance/dashboard.html');
+  await expect(page.locator('#view')).not.toHaveAttribute('aria-busy', 'true');
+  await expect(page.getByText('Aprovar: Capital de giro Alimentos')).toHaveCount(0);
+  await page.goto(`/finance/rfq.html?id=${RFQ}`);
+  await expect(page.getByRole('link', { name: 'Acompanhar aprovação' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Decidir aprovação' })).toHaveCount(0);
+});

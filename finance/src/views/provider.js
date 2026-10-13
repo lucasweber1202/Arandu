@@ -164,6 +164,7 @@ export async function providerProposal(ctx) {
       if (changes.length) status.querySelector('.callout > div').append(el('ul', { class: 'diff-list' }, changes.map((change) => el('li', {}, [el('span', { class: 'diff-label', text: `${change.label}: ` }), el('span', { class: 'diff-before', text: change.before }), ' → ', el('span', { class: 'diff-after', text: change.after })]))));
     }).catch(() => {});
   } else if (assignment.version) setStatus('success', `Proposta enviada · versão ${assignment.version}`, `Respondendo à revisão ${assignment.submitted_rfq_revision || assignment.rfq_revision}. Alterações criam uma nova versão; a anterior continua registrada para a empresa.`);
+  else if (days !== null && days < 0) setStatus('warning', 'O prazo de resposta já passou.', 'A empresa ainda não encerrou a coleta, então o envio continua possível, mas a proposta fica registrada como enviada após o prazo.');
   else setStatus('info', 'Rascunho — ainda não enviado.', 'A empresa só vê sua proposta depois que você enviar. O rascunho é salvo automaticamente e é visível apenas para a sua instituição.');
 
   // Formulário em blocos: o obrigatório primeiro, o resto sob demanda.

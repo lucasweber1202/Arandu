@@ -529,3 +529,51 @@ test('menu "Mais ações": teclado completo e Tab para fora fecha o menu', async
   await expect(page.getByRole('menu')).toBeHidden();
   await expect(trigger).toHaveAttribute('aria-expanded', 'false');
 });
+
+test('propostas recebidas: condições principais na lista, ausência como "não informado" e retirada sinalizada', async ({ page }) => {
+  const data = overview();
+  data.rfqs[0].proposals[1] = { ...data.rfqs[0].proposals[1], status: 'withdrawn', terms: { offered_amount: 450000 } };
+  await mockSession(page, { data });
+  await page.goto('/finance/proposals.html');
+  const one = page.locator('tr', { hasText: 'Banco Um' });
+  await expect(one).toContainText(/R\$\s?500\.000/);
+  await expect(one).toContainText('1,4');
+  await expect(one).toContainText('24 meses');
+  const two = page.locator('tr', { hasText: 'Banco Dois' });
+  await expect(two).toContainText('Retirada');
+  await expect(two).toContainText('não informado');
+  await expect(two).not.toContainText(/:\s0(\D|$)/);
+  await expect(one).not.toContainText('após o prazo');
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+});
+
+test('propostas recebidas: resposta depois do prazo informado aparece como tal', async ({ page }) => {
+  const data = overview();
+  data.rfqs[0].response_deadline = '2026-09-09';
+  await mockSession(page, { data });
+  await page.goto('/finance/proposals.html');
+  await expect(page.locator('tr', { hasText: 'Banco Um' })).toContainText('após o prazo de resposta');
+  await expect(page.locator('tr', { hasText: 'Banco Dois' })).not.toContainText('após o prazo');
+});
+
+test('convites encerrados aparecem em português e não contam como "ainda sem resposta"', async ({ page }) => {
+  const data = overview();
+  data.rfqs[0].invites = [
+    { id: 'i1', provider_id: 'x1', provider_name: 'Banco Um', status: 'accepted' },
+    { id: 'i3', provider_id: 'x3', provider_name: 'Banco Três', status: 'revoked' },
+    { id: 'i4', provider_id: 'x4', provider_name: 'Banco Quatro', status: 'declined' },
+    { id: 'i5', provider_id: 'x5', provider_name: 'Banco Cinco', status: 'invited' }
+  ];
+  await mockSession(page, { data });
+  await page.goto(`/finance/rfq.html?id=${RFQ}`);
+  const invites = page.locator('#convites');
+  await expect(invites.locator('.invite-row', { hasText: 'Banco Três' })).toContainText('Revogado');
+  await expect(invites.locator('.invite-row', { hasText: 'Banco Quatro' })).toContainText('Recusou o convite');
+  await expect(invites).not.toContainText(/revoked|declined/);
+  await page.goto(`/finance/rfq.html?id=${RFQ}#propostas`);
+  const waiting = page.locator('.card', { hasText: 'Ainda sem resposta' });
+  await expect(waiting).toContainText('Banco Cinco');
+  await expect(waiting).not.toContainText('Banco Três');
+  await expect(waiting).not.toContainText('Banco Quatro');
+});

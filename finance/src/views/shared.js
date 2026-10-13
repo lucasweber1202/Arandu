@@ -310,6 +310,15 @@ export function currentStep(request) {
   return (request.steps || []).filter((step) => step.status === 'pending').sort((a, b) => a.position - b.position)[0] || null;
 }
 
+// Vez de quem vê a tela: com policy, o servidor informa (etapa ativa própria
+// ou delegada); sem policy, o próximo aprovador em ordem. Pedido
+// desatualizado não aceita decisão de ninguém. Fonte única para caixa,
+// início e detalhe da solicitação.
+export function isViewerTurn(request, viewerId) {
+  if (!request || request.status !== 'pending' || request.stale) return false;
+  return request.viewer_can_act ?? (Boolean(viewerId) && currentStep(request)?.approver_id === viewerId);
+}
+
 /** Botões de decisão do aprovador, com motivo obrigatório para recusar. */
 const REASON_LABELS = { insufficient_competition: 'Competição insuficiente', terms_outside_policy: 'Condições fora da policy', missing_documentation: 'Documentação faltando',
   pricing_review: 'Revisar preço', risk_review: 'Revisar risco', compliance_review: 'Revisar compliance', budget: 'Orçamento', other: 'Outro' };
@@ -639,4 +648,18 @@ export function keyTerms(product, terms) {
     const value = raw === null ? null : `${raw}${suffix}`;
     return el('div', { class: 'key-term' }, [el('dt', { text: specs[key].label.replace(/\s*\(.*\)$/, '') }), el('dd', { class: value === null ? 'missing' : '', text: value ?? '—' })]);
   }));
+}
+
+// Linha curta com as condições principais, para listas. Ausente aparece como
+// "não informado", nunca como zero; a unidade acompanha o valor.
+export function termsSummary(product, terms) {
+  const keys = product === 'credit' ? ['offered_amount', 'interest_rate_month', 'term_months'] : ['mdr_debit', 'mdr_credit_cash', 'settlement_days'];
+  const specs = Object.fromEntries((PRODUCTS[product]?.proposalFields || []).map((spec) => [spec.key, spec]));
+  return keys.filter((key) => specs[key]).map((key) => {
+    const spec = specs[key];
+    const unit = (spec.label.match(/\(([^)]*)\)$/) || [])[1] || '';
+    const suffix = { meses: ' meses', dias: ' dias', '% a.m.': ' a.m.', '% a.a.': ' a.a.' }[unit] || '';
+    const raw = fieldValue(spec, terms?.[key]);
+    return `${spec.label.replace(/\s*\(.*\)$/, '')}: ${raw === null ? 'não informado' : `${raw}${suffix}`}`;
+  }).join(' · ');
 }

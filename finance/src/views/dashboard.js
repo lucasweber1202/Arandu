@@ -2,7 +2,7 @@
 
 import { el, icon, daysUntil, relativeDays, formatDate, formatDateTime, productLabel, demandHeadline, RFQ_STATUS, timeAgo, money, renewalStage } from '../core.js';
 import { card, pill, linkButton, emptyState, person, progress, button, toast } from '../ui.js';
-import { memberName, currentStep, approvalSummaryLine, eventTitle } from './shared.js';
+import { memberName, currentStep, approvalSummaryLine, eventTitle, isViewerTurn } from './shared.js';
 import { loadEntities, entitySummaryCard } from './entities.js';
 import { startButton } from './intake.js';
 
@@ -30,7 +30,7 @@ export function actionItems(ctx, approvals) {
     const step = currentStep(request);
     const rfq = byId.get(request.rfq_id);
     if (!rfq) continue;
-    if (step && step.approver_id === viewer) {
+    if (isViewerTurn(request, viewer)) {
       items.push({ rank: 0, tone: 'warning', icon: 'checkCircle', kind: 'Aprovação',
         title: `Aprovar: ${rfq.title}`, detail: `Solicitado por ${memberName(ctx.members, request.requested_by)} · ${approvalSummaryLine(request)}`,
         when: request.requested_at ? timeAgo(request.requested_at) : '', cta: 'Revisar', href: ctx.href(`/finance/approvals.html#request-${request.id}`) });
@@ -191,7 +191,7 @@ export async function dashboard(ctx) {
         el('a', { class: 'mini-title stretched', href: ctx.href(`/finance/contracts.html#contract-${contract.id}`), text: contract.provider_name }),
         el('span', { class: 'mini-meta', text: `${productLabel(contract.product, { short: true })} · ${stage.stage === 'past_notice' ? 'aviso prévio vencido' : inWindow ? `decidir até ${formatDate(stage.deadline, { withYear: false })}` : `janela abre ${formatDate(stage.opensAt, { withYear: false })}`}` })
       ]),
-      el('span', { class: `mini-side${inWindow ? ' warn' : ''}`, text: days !== null ? `${days} dias` : '—' })
+      el('span', { class: `mini-side${inWindow ? ' warn' : ''}`, text: days === null ? '—' : days === 0 ? 'hoje' : days === 1 ? '1 dia' : days < 0 ? 'vencido' : `${days} dias` })
     ]);
   }));
   const contractsCard = card({ title: 'Contratos e renovações', actions: [linkButton('Contratos', ctx.href('/finance/contracts.html'), { variant: 'ghost', size: 'sm', iconName: 'arrowRight' })],
