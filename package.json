@@ -50,7 +50,7 @@
     "demo:down": "bash scripts/demo/local.sh down",
     "test:e2e:demo": "playwright test --config playwright.demo.config.js",
     "check:backend": "node scripts/check-backend.mjs && node scripts/check-api-modules.mjs && node scripts/test-api-core.mjs",
-    "check:security": "node scripts/check-auth-security.mjs && node scripts/test-auth-api.mjs && node scripts/check-admin-surface.mjs && node scripts/check-http-security.mjs && node scripts/check-p0-security.mjs && node scripts/check-secret-exposure.mjs && node scripts/check-security-contact.mjs && node scripts/test-deployment-surface.mjs",
+    "check:security": "node scripts/check-auth-security.mjs && node scripts/test-client-address.mjs && node scripts/test-auth-api.mjs && node scripts/check-admin-surface.mjs && node scripts/check-http-security.mjs && node scripts/check-p0-security.mjs && node scripts/check-secret-exposure.mjs && node scripts/check-security-contact.mjs && node scripts/test-deployment-surface.mjs",
     "check:http": "node scripts/check-http-security.mjs",
     "check:seo": "node scripts/check-seo.mjs",
     "check:seo:dist": "node scripts/check-seo.mjs --dist",
