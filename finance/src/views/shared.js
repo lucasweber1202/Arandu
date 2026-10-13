@@ -310,6 +310,15 @@ export function currentStep(request) {
   return (request.steps || []).filter((step) => step.status === 'pending').sort((a, b) => a.position - b.position)[0] || null;
 }
 
+// Vez de quem vê a tela: com policy, o servidor informa (etapa ativa própria
+// ou delegada); sem policy, o próximo aprovador em ordem. Pedido
+// desatualizado não aceita decisão de ninguém. Fonte única para caixa,
+// início e detalhe da solicitação.
+export function isViewerTurn(request, viewerId) {
+  if (!request || request.status !== 'pending' || request.stale) return false;
+  return request.viewer_can_act ?? (Boolean(viewerId) && currentStep(request)?.approver_id === viewerId);
+}
+
 /** Botões de decisão do aprovador, com motivo obrigatório para recusar. */
 const REASON_LABELS = { insufficient_competition: 'Competição insuficiente', terms_outside_policy: 'Condições fora da policy', missing_documentation: 'Documentação faltando',
   pricing_review: 'Revisar preço', risk_review: 'Revisar risco', compliance_review: 'Revisar compliance', budget: 'Orçamento', other: 'Outro' };

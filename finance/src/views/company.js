@@ -4,7 +4,7 @@
 import { PRODUCTS } from '../../../lib/finance/products.mjs';
 import { el, icon, money, percent, formatDate, formatDateTime, relativeDays, daysUntil, productLabel, demandHeadline, RFQ_STATUS, CONTRACT_STATUS, PROPOSAL_STATUS, PROVIDER_KINDS, ROLE_LABELS, timeAgo, fold, todayIso, renewalStage } from '../core.js';
 import { card, pill, tag, button, linkButton, emptyState, errorState, loading, tabs, definitionList, toast, confirmDialog, drawer, field, person, avatar, onSubmit } from '../ui.js';
-import { memberName, currentStep, approvalSummaryLine, comparisonMatrix, revisionTimeline, approvalActions, approvalSteps, coverage, lazyDocuments, keyTerms, termsSummary } from './shared.js';
+import { memberName, currentStep, approvalSummaryLine, comparisonMatrix, revisionTimeline, approvalActions, approvalSteps, coverage, lazyDocuments, keyTerms, termsSummary, isViewerTurn } from './shared.js';
 import { NOTIFICATION_META, notificationItem } from '../shell.js';
 import { CONTRACT_CATEGORIES } from '../../../lib/finance/contract-terms.mjs';
 import { loadEntities, entitySettings, memberScopes, entityContextSelect, inContext, contractEntityControl, entityName } from './entities.js';
@@ -33,9 +33,9 @@ export async function approvalsInbox(ctx) {
   const rfqs = new Map((ctx.data.rfqs || []).map((rfq) => [rfq.id, rfq]));
   const viewer = ctx.viewer?.id;
   // Pedido com policy: o servidor diz se a pessoa tem etapa ativa (própria ou delegada).
-  const isTurn = (row) => row.viewer_can_act ?? (currentStep(row)?.approver_id === viewer);
+  const isTurn = (row) => isViewerTurn(row, viewer);
   // Pedido desatualizado não aceita decisão: não conta como pendência sua.
-  const mine = approvals.filter((row) => isTurn(row) && !(row.stale && row.status === 'pending'));
+  const mine = approvals.filter(isTurn);
   const requested = approvals.filter((row) => row.requested_by === viewer && row.status === 'pending');
   const done = approvals.filter((row) => row.status !== 'pending');
 

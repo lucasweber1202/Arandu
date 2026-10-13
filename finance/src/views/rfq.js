@@ -6,7 +6,7 @@ import { SOURCE_LABELS, fieldLabel } from '../../../lib/finance/passport.mjs';
 import { el, icon, money, percent, fieldValue, formatDate, formatDateTime, relativeDays, daysUntil, productLabel, RFQ_STATUS, PROPOSAL_STATUS, APPROVAL_STATUS, PROVIDER_KINDS, todayIso, timeAgo } from '../core.js';
 import { card, pill, tag, button, linkButton, emptyState, errorState, loading, tabs, definitionList, toast, confirmDialog, promptDialog, drawer, field, catalogControl, person, menu, progress, onSubmit } from '../ui.js';
 import { loadEntities, rfqEntityControl } from './entities.js';
-import { comparisonMatrix, weightsPanel, revisionTimeline, collaboration, activityLog, approvalSteps, approvalActions, currentStep, memberName, memberTitle, coverage, approvalSummaryLine, lazyDocuments, keyTerms } from './shared.js';
+import { comparisonMatrix, weightsPanel, revisionTimeline, collaboration, activityLog, approvalSteps, approvalActions, currentStep, memberName, memberTitle, coverage, approvalSummaryLine, lazyDocuments, keyTerms, isViewerTurn } from './shared.js';
 import { planSummary, policyTimeline, stageAssignments, loadPolicies } from './policy.js';
 import { POLICY_FACTS } from '../../../lib/finance/policy.mjs';
 
@@ -79,7 +79,7 @@ export async function rfqDetail(ctx) {
     if (rfq.status === 'decided' && !contract) actions.push(linkButton('Registrar contrato', '#decisao', { variant: 'primary', iconName: 'briefcase' }));
     if (['draft', 'open', 'collecting'].includes(rfq.status)) actions.push(button('Editar', { iconName: 'edit', onClick: () => editDrawer(ctx, rfq) }));
   }
-  if (pending) actions.push(linkButton(currentStep(pending)?.approver_id === ctx.viewer?.id ? 'Decidir aprovação' : 'Acompanhar aprovação', '#aprovacoes', { variant: 'primary', iconName: 'clock' }));
+  if (pending) actions.push(linkButton(isViewerTurn(pending, ctx.viewer?.id) ? 'Decidir aprovação' : 'Acompanhar aprovação', '#aprovacoes', { variant: 'primary', iconName: 'clock' }));
   if (contract) actions.push(linkButton('Ver contrato', ctx.href(`/finance/contracts.html#contract-${contract.id}`), { iconName: 'briefcase' }));
   const more = [
     { label: 'Exportar processo (JSON)', icon: 'download', onClick: () => exportProcess(ctx, rfq) },
