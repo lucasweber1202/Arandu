@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { Readable } from 'node:stream';
+import { decodeSessionValue, encodeSessionValue } from '../lib/session-cookie.mjs';
 
 const originalVercelEnv = process.env.VERCEL_ENV;
 const originalDistributedRateLimit = process.env.ARANDU_DISTRIBUTED_RATE_LIMIT;
@@ -53,13 +54,17 @@ async function call(method, url, body, headers) {
   return { status: res.statusCode, headers: res.headers, body: res.body ? JSON.parse(res.body) : null };
 }
 
-function sessionCookie({ expired = false } = {}) {
-  const value = Buffer.from(JSON.stringify({
+function sessionPayload({ expired = false, sso = null } = {}) {
+  return {
     access_token: 'access-test',
     refresh_token: 'refresh-test',
-    expires_at: Math.floor(Date.now() / 1000) + (expired ? -60 : 3600)
-  })).toString('base64url');
-  return `arandu_session=${encodeURIComponent(value)}`;
+    expires_at: Math.floor(Date.now() / 1000) + (expired ? -60 : 3600),
+    ...(sso ? { sso } : {})
+  };
+}
+
+function sessionCookie(options = {}) {
+  return `arandu_session=${encodeURIComponent(encodeSessionValue(sessionPayload(options)))}`;
 }
 
 function jsonResponse(data, status = 200) {
@@ -130,8 +135,41 @@ try {
   assert.equal(refreshed.status, 200);
   assert.equal(refreshed.body.authenticated, true);
   const refreshedCookieValue = decodeURIComponent(refreshed.headers['set-cookie'].split(';')[0].split('=').slice(1).join('='));
-  const refreshedSession = JSON.parse(Buffer.from(refreshedCookieValue, 'base64url').toString('utf8'));
+  const refreshedSession = decodeSessionValue(refreshedCookieValue);
   assert.equal(refreshedSession.access_token, 'refreshed-access');
+
+  // Cookie de sessão assinado (lib/session-cookie.mjs). Antes, a carga era JSON
+  // em base64url sem assinatura: apagar o marcador `sso` fazia a sessão escapar
+  // do limite absoluto, da revogação e da desativação da conexão SSO.
+  const SSO = { c: '00000000-0000-4000-8000-000000000901', s: 'user-123', i: Math.floor(Date.now() / 1000) - 60, u: Math.floor(Date.now() / 1000) + 8 * 3600 };
+  const ssoChecks = [];
+  let ssoValid = true;
+  global.fetch = async (url, options = {}) => {
+    if (String(url).includes('/rpc/fin_sso_session_valid')) { ssoChecks.push(JSON.parse(options.body)); return jsonResponse(ssoValid); }
+    assert.match(String(url), /\/auth\/v1\/user$/);
+    return jsonResponse({ id: 'user-123', email: 'compradora@example.com', user_metadata: {} });
+  };
+  const unsigned = `arandu_session=${encodeURIComponent(Buffer.from(JSON.stringify(sessionPayload())).toString('base64url'))}`;
+  const unsignedSession = await call('GET', '/api/auth/session', undefined, { cookie: unsigned });
+  assert.equal(unsignedSession.body.authenticated, false, 'carga sem assinatura não é sessão');
+  const signedSso = encodeSessionValue(sessionPayload({ sso: SSO }));
+  const [, mac] = signedSso.split('.');
+  const stripped = `${Buffer.from(JSON.stringify(sessionPayload())).toString('base64url')}.${mac}`;
+  const strippedSession = await call('GET', '/api/auth/session', undefined, { cookie: `arandu_session=${encodeURIComponent(stripped)}` });
+  assert.equal(strippedSession.body.authenticated, false, 'marcador sso removido invalida a assinatura');
+  const forged = encodeSessionValue(sessionPayload(), { SUPABASE_SERVICE_ROLE_KEY: 'outra-chave' });
+  const forgedSession = await call('GET', '/api/auth/session', undefined, { cookie: `arandu_session=${encodeURIComponent(forged)}` });
+  assert.equal(forgedSession.body.authenticated, false, 'assinatura de outra chave é recusada');
+  const ssoSession = await call('GET', '/api/auth/session', undefined, { cookie: sessionCookie({ sso: SSO }) });
+  assert.equal(ssoSession.body.authenticated, true);
+  assert.equal(ssoChecks.length, 1, 'sessão SSO conferida no banco mesmo com access token válido');
+  assert.equal(ssoChecks[0].p_connection, SSO.c);
+  // Revogada no banco: cai sem esperar o access token expirar (cache curto por sessão).
+  ssoValid = false;
+  const revokedSso = { ...SSO, i: SSO.i - 1 };
+  const revoked = await call('GET', '/api/auth/session', undefined, { cookie: sessionCookie({ sso: revokedSso }) });
+  assert.equal(revoked.body.authenticated, false, 'SSO revogado derruba a sessão com token ainda válido');
+  assert.match(String(revoked.headers['set-cookie']), /Max-Age=0/);
 
   global.fetch = async (url, options = {}) => {
     assert.match(String(url), /\/auth\/v1\/logout$/);
@@ -169,6 +207,18 @@ try {
     assert.equal(response.body.code, 'invalid_credentials');
   }
   assert.equal(new Set(loginResponses.map((item) => `${item.status}:${item.body.error}`)).size, 1);
+
+  // Tentativas distribuídas contra a mesma conta: cada IP fica abaixo do seu
+  // limite, mas o teto por conta (qualquer IP) corta na 101ª.
+  global.fetch = async () => jsonResponse({ error_code: 'invalid_credentials', msg: 'Invalid login credentials' }, 400);
+  const sprayed = [];
+  for (let i = 0; i < 101; i += 1) {
+    sprayed.push((await call('POST', '/api/auth/login', { email: 'alvo@example.com', password: 'senha-errada-1' }, { 'x-forwarded-for': `198.51.100.${i}` })).status);
+  }
+  assert.deepEqual([...new Set(sprayed.slice(0, 100))], [401]);
+  assert.equal(sprayed[100], 429, 'teto por conta em qualquer IP');
+  const otherAccount = await call('POST', '/api/auth/login', { email: 'outra@example.com', password: 'senha-errada-1' }, { 'x-forwarded-for': '198.51.100.200' });
+  assert.equal(otherAccount.status, 401, 'outra conta não é afetada');
 
   global.fetch = async () => jsonResponse({ error_code: 'over_request_rate_limit', msg: 'Request rate limit reached' }, 429);
   const throttled = await call('POST', '/api/auth/login', { email: 'limitada@example.com', password: 'senha-teste-1' });
@@ -208,6 +258,16 @@ try {
   const reset = await call('POST', '/api/auth/reset-password', { email: 'pessoa@example.com' });
   assert.equal(reset.status, 202);
   assert.match(reset.body.message, /existir uma conta/);
+  // Falha do provedor que ecoa o e-mail: a resposta não muda e o log sai redigido.
+  global.fetch = async () => jsonResponse({ msg: 'Error sending recovery email to pessoa@example.com' }, 500);
+  const logged = [];
+  const originalError = console.error;
+  console.error = (line) => logged.push(String(line));
+  let failedReset;
+  try { failedReset = await call('POST', '/api/auth/reset-password', { email: 'pessoa@example.com' }); } finally { console.error = originalError; }
+  assert.equal(failedReset.status, 202);
+  assert.ok(logged.some((line) => line.includes('auth.password_recovery_failed')), 'falha registrada');
+  assert.ok(!logged.join(' ').includes('pessoa@example.com'), 'log sem e-mail em claro');
 
   // Rate limit distribuído (Vercel): contador do banco recusa => 429.
   process.env.VERCEL_ENV = 'preview';

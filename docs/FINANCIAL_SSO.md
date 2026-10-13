@@ -101,12 +101,19 @@ Interface: `beginLogin({connection, redirectTo, pkce}) → {url}` e
   chegar ao provedor. Se a consulta de política falhar, o login responde
   **503** (falha fechada); não cai para senha.
 * A sessão SSO dura no máximo `max_session_hours` desde a emissão (cookie com
-  `Max-Age` limitado). A cada refresh, `fin_sso_session_valid` reconfere
-  conexão ativa, membro ativo e revogação; se falhar, a sessão é encerrada.
+  `Max-Age` limitado). `fin_sso_session_valid` reconfere conexão ativa, membro
+  ativo e revogação **em toda requisição** (cache de 30 s por sessão) e de novo
+  antes de cada refresh; se falhar, a sessão é encerrada.
+* O cookie `arandu_session` é **assinado** (HMAC-SHA256, `lib/session-cookie.mjs`,
+  chave derivada da service role). Até 13/10/2026 era JSON sem assinatura:
+  apagar o marcador `sso` transformava a sessão em sessão de senha e escapava
+  do limite absoluto, da revogação e da desativação da conexão. Carga sem
+  assinatura válida é tratada como ausência de sessão (as sessões emitidas antes
+  da mudança pedem um novo login, uma única vez).
 * **Revogar sessões** (`fin_sso_revoke_sessions`) grava
-  `sessions_valid_after = now()`: sessões emitidas antes caem no próximo
-  refresh (no máximo o TTL do access token do Supabase, padrão 1 h) e novos
-  callbacks com emissão anterior são recusados.
+  `sessions_valid_after = now()`: sessões emitidas antes caem em até 30 s
+  (cache da validade por instância) e novos callbacks com emissão anterior são
+  recusados.
 * **MFA**: para quem entra por SSO, o segundo fator é responsabilidade do IdP
   da empresa (`mfa_policy = 'arandu_totp'` está reservado; MFA próprio para
   usuários de cliente não é exigido hoje, ver P0.9-01 na matriz). Não há claim
