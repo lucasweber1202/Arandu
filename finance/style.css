@@ -374,6 +374,8 @@ td.urgent,td.urgent .date-rel{color:var(--danger);font-weight:600}
 
 /* ------------------------------------------------------------------ toast */
 .toast-region{position:fixed;right:var(--s5);bottom:var(--s5);z-index:90;display:grid;gap:var(--s2);width:min(420px,calc(100vw - 32px))}
+.toast-list{display:grid;gap:var(--s2)}
+.toast-list:empty{display:none}
 .toast{display:flex;align-items:flex-start;gap:var(--s2);padding:10px 8px 10px 12px;border-radius:var(--r-md);background:#161b26;color:#fff;box-shadow:var(--shadow-lg);font-size:var(--fs-md);animation:toast-in .18s ease-out}
 .toast .icon-btn{width:24px;height:24px;color:#aab2c3}
 .toast .icon-btn:hover{background:#2a3242;color:#fff}

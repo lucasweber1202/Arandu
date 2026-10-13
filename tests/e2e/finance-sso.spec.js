@@ -104,6 +104,8 @@ test('login: SSO exigido bloqueia a senha e oferece o provedor; motivo de recusa
   await page.getByRole('button', { name: 'Entrar com SSO' }).click();
   await expect.poll(() => started?.searchParams.get('email')).toBe('paula@vitta.example');
   expect(started.searchParams.get('next')).toBe('/finance/rfqs.html');
+  // A ida ao provedor é uma navegação: termina antes da próxima, sem corrida.
+  await page.waitForURL(/\/api\/auth\/sso\/start/);
 
   await page.goto('/login.html?sso_error=member_not_found');
   await expect(page.getByText(/ainda não foi convidada/)).toBeVisible();

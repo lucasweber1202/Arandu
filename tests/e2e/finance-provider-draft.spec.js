@@ -82,3 +82,16 @@ test('prazo de resposta vencido com coleta aberta: o provedor é avisado antes d
   await expect(page.locator('.proposal-status')).toContainText('O prazo de resposta já passou.');
   await expect(page.locator('.proposal-status')).toContainText('registrada como enviada após o prazo');
 });
+
+test('conflito de rascunho: o aviso com "Recarregar" é anunciado como alerta e não some sozinho', async ({ page }) => {
+  await page.clock.install();
+  await mockProvider(page, { patch: () => 409 });
+  await page.goto(`/provider/proposal.html?proposal=${PROPOSAL}`);
+  await page.getByLabel('Valor ofertado (R$)').fill('920000');
+  await page.clock.runFor(1500);
+  const alert = page.getByRole('alert').filter({ hasText: 'Este rascunho mudou em outra aba' });
+  await expect(alert).toBeVisible();
+  await expect(alert.getByRole('button', { name: 'Recarregar' })).toBeVisible();
+  await page.clock.runFor(30_000);
+  await expect(alert.getByRole('button', { name: 'Recarregar' })).toBeVisible();
+});
