@@ -1,5 +1,21 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 13/10/2026 — Ações sem gravação duplicada, aprovação com condições à vista e rascunho do provedor protegido
+
+Base: `main` @ `ff9c9bb` (#181). Estado: M1 + testes E2E (mocks da API); nada hospedado.
+
+- `button`/`iconButton` (finance/src/ui.js): ação assíncrona em andamento deixa o
+  botão ocupado (`aria-busy`) e ignora novos cliques. Antes, "Ativar",
+  "Aposentar", "Processar prazos" e afins mandavam uma gravação por clique.
+- Caixa de aprovações: quem decide vê valor, taxa e prazo da proposta na própria
+  linha, antes dos botões; pedido desatualizado não conta em "Aguardando você".
+- Portal do provedor: rascunho com alteração pendente ou falha de rede avisa ao
+  sair, salva ao ir para segundo plano e tenta de novo quando a conexão volta
+  (paridade com o editor de solicitação).
+- Testes: `tests/e2e/finance-policy.spec.js` (duplo clique, condições, pedido
+  desatualizado) e `tests/e2e/finance-provider-draft.spec.js`; cada um falha sem
+  a correção.
+
 ## 13/10/2026 — Fatos confirmados de documentos preenchem os termos do contrato
 
 Base: `main` @ `5725915` (#180). Estado: M1 + testes locais e E2E (mocks da API);

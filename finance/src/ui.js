@@ -8,8 +8,23 @@ import { el, icon, initials, fieldValue, enumLabel } from './core.js';
 export function button(label, { variant = 'secondary', iconName = null, type = 'button', size = null, onClick = null, attrs = {} } = {}) {
   const node = el('button', { type, class: `btn btn-${variant}${size ? ` btn-${size}` : ''}`, ...attrs },
     [iconName ? icon(iconName) : null, el('span', { class: 'btn-label', text: label })]);
-  if (onClick) node.addEventListener('click', onClick);
+  if (onClick) onAction(node, onClick);
   return node;
+}
+// Ação assíncrona em andamento: o botão fica ocupado (aria-busy) e novos
+// cliques são ignorados até ela terminar. Antes, clicar duas vezes em
+// "Ativar", "Aposentar" ou "Processar prazos" mandava duas gravações. O
+// `disabled` continua com o handler, que pode querer mantê-lo depois.
+function onAction(node, handler) {
+  let pending = false;
+  node.addEventListener('click', (event) => {
+    if (pending) { event.preventDefault(); event.stopImmediatePropagation(); return; }
+    const result = handler(event);
+    if (!result || typeof result.then !== 'function') return;
+    pending = true;
+    node.setAttribute('aria-busy', 'true');
+    Promise.resolve(result).finally(() => { pending = false; node.removeAttribute('aria-busy'); });
+  });
 }
 export function linkButton(label, href, { variant = 'secondary', iconName = null, size = null, attrs = {} } = {}) {
   return el('a', { href, class: `btn btn-${variant}${size ? ` btn-${size}` : ''}`, ...attrs },
@@ -17,7 +32,7 @@ export function linkButton(label, href, { variant = 'secondary', iconName = null
 }
 export function iconButton(name, label, { onClick = null, attrs = {} } = {}) {
   const node = el('button', { type: 'button', class: 'icon-btn', 'aria-label': label, title: label, ...attrs }, icon(name, { size: 18 }));
-  if (onClick) node.addEventListener('click', onClick);
+  if (onClick) onAction(node, onClick);
   return node;
 }
 
@@ -346,8 +361,8 @@ export function menu(label, items, { iconName = 'more', visibleLabel = '' } = {}
   const wrap = el('div', { class: 'menu' });
   // Com rótulo visível o menu deixa de ser um ícone solto fácil de ignorar.
   const trigger = visibleLabel
-    ? el('button', { type: 'button', class: 'btn', 'aria-haspopup': 'true', 'aria-expanded': 'false', 'aria-label': label, title: label }, [el('span', { text: visibleLabel }), icon('chevronDown', { size: 16 })])
-    : el('button', { type: 'button', class: 'btn btn-ghost btn-icon-only', 'aria-haspopup': 'true', 'aria-expanded': 'false', 'aria-label': label, title: label }, icon(iconName));
+    ? el('button', { type: 'button', class: 'btn', 'aria-haspopup': 'menu', 'aria-expanded': 'false', 'aria-label': label, title: label }, [el('span', { text: visibleLabel }), icon('chevronDown', { size: 16 })])
+    : el('button', { type: 'button', class: 'btn btn-ghost btn-icon-only', 'aria-haspopup': 'menu', 'aria-expanded': 'false', 'aria-label': label, title: label }, icon(iconName));
   const list = el('div', { class: 'menu-list', role: 'menu', hidden: true });
   const closeMenu = () => { list.hidden = true; trigger.setAttribute('aria-expanded', 'false'); };
   for (const item of items.filter(Boolean)) {
@@ -369,7 +384,13 @@ export function menu(label, items, { iconName = 'more', visibleLabel = '' } = {}
     if (event.key === 'Escape') { closeMenu(); trigger.focus(); }
     if (event.key === 'ArrowDown') { event.preventDefault(); entries[(index + 1) % entries.length]?.focus(); }
     if (event.key === 'ArrowUp') { event.preventDefault(); entries[(index - 1 + entries.length) % entries.length]?.focus(); }
+    if (event.key === 'Home') { event.preventDefault(); entries[0]?.focus(); }
+    if (event.key === 'End') { event.preventDefault(); entries.at(-1)?.focus(); }
   });
+  // Tab para fora fecha o menu: antes ele ficava aberto por cima do conteúdo.
+  // Só fecha quando o foco vai para um elemento conhecido fora do menu; toque
+  // em navegador que não foca botões (relatedTarget nulo) fica com o clique.
+  wrap.addEventListener('focusout', (event) => { if (event.relatedTarget && !wrap.contains(event.relatedTarget)) closeMenu(); });
   document.addEventListener('click', (event) => { if (!wrap.contains(event.target)) closeMenu(); });
   wrap.append(trigger, list);
   return wrap;

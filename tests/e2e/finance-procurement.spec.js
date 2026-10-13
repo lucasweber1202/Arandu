@@ -506,3 +506,26 @@ test('comparação indisponível recusa cálculo local silencioso e oferece repe
   await expect(page.locator('#weights-output')).toContainText('Não foi possível calcular');
   await expect(page.locator('.score-row')).toHaveCount(0);
 });
+
+test('menu "Mais ações": teclado completo e Tab para fora fecha o menu', async ({ page }) => {
+  await mockSession(page);
+  await page.goto(`/finance/rfq.html?id=${RFQ}`);
+  const trigger = page.getByRole('button', { name: 'Mais ações' });
+  await expect(trigger).toHaveAttribute('aria-haspopup', 'menu');
+  await trigger.click();
+  const items = page.getByRole('menuitem');
+  await expect(items.first()).toBeFocused();
+  await page.keyboard.press('End');
+  await expect(items.last()).toBeFocused();
+  await page.keyboard.press('Home');
+  await expect(items.first()).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('menu')).toBeHidden();
+  await expect(trigger).toBeFocused();
+  await trigger.click();
+  await expect(page.getByRole('menu')).toBeVisible();
+  await page.keyboard.press('End');
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('menu')).toBeHidden();
+  await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+});
