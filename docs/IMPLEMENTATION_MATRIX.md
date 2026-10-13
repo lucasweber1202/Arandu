@@ -12,6 +12,13 @@ banco hospedado (as da #178 também não).
 | P0-B `X-Forwarded-For` | primeiro valor do cabeçalho do cliente usado como IP em qualquer ambiente | `lib/client-address.mjs`: Vercel pela borda; proxy próprio só com `ARANDU_TRUSTED_PROXY_HOPS` (pela direita); senão só a conexão; IPv6 por /64 | `test-client-address`; `test-auth-api`: 13 logins com XFF girando → 429 |
 | P0-C `fin_request_policy_exception` | evidência buscada em `fin_documents` e conferida com `fin_can_read_document` (só `fin_private_documents`): toda evidência com documento recusada | aceita documento privado legível pela pessoa ou referência externa no escopo de entidade; outra empresa, outra entidade, removido e interno do provedor recusados | bloco 6 reprova após o rollback (evidência legítima recusada) |
 
+Lote 4 (segurança, mesma rodada): XLSX e DOCX ainda tinham regex preguiçoso sobre o
+arquivo inteiro (`<si>`, `<row>`, `<c>`, `<w:t>`) e `<[^>]+>` na remoção de
+marcação: 320 KB de `<si>` sem fechamento levavam 10 s (o teto de 24 MB, horas);
+`&#99999999;` lançava `RangeError`. Varredura linear com o mesmo recorte; célula
+autofechada não engole a seguinte e `<w:tab/>` não vira texto. O código anterior
+não terminou o teste em 60 s; o novo roda a suíte em 0,4 s.
+
 Ajustes de testes antigos: `email-outbox.sql` e `financial-pilot.sql` enfileiravam
 para RFQ/contrato inexistentes; agora criam a origem real (a fila recusa e-mail
 sem organização). `test:database` exit 0 (instalação limpa, upgrade, rollback,
