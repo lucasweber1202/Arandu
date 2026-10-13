@@ -512,6 +512,22 @@ export async function newRfq(ctx) {
     retry.hidden = false;
   });
 
+  // Uma chave por intenção de criar, guardada na aba junto com o conteúdo: se
+  // a criação ficar sem resposta, reenviar o mesmo conteúdo (mesmo depois de
+  // recarregar) devolve a RFQ já registrada em vez de criar outra. Conteúdo
+  // diferente é outra intenção e ganha chave nova. Some quando a criação é confirmada.
+  const requestKeyStore = `arandu.rfq-create-key.${ctx.organization.id}`;
+  const requestKey = (content) => {
+    let saved = null;
+    try { saved = JSON.parse(sessionStorage.getItem(requestKeyStore) || 'null'); } catch {}
+    if (saved?.key && saved.content === content) return saved.key;
+    if (!globalThis.crypto?.randomUUID) return null;
+    const key = crypto.randomUUID();
+    try { sessionStorage.setItem(requestKeyStore, JSON.stringify({ key, content })); } catch {}
+    return key;
+  };
+  const forgetRequestKey = () => { try { sessionStorage.removeItem(requestKeyStore); } catch {} };
+
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     for (const step of [0, 1, 2]) if (!validate(step)) { show(step, { focus: true }); validate(step); return; }
@@ -522,10 +538,15 @@ export async function newRfq(ctx) {
       clearTimeout(timer);
       if (pending) await pending.catch(() => {});
       const entityId = entityWrap?.querySelector('select')?.value || null;
-      const result = await ctx.api('rfqs', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, ...payload(), ...(entityId ? { legal_entity_id: entityId } : {}) }) });
+      const body = { organization_id: ctx.organization.id, ...payload(), ...(entityId ? { legal_entity_id: entityId } : {}) };
+      const key = requestKey(JSON.stringify(body));
+      const result = await ctx.api('rfqs', { method: 'POST', body: JSON.stringify({ ...body, ...(key ? { request_key: key } : {}) }) });
+      forgetRequestKey();
       if (editorRevision) await ctx.api('rfq-editor', { method: 'DELETE', body: JSON.stringify({ organization_id: ctx.organization.id, expected_revision: editorRevision }) }).catch(() => {});
       dirty = false;
-      toast(['Solicitação criada como rascunho.', ...(result.warnings || [])].join(' '));
+      toast(result.replayed
+        ? 'Esta solicitação já tinha sido registrada no envio anterior; abrimos o registro em vez de criar outra.'
+        : ['Solicitação criada como rascunho.', ...(result.warnings || [])].join(' '));
       location.assign(ctx.href(`/finance/rfq.html?id=${encodeURIComponent(result.id)}&created=1`));
     } catch (error) {
       toast(error.status === 401 ? 'Entre na sua conta para criar uma solicitação.' : error.message, 'error');

@@ -16,6 +16,7 @@ import fs from 'node:fs';
 import { enrollTotp, verifyTotp, totpCode, jwtAal } from '../finance-operator-mfa.mjs';
 import { renderTransactionalEmail } from '../../lib/email.mjs';
 import { EXPECTED_SCHEMA_VERSION } from '../../lib/finance/pilot-doctor.mjs';
+import { decodeSessionValue, encodeSessionValue } from '../../lib/session-cookie.mjs';
 
 const APP = process.env.PILOT_APP_URL || 'https://localhost:4443';
 const DB = process.env.PILOT_DB_URL;
@@ -65,8 +66,8 @@ async function api(who, method, path, body) {
   return { status: response.status, data };
 }
 const ok = (result, label) => { must(result.status < 300 && result.data?.ok !== false, `${label}: ${result.status} ${result.data?.code || ''} ${result.data?.error || ''}`.trim()); return result.data; };
-const accessToken = (who) => JSON.parse(Buffer.from(decodeURIComponent(who.cookie.split('=')[1]), 'base64url').toString('utf8')).access_token;
-const sessionCookie = (session) => `arandu_session=${encodeURIComponent(Buffer.from(JSON.stringify({ access_token: session.access_token, refresh_token: session.refresh_token, expires_at: Math.floor(Date.now() / 1000) + 3000 })).toString('base64url'))}`;
+const accessToken = (who) => decodeSessionValue(decodeURIComponent(who.cookie.split('=')[1])).access_token;
+const sessionCookie = (session) => `arandu_session=${encodeURIComponent(encodeSessionValue({ access_token: session.access_token, refresh_token: session.refresh_token, expires_at: Math.floor(Date.now() / 1000) + 3000 }))}`;
 async function rest(who, path) {
   const response = await fetch(`${SB}/rest/v1/${path}`, { headers: { apikey: ANON, Authorization: `Bearer ${accessToken(who)}` } });
   return { status: response.status, rows: await response.json().catch(() => null) };
@@ -527,7 +528,7 @@ await attack('Duas execuções simultâneas do cron no mesmo dia', '1 marco, 1 a
     observed: `${a.status}/${b.status}; jobs ${names.map((name) => `${name}=${states(name).join('|')}`).join(', ')}; marcos expired=${expired}, avisos=${notices}` };
 });
 await attack('Sessão expirada sem refresh token', '401', async () => {
-  const stale = { cookie: `arandu_session=${encodeURIComponent(Buffer.from(JSON.stringify({ access_token: accessToken(people.buyer), expires_at: Math.floor(Date.now() / 1000) - 60 })).toString('base64url'))}` };
+  const stale = { cookie: `arandu_session=${encodeURIComponent(encodeSessionValue({ access_token: accessToken(people.buyer), expires_at: Math.floor(Date.now() / 1000) - 60 }))}` };
   const r = await api(stale, 'GET', `/api/finance/overview?organization_id=${ctx.buyerOrg}`);
   return { ok: r.status === 401, observed: show(r) };
 });

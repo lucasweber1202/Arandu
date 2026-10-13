@@ -9,7 +9,7 @@ import {
   SCHEMAS, VALUE_STATES, schemaField, matchField, normalizeValue, untrustedText, initialStatus, validateFact,
   semanticDiff, factMap, evaluateExtraction, evalGate, EVAL_THRESHOLDS, REVIEW_THRESHOLD
 } from '../lib/finance/document-intelligence.mjs';
-import { deterministicProvider, createModelProvider, providerFor, readZip, ExtractionFailure, sha256Hex } from '../lib/finance/extraction-providers.mjs';
+import { pdfPages, deterministicProvider, createModelProvider, providerFor, readZip, ExtractionFailure, sha256Hex } from '../lib/finance/extraction-providers.mjs';
 import { presentExtractionPage, presentExtractionDetail, valueText, provenanceText } from '../lib/finance/extraction-presenter.mjs';
 import { DATA_REGISTRY } from '../lib/finance/data-governance.mjs';
 import { EVAL_CASES, FAILURE_CASES } from '../tests/fixtures/document-intelligence/eval-cases.mjs';
@@ -231,4 +231,16 @@ assert.match(app, /\n  extractions: lazy\(\(\) => import\('\.\/src\/views\/extra
 assert.doesNotMatch(app, /__ARANDU_DEMO__ \?/, 'telas não dependem do modo de build');
 const { PAGES } = await import('./generate-finance-pages.mjs');
 assert.equal(PAGES.find((page) => page.view === 'extractions')?.sandboxExcluded, true);
+// Documento hostil não prende a função: as varreduras de PDF são lineares e um
+// "<" sem ">" no conteúdo não reinicia o laço (antes: tempo quadrático com
+// `<<>>` repetido e laço infinito com hexadecimal aberto).
+{
+  const timed = (fn) => { const t0 = performance.now(); try { fn(); } catch (error) { if (!(error instanceof ExtractionFailure)) throw error; } return performance.now() - t0; };
+  const spam = Buffer.from(`%PDF-1.4\n${'<<>>'.repeat(500_000)}`, 'latin1');
+  assert.ok(timed(() => pdfPages(spam)) < 1500, 'PDF com 500 mil dicionários sem stream termina rápido');
+  const openHex = Buffer.from('%PDF-1.4\n<< /Length 9 >>\nstream\nBT <414243 Tj ET\nendstream\n', 'latin1');
+  assert.ok(timed(() => pdfPages(openHex)) < 1500, 'hexadecimal sem fechamento termina');
+  const valid = pdfPages(Buffer.from('%PDF-1.4\n1 0 obj << /Length 30 >>\nstream\nBT (Taxa: 1,5% a.m.) Tj ET\nendstream\nendobj\n', 'latin1'));
+  assert.deepEqual(valid.map((page) => page.lines), [['Taxa: 1,5% a.m.']], 'fluxo comum continua lido');
+}
 console.log('Document intelligence: schema/normalização sem inventar, conteúdo não confiável, diff com proveniência, leitores PDF/XLSX/DOCX, evals por criticidade, paridade SQL/JS, API só com JWT e linguagem segura aprovados.');

@@ -301,6 +301,36 @@ test('conflito de rascunho entre abas é explicado e para de salvar', async ({ p
   await expect(page.getByRole('button', { name: 'Carregar a versão da outra aba' })).toBeVisible();
 });
 
+test('criação sem resposta: reenviar o mesmo conteúdo reabre a RFQ registrada em vez de duplicar', async ({ page }) => {
+  await mockSession(page);
+  const keys = [];
+  // Rota mais recente tem precedência: a primeira criação "cai" depois de gravar.
+  await page.route('**/api/finance/rfqs', (route) => {
+    if (route.request().method() !== 'POST') return route.fallback();
+    keys.push(route.request().postDataJSON().request_key);
+    if (keys.length === 1) return route.abort('connectionreset');
+    const replayed = keys[1] === keys[0];
+    return route.fulfill({ status: replayed ? 200 : 201, contentType: 'application/json', body: JSON.stringify({ ok: true, id: RFQ, replayed, warnings: [] }) });
+  });
+  await page.goto('/finance/new-rfq.html');
+  const form = page.locator('#rfq-form');
+  await form.getByLabel('Título da solicitação').fill('Capital de giro sem resposta');
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await form.getByLabel('Valor desejado (R$)').fill('500000');
+  await form.getByLabel('Finalidade').selectOption('capital_de_giro');
+  await form.getByLabel('Prazo desejado (meses)').fill('24');
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Criar solicitação' }).click();
+  await expect(page.getByText(/não foi possível confirmar se a operação foi registrada/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Criar solicitação' })).toBeEnabled();
+  await page.getByRole('button', { name: 'Criar solicitação' }).click();
+  await expect(page).toHaveURL(new RegExp(`/finance/rfq\\.html\\?id=${RFQ}&created=1`));
+  expect(keys).toHaveLength(2);
+  expect(keys[0]).toMatch(/^[0-9a-f-]{36}$/);
+  expect(keys[1]).toBe(keys[0]);
+});
+
 test('o mix de recebimentos que não fecha 100% é avisado antes do envio', async ({ page }) => {
   await mockSession(page);
   await page.goto('/finance/new-rfq.html');

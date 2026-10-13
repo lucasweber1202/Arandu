@@ -33,6 +33,12 @@ try {
   assert.match(financial.text, /Empresa Exemplo/);
   assert.match(financial.text, /#token=/);
   assert.equal(financial.html.includes('<script>'), false);
+  // Parágrafos preservados: texto com quebras de linha e HTML com <br>.
+  assert.ok(financial.text.split('\n').length > 3, 'corpo em várias linhas');
+  assert.ok(financial.html.includes('<br>'), 'quebras de linha no HTML');
+  const hostile = renderTransactionalEmail('finance_provider_invite', { buyer: '<script>x</script>\r\nBcc: x@y.z', product: 'crédito', deadline: '2026-10-01', link: 'https://arandu.example/provider/invite.html#token=' + 'a'.repeat(64) });
+  assert.ok(!hostile.html.includes('<script>') && hostile.html.includes('&lt;script&gt;'), 'conteúdo escapado no HTML');
+  assert.ok(!/[\r\n]/.test(hostile.subject), 'assunto sem quebra de linha');
   const inviteRef = '00000000-0000-4000-8000-00000000cb02';
   const prepared = await prepareFinancialEmail({
     template: 'finance_provider_invite',

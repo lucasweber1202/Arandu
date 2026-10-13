@@ -168,3 +168,22 @@ Spend e Performance resolvem referências por `presentationContext`, com o
 JWT do caller e filtro de organização. Não há lookup administrativo; objetos
 ocultos ficam indisponíveis, sem ID cru como fallback. Limite de cobertura:
 500 referências por tabela; acima dele a tela falha explicitamente.
+
+## Fechamento de segurança (13/10/2026)
+
+`docs/supabase-financial-security-closure.sql`; testes negativos em
+`tests/database/financial-security-closure.sql` (cada bloco reprova sem a migration).
+
+| Ação | Quem | Onde a regra vive |
+| --- | --- | --- |
+| Ler e anexar referência externa (`fin_documents`) | papel da compradora **e** objeto ao alcance do escopo de entidade (RFQ, proposta, contrato); perfil e provedor seguem de grupo | RLS `fin_document_read`, `fin_document_write` (`fin_object_visible`) |
+| Remover documento privado | quem alcança o documento (`fin_can_read_document`) e tem o papel exigido | `fin_document_remove` |
+| Editar provedor diretamente | `admin`/`finance_manager`, só campos cadastrais (nome, tipo, site, contato, produtos, região, status, notas) | grants por coluna; evidência regulatória e vínculo canônico só por `fin_record_provider_evidence` e RPCs de vínculo |
+| Prontidão de qualificação | só a RPC de transição (sem `EXECUTE` para usuários) | `fin_qualification_readiness` |
+| Webhooks pela API v1 (listar, desativar, entregas, reenvio) | conta de serviço de grupo, ou conta restrita só para webhook filtrado às entidades dela | `fin_api_endpoint_allowed` |
+| Reivindicar domínio SSO | `admin` da compradora; pedido pendente/revogado de outra organização vence em 7 dias; verificado nunca muda de dono | `fin_sso_claim_domain` |
+
+Criação de RFQ pela interface com chave por intenção (`request_key`):
+recibo privado por pessoa (`fin_request_receipts`, RLS `actor_id = auth.uid()`),
+gravado só pelo gatilho na mesma transação da RFQ
+(`docs/supabase-financial-request-receipts.sql`).
