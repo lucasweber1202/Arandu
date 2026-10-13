@@ -640,3 +640,17 @@ export function keyTerms(product, terms) {
     return el('div', { class: 'key-term' }, [el('dt', { text: specs[key].label.replace(/\s*\(.*\)$/, '') }), el('dd', { class: value === null ? 'missing' : '', text: value ?? '—' })]);
   }));
 }
+
+// Linha curta com as condições principais, para listas. Ausente aparece como
+// "não informado", nunca como zero; a unidade acompanha o valor.
+export function termsSummary(product, terms) {
+  const keys = product === 'credit' ? ['offered_amount', 'interest_rate_month', 'term_months'] : ['mdr_debit', 'mdr_credit_cash', 'settlement_days'];
+  const specs = Object.fromEntries((PRODUCTS[product]?.proposalFields || []).map((spec) => [spec.key, spec]));
+  return keys.filter((key) => specs[key]).map((key) => {
+    const spec = specs[key];
+    const unit = (spec.label.match(/\(([^)]*)\)$/) || [])[1] || '';
+    const suffix = { meses: ' meses', dias: ' dias', '% a.m.': ' a.m.', '% a.a.': ' a.a.' }[unit] || '';
+    const raw = fieldValue(spec, terms?.[key]);
+    return `${spec.label.replace(/\s*\(.*\)$/, '')}: ${raw === null ? 'não informado' : `${raw}${suffix}`}`;
+  }).join(' · ');
+}

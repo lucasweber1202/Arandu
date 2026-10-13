@@ -529,3 +529,20 @@ test('menu "Mais ações": teclado completo e Tab para fora fecha o menu', async
   await expect(page.getByRole('menu')).toBeHidden();
   await expect(trigger).toHaveAttribute('aria-expanded', 'false');
 });
+
+test('propostas recebidas: condições principais na lista, ausência como "não informado" e retirada sinalizada', async ({ page }) => {
+  const data = overview();
+  data.rfqs[0].proposals[1] = { ...data.rfqs[0].proposals[1], status: 'withdrawn', terms: { offered_amount: 450000 } };
+  await mockSession(page, { data });
+  await page.goto('/finance/proposals.html');
+  const one = page.locator('tr', { hasText: 'Banco Um' });
+  await expect(one).toContainText(/R\$\s?500\.000/);
+  await expect(one).toContainText('1,4');
+  await expect(one).toContainText('24 meses');
+  const two = page.locator('tr', { hasText: 'Banco Dois' });
+  await expect(two).toContainText('Retirada');
+  await expect(two).toContainText('não informado');
+  await expect(two).not.toContainText(/:\s0(\D|$)/);
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+});
