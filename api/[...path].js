@@ -38,18 +38,20 @@ function enforceSameOrigin(req) {
   if (rejection) throw new HttpError(rejection.status, rejection.error, rejection.code);
 }
 
-function clientFingerprint(req, scope, identity = '') {
+// `acrossOrigins`: o limite vale para a identidade em qualquer IP (tentativas
+// contra uma mesma conta vindas de muitos endereços).
+function clientFingerprint(req, scope, identity = '', { acrossOrigins = false } = {}) {
   const forwarded = String(req.headers?.['x-forwarded-for'] || '').split(',')[0].trim();
-  const ip = forwarded || req.socket?.remoteAddress || 'unknown';
+  const ip = acrossOrigins && clean(identity) ? '*' : forwarded || req.socket?.remoteAddress || 'unknown';
   return createHash('sha256').update(`${scope}:${ip}:${clean(identity).toLowerCase()}`).digest('hex');
 }
 
-function enforceMemoryRateLimit(req, scope, limit, windowMs, identity = '') {
+function enforceMemoryRateLimit(req, scope, limit, windowMs, identity = '', options = {}) {
   const now = Date.now();
   if (RATE_LIMITS.size > 2000) {
     for (const [entryKey, value] of RATE_LIMITS) if (value.resetAt <= now) RATE_LIMITS.delete(entryKey);
   }
-  const key = clientFingerprint(req, scope, identity);
+  const key = clientFingerprint(req, scope, identity, options);
   const current = RATE_LIMITS.get(key);
   if (!current || current.resetAt <= now) {
     RATE_LIMITS.set(key, { count: 1, resetAt: now + windowMs });
@@ -59,9 +61,9 @@ function enforceMemoryRateLimit(req, scope, limit, windowMs, identity = '') {
   if (current.count > limit) throw new HttpError(429, 'Muitas tentativas. Aguarde alguns minutos e tente novamente.');
 }
 
-async function enforceRateLimit(req, scope, limit, windowMs, identity = '') {
+async function enforceRateLimit(req, scope, limit, windowMs, identity = '', options = {}) {
   const distributed = trueFlag(process.env.ARANDU_DISTRIBUTED_RATE_LIMIT) || Boolean(process.env.VERCEL_ENV);
-  if (!distributed) return enforceMemoryRateLimit(req, scope, limit, windowMs, identity);
+  if (!distributed) return enforceMemoryRateLimit(req, scope, limit, windowMs, identity, options);
   if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
     throw new HttpError(503, 'A proteção distribuída contra abuso ainda não foi configurada.', 'rate_limit_unconfigured');
   }
@@ -75,7 +77,7 @@ async function enforceRateLimit(req, scope, limit, windowMs, identity = '') {
     },
     body: JSON.stringify({
       p_scope: scope,
-      p_fingerprint: clientFingerprint(req, scope, identity),
+      p_fingerprint: clientFingerprint(req, scope, identity, options),
       p_limit: limit,
       p_window_seconds: Math.max(1, Math.ceil(windowMs / 1000))
     })

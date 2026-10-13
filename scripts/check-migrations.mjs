@@ -29,6 +29,8 @@ for (const [flow, files] of Object.entries(manifest)) {
   if (files.indexOf('docs/supabase-financial-opportunity-discriminator.sql') !== files.indexOf('docs/supabase-financial-spend-intelligence.sql')+1) issues.push(`${flow}: discriminador de oportunidades deve seguir spend.`);
   if (files.indexOf('docs/supabase-financial-demo-workspaces.sql') !== files.indexOf('docs/supabase-financial-opportunity-discriminator.sql')+1) issues.push(`${flow}: workspaces da demo devem seguir o discriminador de oportunidades.`);
   if (files.indexOf('docs/supabase-financial-demo-pool.sql') !== files.indexOf('docs/supabase-financial-demo-workspaces.sql')+1) issues.push(`${flow}: pool da demo deve seguir os workspaces da demo.`);
+  if (files.indexOf('docs/supabase-financial-security-closure.sql') !== files.indexOf('docs/supabase-financial-demo-pool.sql')+1) issues.push(`${flow}: fechamento de segurança deve seguir o pool da demo.`);
+  if (files.indexOf('docs/supabase-financial-request-receipts.sql') !== files.indexOf('docs/supabase-financial-security-closure.sql')+1) issues.push(`${flow}: recibos de criação devem seguir o fechamento de segurança.`);
   const sprint2 = files.indexOf('docs/supabase-sprint2-catalog-readiness.sql');
   const collections = files.indexOf('docs/arandu-mvp-collections.sql');
   const sprint5 = files.indexOf('docs/supabase-sprint5-pilot.sql');

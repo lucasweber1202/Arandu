@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {Readable} from 'node:stream';
 import {tokenHash,workspacePassword} from '../lib/finance/demo-workspaces.mjs';
+import {encodeSessionValue} from '../lib/session-cookie.mjs';
 process.env.SUPABASE_URL='https://localhost:8443';
 process.env.SUPABASE_ANON_KEY='fixture-public';
 process.env.SUPABASE_SERVICE_ROLE_KEY='fixture-service';
@@ -96,7 +97,7 @@ const statuses=[];for(let i=0;i<5;i+=1)statuses.push((await call('POST','demo-lo
 assert.deepEqual(statuses,[200,200,200,200,429]);
 
 // 8. Sessão de conta de workspace só vale com o workspace ativo; JWT válido não basta.
-const session=(token)=>`arandu_session=${Buffer.from(JSON.stringify({access_token:token,refresh_token:'',expires_at:Math.floor(Date.now()/1000)+3600})).toString('base64url')}`;
+const session=(token)=>`arandu_session=${encodeURIComponent(encodeSessionValue({access_token:token,refresh_token:'',expires_at:Math.floor(Date.now()/1000)+3600}))}`;
 claimed={x:{id:'x',slug:'eeeeeeeeee',status:'claimed'}};
 sessionUser='juliana.ramos+ws-eeeeeeeeee@vittafoods.example';
 const live=await call('GET','session',null,session('t-live'));assert.equal(live.body.authenticated,true);

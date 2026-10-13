@@ -1,5 +1,21 @@
 # Changelog — Arandu
 
+## Não lançado — Fechamento de segurança e criação idempotente (13/10/2026)
+
+- **Sessões existentes pedem novo login uma vez**: o cookie `arandu_session` passa a
+  ser assinado (HMAC, chave derivada da service role) e a carga antiga, sem
+  assinatura, deixa de valer. Sem isso, apagar o marcador SSO do cookie escapava
+  do limite de sessão, da revogação e da desativação da conexão.
+- Sessão SSO revogada cai em até 30 s (validade conferida em toda requisição).
+- Login por senha: teto de 100 tentativas/h por conta em qualquer IP.
+- Leitura de PDF/DOCX para extração em tempo linear (documento hostil não prende a função).
+- Migration `financial-security-closure-1`: escopo de entidade em referências
+  externas e na remoção de documento, evidência de provedor só por RPC, webhooks
+  da API v1 por escopo de entidade, prontidão de qualificação fechada, domínio SSO
+  pendente que vence em 7 dias.
+- Migration `financial-request-receipts-1`: reenviar a criação de uma RFQ sem
+  resposta reabre a RFQ já registrada em vez de criar outra.
+
 ## Não lançado — Consolidação em dois ambientes
 
 - Demo e Production são permanentes; Pilot é etapa de validação, com runtime legado transitório até cutover seguro.

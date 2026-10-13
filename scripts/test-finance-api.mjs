@@ -124,6 +124,34 @@ reset((entry) => (entry.url.includes('fin_organizations') ? orgRow(BUYER, 'BUYER
   assert.ok(sent.every((entry) => entry.apikey === 'test-anon-key'));
 }
 
+// Criação idempotente: a chave vira cabeçalho para o PostgREST; repetição
+// recusada pelo banco devolve a RFQ já registrada, sem criar outra.
+{
+  const KEY = '7c1d1e9a-3b44-4f0a-9d2e-1a2b3c4d5e6f';
+  const original = globalThis.fetch;
+  const seen = [];
+  globalThis.fetch = async (url, options = {}) => {
+    const target = String(url);
+    seen.push({ url: target, key: options.headers?.['x-arandu-request-key'] });
+    const reply = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+    if (target.includes('fin_organizations')) return reply(orgRow(BUYER, 'BUYER'));
+    if (target.includes('rpc/fin_create_rfq')) return reply({ code: 'P0001', message: 'duplicate request' }, 400);
+    if (target.includes('fin_request_receipts')) return reply([{ rfq_id: RFQ }]);
+    return reply([]);
+  };
+  try {
+    const body = { organization_id: BUYER, product: 'credit', title: 'Capital de giro DEMO', demand: { amount: 500000, purpose: 'capital_de_giro', term_months: 24 }, request_key: KEY.toUpperCase() };
+    const replay = await call('POST', 'rfqs', { body });
+    assert.deepEqual({ id: replay.payload.id, replayed: replay.payload.replayed }, { id: RFQ, replayed: true });
+    assert.equal(seen.find((entry) => entry.url.includes('rpc/fin_create_rfq')).key, KEY, 'chave normalizada repassada ao banco');
+    assert.match(seen.find((entry) => entry.url.includes('fin_request_receipts')).url, new RegExp(`request_key=eq\\.${KEY}&organization_id=eq\\.${BUYER}`));
+    // Sem chave, a recusa não é tratada como repetição.
+    delete body.request_key;
+    await rejects('POST', 'rfqs', { body }, 409);
+    await rejects('POST', 'rfqs', { body: { ...body, request_key: 'nao-e-uuid' } }, 400);
+  } finally { globalThis.fetch = original; }
+}
+
 // Organização de provedor não abre RFQ de comprador.
 reset(() => orgRow(PROVIDER_ORG, 'PROVIDER'));
 await rejects('POST', 'rfqs', { body: { organization_id: PROVIDER_ORG, product: 'credit', title: 'X DEMO', demand: {} } }, 400);

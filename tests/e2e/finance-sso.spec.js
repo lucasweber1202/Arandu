@@ -111,3 +111,29 @@ test('login: SSO exigido bloqueia a senha e oferece o provedor; motivo de recusa
   await expect(page.getByText('O provedor de identidade não concluiu o login. Tente de novo.')).toBeVisible();
   await noHorizontalOverflow(page);
 });
+
+test('recuperação de senha: o link do e-mail leva à nova senha e o token sai da barra de endereço', async ({ page }) => {
+  const sent = [];
+  await page.route('**/api/auth/update-password', (route) => { sent.push(route.request().postDataJSON()); return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true }) }); });
+  await page.goto('/login.html?recovery=1#access_token=recovery-token-de-teste-123456&expires_in=3600&refresh_token=nao-usado&token_type=bearer&type=recovery');
+  await expect(page.getByRole('heading', { name: 'Definir nova senha' })).toBeVisible();
+  expect(new URL(page.url()).hash).toBe('');
+  await expect(page.locator('[data-finance-auth="login"]')).toBeHidden();
+  await page.getByLabel('Nova senha (mínimo de 8 caracteres)').fill('nova-senha-forte-1');
+  await page.getByLabel('Repita a nova senha').fill('outra-senha-forte-1');
+  await page.getByRole('button', { name: 'Salvar nova senha' }).click();
+  await expect(page.getByText('As duas senhas não são iguais.')).toBeVisible();
+  expect(sent).toHaveLength(0);
+  await page.getByLabel('Repita a nova senha').fill('nova-senha-forte-1');
+  await page.getByRole('button', { name: 'Salvar nova senha' }).click();
+  await expect(page.getByText('Senha alterada. Entre com o seu e-mail e a nova senha.')).toBeVisible();
+  expect(sent).toEqual([{ recovery_token: 'recovery-token-de-teste-123456', password: 'nova-senha-forte-1' }]);
+  await expect(page.getByLabel('E-mail corporativo')).toBeVisible();
+  await noHorizontalOverflow(page);
+  // Link vencido: o provedor devolve o erro no fragmento; nada a enviar. O link
+  // do e-mail abre a página do zero (mudar só o fragmento não a recarregaria).
+  await page.goto('about:blank');
+  await page.goto('/login.html?recovery=1#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired');
+  await expect(page.getByRole('heading', { name: 'Link de recuperação expirado' })).toBeVisible();
+  expect(new URL(page.url()).hash).toBe('');
+});

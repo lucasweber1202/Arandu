@@ -1,5 +1,50 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 13/10/2026 — Fechamento de segurança, criação idempotente de RFQ e recuperação de senha
+
+Base: `main` @ `1664fb7` (#174). Auditoria de fronteiras (sessão/CSRF, API/IDOR,
+SQL efetivo com as 61 migrations aplicadas, uploads/e-mail/logs); cada achado
+abaixo foi reproduzido antes da correção e tem teste que reprova no código
+anterior. Estado: M1 + testes locais; **nada hospedado foi alterado** (sem acesso
+a Vercel/Supabase nesta sessão; as migrations não foram aplicadas em banco hospedado).
+
+| Defeito comprovado | Correção | Evidência local |
+| --- | --- | --- |
+| Cookie de sessão sem assinatura: apagar o marcador `sso` escapava do limite de sessão, da revogação e da conexão desativada | HMAC-SHA256 (`lib/session-cookie.mjs`, chave derivada da service role, sem env novo); SSO conferido em toda requisição (cache 30 s) | `test-auth-api`: sem assinatura, `sso` removido, outra chave e revogado com token válido recusados; reprova no código anterior |
+| Limite "por conta" era por IP + conta | teto de 100/h por conta em qualquer IP | 101 IPs contra a mesma conta → 429 na 101ª |
+| PDF hostil (`<<>>` repetido) e hexadecimal sem `>` prendiam a extração (regex quadrático; laço infinito) | varreduras lineares | código anterior não terminou em 60 s; novo em ms |
+| `fin_documents` sem escopo de entidade (leitura e anexo) | RLS com `fin_object_visible` | `financial-security-closure.sql` (6 blocos; todos reprovam após o rollback) |
+| `fin_document_remove` removia documento de outra entidade | exige `fin_can_read_document` | idem |
+| `fin_providers` gravável em todas as colunas (evidência regulatória e vínculo sem RPC) | grants por coluna | idem; teste antigo de procurement aceita a recusa mais forte |
+| `fin_qualification_readiness` executável por qualquer usuário | `EXECUTE` revogado | idem |
+| Webhooks da API v1 ignoravam escopo de entidade (listar/desativar/entregas/reenvio) | `fin_api_endpoint_allowed` | idem |
+| Domínio SSO pendente de outra organização bloqueado para sempre | pendente/revogado vence em 7 dias; verificado não muda de dono | idem |
+| RFQ duplicada ao repetir criação sem resposta | `request_key` por intenção (ligada ao conteúdo) + recibo na mesma transação (`financial-request-receipts-1`) | SQL + concorrência (6 envios → 1 RFQ; sem a migration, 6); E2E reprova na interface anterior |
+| Recuperação de senha nunca concluía (token ficava no fragmento) | `POST /api/auth/update-password` sem abrir sessão; página apaga o fragmento | `test-auth-api`; E2E desktop/mobile |
+| E-mail transacional saía numa linha só (HTML cortado em 4.000) | corpo preserva quebras; escape sem corte | `test-email-outbox` reprova sem a correção |
+
+Gates locais no HEAD do lote: `check:all` exit 0; `build` exit 0; `test:database`
+(Postgres 16.15) exit 0 com as duas migrations (instalação limpa, upgrade,
+rollback, reaplicação); E2E financeiro Chromium desktop + mobile 251 passed /
+7 skipped (antes da tela de recuperação; specs de login refeitas depois: 14
+passed); apresentação 125 passed / 19 skipped. **Firefox e WebKit: NOT RUN**
+(navegadores ausentes neste executor). `check:build-size`: aviso preexistente
+inalterado (rota `rfq` a 91%).
+
+Impacto operacional: ao publicar, **todas as sessões ativas pedem novo login uma
+vez** (carga antiga sem assinatura). O seed da Demo e a jornada local assinam o
+cookie com a mesma chave do app (precisam da mesma service role do alvo).
+Rollback: `docs/rollback/supabase-financial-request-receipts.rollback.sql` e
+`docs/rollback/supabase-financial-security-closure.rollback.sql`, nesta ordem;
+revert do commit da aplicação reabre as lacunas descritas.
+
+Itens abertos (não corrigidos nesta rodada): convite a provedor pode ser
+abusado para enfileirar e-mails com texto livre do comprador (falta teto por
+organização/destinatário e fila justa); `X-Forwarded-For` confiado fora da
+Vercel (só afeta execução local); `fin_request_policy_exception` confere
+evidência em `fin_documents` com `fin_can_read_document` (de documentos
+privados) e recusa toda evidência (defeito funcional).
+
 ## 12/10/2026 — Falhas visíveis à pessoa: rede, banco e rascunho de RFQ
 
 Base: `main` @ `5672c04` (#173). Estado: M1 + E2 local (Demo canônica em Docker, seed 36/36); nada hospedado.

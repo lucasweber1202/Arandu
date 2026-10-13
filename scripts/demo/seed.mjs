@@ -25,6 +25,7 @@ import {
   DEMO_EMAIL_DOMAINS, DEMO_MARKER_KEY, DEMO_MARKER_VALUE, isDemoEmail
 } from '../../lib/finance/demo-guard.mjs';
 import * as data from './dataset.mjs';
+import { encodeSessionValue } from '../../lib/session-cookie.mjs';
 import { PASSPORT_TO_DEMAND } from '../../lib/finance/passport.mjs';
 import { demoPdf } from './pdf.mjs';
 import { schemaField } from '../../lib/finance/document-intelligence.mjs';
@@ -105,8 +106,9 @@ async function signIn(person) {
   });
   const session = await response.json();
   must(response.ok && session.access_token, `login de ${person.name}: ${response.status}`);
-  // Mesmo formato do cookie HttpOnly que /api/auth/login emite.
-  person.cookie = `arandu_session=${encodeURIComponent(Buffer.from(JSON.stringify({ access_token: session.access_token, refresh_token: session.refresh_token, expires_at: Math.floor(Date.now() / 1000) + 3000 })).toString('base64url'))}`;
+  // Mesmo formato do cookie HttpOnly que /api/auth/login emite: assinado com a
+  // chave derivada da service role, a mesma do app que recebe a chamada.
+  person.cookie = `arandu_session=${encodeURIComponent(encodeSessionValue({ access_token: session.access_token, refresh_token: session.refresh_token, expires_at: Math.floor(Date.now() / 1000) + 3000 }))}`;
   person.id = session.user.id;
 }
 
