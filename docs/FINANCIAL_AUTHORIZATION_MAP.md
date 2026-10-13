@@ -192,4 +192,3 @@ Evidência de exceção de policy (`financial-followup-hardening-1`): documento
 privado da compradora que a pessoa lê (`fin_can_read_document`) ou referência
 externa da compradora no escopo de entidade dela (`fin_object_visible`), via
 `fin_policy_evidence_document_allowed` (sem `EXECUTE` para usuários).
-

@@ -83,4 +83,3 @@ Nunca execute o rollback em ambiente real sem avaliar eventos pendentes e preser
 - O claim faz rodízio entre organizações (posição de cada item na fila da sua organização): uma organização com fila grande não ocupa o lote.
 - Nome livre da empresa com link/endereço vira "Uma empresa compradora" no assunto e no corpo (`displayName` em `lib/finance/email-templates.mjs`).
 - Já existiam e continuam: idempotência por `idempotency_key`, backoff exponencial com jitter (30 s → 24 h), `max_attempts` com dead-letter, lease com fencing e reivindicação após lease vencida.
-
