@@ -99,7 +99,9 @@ begin
       select value, 'Provedor Sem Evidencia Demo', 'bank', '00000000-0000-4000-8000-00000000fa01', 'EVIDENCIA_REGISTRADA'
       from fin_ids where key = 'org_a';
     raise exception 'provedor foi marcado como verificado sem evidência';
-  exception when check_violation then null;
+  -- Antes do fechamento de segurança: a constraint recusa; depois, a coluna nem
+  -- é gravável por usuário (docs/supabase-financial-security-closure.sql).
+  exception when check_violation or insufficient_privilege then null;
   end;
 end $$;
 
