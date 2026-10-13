@@ -269,6 +269,24 @@ try {
   assert.ok(logged.some((line) => line.includes('auth.password_recovery_failed')), 'falha registrada');
   assert.ok(!logged.join(' ').includes('pessoa@example.com'), 'log sem e-mail em claro');
 
+  // Conclusão da recuperação: troca a senha com o token de recuperação, não abre sessão.
+  let updateCall = null;
+  global.fetch = async (url, options = {}) => { updateCall = { url: String(url), method: options.method, auth: options.headers.Authorization, body: JSON.parse(options.body) }; return jsonResponse({ id: 'user-123' }); };
+  const recoveryToken = 'eyJhbGciOiJIUzI1NiJ9.recuperacao-teste.assinatura';
+  const updated = await call('POST', '/api/auth/update-password', { recovery_token: recoveryToken, password: 'nova-senha-forte-1' });
+  assert.equal(updated.status, 200);
+  assert.deepEqual({ url: updateCall.url.endsWith('/auth/v1/user'), method: updateCall.method, auth: updateCall.auth, body: updateCall.body },
+    { url: true, method: 'PUT', auth: `Bearer ${recoveryToken}`, body: { password: 'nova-senha-forte-1' } });
+  assert.match(String(updated.headers['set-cookie']), /arandu_session=;.*Max-Age=0/, 'nenhuma sessão nasce da recuperação');
+  global.fetch = async () => jsonResponse({ error_code: 'bad_jwt', msg: 'invalid JWT: token is expired' }, 401);
+  const expiredLink = await call('POST', '/api/auth/update-password', { recovery_token: recoveryToken, password: 'nova-senha-forte-1' });
+  assert.deepEqual([expiredLink.status, expiredLink.body.code], [400, 'recovery_link_expired']);
+  global.fetch = async () => { throw new Error('senha curta ou token malformado não chegam ao provedor'); };
+  const shortPassword = await call('POST', '/api/auth/update-password', { recovery_token: recoveryToken, password: 'curta' });
+  assert.deepEqual([shortPassword.status, shortPassword.body.code], [400, 'weak_password']);
+  const badToken = await call('POST', '/api/auth/update-password', { recovery_token: 'x y', password: 'nova-senha-forte-1' });
+  assert.deepEqual([badToken.status, badToken.body.code], [400, 'invalid_recovery_link']);
+
   // Rate limit distribuído (Vercel): contador do banco recusa => 429.
   process.env.VERCEL_ENV = 'preview';
   const { default: distributedHandler } = await import(`../api/[...path].js?distributed-test=${Date.now()}`);

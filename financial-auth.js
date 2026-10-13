@@ -82,6 +82,61 @@ document.querySelectorAll('[data-finance-auth]').forEach(form => form.addEventLi
   } finally { button.disabled = false; }
 }));
 
+// Recuperação de senha: o link do e-mail volta com o token no fragmento
+// (#access_token=…&type=recovery) ou com o erro do provedor (#error_code=…).
+// O fragmento sai da barra de endereço e do histórico na hora; o token só vai
+// ao servidor junto com a senha nova, uma vez, e nunca abre sessão sozinho.
+const recoveryHash = new URLSearchParams(location.hash.slice(1));
+if (loginForm && (recoveryHash.get('type') === 'recovery' || recoveryHash.has('error_code'))) {
+  history.replaceState(null, '', `${location.pathname}${location.search}`);
+  const card = loginForm.closest('.auth-card');
+  const token = recoveryHash.get('type') === 'recovery' ? recoveryHash.get('access_token') : null;
+  const form = document.createElement('form');
+  form.dataset.recovery = '';
+  const title = document.createElement('h2');
+  const status = document.createElement('p');
+  status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite');
+  if (!token) {
+    title.textContent = 'Link de recuperação expirado';
+    status.textContent = 'Este link expirou ou já foi usado. Use "Esqueci minha senha" para receber um novo.';
+    form.append(title, status);
+  } else {
+    title.textContent = 'Definir nova senha';
+    const field = (label, name) => {
+      const wrap = document.createElement('label'); wrap.textContent = label;
+      const input = document.createElement('input');
+      Object.assign(input, { name, type: 'password', autocomplete: 'new-password', required: true, minLength: 8 });
+      wrap.append(input); return wrap;
+    };
+    const submit = document.createElement('button'); submit.type = 'submit'; submit.textContent = 'Salvar nova senha';
+    form.append(title, field('Nova senha (mínimo de 8 caracteres)', 'password'), field('Repita a nova senha', 'confirm'), submit, status);
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const { password, confirm } = Object.fromEntries(new FormData(form));
+      if (password !== confirm) { status.textContent = 'As duas senhas não são iguais.'; form.elements.confirm.setAttribute('aria-invalid', 'true'); form.elements.confirm.focus(); return; }
+      submit.disabled = true; status.textContent = 'Salvando…';
+      try {
+        const response = await fetch('/api/auth/update-password', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ recovery_token: token, password }) });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || result.ok === false) throw Object.assign(new Error(result.error || 'Não foi possível salvar a nova senha. Tente de novo.'), { code: result.code });
+        form.replaceChildren(title, status);
+        title.textContent = 'Senha alterada';
+        status.textContent = 'Senha alterada. Entre com o seu e-mail e a nova senha.';
+        loginForm.hidden = false;
+        loginForm.querySelector('input[name="email"]')?.focus();
+      } catch (error) {
+        status.textContent = error.message;
+        // Link vencido não volta a valer: só um novo e-mail resolve.
+        if (error.code === 'recovery_link_expired' || error.code === 'invalid_recovery_link') submit.remove();
+        else submit.disabled = false;
+      }
+    });
+    loginForm.hidden = true;
+  }
+  card?.prepend(form);
+  form.querySelector('input')?.focus();
+}
+
 // The shared login only offers demo entry when the server exposes the capability.
 if (loginForm) fetch('/api/auth/demo-personas',{credentials:'same-origin'}).then(async response=>{
   if(!response.ok)return;
