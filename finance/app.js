@@ -71,7 +71,24 @@ const ORGANIZATION_OPTIONAL = new Set(['ops']);
 const httpTransport = {
   mode: 'real',
   async request(path, options = {}) {
-    const response = await fetch(`/api/finance/${path}`, { credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, ...options });
+    // Sem rede ou sem resposta: mensagem em português (nunca "Failed to fetch") e,
+    // em escrita, o aviso de que o resultado é desconhecido, para não repetir às cegas.
+    // O prazo evita tela presa em "Carregando…" (Design Constitution §8).
+    const writing = !['GET', 'HEAD'].includes(String(options.method || 'GET').toUpperCase());
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), writing ? 60000 : 30000);
+    let response;
+    try {
+      response = await fetch(`/api/finance/${path}`, { credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, ...options, signal: controller.signal });
+    } catch {
+      const timedOut = controller.signal.aborted;
+      const error = new Error(writing
+        ? `${timedOut ? 'O servidor não respondeu a tempo' : 'Sem conexão com o servidor'}: não foi possível confirmar se a operação foi registrada. Recarregue a página e confira antes de repetir.`
+        : `${timedOut ? 'O servidor não respondeu a tempo' : 'Sem conexão com o servidor'}. Verifique a conexão e tente novamente.`);
+      error.status = 0;
+      error.code = timedOut ? 'timeout' : 'network_error';
+      throw error;
+    } finally { clearTimeout(timer); }
     let payload = {};
     try { payload = await response.json(); } catch { payload = {}; }
     if (response.ok) return payload;

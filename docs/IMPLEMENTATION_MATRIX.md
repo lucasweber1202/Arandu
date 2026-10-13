@@ -1,5 +1,15 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 12/10/2026 — Falhas visíveis à pessoa: rede, banco e rascunho de RFQ
+
+Base: `main` @ `5672c04` (#173). Estado: M1 + E2 local (Demo canônica em Docker, seed 36/36); nada hospedado.
+
+| Defeito | Correção | Evidência |
+| --- | --- | --- |
+| Queda de rede/sem resposta: erro cru do navegador ("Failed to fetch") e tela presa em "Carregando…"; em escrita, sem saber se gravou | transporte com prazo (30 s leitura, 60 s escrita) e mensagem em português; escrita avisa que o resultado é desconhecido | E2E desktop/mobile; falha sem a correção |
+| 4 exceções do banco caíam em "Operação inválida ou sem permissão." (performance fechada/sem confirmação/limite de cobertura; escopo do Passport) | mensagens com o que houve e o que fazer; teste exige tradução das 305 exceções ou justificativa de uso interno | `test-finance-api` acusa as 4 sem a correção |
+| Rascunho de RFQ recuperado reabria na etapa 1 | retoma na primeira etapa incompleta, sem erros antecipados | Demo local + jornada de apresentação (125 passed) |
+
 ## 12/10/2026 — Varredura de UX/a11y e isolamento na Demo canônica local
 
 Base: `main` @ `1dcb4d9`. Varredura das 27 superfícies (comprador, CFO, provedor) em 1440 e 390 px contra o produto real local (Supabase em Docker, seed 36/36). Estado: M1 + E2 local; nada hospedado.
