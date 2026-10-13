@@ -1,5 +1,19 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 13/10/2026 — Fechamento técnico pós-#179: recuperação real local, build de Production e requisito externo mínimo
+
+Base: `main` @ `f00fd30` (#179; quatro gates success no HEAD `0ee4c79`). Nenhum
+dado, segredo, atribuição, deploy ou projeto hospedado alterado.
+
+| Item | Estado | Evidência | Limite |
+| --- | --- | --- | --- |
+| Migrations `financial-security-closure-1`, `financial-request-receipts-1`, `financial-followup-hardening-1` | M2 | `test:database` (instalação limpa, upgrade, rollback, reaplicação, concorrência) exit 0 local e job `database` success no CI da #179 | **não aplicadas** em nenhum banco hospedado |
+| Cadeia de recuperação real | E2 local | `scripts/install-recovery-tools.sh` (PostgreSQL 17.11 e age 1.3.2 com checksum fixo) + `test-recovery-real.mjs`: export cifrado → verify → restore isolado → reconciliação, `VALIDATED` | sintético; `hosted_backup: NOT RUN`, compatibilidade Supabase não provada |
+| Export hospedado (Pilot e legado) | BLOCKED | `consolidation-export.yml` exige runner `[self-hosted, linux, arandu-recovery]` e, no environment `database-recovery`: `ARANDU_PILOT_RECOVERY_DATABASE_URL`, `ARANDU_LEGACY_RECOVERY_DATABASE_URL`, `ARANDU_RECOVERY_RECIPIENT` e `ARANDU_RECOVERY_DIRECTORY` (store privado) ou `ARANDU_RECOVERY_DESTINATION` | esta sessão não lê nem grava secrets e não tem runner nem credencial de banco; nada foi fabricado |
+| Build de Production (`arandu`) | BLOCKED (fail-closed correto) | reproduzido no HEAD: sem `ARANDU_ENV` o build para; com `ARANDU_ENV=production` e o ref legado, `finance:env:check` recusa o ref sem atribuição ativa e as ausências de anon/service key, `CRON_SECRET` e `ARANDU_SITE_URL` | log hospedado da Vercel inacessível nesta sessão; a causa remota não foi observada diretamente |
+| `consolidation:check` / `release:candidate:check` | BLOCKED (esperado) | ambos recusam sem a evidência hospedada | — |
+| Demo canônica hospedada | BLOCKED | sem atribuição ativa do Supabase DEMO e sem backup do Pilot | Demo local exige Docker (ausente neste executor) |
+
 ## 13/10/2026 — Pendências da #178: fila de e-mail, IP de origem e evidência de exceção
 
 Base: `main` @ `7ccbfa6` (#176). Estado: M1 + testes locais; **nada hospedado
