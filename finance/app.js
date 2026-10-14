@@ -358,6 +358,7 @@ async function render({ refresh = false, rebuildShell = false } = {}) {
   }
   if (node) root.replaceChildren(node);
   root.setAttribute('aria-busy', 'false');
+  runRequestedIntent();
   workspace?.afterRender(ctx, { failure });
   focusDeepLink();
   openRequestedAction();
@@ -426,3 +427,16 @@ window.addEventListener('pageshow', (event) => { if (event.persisted && window._
 boot().catch((error) => {
   root?.replaceChildren(errorState({ title: 'Não foi possível carregar o portal', error, onRetry: () => location.reload() }));
 });
+
+// ?acao=<intent> abre a ação da tela com data-intent igual (ex.: "Registrar
+// contrato existente" a partir dos primeiros passos), uma vez, e sai da URL.
+// Só nomes simples; a ação continua sujeita a papel e às regras da tela.
+function runRequestedIntent() {
+  const url = new URL(location.href);
+  const intent = url.searchParams.get('acao');
+  if (!intent) return;
+  url.searchParams.delete('acao');
+  history.replaceState(null, '', url.pathname + url.search + url.hash);
+  if (!/^[a-z-]{3,40}$/.test(intent)) return;
+  document.querySelector(`#main [data-intent="${intent}"]`)?.click();
+}
