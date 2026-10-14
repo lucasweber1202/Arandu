@@ -1,0 +1,180 @@
+name: Arandu Demo Integration (ephemeral)
+
+# Demo canônica integral em infraestrutura efêmera: Supabase real (Postgres,
+# GoTrue, PostgREST, Storage) em Docker no próprio runner, app do Arandu em
+# ARANDU_ENV=demo e a Vitta Foods semeada pelos scripts oficiais. Não é um dos
+# quatro gates obrigatórios e não substitui nenhum deles; ver
+# docs/DEMO_EPHEMERAL_INTEGRATION.md.
+#
+# Garantias: nenhum secret do repositório ou de environment é lido; nenhuma
+# conexão com Supabase hospedado (os refs conhecidos são bloqueados no
+# /etc/hosts do runner e toda URL passa por scripts/ci-demo/assert-local.mjs);
+# nada é publicado além de relatórios sanitizados; os serviços são descartados
+# ao final, aconteça o que acontecer.
+on:
+  workflow_dispatch:
+  # Autoteste do próprio harness: só quando ele muda. Sem secrets.
+  pull_request:
+    paths:
+      - .github/workflows/demo-integration.yml
+      - scripts/ci-demo/**
+
+permissions:
+  contents: read
+
+# Uma integração por vez no repositório; a seguinte espera (não cancela a atual).
+concurrency:
+  group: arandu-demo-integration
+  cancel-in-progress: false
+
+jobs:
+  demo-integration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    env:
+      CI_DEMO_REPORTS: ${{ github.workspace }}/reports/ci-demo
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Tested commit
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          echo "SHA testado (head): $HEAD_SHA · checkout: $(git rev-parse HEAD)"
+          echo "Ref: $GITHUB_REF · evento: $GITHUB_EVENT_NAME · run: $GITHUB_RUN_ID tentativa $GITHUB_RUN_ATTEMPT"
+
+      - name: Preflight (memory, disk, Docker, psql)
+        id: preflight
+        timeout-minutes: 3
+        run: |
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update && sudo apt-get install -y postgresql-client
+          fi
+          bash scripts/ci-demo/run.sh preflight
+
+      # Defesa em profundidade: mesmo uma URL errada não alcança um Supabase
+      # hospedado conhecido (refs de lib/deployment-topology.mjs).
+      - name: Block hosted Supabase projects on this runner
+        timeout-minutes: 2
+        run: |
+          node --input-type=module -e "
+            import { ACTIVE_SUPABASE_ASSIGNMENTS as a } from './lib/deployment-topology.mjs';
+            const refs = [...new Set(Object.values(a).flat().filter(Boolean))];
+            for (const ref of refs) console.log('0.0.0.0 ' + ref + '.supabase.co');
+            for (const host of ['supabase.com', 'api.supabase.com', 'api.supabase.io']) console.log('0.0.0.0 ' + host);
+          " | sudo tee -a /etc/hosts > /dev/null
+          echo "hosts bloqueados: $(grep -c '^0.0.0.0 ' /etc/hosts)"
+
+      - name: Install dependencies (lockfile)
+        timeout-minutes: 10
+        run: npm ci --include=optional
+
+      - name: Build
+        timeout-minutes: 5
+        run: npm run build
+
+      - name: Pull pinned Supabase images (tag + digest)
+        id: images
+        timeout-minutes: 15
+        run: bash scripts/ci-demo/run.sh images
+
+      - name: Phase 1 — Supabase up, migrations, app in demo mode
+        id: up
+        timeout-minutes: 12
+        run: bash scripts/ci-demo/run.sh up
+
+      - name: Phase 1 — Smoke (DB, Auth, PostgREST, Storage, API, RLS)
+        id: smoke
+        timeout-minutes: 6
+        run: bash scripts/ci-demo/run.sh smoke 2>&1 | tee "$CI_DEMO_REPORTS/smoke.txt"
+
+      - name: Phase 2 — Official demo seed (Vitta Foods)
+        id: seed
+        timeout-minutes: 26
+        run: bash scripts/ci-demo/run.sh seed 2>&1 | grep -v '@' | tee "$CI_DEMO_REPORTS/seed.txt"
+
+      - name: Phase 2 — Seed sanity checks (read-only re-check)
+        id: check
+        timeout-minutes: 6
+        run: bash scripts/ci-demo/run.sh check 2>&1 | grep -v '@' | tee "$CI_DEMO_REPORTS/seed-check.txt"
+
+      - name: Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      # Só restauração: reaproveita o cache do CI principal, sem gravar outro.
+      - name: Restore Playwright browsers
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-ubuntu-24.04-${{ runner.arch }}-${{ steps.playwright.outputs.version }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            playwright-ubuntu-24.04-${{ runner.arch }}-${{ steps.playwright.outputs.version }}-
+
+      - name: Install Chromium only
+        timeout-minutes: 15
+        env:
+          DEBIAN_FRONTEND: noninteractive
+          PLAYWRIGHT_DOWNLOAD_CONNECTION_TIMEOUT: '60000'
+        run: npx playwright install --with-deps chromium
+
+      - name: Phase 3 — Demo E2E, Chromium desktop (1 worker)
+        id: e2e_desktop
+        timeout-minutes: 16
+        run: bash scripts/ci-demo/run.sh e2e demo-desktop 2>&1 | tee "$CI_DEMO_REPORTS/e2e-desktop.txt"
+
+      - name: Phase 3 — Demo E2E, Chromium mobile (1 worker)
+        id: e2e_mobile
+        timeout-minutes: 16
+        run: bash scripts/ci-demo/run.sh e2e demo-mobile 2>&1 | tee "$CI_DEMO_REPORTS/e2e-mobile.txt"
+
+      - name: Phase 4 — Real journey and attacks (Auth, RLS, RFQ, proposals, approval, provider, Storage, cron)
+        id: journey
+        timeout-minutes: 16
+        run: bash scripts/ci-demo/run.sh journey 2>&1 | tail -n 3 | tee "$CI_DEMO_REPORTS/journey-tail.txt"
+
+      - name: Collect sanitized evidence
+        if: always()
+        timeout-minutes: 3
+        run: bash scripts/ci-demo/run.sh evidence
+
+      - name: Summary
+        if: always()
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          PREFLIGHT: ${{ steps.preflight.outcome }}
+          IMAGES: ${{ steps.images.outcome }}
+          UP: ${{ steps.up.outcome }}
+          SMOKE: ${{ steps.smoke.outcome }}
+          SEED: ${{ steps.seed.outcome }}
+          CHECK: ${{ steps.check.outcome }}
+          E2E_DESKTOP: ${{ steps.e2e_desktop.outcome }}
+          E2E_MOBILE: ${{ steps.e2e_mobile.outcome }}
+          JOURNEY: ${{ steps.journey.outcome }}
+        run: node scripts/ci-demo/summary.mjs >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Teardown (containers, volumes, keys)
+        if: always()
+        timeout-minutes: 5
+        run: bash scripts/ci-demo/run.sh down
+
+      # Só relatórios sanitizados: sem trace, sem dump de banco, sem .state.
+      - name: Upload sanitized evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: arandu-demo-integration-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            reports/ci-demo
+            reports/playwright-demo
+          if-no-files-found: error
+          retention-days: 14

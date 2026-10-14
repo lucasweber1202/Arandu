@@ -49,7 +49,7 @@ test('tesouraria: painel → RFQ concluída → propostas → comparação → a
   await expect(page.locator('#precisa-de-voce')).toContainText('Decidir renovação: Atlas Bank');
   await expect(page.locator('#precisa-de-voce')).not.toContainText('undefined');
   const summary = page.locator('.summary-strip');
-  await expect(summary).toContainText('Contratos vigentes2');
+  await expect(summary).toContainText('Contratos vigentes3');
   await expect(summary).toContainText('Aguardando aprovação1');
 
   // RFQ de adquirência concluída: convidados, propostas e versões.

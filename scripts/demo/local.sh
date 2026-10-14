@@ -39,12 +39,13 @@ load_env() {
 start_app() {
   # (Re)inicia o servidor local do app em ARANDU_ENV=demo, com o build atual.
   # Qualquer app local anterior (inclusive o de up.sh); o padrão com colchetes
-  # não casa com a linha de comando de quem procura.
+  # não casa com a linha de comando de quem procura. O subshell não herda a
+  # saída de quem chamou: sem isso, `local.sh app | tee` nunca termina.
   for pid in $(pgrep -f "pilot-local/app-serve[r].mjs" || true); do kill "$pid" 2>/dev/null || true; done
   for _ in $(seq 1 20); do pgrep -f "pilot-local/app-serve[r].mjs" >/dev/null || break; sleep 0.5; done
   ( cd "$root" && SUPABASE_URL=https://localhost:8443 SUPABASE_ANON_KEY="$ANON_KEY" SUPABASE_SERVICE_ROLE_KEY="$SERVICE_KEY" \
     ARANDU_SITE_URL=https://localhost:4443 ARANDU_ENV=demo CRON_SECRET="$CRON_SECRET" \
-    NODE_EXTRA_CA_CERTS="$state/cert.pem" node scripts/pilot-local/app-server.mjs > "$state/app.log" 2>&1 & echo $! > "$state/app.pid" )
+    NODE_EXTRA_CA_CERTS="$state/cert.pem" node scripts/pilot-local/app-server.mjs > "$state/app.log" 2>&1 & echo $! > "$state/app.pid" ) </dev/null >/dev/null 2>&1
   for _ in $(seq 1 30); do curl -fsSk https://localhost:4443/api/health >/dev/null 2>&1 && return 0; sleep 1; done
   echo "O app local não respondeu em https://localhost:4443 (veja $state/app.log)."; exit 1
 }
@@ -63,10 +64,11 @@ case "$command" in
     echo "Demonstração local: https://localhost:4443/login.html (certificado autoassinado)"
     echo "Senha das personas: veja ARANDU_DEMO_PASSWORD em scripts/pilot-local/.state/demo.env"
     ;;
+  password) ensure_password ;;
   reset) load_env; node "$here/seed.mjs" --reset ;;
   check) load_env; node "$here/seed.mjs" --check ;;
   app) load_env; start_app; echo "App local em modo demo: https://localhost:4443" ;;
   workspaces) shift; load_env; node "$here/workspaces.mjs" "$@" ;;
   down) bash "$root/scripts/pilot-local/down.sh" ;;
-  *) echo "uso: bash scripts/demo/local.sh setup|reset|check|app|workspaces|down"; exit 2 ;;
+  *) echo "uso: bash scripts/demo/local.sh setup|password|reset|check|app|workspaces|down"; exit 2 ;;
 esac

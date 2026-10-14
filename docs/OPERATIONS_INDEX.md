@@ -31,6 +31,7 @@ documento divergir, vale este índice, nesta ordem.
 - `docs/FINANCIAL_RELEASE_EVIDENCE_2026-10-06_MAIN_CONSOLIDATION.md` — evidência local da consolidação `main` canônica (DAG, #135, testes, CI sem runner).
 - `docs/FINANCIAL_BUNDLE_HEADROOM.md` — budgets de produto, sandbox congelado e por rota.
 - `docs/demo/README.md` — demo canônica: produto real com Supabase DEMO dedicado e Vitta Foods fictícia.
+- `docs/DEMO_EPHEMERAL_INTEGRATION.md` — Demo canônica integral (Supabase real em Docker + seed Vitta Foods + E2E + jornada) em runner efêmero do GitHub Actions, sem secrets nem ambiente hospedado.
 - `docs/FINANCIAL_DEMO_MODE.md` — sandbox público temporário sem backend, preservado até a demo canônica ser comprovada.
 - `docs/FINANCIAL_SECURITY_MODEL.md`, `docs/FINANCIAL_THREAT_MODEL.md`, `docs/FINANCIAL_AUTHORIZATION_MAP.md` — segurança.
 - `docs/FINANCIAL_REPO_GOVERNANCE.md` — proteção de branches e checks obrigatórios.
