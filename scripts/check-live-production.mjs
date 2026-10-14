@@ -101,5 +101,6 @@ failures.forEach((item) => console.error(`- ${item}`));
 console.log(`Alertas: ${warnings.length}`);
 warnings.forEach((item) => console.warn(`- ${item}`));
 
-if (failures.length) process.exit(1);
-if (warnings.length) process.exitCode = 0;
+// Só process.exitCode, sem encerrar à força: no Windows, sair com fetch recém-fechado
+// aciona uma asserção da libuv e o código de saída vira 127.
+process.exitCode = failures.length ? 1 : 0;

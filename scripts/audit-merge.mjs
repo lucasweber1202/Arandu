@@ -18,6 +18,8 @@ async function get(path) {
   if (!response.ok) throw new Error(`GitHub ${response.status} em ${path}`);
   return response.json();
 }
+// Só process.exitCode, sem encerrar à força: no Windows, sair com fetch recém-fechado
+// aciona uma asserção da libuv e o código de saída vira 127.
 try {
   const commit = await get(`commits/${sha}`);
   const pulls = await get(`commits/${sha}/pulls`);
@@ -41,10 +43,11 @@ try {
   if (!result.ok) {
     console.error('MERGE FORA DA REGRA (corrija em PR nova; não reescreva a história):');
     for (const problem of result.problems) console.error(`  - ${problem}`);
-    process.exit(1);
+    process.exitCode = 1;
+  } else {
+    console.log('Merge auditado: quatro gates verdes no HEAD mergeado, base contida.');
   }
-  console.log('Merge auditado: quatro gates verdes no HEAD mergeado, base contida.');
 } catch (error) {
   console.error(`AUDITORIA INCONCLUSIVA: ${error.message}`);
-  process.exit(1);
+  process.exitCode = 1;
 }
