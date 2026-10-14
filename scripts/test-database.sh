@@ -482,6 +482,15 @@ apply_file "$upgrade_db" "docs/rollback/supabase-financial-contract-onboarding.r
 apply_file "$upgrade_db" "docs/supabase-financial-contract-onboarding.sql"
 apply_file "$upgrade_db" "docs/supabase-financial-contract-onboarding.sql"
 apply_file "$upgrade_db" "tests/database/financial-contract-onboarding.sql"
+apply_file "$upgrade_db" "docs/supabase-financial-renewal-cycles.sql"
+apply_file "$upgrade_db" "docs/rollback/supabase-financial-renewal-cycles.rollback.sql"
+apply_file "$upgrade_db" "docs/supabase-financial-renewal-cycles.sql"
+apply_file "$upgrade_db" "docs/supabase-financial-renewal-cycles.sql"
+apply_file "$upgrade_db" "tests/database/financial-renewal-cycles.sql"
+# Com marcos em dois ciclos, voltar à unicidade antiga apagaria histórico: recusado.
+if apply_file "$upgrade_db" "docs/rollback/supabase-financial-renewal-cycles.rollback.sql" >/dev/null 2>&1; then
+  echo "rollback de ciclos de renovação deveria ser recusado com histórico em dois ciclos"; exit 1
+fi
 bash "$root_dir/tests/database/email-fairness-concurrency.sh" "$(database_url "$upgrade_db")"
 apply_file "$upgrade_db" "tests/database/email-outbox.sql"
 bash "$root_dir/tests/database/email-outbox-concurrency.sh" "$(database_url "$upgrade_db")"
@@ -514,8 +523,9 @@ apply_file "$fresh_db" "tests/database/financial-security-closure.sql"
 apply_file "$fresh_db" "tests/database/financial-request-receipts.sql"
 apply_file "$fresh_db" "tests/database/financial-followup-hardening.sql"
 apply_file "$fresh_db" "tests/database/financial-contract-onboarding.sql"
+apply_file "$fresh_db" "tests/database/financial-renewal-cycles.sql"
 apply_file "$fresh_db" "ops/sql/pilot-isolation-canary.sql"
 apply_file "$fresh_db" "ops/sql/post-migration-probes.sql"
 
 echo "Arandu Database Integration Tests"
-echo "Instalação limpa, upgrade, reaplicação, rollback, RLS, transações, pedidos, invariantes PR38, outbox, fencing de workers, retenção, procurement financeiro e operação real do piloto (convite, janela de envio, aviso de renovação), finance_ops, destinatário do convite superfície exposta ao PostgREST (fidelidade aos default privileges do Supabase, matriz adversarial entre tenants) aviso ao próximo aprovador da cadeia Financial Passport (proveniência, histórico, snapshot imutável na RFQ, negação a provedor e a outro tenant) multi-entity (escopo por entidade, RLS, guarda de escrita, consolidação, trilha, rollback) Contract Center v2 (importado com próxima ação, duplicado e principal incoerente recusados, termos versionados, aditivo imutável, marcos idempotentes) Policy & Approval Engine v2 (precedência grupo/entidade, versão imutável, snapshot, SoD, exceção, delegação, prazos, rollback) e Public API v1/Webhooks (credencial por hash, escopo+entidade, keyset, idempotência, outbox mínimo, lease/backoff/dead-letter/replay, rollback) e Enterprise SSO (domínio verificado, autorização fail-closed, revogação de sessões, enforcement, rollback) e Data Governance (retenção versionada com hold, lote e rerun, export isolado sem segredo, offboarding com revogação idempotente, rollback só sem uso) e aposentadoria da vertical de arte (recusa sem export reconhecido, estado final sem arte, financeiro intacto, reaplicação, instalação limpa em uma passada) aprovados."
+echo "Instalação limpa, upgrade, reaplicação, rollback, RLS, transações, pedidos, invariantes PR38, outbox, fencing de workers, retenção, procurement financeiro e operação real do piloto (convite, janela de envio, aviso de renovação), finance_ops, destinatário do convite superfície exposta ao PostgREST (fidelidade aos default privileges do Supabase, matriz adversarial entre tenants) aviso ao próximo aprovador da cadeia Financial Passport (proveniência, histórico, snapshot imutável na RFQ, negação a provedor e a outro tenant) multi-entity (escopo por entidade, RLS, guarda de escrita, consolidação, trilha, rollback) Contract Center v2 (importado com próxima ação, duplicado e principal incoerente recusados, prorrogação reabre o ciclo de renovação, termos versionados, aditivo imutável, marcos idempotentes) Policy & Approval Engine v2 (precedência grupo/entidade, versão imutável, snapshot, SoD, exceção, delegação, prazos, rollback) e Public API v1/Webhooks (credencial por hash, escopo+entidade, keyset, idempotência, outbox mínimo, lease/backoff/dead-letter/replay, rollback) e Enterprise SSO (domínio verificado, autorização fail-closed, revogação de sessões, enforcement, rollback) e Data Governance (retenção versionada com hold, lote e rerun, export isolado sem segredo, offboarding com revogação idempotente, rollback só sem uso) e aposentadoria da vertical de arte (recusa sem export reconhecido, estado final sem arte, financeiro intacto, reaplicação, instalação limpa em uma passada) aprovados."
