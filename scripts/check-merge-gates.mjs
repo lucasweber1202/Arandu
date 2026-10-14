@@ -17,6 +17,8 @@ async function get(path) {
   if (!response.ok) throw new Error(`GitHub ${response.status} em ${path}`);
   return response.json();
 }
+// Só process.exitCode, sem encerrar à força: no Windows, sair com fetch recém-fechado
+// aciona uma asserção da libuv e o código de saída vira 127.
 try {
   const pr = await get(`pulls/${number}`);
   if (pr.state !== 'open') throw new Error(`PR #${number} não está aberta (${pr.state}).`);
@@ -35,10 +37,11 @@ try {
   if (result.problems.length) {
     console.error('MERGE BLOQUEADO:');
     for (const problem of result.problems) console.error(`  - ${problem}`);
-    process.exit(1);
+    process.exitCode = 1;
+  } else {
+    console.log('Quatro gates verdes no HEAD exato. A decisão de merge continua humana/registrada.');
   }
-  console.log('Quatro gates verdes no HEAD exato. A decisão de merge continua humana/registrada.');
 } catch (error) {
   console.error(`MERGE BLOQUEADO: não foi possível verificar os gates (${error.message}).`);
-  process.exit(1);
+  process.exitCode = 1;
 }

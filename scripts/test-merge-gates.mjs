@@ -75,4 +75,13 @@ assert.match(audit, /branches: \[pilot, main\]/);
 assert.match(audit, /scripts\/audit-merge\.mjs/);
 assert.doesNotMatch(audit, /\|\|\s*true/);
 assert.match(audit, /contents: read/);
+// Gates que consultam a rede não encerram com process.exit() depois do fetch:
+// no Windows isso aciona uma asserção da libuv e o código de saída vira 127
+// (um PROTECTED/verde passaria a reprovar, e o bloqueio perderia o código 1).
+for (const file of ['scripts/check-merge-gates.mjs', 'scripts/audit-merge.mjs', 'scripts/check-live-governance.mjs', 'scripts/check-live-production.mjs']) {
+  const source = fs.readFileSync(file, 'utf8');
+  const afterNetwork = source.slice(source.indexOf('await '));
+  assert.doesNotMatch(afterNetwork, /process\.exit\(/, `${file}: use process.exitCode depois de consultar a rede`);
+  assert.match(afterNetwork, /process\.exitCode = /, `${file}: código de saída do resultado ausente`);
+}
 console.log('Merge gates: exato HEAD, quatro jobs, pending/falha/stale/ausência e base desatualizada bloqueiam; rulesets coerentes com o CI.');

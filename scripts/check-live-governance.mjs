@@ -38,4 +38,6 @@ const report = { ...assessLiveGovernance({ branch, protection, effectiveRules, r
   repository, observed_at: new Date().toISOString(), reads };
 fs.writeFileSync(output, JSON.stringify(report, null, 2));
 console.log(JSON.stringify(report, null, 2));
-process.exit(report.result === 'PROTECTED' ? 0 : 1);
+// Só process.exitCode, sem encerrar à força: no Windows, sair com fetch recém-fechado
+// aciona uma asserção da libuv e o código de saída vira 127.
+process.exitCode = report.result === 'PROTECTED' ? 0 : 1;
