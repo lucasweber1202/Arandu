@@ -63,7 +63,8 @@
     "docs/supabase-financial-demo-pool.sql",
     "docs/supabase-financial-security-closure.sql",
     "docs/supabase-financial-request-receipts.sql",
-    "docs/supabase-financial-followup-hardening.sql"
+    "docs/supabase-financial-followup-hardening.sql",
+    "docs/supabase-financial-contract-onboarding.sql"
   ],
   "existingDatabase": [
     "docs/supabase-sprint1-auth-ownership.sql",
@@ -128,6 +129,7 @@
     "docs/supabase-financial-demo-pool.sql",
     "docs/supabase-financial-security-closure.sql",
     "docs/supabase-financial-request-receipts.sql",
-    "docs/supabase-financial-followup-hardening.sql"
+    "docs/supabase-financial-followup-hardening.sql",
+    "docs/supabase-financial-contract-onboarding.sql"
   ]
 }

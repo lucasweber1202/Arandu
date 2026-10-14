@@ -177,6 +177,13 @@ export const DOCUMENTS = [
  * Datas: dias relativos a hoje. Valores na moeda de origem, sem conversão de moeda.
  */
 export const LIFECYCLE = {
+  // Contrato que a empresa já tinha antes do Arandu, registrado pela carteira
+  // (contract-import): nasce com a tarefa de revisão no início do aviso prévio.
+  existingContract: {
+    provider: 'atlas', product: 'guarantee', by: 'juliana', starts: -420, ends: 310, notice: 120,
+    title: 'Fiança locatícia — centro de distribuição Campinas',
+    terms: { contract_number: 'FIA-ATLAS-0091 (fictício)', limit_amount: 1800000, rate_pct_year: 1.6, renewal_terms: 'Renovação anual mediante aviso com 120 dias de antecedência (fictício)' }
+  },
   implementation: {
     contract: 'acquiring', owner: 'rafael', opener: 'juliana', starts: -28, goLive: 20,
     title: 'Migração da adquirência para a Lumina Pay',

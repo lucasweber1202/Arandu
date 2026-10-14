@@ -32,6 +32,7 @@ for (const [flow, files] of Object.entries(manifest)) {
   if (files.indexOf('docs/supabase-financial-security-closure.sql') !== files.indexOf('docs/supabase-financial-demo-pool.sql')+1) issues.push(`${flow}: fechamento de segurança deve seguir o pool da demo.`);
   if (files.indexOf('docs/supabase-financial-request-receipts.sql') !== files.indexOf('docs/supabase-financial-security-closure.sql')+1) issues.push(`${flow}: recibos de criação devem seguir o fechamento de segurança.`);
   if (files.indexOf('docs/supabase-financial-followup-hardening.sql') !== files.indexOf('docs/supabase-financial-request-receipts.sql')+1) issues.push(`${flow}: pendências da #178 devem seguir os recibos de criação.`);
+  if (files.indexOf('docs/supabase-financial-contract-onboarding.sql') !== files.indexOf('docs/supabase-financial-followup-hardening.sql')+1) issues.push(`${flow}: contrato existente deve seguir as pendências da #178.`);
   const sprint2 = files.indexOf('docs/supabase-sprint2-catalog-readiness.sql');
   const collections = files.indexOf('docs/arandu-mvp-collections.sql');
   const sprint5 = files.indexOf('docs/supabase-sprint5-pilot.sql');

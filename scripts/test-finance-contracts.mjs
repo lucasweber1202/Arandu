@@ -13,6 +13,7 @@ delete process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const ORG = '00000000-0000-4000-8000-0000000000b1';
 const CONTRACT = '00000000-0000-4000-8000-0000000000c1';
+const TASK_ID = '00000000-0000-4000-8000-0000000000d9';
 const PROVIDER = '00000000-0000-4000-8000-0000000000d1';
 const ACTOR = '00000000-0000-4000-8000-0000000000a1';
 
@@ -92,7 +93,28 @@ await rejects('POST', 'contract-import', { body: { ...importBody, ends_on: '2025
 await rejects('POST', 'contract-import', { body: { ...importBody, starts_on: '01/01/2026' } }, 400, 'invalid_date');
 await rejects('POST', 'contract-import', { body: { ...importBody, terms: { secret_rating: 'AAA' } } }, 400, 'unknown_contract_terms');
 await rejects('POST', 'contract-import', { body: { ...importBody, provider_id: 'banco' } }, 400);
+await rejects('POST', 'contract-import', { body: { ...importBody, ends_on: '2026-02-30' } }, 400, 'invalid_date');
+await rejects('POST', 'contract-import', { body: { ...importBody, starts_on: '0026-01-01' } }, 400, 'invalid_date');
 assert.ok(!sent.some((entry) => entry.url.includes('rpc/')), 'entrada inválida não chega ao banco');
+
+// Contrato existente: a resposta traz a próxima ação criada pelo banco, lida sob RLS.
+reset((entry) => buyer(entry) ?? (entry.url.includes('rpc/fin_import_contract') ? CONTRACT
+  : entry.url.includes(`fin_contracts?select=status`) ? [{ status: 'renewing', ends_on: '2027-12-31', renewal_notice_days: 60 }]
+    : entry.url.includes('fin_tasks?select=') ? [{ id: TASK_ID, title: 'Revisar renovação do contrato antes do aviso prévio', due_on: '2027-11-01' }] : []));
+{
+  const res = await call('POST', 'contract-import', { body: importBody });
+  assert.equal(res.payload.status, 'renewing');
+  assert.equal(res.payload.next_task.due_on, '2027-11-01');
+  const taskRead = sent.find((entry) => entry.url.includes('fin_tasks?select='));
+  assert.match(taskRead.url, new RegExp(`organization_id=eq.${ORG}.*related_id=eq.${CONTRACT}`));
+  assert.equal(taskRead.authorization, 'Bearer user-jwt', 'próxima ação lida com o token de quem chama (RLS)');
+}
+// Recusas do banco viram mensagens claras, sem detalhe interno.
+for (const [message, status, code] of [['contract duplicate', 409, 'contract_duplicate'], ['invalid parent contract', 400, 'invalid_parent_contract'],
+  ['currency mismatch', 400, 'currency_mismatch'], ['contract not found', 404, 'contract_not_found'], ['forbidden', 403, 'forbidden']]) {
+  reset((entry) => buyer(entry) ?? (entry.url.includes('rpc/fin_import_contract') ? new Error(message) : []));
+  await rejects('POST', 'contract-import', { body: importBody }, status, code);
+}
 
 // Termos: versão esperada obrigatória; categoria vem do banco, não do corpo.
 reset((entry) => contractRow(entry) ?? (entry.url.includes('rpc/') ? 2 : []));
