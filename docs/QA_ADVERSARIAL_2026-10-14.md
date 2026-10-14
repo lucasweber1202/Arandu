@@ -34,6 +34,9 @@ Nenhum P0 confirmado.
 | --- | ---: | ---: | ---: | --- | --- |
 | Demo integrada (run 38629589204, PR #189, `46c64e3`) | 12 smoke + 37 seed + 37 recheck + 10 E2E + 24 passos/63 ataques | todos | 0 | — | Actions |
 | Demo integrada (run 38631825424, main `80fb075`) | idem | todos | 0 | 1ª execução independente do SHA da main | Actions |
+| Demo integrada (run 38637308227, main `80fb075`) | idem | todos | 0 | 2ª execução independente do mesmo SHA | Actions |
+| Demo integrada (run 38644216490, main `80fb075`) | idem | todos | 0 | 3ª execução independente do mesmo SHA | Actions |
+| Demo integrada + sondas (run 38638144266, PR #190, `f4b61b6`) | idem + 66 migrations + 23 sondas | todos; 23/23 sondas, 0 SKIPPED | 0 | primeira execução com a correção D1 e a fase adversarial no runner | Actions |
 | Sondas adversariais (novas) | 23 | 21 + 2 SKIPPED* | 0 com a correção; 2 (RENEW-1/2) sem ela | sessão, entre tenants por API/PostgREST/RPC, RBAC, concorrência real, ciclo de renovação, multi-entity (analista restrito: detalhe, listas, busca, painel, PostgREST, atribuição e reescopo recusado) | `scripts/ci-demo/adversarial.mjs` |
 | Injeção de falhas do harness (sem Docker) | 6 | 6 | 0 | serviços fora do ar → FAIL em todas, alvo remoto → código 3, variável ausente → código 2, sanitização, fase desconhecida, SKIPPED ≠ PASS | `scripts/test-ci-demo.mjs` |
 | `npm run test:database` (Postgres 16 descartável) | suíte completa + ciclos de renovação | PASS | 0 | upgrade, reaplicação, rollback e recusa de rollback com dois ciclos | local |
@@ -72,3 +75,23 @@ restrito na stack integrada (coberta em `financial-multi-entity.sql`).
 Nada aqui eleva M3+: é evidência de CI e laboratório efêmero (M2). Ambiente
 hospedado validado, release e Production seguem dependendo de cutover,
 backup/restore comprovado e evidência no ambiente real.
+
+## Estabilidade do laboratório remoto (mesmo SHA, `80fb075`)
+
+| Run | Duração | Pull das imagens | Memória / disco livres | Seed | E2E desktop / mobile | Jornada | Teardown | Artifact |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 38631825424 | 14 min | 1 min 44 s | 14 921 MB / 85 GB | 37/37 + 37/37 | 5 + 1 skip / 5 + 1 skip | 24 passos, 63 ataques, 0 falhas | 0 containers | 228 KB |
+| 38637308227 | 17 min | 4 min 56 s | 14 537 MB / 85 GB | 37/37 + 37/37 | 5 + 1 skip / 5 + 1 skip | 24 passos, 63 ataques, 0 falhas | 0 containers | 228 KB |
+| 38644216490 | 14 min | 1 min 54 s | 14 862 MB / 85 GB | 37/37 + 37/37 | 5 + 1 skip / 5 + 1 skip | 24 passos, 63 ataques, 0 falhas | 0 containers | 228 KB |
+
+Execuções sequenciais (concorrência 1), `workflow_dispatch`, sem mudança de
+código entre elas e sem reexecução (todas `run_attempt` 1). Imagens sempre do
+ECR público com os mesmos digests; a única variação foi o tempo de pull (rede).
+O skip de cada E2E é o `demo-workspaces.spec.js` (pool de visitantes), por desenho.
+O run 38629589204 (PR #189, `46c64e3`) testou outro SHA e não entra nessa conta.
+
+Com três execuções verdes no mesmo SHA, a proposta de tornar este workflow um
+gate obrigatório fica registrada para decisão humana; nada nos quatro gates
+atuais nem na branch protection foi alterado. Custo a considerar: ~15 min por
+execução e a fila única do grupo de concorrência.
+
