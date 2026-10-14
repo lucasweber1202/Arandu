@@ -23,7 +23,9 @@ async function check(name, fn) {
   try { results.push({ name, ok: true, detail: String(await fn() ?? ''), ms: Date.now() - started }); }
   catch (error) { results.push({ name, ok: false, detail: error.message, ms: Date.now() - started }); }
 }
-const fetchT = (url, init = {}) => fetch(url, { ...init, signal: AbortSignal.timeout(15_000) });
+// Prazo de cada espera; o teste de injeção de falhas (scripts/test-ci-demo.mjs) o encurta.
+const HEALTH_MS = Number(process.env.CI_DEMO_HEALTH_TIMEOUT_MS) || 90_000;
+const fetchT = (url, init = {}) => fetch(url, { ...init, signal: AbortSignal.timeout(Math.min(15_000, HEALTH_MS)) });
 function sql(query) {
   const r = spawnSync('psql', [DB, '-v', 'ON_ERROR_STOP=1', '-At', '-c', query], { encoding: 'utf8', timeout: 30_000 });
   if (r.status !== 0) throw new Error(`SQL: ${(r.stderr || 'timeout').trim().split('\n').pop()}`);
@@ -34,7 +36,7 @@ async function waitFor(name, url, deadlineMs, init) {
   let last = 'sem resposta';
   while (Date.now() < until) {
     try { const r = await fetchT(url, init); if (r.ok) return r; last = `HTTP ${r.status}`; } catch (error) { last = error.cause?.code || error.message; }
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    await new Promise((resolve) => setTimeout(resolve, Math.min(2000, deadlineMs / 4)));
   }
   throw new Error(`${name} não ficou saudável em ${deadlineMs / 1000} s (${last})`);
 }
@@ -56,16 +58,16 @@ await check('Postgres: banco vazio antes do seed', async () => {
   must(orgs === 0, `${orgs} organização(ões) já existem`);
   return '0 organizações';
 });
-await check('GoTrue (Auth) saudável pelo gateway', async () => { const r = await waitFor('Auth', `${SB}/auth/v1/health`, 90_000); return `HTTP ${r.status} ${(await r.json()).name || ''}`.trim(); });
-await check('PostgREST saudável pelo gateway', async () => { const r = await waitFor('PostgREST', `${SB}/rest/v1/`, 90_000, { headers: { apikey: ANON } }); return `HTTP ${r.status}`; });
+await check('GoTrue (Auth) saudável pelo gateway', async () => { const r = await waitFor('Auth', `${SB}/auth/v1/health`, HEALTH_MS); return `HTTP ${r.status} ${(await r.json()).name || ''}`.trim(); });
+await check('PostgREST saudável pelo gateway', async () => { const r = await waitFor('PostgREST', `${SB}/rest/v1/`, HEALTH_MS, { headers: { apikey: ANON } }); return `HTTP ${r.status}`; });
 await check('Storage saudável e bucket fin-documents privado', async () => {
-  await waitFor('Storage', `${SB}/storage/v1/status`, 90_000);
+  await waitFor('Storage', `${SB}/storage/v1/status`, HEALTH_MS);
   const bucket = sql("select public::text from storage.buckets where id = 'fin-documents'");
   must(bucket === 'false', `bucket fin-documents public=${bucket || 'ausente'}`);
   return 'status OK; fin-documents privado';
 });
 await check('API do Arandu viva em ARANDU_ENV=demo com Supabase real', async () => {
-  const r = await waitFor('API', `${APP}/api/health`, 60_000);
+  const r = await waitFor('API', `${APP}/api/health`, Math.min(60_000, HEALTH_MS));
   const body = await r.json();
   must(body.release?.environment === 'demo' && body.release?.datasource === 'supabase' && !body.release?.misconfigured, `release ${JSON.stringify(body.release)}`);
   return `environment=${body.release.environment}, datasource=${body.release.datasource}`;

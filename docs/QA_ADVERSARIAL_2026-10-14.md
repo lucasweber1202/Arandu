@@ -34,13 +34,15 @@ Nenhum P0 confirmado.
 | --- | ---: | ---: | ---: | --- | --- |
 | Demo integrada (run 38629589204, PR #189, `46c64e3`) | 12 smoke + 37 seed + 37 recheck + 10 E2E + 24 passos/63 ataques | todos | 0 | — | Actions |
 | Demo integrada (run 38631825424, main `80fb075`) | idem | todos | 0 | 1ª execução independente do SHA da main | Actions |
-| Sondas adversariais (novas) | 18 | 17 + 1 SKIPPED* | 0 com a correção; 2 (RENEW-1/2) sem ela | sessão, entre tenants por API/PostgREST/RPC, RBAC, concorrência real, ciclo de renovação | `scripts/ci-demo/adversarial.mjs` |
+| Sondas adversariais (novas) | 23 | 21 + 2 SKIPPED* | 0 com a correção; 2 (RENEW-1/2) sem ela | sessão, entre tenants por API/PostgREST/RPC, RBAC, concorrência real, ciclo de renovação, multi-entity (analista restrito: detalhe, listas, busca, painel, PostgREST, atribuição e reescopo recusado) | `scripts/ci-demo/adversarial.mjs` |
+| Injeção de falhas do harness (sem Docker) | 6 | 6 | 0 | serviços fora do ar → FAIL em todas, alvo remoto → código 3, variável ausente → código 2, sanitização, fase desconhecida, SKIPPED ≠ PASS | `scripts/test-ci-demo.mjs` |
 | `npm run test:database` (Postgres 16 descartável) | suíte completa + ciclos de renovação | PASS | 0 | upgrade, reaplicação, rollback e recusa de rollback com dois ciclos | local |
 | Estimativas financeiras contra referência independente (novo) | 917 | 917 | 0 | PRICE simulado mês a mês, monotonicidade, taxa zero, recusas, adquirência em centavos | `scripts/test-finance-estimates-reference.mjs` |
 | `npm run check:all` + `npm run build` | — | PASS | 0 | — | local |
 
-\* CONC-3 ficou SKIPPED só na segunda passada local, sobre banco reaproveitado
-(a primeira passada consumiu a aprovação pendente); no runner o banco é novo.
+\* CONC-3 e TENANT-6 ficaram SKIPPED só nas passadas locais sobre banco
+reaproveitado (sem aprovação pendente e sem a jornada); no runner o banco é
+novo e a jornada roda antes.
 
 ## Testes dos próprios testes (mutação dirigida, nunca publicada)
 
@@ -59,8 +61,8 @@ superfície removido): falha em "prorrogado deveria voltar a vigente".
 ## Não executado nesta rodada (NOT RUN)
 
 Firefox/WebKit contra a stack integrada; pool de workspaces de visitante
-(`demo-workspaces.spec.js`, SKIPPED por desenho); injeção de falhas de
-infraestrutura (imagem indisponível, porta ocupada, seed interrompido);
+(`demo-workspaces.spec.js`, SKIPPED por desenho); injeção de falhas com
+Docker (imagem indisponível, porta ocupada, seed interrompido) — a parte sem Docker está em `test-ci-demo.mjs`;
 recovery sintético (coberto pelo job `database` dos gates); documentos hostis
 além das regressões já existentes; matriz completa de multi-entity com membro
 restrito na stack integrada (coberta em `financial-multi-entity.sql`).

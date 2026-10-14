@@ -250,6 +250,83 @@ await probe('RENEW-2', 'Depois da prorrogação, o novo vencimento volta a gerar
   return `marcos 1→2, ${notices} avisos`;
 });
 
+// ------------------------------------------------------- 5. multi-entity
+// A Demo não semeia entidades: o cenário nasce aqui, pela API real. O analista
+// (Rafael) fica restrito à entidade A; um contrato é registrado em cada entidade.
+const ent = {};
+await probe('MENT-0', 'Cenário: duas entidades, analista restrito à entidade A, um contrato em cada', async () => {
+  for (const key of ['A', 'B']) {
+    const r = await api(helena, 'POST', '/api/finance/entities', { organization_id: vitta, kind: 'legal_entity', legal_name: `Vitta ${key} ${RUN} Ltda`, short_name: `V${key}${RUN}`.slice(0, 20), country: 'BR', currency: 'BRL' });
+    must(r.status === 201, `entidade ${key}: ${r.status} ${r.data.code || ''}`);
+    ent[key] = r.data.id;
+  }
+  const rafaelId = sql(`select id from auth.users where email = '${BUYERS.rafael.email}'`);
+  const scoped = await api(helena, 'PUT', '/api/finance/entity-scopes', { organization_id: vitta, user_id: rafaelId, scope: 'entities', entity_ids: [ent.A] });
+  must(scoped.status === 200, `escopo: ${scoped.status} ${scoped.data.code || ''}`);
+  for (const key of ['A', 'B']) {
+    const r = await api(juliana, 'POST', '/api/finance/contract-import', { organization_id: vitta, legal_entity_id: ent[key], provider_id: vittaProvider, product: 'credit',
+      title: `Entidade ${key} ${RUN}`, starts_on: isoDay(-30), ends_on: isoDay(400) });
+    must(r.status === 201, `contrato ${key}: ${r.status} ${r.data.code || ''}`);
+    ent[`contract${key}`] = r.data.id;
+  }
+  return 'entidades A/B, Rafael restrito a A, contratos em A e B';
+});
+const rafael = await login(BUYERS.rafael.email);
+await probe('MENT-1', 'Analista restrito não abre contrato da outra entidade (API, UUID conhecido)', async () => {
+  must(ent.contractB, 'cenário ausente');
+  const own = await api(rafael, 'GET', `/api/finance/contract-detail?id=${ent.contractA}`);
+  const other = await api(rafael, 'GET', `/api/finance/contract-detail?id=${ent.contractB}`);
+  must(own.status === 200 && other.status === 404, `A ${own.status}, B ${other.status}`);
+  return `A 200, B ${other.status}`;
+});
+await probe('MENT-2', 'Listas, busca e tarefas do analista restrito não citam a outra entidade', async () => {
+  must(ent.contractB, 'cenário ausente');
+  const responses = await Promise.all([
+    api(rafael, 'GET', `/api/finance/contracts?organization_id=${vitta}`),
+    api(rafael, 'GET', `/api/finance/tasks?organization_id=${vitta}`),
+    api(rafael, 'GET', `/api/finance/search?organization_id=${vitta}&q=${encodeURIComponent(`Entidade B ${RUN}`)}`),
+    api(rafael, 'GET', `/api/finance/dashboard?organization_id=${vitta}`)
+  ]);
+  const leaks = responses.map((r, index) => [['contracts', 'tasks', 'search', 'dashboard'][index], r]).filter(([, r]) => {
+    const text = JSON.stringify(r.data);
+    return text.includes(ent.contractB) || text.includes(`Entidade B ${RUN}`);
+  });
+  must(responses.every((r) => r.status === 200), `HTTP ${responses.map((r) => r.status).join(',')}`);
+  must(!leaks.length, `contrato da entidade B aparece em: ${leaks.map(([name]) => name).join(', ')}`);
+  return 'contracts, tasks, search e dashboard sem a entidade B';
+});
+await probe('MENT-3', 'Analista restrito no PostgREST direto: contrato, versões, tarefas e eventos da outra entidade', async () => {
+  must(ent.contractB, 'cenário ausente');
+  const checks = [
+    ['fin_contracts', `id=eq.${ent.contractB}`], ['fin_contract_versions', `contract_id=eq.${ent.contractB}`],
+    ['fin_tasks', `related_id=eq.${ent.contractB}`], ['fin_events', `entity_id=eq.${ent.contractB}`]
+  ];
+  for (const [table, filter] of checks) {
+    const r = await rest(rafael, `${table}?select=*&${filter}`);
+    must(r.status === 200 && Array.isArray(r.data) && r.data.length === 0, `${table}: ${Array.isArray(r.data) ? r.data.length : r.status} linha(s)`);
+  }
+  const own = await rest(rafael, `fin_contracts?select=id&id=eq.${ent.contractA}`);
+  must(own.data.length === 1, 'pré-condição: o próprio contrato visível');
+  return '0 linhas da entidade B em 4 tabelas; contrato A visível';
+});
+await probe('MENT-4', 'Contrato do grupo é invisível ao restrito; atribuído à entidade A passa a ser visível; reatribuir é recusado', async () => {
+  must(ent.A, 'cenário ausente');
+  const created = await api(juliana, 'POST', '/api/finance/contract-import', { organization_id: vitta, provider_id: vittaProvider, product: 'credit',
+    title: `Grupo ${RUN}`, starts_on: isoDay(-30), ends_on: isoDay(400) });
+  must(created.status === 201, `registro: ${created.status}`);
+  const id = created.data.id;
+  const before = (await api(rafael, 'GET', `/api/finance/contract-detail?id=${id}`)).status;
+  const assign = (entity) => api(juliana, 'POST', '/api/finance/contract-entity', { contract_id: id, legal_entity_id: entity });
+  const first = await assign(ent.A);
+  const after = (await api(rafael, 'GET', `/api/finance/contract-detail?id=${id}`)).status;
+  const again = await assign(ent.B);
+  const where = sql(`select legal_entity_id from public.fin_contracts where id = '${id}'`);
+  const task = sql(`select legal_entity_id from public.fin_tasks where related_id = '${id}' and status = 'open' limit 1`);
+  must(before === 404 && first.status === 200 && after === 200 && again.status === 409 && where === ent.A && task === ent.A,
+    `antes ${before}, atribuir ${first.status}, depois ${after}, reatribuir ${again.status}, contrato em ${where === ent.A ? 'A' : where}, tarefa em ${task === ent.A ? 'A' : task}`);
+  return 'grupo invisível (404) → atribuído a A visível (200); reatribuir 409; tarefa acompanhou a entidade';
+});
+
 // ------------------------------------------------------------- relatório
 const table = ['| ID | Sonda | Status | Evidência |', '| --- | --- | --- | --- |',
   ...results.map((r) => `| ${r.id} | ${r.name} | ${r.status} | ${r.evidence.replace(/\|/g, '/').replace(/\n/g, ' ')} |`)].join('\n');
