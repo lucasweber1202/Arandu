@@ -230,3 +230,7 @@ assert.equal((await doctor(baseEnv, { marker: 'production' })).result, 'UNSAFE')
 const localRelease = releaseIdentity({ ARANDU_ENV: 'pilot' });
 assert.equal((await doctor({ ...baseEnv, ARANDU_SITE_URL: 'https://localhost:4443' }, { release: localRelease })).result, 'GO', 'ensaio local não atesta deploy hospedado');
 assert.equal((await doctor(baseEnv, { release: localRelease })).result, 'NO-GO', 'mesma identidade incompleta bloqueia host remoto');
+// Placeholder do .env.example observado em Production (14/10/2026): https sem domínio.
+assert.equal(levelOf(await doctor({ ...baseEnv, ARANDU_SITE_URL: 'https://sua-url-da-vercel' }), 'ARANDU_SITE_URL'), 'ERROR', 'placeholder sem TLD');
+assert.equal(levelOf(await doctor({ ...baseEnv, ARANDU_ENV: 'production', ARANDU_SITE_URL: 'https://localhost:4443' }), 'ARANDU_SITE_URL'), 'ERROR', 'localhost em produção');
+assert.equal(levelOf(await doctor({ ...baseEnv, ARANDU_SITE_URL: 'https://localhost:4443' }, { release: localRelease }), 'ARANDU_SITE_URL'), 'OK', 'ensaio local continua aceito');

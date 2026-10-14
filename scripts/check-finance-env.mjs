@@ -13,6 +13,7 @@
 
 import { LEGACY_SUPABASE_REFS, PILOT_SUPABASE_REFS, foreignSupabaseRef } from '../lib/finance/pilot-doctor.mjs';
 import { SERVER_ENVIRONMENTS, CANONICAL_BRANCH, resolveRuntime } from '../lib/runtime-mode.mjs';
+import { publicHostname } from '../lib/public-site-url.mjs';
 
 const env = process.env;
 const problems = [];
@@ -80,7 +81,15 @@ const cronSecret = describe('CRON_SECRET', { required: needsSupabase, minLength:
 
 report.push('');
 report.push('Aplicação:');
-describe('ARANDU_SITE_URL', { required: needsSupabase, pattern: /^https:\/\// });
+const siteUrl = describe('ARANDU_SITE_URL', { required: needsSupabase, pattern: /^https:\/\// });
+// O prefixo não basta: o placeholder `https://sua-url-da-vercel` do .env.example
+// estava configurado em Production e passava. Mesma regra de domínio dos demais
+// gates (lib/public-site-url.mjs); localhost só serve à stack local de demo/piloto.
+if (needsSupabase && siteUrl && /^https:\/\//.test(siteUrl)) {
+  const host = (() => { try { return new URL(siteUrl).hostname.toLowerCase(); } catch { return ''; } })();
+  const local = host === 'localhost' && environment !== 'production';
+  if (!local && !publicHostname(host)) problems.push('ARANDU_SITE_URL presente, mas não é um domínio publicável (sem TLD, placeholder ou localhost). Use o endereço real do ambiente.');
+}
 
 report.push('');
 report.push('Modos:');

@@ -1,0 +1,6 @@
+# Todo texto do repositório é LF em qualquer sistema. Sem isto, o Git para
+# Windows (core.autocrlf=true) grava CRLF no checkout: os verificadores de
+# check:all comparam conteúdo exato e os scripts .sh quebram no bash.
+* text=auto eol=lf
+*.png binary
+*.webp binary
