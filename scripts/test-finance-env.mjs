@@ -56,6 +56,16 @@ assert.match(onLegacy.stdout, /ARANDU_SITE_URL ausente/);
 assert.match(onLegacy.stdout, /projeto legado, que ainda não tem atribuição ativa para production/);
 assert.doesNotMatch(onLegacy.stdout, /começa vazio/, 'mensagem não pode contradizer o destino planejado da produção');
 assert.equal(run({ ...production, CRON_SECRET: '' }).status, 1, 'produção sem CRON_SECRET');
+// ARANDU_SITE_URL de Production observado no build da Vercel em 14/10/2026: o
+// placeholder do .env.example passava porque só o prefixo https:// era conferido.
+for (const environment of [{}, production]) {
+  const placeholder = run({ ...environment, ARANDU_SITE_URL: 'https://sua-url-da-vercel' });
+  assert.equal(placeholder.status, 1, 'placeholder sem domínio aceito como URL do site');
+  assert.match(placeholder.stdout, /ARANDU_SITE_URL presente, mas não é um domínio publicável/);
+}
+assert.match(run({ ...production, ARANDU_SITE_URL: 'https://localhost:4443' }).stdout, /ARANDU_SITE_URL presente, mas não é um domínio publicável/, 'localhost em produção');
+assert.equal(run({ ARANDU_SITE_URL: 'https://localhost:4443' }).status, 0, 'stack local (pilot-local, demo:setup) continua aceita');
+assert.equal(run({ ARANDU_SITE_URL: 'https://arandu-pilot.vercel.app' }).status, 0, 'domínio da Vercel continua aceito fora de production');
 // Demonstração canônica: a main com banco DEMO próprio; nunca o do piloto,
 // nunca outra branch, nunca o sandbox; e a senha das personas não vai à produção.
 const demoRef = 'demonstracaoarandu00';

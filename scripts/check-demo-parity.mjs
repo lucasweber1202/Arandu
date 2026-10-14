@@ -30,8 +30,9 @@ import {
 
 const MATRIX = 'docs/DEMO_PRODUCTION_PARITY_MATRIX.md';
 const read = (path) => readFileSync(path, 'utf8');
+// As allowlists usam caminhos com /; no Windows, join() devolve \.
 const walk = (dir, filter) => readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-  const path = join(dir, entry.name);
+  const path = join(dir, entry.name).replaceAll('\\', '/');
   if (entry.isDirectory()) return walk(path, filter);
   return filter(path) ? [path] : [];
 });
