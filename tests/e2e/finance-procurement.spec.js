@@ -577,3 +577,18 @@ test('convites encerrados aparecem em português e não contam como "ainda sem r
   await expect(waiting).not.toContainText('Banco Três');
   await expect(waiting).not.toContainText('Banco Quatro');
 });
+
+test('primeiros passos levam a registrar um contrato existente, com o formulário já aberto', async ({ page }) => {
+  const data = overview();
+  data.rfqs = [];
+  await mockSession(page, { data });
+  await page.goto('/finance/dashboard.html');
+  const steps = page.locator('#buyer-onboarding');
+  await steps.getByRole('link', { name: 'Registre um contrato que já existe' }).click();
+  await page.waitForURL(/\/finance\/contracts\.html$/);
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(page.getByRole('dialog')).toContainText(/contrato/i);
+  // Intent desconhecido ou malformado não faz nada.
+  await page.goto('/finance/contracts.html?acao=%22%5D,body');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+});

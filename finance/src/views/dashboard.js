@@ -265,9 +265,11 @@ function firstUse(ctx) {
   const steps = [
     ['Complete os dados da empresa', 'CNPJ, setor e faixa de faturamento.', '/finance/settings.html', Boolean(ctx.data.organization?.sector)],
     ['Cadastre os provedores com quem fala', 'Bancos, fintechs e adquirentes.', '/finance/providers.html', (ctx.data.providers || []).length >= 1],
+    // Valor antes da primeira proposta: o que a empresa já tem passa a ter prazo e próxima ação.
+    ['Registre um contrato que já existe', 'O Arandu acompanha vencimento, aviso prévio e renovação.', '/finance/contracts.html?acao=registrar-contrato', (ctx.data.contracts || []).length >= 1],
     ['Crie a primeira solicitação', 'Crédito empresarial ou adquirência.', '/finance/new-rfq.html', false]
   ];
-  return card({ title: 'Primeiros passos', id: 'buyer-onboarding', subtitle: 'Três passos para a primeira concorrência.', body: el('ol', { class: 'onboarding' }, steps.map(([title, text, path, done]) =>
+  return card({ title: 'Primeiros passos', id: 'buyer-onboarding', subtitle: 'Comece pelo que a empresa já tem e chegue à primeira concorrência.', body: el('ol', { class: 'onboarding' }, steps.map(([title, text, path, done]) =>
     el('li', { class: `onboarding-step${done ? ' done' : ''}` }, [el('span', { class: 'onboarding-mark' }, icon(done ? 'check' : 'arrowRight', { size: 14 })),
       el('span', {}, [el('a', { href: ctx.href(path), text: title }), el('span', { class: 'muted', text: ` — ${text}` })]), done ? el('span', { class: 'sr-only', text: '(concluído)' }) : null]))) });
 }

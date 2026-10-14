@@ -1,5 +1,23 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 14/10/2026 — Primeiro valor sem RFQ e incidente de merge da #184
+
+Base: `main` @ `dba2d88` (#184). Estado: M1 + E2E (mocks da API); nada hospedado.
+
+- Incidente de governança: a #184 foi integrada com o HEAD `a05b11d`, que não
+  continha a ponta da `main` (`1e1aa20`, merge da #183). O merge-audit
+  (`38457898151`) falhou corretamente (`behind`). Causa: o merge foi feito pela
+  integração sem rodar `merge:gates`, e o GitHub reportou `mergeable_state:
+  clean` porque a regra "branch atualizada" não está imposta no servidor (exige
+  admin). Os quatro gates da #184 passaram no seu HEAD e a #184 só toca o
+  frontend, sem conflito com a #183. Regra adotada pelo agente: antes de todo
+  merge, `git merge-base --is-ancestor origin/main <HEAD>`, além dos check runs
+  do HEAD exato. Nenhum histórico foi reescrito.
+- Primeiros passos: novo passo "Registre um contrato que já existe" leva a
+  `contracts.html?acao=registrar-contrato`, que abre o formulário de contrato
+  existente (valor antes da primeira proposta, guideline v3.3). `?acao=` aceita
+  só nomes simples e aciona o `data-intent` da própria tela, sujeito ao papel.
+
 ## 13/10/2026 — Ações sem gravação duplicada, aprovação com condições à vista e rascunho do provedor protegido
 
 Base: `main` @ `ff9c9bb` (#181). Estado: M1 + testes E2E (mocks da API); nada hospedado.
