@@ -203,19 +203,23 @@ export async function contracts(ctx) {
   const importButton = mods.contractCenter.importContractButton(ctx, entities);
   ctx.header({ title: 'Contratos e renovações', subtitle: 'Termos versionados, aditivos, marcos próprios, aviso prévio e próxima ação de cada contrato.', actions: [context, importButton, refresh].filter(Boolean) });
   if (!rows.length && (ctx.data.contracts || []).length) return emptyState({ title: 'Nenhum contrato nesta entidade', text: 'Troque a entidade em foco para ver os demais contratos que você pode ler.', iconName: 'building' });
-  if (!rows.length) return emptyState({ title: 'Nenhum contrato registrado ainda', text: 'Depois de uma decisão, registre o contrato com vigência e aviso prévio. O Arandu acompanha a renovação.', iconName: 'briefcase' });
+  if (!rows.length) return emptyState({ title: 'Nenhum contrato registrado ainda', text: 'Registre os contratos que a empresa já tem com vigência e aviso prévio: o Arandu abre a tarefa de revisão da renovação e acompanha os marcos. Contratos de uma concorrência no Arandu entram pela decisão.', iconName: 'briefcase',
+    action: mods.contractCenter.importContractButton(ctx, entities, { label: 'Registrar o primeiro contrato', variant: 'primary' }) });
   const ordered = [...rows].sort((a, b) => (['active', 'renewing'].includes(b.status) - ['active', 'renewing'].includes(a.status)) || String(a.review_from).localeCompare(String(b.review_from)));
   // Contratos que pedem ação primeiro.
   const root = el('div', { class: 'stack' });
   for (const contract of ordered) {
     const next = contractNextAction(contract);
-    const restart = manage && contract.status === 'active' ? button('Iniciar nova concorrência', { variant: next.cta ? 'primary' : 'secondary', size: 'sm', iconName: 'repeat', onClick: async (event) => {
+    // Só crédito e adquirência têm concorrência no Arandu. Em renovação, o
+    // mesmo botão leva à concorrência já aberta a partir deste contrato.
+    const sourceable = ['credit', 'acquiring'].includes(contract.product);
+    const restart = manage && sourceable && ['active', 'renewing'].includes(contract.status) ? button(contract.status === 'renewing' ? 'Abrir concorrência de renovação' : 'Iniciar nova concorrência', { variant: next.cta ? 'primary' : 'secondary', size: 'sm', iconName: 'repeat', onClick: async (event) => {
       const target = event.currentTarget;
-      if (!await confirmDialog({ title: 'Iniciar nova concorrência?', description: `Criamos um rascunho com a demanda do contrato atual com ${contract.provider_name}. Convites, propostas e decisões anteriores não são copiados. O contrato passa para “Em renovação”.`, confirmLabel: 'Criar rascunho' })) return;
+      if (!await confirmDialog({ title: contract.status === 'renewing' ? 'Abrir concorrência de renovação?' : 'Iniciar nova concorrência?', description: `Se já houver uma concorrência de renovação em andamento para este contrato com ${contract.provider_name}, ela é aberta. Senão, criamos um rascunho com a demanda do contrato atual; convites, propostas e decisões anteriores não são copiados, e o contrato passa para “Em renovação”.`, confirmLabel: contract.status === 'renewing' ? 'Continuar' : 'Criar rascunho' })) return;
       target.disabled = true;
       try {
         const result = await ctx.api('contract-renewal-rfq', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, contract_id: contract.id }) });
-        toast('Nova concorrência criada como rascunho.');
+        toast('Abrindo a concorrência de renovação.');
         location.assign(ctx.href(`/finance/rfq.html?id=${encodeURIComponent(result.id)}`));
       } catch (error) { toast(error.message, 'error'); target.disabled = false; }
     } }) : null;

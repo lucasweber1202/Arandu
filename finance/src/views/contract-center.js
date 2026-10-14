@@ -6,7 +6,7 @@ import { graphContextCard } from './graph-context.js';
 // quem escreve (papel + escopo de entidade); a tela só esconde o que a pessoa
 // claramente não pode fazer e mostra o erro do servidor quando ele recusa.
 
-import { el, icon, formatDate, formatDateTime, money, percent, enumLabel } from '../core.js';
+import { el, icon, formatDate, formatDateTime, money, percent, enumLabel, PROVIDER_KINDS } from '../core.js';
 import { button, tag, field, drawer, toast, loading, errorState, catalogControl, confirmDialog, onSubmit } from '../ui.js';
 import { CONTRACT_CATEGORIES, MILESTONE_KINDS, RECURRENCES, FEE_UNITS, contractTermFields } from '../../../lib/finance/contract-terms.mjs';
 import { entityTree } from '../../../lib/finance/entities.mjs';
@@ -127,54 +127,141 @@ function confirmedFactsPanel(ctx, contractId, editor) {
 }
 
 /** Botão + formulário de contrato existente (carteira fora de RFQ). */
-export function importContractButton(ctx, entities) {
+export function importContractButton(ctx, entities, { label = 'Registrar contrato existente', variant = 'secondary' } = {}) {
   if (!ctx.can('create_rfq')) return null;
-  return button('Registrar contrato existente', { iconName: 'plus', attrs: { 'data-intent': 'registrar-contrato' }, onClick: () => {
-    const form = el('form', { class: 'stack', id: 'contract-import-form', novalidate: true });
-    const category = el('select', { name: 'product' });
-    for (const [value, label] of Object.entries(CONTRACT_CATEGORIES)) category.add(new Option(label, value));
-    const provider = el('select', { name: 'provider_id', required: true });
-    for (const row of ctx.data.providers || []) provider.add(new Option(row.name, row.id));
-    const title = el('input', { name: 'title', maxlength: '200', required: true });
-    const starts = el('input', { name: 'starts_on', type: 'date', required: true });
-    const ends = el('input', { name: 'ends_on', type: 'date', required: true });
-    const notice = el('input', { name: 'renewal_notice_days', type: 'number', min: '0', max: '3650', value: '60' });
-    const autoRenew = el('input', { name: 'auto_renew', type: 'checkbox' });
-    const entity = el('select', { name: 'legal_entity_id' });
-    if (entities.scope === 'group') entity.add(new Option('Nível de grupo', ''));
-    for (const row of entityTree(entities.rows)) if (row.status === 'active') entity.add(new Option(`${row.depth ? '— ' : ''}${row.short_name || row.legal_name}`, row.id));
-    let editor = termsEditor(category.value);
-    const editorSlot = el('div', {}, editor);
-    category.addEventListener('change', () => { editor = termsEditor(category.value); editorSlot.replaceChildren(editor); });
-    form.append(
-      field({ label: 'Categoria', control: category }),
-      field({ label: 'Provedor', control: provider, required: true, hint: (ctx.data.providers || []).length ? null : 'Cadastre o provedor antes em Provedores.' }),
-      field({ label: 'Título', control: title, required: true }),
-      ...(entities.rows.length ? [field({ label: 'Entidade', control: entity })] : []),
-      el('div', { class: 'field-grid' }, [field({ label: 'Início', control: starts, required: true }), field({ label: 'Fim', control: ends, required: true }),
-        field({ label: 'Aviso prévio (dias)', control: notice }), el('label', { class: 'check-row' }, [autoRenew, el('span', { text: 'Renovação automática' })])]),
-      el('details', { class: 'terms-details' }, [el('summary', { text: 'Termos estruturados (opcional agora, versão 1)' }), editorSlot]),
-      el('p', { class: 'callout callout-info compact' }, [icon('info', { size: 14 }), el('span', { text: 'Registre o que está no contrato assinado. O Arandu não calcula nem infere termos; correções futuras viram nova versão com justificativa.' })])
-    );
-    const save = button('Registrar contrato', { variant: 'primary', type: 'submit', iconName: 'check', attrs: { form: 'contract-import-form' } });
-    const dialog = drawer({ title: 'Registrar contrato existente', subtitle: 'Carteira atual da empresa, fora de uma concorrência no Arandu.', body: form, footer: [button('Cancelar', { variant: 'ghost', onClick: () => dialog.close() }), save] });
-    onSubmit(form, async (event) => {
-      event.preventDefault();
-      if (title.value.trim().length < 2 || !starts.value || !ends.value || !provider.value) { toast('Preencha provedor, título, início e fim.', 'error'); return; }
-      save.disabled = true;
-      try {
-        const result = await ctx.api('contract-import', { method: 'POST', body: JSON.stringify({
-          organization_id: ctx.organization.id, product: category.value, provider_id: provider.value, title: title.value.trim(),
-          starts_on: starts.value, ends_on: ends.value, renewal_notice_days: Number(notice.value || 60), auto_renew: autoRenew.checked,
-          legal_entity_id: entity.value || null, terms: editor.read()
-        }) });
-        dialog.close();
-        toast('Contrato registrado na carteira.');
-        location.hash = `#contract-${result.id}`;
-        ctx.reload();
-      } catch (error) { toast(error.message, 'error'); save.disabled = false; }
-    });
-  } });
+  return button(label, { variant, iconName: 'plus', attrs: { 'data-intent': 'registrar-contrato' }, onClick: () => openImportContract(ctx, entities) });
+}
+
+const NEW_PROVIDER = '__nova__';
+const addDays = (day, days) => new Date(Date.parse(`${day}T00:00:00Z`) + days * 86400000).toISOString().slice(0, 10);
+
+function openImportContract(ctx, entities) {
+  const form = el('form', { class: 'stack', id: 'contract-import-form', novalidate: true });
+  const category = el('select', { name: 'product' });
+  for (const [value, text] of Object.entries(CONTRACT_CATEGORIES)) category.add(new Option(text, value));
+  // Instituição: escolhe uma cadastrada ou cadastra ali mesmo, sem sair do registro.
+  const providers = [...(ctx.data.providers || [])];
+  const provider = el('select', { name: 'provider_id', required: true });
+  const fillProviders = (selected = '') => {
+    provider.replaceChildren(new Option(providers.length ? 'Escolha a instituição' : 'Nenhuma instituição cadastrada', ''),
+      ...providers.map((row) => new Option(row.name, row.id)), new Option('+ Cadastrar nova instituição', NEW_PROVIDER));
+    provider.value = selected;
+  };
+  fillProviders(providers.length === 1 ? providers[0].id : '');
+  const providerName = el('input', { name: 'provider_name', maxlength: '200', autocomplete: 'organization' });
+  const providerKind = el('select', { name: 'provider_kind' });
+  for (const [value, text] of Object.entries(PROVIDER_KINDS)) providerKind.add(new Option(text, value));
+  const providerNameField = field({ label: 'Nome da instituição', control: providerName, required: true });
+  const newProvider = el('fieldset', { class: 'stack inline-create', hidden: true }, [el('legend', { class: 'small', text: 'Nova instituição' }), providerNameField,
+    field({ label: 'Tipo', control: providerKind }), el('p', { class: 'muted small', text: 'Cadastrada junto com o contrato. Contato, site e evidências ficam em Provedores.' })]);
+  const title = el('input', { name: 'title', maxlength: '200', required: true, placeholder: 'Ex.: Capital de giro 2026' });
+  const starts = el('input', { name: 'starts_on', type: 'date', required: true });
+  const ends = el('input', { name: 'ends_on', type: 'date', required: true });
+  const notice = el('input', { name: 'renewal_notice_days', type: 'number', min: '0', max: '3650', step: '1', value: '60', inputmode: 'numeric' });
+  const autoRenew = el('input', { name: 'auto_renew', type: 'checkbox' });
+  const entity = el('select', { name: 'legal_entity_id' });
+  if (entities.scope === 'group') entity.add(new Option('Nível de grupo', ''));
+  for (const row of entityTree(entities.rows)) if (row.status === 'active') entity.add(new Option(`${row.depth ? '— ' : ''}${row.short_name || row.legal_name}`, row.id));
+  // Contrato principal: só do mesmo provedor (o banco recusa o resto).
+  const parent = el('select', { name: 'parent_contract_id' });
+  const parentField = field({ label: 'Contrato principal', control: parent, optionalLabel: true, hint: 'Para aditivo comercial ou pacote vinculado a um contrato já registrado com a mesma instituição.' });
+  const fillParents = () => {
+    const options = (ctx.data.contracts || []).filter((row) => row.provider_id && row.provider_id === provider.value);
+    parent.replaceChildren(new Option('Nenhum (contrato independente)', ''), ...options.map((row) => new Option(`${row.title || CONTRACT_CATEGORIES[row.product] || 'Contrato'} · até ${formatDate(row.ends_on)}`, row.id)));
+    parentField.hidden = !options.length;
+  };
+  fillParents();
+  let editor = termsEditor(category.value);
+  const editorSlot = el('div', {}, editor);
+  category.addEventListener('change', () => { editor = termsEditor(category.value); editorSlot.replaceChildren(editor); });
+  const providerField = field({ label: 'Instituição financeira', control: provider, required: true });
+  const titleField = field({ label: 'Título', control: title, required: true, hint: 'Como a equipe reconhece o contrato.' });
+  const startsField = field({ label: 'Início', control: starts, required: true });
+  const endsField = field({ label: 'Fim', control: ends, required: true });
+  const noticeField = field({ label: 'Aviso prévio (dias)', control: notice, hint: 'Antecedência exigida para renovar, renegociar ou encerrar.' });
+  // Próxima ação calculada com a mesma regra do banco: fim − aviso prévio.
+  const preview = el('p', { class: 'callout compact', role: 'status', 'aria-live': 'polite', hidden: true });
+  const today = new Date().toISOString().slice(0, 10);
+  const updatePreview = () => {
+    const days = Number(notice.value || 60);
+    if (!starts.value || !ends.value || ends.value < starts.value || !Number.isInteger(days) || days < 0) { preview.hidden = true; return; }
+    const review = addDays(ends.value, -days);
+    preview.replaceChildren(icon(ends.value < today ? 'clock' : 'calendar', { size: 14 }), el('span', { text: ends.value < today
+      ? `Contrato encerrado em ${formatDate(ends.value)}: fica na memória da carteira, sem tarefa de renovação.`
+      : review <= today
+        ? `O prazo do aviso prévio já começou (${formatDate(review)}). O contrato entra em renovação e a tarefa “Revisar renovação” vence hoje.`
+        : `Próxima ação: tarefa “Revisar renovação” para ${formatDate(review)}, ${days} dias antes do fim.` }));
+    preview.className = `callout compact ${ends.value >= today && review <= today ? 'callout-warning' : 'callout-info'}`;
+    preview.hidden = false;
+  };
+  for (const control of [starts, ends, notice]) control.addEventListener('input', updatePreview);
+  provider.addEventListener('change', () => {
+    newProvider.hidden = provider.value !== NEW_PROVIDER;
+    providerField.setError('');
+    fillParents();
+    if (!newProvider.hidden) providerName.focus();
+  });
+  form.append(
+    field({ label: 'Categoria', control: category }),
+    providerField, newProvider, titleField,
+    ...(entities.rows.length ? [field({ label: 'Entidade', control: entity, hint: 'Empresa do grupo que assinou o contrato.' })] : []),
+    el('div', { class: 'field-grid' }, [startsField, endsField, noticeField, el('label', { class: 'check-row' }, [autoRenew, el('span', { text: 'Renovação automática' })])]),
+    preview, parentField,
+    el('details', { class: 'terms-details' }, [el('summary', { text: 'Termos estruturados (opcional agora, versão 1)' }), editorSlot]),
+    el('p', { class: 'callout callout-info compact' }, [icon('info', { size: 14 }), el('span', { text: 'Registre o que está no contrato assinado. O Arandu não calcula nem infere termos; correções futuras viram nova versão com justificativa.' })])
+  );
+  const save = button('Registrar contrato', { variant: 'primary', type: 'submit', iconName: 'check', attrs: { form: 'contract-import-form' } });
+  const dialog = drawer({ title: 'Registrar contrato existente', subtitle: 'Carteira atual da empresa, fora de uma concorrência no Arandu.', body: form, footer: [button('Cancelar', { variant: 'ghost', onClick: () => dialog.close() }), save] });
+
+  const validate = () => {
+    const errors = [];
+    const check = (wrap, control, message) => { wrap.setError(message || ''); if (message) errors.push(control); };
+    check(providerField, provider, provider.value ? null : 'Escolha a instituição ou cadastre uma nova.');
+    if (provider.value === NEW_PROVIDER) check(providerNameField, providerName, providerName.value.trim().length >= 2 ? null : 'Informe o nome da instituição.');
+    else providerNameField.setError('');
+    check(titleField, title, title.value.trim().length < 2 ? 'Dê um título com pelo menos 2 caracteres.' : /[<>]/.test(title.value) ? 'Use texto simples, sem < ou >.' : null);
+    check(startsField, starts, starts.value ? null : 'Informe a data de início.');
+    check(endsField, ends, !ends.value ? 'Informe a data de fim.' : starts.value && ends.value < starts.value ? 'O fim não pode anteceder o início.' : null);
+    const days = notice.value === '' ? 60 : Number(notice.value);
+    check(noticeField, notice, Number.isInteger(days) && days >= 0 && days <= 3650 ? null : 'Use um número inteiro de 0 a 3650 dias.');
+    if (errors.length) errors[0].focus();
+    return !errors.length;
+  };
+  let providerId = null;
+  onSubmit(form, async (event) => {
+    event.preventDefault();
+    if (!validate()) return;
+    save.disabled = true;
+    try {
+      if (provider.value === NEW_PROVIDER && !providerId) {
+        const created = await ctx.api('providers', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, name: providerName.value.trim(), kind: providerKind.value }) });
+        providerId = created.row?.id;
+        if (!providerId) throw new Error('A instituição não foi cadastrada. Tente de novo.');
+        // Um novo envio depois de falha no contrato reaproveita a instituição criada.
+        providers.push({ id: providerId, name: providerName.value.trim() });
+        fillProviders(providerId);
+        newProvider.hidden = true;
+        fillParents();
+      }
+      const result = await ctx.api('contract-import', { method: 'POST', body: JSON.stringify({
+        organization_id: ctx.organization.id, product: category.value, provider_id: provider.value,
+        title: title.value.trim(), starts_on: starts.value, ends_on: ends.value, renewal_notice_days: notice.value === '' ? 60 : Number(notice.value),
+        auto_renew: autoRenew.checked, legal_entity_id: entity.value || null, parent_contract_id: parent.value || null, terms: editor.read()
+      }) });
+      dialog.close();
+      const task = result.next_task;
+      toast(task ? `Contrato registrado. Próxima ação: revisar a renovação até ${formatDate(task.due_on)} (em Tarefas).` : 'Contrato registrado na carteira, sem renovação pendente.');
+      location.hash = `#contract-${result.id}`;
+      ctx.reload();
+    } catch (error) {
+      if (error.code === 'contract_duplicate') titleField.setError(error.message);
+      else if (error.code === 'invalid_parent_contract') parentField.setError(error.message);
+      else if (error.code === 'invalid_period' || error.code === 'invalid_date') endsField.setError(error.message);
+      toast(error.message, 'error');
+      save.disabled = false;
+    }
+  });
+  (providers.length ? title : provider).focus();
 }
 
 /** Painel do contrato: termos, versões, aditivos, marcos e contratos filhos. */

@@ -783,8 +783,19 @@ async function seedValue() {
     target_dimensions:i.targetDimensions,baseline:baseline(i,i.baselineDimensions)});
 }
 
+// Carteira existente pela API real: o banco abre a tarefa de revisão da
+// renovação junto com o contrato (docs/supabase-financial-contract-onboarding.sql).
+async function seedExistingContract() {
+  const e = L().existingContract;
+  const result = await post(people[e.by], 'contract-import', { organization_id: ctx.org, provider_id: ctx.providerRow[e.provider], product: e.product, title: e.title,
+    starts_on: isoDate(e.starts), ends_on: isoDate(e.ends), renewal_notice_days: e.notice, terms: e.terms });
+  must(result.next_task?.due_on === isoDate(e.ends - e.notice), 'contrato existente sem a tarefa de revisão da renovação');
+  ctx.contract.existing = result.id;
+}
+
 async function seedLifecycle() {
   log('Registrando o pós-contrato (implantação, obrigações, performance, spend, qualificação, documento)…');
+  await seedExistingContract();
   await seedImplementation();
   await seedCovenants();
   await seedPerformance();
@@ -875,6 +886,10 @@ async function sanity() {
     passport ? `${passport.coverage.filled}/${passport.coverage.relevant} campos, ${passport.attention.length} a revisar` : 'ausente');
   const contracts = overview.contracts || [];
   check('Contrato de adquirência vigente', contracts.some((row) => row.product === 'acquiring' && row.status === 'active'), `${contracts.length} contrato(s)`);
+  const existing = contracts.find((row) => row.title === L().existingContract.title && row.origin === 'imported');
+  const existingTask = existing ? (overview.tasks || []).find((task) => task.related_type === 'contract' && task.related_id === existing.id && task.status === 'open') : null;
+  check('Contrato existente com revisão de renovação agendada', existing && existingTask?.due_on === isoDate(L().existingContract.ends - L().existingContract.notice),
+    existing ? `${existing.status}, tarefa ${existingTask ? `para ${existingTask.due_on}` : 'ausente'}` : 'ausente');
   const renewing = contracts.find((row) => row.product === 'credit');
   check('Contrato de crédito em janela de renovação', renewing && ['active', 'renewing'].includes(renewing.status) && renewing.days_to_end > 0 && renewing.days_to_end <= 90 && renewing.review_from > isoDate(0), renewing ? `${renewing.status}, ${renewing.days_to_end} dias para o fim, aviso prévio em ${renewing.review_from}` : 'ausente');
   if (CRON) {

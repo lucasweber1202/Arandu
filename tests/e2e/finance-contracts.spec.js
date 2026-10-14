@@ -7,6 +7,7 @@ import { test, expect } from '@playwright/test';
 const ORG = '00000000-0000-4000-8000-0000000000a1';
 const CONTRACT = '00000000-0000-4000-8000-0000000000d1';
 const PROVIDER = '00000000-0000-4000-8000-0000000000e1';
+const NEW_PROVIDER = '00000000-0000-4000-8000-0000000000e2';
 const CONTRACT_ROW = { id: CONTRACT, organization_id: ORG, provider_id: PROVIDER, provider_name: 'Banco Carteira', product: 'credit', origin: 'imported', title: 'Capital de giro carteira',
   status: 'active', starts_on: '2026-01-01', ends_on: '2027-12-31', renewal_notice_days: 90, review_from: '2027-10-02', days_to_end: 450, current_version: 2, currency: 'BRL', legal_entity_id: null };
 const DETAIL = {
@@ -20,7 +21,7 @@ const DETAIL = {
   renewal_milestones: [], children: []
 };
 
-async function mockSession(page) {
+async function mockSession(page, { providers = [{ id: PROVIDER, name: 'Banco Carteira', status: 'active' }], contracts = [CONTRACT_ROW], importReply = null } = {}) {
   const calls = [];
   await page.route('**/api/finance/**', async (route) => {
     const request = route.request();
@@ -31,10 +32,11 @@ async function mockSession(page) {
     const json = (payload, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(payload) });
     if (path === 'organizations') return json({ ok: true, rows: [{ id: ORG, kind: 'BUYER', legal_name: 'Grupo Vitta' }] });
     if (path === 'overview') return json({ ok: true, organization: { id: ORG, kind: 'BUYER', legal_name: 'Grupo Vitta' }, profile: [], tasks: [], rfqs: [],
-      providers: [{ id: PROVIDER, name: 'Banco Carteira', status: 'active' }], contracts: [CONTRACT_ROW] });
+      providers, contracts });
     if (path === 'members') return json({ ok: true, rows: [{ user_id: 'u1', role: 'finance_manager', display_name: 'Paula Nogueira', title: 'Tesouraria' }], viewer_id: 'u1' });
     if (path === 'contract-detail') return json(DETAIL);
-    if (path === 'contract-import') return json({ ok: true, id: '00000000-0000-4000-8000-0000000000d9' }, 201);
+    if (path === 'contract-import') return importReply ? json(importReply.body, importReply.status) : json({ ok: true, id: '00000000-0000-4000-8000-0000000000d9' }, 201);
+    if (path === 'providers' && request.method() === 'POST') return json({ ok: true, row: { id: NEW_PROVIDER, name: body.name } }, 201);
     if (path === 'contract-amendments') return json({ ok: true, id: 'a1' }, 201);
     if (path === 'contract-milestones') return json({ ok: true, id: 'm2', status: 'scheduled' }, request.method() === 'POST' ? 201 : 200);
     if (path === 'contract-terms') return json({ ok: true, version: 3 }, 201);
@@ -243,3 +245,65 @@ for (const [days, text] of [[0, 'vence hoje'], [1, 'vence amanhã'], [12, 'vence
     } finally { CONTRACT_ROW.days_to_end = previous; }
   });
 }
+
+const isoDay = (offset) => new Date(Date.now() + offset * 86400000).toISOString().slice(0, 10);
+
+test('primeiro contrato: instituição cadastrada no próprio registro e próxima ação visível', async ({ page }) => {
+  const calls = await mockSession(page, { providers: [], contracts: [], importReply: { status: 201, body: { ok: true, id: '00000000-0000-4000-8000-0000000000d9', status: 'active', next_task: { id: 't1', title: 'Revisar renovação do contrato antes do aviso prévio', due_on: isoDay(305) } } } });
+  await page.goto('/finance/contracts.html');
+  await expect(page.getByText('Nenhum contrato registrado ainda')).toBeVisible();
+  await page.getByRole('button', { name: 'Registrar o primeiro contrato' }).click();
+  const form = page.locator('#contract-import-form');
+  // Sem instituição cadastrada: o registro não termina em beco sem saída.
+  await form.getByLabel(/^Instituição financeira/).selectOption({ label: '+ Cadastrar nova instituição' });
+  await form.getByLabel(/^Nome da instituição/).fill('Banco Horizonte');
+  await form.getByLabel(/^Título/).fill('Capital de giro 2026');
+  await form.getByLabel(/^Início/).fill(isoDay(-60));
+  await form.getByLabel(/^Fim/).fill(isoDay(365));
+  await form.getByLabel(/^Aviso prévio/).fill('60');
+  await expect(form.getByRole('status')).toContainText(/Próxima ação: tarefa “Revisar renovação” para \d{1,2} de .+ de \d{4}, 60 dias antes do fim\./);
+  await page.getByRole('button', { name: 'Registrar contrato', exact: true }).click();
+  await expect.poll(() => calls.find((call) => call.path === 'contract-import')?.body).toMatchObject({ provider_id: NEW_PROVIDER, title: 'Capital de giro 2026', renewal_notice_days: 60, parent_contract_id: null });
+  expect(calls.find((call) => call.path === 'providers' && call.method === 'POST')?.body).toMatchObject({ organization_id: ORG, name: 'Banco Horizonte', kind: 'bank' });
+  await expect(page.getByText(/Contrato registrado\. Próxima ação: revisar a renovação até \d{1,2} de .+ \(em Tarefas\)\./)).toBeVisible();
+});
+
+test('registro de contrato aponta o campo com problema e não envia dado inválido', async ({ page }) => {
+  const calls = await mockSession(page);
+  await page.goto('/finance/contracts.html');
+  await page.getByRole('button', { name: 'Registrar contrato existente' }).click();
+  const form = page.locator('#contract-import-form');
+  await page.getByRole('button', { name: 'Registrar contrato', exact: true }).click();
+  await expect(form.getByText('Dê um título com pelo menos 2 caracteres.')).toBeVisible();
+  await expect(form.getByText('Informe a data de início.')).toBeVisible();
+  await expect(form.getByLabel(/^Título/)).toBeFocused();
+  await form.getByLabel(/^Título/).fill('Fiança bancária');
+  await form.getByLabel(/^Início/).fill('2026-05-01');
+  await form.getByLabel(/^Fim/).fill('2026-04-01');
+  await page.getByRole('button', { name: 'Registrar contrato', exact: true }).click();
+  await expect(form.getByText('O fim não pode anteceder o início.')).toBeVisible();
+  await form.getByLabel(/^Fim/).fill('2027-04-01');
+  await form.getByLabel(/^Aviso prévio/).fill('12.5');
+  await page.getByRole('button', { name: 'Registrar contrato', exact: true }).click();
+  await expect(form.getByText('Use um número inteiro de 0 a 3650 dias.')).toBeVisible();
+  expect(calls.some((call) => call.path === 'contract-import')).toBe(false);
+});
+
+test('contrato já registrado: recusa explicada no título e contrato principal só da mesma instituição', async ({ page }) => {
+  const calls = await mockSession(page, { importReply: { status: 409, body: { ok: false, error: 'Este contrato já está na carteira: mesma instituição, categoria, título e período. Abra o contrato existente em vez de registrá-lo de novo.', code: 'contract_duplicate' } } });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/finance/contracts.html');
+  await page.getByRole('button', { name: 'Registrar contrato existente' }).click();
+  const form = page.locator('#contract-import-form');
+  // O único contrato da mesma instituição aparece como principal possível.
+  await expect(form.getByLabel(/^Contrato principal/)).toContainText('Capital de giro carteira');
+  await form.getByLabel(/^Contrato principal/).selectOption(CONTRACT);
+  await form.getByLabel(/^Título/).fill('Capital de giro carteira');
+  await form.getByLabel(/^Início/).fill('2026-01-01');
+  await form.getByLabel(/^Fim/).fill('2027-12-31');
+  await page.getByRole('button', { name: 'Registrar contrato', exact: true }).click();
+  await expect(form.getByText(/já está na carteira/)).toBeVisible();
+  expect(calls.find((call) => call.path === 'contract-import')?.body.parent_contract_id).toBe(CONTRACT);
+  await expect(page.getByRole('button', { name: 'Registrar contrato', exact: true })).toBeEnabled();
+  await noHorizontalOverflow(page);
+});
