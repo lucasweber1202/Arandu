@@ -35,7 +35,7 @@ test('workflow: nenhuma falha mascarada', () => {
 });
 test('workflow: timeout no job e em cada fase; concorrência limitada', () => {
   assert.match(workflow, /timeout-minutes: \d+\n    env:/);
-  for (const id of ['preflight', 'images', 'up', 'smoke', 'seed', 'check', 'e2e_desktop', 'e2e_mobile', 'journey']) {
+  for (const id of ['preflight', 'images', 'up', 'smoke', 'seed', 'check', 'e2e_desktop', 'e2e_mobile', 'journey', 'adversarial']) {
     assert.match(workflow, new RegExp(`id: ${id}\\n        timeout-minutes: \\d+`), `fase ${id} sem timeout`);
   }
   assert.match(workflow, /concurrency:\n  group: arandu-demo-integration\n  cancel-in-progress: false/);

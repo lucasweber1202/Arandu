@@ -5,7 +5,7 @@
 # scripts/demo); este arquivo só ordena as fases, impõe limites e coleta
 # evidência. Usado por .github/workflows/demo-integration.yml e localmente:
 #
-#   bash scripts/ci-demo/run.sh preflight|images|up|smoke|seed|check|e2e <projeto>|journey|evidence|down
+#   bash scripts/ci-demo/run.sh preflight|images|up|smoke|seed|check|e2e <projeto>|journey|adversarial|evidence|down
 #
 # Nada aqui lê secret do GitHub nem aponta para Supabase hospedado: chaves,
 # senhas e certificados são gerados por execução em scripts/pilot-local/.state.
@@ -105,6 +105,11 @@ case "$phase" in
     local_env; fresh_app
     PILOT_REPORT="$out/journey.md" timeout 900 node "$root/scripts/pilot-local/journey.mjs"
     ;;
+  adversarial)
+    # Escreve na Demo efêmera (contratos, votos e aditivos sintéticos): roda por último.
+    local_env; fresh_app
+    ADVERSARIAL_REPORT="$out/adversarial.md" timeout 600 node "$here/adversarial.mjs"
+    ;;
   evidence)
     # Logs dos serviços (só as últimas linhas) e do app, sanitizados.
     for service in db auth rest storage; do
@@ -119,5 +124,5 @@ case "$phase" in
     left="$(docker ps -aq --filter label=com.docker.compose.project=arandu-pilot-local | wc -l)"
     echo "containers restantes do projeto: $left"; [ "$left" = 0 ]
     ;;
-  *) echo "uso: bash scripts/ci-demo/run.sh preflight|images|up|smoke|seed|check|e2e <projeto>|journey|evidence|down"; exit 2 ;;
+  *) echo "uso: bash scripts/ci-demo/run.sh preflight|images|up|smoke|seed|check|e2e <projeto>|journey|adversarial|evidence|down"; exit 2 ;;
 esac

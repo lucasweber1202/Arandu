@@ -20,7 +20,8 @@ const phases = [
   ['Sanidade do seed (releitura)', 'CHECK', last(read('seed-check.txt'), /\d+\/\d+ checagens OK\./)],
   ['E2E Chromium desktop', 'E2E_DESKTOP', playwright(read('e2e-desktop.txt'))],
   ['E2E Chromium mobile', 'E2E_MOBILE', playwright(read('e2e-mobile.txt'))],
-  ['Jornada real + ataques (Auth, RLS, RFQ, propostas, aprovação, provedor)', 'JOURNEY', last(read('journey-tail.txt'), /\d+ passos, \d+ ataques, \d+ falhas\./)]
+  ['Jornada real + ataques (Auth, RLS, RFQ, propostas, aprovação, provedor)', 'JOURNEY', last(read('journey-tail.txt'), /\d+ passos, \d+ ataques, \d+ falhas\./)],
+  ['Sondas adversariais (sessão, entre tenants, concorrência, ciclo de renovação)', 'ADVERSARIAL', last(read('adversarial.txt'), /\d+ sondas, .*SKIPPED\./)]
 ];
 const lines = ['## Integração efêmera da Demo canônica', '', `SHA testado: \`${process.env.HEAD_SHA || process.env.GITHUB_SHA || '?'}\``, '',
   '| Fase | Resultado | Evidência |', '| --- | --- | --- |',
@@ -30,5 +31,7 @@ if (images) lines.push('### Imagens', '', '```', images, '```', '');
 const resources = read('resources-final.txt').trim();
 if (resources) lines.push('### Recursos no fim da execução', '', '```', resources, '```', '');
 const seed = read('seed-check.txt').split('\n').filter((line) => /^\s+(OK|FAIL)\s/.test(line));
+const probes = read('adversarial.txt').split('\n').filter((line) => /^\| [A-Z]+-\d/.test(line));
+if (probes.length) lines.push('<details><summary>Sondas adversariais</summary>', '', '| ID | Sonda | Status | Evidência |', '| --- | --- | --- | --- |', ...probes, '</details>', '');
 if (seed.length) lines.push('<details><summary>Checagens de sanidade do seed</summary>', '', '```', ...seed, '```', '</details>', '');
 console.log(lines.join('\n'));

@@ -142,6 +142,12 @@ jobs:
         timeout-minutes: 16
         run: bash scripts/ci-demo/run.sh journey 2>&1 | tail -n 3 | tee "$CI_DEMO_REPORTS/journey-tail.txt"
 
+      # Escreve na Demo efêmera (contratos, aditivos, votos sintéticos): por último.
+      - name: Phase 5 — Adversarial probes (session, cross-tenant, concurrency, renewal cycle)
+        id: adversarial
+        timeout-minutes: 12
+        run: bash scripts/ci-demo/run.sh adversarial 2>&1 | tee "$CI_DEMO_REPORTS/adversarial.txt"
+
       - name: Collect sanitized evidence
         if: always()
         timeout-minutes: 3
@@ -160,6 +166,7 @@ jobs:
           E2E_DESKTOP: ${{ steps.e2e_desktop.outcome }}
           E2E_MOBILE: ${{ steps.e2e_mobile.outcome }}
           JOURNEY: ${{ steps.journey.outcome }}
+          ADVERSARIAL: ${{ steps.adversarial.outcome }}
         run: node scripts/ci-demo/summary.mjs >> "$GITHUB_STEP_SUMMARY"
 
       - name: Teardown (containers, volumes, keys)

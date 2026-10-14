@@ -47,6 +47,7 @@ ECR público e, se recusar por cota, o Docker Hub com o **mesmo digest**.
 | check | `run.sh check` | as mesmas checagens de novo, só leitura, com o app reiniciado |
 | e2e | `run.sh e2e demo-desktop` / `demo-mobile` | `playwright.demo.config.js` (`demo-baseline.spec.js`): tesouraria → RFQ → propostas → comparação → aprovação → decisão → contrato → renovação; CFO; portal do provedor sem concorrentes; Passport; pós-contrato |
 | journey | `run.sh journey` | `scripts/pilot-local/journey.mjs`: contas e login reais, allowlist, organizações, convites de membro e de provedor, RFQ, propostas com rascunho/versões, comentários, documentos no Storage, comparação, aprovação (com segregação), decisão, contrato e renovação, cron, e-mail em fila, console de operação com MFA, e dezenas de ataques de isolamento (RLS direto no PostgREST, Storage direto, provedor lendo concorrente, externo, anônimo) |
+| adversarial | `run.sh adversarial` | `scripts/ci-demo/adversarial.mjs`, depois do E2E e da jornada (escreve na Demo efêmera): cookie adulterado e forjado, sessão depois do logout, JWT de outro segredo e `alg: none`; provedor contra contratos, tarefas, versões, aprovações, decisões e documentos da compradora pela API, PostgREST e RPC direta (com conferência de que nada mudou no banco); viewer sem escrita; seis registros simultâneos do mesmo contrato, seis pedidos simultâneos de renovação, dois votos simultâneos; aditivo de prorrogação e novo ciclo de renovação. Sonda sem pré-condição é SKIPPED, nunca PASS |
 | evidence / down | `run.sh evidence` / `run.sh down` | logs sanitizados; containers, volumes, chaves e certificados apagados |
 
 Cobertura pedida → onde está:
@@ -91,6 +92,9 @@ Duração observada em ensaio: imagens ~3 min (sem cache), up ~1 min, smoke < 5 
 seed ~10 min, e2e ~2 min, jornada ~1 min.
 
 ## Limitações conhecidas
+
+- Depois do logout, o PostgREST ainda aceita o access token até expirar (R1 em
+  `docs/QA_ADVERSARIAL_2026-10-14.md`); a API do Arandu e o GoTrue recusam.
 
 - O limitador de tentativas de login do app é por processo fora da Vercel; cada
   fase reinicia o app pelo caminho oficial (`scripts/demo/local.sh app`), como um

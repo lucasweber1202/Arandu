@@ -158,3 +158,12 @@ são tratados pelos controles gerais do Arandu, não por esta vertical.
 | 91 | **RFQ duplicada após resultado desconhecido** (rede caiu na criação e a pessoa repete) | chave por intenção ligada ao conteúdo; recibo gravado na mesma transação da RFQ (`fin_request_receipts`); repetição devolve a RFQ registrada | `financial-request-receipts.sql`, `request-receipt-concurrency.sh` (6 envios → 1 RFQ), `finance-procurement.spec.js` |
 | 92 | **Fila de e-mail usada como canal de spam/phishing** (convites a contatos arbitrários com o nome da empresa no assunto) e **inanição** de outras organizações | tetos por organização e destinatário serializados por organização; claim em rodízio entre organizações; nome com link vira descrição neutra | `financial-followup-hardening.sql`, `email-fairness-concurrency.sh`, `test-email-outbox.mjs` |
 | 93 | **`X-Forwarded-For` forjado** contorna limite por IP fora da Vercel | política explícita (`lib/client-address.mjs`): Vercel só pela borda; proxy próprio só com `ARANDU_TRUSTED_PROXY_HOPS`; caso contrário só a conexão; IPv6 por /64 | `test-client-address.mjs`, `test-auth-api.mjs` |
+| 94 | **Contrato prorrogado sem alerta de renovação** — aditivo com novo fim deixava os marcos do ciclo anterior bloqueando o novo vencimento (perda silenciosa de prazo de renúncia/renovação) | marcos por ciclo (`fin_renewal_milestones.cycle_ends_on`, único por contrato+ciclo+marco); o aditivo recalcula status e próxima ação | `financial-renewal-cycles.sql`, `scripts/ci-demo/adversarial.mjs` (RENEW-1/2) |
+
+Risco residual medido em 14/10/2026 (`docs/QA_ADVERSARIAL_2026-10-14.md`, R1):
+depois do logout, o GoTrue recusa o access token (403 em `/auth/v1/user`) e a
+API do Arandu também (401), mas o PostgREST continua aceitando o mesmo token
+até ele expirar (até 1 h), porque valida só a assinatura do JWT. Explorar exige
+já ter o token em mãos (cookie HttpOnly roubado). Mitigação possível, não
+aplicada: conferir `session_id` do JWT contra `auth.sessions` nas policies.
+
