@@ -309,7 +309,7 @@ function writeRecord(backup, manifest, { mode, comparison, permissions, seconds 
   const record = {
     format_version: STORAGE_FORMAT_VERSION, verified_at: new Date().toISOString(), mode,
     target: 'loopback_disposable_supabase_storage', restore: mode === 'restore' ? 'RESTORED_ISOLATED' : 'NOT RESTORED (verify only)',
-    reconciliation: comparison.result, objects: comparison.objects, differences: comparison.differences,
+    reconciliation: comparison.result, reconciliation_version: comparison.version, objects: comparison.objects, differences: comparison.differences,
     index_sha256: manifest.index_sha256, files_sha256: digest(manifest.files), permissions, restore_seconds: seconds, conversion: 'BLOCKED'
   };
   const file = path.join(backup, `storage-restore-verification-${record.verified_at.replace(/[:.]/g, '-')}.json`);

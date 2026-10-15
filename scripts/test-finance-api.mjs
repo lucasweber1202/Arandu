@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { Readable } from 'node:stream';
-import { handleFinance } from '../lib/api/domains/finance.mjs';
+import { handleFinance, withRenewalWindow } from '../lib/api/domains/finance.mjs';
 import { UPSTREAM_MESSAGES } from '../lib/api/domains/finance-core.mjs';
 import { readFileSync } from 'node:fs';
 import { createDocumentStorage, downloadName, signedUrlTtl } from '../lib/finance/document-storage.mjs';
@@ -61,6 +61,42 @@ function reset(handler = () => []) {
 }
 
 const orgRow = (id, kind) => [{ id, legal_name: 'Demo', kind, country: 'BR' }];
+
+// Datas de contrato são DATE: a API usa calendário UTC, como seus jobs, sem
+// depender do fuso do processo ou da duração dos dias locais durante DST.
+{
+  const originalNow = Date.now;
+  const originalTimezone = process.env.TZ;
+  try {
+    for (const timezone of ['UTC', 'America/Sao_Paulo', 'America/New_York', 'Pacific/Kiritimati']) {
+      process.env.TZ = timezone;
+      for (const [now, endsOn, expected] of [
+        ['2026-10-15T00:00:00Z', '2027-01-08', 85],
+        ['2026-10-15T12:00:00Z', '2027-01-08', 85],
+        ['2026-10-15T23:59:59.999Z', '2027-01-08', 85],
+        ['2026-10-16T00:00:00Z', '2027-01-08', 84],
+        ['2026-10-15T23:59:59Z', '2026-10-15', 0],
+        ['2026-10-15T23:59:59Z', '2026-10-14', -1],
+        ['2026-12-31T23:59:59Z', '2027-01-01', 1],
+        ['2028-02-28T23:59:59Z', '2028-03-01', 2],
+        ['2026-03-08T23:30:00-04:00', '2026-03-10', 1],
+        ['2026-11-01T23:30:00-05:00', '2026-11-03', 1]
+      ]) {
+        Date.now = () => Date.parse(now);
+        const contract = { ends_on: endsOn, renewal_notice_days: 30 };
+        const result = withRenewalWindow(contract);
+        assert.equal(result.days_to_end, expected, `${timezone} ${now} → ${endsOn}`);
+        assert.deepEqual(contract, { ends_on: endsOn, renewal_notice_days: 30 });
+      }
+    }
+    assert.equal(withRenewalWindow({ ends_on: 'invalid' }).days_to_end, null);
+    assert.equal(withRenewalWindow({ ends_on: '2027-01-08', renewal_notice_days: 30 }).review_from, '2026-12-09');
+  } finally {
+    Date.now = originalNow;
+    if (originalTimezone === undefined) delete process.env.TZ;
+    else process.env.TZ = originalTimezone;
+  }
+}
 
 async function call(method, path, options = {}) {
   const res = response();
@@ -440,6 +476,48 @@ reset((entry) => {
   assert.equal(row.has_draft, false, 'sem rascunho salvo');
 }
 // Rascunho salvo e não enviado vira "Continuar" no portal; a leitura usa o token do provedor (RLS).
+// Cada versão enviada conserva suas próprias condições e revisão de origem.
+// Uma versão extra fora dos IDs solicitados jamais entra na resposta.
+for (const resource of ['assignments', 'proposals']) {
+  const snapshots = [
+    { proposal_id: PROPOSAL, version: 2, terms: { rate_month: 1.24, fees: 1500, guarantees: 'Aval' }, submitted_at: '2026-10-15T12:00:00Z', note: 'Revisão', rfq_revision: 3 },
+    { proposal_id: PROPOSAL, version: 1, terms: { rate_month: 1.29, fees: 2000, guarantees: 'Recebíveis' }, submitted_at: '2026-10-14T12:00:00Z', note: 'Inicial', rfq_revision: 2 },
+    { proposal_id: OTHER_ORG, version: 1, terms: { institution: 'Concorrente privado' }, submitted_at: '2026-10-15T12:00:00Z' }
+  ];
+  reset((entry) => {
+    if (entry.url.includes('fin_organizations')) return orgRow(PROVIDER_ORG, 'PROVIDER');
+    if (entry.url.includes('fin_proposal_versions')) return structuredClone(snapshots);
+    if (entry.url.includes('fin_proposals')) return [{ id: PROPOSAL, rfq_id: RFQ, product: 'credit', status: 'submitted', current_version: 2 }];
+    if (entry.url.includes('fin_rfqs')) return [{ id: RFQ, title: 'RFQ', revision: 4 }];
+    return [];
+  });
+  const res = await call('GET', resource, { url: `/api/finance/${resource}?organization_id=${PROVIDER_ORG}` });
+  const row = res.payload.rows[0];
+  assert.equal(row.history.length, 2);
+  for (const [index, snapshot] of snapshots.slice(0, 2).entries()) {
+    assert.deepEqual(row.history[index].terms, snapshot.terms, `${resource}: termos financeiros históricos perdidos`);
+    assert.equal(row.history[index].rfq_revision, snapshot.rfq_revision);
+    assert.equal(row.history[index].submitted_at, snapshot.submitted_at);
+    assert.equal(row.history[index].note, snapshot.note);
+    assert.equal(row.history[index].version, snapshot.version);
+  }
+  assert.deepEqual(row.terms, snapshots[0].terms, 'termos atuais não podem substituir o snapshot anterior');
+  assert.ok(!JSON.stringify(res.payload).includes('Concorrente privado'));
+  const versionsQuery = sent.find((entry) => entry.url.includes('fin_proposal_versions'));
+  assert.match(versionsQuery.url, new RegExp(`proposal_id=in.\\(${PROPOSAL}\\)`));
+  assert.match(versionsQuery.url, /rfq_revision/);
+  assert.ok(sent.every((entry) => entry.authorization === 'Bearer user-jwt' && entry.apikey === 'test-anon-key'), 'histórico usa JWT/RLS, nunca service role');
+
+  reset(() => []);
+  await rejects('GET', resource, { url: `/api/finance/${resource}?organization_id=${OTHER_ORG}` }, 403);
+  assert.equal(sent.length, 1, 'organização invisível não consulta propostas nem snapshots');
+
+  reset((entry) => entry.url.includes('fin_organizations') ? orgRow(PROVIDER_ORG, 'PROVIDER') : []);
+  const empty = await call('GET', resource, { url: `/api/finance/${resource}?organization_id=${PROVIDER_ORG}` });
+  assert.deepEqual(empty.payload.rows, []);
+  assert.ok(!sent.some((entry) => entry.url.includes('fin_proposal_versions')), 'sem propostas não lê snapshots');
+}
+
 reset((entry) => {
   if (entry.url.includes('fin_organizations')) return orgRow(PROVIDER_ORG, 'PROVIDER');
   if (entry.url.includes('fin_proposal_drafts')) return [{ proposal_id: PROPOSAL }];
