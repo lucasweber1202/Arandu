@@ -509,12 +509,11 @@ apply_file "$upgrade_db" "docs/supabase-financial-document-upload-authorization.
 apply_file "$upgrade_db" "tests/database/financial-document-upload-authorization.sql"
 node "$root_dir/tests/database/document-upload-authorization-race.mjs" "$(database_url "$upgrade_db")"
 apply_file "$upgrade_db" "docs/supabase-financial-implementation-task-labels.sql"
+apply_file "$upgrade_db" "tests/database/financial-implementation-task-labels-prepare.sql"
 if rejection="$(psql "$(database_url "$upgrade_db")" -X -v ON_ERROR_STOP=1 -f "$root_dir/docs/rollback/supabase-financial-implementation-task-labels.rollback.sql" 2>&1)"; then
   echo "Rollback de rótulos deveria recusar planos de implantação existentes" >&2; exit 1
 fi
 [[ "$rejection" == *"implementation data exists: use forward fix"* ]] || { echo "Rollback de rótulos falhou por motivo inesperado" >&2; exit 1; }
-apply_file "$upgrade_db" "docs/supabase-financial-implementation-task-labels.sql"
-apply_file "$upgrade_db" "tests/database/financial-implementation-task-labels-prepare.sql"
 apply_file "$upgrade_db" "docs/supabase-financial-implementation-task-labels.sql"
 apply_file "$upgrade_db" "tests/database/financial-implementation-task-labels.sql"
 apply_file "$upgrade_db" "docs/supabase-financial-implementation-task-labels.sql"
