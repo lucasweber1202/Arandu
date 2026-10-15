@@ -684,3 +684,18 @@ test('painel e contratos contam os mesmos dias e nunca mostram o código da cate
   // A página usa o calendário de quem lê, não o days_to_end arredondado da API.
   await expect(page.locator('.contract-card', { hasText: 'Banco Garantidor' }).locator('.contract-days')).toHaveText('vence em 300 dias');
 });
+
+for (const [status, warned] of [[503, true], [200, false]]) {
+  test(`sair: resposta ${status} do logout ${warned ? 'avisa que o encerramento não foi confirmado' : 'volta ao login sem aviso'}`, async ({ page }) => {
+    await mockSession(page);
+    await page.route('**/api/auth/logout', (route) => route.fulfill({ status, contentType: 'application/json',
+      body: JSON.stringify(status === 200 ? { ok: true, authenticated: false } : { ok: false, code: 'auth_logout_unconfirmed', error: 'A sessão local foi encerrada, mas não foi possível confirmar o encerramento das sessões no serviço de contas.' }) }));
+    await page.goto('/finance/dashboard.html');
+    await page.getByRole('button', { name: /^Conta de / }).click();
+    await page.getByRole('button', { name: 'Sair' }).click();
+    await page.waitForURL(/\/login\.html/);
+    if (warned) await expect(page.getByRole('alert')).toContainText('Não foi possível confirmar o encerramento da sua sessão em outros dispositivos');
+    else await expect(page.locator('#logout-unconfirmed')).toHaveCount(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+  });
+}

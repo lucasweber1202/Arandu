@@ -194,8 +194,12 @@ export function renderTopbar(ctx) {
     document.addEventListener('click', (event) => { if (!account.contains(event.target)) { panel.hidden = true; trigger.setAttribute('aria-expanded', 'false'); } });
     panel.addEventListener('keydown', (event) => { if (event.key === 'Escape') { panel.hidden = true; trigger.focus(); } });
     panel.querySelector('#logout')?.addEventListener('click', async () => {
-      try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' }); } catch { /* sai mesmo sem resposta */ }
-      location.assign('/login.html');
+      // Sair encerra a sessão em todos os dispositivos (escopo global no Auth).
+      // Sem confirmação do servidor (503 auth_logout_unconfirmed ou rede),
+      // a tela de login diz isso em vez de tratar a saída como concluída.
+      let confirmed = false;
+      try { confirmed = (await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' })).ok; } catch { confirmed = false; }
+      location.assign(confirmed ? '/login.html' : '/login.html?saida=nao-confirmada');
     });
     account.append(trigger, panel);
     actions.append(account);

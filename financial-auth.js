@@ -37,6 +37,16 @@ const ssoHint = document.querySelector('[data-sso-hint]');
 const showSso = (text) => { if (ssoHint) { ssoHint.hidden = false; ssoHint.textContent = text; } };
 const ssoError = new URLSearchParams(location.search).get('sso_error');
 if (ssoError) showSso(Object.hasOwn(SSO_MESSAGES, ssoError) ? SSO_MESSAGES[ssoError] : SSO_MESSAGES.broker_failed);
+// Logout sem confirmação do serviço de contas: o navegador pode já ter saído,
+// mas outras sessões talvez continuem ativas. Nunca apresentar como sucesso.
+if (loginForm && new URLSearchParams(location.search).get('saida') === 'nao-confirmada') {
+  const notice = document.createElement('p');
+  notice.className = 'auth-notice';
+  notice.setAttribute('role', 'alert');
+  notice.id = 'logout-unconfirmed';
+  notice.textContent = 'Não foi possível confirmar o encerramento da sua sessão em outros dispositivos. Entre de novo e use "Sair" outra vez; se o aviso continuar, peça ao administrador da organização para encerrar as sessões da sua conta.';
+  loginForm.before(notice);
+}
 document.querySelector('[data-sso-start]')?.addEventListener('click', async () => {
   const email = loginForm?.querySelector('input[name="email"]');
   if (!email?.value || !email.checkValidity()) { showSso('Informe seu e-mail corporativo para entrar com SSO.'); email?.focus(); return; }
