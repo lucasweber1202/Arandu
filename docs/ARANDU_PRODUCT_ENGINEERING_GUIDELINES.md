@@ -1,11 +1,13 @@
 # Arandu — Diretrizes Mestras de Produto, Engenharia e Evolução
 
-**Versão 3.3 — 11 de outubro de 2026**
-**Baseline técnica de referência desta revisão:** `main` @ `4271cca00c941c2275a452d35c092d8a4a79255c`
+**Versão 3.4 — 14 de outubro de 2026**
+**Baseline técnica de referência desta revisão:** `main` @ `5581b8802f4b63dab1c53e18ef3715fbea06fd8f`
 **Status:** constituição normativa de produto e engenharia
 **Escopo:** tese de produto, boundaries, arquitetura funcional, maturidade, UX, engenharia, dados, segurança, IA, integrações, operação enterprise e critérios de evolução
 
 > **Propósito.** Esta guideline define o que o Arandu é, o que não é, como deve evoluir e quais garantias não podem ser sacrificadas. Ela governa pessoas e agentes de IA que alterem o produto.
+>
+> **Mudança de garantias da v3.4.** Novo capítulo 36: revogação de sessões delimitada por superfície, integridade de decisões versionadas sob concorrência, recovery completo (banco, Auth, Storage e configuração) e critérios executáveis para a passagem de M2 para M3/M4/M5. Preserva os limites da v3.3; estados e evidências continuam na Implementation Matrix.
 >
 > **Mudança de produto da v3.3.** Novo capítulo 35: posicionamento competitivo, personas, diferenciação, estratégia de design, Design Constitution normativa (`docs/ARANDU_DESIGN_CONSTITUTION.md`), anti-vibecode como critério objetivo, arquitetura de informação em cinco áreas, workspace orientado a tarefas, primeiro valor, experiência bilateral, claims comerciais, validação com usuários, métricas de experiência, QA visual, benchmark contínuo, supervisão humana da IA, prontidão comercial e integração marketing/produto/engenharia. Nenhuma garantia da v3.2 foi relaxada.
 >
@@ -1810,6 +1812,53 @@ Cada melhoria é avaliada por clareza, valor financeiro operacional, recorrênci
 ## 35.20 Integração entre marketing, produto e engenharia
 
 Site, produto e documentação contam a mesma história: o site só promete o que a matriz registra, as capturas vêm do produto real e a terminologia é a mesma do menu. Mudança de posicionamento atualiza esta guideline, a matriz e o site na mesma rodada.
+
+---
+
+# 36. Garantias operacionais, sessões, decisões e passagem de M2 para M3 (v3.4)
+
+Este capítulo complementa os capítulos 1–35 com critérios normativos derivados da validação integrada e das revisões de segurança de outubro de 2026. Não altera a tese B2B, os limites regulatórios, o direito de decisão do cliente, os estados de maturidade ou a topologia de dois ambientes permanentes. A Implementation Matrix continua sendo o registro vivo dos estados e das evidências; nenhuma PR ou incidente específico equivale a validação hospedada.
+
+## 36.1 Contratos de segurança por superfície
+
+- A promessa de revogação de sessão DEVE declarar exatamente em quais superfícies é efetiva: API própria, PostgREST/Data API, Auth, Storage, Realtime, URLs assinadas e integrações. Um controle de pré-requisição do PostgREST NÃO DEVE ser descrito como proteção automática dos demais serviços.
+- Rotas autenticadas que leem ou escrevem dados financeiros DEVEM verificar permissões no servidor e isolamento por organização/entidade; RLS permanece defesa independente quando houver acesso ao banco. Roles privilegiadas, anonymous access, múltiplas sessões e logout local/global DEVEM ter comportamentos expressos e testes negativos.
+- Mudança de revogação de sessão baseada em sessão armazenada DEVE provar, em ambiente descartável, token vigente, token encerrado, outra sessão ainda ativa, tentativa de escrita revogada, acesso direto à Data API e regressões no service role. Claims de JWT e configurações do PostgREST não podem ser tomadas como prova de instalação: exigir probe pós-migration e teste HTTP direto.
+- Mudanças em auth.sessions, hooks e políticas gerenciadas do Supabase DEVEM considerar permissões, owner, search_path, compatibilidade e configurações de projetos gerenciados. A configuração real do ambiente hospedado continua não comprovada até doctor, probe e jornada no release implantado. Custos de autorização DEVEM ser medidos com consultas representativas, incluindo latência de cauda; não basta citar mediana.
+- Storage DEVE ser validado de forma autônoma: políticas de bucket, binários, caminhos, URLs assinadas e acesso do provedor. A proteção de uma API não comprova revogação de links já emitidos ou de outras superfícies.
+
+## 36.2 Integridade de decisão e concorrência no ciclo financeiro
+
+- Toda decisão material sobre proposta DEVE registrar a identidade e versão imutável das condições efetivamente apresentadas à pessoa que decide; a versão informada pelo cliente DEVE ser conferida no servidor e no banco, não aceita como verdade por si só.
+- Se a proposta mudou, a decisão DEVE falhar sem persistência parcial e informar o conflito de modo recuperável. A UI DEVE exibir as condições atualizadas antes de permitir nova confirmação, sem automatizar uma escolha diferente.
+- Operações concorrentes de proposta, aprovação, decisão, contrato e renovação DEVEM possuir política explícita de locks/versionamento, idempotência e ordem estável de aquisição. Se houver disputa, erro transacional não deve vazar stack ou ser anunciado como sucesso.
+- Correções de concorrência DEVEM ser sustentadas por interleavings determinísticos em sessões independentes do PostgreSQL, não somente por clique duplo, espera arbitrária ou retry. Invariantes testadas incluem versão, estado, decisão humana, eventos, histórico, RLS e ausência de escritas parciais.
+- Mudanças de RPC ou contrato de API DEVEM definir ordem de rollout de schema e aplicação, compatibilidade transitória e rollback/forward-fix. Reverter código não reverte dados, nem uma migration de forma automática.
+
+## 36.3 Recovery completo e demonstrável
+
+- Um backup PostgreSQL, ainda que criptografado e restaurado, NÃO DEVE ser declarado backup completo do ambiente quando faltarem binários de Storage, configuração externa de Auth/OAuth, chaves relevantes, roles, extensões ou demais dependências identificadas no inventário. Metadados de Storage e conteúdo binário são itens distintos.
+- Antes de converter Pilot ou Legacy, DEVE existir inventário de public/Auth/Storage e configuração, classificação/minimização de dados, dono responsável, decisão sobre dados de cliente e PII, destino privado durável e prova do mesmo conjunto preservado. Dados reais NÃO DEVEM ser reutilizados na Demo.
+- Toda preservação real DEVE produzir manifesto, hashes, criptografia, retenção e cadeia de custódia, com identidade da origem e SHA do executor. O restore DEVE usar o MESMO export, em destino isolado, com reconciliação de schema, conteúdo autorizado, ACL/RLS, Auth, referências de Storage e binários quando aplicável. Teste sintético e verificação de arquivo por hash não substituem restore de um backup real.
+- O executor de recovery NÃO PRECISA ser um runner próprio por definição: GitHub-hosted com destino privado durável aprovado, ou executor confiável com armazenamento persistente, são alternativas que DEVEM ser comparadas em custo, autorização, durabilidade, transferência e operação. Runner efêmero nunca é armazenamento único. Escolha de fornecedor pago exige aprovação.
+- Se o exportador não suportar arquivos de Storage, tamanho dos objetos, configuração essencial ou restore compatível com Supabase gerenciado, a limitação DEVE bloquear qualquer claim de preservação completa e o cutover que dependa dela. Não resolver esse problema apagando objetos, resetando o banco ou desativando checagens.
+- Operação real de export, restore, descarte, mudança de configuração hospedada e cutover exige autorização explícita, identidade do alvo e credenciais fora do repositório/chat. Preparação sintética e probes read-only podem avançar sem essas permissões.
+
+## 36.4 Passagem progressiva de M2 para M3, M4 e M5
+
+- M2 comprovado em runner efêmero autoriza afirmar integração em CI no SHA verificado; NÃO autoriza M3, mesmo com Auth, RLS, Storage, seed e E2E reais no runner.
+- O primeiro destino operacional é a Demo canônica hospedada, no projeto permanente de Demo, com banco/Auth/Storage próprios, exclusivamente dados sintéticos e workspaces de visitantes isolados. O sandbox público legado só deve ser substituído quando houver cutover e validação real seguros. Pilot continua etapa de validação, não terceiro ambiente permanente.
+- Antes de liberar M3, exigir recovery e classificação da origem quando aplicável, migrations e ajustes de configuração autorizados, identidade de ambiente/SHA/schema, verificação das funções e hooks efetivamente instalados, readiness/doctor/canário, jornadas do comprador e provedor, isolamento entre visitantes e observabilidade. Estado READY da Vercel, HTTP 200, CI verde ou build local são provas insuficientes.
+- M4 exige ensaio real de release com runbook, resposta a falhas, fluxos críticos e, quando aplicável, restore/rollback ou forward-fix verificáveis; M5 exige configuração Production independente, operação e suporte responsáveis, disaster recovery proporcional, release aprovado e evidências hospedadas. Não promover por contornar guardas ou alterar artificialmente ACTIVE_SUPABASE_ASSIGNMENTS.
+- A sequência de entrega DEVERIA ser: estabilizar CI → fechar lacunas de recovery e Auth/Storage → realizar preservação e restore autorizados → converter e validar a Demo canônica hospedada → ensaiar M4 → preparar e aprovar Production. Expansão de categorias permanece subordinada a esses gates.
+
+## 36.5 Evidência, eficiência de CI e comunicação
+
+- Testes pesados de banco/Auth/Storage/E2E DEVERIAM rodar em Linux efêmero com dados sintéticos e teardown fail-closed, sem depender do computador pessoal nem consumir serviços hospedados. Reutilizar suites existentes e ampliar somente riscos não cobertos; não usar retries para esconder defeitos, nem contar skipped como PASS.
+- Repetições independentes em SHA imutável comprovam estabilidade daquele commit, não do código futuro; mudanças no harness ou no produto demandam nova evidência proporcional. A entrada de um job custoso como gate obrigatório requer avaliação de frequência, duração, confiabilidade, custo e impacto na fila, sem afrouxar checks existentes.
+- Evidências DEVEM distinguir IMPLEMENTED, LOCAL_VALIDATED, CI_VALIDATED, HOSTED_VALIDATED, BLOCKED e NOT_RUN, e vincular SHA, ambiente, datasource, schema, run ID e hora. A Implementation Matrix, o relatório operacional e os claims comerciais devem permanecer coerentes.
+- Agentes de IA DEVEM avançar autonomamente em código, testes sintéticos, PRs e preparação, mas interromper antes de alterações hospedadas sensíveis ou operações destrutivas sem aprovação. Ao relatar bloqueio, indicar a menor intervenção indispensável e continuar frentes independentes.
+- A guideline é normativa, não backlog nem inventário de PRs: números de testes, status de projetos e impedimentos transitórios DEVEM ficar nos documentos operacionais e na Implementation Matrix.
 
 ---
 
