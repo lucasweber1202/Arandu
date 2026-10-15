@@ -6,6 +6,11 @@ const root = process.cwd();
 const workflowDir = path.join(root, '.github/workflows');
 const issues = [];
 const workflows = fs.readdirSync(workflowDir).filter((file) => /\.ya?ml$/i.test(file)).sort();
+// Um só runtime: a versão principal de engines.node vale para todo workflow e para o .nvmrc.
+const engineMajor = String(JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).engines?.node || '').match(/^(\d+)/)?.[1];
+if (!engineMajor) issues.push('package.json: engines.node sem versão principal fixa.');
+const nvmrc = fs.existsSync(path.join(root, '.nvmrc')) ? fs.readFileSync(path.join(root, '.nvmrc'), 'utf8').trim().replace(/^v/, '') : '';
+if (engineMajor && nvmrc.split('.')[0] !== engineMajor) issues.push(`.nvmrc (${nvmrc || 'ausente'}) diverge de engines.node ${engineMajor}.x.`);
 const pinnedAction = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_-]+)*@[a-f0-9]{40}(?:\s+#\s+.+)?$/;
 
 for (const file of workflows) {
@@ -20,6 +25,11 @@ for (const file of workflows) {
     const match = line.match(/^\s*-?\s*uses:\s*(.+?)\s*$/);
     if (!match || match[1].startsWith('./')) continue;
     if (!pinnedAction.test(match[1])) issues.push(`${relative}:${index + 1}: Action deve estar fixada por SHA completo.`);
+  }
+
+  for (const [index, line] of source.split(/\r?\n/).entries()) {
+    const version = line.match(/^\s*node-version:\s*['"]?([^'"\s#]+)/)?.[1];
+    if (version && engineMajor && version.split('.')[0] !== engineMajor) issues.push(`${relative}:${index + 1}: node-version ${version} diverge de engines.node ${engineMajor}.x.`);
   }
 
   const lines = source.split(/\r?\n/);
