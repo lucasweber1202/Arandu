@@ -149,6 +149,62 @@ exit 0
     for (const line of fs.readFileSync(capture, 'utf8').trim().split('\n')) assert(line.includes('arandu-pilot-local'), `operação não limitada ao projeto: ${line}`);
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
+test('restore drill invalida PASS se cleanup falhar e distingue retenção intencional', () => {
+  const script = fs.readFileSync('scripts/pilot-restore-drill.sh', 'utf8');
+  const cleanup = script.slice(script.indexOf('cleanup() {'), script.indexOf('source_url='));
+  assert(script.indexOf('trap cleanup EXIT') < script.indexOf('tools="$(mktemp'), 'trap deve preceder wrappers e preflight');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ci-demo-drill-cleanup-'));
+  const harness = [
+    'set -euo pipefail',
+    'report="$FIXTURE/report.json"; work="$FIXTURE/work"; tools="$FIXTURE/tools"',
+    'mkdir -p "$work" "$tools"',
+    'keep_backup=0; run_id=fixture-run; created_containers=(unique-drill-fixture)',
+    'touch "$FIXTURE/container"',
+    'if [ "$MODE" = preflight-failed ]; then created_containers=(); fi',
+    'rm() { if [ "$MODE" = tools-error ] && [ "$*" = "-rf $tools" ]; then return 9; fi; command rm "$@"; }',
+    'docker() {',
+    '  case "$*" in',
+    '    "ps -aq --filter name=^/unique-drill-fixture$ --filter label=arandu.restore-drill=fixture-run")',
+    '      [ "$MODE" != query-error ] || return 8',
+    '      if [ "$MODE" != foreign ] && [ -f "$FIXTURE/container" ]; then echo fixture-id; fi ;;',
+    '    "rm -f fixture-id")',
+    '      [ "$MODE" != remove-error ] || return 7',
+    '      if [ "$MODE" != residual ]; then rm -f "$FIXTURE/container"; fi ;;',
+    '    *) echo "unexpected Docker command" >&2; return 99 ;;',
+    '  esac',
+    '}',
+    cleanup,
+    `printf '%s' '{"result":"pending_cleanup"}' > "$report"`,
+    'exit "$BODY_STATUS"'
+  ].join('\n');
+  try {
+    for (const mode of ['remove-error', 'query-error', 'residual', 'success', 'keep', 'body-failed', 'both-failed', 'tools-error', 'foreign', 'preflight-failed']) {
+      const fixture = path.join(dir, mode); fs.mkdirSync(fixture);
+      const failedBody = ['body-failed', 'both-failed', 'preflight-failed'].includes(mode);
+      const failedCleanup = ['remove-error', 'query-error', 'residual', 'both-failed', 'tools-error'].includes(mode);
+      const r = spawnSync('bash', ['-c', harness], { encoding: 'utf8', timeout: 5000, env: {
+        PATH: process.env.PATH, FIXTURE: fixture, MODE: mode === 'both-failed' ? 'remove-error' : mode,
+        BODY_STATUS: failedBody ? '23' : '0', PILOT_DRILL_KEEP: mode === 'keep' ? '1' : '0'
+      } });
+      assert.equal(r.error, undefined); assert.equal(r.signal, null);
+      assert.equal(r.status, failedBody ? 23 : failedCleanup ? 1 : 0, mode + r.stderr);
+      const report = path.join(fixture, 'report.json');
+      if (failedCleanup) {
+        assert(!fs.existsSync(report), mode + ': PASS residual');
+        assert(fs.existsSync(path.join(fixture, 'tools')) && fs.existsSync(path.join(fixture, 'work')), mode + ': estado perdido');
+      } else {
+        if (failedBody) assert(!fs.existsSync(report), 'erro do corpo deixou relatório');
+        else {
+          const result = JSON.parse(fs.readFileSync(report));
+          assert.equal(result.cleanup, mode === 'keep' ? 'retained' : 'removed');
+          assert.equal(result.result, 'passed');
+        }
+        assert.equal(fs.existsSync(path.join(fixture, 'container')), ['keep', 'foreign', 'preflight-failed'].includes(mode));
+        assert.equal(fs.existsSync(path.join(fixture, 'work')), mode === 'keep');
+      }
+    }
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
 test('fase desconhecida do harness é recusada (código 2)', () => {
   const r = spawnSync('bash', ['scripts/ci-demo/run.sh', 'fase-inexistente'], { encoding: 'utf8', env: { ...process.env, CI_DEMO_REPORTS: os.tmpdir() } });
   assert.equal(r.status, 2);
