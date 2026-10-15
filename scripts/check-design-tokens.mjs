@@ -16,6 +16,13 @@ for (const alias of ['--navy:var(--ink)', '--teal:var(--petrol)']) assert.ok(pub
 // Cor de marca antiga (índigo genérico) não volta às superfícies principais.
 const surfaces = [['finance/style.css', app], ['financial-public.css', pub], ...readdirSync('.').filter((f) => f.endsWith('.html')).map((f) => [f, readFileSync(f, 'utf8')])];
 for (const [file, text] of surfaces) assert.doesNotMatch(text, /#3547c8|#2a39a6|#2e3db0|rgba\(53,71,200/i, `${file}: índigo antigo fora dos tokens`);
+// Resíduos do índigo/lavanda antigo em superfícies de conteúdo (cartões de
+// próxima ação, seleção, avisos não lidos) e gradiente decorativo (§2).
+assert.doesNotMatch(app, /#(f3f5ff|d7dcf8|fafbff|f8f9ff|f1f3fd|f3f7ff|dbe6fb|c9d0f5)\b/i, 'finance/style.css: lavanda antiga fora dos tokens');
+// Gradiente só onde é função: brilho do carregamento, listras da janela de
+// renovação e o esmaecer da barra fixa de envio da proposta.
+const gradients = app.split('\n').filter((line) => /gradient\(/.test(line)).map((line) => line.match(/^\s*([^{]+)\{/)?.[1]?.trim());
+assert.deepEqual(gradients.filter((selector) => !['.skeleton-line', '.life-window', '.proposal-bar'].includes(selector)), [], 'gradiente decorativo fora da lista funcional');
 // Monograma único (app, casca estática, site e favicon).
 const mark = 'M9.5 23 16 9.5 22.5 23';
 for (const file of ['favicon.svg', 'index.html', 'login.html', 'scripts/generate-finance-pages.mjs', 'finance/src/shell.js']) assert.ok(readFileSync(file, 'utf8').includes(mark), `${file}: monograma ausente`);

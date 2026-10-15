@@ -172,7 +172,11 @@ export async function dashboard(ctx) {
       ]),
       pill(RFQ_STATUS[rfq.status], { size: 'sm' }),
       progress((rfq.proposals || []).length, invited || (rfq.proposals || []).length, { label: `${(rfq.proposals || []).length} de ${invited} responderam` }),
-      el('span', { class: `process-deadline${daysUntil(rfq.response_deadline) !== null && daysUntil(rfq.response_deadline) <= 2 ? ' urgent' : ''}`, text: rfq.response_deadline ? relativeDays(rfq.response_deadline) : 'sem prazo' })
+      // Prazo de resposta só é urgência enquanto a coleta está aberta; em
+      // avaliação, "há 3 dias" em vermelho sugeria atraso que não existe.
+      rfq.status === 'comparing'
+        ? el('span', { class: 'process-deadline', text: 'coleta encerrada' })
+        : el('span', { class: `process-deadline${daysUntil(rfq.response_deadline) !== null && daysUntil(rfq.response_deadline) <= 2 ? ' urgent' : ''}`, text: rfq.response_deadline ? relativeDays(rfq.response_deadline) : 'sem prazo' })
     ]);
   }));
   const pipelineCard = card({ title: 'Concorrências em andamento', subtitle: 'Da abertura à avaliação, com prazo e respostas.',
@@ -189,9 +193,11 @@ export async function dashboard(ctx) {
       el('span', { class: `mini-icon ${inWindow ? 'tone-warning' : 'tone-neutral'}` }, icon(inWindow ? 'repeat' : 'calendar', { size: 14 })),
       el('div', { class: 'mini-main' }, [
         el('a', { class: 'mini-title stretched', href: ctx.href(`/finance/contracts.html#contract-${contract.id}`), text: contract.provider_name }),
-        el('span', { class: 'mini-meta', text: `${productLabel(contract.product, { short: true })} · ${stage.stage === 'past_notice' ? 'aviso prévio vencido' : inWindow ? `decidir até ${formatDate(stage.deadline, { withYear: false })}` : `janela abre ${formatDate(stage.opensAt, { withYear: false })}`}` })
+        el('span', { class: 'mini-meta', text: `${productLabel(contract.product, { short: true })} · ${stage.stage === 'past_notice' ? 'aviso prévio vencido' : inWindow ? `decidir até ${formatDate(stage.deadline, { withYear: 'auto' })}` : `janela abre ${formatDate(stage.opensAt, { withYear: 'auto' })}`}` })
       ]),
-      el('span', { class: `mini-side${inWindow ? ' warn' : ''}`, text: days === null ? '—' : days === 0 ? 'hoje' : days === 1 ? '1 dia' : days < 0 ? 'vencido' : `${days} dias` })
+      // Mesma conta e mesmo texto da página Contratos ("vence em N dias"): um
+      // número solto ao lado de "decidir até" lia como prazo da decisão.
+      el('span', { class: `mini-side${inWindow ? ' warn' : ''}`, text: days === null ? '—' : days === 0 ? 'vence hoje' : days === 1 ? 'vence amanhã' : days < 0 ? 'vencido' : `vence em ${days} dias` })
     ]);
   }));
   const contractsCard = card({ title: 'Contratos e renovações', actions: [linkButton('Contratos', ctx.href('/finance/contracts.html'), { variant: 'ghost', size: 'sm', iconName: 'arrowRight' })],
@@ -254,7 +260,9 @@ export async function dashboard(ctx) {
   // carregada sob demanda para não pesar no bundle do Painel.
   const valueCard = ctx.mode === 'demo' ? null : await import('./executive.js').then((m) => m.executiveSection(ctx, entities)).catch(() => null);
   root.append(attention, summary, el('div', { class: 'dash-grid' }, [
-    el('div', { class: 'dash-main' }, [entityCard, valueCard, pipelineCard, activityCard].filter(Boolean)),
+    // Trabalho antes de painel (Constitution §1.3): processos em andamento vêm
+    // antes dos indicadores de portfólio.
+    el('div', { class: 'dash-main' }, [entityCard, pipelineCard, valueCard, activityCard].filter(Boolean)),
     el('div', { class: 'dash-side' }, [contractsCard, tasksCard])
   ]));
   if (!rfqs.length) root.prepend(firstUse(ctx));

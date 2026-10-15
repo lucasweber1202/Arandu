@@ -592,3 +592,95 @@ test('primeiros passos levam a registrar um contrato existente, com o formulári
   await page.goto('/finance/contracts.html?acao=%22%5D,body');
   await expect(page.getByRole('dialog')).toHaveCount(0);
 });
+
+test('comparação: condição alterada na versão atual mostra o valor anterior e a cobertura de cada proposta', async ({ page }) => {
+  const data = overview();
+  const [first] = data.rfqs[0].proposals;
+  first.version = 2;
+  first.previous_version = { version: 1, submitted_at: '2026-08-01T10:00:00Z', terms: { ...first.terms, interest_rate_month: 2.5 } };
+  await mockSession(page, { data });
+  await page.goto(`/finance/rfq.html?id=${RFQ}`);
+  await page.getByRole('tab', { name: 'Comparação' }).click();
+  const wide = page.locator('.comparison-wide');
+  const surface = await wide.isVisible() ? wide : page.locator('.compare-mobile');
+  // A mudança aparece sem precisar do filtro "Alterações de versão".
+  await expect(surface.locator('[data-condition="interest_rate_month"]').first()).toContainText('Alterado na v2 · antes: 2,5%');
+  await expect(surface.locator('[data-condition="term_months"]').first()).not.toContainText('Alterado');
+  await expect(page.locator('.comparison')).toContainText('condições comparáveis informadas');
+  if (await wide.isVisible()) await expect(wide.locator('thead')).toContainText('1 condição mudou desde a v1');
+  // A marca é informação, não destaque de "melhor": nunca usa a classe de extremo.
+  await expect(surface.locator('.changed-mark')).not.toHaveCount(0);
+  // Consulta da versão anterior não carrega a marca de alteração.
+  await page.getByLabel('Versão de Banco Um').selectOption('previous');
+  await expect(surface.locator('[data-condition="interest_rate_month"]').first()).not.toContainText('Alterado na v2');
+  // Recorte técnico fica sob demanda, não na primeira leitura.
+  await expect(page.getByText('Recorte: até 500 propostas')).toBeHidden();
+  await page.getByText('Como ler esta comparação').click();
+  await expect(page.getByText(/Recorte: até 500 propostas/)).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+});
+
+test('decisão com versão alterada pelo provedor: nada é registrado, a mudança aparece e exige confirmação', async ({ page }) => {
+  const data = overview();
+  await mockSession(page, { data });
+  // Depois da recusa, a próxima leitura traz a versão 2 do Banco Um.
+  let overviews = 0;
+  const posts = [];
+  await page.route('**/api/finance/overview**', (route) => {
+    overviews += 1;
+    const next = overview();
+    if (posts.length) {
+      const proposal = next.rfqs[0].proposals[0];
+      proposal.previous_version = { version: 1, submitted_at: '2026-09-10T10:00:00Z', terms: { ...proposal.terms } };
+      proposal.version = 2;
+      proposal.terms = { ...proposal.terms, interest_rate_month: 1.9 };
+    }
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(next) });
+  });
+  await page.route('**/api/finance/decisions', (route) => {
+    if (route.request().method() !== 'POST') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, rows: [] }) });
+    posts.push(route.request().postDataJSON());
+    if (posts.length === 1) return route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ ok: false, code: 'proposal_version_changed', error: 'A instituição enviou uma versão nova desta proposta depois que você abriu a página. Nada foi registrado: confira as condições atualizadas e decida de novo.' }) });
+    return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ ok: true, id: 'd1' }) });
+  });
+  await page.goto(`/finance/rfq.html?id=${RFQ}#decisao`);
+  await page.getByRole('tab', { name: 'Decisão' }).click();
+  await page.getByRole('radio', { name: /Banco Um/ }).check();
+  await page.getByRole('button', { name: 'Registrar decisão' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Registrar decisão' }).click();
+  await expect.poll(() => overviews).toBeGreaterThan(1);
+  await page.getByRole('tab', { name: 'Decisão' }).click();
+  const conflict = page.locator('#decision-conflict');
+  await expect(conflict).toContainText('mudou para a versão 2');
+  await expect(conflict).toContainText('Nada foi registrado');
+  await expect(conflict).toContainText('Taxa (% a.m.): 1,4% → 1,9%');
+  await expect(page.getByRole('radio', { name: /Banco Um/ })).toBeChecked();
+  // Sem confirmar a revisão, a nova tentativa não chega ao servidor.
+  await page.getByRole('button', { name: 'Registrar decisão' }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  expect(posts).toHaveLength(1);
+  await page.getByLabel('Revisei as condições da versão 2 e quero seguir com a decisão').check();
+  await page.getByRole('button', { name: 'Registrar decisão' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Registrar decisão' }).click();
+  await expect.poll(() => posts.length).toBe(2);
+  expect(posts[0].expected_version).toBe(1);
+  expect(posts[1]).toMatchObject({ proposal_id: 'p1', expected_version: 2 });
+});
+
+test('painel e contratos contam os mesmos dias e nunca mostram o código da categoria', async ({ page }) => {
+  const day = (offset) => { const d = new Date(); d.setDate(d.getDate() + offset); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  const data = overview({ contracts: [{ id: '00000000-0000-4000-8000-0000000000c1', organization_id: ORG, provider_id: 'x1', provider_name: 'Banco Garantidor', product: 'guarantee', status: 'active',
+    starts_on: day(-60), ends_on: day(300), renewal_notice_days: 120, review_from: day(180), days_to_end: 299, current_version: 1, currency: 'BRL', legal_entity_id: null }] });
+  await mockSession(page, { data });
+  await page.goto('/finance/dashboard.html');
+  const card = page.locator('.mini-row', { hasText: 'Banco Garantidor' });
+  await expect(card).toContainText('Garantia');
+  await expect(card).toContainText('vence em 300 dias');
+  await expect(page.locator('#view')).not.toContainText('guarantee');
+  // Concorrência em avaliação: o prazo de resposta já passou de propósito e não é urgência.
+  await expect(page.locator('.process-row', { hasText: 'Crédito expansão' })).toContainText('coleta encerrada');
+  await expect(page.locator('.process-row .process-deadline.urgent')).toHaveCount(0);
+  await page.goto('/finance/contracts.html');
+  // A página usa o calendário de quem lê, não o days_to_end arredondado da API.
+  await expect(page.locator('.contract-card', { hasText: 'Banco Garantidor' }).locator('.contract-days')).toHaveText('vence em 300 dias');
+});

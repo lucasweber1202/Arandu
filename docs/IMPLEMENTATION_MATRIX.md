@@ -1,5 +1,19 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 15/10/2026 — Clareza de produto: comparação, decisão, contratos e Painel (lote UX)
+
+Base: `main` @ `57afa79` (#195). Detalhe, antes/depois e dependências de backend em
+`docs/evidence/claude-product-2026-10-15.md`. Só interface (`finance/**`), testes
+E2E e o checador de design; nenhuma API, SQL, migration, workflow ou ambiente
+hospedado alterado.
+
+| Item | Estado | Evidência | Limite |
+| --- | --- | --- | --- |
+| D33-10 — comparação mostra a condição alterada na versão atual (valor anterior na célula) e a cobertura por proposta | M1 + local | E2E `comparação: condição alterada…` (falha no código anterior); Demo local: Atlas Bank v2 com 5 condições marcadas, desktop e 390 px | Firefox/WebKit NOT RUN localmente; M2 só com os quatro gates no HEAD da PR |
+| §36.2 na interface — conflito de versão na decisão mostra o que mudou e exige confirmação antes de nova tentativa | M1 + local | E2E `decisão com versão alterada pelo provedor…` (409 `proposal_version_changed`; segunda tentativa bloqueada sem confirmação; `expected_version` 1 → 2) | a regra de servidor segue a de `financial-decision-integrity-1` |
+| Painel × Contratos com a mesma contagem de dias e categoria sem código interno | M1 + local | E2E `painel e contratos contam os mesmos dias…`; cartão de contrato reescrito com `days_to_end` errado de propósito | `days_to_end` da API segue arredondando por instante (dependência registrada, P3) |
+| Constitution §2 aplicada: sem gradiente decorativo nem lavanda fora dos tokens | M1 + local | `check:design` recusa gradiente fora da lista funcional e as cores antigas (mutação negativa → FAIL) | — |
+
 ## 15/10/2026 — Recovery completo com binários do Storage (Stage 0.5, PR B)
 
 Base: `main` @ `e0116af` (#193). Nenhum banco, Storage, segredo ou projeto hospedado acessado.

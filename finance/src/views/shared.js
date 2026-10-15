@@ -84,13 +84,17 @@ export function comparisonMatrix(rfq, proposals, { currentRevision = rfq.revisio
   const historical = new Set();
   wrap.append(el('p', { class: 'notice-line', id: 'comparison-notice', text: data.notice }));
   if (data.context_notices.length) wrap.append(el('details', { class: 'callout callout-warning comparison-context', open: true }, [el('summary', { text: 'Condições que exigem revisão de comparabilidade' }), el('ul', {}, data.context_notices.map(text => el('li', { text }))) ]));
-  wrap.append(el('p', { class: 'muted small', text: 'Recorte: até 500 propostas submetidas não retiradas; histórico carregado de até 2.000 versões. Ausência de evidência não significa verificação. Valores de versões anteriores são consulta histórica; os pesos usam a versão atual.' }));
+  // Limites técnicos do recorte ficam a um clique, não na primeira leitura.
+  wrap.append(el('details', { class: 'comparison-about' }, [el('summary', { text: 'Como ler esta comparação' }),
+    el('p', { class: 'muted small', text: 'Valores são os declarados por cada provedor, na versão indicada no cabeçalho. Campo não informado aparece como "não informado" e conta na cobertura; não é tratado como pior nem como zero. Ausência de evidência não significa verificação. Valores de versões anteriores são consulta histórica; os pesos usam a versão atual. Recorte: até 500 propostas enviadas e não retiradas; histórico de até 2.000 versões.' })]));
   const filter = el('select', { 'aria-label': 'Foco da comparação' }, [
     el('option', { value: 'all', text: 'Todas as condições' }), el('option', { value: 'differences', text: 'Somente diferenças' }),
     el('option', { value: 'missing', text: 'Informações pendentes' }), el('option', { value: 'changed', text: 'Alterações de versão' })
   ]);
   const detail = el('select', { 'aria-label': 'Detalhamento da comparação' }, [el('option', { value: 'detail', text: 'Visão detalhada' }), el('option', { value: 'summary', text: 'Visão resumida' })]);
-  const controls = el('div', { class: 'comparison-controls' }, [filter, detail]);
+  const controls = el('div', { class: 'comparison-controls' }, [
+    el('label', { class: 'comparison-control' }, [el('span', { text: 'Mostrar' }), filter]),
+    el('label', { class: 'comparison-control' }, [el('span', { text: 'Detalhe' }), detail])]);
   wrap.append(controls);
   const versions = el('div', { class: 'comparison-versions' });
   data.columns.forEach((column, index) => {
@@ -118,6 +122,18 @@ export function comparisonMatrix(rfq, proposals, { currentRevision = rfq.revisio
   };
   const value = (row, index) => historical.has(index) ? row.previous_values[index] : row.values[index];
   const state = (row, index) => historical.has(index) ? row.previous_states[index] : row.states[index];
+  // Cobertura das condições comparáveis na versão exibida: o que falta fica
+  // visível no cabeçalho, sem rebaixar a proposta.
+  const comparableRows = data.rows.filter(row => byKey[row.key]?.comparable);
+  const coverageText = index => `${comparableRows.filter(row => state(row, index) === 'present').length} de ${comparableRows.length} condições comparáveis informadas`;
+  // Condição que mudou na versão atual: marcada na própria célula, com o valor
+  // anterior, para a mudança não depender do filtro "Alterações de versão".
+  const changedMark = (row, index) => {
+    const column = data.columns[index];
+    if (historical.has(index) || !column.changed_keys.includes(row.key)) return null;
+    const before = row.previous_states[index] === 'invalid' ? 'dado inválido' : comparisonValue(byKey[row.key], row.previous_values[index], column.currency) ?? 'não informado';
+    return el('span', { class: 'changed-mark', text: `Alterado na v${column.version} · antes: ${before}` });
+  };
   const evidence = (row, index) => {
     const column = data.columns[index];
     const version = historical.has(index) ? column.previous_version : column.provenance;
@@ -134,6 +150,8 @@ export function comparisonMatrix(rfq, proposals, { currentRevision = rfq.revisio
     data.columns.forEach((column, index) => {
       head.append(el('th', { scope: 'col', class: 'matrix-provider' }, [el('span', { class: 'matrix-name', text: column.provider_name }),
         el('span', { class: 'matrix-meta', text: `${historical.has(index) ? 'Consulta da versão anterior' : `v${column.version ?? '?'}`} · ${column.currency ?? 'moeda não identificada'}${column.currency_source === 'schema_brl_v1' ? ' (unidade do cadastro)' : ''}` }),
+        el('span', { class: 'matrix-meta', text: coverageText(index) }),
+        !historical.has(index) && column.changed_keys.length && column.previous_version ? el('span', { class: 'matrix-flag', text: `${column.changed_keys.length} ${column.changed_keys.length === 1 ? 'condição mudou' : 'condições mudaram'} desde a v${column.previous_version.version}` }) : null,
         column.revision_mismatch ? el('span', { class: 'matrix-flag', text: `Respondeu à revisão ${column.rfq_revision}` }) : null,
         column.expired ? el('span', { class: 'matrix-flag', text: 'Proposta vencida' }) : null,
         column.validity_unknown ? el('span', { class: 'matrix-meta', text: 'Validade não informada' }) : null,
@@ -145,7 +163,7 @@ export function comparisonMatrix(rfq, proposals, { currentRevision = rfq.revisio
     pairBody.replaceChildren();
     let count = 0;
     const chosen = [Number(pickA.value), Number(pickB.value)];
-    pairStatus.replaceChildren(...chosen.map(index => { const column = data.columns[index]; return el('p', { class: 'muted small', text: `${column.provider_name} · ${column.currency ?? 'moeda não identificada'} · ${column.expired ? 'versão atual vencida' : column.validity_unknown ? 'validade não informada' : 'consulte a validade informada'}${column.revision_mismatch ? ` · respondeu à revisão ${column.rfq_revision}` : ''}` }); }));
+    pairStatus.replaceChildren(...chosen.map(index => { const column = data.columns[index]; return el('p', { class: 'muted small', text: `${column.provider_name} · ${historical.has(index) ? 'versão anterior' : `v${column.version ?? '?'}`} · ${column.currency ?? 'moeda não identificada'} · ${coverageText(index)} · ${column.expired ? 'versão atual vencida' : column.validity_unknown ? 'validade não informada' : 'consulte a validade informada'}${column.revision_mismatch ? ` · respondeu à revisão ${column.rfq_revision}` : ''}` }); }));
     for (const [group, keys] of data.groups) {
       const rows = keys.map(key => rowsByKey[key]).filter(row => row && visible(row));
       if (!rows.length) continue;
@@ -161,11 +179,13 @@ export function comparisonMatrix(rfq, proposals, { currentRevision = rfq.revisio
           const best = !historical.size && row.highlights.includes(column.id);
           const cell = valueCell(field, value(row, index), best, column.currency);
           if (state(row, index) === 'invalid') cell.querySelector('.missing-text').textContent = 'dado inválido; requer revisão';
+          const changed = changedMark(row, index);
+          if (changed) { cell.classList.add('changed'); cell.append(changed); }
           cell.append(evidence(row, index));
           tr.append(cell);
         });
         body.append(tr);
-        section.append(el('div', { class: 'pair-row', 'data-condition': row.key }, [el('span', { class: 'pair-label', text: field.type === 'money' ? row.label.replace('(R$)', '(moeda da coluna)') : row.label }), ...chosen.map(index => el('div', { class: `pair-value${!historical.size && row.highlights.includes(data.columns[index].id) ? ' best' : ''}` }, [el('span', { text: state(row, index) === 'invalid' ? 'dado inválido; requer revisão' : comparisonValue(field, value(row, index), data.columns[index].currency) ?? 'não informado' }), evidence(row, index)]))]));
+        section.append(el('div', { class: 'pair-row', 'data-condition': row.key }, [el('span', { class: 'pair-label', text: field.type === 'money' ? row.label.replace('(R$)', '(moeda da coluna)') : row.label }), ...chosen.map(index => el('div', { class: `pair-value${!historical.size && row.highlights.includes(data.columns[index].id) ? ' best' : ''}` }, [el('span', { text: state(row, index) === 'invalid' ? 'dado inválido; requer revisão' : comparisonValue(field, value(row, index), data.columns[index].currency) ?? 'não informado' }), changedMark(row, index), evidence(row, index)].filter(Boolean)))]));
       }
       pairBody.append(section);
     }

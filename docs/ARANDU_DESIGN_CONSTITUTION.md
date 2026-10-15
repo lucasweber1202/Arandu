@@ -98,7 +98,7 @@ Regras: nenhuma rota muda; deep links continuam; a área da página atual nunca 
 
 ## 9. Tabelas financeiras
 
-Colunas de valor alinhadas à direita; moeda explícita; moedas nunca somadas; percentuais com unidade (`a.a.`, `a.m.`); campo não informado aparece como "Não informado" e conta na cobertura; extremo marcado de forma neutra (nunca verde/"melhor").
+Colunas de valor alinhadas à direita; moeda explícita; moedas nunca somadas; percentuais com unidade (`a.a.`, `a.m.`); campo não informado aparece como "Não informado" e conta na cobertura; extremo marcado de forma neutra (nunca verde/"melhor"). Condição que mudou na versão atual de uma proposta é marcada na própria célula com sinal de informação e o valor anterior ("Alterado na v2 · antes: 1,29%"), sem cor de melhor/pior; cada coluna declara quantas condições comparáveis foram informadas *(automatizado: E2E de comparação)*.
 
 ## 10. Interação e motion
 

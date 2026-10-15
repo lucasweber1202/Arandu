@@ -9,6 +9,7 @@ import { loadEntities, rfqEntityControl } from './entities.js';
 import { comparisonMatrix, weightsPanel, revisionTimeline, collaboration, activityLog, approvalSteps, approvalActions, currentStep, memberName, memberTitle, coverage, approvalSummaryLine, lazyDocuments, keyTerms, isViewerTurn } from './shared.js';
 import { planSummary, policyTimeline, stageAssignments, loadPolicies } from './policy.js';
 import { POLICY_FACTS } from '../../../lib/finance/policy.mjs';
+import { proposalChanges } from '../../../lib/finance/comparison-context.mjs';
 
 const FLOW = [['draft', 'Rascunho'], ['open', 'Aberta'], ['collecting', 'Coleta'], ['comparing', 'Avaliação'], ['decided', 'Decisão'], ['contracted', 'Contrato']];
 
@@ -572,39 +573,66 @@ function decisionTab(ctx, rfq, { decision, contract, policy, approvals, manage }
     return wrap;
   }
   if (!manage) { wrap.append(emptyState({ title: 'Nenhuma decisão registrada', text: 'Quem gerencia a solicitação registra a decisão.', iconName: 'flag' })); return wrap; }
+  const conflict = ctx.decisionConflicts?.[rfq.id];
+  const conflicted = conflict ? proposals.find((row) => row.id === conflict.proposal_id) : null;
   const form = el('form', { class: 'card', id: 'decision-form', novalidate: true });
   const group = el('fieldset', { class: 'radio-cards' }, el('legend', { class: 'field-label', text: 'Proposta escolhida' }));
   for (const proposal of proposals) {
     const locked = approved && approved.proposal_id !== proposal.id;
     group.append(el('label', { class: `radio-card${locked ? ' disabled' : ''}` }, [
-      el('input', { type: 'radio', name: 'proposal_id', value: proposal.id, checked: approved ? approved.proposal_id === proposal.id : proposal === proposals[0], disabled: locked }),
+      el('input', { type: 'radio', name: 'proposal_id', value: proposal.id, checked: approved ? approved.proposal_id === proposal.id : conflicted ? proposal.id === conflicted.id : proposal === proposals[0], disabled: locked }),
       el('span', { class: 'radio-card-text' }, [el('strong', { text: proposal.provider_name }), el('span', { class: 'muted small', text: locked ? 'Não aprovada' : `v${proposal.version}${approved?.proposal_id === proposal.id ? ' · aprovada' : ''}` })])
     ]));
   }
+  // Conflito de versão (§36.2): o servidor recusou porque a proposta mudou
+  // enquanto a pessoa decidia. Nada foi gravado; antes de tentar de novo, a tela
+  // mostra o que mudou e pede confirmação explícita das condições atuais.
+  const reviewed = el('input', { type: 'checkbox', name: 'reviewed_current_version', required: true });
+  const conflictNode = conflicted && conflicted.version !== conflict.expected_version ? (() => {
+    const before = conflicted.previous_version?.version === conflict.expected_version ? conflicted.previous_version : null;
+    const fields = PRODUCTS[rfq.product].proposalFields;
+    const changes = before ? proposalChanges(rfq.product, conflicted, before).map((key) => fields.find((item) => item.key === key)).filter(Boolean)
+      .map((spec) => el('li', { text: `${spec.label}: ${fieldValue(spec, before.terms?.[spec.key]) ?? 'não informado'} → ${fieldValue(spec, conflicted.terms?.[spec.key]) ?? 'não informado'}` })) : [];
+    return el('div', { class: 'callout callout-warning', id: 'decision-conflict', role: 'alert' }, [icon('alert'), el('div', { class: 'stack' }, [
+      el('strong', { text: `A proposta de ${conflicted.provider_name} mudou para a versão ${conflicted.version} enquanto você decidia. Nada foi registrado.` }),
+      changes.length ? el('ul', { class: 'conflict-changes' }, changes)
+        : el('p', { text: `A versão que você viu (v${conflict.expected_version}) não está mais disponível para comparação nesta tela. Confira as condições atuais na aba Comparação.` }),
+      el('label', { class: 'check' }, [reviewed, el('span', { text: `Revisei as condições da versão ${conflicted.version} e quero seguir com a decisão` })])
+    ])]);
+  })() : null;
   const rationale = el('textarea', { name: 'rationale', rows: '3', maxlength: '4000', 'aria-label': 'Justificativa da decisão' });
   const weights = ctx.weights[rfq.id];
   const useWeights = el('input', { type: 'checkbox', name: 'use_weights', checked: Boolean(weights) });
   const submit = button('Registrar decisão', { variant: 'primary', type: 'submit', iconName: 'flag' });
   form.append(el('div', { class: 'card-head' }, el('div', { class: 'card-head-text' }, [el('h3', { class: 'card-title', text: 'Registrar decisão' }),
     el('p', { class: 'card-subtitle', text: 'A decisão é da empresa. O Arandu guarda quem decidiu, quando, a proposta e uma fotografia de todas as propostas deste momento.' })])),
-  el('div', { class: 'card-body stack' }, [group, field({ label: 'Justificativa', control: rationale, optionalLabel: true }),
+  el('div', { class: 'card-body stack' }, [conflictNode, group, field({ label: 'Justificativa', control: rationale, optionalLabel: true }),
     weights ? el('label', { class: 'check' }, [useWeights, el('span', { text: 'Registrar os pesos aplicados na comparação como critério desta decisão' })]) : null,
     el('div', { class: 'form-actions' }, submit)]));
   onSubmit(form, async (event) => {
     event.preventDefault();
     const data = new FormData(form);
     const chosen = proposals.find((row) => row.id === data.get('proposal_id'));
+    if (conflictNode && chosen?.id === conflicted.id && !reviewed.checked) {
+      toast(`Confirme que revisou a versão ${conflicted.version} antes de registrar a decisão.`, 'error');
+      reviewed.focus();
+      return;
+    }
     if (!await confirmDialog({ title: `Registrar a escolha de ${chosen?.provider_name}?`, description: 'A decisão fica registrada de forma permanente e a solicitação passa para “Decidida”. Em seguida você registra o contrato.', confirmLabel: 'Registrar decisão' })) return;
     submit.disabled = true;
     try {
       await ctx.api('decisions', { method: 'POST', body: JSON.stringify({ rfq_id: rfq.id, proposal_id: data.get('proposal_id'), expected_version: chosen?.version, rationale: data.get('rationale'), criteria: { weights: useWeights.checked ? weights || {} : {} } }) });
+      if (ctx.decisionConflicts) delete ctx.decisionConflicts[rfq.id];
       toast('Decisão registrada. Agora registre o contrato.');
       ctx.reload();
     } catch (error) {
       toast(error.message, 'error');
       // Versão nova da proposta ou alteração simultânea: nada foi registrado; a
       // página recarrega para mostrar as condições atuais antes de decidir de novo.
-      if (error.code === 'proposal_version_changed' || error.code === 'concurrent_update') ctx.reload();
+      if (error.code === 'proposal_version_changed' || error.code === 'concurrent_update') {
+        (ctx.decisionConflicts ||= {})[rfq.id] = { proposal_id: chosen?.id, expected_version: chosen?.version };
+        ctx.reload();
+      }
       else submit.disabled = false;
     }
   });
