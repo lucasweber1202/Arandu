@@ -156,6 +156,6 @@ do $$ declare c uuid := (select value from cyc_ids where key = 'e'); begin
 end $$;
 
 do $$ begin
-  if (select value from public.fin_settings where key = 'schema_version') not in ('financial-renewal-cycles-1', 'financial-decision-integrity-1', 'financial-session-revocation-1') then raise exception 'marcador de schema'; end if;
+  if (select value from public.fin_settings where key = 'schema_version') not in ('financial-renewal-cycles-1', 'financial-decision-integrity-1', 'financial-session-revocation-1', 'financial-document-upload-authorization-1') then raise exception 'marcador de schema'; end if;
 end $$;
 select 'financial-renewal-cycles: prorrogação, novo ciclo, histórico, gatilho e negações aprovados' as result;
