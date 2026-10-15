@@ -42,12 +42,65 @@ mkdir -p "$root/reports"
 # A previous PASS must never survive a blocked or failed new attempt.
 rm -f "$report"
 
+# Register cleanup before provisioning tool wrappers or running the preflight.
+tools=""
+work=""
+keep_backup="${PILOT_DRILL_KEEP_BACKUP:-0}"
+run_id="$(node -e 'console.log(require("node:crypto").randomUUID())')"
+created_containers=()
 cleanup() {
-  [ "${PILOT_DRILL_KEEP:-0}" = "1" ] || docker rm -f "$container-storage" >/dev/null 2>&1 || true
-  [ -n "$tools" ] && rm -rf "$tools"
-  if [ "${PILOT_DRILL_KEEP:-0}" != "1" ]; then docker rm -f "$container" >/dev/null 2>&1 || true; else echo "destino mantido: contêiner $container, porta $port"; fi
-  if [ "${PILOT_DRILL_KEEP:-0}" != "1" ] && [ "$keep_backup" != "1" ]; then rm -rf "$work"; else echo "backup mantido em $work"; fi
+  local original_status=$? cleanup_failed=0 remaining target_name cleanup_state=removed
+  trap - EXIT
+  if [ "${PILOT_DRILL_KEEP:-0}" = "1" ]; then
+    cleanup_state=retained
+  else
+    for target_name in "${created_containers[@]}"; do
+      if ! remaining="$(docker ps -aq --filter "name=^/${target_name}$" --filter "label=arandu.restore-drill=$run_id")"; then cleanup_failed=1; continue; fi
+      if [ -n "$remaining" ]; then
+        if ! docker rm -f "$remaining" >/dev/null; then cleanup_failed=1; continue; fi
+      fi
+      if ! remaining="$(docker ps -aq --filter "name=^/${target_name}$" --filter "label=arandu.restore-drill=$run_id")"; then cleanup_failed=1; continue; fi
+      if [ -n "$remaining" ]; then cleanup_failed=1; fi
+    done
+  fi
+  if [ "$cleanup_failed" = 1 ]; then
+    rm -f "$report"
+    echo "Cleanup falhou; relatório invalidado e estado do ensaio preservado." >&2
+    [ "$original_status" -ne 0 ] || original_status=1
+    exit "$original_status"
+  fi
+  if [ "$original_status" -ne 0 ]; then rm -f "$report"; fi
+  if [ -n "$tools" ] && ! rm -rf "$tools"; then
+    rm -f "$report"
+    [ "$original_status" -ne 0 ] || original_status=1
+    exit "$original_status"
+  fi
+  if [ "${PILOT_DRILL_KEEP:-0}" != "1" ] && [ "$keep_backup" != "1" ]; then
+    if [ -n "$work" ] && ! rm -rf "$work"; then
+      rm -f "$report"
+      [ "$original_status" -ne 0 ] || original_status=1
+      exit "$original_status"
+    fi
+  elif [ -n "$work" ]; then echo "backup mantido em $work"; fi
+  if [ -f "$report" ]; then
+    if ! node --input-type=module - "$report" "$cleanup_state" <<'CLEANUP_REPORT'
+import fs from 'node:fs';
+const [file, cleanup] = process.argv.slice(2);
+const report = JSON.parse(fs.readFileSync(file, 'utf8'));
+report.cleanup = cleanup;
+if (report.result === 'pending_cleanup') report.result = 'passed';
+fs.writeFileSync(file, JSON.stringify(report, null, 2) + '\n');
+CLEANUP_REPORT
+    then
+      rm -f "$report"
+      echo "Falha ao registrar cleanup; relatório invalidado." >&2
+      [ "$original_status" -ne 0 ] || original_status=1
+      exit "$original_status"
+    fi
+  fi
+  exit "$original_status"
 }
+trap cleanup EXIT
 source_url="${PILOT_SOURCE_DATABASE_URL:-}"
 source_kind="pilot"
 if [ -z "$source_url" ]; then
@@ -65,7 +118,6 @@ fi
 keep_backup="${PILOT_DRILL_KEEP_BACKUP:-0}"
 if [ "$source_kind" = pilot ]; then keep_backup=1; fi
 storage_binaries="${PILOT_DRILL_STORAGE_BINARIES:-0}"
-tools=""
 if [ "${PILOT_DRILL_PG_FROM_IMAGE:-0}" = "1" ]; then
   # Clientes do mesmo major da origem, da imagem já fixada: nenhum download novo.
   tools="$(mktemp -d "${TMPDIR:-/tmp}/arandu-drill-tools.XXXXXX")"
@@ -86,7 +138,6 @@ node "$root/scripts/pilot-backup-preflight.mjs"
 umask 077
 work="$(mktemp -d "${TMPDIR:-/tmp}/arandu-restore-drill.XXXXXX")"
 chmod 700 "$work"
-trap cleanup EXIT
 redact() { sed -E 's#postgres(ql)?://[^[:space:]]+#[DATABASE_URL]#g'; }
 now_ms() { date +%s%3N; }
 source_psql() { node "$root/scripts/pilot-db-client.mjs" psql "$@"; }
@@ -134,7 +185,8 @@ backup_bytes=$(cat "$work/public.dump" "$work/auth.dump" "$work/storage.dump" "$
 
 # ------------------------------------------------------- destino descartável
 pw="$(openssl rand -hex 18)"
-docker run -d --name "$container" -e POSTGRES_PASSWORD="$pw" -e JWT_SECRET="$(openssl rand -hex 32)" -e JWT_EXP=3600 \
+created_containers+=("$container")
+docker run -d --name "$container" --label "arandu.restore-drill=$run_id" -e POSTGRES_PASSWORD="$pw" -e JWT_SECRET="$(openssl rand -hex 32)" -e JWT_EXP=3600 \
   -p "127.0.0.1:${port}:5432" "$image" postgres -c config_file=/etc/postgresql/postgresql.conf -c log_min_messages=fatal >/dev/null
 target="postgresql://supabase_admin:${pw}@127.0.0.1:${port}/postgres"
 for _ in $(seq 1 90); do
@@ -156,7 +208,8 @@ docker run --rm --network host -e GOTRUE_DB_DRIVER=postgres \
 storage_jwt="$(openssl rand -hex 32)"
 mint() { node --input-type=module -e "import { signJwt } from '$root/scripts/storage-recovery.mjs'; console.log(signJwt(process.argv[1], { role: process.argv[2], iss: 'supabase' }))" "$storage_jwt" "$1"; }
 storage_anon="$(mint anon)"; storage_service="$(mint service_role)"
-docker run -d --name "$container-storage" --network host -e SERVER_PORT="$storage_port" -e PORT="$storage_port" \
+created_containers+=("$container-storage")
+docker run -d --name "$container-storage" --label "arandu.restore-drill=$run_id" --network host -e SERVER_PORT="$storage_port" -e PORT="$storage_port" \
   -e ANON_KEY="$storage_anon" -e SERVICE_KEY="$storage_service" -e PGRST_JWT_SECRET="$storage_jwt" -e AUTH_JWT_SECRET="$storage_jwt" \
   -e DATABASE_URL="postgres://supabase_storage_admin:${pw}@127.0.0.1:${port}/postgres" -e POSTGREST_URL=http://127.0.0.1:1 \
   -e FILE_SIZE_LIMIT=52428800 -e STORAGE_BACKEND=file -e FILE_STORAGE_BACKEND_PATH=/tmp/storage \
@@ -334,12 +387,12 @@ const report = {
     scope: '${storage_binaries}' === '1' ? 'application including Storage binaries; MFA absent by verified preflight' : 'application; Storage binaries and MFA absent by verified preflight', sha256: '${backup_sha}', bytes: ${backup_bytes}, retained: '${keep_backup}' === '1' },
   recovery,
   durations_ms: { backup: ${t1} - ${t0}, provision_target: ${t2b} - ${t2}, restore: ${t3} - ${t2b}, probes: ${t4} - ${t3}, canary: ${t5} - ${t4}, storage_binaries: ${t6} - ${t5}, backup_to_verified: ${t6} - ${t0} - (${t2b} - ${t1}) },
-  result: checks.every((c) => c.ok) ? 'passed' : 'failed',
+  result: checks.every((c) => c.ok) ? 'pending_cleanup' : 'failed',
   checks: checks.map((c) => (c.name === 'rows' ? { ...c, source: undefined, restored: undefined, tables: Object.keys(d.rows || {}).length, total_rows: Object.values(d.rows || {}).reduce((a, b) => a + b, 0) } : c))
 };
 (await import('node:fs')).writeFileSync(out, JSON.stringify(report, null, 2) + '\n');
 for (const c of report.checks) console.log(\`\${c.ok ? 'OK  ' : 'FAIL'} \${c.name}\`);
 console.log(\`backup \${report.durations_ms.backup} ms · restore \${report.durations_ms.restore} ms · probes \${report.durations_ms.probes} ms · canário \${report.durations_ms.canary} ms · binários \${report.durations_ms.storage_binaries} ms · recovery \${recovery}\`);
 console.log(\`resultado: \${report.result} — relatório: reports/pilot-restore-drill.json\`);
-process.exit(report.result === 'passed' ? 0 : 1);
+process.exit(report.result === 'pending_cleanup' ? 0 : 1);
 NODE

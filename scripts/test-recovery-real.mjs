@@ -27,8 +27,8 @@ CREATE ROLE arandu_fixture_reader NOSUPERUSER NOCREATEDB NOCREATEROLE NOLOGIN;
 CREATE SCHEMA auth; CREATE SCHEMA storage; CREATE SCHEMA supabase_migrations;
 CREATE TABLE auth.users(id integer primary key); INSERT INTO auth.users VALUES(7);
 CREATE TABLE auth.mfa_factors(id integer primary key);
-CREATE TABLE storage.objects(id integer primary key);
-CREATE TABLE storage.buckets(id text primary key); INSERT INTO storage.buckets VALUES('synthetic-private');
+CREATE TABLE storage.objects(id integer primary key, bucket_id text, name text, metadata jsonb);
+CREATE TABLE storage.buckets(id text primary key, public boolean default false, file_size_limit bigint, allowed_mime_types text[]); INSERT INTO storage.buckets(id) VALUES('synthetic-private');
 CREATE TABLE supabase_migrations.schema_migrations(version text primary key); INSERT INTO supabase_migrations.schema_migrations VALUES('synthetic-1');
 CREATE TABLE public.parent(id integer PRIMARY KEY, label text NOT NULL);
 CREATE TABLE public.child(id integer PRIMARY KEY, parent_id integer REFERENCES public.parent(id), amount numeric CHECK(amount>0));
@@ -85,7 +85,7 @@ try {
   assert.equal(fs.readdirSync(output).length,0,'Real age checksum rejection before export');
   // Arquivo no Storage: o pg_dump levaria só o metadado. Sem a declaração do
   // export separado dos binários o export recusa; com ela, o manifesto registra a exigência.
-  sql(55431,'INSERT INTO storage.objects VALUES(1);');
+  sql(55431,`INSERT INTO storage.objects VALUES(1,'synthetic-private','synthetic-file','{"size":1}');`);
   await assert.rejects(exportRecovery({root:process.cwd(),syntheticLocal:true,env:exportEnv}),(e)=>e.code==='RECOVERY_STORAGE_OBJECTS_PRESENT');
   const withFiles=path.join(dir,'with-files');fs.mkdirSync(withFiles,{mode:0o700});
   const declared=await exportRecovery({root:process.cwd(),syntheticLocal:true,env:{...exportEnv,ARANDU_RECOVERY_DIRECTORY:withFiles,ARANDU_RECOVERY_STORAGE_BINARIES:'separate-export'}});
@@ -148,7 +148,9 @@ try {
   assert.equal(after,before,'Data/schema/ACL/owners/RLS/defaults/Auth/Storage/migrations must match');
   assert.equal(sql(55432,'SET ROLE arandu_fixture_reader; SELECT count(*) FROM public.child;').trim().split('\n').at(-1),'1');
   const denied=spawnSync('psql',['-X','-v','ON_ERROR_STOP=1'],{env:{...env,PGPORT:'55432'},input:'SET ROLE arandu_fixture_reader; INSERT INTO public.child VALUES(5,2,5);',encoding:'utf8'});
-  assert.notEqual(denied.status,0);
+  assert.equal(denied.error,undefined,'psql must execute before a denial can be evidence');
+  assert.equal(denied.signal,null,'psql denial must not be a terminated process');
+  assert.equal(denied.status,3,'ON_ERROR_STOP must report a SQL error');
   assert.match(denied.stderr,/row-level security/);
   // Estratégia private-store (sem AWS): identidade preparada fora do store, store
   // durável marcado, export + verify, restore do MESMO ciphertext e nível 5.

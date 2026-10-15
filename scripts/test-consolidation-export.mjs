@@ -43,7 +43,7 @@ const name = require('node:path').basename(process.argv[1]);
 const args = process.argv.slice(2);
 fs.appendFileSync(tracePath, JSON.stringify({name,args,hostaddr:process.env.PGHOSTADDR,options:process.env.PGOPTIONS})+'\\n');
 if(args.includes('--version')) {console.log(name==='age'?'v1.2.1':name+' (PostgreSQL) '+(process.env.TEST_MAJOR||'17')+'.6');process.exit(0);}
-if(name==='psql'&&args.includes('-f')) {let input='';process.stdin.on('data',c=>{input+=c;if(input.includes('\\\\echo ')&&!input.includes('#answered')){input+='#answered';if(process.env.TEST_SNAPSHOT==='bad'){console.log('not-a-snapshot');}else{console.log('00000003-0000001B-1');console.log(JSON.stringify({'public.fin_rfqs':3,'auth.users':2}));}console.log('__ARANDU_SNAPSHOT_STEP__');}});process.stdin.on('end',()=>{fs.appendFileSync(tracePath,JSON.stringify({name:'psql-session',args:[],stdin:input})+'\\n');process.exit(input.includes('commit;')?0:1);});return;}
+if(name==='psql'&&args.includes('-f')) {let input='';process.stdin.on('data',c=>{input+=c;if(input.includes('\\\\echo ')&&!input.includes('#answered')){input+='#answered';if(process.env.TEST_SNAPSHOT==='bad'){console.log('not-a-snapshot');}else{console.log('00000003-0000001B-1');console.log(JSON.stringify({'public.fin_rfqs':3,'auth.users':2,'storage.objects':Number(process.env.TEST_SNAPSHOT_OBJECTS||0)}));console.log(JSON.stringify({buckets:[],objects:Array.from({length:Number(process.env.TEST_SNAPSHOT_OBJECTS||0)},(_,i)=>({bucket:'private',name:'synthetic-'+i,size:1,mimetype:null}))}));}console.log('__ARANDU_SNAPSHOT_STEP__');}});process.stdin.on('end',()=>{fs.appendFileSync(tracePath,JSON.stringify({name:'psql-session',args:[],stdin:input})+'\\n');process.exit(input.includes('commit;')?0:1);});return;}
 if(name==='psql') {console.log(JSON.stringify({server_major:17,storage_objects:Number(process.env.TEST_OBJECTS||0),auth_users:0,mfa_factors:0}));process.exit(0);}
 if(name===process.env.TEST_FAIL) {console.error('private-fixture');process.exit(1);}
 if(name==='age') {let bytes=0;process.stdin.on('data',c=>bytes+=c.length);process.stdin.on('end',()=>{if(bytes && fs.existsSync(ageFailure))process.exit(1);process.stdout.write('age-encryption.org/v1\\n'+'ciphertext-fixture'.repeat(20));});}
@@ -72,13 +72,25 @@ try {
   assert.equal(manifest.result,'exported_unverified');assert.equal(manifest.restore,'NOT RUN');
   assert.equal(manifest.conversion,'BLOCKED');assert.equal(manifest.files.length,2);
   // Contagens e pg_dump no mesmo snapshot exportado, sessão read-only encerrada com commit.
-  assert.deepEqual(manifest.snapshot_counts,{'auth.users':2,'public.fin_rfqs':3});
+  assert.deepEqual(manifest.snapshot_counts,{'auth.users':2,'public.fin_rfqs':3,'storage.objects':0});
   assert.equal(manifest.snapshot,'exported_snapshot_shared_with_pg_dump');assert.match(manifest.snapshot_counts_sha256,/^[a-f0-9]{64}$/);
   const traced=fs.readFileSync(trace,'utf8').trim().split('\n').map(JSON.parse);
   assert(traced.find(c=>c.name==='pg_dump'&&!c.args.includes('--version')).args.includes('--snapshot=00000003-0000001B-1'));
   const session=traced.find(c=>c.name==='psql-session');
   assert.match(session.stdin,/begin isolation level repeatable read read only;/);assert.match(session.stdin,/pg_export_snapshot\(\)/);assert.match(session.stdin,/commit;/);assert(!session.stdin.includes('private-fixture'));
   assert(!JSON.stringify(manifest).includes('private-fixture'));
+  // A contagem do snapshot substitui a do preflight se surgir objeto entre ambos.
+  const raced = await exportRecovery({env:{...env,TEST_SNAPSHOT_OBJECTS:'1',ARANDU_RECOVERY_STORAGE_BINARIES:'separate-export'},root});
+  assert.equal(raced.source_counts.storage_objects,1);
+  assert.equal(raced.storage_binaries,'SEPARATE_EXPORT_REQUIRED');
+  assert.match(raced.storage_snapshot_inventory_sha256,/^[a-f0-9]{64}$/);
+  fs.rmSync(path.join(output,fs.readdirSync(output).find((d)=>JSON.parse(fs.readFileSync(path.join(output,d,'manifest.json'))).source_counts.storage_objects===1)),{recursive:true});
+  const beforeRace = new Set(fs.readdirSync(output));
+  await assert.rejects(exportRecovery({env:{...env,TEST_SNAPSHOT_OBJECTS:'1'},root}), (e)=>e.code==='RECOVERY_STORAGE_OBJECTS_PRESENT');
+  const refusedRace = fs.readdirSync(output).find((d)=>!beforeRace.has(d));
+  const refusedRaceManifest = JSON.parse(fs.readFileSync(path.join(output,refusedRace,'manifest.json')));
+  assert.equal(refusedRaceManifest.result,'failed');assert.equal(refusedRaceManifest.files.length,0);
+  fs.rmSync(path.join(output,refusedRace),{recursive:true});
   // Snapshot ilegível: export falha fechado e o manifest registra falha.
   const before=new Set(fs.readdirSync(output));
   await assert.rejects(exportRecovery({env:{...env,TEST_SNAPSHOT:'bad'},root}));

@@ -113,6 +113,15 @@ jobs:
         timeout-minutes: 6
         run: bash scripts/ci-demo/run.sh check 2>&1 | grep -v '@' | tee "$CI_DEMO_REPORTS/seed-check.txt"
 
+      # Snapshot canônico após o seed verificado e antes das fases mutantes.
+      # journey cadastra três fatores MFA; este drill não preserva MFA e seu
+      # preflight deve continuar recusando fatores existentes, sem apagá-los.
+      # Somente leitura na origem; restaura num Supabase descartável à parte.
+      - name: Phase 2 — Recovery drill (database + Storage binaries, isolated restore)
+        id: recovery
+        timeout-minutes: 20
+        run: bash scripts/ci-demo/run.sh recovery 2>&1 | grep -v '@' | tee "$CI_DEMO_REPORTS/recovery.txt"
+
       - name: Playwright version
         id: playwright
         run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
@@ -153,12 +162,6 @@ jobs:
         id: adversarial
         timeout-minutes: 12
         run: bash scripts/ci-demo/run.sh adversarial 2>&1 | tee "$CI_DEMO_REPORTS/adversarial.txt"
-
-      # Somente leitura na origem semeada; restaura num Supabase descartável à parte.
-      - name: Phase 6 — Recovery drill (database + Storage binaries, isolated restore)
-        id: recovery
-        timeout-minutes: 20
-        run: bash scripts/ci-demo/run.sh recovery 2>&1 | grep -v '@' | tee "$CI_DEMO_REPORTS/recovery.txt"
 
       - name: Collect sanitized evidence
         if: always()

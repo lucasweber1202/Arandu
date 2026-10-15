@@ -67,7 +67,8 @@
     "docs/supabase-financial-contract-onboarding.sql",
     "docs/supabase-financial-renewal-cycles.sql",
     "docs/supabase-financial-decision-integrity.sql",
-    "docs/supabase-financial-session-revocation.sql"
+    "docs/supabase-financial-session-revocation.sql",
+    "docs/supabase-financial-document-upload-authorization.sql"
   ],
   "existingDatabase": [
     "docs/supabase-sprint1-auth-ownership.sql",
@@ -136,6 +137,7 @@
     "docs/supabase-financial-contract-onboarding.sql",
     "docs/supabase-financial-renewal-cycles.sql",
     "docs/supabase-financial-decision-integrity.sql",
-    "docs/supabase-financial-session-revocation.sql"
+    "docs/supabase-financial-session-revocation.sql",
+    "docs/supabase-financial-document-upload-authorization.sql"
   ]
 }
