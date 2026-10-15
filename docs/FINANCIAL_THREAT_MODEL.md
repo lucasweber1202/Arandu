@@ -159,11 +159,14 @@ são tratados pelos controles gerais do Arandu, não por esta vertical.
 | 92 | **Fila de e-mail usada como canal de spam/phishing** (convites a contatos arbitrários com o nome da empresa no assunto) e **inanição** de outras organizações | tetos por organização e destinatário serializados por organização; claim em rodízio entre organizações; nome com link vira descrição neutra | `financial-followup-hardening.sql`, `email-fairness-concurrency.sh`, `test-email-outbox.mjs` |
 | 93 | **`X-Forwarded-For` forjado** contorna limite por IP fora da Vercel | política explícita (`lib/client-address.mjs`): Vercel só pela borda; proxy próprio só com `ARANDU_TRUSTED_PROXY_HOPS`; caso contrário só a conexão; IPv6 por /64 | `test-client-address.mjs`, `test-auth-api.mjs` |
 | 94 | **Contrato prorrogado sem alerta de renovação** — aditivo com novo fim deixava os marcos do ciclo anterior bloqueando o novo vencimento (perda silenciosa de prazo de renúncia/renovação) | marcos por ciclo (`fin_renewal_milestones.cycle_ends_on`, único por contrato+ciclo+marco); o aditivo recalcula status e próxima ação | `financial-renewal-cycles.sql`, `scripts/ci-demo/adversarial.mjs` (RENEW-1/2) |
+| 95 | **Token copiado usado no PostgREST direto depois do logout** (R1 de 14/10) | `db_pre_request` do PostgREST (`fin_request_session_guard`, invoker) confere o `session_id` do JWT contra `auth.sessions` em toda requisição `authenticated`; sessão encerrada, expirada, ausente ou claim malformado → 401 `session_revoked`. `service_role` e `anon` não passam pela checagem. Custo medido: +0,2 ms p50 por requisição (índice `sessions_pkey`) | `financial-session-revocation.sql`, `tests/database/financial-session-revocation.sql`, `scripts/ci-demo/smoke.mjs` (logout local, logout pela API, escrita recusada, outra sessão intacta) |
+| 96 | **Decisão vinculada a versão que a pessoa não viu** (D2) e **impasse entre envio e decisão** (R3) | `fin_record_decision_v2` exige a versão exibida e recusa com `proposal version changed` (409 na API); `fin_submit_proposal` trava a RFQ antes da proposta, na mesma ordem da decisão | `financial-decision-integrity.sql`, `tests/database/financial-decision-integrity.sql`, `tests/database/financial-decision-race.sh` (duas sessões reais, ambas as ordens) |
 
-Risco residual medido em 14/10/2026 (`docs/QA_ADVERSARIAL_2026-10-14.md`, R1):
-depois do logout, o GoTrue recusa o access token (403 em `/auth/v1/user`) e a
-API do Arandu também (401), mas o PostgREST continua aceitando o mesmo token
-até ele expirar (até 1 h), porque valida só a assinatura do JWT. Explorar exige
-já ter o token em mãos (cookie HttpOnly roubado). Mitigação possível, não
-aplicada: conferir `session_id` do JWT contra `auth.sessions` nas policies.
+Risco residual de 14/10/2026 (`docs/QA_ADVERSARIAL_2026-10-14.md`): R1
+(token aceito pelo PostgREST depois do logout) e R3 (decisão contra envio
+simultâneo) foram tratados nas linhas 95 e 96; a validação hospedada depende de
+aplicar as migrations em cada ambiente, o que não foi feito
+(`docs/STAGE0_READINESS_2026-10-14.md`). R2 (oráculo de existência de UUID em
+RPCs `SECURITY DEFINER` chamadas direto) segue aceito como P3, com a
+classificação no mesmo relatório.
 

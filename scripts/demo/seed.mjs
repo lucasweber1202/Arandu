@@ -431,7 +431,8 @@ async function approveAndDecide(spec, { requestDay, steps, decideDay, contract }
   }
   if (!decideDay) return request;
   await at(decideDay, '10:05');
-  ctx.decision[spec.key] = (await post(juliana, 'decisions', { rfq_id: rfq, proposal_id: proposal, criteria: { weights: spec.weights }, rationale: spec.decisionRationale })).id;
+  const shown = (await api(juliana, 'GET', `rfq/${rfq}`)).proposals.find((row) => row.id === proposal)?.version;
+  ctx.decision[spec.key] = (await post(juliana, 'decisions', { rfq_id: rfq, proposal_id: proposal, expected_version: shown, criteria: { weights: spec.weights }, rationale: spec.decisionRationale })).id;
   await at(decideDay + 2, '16:30');
   ctx.contract[spec.key] = (await post(juliana, 'contracts', {
     decision_id: ctx.decision[spec.key], starts_on: isoDate(contract.starts), ends_on: isoDate(contract.ends),

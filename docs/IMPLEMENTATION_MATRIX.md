@@ -1,5 +1,18 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 14/10/2026 — Stage 0: revogação de sessão, integridade da decisão e prontidão
+
+Base: `main` @ `fa551c0` (#190). Detalhe e estados em
+`docs/STAGE0_READINESS_2026-10-14.md`. Nenhum banco, segredo, atribuição ou
+projeto hospedado alterado.
+
+| Item | Estado | Evidência | Limite |
+| --- | --- | --- | --- |
+| R1 — token de sessão encerrada no PostgREST direto (`financial-session-revocation-1`) | M1 + local | `db_pre_request` confere `session_id` em `auth.sessions`: 401 `session_revoked` imediato após logout; +0,2 ms p50; `tests/database/financial-session-revocation.sql`, smoke do laboratório efêmero | M2 depende do CI no HEAD do PR; **não aplicada** em banco hospedado |
+| D2/R3 — decisão vinculada a versão não vista; impasse envio × decisão (`financial-decision-integrity-1`) | M1 + local | `fin_record_decision_v2` com versão esperada (409 na API); ordem de locks RFQ → proposta; `financial-decision-race.sh` (duas sessões reais, falha sem a migration) | idem |
+| R2 — oráculo de existência de UUID em RPCs definer | aceito (P3) | 59 de 171 RPCs com mensagens distintas; exige sessão viva e UUID vazado; API já iguala 404 | regra para RPC nova |
+| Recovery / Demo canônica hospedada / Production | BLOCKED | `recovery:doctor`, `consolidation:check`, `release:candidate:check` recusam sem evidência; build de Production falha por desenho com allowlist vazia (reproduzido em cinco configurações) | runner e secrets de recovery; autorização |
+
 ## 14/10/2026 — Primeiro valor sem RFQ e incidente de merge da #184
 
 Base: `main` @ `dba2d88` (#184). Estado: M1 + E2E (mocks da API); nada hospedado.

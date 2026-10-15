@@ -27,7 +27,7 @@ globalThis.fetch = async (url, options = {}) => {
     timeline.push('rpc');
     if (failRpc) return new Response(JSON.stringify({ message: 'forbidden' }), { status: 403 });
     if (path.endsWith('fin_create_organization')) value = ORG;
-    else if (path.endsWith('fin_record_decision')) value = DECISION;
+    else if (path.endsWith('fin_record_decision_v2')) value = DECISION;
     else if (path.endsWith('fin_submit_proposal')) value = 2;
     else value = RFQ;
   } else if (path.endsWith('/fin_organizations')) value = denied ? [] : organization;
@@ -72,7 +72,7 @@ await call('proposals', { proposal_id: PROPOSAL, terms: { institution: 'Private 
 assert.equal(events.at(-1).event, 'proposal_submitted');
 assert.equal(events.at(-1).organizationId, OTHER, 'provider scope comes from RLS-visible row');
 assert.equal(events.at(-1).operationVersion, 2);
-await call('decisions', { rfq_id: RFQ, proposal_id: PROPOSAL, rationale: 'Private rationale' });
+await call('decisions', { rfq_id: RFQ, proposal_id: PROPOSAL, expected_version: 2, rationale: 'Private rationale' });
 assert.equal(events.at(-1).event, 'decision_recorded');
 assert.equal(events.at(-1).operationId, DECISION);
 const comparison = await call('comparison', { rfq_id: RFQ });

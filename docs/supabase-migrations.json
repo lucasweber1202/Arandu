@@ -65,7 +65,9 @@
     "docs/supabase-financial-request-receipts.sql",
     "docs/supabase-financial-followup-hardening.sql",
     "docs/supabase-financial-contract-onboarding.sql",
-    "docs/supabase-financial-renewal-cycles.sql"
+    "docs/supabase-financial-renewal-cycles.sql",
+    "docs/supabase-financial-decision-integrity.sql",
+    "docs/supabase-financial-session-revocation.sql"
   ],
   "existingDatabase": [
     "docs/supabase-sprint1-auth-ownership.sql",
@@ -132,6 +134,8 @@
     "docs/supabase-financial-request-receipts.sql",
     "docs/supabase-financial-followup-hardening.sql",
     "docs/supabase-financial-contract-onboarding.sql",
-    "docs/supabase-financial-renewal-cycles.sql"
+    "docs/supabase-financial-renewal-cycles.sql",
+    "docs/supabase-financial-decision-integrity.sql",
+    "docs/supabase-financial-session-revocation.sql"
   ]
 }

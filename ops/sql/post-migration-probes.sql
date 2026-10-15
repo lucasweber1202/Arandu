@@ -49,8 +49,17 @@ begin
     raise exception 'Infraestrutura compartilhada (outbox/rate limit) ausente ou exposta.';
   end if;
 
+  -- Revogação de sessão (R1): com a função presente, o PostgREST precisa chamá-la
+  -- em toda requisição; função sem registro no authenticator não protege nada.
+  if to_regprocedure('public.fin_request_session_guard()') is not null
+     and exists (select 1 from pg_roles where rolname = 'authenticator')
+     and not exists (select 1 from pg_roles r, unnest(coalesce(r.rolconfig, '{}'::text[])) c
+                      where r.rolname = 'authenticator' and c = 'pgrst.db_pre_request=public.fin_request_session_guard') then
+    raise exception 'Revogação de sessão instalada, mas não registrada no PostgREST (pgrst.db_pre_request).';
+  end if;
+
   -- Depois da aposentadoria, a vertical de arte não pode reaparecer no schema.
-  if coalesce((select value from public.fin_settings where key = 'schema_version'), '') in ('financial-legacy-art-decommission-1','financial-p0-closure-1','financial-value-realization-1','financial-fee-intelligence-1','financial-opportunity-engine-1','financial-document-intelligence-1','financial-provider-qualification-1','financial-implementation-1','financial-covenants-1','financial-provider-performance-1','financial-spend-intelligence-1','financial-opportunity-discriminator-1','financial-demo-workspaces-1','financial-demo-pool-1', 'financial-security-closure-1', 'financial-request-receipts-1', 'financial-followup-hardening-1', 'financial-contract-onboarding-1', 'financial-renewal-cycles-1')
+  if coalesce((select value from public.fin_settings where key = 'schema_version'), '') in ('financial-legacy-art-decommission-1','financial-p0-closure-1','financial-value-realization-1','financial-fee-intelligence-1','financial-opportunity-engine-1','financial-document-intelligence-1','financial-provider-qualification-1','financial-implementation-1','financial-covenants-1','financial-provider-performance-1','financial-spend-intelligence-1','financial-opportunity-discriminator-1','financial-demo-workspaces-1','financial-demo-pool-1', 'financial-security-closure-1', 'financial-request-receipts-1', 'financial-followup-hardening-1', 'financial-contract-onboarding-1', 'financial-renewal-cycles-1', 'financial-decision-integrity-1', 'financial-session-revocation-1')
      and (to_regclass('public.artworks') is not null or to_regclass('public.reservations') is not null or to_regclass('public.profiles') is not null) then
     raise exception 'Objetos da vertical de arte presentes depois da aposentadoria.';
   end if;

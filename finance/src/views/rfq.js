@@ -597,10 +597,16 @@ function decisionTab(ctx, rfq, { decision, contract, policy, approvals, manage }
     if (!await confirmDialog({ title: `Registrar a escolha de ${chosen?.provider_name}?`, description: 'A decisão fica registrada de forma permanente e a solicitação passa para “Decidida”. Em seguida você registra o contrato.', confirmLabel: 'Registrar decisão' })) return;
     submit.disabled = true;
     try {
-      await ctx.api('decisions', { method: 'POST', body: JSON.stringify({ rfq_id: rfq.id, proposal_id: data.get('proposal_id'), rationale: data.get('rationale'), criteria: { weights: useWeights.checked ? weights || {} : {} } }) });
+      await ctx.api('decisions', { method: 'POST', body: JSON.stringify({ rfq_id: rfq.id, proposal_id: data.get('proposal_id'), expected_version: chosen?.version, rationale: data.get('rationale'), criteria: { weights: useWeights.checked ? weights || {} : {} } }) });
       toast('Decisão registrada. Agora registre o contrato.');
       ctx.reload();
-    } catch (error) { toast(error.message, 'error'); submit.disabled = false; }
+    } catch (error) {
+      toast(error.message, 'error');
+      // Versão nova da proposta ou alteração simultânea: nada foi registrado; a
+      // página recarrega para mostrar as condições atuais antes de decidir de novo.
+      if (error.code === 'proposal_version_changed' || error.code === 'concurrent_update') ctx.reload();
+      else submit.disabled = false;
+    }
   });
   wrap.append(form);
   return wrap;

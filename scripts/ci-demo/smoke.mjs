@@ -109,11 +109,65 @@ await check('RLS: usuário sem organização não lê nada; anônimo idem', asyn
   must(Array.isArray(anonRows) && anonRows.length === 0, `anônimo: ${anonRows.length} linha(s)`);
   return `usuário 0 linha(s) (HTTP ${asUser.status}); anônimo HTTP ${asAnon.status}, 0 linha(s)`;
 });
+// R1 (docs/supabase-financial-session-revocation.sql): depois do logout, o JWT
+// copiado deixa de valer também no PostgREST direto, não só na API do Arandu.
+const restAs = async (jwt, path, init = {}) => {
+  const r = await fetchT(`${SB}/rest/v1/${path}`, { ...init, headers: { apikey: ANON, Authorization: `Bearer ${jwt}`, 'Content-Type': 'application/json' } });
+  const body = await r.json().catch(() => null);
+  return { status: r.status, code: body?.code || null };
+};
+const gotrueLogin = async () => {
+  const r = await fetchT(`${SB}/auth/v1/token?grant_type=password`, { method: 'POST', headers: { apikey: ANON, 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
+  const data = await r.json();
+  must(r.ok && data.access_token, `login GoTrue: HTTP ${r.status}`);
+  return data;
+};
+await check('Sessão: hook de revogação registrado no PostgREST', async () => {
+  const config = sql("select array_to_string(rolconfig, ',') from pg_roles where rolname = 'authenticator'");
+  must(config.includes('pgrst.db_pre_request=public.fin_request_session_guard'), `authenticator sem o hook (${config})`);
+  return 'pgrst.db_pre_request=public.fin_request_session_guard';
+});
+await check('Sessão: logout local encerra só aquela sessão; a outra segue valendo', async () => {
+  const a = await gotrueLogin();
+  const b = await gotrueLogin();
+  must((await restAs(a.access_token, 'fin_organizations?select=id')).status === 200, 'pré-condição: sessão A ativa');
+  const out = await fetchT(`${SB}/auth/v1/logout?scope=local`, { method: 'POST', headers: { apikey: ANON, Authorization: `Bearer ${a.access_token}` } });
+  must(out.status === 204, `logout local: HTTP ${out.status}`);
+  const table = await restAs(a.access_token, 'fin_organizations?select=id');
+  const rpc = await restAs(a.access_token, 'rpc/fin_platform_role', { method: 'POST', body: '{}' });
+  const write = await restAs(a.access_token, 'rpc/fin_create_organization', { method: 'POST', body: JSON.stringify({ p_name: 'Intruso pós-logout', p_kind: 'BUYER', p_country: 'BR' }) });
+  const other = await restAs(b.access_token, 'fin_organizations?select=id');
+  must(table.status === 401 && table.code === 'session_revoked', `tabela com token encerrado: HTTP ${table.status} ${table.code}`);
+  must(rpc.status === 401 && write.status === 401, `RPC com token encerrado: leitura ${rpc.status}, escrita ${write.status}`);
+  must(sql("select count(*) from public.fin_organizations where legal_name = 'Intruso pós-logout'") === '0', 'escrita com token encerrado chegou ao banco');
+  must(other.status === 200, `outra sessão derrubada pelo logout local: HTTP ${other.status}`);
+  return 'A: tabela 401, RPC 401, escrita 401 (nada gravado); B: 200';
+});
+await check('Sessão: logout pela API do Arandu derruba o token no PostgREST direto', async () => {
+  const token = decodeSessionValue(decodeURIComponent(cookie.split('=')[1])).access_token;
+  must((await restAs(token, 'fin_organizations?select=id')).status === 200, 'pré-condição: sessão da API ativa');
+  const out = await fetchT(`${APP}/api/auth/logout`, { method: 'POST', headers: { Origin: APP, Cookie: cookie, 'Content-Type': 'application/json' }, body: '{}' });
+  must(out.status === 200, `logout da API: HTTP ${out.status}`);
+  const api = await fetchT(`${APP}/api/auth/session`, { headers: { Cookie: cookie } });
+  const apiState = await api.json();
+  const direct = await restAs(token, 'fin_organizations?select=id');
+  must(apiState.authenticated === false, 'API ainda autentica o cookie antigo');
+  must(direct.status === 401 && direct.code === 'session_revoked', `PostgREST aceitou o token depois do logout: HTTP ${direct.status} ${direct.code}`);
+  return 'API: não autenticado; PostgREST: 401 session_revoked';
+});
+await check('Sessão: service_role e anon não passam pela checagem de sessão', async () => {
+  const service = await restAs(SERVICE, 'fin_settings?select=key&limit=1');
+  const anon = await fetchT(`${SB}/rest/v1/fin_rfqs?select=id`, { headers: { apikey: ANON } });
+  must(service.status === 200, `service_role: HTTP ${service.status}`);
+  must(anon.status !== 200 || (await anon.json()).length === 0, 'anon leu fin_rfqs');
+  return `service_role 200; anon ${anon.status} como antes`;
+});
 await check('Auth: conta descartável removida', async () => {
   must(userId, 'sem conta para remover');
   const r = await fetchT(`${SB}/auth/v1/admin/users/${userId}`, { method: 'DELETE', headers: { apikey: SERVICE, Authorization: `Bearer ${SERVICE}` } });
   must(r.ok, `HTTP ${r.status}`);
   must(sql(`select count(*) from auth.users where id = '${userId}'`) === '0', 'conta ainda existe');
+  must(sql(`select count(*) from auth.sessions where user_id = '${userId}'`) === '0', 'sessões da conta removida continuam em auth.sessions');
   return 'removida do auth.users';
 });
 
