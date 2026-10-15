@@ -21,7 +21,7 @@ import { digestFile } from '../lib/recovery-transfer.mjs';
 import {
   INVENTORY_SQL, MAX_OBJECT_BYTES, STORAGE_DIR, STORAGE_INDEX, STORAGE_MANIFEST, STORAGE_FORMAT_VERSION,
   StorageRecoveryError, storageFail, parseInventory, assessInventory, indexEntry, objectFile, parseIndex,
-  storageManifest, checkManifest, reconcileStorage, digest, sha256, STORAGE_RECORD, validStorageRecord
+  storageManifest, checkManifest, reconcileStorage, digest, sha256, STORAGE_RECORD, validStorageRecord, validPermissionEvidence, STORAGE_DENIED_STATUSES
 } from '../lib/storage-recovery.mjs';
 
 const RECIPIENT = /^age1[0-9a-z]{58}$/;
@@ -156,10 +156,17 @@ export async function exportStorage({ env = process.env, root = process.cwd(), f
 /**
  * Evidência de binários para um export do banco: algum `arandu-storage-*` dentro
  * dele com manifesto e ciphertexts íntegros, a mesma quantidade de objetos do
- * snapshot do banco e um registro de restore isolado reconciliado (MATCH,
+ * snapshot do banco, mesma origem/classificação e digest do conjunto capturado
+ * no mesmo snapshot do dump, e registro de restore isolado reconciliado (MATCH,
  * permissões negadas). Nunca descriptografa nada.
  */
-export async function storageEvidence(databaseExport, expectedObjects) {
+export async function storageEvidence(databaseExport, databaseManifest) {
+  const expectedObjects = databaseManifest?.snapshot_counts?.['storage.objects'];
+  const expectedInventory = databaseManifest?.storage_snapshot_inventory_sha256;
+  if (!Number.isSafeInteger(expectedObjects) || !/^[a-f0-9]{64}$/.test(expectedInventory || '')) return [];
+  const synthetic = databaseManifest.classification === 'synthetic_encrypted_export';
+  const source = synthetic ? 'local-synthetic' : databaseManifest.project_ref;
+  const classification = synthetic ? 'synthetic_storage_export' : 'storage_binary_export';
   const found = [];
   for (const name of fs.readdirSync(databaseExport).filter((n) => /^arandu-storage-[a-z0-9-]+$/.test(n))) {
     const dir = path.join(databaseExport, name);
@@ -167,7 +174,8 @@ export async function storageEvidence(databaseExport, expectedObjects) {
     if (stat.isSymbolicLink() || !stat.isDirectory() || (stat.mode & 0o077) !== 0) continue;
     let manifest;
     try { manifest = await openExport(dir); } catch { continue; }
-    if (manifest.object_count !== expectedObjects) continue;
+    if (manifest.object_count !== expectedObjects || manifest.source !== source || manifest.classification !== classification ||
+        manifest.snapshot_inventory_sha256 !== expectedInventory) continue;
     const records = fs.readdirSync(dir).filter((n) => STORAGE_RECORD.test(n)).flatMap((n) => {
       const file = path.join(dir, n);
       const s = fs.lstatSync(file);
@@ -218,7 +226,7 @@ function targetContext({ env, root }) {
  * objeto da própria organização nem o de outra (só a API do Arandu, com RPC de
  * autorização e service role, entrega documentos).
  */
-async function permissionProbe(fetchImpl, base, secret, index, target) {
+export async function permissionProbe(fetchImpl, base, secret, index, target) {
   const anon = signJwt(secret, { role: 'anon' });
   const checks = [];
   const privateObjects = index.objects.filter((o) => index.buckets.find((b) => b.id === o.bucket)?.public === false);
@@ -231,7 +239,7 @@ async function permissionProbe(fetchImpl, base, secret, index, target) {
     const response = await http(fetchImpl, url, { headers: token ? { apikey: token, Authorization: `Bearer ${token}` } : {} });
     const status = response?.status ?? 0;
     await response?.arrayBuffer().catch(() => {});
-    checks.push({ name, status, denied: status >= 400 && status < 500 });
+    checks.push({ name, status, denied: STORAGE_DENIED_STATUSES.includes(status) });
   };
   const at = (o, mode = 'authenticated') => `${base}/object/${mode}/${o.bucket}/${encodeName(o.name)}`;
   await probe('public_url', at(sample, 'public'), null);
@@ -241,8 +249,22 @@ async function permissionProbe(fetchImpl, base, secret, index, target) {
     await probe('member_own_org_direct', at(sample), member);
     if (foreign) await probe('member_other_org_direct', at(foreign), member);
   }
-  const result = checks.length >= 2 && checks.every((c) => c.denied) ? 'DENIED_AS_EXPECTED' : 'EXPOSED';
-  return { result, checks: checks.map(({ name, status, denied }) => ({ name, status, denied })) };
+  const cross_tenant_required = Boolean(foreign);
+  const complete = Boolean(user) && (!foreign || checks.some((c) => c.name === 'member_other_org_direct'));
+  const result = !complete ? 'INCONCLUSIVE' : checks.every((c) => c.denied) ? 'DENIED_AS_EXPECTED' : 'EXPOSED';
+  return { result, cross_tenant_required, checks: checks.map(({ name, status, denied }) => ({ name, status, denied })) };
+}
+
+/** Subprocesso inválido nunca equivale a ausência comprovada de membros. */
+export function parseTargetMembers(result) {
+  if (result.error || result.status !== 0) storageFail('STORAGE_TARGET_MEMBERS_FAILED', 'Consulta de membros restaurados falhou; detalhes omitidos.');
+  let members;
+  try { members = JSON.parse(result.stdout.trim()); } catch { storageFail('STORAGE_TARGET_MEMBERS_FAILED', 'Consulta de membros restaurados ilegível.'); }
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+  if (!Array.isArray(members) || !members.every((m) => uuid.test(m?.organization_id || '') && uuid.test(m?.user_id || ''))) {
+    storageFail('STORAGE_TARGET_MEMBERS_FAILED', 'Consulta de membros restaurados inválida.');
+  }
+  return members;
 }
 
 function targetInventory(context, env) {
@@ -250,9 +272,7 @@ function targetInventory(context, env) {
   const members = spawnSync('psql', ['-X', '-q', '-At', '-v', 'ON_ERROR_STOP=1', '-c',
     "select coalesce(json_agg(json_build_object('organization_id', organization_id, 'user_id', user_id)), '[]'::json) from public.fin_members"],
   { env: { PATH: env.PATH, HOME: env.HOME, ...context.database }, encoding: 'utf8', timeout: 30000 });
-  let parsed = [];
-  try { parsed = JSON.parse(members.stdout.trim() || '[]'); } catch { parsed = []; }
-  return { ...inventory, members: Array.isArray(parsed) ? parsed : [] };
+  return { ...inventory, members: parseTargetMembers(members) };
 }
 
 async function reconcileTarget({ context, index, env, fetchImpl }) {
@@ -312,7 +332,7 @@ export async function restoreStorage({ env = process.env, root = process.cwd(), 
   const { comparison, permissions } = await reconcileTarget({ context, index, env, fetchImpl });
   const record = writeRecord(context.backup, manifest, { mode: 'restore', comparison, permissions, seconds: Math.round((Date.now() - started) / 1000) });
   if (comparison.result !== 'MATCH') storageFail('STORAGE_RECONCILIATION_MISMATCH', `Reconciliação do Storage divergente (${[...new Set(comparison.differences.map((d) => d.kind))].join(', ')}).`);
-  if (permissions.result !== 'DENIED_AS_EXPECTED') storageFail('STORAGE_PERMISSIONS_EXPOSED', 'Storage restaurado expõe objetos fora do caminho autorizado.');
+  if (!validPermissionEvidence(permissions)) storageFail('STORAGE_PERMISSIONS_EXPOSED', 'Permissões Storage não comprovadas ou expostas fora do caminho autorizado.');
   return record;
 }
 
@@ -323,6 +343,7 @@ export async function verifyStorage({ env = process.env, root = process.cwd(), f
   const { comparison, permissions } = await reconcileTarget({ context, index, env, fetchImpl });
   const record = writeRecord(context.backup, manifest, { mode: 'verify', comparison, permissions, seconds: 0 });
   if (comparison.result !== 'MATCH') storageFail('STORAGE_RECONCILIATION_MISMATCH', `Reconciliação do Storage divergente (${[...new Set(comparison.differences.map((d) => d.kind))].join(', ')}).`);
+  if (!validPermissionEvidence(permissions)) storageFail('STORAGE_PERMISSIONS_EXPOSED', 'Permissões Storage não comprovadas ou expostas fora do caminho autorizado.');
   return record;
 }
 
