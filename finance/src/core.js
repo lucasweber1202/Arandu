@@ -85,7 +85,7 @@ export function percent(value) {
 const ENUM_LABELS = {
   capital_de_giro: 'Capital de giro', investimento: 'Investimento', expansao: 'Expansão', refinanciamento: 'Refinanciamento',
   antecipacao_recebiveis: 'Antecipação de recebíveis', outro: 'Outro', baixa: 'Baixa', media: 'Média', alta: 'Alta',
-  pre: 'Pré-fixado', cdi: 'CDI', ipca: 'IPCA', selic: 'Selic', tr: 'TR', price: 'PRICE', sac: 'SAC', bullet: 'Bullet', customizada: 'Customizada'
+  pre: 'Pré-fixado', cdi: 'CDI', ipca: 'IPCA', selic: 'Selic', tr: 'TR', tjlp: 'TJLP', sofr: 'SOFR', usd: 'Variação do dólar (USD)', other: 'Outro', price: 'PRICE', sac: 'SAC', bullet: 'Bullet', customizada: 'Customizada'
 };
 export function enumLabel(value) { return ENUM_LABELS[value] || String(value); }
 

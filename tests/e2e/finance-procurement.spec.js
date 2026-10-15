@@ -699,3 +699,47 @@ for (const [status, warned] of [[503, true], [200, false]]) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
   });
 }
+
+test('decisão e pedido de aprovação: com mais de uma proposta nada vem marcado; a escolha é explícita', async ({ page }) => {
+  await mockSession(page);
+  const posts = [];
+  await page.route('**/api/finance/decisions', (route) => {
+    if (route.request().method() !== 'POST') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, rows: [] }) });
+    posts.push(route.request().postDataJSON());
+    return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ ok: true, id: 'd1' }) });
+  });
+  await page.goto(`/finance/rfq.html?id=${RFQ}#decisao`);
+  await page.getByRole('tab', { name: 'Decisão' }).click();
+  // A primeira da lista não é recomendação: nenhuma proposta pré-selecionada.
+  await expect(page.getByRole('radio', { name: /Banco Um/ })).not.toBeChecked();
+  await expect(page.getByRole('radio', { name: /Banco Dois/ })).not.toBeChecked();
+  await page.getByRole('button', { name: 'Registrar decisão' }).click();
+  await expect(page.locator('#decision-form').getByRole('alert')).toHaveText('Escolha a proposta da decisão.');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByRole('radio', { name: /Banco Um/ })).toBeFocused();
+  await page.getByRole('radio', { name: /Banco Dois/ }).check();
+  await expect(page.locator('#decision-form').getByRole('alert')).toBeHidden();
+  await page.getByRole('button', { name: 'Registrar decisão' }).click();
+  await expect(page.getByRole('dialog')).toContainText('Registrar a escolha de Banco Dois?');
+  await page.getByRole('dialog').getByRole('button', { name: 'Registrar decisão' }).click();
+  await expect.poll(() => posts.length).toBe(1);
+  expect(posts[0]).toMatchObject({ proposal_id: 'p2', expected_version: 1 });
+
+  // Pedido de aprovação: mesma regra; sem escolha, nada é enviado.
+  let requested = 0;
+  await page.route('**/api/finance/approvals/request', (route) => { requested += 1; return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ ok: true }) }); });
+  await page.goto(`/finance/rfq.html?id=${RFQ}#aprovacoes`);
+  await page.getByRole('tab', { name: /Aprovações/ }).click();
+  const form = page.locator('#approval-request');
+  await expect(form.getByRole('radio', { name: /Banco Um/ })).not.toBeChecked();
+  await expect(form.getByText(/Escolha a proposta para ver quem aprova/)).toBeVisible();
+  await form.locator('textarea[name="rationale"]').fill('Contexto para quem aprova.');
+  await form.getByRole('button', { name: 'Solicitar aprovação' }).click();
+  await expect(form.getByText('Escolha a proposta que vai para aprovação.')).toBeVisible();
+  expect(requested).toBe(0);
+  await form.getByRole('radio', { name: /Banco Dois/ }).check();
+  await expect(form.getByText('Aprovadores, na ordem em que devem decidir')).toBeVisible();
+  await form.getByLabel(/Rui Tavares/).check();
+  await form.getByRole('button', { name: 'Solicitar aprovação' }).click();
+  await expect.poll(() => requested).toBe(1);
+});

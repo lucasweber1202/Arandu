@@ -85,11 +85,16 @@ export function actionItems(ctx, approvals) {
       }
     }
   }
+  const contractsById = new Map((data.contracts || []).map((row) => [row.id, row]));
   for (const task of data.tasks || []) {
     const days = daysUntil(task.due_on);
     if (task.assignee_id && task.assignee_id !== viewer) continue;
+    // Tarefa de contrato diz de qual contrato é: "Obrigação: Dívida líquida"
+    // sozinha não dizia com qual instituição.
+    const contract = task.related_type === 'contract' ? contractsById.get(task.related_id) : null;
+    const about = contract ? `${contract.provider_name || 'Contrato'} · ${productLabel(contract.product, { short: true })} · ` : '';
     if (days !== null && days <= 2) items.push({ rank: days < 0 ? 1 : 3, due: days, taskId: task.id, tone: days < 0 ? 'danger' : 'neutral', icon: 'tasks', kind: 'Tarefa', title: task.title,
-      detail: days < 0 ? `Vencida ${relativeDays(task.due_on)}` : `Prazo ${relativeDays(task.due_on)}`, cta: 'Ver', href: ctx.href(`/finance/tasks.html#task-${task.id}`) });
+      detail: `${about}${days < 0 ? `Vencida ${relativeDays(task.due_on)}` : `Prazo ${relativeDays(task.due_on)}`}`, cta: 'Ver', href: ctx.href(`/finance/tasks.html#task-${task.id}`) });
   }
   // Mesmo nível de prioridade: o que vence antes vem primeiro.
   const due = (item) => (Number.isFinite(item.due) ? item.due : 9999);

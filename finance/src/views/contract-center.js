@@ -211,7 +211,14 @@ function openImportContract(ctx, entities) {
     el('p', { class: 'callout callout-info compact' }, [icon('info', { size: 14 }), el('span', { text: 'Registre o que está no contrato assinado. O Arandu não calcula nem infere termos; correções futuras viram nova versão com justificativa.' })])
   );
   const save = button('Registrar contrato', { variant: 'primary', type: 'submit', iconName: 'check', attrs: { form: 'contract-import-form' } });
-  const dialog = drawer({ title: 'Registrar contrato existente', subtitle: 'Carteira atual da empresa, fora de uma concorrência no Arandu.', body: form, footer: [button('Cancelar', { variant: 'ghost', onClick: () => dialog.close() }), save] });
+  // Formulário longo num painel: clique fora, Esc ou Cancelar com dados
+  // preenchidos pedem confirmação em vez de descartar o que foi digitado.
+  let dirty = false;
+  form.addEventListener('input', () => { dirty = true; });
+  form.addEventListener('change', () => { dirty = true; });
+  const confirmClose = () => !dirty || confirmDialog({ title: 'Descartar o registro do contrato?', description: 'O que você preencheu ainda não foi gravado e será perdido.', confirmLabel: 'Descartar', tone: 'danger' });
+  const dialog = drawer({ title: 'Registrar contrato existente', subtitle: 'Carteira atual da empresa, fora de uma concorrência no Arandu.', body: form, confirmClose,
+    footer: [button('Cancelar', { variant: 'ghost', onClick: () => dialog.dismiss() }), save] });
 
   const validate = () => {
     const errors = [];
@@ -284,7 +291,7 @@ export function openContract(ctx, contract, { initialDetail = null } = {}) {
       el('div', { class: 'version-head' }, [tag(`v${version.version}`, 'accent'), el('strong', { text: SOURCE_LABELS[version.source] || version.source }),
         el('span', { class: 'muted small', text: `vigência ${formatDate(version.effective_from)} · registrada ${formatDateTime(version.recorded_at)}` })]),
       version.reason ? el('p', { class: 'small', text: `Justificativa: ${version.reason}` }) : null,
-      version.changes.length ? el('ul', { class: 'diff-list' }, version.changes.map((change) => el('li', { text: `${change.label}: ${change.change === 'added' ? 'incluído' : change.change === 'removed' ? 'removido' : 'alterado'} — ${formatDiff(change.before)} → ${formatDiff(change.after)}` }))) : null
+      version.changes.length ? el('ul', { class: 'diff-list' }, version.changes.map((change) => el('li', { text: `${change.label}: ${change.change === 'added' ? 'incluído' : change.change === 'removed' ? 'removido' : 'alterado'} — ${formatDiff(current, change.key, change.before)} → ${formatDiff(current, change.key, change.after)}` }))) : null
     ])));
     const termsActions = manage ? button(current.current_version ? 'Corrigir termos (nova versão)' : 'Estruturar termos', { size: 'sm', iconName: 'edit', onClick: () => termsForm(current, effective?.terms || {}) }) : null;
     sections.push(el('section', { class: 'cc-section' }, [el('div', { class: 'cc-head' }, [el('h3', { text: `Termos vigentes${effective ? ` (v${effective.version})` : ''}` }), termsActions]),
@@ -323,10 +330,13 @@ export function openContract(ctx, contract, { initialDetail = null } = {}) {
     return sections;
   }
 
-  function formatDiff(value) {
-    if (value === null || value === undefined) return '—';
-    if (Array.isArray(value)) return `${value.length} tarifa(s)`;
-    return String(value);
+  // Mesma leitura dos termos vigentes: moeda, percentual e indexador por
+  // extenso. Antes o histórico mostrava "5000000 → 5100000" e o código "cdi".
+  function formatDiff(current, key, value) {
+    if (value === null || value === undefined || value === '') return 'não informado';
+    if (Array.isArray(value)) return `${value.length} ${value.length === 1 ? 'tarifa' : 'tarifas'}`;
+    const spec = contractTermFields(current.product).find((item) => item.key === key);
+    return (spec && termValue(spec, value, current.currency)) || String(value);
   }
 
   function termsForm(current, terms) {

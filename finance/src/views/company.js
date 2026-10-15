@@ -246,6 +246,8 @@ export async function contracts(ctx) {
       el('div', { class: `next-action-box tone-${next.tone}` }, [icon(next.icon, { size: 16 }), el('span', { class: 'next-action-label', text: 'Próxima ação' }), el('span', { class: 'next-action-text', text: next.text }), restart]),
       el('dl', { class: 'deflist deflist-3' }, [
         ['Vigência', `${formatDate(contract.starts_on)} → ${formatDate(contract.ends_on)}`], ['Prazo do aviso prévio', `${contract.renewal_notice_days} dias antes do fim · ${formatDate(contract.review_from)}`],
+        // Quem responde pelo contrato: a renovação e os marcos têm dono.
+        ['Responsável', contract.owner_id ? memberName(ctx.members, contract.owner_id) : 'Não informado'],
         ['Custo registrado', contract.cost_summary || 'Não informado'], contract.main_conditions ? ['Condições', contract.main_conditions] : null,
         contract.document_reference ? ['Documento', contract.document_reference] : null
       ].filter(Boolean).map(([label, value]) => el('div', { class: 'deflist-row' }, [el('dt', { text: label }), el('dd', { class: value === 'Não informado' ? 'missing' : '', text: value })]))),
@@ -382,6 +384,7 @@ export async function tasks(ctx) {
       const visible = (rows || []).filter((row) => showDone || row.status === 'open');
       const list = el('ul', { class: 'task-list', role: 'list' });
       const rfqs = new Map((ctx.data.rfqs || []).map((rfq) => [rfq.id, rfq]));
+      const contractsById = new Map((ctx.data.contracts || []).map((row) => [row.id, row]));
       for (const task of visible) {
         const days = daysUntil(task.due_on);
         const check = el('input', { type: 'checkbox', checked: task.status === 'done', 'aria-label': `${task.status === 'done' ? 'Reabrir' : 'Concluir'}: ${task.title}` });
@@ -393,10 +396,15 @@ export async function tasks(ctx) {
             draw();
           } catch (error) { toast(error.message, 'error'); check.checked = !check.checked; check.disabled = false; }
         });
+        // Tarefa de contrato diz qual contrato e quando ele vence de fato:
+        // concluir a tarefa não muda o vencimento nem o aviso prévio.
+        const contract = task.related_type === 'contract' ? contractsById.get(task.related_id) : null;
         const related = task.related_type === 'rfq' && rfqs.get(task.related_id) ? el('a', { href: ctx.href(`/finance/rfq.html?id=${task.related_id}`), text: rfqs.get(task.related_id).title })
-          : task.related_type === 'contract' ? el('a', { href: ctx.href(`/finance/contracts.html#contract-${task.related_id}`), text: 'Ver contrato' }) : null;
+          : task.related_type === 'contract' ? el('a', { href: ctx.href(`/finance/contracts.html#contract-${task.related_id}`), text: contract ? `${contract.provider_name || 'Contrato'} · ${contract.title || CONTRACT_CATEGORIES[contract.product] || 'contrato'}` : 'Ver contrato' }) : null;
+        const contractDue = contract && ['active', 'renewing'].includes(contract.status) && contract.ends_on
+          ? el('span', { class: 'task-contract-due', text: `Contrato vence em ${formatDate(contract.ends_on)}${contract.review_from ? ` · aviso prévio até ${formatDate(contract.review_from)}` : ''}` }) : null;
         list.append(el('li', { class: `task-item${task.status === 'done' ? ' done' : ''}${location.hash === `#task-${task.id}` ? ' highlighted' : ''}`, id: `task-${task.id}` }, [
-          check, el('div', { class: 'task-main' }, [el('span', { class: 'task-title', text: task.title }), el('span', { class: 'task-meta' }, [task.assignee_name ? `${task.assignee_name}` : null, related ? ' · ' : null, related].filter(Boolean))]),
+          check, el('div', { class: 'task-main' }, [el('span', { class: 'task-title', text: task.title }), el('span', { class: 'task-meta' }, [task.assignee_name ? `${task.assignee_name}` : null, task.assignee_name && related ? ' · ' : null, related].filter(Boolean)), contractDue]),
           task.due_on ? el('span', { class: `task-due${task.status === 'open' && days < 0 ? ' overdue' : task.status === 'open' && days <= 2 ? ' soon' : ''}` }, [icon('calendar', { size: 12 }), el('span', { text: `${formatDate(task.due_on, { withYear: false })}${task.status === 'open' ? ` · ${relativeDays(task.due_on)}` : ''}` })]) : null
         ]));
       }

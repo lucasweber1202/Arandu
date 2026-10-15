@@ -21,7 +21,7 @@ const DETAIL = {
   renewal_milestones: [], children: []
 };
 
-async function mockSession(page, { providers = [{ id: PROVIDER, name: 'Banco Carteira', status: 'active' }], contracts = [CONTRACT_ROW], importReply = null } = {}) {
+async function mockSession(page, { providers = [{ id: PROVIDER, name: 'Banco Carteira', status: 'active' }], contracts = [CONTRACT_ROW], importReply = null, tasks = [], detail = DETAIL } = {}) {
   const calls = [];
   await page.route('**/api/finance/**', async (route) => {
     const request = route.request();
@@ -31,10 +31,11 @@ async function mockSession(page, { providers = [{ id: PROVIDER, name: 'Banco Car
     calls.push({ method: request.method(), path, body });
     const json = (payload, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(payload) });
     if (path === 'organizations') return json({ ok: true, rows: [{ id: ORG, kind: 'BUYER', legal_name: 'Grupo Vitta' }] });
-    if (path === 'overview') return json({ ok: true, organization: { id: ORG, kind: 'BUYER', legal_name: 'Grupo Vitta' }, profile: [], tasks: [], rfqs: [],
+    if (path === 'overview') return json({ ok: true, organization: { id: ORG, kind: 'BUYER', legal_name: 'Grupo Vitta' }, profile: [], tasks: tasks.filter((task) => task.status === 'open'), rfqs: [],
       providers, contracts });
     if (path === 'members') return json({ ok: true, rows: [{ user_id: 'u1', role: 'finance_manager', display_name: 'Paula Nogueira', title: 'Tesouraria' }], viewer_id: 'u1' });
-    if (path === 'contract-detail') return json(DETAIL);
+    if (path === 'contract-detail') return json(detail);
+    if (path === 'tasks' && request.method() === 'GET') return json({ ok: true, rows: tasks });
     if (path === 'contract-import') return importReply ? json(importReply.body, importReply.status) : json({ ok: true, id: '00000000-0000-4000-8000-0000000000d9' }, 201);
     if (path === 'providers' && request.method() === 'POST') return json({ ok: true, row: { id: NEW_PROVIDER, name: body.name } }, 201);
     if (path === 'contract-amendments') return json({ ok: true, id: 'a1' }, 201);
@@ -63,7 +64,8 @@ test('contrato da carteira: termos vigentes, histórico com diff e marco recorre
   await expect(panel.getByText(/TAC:/)).toBeVisible();
   await panel.getByText('Histórico de versões (2)').click();
   await expect(panel.getByText('Justificativa: Valor digitado errado')).toBeVisible();
-  await expect(panel.getByText(/Valor principal contratado: alterado — 5000000 → 5100000/)).toBeVisible();
+  // Valores do histórico com moeda formatada, nunca o número cru.
+  await expect(panel.getByText(/Valor principal contratado: alterado — R\$\s5\.000\.000 → R\$\s5\.100\.000/)).toBeVisible();
   await expect(panel.getByText('Enviar demonstrações')).toBeVisible();
   await expect(panel.getByRole('button', { name: 'Concluir ocorrência' })).toBeVisible();
   await noHorizontalOverflow(page);
@@ -305,5 +307,76 @@ test('contrato já registrado: recusa explicada no título e contrato principal 
   await expect(form.getByText(/já está na carteira/)).toBeVisible();
   expect(calls.find((call) => call.path === 'contract-import')?.body.parent_contract_id).toBe(CONTRACT);
   await expect(page.getByRole('button', { name: 'Registrar contrato', exact: true })).toBeEnabled();
+  await noHorizontalOverflow(page);
+});
+
+test('histórico de versões: indexador e percentuais por extenso, ausência explícita', async ({ page }) => {
+  const detail = structuredClone(DETAIL);
+  detail.versions[0].changes = [
+    { key: 'indexer', label: 'Indexador', change: 'changed', before: 'pre', after: 'cdi' },
+    { key: 'spread_pct_year', label: 'Spread (% a.a.)', change: 'added', before: null, after: 2.1 },
+    { key: 'fees', label: 'Tarifas contratadas', change: 'changed', before: [{ service: 'TAC' }], after: [{ service: 'TAC' }, { service: 'TED' }] }
+  ];
+  await mockSession(page, { detail });
+  await page.goto('/finance/contracts.html');
+  await page.getByRole('button', { name: /Abrir contrato/ }).click();
+  const panel = page.getByRole('dialog');
+  await panel.getByText('Histórico de versões (2)').click();
+  await expect(panel.getByText('Indexador: alterado — Pré-fixado → CDI')).toBeVisible();
+  await expect(panel.getByText('Spread (% a.a.): incluído — não informado → 2,1%')).toBeVisible();
+  await expect(panel.getByText('Tarifas contratadas: alterado — 1 tarifa → 2 tarifas')).toBeVisible();
+  await expect(panel.locator('.diff-list')).not.toContainText(/\bcdi\b|\bpre\b|null|undefined/);
+});
+
+test('registrar contrato existente: clique fora, Esc ou Cancelar com dados preenchidos pedem confirmação', async ({ page }) => {
+  const calls = await mockSession(page);
+  await page.goto('/finance/contracts.html');
+  await page.getByRole('button', { name: 'Registrar contrato existente' }).click();
+  const form = page.locator('#contract-import-form');
+  // Sem nada digitado, fechar não pergunta.
+  await page.getByRole('button', { name: 'Fechar painel' }).click();
+  await expect(form).toHaveCount(0);
+  await page.getByRole('button', { name: 'Registrar contrato existente' }).click();
+  await form.getByLabel(/^Título/).fill('Conta garantida 2026');
+  // Clique no fundo (fora do painel) não descarta o que foi digitado.
+  await page.mouse.click(5, 5);
+  const ask = page.getByRole('dialog', { name: 'Descartar o registro do contrato?' });
+  await expect(ask).toBeVisible();
+  await ask.getByRole('button', { name: 'Cancelar' }).click();
+  await expect(form.getByLabel(/^Título/)).toHaveValue('Conta garantida 2026');
+  await form.getByLabel(/^Título/).press('Escape');
+  await expect(ask).toBeVisible();
+  await ask.getByRole('button', { name: 'Cancelar' }).click();
+  await expect(form.getByLabel(/^Título/)).toHaveValue('Conta garantida 2026');
+  await page.locator('.drawer-foot').getByRole('button', { name: 'Cancelar' }).click();
+  await ask.getByRole('button', { name: 'Descartar' }).click();
+  await expect(form).toHaveCount(0);
+  expect(calls.some((call) => call.path === 'contract-import')).toBe(false);
+});
+
+test('responsável do contrato e tarefa de contrato com contexto: qual contrato e quando vence de fato', async ({ page }) => {
+  const day = (offset) => { const d = new Date(); d.setDate(d.getDate() + offset); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  const contract = { ...CONTRACT_ROW, owner_id: 'u1', ends_on: day(80), review_from: day(-10), renewal_notice_days: 90 };
+  const tasks = [
+    { id: 't1', title: 'Obrigação: Dívida líquida / EBITDA', due_on: day(-3), status: 'open', related_type: 'contract', related_id: CONTRACT },
+    { id: 't2', title: 'Revisar renovação do contrato antes do aviso prévio', due_on: day(-10), status: 'done', related_type: 'contract', related_id: CONTRACT }
+  ];
+  await mockSession(page, { contracts: [contract], tasks });
+  await page.goto('/finance/contracts.html');
+  const card = page.locator('.contract-card');
+  await expect(card.locator('.deflist-row', { hasText: 'Responsável' })).toContainText('Paula Nogueira');
+
+  await page.goto('/finance/tasks.html');
+  const open = page.locator('#task-t1');
+  await expect(open.getByRole('link', { name: 'Banco Carteira · Capital de giro carteira' })).toBeVisible();
+  await expect(open).toContainText(/Contrato vence em .* · aviso prévio até/);
+  await expect(open.locator('.task-meta')).not.toContainText(/^\s*·/);
+  // Concluir a revisão não apaga o prazo real do contrato.
+  await page.getByRole('button', { name: 'Mostrar concluídas' }).click();
+  await expect(page.locator('#task-t2')).toContainText('Contrato vence em');
+
+  await page.goto('/finance/dashboard.html');
+  const item = page.locator('.action-row', { hasText: 'Obrigação: Dívida líquida / EBITDA' });
+  await expect(item).toContainText('Banco Carteira · Crédito · Vencida');
   await noHorizontalOverflow(page);
 });
