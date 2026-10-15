@@ -119,10 +119,13 @@ export function parseDay(value) {
   const time = /^\d{4}-\d{2}-\d{2}$/.test(text) ? Date.parse(`${text}T12:00:00`) : Date.parse(text);
   return Number.isFinite(time) ? new Date(time) : null;
 }
+// withYear: 'auto' omite o ano só quando a data cai no ano corrente — "09 de nov"
+// é este ano; "14 de set de 2028" nunca fica ambíguo.
 export function formatDate(value, { withYear = true } = {}) {
   const date = parseDay(value);
   if (!date) return '—';
-  return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', ...(withYear ? { year: 'numeric' } : {}) }).replace('.', '');
+  const year = withYear === 'auto' ? date.getFullYear() !== new Date().getFullYear() : withYear;
+  return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', ...(year ? { year: 'numeric' } : {}) }).replace('.', '');
 }
 export function formatDateTime(value) {
   const date = parseDay(value);
@@ -204,9 +207,16 @@ export const PROVIDER_KINDS = Object.freeze({
   bank: 'Banco', fintech: 'Fintech', acquirer: 'Adquirente', subacquirer: 'Subadquirente',
   credit_provider: 'Crédito', payment_provider: 'Pagamentos', other: 'Outro'
 });
+// Contratos da carteira cobrem categorias sem concorrência no Arandu (garantia,
+// câmbio, seguro…): o rótulo nunca cai no código interno da categoria.
+const CATEGORY_LABELS = Object.freeze({
+  credit: ['Crédito', 'Crédito empresarial'], acquiring: ['Adquirência', 'Adquirência e meios de pagamento'],
+  cash_management: ['Cash management', 'Cash management / serviços bancários'], guarantee: ['Garantia', 'Garantia / fiança / seguro-garantia'],
+  fx: ['Câmbio', 'Câmbio'], insurance: ['Seguro', 'Seguro'], other: ['Outro produto', 'Outro produto financeiro']
+});
 export function productLabel(id, { short = false } = {}) {
-  if (short) return id === 'credit' ? 'Crédito' : id === 'acquiring' ? 'Adquirência' : String(id || '');
-  return PRODUCTS[id]?.label || String(id || '');
+  if (short) return CATEGORY_LABELS[id]?.[0] || (id ? 'Produto financeiro' : '');
+  return PRODUCTS[id]?.label || CATEGORY_LABELS[id]?.[1] || (id ? 'Produto financeiro' : '');
 }
 
 /** Resumo de uma linha da demanda, usado em listas e na caixa de aprovação. */

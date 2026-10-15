@@ -159,8 +159,17 @@ function lifecycleBar(contract) {
     ['Início', contract.starts_on, today >= start], ['90 dias', new Date(end - 90 * 86400000).toISOString().slice(0, 10), today >= end - 90 * 86400000],
     ['60 dias', new Date(end - 60 * 86400000).toISOString().slice(0, 10), today >= end - 60 * 86400000], ['30 dias', new Date(end - 30 * 86400000).toISOString().slice(0, 10), today >= end - 30 * 86400000],
     ['Aviso prévio', new Date(notice).toISOString().slice(0, 10), today >= notice], ['Vencimento', contract.ends_on, today >= end]
-  ].filter(([, date]) => date >= contract.starts_on).sort((a, b) => a[1].localeCompare(b[1]) || (a[0] === 'Aviso prévio' ? -1 : 1)).map(([label, date, reached]) => el('li', { class: `life-point${reached ? ' reached' : ''}` }, [el('span', { class: 'life-point-label', text: label }), el('span', { class: 'life-point-date', text: formatDate(date, { withYear: false }) }), reached ? el('span', { class: 'sr-only', text: '(alcançado)' }) : null])));
+  ].filter(([, date]) => date >= contract.starts_on).sort((a, b) => a[1].localeCompare(b[1]) || (a[0] === 'Aviso prévio' ? -1 : 1)).map(([label, date, reached]) => el('li', { class: `life-point${reached ? ' reached' : ''}` }, [el('span', { class: 'life-point-label', text: label }), el('span', { class: 'life-point-date', text: formatDate(date, { withYear: 'auto' }) }), reached ? el('span', { class: 'sr-only', text: '(alcançado)' }) : null])));
   return el('div', { class: 'lifecycle-bar', role: 'img', 'aria-label': `Vigência de ${formatDate(contract.starts_on)} a ${formatDate(contract.ends_on)}; aviso prévio em ${formatDate(new Date(notice).toISOString().slice(0, 10))}` }, [bar, legend]);
+}
+
+// Dias até o vencimento pelo calendário de quem lê (daysUntil), a mesma conta
+// do Painel. O days_to_end da API arredonda a partir do instante da requisição
+// e, à tarde, dá um dia a menos que o Painel para o mesmo contrato.
+function contractDays(contract) {
+  const days = daysUntil(contract.ends_on);
+  if (days === null || !['active', 'renewing'].includes(contract.status)) return null;
+  return el('span', { class: `contract-days${days <= 60 ? ' warn' : ''}`, text: days === 0 ? 'vence hoje' : days === 1 ? 'vence amanhã' : days > 1 ? `vence em ${days} dias` : 'vencido' });
 }
 
 function contractNextAction(contract) {
@@ -231,8 +240,7 @@ export async function contracts(ctx) {
           el('h2', { class: 'contract-title', text: contract.provider_name || 'Provedor' }),
           entities.rows.length ? el('p', { class: 'contract-entity', 'aria-label': `Entidade: ${entityName(entities, contract.legal_entity_id)}` }, contractEntityControl(ctx, entities, contract)) : null
         ]),
-        el('div', { class: 'contract-status' }, [pill(CONTRACT_STATUS[contract.status]), contract.days_to_end !== null && contract.days_to_end !== undefined && ['active', 'renewing'].includes(contract.status)
-          ? el('span', { class: `contract-days${contract.days_to_end <= 60 ? ' warn' : ''}`, text: contract.days_to_end === 0 ? 'vence hoje' : contract.days_to_end === 1 ? 'vence amanhã' : contract.days_to_end > 1 ? `vence em ${contract.days_to_end} dias` : 'vencido' }) : null])
+        el('div', { class: 'contract-status' }, [pill(CONTRACT_STATUS[contract.status]), contractDays(contract)])
       ]),
       ['active', 'renewing'].includes(contract.status) ? lifecycleBar(contract) : null,
       el('div', { class: `next-action-box tone-${next.tone}` }, [icon(next.icon, { size: 16 }), el('span', { class: 'next-action-label', text: 'Próxima ação' }), el('span', { class: 'next-action-text', text: next.text }), restart]),
