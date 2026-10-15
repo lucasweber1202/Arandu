@@ -72,6 +72,15 @@ nas telas alteradas), estados (vazio/erro/sem permissão inalterados), teclado
 | Firefox e WebKit | **NOT RUN** — só o Chromium 1194 está instalado no container; a versão do `@playwright/test` espera outro build e o projeto proíbe `playwright install` aqui. Rodam no job `presentation`/`validate` do CI. |
 | `npm run test:database` | **NOT RUN** — sem SQL nesta PR |
 
+## CI da PR
+
+- Run `38751774500` (HEAD `5a2af02`): `database`, `deploy-boundaries` e `validate` PASS; `presentation` FAIL em um caso,
+  `demo-workspace-v2.spec.js` › "celular: contexto compacto…": `.ft-token` mediu `43.999969…` contra o mínimo de 44 px, nas três
+  tentativas. O alvo vem de `min-height:44px` no sandbox legado (não alterado aqui); localmente, nesta branch e na `main`, mede
+  exatamente 44 px na mesma posição (y = 319,67). O valor é ruído de ponto flutuante do Chromium do runner. Correção do teste: a
+  altura é arredondada para a unidade de layout do Chromium (1/64 px) antes da comparação; prova negativa: com o alvo reduzido a
+  43,9 px o teste falha (`43.890625`).
+
 ## Dependências registradas para o backend (não implementadas aqui)
 
 | Endpoint | Entrada | Esperado | Atual | Impacto | Sev. |

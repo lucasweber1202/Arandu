@@ -287,7 +287,10 @@ test('celular: contexto compacto no lugar de esconder, alvos de toque e navegaç
   await expect(acquiring.locator('.responses-compact')).toBeVisible();
   await expect(acquiring.locator('.responses-compact')).toHaveText(/^2\/3 respostas · \d+d$/);
   for (const selector of ['.ft-token', '.dw-tabbar .tab-item', '.page-actions .btn-primary']) {
-    const height = await page.locator(selector).first().evaluate((node) => node.getBoundingClientRect().height);
+    // Altura na unidade de layout do Chromium (1/64 px): getBoundingClientRect
+    // pode devolver 43,99997 para um min-height de 44 px (ruído de ponto
+    // flutuante). Um alvo de fato menor que 44 px continua falhando.
+    const height = await page.locator(selector).first().evaluate((node) => Math.round(node.getBoundingClientRect().height * 64) / 64);
     expect(height, selector).toBeGreaterThanOrEqual(44);
   }
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
