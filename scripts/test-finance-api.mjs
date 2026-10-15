@@ -430,6 +430,81 @@ await rejects('POST', 'documents', { body: { organization_id: BUYER, entity_type
 reset((entry) => (entry.url.includes('fin_organizations') ? orgRow(BUYER, 'BUYER') : []));
 await rejects('PATCH', 'tasks', { body: { organization_id: BUYER, task_id: RFQ, status: 'inventado' } }, 400);
 
+// Atribuição persistida: a API projeta nomes apenas para IDs das tarefas que
+// o RLS já devolveu e nunca aceita papel/proveniência do navegador.
+{
+  const ASSIGNEE = '00000000-0000-4000-8000-0000000000a3';
+  const REMOVED = '00000000-0000-4000-8000-0000000000a4';
+  reset((entry) => {
+    if (entry.url.includes('fin_organizations')) return orgRow(BUYER, 'BUYER');
+    if (entry.url.includes('fin_tasks?')) return [
+      { id: RFQ, title: 'Tarefa visível', status: 'open', assignee_id: ASSIGNEE },
+      { id: DECISION_ID, title: 'Atribuição removida', status: 'open', assignee_id: REMOVED },
+      { id: '00000000-0000-4000-8000-0000000000a5', title: 'Sem responsável', status: 'open', assignee_id: null }
+    ];
+    if (entry.url.includes('fin_members?')) return [{ user_id: ASSIGNEE, display_name: 'Pessoa da organização' }];
+    return [];
+  });
+  const listed = await call('GET', 'tasks', { url: `/api/finance/tasks?organization_id=${BUYER}` });
+  assert.deepEqual(listed.payload.rows.map(({ assignee_id, assignee_name }) => [assignee_id, assignee_name]), [
+    [ASSIGNEE, 'Pessoa da organização'], [REMOVED, null], [null, null]
+  ]);
+  const nameLookup = sent.find((entry) => entry.url.includes('fin_members?'));
+  assert.match(nameLookup.url, new RegExp(`organization_id=eq\\.${BUYER}`));
+  assert.match(nameLookup.url, new RegExp(`user_id=in\\.\\(${ASSIGNEE},${REMOVED}\\)`));
+  assert.ok(!nameLookup.url.includes(OTHER_ORG), 'lookup never queries identities outside visible task assignees');
+
+  const taskBody = { organization_id: BUYER, title: 'Tarefa atribuída', assignee_id: ASSIGNEE,
+    assignee_source: 'inherited', role: 'admin', created_by: OTHER_ORG, assignee_name: 'spoofed' };
+  const assignmentMember = (entry) => entry.url.includes('fin_members?select=role') ? [{ role: 'admin' }] : [];
+  reset((entry) => entry.url.includes('fin_organizations') ? orgRow(BUYER, 'BUYER') : assignmentMember(entry));
+  await call('POST', 'tasks', { body: taskBody });
+  const insert = sent.find((entry) => entry.method === 'POST' && entry.url.includes('fin_tasks'));
+  assert.deepEqual(insert.body, {
+    organization_id: BUYER, title: 'Tarefa atribuída', due_on: null, related_type: null, related_id: null,
+    created_by: ACTOR, assignee_id: ASSIGNEE, assignee_source: 'manual'
+  });
+  assert.equal(insert.authorization, 'Bearer user-jwt');
+  const roleProbe = sent.find((entry) => entry.url.includes('fin_members?select=role'));
+  assert.match(roleProbe.url, new RegExp(`organization_id=eq\\.${BUYER}`));
+  assert.match(roleProbe.url, new RegExp(`user_id=eq\\.${ACTOR}`));
+  assert.equal(roleProbe.authorization, 'Bearer user-jwt', 'actor authorization uses caller JWT and same-org membership');
+
+  reset((entry) => entry.url.includes('fin_organizations') ? orgRow(BUYER, 'BUYER') : assignmentMember(entry));
+  await call('PATCH', 'tasks', { body: { organization_id: BUYER, task_id: RFQ, assignee_id: null, assignee_source: 'inherited' } });
+  const unassign = sent.find((entry) => entry.method === 'PATCH' && entry.url.includes('fin_tasks'));
+  assert.deepEqual(unassign.body, { assignee_id: null, assignee_source: 'manual' }, 'explicit null is a manual unassignment');
+
+  reset((entry) => (entry.url.includes('fin_organizations') ? orgRow(BUYER, 'BUYER') : []));
+  await call('PATCH', 'tasks', { body: { organization_id: BUYER, task_id: RFQ, status: 'done' } });
+  const complete = sent.find((entry) => entry.method === 'PATCH' && entry.url.includes('fin_tasks'));
+  assert.deepEqual(complete.body, { status: 'done' }, 'status-only update leaves assignment untouched');
+  await rejects('PATCH', 'tasks', { body: { organization_id: BUYER, task_id: RFQ, assignee_id: 'invalid' } }, 400);
+  await rejects('PATCH', 'tasks', { body: { organization_id: BUYER, task_id: RFQ } }, 400);
+  assert.ok(!sent.some((entry) => entry.method === 'PATCH' && entry.body?.assignee_id === 'invalid'));
+
+  reset((entry) => entry.url.includes('fin_organizations') ? orgRow(BUYER, 'BUYER')
+    : entry.url.includes('fin_members?select=role') ? [{ role: 'analyst' }] : []);
+  await assert.rejects(call('PATCH', 'tasks', { body: { organization_id: BUYER, task_id: RFQ, assignee_id: ASSIGNEE } }),
+    (error) => error.status === 403 && error.code === 'task_assignment_forbidden');
+  assert.ok(!sent.some((entry) => entry.method === 'PATCH' && entry.url.includes('fin_tasks')), 'non-authorized actor never attempts assignment write');
+
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url, options = {}) => {
+    const target = String(url);
+    if (target.includes('fin_organizations')) return new Response(JSON.stringify(orgRow(BUYER, 'BUYER')), { status: 200 });
+    if (target.includes('fin_members?select=role')) return new Response(JSON.stringify([{ role: 'admin' }]), { status: 200 });
+    if (target.includes('fin_tasks') && options.method === 'PATCH') {
+      return new Response(JSON.stringify({ message: 'invalid task assignee' }), { status: 400 });
+    }
+    return new Response('[]', { status: 200 });
+  };
+  try {
+    await assert.rejects(call('PATCH', 'tasks', { body: { organization_id: BUYER, task_id: RFQ, assignee_id: ASSIGNEE } }),
+      (error) => error.status === 403 && error.code === 'task_assignment_forbidden');
+  } finally { globalThis.fetch = originalFetch; }
+}
+
 // ----------------------------------- comparação é da empresa compradora
 
 reset((entry) => {
@@ -554,10 +629,13 @@ reset((entry) => {
     id: `00000000-0000-4000-8000-0000000000${String(index).padStart(2, '0')}`,
     organization_id: BUYER, product: 'credit', status: 'open', demand: { amount: 1000 }
   }));
+  if (entry.url.includes('fin_tasks')) return [{ id: DECISION_ID, title: 'Tarefa contextual', status: 'open', assignee_id: ACTOR }];
+  if (entry.url.includes('fin_members')) return [{ user_id: ACTOR, display_name: 'Responsável' }];
   return [];
 });
 {
-  await call('GET', 'overview', { url: `/api/finance/overview?organization_id=${BUYER}` });
+  const overview = await call('GET', 'overview', { url: `/api/finance/overview?organization_id=${BUYER}` });
+  assert.deepEqual(overview.payload.tasks, [{ id: DECISION_ID, title: 'Tarefa contextual', status: 'open', assignee_id: ACTOR, assignee_name: 'Responsável' }]);
   // Com 12 RFQs o número de consultas não pode crescer com a quantidade: é o
   // mesmo conjunto fixo (RFQs, provedores, contratos, perfil, tarefas, termos,
   // convites, membros, aprovações pendentes, decisões e propostas).
