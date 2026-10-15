@@ -51,6 +51,18 @@ test('workflow: limpeza e evidência sempre executam', () => {
     assert.match(workflow, new RegExp(`- name: ${name.replace(/[()]/g, '\\$&')}\\n        if: always\\(\\)`), `${name} sem if: always()`);
   }
 });
+test('recovery usa seed verificado antes da jornada que cadastra fatores MFA', () => {
+  const phase = (id) => {
+    const index = workflow.indexOf(`id: ${id}\n`);
+    assert(index >= 0, `fase ${id} ausente`);
+    return index;
+  };
+  assert(phase('seed') < phase('check'));
+  assert(phase('check') < phase('recovery'), 'recovery exige dataset semeado e verificado');
+  for (const id of ['journey', 'adversarial']) {
+    assert(phase('recovery') < phase(id), `recovery deve preceder fase mutante ${id}`);
+  }
+});
 test('Playwright: só Chromium, um worker, sem trace', () => {
   assert.match(workflow, /npx playwright install --with-deps chromium\n/);
   assert.doesNotMatch(workflow, /firefox|webkit/);
