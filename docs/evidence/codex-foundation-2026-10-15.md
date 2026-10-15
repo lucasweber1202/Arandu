@@ -73,6 +73,14 @@ Arquivos: `scripts/ci-demo/sanitize.mjs`, `scripts/pilot-local/down.sh`, `script
 
 A função `cleanup` do `scripts/pilot-restore-drill.sh` ignorava `docker rm` malsucedido; o relatório PASS era escrito antes do trap. Reprodução com Docker simulado retornando exit 7 terminou em exit 0 na base. Agora o relatório nasce `pending_cleanup` e somente é promovido a `passed` depois de limpar Docker e arquivos temporários. Falha de remoção, consulta ou recurso residual invalida o relatório e preserva estado. UUID/label/nome exato e remoção por ID evitam apagar container alheio por colisão de PID. `KEEP=1` explícito registra `cleanup: retained`. O trap existe antes dos wrappers/preflight. Dez cenários com função real e Docker simulado cobrem sucesso, erro rm/consulta, residual, recurso estrangeiro, falha de arquivos, KEEP, falha prévia e falha antes do preflight; suíte CI-demo 17/17 PASS. Sem ensaio Docker real nesta sessão.
 
+### CI-3 — recovery após jornada que cria MFA (falha confirmada em CI)
+
+A integração efêmera do primeiro HEAD (`12fb71a`, run `38744552239`) executou seed/E2E/jornada/adversarial e falhou na fase recovery em 15/10 às 13:53:49Z: `mfa_factors_empty=false`, count 3, sem gerar backup/restore. A jornada existente cadastra exatamente três fatores TOTP (`scripts/pilot-local/journey.mjs`), e o drill declara não restaurar MFA. A recusa estava correta; a ordem adicionada na entrega anterior era incompatível com o contrato.
+
+O workflow agora executa recovery após `seed-check`, antes das jornadas mutantes. Preserva os seis binários do seed, todas as fases de E2E/jornada/adversarial e a recusa de origem com MFA. Não apaga fatores, não altera fixtures para ocultar falha, não adiciona flag de bypass e não chama retry. O teste da ordem falhou no workflow anterior e passou corrigido; CI-demo agora tem 18 testes. MFA continua fora do escopo recuperável deste drill e bloqueia qualquer claim incompatível sobre ambientes reais.
+
+Arquivo adicional: `.github/workflows/demo-integration.yml`. Esta correção entra em terceiro lote validado, motivado por falha efetiva do CI. O CI precisa verificar novamente o HEAD final. Runs de HEADs anteriores cancelados/superados nunca contam como PASS final.
+
 ### AUTH-2 — conclusão privilegiada de upload após revogação (P1)
 
 Confirmado em PostgreSQL descartável com transação desfeita: reservar PDF como membro, remover `fin_members`, observar `fin_has_role=false` e `fin_can_read_document=false`, mas consultar reserva ainda retornava caminho. Finalização service role sem `auth.uid()` publicava versão, incrementava `current_version` e gravava evento. Migration aditiva `docs/supabase-financial-document-upload-authorization.sql` (`financial-document-upload-authorization-1`): helper privado resolve autorização do autor gravado em `uploaded_by`, sem aceitar ator da API nem reescrever claims. Exige papel de escrita, escopo atual e documento não removido. Locks membro → objeto/entidade → concessão → documento → versão serializam revogação e publicação. RPCs preservam assinaturas; API anterior é compatível. O helper não é executável por `anon`, `authenticated` ou `service_role` diretamente.
@@ -85,11 +93,11 @@ Rollout futuro: após autorização e recovery aplicável, migration primeiro, p
 
 ## Validação do lote integrado
 
-Primeiro lote integrado validado localmente: `e34b6bf7d4275b6ebb013d5d3e990431daa26958`; primeiro HEAD documental da PR #196: `12fb71a36794cb01984a32eb0593c2e22b1c2b54`. O segundo lote corrige REC-3, com código em `e10766c`. CI deve verificar o HEAD completo final da PR, sem herdar resultados do primeiro SHA.
+Primeiro lote integrado validado localmente: `e34b6bf7d4275b6ebb013d5d3e990431daa26958`; primeiro HEAD documental da PR #196: `12fb71a36794cb01984a32eb0593c2e22b1c2b54`. O segundo lote corrige REC-3, com código em `e10766c`; o terceiro corrige CI-3, com código em `ab16387`. CI deve verificar o HEAD completo final da PR, sem herdar resultados do primeiro SHA.
 
 | Verificação final integrada | Estado | Resultado |
 | --- | --- | --- |
-| `npm run check:all` | PASS | Exit 0; `umask 0022` e permissão para fixtures privadas; inclui contratos Auth, 17 testes CI-demo, segurança, migrations, governança e recovery |
+| `npm run check:all` | PASS | Exit 0; `umask 0022` e permissão para fixtures privadas; inclui contratos Auth, testes CI-demo (18 após CI-3), segurança, migrations, governança e recovery |
 | `npm run build` | PASS | Exit 0 |
 | `npm run check:build-size` / `check:dist-assets` | PASS | Sem alteração de budgets; JS 478.627/800.000 bytes; aviso preexistente de rota RFQ 231.501/250.000 (93%) |
 | `npm run test:e2e:list` | PASS | 750 casos/20 arquivos; não é execução de navegador |
@@ -100,6 +108,8 @@ Primeiro lote integrado validado localmente: `e34b6bf7d4275b6ebb013d5d3e990431da
 | Quatro gates GitHub no HEAD final | NOT RUN neste registro | Verificar na PR com `npm run merge:gates -- <PR>`; manter draft enquanto pendente/falhando |
 | Auth/Storage Docker integrado + matriz browser completa local | NOT RUN | Transportes de Storage e cleanup testados com falhas simuladas; banco real não comprova serviços Supabase |
 | Ambiente hospedado/recovery real/cutover | NOT RUN | Nenhuma autorização usada para operar esses alvos |
+
+Terceiro lote CI-3: teste de ordem e 18 testes CI-demo PASS; preflight de backup PASS; build PASS; `check:all` integrado PASS (exit 0) antes do push. SQL/PG recovery não repetidos localmente porque o lote muda somente ordem do workflow e seu contrato; a integração efêmera final executa o restore real sobre o seed.
 
 Segundo lote REC-3: contratos Storage com negativos novos e build aprovados; `check:all` integrado PASS (exit 0) após a correção, além de build e `git diff --check` PASS. Banco e ensaio PG/age não foram repetidos após REC-3 porque seu diff contém apenas validação do JWT de destino local e regressões de transporte, sem mudança SQL ou na cadeia de dump/restore PostgreSQL. Os gates de CI executarão novamente suas próprias suítes no HEAD final.
 
@@ -127,6 +137,7 @@ Proposta de maturidade: M1/LOCAL_VALIDATED para as correções com os testes fin
 
 ## Arquivos alterados nesta trilha
 
+- `.github/workflows/demo-integration.yml`
 - `docs/evidence/codex-foundation-2026-10-15.md`
 - `docs/rollback/supabase-financial-document-upload-authorization.rollback.sql`
 - `docs/supabase-financial-document-upload-authorization.sql`
