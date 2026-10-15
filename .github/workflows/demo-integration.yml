@@ -52,10 +52,12 @@ jobs:
           cache: npm
 
       - name: Tested commit
+        id: tested_commit
         env:
           HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
-          echo "SHA testado (head): $HEAD_SHA · checkout: $(git rev-parse HEAD)"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "SHA executado (checkout): $(git rev-parse HEAD) · HEAD da PR/evento: $HEAD_SHA"
           echo "Ref: $GITHUB_REF · evento: $GITHUB_EVENT_NAME · run: $GITHUB_RUN_ID tentativa $GITHUB_RUN_ATTEMPT"
 
       - name: Preflight (memory, disk, Docker, psql)
@@ -171,6 +173,7 @@ jobs:
       - name: Summary
         if: always()
         env:
+          TESTED_SHA: ${{ steps.tested_commit.outputs.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           PREFLIGHT: ${{ steps.preflight.outcome }}
           IMAGES: ${{ steps.images.outcome }}

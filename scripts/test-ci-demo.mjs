@@ -29,6 +29,14 @@ test('workflow: disparo manual, runner padrão 24.04, permissões mínimas', () 
   assert.match(workflow, /^permissions:\n  contents: read$/m);
   assert.doesNotMatch(workflow, /pull_request_target|self-hosted|write-all/);
 });
+test('evidência identifica o commit realmente executado, separando o HEAD da PR', () => {
+  assert.match(workflow, /id: tested_commit\n/);
+  assert.match(workflow, /echo "sha=\$\(git rev-parse HEAD\)" >> "\$GITHUB_OUTPUT"/);
+  assert.match(workflow, /TESTED_SHA: \$\{\{ steps\.tested_commit\.outputs\.sha \}\}/);
+  const summary = fs.readFileSync('scripts/ci-demo/summary.mjs', 'utf8');
+  assert.match(summary, /process\.env\.TESTED_SHA/);
+  assert.doesNotMatch(summary, /SHA testado:.*process\.env\.HEAD_SHA/);
+});
 test('workflow: sem secrets, sem environment hospedado, sem deploy', () => {
   assert.doesNotMatch(workflow, /secrets\.|^\s+environment:|vercel|supabase (db|link)|migrations:release/im);
 });
@@ -94,6 +102,23 @@ test('falha injetada: variável obrigatória ausente → smoke recusa (código 2
   const { SUPABASE_SERVICE_ROLE_KEY: _drop, ...env } = closed;
   const r = spawnSync(process.execPath, ['scripts/ci-demo/smoke.mjs'], { env, encoding: 'utf8', timeout: 20_000 });
   assert.equal(r.status, 2);
+});
+test('summary não confunde merge commit executado com HEAD da PR nem inventa SHA ausente', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ci-demo-summary-'));
+  try {
+    const tested = 'a'.repeat(40), head = 'b'.repeat(40);
+    const run = (extra) => spawnSync(process.execPath, ['scripts/ci-demo/summary.mjs'], {
+      encoding: 'utf8', env: { PATH: process.env.PATH, CI_DEMO_REPORTS: dir, HEAD_SHA: head, GITHUB_SHA: head, ...extra }
+    });
+    const result = run({ TESTED_SHA: tested });
+    assert.equal(result.error, undefined); assert.equal(result.status, 0, result.stderr);
+    assert(result.stdout.includes(`SHA testado (checkout): \`${tested}\``));
+    assert(result.stdout.includes(`HEAD da PR/evento (referência): \`${head}\``));
+    const missing = run({});
+    assert.equal(missing.error, undefined); assert.equal(missing.status, 0, missing.stderr);
+    assert(missing.stdout.includes('SHA testado (checkout): `NÃO IDENTIFICADO`'));
+    assert(!missing.stdout.includes(`SHA testado (checkout): \`${head}\``));
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
 test('sanitização remove JWT, cookie, senha em URL e e-mail real; mantém e-mail sintético', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ci-demo-san-'));
