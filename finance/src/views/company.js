@@ -182,6 +182,20 @@ function contractNextAction(contract) {
   return { tone: 'success', icon: 'checkCircle', text: `Nada a fazer agora. A janela de decisão abre ${relativeDays(stage.opensAt)} (${formatDate(stage.opensAt)}).` };
 }
 
+// Pós-contratação a um clique: implantação e obrigações da mesma instituição
+// (e entidade). A API filtra por instituição/entidade, não por contrato; o
+// rótulo diz isso em vez de prometer um recorte que o servidor não faz.
+function contractLifecycleLinks(ctx, contract) {
+  if (!contract.provider_id || !['active', 'renewing'].includes(contract.status)) return null;
+  const query = new URLSearchParams({ provider_id: contract.provider_id });
+  if (contract.legal_entity_id) query.set('legal_entity_id', contract.legal_entity_id);
+  const who = contract.provider_name || 'esta instituição';
+  return el('nav', { class: 'contract-lifecycle-links', 'aria-label': `Pós-contratação com ${who}` }, [
+    el('a', { class: 'contract-link', href: ctx.href(`/finance/implementations.html?${query}`) }, [el('span', { text: `Implantação com ${who}` }), icon('arrowRight', { size: 14 })]),
+    el('a', { class: 'contract-link', href: ctx.href(`/finance/covenants.html?${query}`) }, [el('span', { text: `Covenants e obrigações com ${who}` }), icon('arrowRight', { size: 14 })])
+  ]);
+}
+
 export async function contracts(ctx) {
   const [entities] = await Promise.all([loadEntities(ctx), need('contractCenter')]);
   const rows = (ctx.data.contracts || []).filter((row) => inContext(entities, row));
@@ -254,7 +268,8 @@ export async function contracts(ctx) {
       el('div', { class: 'contract-open' }, [button('Abrir contrato: termos, aditivos e marcos', { size: 'sm', iconName: 'file', onClick: () => mods.contractCenter.openContract(ctx, contract) }),
         contract.origin === 'imported' ? tag('Carteira existente') : null, contract.current_version ? tag(`Termos v${contract.current_version}`, 'accent') : tag('Termos não estruturados', 'warning')]),
       lazyDocuments(ctx, 'contract', contract.id, 'Documentos do contrato', { canUpload: ctx.can('upload_document') }),
-      source ? el('a', { class: 'contract-link', href: ctx.href(`/finance/rfq.html?id=${source.id}#decisao`) }, [el('span', { text: 'Ver processo e decisão de origem' }), icon('arrowRight', { size: 14 })]) : null
+      source ? el('a', { class: 'contract-link', href: ctx.href(`/finance/rfq.html?id=${source.id}#decisao`) }, [el('span', { text: 'Ver processo e decisão de origem' }), icon('arrowRight', { size: 14 })]) : null,
+      contractLifecycleLinks(ctx, contract)
     ]));
   }
   if (location.hash.startsWith('#contract-')) queueMicrotask(() => { const target = document.getElementById(location.hash.slice(1)); target?.scrollIntoView({ block: 'start' }); target?.focus({ preventScroll: true }); });
