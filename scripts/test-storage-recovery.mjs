@@ -87,6 +87,19 @@ assert.deepEqual(kinds({ readbacks: new Map([[1, read(Buffer.from('%PDF sintéti
   assert.deepEqual(kinds({ target: extra }), ['extra_object']);
   const opened = clone(inventory); opened.buckets[0].public = true;
   assert.deepEqual(kinds({ target: opened }), ['bucket_visibility_changed']);
+  // Limites e tipos MIME fazem parte da configuração preservada; mesmos bytes
+  // não comprovam restore quando as restrições de upload mudaram.
+  const unlimited = clone(inventory); unlimited.buckets[0].file_size_limit = null;
+  assert.deepEqual(kinds({ target: unlimited }), ['bucket_file_size_limit_changed']);
+  const anyMime = clone(inventory); anyMime.buckets[0].allowed_mime_types = null;
+  assert.deepEqual(kinds({ target: anyMime }), ['bucket_allowed_mime_types_changed']);
+  const broaderMime = clone(inventory); broaderMime.buckets[0].allowed_mime_types.push('text/html');
+  assert.deepEqual(kinds({ target: broaderMime }), ['bucket_allowed_mime_types_changed']);
+  const additionalBucket = clone(inventory); additionalBucket.buckets.push({ ...inventory.buckets[0], id: 'unexpected', public: true });
+  assert.deepEqual(kinds({ target: additionalBucket }), ['extra_bucket']);
+  const multiMime = clone(inventory); multiMime.buckets[0].allowed_mime_types.push('image/png');
+  const reorderedMime = clone(multiMime); reorderedMime.buckets[0].allowed_mime_types.reverse();
+  assert.equal(reconcileStorage({ index: { ...index, buckets: multiMime.buckets }, target: reorderedMime, readbacks: full }).result, 'MATCH');
   const nobucket = clone(inventory); nobucket.buckets = [];
   assert.deepEqual(kinds({ target: nobucket }), ['missing_bucket']);
   const crossed = clone(inventory); crossed.references[1].organization_id = ORG_A;
@@ -94,7 +107,7 @@ assert.deepEqual(kinds({ readbacks: new Map([[1, read(Buffer.from('%PDF sintéti
 }
 
 // Registro de restore vale só para o mesmo export, com MATCH e permissões negadas.
-const record = { format_version: 1, restore: 'RESTORED_ISOLATED', reconciliation: 'MATCH', differences: [], objects: 2,
+const record = { format_version: 1, reconciliation_version: 2, restore: 'RESTORED_ISOLATED', reconciliation: 'MATCH', differences: [], objects: 2,
   index_sha256: manifest.index_sha256, files_sha256: digest(manifest.files), target: 'loopback_disposable_supabase_storage',
   permissions: { result: 'DENIED_AS_EXPECTED', cross_tenant_required: true, checks: ['public_url', 'anon_jwt', 'member_own_org_direct', 'member_other_org_direct'].map((name) => ({ name, status: 403, denied: true })) }, verified_at: new Date().toISOString() };
 assert.equal(validStorageRecord(record, manifest), true);
@@ -103,7 +116,7 @@ for (const status of [408, 405, 422, 429, 500, 0]) {
   assert.equal(validPermissionEvidence({ ...record.permissions, checks: record.permissions.checks.map((c) => ({ ...c, status })) }), false);
 }
 
-for (const forged of [{ reconciliation: 'MISMATCH' }, { differences: [{ kind: 'missing_binary' }] }, { objects: 1 }, { index_sha256: 'f'.repeat(64) },
+for (const forged of [{ reconciliation_version: undefined }, { reconciliation_version: 1 }, { reconciliation: 'MISMATCH' }, { differences: [{ kind: 'missing_binary' }] }, { objects: 1 }, { index_sha256: 'f'.repeat(64) },
   { files_sha256: 'f'.repeat(64) }, { permissions: { result: 'DENIED_AS_EXPECTED' } }, { permissions: { result: 'EXPOSED' } }, { restore: 'NOT RESTORED (verify only)' }, { verified_at: '2000-01-01T00:00:00Z' }]) {
   assert.equal(validStorageRecord({ ...record, ...forged }, manifest), false, JSON.stringify(forged));
 }
@@ -188,6 +201,9 @@ try {
   const exposed = async (url) => new Response(url.endsWith(index.objects[0].name) ? bytesA : bytesB, { status: 200 });
   // Service readbacks match, mas a URL pública também retorna 200.
   await codeAsync(verifyStorage({ env: localEnv, fetchImpl: exposed }), 'STORAGE_PERMISSIONS_EXPOSED');
+  const emitted = fs.readdirSync(backup).filter((n) => n.startsWith('storage-restore-verification-'));
+  assert.equal(emitted.length, 1);
+  assert.equal(JSON.parse(fs.readFileSync(path.join(backup, emitted[0]), 'utf8')).reconciliation_version, 2);
   // Default emitido localmente e override coerente chegam às sondas; token opaco só é proibido no destino.
   await codeAsync(verifyStorage({ env: { ...localEnv, ARANDU_STORAGE_TARGET_SERVICE_KEY: signJwt(localSecret, { role: 'service_role' }) }, fetchImpl: exposed }), 'STORAGE_PERMISSIONS_EXPOSED');
 
@@ -251,6 +267,10 @@ try {
     assert.equal((await storageEvidence(dbExport, dbManifest)).length, 1);
     result = await verify();
     assert.deepEqual([result.level, result.recovery, result.completeness, result.storage_binaries], [5, 'RECOVERY_VERIFIED', 'COMPLETE', 'RESTORE_VERIFIED']);
+    // Prova anterior não avaliava restrições de upload; não herda nível 5.
+    fs.writeFileSync(recordFile, JSON.stringify({ ...sRecord, reconciliation_version: undefined }));
+    assert.equal((await verify()).recovery, 'RECOVERY_DATABASE_ONLY');
+    fs.writeFileSync(recordFile, JSON.stringify(sRecord));
     // Mesmo número de objetos não prova origem nem o conjunto capturado no dump.
     for (const wrong of [
       { source: 'offgpyysgdhfemjlchod', classification: 'storage_binary_export' },
