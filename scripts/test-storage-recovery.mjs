@@ -4,6 +4,7 @@
 // restore e permissões) roda no ensaio scripts/pilot-restore-drill.sh dentro do
 // laboratório efêmero (fase recovery de scripts/ci-demo/run.sh).
 import assert from 'node:assert/strict';
+import { createHmac } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -144,6 +145,21 @@ try {
   const restoreEnv = { PATH: process.env.PATH, ARANDU_STORAGE_RESTORE_CONFIRM: 'ARANDU-ISOLATED-STORAGE-RESTORE', ARANDU_STORAGE_BACKUP: backup,
     ARANDU_STORAGE_IDENTITY: identity, ARANDU_STORAGE_TARGET_DATABASE_URL: 'postgresql://postgres@127.0.0.1:54329/postgres',
     ARANDU_STORAGE_TARGET_URL: 'http://127.0.0.1:54330', ARANDU_STORAGE_TARGET_JWT_SECRET: 's'.repeat(64) };
+  // Override local precisa usar o mesmo segredo dos probes; rejeita antes de age/rede.
+  const wrongService = signJwt('different-secret-'.repeat(4), { role: 'service_role' });
+  await codeAsync(verifyStorage({ env: { ...restoreEnv, ARANDU_STORAGE_TARGET_SERVICE_KEY: wrongService }, fetchImpl: neverFetch }), 'STORAGE_TARGET_SECRET_INVALID');
+  const localSecret = restoreEnv.ARANDU_STORAGE_TARGET_JWT_SECRET;
+  const signed = (header, claims) => {
+    const body = [header, claims].map((v) => Buffer.from(JSON.stringify(v)).toString('base64url')).join('.');
+    return `${body}.${createHmac('sha256', localSecret).update(body).digest('base64url')}`;
+  };
+  const goodClaims = { role: 'service_role', exp: Math.floor(Date.now() / 1000) + 3600 };
+  for (const token of ['opaque-local-key', 'a.b.c', signed({ alg: 'none' }, goodClaims), signed({ alg: 'HS512' }, goodClaims),
+    signed({ alg: 'HS256' }, { ...goodClaims, role: 'authenticated' }), signed({ alg: 'HS256' }, { role: 'service_role' }),
+    signed({ alg: 'HS256' }, { ...goodClaims, exp: '9999999999' }), signed({ alg: 'HS256' }, { ...goodClaims, exp: 0 })]) {
+    await codeAsync(restoreStorage({ env: { ...restoreEnv, ARANDU_STORAGE_TARGET_SERVICE_KEY: token }, fetchImpl: neverFetch }), 'STORAGE_TARGET_SECRET_INVALID');
+  }
+
   await codeAsync(restoreStorage({ env: { ...restoreEnv, ARANDU_STORAGE_RESTORE_CONFIRM: '' }, fetchImpl: neverFetch }), 'STORAGE_CONFIRMATION_MISSING');
   // Destino nunca hospedado: banco e Storage só em loopback.
   await codeAsync(restoreStorage({ env: { ...restoreEnv, ARANDU_STORAGE_TARGET_DATABASE_URL: 'postgresql://postgres:x@db.offgpyysgdhfemjlchod.supabase.co:5432/postgres' }, fetchImpl: neverFetch }), 'STORAGE_TARGET_NOT_ISOLATED');
@@ -172,6 +188,9 @@ try {
   const exposed = async (url) => new Response(url.endsWith(index.objects[0].name) ? bytesA : bytesB, { status: 200 });
   // Service readbacks match, mas a URL pública também retorna 200.
   await codeAsync(verifyStorage({ env: localEnv, fetchImpl: exposed }), 'STORAGE_PERMISSIONS_EXPOSED');
+  // Default emitido localmente e override coerente chegam às sondas; token opaco só é proibido no destino.
+  await codeAsync(verifyStorage({ env: { ...localEnv, ARANDU_STORAGE_TARGET_SERVICE_KEY: signJwt(localSecret, { role: 'service_role' }) }, fetchImpl: exposed }), 'STORAGE_PERMISSIONS_EXPOSED');
+
   fs.appendFileSync(path.join(backup, objectFile(1)), 'x');
   await codeAsync(restoreStorage({ env: restoreEnv, fetchImpl: neverFetch }), 'STORAGE_HASH_MISMATCH');
   fs.writeFileSync(path.join(backup, objectFile(1)), blobs[1]);

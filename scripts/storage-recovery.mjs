@@ -13,7 +13,7 @@
 // sempre loopback. Nada impresso contém nome de objeto, conteúdo, chave ou URL.
 import fs from 'node:fs';
 import path from 'node:path';
-import { createHmac, randomUUID } from 'node:crypto';
+import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { RECOVERY_REFS, sourceConnection } from '../lib/pilot-backup-preflight.mjs';
 import { loopbackTarget } from '../lib/recovery-reconciliation.mjs';
@@ -204,6 +204,22 @@ async function openExport(backup) {
   return manifest;
 }
 
+/** O destino descartável usa HS256; a chave privilegiada e os probes devem ter o mesmo emissor. */
+function validateTargetServiceKey(token, secret) {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3 || !parts.every((part) => /^[A-Za-z0-9_-]+$/.test(part)) || parts[2].length !== 43) throw new Error();
+    const header = JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8'));
+    const claims = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+    const expected = createHmac('sha256', secret).update(`${parts[0]}.${parts[1]}`).digest();
+    const actual = Buffer.from(parts[2], 'base64url');
+    if (header.alg !== 'HS256' || claims.role !== 'service_role' || !Number.isSafeInteger(claims.exp) ||
+        claims.exp <= Math.floor(Date.now() / 1000) || actual.length !== expected.length || !timingSafeEqual(actual, expected)) throw new Error();
+  } catch {
+    storageFail('STORAGE_TARGET_SECRET_INVALID', 'Chave de serviço local deve ser JWT HS256 service_role vigente assinado pelo segredo do destino.');
+  }
+}
+
 function targetContext({ env, root }) {
   const backup = privateDirectory(env.ARANDU_STORAGE_BACKUP, root, 'STORAGE_BACKUP_INVALID');
   const identity = env.ARANDU_STORAGE_IDENTITY;
@@ -217,6 +233,7 @@ function targetContext({ env, root }) {
   if (secret.length < 32) storageFail('STORAGE_TARGET_SECRET_INVALID', 'Segredo JWT do Storage descartável ausente.');
   // Chave de serviço do Storage descartável: a configurada no próprio serviço, ou emitida com o segredo dele.
   const service = env.ARANDU_STORAGE_TARGET_SERVICE_KEY || signJwt(secret, { role: 'service_role', iss: 'supabase' });
+  validateTargetServiceKey(service, secret);
   return { backup, identity: fs.realpathSync(identity), database, endpoint, secret, service };
 }
 
