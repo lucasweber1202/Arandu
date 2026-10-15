@@ -1,0 +1,38 @@
+\set ON_ERROR_STOP on
+insert into auth.users(id,email) values
+ ('00000000-0000-4000-8000-0000000ba001','task-accountability-admin@example.invalid'),
+ ('00000000-0000-4000-8000-0000000ba002','task-accountability-a@example.invalid'),
+ ('00000000-0000-4000-8000-0000000ba003','task-accountability-b@example.invalid'),
+ ('00000000-0000-4000-8000-0000000ba004','task-accountability-viewer@example.invalid'),
+ ('00000000-0000-4000-8000-0000000ba005','task-accountability-other@example.invalid'),
+ ('00000000-0000-4000-8000-0000000ba006','task-accountability-race@example.invalid')
+on conflict(id) do nothing;
+insert into public.fin_organizations(id,legal_name,kind,created_by) values
+ ('00000000-0000-4000-8000-0000000bb001','Task accountability buyer DEMO','BUYER','00000000-0000-4000-8000-0000000ba001'),
+ ('00000000-0000-4000-8000-0000000bb002','Task accountability other DEMO','BUYER','00000000-0000-4000-8000-0000000ba005');
+insert into public.fin_members(organization_id,user_id,role) values
+ ('00000000-0000-4000-8000-0000000bb001','00000000-0000-4000-8000-0000000ba001','admin'),
+ ('00000000-0000-4000-8000-0000000bb001','00000000-0000-4000-8000-0000000ba002','analyst'),
+ ('00000000-0000-4000-8000-0000000bb001','00000000-0000-4000-8000-0000000ba003','finance_manager'),
+ ('00000000-0000-4000-8000-0000000bb001','00000000-0000-4000-8000-0000000ba004','viewer'),
+ ('00000000-0000-4000-8000-0000000bb001','00000000-0000-4000-8000-0000000ba006','analyst'),
+ ('00000000-0000-4000-8000-0000000bb002','00000000-0000-4000-8000-0000000ba005','admin'),
+ ('00000000-0000-4000-8000-0000000bb002','00000000-0000-4000-8000-0000000ba006','analyst');
+insert into public.fin_legal_entities(id,organization_id,kind,legal_name,created_by) values
+ ('00000000-0000-4000-8000-0000000bc001','00000000-0000-4000-8000-0000000bb001','legal_entity','Task entity A DEMO','00000000-0000-4000-8000-0000000ba001'),
+ ('00000000-0000-4000-8000-0000000bc002','00000000-0000-4000-8000-0000000bb001','legal_entity','Task entity B DEMO','00000000-0000-4000-8000-0000000ba001');
+update public.fin_members set entity_scope='entities'
+ where organization_id='00000000-0000-4000-8000-0000000bb001'
+   and user_id in ('00000000-0000-4000-8000-0000000ba002','00000000-0000-4000-8000-0000000ba003');
+insert into public.fin_member_entity_grants(organization_id,user_id,entity_id,granted_by) values
+ ('00000000-0000-4000-8000-0000000bb001','00000000-0000-4000-8000-0000000ba002','00000000-0000-4000-8000-0000000bc001','00000000-0000-4000-8000-0000000ba001'),
+ ('00000000-0000-4000-8000-0000000bb001','00000000-0000-4000-8000-0000000ba003','00000000-0000-4000-8000-0000000bc002','00000000-0000-4000-8000-0000000ba001');
+insert into public.fin_tasks(id,organization_id,title,status,created_by,legal_entity_id) values
+ ('00000000-0000-4000-8000-0000000bd001','00000000-0000-4000-8000-0000000bb001','Título histórico preservado','open','00000000-0000-4000-8000-0000000ba001','00000000-0000-4000-8000-0000000bc001'),
+ ('00000000-0000-4000-8000-0000000bd002','00000000-0000-4000-8000-0000000bb001','Tarefa entidade B','open','00000000-0000-4000-8000-0000000ba001','00000000-0000-4000-8000-0000000bc002');
+insert into public.fin_rfqs(id,organization_id,product,title,owner_id,status,legal_entity_id) values
+ ('00000000-0000-4000-8000-0000000be001','00000000-0000-4000-8000-0000000bb001','credit','Task entity B RFQ DEMO','00000000-0000-4000-8000-0000000ba001','open','00000000-0000-4000-8000-0000000bc002');
+insert into public.fin_tasks(id,organization_id,title,status,related_type,related_id,created_by) values
+ ('00000000-0000-4000-8000-0000000bd003','00000000-0000-4000-8000-0000000bb001','Tarefa herda entidade da RFQ','open','rfq','00000000-0000-4000-8000-0000000be001','00000000-0000-4000-8000-0000000ba001');
+insert into public.fin_tasks(id,organization_id,title,status,created_by) values
+ ('00000000-0000-4000-8000-0000000bd005','00000000-0000-4000-8000-0000000bb002','Tarefa sob lock de offboarding','open','00000000-0000-4000-8000-0000000ba005');

@@ -518,6 +518,20 @@ apply_file "$upgrade_db" "docs/supabase-financial-implementation-task-labels.sql
 apply_file "$upgrade_db" "tests/database/financial-implementation-task-labels.sql"
 apply_file "$upgrade_db" "docs/supabase-financial-implementation-task-labels.sql"
 apply_file "$upgrade_db" "tests/database/financial-implementation-task-labels.sql"
+# Rehearse the add-on migration from its preceding schema marker, including a
+# successful no-data rollback, a refusal after assignment data, and reapply.
+apply_file "$upgrade_db" "docs/supabase-financial-task-accountability.sql"
+apply_file "$upgrade_db" "docs/rollback/supabase-financial-task-accountability.rollback.sql"
+apply_file "$upgrade_db" "tests/database/financial-task-accountability-prepare.sql"
+apply_file "$upgrade_db" "docs/supabase-financial-task-accountability.sql"
+apply_file "$upgrade_db" "tests/database/financial-task-accountability.sql"
+if rejection="$(psql "$(database_url "$upgrade_db")" -X -v ON_ERROR_STOP=1 -f "$root_dir/docs/rollback/supabase-financial-task-accountability.rollback.sql" 2>&1)"; then
+  echo "Rollback de responsabilidade deveria recusar dados de atribuição" >&2; exit 1
+fi
+[[ "$rejection" == *"task assignment data exists: use forward fix"* ]] || { echo "Rollback de responsabilidade falhou por motivo inesperado" >&2; exit 1; }
+apply_file "$upgrade_db" "docs/supabase-financial-task-accountability.sql"
+apply_file "$upgrade_db" "tests/database/financial-task-accountability-reapply.sql"
+bash "$root_dir/tests/database/task-assignee-membership-race.sh" "$(database_url "$upgrade_db")"
 bash "$root_dir/tests/database/email-fairness-concurrency.sh" "$(database_url "$upgrade_db")"
 apply_file "$upgrade_db" "tests/database/email-outbox.sql"
 bash "$root_dir/tests/database/email-outbox-concurrency.sh" "$(database_url "$upgrade_db")"
@@ -559,6 +573,11 @@ node "$root_dir/tests/database/document-upload-authorization-race.mjs" "$(databa
 apply_file "$fresh_db" "tests/database/financial-implementation-task-labels-prepare.sql"
 apply_file "$fresh_db" "docs/supabase-financial-implementation-task-labels.sql"
 apply_file "$fresh_db" "tests/database/financial-implementation-task-labels.sql"
+apply_file "$fresh_db" "tests/database/financial-task-accountability-prepare.sql"
+apply_file "$fresh_db" "tests/database/financial-task-accountability.sql"
+apply_file "$fresh_db" "docs/supabase-financial-task-accountability.sql"
+apply_file "$fresh_db" "tests/database/financial-task-accountability-reapply.sql"
+bash "$root_dir/tests/database/task-assignee-membership-race.sh" "$(database_url "$fresh_db")"
 apply_file "$fresh_db" "ops/sql/pilot-isolation-canary.sql"
 apply_file "$fresh_db" "ops/sql/post-migration-probes.sql"
 

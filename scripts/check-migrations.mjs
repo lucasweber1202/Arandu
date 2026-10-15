@@ -38,6 +38,7 @@ for (const [flow, files] of Object.entries(manifest)) {
   if (files.indexOf('docs/supabase-financial-session-revocation.sql') !== files.indexOf('docs/supabase-financial-decision-integrity.sql')+1) issues.push(`${flow}: revogação de sessão deve seguir a integridade da decisão.`);
   if (files.indexOf('docs/supabase-financial-document-upload-authorization.sql') !== files.indexOf('docs/supabase-financial-session-revocation.sql')+1) issues.push(`${flow}: autorização atual de upload deve seguir revogação de sessão.`);
   if (files.indexOf('docs/supabase-financial-implementation-task-labels.sql') !== files.indexOf('docs/supabase-financial-document-upload-authorization.sql')+1) issues.push(`${flow}: rótulos de tarefas devem seguir autorização de upload.`);
+  if (files.indexOf('docs/supabase-financial-task-accountability.sql') !== files.indexOf('docs/supabase-financial-implementation-task-labels.sql')+1) issues.push(`${flow}: responsabilidade persistida deve seguir rótulos de tarefas.`);
   const sprint2 = files.indexOf('docs/supabase-sprint2-catalog-readiness.sql');
   const collections = files.indexOf('docs/arandu-mvp-collections.sql');
   const sprint5 = files.indexOf('docs/supabase-sprint5-pilot.sql');
