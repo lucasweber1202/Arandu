@@ -95,3 +95,32 @@ test('conflito de rascunho: o aviso com "Recarregar" é anunciado como alerta e 
   await page.clock.runFor(30_000);
   await expect(alert.getByRole('button', { name: 'Recarregar' })).toBeVisible();
 });
+
+test('histórico do provedor: condições de cada versão enviada, mudanças legíveis e ausência explícita', async ({ page }) => {
+  const v1 = { offered_amount: 1000000, interest_rate_month: 1.29, index: 'pre', term_months: 24, collateral_required: 'Aval dos sócios' };
+  const v2 = { offered_amount: 1000000, interest_rate_month: 1.24, index: 'cdi', term_months: 24 };
+  await mockProvider(page, { assignment: { ...ASSIGNMENT, version: 2, terms: v2, rfq_revision: 2,
+    history: [
+      { version: 2, submitted_at: '2026-10-10T14:00:00Z', note: 'Ajuste após a revisão 2', rfq_revision: 2, terms: v2 },
+      { version: 1, submitted_at: '2026-10-01T14:00:00Z', note: null, rfq_revision: 1, terms: v1 }
+    ] } });
+  await page.goto(`/provider/proposal.html?proposal=${PROPOSAL}`);
+  const history = page.locator('.version-history');
+  const latest = history.locator('#versao-2');
+  await expect(latest).toContainText('responde à rev. 2');
+  await expect(latest).toContainText('Nota: Ajuste após a revisão 2');
+  // Diferenças pela regra da comparação, com unidade e indexador por extenso.
+  const changes = latest.getByRole('list', { name: 'Mudanças desde a versão 1' });
+  await expect(changes).toContainText('Taxa (% a.m.): 1,29% → 1,24%');
+  await expect(changes).toContainText('Indexador: Pré-fixado → CDI');
+  await expect(changes).toContainText('Garantias exigidas: Aval dos sócios → não informado');
+  await expect(changes).not.toContainText('Valor ofertado');
+  // Condições daquela versão (snapshot), ausência explícita, sem JSON nem código.
+  await history.locator('#versao-1').getByText('Condições desta versão').click();
+  const terms = history.locator('#versao-1 .version-terms');
+  await expect(terms).toContainText('1,29%');
+  await expect(terms).toContainText('Pré-fixado');
+  await expect(terms).toContainText('Não informado');
+  await expect(history).not.toContainText(/\{|\bpre\b|\bcdi\b|null|undefined|NaN/);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+});

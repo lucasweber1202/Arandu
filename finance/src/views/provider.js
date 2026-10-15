@@ -5,6 +5,7 @@ import { PRODUCTS, PRODUCT_IDS } from '../../../lib/finance/products.mjs';
 import { el, icon, formatDate, formatDateTime, relativeDays, daysUntil, productLabel, demandHeadline, fieldValue, PROPOSAL_STATUS, timeAgo } from '../core.js';
 import { card, pill, tag, button, linkButton, emptyState, errorState, loading, definitionList, toast, confirmDialog, field, catalogControl, saveIndicator, onSubmit } from '../ui.js';
 import { collaboration, revisionDiff } from './shared.js';
+import { proposalChanges } from '../../../lib/finance/comparison-context.mjs';
 import { greeting } from './dashboard.js';
 
 const OPEN = ['open', 'collecting'];
@@ -328,9 +329,7 @@ export async function providerProposal(ctx) {
     buyerDocs.querySelector('.card-body').replaceChildren(documentsPanel(ctx, { entityType: 'rfq', entityId: assignment.rfq_id, canUpload: false }));
   });
   const main = el('div', { class: 'split-main' }, [status, peek, formCard, proposalDocs]);
-  const history = (assignment.history || []).length ? card({ title: 'Histórico de versões', headingLevel: 3, body: el('ol', { class: 'timeline' }, assignment.history.map((entry) => el('li', { class: 'timeline-item' }, [
-    el('span', { class: 'timeline-dot', 'aria-hidden': 'true' }), el('div', { class: 'timeline-content' }, [el('p', { class: 'timeline-title' }, [el('strong', { text: `Versão ${entry.version}` }), entry.rfq_revision ? tag(`rev. ${entry.rfq_revision}`) : null]),
-      el('p', { class: 'timeline-meta', text: formatDateTime(entry.submitted_at) }), entry.note ? el('p', { class: 'muted small', text: entry.note }) : null])]))) }) : null;
+  const history = (assignment.history || []).length ? card({ title: 'Histórico de versões', headingLevel: 3, subtitle: 'Só as versões da sua instituição, como foram enviadas.', body: versionHistory(assignment, spec) }) : null;
   const side = el('div', { class: 'split-side' }, [
     card({ title: 'O que a empresa quer', subtitle: `${assignment.buyer_name || 'Empresa compradora'} · revisão ${assignment.rfq_revision || 1}`, body: [
       assignment.description ? el('p', { class: 'prose', text: assignment.description }) : null,
@@ -343,6 +342,33 @@ export async function providerProposal(ctx) {
   ]);
   root.append(main, side);
   return root;
+}
+
+/**
+ * Versões enviadas pela própria instituição: o snapshot imutável que o servidor
+ * devolve (history[].terms), com o que mudou em relação à versão anterior pela
+ * mesma regra da comparação (proposalChanges). Nunca usa o rascunho atual.
+ */
+export function versionHistory(assignment, spec) {
+  const entries = [...(assignment.history || [])].sort((a, b) => b.version - a.version);
+  const fields = Object.fromEntries(spec.proposalFields.map((item) => [item.key, item]));
+  const show = (item, value) => fieldValue(item, value) ?? 'não informado';
+  return el('ol', { class: 'timeline version-history' }, entries.map((entry) => {
+    const previous = entries.find((row) => row.version === entry.version - 1);
+    const hasTerms = entry.terms && typeof entry.terms === 'object';
+    const changes = hasTerms && previous?.terms ? proposalChanges(assignment.product, entry, previous).map((key) => fields[key]).filter(Boolean) : [];
+    return el('li', { class: 'timeline-item', id: `versao-${entry.version}` }, [
+      el('span', { class: 'timeline-dot', 'aria-hidden': 'true' }), el('div', { class: 'timeline-content' }, [
+        el('p', { class: 'timeline-title' }, [el('strong', { text: `Versão ${entry.version}` }), entry.rfq_revision ? tag(`responde à rev. ${entry.rfq_revision}`) : null]),
+        el('p', { class: 'timeline-meta', text: `Enviada ${formatDateTime(entry.submitted_at)}` }),
+        entry.note ? el('p', { class: 'muted small', text: `Nota: ${entry.note}` }) : null,
+        previous && hasTerms && previous.terms ? (changes.length
+          ? el('ul', { class: 'diff-list small', 'aria-label': `Mudanças desde a versão ${previous.version}` }, changes.map((item) => el('li', {}, [el('span', { class: 'diff-label', text: `${item.label}: ` }),
+            el('span', { class: 'diff-before', text: show(item, previous.terms[item.key]) }), ' → ', el('span', { class: 'diff-after', text: show(item, entry.terms[item.key]) })])))
+          : el('p', { class: 'muted small', text: `Mesmas condições da versão ${previous.version}.` })) : null,
+        hasTerms ? el('details', { class: 'version-terms' }, [el('summary', { text: 'Condições desta versão' }), definitionList(spec.proposalFields, entry.terms, { showMissing: true, columns: 1 })]) : null
+      ])]);
+  }));
 }
 
 export async function providerInvite(ctx) {
