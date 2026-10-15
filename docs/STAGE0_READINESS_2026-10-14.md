@@ -109,7 +109,17 @@ Medição no catálogo (stack local, todas as migrations): 171 funções
 `fin_*` `SECURITY DEFINER` executáveis por `authenticated`; 59 contêm tanto
 "not found" quanto `'forbidden'` (limite superior heurístico). Quem chama a RPC
 direto no PostgREST com um UUID de outra organização pode distinguir "existe,
-sem permissão" de "não existe".
+sem permissão" de "não existe". Reproduzido no laboratório com a Demo semeada,
+sessão real do provedor Atlas e UUIDs da Vitta:
+
+| RPC direta | UUID de outra organização | UUID aleatório |
+| --- | --- | --- |
+| `fin_record_contract_amendment` | 400 `forbidden` | 400 `contract not found` |
+| `fin_start_contract_rfq` | 400 `forbidden` | 400 `contract not found` |
+| `fin_record_decision_v2` | 400 `forbidden` | 400 `rfq not found` |
+
+Nada é gravado nem lido em nenhum dos casos (sonda TENANT-4); pela API do
+Arandu o contrato alheio devolve 404, como o inexistente (TENANT-1).
 
 Classificação: **P3, aceito**. Exige sessão válida (agora também não revogada,
 R1) e um UUID v4 já vazado (122 bits aleatórios, não enumerável); revela
@@ -127,7 +137,7 @@ permissão" com a mesma mensagem quando o chamador não for membro.
 | Migrations `decision-integrity` e `session-revocation`: instalação limpa, upgrade, rollback, reaplicação | LOCAL_VALIDATED | `npm run test:database` exit 0 (PostgreSQL 16 descartável); CI_VALIDATED depende do job `database` no HEAD do PR |
 | Laboratório efêmero (Supabase real em Docker) com as migrations novas | LOCAL_VALIDATED | `scripts/ci-demo/run.sh` up → smoke (16/16) → seed → check → jornada → adversarial → E2E; ver "Execução local" abaixo |
 | Cadeia de recuperação sintética (export cifrado → verify → restore isolado → reconciliação) | CI_VALIDATED (job `database`) | `scripts/test-recovery-real.mjs` com PostgreSQL 17.11 e age 1.3.2 fixados; NOT_RUN local (executor sem PG17) |
-| Ensaio de restore em imagem Supabase descartável | ver "Execução local" | `npm run pilot:restore:drill` sem `PILOT_SOURCE_DATABASE_URL` usa só a stack local |
+| Ensaio de restore em imagem Supabase descartável | BLOCKED (preflight correto) | `npm run pilot:restore:drill` sem `PILOT_SOURCE_DATABASE_URL`, sobre a Demo local semeada: recusado antes de gerar dump por `pg_dump_major` (cliente 16 × servidor 15) e `storage_objects_empty` (6 objetos). Lacuna real: o ensaio não preserva objetos do Storage, então não cobre uma Demo com documentos; a conversão precisa do export de Storage antes do restore |
 | `recovery:doctor` | BLOCKED (esperado) | `RECOVERY_SOURCE_IDENTITY_INVALID`; banco não acessado, backup e restore não gerados |
 | Backup real do Pilot e do legado | BLOCKED | runner `arandu-recovery` e secrets do environment `database-recovery` ausentes (`docs/SUPABASE_ENCRYPTED_PRESERVATION.md`); proibido nesta missão sem autorização |
 | Restore real comprovado, RPO/RTO medidos | NOT_RUN | RPO ≤ 24 h / RTO ≤ 4 h são metas, não medidas (`FINANCIAL_OPERATIONAL_RESILIENCE.md`) |
@@ -192,7 +202,27 @@ R1 conferido no hospedado; rollback ensaiado; decisão humana registrada.
 
 ## Execução local
 
-Preenchida ao final da rodada com os números reais de cada fase.
+Stack Supabase local em Docker (GoTrue, PostgREST, Storage, Postgres 15.14),
+todas as migrations do `cleanInstall` aplicadas pelo caminho oficial
+(`scripts/ci-demo/run.sh`), app em `ARANDU_ENV=demo`.
+
+| Fase | Resultado |
+| --- | --- |
+| `check:all` | exit 0 |
+| `build` | exit 0 |
+| `test:database` (PostgreSQL 16 descartável, com papel `authenticator`) | exit 0 |
+| smoke | 16/16 PASS (4 de sessão novas) |
+| seed + `--check` | PASS (decisões do seed com `expected_version`) |
+| jornada | 24 passos, 63 ataques, 0 falhas |
+| adversarial | 24 sondas, 24 PASS, 0 FAIL, 0 SKIPPED (inclui DEC-1) |
+| E2E Demo desktop/celular (stack recriada, E2E antes das fases que escrevem, como no CI) | 5 passed + 1 skipped em cada projeto (o mesmo skip do CI: pool de workspaces) |
+
+Duas execuções descartadas, com causa: (1) `--check` rodado depois da
+meia-noite UTC sobre o seed do dia anterior — as datas esperadas são relativas
+ao dia corrente (um dia de diferença); pendência registrada à parte; (2) E2E
+rodado depois de jornada e adversarial, que escrevem na Demo — no CI o E2E roda
+antes delas; o `--reset` do seed também não remove as entidades legais criadas
+pela sonda MENT-0, por isso a stack foi recriada do zero, como no CI.
 
 ## Próxima intervenção humana mínima
 
