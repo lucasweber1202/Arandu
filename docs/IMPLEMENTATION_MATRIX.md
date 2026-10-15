@@ -1,5 +1,25 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 15/10/2026 — Plataforma: datas, histórico do provedor e prova de recovery
+
+Base revalidada `main@f66136edcb01b8065661baebd3309fd722ceb113` (#196 e #197
+ancestrais). Quatro gates da main SUCCESS no run `38757947129`; merge audit
+`38757947078` SUCCESS. Evidência desta entrega e limites em
+`docs/evidence/work-platform-m3-2026-10-15.md`. Nenhum frontend, migration,
+segredo, banco hospedado ou atribuição ativa alterado.
+
+| Item | Estado comprovado | Evidência | Próximo gate / limite |
+| --- | --- | --- | --- |
+| API `days_to_end` por calendário UTC | M1 / LOCAL_VALIDATED | baseline 84 em vez de 85 à tarde; 40 fronteiras temporais passam; `review_from` preservado | CI no HEAD final; calendário local do navegador pode diferir perto da meia-noite |
+| Histórico financeiro do provedor | M1 / LOCAL_VALIDATED | `history[].terms` dos snapshots e `rfq_revision` nas duas consultas; regressão baseline vermelha, negativos JWT/organização/concorrente passam | Claude pode consumir termos históricos; limites de paginação anteriores mantidos |
+| Recovery compara limites/MIME e conjunto de buckets | M1 / LOCAL_VALIDATED | falso MATCH reproduzido; negativos passam, registros exigem `reconciliation_version:2` | prova antiga exige repetir restore do mesmo export isolado; não certifica configuração externa |
+| SHA real do checkout no resumo da integração efêmera | M1 / LOCAL_VALIDATED | merge commit executado separado do HEAD PR; teste baseline vermelho, CI-demo 20/20 | execução do workflow no SHA final; nenhum gate relaxado |
+| Regressões integradas | LOCAL_VALIDATED | check:all, build, listagem E2E, audit (0 vulnerabilidades), test:database PG17, export/restore cifrado sintético com age e diff --check PASS | M2 somente com quatro gates no HEAD final e base atual contida, registrados na PR |
+| Demo/Production hospedadas | BLOCKED para M3 | Demo health no SHA base ainda `synthetic-fixtures`; Production deployment failure e health 404; Vercel config/logs/env 403 | autorização/custódia para recovery real, classificação, restore Supabase compatível, cutover e provas hospedadas |
+
+Os registros históricos abaixo preservam o estado conhecido em cada rodada;
+esta seção resolve as duas dependências de backend da #197 sem atribuir M3.
+
 ## 15/10/2026 — Clareza de produto: comparação, decisão, contratos e Painel (lote UX)
 
 Base: `main` @ `57afa79` (#195), atualizada com `ee69005` (#196, trilha de plataforma do Codex; evidência própria em `docs/evidence/codex-foundation-2026-10-15.md`, sem sobreposição de arquivos). Detalhe, antes/depois e dependências de backend em
