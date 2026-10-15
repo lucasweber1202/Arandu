@@ -508,6 +508,16 @@ apply_file "$upgrade_db" "docs/supabase-financial-document-upload-authorization.
 apply_file "$upgrade_db" "docs/supabase-financial-document-upload-authorization.sql"
 apply_file "$upgrade_db" "tests/database/financial-document-upload-authorization.sql"
 node "$root_dir/tests/database/document-upload-authorization-race.mjs" "$(database_url "$upgrade_db")"
+apply_file "$upgrade_db" "docs/supabase-financial-implementation-task-labels.sql"
+apply_file "$upgrade_db" "tests/database/financial-implementation-task-labels-prepare.sql"
+if rejection="$(psql "$(database_url "$upgrade_db")" -X -v ON_ERROR_STOP=1 -f "$root_dir/docs/rollback/supabase-financial-implementation-task-labels.rollback.sql" 2>&1)"; then
+  echo "Rollback de rótulos deveria recusar planos de implantação existentes" >&2; exit 1
+fi
+[[ "$rejection" == *"implementation data exists: use forward fix"* ]] || { echo "Rollback de rótulos falhou por motivo inesperado" >&2; exit 1; }
+apply_file "$upgrade_db" "docs/supabase-financial-implementation-task-labels.sql"
+apply_file "$upgrade_db" "tests/database/financial-implementation-task-labels.sql"
+apply_file "$upgrade_db" "docs/supabase-financial-implementation-task-labels.sql"
+apply_file "$upgrade_db" "tests/database/financial-implementation-task-labels.sql"
 bash "$root_dir/tests/database/email-fairness-concurrency.sh" "$(database_url "$upgrade_db")"
 apply_file "$upgrade_db" "tests/database/email-outbox.sql"
 bash "$root_dir/tests/database/email-outbox-concurrency.sh" "$(database_url "$upgrade_db")"
@@ -546,6 +556,9 @@ bash "$root_dir/tests/database/financial-decision-race.sh" "$(database_url "$fre
 apply_file "$fresh_db" "tests/database/financial-session-revocation.sql"
 apply_file "$fresh_db" "tests/database/financial-document-upload-authorization.sql"
 node "$root_dir/tests/database/document-upload-authorization-race.mjs" "$(database_url "$fresh_db")"
+apply_file "$fresh_db" "tests/database/financial-implementation-task-labels-prepare.sql"
+apply_file "$fresh_db" "docs/supabase-financial-implementation-task-labels.sql"
+apply_file "$fresh_db" "tests/database/financial-implementation-task-labels.sql"
 apply_file "$fresh_db" "ops/sql/pilot-isolation-canary.sql"
 apply_file "$fresh_db" "ops/sql/post-migration-probes.sql"
 
