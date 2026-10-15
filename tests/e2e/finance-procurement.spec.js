@@ -743,3 +743,22 @@ test('decisão e pedido de aprovação: com mais de uma proposta nada vem marcad
   await form.getByRole('button', { name: 'Solicitar aprovação' }).click();
   await expect.poll(() => requested).toBe(1);
 });
+
+test('painel sem contrato: o cartão leva a registrar o contrato existente, mesmo depois da primeira solicitação', async ({ page }) => {
+  await mockSession(page);
+  await page.goto('/finance/dashboard.html');
+  // Com solicitação criada, os primeiros passos somem; o caminho de primeiro valor não pode sumir junto.
+  await expect(page.locator('#buyer-onboarding')).toHaveCount(0);
+  const card = page.locator('.card', { hasText: 'Nenhum contrato vigente' });
+  await expect(card).not.toContainText('depois de uma decisão');
+  await card.getByRole('link', { name: 'Registrar contrato existente' }).click();
+  await page.waitForURL(/\/finance\/contracts\.html$/);
+  await expect(page.getByRole('dialog', { name: 'Registrar contrato existente' })).toBeVisible();
+});
+
+test('leitor não recebe o atalho de registrar contrato no painel', async ({ page }) => {
+  await mockSession(page, { viewerRole: 'viewer' });
+  await page.goto('/finance/dashboard.html');
+  await expect(page.locator('.card', { hasText: 'Nenhum contrato vigente' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Registrar contrato existente' })).toHaveCount(0);
+});

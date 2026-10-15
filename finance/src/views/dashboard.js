@@ -206,7 +206,9 @@ export async function dashboard(ctx) {
     ]);
   }));
   const contractsCard = card({ title: 'Contratos e renovações', actions: [linkButton('Contratos', ctx.href('/finance/contracts.html'), { variant: 'ghost', size: 'sm', iconName: 'arrowRight' })],
-    body: upcoming.length ? contractList : emptyState({ title: 'Nenhum contrato vigente', text: 'Contratos registrados depois de uma decisão aparecem aqui com as datas de renovação.', compact: true }) });
+    // Primeiro valor (§35.10): contrato que a empresa já tem entra sem concorrência.
+    body: upcoming.length ? contractList : emptyState({ title: 'Nenhum contrato vigente', text: 'Registre um contrato que a empresa já tem ou feche uma concorrência: vencimento, aviso prévio e renovação passam a ser acompanhados aqui.', compact: true,
+      action: ctx.can('create_rfq') ? linkButton('Registrar contrato existente', ctx.href('/finance/contracts.html?acao=registrar-contrato'), { size: 'sm', iconName: 'plus' }) : null }) });
 
   // Tarefas com conclusão rápida. O que já está em "Precisa de você" não se repete aqui.
   const listed = new Set(items.slice(0, 8).map((item) => item.taskId).filter(Boolean));
