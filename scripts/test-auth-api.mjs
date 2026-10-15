@@ -172,7 +172,7 @@ try {
   assert.match(String(revoked.headers['set-cookie']), /Max-Age=0/);
 
   global.fetch = async (url, options = {}) => {
-    assert.match(String(url), /\/auth\/v1\/logout$/);
+    assert.match(String(url), /\/auth\/v1\/logout\?scope=global$/);
     assert.equal(options.headers.Authorization, 'Bearer access-test');
     return new Response(null, { status: 204 });
   };
@@ -180,6 +180,53 @@ try {
   assert.equal(logout.status, 200);
   assert.equal(logout.body.authenticated, false);
   assert.match(logout.headers['set-cookie'], /Max-Age=0/);
+
+  // Falha de revogação nunca equivale a logout global confirmado, mesmo
+  // quando o cookie local foi limpo. Mensagens do Auth não atravessam.
+  for (const failure of [
+    { name: 'timeout', throws: new DOMException('sensitive-upstream timeout', 'TimeoutError') },
+    { name: 'network', throws: new Error('sensitive-upstream network') },
+    { name: 'server', status: 500, body: { msg: 'sensitive-upstream database detail' } },
+    { name: 'missing-session', status: 403, body: { error_code: 'session_not_found', msg: 'sensitive-upstream session' } },
+    { name: 'expired-token', status: 401, body: { error_code: 'bad_jwt', msg: 'sensitive-upstream expired' }, expired: true }
+  ]) {
+    const logoutRequests = [];
+    global.fetch = async (url) => {
+      logoutRequests.push(String(url));
+      if (failure.throws) throw failure.throws;
+      return jsonResponse(failure.body, failure.status);
+    };
+    const failedLogout = await call('POST', '/api/auth/logout', undefined, { cookie: sessionCookie({ expired: failure.expired }) });
+    assert.deepEqual(logoutRequests, ['https://arandu-test.supabase.co/auth/v1/logout?scope=global'], failure.name);
+    assert.equal(failedLogout.status, 503, failure.name);
+    assert.equal(failedLogout.body.ok, false, failure.name);
+    assert.equal(failedLogout.body.code, 'auth_logout_unconfirmed', failure.name);
+    assert.match(failedLogout.headers['set-cookie'], /Max-Age=0/, failure.name);
+    assert.doesNotMatch(JSON.stringify(failedLogout.body), /sensitive-upstream/, failure.name);
+  }
+  global.fetch = async () => { throw new Error('Logout sem cookie não consulta o Auth.'); };
+  const localLogout = await call('POST', '/api/auth/logout');
+  assert.equal(localLogout.status, 200);
+  assert.equal(localLogout.body.authenticated, false);
+  assert.match(localLogout.headers['set-cookie'], /Max-Age=0/);
+
+  // Uma configuração Auth perdida não prova revogação de cookie ainda
+  // autenticável pela chave de assinatura do servidor.
+  const savedAnonKey = process.env.SUPABASE_ANON_KEY;
+  try {
+    delete process.env.SUPABASE_ANON_KEY;
+    const { default: unconfiguredHandler } = await import(`../api/[...path].js?logout-unconfigured=${Date.now()}`);
+    const unconfiguredLogout = response();
+    await unconfiguredHandler(request('POST', '/api/auth/logout', undefined, { cookie: sessionCookie() }), unconfiguredLogout);
+    assert.equal(unconfiguredLogout.statusCode, 503);
+    assert.equal(JSON.parse(unconfiguredLogout.body).code, 'auth_logout_unconfirmed');
+    assert.match(unconfiguredLogout.headers['set-cookie'], /Max-Age=0/);
+    const noSessionLogout = response();
+    await unconfiguredHandler(request('POST', '/api/auth/logout'), noSessionLogout);
+    assert.equal(noSessionLogout.statusCode, 200);
+  } finally {
+    restoreEnv('SUPABASE_ANON_KEY', savedAnonKey);
+  }
 
   const invalidJson = await call('POST', '/api/auth/login', '{invalido');
   assert.equal(invalidJson.status, 400);

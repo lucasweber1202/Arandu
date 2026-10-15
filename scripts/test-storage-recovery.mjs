@@ -4,14 +4,15 @@
 // restore e permissões) roda no ensaio scripts/pilot-restore-drill.sh dentro do
 // laboratório efêmero (fase recovery de scripts/ci-demo/run.sh).
 import assert from 'node:assert/strict';
+import { createHmac } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {
   assessInventory, parseInventory, indexEntry, objectFile, parseIndex, storageManifest, checkManifest,
-  reconcileStorage, validStorageRecord, recoveryCompleteness, digest, sha256, STORAGE_INDEX, STORAGE_MANIFEST
+  reconcileStorage, validStorageRecord, recoveryCompleteness, storageSnapshotDigest, validPermissionEvidence, digest, sha256, STORAGE_INDEX, STORAGE_MANIFEST
 } from '../lib/storage-recovery.mjs';
-import { exportStorage, restoreStorage, verifyStorage, signJwt, storageEvidence } from './storage-recovery.mjs';
+import { exportStorage, restoreStorage, verifyStorage, signJwt, storageEvidence, permissionProbe, parseTargetMembers } from './storage-recovery.mjs';
 import { initStore, verifyExport } from './recovery.mjs';
 import { countsDigest } from '../lib/recovery-reconciliation.mjs';
 import { diagnoseRecovery } from '../lib/recovery-doctor.mjs';
@@ -95,10 +96,15 @@ assert.deepEqual(kinds({ readbacks: new Map([[1, read(Buffer.from('%PDF sintéti
 // Registro de restore vale só para o mesmo export, com MATCH e permissões negadas.
 const record = { format_version: 1, restore: 'RESTORED_ISOLATED', reconciliation: 'MATCH', differences: [], objects: 2,
   index_sha256: manifest.index_sha256, files_sha256: digest(manifest.files), target: 'loopback_disposable_supabase_storage',
-  permissions: { result: 'DENIED_AS_EXPECTED' }, verified_at: new Date().toISOString() };
+  permissions: { result: 'DENIED_AS_EXPECTED', cross_tenant_required: true, checks: ['public_url', 'anon_jwt', 'member_own_org_direct', 'member_other_org_direct'].map((name) => ({ name, status: 403, denied: true })) }, verified_at: new Date().toISOString() };
 assert.equal(validStorageRecord(record, manifest), true);
+assert.equal(validStorageRecord({ ...record, permissions: { ...record.permissions, cross_tenant_required: false, checks: record.permissions.checks.filter((c) => c.name !== 'member_other_org_direct') } }, manifest), false);
+for (const status of [408, 405, 422, 429, 500, 0]) {
+  assert.equal(validPermissionEvidence({ ...record.permissions, checks: record.permissions.checks.map((c) => ({ ...c, status })) }), false);
+}
+
 for (const forged of [{ reconciliation: 'MISMATCH' }, { differences: [{ kind: 'missing_binary' }] }, { objects: 1 }, { index_sha256: 'f'.repeat(64) },
-  { files_sha256: 'f'.repeat(64) }, { permissions: { result: 'EXPOSED' } }, { restore: 'NOT RESTORED (verify only)' }, { verified_at: '2000-01-01T00:00:00Z' }]) {
+  { files_sha256: 'f'.repeat(64) }, { permissions: { result: 'DENIED_AS_EXPECTED' } }, { permissions: { result: 'EXPOSED' } }, { restore: 'NOT RESTORED (verify only)' }, { verified_at: '2000-01-01T00:00:00Z' }]) {
   assert.equal(validStorageRecord({ ...record, ...forged }, manifest), false, JSON.stringify(forged));
 }
 assert.equal(recoveryCompleteness({ databaseVerified: true, storageObjects: 6, storageVerified: false }), 'DATABASE_ONLY');
@@ -139,6 +145,21 @@ try {
   const restoreEnv = { PATH: process.env.PATH, ARANDU_STORAGE_RESTORE_CONFIRM: 'ARANDU-ISOLATED-STORAGE-RESTORE', ARANDU_STORAGE_BACKUP: backup,
     ARANDU_STORAGE_IDENTITY: identity, ARANDU_STORAGE_TARGET_DATABASE_URL: 'postgresql://postgres@127.0.0.1:54329/postgres',
     ARANDU_STORAGE_TARGET_URL: 'http://127.0.0.1:54330', ARANDU_STORAGE_TARGET_JWT_SECRET: 's'.repeat(64) };
+  // Override local precisa usar o mesmo segredo dos probes; rejeita antes de age/rede.
+  const wrongService = signJwt('different-secret-'.repeat(4), { role: 'service_role' });
+  await codeAsync(verifyStorage({ env: { ...restoreEnv, ARANDU_STORAGE_TARGET_SERVICE_KEY: wrongService }, fetchImpl: neverFetch }), 'STORAGE_TARGET_SECRET_INVALID');
+  const localSecret = restoreEnv.ARANDU_STORAGE_TARGET_JWT_SECRET;
+  const signed = (header, claims) => {
+    const body = [header, claims].map((v) => Buffer.from(JSON.stringify(v)).toString('base64url')).join('.');
+    return `${body}.${createHmac('sha256', localSecret).update(body).digest('base64url')}`;
+  };
+  const goodClaims = { role: 'service_role', exp: Math.floor(Date.now() / 1000) + 3600 };
+  for (const token of ['opaque-local-key', 'a.b.c', signed({ alg: 'none' }, goodClaims), signed({ alg: 'HS512' }, goodClaims),
+    signed({ alg: 'HS256' }, { ...goodClaims, role: 'authenticated' }), signed({ alg: 'HS256' }, { role: 'service_role' }),
+    signed({ alg: 'HS256' }, { ...goodClaims, exp: '9999999999' }), signed({ alg: 'HS256' }, { ...goodClaims, exp: 0 })]) {
+    await codeAsync(restoreStorage({ env: { ...restoreEnv, ARANDU_STORAGE_TARGET_SERVICE_KEY: token }, fetchImpl: neverFetch }), 'STORAGE_TARGET_SECRET_INVALID');
+  }
+
   await codeAsync(restoreStorage({ env: { ...restoreEnv, ARANDU_STORAGE_RESTORE_CONFIRM: '' }, fetchImpl: neverFetch }), 'STORAGE_CONFIRMATION_MISSING');
   // Destino nunca hospedado: banco e Storage só em loopback.
   await codeAsync(restoreStorage({ env: { ...restoreEnv, ARANDU_STORAGE_TARGET_DATABASE_URL: 'postgresql://postgres:x@db.offgpyysgdhfemjlchod.supabase.co:5432/postgres' }, fetchImpl: neverFetch }), 'STORAGE_TARGET_NOT_ISOLATED');
@@ -155,6 +176,21 @@ try {
   await codeAsync(restoreStorage({ env: restoreEnv, fetchImpl: neverFetch }), 'STORAGE_ARTIFACT_MISSING');
   await codeAsync(verifyStorage({ env: restoreEnv, fetchImpl: neverFetch }), 'STORAGE_ARTIFACT_MISSING');
   fs.renameSync(path.join(home, 'moved'), path.join(backup, objectFile(2)));
+  // Transporte sintético explícito: índice já conhecido e inventário restaurado.
+  // Exercita a CLI verify até o contrato final; não é prova de criptografia/recovery real.
+  const bin = path.join(home, 'bin'); fs.mkdirSync(bin);
+  const fakeTool = (output) => `#!/usr/bin/env node\nprocess.stdin.resume();process.stdin.on('end',()=>process.stdout.write(${JSON.stringify(output)}));\n`;
+  fs.writeFileSync(path.join(bin, 'age'), fakeTool(JSON.stringify(index)), { mode: 0o700 });
+  const member = { organization_id: ORG_A, user_id: '00000000-0000-4000-8000-000000000001' };
+  const psqlTool = `#!/usr/bin/env node\nlet sql='';process.stdin.on('data',b=>sql+=b);process.stdin.on('end',()=>process.stdout.write(sql.includes('fin_document_versions')?${JSON.stringify(JSON.stringify(inventory))}:${JSON.stringify(JSON.stringify([member]))}));\n`;
+  fs.writeFileSync(path.join(bin, 'psql'), psqlTool, { mode: 0o700 });
+  const localEnv = { ...restoreEnv, PATH: bin + path.delimiter + process.env.PATH };
+  const exposed = async (url) => new Response(url.endsWith(index.objects[0].name) ? bytesA : bytesB, { status: 200 });
+  // Service readbacks match, mas a URL pública também retorna 200.
+  await codeAsync(verifyStorage({ env: localEnv, fetchImpl: exposed }), 'STORAGE_PERMISSIONS_EXPOSED');
+  // Default emitido localmente e override coerente chegam às sondas; token opaco só é proibido no destino.
+  await codeAsync(verifyStorage({ env: { ...localEnv, ARANDU_STORAGE_TARGET_SERVICE_KEY: signJwt(localSecret, { role: 'service_role' }) }, fetchImpl: exposed }), 'STORAGE_PERMISSIONS_EXPOSED');
+
   fs.appendFileSync(path.join(backup, objectFile(1)), 'x');
   await codeAsync(restoreStorage({ env: restoreEnv, fetchImpl: neverFetch }), 'STORAGE_HASH_MISMATCH');
   fs.writeFileSync(path.join(backup, objectFile(1)), blobs[1]);
@@ -194,7 +230,7 @@ try {
     const started = new Date(Date.now() - 60000).toISOString(), completed = new Date(Date.now() - 50000).toISOString();
     const dbManifest = { format_version: 1, classification: 'synthetic_encrypted_export', project_ref: null, started_at: started, completed_at: completed,
       result: 'exported_unverified', storage: { strategy: 'private-store', store_id: store.store_id }, snapshot: 'exported_snapshot_shared_with_pg_dump',
-      snapshot_counts: counts, snapshot_counts_sha256: countsDigest(counts), source_counts: { storage_objects: 2 }, storage_binaries: 'SEPARATE_EXPORT_REQUIRED', files: dbFiles };
+      storage_snapshot_inventory_sha256: storageSnapshotDigest(inventory), snapshot_counts: counts, snapshot_counts_sha256: countsDigest(counts), source_counts: { storage_objects: 2 }, storage_binaries: 'SEPARATE_EXPORT_REQUIRED', files: dbFiles };
     fs.writeFileSync(path.join(dbExport, 'manifest.json'), JSON.stringify(dbManifest), { mode: 0o600 });
     const dbRecord = { format_version: 1, restore: 'RESTORED_ISOLATED', reconciliation: 'MATCH', differences: [], tables: 2, target: 'loopback_disposable_postgresql17',
       roles_file: 'NOT APPLIED', export_project_ref: null, export_started_at: started, source_counts_sha256: dbManifest.snapshot_counts_sha256,
@@ -212,15 +248,53 @@ try {
     const sRecord = { ...record, files_sha256: digest(sFiles), index_sha256: sManifest.index_sha256, verified_at: new Date().toISOString() };
     const recordFile = path.join(sx, 'storage-restore-verification-2026-10-15T00-00-01-000Z.json');
     fs.writeFileSync(recordFile, JSON.stringify(sRecord), { mode: 0o600 });
-    assert.equal((await storageEvidence(dbExport, 2)).length, 1);
+    assert.equal((await storageEvidence(dbExport, dbManifest)).length, 1);
     result = await verify();
     assert.deepEqual([result.level, result.recovery, result.completeness, result.storage_binaries], [5, 'RECOVERY_VERIFIED', 'COMPLETE', 'RESTORE_VERIFIED']);
+    // Mesmo número de objetos não prova origem nem o conjunto capturado no dump.
+    for (const wrong of [
+      { source: 'offgpyysgdhfemjlchod', classification: 'storage_binary_export' },
+      { snapshot_inventory_sha256: 'f'.repeat(64) },
+      { snapshot_inventory_sha256: undefined }
+    ]) {
+      fs.writeFileSync(path.join(sx, STORAGE_MANIFEST), JSON.stringify({ ...sManifest, ...wrong }));
+      assert.equal((await verify()).recovery, 'RECOVERY_DATABASE_ONLY');
+    }
+    fs.writeFileSync(path.join(sx, STORAGE_MANIFEST), JSON.stringify(sManifest));
+    // Synthetic proof cannot certify a hosted database, even with identical counts.
+    fs.writeFileSync(path.join(dbExport, 'manifest.json'), JSON.stringify({ ...dbManifest, classification: 'encrypted_logical_export', project_ref: 'offgpyysgdhfemjlchod' }));
+    assert.equal((await verify()).recovery, 'RECOVERY_RESTORE_NOT_VERIFIED');
+    assert.equal((await storageEvidence(dbExport, { ...dbManifest, classification: 'encrypted_logical_export', project_ref: 'offgpyysgdhfemjlchod' })).length, 0);
+    fs.writeFileSync(path.join(dbExport, 'manifest.json'), JSON.stringify(dbManifest));
+    // A contagem prévia não pode esconder objetos que entraram no snapshot.
+    fs.writeFileSync(path.join(dbExport, 'manifest.json'), JSON.stringify({ ...dbManifest, source_counts: { storage_objects: 0 } }));
+    await codeAsync(verify(), 'RECOVERY_MANIFEST_INVALID');
+    fs.writeFileSync(path.join(dbExport, 'manifest.json'), JSON.stringify(dbManifest));
     // Quantidade diferente da do snapshot, registro legível por outros, forjado ou ciphertext adulterado: volta a 4.
-    assert.equal((await storageEvidence(dbExport, 3)).length, 0);
+    assert.equal((await storageEvidence(dbExport, { ...dbManifest, snapshot_counts: { 'storage.objects': 3 } })).length, 0);
     fs.chmodSync(recordFile, 0o644); assert.equal((await verify()).level, 4); fs.chmodSync(recordFile, 0o600);
     fs.writeFileSync(recordFile, JSON.stringify({ ...sRecord, permissions: { result: 'EXPOSED' } })); assert.equal((await verify()).level, 4);
     fs.writeFileSync(recordFile, JSON.stringify(sRecord)); assert.equal((await verify()).level, 5);
     fs.appendFileSync(path.join(sx, objectFile(2)), 'x'); assert.equal((await verify()).recovery, 'RECOVERY_DATABASE_ONLY');
   } finally { fs.rmSync(home, { recursive: true, force: true }); }
 }
+
+// Subprocessos e autorização: falhas/ausências nunca fabricam prova autenticada.
+for (const result of [{ status: null, error: new Error('spawn'), stdout: '[]' }, { status: 1, stdout: '[]' },
+  { status: 0, stdout: '' }, { status: 0, stdout: '{}' }, { status: 0, stdout: '[{"user_id":"bad"}]' }]) {
+  code(() => parseTargetMembers(result), 'STORAGE_TARGET_MEMBERS_FAILED');
+}
+const member = { organization_id: ORG_A, user_id: '00000000-0000-4000-8000-000000000001' };
+assert.deepEqual(parseTargetMembers({ status: 0, stdout: JSON.stringify([member]) }), [member]);
+const deny = async () => new Response('', { status: 403 });
+assert.equal((await permissionProbe(deny, 'http://127.0.0.1', 's'.repeat(64), index, { members: [] })).result, 'INCONCLUSIVE');
+const permission = await permissionProbe(deny, 'http://127.0.0.1', 's'.repeat(64), index, { members: [member] });
+assert.equal(permission.result, 'DENIED_AS_EXPECTED');
+assert.equal(permission.checks.length, 4);
+const exposeMember = async (_url, init) => {
+  const token = init.headers.Authorization?.split(' ')[1];
+  const role = token && JSON.parse(Buffer.from(token.split('.')[1], 'base64url')).role;
+  return new Response('', { status: role === 'authenticated' ? 200 : 403 });
+};
+assert.equal((await permissionProbe(exposeMember, 'http://127.0.0.1', 's'.repeat(64), index, { members: [member] })).result, 'EXPOSED');
 console.log('Storage recovery: inventário com referências do produto, índice cifrado, manifesto sem nomes, reconciliação (metadado sem binário falha), registro preso ao export e guardas da CLI aprovados.');

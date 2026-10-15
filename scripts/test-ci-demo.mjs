@@ -51,6 +51,18 @@ test('workflow: limpeza e evidência sempre executam', () => {
     assert.match(workflow, new RegExp(`- name: ${name.replace(/[()]/g, '\\$&')}\\n        if: always\\(\\)`), `${name} sem if: always()`);
   }
 });
+test('recovery usa seed verificado antes da jornada que cadastra fatores MFA', () => {
+  const phase = (id) => {
+    const index = workflow.indexOf(`id: ${id}\n`);
+    assert(index >= 0, `fase ${id} ausente`);
+    return index;
+  };
+  assert(phase('seed') < phase('check'));
+  assert(phase('check') < phase('recovery'), 'recovery exige dataset semeado e verificado');
+  for (const id of ['journey', 'adversarial']) {
+    assert(phase('recovery') < phase(id), `recovery deve preceder fase mutante ${id}`);
+  }
+});
 test('Playwright: só Chromium, um worker, sem trace', () => {
   assert.match(workflow, /npx playwright install --with-deps chromium\n/);
   assert.doesNotMatch(workflow, /firefox|webkit/);
@@ -94,6 +106,116 @@ test('sanitização remove JWT, cookie, senha em URL e e-mail real; mantém e-ma
   for (const leaked of [jwt, 'abc.def', 'segredo123', 'pessoa@empresa-real.com.br']) assert(!clean.includes(leaked), `vazou: ${leaked}`);
   assert(clean.includes('juliana.ramos@vittafoods.example'));
   fs.rmSync(dir, { recursive: true, force: true });
+});
+test('e-mails com example no meio do domínio também são PII', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ci-demo-email-'));
+  try {
+    const source = path.join(dir, 'app.log');
+    const real = ['pessoa@tenant.example.com', 'pessoa@tenant.example.com.br', 'pessoa@EXAMPLE.COM'];
+    fs.writeFileSync(source, real.join(' ') + ' fixture@vittafoods.example fixture@VITTAFOODS.EXAMPLE');
+    const r = spawnSync(process.execPath, ['scripts/ci-demo/sanitize.mjs', path.join(dir, 'out'), source], { encoding: 'utf8' });
+    assert.equal(r.status, 0, r.stderr);
+    const clean = fs.readFileSync(path.join(dir, 'out/app.log'), 'utf8');
+    for (const email of real) assert(!clean.includes(email), `vazou: ${email}`);
+    assert(clean.includes('fixture@vittafoods.example') && clean.includes('fixture@VITTAFOODS.EXAMPLE'));
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+test('teardown recusa falha Docker e recursos residuais; preserva estado para retomar', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ci-demo-down-'));
+  try {
+    const local = path.join(dir, 'scripts/pilot-local');
+    fs.mkdirSync(path.join(local, '.state'), { recursive: true });
+    fs.mkdirSync(path.join(dir, 'bin'));
+    fs.copyFileSync('scripts/pilot-local/down.sh', path.join(local, 'down.sh'));
+    fs.writeFileSync(path.join(local, 'docker-compose.yml'), 'services: {}');
+    const marker = path.join(local, '.state/retain');
+    fs.writeFileSync(path.join(dir, 'bin/docker'), `#!/bin/bash
+printf '%s\\n' "$*" >> "$CAPTURE"
+if [ "$FAKE_QUERY_ERROR" = 1 ] && [[ "$*" != *' down '* ]]; then exit 8; fi
+case "$*" in
+  *' down '*) exit "\${FAKE_COMPOSE_STATUS:-0}" ;;
+  'ps '*) [ "$FAKE_RESIDUAL" != container ] || echo residual-container ;;
+  'volume ls '*) [ "$FAKE_RESIDUAL" != volume ] || echo residual-volume ;;
+  'network ls '*) [ "$FAKE_RESIDUAL" != network ] || echo residual-network ;;
+  *) exit 9 ;;
+esac
+exit 0
+`, { mode: 0o755 });
+    fs.writeFileSync(path.join(dir, 'bin/pgrep'), '#!/bin/bash\nexit 1\n', { mode: 0o755 });
+    const capture = path.join(dir, 'calls');
+    const run = (extra) => spawnSync('bash', [path.join(local, 'down.sh')], { encoding: 'utf8', timeout: 5000, env: { PATH: path.join(dir, 'bin') + path.delimiter + process.env.PATH, CAPTURE: capture, ...extra } });
+    for (const extra of [{ FAKE_COMPOSE_STATUS: '7' }, ...['container', 'volume', 'network'].map(FAKE_RESIDUAL => ({ FAKE_RESIDUAL }))]) {
+      fs.writeFileSync(marker, 'state');
+      const r = run(extra);
+      assert.equal(r.error, undefined); assert.equal(r.signal, null);
+      assert.equal(r.status, 1, r.stdout + r.stderr);
+      assert(fs.existsSync(marker), 'estado apagado apesar de falha');
+    }
+    fs.writeFileSync(marker, 'state');
+    const queryFailure = run({ FAKE_QUERY_ERROR: '1' });
+    assert.equal(queryFailure.error, undefined); assert.equal(queryFailure.signal, null);
+    assert.equal(queryFailure.status, 8); assert(fs.existsSync(marker));
+    const ok = run({});
+    assert.equal(ok.status, 0, ok.stderr);
+    assert(!fs.existsSync(path.join(local, '.state')));
+    for (const line of fs.readFileSync(capture, 'utf8').trim().split('\n')) assert(line.includes('arandu-pilot-local'), `operação não limitada ao projeto: ${line}`);
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+test('restore drill invalida PASS se cleanup falhar e distingue retenção intencional', () => {
+  const script = fs.readFileSync('scripts/pilot-restore-drill.sh', 'utf8');
+  const cleanup = script.slice(script.indexOf('cleanup() {'), script.indexOf('source_url='));
+  assert(script.indexOf('trap cleanup EXIT') < script.indexOf('tools="$(mktemp'), 'trap deve preceder wrappers e preflight');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ci-demo-drill-cleanup-'));
+  const harness = [
+    'set -euo pipefail',
+    'report="$FIXTURE/report.json"; work="$FIXTURE/work"; tools="$FIXTURE/tools"',
+    'mkdir -p "$work" "$tools"',
+    'keep_backup=0; run_id=fixture-run; created_containers=(unique-drill-fixture)',
+    'touch "$FIXTURE/container"',
+    'if [ "$MODE" = preflight-failed ]; then created_containers=(); fi',
+    'rm() { if [ "$MODE" = tools-error ] && [ "$*" = "-rf $tools" ]; then return 9; fi; command rm "$@"; }',
+    'docker() {',
+    '  case "$*" in',
+    '    "ps -aq --filter name=^/unique-drill-fixture$ --filter label=arandu.restore-drill=fixture-run")',
+    '      [ "$MODE" != query-error ] || return 8',
+    '      if [ "$MODE" != foreign ] && [ -f "$FIXTURE/container" ]; then echo fixture-id; fi ;;',
+    '    "rm -f fixture-id")',
+    '      [ "$MODE" != remove-error ] || return 7',
+    '      if [ "$MODE" != residual ]; then rm -f "$FIXTURE/container"; fi ;;',
+    '    *) echo "unexpected Docker command" >&2; return 99 ;;',
+    '  esac',
+    '}',
+    cleanup,
+    `printf '%s' '{"result":"pending_cleanup"}' > "$report"`,
+    'exit "$BODY_STATUS"'
+  ].join('\n');
+  try {
+    for (const mode of ['remove-error', 'query-error', 'residual', 'success', 'keep', 'body-failed', 'both-failed', 'tools-error', 'foreign', 'preflight-failed']) {
+      const fixture = path.join(dir, mode); fs.mkdirSync(fixture);
+      const failedBody = ['body-failed', 'both-failed', 'preflight-failed'].includes(mode);
+      const failedCleanup = ['remove-error', 'query-error', 'residual', 'both-failed', 'tools-error'].includes(mode);
+      const r = spawnSync('bash', ['-c', harness], { encoding: 'utf8', timeout: 5000, env: {
+        PATH: process.env.PATH, FIXTURE: fixture, MODE: mode === 'both-failed' ? 'remove-error' : mode,
+        BODY_STATUS: failedBody ? '23' : '0', PILOT_DRILL_KEEP: mode === 'keep' ? '1' : '0'
+      } });
+      assert.equal(r.error, undefined); assert.equal(r.signal, null);
+      assert.equal(r.status, failedBody ? 23 : failedCleanup ? 1 : 0, mode + r.stderr);
+      const report = path.join(fixture, 'report.json');
+      if (failedCleanup) {
+        assert(!fs.existsSync(report), mode + ': PASS residual');
+        assert(fs.existsSync(path.join(fixture, 'tools')) && fs.existsSync(path.join(fixture, 'work')), mode + ': estado perdido');
+      } else {
+        if (failedBody) assert(!fs.existsSync(report), 'erro do corpo deixou relatório');
+        else {
+          const result = JSON.parse(fs.readFileSync(report));
+          assert.equal(result.cleanup, mode === 'keep' ? 'retained' : 'removed');
+          assert.equal(result.result, 'passed');
+        }
+        assert.equal(fs.existsSync(path.join(fixture, 'container')), ['keep', 'foreign', 'preflight-failed'].includes(mode));
+        assert.equal(fs.existsSync(path.join(fixture, 'work')), mode === 'keep');
+      }
+    }
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
 test('fase desconhecida do harness é recusada (código 2)', () => {
   const r = spawnSync('bash', ['scripts/ci-demo/run.sh', 'fase-inexistente'], { encoding: 'utf8', env: { ...process.env, CI_DEMO_REPORTS: os.tmpdir() } });

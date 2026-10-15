@@ -169,6 +169,6 @@ reset role;
 select set_config('request.jwt.claim.sub','',false);
 
 do $$ begin
-  if (select value from public.fin_settings where key = 'schema_version') not in ('financial-security-closure-1', 'financial-request-receipts-1', 'financial-followup-hardening-1', 'financial-contract-onboarding-1', 'financial-renewal-cycles-1', 'financial-decision-integrity-1', 'financial-session-revocation-1') then raise exception 'marcador de schema'; end if;
+  if (select value from public.fin_settings where key = 'schema_version') not in ('financial-security-closure-1', 'financial-request-receipts-1', 'financial-followup-hardening-1', 'financial-contract-onboarding-1', 'financial-renewal-cycles-1', 'financial-decision-integrity-1', 'financial-session-revocation-1', 'financial-document-upload-authorization-1') then raise exception 'marcador de schema'; end if;
 end $$;
 \echo 'Fechamento de segurança: referências por entidade, remoção com alcance, evidência só por RPC, prontidão fechada, webhooks por escopo e domínio SSO pendente que vence validados.'

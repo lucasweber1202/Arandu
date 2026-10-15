@@ -26,7 +26,7 @@ const patterns = [
   [/eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/g, '[jwt]'],
   [/arandu_session=[^;\s"']+/g, 'arandu_session=[redacted]'],
   [/(postgres(?:ql)?:\/\/[^:\s/]+):[^@\s]+@/g, '$1:[redacted]@'],
-  [/\b[A-Za-z0-9._%+-]+@(?![A-Za-z0-9.-]*\.example\b)[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g, '[email]']
+  [/\b[A-Za-z0-9._%+-]+@([A-Za-z0-9.-]+\.[A-Za-z]{2,})\b/g, (email, domain) => domain.toLowerCase().endsWith('.example') ? email : '[email]']
 ];
 export function sanitize(text) {
   let out = text;

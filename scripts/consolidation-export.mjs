@@ -7,6 +7,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { pipeline } from 'node:stream/promises';
 import { sourceConnection, majorVersion } from '../lib/pilot-backup-preflight.mjs';
 import { COUNTS_SQL, parseCounts, countsDigest } from '../lib/recovery-reconciliation.mjs';
+import { STORAGE_SNAPSHOT_SQL, parseInventory, storageSnapshotDigest } from '../lib/storage-recovery.mjs';
 import { recoveryFail, RecoveryError, syncPath } from '../lib/recovery-doctor.mjs';
 
 const SESSION_END = '__ARANDU_SNAPSHOT_STEP__';
@@ -33,9 +34,9 @@ function snapshotSession(env) {
   });
   return {
     async open() {
-      const [snapshot, counts] = await step(`begin isolation level repeatable read read only;\nset local row_security = off;\nselect pg_export_snapshot();\n${COUNTS_SQL}`);
+      const [snapshot, counts, inventory] = await step(`begin isolation level repeatable read read only;\nset local row_security = off;\nselect pg_export_snapshot();\n${COUNTS_SQL}\n${STORAGE_SNAPSHOT_SQL}`);
       if (!/^[0-9A-F]{8}-[0-9A-F]{8}(-[0-9]+)?$/i.test(snapshot || '')) throw new Error('Snapshot inválido.');
-      return { snapshot, counts: parseCounts(counts) };
+      return { snapshot, counts: parseCounts(counts), inventory: parseInventory(JSON.stringify({ ...JSON.parse(inventory), references: [] })) };
     },
     async close() { child.stdin.end('commit;\n'); if (await exited !== 0) throw new Error('Sessão de snapshot falhou.'); },
     abort() { child.kill('SIGKILL'); }
@@ -146,10 +147,21 @@ export async function exportRecovery({ env = process.env, root = process.cwd(), 
     session = snapshotSession(queryEnv);
     let opened;
     try { opened = await session.open(); } catch { recoveryFail('RECOVERY_CONNECTION_FAILED', 'Snapshot consistente não pôde ser aberto.'); }
-    const { snapshot, counts } = opened;
+    const { snapshot, counts, inventory } = opened;
     manifest.snapshot = 'exported_snapshot_shared_with_pg_dump';
     manifest.snapshot_counts = counts;
     manifest.snapshot_counts_sha256 = countsDigest(counts);
+    const snapshotObjects = counts['storage.objects'];
+    if (!Number.isSafeInteger(snapshotObjects) || snapshotObjects !== inventory.objects.length) recoveryFail('RECOVERY_CONNECTION_FAILED', 'Inventário Storage diverge das contagens do snapshot.');
+    // O preflight é anterior ao snapshot; nunca determina completude do dump.
+    manifest.source_counts = { ...state, storage_objects: snapshotObjects };
+    manifest.storage_snapshot_inventory_sha256 = storageSnapshotDigest(inventory);
+    manifest.storage_binaries = snapshotObjects === 0 ? 'NONE' : 'SEPARATE_EXPORT_REQUIRED';
+    manifest.scope = snapshotObjects === 0
+      ? 'database including public/Auth/Storage metadata/migration history; roles without passwords; Storage binaries absent at snapshot'
+      : 'database including public/Auth/Storage metadata/migration history; roles without passwords; Storage binaries in a separate encrypted export inside this directory';
+    if (snapshotObjects > 0 && env.ARANDU_RECOVERY_STORAGE_BINARIES !== 'separate-export') recoveryFail('RECOVERY_STORAGE_OBJECTS_PRESENT', 'Snapshot possui arquivos: export separado dos binários obrigatório.');
+
     await encrypted('pg_dump', ['--format=custom', '--lock-wait-timeout=10000', `--snapshot=${snapshot}`], 'database.dump.age');
     try { await session.close(); } catch { recoveryFail('RECOVERY_EXPORT_FAILED', 'Sessão de snapshot falhou.'); }
     session = null;

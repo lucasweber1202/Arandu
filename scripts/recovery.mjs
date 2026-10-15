@@ -153,8 +153,11 @@ export async function verifyExport({ env = process.env, root = process.cwd() } =
   const restored = restoreRecords(real, manifest).length > 0;
   // Banco restaurado não basta: com arquivos na origem, exige os binários
   // exportados neste export e restaurados/reconciliados (scripts/storage-recovery.mjs).
-  const storageObjects = manifest.source_counts?.storage_objects;
-  const storage = Number.isSafeInteger(storageObjects) && storageObjects > 0 ? await storageEvidence(real, storageObjects) : [];
+  const storageObjects = manifest.snapshot_counts['storage.objects'];
+  if (!Number.isSafeInteger(storageObjects) || storageObjects !== manifest.source_counts?.storage_objects) {
+    recoveryFail('RECOVERY_MANIFEST_INVALID', 'Contagem Storage não corresponde ao snapshot do banco.');
+  }
+  const storage = Number.isSafeInteger(storageObjects) && storageObjects > 0 ? await storageEvidence(real, manifest) : [];
   const completeness = recoveryCompleteness({ databaseVerified: restored, storageObjects, storageVerified: storage.length > 0 });
   const complete = completeness === 'COMPLETE';
   return {
