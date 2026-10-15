@@ -347,8 +347,9 @@ await step('Comparação factual e pesos definidos pelo comprador', async () => 
 });
 await step('Pedido de aprovação (política exige aprovação)', async () => {
   ok(await api(people.buyer, 'POST', '/api/finance/approval-policy', { organization_id: ctx.buyerOrg, required_for_decision: true }), 'política');
-  const early = await api(people.buyer, 'POST', '/api/finance/decisions', { rfq_id: ctx.rfq, proposal_id: ctx.propB, criteria: { weights: ctx.weights } });
-  must(early.status >= 400, 'decisão sem aprovação aceita');
+  ctx.shownB = ok(await api(people.buyer, 'GET', `/api/finance/rfq/${ctx.rfq}`), 'RFQ').proposals.find((row) => row.id === ctx.propB)?.version;
+  const early = await api(people.buyer, 'POST', '/api/finance/decisions', { rfq_id: ctx.rfq, proposal_id: ctx.propB, expected_version: ctx.shownB, criteria: { weights: ctx.weights } });
+  must(early.status >= 400 && early.data?.code !== 'expected_version_required', `decisão sem aprovação aceita ou recusada pelo motivo errado (${early.data?.code})`);
   ctx.approval = ok(await api(people.buyer, 'POST', '/api/finance/approvals/request', { rfq_id: ctx.rfq, proposal_id: ctx.propB, approver_ids: [people.approver.id], rationale: 'Menor taxa com prazo igual.' }), 'pedido').id;
   return `decisão antes da aprovação recusada (${early.status})`;
 });
@@ -363,7 +364,7 @@ await step('Aprovador revisa e aprova', async () => {
   return `status ${acted.status}`;
 });
 await step('Decisão, contrato, documento do contrato e renovação', async () => {
-  ctx.decision = ok(await api(people.buyer, 'POST', '/api/finance/decisions', { rfq_id: ctx.rfq, proposal_id: ctx.propB, criteria: { weights: ctx.weights }, rationale: 'Aprovado pelo CFO.' }), 'decisão').id;
+  ctx.decision = ok(await api(people.buyer, 'POST', '/api/finance/decisions', { rfq_id: ctx.rfq, proposal_id: ctx.propB, expected_version: ctx.shownB, criteria: { weights: ctx.weights }, rationale: 'Aprovado pelo CFO.' }), 'decisão').id;
   ctx.contract = ok(await api(people.buyer, 'POST', '/api/finance/contracts', { decision_id: ctx.decision, starts_on: today, ends_on: addDays(120), renewal_notice_days: 30, cost_summary: 'Conforme proposta B v1' }), 'contrato').id;
   ctx.docContract = (await upload(people.buyer, ctx.buyerOrg, 'contract', ctx.contract, 'internal', 'Contrato assinado')).document_id;
   const rfq = ok(await api(people.buyer, 'GET', `/api/finance/rfq/${ctx.rfq}`), 'rfq').rfq;

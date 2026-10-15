@@ -22,6 +22,11 @@ Nenhum P0 confirmado.
 
 ## Riscos residuais (não corrigidos nesta rodada)
 
+Atualização da missão Stage 0 (`docs/STAGE0_READINESS_2026-10-14.md`): R1
+mitigado no repositório (`financial-session-revocation.sql`); R3 reproduzido
+(impasse) e corrigido junto com D2 (`financial-decision-integrity.sql`); R2
+classificado, segue P3. Nenhuma das migrations foi aplicada em banco hospedado.
+
 | ID | Risco | Evidência | Por que não agora |
 | --- | --- | --- | --- |
 | R1 | Depois do logout, o PostgREST aceita o access token até expirar (≤ 1 h). GoTrue (403) e a API do Arandu (401) recusam. | Medido na stack local: `/rest/v1/fin_contracts` 200 com 6 linhas após logout. | Exige token já roubado (cookie HttpOnly). Mitigar pede checar `session_id` contra `auth.sessions` em todas as policies: mudança ampla de RLS, com custo em cada consulta; decisão de arquitetura. |

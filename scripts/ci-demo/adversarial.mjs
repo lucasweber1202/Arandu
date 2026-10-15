@@ -220,6 +220,19 @@ await probe('CONC-3', 'Dois votos simultâneos da CFO na etapa pendente gravam u
 });
 
 // ------------------------------------------------- 4. ciclo de renovação
+await probe('DEC-1', 'Decisão com versão de proposta diferente da que está na tela é recusada sem gravar nada', async () => {
+  const row = sql(`select p.rfq_id || '|' || p.id || '|' || p.current_version from public.fin_proposals p join public.fin_rfqs r on r.id = p.rfq_id
+    where r.organization_id = '${vitta}' and r.status in ('collecting','comparing') and p.current_version >= 1 order by p.created_at limit 1`);
+  if (!row) throw new Skip('nenhuma RFQ da Vitta aberta com proposta no seed');
+  const [rfq, proposal, version] = row.split('|');
+  const before = sql(`select count(*) from public.fin_decisions where rfq_id = '${rfq}'`);
+  const stale = await api(juliana, 'POST', '/api/finance/decisions', { rfq_id: rfq, proposal_id: proposal, expected_version: Number(version) + 1, rationale: 'versão que a pessoa não viu' });
+  const missing = await api(juliana, 'POST', '/api/finance/decisions', { rfq_id: rfq, proposal_id: proposal, rationale: 'sem versão' });
+  must(stale.status === 409 && stale.data.code === 'proposal_version_changed', `versão divergente: HTTP ${stale.status} ${stale.data.code}`);
+  must(missing.status === 400 && missing.data.code === 'expected_version_required', `sem versão: HTTP ${missing.status} ${missing.data.code}`);
+  must(sql(`select count(*) from public.fin_decisions where rfq_id = '${rfq}'`) === before, 'decisão gravada apesar da recusa');
+  return `versão ${Number(version) + 1} ≠ ${version}: 409; sem versão: 400; decisões ${before} inalteradas`;
+});
 await probe('RENEW-1', 'Aditivo de prorrogação tira o contrato de "em renovação" e move a próxima ação', async () => {
   const title = `Prorrogado ${RUN}`;
   const created = await api(juliana, 'POST', '/api/finance/contract-import', { organization_id: vitta, provider_id: vittaProvider, product: 'credit', title, starts_on: isoDay(-340), ends_on: isoDay(20), renewal_notice_days: 60 });

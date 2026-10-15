@@ -349,13 +349,32 @@ reset((entry) => {
   const error = new Error('decision already recorded'); error.status = 400; throw error;
 });
 await assert.rejects(
-  () => call('POST', 'decisions', { body: { rfq_id: RFQ, proposal_id: PROPOSAL } }),
+  () => call('POST', 'decisions', { body: { rfq_id: RFQ, proposal_id: PROPOSAL, expected_version: 2 } }),
   (error) => {
     assert.equal(error.status, 409);
     assert.match(error.message, /já tem uma decisão/);
     return true;
   }
 );
+
+// Decisão sem a versão exibida é recusada antes de qualquer RPC (cliente antigo).
+reset((entry) => {
+  if (entry.url.includes('fin_rfqs')) return [{ id: RFQ, organization_id: BUYER, product: 'credit', status: 'comparing', demand: {} }];
+  throw new Error('nenhuma RPC deveria ser chamada sem expected_version');
+});
+for (const expected of [undefined, null, 0, -1, 1.5, '2a']) {
+  await assert.rejects(() => call('POST', 'decisions', { body: { rfq_id: RFQ, proposal_id: PROPOSAL, expected_version: expected } }),
+    (error) => error.status === 400 && error.code === 'expected_version_required');
+}
+// A versão vai para fin_record_decision_v2; versão desatualizada vira 409 acionável.
+reset((entry) => {
+  if (entry.url.includes('fin_rfqs')) return [{ id: RFQ, organization_id: BUYER, product: 'credit', status: 'comparing', demand: {} }];
+  assert.match(entry.url, /rpc\/fin_record_decision_v2$/);
+  assert.equal(entry.body.p_expected_version, 3);
+  const error = new Error('proposal version changed'); error.status = 400; throw error;
+});
+await assert.rejects(() => call('POST', 'decisions', { body: { rfq_id: RFQ, proposal_id: PROPOSAL, expected_version: 3 } }),
+  (error) => error.status === 409 && error.code === 'proposal_version_changed' && /versão nova/.test(error.message) && /Nada foi registrado/.test(error.message));
 
 // --------------------------------------------- documentos e tarefas
 

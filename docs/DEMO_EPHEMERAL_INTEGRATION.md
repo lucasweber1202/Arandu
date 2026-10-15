@@ -93,8 +93,11 @@ seed ~10 min, e2e ~2 min, jornada ~1 min.
 
 ## Limitações conhecidas
 
-- Depois do logout, o PostgREST ainda aceita o access token até expirar (R1 em
-  `docs/QA_ADVERSARIAL_2026-10-14.md`); a API do Arandu e o GoTrue recusam.
+- O smoke prova a revogação de sessão no PostgREST direto (R1, mitigado por
+  `docs/supabase-financial-session-revocation.sql`): token de sessão encerrada
+  recebe 401 em tabela, leitura e escrita por RPC; a outra sessão segue valendo.
+  Isso vale para esta stack efêmera; nos ambientes hospedados depende de aplicar
+  a migration.
 
 - O limitador de tentativas de login do app é por processo fora da Vercel; cada
   fase reinicia o app pelo caminho oficial (`scripts/demo/local.sh app`), como um

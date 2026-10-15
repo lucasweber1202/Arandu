@@ -5,6 +5,8 @@ begin
   if not exists (select 1 from pg_roles where rolname = 'anon') then execute 'create role anon nologin'; end if;
   if not exists (select 1 from pg_roles where rolname = 'authenticated') then execute 'create role authenticated nologin'; end if;
   if not exists (select 1 from pg_roles where rolname = 'service_role') then execute 'create role service_role nologin bypassrls'; end if;
+  -- Papel com que o PostgREST conecta: recebe o gancho de revogação de sessão.
+  if not exists (select 1 from pg_roles where rolname = 'authenticator') then execute 'create role authenticator noinherit nologin'; end if;
 end;
 $$;
 

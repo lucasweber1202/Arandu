@@ -250,7 +250,7 @@ await step('pesos definidos pela empresa produzem resultado rotulado como dela',
 
 await step('decisão humana é registrada com critérios', {
   method: 'POST', path: 'decisions',
-  body: { rfq_id: RFQ, proposal_id: PROPOSAL, rationale: 'Menor taxa informada.', criteria: { weights: { interest_rate_month: 60 } } },
+  body: { rfq_id: RFQ, proposal_id: PROPOSAL, expected_version: 1, rationale: 'Menor taxa informada.', criteria: { weights: { interest_rate_month: 60 } } },
   respond: (entry) => (entry.url.includes('fin_rfqs') ? [{ id: RFQ, organization_id: BUYER, product: 'credit', status: 'comparing' }] : DECISION),
   check: (payload, calls) => {
     const call = calls.find((entry) => entry.url.includes('rpc/fin_record_decision'));
