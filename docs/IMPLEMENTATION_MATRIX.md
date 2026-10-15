@@ -4,6 +4,8 @@
 
 **Atualização desta rodada:** a migration aditiva `financial-implementation-task-labels-1` padroniza os rótulos legíveis das tarefas de implantação, mantendo `kind` estável e preservando títulos humanos via backfill por correspondência exata. Validada em PostgreSQL descartável com teste direcionado; não aplicada em hospedagem. Persistência de responsável para `fin_tasks` segue não implementada e não deve ser inferida como autorização.
 
+Durante a rodada, #200 foi integrada e `main` avançou para `bf6eb712bb17739d173e4b6c258e9b7ed90b15bc`; branch desta trilha incorporou-a. PR #201 foi integrada em `45323515403bbab26a017936fdafa8003da63ce4`; CI `38813025926` passou os quatro gates obrigatórios no HEAD `0d675bacaecc9fc665c0642c2b9ae8ba99fad176`, e merge audit `38815216716` passou na main resultante. Esta matriz e a evidência operacional estão sendo adicionadas por PR documental de seguimento, que ainda requer gates no novo HEAD.
+
 Baseline confirmada no GitHub e na ref local `main@0aeb2e6c93bc0abbd1f4b4fc8ce91b62171fcaf5` (#198 e #199 ancestrais). CI run `38804369287`: `database`, `deploy-boundaries`, `validate` e `presentation` SUCCESS no SHA exato; merge audit `38804369334` SUCCESS. PR aberta observada: #177 (Dependabot; fora desta trilha). Node `v24.19.0`. Diagnóstico e validações desta rodada em `docs/evidence/codex-operational-readiness-2026-10-15.md`.
 
 | Capacidade / prova | Estado observado | Evidência atual | Próximo gate / limite |
