@@ -103,7 +103,11 @@ assert(after_financial_session_revocation_1.stdout.includes('2 migration(s) pend
 const afterSession = command(['--flow=existingDatabase', '--after-schema=financial-session-revocation-1']);
 assert(afterSession.stdout.includes(readFileSync('docs/supabase-financial-document-upload-authorization.sql','utf8').trim()));
 assert(afterSession.stdout.includes('1 migration(s) pendente(s)'));
-const current = command(['--flow=existingDatabase', '--after-schema=financial-document-upload-authorization-1']);
+const afterUploadAuthorization = command(['--flow=existingDatabase', '--after-schema=financial-document-upload-authorization-1']);
+assert.equal(afterUploadAuthorization.status, 0, afterUploadAuthorization.stderr);
+assert(afterUploadAuthorization.stdout.includes(readFileSync('docs/supabase-financial-implementation-task-labels.sql','utf8').trim()));
+assert(afterUploadAuthorization.stdout.includes('1 migration(s) pendente(s)'));
+const current = command(['--flow=existingDatabase', '--after-schema=financial-implementation-task-labels-1']);
 assert.equal(current.status, 0, current.stderr);
 assert(current.stdout.includes('0 migration(s) pendente(s)'));
 assert(!/create or replace|alter table|insert into/i.test(current.stdout));
