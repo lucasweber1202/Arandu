@@ -18,6 +18,8 @@ import { exportRecovery } from './consolidation-export.mjs';
 import { digestFile } from '../lib/recovery-transfer.mjs';
 import { RECOVERY_REFS } from '../lib/pilot-backup-preflight.mjs';
 import { countsDigest, parseCounts } from '../lib/recovery-reconciliation.mjs';
+import { recoveryCompleteness } from '../lib/storage-recovery.mjs';
+import { storageEvidence } from './storage-recovery.mjs';
 import {
   STORE_MARKER, RECIPIENT, RecoveryError, recoveryFail, assertPrivateStore, assertIdentityFile,
   diagnoseRecovery, formatDiagnosis, ephemeralRoots, RECOVERY_STATES, syncPath
@@ -149,11 +151,19 @@ export async function verifyExport({ env = process.env, root = process.cwd() } =
     if (actual.bytes !== entry.bytes || actual.sha256 !== entry.sha256) recoveryFail('RECOVERY_READBACK_FAILED', 'Hash ou tamanho divergente do manifest.');
   }
   const restored = restoreRecords(real, manifest).length > 0;
+  // Banco restaurado não basta: com arquivos na origem, exige os binários
+  // exportados neste export e restaurados/reconciliados (scripts/storage-recovery.mjs).
+  const storageObjects = manifest.source_counts?.storage_objects;
+  const storage = Number.isSafeInteger(storageObjects) && storageObjects > 0 ? await storageEvidence(real, storageObjects) : [];
+  const completeness = recoveryCompleteness({ databaseVerified: restored, storageObjects, storageVerified: storage.length > 0 });
+  const complete = completeness === 'COMPLETE';
   return {
     classification: 'recovery_export_verification', export: path.basename(real), project_ref: manifest.project_ref,
     store_id: marker.store_id, retention_days: marker.retention_days, integrity: 'VERIFIED', files: manifest.files,
-    level: restored ? 5 : 4, recovery: restored ? 'RECOVERY_VERIFIED' : 'RECOVERY_RESTORE_NOT_VERIFIED',
-    state: restored ? RECOVERY_STATES.restoreVerified : RECOVERY_STATES.exportVerified, conversion: 'BLOCKED'
+    storage_objects: storageObjects ?? null, storage_binaries: storageObjects > 0 ? (storage.length ? 'RESTORE_VERIFIED' : 'NOT_VERIFIED') : 'NONE',
+    completeness, level: complete ? 5 : 4,
+    recovery: complete ? 'RECOVERY_VERIFIED' : restored ? 'RECOVERY_DATABASE_ONLY' : 'RECOVERY_RESTORE_NOT_VERIFIED',
+    state: complete ? RECOVERY_STATES.restoreVerified : RECOVERY_STATES.exportVerified, conversion: 'BLOCKED'
   };
 }
 

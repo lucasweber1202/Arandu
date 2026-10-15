@@ -61,7 +61,7 @@
     "check:evidence:release": "node scripts/check-release-evidence.mjs --require-ready",
     "check:governance": "node scripts/check-governance.mjs && node scripts/test-merge-gates.mjs && node scripts/test-ci-browser-preparation.mjs && node scripts/test-consolidation.mjs && node scripts/test-release-candidate.mjs && node scripts/test-live-governance.mjs && node scripts/test-stage0-static-preflight.mjs",
     "merge:gates": "node scripts/check-merge-gates.mjs",
-    "check:staging": "node scripts/test-operational-tooling.mjs && node scripts/test-ci-demo.mjs && node scripts/test-staging-workflow.mjs && node scripts/check-staging-rehearsal.mjs && node scripts/test-pending-migration-bundle.mjs && node scripts/test-pilot-backup-preflight.mjs && node scripts/test-consolidation-export.mjs && node scripts/test-recovery-transfer.mjs && node scripts/test-recovery-doctor.mjs && node scripts/test-recovery-reconciliation.mjs",
+    "check:staging": "node scripts/test-operational-tooling.mjs && node scripts/test-ci-demo.mjs && node scripts/test-staging-workflow.mjs && node scripts/check-staging-rehearsal.mjs && node scripts/test-pending-migration-bundle.mjs && node scripts/test-pilot-backup-preflight.mjs && node scripts/test-consolidation-export.mjs && node scripts/test-recovery-transfer.mjs && node scripts/test-storage-recovery.mjs && node scripts/test-recovery-doctor.mjs && node scripts/test-recovery-reconciliation.mjs",
     "check:live": "node scripts/check-live-production.mjs",
     "check:live:prod": "node scripts/check-live-production.mjs",
     "audit:ci": "npm audit --audit-level=high",
@@ -109,7 +109,10 @@
     "recovery:key:prepare": "node scripts/recovery.mjs key",
     "recovery:store:init": "node scripts/recovery.mjs store-init",
     "recovery:export:private": "node scripts/recovery.mjs export",
-    "recovery:verify": "node scripts/recovery.mjs verify"
+    "recovery:verify": "node scripts/recovery.mjs verify",
+    "recovery:storage:export": "node scripts/storage-recovery.mjs export",
+    "recovery:storage:restore": "node scripts/storage-recovery.mjs restore",
+    "recovery:storage:verify": "node scripts/storage-recovery.mjs verify"
   },
   "dependencies": {
     "@vercel/functions": "3.9.11",

@@ -49,6 +49,18 @@ const badImage = runBackupPreflight({ env: { ...env, PILOT_DRILL_DB_IMAGE: `imag
 assert.equal(badImage.result, 'blocked');
 assert(!JSON.stringify(badImage).includes(secret));
 assert(assessBackup({ sourceMajor: 17, dumpMajor: 15, restoreMajor: 15, image: HOSTED_DRILL_IMAGE, storageObjects: 0, mfaFactors: 0, authPolicies: 0 }).some(c => !c.ok));
+// Arquivos no Storage: recusados sem o export dos binários; aceitos só com ele.
+{
+  const base = { sourceMajor: 17, dumpMajor: 17, restoreMajor: 17, image: HOSTED_DRILL_IMAGE, storageObjects: 6, mfaFactors: 0, authPolicies: 0 };
+  assert.equal(assessBackup(base).find(c => c.name === 'storage_objects_empty').ok, false);
+  assert.equal(assessBackup({ ...base, storageBinaries: true }).find(c => c.name === 'storage_binaries_exported').ok, true);
+  assert(assessBackup({ ...base, storageBinaries: true }).every(c => c.ok));
+  // Imagem fixada por digest é aceita; digest malformado ou outra imagem, não.
+  const digest = `${HOSTED_DRILL_IMAGE}@sha256:${'a'.repeat(64)}`;
+  assert.equal(assessBackup({ ...base, storageObjects: 0, image: digest }).find(c => c.name === 'target_image_format').ok, true);
+  assert.equal(assessBackup({ ...base, storageObjects: 0, image: `${HOSTED_DRILL_IMAGE}@sha256:abc` }).find(c => c.name === 'target_image_format').ok, false);
+  assert.equal(assessBackup({ ...base, storageObjects: 0, image: `docker.io/postgres:17.6@sha256:${'a'.repeat(64)}` }).find(c => c.name === 'target_image_format').ok, false);
+}
 // Real subprocess: source URI/password stay out of argv and error output.
 const dir = mkdtempSync(path.join(tmpdir(), 'arandu-client-test-'));
 try {
