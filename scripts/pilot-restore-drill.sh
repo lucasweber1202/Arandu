@@ -16,6 +16,16 @@
 # 0700; no hosted é mantido para rollback, no local é apagado ao final.
 # PILOT_DRILL_KEEP_BACKUP=1 mantém apenas o backup; PILOT_DRILL_KEEP=1 também o destino. O relatório em
 # reports/pilot-restore-drill.json tem só tempos, hashes e contagens.
+#
+# PILOT_DRILL_STORAGE_BINARIES=1 inclui os binários do Storage (scripts/storage-recovery.mjs):
+# export cifrado pela API oficial, prova de que o restore só do banco falha
+# (metadado sem arquivo), negativos (artefato ausente, adulterado, identidade
+# errada), restore no Storage descartável, releitura com hash e permissões.
+# Sem isso, origem com arquivos é recusada no preflight. Origem local usa
+# http://127.0.0.1:5000 e a chave de serviço do ensaio local; hospedada exige
+# PILOT_DRILL_STORAGE_SOURCE_URL e PILOT_DRILL_STORAGE_SOURCE_KEY.
+# PILOT_DRILL_PG_FROM_IMAGE=1 usa psql/pg_dump/pg_restore da própria imagem
+# Postgres fixada (mesmo major da origem) quando o cliente do host é outro.
 # Nunca aponte o destino para o piloto: o destino é sempre um contêiner novo.
 set -euo pipefail
 
@@ -33,7 +43,8 @@ mkdir -p "$root/reports"
 rm -f "$report"
 
 cleanup() {
-  docker rm -f "$container-storage" >/dev/null 2>&1 || true
+  [ "${PILOT_DRILL_KEEP:-0}" = "1" ] || docker rm -f "$container-storage" >/dev/null 2>&1 || true
+  [ -n "$tools" ] && rm -rf "$tools"
   if [ "${PILOT_DRILL_KEEP:-0}" != "1" ]; then docker rm -f "$container" >/dev/null 2>&1 || true; else echo "destino mantido: contêiner $container, porta $port"; fi
   if [ "${PILOT_DRILL_KEEP:-0}" != "1" ] && [ "$keep_backup" != "1" ]; then rm -rf "$work"; else echo "backup mantido em $work"; fi
 }
@@ -53,7 +64,23 @@ if [ -z "$image" ]; then
 fi
 keep_backup="${PILOT_DRILL_KEEP_BACKUP:-0}"
 if [ "$source_kind" = pilot ]; then keep_backup=1; fi
-export PILOT_SOURCE_DATABASE_URL="$source_url" PILOT_DRILL_SOURCE_KIND="$source_kind" PILOT_DRILL_DB_IMAGE="$image"
+storage_binaries="${PILOT_DRILL_STORAGE_BINARIES:-0}"
+tools=""
+if [ "${PILOT_DRILL_PG_FROM_IMAGE:-0}" = "1" ]; then
+  # Clientes do mesmo major da origem, da imagem já fixada: nenhum download novo.
+  tools="$(mktemp -d "${TMPDIR:-/tmp}/arandu-drill-tools.XXXXXX")"
+  for bin in psql pg_dump pg_restore; do
+    cat > "$tools/$bin" <<WRAP
+#!/usr/bin/env bash
+exec docker run --rm -i --network host --user "\$(id -u):\$(id -g)" -e HOME=/tmp -v "${TMPDIR:-/tmp}:${TMPDIR:-/tmp}" -v "$root:$root" -w "\$PWD" \\
+  -e PGHOST -e PGPORT -e PGDATABASE -e PGUSER -e PGPASSWORD -e PGSSLMODE -e PGOPTIONS -e PGCONNECT_TIMEOUT \\
+  --entrypoint $bin "$image" "\$@"
+WRAP
+    chmod 700 "$tools/$bin"
+  done
+  export PATH="$tools:$PATH"
+fi
+export PILOT_SOURCE_DATABASE_URL="$source_url" PILOT_DRILL_SOURCE_KIND="$source_kind" PILOT_DRILL_DB_IMAGE="$image" PILOT_DRILL_STORAGE_BINARIES="$storage_binaries"
 # Fail before generating sensitive dumps or provisioning a destination.
 node "$root/scripts/pilot-backup-preflight.mjs"
 umask 077
@@ -77,10 +104,30 @@ q() {
 t0=$(now_ms)
 source_dump --format=custom --schema=public --no-owner --file="$work/public.dump"
 source_dump --format=custom --data-only --table=auth.users --table=auth.identities --no-owner --file="$work/auth.dump"
-source_dump --format=custom --data-only --table=storage.buckets --no-owner --file="$work/storage.dump"
+storage_tables=(--table=storage.buckets)
+[ "$storage_binaries" = "1" ] && storage_tables+=(--table=storage.objects)
+source_dump --format=custom --data-only "${storage_tables[@]}" --no-owner --file="$work/storage.dump"
 source_dump --format=custom --schema-only --schema=storage --no-owner --file="$work/storage-schema.dump"
 # Application triggers in Auth are outside the public dump, but part of backup.
 q "$source_url" "select pg_get_triggerdef(t.oid) || ';' from pg_trigger t join pg_class c on c.oid=t.tgrelid join pg_proc p on p.oid=t.tgfoid where c.relnamespace='auth'::regnamespace and p.pronamespace='public'::regnamespace and not t.tgisinternal order by t.tgname" > "$work/auth-triggers.sql"
+storage_export=""
+if [ "$storage_binaries" = "1" ]; then
+  # Identidade age efêmera do ensaio, fora do diretório do ciphertext.
+  age-keygen -o "$work/storage.agekey" 2>/dev/null; chmod 600 "$work/storage.agekey"
+  mkdir -m 700 "$work/storage-export"
+  if [ "$source_kind" = pilot-local ]; then
+    storage_source_url="${PILOT_DRILL_STORAGE_SOURCE_URL:-http://127.0.0.1:5000}"; storage_source_key="${PILOT_DRILL_STORAGE_SOURCE_KEY:-$SERVICE_KEY}"; storage_kind=local-synthetic
+  else
+    storage_source_url="${PILOT_DRILL_STORAGE_SOURCE_URL:?}"; storage_source_key="${PILOT_DRILL_STORAGE_SOURCE_KEY:?}"; storage_kind=hosted
+  fi
+  storage_ref=""
+  [ "$storage_kind" = hosted ] && storage_ref="$(node --input-type=module -e "import { PILOT_REF } from '$root/lib/pilot-backup-preflight.mjs'; console.log(PILOT_REF)")"
+  ARANDU_STORAGE_CONFIRM=ARANDU-STORAGE-EXPORT ARANDU_STORAGE_SOURCE_KIND="$storage_kind" ARANDU_STORAGE_PROJECT_REF="$storage_ref" \
+  ARANDU_STORAGE_DATABASE_URL="$source_url" ARANDU_STORAGE_SOURCE_URL="$storage_source_url" ARANDU_STORAGE_SOURCE_SERVICE_KEY="$storage_source_key" \
+  ARANDU_STORAGE_RECIPIENT="$(age-keygen -y "$work/storage.agekey")" ARANDU_STORAGE_DIRECTORY="$work/storage-export" \
+    node "$root/scripts/storage-recovery.mjs" export > "$work/storage-export.json"
+  storage_export="$(ls -d "$work/storage-export"/arandu-storage-* | head -n 1)"
+fi
 t1=$(now_ms)
 backup_sha=$(cat "$work/public.dump" "$work/auth.dump" "$work/storage.dump" "$work/storage-schema.dump" "$work/auth-triggers.sql" | sha256sum | cut -d' ' -f1)
 backup_bytes=$(cat "$work/public.dump" "$work/auth.dump" "$work/storage.dump" "$work/storage-schema.dump" "$work/auth-triggers.sql" | wc -c)
@@ -105,8 +152,12 @@ docker run --rm --network host -e GOTRUE_DB_DRIVER=postgres \
   -e GOTRUE_DB_DATABASE_URL="postgres://supabase_auth_admin:${pw}@127.0.0.1:${port}/postgres" \
   -e GOTRUE_SITE_URL=http://localhost -e GOTRUE_JWT_SECRET="$(openssl rand -hex 32)" -e API_EXTERNAL_URL=http://localhost \
   "$auth_image" auth migrate >/dev/null 2>&1
+# Segredo próprio do Storage descartável: só este ensaio assina tokens para ele.
+storage_jwt="$(openssl rand -hex 32)"
+mint() { node --input-type=module -e "import { signJwt } from '$root/scripts/storage-recovery.mjs'; console.log(signJwt(process.argv[1], { role: process.argv[2], iss: 'supabase' }))" "$storage_jwt" "$1"; }
+storage_anon="$(mint anon)"; storage_service="$(mint service_role)"
 docker run -d --name "$container-storage" --network host -e SERVER_PORT="$storage_port" -e PORT="$storage_port" \
-  -e ANON_KEY=drill -e SERVICE_KEY=drill -e PGRST_JWT_SECRET=drill-drill-drill-drill-drill-drill -e AUTH_JWT_SECRET=drill-drill-drill-drill-drill-drill \
+  -e ANON_KEY="$storage_anon" -e SERVICE_KEY="$storage_service" -e PGRST_JWT_SECRET="$storage_jwt" -e AUTH_JWT_SECRET="$storage_jwt" \
   -e DATABASE_URL="postgres://supabase_storage_admin:${pw}@127.0.0.1:${port}/postgres" -e POSTGREST_URL=http://127.0.0.1:1 \
   -e FILE_SIZE_LIMIT=52428800 -e STORAGE_BACKEND=file -e FILE_STORAGE_BACKEND_PATH=/tmp/storage \
   -e TENANT_ID=stub -e REGION=stub -e GLOBAL_S3_BUCKET=stub -e ENABLE_IMAGE_TRANSFORMATION=false "$storage_image" >/dev/null
@@ -115,7 +166,9 @@ for _ in $(seq 1 60); do
   sleep 2
 done
 sleep 3
-docker rm -f "$container-storage" >/dev/null
+# Sem binários, o Storage só serviu para migrar o schema. Com binários, fica de
+# pé para receber os arquivos pela API oficial depois do restore do banco.
+[ "$storage_binaries" = "1" ] || docker rm -f "$container-storage" >/dev/null
 [ "$(q "$target" "select count(*) from information_schema.columns where table_schema='auth' and table_name='users' and column_name='email_confirmed_at'")" = "1" ] \
   || { echo "Destino sem as migrations do Auth." >&2; exit 1; }
 t2b=$(now_ms)
@@ -155,6 +208,14 @@ psql "$target" -q -X -v ON_ERROR_STOP=1 -c "do \$\$ declare p record; begin for 
 if [ -s "$work/storage-policies.list" ]; then
   pg_restore --dbname="$target" --no-owner --exit-on-error --use-list="$work/storage-policies.list" "$work/storage-schema.dump"
 fi
+# Achado deste ensaio: as migrations do Storage não concedem acesso às tabelas a
+# anon/authenticated/service_role (o projeto Supabase concede à parte). Sem os
+# ACLs da origem, o Storage restaurado recusa até o service_role (42501). Os
+# GRANTs vêm do backup, não de uma lista fixa; probe storage_grants compara.
+pg_restore --list "$work/storage-schema.dump" | awk '/^[0-9]+; [0-9]+ [0-9]+ ACL (- SCHEMA storage|storage (TABLE|SEQUENCE)) /' > "$work/storage-acl.list"
+if [ -s "$work/storage-acl.list" ]; then
+  pg_restore --dbname="$target" --no-owner --exit-on-error --use-list="$work/storage-acl.list" "$work/storage-schema.dump"
+fi
 t3=$(now_ms)
 
 # ----------------------------------------------------------------- probes
@@ -182,6 +243,8 @@ select json_build_object(
   'allowlist_rows', (select count(*) from public.fin_pilot_allowlist),
   'operators', (select count(*) from public.fin_platform_operators),
   'auth_users', (select count(*) from auth.users),
+  'storage_objects', (select count(*) from storage.objects),
+  'storage_grants', (select coalesce(string_agg(grantee || ':' || table_name || ':' || privilege_type, ',' order by grantee, table_name, privilege_type), '') from information_schema.role_table_grants where table_schema = 'storage' and grantee in ('anon','authenticated','service_role')),
   'rows', (select json_object_agg(relname, n) from (
      select c.relname, (xpath('/row/n/text()', query_to_xml(format('select count(*) as n from public.%I', c.relname), false, true, '')))[1]::text::bigint n
        from pg_class c where c.relnamespace = 'public'::regnamespace and c.relkind = 'r' and c.relname like 'fin\_%' order by 1) r)
@@ -198,28 +261,85 @@ if canary_output="$(psql "$target" -X -v ON_ERROR_STOP=1 -f "$root/ops/sql/pilot
 canary="$(printf '%s\n' "$canary_output" | grep -o 'CANÁRIO[^\"]*' || true)"
 t5=$(now_ms)
 
-node - "$source_probe" "$target_probe" "$source_fp" "$target_fp" "$canary" "$report" <<NODE
-const [src, dst, sfp, tfp, canary, out] = process.argv.slice(2);
+# ------------------------------------------------- binários do Storage
+storage_checks='[]'
+if [ "$storage_binaries" = "1" ]; then
+  sr_env=(ARANDU_STORAGE_IDENTITY="$work/storage.agekey" ARANDU_STORAGE_TARGET_DATABASE_URL="$target"
+    ARANDU_STORAGE_TARGET_URL="http://127.0.0.1:${storage_port}" ARANDU_STORAGE_TARGET_JWT_SECRET="$storage_jwt" ARANDU_STORAGE_TARGET_SERVICE_KEY="$storage_service"
+    ARANDU_STORAGE_RESTORE_CONFIRM=ARANDU-ISOLATED-STORAGE-RESTORE)
+  storage_run() { env "${sr_env[@]}" ARANDU_STORAGE_BACKUP="$1" "${@:3}" node "$root/scripts/storage-recovery.mjs" "$2" 2>&1; }
+  # Recusa esperada com o código certo; passar ou falhar por outro motivo reprova.
+  refused() {
+    local out; if out="$(storage_run "$@")"; then echo unexpected_pass; elif printf '%s' "$out" | grep -q "(${expected_code})"; then echo refused; else echo wrong_failure; fi
+  }
+  objects="$(node -p "require('$storage_export/storage-manifest.json').object_count")"
+  # Negativos antes de qualquer envio: o destino não é tocado.
+  cp -a "$storage_export" "$work/neg-missing"; rm -f "$work/neg-missing/storage/obj-000001.age"
+  expected_code=STORAGE_ARTIFACT_MISSING; neg_missing="$(refused "$work/neg-missing" restore)"
+  cp -a "$storage_export" "$work/neg-corrupt"
+  node -e "const f=process.argv[1];const b=require('fs').readFileSync(f);b[b.length-1]^=1;require('fs').writeFileSync(f,b)" "$work/neg-corrupt/storage/obj-000001.age"
+  expected_code=STORAGE_HASH_MISMATCH; neg_corrupt="$(refused "$work/neg-corrupt" restore)"
+  age-keygen -o "$work/wrong.agekey" 2>/dev/null; chmod 600 "$work/wrong.agekey"
+  expected_code=STORAGE_DECRYPT_FAILED; neg_identity="$(refused "$storage_export" restore ARANDU_STORAGE_IDENTITY="$work/wrong.agekey")"
+  # Banco restaurado com os metadados de storage.objects, sem os arquivos: falha.
+  expected_code=STORAGE_RECONCILIATION_MISMATCH; db_only="$(refused "$storage_export" verify)"
+  db_only_missing="$(node -e "const fs=require('fs'),d=process.argv[1];const r=fs.readdirSync(d).filter(n=>n.startsWith('storage-restore-verification-')).sort().map(n=>JSON.parse(fs.readFileSync(d+'/'+n)));const last=r.at(-1);console.log(last&&last.differences.filter(x=>x.kind==='missing_binary').length||0)" "$storage_export")"
+  if restore_out="$(storage_run "$storage_export" restore)"; then restore_status=0; else restore_status=1; fi
+  # Saída da CLI já sanitizada: códigos, contagens e números de sequência.
+  printf 'storage restore: %s\n' "$(printf '%s' "$restore_out" | tail -n 1)"
+  storage_checks="$(node -e "
+    const [objects, miss, corrupt, identity, dbOnly, dbMissing, status, out] = process.argv.slice(1);
+    let r = {}; try { r = JSON.parse(out.trim().split('\\n').at(-1)); } catch {}
+    const n = Number(objects);
+    console.log(JSON.stringify([
+      { name: 'storage_objects_exported', ok: n > 0, restored: n },
+      { name: 'storage_artifact_missing_rejected', ok: miss === 'refused', restored: miss },
+      { name: 'storage_artifact_corrupted_rejected', ok: corrupt === 'refused', restored: corrupt },
+      { name: 'storage_wrong_identity_rejected', ok: identity === 'refused', restored: identity },
+      { name: 'storage_database_only_rejected', ok: dbOnly === 'refused' && Number(dbMissing) === n, restored: dbOnly + ', missing_binary=' + dbMissing },
+      { name: 'storage_binaries_restored', ok: status === '0' && r.reconciliation === 'MATCH' && r.objects === n, restored: r.reconciliation || 'failed' },
+      { name: 'storage_permissions', ok: r.permissions === 'DENIED_AS_EXPECTED', restored: r.permissions || 'not run' }
+    ]));" "$objects" "$neg_missing" "$neg_corrupt" "$neg_identity" "$db_only" "$db_only_missing" "$restore_status" "$restore_out")"
+  rm -rf "$work/neg-missing" "$work/neg-corrupt"
+fi
+t6=$(now_ms)
+
+node --input-type=module - "$source_probe" "$target_probe" "$source_fp" "$target_fp" "$canary" "$report" "$storage_checks" <<NODE
+const [src, dst, sfp, tfp, canary, out, storageChecks] = process.argv.slice(2);
 const s = JSON.parse(src), d = JSON.parse(dst);
 const checks = [];
 const eq = (name, a, b) => checks.push({ name, ok: JSON.stringify(a) === JSON.stringify(b), source: a, restored: b });
 eq('schema_fingerprint', sfp, tfp);
 for (const key of Object.keys(s)) eq(key, s[key], d[key]);
 checks.push({ name: 'schema_version_set', ok: typeof d.schema_version === 'string' && d.schema_version.length > 0, restored: d.schema_version });
-checks.push({ name: 'fin_tables_all_rls_forced', ok: d.fin_tables > 0 && d.fin_tables === d.fin_tables_rls_forced, restored: \`\${d.fin_tables_rls_forced}/\${d.fin_tables}\` });
+// RLS ligado em toda tabela de public. FORCE vale para as tabelas de dados; as
+// de controle da Demo (fin_demo_workspaces, fin_demo_pool_leases) só têm grant
+// para service_role e são lidas por funções security definer do dono, que o
+// FORCE bloquearia. A contagem forçada precisa ser igual à da origem (acima).
+checks.push({ name: 'fin_tables_all_rls_enabled', ok: d.fin_tables > 0 && d.tables_without_rls === 0, restored: \`\${d.fin_tables} tabelas fin_*, \${d.tables_without_rls} sem RLS, \${d.fin_tables_rls_forced} com FORCE\` });
 checks.push({ name: 'bucket_private', ok: d.bucket?.public === false, restored: d.bucket });
 checks.push({ name: 'isolation_canary', ok: ${canary_status} === 0 && /CANÁRIO OK/.test(canary), restored: canary });
+const storage = JSON.parse(storageChecks);
+checks.push(...storage);
+const storageVerified = storage.length > 0 && storage.every((c) => c.ok);
+const { recoveryCompleteness } = await import('$root/lib/storage-recovery.mjs');
+const binaryNames = new Set(storage.map((c) => c.name));
+const databaseVerified = checks.filter((c) => !binaryNames.has(c.name)).every((c) => c.ok);
+const recovery = recoveryCompleteness({ databaseVerified, storageObjects: s.storage_objects, storageVerified });
+checks.push({ name: 'recovery_complete', ok: recovery === 'COMPLETE', restored: recovery });
 const report = {
   classification: 'pilot_restore_drill', generatedAt: new Date().toISOString(), source: '${source_kind}',
   target: 'disposable Supabase Postgres (${image##*/}) + Auth and Storage migrations',
-  backup: { method: 'pg_dump custom: public (schema+data+grants), auth.users/identities, storage.buckets, storage policies, Auth application triggers', scope: 'application; Storage binaries and MFA absent by verified preflight', sha256: '${backup_sha}', bytes: ${backup_bytes}, retained: '${keep_backup}' === '1' },
-  durations_ms: { backup: ${t1} - ${t0}, provision_target: ${t2b} - ${t2}, restore: ${t3} - ${t2b}, probes: ${t4} - ${t3}, canary: ${t5} - ${t4}, backup_to_verified: ${t5} - ${t0} - (${t2b} - ${t1}) },
+  backup: { method: 'pg_dump custom: public (schema+data+grants), auth.users/identities, storage.buckets' + ('${storage_binaries}' === '1' ? ' and storage.objects metadata' : '') + ', storage policies, Auth application triggers' + ('${storage_binaries}' === '1' ? '; Storage binaries via scripts/storage-recovery.mjs (age per object, encrypted index)' : ''),
+    scope: '${storage_binaries}' === '1' ? 'application including Storage binaries; MFA absent by verified preflight' : 'application; Storage binaries and MFA absent by verified preflight', sha256: '${backup_sha}', bytes: ${backup_bytes}, retained: '${keep_backup}' === '1' },
+  recovery,
+  durations_ms: { backup: ${t1} - ${t0}, provision_target: ${t2b} - ${t2}, restore: ${t3} - ${t2b}, probes: ${t4} - ${t3}, canary: ${t5} - ${t4}, storage_binaries: ${t6} - ${t5}, backup_to_verified: ${t6} - ${t0} - (${t2b} - ${t1}) },
   result: checks.every((c) => c.ok) ? 'passed' : 'failed',
   checks: checks.map((c) => (c.name === 'rows' ? { ...c, source: undefined, restored: undefined, tables: Object.keys(d.rows || {}).length, total_rows: Object.values(d.rows || {}).reduce((a, b) => a + b, 0) } : c))
 };
-require('node:fs').writeFileSync(out, JSON.stringify(report, null, 2) + '\n');
+(await import('node:fs')).writeFileSync(out, JSON.stringify(report, null, 2) + '\n');
 for (const c of report.checks) console.log(\`\${c.ok ? 'OK  ' : 'FAIL'} \${c.name}\`);
-console.log(\`backup \${report.durations_ms.backup} ms · restore \${report.durations_ms.restore} ms · probes \${report.durations_ms.probes} ms · canário \${report.durations_ms.canary} ms\`);
+console.log(\`backup \${report.durations_ms.backup} ms · restore \${report.durations_ms.restore} ms · probes \${report.durations_ms.probes} ms · canário \${report.durations_ms.canary} ms · binários \${report.durations_ms.storage_binaries} ms · recovery \${recovery}\`);
 console.log(\`resultado: \${report.result} — relatório: reports/pilot-restore-drill.json\`);
 process.exit(report.result === 'passed' ? 0 : 1);
 NODE

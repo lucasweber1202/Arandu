@@ -84,13 +84,20 @@ export async function exportRecovery({ env = process.env, root = process.cwd(), 
   } catch (error) { if (error instanceof RecoveryError) throw error; recoveryFail('RECOVERY_CONNECTION_FAILED', 'Probe de origem inválido.'); }
   if (state.server_major !== 17) recoveryFail('RECOVERY_PG_VERSION_INVALID', 'Origem precisa ser PostgreSQL 17.');
   if (![state.storage_objects, state.auth_users, state.mfa_factors].every(n => Number.isSafeInteger(n) && n >= 0)) recoveryFail('RECOVERY_CONNECTION_FAILED', 'Inventário de origem inválido.');
-  if (state.storage_objects !== 0) recoveryFail('RECOVERY_STORAGE_OBJECTS_PRESENT', 'Storage possui arquivos; preparar export dos binários antes desta operação.');
+  // O pg_dump leva só os metadados de storage.objects. Com arquivos na origem,
+  // o operador declara o export separado dos binários (scripts/storage-recovery.mjs,
+  // gravado DENTRO deste export); sem ele, o recovery nunca passa de DATABASE_ONLY.
+  if (state.storage_objects !== 0 && env.ARANDU_RECOVERY_STORAGE_BINARIES !== 'separate-export') {
+    recoveryFail('RECOVERY_STORAGE_OBJECTS_PRESENT', 'Storage possui arquivos: declare ARANDU_RECOVERY_STORAGE_BINARIES=separate-export e exporte os binários com scripts/storage-recovery.mjs.');
+  }
   const directory = path.join(destination, `arandu-${connection.projectRef}-${randomUUID()}`);
   fs.mkdirSync(directory, { mode: 0o700 });
   syncPath(destination);
   const manifest = { format_version: 1, classification: syntheticLocal ? 'synthetic_encrypted_export' : 'encrypted_logical_export', project_ref: connection.projectRef,
     started_at: new Date().toISOString(), result: 'failed', restore: 'NOT RUN', conversion: 'BLOCKED',
-    scope: 'database including public/Auth/Storage metadata/migration history; roles without passwords; Storage binaries absent at preflight',
+    scope: state.storage_objects === 0 ? 'database including public/Auth/Storage metadata/migration history; roles without passwords; Storage binaries absent at preflight'
+      : 'database including public/Auth/Storage metadata/migration history; roles without passwords; Storage binaries in a separate encrypted export inside this directory',
+    storage_binaries: state.storage_objects === 0 ? 'NONE' : 'SEPARATE_EXPORT_REQUIRED',
     source_counts: state, executor_sha: env.GITHUB_SHA || null, reconciliation: 'NOT RUN', subprocesses: [], files: [],
     ...(store ? { storage: { strategy: 'private-store', store_id: store.marker.store_id, retention_days: store.marker.retention_days } } : {}) };
   const manifestPath = path.join(directory, 'manifest.json');

@@ -5,7 +5,7 @@
 # scripts/demo); este arquivo só ordena as fases, impõe limites e coleta
 # evidência. Usado por .github/workflows/demo-integration.yml e localmente:
 #
-#   bash scripts/ci-demo/run.sh preflight|images|up|smoke|seed|check|e2e <projeto>|journey|adversarial|evidence|down
+#   bash scripts/ci-demo/run.sh preflight|images|up|smoke|seed|check|e2e <projeto>|journey|adversarial|recovery|evidence|down
 #
 # Nada aqui lê secret do GitHub nem aponta para Supabase hospedado: chaves,
 # senhas e certificados são gerados por execução em scripts/pilot-local/.state.
@@ -118,6 +118,21 @@ case "$phase" in
     node "$here/sanitize.mjs" "$out/logs" "$state/app.log" "$state/gateway.log" "$state/db.log" "$state/auth.log" "$state/rest.log" "$state/storage.log"
     [ -f "$images_env" ] && cp "$images_env" "$out/images.env"
     resources | tee "$out/resources-final.txt"
+    ;;
+  recovery)
+    # Ensaio de recovery completo sobre a Demo semeada (só dados sintéticos):
+    # banco + binários do Storage num Supabase descartável separado, com os
+    # negativos e a prova de que restaurar só o banco falha. Somente leitura na
+    # origem; destino e backup são apagados ao final (scripts/pilot-restore-drill.sh).
+    local_env
+    set -a; . "$images_env"; set +a
+    command -v age >/dev/null && command -v age-keygen >/dev/null || { echo "age ausente (necessário para o ciphertext)"; exit 1; }
+    rm -f "$root/reports/pilot-restore-drill.json"
+    status=0
+    PILOT_DRILL_STORAGE_BINARIES=1 PILOT_DRILL_PG_FROM_IMAGE=1 PILOT_DRILL_DB_IMAGE="$PILOT_LOCAL_DB_IMAGE" \
+      timeout 900 bash "$root/scripts/pilot-restore-drill.sh" || status=$?
+    [ -f "$root/reports/pilot-restore-drill.json" ] && cp "$root/reports/pilot-restore-drill.json" "$out/recovery-drill.json"
+    exit "$status"
     ;;
   down)
     bash "$root/scripts/pilot-local/down.sh"

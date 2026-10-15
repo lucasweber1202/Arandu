@@ -83,7 +83,18 @@ try {
     ARANDU_RECOVERY_RECIPIENT:recipient,ARANDU_RECOVERY_DIRECTORY:output};
   await assert.rejects(exportRecovery({root:process.cwd(),syntheticLocal:true,env:{...exportEnv,ARANDU_RECOVERY_RECIPIENT:'age1'+'a'.repeat(58)}}));
   assert.equal(fs.readdirSync(output).length,0,'Real age checksum rejection before export');
+  // Arquivo no Storage: o pg_dump levaria só o metadado. Sem a declaração do
+  // export separado dos binários o export recusa; com ela, o manifesto registra a exigência.
+  sql(55431,'INSERT INTO storage.objects VALUES(1);');
+  await assert.rejects(exportRecovery({root:process.cwd(),syntheticLocal:true,env:exportEnv}),(e)=>e.code==='RECOVERY_STORAGE_OBJECTS_PRESENT');
+  const withFiles=path.join(dir,'with-files');fs.mkdirSync(withFiles,{mode:0o700});
+  const declared=await exportRecovery({root:process.cwd(),syntheticLocal:true,env:{...exportEnv,ARANDU_RECOVERY_DIRECTORY:withFiles,ARANDU_RECOVERY_STORAGE_BINARIES:'separate-export'}});
+  assert.equal(declared.storage_binaries,'SEPARATE_EXPORT_REQUIRED');assert.equal(declared.source_counts.storage_objects,1);
+  assert.equal(declared.snapshot_counts['storage.objects'],1);
+  sql(55431,'DELETE FROM storage.objects;');
+  assert.equal(fs.readdirSync(output).length,0,'export recusado deixou artefato');
   const manifest=await exportRecovery({root:process.cwd(),syntheticLocal:true,env:exportEnv});
+  assert.equal(manifest.storage_binaries,'NONE');
   const backup=path.join(output,fs.readdirSync(output)[0]);
   assert.equal(manifest.classification,'synthetic_encrypted_export');assert.equal(manifest.project_ref,null);
   assert.equal(manifest.restore,'NOT RUN');

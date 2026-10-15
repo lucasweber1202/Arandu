@@ -1,5 +1,16 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 15/10/2026 — Recovery completo com binários do Storage (Stage 0.5, PR B)
+
+Base: `main` @ `e0116af` (#193). Nenhum banco, Storage, segredo ou projeto hospedado acessado.
+
+| Item | Estado | Evidência | Limite |
+| --- | --- | --- | --- |
+| Export/restore cifrado dos binários do Storage (`scripts/storage-recovery.mjs`) | M1 + local | ensaio `pilot-restore-drill.sh` sobre a Demo semeada: 6 objetos, negativos (ausente, adulterado, identidade errada), restore só do banco recusado (`missing_binary` 6/6), MATCH, permissões diretas negadas, `recovery_complete` COMPLETE (38/38 checagens) | M2 depende do job `demo-integration` no HEAD; **nada exportado do Pilot/legado** |
+| Cadeia canônica exige binários (`recovery:verify` nível 5 só com Storage restaurado) | M1 + local | `test-storage-recovery.mjs` com `verifyExport` real: DATABASE_ONLY = nível 4 | idem |
+| ACLs do schema `storage` no restore (achado) | corrigido no ensaio | probe `storage_grants`; sem os ACLs o `service_role` recebia `42501` | — |
+| Falha mascarada no workflow da integração efêmera (`bash -e` sem pipefail com `| tee`) | corrigido | log da #191: `shell: /usr/bin/bash -e {0}`; nenhuma fase escondeu falha; autoteste exige `shell: bash` | — |
+
 ## 14/10/2026 — Stage 0: revogação de sessão, integridade da decisão e prontidão
 
 Base: `main` @ `fa551c0` (#190). Detalhe e estados em

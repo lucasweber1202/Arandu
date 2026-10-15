@@ -48,6 +48,7 @@ ECR público e, se recusar por cota, o Docker Hub com o **mesmo digest**.
 | e2e | `run.sh e2e demo-desktop` / `demo-mobile` | `playwright.demo.config.js` (`demo-baseline.spec.js`): tesouraria → RFQ → propostas → comparação → aprovação → decisão → contrato → renovação; CFO; portal do provedor sem concorrentes; Passport; pós-contrato |
 | journey | `run.sh journey` | `scripts/pilot-local/journey.mjs`: contas e login reais, allowlist, organizações, convites de membro e de provedor, RFQ, propostas com rascunho/versões, comentários, documentos no Storage, comparação, aprovação (com segregação), decisão, contrato e renovação, cron, e-mail em fila, console de operação com MFA, e dezenas de ataques de isolamento (RLS direto no PostgREST, Storage direto, provedor lendo concorrente, externo, anônimo) |
 | adversarial | `run.sh adversarial` | `scripts/ci-demo/adversarial.mjs`, depois do E2E e da jornada (escreve na Demo efêmera): cookie adulterado e forjado, sessão depois do logout, JWT de outro segredo e `alg: none`; provedor contra contratos, tarefas, versões, aprovações, decisões e documentos da compradora pela API, PostgREST e RPC direta (com conferência de que nada mudou no banco); viewer sem escrita; seis registros simultâneos do mesmo contrato, seis pedidos simultâneos de renovação, dois votos simultâneos; aditivo de prorrogação e novo ciclo de renovação. Sonda sem pré-condição é SKIPPED, nunca PASS |
+| recovery | `run.sh recovery` | `scripts/pilot-restore-drill.sh` sobre a Demo semeada (só dados sintéticos), depois das fases que escrevem: backup do banco e dos **binários do Storage** (`scripts/storage-recovery.mjs`, age por objeto, índice cifrado), restore num Supabase descartável **separado**, negativos (artefato ausente, adulterado, identidade errada), prova de que o restore só do banco falha (`missing_binary` em todos os objetos), restore dos binários pela API oficial, releitura com SHA-256, permissões diretas negadas, ACLs do Storage, probes, canário e `recovery_complete`. Clientes PostgreSQL vêm da própria imagem fixada (`PILOT_DRILL_PG_FROM_IMAGE=1`) |
 | evidence / down | `run.sh evidence` / `run.sh down` | logs sanitizados; containers, volumes, chaves e certificados apagados |
 
 Cobertura pedida → onde está:
@@ -69,9 +70,13 @@ Cobertura pedida → onde está:
 - **Sem secrets.** O workflow não referencia `secrets.` nem `environment:`;
   chaves JWT, senha do Postgres, segredo do cron, certificado e senha das
   personas são gerados por execução e apagados no teardown.
-- **Sem deploy, migration hospedada, recovery ou mudança de topologia.**
+- **Sem deploy, migration hospedada, recovery hospedado ou mudança de topologia.** O recovery da fase 6 é sintético: origem e destino são contêineres do próprio runner.
 - **Falha é falha.** Sem `continue-on-error`, sem `|| true`, sem retries do
   Playwright. Etapa não executada aparece como `NÃO EXECUTADA` no resumo.
+  O workflow declara `defaults.run.shell: bash` (`-eo pipefail`): sem isso o
+  Actions usava `bash -e {0}` e `run.sh fase | tee` sairia com o código do
+  `tee`, ou seja, uma fase reprovada apareceria como PASS. Conferido no log da
+  execução da #191: nenhuma fase escondeu falha; o autoteste agora exige o shell.
 - **Evidência sanitizada.** `scripts/ci-demo/sanitize.mjs` remove os valores
   gerados, JWTs, cookies, senhas em URL e e-mails fora de `*.example`, e falha se
   algo sobreviver. O Playwright roda com `--trace off` (o trace guardaria

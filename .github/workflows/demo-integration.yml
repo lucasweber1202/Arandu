@@ -22,6 +22,12 @@ on:
 permissions:
   contents: read
 
+# Sem isto o Actions usa `bash -e {0}`, sem pipefail: `run.sh fase | tee` sairia
+# com o código do tee e uma fase reprovada apareceria como PASS.
+defaults:
+  run:
+    shell: bash
+
 # Uma integração por vez no repositório; a seguinte espera (não cancela a atual).
 concurrency:
   group: arandu-demo-integration
@@ -56,8 +62,8 @@ jobs:
         id: preflight
         timeout-minutes: 3
         run: |
-          if ! command -v psql >/dev/null 2>&1; then
-            sudo apt-get update && sudo apt-get install -y postgresql-client
+          if ! command -v psql >/dev/null 2>&1 || ! command -v age >/dev/null 2>&1; then
+            sudo apt-get update && sudo apt-get install -y postgresql-client age
           fi
           bash scripts/ci-demo/run.sh preflight
 
@@ -148,6 +154,12 @@ jobs:
         timeout-minutes: 12
         run: bash scripts/ci-demo/run.sh adversarial 2>&1 | tee "$CI_DEMO_REPORTS/adversarial.txt"
 
+      # Somente leitura na origem semeada; restaura num Supabase descartável à parte.
+      - name: Phase 6 — Recovery drill (database + Storage binaries, isolated restore)
+        id: recovery
+        timeout-minutes: 20
+        run: bash scripts/ci-demo/run.sh recovery 2>&1 | grep -v '@' | tee "$CI_DEMO_REPORTS/recovery.txt"
+
       - name: Collect sanitized evidence
         if: always()
         timeout-minutes: 3
@@ -167,6 +179,7 @@ jobs:
           E2E_MOBILE: ${{ steps.e2e_mobile.outcome }}
           JOURNEY: ${{ steps.journey.outcome }}
           ADVERSARIAL: ${{ steps.adversarial.outcome }}
+          RECOVERY: ${{ steps.recovery.outcome }}
         run: node scripts/ci-demo/summary.mjs >> "$GITHUB_STEP_SUMMARY"
 
       - name: Teardown (containers, volumes, keys)

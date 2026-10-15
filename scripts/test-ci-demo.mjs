@@ -34,11 +34,14 @@ test('workflow: sem secrets, sem environment hospedado, sem deploy', () => {
 });
 test('workflow: nenhuma falha mascarada', () => {
   assert.doesNotMatch(workflow + runner, /continue-on-error|\|\|\s*true\s*$/m);
+  // Fases rodam como `run.sh fase | tee`: sem pipefail o tee mascararia a falha.
+  assert.match(workflow, /^defaults:\n  run:\n    shell: bash\n/m, 'shell bash explícito (-eo pipefail) obrigatório');
+  assert.doesNotMatch(workflow, /^\s+shell: (sh|bash -e \{0\})/m);
   assert.doesNotMatch(runner, /--retries/);
 });
 test('workflow: timeout no job e em cada fase; concorrência limitada', () => {
   assert.match(workflow, /timeout-minutes: \d+\n    env:/);
-  for (const id of ['preflight', 'images', 'up', 'smoke', 'seed', 'check', 'e2e_desktop', 'e2e_mobile', 'journey', 'adversarial']) {
+  for (const id of ['preflight', 'images', 'up', 'smoke', 'seed', 'check', 'e2e_desktop', 'e2e_mobile', 'journey', 'adversarial', 'recovery']) {
     assert.match(workflow, new RegExp(`id: ${id}\\n        timeout-minutes: \\d+`), `fase ${id} sem timeout`);
   }
   assert.match(workflow, /concurrency:\n  group: arandu-demo-integration\n  cancel-in-progress: false/);

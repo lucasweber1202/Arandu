@@ -1,8 +1,127 @@
 # Preservação criptografada dos dois slots
 
-Estado: preparado, não executado contra Supabase; não comprova recovery.
+Estado: preparado, não executado contra Supabase; não comprova recovery hospedado.
 Continua a preparação de `TWO_ENVIRONMENT_CONSOLIDATION.md`, sem substituir
 o drill `scripts/pilot-restore-drill.sh` e sem mudar atribuições ativas.
+Desde 15/10/2026 a cadeia cobre os **binários do Storage** (seção abaixo), com
+prova sintética completa no laboratório efêmero; nada foi exportado de banco
+ou Storage hospedado.
+
+## Binários do Storage e estratégia recomendada (15/10/2026)
+
+O `pg_dump` leva só os metadados de `storage.objects`; os arquivos ficam no
+backend do Storage. `scripts/storage-recovery.mjs` fecha essa lacuna:
+
+- **Inventário** (`INVENTORY_SQL`, read only, `row_security=off`): buckets,
+  objetos e as versões de documento que o produto dá como disponíveis
+  (`fin_document_versions` + `fin_private_documents`). Recusa o export se uma
+  versão disponível não tem objeto, se o tamanho diverge ou se o caminho
+  (`<organização>/<documento>/v<n>-<uuid>`) não começa pela organização dona
+  (atribuição cruzada). Objeto sem referência (envio pendente) é preservado e contado.
+- **Bytes pela API oficial**: download autenticado com service role
+  (`/object/authenticated/<bucket>/<nome>`); tamanho igual ao metadado e
+  SHA-256 igual ao registrado pelo produto, quando houver.
+- **Criptografia e manifesto**: cada objeto vira `storage/obj-NNNNNN.age`; nomes,
+  tamanhos, tipos e hashes do conteúdo ficam só no índice cifrado
+  (`storage-index.json.age`). O `storage-manifest.json` em claro tem contagens,
+  visibilidade dos buckets, digest do inventário e do índice e hash/bytes de
+  cada ciphertext — nenhum nome de objeto. Nasce `failed`; só vira
+  `exported_unverified` no fim.
+- **Restore isolado** (`restore`): banco e Storage de destino **só loopback**;
+  confere manifesto e hashes de todos os ciphertexts antes de decifrar
+  (`STORAGE_ARTIFACT_MISSING`, `STORAGE_HASH_MISMATCH`), decifra em memória,
+  confere o hash de cada objeto contra o índice, envia pela API oficial
+  (upload com `x-upsert`) e relê tudo.
+- **Reconciliação** (`reconcileStorage`): mesmo conjunto bucket/nome, mesmo
+  tamanho, binário presente e com o mesmo SHA-256, visibilidade dos buckets e
+  referências do produto satisfeitas no destino. Metadado sem arquivo é
+  `missing_binary`: **um restore só do banco nunca passa** (`verify`).
+- **Permissões**: no destino, URL pública, token anônimo e um membro
+  restaurado lendo direto do Storage o objeto da própria organização e o de
+  outra são recusados (documento só sai pela API do Arandu com RPC de autorização).
+- **Registro**: `storage-restore-verification-*.json` (0600) preso ao export
+  (digest do índice e dos ciphertexts), com diferenças só por número de sequência.
+
+Na cadeia canônica, com arquivos na origem o export do banco exige
+`ARANDU_RECOVERY_STORAGE_BINARIES=separate-export` (manifesto registra
+`storage_binaries: SEPARATE_EXPORT_REQUIRED`), e `recovery:verify` só chega a
+`RECOVERY_VERIFIED` (nível 5) quando, além do restore do banco, há dentro do
+mesmo export um `arandu-storage-*` íntegro, com a mesma quantidade de objetos do
+snapshot e registro de restore `MATCH` com permissões negadas. Sem isso o
+resultado é `RECOVERY_DATABASE_ONLY` (nível 4). O ensaio
+`scripts/pilot-restore-drill.sh` aplica a mesma regra (`recovery_complete`).
+
+### Cobertura da cadeia
+
+| Item | Coberto por | Prova |
+| --- | --- | --- |
+| Banco (`public`, dados, constraints, funções) | `pg_dump` custom em snapshot | `test-recovery-real.mjs` (PG17, CI `database`); ensaio Supabase |
+| Auth (usuários, identidades, gatilhos) | dump completo / `auth.users`+`identities` no ensaio | contagens + probes do ensaio |
+| Roles e grants | `pg_dumpall --roles-only --no-role-passwords` (nunca aplicado às cegas); ACLs no dump | probes `table_grants`, `storage_grants`, `anon_functions` |
+| RLS e policies | dump; policies do Storage no ensaio | `fin_tables_all_rls_enabled`, `policies`, `storage_policies`, canário |
+| Migrations | `supabase_migrations` + `fin_settings.schema_version` | `schema_version`, `schema_fingerprint` |
+| Metadados do Storage | `storage.buckets`/`objects` no dump | `storage_objects`, `bucket_private` |
+| **Binários do Storage** | `scripts/storage-recovery.mjs` | ensaio: export, negativos, restore só do banco recusado, MATCH, permissões |
+| Configuração essencial | `fin_settings` (digest) | `settings_sha256` |
+| Chaves de recuperação | identidade age do operador (`recovery:key:prepare`), fora do store e do CI | ida e volta comprovada; cópia offline é responsabilidade do operador |
+| Dependências externas (Auth/e-mail/OAuth/SMTP, cron, Vercel, secrets da plataforma, chave raiz do Vault) | **não cobertas** | inventário manual antes do cutover (`TWO_ENVIRONMENT_CONSOLIDATION.md`) |
+
+MFA (`auth.mfa_factors`) e policies em `auth` continuam fora: o preflight recusa
+origem que os tenha.
+
+### Estratégia com menos intervenção humana
+
+| Estratégia | Preparação única | Intervenção por execução | Durabilidade | Risco |
+| --- | --- | --- | --- | --- |
+| **A — máquina do operador** (`recovery:*` local) | PG17 + age; `recovery:key:prepare` e `recovery:store:init` | rodar os comandos abaixo com as variáveis no shell | disco do operador atestado + cópia offline | depende de máquina confiável; sem custo novo |
+| B — `github-hosted` + S3 | bucket S3 privado **existente** (não contratar), policy com `If-None-Match`, secrets no Environment | gerar 6 URLs SigV4 novas por execução (PUT/GET de 3 objetos) e aprovar o run | bucket aprovado | mais trabalho por execução; binários do Storage ainda não têm transporte S3 |
+| C — `private-runner` | registrar runner dedicado `arandu-recovery`, mount durável, secrets | aprovar o run | mount do runner | infraestrutura própria; **não é requisito** |
+
+Recomendação: **A**, que exige menos intervenção sem perder segurança — nenhum
+recurso pago, nenhum runner próprio, nenhuma URL por execução, identidade
+privada nunca no CI, store durável atestado e verificação de integridade e de
+restore pelo mesmo código testado no CI. B continua válida para quem já tem
+bucket; C só se houver runner dedicado já aprovado.
+
+### Runbook da estratégia A com binários (execução autorizada futura)
+
+Variáveis no shell local, nunca em arquivo do repositório nem em chat. Ordem:
+
+```
+# 0. uma vez: identidade e store (ver runbook da estratégia A, abaixo)
+# 1. preflight, sem acessar banco nem Storage
+ARANDU_RECOVERY_PROJECT_REF=<ref> ARANDU_RECOVERY_DATABASE_URL=… ARANDU_RECOVERY_RECIPIENT=… \
+ARANDU_RECOVERY_DIRECTORY=… ARANDU_RECOVERY_CONFIRM=ARANDU-ENCRYPTED-EXPORT \
+ARANDU_RECOVERY_STORAGE_BINARIES=separate-export \
+ARANDU_STORAGE_SOURCE_URL=https://<ref>.supabase.co/storage/v1 ARANDU_STORAGE_SOURCE_SERVICE_KEY=… \
+  npm run recovery:doctor -- --export
+# 2. banco (janela sem escritores), depois os binários DENTRO do export do banco
+npm run recovery:export:private
+ARANDU_STORAGE_CONFIRM=ARANDU-STORAGE-EXPORT ARANDU_STORAGE_SOURCE_KIND=hosted ARANDU_STORAGE_PROJECT_REF=<ref> \
+ARANDU_STORAGE_DATABASE_URL="$ARANDU_RECOVERY_DATABASE_URL" ARANDU_STORAGE_RECIPIENT="$ARANDU_RECOVERY_RECIPIENT" \
+ARANDU_STORAGE_DIRECTORY=<diretório do export do banco> npm run recovery:storage:export
+# 3. restore isolado do banco (PG17 loopback) e, num Supabase descartável
+#    loopback (o próprio ensaio), dos binários
+npm run recovery:restore:verify
+ARANDU_STORAGE_RESTORE_CONFIRM=ARANDU-ISOLATED-STORAGE-RESTORE ARANDU_STORAGE_BACKUP=<arandu-storage-…> \
+ARANDU_STORAGE_IDENTITY=… ARANDU_STORAGE_TARGET_DATABASE_URL=postgresql://…@127.0.0.1:<porta>/postgres \
+ARANDU_STORAGE_TARGET_URL=http://127.0.0.1:<porta-storage> ARANDU_STORAGE_TARGET_JWT_SECRET=… \
+  npm run recovery:storage:restore
+# 4. nível final: 5 só com banco e binários restaurados
+ARANDU_RECOVERY_BACKUP=<export do banco> npm run recovery:verify
+```
+
+O ensaio completo sobre Supabase descartável (banco + binários) também roda em
+`PILOT_SOURCE_DATABASE_URL=… PILOT_DRILL_STORAGE_BINARIES=1
+PILOT_DRILL_STORAGE_SOURCE_URL=https://<ref>.supabase.co/storage/v1
+PILOT_DRILL_STORAGE_SOURCE_KEY=… npm run pilot:restore:drill`. Nada disso foi
+executado contra o Pilot ou o legado: exige a autorização explícita da missão.
+
+Achado do ensaio: as migrations do Storage não concedem acesso às tabelas a
+`anon`/`authenticated`/`service_role` (o projeto Supabase concede à parte). Um
+restore sem os ACLs do schema `storage` deixa o Storage inutilizável até para o
+`service_role` (`42501`). O ensaio restaura esses ACLs do próprio backup e
+compara `storage_grants` com a origem.
 
 ## Estratégias de destino e operação sem AWS (11/10/2026)
 
@@ -141,7 +260,9 @@ restore `NOT RUN`, conversão `BLOCKED`. Retenção e cópia durável são do de
 aprovado. O fallback grava no mount; o hosted transfere somente ao destino S3
 explicitamente aprovado e recusa sobrescrita (`If-None-Match: *`).
 
-Não cobre arquivos de Storage (aborta quando há objetos), configuração externa
+Arquivos de Storage: export separado e cifrado (`scripts/storage-recovery.mjs`,
+seção do topo); sem a declaração `separate-export`, o export do banco aborta
+quando há objetos. Não cobre configuração externa
 Auth/e-mail/OAuth/cron/Vercel, secrets de plataforma ou chave raiz de criptografia
 Vault. Roles são outro snapshot; inventário anterior não é o snapshot do dump.
 Não vincular automaticamente o hash do inventário anterior à prova de backup.
