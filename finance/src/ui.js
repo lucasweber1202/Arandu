@@ -283,17 +283,30 @@ export function promptDialog({ title, description = null, label, minLength = 0, 
   });
 }
 
-/** Painel lateral para contexto (aprovação, cadastro) sem perder a página. */
-export function drawer({ title, subtitle = null, body, footer = null, onClose = null, className = '' }) {
+/**
+ * Painel lateral para contexto (aprovação, cadastro) sem perder a página.
+ * `confirmClose` (opcional) decide se o painel pode fechar por X, Esc, clique
+ * fora ou `dialog.dismiss()`: formulário preenchido não some num clique errado.
+ */
+export function drawer({ title, subtitle = null, body, footer = null, onClose = null, className = '', confirmClose = null }) {
   const opener = document.activeElement;
   const dialog = el('dialog', { class: `drawer ${className}`.trim(), 'aria-labelledby': 'drawer-title' });
+  let asking = false;
+  const dismiss = async () => {
+    if (asking) return;
+    asking = true;
+    try { if (confirmClose && !(await confirmClose())) return; } finally { asking = false; }
+    dialog.close();
+  };
+  dialog.dismiss = dismiss;
   dialog.append(el('div', { class: 'drawer-head' }, [
     el('div', {}, [el('h2', { id: 'drawer-title', class: 'drawer-title', text: title }), subtitle ? el('p', { class: 'drawer-subtitle', text: subtitle }) : null]),
-    iconButton('x', 'Fechar painel', { onClick: () => dialog.close() })
+    iconButton('x', 'Fechar painel', { onClick: dismiss })
   ]));
   dialog.append(el('div', { class: 'drawer-body' }, body));
   if (footer) dialog.append(el('div', { class: 'drawer-foot' }, footer));
-  dialog.addEventListener('click', (event) => { if (event.target === dialog) dialog.close(); });
+  if (confirmClose) dialog.addEventListener('cancel', (event) => { event.preventDefault(); dismiss(); });
+  dialog.addEventListener('click', (event) => { if (event.target === dialog) dismiss(); });
   dialog.addEventListener('close', () => { onClose?.(); opener?.focus?.(); setTimeout(() => dialog.remove(), 0); });
   document.body.append(dialog);
   dialog.showModal();

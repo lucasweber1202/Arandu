@@ -430,9 +430,12 @@ function approvalRequestForm(ctx, rfq, latest) {
   ])));
   const body = el('div', { class: 'card-body stack' });
   const proposalGroup = el('fieldset', { class: 'radio-cards' }, el('legend', { class: 'field-label', text: 'Proposta para aprovação' }));
-  proposals.forEach((proposal, index) => {
+  // Nenhuma proposta vem marcada quando há escolha: a ordem da lista não é
+  // recomendação (Constitution §1.2) e a escolha é sempre de quem pede.
+  const single = proposals.length === 1;
+  proposals.forEach((proposal) => {
     proposalGroup.append(el('label', { class: 'radio-card' }, [
-      el('input', { type: 'radio', name: 'proposal_id', value: proposal.id, checked: index === 0 }),
+      el('input', { type: 'radio', name: 'proposal_id', value: proposal.id, checked: single, required: true }),
       el('span', { class: 'radio-card-text' }, [el('strong', { text: proposal.provider_name }), el('span', { class: 'muted small', text: `v${proposal.version} · ${rfq.product === 'credit' ? `${percent(proposal.terms?.interest_rate_month)} a.m. · ${money(proposal.terms?.offered_amount, { compact: true })}` : `MDR crédito ${percent(proposal.terms?.mdr_credit_cash)} · PIX ${percent(proposal.terms?.pix_fee)}`}` })])
     ]));
   });
@@ -457,7 +460,9 @@ function approvalRequestForm(ctx, rfq, latest) {
   approverGroup.append(orderNote);
 
   // Modo policy: prévia do plano, indicação por etapa, fatos declarados.
-  const modeBox = el('div', { class: 'stack' }, loading('Conferindo a policy da empresa…'));
+  const modeBox = el('div', { class: 'stack' }, single ? loading('Conferindo a policy da empresa…')
+    : el('p', { class: 'muted small', id: 'approval-choose-first', text: 'Escolha a proposta para ver quem aprova: a policy da empresa, quando existe, depende da operação escolhida.' }));
+  const proposalError = el('p', { class: 'field-error', role: 'alert', hidden: true });
   const declared = {};
   let evaluation = null;
   let flags = [];
@@ -504,17 +509,23 @@ function approvalRequestForm(ctx, rfq, latest) {
     modeBox.replaceChildren(planSummary(ctx, evaluation), declaredBox() || el('span'), stageAssignments(ctx, evaluation.stages || [], assignments),
       evaluation.requirements?.justification ? justificationField : el('span'));
   };
-  proposalGroup.addEventListener('change', () => { refresh(); });
+  proposalGroup.addEventListener('change', () => { proposalError.hidden = true; refresh(); });
 
   const rationale = el('textarea', { name: 'rationale', rows: '4', maxlength: '4000', placeholder: 'Ex.: menor custo total estimado e valor integral; garantias validadas com o jurídico.' });
   const rationaleField = field({ label: 'Contexto para quem aprova', control: rationale, required: true, hint: 'Quem aprova vê este texto junto com a proposta e a comparação.' });
   const error = el('p', { class: 'field-error', role: 'alert', hidden: true });
   const submit = button('Solicitar aprovação', { variant: 'primary', type: 'submit', iconName: 'send' });
-  body.append(proposalGroup, modeBox, rationaleField, error, el('div', { class: 'form-actions' }, submit));
+  body.append(proposalGroup, proposalError, modeBox, rationaleField, error, el('div', { class: 'form-actions' }, submit));
   form.append(body);
   onSubmit(form, async (event) => {
     event.preventDefault();
     error.hidden = true;
+    if (proposals.length && !new FormData(form).get('proposal_id')) {
+      proposalError.textContent = 'Escolha a proposta que vai para aprovação.';
+      proposalError.hidden = false;
+      proposalGroup.querySelector('input')?.focus();
+      return;
+    }
     if (!rationale.value.trim()) { rationaleField.setError('Explique o contexto para quem vai aprovar.'); rationale.focus(); return; }
     const proposalId = new FormData(form).get('proposal_id');
     if (evaluation) {
@@ -532,7 +543,7 @@ function approvalRequestForm(ctx, rfq, latest) {
       ctx.reload();
     } catch (failure) { error.textContent = failure.message; error.hidden = false; submit.disabled = false; }
   });
-  queueMicrotask(refresh);
+  if (single) queueMicrotask(refresh);
   return form;
 }
 
@@ -580,7 +591,9 @@ function decisionTab(ctx, rfq, { decision, contract, policy, approvals, manage }
   for (const proposal of proposals) {
     const locked = approved && approved.proposal_id !== proposal.id;
     group.append(el('label', { class: `radio-card${locked ? ' disabled' : ''}` }, [
-      el('input', { type: 'radio', name: 'proposal_id', value: proposal.id, checked: approved ? approved.proposal_id === proposal.id : conflicted ? proposal.id === conflicted.id : proposal === proposals[0], disabled: locked }),
+      // Sem aprovação nem conflito, nada vem marcado quando há mais de uma
+      // proposta: a decisão é um clique consciente, nunca a primeira da lista.
+      el('input', { type: 'radio', name: 'proposal_id', value: proposal.id, checked: approved ? approved.proposal_id === proposal.id : conflicted ? proposal.id === conflicted.id : proposals.length === 1, disabled: locked, required: true }),
       el('span', { class: 'radio-card-text' }, [el('strong', { text: proposal.provider_name }), el('span', { class: 'muted small', text: locked ? 'Não aprovada' : `v${proposal.version}${approved?.proposal_id === proposal.id ? ' · aprovada' : ''}` })])
     ]));
   }
@@ -600,19 +613,27 @@ function decisionTab(ctx, rfq, { decision, contract, policy, approvals, manage }
       el('label', { class: 'check' }, [reviewed, el('span', { text: `Revisei as condições da versão ${conflicted.version} e quero seguir com a decisão` })])
     ])]);
   })() : null;
+  const choiceError = el('p', { class: 'field-error', role: 'alert', hidden: true });
+  group.addEventListener('change', () => { choiceError.hidden = true; });
   const rationale = el('textarea', { name: 'rationale', rows: '3', maxlength: '4000', 'aria-label': 'Justificativa da decisão' });
   const weights = ctx.weights[rfq.id];
   const useWeights = el('input', { type: 'checkbox', name: 'use_weights', checked: Boolean(weights) });
   const submit = button('Registrar decisão', { variant: 'primary', type: 'submit', iconName: 'flag' });
   form.append(el('div', { class: 'card-head' }, el('div', { class: 'card-head-text' }, [el('h3', { class: 'card-title', text: 'Registrar decisão' }),
     el('p', { class: 'card-subtitle', text: 'A decisão é da empresa. O Arandu guarda quem decidiu, quando, a proposta e uma fotografia de todas as propostas deste momento.' })])),
-  el('div', { class: 'card-body stack' }, [conflictNode, group, field({ label: 'Justificativa', control: rationale, optionalLabel: true }),
+  el('div', { class: 'card-body stack' }, [conflictNode, group, choiceError, field({ label: 'Justificativa', control: rationale, optionalLabel: true }),
     weights ? el('label', { class: 'check' }, [useWeights, el('span', { text: 'Registrar os pesos aplicados na comparação como critério desta decisão' })]) : null,
     el('div', { class: 'form-actions' }, submit)]));
   onSubmit(form, async (event) => {
     event.preventDefault();
     const data = new FormData(form);
     const chosen = proposals.find((row) => row.id === data.get('proposal_id'));
+    if (!chosen) {
+      choiceError.textContent = 'Escolha a proposta da decisão.';
+      choiceError.hidden = false;
+      group.querySelector('input:not(:disabled)')?.focus();
+      return;
+    }
     if (conflictNode && chosen?.id === conflicted.id && !reviewed.checked) {
       toast(`Confirme que revisou a versão ${conflicted.version} antes de registrar a decisão.`, 'error');
       reviewed.focus();

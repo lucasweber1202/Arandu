@@ -830,7 +830,7 @@ a.mini-title:hover{color:var(--accent-text)}
 .task-main{display:grid;flex:1;min-width:0}
 .task-title{font-weight:550}
 .task-item.done .task-title{text-decoration:line-through;color:var(--text-muted)}
-.task-meta{font-size:var(--fs-xs);color:var(--text-muted)}
+.task-meta,.task-contract-due{font-size:var(--fs-xs);color:var(--text-muted)}
 .task-due{display:inline-flex;align-items:center;gap:4px;font-size:var(--fs-sm);color:var(--text-secondary);white-space:nowrap}
 .task-due.soon{color:var(--warning);font-weight:600}.task-due.overdue{color:var(--danger);font-weight:650}
 .settings-layout{display:grid;grid-template-columns:200px minmax(0,1fr);gap:var(--s6);align-items:start}
