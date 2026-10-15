@@ -97,7 +97,7 @@ devolve o foco), celular (tarefas e cartão de contrato sem truncar o contexto).
 | --- | --- | --- | --- | --- | --- |
 | `docs/supabase-financial-implementation.sql:126` (criação do plano de implantação) | plano com etapas `establishments`, `go_live`, `settlement_validation`… | título da tarefa com o rótulo em português da etapa (ex.: "Implantação: entrada em produção") | `'Implantação: '||replace(v_kind,'_',' ')` grava a chave interna: na Demo aparecem seis tarefas "Implantação: go live", "settlement validation", "pricing activation"… (Constitution §1.5: enum na tela é bug) | Tarefas e Painel mostram inglês técnico; a interface não reescreve título gravado para não mascarar o dado. Correção é migration aditiva + backfill dos títulos abertos. | P2 |
 | `fin_tasks`, `GET /api/finance/tasks` e `overview.tasks` | tarefa de renovação/obrigação de um contrato com responsável | responsável da tarefa (`assignee_id` + nome) — por padrão o responsável do contrato/marco | a tabela não tem responsável; a leitura devolve `id,title,due_on,status,related_type,related_id`. A interface já lê `assignee_id`/`assignee_name` (filtro "só as minhas" do Painel e nome na lista), mas o dado nunca chega | Toda pendência aparece para todos; "responsável definido" só existe no contrato (UX-E5), não na tarefa | P3 |
-| Mantidas da rodada anterior | `overview.contracts[].days_to_end` arredondado em UTC; `assignments[].history` sem termos por versão para o provedor | — | — | ver `claude-product-2026-10-15.md` | P3 |
+| Da rodada anterior | `overview.contracts[].days_to_end` arredondado; `assignments[].history` sem termos por versão | — | **Resolvidas pela #198 (Work)**, integrada à `main` em `ba8ab206`: `days_to_end` por dias de calendário e `history` com o snapshot de termos de cada versão enviada | A interface desta PR não depende desses campos; nada a ajustar | — |
 
 ## Observado e não alterado
 
@@ -111,6 +111,9 @@ devolve o foco), celular (tarefas e cartão de contrato sem truncar o contexto).
 
 ## PR e SHA
 
-PR e SHA final: registrados na descrição da PR (esta evidência é commitada antes do push). A PR do
-Work deve ser integrada primeiro; esta PR aguarda, depois sincroniza com a nova `main`, revalida e
-só então passa por `npm run merge:gates -- <PR>`.
+PR: lucasweber1202/Arandu#199. HEAD `e0b1244`: `database`, `deploy-boundaries`, `validate` e
+`presentation` PASS (run 38799102107). A PR do Work (#198) foi integrada primeiro (`main` @
+`ba8ab206`); esta branch recebeu a nova `main` por merge (sem conflito nem sobreposição de
+arquivos), foi revalidada (`check:all`, `build`, `test:e2e` Chromium desktop + Pixel 7) e segue
+para os quatro gates no novo HEAD e `npm run merge:gates -- 199`. SHA final: o HEAD verificado na
+PR.
