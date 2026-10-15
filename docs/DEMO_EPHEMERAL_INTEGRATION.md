@@ -17,8 +17,12 @@ ninguém e sem tocar ambiente hospedado:
 - a Vitta Foods semeada pelo seed oficial (`scripts/demo/seed.mjs --reset`).
 
 Não é um dos quatro gates obrigatórios e não altera nenhum deles nem a branch
-protection. Maturidade: é evidência de M2 (CI no HEAD exato) para a Demo
-integrada; não é M3 (hospedado) nem libera cutover da Demo.
+protection. Maturidade: é evidência de integração em CI para o SHA realmente executado;
+não substitui os quatro gates no HEAD exato, não é M3 (hospedado) nem libera
+cutover da Demo. Em PR, o checkout padrão é o merge commit temporário do GitHub.
+O resumo registra esse SHA obtido por `git rev-parse HEAD` separadamente do HEAD
+da PR; o último é somente referência. Se o checkout não foi identificado, o
+resumo diz `NÃO IDENTIFICADO` e não atribui a execução ao HEAD por fallback.
 
 ## Composição mínima
 
@@ -48,7 +52,7 @@ ECR público e, se recusar por cota, o Docker Hub com o **mesmo digest**.
 | e2e | `run.sh e2e demo-desktop` / `demo-mobile` | `playwright.demo.config.js` (`demo-baseline.spec.js`): tesouraria → RFQ → propostas → comparação → aprovação → decisão → contrato → renovação; CFO; portal do provedor sem concorrentes; Passport; pós-contrato |
 | journey | `run.sh journey` | `scripts/pilot-local/journey.mjs`: contas e login reais, allowlist, organizações, convites de membro e de provedor, RFQ, propostas com rascunho/versões, comentários, documentos no Storage, comparação, aprovação (com segregação), decisão, contrato e renovação, cron, e-mail em fila, console de operação com MFA, e dezenas de ataques de isolamento (RLS direto no PostgREST, Storage direto, provedor lendo concorrente, externo, anônimo) |
 | adversarial | `run.sh adversarial` | `scripts/ci-demo/adversarial.mjs`, depois do E2E e da jornada (escreve na Demo efêmera): cookie adulterado e forjado, sessão depois do logout, JWT de outro segredo e `alg: none`; provedor contra contratos, tarefas, versões, aprovações, decisões e documentos da compradora pela API, PostgREST e RPC direta (com conferência de que nada mudou no banco); viewer sem escrita; seis registros simultâneos do mesmo contrato, seis pedidos simultâneos de renovação, dois votos simultâneos; aditivo de prorrogação e novo ciclo de renovação. Sonda sem pré-condição é SKIPPED, nunca PASS |
-| recovery | `run.sh recovery` | `scripts/pilot-restore-drill.sh` sobre a Demo semeada (só dados sintéticos), depois das fases que escrevem: backup do banco e dos **binários do Storage** (`scripts/storage-recovery.mjs`, age por objeto, índice cifrado), restore num Supabase descartável **separado**, negativos (artefato ausente, adulterado, identidade errada), prova de que o restore só do banco falha (`missing_binary` em todos os objetos), restore dos binários pela API oficial, releitura com SHA-256, permissões diretas negadas, ACLs do Storage, probes, canário e `recovery_complete`. Clientes PostgreSQL vêm da própria imagem fixada (`PILOT_DRILL_PG_FROM_IMAGE=1`) |
+| recovery | `run.sh recovery` | `scripts/pilot-restore-drill.sh` sobre a Demo semeada (só dados sintéticos), após seed/check e antes da jornada que cria fatores MFA: backup do banco e dos **binários do Storage** (`scripts/storage-recovery.mjs`, age por objeto, índice cifrado), restore num Supabase descartável **separado**, negativos (artefato ausente, adulterado, identidade errada), prova de que o restore só do banco falha (`missing_binary` em todos os objetos), restore dos binários pela API oficial, releitura com SHA-256, permissões diretas negadas, ACLs do Storage, probes, canário e `recovery_complete`. Clientes PostgreSQL vêm da própria imagem fixada (`PILOT_DRILL_PG_FROM_IMAGE=1`) |
 | evidence / down | `run.sh evidence` / `run.sh down` | logs sanitizados; containers, volumes, chaves e certificados apagados |
 
 Cobertura pedida → onde está:

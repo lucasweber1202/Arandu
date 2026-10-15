@@ -268,6 +268,22 @@ Vault. Roles são outro snapshot; inventário anterior não é o snapshot do dum
 Não vincular automaticamente o hash do inventário anterior à prova de backup.
 Exigir manutenção sem escritores e reconciliação no restore antes de conversão.
 
+### Reconciliação das restrições de bucket (15/10/2026)
+
+O índice cifrado preserva `public`, `file_size_limit` e `allowed_mime_types`.
+A reconciliação exige o mesmo conjunto de buckets e essas três configurações;
+remover limite de tamanho ou ampliar tipos MIME produz `MISMATCH`, mesmo com
+bytes idênticos. A ordem da allowlist MIME não altera a política. O verificador
+não modifica configurações para forçar um resultado positivo.
+
+Registros novos incluem `reconciliation_version: 2`. Registros antigos sem esse
+campo não comprovam essas restrições e deixam o recovery em `DATABASE_ONLY`
+quando existem objetos. O formato dos exports permanece v1: repetir o restore
+do MESMO export em destino descartável aprovado, com reconciliação e sondas de
+permissão, gera a prova atual; `verify` sozinho não comprova execução de restore.
+Não alterar manualmente registros antigos. Essa validação não cobre configurações
+externas de Auth/OAuth/Vault/cron nem autoriza operação hospedada ou cutover.
+
 ## Restore e rollback
 
 Não restaurar estes arquivos sobre Pilot/legado/Production nem usar o verificador
