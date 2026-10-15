@@ -53,6 +53,14 @@ Correção: vínculo por projeto, classificação sintética/real e digest do in
 
 Arquivos da trilha recovery: `lib/storage-recovery.mjs`, `scripts/storage-recovery.mjs`, `scripts/recovery.mjs`, `scripts/consolidation-export.mjs` e suas suítes. O negativo RLS do ensaio real exige processo executado, ausência de sinal, exit 3 do `psql` e erro RLS; erro de execução/conexão não comprova recusa. O ensaio real PostgreSQL 17.11 + age 1.3.2 passou novamente na árvore integrada. Uma tentativa integrada anterior foi BLOCKED por colisão da porta 55433 com o cluster do especialista; após mover esse cluster para 55434, a repetição passou sem alteração de código.
 
+### REC-3 — JWTs inválidos confundidos com autorização negada (alta)
+
+Revisão após o primeiro push reproduziu outra lacuna: chave de serviço válida com segredo A, mas probes assinados pelo segredo B, retornavam `DENIED_AS_EXPECTED` (público 404, anon/membros 401). O override de chave privilegiada não era vinculado ao segredo informado; os bytes podiam conferir enquanto as sondas autenticadas usavam assinaturas inválidas.
+
+O destino **local descartável** agora exige que a chave de serviço seja JWT HS256 `service_role`, com HMAC correspondente ao segredo dos probes e expiração numérica vigente. A validação ocorre antes de decriptar ou acessar a rede; comparação da assinatura em tempo constante. Credenciais opacas da **origem hospedada** não foram alteradas. Teste vermelho no código anterior avançava até decriptação em vez de recusar o segredo; teste verde cobre segredo errado, JWT malformado/opaco, alg/papel/exp inválidos e default/override consistentes. O erro é estável e não contém tokens.
+
+A correção entrou em segundo lote validado na mesma PR, motivado por defeito reproduzido; resultados de CI do primeiro HEAD não comprovam o novo HEAD. Nenhum job foi reenviado sem alteração e nenhum gate foi removido.
+
 ### CI-1 — redação insuficiente de e-mail e teardown falso sucesso (média)
 
 A exceção de domínios sintéticos preservava endereços reais contendo `.example` no meio do domínio. Teste novo falhou na base com `pessoa@tenant.example.com`. Agora só o sufixo final `.example` é preservado.
@@ -77,7 +85,7 @@ Rollout futuro: após autorização e recovery aplicável, migration primeiro, p
 
 ## Validação do lote integrado
 
-Árvore de código validada localmente: `e34b6bf7d4275b6ebb013d5d3e990431daa26958`; o commit documental seguinte só acrescenta este relatório. CI deve verificar o HEAD completo da PR, sem herdar o resultado local.
+Primeiro lote integrado validado localmente: `e34b6bf7d4275b6ebb013d5d3e990431daa26958`; primeiro HEAD documental da PR #196: `12fb71a36794cb01984a32eb0593c2e22b1c2b54`. O segundo lote corrige REC-3, com código em `e10766c`. CI deve verificar o HEAD completo final da PR, sem herdar resultados do primeiro SHA.
 
 | Verificação final integrada | Estado | Resultado |
 | --- | --- | --- |
@@ -93,7 +101,9 @@ Rollout futuro: após autorização e recovery aplicável, migration primeiro, p
 | Auth/Storage Docker integrado + matriz browser completa local | NOT RUN | Transportes de Storage e cleanup testados com falhas simuladas; banco real não comprova serviços Supabase |
 | Ambiente hospedado/recovery real/cutover | NOT RUN | Nenhuma autorização usada para operar esses alvos |
 
-Logs locais sanitizados de execução em `/tmp/arandu-final-*.log` e `/tmp/arandu-integrated-recovery-real-final.log` são efêmeros, não backup nem artefatos duráveis. Descrição/status da PR preservam evidência de CI no SHA exato. O relatório no repositório preserva procedimentos, contratos e limites; não publica dumps, identidades, tokens ou conteúdo financeiro.
+Segundo lote REC-3: contratos Storage com negativos novos e build aprovados; `check:all` integrado PASS (exit 0) após a correção, além de build e `git diff --check` PASS. Banco e ensaio PG/age não foram repetidos após REC-3 porque seu diff contém apenas validação do JWT de destino local e regressões de transporte, sem mudança SQL ou na cadeia de dump/restore PostgreSQL. Os gates de CI executarão novamente suas próprias suítes no HEAD final.
+
+Logs locais sanitizados de execução em `/tmp/arandu-final-*.log` e `/tmp/arandu-integrated-recovery-real-final.log` são efêmeros, não backup nem artefatos duráveis. Descrição/status da PR preservam evidência de CI no SHA exato. O comando de gates precisou `NODE_USE_ENV_PROXY=1` neste executor; sem isso o fetch falhou fechado, sem acessar os checks. Com o proxy configurado, detectou corretamente quatro gates pendentes no HEAD inicial. O relatório no repositório preserva procedimentos, contratos e limites; não publica dumps, identidades, tokens ou conteúdo financeiro.
 
 ## Impacto, rollback e limites
 
