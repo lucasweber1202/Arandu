@@ -462,23 +462,30 @@ export async function tasks(ctx) {
     history.replaceState(null, '', next.pathname + next.search + next.hash);
     draw();
   });
-  const matches = (task) => ({
-    abertas: task.status === 'open',
-    minhas: task.status === 'open' && task.assignee_id === ctx.viewer?.id,
-    'sem-responsavel': task.status === 'open' && !task.assignee_id,
-    concluidas: task.status === 'done'
-  }[filter.value]);
-
-  // A resposta 200 do PATCH não prova a gravação: o banco ignora em silêncio a
-  // linha fora do alcance de quem pede. Sucesso só depois de reler a lista
-  // persistida e encontrar a tarefa no estado pedido.
-  async function confirmed(task, check) {
+  // Cada filtro é uma consulta ao servidor (#206): status, responsável e cursor.
+  // A tela nunca soma um total global que a API não informa; diz quantas
+  // tarefas carregou e se há mais.
+  const PAGE = 50;
+  const query = (cursor) => {
+    const q = new URLSearchParams({ organization_id: ctx.organization.id, limit: String(PAGE) });
+    if (filter.value === 'concluidas') q.set('status', 'done'); else q.set('status', 'open');
+    if (filter.value === 'minhas' && ctx.viewer?.id) q.set('assignee_id', ctx.viewer.id);
+    if (filter.value === 'sem-responsavel') q.set('unassigned', 'true');
+    if (cursor) q.set('cursor', cursor);
+    return `tasks?${q}`;
+  };
+  let loaded = [];
+  let nextCursor = null;
+  let generation = 0;
+  const more = button('Carregar mais tarefas', { iconName: 'chevronDown', onClick: () => loadMore() });
+  more.hidden = true;
+  const outcomeError = { unknown: 'Não foi possível confirmar a alteração. Recarregue a lista antes de tentar de novo.' };
+  // PATCH 200 confirma a linha gravada (desde #206 a API devolve 404 quando nada
+  // foi alterado). A lista é relida no filtro atual para mostrar o estado salvo.
+  async function confirmed(task) {
     const rows = await draw(task.id);
-    if (!rows) return 'unknown';
-    const saved = rows.find((row) => row.id === task.id);
-    return saved && check(saved) ? 'yes' : 'no';
+    return rows ? 'yes' : 'unknown';
   }
-  const outcomeError = { no: 'O servidor não registrou a alteração. A lista mostra o estado salvo.', unknown: 'Não foi possível confirmar a alteração. Recarregue a lista antes de tentar de novo.' };
 
   async function changeStatus(task, check) {
     const wanted = check.checked ? 'done' : 'open';
@@ -489,7 +496,7 @@ export async function tasks(ctx) {
     row?.querySelector('.task-meta')?.append(el('span', { class: 'task-saving', text: ' · Salvando…' }));
     try {
       await ctx.api('tasks', { method: 'PATCH', body: JSON.stringify({ organization_id: ctx.organization.id, task_id: task.id, status: wanted }) });
-      const outcome = await confirmed(task, (saved) => saved.status === wanted);
+      const outcome = await confirmed(task);
       if (outcome === 'yes') toast(wanted === 'done' ? 'Tarefa concluída.' : 'Tarefa reaberta.');
       else toast(outcomeError[outcome], 'error');
     } catch (error) {
@@ -506,7 +513,7 @@ export async function tasks(ctx) {
       // Nunca mostra o novo responsável antes do servidor confirmar: recarrega a lista persistida.
       await ctx.api('tasks', { method: 'PATCH', body: JSON.stringify({ organization_id: ctx.organization.id, task_id: task.id, assignee_id: select.value || null }) });
       const wanted = select.value || null;
-      const outcome = await confirmed(task, (saved) => (saved.assignee_id || null) === wanted);
+      const outcome = await confirmed(task);
       if (outcome === 'yes') toast(wanted ? 'Responsável atualizado.' : 'Tarefa ficou sem responsável.');
       else toast(outcomeError[outcome], 'error');
     } catch (error) {
@@ -517,12 +524,46 @@ export async function tasks(ctx) {
     }
   }
 
+  // Primeira página do filtro atual; respostas de um filtro anterior são descartadas.
   async function draw(focusId = null) {
+    const mine = ++generation;
+    box.setAttribute('aria-busy', 'true');
+    more.hidden = true;
     try {
-      const { rows } = await ctx.api(`tasks?organization_id=${encodeURIComponent(ctx.organization.id)}`);
-      const all = rows || [];
-      const visible = all.filter(matches);
-      scopeNote.textContent = `${visible.length} de ${all.length} tarefas carregadas${all.length >= 200 ? ' (as 200 mais próximas do prazo)' : ''}`;
+      const data = await ctx.api(query(null));
+      if (mine !== generation) return null;
+      loaded = data.rows || [];
+      nextCursor = data.page?.has_more ? data.page.next_cursor : null;
+      render(focusId);
+      return loaded;
+    } catch (error) {
+      if (mine !== generation) return null;
+      box.replaceChildren(errorState({ error, onRetry: () => draw() }));
+      scopeNote.textContent = '';
+      return null;
+    } finally { if (mine === generation) box.removeAttribute('aria-busy'); }
+  }
+  async function loadMore() {
+    if (!nextCursor) return;
+    const mine = generation;
+    more.disabled = true;
+    try {
+      const data = await ctx.api(query(nextCursor));
+      if (mine !== generation) return;
+      const known = new Set(loaded.map((row) => row.id));
+      loaded = [...loaded, ...(data.rows || []).filter((row) => !known.has(row.id))];
+      nextCursor = data.page?.has_more ? data.page.next_cursor : null;
+      render();
+    } catch (error) {
+      if (mine === generation) toast(error.status === 400 ? 'A lista mudou desde a última página. Recarregamos do início.' : 'Não foi possível carregar mais tarefas. As já exibidas continuam como estavam.', 'error');
+      if (mine === generation && error.status === 400) await draw();
+    } finally { more.disabled = false; }
+  }
+  function render(focusId = null) {
+    {
+      const visible = loaded;
+      scopeNote.textContent = `${visible.length} ${visible.length === 1 ? 'tarefa carregada' : 'tarefas carregadas'}${nextCursor ? ' · há mais neste filtro' : visible.length ? ' · todas deste filtro' : ''}`;
+      more.hidden = !nextCursor;
       const list = el('ul', { class: 'task-list', role: 'list' });
       const rfqs = new Map((ctx.data.rfqs || []).map((rfq) => [rfq.id, rfq]));
       const contractsById = new Map((ctx.data.contracts || []).map((row) => [row.id, row]));
@@ -550,17 +591,16 @@ export async function tasks(ctx) {
           task.due_on ? el('span', { class: `task-due${task.status === 'open' && days < 0 ? ' overdue' : task.status === 'open' && days <= 2 ? ' soon' : ''}` }, [icon('calendar', { size: 12 }), el('span', { text: `${formatDate(task.due_on, { withYear: false })}${task.status === 'open' ? ` · ${relativeDays(task.due_on)}` : ''}` })]) : el('span', { class: 'task-due muted', text: 'sem prazo' })
         ]));
       }
-      const empty = { abertas: ['Nenhuma tarefa aberta', 'Tarefas de renovação são criadas automaticamente a partir dos contratos.'], minhas: ['Nenhuma tarefa aberta atribuída a você', 'Entre as tarefas carregadas, nenhuma aberta tem você como responsável.'],
-        'sem-responsavel': ['Toda tarefa aberta carregada tem responsável', null], concluidas: ['Nenhuma tarefa concluída', null] }[filter.value];
+      const empty = { abertas: ['Nenhuma tarefa aberta', 'Tarefas de renovação são criadas automaticamente a partir dos contratos.'], minhas: ['Nenhuma tarefa aberta atribuída a você', 'Quando alguém atribuir uma tarefa a você, ela aparece aqui.'],
+        'sem-responsavel': ['Toda tarefa aberta tem responsável', null], concluidas: ['Nenhuma tarefa concluída', null] }[filter.value];
       box.replaceChildren(visible.length ? list : emptyState({ title: empty[0], text: empty[1], iconName: 'checkCircle', compact: true }));
       const target = focusId ? document.getElementById(`task-${focusId}`) : location.hash.startsWith('#task-') ? document.querySelector(location.hash) : null;
       target?.scrollIntoView({ block: 'center' });
-      return all;
-    } catch (error) { box.replaceChildren(errorState({ error, onRetry: () => draw() })); return null; }
+    }
   }
   draw();
   const readOnly = el('p', { class: 'callout callout-info compact task-readonly' }, [icon('lock', { size: 14 }), el('span', { text: 'Seu papel acompanha as tarefas da equipe: criar, concluir e reabrir ficam com administradores, gestores financeiros e analistas.' })]);
-  root.append(card({ body: canEdit ? form : readOnly }), el('div', { class: 'toolbar task-toolbar' }, [field({ label: 'Mostrar', control: filter }), scopeNote]), card({ flush: true, body: box }));
+  root.append(card({ body: canEdit ? form : readOnly }), el('div', { class: 'toolbar task-toolbar' }, [field({ label: 'Mostrar', control: filter }), scopeNote]), card({ flush: true, body: box }), el('div', { class: 'task-more' }, more));
   return root;
 }
 
