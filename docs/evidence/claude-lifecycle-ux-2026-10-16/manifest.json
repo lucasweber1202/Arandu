@@ -1,0 +1,150 @@
+[
+  {
+    "label": "before",
+    "viewport": "desktop",
+    "name": "tasks-viewer",
+    "overflow": 0,
+    "leak": false
+  },
+  {
+    "label": "before",
+    "viewport": "desktop",
+    "name": "tasks-viewer-click",
+    "overflow": 0,
+    "leak": false
+  },
+  {
+    "label": "before",
+    "repro": "viewer-complete",
+    "patchStatus": 200,
+    "toast": [
+      "Tarefa concluída."
+    ],
+    "afterReloadStillOpen": "Obrigação: Dívida líquida / EBITDA"
+  },
+  {
+    "label": "before",
+    "viewport": "desktop",
+    "name": "dashboard-viewer",
+    "overflow": 0,
+    "leak": false
+  },
+  {
+    "label": "before",
+    "viewport": "desktop",
+    "url": "https://localhost:4443/finance/implementations.html?provider_id=<id>"
+  },
+  {
+    "label": "before",
+    "viewport": "desktop",
+    "name": "implementations-from-contract",
+    "overflow": 0,
+    "leak": false
+  },
+  {
+    "label": "before",
+    "viewport": "desktop",
+    "name": "tasks-manager",
+    "overflow": 0,
+    "leak": false
+  },
+  {
+    "label": "before",
+    "viewport": "mobile",
+    "name": "tasks-viewer",
+    "overflow": 0,
+    "leak": false
+  },
+  {
+    "label": "before",
+    "viewport": "mobile",
+    "name": "dashboard-viewer",
+    "overflow": 0,
+    "leak": false
+  },
+  {
+    "label": "before",
+    "viewport": "mobile",
+    "url": "https://localhost:4443/finance/implementations.html?provider_id=<id>"
+  },
+  {
+    "label": "before",
+    "viewport": "mobile",
+    "name": "implementations-from-contract",
+    "overflow": 0,
+    "leak": false
+  },
+  {
+    "label": "before",
+    "viewport": "mobile",
+    "name": "tasks-manager",
+    "overflow": 0,
+    "leak": false
+  },
+  {
+    "label": "after",
+    "viewport": "desktop",
+    "name": "tasks-viewer",
+    "overflow": 0,
+    "leak": false
+  },
+  {
+    "label": "after",
+    "viewport": "desktop",
+    "name": "dashboard-viewer",
+    "overflow": 0,
+    "leak": false
+  },
+  {
+    "label": "after",
+    "viewport": "desktop",
+    "url": "https://localhost:4443/finance/implementations.html?provider_id=<id>&contrato=<id>"
+  },
+  {
+    "label": "after",
+    "viewport": "desktop",
+    "name": "implementations-from-contract",
+    "overflow": 0,
+    "leak": false
+  },
+  {
+    "label": "after",
+    "viewport": "desktop",
+    "name": "tasks-manager",
+    "overflow": 0,
+    "leak": false
+  },
+  {
+    "label": "after",
+    "viewport": "mobile",
+    "name": "tasks-viewer",
+    "overflow": 0,
+    "leak": false
+  },
+  {
+    "label": "after",
+    "viewport": "mobile",
+    "name": "dashboard-viewer",
+    "overflow": 0,
+    "leak": false
+  },
+  {
+    "label": "after",
+    "viewport": "mobile",
+    "url": "https://localhost:4443/finance/implementations.html?provider_id=<id>&contrato=<id>"
+  },
+  {
+    "label": "after",
+    "viewport": "mobile",
+    "name": "implementations-from-contract",
+    "overflow": 0,
+    "leak": false
+  },
+  {
+    "label": "after",
+    "viewport": "mobile",
+    "name": "tasks-manager",
+    "overflow": 0,
+    "leak": false
+  }
+]
