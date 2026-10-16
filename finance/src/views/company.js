@@ -4,7 +4,7 @@
 import { PRODUCTS } from '../../../lib/finance/products.mjs';
 import { el, icon, money, percent, formatDate, formatDateTime, relativeDays, daysUntil, productLabel, demandHeadline, RFQ_STATUS, CONTRACT_STATUS, PROPOSAL_STATUS, PROVIDER_KINDS, ROLE_LABELS, timeAgo, fold, todayIso, renewalStage } from '../core.js';
 import { card, pill, tag, button, linkButton, emptyState, errorState, loading, tabs, definitionList, toast, confirmDialog, drawer, field, person, avatar, onSubmit } from '../ui.js';
-import { memberName, currentStep, approvalSummaryLine, comparisonMatrix, revisionTimeline, approvalActions, approvalSteps, coverage, lazyDocuments, keyTerms, termsSummary, isViewerTurn } from './shared.js';
+import { memberName, currentStep, approvalSummaryLine, comparisonMatrix, revisionTimeline, approvalActions, approvalSteps, coverage, lazyDocuments, keyTerms, termsSummary, isViewerTurn, TASK_EDITORS, taskChangeError } from './shared.js';
 import { NOTIFICATION_META, notificationItem } from '../shell.js';
 import { CONTRACT_CATEGORIES } from '../../../lib/finance/contract-terms.mjs';
 import { loadEntities, entitySettings, memberScopes, entityContextSelect, inContext, contractEntityControl, entityName } from './entities.js';
@@ -189,6 +189,8 @@ function contractLifecycleLinks(ctx, contract) {
   if (!contract.provider_id || !['active', 'renewing'].includes(contract.status)) return null;
   const query = new URLSearchParams({ provider_id: contract.provider_id });
   if (contract.legal_entity_id) query.set('legal_entity_id', contract.legal_entity_id);
+  // Só para a página de destino dizer de onde a pessoa veio e devolvê-la; não vai à API.
+  query.set('contrato', contract.id);
   const who = contract.provider_name || 'esta instituição';
   return el('nav', { class: 'contract-lifecycle-links', 'aria-label': `Pós-contratação com ${who}` }, [
     el('a', { class: 'contract-link', href: ctx.href(`/finance/implementations.html?${query}`) }, [el('span', { text: `Implantação com ${who}` }), icon('arrowRight', { size: 14 })]),
@@ -397,6 +399,7 @@ const unknownOutcome = (error) => !error.status || error.status >= 500 || error.
 export async function tasks(ctx) {
   ctx.header({ title: 'Tarefas', subtitle: 'Pendências da equipe: quem responde, até quando e de onde cada uma vem.' });
   const canAssign = ctx.can('create_rfq');
+  const canEdit = TASK_EDITORS.includes(ctx.viewer?.role);
   const root = el('div', { class: 'stack' });
   const box = el('div', {}, loading());
   const form = el('form', { class: 'inline-form task-new', id: 'task-new', novalidate: true });
@@ -466,6 +469,35 @@ export async function tasks(ctx) {
     concluidas: task.status === 'done'
   }[filter.value]);
 
+  // A resposta 200 do PATCH não prova a gravação: o banco ignora em silêncio a
+  // linha fora do alcance de quem pede. Sucesso só depois de reler a lista
+  // persistida e encontrar a tarefa no estado pedido.
+  async function confirmed(task, check) {
+    const rows = await draw(task.id);
+    if (!rows) return 'unknown';
+    const saved = rows.find((row) => row.id === task.id);
+    return saved && check(saved) ? 'yes' : 'no';
+  }
+  const outcomeError = { no: 'O servidor não registrou a alteração. A lista mostra o estado salvo.', unknown: 'Não foi possível confirmar a alteração. Recarregue a lista antes de tentar de novo.' };
+
+  async function changeStatus(task, check) {
+    const wanted = check.checked ? 'done' : 'open';
+    // Até a confirmação a linha fica ocupada e diz que está salvando: nada aparece como concluído sem o servidor.
+    check.disabled = true;
+    const row = check.closest('.task-item');
+    row?.setAttribute('aria-busy', 'true');
+    row?.querySelector('.task-meta')?.append(el('span', { class: 'task-saving', text: ' · Salvando…' }));
+    try {
+      await ctx.api('tasks', { method: 'PATCH', body: JSON.stringify({ organization_id: ctx.organization.id, task_id: task.id, status: wanted }) });
+      const outcome = await confirmed(task, (saved) => saved.status === wanted);
+      if (outcome === 'yes') toast(wanted === 'done' ? 'Tarefa concluída.' : 'Tarefa reaberta.');
+      else toast(outcomeError[outcome], 'error');
+    } catch (error) {
+      toast(taskChangeError(error), 'error');
+      await draw(task.id);
+    }
+  }
+
   async function changeAssignee(task, select) {
     const persisted = task.assignee_id || '';
     if (select.value === persisted) return;
@@ -473,13 +505,15 @@ export async function tasks(ctx) {
     try {
       // Nunca mostra o novo responsável antes do servidor confirmar: recarrega a lista persistida.
       await ctx.api('tasks', { method: 'PATCH', body: JSON.stringify({ organization_id: ctx.organization.id, task_id: task.id, assignee_id: select.value || null }) });
-      toast(select.value ? 'Responsável atualizado.' : 'Tarefa ficou sem responsável.');
-      await draw(task.id);
+      const wanted = select.value || null;
+      const outcome = await confirmed(task, (saved) => (saved.assignee_id || null) === wanted);
+      if (outcome === 'yes') toast(wanted ? 'Responsável atualizado.' : 'Tarefa ficou sem responsável.');
+      else toast(outcomeError[outcome], 'error');
     } catch (error) {
       select.value = persisted;
       select.disabled = false;
       // O mesmo 403 cobre papel de quem atribui e elegibilidade de quem recebe (escopo de entidade).
-      toast(error.status === 403 ? 'A alteração de responsável não foi permitida (permissão ou escopo da pessoa escolhida). Nada mudou.' : error.message, 'error');
+      toast(error.status === 403 ? 'A alteração de responsável não foi permitida (permissão ou escopo da pessoa escolhida). Nada mudou.' : taskChangeError(error), 'error');
     }
   }
 
@@ -494,15 +528,10 @@ export async function tasks(ctx) {
       const contractsById = new Map((ctx.data.contracts || []).map((row) => [row.id, row]));
       for (const task of visible) {
         const days = daysUntil(task.due_on);
-        const check = el('input', { type: 'checkbox', checked: task.status === 'done', 'aria-label': `${task.status === 'done' ? 'Reabrir' : 'Concluir'}: ${task.title}` });
-        check.addEventListener('change', async () => {
-          check.disabled = true;
-          try {
-            await ctx.api('tasks', { method: 'PATCH', body: JSON.stringify({ organization_id: ctx.organization.id, task_id: task.id, status: check.checked ? 'done' : 'open' }) });
-            toast(check.checked ? 'Tarefa concluída.' : 'Tarefa reaberta.');
-            draw();
-          } catch (error) { toast(error.message, 'error'); check.checked = !check.checked; check.disabled = false; }
-        });
+        // Leitor vê o estado como texto; quem pode alterar recebe a caixa.
+        const check = canEdit ? el('input', { type: 'checkbox', checked: task.status === 'done', 'aria-label': `${task.status === 'done' ? 'Reabrir' : 'Concluir'}: ${task.title}` }) : null;
+        check?.addEventListener('change', () => changeStatus(task, check));
+        const state = canEdit ? null : el('span', { class: 'task-state', text: task.status === 'done' ? 'Concluída' : 'Aberta' });
         // Tarefa de contrato diz qual contrato e quando ele vence de fato:
         // concluir a tarefa não muda o vencimento nem o aviso prévio.
         const contract = task.related_type === 'contract' ? contractsById.get(task.related_id) : null;
@@ -515,7 +544,7 @@ export async function tasks(ctx) {
           ? (() => { const select = assigneeSelect(ctx, task.assignee_id, `Responsável: ${task.title}`); select.addEventListener('change', () => changeAssignee(task, select)); return select; })()
           : el('span', { class: `task-owner${task.assignee_id ? '' : ' muted'}`, text: owner });
         list.append(el('li', { class: `task-item${task.status === 'done' ? ' done' : ''}${location.hash === `#task-${task.id}` || focusId === task.id ? ' highlighted' : ''}`, id: `task-${task.id}`, dataset: { assignee: task.assignee_id ? 'set' : 'none' } }, [
-          check, el('div', { class: 'task-main' }, [el('span', { class: 'task-title', text: task.title }),
+          check, el('div', { class: 'task-main' }, [state, el('span', { class: 'task-title', text: task.title }),
             el('span', { class: 'task-meta' }, [el('span', { class: 'sr-only', text: 'Responsável: ' }), canAssign && task.status === 'open' ? null : owner, canAssign && task.status === 'open' ? null : (related ? ' · ' : null), related].filter(Boolean)), contractDue]),
           canAssign && task.status === 'open' ? el('label', { class: 'task-owner-field' }, [el('span', { class: 'sr-only', text: 'Responsável' }), ownerNode]) : null,
           task.due_on ? el('span', { class: `task-due${task.status === 'open' && days < 0 ? ' overdue' : task.status === 'open' && days <= 2 ? ' soon' : ''}` }, [icon('calendar', { size: 12 }), el('span', { text: `${formatDate(task.due_on, { withYear: false })}${task.status === 'open' ? ` · ${relativeDays(task.due_on)}` : ''}` })]) : el('span', { class: 'task-due muted', text: 'sem prazo' })
@@ -526,10 +555,12 @@ export async function tasks(ctx) {
       box.replaceChildren(visible.length ? list : emptyState({ title: empty[0], text: empty[1], iconName: 'checkCircle', compact: true }));
       const target = focusId ? document.getElementById(`task-${focusId}`) : location.hash.startsWith('#task-') ? document.querySelector(location.hash) : null;
       target?.scrollIntoView({ block: 'center' });
-    } catch (error) { box.replaceChildren(errorState({ error, onRetry: () => draw() })); }
+      return all;
+    } catch (error) { box.replaceChildren(errorState({ error, onRetry: () => draw() })); return null; }
   }
   draw();
-  root.append(card({ body: form }), el('div', { class: 'toolbar task-toolbar' }, [field({ label: 'Mostrar', control: filter }), scopeNote]), card({ flush: true, body: box }));
+  const readOnly = el('p', { class: 'callout callout-info compact task-readonly' }, [icon('lock', { size: 14 }), el('span', { text: 'Seu papel acompanha as tarefas da equipe: criar, concluir e reabrir ficam com administradores, gestores financeiros e analistas.' })]);
+  root.append(card({ body: canEdit ? form : readOnly }), el('div', { class: 'toolbar task-toolbar' }, [field({ label: 'Mostrar', control: filter }), scopeNote]), card({ flush: true, body: box }));
   return root;
 }
 
