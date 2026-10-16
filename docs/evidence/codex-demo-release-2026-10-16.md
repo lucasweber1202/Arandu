@@ -78,6 +78,15 @@ de provisionamento de imagens. O workflow instala `psql`, `age` e `age-keygen`
 se necessário. Isso evita iniciar a stack sem runtime e ferramentas que o
 ensaio completo/recovery requer.
 
+Uma revisão adicional reproduziu outro falso verde: o assessor podia imprimir
+`C — NO-GO` por SHA ausente/inválido enquanto o processo de resumo terminava
+com exit 0, deixando o job verde se as demais fases tivessem sucesso. Agora o
+resumo retorna exit 1 em C e preserva exit 0 somente para B. A regressão cobre
+os códigos de saída de ambos os resultados. Validação direta do resumo no
+executor: B sintético → exit 0; C sintético → exit 1; `node --check` e
+`git diff --check` PASS. Este registro foi atualizado antes do push dessa
+revisão; o status remoto deve ser lido no HEAD atual da PR.
+
 ## Resultado objetivo dos gates de release existentes
 
 O validador existente `npm run check:evidence` continua como source of truth;

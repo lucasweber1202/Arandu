@@ -12,14 +12,16 @@ previamente observado. Nenhum datasource/schema hospedado foi inferido.
 O relatório anterior da integração efêmera era emitido antes do teardown e do
 upload do artifact, sem decisão que os incluísse. O workflow agora gera B apenas
 com SHA completo e todos os outcomes, inclusive cleanup e artifact; qualquer
-falha/skip dá C, e hosted M3 sempre fica NOT_PROVEN. O preflight exige Node 24 e
-ferramentas `age`/`age-keygen`. Detalhes, reprodução e limites em
+falha/skip dá C, e hosted M3 sempre fica NOT_PROVEN. C também encerra o processo
+de resumo com exit 1 para impedir status verde em NO-GO, coberto por teste
+negativo. O preflight exige Node 24 e ferramentas `age`/`age-keygen`. Detalhes,
+reprodução e limites em
 `docs/evidence/codex-demo-release-2026-10-16.md`; ensaio e critérios da Demo em
 `docs/DEMO_RELEASE_REHEARSAL.md`.
 
 | Capacidade / prova | Estado observado | Evidência | Próximo gate / limite |
 | --- | --- | --- | --- |
-| Veredito do ensaio da Demo | LOCAL_VALIDATED; CI_VALIDATED no SHA de código `3d8e92b`; repetição efêmera atual em andamento | Run Arandu CI `38961465310`: quatro gates SUCCESS no SHA exato. Assessor B/C negativo/positivo passou. Ensaio `38961187110` emitiu B no código `891e266`; repetição serial no SHA atual não presumida como aprovada | Aguardar a repetição efêmera no HEAD final; B prova só laboratório, nunca M3 |
+| Veredito do ensaio da Demo | LOCAL_VALIDATED; CI_VALIDATED no SHA de código `3d8e92b`; repetição efêmera atual em andamento | Run Arandu CI `38961465310`: quatro gates SUCCESS no SHA exato. Assessor B/C negativo/positivo passou. Resumo B→exit 0 e C→exit 1 verificados diretamente; regressão do exit code aguarda execução CI do HEAD publicado. Ensaio `38961187110` emitiu B no código `891e266`; repetição serial no SHA atual não presumida como aprovada | Verificar repetição efêmera e os quatro gates no HEAD final; B prova só laboratório, nunca M3 |
 | Demo e Production hospedadas | Demo/Pilot deployment status SUCCESS; Production status FAILURE; detalhes INCONCLUSIVE/ACCESS_BLOCKED | Status GitHub consultados em `168e60d`; scope Vercel detalhado 403; assignments ativos `demo=[]`, `production=[]` | Acesso read-only autorizado no mesmo scope, identidade do datasource/schema e decisão sobre origem/destino antes de qualquer operação |
 | Recovery hospedado e conversão | NOT_RUN; recovery sintético CI passou | Ensaio efêmero executou restore isolado PostgreSQL+Storage no runner; nenhum export, restore, migration, cutover ou alteração de segredo hospedado | Classificar dados, aprovar snapshot/custódia durável e provar restore hospedado (incluindo Auth/config) antes de qualquer cutover |
 | Gates de release | 1/13 no nível mínimo declarado | `npm run check:evidence`; `migration_ci` possui referência de 11/08/2026; 12 demais gates `not_started` | Não converter estado de CI em evidência externa; tratar decisões/acessos listados na evidência desta rodada |

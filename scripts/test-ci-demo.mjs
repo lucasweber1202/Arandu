@@ -156,14 +156,14 @@ test('summary não confunde merge commit executado com HEAD da PR nem inventa SH
       encoding: 'utf8', env: { PATH: process.env.PATH, CI_DEMO_REPORTS: dir, HEAD_SHA: head, GITHUB_SHA: head, ...extra }
     });
     const result = run({ TESTED_SHA: tested });
-    assert.equal(result.error, undefined); assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.error, undefined); assert.equal(result.status, 1, result.stderr);
     assert(result.stdout.includes(`SHA executado (checkout): \`${tested}\``));
     assert(result.stdout.includes(`SHA da PR/evento (referência): \`${head}\``));
     assert(result.stdout.includes('Decisão: **C — NO-GO**'), 'sem outcomes completos, o resumo não pode declarar B');
     assert(result.stdout.includes('### Bloqueadores do ensaio'));
     assert(result.stdout.includes('- Node runtime setup: not_run.'));
     const missing = run({});
-    assert.equal(missing.error, undefined); assert.equal(missing.status, 0, missing.stderr);
+    assert.equal(missing.error, undefined); assert.equal(missing.status, 1, missing.stderr);
     assert(missing.stdout.includes('SHA executado (checkout): `NÃO IDENTIFICADO`'));
     assert(!missing.stdout.includes(`SHA executado (checkout): \`${head}\``));
     assert(missing.stdout.includes('Maturidade hospedada: **NOT_PROVEN**'));

@@ -62,3 +62,6 @@ const drill = read('recovery.txt').split('\n').filter((line) => /^(OK  |FAIL) /.
 if (drill.length) lines.push('<details><summary>Ensaio de recovery</summary>', '', '```', ...drill, '```', '</details>', '');
 if (seed.length) lines.push('<details><summary>Checagens de sanidade do seed</summary>', '', '```', ...seed, '```', '</details>', '');
 console.log(lines.join('\n'));
+// A NO-GO deve falhar o próprio job, inclusive se todas as fases executaram
+// mas a identidade do código/evento não pôde ser vinculada com segurança.
+if (assessment.result === 'C_NO_GO') process.exitCode = 1;
