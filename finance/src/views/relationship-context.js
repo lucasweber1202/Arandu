@@ -1,5 +1,6 @@
 // Fatos dos registros existentes. Sem estado paralelo nem cálculo financeiro.
-import { el, formatDate, CONTRACT_STATUS, RFQ_STATUS } from '../core.js';
+import { el, formatDate, productLabel, CONTRACT_STATUS, RFQ_STATUS } from '../core.js';
+import { CONTRACT_CATEGORIES } from '../../../lib/finance/contract-terms.mjs';
 import { FACILITY_KINDS } from '../../../lib/finance/portfolio.mjs';
 import { graphContextCard } from './graph-context.js';
 
@@ -17,7 +18,7 @@ export function relationshipContext(ctx, detail) {
   const quickLinks = [['fees', 'Tarifas e cobranças'], ['covenants', 'Obrigações e covenants'], ['opportunities', 'Renovações e oportunidades'], ['qualifications', 'Qualificação'], ['performance', 'Performance'], ['spend', 'Spend']];
   return el('div', { class: 'stack relationship-context' }, [
     el('p', { class: 'muted small', text: `Recorte autorizado: até 200 contratos e facilities; 500 convites, propostas e solicitações; 2.000 fotografias de saldo. Indicadores e listas descrevem esse recorte, não o histórico completo. Cadastro ${provider.verification_state === 'EVIDENCIA_REGISTRADA' ? 'com evidência registrada; não é atestação de regularidade' : 'sem verificação registrada'}.` }),
-    section('Contratos e condições', contracts, contract => el('li', {}, [el('a', { href: href(`/finance/contracts.html?abrir=contrato#contract-${contract.id}`), text: contract.title || 'Contrato registrado' }), el('p', { class: 'small muted', text: `${CONTRACT_STATUS[contract.status]?.label || 'Estado não informado'} · início ${date(contract.starts_on)} · término ${date(contract.ends_on)}. Abra o contrato para condições, versões, obrigações e renovação.` })]), 'Nenhum contrato disponível neste recorte.'),
+    section('Contratos e condições', contracts, contract => el('li', {}, [el('a', { href: href(`/finance/contracts.html?abrir=contrato#contract-${contract.id}`), text: contract.title || [CONTRACT_CATEGORIES[contract.product] || (contract.product ? productLabel(contract.product) : ''), contract.ends_on ? `vence ${date(contract.ends_on)}` : ''].filter(Boolean).join(' · ') || 'Contrato sem título' }), el('p', { class: 'small muted', text: `${CONTRACT_STATUS[contract.status]?.label || 'Estado não informado'} · início ${date(contract.starts_on)} · término ${date(contract.ends_on)}. Abra o contrato para condições, versões, obrigações e renovação.` })]), 'Nenhum contrato disponível neste recorte.'),
     section('Facilities e limites', facilities, facility => {
       const balance = balances.get(facility.id);
       return el('li', {}, [el('a', { href: href(`/finance/portfolio.html#facility-${facility.id}`), text: facility.name }), el('p', { class: 'small', text: `${FACILITY_KINDS[facility.kind] || 'Facility'} · ${facility.currency} · limite aprovado ${amount(facility.approved_limit, facility.currency)} · vencimento ${date(facility.maturity_on)}` }),

@@ -36,7 +36,7 @@ const RELATIONSHIP = {
   relationships: [], issues: [{ id: 'i1', title: 'Tarifa em duplicidade', category: 'billing', severity: 'high', status: 'open', opened_on: '2026-09-20' }],
   reviews: [{ id: 'r1', template_id: 't1', period_start: '2026-01-01', period_end: '2026-06-30', weighted_result: '80.000', answered_weight: '60.000' }],
   templates: [{ id: 't1', name: 'Relacionamento bancário', version: 1, criteria: [{ key: 'atendimento', label: 'Atendimento', weight: 60, scale_max: 5 }, { key: 'prazo', label: 'Prazo', weight: 40, scale_max: 5 }] }],
-  contracts: [{ id: CONTRACT, title: 'Contrato de crédito', status: 'active', ends_on: null }], facilities: [{ id: FACILITY, name: 'Limite sem saldo', kind: 'revolving_credit', currency: 'BRL', approved_limit: 100000 }], map: [],
+  contracts: [{ id: CONTRACT, title: 'Contrato de crédito', status: 'active', ends_on: null }, { id: '00000000-0000-4000-8000-00000000c0c2', title: null, product: 'credit', status: 'active', starts_on: '2025-01-01', ends_on: '2027-01-09' }], facilities: [{ id: FACILITY, name: 'Limite sem saldo', kind: 'revolving_credit', currency: 'BRL', approved_limit: 100000 }], map: [],
   rfqs: [{ id: '00000000-0000-4000-8000-000000000009', title: 'Renegociação de crédito', status: 'comparing' }], invites: [], proposals: [], balances: [],
   metrics: { invited: 3, responded: 2, response_rate: 66.67, median_response_days: 3, proposals: 2, active_contracts: 1, active_facilities: 1, open_issues: 1, median_resolution_days: null,
     definitions: { response_rate: 'Respondidos ÷ convidados. Fato do histórico, não nota.', responded: 'Convites com proposta.', median_response_days: 'Mediana.', active_contracts: 'Ativos.', open_issues: 'Abertas.', median_resolution_days: 'Mediana.', review: 'Avaliação conforme critérios e pesos definidos pela sua empresa. O Arandu não atribui nota própria a instituições.' } },
@@ -163,6 +163,9 @@ test('instituição: deep link reúne contratos, limites, processos e pendência
   await expect(dialog).toContainText('não o histórico completo');
   await expect(dialog).toContainText('Saldo e utilização não registrados');
   await expect(dialog.getByRole('link', { name: 'Contrato de crédito' })).toHaveAttribute('href', `/finance/contracts.html?abrir=contrato#contract-${CONTRACT}`);
+  // Contrato sem título é nomeado pela categoria e vencimento, não por um rótulo genérico igual para todos.
+  await expect(dialog.getByRole('link', { name: /^Crédito.* · vence 09 de jan de 2027$/ })).toBeVisible();
+  await expect(dialog.getByRole('link', { name: 'Contrato registrado' })).toHaveCount(0);
   await expect(dialog.getByRole('link', { name: 'Limite sem saldo' })).toHaveAttribute('href', `/finance/portfolio.html#facility-${FACILITY}`);
   await expect(dialog.getByRole('link', { name: 'Renegociação de crédito' })).toHaveAttribute('href', /finance\/rfq.html\?id=/);
   await expect(dialog.getByRole('link', { name: 'Obrigações e covenants' })).toHaveAttribute('href', `/finance/covenants.html?provider_id=${PROVIDER}`);

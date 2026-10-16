@@ -16,6 +16,7 @@ mesma `main` serve demo e produção, e o que muda é configuração, banco e da
 | Que dados existem (empresa, personas, processos) | [DATASET.md](DATASET.md) |
 | Como semear, resetar e quais são as travas | [RESET.md](RESET.md) |
 | Roteiro de 5–10 minutos para apresentar | [RUNBOOK.md](RUNBOOK.md) |
+| Roteiro de 12–15 minutos da apresentação de 29/10/2026 | [PRESENTATION_2026-10-29.md](PRESENTATION_2026-10-29.md) |
 
 ## Subir a demo localmente
 
