@@ -161,21 +161,45 @@ Node `v24.19.0`.
 | `npm run check:finance` | PARCIAL / bloqueado em teste de variável de ambiente que invoca Node filho (`spawnSync EPERM`). |
 | `npm run check:governance` | Parcial: checks de governance anteriores passaram; o preflight JSON final não consegue consumir subprocesso bloqueado e recebe saída vazia. |
 | `npm run check:supply-chain` | checker estático PASS; casos de ações inválidas não executam o subprocesso e falham sem stderr devido a `EPERM`. |
-| `npm run audit:ci` | NOT RUN por proxy bloqueado (`connect EPERM ...:8080`); sem conclusão de vulnerabilidade nova. |
-| B completo em PostgreSQL/Auth/Storage/Playwright descartáveis | NOT RUN: sem acesso ao Docker daemon e sem `psql`/age. |
+| `npm run audit:ci` | PASS na repetição com rede autorizada: 0 vulnerabilidades reportadas. A primeira tentativa foi bloqueada pelo proxy (`connect EPERM ...:8080`). |
+| B completo em PostgreSQL/Auth/Storage/Playwright descartáveis | NOT RUN localmente (sem Docker/psql/age); B passou na integração efêmera do GitHub no SHA `891e2660b46f4f1dd52a5fe36ded90d2619b1839`, repetição no SHA corrigido em progresso. |
 
-Os resultados de subprocesso e auditoria não foram convertidos em PASS. Os quatro
-gates obrigatórios para esta PR e o `merge:gates` no HEAD final ainda dependem
-do GitHub Actions; não há merge nesta entrega.
+Os resultados de subprocesso e do primeiro audit não foram convertidos em PASS;
+o audit só foi marcado após repetição autorizada. A evidência local de recovery
+permanece NOT RUN, separada do laboratório CI abaixo.
 
 Na primeira execução da PR #209, no SHA `891e2660b46f4f1dd52a5fe36ded90d2619b1839`,
 o `deploy-boundaries` falhou numa asserção nova do teste de resumo: para uma
 fase ausente, o assessor emite o blocker `Node runtime setup: not_run`, mas a
 asserção esperava outro rótulo/estado. O log do runner confirmou que a
 preparação e os checks anteriores passaram. A expectativa foi alinhada ao
-contrato emitido, sem afrouxar o gate. O commit corretivo ainda requer nova
-execução dos quatro jobs no HEAD atual; a falha inicial não é contada como
+contrato emitido, sem afrouxar o gate. A falha inicial não é contada como
 validação aprovada.
+
+## Estado da PR e ensaios CI
+
+Snapshot de 16/10/2026 20:39 UTC: PR #209 aberta, base
+`main@168e60d3a5ae12ecf2e9e671e3369a2855336e14`, revisão de código
+`3d8e92b9a8c7368f62ae4c226712329a00e6d9fe` (2 commits ahead, 0 behind no
+compare GitHub). Run Arandu CI `38961465310` concluiu `database`,
+`deploy-boundaries`, `validate` e `presentation` SUCCESS no SHA exato.
+
+A integração efêmera `38961187110` concluiu B no código
+`891e2660b46f4f1dd52a5fe36ded90d2619b1839`; seed/releitura, smoke, recovery de
+PostgreSQL+Storage, E2E desktop/mobile, jornada, probes adversariais,
+sanitização, teardown e upload do artifact passaram. Hosted maturity segue
+`NOT_PROVEN`. A repetição serial do workflow no SHA corrigido
+`3d8e92b9a8c7368f62ae4c226712329a00e6d9fe` está em progresso e não é inferida
+como PASS.
+
+`npm run merge:gates -- 209` não conseguiu acessar a API do GitHub neste
+executor (`fetch failed`). A verificação read-only pelo conector GitHub
+confirmou os quatro jobs SUCCESS no HEAD acima e `main` como ancestral
+(`ahead_by=2`, `behind_by=0`). Isso não é contado como execução bem-sucedida do
+script `merge:gates`; a PR permanece aberta e não houve merge.
+
+A atualização desta evidência/matriz é documental; os jobs obrigatórios serão
+reexecutados no HEAD que a contém antes de qualquer decisão de integração.
 
 ## Rollback, dependências e ações mínimas do proprietário
 
