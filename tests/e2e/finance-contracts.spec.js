@@ -372,7 +372,7 @@ test('responsável do contrato e tarefa de contrato com contexto: qual contrato 
   await expect(open).toContainText(/Contrato vence em .* · aviso prévio até/);
   await expect(open.locator('.task-meta')).not.toContainText(/^\s*·/);
   // Concluir a revisão não apaga o prazo real do contrato.
-  await page.getByRole('button', { name: 'Mostrar concluídas' }).click();
+  await page.getByLabel('Mostrar tarefas').selectOption('concluidas');
   await expect(page.locator('#task-t2')).toContainText('Contrato vence em');
 
   await page.goto('/finance/dashboard.html');
@@ -402,4 +402,206 @@ test('contrato encerrado não oferece atalhos de pós-contratação', async ({ p
   await page.goto('/finance/contracts.html');
   await expect(page.locator('.contract-card')).toBeVisible();
   await expect(page.locator('.contract-lifecycle-links')).toHaveCount(0);
+});
+
+// ------------------------------------------------- responsabilidade de tarefas (#204)
+const U = { paula: 'u1', rui: '00000000-0000-4000-8000-0000000000f2', ana: '00000000-0000-4000-8000-0000000000f3' };
+const MEMBERS = [
+  { user_id: U.paula, role: 'finance_manager', display_name: 'Paula Nogueira' },
+  { user_id: U.rui, role: 'analyst', display_name: 'Rui Tavares' },
+  { user_id: U.ana, role: 'viewer', display_name: 'Ana Lima' },
+  { user_id: '00000000-0000-4000-8000-0000000000f9', role: 'provider_user', display_name: 'Banco Externo' }
+];
+/** Servidor de tarefas fiel ao contrato: idempotência por chave+payload, 403 a quem não gerencia, lista persistida. */
+async function taskServer(page, { viewerRole = 'finance_manager', viewer = U.paula, initial = [], failNextPost = 0 } = {}) {
+  const state = { tasks: initial.map((t) => ({ ...t })), posts: [], patches: [], keys: new Map(), failNextPost, holdPost: null };
+  await page.route('**/api/finance/members**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, rows: MEMBERS.map((m) => (m.user_id === viewer ? { ...m, role: viewerRole } : m)), viewer_id: viewer }) }));
+  await page.route('**/api/finance/tasks**', async (route) => {
+    const request = route.request();
+    const json = (payload, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(payload) });
+    const named = (t) => ({ ...t, assignee_name: t.assignee_id ? MEMBERS.find((m) => m.user_id === t.assignee_id)?.display_name || null : null });
+    if (request.method() === 'GET') return json({ ok: true, rows: state.tasks.map(named) });
+    const body = request.postDataJSON();
+    const manager = ['admin', 'finance_manager'].includes(viewerRole);
+    if (request.method() === 'POST') {
+      state.posts.push(body);
+      if (state.holdPost) await state.holdPost;
+      if (Object.hasOwn(body, 'assignee_id') && !manager) return json({ ok: false, code: 'task_assignment_forbidden', error: 'Sua conta não tem permissão para atribuir esta tarefa.' }, 403);
+      const { idempotency_key: key, ...input } = body;
+      const hash = JSON.stringify(input);
+      if (key && state.keys.has(key)) {
+        const prior = state.keys.get(key);
+        if (prior.hash !== hash) return json({ ok: false, code: 'idempotency_key_reused', error: 'Esta chave de criação já foi usada com outros dados. Gere uma nova chave.' }, 409);
+        return json({ ok: true, row: named(prior.task) });
+      }
+      const task = { id: `00000000-0000-4000-8000-${String(state.tasks.length + 100).padStart(12, '0')}`, title: body.title, due_on: body.due_on, status: 'open', related_type: null, related_id: null, assignee_id: body.assignee_id ?? null };
+      state.tasks.push(task);
+      if (key) state.keys.set(key, { hash, task });
+      // Falha de rede DEPOIS de gravar: o resultado é desconhecido para o navegador.
+      if (state.failNextPost > 0) { state.failNextPost -= 1; return route.abort('failed'); }
+      return json({ ok: true, row: named(task) }, 201);
+    }
+    if (request.method() === 'PATCH') {
+      state.patches.push(body);
+      const task = state.tasks.find((t) => t.id === body.task_id);
+      if (Object.hasOwn(body, 'assignee_id') && !manager) return json({ ok: false, code: 'task_assignment_forbidden', error: 'Sua conta não tem permissão para atribuir esta tarefa.' }, 403);
+      if (Object.hasOwn(body, 'status')) task.status = body.status;
+      if (Object.hasOwn(body, 'assignee_id')) task.assignee_id = body.assignee_id;
+      return json({ ok: true });
+    }
+    return json({ ok: false }, 405);
+  });
+  return state;
+}
+const OPEN_TASK = { id: '00000000-0000-4000-8000-0000000000a9', title: 'Conferir tarifas do Banco Carteira', due_on: '2027-01-10', status: 'open', related_type: 'contract', related_id: CONTRACT, assignee_id: null };
+
+test('tarefas: gestor cria com responsável; a chave de criação é estável no retry e não duplica', async ({ page }) => {
+  await mockSession(page);
+  const server = await taskServer(page, { failNextPost: 1 });
+  await page.goto('/finance/tasks.html');
+  const form = page.locator('#task-new');
+  // Leitor e provedor nunca são candidatos (o banco recusaria); o valor é o id do membro, não o nome.
+  await expect(form.getByLabel(/^Responsável/).locator('option')).toHaveText(['Sem responsável', 'Paula Nogueira (você)', 'Rui Tavares']);
+  await form.getByLabel(/^Nova tarefa/).fill('Enviar demonstrações ao Banco Carteira');
+  await form.getByLabel(/^Responsável/).selectOption({ label: 'Rui Tavares' });
+  await form.getByRole('button', { name: 'Adicionar' }).click();
+  // Rede caiu depois de gravar: aviso honesto, dados preservados, nada de "Tarefa criada".
+  await expect(form.getByRole('status')).toContainText('Não confirmamos se a tarefa foi criada');
+  await expect(form.getByLabel(/^Nova tarefa/)).toHaveValue('Enviar demonstrações ao Banco Carteira');
+  await form.getByRole('button', { name: 'Adicionar' }).click();
+  await expect(page.getByText('Tarefa criada.')).toBeVisible();
+  expect(server.posts).toHaveLength(2);
+  expect(server.posts[0].idempotency_key).toMatch(/^[0-9a-f-]{36}$/);
+  expect(server.posts[1].idempotency_key).toBe(server.posts[0].idempotency_key);
+  expect(server.posts[1]).toMatchObject({ title: 'Enviar demonstrações ao Banco Carteira', assignee_id: U.rui });
+  expect(server.tasks).toHaveLength(1);
+  const row = page.locator('.task-item', { hasText: 'Enviar demonstrações' });
+  await expect(row.getByLabel(/^Responsável: Enviar/)).toHaveValue(U.rui);
+  await expect(form.getByRole('status')).toBeHidden();
+  // Intenção confirmada encerra a chave: a próxima tarefa usa outra.
+  await form.getByLabel(/^Nova tarefa/).fill('Segunda tarefa');
+  await form.getByRole('button', { name: 'Adicionar' }).click();
+  await expect.poll(() => server.posts.length).toBe(3);
+  expect(server.posts[2].idempotency_key).not.toBe(server.posts[0].idempotency_key);
+  expect(server.posts[2]).not.toHaveProperty('assignee_id');
+});
+
+test('tarefas: duplo clique envia uma vez; dados alterados após resultado desconhecido pedem descarte explícito', async ({ page }) => {
+  await mockSession(page);
+  const server = await taskServer(page, { failNextPost: 1 });
+  let release;
+  server.holdPost = new Promise((resolve) => { release = resolve; });
+  await page.goto('/finance/tasks.html');
+  const form = page.locator('#task-new');
+  await form.getByLabel(/^Nova tarefa/).fill('Pedir CND');
+  await form.getByRole('button', { name: 'Adicionar' }).dblclick();
+  await expect.poll(() => server.posts.length).toBe(1);
+  release(); server.holdPost = null;
+  await expect(form.getByRole('status')).toContainText('Não confirmamos');
+  expect(server.posts).toHaveLength(1);
+  await form.getByLabel(/^Nova tarefa/).fill('Pedir CND e certidão trabalhista');
+  await form.getByRole('button', { name: 'Adicionar' }).click();
+  const ask = page.getByRole('dialog', { name: 'Descartar a tentativa anterior?' });
+  await expect(ask).toBeVisible();
+  await ask.getByRole('button', { name: 'Descartar e criar nova' }).click();
+  await expect.poll(() => server.posts.length).toBe(2);
+  expect(server.posts[1].idempotency_key).not.toBe(server.posts[0].idempotency_key);
+  // A tentativa anterior foi registrada e aparece na lista recarregada; nada se perde em silêncio.
+  await expect(page.locator('.task-item', { hasText: 'Pedir CND' })).toHaveCount(2);
+});
+
+test('tarefas: reatribuir, deixar sem responsável e omitir o campo não mexe no responsável', async ({ page }) => {
+  await mockSession(page);
+  const server = await taskServer(page, { initial: [{ ...OPEN_TASK, assignee_id: U.rui }] });
+  await page.goto(`/finance/tasks.html#task-${OPEN_TASK.id}`);
+  const row = page.locator(`#task-${OPEN_TASK.id}`);
+  await expect(row).toHaveClass(/highlighted/);
+  const select = row.getByLabel(`Responsável: ${OPEN_TASK.title}`);
+  await expect(select).toHaveValue(U.rui);
+  await select.selectOption({ label: 'Paula Nogueira (você)' });
+  await expect(page.getByText('Responsável atualizado.')).toBeVisible();
+  expect(server.patches.at(-1)).toEqual({ organization_id: '00000000-0000-4000-8000-0000000000a1', task_id: OPEN_TASK.id, assignee_id: U.paula });
+  await expect(row.getByLabel(`Responsável: ${OPEN_TASK.title}`)).toHaveValue(U.paula);
+  await row.getByLabel(`Responsável: ${OPEN_TASK.title}`).selectOption('');
+  await expect(page.getByText('Tarefa ficou sem responsável.')).toBeVisible();
+  expect(server.patches.at(-1).assignee_id).toBeNull();
+  // Concluir envia só o estado: o campo de responsável não vai e o servidor não o altera.
+  server.tasks[0].assignee_id = U.rui;
+  await page.reload();
+  await page.locator(`#task-${OPEN_TASK.id}`).getByRole('checkbox').check();
+  await expect.poll(() => server.patches.at(-1)).toEqual({ organization_id: '00000000-0000-4000-8000-0000000000a1', task_id: OPEN_TASK.id, status: 'done' });
+  expect(server.tasks[0].assignee_id).toBe(U.rui);
+  // Concluída: aparece em "Concluídas", com o responsável preservado e reabrível.
+  await page.getByLabel('Mostrar tarefas').selectOption('concluidas');
+  await expect(page).toHaveURL(/filtro=concluidas/);
+  const done = page.locator(`#task-${OPEN_TASK.id}`);
+  await expect(done).toContainText('Rui Tavares');
+  await done.getByRole('checkbox').uncheck();
+  await expect.poll(() => server.tasks[0].status).toBe('open');
+});
+
+test('tarefas: recusa do servidor ao reatribuir mantém o responsável persistido e explica', async ({ page }) => {
+  await mockSession(page);
+  // A interface acha que pode (papel desatualizado), o servidor decide e recusa.
+  const server = await taskServer(page, { initial: [{ ...OPEN_TASK, assignee_id: U.rui }] });
+  await page.route('**/api/finance/tasks', async (route) => route.request().method() === 'PATCH'
+    ? route.fulfill({ status: 403, contentType: 'application/json', body: JSON.stringify({ ok: false, code: 'task_assignment_forbidden', error: 'Sua conta não tem permissão para atribuir esta tarefa.' }) })
+    : route.fallback());
+  await page.goto('/finance/tasks.html');
+  const select = page.getByLabel(`Responsável: ${OPEN_TASK.title}`);
+  await select.selectOption({ label: 'Paula Nogueira (você)' });
+  await expect(page.getByText(/A alteração de responsável não foi permitida.*Nada mudou\./)).toBeVisible();
+  await expect(select).toHaveValue(U.rui);
+  await expect(select).toBeEnabled();
+  expect(server.tasks[0].assignee_id).toBe(U.rui);
+});
+
+test('tarefas: analista cria sem responsável e vê quem responde, sem controle de atribuição', async ({ page }) => {
+  await mockSession(page);
+  const server = await taskServer(page, { viewerRole: 'analyst', viewer: U.rui, initial: [{ ...OPEN_TASK, assignee_id: U.paula }, { ...OPEN_TASK, id: '00000000-0000-4000-8000-0000000000b9', title: 'Tarefa sem dono', assignee_id: null }] });
+  await page.goto('/finance/tasks.html');
+  await expect(page.locator('#task-new').getByLabel(/^Responsável/)).toHaveCount(0);
+  await expect(page.locator('#task-new')).toContainText('Gestores financeiros e administradores definem quem responde');
+  await expect(page.locator('select.task-assignee')).toHaveCount(0);
+  await expect(page.locator(`#task-${OPEN_TASK.id}`)).toContainText('Paula Nogueira');
+  await expect(page.locator('#task-00000000-0000-4000-8000-0000000000b9')).toContainText('Sem responsável');
+  await page.locator('#task-new').getByLabel(/^Nova tarefa/).fill('Revisar planilha de tarifas');
+  await page.locator('#task-new').getByRole('button', { name: 'Adicionar' }).click();
+  await expect.poll(() => server.posts.length).toBe(1);
+  expect(server.posts[0]).not.toHaveProperty('assignee_id');
+});
+
+test('tarefas: filtros de apresentação sobre o recorte carregado, com contagem honesta e reload preservado', async ({ page }) => {
+  await mockSession(page);
+  await taskServer(page, { initial: [
+    { ...OPEN_TASK, id: '00000000-0000-4000-8000-0000000000c1', title: 'Minha tarefa', assignee_id: U.paula },
+    { ...OPEN_TASK, id: '00000000-0000-4000-8000-0000000000c2', title: 'Tarefa do Rui', assignee_id: U.rui },
+    { ...OPEN_TASK, id: '00000000-0000-4000-8000-0000000000c3', title: 'Tarefa órfã', assignee_id: null },
+    { ...OPEN_TASK, id: '00000000-0000-4000-8000-0000000000c4', title: 'Removido', assignee_id: '00000000-0000-4000-8000-0000000000ee' }
+  ] });
+  await page.goto('/finance/tasks.html?filtro=minhas');
+  await expect(page.getByLabel('Mostrar tarefas')).toHaveValue('minhas');
+  await expect(page.locator('.task-item')).toHaveText([/Minha tarefa/]);
+  await expect(page.locator('.task-toolbar [role=status]')).toHaveText('1 de 4 tarefas carregadas');
+  await page.getByLabel('Mostrar tarefas').selectOption('sem-responsavel');
+  await expect(page.locator('.task-item')).toHaveText([/Tarefa órfã/]);
+  await page.getByLabel('Mostrar tarefas').selectOption('abertas');
+  // Membro que não está mais entre os carregados: sem inventar nome nem expor identificador.
+  await expect(page.locator('#task-00000000-0000-4000-8000-0000000000c4').getByRole('combobox')).toContainText('Responsável indisponível');
+  await expect(page.locator('#view')).not.toContainText('00000000-0000-4000-8000-0000000000ee');
+  await noHorizontalOverflow(page);
+});
+
+test('painel: tarefa sem responsável não aparece como sua; a sua é marcada como sua', async ({ page }) => {
+  const day = (offset) => { const d = new Date(); d.setDate(d.getDate() + offset); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  await mockSession(page, { tasks: [
+    { id: 't-mine', title: 'Minha tarefa vencida', due_on: day(-1), status: 'open', assignee_id: 'u1', assignee_name: 'Paula Nogueira' },
+    { id: 't-none', title: 'Tarefa sem dono vencida', due_on: day(-2), status: 'open', assignee_id: null, assignee_name: null },
+    { id: 't-other', title: 'Tarefa do Rui vencida', due_on: day(-1), status: 'open', assignee_id: U.rui, assignee_name: 'Rui Tavares' }
+  ] });
+  await page.goto('/finance/dashboard.html');
+  await expect(page.locator('.action-row', { hasText: 'Minha tarefa vencida' })).toContainText('Com você · Vencida');
+  await expect(page.locator('.action-row', { hasText: 'Tarefa sem dono vencida' })).toContainText('Sem responsável · Vencida');
+  await expect(page.locator('.action-row', { hasText: 'Tarefa do Rui vencida' })).toHaveCount(0);
+  await expect(page.locator('.mini-row', { hasText: 'Tarefa do Rui vencida' })).toContainText('Rui Tavares');
 });

@@ -1255,3 +1255,8 @@ textarea.mono{width:100%;max-width:100%;min-width:0}
 
 /* Atalhos contextuais: separação legível sem novos cartões. */
 .relationship-context .row-actions{gap:var(--s3) var(--s4)}
+.task-toolbar{align-items:flex-end;gap:var(--s4)}
+.task-owner-field{flex:0 0 auto;min-width:0}
+.task-owner-field select{max-width:220px}
+.task-new-note{flex-basis:100%}
+@media (max-width:759px){.task-item{flex-wrap:wrap}.task-owner-field{flex-basis:100%;order:3}.task-owner-field select{max-width:100%;width:100%}}
