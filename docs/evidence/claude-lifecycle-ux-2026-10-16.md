@@ -82,7 +82,9 @@ leitor sem caixa/formulário; PATCH de status do leitor não altera a tarefa (ac
 | `test:e2e` — Chromium desktop + Pixel 7 | PASS: 363 passed, 7 skipped por desenho |
 | `finance-contracts.spec.js` após o ajuste final de mobile | PASS: 76 |
 | Demo canônica local (`demo:setup`, Supabase local em Docker) | 38/38 checagens |
-| `test:e2e:demo` desktop | ver tabela final abaixo |
+| `test:e2e:demo` desktop e celular, backend real (Auth/API/PostgREST/Postgres) | PASS: 6 + 1 skip em cada (skip = pool de visitantes, por desenho); `pós-contrato` e `responsáveis de tarefa` repetidos após a janela do limite de requisições |
+| `test:e2e:presentation` — Chromium desktop + Pixel 7 | PASS: 125 passed, 19 skipped |
+| `test:e2e:list` | PASS (900 casos em 20 arquivos) |
 | Capturas 1440/390 px antes/depois (backend real) | `docs/evidence/claude-lifecycle-ux-2026-10-16/`; overflow 0 em todas; sem UUID/ISO/null/undefined em `#view` |
 | Firefox, WebKit, iPhone (Safari) | **NOT_RUN** localmente (só Chromium 1194 disponível; build 1248 esperado pelo Playwright 1.64 não instalado, `playwright install` vedado). CI `presentation` cobre |
 | `test:database` | **NOT_RUN** — sem SQL |
