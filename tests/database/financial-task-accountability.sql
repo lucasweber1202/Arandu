@@ -23,6 +23,8 @@ do $$ begin
      or has_function_privilege('anon','public.fin_task_assignee_guard()','EXECUTE') then
     raise exception 'internal assignee trigger exposed';
   end if;
+  if not exists(select 1 from pg_indexes where schemaname='public' and tablename='fin_tasks'
+       and indexname='fin_tasks_idempotency_key_idx') then raise exception 'task idempotency unique index missing'; end if;
   if not exists(select 1 from pg_constraint where conrelid='public.fin_tasks'::regclass
        and conname='fin_tasks_assignee_member_fk' and confdeltype='n') then
     raise exception 'membership deletion must SET NULL on the assignee FK';
@@ -39,6 +41,20 @@ update public.fin_tasks set assignee_id='00000000-0000-4000-8000-0000000ba003',a
 select pg_temp.expect_error($q$update public.fin_tasks set assignee_id='00000000-0000-4000-8000-0000000ba002',assignee_source='manual' where id='00000000-0000-4000-8000-0000000bd003'$q$,'invalid task assignee');
 insert into public.fin_tasks(id,organization_id,title,status,related_type,related_id,created_by,assignee_id,assignee_source)
 values('00000000-0000-4000-8000-0000000bd004','00000000-0000-4000-8000-0000000bb001','Derived entity assignment','open','rfq','00000000-0000-4000-8000-0000000be001','00000000-0000-4000-8000-0000000ba001','00000000-0000-4000-8000-0000000ba003','manual');
+insert into public.fin_tasks(id,organization_id,title,status,related_type,related_id,created_by,assignee_id,assignee_source,idempotency_key,idempotency_hash)
+values('00000000-0000-4000-8000-0000000bd006','00000000-0000-4000-8000-0000000bb001','Idempotent task','open','rfq','00000000-0000-4000-8000-0000000be001','00000000-0000-4000-8000-0000000ba001','00000000-0000-4000-8000-0000000ba003','manual','00000000-0000-0000-0000-000000000001',encode(sha256(convert_to('payload','UTF8')),'hex'))
+on conflict(organization_id,created_by,idempotency_key) do nothing;
+insert into public.fin_tasks(id,organization_id,title,status,related_type,related_id,created_by,assignee_id,assignee_source,idempotency_key,idempotency_hash)
+values('00000000-0000-4000-8000-0000000bd007','00000000-0000-4000-8000-0000000bb001','Idempotent task','open','rfq','00000000-0000-4000-8000-0000000be001','00000000-0000-4000-8000-0000000ba001','00000000-0000-4000-8000-0000000ba003','manual','00000000-0000-0000-0000-000000000001',encode(sha256(convert_to('payload','UTF8')),'hex'))
+on conflict(organization_id,created_by,idempotency_key) do nothing;
+do $$ begin
+  if (select count(*) from public.fin_tasks where idempotency_key='00000000-0000-0000-0000-000000000001') <> 1 then
+    raise exception 'task idempotency retry created a duplicate';
+  end if;
+  if (select count(*) from public.fin_events where entity_id='00000000-0000-4000-8000-0000000bd006' and event_type='task_assignee_changed') <> 1 then
+    raise exception 'task idempotency retry duplicated assignment audit';
+  end if;
+end $$;
 do $$ begin
   if (select legal_entity_id from public.fin_tasks where id='00000000-0000-4000-8000-0000000bd004') <> '00000000-0000-4000-8000-0000000bc002'::uuid then
     raise exception 'insert assignment did not use the derived source entity';
@@ -61,7 +77,14 @@ select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-0000000ba002'
 select pg_temp.expect_error($q$update public.fin_tasks set assignee_id='00000000-0000-4000-8000-0000000ba003',assignee_source='manual' where id='00000000-0000-4000-8000-0000000bd001'$q$,'forbidden');
 update public.fin_tasks set status='done' where id='00000000-0000-4000-8000-0000000bd001';
 select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-0000000ba001',false);
-select pg_temp.expect_error($q$update public.fin_tasks set assignee_id='00000000-0000-4000-8000-0000000ba002',assignee_source='inherited' where id='00000000-0000-4000-8000-0000000bd001'$q$,'forbidden');
+update public.fin_tasks set assignee_id='00000000-0000-4000-8000-0000000ba005',assignee_source='inherited'
+ where id='00000000-0000-4000-8000-0000000bd001';
+do $$ begin
+  if (select assignee_id from public.fin_tasks where id='00000000-0000-4000-8000-0000000bd001') <> '00000000-0000-4000-8000-0000000ba002'::uuid
+     or (select assignee_source from public.fin_tasks where id='00000000-0000-4000-8000-0000000bd001') <> 'manual' then
+    raise exception 'inherited sync overwrote human task assignment';
+  end if;
+end $$;
 reset role;
 
 -- Membership role downgrade makes the target ineligible for future assignment.
@@ -74,7 +97,8 @@ reset role;
 update public.fin_members set role='analyst'
  where organization_id='00000000-0000-4000-8000-0000000bb001' and user_id='00000000-0000-4000-8000-0000000ba002';
 
--- Inherited synchronization cannot replace a manual assignment or manual clear.
+-- No inherited source is enabled in this migration. Manual assignments and
+-- explicit manual clears remain authoritative over attempted sync writes.
 set role authenticated;
 select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-0000000ba001',false);
 update public.fin_tasks set assignee_id=null,assignee_source='manual'
@@ -82,9 +106,6 @@ update public.fin_tasks set assignee_id=null,assignee_source='manual'
 reset role;
 select set_config('request.jwt.claim.sub','',false);
 select set_config('request.jwt.claim.role','',false);
-select pg_temp.expect_error($q$update public.fin_tasks set assignee_id='00000000-0000-4000-8000-0000000ba002',assignee_source='inherited' where id='00000000-0000-4000-8000-0000000bd001'$q$,'forbidden');
-select set_config('request.jwt.claim.role','service_role',false);
-select set_config('arandu.task_assignee_sync','trusted',false);
 update public.fin_tasks set assignee_id='00000000-0000-4000-8000-0000000ba002',assignee_source='inherited'
  where id='00000000-0000-4000-8000-0000000bd001';
 do $$ begin
@@ -92,11 +113,11 @@ do $$ begin
     raise exception 'inherited sync replaced a manual unassignment';
   end if;
 end $$;
+select set_config('request.jwt.claim.role','service_role',false);
+select set_config('arandu.task_assignee_sync','trusted',false);
+select pg_temp.expect_error($q$update public.fin_tasks set assignee_id='00000000-0000-4000-8000-0000000ba002',assignee_source='inherited' where id='00000000-0000-4000-8000-0000000bd005'$q$,'forbidden');
+select set_config('request.jwt.claim.role','',false);
 
--- A valid inherited assignment is allowed for identity-free system work;
--- subsequent manual assignment is authoritative over duplicate retries.
-update public.fin_tasks set assignee_id='00000000-0000-4000-8000-0000000ba002',assignee_source='inherited'
- where id='00000000-0000-4000-8000-0000000bd001';
 set role authenticated;
 select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-0000000ba001',false);
 update public.fin_tasks set assignee_id='00000000-0000-4000-8000-0000000ba003',assignee_source='manual'
@@ -112,6 +133,8 @@ do $$ begin
     raise exception 'inherited retry overwrote human assignment';
   end if;
 end $$;
+select set_config('request.jwt.claim.sub','',false);
+select set_config('request.jwt.claim.role','',false);
 
 -- The assignee still cannot read a task outside their entity (assignment is
 -- accountability only and does not widen RLS access).

@@ -10,7 +10,9 @@ begin;
 
 alter table public.fin_tasks
   add column if not exists assignee_id uuid,
-  add column if not exists assignee_source text;
+  add column if not exists assignee_source text,
+  add column if not exists idempotency_key uuid,
+  add column if not exists idempotency_hash text;
 
 alter table public.fin_tasks drop constraint if exists fin_tasks_assignee_source_check;
 alter table public.fin_tasks add constraint fin_tasks_assignee_source_check
@@ -19,6 +21,10 @@ alter table public.fin_tasks drop constraint if exists fin_tasks_assignee_source
 alter table public.fin_tasks add constraint fin_tasks_assignee_source_consistency
   check ((assignee_id is null or assignee_source is not null)
      and (assignee_source is distinct from 'inherited' or assignee_id is not null));
+alter table public.fin_tasks drop constraint if exists fin_tasks_idempotency_pair_check;
+alter table public.fin_tasks add constraint fin_tasks_idempotency_pair_check
+  check ((idempotency_key is null and idempotency_hash is null)
+      or (idempotency_key is not null and idempotency_hash ~ '^[a-f0-9]{64}$' and created_by is not null));
 
 do $$
 begin
@@ -39,6 +45,8 @@ end $$;
 create index if not exists fin_tasks_assignee_idx
   on public.fin_tasks(organization_id, assignee_id, status)
   where assignee_id is not null;
+create unique index if not exists fin_tasks_idempotency_key_idx
+  on public.fin_tasks(organization_id, created_by, idempotency_key);
 
 create or replace function public.fin_task_assignee_member_valid(p_org uuid,p_entity uuid,p_user uuid)
 returns boolean
@@ -95,6 +103,10 @@ declare
   v_changed boolean;
   v_assignment_changed boolean;
 begin
+  if tg_op = 'UPDATE' and (new.idempotency_key is distinct from old.idempotency_key
+      or new.idempotency_hash is distinct from old.idempotency_hash) then
+    raise exception 'task idempotency immutable';
+  end if;
   v_changed := tg_op = 'INSERT'
     and (new.assignee_id is not null or new.assignee_source is not null);
   if tg_op = 'UPDATE' then
@@ -133,13 +145,10 @@ begin
     return new;
   end if;
 
-  if new.assignee_source = 'inherited' and (
-       v_actor is not null or auth.role() is distinct from 'service_role'
-       or current_setting('arandu.task_assignee_sync',true) is distinct from 'trusted'
-  ) then
-    -- No identity-free writes are accepted by default. A future service-only
-    -- sync function must set this transaction-local guard after validating its
-    -- source record; auth.uid() NULL alone is not sufficient authority.
+  if new.assignee_source = 'inherited' then
+    -- No source-specific synchronization path exists in this migration.
+    -- Reject inherited provenance for every caller until one is introduced
+    -- with its own source validation; an identity-free/service JWT is not enough.
     raise exception 'forbidden';
   end if;
 
@@ -176,7 +185,7 @@ begin
     if new.assignee_source is null then raise exception 'invalid task assignee'; end if;
   end if;
 
-  if v_actor is not null and (tg_op='INSERT' or old.assignee_id is distinct from new.assignee_id
+  if v_actor is not null and tg_op='UPDATE' and (old.assignee_id is distinct from new.assignee_id
       or old.assignee_source is distinct from new.assignee_source)
      and current_setting('arandu.task_assignee_cleanup',true) is distinct from 'trusted' then
     insert into public.fin_events(organization_id,entity_type,entity_id,event_type,actor_id,legal_entity_id,metadata)
@@ -190,13 +199,35 @@ end
 $$;
 revoke all on function public.fin_task_assignee_guard() from public, anon, authenticated;
 
+create or replace function public.fin_task_assignee_insert_audit()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if auth.uid() is not null and (new.assignee_id is not null or new.assignee_source='manual') then
+    insert into public.fin_events(organization_id,entity_type,entity_id,event_type,actor_id,legal_entity_id,metadata)
+    values(new.organization_id,'task',new.id,'task_assignee_changed',auth.uid(),new.legal_entity_id,
+      jsonb_build_object('task_id',new.id,'previous_assignee_id',null,
+        'new_assignee_id',new.assignee_id,'source','manual'));
+  end if;
+  return new;
+end
+$$;
+revoke all on function public.fin_task_assignee_insert_audit() from public,anon,authenticated;
+
 create or replace function public.fin_task_clear_invalid_assignee()
 returns trigger
 language plpgsql
 security definer
 set search_path = ''
 as $$
-declare r record;
+declare
+  r record;
+  v_actor uuid := auth.uid();
+  v_subject text := current_setting('request.jwt.claim.sub',true);
+  v_claims text := current_setting('request.jwt.claims',true);
 begin
   for r in select t.id,t.organization_id,t.legal_entity_id,t.assignee_id,t.assignee_source
              from public.fin_tasks t
@@ -206,15 +237,21 @@ begin
     if not public.fin_task_assignee_member_valid(r.organization_id,r.legal_entity_id,r.assignee_id) then
       -- A revoked member/scope cannot retain an assignment. This transaction-
       -- local marker permits only this trigger to clear inherited provenance.
+      -- The linked-entity guard must also see an identity-free internal write:
+      -- the actor may have just lost the entity grant being revoked.
+      perform set_config('request.jwt.claim.sub','',true);
+      perform set_config('request.jwt.claims','{"role":"service_role"}',true);
       perform set_config('arandu.task_assignee_cleanup','trusted',true);
       update public.fin_tasks set assignee_id=null,
         assignee_source=case when assignee_source='inherited' then null else assignee_source end
        where id=r.id;
       insert into public.fin_events(organization_id,entity_type,entity_id,event_type,actor_id,legal_entity_id,metadata)
-      values(r.organization_id,'task',r.id,'task_assignee_cleared',auth.uid(),r.legal_entity_id,
+      values(r.organization_id,'task',r.id,'task_assignee_cleared',v_actor,r.legal_entity_id,
         jsonb_build_object('task_id',r.id,'previous_assignee_id',r.assignee_id,
           'new_assignee_id',null,'reason','membership_scope_changed'));
       perform set_config('arandu.task_assignee_cleanup','',true);
+      perform set_config('request.jwt.claim.sub',coalesce(v_subject,''),true);
+      perform set_config('request.jwt.claims',coalesce(v_claims,''),true);
     end if;
   end loop;
   return null;
@@ -242,6 +279,10 @@ drop trigger if exists fin_tasks_z_assignee_guard on public.fin_tasks;
 create trigger fin_tasks_z_assignee_guard
   before insert or update on public.fin_tasks
   for each row execute function public.fin_task_assignee_guard();
+drop trigger if exists fin_tasks_assignee_insert_audit on public.fin_tasks;
+create trigger fin_tasks_assignee_insert_audit
+  after insert on public.fin_tasks
+  for each row execute function public.fin_task_assignee_insert_audit();
 
 insert into public.fin_settings(key, value)
 values ('schema_version', 'financial-task-accountability-1')

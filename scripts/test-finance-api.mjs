@@ -29,6 +29,7 @@ globalThis.fetch = async (url, options = {}) => {
     url: String(url),
     method: options.method || 'GET',
     body: options.body ? JSON.parse(options.body) : null,
+    prefer: options.headers?.Prefer,
     authorization: options.headers?.Authorization,
     apikey: options.headers?.apikey
   };
@@ -44,6 +45,7 @@ function request(method, { body = null, url = '/api/finance/rfqs' } = {}) {
 
 function response() {
   return {
+    statusCode: null,
     headers: {},
     setHeader(key, value) { this.headers[key] = value; },
     end(value) { this.payload = JSON.parse(value); }
@@ -470,6 +472,26 @@ await rejects('PATCH', 'tasks', { body: { organization_id: BUYER, task_id: RFQ, 
   assert.match(roleProbe.url, new RegExp(`user_id=eq\\.${ACTOR}`));
   assert.equal(roleProbe.authorization, 'Bearer user-jwt', 'actor authorization uses caller JWT and same-org membership');
 
+  const taskKey = '00000000-0000-4000-8000-0000000000a6';
+  let storedTaskHash = null;
+  reset((entry) => {
+    if (entry.url.includes('fin_organizations')) return orgRow(BUYER, 'BUYER');
+    if (entry.url.includes('fin_tasks?on_conflict=')) {
+      assert.match(entry.url, /on_conflict=organization_id,created_by,idempotency_key/);
+      assert.match(entry.prefer || '', /resolution=ignore-duplicates/);
+      storedTaskHash ??= entry.body.idempotency_hash;
+      return [];
+    }
+    if (entry.url.includes('fin_tasks?select=id,title')) return [{ id: DECISION_ID, title: 'Tarefa idempotente', status: 'open', idempotency_hash: storedTaskHash }];
+    return [];
+  });
+  const retried = await call('POST', 'tasks', { body: { organization_id: BUYER, title: 'Tarefa idempotente', idempotency_key: taskKey } });
+  assert.equal(retried.statusCode, 200, 'replay returns the already-created row');
+  assert.equal(retried.payload.row.id, DECISION_ID);
+  assert.ok(!Object.hasOwn(retried.payload.row, 'idempotency_hash'), 'internal hash is not projected');
+  await assert.rejects(call('POST', 'tasks', { body: { organization_id: BUYER, title: 'Payload diferente', idempotency_key: taskKey } }),
+    (error) => error.status === 409 && error.code === 'idempotency_key_reused');
+
   reset((entry) => entry.url.includes('fin_organizations') ? orgRow(BUYER, 'BUYER') : assignmentMember(entry));
   await call('PATCH', 'tasks', { body: { organization_id: BUYER, task_id: RFQ, assignee_id: null, assignee_source: 'inherited' } });
   const unassign = sent.find((entry) => entry.method === 'PATCH' && entry.url.includes('fin_tasks'));
@@ -636,10 +658,9 @@ reset((entry) => {
 {
   const overview = await call('GET', 'overview', { url: `/api/finance/overview?organization_id=${BUYER}` });
   assert.deepEqual(overview.payload.tasks, [{ id: DECISION_ID, title: 'Tarefa contextual', status: 'open', assignee_id: ACTOR, assignee_name: 'Responsável' }]);
-  // Com 12 RFQs o número de consultas não pode crescer com a quantidade: é o
-  // mesmo conjunto fixo (RFQs, provedores, contratos, perfil, tarefas, termos,
-  // convites, membros, aprovações pendentes, decisões e propostas).
-  assert.ok(sent.length <= 12, `overview fez ${sent.length} consultas para 12 RFQs`);
+  // Com 12 RFQs o número de consultas não pode crescer com a quantidade: a
+  // consulta adicional de nomes é fixa e limitada aos assignees de tarefas visíveis.
+  assert.ok(sent.length <= 13, `overview fez ${sent.length} consultas para 12 RFQs`);
   assert.equal(sent.filter((entry) => entry.url.includes('fin_rfq_invites')).length, 1, 'convites lidos uma vez para todas as RFQs');
 }
 
