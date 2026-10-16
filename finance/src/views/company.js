@@ -529,9 +529,9 @@ export async function tasks(ctx) {
       for (const task of visible) {
         const days = daysUntil(task.due_on);
         // Leitor vê o estado como texto; quem pode alterar recebe a caixa.
-        const check = canEdit ? el('input', { type: 'checkbox', checked: task.status === 'done', 'aria-label': `${task.status === 'done' ? 'Reabrir' : 'Concluir'}: ${task.title}` })
-          : el('span', { class: `task-state${task.status === 'done' ? ' done' : ''}`, text: task.status === 'done' ? 'Concluída' : 'Aberta' });
-        if (canEdit) check.addEventListener('change', () => changeStatus(task, check));
+        const check = canEdit ? el('input', { type: 'checkbox', checked: task.status === 'done', 'aria-label': `${task.status === 'done' ? 'Reabrir' : 'Concluir'}: ${task.title}` }) : null;
+        check?.addEventListener('change', () => changeStatus(task, check));
+        const state = canEdit ? null : el('span', { class: 'task-state', text: task.status === 'done' ? 'Concluída' : 'Aberta' });
         // Tarefa de contrato diz qual contrato e quando ele vence de fato:
         // concluir a tarefa não muda o vencimento nem o aviso prévio.
         const contract = task.related_type === 'contract' ? contractsById.get(task.related_id) : null;
@@ -544,7 +544,7 @@ export async function tasks(ctx) {
           ? (() => { const select = assigneeSelect(ctx, task.assignee_id, `Responsável: ${task.title}`); select.addEventListener('change', () => changeAssignee(task, select)); return select; })()
           : el('span', { class: `task-owner${task.assignee_id ? '' : ' muted'}`, text: owner });
         list.append(el('li', { class: `task-item${task.status === 'done' ? ' done' : ''}${location.hash === `#task-${task.id}` || focusId === task.id ? ' highlighted' : ''}`, id: `task-${task.id}`, dataset: { assignee: task.assignee_id ? 'set' : 'none' } }, [
-          check, el('div', { class: 'task-main' }, [el('span', { class: 'task-title', text: task.title }),
+          check, el('div', { class: 'task-main' }, [state, el('span', { class: 'task-title', text: task.title }),
             el('span', { class: 'task-meta' }, [el('span', { class: 'sr-only', text: 'Responsável: ' }), canAssign && task.status === 'open' ? null : owner, canAssign && task.status === 'open' ? null : (related ? ' · ' : null), related].filter(Boolean)), contractDue]),
           canAssign && task.status === 'open' ? el('label', { class: 'task-owner-field' }, [el('span', { class: 'sr-only', text: 'Responsável' }), ownerNode]) : null,
           task.due_on ? el('span', { class: `task-due${task.status === 'open' && days < 0 ? ' overdue' : task.status === 'open' && days <= 2 ? ' soon' : ''}` }, [icon('calendar', { size: 12 }), el('span', { text: `${formatDate(task.due_on, { withYear: false })}${task.status === 'open' ? ` · ${relativeDays(task.due_on)}` : ''}` })]) : el('span', { class: 'task-due muted', text: 'sem prazo' })

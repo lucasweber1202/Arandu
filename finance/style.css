@@ -1261,7 +1261,7 @@ textarea.mono{width:100%;max-width:100%;min-width:0}
 .task-new-note{flex-basis:100%}
 @media (max-width:759px){.task-item{flex-wrap:wrap}.task-owner-field{flex-basis:100%;order:3}.task-owner-field select{max-width:100%;width:100%}}
 /* Tarefas: estado em texto para quem só acompanha; linha ocupada até o servidor confirmar. */
-.task-state{flex:0 0 auto;font-size:var(--fs-sm);font-weight:600;color:var(--text-secondary);min-width:72px}
+.task-state{font-size:var(--fs-xs);font-weight:600;color:var(--text-secondary);text-transform:none}
 .task-item[aria-busy=true]{opacity:.7}
 .task-saving{color:var(--text-secondary)}
 /* Chegada a partir de um contrato: origem, recorte real e caminho de volta. */
