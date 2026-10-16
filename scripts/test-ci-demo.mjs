@@ -161,7 +161,7 @@ test('summary não confunde merge commit executado com HEAD da PR nem inventa SH
     assert(result.stdout.includes(`SHA da PR/evento (referência): \`${head}\``));
     assert(result.stdout.includes('Decisão: **C — NO-GO**'), 'sem outcomes completos, o resumo não pode declarar B');
     assert(result.stdout.includes('### Bloqueadores do ensaio'));
-    assert(result.stdout.includes('- Node.js runtime: ausente.'));
+    assert(result.stdout.includes('- Node runtime setup: not_run.'));
     const missing = run({});
     assert.equal(missing.error, undefined); assert.equal(missing.status, 0, missing.stderr);
     assert(missing.stdout.includes('SHA executado (checkout): `NÃO IDENTIFICADO`'));

@@ -168,6 +168,15 @@ Os resultados de subprocesso e auditoria não foram convertidos em PASS. Os quat
 gates obrigatórios para esta PR e o `merge:gates` no HEAD final ainda dependem
 do GitHub Actions; não há merge nesta entrega.
 
+Na primeira execução da PR #209, no SHA `891e2660b46f4f1dd52a5fe36ded90d2619b1839`,
+o `deploy-boundaries` falhou numa asserção nova do teste de resumo: para uma
+fase ausente, o assessor emite o blocker `Node runtime setup: not_run`, mas a
+asserção esperava outro rótulo/estado. O log do runner confirmou que a
+preparação e os checks anteriores passaram. A expectativa foi alinhada ao
+contrato emitido, sem afrouxar o gate. O commit corretivo ainda requer nova
+execução dos quatro jobs no HEAD atual; a falha inicial não é contada como
+validação aprovada.
+
 ## Rollback, dependências e ações mínimas do proprietário
 
 Rollback de código: reverter esta PR. O change é restrito a workflow, assessor
