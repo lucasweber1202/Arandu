@@ -1,5 +1,25 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 16/10/2026 — Evidência de release não pode promover ensaio local a prova externa
+
+Base revalidada: `origin/main@ab3dda8d8a65c621855b8774bd30180d7366f690`, com os
+quatro gates obrigatórios e merge audit SUCCESS. Corrigido um falso positivo em
+`lib/release-evidence.mjs`: alegações `externally_verified` agora exigem um
+ambiente hospedado reconhecido e rejeitam origens identificadas como local,
+CI, fixture, mock, synthetic, rehearsal ou runner. Regressões reproduzíveis e
+limites desta alteração estão em
+`docs/evidence/codex-release-readiness-m3-2026-10-16.md`.
+
+| Capacidade / prova | Estado nesta branch | Evidência | Próximo gate / limite |
+| --- | --- | --- | --- |
+| Validador de evidência externa | LOCAL_VALIDATED | Baseline aceitava `localhost` e `production` com origem `local_rehearsal`; testes negativos agora recusam ambos e mantêm prova Demo com origem externa aceita | CI nos quatro gates no SHA da PR; o validador analisa evidência declarada e não autentica por si só a fonte externa |
+| Main e status de deployment | CI_VALIDATED na base; M3 NOT_PROVEN | `ab3dda8`: database, deploy-boundaries, validate, presentation e merge-audit SUCCESS; status GitHub Demo/Pilot SUCCESS e Official FAILURE | statuses não comprovam alias, datasource, schema, Auth/RLS/Storage ou recovery; Official FAILURE sem causa detalhada acessível |
+| Demo canônica hospedada | ACCESS_BLOCKED / INCONCLUSIVE | Não foi encontrado projeto Supabase dedicado à Demo na listagem read-only; consultas detalhadas Vercel ao scope autorizado continuam bloqueadas pelo 403 previamente observado | obter leitura autorizada do projeto `arandu-demo` e do scope, depois vincular deployment/SHA, ambiente, datasource/schema, readiness e provas de isolamento |
+| Recovery hospedado e cutover | NOT_RUN | Nenhum export, restore, migration, secret, binding ou dado hospedado alterado | classificação/preservação autorizada, restore isolado do mesmo snapshot e validação Auth/Storage/config são pré-requisitos; nenhum M3 inferido de CI |
+| Suíte local | PARCIAL; limitações ambientais | backend, security, migrations, build, release evidence e release-candidate passaram; governance/staging/supply-chain mutations falham em subprocessos Node com `EPERM`; Docker daemon negou acesso e npm audit não alcançou proxy | reexecutar checks bloqueados em runner autorizado; não promover stderr vazio a PASS |
+
+**Maturidade:** M3 continua não comprovado. Esta mudança reduz risco de classificação falsa em evidência, mas não muda topologia, status hospedado, schema, recovery ou autorização operacional.
+
 ## 16/10/2026 — PATCH seguro de tarefas, filtros e reconciliação M3
 
 Base revalidada `main@8d1a18d39d0d5b72bdd5c8382d3240012f6d30e5`. Os quatro gates
