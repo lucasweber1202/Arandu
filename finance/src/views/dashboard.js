@@ -2,7 +2,7 @@
 
 import { el, icon, daysUntil, relativeDays, formatDate, formatDateTime, productLabel, demandHeadline, RFQ_STATUS, timeAgo, money, renewalStage } from '../core.js';
 import { card, pill, linkButton, emptyState, person, progress, button, toast } from '../ui.js';
-import { memberName, currentStep, approvalSummaryLine, eventTitle, isViewerTurn } from './shared.js';
+import { memberName, currentStep, approvalSummaryLine, eventTitle, isViewerTurn, TASK_EDITORS, taskChangeError } from './shared.js';
 import { loadEntities, entitySummaryCard } from './entities.js';
 import { startButton } from './intake.js';
 
@@ -216,18 +216,27 @@ export async function dashboard(ctx) {
   const listed = new Set(items.slice(0, 8).map((item) => item.taskId).filter(Boolean));
   const tasks = (data.tasks || []).filter((task) => !listed.has(task.id)).slice(0, 5);
   const taskList = el('ul', { class: 'mini-list', role: 'list' });
+  // Mesma regra do banco (fin_task_edit): leitor acompanha, não conclui.
+  const canEdit = TASK_EDITORS.includes(ctx.viewer?.role);
   for (const task of tasks) {
     const days = daysUntil(task.due_on);
-    const check = el('input', { type: 'checkbox', 'aria-label': `Concluir: ${task.title}` });
-    check.addEventListener('change', async () => {
+    const check = canEdit ? el('input', { type: 'checkbox', 'aria-label': `Concluir: ${task.title}` }) : null;
+    check?.addEventListener('change', async () => {
       check.disabled = true;
+      row.setAttribute('aria-busy', 'true');
       try {
         await ctx.api('tasks', { method: 'PATCH', body: JSON.stringify({ organization_id: ctx.organization.id, task_id: task.id, status: 'done' }) });
+        // 200 não prova a gravação (o banco ignora linha fora do alcance): relê antes de dizer "concluída".
+        const { rows } = await ctx.api(`tasks?organization_id=${encodeURIComponent(ctx.organization.id)}`);
+        if ((rows || []).find((item) => item.id === task.id)?.status !== 'done') throw Object.assign(new Error('not_applied'), { notApplied: true });
         row.classList.add('done');
         toast('Tarefa concluída.');
-      } catch (error) { check.checked = false; check.disabled = false; toast(error.message, 'error'); }
+      } catch (error) {
+        check.checked = false; check.disabled = false;
+        toast(error.notApplied ? 'O servidor não registrou a conclusão. A tarefa continua aberta.' : taskChangeError(error), 'error');
+      } finally { row.removeAttribute('aria-busy'); }
     });
-    const row = el('li', { class: 'mini-row task-row' }, [check, el('div', { class: 'mini-main' }, [
+    const row = el('li', { class: 'mini-row task-row' }, [check || el('span', { class: 'mini-icon tone-neutral' }, icon('tasks', { size: 14 })), el('div', { class: 'mini-main' }, [
       el('span', { class: 'mini-title', text: task.title }),
       el('span', { class: 'mini-meta', text: [task.assignee_id ? task.assignee_name || 'Responsável indisponível' : 'Sem responsável', task.due_on ? `prazo ${formatDate(task.due_on, { withYear: false })}` : 'sem prazo'].filter(Boolean).join(' · ') })
     ]), el('span', { class: `mini-side${days !== null && days < 0 ? ' danger' : ''}`, text: days === null ? '' : relativeDays(task.due_on) })]);
@@ -286,6 +295,17 @@ function firstUse(ctx) {
     ['Registre um contrato que já existe', 'O Arandu acompanha vencimento, aviso prévio e renovação.', '/finance/contracts.html?acao=registrar-contrato', (ctx.data.contracts || []).length >= 1],
     ['Crie a primeira solicitação', 'Crédito empresarial ou adquirência.', '/finance/new-rfq.html', false]
   ];
+  // Os quatro passos são de gestão (o servidor recusa a quem só lê). Quem
+  // acompanha não recebe uma lista de ações impossíveis: lê quem faz e onde
+  // acompanhar o que já existe.
+  if (!ctx.can('create_rfq')) {
+    const known = [['Contratos registrados', (ctx.data.contracts || []).length, '/finance/contracts.html'], ['Instituições cadastradas', (ctx.data.providers || []).length, '/finance/providers.html']];
+    return card({ title: 'Primeiros passos', id: 'buyer-onboarding', subtitle: 'A empresa ainda não abriu nenhuma solicitação no Arandu.', body: [
+      el('p', { class: 'prose', text: 'Cadastrar instituições, registrar contratos existentes e abrir solicitações fica com administradores e gestores financeiros. Sua conta acompanha o que eles registram e responde ao que for atribuído a você.' }),
+      el('ul', { class: 'onboarding' }, known.map(([title, count, path]) => el('li', { class: 'onboarding-step' }, [el('span', { class: 'onboarding-mark' }, icon('eye', { size: 14 })),
+        el('span', {}, [el('a', { href: ctx.href(path), text: title }), el('span', { class: 'muted', text: count ? ` — ${count} na lista carregada` : ' — nenhum ainda' })])])))
+    ] });
+  }
   return card({ title: 'Primeiros passos', id: 'buyer-onboarding', subtitle: 'Comece pelo que a empresa já tem e chegue à primeira concorrência.', body: el('ol', { class: 'onboarding' }, steps.map(([title, text, path, done]) =>
     el('li', { class: `onboarding-step${done ? ' done' : ''}` }, [el('span', { class: 'onboarding-mark' }, icon(done ? 'check' : 'arrowRight', { size: 14 })),
       el('span', {}, [el('a', { href: ctx.href(path), text: title }), el('span', { class: 'muted', text: ` — ${text}` })]), done ? el('span', { class: 'sr-only', text: '(concluído)' }) : null]))) });

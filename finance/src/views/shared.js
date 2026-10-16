@@ -683,3 +683,16 @@ export function termsSummary(product, terms) {
     return `${spec.label.replace(/\s*\(.*\)$/, '')}: ${raw === null ? 'não informado' : `${raw}${suffix}`}`;
   }).join(' · ');
 }
+
+// ----------------------------------------------------------------- tarefas
+// Quem o banco deixa criar e alterar tarefas (políticas fin_task_write/fin_task_edit).
+// Leitor acompanha: a interface não oferece um controle que o servidor ignoraria.
+export const TASK_EDITORS = ['admin', 'finance_manager', 'analyst'];
+// Recusa ao alterar uma tarefa, em linguagem de gente; nada de código ou mensagem crua.
+export function taskChangeError(error) {
+  if (!error.status) return 'Sem conexão com o servidor. Nada foi confirmado.';
+  if (error.status === 403) return 'Seu acesso não permite alterar esta tarefa. Nada mudou.';
+  if (error.status === 404) return 'Esta tarefa não está mais disponível para você. Nada mudou.';
+  if (error.status === 409) return 'A tarefa mudou enquanto você a alterava. Confira o estado salvo antes de tentar de novo.';
+  return 'Não foi possível salvar a alteração agora. Nada foi confirmado.';
+}
