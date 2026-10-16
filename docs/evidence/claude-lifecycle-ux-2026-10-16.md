@@ -106,12 +106,24 @@ PR sem contrato novo; não houve alteração para não recriar o que a #200 já 
 - Detalhe da implantação ainda imprime UUID/ISO compostos no servidor (`lib/finance/implementation-presenter.mjs`) — handoff da rodada anterior, ainda aberto.
 - Jornada B (decisão → contrato → implantação → obrigação → renovação) segue com o elo "decisão de origem" só pelo link do cartão; sem id da RFQ de renovação na leitura do contrato (handoff anterior).
 
+## Integração com a `main` após o #206 (Codex)
+
+Durante a rodada a `main` avançou para `ab3dda8` (#206). Ela já entrega o handoff P1 abaixo: `PATCH tasks`
+sem linha afetada responde **404** `not_found`, e `GET tasks` ganhou `status`, `assignee_id`, `unassigned`,
+`limit` e cursor. Branch atualizada por merge (sem conflito: o #206 não toca `finance/src/**` nem `tests/e2e/**`).
+No HEAD integrado: `check:all` PASS, `finance-contracts.spec.js` 76 PASS (desktop + Pixel 7), `demo-baseline`
+"responsáveis de tarefa" PASS no backend real com o app reiniciado, e sonda direta: Carlos (leitor)
+`PATCH status=done` → **404 not_found**, tarefa continua aberta. A interface trata 404 ("Esta tarefa não está mais
+disponível para você. Nada mudou.") e mantém a releitura como defesa. Os filtros server-side de tarefas **não**
+são consumidos por esta PR (escopo): a tela continua declarando "N de M tarefas carregadas"; adotá-los é o
+próximo passo de interface.
+
 ## Handoffs ao Codex
 
 | Prioridade | Endpoint | Comportamento esperado | Problema que resolve | Autorização | Compatibilidade | Aceite |
 | --- | --- | --- | --- | --- | --- | --- |
-| **P1** | `PATCH /api/finance/tasks` | Conferir linhas afetadas (`Prefer: return=representation`); 0 linhas → **404** `task_not_found` (sem revelar existência) ou **403** quando a linha é visível mas o papel não pode editar | API responde 200 a uma alteração que o banco ignorou (D1, reproduzido no backend real) | mesma do RLS `fin_task_edit` | a interface já trata 403/404 e já relê a lista; mudança é aditiva | Carlos (viewer) `PATCH status=done` → 403/404 e a tarefa continua aberta; `demo-baseline` já aceita 403/404 |
+| ~~P1~~ **entregue no #206** | `PATCH /api/finance/tasks` | Conferir linhas afetadas (`Prefer: return=representation`); 0 linhas → **404** `task_not_found` (sem revelar existência) ou **403** quando a linha é visível mas o papel não pode editar | API responde 200 a uma alteração que o banco ignorou (D1, reproduzido no backend real) | mesma do RLS `fin_task_edit` | a interface já trata 403/404 e já relê a lista; mudança é aditiva | Carlos (viewer) `PATCH status=done` → 403/404 e a tarefa continua aberta; `demo-baseline` já aceita 403/404 |
 | P3 | `GET implementations`, `GET covenants` | filtro opcional `contract_id` | hoje a página declara que o recorte é por instituição; com o filtro, o atalho poderia mostrar só o contrato | escopo de entidade atual | parâmetro opcional | lista do contrato da Lumina sem itens de outro contrato |
-| P3 | `GET tasks` | filtro `assignee_id`/`unassigned` e paginação | "Atribuídas a mim" é recorte dos 200 carregados | RLS atual | aditivo | contagem do servidor igual à exibida |
+| ~~P3~~ **entregue no #206** (interface ainda não consome) | `GET tasks` | filtro `assignee_id`/`unassigned` e paginação | "Atribuídas a mim" é recorte dos 200 carregados | RLS atual | aditivo | contagem do servidor igual à exibida |
 
 PR, SHA e CI: na descrição da PR.
