@@ -1,5 +1,22 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 16/10/2026 — PATCH seguro de tarefas, filtros e reconciliação M3
+
+Base revalidada `main@8d1a18d39d0d5b72bdd5c8382d3240012f6d30e5`. Os quatro gates
+obrigatórios e o merge audit SUCCESS nesse HEAD. A API de tarefas foi corrigida
+para não confirmar PATCH com representação vazia e recebeu filtros/paginação
+server-side aditivos. Evidência e limites operacionais:
+`docs/evidence/codex-m3-api-hardening-2026-10-16.md`.
+
+| Capacidade / prova | Estado observado nesta branch | Evidência | Próximo gate / limite |
+| --- | --- | --- | --- |
+| PATCH de tarefa ausente/invisível | LOCAL_VALIDATED | baseline reproduziu HTTP 200 + representação vazia como falso sucesso; correção exige linha retornada e responde 404 neutro, igual para RLS/ausente/remoção concorrente | quatro gates no HEAD da PR; `test:database` não executou localmente por falta de `psql`/daemon Docker |
+| Erro de assignment | LOCAL_VALIDATED | ator sem papel: `task_assignment_forbidden`; alvo inelegível: `task_assignee_unavailable`, mensagem sem motivo/membership | validação SQL existente segue autoritativa; sem mudança de dados/schema |
+| Filtros de tarefa | LOCAL_VALIDATED | `status`, `assignee_id`, `unassigned=true`, todos na consulta sob RLS; lookup de nome permanece limitado às linhas autorizadas | Claude pode adotar filtros sem alterar API; não usar filtro client-side como controle de acesso |
+| Paginação de tarefas | LOCAL_VALIDATED | cursor keyset determinístico `(due_on NULLS LAST, created_at, id)`, limite 1–200, `has_more` por uma linha extra, sem contagem global | interface pode continuar com primeiras 200 linhas ou consumir `next_cursor`; filtros devem ser repetidos nas páginas |
+| Official e prontidão hospedada | INCONCLUSIVE / ACCESS_BLOCKED | GitHub: Demo/Pilot deploy SUCCESS e Official FAILURE no SHA; Vercel detalhada 403. Guard local recusa ambiente/ref sem atribuição conforme esperado. Pilot SQL read-only confirma schema antigo, sem assignment/revogação/config `db_pre_request`; sem Demo Supabase listado | nenhuma causa hospedada de Official comprovada; sem datasource Demo, schema atual, probes Auth/Storage ou recovery hospedado; M3 não atingido |
+| CI/local | BASELINE CI_VALIDATED; branch aguardando CI | main atual: quatro gates + merge audit SUCCESS. Branch: API, backend, security, migrations e build passaram; `check:all`/`check:finance` param em stderr vazio de subprocessos; PostgreSQL e audit npm bloqueados pelo executor/proxy | aguardar CI da PR no HEAD exato; não contar testes de banco/audit como PASS local |
+
 ## 15/10/2026 — Responsabilidade persistida de tarefas e reconciliação M3
 
 A branch `codex/task-accountability-m3-20261015`, baseada em `b84efd3e822a7aa4ef4c89647047f9b9692c7baa`, implementa a migration aditiva `financial-task-accountability-1` e estende `GET/POST/PATCH /api/finance/tasks` e `overview.tasks` com `assignee_id`/`assignee_name`. Testes de autorização no banco e API cobrem mesma organização/entidade, papéis, remoção/offboarding, auditoria, idempotência e concorrência. Tarefas antigas ficam sem responsável; não há herança automática ambígua nem concessão de acesso ao objeto relacionado. Migration ainda não foi aplicada em hospedagem. A matriz de readiness e testes detalhados estão em `docs/evidence/codex-task-accountability-m3-2026-10-15.md`.

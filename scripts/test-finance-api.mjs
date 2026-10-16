@@ -432,6 +432,12 @@ await rejects('POST', 'documents', { body: { organization_id: BUYER, entity_type
 reset((entry) => (entry.url.includes('fin_organizations') ? orgRow(BUYER, 'BUYER') : []));
 await rejects('PATCH', 'tasks', { body: { organization_id: BUYER, task_id: RFQ, status: 'inventado' } }, 400);
 
+// PostgREST can return HTTP 200 with an empty representation when RLS hides
+// the row or a concurrent delete wins. Never report this as a successful edit.
+reset((entry) => entry.url.includes('fin_organizations') ? orgRow(BUYER, 'BUYER') : []);
+await assert.rejects(call('PATCH', 'tasks', { body: { organization_id: BUYER, task_id: RFQ, status: 'done' } }),
+  (error) => error.status === 404 && error.code === 'not_found');
+
 // Atribuição persistida: a API projeta nomes apenas para IDs das tarefas que
 // o RLS já devolveu e nunca aceita papel/proveniência do navegador.
 {
@@ -451,10 +457,55 @@ await rejects('PATCH', 'tasks', { body: { organization_id: BUYER, task_id: RFQ, 
   assert.deepEqual(listed.payload.rows.map(({ assignee_id, assignee_name }) => [assignee_id, assignee_name]), [
     [ASSIGNEE, 'Pessoa da organização'], [REMOVED, null], [null, null]
   ]);
+  assert.deepEqual(listed.payload.page, { limit: 200, has_more: false, next_cursor: null });
   const nameLookup = sent.find((entry) => entry.url.includes('fin_members?'));
   assert.match(nameLookup.url, new RegExp(`organization_id=eq\\.${BUYER}`));
   assert.match(nameLookup.url, new RegExp(`user_id=in\\.\\(${ASSIGNEE},${REMOVED}\\)`));
   assert.ok(!nameLookup.url.includes(OTHER_ORG), 'lookup never queries identities outside visible task assignees');
+
+  reset((entry) => {
+    if (entry.url.includes('fin_organizations')) return orgRow(BUYER, 'BUYER');
+    if (entry.url.includes('fin_tasks?')) return [];
+    return [];
+  });
+  await call('GET', 'tasks', { url: `/api/finance/tasks?organization_id=${BUYER}&status=done&unassigned=true&limit=25` });
+  const filtered = new URL(sent.find((entry) => entry.url.includes('fin_tasks?')).url).searchParams;
+  assert.equal(filtered.get('status'), 'eq.done');
+  assert.equal(filtered.get('assignee_id'), 'is.null');
+  assert.equal(filtered.get('limit'), '26', 'busca uma linha extra para calcular has_more sem count global');
+  assert.equal(filtered.get('order'), 'due_on.asc.nullslast,created_at.asc,id.asc');
+  await rejects('GET', 'tasks', { url: `/api/finance/tasks?organization_id=${BUYER}&status=archived` }, 400);
+  await rejects('GET', 'tasks', { url: `/api/finance/tasks?organization_id=${BUYER}&assignee_id=${ASSIGNEE}&unassigned=true` }, 400);
+  await rejects('GET', 'tasks', { url: `/api/finance/tasks?organization_id=${BUYER}&limit=201` }, 400);
+  await rejects('GET', 'tasks', { url: `/api/finance/tasks?organization_id=${BUYER}&cursor=not-a-cursor` }, 400);
+  reset((entry) => entry.url.includes('fin_organizations') ? orgRow(BUYER, 'BUYER') : []);
+  await call('GET', 'tasks', { url: `/api/finance/tasks?organization_id=${BUYER}&assignee_id=${ASSIGNEE}` });
+  assert.equal(new URL(sent.find((entry) => entry.url.includes('fin_tasks?')).url).searchParams.get('assignee_id'), `eq.${ASSIGNEE}`);
+
+  const pageRows = [
+    { id: '00000000-0000-4000-8000-0000000000b1', title: 'Página 1', due_on: '2026-10-20', created_at: '2026-10-01T00:00:00.000Z', status: 'open' },
+    { id: '00000000-0000-4000-8000-0000000000b2', title: 'Página 2', due_on: '2026-10-20', created_at: '2026-10-02T00:00:00.000Z', status: 'open' },
+    { id: '00000000-0000-4000-8000-0000000000b3', title: 'Página 3', due_on: null, created_at: '2026-10-03T00:00:00.000Z', status: 'open' }
+  ];
+  reset((entry) => entry.url.includes('fin_organizations') ? orgRow(BUYER, 'BUYER') : pageRows);
+  const firstPage = await call('GET', 'tasks', { url: `/api/finance/tasks?organization_id=${BUYER}&limit=2` });
+  assert.deepEqual(firstPage.payload.rows.map((row) => row.id), pageRows.slice(0, 2).map((row) => row.id));
+  assert.equal(firstPage.payload.page.has_more, true);
+  assert.ok(firstPage.payload.page.next_cursor);
+  const cursorValue = JSON.parse(Buffer.from(firstPage.payload.page.next_cursor, 'base64url').toString('utf8'));
+  assert.deepEqual(cursorValue, { due_on: '2026-10-20', created_at: pageRows[1].created_at, id: pageRows[1].id });
+  reset((entry) => entry.url.includes('fin_organizations') ? orgRow(BUYER, 'BUYER') : [pageRows[2]]);
+  const lastPage = await call('GET', 'tasks', { url: `/api/finance/tasks?organization_id=${BUYER}&limit=2&cursor=${encodeURIComponent(firstPage.payload.page.next_cursor)}` });
+  assert.deepEqual(lastPage.payload.rows.map((row) => row.id), [pageRows[2].id]);
+  assert.equal(lastPage.payload.page.has_more, false);
+  const continuation = new URL(sent.find((entry) => entry.url.includes('fin_tasks?')).url).searchParams.get('or');
+  assert.match(continuation, /due_on\.gt\.2026-10-20/);
+  assert.match(continuation, new RegExp(`id\\.gt\\.${pageRows[1].id}`));
+  const nullDueCursor = Buffer.from(JSON.stringify({ due_on: null, created_at: pageRows[2].created_at, id: pageRows[2].id })).toString('base64url');
+  reset((entry) => entry.url.includes('fin_organizations') ? orgRow(BUYER, 'BUYER') : []);
+  await call('GET', 'tasks', { url: `/api/finance/tasks?organization_id=${BUYER}&cursor=${nullDueCursor}` });
+  const nullContinuation = new URL(sent.find((entry) => entry.url.includes('fin_tasks?')).url).searchParams.get('or');
+  assert.match(nullContinuation, /and\(due_on\.is\.null,created_at\.gt\./);
 
   const taskBody = { organization_id: BUYER, title: 'Tarefa atribuída', assignee_id: ASSIGNEE,
     assignee_source: 'inherited', role: 'admin', created_by: OTHER_ORG, assignee_name: 'spoofed' };
@@ -492,12 +543,22 @@ await rejects('PATCH', 'tasks', { body: { organization_id: BUYER, task_id: RFQ, 
   await assert.rejects(call('POST', 'tasks', { body: { organization_id: BUYER, title: 'Payload diferente', idempotency_key: taskKey } }),
     (error) => error.status === 409 && error.code === 'idempotency_key_reused');
 
-  reset((entry) => entry.url.includes('fin_organizations') ? orgRow(BUYER, 'BUYER') : assignmentMember(entry));
+  reset((entry) => entry.url.includes('fin_organizations') ? orgRow(BUYER, 'BUYER')
+    : entry.url.includes('fin_members?select=role') ? [{ role: 'admin' }]
+      : entry.method === 'PATCH' && entry.url.includes('fin_tasks') ? [{ id: RFQ }] : []);
   await call('PATCH', 'tasks', { body: { organization_id: BUYER, task_id: RFQ, assignee_id: null, assignee_source: 'inherited' } });
   const unassign = sent.find((entry) => entry.method === 'PATCH' && entry.url.includes('fin_tasks'));
   assert.deepEqual(unassign.body, { assignee_id: null, assignee_source: 'manual' }, 'explicit null is a manual unassignment');
 
-  reset((entry) => (entry.url.includes('fin_organizations') ? orgRow(BUYER, 'BUYER') : []));
+  reset((entry) => entry.url.includes('fin_organizations') ? orgRow(BUYER, 'BUYER')
+    : entry.url.includes('fin_members?select=role') ? [{ role: 'finance_manager' }]
+      : entry.method === 'PATCH' && entry.url.includes('fin_tasks') ? [{ id: RFQ }] : []);
+  await call('PATCH', 'tasks', { body: { organization_id: BUYER, task_id: RFQ, assignee_id: ASSIGNEE } });
+  assert.deepEqual(sent.find((entry) => entry.method === 'PATCH' && entry.url.includes('fin_tasks')).body,
+    { assignee_id: ASSIGNEE, assignee_source: 'manual' });
+
+  reset((entry) => (entry.url.includes('fin_organizations') ? orgRow(BUYER, 'BUYER')
+    : entry.method === 'PATCH' && entry.url.includes('fin_tasks') ? [{ id: RFQ }] : []));
   await call('PATCH', 'tasks', { body: { organization_id: BUYER, task_id: RFQ, status: 'done' } });
   const complete = sent.find((entry) => entry.method === 'PATCH' && entry.url.includes('fin_tasks'));
   assert.deepEqual(complete.body, { status: 'done' }, 'status-only update leaves assignment untouched');
@@ -523,7 +584,20 @@ await rejects('PATCH', 'tasks', { body: { organization_id: BUYER, task_id: RFQ, 
   };
   try {
     await assert.rejects(call('PATCH', 'tasks', { body: { organization_id: BUYER, task_id: RFQ, assignee_id: ASSIGNEE } }),
-      (error) => error.status === 403 && error.code === 'task_assignment_forbidden');
+      (error) => error.status === 403 && error.code === 'task_assignee_unavailable');
+  } finally { globalThis.fetch = originalFetch; }
+
+  globalThis.fetch = async (url, options = {}) => {
+    const target = String(url);
+    if (target.includes('fin_organizations')) return new Response(JSON.stringify(orgRow(BUYER, 'BUYER')), { status: 200 });
+    if (target.includes('fin_tasks') && options.method === 'PATCH') {
+      return new Response(JSON.stringify({ message: 'forbidden' }), { status: 403 });
+    }
+    return new Response('[]', { status: 200 });
+  };
+  try {
+    await assert.rejects(call('PATCH', 'tasks', { body: { organization_id: BUYER, task_id: RFQ, status: 'done' } }),
+      (error) => error.status === 403 && error.code === 'forbidden');
   } finally { globalThis.fetch = originalFetch; }
 }
 
