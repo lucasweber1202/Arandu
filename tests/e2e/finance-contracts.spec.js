@@ -380,3 +380,26 @@ test('responsável do contrato e tarefa de contrato com contexto: qual contrato 
   await expect(item).toContainText('Banco Carteira · Crédito · Vencida');
   await noHorizontalOverflow(page);
 });
+
+test('contrato leva à implantação e às obrigações da mesma instituição, com o filtro aplicado no servidor', async ({ page }) => {
+  await mockSession(page);
+  const requested = [];
+  await page.route('**/api/finance/implementations?**', (route) => {
+    requested.push(new URL(route.request().url()).searchParams);
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, cards: [], columns: [], rows: [], empty: { title: 'Nenhum plano' }, options: {}, forms: [] }) });
+  });
+  await page.goto('/finance/contracts.html');
+  const links = page.getByRole('navigation', { name: 'Pós-contratação com Banco Carteira' });
+  await expect(links.getByRole('link', { name: 'Covenants e obrigações com Banco Carteira' })).toHaveAttribute('href', /\/finance\/covenants\.html\?provider_id=00000000-0000-4000-8000-0000000000e1$/);
+  await links.getByRole('link', { name: 'Implantação com Banco Carteira' }).click();
+  await page.waitForURL(/\/finance\/implementations\.html\?provider_id=/);
+  await expect.poll(() => requested.at(-1)?.get('provider_id')).toBe(PROVIDER);
+  await noHorizontalOverflow(page);
+});
+
+test('contrato encerrado não oferece atalhos de pós-contratação', async ({ page }) => {
+  await mockSession(page, { contracts: [{ ...CONTRACT_ROW, status: 'expired' }] });
+  await page.goto('/finance/contracts.html');
+  await expect(page.locator('.contract-card')).toBeVisible();
+  await expect(page.locator('.contract-lifecycle-links')).toHaveCount(0);
+});
