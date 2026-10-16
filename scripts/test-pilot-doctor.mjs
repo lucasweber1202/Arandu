@@ -118,6 +118,14 @@ assert.equal((await doctor(baseEnv, { anonSpecFailure: true })).result, 'NO-GO',
 assert.equal((await doctor(baseEnv, { anonSpecMalformed: true })).result, 'NO-GO', 'malformed anonymous inventory cannot prove zero exposure');
 
 assert.equal((await doctor(baseEnv, { schema: 'financial-pilot-grade-1' })).exit_code, 1, 'migration antiga bloqueia');
+// O marcador imediatamente anterior (sem a migration de responsabilidade de tarefas),
+// um marcador desconhecido e um vazio continuam NO-GO: o contrato é explícito.
+for (const schema of ['financial-implementation-task-labels-1', 'financial-unknown-99', '']) {
+  const report = await doctor(baseEnv, { schema });
+  assert.equal(report.result, 'NO-GO', `marcador ${schema || 'vazio'}`);
+  assert.equal(report.exit_code, 1, `marcador ${schema || 'vazio'}`);
+  assert.equal(levelOf(report, 'versão das migrations'), 'ERROR', `marcador ${schema || 'vazio'}`);
+}
 assert.equal((await doctor(baseEnv, { missingRpc: 'consume_rate_limit' })).exit_code, 1, 'limitador ausente bloqueia');
 // A final marker does not prove the post-award API or its anonymous isolation.
 // Names come from the actual capability contracts, independent of doctor fixtures.

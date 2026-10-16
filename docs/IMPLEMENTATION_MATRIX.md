@@ -1,5 +1,19 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 15/10/2026 — Responsabilidade persistida de tarefas e reconciliação M3
+
+A branch `codex/task-accountability-m3-20261015`, baseada em `b84efd3e822a7aa4ef4c89647047f9b9692c7baa`, implementa a migration aditiva `financial-task-accountability-1` e estende `GET/POST/PATCH /api/finance/tasks` e `overview.tasks` com `assignee_id`/`assignee_name`. Testes de autorização no banco e API cobrem mesma organização/entidade, papéis, remoção/offboarding, auditoria, idempotência e concorrência. Tarefas antigas ficam sem responsável; não há herança automática ambígua nem concessão de acesso ao objeto relacionado. Migration ainda não foi aplicada em hospedagem. A matriz de readiness e testes detalhados estão em `docs/evidence/codex-task-accountability-m3-2026-10-15.md`.
+
+| Capacidade / prova | Estado observado nesta branch | Evidência | Próximo gate / limite |
+| --- | --- | --- | --- |
+| `fin_tasks` com responsável persistido | M1 / LOCAL_VALIDATED | `test:database` PASS em PostgreSQL 17.6 descartável, incluindo clean install/upgrade, RLS, atribuição, retry idempotente, auditoria e corridas; migration/rollback aditivos, sem dados existentes reescritos | confirmar quatro gates no SHA exato e aprovação; migration hospedada segue separada e não autorizada nesta missão |
+| Demo/Pilot hospedados | INCONCLUSIVE / ACCESS_BLOCKED | status GitHub para baseline `b84efd3`: Demo e Pilot deployment SUCCESS; sem identidade de datasource, logs ou schema vinculados | fonte autorizada para datasource/schema e probes autenticados |
+| Production hospedada | FAIL no status Vercel; causa desconhecida | status FAILURE para baseline `b84efd3`; logs/configuração indisponíveis | diagnóstico read-only autorizado, corrigir causa comprovada e validar release exato |
+| Recuperação real | NOT_RUN | sem export/restore hospedado; recuperação sintética não prova Auth/Storage/config externa | autorização, snapshot custodiado, restore isolado do mesmo snapshot e probes completos |
+
+**Maturidade:** M3 não atingido. CI e validações locais não comprovam deploy, datasource, schema, autorização efetiva nem recovery hospedado. Nenhuma migration, segredo, banco ou binding hospedado foi alterado.
+
+
 ## 15/10/2026 — Readiness operacional pós-#199
 
 **Atualização desta rodada:** a migration aditiva `financial-implementation-task-labels-1` padroniza os rótulos legíveis das tarefas de implantação, mantendo `kind` estável e preservando títulos humanos via backfill por correspondência exata. Validada em PostgreSQL descartável com teste direcionado; não aplicada em hospedagem. Persistência de responsável para `fin_tasks` segue não implementada e não deve ser inferida como autorização.
