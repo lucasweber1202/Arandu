@@ -373,30 +373,122 @@ function providerDrawer(ctx) {
 }
 
 // ----------------------------------------------------------------- tarefas
+// Responsável de tarefa (contrato da #204): só gestores atribuem; só admin,
+// gestor financeiro e analista podem responder (o banco confere papel, membro e
+// escopo de entidade). Candidatos vêm dos membros da própria empresa já
+// carregados; leitor e provedor nunca aparecem. Nome nunca é identificador.
+const TASK_FILTERS = [['abertas', 'Abertas'], ['minhas', 'Atribuídas a mim'], ['sem-responsavel', 'Sem responsável'], ['concluidas', 'Concluídas']];
+function assigneeCandidates(ctx) {
+  return (ctx.members || []).filter((member) => member.user_id && ['admin', 'finance_manager', 'analyst'].includes(member.role))
+    .map((member) => [member.user_id, `${member.display_name || ROLE_LABELS[member.role] || 'Membro'}${member.user_id === ctx.viewer?.id ? ' (você)' : ''}`]);
+}
+function assigneeSelect(ctx, current, label) {
+  const select = el('select', { class: 'input task-assignee', ...(label ? { 'aria-label': label } : {}) });
+  select.add(new Option('Sem responsável', ''));
+  for (const [value, text] of assigneeCandidates(ctx)) select.add(new Option(text, value));
+  // Responsável que não está mais entre os membros carregados: fica visível como tal, sem inventar nome.
+  if (current && ![...select.options].some((option) => option.value === current)) select.add(new Option('Responsável indisponível', current));
+  select.value = current || '';
+  return select;
+}
+// Resultado desconhecido: rede, prazo ou erro do servidor. Recusa explícita (4xx) é definitiva.
+const unknownOutcome = (error) => !error.status || error.status >= 500 || error.code === 'task_creation_unknown';
+
 export async function tasks(ctx) {
-  ctx.header({ title: 'Tarefas', subtitle: 'Pendências da equipe: renovações, conferências e combinados dos processos.' });
+  ctx.header({ title: 'Tarefas', subtitle: 'Pendências da equipe: quem responde, até quando e de onde cada uma vem.' });
+  const canAssign = ctx.can('create_rfq');
   const root = el('div', { class: 'stack' });
   const box = el('div', {}, loading());
-  const form = el('form', { class: 'inline-form task-new', novalidate: true });
+  const form = el('form', { class: 'inline-form task-new', id: 'task-new', novalidate: true });
   const title = el('input', { name: 'title', maxlength: '200', placeholder: 'Nova tarefa…' });
   const due = el('input', { name: 'due_on', type: 'date', min: todayIso() });
-  form.append(field({ label: 'Nova tarefa', control: title }), field({ label: 'Prazo', control: due, optionalLabel: true }), button('Adicionar', { variant: 'primary', type: 'submit', iconName: 'plus' }));
+  const assignee = canAssign ? assigneeSelect(ctx, '', null) : null;
+  const submit = button('Adicionar', { variant: 'primary', type: 'submit', iconName: 'plus' });
+  const pendingNote = el('p', { class: 'callout callout-warning compact', role: 'status', hidden: true });
+  form.append(...[field({ label: 'Nova tarefa', control: title }), field({ label: 'Prazo', control: due, optionalLabel: true }),
+    assignee && field({ label: 'Responsável', control: assignee, optionalLabel: true }), submit,
+    !canAssign && el('p', { class: 'muted small task-new-note', text: 'A tarefa é criada sem responsável. Gestores financeiros e administradores definem quem responde.' }), pendingNote].filter(Boolean));
+  // Uma intenção de criação = uma chave. Repetir depois de resultado desconhecido
+  // reaproveita a chave (o servidor não duplica); confirmação ou recusa definitiva a encerram.
+  let pending = null;
+  let submitting = false;
+  const payload = () => ({ organization_id: ctx.organization.id, title: title.value.trim(), due_on: due.value || null, ...(assignee && assignee.value ? { assignee_id: assignee.value } : {}) });
+  const samePayload = (a, b) => JSON.stringify(a) === JSON.stringify(b);
   onSubmit(form, async (event) => {
     event.preventDefault();
+    if (submitting) return;
     if (title.value.trim().length < 2) { title.closest('.field').setError('Descreva a tarefa.'); title.focus(); return; }
+    const body = payload();
+    if (pending && !samePayload(pending.body, body)) {
+      const discard = await confirmDialog({ title: 'Descartar a tentativa anterior?', description: 'Não confirmamos se a tarefa anterior foi registrada. A lista será recarregada para você conferir; a nova tarefa usa os dados atuais.', confirmLabel: 'Descartar e criar nova' });
+      if (!discard) return;
+      pending = null;
+      pendingNote.hidden = true;
+      await draw();
+    }
+    pending ||= { key: crypto.randomUUID(), body };
+    submitting = true;
+    submit.disabled = true;
     try {
-      await ctx.api('tasks', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, title: title.value, due_on: due.value || null }) });
-      title.value = ''; due.value = '';
+      const result = await ctx.api('tasks', { method: 'POST', body: JSON.stringify({ ...pending.body, idempotency_key: pending.key }) });
+      pending = null;
+      pendingNote.hidden = true;
+      title.value = ''; due.value = ''; if (assignee) assignee.value = '';
       toast('Tarefa criada.');
-      draw();
-    } catch (error) { toast(error.message, 'error'); }
+      await draw(result?.row?.id);
+    } catch (error) {
+      if (unknownOutcome(error)) {
+        pendingNote.textContent = 'Não confirmamos se a tarefa foi criada. Adicionar de novo com os mesmos dados repete a mesma tentativa, sem duplicar.';
+        pendingNote.hidden = false;
+      } else {
+        pending = null;
+        pendingNote.hidden = true;
+      }
+      toast(error.message, 'error');
+    } finally { submitting = false; submit.disabled = false; }
   });
-  let showDone = false;
-  const toggle = button('Mostrar concluídas', { variant: 'ghost', size: 'sm', onClick: () => { showDone = !showDone; toggle.querySelector('.btn-label').textContent = showDone ? 'Ocultar concluídas' : 'Mostrar concluídas'; draw(); } });
-  async function draw() {
+
+  const url = new URL(location.href);
+  const filter = el('select', { class: 'input', 'aria-label': 'Mostrar tarefas' });
+  for (const [value, text] of TASK_FILTERS) filter.add(new Option(text, value));
+  filter.value = TASK_FILTERS.some(([value]) => value === url.searchParams.get('filtro')) ? url.searchParams.get('filtro') : 'abertas';
+  const scopeNote = el('span', { class: 'muted small', role: 'status', 'aria-live': 'polite' });
+  filter.addEventListener('change', () => {
+    const next = new URL(location.href);
+    if (filter.value === 'abertas') next.searchParams.delete('filtro'); else next.searchParams.set('filtro', filter.value);
+    history.replaceState(null, '', next.pathname + next.search + next.hash);
+    draw();
+  });
+  const matches = (task) => ({
+    abertas: task.status === 'open',
+    minhas: task.status === 'open' && task.assignee_id === ctx.viewer?.id,
+    'sem-responsavel': task.status === 'open' && !task.assignee_id,
+    concluidas: task.status === 'done'
+  }[filter.value]);
+
+  async function changeAssignee(task, select) {
+    const persisted = task.assignee_id || '';
+    if (select.value === persisted) return;
+    select.disabled = true;
+    try {
+      // Nunca mostra o novo responsável antes do servidor confirmar: recarrega a lista persistida.
+      await ctx.api('tasks', { method: 'PATCH', body: JSON.stringify({ organization_id: ctx.organization.id, task_id: task.id, assignee_id: select.value || null }) });
+      toast(select.value ? 'Responsável atualizado.' : 'Tarefa ficou sem responsável.');
+      await draw(task.id);
+    } catch (error) {
+      select.value = persisted;
+      select.disabled = false;
+      // O mesmo 403 cobre papel de quem atribui e elegibilidade de quem recebe (escopo de entidade).
+      toast(error.status === 403 ? 'A alteração de responsável não foi permitida (permissão ou escopo da pessoa escolhida). Nada mudou.' : error.message, 'error');
+    }
+  }
+
+  async function draw(focusId = null) {
     try {
       const { rows } = await ctx.api(`tasks?organization_id=${encodeURIComponent(ctx.organization.id)}`);
-      const visible = (rows || []).filter((row) => showDone || row.status === 'open');
+      const all = rows || [];
+      const visible = all.filter(matches);
+      scopeNote.textContent = `${visible.length} de ${all.length} tarefas carregadas${all.length >= 200 ? ' (as 200 mais próximas do prazo)' : ''}`;
       const list = el('ul', { class: 'task-list', role: 'list' });
       const rfqs = new Map((ctx.data.rfqs || []).map((rfq) => [rfq.id, rfq]));
       const contractsById = new Map((ctx.data.contracts || []).map((row) => [row.id, row]));
@@ -418,17 +510,26 @@ export async function tasks(ctx) {
           : task.related_type === 'contract' ? el('a', { href: ctx.href(`/finance/contracts.html#contract-${task.related_id}`), text: contract ? `${contract.provider_name || 'Contrato'} · ${contract.title || CONTRACT_CATEGORIES[contract.product] || 'contrato'}` : 'Ver contrato' }) : null;
         const contractDue = contract && ['active', 'renewing'].includes(contract.status) && contract.ends_on
           ? el('span', { class: 'task-contract-due', text: `Contrato vence em ${formatDate(contract.ends_on)}${contract.review_from ? ` · aviso prévio até ${formatDate(contract.review_from)}` : ''}` }) : null;
-        list.append(el('li', { class: `task-item${task.status === 'done' ? ' done' : ''}${location.hash === `#task-${task.id}` ? ' highlighted' : ''}`, id: `task-${task.id}` }, [
-          check, el('div', { class: 'task-main' }, [el('span', { class: 'task-title', text: task.title }), el('span', { class: 'task-meta' }, [task.assignee_name ? `${task.assignee_name}` : null, task.assignee_name && related ? ' · ' : null, related].filter(Boolean)), contractDue]),
-          task.due_on ? el('span', { class: `task-due${task.status === 'open' && days < 0 ? ' overdue' : task.status === 'open' && days <= 2 ? ' soon' : ''}` }, [icon('calendar', { size: 12 }), el('span', { text: `${formatDate(task.due_on, { withYear: false })}${task.status === 'open' ? ` · ${relativeDays(task.due_on)}` : ''}` })]) : null
+        const owner = !task.assignee_id ? 'Sem responsável' : task.assignee_id === ctx.viewer?.id ? `${task.assignee_name || 'Você'} (você)` : task.assignee_name || 'Responsável indisponível';
+        const ownerNode = canAssign && task.status === 'open'
+          ? (() => { const select = assigneeSelect(ctx, task.assignee_id, `Responsável: ${task.title}`); select.addEventListener('change', () => changeAssignee(task, select)); return select; })()
+          : el('span', { class: `task-owner${task.assignee_id ? '' : ' muted'}`, text: owner });
+        list.append(el('li', { class: `task-item${task.status === 'done' ? ' done' : ''}${location.hash === `#task-${task.id}` || focusId === task.id ? ' highlighted' : ''}`, id: `task-${task.id}`, dataset: { assignee: task.assignee_id ? 'set' : 'none' } }, [
+          check, el('div', { class: 'task-main' }, [el('span', { class: 'task-title', text: task.title }),
+            el('span', { class: 'task-meta' }, [el('span', { class: 'sr-only', text: 'Responsável: ' }), canAssign && task.status === 'open' ? null : owner, canAssign && task.status === 'open' ? null : (related ? ' · ' : null), related].filter(Boolean)), contractDue]),
+          canAssign && task.status === 'open' ? el('label', { class: 'task-owner-field' }, [el('span', { class: 'sr-only', text: 'Responsável' }), ownerNode]) : null,
+          task.due_on ? el('span', { class: `task-due${task.status === 'open' && days < 0 ? ' overdue' : task.status === 'open' && days <= 2 ? ' soon' : ''}` }, [icon('calendar', { size: 12 }), el('span', { text: `${formatDate(task.due_on, { withYear: false })}${task.status === 'open' ? ` · ${relativeDays(task.due_on)}` : ''}` })]) : el('span', { class: 'task-due muted', text: 'sem prazo' })
         ]));
       }
-      box.replaceChildren(visible.length ? list : emptyState({ title: showDone ? 'Nenhuma tarefa' : 'Nenhuma tarefa aberta', text: 'Tarefas de renovação são criadas automaticamente a partir dos contratos.', iconName: 'checkCircle', compact: true }));
-      if (location.hash.startsWith('#task-')) document.querySelector(location.hash)?.scrollIntoView({ block: 'center' });
-    } catch (error) { box.replaceChildren(errorState({ error, onRetry: draw })); }
+      const empty = { abertas: ['Nenhuma tarefa aberta', 'Tarefas de renovação são criadas automaticamente a partir dos contratos.'], minhas: ['Nenhuma tarefa aberta atribuída a você', 'Entre as tarefas carregadas, nenhuma aberta tem você como responsável.'],
+        'sem-responsavel': ['Toda tarefa aberta carregada tem responsável', null], concluidas: ['Nenhuma tarefa concluída', null] }[filter.value];
+      box.replaceChildren(visible.length ? list : emptyState({ title: empty[0], text: empty[1], iconName: 'checkCircle', compact: true }));
+      const target = focusId ? document.getElementById(`task-${focusId}`) : location.hash.startsWith('#task-') ? document.querySelector(location.hash) : null;
+      target?.scrollIntoView({ block: 'center' });
+    } catch (error) { box.replaceChildren(errorState({ error, onRetry: () => draw() })); }
   }
   draw();
-  root.append(card({ body: form }), el('div', { class: 'row-actions end' }, toggle), card({ flush: true, body: box }));
+  root.append(card({ body: form }), el('div', { class: 'toolbar task-toolbar' }, [field({ label: 'Mostrar', control: filter }), scopeNote]), card({ flush: true, body: box }));
   return root;
 }
 

@@ -1,12 +1,14 @@
 // Jornada central da demonstração canônica (Vitta Foods) no produto real.
 // Pré-requisito: app em ARANDU_ENV=demo com o dataset de scripts/demo/seed.mjs
-// (npm run demo:setup). Só leitura: não altera o estado da demonstração.
+// (npm run demo:setup). Só leitura, exceto a jornada de responsáveis de tarefa,
+// que devolve o responsável original e cancela a tarefa que cria.
 import { test, expect } from '@playwright/test';
 
 const PASSWORD = process.env.ARANDU_DEMO_PASSWORD;
 const PEOPLE = {
   juliana: 'juliana.ramos@vittafoods.example',
   helena: 'helena.duarte@vittafoods.example',
+  carlos: 'carlos.tavares@vittafoods.example',
   diego: 'diego.freitas@luminapay.example',
   eduardo: 'eduardo.lima@atlasbank.example'
 };
@@ -210,4 +212,66 @@ test('pós-contrato: implantação → covenants → performance → spend → q
   await page.keyboard.press('Escape');
 
   expect(problems, problems.join('\n')).toEqual([]);
+});
+
+test('responsáveis de tarefa no backend real: reatribuir, deixar sem responsável, recarregar, idempotência e recusas', async ({ page, browser, baseURL }) => {
+  await login(page, 'juliana');
+  const write = (method, body) => page.request.fetch('/api/finance/tasks', { method, data: body, headers: { Origin: new URL(baseURL).origin } });
+  await page.waitForFunction(() => Boolean(window.__aranduCtx?.organization?.id));
+  const org = await page.evaluate(() => window.__aranduCtx.organization.id);
+  await page.goto('/finance/tasks.html');
+  const row = page.locator('.task-item', { hasText: 'Confirmar TAC e tarifas da versão 2' });
+  const select = row.locator('select.task-assignee');
+  // Cada troca espera a resposta do servidor (PATCH) e a releitura da lista: nada de sucesso presumido.
+  const assign = async (target, option) => {
+    const saved = page.waitForResponse((r) => r.url().includes('/api/finance/tasks') && r.request().method() === 'PATCH');
+    await target.selectOption(option);
+    expect((await saved).status()).toBe(200);
+    await page.waitForResponse((r) => r.url().includes('/api/finance/tasks?') && r.request().method() === 'GET');
+  };
+  const taskId = (await row.getAttribute('id')).replace('task-', '');
+  // Seed: criada para Rafael e reatribuída a Juliana pela CFO, pela API real. Uma
+  // execução anterior interrompida pode ter deixado outro responsável: devolve antes.
+  if ((await select.locator('option:checked').textContent()) !== 'Juliana Ramos (você)') {
+    await assign(select, { label: 'Juliana Ramos (você)' });
+  }
+  await expect(select.locator('option:checked')).toHaveText('Juliana Ramos (você)');
+  await expect(select.locator('option')).not.toContainText(['Carlos Tavares']);
+  await assign(select, { label: 'Rafael Menezes' });
+  await page.reload();
+  await expect(row.locator('select.task-assignee option:checked')).toHaveText('Rafael Menezes');
+  await assign(row.locator('select.task-assignee'), '');
+  await page.goto('/finance/tasks.html?filtro=sem-responsavel');
+  await expect(row).toBeVisible();
+  await assign(row.locator('select.task-assignee'), { label: 'Juliana Ramos (você)' });
+
+  // Criação idempotente: mesma chave e mesmo conteúdo devolvem a mesma tarefa; conteúdo diferente é recusado.
+  const key = crypto.randomUUID();
+  const body = { organization_id: org, title: 'Tarefa de ensaio da demonstração (cancelada ao final)', due_on: null, idempotency_key: key };
+  const first = await (await write('POST', body)).json();
+  const again = await (await write('POST', body)).json();
+  expect(again.row.id).toBe(first.row.id);
+  const reused = await write('POST', { ...body, title: 'Outro conteúdo com a mesma chave' });
+  expect(reused.status()).toBe(409);
+  expect((await write('PATCH', { organization_id: org, task_id: first.row.id, status: 'cancelled' })).status()).toBe(200);
+
+  // Leitor (controller): vê quem responde, não recebe controle e o servidor recusa a atribuição.
+  const viewer = await browser.newContext({ baseURL, ignoreHTTPSErrors: true });
+  const carlos = await viewer.newPage();
+  await login(carlos, 'carlos');
+  await carlos.goto('/finance/tasks.html');
+  await expect(carlos.locator('.task-item', { hasText: 'Confirmar TAC' })).toContainText('Juliana Ramos');
+  await expect(carlos.locator('select.task-assignee')).toHaveCount(0);
+  const denied = await carlos.request.fetch('/api/finance/tasks', { method: 'PATCH', data: { organization_id: org, task_id: taskId, assignee_id: null }, headers: { Origin: new URL(baseURL).origin } });
+  expect(denied.status()).toBe(403);
+  await viewer.close();
+
+  // Outra organização (instituição financeira) não lê nem altera tarefas da empresa.
+  const provider = await browser.newContext({ baseURL, ignoreHTTPSErrors: true });
+  const eduardo = await provider.newPage();
+  await login(eduardo, 'eduardo');
+  const foreign = await eduardo.request.get(`/api/finance/tasks?organization_id=${org}`);
+  expect(foreign.status()).toBeGreaterThanOrEqual(400);
+  expect(JSON.stringify(await foreign.json())).not.toContain('Confirmar TAC');
+  await provider.close();
 });

@@ -93,8 +93,10 @@ export function actionItems(ctx, approvals) {
     // sozinha não dizia com qual instituição.
     const contract = task.related_type === 'contract' ? contractsById.get(task.related_id) : null;
     const about = contract ? `${contract.provider_name || 'Contrato'} · ${productLabel(contract.product, { short: true })} · ` : '';
+    // Tarefa sem responsável aparece para a equipe, mas não como se fosse de quem lê.
+    const owner = task.assignee_id === viewer ? 'Com você · ' : 'Sem responsável · ';
     if (days !== null && days <= 2) items.push({ rank: days < 0 ? 1 : 3, due: days, taskId: task.id, tone: days < 0 ? 'danger' : 'neutral', icon: 'tasks', kind: 'Tarefa', title: task.title,
-      detail: `${about}${days < 0 ? `Vencida ${relativeDays(task.due_on)}` : `Prazo ${relativeDays(task.due_on)}`}`, cta: 'Ver', href: ctx.href(`/finance/tasks.html#task-${task.id}`) });
+      detail: `${owner}${about}${days < 0 ? `Vencida ${relativeDays(task.due_on)}` : `Prazo ${relativeDays(task.due_on)}`}`, cta: 'Ver', href: ctx.href(`/finance/tasks.html#task-${task.id}`) });
   }
   // Mesmo nível de prioridade: o que vence antes vem primeiro.
   const due = (item) => (Number.isFinite(item.due) ? item.due : 9999);
@@ -227,7 +229,7 @@ export async function dashboard(ctx) {
     });
     const row = el('li', { class: 'mini-row task-row' }, [check, el('div', { class: 'mini-main' }, [
       el('span', { class: 'mini-title', text: task.title }),
-      el('span', { class: 'mini-meta', text: [task.assignee_name, task.due_on ? `prazo ${formatDate(task.due_on, { withYear: false })}` : 'sem prazo'].filter(Boolean).join(' · ') })
+      el('span', { class: 'mini-meta', text: [task.assignee_id ? task.assignee_name || 'Responsável indisponível' : 'Sem responsável', task.due_on ? `prazo ${formatDate(task.due_on, { withYear: false })}` : 'sem prazo'].filter(Boolean).join(' · ') })
     ]), el('span', { class: `mini-side${days !== null && days < 0 ? ' danger' : ''}`, text: days === null ? '' : relativeDays(task.due_on) })]);
     taskList.append(row);
   }

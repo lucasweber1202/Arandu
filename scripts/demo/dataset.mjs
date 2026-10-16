@@ -151,11 +151,13 @@ export const COMMENTS = {
 };
 
 /** Tarefas abertas que um time de tesouraria teria de verdade. */
+// `assignee`: responsável atribuído pela CFO (gestora) pela API real; `reassignTo`
+// registra uma reatribuição; sem `assignee` a tarefa fica sem responsável de propósito.
 export const TASKS = [
-  { title: 'Revisar covenant de dívida líquida/EBITDA da Orbe Capital com o jurídico', due: 2, related: 'credit' },
-  { title: 'Confirmar TAC e tarifas da versão 2 do Atlas Bank antes da aprovação da CFO', due: 1, related: 'credit' },
+  { title: 'Revisar covenant de dívida líquida/EBITDA da Orbe Capital com o jurídico', due: 2, related: 'credit', assignee: 'rafael' },
+  { title: 'Confirmar TAC e tarifas da versão 2 do Atlas Bank antes da aprovação da CFO', due: 1, related: 'credit', assignee: 'rafael', reassignTo: 'juliana' },
   { title: 'Anexar minuta da cédula de crédito do Atlas Bank para revisão jurídica', due: 6, related: 'credit' },
-  { title: 'Conferir conciliação do primeiro mês com a Lumina Pay (MDR e antecipação aplicados)', due: 4, related: 'acquiringContract' },
+  { title: 'Conferir conciliação do primeiro mês com a Lumina Pay (MDR e antecipação aplicados)', due: 4, related: 'acquiringContract', assignee: 'juliana' },
   { title: 'Confirmar taxa de antecipação aplicada na primeira liquidação da Lumina Pay', due: -12, related: 'acquiringContract', done: true },
   { title: 'Levantar volume mensal do canal B2B para o rascunho de pagamentos on-line', due: 9, related: 'draft' }
 ];

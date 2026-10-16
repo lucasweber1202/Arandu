@@ -597,7 +597,9 @@ async function seedStory() {
   const related = { credit: ['rfq', credit], acquiringContract: ['contract', ctx.contract.acquiring], draft: ['rfq', ctx.rfq.draft] };
   for (const task of data.TASKS) {
     const [type, id] = related[task.related];
-    const row = (await post(helena, 'tasks', { organization_id: ctx.org, title: task.title, due_on: isoDate(task.due), related_type: type, related_id: id })).row;
+    const row = (await post(helena, 'tasks', { organization_id: ctx.org, title: task.title, due_on: isoDate(task.due), related_type: type, related_id: id,
+      ...(task.assignee ? { assignee_id: people[task.assignee].id } : {}) })).row;
+    if (task.reassignTo) await api(helena, 'PATCH', 'tasks', { organization_id: ctx.org, task_id: row.id, assignee_id: people[task.reassignTo].id });
     if (task.done) await api(helena, 'PATCH', 'tasks', { organization_id: ctx.org, task_id: row.id, status: 'done' });
   }
   await at(-1, '18:20');
@@ -917,6 +919,9 @@ async function sanity() {
     `${(creditComparison.groups || []).length} grupos, ${blockedCriteria} critério(s) bloqueado(s), ${(creditComparison.context_notices || []).length} aviso(s)`);
   const tasks = overview.tasks || [];
   check('Tarefas abertas', tasks.length >= 5, `${tasks.length} abertas`);
+  const assigned = tasks.filter((task) => task.assignee_id && task.assignee_name);
+  check('Tarefas com e sem responsável', assigned.length >= 3 && tasks.some((task) => !task.assignee_id)
+    && tasks.some((task) => task.title.startsWith('Confirmar TAC') && task.assignee_name === 'Juliana Ramos'), `${assigned.length} com responsável, ${tasks.filter((task) => !task.assignee_id).length} sem`);
   const comments = (await api(juliana, 'GET', `comments?organization_id=${org.id}&object_type=rfq&object_id=${byTitle(data.RFQ_CREDIT.title).id}`)).rows;
   check('Comentários na negociação de crédito', comments.length >= 3, `${comments.length}`);
   const helenaInbox = (await api(people.helena, 'GET', `notifications?organization_id=${org.id}`)).rows;
