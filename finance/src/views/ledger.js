@@ -1,5 +1,6 @@
-import { el, productLabel, formatDate } from '../core.js';
+import { el, icon, productLabel, formatDate } from '../core.js';
 import { card, button, field, drawer, loading, errorState, emptyState, toast, formDrawer } from '../ui.js';
+import { CONTRACT_CATEGORIES } from '../../../lib/finance/contract-terms.mjs';
 import { loadEntities, entityName } from './entities.js';
 import { graphContextCard } from './graph-context.js';
 
@@ -16,7 +17,37 @@ import { graphContextCard } from './graph-context.js';
 const post = (ctx, path, body) => ctx.api(path, { method: 'POST', body: JSON.stringify(body) });
 const lines = (items = [], cls = null) => items.map((text) => el('p', { class: cls, text }));
 
-export async function ledgerPage(ctx, { resource, title, subtitle, filters, scope = 'Escopo' }) {
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const contractName = (contract) => contract.title
+  || [contract.provider_name, productLabel(contract.product, { short: true }), contract.ends_on ? `vence ${formatDate(contract.ends_on)}` : ''].filter(Boolean).join(' · ') || 'Contrato sem título';
+
+// Chegada a partir de um contrato (?contrato=): diz de onde a pessoa veio,
+// devolve-a ao contrato e declara o recorte que o servidor de fato aplicou.
+// A API filtra por instituição/entidade, não por contrato: a lista pode ter
+// itens de outros contratos com a mesma instituição, e a tela diz isso.
+function originContext(ctx, { contractId, noun, controls, filters, entities }) {
+  if (!noun || !contractId || !UUID.test(contractId)) return null;
+  const contract = (ctx.data.contracts || []).find((row) => row.id === contractId);
+  const box = el('aside', { class: 'callout callout-info origin-context', 'aria-label': 'Contrato de origem' });
+  const describe = () => {
+    const applied = filters.filter(([key]) => controls[key]?.value).map(([key, label]) => `${label.toLowerCase()} ${controls[key].selectedOptions?.[0]?.text || 'selecionada'}`);
+    const sameProvider = contract?.provider_id && controls.provider_id?.value === contract.provider_id;
+    const scopeText = !applied.length
+      ? `Sem filtro: a lista mostra ${noun} de todo o seu escopo, não só deste contrato.`
+      : `Filtro aplicado: ${applied.join(' · ')}. A lista mostra ${noun} com esse recorte, que pode incluir outros contratos${sameProvider ? ' com a mesma instituição' : ''}; o Arandu ainda não filtra por contrato individual.`;
+    box.replaceChildren(icon('info', { size: 16 }), el('div', {}, [
+      el('p', {}, [el('strong', { text: 'Vindo do contrato: ' }), el('span', { text: contract
+        ? `${CONTRACT_CATEGORIES[contract.product] || productLabel(contract.product)} com ${contract.provider_name || 'instituição não informada'}${contract.legal_entity_id ? ` · ${entityName(entities, contract.legal_entity_id)}` : ''}${contract.ends_on ? ` · vence ${formatDate(contract.ends_on)}` : ''}`
+        : 'contrato fora da lista carregada nesta sessão' })]),
+      el('p', { class: 'small', text: scopeText }),
+      el('a', { class: 'contract-link', href: ctx.href(`/finance/contracts.html${contract ? `#contract-${contract.id}` : ''}`) }, [el('span', { text: contract ? 'Voltar ao contrato' : 'Abrir contratos' }), icon('arrowRight', { size: 14 })])
+    ]));
+  };
+  describe();
+  return { node: box, update: describe };
+}
+
+export async function ledgerPage(ctx, { resource, title, subtitle, filters, scope = 'Escopo', originNoun = null }) {
   const entities = await loadEntities(ctx);
   const params = new URL(location.href).searchParams;
   const year = new Date().getUTCFullYear();
@@ -26,8 +57,7 @@ export async function ledgerPage(ctx, { resource, title, subtitle, filters, scop
     providers: [['', 'Todos'], ...(ctx.data.providers || []).map((x) => [x.id, x.name])],
     // Contrato sem título é nomeado pelo que a pessoa reconhece (instituição,
     // produto, vencimento), nunca pelo identificador interno.
-    contracts: [['', 'Todos'], ...(ctx.data.contracts || []).map((x) => [x.id, x.title
-      || [x.provider_name, productLabel(x.product, { short: true }), x.ends_on ? `vence ${formatDate(x.ends_on)}` : ''].filter(Boolean).join(' · ') || 'Contrato sem título'])]
+    contracts: [['', 'Todos'], ...(ctx.data.contracts || []).map((x) => [x.id, contractName(x)])]
   };
   const controls = {};
   const grid = el('div', { class: 'form-grid' }, filters.map(([key, label, kind]) => {
@@ -38,6 +68,7 @@ export async function ledgerPage(ctx, { resource, title, subtitle, filters, scop
     return field({ label, control });
   }));
   const result = el('div', { class: 'stack' }, loading());
+  const origin = originContext(ctx, { contractId: params.get('contrato'), noun: originNoun, controls, filters, entities });
   let cursor = null;
   let busy = false;
   let filled = false;
@@ -72,6 +103,7 @@ export async function ledgerPage(ctx, { resource, title, subtitle, filters, scop
         el('thead', {}, el('tr', {}, [...data.columns, ''].map((text) => el('th', { scope: 'col', text })))),
         el('tbody', {}, data.rows.map((row) => el('tr', {}, [...row.cells.map((text) => el('td', { text })), el('td', {}, button(data.detail_label || 'Detalhe', { size: 'sm', onClick: () => detail(row.id) }))])))
       ])) : emptyState(data.empty);
+      origin?.update();
       result.replaceChildren(...data.cards.map((c) => card({ title: c.title, body: [...lines(c.lines), ...lines(c.note ? [c.note] : [], 'muted small'), c.href ? el('a', { href: c.href, text: c.link }) : null, ...(manage ? c.actions || [] : []).map((form) => button(form.label, { size: 'sm', onClick: () => open(form) }))] })),
         table, ...(data.next ? [button('Próxima página', { onClick: () => { cursor = data.next; load(); } })] : []), ...(cursor ? [button('Primeira página', { onClick: reload })] : []));
     } catch (error) { result.replaceChildren(errorState({ error, onRetry: load })); }
@@ -89,7 +121,7 @@ export async function ledgerPage(ctx, { resource, title, subtitle, filters, scop
       dialog = drawer({ title: d.title, body, footer: buttons.length ? el('div', { class: 'actions' }, buttons) : null });
     } catch (e) { toast(e.message, 'error'); }
   }
-  const root = el('div', { class: 'stack portfolio' }, [card({ title: scope, body: [grid, button('Aplicar filtros', { onClick: reload })] }), result]);
+  const root = el('div', { class: 'stack portfolio' }, [origin?.node, card({ title: scope, body: [grid, button('Aplicar filtros', { onClick: reload })] }), result].filter(Boolean));
   await load();
   if (params.get('id')) await detail(params.get('id'));
   return root;

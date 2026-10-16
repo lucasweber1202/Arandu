@@ -173,6 +173,21 @@ test('pós-contrato: implantação → covenants → performance → spend → q
     await noOverflow(path);
   };
 
+  // Do contrato à implantação: a página diz de qual contrato a pessoa veio, que o
+  // recorte é por instituição (a API não filtra por contrato) e a devolve ao cartão.
+  await open('/finance/contracts.html', 'Contratos e renovações');
+  await page.getByRole('link', { name: 'Implantação com Lumina Pay' }).click();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Implantação pós-award');
+  const origin = page.getByRole('complementary', { name: 'Contrato de origem' });
+  await expect(origin).toContainText('com Lumina Pay');
+  await expect(origin).toContainText('Filtro aplicado: provedor Lumina Pay');
+  await expect(origin).toContainText('o Arandu ainda não filtra por contrato individual');
+  await expect(page.locator('#view')).toContainText('Migração da adquirência para a Lumina Pay');
+  await noOverflow('implantação vinda do contrato');
+  await origin.getByRole('link', { name: 'Voltar ao contrato' }).click();
+  await expect(page).toHaveURL(/\/finance\/contracts\.html#contract-/);
+  await expect(page.locator('.contract-card:focus')).toContainText('Lumina Pay');
+
   await open('/finance/implementations.html', 'Implantação pós-award');
   await expect(page.locator('#view')).toContainText('Migração da adquirência para a Lumina Pay');
   await expect(page.locator('#view')).toContainText('Bloqueada');
@@ -262,8 +277,18 @@ test('responsáveis de tarefa no backend real: reatribuir, deixar sem responsáv
   await carlos.goto('/finance/tasks.html');
   await expect(carlos.locator('.task-item', { hasText: 'Confirmar TAC' })).toContainText('Juliana Ramos');
   await expect(carlos.locator('select.task-assignee')).toHaveCount(0);
+  // Leitor também não recebe caixa de conclusão nem formulário de criação: o banco
+  // (fin_task_edit) ignora a alteração dele, e a API ainda responde 200 sem gravar.
+  await expect(carlos.locator('.task-item').getByRole('checkbox')).toHaveCount(0);
+  await expect(carlos.locator('#task-new')).toHaveCount(0);
+  await expect(carlos.locator('.task-readonly')).toBeVisible();
   const denied = await carlos.request.fetch('/api/finance/tasks', { method: 'PATCH', data: { organization_id: org, task_id: taskId, assignee_id: null }, headers: { Origin: new URL(baseURL).origin } });
   expect(denied.status()).toBe(403);
+  const ignored = await carlos.request.fetch('/api/finance/tasks', { method: 'PATCH', data: { organization_id: org, task_id: taskId, status: 'done' }, headers: { Origin: new URL(baseURL).origin } });
+  // Hoje 200 sem gravar (handoff ao Codex: 403/404). Seja qual for o código, nada muda.
+  expect([200, 403, 404]).toContain(ignored.status());
+  const reread = await (await page.request.get(`/api/finance/tasks?organization_id=${org}`)).json();
+  expect(reread.rows.find((t) => t.id === taskId)?.status).toBe('open');
   await viewer.close();
 
   // Outra organização (instituição financeira) não lê nem altera tarefas da empresa.

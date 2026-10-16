@@ -390,7 +390,7 @@ test('contrato leva à implantação e às obrigações da mesma instituição, 
   });
   await page.goto('/finance/contracts.html');
   const links = page.getByRole('navigation', { name: 'Pós-contratação com Banco Carteira' });
-  await expect(links.getByRole('link', { name: 'Covenants e obrigações com Banco Carteira' })).toHaveAttribute('href', /\/finance\/covenants\.html\?provider_id=00000000-0000-4000-8000-0000000000e1$/);
+  await expect(links.getByRole('link', { name: 'Covenants e obrigações com Banco Carteira' })).toHaveAttribute('href', /\/finance\/covenants\.html\?provider_id=00000000-0000-4000-8000-0000000000e1&contrato=00000000-0000-4000-8000-0000000000d1$/);
   await links.getByRole('link', { name: 'Implantação com Banco Carteira' }).click();
   await page.waitForURL(/\/finance\/implementations\.html\?provider_id=/);
   await expect.poll(() => requested.at(-1)?.get('provider_id')).toBe(PROVIDER);
@@ -413,8 +413,9 @@ const MEMBERS = [
   { user_id: '00000000-0000-4000-8000-0000000000f9', role: 'provider_user', display_name: 'Banco Externo' }
 ];
 /** Servidor de tarefas fiel ao contrato: idempotência por chave+payload, 403 a quem não gerencia, lista persistida. */
-async function taskServer(page, { viewerRole = 'finance_manager', viewer = U.paula, initial = [], failNextPost = 0 } = {}) {
-  const state = { tasks: initial.map((t) => ({ ...t })), posts: [], patches: [], keys: new Map(), failNextPost, holdPost: null };
+async function taskServer(page, { viewerRole = 'finance_manager', viewer = U.paula, initial = [], failNextPost = 0, ignoreStatusPatch = false } = {}) {
+  // ignoreStatusPatch: o PATCH responde 200 sem gravar, como o banco faz com linha fora do alcance de quem pede (RLS).
+  const state = { tasks: initial.map((t) => ({ ...t })), posts: [], patches: [], keys: new Map(), failNextPost, holdPost: null, ignoreStatusPatch };
   await page.route('**/api/finance/members**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, rows: MEMBERS.map((m) => (m.user_id === viewer ? { ...m, role: viewerRole } : m)), viewer_id: viewer }) }));
   await page.route('**/api/finance/tasks**', async (route) => {
     const request = route.request();
@@ -445,7 +446,7 @@ async function taskServer(page, { viewerRole = 'finance_manager', viewer = U.pau
       state.patches.push(body);
       const task = state.tasks.find((t) => t.id === body.task_id);
       if (Object.hasOwn(body, 'assignee_id') && !manager) return json({ ok: false, code: 'task_assignment_forbidden', error: 'Sua conta não tem permissão para atribuir esta tarefa.' }, 403);
-      if (Object.hasOwn(body, 'status')) task.status = body.status;
+      if (Object.hasOwn(body, 'status') && !state.ignoreStatusPatch) task.status = body.status;
       if (Object.hasOwn(body, 'assignee_id')) task.assignee_id = body.assignee_id;
       return json({ ok: true });
     }
@@ -604,4 +605,148 @@ test('painel: tarefa sem responsável não aparece como sua; a sua é marcada co
   await expect(page.locator('.action-row', { hasText: 'Tarefa sem dono vencida' })).toContainText('Sem responsável · Vencida');
   await expect(page.locator('.action-row', { hasText: 'Tarefa do Rui vencida' })).toHaveCount(0);
   await expect(page.locator('.mini-row', { hasText: 'Tarefa do Rui vencida' })).toContainText('Rui Tavares');
+});
+
+// ------------------------------------------- integridade das ações de tarefa (16/10)
+test('tarefas: PATCH 200 sem gravação não vira "Tarefa concluída"; a lista mostra o estado salvo', async ({ page }) => {
+  await mockSession(page);
+  // O banco ignora em silêncio a linha fora do alcance (RLS): a API responde 200 e nada muda.
+  const server = await taskServer(page, { viewerRole: 'analyst', viewer: U.rui, initial: [OPEN_TASK], ignoreStatusPatch: true });
+  await page.goto('/finance/tasks.html');
+  const row = page.locator(`#task-${OPEN_TASK.id}`);
+  await row.getByRole('checkbox', { name: `Concluir: ${OPEN_TASK.title}` }).click();
+  await expect(page.getByText('O servidor não registrou a alteração. A lista mostra o estado salvo.')).toBeVisible();
+  await expect(page.getByText('Tarefa concluída.')).toHaveCount(0);
+  expect(server.patches).toHaveLength(1);
+  await expect(page.locator(`#task-${OPEN_TASK.id}`).getByRole('checkbox')).not.toBeChecked();
+  await expect(page.locator(`#task-${OPEN_TASK.id}`).getByRole('checkbox')).toBeEnabled();
+  expect(server.tasks[0].status).toBe('open');
+});
+
+test('tarefas: recusa e falha de rede ao concluir explicam sem mensagem técnica e não marcam como concluída', async ({ page }) => {
+  await mockSession(page);
+  await taskServer(page, { viewerRole: 'analyst', viewer: U.rui, initial: [OPEN_TASK] });
+  let reply = 'gone';
+  await page.route('**/api/finance/tasks', (route) => {
+    if (route.request().method() !== 'PATCH') return route.fallback();
+    if (reply === 'offline') return route.abort('failed');
+    return route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ ok: false, code: 'task_not_found', error: 'fin_tasks row not found' }) });
+  });
+  await page.goto('/finance/tasks.html');
+  const box = () => page.locator(`#task-${OPEN_TASK.id}`).getByRole('checkbox');
+  await box().click();
+  await expect(page.getByText('Esta tarefa não está mais disponível para você. Nada mudou.')).toBeVisible();
+  await expect(page.locator('#view')).not.toContainText('fin_tasks');
+  await expect(box()).not.toBeChecked();
+  reply = 'offline';
+  await box().click();
+  await expect(page.getByText('Sem conexão com o servidor. Nada foi confirmado.')).toBeVisible();
+  await expect(box()).not.toBeChecked();
+  await expect(page.getByText('Tarefa concluída.')).toHaveCount(0);
+});
+
+test('tarefas: leitor acompanha sem caixa de conclusão nem formulário que o banco recusaria', async ({ page }) => {
+  await mockSession(page);
+  const server = await taskServer(page, { viewerRole: 'viewer', viewer: U.ana, initial: [OPEN_TASK, { ...OPEN_TASK, id: '00000000-0000-4000-8000-0000000000b8', title: 'Tarefa encerrada', status: 'done', assignee_id: U.rui }] });
+  await page.goto('/finance/tasks.html');
+  await expect(page.locator('#task-new')).toHaveCount(0);
+  await expect(page.locator('.task-readonly')).toContainText('criar, concluir e reabrir ficam com administradores, gestores financeiros e analistas');
+  await expect(page.locator(`#task-${OPEN_TASK.id}`)).toContainText('Aberta');
+  await expect(page.locator('.task-item').getByRole('checkbox')).toHaveCount(0);
+  await page.getByLabel('Mostrar tarefas').selectOption('concluidas');
+  await expect(page.locator('#task-00000000-0000-4000-8000-0000000000b8')).toContainText('Concluída');
+  await expect(page.locator('.task-item').getByRole('checkbox')).toHaveCount(0);
+  expect(server.patches).toHaveLength(0);
+  expect(server.posts).toHaveLength(0);
+  await noHorizontalOverflow(page);
+});
+
+test('painel: conclusão rápida só diz "concluída" depois de reler a tarefa; leitor não recebe a caixa', async ({ page }) => {
+  const task = { ...OPEN_TASK, due_on: '2099-01-10', related_type: null, related_id: null };
+  await mockSession(page, { tasks: [task] });
+  const server = await taskServer(page, { initial: [task], ignoreStatusPatch: true });
+  await page.goto('/finance/dashboard.html');
+  const row = page.locator('.mini-row', { hasText: OPEN_TASK.title });
+  await row.getByRole('checkbox', { name: `Concluir: ${OPEN_TASK.title}` }).click();
+  await expect(page.getByText('O servidor não registrou a conclusão. A tarefa continua aberta.')).toBeVisible();
+  await expect(page.getByText('Tarefa concluída.')).toHaveCount(0);
+  await expect(row).not.toHaveClass(/done/);
+  await expect(row.getByRole('checkbox')).not.toBeChecked();
+  server.ignoreStatusPatch = false;
+  await row.getByRole('checkbox').click();
+  await expect(page.getByText('Tarefa concluída.')).toBeVisible();
+  await expect(row).toHaveClass(/done/);
+  expect(server.tasks[0].status).toBe('done');
+});
+
+test('painel: leitor vê as tarefas sem caixa de conclusão', async ({ page }) => {
+  const task = { ...OPEN_TASK, due_on: '2099-01-10', related_type: null, related_id: null };
+  await mockSession(page, { tasks: [task] });
+  await taskServer(page, { viewerRole: 'viewer', viewer: U.ana, initial: [task] });
+  await page.goto('/finance/dashboard.html');
+  await expect(page.locator('.mini-row', { hasText: OPEN_TASK.title })).toBeVisible();
+  await expect(page.locator('.mini-row').getByRole('checkbox')).toHaveCount(0);
+});
+
+test('primeiros passos: leitor não recebe ações de gestão que o servidor recusaria', async ({ page }) => {
+  await mockSession(page, { contracts: [], providers: [] });
+  await taskServer(page, { viewerRole: 'viewer', viewer: U.ana });
+  await page.goto('/finance/dashboard.html');
+  const onboarding = page.locator('#buyer-onboarding');
+  await expect(onboarding).toContainText('fica com administradores e gestores financeiros');
+  await expect(onboarding.getByRole('link', { name: 'Contratos registrados' })).toBeVisible();
+  await expect(onboarding).toContainText('nenhum ainda');
+  await expect(page.locator('a[href*="new-rfq"], a[href*="acao=registrar-contrato"]')).toHaveCount(0);
+  await noHorizontalOverflow(page);
+});
+
+test('primeiros passos: gestor de empresa com contrato existente vê o passo cumprido e o próximo', async ({ page }) => {
+  await mockSession(page);
+  await page.goto('/finance/dashboard.html');
+  const onboarding = page.locator('#buyer-onboarding');
+  await expect(onboarding.locator('.onboarding-step.done')).toContainText(['Cadastre os provedores com quem fala', 'Registre um contrato que já existe']);
+  await expect(onboarding.getByRole('link', { name: 'Crie a primeira solicitação' })).toHaveAttribute('href', '/finance/new-rfq.html');
+});
+
+test('contrato → implantação: a página diz de qual contrato a pessoa veio, o recorte real e devolve ao contrato', async ({ page }) => {
+  await mockSession(page);
+  const requested = [];
+  await page.route('**/api/finance/implementations?**', (route) => {
+    requested.push(new URL(route.request().url()).searchParams);
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, cards: [], columns: ['Plano'], rows: [{ id: 'p1', cells: ['Implantação de outro contrato com o Banco Carteira'] }], empty: { title: 'Nenhum plano' }, options: {}, forms: [] }) });
+  });
+  await page.goto('/finance/contracts.html');
+  await page.getByRole('link', { name: 'Implantação com Banco Carteira' }).click();
+  const origin = page.getByRole('complementary', { name: 'Contrato de origem' });
+  await expect(origin).toContainText('Vindo do contrato: Crédito');
+  await expect(origin).toContainText('com Banco Carteira');
+  await expect(origin).toContainText('vence 31 de dez de 2027');
+  await expect(origin).toContainText('Filtro aplicado: provedor Banco Carteira');
+  await expect(origin).toContainText('pode incluir outros contratos com a mesma instituição; o Arandu ainda não filtra por contrato individual.');
+  // O parâmetro de origem não vai ao servidor: o recorte é só o que a API aplica.
+  await expect.poll(() => requested.at(-1)?.get('provider_id')).toBe(PROVIDER);
+  expect(requested.every((q) => !q.has('contrato') && !q.has('contract_id'))).toBe(true);
+  await expect(page.locator('#view')).not.toContainText(CONTRACT);
+  await noHorizontalOverflow(page);
+  // Sem o filtro de instituição, a página diz que mostra o escopo inteiro.
+  await page.getByLabel('Provedor').selectOption('');
+  await page.getByRole('button', { name: 'Aplicar filtros' }).click();
+  await expect(origin).toContainText('Sem filtro: a lista mostra planos de implantação de todo o seu escopo, não só deste contrato.');
+  await origin.getByRole('link', { name: 'Voltar ao contrato' }).click();
+  await expect(page).toHaveURL(new RegExp(`/finance/contracts\\.html#contract-${CONTRACT}$`));
+  await expect(page.locator(`#contract-${CONTRACT}`)).toBeFocused();
+});
+
+test('covenants: origem desconhecida ou malformada não expõe identificador nem inventa contrato', async ({ page }) => {
+  await mockSession(page);
+  await page.route('**/api/finance/covenants?**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, cards: [], columns: [], rows: [], empty: { title: 'Nenhuma obrigação' }, options: {}, forms: [] }) }));
+  const unknown = '00000000-0000-4000-8000-0000000000ff';
+  await page.goto(`/finance/covenants.html?provider_id=${PROVIDER}&contrato=${unknown}`);
+  const origin = page.getByRole('complementary', { name: 'Contrato de origem' });
+  await expect(origin).toContainText('contrato fora da lista carregada nesta sessão');
+  await expect(origin.getByRole('link', { name: 'Abrir contratos' })).toHaveAttribute('href', '/finance/contracts.html');
+  await expect(page.locator('#view')).not.toContainText(unknown);
+  await page.goto(`/finance/covenants.html?provider_id=${PROVIDER}&contrato=nao-e-um-id`);
+  await expect(page.getByText('Nenhuma obrigação')).toBeVisible();
+  await expect(page.locator('.origin-context')).toHaveCount(0);
 });
