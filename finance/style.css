@@ -1267,3 +1267,4 @@ textarea.mono{width:100%;max-width:100%;min-width:0}
 /* Chegada a partir de um contrato: origem, recorte real e caminho de volta. */
 .origin-context>div{display:flex;flex-direction:column;gap:var(--s1);min-width:0}
 .origin-context .contract-link{align-self:flex-start}
+.task-more{display:flex;justify-content:center;padding:var(--s3) 0}

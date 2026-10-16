@@ -415,13 +415,31 @@ const MEMBERS = [
 /** Servidor de tarefas fiel ao contrato: idempotência por chave+payload, 403 a quem não gerencia, lista persistida. */
 async function taskServer(page, { viewerRole = 'finance_manager', viewer = U.paula, initial = [], failNextPost = 0, ignoreStatusPatch = false } = {}) {
   // ignoreStatusPatch: o PATCH responde 200 sem gravar, como o banco faz com linha fora do alcance de quem pede (RLS).
-  const state = { tasks: initial.map((t) => ({ ...t })), posts: [], patches: [], keys: new Map(), failNextPost, holdPost: null, ignoreStatusPatch };
+  const state = { tasks: initial.map((t) => ({ ...t })), posts: [], patches: [], gets: [], keys: new Map(), failNextPost, holdPost: null, holdGet: null, ignoreStatusPatch };
   await page.route('**/api/finance/members**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, rows: MEMBERS.map((m) => (m.user_id === viewer ? { ...m, role: viewerRole } : m)), viewer_id: viewer }) }));
   await page.route('**/api/finance/tasks**', async (route) => {
     const request = route.request();
     const json = (payload, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(payload) });
     const named = (t) => ({ ...t, assignee_name: t.assignee_id ? MEMBERS.find((m) => m.user_id === t.assignee_id)?.display_name || null : null });
-    if (request.method() === 'GET') return json({ ok: true, rows: state.tasks.map(named) });
+    if (request.method() === 'GET') {
+      // Contrato da #206: status/assignee_id/unassigned/limit/cursor, ordem estável, sem total global.
+      state.gets.push(Object.fromEntries(new URL(request.url()).searchParams));
+      if (state.holdGet) await state.holdGet;
+      const q = new URL(request.url()).searchParams;
+      let rows = state.tasks.filter((t) => (!q.get('status') || t.status === q.get('status'))
+        && (!q.get('assignee_id') || t.assignee_id === q.get('assignee_id')) && (q.get('unassigned') !== 'true' || !t.assignee_id));
+      rows = rows.sort((a, b) => String(a.due_on || '9999').localeCompare(String(b.due_on || '9999')) || a.id.localeCompare(b.id));
+      let start = 0;
+      if (q.has('cursor')) {
+        const at = rows.findIndex((t) => Buffer.from(t.id).toString('base64url') === q.get('cursor'));
+        if (at < 0) return json({ ok: false, code: 'invalid_task_cursor', error: 'Cursor de tarefas inválido.' }, 400);
+        start = at + 1;
+      }
+      const limit = Number(q.get('limit') || 200);
+      const page = rows.slice(start, start + limit);
+      const hasMore = rows.length > start + limit;
+      return json({ ok: true, rows: page.map(named), page: { limit, has_more: hasMore, next_cursor: hasMore ? Buffer.from(page.at(-1).id).toString('base64url') : null } });
+    }
     const body = request.postDataJSON();
     const manager = ['admin', 'finance_manager'].includes(viewerRole);
     if (request.method() === 'POST') {
@@ -446,7 +464,9 @@ async function taskServer(page, { viewerRole = 'finance_manager', viewer = U.pau
       state.patches.push(body);
       const task = state.tasks.find((t) => t.id === body.task_id);
       if (Object.hasOwn(body, 'assignee_id') && !manager) return json({ ok: false, code: 'task_assignment_forbidden', error: 'Sua conta não tem permissão para atribuir esta tarefa.' }, 403);
-      if (Object.hasOwn(body, 'status') && !state.ignoreStatusPatch) task.status = body.status;
+      // Contrato atual (#206): linha não alterada (RLS, ausente) → 404, nunca 200.
+      if (!task || (Object.hasOwn(body, 'status') && state.ignoreStatusPatch)) return json({ ok: false, code: 'not_found', error: 'Tarefa não encontrada ou sem acesso para esta conta.' }, 404);
+      if (Object.hasOwn(body, 'status')) task.status = body.status;
       if (Object.hasOwn(body, 'assignee_id')) task.assignee_id = body.assignee_id;
       return json({ ok: true });
     }
@@ -572,7 +592,7 @@ test('tarefas: analista cria sem responsável e vê quem responde, sem controle 
   expect(server.posts[0]).not.toHaveProperty('assignee_id');
 });
 
-test('tarefas: filtros de apresentação sobre o recorte carregado, com contagem honesta e reload preservado', async ({ page }) => {
+test('tarefas: filtros consultam o servidor, com contagem honesta do que foi carregado e reload preservado', async ({ page }) => {
   await mockSession(page);
   await taskServer(page, { initial: [
     { ...OPEN_TASK, id: '00000000-0000-4000-8000-0000000000c1', title: 'Minha tarefa', assignee_id: U.paula },
@@ -583,7 +603,7 @@ test('tarefas: filtros de apresentação sobre o recorte carregado, com contagem
   await page.goto('/finance/tasks.html?filtro=minhas');
   await expect(page.getByLabel('Mostrar tarefas')).toHaveValue('minhas');
   await expect(page.locator('.task-item')).toHaveText([/Minha tarefa/]);
-  await expect(page.locator('.task-toolbar [role=status]')).toHaveText('1 de 4 tarefas carregadas');
+  await expect(page.locator('.task-toolbar [role=status]')).toHaveText('1 tarefa carregada · todas deste filtro');
   await page.getByLabel('Mostrar tarefas').selectOption('sem-responsavel');
   await expect(page.locator('.task-item')).toHaveText([/Tarefa órfã/]);
   await page.getByLabel('Mostrar tarefas').selectOption('abertas');
@@ -608,18 +628,16 @@ test('painel: tarefa sem responsável não aparece como sua; a sua é marcada co
 });
 
 // ------------------------------------------- integridade das ações de tarefa (16/10)
-test('tarefas: PATCH 200 sem gravação não vira "Tarefa concluída"; a lista mostra o estado salvo', async ({ page }) => {
+test('tarefas: PATCH recusado (404, linha não alterada) não vira "Tarefa concluída"; a lista mostra o estado salvo', async ({ page }) => {
   await mockSession(page);
-  // O banco ignora em silêncio a linha fora do alcance (RLS): a API responde 200 e nada muda.
   const server = await taskServer(page, { viewerRole: 'analyst', viewer: U.rui, initial: [OPEN_TASK], ignoreStatusPatch: true });
   await page.goto('/finance/tasks.html');
   const row = page.locator(`#task-${OPEN_TASK.id}`);
   await row.getByRole('checkbox', { name: `Concluir: ${OPEN_TASK.title}` }).click();
-  await expect(page.getByText('O servidor não registrou a alteração. A lista mostra o estado salvo.')).toBeVisible();
+  await expect(page.getByText('Esta tarefa não está mais disponível para você. Nada mudou.')).toBeVisible();
   await expect(page.getByText('Tarefa concluída.')).toHaveCount(0);
   expect(server.patches).toHaveLength(1);
   await expect(page.locator(`#task-${OPEN_TASK.id}`).getByRole('checkbox')).not.toBeChecked();
-  await expect(page.locator(`#task-${OPEN_TASK.id}`).getByRole('checkbox')).toBeEnabled();
   expect(server.tasks[0].status).toBe('open');
 });
 
@@ -668,7 +686,7 @@ test('painel: conclusão rápida só diz "concluída" depois de reler a tarefa; 
   await page.goto('/finance/dashboard.html');
   const row = page.locator('.mini-row', { hasText: OPEN_TASK.title });
   await row.getByRole('checkbox', { name: `Concluir: ${OPEN_TASK.title}` }).click();
-  await expect(page.getByText('O servidor não registrou a conclusão. A tarefa continua aberta.')).toBeVisible();
+  await expect(page.getByText('Esta tarefa não está mais disponível para você. Nada mudou.')).toBeVisible();
   await expect(page.getByText('Tarefa concluída.')).toHaveCount(0);
   await expect(row).not.toHaveClass(/done/);
   await expect(row.getByRole('checkbox')).not.toBeChecked();
@@ -749,4 +767,90 @@ test('covenants: origem desconhecida ou malformada não expõe identificador nem
   await page.goto(`/finance/covenants.html?provider_id=${PROVIDER}&contrato=nao-e-um-id`);
   await expect(page.getByText('Nenhuma obrigação')).toBeVisible();
   await expect(page.locator('.origin-context')).toHaveCount(0);
+});
+
+// ------------------------------------------- tarefas com paginação do servidor (#206)
+const many = (n, extra = {}) => Array.from({ length: n }, (_, i) => ({ ...OPEN_TASK, related_type: null, related_id: null,
+  id: `00000000-0000-4000-8000-${String(1000 + i).padStart(12, '0')}`, title: `Tarefa sintética ${String(i + 1).padStart(3, '0')}`, due_on: `2027-${String(1 + (i % 12)).padStart(2, '0')}-${String(1 + (i % 28)).padStart(2, '0')}`, ...extra }));
+
+test('tarefas: mais de 200 abertas — páginas pelo cursor do servidor, sem total inventado nem duplicata, filtro preservado', async ({ page }) => {
+  await mockSession(page);
+  const server = await taskServer(page, { initial: [...many(230), ...many(3, { status: 'done' }).map((t, i) => ({ ...t, id: `00000000-0000-4000-8000-${String(9000 + i).padStart(12, '0')}` }))] });
+  await page.goto('/finance/tasks.html');
+  const note = page.locator('.task-toolbar [role=status]');
+  await expect(note).toHaveText('50 tarefas carregadas · há mais neste filtro');
+  expect(server.gets.at(-1)).toMatchObject({ status: 'open', limit: '50' });
+  for (const expected of [100, 150, 200]) {
+    await page.getByRole('button', { name: 'Carregar mais tarefas' }).click();
+    await expect(note).toHaveText(`${expected} tarefas carregadas · há mais neste filtro`);
+  }
+  await page.getByRole('button', { name: 'Carregar mais tarefas' }).click();
+  await expect(note).toHaveText('230 tarefas carregadas · todas deste filtro');
+  await expect(page.getByRole('button', { name: 'Carregar mais tarefas' })).toBeHidden();
+  const ids = await page.locator('.task-item').evaluateAll((nodes) => nodes.map((n) => n.id));
+  expect(new Set(ids).size).toBe(230);
+  // Cada página repete o mesmo filtro; nenhuma concluída se mistura às abertas.
+  expect(server.gets.every((q) => q.status === 'open')).toBe(true);
+  expect(ids.some((id) => id.includes('000000009'))).toBe(false);
+  await page.getByLabel('Mostrar tarefas').selectOption('concluidas');
+  await expect(note).toHaveText('3 tarefas carregadas · todas deste filtro');
+  expect(server.gets.at(-1)).toMatchObject({ status: 'done' });
+  expect(server.gets.at(-1)).not.toHaveProperty('cursor');
+  await noHorizontalOverflow(page);
+});
+
+test('tarefas: resposta de um filtro anterior que chega atrasada é descartada', async ({ page }) => {
+  await mockSession(page);
+  const server = await taskServer(page, { initial: [...many(5), ...many(2, { assignee_id: U.paula }).map((t, i) => ({ ...t, id: `00000000-0000-4000-8000-${String(8000 + i).padStart(12, '0')}`, title: `Minha ${i + 1}` }))] });
+  await page.goto('/finance/tasks.html');
+  await expect(page.locator('.task-item')).toHaveCount(7);
+  let release;
+  server.holdGet = new Promise((resolve) => { release = resolve; });
+  await page.getByLabel('Mostrar tarefas').selectOption('sem-responsavel');
+  await expect.poll(() => server.gets.length).toBe(2);
+  server.holdGet = null;
+  await page.getByLabel('Mostrar tarefas').selectOption('minhas');
+  await expect(page.locator('.task-item')).toHaveText([/Minha 1/, /Minha 2/]);
+  release();
+  await page.waitForTimeout(300);
+  await expect(page.locator('.task-item')).toHaveText([/Minha 1/, /Minha 2/]);
+  expect(server.gets.at(-1)).toMatchObject({ status: 'open', assignee_id: U.paula });
+});
+
+test('tarefas: cursor recusado recarrega do início; falha de rede em "carregar mais" mantém o que já estava na tela', async ({ page }) => {
+  await mockSession(page);
+  const server = await taskServer(page, { initial: many(60) });
+  await page.goto('/finance/tasks.html');
+  await expect(page.locator('.task-item')).toHaveCount(50);
+  let mode = 'offline';
+  await page.route('**/api/finance/tasks?**', (route) => {
+    const q = new URL(route.request().url()).searchParams;
+    if (!q.has('cursor')) return route.fallback();
+    if (mode === 'offline') return route.abort('failed');
+    return route.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ ok: false, code: 'invalid_task_cursor', error: 'Cursor de tarefas inválido.' }) });
+  });
+  await page.getByRole('button', { name: 'Carregar mais tarefas' }).click();
+  await expect(page.getByText('Não foi possível carregar mais tarefas. As já exibidas continuam como estavam.')).toBeVisible();
+  await expect(page.locator('.task-item')).toHaveCount(50);
+  mode = 'invalid';
+  await page.getByRole('button', { name: 'Carregar mais tarefas' }).click();
+  await expect(page.getByText('A lista mudou desde a última página. Recarregamos do início.')).toBeVisible();
+  await expect(page.locator('.task-item')).toHaveCount(50);
+  await expect(page.locator('#view')).not.toContainText('invalid_task_cursor');
+  expect(server.tasks).toHaveLength(60);
+});
+
+test('tarefas: concluir na segunda página relê o filtro e a tarefa sai das abertas, sem repetir linhas', async ({ page }) => {
+  await mockSession(page);
+  const server = await taskServer(page, { initial: many(55) });
+  await page.goto('/finance/tasks.html');
+  await page.getByRole('button', { name: 'Carregar mais tarefas' }).click();
+  await expect(page.locator('.task-item')).toHaveCount(55);
+  const last = page.locator('.task-item').last();
+  const title = await last.locator('.task-title').innerText();
+  await last.getByRole('checkbox').click();
+  await expect(page.getByText('Tarefa concluída.')).toBeVisible();
+  await expect(page.locator('.task-item', { hasText: title })).toHaveCount(0);
+  await expect(page.locator('.task-toolbar [role=status]')).toHaveText('50 tarefas carregadas · há mais neste filtro');
+  expect(server.tasks.filter((t) => t.status === 'done')).toHaveLength(1);
 });

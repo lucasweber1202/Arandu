@@ -226,14 +226,12 @@ export async function dashboard(ctx) {
       row.setAttribute('aria-busy', 'true');
       try {
         await ctx.api('tasks', { method: 'PATCH', body: JSON.stringify({ organization_id: ctx.organization.id, task_id: task.id, status: 'done' }) });
-        // 200 não prova a gravação (o banco ignora linha fora do alcance): relê antes de dizer "concluída".
-        const { rows } = await ctx.api(`tasks?organization_id=${encodeURIComponent(ctx.organization.id)}`);
-        if ((rows || []).find((item) => item.id === task.id)?.status !== 'done') throw Object.assign(new Error('not_applied'), { notApplied: true });
+        // Desde #206 o 200 confirma a linha gravada; sem alteração a API devolve 404 (tratado abaixo).
         row.classList.add('done');
         toast('Tarefa concluída.');
       } catch (error) {
         check.checked = false; check.disabled = false;
-        toast(error.notApplied ? 'O servidor não registrou a conclusão. A tarefa continua aberta.' : taskChangeError(error), 'error');
+        toast(taskChangeError(error), 'error');
       } finally { row.removeAttribute('aria-busy'); }
     });
     const row = el('li', { class: 'mini-row task-row' }, [check || el('span', { class: 'mini-icon tone-neutral' }, icon('tasks', { size: 14 })), el('div', { class: 'mini-main' }, [
