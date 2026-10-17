@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { Readable } from 'node:stream';
 import { handleFinance, withRenewalWindow } from '../lib/api/domains/finance.mjs';
-import { UPSTREAM_MESSAGES } from '../lib/api/domains/finance-core.mjs';
+import { UPSTREAM_MESSAGES, upstream } from '../lib/api/domains/finance-core.mjs';
 import { readFileSync } from 'node:fs';
 import { createDocumentStorage, downloadName, signedUrlTtl } from '../lib/finance/document-storage.mjs';
 import { createOpsMfa } from '../lib/finance/ops-access.mjs';
@@ -12,6 +12,11 @@ import { createOpsMfa } from '../lib/finance/ops-access.mjs';
 process.env.SUPABASE_URL = 'https://supabase.example.invalid';
 process.env.SUPABASE_ANON_KEY = 'test-anon-key';
 delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+// Schema antigo deve ser diagnosticável, sem expor RPC, SQL ou dados do erro.
+await assert.rejects(upstream(Promise.reject(Object.assign(new Error('private RPC signature'), {
+  status: 404, details: { code: 'PGRST202', message: 'private RPC signature' }
+}))), (error) => error.status === 503 && error.code === 'schema_incompatible' && !error.message.includes('RPC'));
 
 const BUYER = '00000000-0000-4000-8000-0000000000b1';
 const PROVIDER_ORG = '00000000-0000-4000-8000-0000000000c1';
@@ -653,8 +658,12 @@ assert.equal(sent.length, 0);
 
 // --------------------------------- visão do provedor não vaza concorrente
 
+let missingBuyerRpc = false;
 reset((entry) => {
-  if (entry.url.includes('rpc/fin_assignment_buyer_names')) return [{ rfq_id: RFQ, buyer_name: 'Compradora sintética' }];
+  if (entry.url.includes('rpc/fin_assignment_buyer_names')) {
+    if (missingBuyerRpc) throw Object.assign(new Error('private missing function'), { status: 404, details: { code: 'PGRST202' } });
+    return [{ rfq_id: RFQ, buyer_name: 'Compradora sintética' }];
+  }
   if (entry.url.includes('fin_organizations')) return orgRow(PROVIDER_ORG, 'PROVIDER');
   if (entry.url.includes('fin_proposal_versions')) return [{ proposal_id: PROPOSAL, version: 1, terms: { institution: 'Meu Banco' }, submitted_at: '2026-01-01T00:00:00Z', rfq_revision: 2 }];
   if (entry.url.includes('fin_proposals')) return [{ id: PROPOSAL, rfq_id: RFQ, product: 'credit', status: 'submitted', current_version: 1 }];
@@ -686,6 +695,10 @@ reset((entry) => {
   assert.match(proposalQuery.url, new RegExp(`provider_organization_id=eq.${PROVIDER_ORG}`));
   assert.equal(row.has_draft, false, 'sem rascunho salvo');
 }
+missingBuyerRpc = true;
+await assert.rejects(call('GET', 'assignments', { url: `/api/finance/assignments?organization_id=${PROVIDER_ORG}` }),
+  error => error.status === 503 && error.code === 'schema_incompatible');
+assert(sent.every(entry => entry.authorization === 'Bearer user-jwt' && entry.apikey === 'test-anon-key'), 'schema antigo não ativa fallback privilegiado');
 // Rascunho salvo e não enviado vira "Continuar" no portal; a leitura usa o token do provedor (RLS).
 // Cada versão enviada conserva suas próprias condições e revisão de origem.
 // Uma versão extra fora dos IDs solicitados jamais entra na resposta.
