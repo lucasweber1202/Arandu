@@ -77,7 +77,7 @@ export async function providerHome(ctx) {
     const state = assignmentState(next);
     hero = { title: state.key === 'outdated' ? `Revise sua proposta: ${next.title}` : `Responda: ${next.title}`,
       text: state.key === 'outdated' ? `A empresa publicou a revisão ${next.rfq_revision}. Sua proposta responde à revisão ${next.submitted_rfq_revision}.`
-        : `${next.buyer_name || 'Empresa'} · prazo ${relativeDays(next.response_deadline) || 'não definido'}${next.has_draft ? ' · rascunho salvo' : ''}`,
+        : [next.buyer_name, `${next.buyer_name ? 'prazo' : 'Prazo'} ${relativeDays(next.response_deadline) || 'não definido'}`, next.has_draft ? 'rascunho salvo' : null].filter(Boolean).join(' · '),
       action: linkButton(state.key === 'outdated' ? 'Revisar proposta' : next.has_draft ? 'Continuar resposta' : 'Responder agora', proposalHref(ctx, next), { variant: 'primary', iconName: 'arrowRight' }) };
   } else {
     hero = { title: rows.length ? 'Nada pendente agora' : 'Nenhuma oportunidade ainda', text: rows.length ? 'Suas propostas foram enviadas. Você será avisado se a empresa revisar a solicitação ou comentar.' : 'Quando uma empresa convidar a sua instituição, a oportunidade aparece aqui.', action: null };
@@ -248,7 +248,7 @@ export async function providerProposal(ctx) {
       if (dirty) return;
       for (const [key, value] of Object.entries(draft.terms || {})) {
         const input = form.elements.namedItem(key);
-        if (input && value !== null && value !== undefined) input.value = String(value);
+        if (input && value !== null && value !== undefined) { input.value = String(value); input.dispatchEvent(new Event('field:sync')); }
       }
       updateCompletion();
       indicator.set('saved', `Rascunho recuperado (salvo ${formatDateTime(draft.updated_at)})`);

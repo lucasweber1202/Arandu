@@ -341,6 +341,14 @@ function comparisonTab(ctx, rfq, decision = null) {
   };
   if (ctx.mode === 'demo') matrix.replaceChildren(comparisonMatrix(rfq, proposals));
   else load();
+  // Coleta aberta: a matriz é parcial. Diz quantas convidadas responderam, sem
+  // tratar quem ainda não enviou como pior nem antecipar o resultado.
+  if (['open', 'collecting'].includes(rfq.status)) {
+    const invited = new Set([...(rfq.invites || []).filter((invite) => ['invited', 'accepted'].includes(invite.status)).map((invite) => invite.provider_id), ...proposals.map((proposal) => proposal.provider_id)]);
+    const answered = new Set(proposals.map((proposal) => proposal.provider_id)).size;
+    wrap.append(el('p', { class: 'callout callout-info compact', id: 'comparison-partial', role: 'note' }, [icon('info', { size: 14 }), el('span', { text:
+      `Coleta em andamento: ${answered} de ${invited.size} ${invited.size === 1 ? 'instituição convidada enviou' : 'instituições convidadas enviaram'} proposta. Respostas ainda podem chegar ou ganhar nova versão até o encerramento da coleta${answered === 1 ? '; com uma só proposta não há comparação lado a lado' : ''}.` })]));
+  }
   wrap.append(matrix);
   // Processo já decidido: a conta abre com os pesos que a empresa registrou na decisão.
   const recorded = ctx.weights[rfq.id] ? null : decision?.criteria?.weights;

@@ -86,9 +86,13 @@ export function actionItems(ctx, approvals) {
     }
   }
   const contractsById = new Map((data.contracts || []).map((row) => [row.id, row]));
+  // Leitor não conclui nem assume tarefa (fin_task_edit): tarefa sem responsável não é
+  // "precisa de você" para ele. Só a que foi atribuída a ele aparece aqui.
+  const worksTasks = TASK_EDITORS.includes(ctx.viewer?.role);
   for (const task of data.tasks || []) {
     const days = daysUntil(task.due_on);
     if (task.assignee_id && task.assignee_id !== viewer) continue;
+    if (!task.assignee_id && !worksTasks) continue;
     // Tarefa de contrato diz de qual contrato é: "Obrigação: Dívida líquida"
     // sozinha não dizia com qual instituição.
     const contract = task.related_type === 'contract' ? contractsById.get(task.related_id) : null;

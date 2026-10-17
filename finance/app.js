@@ -269,7 +269,9 @@ function counts(ctx) {
   const rfqs = ctx.data.rfqs || [];
   const contractsInWindow = (ctx.data.contracts || []).filter((row) => row.status === 'active' && needsRenewalAttention(row)).length;
   return { rfqs: rfqs.filter((rfq) => ['open', 'collecting', 'comparing'].includes(rfq.status)).length || null, contracts: contractsInWindow || null,
-    tasks: (ctx.data.tasks || []).filter((task) => !task.assignee_id || task.assignee_id === ctx.viewer?.id).length || null };
+    // Fila de quem lê: atribuídas a ela e, para quem pode concluir (mesma regra de
+    // TASK_EDITORS/fin_task_edit), as sem responsável. Leitor não recebe pendência que não executa.
+    tasks: (ctx.data.tasks || []).filter((task) => task.assignee_id === ctx.viewer?.id || (!task.assignee_id && ['admin', 'finance_manager', 'analyst'].includes(ctx.viewer?.role))).length || null };
 }
 
 // ------------------------------------------------------------ estados

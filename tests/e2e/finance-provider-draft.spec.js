@@ -124,3 +124,88 @@ test('histórico do provedor: condições de cada versão enviada, mudanças leg
   await expect(history).not.toContainText(/\{|\bpre\b|\bcdi\b|null|undefined|NaN/);
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
 });
+
+// Envio da proposta pelo portal, no formato real da API (POST proposals → versão).
+// Nada aparece como enviado antes da resposta confirmada; a recarga mostra a versão.
+async function sendServer(page, { fail = null } = {}) {
+  const state = { assignment: { ...ASSIGNMENT, history: [] }, posts: [] };
+  await mockProvider(page, { assignment: state.assignment });
+  await page.route('**/api/finance/assignments**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, rows: [state.assignment] }) }));
+  await page.route('**/api/finance/proposals', async (route) => {
+    const body = route.request().postDataJSON();
+    state.posts.push(body);
+    if (fail) return route.fulfill({ status: fail.status, contentType: 'application/json', body: JSON.stringify({ ok: false, code: fail.code, error: fail.error }) });
+    const version = (state.assignment.version || 0) + 1;
+    state.assignment = { ...state.assignment, version, terms: body.terms, submitted_rfq_revision: 1,
+      history: [{ version, submitted_at: '2026-10-17T15:00:00Z', note: body.note, rfq_revision: 1, terms: body.terms }, ...state.assignment.history] };
+    return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ ok: true, version }) });
+  });
+  return state;
+}
+
+test('envio da proposta: obrigatórios validados, valor por extenso, resumo antes de enviar e versão após recarregar', async ({ page }) => {
+  const server = await sendServer(page);
+  await page.goto(`/provider/proposal.html?proposal=${PROPOSAL}`);
+  const form = page.locator('#proposal-form');
+  await form.getByRole('button', { name: 'Revisar e enviar proposta' }).click();
+  await expect(form.getByText('Obrigatório para enviar.').first()).toBeVisible();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  expect(server.posts).toHaveLength(0);
+  await form.getByLabel('Produto ofertado').fill('Giro safra');
+  await form.getByLabel('Valor ofertado (R$)').fill('5000000');
+  // Leitura por extenso evita erro de casa decimal; associada ao campo para leitor de tela.
+  const amount = form.getByLabel('Valor ofertado (R$)');
+  await expect(form.locator('.field-readout').first()).toHaveText('= R$ 5.000.000');
+  await expect(amount).toHaveAttribute('aria-describedby', /-readout/);
+  await form.getByLabel('Taxa (% a.m.)').fill('1.29');
+  await form.getByLabel('Prazo (meses)').fill('12');
+  await expect(form.locator('.completion')).toContainText('Campos obrigatórios completos');
+  await form.getByRole('button', { name: 'Revisar e enviar proposta' }).click();
+  const confirm = page.getByRole('dialog', { name: 'Enviar proposta?' });
+  await expect(confirm).toContainText('R$ 5.000.000');
+  await expect(confirm).toContainText('1,29%');
+  // Cancelar não envia nada.
+  await confirm.getByRole('button', { name: 'Cancelar' }).click();
+  expect(server.posts).toHaveLength(0);
+  await form.getByRole('button', { name: 'Revisar e enviar proposta' }).click();
+  await page.getByRole('dialog', { name: 'Enviar proposta?' }).getByRole('button', { name: 'Enviar proposta' }).click();
+  await expect(page.getByText('Proposta enviada como versão 1.')).toBeVisible();
+  await expect(page.locator('.proposal-status')).toContainText('Proposta enviada · versão 1');
+  expect(server.posts).toHaveLength(1);
+  expect(server.posts[0]).toMatchObject({ proposal_id: PROPOSAL, terms: { offered_amount: '5000000', interest_rate_month: '1.29', term_months: '12', product_name: 'Giro safra' } });
+  await expect(page.locator('#versao-1')).toBeVisible();
+});
+
+test('envio recusado pelo servidor: nada aparece como enviado, botão volta e o motivo é dito', async ({ page }) => {
+  const server = await sendServer(page, { fail: { status: 409, code: 'rfq_not_collecting', error: 'A coleta desta solicitação foi encerrada. A proposta não foi enviada.' } });
+  await page.goto(`/provider/proposal.html?proposal=${PROPOSAL}`);
+  const form = page.locator('#proposal-form');
+  await form.getByLabel('Produto ofertado').fill('Giro safra');
+  await form.getByLabel('Valor ofertado (R$)').fill('5000000');
+  await form.getByLabel('Taxa (% a.m.)').fill('1.29');
+  await form.getByLabel('Prazo (meses)').fill('12');
+  await form.getByRole('button', { name: 'Revisar e enviar proposta' }).click();
+  await page.getByRole('dialog', { name: 'Enviar proposta?' }).getByRole('button', { name: 'Enviar proposta' }).click();
+  await expect(page.getByText('A coleta desta solicitação foi encerrada. A proposta não foi enviada.')).toBeVisible();
+  expect(server.posts).toHaveLength(1);
+  await expect(page.locator('.proposal-status')).toContainText('Rascunho — ainda não enviado.');
+  await expect(form.getByRole('button', { name: 'Revisar e enviar proposta' })).toBeEnabled();
+  await expect(form.getByLabel('Valor ofertado (R$)')).toHaveValue('5000000');
+});
+
+test('link de proposta de outra instituição: "Proposta não encontrada", sem dado da solicitação', async ({ page }) => {
+  await mockProvider(page);
+  await page.goto('/provider/proposal.html?proposal=00000000-0000-4000-8000-0000000000ff');
+  await expect(page.locator('.empty-title')).toHaveText('Proposta não encontrada');
+  await expect(page.locator('main')).toContainText('Este link não pertence à sua instituição');
+  await expect(page.locator('main')).not.toContainText('Capital de giro 2027');
+  await expect(page.locator('#proposal-form')).toHaveCount(0);
+});
+
+test('comprador sem nome na resposta: o portal não inventa "Empresa"', async ({ page }) => {
+  const { buyer_name: _omitted, ...withoutBuyer } = ASSIGNMENT;
+  await mockProvider(page, { assignment: withoutBuyer });
+  await page.goto('/provider/index.html');
+  await expect(page.locator('#provider-status')).toContainText('Responda: Capital de giro 2027');
+  await expect(page.locator('#provider-status .next-hero-text')).toHaveText(/^Prazo /);
+});

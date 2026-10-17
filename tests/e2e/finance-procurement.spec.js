@@ -492,6 +492,62 @@ test('comparação financeira: filtros, versões, origem e moedas incompatíveis
   await page.screenshot({ path: `reports/financial-visual/comparison-context-${Math.round((await page.viewportSize()).width)}.png`, fullPage: true });
 });
 
+test('comparação com coleta aberta: diz quantas convidadas responderam, sem tratar ausência como pior', async ({ page }) => {
+  const data = overview();
+  const rfq = data.rfqs[0];
+  rfq.status = 'collecting';
+  rfq.proposals = [rfq.proposals[0]];
+  rfq.invites = [{ provider_id: 'x1', provider_name: 'Banco Um', status: 'accepted' }, { provider_id: 'x2', provider_name: 'Banco Dois', status: 'accepted' },
+    { provider_id: 'x3', provider_name: 'Banco Três', status: 'revoked' }];
+  await mockSession(page, { data });
+  await page.goto(`/finance/rfq.html?id=${RFQ}`);
+  await page.getByRole('tab', { name: 'Comparação' }).click();
+  const note = page.locator('#comparison-partial');
+  // Convite revogado não conta como "aguardando"; a proposta recebida conta uma vez.
+  await expect(note).toContainText('Coleta em andamento: 1 de 2 instituições convidadas enviaram proposta');
+  await expect(note).toContainText('com uma só proposta não há comparação lado a lado');
+  await expect(page.locator('.comparison')).not.toContainText('Banco Dois');
+  await expect(page.locator('.comparison .best')).toHaveCount(0);
+  // Avaliação (coleta encerrada) não mostra o aviso.
+  rfq.status = 'comparing';
+  await page.reload();
+  await page.getByRole('tab', { name: 'Comparação' }).click();
+  await expect(page.locator('.comparison')).toBeVisible();
+  await expect(page.locator('#comparison-partial')).toHaveCount(0);
+});
+
+test('leitor: conversa do processo em leitura, sem formulário que o banco recusaria', async ({ page }) => {
+  await mockSession(page, { viewerRole: 'viewer' });
+  await page.goto(`/finance/rfq.html?id=${RFQ}`);
+  await page.getByRole('tab', { name: 'Atividade' }).click();
+  await expect(page.locator('#comment-readonly')).toContainText('Seu papel lê os comentários deste processo');
+  await expect(page.getByLabel('Comentário', { exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Publicar comentário' })).toHaveCount(0);
+});
+
+test('gestão financeira: conversa do processo com formulário', async ({ page }) => {
+  await mockSession(page);
+  await page.goto(`/finance/rfq.html?id=${RFQ}`);
+  await page.getByRole('tab', { name: 'Atividade' }).click();
+  await expect(page.getByLabel('Comentário', { exact: true })).toBeVisible();
+  await expect(page.locator('#comment-readonly')).toHaveCount(0);
+});
+
+test('configurações: "Seu acesso" diz papel, organização, o que pode e o que fica com outros papéis', async ({ page }) => {
+  await mockSession(page, { viewerRole: 'viewer' });
+  await page.goto('/finance/settings.html');
+  const access = page.locator('#acesso');
+  await expect(access).toContainText('Leitura e aprovação em Empresa de teste');
+  await expect(access.locator('#access-scope')).toContainText('Aprovar ou pedir alterações quando for aprovador designado');
+  await expect(access.locator('#access-scope')).toContainText('Concluir, criar ou atribuir tarefas');
+  await expect(access).toContainText('Peça a um administrador');
+  // Campo que o papel não altera parece desabilitado (não só para o leitor de tela).
+  const trade = page.locator('#organization-form input[name=trade_name]');
+  await expect(trade).toBeDisabled();
+  expect(await trade.evaluate((node) => getComputedStyle(node).backgroundColor)).not.toBe('rgb(255, 255, 255)');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+});
+
 test('comparação indisponível recusa cálculo local silencioso e oferece repetição', async ({ page }) => {
   await mockSession(page);
   await page.route('**/api/finance/comparison', route => route.fulfill({ status: 403, contentType: 'application/json', body: JSON.stringify({ ok: false, error: 'Acesso não autorizado.' }) }));

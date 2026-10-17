@@ -415,6 +415,9 @@ export function collaboration(ctx, rfq, { provider = false } = {}) {
   const thread = el('div', { class: 'thread', 'aria-live': 'polite' }, loading('Carregando comentários…'));
   const members = ctx.members || [];
   const names = new Set(members.map((member) => member.display_name).filter(Boolean));
+  // Mesma regra de fin_post_comment: na empresa, comentam administração, gestão e
+  // análise; leitor lê. Sem isso o leitor via um formulário que o banco recusa.
+  const canComment = provider || COMMENT_ROLES.includes(ctx.viewer?.role);
 
   const composer = (parent = null) => {
     const form = el('form', { class: `composer${parent ? ' composer-reply' : ''}`, novalidate: true });
@@ -545,7 +548,7 @@ export function collaboration(ctx, rfq, { provider = false } = {}) {
     // Threads têm um nível: responder a uma resposta vai para o comentário de
     // origem; sem acesso à origem (pergunta de outra instituição), não há resposta.
     const target = row.parent_id ? rowsById.get(row.parent_id) : row;
-    if (target) {
+    if (target && canComment) {
       const reply = el('button', { type: 'button', class: 'link-btn' }, [icon('reply', { size: 14 }), el('span', { text: 'Responder' })]);
       reply.addEventListener('click', () => {
         if (main.querySelector('.composer-reply')) return;
@@ -574,7 +577,8 @@ export function collaboration(ctx, rfq, { provider = false } = {}) {
       thread.replaceChildren(errorState({ title: 'Comentários indisponíveis', error, onRetry: refresh }));
     }
   }
-  section.append(thread, composer());
+  section.append(thread, canComment ? composer() : el('p', { class: 'callout callout-info compact', id: 'comment-readonly' }, [icon('lock', { size: 14 }),
+    el('span', { text: 'Seu papel lê os comentários deste processo. Comentar e mencionar fica com análise, gestão financeira e administração.' })]));
   refresh();
   return section;
 }
@@ -688,6 +692,8 @@ export function termsSummary(product, terms) {
 // Quem o banco deixa criar e alterar tarefas (políticas fin_task_write/fin_task_edit).
 // Leitor acompanha: a interface não oferece um controle que o servidor ignoraria.
 export const TASK_EDITORS = ['admin', 'finance_manager', 'analyst'];
+/** Papéis da empresa que comentam (fin_post_comment); leitor só lê. */
+export const COMMENT_ROLES = ['admin', 'finance_manager', 'analyst'];
 // Recusa ao alterar uma tarefa, em linguagem de gente; nada de código ou mensagem crua.
 export function taskChangeError(error) {
   if (!error.status) return 'Sem conexão com o servidor. Nada foi confirmado.';
