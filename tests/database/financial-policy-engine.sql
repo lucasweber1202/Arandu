@@ -1,3 +1,4 @@
+\ir decision-entrypoint.sql
 \set ON_ERROR_STOP on
 -- Policy & Approval Engine v2 (docs/supabase-financial-policy-engine.sql).
 -- Precedência grupo + entidade + fallback, fronteira de moeda/valor, versão
@@ -345,7 +346,7 @@ do $$ begin
   end if;
 end $$;
 select pg_temp.as_user('03');
-select pg_temp.expect_error($q$select public.fin_record_decision('00000000-0000-4000-8000-0000000c7401','00000000-0000-4000-8000-0000000c7601','{}'::jsonb,'Decisão')$q$, 'approval required or stale');
+select pg_temp.expect_error($q$select pg_temp.test_record_decision('00000000-0000-4000-8000-0000000c7401','00000000-0000-4000-8000-0000000c7601','{}'::jsonb,'Decisão')$q$, 'approval required or stale');
 
 -- 12. Exceção explícita: quem pede não decide; papel errado não decide; admin decide.
 select pg_temp.expect_error(format($q$select public.fin_request_policy_exception('%s','%s','not_matched','urgent_operation','Operação urgente do trimestre','[]'::jsonb)$q$,
@@ -370,11 +371,11 @@ end $$;
 
 -- 13. Decisão e SoD: quem pediu não decide (policy); único aprovador final não decide.
 select pg_temp.as_user('03');
-select pg_temp.expect_error($q$select public.fin_record_decision('00000000-0000-4000-8000-0000000c7401','00000000-0000-4000-8000-0000000c7601','{}'::jsonb,'Decisão')$q$, 'segregation of duties');
+select pg_temp.expect_error($q$select pg_temp.test_record_decision('00000000-0000-4000-8000-0000000c7401','00000000-0000-4000-8000-0000000c7601','{}'::jsonb,'Decisão')$q$, 'segregation of duties');
 select pg_temp.as_user('10');
-select pg_temp.expect_error($q$select public.fin_record_decision('00000000-0000-4000-8000-0000000c7401','00000000-0000-4000-8000-0000000c7601','{}'::jsonb,'Decisão')$q$, 'segregation of duties');
+select pg_temp.expect_error($q$select pg_temp.test_record_decision('00000000-0000-4000-8000-0000000c7401','00000000-0000-4000-8000-0000000c7601','{}'::jsonb,'Decisão')$q$, 'segregation of duties');
 select pg_temp.as_user('02');
-insert into pol_ids select 'decision1', public.fin_record_decision('00000000-0000-4000-8000-0000000c7401','00000000-0000-4000-8000-0000000c7601','{}'::jsonb,'Decisão da tesouraria');
+insert into pol_ids select 'decision1', pg_temp.test_record_decision('00000000-0000-4000-8000-0000000c7401','00000000-0000-4000-8000-0000000c7601','{}'::jsonb,'Decisão da tesouraria');
 do $$ begin
   if not exists (select 1 from public.fin_decisions where id=(select value from pol_ids where key='decision1')
                   and (snapshot->'policy'->>'from_request')::boolean and jsonb_array_length(snapshot->'policy'->'policies') = 2) then
@@ -390,7 +391,7 @@ select public.fin_activate_policy_version(public.fin_save_policy_draft('00000000
 }$j$::jsonb, 'Só competição'));
 select pg_temp.as_user('06');
 select pg_temp.expect_error($q$select public.fin_request_policy_approval('00000000-0000-4000-8000-0000000c7402','00000000-0000-4000-8000-0000000c7602','{}'::jsonb,'Pedido R2',null)$q$, 'policy justification required');
-select pg_temp.expect_error($q$select public.fin_record_decision('00000000-0000-4000-8000-0000000c7402','00000000-0000-4000-8000-0000000c7602','{}'::jsonb,'Decisão')$q$, 'approval required or stale');
+select pg_temp.expect_error($q$select pg_temp.test_record_decision('00000000-0000-4000-8000-0000000c7402','00000000-0000-4000-8000-0000000c7602','{}'::jsonb,'Decisão')$q$, 'approval required or stale');
 insert into pol_ids select 'req2', public.fin_request_policy_approval('00000000-0000-4000-8000-0000000c7402','00000000-0000-4000-8000-0000000c7602','{}'::jsonb,'Pedido R2','Banco único com relacionamento no prazo');
 insert into pol_ids select 'exception2', public.fin_request_policy_exception((select value from pol_ids where key='req2'),
   (select policy_version_ids[1] from public.fin_approval_requests where id=(select value from pol_ids where key='req2')), 'competition', 'urgent_operation', 'Prazo do capital de giro vence esta semana', '[]'::jsonb);

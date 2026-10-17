@@ -1,4 +1,19 @@
 \set ON_ERROR_STOP on
+
+-- v3.4: require the effective grants and write guard, not just the marker.
+do $$ begin
+  if (select value from public.fin_settings where key='schema_version') = 'financial-enterprise-integrity-1' then
+    if has_function_privilege('authenticated','public.fin_record_decision(uuid,uuid,jsonb,text)','EXECUTE')
+      or has_function_privilege('anon','public.fin_record_decision(uuid,uuid,jsonb,text)','EXECUTE')
+      or has_function_privilege('service_role','public.fin_record_decision(uuid,uuid,jsonb,text)','EXECUTE')
+      or not has_function_privilege('authenticated','public.fin_record_decision_v2(uuid,uuid,integer,jsonb,text)','EXECUTE') then
+      raise exception 'decision entry point grants unsafe';
+    end if;
+    if not exists(select 1 from pg_trigger where tgrelid='public.fin_approval_steps'::regclass
+      and tgname='fin_approval_steps_live_actor' and tgenabled='O') then raise exception 'approval live actor guard unavailable'; end if;
+    if to_regprocedure('public.fin_assignment_buyer_names(uuid,uuid[])') is null then raise exception 'assignment buyer identity unavailable'; end if;
+  end if;
+end $$;
 -- Probes depois de aplicar migrations (release-migrations): superfície do
 -- produto financeiro, sem tocar dado. Rodam numa transação desfeita.
 begin;
@@ -60,7 +75,7 @@ begin
 
   -- O marker de upload exige helper privado e as RPCs compatíveis, com owner
   -- comum: a RPC não pode delegar autorização a função de outro principal.
-  if (select value from public.fin_settings where key='schema_version') in ('financial-document-upload-authorization-1','financial-implementation-task-labels-1', 'financial-task-accountability-1') then
+  if (select value from public.fin_settings where key='schema_version') in ('financial-document-upload-authorization-1','financial-implementation-task-labels-1', 'financial-task-accountability-1', 'financial-enterprise-integrity-1') then
     if to_regprocedure('public.fin_document_lock_upload_authorization(uuid,uuid)') is null
        or to_regprocedure('public.fin_document_pending_upload(uuid,integer)') is null
        or to_regprocedure('public.fin_document_finalize_upload(uuid,integer,bigint,text)') is null then
@@ -83,7 +98,7 @@ begin
   end if;
 
   -- Depois da aposentadoria, a vertical de arte não pode reaparecer no schema.
-  if coalesce((select value from public.fin_settings where key = 'schema_version'), '') in ('financial-legacy-art-decommission-1','financial-p0-closure-1','financial-value-realization-1','financial-fee-intelligence-1','financial-opportunity-engine-1','financial-document-intelligence-1','financial-provider-qualification-1','financial-implementation-1','financial-covenants-1','financial-provider-performance-1','financial-spend-intelligence-1','financial-opportunity-discriminator-1','financial-demo-workspaces-1','financial-demo-pool-1', 'financial-security-closure-1', 'financial-request-receipts-1', 'financial-followup-hardening-1', 'financial-contract-onboarding-1', 'financial-renewal-cycles-1', 'financial-decision-integrity-1', 'financial-session-revocation-1', 'financial-document-upload-authorization-1', 'financial-implementation-task-labels-1', 'financial-task-accountability-1')
+  if coalesce((select value from public.fin_settings where key = 'schema_version'), '') in ('financial-legacy-art-decommission-1','financial-p0-closure-1','financial-value-realization-1','financial-fee-intelligence-1','financial-opportunity-engine-1','financial-document-intelligence-1','financial-provider-qualification-1','financial-implementation-1','financial-covenants-1','financial-provider-performance-1','financial-spend-intelligence-1','financial-opportunity-discriminator-1','financial-demo-workspaces-1','financial-demo-pool-1', 'financial-security-closure-1', 'financial-request-receipts-1', 'financial-followup-hardening-1', 'financial-contract-onboarding-1', 'financial-renewal-cycles-1', 'financial-decision-integrity-1', 'financial-session-revocation-1', 'financial-document-upload-authorization-1', 'financial-implementation-task-labels-1', 'financial-task-accountability-1', 'financial-enterprise-integrity-1')
      and (to_regclass('public.artworks') is not null or to_regclass('public.reservations') is not null or to_regclass('public.profiles') is not null) then
     raise exception 'Objetos da vertical de arte presentes depois da aposentadoria.';
   end if;

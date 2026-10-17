@@ -1,3 +1,4 @@
+\ir decision-entrypoint.sql
 \set ON_ERROR_STOP on
 
 -- Regressões das falhas de integridade encontradas na auditoria da main
@@ -167,7 +168,7 @@ end $$;
 -- ------------------------------------------------- uma decisão por RFQ
 
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-00000000ba01', false);
-insert into hard_ids select 'decision', public.fin_record_decision(
+insert into hard_ids select 'decision', pg_temp.test_record_decision(
   (select value from hard_ids where key = 'rfq'), (select value from hard_ids where key = 'p1'),
   '{"weights":{"interest_rate_month":100}}'::jsonb, 'Decisão de teste.');
 
@@ -176,7 +177,7 @@ declare v_snapshot jsonb;
 begin
   -- Segunda decisão na mesma RFQ, sobre a outra proposta, tem de falhar.
   begin
-    perform public.fin_record_decision(
+    perform pg_temp.test_record_decision(
       (select value from hard_ids where key = 'rfq'), (select value from hard_ids where key = 'p2'));
     raise exception 'a mesma RFQ aceitou duas decisões';
   exception when others then

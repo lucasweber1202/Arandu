@@ -1,3 +1,4 @@
+\ir decision-entrypoint.sql
 \set ON_ERROR_STOP on
 -- Self-contained fixture in the same psql session as the assertions.
 insert into auth.users(id,email) values
@@ -38,7 +39,7 @@ select public.fin_set_approval_policy('00000000-0000-4000-8000-00000000bb01',tru
 do $$
 begin
  begin
-  perform public.fin_record_decision('00000000-0000-4000-8000-00000000bb11',
+  perform pg_temp.test_record_decision('00000000-0000-4000-8000-00000000bb11',
    '00000000-0000-4000-8000-00000000bb12');
   raise exception 'required policy bypassed';
  exception when others then if sqlerrm not like '%approval required or stale%' then raise; end if; end;
@@ -69,7 +70,7 @@ insert into approval_ids select 'request',public.fin_request_approval(
 do $$
 begin
  begin
-  perform public.fin_record_decision('00000000-0000-4000-8000-00000000bb11'::uuid,
+  perform pg_temp.test_record_decision('00000000-0000-4000-8000-00000000bb11'::uuid,
    '00000000-0000-4000-8000-00000000bb12'::uuid);
   raise exception 'decision bypassed approval';
  exception when others then if sqlerrm not like '%approval required or stale%' then raise; end if; end;
@@ -106,7 +107,7 @@ begin
  if v_count<>0 then raise exception 'cross-tenant approval visible'; end if;
 end $$;
 select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-00000000ba01',false);
-insert into approval_ids select 'decision',public.fin_record_decision(
+insert into approval_ids select 'decision',pg_temp.test_record_decision(
  '00000000-0000-4000-8000-00000000bb11'::uuid,'00000000-0000-4000-8000-00000000bb12'::uuid);
 do $$
 declare v_id text;
