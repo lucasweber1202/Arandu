@@ -37,3 +37,6 @@ for(const s of sent)assert.equal(s.headers.Authorization,'Bearer caller-jwt');
 assert.equal(sent.find(s=>s.url.endsWith('/fin_open_implementation')).body.p_input.organization_id,undefined);
 assert.ok(!sent.some(s=>/fin_run_|fin_evaluate_/.test(s.url)));
 console.log('Implementation API: caller JWT, empty scope, hidden detail, invalid concurrency token and derived tenant passed.');
+
+// API contract scope and provenance regressions share this existing CI entrypoint.
+await import('./test-contract-lifecycle-api.mjs');

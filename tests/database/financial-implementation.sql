@@ -121,6 +121,27 @@ set role authenticated;
 select pg_temp.as_user('00000000-0000-4000-8000-0000000a7101');
 select public.fin_cancel_implementation(pg_temp.fx('acquiring_plan'),1,'Cancelamento aprovado pela tesouraria');
 do $$ begin if (select cancellation_reason from public.fin_implementation_plans where id=pg_temp.fx('acquiring_plan'))<>'Cancelamento aprovado pela tesouraria' then raise exception 'cancellation reason lost'; end if; end $$;
+-- Exact contract scopes must not collapse two contracts from the same bank.
+insert into pq_fixture values('entity_b_contract',public.fin_import_contract('00000000-0000-4000-8000-0000000a7201','00000000-0000-4000-8000-0000000a7402','00000000-0000-4000-8000-0000000a7301','credit','Segundo contrato entidade B',current_date-30,current_date+365,60,false,'BRL','{}',null));
+insert into pq_fixture values('entity_b_plan',public.fin_open_implementation(pg_temp.fx('entity_b_contract'),jsonb_build_object('title','Implantação entidade B','owner_id','00000000-0000-4000-8000-0000000a7104','starts_on',current_date,'target_go_live',current_date+30,'source_reference','CONTRACT-B')));
+do $$ begin
+ if (select count(*) from public.fin_implementation_plans where contract_id=pg_temp.fx('contract'))<>1 then raise exception 'exact credit contract scope'; end if;
+ if (select count(*) from public.fin_implementation_plans where contract_id=pg_temp.fx('acquiring_contract'))<>1 then raise exception 'exact acquiring contract scope'; end if;
+ if exists(select 1 from public.fin_implementation_plans where contract_id=pg_temp.fx('contract') and legal_entity_id='00000000-0000-4000-8000-0000000a7402') then raise exception 'combined contract/entity filter expanded scope'; end if;
+ if not exists(select 1 from public.fin_implementation_plans where contract_id=pg_temp.fx('contract') and status='accepted') or not exists(select 1 from public.fin_implementation_plans where contract_id=pg_temp.fx('acquiring_contract') and status='cancelled') then raise exception 'historical plans lost'; end if;
+ if exists(select 1 from public.fin_implementation_plans where contract_id='00000000-0000-4000-8000-000000099999') then raise exception 'nonexistent contract scope'; end if;
+end $$;
+select pg_temp.as_user('00000000-0000-4000-8000-0000000a7104');
+do $$ begin
+ if (select count(*) from public.fin_implementation_plans where provider_id='00000000-0000-4000-8000-0000000a7301')<>1 then raise exception 'entity restricted bank scope'; end if;
+ if exists(select 1 from public.fin_implementation_plans where contract_id=pg_temp.fx('contract')) then raise exception 'exact filter bypassed entity RLS'; end if;
+ if not exists(select 1 from public.fin_implementation_plans where contract_id=pg_temp.fx('entity_b_contract')) then raise exception 'authorized entity contract missing'; end if;
+end $$;
+select pg_temp.as_user('00000000-0000-4000-8000-0000000a7105');
+do $$ begin if exists(select 1 from public.fin_implementation_plans where contract_id=pg_temp.fx('entity_b_contract')) then raise exception 'contract filter cross-tenant leak'; end if; end $$;
+select pg_temp.as_user('00000000-0000-4000-8000-0000000a7106');
+do $$ begin if exists(select 1 from public.fin_implementation_plans where contract_id=pg_temp.fx('entity_b_contract')) then raise exception 'contract filter provider leak'; end if; end $$;
+select pg_temp.as_user('00000000-0000-4000-8000-0000000a7101');
 -- Revocation is checked live, even with retained JWT claims.
 reset role;
 delete from public.fin_members where organization_id='00000000-0000-4000-8000-0000000a7201' and user_id='00000000-0000-4000-8000-0000000a7102';
