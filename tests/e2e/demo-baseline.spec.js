@@ -174,14 +174,13 @@ test('pós-contrato: implantação → covenants → performance → spend → q
   };
 
   // Do contrato à implantação: a página diz de qual contrato a pessoa veio, que o
-  // recorte é por instituição (a API não filtra por contrato) e a devolve ao cartão.
+  // recorte é o próprio contrato (contract_id, #211) e a devolve ao cartão.
   await open('/finance/contracts.html', 'Contratos e renovações');
-  await page.getByRole('link', { name: 'Implantação com Lumina Pay' }).click();
+  await page.locator('.contract-card', { hasText: 'Lumina Pay' }).getByRole('link', { name: 'Implantação deste contrato' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Implantação pós-award');
   const origin = page.getByRole('complementary', { name: 'Contrato de origem' });
   await expect(origin).toContainText('com Lumina Pay');
-  await expect(origin).toContainText('Filtro aplicado: provedor Lumina Pay');
-  await expect(origin).toContainText('o Arandu ainda não filtra por contrato individual');
+  await expect(origin).toContainText('Filtro aplicado: este contrato.');
   await expect(page.locator('#view')).toContainText('Migração da adquirência para a Lumina Pay');
   await noOverflow('implantação vinda do contrato');
   await origin.getByRole('link', { name: 'Voltar ao contrato' }).click();

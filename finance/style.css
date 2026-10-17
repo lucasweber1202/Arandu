@@ -1268,3 +1268,7 @@ textarea.mono{width:100%;max-width:100%;min-width:0}
 .origin-context>div{display:flex;flex-direction:column;gap:var(--s1);min-width:0}
 .origin-context .contract-link{align-self:flex-start}
 .task-more{display:flex;justify-content:center;padding:var(--s3) 0}
+/* Rodapé de detalhe com várias ações (ex.: marcos da implantação): quebra dentro
+   da largura do painel em vez de transbordar; no celular rola sem tomar a tela. */
+.drawer-foot>.actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:var(--s2);min-width:0;max-width:100%}
+@media (max-width:759px){.drawer-foot{max-height:38vh;overflow-y:auto}.drawer-foot>.actions .btn{flex:1 1 100%;white-space:normal;text-align:left;justify-content:flex-start}}

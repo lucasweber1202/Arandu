@@ -1,0 +1,27 @@
+[
+  {
+    "name": "Criar tarefa com responsável",
+    "ok": true,
+    "detail": "reaparece após recarregar com Rafael Menezes"
+  },
+  {
+    "name": "Concluir a tarefa",
+    "ok": true,
+    "detail": "aparece em Concluídas após recarregar"
+  },
+  {
+    "name": "Registrar impedimento na implantação",
+    "ok": true,
+    "detail": "impedimento aparece no detalhe após recarregar"
+  },
+  {
+    "name": "CFO aprova a etapa pendente",
+    "ok": true,
+    "detail": "\"Capital de giro — nova linha de R$ 12 milhões / 36 meses\" passa para Concluídas após recarregar"
+  },
+  {
+    "name": "Painel da gestora reflete a aprovação",
+    "ok": true,
+    "detail": "Registrar decisão: Capital de giro — nova linha de R$ 12 milhões / 36 meses"
+  }
+]

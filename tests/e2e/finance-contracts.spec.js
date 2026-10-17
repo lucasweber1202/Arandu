@@ -381,7 +381,7 @@ test('responsável do contrato e tarefa de contrato com contexto: qual contrato 
   await noHorizontalOverflow(page);
 });
 
-test('contrato leva à implantação e às obrigações da mesma instituição, com o filtro aplicado no servidor', async ({ page }) => {
+test('contrato leva à implantação e às obrigações DESTE contrato, com o filtro contract_id aplicado no servidor (#211)', async ({ page }) => {
   await mockSession(page);
   const requested = [];
   await page.route('**/api/finance/implementations?**', (route) => {
@@ -389,11 +389,11 @@ test('contrato leva à implantação e às obrigações da mesma instituição, 
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, cards: [], columns: [], rows: [], empty: { title: 'Nenhum plano' }, options: {}, forms: [] }) });
   });
   await page.goto('/finance/contracts.html');
-  const links = page.getByRole('navigation', { name: 'Pós-contratação com Banco Carteira' });
-  await expect(links.getByRole('link', { name: 'Covenants e obrigações com Banco Carteira' })).toHaveAttribute('href', /\/finance\/covenants\.html\?provider_id=00000000-0000-4000-8000-0000000000e1&contrato=00000000-0000-4000-8000-0000000000d1$/);
-  await links.getByRole('link', { name: 'Implantação com Banco Carteira' }).click();
-  await page.waitForURL(/\/finance\/implementations\.html\?provider_id=/);
-  await expect.poll(() => requested.at(-1)?.get('provider_id')).toBe(PROVIDER);
+  const links = page.getByRole('navigation', { name: 'Pós-contratação do contrato com Banco Carteira' });
+  await expect(links.getByRole('link', { name: 'Covenants e obrigações deste contrato' })).toHaveAttribute('href', `/finance/covenants.html?contract_id=${CONTRACT}&contrato=${CONTRACT}`);
+  await links.getByRole('link', { name: 'Implantação deste contrato' }).click();
+  await page.waitForURL(/\/finance\/implementations\.html\?contract_id=/);
+  await expect.poll(() => requested.at(-1)?.get('contract_id')).toBe(CONTRACT);
   await noHorizontalOverflow(page);
 });
 
@@ -731,28 +731,45 @@ test('contrato → implantação: a página diz de qual contrato a pessoa veio, 
   const requested = [];
   await page.route('**/api/finance/implementations?**', (route) => {
     requested.push(new URL(route.request().url()).searchParams);
-    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, cards: [], columns: ['Plano'], rows: [{ id: 'p1', cells: ['Implantação de outro contrato com o Banco Carteira'] }], empty: { title: 'Nenhum plano' }, options: {}, forms: [] }) });
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, cards: [], columns: ['Plano'], rows: [{ id: 'p1', cells: ['Implantação do contrato com o Banco Carteira'] }], empty: { title: 'Nenhum plano' }, options: {}, forms: [] }) });
   });
   await page.goto('/finance/contracts.html');
-  await page.getByRole('link', { name: 'Implantação com Banco Carteira' }).click();
+  await page.getByRole('link', { name: 'Implantação deste contrato' }).click();
   const origin = page.getByRole('complementary', { name: 'Contrato de origem' });
   await expect(origin).toContainText('Vindo do contrato: Crédito');
   await expect(origin).toContainText('com Banco Carteira');
   await expect(origin).toContainText('vence 31 de dez de 2027');
-  await expect(origin).toContainText('Filtro aplicado: provedor Banco Carteira');
-  await expect(origin).toContainText('pode incluir outros contratos com a mesma instituição; o Arandu ainda não filtra por contrato individual.');
-  // O parâmetro de origem não vai ao servidor: o recorte é só o que a API aplica.
-  await expect.poll(() => requested.at(-1)?.get('provider_id')).toBe(PROVIDER);
-  expect(requested.every((q) => !q.has('contrato') && !q.has('contract_id'))).toBe(true);
+  await expect(origin).toContainText('Filtro aplicado: este contrato. A lista mostra só os planos de implantação vinculados a ele.');
+  await expect(page.getByLabel('Contrato', { exact: true })).toHaveValue(CONTRACT);
+  // O parâmetro de origem (contrato) não vai ao servidor; o filtro real é contract_id.
+  await expect.poll(() => requested.at(-1)?.get('contract_id')).toBe(CONTRACT);
+  expect(requested.every((q) => !q.has('contrato'))).toBe(true);
   await expect(page.locator('#view')).not.toContainText(CONTRACT);
   await noHorizontalOverflow(page);
-  // Sem o filtro de instituição, a página diz que mostra o escopo inteiro.
+  // Sem o filtro de contrato, a página diz que a lista deixa de ser só deste contrato.
+  await page.getByLabel('Contrato', { exact: true }).selectOption('');
+  await page.getByLabel('Provedor').selectOption(PROVIDER);
+  await page.getByRole('button', { name: 'Aplicar filtros' }).click();
+  await expect(origin).toContainText('Sem o filtro de contrato, a lista pode incluir outros contratos com a mesma instituição.');
+  expect(requested.at(-1).has('contract_id')).toBe(false);
   await page.getByLabel('Provedor').selectOption('');
   await page.getByRole('button', { name: 'Aplicar filtros' }).click();
   await expect(origin).toContainText('Sem filtro: a lista mostra planos de implantação de todo o seu escopo, não só deste contrato.');
   await origin.getByRole('link', { name: 'Voltar ao contrato' }).click();
   await expect(page).toHaveURL(new RegExp(`/finance/contracts\\.html#contract-${CONTRACT}$`));
   await expect(page.locator(`#contract-${CONTRACT}`)).toBeFocused();
+});
+
+test('contrato fora da lista carregada: o filtro contract_id do link não se perde em silêncio', async ({ page }) => {
+  await mockSession(page);
+  const requested = [];
+  await page.route('**/api/finance/covenants?**', (route) => { requested.push(new URL(route.request().url()).searchParams); return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, cards: [], columns: [], rows: [], empty: { title: 'Nenhuma obrigação' }, options: {}, forms: [] }) }); });
+  const other = '00000000-0000-4000-8000-0000000000fe';
+  await page.goto(`/finance/covenants.html?contract_id=${other}&contrato=${other}`);
+  await expect.poll(() => requested.at(-1)?.get('contract_id')).toBe(other);
+  await expect(page.getByLabel('Contrato', { exact: true }).locator('option:checked')).toHaveText('Contrato do link');
+  await expect(page.getByRole('complementary', { name: 'Contrato de origem' })).toContainText('Filtro aplicado: este contrato.');
+  await expect(page.locator('#view')).not.toContainText(other);
 });
 
 test('covenants: origem desconhecida ou malformada não expõe identificador nem inventa contrato', async ({ page }) => {
