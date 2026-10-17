@@ -75,8 +75,9 @@ simulados no navegador; antes = build de `origin/main`, depois = esta branch; 12
 | Verificação | Resultado |
 | --- | --- |
 | Node 24.22.0, `npm ci --include=optional`, `check:all`, `build`, `check:design`, `check:demo-parity`, `check:financial-surface`, `check:financial-navigation`, `git diff --check` | PASS |
-| `test:e2e` — Chromium desktop + Pixel 7 | ver descrição da PR |
-| `test:e2e:presentation`, `test:e2e:demo` | ver descrição da PR |
+| `test:e2e` — Chromium desktop + Pixel 7 | 411 passed, 7 skipped |
+| `test:e2e:presentation` — Chromium desktop + Pixel 7 | 125 passed, 19 skipped |
+| `test:e2e:demo` (backend real) | desktop 6 + 1 skip; celular 6 + 1 skip. Duas execuções logo após o reset falharam por limite legítimo (429 e login; a tela já mostrou o novo aviso com contagem); repetidas depois da janela, uma persona-cota por vez |
 | `demo:setup` / `demo:local:reset` | 39/39 |
 | Modo 2 (`interactive.mjs`) | 9/9 |
 | Regressões novas contra `origin/main` | 7 FAIL |
