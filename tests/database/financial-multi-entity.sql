@@ -1,3 +1,4 @@
+\ir decision-entrypoint.sql
 \set ON_ERROR_STOP on
 -- Multi-entity (docs/supabase-financial-multi-entity.sql): entidades legais e
 -- unidades, escopo por membro, RLS por entidade em leitura, guarda central de
@@ -262,9 +263,9 @@ select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-0000000ee005'
 select public.fin_act_on_approval((select value from me_ids where key='approval'),'approved',null);
 -- Gestor de B não decide processo de A; gestor de A decide; o contrato herda A.
 select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-0000000ee004',false);
-select pg_temp.expect_error(format($q$select public.fin_record_decision('%s','00000000-0000-4000-8000-0000000ef021','{}'::jsonb,'fora do escopo')$q$, (select value from me_ids where key='rfq_a')), 'forbidden');
+select pg_temp.expect_error(format($q$select pg_temp.test_record_decision('%s','00000000-0000-4000-8000-0000000ef021','{}'::jsonb,'fora do escopo')$q$, (select value from me_ids where key='rfq_a')), 'forbidden');
 select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-0000000ee003',false);
-insert into me_ids select 'decision', public.fin_record_decision((select value from me_ids where key='rfq_a'),'00000000-0000-4000-8000-0000000ef021','{}'::jsonb,'Decisão da entidade A');
+insert into me_ids select 'decision', pg_temp.test_record_decision((select value from me_ids where key='rfq_a'),'00000000-0000-4000-8000-0000000ef021','{}'::jsonb,'Decisão da entidade A');
 insert into me_ids select 'contract', public.fin_register_contract((select value from me_ids where key='decision'), current_date, current_date + 40, 60, null, null, null);
 select public.fin_process_renewals('00000000-0000-4000-8000-0000000ef001', current_date);
 do $$ begin

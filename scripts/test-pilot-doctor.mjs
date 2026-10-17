@@ -47,6 +47,7 @@ function fakeSupabase(overrides = {}) {
         paths: Object.fromEntries(state.anonRpcs.map((rpc) => [`/rpc/${rpc}`, {}])) });
     }
     if (u.pathname === '/rest/v1/') {
+      if (state.serviceSpecStatus) return reply({}, state.serviceSpecStatus);
       if (state.serviceSpecMalformed) return reply({});
       return reply({ definitions: Object.fromEntries(REQUIRED_TABLES.filter((table) => table !== state.missingTable).map((table) => [table, {}])),
         paths: Object.fromEntries(REQUIRED_RPCS.filter((rpc) => rpc !== state.missingRpc).map((rpc) => [`/rpc/${rpc}`, {}])) });
@@ -108,6 +109,12 @@ for (const category of ['ENVIRONMENT', 'SECURITY', 'DATABASE', 'STORAGE', 'AUTH'
 // Incompleto → NO-GO (exit 1).
 const { CRON_SECRET: _cron, SUPABASE_SERVICE_ROLE_KEY: _service, ...partial } = baseEnv;
 const incomplete = await doctor(partial);
+assert.ok(incomplete.checks.some((check) => check.detail.startsWith('NOT_CONFIGURED')), 'configuração ausente precisa ser explícita');
+for (const [status, classification] of [[401,'ACCESS_BLOCKED'],[403,'ACCESS_BLOCKED'],[503,'SERVICE_FAILURE']]) {
+  const report = await doctor(baseEnv, { serviceSpecStatus: status });
+  assert.equal(report.exit_code,1);
+  assert.match(report.checks.find((check) => check.name === 'conexão (PostgREST)').detail, new RegExp(`${classification}.*HTTP ${status}`));
+}
 assert.equal(incomplete.exit_code, 1);
 assert.equal(levelOf(incomplete, 'CRON_SECRET'), 'ERROR');
 assert.equal((await doctor(baseEnv, { allowlist: 0 })).exit_code, 1, 'allowlist vazia bloqueia');

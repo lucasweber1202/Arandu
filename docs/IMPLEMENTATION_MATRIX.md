@@ -1,5 +1,26 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 17/10/2026 — Fechamento da decisão antiga e autorização no commit do voto
+
+Base `605c7f5a9ff619e18fec6f1e7160949d878f345a`, branch
+`codex/enterprise-integrity-m3-20261017`. Evidência e limites em
+`docs/evidence/codex-enterprise-integrity-2026-10-17.md`; contratos e rollout em
+`docs/evidence/codex-integrity-api-handoff-2026-10-17.md`.
+
+| Capacidade | Estado da rodada | Prova / limite |
+| --- | --- | --- |
+| Decisão pela versão vista | IMPLEMENTED / LOCAL_VALIDATED | Baseline aceitava RPC antiga sem versão e registrava v2; grants diretos fechados, implementação interna preservada. v2, conflitos, RLS e histórico passam no banco |
+| Aprovação versus revogação | IMPLEMENTED / LOCAL_VALIDATED | Corrida determinística baseline gravava voto depois de remoção commitada; guarda na escrita serializa vínculo/grants. Ordens inversas, eventos e ausência de escrita parcial verificados |
+| Nome do comprador no portal | IMPLEMENTED / LOCAL_VALIDATED | buyer_name aditivo, fonte do convite aceito, JWT, sem ampliar SELECT em organizações; outro provedor/tenant e membro removido recusados |
+| Prontidão por tipo de falha | IMPLEMENTED / LOCAL_VALIDATED | Doctor distingue NOT_CONFIGURED, ACCESS_BLOCKED, SERVICE_FAILURE e CONNECTION_FAILED; espera marker e RPCs novos, probes conferem grants e trigger |
+| Migration e regressões | LOCAL_VALIDATED; CI próprio pendente | Migration financial-enterprise-integrity-1, rollback compatível retém correções de segurança; clean/upgrade/reapply/rollback/RLS/concorrência aprovados em PG17.6 descartável |
+| Recovery sintético | LOCAL_VALIDATED | Export cifrado/restore do mesmo backup com age 1.3.2; Auth/Storage/configuração hospedada e recuperação completa NOT_RUN/NOT_PROVEN |
+| Operação hospedada / M3 | BLOCKED / não comprovado | Pilot observado no marker surface-hardening, sem v2, sessão ou hook; Official status FAILURE, Vercel detalhada 403 já registrado. Sem alterações hospedadas |
+
+Nenhum frontend, Demo, E2E ou workflow modificado. Rate limit permanece intacto;
+perfil local não introduzido sem contrato de identidade local não herdável.
+Não promover M3–M6; resultados finais de CI no SHA exato serão registrados na PR.
+
 ## 17/10/2026 — Limites reais de documentos e logs de configuração
 
 Base remota `0fb48d3e202cb71942a608fb427b0e7e2bec44e9` (#212). Branch

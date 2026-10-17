@@ -654,6 +654,7 @@ assert.equal(sent.length, 0);
 // --------------------------------- visão do provedor não vaza concorrente
 
 reset((entry) => {
+  if (entry.url.includes('rpc/fin_assignment_buyer_names')) return [{ rfq_id: RFQ, buyer_name: 'Compradora sintética' }];
   if (entry.url.includes('fin_organizations')) return orgRow(PROVIDER_ORG, 'PROVIDER');
   if (entry.url.includes('fin_proposal_versions')) return [{ proposal_id: PROPOSAL, version: 1, terms: { institution: 'Meu Banco' }, submitted_at: '2026-01-01T00:00:00Z', rfq_revision: 2 }];
   if (entry.url.includes('fin_proposals')) return [{ id: PROPOSAL, rfq_id: RFQ, product: 'credit', status: 'submitted', current_version: 1 }];
@@ -663,6 +664,11 @@ reset((entry) => {
 {
   const res = await call('GET', 'assignments', { url: `/api/finance/assignments?organization_id=${PROVIDER_ORG}` });
   const row = res.payload.rows[0];
+  assert.equal(row.buyer_name, 'Compradora sintética');
+  const buyerLookup = sent.find((entry) => entry.url.includes('rpc/fin_assignment_buyer_names'));
+  assert.deepEqual(buyerLookup.body, { p_org: PROVIDER_ORG, p_rfqs: [RFQ] });
+  assert.equal(buyerLookup.authorization, 'Bearer user-jwt');
+  assert.equal(buyerLookup.apikey, 'test-anon-key');
   // O provedor recebe a necessidade para conseguir responder...
   assert.equal(row.demand.amount, 500000);
   assert.equal(row.title, 'RFQ');
@@ -1042,6 +1048,7 @@ console.log('Document storage: caminhos validados; pede 120 s (envio) e 60 s (do
     [/^sso /, 'SSO: rotas próprias com motivo de recusa'],
     [/^(invalid job|invalid job result|job already finished|export too large|unknown template)$/, 'jobs/cron: falha registrada no próprio job'],
     [/ requires schema /, 'guarda de ordem de migration'],
+    [/^versioned decision owner cannot call internal implementation$/, 'guarda de permissões executada somente pela migration'],
     [/^(demo workspaces unavailable outside demo|invalid demo workspace claim|invalid demo workspace resume|invalid demo pool lease)$/, 'pool da Demo: controlador e login por persona']
   ]);
   const manifest = JSON.parse(readFileSync('docs/supabase-migrations.json', 'utf8'));
