@@ -549,7 +549,7 @@ export async function newRfq(ctx) {
         : ['Solicitação criada como rascunho.', ...(result.warnings || [])].join(' '));
       location.assign(ctx.href(`/finance/rfq.html?id=${encodeURIComponent(result.id)}&created=1`));
     } catch (error) {
-      toast(error.status === 401 ? 'Entre na sua conta para criar uma solicitação.' : error.message, 'error');
+      toast(error.message, 'error');
       submit.disabled = false;
       submit.querySelector('.btn-label').textContent = 'Criar solicitação';
     }

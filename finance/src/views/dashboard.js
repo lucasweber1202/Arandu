@@ -147,10 +147,15 @@ export async function dashboard(ctx) {
   const attention = el('section', { class: 'attention card', id: 'precisa-de-voce', 'aria-labelledby': 'attention-title' });
   attention.append(el('div', { class: 'card-head' }, [
     el('div', { class: 'card-head-text' }, [el('h2', { class: 'card-title', id: 'attention-title', text: 'Precisa de você' }),
-      el('p', { class: 'card-subtitle', text: items.length ? `${items.length} ${items.length === 1 ? 'item pede' : 'itens pedem'} ação, do mais urgente ao menos urgente.` : 'Nada pendente com você agora.' })])
+      el('p', { class: 'card-subtitle', text: items.length ? `${items.length} ${items.length === 1 ? 'item pede' : 'itens pedem'} ação, do mais urgente ao menos urgente.` : ctx.approvalsError ? 'Parte das pendências não carregou.' : 'Nada pendente com você agora.' })])
   ]));
   const list = el('ul', { class: 'action-list', role: 'list' }, items.slice(0, 8).map(actionRow));
-  attention.append(items.length ? list : emptyState({ title: 'Tudo em dia', text: ctx.can('create_rfq') ? 'Nenhuma aprovação, prazo ou renovação exige ação. Que tal estruturar a próxima necessidade?' : 'Nenhuma aprovação aguarda você.', iconName: 'checkCircle',
+  // Aprovações que não carregaram não podem virar "Tudo em dia".
+  const approvalsMissing = ctx.approvalsError ? el('p', { class: 'callout callout-warning compact', role: 'alert' }, [icon('alert'),
+    el('span', { text: 'Não conseguimos carregar as aprovações agora; pode haver pedido aguardando você. ' }),
+    el('a', { href: ctx.href('/finance/approvals.html'), text: 'Abrir Aprovações' })]) : null;
+  if (approvalsMissing) attention.append(approvalsMissing);
+  attention.append(items.length ? list : approvalsMissing ? el('p', { class: 'muted small', text: 'Os demais itens (prazos, renovações e tarefas) não pedem ação agora.' }) : emptyState({ title: 'Tudo em dia', text: ctx.can('create_rfq') ? 'Nenhuma aprovação, prazo ou renovação exige ação. Que tal estruturar a próxima necessidade?' : 'Nenhuma aprovação aguarda você.', iconName: 'checkCircle',
     action: ctx.can('create_rfq') ? linkButton('Nova solicitação', ctx.href('/finance/new-rfq.html'), { iconName: 'plus' }) : null }));
   if (items.length > 8) attention.append(el('p', { class: 'card-foot muted', text: `+ ${items.length - 8} itens de menor prioridade nas listas de solicitações, contratos e tarefas.` }));
 

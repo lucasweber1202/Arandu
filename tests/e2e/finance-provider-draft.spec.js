@@ -12,14 +12,14 @@ const ASSIGNMENT = {
   version: null, terms: {}, has_draft: false
 };
 
-async function mockProvider(page, { patch = () => 200, assignment = ASSIGNMENT } = {}) {
+async function mockProvider(page, { patch = () => 200, assignment = ASSIGNMENT, pendingInvites = null } = {}) {
   const calls = [];
   await page.route('**/api/finance/**', async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname.replace('/api/finance/', '');
     const json = (payload, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(payload) });
     if (path === 'organizations') return json({ ok: true, rows: [{ id: PROVIDER, kind: 'PROVIDER', legal_name: 'Banco Atlas S.A.' }] });
-    if (path === 'assignments') return json({ ok: true, rows: [assignment] });
+    if (path === 'assignments') return json({ ok: true, rows: [assignment], ...(pendingInvites ? { pending_invites: pendingInvites } : {}) });
     if (path === 'members') return json({ ok: true, rows: [], viewer_id: 'u1' });
     if (path === 'proposal-draft' && request.method() === 'GET') return json({ ok: true, draft: null });
     if (path === 'proposal-draft' && request.method() === 'PATCH') {
@@ -208,4 +208,14 @@ test('comprador sem nome na resposta: o portal não inventa "Empresa"', async ({
   await page.goto('/provider/index.html');
   await expect(page.locator('#provider-status')).toContainText('Responda: Capital de giro 2027');
   await expect(page.locator('#provider-status .next-hero-text')).toHaveText(/^Prazo /);
+});
+
+test('convite sem nome do comprador: o portal mostra a solicitação, sem "undefined" nem empresa inventada', async ({ page }) => {
+  await mockProvider(page, { pendingInvites: [{ id: 'i1', title: 'Antecipação de recebíveis 2027', product: 'credit', response_deadline: '2020-01-01', created_at: '2026-10-01T10:00:00Z', demo_token: 't' }] });
+  await page.goto('/provider/index.html');
+  const hero = page.locator('#provider-status');
+  await expect(hero).toContainText('Aceite o convite: Antecipação de recebíveis 2027');
+  const card = page.locator('#convites');
+  await expect(card).toContainText('Antecipação de recebíveis 2027');
+  await expect(page.locator('#view')).not.toContainText('undefined');
 });

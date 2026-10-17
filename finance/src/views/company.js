@@ -30,6 +30,8 @@ const DEMO_BUILD = typeof __ARANDU_DEMO__ !== 'undefined' && __ARANDU_DEMO__ ===
 export async function approvalsInbox(ctx) {
   ctx.header({ title: 'Aprovações', subtitle: 'Decisões que dependem de você e pedidos que você acompanha.' });
   const [approvals] = await Promise.all([ctx.loadApprovals(), need('policy')]);
+  // Leitura que falhou não é caixa vazia: "Nada aguardando você" seria falso.
+  if (ctx.approvalsError) return errorState({ title: 'Não foi possível carregar as aprovações', error: ctx.approvalsError, onRetry: () => ctx.reload() });
   const rfqs = new Map((ctx.data.rfqs || []).map((rfq) => [rfq.id, rfq]));
   const viewer = ctx.viewer?.id;
   // Pedido com policy: o servidor diz se a pessoa tem etapa ativa (própria ou delegada).
@@ -444,13 +446,19 @@ export async function tasks(ctx) {
         // Reconciliação segura: relê a lista persistida (o servidor pede isso no 409
         // task_creation_unknown) e diz o que encontrou. A chave da tentativa é mantida;
         // nada é reenviado sozinho.
-        pendingNote.textContent = 'Não confirmamos se a tarefa foi criada. Conferindo a lista…';
+        // Título igual NÃO prova que a tarefa é desta tentativa (pode haver
+        // homônimas antigas ou de colegas). Só o servidor confirma, pela mesma
+        // chave: "Conferir com o servidor" reenvia a tentativa idempotente e ele
+        // devolve a tarefa já gravada ou a grava uma única vez.
+        pendingNote.replaceChildren('Não confirmamos se a tarefa foi criada. Conferindo a lista…');
         pendingNote.hidden = false;
         const rows = await draw();
-        const sameTitle = (rows || []).some((row) => row.title === pending.body.title && row.status === 'open');
-        pendingNote.textContent = sameTitle
-          ? 'Não confirmamos a criação, mas a lista atualizada já mostra uma tarefa aberta com este título. Confira antes de adicionar de novo; repetir com os mesmos dados não duplica.'
-          : 'Não confirmamos se a tarefa foi criada. Adicionar de novo com os mesmos dados repete a mesma tentativa, sem duplicar.';
+        const sameTitle = (rows || []).filter((row) => row.title === pending.body.title && row.status === 'open').length;
+        pendingNote.replaceChildren(
+          el('span', { text: `Não confirmamos se a tarefa foi criada. ${sameTitle ? `A lista mostra ${sameTitle === 1 ? 'uma tarefa aberta' : `${sameTitle} tarefas abertas`} com este título, mas o título sozinho não prova que é a sua. ` : ''}Use “Conferir com o servidor”: ele repete a mesma tentativa e nunca cria uma segunda tarefa.` }),
+          ' ',
+          button('Conferir com o servidor', { size: 'sm', iconName: 'refresh', onClick: () => form.requestSubmit() })
+        );
         toast('Não foi possível confirmar a criação da tarefa. Seus dados continuam no formulário.', 'error');
       } else {
         pending = null;

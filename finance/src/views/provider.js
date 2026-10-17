@@ -71,7 +71,8 @@ export async function providerHome(ctx) {
   if (inviteFirst) {
     const invite = [...invites].sort((a, b) => deadline(a.response_deadline).localeCompare(deadline(b.response_deadline)))[0];
     const accept = button('Aceitar convite', { variant: 'primary', iconName: 'check', onClick: (event) => acceptInvite(ctx, invite.demo_token, { button: event.currentTarget }) });
-    hero = { title: `Aceite o convite de ${invite.buyer_name}`, text: `${invite.title} · ${productLabel(invite.product, { short: true })}${invite.response_deadline ? ` · prazo ${relativeDays(invite.response_deadline)}` : ''}`, action: accept };
+    // buyer_name é opcional na API: sem ele, nada de comprador inventado nem "undefined".
+    hero = { title: invite.buyer_name ? `Aceite o convite de ${invite.buyer_name}` : `Aceite o convite: ${invite.title}`, text: `${invite.buyer_name ? `${invite.title} · ` : ''}${productLabel(invite.product, { short: true })}${invite.response_deadline ? ` · prazo ${relativeDays(invite.response_deadline)}` : ''}`, action: accept };
   } else if (todo.length) {
     const next = todo[0];
     const state = assignmentState(next);
@@ -91,7 +92,7 @@ export async function providerHome(ctx) {
   if (invites.length) {
     root.append(card({ id: 'convites', title: 'Convites recebidos', subtitle: 'Aceitar libera a solicitação completa para a sua instituição. Você decide depois se envia proposta.',
       body: el('ul', { class: 'invite-cards', role: 'list' }, invites.map((invite) => el('li', { class: 'invite-card' }, [
-        el('div', {}, [el('p', { class: 'opportunity-kicker', text: `${invite.buyer_name} · ${productLabel(invite.product, { short: true })}` }), el('p', { class: 'invite-title', text: invite.title }),
+        el('div', {}, [el('p', { class: 'opportunity-kicker', text: [invite.buyer_name, productLabel(invite.product, { short: true })].filter(Boolean).join(' · ') }), el('p', { class: 'invite-title', text: invite.title }),
           el('p', { class: 'muted small', text: `Recebido ${timeAgo(invite.created_at)}${invite.response_deadline ? ` · prazo ${formatDate(invite.response_deadline)}` : ''}` })]),
         button('Aceitar', { variant: 'primary', size: 'sm', iconName: 'check', onClick: (event) => acceptInvite(ctx, invite.demo_token, { button: event.currentTarget }) })
       ]))) }));
@@ -304,7 +305,7 @@ export async function providerProposal(ctx) {
       toast(result.replay ? 'Nada mudou desde a última versão enviada.' : `Proposta enviada como versão ${result.version}.`);
       setTimeout(() => location.reload(), 600);
     } catch (error) {
-      toast(error.status === 401 ? 'Entre na sua conta de provedor para enviar a proposta.' : error.message, 'error');
+      toast(error.message, 'error');
       submit.disabled = false;
       sending = false;
       submit.querySelector('.btn-label').replaceChildren(...submitLabel());

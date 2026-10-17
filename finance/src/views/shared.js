@@ -4,7 +4,7 @@
 import { PRODUCTS } from '../../../lib/finance/products.mjs';
 import { buildComparison, applyUserWeights, USER_WEIGHTS_NOTICE, NEUTRAL_RANKING_NOTICE } from '../../../lib/finance/comparison.mjs';
 import { el, icon, money, fieldValue, formatDate, formatDateTime, timeAgo, uid, APPROVAL_STATUS, ROLE_LABELS, fold } from '../core.js';
-import { button, pill, avatar, emptyState, errorState, loading, toast, promptDialog, confirmDialog, field, tag, onSubmit } from '../ui.js';
+import { button, pill, avatar, emptyState, errorState, loading, toast, promptDialog, confirmDialog, field, tag, onSubmit, sessionLink } from '../ui.js';
 
 // ------------------------------------------------------------- membros
 export function memberName(members, id) {
@@ -492,7 +492,7 @@ export function collaboration(ctx, rfq, { provider = false } = {}) {
       } else if (event.key === 'Escape') suggestions.hidden = true;
     });
     text.addEventListener('blur', () => setTimeout(() => { suggestions.hidden = true; }, 120));
-    const error = el('p', { class: 'field-error', hidden: true });
+    const error = el('p', { class: 'field-error', role: 'alert', hidden: true });
     const submit = button(parent ? 'Responder' : 'Publicar comentário', { variant: 'primary', type: 'submit', iconName: 'send', size: 'sm' });
     const cancel = parent ? button('Cancelar', { variant: 'ghost', size: 'sm', onClick: () => form.remove() }) : null;
     setHelp();
@@ -518,7 +518,7 @@ export function collaboration(ctx, rfq, { provider = false } = {}) {
         toast(mentions.length ? `Comentário publicado. ${mentions.length === 1 ? 'A pessoa mencionada foi avisada.' : 'As pessoas mencionadas foram avisadas.'}` : 'Comentário publicado.');
         await refresh();
       } catch (failure) {
-        error.textContent = `${failure.message} O texto continua aqui para você tentar de novo.`;
+        error.replaceChildren(`${failure.message}${failure.status === 401 ? '' : ' O texto continua aqui para você tentar de novo.'} `, sessionLink(failure) || '');
         error.hidden = false;
       } finally {
         submit.disabled = false;
