@@ -107,6 +107,27 @@ A concorrência sazonal (coleta aberta, prazo em 9 dias) é um cenário separado
 nova linha de R$ 12 mi: explique a transição como "outra necessidade da mesma
 empresa, ainda recebendo propostas". Não encerre a coleta nem registre decisão nela.
 
+### Se uma operação do Modo 2 falhar
+
+A tela nunca diz "feito" sem o servidor confirmar. Use esta tabela para decidir em segundos; na dúvida, **siga em modo leitura** — a jornada não depende da operação.
+
+| Op. | Persistiu? Como saber | Seguro repetir? | O que fazer |
+| --- | --- | --- | --- |
+| I1 criar tarefa | Aviso "Não confirmamos…" = incerto | **Sim**, por "Conferir com o servidor" (mesma chave; nunca cria a segunda) | Clique em "Conferir com o servidor"; título igual na lista **não** prova nada |
+| I2 concluir tarefa | Recusa (404) = nada mudou; rede = incerto | Sim, depois de recarregar a lista | Recarregue e veja em "Concluídas" |
+| I3 impedimento | "Confira antes de repetir" = incerto (sem chave idempotente) | **Não** às cegas | "Fechar e conferir a lista" → abra o Detalhe; só registre de novo se não aparecer |
+| I4 aprovação da CFO | "Não confirmamos se a sua decisão foi registrada" = incerto; "Você não pode mais decidir…" = recusa | Só após "Conferir o pedido" | Recarregue Aprovações; se o pedido estiver em "Concluídas", siga |
+| I6/I8 proposta | Botão volta e dados ficam = recusa; sem resposta = incerto | Depois de recarregar o portal e ver o histórico de versões | Se a versão nova aparece no histórico, ela vale |
+| Qualquer | "Sua sessão expirou e nada foi registrado" | Sim | "Entrar em outra aba", volte e repita: o formulário continua preenchido |
+| Qualquer | "Muitas requisições em pouco tempo" | Sim, quando o botão liberar | Use outra janela/persona na espera; não recarregue em sequência |
+
+Reset (`npm run demo:local:reset`) só **depois** da apresentação, ou antes dela se a prontidão disser "Modo interativo: NÃO PRONTO". Nunca no meio, nunca em banco hospedado.
+
+### Mapa dos 20 pontos do ciclo
+
+1 workspace → passo 1 · 2 usuário/organização/papel → passo 1 (menu do usuário e Configurações → "Seu acesso") · 3 pendências → 2 · 4 necessidade → 3 · 5 RFQ → 3 · 6 condições → 3 (Visão geral) · 7 convites → 4 · 8 portal do provedor → 5 · 9 preencher → I6 · 10 enviar → I6 · 11 revisar → I8 · 12 nova versão → I8 · 13 volta ao comprador → I9 · 14 comparar → 6 e I9 · 15 aprovação e decisão → 7 e I4–I5 · 16 contrato → 8 · 17 implantação → 9 e I3 · 18 obrigações → 10 · 19 tarefa → 13 e I1–I2 · 20 renovação → 11.
+Pontos 8–13 só gravam no Modo 2 (cenário C); em leitura, mostre o histórico de versões do Atlas (cenário A, passo 5).
+
 ## O que NÃO dizer
 - Não citar economia, ROI, ganho de tempo quantificado ou "melhor proposta".
 - Não dizer que a Demo pública está atualizada/validada (M3 hospedado é trabalho do Codex).
@@ -127,4 +148,7 @@ material de apoio — nunca apresente como execução ao vivo.
 | Prontidão "NÃO PRONTO" na hora | Modo interativo não pronto, leitura pronta → apresente o Modo leitura. Leitura não pronta → plano de capturas abaixo, ditas como capturas. Nunca reset em banco hospedado. |
 | Operação do Modo 2 falha | A tela diz o que aconteceu e que nada foi confirmado; siga em modo leitura e explique a regra (só conta o que o servidor confirmou). |
 | Seed inconsistente após ensaio | `npm run demo:local:reset` (≈15 min; termina com `39/39 checagens OK`). Nunca rode reset em banco hospedado. |
+| Falha de login | Confira a senha em `scripts/pilot-local/.state/demo.env`. Muitas tentativas por IP (12/10 min) → espere a janela; não insista. Prontidão mostra se a persona entra pelo Auth local. |
+| Backend indisponível (telas com "Não foi possível carregar") | `bash scripts/demo/local.sh readiness`: se acusar serviço essencial fora do ar, `npm run demo:setup` (não é caso de reset). Enquanto isso, capturas **ditas como capturas**. |
+| Navegador com problema | Abra outra janela anônima (cookies limpos) ou outro navegador com o mesmo login; a Demo não guarda estado no navegador além da sessão. |
 | Sem rede externa | A Demo local não depende de serviços externos depois de montada. |

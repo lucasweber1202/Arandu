@@ -97,6 +97,9 @@ const authHealth = await get(`${SB}/auth/v1/health`);
 check('Auth (GoTrue)', authHealth.status === 200 ? 'PASS' : 'FAIL', `HTTP ${authHealth.status}`, { fix: 'npm run demo:setup' });
 const restHealth = await get(`${SB}/rest/v1/`, { headers: { apikey: ANON } });
 check('Banco via PostgREST', restHealth.status === 200 ? 'PASS' : 'FAIL', `HTTP ${restHealth.status}`, { fix: 'npm run demo:setup' });
+// Storage local (documentos privados da Demo: minutas e anexos do processo).
+const storage = await get(`${SB}/storage/v1/status`);
+check('Storage (documentos privados)', storage.status === 200 ? 'PASS' : 'FAIL', `HTTP ${storage.status}`, { fix: 'npm run demo:setup' });
 const alive = await get(`${APP}/api/health`);
 check('App do Arandu', alive.status === 200 && alive.json?.release?.environment === 'demo' ? 'PASS' : 'FAIL',
   alive.json ? `ambiente ${alive.json.release?.environment}, dados ${alive.json.release?.datasource}` : `HTTP ${alive.status} ${alive.text}`, { fix: 'bash scripts/demo/local.sh app' });
@@ -110,6 +113,15 @@ check('Sonda de prontidão da implantação hospedada', ready.status === 200 && 
 const login = await get(`${APP}/login.html`);
 check('Página de login', login.status === 200 ? 'PASS' : 'FAIL', `HTTP ${login.status}`);
 
+// Sem os serviços essenciais, o resto não tem como ser medido: as checagens
+// seguintes ficam NÃO EXECUTADAS (nunca PASS) e o diagnóstico aponta a causa
+// real, em vez de sugerir reset por uma Demo que só está fora do ar.
+const ESSENTIAL = /^(Contêineres|Auth|Banco via PostgREST|App do Arandu)/;
+const servicesDown = sections.flatMap((s) => s.checks).filter((c) => c.status === 'FAIL' && ESSENTIAL.test(c.name)).map((c) => c.name);
+if (servicesDown.length) {
+  section('Personas, cenário, Modo interativo e smoke');
+  check('Demais checagens', 'SKIP', `não executadas: serviço essencial fora do ar (${servicesDown.join(', ')}). Suba a Demo (npm run demo:setup) e rode de novo; não é caso de reset.`);
+} else {
 // ---------------------------------------------------------- 3. personas
 section('Personas e autenticação');
 const people = {
@@ -173,13 +185,18 @@ section('Estado inicial do Modo interativo (precisa estar intocado)');
 const fresh = { modes: ['interativo'], fix: 'Modo interativo já usado: rode npm run demo:local:reset (≈15 min) — nunca em banco hospedado' };
 const open = byTitle(RFQ_OPEN.title);
 const meridian = (open?.proposals || []).find((row) => /meridian/i.test(row.provider_name || ''));
+const orbe = (open?.proposals || []).find((row) => /orbe/i.test(row.provider_name || ''));
+check('Orbe já respondeu à concorrência sazonal (base da comparação parcial)', orbe ? 'PASS' : 'FAIL', orbe ? `versão ${orbe.version || 1}` : 'proposta da Orbe ausente', { fix: 'npm run demo:local:reset' });
+const meridianInvite = (open?.invites || []).find((row) => /meridian/i.test(row.provider_name || ''));
+check('Meridian ainda pode responder (convite ativo e coleta aberta)', open?.status === 'collecting' && (!open?.invites || (meridianInvite && ['invited', 'accepted'].includes(meridianInvite.status))) ? 'PASS' : 'FAIL',
+  meridianInvite ? `convite ${meridianInvite.status}` : open?.invites ? 'convite da Meridian ausente' : 'lista de convites não informada na visão geral', fresh);
 check('Meridian ainda não enviou proposta na concorrência sazonal (I6)', open && !meridian ? 'PASS' : 'FAIL', open ? `${(open.proposals || []).length} proposta(s) na coleta` : 'concorrência ausente', fresh);
 const approvals = org ? await api(people.helena, `approvals?${orgQ}`) : { json: null };
 const helenaTurn = (approvals.json?.rows || []).find((row) => row.status === 'pending');
-check('Etapa da CFO pendente na nova linha (I4)', helenaTurn ? 'PASS' : 'FAIL', helenaTurn ? 'pedido aguardando a Helena' : `nenhum pedido pendente (HTTP ${approvals.status}${approvals.status === 200 ? '' : ` ${approvals.text}`})`, fresh);
+check('Etapa da CFO pendente na nova linha (I4)', helenaTurn ? 'PASS' : 'FAIL', helenaTurn ? 'pedido aguardando a Helena' : `nenhum pedido pendente (${approvals.status ? `HTTP ${approvals.status}` : 'organização não lida'}${approvals.status && approvals.status !== 200 ? ` ${approvals.text}` : ''})`, fresh);
 const tasks = org ? await api(juliana, `tasks?${orgQ}&status=open&limit=200`) : { json: null };
 const live = (tasks.json?.rows || []).filter((row) => /cronograma de remessa dos terminais/i.test(row.title));
-check('Nenhuma tarefa de ensaio anterior (I1–I2)', tasks.status === 200 && !live.length ? 'PASS' : 'FAIL', tasks.status === 200 ? `${(tasks.json.rows || []).length} tarefa(s) abertas; ${live.length} de ensaio` : `HTTP ${tasks.status}`, fresh);
+check('Nenhuma tarefa de ensaio anterior (I1–I2)', tasks.status === 200 && !live.length ? 'PASS' : 'FAIL', tasks.status === 200 ? `${(tasks.json.rows || []).length} tarefa(s) abertas; ${live.length} de ensaio` : tasks.status ? `HTTP ${tasks.status}` : 'organização não lida', fresh);
 check('Tarefas do seed presentes', (tasks.json?.rows || []).length >= Math.min(5, TASKS.length) ? 'PASS' : 'FAIL', `${(tasks.json?.rows || []).length} abertas`, { fix: 'npm run demo:local:reset' });
 
 // ------------------------------------------------- 6. smoke das jornadas
@@ -202,6 +219,8 @@ else {
   const eduardo = await api(people.eduardo, 'assignments');
   const leaks = JSON.stringify(eduardo.json || {}).match(/Lumina Pay|Orbe Capital|Meridian/g) || [];
   check('Atlas não vê outras instituições', eduardo.status === 200 && !leaks.length ? 'PASS' : 'FAIL', eduardo.status === 200 ? `${leaks.length} menção(ões) a concorrentes` : `HTTP ${eduardo.status}`);
+}
+
 }
 
 // --------------------------------------------------------------- relatório
