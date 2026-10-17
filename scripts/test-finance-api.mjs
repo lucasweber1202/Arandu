@@ -510,8 +510,10 @@ await assert.rejects(call('PATCH', 'tasks', { body: { organization_id: BUYER, ta
   const taskBody = { organization_id: BUYER, title: 'Tarefa atribuída', assignee_id: ASSIGNEE,
     assignee_source: 'inherited', role: 'admin', created_by: OTHER_ORG, assignee_name: 'spoofed' };
   const assignmentMember = (entry) => entry.url.includes('fin_members?select=role') ? [{ role: 'admin' }] : [];
-  reset((entry) => entry.url.includes('fin_organizations') ? orgRow(BUYER, 'BUYER') : assignmentMember(entry));
-  await call('POST', 'tasks', { body: taskBody });
+  reset((entry) => entry.url.includes('fin_organizations') ? orgRow(BUYER, 'BUYER') : entry.method === 'POST' && entry.url.includes('fin_tasks') ? [{ id: RFQ, idempotency_key: 'private', idempotency_hash: 'private' }] : assignmentMember(entry));
+  const createdTask = await call('POST', 'tasks', { body: taskBody });
+  assert.equal(createdTask.statusCode, 201);
+  assert.deepEqual(createdTask.payload.row, { id: RFQ }, 'successful creation has an ID and no private idempotency metadata');
   const insert = sent.find((entry) => entry.method === 'POST' && entry.url.includes('fin_tasks'));
   assert.deepEqual(insert.body, {
     organization_id: BUYER, title: 'Tarefa atribuída', due_on: null, related_type: null, related_id: null,
@@ -522,6 +524,15 @@ await assert.rejects(call('PATCH', 'tasks', { body: { organization_id: BUYER, ta
   assert.match(roleProbe.url, new RegExp(`organization_id=eq\\.${BUYER}`));
   assert.match(roleProbe.url, new RegExp(`user_id=eq\\.${ACTOR}`));
   assert.equal(roleProbe.authorization, 'Bearer user-jwt', 'actor authorization uses caller JWT and same-org membership');
+
+  // A 2xx response from PostgREST without an inserted representation is not
+  // proof of creation, including response loss or an upstream protocol error.
+  for (const representation of [[], null, {}, [null], [{ id: null }], [{ id: 'invalid' }], [{ id: RFQ }, { id: DECISION_ID }]]) {
+    reset(entry => entry.url.includes('fin_organizations') ? orgRow(BUYER, 'BUYER') : representation);
+    await assert.rejects(call('POST', 'tasks', { body: { organization_id: BUYER, title: 'Criação sem confirmação' } }),
+      error => error.status === 409 && error.code === 'task_creation_unknown');
+    assert.equal(sent.filter(entry => entry.method === 'POST' && entry.url.includes('fin_tasks')).length, 1, 'uncertain creation must not automatically retry the write');
+  }
 
   const taskKey = '00000000-0000-4000-8000-0000000000a6';
   let storedTaskHash = null;
@@ -542,6 +553,29 @@ await assert.rejects(call('PATCH', 'tasks', { body: { organization_id: BUYER, ta
   assert.ok(!Object.hasOwn(retried.payload.row, 'idempotency_hash'), 'internal hash is not projected');
   await assert.rejects(call('POST', 'tasks', { body: { organization_id: BUYER, title: 'Payload diferente', idempotency_key: taskKey } }),
     (error) => error.status === 409 && error.code === 'idempotency_key_reused');
+
+  // A committed write may lose its network response. Retry the SAME intent
+  // through the existing database uniqueness key, not a second logical task.
+  let committed = null, creations = 0, attempts = 0;
+  reset(entry => {
+    if (entry.url.includes('fin_organizations')) return orgRow(BUYER, 'BUYER');
+    if (entry.url.includes('fin_tasks?on_conflict=')) {
+      attempts++;
+      if (!committed) {
+        creations++;
+        committed = { id: RFQ, title: entry.body.title, status: 'open', idempotency_hash: entry.body.idempotency_hash };
+        throw new TypeError('controlled response loss after commit');
+      }
+      return [];
+    }
+    if (entry.url.includes('fin_tasks?select=id,title')) return [committed];
+    return [];
+  });
+  const intent = { organization_id: BUYER, title: 'Retry da mesma intenção', idempotency_key: '00000000-0000-4000-8000-0000000000a7' };
+  await assert.rejects(call('POST', 'tasks', { body: intent }), /controlled response loss/);
+  const recovered = await call('POST', 'tasks', { body: intent });
+  assert.equal(recovered.statusCode, 200); assert.equal(recovered.payload.row.id, RFQ);
+  assert.equal(creations, 1); assert.equal(attempts, 2);
 
   reset((entry) => entry.url.includes('fin_organizations') ? orgRow(BUYER, 'BUYER')
     : entry.url.includes('fin_members?select=role') ? [{ role: 'admin' }]
