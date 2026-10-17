@@ -96,5 +96,7 @@ test('queda de rede: leitura em português; escrita avisa que o resultado é des
   offline = true;
   await dialog.getByRole('button', { name: 'Registrar', exact: true }).click();
   await expect(dialog.getByRole('alert')).toContainText('não foi possível confirmar se a operação foi registrada');
-  await expect(dialog.getByRole('button', { name: 'Registrar', exact: true })).toBeEnabled();
+  // Sem chave idempotente: repetir às cegas duplicaria. O botão trava e os dados ficam.
+  await expect(dialog.getByRole('button', { name: 'Confira antes de repetir' })).toBeDisabled();
+  await expect(dialog.getByLabel('Referência da evidência')).toHaveValue('EVIDENCE-TEST');
 });
