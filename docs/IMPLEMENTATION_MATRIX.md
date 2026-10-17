@@ -1482,3 +1482,15 @@ identidade/TLS/topologia permanecem fail-closed. A aprovação do destino e seus
 atestados não são prova de lifecycle/IAM configurados. Backup e restore dos refs
 hospedados ainda NOT RUN; não promove M3/M4/M5, não ativa Demo/Production.
 Runbook: `SUPABASE_ENCRYPTED_PRESERVATION.md`. ARA-8 reaberta In Progress.
+
+### Mission F — lifecycle/backend, 16/10/2026 (local evidence)
+
+Filtros opcionais exatos por contrato em listas de implantação e covenants,
+combinados com organização/entidade/provedor e RLS existente. Detalhe de implantação
+resolve proveniência legível por consultas limitadas com JWT do ator; IDs permanecem
+no contrato técnico. Criação de tarefa não confirma sucesso sem uma representação
+válida e mantém replay por chave de idempotência. Sem migration ou alteração de
+grants. Evidência e limites: [Mission F](evidence/codex-backend-platform-2026-10-16.md).
+Contrato aditivo: [Lifecycle API](FINANCIAL_CONTRACT_LIFECYCLE_API.md).
+Não promove M3: identidade canônica hospedada, recovery e provas de Auth/Storage
+continuam dependentes de acesso e autorização específicos.

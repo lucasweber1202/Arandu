@@ -140,6 +140,26 @@ select pg_temp.as_user('00000000-0000-4000-8000-0000000a7101');
 do $$ begin if jsonb_array_length(public.fin_obligation_summary('00000000-0000-4000-8000-0000000a7201',null)->'rows')=0 then raise exception 'executive summary missing';end if;end $$;
 select public.fin_cancel_obligation(pg_temp.fx('reporting'),1,'Obrigação encerrada pela tesouraria');
 select pg_temp.pq_expect_error(format('select public.fin_record_obligation_data(%L,%L::jsonb)',pg_temp.fx('report_period'),'{}'),'obligation closed');
+-- Same institution, different contracts and entities: the invoker view must
+-- preserve exact scope, historical periods and live authorization together.
+insert into pq_fixture values('contract_two',public.fin_import_contract('00000000-0000-4000-8000-0000000a7201','00000000-0000-4000-8000-0000000a7401','00000000-0000-4000-8000-0000000a7301','credit','Segundo contrato covenant',current_date-30,current_date+365,60,false,'BRL','{}',null));
+insert into pq_fixture values('contract_entity_b',public.fin_import_contract('00000000-0000-4000-8000-0000000a7201','00000000-0000-4000-8000-0000000a7402','00000000-0000-4000-8000-0000000a7301','credit','Contrato covenant entidade B',current_date-30,current_date+365,60,false,'BRL','{}',null));
+insert into pq_fixture values('obligation_two',public.fin_open_obligation(pg_temp.fx('contract_two'),jsonb_build_object('title','Entrega segundo contrato','kind','reporting_covenant','source_clause','Cláusula 1','source_reference','CONTRACT-TWO','frequency','once','first_period_start',current_date-30,'first_period_end',current_date-1,'first_due_on',current_date+1)));
+insert into pq_fixture values('obligation_entity_b',public.fin_open_obligation(pg_temp.fx('contract_entity_b'),jsonb_build_object('title','Entrega entidade B','kind','reporting_covenant','owner_id','00000000-0000-4000-8000-0000000a7104','source_clause','Cláusula 1','source_reference','CONTRACT-B','frequency','once','first_period_start',current_date-30,'first_period_end',current_date-1,'first_due_on',current_date+1)));
+do $$ begin
+ if (select count(*) from public.fin_obligation_monitor where contract_id=pg_temp.fx('contract_two'))<>1 then raise exception 'covenant contract filter mixed periods'; end if;
+ if not exists(select 1 from public.fin_obligation_monitor where contract_id=pg_temp.fx('contract') and id=pg_temp.fx('report_period') and cancellation_reason is not null) then raise exception 'cancelled obligation history lost'; end if;
+ if exists(select 1 from public.fin_obligation_monitor where contract_id=pg_temp.fx('contract') and legal_entity_id='00000000-0000-4000-8000-0000000a7402') then raise exception 'covenant combined filter expanded scope'; end if;
+end $$;
+select pg_temp.as_user('00000000-0000-4000-8000-0000000a7104');
+do $$ begin
+ if exists(select 1 from public.fin_obligation_monitor where contract_id in (pg_temp.fx('contract'),pg_temp.fx('contract_two'))) then raise exception 'contract filter bypassed covenant entity RLS'; end if;
+ if (select count(*) from public.fin_obligation_monitor where contract_id=pg_temp.fx('contract_entity_b'))<>1 then raise exception 'authorized entity covenant missing'; end if;
+end $$;
+select pg_temp.as_user('00000000-0000-4000-8000-0000000a7105');
+do $$ begin if exists(select 1 from public.fin_obligation_monitor where contract_id=pg_temp.fx('contract_two')) then raise exception 'covenant contract cross-tenant leak'; end if; end $$;
+select pg_temp.as_user('00000000-0000-4000-8000-0000000a7106');
+do $$ begin if exists(select 1 from public.fin_obligation_monitor where contract_id=pg_temp.fx('contract_two')) then raise exception 'covenant contract provider leak'; end if; end $$;
 reset role;
 delete from public.fin_members where organization_id='00000000-0000-4000-8000-0000000a7201' and user_id='00000000-0000-4000-8000-0000000a7102';
 set role authenticated;
