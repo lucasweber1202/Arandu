@@ -1,0 +1,67 @@
+# Evidência — jornadas enterprise e Demo interativa (Claude), 17/10/2026
+
+Base: `main` @ `47e8f42` (#203–#210). Branch: a branch gerenciada da sessão, reiniciada dessa `main`.
+Nenhum arquivo de `api/**`, `lib/api/**`, `lib/finance/**`, `scripts/ci-demo/**`, SQL, rollback, manifesto,
+workflows, `ops/**`, `docs/openapi/**`, `docs/IMPLEMENTATION_MATRIX.md` ou `docs/evidence/codex-*`;
+`package.json`/lock intactos. Maturidade: M1 + LOCAL_VALIDATED (Demo canônica local, backend real em
+Docker). **Demo hospedada não validada.**
+
+## Escopo
+Lote 1 (ensaio da jornada, correção do maior risco restante), Lote 2 (Modo 2 interativo com gravações
+reais verificadas após recarregar), Lote 6 (roteiro e contingências). Lotes 3–5 auditados por ensaio;
+correções só onde houve defeito demonstrável.
+
+## Defeitos reproduzidos e corrigidos
+
+| # | Sev. | Onde / persona | Antes (`main`) | Depois | Arquivos |
+| --- | --- | --- | --- | --- | --- |
+| E1 | P1 | Implantação → Detalhe (Juliana) — passo 9 do roteiro | "Origem: contrato `<uuid>` · decisão `<uuid>`", "atualizado `<ISO>`", "data de referência 2026-10-17", "template acquiring:v1"; responsável desconhecido como UUID. Composto no servidor (`lib/finance/implementation-presenter.mjs`); o roteiro precisava evitar abrir o detalhe | Camada de apresentação dos registros (`ledger.js`) converte, sem mudar o contrato: contrato → nome do contrato carregado ("contrato Lumina Pay · Adquirência · vence 16 de set de 2028"), decisão → "decisão registrada", membro → nome, desconhecido → "pessoa não identificada"/"registro vinculado", ISO → data/hora legível, `template x:vN` → "modelo de plano vN". Vale para todos os módulos de registros (implantação, covenants, performance, spend, valor, qualificação, tarifas, oportunidades, extrações) — linhas, células, títulos e seções | `finance/src/views/ledger.js` |
+| E4 | P1 | Implantação → Detalhe no celular 390 px (Juliana) | rodapé com 9 ações transbordava à esquerda ("Atualizar: Integração", "Registrar impedimento", "Cancelar plano" cortados) e ocupava ~metade da tela | ações quebram na largura do painel; no celular ocupam linha inteira e o rodapé rola (máx. 38% da altura) | `finance/style.css` |
+| E2 | P2 | Qualquer tela com membro sem nome | "Analista · 49dd" (prefixo do identificador) | papel sem fragmento de id | `finance/src/views/shared.js` |
+| E3 | P2 | Convite de provedor na RFQ | tipo ausente caía no enum cru | "tipo não informado" | `finance/src/views/rfq.js` |
+
+Regressão nova: `tests/e2e/finance-implementations.spec.js` — "detalhe composto no servidor não mostra
+identificador nem instante ISO…" (contrato pelo nome, "decisão registrada", "pessoa não identificada", sem
+UUID, sem data ISO, sem `template x:vN`). **FAIL na `main`** (mostra o UUID cru), PASS com a correção.
+`tests/e2e/finance-implementations.spec.js` — "detalhe com muitas ações: nenhum botão do rodapé fica fora da
+tela" (8 marcos pendentes + impedimento). **FAIL na `main` no Pixel 7**, PASS com a correção.
+
+Capturas reais (Demo local, Juliana, plano da Lumina): `impl-{desktop,mobile}-{before,after}.webp`.
+Antes: `Origem: contrato a93dcbdd-… · decisão 90b3deb7-… · template acquiring:v1`. Depois:
+`Origem: contrato Lumina Pay · Adquirência · vence 16 de set de 2028 · decisão registrada · … · modelo de plano v1`;
+sem UUID/ISO, overflow 0 em 1440 e 390 px.
+
+## Modo 2 — gravações reais (`scripts/demo/interactive.mjs`)
+Só roda contra a Demo local (recusa outra URL). Cada operação pela interface; só conta se reaparece após
+recarregar. **Resultado no backend real (desktop 1440): 5/5 PASS** (`interactive-result.json`, capturas
+`interactive-*.webp`); a Demo foi resetada em seguida (`demo:local:reset`, 38/38).
+
+| Op. | Persona | Ação | Verificação após recarregar |
+| --- | --- | --- | --- |
+| I1 | Juliana (gestora) | criar tarefa com responsável Rafael | tarefa na lista com Rafael |
+| I2 | Juliana | concluir a tarefa | aparece em "Concluídas" |
+| I3 | Juliana | registrar impedimento no plano da Lumina | impedimento no detalhe + "Resolver: …" |
+| I4 | Helena (CFO) | aprovar a etapa pendente da nova linha | pedido em "Concluídas" |
+| I5 | Juliana | (efeito) Painel | "Registrar decisão: Capital de giro — nova linha…" em "Precisa de você" |
+
+Provedor: o seed não tem concorrência com coleta aberta para instituição; a escrita do provedor não é
+demonstrável sem mudar a narrativa. Portal mostrado em leitura (isolamento verificado no `demo-baseline`).
+
+## Validação
+(preenchida ao final — ver descrição da PR)
+
+## Riscos para 29/10
+- Demo hospedada sem validação (Codex/M3).
+- Limite legítimo da API (120 req/10 min por pessoa; login 12/10 min por IP): ensaios em sequência
+  esgotam a cota; o roteiro manda logar antes e evitar recarregas seguidas.
+- Modo 2 exige `npm run demo:local:reset` (≈15 min) antes de nova apresentação.
+
+## Handoffs ao Codex
+| Prior. | Endpoint / módulo | Esperado | Por quê |
+| --- | --- | --- | --- |
+| P2 | `lib/finance/implementation-presenter.mjs` | compor "Origem" com texto (título do contrato, "decisão registrada em …"), data legível e "Não informado" para responsável sem nome; `template_version` com rótulo | a interface agora protege a tela, mas a fonte deve ser legível para export/API pública |
+| P3 | `GET implementations`, `GET covenants` | `contract_id` opcional | atalho do contrato hoje filtra por instituição/entidade (a tela declara) |
+| P3 (Claude, próxima rodada) | `scripts/demo/dataset.mjs` | uma concorrência com coleta aberta para um provedor | permitiria demonstrar envio real de proposta no Modo 2 |
+
+## Rollback
+Reverter a PR (interface, testes, script de ensaio e documentos). Nenhum dado, contrato de API ou migration.

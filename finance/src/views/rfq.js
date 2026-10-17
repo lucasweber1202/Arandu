@@ -234,7 +234,7 @@ function inviteForm(ctx, rfq) {
   const options = (ctx.data.providers || []).filter((provider) => provider.status === 'active' && !invited.has(provider.id));
   if (!options.length) return el('p', { class: 'muted small', text: 'Todos os provedores cadastrados já foram convidados. Cadastre outros em Provedores.' });
   const select = el('select', { name: 'provider_id' });
-  for (const provider of options) select.add(new Option(`${provider.name} · ${PROVIDER_KINDS[provider.kind] || provider.kind}`, provider.id));
+  for (const provider of options) select.add(new Option(`${provider.name} · ${PROVIDER_KINDS[provider.kind] || 'tipo não informado'}`, provider.id));
   const submit = button('Convidar', { variant: 'primary', type: 'submit', size: 'sm', iconName: 'send' });
   const form = el('form', { class: 'inline-form' }, [field({ label: 'Convidar provedor', control: select }), submit]);
   onSubmit(form, async (event) => {

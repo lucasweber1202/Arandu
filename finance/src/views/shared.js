@@ -10,7 +10,7 @@ import { button, pill, avatar, emptyState, errorState, loading, toast, promptDia
 export function memberName(members, id) {
   const member = (members || []).find((row) => row.user_id === id);
   if (member?.display_name) return member.display_name;
-  if (member) return `${ROLE_LABELS[member.role] || 'Membro'} · ${String(id).slice(0, 4)}`;
+  if (member) return ROLE_LABELS[member.role] || 'Membro';
   return 'Membro';
 }
 export function memberTitle(members, id) {
