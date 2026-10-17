@@ -3,6 +3,7 @@
 // conteúdo não confiável, evals com limiares por criticidade, paridade
 // SQL/JS do schema, API só com o JWT de quem chama e linguagem segura.
 import assert from 'node:assert/strict';
+import './test-document-resource-limits.mjs';
 import { readFileSync } from 'node:fs';
 import { Readable } from 'node:stream';
 import {
@@ -15,6 +16,7 @@ import { DATA_REGISTRY } from '../lib/finance/data-governance.mjs';
 import { EVAL_CASES, FAILURE_CASES } from '../tests/fixtures/document-intelligence/eval-cases.mjs';
 import { makePdf, makeXlsx, makeDocx, makeZip } from '../tests/fixtures/document-intelligence/builders.mjs';
 import { handleFinance } from '../lib/api/domains/finance.mjs';
+import { createDocumentStorage } from '../lib/finance/document-storage.mjs';
 
 // ---------------------------------------------------------------- 1. domínio
 assert.equal(matchField('credit_proposal', 'Spread a.a.:')?.key, 'spread_pct_year');
@@ -177,6 +179,27 @@ sent = []; begin = { ...begin, mime_type: 'image/png' };
 await call('POST', 'extractions/start', { organization_id: ORG, document: `${DOC}|1`, schema_key: 'credit_proposal', provider: 'deterministic_v1' });
 assert.ok(sent.some((s) => s.url.endsWith('fin_document_extraction_fail') && s.payload.p_code === 'unsupported_format'));
 begin = { ...begin, mime_type: 'application/pdf' };
+// Oversized Storage streams fail after caller authorization, never record facts
+// or return a false completed extraction. No retry of the read or write.
+sent = [];
+let objectReads = 0, streamCancelled = false;
+const boundedStorage = createDocumentStorage({
+  env: { SUPABASE_URL: 'https://fixture.example.invalid', SUPABASE_SERVICE_ROLE_KEY: 'synthetic-storage-key' },
+  fetchImpl: async () => {
+    objectReads += 1;
+    assert.ok(sent.some((s) => s.url.endsWith('fin_document_extraction_begin')));
+    return new Response(new ReadableStream({
+      pull(controller) { controller.enqueue(new Uint8Array(6 * 1024 * 1024)); },
+      cancel() { streamCancelled = true; }
+    }, { highWaterMark: 0 }));
+  }
+});
+const oversized = await call('POST', 'extractions/start', { organization_id: ORG, document: `${DOC}|1`, schema_key: 'credit_proposal', provider: 'deterministic_v1' }, { documentStorage: boundedStorage });
+assert.equal(oversized.ok, false); assert.equal(oversized.code, 'too_large');
+assert.equal(objectReads, 1); assert.equal(streamCancelled, true);
+assert.ok(sent.some((s) => s.url.endsWith('fin_document_extraction_fail') && s.payload.p_code === 'too_large'));
+assert.ok(!sent.some((s) => s.url.endsWith('fin_document_extraction_record')));
+for (const s of sent) assert.equal(s.headers.Authorization, 'Bearer caller-jwt');
 // Digitação manual: rótulos conhecidos viram fatos `manual_entry`; nenhum rótulo → 400 antes de qualquer RPC.
 sent = [];
 await assert.rejects(() => call('POST', 'extractions/start', { organization_id: ORG, document: `${DOC}|1`, schema_key: 'credit_proposal', provider: 'manual', manual_text: 'aprovar: sim' }), (e) => e.status === 400);

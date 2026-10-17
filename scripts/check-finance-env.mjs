@@ -53,7 +53,9 @@ function describe(name, { required = false, pattern = null, minLength = 0, secre
     return value;
   }
   // Segredo nunca é impresso — nem truncado, nem mascarado com parte do valor.
-  report.push(`  ${name}: presente${secret ? ` (${value.length} caracteres)` : ` (${value})`}`);
+  // URLs can accidentally contain passwords or bearer-like query parameters.
+  // Presence/format is sufficient for diagnostics; never echo supplied values.
+  report.push(`  ${name}: presente${secret ? ` (${value.length} caracteres)` : ''}`);
   return value;
 }
 
@@ -82,6 +84,14 @@ const cronSecret = describe('CRON_SECRET', { required: needsSupabase, minLength:
 report.push('');
 report.push('Aplicação:');
 const siteUrl = describe('ARANDU_SITE_URL', { required: needsSupabase, pattern: /^https:\/\// });
+if (siteUrl) {
+  try {
+    const parsed = new URL(siteUrl);
+    if (parsed.username || parsed.password || parsed.search || parsed.hash) problems.push('ARANDU_SITE_URL não pode conter credenciais, parâmetros ou fragmento. Use a URL pública do ambiente.');
+  } catch {
+    problems.push('ARANDU_SITE_URL presente, mas não é uma URL válida.');
+  }
+}
 // O prefixo não basta: o placeholder `https://sua-url-da-vercel` do .env.example
 // estava configurado em Production e passava. Mesma regra de domínio dos demais
 // gates (lib/public-site-url.mjs); localhost só serve à stack local de demo/piloto.
