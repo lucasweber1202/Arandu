@@ -256,11 +256,12 @@ main#main{flex:1;width:100%;max-width:1440px;margin:0 auto;padding:var(--s6) var
 .gate form{width:100%;text-align:left}
 
 /* ------------------------------------------------------------ formulários */
-.field{display:grid;gap:6px;min-width:0}
+.field{display:grid;gap:6px;min-width:0;align-content:start}
 .field-label{font-size:var(--fs-sm);font-weight:600;color:var(--text-secondary)}
 .req{color:var(--danger)}
 .optional{font-weight:400;color:var(--text-muted)}
 .field-hint{font-size:var(--fs-xs);color:var(--text-muted)}
+.field-readout{font-size:var(--fs-xs);color:var(--text-muted);font-variant-numeric:tabular-nums}.field-readout:empty{display:none}
 .field-error{font-size:var(--fs-xs);color:var(--danger);font-weight:600}
 input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea,.input{width:100%;min-height:38px;padding:8px 10px;border:1px solid var(--border-strong);border-radius:var(--r-md);background:var(--surface);color:var(--text);font:inherit;font-size:var(--fs-md);transition:border-color .12s,box-shadow .12s}
 textarea{min-height:80px;resize:vertical;line-height:1.45}
@@ -268,7 +269,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none;bor
 [aria-invalid=true]{border-color:var(--danger)!important;background:#fffafa}
 input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:var(--accent);margin:0;flex:none}
 input[type=range]{accent-color:var(--accent);width:100%}
-input:disabled,select:disabled,textarea:disabled{background:var(--surface-sunken);color:var(--text-muted);cursor:not-allowed}
+input:disabled,input:not([type=checkbox]):not([type=radio]):not([type=range]):disabled,select:disabled,textarea:disabled,.input:disabled{background:var(--surface-sunken);color:var(--text-muted);cursor:not-allowed}
 fieldset{border:0;padding:0;margin:0;min-width:0}
 legend{padding:0}
 .field-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s4)}
@@ -1272,3 +1273,10 @@ textarea.mono{width:100%;max-width:100%;min-width:0}
    da largura do painel em vez de transbordar; no celular rola sem tomar a tela. */
 .drawer-foot>.actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:var(--s2);min-width:0;max-width:100%}
 @media (max-width:759px){.drawer-foot{max-height:38vh;overflow-y:auto}.drawer-foot>.actions .btn{flex:1 1 100%;white-space:normal;text-align:left;justify-content:flex-start}}
+
+/* Seu acesso (Configurações): o que o papel permite, em duas colunas que viram uma no celular. */
+.access-scope{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s4)}
+.access-scope .span-2{grid-column:1/-1;margin:0}
+.access-scope-title{font-size:var(--fs-sm);font-weight:600;margin:0 0 var(--s2)}
+.access-list{margin:0;padding-left:1.1em;display:grid;gap:4px;font-size:var(--fs-sm)}
+@media (max-width:759px){.access-scope{grid-template-columns:minmax(0,1fr)}}

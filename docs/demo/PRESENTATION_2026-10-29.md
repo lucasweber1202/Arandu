@@ -13,8 +13,8 @@ decisões e obrigações que surgem depois dela.*
 
 ## Antes de começar (T-30 min)
 
-1. `npm run demo:setup` (ou `npm run demo:local:reset` se já estiver de pé). Esperado: `38/38 checagens OK`.
-2. Duas janelas: normal (**juliana.ramos@vittafoods.example**, gerente de tesouraria) e anônima (**eduardo.lima@atlasbank.example**, Atlas Bank). Opcional: **helena.duarte@vittafoods.example** (CFO) e **carlos.tavares@vittafoods.example** (Controller, leitor). Senha em `scripts/pilot-local/.state/demo.env`.
+1. `npm run demo:setup` (ou `npm run demo:local:reset` se já estiver de pé). Esperado: `39/39 checagens OK` (inclui a concorrência com coleta aberta).
+2. Duas janelas: normal (**juliana.ramos@vittafoods.example**, gerente de tesouraria) e anônima (**eduardo.lima@atlasbank.example**, Atlas Bank; no Modo 2, **patricia.alves@meridianfinancial.example**, Meridian Financial). Opcional: **helena.duarte@vittafoods.example** (CFO) e **carlos.tavares@vittafoods.example** (Controller, leitor). Senha em `scripts/pilot-local/.state/demo.env`.
 3. Faça login nas janelas **antes**: o login tem limite legítimo por IP (12/10 min) e a API, 120 requisições/10 min por pessoa. Não fique recarregando páginas no ensaio imediatamente antes.
 
 ## Público e cenário
@@ -54,10 +54,11 @@ Transição buyer → provider no passo 5; volte à janela da Juliana no passo 6
 
 ## Modo 2 — demonstração interativa (20–30 min, grava dados)
 
-Mesmo roteiro, com quatro operações reais. Cada uma: mostre o **antes**, faça a
+Mesmo roteiro, com operações reais. Cada uma: mostre o **antes**, faça a
 **ação**, leia a **confirmação**, **recarregue** a página e mostre o **depois**.
-Ensaio automatizado das quatro: `node scripts/demo/interactive.mjs` (só roda contra
-a Demo local; ver evidência). **Depois da apresentação: `npm run demo:local:reset`.**
+Ensaio automatizado de todas: `node scripts/demo/interactive.mjs` (só roda contra
+a Demo local; ver `docs/evidence/claude-enterprise-product-2026-10-17.md`).
+**Depois da apresentação: `npm run demo:local:reset`.**
 
 | # | Quando | Persona / rota | Antes | Ação | Confirmação | Depois (após recarregar) |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -66,8 +67,15 @@ a Demo local; ver evidência). **Depois da apresentação: `npm run demo:local:r
 | I3 | passo 9 | Implantação → Detalhe → "Registrar impedimento" | 1 impedimento aberto | "Transportadora sem data para os 60 terminais", resolver até +7 dias | formulário fecha | 2 impedimentos no detalhe e botão "Resolver: …" |
 | I4 | passo 7 | janela anônima: **Helena (CFO)** → Aprovações | "Aguardando você" com a nova linha | Aprovar → confirmar | "Aprovação registrada." | pedido em "Concluídas"; na janela da Juliana o Painel passa a sugerir "Registrar decisão" |
 
-O provedor **não** grava nada no seed atual (a única concorrência com instituições
-está com a coleta encerrada); mostre o portal em leitura (passo 5).
+| I5 | após I4 | Juliana → Painel | "Precisa de você" | — (efeito de I4) | — | "Registrar decisão: Capital de giro — nova linha…" |
+| I6 | após o passo 5 | janela anônima: **Patrícia (Meridian)** → Portal → "Capital de giro sazonal — safra de inverno" | "Responda: …", rascunho não enviado; Orbe já respondeu (a Patrícia não vê) | Clicar "Revisar e enviar" vazio (mostra os obrigatórios); preencher Produto "Giro safra — mesa agro", Valor 5000000 (a tela lê "= R$ 5.000.000"), Taxa 1,29, Prazo 12, CET 19,2, Carência 3, nota | resumo "Enviar proposta?" → "Proposta enviada como versão 1." | "Proposta enviada · versão 1" e histórico "Versão 1" |
+| I7 | em seguida | janela anônima: **Bruno (Orbe)** abre o link da proposta da Meridian | — | colar o endereço | "Proposta não encontrada" | nenhuma condição da Meridian aparece; o servidor é a autoridade (RLS), não a tela |
+| I8 | em seguida | Patrícia, mesma tela | v1 enviada | Taxa 1,27 e nota da versão 2 → enviar | "Enviar a versão 2?" → "Proposta enviada como versão 2." | histórico com "Taxa (% a.m.): 1,29% → 1,27%" |
+| I9 | volte à Juliana | Solicitações → "Capital de giro sazonal…" → Propostas / Comparação | Orbe v1; Meridian "aceitou o convite e está preparando" | — | — | card "Meridian Financial · versão 2 de 2"; Comparação diz "Coleta em andamento: 2 de 2 instituições convidadas enviaram proposta" |
+
+A concorrência sazonal (coleta aberta, prazo em 9 dias) é um cenário separado da
+nova linha de R$ 12 mi: explique a transição como "outra necessidade da mesma
+empresa, ainda recebendo propostas". Não encerre a coleta nem registre decisão nela.
 
 ## O que NÃO dizer
 - Não citar economia, ROI, ganho de tempo quantificado ou "melhor proposta".
@@ -85,5 +93,5 @@ material de apoio — nunca apresente como execução ao vivo.
 | Demo local fora do ar / Docker não sobe | `npm run demo:setup` (≈20 min — tenha a máquina pronta antes); se falhar, use as capturas de `docs/evidence/claude-financial-demo-2026-10-16/` e `claude-enterprise-demo-2026-10-17/`, **ditas como capturas**. |
 | Sessão expirada no meio | Entre de novo na mesma janela; nada salvo se perde (tarefas e aprovações já confirmadas ficam no servidor). |
 | Operação do Modo 2 falha | A tela diz o que aconteceu e que nada foi confirmado; siga em modo leitura e explique a regra (só conta o que o servidor confirmou). |
-| Seed inconsistente após ensaio | `npm run demo:local:reset` (≈15 min; termina com `38/38 checagens OK`). Nunca rode reset em banco hospedado. |
+| Seed inconsistente após ensaio | `npm run demo:local:reset` (≈15 min; termina com `39/39 checagens OK`). Nunca rode reset em banco hospedado. |
 | Sem rede externa | A Demo local não depende de serviços externos depois de montada. |

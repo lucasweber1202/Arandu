@@ -159,7 +159,10 @@ function lifecycleBar(contract) {
     ['Início', contract.starts_on, today >= start], ['90 dias', new Date(end - 90 * 86400000).toISOString().slice(0, 10), today >= end - 90 * 86400000],
     ['60 dias', new Date(end - 60 * 86400000).toISOString().slice(0, 10), today >= end - 60 * 86400000], ['30 dias', new Date(end - 30 * 86400000).toISOString().slice(0, 10), today >= end - 30 * 86400000],
     ['Aviso prévio', new Date(notice).toISOString().slice(0, 10), today >= notice], ['Vencimento', contract.ends_on, today >= end]
-  ].filter(([, date]) => date >= contract.starts_on).sort((a, b) => a[1].localeCompare(b[1]) || (a[0] === 'Aviso prévio' ? -1 : 1)).map(([label, date, reached]) => el('li', { class: `life-point${reached ? ' reached' : ''}` }, [el('span', { class: 'life-point-label', text: label }), el('span', { class: 'life-point-date', text: formatDate(date, { withYear: 'auto' }) }), reached ? el('span', { class: 'sr-only', text: '(alcançado)' }) : null])));
+  ].filter(([, date]) => date >= contract.starts_on).sort((a, b) => a[1].localeCompare(b[1]) || (a[0] === 'Aviso prévio' ? -1 : 1))
+    // Marcos na mesma data (aviso prévio de 60 dias = marco de 60 dias) viram um rótulo só, sem data repetida.
+    .reduce((list, point) => { const last = list.at(-1); if (last && last[1] === point[1]) last[0] = `${last[0]} · ${point[0]}`; else list.push([...point]); return list; }, [])
+    .map(([label, date, reached]) => el('li', { class: `life-point${reached ? ' reached' : ''}` }, [el('span', { class: 'life-point-label', text: label }), el('span', { class: 'life-point-date', text: formatDate(date, { withYear: 'auto' }) }), reached ? el('span', { class: 'sr-only', text: '(alcançado)' }) : null])));
   return el('div', { class: 'lifecycle-bar', role: 'img', 'aria-label': `Vigência de ${formatDate(contract.starts_on)} a ${formatDate(contract.ends_on)}; aviso prévio em ${formatDate(new Date(notice).toISOString().slice(0, 10))}` }, [bar, legend]);
 }
 
@@ -438,13 +441,22 @@ export async function tasks(ctx) {
       await draw(result?.row?.id);
     } catch (error) {
       if (unknownOutcome(error)) {
-        pendingNote.textContent = 'Não confirmamos se a tarefa foi criada. Adicionar de novo com os mesmos dados repete a mesma tentativa, sem duplicar.';
+        // Reconciliação segura: relê a lista persistida (o servidor pede isso no 409
+        // task_creation_unknown) e diz o que encontrou. A chave da tentativa é mantida;
+        // nada é reenviado sozinho.
+        pendingNote.textContent = 'Não confirmamos se a tarefa foi criada. Conferindo a lista…';
         pendingNote.hidden = false;
+        const rows = await draw();
+        const sameTitle = (rows || []).some((row) => row.title === pending.body.title && row.status === 'open');
+        pendingNote.textContent = sameTitle
+          ? 'Não confirmamos a criação, mas a lista atualizada já mostra uma tarefa aberta com este título. Confira antes de adicionar de novo; repetir com os mesmos dados não duplica.'
+          : 'Não confirmamos se a tarefa foi criada. Adicionar de novo com os mesmos dados repete a mesma tentativa, sem duplicar.';
+        toast('Não foi possível confirmar a criação da tarefa. Seus dados continuam no formulário.', 'error');
       } else {
         pending = null;
         pendingNote.hidden = true;
+        toast(error.message, 'error');
       }
-      toast(error.message, 'error');
     } finally { submitting = false; submit.disabled = false; }
   });
 
@@ -644,6 +656,13 @@ const PREFERENCE_TYPES = [['approval_requested', 'Aprovação solicitada a mim']
   ['comment', 'Comentários de provedores'], ['renewal_due', 'Renovação de contrato'], ['task_assigned', 'Tarefa atribuída'],
   ['policy_exception_requested', 'Exceção de policy para decidir'], ['policy_exception_decided', 'Exceção de policy decidida']];
 
+const ROLE_SCOPE = {
+  admin: { can: ['Administrar equipe, papéis e a regra de aprovação', 'Criar solicitações, convidar instituições e registrar decisões e contratos', 'Aprovar quando for aprovador designado', 'Atribuir, concluir e reabrir tarefas'], cannot: [] },
+  finance_manager: { can: ['Criar solicitações, convidar instituições e registrar decisões e contratos', 'Aprovar quando for aprovador designado', 'Atribuir, concluir e reabrir tarefas', 'Atualizar o perfil financeiro'], cannot: ['Equipe, papéis e regra geral de aprovação (administração)'] },
+  analyst: { can: ['Comparar propostas e preparar a análise', 'Atualizar o perfil financeiro e anexar documentos', 'Concluir e reabrir tarefas', 'Aprovar quando for aprovador designado'], cannot: ['Criar solicitações e registrar decisões ou contratos (gestão financeira)', 'Atribuir responsáveis de tarefas (gestão financeira)', 'Equipe, papéis e regra de aprovação (administração)'] },
+  viewer: { can: ['Acompanhar solicitações, propostas, contratos e tarefas', 'Aprovar ou pedir alterações quando for aprovador designado', 'Ler os comentários da equipe'], cannot: ['Comentar e mencionar (análise e gestão)', 'Criar solicitações e registrar decisões ou contratos (gestão financeira)', 'Concluir, criar ou atribuir tarefas (análise e gestão)', 'Alterar dados da empresa e o perfil financeiro'] }
+};
+
 export async function settings(ctx) {
   ctx.header({ title: 'Configurações', subtitle: 'Empresa, perfil financeiro, política de aprovação, notificações e equipe.' });
   // Seções avançadas (policy, integrações, SSO) só existem para quem as vê.
@@ -681,6 +700,19 @@ export async function settings(ctx) {
     catch (error) { toast(error.message, 'error'); }
   });
   add('empresa', 'Empresa', organization.legal_name, orgForm);
+
+  // Seu acesso (usuário convidado): organização, papel e o que ele permite, em
+  // linguagem de tarefa. Espelha UI_PERMISSION_ROLES/TASK_EDITORS; o servidor continua a autoridade.
+  const role = ctx.viewer?.role;
+  const scope = ROLE_SCOPE[role];
+  // O sandbox legado (/demo) não recebe capability nova (CLAUDE.md).
+  if (scope && ctx.mode !== 'demo') {
+    add('acesso', 'Seu acesso', `${ROLE_LABELS[role] || 'Papel'} em ${organization.legal_name}`, el('div', { class: 'access-scope', id: 'access-scope' }, [
+      el('div', {}, [el('h3', { class: 'access-scope-title', text: 'Você pode' }), el('ul', { class: 'access-list' }, scope.can.map((text) => el('li', { text })))]),
+      el('div', {}, [el('h3', { class: 'access-scope-title', text: 'Fica com outros papéis' }), scope.cannot.length ? el('ul', { class: 'access-list muted' }, scope.cannot.map((text) => el('li', { text }))) : el('p', { class: 'muted small', text: 'Nada: este é o papel com acesso completo à organização.' })]),
+      el('p', { class: 'muted small span-2', text: role === 'admin' ? 'Papéis são definidos em "Equipe e papéis". O acesso a cada entidade do grupo segue o escopo concedido.' : 'Precisa de outro acesso? Peça a um administrador da organização. O acesso a cada entidade do grupo segue o escopo concedido.' })
+    ]));
+  }
 
   // Identidade de quem usa: aparece em aprovações, comentários, tarefas e responsáveis.
   const me = (ctx.members || []).find((member) => member.user_id === ctx.viewer?.id);

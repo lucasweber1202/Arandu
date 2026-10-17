@@ -576,6 +576,14 @@ async function seedStory() {
   await submit(s2, 'atlas', 1, s2.start + 14, '17:35');
   await at(s2.start + 15, '10:00');
   await upload('atlas', 'credit:atlas', 'shared', data.DOCUMENTS[2].title);
+
+  // --- RFQ 4: linha sazonal com coleta aberta (intercalada no calendário) ----
+  // A Orbe envia; a Meridian aceita e fica sem responder: é o envio ao vivo.
+  const s4 = data.RFQ_OPEN;
+  await openRfq(s4, juliana);
+  await inviteAll(s4, juliana, s4.start);
+  await submit(s4, 'orbe', 0, s4.start + 2, '16:10');
+
   await at(s2.deadline + 1, '09:10');
   await post(juliana, 'transition', { kind: 'rfq', id: credit, from: 'collecting', status: 'comparing' });
   await compare(s2, rafael);
@@ -935,6 +943,16 @@ async function sanity() {
   const atlasRows = (await api(people.atlas, 'GET', `assignments?organization_id=${atlasOrg.id}`)).rows;
   const leaked = JSON.stringify(atlasRows).includes('Orbe Capital') || JSON.stringify(atlasRows).includes('Lumina');
   check('Provedor não vê concorrentes', atlasRows.length === 3 && !leaked, `${atlasRows.length} oportunidades, concorrentes ${leaked ? 'VISÍVEIS' : 'ausentes'}`);
+  // Concorrência com coleta aberta: a Meridian pode enviar a proposta ao vivo; a Orbe já enviou e não vê a Meridian.
+  const open = byTitle(data.RFQ_OPEN.title);
+  const meridianOrg = (await api(people.meridian, 'GET', 'organizations')).rows.find((row) => row.kind === 'PROVIDER');
+  const meridianOpen = (await api(people.meridian, 'GET', `assignments?organization_id=${meridianOrg.id}`)).rows.find((row) => row.rfq_id === open?.id);
+  const orbeOrg = (await api(people.orbe, 'GET', 'organizations')).rows.find((row) => row.kind === 'PROVIDER');
+  const orbeOpen = (await api(people.orbe, 'GET', `assignments?organization_id=${orbeOrg.id}`)).rows.find((row) => row.rfq_id === open?.id);
+  check('Concorrência aberta: proposta recebida e instituição convidada sem envio',
+    open?.status === 'collecting' && (open.proposals || []).length === 1 && open.response_deadline > isoDate(0)
+      && meridianOpen && !meridianOpen.version && meridianOpen.rfq_status === 'collecting' && orbeOpen?.version === 1 && !JSON.stringify(orbeOpen).includes('Meridian'),
+    open ? `${open.status}, ${(open.proposals || []).length} proposta(s), Meridian ${meridianOpen ? (meridianOpen.version ? `enviou v${meridianOpen.version}` : 'sem envio') : 'sem acesso'}` : 'ausente');
   // Pós-contrato: cada capability tem dado demonstrável e as regras do produto aparecem.
   const page = async (resource) => api(juliana, 'GET', `${resource}?organization_id=${org.id}`);
   const implementations = await page('implementations');

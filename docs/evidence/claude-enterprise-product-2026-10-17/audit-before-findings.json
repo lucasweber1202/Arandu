@@ -1,0 +1,149 @@
+[
+  {
+    "persona": "juliana",
+    "route": "/finance/rfq.html?id=a28238a7-1625-45a1-a748-41c688baf827",
+    "kind": "identificador",
+    "detail": "\"2e0e9304-af81-46ed-99aa-2ae1348b84b4\" em “Muitas tentativas. Aguarde alguns minutos e tente novamente. Código de referência: 2e0e9304-af81-46ed-99aa-2ae1348b84b4”",
+    "width": null
+  },
+  {
+    "persona": "juliana",
+    "route": "/finance/rfq.html?id=a28238a7-1625-45a1-a748-41c688baf827",
+    "kind": "identificador",
+    "detail": "\"d4397773-af4b-47e7-ba8c-ff2bc661a093\" em “Muitas tentativas. Aguarde alguns minutos e tente novamente. Código de referência: d4397773-af4b-47e7-ba8c-ff2bc661a093”",
+    "width": null
+  },
+  {
+    "persona": "juliana",
+    "route": "/finance/rfq.html?id=a28238a7-1625-45a1-a748-41c688baf827#Atividade",
+    "kind": "identificador",
+    "detail": "\"a1b91555-1c23-49f5-a637-6a6bccfe0462\" em “Muitas tentativas. Aguarde alguns minutos e tente novamente. Código de referência: a1b91555-1c23-49f5-a637-6a6bccfe0462”",
+    "width": null
+  },
+  {
+    "persona": "juliana",
+    "route": "/finance/rfq.html?id=a28238a7-1625-45a1-a748-41c688baf827#Atividade",
+    "kind": "identificador",
+    "detail": "\"c3f55d9d-e233-48f9-9fd5-ccc7fa915c1d\" em “Muitas tentativas. Aguarde alguns minutos e tente novamente. Código de referência: c3f55d9d-e233-48f9-9fd5-ccc7fa915c1d”",
+    "width": null
+  },
+  {
+    "persona": "juliana",
+    "route": "/finance/rfq.html?id=a28238a7-1625-45a1-a748-41c688baf827",
+    "kind": "erro de execução",
+    "detail": "429 /api/finance/decisions",
+    "width": null
+  },
+  {
+    "persona": "juliana",
+    "route": "/finance/rfq.html?id=a28238a7-1625-45a1-a748-41c688baf827",
+    "kind": "erro de execução",
+    "detail": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+    "width": null
+  },
+  {
+    "persona": "juliana",
+    "route": "/finance/rfq.html?id=a28238a7-1625-45a1-a748-41c688baf827",
+    "kind": "erro de execução",
+    "detail": "429 /api/finance/entities",
+    "width": null
+  },
+  {
+    "persona": "juliana",
+    "route": "/finance/rfq.html?id=a28238a7-1625-45a1-a748-41c688baf827",
+    "kind": "erro de execução",
+    "detail": "429 /api/finance/notifications",
+    "width": null
+  },
+  {
+    "persona": "juliana",
+    "route": "/finance/rfq.html?id=a28238a7-1625-45a1-a748-41c688baf827",
+    "kind": "erro de execução",
+    "detail": "429 /api/finance/approvals",
+    "width": null
+  },
+  {
+    "persona": "juliana",
+    "route": "/finance/rfq.html?id=a28238a7-1625-45a1-a748-41c688baf827",
+    "kind": "erro de execução",
+    "detail": "429 /api/finance/rfq-passport",
+    "width": null
+  },
+  {
+    "persona": "juliana",
+    "route": "/finance/rfq.html?id=a28238a7-1625-45a1-a748-41c688baf827",
+    "kind": "erro de execução",
+    "detail": "429 /api/finance/rfq-revisions",
+    "width": null
+  },
+  {
+    "persona": "juliana",
+    "route": "/finance/rfq.html?id=a28238a7-1625-45a1-a748-41c688baf827",
+    "kind": "erro de execução",
+    "detail": "429 /api/finance/private-documents",
+    "width": null
+  },
+  {
+    "persona": "juliana",
+    "route": "/finance/rfq.html?id=a28238a7-1625-45a1-a748-41c688baf827",
+    "kind": "erro de execução",
+    "detail": "429 /api/finance/comparison",
+    "width": null
+  },
+  {
+    "persona": "juliana",
+    "route": "/finance/rfq.html?id=a28238a7-1625-45a1-a748-41c688baf827",
+    "kind": "erro de execução",
+    "detail": "429 /api/finance/comments",
+    "width": null
+  },
+  {
+    "persona": "juliana",
+    "route": "/finance/rfq.html?id=a28238a7-1625-45a1-a748-41c688baf827",
+    "kind": "erro de execução",
+    "detail": "429 /api/finance/events",
+    "width": null
+  },
+  {
+    "persona": "juliana",
+    "route": "/finance/rfq.html?id=86caf94b-e896-4351-9ec3-d84baa821e8d",
+    "kind": "identificador",
+    "detail": "\"dd8e0683-faef-44d6-a63b-985e2707d09d\" em “Muitas tentativas. Aguarde alguns minutos e tente novamente. Código de referência: dd8e0683-faef-44d6-a63b-985e2707d09d”",
+    "width": null
+  },
+  {
+    "persona": "juliana",
+    "route": "/finance/rfq.html?id=86caf94b-e896-4351-9ec3-d84baa821e8d",
+    "kind": "erro de execução",
+    "detail": "429 /api/finance/organizations",
+    "width": null
+  },
+  {
+    "persona": "juliana",
+    "route": "/finance/rfq.html?id=86caf94b-e896-4351-9ec3-d84baa821e8d",
+    "kind": "erro de execução",
+    "detail": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+    "width": null
+  },
+  {
+    "persona": "juliana",
+    "route": "/finance/rfq.html?id=297e1310-59bf-41e6-ac8c-fef97902f13b",
+    "kind": "identificador",
+    "detail": "\"b0143a8e-e3d3-4240-b903-1436b6f8727c\" em “Muitas tentativas. Aguarde alguns minutos e tente novamente. Código de referência: b0143a8e-e3d3-4240-b903-1436b6f8727c”",
+    "width": null
+  },
+  {
+    "persona": "juliana",
+    "route": "/finance/rfq.html?id=297e1310-59bf-41e6-ac8c-fef97902f13b",
+    "kind": "erro de execução",
+    "detail": "429 /api/finance/organizations",
+    "width": null
+  },
+  {
+    "persona": "juliana",
+    "route": "/finance/rfq.html?id=297e1310-59bf-41e6-ac8c-fef97902f13b",
+    "kind": "erro de execução",
+    "detail": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+    "width": null
+  }
+]

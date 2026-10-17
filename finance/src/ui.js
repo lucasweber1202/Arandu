@@ -324,12 +324,23 @@ export function field({ label, control, hint = null, required = false, optionalL
   control.id = id;
   const hintNode = hint ? el('span', { class: 'field-hint', id: `${id}-hint`, text: hint }) : null;
   const error = el('span', { class: 'field-error', id: `${id}-error`, hidden: true });
-  control.setAttribute('aria-describedby', [hintNode ? `${id}-hint` : null, `${id}-error`].filter(Boolean).join(' '));
+  // Valor monetário digitado sem separador ("5000000") é lido por extenso logo abaixo:
+  // erro de casa decimal aparece antes de salvar ou enviar.
+  const readout = control.dataset?.readout === 'money' ? el('span', { class: 'field-readout', id: `${id}-readout` }) : null;
+  if (readout) {
+    const update = () => { const text = control.value !== '' && control.checkValidity() ? fieldValue({ type: 'money' }, control.value) : null; readout.textContent = text ? `= ${text}` : ''; };
+    control.addEventListener('input', update);
+    control.addEventListener('change', update);
+    // Valor restaurado por código (rascunho recuperado) avisa com este evento, que não marca o formulário como alterado.
+    control.addEventListener('field:sync', update);
+    queueMicrotask(update);
+  }
+  control.setAttribute('aria-describedby', [hintNode ? `${id}-hint` : null, readout ? `${id}-readout` : null, `${id}-error`].filter(Boolean).join(' '));
   if (required) control.required = true;
   const wrap = el('div', { class: `field ${className}`.trim() }, [
     el('label', { class: 'field-label', for: id }, [label, required ? el('span', { class: 'req', 'aria-hidden': 'true', text: ' *' }) : null,
       optionalLabel ? el('span', { class: 'optional', text: ' (opcional)' }) : null]),
-    control, hintNode, error
+    control, readout, hintNode, error
   ]);
   wrap.setError = (text) => {
     error.textContent = text || '';
@@ -388,6 +399,7 @@ export function catalogControl(spec, value = null) {
       maxlength: spec.type === 'text' ? String(spec.max ?? 200) : null
     });
   }
+  if (spec.type === 'money') control.dataset.readout = 'money';
   if (value !== null && value !== undefined) control.value = String(value);
   return control;
 }
