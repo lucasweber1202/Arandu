@@ -458,6 +458,8 @@ async function taskServer(page, { viewerRole = 'finance_manager', viewer = U.pau
       if (key) state.keys.set(key, { hash, task });
       // Falha de rede DEPOIS de gravar: o resultado é desconhecido para o navegador.
       if (state.failNextPost > 0) { state.failNextPost -= 1; return route.abort('failed'); }
+      // Gravou, mas o servidor não confirma a linha: contrato 409 task_creation_unknown.
+      if (state.unknownNextPost > 0) { state.unknownNextPost -= 1; return json({ ok: false, code: 'task_creation_unknown', error: 'Não foi possível confirmar a criação da tarefa. Recarregue a lista antes de tentar novamente.' }, 409); }
       return json({ ok: true, row: named(task) }, 201);
     }
     if (request.method() === 'PATCH') {
@@ -487,7 +489,7 @@ test('tarefas: gestor cria com responsável; a chave de criação é estável no
   await form.getByLabel(/^Responsável/).selectOption({ label: 'Rui Tavares' });
   await form.getByRole('button', { name: 'Adicionar' }).click();
   // Rede caiu depois de gravar: aviso honesto, dados preservados, nada de "Tarefa criada".
-  await expect(form.getByRole('status')).toContainText('Não confirmamos se a tarefa foi criada');
+  await expect(form.getByRole('status')).toContainText('Não confirmamos');
   await expect(form.getByLabel(/^Nova tarefa/)).toHaveValue('Enviar demonstrações ao Banco Carteira');
   await form.getByRole('button', { name: 'Adicionar' }).click();
   await expect(page.getByText('Tarefa criada.')).toBeVisible();
@@ -505,6 +507,29 @@ test('tarefas: gestor cria com responsável; a chave de criação é estável no
   await expect.poll(() => server.posts.length).toBe(3);
   expect(server.posts[2].idempotency_key).not.toBe(server.posts[0].idempotency_key);
   expect(server.posts[2]).not.toHaveProperty('assignee_id');
+});
+
+test('tarefas: 409 task_creation_unknown não vira sucesso, relê a lista e repete com a mesma chave sem duplicar', async ({ page }) => {
+  await mockSession(page);
+  const server = await taskServer(page);
+  server.unknownNextPost = 1;
+  await page.goto('/finance/tasks.html');
+  const form = page.locator('#task-new');
+  await form.getByLabel(/^Nova tarefa/).fill('Pedir extrato de encargos ao Banco Carteira');
+  const gets = server.gets.length;
+  await form.getByRole('button', { name: 'Adicionar' }).click();
+  await expect(form.getByRole('status')).toContainText('a lista atualizada já mostra uma tarefa aberta com este título');
+  await expect(page.getByText('Tarefa criada.')).toHaveCount(0);
+  expect(server.gets.length).toBeGreaterThan(gets);
+  await expect(page.locator('.task-item', { hasText: 'Pedir extrato de encargos' })).toHaveCount(1);
+  await expect(form.getByLabel(/^Nova tarefa/)).toHaveValue('Pedir extrato de encargos ao Banco Carteira');
+  // Repetir com os mesmos dados reaproveita a chave: o servidor devolve a linha existente.
+  await form.getByRole('button', { name: 'Adicionar' }).click();
+  await expect(page.getByText('Tarefa criada.')).toBeVisible();
+  expect(server.posts).toHaveLength(2);
+  expect(server.posts[1].idempotency_key).toBe(server.posts[0].idempotency_key);
+  expect(server.tasks.filter((task) => task.title.startsWith('Pedir extrato'))).toHaveLength(1);
+  await expect(page.locator('.task-item', { hasText: 'Pedir extrato de encargos' })).toHaveCount(1);
 });
 
 test('tarefas: duplo clique envia uma vez; dados alterados após resultado desconhecido pedem descarte explícito', async ({ page }) => {
@@ -704,6 +729,31 @@ test('painel: leitor vê as tarefas sem caixa de conclusão', async ({ page }) =
   await page.goto('/finance/dashboard.html');
   await expect(page.locator('.mini-row', { hasText: OPEN_TASK.title })).toBeVisible();
   await expect(page.locator('.mini-row').getByRole('checkbox')).toHaveCount(0);
+});
+
+test('linha do tempo do contrato: marcos na mesma data aparecem uma vez, com os dois nomes', async ({ page }) => {
+  // Aviso prévio de 90 dias cai no mesmo dia do marco de 90 dias.
+  await mockSession(page);
+  await page.goto('/finance/contracts.html');
+  const legend = page.locator(`#contract-${CONTRACT} .life-legend`);
+  await expect(legend.locator('.life-point-label')).toHaveText(['Início', 'Aviso prévio · 90 dias', '60 dias', '30 dias', 'Vencimento']);
+  const dates = await legend.locator('.life-point-date').allTextContents();
+  expect(new Set(dates).size).toBe(dates.length);
+});
+
+test('painel e menu do leitor: tarefa sem responsável não vira pendência dele; a atribuída a ele, sim', async ({ page }) => {
+  const overdue = { ...OPEN_TASK, due_on: '2020-01-10', related_type: null, related_id: null };
+  const mine = { ...OPEN_TASK, id: '00000000-0000-4000-8000-0000000000b8', title: 'Conferir parecer da controladoria', due_on: '2020-01-12', related_type: null, related_id: null, assignee_id: U.ana, assignee_name: 'Ana Lima' };
+  await mockSession(page, { tasks: [overdue, mine] });
+  await taskServer(page, { viewerRole: 'viewer', viewer: U.ana, initial: [overdue, mine] });
+  await page.goto('/finance/dashboard.html');
+  const attention = page.locator('#precisa-de-voce');
+  await expect(attention).toContainText('Conferir parecer da controladoria');
+  await expect(attention).not.toContainText(OPEN_TASK.title);
+  // A tarefa da equipe continua visível para acompanhamento, fora de "Precisa de você".
+  await expect(page.locator('.mini-row', { hasText: OPEN_TASK.title })).toBeVisible();
+  const isMobile = await page.evaluate(() => innerWidth < 760);
+  if (!isMobile) await expect(page.locator('.side-nav a[href*="tasks.html"] .side-count')).toHaveText('1');
 });
 
 test('primeiros passos: leitor não recebe ações de gestão que o servidor recusaria', async ({ page }) => {

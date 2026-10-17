@@ -53,6 +53,7 @@ seed (gerada aleatoriamente no ambiente local). Nunca versionada.
 | 1 | Adquirência — revisão de MDR e antecipação (R$ 12 mi/mês) | Contratada (há ~1 mês) | Nexo, Lumina, Atlas | Lumina enviou v1 e, após pedido da tesouraria, v2 (MDR parcelado 2,39%, antecipação 1,19% a.m., D+1); comparação com pesos; aprovação Controller → CFO com comentários; decisão justificada; contrato de 24 meses vigente; confirmação D+1 e contrato assinado anexados |
 | 2 | Capital de giro — nova linha de R$ 12 mi / 36 meses | Em avaliação, **aprovação na etapa da CFO** | Atlas (v1 e v2), Orbe (v1, sem CET), Meridian (aceitou, rascunho não enviado) | discussão sobre TAC e covenant; Atlas reduziu a TAC na v2; Controller aprovou; CFO avisada de que é a vez dela; demonstrações financeiras (compartilhadas) e parecer interno anexados |
 | 3 | Pagamentos da loja on-line — PIX e link de pagamento | Rascunho | — | começo do fluxo: demanda parcial, sem convites |
+| 4 | Capital de giro sazonal — safra de inverno (R$ 5 mi / 12 meses) | **Em coleta**, prazo em 9 dias | Orbe (v1 enviada), Meridian (aceitou, **sem envio**) | permite o envio real de proposta pelo portal (Patrícia/Meridian) no Modo 2; a Orbe não alcança a proposta da Meridian; `RFQ_OPEN.liveProposal` traz as condições digitadas ao vivo (nunca semeadas) |
 
 ### Propostas — adquirência (RFQ 1)
 

@@ -472,7 +472,7 @@ export async function newRfq(ctx) {
     for (const spec of PRODUCTS[source.product].demandFields) {
       const input = form.elements.namedItem(spec.key);
       const value = source.demand?.[spec.key];
-      if (input && value !== null && value !== undefined) input.value = String(value);
+      if (input && value !== null && value !== undefined) { input.value = String(value); input.dispatchEvent(new Event('field:sync')); }
     }
     if (source.response_deadline && source.response_deadline > todayIso()) deadline.value = source.response_deadline;
     root.append(el('p', { class: 'callout callout-info' }, [icon('info'), el('span', { text: 'Dados da demanda anterior pré-preenchidos. Revise tudo antes de criar o novo rascunho. Convites, propostas e decisões não são copiados.' })]));
@@ -484,7 +484,7 @@ export async function newRfq(ctx) {
       renderFields();
       for (const [key, value] of Object.entries({ title: draft.payload.title, description: draft.payload.description, response_deadline: draft.payload.response_deadline, ...draft.payload.demand })) {
         const input = form.elements.namedItem(key);
-        if (input && value !== null && value !== undefined) input.value = String(value);
+        if (input && value !== null && value !== undefined) { input.value = String(value); input.dispatchEvent(new Event('field:sync')); }
       }
       // Valor recuperado do rascunho que difere do Passport não é atribuído a ele.
       for (const [key, item] of [...passportUsed]) if (form.elements.namedItem(key)?.value !== String(item.value)) passportUsed.delete(key);

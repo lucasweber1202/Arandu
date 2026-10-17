@@ -1,0 +1,47 @@
+[
+  {
+    "name": "Criar tarefa com responsável",
+    "ok": true,
+    "detail": "reaparece após recarregar com Rafael Menezes"
+  },
+  {
+    "name": "Concluir a tarefa",
+    "ok": true,
+    "detail": "aparece em Concluídas após recarregar"
+  },
+  {
+    "name": "Registrar impedimento na implantação",
+    "ok": true,
+    "detail": "impedimento aparece no detalhe após recarregar"
+  },
+  {
+    "name": "CFO aprova a etapa pendente",
+    "ok": true,
+    "detail": "\"Capital de giro — nova linha de R$ 12 milhões / 36 meses\" passa para Concluídas após recarregar"
+  },
+  {
+    "name": "Painel da gestora reflete a aprovação",
+    "ok": true,
+    "detail": "Registrar decisão: Capital de giro — nova linha de R$ 12 milhões / 36 meses"
+  },
+  {
+    "name": "Instituição envia proposta pelo portal",
+    "ok": true,
+    "detail": "versão 1 registrada e visível após recarregar"
+  },
+  {
+    "name": "Outra instituição não alcança a proposta",
+    "ok": true,
+    "detail": "link direto da proposta da Meridian: \"Proposta não encontrada\", sem condição vazada"
+  },
+  {
+    "name": "Instituição revisa e envia a versão 2",
+    "ok": true,
+    "detail": "versão 2 com \"Taxa: 1,29% → 1,27%\" no histórico após recarregar"
+  },
+  {
+    "name": "Empresa recebe a proposta com versão e origem",
+    "ok": true,
+    "detail": "\"Meridian Financial Banco · enviada agora · versão 2 de 2 Revisada Respondeu à rev. 1\""
+  }
+]
