@@ -65,3 +65,32 @@ test('detalhe com muitas ações: nenhum botão do rodapé fica fora da tela (ce
  const width=await page.evaluate(()=>innerWidth);
  for(const box of await buttons.evaluateAll(ns=>ns.map(n=>{const r=n.getBoundingClientRect();return{l:r.left,r:r.right};}))){expect(box.l).toBeGreaterThanOrEqual(0);expect(box.r).toBeLessThanOrEqual(width+1);}
 });
+test('registro sem resposta do servidor: o formulário não deixa repetir às cegas e leva a conferir a lista',async({page})=>{
+ const calls=await setup(page);
+ await page.route('**/api/finance/implementations/accept',route=>{calls.push({path:'implementations/accept'});return route.abort('failed');});
+ await page.goto(`/finance/implementations.html?id=${ID}`);
+ await page.getByRole('dialog').getByRole('button',{name:'Registrar aceite de go-live'}).click();
+ const form=page.getByRole('dialog').last();
+ await form.getByLabel('Go-live efetivo').fill('2026-10-05');await form.getByLabel('Referência do aceite').fill('Evidência testada');await form.getByLabel('Confirmação humana').selectOption('true');
+ await form.getByRole('button',{name:'Registrar'}).click();
+ await expect(form.getByRole('alert')).toContainText('não foi possível confirmar se a operação foi registrada');
+ const save=form.getByRole('button',{name:'Confira antes de repetir'});
+ await expect(save).toBeDisabled();
+ await expect(form.getByLabel('Referência do aceite')).toHaveValue('Evidência testada');
+ expect(calls.filter(c=>c.path==='implementations/accept')).toHaveLength(1);
+ const lists=calls.filter(c=>c.path==='implementations').length;
+ await form.getByRole('button',{name:'Fechar e conferir a lista'}).click();
+ await expect.poll(()=>calls.filter(c=>c.path==='implementations').length).toBeGreaterThan(lists);
+ expect(calls.filter(c=>c.path==='implementations/accept')).toHaveLength(1);
+});
+test('registro recusado pelo servidor (4xx) continua editável para corrigir',async({page})=>{
+ await setup(page);
+ await page.route('**/api/finance/implementations/accept',route=>route.fulfill({status:400,contentType:'application/json',body:JSON.stringify({ok:false,error:'Informe a data efetiva do go-live.'})}));
+ await page.goto(`/finance/implementations.html?id=${ID}`);
+ await page.getByRole('dialog').getByRole('button',{name:'Registrar aceite de go-live'}).click();
+ const form=page.getByRole('dialog').last();
+ await form.getByLabel('Go-live efetivo').fill('2026-10-05');await form.getByLabel('Referência do aceite').fill('Evidência testada');await form.getByLabel('Confirmação humana').selectOption('true');
+ await form.getByRole('button',{name:'Registrar'}).click();
+ await expect(form.getByRole('alert')).toContainText('Informe a data efetiva do go-live.');
+ await expect(form.getByRole('button',{name:'Registrar'})).toBeEnabled();
+});

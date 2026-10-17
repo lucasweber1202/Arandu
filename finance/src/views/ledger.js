@@ -104,7 +104,7 @@ export async function ledgerPage(ctx, { resource, title, subtitle, filters, scop
   const open = (form, done = reload) => formDrawer(form.title, form.intro, form.fields, async (values) => {
     await post(ctx, form.post, { organization_id: ctx.organization.id, ...form.fixed, ...Object.fromEntries(Object.entries(values).filter(([, v]) => v !== null)) });
     await done();
-  });
+  }, undefined, { onUncertain: reload });
   let forms = [];
   const actions = el('div', { class: 'actions' });
   ctx.header({ title, subtitle, actions: [actions] });
