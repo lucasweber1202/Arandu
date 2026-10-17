@@ -1,5 +1,25 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 17/10/2026 — Limites reais de documentos e logs de configuração
+
+Base remota `0fb48d3e202cb71942a608fb427b0e7e2bec44e9` (#212). Branch
+`codex/enterprise-platform-release-20261017`. Evidência desta execução:
+`docs/evidence/codex-enterprise-platform-2026-10-17.md`; contrato compatível e
+handoff em `docs/evidence/codex-api-handoff-2026-10-17.md`.
+
+| Capacidade | Estado desta rodada | Prova e limite |
+| --- | --- | --- |
+| Leitura de documento para extração | M1 / LOCAL_VALIDATED | Limite real durante streaming (10 MiB), cancelamento em overflow, sem fatos ou sucesso após falha; autorização e JWT preservados |
+| Integridade de DOCX/XLSX | M1 / LOCAL_VALIDATED | Tamanho real e CRC conferidos, inflate limitado à declaração, entradas duplicadas/truncadas recusadas; negativos baseline falharam e evals positivos passam |
+| Diagnóstico de ambiente | M1 / LOCAL_VALIDATED | URLs não são impressas e URL pública com credenciais/query/fragmento é recusada; guardas de assignment inalterados |
+| Banco e gates locais | LOCAL_VALIDATED | check:all, build, audit zero vulnerabilidades, superfície/navegação e PostgreSQL 17.6 descartável (clean/upgrade/reapply/rollback/RLS/concorrência) passaram; CI final próprio continua necessário |
+| Recovery de banco sintético | LOCAL_VALIDATED | PostgreSQL 17.6 + age 1.3.2: export cifrado, restore do mesmo backup e reconciliação; não equivale a recovery hospedado completo de Auth/Storage/configuração |
+| Demo/Pilot/Production hospedados | INCONCLUSIVE / ACCESS_BLOCKED | GitHub da base: Demo/Pilot SUCCESS, Official FAILURE; Vercel detalhada 403 no scope lucas-projects467; Supabase lista Pilot e legado. Nenhuma mutação hospedada |
+
+Nenhuma migration, grant, frontend, seed, E2E, lockfile ou workflow alterado.
+M3–M6 não promovidos. A causa efetiva do build hospedado permanece inconclusiva;
+conversão/recovery hospedados exigem acesso, classificação e aprovação própria.
+
 ## 16/10/2026 — O veredito do ensaio Demo inclui recovery, teardown e arquivamento
 
 Base reconciliada: `origin/main@168e60d3a5ae12ecf2e9e671e3369a2855336e14`.
