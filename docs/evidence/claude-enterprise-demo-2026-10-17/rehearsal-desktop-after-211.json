@@ -1,0 +1,152 @@
+[
+  {
+    "step": 2,
+    "name": "Painel: trabalho pendente",
+    "viewport": "desktop",
+    "ok": true,
+    "notes": [
+      "Obrigação: Dívida líquida / EBITDA"
+    ],
+    "overflow": 0,
+    "leak": false,
+    "errorScreen": false,
+    "consoleErrors": []
+  },
+  {
+    "step": 3,
+    "name": "Necessidade: Capital de giro — nova linha",
+    "viewport": "desktop",
+    "ok": true,
+    "notes": [
+      "Capital de giro — nova linha de R$ 12 milhões / 36 meses"
+    ],
+    "overflow": 0,
+    "leak": false,
+    "errorScreen": false,
+    "consoleErrors": []
+  },
+  {
+    "step": 4,
+    "name": "Convites e situação por instituição",
+    "viewport": "desktop",
+    "ok": true,
+    "notes": [
+      "Provedores convidados |  | 3 convidado(s) · 2 responderam |  | AB | Atlas Bank | Proposta v2 · respondeu à revisão 1 | Respondeu | OC | Orbe Capital | Proposta v1 · respondeu à rev"
+    ],
+    "overflow": 0,
+    "leak": false,
+    "errorScreen": false,
+    "consoleErrors": []
+  },
+  {
+    "step": 5,
+    "name": "Portal do provedor (Atlas)",
+    "viewport": "desktop",
+    "ok": true,
+    "notes": [
+      "Nada pendente agora"
+    ],
+    "overflow": 0,
+    "leak": false,
+    "errorScreen": false,
+    "consoleErrors": []
+  },
+  {
+    "step": 6,
+    "name": "Comparação factual (adquirência)",
+    "viewport": "desktop",
+    "ok": true,
+    "notes": [],
+    "overflow": 0,
+    "leak": false,
+    "errorScreen": false,
+    "consoleErrors": []
+  },
+  {
+    "step": 7,
+    "name": "Aprovação e decisão registrada",
+    "viewport": "desktop",
+    "ok": true,
+    "notes": [
+      "Lumina Pay · proposta v2"
+    ],
+    "overflow": 0,
+    "leak": false,
+    "errorScreen": false,
+    "consoleErrors": []
+  },
+  {
+    "step": 8,
+    "name": "Contrato",
+    "viewport": "desktop",
+    "ok": true,
+    "notes": [
+      "3 cartões"
+    ],
+    "overflow": 0,
+    "leak": false,
+    "errorScreen": false,
+    "consoleErrors": []
+  },
+  {
+    "step": 9,
+    "name": "Implantação vinda do contrato",
+    "viewport": "desktop",
+    "ok": true,
+    "notes": [],
+    "overflow": 0,
+    "leak": false,
+    "errorScreen": false,
+    "consoleErrors": []
+  },
+  {
+    "step": 10,
+    "name": "Covenants vindos do contrato Atlas",
+    "viewport": "desktop",
+    "ok": true,
+    "notes": [],
+    "overflow": 0,
+    "leak": false,
+    "errorScreen": false,
+    "consoleErrors": []
+  },
+  {
+    "step": 11,
+    "name": "Renovação: janela e aviso prévio",
+    "viewport": "desktop",
+    "ok": true,
+    "notes": [
+      "Janela de renovação aberta. Decida até 11 de nov de 2026 (em 25 dias, prazo do aviso prévio) se renova, renegocia ou troca."
+    ],
+    "overflow": 0,
+    "leak": false,
+    "errorScreen": false,
+    "consoleErrors": []
+  },
+  {
+    "step": 12,
+    "name": "Memória: relacionamento da instituição",
+    "viewport": "desktop",
+    "ok": true,
+    "notes": [
+      "Atlas Bank |  | Relacionamento com o provedor: fatos do histórico da sua empresa. |  | Recorte autorizado: até 200 contratos e facilities; 500 convi"
+    ],
+    "overflow": 0,
+    "leak": false,
+    "errorScreen": false,
+    "consoleErrors": []
+  },
+  {
+    "step": 13,
+    "name": "Tarefas (paginação do servidor)",
+    "viewport": "desktop",
+    "ok": true,
+    "notes": [
+      "19 tarefas carregadas · todas deste filtro"
+    ],
+    "overflow": 0,
+    "leak": false,
+    "errorScreen": false,
+    "consoleErrors": []
+  }
+]

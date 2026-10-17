@@ -88,6 +88,16 @@ branch ao contrato novo:
   agora simula diretamente uma resposta com identificador/ISO.
 - Roteiro: passos 9–10 usam os novos atalhos; removidas as ressalvas "da mesma instituição".
 
+Validação no HEAD integrado com a #211 (`0488906`): `check:all` PASS; `test:e2e` Chromium desktop + Pixel 7
+377 passed / 7 skipped; `test:e2e:list` 935; `check:financial-surface`/`navigation` PASS;
+`test:e2e:presentation` 125 passed / 19 skipped; `git diff --check` PASS. Demo recriada do zero
+(`demo:down` + `demo:setup`, 38/38) depois que o daemon Docker do ambiente caiu (falha de infraestrutura:
+login 503 `auth_unavailable` com Supabase fora; nenhuma relação com o código). Backend real com a API da
+#211: `demo-baseline` desktop 6/6 + 1 skip, celular 6/6 + 1 skip; ensaio das 12 etapas 12/12
+(`rehearsal-desktop-after-211.json`), incluindo implantação e covenants abertos por `contract_id`.
+`scripts/demo/interactive.mjs` não foi reexecutado após a #211 (não usa os atalhos alterados; última
+execução 5/5).
+
 ## Handoffs ao Codex (estado após a #211)
 Os itens P2 (presenter) e P3 (`contract_id`) abaixo foram **entregues na #211** e consumidos aqui.
 
