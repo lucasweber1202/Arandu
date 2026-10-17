@@ -1,3 +1,4 @@
+\ir decision-entrypoint.sql
 \set ON_ERROR_STOP on
 
 -- Arandu Financial Procurement — testes de banco.
@@ -284,7 +285,7 @@ begin
   -- Provedor não decide pela empresa.
   perform set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-00000000fd01', false);
   begin
-    perform public.fin_record_decision(
+    perform pg_temp.test_record_decision(
       (select value from fin_ids where key = 'rfq'), (select value from fin_ids where key = 'proposal_1'));
     raise exception 'provedor registrou decisão da empresa';
   exception when others then
@@ -292,7 +293,7 @@ begin
   end;
   perform set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-00000000fa01', false);
 
-  insert into fin_ids select 'decision', public.fin_record_decision(
+  insert into fin_ids select 'decision', pg_temp.test_record_decision(
     (select value from fin_ids where key = 'rfq'), (select value from fin_ids where key = 'proposal_1'),
     '{"weights":{"interest_rate_month":40,"term_months":30,"grace_months":30}}'::jsonb,
     'Decisão registrada pela equipe financeira.');
