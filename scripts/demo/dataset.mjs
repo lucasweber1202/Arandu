@@ -120,6 +120,26 @@ export const RFQ_CREDIT = {
   approvalRationale: 'Atlas Bank v2: valor integral, 6 meses de carência e TAC reduzida para 0,5%. Orbe cobre só R$ 10 milhões e ainda não informou o CET.'
 };
 
+/**
+ * RFQ 4 — concorrência com coleta ABERTA: a parte do ciclo em que a instituição
+ * responde. A Orbe já enviou a proposta; a Meridian aceitou o convite e ainda
+ * não respondeu, o que permite demonstrar o envio real de uma proposta pelo
+ * portal do provedor (scripts/demo/interactive.mjs). O prazo fica no futuro.
+ */
+export const RFQ_OPEN = {
+  key: 'openCredit', product: 'credit', start: -5,
+  title: 'Capital de giro sazonal — safra de inverno (R$ 5 milhões / 12 meses)',
+  description: 'Linha de curto prazo para a compra de insumos da safra de inverno nas fábricas de Chapecó e Rio Verde. Separada da nova linha de R$ 12 milhões: quita no fim da safra.',
+  deadline: 9,
+  demand: { amount: 5000000, purpose: 'capital_de_giro', term_months: 12, grace_months: 3, annual_revenue: 182000000, sector: 'Alimentos e bebidas', operating_years: 23, collateral: 'Duplicatas de varejo e recebíveis de cartão', urgency: 'alta', notes: 'Liberação em até 20 dias; amortização após a colheita.' },
+  invited: ['orbe', 'meridian'],
+  proposals: {
+    orbe: [{ note: 'Comitê aprovou o limite integral para a safra.', terms: { institution: 'Orbe Capital', product_name: 'Giro sazonal agro', offered_amount: 5000000, interest_rate_month: 1.36, index: 'cdi', index_spread: 3.6, cet_year: 19.9, term_months: 12, grace_months: 3, amortization: 'bullet', collateral_required: 'Cessão de 25% das duplicatas de varejo', fees_amount: 25000, contracting_days: 8, conditions_precedent: 'Comprovação de pedidos de insumos da safra.' } }]
+  },
+  // Condições que a Meridian envia AO VIVO na Demo interativa (nunca pelo seed).
+  liveProposal: { meridian: { offered_amount: '5000000', interest_rate_month: '1.29', term_months: '12', cet_year: '19.2', grace_months: '3', note: 'Proposta da mesa de agronegócio (dados fictícios da demonstração).' } }
+};
+
 /** RFQ 3 — em preparação (rascunho): mostra o começo do fluxo. */
 export const RFQ_DRAFT = {
   key: 'draft', product: 'acquiring', start: -1,
