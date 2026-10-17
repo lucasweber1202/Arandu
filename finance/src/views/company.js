@@ -182,19 +182,16 @@ function contractNextAction(contract) {
   return { tone: 'success', icon: 'checkCircle', text: `Nada a fazer agora. A janela de decisão abre ${relativeDays(stage.opensAt)} (${formatDate(stage.opensAt)}).` };
 }
 
-// Pós-contratação a um clique: implantação e obrigações da mesma instituição
-// (e entidade). A API filtra por instituição/entidade, não por contrato; o
-// rótulo diz isso em vez de prometer um recorte que o servidor não faz.
+// Pós-contratação a um clique: implantação e obrigações DESTE contrato. A API
+// filtra por contract_id (#211) e a página de destino diz o recorte aplicado.
 function contractLifecycleLinks(ctx, contract) {
-  if (!contract.provider_id || !['active', 'renewing'].includes(contract.status)) return null;
-  const query = new URLSearchParams({ provider_id: contract.provider_id });
-  if (contract.legal_entity_id) query.set('legal_entity_id', contract.legal_entity_id);
-  // Só para a página de destino dizer de onde a pessoa veio e devolvê-la; não vai à API.
-  query.set('contrato', contract.id);
+  if (!['active', 'renewing'].includes(contract.status)) return null;
+  // contract_id vai à API; contrato só diz à página de onde a pessoa veio.
+  const query = new URLSearchParams({ contract_id: contract.id, contrato: contract.id });
   const who = contract.provider_name || 'esta instituição';
-  return el('nav', { class: 'contract-lifecycle-links', 'aria-label': `Pós-contratação com ${who}` }, [
-    el('a', { class: 'contract-link', href: ctx.href(`/finance/implementations.html?${query}`) }, [el('span', { text: `Implantação com ${who}` }), icon('arrowRight', { size: 14 })]),
-    el('a', { class: 'contract-link', href: ctx.href(`/finance/covenants.html?${query}`) }, [el('span', { text: `Covenants e obrigações com ${who}` }), icon('arrowRight', { size: 14 })])
+  return el('nav', { class: 'contract-lifecycle-links', 'aria-label': `Pós-contratação do contrato com ${who}` }, [
+    el('a', { class: 'contract-link', href: ctx.href(`/finance/implementations.html?${query}`) }, [el('span', { text: 'Implantação deste contrato' }), icon('arrowRight', { size: 14 })]),
+    el('a', { class: 'contract-link', href: ctx.href(`/finance/covenants.html?${query}`) }, [el('span', { text: 'Covenants e obrigações deste contrato' }), icon('arrowRight', { size: 14 })])
   ]);
 }
 

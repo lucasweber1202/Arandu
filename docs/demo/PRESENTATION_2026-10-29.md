@@ -38,8 +38,8 @@ Capital, Nexo Payments, Meridian Financial — **nenhuma é parceira do Arandu**
 | 6 | 2 min | Juliana → "Adquirência — revisão de MDR…" → Comparação | Tabela por condição, versão selecionável, cobertura, "O Arandu não recomenda instituições" | Propostas comparáveis e versões preservadas, sem vencedor do sistema | não |
 | 7 | 1 min | mesma RFQ → Aprovações / Decisão | Controller → CFO, justificativa, "Lumina Pay · proposta v2" | Decisão humana com versão analisada e trilha | não |
 | 8 | 1 min | Contratos | Cartões com vigência, aviso prévio, responsável, termos versionados, "Ver processo e decisão de origem" | Contrato como objeto operacional | não |
-| 9 | 1 min | cartão da Lumina → "Implantação com Lumina Pay" | Bloco "Vindo do contrato" + plano bloqueado (terminais) + Detalhe (origem: contrato, decisão registrada, marcos com evidência) | A decisão não encerra o trabalho; o recorte declarado é por instituição | não |
-| 10 | 1 min | cartão do Atlas → "Covenants e obrigações com Atlas Bank" | Conforme após revisão; dados ausentes ≠ conformidade; waiver | Obrigações pós-contrato com proveniência | não |
+| 9 | 1 min | cartão da Lumina → "Implantação deste contrato" | Bloco "Vindo do contrato" + plano bloqueado (terminais) + Detalhe (origem: contrato, decisão registrada, marcos com evidência) | A decisão não encerra o trabalho; a lista é filtrada pelo próprio contrato (e a tela diz isso) | não |
+| 10 | 1 min | cartão do Atlas (Crédito) → "Covenants e obrigações deste contrato" | Conforme após revisão; dados ausentes ≠ conformidade; waiver | Obrigações pós-contrato com proveniência | não |
 | 11 | 1 min | Contratos → cartão do Atlas | "Janela de renovação aberta. Decida até … (prazo do aviso prévio)"; linha do tempo 90/60/30 | Ciclo recorrente: renovação ligada à nova concorrência | não |
 | 12 | 1 min | Instituições → "Relacionamento com Atlas Bank" | Contratos, facility com fotografia de saldo, processos, links a covenants/tarifas/spend | Memória institucional reutilizável | não |
 | 13 | 1 min | Tarefas | Filtros (Abertas, Atribuídas a mim, Sem responsável, Concluídas) consultam o servidor; "N tarefas carregadas · há mais neste filtro" + "Carregar mais tarefas" | Responsabilidade explícita sem números inventados | **sim**, se concluir/atribuir (rode `demo:local:reset` depois) |
@@ -73,7 +73,6 @@ está com a coleta encerrada); mostre o portal em leitura (passo 5).
 - Não citar economia, ROI, ganho de tempo quantificado ou "melhor proposta".
 - Não dizer que a Demo pública está atualizada/validada (M3 hospedado é trabalho do Codex).
 - Não prometer integrações com bancos, ERP ou Open Finance (não existem).
-- Implantação/covenants: "da mesma instituição", não "deste contrato".
 
 ## Limitações conhecidas e plano B
 
@@ -83,7 +82,6 @@ material de apoio — nunca apresente como execução ao vivo.
 | Situação | Plano B |
 | --- | --- |
 | "Muitas tentativas" (limite legítimo) | Aguarde ~1 min e use "Tentar novamente"; nada é perdido. Evite recarregar telas em sequência. |
-| Filtro por contrato individual em implantação/covenants não existe | Diga "da mesma instituição"; a tela já declara isso. |
 | Demo local fora do ar / Docker não sobe | `npm run demo:setup` (≈20 min — tenha a máquina pronta antes); se falhar, use as capturas de `docs/evidence/claude-financial-demo-2026-10-16/` e `claude-enterprise-demo-2026-10-17/`, **ditas como capturas**. |
 | Sessão expirada no meio | Entre de novo na mesma janela; nada salvo se perde (tarefas e aprovações já confirmadas ficam no servidor). |
 | Operação do Modo 2 falha | A tela diz o que aconteceu e que nada foi confirmado; siga em modo leitura e explique a regra (só conta o que o servidor confirmou). |

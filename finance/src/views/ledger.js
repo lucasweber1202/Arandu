@@ -50,11 +50,14 @@ function originContext(ctx, { contractId, noun, controls, filters, entities }) {
   const contract = (ctx.data.contracts || []).find((row) => row.id === contractId);
   const box = el('aside', { class: 'callout callout-info origin-context', 'aria-label': 'Contrato de origem' });
   const describe = () => {
-    const applied = filters.filter(([key]) => controls[key]?.value).map(([key, label]) => `${label.toLowerCase()} ${controls[key].selectedOptions?.[0]?.text || 'selecionada'}`);
+    const applied = filters.filter(([key]) => controls[key]?.value).map(([key, label]) => `${label.toLowerCase()} ${controls[key].selectedOptions?.[0]?.text || 'selecionado'}`);
+    const exact = controls.contract_id && controls.contract_id.value === contractId;
     const sameProvider = contract?.provider_id && controls.provider_id?.value === contract.provider_id;
-    const scopeText = !applied.length
-      ? `Sem filtro: a lista mostra ${noun} de todo o seu escopo, não só deste contrato.`
-      : `Filtro aplicado: ${applied.join(' · ')}. A lista mostra ${noun} com esse recorte, que pode incluir outros contratos${sameProvider ? ' com a mesma instituição' : ''}; o Arandu ainda não filtra por contrato individual.`;
+    const scopeText = exact
+      ? `Filtro aplicado: este contrato. A lista mostra só os ${noun} vinculados a ele.`
+      : !applied.length
+        ? `Sem filtro: a lista mostra ${noun} de todo o seu escopo, não só deste contrato.`
+        : `Filtro aplicado: ${applied.join(' · ')}. Sem o filtro de contrato, a lista pode incluir outros contratos${sameProvider ? ' com a mesma instituição' : ''}.`;
     box.replaceChildren(icon('info', { size: 16 }), el('div', {}, [
       el('p', {}, [el('strong', { text: 'Vindo do contrato: ' }), el('span', { text: contract
         ? `${CONTRACT_CATEGORIES[contract.product] || productLabel(contract.product)} com ${contract.provider_name || 'instituição não informada'}${contract.legal_entity_id ? ` · ${entityName(entities, contract.legal_entity_id)}` : ''}${contract.ends_on ? ` · vence ${formatDate(contract.ends_on)}` : ''}`
@@ -84,6 +87,9 @@ export async function ledgerPage(ctx, { resource, title, subtitle, filters, scop
   const grid = el('div', { class: 'form-grid' }, filters.map(([key, label, kind]) => {
     const control = kind === 'date' ? el('input', { type: 'date' }) : kind === 'start' || kind === 'end' ? el('input', { type: 'date', value: `${year}-${kind === 'start' ? '01-01' : '12-31'}` })
       : el('select', {}, (sources[kind] || [['', 'Todos']]).map(([value, text]) => el('option', { value, text })));
+    // Filtro vindo de link (ex.: contract_id) nunca se perde em silêncio: sem a
+    // opção na lista carregada, entra uma opção neutra com o mesmo valor.
+    if (params.get(key) && control.tagName === 'SELECT' && ![...control.options].some((o) => o.value === params.get(key))) control.add(new Option(key === 'contract_id' ? 'Contrato do link' : 'Selecionado pelo link', params.get(key)));
     if (params.get(key)) control.value = params.get(key);
     controls[key] = control;
     return field({ label, control });

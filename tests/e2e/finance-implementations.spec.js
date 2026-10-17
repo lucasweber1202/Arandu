@@ -39,7 +39,8 @@ test('detalhe composto no servidor não mostra identificador nem instante ISO: c
   if(path==='members')return json({rows:[{user_id:'u1',role:'admin',display_name:'Tesouraria'}],viewer_id:'u1'});
   if(path==='entities')return json({rows:[],scope:'group',can_admin:true});
   if(path==='implementations')return json(presentImplementationPage({...ctx,rows:[real],contracts:[{id:ID,title:'Adquirência Lumina'}],next:null}));
-  if(path==='implementations/detail')return json(presentImplementationDetail({...ctx,plan:real}));
+  // Resposta com texto técnico (formato anterior à #211 ou presenter futuro sem tratamento): a interface protege a tela.
+  if(path==='implementations/detail')return json({title:real.title,lines:[`Responsável: ${GHOST}`,`Origem: contrato ${ID} · decisão ${DEC} · Contrato testado · template credit:v1`,`Versão 4 · atualizado ${real.updated_at} · data de referência 2026-10-05`],sections:[{title:'Marcos e dependências',items:[`1. Go-live · Concluído · responsável ${GHOST}`],empty:'Nenhum marco.'}],actions:[]});
   return json({rows:[]});
  });
  await page.goto(`/finance/implementations.html?id=${ID}`);

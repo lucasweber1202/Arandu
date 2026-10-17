@@ -72,6 +72,25 @@ renovação (ensaio de 12 etapas da #210, repetido aqui pelo `demo-baseline`).
   esgotam a cota; o roteiro manda logar antes e evitar recarregas seguidas.
 - Modo 2 exige `npm run demo:local:reset` (≈15 min) antes de nova apresentação.
 
+## Integração com a #211 (Codex) durante a revisão
+
+A `main` recebeu a #211 (`dfba223`), integrada nesta branch por merge sem conflito. Ela entrega os dois
+handoffs desta frente: o presenter da implantação passou a compor a origem em texto ("contrato <título> ·
+Decisão registrada em …") e `GET implementations`/`GET covenants` aceitam `contract_id`. Ajustes desta
+branch ao contrato novo:
+
+- Atalhos do contrato: "Implantação deste contrato" e "Covenants e obrigações deste contrato" enviam
+  `contract_id` (antes: instituição/entidade com aviso de recorte amplo).
+- Implantação/Covenants ganham o filtro "Contrato"; o bloco de origem diz "Filtro aplicado: este contrato"
+  quando o filtro exato está ativo e volta a avisar sobre outros contratos quando a pessoa o remove.
+- Filtro vindo de link para contrato fora da lista carregada não se perde em silêncio ("Contrato do link").
+- A proteção de texto em `ledger.js` continua como defesa (sem efeito sobre texto já legível); a regressão
+  agora simula diretamente uma resposta com identificador/ISO.
+- Roteiro: passos 9–10 usam os novos atalhos; removidas as ressalvas "da mesma instituição".
+
+## Handoffs ao Codex (estado após a #211)
+Os itens P2 (presenter) e P3 (`contract_id`) abaixo foram **entregues na #211** e consumidos aqui.
+
 ## Handoffs ao Codex
 | Prior. | Endpoint / módulo | Esperado | Por quê |
 | --- | --- | --- | --- |
