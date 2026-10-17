@@ -47,8 +47,24 @@ recarregar. **Resultado no backend real (desktop 1440): 5/5 PASS** (`interactive
 Provedor: o seed não tem concorrência com coleta aberta para instituição; a escrita do provedor não é
 demonstrável sem mudar a narrativa. Portal mostrado em leitura (isolamento verificado no `demo-baseline`).
 
-## Validação
-(preenchida ao final — ver descrição da PR)
+## Validação (HEAD final desta branch, Demo local)
+| Verificação | Resultado |
+| --- | --- |
+| `npm ci --include=optional` (Node 24.22.0), `check:all`, `build`, `check:design`, `check:demo-parity`, `check:financial-surface`, `check:financial-navigation`, `git diff --check` | PASS |
+| `test:e2e:list` | 930 casos |
+| `test:e2e` — Chromium desktop + Pixel 7 | 375 passed, 7 skipped |
+| `test:e2e:presentation` — Chromium desktop + Pixel 7 | 125 passed, 19 skipped |
+| `test:e2e:demo` (backend real) | desktop 6 + 1 skip; celular 6 + 1 skip. Uma execução desktop logo após capturas falhou por limite legítimo de requisições; repetida depois da janela: 6/6 |
+| `demo:local:reset` | 38/38 checagens (antes e depois do Modo 2) |
+| `scripts/demo/interactive.mjs` | 5/5 operações persistidas e verificadas após recarregar |
+| Firefox, WebKit, iPhone | **NOT_RUN** localmente (só Chromium 1194); gate `presentation` do CI cobre |
+| `test:database` | NOT_RUN — sem SQL |
+| `design:capture` completo | NOT_RUN — capturas dirigidas às telas alteradas (antes/depois reais) para não esgotar a cota da API |
+
+## Frentes auditadas sem defeito novo demonstrável
+Onboarding (leitor e empresa sem RFQ: #207), tarefas e paginação (#210), comparação (sem vencedor;
+"O Arandu não recomenda instituições"), portal do provedor (isolamento no `demo-baseline`), contratos e
+renovação (ensaio de 12 etapas da #210, repetido aqui pelo `demo-baseline`).
 
 ## Riscos para 29/10
 - Demo hospedada sem validação (Codex/M3).
