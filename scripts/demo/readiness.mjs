@@ -213,11 +213,19 @@ else {
   check('Covenants e obrigações', cov.status === 200 ? 'PASS' : 'FAIL', `HTTP ${cov.status}`);
   const viewer = await api(people.carlos, `tasks?${orgQ}&status=open&limit=5`);
   check('Leitor (Carlos) lê tarefas', viewer.status === 200 ? 'PASS' : 'FAIL', `HTTP ${viewer.status}`);
-  const patricia = await api(people.patricia, 'assignments');
+  // assignments exige a organização provedora de quem lê (#215).
+  const providerAssignments = async (person) => {
+    const orgsOf = await api(person, 'organizations');
+    const own = (orgsOf.json?.rows || []).find((row) => row.kind === 'PROVIDER');
+    return own ? api(person, `assignments?organization_id=${encodeURIComponent(own.id)}`) : { status: orgsOf.status || 0, json: null };
+  };
+  const patricia = await providerAssignments(people.patricia);
   const invite = (patricia.json?.rows || []).find((row) => row.rfq_title === RFQ_OPEN.title || row.title === RFQ_OPEN.title || row.rfq_status === 'collecting');
   check('Meridian vê a concorrência sazonal em coleta', invite ? 'PASS' : 'FAIL', `HTTP ${patricia.status}`, { modes: ['interativo'] });
-  const eduardo = await api(people.eduardo, 'assignments');
+  const eduardo = await providerAssignments(people.eduardo);
   const leaks = JSON.stringify(eduardo.json || {}).match(/Lumina Pay|Orbe Capital|Meridian/g) || [];
+  // O nome do comprador (buyer_name, #215) vem da organização compradora; nunca de outra instituição.
+  check('Portal mostra o comprador quando a API informa (buyer_name)', (patricia.json?.rows || []).some((row) => row.buyer_name) ? 'PASS' : 'WARN', (patricia.json?.rows || []).some((row) => row.buyer_name) ? 'nome do comprador presente' : 'API sem buyer_name (schema anterior): o portal usa texto neutro');
   check('Atlas não vê outras instituições', eduardo.status === 200 && !leaks.length ? 'PASS' : 'FAIL', eduardo.status === 200 ? `${leaks.length} menção(ões) a concorrentes` : `HTTP ${eduardo.status}`);
 }
 
