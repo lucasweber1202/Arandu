@@ -24,6 +24,11 @@ const run = (overrides) => {
 };
 
 assert.equal(run({}).status, 0, 'piloto dedicado deveria passar');
+for (const site of ['https://operator:synthetic-log-sentinel@pilot.example.com', 'https://pilot.example.com/?token=synthetic-log-sentinel', 'https://pilot.example.com/#synthetic-log-sentinel']) {
+  const result = run({ ARANDU_SITE_URL: site });
+  assert.doesNotMatch(result.stdout + result.stderr, /synthetic-log-sentinel/, 'URL de aplicação não pode vazar credenciais ou parâmetros no log');
+  assert.equal(result.status, 1, 'URL de aplicação com credenciais, query ou fragmento deve falhar');
+}
 const legacy = run({ SUPABASE_URL: `https://${legacyRef}.supabase.co`, SUPABASE_ANON_KEY: key({ role: 'anon', ref: legacyRef }), SUPABASE_SERVICE_ROLE_KEY: key({ role: 'service_role', ref: legacyRef }) });
 assert.equal(legacy.status, 1);
 assert.match(legacy.stdout, /projeto legado de arte/);

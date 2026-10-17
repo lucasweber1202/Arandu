@@ -36,6 +36,11 @@ banco recusa campo fora do schema, chave extra e método divergente do leitor.
    devolve a chave do objeto **só** para leitores automáticos.
 3. O servidor lê o objeto com a service role **depois** dessa autorização,
    confere SHA-256 e tamanho; o conteúdo nunca vai ao navegador.
+   A leitura limita os bytes durante o streaming (10 MiB), mesmo sem
+   `Content-Length` confiável, e cancela a resposta ao ultrapassar o limite.
+   DOCX/XLSX conferem tamanho descompactado e CRC das entradas utilizadas;
+   diretório truncado ou nomes duplicados são recusados. Conteúdo inconsistente
+   falha como `parse_error`, sem persistir fatos parciais.
 4. O leitor produz fatos; `fin_document_extraction_record` decide o estado
    (crítico, ausente, ambíguo ou confiança < 0,85 → `needs_review`) e cria uma
    tarefa idempotente "Revisar fatos extraídos" no objeto de origem.
