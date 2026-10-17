@@ -12,7 +12,7 @@
 // no motor.
 
 import { el, icon, ROLE_LABELS, needsRenewalAttention } from './src/core.js';
-import { emptyState, linkButton, errorState, loading, toast } from './src/ui.js';
+import { emptyState, linkButton, errorState, loading, toast, SESSION_EXPIRED_WRITE } from './src/ui.js';
 import { renderSidebar, renderTopbar, renderMobileNav, renderDemoBanner, installCommandCenter, installNotificationCenter } from './src/shell.js';
 import { locate } from '../lib/finance/navigation.mjs';
 import { requestedAction } from '../lib/finance/intents.mjs';
@@ -68,6 +68,15 @@ const PUBLIC_WHEN_SIGNED_OUT = new Set(['providerInvite', 'boundaries']);
 const ORGANIZATION_OPTIONAL = new Set(['ops']);
 
 // ------------------------------------------------------------- transporte
+function retryAfterSeconds(value) {
+  const text = String(value || '').trim();
+  if (/^\d+$/.test(text)) return Math.min(Math.max(Number(text), 1), 3600);
+  const at = Date.parse(text);
+  return Number.isFinite(at) ? Math.min(Math.max(Math.ceil((at - Date.now()) / 1000), 1), 3600) : null;
+}
+function waitLabel(seconds) {
+  return seconds < 90 ? `${seconds} segundos` : `${Math.ceil(seconds / 60)} minutos`;
+}
 const httpTransport = {
   mode: 'real',
   async request(path, options = {}) {
@@ -92,7 +101,10 @@ const httpTransport = {
     let payload = {};
     try { payload = await response.json(); } catch { payload = {}; }
     if (response.ok) return payload;
-    const reference = payload.requestId || response.headers.get('X-Request-ID') || response.headers.get('x-vercel-id');
+    // Referência curta para ditar ao suporte (o servidor registra a completa);
+    // identificador inteiro não aparece na tela (Design Constitution).
+    const fullReference = String(payload.requestId || response.headers.get('X-Request-ID') || response.headers.get('x-vercel-id') || '');
+    const reference = fullReference ? fullReference.replace(/[^a-z0-9]/gi, '').slice(0, 8).toUpperCase() : '';
     // Sem corpo da API (página de erro da plataforma, função que estourou o
     // tempo): em vez de "Falha 504.", o que aconteceu e o que fazer. Em escrita,
     // 502/504 não dizem se a operação chegou a ser registrada.
@@ -102,12 +114,18 @@ const httpTransport = {
         ? 'O servidor não confirmou a operação: não foi possível saber se ela foi registrada. Recarregue a página e confira antes de repetir.'
         : 'O serviço está temporariamente indisponível. Tente novamente em instantes.')
       : `Falha ${response.status}.`;
-    const message = response.status === 401 ? 'Sessão expirada ou ausente.'
+    // 429: limite legítimo. A espera vem de Retry-After quando o servidor a
+    // informa; a interface nunca repete sozinha e não contorna o limite.
+    const retryAfter = response.status === 429 ? retryAfterSeconds(response.headers.get('Retry-After')) : null;
+    const message = response.status === 401 ? (writing ? SESSION_EXPIRED_WRITE : 'Sessão expirada ou ausente.')
       : response.status === 403 ? (payload.error || 'Acesso negado para esta organização.')
-        : `${payload.error || fallback}${reference ? ` Código de referência: ${reference}` : ''}`;
+        : response.status === 429 ? `Muitas requisições em pouco tempo (limite de segurança da conta). ${retryAfter ? `Tente de novo em ${waitLabel(retryAfter)}.` : 'Aguarde um minuto antes de tentar de novo.'}${writing ? ' Nada foi registrado.' : ''}`
+          : `${payload.error || fallback}${reference ? ` Referência para o suporte: ${reference}.` : ''}`;
     const error = new Error(message);
     error.status = response.status;
-    error.code = payload.code;
+    error.code = payload.code || (response.status === 429 ? 'rate_limited' : response.status === 401 ? 'session_expired' : undefined);
+    if (response.status === 429) error.retryAfter = retryAfter || 60;
+    if (fullReference) error.reference = reference;
     throw error;
   },
   /** Envia o arquivo direto ao Storage pela URL assinada de curta duração. */
@@ -165,7 +183,13 @@ function createContext(transport) {
     approvalsPromise: null,
     loadApprovals() {
       if (ctx.audience !== 'company' || !ctx.organization) return Promise.resolve([]);
-      ctx.approvalsPromise ||= ctx.api(`approvals?organization_id=${encodeURIComponent(ctx.organization.id)}`).then((result) => result.rows || []).catch(() => []);
+      // Falha de leitura não é "nenhuma aprovação": quem consome consulta
+      // approvalsError antes de dizer que não há pendência ou de liberar decisão.
+      if (!ctx.approvalsPromise) {
+        ctx.approvalsError = null;
+        ctx.approvalsPromise = ctx.api(`approvals?organization_id=${encodeURIComponent(ctx.organization.id)}`).then((result) => result.rows || [])
+          .catch((error) => { ctx.approvalsError = error; return []; });
+      }
       return ctx.approvalsPromise;
     },
     header: setHeader,

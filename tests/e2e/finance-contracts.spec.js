@@ -453,6 +453,8 @@ async function taskServer(page, { viewerRole = 'finance_manager', viewer = U.pau
         if (prior.hash !== hash) return json({ ok: false, code: 'idempotency_key_reused', error: 'Esta chave de criação já foi usada com outros dados. Gere uma nova chave.' }, 409);
         return json({ ok: true, row: named(prior.task) });
       }
+      // 409 sem ter gravado (unknownDropsWrite): o navegador não pode distinguir dos dois casos.
+      if (state.unknownNextPost > 0 && state.unknownDropsWrite) { state.unknownNextPost -= 1; return json({ ok: false, code: 'task_creation_unknown', error: 'Não foi possível confirmar a criação da tarefa. Recarregue a lista antes de tentar novamente.' }, 409); }
       const task = { id: `00000000-0000-4000-8000-${String(state.tasks.length + 100).padStart(12, '0')}`, title: body.title, due_on: body.due_on, status: 'open', related_type: null, related_id: null, assignee_id: body.assignee_id ?? null };
       state.tasks.push(task);
       if (key) state.keys.set(key, { hash, task });
@@ -518,18 +520,44 @@ test('tarefas: 409 task_creation_unknown não vira sucesso, relê a lista e repe
   await form.getByLabel(/^Nova tarefa/).fill('Pedir extrato de encargos ao Banco Carteira');
   const gets = server.gets.length;
   await form.getByRole('button', { name: 'Adicionar' }).click();
-  await expect(form.getByRole('status')).toContainText('a lista atualizada já mostra uma tarefa aberta com este título');
+  await expect(form.getByRole('status')).toContainText('o título sozinho não prova que é a sua');
   await expect(page.getByText('Tarefa criada.')).toHaveCount(0);
   expect(server.gets.length).toBeGreaterThan(gets);
   await expect(page.locator('.task-item', { hasText: 'Pedir extrato de encargos' })).toHaveCount(1);
   await expect(form.getByLabel(/^Nova tarefa/)).toHaveValue('Pedir extrato de encargos ao Banco Carteira');
-  // Repetir com os mesmos dados reaproveita a chave: o servidor devolve a linha existente.
-  await form.getByRole('button', { name: 'Adicionar' }).click();
+  // Conferir com o servidor reaproveita a chave: o servidor devolve a linha existente.
+  await form.getByRole('button', { name: 'Conferir com o servidor' }).click();
   await expect(page.getByText('Tarefa criada.')).toBeVisible();
   expect(server.posts).toHaveLength(2);
   expect(server.posts[1].idempotency_key).toBe(server.posts[0].idempotency_key);
   expect(server.tasks.filter((task) => task.title.startsWith('Pedir extrato'))).toHaveLength(1);
   await expect(page.locator('.task-item', { hasText: 'Pedir extrato de encargos' })).toHaveCount(1);
+});
+
+test('tarefas: 409 com tarefa homônima de outra pessoa não é tomado como confirmação; só a mesma chave confirma', async ({ page }) => {
+  await mockSession(page);
+  // Já existe "Pedir CND" de um colega. A tentativa da Paula falha sem gravar (409).
+  const server = await taskServer(page, { initial: [{ id: '00000000-0000-4000-8000-0000000000b1', title: 'Pedir CND', due_on: '2027-02-01', status: 'open', related_type: null, related_id: null, assignee_id: U.rui }] });
+  server.unknownNextPost = 1;
+  server.unknownDropsWrite = true;
+  await page.goto('/finance/tasks.html');
+  const form = page.locator('#task-new');
+  await form.getByLabel(/^Nova tarefa/).fill('Pedir CND');
+  await form.getByRole('button', { name: 'Adicionar' }).click();
+  const note = form.getByRole('status');
+  await expect(note).toContainText('A lista mostra uma tarefa aberta com este título, mas o título sozinho não prova que é a sua');
+  await expect(note).not.toContainText('já mostra');
+  await expect(page.getByText('Tarefa criada.')).toHaveCount(0);
+  expect(server.tasks.filter((task) => task.title === 'Pedir CND')).toHaveLength(1);
+  // A conferência repete a mesma tentativa: o servidor grava uma única vez e confirma.
+  await note.getByRole('button', { name: 'Conferir com o servidor' }).click();
+  await expect(page.getByText('Tarefa criada.')).toBeVisible();
+  expect(server.posts).toHaveLength(2);
+  expect(server.posts[1].idempotency_key).toBe(server.posts[0].idempotency_key);
+  expect(server.tasks.filter((task) => task.title === 'Pedir CND')).toHaveLength(2);
+  await expect(note).toBeHidden();
+  // Repetir de novo não cria terceira: a intenção foi encerrada e a lista mostra as duas.
+  await expect(page.locator('.task-item', { hasText: 'Pedir CND' })).toHaveCount(2);
 });
 
 test('tarefas: duplo clique envia uma vez; dados alterados após resultado desconhecido pedem descarte explícito', async ({ page }) => {

@@ -68,6 +68,7 @@ async function mockSession(page, { organizations = [{ id: ORG, kind: 'BUYER', le
     if (path === 'rfq-editor' && request.method() === 'PATCH') return editor.patchStatus ? json({ ok: false, error: 'Esta solicitação foi alterada em outra aba.' }, editor.patchStatus) : json({ ok: true, revision: (editor.revision = (editor.revision || 0) + 1), updated_at: new Date().toISOString() });
     if (['approvals', 'notifications', 'decisions', 'events', 'comments', 'rfq-revisions', 'tasks'].includes(path)) return json({ ok: true, rows: [] });
     if (path === 'approval-policy') return json({ ok: true, required_for_decision: false });
+    if (path === 'approval-policies/preview') return json({ ok: true, evaluation: { approval_required: false } });
     if (path === 'comparison') { const rfq = data.rfqs.find(row => row.id === request.postDataJSON().rfq_id); return json({ ok: true, comparison: buildComparison(rfq.product, rfq.proposals, rfq.demand, { revision: rfq.revision }), weighted: applyUserWeights(rfq.product, rfq.proposals, request.postDataJSON().weights) }); }
     if (path === 'signals') return json({ ok: true });
     return json({ ok: false }, 404);
@@ -817,4 +818,95 @@ test('leitor não recebe o atalho de registrar contrato no painel', async ({ pag
   await page.goto('/finance/dashboard.html');
   await expect(page.locator('.card', { hasText: 'Nenhum contrato vigente' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Registrar contrato existente' })).toHaveCount(0);
+});
+
+// ------------------------------------------- falhas previsíveis na governança e no transporte
+test('governança que não carregou: a solicitação em avaliação não oferece decidir nem afirma "sem aprovação"', async ({ page }) => {
+  await mockSession(page);
+  // Aprovações recusadas por limite (429) e política fora do ar (503): nenhuma das duas é "vazio".
+  let failing = true;
+  await page.route('**/api/finance/approvals**', (route) => failing
+    ? route.fulfill({ status: 429, contentType: 'application/json', body: JSON.stringify({ ok: false, error: 'Muitas tentativas. Aguarde alguns minutos e tente novamente.' }) })
+    : route.fallback());
+  await page.route('**/api/finance/approval-policy**', (route) => failing
+    ? route.fulfill({ status: 503, contentType: 'text/html', body: '<html>indisponível</html>' })
+    : route.fallback());
+  await page.goto(`/finance/rfq.html?id=${RFQ}#decisao`);
+  await page.getByRole('tab', { name: 'Decisão' }).click();
+  await expect(page.getByRole('tabpanel')).toContainText('Indisponível até recarregar');
+  await expect(page.locator('.governance-gap')).toHaveCount(1);
+  const notice = page.locator('.governance-gap');
+  await expect(notice).toContainText('Não conseguimos carregar a política de aprovação e as aprovações desta solicitação');
+  await expect(notice).toContainText('Nada foi alterado');
+  await expect(page.locator('#decision-form')).toHaveCount(0);
+  await expect(page.locator('.page-actions, .header-actions').getByRole('link', { name: 'Registrar decisão' })).toHaveCount(0);
+  await page.getByRole('tab', { name: 'Visão geral' }).click();
+  await expect(page.getByRole('region', { name: 'Próximo passo' })).toContainText('Recarregue antes de seguir');
+  // Quando a leitura volta, o fluxo normal reaparece sem recarregar a página inteira.
+  failing = false;
+  await page.locator('.governance-gap').first().getByRole('button', { name: 'Recarregar' }).click();
+  await page.getByRole('tab', { name: 'Decisão' }).click();
+  await expect(page.locator('#decision-form')).toBeVisible();
+  await expect(page.locator('.governance-gap')).toHaveCount(0);
+});
+
+test('aprovações que não carregaram não viram "Tudo em dia" no painel nem caixa vazia na lista', async ({ page }) => {
+  await mockSession(page);
+  await page.route('**/api/finance/approvals**', (route) => route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ ok: false, error: 'Falha temporária.', requestId: 'a1b2c3d4-0000-4000-8000-000000000000' }) }));
+  await page.goto('/finance/dashboard.html');
+  const attention = page.locator('#precisa-de-voce');
+  await expect(attention.getByRole('alert')).toContainText('Não conseguimos carregar as aprovações agora');
+  await expect(attention).not.toContainText('Tudo em dia');
+  await page.goto('/finance/approvals.html');
+  const error = page.locator('#view').getByRole('alert');
+  await expect(error).toContainText('Não foi possível carregar as aprovações');
+  // Referência curta para o suporte; o identificador inteiro não aparece.
+  await expect(error).toContainText('Referência para o suporte: A1B2C3D4.');
+  await expect(page.locator('#view')).not.toContainText('a1b2c3d4-0000');
+  await expect(page.locator('#view')).not.toContainText('Nada aguardando');
+});
+
+test('429 com Retry-After: a tela diz quanto esperar e só libera "Tentar novamente" depois', async ({ page }) => {
+  await page.clock.install();
+  await mockSession(page);
+  let limited = true;
+  let hits = 0;
+  await page.route('**/api/finance/overview**', (route) => {
+    hits += 1;
+    return limited
+      ? route.fulfill({ status: 429, headers: { 'Retry-After': '20' }, contentType: 'application/json', body: JSON.stringify({ ok: false, error: 'Muitas tentativas. Aguarde alguns minutos e tente novamente.' }) })
+      : route.fallback();
+  });
+  await page.goto('/finance/dashboard.html');
+  const error = page.locator('#view').getByRole('alert');
+  await expect(error).toContainText('Tente de novo em 20 segundos.');
+  const retry = error.getByRole('button', { name: 'Tentar novamente' });
+  await expect(retry).toBeDisabled();
+  const before = hits;
+  await page.clock.runFor(10_000);
+  await expect(retry).toBeDisabled();
+  expect(hits).toBe(before);
+  limited = false;
+  await page.clock.runFor(11_000);
+  await expect(retry).toBeEnabled();
+  await retry.click();
+  await expect(page.locator('#precisa-de-voce')).toBeVisible();
+});
+
+test('sessão expirada ao enviar: nada é dado como feito, o formulário fica e há caminho para entrar de novo', async ({ page }) => {
+  await mockSession(page);
+  await page.route('**/api/finance/comments**', (route) => route.request().method() === 'POST'
+    ? route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ ok: false, error: 'Sessão inválida.' }) })
+    : route.fallback());
+  await page.goto(`/finance/rfq.html?id=${RFQ}#atividade`);
+  await page.getByRole('tab', { name: 'Atividade' }).click();
+  const box = page.getByRole('tabpanel').locator('textarea').first();
+  await box.fill('Pedir ao Banco Um a minuta da cédula.');
+  await page.getByRole('tabpanel').getByRole('button', { name: 'Publicar comentário' }).click();
+  const alert = page.getByRole('tabpanel').locator('.field-error, [role=alert]').filter({ hasText: 'Sua sessão expirou' }).first();
+  await expect(alert).toContainText('Sua sessão expirou e nada foi registrado');
+  const login = alert.getByRole('link', { name: 'Entrar em outra aba' });
+  await expect(login).toHaveAttribute('target', '_blank');
+  await expect(login).toHaveAttribute('href', '/login.html?next=%2Ffinance%2Frfq.html');
+  await expect(box).toHaveValue('Pedir ao Banco Um a minuta da cédula.');
 });

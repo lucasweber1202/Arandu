@@ -90,12 +90,42 @@ export function emptyState({ title, text = null, action = null, iconName = 'inbo
     action ? el('div', { class: 'empty-action' }, action) : null
   ]);
 }
+// Sessão expirada no meio de uma escrita: a pessoa entra em outra aba e repete
+// aqui, sem perder o que preencheu (o cookie de sessão vale para as duas abas).
+export const SESSION_EXPIRED_WRITE = 'Sua sessão expirou e nada foi registrado. Entre de novo em outra aba e repita aqui: o que você preencheu continua nesta tela.';
+function loginLink(label = 'Entrar em outra aba') {
+  const next = /^\/(?:provider|finance)\/[a-z-]+\.html$/.test(location.pathname) ? `?next=${encodeURIComponent(location.pathname)}` : '';
+  return el('a', { class: 'btn btn-secondary btn-sm', href: `/login.html${next}`, target: '_blank', rel: 'noopener' }, el('span', { class: 'btn-label', text: label }));
+}
+
+/** Ação para erro de sessão expirada (401): entrar em outra aba sem perder a tela. */
+export function sessionLink(error) {
+  return error?.status === 401 ? loginLink() : null;
+}
+
 export function errorState({ title = 'Não foi possível carregar', error = null, onRetry = null }) {
+  // 429: o botão só volta depois da espera pedida pelo servidor (Retry-After
+  // ou 60 s); clicar antes só gastaria a cota de novo.
+  const retry = onRetry ? button('Tentar novamente', { iconName: 'refresh', onClick: onRetry }) : null;
+  const wait = error?.status === 429 && retry ? el('p', { class: 'muted small', role: 'status' }) : null;
+  if (wait) {
+    let left = Math.max(1, Number(error.retryAfter) || 60);
+    retry.disabled = true;
+    const tick = () => {
+      if (!retry.isConnected && left < Math.max(1, Number(error.retryAfter) || 60)) { clearInterval(timer); return; }
+      if (left <= 0) { clearInterval(timer); retry.disabled = false; wait.textContent = 'Pode tentar de novo.'; return; }
+      wait.textContent = `Disponível em ${left} s.`;
+      left -= 1;
+    };
+    const timer = setInterval(tick, 1000);
+    tick();
+  }
   return el('div', { class: 'empty empty-error', role: 'alert' }, [
     el('span', { class: 'empty-icon' }, icon('alert', { size: 20 })),
     el('p', { class: 'empty-title', text: title }),
     error ? el('p', { class: 'empty-text', text: error.message || String(error) }) : null,
-    onRetry ? el('div', { class: 'empty-action' }, button('Tentar novamente', { iconName: 'refresh', onClick: onRetry })) : null
+    retry || error?.status === 401 ? el('div', { class: 'empty-action' }, [error?.status === 401 ? loginLink('Entrar de novo') : null, retry]) : null,
+    wait
   ]);
 }
 export function skeleton(lines = 3) {
@@ -192,6 +222,7 @@ export function toast(text, tone = 'success', { action = null } = {}) {
   const iconName = error ? 'alert' : tone === 'info' ? 'info' : 'checkCircle';
   const node = el('div', { class: `toast toast-${tone}` }, [icon(iconName), el('span', { class: 'toast-text', text })]);
   if (action) node.append(action);
+  else if (text === SESSION_EXPIRED_WRITE) { action = loginLink(); node.append(action); }
   const close = iconButton('x', 'Fechar aviso', { onClick: () => node.remove() });
   node.append(close);
   (error ? alertRegion : toastRegion).append(node);

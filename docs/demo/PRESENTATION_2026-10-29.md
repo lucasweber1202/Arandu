@@ -11,11 +11,41 @@ Arandu em vez de e-mail, planilhas e portais bancários desconectados?
 **Mensagem final:** *o Arandu organiza a contratação financeira e preserva as
 decisões e obrigações que surgem depois dela.*
 
-## Antes de começar (T-30 min)
+## Antes de começar (T-30 min) — prontidão verificável
 
-1. `npm run demo:setup` (ou `npm run demo:local:reset` se já estiver de pé). Esperado: `39/39 checagens OK` (inclui a concorrência com coleta aberta).
-2. Duas janelas: normal (**juliana.ramos@vittafoods.example**, gerente de tesouraria) e anônima (**eduardo.lima@atlasbank.example**, Atlas Bank; no Modo 2, **patricia.alves@meridianfinancial.example**, Meridian Financial). Opcional: **helena.duarte@vittafoods.example** (CFO) e **carlos.tavares@vittafoods.example** (Controller, leitor). Senha em `scripts/pilot-local/.state/demo.env`.
-3. Faça login nas janelas **antes**: o login tem limite legítimo por IP (12/10 min) e a API, 120 requisições/10 min por pessoa. Não fique recarregando páginas no ensaio imediatamente antes.
+1. Demo de pé: `npm run demo:setup` (primeira vez, ≈20 min) ou `npm run demo:local:reset` (≈15 min; **só quando você decidir** — nada reseta sozinho). Esperado: `39/39 checagens OK`.
+2. **Prontidão:** `bash scripts/demo/local.sh readiness --smoke` (só lê; recusa alvo não local). O relatório `reports/demo-readiness/readiness.md` diz, separadamente:
+   - **Modo leitura: PRONTO** exige commit e build identificados, Supabase local e app no ar, personas entrando, cenário semeado (39/39) e smoke das jornadas;
+   - **Modo interativo: PRONTO** exige, além disso, o estado intocado: Meridian ainda sem proposta na concorrência sazonal, etapa da CFO pendente e nenhuma tarefa de ensaio anterior. Se o Modo 2 já foi ensaiado, ele aponta `npm run demo:local:reset`.
+   "NÃO EXECUTADO" nunca é PASS. A sonda de prontidão hospedada aparece como aviso na Demo local (o banco local não faz parte da topologia hospedada) — isso não valida nem invalida a Demo pública.
+3. Rode a prontidão **≥ 10 min antes** de abrir as janelas: o diagnóstico e o reset usam a cota legítima da gestora (120 requisições/10 min). O roteiro inteiro da Juliana consome ~77 requisições (medido por `node scripts/demo/requests.mjs`: nenhuma chamada repetida, sem polling).
+4. Duas janelas: normal (**juliana.ramos@vittafoods.example**, gerente de tesouraria) e anônima (**eduardo.lima@atlasbank.example**, Atlas Bank; no Modo 2, **patricia.alves@meridianfinancial.example**, Meridian Financial). Opcional: **helena.duarte@vittafoods.example** (CFO) e **carlos.tavares@vittafoods.example** (Controller, leitor). Senha em `scripts/pilot-local/.state/demo.env`.
+5. Faça login nas janelas **antes**: o login tem limite legítimo por IP (12/10 min).
+
+## A jornada em 16 etapas (início, meio e fim)
+
+Três cenários sintéticos **distintos** da mesma empresa; a tabela diz quando muda. Não ligue objetos de cenários diferentes ("esta proposta virou aquele contrato") — cada um tem sua própria trilha.
+
+| Etapa | Cenário | Onde (passo do roteiro) |
+| --- | --- | --- |
+| 1. Empresa compradora | Vitta Foods | 1–2 (login, Painel) |
+| 2. Necessidade financeira aberta | **A — nova linha de R$ 12 mi** | 3 |
+| 3. Consulta à RFQ | A | 3 |
+| 4. Condições solicitadas | A | 3 (Visão geral: demanda tipada e revisão) |
+| 5. Convite e participação | A (leitura) / **C — concorrência sazonal** (Modo 2) | 4; I6 |
+| 6. Envio de proposta | C (Modo 2, ao vivo) — ou A em leitura (Atlas v2) | 5; I6 |
+| 7. Revisão e versionamento | C (Modo 2) / A em leitura | I8; 5 |
+| 8. Volta à empresa | C (Modo 2) / A | I9; 6 |
+| 9. Comparação financeira | **B — adquirência Lumina** (completa) e C (parcial) | 6; I9 |
+| 10. Aprovação e decisão | B (decidida) e A (aprovação pendente na CFO) | 7; I4–I5 |
+| 11. Contrato associado | B | 8 |
+| 12. Implantação | B | 9; I3 |
+| 13. Obrigações e covenants | **D — crédito vigente do Atlas** | 10 |
+| 14. Tarefas e responsáveis | Vitta Foods (todas as trilhas) | 13; I1–I2 |
+| 15. Histórico e rastreabilidade | B e D | 7 (trilha da decisão), 12 (relacionamento), detalhe da implantação (origem) |
+| 16. Renovação e continuidade | D | 11 (janela de renovação → "Iniciar nova concorrência") |
+
+Frases de transição: A→B "esta é outra contratação da Vitta, já decidida; vejam o que acontece depois"; B→D "e este é um contrato antigo, que já gera obrigações e está perto de renovar"; para C "outra necessidade da mesma empresa, ainda recebendo propostas — é aqui que a instituição responde ao vivo".
 
 ## Público e cenário
 
@@ -89,9 +119,12 @@ O que está comprovado: **produto funcional na Demo local** (ensaios desta pasta
 material de apoio — nunca apresente como execução ao vivo.
 | Situação | Plano B |
 | --- | --- |
-| "Muitas tentativas" (limite legítimo) | Aguarde ~1 min e use "Tentar novamente"; nada é perdido. Evite recarregar telas em sequência. |
-| Demo local fora do ar / Docker não sobe | `npm run demo:setup` (≈20 min — tenha a máquina pronta antes); se falhar, use as capturas de `docs/evidence/claude-financial-demo-2026-10-16/` e `claude-enterprise-demo-2026-10-17/`, **ditas como capturas**. |
-| Sessão expirada no meio | Entre de novo na mesma janela; nada salvo se perde (tarefas e aprovações já confirmadas ficam no servidor). |
+| "Muitas requisições em pouco tempo" (limite legítimo) | A tela diz quanto esperar e só libera "Tentar novamente" depois; nada é perdido nem repetido sozinho. Siga com outra persona/janela enquanto isso. Prevenção: prontidão ≥10 min antes, sem recarregar telas em sequência. |
+| Aviso "Não conseguimos carregar … desta solicitação" | Decisão e aprovação ficam bloqueadas de propósito (não se decide com informação incompleta). Aguarde e use "Recarregar". |
+| Resultado incerto ao criar tarefa | A tela não diz "criada"; use "Conferir com o servidor" — repete a mesma tentativa e nunca cria a segunda. Título igual na lista não prova nada. |
+| Demo local fora do ar / Docker não sobe | `npm run demo:setup` (≈20 min — tenha a máquina pronta antes); se falhar, use as capturas de `docs/evidence/claude-financial-demo-2026-10-16/`, `claude-enterprise-demo-2026-10-17/` e `claude-enterprise-product-2026-10-17/`, **ditas como capturas**. |
+| Sessão expirada no meio | Ao gravar, a tela diz "Sua sessão expirou e nada foi registrado" com "Entrar em outra aba": entre lá, volte e repita — o que estava preenchido continua. Ao navegar, "Entrar de novo". |
+| Prontidão "NÃO PRONTO" na hora | Modo interativo não pronto, leitura pronta → apresente o Modo leitura. Leitura não pronta → plano de capturas abaixo, ditas como capturas. Nunca reset em banco hospedado. |
 | Operação do Modo 2 falha | A tela diz o que aconteceu e que nada foi confirmado; siga em modo leitura e explique a regra (só conta o que o servidor confirmou). |
 | Seed inconsistente após ensaio | `npm run demo:local:reset` (≈15 min; termina com `39/39 checagens OK`). Nunca rode reset em banco hospedado. |
 | Sem rede externa | A Demo local não depende de serviços externos depois de montada. |

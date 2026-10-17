@@ -46,19 +46,24 @@ export async function rfqDetail(ctx) {
   document.title = `${rfq.title} | Arandu Financial Procurement`;
   const manage = ctx.can('create_rfq');
   const proposals = rfq.proposals || [];
+  // Leitura de governança que falhou não vira "sem decisão" nem "aprovação não
+  // exigida": a tela diz o que faltou e não oferece decidir nem pedir aprovação.
+  const gaps = new Set();
   const [approvals, decisions, generalPolicy, evaluation, entities] = await Promise.all([
     ctx.loadApprovals().then((rows) => rows.filter((row) => row.rfq_id === rfq.id)),
-    ctx.api(`decisions?organization_id=${encodeURIComponent(ctx.organization.id)}`).then((result) => result.rows || []).catch(() => []),
-    ctx.api(`approval-policy?organization_id=${encodeURIComponent(ctx.organization.id)}`).catch(() => ({ required_for_decision: false })),
+    ctx.api(`decisions?organization_id=${encodeURIComponent(ctx.organization.id)}`).then((result) => result.rows || []).catch(() => { gaps.add('a decisão registrada'); return []; }),
+    ctx.api(`approval-policy?organization_id=${encodeURIComponent(ctx.organization.id)}`).catch(() => { gaps.add('a política de aprovação'); return { required_for_decision: false }; }),
     // Exigência pela policy v2 (sem proposta escolhida ainda): a decisão sem
     // pedido só passa quando nenhuma policy pede etapa ou bloqueio.
     ['collecting', 'comparing'].includes(rfq.status) && proposals.length
-      ? ctx.api('approval-policies/preview', { method: 'POST', body: JSON.stringify({ rfq_id: rfq.id }) }).then((out) => out.evaluation).catch(() => null)
+      ? ctx.api('approval-policies/preview', { method: 'POST', body: JSON.stringify({ rfq_id: rfq.id }) }).then((out) => out.evaluation).catch((error) => { if (error.status !== 404) gaps.add('a exigência de aprovação'); return null; })
       : Promise.resolve(null),
     // Entidades não dependem da avaliação da política. Não serializar uma
     // consulta de contexto depois das consultas de aprovação.
     loadEntities(ctx)
   ]);
+  if (ctx.approvalsError) gaps.add('as aprovações');
+  const governanceGap = gaps.size ? [...gaps] : null;
   const policy = { ...generalPolicy, required_for_decision: Boolean(generalPolicy.required_for_decision || evaluation?.approval_required), evaluation };
   const decision = decisions.find((row) => row.rfq_id === rfq.id) || null;
   const contract = decision ? (ctx.data.contracts || []).find((row) => row.decision_id === decision.id) : null;
@@ -83,8 +88,8 @@ export async function rfqDetail(ctx) {
     if (rfq.status === 'collecting') actions.push(button('Encerrar coleta e avaliar', { variant: 'primary', iconName: 'scale', onClick: () => transition('comparing', {
       title: 'Encerrar a coleta?', confirmLabel: 'Encerrar coleta',
       description: `${proposals.length} proposta(s) recebida(s). Provedores não poderão mais enviar ou revisar propostas, a menos que você reabra a coleta.` }) }));
-    if (rfq.status === 'comparing' && !pending && !decision) actions.push(linkButton(policy.required_for_decision ? 'Solicitar aprovação' : 'Registrar decisão', `#${policy.required_for_decision ? 'aprovacoes' : 'decisao'}`, { variant: 'primary', iconName: policy.required_for_decision ? 'checkCircle' : 'flag' }));
-    if (rfq.status === 'decided' && !contract) actions.push(linkButton('Registrar contrato', '#decisao', { variant: 'primary', iconName: 'briefcase' }));
+    if (rfq.status === 'comparing' && !pending && !decision && !governanceGap) actions.push(linkButton(policy.required_for_decision ? 'Solicitar aprovação' : 'Registrar decisão', `#${policy.required_for_decision ? 'aprovacoes' : 'decisao'}`, { variant: 'primary', iconName: policy.required_for_decision ? 'checkCircle' : 'flag' }));
+    if (rfq.status === 'decided' && !contract && !governanceGap) actions.push(linkButton('Registrar contrato', '#decisao', { variant: 'primary', iconName: 'briefcase' }));
     if (['draft', 'open', 'collecting'].includes(rfq.status)) actions.push(button('Editar', { iconName: 'edit', onClick: () => editDrawer(ctx, rfq) }));
   }
   if (pending) actions.push(linkButton(isViewerTurn(pending, ctx.viewer?.id) ? 'Decidir aprovação' : 'Acompanhar aprovação', '#aprovacoes', { variant: 'primary', iconName: 'clock' }));
@@ -114,21 +119,33 @@ export async function rfqDetail(ctx) {
     root.append(el('div', { class: 'callout callout-success', role: 'status' }, [icon('checkCircle'), el('span', {}, [el('strong', { text: 'Solicitação criada como rascunho. ' }), 'Próximo passo: convide provedores e abra para propostas.'])]));
   }
   root.append(lifecycle(rfq, Boolean(pending)));
+  if (governanceGap) root.append(governanceGapNotice(ctx, governanceGap));
 
   const tabset = tabs([
-    { id: 'visao-geral', label: 'Visão geral', render: () => overviewTab(ctx, rfq, { manage, pending, approvals, decision, contract, policy }) },
+    { id: 'visao-geral', label: 'Visão geral', render: () => overviewTab(ctx, rfq, { manage, pending, approvals, decision, contract, policy, governanceGap }) },
     { id: 'propostas', label: 'Propostas', count: proposals.length, render: () => proposalsTab(ctx, rfq) },
     { id: 'comparacao', label: 'Comparação', render: () => comparisonTab(ctx, rfq, decision) },
-    { id: 'aprovacoes', label: 'Aprovações', count: pending ? 1 : null, render: () => approvalsTab(ctx, rfq, approvals, { manage }) },
-    { id: 'decisao', label: 'Decisão', render: () => decisionTab(ctx, rfq, { decision, contract, policy, approvals, manage }) },
+    { id: 'aprovacoes', label: 'Aprovações', count: pending ? 1 : null, render: () => governanceGap ? governanceGapTab() : approvalsTab(ctx, rfq, approvals, { manage }) },
+    { id: 'decisao', label: 'Decisão', render: () => governanceGap ? governanceGapTab() : decisionTab(ctx, rfq, { decision, contract, policy, approvals, manage }) },
     { id: 'atividade', label: 'Atividade', render: () => activityTab(ctx, rfq) }
   ], { label: 'Seções da solicitação' });
   root.append(tabset.node);
   return root;
 }
 
+function governanceGapNotice(ctx, gaps) {
+  const list = gaps.length > 1 ? `${gaps.slice(0, -1).join(', ')} e ${gaps.at(-1)}` : gaps[0];
+  return el('div', { class: 'callout callout-warning governance-gap', role: 'alert' }, [icon('alert'), el('div', { class: 'stack' }, [
+    el('strong', { text: `Não conseguimos carregar ${list} desta solicitação.` }),
+    el('p', { text: 'Enquanto isso, decisão e aprovação ficam indisponíveis nesta tela para não agir sobre informação incompleta. Nada foi alterado.' }),
+    el('div', {}, button('Recarregar', { size: 'sm', iconName: 'refresh', onClick: () => ctx.reload() }))
+  ])]);
+}
+// Dentro das abas, sem repetir o alerta do topo (leitor de tela o anunciaria duas vezes).
+const governanceGapTab = () => emptyState({ title: 'Indisponível até recarregar', text: 'O aviso no topo da página diz o que não carregou. Nada foi alterado.', iconName: 'alert', compact: true });
+
 // ------------------------------------------------------------ visão geral
-function overviewTab(ctx, rfq, { manage, pending, approvals, decision, contract, policy }) {
+function overviewTab(ctx, rfq, { manage, pending, approvals, decision, contract, policy, governanceGap }) {
   const grid = el('div', { class: 'split' });
   const spec = PRODUCTS[rfq.product];
   const demand = card({ title: 'Demanda', subtitle: 'O que a empresa pediu, como os provedores veem.', id: 'demanda', body: [
@@ -158,7 +175,7 @@ function overviewTab(ctx, rfq, { manage, pending, approvals, decision, contract,
   const documents = card({ title: 'Documentos', subtitle: 'Balanços, minutas e anexos do processo, em armazenamento privado.', id: 'documentos', body: el('div', {}, loading()) });
   import('./documents.js').then(({ documentsPanel }) => documents.querySelector('.card-body').replaceChildren(documentsPanel(ctx, {
     entityType: 'rfq', entityId: rfq.id, canUpload: manage || ctx.can('upload_document'), shareLabel: 'Visível aos provedores convidados' })));
-  grid.append(el('div', { class: 'split-main' }, [demand, passportSnapshotCard(ctx, rfq), revisions, graphContextCard(ctx, { type: 'rfq', id: rfq.id })]), el('div', { class: 'split-side' }, [nextStepCard(ctx, rfq, { pending, approvals, decision, contract, policy }), inviteCard, documents, reuse]));
+  grid.append(el('div', { class: 'split-main' }, [demand, passportSnapshotCard(ctx, rfq), revisions, graphContextCard(ctx, { type: 'rfq', id: rfq.id })]), el('div', { class: 'split-side' }, [nextStepCard(ctx, rfq, { pending, approvals, decision, contract, policy, governanceGap }), inviteCard, documents, reuse]));
   return grid;
 }
 
@@ -193,10 +210,11 @@ function passportSnapshotCard(ctx, rfq) {
   return slot;
 }
 
-function nextStepCard(ctx, rfq, { pending, approvals = [], decision, contract, policy } = {}) {
+function nextStepCard(ctx, rfq, { pending, approvals = [], decision, contract, policy, governanceGap = null } = {}) {
   // O cartão acompanha o estado real do processo, não só o status da RFQ.
   const latest = [...approvals].sort((a, b) => String(b.requested_at).localeCompare(String(a.requested_at)))[0];
   const situational = (() => {
+    if (governanceGap && ['collecting', 'comparing', 'decided'].includes(rfq.status)) return ['Recarregue antes de seguir', 'Parte do contexto de aprovação e decisão não carregou. Nada foi alterado.'];
     if (pending) {
       const step = currentStep(pending);
       const total = (pending.steps || []).length;

@@ -6,6 +6,7 @@
 #   npm run demo:setup        # sobe o Supabase local, builda, sobe o app em modo demo e semeia
 #   npm run demo:local:reset  # apaga só os dados da demo e semeia de novo
 #   npm run demo:local:check  # só as checagens de sanidade
+#   bash scripts/demo/local.sh readiness [--smoke]  # prontidão da apresentação (só lê)
 #   npm run demo:down         # derruba tudo e apaga o estado local
 #
 # Chaves, senha das personas e certificados são gerados a cada ambiente em
@@ -67,8 +68,9 @@ case "$command" in
   password) ensure_password ;;
   reset) load_env; node "$here/seed.mjs" --reset ;;
   check) load_env; node "$here/seed.mjs" --check ;;
+  readiness) shift; load_env; node "$here/readiness.mjs" "$@" ;;
   app) load_env; start_app; echo "App local em modo demo: https://localhost:4443" ;;
   workspaces) shift; load_env; node "$here/workspaces.mjs" "$@" ;;
   down) bash "$root/scripts/pilot-local/down.sh" ;;
-  *) echo "uso: bash scripts/demo/local.sh setup|password|reset|check|app|workspaces|down"; exit 2 ;;
+  *) echo "uso: bash scripts/demo/local.sh setup|password|reset|check|readiness|app|workspaces|down"; exit 2 ;;
 esac
