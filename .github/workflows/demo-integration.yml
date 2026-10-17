@@ -46,6 +46,7 @@ jobs:
           persist-credentials: false
 
       - name: Setup Node
+        id: node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 24
@@ -64,7 +65,7 @@ jobs:
         id: preflight
         timeout-minutes: 3
         run: |
-          if ! command -v psql >/dev/null 2>&1 || ! command -v age >/dev/null 2>&1; then
+          if ! command -v psql >/dev/null 2>&1 || ! command -v age >/dev/null 2>&1 || ! command -v age-keygen >/dev/null 2>&1; then
             sudo apt-get update && sudo apt-get install -y postgresql-client age
           fi
           bash scripts/ci-demo/run.sh preflight
@@ -72,6 +73,7 @@ jobs:
       # Defesa em profundidade: mesmo uma URL errada não alcança um Supabase
       # hospedado conhecido (refs de lib/deployment-topology.mjs).
       - name: Block hosted Supabase projects on this runner
+        id: block_hosted
         timeout-minutes: 2
         run: |
           node --input-type=module -e "
@@ -83,10 +85,12 @@ jobs:
           echo "hosts bloqueados: $(grep -c '^0.0.0.0 ' /etc/hosts)"
 
       - name: Install dependencies (lockfile)
+        id: install
         timeout-minutes: 10
         run: npm ci --include=optional
 
       - name: Build
+        id: build
         timeout-minutes: 5
         run: npm run build
 
@@ -125,7 +129,7 @@ jobs:
         run: bash scripts/ci-demo/run.sh recovery 2>&1 | grep -v '@' | tee "$CI_DEMO_REPORTS/recovery.txt"
 
       - name: Playwright version
-        id: playwright
+        id: playwright_version
         run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
 
       # Só restauração: reaproveita o cache do CI principal, sem gravar outro.
@@ -133,11 +137,12 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-ubuntu-24.04-${{ runner.arch }}-${{ steps.playwright.outputs.version }}-${{ hashFiles('package-lock.json') }}
+          key: playwright-ubuntu-24.04-${{ runner.arch }}-${{ steps.playwright_version.outputs.version }}-${{ hashFiles('package-lock.json') }}
           restore-keys: |
-            playwright-ubuntu-24.04-${{ runner.arch }}-${{ steps.playwright.outputs.version }}-
+            playwright-ubuntu-24.04-${{ runner.arch }}-${{ steps.playwright_version.outputs.version }}-
 
       - name: Install Chromium only
+        id: install_chromium
         timeout-minutes: 15
         env:
           DEBIAN_FRONTEND: noninteractive
@@ -166,35 +171,20 @@ jobs:
         run: bash scripts/ci-demo/run.sh adversarial 2>&1 | tee "$CI_DEMO_REPORTS/adversarial.txt"
 
       - name: Collect sanitized evidence
+        id: evidence
         if: always()
         timeout-minutes: 3
         run: bash scripts/ci-demo/run.sh evidence
 
-      - name: Summary
-        if: always()
-        env:
-          TESTED_SHA: ${{ steps.tested_commit.outputs.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-          PREFLIGHT: ${{ steps.preflight.outcome }}
-          IMAGES: ${{ steps.images.outcome }}
-          UP: ${{ steps.up.outcome }}
-          SMOKE: ${{ steps.smoke.outcome }}
-          SEED: ${{ steps.seed.outcome }}
-          CHECK: ${{ steps.check.outcome }}
-          E2E_DESKTOP: ${{ steps.e2e_desktop.outcome }}
-          E2E_MOBILE: ${{ steps.e2e_mobile.outcome }}
-          JOURNEY: ${{ steps.journey.outcome }}
-          ADVERSARIAL: ${{ steps.adversarial.outcome }}
-          RECOVERY: ${{ steps.recovery.outcome }}
-        run: node scripts/ci-demo/summary.mjs >> "$GITHUB_STEP_SUMMARY"
-
       - name: Teardown (containers, volumes, keys)
+        id: teardown
         if: always()
         timeout-minutes: 5
-        run: bash scripts/ci-demo/run.sh down
+        run: bash scripts/ci-demo/run.sh down 2>&1 | tee "$CI_DEMO_REPORTS/teardown.txt"
 
       # Só relatórios sanitizados: sem trace, sem dump de banco, sem .state.
       - name: Upload sanitized evidence
+        id: evidence_upload
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
@@ -204,3 +194,34 @@ jobs:
             reports/playwright-demo
           if-no-files-found: error
           retention-days: 14
+
+      # A decisão vem depois do teardown e do arquivo de evidências. Um run
+      # anterior ao cleanup podia listar todas as jornadas como PASS enquanto
+      # os recursos temporários ainda estavam em uso ou o cleanup falhava.
+      - name: Final Demo rehearsal decision
+        if: always()
+        env:
+          NODE: ${{ steps.node.outcome }}
+          TESTED_SHA: ${{ steps.tested_commit.outputs.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          TESTED_COMMIT: ${{ steps.tested_commit.outcome }}
+          PREFLIGHT: ${{ steps.preflight.outcome }}
+          BLOCK_HOSTED: ${{ steps.block_hosted.outcome }}
+          INSTALL: ${{ steps.install.outcome }}
+          BUILD: ${{ steps.build.outcome }}
+          IMAGES: ${{ steps.images.outcome }}
+          UP: ${{ steps.up.outcome }}
+          SMOKE: ${{ steps.smoke.outcome }}
+          SEED: ${{ steps.seed.outcome }}
+          CHECK: ${{ steps.check.outcome }}
+          PLAYWRIGHT_VERSION: ${{ steps.playwright_version.outcome }}
+          INSTALL_CHROMIUM: ${{ steps.install_chromium.outcome }}
+          E2E_DESKTOP: ${{ steps.e2e_desktop.outcome }}
+          E2E_MOBILE: ${{ steps.e2e_mobile.outcome }}
+          JOURNEY: ${{ steps.journey.outcome }}
+          ADVERSARIAL: ${{ steps.adversarial.outcome }}
+          RECOVERY: ${{ steps.recovery.outcome }}
+          EVIDENCE: ${{ steps.evidence.outcome }}
+          TEARDOWN: ${{ steps.teardown.outcome }}
+          EVIDENCE_UPLOAD: ${{ steps.evidence_upload.outcome }}
+        run: node scripts/ci-demo/summary.mjs >> "$GITHUB_STEP_SUMMARY"

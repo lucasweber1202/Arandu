@@ -8,6 +8,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { localViolations } from './ci-demo/assert-local.mjs';
+import { assessDemoRehearsal, DEMO_REHEARSAL_REQUIRED_OUTCOMES } from '../lib/demo-rehearsal-result.mjs';
 
 // Sem comentários: as restrições valem para o que executa.
 const workflow = fs.readFileSync('.github/workflows/demo-integration.yml', 'utf8').split('\n').filter((line) => !/^\s*#/.test(line)).join('\n');
@@ -34,8 +35,10 @@ test('evidência identifica o commit realmente executado, separando o HEAD da PR
   assert.match(workflow, /echo "sha=\$\(git rev-parse HEAD\)" >> "\$GITHUB_OUTPUT"/);
   assert.match(workflow, /TESTED_SHA: \$\{\{ steps\.tested_commit\.outputs\.sha \}\}/);
   const summary = fs.readFileSync('scripts/ci-demo/summary.mjs', 'utf8');
-  assert.match(summary, /process\.env\.TESTED_SHA/);
-  assert.doesNotMatch(summary, /SHA testado:.*process\.env\.HEAD_SHA/);
+  const result = fs.readFileSync('lib/demo-rehearsal-result.mjs', 'utf8');
+  assert.match(summary, /assessDemoRehearsal\(process\.env\)/);
+  assert.match(result, /env\.TESTED_SHA/);
+  assert.doesNotMatch(summary, /process\.env\.HEAD_SHA/);
 });
 test('workflow: sem secrets, sem environment hospedado, sem deploy', () => {
   assert.doesNotMatch(workflow, /secrets\.|^\s+environment:|vercel|supabase (db|link)|migrations:release/im);
@@ -54,10 +57,52 @@ test('workflow: timeout no job e em cada fase; concorrência limitada', () => {
   }
   assert.match(workflow, /concurrency:\n  group: arandu-demo-integration\n  cancel-in-progress: false/);
 });
+test('preflight local falha cedo se Node não for 24 ou faltarem as ferramentas de recovery', () => {
+  const preflight = runner.slice(runner.indexOf('  preflight)'), runner.indexOf('  images)'));
+  assert.match(preflight, /node_version="\$\(node -p 'process\.versions\.node'\)"/);
+  assert(preflight.includes('[ "${node_version%%.*}" = 24 ]'), 'Node 24 precisa ser requisito, não só impresso');
+  assert.match(preflight, /command -v age/);
+  assert.match(preflight, /command -v age-keygen/);
+  assert(runner.indexOf('preflight)') < runner.indexOf('images)'), 'tool preflight deve preceder provisionamento');
+  const install = workflow.slice(workflow.indexOf('      - name: Preflight'), workflow.indexOf('      - name: Block hosted'));
+  assert.match(install, /command -v age-keygen/);
+});
 test('workflow: limpeza e evidência sempre executam', () => {
-  for (const name of ['Collect sanitized evidence', 'Summary', 'Teardown (containers, volumes, keys)', 'Upload sanitized evidence']) {
-    assert.match(workflow, new RegExp(`- name: ${name.replace(/[()]/g, '\\$&')}\\n        if: always\\(\\)`), `${name} sem if: always()`);
+  for (const name of ['Collect sanitized evidence', 'Final Demo rehearsal decision', 'Teardown (containers, volumes, keys)', 'Upload sanitized evidence']) {
+    const start = workflow.indexOf(`- name: ${name}`);
+    assert(start >= 0, `${name} ausente`);
+    const end = workflow.indexOf('\n      - name:', start + 1);
+    const step = workflow.slice(start, end < 0 ? undefined : end);
+    assert.match(step, /\n        if: always\(\)/, `${name} sem if: always()`);
   }
+  const at = (name) => workflow.indexOf(`- name: ${name}`);
+  assert(at('Teardown (containers, volumes, keys)') < at('Upload sanitized evidence'));
+  assert(at('Upload sanitized evidence') < at('Final Demo rehearsal decision'), 'a decisão final precisa incluir teardown e arquivamento');
+  assert.match(workflow, /TEARDOWN: \$\{\{ steps\.teardown\.outcome \}\}/);
+  assert.match(workflow, /EVIDENCE_UPLOAD: \$\{\{ steps\.evidence_upload\.outcome \}\}/);
+});
+test('B exige SHA exato, fases críticas, evidência e cleanup; a hospedagem segue não provada', () => {
+  for (const [key] of DEMO_REHEARSAL_REQUIRED_OUTCOMES) {
+    assert.match(workflow, new RegExp(`^\\s+${key}: \\$\\{\\{ steps\\.[a-z0-9_]+\\.outcome \\}\\}$`, 'm'), `${key} precisa vir do outcome real do workflow`);
+  }
+  assert.match(workflow, /TESTED_SHA: \$\{\{ steps\.tested_commit\.outputs\.sha \}\}/);
+  assert.match(workflow, /HEAD_SHA: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/);
+  const outcomes = Object.fromEntries(DEMO_REHEARSAL_REQUIRED_OUTCOMES.map(([key]) => [key, 'success']));
+  const ready = assessDemoRehearsal({ ...outcomes, TESTED_SHA: 'a'.repeat(40), HEAD_SHA: 'b'.repeat(40) });
+  assert.equal(ready.result, 'B_LOCAL_DEMO_VALIDATED');
+  assert.equal(ready.maturity, 'CI_VALIDATED_ONLY');
+  assert.equal(ready.hostedStatus, 'NOT_PROVEN');
+  assert.equal(ready.pending.length, 0);
+  for (const [key, outcome] of [['TEARDOWN', 'failure'], ['TEARDOWN', 'skipped'], ['EVIDENCE_UPLOAD', 'failure'], ['RECOVERY', 'skipped'], ['E2E_MOBILE', 'failure']]) {
+    const rejected = assessDemoRehearsal({ ...outcomes, [key]: outcome, TESTED_SHA: 'a'.repeat(40) });
+    assert.equal(rejected.result, 'C_NO_GO', `${key}=${outcome} não pode liberar B`);
+    assert(rejected.pending.some((item) => item.key === key));
+  }
+  for (const testedSha of ['', 'b'.repeat(39), 'z'.repeat(40)]) {
+    assert.equal(assessDemoRehearsal({ ...outcomes, TESTED_SHA: testedSha }).result, 'C_NO_GO', 'SHA ausente/inválido não pode liberar B');
+  }
+  assert.equal(assessDemoRehearsal({ ...outcomes, TESTED_SHA: 'a'.repeat(40) }).result, 'C_NO_GO', 'referência do evento ausente não pode liberar B');
+  assert.equal(assessDemoRehearsal({ ...outcomes, TESTED_SHA: 'a'.repeat(40), HEAD_SHA: 'x'.repeat(40) }).result, 'C_NO_GO', 'referência do evento inválida não pode liberar B');
 });
 test('recovery usa seed verificado antes da jornada que cadastra fatores MFA', () => {
   const phase = (id) => {
@@ -111,13 +156,17 @@ test('summary não confunde merge commit executado com HEAD da PR nem inventa SH
       encoding: 'utf8', env: { PATH: process.env.PATH, CI_DEMO_REPORTS: dir, HEAD_SHA: head, GITHUB_SHA: head, ...extra }
     });
     const result = run({ TESTED_SHA: tested });
-    assert.equal(result.error, undefined); assert.equal(result.status, 0, result.stderr);
-    assert(result.stdout.includes(`SHA testado (checkout): \`${tested}\``));
-    assert(result.stdout.includes(`HEAD da PR/evento (referência): \`${head}\``));
+    assert.equal(result.error, undefined); assert.equal(result.status, 1, result.stderr);
+    assert(result.stdout.includes(`SHA executado (checkout): \`${tested}\``));
+    assert(result.stdout.includes(`SHA da PR/evento (referência): \`${head}\``));
+    assert(result.stdout.includes('Decisão: **C — NO-GO**'), 'sem outcomes completos, o resumo não pode declarar B');
+    assert(result.stdout.includes('### Bloqueadores do ensaio'));
+    assert(result.stdout.includes('- Node runtime setup: not_run.'));
     const missing = run({});
-    assert.equal(missing.error, undefined); assert.equal(missing.status, 0, missing.stderr);
-    assert(missing.stdout.includes('SHA testado (checkout): `NÃO IDENTIFICADO`'));
-    assert(!missing.stdout.includes(`SHA testado (checkout): \`${head}\``));
+    assert.equal(missing.error, undefined); assert.equal(missing.status, 1, missing.stderr);
+    assert(missing.stdout.includes('SHA executado (checkout): `NÃO IDENTIFICADO`'));
+    assert(!missing.stdout.includes(`SHA executado (checkout): \`${head}\``));
+    assert(missing.stdout.includes('Maturidade hospedada: **NOT_PROVEN**'));
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
 test('sanitização remove JWT, cookie, senha em URL e e-mail real; mantém e-mail sintético', () => {

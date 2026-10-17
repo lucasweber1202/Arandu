@@ -1,5 +1,38 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 16/10/2026 — O veredito do ensaio Demo inclui recovery, teardown e arquivamento
+
+Base reconciliada: `origin/main@168e60d3a5ae12ecf2e9e671e3369a2855336e14`.
+PR #207 e #208 estão integradas; os quatro gates da #208 passaram no run
+`38943086346`. Nesta rodada, os status GitHub associados à main mostram
+`arandu-demo` SUCCESS, `arandu-pilot` SUCCESS e `arandu` FAILURE. A leitura
+detalhada do escopo Vercel `lucas-projects467` continua ACCESS_BLOCKED por 403
+previamente observado. Nenhum datasource/schema hospedado foi inferido.
+
+O relatório anterior da integração efêmera era emitido antes do teardown e do
+upload do artifact, sem decisão que os incluísse. O workflow agora gera B apenas
+com SHA completo e todos os outcomes, inclusive cleanup e artifact; qualquer
+falha/skip dá C, e hosted M3 sempre fica NOT_PROVEN. C também encerra o processo
+de resumo com exit 1 para impedir status verde em NO-GO, coberto por teste
+negativo. O preflight exige Node 24 e ferramentas `age`/`age-keygen`. Detalhes,
+reprodução e limites em
+`docs/evidence/codex-demo-release-2026-10-16.md`; ensaio e critérios da Demo em
+`docs/DEMO_RELEASE_REHEARSAL.md`.
+
+| Capacidade / prova | Estado observado | Evidência | Próximo gate / limite |
+| --- | --- | --- | --- |
+| Veredito do ensaio da Demo | LOCAL_VALIDATED; CI_VALIDATED no SHA de código `3d8e92b`; repetição efêmera atual em andamento | Run Arandu CI `38961465310`: quatro gates SUCCESS no SHA exato. Assessor B/C negativo/positivo passou. Resumo B→exit 0 e C→exit 1 verificados diretamente; regressão do exit code aguarda execução CI do HEAD publicado. Ensaio `38961187110` emitiu B no código `891e266`; repetição serial no SHA atual não presumida como aprovada | Verificar repetição efêmera e os quatro gates no HEAD final; B prova só laboratório, nunca M3 |
+| Demo e Production hospedadas | Demo/Pilot deployment status SUCCESS; Production status FAILURE; detalhes INCONCLUSIVE/ACCESS_BLOCKED | Status GitHub consultados em `168e60d`; scope Vercel detalhado 403; assignments ativos `demo=[]`, `production=[]` | Acesso read-only autorizado no mesmo scope, identidade do datasource/schema e decisão sobre origem/destino antes de qualquer operação |
+| Recovery hospedado e conversão | NOT_RUN; recovery sintético CI passou | Ensaio efêmero executou restore isolado PostgreSQL+Storage no runner; nenhum export, restore, migration, cutover ou alteração de segredo hospedado | Classificar dados, aprovar snapshot/custódia durável e provar restore hospedado (incluindo Auth/config) antes de qualquer cutover |
+| Gates de release | 1/13 no nível mínimo declarado | `npm run check:evidence`; `migration_ci` possui referência de 11/08/2026; 12 demais gates `not_started` | Não converter estado de CI em evidência externa; tratar decisões/acessos listados na evidência desta rodada |
+| Validação local | Parcial por restrição do executor | Build, backend, segurança, migrations, platform e `git diff --check` PASS; npm audit passou na repetição com rede. Subprocessos Node recebem EPERM; Docker daemon negado e psql/age ausentes | `npm run merge:gates -- 209` não acessou a API (`fetch failed`); conector GitHub confirma 4 gates e main ancestral no SHA `3d8e92b`. Não houve merge |
+
+**Maturidade:** M3 continua **NOT PROVEN**. O status Vercel de Demo SUCCESS
+não confirma deployment detalhado, datasource, schema, Auth/RLS/Storage,
+isolamento nem recovery real. A execução completa de laboratório e a
+conversão/cutover dependem de executor com Docker/PG tools e decisões/acessos
+externos. Nenhum guard foi relaxado.
+
 ## 16/10/2026 — Evidência de release não pode promover ensaio local a prova externa
 
 Base revalidada: `origin/main@ab3dda8d8a65c621855b8774bd30180d7366f690`, com os
