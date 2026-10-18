@@ -105,6 +105,18 @@ Canary e jornadas com escrita só na janela autorizada; seguir o runbook de
 
 ## Handoff técnico para Claude
 
+Atualização da ativação em 18/10: a avaliação do pool agora exige contagem
+exata e não truncada da Data API, contempla claims ativos no teto de 25 e
+valida mapa completo de personas/IDs e ausência de contas/organizações
+repetidas entre workspaces. Linha ready isolada não comprova capacidade. A
+seleção de persona recusa baseline antigo e mapa de outra pessoa mesmo no
+mesmo slug, antes do login; o erro público continua demo_workspace_incomplete.
+Readiness é uma fotografia com cache, não reserva de vaga nem prova de login.
+Handoff de ativação e defeito reproduzido no verificador hospedado reservado:
+`docs/evidence/codex-canonical-demo-activation-handoff-2026-10-18.md`.
+Autorizações separadas e mínimas:
+`docs/evidence/codex-hosted-demo-owner-authorization-2026-10-18.md`.
+
 - Rotas canônicas: `/login.html`, `/finance/dashboard.html`, demais `PAGES` em
   `scripts/generate-finance-pages.mjs`, incluindo `/provider/**`. Não copiar
   lógica para `/demo`. A raiz do build canônico permanece institucional;
@@ -141,6 +153,10 @@ alias/configuração anterior apenas por operador autorizado; **não** resetar b
 nem reverter migration destrutiva improvisadamente. Deployment anterior não
 garante compatibilidade com schema novo. Se não houver rollback seguro, manter
 serviço indisponível e executar forward-fix aprovado.
+
+Se a causa for identidade/capacidade inválida do pool, pausar novas entradas e
+corrigir provisionamento sob autorização. Reverter guardas para aceitar o mapa
+ou baixar o baseline esperado não é recuperação segura.
 
 Aplicar D-7/D-3/D-1/D-0 de `DEMO_PRESENTATION_2026-10-29.md`. A exige prova pública
 canônica completa. B exige estação/stack canônica e jornadas no SHA exato já

@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import {Readable} from 'node:stream';
-import {tokenHash,workspacePassword} from '../lib/finance/demo-workspaces.mjs';
+import {tokenHash,workspacePassword,BASELINE_VERSION} from '../lib/finance/demo-workspaces.mjs';
 import {encodeSessionValue} from '../lib/session-cookie.mjs';
+import {demoWorkspaceFixture} from './fixtures/demo-workspace.mjs';
 process.env.SUPABASE_URL='https://localhost:8443';
 process.env.SUPABASE_ANON_KEY='fixture-public';
 process.env.SUPABASE_SERVICE_ROLE_KEY='fixture-service';
@@ -12,9 +13,9 @@ const {default:handler}=await import('../api/[...path].js');
 // Banco simulado: um pool de workspaces com o mesmo contrato das funções SQL
 // (fin_demo_workspace_claim/resume/active); o servidor nunca escolhe pelo navegador.
 const WS_A='00000000-0000-4000-8000-00000000aaa1', WS_B='00000000-0000-4000-8000-00000000bbb1';
-const personasOf=(slug)=>Object.fromEntries([['juliana','juliana.ramos'],['helena','helena.duarte'],['lumina','diego.freitas']].map(([k,l])=>[k,`${l}+ws-${slug}@${k==='lumina'?'luminapay':'vittafoods'}.example`]));
-let sessionUser='',marker='demo',calls=[],pool=[],claimed={},logins=[],logouts=0;
-function resetPool(){pool=[{id:WS_A,slug:'aaaaaaaaaa',personas:personasOf('aaaaaaaaaa')},{id:WS_B,slug:'bbbbbbbbbb',personas:personasOf('bbbbbbbbbb')}];claimed={};}
+const fixture=(index,slug,id)=>({...demoWorkspaceFixture(index,{slug}),id});
+let sessionUser='',marker='demo',calls=[],pool=[],claimed={},logins=[],logouts=0,loginUserIdOverride=null;
+function resetPool(){pool=[fixture(1,'aaaaaaaaaa',WS_A),fixture(2,'bbbbbbbbbb',WS_B)];claimed={};}
 resetPool();
 const future=()=>new Date(Date.now()+86_400_000).toISOString();
 globalThis.fetch=async(url,init={})=>{
@@ -23,7 +24,7 @@ globalThis.fetch=async(url,init={})=>{
  if(u.endsWith('/rpc/fin_demo_workspace_claim')){
   const b=JSON.parse(init.body);assert.match(b.p_token_hash,/^[a-f0-9]{64}$/);assert.ok(b.p_max_active>0&&b.p_idle_minutes<=b.p_lifetime_minutes);
   const w=pool.shift();if(!w)return new Response('[]');
-  claimed[w.id]={...w,status:'claimed',claim_token_hash:b.p_token_hash,expires_at:future(),idle_expires_at:future()};return new Response(JSON.stringify([claimed[w.id]]));
+  claimed[w.id]={baseline_version:BASELINE_VERSION,...w,status:'claimed',claim_token_hash:b.p_token_hash,expires_at:future(),idle_expires_at:future()};return new Response(JSON.stringify([claimed[w.id]]));
  }
  if(u.endsWith('/rpc/fin_demo_workspace_resume')){
   const b=JSON.parse(init.body);const w=claimed[b.p_id];
@@ -36,7 +37,9 @@ globalThis.fetch=async(url,init={})=>{
   const b=JSON.parse(init.body);logins.push(b.email);
   assert.match(b.email,/\+ws-[a-f0-9]{10}@/,'login de visitante nunca usa conta do baseline');
   assert.equal(b.password,workspacePassword(process.env.ARANDU_DEMO_PASSWORD,b.email),'senha derivada no servidor');
-  return new Response(JSON.stringify({access_token:`access-${logins.length}`,refresh_token:'test-refresh',user:{id:'fixture',email:b.email}}));
+  const workspace=Object.values(claimed).find(w=>Object.values(w.personas).includes(b.email));
+  const id=workspace.user_ids[Object.values(workspace.personas).indexOf(b.email)];
+  return new Response(JSON.stringify({access_token:`access-${logins.length}`,refresh_token:'test-refresh',user:{id:loginUserIdOverride||id,email:b.email}}));
  }
  throw new Error(`Unexpected upstream request ${u}`);
 };
@@ -90,11 +93,24 @@ const full=await call('POST','demo-login',{persona:'juliana'},'','10.0.0.4');ass
 // 6. Mapa de personas que aponta para outro workspace é recusado.
 resetPool();pool=[{id:WS_A,slug:'aaaaaaaaaa',personas:{juliana:'juliana.ramos+ws-bbbbbbbbbb@vittafoods.example'}}];
 const bad=await call('POST','demo-login',{persona:'juliana'},'','10.0.0.5');assert.equal(bad.statusCode,503);assert.equal(logins.length,n);
+// Same slug is insufficient: a corrupted map must not switch a requested role/person.
+resetPool();pool=[{id:WS_A,slug:'aaaaaaaaaa',personas:{juliana:'helena.duarte+ws-aaaaaaaaaa@vittafoods.example'}}];
+assert.equal((await call('POST','demo-login',{persona:'juliana'},'','10.0.0.6')).statusCode,503);assert.equal(logins.length,n);
+resetPool();pool[0].baseline_version='obsolete';
+assert.equal((await call('POST','demo-login',{persona:'juliana'},'','10.0.0.7')).statusCode,503);assert.equal(logins.length,n);
 
 // 7. Reivindicação limitada por origem: a quinta na mesma hora recebe 429, sem tocar o pool.
-resetPool();for(let i=0;i<10;i+=1)pool.push({id:`00000000-0000-4000-8000-0000000000${String(i).padStart(2,'0')}`,slug:`cccccccc${String(i).padStart(2,'0')}`,personas:personasOf(`cccccccc${String(i).padStart(2,'0')}`)});
+resetPool();for(let i=0;i<10;i+=1)pool.push(fixture(i+3,`cccccccc${String(i).padStart(2,'0')}`,`00000000-0000-4000-8000-0000000000${String(i).padStart(2,'0')}`));
 const statuses=[];for(let i=0;i<5;i+=1)statuses.push((await call('POST','demo-login',{persona:'juliana'},'','10.0.0.9')).statusCode);
 assert.deepEqual(statuses,[200,200,200,200,429]);
+// Restored/misprovisioned Auth account with a different UUID must not receive a session.
+resetPool();loginUserIdOverride='00000000-0000-4000-8000-000000009999';
+const wrongAuth=await call('POST','demo-login',{persona:'juliana'},'','10.0.0.10');
+assert.equal(wrongAuth.statusCode,503);assert.equal(wrongAuth.body.code,'demo_workspace_incomplete');
+assert.equal(sessionCookieOf(wrongAuth),undefined);loginUserIdOverride=null;
+resetPool();pool[0].user_ids=[];const beforeIncomplete=logins.length;
+assert.equal((await call('POST','demo-login',{persona:'juliana'},'','10.0.0.11')).statusCode,503);
+assert.equal(logins.length,beforeIncomplete,'incomplete workspace must fail before Auth');
 
 // 8. Sessão de conta de workspace só vale com o workspace ativo; JWT válido não basta.
 const session=(token)=>`arandu_session=${encodeURIComponent(encodeSessionValue({access_token:token,refresh_token:'',expires_at:Math.floor(Date.now()/1000)+3600}))}`;

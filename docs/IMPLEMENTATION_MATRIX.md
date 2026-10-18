@@ -1,5 +1,18 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 18/10/2026 — Admissão de visitantes e capacidade verificável
+
+Base `41513ee408f58dff6386eabea4d45f03205aeadd`; branch
+`codex/p0-hosted-canonical-demo-release-20261018`. Corrigidos readiness de pool
+sem identidades completas, omissão do teto de ativos e seleção de pessoa
+incorreta no mesmo slug. Respostas truncadas/sem contagem exata são inconclusivas.
+Ensaio determinístico novo: 2 e 10 sessões SQL independentes, sem dupla entrega;
+10 sessões com teto 4 entregam exatamente 4. Manifesto/38 migrations e recovery
+sintético reutilizados. Evidência e limites:
+`docs/evidence/codex-hosted-demo-activation-2026-10-18.md`. Publicação ainda
+sandbox no SHA da base; preservação hospedada, rollout e cutover não autorizados.
+M3/M4 não promovidos; M2 depende dos quatro gates do HEAD final desta frente.
+
 ## 18/10/2026 — Paridade de artefatos e entrada real da Demo
 
 Base `005676a0ddc10ccabdee9c728f653f8f13de6de8`; branch

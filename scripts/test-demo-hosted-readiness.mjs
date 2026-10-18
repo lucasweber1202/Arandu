@@ -3,6 +3,7 @@ import { cpSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:f
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { pathToFileURL } from 'node:url';
+import { demoWorkspaceFixture } from './fixtures/demo-workspace.mjs';
 
 // A disposable module tree models a future approved assignment. Operational
 // topology is never changed, and all dependency requests remain synthetic.
@@ -20,7 +21,7 @@ try {
   const { DOCUMENT_MIME_TYPES, DOCUMENT_MAX_BYTES } = await import(pathToFileURL(join(dir, 'lib/finance/document-storage.mjs')));
   const env = { ARANDU_ENV: 'demo', SUPABASE_URL: `https://${ref}.supabase.co`, SUPABASE_ANON_KEY: 'synthetic-anon', SUPABASE_SERVICE_ROLE_KEY: 'synthetic-server',
     CRON_SECRET: 'synthetic-cron', ARANDU_DEMO_PASSWORD: 'SyntheticOnlySecret9', VERCEL_GIT_COMMIT_REF: 'main', VERCEL_GIT_COMMIT_SHA: 'a'.repeat(40) };
-  let pool = [{ status: 'ready', baseline_version: BASELINE_VERSION }], count = 0;
+  let pool = [demoWorkspaceFixture()], count = 0, totalOverride;
   const fetchImpl = async (url, options) => {
     count++; assert.equal(options.method, 'GET');
     const u = new URL(url);
@@ -33,9 +34,12 @@ try {
       : { definitions: {}, paths: Object.fromEntries(REQUIRED_RPCS.map(rpc => [`/rpc/${rpc}`, {}])) };
     if (u.pathname.endsWith('/fin_demo_workspaces')) {
       assert.equal(options.headers.apikey, env.SUPABASE_SERVICE_ROLE_KEY);
-      assert.equal(u.searchParams.get('select'), 'status,baseline_version');
-      assert.equal(u.searchParams.get('status'), 'eq.ready');
+      assert.match(u.searchParams.get('select'), /personas/);
+      assert.match(u.searchParams.get('or'), /status.eq.claimed/);
+      assert.match(u.searchParams.get('or'), /expires_at.gt.now,idle_expires_at.gt.now/);
+      assert.equal(options.headers.Prefer, 'count=exact');
       if (typeof pool === 'number') return new Response(null, { status: pool });
+      return new Response(JSON.stringify(pool), { headers: { 'content-range': `*/${totalOverride ?? pool?.length ?? 0}` } });
     }
     return new Response(JSON.stringify(data));
   };
@@ -45,12 +49,15 @@ try {
   env.ARANDU_DEMO_PASSWORD = '';
   assert.equal((await evaluateReadiness({ env, fetchImpl, now: 1001 })).ready, false);
   env.ARANDU_DEMO_PASSWORD = 'SyntheticOnlySecret9';
-  for (pool of [[], null, [{ status: 'ready', baseline_version: 'obsolete' }], 403, 503]) {
+  for (pool of [[], null, [demoWorkspaceFixture(1, { baseline_version: 'obsolete' })], [{ status: 'ready', baseline_version: BASELINE_VERSION }],
+    [demoWorkspaceFixture(), ...Array.from({ length: 25 }, (_, i) => demoWorkspaceFixture(i + 2, { status: 'claimed', expires_at: '2030-01-01T00:00:00Z', idle_expires_at: '2030-01-01T00:00:00Z' }))], 403, 503]) {
     resetReadinessCache();
     const result = await evaluateReadiness({ env, fetchImpl });
     assert.equal(result.ready, false);
     assert.notEqual(result.checks.find(check => check.name === 'demo_workspaces').outcome, 'PASS');
     assert.doesNotMatch(JSON.stringify(result), /synthetic-server|SyntheticOnlySecret9/);
   }
+  pool = [demoWorkspaceFixture()]; totalOverride = 26; resetReadinessCache();
+  assert.equal((await evaluateReadiness({ env, fetchImpl })).ready, false, 'truncated metadata cannot become GO');
   console.log('Demo readiness: approved-target fixture, current pool, unavailable capacity, stale baseline, access failure and secret rotation fail closed; no hosted mutation.');
 } finally { rmSync(dir, { recursive: true, force: true }); }
