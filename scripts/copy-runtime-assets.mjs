@@ -1,11 +1,13 @@
 import { existsSync, copyFileSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { assertPresentationModeIsSafe } from '../lib/presentation-mode.mjs';
 import { ownSiteUrl } from '../lib/public-site-url.mjs';
 import { PUBLIC_PAGES } from './seo-meta.mjs';
 import { assertDemoModeIsSafe, standaloneDemo } from '../lib/demo-mode.mjs';
 
-const dist = join(process.cwd(), 'dist');
+const output = process.argv.slice(2);
+if (output.length && (output.length !== 2 || output[0] !== '--output-dir')) throw new Error('Uso: copy-runtime-assets.mjs [--output-dir diretório]');
+const dist = output.length ? resolve(output[1]) : join(process.cwd(), 'dist');
 if (!existsSync(dist)) throw new Error('Build ausente');
 for (const file of ['favicon.svg', 'manifest.webmanifest', 'financial-og.png', 'financial-icon-32.png', 'financial-icon-180.png', 'financial-icon-192.png', 'financial-icon-512.png', 'site.webmanifest']) copyFileSync(file, join(dist, file));
 // A demonstração interativa vive em /demo e carrega o conjunto fictício dentro

@@ -1,5 +1,16 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 18/10/2026 — Paridade de artefatos e entrada real da Demo
+
+Base `005676a0ddc10ccabdee9c728f653f8f13de6de8`; branch
+`codex/p0-canonical-hosted-demo-20261018`. A publicação pública observada nessa
+base ainda declara sandbox / `synthetic-fixtures`, com readiness 503. Novas
+regressões exigem segredo de personas, RPCs de workspace e capacidade no
+baseline esperado; build canônico compara rotas, entrypoints e hashes JS/CSS
+Demo × Production. Evidências e limites:
+`docs/evidence/codex-canonical-hosted-demo-2026-10-18.md`. Não promove M3/M4:
+destino dedicado, autorização, recovery gerenciado e cutover continuam bloqueados.
+
 
 ## 18/10/2026 — Readiness sem liveness como falso GO e custódia de recovery
 
