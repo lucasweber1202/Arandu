@@ -195,6 +195,7 @@ Sem conhecimento tácito: qualquer pessoa com a máquina e o repositório segue 
 6. Ensaio completo, consumindo **um** workspace: `ARANDU_DEMO_ENTRY_E2E=1 npx playwright test --config playwright.demo.config.js tests/e2e/demo-entry-lifecycle.spec.js --project=demo-desktop`. Verde = o roteiro inteiro gravou e releu no servidor. Reponha o workspace consumido (passo 4, `--count=1`).
 7. Reinício controlado **sem apagar dados**: `docker restart $(docker ps -q --filter name=arandu-pilot-local)` e `bash scripts/demo/local.sh app` (reinicia só o app); repita o passo 5 e `npm run demo:local:workspaces -- list`. **`npm run demo:down` apaga tudo** (banco, pool e senha): só use para recomeçar do passo 3.
 8. T-15 min: **não** rode mais testes de entrada (consomem o limite de entradas por rede, 12/10 min). Abra as janelas anônimas que vai usar.
+9. **Orçamento de visitantes por rede:** o servidor aceita **4 workspaces novos por hora por origem** (`auth-demo-claim`). Cada janela anônima nova que escolhe persona é um workspace novo; trocar de persona na mesma janela não conta. Na hora anterior à apresentação, não use mais que 2 janelas novas em ensaios e deixe ao menos 2 para a sessão. Público na mesma rede (Wi-Fi da sala) divide o mesmo orçamento.
 
 ## Contingências da apresentação ao vivo (complemento)
 
@@ -212,7 +213,7 @@ Cada linha aponta o que já existe no produto ou no repositório. Nunca: limpar 
 | Falha de Storage / documento inacessível | Download não abre ou aviso de arquivo indisponível | Siga sem o anexo: a trilha mostra quem enviou e quando; o arquivo só sai por link temporário |
 | Permissão revogada no meio | "Você não pode mais decidir este pedido… Nada foi registrado" / "Esta tarefa não está mais disponível para você. Nada mudou." | Troque para a persona com o papel certo ("Trocar persona") |
 | Sessão expirada | "Sua sessão expirou e nada foi registrado" | "Entrar em outra aba", volte e repita: o formulário continua preenchido |
-| 429 de entradas | "Muitas entradas em pouco tempo… Tente de novo em N minutos" | Espere o tempo informado na mesma persona; siga narrando a tela aberta |
+| 429 de entradas | "Muitas entradas em pouco tempo… Tente de novo em N minutos" | Espere o tempo informado na mesma persona; siga narrando a tela aberta. Se a janela nova não entra (limite de **4 workspaces novos por hora** na rede), continue na janela já aberta com "Trocar persona" — ela não consome workspace novo |
 | Navegador travado | Página sem resposta | Nova janela anônima; a sessão de visitante é por janela (cookie), nada fica no navegador |
 | Celular incompatível | Navegador antigo sem módulos JS | Use o notebook; o produto exige navegador atual (Chrome, Safari, Firefox, Edge recentes) |
 | Fonte/asset não carregou | Página sem estilo ou sem ação | Recarregue; persistindo, `hosted-parity` mostra o asset com falha. Roteiro B |

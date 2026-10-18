@@ -34,7 +34,21 @@ Ganho, sem números inventados: D1 remove uma leitura errada exatamente na tela 
 
 ## 8–9. Testes e matriz de navegadores
 
-Preenchido com a execução final antes do push (ver seção "Validação" da PR). Firefox desktop instalado localmente nesta rodada; **WebKit e iPhone: NOT_RUN localmente** (navegador não instalado nesta estação) — cobertos pelo job `validate` do CI.
+| Execução (árvore desta PR) | Navegadores | Resultado | Categoria |
+| --- | --- | --- | --- |
+| `npm run check:all`, `check:design`, `check:demo-parity`, `check:financial-surface`, `check:financial-navigation`, `build`, `git diff --check` | — | todos 0 | LOCAL_VALIDATED |
+| `npm run test:e2e` (lista do package.json) | Chromium desktop, Firefox desktop, Pixel 7 | **707 passed, 16 skipped** | LOCAL_VALIDATED |
+| `npm run test:e2e:presentation` (build de apresentação) | Chromium desktop, Pixel 7 | **125 passed, 19 skipped** | LOCAL_VALIDATED |
+| `demo-entry-lifecycle.spec.js` (backend real) | Chromium desktop | **1 passed** | LOCAL_VALIDATED |
+| `demo-baseline.spec.js` + `demo-workspaces.spec.js` (backend real) | demo-desktop, demo-mobile | **12 passed, 3 skipped** | LOCAL_VALIDATED |
+| `demo-entry-journeys.spec.js` (dois visitantes, backend real) | demo-desktop | ver nota abaixo | — |
+| WebKit desktop, iPhone 15 | — | **NOT_RUN localmente** (não instalados nesta estação) | coberto pelo `validate` do CI |
+
+Notas de execução, sem esconder nada:
+- Uma primeira rodada de `npx playwright test` **sem a lista** do `test:e2e` incluiu as specs do sandbox legado, que só rodam com `playwright.presentation.config.js` e o build de apresentação: 78 falhas por `#view` inexistente no build canônico. Não é regressão; as mesmas specs passam no `test:e2e:presentation` acima.
+- Uma rodada do backend real foi **invalidada** porque reconstruí `dist/` enquanto o app local (que serve `dist/` do disco) atendia os testes: duas falhas em `demo-mobile` que não se repetiram na rodada limpa.
+- `demo-entry-journeys` esperou o limite legítimo `auth-demo-claim` (**4 workspaces novos por hora por origem**): na mesma hora, esta estação já tinha reivindicado 4 (lifecycle, rodada invalidada, `demo-workspaces`, primeiro visitante). O teste espera o `Retry-After` em vez de contornar; o tempo dele (30 min) acabou antes da janela. Reexecução isolada: ver a PR.
+- O teste do veredito hospedado foi colocado dentro de `demo-persona-entry.spec.js` porque a lista do `test:e2e` (package.json, fora do meu escopo) não pegaria um arquivo novo.
 
 ## 10. Paridade
 
@@ -88,7 +102,7 @@ Heurística em 13 telas reais (entrada, Painel, Solicitações, Aprovações, Co
 
 Continuam válidos H-9 (P0 cutover do `arandu-demo` para a Demo canônica), H-10 (redirect de `/demo`), H-11, H-12 (reabastecimento automático do pool) e H-13, de `docs/evidence/claude-canonical-demo-parity-2026-10-18.md`. Nenhum defeito de backend novo foi reproduzido nesta rodada: a jornada completa passou sem 5xx e sem contorno.
 
-Medição operacional (não é defeito): provisionar o pool local levou **627–631 s por par de workspaces** (dois seeds em paralelo; 4 workspaces ≈ 21 min). O runbook passou a dizer isso em vez de "≈5 min por workspace".
+Medições operacionais (não são defeitos): o servidor limita a **4 workspaces novos por hora por origem** — o roteiro agora orça visitantes por rede (item 9 da estação e linha "429 de entradas"). E provisionar o pool local levou **627–631 s por par de workspaces** (dois seeds em paralelo; 4 workspaces ≈ 21 min). O runbook passou a dizer isso em vez de "≈5 min por workspace".
 
 ## 23–25. Riscos, rollback e estado
 
