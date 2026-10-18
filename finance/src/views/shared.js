@@ -693,8 +693,10 @@ export function termsSummary(product, terms) {
   return keys.filter((key) => specs[key]).map((key) => {
     const spec = specs[key];
     const unit = (spec.label.match(/\(([^)]*)\)$/) || [])[1] || '';
-    const suffix = { meses: ' meses', dias: ' dias', '% a.m.': ' a.m.', '% a.a.': ' a.a.' }[unit] || '';
     const raw = fieldValue(spec, terms?.[key]);
+    // Singular quando o valor é 1 ("1 dia", não "1 dias").
+    const one = Number(terms?.[key]) === 1;
+    const suffix = { meses: one ? ' mês' : ' meses', dias: one ? ' dia' : ' dias', '% a.m.': ' a.m.', '% a.a.': ' a.a.' }[unit] || '';
     return `${spec.label.replace(/\s*\(.*\)$/, '')}: ${raw === null ? 'não informado' : `${raw}${suffix}`}`;
   }).join(' · ');
 }
