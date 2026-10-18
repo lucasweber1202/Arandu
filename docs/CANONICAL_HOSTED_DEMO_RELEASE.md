@@ -11,11 +11,26 @@ hospedadas. A publicação ilustrativa permanece até a substituta estar validad
 | A — converter Pilot | Preservar primeiro schema/dados/roles, Auth, Storage binário e configuração. Restore do mesmo export e custódia durável são pré-condições; contagens zero de Auth/Storage não classificam os dados financeiros. Rollback inclui aplicação, banco e serviços gerenciados | Reutiliza projeto existente; export/custódia/restore e upgrade integral são o caminho crítico. Nenhum prazo ou custo de backup gerenciado foi comprovado | Autorizar inventário/classificação e depois preservação com origem, destino privado, custódio, escopo e janela definidos; conversão exige aprovação separada |
 | B — Demo nova vazia | Evita alterar dados do Pilot; facilita instalação limpa e rollback por manter a publicação anterior. Não usar o projeto histórico de Production | Menor risco técnico para atingir 29/10 se houver projeto disponível. Organização atual observada no plano Free, com dois projetos ativos; preço/quota de projeto adicional não cotados. Pode exigir orçamento e projeto transitório adicional | Owner escolhe organização, aceita cotação e aprova criação/mudança do plano de consolidação; não estabelecer terceiro ambiente permanente |
 
-Recomendação técnica: B reduz o risco de dados existentes e de upgrade, **se**
-quota, custo e mudança de plano forem aprovados rapidamente. A continua o plano
-normativo vigente enquanto não houver essa decisão; não converter Pilot por
-inferência. Nenhuma alternativa está operacionalmente liberada. Production
+Decisão do owner nesta missão: **preparar A, sem cotar ou criar projeto novo**.
+B reduziria o risco técnico de tocar dados existentes, mas não foi escolhida.
+Preparar A não autoriza exportação, alteração ou conversão. Production
 permanece isolada, sem mudança de ambiente, credenciais ou datasource.
+
+Inventário read-only de 18/10: 107 tabelas contadas em public/Auth/Storage/history;
+organizações, RFQs, propostas, usuários Auth e objetos Storage = 0; bucket = 1.
+Há registros operacionais e legados não vazios (incluindo coleções e catálogo).
+Nenhum conteúdo foi extraído; ausência de PII e descarte não foram atestados.
+A fronteira destrutiva permanece bloqueada, inclusive com esses totais zero.
+
+Ficha da próxima janela (preencher em custódia privada, não no Git): origem
+Pilot identificada e marker observado; responsável pela classificação; destino
+durável privado do ciphertext; identidade age sob custódio separado; retenção;
+escopo de schema/dados/roles/Auth/Storage/configuração; destino descartável do
+restore; janela e aprovação específica da preservação. Verificar com
+`npm run recovery:doctor` e `npm run pilot:backup:preflight` usando configuração
+privada autorizada. Este workspace efêmero não é destino de custódia. Só depois
+de export cifrado, hash/manifesto, restore do mesmo export e reconciliação pode
+ser solicitada a aprovação separada da conversão e do rollout.
 
 ## Configuração proposta (nomes, nunca valores secretos)
 
