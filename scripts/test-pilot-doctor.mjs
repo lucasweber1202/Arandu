@@ -35,7 +35,11 @@ function fakeSupabase(overrides = {}) {
     const u = new URL(url);
     const key = init.headers?.apikey;
     if (u.hostname === 'piloto.example.com' || u.hostname === 'localhost') {
-      if (u.pathname === '/api/health') return reply({ ok: true, status: 'alive', release: state.release === undefined ? releaseIdentity({ ARANDU_ENV: state.environment || 'pilot', VERCEL_GIT_COMMIT_REF: 'main', VERCEL_GIT_COMMIT_SHA: 'a'.repeat(40) }) : state.release });
+      if (u.pathname === '/api/health') {
+        const ready = u.searchParams.get('probe') === 'ready';
+        return reply({ ok: !ready || !state.notReady, status: ready ? state.notReady ? 'not_ready' : 'ready' : 'alive',
+          release: ready && state.readyRelease !== undefined ? state.readyRelease : state.release === undefined ? releaseIdentity({ ARANDU_ENV: state.environment || 'pilot', VERCEL_GIT_COMMIT_REF: 'main', VERCEL_GIT_COMMIT_SHA: 'a'.repeat(40) }) : state.release }, ready ? state.readyStatus || 200 : 200);
+      }
       if (u.pathname === '/api/finance/products') return reply(state.productsStatus === 200 ? { ok: true } : { ok: false, code: 'rate_limit_unavailable' }, state.productsStatus, { 'x-request-id': 'b1c2d3e4-0000-4000-8000-000000000001' });
       if (u.pathname === '/api/forms') return state.legacyOpen ? reply({ ok: false, error: 'Método não permitido.' }, 405) : reply({ ok: false, code: 'route_not_found' }, 404);
       if (u.pathname === '/api/jobs/renewals') return reply({ ok: false, code: state.renewalsStatus === 401 ? 'cron_unauthorized' : 'x' }, state.renewalsStatus);
@@ -249,3 +253,13 @@ assert.equal((await doctor(baseEnv, { release: localRelease })).result, 'NO-GO',
 assert.equal(levelOf(await doctor({ ...baseEnv, ARANDU_SITE_URL: 'https://sua-url-da-vercel' }), 'ARANDU_SITE_URL'), 'ERROR', 'placeholder sem TLD');
 assert.equal(levelOf(await doctor({ ...baseEnv, ARANDU_ENV: 'production', ARANDU_SITE_URL: 'https://localhost:4443' }), 'ARANDU_SITE_URL'), 'ERROR', 'localhost em produção');
 assert.equal(levelOf(await doctor({ ...baseEnv, ARANDU_SITE_URL: 'https://localhost:4443' }, { release: localRelease }), 'ARANDU_SITE_URL'), 'OK', 'ensaio local continua aceito');
+
+// Liveness 200 and healthy direct probes cannot mask a broken deployed app.
+for (const change of [{ notReady: true }, { readyStatus: 503 }, { readyStatus: 403 }, { readyRelease: null },
+  { readyRelease: releaseIdentity({ ARANDU_ENV: 'pilot', VERCEL_GIT_COMMIT_REF: 'main', VERCEL_GIT_COMMIT_SHA: 'b'.repeat(40) }) }]) {
+  const report = await doctor(baseEnv, change);
+  assert.equal(report.result, 'NO-GO');
+  const c = report.checks.find(c => c.name === 'readiness do release publicado');
+  assert.equal(c.outcome, change.readyStatus === 403 ? 'ACCESS_BLOCKED' : 'FAIL');
+  assert.ok(c.code && c.next_action);
+}

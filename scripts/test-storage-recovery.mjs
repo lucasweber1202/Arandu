@@ -184,6 +184,14 @@ try {
   fs.chmodSync(backup, 0o755);
   await codeAsync(restoreStorage({ env: restoreEnv, fetchImpl: neverFetch }), 'STORAGE_BACKUP_INVALID');
   fs.chmodSync(backup, 0o700);
+  // A private hardlink still aliases mutable custody outside the export.
+  const alias = path.join(home, 'artifact-hardlink');
+  fs.linkSync(path.join(backup, objectFile(1)), alias);
+  await codeAsync(restoreStorage({ env: restoreEnv, fetchImpl: neverFetch }), 'STORAGE_ARTIFACT_INVALID');
+  fs.unlinkSync(alias);
+  fs.linkSync(identity, alias);
+  await codeAsync(restoreStorage({ env: restoreEnv, fetchImpl: neverFetch }), 'STORAGE_IDENTITY_INVALID');
+  fs.unlinkSync(alias);
   // Artefato ausente e artefato adulterado: recusa antes de qualquer descriptografia.
   fs.renameSync(path.join(backup, objectFile(2)), path.join(home, 'moved'));
   await codeAsync(restoreStorage({ env: restoreEnv, fetchImpl: neverFetch }), 'STORAGE_ARTIFACT_MISSING');
@@ -330,3 +338,39 @@ const exposeMember = async (_url, init) => {
 };
 assert.equal((await permissionProbe(exposeMember, 'http://127.0.0.1', 's'.repeat(64), index, { members: [member] })).result, 'EXPOSED');
 console.log('Storage recovery: inventário com referências do produto, índice cifrado, manifesto sem nomes, reconciliação (metadado sem binário falha), registro preso ao export e guardas da CLI aprovados.');
+
+// Adversarial transport: enforce actual bytes, cancel overflow/error bodies,
+// never echo upstream messages, reject truncation and redirects.
+{
+  const { downloadStorageObject } = await import('./storage-recovery.mjs');
+  const entry = { bucket: 'fin-documents', name: 'synthetic/object', size: 3 };
+  const get = response => downloadStorageObject(async (_url, init) => {
+    assert.equal(init.redirect, 'error'); return response;
+  }, 'http://127.0.0.1:1', 'synthetic-key', entry);
+  assert.deepEqual((await get(new Response(Buffer.from('abc')))).bytes, Buffer.from('abc'));
+  await codeAsync(get(new Response('ab')), 'STORAGE_OBJECT_SIZE_MISMATCH');
+  let cancelled = false;
+  const overflow = new Response(new ReadableStream({
+    pull(controller) { controller.enqueue(new Uint8Array(4)); },
+    cancel() { cancelled = true; }
+  }));
+  await codeAsync(get(overflow), 'STORAGE_OBJECT_UNAVAILABLE'); assert.equal(cancelled, true);
+  cancelled = false;
+  const denied = new Response(new ReadableStream({ cancel() { cancelled = true; } }), { status: 403 });
+  assert.equal((await get(denied)).status, 403); assert.equal(cancelled, true);
+  cancelled = false;
+  const declaredOversized = new Response(new ReadableStream({ cancel() { cancelled = true; } }), { headers: { 'content-length': '999999999999' } });
+  await codeAsync(get(declaredOversized), 'STORAGE_OBJECT_UNAVAILABLE'); assert.equal(cancelled, true);
+  const broken = new Response(new ReadableStream({ start(controller) { controller.error(new Error('SECRET upstream payload')); } }));
+  await assert.rejects(get(broken), error => error.code === 'STORAGE_OBJECT_UNAVAILABLE' && !error.message.includes('SECRET'));
+}
+for (const badName of ['a/./b', 'a/../b', 'a//b', 'a\\b', 'a/\u0000b']) {
+  const invalid = clone(inventory); invalid.objects[0].name = badName;
+  code(() => parseInventory(JSON.stringify(invalid)), 'STORAGE_INVENTORY_INVALID');
+  const badIndex = clone(index); badIndex.objects[0].name = badName;
+  code(() => parseIndex(JSON.stringify(badIndex), { ...manifest, index_sha256: digest(badIndex) }), 'STORAGE_INDEX_INVALID');
+}
+for (const mutate of [i => i.objects.push(clone(i.objects[0])), i => i.buckets.push(clone(i.buckets[0])), i => { i.objects[0].bucket = 'unknown'; }]) {
+  const invalid = clone(inventory); mutate(invalid);
+  code(() => parseInventory(JSON.stringify(invalid)), 'STORAGE_INVENTORY_INVALID');
+}

@@ -18,6 +18,7 @@ import { spawnSync } from 'node:child_process';
 import { RECOVERY_REFS, sourceConnection } from '../lib/pilot-backup-preflight.mjs';
 import { loopbackTarget } from '../lib/recovery-reconciliation.mjs';
 import { digestFile } from '../lib/recovery-transfer.mjs';
+import { readBoundedResponse } from '../lib/bounded-response.mjs';
 import {
   INVENTORY_SQL, MAX_OBJECT_BYTES, STORAGE_DIR, STORAGE_INDEX, STORAGE_MANIFEST, STORAGE_FORMAT_VERSION,
   StorageRecoveryError, storageFail, parseInventory, assessInventory, indexEntry, objectFile, parseIndex,
@@ -26,6 +27,8 @@ import {
 
 const RECIPIENT = /^age1[0-9a-z]{58}$/;
 const LOOPBACK = ['127.0.0.1', 'localhost', '::1'];
+const owned = stat => typeof process.getuid !== 'function' || stat.uid === process.getuid();
+const privateFile = stat => stat && stat.isFile() && !stat.isSymbolicLink() && !(stat.mode & 0o077) && stat.nlink === 1 && owned(stat);
 const inside = (parent, child) => { const r = path.relative(parent, child); return r === '' || (!r.startsWith('..') && !path.isAbsolute(r)); };
 const encodeName = (name) => name.split('/').map(encodeURIComponent).join('/');
 
@@ -33,8 +36,9 @@ const encodeName = (name) => name.split('/').map(encodeURIComponent).join('/');
 function privateDirectory(value, root, code) {
   if (!value || !path.isAbsolute(value)) storageFail(code, 'Diretório privado absoluto obrigatório.');
   const stat = fs.lstatSync(value, { throwIfNoEntry: false });
-  if (!stat || stat.isSymbolicLink() || !stat.isDirectory() || (stat.mode & 0o077) !== 0) storageFail(code, 'Diretório precisa existir, ser real e ter permissão 0700.');
+  if (!stat || stat.isSymbolicLink() || !stat.isDirectory() || (stat.mode & 0o077) !== 0 || !owned(stat)) storageFail(code, 'Diretório precisa existir, pertencer ao operador, ser real e ter permissão 0700.');
   const real = fs.realpathSync(value);
+  if (real !== path.resolve(value)) storageFail(code, 'Diretório não pode atravessar symlink.');
   if (inside(fs.realpathSync(root), real)) storageFail(code, 'Diretório deve ficar fora do repositório.');
   return real;
 }
@@ -71,17 +75,26 @@ function psqlJson(connectionEnv, env, code) {
 }
 
 async function http(fetchImpl, url, init, timeout = 60000) {
-  try { return await fetchImpl(url, { ...init, signal: AbortSignal.timeout(timeout) }); }
+  try { return await fetchImpl(url, { ...init, redirect: 'error', signal: AbortSignal.timeout(timeout) }); }
   catch { return null; }
 }
 
-async function download(fetchImpl, base, token, entry) {
+export async function downloadStorageObject(fetchImpl, base, token, entry) {
+  if (!Number.isSafeInteger(entry.size) || entry.size < 0 || entry.size > MAX_OBJECT_BYTES) storageFail('STORAGE_OBJECT_SIZE_MISMATCH', 'Tamanho de objeto fora do limite de recuperação.');
   const response = await http(fetchImpl, `${base}/object/authenticated/${entry.bucket}/${encodeName(entry.name)}`,
     { headers: { apikey: token, Authorization: `Bearer ${token}` } });
   if (!response) return { status: 0 };
-  if (response.status !== 200) { await response.arrayBuffer().catch(() => {}); return { status: response.status }; }
-  const bytes = Buffer.from(await response.arrayBuffer());
-  return { status: 200, bytes };
+  if (response.status !== 200) { await response.body?.cancel().catch(() => {}); return { status: response.status }; }
+  try {
+    // Enforce the inventory size while streaming, not after allocating an
+    // unbounded response. Content-Length alone is not an integrity guarantee.
+    const bytes = await readBoundedResponse(response, entry.size);
+    if (bytes.length !== entry.size) storageFail('STORAGE_OBJECT_SIZE_MISMATCH', 'Binário incompleto; tamanho diferente do inventário.');
+    return { status: 200, bytes };
+  } catch (error) {
+    if (error instanceof StorageRecoveryError) throw error;
+    storageFail('STORAGE_OBJECT_UNAVAILABLE', 'Leitura do binário excedeu limite, falhou ou não terminou; detalhes omitidos.');
+  }
 }
 
 /** JWT HS256 para o Storage descartável do destino (segredo gerado pelo próprio ensaio). */
@@ -131,19 +144,22 @@ export async function exportStorage({ env = process.env, root = process.cwd(), f
     const objects = [];
     for (const [i, object] of inventory.objects.entries()) {
       const seq = i + 1;
-      const fetched = await download(fetchImpl, endpoint.base, key, object);
+      const fetched = await downloadStorageObject(fetchImpl, endpoint.base, key, object);
       if (fetched.status !== 200) storageFail('STORAGE_OBJECT_UNAVAILABLE', `Objeto ${seq}: binário indisponível na origem (HTTP ${fetched.status}).`);
       const entry = indexEntry({ seq, object, bytes: fetched.bytes, reference: references.get(`${object.bucket}\u0000${object.name}`) });
       const cipher = age(['--encrypt', '--recipient', env.ARANDU_STORAGE_RECIPIENT], fetched.bytes);
       if (!cipher) storageFail('STORAGE_ENCRYPTION_FAILED', `Objeto ${seq}: criptografia falhou.`);
-      objects.push({ entry, cipher });
+      // Flush one object at a time: memory is bounded by one object, not the
+      // sum of all ciphertexts in the export. Completion manifest stays last.
+      write(entry.file, cipher);
+      objects.push(entry);
     }
-    const index = { format_version: STORAGE_FORMAT_VERSION, buckets: inventory.buckets, objects: objects.map((o) => o.entry) };
+    const index = { format_version: STORAGE_FORMAT_VERSION, buckets: inventory.buckets, objects };
     const indexCipher = age(['--encrypt', '--recipient', env.ARANDU_STORAGE_RECIPIENT], Buffer.from(JSON.stringify(index)));
     if (!indexCipher) storageFail('STORAGE_ENCRYPTION_FAILED', 'Criptografia do índice falhou.');
     write(STORAGE_INDEX, indexCipher);
-    for (const { entry, cipher } of objects) write(entry.file, cipher);
-    const manifest = storageManifest({ source: projectRef || 'local-synthetic', startedAt, inventory, assessment, index, files });
+    const orderedFiles = [files.at(-1), ...files.slice(0, -1)];
+    const manifest = storageManifest({ source: projectRef || 'local-synthetic', startedAt, inventory, assessment, index, files: orderedFiles });
     fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', { mode: 0o600 });
     return { directory, manifest };
   } catch (error) {
@@ -191,7 +207,7 @@ export async function storageEvidence(databaseExport, databaseManifest) {
 async function openExport(backup) {
   const manifestFile = path.join(backup, STORAGE_MANIFEST);
   const manifestStat = fs.lstatSync(manifestFile, { throwIfNoEntry: false });
-  if (!manifestStat || manifestStat.isSymbolicLink() || !manifestStat.isFile() || (manifestStat.mode & 0o077) !== 0) {
+  if (!privateFile(manifestStat)) {
     storageFail('STORAGE_MANIFEST_INVALID', 'Manifesto do Storage precisa ser arquivo privado regular.');
   }
   let manifest;
@@ -199,15 +215,14 @@ async function openExport(backup) {
   catch { storageFail('STORAGE_MANIFEST_INVALID', 'Manifesto do Storage ausente ou ilegível.'); }
   checkManifest(manifest);
   const binaryDirectory = fs.lstatSync(path.join(backup, STORAGE_DIR), { throwIfNoEntry: false });
-  if (manifest.object_count > 0 && (!binaryDirectory || binaryDirectory.isSymbolicLink() || !binaryDirectory.isDirectory() || (binaryDirectory.mode & 0o077) !== 0)) {
+  if (manifest.object_count > 0 && (!binaryDirectory || binaryDirectory.isSymbolicLink() || !binaryDirectory.isDirectory() || (binaryDirectory.mode & 0o077) !== 0 || !owned(binaryDirectory))) {
     storageFail('STORAGE_ARTIFACT_INVALID', 'Diretório de binários precisa ser privado e regular.');
   }
   for (const entry of manifest.files) {
     const file = path.join(backup, entry.name);
     const stat = fs.lstatSync(file, { throwIfNoEntry: false });
     if (!stat) storageFail('STORAGE_ARTIFACT_MISSING', 'Artefato do Storage ausente; nada foi descriptografado.');
-    if (stat.isSymbolicLink() || !stat.isFile()) storageFail('STORAGE_ARTIFACT_INVALID', 'Artefato do Storage precisa ser arquivo regular.');
-    if ((stat.mode & 0o077) !== 0) storageFail('STORAGE_ARTIFACT_INVALID', 'Artefato do Storage precisa ter permissão privada.');
+    if (!privateFile(stat)) storageFail('STORAGE_ARTIFACT_INVALID', 'Artefato do Storage precisa ser privado, regular e pertencer ao operador, sem hardlink.');
     const actual = await digestFile(file);
     if (actual.bytes !== entry.bytes || actual.sha256 !== entry.sha256) storageFail('STORAGE_HASH_MISMATCH', 'Hash ou tamanho divergente do manifesto; nada foi descriptografado.');
   }
@@ -234,7 +249,7 @@ function targetContext({ env, root }) {
   const backup = privateDirectory(env.ARANDU_STORAGE_BACKUP, root, 'STORAGE_BACKUP_INVALID');
   const identity = env.ARANDU_STORAGE_IDENTITY;
   const idStat = identity && path.isAbsolute(identity) ? fs.lstatSync(identity, { throwIfNoEntry: false }) : null;
-  if (!idStat || idStat.isSymbolicLink() || !idStat.isFile() || (idStat.mode & 0o077) !== 0) storageFail('STORAGE_IDENTITY_INVALID', 'Identidade age deve ser arquivo regular 0600.');
+  if (!privateFile(idStat)) storageFail('STORAGE_IDENTITY_INVALID', 'Identidade age deve ser arquivo privado regular do operador, sem hardlink.');
   if (inside(fs.realpathSync(root), fs.realpathSync(identity)) || inside(backup, fs.realpathSync(identity))) storageFail('STORAGE_IDENTITY_INVALID', 'Identidade age fora do repositório e separada do ciphertext.');
   let database;
   try { database = loopbackTarget(env.ARANDU_STORAGE_TARGET_DATABASE_URL); } catch { storageFail('STORAGE_TARGET_NOT_ISOLATED', 'Banco de destino só em loopback descartável.'); }
@@ -265,7 +280,7 @@ export async function permissionProbe(fetchImpl, base, secret, index, target) {
   const probe = async (name, url, token) => {
     const response = await http(fetchImpl, url, { headers: token ? { apikey: token, Authorization: `Bearer ${token}` } : {} });
     const status = response?.status ?? 0;
-    await response?.arrayBuffer().catch(() => {});
+    await response?.body?.cancel().catch(() => {});
     checks.push({ name, status, denied: STORAGE_DENIED_STATUSES.includes(status) });
   };
   const at = (o, mode = 'authenticated') => `${base}/object/${mode}/${o.bucket}/${encodeName(o.name)}`;
@@ -307,7 +322,7 @@ async function reconcileTarget({ context, index, env, fetchImpl }) {
   const target = targetInventory(context, env);
   const readbacks = new Map();
   for (const entry of index.objects) {
-    const read = await download(fetchImpl, context.endpoint.base, service, entry);
+    const read = await downloadStorageObject(fetchImpl, context.endpoint.base, service, entry);
     readbacks.set(entry.seq, read.status === 200 ? { status: 200, bytes: read.bytes.length, sha256: sha256(read.bytes) } : { status: read.status });
   }
   const comparison = reconcileStorage({ index, target, readbacks });
@@ -350,7 +365,7 @@ export async function restoreStorage({ env = process.env, root = process.cwd(), 
       headers: { apikey: service, Authorization: `Bearer ${service}`, 'x-upsert': 'true', 'Content-Type': entry.mimetype || 'application/octet-stream' }
     });
     const status = response?.status ?? 0;
-    const body = await response?.text().catch(() => '') ?? '';
+    const body = response ? await readBoundedResponse(response, 16384).then(b => b.toString('utf8')).catch(() => '') : '';
     // Só o código curto do Storage (ex.: InvalidJWT), nunca a mensagem, que pode citar o objeto.
     let reason = '';
     try { const error = JSON.parse(body).error; if (/^[A-Za-z ]{1,40}$/.test(error || '')) reason = `, ${error}`; } catch { /* sem código */ }

@@ -1,13 +1,18 @@
 import process from 'node:process';
+import { assessPublicHealth } from '../lib/live-release-health.mjs';
+import { readBoundedResponse } from '../lib/bounded-response.mjs';
 
 const DEFAULT_BASE_URL = process.env.ARANDU_SITE_URL || 'http://localhost:4173';
 const baseUrl = String(process.argv[2] || DEFAULT_BASE_URL).replace(/\/$/, '');
 const timeoutMs = Number(process.env.ARANDU_LIVE_CHECK_TIMEOUT_MS || 10000);
+const expectedCommit = process.argv.find(arg => arg.startsWith('--expected-commit='))?.slice('--expected-commit='.length) || process.env.VERCEL_GIT_COMMIT_SHA;
+const expectedEnvironment = process.env.ARANDU_ENV || 'production';
 
 // Produto financeiro: health, site público, portal e sessão. As rotas da
 // antiga vertical de arte precisam responder 404 (superfície aposentada).
 const checks = [
   { path: '/api/health', type: 'json', required: true, name: 'Health público' },
+  { path: '/api/health?probe=ready', type: 'json', required: true, name: 'Readiness publicada' },
   { path: '/', type: 'html', required: true, name: 'Site público' },
   { path: '/finance/dashboard.html', type: 'html', required: true, name: 'Portal financeiro' },
   { path: '/api/finance/products', type: 'json', required: true, name: 'Catálogo de produtos financeiros' },
@@ -26,7 +31,7 @@ function withTimeout() {
 }
 
 function safeMessage(error) {
-  return String(error?.message || error || 'Erro desconhecido').slice(0, 240);
+  return ['AbortError', 'TimeoutError'].includes(error?.name) ? 'TIMEOUT' : 'DEPENDENCY_UNAVAILABLE';
 }
 
 async function request(path) {
@@ -36,9 +41,9 @@ async function request(path) {
     const response = await fetch(`${baseUrl}${path}`, {
       method: 'GET',
       headers: { Accept: path.endsWith('.html') ? 'text/html' : 'application/json' },
-      signal: controller.signal
+      signal: controller.signal, redirect: 'manual'
     });
-    const text = await response.text();
+    const text = response.body ? (await readBoundedResponse(response, 4 * 1024 * 1024)).toString('utf8') : '';
     let json = null;
     if ((response.headers.get('content-type') || '').includes('application/json')) {
       try { json = text ? JSON.parse(text) : null; } catch {}
@@ -49,12 +54,9 @@ async function request(path) {
   }
 }
 
-function evaluateHealth(payload) {
-  if (!payload?.ok) failures.push('/api/health não retornou ok=true.');
-  if (payload?.status !== 'alive') failures.push('/api/health não retornou status=alive.');
-  if (/SUPABASE|missing|routes|environment|commit/i.test(JSON.stringify(payload || {}))) {
-    failures.push('/api/health expõe detalhes internos.');
-  }
+function evaluateHealth(payload, readiness) {
+  const check = assessPublicHealth(payload, { environment: expectedEnvironment, commit: expectedCommit, readiness });
+  if (check.outcome !== 'PASS') failures.push(check.code);
 }
 
 function evaluateApi(check, result) {
@@ -63,11 +65,11 @@ function evaluateApi(check, result) {
   if (check.type === 'json' && result.ok && !result.json) failures.push(`${check.name} não retornou JSON válido.`);
   if (result.json?.mode === 'demo') warnings.push(`${check.name} está respondendo em modo demo.`);
   if (result.json?.mode === 'pre-production') warnings.push(`${check.name} está marcado como pré-produção.`);
-  if (check.path.startsWith('/api/health')) evaluateHealth(result.json);
+  if (check.path.startsWith('/api/health')) evaluateHealth(result.json, check.path.includes('probe=ready'));
 }
 
 console.log(`Arandu Live Production Check`);
-console.log(`Base URL: ${baseUrl}`);
+console.log('Alvo configurado; URL omitida. SHA esperado completo é obrigatório.');
 console.log('');
 
 for (const check of checks) {
