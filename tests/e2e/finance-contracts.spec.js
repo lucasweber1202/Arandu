@@ -949,3 +949,22 @@ test('tarefas: concluir na segunda página relê o filtro e a tarefa sai das abe
   await expect(page.locator('.task-toolbar [role=status]')).toHaveText('50 tarefas carregadas · há mais neste filtro');
   expect(server.tasks.filter((t) => t.status === 'done')).toHaveLength(1);
 });
+
+test('tarefas abertas agrupadas por urgência: vencidas, próximos 7 dias, mais adiante e sem prazo', async ({ page }) => {
+  const day = (offset) => { const d = new Date(); d.setDate(d.getDate() + offset); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
+  await mockSession(page);
+  await taskServer(page, { initial: [
+    { ...OPEN_TASK, id: '00000000-0000-4000-8000-0000000000f1', title: 'Atrasada', due_on: day(-3) },
+    { ...OPEN_TASK, id: '00000000-0000-4000-8000-0000000000f2', title: 'Desta semana', due_on: day(2) },
+    { ...OPEN_TASK, id: '00000000-0000-4000-8000-0000000000f3', title: 'Do mês que vem', due_on: day(40) },
+    { ...OPEN_TASK, id: '00000000-0000-4000-8000-0000000000f4', title: 'Sem data', due_on: null }
+  ] });
+  await page.goto('/finance/tasks.html');
+  const groups = page.locator('.task-group');
+  await expect(groups.locator('.notice-group-title')).toHaveText(['Vencidas · 1', 'Próximos 7 dias · 1', 'Mais adiante · 1', 'Sem prazo · 1']);
+  await expect(page.getByRole('region', { name: 'Vencidas' }).locator('.task-item')).toHaveText([/Atrasada/]);
+  await expect(page.getByRole('region', { name: 'Sem prazo' }).locator('.task-item')).toHaveText([/Sem data/]);
+  // A contagem do filtro continua sendo a do que foi carregado, não a dos grupos.
+  await expect(page.locator('.task-toolbar [role=status]')).toHaveText('4 tarefas carregadas · todas deste filtro');
+  await noHorizontalOverflow(page);
+});

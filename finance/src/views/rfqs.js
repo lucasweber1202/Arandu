@@ -312,7 +312,7 @@ export async function newRfq(ctx) {
   const errorSummary = el('div', { class: 'callout callout-danger', role: 'alert', hidden: true, tabindex: '-1' });
   for (const [index, label] of STEPS.entries()) {
     const item = el('li', { 'data-step': String(index), class: 'stepper-item' }, [
-      el('button', { type: 'button', class: 'stepper-button', disabled: true }, [el('span', { class: 'stepper-index', text: String(index + 1) }), el('span', { class: 'stepper-label', text: `${index + 1}. ${label}` })])
+      el('button', { type: 'button', class: 'stepper-button', disabled: true }, [el('span', { class: 'stepper-index', text: String(index + 1) }), el('span', { class: 'stepper-label', text: label })])
     ]);
     item.querySelector('button').addEventListener('click', () => { if (index <= highest) show(index, { focus: true }); });
     stepper.append(item);

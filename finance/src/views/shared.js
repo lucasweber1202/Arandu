@@ -504,7 +504,7 @@ export function collaboration(ctx, rfq, { provider = false } = {}) {
     });
     text.addEventListener('blur', () => setTimeout(() => { suggestions.hidden = true; }, 120));
     const error = el('p', { class: 'field-error', role: 'alert', hidden: true });
-    const submit = button(parent ? 'Responder' : 'Publicar comentário', { variant: 'primary', type: 'submit', iconName: 'send', size: 'sm' });
+    const submit = button(parent ? 'Responder' : 'Publicar comentário', { variant: 'secondary', type: 'submit', iconName: 'send', size: 'sm' });
     const cancel = parent ? button('Cancelar', { variant: 'ghost', size: 'sm', onClick: () => form.remove() }) : null;
     setHelp();
     form.append(el('div', { class: 'composer-field' }, [text, suggestions]), controls, help, error, el('div', { class: 'composer-actions' }, [cancel, submit]));

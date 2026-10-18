@@ -56,7 +56,7 @@ test('tesouraria: painel → RFQ concluída → propostas → comparação → a
 
   // RFQ de adquirência concluída: convidados, propostas e versões.
   await openRfq(page, 'Adquirência');
-  await expect(page.locator('#convites')).toContainText('3 convidado(s) · 3 responderam');
+  await expect(page.locator('#convites')).toContainText('3 convidados · 3 responderam');
   await expect(page.locator('#convites')).toContainText('Lumina Pay');
   await page.getByRole('tab', { name: /Propostas/ }).click();
   await expect(page.locator('#view')).toContainText('Nexo Payments');

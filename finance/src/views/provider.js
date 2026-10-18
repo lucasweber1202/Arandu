@@ -29,7 +29,7 @@ function opportunityRow(ctx, row) {
   return el('article', { class: `opportunity state-${state.key}`, id: `rfq-${row.rfq_id}` }, [
     el('div', { class: 'opportunity-main' }, [
       el('p', { class: 'opportunity-kicker', text: [row.buyer_name, productLabel(row.product, { short: true })].filter(Boolean).join(' · ') }),
-      el('h3', { class: 'opportunity-title' }, el('a', { class: 'stretched', href: proposalHref(ctx, row), text: row.title })),
+      el('h2', { class: 'opportunity-title' }, el('a', { class: 'stretched', href: proposalHref(ctx, row), text: row.title })),
       el('p', { class: 'opportunity-meta', text: `${demandHeadline({ product: row.product, demand: row.demand })} · revisão ${row.rfq_revision || 1}` })
     ]),
     el('div', { class: 'opportunity-side' }, [
@@ -149,7 +149,10 @@ export async function providerProposal(ctx) {
   const open = OPEN.includes(assignment.rfq_status);
   const days = daysUntil(assignment.response_deadline);
   ctx.header({ crumbs: [{ label: 'Oportunidades', href: ctx.href('/provider/rfqs.html') }, { label: assignment.title }], title: assignment.title,
-    meta: [tag(productLabel(assignment.product, { short: true })), pill(state), el('span', { class: 'meta-item' }, [icon('repeat', { size: 14 }), el('span', { text: `Revisão ${assignment.rfq_revision || 1} da solicitação` })]),
+    // Quem pediu vem no topo, também no celular: a instituição responde sabendo a quem.
+    meta: [tag(productLabel(assignment.product, { short: true })), pill(state),
+      assignment.buyer_name ? el('span', { class: 'meta-item meta-buyer' }, [icon('building', { size: 14 }), el('span', { text: `Solicitado por ${assignment.buyer_name}` })]) : null,
+      el('span', { class: 'meta-item' }, [icon('repeat', { size: 14 }), el('span', { text: `Revisão ${assignment.rfq_revision || 1} da solicitação` })]),
       assignment.response_deadline ? el('span', { class: `meta-item${open && days !== null && days <= 2 ? ' urgent' : ''}` }, [icon('calendar', { size: 14 }), el('span', { text: `Prazo ${formatDate(assignment.response_deadline)}${open ? ` · ${relativeDays(assignment.response_deadline)}` : ''}` })]) : null] });
   const root = el('div', { class: 'split provider-proposal' });
 
@@ -314,7 +317,7 @@ export async function providerProposal(ctx) {
 
   // No celular o resumo do pedido vem antes do formulário: ninguém responde sem saber o que foi pedido.
   const peek = el('details', { class: 'demand-peek card' }, [
-    el('summary', {}, [el('span', { class: 'demand-peek-title', text: 'O que a empresa pediu' }), el('span', { class: 'muted small', text: demandHeadline({ product: assignment.product, demand: assignment.demand }) })]),
+    el('summary', {}, [el('span', { class: 'demand-peek-title', text: assignment.buyer_name ? `O que ${assignment.buyer_name} pediu` : 'O que a empresa pediu' }), el('span', { class: 'muted small', text: demandHeadline({ product: assignment.product, demand: assignment.demand }) })]),
     el('div', { class: 'card-body' }, definitionList(PRODUCTS[assignment.product].demandFields, assignment.demand, { columns: 1 }))
   ]);
   // Processo sem coleta aberta: nada editável na tela, só o que foi enviado.
