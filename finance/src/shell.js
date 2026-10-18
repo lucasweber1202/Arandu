@@ -166,7 +166,10 @@ export function renderTopbar(ctx) {
   // No celular a faixa da demonstração rola para fora da tela: este selo fica sempre visível.
   if (ctx.mode === 'demo') actions.append(el('span', { class: 'demo-chip', title: 'Ambiente demonstrativo. Dados fictícios.' }, [icon('info', { size: 12 }), el('span', { text: 'Demo · dados fictícios' })]));
   // Ambiente de demonstração com banco próprio: o produto real, com empresa fictícia.
-  else if (ctx.environment === 'demo') actions.append(el('span', { class: 'demo-chip env-chip', id: 'environment-chip', title: 'Ambiente de demonstração: produto real, empresa e instituições fictícias.' }, [icon('info', { size: 12 }), el('span', { class: 'env-long', text: 'Ambiente de demonstração' }), el('span', { class: 'env-short', text: 'Demo' })]));
+  // A troca de persona volta à entrada por persona: o servidor abre nova sessão no
+  // MESMO workspace do visitante (POST /api/auth/demo-login), nunca no navegador.
+  else if (ctx.environment === 'demo') actions.append(el('span', { class: 'demo-chip env-chip', id: 'environment-chip', title: 'Ambiente de demonstração: produto real, empresa e instituições fictícias.' }, [icon('info', { size: 12 }), el('span', { class: 'env-long', text: 'Ambiente de demonstração' }), el('span', { class: 'env-short', text: 'Demo' })]),
+    el('a', { class: 'btn btn-ghost btn-sm env-switch', id: 'persona-switch', href: '/login.html#demonstracao', 'aria-label': 'Trocar persona da demonstração' }, [icon('users', { size: 14 }), el('span', { class: 'env-long', text: 'Trocar persona' })]));
   // Staging/Pilot: o mesmo produto num banco de validação; ninguém confunde com o oficial.
   else if (ctx.environment === 'staging') actions.append(el('span', { class: 'demo-chip env-chip', id: 'environment-chip', title: 'Ambiente de validação: mesmo produto, banco separado do oficial.' }, [icon('info', { size: 12 }), el('span', { class: 'env-long', text: 'Ambiente de validação' }), el('span', { class: 'env-short', text: 'Validação' })]));
   let searchButton = null;

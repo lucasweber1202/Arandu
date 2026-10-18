@@ -80,3 +80,27 @@ body.public{background:#fff;color:var(--navy);font-family:Inter,system-ui,-apple
 .areas p{margin:0;color:var(--muted)}
 @media(max-width:700px){.areas li{grid-template-columns:2.2rem 1fr}.areas p{grid-column:2}}
 .auth-card .auth-notice{margin:1rem 0 0;padding:.75rem 1rem;border:1px solid var(--warning-border);border-radius:var(--r-md);background:var(--warning-weak);color:var(--warning);font-size:.95rem;line-height:1.45}
+/* Entrada da Demo canônica (login por persona): ocupa a largura toda acima do login por e-mail. */
+.auth-grid.has-demo-entry{padding-top:3.5rem}
+.demo-entry{grid-column:1/-1;border-bottom:1px solid var(--line);padding-bottom:2.5rem}
+.demo-entry h2{max-width:none}
+.demo-entry-facts{list-style:none;padding:0;margin:1.2rem 0 2rem;display:grid;gap:.45rem;max-width:72ch}
+.demo-entry-facts li{padding-left:1.4rem;position:relative;color:var(--muted)}
+.demo-entry-facts li::before{content:"";position:absolute;left:.2rem;top:.65em;width:.45rem;height:.45rem;border-radius:50%;background:var(--teal)}
+.demo-entry-group{margin-top:1.6rem}
+.demo-entry-group h3{margin:0 0 .2rem}
+.demo-entry-intro{color:var(--muted);margin:0 0 .9rem}
+.demo-entry-list{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:.8rem}
+.public .demo-persona{display:grid;font-weight:400;gap:.25rem;width:100%;height:100%;text-align:left;font:inherit;color:var(--navy);background:#fff;border:1px solid var(--line);border-radius:10px;padding:1rem 1.1rem;cursor:pointer;align-content:start}
+.public .demo-persona:hover{border-color:var(--teal);background:var(--paper)}
+.demo-persona:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
+.demo-persona:disabled{cursor:progress;opacity:.6}
+.demo-persona[aria-busy=true]{opacity:1;border-color:var(--teal)}
+.demo-persona-name{font-weight:700;font-size:1.05rem}
+.demo-persona-meta{font-size:.85rem;color:var(--muted)}
+.demo-persona-role{justify-self:start;font-size:.75rem;font-weight:700;color:var(--teal);margin-top:.2rem}
+.demo-persona-journey{font-size:.9rem;line-height:1.45;margin-top:.15rem}
+.demo-entry-status{margin:1.2rem 0 0;font-weight:600;color:var(--teal)}
+.demo-entry-status:empty{display:none}
+.demo-entry-status[data-tone=error]{color:var(--danger)}
+@media(max-width:700px){.demo-entry-list{grid-template-columns:1fr}.auth-grid.has-demo-entry{padding-top:2rem}}

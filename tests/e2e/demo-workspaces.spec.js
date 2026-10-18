@@ -13,7 +13,7 @@ const REST = process.env.ARANDU_DEMO_REST_URL || 'http://localhost:3000';
 
 async function enter(page, personaLabel) {
   await page.goto('/login.html');
-  const panel = page.getByRole('region', { name: 'Entrar na demonstração' });
+  const panel = page.getByRole('region', { name: 'Conheça o Arandu por dentro' });
   await panel.getByRole('button', { name: new RegExp(personaLabel) }).click();
   await page.waitForURL(/\/(finance|provider)\//);
   await expect(page.locator('#view')).not.toHaveAttribute('aria-busy', 'true');
