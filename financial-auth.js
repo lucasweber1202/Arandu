@@ -158,5 +158,8 @@ if (loginForm) fetch('/api/auth/demo-personas',{credentials:'same-origin'}).then
   const main=document.querySelector('#main');
   main.classList.add('has-demo-entry');
   main.prepend(section);
-  if(location.hash==='#demonstracao')section.querySelector('button')?.focus();
+  // Ao fim do carregamento o Firefox rola até o #demonstracao e limpa o foco:
+  // focar na tarefa seguinte ao load, depois de o navegador tratar o fragmento.
+  const focusEntry=()=>section.querySelector('button')?.focus();
+  if(location.hash==='#demonstracao'){if(document.readyState==='complete')focusEntry();else addEventListener('load',()=>setTimeout(focusEntry),{once:true});}
 }).catch(()=>{});
