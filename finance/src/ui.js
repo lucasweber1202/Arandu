@@ -386,7 +386,7 @@ export function field({ label, control, hint = null, required = false, optionalL
  * `submit(valores)` recebe números como Number (vazio = null), caixas como boolean e
  * texto vazio como null; o erro do servidor aparece no próprio formulário.
  */
-export function formDrawer(title, intro, specs, submit, done = 'Registro preservado.') {
+export function formDrawer(title, intro, specs, submit, done = 'Registro preservado.', { onUncertain = null } = {}) {
   const values = {};
   const read = [];
   const form = el('form', { class: 'stack' }, [intro ? el('p', { class: 'muted small', text: intro }) : null, ...specs.map(([key, label, kind = 'text', attrs = {}]) => {
@@ -402,9 +402,17 @@ export function formDrawer(title, intro, specs, submit, done = 'Registro preserv
   form.addEventListener('submit', async (event) => {
     event.preventDefault(); save.disabled = true; errors.hidden = true;
     read.forEach((fn) => fn());
-    try { await submit(values); dialog.close(); toast(done); }
-    catch (e) { errors.textContent = e.message; errors.hidden = false; }
-    finally { save.disabled = false; }
+    try { await submit(values); dialog.close(); toast(done); save.disabled = false; }
+    catch (e) {
+      errors.replaceChildren(e.message, ...(sessionLink(e) ? [' ', sessionLink(e)] : [])); errors.hidden = false;
+      // Sem resposta ou 5xx: o registro pode ter sido gravado e estes formulários
+      // não têm chave idempotente. Repetir às cegas duplicaria; a pessoa confere
+      // a lista primeiro (o que digitou continua visível aqui até fechar).
+      if (!e.status || e.status >= 500) {
+        save.querySelector('.btn-label').textContent = 'Confira antes de repetir';
+        if (onUncertain) errors.append(' ', button('Fechar e conferir a lista', { size: 'sm', iconName: 'refresh', onClick: () => { dialog.close(); onUncertain(); } }));
+      } else save.disabled = false;
+    }
   });
   return dialog;
 }

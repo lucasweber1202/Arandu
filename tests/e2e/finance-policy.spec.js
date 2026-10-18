@@ -273,3 +273,84 @@ test('pedido desatualizado não vira "Aprovar" no início nem "Decidir aprovaç�
   await expect(page.getByRole('link', { name: 'Acompanhar aprovação' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Decidir aprovação' })).toHaveCount(0);
 });
+
+test('prévia da policy que falha não vira "sem policy": o pedido não sai com aprovadores livres', async ({ page }) => {
+  const calls = await mockSession(page);
+  // A página carrega normalmente; só a prévia da proposta escolhida falha (5xx).
+  let failing = true;
+  await page.route('**/api/finance/approval-policies/preview', (route) => {
+    const body = route.request().postDataJSON() || {};
+    return failing && body.proposal_id
+      ? route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ ok: false, error: 'Serviço temporariamente indisponível.' }) })
+      : route.fallback();
+  });
+  await page.goto(`/finance/rfq.html?id=${RFQ}#aprovacoes`);
+  const form = page.locator('#approval-request');
+  await form.getByRole('radio').first().check();
+  await expect(form.getByRole('alert').filter({ hasText: 'Não conseguimos conferir a policy de aprovação desta proposta' })).toBeVisible();
+  await expect(form.getByText('Aprovadores, na ordem em que devem decidir')).toHaveCount(0);
+  await form.locator('textarea[name="rationale"]').fill('Contexto para aprovação.');
+  await form.getByRole('button', { name: 'Solicitar aprovação' }).click();
+  await expect(form.getByText('A policy desta proposta ainda não foi conferida')).toBeVisible();
+  expect(calls.filter((call) => call.path === 'approvals/request')).toHaveLength(0);
+  // Quando a prévia volta, o fluxo da policy reaparece pelo "Tentar novamente".
+  failing = false;
+  await form.getByRole('button', { name: 'Tentar novamente' }).click();
+  await expect(form.getByText('Não conseguimos conferir a policy')).toHaveCount(0);
+});
+
+test('aprovador que perdeu o acesso: voto recusado não reabre os botões nem parece registrado', async ({ page }) => {
+  const calls = await mockSession(page, { approvals: [policyRequest({ viewerCanAct: true })] });
+  await page.route('**/api/finance/approvals/act', (route) => {
+    calls.push({ path: 'approvals/act', body: route.request().postDataJSON() });
+    return route.fulfill({ status: 403, contentType: 'application/json', body: JSON.stringify({ ok: false, code: 'forbidden', error: 'Sua conta não tem permissão para esta ação.' }) });
+  });
+  await page.goto(`/finance/rfq.html?id=${RFQ}#aprovacoes`);
+  const card = page.locator(`#request-${REQUEST}`);
+  await card.locator('.approval-actions').getByRole('button', { name: 'Aprovar', exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Aprovar' }).click();
+  await expect(card.locator('.approval-actions').getByRole('alert')).toContainText('Você não pode mais decidir este pedido');
+  await expect(card.locator('.approval-actions').getByRole('alert')).toContainText('Nada foi registrado');
+  await expect(card.locator('.approval-actions').getByRole('button', { name: 'Aprovar', exact: true })).toHaveCount(0);
+  await expect(page.getByText('Aprovação registrada')).toHaveCount(0);
+  expect(calls.filter((call) => call.path === 'approvals/act')).toHaveLength(1);
+});
+
+test('voto sem resposta do servidor: a tela pede conferência antes de votar de novo', async ({ page }) => {
+  await mockSession(page, { approvals: [policyRequest({ viewerCanAct: true })] });
+  await page.route('**/api/finance/approvals/act', (route) => route.abort('failed'));
+  await page.goto(`/finance/rfq.html?id=${RFQ}#aprovacoes`);
+  const card = page.locator(`#request-${REQUEST}`);
+  await card.locator('.approval-actions').getByRole('button', { name: 'Aprovar', exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Aprovar' }).click();
+  await expect(card.locator('.approval-actions').getByRole('alert')).toContainText('Não confirmamos se a sua decisão foi registrada');
+  await expect(card.getByRole('button', { name: 'Conferir o pedido' })).toBeVisible();
+  await expect(card.locator('.approval-actions').getByRole('button', { name: 'Aprovar', exact: true })).toHaveCount(0);
+});
+
+test('pedido de aprovação sem resposta: não reabre o envio; sessão expirada oferece entrar em outra aba', async ({ page }) => {
+  const calls = await mockSession(page, { preview: null });
+  let mode = 'network';
+  await page.route('**/api/finance/approvals/request', (route) => {
+    calls.push({ path: 'approvals/request' });
+    return mode === 'network' ? route.abort('failed') : route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ ok: false, error: 'Sessão inválida.' }) });
+  });
+  await page.goto(`/finance/rfq.html?id=${RFQ}#aprovacoes`);
+  const form = page.locator('#approval-request');
+  await form.getByLabel(/Ana Lima/).check();
+  await form.locator('textarea[name="rationale"]').fill('Contexto preservado.');
+  await form.getByRole('button', { name: 'Solicitar aprovação' }).click();
+  await expect(form.getByRole('button', { name: 'Recarregar e conferir' })).toBeVisible();
+  await expect(form.getByRole('button', { name: 'Solicitar aprovação' })).toBeDisabled();
+  expect(calls.filter((call) => call.path === 'approvals/request')).toHaveLength(1);
+  // Sessão expirada: recusa explícita, nada registrado, texto preservado e caminho para entrar.
+  mode = 'session';
+  await page.reload();
+  await form.getByLabel(/Ana Lima/).check();
+  await form.locator('textarea[name="rationale"]').fill('Contexto preservado.');
+  await form.getByRole('button', { name: 'Solicitar aprovação' }).click();
+  await expect(form.getByRole('alert').filter({ hasText: 'Sua sessão expirou e nada foi registrado' })).toBeVisible();
+  await expect(form.getByRole('link', { name: 'Entrar em outra aba' })).toHaveAttribute('target', '_blank');
+  await expect(form.locator('textarea[name="rationale"]')).toHaveValue('Contexto preservado.');
+  await expect(form.getByRole('button', { name: 'Solicitar aprovação' })).toBeEnabled();
+});

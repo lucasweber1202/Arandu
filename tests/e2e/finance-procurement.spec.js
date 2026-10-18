@@ -910,3 +910,12 @@ test('sessão expirada ao enviar: nada é dado como feito, o formulário fica e 
   await expect(login).toHaveAttribute('href', '/login.html?next=%2Ffinance%2Frfq.html');
   await expect(box).toHaveValue('Pedir ao Banco Um a minuta da cédula.');
 });
+
+test('membros que não carregam não viram "seu papel não permite": a tela diz que não carregou', async ({ page }) => {
+  await mockSession(page);
+  await page.route('**/api/finance/members**', (route) => route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ ok: false, error: 'Serviço temporariamente indisponível.' }) }));
+  await page.goto('/finance/tasks.html');
+  await expect(page.locator('#view').getByRole('alert')).toContainText('Serviço temporariamente indisponível');
+  await expect(page.locator('#view').getByRole('button', { name: 'Tentar novamente' })).toBeVisible();
+  await expect(page.locator('#view')).not.toContainText('Seu papel');
+});

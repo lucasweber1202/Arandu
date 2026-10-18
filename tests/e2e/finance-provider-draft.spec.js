@@ -219,3 +219,16 @@ test('convite sem nome do comprador: o portal mostra a solicitação, sem "undef
   await expect(card).toContainText('Antecipação de recebíveis 2027');
   await expect(page.locator('#view')).not.toContainText('undefined');
 });
+
+test('nome longo do comprador (buyer_name da #215) cabe no celular estreito e aparece uma vez por cartão', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 720 });
+  const buyer = 'Companhia Brasileira de Alimentos e Bebidas Vegetais do Centro-Oeste Participações S.A.';
+  await mockProvider(page, { assignment: { ...ASSIGNMENT, buyer_name: buyer } });
+  await page.goto('/provider/index.html');
+  await expect(page.locator('#provider-status')).toContainText(buyer);
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+  for (const node of await page.locator('.opportunity-kicker').all()) {
+    expect((await node.innerText()).split(buyer).length - 1).toBeLessThanOrEqual(1);
+  }
+});

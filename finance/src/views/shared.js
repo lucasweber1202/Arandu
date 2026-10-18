@@ -367,6 +367,17 @@ export function approvalActions(ctx, request, { onDone }) {
       onDone?.();
     } catch (error) {
       toast(error.message, 'error');
+      // Recusa de acesso (papel ou membresia mudou, #215) é definitiva: repetir não
+      // adianta. Resultado incerto (rede, 5xx) pede conferir antes de votar de novo.
+      const refused = error.status === 403 || error.status === 404;
+      const unknown = !error.status || error.status >= 500;
+      if (refused || unknown) {
+        actions.replaceChildren(el('p', { class: 'callout callout-warning compact', role: 'alert' }, [
+          el('span', { text: refused ? 'Você não pode mais decidir este pedido (o acesso mudou ou a etapa não é mais sua). Nada foi registrado. ' : 'Não confirmamos se a sua decisão foi registrada. Confira o pedido antes de decidir de novo. ' }),
+          button(refused ? 'Recarregar' : 'Conferir o pedido', { size: 'sm', iconName: 'refresh', onClick: () => onDone?.() })
+        ]));
+        return;
+      }
       for (const node of actions.querySelectorAll('button')) node.disabled = false;
     }
   };

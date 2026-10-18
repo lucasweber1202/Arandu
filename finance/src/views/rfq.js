@@ -4,7 +4,7 @@ import { graphContextCard } from './graph-context.js';
 import { PRODUCTS } from '../../../lib/finance/products.mjs';
 import { SOURCE_LABELS, fieldLabel } from '../../../lib/finance/passport.mjs';
 import { el, icon, money, percent, fieldValue, formatDate, formatDateTime, relativeDays, daysUntil, productLabel, RFQ_STATUS, PROPOSAL_STATUS, APPROVAL_STATUS, PROVIDER_KINDS, todayIso, timeAgo } from '../core.js';
-import { card, pill, tag, button, linkButton, emptyState, errorState, loading, tabs, definitionList, toast, confirmDialog, promptDialog, drawer, field, catalogControl, person, menu, progress, onSubmit } from '../ui.js';
+import { card, pill, tag, button, linkButton, emptyState, errorState, loading, tabs, definitionList, toast, confirmDialog, promptDialog, drawer, field, catalogControl, person, menu, progress, onSubmit, sessionLink } from '../ui.js';
 import { loadEntities, rfqEntityControl } from './entities.js';
 import { comparisonMatrix, weightsPanel, revisionTimeline, collaboration, activityLog, approvalSteps, approvalActions, currentStep, memberName, memberTitle, coverage, approvalSummaryLine, lazyDocuments, keyTerms, isViewerTurn } from './shared.js';
 import { planSummary, policyTimeline, stageAssignments, loadPolicies } from './policy.js';
@@ -491,6 +491,7 @@ function approvalRequestForm(ctx, rfq, latest) {
   const proposalError = el('p', { class: 'field-error', role: 'alert', hidden: true });
   const declared = {};
   let evaluation = null;
+  let previewFailed = false;
   let flags = [];
   let assignments = {};
   const justification = el('textarea', { name: 'justification', rows: '3', maxlength: '2000', placeholder: 'Ex.: única instituição com linha disponível no prazo da operação.' });
@@ -520,7 +521,18 @@ function approvalRequestForm(ctx, rfq, latest) {
     try {
       const out = await ctx.api('approval-policies/preview', { method: 'POST', body: JSON.stringify({ rfq_id: rfq.id, proposal_id: proposalId, declared }) });
       evaluation = out.evaluation;
-    } catch { evaluation = null; }
+      previewFailed = false;
+    } catch (failure) {
+      // Prévia que falhou não é "sem policy": cair no modo de aprovadores livres
+      // poderia pedir aprovação fora das etapas exigidas. Nada é enviado até a
+      // policy ser conferida de novo. 404 = ambiente sem policies (sandbox legado).
+      evaluation = null;
+      previewFailed = failure.status !== 404;
+      if (previewFailed) {
+        modeBox.replaceChildren(errorState({ title: 'Não conseguimos conferir a policy de aprovação desta proposta', error: failure, onRetry: refresh }));
+        return;
+      }
+    }
     const policyMode = evaluation?.engine === 'policy' && ((evaluation.stages || []).length || (evaluation.blockers || []).length);
     if (!policyMode) {
       evaluation = null;
@@ -554,6 +566,7 @@ function approvalRequestForm(ctx, rfq, latest) {
     }
     if (!rationale.value.trim()) { rationaleField.setError('Explique o contexto para quem vai aprovar.'); rationale.focus(); return; }
     const proposalId = new FormData(form).get('proposal_id');
+    if (previewFailed) { error.textContent = 'A policy desta proposta ainda não foi conferida. Use "Tentar novamente" acima; nada foi enviado.'; error.hidden = false; return; }
     if (evaluation) {
       const missing = (evaluation.stages || []).find((stage) => (assignments[stage.key] || []).length < stage.min_approvals);
       if (missing) { error.textContent = `Indique ${missing.min_approvals} aprovador(es) para "${missing.label}".`; error.hidden = false; return; }
@@ -567,7 +580,13 @@ function approvalRequestForm(ctx, rfq, latest) {
       await ctx.api('approvals/request', { method: 'POST', body: JSON.stringify(payload) });
       toast(evaluation ? 'Aprovação solicitada pela policy. Os aprovadores da primeira etapa foram avisados.' : `Aprovação solicitada. ${memberName(ctx.members, order[0])} foi avisado(a).`);
       ctx.reload();
-    } catch (failure) { error.textContent = failure.message; error.hidden = false; submit.disabled = false; }
+    } catch (failure) {
+      error.replaceChildren(failure.message, ...(sessionLink(failure) ? [' ', sessionLink(failure)] : []));
+      error.hidden = false;
+      // Resultado incerto: o pedido pode ter sido aberto. Conferir antes de pedir de novo.
+      if (!failure.status || failure.status >= 500) error.append(' ', button('Recarregar e conferir', { size: 'sm', iconName: 'refresh', onClick: () => ctx.reload() }));
+      else submit.disabled = false;
+    }
   });
   if (single) queueMicrotask(refresh);
   return form;

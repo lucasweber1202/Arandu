@@ -274,7 +274,9 @@ async function loadSession(ctx) {
   }
   const [overview, members] = await Promise.all([
     ctx.api(`overview?organization_id=${encodeURIComponent(ctx.organization.id)}`),
-    ctx.api(`members?organization_id=${encodeURIComponent(ctx.organization.id)}`).catch(() => ({ rows: [], viewer_id: null }))
+    // Sem a lista de membros não se sabe o papel de quem entra: mostrar a tela
+    // como se a pessoa não pudesse nada seria uma falsa "falta de permissão".
+    ctx.api(`members?organization_id=${encodeURIComponent(ctx.organization.id)}`)
   ]);
   ctx.data = overview;
   ctx.organization = { ...ctx.organization, ...(overview.organization || {}) };
