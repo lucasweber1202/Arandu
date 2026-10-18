@@ -76,6 +76,8 @@ assert.equal(run({ ARANDU_SITE_URL: 'https://arandu-pilot.vercel.app' }).status,
 const demoRef = 'demonstracaoarandu00';
 const demo = { ARANDU_ENV: 'demo', ARANDU_SITE_URL: 'https://demo.example.com', SUPABASE_URL: `https://${demoRef}.supabase.co`, SUPABASE_ANON_KEY: key({ role: 'anon', ref: demoRef }), SUPABASE_SERVICE_ROLE_KEY: key({ role: 'service_role', ref: demoRef }), VERCEL_GIT_COMMIT_REF: 'main' };
 assert.equal(run(demo).status, 1, 'ref desconhecido não comprova demo dedicada');
+assert.match(run(demo).stdout, /ARANDU_DEMO_PASSWORD ausente ou fraco/);
+assert.doesNotMatch(run({ ...demo, ARANDU_DEMO_PASSWORD: 'SyntheticOnlySecret9' }).stdout, /ARANDU_DEMO_PASSWORD ausente ou fraco/);
 assert.match(run(demo).stdout, /sem atribuição ativa aprovada/);
 assert.match(run({ ...demo, SUPABASE_URL: base.SUPABASE_URL, SUPABASE_ANON_KEY: base.SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY: base.SUPABASE_SERVICE_ROLE_KEY }).stdout, /demo apontando para o Supabase do piloto/);
 assert.match(run({ ...demo, VERCEL_GIT_COMMIT_REF: 'demo' }).stdout, /só a branch main publica/);

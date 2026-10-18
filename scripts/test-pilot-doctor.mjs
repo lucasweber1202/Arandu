@@ -68,6 +68,7 @@ function fakeSupabase(overrides = {}) {
       if (table === 'fin_settings' && u.searchParams.get('key') === 'eq.deployment_environment') return state.markerFailure ? reply({}, 503) : state.markerMalformed ? reply({}) : reply(state.marker ? [{ value: state.marker }] : []);
       if (table === 'fin_settings') return reply(u.searchParams.get('key') === 'eq.schema_version' ? (state.schema ? [{ value: state.schema }] : []) : [{ value: state.emailEnabled ? 'true' : 'false' }]);
       if (table === 'fin_platform_operators') return reply([{ user_id: 'u-ops' }]);
+      if (table === 'fin_demo_workspaces' && state.workspaceStatus) return reply(null, state.workspaceStatus);
       if (table === 'fin_job_runs') return reply([{ status: 'succeeded', error_code: null, finished_at: '2026-10-02T09:16:00Z' }]);
       return reply([]);
     }
@@ -245,6 +246,10 @@ for (const rpc of ['fin_governance_request_export', 'fin_governance_create_legal
   assert.equal((await doctor(baseEnv, { missingRpc: rpc })).result, 'NO-GO', rpc);
 }
 assert.equal((await doctor(baseEnv, { marker: 'production' })).result, 'UNSAFE');
+for (const workspaceStatus of [401, 403, 503]) {
+  const report = await doctor({ ...baseEnv, ARANDU_ENV: 'demo', ARANDU_DEMO_PASSWORD: 'SyntheticOnlySecret9' }, { marker: 'demo', workspaceStatus });
+  assert.equal(report.checks.find(check => check.name === 'capacidade de visitantes').outcome, workspaceStatus === 503 ? 'FAIL' : 'ACCESS_BLOCKED');
+}
 
 const localRelease = releaseIdentity({ ARANDU_ENV: 'pilot' });
 assert.equal((await doctor({ ...baseEnv, ARANDU_SITE_URL: 'https://localhost:4443' }, { release: localRelease })).result, 'GO', 'ensaio local não atesta deploy hospedado');

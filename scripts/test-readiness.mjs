@@ -1,5 +1,15 @@
 import assert from 'node:assert/strict';
 import { evaluateReadiness, resetReadinessCache } from '../lib/readiness.mjs';
+import { demoPersonaSecretReady, demoPoolStatus } from '../lib/finance/demo-entry-readiness.mjs';
+import { BASELINE_VERSION } from '../lib/finance/demo-workspaces.mjs';
+
+for (const value of [undefined, '', 'short1A', 'a'.repeat(20), 'A'.repeat(20), '1'.repeat(20), 'LongSecretWithoutDigits']) assert.equal(demoPersonaSecretReady(value), false);
+assert.equal(demoPersonaSecretReady('SyntheticOnlySecret9'), true);
+const readyWorkspace = { status: 'ready', baseline_version: BASELINE_VERSION };
+assert.equal(demoPoolStatus([readyWorkspace]), 'ok');
+assert.equal(demoPoolStatus([]), 'capacity_unavailable');
+assert.equal(demoPoolStatus(null), 'inconclusive');
+for (const rows of [[null], [{ ...readyWorkspace, status: 'claimed' }], [{ ...readyWorkspace, baseline_version: 'obsolete' }], [readyWorkspace, { ...readyWorkspace, baseline_version: 'obsolete' }]]) assert.equal(demoPoolStatus(rows), 'incompatible');
 
 const PILOT = 'offgpyysgdhfemjlchod', LEGACY = 'igacnfjeuqhxcmfyepgj';
 const secret = 'x'.repeat(40);
@@ -26,6 +36,8 @@ const fake = (overrides = {}) => async (url, options) => {
 const status = async (e = env(), fetchImpl = fake()) => { resetReadinessCache(); calls = []; return evaluateReadiness({ env: e, fetchImpl }); };
 const byName = r => Object.fromEntries(r.checks.map(c => [c.name, c.status]));
 assert.equal((await status({})).ready, false); assert.equal(calls.length, 0);
+const missingPersonaSecret = await status(env({ ARANDU_ENV: 'demo' }));
+assert.equal(byName(missingPersonaSecret).demo_personas, 'missing'); assert.equal(missingPersonaSecret.ready, false);
 assert.equal(byName(await status({ ARANDU_ENV: 'staging-x' })).runtime, 'misconfigured');
 assert.equal((await status({ ARANDU_DEPLOYMENT_KIND: 'demo' })).ready, false, 'sandbox is never hosted backend readiness'); assert.equal(calls.length, 0);
 for (const ref of [LEGACY, PILOT, 'abcdefghijklmnopqrst']) {
@@ -50,7 +62,7 @@ for (const [component, value, expected] of [
   const check = { auth: 'supabase_auth', rest: 'supabase_rest', marker: 'environment_marker', settings: 'auth_settings' }[component] || component;
   assert.equal(byName(r)[check], expected, component); assert.ok(r.checks.find(c => c.name === check).next_action);
 }
-for (const rpc of ['fin_record_decision_v2', 'fin_act_on_approval_v2', 'fin_assignment_buyer_names']) {
+for (const rpc of ['fin_record_decision_v2', 'fin_act_on_approval_v2', 'fin_assignment_buyer_names', 'fin_demo_workspace_claim', 'fin_demo_workspace_resume', 'fin_demo_workspace_active', 'fin_demo_require_environment']) {
   const paths = Object.fromEntries(REQUIRED_RPCS.filter(name => name !== rpc).map(name => [`/rpc/${name}`, {}]));
   assert.equal(byName(await status(env(), fake({ rest: { definitions: {}, paths } }))).critical_rpcs, 'incompatible');
 }

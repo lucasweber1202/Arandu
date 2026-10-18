@@ -137,7 +137,10 @@ identidades `environment`, `project_ref`, `commit`, `schema_version`,
 posterior ao restore/migration), `result: PASS`, `ready: true`, `http_status: 200`,
 `datasource: supabase`. `checks` deve conter PASS para `release_identity`,
 `topology`, `schema`, `critical_rpcs`, `supabase_auth`, `auth_settings`,
-`supabase_rest`, `environment_marker`, `storage`; falha adicional também recusa.
+`supabase_rest`, `environment_marker`, `storage`, `demo_personas`,
+`demo_workspaces`; falha adicional também recusa. Pool pronto deve estar no
+baseline sintético esperado e com capacidade para nova entrada. Procedimento
+de publicação e handoff em `CANONICAL_HOSTED_DEMO_RELEASE.md`.
 Preencher com observações reais do deployment e doctor, nunca copiar fixture.
 O assessor valida consistência declarada; não autentica a origem da evidência.
 Readiness confere catálogo versionado, não bodies/grants/hooks: os probes SQL e
