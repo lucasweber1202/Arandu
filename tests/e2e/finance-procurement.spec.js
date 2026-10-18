@@ -134,6 +134,19 @@ test('login do provedor retorna ao portal atribuído sem redirect externo', asyn
   await page.getByLabel('Senha').fill('example-password');
   await page.getByRole('button', { name: 'Entrar', exact: true }).click();
   await expect(page).toHaveURL(/\/finance\/index\.html$/);
+  // Link compartilhado com o id do registro volta ao registro; query fora da regra não passa.
+  for (const [next, landing] of [
+    [`/finance/rfq.html?id=${RFQ}`, new RegExp(`/finance/rfq\\.html\\?id=${RFQ}$`)],
+    ['/finance/rfq.html?id=<script>', /\/finance\/index\.html$/],
+    ['//evil.example/finance/rfq.html', /\/finance\/index\.html$/],
+    ['/finance/rfq.html?id=1#x', /\/finance\/index\.html$/]
+  ]) {
+    await page.goto(`/login.html?next=${encodeURIComponent(next)}`);
+    await page.getByLabel('E-mail corporativo').fill('provedor@example.invalid');
+    await page.getByLabel('Senha').fill('example-password');
+    await page.getByRole('button', { name: 'Entrar', exact: true }).click();
+    await expect(page, next).toHaveURL(landing);
+  }
 });
 
 test('a navegação entre os portais funciona por links reais, sem depender de JavaScript', async ({ browser }) => {
@@ -154,7 +167,7 @@ test('app real: sem sessão o portal exige login e nunca cai na demonstração',
   await page.goto('/finance/dashboard.html');
   const view = page.locator('#view');
   await expect(view).toContainText('Entre para usar o portal');
-  await expect(view.getByRole('link', { name: 'Entrar na conta' })).toBeVisible();
+  await expect(view.getByRole('link', { name: 'Entrar na conta' })).toHaveAttribute('href', '/login.html?next=%2Ffinance%2Fdashboard.html');
   await expect(view.getByRole('link', { name: /demonstração/ })).toHaveCount(0);
   await expect(page.locator('.demo-banner')).toHaveCount(0);
   // Sem sessão nada de dado aparece — nem fictício.
@@ -473,6 +486,13 @@ test('comparação financeira: filtros, versões, origem e moedas incompatíveis
   const wide = page.locator('.comparison-wide');
   const mobile = page.locator('.compare-mobile');
   const surface = await wide.isVisible() ? wide : mobile;
+  if (surface === wide) {
+    // Cada aviso da coluna em sua linha: "…desde a v1" e "Proposta vencida" não se fundem num texto só.
+    const flags = wide.locator('.matrix-provider', { hasText: 'Banco Um' }).locator('.matrix-flag');
+    await expect(flags).toHaveCount(2);
+    const [a, b] = [await flags.nth(0).boundingBox(), await flags.nth(1).boundingBox()];
+    expect(b.y, 'avisos em linhas separadas').toBeGreaterThanOrEqual(a.y + a.height - 1);
+  }
   const cell = surface.locator('[data-condition="interest_rate_month"]').first();
   await cell.locator('summary').first().click();
   await expect(cell).toContainText('sem vínculo de evidência por campo');
@@ -909,7 +929,7 @@ test('sessão expirada ao enviar: nada é dado como feito, o formulário fica e 
   await expect(alert).toContainText('Sua sessão expirou e nada foi registrado');
   const login = alert.getByRole('link', { name: 'Entrar em outra aba' });
   await expect(login).toHaveAttribute('target', '_blank');
-  await expect(login).toHaveAttribute('href', '/login.html?next=%2Ffinance%2Frfq.html');
+  await expect(login).toHaveAttribute('href', `/login.html?next=${encodeURIComponent(`/finance/rfq.html?id=${RFQ}`)}`);
   await expect(box).toHaveValue('Pedir ao Banco Um a minuta da cédula.');
 });
 
@@ -1043,4 +1063,22 @@ test('Demo canônica: o selo do ambiente vem com "Trocar persona" para a entrada
   await page.goto('/finance/dashboard.html');
   await expect(page.locator('h1')).toBeVisible();
   await expect(page.locator('#persona-switch')).toHaveCount(0);
+});
+
+test('link aberto sem sessão: "Entrar na conta" leva de volta ao mesmo registro', async ({ page }) => {
+  await page.goto(`/finance/rfq.html?id=${RFQ}`);
+  const login = page.locator('#view').getByRole('link', { name: 'Entrar na conta' });
+  await expect(login).toHaveAttribute('href', `/login.html?next=${encodeURIComponent(`/finance/rfq.html?id=${RFQ}`)}`);
+});
+
+test('site público no celular: "Entrar" inteiro no cabeçalho, sem botão cortado', async ({ page }) => {
+  for (const path of ['/', '/login.html', '/produto.html']) {
+    await page.goto(path);
+    const box = await page.locator('.public-header .nav-cta').boundingBox();
+    const width = page.viewportSize().width;
+    expect(box, path).not.toBeNull();
+    expect(box.x, path).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width, `${path}: "Entrar" cabe na tela`).toBeLessThanOrEqual(width);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth), path).toBeLessThanOrEqual(1);
+  }
 });

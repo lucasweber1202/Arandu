@@ -5,9 +5,12 @@
 //   node scripts/demo/hosted-parity.mjs --url=https://demo.exemplo --sha=<commit esperado>
 //   node scripts/demo/hosted-parity.mjs --url=https://localhost:4443 --local   (laboratório)
 //
-// Passa só quando TODOS os itens passam. "Não verificado" nunca conta como PASS.
+// Veredito: READY (tudo comprovado), NOT_READY (falha comprovada), ACCESS_BLOCKED
+// (o verificador não tem acesso) ou INCONCLUSIVE (transporte/sem prova). Só READY sai com 0.
+// "Não verificado" nunca conta como PASS.
 // Saída: uma linha por item e reports/demo-parity/hosted.json.
 import { mkdirSync, writeFileSync } from 'node:fs';
+import { transportOutcome, verdict } from './hosted-parity-verdict.mjs';
 
 const args = Object.fromEntries(process.argv.slice(2).map((arg) => { const [k, ...v] = arg.replace(/^--/, '').split('='); return [k, v.length ? v.join('=') : true]; }));
 const base = String(args.url || process.env.ARANDU_DEMO_APP_URL || '').replace(/\/$/, '');
@@ -18,45 +21,71 @@ if (local && !/^https:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(base)) { consol
 if (local) process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'; // certificado autoassinado do laboratório
 
 const checks = [];
-const record = (id, ok, detail) => { checks.push({ id, result: ok === null ? 'NOT_RUN' : ok ? 'PASS' : 'FAIL', detail }); };
+const record = (id, result, detail) => { checks.push({ id, result, detail }); };
 async function get(path) {
   try {
-    const response = await fetch(`${base}${path}`, { redirect: 'manual', headers: { Accept: 'application/json, text/html' } });
+    const response = await fetch(`${base}${path}`, { redirect: 'manual', signal: AbortSignal.timeout(20000), headers: { Accept: 'application/json, text/html, */*' } });
     const text = await response.text();
-    let json = null; try { json = JSON.parse(text); } catch { /* HTML */ }
-    return { status: response.status, json, text };
-  } catch (error) { return { status: 0, json: null, text: '', error: error.message }; }
+    let json = null; try { json = JSON.parse(text); } catch { /* HTML ou JS */ }
+    // "Da aplicação": JSON com corpo ou página do Arandu. A tela de proteção de deploy
+    // ou de um proxy (401/403 em HTML de terceiros) não é resposta da aplicação.
+    const app = Boolean(json && typeof json === 'object') || /Arandu/.test(text);
+    return { status: response.status, json, text, app, type: response.headers.get('content-type') || '', location: response.headers.get('location') };
+  } catch (error) { return { status: 0, json: null, text: '', app: false, type: '', error: error.name === 'TimeoutError' ? 'timeout' : error.message }; }
+}
+/** PASS/FAIL só quando a resposta é da aplicação; senão BLOCKED (acesso) ou UNKNOWN (transporte). */
+function judge(id, response, ok, detail) {
+  const transport = transportOutcome(response);
+  const base = `HTTP ${response.status}${response.error ? ` (${response.error})` : ''}`;
+  if (transport) record(id, transport, `${base}${transport === 'BLOCKED' ? ' — acesso bloqueado ao verificador (proteção de deploy/proxy)' : ' — sem resposta da aplicação'}`);
+  else record(id, ok(response) ? 'PASS' : 'FAIL', detail ? `${base} ${detail(response)}` : base);
 }
 
 const health = await get('/api/health');
 const release = health.json?.release || {};
-record('health-alive', health.status === 200 && health.json?.status === 'alive', `HTTP ${health.status}`);
-record('environment-demo', release.environment === 'demo', `environment=${release.environment ?? 'ausente'}`);
+// O domínio verificado responde por si: redirecionar para outro host não é esta Demo.
+const offsite = health.location && !String(health.location).startsWith(base) && /^https?:\/\//.test(health.location);
+if (offsite) record('domain', 'FAIL', `redireciona para ${new URL(health.location).host}`);
+else judge('domain', health, (r) => r.status === 200 && r.app, (r) => `${new URL(base).host}${r.app ? '' : ' — não respondeu como o Arandu'}`);
+judge('health-alive', health, (r) => r.status === 200 && r.json?.status === 'alive');
+judge('environment-demo', health, () => release.environment === 'demo', () => `environment=${release.environment ?? 'ausente'}`);
 // Fixture sintética no navegador ou no servidor não é a Demo canônica.
-record('datasource-supabase', release.datasource === 'supabase', `datasource=${release.datasource ?? 'ausente'}`);
-record('not-misconfigured', release.misconfigured === false, `misconfigured=${release.misconfigured}`);
-if (local) record('release-sha', null, 'laboratório local: sem commit publicado');
-else record('release-sha', Boolean(expectedSha) && release.commit === expectedSha, expectedSha ? `commit=${release.commit ?? 'ausente'} esperado=${expectedSha}` : 'informe --sha=<commit> esperado');
+judge('datasource-supabase', health, () => release.datasource === 'supabase', () => `datasource=${release.datasource ?? 'ausente'}`);
+judge('not-misconfigured', health, () => release.misconfigured === false, () => `misconfigured=${release.misconfigured}`);
+if (local) record('release-sha', 'NOT_RUN', 'laboratório local: sem commit publicado');
+else if (!expectedSha) record('release-sha', 'NOT_RUN', 'informe --sha=<commit> esperado');
+else judge('release-sha', health, () => release.commit === expectedSha, () => `commit=${release.commit ?? 'ausente'} esperado=${expectedSha}`);
 
 const ready = await get('/api/health?probe=ready');
 // Localmente o banco não pertence à topologia hospedada: 503 é esperado e registrado, não promovido.
-record('readiness', ready.status === 200 && ready.json?.status === 'ready', `HTTP ${ready.status} status=${ready.json?.status ?? 'ausente'}${local && ready.status === 503 ? ' (esperado no laboratório: banco fora da topologia hospedada)' : ''}`);
+judge('readiness', ready, (r) => r.status === 200 && r.json?.status === 'ready', (r) => `status=${r.json?.status ?? 'ausente'}${local && r.status === 503 ? ' (esperado no laboratório: banco fora da topologia hospedada)' : ''}`);
 
 const personas = await get('/api/auth/demo-personas');
-record('persona-entry', personas.status === 200 && Array.isArray(personas.json?.personas) && personas.json.personas.length > 0, `HTTP ${personas.status} personas=${personas.json?.personas?.length ?? 0}`);
+judge('persona-entry', personas, (r) => r.status === 200 && Array.isArray(r.json?.personas) && r.json.personas.length > 0, (r) => `personas=${r.json?.personas?.length ?? 0}`);
+// Sem sessão, dado financeiro nunca sai: 401 da aplicação é o esperado.
+const anonymous = await get('/api/finance/organizations');
+judge('auth-required', anonymous, (r) => r.status === 401, (r) => (r.status === 200 ? '— devolveu dados sem sessão' : ''));
 
 const login = await get('/login.html');
-record('login-canonical', login.status === 200 && /financial-auth/.test(login.text) && !/data-mode="demo"/.test(login.text), `HTTP ${login.status}`);
+judge('login-canonical', login, (r) => r.status === 200 && /financial-auth/.test(r.text) && !/data-mode="demo"/.test(r.text));
+// Assets com hash do build: lidos do próprio login.html (o visitante baixa exatamente estes).
+const assets = [...login.text.matchAll(/<(?:script[^>]+src|link[^>]+stylesheet[^>]+href)="(\/assets\/[^"]+)"/g)].map((match) => match[1]);
+if (!assets.length) judge('assets', login, () => false, () => 'login.html sem scripts/estilos do build');
+for (const asset of assets) {
+  const kind = asset.endsWith('.css') ? /css/ : /javascript/;
+  judge(`asset ${asset.replace(/-[\w-]{8}\./, '.')}`, await get(asset), (r) => r.status === 200 && kind.test(r.type), (r) => r.type.split(';')[0]);
+}
 const shell = await get('/finance/dashboard.html');
-record('finance-shell-canonical', shell.status === 200 && !/\/finance\/demo\/|data-mode="demo"|demo-banner/.test(shell.text), `HTTP ${shell.status}`);
+judge('finance-shell-canonical', shell, (r) => r.status === 200 && !/\/finance\/demo\/|data-mode="demo"|demo-banner/.test(r.text));
+for (const route of ['/finance/rfq.html', '/finance/contracts.html', '/provider/proposal.html']) judge(`route ${route}`, await get(route), (r) => r.status === 200);
 // O sandbox legado não pode ser o que o visitante encontra em /demo depois do cutover.
 const sandbox = await get('/demo/index.html');
-record('no-legacy-sandbox', !(sandbox.status === 200 && /data-mode="demo"|finance\/demo\/workspace/.test(sandbox.text)), `HTTP ${sandbox.status}${sandbox.status === 200 ? ' (página servida)' : ''}`);
+judge('no-legacy-sandbox', sandbox, (r) => !(r.status === 200 && /data-mode="demo"|finance\/demo\/workspace/.test(r.text)), (r) => (r.status === 200 ? '(página servida)' : ''));
 
 mkdirSync('reports/demo-parity', { recursive: true });
 const failed = checks.filter((check) => check.result !== 'PASS');
-const report = { url: base, local, expected_sha: expectedSha, checked_at: new Date().toISOString(), release, verdict: failed.length ? 'NOT_READY' : 'READY', checks };
+const report = { url: base, local, expected_sha: expectedSha, checked_at: new Date().toISOString(), release, verdict: verdict(checks, { local }), checks };
 writeFileSync('reports/demo-parity/hosted.json', `${JSON.stringify(report, null, 2)}\n`);
-for (const check of checks) console.log(`${check.result.padEnd(8)} ${check.id.padEnd(24)} ${check.detail}`);
+for (const check of checks) console.log(`${check.result.padEnd(8)} ${check.id.padEnd(32)} ${check.detail}`);
 console.log(`\nVeredito: ${report.verdict}${failed.length ? ` (${failed.map((check) => check.id).join(', ')})` : ''}`);
-process.exit(failed.length ? 1 : 0);
+process.exit(report.verdict === 'READY' ? 0 : 1);

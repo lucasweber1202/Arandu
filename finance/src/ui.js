@@ -94,7 +94,9 @@ export function emptyState({ title, text = null, action = null, iconName = 'inbo
 // aqui, sem perder o que preencheu (o cookie de sessão vale para as duas abas).
 export const SESSION_EXPIRED_WRITE = 'Sua sessão expirou e nada foi registrado. Entre de novo em outra aba e repita aqui: o que você preencheu continua nesta tela.';
 function loginLink(label = 'Entrar em outra aba') {
-  const next = /^\/(?:provider|finance)\/[a-z-]+\.html$/.test(location.pathname) ? `?next=${encodeURIComponent(location.pathname)}` : '';
+  // Mesma regra da página de login: só páginas do produto, com query restrita (o id do registro aberto).
+  const here = `${location.pathname}${location.search}`;
+  const next = /^\/(?:provider|finance)\/[a-z-]+\.html(?:\?[A-Za-z0-9_.~%=&-]{1,300})?$/.test(here) ? `?next=${encodeURIComponent(here)}` : '';
   return el('a', { class: 'btn btn-secondary btn-sm', href: `/login.html${next}`, target: '_blank', rel: 'noopener' }, el('span', { class: 'btn-label', text: label }));
 }
 

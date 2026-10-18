@@ -16,12 +16,26 @@ const ENABLED = process.env.ARANDU_DEMO_ENTRY_E2E === '1';
 test.skip(!ENABLED, 'Defina ARANDU_DEMO_ENTRY_E2E=1 com o pool local abastecido (consome dois workspaces).');
 
 async function enterAs(page, key, landing) {
-  await page.goto('/login.html#demonstracao');
-  const card = page.locator(`[data-persona="${key}"]`);
-  await expect(card, 'o servidor expõe a entrada por persona').toBeVisible({ timeout: 15000 });
-  await card.click();
-  await page.waitForURL(landing, { timeout: 30000 });
-  await page.waitForFunction(() => document.querySelector('#view')?.getAttribute('aria-busy') !== 'true', null, { timeout: 30000 }).catch(() => null);
+  // O limite legítimo de entradas por rede (429) é respeitado esperando o tempo
+  // que o servidor informa, nunca trocando de identidade.
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    await page.goto('/login.html#demonstracao');
+    const card = page.locator(`[data-persona="${key}"]`);
+    await expect(card, 'o servidor expõe a entrada por persona').toBeVisible({ timeout: 15000 });
+    const response = page.waitForResponse((r) => r.url().endsWith('/api/auth/demo-login'));
+    await card.click();
+    const answer = await response;
+    if (answer.status() === 429) {
+      await expect(page.locator('.demo-entry-status')).toContainText('Muitas entradas', { timeout: 5000 });
+      await page.waitForTimeout(Math.min(Number(answer.headers()['retry-after'] || 60), 600) * 1000 + 1000);
+      continue;
+    }
+    expect(answer.status(), `entrada como ${key}`).toBe(200);
+    await page.waitForURL(landing, { timeout: 30000 });
+    await page.waitForFunction(() => document.querySelector('#view')?.getAttribute('aria-busy') !== 'true', null, { timeout: 30000 }).catch(() => null);
+    return;
+  }
+  throw new Error(`entrada como ${key} recusada repetidamente`);
 }
 const buyerOrg = (page) => page.evaluate(async () => {
   const listing = await (await fetch('/api/finance/organizations', { credentials: 'same-origin' })).json();
@@ -30,7 +44,7 @@ const buyerOrg = (page) => page.evaluate(async () => {
 
 test('visitante entra pela página pública, escreve no próprio workspace, troca de persona e não vê o de outro visitante', async ({ browser }, testInfo) => {
   test.skip(testInfo.project.name !== 'demo-desktop', 'Consome dois workspaces: roda uma vez, no projeto desktop.');
-  test.setTimeout(240000);
+  test.setTimeout(30 * 60 * 1000);
 
   // Identidade vem do servidor, não de um selo na tela.
   const visitor = await browser.newContext({ ignoreHTTPSErrors: true, locale: 'pt-BR' });

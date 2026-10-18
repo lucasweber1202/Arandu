@@ -62,6 +62,11 @@ test('entrada da Demo: comprador e instituições separados, dados fictícios di
   const entry = page.getByRole('region', { name: 'Conheça o Arandu por dentro' });
   await expect(entry).toContainText('produto real');
   await expect(entry).toContainText('Dados fictícios');
+  // Antes de escolher, o visitante sabe o que é o produto, o que ele não é e como sair.
+  await expect(entry).toContainText('organiza como uma empresa contrata produtos financeiros');
+  await expect(entry).toContainText('O Arandu não é banco');
+  await expect(entry).toContainText('fica gravado de verdade');
+  await expect(entry).toContainText('"Sair" no menu da sua conta');
   await expect(entry).toContainText('Um espaço só seu');
   const buyers = entry.locator('.demo-entry-group', { hasText: 'Empresa compradora' });
   const providers = entry.locator('.demo-entry-group', { hasText: 'Instituições financeiras' });
@@ -147,4 +152,21 @@ test('entrada da Demo: ordem da jornada — gestora primeiro; entre as institui�
   await page.goto('/login.html');
   await expect(page.locator('.demo-entry-group').first().locator('.demo-persona').first()).toHaveAttribute('data-persona', 'juliana');
   await expect(page.locator('.demo-entry-group').nth(1).locator('.demo-persona').first()).toHaveAttribute('data-persona', 'meridian');
+});
+
+test('entrada da Demo: o link que trouxe o visitante vale só para o lado da persona', async ({ page }) => {
+  await personaServer(page);
+  await page.route('**/finance/contracts.html*', (r) => r.fulfill({ contentType: 'text/html', body: '<h1>Contratos</h1>' }));
+  const next = encodeURIComponent('/finance/contracts.html?contrato=abc');
+  await page.goto(`/login.html?next=${next}#demonstracao`);
+  await page.locator('[data-persona="rafael"]').click();
+  await page.waitForURL('**/finance/contracts.html?contrato=abc');
+  // Instituição não segue link da área da empresa: vai ao próprio portal.
+  await page.goto(`/login.html?next=${next}#demonstracao`);
+  await page.locator('[data-persona="atlas"]').click();
+  await page.waitForURL('**/provider/index.html');
+  // Destino fora da regra é ignorado.
+  await page.goto(`/login.html?next=${encodeURIComponent('https://evil.example/finance/x.html')}#demonstracao`);
+  await page.locator('[data-persona="juliana"]').click();
+  await page.waitForURL('**/finance/dashboard.html');
 });

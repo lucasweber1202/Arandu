@@ -304,7 +304,10 @@ function counts(ctx) {
 function signedOutView(ctx, error) {
   const denied = error?.status === 403;
   ctx.header({ subtitle: null });
-  const destination = audience === 'provider' ? '/provider/index.html' : '/finance/dashboard.html';
+  // Depois de entrar, volta à página aberta (link compartilhado, nova aba), não ao Início.
+  const here = `${location.pathname}${location.search}`;
+  const destination = /^\/(?:provider|finance)\/[a-z-]+\.html(?:\?[A-Za-z0-9_.~%=&-]{1,300})?$/.test(here) ? here
+    : audience === 'provider' ? '/provider/index.html' : '/finance/dashboard.html';
   return el('div', { class: 'gate' }, [
     el('span', { class: 'gate-icon' }, icon(denied ? 'lock' : 'shield', { size: 22 })),
     el('h2', { class: 'gate-title', text: denied ? 'Acesso negado' : 'Entre para usar o portal' }),

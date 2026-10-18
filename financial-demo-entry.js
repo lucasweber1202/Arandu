@@ -50,9 +50,10 @@ function failureText(status, result, retryAfter) {
 
 /**
  * Monta a escolha de persona. `personas` vem do servidor ({key, name, title});
- * `enter(key)` faz o login real e devolve {ok, status, result}.
+ * `enter(key)` faz o login real e devolve {ok, status, result}. `next` (já validado
+ * pela página de login) é o link que trouxe o visitante.
  */
-export function demoEntry(personas, { enter, navigate = (url) => location.assign(url) }) {
+export function demoEntry(personas, { enter, next = null, navigate = (url) => location.assign(url) }) {
   const section = node('section', { class: 'demo-entry', id: 'demonstracao', 'aria-labelledby': 'demo-entry-title' });
   const status = node('p', { class: 'demo-entry-status', role: 'status', 'aria-live': 'polite' });
   // Ordem da jornada (gestão → aprovação → análise → leitura; quem responde ao vivo primeiro), não a do seed.
@@ -77,7 +78,9 @@ export function demoEntry(personas, { enter, navigate = (url) => location.assign
       try { outcome = await enter(persona.key); } catch { outcome = { ok: false, status: 0, result: null }; }
       if (outcome.ok) {
         status.textContent = `Sessão aberta como ${persona.name}. Carregando o workspace…`;
-        navigate(DESTINATION[guide?.side] || DESTINATION[BUYER]);
+        // O link que trouxe o visitante vale se for do lado da persona (empresa → /finance, instituição → /provider).
+        const side = guide?.side || BUYER;
+        navigate(next && next.startsWith(side === PROVIDER ? '/provider/' : '/finance/') ? next : DESTINATION[side]);
         return;
       }
       status.dataset.tone = 'error';
@@ -95,17 +98,18 @@ export function demoEntry(personas, { enter, navigate = (url) => location.assign
   section.append(...[
     node('p', { class: 'eyebrow', text: 'DEMONSTRAÇÃO' }),
     node('h2', { id: 'demo-entry-title', text: 'Conheça o Arandu por dentro' }),
-    node('p', { class: 'lead', text: 'Este é o produto real, com uma empresa e instituições fictícias. Escolha quem você quer ser: você entra no mesmo workspace que um cliente usaria.' }),
+    node('p', { class: 'lead', text: 'O Arandu organiza como uma empresa contrata produtos financeiros: a solicitação, as propostas das instituições, a aprovação, o contrato e as obrigações que vêm depois. Este é o produto real, com uma empresa e instituições fictícias. Escolha quem você quer ser.' }),
     node('ul', { class: 'demo-entry-facts', role: 'list' }, [
       node('li', { text: 'Dados fictícios: Vitta Foods e as instituições não existem; nenhum e-mail é enviado e nada sai do ambiente.' }),
-      node('li', { text: 'Um espaço só seu: o que você criar ou aprovar não aparece para outros visitantes e expira automaticamente.' }),
-      node('li', { text: 'Permissões reais: cada persona só vê e faz o que o papel dela permite.' })
+      node('li', { text: 'Um espaço só seu: o que você criar, enviar ou aprovar fica gravado de verdade, não aparece para outros visitantes e expira automaticamente.' }),
+      node('li', { text: 'Permissões reais: cada persona só vê e faz o que o papel dela permite.' }),
+      node('li', { text: 'O Arandu não é banco: não concede crédito, não movimenta dinheiro e não escolhe a instituição. A decisão é sempre de quem usa.' })
     ]),
     group('Empresa compradora · Vitta Foods', 'Quem conduz, analisa, aprova e acompanha as contratações financeiras.', known.filter((persona) => PERSONA_GUIDE[persona.key].side === BUYER)),
     group('Instituições financeiras', 'Quem responde aos convites da Vitta pelo portal da instituição. Cada uma vê só o que é dela.', known.filter((persona) => PERSONA_GUIDE[persona.key].side === PROVIDER)),
     group('Outras personas', null, other),
     status,
-    node('p', { class: 'fine', text: 'Para trocar de persona depois, use "Trocar persona" no topo do workspace. Quem já tem conta entra com e-mail e senha abaixo.' })
+    node('p', { class: 'fine', text: 'Para trocar de persona depois, use "Trocar persona" no topo do workspace; para sair, "Sair" no menu da sua conta. Quem já tem conta entra com e-mail e senha abaixo.' })
   ].filter(Boolean));
   return section;
 }

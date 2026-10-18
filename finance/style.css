@@ -612,7 +612,7 @@ a.mini-title:hover{color:var(--accent-text)}
 .matrix-provider{min-width:170px;text-align:right}
 .matrix-name{display:block;font-weight:700;color:var(--text)}
 .matrix-meta{display:block;font-size:var(--fs-xs);color:var(--text-muted);font-weight:500}
-.matrix-flag{display:inline-flex;align-items:center;gap:4px;margin-top:4px;font-size:11px;color:var(--warning);font-weight:600}
+.matrix-flag{display:flex;justify-content:flex-end;align-items:center;gap:4px;margin-top:4px;font-size:11px;color:var(--warning);font-weight:600}
 .matrix-coverage{display:flex;align-items:center;justify-content:flex-end;gap:6px;font-size:11px;color:var(--text-muted);font-weight:500;margin-top:6px}
 .matrix-group th{position:sticky;left:0;text-align:left;background:var(--surface-sunken);font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-muted);padding:8px 14px}
 .matrix td.num{font-variant-numeric:tabular-nums;color:var(--text)}
