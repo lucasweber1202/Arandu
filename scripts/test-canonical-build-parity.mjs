@@ -58,10 +58,13 @@ try {
   }
   verify(builds.demo, builds.production);
   const source = spawnSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' });
+  const state = spawnSync('git', ['status', '--porcelain'], { encoding: 'utf8' });
   assert.equal(source.status, 0, 'source_identity_unavailable');
+  assert.equal(state.status, 0, 'source_state_unavailable');
   assert.match(source.stdout.trim(), /^[a-f0-9]{40}$/);
+  const dirty = Boolean(state.stdout.trim());
   console.log(JSON.stringify({ outcome: 'LOCAL_VALIDATED', check: 'canonical_build_parity', routes: routes.length,
-    source_sha: source.stdout.trim(), identical_js_css: Object.keys(builds.demo.assets).length, hosted: 'NOT_RUN', note: 'Source/build proof only; no datasource, Auth, Storage or hosted attestation.' }));
+    source_sha: dirty ? null : source.stdout.trim(), worktree_dirty: dirty, identical_js_css: Object.keys(builds.demo.assets).length, hosted: 'NOT_RUN', note: 'Source/build proof only; no datasource, Auth, Storage or hosted attestation.' }));
 } finally {
   // Cleanup failure is a failing check, never a successful rehearsal.
   rmSync(temporary, { recursive: true, force: true });

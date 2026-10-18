@@ -9,6 +9,8 @@ Base main reconfirmada: `005676a0ddc10ccabdee9c728f653f8f13de6de8`.
 #221 e #222 integradas nessa base; CI da base verde não valida esta branch.
 Branch: `codex/p0-canonical-hosted-demo-20261018`.
 Commit das correções: `150e30687d0c0d35e7f90a9212de4a2881ecb0be`.
+Revisão posterior acrescenta regressão de ACCESS_BLOCKED para 401/403 do pool
+no doctor e impede atribuir SHA ao build com worktree suja (`source_sha: null`).
 HEAD final inclui esta evidência e a decisão de preparação da conversão A;
 obter SHA literal por `git rev-parse HEAD` e comparar com `head.sha` da PR.
 [PR da branch](https://github.com/lucasweber1202/Arandu/pulls?q=is%3Apr+head%3Acodex%2Fp0-canonical-hosted-demo-20261018).
@@ -68,6 +70,7 @@ SQL; RLS/tenant/sessão/Storage precisam de probes próprios.
 - Execução/configuração: `.env.example`, `package.json`,
   `scripts/check-finance-env.mjs`, `scripts/copy-runtime-assets.mjs`.
 - Regressões: `scripts/test-readiness.mjs`, `scripts/test-finance-env.mjs`,
+  `scripts/test-pilot-doctor.mjs`,
   `scripts/test-demo-hosted-readiness.mjs`, `scripts/test-canonical-build-parity.mjs`.
 - Operação: `docs/CANONICAL_HOSTED_DEMO_RELEASE.md`,
   `docs/DEMO_PRESENTATION_2026-10-29.md`, `docs/IMPLEMENTATION_MATRIX.md`, esta evidência.
