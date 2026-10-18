@@ -128,7 +128,10 @@ export async function ledgerPage(ctx, { resource, title, subtitle, filters, scop
       }
       const table = data.rows.length ? el('div', { class: 'table-scroll' }, el('table', { class: 'data-table compact' }, [
         el('thead', {}, el('tr', {}, [...data.columns, ''].map((text) => el('th', { scope: 'col', text })))),
-        el('tbody', {}, data.rows.map((row) => el('tr', {}, [...row.cells.map((text) => el('td', { text: humanizeText(ctx, text) })), el('td', {}, button(data.detail_label || 'Detalhe', { size: 'sm', onClick: () => detail(row.id) }))])))
+        // No celular o cabeçalho some e cada célula vira "rótulo: valor"; sem
+        // data-label as linhas eram valores soltos ("Aguardando dados", "Ausentes").
+        el('tbody', {}, data.rows.map((row) => el('tr', {}, [...row.cells.map((text, index) => el('td', index === 0 ? { class: 'cell-primary', text: humanizeText(ctx, text) } : { 'data-label': data.columns[index] || '', text: humanizeText(ctx, text) })),
+          el('td', { class: 'cell-action' }, button(data.detail_label || 'Detalhe', { size: 'sm', onClick: () => detail(row.id) }))])))
       ])) : emptyState(data.empty);
       origin?.update();
       result.replaceChildren(...data.cards.map((c) => card({ title: c.title, body: [...lines(c.lines), ...lines(c.note ? [c.note] : [], 'muted small'), c.href ? el('a', { href: c.href, text: c.link }) : null, ...(manage ? c.actions || [] : []).map((form) => button(form.label, { size: 'sm', onClick: () => open(form) }))] })),

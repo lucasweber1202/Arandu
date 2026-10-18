@@ -302,6 +302,9 @@ legend{padding:0}
 .date-cell>span:first-child{white-space:nowrap}
 /* Largura pelo conteúdo, não por rem fixo: a fonte de fallback (CI, outros SOs) é mais larga. */
 @media (min-width:760px){.rfq-table td[data-label="Responsável"] .person{min-width:max-content}}
+/* Cabeçalhos longos e honestos ("carregados") quebram linha em vez de empurrar a
+   coluna Verificação para fora da tela em 1440 px. */
+@media (min-width:760px){.data-table.provider-table th{white-space:normal;min-width:7rem}}
 .result-count{font-size:var(--fs-sm);color:var(--text-muted);margin-left:auto}
 .list-page{min-width:0}
 
@@ -440,6 +443,7 @@ td.urgent,td.urgent .date-rel{color:var(--danger);font-weight:600}
 .notice-meta{font-size:var(--fs-xs);color:var(--text-muted)}
 .unread-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex:none;margin-top:6px}
 .notice-group-title{font-size:var(--fs-xs);font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;padding:var(--s3) var(--s4) var(--s2);background:var(--surface-sunken);border-bottom:1px solid var(--border)}
+.task-group-overdue .notice-group-title{color:var(--danger)}
 
 /* --------------------------------------------------------------- painel */
 .dashboard{display:grid;gap:var(--s5)}
@@ -486,6 +490,8 @@ td.urgent,td.urgent .date-rel{color:var(--danger);font-weight:600}
 .mini-icon.tone-warning{background:var(--warning-weak)}
 .mini-main{display:grid;flex:1;min-width:0}
 .mini-title{font-weight:600;color:var(--text);text-decoration:none;font-size:var(--fs-md);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Tarefa se lê pelo título inteiro: até duas linhas antes de cortar. */
+.task-row .mini-title{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere}
 a.mini-title:hover{color:var(--accent-text)}
 .mini-meta{font-size:var(--fs-xs);color:var(--text-muted)}
 .mini-side{font-size:var(--fs-sm);color:var(--text-muted);white-space:nowrap;font-variant-numeric:tabular-nums}
@@ -824,12 +830,12 @@ a.mini-title:hover{color:var(--accent-text)}
 .next-action-box.tone-info{background:var(--info-weak);color:#12406f}
 .next-action-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
 .next-action-text{flex:1 1 280px;font-size:var(--fs-sm)}
-.contract-link{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-sm);font-weight:600;text-decoration:none}
+.contract-link{display:inline-flex;align-items:center;gap:6px;min-height:24px;font-size:var(--fs-sm);font-weight:600;text-decoration:none}
 .contract-lifecycle-links{display:flex;flex-wrap:wrap;gap:var(--s3) var(--s6)}
 
 /* ------------------------------------------------------ tarefas, config */
 .task-new{margin:0}
-.task-list{list-style:none;margin:0;padding:0}
+.task-list,.task-group-list{list-style:none;margin:0;padding:0}
 .task-item{display:flex;align-items:center;gap:var(--s3);padding:12px var(--s5);border-bottom:1px solid var(--border);scroll-margin-top:120px}
 .task-item:last-child{border-bottom:0}
 .task-item.highlighted{background:var(--accent-weak)}
@@ -987,6 +993,8 @@ main#main.landing{max-width:1120px;margin:0 auto;padding:var(--s6) var(--s6) var
   .data-table td::before{content:attr(data-label);font-size:var(--fs-xs);color:var(--text-muted);text-align:left;flex:none}
   .data-table td.cell-primary{display:block;text-align:left;padding-bottom:6px;min-width:0}
   .data-table td.cell-primary::before{display:none}
+  .data-table td.cell-action{justify-content:flex-end;padding-top:var(--s2)}
+  .data-table td.cell-action::before{display:none}
   .comparison-wide{display:none}
   .compare-mobile{display:block}
   .weights-form{grid-template-columns:minmax(0,1fr)}
@@ -1008,8 +1016,14 @@ main#main.landing{max-width:1120px;margin:0 auto;padding:var(--s6) var(--s6) var
   .opportunity-side{justify-items:start;grid-auto-flow:column;align-items:center}
   .invite-card{flex-direction:column;align-items:stretch}
   .proposal-bar{bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom))}
-  .proposal-bar-actions{width:100%;flex-wrap:wrap}
-  .proposal-bar-actions .btn{flex:1 1 140px;white-space:normal;min-height:40px}
+  .proposal-bar-actions{width:100%;flex-wrap:nowrap}
+  /* Barra compacta no celular: com cabeçalho e menu inferior, a versão de duas
+     linhas de status e botões quebrados cobria metade do formulário. */
+  .proposal-bar{gap:var(--s2);padding:var(--s2) 0}
+  .proposal-bar-status{width:100%;grid-template-columns:minmax(0,1fr)}
+  .proposal-bar .completion,.proposal-bar .save-indicator{font-size:var(--fs-xs);min-width:0}
+  .proposal-bar .completion>span:last-child,.proposal-bar .save-indicator>span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .proposal-bar-actions .btn{flex:1 1 0;min-width:0;white-space:nowrap;min-height:44px;padding-inline:var(--s2)}
   .provider-proposal .deflist-1{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:var(--s4)}
   .pref-table td{width:auto}
   .persona-grid{grid-template-columns:minmax(0,1fr)}
@@ -1286,3 +1300,5 @@ textarea.mono{width:100%;max-width:100%;min-width:0}
 .access-scope-title{font-size:var(--fs-sm);font-weight:600;margin:0 0 var(--s2)}
 .access-list{margin:0;padding-left:1.1em;display:grid;gap:4px;font-size:var(--fs-sm)}
 @media (max-width:759px){.access-scope{grid-template-columns:minmax(0,1fr)}}
+/* 320 px: sem ícone nos botões da barra do provedor, o rótulo inteiro cabe ("Revisar e enviar"). */
+@media (max-width:379px){.proposal-bar-actions .btn .icon{display:none}}

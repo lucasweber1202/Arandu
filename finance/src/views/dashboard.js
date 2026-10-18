@@ -1,6 +1,6 @@
 // Painel: começa pelo que precisa da pessoa agora, não por números.
 
-import { el, icon, daysUntil, relativeDays, formatDate, formatDateTime, productLabel, demandHeadline, RFQ_STATUS, timeAgo, money, renewalStage } from '../core.js';
+import { el, icon, daysUntil, relativeDays, plural, formatDate, formatDateTime, productLabel, demandHeadline, RFQ_STATUS, timeAgo, money, renewalStage } from '../core.js';
 import { card, pill, linkButton, emptyState, person, progress, button, toast } from '../ui.js';
 import { memberName, currentStep, approvalSummaryLine, eventTitle, isViewerTurn, TASK_EDITORS, taskChangeError } from './shared.js';
 import { loadEntities, entitySummaryCard } from './entities.js';
@@ -60,13 +60,13 @@ export function actionItems(ctx, approvals) {
           items.push({ rank: days <= 2 ? 1 : 2, due: days, tone: days <= 2 ? 'danger' : 'warning', icon: 'clock', kind: 'Prazo', title: `Encerra ${relativeDays(rfq.response_deadline)}: ${rfq.title}`,
             detail: `${answered} de ${invited || '—'} provedores responderam`, cta: 'Acompanhar', href: ctx.href(`/finance/rfq.html?id=${rfq.id}`) });
         } else if (days !== null && days < 0) {
-          items.push({ rank: 1, due: days, tone: 'warning', icon: 'clock', kind: 'Prazo', title: `Prazo encerrado: ${rfq.title}`, detail: `${answered} proposta(s). Encerre a coleta para avaliar.`, cta: 'Avaliar', href: ctx.href(`/finance/rfq.html?id=${rfq.id}#comparacao`) });
+          items.push({ rank: 1, due: days, tone: 'warning', icon: 'clock', kind: 'Prazo', title: `Prazo encerrado: ${rfq.title}`, detail: `${plural(answered, 'proposta', 'propostas')}. Encerre a coleta para avaliar.`, cta: 'Avaliar', href: ctx.href(`/finance/rfq.html?id=${rfq.id}#comparacao`) });
         }
         if (!invited) items.push({ rank: 2, tone: 'accent', icon: 'send', kind: 'Convites', title: `Convide provedores: ${rfq.title}`, detail: 'A solicitação está aberta, mas ninguém foi convidado.', cta: 'Convidar', href: ctx.href(`/finance/rfq.html?id=${rfq.id}#visao-geral`) });
       }
       // Com pedido de aprovação em qualquer estado, a ação já aparece pela aprovação.
       if (rfq.status === 'comparing' && !rfq.pending_approval && !['pending', 'approved', 'changes_requested', 'rejected'].includes(latestByRfq.get(rfq.id)?.status)) {
-        items.push({ rank: 2, tone: 'accent', icon: 'scale', kind: 'Avaliação', title: `Avaliar propostas: ${rfq.title}`, detail: `${(rfq.proposals || []).length} proposta(s) prontas para comparar`, cta: 'Comparar', href: ctx.href(`/finance/rfq.html?id=${rfq.id}#comparacao`) });
+        items.push({ rank: 2, tone: 'accent', icon: 'scale', kind: 'Avaliação', title: `Avaliar propostas: ${rfq.title}`, detail: `${plural((rfq.proposals || []).length, 'proposta pronta', 'propostas prontas')} para comparar`, cta: 'Comparar', href: ctx.href(`/finance/rfq.html?id=${rfq.id}#comparacao`) });
       }
       if (rfq.status === 'decided') items.push({ rank: 2, tone: 'accent', icon: 'briefcase', kind: 'Contrato', title: `Registrar contrato: ${rfq.title}`, detail: 'Decisão registrada. Informe vigência e aviso prévio para acompanhar a renovação.', cta: 'Registrar', href: ctx.href(`/finance/rfq.html?id=${rfq.id}#decisao`) });
       if (rfq.status === 'draft' && rfq.owner_id === viewer) items.push({ rank: 3, tone: 'neutral', icon: 'edit', kind: 'Rascunho', title: `Revisar e abrir: ${rfq.title}`, detail: 'Rascunho ainda não enviado a nenhum provedor.', cta: 'Abrir', href: ctx.href(`/finance/rfq.html?id=${rfq.id}`) });
@@ -285,11 +285,13 @@ export async function dashboard(ctx) {
   // carregada sob demanda para não pesar no bundle do Painel.
   const valueCard = ctx.mode === 'demo' ? null : await import('./executive.js').then((m) => m.executiveSection(ctx, entities)).catch(() => null);
   root.append(attention, summary, el('div', { class: 'dash-grid' }, [
-    // Trabalho antes de painel (Constitution §1.3): processos em andamento vêm
-    // antes dos indicadores de portfólio.
-    el('div', { class: 'dash-main' }, [entityCard, pipelineCard, valueCard, activityCard].filter(Boolean)),
+    // Trabalho antes de painel (Constitution §1.3, guideline §35.8): processos,
+    // renovações e tarefas vêm antes dos indicadores de portfólio. No celular a
+    // coluna lateral desce: a inteligência de valor fica depois dela, em largura
+    // total, para não empurrar renovações e tarefas para o fim da página.
+    el('div', { class: 'dash-main' }, [entityCard, pipelineCard, activityCard].filter(Boolean)),
     el('div', { class: 'dash-side' }, [contractsCard, tasksCard])
-  ]));
+  ]), ...[valueCard].filter(Boolean));
   if (!rfqs.length) root.prepend(firstUse(ctx));
   return root;
 }

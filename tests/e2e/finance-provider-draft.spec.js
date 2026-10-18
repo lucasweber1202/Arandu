@@ -232,3 +232,23 @@ test('nome longo do comprador (buyer_name da #215) cabe no celular estreito e ap
     expect((await node.innerText()).split(buyer).length - 1).toBeLessThanOrEqual(1);
   }
 });
+
+test('proposta: quem pediu aparece no topo e no resumo do celular; sem nome, nada é inventado', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 720 });
+  const buyer = 'Companhia Brasileira de Alimentos e Bebidas Vegetais do Centro-Oeste Participações S.A.';
+  await mockProvider(page, { assignment: { ...ASSIGNMENT, buyer_name: buyer } });
+  await page.goto(`/provider/proposal.html?proposal=${PROPOSAL}`);
+  await expect(page.locator('.meta-buyer')).toHaveText(`Solicitado por ${buyer}`);
+  await expect(page.locator('.demand-peek-title')).toHaveText(`O que ${buyer} pediu`);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+  // A barra de envio no celular não cobre o formulário: no máximo 1/5 da tela.
+  const bar = await page.locator('.proposal-bar').boundingBox();
+  if (page.viewportSize().width < 760) expect(bar.height).toBeLessThanOrEqual(720 / 5 + 8);
+
+  const { buyer_name: _omitted, ...withoutBuyer } = ASSIGNMENT;
+  await page.unrouteAll({ behavior: 'ignoreErrors' });
+  await mockProvider(page, { assignment: withoutBuyer });
+  await page.goto(`/provider/proposal.html?proposal=${PROPOSAL}`);
+  await expect(page.locator('.meta-buyer')).toHaveCount(0);
+  await expect(page.locator('.demand-peek-title')).toHaveText('O que a empresa pediu');
+});

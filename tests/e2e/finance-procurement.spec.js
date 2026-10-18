@@ -238,7 +238,9 @@ test('o assistente avança por etapas, valida em linha e salva o rascunho no ser
   const form = page.locator('#rfq-form');
   await expect(form.locator('fieldset[data-step="0"]')).toBeVisible();
   await expect(form.locator('fieldset[data-step="1"]')).toBeHidden();
-  await expect(page.locator('.stepper-item[aria-current="step"]')).toContainText('1. Produto');
+  // O número da etapa aparece uma vez (no círculo), não "1 1. Produto".
+  await expect(page.locator('.stepper-item[aria-current="step"] .stepper-index')).toHaveText('1');
+  await expect(page.locator('.stepper-item[aria-current="step"] .stepper-label')).toHaveText('Produto');
   await page.getByRole('button', { name: 'Continuar' }).click();
   await expect(form.locator('fieldset[data-step="1"]')).toBeHidden();
   await expect(page.getByRole('alert')).toContainText('Corrija 1 campo');
@@ -976,4 +978,52 @@ test('solicitações no celular: filtros ocupam a linha e o rótulo não é cort
     });
     expect(fits).toBe(true);
   }
+});
+
+test('contrato nascido de decisão leva ao processo e à decisão de origem; ?id= destaca o contrato', async ({ page }) => {
+  // A API devolve decision_id no contrato (não rfq_id); a solicitação traz decision_id.
+  const contract = { id: '00000000-0000-4000-8000-0000000000c1', decision_id: '00000000-0000-4000-8000-0000000000d1', provider_id: 'x1', provider_name: 'Banco Um', product: 'credit',
+    status: 'active', starts_on: '2026-01-10', ends_on: '2028-01-10', renewal_notice_days: 60, review_from: '2027-11-11', origin: 'sourcing' };
+  const imported = { ...contract, id: '00000000-0000-4000-8000-0000000000c2', decision_id: null, origin: 'imported', title: 'Fiança da sede', provider_name: 'Banco Dois', product: 'guarantee' };
+  const base = overview().rfqs[0];
+  await mockSession(page, { data: overview({ contracts: [contract, imported], rfqs: [{ ...base, status: 'contracted', decision_id: contract.decision_id }] }) });
+  await page.goto(`/finance/contracts.html?id=${contract.id}`);
+  const card = page.locator(`#contract-${contract.id}`);
+  await expect(card).toHaveClass(/highlighted/);
+  await expect(card.locator('.contract-kicker')).toContainText('Crédito expansão');
+  await expect(card.getByRole('link', { name: 'Ver processo e decisão de origem' })).toHaveAttribute('href', new RegExp(`rfq\\.html\\?id=${RFQ}#decisao$`));
+  // Contrato da carteira existente não inventa origem.
+  await expect(page.locator(`#contract-${imported.id}`).getByRole('link', { name: /decisão de origem/ })).toHaveCount(0);
+});
+
+test('painel: renovações e tarefas vêm antes da inteligência de valor no celular', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await mockSession(page);
+  await page.route('**/api/finance/executive**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, cards: [{ title: 'Valor de procurement', lines: ['Sem registros de valor no período.'], note: 'Cobertura: 0/0.', links: [] }] }) }));
+  await page.goto('/finance/dashboard.html');
+  const value = page.locator('#value-intelligence');
+  await expect(value).toBeVisible();
+  const top = async (locator) => (await locator.boundingBox()).y;
+  const contracts = page.getByRole('heading', { name: 'Contratos e renovações' });
+  const tasks = page.getByRole('heading', { name: /^(Outras tarefas|Tarefas)$/ });
+  expect(await top(contracts)).toBeLessThan(await top(value));
+  expect(await top(tasks)).toBeLessThan(await top(value));
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+});
+
+test('instituições: a coluna de verificação cabe no desktop e as contagens usam singular/plural', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name.startsWith('mobile'), 'tabela só no desktop');
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const providers = [{ id: 'x1', name: 'Banco Um', kind: 'bank', region: 'Nacional — São Paulo (SP)', website: 'https://bancoum.example' },
+    { id: 'x2', name: 'Banco Dois', kind: 'bank', region: 'Nacional — Belo Horizonte (MG)', website: 'https://bancodois.example' }];
+  const base = overview().rfqs[0];
+  await mockSession(page, { data: overview({ providers, rfqs: [{ ...base, proposals: [base.proposals[0]], invites: [{ provider_id: 'x1', status: 'accepted', provider_name: 'Banco Um' }, { provider_id: 'x2', status: 'invited', provider_name: 'Banco Dois' }] }] }) });
+  await page.goto('/finance/providers.html');
+  const table = page.locator('.provider-table');
+  await expect(table.getByRole('columnheader', { name: 'Verificação' })).toBeVisible();
+  const scroller = table.locator('xpath=..');
+  expect(await scroller.evaluate((node) => node.scrollWidth - node.clientWidth)).toBeLessThanOrEqual(1);
+  await expect(page.locator('#provider-x2')).toContainText('1 convite · 0 propostas');
+  await page.goto(`/finance/rfq.html?id=${RFQ}`);
+  await expect(page.locator('#convites')).toContainText('2 convidados · 1 respondeu');
 });

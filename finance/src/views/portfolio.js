@@ -6,7 +6,7 @@ import { graphContextCard } from './graph-context.js';
 // é por moeda — nada é somado entre moedas. Ausência de dado aparece como
 // ausência. Nenhuma métrica é nota, risco ou recomendação.
 
-import { el, icon, formatDate, percent, enumLabel } from '../core.js';
+import { el, icon, formatDate, percent, enumLabel, plural } from '../core.js';
 import { card, button, tag, field, drawer, toast, emptyState, errorState, loading, onSubmit } from '../ui.js';
 import { FACILITY_KINDS, GUARANTEE_KINDS } from '../../../lib/finance/portfolio.mjs';
 import { INDEXERS, AMORTIZATION } from '../../../lib/finance/contract-terms.mjs';
@@ -40,7 +40,7 @@ function currencyCard(view, definitions) {
       el('td', { 'data-label': 'Saldo no vencimento final', text: amount(row.final_balance, view.currency) })])))
   ])) : el('p', { class: 'muted small', text: 'Sem vencimentos futuros com cronograma ou saldo conhecido.' });
   return card({
-    title: `Portfólio em ${view.currency}`, subtitle: `${view.facilities} facility(ies) ativa(s)`, className: 'portfolio-currency',
+    title: `Portfólio em ${view.currency}`, subtitle: `${plural(view.facilities, 'facility ativa', 'facilities ativas')}`, className: 'portfolio-currency',
     body: [
       el('div', { class: 'portfolio-stats' }, [
         stat('Limite aprovado', amount(view.approved_limit, view.currency), definitions.approved_limit),
@@ -105,7 +105,7 @@ export async function portfolio(ctx) {
     out.push(card({
       title: 'Garantias comprometidas', subtitle: result.views.definitions.committed_guarantees,
       body: [
-        ...result.views.guarantees.map((view) => el('div', { class: 'guarantee-summary' }, [el('strong', { text: `${view.currency}: ${amount(view.committed, view.currency)} em ${view.count} garantia(s) ativa(s)` }),
+        ...result.views.guarantees.map((view) => el('div', { class: 'guarantee-summary' }, [el('strong', { text: `${view.currency}: ${amount(view.committed, view.currency)} em ${plural(view.count, 'garantia ativa', 'garantias ativas')}` }),
           view.unknown_amount ? el('span', { class: 'muted small', text: ` · ${view.unknown_amount} sem valor registrado` }) : null])),
         guarantees.length ? el('ul', { class: 'plain-list guarantee-list' }, guarantees.map((row) => el('li', {}, [
           el('strong', { text: GUARANTEE_KINDS[row.kind] || row.kind }), el('span', { text: ` · ${row.description} · ${amount(row.committed_amount, row.currency)} · ${entityName(entities, row.legal_entity_id)}` }),

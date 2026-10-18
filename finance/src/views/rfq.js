@@ -3,7 +3,7 @@ import { graphContextCard } from './graph-context.js';
 
 import { PRODUCTS } from '../../../lib/finance/products.mjs';
 import { SOURCE_LABELS, fieldLabel } from '../../../lib/finance/passport.mjs';
-import { el, icon, money, percent, fieldValue, formatDate, formatDateTime, relativeDays, daysUntil, productLabel, RFQ_STATUS, PROPOSAL_STATUS, APPROVAL_STATUS, PROVIDER_KINDS, todayIso, timeAgo } from '../core.js';
+import { el, icon, money, percent, fieldValue, formatDate, formatDateTime, relativeDays, daysUntil, plural, productLabel, RFQ_STATUS, PROPOSAL_STATUS, APPROVAL_STATUS, PROVIDER_KINDS, todayIso, timeAgo } from '../core.js';
 import { card, pill, tag, button, linkButton, emptyState, errorState, loading, tabs, definitionList, toast, confirmDialog, promptDialog, drawer, field, catalogControl, person, menu, progress, onSubmit, sessionLink } from '../ui.js';
 import { loadEntities, rfqEntityControl } from './entities.js';
 import { comparisonMatrix, weightsPanel, revisionTimeline, collaboration, activityLog, approvalSteps, approvalActions, currentStep, memberName, memberTitle, coverage, approvalSummaryLine, lazyDocuments, keyTerms, isViewerTurn } from './shared.js';
@@ -87,7 +87,7 @@ export async function rfqDetail(ctx) {
       description: (rfq.invites || []).length ? 'Os provedores convidados passam a ver a solicitação e podem enviar propostas até o prazo.' : 'Ainda não há provedores convidados. Você pode abrir agora e convidar em seguida.' }) }));
     if (rfq.status === 'collecting') actions.push(button('Encerrar coleta e avaliar', { variant: 'primary', iconName: 'scale', onClick: () => transition('comparing', {
       title: 'Encerrar a coleta?', confirmLabel: 'Encerrar coleta',
-      description: `${proposals.length} proposta(s) recebida(s). Provedores não poderão mais enviar ou revisar propostas, a menos que você reabra a coleta.` }) }));
+      description: `${plural(proposals.length, 'proposta recebida', 'propostas recebidas')}. Provedores não poderão mais enviar ou revisar propostas, a menos que você reabra a coleta.` }) }));
     if (rfq.status === 'comparing' && !pending && !decision && !governanceGap) actions.push(linkButton(policy.required_for_decision ? 'Solicitar aprovação' : 'Registrar decisão', `#${policy.required_for_decision ? 'aprovacoes' : 'decisao'}`, { variant: 'primary', iconName: policy.required_for_decision ? 'checkCircle' : 'flag' }));
     if (rfq.status === 'decided' && !contract && !governanceGap) actions.push(linkButton('Registrar contrato', '#decisao', { variant: 'primary', iconName: 'briefcase' }));
     if (['draft', 'open', 'collecting'].includes(rfq.status)) actions.push(button('Editar', { iconName: 'edit', onClick: () => editDrawer(ctx, rfq) }));
@@ -166,7 +166,7 @@ function overviewTab(ctx, rfq, { manage, pending, approvals, decision, contract,
       : invite.status === 'accepted' ? 'Aceitou o convite' : invite.status === 'invited' ? 'Aguardando aceite' : INVITE_CLOSED[invite.status]?.detail || 'Não pode mais responder por este convite';
     inviteList.append(el('li', { class: 'invite-row' }, [person(invite.provider_name || 'Provedor', detail), pill(state, { size: 'sm' })]));
   }
-  const inviteCard = card({ title: 'Provedores convidados', subtitle: invites.length ? `${invites.length} convidado(s) · ${answered.size} responderam` : 'Ninguém convidado ainda.', id: 'convites',
+  const inviteCard = card({ title: 'Provedores convidados', subtitle: invites.length ? `${plural(invites.length, 'convidado', 'convidados')} · ${answered.size} ${answered.size === 1 ? 'respondeu' : 'responderam'}` : 'Ninguém convidado ainda.', id: 'convites',
     body: [invites.length ? inviteList : emptyState({ title: 'Convide pelo menos três provedores', text: 'Com menos de três propostas, a comparação diz pouco.', iconName: 'users', compact: true }),
       manage && ['draft', 'open', 'collecting'].includes(rfq.status) ? inviteForm(ctx, rfq) : null] });
 
@@ -253,7 +253,7 @@ function inviteForm(ctx, rfq) {
   if (!options.length) return el('p', { class: 'muted small', text: 'Todos os provedores cadastrados já foram convidados. Cadastre outros em Provedores.' });
   const select = el('select', { name: 'provider_id' });
   for (const provider of options) select.add(new Option(`${provider.name} · ${PROVIDER_KINDS[provider.kind] || 'tipo não informado'}`, provider.id));
-  const submit = button('Convidar', { variant: 'primary', type: 'submit', size: 'sm', iconName: 'send' });
+  const submit = button('Convidar', { variant: 'secondary', type: 'submit', size: 'sm', iconName: 'send' });
   const form = el('form', { class: 'inline-form' }, [field({ label: 'Convidar provedor', control: select }), submit]);
   onSubmit(form, async (event) => {
     event.preventDefault();

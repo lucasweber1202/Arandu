@@ -94,3 +94,16 @@ test('registro recusado pelo servidor (4xx) continua editável para corrigir',as
  await expect(form.getByRole('alert')).toContainText('Informe a data efetiva do go-live.');
  await expect(form.getByRole('button',{name:'Registrar'})).toBeEnabled();
 });
+test('lista de implantação: no celular, cada valor aparece com o seu rótulo',async({page})=>{
+ await setup(page);await page.goto('/finance/implementations.html');
+ const row=page.locator('table tbody tr').first();
+ // Sem cabeçalho visível no celular, o rótulo vem de data-label em cada célula de valor.
+ await expect(row.locator('td[data-label="Go-live previsto"]')).toHaveCount(1);
+ await expect(row.locator('td[data-label="Estado"]')).toHaveCount(1);
+ await expect(row.getByRole('button',{name:'Detalhe'})).toBeVisible();
+ if(page.viewportSize().width<760){
+  const label=await row.locator('td[data-label="Estado"]').evaluate(n=>getComputedStyle(n,'::before').content);
+  expect(label).toContain('Estado');
+ }
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth)).toBeLessThanOrEqual(1);
+});

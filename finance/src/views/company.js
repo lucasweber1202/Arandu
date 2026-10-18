@@ -2,7 +2,7 @@
 // tarefas, notificações e configurações.
 
 import { PRODUCTS } from '../../../lib/finance/products.mjs';
-import { el, icon, money, percent, formatDate, formatDateTime, relativeDays, daysUntil, productLabel, demandHeadline, RFQ_STATUS, CONTRACT_STATUS, PROPOSAL_STATUS, PROVIDER_KINDS, ROLE_LABELS, timeAgo, fold, todayIso, renewalStage } from '../core.js';
+import { el, icon, money, percent, formatDate, formatDateTime, relativeDays, daysUntil, plural, productLabel, demandHeadline, RFQ_STATUS, CONTRACT_STATUS, PROPOSAL_STATUS, PROVIDER_KINDS, ROLE_LABELS, timeAgo, fold, todayIso, renewalStage } from '../core.js';
 import { card, pill, tag, button, linkButton, emptyState, errorState, loading, tabs, definitionList, toast, confirmDialog, drawer, field, person, avatar, onSubmit } from '../ui.js';
 import { memberName, currentStep, approvalSummaryLine, comparisonMatrix, revisionTimeline, approvalActions, approvalSteps, coverage, lazyDocuments, keyTerms, termsSummary, isViewerTurn, TASK_EDITORS, taskChangeError } from './shared.js';
 import { NOTIFICATION_META, notificationItem } from '../shell.js';
@@ -225,7 +225,7 @@ export async function contracts(ctx) {
     target.disabled = true;
     try {
       const result = await ctx.api('renewals', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id }) });
-      toast(result.tasks_created ? `${result.tasks_created} tarefa(s) de renovação criada(s).` : 'Marcos em dia. Nenhuma tarefa nova.');
+      toast(result.tasks_created ? `${plural(result.tasks_created, 'tarefa de renovação criada', 'tarefas de renovação criadas')}.` : 'Marcos em dia. Nenhuma tarefa nova.');
       if (result.tasks_created) ctx.reload();
     } catch (error) { toast(error.message, 'error'); } finally { target.disabled = false; }
   } }) : null;
@@ -238,6 +238,8 @@ export async function contracts(ctx) {
   const ordered = [...rows].sort((a, b) => (['active', 'renewing'].includes(b.status) - ['active', 'renewing'].includes(a.status)) || String(a.review_from).localeCompare(String(b.review_from)));
   // Contratos que pedem ação primeiro.
   const root = el('div', { class: 'stack' });
+  // Destaque por âncora (#contract-…) ou pelo link de origem da implantação (?id=…).
+  const focusId = location.hash.startsWith('#contract-') ? location.hash.slice('#contract-'.length) : new URLSearchParams(location.search).get('id');
   for (const contract of ordered) {
     const next = contractNextAction(contract);
     // Só crédito e adquirência têm concorrência no Arandu. Em renovação, o
@@ -253,8 +255,10 @@ export async function contracts(ctx) {
         location.assign(ctx.href(`/finance/rfq.html?id=${encodeURIComponent(result.id)}`));
       } catch (error) { toast(error.message, 'error'); target.disabled = false; }
     } }) : null;
-    const source = (ctx.data.rfqs || []).find((rfq) => rfq.id === contract.rfq_id);
-    root.append(el('article', { class: `contract-card${location.hash === `#contract-${contract.id}` ? ' highlighted' : ''}`, id: `contract-${contract.id}`, tabindex: '-1', dataset: { entity: 'contract', id: contract.id } }, [
+    // O contrato guarda a decisão (decision_id), não a solicitação: a origem é
+    // a solicitação cuja decisão registrada é a deste contrato.
+    const source = contract.decision_id ? (ctx.data.rfqs || []).find((rfq) => rfq.decision_id && rfq.decision_id === contract.decision_id) : null;
+    root.append(el('article', { class: `contract-card${focusId === contract.id ? ' highlighted' : ''}`, id: `contract-${contract.id}`, tabindex: '-1', dataset: { entity: 'contract', id: contract.id } }, [
       el('header', { class: 'contract-head' }, [
         el('div', {}, [
           el('p', { class: 'contract-kicker', text: `${CONTRACT_CATEGORIES[contract.product] || productLabel(contract.product)}${source ? ` · ${source.title}` : contract.title ? ` · ${contract.title}` : ''}` }),
@@ -273,13 +277,13 @@ export async function contracts(ctx) {
         contract.document_reference ? ['Documento', contract.document_reference] : null
       ].filter(Boolean).map(([label, value]) => el('div', { class: 'deflist-row' }, [el('dt', { text: label }), el('dd', { class: value === 'Não informado' ? 'missing' : '', text: value })]))),
       el('div', { class: 'contract-open' }, [button('Abrir contrato: termos, aditivos e marcos', { size: 'sm', iconName: 'file', onClick: () => mods.contractCenter.openContract(ctx, contract) }),
-        contract.origin === 'imported' ? tag('Carteira existente') : null, contract.current_version ? tag(`Termos v${contract.current_version}`, 'accent') : tag('Termos não estruturados', 'warning')]),
+        contract.origin === 'imported' ? tag('Carteira existente') : null, contract.current_version ? tag(`Termos v${contract.current_version}`, 'accent') : tag('Termos não estruturados', 'warning'),
+        source ? el('a', { class: 'contract-link contract-origin', href: ctx.href(`/finance/rfq.html?id=${source.id}#decisao`) }, [el('span', { text: 'Ver processo e decisão de origem' }), icon('arrowRight', { size: 14 })]) : null]),
       lazyDocuments(ctx, 'contract', contract.id, 'Documentos do contrato', { canUpload: ctx.can('upload_document') }),
-      source ? el('a', { class: 'contract-link', href: ctx.href(`/finance/rfq.html?id=${source.id}#decisao`) }, [el('span', { text: 'Ver processo e decisão de origem' }), icon('arrowRight', { size: 14 })]) : null,
       contractLifecycleLinks(ctx, contract)
     ]));
   }
-  if (location.hash.startsWith('#contract-')) queueMicrotask(() => { const target = document.getElementById(location.hash.slice(1)); target?.scrollIntoView({ block: 'start' }); target?.focus({ preventScroll: true }); });
+  if (focusId) queueMicrotask(() => { const target = document.getElementById(`contract-${focusId}`); target?.scrollIntoView({ block: 'start' }); target?.focus({ preventScroll: true }); });
   return root;
 }
 
@@ -307,10 +311,9 @@ export async function providers(ctx) {
     list.push(contract);
     liveContracts.set(contract.provider_id, list);
   }
-  const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
   const search = el('input', { type: 'search', class: 'input', placeholder: 'Buscar por nome, tipo ou região', 'aria-label': 'Buscar provedor' });
   const count = el('span', { class: 'result-count', role: 'status', 'aria-live': 'polite' });
-  const table = el('table', { class: 'data-table' });
+  const table = el('table', { class: 'data-table provider-table' });
   table.append(el('thead', {}, el('tr', {}, ['Instituição', 'Tipo e região', 'Contratos vigentes carregados', 'Próximo vencimento carregado', 'Processos carregados', 'Verificação'].map((label) => el('th', { scope: 'col', text: label })))));
   const body = el('tbody');
   table.append(body);
@@ -584,7 +587,17 @@ export async function tasks(ctx) {
       const visible = loaded;
       scopeNote.textContent = `${visible.length} ${visible.length === 1 ? 'tarefa carregada' : 'tarefas carregadas'}${nextCursor ? ' · há mais neste filtro' : visible.length ? ' · todas deste filtro' : ''}`;
       more.hidden = !nextCursor;
-      const list = el('ul', { class: 'task-list', role: 'list' });
+      // Abertas agrupadas por urgência (§35.8): o que venceu, o que vence nesta
+      // semana e o resto. A ordem do servidor (prazo) é mantida dentro de cada grupo.
+      const grouped = filter.value !== 'concluidas';
+      const BUCKETS = [['overdue', 'Vencidas'], ['week', 'Próximos 7 dias'], ['later', 'Mais adiante'], ['none', 'Sem prazo']];
+      const bucketOf = (task) => {
+        if (task.status !== 'open' || !task.due_on) return task.due_on ? 'later' : 'none';
+        const days = daysUntil(task.due_on);
+        return days < 0 ? 'overdue' : days <= 7 ? 'week' : 'later';
+      };
+      const lists = new Map(BUCKETS.map(([key]) => [key, el('ul', { class: 'task-group-list', role: 'list' })]));
+      const single = el('ul', { class: 'task-list', role: 'list' });
       const rfqs = new Map((ctx.data.rfqs || []).map((rfq) => [rfq.id, rfq]));
       const contractsById = new Map((ctx.data.contracts || []).map((row) => [row.id, row]));
       for (const task of visible) {
@@ -604,7 +617,7 @@ export async function tasks(ctx) {
         const ownerNode = canAssign && task.status === 'open'
           ? (() => { const select = assigneeSelect(ctx, task.assignee_id, `Responsável: ${task.title}`); select.addEventListener('change', () => changeAssignee(task, select)); return select; })()
           : el('span', { class: `task-owner${task.assignee_id ? '' : ' muted'}`, text: owner });
-        list.append(el('li', { class: `task-item${task.status === 'done' ? ' done' : ''}${location.hash === `#task-${task.id}` || focusId === task.id ? ' highlighted' : ''}`, id: `task-${task.id}`, dataset: { assignee: task.assignee_id ? 'set' : 'none' } }, [
+        (grouped ? lists.get(bucketOf(task)) : single).append(el('li', { class: `task-item${task.status === 'done' ? ' done' : ''}${location.hash === `#task-${task.id}` || focusId === task.id ? ' highlighted' : ''}`, id: `task-${task.id}`, dataset: { assignee: task.assignee_id ? 'set' : 'none' } }, [
           check, el('div', { class: 'task-main' }, [state, el('span', { class: 'task-title', text: task.title }),
             el('span', { class: 'task-meta' }, [el('span', { class: 'sr-only', text: 'Responsável: ' }), canAssign && task.status === 'open' ? null : owner, canAssign && task.status === 'open' ? null : (related ? ' · ' : null), related].filter(Boolean)), contractDue]),
           canAssign && task.status === 'open' ? el('label', { class: 'task-owner-field' }, [el('span', { class: 'sr-only', text: 'Responsável' }), ownerNode]) : null,
@@ -613,6 +626,10 @@ export async function tasks(ctx) {
       }
       const empty = { abertas: ['Nenhuma tarefa aberta', 'Tarefas de renovação são criadas automaticamente a partir dos contratos.'], minhas: ['Nenhuma tarefa aberta atribuída a você', 'Quando alguém atribuir uma tarefa a você, ela aparece aqui.'],
         'sem-responsavel': ['Toda tarefa aberta tem responsável', null], concluidas: ['Nenhuma tarefa concluída', null] }[filter.value];
+      const list = grouped
+        ? el('div', { class: 'task-list task-groups' }, BUCKETS.filter(([key]) => lists.get(key).children.length).map(([key, label]) => el('section', { class: `notice-group task-group task-group-${key}`, 'aria-label': label }, [
+          el('h2', { class: 'notice-group-title', text: `${label} · ${lists.get(key).children.length}` }), lists.get(key)])))
+        : single;
       box.replaceChildren(visible.length ? list : emptyState({ title: empty[0], text: empty[1], iconName: 'checkCircle', compact: true }));
       const target = focusId ? document.getElementById(`task-${focusId}`) : location.hash.startsWith('#task-') ? document.querySelector(location.hash) : null;
       target?.scrollIntoView({ block: 'center' });

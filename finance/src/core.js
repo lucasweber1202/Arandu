@@ -143,6 +143,11 @@ export function daysUntil(value) {
   const today = parseDay(todayIso());
   return Math.round((Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) - Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())) / 86400000);
 }
+// Contagem com a palavra certa: "1 proposta", "2 propostas" — nunca "proposta(s)".
+export function plural(count, one, many) {
+  return `${count} ${count === 1 ? one : many}`;
+}
+
 export function relativeDays(value) {
   const days = daysUntil(value);
   if (days === null) return '';
