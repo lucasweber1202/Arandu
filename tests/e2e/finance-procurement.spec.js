@@ -919,3 +919,61 @@ test('membros que não carregam não viram "seu papel não permite": a tela diz 
   await expect(page.locator('#view').getByRole('button', { name: 'Tentar novamente' })).toBeVisible();
   await expect(page.locator('#view')).not.toContainText('Seu papel');
 });
+
+test('propostas recebidas: validade de processo encerrado é histórica (com ano, sem alarme) e "1 dia" no singular', async ({ page }) => {
+  const data = overview();
+  data.rfqs.push({ id: '00000000-0000-4000-8000-0000000000b2', title: 'Adquirência encerrada', product: 'acquiring', status: 'contracted', revision: 1, response_deadline: '2024-08-01',
+    demand: {}, invites_count: 1, owner_id: 'u1', created_at: '2024-07-01T10:00:00Z',
+    proposals: [{ id: 'p9', provider_id: 'x9', provider_name: 'Lumina Teste', status: 'submitted', version: 1, rfq_revision: 1, submitted_at: '2024-08-10T10:00:00Z',
+      terms: { mdr_debit: 0.89, mdr_credit_cash: 1.99, settlement_days: 1, valid_until: '2024-09-06' } }] });
+  data.rfqs[0].proposals[0].terms.valid_until = '2020-01-01';
+  await mockSession(page, { data });
+  await page.goto('/finance/proposals.html');
+  const closed = page.locator('tr', { hasText: 'Lumina Teste' });
+  await expect(closed).toContainText('Prazo de liquidação: 1 dia');
+  await expect(closed).not.toContainText('1 dias');
+  const validity = closed.locator('td[data-label="Validade"]');
+  await expect(validity).toContainText('06 de set de 2024 · expirou');
+  await expect(validity).not.toHaveClass(/urgent/);
+  // Processo ainda em avaliação: a validade vencida continua sendo alerta.
+  const live = page.locator('tr', { hasText: 'Banco Um' }).locator('td[data-label="Validade"]');
+  await expect(live).toContainText('vencida');
+  await expect(live).toHaveClass(/urgent/);
+});
+
+test('solicitações: prazo não quebra em duas linhas e o nome do responsável aparece inteiro no desktop', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name.startsWith('mobile'), 'layout de tabela só no desktop');
+  // Condições da Demo real: títulos longos competem com as colunas curtas (1440 px).
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const base = overview().rfqs[0];
+  await mockSession(page, { data: overview({ rfqs: [
+    { ...base, owner_name: 'Juliana Ramos', title: 'Capital de giro sazonal — safra de inverno (R$ 5 milhões / 12 meses)' },
+    { ...base, id: '00000000-0000-4000-8000-0000000000b3', owner_name: 'Juliana Ramos', title: 'Adquirência — revisão de MDR e antecipação (R$ 12 milhões/mês)' }
+  ] }) });
+  await page.goto('/finance/rfqs.html');
+  const date = page.locator('.rfq-table .date-cell > span').first();
+  const box = await date.boundingBox();
+  const lineHeight = await date.evaluate((node) => parseFloat(getComputedStyle(node).lineHeight) || 20);
+  expect(box.height).toBeLessThan(lineHeight * 1.5);
+  const name = page.locator('.rfq-table .person-name').first();
+  expect(await name.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true);
+});
+
+test('solicitações no celular: filtros ocupam a linha e o rótulo não é cortado', async ({ page }, testInfo) => {
+  test.skip(!testInfo.project.name.startsWith('mobile'), 'só celular');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await mockSession(page);
+  await page.goto('/finance/rfqs.html');
+  for (const select of await page.locator('.toolbar select').all()) {
+    const fits = await select.evaluate((node) => {
+      const probe = document.createElement('span');
+      probe.style.cssText = `font:${getComputedStyle(node).font};position:absolute;visibility:hidden;white-space:nowrap`;
+      probe.textContent = node.selectedOptions[0].text;
+      document.body.append(probe);
+      const ok = probe.offsetWidth + 40 <= node.clientWidth;
+      probe.remove();
+      return ok;
+    });
+    expect(fits).toBe(true);
+  }
+});

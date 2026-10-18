@@ -121,6 +121,7 @@ export async function proposalsList(ctx) {
     const outdated = proposal.rfq_revision && proposal.rfq_revision < (rfq.revision || 1);
     const cov = coverage(rfq.product, proposal.terms);
     const validDays = daysUntil(proposal.terms?.valid_until);
+    const live = ['open', 'collecting', 'comparing'].includes(rfq.status);
     body.append(el('tr', { class: 'row-link', dataset: { entity: 'proposal', id: proposal.id, rfq: rfq.id } }, [
       el('td', { 'data-label': 'Provedor', class: 'cell-primary' }, [el('a', { class: 'row-title stretched', href: ctx.href(`/finance/rfq.html?id=${rfq.id}#propostas`), text: proposal.provider_name }), el('span', { class: 'row-sub', text: PROVIDER_KINDS[proposal.provider_kind] || 'Provedor' })]),
       el('td', { 'data-label': 'Solicitação' }, [el('span', { text: rfq.title }), el('span', { class: 'row-sub', text: RFQ_STATUS[rfq.status]?.label })]),
@@ -131,7 +132,9 @@ export async function proposalsList(ctx) {
       // Resposta depois do prazo informado é registrada como tal (fato, não juízo).
       el('td', { 'data-label': 'Enviada' }, [el('span', { text: formatDate(proposal.submitted_at) }),
         rfq.response_deadline && proposal.submitted_at && String(proposal.submitted_at).slice(0, 10) > rfq.response_deadline ? el('span', { class: 'row-sub warn-text', text: 'após o prazo de resposta' }) : null]),
-      el('td', { 'data-label': 'Validade', class: validDays !== null && validDays < 5 ? 'urgent' : '' }, proposal.terms?.valid_until ? el('span', { text: `${formatDate(proposal.terms.valid_until, { withYear: false })}${validDays !== null && validDays >= 0 ? ` · ${relativeDays(proposal.terms.valid_until)}` : validDays < 0 ? ' · vencida' : ''}` }) : el('span', { class: 'muted', text: 'não informada' })),
+      // Validade só é alerta enquanto o processo ainda decide; em processo encerrado
+      // é registro histórico (com ano), sem vermelho de urgência.
+      el('td', { 'data-label': 'Validade', class: live && validDays !== null && validDays < 5 ? 'urgent' : '' }, proposal.terms?.valid_until ? el('span', { class: live ? '' : 'muted', text: `${formatDate(proposal.terms.valid_until, { withYear: !live })}${validDays !== null && validDays >= 0 ? ` · ${relativeDays(proposal.terms.valid_until)}` : validDays < 0 ? (live ? ' · vencida' : ' · expirou') : ''}` }) : el('span', { class: 'muted', text: 'não informada' })),
       el('td', { 'data-label': 'Cobertura' }, el('span', { class: 'coverage-inline' }, [el('span', { class: 'coverage-bar' }, el('span', { class: 'coverage-fill', style: `width:${Math.round(cov.ratio * 100)}%` })), el('span', { class: 'small', text: `${cov.filled}/${cov.total}` })]))
     ]));
   }

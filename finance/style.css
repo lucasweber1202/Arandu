@@ -298,6 +298,9 @@ legend{padding:0}
 .toolbar-search .icon{position:absolute;left:10px;color:var(--text-muted);pointer-events:none}
 .toolbar-search input:not([type=checkbox]):not([type=radio]):not([type=range]),.toolbar-search .input{padding-left:32px}
 .toolbar-chips{margin-bottom:var(--s3);overflow-x:auto}
+/* Data curta não quebra ("15 de / out") e o responsável não é cortado com espaço sobrando no título. */
+.date-cell>span:first-child{white-space:nowrap}
+.rfq-table td[data-label="Responsável"]{min-width:11rem}
 .result-count{font-size:var(--fs-sm);color:var(--text-muted);margin-left:auto}
 .list-page{min-width:0}
 
@@ -971,6 +974,8 @@ main#main.landing{max-width:1120px;margin:0 auto;padding:var(--s6) var(--s6) var
   .field-grid,.choice-cards{grid-template-columns:minmax(0,1fr)}
   .deflist-2,.deflist-3{grid-template-columns:minmax(0,1fr)}
   .toolbar .input,.toolbar select{flex:1 1 140px;min-width:0}
+  /* No celular cada filtro ocupa a linha: rótulo inteiro, sem "Qualquer responsáv…". */
+  .toolbar select,.toolbar select.input{flex-basis:100%}
   .result-count{width:100%;margin-left:0}
   /* Tabela vira lista de cartões, mantendo a semântica de tabela. */
   .data-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
