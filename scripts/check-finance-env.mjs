@@ -13,6 +13,7 @@
 
 import { LEGACY_SUPABASE_REFS, PILOT_SUPABASE_REFS, foreignSupabaseRef } from '../lib/finance/pilot-doctor.mjs';
 import { SERVER_ENVIRONMENTS, CANONICAL_BRANCH, resolveRuntime } from '../lib/runtime-mode.mjs';
+import { demoPersonaSecretReady } from '../lib/finance/demo-entry-readiness.mjs';
 import { publicHostname } from '../lib/public-site-url.mjs';
 
 const env = process.env;
@@ -162,8 +163,9 @@ if (presentation && environment === 'demo') {
 // Seed e reset da demonstração existem só como comandos manuais
 // (npm run demo:seed / demo:reset); nada no deploy os executa.
 if (environment !== 'demo' && String(env.ARANDU_DEMO_PASSWORD || '').trim()) {
-  problems.push(`ARANDU_DEMO_PASSWORD presente em ${environment}. Credencial das personas fictícias só existe na máquina de quem roda o seed da demonstração.`);
+  problems.push(`ARANDU_DEMO_PASSWORD presente em ${environment}. O segredo das personas pertence somente ao servidor Demo e ao provisionamento autorizado.`);
 }
+if (environment === 'demo' && !demoPersonaSecretReady(env.ARANDU_DEMO_PASSWORD)) problems.push('ARANDU_DEMO_PASSWORD ausente ou fraco: a entrada canônica exige pelo menos 12 caracteres, maiúscula, minúscula e número, somente no servidor.');
 const keyRef = (key) => { try { return JSON.parse(Buffer.from(String(key || '').split('.')[1] || '', 'base64url').toString('utf8')).ref || null; } catch { return null; } };
 for (const name of ['SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY']) {
   const ref = keyRef(env[name]);
