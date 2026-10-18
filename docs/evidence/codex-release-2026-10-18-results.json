@@ -1,0 +1,103 @@
+{
+  "generated_at": "2026-10-18T16:24:44.510174+00:00",
+  "classification": "local_synthetic_release_engineering",
+  "baseline_commit": "c359cb97b0b943ebab91cf7d6e0da7c696af2a69",
+  "code_commit": "4a70697051d34fa4da0991449dc1e8195e7db02d",
+  "node": "v24.19.0",
+  "postgresql": "17.6",
+  "age": "1.3.2",
+  "checks": {
+    "npm_ci": {
+      "result": "PASS",
+      "log_sha256": "673e717896572d76ad1b834ae4bcfbb711374091a6496e98f2ac434d9af44ad0"
+    },
+    "check_all": {
+      "result": "PASS",
+      "log_sha256": "44d4cf00a083b47733a6c69fe63bd90e5b58177d32a6f1dc243d08d24b63fe9b"
+    },
+    "build": {
+      "result": "PASS",
+      "log_sha256": "08f97b9e216ec86c36a7c9d93d156d972501126b3e52652f83dae75cd3e8b6aa"
+    },
+    "security": {
+      "result": "PASS",
+      "log_sha256": "faf3ca3cbb54b56e67669ba6b8e7ef305fedf3b6f4c51d9bfc19f5b79783d7f2"
+    },
+    "governance": {
+      "result": "PASS",
+      "log_sha256": "00d65ea93478250da643ffd205f59f6d31f931e4ed0daf554335190ad0071f1e"
+    },
+    "supply_chain": {
+      "result": "PASS",
+      "log_sha256": "61cd090dfcf805a95479ecadcfa692fba9dbeca6a7710d662cd65754612e154b"
+    },
+    "audit": {
+      "result": "PASS",
+      "log_sha256": "fc8ce154cebbb1b004e3f55a76a9087d58ebdc6751f0b46ff752df1828406cb8"
+    },
+    "database": {
+      "result": "PASS",
+      "log_sha256": "2da7808a3289df6f8e2f9e769b257f9b75167fb5a062c8f5c42fef28514d3663"
+    },
+    "deploy_check": {
+      "result": "PASS",
+      "log_sha256": "dd7d2ae6f53337a46d3eded68be115eefb304e2db9c094be90ac77de6d5c9706"
+    },
+    "synthetic_recovery": {
+      "result": "PASS",
+      "log_sha256": "d8d00f714a9b4ce0c85ced9367197baaf26f2bec783de5f165d50673176c4395"
+    }
+  },
+  "browser_local": "NOT_RUN (listing is not execution)",
+  "hosted_demo": "NOT_PROVEN",
+  "vercel_scope": "ACCESS_BLOCKED",
+  "managed_auth_storage_configuration_recovery": "NOT_PROVEN",
+  "presentation_verdict": "C",
+  "production_ready": false,
+  "recovery_reports": [
+    {
+      "classification": "synthetic_pg17_age_http_object_fixture_same_set",
+      "result": "VALIDATED",
+      "objects": 2,
+      "references": 2,
+      "rls": "VERIFIED",
+      "managed_auth": "NOT_PROVEN",
+      "supabase_storage": "NOT_PROVEN",
+      "external_configuration": "NOT_RUN",
+      "conversion": "BLOCKED",
+      "teardown": "VERIFIED"
+    },
+    {
+      "classification": "synthetic_postgresql17_age_same_backup_restore",
+      "result": "VALIDATED",
+      "hosted_backup": "NOT RUN",
+      "supabase_compatibility": "NOT PROVEN",
+      "ciphertext": [
+        {
+          "name": "database.dump.age",
+          "bytes": 10725,
+          "sha256": "d0a8b096f1fa38baa1465f9654df9d6bb86ac7bfdc05dfb7f2774bd0a735558f"
+        },
+        {
+          "name": "roles.sql.age",
+          "bytes": 876,
+          "sha256": "9ca14a3deee30442bc17ff1feeb58c23f311952f06180ebf77a86197aa40dc43"
+        }
+      ],
+      "reconciliation_sha256": "bfd58e418bbe53404210387432017f5ba95624666abbe2f91af04aec57d22b54",
+      "teardown": "VERIFIED"
+    }
+  ],
+  "baseline_regressions": {
+    "rest_401_no_schema_probe": "accepted_READY_in_baseline",
+    "sandbox_backend_readiness": "accepted_in_baseline",
+    "manifest_symlink": "overwrote_synthetic_victim_in_baseline",
+    "storage_download": "accepted_4_bytes_for_3_byte_inventory_in_baseline"
+  },
+  "limitations": [
+    "One intermediate PG recovery run failed at pg_ctl initialization; cause unproven; serial final run PASS with teardown. No stability claim.",
+    "check_all first failed because executor umask 077 made a 0644 negative fixture private; rerun with CI umask 022 PASS.",
+    "Storage HTTP fixture is not managed Supabase Storage or GoTrue.",
+    "Only decision/authorization synthetic server latency measured; no SLA or other journey benchmarks."
+  ]
+}
