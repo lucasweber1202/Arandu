@@ -1,5 +1,30 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 17/10/2026 — Reconciliação de schema, decisão no commit e recovery do conjunto
+
+Base `e459f901f89a92ab61cc35877e863a0abf8ab932` (#215/#216 integradas), branch
+`codex/hosted-readiness-integrity-20261017`. Evidências desta rodada em
+`docs/evidence/codex-hosted-readiness-2026-10-17.md`, contratos em
+`docs/evidence/codex-hosted-api-handoff-2026-10-17.md`, procedimento em
+`docs/HOSTED_SCHEMA_ROLLOUT.md`. O CI da #215 passou no SHA 3159ede; não é
+herdado como prova do lote novo. CI final próprio registrado na PR desta rodada.
+
+| Capacidade | Estado da rodada | Prova / limite |
+| --- | --- | --- |
+| Decisão × autorização vigente | IMPLEMENTED / LOCAL_VALIDATED | Novo defeito reproduzido após checagem e antes de INSERT; trigger checa ator/papel/entidade com locks até commit. Remoção/rebaixamento/escopo, ordem inversa e ausência de parcial passam |
+| Upgrade do Pilot | LOCAL_VALIDATED | 38 migrations do manifesto desde surface-hardening; dump/restore sintético, falha injetada, recusa na fronteira destrutiva e retomada pelo marker real. SQL histórico sem transação recebe wrapper no bundle |
+| Compatibilidade e HTTP | IMPLEMENTED / LOCAL_VALIDATED | PGRST202 → 503 schema_incompatible; assignments conserva JWT, sem fallback privilegiado. 429 do roteador tem rate_limited/Retry-After e correlação, sem mudar limites |
+| Custódia de binários | IMPLEMENTED / LOCAL_VALIDATED | Manifesto/artefatos privados regulares e diretório sem symlink; hash correto não valida permissões 0644 |
+| Recovery do mesmo conjunto | LOCAL_VALIDATED | PG17 + age + binários/HTTP sintéticos, referências de dois tenants, restore/reconciliação/RLS e teardown verificado. Auth/Storage gerenciados e configuração externa NOT_PROVEN |
+| Performance de autorização | LOCAL_VALIDATED, fixture pequena | 100 chamadas v2 com escrita e rollback, p50/p95/p99 emitidos; interleavings determinísticos e contador de deadlocks. Sem SLA ou latência hospedada |
+| M3 hospedado | BLOCKED | Pilot no marker antigo, sem v2/nomes/hooks/guardas e RPC antiga concedida; detalhe Vercel 403 no mesmo scope. Sem export, migration, configuração, cutover ou mudança de assignments |
+
+Banco integral, check:all, build/deploy:check e audit zero vulnerabilidades
+passaram localmente. Browser local NOT_RUN; CI próprio precisa dos quatro gates
+no HEAD final. Sem frontend, Demo, E2E, workflow, dependência ou evidence Claude
+alterados. Demo/Production seguem permanentes, Pilot transitório; M3–M6 não
+promovidos. Rollback SQL conserva a guarda; rollout exige schema antes do app.
+
 ## 17/10/2026 — Fechamento da decisão antiga e autorização no commit do voto
 
 Base `605c7f5a9ff619e18fec6f1e7160949d878f345a`, branch

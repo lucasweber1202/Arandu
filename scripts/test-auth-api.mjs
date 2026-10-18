@@ -349,6 +349,32 @@ try {
   const res = response();
   await distributedHandler(request('POST', '/api/auth/reset-password', { email: 'pessoa@example.com' }), res);
   assert.equal(res.statusCode, 429);
+  assert.equal(JSON.parse(res.body).code, 'rate_limited');
+  assert.equal(res.headers['retry-after'], '3600');
+  assert.equal(JSON.parse(res.body).requestId, res.headers['x-request-id']);
+  for (const broken of [async () => { throw new Error('private timeout detail'); }, async () => jsonResponse(null)]) {
+    global.fetch = broken;
+    const unavailable = response();
+    await distributedHandler(request('POST', '/api/auth/reset-password', { email: 'synthetic@example.invalid' }), unavailable);
+    assert.equal(unavailable.statusCode, 503);
+    assert.equal(JSON.parse(unavailable.body).code, 'rate_limit_unavailable');
+    assert(!unavailable.body.includes('private timeout detail'));
+    assert.equal(unavailable.headers['retry-after'], undefined);
+  }
+  for (const hosted of ['production', 'preview']) {
+    process.env.VERCEL_ENV = hosted;
+    global.fetch = async (url, init) => {
+      assert.match(String(url), /rpc\/consume_rate_limit/);
+      const quota = JSON.parse(init.body);
+      assert.deepEqual([quota.p_limit, quota.p_window_seconds], [120, 600]);
+      return jsonResponse(false);
+    };
+    const rejected = response();
+    await distributedHandler(request('GET', '/api/finance/products?local=true', undefined, { 'x-local-rate-limit': 'unlimited' }), rejected);
+    assert.equal(rejected.statusCode, 429);
+    assert.equal(rejected.headers['retry-after'], '600');
+    assert.equal(JSON.parse(rejected.body).code, 'rate_limited');
+  }
   delete process.env.VERCEL_ENV;
 
   console.log('Arandu Auth API Contract Tests');
@@ -361,6 +387,11 @@ try {
     forgedProxy.push((await call('POST', '/api/auth/login', { email: `forjada-${i}@example.com`, password: 'senha-errada-1' }, { 'x-forwarded-for': `203.0.113.${i}`, 'x-real-ip': `203.0.113.${i}` })).status);
   }
   assert.equal(forgedProxy.at(-1), 429, 'cabeçalho de proxy forjado não contorna o limite por origem');
+  const limited = await call('POST', '/api/auth/login', { email: 'limited@example.invalid', password: 'senha-errada-1' }, { 'x-request-id': 'ref\r\nunsafe!' });
+  assert.equal(limited.body.code, 'rate_limited');
+  assert.match(limited.headers['retry-after'], /^\d+$/);
+  assert(Number(limited.headers['retry-after']) > 0 && Number(limited.headers['retry-after']) <= 600);
+  assert.equal(limited.body.requestId, 'refunsafe');
   console.log('Sessão, cadastro, login, logout, refresh, recuperação, rate limit distribuído, API financeira fechada sem sessão e 23 rotas aposentadas em 404 aprovados.');
 } finally {
   global.fetch = originalFetch;

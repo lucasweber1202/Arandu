@@ -119,11 +119,13 @@ drop table ib_slots;
 -- ------------------------------------ aviso por marco com a tarefa já aberta
 -- fin_register_contract abre a tarefa de revisão junto com o contrato; a agenda
 -- precisa avisar mesmo assim, uma vez por marco.
+select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-00000000f101',false);
 insert into public.fin_decisions(id,organization_id,rfq_id,proposal_id,decided_by,criteria,snapshot)
 select '00000000-0000-4000-8000-00000000f501','00000000-0000-4000-8000-00000000f201','00000000-0000-4000-8000-00000000f401',
        p.id,'00000000-0000-4000-8000-00000000f101','{}'::jsonb,'{}'::jsonb
 from public.fin_proposals p where p.rfq_id='00000000-0000-4000-8000-00000000f401' and p.provider_organization_id='00000000-0000-4000-8000-00000000f202'
 on conflict do nothing;
+select set_config('request.jwt.claim.sub','',false);
 insert into public.fin_contracts(id,organization_id,decision_id,proposal_id,provider_id,product,starts_on,ends_on,renewal_notice_days,owner_id)
 select '00000000-0000-4000-8000-00000000f601',d.organization_id,d.id,d.proposal_id,p.provider_id,'credit',current_date,current_date+85,30,'00000000-0000-4000-8000-00000000f101'
 from public.fin_decisions d join public.fin_proposals p on p.id=d.proposal_id where d.id='00000000-0000-4000-8000-00000000f501'

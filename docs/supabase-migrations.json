@@ -71,7 +71,8 @@
     "docs/supabase-financial-document-upload-authorization.sql",
     "docs/supabase-financial-implementation-task-labels.sql",
     "docs/supabase-financial-task-accountability.sql",
-    "docs/supabase-financial-enterprise-integrity.sql"
+    "docs/supabase-financial-enterprise-integrity.sql",
+    "docs/supabase-financial-decision-authorization.sql"
   ],
   "existingDatabase": [
     "docs/supabase-sprint1-auth-ownership.sql",
@@ -144,6 +145,7 @@
     "docs/supabase-financial-document-upload-authorization.sql",
     "docs/supabase-financial-implementation-task-labels.sql",
     "docs/supabase-financial-task-accountability.sql",
-    "docs/supabase-financial-enterprise-integrity.sql"
+    "docs/supabase-financial-enterprise-integrity.sql",
+    "docs/supabase-financial-decision-authorization.sql"
   ]
 }
