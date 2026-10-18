@@ -189,15 +189,25 @@ export async function storageEvidence(databaseExport, databaseManifest) {
 
 /** Manifesto + ciphertexts conferidos ANTES de qualquer descriptografia. */
 async function openExport(backup) {
+  const manifestFile = path.join(backup, STORAGE_MANIFEST);
+  const manifestStat = fs.lstatSync(manifestFile, { throwIfNoEntry: false });
+  if (!manifestStat || manifestStat.isSymbolicLink() || !manifestStat.isFile() || (manifestStat.mode & 0o077) !== 0) {
+    storageFail('STORAGE_MANIFEST_INVALID', 'Manifesto do Storage precisa ser arquivo privado regular.');
+  }
   let manifest;
   try { manifest = JSON.parse(fs.readFileSync(path.join(backup, STORAGE_MANIFEST), 'utf8')); }
   catch { storageFail('STORAGE_MANIFEST_INVALID', 'Manifesto do Storage ausente ou ilegível.'); }
   checkManifest(manifest);
+  const binaryDirectory = fs.lstatSync(path.join(backup, STORAGE_DIR), { throwIfNoEntry: false });
+  if (manifest.object_count > 0 && (!binaryDirectory || binaryDirectory.isSymbolicLink() || !binaryDirectory.isDirectory() || (binaryDirectory.mode & 0o077) !== 0)) {
+    storageFail('STORAGE_ARTIFACT_INVALID', 'Diretório de binários precisa ser privado e regular.');
+  }
   for (const entry of manifest.files) {
     const file = path.join(backup, entry.name);
     const stat = fs.lstatSync(file, { throwIfNoEntry: false });
     if (!stat) storageFail('STORAGE_ARTIFACT_MISSING', 'Artefato do Storage ausente; nada foi descriptografado.');
     if (stat.isSymbolicLink() || !stat.isFile()) storageFail('STORAGE_ARTIFACT_INVALID', 'Artefato do Storage precisa ser arquivo regular.');
+    if ((stat.mode & 0o077) !== 0) storageFail('STORAGE_ARTIFACT_INVALID', 'Artefato do Storage precisa ter permissão privada.');
     const actual = await digestFile(file);
     if (actual.bytes !== entry.bytes || actual.sha256 !== entry.sha256) storageFail('STORAGE_HASH_MISMATCH', 'Hash ou tamanho divergente do manifesto; nada foi descriptografado.');
   }

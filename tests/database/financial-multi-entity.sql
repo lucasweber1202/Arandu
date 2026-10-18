@@ -329,8 +329,11 @@ insert into public.fin_rfq_invites(id,buyer_organization_id,rfq_id,provider_id,p
 insert into public.fin_proposals(id,invite_id,rfq_id,buyer_organization_id,provider_id,provider_organization_id,product,status,current_version) values
 ('00000000-0000-4000-8000-0000000ef032','00000000-0000-4000-8000-0000000ef031','00000000-0000-4000-8000-0000000ef030','00000000-0000-4000-8000-0000000ef001',
  '00000000-0000-4000-8000-0000000ef010','00000000-0000-4000-8000-0000000ef003','credit','submitted',1);
+-- Fixture histórica sob o ator autorizado; a guarda final também vale aqui.
+select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-0000000ee002',false);
 insert into public.fin_decisions(id,organization_id,rfq_id,proposal_id,decided_by,snapshot) values
 ('00000000-0000-4000-8000-0000000ef033','00000000-0000-4000-8000-0000000ef001','00000000-0000-4000-8000-0000000ef030','00000000-0000-4000-8000-0000000ef032','00000000-0000-4000-8000-0000000ee002','{}'::jsonb);
+select set_config('request.jwt.claim.sub','',false);
 insert into public.fin_contracts(id,organization_id,decision_id,proposal_id,provider_id,product,starts_on,ends_on,owner_id) values
 ('00000000-0000-4000-8000-0000000ef034','00000000-0000-4000-8000-0000000ef001','00000000-0000-4000-8000-0000000ef033','00000000-0000-4000-8000-0000000ef032',
  '00000000-0000-4000-8000-0000000ef010','credit',current_date - 300,current_date + 300,'00000000-0000-4000-8000-0000000ee002');

@@ -56,10 +56,15 @@ if (stopBefore !== null) {
 const digest = (content) => createHash('sha256').update(content).digest('hex');
 const sections = files.map((file, index) => {
   const content = fs.readFileSync(path.join(root, file), 'utf8').trim();
+  // Preserve published SQL verbatim, but do not leave legacy non-transactional
+  // files half-applied on an interrupted upgrade. Already atomic files retain
+  // their own transaction; each completed migration remains a resume boundary.
+  const atomicContent = afterSchema !== null && !/^\s*begin\s*;\s*$/mi.test(content)
+    ? `begin;\n${content}\ncommit;` : content;
   return {
     file,
     sha256: digest(content),
-    sql: `-- ============================================================\n-- ${index + 1}/${files.length}: ${file}\n-- sha256: ${digest(content)}\n-- ============================================================\n\n${content}\n`
+    sql: `-- ============================================================\n-- ${index + 1}/${files.length}: ${file}\n-- sha256: ${digest(content)}\n-- ============================================================\n\n${atomicContent}\n`
   };
 });
 const finalMarker = [...sections.at(-1)?.sql.matchAll(/\(\s*'schema_version'\s*,\s*'([^']+)'\s*\)/g) || []].at(-1)?.[1] || afterSchema;

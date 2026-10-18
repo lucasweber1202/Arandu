@@ -265,6 +265,18 @@ try {
     const recordFile = path.join(sx, 'storage-restore-verification-2026-10-15T00-00-01-000Z.json');
     fs.writeFileSync(recordFile, JSON.stringify(sRecord), { mode: 0o600 });
     assert.equal((await storageEvidence(dbExport, dbManifest)).length, 1);
+    // Custódia não pode aceitar artefato legível por outros, mesmo com hash certo.
+    fs.chmodSync(path.join(sx, objectFile(1)), 0o644);
+    assert.equal((await storageEvidence(dbExport, dbManifest)).length, 0);
+    fs.chmodSync(path.join(sx, objectFile(1)), 0o600);
+    fs.chmodSync(path.join(sx, STORAGE_MANIFEST), 0o644);
+    assert.equal((await storageEvidence(dbExport, dbManifest)).length, 0);
+    fs.chmodSync(path.join(sx, STORAGE_MANIFEST), 0o600);
+    fs.renameSync(path.join(sx, 'storage'), path.join(home, 'detached-storage'));
+    fs.symlinkSync(path.join(home, 'detached-storage'), path.join(sx, 'storage'));
+    assert.equal((await storageEvidence(dbExport, dbManifest)).length, 0);
+    fs.unlinkSync(path.join(sx, 'storage'));
+    fs.renameSync(path.join(home, 'detached-storage'), path.join(sx, 'storage'));
     result = await verify();
     assert.deepEqual([result.level, result.recovery, result.completeness, result.storage_binaries], [5, 'RECOVERY_VERIFIED', 'COMPLETE', 'RESTORE_VERIFIED']);
     // Prova anterior não avaliava restrições de upload; não herda nível 5.

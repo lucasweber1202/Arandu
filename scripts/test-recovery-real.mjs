@@ -11,11 +11,13 @@ import { digestFile } from '../lib/recovery-transfer.mjs';
 import { verifyRestore } from './consolidation-restore-verify.mjs';
 import { loopbackTarget } from '../lib/recovery-reconciliation.mjs';
 import { initStore, prepareKey, privateExport, verifyExport } from './recovery.mjs';
+import { rehearseStorageSet } from './recovery-storage-fixture.mjs';
 
 const dir = fs.mkdtempSync(path.join(tmpdir(),'arandu-real-recovery-'));
 fs.chmodSync(dir,0o700);
 const env = { PATH: process.env.PATH, HOME: dir, PGHOST:'127.0.0.1', PGUSER:'postgres', PGDATABASE:'postgres', PGSSLMODE:'disable' };
 const started=[];
+let storageResult; let databaseResult;
 const run = (bin,args,extra={}) => {
   const result = spawnSync(bin,args,{env,encoding:'utf8',timeout:120000,maxBuffer:16*1024*1024,...extra});
   if(result.error || result.status!==0) throw new Error(`${bin} synthetic operation failed: ${result.stderr || ''}`);
@@ -217,10 +219,18 @@ try {
   }
   const corrupt=Buffer.from(fs.readFileSync(cipher));corrupt[corrupt.length-1]^=1;
   const corruptResult=spawnSync('age',['--decrypt','--identity',identity],{env,input:corrupt,timeout:30000});assert.notEqual(corruptResult.status,0);
-  console.log(JSON.stringify({classification:'synthetic_postgresql17_age_same_backup_restore',result:'VALIDATED',
+  storageResult=await rehearseStorageSet({dir,env,sql,run,started,identity,recipient});
+  databaseResult={classification:'synthetic_postgresql17_age_same_backup_restore',result:'VALIDATED',
     hosted_backup:'NOT RUN',supabase_compatibility:'NOT PROVEN',ciphertext:manifest.files,
-    reconciliation_sha256:createHash('sha256').update(before).digest('hex')}));
+    reconciliation_sha256:createHash('sha256').update(before).digest('hex')};
 } finally {
-  for(const data of started.reverse())spawnSync('pg_ctl',['-D',data,'-m','immediate','-w','stop'],{env,stdio:'ignore',timeout:30000});
+  let cleanupFailed=false;
+  for(const data of started.reverse()) {
+    const stopped=spawnSync('pg_ctl',['-D',data,'-m','immediate','-w','stop'],{env,stdio:'ignore',timeout:30000});
+    if(stopped.error || stopped.status!==0) cleanupFailed=true;
+  }
+  if(cleanupFailed) throw new Error('Recovery laboratory cleanup failed; no validation result issued.');
   fs.rmSync(dir,{recursive:true,force:true});
 }
+console.log(JSON.stringify({...storageResult,teardown:'VERIFIED'}));
+console.log(JSON.stringify({...databaseResult,teardown:'VERIFIED'}));

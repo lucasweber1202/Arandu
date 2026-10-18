@@ -60,7 +60,13 @@ function enforceMemoryRateLimit(req, scope, limit, windowMs, identity = '', opti
     return;
   }
   current.count += 1;
-  if (current.count > limit) throw new HttpError(429, 'Muitas tentativas. Aguarde alguns minutos e tente novamente.');
+  if (current.count > limit) throw rateLimited(Math.ceil((current.resetAt - now) / 1000));
+}
+
+function rateLimited(seconds) {
+  return Object.assign(new HttpError(429, 'Muitas tentativas. Aguarde alguns minutos e tente novamente.', 'rate_limited'), {
+    retryAfterSeconds: Math.max(1, seconds)
+  });
 }
 
 async function enforceRateLimit(req, scope, limit, windowMs, identity = '', options = {}) {
@@ -69,7 +75,8 @@ async function enforceRateLimit(req, scope, limit, windowMs, identity = '', opti
   if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
     throw new HttpError(503, 'A proteção distribuída contra abuso ainda não foi configurada.', 'rate_limit_unconfigured');
   }
-  const response = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/rest/v1/rpc/consume_rate_limit`, {
+  let response;
+  try { response = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/rest/v1/rpc/consume_rate_limit`, {
     method: 'POST',
     signal: AbortSignal.timeout(EXTERNAL_REQUEST_TIMEOUT_MS),
     headers: {
@@ -83,10 +90,14 @@ async function enforceRateLimit(req, scope, limit, windowMs, identity = '', opti
       p_limit: limit,
       p_window_seconds: Math.max(1, Math.ceil(windowMs / 1000))
     })
-  });
+  }); } catch {
+    throw new HttpError(503, 'A proteção contra abuso está temporariamente indisponível.', 'rate_limit_unavailable');
+  }
   const allowed = await response.json().catch(() => null);
-  if (!response.ok) throw new HttpError(503, 'A proteção contra abuso está temporariamente indisponível.', 'rate_limit_unavailable');
-  if (allowed !== true) throw new HttpError(429, 'Muitas tentativas. Aguarde alguns minutos e tente novamente.');
+  if (!response.ok || typeof allowed !== 'boolean') throw new HttpError(503, 'A proteção contra abuso está temporariamente indisponível.', 'rate_limit_unavailable');
+  // RPC returns only a boolean: a full window is a conservative upper bound,
+  // independent of client/server clock skew, never an invented exact expiry.
+  if (!allowed) throw rateLimited(Math.ceil(windowMs / 1000));
 }
 
 function readCookie(req, name) {
@@ -142,6 +153,9 @@ export default async function handler(req, res) {
     if (route.startsWith('auth/')) return await handleAuth(req, res, route.slice('auth/'.length));
     return json(res, 404, { ok: false, error: 'Rota de API não encontrada.', code: 'route_not_found' });
   } catch (error) {
+    if (error instanceof HttpError && error.status === 429 && Number.isSafeInteger(error.retryAfterSeconds) && error.retryAfterSeconds > 0) {
+      res.setHeader('Retry-After', String(error.retryAfterSeconds));
+    }
     const route = routeFrom(req);
     // O domínio financeiro nunca repassa a mensagem bruta do Postgres: ela
     // revelaria nomes de tabela, policies e a existência de registros de
