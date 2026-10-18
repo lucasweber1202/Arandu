@@ -440,3 +440,26 @@ Fontes de instalação e transporte:
 [age 1.3.2](https://github.com/FiloSottile/age/releases/tag/v1.3.2),
 [S3 conditional writes](https://docs.aws.amazon.com/AmazonS3/latest/userguide/conditional-writes.html),
 [S3 presigned URLs](https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-presigned-url.html).
+
+## Limites reforçados em 18/10/2026
+
+Downloads de binários são limitados pelos bytes do inventário durante o stream,
+inclusive sem Content-Length; excesso, truncamento ou falha aborta o export.
+O transporte recusa redirects e cancela corpos de erro. Ciphertexts são gravados
+um objeto por vez; a memória não cresce com a soma dos binários. O índice ainda
+cresce com a quantidade de objetos, e o limite por objeto continua 50 MiB.
+Inventário/índice recusam caminhos ambíguos, objetos duplicados e buckets ausentes.
+
+Manifesto de transferência não é truncado através de symlink/hardlink; diretório
+e arquivos exigem custódia privada e ownership do operador. PUT condicional e
+readback continuam obrigatórios; objetos remotos órfãos não são apagados
+automaticamente. A exclusão/retention real continua procedimento autorizado,
+não consequência de um teste ou failure path.
+
+`recovery:verify` preserva os campos históricos de nível 4/5, mas informa
+`verified_scope: postgresql_and_storage_artifacts`,
+`environment_recovery: NOT_PROVEN` e componentes gerenciados não comprovados.
+`COMPLETE` nunca significa recuperação integral de GoTrue, OAuth/MFA, signing
+keys/secrets, Realtime ou dependências externas. Evidência sintética de HTTP
+não equivale ao Storage gerenciado; restore real/classificação e aprovação
+específica continuam bloqueando cutover quando aplicáveis.

@@ -1,5 +1,29 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+
+## 18/10/2026 — Readiness sem liveness como falso GO e custódia de recovery
+
+Base efetiva `c359cb97b0b943ebab91cf7d6e0da7c696af2a69`; #215–#220 ancestrais
+confirmadas. Código `4a70697051d34fa4da0991449dc1e8195e7db02d`, branch
+`codex/release-engineering-20261018`. Evidência e limites em
+`docs/evidence/codex-release-2026-10-18.md` e JSON adjacente. CI próprio do
+HEAD final deve ser conferido na PR; o CI da base não é herdado.
+
+| Capacidade | Estado verificado | Limite / próximo gate |
+| --- | --- | --- |
+| Readiness e doctor | IMPLEMENTED / LOCAL_VALIDATED; schema/RPCs versionadas, Auth/settings, Data API, Storage e identidade; cache por valor; falha/inconclusão recusa GO | Catálogo não comprova bodies/grants/hooks; quatro gates no HEAD próprio e provas hospedadas continuam necessários |
+| Candidato v3 / live check | LOCAL_VALIDATED; prova hosted_readiness obrigatória, SHA/ambiente exatos; liveness/READY não bastam | JSON declarado não autentica origem; não inventar prova para liberar candidato |
+| Storage recovery | LOCAL_VALIDATED; bytes limitados durante streaming, escrita por objeto, paths/duplicatas/buckets e hardlinks recusados | Índice cresce por quantidade; limite 50 MiB por objeto; serviço gerenciado não reproduzido pela fixture |
+| Transferência/custódia | LOCAL_VALIDATED; symlink de manifest reproduziu sobrescrita na baseline; O_NOFOLLOW e validação do descriptor preservam vítima | PUT condicional/readback mantidos; sem export real ou exclusão automática |
+| Banco / recovery sintético | LOCAL_VALIDATED; PG17.6 integral, interleavings determinísticos, age1.3.2, mesmo conjunto com dois objetos/referências e RLS; teardown verificado | Uma tentativa intermediária falhou na inicialização pg_ctl, causa não comprovada; execução serial final PASS não comprova estabilidade |
+| M3/M4 / apresentação | BLOCKED / C no estado observado | Pilot marker surface-hardening, sem v2/names/trigger; Vercel 403 mesmo scope. B requer Demo completa na estação; A requer hosted completo |
+
+Build, check:all/deploy:check, security/governance/supply-chain, audit zero e
+banco integral passaram localmente. Browser local NOT_RUN. Runbook de 29/10:
+`docs/DEMO_PRESENTATION_2026-10-29.md`. Sem frontend, E2E, Compose/.state Claude,
+workflow, dependência ou assignment alterado; sem operação hospedada sensível.
+M3–M6 permanecem não promovidos.
+
 ## 17/10/2026 — Reconciliação de schema, decisão no commit e recovery do conjunto
 
 Base `e459f901f89a92ab61cc35877e863a0abf8ab932` (#215/#216 integradas), branch

@@ -1,6 +1,6 @@
 import { assessDecommission } from '../lib/consolidation-readiness.mjs';
 import assert from 'node:assert/strict';
-import { assessReleaseCandidate, PILOT_JOURNEY_STEPS, PILOT_CANARY_PROBES, PILOT_CI_GATES } from '../lib/finance/pilot-release.mjs';
+import { assessReleaseCandidate, PILOT_JOURNEY_STEPS, PILOT_CANARY_PROBES, PILOT_CI_GATES, HOSTED_READINESS_CHECKS } from '../lib/finance/pilot-release.mjs';
 import { EXPECTED_SCHEMA_VERSION } from '../lib/finance/pilot-doctor.mjs';
 const commit = 'a'.repeat(40);
 const now = new Date('2026-10-04T18:00:00Z');
@@ -15,6 +15,7 @@ const e = {
   migration: { ...base, result: 'PASS', schema_before: 'financial-surface-hardening-1', schema_after: EXPECTED_SCHEMA_VERSION, bundle_sha256: 'c'.repeat(64), started_at: '2026-10-04T16:15:00Z', observed_at: '2026-10-04T16:30:00Z' },
   legacy_art_decommission: { environment: 'demo', project_ref: base.project_ref, export_verified: true, inventory_rows: 0, ack: 'export-verified:fixture:export', export_reference: 'fixture:export', owner_decision_reference: 'fixture:owner-decision', acknowledged_at: '2026-10-04T16:10:00Z' },
   doctor: { ...base, result: 'GO', errors: 0, unsafe: 0 },
+  hosted_readiness: { ...base, result: 'PASS', ready: true, http_status: 200, datasource: 'supabase', checks: Object.fromEntries(HOSTED_READINESS_CHECKS.map(name => [name, 'PASS'])) },
   canary: { ...base, result: 'PASS', probes: Object.fromEntries(PILOT_CANARY_PROBES.map(name => [name, 'PASS'])) },
   authenticated_journey: { ...base, result: 'PASS', transport: 'real', steps: Object.fromEntries(PILOT_JOURNEY_STEPS.map(name => [name, 'PASS'])) },
   observability: { ...base, result: 'PASS', request_correlation: 'PASS', job_failure_detection: 'PASS', queue_backlog_detection: 'PASS' },
@@ -27,7 +28,11 @@ e.demo_seed = { ...base, result: 'PASS', verification: 'PASS', reset: 'PASS', sy
 const assess = e => assessReleaseCandidate(e, { commit, now });
 assert.equal(assess(e).result, 'RELEASE CANDIDATE GO');
 const deny = change => { const next = structuredClone(e); change(next); assert.equal(assess(next).result, 'RELEASE CANDIDATE NO-GO'); };
-for (const key of ['ci','deployment','backup','restore','migration','doctor','canary','authenticated_journey','observability','operational_exercise','demo_seed']) deny(e => { delete e[key]; });
+for (const key of ['ci','deployment','backup','restore','migration','doctor','canary','authenticated_journey','observability','operational_exercise','demo_seed','hosted_readiness']) deny(e => { delete e[key]; });
+for (const name of HOSTED_READINESS_CHECKS) for (const state of ['FAIL','BLOCKED','NOT_RUN','INCONCLUSIVE','ACCESS_BLOCKED', undefined]) deny(e => { e.hosted_readiness.checks[name] = state; });
+for (const change of [{ ready: false }, { http_status: 503 }, { schema_version: 'financial-surface-hardening-1' },
+  { commit: 'b'.repeat(40) }, { evidence_level: 'ci' }, { observed_at: '2026-10-04T16:20:00Z' }, { datasource: 'synthetic-fixtures' }]) deny(e => { Object.assign(e.hosted_readiness, change); });
+deny(e => { e.hosted_readiness.checks.unexpected_component = 'FAIL'; });
 for (const name of PILOT_CI_GATES) for (const state of ['failure','queued','pending','skipped','cancelled']) deny(e => { e.ci.gates[name] = state; });
 for (const name of PILOT_JOURNEY_STEPS) deny(e => { delete e.authenticated_journey.steps[name]; });
 for (const name of PILOT_CANARY_PROBES) deny(e => { e.canary.probes[name] = 'SKIPPED'; });

@@ -53,3 +53,18 @@ try {
   await assert.rejects(run());assert.equal(remote.size,0);
 } finally {fs.rmSync(directory,{recursive:true,force:true});}
 console.log('Recovery transfer: approval/SHA identity, no overwrite, redacted manifest, PUT/GET/hash failures validated (mock S3).');
+
+// A pre-existing manifest must never redirect or broaden custody writes.
+{
+  const home = fs.mkdtempSync(path.join(tmpdir(), 'arandu-transfer-custody-'));
+  const dir = path.join(home, 'export'); fs.mkdirSync(dir, { mode: 0o700 });
+  const victim = path.join(home, 'unrelated'); fs.writeFileSync(victim, 'preserve', { mode: 0o600 });
+  const mf = path.join(dir, 'manifest.json');
+  const run = () => transferRecovery({ directory: dir, manifest: { files: [] }, destination: d, request: () => { throw new Error('must not use network'); } });
+  try {
+    fs.symlinkSync(victim, mf); await assert.rejects(run()); assert.equal(fs.readFileSync(victim, 'utf8'), 'preserve'); fs.unlinkSync(mf);
+    fs.linkSync(victim, mf); await assert.rejects(run()); assert.equal(fs.readFileSync(victim, 'utf8'), 'preserve'); fs.unlinkSync(mf);
+    fs.writeFileSync(mf, 'private metadata', { mode: 0o600 }); fs.chmodSync(mf, 0o644); await assert.rejects(run()); assert.equal(fs.readFileSync(mf, 'utf8'), 'private metadata'); fs.unlinkSync(mf);
+    fs.chmodSync(dir, 0o755); await assert.rejects(run()); assert.equal(fs.existsSync(mf), false);
+  } finally { fs.rmSync(home, { recursive: true, force: true }); }
+}
