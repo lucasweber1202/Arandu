@@ -9,6 +9,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { localViolations } from './ci-demo/assert-local.mjs';
 import { assessDemoRehearsal, DEMO_REHEARSAL_REQUIRED_OUTCOMES } from '../lib/demo-rehearsal-result.mjs';
+import { visitorJourneysPassed } from './ci-demo/assert-visitor-e2e.mjs';
 
 // Sem comentários: as restrições valem para o que executa.
 const workflow = fs.readFileSync('.github/workflows/demo-integration.yml', 'utf8').split('\n').filter((line) => !/^\s*#/.test(line)).join('\n');
@@ -20,6 +21,7 @@ test('assert-local aceita só localhost', () => {
   assert.deepEqual(localViolations({ SUPABASE_URL: 'https://localhost:8443', ARANDU_DEMO_APP_URL: 'https://127.0.0.1:4443', PILOT_DB_URL: 'postgresql://postgres:x@localhost:54322/postgres' }), []);
   assert.equal(localViolations({ SUPABASE_URL: 'https://abcdefghijklmnopqrst.supabase.co' }).length, 1);
   assert.equal(localViolations({ ARANDU_DEMO_APP_URL: 'https://arandu.vercel.app' }).length, 1);
+  assert.equal(localViolations({ ARANDU_DEMO_REST_URL: 'https://remote.example' }).length, 1);
   assert.equal(localViolations({ PILOT_DB_URL: 'postgresql://postgres:x@db.abcdefghijklmnopqrst.supabase.co:5432/postgres' }).length, 1);
   assert.equal(localViolations({ SUPABASE_URL: 'não é url' }).length, 1);
   assert.equal(localViolations({ VERCEL_ENV: 'production' }).length, 1);
@@ -52,7 +54,7 @@ test('workflow: nenhuma falha mascarada', () => {
 });
 test('workflow: timeout no job e em cada fase; concorrência limitada', () => {
   assert.match(workflow, /timeout-minutes: \d+\n    env:/);
-  for (const id of ['preflight', 'images', 'up', 'smoke', 'seed', 'check', 'e2e_desktop', 'e2e_mobile', 'journey', 'adversarial', 'recovery']) {
+  for (const id of ['preflight', 'images', 'up', 'smoke', 'seed', 'check', 'pool', 'e2e_desktop', 'e2e_mobile', 'journey', 'adversarial', 'recovery']) {
     assert.match(workflow, new RegExp(`id: ${id}\\n        timeout-minutes: \\d+`), `fase ${id} sem timeout`);
   }
   assert.match(workflow, /concurrency:\n  group: arandu-demo-integration\n  cancel-in-progress: false/);
@@ -93,7 +95,7 @@ test('B exige SHA exato, fases críticas, evidência e cleanup; a hospedagem seg
   assert.equal(ready.maturity, 'CI_VALIDATED_ONLY');
   assert.equal(ready.hostedStatus, 'NOT_PROVEN');
   assert.equal(ready.pending.length, 0);
-  for (const [key, outcome] of [['TEARDOWN', 'failure'], ['TEARDOWN', 'skipped'], ['EVIDENCE_UPLOAD', 'failure'], ['RECOVERY', 'skipped'], ['E2E_MOBILE', 'failure']]) {
+  for (const [key, outcome] of [['TEARDOWN', 'failure'], ['TEARDOWN', 'skipped'], ['EVIDENCE_UPLOAD', 'failure'], ['RECOVERY', 'skipped'], ['POOL', 'skipped'], ['POOL', 'failure'], ['E2E_MOBILE', 'failure']]) {
     const rejected = assessDemoRehearsal({ ...outcomes, [key]: outcome, TESTED_SHA: 'a'.repeat(40) });
     assert.equal(rejected.result, 'C_NO_GO', `${key}=${outcome} não pode liberar B`);
     assert(rejected.pending.some((item) => item.key === key));
@@ -112,6 +114,7 @@ test('recovery usa seed verificado antes da jornada que cadastra fatores MFA', (
   };
   assert(phase('seed') < phase('check'));
   assert(phase('check') < phase('recovery'), 'recovery exige dataset semeado e verificado');
+  assert(phase('check') < phase('pool') && phase('pool') < phase('recovery'), 'restore inclui também o pool real');
   for (const id of ['journey', 'adversarial']) {
     assert(phase('recovery') < phase(id), `recovery deve preceder fase mutante ${id}`);
   }
@@ -120,6 +123,23 @@ test('Playwright: só Chromium, um worker, sem trace', () => {
   assert.match(workflow, /npx playwright install --with-deps chromium\n/);
   assert.doesNotMatch(workflow, /firefox|webkit/);
   assert.match(runner, /--workers 1 --trace off/);
+});
+test('visitantes: seed real, flags existentes e prova de execução sem skips', () => {
+  assert.match(runner, /workspaces\.mjs" provision --count=4 --concurrency=2/);
+  assert.match(runner, /export ARANDU_DEMO_ENTRY_E2E=1 ARANDU_DEMO_WORKSPACE_E2E=1/);
+  assert.match(runner, /assert-visitor-e2e\.mjs" "\$PLAYWRIGHT_JSON_OUTPUT_FILE"/);
+  const report = () => ({ errors: [], suites: [{ specs: ['demo-entry-journeys.spec.js', 'demo-workspaces.spec.js'].map(file => ({ file, tests: [{ projectName: 'demo-desktop', status: 'expected', results: [{ status: 'passed' }] }] })) }] });
+  assert.equal(visitorJourneysPassed(report()), true);
+  assert.equal(visitorJourneysPassed({ errors: [], suites: [] }), false);
+  assert.equal(visitorJourneysPassed(null), false);
+  for (const status of ['skipped', 'failed', 'timedOut', 'interrupted']) {
+    const r = report(); r.suites[0].specs[0].tests[0].results[0].status = status;
+    assert.equal(visitorJourneysPassed(r), false, status);
+  }
+  const retry = report(); retry.suites[0].specs[0].tests[0].results.unshift({ status: 'failed' });
+  assert.equal(visitorJourneysPassed(retry), false);
+  const missing = report(); missing.suites[0].specs.pop(); assert.equal(visitorJourneysPassed(missing), false);
+  const mobile = report(); mobile.suites[0].specs[0].tests[0].projectName = 'demo-mobile'; assert.equal(visitorJourneysPassed(mobile), false);
 });
 test('imagens fixadas por digest', () => {
   const pinned = runner.match(/\|sha256:[a-f0-9]{64}/g) || [];

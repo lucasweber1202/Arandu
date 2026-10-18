@@ -149,6 +149,30 @@ major divergente continuam bloqueados. Regressões em
 Um novo push é necessário por esta falha demonstrada, não para retrigger vazio;
 os quatro gates e o ensaio precisam ser revalidados no novo HEAD.
 
+O ensaio seguinte `39175471160` (`ef3bc545`) passou: recovery COMPLETE no escopo
+da aplicação, cleanup removed, 38 checks; seed 39/39, jornada 87 PASS e sondas
+24 PASS. Artefato `12153968207`, SHA256 verificado após download:
+`13f5899803a024487e55a0c92312f9be1e853adc06fdd8c7ab600483e8083b1b`.
+Mas desktop/mobile tinham seis testes PASS e dois SKIPPED cada: os visitantes
+estavam desativados por ausência de pool. Isso não comprova entrada pública,
+isolamento de visitantes nem estação B.
+
+Lacuna tratada no harness existente: provisionar quatro workspaces pelos scripts
+oficiais, verificar contagem exata/identidades/capacidade e incluir o pool no
+mesmo export/restore antes de mutações. Ativar as duas suítes existentes do
+Claude; exigir seus resultados JSON efetivamente passed no desktop, sem skip
+ou retry. JSON bruto fica só em .state descartável; evidência expõe apenas
+veredito seguro. Pool ausente/falho torna o resumo NO-GO. O endpoint REST de
+teste também entra na trava loopback. A fase é limitada a 35 minutos, dois
+seeds simultâneos; job permanece limitado a 75 minutos. Esse custo adicional
+é necessário para provar a entrada de visitantes, antes apenas listada.
+Nenhum teste/configuração Playwright ou script Demo reservado foi modificado.
+Os workflows finais devem validar novamente este escopo ampliado.
+Os quatro gates também passaram em `ef3bc545` (run `39175471143`), mas não
+substituem os gates do HEAD que acrescenta o pool. Validação local desse
+acréscimo: deploy:check e 23 testes do harness PASS; os negativos rejeitam
+resultado visitante ausente/skipped/failed/timedOut/interrupted ou com retry.
+
 Production: leitura de logs ACCESS_BLOCKED. Build local hermético sem
 configuração foi recusado por seis pré-condições, conforme esperado; isso
 não prova a causa do deployment real. Nenhuma guarda foi retirada.

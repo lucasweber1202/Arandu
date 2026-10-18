@@ -72,3 +72,11 @@ ensaios CI não atestam essa estação. Não usar mocks para substituir backend.
 
 As permissões externas mínimas e o rollback estão no pacote de autorização
 adjacente e no runbook canônico existente.
+
+O harness CI agora provisiona quatro workspaces com o script existente e ativa
+ARANDU_DEMO_ENTRY_E2E e ARANDU_DEMO_WORKSPACE_E2E. Ambas as suítes de visitantes
+precisam executar e passar no desktop (JSON verifica ausência de skips/retries);
+mobile preserva a restrição desktop definida nos testes. REST fica explicitamente
+em http://127.0.0.1:3000 para a sonda local de expiração. Não houve alteração das
+suítes nem da configuração Playwright. POOL é outcome obrigatório e antecede o
+recovery: o restore contém o mesmo inventário de workspaces sintéticos.
