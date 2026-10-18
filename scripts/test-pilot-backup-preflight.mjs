@@ -18,10 +18,10 @@ assert.equal(sourceConnection('postgresql://postgres:pw@localhost/postgres', { l
 const state = { server_major: 17, schema_version: 'financial-surface-hardening-1', storage_objects: 0, mfa_factors: 0, auth_policies: 0 };
 const env = { PILOT_SOURCE_DATABASE_URL: direct };
 let calls = [];
-const fake = (overrides = {}, failure = null) => (binary, args, options) => {
+const fake = (overrides = {}, failure = null, major = 17) => (binary, args, options) => {
   calls.push({ binary, args, options });
   if (binary === failure) return { status: 1, stderr: secret };
-  if (args.includes('--version')) return { status: 0, stdout: `${binary} (PostgreSQL) 17.6` };
+  if (args.includes('--version')) return { status: 0, stdout: `${binary} (PostgreSQL) ${major}.6` };
   if (binary === 'docker') return { status: 0, stdout: '28.0.0' };
   return { status: 0, stdout: JSON.stringify({ ...state, ...overrides }) };
 };
@@ -48,6 +48,20 @@ for (const binary of ['psql', 'pg_dump', 'pg_restore', 'docker']) {
 const badImage = runBackupPreflight({ env: { ...env, PILOT_DRILL_DB_IMAGE: `image:${secret}` }, run: fake() });
 assert.equal(badImage.result, 'blocked');
 assert(!JSON.stringify(badImage).includes(secret));
+// CI registry fallback must restore the same pinned image, only for a local
+// source. A digest typo, mutable tag or hosted source must still fail closed.
+{
+  const image = 'docker.io/supabase/postgres:15.14.1.064@sha256:0958922e6d801e4264ada02e6d6c454127a0721bb475f901e79b7eab74fb7493';
+  const pin = image.slice('docker.io/'.length).split('@');
+  assert(readFileSync('scripts/ci-demo/run.sh', 'utf8').includes(`DB|${pin[0]}|${pin[1]}`), 'Recovery mirror must match CI pin');
+  const localEnv = { PILOT_SOURCE_DATABASE_URL: 'postgresql://postgres:pw@127.0.0.1/postgres', PILOT_DRILL_SOURCE_KIND: 'pilot-local', PILOT_DRILL_DB_IMAGE: image, PILOT_DRILL_STORAGE_BINARIES: '1' };
+  assert.equal(runBackupPreflight({ env: localEnv, run: fake({ server_major: 15, storage_objects: 2 }, null, 15) }).result, 'ready');
+  for (const rejected of [image.split('@')[0], image.replace(/.$/, '0'), image.replace('supabase/postgres', 'postgres'), image.replace('docker.io', 'evil.example')]) {
+    assert.equal(runBackupPreflight({ env: { ...localEnv, PILOT_DRILL_DB_IMAGE: rejected }, run: fake({ server_major: 15 }, null, 15) }).result, 'blocked');
+  }
+  assert.equal(runBackupPreflight({ env: { ...env, PILOT_DRILL_DB_IMAGE: image }, run: fake() }).result, 'blocked');
+  assert.equal(runBackupPreflight({ env: localEnv, run: fake() }).result, 'blocked', 'Major mismatch remains blocked');
+}
 assert(assessBackup({ sourceMajor: 17, dumpMajor: 15, restoreMajor: 15, image: HOSTED_DRILL_IMAGE, storageObjects: 0, mfaFactors: 0, authPolicies: 0 }).some(c => !c.ok));
 // Arquivos no Storage: recusados sem o export dos binários; aceitos só com ele.
 {

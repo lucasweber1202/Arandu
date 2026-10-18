@@ -137,6 +137,18 @@ head.sha final e merge:gates; verificar na PR após o único push consolidado.
 O smoke alterado aciona o workflow efêmero existente; seu resultado precisa
 incluir recovery, teardown e arquivamento. Não gerar retentativas até passar.
 
+O primeiro ensaio desta PR (`39174230394`, HEAD `521ebe94`) encontrou um defeito
+adicional: seed/sanity passaram, mas recovery recusou a imagem do fallback
+Docker Hub, embora fosse o mesmo digest fixado no CI. Resultado FAIL, jornadas
+NOT_RUN; teardown e arquivamento PASS. Corrigido em
+`lib/pilot-backup-preflight.mjs`: somente origem local aceita a referência
+Docker Hub exata já fixada, com versão e digest completos. A política hospedada
+permanece ECR; tag sem digest, digest alterado, outro registry/repositório e
+major divergente continuam bloqueados. Regressões em
+`scripts/test-pilot-backup-preflight.mjs` verificam o contrato real do pin do CI.
+Um novo push é necessário por esta falha demonstrada, não para retrigger vazio;
+os quatro gates e o ensaio precisam ser revalidados no novo HEAD.
+
 Production: leitura de logs ACCESS_BLOCKED. Build local hermético sem
 configuração foi recusado por seis pré-condições, conforme esperado; isso
 não prova a causa do deployment real. Nenhuma guarda foi retirada.
