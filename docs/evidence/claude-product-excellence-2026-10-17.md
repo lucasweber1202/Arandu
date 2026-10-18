@@ -11,7 +11,7 @@ documento. **Nenhum** arquivo de `api/**`, `lib/api/**`, `lib/finance/**`, SQL/m
 | Categoria | O quê |
 | --- | --- |
 | IMPLEMENTED | as 6 correções abaixo, preflight evoluído, roteiro com recuperação por operação |
-| LOCAL_VALIDATED | regressões (7 FAIL na `main`, PASS aqui); `test:e2e`, `test:e2e:presentation` (Chromium desktop + Pixel 7); Demo local com backend real: preflight PRONTO/PRONTO, Modo 2 9/9, preflight detecta Demo usada, reset 39/39, `test:e2e:demo` (ver PR) |
+| LOCAL_VALIDATED | regressões (7 FAIL na `main`, PASS aqui); `check:all`, `build`, design/parity/surface/navigation, `git diff --check`; `test:e2e` 425 passed + 7 skipped (antes da atualização do teste de valor; depois, 10/10 no arquivo); `test:e2e:presentation` 125 passed + 19 skipped (Chromium desktop + Pixel 7); Demo local com backend real: preflight PRONTO/PRONTO, Modo 2 9/9, preflight detecta Demo usada, reset 39/39, `test:e2e:demo` desktop 6 + 1 skip e celular 6 + 1 skip |
 | CI_VALIDATED | quatro gates no HEAD da PR — ver PR |
 | HOSTED_VALIDATED | **nenhum**. Demo hospedada não validada |
 | BLOCKED | nada bloqueia esta PR; handoffs abaixo |
