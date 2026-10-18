@@ -300,7 +300,8 @@ legend{padding:0}
 .toolbar-chips{margin-bottom:var(--s3);overflow-x:auto}
 /* Data curta não quebra ("15 de / out") e o responsável não é cortado com espaço sobrando no título. */
 .date-cell>span:first-child{white-space:nowrap}
-.rfq-table td[data-label="Responsável"]{min-width:11rem}
+/* Largura pelo conteúdo, não por rem fixo: a fonte de fallback (CI, outros SOs) é mais larga. */
+@media (min-width:760px){.rfq-table td[data-label="Responsável"] .person{min-width:max-content}}
 .result-count{font-size:var(--fs-sm);color:var(--text-muted);margin-left:auto}
 .list-page{min-width:0}
 
