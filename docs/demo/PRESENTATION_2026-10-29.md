@@ -22,6 +22,22 @@ decisões e obrigações que surgem depois dela.*
 4. Duas janelas: normal (**juliana.ramos@vittafoods.example**, gerente de tesouraria) e anônima (**eduardo.lima@atlasbank.example**, Atlas Bank; no Modo 2, **patricia.alves@meridianfinancial.example**, Meridian Financial). Opcional: **helena.duarte@vittafoods.example** (CFO) e **carlos.tavares@vittafoods.example** (Controller, leitor). Senha em `scripts/pilot-local/.state/demo.env`.
 5. Faça login nas janelas **antes**: o login tem limite legítimo por IP (12/10 min).
 
+## Roteiro A (Demo hospedada) × Roteiro B (Demo local)
+
+Os dois usam **o mesmo produto** (`main`), o mesmo seed e as mesmas 16 etapas abaixo. Muda só onde ele roda e como se entra.
+
+| | Roteiro A — hospedado | Roteiro B — local (estação de apresentação) |
+| --- | --- | --- |
+| Quando vale | Só se `node scripts/demo/hosted-parity.mjs --url=<URL pública> --sha=<SHA da main>` terminar em **READY** (identidade e prontidão lidas do servidor) | Sempre que a prontidão local (item 2 acima) estiver PRONTO, ensaiada **na própria estação** |
+| Estado em 18/10 | **NÃO VALE**: `arandu-demo.vercel.app` responde `datasource=synthetic-fixtures`, sem entrada por persona, prontidão 503 e sandbox legado em `/demo` (bloqueio do Codex: Supabase DEMO e cutover) | Vale: Auth, API, RLS e Storage reais em Docker, seed 39/39 |
+| Entrada | Site → "Acessar plataforma" → **Conheça o Arandu por dentro** (escolha de persona) | Igual, em `https://localhost:4443/login.html#demonstracao`; ou as contas do baseline por e-mail (itens 4–5) |
+
+**Duas formas de entrar no Roteiro B:**
+1. **Por persona (recomendada para quem vai mexer):** cada janela anônima é um visitante com **workspace próprio** — o que se cria ou aprova ali não aparece para ninguém e não exige reset. Antes: `npm run demo:local:workspaces -- provision --count=<visitantes>` (≈5 min por workspace). Troca de persona no topo do workspace ("Trocar persona"): mesma empresa, mesmo workspace.
+2. **Pelas contas do baseline (e-mail e senha):** é o cenário compartilhado do Modo 2; escreve no baseline e pede `npm run demo:local:reset` depois.
+
+Nunca use o sandbox ilustrativo (`/demo` do build antigo, empresa "Acme") como substituto silencioso: ele não é o produto e não grava nada no servidor.
+
 ## A jornada em 16 etapas (início, meio e fim)
 
 Três cenários sintéticos **distintos** da mesma empresa; a tabela diz quando muda. Não ligue objetos de cenários diferentes ("esta proposta virou aquele contrato") — cada um tem sua própria trilha.
@@ -152,3 +168,7 @@ material de apoio — nunca apresente como execução ao vivo.
 | Backend indisponível (telas com "Não foi possível carregar") | `bash scripts/demo/local.sh readiness`: se acusar serviço essencial fora do ar, `npm run demo:setup` (não é caso de reset). Enquanto isso, capturas **ditas como capturas**. |
 | Navegador com problema | Abra outra janela anônima (cookies limpos) ou outro navegador com o mesmo login; a Demo não guarda estado no navegador além da sessão. |
 | Sem rede externa | A Demo local não depende de serviços externos depois de montada. |
+| Entrada por persona diz "A demonstração está cheia" | O pool de workspaces acabou: `npm run demo:local:workspaces -- provision --count=2` (≈5 min cada). Enquanto isso, entre pelas contas do baseline por e-mail. Nada foi criado. |
+| Entrada por persona diz "Muitas entradas em pouco tempo" | Limite legítimo de entradas por rede (12 a cada 10 min). Use "Trocar persona" só quando a jornada pedir; espere a janela. A tela não diz que entrou. |
+| "A demonstração não está disponível neste endereço" | O servidor não é de demonstração (ou a Demo hospedada não passou na verificação). Vá para o Roteiro B local. |
+| Link antigo `/demo/...` | Na Demo canônica ele mostra "Não encontramos esta página" com "Entrar na demonstração" (vai à escolha de persona). |

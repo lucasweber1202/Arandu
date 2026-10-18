@@ -1109,7 +1109,10 @@ body.public{margin:0;line-height:1.5;font-size:16px}
 @media (max-width:959px){.demo-chip{display:inline-flex}}
 .env-chip{display:inline-flex}
 .env-chip .env-short{display:none}
-@media (max-width:479px){.env-chip .env-long{display:none}.env-chip .env-short{display:inline}}
+@media (max-width:479px){.env-chip .env-long{display:none}.env-chip .env-short{display:inline}.env-switch .env-long{display:none}}
+/* Trocar persona na Demo canônica: alvo de toque de 40 px mesmo só com ícone. */
+.env-switch{min-height:32px;min-width:32px;justify-content:center}
+@media (max-width:759px){.env-switch{min-height:40px;min-width:40px}}
 @media (max-width:759px){.label-extra{display:none}}
 tr.highlighted>td,.proposal-card.highlighted,.document-row.highlighted,.comment.highlighted{background:var(--accent-weak)}
 .highlighted:focus{outline:2px solid var(--accent);outline-offset:2px}

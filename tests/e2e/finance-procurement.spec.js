@@ -1027,3 +1027,20 @@ test('instituições: a coluna de verificação cabe no desktop e as contagens u
   await page.goto(`/finance/rfq.html?id=${RFQ}`);
   await expect(page.locator('#convites')).toContainText('2 convidados · 1 respondeu');
 });
+
+test('Demo canônica: o selo do ambiente vem com "Trocar persona" para a entrada por persona; fora da Demo, nada', async ({ page }) => {
+  await mockSession(page);
+  await page.route('**/api/finance/organizations', (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ ok: true, environment: 'demo', rows: [{ id: ORG, kind: 'BUYER', legal_name: 'Empresa de teste' }] }) }));
+  await page.goto('/finance/dashboard.html');
+  await expect(page.locator('#environment-chip')).toBeVisible();
+  const change = page.getByRole('link', { name: 'Trocar persona da demonstração' });
+  await expect(change).toHaveAttribute('href', '/login.html#demonstracao');
+  const box = await change.boundingBox();
+  expect(box.height).toBeGreaterThanOrEqual(page.viewportSize().width < 760 ? 40 : 32);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+  await page.unrouteAll({ behavior: 'ignoreErrors' });
+  await mockSession(page);
+  await page.goto('/finance/dashboard.html');
+  await expect(page.locator('h1')).toBeVisible();
+  await expect(page.locator('#persona-switch')).toHaveCount(0);
+});

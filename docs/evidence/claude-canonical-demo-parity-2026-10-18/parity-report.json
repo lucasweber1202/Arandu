@@ -1,0 +1,130 @@
+[
+  {
+    "side": "buyer",
+    "page": "finance-dashboard-html",
+    "same_text": false,
+    "words": 708,
+    "diff": "primeira diferença na palavra 161: \"h Regra de oportunidade versionada (6) há N\" × \"min Regra de oportunidade versionada (6) há N\"",
+    "overflow": [],
+    "chip": [
+      1,
+      1
+    ],
+    "switcher": [
+      1,
+      1
+    ]
+  },
+  {
+    "side": "buyer",
+    "page": "finance-rfqs-html",
+    "same_text": true,
+    "words": 211,
+    "diff": "",
+    "overflow": [],
+    "chip": [
+      1,
+      1
+    ],
+    "switcher": [
+      1,
+      1
+    ]
+  },
+  {
+    "side": "buyer",
+    "page": "rfq-Capital-de-giro-nova-linha",
+    "same_text": true,
+    "words": 424,
+    "diff": "",
+    "overflow": [],
+    "chip": [
+      1,
+      1
+    ],
+    "switcher": [
+      1,
+      1
+    ]
+  },
+  {
+    "side": "buyer",
+    "page": "finance-contracts-html",
+    "same_text": true,
+    "words": 500,
+    "diff": "",
+    "overflow": [],
+    "chip": [
+      1,
+      1
+    ],
+    "switcher": [
+      1,
+      1
+    ]
+  },
+  {
+    "side": "buyer",
+    "page": "finance-tasks-html",
+    "same_text": false,
+    "words": 804,
+    "diff": "primeira diferença na palavra 402: \"Entrada em produção Responsável: Sem responsável · Lumina\" × \"Validação de liquidação Responsável: Sem responsável · Lumina\"",
+    "overflow": [],
+    "chip": [
+      1,
+      1
+    ],
+    "switcher": [
+      1,
+      1
+    ]
+  },
+  {
+    "side": "buyer",
+    "page": "finance-implementations-html",
+    "same_text": true,
+    "words": 108,
+    "diff": "",
+    "overflow": [],
+    "chip": [
+      1,
+      1
+    ],
+    "switcher": [
+      1,
+      1
+    ]
+  },
+  {
+    "side": "provider",
+    "page": "provider-index-html",
+    "same_text": true,
+    "words": 121,
+    "diff": "",
+    "overflow": [],
+    "chip": [
+      1,
+      1
+    ],
+    "switcher": [
+      1,
+      1
+    ]
+  },
+  {
+    "side": "provider",
+    "page": "proposal-Capital-de-giro-sazonal",
+    "same_text": true,
+    "words": 345,
+    "diff": "",
+    "overflow": [],
+    "chip": [
+      1,
+      1
+    ],
+    "switcher": [
+      1,
+      1
+    ]
+  }
+]
