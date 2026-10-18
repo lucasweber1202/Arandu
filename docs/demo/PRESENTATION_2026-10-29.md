@@ -33,7 +33,7 @@ Os dois usam **o mesmo produto** (`main`), o mesmo seed e as mesmas 16 etapas ab
 | Entrada | Site → "Acessar plataforma" → **Conheça o Arandu por dentro** (escolha de persona) | Igual, em `https://localhost:4443/login.html#demonstracao`; ou as contas do baseline por e-mail (itens 4–5) |
 
 **Duas formas de entrar no Roteiro B:**
-1. **Por persona (recomendada para quem vai mexer):** cada janela anônima é um visitante com **workspace próprio** — o que se cria ou aprova ali não aparece para ninguém e não exige reset. Antes: `npm run demo:local:workspaces -- provision --count=<visitantes>` (≈5 min por workspace). Troca de persona no topo do workspace ("Trocar persona"): mesma empresa, mesmo workspace.
+1. **Por persona (recomendada para quem vai mexer):** cada janela anônima é um visitante com **workspace próprio** — o que se cria ou aprova ali não aparece para ninguém e não exige reset. Antes: `npm run demo:local:workspaces -- provision --count=<visitantes>` (≈ 10 min por par de workspaces, medido em 18/10). Troca de persona no topo do workspace ("Trocar persona"): mesma empresa, mesmo workspace.
 2. **Pelas contas do baseline (e-mail e senha):** é o cenário compartilhado do Modo 2; escreve no baseline e pede `npm run demo:local:reset` depois.
 
 Nunca use o sandbox ilustrativo (`/demo` do build antigo, empresa "Acme") como substituto silencioso: ele não é o produto e não grava nada no servidor.
@@ -168,7 +168,7 @@ material de apoio — nunca apresente como execução ao vivo.
 | Backend indisponível (telas com "Não foi possível carregar") | `bash scripts/demo/local.sh readiness`: se acusar serviço essencial fora do ar, `npm run demo:setup` (não é caso de reset). Enquanto isso, capturas **ditas como capturas**. |
 | Navegador com problema | Abra outra janela anônima (cookies limpos) ou outro navegador com o mesmo login; a Demo não guarda estado no navegador além da sessão. |
 | Sem rede externa | A Demo local não depende de serviços externos depois de montada. |
-| Entrada por persona diz "A demonstração está cheia" | O pool de workspaces acabou: `npm run demo:local:workspaces -- provision --count=2` (≈5 min cada). Enquanto isso, entre pelas contas do baseline por e-mail. Nada foi criado. |
+| Entrada por persona diz "A demonstração está cheia" | O pool de workspaces acabou: `npm run demo:local:workspaces -- provision --count=2` (≈ 10 min por par). Enquanto isso, entre pelas contas do baseline por e-mail. Nada foi criado. |
 | Entrada por persona diz "Muitas entradas em pouco tempo" | Limite legítimo de entradas por rede (12 a cada 10 min). Use "Trocar persona" só quando a jornada pedir; espere a janela. A tela não diz que entrou. |
 | "A demonstração não está disponível neste endereço" | O servidor não é de demonstração (ou a Demo hospedada não passou na verificação). Vá para o Roteiro B local. |
 | Link antigo `/demo/...` | Na Demo canônica ele mostra "Não encontramos esta página" com "Entrar na demonstração" (vai à escolha de persona). |
@@ -190,7 +190,7 @@ Sem conhecimento tácito: qualquer pessoa com a máquina e o repositório segue 
 1. Máquina com Docker, Node 24 e Chromium (Playwright). `git fetch && git checkout <SHA aprovado>`; `git rev-parse HEAD` igual ao SHA aprovado.
 2. `npm ci --include=optional` e `npm run build`.
 3. `npm run demo:setup` (≈ 20 min na primeira vez) → `39/39 checagens OK`. Senha das personas do baseline: `scripts/pilot-local/.state/demo.env` (nunca em slide, HTML ou chat).
-4. `set -a; . scripts/pilot-local/.state/demo.env; set +a` e `npm run demo:local:workspaces -- provision --count=4` (vários minutos por workspace, respeitando o limite da API; deixe rodando com antecedência).
+4. `set -a; . scripts/pilot-local/.state/demo.env; set +a` e `npm run demo:local:workspaces -- provision --count=4` (≈ 10 min por par de workspaces, medido em 18/10: 4 ≈ 21 min; deixe rodando com antecedência).
 5. Verificação: `node scripts/demo/hosted-parity.mjs --url=https://localhost:4443 --local` deve mostrar PASS em identidade, entrada por persona, sessão exigida, assets e rotas (prontidão 503 é esperada no laboratório e por isso o veredito local não é READY: ele não serve para liberar o Roteiro A).
 6. Ensaio completo, consumindo **um** workspace: `ARANDU_DEMO_ENTRY_E2E=1 npx playwright test --config playwright.demo.config.js tests/e2e/demo-entry-lifecycle.spec.js --project=demo-desktop`. Verde = o roteiro inteiro gravou e releu no servidor. Reponha o workspace consumido (passo 4, `--count=1`).
 7. Reinício controlado **sem apagar dados**: `docker restart $(docker ps -q --filter name=arandu-pilot-local)` e `bash scripts/demo/local.sh app` (reinicia só o app); repita o passo 5 e `npm run demo:local:workspaces -- list`. **`npm run demo:down` apaga tudo** (banco, pool e senha): só use para recomeçar do passo 3.

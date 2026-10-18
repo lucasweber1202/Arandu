@@ -86,22 +86,12 @@ Heurística em 13 telas reais (entrada, Painel, Solicitações, Aprovações, Co
 
 ## 22. Handoff ao Codex
 
-Continuam válidos H-9 (P0 cutover do `arandu-demo` para a Demo canônica), H-10 (redirect de `/demo`), H-11, H-12 (reabastecimento automático do pool) e H-13, de `docs/evidence/claude-canonical-demo-parity-2026-10-18.md`. Novo:
+Continuam válidos H-9 (P0 cutover do `arandu-demo` para a Demo canônica), H-10 (redirect de `/demo`), H-11, H-12 (reabastecimento automático do pool) e H-13, de `docs/evidence/claude-canonical-demo-parity-2026-10-18.md`. Nenhum defeito de backend novo foi reproduzido nesta rodada: a jornada completa passou sem 5xx e sem contorno.
 
-| Campo | H-14 |
-| --- | --- |
-| Problema | Provisionar o pool local leva dezenas de minutos: dois seeds em paralelo dividem o limite de 120 requisições/10 min por usuário e ficam esperando |
-| Endpoint | API financeira usada por `scripts/demo/seed.mjs --quiet` (via `npm run demo:local:workspaces -- provision`) |
-| Persona | contas do seed de cada workspace |
-| Reprodução | `npm run demo:local:workspaces -- provision --count=4` numa Demo recém-semeada |
-| Observado | 18/10: os dois primeiros workspaces seguiam em `provisioning` 25+ min depois do início; o seed principal (mesmo script) registrou "limite de requisições da API atingido; aguardando 30 s" repetidas vezes |
-| Esperado | Workspace pronto em poucos minutos, ou estimativa honesta no runbook; para o hospedado, reabastecimento antes de esvaziar (H-12) |
-| Severidade | P2 (operação da apresentação: a estação precisa ser preparada com horas de antecedência) |
-| Evidência | log do provisionamento e `demo:local:workspaces -- list` nesta sessão |
-| Aceite | 4 workspaces prontos em tempo previsível e documentado, sem relaxar o limite para usuários reais |
+Medição operacional (não é defeito): provisionar o pool local levou **627–631 s por par de workspaces** (dois seeds em paralelo; 4 workspaces ≈ 21 min). O runbook passou a dizer isso em vez de "≈5 min por workspace".
 
 ## 23–25. Riscos, rollback e estado
 
-- **Riscos:** a Demo hospedada continua não validada; o Roteiro B depende de uma estação preparada com antecedência (H-14). D2 aceita query restrita no retorno do login — mesma origem, só `/finance/*.html` e `/provider/*.html`, sem `#`, sem `//`, com teste negativo.
+- **Riscos:** a Demo hospedada continua não validada; o Roteiro B depende de uma estação preparada com antecedência (pool de 4 workspaces ≈ 21 min). D2 aceita query restrita no retorno do login — mesma origem, só `/finance/*.html` e `/provider/*.html`, sem `#`, sem `//`, com teste negativo.
 - **Rollback:** reverter a PR (sem SQL, migration, API ou configuração).
 - **Estado A/B/C em 18/10:** **A — NÃO** (NOT_READY). **B — pronto nesta estação de laboratório** (seed 39/39, jornada completa LOCAL_VALIDATED), mas a estação da apresentação precisa repetir a lista do Roteiro B no dia. Até lá, o estado declarado para 29/10 é **B condicionado à preparação da estação**; sem ela, **C**.
