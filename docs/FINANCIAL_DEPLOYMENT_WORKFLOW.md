@@ -46,14 +46,25 @@ Os ensaios locais/containers são descartáveis, não terceiro ambiente hospedad
 `/api/health` publica somente runtime/ambiente/datasource/branch/SHA. É liveness,
 sem garantia de readiness. `/api/health?probe=ready` é a readiness: 200 só com
 ambiente declarado, configuração de servidor presente, banco com atribuição
-aprovada em `lib/deployment-topology.mjs` e Supabase Auth/REST respondendo
-(timeout 2,5 s, cache de 30 s); senão 503. A resposta pública só diz
-`ready`/`not_ready` (regra do `check-auth-security`); o motivo vai ao log
-estruturado do servidor (`route: health/ready`, `code` com nomes e estados como
-`topology:unassigned_database`, `supabase_auth:timeout`), nunca valores. Production sem atribuição aprovada responde 503
-`unassigned_database` por desenho. Readiness não substitui doctor nem canário
-(não confere schema nem SHA). Doctor remoto exige main e SHA completo; usar
---expected-commit para o SHA exato. Sandbox ou identidade inconclusiva é NO-GO.
+aprovada em `lib/deployment-topology.mjs`, identidade main/SHA completo,
+Auth e configuração mínima de e-mail/confirmacão, Data API com catálogo das
+RPCs versionadas exigidas, marker final compatível, marker de ambiente seguro
+e bucket privado com limites/tipos esperados (timeout 2,5 s por probe, seis
+leituras paralelas, cache de 30 s por **valores** da configuração); senão 503.
+Sandbox legado não recebe readiness de backend. A resposta pública só diz
+`ready`/`not_ready`; motivos fixos ficam no log estruturado, nunca valores.
+O avaliador interno fornece outcome, code e next_action; ausência de permissão
+é ACCESS_BLOCKED, catálogo inconclusivo é INCONCLUSIVE, probe dependente sem
+catálogo é NOT_RUN. Nenhum desses estados permite GO.
+
+Readiness não substitui doctor/canário/jornada e não prova bodies, grants,
+hooks SQL nem revogação de Auth/Storage/Realtime ou links assinados. O doctor
+confere também a readiness **do app publicado**, com a mesma identidade do
+health, e `--expected-commit` compara o SHA exato. O candidato v3 exige agora
+`hosted_readiness`; ausência ou qualquer componente não PASS bloqueia GO.
+`check:live -- <URL> --expected-commit=<SHA>` exige readiness e identidade no
+ambiente ARANDU_ENV (production por padrão); liveness não libera release.
+Runbook da apresentação e formato da prova: `DEMO_PRESENTATION_2026-10-29.md`.
 
 ## Conversão dos slots
 

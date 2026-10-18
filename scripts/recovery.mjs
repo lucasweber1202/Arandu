@@ -165,6 +165,11 @@ export async function verifyExport({ env = process.env, root = process.cwd() } =
     store_id: marker.store_id, retention_days: marker.retention_days, integrity: 'VERIFIED', files: manifest.files,
     storage_objects: storageObjects ?? null, storage_binaries: storageObjects > 0 ? (storage.length ? 'RESTORE_VERIFIED' : 'NOT_VERIFIED') : 'NONE',
     completeness, level: complete ? 5 : 4,
+    // COMPLETE is scoped to reconciled database/Storage artifacts, never the
+    // managed environment. Auth rows alone do not restore GoTrue/OAuth/MFA.
+    verified_scope: 'postgresql_and_storage_artifacts', environment_recovery: 'NOT_PROVEN',
+    managed_components: { auth_configuration: 'NOT_PROVEN', oauth_mfa: 'NOT_PROVEN',
+      signing_keys_and_secrets: 'NOT_PROVEN', realtime: 'NOT_PROVEN', external_dependencies: 'NOT_PROVEN' },
     recovery: complete ? 'RECOVERY_VERIFIED' : restored ? 'RECOVERY_DATABASE_ONLY' : 'RECOVERY_RESTORE_NOT_VERIFIED',
     state: complete ? RECOVERY_STATES.restoreVerified : RECOVERY_STATES.exportVerified, conversion: 'BLOCKED'
   };
