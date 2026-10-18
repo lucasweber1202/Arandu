@@ -38,8 +38,11 @@ const node = (tag, attrs = {}, children = []) => {
 };
 
 /** Mensagem para cada recusa do servidor; nunca diz que entrou sem a resposta confirmar. */
-function failureText(status, result) {
-  if (status === 429) return 'Muitas entradas em pouco tempo a partir desta rede. Aguarde alguns minutos e tente de novo.';
+function failureText(status, result, retryAfter) {
+  if (status === 429) {
+    const minutes = retryAfter > 0 ? Math.ceil(retryAfter / 60) : null;
+    return `Muitas entradas em pouco tempo a partir desta rede. ${minutes ? `Tente de novo em ${minutes} ${minutes === 1 ? 'minuto' : 'minutos'}.` : 'Aguarde alguns minutos e tente de novo.'}`;
+  }
   if (result?.code === 'demo_capacity') return result.error;
   if (status === 404) return 'A demonstração não está disponível neste endereço.';
   return result?.error || 'A demonstração não respondeu. Tente de novo em instantes.';
@@ -78,7 +81,7 @@ export function demoEntry(personas, { enter, navigate = (url) => location.assign
         return;
       }
       status.dataset.tone = 'error';
-      status.textContent = outcome.status === 0 ? 'Sem conexão com o servidor. Verifique a rede e tente de novo.' : failureText(outcome.status, outcome.result);
+      status.textContent = outcome.status === 0 ? 'Sem conexão com o servidor. Verifique a rede e tente de novo.' : failureText(outcome.status, outcome.result, outcome.retryAfter);
       button.removeAttribute('aria-busy');
       for (const item of buttons) item.disabled = false;
     });
@@ -111,5 +114,5 @@ export function demoEntry(personas, { enter, navigate = (url) => location.assign
 export async function enterAsPersona(key) {
   const response = await fetch('/api/auth/demo-login', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ persona: key }) });
   const result = await response.json().catch(() => null);
-  return { ok: response.ok && result?.authenticated === true, status: response.status, result };
+  return { ok: response.ok && result?.authenticated === true, status: response.status, result, retryAfter: Number(response.headers.get('Retry-After')) || 0 };
 }

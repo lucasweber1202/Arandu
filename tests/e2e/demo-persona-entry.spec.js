@@ -48,7 +48,7 @@ async function personaServer(page, { login = () => ({ status: 200, body: { ok: t
     posts.push(r.request().postDataJSON());
     const reply = login(posts.length);
     if (reply === 'abort') return r.abort('failed');
-    await r.fulfill({ status: reply.status, contentType: 'application/json', body: JSON.stringify(reply.body) });
+    await r.fulfill({ status: reply.status, contentType: 'application/json', headers: reply.headers || {}, body: JSON.stringify(reply.body) });
   });
   // O destino do login é o produto real; aqui só registramos a navegação.
   await page.route('**/finance/dashboard.html', (r) => r.fulfill({ contentType: 'text/html', body: '<h1>Painel</h1>' }));
@@ -87,7 +87,7 @@ test('entrada da Demo: instituição vai direto ao portal da instituição', asy
 test('entrada da Demo: recusas e queda de rede não dizem que entrou e liberam a escolha', async ({ page }) => {
   const replies = [
     { status: 503, body: { ok: false, code: 'demo_capacity', error: 'A demonstração está cheia no momento. Tente novamente em alguns minutos.' } },
-    { status: 429, body: { ok: false, error: 'Muitas tentativas.' } },
+    { status: 429, headers: { 'Retry-After': '344' }, body: { ok: false, code: 'rate_limited', error: 'Muitas tentativas.' } },
     'abort',
     { status: 200, body: { ok: true, authenticated: false } }
   ];
@@ -99,7 +99,7 @@ test('entrada da Demo: recusas e queda de rede não dizem que entrou e liberam a
   await expect(status).toHaveText('A demonstração está cheia no momento. Tente novamente em alguns minutos.');
   await expect(juliana).toBeEnabled();
   await juliana.click();
-  await expect(status).toContainText('Muitas entradas em pouco tempo');
+  await expect(status).toHaveText('Muitas entradas em pouco tempo a partir desta rede. Tente de novo em 6 minutos.');
   await juliana.click();
   await expect(status).toContainText('Sem conexão com o servidor');
   // 200 sem sessão confirmada não é entrada.
