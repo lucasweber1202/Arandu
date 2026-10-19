@@ -1,4 +1,8 @@
 // Reuse the existing first-party authentication API; no second auth system.
+// Volta ao link que a pessoa abriu: só páginas do próprio produto, com query
+// restrita (ids e filtros), nunca outro host nem caminho arbitrário.
+const SAFE_NEXT = /^\/(?:provider|finance)\/[a-z-]+\.html(?:\?[A-Za-z0-9_.~%=&-]{1,300})?$/;
+const returnTo = () => { const next = new URLSearchParams(location.search).get('next') || ''; return SAFE_NEXT.test(next) ? next : null; };
 const endpoints = { login: '/api/auth/login', signup: '/api/auth/signup', reset: '/api/auth/reset-password' };
 document.querySelector('[data-reset-toggle]')?.addEventListener('click', () => {
   const form = document.querySelector('[data-finance-auth="reset"]');
@@ -83,9 +87,8 @@ document.querySelectorAll('[data-finance-auth]').forEach(form => form.addEventLi
       return;
     }
     status.textContent = 'Conta ativa. Abrindo o workspace…';
-    const next = new URLSearchParams(location.search).get('next') || '';
     // Only fixed first-party workspaces are valid return destinations.
-    location.assign(/^\/(?:provider|finance)\/[a-z-]+\.html$/.test(next) ? next : '/finance/index.html');
+    location.assign(returnTo() || '/finance/index.html');
   } catch (error) {
     status.textContent = error.message;
     form.querySelectorAll('input').forEach(input => input.setAttribute('aria-invalid', 'true'));
@@ -154,7 +157,7 @@ if (loginForm) fetch('/api/auth/demo-personas',{credentials:'same-origin'}).then
   const data=await response.json();
   if(!Array.isArray(data.personas)||!data.personas.length)return;
   const {demoEntry,enterAsPersona}=await import('./financial-demo-entry.js');
-  const section=demoEntry(data.personas,{enter:enterAsPersona});
+  const section=demoEntry(data.personas,{enter:enterAsPersona,next:returnTo()});
   const main=document.querySelector('#main');
   main.classList.add('has-demo-entry');
   main.prepend(section);

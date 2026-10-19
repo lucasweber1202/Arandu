@@ -28,12 +28,12 @@ Os dois usam **o mesmo produto** (`main`), o mesmo seed e as mesmas 16 etapas ab
 
 | | Roteiro A — hospedado | Roteiro B — local (estação de apresentação) |
 | --- | --- | --- |
-| Quando vale | Só se `node scripts/demo/hosted-parity.mjs --url=<URL pública> --sha=<SHA da main>` terminar em **READY** (identidade e prontidão lidas do servidor) | Sempre que a prontidão local (item 2 acima) estiver PRONTO, ensaiada **na própria estação** |
-| Estado em 18/10 | **NÃO VALE**: `arandu-demo.vercel.app` responde `datasource=synthetic-fixtures`, sem entrada por persona, prontidão 503 e sandbox legado em `/demo` (bloqueio do Codex: Supabase DEMO e cutover) | Vale: Auth, API, RLS e Storage reais em Docker, seed 39/39 |
+| Quando vale | Só se `node scripts/demo/hosted-parity.mjs --url=<URL pública> --sha=<SHA da main>` terminar em **READY** (identidade, prontidão, entrada por persona, sessão exigida, assets e rotas lidos do servidor). `NOT_READY` = falha comprovada; `ACCESS_BLOCKED` = o verificador não tem acesso; `INCONCLUSIVE` = rede/timeout ou item não verificado. Só READY libera o Roteiro A | Sempre que a prontidão local (item 2 acima) estiver PRONTO, ensaiada **na própria estação** |
+| Estado em 18/10 (`41513ee`) | **NÃO VALE — NOT_READY**: `arandu-demo.vercel.app` está no SHA da `main`, mas responde sem `environment`, `datasource=synthetic-fixtures`, prontidão 503, sem entrada por persona, `/api/finance/*` 404 e sandbox legado em `/demo` (bloqueio do Codex: Supabase DEMO e cutover) | Vale: Auth, API, RLS e Storage reais em Docker, seed 39/39 |
 | Entrada | Site → "Acessar plataforma" → **Conheça o Arandu por dentro** (escolha de persona) | Igual, em `https://localhost:4443/login.html#demonstracao`; ou as contas do baseline por e-mail (itens 4–5) |
 
 **Duas formas de entrar no Roteiro B:**
-1. **Por persona (recomendada para quem vai mexer):** cada janela anônima é um visitante com **workspace próprio** — o que se cria ou aprova ali não aparece para ninguém e não exige reset. Antes: `npm run demo:local:workspaces -- provision --count=<visitantes>` (≈5 min por workspace). Troca de persona no topo do workspace ("Trocar persona"): mesma empresa, mesmo workspace.
+1. **Por persona (recomendada para quem vai mexer):** cada janela anônima é um visitante com **workspace próprio** — o que se cria ou aprova ali não aparece para ninguém e não exige reset. Antes: `npm run demo:local:workspaces -- provision --count=<visitantes>` (≈ 10 min por par de workspaces, medido em 18/10). Troca de persona no topo do workspace ("Trocar persona"): mesma empresa, mesmo workspace.
 2. **Pelas contas do baseline (e-mail e senha):** é o cenário compartilhado do Modo 2; escreve no baseline e pede `npm run demo:local:reset` depois.
 
 Nunca use o sandbox ilustrativo (`/demo` do build antigo, empresa "Acme") como substituto silencioso: ele não é o produto e não grava nada no servidor.
@@ -168,7 +168,58 @@ material de apoio — nunca apresente como execução ao vivo.
 | Backend indisponível (telas com "Não foi possível carregar") | `bash scripts/demo/local.sh readiness`: se acusar serviço essencial fora do ar, `npm run demo:setup` (não é caso de reset). Enquanto isso, capturas **ditas como capturas**. |
 | Navegador com problema | Abra outra janela anônima (cookies limpos) ou outro navegador com o mesmo login; a Demo não guarda estado no navegador além da sessão. |
 | Sem rede externa | A Demo local não depende de serviços externos depois de montada. |
-| Entrada por persona diz "A demonstração está cheia" | O pool de workspaces acabou: `npm run demo:local:workspaces -- provision --count=2` (≈5 min cada). Enquanto isso, entre pelas contas do baseline por e-mail. Nada foi criado. |
+| Entrada por persona diz "A demonstração está cheia" | O pool de workspaces acabou: `npm run demo:local:workspaces -- provision --count=2` (≈ 10 min por par). Enquanto isso, entre pelas contas do baseline por e-mail. Nada foi criado. |
 | Entrada por persona diz "Muitas entradas em pouco tempo" | Limite legítimo de entradas por rede (12 a cada 10 min). Use "Trocar persona" só quando a jornada pedir; espere a janela. A tela não diz que entrou. |
 | "A demonstração não está disponível neste endereço" | O servidor não é de demonstração (ou a Demo hospedada não passou na verificação). Vá para o Roteiro B local. |
 | Link antigo `/demo/...` | Na Demo canônica ele mostra "Não encontramos esta página" com "Entrar na demonstração" (vai à escolha de persona). |
+
+## Decisão A / B / C (na véspera e na hora)
+
+| Estado | Condição verificável | O que apresentar |
+| --- | --- | --- |
+| **A — hospedada** | `hosted-parity.mjs` = **READY** no SHA aprovado **e** o roteiro pela entrada pública ensaiado no domínio (Codex confirma banco DEMO autorizado para escrita sintética) | Roteiro A, entrada pública, um visitante por janela anônima |
+| **B — local canônica** | Estação preparada (abaixo) com `39/39`, prontidão local "Modo leitura: PRONTO", pool com ≥ 2 workspaces livres e `demo-entry-lifecycle.spec.js` verde **nesta estação, hoje** | Roteiro B por persona (recomendado) |
+| **C — NO-GO** | Nem A nem B comprovados | Não apresentar operação ao vivo. Capturas da evidência, **ditas como capturas**, e explicar a limitação |
+
+Um runner de CI destruído não é estação pronta; um Preview "Ready" não é Demo validada; uma resposta 200 com `synthetic-fixtures` não é a Demo canônica.
+
+## Estação de apresentação (Roteiro B) — preparação reproduzível
+
+Sem conhecimento tácito: qualquer pessoa com a máquina e o repositório segue esta lista.
+
+1. Máquina com Docker, Node 24 e Chromium (Playwright). `git fetch && git checkout <SHA aprovado>`; `git rev-parse HEAD` igual ao SHA aprovado.
+2. `npm ci --include=optional` e `npm run build`.
+3. `npm run demo:setup` (≈ 20 min na primeira vez) → `39/39 checagens OK`. Senha das personas do baseline: `scripts/pilot-local/.state/demo.env` (nunca em slide, HTML ou chat).
+4. `set -a; . scripts/pilot-local/.state/demo.env; set +a` e `npm run demo:local:workspaces -- provision --count=4` (≈ 10 min por par de workspaces, medido em 18/10: 4 ≈ 21 min; deixe rodando com antecedência).
+5. Verificação: `node scripts/demo/hosted-parity.mjs --url=https://localhost:4443 --local` deve mostrar PASS em identidade, entrada por persona, sessão exigida, assets e rotas (prontidão 503 é esperada no laboratório e por isso o veredito local não é READY: ele não serve para liberar o Roteiro A).
+6. Ensaio completo, consumindo **um** workspace: `ARANDU_DEMO_LIFECYCLE_E2E=1 npx playwright test --config playwright.demo.config.js tests/e2e/demo-entry-lifecycle.spec.js --project=demo-desktop`. Verde = o roteiro inteiro gravou e releu no servidor. Reponha o workspace consumido (passo 4, `--count=1`).
+7. Reinício controlado **sem apagar dados** (executado em 19/10 depois de a estação de laboratório ser reiniciada: banco, pool e baseline sobreviveram):
+   - Docker de pé; `docker start arandu-pilot-local-db-1` se o banco aparecer `Exited` (pode sair na partida do daemon; ao subir, o log diz "directory appears to contain a database; Skipping initialization") e espere o estado `healthy`;
+   - gateway: `node scripts/pilot-local/gateway.mjs > scripts/pilot-local/.state/gateway.log 2>&1 &`;
+   - app: `bash scripts/demo/local.sh app`;
+   - confira: `npm run demo:local:check` (`39/39`), passo 5 e `npm run demo:local:workspaces -- list`.
+   **`npm run demo:down` apaga tudo** (banco, pool e senha) e `npm run demo:setup` **re-semeia** (`seed --reset`): nenhum dos dois é reinício.
+8. T-15 min: **não** rode mais testes de entrada (consomem o limite de entradas por rede, 12/10 min). Abra as janelas anônimas que vai usar.
+9. **Orçamento de visitantes por rede:** o servidor aceita **4 workspaces novos por hora por origem** (`auth-demo-claim`). Cada janela anônima nova que escolhe persona é um workspace novo; trocar de persona na mesma janela não conta. Na hora anterior à apresentação, não use mais que 2 janelas novas em ensaios e deixe ao menos 2 para a sessão. Público na mesma rede (Wi-Fi da sala) divide o mesmo orçamento.
+
+## Contingências da apresentação ao vivo (complemento)
+
+Cada linha aponta o que já existe no produto ou no repositório. Nunca: limpar banco hospedado, trocar de identidade para fugir de limite, compartilhar senha administrativa com visitante.
+
+| Situação | Como reconhecer | Procedimento seguro |
+| --- | --- | --- |
+| Vercel fora do ar (Roteiro A) | Domínio sem resposta; `hosted-parity` = INCONCLUSIVE | Roteiro B na estação preparada. Não use o sandbox como substituto |
+| Supabase DEMO fora do ar (A) | Telas com "Não foi possível carregar"; prontidão 503 | Roteiro B. Nada a resetar no hospedado |
+| Auth / login indisponível | Entrada por persona responde erro do servidor; a tela não diz que entrou | Aguarde 1 min e tente uma vez; persistindo, Roteiro B |
+| Pool esgotado / Demo cheia | "A demonstração está cheia" | B: `npm run demo:local:workspaces -- provision --count=2`; enquanto isso, contas do baseline (modo leitura) |
+| Rede lenta / timeout | Botões em "Salvando…", avisos "Não confirmamos…" | Não clique de novo. Use "Conferir com o servidor" ou recarregue e confira a lista (tarefa, aprovação, proposta) |
+| 409 / registro mudou | "A tarefa mudou enquanto você a alterava…", "Recarregue a página para resolver o conflito de rascunho" | Recarregue e mostre o estado salvo: é o produto protegendo a última versão |
+| Proposta alterada antes da aprovação | Aprovação mostra a versão analisada; comparação mostra "N condições mudaram desde a vX" | Explique: a aprovação vale para a versão vista; nova versão pede nova revisão humana |
+| Falha de Storage / documento inacessível | Download não abre ou aviso de arquivo indisponível | Siga sem o anexo: a trilha mostra quem enviou e quando; o arquivo só sai por link temporário |
+| Permissão revogada no meio | "Você não pode mais decidir este pedido… Nada foi registrado" / "Esta tarefa não está mais disponível para você. Nada mudou." | Troque para a persona com o papel certo ("Trocar persona") |
+| Sessão expirada | "Sua sessão expirou e nada foi registrado" | "Entrar em outra aba", volte e repita: o formulário continua preenchido |
+| 429 de entradas | "Muitas entradas em pouco tempo… Tente de novo em N minutos" | Espere o tempo informado na mesma persona; siga narrando a tela aberta. Se a janela nova não entra (limite de **4 workspaces novos por hora** na rede), continue na janela já aberta com "Trocar persona" — ela não consome workspace novo |
+| Navegador travado | Página sem resposta | Nova janela anônima; a sessão de visitante é por janela (cookie), nada fica no navegador |
+| Celular incompatível | Navegador antigo sem módulos JS | Use o notebook; o produto exige navegador atual (Chrome, Safari, Firefox, Edge recentes) |
+| Fonte/asset não carregou | Página sem estilo ou sem ação | Recarregue; persistindo, `hosted-parity` mostra o asset com falha. Roteiro B |
+| Dados alterados pela apresentação anterior | Tarefa de ensaio, aprovação já feita | Por persona, cada janela anônima nova é um workspace novo e intocado; pelo baseline, `npm run demo:local:reset` **depois** |

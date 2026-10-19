@@ -62,6 +62,11 @@ test('entrada da Demo: comprador e instituições separados, dados fictícios di
   const entry = page.getByRole('region', { name: 'Conheça o Arandu por dentro' });
   await expect(entry).toContainText('produto real');
   await expect(entry).toContainText('Dados fictícios');
+  // Antes de escolher, o visitante sabe o que é o produto, o que ele não é e como sair.
+  await expect(entry).toContainText('organiza como uma empresa contrata produtos financeiros');
+  await expect(entry).toContainText('O Arandu não é banco');
+  await expect(entry).toContainText('fica gravado de verdade');
+  await expect(entry).toContainText('"Sair" no menu da sua conta');
   await expect(entry).toContainText('Um espaço só seu');
   const buyers = entry.locator('.demo-entry-group', { hasText: 'Empresa compradora' });
   const providers = entry.locator('.demo-entry-group', { hasText: 'Instituições financeiras' });
@@ -147,4 +152,82 @@ test('entrada da Demo: ordem da jornada — gestora primeiro; entre as institui�
   await page.goto('/login.html');
   await expect(page.locator('.demo-entry-group').first().locator('.demo-persona').first()).toHaveAttribute('data-persona', 'juliana');
   await expect(page.locator('.demo-entry-group').nth(1).locator('.demo-persona').first()).toHaveAttribute('data-persona', 'meridian');
+});
+
+test('entrada da Demo: o link que trouxe o visitante vale só para o lado da persona', async ({ page }) => {
+  await personaServer(page);
+  await page.route('**/finance/contracts.html*', (r) => r.fulfill({ contentType: 'text/html', body: '<h1>Contratos</h1>' }));
+  const next = encodeURIComponent('/finance/contracts.html?contrato=abc');
+  await page.goto(`/login.html?next=${next}#demonstracao`);
+  await page.locator('[data-persona="rafael"]').click();
+  await page.waitForURL('**/finance/contracts.html?contrato=abc');
+  // Instituição não segue link da área da empresa: vai ao próprio portal.
+  await page.goto(`/login.html?next=${next}#demonstracao`);
+  await page.locator('[data-persona="atlas"]').click();
+  await page.waitForURL('**/provider/index.html');
+  // Destino fora da regra é ignorado.
+  await page.goto(`/login.html?next=${encodeURIComponent('https://evil.example/finance/x.html')}#demonstracao`);
+  await page.locator('[data-persona="juliana"]').click();
+  await page.waitForURL('**/finance/dashboard.html');
+});
+
+// ------------------------------------------------------------------------
+// Veredito da verificação hospedada (scripts/demo/hosted-parity.mjs): só READY
+// com tudo comprovado; falta de acesso, transporte ou "não verificado" nunca
+// viram PASS. Sem rede: testa a regra pura.
+import { releaseIdentityChecks, transportOutcome, verdict } from '../../scripts/demo/hosted-parity-verdict.mjs';
+import { assessPublicHealth } from '../../lib/live-release-health.mjs';
+
+const pass = (id) => ({ id, result: 'PASS' });
+
+test('transporte: sem resposta, proteção de deploy e 5xx de terceiros não são resposta da aplicação', () => {
+  expect(transportOutcome({ status: 0 })).toBe('UNKNOWN');
+  expect(transportOutcome({ status: 401, app: false })).toBe('BLOCKED');
+  expect(transportOutcome({ status: 403, app: false })).toBe('BLOCKED');
+  expect(transportOutcome({ status: 502, app: false })).toBe('UNKNOWN');
+  // 401 da própria aplicação (JSON) é resposta lida: o item decide PASS/FAIL.
+  expect(transportOutcome({ status: 401, app: true })).toBeNull();
+  expect(transportOutcome({ status: 503, app: true })).toBeNull();
+  expect(transportOutcome({ status: 404, app: false })).toBeNull();
+});
+
+test('veredito: falha comprovada prevalece; acesso e transporte nunca viram READY', () => {
+  expect(verdict([pass('a'), pass('b')])).toBe('READY');
+  expect(verdict([pass('a'), { id: 'b', result: 'FAIL' }, { id: 'c', result: 'BLOCKED' }])).toBe('NOT_READY');
+  expect(verdict([pass('a'), { id: 'b', result: 'BLOCKED' }, { id: 'c', result: 'UNKNOWN' }])).toBe('ACCESS_BLOCKED');
+  expect(verdict([pass('a'), { id: 'b', result: 'UNKNOWN' }])).toBe('INCONCLUSIVE');
+  expect(verdict([])).toBe('INCONCLUSIVE');
+});
+
+test('veredito: "não verificado" só é aceito para o SHA no laboratório local', () => {
+  const sha = { id: 'release-sha', result: 'NOT_RUN' };
+  expect(verdict([pass('a'), sha])).toBe('INCONCLUSIVE');
+  expect(verdict([pass('a'), sha], { local: true })).toBe('READY');
+  expect(verdict([pass('a'), { id: 'readiness', result: 'NOT_RUN' }], { local: true })).toBe('INCONCLUSIVE');
+});
+
+test('identidade hospedada: liveness certo não mascara readiness de outro deployment', () => {
+  const sha = 'a'.repeat(40);
+  const release = { environment: 'demo', mode: 'demo', datasource: 'supabase', misconfigured: false, branch: 'main', commit: sha };
+  const alive = { status: 200, app: true, json: { ok: true, service: 'arandu-api', status: 'alive', release } };
+  const ready = (patch = {}, extra = {}) => ({ status: 200, app: true, json: { ok: true, service: 'arandu-api', status: 'ready', release: { ...release, ...patch }, ...extra } });
+  const run = (readiness, expectedSha = sha) => {
+    const checks = [{ id: 'outros', result: 'PASS' }, ...releaseIdentityChecks(alive, readiness, { expectedSha }, assessPublicHealth)];
+    return { checks, verdict: verdict(checks) };
+  };
+  expect(run(ready()).verdict).toBe('READY');
+  for (const [label, response] of [
+    ['outro SHA', ready({ commit: 'b'.repeat(40) })],
+    ['outro ambiente', ready({ environment: 'production', mode: 'official' })],
+    ['dados de fixture', ready({ datasource: 'synthetic-fixtures' })],
+    ['branch errada', ready({ branch: 'feature/x' })],
+    ['campo privado extra', ready({}, { database_url: 'postgres://…' })],
+    ['readiness 503', { ...ready(), status: 503 }]
+  ]) {
+    const result = run(response);
+    expect(result.verdict, label).toBe('NOT_READY');
+    expect(result.checks.find((check) => check.id === 'readiness-identity').result, label).toBe('FAIL');
+  }
+  // Sem SHA completo, nada é atestado.
+  expect(run(ready(), 'aaaaaaa').verdict).toBe('INCONCLUSIVE');
 });
