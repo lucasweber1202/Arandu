@@ -287,6 +287,14 @@ function scopedTables(scope) {
     ['fin_approval_policies', ['organization_id'], org, ['updated_at']],
     ['fin_member_invitations', ['id'], org, ['created_at', 'accepted_at']],
     ['fin_events', ['id'], org, ['happened_at']],
+    // Entidades criadas durante o uso (a CFO pela tela, as sondas multi-entidade):
+    // o seed não as cria, mas o reset precisa removê-las antes dos membros e da organização.
+    // Governança de dados (rotas de quem é admin do grupo, como a CFO): filhas antes das mães.
+    ...['fin_governance_log', 'fin_offboarding_member_archive', 'fin_offboarding_requests', 'fin_data_export_parts', 'fin_data_exports',
+      'fin_legal_holds', 'fin_retention_policies'].map((table) => [table, null, org, []]),
+    ['fin_member_entity_grants', null, org, []],
+    ['fin_legal_entities', null, `${org}&parent_id=not.is.null`, []],
+    ['fin_legal_entities', null, org, []],
     ['fin_members', ['organization_id', 'user_id'], org, ['created_at']],
     ['fin_organizations', ['id'], `id=${inList(scope.orgs)}`, ['created_at']]
   ];

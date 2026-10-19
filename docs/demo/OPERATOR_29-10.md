@@ -21,6 +21,7 @@ Não troque de A para B no meio da reunião se B não foi preparado antes.
 ```bash
 git fetch origin && git checkout <SHA aprovado> && git status --short   # vazio
 npm ci --include=optional
+npx playwright install chromium         # navegador do ensaio, na versão do lockfile (sem ele o ensaio falha antes de abrir a página)
 npm run demo:setup                      # ≈ 20 min; termina em "39/39 checagens OK"
 set -a; . scripts/pilot-local/.state/demo.env; set +a
 npm run demo:local:workspaces -- provision --count=4    # ≈ 10 min por par
@@ -77,6 +78,7 @@ Modo interativo NÃO PRONTO e leitura PRONTO → apresente só o Modo leitura.
 | "A demonstração está cheia" | Siga pelas janelas já abertas; depois: `npm run demo:local:workspaces -- provision --count=2` |
 | "Muitas entradas em pouco tempo…" | Espere o tempo da tela na mesma janela; use "Trocar persona" |
 | Telas com "Não foi possível carregar" | Veja a recuperação abaixo |
+| "Muitas requisições em pouco tempo (limite de segurança da conta)" | É o limite real de 240 chamadas por pessoa a cada 10 min. Na estação local ele vive na memória do app: `bash scripts/demo/local.sh app` reinicia só o app (dados, pool e sessões ficam) e zera os limites. Não rode testes no mesmo dia antes da reunião: um ensaio desktop + mobile seguido esgota o limite das personas |
 | Operação sem confirmação ("Não confirmamos…") | Não repita: use "Conferir com o servidor" ou recarregue e confira a lista |
 | Qualquer dúvida | Siga em Modo leitura; a jornada não depende da operação |
 
