@@ -10,6 +10,8 @@ import crypto from 'node:crypto';
 import { assertLocalEnv } from './assert-local.mjs';
 import { EXPECTED_SCHEMA_VERSION } from '../../lib/finance/pilot-doctor.mjs';
 import { decodeSessionValue } from '../../lib/session-cookie.mjs';
+import { DEMO_POOL_READINESS_PATH, demoPoolTotal, demoPoolStatus } from '../../lib/finance/demo-entry-readiness.mjs';
+import { readBoundedResponse } from '../../lib/bounded-response.mjs';
 
 assertLocalEnv(process.env, 'smoke');
 const { SUPABASE_URL: SB, SUPABASE_ANON_KEY: ANON, SUPABASE_SERVICE_ROLE_KEY: SERVICE, ARANDU_DEMO_APP_URL: APP, PILOT_DB_URL: DB } = process.env;
@@ -60,6 +62,17 @@ await check('Postgres: banco vazio antes do seed', async () => {
 });
 await check('GoTrue (Auth) saudável pelo gateway', async () => { const r = await waitFor('Auth', `${SB}/auth/v1/health`, HEALTH_MS); return `HTTP ${r.status} ${(await r.json()).name || ''}`.trim(); });
 await check('PostgREST saudável pelo gateway', async () => { const r = await waitFor('PostgREST', `${SB}/rest/v1/`, HEALTH_MS, { headers: { apikey: ANON } }); return `HTTP ${r.status}`; });
+await check('Pool: consulta real de capacidade e contagem exata antes do seed', async () => {
+  const r = await fetchT(`${SB}/rest/v1/${DEMO_POOL_READINESS_PATH}`, {
+    headers: { apikey: SERVICE, Authorization: `Bearer ${SERVICE}`, Prefer: 'count=exact' }
+  });
+  must(r.ok, `HTTP ${r.status}`);
+  const rows = JSON.parse((await readBoundedResponse(r, 4 * 1024 * 1024)).toString('utf8'));
+  const total = demoPoolTotal(r.headers.get('content-range'));
+  must(total === 0 && Array.isArray(rows) && rows.length === 0, 'pool pré-seed não vazio ou contagem ausente');
+  must(demoPoolStatus(rows, { total }) === 'capacity_unavailable', 'pool vazio anunciado como pronto');
+  return 'GET real aceito; count=0; capacidade indisponível corretamente';
+});
 await check('Storage saudável e bucket fin-documents privado', async () => {
   await waitFor('Storage', `${SB}/storage/v1/status`, HEALTH_MS);
   const bucket = sql("select public::text from storage.buckets where id = 'fin-documents'");

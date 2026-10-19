@@ -1,15 +1,27 @@
 import assert from 'node:assert/strict';
 import { evaluateReadiness, resetReadinessCache } from '../lib/readiness.mjs';
-import { demoPersonaSecretReady, demoPoolStatus } from '../lib/finance/demo-entry-readiness.mjs';
+import { demoPersonaSecretReady, demoPoolStatus, demoPoolTotal } from '../lib/finance/demo-entry-readiness.mjs';
 import { BASELINE_VERSION } from '../lib/finance/demo-workspaces.mjs';
+import { demoWorkspaceFixture } from './fixtures/demo-workspace.mjs';
 
 for (const value of [undefined, '', 'short1A', 'a'.repeat(20), 'A'.repeat(20), '1'.repeat(20), 'LongSecretWithoutDigits']) assert.equal(demoPersonaSecretReady(value), false);
 assert.equal(demoPersonaSecretReady('SyntheticOnlySecret9'), true);
-const readyWorkspace = { status: 'ready', baseline_version: BASELINE_VERSION };
-assert.equal(demoPoolStatus([readyWorkspace]), 'ok');
-assert.equal(demoPoolStatus([]), 'capacity_unavailable');
+const readyWorkspace = demoWorkspaceFixture();
+const poolStatus = (rows, options = {}) => demoPoolStatus(rows, { total: Array.isArray(rows) ? rows.length : null, ...options });
+assert.equal(poolStatus([readyWorkspace]), 'ok');
+assert.equal(poolStatus([]), 'capacity_unavailable');
 assert.equal(demoPoolStatus(null), 'inconclusive');
-for (const rows of [[null], [{ ...readyWorkspace, status: 'claimed' }], [{ ...readyWorkspace, baseline_version: 'obsolete' }], [readyWorkspace, { ...readyWorkspace, baseline_version: 'obsolete' }]]) assert.equal(demoPoolStatus(rows), 'incompatible');
+for (const rows of [[null], [{ ...readyWorkspace, status: 'failed' }], [{ ...readyWorkspace, baseline_version: 'obsolete' }], [readyWorkspace, { ...readyWorkspace, baseline_version: 'obsolete' }],
+  [{ status: 'ready', baseline_version: BASELINE_VERSION }], [{ ...readyWorkspace, user_ids: [] }], [{ ...readyWorkspace, personas: { ...readyWorkspace.personas, juliana: readyWorkspace.personas.helena } }],
+  [readyWorkspace, demoWorkspaceFixture(2, { buyer_organization_id: readyWorkspace.buyer_organization_id })]]) assert.equal(poolStatus(rows), 'incompatible');
+assert.equal(demoPoolStatus([readyWorkspace]), 'inconclusive', 'exact count is mandatory');
+assert.equal(poolStatus([readyWorkspace], { total: 2 }), 'inconclusive', 'truncated Data API response cannot prove capacity');
+assert.equal(demoPoolTotal('0-9/26'), 26); assert.equal(demoPoolTotal('*/0'), 0); assert.equal(demoPoolTotal('0-9/*'), null);
+const now = Date.parse('2026-10-18T12:00:00Z'), future = '2026-10-19T12:00:00Z';
+const claims = Array.from({ length: 25 }, (_, i) => demoWorkspaceFixture(i + 2, { status: 'claimed', expires_at: future, idle_expires_at: future }));
+assert.equal(poolStatus([readyWorkspace, ...claims], { now }), 'capacity_unavailable', 'ready rows do not override the active ceiling');
+assert.equal(poolStatus([readyWorkspace, ...claims.slice(1)], { now }), 'ok');
+assert.equal(poolStatus([readyWorkspace, ...claims.map(row => ({ ...row, idle_expires_at: '2026-10-17T00:00:00Z' }))], { now }), 'inconclusive', 'expired response snapshot must not invent free capacity');
 
 const PILOT = 'offgpyysgdhfemjlchod', LEGACY = 'igacnfjeuqhxcmfyepgj';
 const secret = 'x'.repeat(40);

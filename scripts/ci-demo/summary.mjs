@@ -25,6 +25,7 @@ const phases = [
   ['Smoke: banco, Auth, PostgREST, Storage, API, RLS', 'SMOKE', last(read('smoke.txt'), /\d+\/\d+ verificações PASS\./)],
   ['Seed oficial da Vitta Foods', 'SEED', last(read('seed.txt'), /\d+\/\d+ checagens OK\./)],
   ['Sanidade do seed (releitura)', 'CHECK', last(read('seed-check.txt'), /\d+\/\d+ checagens OK\./)],
+  ['Pool: quatro workspaces reais, personas e capacidade', 'POOL', last(read('pool.txt'), /VISITOR_POOL_VALIDATED.*/)],
   ['Versão do Playwright', 'PLAYWRIGHT_VERSION', ''],
   ['Instalação de Chromium', 'INSTALL_CHROMIUM', ''],
   ['E2E Chromium desktop', 'E2E_DESKTOP', playwright(read('e2e-desktop.txt'))],
