@@ -19,6 +19,12 @@ Status em 18/10: C para a apresentação. Acesso Vercel 403; Pilot ainda com
 schema antigo. Testes locais de backend/recovery não equivalem a B completo.
 Um runner destruído não hospeda a contingência. Nunca converter B em A.
 
+A condição "estação real preparada e testada no mesmo SHA" de B tem comando:
+`bash scripts/demo/local.sh station` (READY só na máquina declarada por
+`bash scripts/demo/local.sh freeze --station`, no SHA congelado, com prontidão
+recente; executor efêmero nunca passa de PREPARED). Passo a passo D-3/D-1/D-0 em
+[`docs/demo/OPERATOR_29-10.md`](demo/OPERATOR_29-10.md).
+
 ## D-7 — 22/10
 
 Owner nomeia titulares e canal, escolhe A ou prepara B. Plataforma confirma

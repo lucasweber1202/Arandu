@@ -7,6 +7,9 @@
 #   npm run demo:local:reset  # apaga só os dados da demo e semeia de novo
 #   npm run demo:local:check  # só as checagens de sanidade
 #   bash scripts/demo/local.sh readiness [--smoke]  # prontidão da apresentação (só lê)
+#   bash scripts/demo/local.sh resume   # retoma após reinício (sem apagar dados)
+#   bash scripts/demo/local.sh station  # preflight da estação: READY|PREPARED|BLOCKED|UNSAFE
+#   bash scripts/demo/local.sh freeze --station  # congela o SHA da apresentação nesta máquina
 #   npm run demo:down         # derruba tudo e apaga o estado local
 #
 # Chaves, senha das personas e certificados são gerados a cada ambiente em
@@ -65,6 +68,29 @@ case "$command" in
     echo "Demonstração local: https://localhost:4443/login.html (certificado autoassinado)"
     echo "Senha das personas: veja ARANDU_DEMO_PASSWORD em scripts/pilot-local/.state/demo.env"
     ;;
+  resume)
+    # Retomada SEM apagar nada (máquina reiniciada, Docker parado, app caído): sobe
+    # os contêineres existentes, o gateway e o app, e confere o seed. Nunca cria
+    # contêiner novo: se o banco sumiu, os dados sumiram com ele (use setup).
+    load_env
+    for name in db auth rest storage; do
+      docker inspect "arandu-pilot-local-$name-1" >/dev/null 2>&1 || { echo "Contêiner arandu-pilot-local-$name-1 ausente: os dados da Demo estavam nele. Rode npm run demo:setup (≈ 20 min)."; exit 1; }
+    done
+    docker start arandu-pilot-local-db-1 arandu-pilot-local-auth-1 arandu-pilot-local-rest-1 arandu-pilot-local-storage-1 >/dev/null
+    for _ in $(seq 1 60); do [ "$(docker inspect -f '{{.State.Health.Status}}' arandu-pilot-local-db-1)" = healthy ] && break; sleep 2; done
+    [ "$(docker inspect -f '{{.State.Health.Status}}' arandu-pilot-local-db-1)" = healthy ] || { echo "O banco não ficou saudável em 2 min (docker logs arandu-pilot-local-db-1)."; exit 1; }
+    if ! curl -fsSk https://localhost:8443/auth/v1/health >/dev/null 2>&1; then
+      for pid in $(pgrep -f "pilot-local/gatewa[y].mjs" || true); do kill "$pid" 2>/dev/null || true; done
+      ( cd "$root" && node scripts/pilot-local/gateway.mjs > "$state/gateway.log" 2>&1 & echo $! > "$state/gateway.pid" ) </dev/null >/dev/null 2>&1
+      for _ in $(seq 1 30); do curl -fsSk https://localhost:8443/auth/v1/health >/dev/null 2>&1 && break; sleep 1; done
+    fi
+    curl -fsSk https://localhost:8443/auth/v1/health >/dev/null 2>&1 || { echo "Gateway HTTPS não respondeu (veja $state/gateway.log)."; exit 1; }
+    curl -fsSk https://localhost:4443/api/health >/dev/null 2>&1 || start_app
+    node "$here/seed.mjs" --check
+    node "$here/workspaces.mjs" list
+    ;;
+  station) shift; node "$here/station.mjs" "$@" ;;
+  freeze) shift; node "$here/station.mjs" freeze "$@" ;;
   password) ensure_password ;;
   reset) load_env; node "$here/seed.mjs" --reset ;;
   check) load_env; node "$here/seed.mjs" --check ;;
@@ -72,5 +98,5 @@ case "$command" in
   app) load_env; start_app; echo "App local em modo demo: https://localhost:4443" ;;
   workspaces) shift; load_env; node "$here/workspaces.mjs" "$@" ;;
   down) bash "$root/scripts/pilot-local/down.sh" ;;
-  *) echo "uso: bash scripts/demo/local.sh setup|password|reset|check|readiness|app|workspaces|down"; exit 2 ;;
+  *) echo "uso: bash scripts/demo/local.sh setup|resume|station|freeze|password|reset|check|readiness|app|workspaces|down"; exit 2 ;;
 esac
