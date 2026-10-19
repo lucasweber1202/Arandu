@@ -7,6 +7,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { pipeline } from 'node:stream/promises';
 import { sourceConnection, majorVersion } from '../lib/pilot-backup-preflight.mjs';
 import { COUNTS_SQL, parseCounts, countsDigest } from '../lib/recovery-reconciliation.mjs';
+import { SCHEMA_SQL, SCHEMA_FINGERPRINT_VERSION, validSchemaDigest } from '../lib/recovery-schema.mjs';
 import { STORAGE_SNAPSHOT_SQL, parseInventory, storageSnapshotDigest } from '../lib/storage-recovery.mjs';
 import { recoveryFail, RecoveryError, syncPath } from '../lib/recovery-doctor.mjs';
 
@@ -34,9 +35,10 @@ function snapshotSession(env) {
   });
   return {
     async open() {
-      const [snapshot, counts, inventory] = await step(`begin isolation level repeatable read read only;\nset local row_security = off;\nselect pg_export_snapshot();\n${COUNTS_SQL}\n${STORAGE_SNAPSHOT_SQL}`);
+      const [snapshot, counts, inventory, schema] = await step(`begin isolation level repeatable read read only;\nset local row_security = off;\nselect pg_export_snapshot();\n${COUNTS_SQL}\n${STORAGE_SNAPSHOT_SQL}\n${SCHEMA_SQL}`);
       if (!/^[0-9A-F]{8}-[0-9A-F]{8}(-[0-9]+)?$/i.test(snapshot || '')) throw new Error('Snapshot inválido.');
-      return { snapshot, counts: parseCounts(counts), inventory: parseInventory(JSON.stringify({ ...JSON.parse(inventory), references: [] })) };
+      if (!validSchemaDigest(schema)) throw new Error('Catálogo de origem inválido.');
+      return { snapshot, schema, counts: parseCounts(counts), inventory: parseInventory(JSON.stringify({ ...JSON.parse(inventory), references: [] })) };
     },
     async close() { child.stdin.end('commit;\n'); if (await exited !== 0) throw new Error('Sessão de snapshot falhou.'); },
     abort() { child.kill('SIGKILL'); }
@@ -147,10 +149,12 @@ export async function exportRecovery({ env = process.env, root = process.cwd(), 
     session = snapshotSession(queryEnv);
     let opened;
     try { opened = await session.open(); } catch { recoveryFail('RECOVERY_CONNECTION_FAILED', 'Snapshot consistente não pôde ser aberto.'); }
-    const { snapshot, counts, inventory } = opened;
+    const { snapshot, counts, inventory, schema } = opened;
     manifest.snapshot = 'exported_snapshot_shared_with_pg_dump';
     manifest.snapshot_counts = counts;
     manifest.snapshot_counts_sha256 = countsDigest(counts);
+    manifest.schema_fingerprint_version = SCHEMA_FINGERPRINT_VERSION;
+    manifest.snapshot_schema_sha256 = schema;
     const snapshotObjects = counts['storage.objects'];
     if (!Number.isSafeInteger(snapshotObjects) || snapshotObjects !== inventory.objects.length) recoveryFail('RECOVERY_CONNECTION_FAILED', 'Inventário Storage diverge das contagens do snapshot.');
     // O preflight é anterior ao snapshot; nunca determina completude do dump.

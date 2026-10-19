@@ -9,6 +9,7 @@ import { createHash } from 'node:crypto';
 import { exportRecovery } from './consolidation-export.mjs';
 import { digestFile } from '../lib/recovery-transfer.mjs';
 import { verifyRestore } from './consolidation-restore-verify.mjs';
+import { SCHEMA_SQL } from '../lib/recovery-schema.mjs';
 import { loopbackTarget } from '../lib/recovery-reconciliation.mjs';
 import { initStore, prepareKey, privateExport, verifyExport } from './recovery.mjs';
 import { rehearseStorageSet } from './recovery-storage-fixture.mjs';
@@ -39,7 +40,7 @@ const run = (bin,args,extra={}) => {
   return result.stdout;
 };
 // Portas fixas do laboratório: falha cedo e explícita se outro processo já as ocupa.
-for(const port of [55431,55432,55433,55434]) {
+for(const port of [55431,55432,55433,55434,55435]) {
   const probe=spawnSync(process.execPath,['-e',`const s=require('net').createServer();s.once('error',e=>{console.error(e.code);process.exit(1)});s.listen(${port},'127.0.0.1',()=>s.close())`],{encoding:'utf8',timeout:10000});
   if(probe.status!==0) { fs.rmSync(dir,{recursive:true,force:true}); throw new Error(`Recovery laboratory port 127.0.0.1:${port} unavailable (${(probe.stderr||'').trim() || 'probe failed'}); no validation result issued.`); }
 }
@@ -52,6 +53,7 @@ CREATE TABLE auth.mfa_factors(id integer primary key);
 CREATE TABLE storage.objects(id integer primary key, bucket_id text, name text, metadata jsonb);
 CREATE TABLE storage.buckets(id text primary key, public boolean default false, file_size_limit bigint, allowed_mime_types text[]); INSERT INTO storage.buckets(id) VALUES('synthetic-private');
 CREATE TABLE supabase_migrations.schema_migrations(version text primary key); INSERT INTO supabase_migrations.schema_migrations VALUES('synthetic-1');
+CREATE TABLE public.fin_settings(key text primary key,value text); INSERT INTO public.fin_settings VALUES('schema_version','synthetic-schema-1'),('deployment_environment','demo');
 CREATE TABLE public.parent(id integer PRIMARY KEY, label text NOT NULL);
 CREATE TABLE public.child(id integer PRIMARY KEY, parent_id integer REFERENCES public.parent(id), amount numeric CHECK(amount>0));
 INSERT INTO public.parent VALUES(1,'synthetic-alpha'),(2,'synthetic-beta'); INSERT INTO public.child VALUES(3,1,42),(4,2,84);
@@ -122,7 +124,7 @@ try {
   assert.equal(manifest.restore,'NOT RUN');
   // Contagens tiradas no mesmo snapshot que o pg_dump importou.
   assert.equal(manifest.snapshot,'exported_snapshot_shared_with_pg_dump');
-  assert.deepEqual(manifest.snapshot_counts,{'auth.mfa_factors':0,'auth.users':1,'public.child':2,'public.parent':2,'storage.buckets':1,'storage.objects':0,'supabase_migrations.schema_migrations':1});
+  assert.deepEqual(manifest.snapshot_counts,{'auth.mfa_factors':0,'auth.users':1,'public.child':2,'public.fin_settings':2,'public.parent':2,'storage.buckets':1,'storage.objects':0,'supabase_migrations.schema_migrations':1});
   const pgDumpSnapshot=fs.readFileSync(path.join(dir,'source.log'),'utf8');
   assert(!/ERROR/.test(pgDumpSnapshot),'source cluster logged an error during snapshot export');
   for(const f of manifest.files)assert.deepEqual(await digestFile(path.join(backup,f.name)),{bytes:f.bytes,sha256:f.sha256});
@@ -138,34 +140,84 @@ try {
   const restoreEnv={...env,ARANDU_RESTORE_CONFIRM:'ARANDU-ISOLATED-RESTORE',ARANDU_RESTORE_BACKUP:backup,ARANDU_RESTORE_IDENTITY:identity,
     ARANDU_RESTORE_TARGET_URL:'postgresql://postgres@127.0.0.1:55432/postgres?sslmode=disable'};
   const code=(promise,expected)=>assert.rejects(promise,(e)=>e.code===expected);
+  // Production CLI cannot treat an arbitrary/synthetic artifact as its approved source.
+  await code(verifyRestore({root:process.cwd(),env:restoreEnv}),'source_identity_mismatch');
+  const fingerprint = port => sql(port,`BEGIN READ ONLY; ${SCHEMA_SQL} COMMIT;`).trim().split('\n').find(v=>/^[a-f0-9]{64}$/.test(v));
+  const originalSchema = fingerprint(55431);
+  assert.equal(originalSchema,manifest.snapshot_schema_sha256);
+  // Same row counts, changed marker or function body must change the fingerprint.
+  sql(55431,"UPDATE public.fin_settings SET value='wrong' WHERE key='schema_version';");
+  assert.notEqual(fingerprint(55431),originalSchema);
+  sql(55431,"UPDATE public.fin_settings SET value='synthetic-schema-1' WHERE key='schema_version';");
+  sql(55431,"CREATE OR REPLACE FUNCTION public.positive(n numeric) RETURNS boolean LANGUAGE sql IMMUTABLE AS 'select n >= 0';");
+  assert.notEqual(fingerprint(55431),originalSchema);
+  sql(55431,"CREATE OR REPLACE FUNCTION public.positive(n numeric) RETURNS boolean LANGUAGE sql IMMUTABLE AS 'select n > 0';");
+  assert.equal(fingerprint(55431),originalSchema);
+  for (const change of ['ALTER TABLE public.child DISABLE ROW LEVEL SECURITY;',
+    'REVOKE SELECT ON public.child FROM arandu_fixture_reader;',
+    'DROP POLICY reader ON public.child;',
+    'ALTER TABLE public.child ALTER COLUMN amount TYPE numeric(12,2);']) {
+    const changed=sql(55431,`BEGIN; ${change} ${SCHEMA_SQL} ROLLBACK;`).trim().split('\n').find(v=>/^[a-f0-9]{64}$/.test(v));
+    assert.match(changed,/^[a-f0-9]{64}$/);
+    assert.notEqual(changed,originalSchema,change);
+  }
+  assert.equal(fingerprint(55431),originalSchema);
   // Fail-closed antes de qualquer descriptografia ou escrita no destino.
   assert.throws(()=>loopbackTarget('postgresql://postgres:x@db.offgpyysgdhfemjlchod.supabase.co:5432/postgres'));
-  await assert.rejects(verifyRestore({root:process.cwd(),env:{...restoreEnv,ARANDU_RESTORE_TARGET_URL:'postgresql://postgres@10.0.0.5:5432/postgres'}}));
-  await assert.rejects(verifyRestore({root:process.cwd(),env:{...restoreEnv,ARANDU_RESTORE_CONFIRM:''}}));
-  fs.chmodSync(identity,0o644);await code(verifyRestore({root:process.cwd(),env:restoreEnv}),'invalid_input');fs.chmodSync(identity,0o600);
-  await code(verifyRestore({root:process.cwd(),env:{...restoreEnv,ARANDU_RESTORE_TARGET_URL:'postgresql://postgres@127.0.0.1:55431/postgres?sslmode=disable'}}),'target_not_empty');
-  const tampered=path.join(dir,'tampered');fs.cpSync(backup,tampered,{recursive:true});
+  await assert.rejects(verifyRestore({syntheticLocal:true,root:process.cwd(),env:{...restoreEnv,ARANDU_RESTORE_TARGET_URL:'postgresql://postgres@10.0.0.5:5432/postgres'}}));
+  await assert.rejects(verifyRestore({syntheticLocal:true,root:process.cwd(),env:{...restoreEnv,ARANDU_RESTORE_CONFIRM:''}}));
+  fs.chmodSync(identity,0o644);await code(verifyRestore({syntheticLocal:true,root:process.cwd(),env:restoreEnv}),'invalid_input');fs.chmodSync(identity,0o600);
+  await code(verifyRestore({syntheticLocal:true,root:process.cwd(),env:{...restoreEnv,ARANDU_RESTORE_TARGET_URL:'postgresql://postgres@127.0.0.1:55431/postgres?sslmode=disable'}}),'target_not_empty');
+  const tampered=path.join(dir,'tampered');fs.cpSync(backup,tampered,{recursive:true});fs.chmodSync(tampered,0o700);
   const tamperedManifest=JSON.parse(fs.readFileSync(path.join(tampered,'manifest.json'),'utf8'));
+  const identityLink=path.join(dir,'identity-link');fs.symlinkSync(identity,identityLink);
+  await code(verifyRestore({syntheticLocal:true,root:process.cwd(),env:{...restoreEnv,ARANDU_RESTORE_IDENTITY:identityLink}}),'invalid_input');
+  const rolesPath=path.join(tampered,'roles.sql.age');fs.rmSync(rolesPath);fs.symlinkSync(path.join(backup,'roles.sql.age'),rolesPath);
+  await code(verifyRestore({syntheticLocal:true,root:process.cwd(),env:{...restoreEnv,ARANDU_RESTORE_BACKUP:tampered}}),'invalid_input');
+  fs.rmSync(rolesPath);fs.linkSync(path.join(backup,'roles.sql.age'),rolesPath);
+  await code(verifyRestore({syntheticLocal:true,root:process.cwd(),env:{...restoreEnv,ARANDU_RESTORE_BACKUP:tampered}}),'invalid_input');
+  fs.rmSync(rolesPath);fs.copyFileSync(path.join(backup,'roles.sql.age'),rolesPath);
+  const productionManifest={...tamperedManifest,classification:'encrypted_logical_export',project_ref:'igacnfjeuqhxcmfyepgj'};
+  fs.writeFileSync(path.join(tampered,'manifest.json'),JSON.stringify(productionManifest));
+  await code(verifyRestore({root:process.cwd(),env:{...restoreEnv,ARANDU_RESTORE_BACKUP:tampered,ARANDU_RECOVERY_PROJECT_REF:'offgpyysgdhfemjlchod'}}),'source_identity_mismatch');
+  await code(verifyRestore({root:process.cwd(),env:{...restoreEnv,ARANDU_RESTORE_BACKUP:tampered,ARANDU_RECOVERY_PROJECT_REF:''}}),'source_identity_mismatch');
+  fs.writeFileSync(path.join(tampered,'manifest.json'),JSON.stringify(tamperedManifest));
+
+  fs.writeFileSync(path.join(tampered,'manifest.json'),JSON.stringify({...tamperedManifest,result:'failed'}));
+  await code(verifyRestore({syntheticLocal:true,root:process.cwd(),env:{...restoreEnv,ARANDU_RESTORE_BACKUP:tampered}}),'invalid_manifest');
+  fs.writeFileSync(path.join(tampered,'manifest.json'),JSON.stringify({...tamperedManifest,files:[tamperedManifest.files[0],tamperedManifest.files[0]]}));
+  await code(verifyRestore({syntheticLocal:true,root:process.cwd(),env:{...restoreEnv,ARANDU_RESTORE_BACKUP:tampered}}),'invalid_manifest');
+  fs.writeFileSync(path.join(tampered,'manifest.json'),JSON.stringify(tamperedManifest));
   fs.appendFileSync(path.join(tampered,'roles.sql.age'),'x');
-  await code(verifyRestore({root:process.cwd(),env:{...restoreEnv,ARANDU_RESTORE_BACKUP:tampered}}),'hash_mismatch');
+  await code(verifyRestore({syntheticLocal:true,root:process.cwd(),env:{...restoreEnv,ARANDU_RESTORE_BACKUP:tampered}}),'hash_mismatch');
   fs.copyFileSync(path.join(backup,'roles.sql.age'),path.join(tampered,'roles.sql.age'));
+  tamperedManifest.schema_fingerprint_version=999;fs.writeFileSync(path.join(tampered,'manifest.json'),JSON.stringify(tamperedManifest));
+  await code(verifyRestore({syntheticLocal:true,root:process.cwd(),env:{...restoreEnv,ARANDU_RESTORE_BACKUP:tampered}}),'invalid_manifest');
+  tamperedManifest.schema_fingerprint_version=1;
   tamperedManifest.snapshot_counts['public.parent']=3;fs.writeFileSync(path.join(tampered,'manifest.json'),JSON.stringify(tamperedManifest));
-  await code(verifyRestore({root:process.cwd(),env:{...restoreEnv,ARANDU_RESTORE_BACKUP:tampered}}),'invalid_manifest');
-  await code(verifyRestore({root:process.cwd(),env:{...restoreEnv,ARANDU_RESTORE_IDENTITY:wrong}}),'decrypt_failed');
+  await code(verifyRestore({syntheticLocal:true,root:process.cwd(),env:{...restoreEnv,ARANDU_RESTORE_BACKUP:tampered}}),'invalid_manifest');
+  await code(verifyRestore({syntheticLocal:true,root:process.cwd(),env:{...restoreEnv,ARANDU_RESTORE_IDENTITY:wrong}}),'decrypt_failed');
   // Role ausente no destino: restore em transação única aborta e reverte.
-  await code(verifyRestore({root:process.cwd(),env:restoreEnv}),'restore_failed');
+  await code(verifyRestore({syntheticLocal:true,root:process.cwd(),env:restoreEnv}),'restore_failed');
   assert.equal(sql(55432,"select count(*) from pg_tables where schemaname='public';").trim(),'0','restore abortado deixou objetos');
   // Explicit, reviewed role definition. Never blindly apply pg_dumpall roles.
   sql(55432,'CREATE ROLE arandu_fixture_reader NOSUPERUSER NOCREATEDB NOCREATEROLE NOLOGIN;');
-  const record=await verifyRestore({root:process.cwd(),env:restoreEnv});
-  assert.equal(record.reconciliation,'MATCH');assert.equal(record.tables,7);assert.equal(record.conversion,'BLOCKED');assert.equal(record.roles_file,'NOT APPLIED');
+  const record=await verifyRestore({syntheticLocal:true,root:process.cwd(),env:restoreEnv});
+  assert.equal(record.reconciliation,'MATCH');assert.equal(record.tables,8);assert.equal(record.conversion,'BLOCKED');assert.equal(record.roles_file,'NOT APPLIED');
   assert.equal(record.source_counts_sha256,record.target_counts_sha256);
   const recordFile=fs.readdirSync(backup).find((f)=>f.startsWith('restore-verification-'));
   assert.equal(fs.statSync(path.join(backup,recordFile)).mode&0o777,0o600);
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(backup,'manifest.json'),'utf8')),manifest,'manifest original alterado');
   assert(!fs.readFileSync(path.join(backup,recordFile),'utf8').includes('synthetic-alpha'),'registro com conteúdo de dados');
+  assert.equal(record.schema_reconciliation,'MATCH');
+  assert.equal(record.source_schema_sha256,record.target_schema_sha256);
+  // Empty target containing an extra function: counts MATCH cannot hide schema drift.
+  const drift=path.join(dir,'drift');run('initdb',['-D',drift,'-U','postgres','--auth=trust','--no-locale','--encoding=UTF8']);
+  run('pg_ctl',['-D',drift,'-l',path.join(dir,'drift.log'),'-o',`-h 127.0.0.1 -p 55435 -k ${dir}`,'-w','start']);started.push(drift);
+  sql(55435,"CREATE ROLE arandu_fixture_reader NOSUPERUSER NOCREATEDB NOCREATEROLE NOLOGIN; CREATE FUNCTION public.unexpected() RETURNS int LANGUAGE sql AS 'select 1';");
+  await code(verifyRestore({syntheticLocal:true,root:process.cwd(),env:{...restoreEnv,ARANDU_RESTORE_TARGET_URL:'postgresql://postgres@127.0.0.1:55435/postgres?sslmode=disable'}}),'schema_mismatch');
   // Destino agora tem dados: segunda verificação no mesmo cluster é recusada.
-  await code(verifyRestore({root:process.cwd(),env:restoreEnv}),'target_not_empty');
+  await code(verifyRestore({syntheticLocal:true,root:process.cwd(),env:restoreEnv}),'target_not_empty');
   const before=sql(55431,evidenceSql).trim(),after=sql(55432,evidenceSql).trim();
   assert.equal(after,before,'Data/schema/ACL/owners/RLS/defaults/Auth/Storage/migrations must match');
   assert.equal(sql(55432,'SET ROLE arandu_fixture_reader; SELECT count(*) FROM public.child;').trim().split('\n').at(-1),'1');
@@ -222,7 +274,7 @@ try {
       const third=path.join(dir,'third');run('initdb',['-D',third,'-U','postgres','--auth=trust','--no-locale','--encoding=UTF8']);
       run('pg_ctl',['-D',third,'-l',path.join(dir,'third.log'),'-o',`-h 127.0.0.1 -p 55433 -k ${dir}`,'-w','start']);started.push(third);
       sql(55433,'CREATE ROLE arandu_fixture_reader NOSUPERUSER NOCREATEDB NOCREATEROLE NOLOGIN;');
-      const rec=await verifyRestore({root:process.cwd(),env:{...env,ARANDU_RESTORE_CONFIRM:'ARANDU-ISOLATED-RESTORE',ARANDU_RESTORE_BACKUP:exportDir,
+      const rec=await verifyRestore({syntheticLocal:true,root:process.cwd(),env:{...env,ARANDU_RESTORE_CONFIRM:'ARANDU-ISOLATED-RESTORE',ARANDU_RESTORE_BACKUP:exportDir,
         ARANDU_RESTORE_IDENTITY:path.join(keys,'id.agekey'),ARANDU_RESTORE_TARGET_URL:'postgresql://postgres@127.0.0.1:55433/postgres?sslmode=disable'}});
       assert.equal(rec.reconciliation,'MATCH');
       const final=await verifyExport({env:vEnv});
@@ -234,6 +286,13 @@ try {
       fs.chmodSync(own,0o600);
       const forged=JSON.parse(fs.readFileSync(own,'utf8'));fs.writeFileSync(own,JSON.stringify({...forged,differences:[{table:'public.parent'}]}));
       assert.equal((await verifyExport({env:vEnv})).level,4,'MATCH com diferenças aceito');
+      const oldRecord={...forged};delete oldRecord.schema_fingerprint_version;
+      fs.writeFileSync(own,JSON.stringify(oldRecord));
+      assert.equal((await verifyExport({env:vEnv})).level,4,'registro antigo sem prova de schema aceito');
+      fs.writeFileSync(own,JSON.stringify({...forged,schema_reconciliation:'MISMATCH'}));
+      assert.equal((await verifyExport({env:vEnv})).level,4,'schema divergente aceito');
+      fs.writeFileSync(own,JSON.stringify({...forged,target_schema_sha256:'f'.repeat(64)}));
+      assert.equal((await verifyExport({env:vEnv})).level,4,'schema de outro export aceito');
       fs.writeFileSync(own,JSON.stringify(forged));assert.equal((await verifyExport({env:vEnv})).level,5);
     } finally { fs.rmSync(home,{recursive:true,force:true}); }
   }
