@@ -57,6 +57,10 @@ Abra `reports/demo-readiness/readiness.md` e confira:
 12. Guarde o `readiness.md` (sanitizado; não contém senha, token nem cookie).
 
 Se 5 e 6 não estiverem PRONTO, a linha FAIL diz o comando de correção.
+**Não rode a prontidão enquanto o pool está sendo provisionado**: os seeds dos
+workspaces ocupam o banco e a leitura da Helena pode estourar o tempo (em 19/10
+isso deu FAIL na etapa da CFO; com o pool pronto, PASS). A linha diz "a API não
+respondeu" — rode de novo depois, **sem** reset.
 Modo interativo NÃO PRONTO e leitura PRONTO → apresente só o Modo leitura.
 
 ## Durante
