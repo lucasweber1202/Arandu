@@ -5,6 +5,17 @@ hospedados permanentes: Demo e Production. Pilot significa estágio de validaç�
 de release. `main` é a única linha de produto; não desenvolver na branch `pilot`.
 Previews e bancos locais descartáveis não criam outro ambiente permanente.
 
+## Reconciliação de Stage 0 (19/10/2026)
+
+Estado atualizado e fontes em `evidence/codex-infrastructure-recovery-2026-10-19.md`.
+Inventários exatos renovados: Pilot 14 linhas; legado 42, com oito registros
+potencialmente pessoais. Classificação e export/restore hospedados pendentes.
+Vercel API continua ACCESS_BLOCKED (403); GitHub confirma arandu failure e
+Demo/Pilot success na main0eb6a4a. Demo publicada ainda synthetic-fixtures,
+readiness 503. Ruleset dos quatro gates ativo e CI da base verde. Recovery
+PG17.11 + age1.3.2 sintético passou nesta sessão; não equivale a backup hospedado.
+As seções abaixo são snapshots históricos; não substituem essa observação atual.
+
 ## Reconciliação de Stage 0 (12/10/2026)
 
 `main@51341fd` (#171), CI #854 e merge-audit #45 success; nenhuma execução nova
