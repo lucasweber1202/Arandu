@@ -7,6 +7,8 @@ Antes de planejar ou modificar qualquer arquivo, leia:
 4. `docs/FINANCIAL_PRODUCT_BOUNDARIES.md` (limites de produto e dados).
 5. Para mudanças de interface: `docs/ARANDU_DESIGN_CONSTITUTION.md` e `docs/FRONTEND_AGENT_TOOLKIT.md`.
 
+**Prioridade P0 — 19/10/2026:** guideline v3.5 §37 e docs/PUBLIC_DEMO_2026-10-29_PRIORITY.md. Entregar URL pública do arandu-demo fiel à interface atual e navegável sem conta/instalação, mesmo se for visita M2 honesta; em paralelo estação local canônica validada no computador de apresentação. Não confundir link público com M3 hospedado, não adicionar novas capacidades ao sandbox, manter cutover/recovery e gates. Claude Code prioriza UX e visita; Codex prioriza deploy, URL, smoke externo e infraestrutura; evitar arquivos concorrentes.
+
 O Arandu é um Financial Procurement Lifecycle OS B2B, não marketplace de arte, ERP genérico, banco ou sistema de execução financeira. Preserve autorizações, isolamento entre tenants, trilha de auditoria, provenance, decisões humanas e funcionamento Demo/Production. Não invente dados, claims, testes, capturas ou maturidade.
 
 **Trabalho paralelo:** branch nova da `main` atual; ownership de arquivos/superfícies sem sobreposição; não modificar branches, worktrees, serviços de Demo ou artefatos de outro agente. Se um arquivo compartilhado estiver reservado, não editar: fornecer proposta para o integrador. Nunca fazer merge direto, alterar secrets/configuração hospedada ou desabilitar gates para obter verde.

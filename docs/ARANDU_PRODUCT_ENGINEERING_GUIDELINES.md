@@ -1,11 +1,13 @@
 # Arandu — Diretrizes Mestras de Produto, Engenharia e Evolução
 
-**Versão 3.4 — 14 de outubro de 2026**
-**Baseline técnica de referência desta revisão:** `main` @ `5581b8802f4b63dab1c53e18ef3715fbea06fd8f`
+**Versão 3.5 — 19 de outubro de 2026**
+**Baseline técnica de referência desta revisão:** `main` @ `18a2ccf4c759248a1d7c69127f764a0ef91d9888`
 **Status:** constituição normativa de produto e engenharia
 **Escopo:** tese de produto, boundaries, arquitetura funcional, maturidade, UX, engenharia, dados, segurança, IA, integrações, operação enterprise e critérios de evolução
 
 > **Propósito.** Esta guideline define o que o Arandu é, o que não é, como deve evoluir e quais garantias não podem ser sacrificadas. Ela governa pessoas e agentes de IA que alterem o produto.
+>
+> **Mudança de prioridades da v3.5.** Duas entregas P0 para 29/10: Demo pública compartilhável e fiel à main aprovada; estação local canônica comprovada. Hospedagem canônica M3 permanece objetivo separado e subordinado a recovery/cutover. Regras §37 e execução em docs/PUBLIC_DEMO_2026-10-29_PRIORITY.md.
 >
 > **Mudança de garantias da v3.4.** Novo capítulo 36: revogação de sessões delimitada por superfície, integridade de decisões versionadas sob concorrência, recovery completo (banco, Auth, Storage e configuração) e critérios executáveis para a passagem de M2 para M3/M4/M5. Preserva os limites da v3.3; estados e evidências continuam na Implementation Matrix.
 >
@@ -1615,6 +1617,8 @@ Toda iniciativa deve ser avaliada por:
 | Neutralidade | Mantém decisão no cliente? |
 | Operação | É observável e recuperável? |
 | Comercial | Melhora activation, retention, expansion ou WTP? |
+| Distribuição | Prospect acessa URL pública e entende a versão aprovada sem login de plataforma? |
+| Fidelidade demonstrativa | Telas, fluxos e limites anunciados correspondem ao produto efetivamente implementado? |
 | Complexidade | Valor compensa custo técnico/cognitivo? |
 
 Features com "wow" alto e workflow, maturidade, dados ou recorrência baixos devem ser adiadas.
@@ -1859,6 +1863,40 @@ Este capítulo complementa os capítulos 1–35 com critérios normativos deriva
 - Evidências DEVEM distinguir IMPLEMENTED, LOCAL_VALIDATED, CI_VALIDATED, HOSTED_VALIDATED, BLOCKED e NOT_RUN, e vincular SHA, ambiente, datasource, schema, run ID e hora. A Implementation Matrix, o relatório operacional e os claims comerciais devem permanecer coerentes.
 - Agentes de IA DEVEM avançar autonomamente em código, testes sintéticos, PRs e preparação, mas interromper antes de alterações hospedadas sensíveis ou operações destrutivas sem aprovação. Ao relatar bloqueio, indicar a menor intervenção indispensável e continuar frentes independentes.
 - A guideline é normativa, não backlog nem inventário de PRs: números de testes, status de projetos e impedimentos transitórios DEVEM ficar nos documentos operacionais e na Implementation Matrix.
+
+---
+
+
+# 37. Distribuição da Demo pública e apresentação local (v3.5)
+
+Decisão do owner em 19/10/2026: para 29/10, o Arandu tem dois entregáveis P0 independentes. **P0-A: link público compartilhável e atualizado** no projeto arandu-demo, acessível a um prospect sem autenticação de plataforma, instalação ou dependência da máquina do apresentador. **P0-B: estação local definitiva** com a Demo canônica (API, Auth, RLS, Storage e dados sintéticos), validada e congelada na máquina que será usada na apresentação. Os marcos operacionais, owners e evidências pertencem a docs/PUBLIC_DEMO_2026-10-29_PRIORITY.md e à Implementation Matrix, não a esta constituição.
+
+## 37.1 Reordenação de trabalho
+
+- **P0-A — Demo pública compartilhável:** abrir https://arandu-demo.vercel.app/ sem conta GitHub/Vercel; apresentar a interface *atual da main aprovada*, fluxo comprador/provedor, identidade e dados fictícios claros, navegação em desktop/mobile, recursos e rotas corretos. Vercel SUCCESS sozinho NÃO comprova esse requisito.
+- **P0-B — Estação local:** software canônico e jornada com operações reais sobre dados fictícios, testes adversariais e recuperação, mais preflight READY na própria máquina definitiva, no SHA congelado. Executor efêmero só permite PREPARED.
+- **P1 — Demo canônica hospedada M3:** a mesma aplicação main com Supabase Demo exclusivo, Auth/RLS/Storage, visitantes isolados e jornada real; condicionada integralmente a classificação, preservação, restore, migrations, cutover e provas hospedadas (§23.4 e §36). A visita pública não substitui M3.
+- **P2 — Production e expansão:** após estabilizar os P0, salvo incidente crítico de segurança ou bloqueio direto desses marcos. M4/M5, dados reais e gates seguem intactos.
+
+## 37.2 Vitrine transitória sem criar produto paralelo
+
+Enquanto M3 estiver BLOCKED, P0-A PODE oferecer visita pública navegável baseada em **telas realmente renderizadas do produto canônico no SHA aprovado** ou reuso seguro de suas superfícies e assets, com limites honestos. Um sandbox histórico eventualmente acessível deve ser separado e rotulado **simulação no navegador, sem persistência no servidor**.
+
+- NÃO adicionar novas capacidades ao sandbox legado finance/demo; não duplicar regras de domínio, permissões ou cálculos para fabricar paridade. Fonte de telas, áreas, terminologia e design: produto canônico, navigation.mjs e Design Constitution.
+- NÃO anunciar que RFQs, propostas, aprovações, contratos ou arquivos foram gravados em backend se a experiência estiver só exibindo visita ou simulação. Não criar login fictício que pareça Auth real, recomendação financeira inventada ou ações externas reais.
+- NÃO expor secrets, dados pessoais, credenciais de cliente, links privados ou identidade de outras organizações. Preservar zero side effects externos e os limites de claims da seção 35.
+- A publicação pública M2 é aceitável como *demonstração do produto* com rótulo explícito e fidelidade visual comprovada. Status de backend M3 permanece próprio e independente.
+
+## 37.3 Prova do link e atualização
+
+- Smoke externo independente DEVE abrir raiz, início da exploração, telas de RFQ/propostas/comparação/contratos/tarefas e portal do provedor; verificar deep links, assets JS/CSS, responsividade, teclado, acessibilidade básica, ausência de loops/404 e ausência de Deployment Protection para visitantes anônimos.
+- A versão pública atualizada DEVE ser ligada a SHA aprovado da main, ambiente, modalidade (visita, sandbox ou canônica), data e evidência do que o visitante realmente visualizou. SHA da main sem deploy comprovado não equivale a conteúdo servido; freeze aprovado pode ser preferível a deploy automático inseguro.
+- Diferenciar explicitamente três provas: PUBLIC_SHAREABLE (acesso e paridade de visita), LOCAL_STATION_READY (estação real) e CANONICAL_HOSTED_M3 (backend hospedado). Nenhuma confere as outras. Sem evidência, NOT_PROVEN ou BLOCKED.
+- Código e UX da experiência pública ficam preferencialmente com Claude Code; deploy/roteamento/identidade/smoke externo e preparação M3 com Codex. PRs separadas, quatro gates no HEAD exato, sem alterações simultâneas em arquivos compartilhados.
+
+## 37.4 Fronteiras preservadas
+
+Esta prioridade NÃO autoriza trocar ARANDU_DEPLOYMENT_KIND por ARANDU_ENV, mudar ACTIVE_SUPABASE_ASSIGNMENTS, resetar Pilot/Legacy, criar terceiro ambiente permanente ou contornar recovery, LGPD, RLS, Vercel, branch protection e checks. O sandbox antigo não é arquitetura-alvo, mas não deve ser retirado antes de uma substituição acessível, honesta e verificada.
 
 ---
 
