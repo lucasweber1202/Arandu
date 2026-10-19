@@ -18,7 +18,7 @@ decisões e obrigações que surgem depois dela.*
    - **Modo leitura: PRONTO** exige commit e build identificados, Supabase local e app no ar, personas entrando, cenário semeado (39/39) e smoke das jornadas;
    - **Modo interativo: PRONTO** exige, além disso, o estado intocado: Meridian ainda sem proposta na concorrência sazonal, etapa da CFO pendente e nenhuma tarefa de ensaio anterior. Se o Modo 2 já foi ensaiado, ele aponta `npm run demo:local:reset`.
    "NÃO EXECUTADO" nunca é PASS. A sonda de prontidão hospedada aparece como aviso na Demo local (o banco local não faz parte da topologia hospedada) — isso não valida nem invalida a Demo pública.
-3. Rode a prontidão **≥ 10 min antes** de abrir as janelas: o diagnóstico e o reset usam a cota legítima da gestora (120 requisições/10 min). O roteiro inteiro da Juliana consome ~77 requisições (medido por `node scripts/demo/requests.mjs`: nenhuma chamada repetida, sem polling).
+3. Rode a prontidão **≥ 10 min antes** de abrir as janelas: o diagnóstico e o reset usam a cota legítima de cada conta (no código em 19/10: 240 requisições e 60 escritas a cada 10 min por usuário; login 12/10 min por rede; 20 logins/h por conta). O roteiro inteiro da Juliana consome ~77 requisições (medido por `node scripts/demo/requests.mjs`: nenhuma chamada repetida, sem polling).
 4. Duas janelas: normal (**juliana.ramos@vittafoods.example**, gerente de tesouraria) e anônima (**eduardo.lima@atlasbank.example**, Atlas Bank; no Modo 2, **patricia.alves@meridianfinancial.example**, Meridian Financial). Opcional: **helena.duarte@vittafoods.example** (CFO) e **carlos.tavares@vittafoods.example** (Controller, leitor). Senha em `scripts/pilot-local/.state/demo.env`.
 5. Faça login nas janelas **antes**: o login tem limite legítimo por IP (12/10 min).
 
@@ -184,6 +184,8 @@ material de apoio — nunca apresente como execução ao vivo.
 Um runner de CI destruído não é estação pronta; um Preview "Ready" não é Demo validada; uma resposta 200 com `synthetic-fixtures` não é a Demo canônica.
 
 ## Estação de apresentação (Roteiro B) — preparação reproduzível
+
+> Para operar no dia, use o cartão de uma página [`OPERATOR_29-10.md`](OPERATOR_29-10.md) (D-1, T-30, durante, recuperação, encerramento). Esta seção detalha o porquê de cada passo.
 
 Sem conhecimento tácito: qualquer pessoa com a máquina e o repositório segue esta lista.
 
