@@ -11,7 +11,23 @@ const engineMajor = String(JSON.parse(fs.readFileSync(path.join(root, 'package.j
 if (!engineMajor) issues.push('package.json: engines.node sem versão principal fixa.');
 const nvmrc = fs.existsSync(path.join(root, '.nvmrc')) ? fs.readFileSync(path.join(root, '.nvmrc'), 'utf8').trim().replace(/^v/, '') : '';
 if (engineMajor && nvmrc.split('.')[0] !== engineMajor) issues.push(`.nvmrc (${nvmrc || 'ausente'}) diverge de engines.node ${engineMajor}.x.`);
-const pinnedAction = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_-]+)*@[a-f0-9]{40}(?:\s+#\s+.+)?$/;
+const pinnedAction = /^([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)((?:\/[A-Za-z0-9_-]+)*)@([a-f0-9]{40})(?:\s+#\s+.+)?$/;
+// Fonte única das Actions aprovadas (owner/repo -> SHA -> versão). Sem rede: determinístico em CI.
+const approvedPath = path.join(root, '.github/approved-actions.json');
+let approved = {};
+try {
+  approved = JSON.parse(fs.readFileSync(approvedPath, 'utf8')).actions || {};
+} catch {
+  issues.push('.github/approved-actions.json ausente ou inválido.');
+}
+for (const [action, shas] of Object.entries(approved)) {
+  for (const [sha, version] of Object.entries(shas || {})) {
+    if (!/^[a-f0-9]{40}$/.test(sha)) issues.push(`.github/approved-actions.json: ${action} com SHA inválido ${sha}.`);
+    if (!/^v\d+\.\d+\.\d+$/.test(String(version))) issues.push(`.github/approved-actions.json: ${action}@${sha} sem versão semântica exata.`);
+  }
+}
+// action -> SHAs efetivamente usados; todos os workflows devem convergir para um único SHA.
+const usedShas = new Map();
 
 for (const file of workflows) {
   const relative = `.github/workflows/${file}`;
@@ -24,7 +40,22 @@ for (const file of workflows) {
   for (const [index, line] of source.split(/\r?\n/).entries()) {
     const match = line.match(/^\s*-?\s*uses:\s*(.+?)\s*$/);
     if (!match || match[1].startsWith('./')) continue;
-    if (!pinnedAction.test(match[1])) issues.push(`${relative}:${index + 1}: Action deve estar fixada por SHA completo.`);
+    const pin = match[1].match(pinnedAction);
+    if (!pin) {
+      issues.push(`${relative}:${index + 1}: Action deve estar fixada por SHA completo.`);
+      continue;
+    }
+    const [, action, , sha] = pin;
+    if (!Object.hasOwn(approved, action)) {
+      issues.push(`${relative}:${index + 1}: Action ${action} não aprovada em .github/approved-actions.json.`);
+      continue;
+    }
+    if (!Object.hasOwn(approved[action], sha)) {
+      issues.push(`${relative}:${index + 1}: ${action}@${sha} não é um SHA aprovado em .github/approved-actions.json.`);
+      continue;
+    }
+    if (!usedShas.has(action)) usedShas.set(action, new Set());
+    usedShas.get(action).add(sha);
   }
 
   for (const [index, line] of source.split(/\r?\n/).entries()) {
@@ -42,6 +73,10 @@ for (const file of workflows) {
       issues.push(`${relative}:${index + 1}: contexto não confiável interpolado diretamente em shell.`);
     }
   }
+}
+
+for (const [action, shas] of usedShas) {
+  if (shas.size > 1) issues.push(`${action}: workflows divergem entre SHAs aprovados (${[...shas].join(', ')}); use um único SHA.`);
 }
 
 const packageJson = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
