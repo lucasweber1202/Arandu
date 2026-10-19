@@ -6,7 +6,7 @@
 import { pathToFileURL } from 'node:url';
 
 export const URL_VARIABLES = Object.freeze([
-  'SUPABASE_URL', 'ARANDU_DEMO_APP_URL', 'ARANDU_SITE_URL', 'PILOT_APP_URL', 'PILOT_DB_URL', 'ARANDU_DATABASE_TEST_URL'
+  'SUPABASE_URL', 'ARANDU_DEMO_APP_URL', 'ARANDU_DEMO_REST_URL', 'ARANDU_SITE_URL', 'PILOT_APP_URL', 'PILOT_DB_URL', 'ARANDU_DATABASE_TEST_URL'
 ]);
 // Nenhuma credencial de ambiente hospedado pode estar presente no processo.
 export const FORBIDDEN_VARIABLES = Object.freeze(['VERCEL_ENV', 'VERCEL_URL', 'SUPABASE_ACCESS_TOKEN', 'SUPABASE_DB_PASSWORD', 'DEMO_SUPABASE_REFS']);

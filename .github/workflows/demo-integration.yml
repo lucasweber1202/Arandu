@@ -119,7 +119,12 @@ jobs:
         timeout-minutes: 6
         run: bash scripts/ci-demo/run.sh check 2>&1 | grep -v '@' | tee "$CI_DEMO_REPORTS/seed-check.txt"
 
-      # Snapshot canônico após o seed verificado e antes das fases mutantes.
+      - name: Phase 2 — Provision and verify four real visitor workspaces
+        id: pool
+        timeout-minutes: 36
+        run: bash scripts/ci-demo/run.sh pool 2>&1 | grep -v '@' | tee "$CI_DEMO_REPORTS/pool.txt"
+
+      # Snapshot canônico após o seed e pool verificados, antes das fases mutantes.
       # journey cadastra três fatores MFA; este drill não preserva MFA e seu
       # preflight deve continuar recusando fatores existentes, sem apagá-los.
       # Somente leitura na origem; restaura num Supabase descartável à parte.
@@ -214,6 +219,7 @@ jobs:
           SMOKE: ${{ steps.smoke.outcome }}
           SEED: ${{ steps.seed.outcome }}
           CHECK: ${{ steps.check.outcome }}
+          POOL: ${{ steps.pool.outcome }}
           PLAYWRIGHT_VERSION: ${{ steps.playwright_version.outcome }}
           INSTALL_CHROMIUM: ${{ steps.install_chromium.outcome }}
           E2E_DESKTOP: ${{ steps.e2e_desktop.outcome }}

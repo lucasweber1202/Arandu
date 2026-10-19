@@ -33,7 +33,7 @@ local_env() {
   set -a; . "$state/.env"; [ -f "$state/demo.env" ] && . "$state/demo.env"; set +a
   export ARANDU_ENV=demo ARANDU_DEMO_CONFIRM=local SUPABASE_URL=https://localhost:8443 \
     SUPABASE_ANON_KEY="$ANON_KEY" SUPABASE_SERVICE_ROLE_KEY="$SERVICE_KEY" \
-    ARANDU_DEMO_APP_URL=https://localhost:4443 PILOT_APP_URL=https://localhost:4443 \
+    ARANDU_DEMO_APP_URL=https://localhost:4443 ARANDU_DEMO_REST_URL=http://127.0.0.1:3000 PILOT_APP_URL=https://localhost:4443 \
     PILOT_DB_URL="postgresql://postgres:${PGPW}@localhost:54322/postgres" \
     NODE_EXTRA_CA_CERTS="$state/cert.pem"
   unset VERCEL_ENV VERCEL_URL
@@ -99,11 +99,22 @@ case "$phase" in
   smoke) local_env; timeout 300 node "$here/smoke.mjs" ;;
   seed) local_env; fresh_app; timeout 1500 node "$root/scripts/demo/seed.mjs" --reset ;;
   check) local_env; fresh_app; timeout 300 node "$root/scripts/demo/seed.mjs" --check ;;
+  pool)
+    local_env; fresh_app
+    # Two existing desktop suites consume two workspaces each. Keep the real
+    # seed, quotas and admission RPC; never substitute metadata-only fixtures.
+    timeout 2100 node "$root/scripts/demo/workspaces.mjs" provision --count=4 --concurrency=2
+    node "$here/verify-pool.mjs"
+    ;;
   e2e)
     project="${2:?projeto do Playwright (demo-desktop|demo-mobile)}"
     local_env; fresh_app
+    export ARANDU_DEMO_ENTRY_E2E=1 ARANDU_DEMO_WORKSPACE_E2E=1
+    export PLAYWRIGHT_JSON_OUTPUT_FILE="$state/playwright-${project}.json"
+    export PLAYWRIGHT_HTML_OUTPUT_DIR="$root/reports/playwright-demo" PLAYWRIGHT_HTML_OPEN=never
     # Só Chromium, um worker, sem trace (o trace guardaria cookies de sessão).
-    timeout 900 npx playwright test --config playwright.demo.config.js --project "$project" --workers 1 --trace off
+    timeout 900 npx playwright test --config playwright.demo.config.js --project "$project" --workers 1 --trace off --reporter=list,json,html
+    if [ "$project" = demo-desktop ]; then node "$here/assert-visitor-e2e.mjs" "$PLAYWRIGHT_JSON_OUTPUT_FILE"; fi
     resources
     ;;
   journey)

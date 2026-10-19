@@ -16,6 +16,7 @@ import fs from 'node:fs';
 import { assertLocalEnv } from './assert-local.mjs';
 import { BUYERS, PROVIDERS } from '../../lib/finance/demo-personas.mjs';
 import { decodeSessionValue, encodeSessionValue } from '../../lib/session-cookie.mjs';
+import { rehearsalOrganizationId, rehearsalSqlFailure } from '../../lib/demo-rehearsal-context.mjs';
 
 assertLocalEnv(process.env, 'adversarial');
 const APP = process.env.ARANDU_DEMO_APP_URL;
@@ -36,8 +37,8 @@ async function probe(id, name, fn) {
   catch (error) { results.push({ id, name, status: error instanceof Skip ? 'SKIPPED' : 'FAIL', evidence: error.message }); }
 }
 function sql(query) {
-  const r = spawnSync('psql', [DB, '-v', 'ON_ERROR_STOP=1', '-At', '-c', query], { encoding: 'utf8', timeout: 30_000 });
-  if (r.status !== 0) throw new Error(`SQL: ${(r.stderr || 'timeout').trim().split('\n').pop()}`);
+  const r = spawnSync('psql', [DB, '-v', 'ON_ERROR_STOP=1', '-v', 'VERBOSITY=sqlstate', '-At', '-c', query], { encoding: 'utf8', timeout: 30_000 });
+  if (r.status !== 0) throw new Error(rehearsalSqlFailure(r.stderr));
   return r.stdout.trim();
 }
 const isoDay = (offset) => new Date(Date.now() + offset * 86_400_000).toISOString().slice(0, 10);
@@ -73,8 +74,8 @@ const juliana = await login(BUYERS.juliana.email);   // finance_manager da Vitta
 const helena = await login(BUYERS.helena.email);     // admin (CFO) da Vitta
 const carlos = await login(BUYERS.carlos.email);     // viewer da Vitta
 const eduardo = await login(PROVIDERS.atlas.person.email); // provedor (Atlas Bank)
-const vitta = sql("select id from public.fin_organizations where legal_name = 'Vitta Foods S.A.'");
-const atlasOrg = sql("select id from public.fin_organizations where legal_name = 'Atlas Bank S.A.'");
+const vitta = rehearsalOrganizationId(await api(juliana, 'GET', '/api/finance/organizations'), { kind: 'BUYER', legalName: 'Vitta Foods S.A.' });
+const atlasOrg = rehearsalOrganizationId(await api(eduardo, 'GET', '/api/finance/organizations'), { kind: 'PROVIDER', legalName: 'Atlas Bank S.A.' });
 const vittaContract = sql(`select id from public.fin_contracts where organization_id = '${vitta}' order by created_at limit 1`);
 const vittaRfq = sql(`select id from public.fin_rfqs where organization_id = '${vitta}' order by created_at limit 1`);
 const vittaProvider = sql(`select id from public.fin_providers where organization_id = '${vitta}' and name = 'Atlas Bank'`);
