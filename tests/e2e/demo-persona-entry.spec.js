@@ -175,7 +175,8 @@ test('entrada da Demo: o link que trouxe o visitante vale só para o lado da per
 // Veredito da verificação hospedada (scripts/demo/hosted-parity.mjs): só READY
 // com tudo comprovado; falta de acesso, transporte ou "não verificado" nunca
 // viram PASS. Sem rede: testa a regra pura.
-import { transportOutcome, verdict } from '../../scripts/demo/hosted-parity-verdict.mjs';
+import { releaseIdentityChecks, transportOutcome, verdict } from '../../scripts/demo/hosted-parity-verdict.mjs';
+import { assessPublicHealth } from '../../lib/live-release-health.mjs';
 
 const pass = (id) => ({ id, result: 'PASS' });
 
@@ -203,4 +204,30 @@ test('veredito: "não verificado" só é aceito para o SHA no laboratório local
   expect(verdict([pass('a'), sha])).toBe('INCONCLUSIVE');
   expect(verdict([pass('a'), sha], { local: true })).toBe('READY');
   expect(verdict([pass('a'), { id: 'readiness', result: 'NOT_RUN' }], { local: true })).toBe('INCONCLUSIVE');
+});
+
+test('identidade hospedada: liveness certo não mascara readiness de outro deployment', () => {
+  const sha = 'a'.repeat(40);
+  const release = { environment: 'demo', mode: 'demo', datasource: 'supabase', misconfigured: false, branch: 'main', commit: sha };
+  const alive = { status: 200, app: true, json: { ok: true, service: 'arandu-api', status: 'alive', release } };
+  const ready = (patch = {}, extra = {}) => ({ status: 200, app: true, json: { ok: true, service: 'arandu-api', status: 'ready', release: { ...release, ...patch }, ...extra } });
+  const run = (readiness, expectedSha = sha) => {
+    const checks = [{ id: 'outros', result: 'PASS' }, ...releaseIdentityChecks(alive, readiness, { expectedSha }, assessPublicHealth)];
+    return { checks, verdict: verdict(checks) };
+  };
+  expect(run(ready()).verdict).toBe('READY');
+  for (const [label, response] of [
+    ['outro SHA', ready({ commit: 'b'.repeat(40) })],
+    ['outro ambiente', ready({ environment: 'production', mode: 'official' })],
+    ['dados de fixture', ready({ datasource: 'synthetic-fixtures' })],
+    ['branch errada', ready({ branch: 'feature/x' })],
+    ['campo privado extra', ready({}, { database_url: 'postgres://…' })],
+    ['readiness 503', { ...ready(), status: 503 }]
+  ]) {
+    const result = run(response);
+    expect(result.verdict, label).toBe('NOT_READY');
+    expect(result.checks.find((check) => check.id === 'readiness-identity').result, label).toBe('FAIL');
+  }
+  // Sem SHA completo, nada é atestado.
+  expect(run(ready(), 'aaaaaaa').verdict).toBe('INCONCLUSIVE');
 });

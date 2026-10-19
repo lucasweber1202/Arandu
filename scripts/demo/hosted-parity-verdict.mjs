@@ -31,3 +31,24 @@ export function verdict(checks, { local = false } = {}) {
   if (notRun.length && (!local || notRun.some((check) => check.id !== 'release-sha'))) return 'INCONCLUSIVE';
   return results.length ? 'READY' : 'INCONCLUSIVE';
 }
+
+/**
+ * Identidade do deployment publicado, pelo mesmo assessor estrito do doctor e
+ * do check:live (lib/live-release-health.mjs): liveness E readiness precisam
+ * declarar Demo, `main`, Supabase, sem erro de configuração, o SHA completo
+ * esperado e nenhum campo além do contrato. Um liveness correto não mascara
+ * readiness de outro deployment. Sem SHA completo, nada é atestado.
+ */
+export function releaseIdentityChecks(health, ready, { expectedSha }, assess) {
+  if (!/^[a-f0-9]{40}$/.test(expectedSha || '')) {
+    const detail = 'informe --sha=<commit completo, 40 caracteres>';
+    return [{ id: 'health-identity', result: 'NOT_RUN', detail }, { id: 'readiness-identity', result: 'NOT_RUN', detail }];
+  }
+  const one = (id, response, readiness) => {
+    const transport = transportOutcome(response);
+    if (transport) return { id, result: transport, detail: `HTTP ${response.status}` };
+    const { outcome, code } = assess(response.json, { environment: 'demo', commit: expectedSha, readiness });
+    return { id, result: response.status === 200 && outcome === 'PASS' ? 'PASS' : 'FAIL', detail: `HTTP ${response.status} ${code}` };
+  };
+  return [one('health-identity', health, false), one('readiness-identity', ready, true)];
+}

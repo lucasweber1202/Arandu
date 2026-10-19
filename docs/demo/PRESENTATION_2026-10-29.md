@@ -192,8 +192,13 @@ Sem conhecimento tácito: qualquer pessoa com a máquina e o repositório segue 
 3. `npm run demo:setup` (≈ 20 min na primeira vez) → `39/39 checagens OK`. Senha das personas do baseline: `scripts/pilot-local/.state/demo.env` (nunca em slide, HTML ou chat).
 4. `set -a; . scripts/pilot-local/.state/demo.env; set +a` e `npm run demo:local:workspaces -- provision --count=4` (≈ 10 min por par de workspaces, medido em 18/10: 4 ≈ 21 min; deixe rodando com antecedência).
 5. Verificação: `node scripts/demo/hosted-parity.mjs --url=https://localhost:4443 --local` deve mostrar PASS em identidade, entrada por persona, sessão exigida, assets e rotas (prontidão 503 é esperada no laboratório e por isso o veredito local não é READY: ele não serve para liberar o Roteiro A).
-6. Ensaio completo, consumindo **um** workspace: `ARANDU_DEMO_ENTRY_E2E=1 npx playwright test --config playwright.demo.config.js tests/e2e/demo-entry-lifecycle.spec.js --project=demo-desktop`. Verde = o roteiro inteiro gravou e releu no servidor. Reponha o workspace consumido (passo 4, `--count=1`).
-7. Reinício controlado **sem apagar dados**: `docker restart $(docker ps -q --filter name=arandu-pilot-local)` e `bash scripts/demo/local.sh app` (reinicia só o app); repita o passo 5 e `npm run demo:local:workspaces -- list`. **`npm run demo:down` apaga tudo** (banco, pool e senha): só use para recomeçar do passo 3.
+6. Ensaio completo, consumindo **um** workspace: `ARANDU_DEMO_LIFECYCLE_E2E=1 npx playwright test --config playwright.demo.config.js tests/e2e/demo-entry-lifecycle.spec.js --project=demo-desktop`. Verde = o roteiro inteiro gravou e releu no servidor. Reponha o workspace consumido (passo 4, `--count=1`).
+7. Reinício controlado **sem apagar dados** (executado em 19/10 depois de a estação de laboratório ser reiniciada: banco, pool e baseline sobreviveram):
+   - Docker de pé; `docker start arandu-pilot-local-db-1` se o banco aparecer `Exited` (pode sair na partida do daemon; ao subir, o log diz "directory appears to contain a database; Skipping initialization") e espere o estado `healthy`;
+   - gateway: `node scripts/pilot-local/gateway.mjs > scripts/pilot-local/.state/gateway.log 2>&1 &`;
+   - app: `bash scripts/demo/local.sh app`;
+   - confira: `npm run demo:local:check` (`39/39`), passo 5 e `npm run demo:local:workspaces -- list`.
+   **`npm run demo:down` apaga tudo** (banco, pool e senha) e `npm run demo:setup` **re-semeia** (`seed --reset`): nenhum dos dois é reinício.
 8. T-15 min: **não** rode mais testes de entrada (consomem o limite de entradas por rede, 12/10 min). Abra as janelas anônimas que vai usar.
 9. **Orçamento de visitantes por rede:** o servidor aceita **4 workspaces novos por hora por origem** (`auth-demo-claim`). Cada janela anônima nova que escolhe persona é um workspace novo; trocar de persona na mesma janela não conta. Na hora anterior à apresentação, não use mais que 2 janelas novas em ensaios e deixe ao menos 2 para a sessão. Público na mesma rede (Wi-Fi da sala) divide o mesmo orçamento.
 

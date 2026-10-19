@@ -10,7 +10,8 @@
 // "Não verificado" nunca conta como PASS.
 // Saída: uma linha por item e reports/demo-parity/hosted.json.
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { transportOutcome, verdict } from './hosted-parity-verdict.mjs';
+import { releaseIdentityChecks, transportOutcome, verdict } from './hosted-parity-verdict.mjs';
+import { assessPublicHealth } from '../../lib/live-release-health.mjs';
 
 const args = Object.fromEntries(process.argv.slice(2).map((arg) => { const [k, ...v] = arg.replace(/^--/, '').split('='); return [k, v.length ? v.join('=') : true]; }));
 const base = String(args.url || process.env.ARANDU_DEMO_APP_URL || '').replace(/\/$/, '');
@@ -57,8 +58,14 @@ else if (!expectedSha) record('release-sha', 'NOT_RUN', 'informe --sha=<commit> 
 else judge('release-sha', health, () => release.commit === expectedSha, () => `commit=${release.commit ?? 'ausente'} esperado=${expectedSha}`);
 
 const ready = await get('/api/health?probe=ready');
-// Localmente o banco não pertence à topologia hospedada: 503 é esperado e registrado, não promovido.
-judge('readiness', ready, (r) => r.status === 200 && r.json?.status === 'ready', (r) => `status=${r.json?.status ?? 'ausente'}${local && r.status === 503 ? ' (esperado no laboratório: banco fora da topologia hospedada)' : ''}`);
+if (local) {
+  // Localmente o banco não pertence à topologia hospedada: 503 é esperado e registrado, não promovido.
+  // O laboratório nunca atesta hospedagem.
+  judge('readiness', ready, (r) => r.status === 200 && r.json?.status === 'ready', (r) => `status=${r.json?.status ?? 'ausente'}${r.status === 503 ? ' (esperado no laboratório: banco fora da topologia hospedada)' : ''}`);
+} else {
+  // Hospedado: liveness e readiness passam pelo mesmo contrato estrito de identidade (SHA completo).
+  for (const check of releaseIdentityChecks(health, ready, { expectedSha }, assessPublicHealth)) checks.push(check);
+}
 
 const personas = await get('/api/auth/demo-personas');
 judge('persona-entry', personas, (r) => r.status === 200 && Array.isArray(r.json?.personas) && r.json.personas.length > 0, (r) => `personas=${r.json?.personas?.length ?? 0}`);

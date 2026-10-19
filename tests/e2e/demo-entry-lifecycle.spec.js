@@ -8,15 +8,18 @@
 //   npm run demo:setup
 //   set -a; . scripts/pilot-local/.state/demo.env; set +a
 //   npm run demo:local:workspaces -- provision --count=1
-//   ARANDU_DEMO_ENTRY_E2E=1 npx playwright test --config playwright.demo.config.js tests/e2e/demo-entry-lifecycle.spec.js --project=demo-desktop
+//   ARANDU_DEMO_LIFECYCLE_E2E=1 npx playwright test --config playwright.demo.config.js tests/e2e/demo-entry-lifecycle.spec.js --project=demo-desktop
 //
 // ESCREVE no workspace do visitante (nunca no baseline) e consome um workspace.
 // Persistência só conta depois de recarregar: toast não é prova.
 import { test, expect } from '@playwright/test';
 import { RFQ_OPEN } from '../../scripts/demo/dataset.mjs';
 
-const ENABLED = process.env.ARANDU_DEMO_ENTRY_E2E === '1';
-test.skip(!ENABLED, 'Defina ARANDU_DEMO_ENTRY_E2E=1 com o pool local abastecido (consome um workspace).');
+// Flag própria: o harness de integração (scripts/ci-demo) liga ARANDU_DEMO_ENTRY_E2E
+// com o pool dimensionado para as duas suítes de visitantes; este ensaio consome
+// um workspace a mais e roda só quando a estação o pede (Roteiro B, passo 6).
+const ENABLED = process.env.ARANDU_DEMO_LIFECYCLE_E2E === '1';
+test.skip(!ENABLED, 'Defina ARANDU_DEMO_LIFECYCLE_E2E=1 com um workspace livre no pool local (consome um workspace).');
 
 const settle = async (page) => {
   await page.waitForLoadState('networkidle').catch(() => null);

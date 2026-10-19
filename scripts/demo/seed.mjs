@@ -899,7 +899,9 @@ async function sanity() {
   check('Contrato de adquirência vigente', contracts.some((row) => row.product === 'acquiring' && row.status === 'active'), `${contracts.length} contrato(s)`);
   const existing = contracts.find((row) => row.title === L().existingContract.title && row.origin === 'imported');
   const existingTask = existing ? (overview.tasks || []).find((task) => task.related_type === 'contract' && task.related_id === existing.id && task.status === 'open') : null;
-  check('Contrato existente com revisão de renovação agendada', existing && existingTask?.due_on === isoDate(L().existingContract.ends - L().existingContract.notice),
+  // Relativo ao próprio contrato (fim − aviso prévio), não a "hoje": a estação semeada
+  // na véspera continua passando, e uma tarefa em data errada continua reprovando.
+  check('Contrato existente com revisão de renovação agendada', existing && Boolean(existing.review_from) && existingTask?.due_on === existing.review_from,
     existing ? `${existing.status}, tarefa ${existingTask ? `para ${existingTask.due_on}` : 'ausente'}` : 'ausente');
   const renewing = contracts.find((row) => row.product === 'credit');
   check('Contrato de crédito em janela de renovação', renewing && ['active', 'renewing'].includes(renewing.status) && renewing.days_to_end > 0 && renewing.days_to_end <= 90 && renewing.review_from > isoDate(0), renewing ? `${renewing.status}, ${renewing.days_to_end} dias para o fim, aviso prévio em ${renewing.review_from}` : 'ausente');
