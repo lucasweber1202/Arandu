@@ -53,6 +53,24 @@ export function classifyStation(facts) {
   add('disk', `Disco livre (≥ ${R.minDiskGiB} GiB)`, (f.host?.diskFreeGiB || 0) >= R.minDiskGiB ? 'PASS' : 'BLOCKED', `${f.host?.diskFreeGiB ?? '?'} GiB livres`);
   add('docker', 'Docker Engine', f.docker?.engine ? 'PASS' : 'BLOCKED', f.docker?.engine || 'daemon indisponível', 'Inicie o Docker (Docker Desktop/WSL2 ou systemctl start docker).');
   add('compose', 'Docker Compose', f.docker?.compose ? 'PASS' : 'BLOCKED', f.docker?.compose || 'ausente');
+  // Windows/WSL2 e instalações vindas de outra máquina: falhas que só aparecem no meio do setup.
+  if (f.host?.wsl) {
+    add('wsl-drive', 'Repositório no disco Linux do WSL', f.repo?.onWindowsDrive ? 'BLOCKED' : 'PASS',
+      f.repo?.onWindowsDrive ? `em ${f.repo.path} (disco do Windows): permissões de segredo não valem e npm/Docker ficam lentos` : 'fora de /mnt/<letra>',
+      'Clone de novo dentro do WSL (ex.: cd ~ && git clone …) e rode tudo de lá.');
+    add('wsl-toolchain', 'Node/npm do Linux (não o do Windows)', f.toolchain?.windows ? 'BLOCKED' : 'PASS',
+      f.toolchain?.windows ? `resolvido para ${f.toolchain.windows}` : 'node e npm do próprio WSL',
+      'Instale Node 24 dentro do WSL (nvm) e confira `command -v node npm` fora de /mnt/c.');
+  }
+  const missingTools = f.tools?.missing || [];
+  add('host-tools', 'Ferramentas do setup (psql, openssl, curl, pgrep)', f.tools && !missingTools.length ? 'PASS' : 'BLOCKED',
+    f.tools ? (missingTools.length ? `ausentes: ${missingTools.join(', ')}` : 'presentes') : 'não verificado',
+    'Ubuntu/WSL2: sudo apt-get install -y postgresql-client openssl curl procps');
+  add('line-endings', 'Scripts com fim de linha LF', (f.repo?.crlfFiles?.length || 0) === 0 ? 'PASS' : 'BLOCKED',
+    f.repo?.crlfFiles?.length ? `CRLF em: ${f.repo.crlfFiles.slice(0, 3).join(', ')}${f.repo.crlfFiles.length > 3 ? '…' : ''}` : 'sem CRLF nos scripts',
+    'Cópia fora do git ou autocrlf antigo: git rm --cached -r . && git reset --hard (só com a árvore salva) ou clone de novo.');
+  add('native-deps', 'Módulos nativos deste sistema', f.nativeDeps?.ok ? 'PASS' : 'BLOCKED', f.nativeDeps?.detail || 'não verificado',
+    'node_modules veio de outro sistema (ex.: npm do Windows): apague node_modules e rode npm ci --include=optional aqui.');
   add('browser', 'Chromium do Playwright do lockfile', f.browser?.ok ? 'PASS' : 'BLOCKED', f.browser?.detail || 'ausente', 'npx playwright install chromium');
 
   // ------------------------------------------------ portas e serviços
