@@ -59,14 +59,19 @@ function check(name, status, detail = '', { modes = ['leitura', 'interativo'], f
   const mark = { PASS: 'PASS', FAIL: 'FAIL', WARN: 'AVISO', SKIP: 'NÃO EXECUTADO' }[status];
   console.log(`  ${mark.padEnd(13)} ${name}${detail ? ` — ${sanitize(detail)}` : ''}${status === 'FAIL' && fix ? `\n${' '.repeat(16)}→ ${fix}` : ''}`);
 }
-async function get(url, options = {}) {
+async function get(url, options = {}, retried = false) {
   try {
     const response = await fetch(url, { ...options, signal: AbortSignal.timeout(15_000) });
     const text = await response.text();
     let json = null;
     try { json = JSON.parse(text); } catch { json = null; }
     return { status: response.status, json, text, headers: response.headers };
-  } catch (error) { return { status: 0, json: null, text: String(error.cause?.code || error.message), headers: new Headers() }; }
+  } catch (error) {
+    // Conexão keep-alive fechada pelo servidor durante uma pausa longa (ex.: depois do
+    // seed --check): o Node reaproveita o socket morto. Só leitura é repetida, uma vez.
+    if (!retried && error.cause?.code === 'UND_ERR_SOCKET' && (options.method || 'GET') === 'GET') return get(url, options, true);
+    return { status: 0, json: null, text: String(error.cause?.code || error.message), headers: new Headers() };
+  }
 }
 const git = (...argv) => { try { return execFileSync('git', argv, { cwd: root, encoding: 'utf8' }).trim(); } catch { return ''; } };
 
