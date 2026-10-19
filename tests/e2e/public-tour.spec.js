@@ -4,6 +4,8 @@ import { test, expect } from '@playwright/test';
 // comprador e instituição, sem rolagem horizontal e sem chamada de API.
 
 test('entrada leva à visita guiada com uma ação principal', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('/demo/index.html');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Contratações financeiras, do pedido à renovação.');
   await expect(page.locator('.btn-primary')).toHaveCount(1);
@@ -13,6 +15,9 @@ test('entrada leva à visita guiada com uma ação principal', async ({ page }) 
   await expect(page).toHaveURL(/\/demo\/visita\.html$/);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Uma contratação financeira, do pedido à renovação');
   await expect(page.getByRole('region', { name: 'Ambiente demonstrativo' })).toContainText('dados fictícios');
+  await page.waitForLoadState('networkidle');
+  // Os dois documentos optam pela mesma transição de navegação (regressão #241).
+  expect(errors).toEqual([]);
 });
 
 test('a jornada completa avança e volta etapa por etapa, sem API', async ({ page }) => {

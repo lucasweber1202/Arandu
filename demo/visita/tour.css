@@ -1,6 +1,9 @@
 /* Visita guiada pública (/demo/visita.html). Só tokens de finance/style.css
    (Design Constitution §2–§3): tinta para estrutura, petróleo para ação. */
 body.tour{background:var(--bg);color:var(--text)}
+/* A entrada (camada da simulação) declara transição entre documentos; a visita
+   também precisa optar, senão o Chromium aborta a transição com pageerror. */
+@view-transition{navigation:auto}
 .tour-header{display:flex;align-items:center;justify-content:space-between;gap:var(--s3);padding:var(--s3) var(--s4);background:var(--surface);border-bottom:1px solid var(--border)}
 .tour-brand{display:flex;align-items:center;gap:var(--s2);color:var(--ink);text-decoration:none;font-weight:700;font-size:var(--fs-lg)}
 .tour-brand .brand-mark{width:28px;height:28px}
