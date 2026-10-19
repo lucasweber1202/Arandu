@@ -1,0 +1,81 @@
+{
+  "checked_at": "2026-10-19T23:54:51.793Z",
+  "url": "https://arandu-demo.vercel.app/",
+  "root": {
+    "status": 200,
+    "sha256": "f59bde23e2712bcbcc4f071c82a5a39a8dbc59a104642f478b62d653e1fc83ca",
+    "headers": {
+      "content-type": "text/html; charset=utf-8",
+      "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+      "x-vercel-id": "cle1::96rqq-1792454090169-9e326301d5bc"
+    }
+  },
+  "runtime_release": {
+    "environment": null,
+    "mode": "demo",
+    "datasource": "synthetic-fixtures",
+    "misconfigured": false,
+    "branch": "main",
+    "commit": "3b3fd481d3fc05fbd42382c85b59226eccc6f518"
+  },
+  "readiness": {
+    "status": 503,
+    "body": {
+      "ok": false,
+      "service": "arandu-api",
+      "status": "not_ready",
+      "release": {
+        "environment": null,
+        "mode": "demo",
+        "datasource": "synthetic-fixtures",
+        "misconfigured": false,
+        "branch": "main",
+        "commit": "3b3fd481d3fc05fbd42382c85b59226eccc6f518"
+      }
+    }
+  },
+  "assets": [
+    {
+      "path": "/assets/favicon-x-CoRhvZ.svg",
+      "status": 200,
+      "type": "image/svg+xml",
+      "sha256": "4d686c227f514170281ea0dbd29ebd04a9df023569a6c4c5efa125a554be9e45",
+      "bytes": 330
+    },
+    {
+      "path": "/assets/financial-icon-180-13L4fmV4.png",
+      "status": 200,
+      "type": "image/png",
+      "sha256": "31826d0e41fa7ac267b131d625e5e55fbfe0b4febc01ad52fc0f4bfb1c782325",
+      "bytes": 4742
+    },
+    {
+      "path": "/assets/manifest-gifOfB1V.webmanifest",
+      "status": 200,
+      "type": "application/manifest+json; charset=utf-8",
+      "sha256": "2d0c752109c989a74e88e5bf3ebca261bd8cc05d5883fdcecb1496a92d89ed35",
+      "bytes": 634
+    },
+    {
+      "path": "/assets/demo/index-CYrsdb9K.js",
+      "status": 200,
+      "type": "application/javascript; charset=utf-8",
+      "sha256": "b987e634a575faef94093881efbfd54f539ebed06ad0f3e10148df8321bf7a86",
+      "bytes": 1255
+    },
+    {
+      "path": "/assets/boot-CdD1RaLl.css",
+      "status": 200,
+      "type": "text/css; charset=utf-8",
+      "sha256": "b90207e99d9142f1f22b15e795fe0353b2ffb013a684485cb2cca5cc13e59adf",
+      "bytes": 124692
+    },
+    {
+      "path": "/assets/style-CpCACg3B.css",
+      "status": 200,
+      "type": "text/css; charset=utf-8",
+      "sha256": "fe955aca608d0c2df6f0d6a515d783cc95ec603d5822e943293476c50ed9c8b0",
+      "bytes": 99379
+    }
+  ]
+}

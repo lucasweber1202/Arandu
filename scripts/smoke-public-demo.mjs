@@ -1,0 +1,124 @@
+#!/usr/bin/env node
+// Read-only anonymous proof. HTTP alone never proves rendered navigation.
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { validateManifest, validateFlow, verifyResponse, getPublic } from './publication-proof.mjs';
+
+const args = Object.fromEntries(process.argv.slice(2).map(arg => { const [k, ...v] = arg.replace(/^--/, '').split('='); return [k, v.join('=') || true]; }));
+const report = { checked_at: new Date().toISOString(), url: args.url, expected_sha: args.sha,
+  HTTP_ARTIFACT: 'NOT_RUN', BROWSER_DESKTOP: 'NOT_RUN', BROWSER_MOBILE: 'NOT_RUN',
+  PUBLIC_SHAREABLE: 'NOT_PROVEN', LOCAL_STATION_READY: 'NOT_RUN', CANONICAL_HOSTED_M3: 'BLOCKED', checks: [] };
+let browser;
+mkdirSync('reports/public-demo', { recursive: true });
+try {
+  const base = new URL(String(args.url));
+  const local = ['localhost', '127.0.0.1', '[::1]'].includes(base.hostname);
+  if (base.username || base.password || base.search || base.hash || base.pathname !== '/' || (base.protocol !== 'https:' && !(args.local && local && base.protocol === 'http:')) || (local && !args.local) || (args.local && !local)) throw new Error('Use a public HTTPS origin; --local is loopback laboratory only');
+  report.local = local;
+  const identity = await getPublic(base, '/arandu-build.json');
+  verifyResponse(identity.response, identity.bytes, '/arandu-build.json');
+  if (!/application\/json/.test(identity.response.headers.get('content-type') || '')) throw new Error('Manifest is not JSON');
+  const manifest = JSON.parse(identity.bytes);
+  validateManifest(manifest, args.sha);
+  report.build = { commit: manifest.commit, branch: manifest.branch, modality: manifest.modality, built_at: manifest.built_at };
+  // Every emitted byte is checked, including lazy chunks, fonts and images.
+  for (const [path, expected] of Object.entries(manifest.files)) {
+    const r = await getPublic(base, path);
+    verifyResponse(r.response, r.bytes, path, expected);
+    if (path.endsWith('.html')) {
+      for (const [tag, href] of r.bytes.toString().matchAll(/<(?:script|link|img|source)\b[^>]*?\b(?:src|href)=["']([^"']+)["'][^>]*>/gi)) {
+        if (/^<link/i.test(tag) && !/\brel=["'][^"']*(?:stylesheet|icon|manifest|preload)/i.test(tag)) continue;
+        if (/^(?:data:|#)/.test(href)) continue;
+        const asset = new URL(href, r.url);
+        if (asset.origin !== base.origin || !manifest.files[asset.pathname]) throw new Error(`Unverified HTML asset: ${path}`);
+      }
+    }
+    report.checks.push({ path, result: 'PASS', sha256: expected.sha256 });
+  }
+  const root = await getPublic(base, '/');
+  verifyResponse(root.response, root.bytes, '/index.html', manifest.files['/index.html']);
+  const health = await getPublic(base, '/api/health');
+  report.liveness_http = health.response.status;
+  if (health.response.status === 200) {
+    const release = JSON.parse(health.bytes).release;
+    if (release?.commit !== manifest.commit || release?.branch !== manifest.branch || release?.datasource !== manifest.datasource || release?.misconfigured !== false) throw new Error('Runtime/build identity divergence');
+    report.runtime_release = release;
+  } else if (health.response.status !== 404) throw new Error('Unexpected liveness response');
+  report.HTTP_ARTIFACT = 'PASS';
+  if (args.browser) {
+    if (!args.flow) throw new Error('--browser requires --flow=<reviewed JSON>');
+    const flow = JSON.parse(readFileSync(String(args.flow), 'utf8'));
+    validateFlow(flow, args.sha);
+    for (const s of flow.steps) {
+      const path = new URL(s.path, base).pathname;
+      if (!manifest.files[path === '/' ? '/index.html' : path]) throw new Error('Flow route absent from artifact');
+    }
+    const { chromium } = await import('@playwright/test');
+    const proxy = !local && (process.env.HTTPS_PROXY || process.env.https_proxy);
+    browser = await chromium.launch({ headless: true, ...(proxy ? { proxy: { server: proxy } } : {}) });
+    for (const [name, viewport] of [['DESKTOP', { width: 1440, height: 900 }], ['MOBILE', { width: 390, height: 844 }]]) {
+      const context = await browser.newContext({ viewport, serviceWorkers: 'block' });
+      const errors = [];
+      const responses = [];
+      await context.route('**/*', route => {
+        const req = route.request(), url = new URL(req.url());
+        if (url.origin !== base.origin || !['GET', 'HEAD'].includes(req.method()) || url.pathname.startsWith('/api/')) {
+          errors.push('Backend, off-origin or mutating browser request'); return route.abort();
+        }
+        return route.continue();
+      });
+      const page = await context.newPage();
+      page.on('pageerror', error => errors.push(`JavaScript: ${error.message.slice(0, 300)}`));
+      page.on('console', message => { if (message.type() === 'error') errors.push('Browser console error'); });
+      page.on('response', response => {
+        responses.push((async () => {
+          try {
+            const path = new URL(response.url()).pathname;
+            const artifact = path === '/' ? '/index.html' : path;
+            if (!manifest.files[artifact]) throw new Error('Browser loaded unverified artifact');
+            verifyResponse({ status: response.status(), headers: new Headers(await response.allHeaders()) }, await response.body(), artifact, manifest.files[artifact]);
+          } catch (error) { errors.push(error.message); }
+        })());
+      });
+      page.on('requestfailed', () => errors.push('Resource request failed'));
+      for (let i = 0; i < flow.steps.length; i++) {
+        const step = flow.steps[i], target = new URL(step.path, base).href;
+        if (!i) await page.goto(target, { waitUntil: 'networkidle' });
+        else {
+          const link = page.locator(step.selector);
+          if (await link.count() !== 1 || new URL(await link.getAttribute('href'), page.url()).href !== target) throw new Error(`Missing actual navigation link: ${step.stage}`);
+          await link.click(); await page.waitForURL(target); await page.waitForLoadState('networkidle');
+        }
+        const content = () => step.content ? page.locator(step.content).filter({ hasText: step.text }) : page.getByText(step.text, { exact: false }).first();
+        await content().waitFor({ state: 'visible' });
+        if (!/dados fictícios|simulação|demonstrativ/i.test(await page.locator('body').innerText())) throw new Error('Demo modality is not visible');
+        // Reload proves direct deep links, with the same anonymous browser state.
+        await page.reload({ waitUntil: 'networkidle' });
+        await content().waitFor({ state: 'visible' });
+        const layout = await page.evaluate(async () => {
+          await document.fonts.ready;
+          return { overflow: document.documentElement.scrollWidth > innerWidth + 1,
+            images: [...document.images].every(img => img.complete && img.naturalWidth > 0), fonts: [...document.fonts].every(font => font.status === 'loaded') };
+        });
+        if (layout.overflow || !layout.images || !layout.fonts) throw new Error(`Layout/resource failure: ${step.stage}`);
+        await page.screenshot({ path: `reports/public-demo/${name.toLowerCase()}-${step.stage}.png`, fullPage: true });
+        report.checks.push({ viewport: name, stage: step.stage, path: step.path, result: 'PASS' });
+      }
+      await Promise.all(responses);
+      report['BROWSER_' + name] = errors.length ? 'FAIL' : 'PASS';
+      if (errors.length) report.checks.push({ viewport: name, result: 'FAIL', errors: [...new Set(errors)] });
+      await context.close();
+    }
+    if (report.BROWSER_DESKTOP !== 'PASS' || report.BROWSER_MOBILE !== 'PASS') throw new Error('Browser errors; see viewport evidence');
+    if (!local) report.PUBLIC_SHAREABLE = 'PASS';
+  }
+} catch (error) {
+  report.error = error.message;
+  report.PUBLIC_SHAREABLE = error.code === 'ACCESS_BLOCKED' ? 'ACCESS_BLOCKED' : /fetch failed|timeout|ENOTFOUND|ECONNREFUSED/i.test(error.message) ? 'NOT_PROVEN' : 'FAIL';
+  if (report.HTTP_ARTIFACT !== 'PASS') report.HTTP_ARTIFACT = report.PUBLIC_SHAREABLE;
+} finally {
+  await browser?.close();
+  mkdirSync('reports/public-demo', { recursive: true });
+  writeFileSync('reports/public-demo/proof.json', JSON.stringify(report, null, 2) + '\n');
+  console.log(JSON.stringify(report, null, 2));
+}
+process.exitCode = report.PUBLIC_SHAREABLE === 'PASS' ? 0 : 1;
