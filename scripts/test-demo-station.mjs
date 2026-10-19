@@ -19,7 +19,9 @@ const ready = () => ({
   db: { reachable: true, marker: 'demo', container: 'original' }, app: { reachable: true, environment: 'demo' },
   pool: { ready: 4, claimed: 0 }, seed: { ok: true, detail: '39/39' },
   readiness: { readMode: 'PRONTO', interactiveMode: 'PRONTO', ageMinutes: 15 },
-  freeze: { sha: SHA, lockSha256: LOCK, station: true, host: 'estacao-29-10' }
+  freeze: { sha: SHA, lockSha256: LOCK, station: true, host: 'estacao-29-10' },
+  repo: { path: '/home/op/Arandu', onWindowsDrive: false, crlfFiles: [] }, toolchain: { windows: null },
+  nativeDeps: { ok: true, detail: 'rolldown e lightningcss carregam' }, tools: { missing: [] }
 });
 const status = (mutate) => { const facts = ready(); mutate(facts); return classifyStation(facts); };
 const expect = (name, mutate, expected, needle) => {
@@ -53,6 +55,15 @@ expect('pool com 1 pronto', (f) => { f.pool.ready = 1; }, 'BLOCKED', '1 pronto')
 expect('certificado vencendo', (f) => { f.cert = { ok: false, detail: 'expira em 1 dia(s)' }; }, 'BLOCKED', 'expira');
 expect('memória curta', (f) => { f.host.memoryGiB = 4; }, 'BLOCKED', '4 GiB');
 expect('fato ausente nunca vira PASS', (f) => { delete f.services.gateway; }, 'BLOCKED', 'sem resposta');
+// Windows/WSL2 e node_modules de outro sistema.
+expect('WSL2 com tudo no disco Linux', (f) => { f.host.wsl = true; }, 'READY');
+expect('WSL2 com repositório em /mnt/c', (f) => { f.host.wsl = true; f.repo.onWindowsDrive = true; f.repo.path = '/mnt/c/Users/op/Arandu'; }, 'BLOCKED', '/mnt/c/Users/op/Arandu');
+expect('WSL2 usando o npm do Windows', (f) => { f.host.wsl = true; f.toolchain.windows = '/mnt/c/Program Files/nodejs/npm'; }, 'BLOCKED', 'Program Files');
+expect('/mnt/c fora do WSL não é checado como WSL', (f) => { f.repo.onWindowsDrive = true; }, 'READY');
+expect('máquina nova sem psql', (f) => { f.tools.missing = ['psql']; }, 'BLOCKED', 'psql');
+expect('script com CRLF', (f) => { f.repo.crlfFiles = ['scripts/demo/local.sh']; }, 'BLOCKED', 'local.sh');
+expect('binário nativo de outro sistema', (f) => { f.nativeDeps = { ok: false, detail: "Cannot find module '@rolldown/binding-linux-x64-gnu'" }; }, 'BLOCKED', 'binding-linux');
+expect('módulos nativos não verificados', (f) => { delete f.nativeDeps; }, 'BLOCKED', 'não verificado');
 // Alvo errado é UNSAFE e vence todo o resto.
 expect('SUPABASE_URL hospedado no terminal', (f) => { f.env.nonLocalTargets = ['SUPABASE_URL']; }, 'UNSAFE', 'SUPABASE_URL');
 expect('VERCEL_ENV no terminal', (f) => { f.env.vercelEnv = 'production'; }, 'UNSAFE', 'VERCEL_ENV=production');
@@ -61,4 +72,4 @@ expect('banco sem a marca de demo', (f) => { f.db.marker = 'pilot'; }, 'UNSAFE',
 expect('app fora de demo', (f) => { f.app.environment = 'production'; }, 'UNSAFE', 'production');
 expect('UNSAFE vence BLOCKED e PREPARED', (f) => { f.node.version = 'v20.0.0'; f.freeze = null; f.env.nonLocalTargets = ['DATABASE_URL']; }, 'UNSAFE', 'DATABASE_URL');
 assert.equal(classifyStation(undefined).status, 'BLOCKED', 'sem fatos não há estação');
-console.log('Estação da Demo: READY só na máquina declarada e congelada; efêmero/sem freeze/SHA ou lockfile divergente = PREPARED; requisito ausente = BLOCKED; alvo fora de localhost = UNSAFE.');
+console.log('Estação da Demo: READY só na máquina declarada e congelada; efêmero/sem freeze/SHA ou lockfile divergente = PREPARED; requisito ausente = BLOCKED; alvo fora de localhost = UNSAFE; WSL2 com repositório em /mnt/c, npm do Windows, CRLF ou node_modules de outro sistema = BLOCKED.');

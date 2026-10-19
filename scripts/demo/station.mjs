@@ -121,6 +121,17 @@ async function collect({ fast }) {
     browser = fs.existsSync(exe) ? { ok: true, detail: path.basename(path.dirname(path.dirname(exe))) } : { ok: false, detail: 'navegador da versão do lockfile não instalado' };
   } catch { /* sem dependências */ }
 
+  // Plataforma efetiva: WSL2 com repositório no disco do Windows, Node do Windows
+  // vazando pelo PATH, CRLF nos scripts e node_modules de outro sistema.
+  const which = (bin) => run('bash', ['-lc', `command -v ${bin}`]).out;
+  const windowsBins = [process.execPath, which('node'), which('npm')].filter((p) => /^\/mnt\/[a-z]\//i.test(p) || /\.exe$/i.test(p));
+  const tools = { missing: ['psql', 'openssl', 'curl', 'pgrep'].filter((bin) => !which(bin)) };
+  const crlfFiles = run('git', ['ls-files', '*.sh', 'scripts/demo/*.mjs', 'scripts/pilot-local/*.mjs']).out.split('\n').filter(Boolean)
+    .filter((file) => { try { return fs.readFileSync(path.join(root, file), 'utf8').includes('\r\n'); } catch { return false; } });
+  const native = run(process.execPath, ['--input-type=module', '-e', "await import('rolldown'); (await import('node:module')).createRequire(import.meta.url)('lightningcss');"], { timeout: 30000 });
+  const nativeDeps = native.ok ? { ok: true, detail: `rolldown e lightningcss carregam em ${process.platform}-${process.arch}` }
+    : { ok: false, detail: `falha ao carregar binário nativo (${(native.err.match(/Cannot find (?:module|package) '[^']+'/) || [native.err.split('\n')[0] || 'erro'])[0].slice(0, 120)})` };
+
   let cert = { ok: false, detail: 'scripts/pilot-local/.state/cert.pem ausente' };
   try {
     const x509 = new crypto.X509Certificate(fs.readFileSync(path.join(state, 'cert.pem')));
@@ -167,7 +178,8 @@ async function collect({ fast }) {
   try { freeze = JSON.parse(fs.readFileSync(freezeFile, 'utf8')); } catch { /* sem congelamento */ }
 
   return {
-    host: hostFacts(), env: envFacts(), git: gitFacts(), node: { version: process.version }, npm: { version: npm.ok ? npm.out : null }, deps,
+    host: hostFacts(), env: envFacts(),
+    repo: { path: root, onWindowsDrive: /^\/mnt\/[a-z]\//i.test(root), crlfFiles }, toolchain: { windows: windowsBins[0] || null }, nativeDeps, tools, git: gitFacts(), node: { version: process.version }, npm: { version: npm.ok ? npm.out : null }, deps,
     docker: { engine: docker, compose: compose.ok ? `Compose ${compose.out}` : null }, browser, cert, services,
     ports: await portFacts(Boolean(docker)),
     db: { reachable: services.db.ok, marker, container: services.db.ok ? (orgs > 0 ? 'original' : 'contêiner sem os dados da Demo') : (health ? `banco ${health}` : 'contêiner ausente') },
@@ -206,6 +218,19 @@ if (command === 'freeze') {
   console.log(`Versão congelada: ${record.sha} (Node ${record.node}) em ${record.host}${record.station ? ' — declarada estação da apresentação' : facts.host.ephemeral ? ` — NÃO declarada estação: executor efêmero (${facts.host.ephemeral})` : ' — sem --station: não vale como estação'}.`);
   console.log('A partir daqui, qualquer checkout, pull ou npm install faz o preflight cair para PREPARED.');
   process.exit(0);
+}
+
+// --gate=host: só os requisitos da máquina (o que o prepare-station não conserta
+// sozinho). Serviços, seed, pool e identidade ficam para as etapas seguintes.
+const HOST = new Set(['target', 'vercel', 'arandu-env', 'db-marker', 'app-env', 'os', 'node', 'npm', 'deps', 'cpu', 'memory', 'disk', 'docker', 'compose',
+  'browser', 'wsl-drive', 'wsl-toolchain', 'host-tools', 'line-endings', 'native-deps', 'ports']);
+if (args.includes('--gate=host')) {
+  const gate = classifyStation(facts).checks.filter((c) => HOST.has(c.id));
+  const bad = gate.filter((c) => c.status !== 'PASS');
+  for (const c of gate) console.log(`  ${c.status.padEnd(8)} ${c.label.padEnd(48)} ${c.detail}${c.status !== 'PASS' && c.fix ? `\n           → ${c.fix}` : ''}`);
+  const unsafe = bad.some((c) => c.status === 'UNSAFE');
+  console.log(bad.length ? `\nMáquina: ${unsafe ? 'UNSAFE' : 'BLOCKED'} — corrija acima antes de subir a Demo.` : '\nMáquina: requisitos OK.');
+  process.exit(unsafe ? 30 : bad.length ? 20 : 0);
 }
 
 const result = classifyStation(facts);

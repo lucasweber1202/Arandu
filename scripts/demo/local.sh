@@ -7,6 +7,7 @@
 #   npm run demo:local:reset  # apaga só os dados da demo e semeia de novo
 #   npm run demo:local:check  # só as checagens de sanidade
 #   bash scripts/demo/local.sh readiness [--smoke]  # prontidão da apresentação (só lê)
+#   bash scripts/demo/local.sh prepare-station [--provision]  # prepara a estação em ordem, sem reset
 #   bash scripts/demo/local.sh resume   # retoma após reinício (sem apagar dados)
 #   bash scripts/demo/local.sh station  # preflight da estação: READY|PREPARED|BLOCKED|UNSAFE
 #   bash scripts/demo/local.sh freeze --station  # congela o SHA da apresentação nesta máquina
@@ -89,6 +90,45 @@ case "$command" in
     node "$here/seed.mjs" --check
     node "$here/workspaces.mjs" list
     ;;
+  prepare-station)
+    # Prepara a estação em ordem, sem reset: requisitos da máquina → dependências do
+    # lockfile → stack (retoma a existente; só cria numa máquina sem nenhum estado)
+    # → pool (só com --provision) → prontidão → veredito. Pode rodar de novo.
+    shift; provision=0
+    for arg in "$@"; do case "$arg" in --provision) provision=1 ;; *) echo "opção desconhecida: $arg"; exit 2 ;; esac; done
+    echo "== 1/6 Dependências locais (lockfile)"
+    if [ ! -f "$root/node_modules/.package-lock.json" ]; then ( cd "$root" && npm ci --include=optional ); fi
+    ( cd "$root" && node -e "const {chromium}=require('@playwright/test');process.exit(require('fs').existsSync(chromium.executablePath())?0:1)" ) \
+      || ( cd "$root" && npx playwright install chromium )
+    echo "== 2/6 Requisitos da máquina"
+    node "$here/station.mjs" --fast --gate=host || exit $?
+    echo "== 3/6 Stack local"
+    if docker inspect arandu-pilot-local-db-1 >/dev/null 2>&1; then
+      echo "Stack existente: retomando sem apagar dados."
+      bash "$here/local.sh" resume || exit 1
+    elif [ ! -f "$state/.env" ]; then
+      echo "Máquina sem Demo: criando do zero (≈ 20 min; não há dados a perder)."
+      bash "$here/local.sh" setup || exit 1
+    else
+      echo "Há estado local ($state) mas o contêiner do banco sumiu: os dados da Demo foram com ele."
+      echo "Nada foi feito. Para recriar do zero, conscientemente: npm run demo:down && npm run demo:setup"
+      exit 1
+    fi
+    load_env
+    echo "== 4/6 Pool de visitantes"
+    ready="$(docker exec arandu-pilot-local-db-1 psql -U postgres -Atc "select count(*) from public.fin_demo_workspaces where status = 'ready'")"
+    if [ "${ready:-0}" -ge 4 ]; then echo "Pool: $ready pronto(s)."
+    elif [ "$provision" = 1 ]; then
+      echo "Pool: $ready pronto(s); provisionando $((4 - ready)) (≈ 11 min por lote de 2)."
+      node "$here/workspaces.mjs" provision --count=$((4 - ready)) || exit 1
+    else
+      echo "Pool: $ready pronto(s) (meta 4). Rode de novo com --provision para completar (≈ 11 min por lote de 2)."
+    fi
+    echo "== 5/6 Prontidão (só lê)"
+    node "$here/readiness.mjs" --smoke || true
+    echo "== 6/6 Veredito da estação"
+    node "$here/station.mjs"
+    ;;
   station) shift; node "$here/station.mjs" "$@" ;;
   freeze) shift; node "$here/station.mjs" freeze "$@" ;;
   password) ensure_password ;;
@@ -98,5 +138,5 @@ case "$command" in
   app) load_env; start_app; echo "App local em modo demo: https://localhost:4443" ;;
   workspaces) shift; load_env; node "$here/workspaces.mjs" "$@" ;;
   down) bash "$root/scripts/pilot-local/down.sh" ;;
-  *) echo "uso: bash scripts/demo/local.sh setup|resume|station|freeze|password|reset|check|readiness|app|workspaces|down"; exit 2 ;;
+  *) echo "uso: bash scripts/demo/local.sh setup|prepare-station|resume|station|freeze|password|reset|check|readiness|app|workspaces|down"; exit 2 ;;
 esac
