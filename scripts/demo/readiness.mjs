@@ -59,14 +59,19 @@ function check(name, status, detail = '', { modes = ['leitura', 'interativo'], f
   const mark = { PASS: 'PASS', FAIL: 'FAIL', WARN: 'AVISO', SKIP: 'NÃO EXECUTADO' }[status];
   console.log(`  ${mark.padEnd(13)} ${name}${detail ? ` — ${sanitize(detail)}` : ''}${status === 'FAIL' && fix ? `\n${' '.repeat(16)}→ ${fix}` : ''}`);
 }
-async function get(url, options = {}) {
+async function get(url, options = {}, retried = false) {
   try {
     const response = await fetch(url, { ...options, signal: AbortSignal.timeout(15_000) });
     const text = await response.text();
     let json = null;
     try { json = JSON.parse(text); } catch { json = null; }
     return { status: response.status, json, text, headers: response.headers };
-  } catch (error) { return { status: 0, json: null, text: String(error.cause?.code || error.message), headers: new Headers() }; }
+  } catch (error) {
+    // Conexão keep-alive fechada pelo servidor durante uma pausa longa (ex.: depois do
+    // seed --check): o Node reaproveita o socket morto. Só leitura é repetida, uma vez.
+    if (!retried && error.cause?.code === 'UND_ERR_SOCKET' && (options.method || 'GET') === 'GET') return get(url, options, true);
+    return { status: 0, json: null, text: String(error.cause?.code || error.message), headers: new Headers() };
+  }
 }
 const git = (...argv) => { try { return execFileSync('git', argv, { cwd: root, encoding: 'utf8' }).trim(); } catch { return ''; } };
 
@@ -193,11 +198,26 @@ check('Meridian ainda pode responder (convite ativo e coleta aberta)', open?.sta
 check('Meridian ainda não enviou proposta na concorrência sazonal (I6)', open && !meridian ? 'PASS' : 'FAIL', open ? `${(open.proposals || []).length} proposta(s) na coleta` : 'concorrência ausente', fresh);
 const approvals = org ? await api(people.helena, `approvals?${orgQ}`) : { json: null };
 const helenaTurn = (approvals.json?.rows || []).find((row) => row.status === 'pending');
-check('Etapa da CFO pendente na nova linha (I4)', helenaTurn ? 'PASS' : 'FAIL', helenaTurn ? 'pedido aguardando a Helena' : `nenhum pedido pendente (${approvals.status ? `HTTP ${approvals.status}` : 'organização não lida'}${approvals.status && approvals.status !== 200 ? ` ${approvals.text}` : ''})`, fresh);
+// Sem resposta (timeout/rede) não é "já usado": não mandar resetar uma estação intacta.
+const unanswered = org && !approvals.status;
+check('Etapa da CFO pendente na nova linha (I4)', helenaTurn ? 'PASS' : 'FAIL',
+  helenaTurn ? 'pedido aguardando a Helena'
+    : unanswered ? `a API não respondeu à leitura das aprovações (${approvals.text}); nada indica uso anterior`
+      : `nenhum pedido pendente (${approvals.status ? `HTTP ${approvals.status}` : 'organização não lida'}${approvals.status && approvals.status !== 200 ? ` ${approvals.text}` : ''})`,
+  unanswered ? { modes: ['interativo'], fix: 'rode a prontidão de novo em alguns minutos (sem reset); se repetir, veja scripts/pilot-local/.state/app.log' } : fresh);
 const tasks = org ? await api(juliana, `tasks?${orgQ}&status=open&limit=200`) : { json: null };
 const live = (tasks.json?.rows || []).filter((row) => /cronograma de remessa dos terminais/i.test(row.title));
 check('Nenhuma tarefa de ensaio anterior (I1–I2)', tasks.status === 200 && !live.length ? 'PASS' : 'FAIL', tasks.status === 200 ? `${(tasks.json.rows || []).length} tarefa(s) abertas; ${live.length} de ensaio` : tasks.status ? `HTTP ${tasks.status}` : 'organização não lida', fresh);
 check('Tarefas do seed presentes', (tasks.json?.rows || []).length >= Math.min(5, TASKS.length) ? 'PASS' : 'FAIL', `${(tasks.json?.rows || []).length} abertas`, { fix: 'npm run demo:local:reset' });
+// Entrada por persona: cada janela anônima nova reivindica um workspace pronto, e o
+// servidor aceita 4 reivindicações por hora por origem (auth-demo-claim). Só lê.
+const pool = await fetch(`${SB}/rest/v1/fin_demo_workspaces?select=status,claimed_at`, { headers: { apikey: config.serviceKey, Authorization: `Bearer ${config.serviceKey}` } })
+  .then(async (response) => (response.ok ? response.json() : null)).catch(() => null);
+const readyCount = (pool || []).filter((row) => row.status === 'ready').length;
+const recentClaims = (pool || []).filter((row) => row.claimed_at && Date.parse(row.claimed_at) > Date.now() - 3600000).length;
+check('Pool de visitantes (entrada por persona)', pool && readyCount >= 2 && recentClaims <= 2 ? 'PASS' : 'FAIL',
+  pool ? `${readyCount} workspace(s) pronto(s); ${recentClaims} entrada(s) nova(s) na última hora (limite 4/h por rede)` : 'pool não lido',
+  { modes: ['interativo'], fix: readyCount < 2 ? 'npm run demo:local:workspaces -- provision --count=4 (≈ 10 min por par)' : 'espere a janela de 1 h das entradas novas ou siga pelas janelas já abertas ("Trocar persona" não consome workspace)' });
 
 // ------------------------------------------------- 6. smoke das jornadas
 section('Smoke das jornadas essenciais pela API real (só leitura)');
