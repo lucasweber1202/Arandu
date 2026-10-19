@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { inspectStaticStage0 } from './stage0-static-preflight.mjs';
+import './test-hosted-infrastructure-doctor.mjs';
 
 const current = inspectStaticStage0();
 assert.equal(current.schema_version, 1);
