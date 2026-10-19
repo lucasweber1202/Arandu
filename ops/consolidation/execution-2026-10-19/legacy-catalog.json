@@ -1,0 +1,20 @@
+{
+"project_ref": "igacnfjeuqhxcmfyepgj",
+"observed_at": "2026-10-19T18:33:27.020445+00:00",
+"routines": [
+  {"signature":"handle_new_user_profile()","returns":"trigger","prosecdef":true,"anon_execute":true,"authenticated_execute":true,"proconfig":["search_path=public"],"definition_sha256":"03771ee5fc19a997b433de125cbfea4a5cc2ba321d4170eb6dfaa4e38f61070b"},
+  {"signature":"set_updated_at()","returns":"trigger","prosecdef":false,"anon_execute":true,"authenticated_execute":true,"proconfig":null,"definition_sha256":"199f5c02bd7c5ee76f3d2ba98482eddd62afcaa2b4915baed2a47fe3383b428e"}
+],
+"views": [
+  {"name":"v_artworks_full","reloptions":null,"anon_select":false,"authenticated_select":false},
+  {"name":"v_available_artworks","reloptions":null,"anon_select":true,"authenticated_select":true},
+  {"name":"v_public_catalog","reloptions":null,"anon_select":true,"authenticated_select":true},
+  {"name":"v_quality_issues","reloptions":null,"anon_select":false,"authenticated_select":false},
+  {"name":"v_sales_pipeline","reloptions":null,"anon_select":false,"authenticated_select":false}
+],
+"roles": [
+  {"rolname":"authenticated","rolsuper":false,"rolbypassrls":false},
+  {"rolname":"anon","rolsuper":false,"rolbypassrls":false},
+  {"rolname":"service_role","rolsuper":false,"rolbypassrls":true}
+]
+}

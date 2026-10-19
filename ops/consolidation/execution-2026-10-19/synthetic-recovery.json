@@ -1,0 +1,41 @@
+{
+  "analyzed_base": "b5fa804c5f161418e5e6c61091d72946b087ecf7",
+  "tooling": {
+    "postgresql": "17.11",
+    "age": "1.3.2"
+  },
+  "results": [
+    {
+      "classification": "synthetic_pg17_age_http_object_fixture_same_set",
+      "result": "VALIDATED",
+      "objects": 2,
+      "references": 2,
+      "rls": "VERIFIED",
+      "managed_auth": "NOT_PROVEN",
+      "supabase_storage": "NOT_PROVEN",
+      "external_configuration": "NOT_RUN",
+      "conversion": "BLOCKED",
+      "teardown": "VERIFIED"
+    },
+    {
+      "classification": "synthetic_postgresql17_age_same_backup_restore",
+      "result": "VALIDATED",
+      "hosted_backup": "NOT RUN",
+      "supabase_compatibility": "NOT PROVEN",
+      "ciphertext": [
+        {
+          "name": "database.dump.age",
+          "bytes": 11597,
+          "sha256": "4bb6a57f2dcc9cc3d95fd01b01875647b379ad2f640e7272ccbe7ea4c1f33e7f"
+        },
+        {
+          "name": "roles.sql.age",
+          "bytes": 876,
+          "sha256": "84b0843a00d9ca2c9972bc34497c2340636c9472b8bf4abc2314f2e9337008e9"
+        }
+      ],
+      "reconciliation_sha256": "70df7fd38ab1204643155a90a29a370ec0f7b376b557affaf28a2b983254c84a",
+      "teardown": "VERIFIED"
+    }
+  ]
+}
