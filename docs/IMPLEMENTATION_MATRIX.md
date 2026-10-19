@@ -1,5 +1,20 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+
+## 19/10/2026 — Repriorização oficial: link público atualizado e estação local como dois P0
+
+**Decisão de prioridade, não prova de publicação.** A guideline v3.5 §37 e docs/PUBLIC_DEMO_2026-10-29_PRIORITY.md passam a orientar os próximos PRs. Nenhuma maturidade foi elevada por esta alteração documental.
+
+| Resultado | Prioridade | Estado observado na main 18a2ccf | Próximo gate |
+| --- | --- | --- | --- |
+| Link arandu-demo.vercel.app fiel ao produto atual | **P0-A** | Status Vercel SUCCESS; última evidência de health indicava synthetic-fixtures. Acesso anônimo externo e fidelidade ao produto aprovado NOT_PROVEN | Provar acesso sem proteção, navegação comprador/provedor e mobile, assets, SHA, telas/capturas reais, limites da simulação |
+| Estação local da apresentação | **P0-B** | Software e prepare-station validados em Linux efêmero (#235/#237); computador definitivo NOT_PROVEN | Freeze, station READY e smoke na própria máquina |
+| Demo canônica hospedada com backend real | **P1** | BLOCKED; Demo sem atribuição ativa Supabase; recovery hospedado e cutover pendentes | Inventário/classificação, export e restore do mesmo conjunto, cutover autorizado, doctor e jornadas M3 |
+| Production pronta a clientes | **P2** | Vercel Official FAILURE no SHA da base; logs sem acesso (403), M5 NOT_PROVEN | Logs autorizados, ambiente próprio, recovery e release formal |
+
+Ações de código/UX da visita pública: Claude Code. Deploy, controle do SHA e testes externos, paridade técnica: Codex. Os agentes NÃO devem atualizar a matriz para PASS sem execução hospedada. Segurança crítica sempre precede prioridades comerciais.
+
+
 ## 19/10/2026 — Restore com identidade e reconciliação de schema
 
 Base mainb5fa804, branch `codex/hosted-release-execution-readiness`. Restore
