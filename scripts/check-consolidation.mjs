@@ -1,9 +1,11 @@
 import fs from 'node:fs';
 import { assessConversion, assessDecommission } from '../lib/consolidation-readiness.mjs';
+import { currentCleanInstallDigest } from './current-migration-bundle.mjs';
 const args = process.argv.slice(2);
 const value = key => args.find(arg => arg.startsWith(`--${key}=`))?.slice(key.length + 3);
 const environment = value('environment');
-const assess = evidence => environment === 'decommission' ? assessDecommission(evidence, { commit: value('commit') }) : assessConversion(evidence, { environment });
+const currentBundleSha256 = environment === 'decommission' ? null : currentCleanInstallDigest();
+const assess = evidence => environment === 'decommission' ? assessDecommission(evidence, { commit: value('commit') }) : assessConversion(evidence, { environment, currentBundleSha256 });
 fs.mkdirSync('reports', { recursive: true });
 const output = 'reports/consolidation-readiness.json';
 fs.writeFileSync(output, JSON.stringify(assess({}), null, 2));
