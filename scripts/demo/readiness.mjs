@@ -198,6 +198,15 @@ const tasks = org ? await api(juliana, `tasks?${orgQ}&status=open&limit=200`) : 
 const live = (tasks.json?.rows || []).filter((row) => /cronograma de remessa dos terminais/i.test(row.title));
 check('Nenhuma tarefa de ensaio anterior (I1–I2)', tasks.status === 200 && !live.length ? 'PASS' : 'FAIL', tasks.status === 200 ? `${(tasks.json.rows || []).length} tarefa(s) abertas; ${live.length} de ensaio` : tasks.status ? `HTTP ${tasks.status}` : 'organização não lida', fresh);
 check('Tarefas do seed presentes', (tasks.json?.rows || []).length >= Math.min(5, TASKS.length) ? 'PASS' : 'FAIL', `${(tasks.json?.rows || []).length} abertas`, { fix: 'npm run demo:local:reset' });
+// Entrada por persona: cada janela anônima nova reivindica um workspace pronto, e o
+// servidor aceita 4 reivindicações por hora por origem (auth-demo-claim). Só lê.
+const pool = await fetch(`${SB}/rest/v1/fin_demo_workspaces?select=status,claimed_at`, { headers: { apikey: config.serviceKey, Authorization: `Bearer ${config.serviceKey}` } })
+  .then(async (response) => (response.ok ? response.json() : null)).catch(() => null);
+const readyCount = (pool || []).filter((row) => row.status === 'ready').length;
+const recentClaims = (pool || []).filter((row) => row.claimed_at && Date.parse(row.claimed_at) > Date.now() - 3600000).length;
+check('Pool de visitantes (entrada por persona)', pool && readyCount >= 2 && recentClaims <= 2 ? 'PASS' : 'FAIL',
+  pool ? `${readyCount} workspace(s) pronto(s); ${recentClaims} entrada(s) nova(s) na última hora (limite 4/h por rede)` : 'pool não lido',
+  { modes: ['interativo'], fix: readyCount < 2 ? 'npm run demo:local:workspaces -- provision --count=4 (≈ 10 min por par)' : 'espere a janela de 1 h das entradas novas ou siga pelas janelas já abertas ("Trocar persona" não consome workspace)' });
 
 // ------------------------------------------------- 6. smoke das jornadas
 section('Smoke das jornadas essenciais pela API real (só leitura)');
