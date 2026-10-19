@@ -185,6 +185,8 @@ Um runner de CI destruído não é estação pronta; um Preview "Ready" não é 
 
 ## Estação de apresentação (Roteiro B) — preparação reproduzível
 
+> Para operar no dia, use o cartão de uma página [`OPERATOR_29-10.md`](OPERATOR_29-10.md) (D-1, T-30, durante, recuperação, encerramento). Esta seção detalha o porquê de cada passo.
+
 Sem conhecimento tácito: qualquer pessoa com a máquina e o repositório segue esta lista.
 
 1. Máquina com Docker, Node 24 e Chromium (Playwright). `git fetch && git checkout <SHA aprovado>`; `git rev-parse HEAD` igual ao SHA aprovado.

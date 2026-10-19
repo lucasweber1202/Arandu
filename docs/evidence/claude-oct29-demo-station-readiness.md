@@ -62,6 +62,7 @@ Decisão do ensaio isolado: **B (laboratório)**. Ele termina com teardown: não
 | R1 | A prontidão não olhava o **pool de visitantes**: sem workspaces, o Modo interativo por persona falharia só na frente do cliente ("A demonstração está cheia") | Novo item do Modo interativo: ≥ 2 workspaces prontos e ≤ 2 entradas novas na última hora (o servidor aceita 4/h por rede); o FAIL diz o comando |
 | R2 | Leitura sem resposta (timeout) aparecia como "nenhum pedido pendente (organização não lida)" e mandava **resetar** uma estação intacta (15 min e pool perdido à toa) | "A API não respondeu… nada indica uso anterior", com correção "rode de novo em alguns minutos, sem reset" |
 | R3 | Roteiro com limite antigo da API (120/10 min) | Valores lidos do código |
+| R5 | Leitura da prontidão logo depois do `seed --check` falhava às vezes com `UND_ERR_SOCKET` (socket keep-alive morto) | `get()` repete **uma vez** só leituras (GET) nesse erro; escrita nunca é repetida |
 | R4 | Não havia uma página única para o operador | `docs/demo/OPERATOR_29-10.md`: A/B/C, D-1, T-30 em 12 itens, durante, contingência curta, recuperação e encerramento |
 
 ## 7. Estado do seed, pool, login, persistência e isolamento
@@ -73,9 +74,14 @@ Decisão do ensaio isolado: **B (laboratório)**. Ele termina com teardown: não
 - Isolamento: dois visitantes simultâneos e 24 sondas adversariais (inclusive provedor chamando RPCs com IDs da compradora).
 - Documentos privados: journey do harness (v1/v2, remoção, 403) e baseline (documento no pós-contrato).
 
-## 8. Prontidão final da estação
+## 8. Prontidão final da estação (LAB_VALIDATED)
 
-Ver o fim deste arquivo (preenchido depois da repreparação).
+Depois do reset e da reposição do pool, esperando a janela de 1 h das entradas do ensaio:
+
+- 05:40 UTC: Modo leitura PRONTO; Modo interativo NÃO PRONTO por **uma** linha: "a API não respondeu à leitura das aprovações (UND_ERR_SOCKET); nada indica uso anterior" — R2 já evitou o falso "rode reset". Investigado: `approvals` respondeu 200 em ~120 ms em 15 chamadas com pausas de 0 a 6 s; a falha vinha do socket keep-alive fechado na pausa longa do `seed --check`, reaproveitado pelo `fetch` do Node (o navegador repete GET nesse caso; o produto não é afetado). Correção R5.
+- **05:41 UTC, commit `3490662` (árvore limpa): Modo leitura PRONTO · Modo interativo PRONTO** — 8 personas entram, 39/39, CFO pendente, Meridian sem proposta, 0 tarefa de ensaio, pool 4 prontos e 0 entradas novas na hora, smoke das jornadas PASS, Atlas sem concorrentes. Único AVISO: sonda hospedada (esperada no laboratório). Relatório sanitizado (sem senha, token, cookie ou chave — conferido): `claude-oct29-demo-station-readiness/readiness-final.md`.
+
+O laboratório **não** foi derrubado depois disso (sem `demo:down`), mas é um container efêmero: não serve como a estação do dia 29.
 
 ## 9. Estado A / B / C
 
