@@ -11,7 +11,7 @@
 //
 // Custo de cota: entra por senha direto no Auth local (não usa o login do app,
 // que tem limite de 12/10 min por IP) e faz poucas leituras por persona. Rode
-// ~10 min antes do ensaio para a cota de 120 req/10 min da gestora estar cheia.
+// ~10 min antes do ensaio para a cota de 240 req/10 min da gestora estar cheia.
 import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';

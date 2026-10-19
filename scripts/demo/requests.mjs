@@ -1,6 +1,6 @@
 // Auditoria de requisições na Demo canônica LOCAL: quantas chamadas cada tela faz
 // à API real e quais se repetem. Serve para não esgotar o limite legítimo
-// (120 req/10 min por pessoa) durante a apresentação — sem contorná-lo.
+// (240 req e 60 escritas/10 min por pessoa, lib/api/domains/finance.mjs) durante a apresentação — sem contorná-lo.
 //
 //   set -a; . scripts/pilot-local/.state/demo.env; set +a
 //   node scripts/demo/requests.mjs
@@ -85,4 +85,4 @@ fs.writeFileSync(`${OUT}/requests.json`, `${JSON.stringify({ app: APP, total, er
 for (const row of summary) {
   console.log(`${row.screen.padEnd(36)} carga ${String(row.load).padStart(2)}${row.tabs !== null ? ` · abas ${row.tabs}` : ''} · largura ${row.viewport} · parada ${row.idle}${row.duplicates_on_load.length ? ` · REPETIDAS: ${row.duplicates_on_load.join(', ')}` : ''}`);
 }
-console.log(`\nTotal no roteiro da gestora: ${total} requisições (limite: 120 em 10 min por pessoa).${statuses.length ? ` Respostas com erro: ${statuses.join(', ')}` : ''}`);
+console.log(`\nTotal no roteiro da gestora: ${total} requisições (limite: 240 em 10 min por pessoa).${statuses.length ? ` Respostas com erro: ${statuses.join(', ')}` : ''}`);

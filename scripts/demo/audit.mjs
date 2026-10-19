@@ -7,7 +7,7 @@
 //
 // Só LÊ (nenhum clique que grave). Cada tela é carregada uma vez em 1440 px e
 // remedida em 1024, 768, 390, 375 e 320 px sem recarregar: o limite legítimo da
-// API (120 req/10 min por pessoa) não aceita uma carga por largura.
+// API (240 req/10 min por pessoa) não aceita uma carga por largura.
 // Achados: identificador/ISO/enum/"undefined" no texto visível, rolagem
 // horizontal da página, controle fora da tela, erro de console, resposta da API
 // com falha e tela de erro. Recusa-se a rodar fora do app local.
