@@ -18,11 +18,31 @@ fs.chmodSync(dir,0o700);
 const env = { PATH: process.env.PATH, HOME: dir, PGHOST:'127.0.0.1', PGUSER:'postgres', PGDATABASE:'postgres', PGSSLMODE:'disable' };
 const started=[];
 let storageResult; let databaseResult;
+// pg_ctl só diz "Examine the log output": anexa o fim do log do servidor (limitado e sem credenciais)
+// para distinguir porta em uso, permissão, diretório inválido, recurso ou configuração.
+const serverLogTail = (args,limit=4000) => {
+  const index=args.indexOf('-l');
+  if(index<0) return '';
+  const file=args[index+1];
+  if(!fs.existsSync(file)) return `\n[server log ${path.basename(file)}: ausente — servidor não chegou a escrever log]`;
+  const tail=fs.readFileSync(file,'utf8').slice(-limit)
+    .replace(/(postgres(?:ql)?:\/\/)[^@\s]+@/gi,'$1[redacted]@')
+    .replace(/(password|secret|token|key)(\s*[=:]\s*)\S+/gi,'$1$2[redacted]');
+  return `\n[server log ${path.basename(file)}, últimos ${limit} caracteres]\n${tail || '(vazio)'}`;
+};
 const run = (bin,args,extra={}) => {
   const result = spawnSync(bin,args,{env,encoding:'utf8',timeout:120000,maxBuffer:16*1024*1024,...extra});
-  if(result.error || result.status!==0) throw new Error(`${bin} synthetic operation failed: ${result.stderr || ''}`);
+  if(result.error || result.status!==0) {
+    const reason=result.error ? ` (${result.error.code || result.error.message})` : ` (status ${result.status}${result.signal ? `, signal ${result.signal}` : ''})`;
+    throw new Error(`${bin} synthetic operation failed${reason}: ${result.stderr || ''}${bin==='pg_ctl' ? serverLogTail(args) : ''}`);
+  }
   return result.stdout;
 };
+// Portas fixas do laboratório: falha cedo e explícita se outro processo já as ocupa.
+for(const port of [55431,55432,55433,55434]) {
+  const probe=spawnSync(process.execPath,['-e',`const s=require('net').createServer();s.once('error',e=>{console.error(e.code);process.exit(1)});s.listen(${port},'127.0.0.1',()=>s.close())`],{encoding:'utf8',timeout:10000});
+  if(probe.status!==0) { fs.rmSync(dir,{recursive:true,force:true}); throw new Error(`Recovery laboratory port 127.0.0.1:${port} unavailable (${(probe.stderr||'').trim() || 'probe failed'}); no validation result issued.`); }
+}
 const sql=(port,query)=>run('psql',['-X','-At','-v','ON_ERROR_STOP=1'],{env:{...env,PGPORT:String(port)},input:query});
 const fixture = `
 CREATE ROLE arandu_fixture_reader NOSUPERUSER NOCREATEDB NOCREATEROLE NOLOGIN;

@@ -37,11 +37,12 @@ if (exists(workflowPath)) {
     'npm run migrations:release',
     '--dry-run',
     'npm run test:database',
-    'create-staging-rehearsal-report.mjs',
-    'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
-    'actions/setup-node@820762786026740c76f36085b0efc47a31fe5020',
-    'actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a'
+    'create-staging-rehearsal-report.mjs'
   ];
+  // A Action precisa existir; o SHA aprovado é validado em check-supply-chain (.github/approved-actions.json).
+  for (const action of ['actions/checkout', 'actions/setup-node', 'actions/upload-artifact']) {
+    if (!new RegExp(`uses:\\s*${action}@[a-f0-9]{40}\\b`).test(workflow)) problems.push(`${workflowPath}: ${action} fixada por SHA ausente.`);
+  }
   for (const fragment of requiredFragments) {
     if (!workflow.includes(fragment)) problems.push(`${workflowPath}: fragmento obrigatório ausente: ${fragment}.`);
   }
