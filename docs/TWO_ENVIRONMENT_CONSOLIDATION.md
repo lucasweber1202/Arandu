@@ -5,6 +5,15 @@ hospedados permanentes: Demo e Production. Pilot significa estágio de validaç�
 de release. `main` é a única linha de produto; não desenvolver na branch `pilot`.
 Previews e bancos locais descartáveis não criam outro ambiente permanente.
 
+## Seguimento P0 (19/10/2026, main4f98226)
+
+Diagnóstico consolidado em `HOSTED_INFRASTRUCTURE_DOCTOR.md`; observações atuais,
+matriz de classificação e ações mínimas externas em
+`evidence/codex-hosted-blockers-2026-10-19.md`. Inventário relido: Pilot 14 linhas,
+legado 42; conversão segue BLOCKED. O assessor exige agora o bundle canônico da
+árvore atual e recusa referências placeholder de export/rollback. Arrays ativos
+permanecem inalterados. Nada hospedado foi exportado, restaurado ou convertido.
+
 ## Reconciliação de Stage 0 (19/10/2026)
 
 Estado atualizado e fontes em `evidence/codex-infrastructure-recovery-2026-10-19.md`.
