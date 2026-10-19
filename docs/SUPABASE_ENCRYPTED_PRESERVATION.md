@@ -411,11 +411,39 @@ Sessão perdida antes do dump (ex.: timeout de transação ociosa) aborta o expo
 
 ```
 ARANDU_RESTORE_CONFIRM=ARANDU-ISOLATED-RESTORE \
+ARANDU_RECOVERY_PROJECT_REF=<ref-da-origem-aprovada> \
 ARANDU_RESTORE_BACKUP=/caminho/privado/arandu-<ref>-<uuid> \
 ARANDU_RESTORE_IDENTITY=/caminho/privado/identity.txt   # 0600, fora do repo
 ARANDU_RESTORE_TARGET_URL=postgresql://postgres@127.0.0.1:<porta>/postgres?sslmode=disable \
 npm run recovery:restore:verify
 ```
+
+O restore exige o ref esperado explicitamente, igual ao manifest hospedado;
+não o deduz do arquivo recebido. Exports sintéticos são aceitos somente pelo
+harness importado com `syntheticLocal: true`, nunca pela CLI operacional.
+Diretório/manifest/ciphertexts exigem custódia privada do operador, sem symlinks
+ou hardlinks nos arquivos; identidade age fica separada do export.
+
+Exports novos registram `schema_fingerprint_version=1` e
+`snapshot_schema_sha256`, calculado no mesmo snapshot de contagens/pg_dump.
+O restore recalcula o fingerprint; drift gera `schema_mismatch`, registro
+MISMATCH e saída 1 mesmo com contagens iguais. A verificação do store exige
+MATCH de contagens **e** schema do mesmo export para reconhecer o restore.
+Manifestos antigos continuam preservados e podem ter integridade verificada;
+sem fingerprint não recebem nível 5 e não são restaurados por esta CLI. Nunca
+preencher o hash retrospectivamente: preservar a evidência antiga e preparar
+novo export autorizado ou procedimento de reconciliação separado e revisado.
+
+Escopo v1: public/Auth/Storage/migrations; relações, colunas/tipos/defaults,
+constraints, índices, triggers, views, rotinas, owners/ACL, RLS/policies,
+privilégios default e markers schema_version/deployment_environment. A consulta
+retorna apenas SHA-256, com search_path fixo e ordenação C. Não é fingerprint
+integral do cluster: definições de tipos customizados, extensões, roles globais,
+configuração gerenciada, conteúdo campo a campo e objetos fora desses schemas
+continuam exigindo reconciliação própria. Exigir executor exclusivo e cluster
+descartável local, sem tunnels/proxies para origem ativa; loopback não autentica
+essa condição por si só. Em MISMATCH, não repetir sobre o alvo já restaurado:
+preservar o registro e destruir apenas o laboratório cuja custódia foi aprovada.
 
 Ordem fail-closed: confirmação; caminhos fora do repositório; identidade 0600;
 destino **somente loopback** (projeto hospedado, pooler e IP de rede recusados);

@@ -254,10 +254,12 @@ try {
     const started = new Date(Date.now() - 60000).toISOString(), completed = new Date(Date.now() - 50000).toISOString();
     const dbManifest = { format_version: 1, classification: 'synthetic_encrypted_export', project_ref: null, started_at: started, completed_at: completed,
       result: 'exported_unverified', storage: { strategy: 'private-store', store_id: store.store_id }, snapshot: 'exported_snapshot_shared_with_pg_dump',
+      schema_fingerprint_version: 1, snapshot_schema_sha256: 'a'.repeat(64),
       storage_snapshot_inventory_sha256: storageSnapshotDigest(inventory), snapshot_counts: counts, snapshot_counts_sha256: countsDigest(counts), source_counts: { storage_objects: 2 }, storage_binaries: 'SEPARATE_EXPORT_REQUIRED', files: dbFiles };
     fs.writeFileSync(path.join(dbExport, 'manifest.json'), JSON.stringify(dbManifest), { mode: 0o600 });
     const dbRecord = { format_version: 1, restore: 'RESTORED_ISOLATED', reconciliation: 'MATCH', differences: [], tables: 2, target: 'loopback_disposable_postgresql17',
       roles_file: 'NOT APPLIED', export_project_ref: null, export_started_at: started, source_counts_sha256: dbManifest.snapshot_counts_sha256,
+      schema_fingerprint_version: 1, schema_reconciliation: 'MATCH', source_schema_sha256: dbManifest.snapshot_schema_sha256, target_schema_sha256: dbManifest.snapshot_schema_sha256,
       target_counts_sha256: dbManifest.snapshot_counts_sha256, files: dbFiles, verified_at: new Date(Date.now() - 40000).toISOString() };
     fs.writeFileSync(path.join(dbExport, 'restore-verification-2026-10-15T00-00-00-000Z.json'), JSON.stringify(dbRecord), { mode: 0o600 });
     const verify = () => verifyExport({ env: { PATH: process.env.PATH, ARANDU_RECOVERY_BACKUP: dbExport } });
