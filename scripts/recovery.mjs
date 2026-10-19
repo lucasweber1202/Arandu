@@ -18,6 +18,7 @@ import { exportRecovery } from './consolidation-export.mjs';
 import { digestFile } from '../lib/recovery-transfer.mjs';
 import { RECOVERY_REFS } from '../lib/pilot-backup-preflight.mjs';
 import { countsDigest, parseCounts } from '../lib/recovery-reconciliation.mjs';
+import { SCHEMA_FINGERPRINT_VERSION, validSchemaDigest } from '../lib/recovery-schema.mjs';
 import { recoveryCompleteness } from '../lib/storage-recovery.mjs';
 import { storageEvidence } from './storage-recovery.mjs';
 import {
@@ -115,6 +116,9 @@ export function restoreRecords(directory, manifest) {
       r.target === 'loopback_disposable_postgresql17' && r.roles_file === 'NOT APPLIED' &&
       r.export_project_ref === manifest.project_ref && r.export_started_at === manifest.started_at &&
       r.source_counts_sha256 === manifest.snapshot_counts_sha256 && r.target_counts_sha256 === manifest.snapshot_counts_sha256 &&
+      manifest.schema_fingerprint_version === SCHEMA_FINGERPRINT_VERSION && validSchemaDigest(manifest.snapshot_schema_sha256) &&
+      r.schema_fingerprint_version === SCHEMA_FINGERPRINT_VERSION && r.schema_reconciliation === 'MATCH' &&
+      r.source_schema_sha256 === manifest.snapshot_schema_sha256 && r.target_schema_sha256 === manifest.snapshot_schema_sha256 &&
       JSON.stringify(r.files) === JSON.stringify(files) && Date.parse(r.verified_at) >= Date.parse(manifest.completed_at || manifest.started_at);
     return valid ? [{ name, verified_at: r.verified_at }] : [];
   });

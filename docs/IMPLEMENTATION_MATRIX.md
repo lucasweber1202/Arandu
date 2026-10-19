@@ -1,5 +1,17 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 19/10/2026 — Restore com identidade e reconciliação de schema
+
+Base mainb5fa804, branch `codex/hosted-release-execution-readiness`. Restore
+exige origem explícita, custódia privada sem links e fingerprint do mesmo
+snapshot de export; contagens iguais não ocultam drift de schema/RLS/grants.
+PG17.11/age1.3.2 sintéticos e teardown PASS; inventários e catálogo hospedados
+relidos read-only. Dados legados continuam sob decisão humana, sem classificação
+fictícia presumida. Export/restore hospedados NOT_RUN; Vercel ACCESS_BLOCKED403,
+Demo sandbox readiness503, cutover/Production BLOCKED. Sem promoção M3/M4/M5.
+Evidência: `docs/evidence/codex-hosted-execution-readiness-2026-10-19.md`.
+M2 depende dos quatro gates no HEAD próprio, registrados na PR.
+
 ## 19/10/2026 — Diagnóstico P0 e preflight vinculado à árvore atual
 
 Base main4f98226, branch `codex/hosted-release-blocker-remediation`. Composição

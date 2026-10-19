@@ -51,7 +51,7 @@ export async function rehearseStorageSet({ dir, env, sql, run, started, identity
   run('initdb',['-D',data,'-U','postgres','--auth=trust','--no-locale','--encoding=UTF8']);
   run('pg_ctl',['-D',data,'-l',path.join(dir,'coherent-target.log'),'-o',`-h 127.0.0.1 -p 55434 -k ${dir}`,'-w','start']);started.push(data);
   sql(55434,'create role arandu_fixture_reader nologin;');
-  await verifyRestore({env:{...env,ARANDU_RESTORE_CONFIRM:'ARANDU-ISOLATED-RESTORE',ARANDU_RESTORE_BACKUP:backup,ARANDU_RESTORE_IDENTITY:identity,ARANDU_RESTORE_TARGET_URL:'postgresql://postgres@127.0.0.1:55434/postgres?sslmode=disable'}});
+  await verifyRestore({syntheticLocal:true,env:{...env,ARANDU_RESTORE_CONFIRM:'ARANDU-ISOLATED-RESTORE',ARANDU_RESTORE_BACKUP:backup,ARANDU_RESTORE_IDENTITY:identity,ARANDU_RESTORE_TARGET_URL:'postgresql://postgres@127.0.0.1:55434/postgres?sslmode=disable'}});
   assert.equal(sql(55434,'set role arandu_fixture_reader; select count(*) from public.child;').trim().split('\n').at(-1),'1','RLS lost after restore');
   mode='target';
   const restoreEnv={...env,ARANDU_STORAGE_RESTORE_CONFIRM:'ARANDU-ISOLATED-STORAGE-RESTORE',ARANDU_STORAGE_BACKUP:exported.directory,ARANDU_STORAGE_IDENTITY:identity,ARANDU_STORAGE_TARGET_DATABASE_URL:'postgresql://postgres@127.0.0.1:55434/postgres?sslmode=disable',ARANDU_STORAGE_TARGET_URL:endpoint,ARANDU_STORAGE_TARGET_JWT_SECRET:secret,ARANDU_STORAGE_TARGET_SERVICE_KEY:service};
