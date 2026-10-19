@@ -138,6 +138,33 @@ try {
   const refreshedSession = decodeSessionValue(refreshedCookieValue);
   assert.equal(refreshedSession.access_token, 'refreshed-access');
 
+  // Provedor de identidade fora do ar (banco do Auth parado = 500, rede, timeout)
+  // não é sessão inválida: 503 e o cookie fica. Antes, a falha caía no refresh e
+  // apagava a sessão — uma queda de segundos deslogava quem estava apresentando.
+  const keepsCookie = (result) => !/Max-Age=0/.test(String(result.headers['set-cookie'] || ''));
+  global.fetch = async () => jsonResponse({ code: 500, error_code: 'unexpected_failure', msg: 'failed to connect to db' }, 500);
+  const authDown = await call('GET', '/api/auth/session', undefined, { cookie: sessionCookie() });
+  assert.equal(authDown.status, 503, 'Auth com 500 responde 503');
+  assert.equal(authDown.body.code, 'auth_unavailable');
+  assert(keepsCookie(authDown), 'queda do Auth não apaga a sessão');
+  const refreshDown = await call('GET', '/api/auth/session', undefined, { cookie: sessionCookie({ expired: true }) });
+  assert.equal(refreshDown.status, 503, 'refresh com o Auth fora responde 503');
+  assert(keepsCookie(refreshDown), 'refresh com o Auth fora não apaga a sessão');
+  global.fetch = async () => { throw Object.assign(new TypeError('fetch failed'), { cause: { code: 'ECONNREFUSED' } }); };
+  const networkDown = await call('GET', '/api/auth/session', undefined, { cookie: sessionCookie() });
+  assert.equal(networkDown.status, 503, 'Auth inalcançável responde 503');
+  assert(keepsCookie(networkDown), 'Auth inalcançável não apaga a sessão');
+  const financeDown = await call('GET', '/api/finance/organizations', undefined, { cookie: sessionCookie() });
+  assert.equal(financeDown.status, 503, 'rota financeira com Auth fora responde 503, não 401 "entre na sua conta"');
+  // Recusa real do provedor continua encerrando a sessão.
+  global.fetch = async (url) => (String(url).includes('grant_type=refresh_token')
+    ? jsonResponse({ error_code: 'refresh_token_not_found', msg: 'Invalid Refresh Token' }, 400)
+    : jsonResponse({ error_code: 'bad_jwt', msg: 'invalid JWT' }, 401));
+  const rejected = await call('GET', '/api/auth/session', undefined, { cookie: sessionCookie() });
+  assert.equal(rejected.status, 200);
+  assert.equal(rejected.body.authenticated, false, 'token recusado e refresh recusado: sem sessão');
+  assert.match(String(rejected.headers['set-cookie']), /Max-Age=0/, 'recusa real apaga o cookie');
+
   // Cookie de sessão assinado (lib/session-cookie.mjs). Antes, a carga era JSON
   // em base64url sem assinatura: apagar o marcador `sso` fazia a sessão escapar
   // do limite absoluto, da revogação e da desativação da conexão SSO.
