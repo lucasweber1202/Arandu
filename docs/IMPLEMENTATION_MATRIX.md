@@ -1,5 +1,15 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 19/10/2026 — Diagnóstico P0 e preflight vinculado à árvore atual
+
+Base main4f98226, branch `codex/hosted-release-blocker-remediation`. Composição
+somente leitura dos gates existentes por bloqueio, sem nova autorização de
+release. Plano de conversão exige bundle atual; referências pending/placeholder
+não comprovam export ou rollback. Inventários e grants relidos; classificação
+humana e preservação hospedada pendentes. Demo canônica BLOCKED, Vercel 403,
+M3/M4/M5 não promovidos. Evidências e ações externas:
+`docs/evidence/codex-hosted-blockers-2026-10-19.md`. M2 depende do CI no HEAD da PR.
+
 ## 19/10/2026 — Diagnóstico hospedado e papéis de credenciais
 
 Base main0eb6a4a; branch `codex/hosted-infrastructure-recovery`. Gate estrutural
