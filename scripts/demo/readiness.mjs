@@ -193,7 +193,13 @@ check('Meridian ainda pode responder (convite ativo e coleta aberta)', open?.sta
 check('Meridian ainda não enviou proposta na concorrência sazonal (I6)', open && !meridian ? 'PASS' : 'FAIL', open ? `${(open.proposals || []).length} proposta(s) na coleta` : 'concorrência ausente', fresh);
 const approvals = org ? await api(people.helena, `approvals?${orgQ}`) : { json: null };
 const helenaTurn = (approvals.json?.rows || []).find((row) => row.status === 'pending');
-check('Etapa da CFO pendente na nova linha (I4)', helenaTurn ? 'PASS' : 'FAIL', helenaTurn ? 'pedido aguardando a Helena' : `nenhum pedido pendente (${approvals.status ? `HTTP ${approvals.status}` : 'organização não lida'}${approvals.status && approvals.status !== 200 ? ` ${approvals.text}` : ''})`, fresh);
+// Sem resposta (timeout/rede) não é "já usado": não mandar resetar uma estação intacta.
+const unanswered = org && !approvals.status;
+check('Etapa da CFO pendente na nova linha (I4)', helenaTurn ? 'PASS' : 'FAIL',
+  helenaTurn ? 'pedido aguardando a Helena'
+    : unanswered ? `a API não respondeu à leitura das aprovações (${approvals.text}); nada indica uso anterior`
+      : `nenhum pedido pendente (${approvals.status ? `HTTP ${approvals.status}` : 'organização não lida'}${approvals.status && approvals.status !== 200 ? ` ${approvals.text}` : ''})`,
+  unanswered ? { modes: ['interativo'], fix: 'rode a prontidão de novo em alguns minutos (sem reset); se repetir, veja scripts/pilot-local/.state/app.log' } : fresh);
 const tasks = org ? await api(juliana, `tasks?${orgQ}&status=open&limit=200`) : { json: null };
 const live = (tasks.json?.rows || []).filter((row) => /cronograma de remessa dos terminais/i.test(row.title));
 check('Nenhuma tarefa de ensaio anterior (I1–I2)', tasks.status === 200 && !live.length ? 'PASS' : 'FAIL', tasks.status === 200 ? `${(tasks.json.rows || []).length} tarefa(s) abertas; ${live.length} de ensaio` : tasks.status ? `HTTP ${tasks.status}` : 'organização não lida', fresh);
