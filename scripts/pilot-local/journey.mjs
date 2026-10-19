@@ -653,5 +653,7 @@ const report = [
 console.log(report);
 if (process.env.PILOT_REPORT) fs.writeFileSync(process.env.PILOT_REPORT, `${report}\n`);
 const failed = [...steps, ...attacks].filter((row) => row.status !== 'PASS');
+// A CI guarda só as últimas linhas do log: a última nomeia o que falhou (a evidência fica no relatório).
 console.log(`\n${steps.length} passos, ${attacks.length} ataques, ${failed.length} falhas.`);
+if (failed.length) console.log(`Falhas: ${failed.map((row) => row.name).join(' · ').slice(0, 600)}`);
 process.exit(failed.length ? 1 : 0);
