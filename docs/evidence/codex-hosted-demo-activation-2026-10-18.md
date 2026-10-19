@@ -39,14 +39,15 @@ complementa esta coleta pré-push com URL direta, HEAD e quatro gates efetivos.
 - O smoke existente do CI efêmero recebe uma prova real do filtro PostgREST e
   count=exact no pool pré-seed vazio. Não é um pipeline novo nem prova hospedada.
 
-Arquivos: `lib/finance/demo-entry-readiness.mjs`, `demo-workspaces.mjs`,
+Arquivos principais (lista completa no diff da PR): `lib/finance/demo-entry-readiness.mjs`, `demo-workspaces.mjs`,
 `pilot-doctor.mjs`, `lib/api/domains/auth.mjs`, `lib/readiness.mjs`;
 `scripts/fixtures/demo-workspace.mjs`, `test-readiness.mjs`,
 `test-demo-hosted-readiness.mjs`, `test-demo-personas.mjs`, `test-database.sh`,
 `scripts/ci-demo/smoke.mjs`, `tests/database/demo-claim-concurrency.mjs`;
 runbook canônico, Implementation Matrix e os três documentos desta ativação.
 Nenhum arquivo de frontend/E2E/scripts-demo do Claude, package/lockfile,
-workflow, migration histórica ou assignment foi modificado.
+migration histórica ou assignment foi modificado. O workflow efêmero existente
+foi ampliado para pool/visitantes; os quatro gates obrigatórios foram preservados.
 
 ## Verdade pública reconfirmada
 
@@ -133,7 +134,7 @@ stack reservada ao Claude: NOT_RUN. Provas anteriores da #223 foram reutilizadas
 como histórico, não como evidência deste HEAD.
 
 CI_VALIDATED requer database, deploy-boundaries, validate e presentation no
-head.sha final e merge:gates; verificar na PR após o único push consolidado.
+head.sha final e merge:gates; verificar na PR após o push da correção vigente.
 O smoke alterado aciona o workflow efêmero existente; seu resultado precisa
 incluir recovery, teardown e arquivamento. Não gerar retentativas até passar.
 
@@ -172,6 +173,27 @@ Os quatro gates também passaram em `ef3bc545` (run `39175471143`), mas não
 substituem os gates do HEAD que acrescenta o pool. Validação local desse
 acréscimo: deploy:check e 23 testes do harness PASS; os negativos rejeitam
 resultado visitante ausente/skipped/failed/timedOut/interrupted ou com retry.
+
+No HEAD `392bf61`, os quatro gates passaram (`39176967287`) e merge:gates
+confirmou base atual/HEAD exato. Pool real e restore passaram; ambas as suítes
+de visitantes executaram com sucesso. O ensaio `39176967451` falhou depois:
+adversarial buscava organizações globalmente pelo nome, agora repetido nos
+workspaces. Vários UUIDs concatenados geraram SQL inválido. Isso foi tratado
+como FAIL; cleanup e upload PASS, sem conversão para GO.
+
+Corrigido o contexto do harness: IDs vêm da API autenticada do respectivo ator,
+com organização única, ambiente Demo e UUID válidos; ambiguidade é recusada.
+Sondas SQL subsequentes continuam vinculadas a esses IDs. Diagnósticos SQL
+retêm somente SQLSTATE, sem query/credenciais. Regressões cobrem nomes
+repetidos, ausência, papel/ambiente inválido e conteúdo sensível no stderr.
+Este novo HEAD exige revalidar novamente os quatro gates e o ensaio completo.
+Artefato da falha `12155049855`, hash conferido após download:
+`fa56eb499aa94e82c960a767d5e7a9591a41ce8e1d87da38889d5f510b651833`.
+Desktop: 8 PASS, incluindo as duas suítes de visitantes; mobile: 6 PASS e dois
+SKIPPED intencionais, restritos pelos testes ao desktop. Cada um dos quatro
+seeds levou 623 s, em dois pares paralelos; isso é medida do runner, não SLA.
+O novo defeito era seleção global de fixture no harness, não vazamento no
+produto. Nenhuma assert de segurança foi removida para resolvê-lo.
 
 Production: leitura de logs ACCESS_BLOCKED. Build local hermético sem
 configuração foi recusado por seis pré-condições, conforme esperado; isso

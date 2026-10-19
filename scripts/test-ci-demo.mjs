@@ -10,6 +10,7 @@ import { spawnSync } from 'node:child_process';
 import { localViolations } from './ci-demo/assert-local.mjs';
 import { assessDemoRehearsal, DEMO_REHEARSAL_REQUIRED_OUTCOMES } from '../lib/demo-rehearsal-result.mjs';
 import { visitorJourneysPassed } from './ci-demo/assert-visitor-e2e.mjs';
+import { rehearsalOrganizationId, rehearsalSqlFailure } from '../lib/demo-rehearsal-context.mjs';
 
 // Sem comentários: as restrições valem para o que executa.
 const workflow = fs.readFileSync('.github/workflows/demo-integration.yml', 'utf8').split('\n').filter((line) => !/^\s*#/.test(line)).join('\n');
@@ -144,6 +145,24 @@ test('visitantes: seed real, flags existentes e prova de execução sem skips', 
 test('imagens fixadas por digest', () => {
   const pinned = runner.match(/\|sha256:[a-f0-9]{64}/g) || [];
   assert.equal(pinned.length, 4);
+});
+test('contexto adversarial usa organização da sessão e recusa nomes ambíguos', () => {
+  const id = '00000000-0000-4000-8000-000000000001';
+  const row = { id, kind: 'BUYER', legal_name: 'Vitta Foods S.A.' };
+  const response = { status: 200, data: { ok: true, environment: 'demo', rows: [row] } };
+  const expected = { kind: 'BUYER', legalName: row.legal_name };
+  assert.equal(rehearsalOrganizationId(response, expected), id);
+  for (const rows of [[], [row, { ...row, id: '00000000-0000-4000-8000-000000000002' }], [{ ...row, id: "injected'" }], [{ ...row, kind: 'PROVIDER' }]]) {
+    assert.throws(() => rehearsalOrganizationId({ ...response, data: { ...response.data, rows } }, expected));
+  }
+  assert.throws(() => rehearsalOrganizationId({ ...response, status: 403 }, expected));
+  assert.throws(() => rehearsalOrganizationId({ ...response, data: { ...response.data, environment: 'production' } }, expected));
+  const script = fs.readFileSync('scripts/ci-demo/adversarial.mjs', 'utf8');
+  assert.match(script, /rehearsalOrganizationId\(await api\(juliana/);
+  assert.match(script, /rehearsalOrganizationId\(await api\(eduardo/);
+  assert.doesNotMatch(script, /select id from public\.fin_organizations where legal_name/);
+  assert.equal(rehearsalSqlFailure('ERROR: 22P02 fixture-secret'), 'SQL probe failed (sqlstate 22P02); verify actor-scoped fixture context');
+  assert(!rehearsalSqlFailure('password=fixture-secret').includes('fixture-secret'));
 });
 
 // Injeção de falhas sem Docker: o harness precisa RECUSAR, nunca dar PASS.
