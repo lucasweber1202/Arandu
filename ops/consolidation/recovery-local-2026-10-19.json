@@ -1,0 +1,41 @@
+{
+  "observed_at": "2026-10-19T15:03:26.798283+00:00",
+  "scope": "SYNTHETIC_LOCAL_ONLY",
+  "postgres": "17.11 (Debian 17.11-0+deb13u1)",
+  "age": "1.3.2",
+  "hosted_recovery_proven": false,
+  "results": [
+    {
+      "classification": "synthetic_pg17_age_http_object_fixture_same_set",
+      "result": "VALIDATED",
+      "objects": 2,
+      "references": 2,
+      "rls": "VERIFIED",
+      "managed_auth": "NOT_PROVEN",
+      "supabase_storage": "NOT_PROVEN",
+      "external_configuration": "NOT_RUN",
+      "conversion": "BLOCKED",
+      "teardown": "VERIFIED"
+    },
+    {
+      "classification": "synthetic_postgresql17_age_same_backup_restore",
+      "result": "VALIDATED",
+      "hosted_backup": "NOT RUN",
+      "supabase_compatibility": "NOT PROVEN",
+      "ciphertext": [
+        {
+          "name": "database.dump.age",
+          "bytes": 10727,
+          "sha256": "e2d38d8a77cd71a3a1d98e1f09559a657ba6c2e7c7c8f4631a76738ad389c511"
+        },
+        {
+          "name": "roles.sql.age",
+          "bytes": 876,
+          "sha256": "818ce3a7beddd29347109fab78902ef1f56f6e19a8154b81e9bbecfe3540155f"
+        }
+      ],
+      "reconciliation_sha256": "bfd58e418bbe53404210387432017f5ba95624666abbe2f91af04aec57d22b54",
+      "teardown": "VERIFIED"
+    }
+  ]
+}

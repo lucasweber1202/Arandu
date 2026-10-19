@@ -15,6 +15,7 @@ import { LEGACY_SUPABASE_REFS, PILOT_SUPABASE_REFS, foreignSupabaseRef } from '.
 import { SERVER_ENVIRONMENTS, CANONICAL_BRANCH, resolveRuntime } from '../lib/runtime-mode.mjs';
 import { demoPersonaSecretReady } from '../lib/finance/demo-entry-readiness.mjs';
 import { publicHostname } from '../lib/public-site-url.mjs';
+import { supabaseKeyRole } from '../lib/supabase-key-role.mjs';
 
 const env = process.env;
 const problems = [];
@@ -171,9 +172,13 @@ for (const name of ['SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY']) {
   const ref = keyRef(env[name]);
   if (supabaseRef && ref && ref !== supabaseRef) problems.push(`${name} pertence a outro projeto Supabase (ref diferente de SUPABASE_URL).`);
 }
-const roleOf = (key) => { const value = String(key || ''); if (value.startsWith('sb_secret_')) return 'service_role'; try { return JSON.parse(Buffer.from(value.split('.')[1] || '', 'base64url').toString('utf8')).role || null; } catch { return null; } };
-if (roleOf(env.SUPABASE_ANON_KEY) === 'service_role') {
+if (supabaseKeyRole(env.SUPABASE_ANON_KEY) === 'service_role') {
   problems.push('SUPABASE_ANON_KEY é uma chave de serviço: ela atravessa o RLS e chegaria ao navegador.');
+} else if (env.SUPABASE_ANON_KEY && supabaseKeyRole(env.SUPABASE_ANON_KEY) !== 'anon') {
+  problems.push('SUPABASE_ANON_KEY presente, mas não é uma chave anon/publishable de formato reconhecido.');
+}
+if (env.SUPABASE_SERVICE_ROLE_KEY && supabaseKeyRole(env.SUPABASE_SERVICE_ROLE_KEY) !== 'service_role') {
+  problems.push('SUPABASE_SERVICE_ROLE_KEY presente, mas não é uma chave service_role/secret de formato reconhecido.');
 }
 
 // A allowlist falha fechada: com a tabela vazia, NINGUÉM cria organização
@@ -207,8 +212,9 @@ console.log(`Erros: ${problems.length}`);
 for (const problem of problems) console.log(`  - ${problem}`);
 if (problems.length) process.exit(1);
 console.log('');
+console.log('Validação estrutural de configuração; não autentica chaves nem comprova backend/readiness hospedada.');
 console.log(environment === 'demo'
-  ? 'Ambiente de demonstração apto: produto real, banco DEMO próprio. Dados fictícios entram só por npm run demo:seed.'
+  ? 'Configuração estrutural da Demo consistente. Dados fictícios entram só por npm run demo:seed, após os gates hospedados.'
   : needsSupabase
-  ? 'Ambiente apto a operar o Financial Procurement com dados reais.'
+  ? 'Configuração estrutural financeira consistente; execute o doctor e os gates de release para comprovar operação.'
   : 'Ambiente de desenvolvimento: Supabase não é exigido, e as rotas financeiras respondem como indisponíveis sem ele.');

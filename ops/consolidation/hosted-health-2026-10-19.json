@@ -1,0 +1,104 @@
+{
+  "observed_at": "2026-10-19T15:01:36.917145+00:00",
+  "source": "public HTTPS GET, unauthenticated",
+  "observations": [
+    {
+      "alias": "arandu-demo",
+      "path": "/api/health",
+      "status": 200,
+      "payload": {
+        "ok": true,
+        "service": "arandu-api",
+        "status": "alive",
+        "release": {
+          "environment": null,
+          "mode": "demo",
+          "datasource": "synthetic-fixtures",
+          "misconfigured": false,
+          "branch": "main",
+          "commit": "0eb6a4aa8540c27bf45a379c8a4835c632cd25fc"
+        }
+      }
+    },
+    {
+      "alias": "arandu-demo",
+      "path": "/api/health?probe=ready",
+      "status": 503,
+      "payload": {
+        "ok": false,
+        "service": "arandu-api",
+        "status": "not_ready",
+        "release": {
+          "environment": null,
+          "mode": "demo",
+          "datasource": "synthetic-fixtures",
+          "misconfigured": false,
+          "branch": "main",
+          "commit": "0eb6a4aa8540c27bf45a379c8a4835c632cd25fc"
+        }
+      }
+    },
+    {
+      "alias": "arandu-pilot",
+      "path": "/api/health",
+      "status": 200,
+      "payload": {
+        "ok": true,
+        "service": "arandu-api",
+        "status": "alive"
+      }
+    },
+    {
+      "alias": "arandu-pilot",
+      "path": "/api/health?probe=ready",
+      "status": 200,
+      "payload": {
+        "ok": true,
+        "service": "arandu-api",
+        "status": "alive"
+      }
+    },
+    {
+      "alias": "arandu-bice",
+      "path": "/api/health",
+      "status": 200,
+      "payload": {
+        "ok": true,
+        "service": "arandu-api",
+        "status": "alive"
+      }
+    },
+    {
+      "alias": "arandu-bice",
+      "path": "/api/health?probe=ready",
+      "status": 200,
+      "payload": {
+        "ok": true,
+        "service": "arandu-api",
+        "status": "alive"
+      }
+    },
+    {
+      "alias": "arandu",
+      "path": "/api/health",
+      "status": 404,
+      "payload": {
+        "error": {
+          "code": "404",
+          "message": "The page could not be found"
+        }
+      }
+    },
+    {
+      "alias": "arandu",
+      "path": "/api/health?probe=ready",
+      "status": 404,
+      "payload": {
+        "error": {
+          "code": "404",
+          "message": "The page could not be found"
+        }
+      }
+    }
+  ]
+}

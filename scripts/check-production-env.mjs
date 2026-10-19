@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { supabaseKeyRole } from '../lib/supabase-key-role.mjs';
+
 const strict = process.argv.includes('--require-ready');
 const checks = [];
 
@@ -7,11 +9,6 @@ const truthy = (name) => ['1', 'true', 'yes', 'sim'].includes(value(name).toLowe
 const recentDate = (candidate, days = 30) => {
   const timestamp = Date.parse(candidate);
   return Number.isFinite(timestamp) && timestamp <= Date.now() && Date.now() - timestamp <= days * 86400000;
-};
-const validSupabaseKey = (candidate) => {
-  if (!candidate) return false;
-  const jwtParts = candidate.split('.');
-  return (jwtParts.length === 3 && jwtParts.every((part) => part.length >= 8)) || /^sb_(publishable|secret)_[A-Za-z0-9_-]{20,}$/.test(candidate);
 };
 const ownHttpsUrl = (candidate) => {
   try {
@@ -26,8 +23,8 @@ const supabaseUrl = (candidate) => {
 const add = (name, ok, guidance) => checks.push({ name, ok: Boolean(ok), guidance });
 
 add('SUPABASE_URL', supabaseUrl(value('SUPABASE_URL')), 'Use a URL HTTPS do projeto Supabase.');
-add('SUPABASE_ANON_KEY', validSupabaseKey(value('SUPABASE_ANON_KEY')), 'Use a anon/publishable key válida.');
-add('SUPABASE_SERVICE_ROLE_KEY', validSupabaseKey(value('SUPABASE_SERVICE_ROLE_KEY')), 'Use uma service-role/secret key válida somente no servidor.');
+add('SUPABASE_ANON_KEY', supabaseKeyRole(value('SUPABASE_ANON_KEY')) === 'anon', 'Use a anon/publishable key válida.');
+add('SUPABASE_SERVICE_ROLE_KEY', supabaseKeyRole(value('SUPABASE_SERVICE_ROLE_KEY')) === 'service_role', 'Use uma service-role/secret key válida somente no servidor.');
 add('Chaves Supabase distintas', value('SUPABASE_ANON_KEY') && value('SUPABASE_ANON_KEY') !== value('SUPABASE_SERVICE_ROLE_KEY'), 'Anon e service role não podem ser iguais.');
 add('ARANDU_SITE_URL', ownHttpsUrl(value('ARANDU_SITE_URL')), 'Configure HTTPS em domínio próprio.');
 add('Rate limit distribuído', truthy('ARANDU_DISTRIBUTED_RATE_LIMIT'), 'Só ative depois de testar a migration/provedor compartilhado.');

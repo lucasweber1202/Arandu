@@ -1,0 +1,1584 @@
+{
+  "project_ref": "offgpyysgdhfemjlchod",
+  "destination": "demo",
+  "source": "Supabase MCP execute_sql; BEGIN READ ONLY; ops/sql/consolidation-inventory.sql",
+  "observed_at": "2026-10-19 14:57:26.330412+00",
+  "server_version": "17.6",
+  "table_counts": [
+    {
+      "rows": 2,
+      "table_name": "api_rate_limits"
+    },
+    {
+      "rows": 0,
+      "table_name": "artist_accounts"
+    },
+    {
+      "rows": 0,
+      "table_name": "artist_submissions"
+    },
+    {
+      "rows": 0,
+      "table_name": "artists"
+    },
+    {
+      "rows": 0,
+      "table_name": "artwork_events"
+    },
+    {
+      "rows": 0,
+      "table_name": "artworks"
+    },
+    {
+      "rows": 0,
+      "table_name": "audit_logs"
+    },
+    {
+      "rows": 1,
+      "table_name": "catalog_releases"
+    },
+    {
+      "rows": 0,
+      "table_name": "catalog_review_history"
+    },
+    {
+      "rows": 0,
+      "table_name": "certificates"
+    },
+    {
+      "rows": 0,
+      "table_name": "collection_artworks"
+    },
+    {
+      "rows": 0,
+      "table_name": "commercial_items"
+    },
+    {
+      "rows": 0,
+      "table_name": "commercial_records"
+    },
+    {
+      "rows": 0,
+      "table_name": "company_briefs"
+    },
+    {
+      "rows": 0,
+      "table_name": "consignments"
+    },
+    {
+      "rows": 0,
+      "table_name": "conversion_events"
+    },
+    {
+      "rows": 0,
+      "table_name": "crm_notes"
+    },
+    {
+      "rows": 4,
+      "table_name": "curated_collections"
+    },
+    {
+      "rows": 0,
+      "table_name": "data_legal_holds"
+    },
+    {
+      "rows": 0,
+      "table_name": "data_retention_policies"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_approval_policies"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_approval_requests"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_approval_steps"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_comments"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_company_profiles"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_contracts"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_decisions"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_document_versions"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_documents"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_events"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_invite_acceptance_denials"
+    },
+    {
+      "rows": 4,
+      "table_name": "fin_job_runs"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_member_invitations"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_members"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_notification_preferences"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_notifications"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_ops_access_log"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_organizations"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_pilot_allowlist"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_platform_operators"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_private_documents"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_proposal_drafts"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_proposal_versions"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_proposals"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_providers"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_renewal_milestones"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_rfq_editor_drafts"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_rfq_invites"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_rfq_revisions"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_rfqs"
+    },
+    {
+      "rows": 3,
+      "table_name": "fin_settings"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_tasks"
+    },
+    {
+      "rows": 0,
+      "table_name": "fin_terms_acceptances"
+    },
+    {
+      "rows": 0,
+      "table_name": "idempotency_keys"
+    },
+    {
+      "rows": 0,
+      "table_name": "leads"
+    },
+    {
+      "rows": 0,
+      "table_name": "logistics_records"
+    },
+    {
+      "rows": 0,
+      "table_name": "media_assets"
+    },
+    {
+      "rows": 0,
+      "table_name": "newsletter_subscriptions"
+    },
+    {
+      "rows": 0,
+      "table_name": "operational_status_history"
+    },
+    {
+      "rows": 0,
+      "table_name": "order_status_history"
+    },
+    {
+      "rows": 0,
+      "table_name": "orders"
+    },
+    {
+      "rows": 0,
+      "table_name": "pilot_events"
+    },
+    {
+      "rows": 0,
+      "table_name": "pilot_feedback"
+    },
+    {
+      "rows": 0,
+      "table_name": "privacy_requests"
+    },
+    {
+      "rows": 0,
+      "table_name": "profiles"
+    },
+    {
+      "rows": 0,
+      "table_name": "proposal_items"
+    },
+    {
+      "rows": 0,
+      "table_name": "proposals"
+    },
+    {
+      "rows": 0,
+      "table_name": "reservations"
+    },
+    {
+      "rows": 0,
+      "table_name": "saved_selections"
+    },
+    {
+      "rows": 0,
+      "table_name": "tasks"
+    },
+    {
+      "rows": 0,
+      "table_name": "transactional_email_outbox"
+    }
+  ],
+  "public_rows": "14",
+  "auth_users": 0,
+  "mfa_factors": 0,
+  "storage_objects": 0,
+  "storage_buckets": 1,
+  "public_storage_buckets": 0,
+  "rls": [
+    {
+      "rls_forced": false,
+      "table_name": "api_rate_limits",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "artist_accounts",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "artist_submissions",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "artists",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "artwork_events",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "artworks",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "audit_logs",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "catalog_releases",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "catalog_review_history",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "certificates",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "collection_artworks",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "commercial_items",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "commercial_records",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "company_briefs",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "consignments",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "conversion_events",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "crm_notes",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "curated_collections",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "data_legal_holds",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "data_retention_policies",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_approval_policies",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_approval_requests",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_approval_steps",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_comments",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_company_profiles",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_contracts",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_decisions",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_document_versions",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_documents",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_events",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_invite_acceptance_denials",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_job_runs",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_member_invitations",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_members",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_notification_preferences",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_notifications",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_ops_access_log",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_organizations",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_pilot_allowlist",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_platform_operators",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_private_documents",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_proposal_drafts",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_proposal_versions",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_proposals",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_providers",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_renewal_milestones",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_rfq_editor_drafts",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_rfq_invites",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_rfq_revisions",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_rfqs",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_settings",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_tasks",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": true,
+      "table_name": "fin_terms_acceptances",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "idempotency_keys",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "leads",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "logistics_records",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "media_assets",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "newsletter_subscriptions",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "operational_status_history",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "order_status_history",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "orders",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "pilot_events",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "pilot_feedback",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "privacy_requests",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "profiles",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "proposal_items",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "proposals",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "reservations",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "saved_selections",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "tasks",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "transactional_email_outbox",
+      "rls_enabled": true
+    }
+  ],
+  "policies": 51,
+  "views": 18,
+  "functions": 101,
+  "leads_with_contact": 0,
+  "reservations_with_contact": 0,
+  "certificates_with_recipient": 0,
+  "auth_sessions": 0,
+  "schema_version": "financial-surface-hardening-1",
+  "deployment_environment": null,
+  "migrations": [
+    "20260927151042",
+    "20260927151230",
+    "20260929142139"
+  ],
+  "classification": "PENDING; contact counters do not classify free text or prove synthetic origin",
+  "catalog": {
+    "tables": [
+      "api_rate_limits",
+      "artist_accounts",
+      "artist_submissions",
+      "artists",
+      "artwork_events",
+      "artworks",
+      "audit_logs",
+      "catalog_releases",
+      "catalog_review_history",
+      "certificates",
+      "collection_artworks",
+      "commercial_items",
+      "commercial_records",
+      "company_briefs",
+      "consignments",
+      "conversion_events",
+      "crm_notes",
+      "curated_collections",
+      "data_legal_holds",
+      "data_retention_policies",
+      "fin_approval_policies",
+      "fin_approval_requests",
+      "fin_approval_steps",
+      "fin_comments",
+      "fin_company_profiles",
+      "fin_contracts",
+      "fin_decisions",
+      "fin_document_versions",
+      "fin_documents",
+      "fin_events",
+      "fin_invite_acceptance_denials",
+      "fin_job_runs",
+      "fin_member_invitations",
+      "fin_members",
+      "fin_notification_preferences",
+      "fin_notifications",
+      "fin_ops_access_log",
+      "fin_organizations",
+      "fin_pilot_allowlist",
+      "fin_platform_operators",
+      "fin_private_documents",
+      "fin_proposal_drafts",
+      "fin_proposal_versions",
+      "fin_proposals",
+      "fin_providers",
+      "fin_renewal_milestones",
+      "fin_rfq_editor_drafts",
+      "fin_rfq_invites",
+      "fin_rfq_revisions",
+      "fin_rfqs",
+      "fin_settings",
+      "fin_tasks",
+      "fin_terms_acceptances",
+      "idempotency_keys",
+      "leads",
+      "logistics_records",
+      "media_assets",
+      "newsletter_subscriptions",
+      "operational_status_history",
+      "order_status_history",
+      "orders",
+      "pilot_events",
+      "pilot_feedback",
+      "privacy_requests",
+      "profiles",
+      "proposal_items",
+      "proposals",
+      "reservations",
+      "saved_selections",
+      "tasks",
+      "transactional_email_outbox"
+    ],
+    "views": [
+      {
+        "name": "v_artworks_full",
+        "schema": "public"
+      },
+      {
+        "name": "v_available_artworks",
+        "schema": "public"
+      },
+      {
+        "name": "v_catalog_editorial_readiness",
+        "schema": "public"
+      },
+      {
+        "name": "v_catalog_readiness",
+        "schema": "public"
+      },
+      {
+        "name": "v_commercial_pipeline",
+        "schema": "public"
+      },
+      {
+        "name": "v_mvp_artist_pipeline",
+        "schema": "public"
+      },
+      {
+        "name": "v_mvp_artwork_price_bands",
+        "schema": "public"
+      },
+      {
+        "name": "v_mvp_certificate_readiness",
+        "schema": "public"
+      },
+      {
+        "name": "v_mvp_commercial_pipeline",
+        "schema": "public"
+      },
+      {
+        "name": "v_mvp_operational_dashboard",
+        "schema": "public"
+      },
+      {
+        "name": "v_mvp_submission_pipeline",
+        "schema": "public"
+      },
+      {
+        "name": "v_mvp_validation_scorecard",
+        "schema": "public"
+      },
+      {
+        "name": "v_public_artists",
+        "schema": "public"
+      },
+      {
+        "name": "v_public_catalog",
+        "schema": "public"
+      },
+      {
+        "name": "v_public_collection_items",
+        "schema": "public"
+      },
+      {
+        "name": "v_public_collections",
+        "schema": "public"
+      },
+      {
+        "name": "v_quality_issues",
+        "schema": "public"
+      },
+      {
+        "name": "v_sales_pipeline",
+        "schema": "public"
+      }
+    ],
+    "functions": [
+      {
+        "name": "acquire_idempotency",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "apply_catalog_review_atomic",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "apply_operational_status_atomic",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "arandu_safe_audit_state",
+        "schema": "public",
+        "security_definer": false
+      },
+      {
+        "name": "audit_privileged_mutation",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "claim_transactional_email_batch",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "claim_transactional_email_batch_v2",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "cleanup_idempotency",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "complete_idempotency",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "complete_transactional_email",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "complete_transactional_email_v2",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "consume_rate_limit",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "create_commercial_record_atomic",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "create_legal_hold",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "create_order_atomic",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "create_proposal_atomic",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "create_reservation_atomic",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "enqueue_order_email_events",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "enqueue_transactional_email_for_user",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "execute_data_retention",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "expire_reservations",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fail_idempotency",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fail_transactional_email",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fail_transactional_email_v2",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_accept_member_invitation",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_accept_provider_invite",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_accept_terms",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_act_on_approval",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_add_comment",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_apply_notification_preference",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_can_read_document",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_cancel_approval",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_capture_rfq_revision",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_clear_rfq_editor",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_clear_submitted_draft",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_comment_authors",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_comment_object_org",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_create_organization",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_create_rfq",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_document_authorize_download",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_document_begin_upload",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_document_finalize_upload",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_document_mime_allowed",
+        "schema": "public",
+        "security_definer": false
+      },
+      {
+        "name": "fin_document_pending_upload",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_document_remove",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_enqueue_email",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_enqueue_notification_email",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_has_role",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_invite_member",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_invite_provider",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_is_operator",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_jwt_aal",
+        "schema": "public",
+        "security_definer": false
+      },
+      {
+        "name": "fin_log_rfq_revision",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_mark_notifications",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_member_default_name",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_notify_event",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_ops_overview",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_ops_trace",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_pilot_access_allowed",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_platform_role",
+        "schema": "public",
+        "security_definer": false
+      },
+      {
+        "name": "fin_process_renewals",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_provider_can_comment",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_provider_reads_comment",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_record_client_event",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_record_decision",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_record_job_run",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_record_provider_evidence",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_register_contract",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_reply_comment",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_request_approval",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_require_operator",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_resolve_provider_invite_token",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_revise_rfq",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_run_renewal_schedule",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_save_proposal_draft",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_save_rfq_editor",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_search",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_seed_rfq_revision",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_set_approval_policy",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_set_notification_preference",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_setting",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_stamp_proposal_rfq_revision",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_start_contract_rfq",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_submit_proposal",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_transition",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_update_my_member_profile",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_update_organization",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_update_rfq_demand",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "fin_withdraw_proposal",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "handle_new_user_profile",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "is_under_legal_hold",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "link_artist_account_atomic",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "log_operational_status_change",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "operational_transition_allowed",
+        "schema": "public",
+        "security_definer": false
+      },
+      {
+        "name": "protect_order_history_append_only",
+        "schema": "public",
+        "security_definer": false
+      },
+      {
+        "name": "protect_order_immutable_fields",
+        "schema": "public",
+        "security_definer": false
+      },
+      {
+        "name": "release_legal_hold",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "revoke_artist_account_atomic",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "set_updated_at",
+        "schema": "public",
+        "security_definer": false
+      },
+      {
+        "name": "transition_order_atomic",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "transition_order_atomic",
+        "schema": "public",
+        "security_definer": true
+      }
+    ],
+    "policies": [
+      {
+        "name": "artist_accounts_select_own",
+        "table": "artist_accounts",
+        "schema": "public"
+      },
+      {
+        "name": "artists_public_read",
+        "table": "artists",
+        "schema": "public"
+      },
+      {
+        "name": "artworks_public_read",
+        "table": "artworks",
+        "schema": "public"
+      },
+      {
+        "name": "certificates_public_valid_read",
+        "table": "certificates",
+        "schema": "public"
+      },
+      {
+        "name": "collection_artworks_public_read",
+        "table": "collection_artworks",
+        "schema": "public"
+      },
+      {
+        "name": "company_briefs_select_own",
+        "table": "company_briefs",
+        "schema": "public"
+      },
+      {
+        "name": "curated_collections_public_read",
+        "table": "curated_collections",
+        "schema": "public"
+      },
+      {
+        "name": "fin_approval_policy_read",
+        "table": "fin_approval_policies",
+        "schema": "public"
+      },
+      {
+        "name": "fin_approval_request_read",
+        "table": "fin_approval_requests",
+        "schema": "public"
+      },
+      {
+        "name": "fin_approval_step_read",
+        "table": "fin_approval_steps",
+        "schema": "public"
+      },
+      {
+        "name": "fin_comment_read",
+        "table": "fin_comments",
+        "schema": "public"
+      },
+      {
+        "name": "fin_profile_edit",
+        "table": "fin_company_profiles",
+        "schema": "public"
+      },
+      {
+        "name": "fin_profile_read",
+        "table": "fin_company_profiles",
+        "schema": "public"
+      },
+      {
+        "name": "fin_profile_write",
+        "table": "fin_company_profiles",
+        "schema": "public"
+      },
+      {
+        "name": "fin_contract_read",
+        "table": "fin_contracts",
+        "schema": "public"
+      },
+      {
+        "name": "fin_decision_read",
+        "table": "fin_decisions",
+        "schema": "public"
+      },
+      {
+        "name": "fin_document_version_read",
+        "table": "fin_document_versions",
+        "schema": "public"
+      },
+      {
+        "name": "fin_document_read",
+        "table": "fin_documents",
+        "schema": "public"
+      },
+      {
+        "name": "fin_document_write",
+        "table": "fin_documents",
+        "schema": "public"
+      },
+      {
+        "name": "fin_event_read",
+        "table": "fin_events",
+        "schema": "public"
+      },
+      {
+        "name": "fin_member_read",
+        "table": "fin_members",
+        "schema": "public"
+      },
+      {
+        "name": "fin_notification_preference_read",
+        "table": "fin_notification_preferences",
+        "schema": "public"
+      },
+      {
+        "name": "fin_notification_read",
+        "table": "fin_notifications",
+        "schema": "public"
+      },
+      {
+        "name": "fin_org_read",
+        "table": "fin_organizations",
+        "schema": "public"
+      },
+      {
+        "name": "fin_private_document_read",
+        "table": "fin_private_documents",
+        "schema": "public"
+      },
+      {
+        "name": "fin_proposal_draft_read",
+        "table": "fin_proposal_drafts",
+        "schema": "public"
+      },
+      {
+        "name": "fin_proposal_version_read",
+        "table": "fin_proposal_versions",
+        "schema": "public"
+      },
+      {
+        "name": "fin_proposal_read",
+        "table": "fin_proposals",
+        "schema": "public"
+      },
+      {
+        "name": "fin_provider_edit",
+        "table": "fin_providers",
+        "schema": "public"
+      },
+      {
+        "name": "fin_provider_read",
+        "table": "fin_providers",
+        "schema": "public"
+      },
+      {
+        "name": "fin_provider_write",
+        "table": "fin_providers",
+        "schema": "public"
+      },
+      {
+        "name": "fin_renewal_read",
+        "table": "fin_renewal_milestones",
+        "schema": "public"
+      },
+      {
+        "name": "fin_rfq_editor_read",
+        "table": "fin_rfq_editor_drafts",
+        "schema": "public"
+      },
+      {
+        "name": "fin_invite_read",
+        "table": "fin_rfq_invites",
+        "schema": "public"
+      },
+      {
+        "name": "fin_rfq_revision_read",
+        "table": "fin_rfq_revisions",
+        "schema": "public"
+      },
+      {
+        "name": "fin_rfq_read",
+        "table": "fin_rfqs",
+        "schema": "public"
+      },
+      {
+        "name": "fin_task_edit",
+        "table": "fin_tasks",
+        "schema": "public"
+      },
+      {
+        "name": "fin_task_read",
+        "table": "fin_tasks",
+        "schema": "public"
+      },
+      {
+        "name": "fin_task_write",
+        "table": "fin_tasks",
+        "schema": "public"
+      },
+      {
+        "name": "fin_terms_read",
+        "table": "fin_terms_acceptances",
+        "schema": "public"
+      },
+      {
+        "name": "leads_select_own",
+        "table": "leads",
+        "schema": "public"
+      },
+      {
+        "name": "orders_select_own",
+        "table": "orders",
+        "schema": "public"
+      },
+      {
+        "name": "privacy_requests_select_own",
+        "table": "privacy_requests",
+        "schema": "public"
+      },
+      {
+        "name": "profiles_select_own",
+        "table": "profiles",
+        "schema": "public"
+      },
+      {
+        "name": "profiles_update_own",
+        "table": "profiles",
+        "schema": "public"
+      },
+      {
+        "name": "proposal_items_select_own",
+        "table": "proposal_items",
+        "schema": "public"
+      },
+      {
+        "name": "proposals_select_own",
+        "table": "proposals",
+        "schema": "public"
+      },
+      {
+        "name": "reservations_select_own",
+        "table": "reservations",
+        "schema": "public"
+      },
+      {
+        "name": "selections_delete_own",
+        "table": "saved_selections",
+        "schema": "public"
+      },
+      {
+        "name": "selections_select_own",
+        "table": "saved_selections",
+        "schema": "public"
+      },
+      {
+        "name": "selections_update_own",
+        "table": "saved_selections",
+        "schema": "public"
+      }
+    ]
+  }
+}

@@ -18,7 +18,7 @@ const run = (overrides) => {
   const env = { ...base, ...overrides };
   const result = spawnSync(process.execPath, ['scripts/check-finance-env.mjs'], { env, encoding: 'utf8' });
   for (const secret of [env.SUPABASE_ANON_KEY, env.SUPABASE_SERVICE_ROLE_KEY, env.CRON_SECRET].filter(Boolean)) {
-    assert.ok(!result.stdout.includes(secret), 'finance:env:check imprimiu um segredo');
+    assert.ok(!(result.stdout + result.stderr).includes(secret), 'finance:env:check imprimiu um segredo');
   }
   return result;
 };
@@ -38,6 +38,36 @@ assert.match(foreign.stdout, /SUPABASE_ANON_KEY pertence a outro projeto/);
 const swapped = run({ SUPABASE_ANON_KEY: base.SUPABASE_SERVICE_ROLE_KEY });
 assert.equal(swapped.status, 1);
 assert.match(swapped.stdout, /SUPABASE_ANON_KEY é uma chave de serviço/);
+// O build aceitava anon no campo service role: presença/comprimento não
+// comprovam o papel necessário às operações de servidor.
+const publishable = `sb_publishable_${'p'.repeat(32)}`;
+const secretKey = `sb_secret_${'s'.repeat(32)}`;
+for (const bad of [base.SUPABASE_ANON_KEY, publishable, 'invalid-key-'.repeat(4), 'sb_secret_short', key({ ref: pilotRef }), key({ role: 'authenticated', ref: pilotRef }), `not-json-header.${Buffer.from(JSON.stringify({ role: 'service_role' })).toString('base64url')}.signature123`]) {
+  const result = run({ SUPABASE_SERVICE_ROLE_KEY: bad });
+  assert.equal(result.status, 1, 'chave de servidor sem papel service_role aceita');
+  assert.match(result.stdout, /SUPABASE_SERVICE_ROLE_KEY presente, mas não é uma chave service_role\/secret/);
+}
+for (const bad of [secretKey, 'invalid-public-key-'.repeat(3), 'sb_publishable_short', key({ role: 'authenticated', ref: pilotRef })]) {
+  assert.equal(run({ SUPABASE_ANON_KEY: bad }).status, 1, 'chave pública inválida aceita');
+}
+assert.equal(run({ SUPABASE_ANON_KEY: publishable, SUPABASE_SERVICE_ROLE_KEY: secretKey }).status, 0, 'novas chaves de papéis corretos aceitas estruturalmente');
+// O gate final de Production deve rejeitar os mesmos papéis trocados.
+const releaseEnv = { ...base, ARANDU_ENV: 'production', ARANDU_SITE_URL: 'https://arandu.example.org', ARANDU_DISTRIBUTED_RATE_LIMIT: 'true', ARANDU_ERROR_MONITORING_READY: 'true', ARANDU_BACKUP_VERIFIED_AT: new Date().toISOString() };
+for (const keys of [
+  { SUPABASE_ANON_KEY: base.SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY: base.SUPABASE_SERVICE_ROLE_KEY, expected: 0 },
+  { SUPABASE_ANON_KEY: publishable, SUPABASE_SERVICE_ROLE_KEY: secretKey, expected: 0 },
+  { SUPABASE_ANON_KEY: base.SUPABASE_SERVICE_ROLE_KEY, expected: 1 },
+  { SUPABASE_ANON_KEY: secretKey, expected: 1 },
+  { SUPABASE_SERVICE_ROLE_KEY: base.SUPABASE_ANON_KEY, expected: 1 },
+  { SUPABASE_SERVICE_ROLE_KEY: publishable, expected: 1 },
+  { SUPABASE_SERVICE_ROLE_KEY: 'malformed-key-'.repeat(4), expected: 1 }
+]) {
+  const { expected, ...values } = keys;
+  const env = { ...releaseEnv, ...values };
+  const result = spawnSync(process.execPath, ['scripts/check-production-env.mjs', '--require-ready'], { env, encoding: 'utf8' });
+  assert.equal(result.status, expected, 'papéis incorretos no gate final de Production');
+  for (const value of [env.SUPABASE_ANON_KEY, env.SUPABASE_SERVICE_ROLE_KEY]) assert.ok(!(result.stdout + result.stderr).includes(value), 'gate final imprimiu chave');
+}
 assert.equal(run({ ARANDU_PRESENTATION_MODE: 'true' }).status, 1, 'demo no piloto');
 assert.equal(run({ ARANDU_DEMO_MODE: 'true' }).status, 1, 'ARANDU_DEMO_MODE no piloto');
 assert.equal(run({ ARANDU_DEPLOYMENT_KIND: 'demo' }).status, 1, 'build demo com variáveis do piloto');

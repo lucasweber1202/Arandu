@@ -1,5 +1,16 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 19/10/2026 — Diagnóstico hospedado e papéis de credenciais
+
+Base main0eb6a4a; branch `codex/hosted-infrastructure-recovery`. Gate estrutural
+agora recusa anon no campo service role e chaves trocadas/malformadas, com
+regressões. Inventário read-only exato renovado; Pilot 14 linhas, legado 42
+(oito registros potencialmente pessoais). Recovery PG17.11/age1.3.2 sintético
+validado; preservação hospedada NOT_RUN. Demo canônica BLOCKED (sandbox público,
+readiness 503). Acesso Vercel 403; causa causal do último erro oficial NOT_PROVEN.
+Evidências: `docs/evidence/codex-infrastructure-recovery-2026-10-19.md`.
+Nenhuma promoção de M3/M4/M5; M2 da alteração depende do CI no HEAD próprio.
+
 ## 18/10/2026 — Admissão de visitantes e capacidade verificável
 
 Base `41513ee408f58dff6386eabea4d45f03205aeadd`; branch

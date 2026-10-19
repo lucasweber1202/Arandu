@@ -1,0 +1,288 @@
+{
+  "project_ref": "igacnfjeuqhxcmfyepgj",
+  "destination": "production",
+  "source": "Supabase MCP execute_sql; BEGIN READ ONLY; ops/sql/consolidation-inventory.sql",
+  "observed_at": "2026-10-19 14:57:34.505113+00",
+  "server_version": "17.6",
+  "table_counts": [
+    {
+      "rows": 0,
+      "table_name": "artist_submissions"
+    },
+    {
+      "rows": 12,
+      "table_name": "artists"
+    },
+    {
+      "rows": 0,
+      "table_name": "artwork_events"
+    },
+    {
+      "rows": 22,
+      "table_name": "artworks"
+    },
+    {
+      "rows": 5,
+      "table_name": "certificates"
+    },
+    {
+      "rows": 0,
+      "table_name": "company_briefs"
+    },
+    {
+      "rows": 0,
+      "table_name": "crm_notes"
+    },
+    {
+      "rows": 2,
+      "table_name": "leads"
+    },
+    {
+      "rows": 0,
+      "table_name": "media_assets"
+    },
+    {
+      "rows": 0,
+      "table_name": "newsletter_subscriptions"
+    },
+    {
+      "rows": 0,
+      "table_name": "profiles"
+    },
+    {
+      "rows": 0,
+      "table_name": "proposal_items"
+    },
+    {
+      "rows": 0,
+      "table_name": "proposals"
+    },
+    {
+      "rows": 1,
+      "table_name": "reservations"
+    },
+    {
+      "rows": 0,
+      "table_name": "saved_selections"
+    },
+    {
+      "rows": 0,
+      "table_name": "tasks"
+    }
+  ],
+  "public_rows": "42",
+  "auth_users": 0,
+  "mfa_factors": 0,
+  "storage_objects": 0,
+  "storage_buckets": 0,
+  "public_storage_buckets": 0,
+  "rls": [
+    {
+      "rls_forced": false,
+      "table_name": "artist_submissions",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "artists",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "artwork_events",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "artworks",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "certificates",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "company_briefs",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "crm_notes",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "leads",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "media_assets",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "newsletter_subscriptions",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "profiles",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "proposal_items",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "proposals",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "reservations",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "saved_selections",
+      "rls_enabled": true
+    },
+    {
+      "rls_forced": false,
+      "table_name": "tasks",
+      "rls_enabled": true
+    }
+  ],
+  "policies": 12,
+  "views": 5,
+  "functions": 2,
+  "leads_with_contact": 2,
+  "reservations_with_contact": 1,
+  "certificates_with_recipient": 5,
+  "auth_sessions": 0,
+  "schema_version": null,
+  "deployment_environment": null,
+  "migrations": [],
+  "classification": "PENDING; contact counters do not classify free text or prove synthetic origin",
+  "catalog": {
+    "tables": [
+      "artist_submissions",
+      "artists",
+      "artwork_events",
+      "artworks",
+      "certificates",
+      "company_briefs",
+      "crm_notes",
+      "leads",
+      "media_assets",
+      "newsletter_subscriptions",
+      "profiles",
+      "proposal_items",
+      "proposals",
+      "reservations",
+      "saved_selections",
+      "tasks"
+    ],
+    "views": [
+      {
+        "name": "v_artworks_full",
+        "schema": "public"
+      },
+      {
+        "name": "v_available_artworks",
+        "schema": "public"
+      },
+      {
+        "name": "v_public_catalog",
+        "schema": "public"
+      },
+      {
+        "name": "v_quality_issues",
+        "schema": "public"
+      },
+      {
+        "name": "v_sales_pipeline",
+        "schema": "public"
+      }
+    ],
+    "functions": [
+      {
+        "name": "handle_new_user_profile",
+        "schema": "public",
+        "security_definer": true
+      },
+      {
+        "name": "set_updated_at",
+        "schema": "public",
+        "security_definer": false
+      }
+    ],
+    "policies": [
+      {
+        "name": "artist_submissions_public_insert",
+        "table": "artist_submissions",
+        "schema": "public"
+      },
+      {
+        "name": "artists_public_read",
+        "table": "artists",
+        "schema": "public"
+      },
+      {
+        "name": "artworks_public_read",
+        "table": "artworks",
+        "schema": "public"
+      },
+      {
+        "name": "certificates_public_valid_read",
+        "table": "certificates",
+        "schema": "public"
+      },
+      {
+        "name": "company_briefs_public_insert",
+        "table": "company_briefs",
+        "schema": "public"
+      },
+      {
+        "name": "leads_public_insert",
+        "table": "leads",
+        "schema": "public"
+      },
+      {
+        "name": "newsletter_public_insert",
+        "table": "newsletter_subscriptions",
+        "schema": "public"
+      },
+      {
+        "name": "profiles_select_own",
+        "table": "profiles",
+        "schema": "public"
+      },
+      {
+        "name": "profiles_update_own",
+        "table": "profiles",
+        "schema": "public"
+      },
+      {
+        "name": "reservations_public_insert",
+        "table": "reservations",
+        "schema": "public"
+      },
+      {
+        "name": "selections_public_insert",
+        "table": "saved_selections",
+        "schema": "public"
+      },
+      {
+        "name": "selections_public_token_read",
+        "table": "saved_selections",
+        "schema": "public"
+      }
+    ]
+  }
+}
