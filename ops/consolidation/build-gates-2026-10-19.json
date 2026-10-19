@@ -1,0 +1,36 @@
+{
+  "observed_at": "2026-10-19T15:02:57.152Z",
+  "scope": "local structural negative/positive tests; synthetic keys; no hosted authentication",
+  "results": [
+    {
+      "scenario": "production_undeclared",
+      "expected_exit": 1,
+      "actual_exit": 1,
+      "result": "PASS"
+    },
+    {
+      "scenario": "production_legacy_unassigned",
+      "expected_exit": 1,
+      "actual_exit": 1,
+      "result": "PASS"
+    },
+    {
+      "scenario": "canonical_demo_pilot_unassigned",
+      "expected_exit": 1,
+      "actual_exit": 1,
+      "result": "PASS"
+    },
+    {
+      "scenario": "pilot_structure_only",
+      "expected_exit": 0,
+      "actual_exit": 0,
+      "result": "PASS"
+    },
+    {
+      "scenario": "pilot_wrong_server_key",
+      "expected_exit": 1,
+      "actual_exit": 1,
+      "result": "PASS"
+    }
+  ]
+}
