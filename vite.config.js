@@ -17,7 +17,8 @@ const publicPages = new Set(PUBLIC_PAGES);
 // Explicit production surface: legacy HTML is never discovered automatically.
 const financePages = FINANCE_PAGES.map((page) => page.path);
 // Telas exclusivas da demo (Work OS) só entram no build demonstrativo.
-const demoPages = demoMode ? ['demo/index.html', ...FINANCE_PAGES.filter((page) => !page.sandboxExcluded).map((page) => `demo/${page.path}`), ...DEMO_ONLY_PAGES.map((page) => `demo/${page.path}`)] : [];
+// A visita guiada pública (P0-A) é exclusiva do build demonstrativo, como /demo.
+const demoPages = demoMode ? ['demo/index.html', 'demo/visita.html', ...FINANCE_PAGES.filter((page) => !page.sandboxExcluded).map((page) => `demo/${page.path}`), ...DEMO_ONLY_PAGES.map((page) => `demo/${page.path}`)] : [];
 const pages = [...publicPages, 'login.html', 'cadastro.html', '404.html', ...financePages, ...demoPages];
 const input = Object.fromEntries(pages.map(page => [page.replace(/\.html$/, ''), resolve(root, page)]));
 const speedInsightsTag = '<script type="module" src="/src/vercel-speed-insights.js"></script>';

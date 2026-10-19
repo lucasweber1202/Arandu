@@ -103,7 +103,7 @@
     "governance:live": "node scripts/check-live-governance.mjs",
     "test:analytics": "node scripts/test-product-analytics.mjs && node scripts/test-product-analytics-api.mjs",
     "check:design": "node scripts/check-design-tokens.mjs && node scripts/check-ui-null-children.mjs",
-    "check:demo-parity": "node scripts/check-demo-parity.mjs && node scripts/test-demo-parity.mjs && node scripts/test-canonical-build-parity.mjs",
+    "check:demo-parity": "node scripts/check-demo-parity.mjs && node scripts/test-public-tour.mjs && node scripts/test-demo-parity.mjs && node scripts/test-canonical-build-parity.mjs",
     "design:capture": "node scripts/design/capture-surfaces.mjs",
     "recovery:doctor": "node scripts/recovery.mjs doctor",
     "recovery:key:prepare": "node scripts/recovery.mjs key",

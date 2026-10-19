@@ -57,9 +57,9 @@ async function openDecision(page, text) {
 test('abre /demo sem login e deixa claro que é demonstrativo', async ({ page }) => {
   const offending = watchNetwork(page);
   await page.goto('/demo/index.html');
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Procurement financeiro, do pedido à renovação.');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Contratações financeiras, do pedido à renovação.');
   await expect(page.locator('#sobre')).toContainText('dados fictícios. Nenhuma operação financeira real será executada.');
-  await page.getByRole('link', { name: 'Explorar livremente' }).click();
+  await page.getByRole('link', { name: 'Abrir a simulação' }).click();
   await expect(page).toHaveURL(/\/demo\/finance\/dashboard\.html$/);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(/^(Bom dia|Boa tarde|Boa noite), Marina$/);
   await expect(page.locator('#precisa-de-voce')).toContainText('Precisa de você');

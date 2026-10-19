@@ -1,0 +1,93 @@
+/* Visita guiada pública (/demo/visita.html). Só tokens de finance/style.css
+   (Design Constitution §2–§3): tinta para estrutura, petróleo para ação. */
+body.tour{background:var(--bg);color:var(--text)}
+.tour-header{display:flex;align-items:center;justify-content:space-between;gap:var(--s3);padding:var(--s3) var(--s4);background:var(--surface);border-bottom:1px solid var(--border)}
+.tour-brand{display:flex;align-items:center;gap:var(--s2);color:var(--ink);text-decoration:none;font-weight:700;font-size:var(--fs-lg)}
+.tour-brand .brand-mark{width:28px;height:28px}
+.tour-brand small{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);font-weight:600;margin-left:4px}
+.tour-layout{display:grid;grid-template-columns:260px minmax(0,1fr);gap:var(--s8);max-width:1240px;margin:0 auto;padding:var(--s6) var(--s4) var(--s10)}
+.tour-steps{position:sticky;top:60px;align-self:start;font-size:var(--fs-sm)}
+.tour-steps ol{list-style:none;margin:0 0 var(--s4);padding:0;display:grid;gap:2px}
+.tour-steps a{display:flex;gap:var(--s2);align-items:baseline;padding:6px var(--s2);border-radius:var(--r-md);color:var(--text-secondary);text-decoration:none}
+.tour-steps a:hover{background:var(--surface-hover)}
+.tour-steps a[aria-current="step"]{background:var(--petrol-weak);color:var(--accent-text);font-weight:600}
+.tour-steps-title{margin:0 0 var(--s1);padding:0 var(--s2);font-size:var(--fs-xs);font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted)}
+.tour-steps-title a{padding:0;display:inline;color:inherit;text-decoration:underline}
+.tour-n{flex:none;min-width:18px;color:var(--text-muted);font-variant-numeric:tabular-nums}
+.tour-main{min-width:0}
+.tour-main:focus{outline:none}
+.tour-intro,.tour-step,.tour-areas{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:var(--s8);margin-bottom:var(--s6);scroll-margin-top:60px}
+.tour-kicker{margin:0 0 var(--s2);font-size:var(--fs-xs);font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--accent-text)}
+.tour-intro h1{margin:0 0 var(--s3);font-size:32px;line-height:1.2;color:var(--ink)}
+.tour-lede{max-width:68ch;font-size:var(--fs-lg);color:var(--text-secondary);margin:0 0 var(--s6)}
+.tour-honesty{margin-top:var(--s6);border-top:1px solid var(--border);padding-top:var(--s4)}
+.tour-honesty summary{cursor:pointer;font-weight:600}
+.tour-where{display:flex;flex-wrap:wrap;gap:var(--s2) var(--s3);align-items:center;margin:0 0 var(--s2);font-size:var(--fs-sm);color:var(--text-muted)}
+.tour-badge{display:inline-block;padding:2px 8px;border-radius:var(--r-pill);background:var(--neutral-weak);border:1px solid var(--border);color:var(--text-secondary);font-size:var(--fs-xs);font-weight:600}
+.tour-step h2,.tour-areas h2{margin:0 0 var(--s4);font-size:var(--fs-2xl);line-height:1.25;color:var(--ink)}
+.tour-step-n{display:block;font-size:var(--fs-sm);font-weight:600;color:var(--text-muted)}
+.tour-body{display:grid;gap:var(--s6)}
+.tour-text{max-width:76ch;display:grid;gap:var(--s4)}
+.tour-text p{margin:0}
+.tour-list{margin:0;padding-left:1.2em;display:grid;gap:var(--s2)}
+.tour-facts{margin:0;display:grid;gap:0;border:1px solid var(--border);border-radius:var(--r-md)}
+.tour-facts>div{display:grid;grid-template-columns:200px minmax(0,1fr);gap:var(--s3);padding:10px var(--s4);border-bottom:1px solid var(--border)}
+.tour-facts>div:last-child{border-bottom:0}
+.tour-facts dt{color:var(--text-muted);font-size:var(--fs-sm)}
+.tour-facts dd{margin:0}
+.tour-table{border:1px solid var(--border);border-radius:var(--r-md)}
+.tour-table caption{text-align:left;padding:10px var(--s4);font-weight:600;color:var(--ink)}
+.tour-table th[scope="row"]{font-weight:500;text-align:left}
+.tour-table .num{text-align:right;white-space:nowrap}
+.tour-table:focus-visible{outline:none;box-shadow:var(--focus-ring)}
+.tour-note{color:var(--text-muted);font-size:var(--fs-sm)}
+.tour-quote{margin:0;padding:var(--s3) var(--s4);border-left:3px solid var(--petrol-line);background:var(--surface-sunken);border-radius:0 var(--r-md) var(--r-md) 0}
+.tour-quote p{margin:0 0 var(--s1)}
+.tour-quote footer{font-size:var(--fs-sm);color:var(--text-muted)}
+.tour-shot{margin:0}
+.tour-shot img{width:100%;height:auto;border:1px solid var(--border);border-radius:var(--r-md);box-shadow:var(--shadow-md)}
+.tour-shot figcaption{margin-top:var(--s2);font-size:var(--fs-xs);color:var(--text-muted)}
+.tour-pager{display:flex;flex-wrap:wrap;justify-content:space-between;gap:var(--s3);margin-top:var(--s6);padding-top:var(--s4);border-top:1px solid var(--border)}
+.tour-pager .btn{max-width:100%;white-space:normal;text-align:left}
+.tour-area-list{list-style:none;margin:var(--s4) 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:var(--s3)}
+.tour-area{border:1px solid var(--border);border-radius:var(--r-md);padding:var(--s4)}
+.tour-area h3{margin:0 0 var(--s1);font-size:var(--fs-lg);color:var(--ink)}
+.tour-area p{margin:0 0 var(--s2);font-size:var(--fs-sm);color:var(--text-muted)}
+.tour-area ul{margin:0;padding-left:1.1em;font-size:var(--fs-sm)}
+.tour-missing{padding:var(--s3) var(--s4);border:1px solid var(--warning-border);background:var(--warning-weak);color:var(--warning);border-radius:var(--r-md)}
+/* Com JavaScript, uma etapa por vez; sem ele, a visita é uma página longa. */
+.tour-paged .tour-main>section:not(.is-current){display:none}
+@media (max-width:900px){
+  .tour-layout{grid-template-columns:minmax(0,1fr);gap:var(--s4);padding:var(--s4) var(--s4) var(--s8)}
+  .tour-steps{position:static}
+  .tour-steps ol{display:flex;gap:var(--s1);overflow-x:auto;margin-bottom:var(--s2);padding-bottom:var(--s1)}
+  .tour-steps ol li{flex:none}
+  .tour-steps a{white-space:nowrap;border:1px solid var(--border);background:var(--surface)}
+  .tour-intro,.tour-step,.tour-areas{padding:var(--s5)}
+  .tour-intro h1{font-size:26px}
+  .tour-facts>div{grid-template-columns:minmax(0,1fr);gap:2px}
+}
+@media (max-width:420px){.tour-brand small{display:none}}
+/* Entrada pública (demo/index.html, raiz do projeto arandu-demo). */
+.entry-hero{grid-template-columns:minmax(0,1fr)}
+.entry-flow{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:var(--s3)}
+.entry-flow a{display:grid;gap:2px;height:100%;padding:var(--s4);border:1px solid var(--border);border-radius:var(--r-md);background:var(--surface);color:var(--text);text-decoration:none}
+.entry-flow a:hover{border-color:var(--petrol-line);background:var(--petrol-weak)}
+.entry-flow a:focus-visible,.entry-sides a:focus-visible,.entry-modes a:focus-visible{outline:none;box-shadow:var(--focus-ring)}
+.entry-flow strong{color:var(--ink)}
+.entry-flow span:not(.dl-flow-n){font-size:var(--fs-sm);color:var(--text-muted)}
+.entry-sides,.entry-modes{list-style:none;margin:0 0 var(--s4);padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:var(--s3)}
+.entry-sides li,.entry-modes li{padding:var(--s5);border:1px solid var(--border);border-radius:var(--r-md);background:var(--surface)}
+.entry-sides h3,.entry-modes h3{margin:var(--s1) 0 var(--s2);font-size:var(--fs-lg);color:var(--ink)}
+.entry-sides p,.entry-modes p{margin:0 0 var(--s3);color:var(--text-secondary)}
+.entry-sides a,.entry-modes a:not(.dl-role){font-weight:600;color:var(--accent-text)}
+.entry-modes .tour-badge{margin:0}
+.entry-sim-actions{display:flex;flex-wrap:wrap;gap:var(--s4)}
+.tour-table th[scope="row"]{text-transform:none;letter-spacing:0;font-size:var(--fs-md);font-weight:500;color:var(--text);background:none;white-space:normal;padding:8px var(--s4);border-bottom:1px solid var(--border)}
+.tour-main h1[tabindex="-1"]:focus,.tour-main h2[tabindex="-1"]:focus{outline:none}
+/* A entrada carrega a camada da simulação (acento próprio); a identidade da
+   visita fica nos tokens oficiais: petróleo para ação. */
+.entry-hero .btn-primary{background:var(--petrol);border-color:var(--petrol);color:#fff}
+.entry-hero .btn-primary:hover{background:var(--petrol-hover);border-color:var(--petrol-hover)}
+.entry-flow a:hover{border-color:var(--petrol-line);background:var(--petrol-weak)}
+.entry-sides a,.entry-modes a:not(.dl-role){color:var(--petrol)}
