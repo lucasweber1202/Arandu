@@ -94,3 +94,4 @@ body.tour{background:var(--bg);color:var(--text)}
 .entry-hero .btn-primary:hover{background:var(--petrol-hover);border-color:var(--petrol-hover)}
 .entry-flow a:hover{border-color:var(--petrol-line);background:var(--petrol-weak)}
 .entry-sides a,.entry-modes a:not(.dl-role){color:var(--petrol)}
+@media (max-width:759px){.tour-table caption{display:block;width:100%;padding:var(--s3) var(--s4) 0}.tour-table th[scope="row"]{display:block;padding:0 0 6px;border:0;font-weight:600}}

@@ -16,7 +16,11 @@ test('entrada leva à visita guiada com uma ação principal', async ({ page }) 
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Uma contratação financeira, do pedido à renovação');
   await expect(page.getByRole('region', { name: 'Ambiente demonstrativo' })).toContainText('dados fictícios');
   await page.waitForLoadState('networkidle');
-  // Os dois documentos optam pela mesma transição de navegação (regressão #241).
+  // Volta pelo cabeçalho: nenhum erro de transição em nenhum dos sentidos (#241).
+  await page.locator('#topo a').click();
+  await page.locator('.tour-header').getByRole('link', { name: 'Início', exact: true }).click();
+  await expect(page).toHaveURL(/\/demo\/index\.html$/);
+  await page.waitForLoadState('networkidle');
   expect(errors).toEqual([]);
 });
 
@@ -47,6 +51,8 @@ test('links profundos abrem a etapa; etapa inexistente explica e volta ao iníci
   const current = page.locator('.tour-step.is-current');
   await expect(current).toHaveAttribute('id', 'comparacao');
   await expect(current).toContainText('Lumina Pay v2');
+  // No celular a tabela vira cartões: cada valor leva o nome da instituição.
+  await expect(current.locator('td[data-label="Lumina Pay v2"]').first()).toBeAttached();
   await expect(current).not.toContainText(/recomendad|vencedora|melhor opção/i);
   await page.goto('/demo/visita.html#instituicao');
   await expect(page.locator('.tour-step.is-current')).toContainText('Instituição financeira');

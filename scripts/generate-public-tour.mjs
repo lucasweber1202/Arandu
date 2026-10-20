@@ -34,7 +34,7 @@ const where = (key) => {
   return item;
 };
 
-const table = (caption, head, rows) => `<div class="tour-table table-scroll" role="region" aria-label="${esc(caption)}" tabindex="0"><table class="data-table compact"><caption>${esc(caption)}</caption><thead><tr>${head.map((cell, index) => `<th scope="col"${index ? ' class="num"' : ''}>${esc(cell)}</th>`).join('')}</tr></thead><tbody>${rows.map((row) => `<tr>${row.map((cell, index) => (index ? `<td class="num">${esc(cell)}</td>` : `<th scope="row">${esc(cell)}</th>`)).join('')}</tr>`).join('')}</tbody></table></div>`;
+const table = (caption, head, rows) => `<div class="tour-table table-scroll" role="region" aria-label="${esc(caption)}" tabindex="0"><table class="data-table compact"><caption>${esc(caption)}</caption><thead><tr>${head.map((cell, index) => `<th scope="col"${index ? ' class="num"' : ''}>${esc(cell)}</th>`).join('')}</tr></thead><tbody>${rows.map((row) => `<tr>${row.map((cell, index) => (index ? `<td class="num" data-label="${esc(head[index])}">${esc(cell)}</td>` : `<th scope="row">${esc(cell)}</th>`)).join('')}</tr>`).join('')}</tbody></table></div>`;
 const facts = (pairs) => `<dl class="tour-facts">${pairs.map(([term, value]) => `<div><dt>${esc(term)}</dt><dd>${esc(value)}</dd></div>`).join('')}</dl>`;
 const list = (items) => `<ul class="tour-list">${items.map((item) => `<li>${esc(item)}</li>`).join('')}</ul>`;
 const quote = ([who, text]) => `<blockquote class="tour-quote"><p>${esc(text)}</p><footer>${esc(person(who)?.name || provider(who))}${PROVIDERS[who] ? ` · ${esc(provider(who))}` : ` · ${esc(person(who).title)}`}</footer></blockquote>`;
@@ -185,6 +185,7 @@ function render() {
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/finance/style.css">
 <link rel="stylesheet" href="/demo/visita/tour.css">
+<script type="module" blocking="render" src="/demo/visita/transitions.js"></script>
 <script type="module" src="/demo/visita/tour.js"></script>
 </head>
 <body class="tour" data-mode="tour">
