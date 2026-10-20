@@ -2,16 +2,20 @@ import { digest, assertPublicBytes } from './publication-manifest.mjs';
 
 export const STAGES = ['root', 'explore', 'financial-entry', 'dashboard', 'requests', 'invites', 'proposals', 'comparison', 'approval', 'contracts', 'tasks-renewals', 'provider', 'provider-proposal', 'areas', 'return'];
 export function validateFlow(flow, sha) {
-  if (flow.approved_sha !== sha || !Array.isArray(flow.steps) || flow.steps.length !== STAGES.length) throw new Error('Flow must be reviewed for the expected SHA and cover all stages');
+  if (flow.approved_sha !== sha || !Array.isArray(flow.steps) || flow.steps.length < STAGES.length || flow.steps.length > STAGES.length + 2) throw new Error('Flow must be reviewed for the expected SHA and cover all stages');
+  const optional = new Set(['context', 'provider-value']);
+  const required = flow.steps.filter(s => !optional.has(s.stage));
+  if (required.length !== STAGES.length || required.some((s, i) => s.stage !== STAGES[i]) || new Set(flow.steps.map(s => s.stage)).size !== flow.steps.length) throw new Error('Missing, duplicated or reordered required stage');
   if (flow.steps[0].path !== '/' || !['/', '/demo/index.html'].includes(flow.steps.at(-1).path)) throw new Error('Journey must start at root and return to entry');
   flow.steps.forEach((s, i) => {
     const url = new URL(String(s.path), 'https://arandu.invalid');
-    if (s.stage !== STAGES[i] || !/^\/(?!\/)/.test(s.path) || url.origin !== 'https://arandu.invalid' || !(url.pathname === '/' || url.pathname.endsWith('.html')) || typeof s.text !== 'string' || !s.text.trim()) throw new Error('Invalid flow stage');
+    if (!/^\/(?!\/)/.test(s.path) || url.origin !== 'https://arandu.invalid' || !(url.pathname === '/' || url.pathname.endsWith('.html')) || typeof s.text !== 'string' || !s.text.trim()) throw new Error('Invalid flow stage');
     if (i && typeof s.selector !== 'string') throw new Error('Each navigation step needs a real link selector');
   });
 }
 export function validateManifest(m, sha) {
   if (!/^[a-f0-9]{40}$/.test(sha || '')) throw new Error('Expected full approved SHA is required');
+  if (m?.commit && m.commit !== sha) throw Object.assign(new Error('Published SHA differs from expected SHA'), { code: 'OUTDATED_SHA' });
   if (m?.schema !== 1 || m.application !== 'arandu' || m.commit !== sha || m.branch !== 'main') throw new Error('Published identity differs from approved main');
   if (!['browser-sandbox', 'informative-tour-with-browser-sandbox'].includes(m.modality) || m.datasource !== 'synthetic-fixtures' || m.backend_required !== false || m.canonical_hosted_m3 !== 'BLOCKED') throw new Error('Ambiguous static demo mode');
   if (m.modality === 'informative-tour-with-browser-sandbox' && !m.files?.['/demo/visita.html']) throw new Error('Declared tour is missing');
@@ -20,6 +24,13 @@ export function validateManifest(m, sha) {
   for (const [p, f] of Object.entries(m.files)) {
     if (!/^\/[A-Za-z0-9_./-]+$/.test(p) || p.includes('..') || p.startsWith('//') || !/^[a-f0-9]{64}$/.test(f.sha256) || !Number.isSafeInteger(f.bytes) || f.bytes < 0 || f.bytes > 20_000_000) throw new Error('Invalid artifact entry');
   }
+}
+export function publicationFailure(error) {
+  if (['ACCESS_BLOCKED', 'OUTDATED_SHA'].includes(error.code)) return error.code;
+  if (/fetch failed|timeout|ENOTFOUND|ECONNREFUSED/i.test(error.message)) return 'UNPROVEN';
+  if (/Artifact mismatch|wrong content type|asset|artifact/i.test(error.message)) return 'ASSET_MISMATCH';
+  if (/HTTP (?:404|500)|navigation link|Flow route|Arandu HTML/i.test(error.message)) return 'ROUTE_FAILURE';
+  return 'CONTRACT_FAILURE';
 }
 export function verifyResponse(response, bytes, path, expected) {
   const text = bytes.toString();
