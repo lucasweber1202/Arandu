@@ -57,13 +57,18 @@ async function startCluster(name) {
   // somente se o erro for colisão de bind; outros erros são fatais.
   for(let attempt=1;attempt<=4;attempt++) {
     const port=await availableLoopbackPort();
-    const log=path.join(dir,`${name}-start-${attempt}.log`);
+    // Preserve the canonical source.log inspected by the snapshot assertion.
+    // Reuse a single log name; only a bind collision may clear and retry it.
+    const log=path.join(dir,`${name}.log`);
     try {
       run('pg_ctl',['-D',data,'-l',log,'-o',`-h 127.0.0.1 -p ${port} -k ${dir}`,'-w','start']);
       started.push(data);
       return port;
     } catch(error) {
       if(!/Address already in use/.test(error.message) || attempt===4) throw error;
+      // Previous postmaster has exited. Do not let a failed bind contaminate
+      // the successful instance's integrity log (checked in this test).
+      fs.rmSync(log,{force:true});
     }
   }
   throw new Error('Recovery laboratory failed to allocate a loopback PostgreSQL port.');
