@@ -4,17 +4,19 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
-<title>Explorar demonstração | Arandu Financial Procurement</title>
-<meta name="description" content="Demonstração interativa do Arandu Financial Procurement com dados fictícios: empresa, aprovador, provedor e administração, sem criar conta.">
+<title>Arandu Financial Procurement | Visita ao produto</title>
+<meta name="description" content="Conheça o Arandu Financial Procurement com dados fictícios: solicitações financeiras, propostas, comparação, aprovação, contratos, relacionamento com instituições e acompanhamento contínuo, sem criar conta.">
 <meta name="theme-color" content="#f6f7f9">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/finance/style.css">
 <link rel="stylesheet" href="/finance/demo/experience.css">
+<link rel="stylesheet" href="/demo/visita/tour.css">
+<script type="module" blocking="render" src="/demo/visita/transitions.js"></script>
 <script type="module" src="/finance/demo/workspace/boot.js"></script>
 </head>
 <body class="demo-landing" data-mode="demo">
 <a class="skip-link" href="#main">Pular para o conteúdo</a>
-<div class="demo-banner" role="region" aria-label="Ambiente demonstrativo"><p class="demo-text"><strong>Ambiente demonstrativo</strong> <span class="demo-sub">Dados fictícios. Nenhuma operação financeira real será executada.</span></p></div>
+<div class="demo-banner" role="region" aria-label="Ambiente demonstrativo"><p class="demo-text"><strong>Ambiente demonstrativo</strong> <span class="demo-sub">Dados fictícios. Nada é gravado em servidor, enviado a instituições ou executado.</span></p></div>
 <header class="dl-header">
   <a class="brand" href="/demo/index.html"><span class="brand-mark" aria-hidden="true">A</span><span class="brand-text"><span class="brand-name">Arandu</span><span class="brand-sub">Financial Procurement</span></span></a>
   <div class="dl-header-actions">
@@ -23,118 +25,65 @@
   </div>
 </header>
 <main id="main" tabindex="-1" class="dl-main">
-  <section class="dl-hero" aria-labelledby="landing-title">
+  <section class="dl-hero entry-hero" aria-labelledby="landing-title">
     <div>
-      <p class="dl-kicker"><span class="demo-dot" aria-hidden="true"></span>Ambiente demonstrativo · dados fictícios · sem cadastro</p>
-      <h1 class="dl-title" id="landing-title">Procurement financeiro, do pedido à renovação.</h1>
-      <p class="dl-lede">Peça propostas de crédito e adquirência a vários provedores, compare as condições lado a lado, aprove com a sua equipe e acompanhe o contrato até a renovação.</p>
+      <p class="dl-kicker"><span class="demo-dot" aria-hidden="true"></span>Financial Procurement · dados fictícios · sem cadastro</p>
+      <h1 class="dl-title" id="landing-title">Contratações financeiras, do pedido à renovação.</h1>
+      <p class="dl-lede">O Arandu organiza como uma empresa contrata e acompanha crédito e adquirência: solicitações às instituições, propostas comparáveis, aprovação, contrato, relacionamento institucional e acompanhamento contínuo — cada instituição vendo só o que é dela.</p>
       <div class="dl-actions">
-        <a class="btn btn-primary btn-lg" href="/demo/finance/dashboard.html" data-persona="buyer" id="start-demo">Explorar livremente</a>
-        <a class="btn btn-lg" href="/demo/finance/dashboard.html" id="start-route">Ver processo completo</a>
+        <a class="btn btn-primary btn-lg" href="/demo/visita.html" id="tour-start">Conhecer a plataforma</a>
       </div>
-      <p class="dl-as">Você entra como Marina Costa, Gerente Financeira, e troca de papel a qualquer momento. O processo completo percorre o mesmo pedido pelas quatro pessoas, em sete passos.</p>
-      <p class="dl-roles" id="roles"><span class="dl-roles-label">Ou entre como:</span>
-        <a class="dl-role" href="/demo/finance/dashboard.html" data-persona="approver">Aprovador</a>
-        <a class="dl-role" href="/demo/provider/index.html" data-persona="provider">Provedor</a>
-        <a class="dl-role" href="/demo/finance/dashboard.html" data-persona="admin">Administrador</a>
-      </p>
+      <p class="dl-as">Visita guiada de cerca de 5 minutos, com o cenário fictício da Vitta Foods usado na demonstração canônica do produto.</p>
     </div>
-    <figure class="dl-preview" aria-hidden="true">
-      <div class="dl-preview-bar"><span class="brand-mark">A</span><span>Acme Indústria Ltda. — DEMO</span></div>
-      <div class="dl-preview-body">
-        <p class="dl-preview-greet">Boa tarde, Marina</p>
-        <p class="dl-preview-title">Precisa de você <span class="dl-preview-count">4</span></p>
-        <ul class="dl-preview-list">
-          <li class="dl-preview-item is-warn"><span class="dl-preview-rail"></span><span><strong>Decidir renovação — Cadência</strong><span>Vigente · janela de renovação aberta</span></span><span class="dl-preview-cta">Aviso prévio em 20 dias</span></li>
-          <li class="dl-preview-item"><span class="dl-preview-rail"></span><span><strong>Aguardando 1 provedor — Adquirência</strong><span>Em coleta · 2 de 3 responderam</span></span><span class="dl-preview-cta">Prazo em 3 dias</span></li>
-          <li class="dl-preview-item is-accent"><span class="dl-preview-rail"></span><span><strong>Registrar o contrato — Refinanciamento</strong><span>Decidida · informe vigência e aviso prévio</span></span><span class="dl-preview-cta">Registrar</span></li>
-        </ul>
-        <p class="dl-preview-title">Em andamento</p>
-        <ul class="dl-preview-list is-quiet">
-          <li class="dl-preview-item"><span class="dl-preview-rail"></span><span><strong>Capital de giro — R$ 3 milhões</strong><span>Em aprovação · aguardando Ricardo Alves · etapa 2 de 2</span></span><span class="dl-preview-cta">3/3 respostas</span></li>
-        </ul>
-      </div>
-    </figure>
   </section>
 
-  <section class="dl-section dl-flow" aria-labelledby="flow-title">
-    <h2 class="dl-section-title" id="flow-title">Um processo, do pedido à renovação</h2>
-    <p class="dl-section-lede">Cada etapa é o mesmo objeto — a solicitação — visto por quem age naquele momento.</p>
-    <ol class="dl-flow-list">
-      <li><span class="dl-flow-n">1</span><strong>Necessidade</strong><span>A empresa descreve o que precisa</span></li>
-      <li><span class="dl-flow-n">2</span><strong>Convites</strong><span>Provedores escolhidos recebem acesso</span></li>
-      <li><span class="dl-flow-n">3</span><strong>Propostas</strong><span>Cada provedor responde, com versões</span></li>
-      <li><span class="dl-flow-n">4</span><strong>Comparação</strong><span>Condições lado a lado, só fatos</span></li>
-      <li><span class="dl-flow-n">5</span><strong>Aprovação</strong><span>Quem decide revisa o contexto</span></li>
-      <li><span class="dl-flow-n">6</span><strong>Contrato</strong><span>Vigência e aviso prévio registrados</span></li>
-      <li><span class="dl-flow-n">7</span><strong>Renovação</strong><span>A janela de decisão volta a tempo</span></li>
-    </ol>
+  <section class="dl-section" aria-labelledby="flow-title">
+    <h2 class="dl-section-title" id="flow-title">Um processo só, do pedido à renovação</h2>
+    <p class="dl-section-lede">O diferencial não é só comparar propostas: é manter o ciclo financeiro inteiro, com fonte e decisão registradas.</p>
+    <ol class="entry-flow"><li><a href="/demo/visita.html#painel"><span class="dl-flow-n">1</span><strong>O que pede atenção</strong><span>Aprovações, prazos, renovações e tarefas do time</span></a></li><li><a href="/demo/visita.html#solicitacao"><span class="dl-flow-n">2</span><strong>Solicitação</strong><span>Necessidade de crédito ou adquirência em formato comparável</span></a></li><li><a href="/demo/visita.html#convites"><span class="dl-flow-n">3</span><strong>Convites</strong><span>Só instituições autorizadas, cada uma isolada das outras</span></a></li><li><a href="/demo/visita.html#propostas"><span class="dl-flow-n">4</span><strong>Propostas</strong><span>Respostas no mesmo formato, com versões preservadas</span></a></li><li><a href="/demo/visita.html#comparacao"><span class="dl-flow-n">5</span><strong>Comparação</strong><span>Condições lado a lado; pesos da empresa, sem vencedor automático</span></a></li><li><a href="/demo/visita.html#aprovacao"><span class="dl-flow-n">6</span><strong>Aprovação</strong><span>Etapas da política, quem pede não aprova</span></a></li><li><a href="/demo/visita.html#contrato"><span class="dl-flow-n">7</span><strong>Contrato</strong><span>Vigência, aviso prévio e condições estruturadas</span></a></li><li><a href="/demo/visita.html#continuidade"><span class="dl-flow-n">8</span><strong>Continuidade</strong><span>Implantação, covenants, tarifas e relacionamento</span></a></li></ol>
   </section>
 
-  <section class="dl-section" aria-labelledby="personas-title">
-    <h2 class="dl-section-title" id="personas-title">Quatro papéis, a mesma plataforma</h2>
-    <p class="dl-section-lede">Cada papel vê o painel, os atalhos e as prioridades que fazem sentido para ele.</p>
-    <ul class="dl-personas" role="list">
-      <li><a class="dl-persona" href="/demo/finance/dashboard.html" data-persona="buyer">
-        <span class="dl-persona-role">Comprador · Tesouraria</span><span class="dl-persona-name">Marina Costa</span>
-        <span class="dl-persona-org">Gerente Financeira · Acme Indústria Ltda. — DEMO</span>
-        <span class="dl-persona-does">Cria solicitações, convida provedores, compara propostas, decide e registra contratos.</span></a></li>
-      <li><a class="dl-persona" href="/demo/finance/dashboard.html" data-persona="approver">
-        <span class="dl-persona-role">Aprovador</span><span class="dl-persona-name">Ricardo Alves</span>
-        <span class="dl-persona-org">CFO · Acme Indústria Ltda. — DEMO</span>
-        <span class="dl-persona-does">Recebe pedidos com valores, condições e justificativa, e aprova, rejeita ou pede alterações.</span></a></li>
-      <li><a class="dl-persona" href="/demo/provider/index.html" data-persona="provider">
-        <span class="dl-persona-role">Provedor financeiro</span><span class="dl-persona-name">Camila Rocha</span>
-        <span class="dl-persona-org">Atlas Bank — DEMO</span>
-        <span class="dl-persona-does">Aceita convites, entende a demanda, salva rascunho e envia propostas versionadas.</span></a></li>
-      <li><a class="dl-persona" href="/demo/finance/dashboard.html" data-persona="admin">
-        <span class="dl-persona-role">Administração</span><span class="dl-persona-name">Helena Prado</span>
-        <span class="dl-persona-org">Controller · Acme Indústria Ltda. — DEMO</span>
-        <span class="dl-persona-does">Cuida da equipe, da política de aprovação e do perfil financeiro da empresa.</span></a></li>
+  <section class="dl-section" aria-labelledby="sides-title">
+    <h2 class="dl-section-title" id="sides-title">Os dois lados da contratação</h2>
+    <ul class="entry-sides" role="list">
+      <li><h3>Empresa</h3><p>Tesouraria, controladoria e CFO pedem, comparam, aprovam e acompanham contratos em cinco áreas: Meu trabalho, Contratações, Portfólio financeiro, Relacionamentos e Governança.</p><a href="/demo/visita.html#painel">Ver pelo lado da empresa</a></li>
+      <li><h3>Instituição financeira</h3><p>Bancos, credenciadoras e financeiras recebem convites, entendem a demanda, enviam propostas versionadas e acompanham o status — sem ver as outras instituições.</p><a href="/demo/visita.html#instituicao">Ver pelo lado da instituição</a></li>
     </ul>
   </section>
 
   <section class="dl-section" id="sobre" aria-labelledby="sobre-title">
-    <h2 class="dl-section-title" id="sobre-title">Sobre a demonstração</h2>
+    <h2 class="dl-section-title" id="sobre-title">Formas de conhecer o Arandu</h2>
     <p class="dl-section-lede">Ambiente demonstrativo com dados fictícios. Nenhuma operação financeira real será executada.</p>
+    <ul class="entry-modes" role="list">
+      <li><p class="tour-badge">Visita informativa</p><h3>Visita guiada</h3><p>Telas e dados do cenário fictício da demonstração canônica, etapa por etapa. Nada é gravado.</p><a href="/demo/visita.html">Abrir a visita guiada</a></li>
+      <li id="simulacao"><p class="tour-badge">Simulação no navegador</p><h3>Simulação interativa</h3><p>Versão anterior da interface, com motor próprio e outra empresa fictícia (Acme Indústria). Tudo fica só neste navegador: não há servidor, login real nem envio a instituições, e nem todas as áreas atuais estão nela.</p>
+        <p class="entry-sim-actions"><a href="/demo/finance/dashboard.html" data-persona="buyer" id="start-demo">Abrir a simulação</a><a href="/demo/finance/dashboard.html" id="start-route">Ver processo completo</a></p>
+        <p class="dl-roles" id="roles"><span class="dl-roles-label">Ou entre como:</span>
+          <a class="dl-role" href="/demo/finance/dashboard.html" data-persona="approver">Aprovador</a>
+          <a class="dl-role" href="/demo/provider/index.html" data-persona="provider">Provedor</a>
+          <a class="dl-role" href="/demo/finance/dashboard.html" data-persona="admin">Administrador</a>
+        </p></li>
+      <li><p class="tour-badge">Operação real de backend</p><h3>Apresentação ao vivo</h3><p>Com autenticação, permissões e gravação reais sobre dados fictícios, feita pela equipe do Arandu. Não está disponível neste link.</p></li>
+    </ul>
     <div class="dl-about">
       <details>
-        <summary>Como a demonstração é isolada</summary>
+        <summary>O que o Arandu é — e o que não é</summary>
+        <p>O Arandu é uma plataforma B2B de procurement financeiro: organiza pedidos de proposta, normaliza e compara condições informadas pelas instituições e registra a decisão humana. Ele não concede crédito, não movimenta dinheiro e não recomenda instituição.</p>
+      </details>
+      <details>
+        <summary>Como esta demonstração é isolada</summary>
         <ul class="check-list">
           <li>Nada aqui movimenta dinheiro, contrata crédito ou envia proposta a uma instituição real</li>
-          <li>Nenhuma chamada ao banco de dados real, nenhum e-mail, nenhum convite externo</li>
+          <li>Nenhuma chamada a banco de dados, nenhum e-mail, nenhum convite externo</li>
           <li>Nenhuma métrica de uso é enviada a partir da demonstração</li>
-          <li>Todas as empresas, pessoas, CNPJ e taxas são fictícios e marcados “— DEMO”</li>
-          <li>Dados e preferências ficam só neste navegador; “Restaurar demonstração” volta ao início</li>
-        </ul>
-      </details>
-      <details>
-        <summary>O que já está no ambiente</summary>
-        <ul class="check-list">
-          <li>Capital de giro — R$ 3 milhões, na revisão 3, com três propostas e aprovação na etapa 2 de 2</li>
-          <li>Revisão de adquirência — R$ 8 milhões/mês, com MDR, PIX, antecipação e liquidação comparáveis</li>
-          <li>Solicitações em rascunho, abertas, em coleta, em avaliação, decididas e contratadas</li>
-          <li>Contrato em janela de renovação, tarefas, menções e notificações</li>
-        </ul>
-      </details>
-      <details>
-        <summary>O que o Arandu é — e o que não é</summary>
-        <p>O Arandu é uma plataforma B2B de procurement financeiro: organiza pedidos de proposta, normaliza e compara condições informadas pelos provedores e registra a decisão humana. Ele não concede crédito, não movimenta dinheiro e não recomenda instituição.</p>
-      </details>
-      <details>
-        <summary>Experimente também</summary>
-        <ul class="check-list">
-          <li>Ctrl+K (⌘K no Mac) abre a central de comando: primeiro o seu trabalho, depois páginas, ações e preferências</li>
-          <li>Em telas largas, clique numa solicitação da lista para ver o resumo ao lado; ↑ ↓ trocam de item, Esc fecha</li>
-          <li>Na solicitação, “Continuar como Ricardo” mostra o mesmo processo do ponto de vista de quem decide</li>
-          <li>Filtre a lista de solicitações e use “Salvar filtro” para guardar a combinação</li>
+          <li>Empresas, pessoas, instituições e taxas são fictícias</li>
         </ul>
       </details>
     </div>
   </section>
 
   <footer class="dl-foot">
-    <p>Tudo o que você fizer fica salvo apenas neste navegador.</p>
+    <p>O que você fizer na simulação fica salvo apenas neste navegador.</p>
     <div class="dl-foot-actions">
       <button type="button" class="btn btn-ghost btn-sm" id="landing-reset" hidden>Restaurar dados da demonstração</button>
       <button type="button" class="btn btn-ghost btn-sm" id="landing-reset-prefs" hidden>Restaurar aparência</button>
