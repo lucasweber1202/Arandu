@@ -1,13 +1,16 @@
 #!/usr/bin/env node
 // Read-only anonymous proof. HTTP alone never proves rendered navigation.
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { validateManifest, validateFlow, verifyResponse, getPublic } from './publication-proof.mjs';
+import os from 'node:os';
+import { validateManifest, validateFlow, verifyResponse, getPublic, publicationFailure } from './publication-proof.mjs';
+import { installLabObservers, readLabMetrics, PERFORMANCE_TARGETS } from './performance-contract.mjs';
 
 const args = Object.fromEntries(process.argv.slice(2).map(arg => { const [k, ...v] = arg.replace(/^--/, '').split('='); return [k, v.join('=') || true]; }));
 const report = { checked_at: new Date().toISOString(), url: args.url, expected_sha: args.sha,
   HTTP_ARTIFACT: 'NOT_RUN', BROWSER_DESKTOP: 'NOT_RUN', BROWSER_MOBILE: 'NOT_RUN',
   PUBLIC_SHAREABLE: 'NOT_PROVEN', LOCAL_STATION_READY: 'NOT_RUN', CANONICAL_HOSTED_M3: 'BLOCKED', checks: [] };
 let browser;
+const started = performance.now();
 mkdirSync('reports/public-demo', { recursive: true });
 try {
   const base = new URL(String(args.url));
@@ -44,6 +47,14 @@ try {
     report.runtime_release = release;
   } else if (health.response.status !== 404) throw new Error('Unexpected liveness response');
   report.HTTP_ARTIFACT = 'PASS';
+  if (args.performance) report.performance = { kind: 'LAB_NOT_RUM', environment: local ? 'loopback-laboratory' : 'public-static-laboratory',
+    dataset: manifest.datasource, volume: { artifact_files: Object.keys(manifest.files).length }, concurrent_users: 1,
+    request_pattern: 'one sequential anonymous visitor per viewport; direct reload per stage; cache disabled by request interception',
+    executor: { node: process.version, platform: process.platform, arch: process.arch, cpus: os.availableParallelism() },
+    throttling: 'none; viewport emulation is not a mobile device or mobile network', baseline: 'NOT_AVAILABLE',
+    p50: null, p95: null, p99: null, quantile_status: 'NOT_ESTIMATED_PER_ROUTE_SINGLE_SAMPLE',
+    eligible_backend_5xx: 'NOT_MEASURED_API_NOT_EXERCISED',
+    targets: PERFORMANCE_TARGETS, target_status: 'HYPOTHESES_NOT_SLA', samples: [] };
   if (args.browser) {
     if (!args.flow) throw new Error('--browser requires --flow=<reviewed JSON>');
     const flow = JSON.parse(readFileSync(String(args.flow), 'utf8'));
@@ -57,18 +68,21 @@ try {
     browser = await chromium.launch({ headless: true, ...(proxy ? { proxy: { server: proxy } } : {}) });
     for (const [name, viewport] of [['DESKTOP', { width: 1440, height: 900 }], ['MOBILE', { width: 390, height: 844 }]]) {
       const context = await browser.newContext({ viewport, serviceWorkers: 'block' });
+      if (args.performance) await context.addInitScript(installLabObservers);
       const errors = [];
+      let currentStage = 'initialization', action = 'initialization';
+      const browserError = (code, detail, path = null) => errors.push({ code, stage: currentStage, action, path, detail });
       const responses = [];
       await context.route('**/*', route => {
         const req = route.request(), url = new URL(req.url());
         if (url.origin !== base.origin || !['GET', 'HEAD'].includes(req.method()) || url.pathname.startsWith('/api/')) {
-          errors.push('Backend, off-origin or mutating browser request'); return route.abort();
+          browserError('UNEXPECTED_BACKEND', 'Backend, off-origin or mutating browser request', url.pathname); return route.abort();
         }
         return route.continue();
       });
       const page = await context.newPage();
-      page.on('pageerror', error => errors.push(`JavaScript: ${error.message.slice(0, 300)}`));
-      page.on('console', message => { if (message.type() === 'error') errors.push('Browser console error'); });
+      page.on('pageerror', error => browserError('JS_ERROR', error.message.slice(0, 300), new URL(page.url()).pathname));
+      page.on('console', message => { if (message.type() === 'error') browserError('JS_ERROR', 'Browser console error'); });
       page.on('response', response => {
         responses.push((async () => {
           try {
@@ -76,12 +90,13 @@ try {
             const artifact = path === '/' ? '/index.html' : path;
             if (!manifest.files[artifact]) throw new Error('Browser loaded unverified artifact');
             verifyResponse({ status: response.status(), headers: new Headers(await response.allHeaders()) }, await response.body(), artifact, manifest.files[artifact]);
-          } catch (error) { errors.push(error.message); }
+          } catch (error) { browserError(publicationFailure(error), error.message); }
         })());
       });
-      page.on('requestfailed', () => errors.push('Resource request failed'));
+      page.on('requestfailed', request => browserError('ROUTE_FAILURE', 'Resource request failed', new URL(request.url()).pathname));
       for (let i = 0; i < flow.steps.length; i++) {
         const step = flow.steps[i], target = new URL(step.path, base).href;
+        currentStage = step.stage; action = 'navigation';
         if (!i) await page.goto(target, { waitUntil: 'networkidle' });
         else {
           const link = page.locator(step.selector);
@@ -92,7 +107,7 @@ try {
         await content().waitFor({ state: 'visible' });
         if (!/dados fictícios|simulação|demonstrativ/i.test(await page.locator('body').innerText())) throw new Error('Demo modality is not visible');
         // Reload proves direct deep links, with the same anonymous browser state.
-        await page.reload({ waitUntil: 'networkidle' });
+        action = 'reload'; await page.reload({ waitUntil: 'networkidle' });
         await content().waitFor({ state: 'visible' });
         const layout = await page.evaluate(async () => {
           await document.fonts.ready;
@@ -100,23 +115,26 @@ try {
             images: [...document.images].every(img => img.complete && img.naturalWidth > 0), fonts: [...document.fonts].every(font => font.status === 'loaded') };
         });
         if (layout.overflow || !layout.images || !layout.fonts) throw new Error(`Layout/resource failure: ${step.stage}`);
+        if (args.performance) report.performance.samples.push({ viewport: name, stage: step.stage, path: step.path, ...await page.evaluate(readLabMetrics) });
         await page.screenshot({ path: `reports/public-demo/${name.toLowerCase()}-${step.stage}.png`, fullPage: true });
         report.checks.push({ viewport: name, stage: step.stage, path: step.path, result: 'PASS' });
       }
       await Promise.all(responses);
       report['BROWSER_' + name] = errors.length ? 'FAIL' : 'PASS';
-      if (errors.length) report.checks.push({ viewport: name, result: 'FAIL', errors: [...new Set(errors)] });
+      if (errors.length) report.checks.push({ viewport: name, result: 'FAIL', errors });
       await context.close();
     }
-    if (report.BROWSER_DESKTOP !== 'PASS' || report.BROWSER_MOBILE !== 'PASS') throw new Error('Browser errors; see viewport evidence');
+    if (report.BROWSER_DESKTOP !== 'PASS' || report.BROWSER_MOBILE !== 'PASS') throw Object.assign(new Error('Browser errors; see viewport evidence'), { code: report.checks.find(c => c.errors)?.errors[0]?.code });
     if (!local) report.PUBLIC_SHAREABLE = 'PASS';
   }
 } catch (error) {
   report.error = error.message;
+  report.failure_code = error.code || publicationFailure(error);
   report.PUBLIC_SHAREABLE = error.code === 'ACCESS_BLOCKED' ? 'ACCESS_BLOCKED' : /fetch failed|timeout|ENOTFOUND|ECONNREFUSED/i.test(error.message) ? 'NOT_PROVEN' : 'FAIL';
   if (report.HTTP_ARTIFACT !== 'PASS') report.HTTP_ARTIFACT = report.PUBLIC_SHAREABLE;
 } finally {
   await browser?.close();
+  report.duration_ms = performance.now() - started;
   mkdirSync('reports/public-demo', { recursive: true });
   writeFileSync('reports/public-demo/proof.json', JSON.stringify(report, null, 2) + '\n');
   console.log(JSON.stringify(report, null, 2));

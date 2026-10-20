@@ -113,8 +113,9 @@
     "recovery:storage:export": "node scripts/storage-recovery.mjs export",
     "recovery:storage:restore": "node scripts/storage-recovery.mjs restore",
     "recovery:storage:verify": "node scripts/storage-recovery.mjs verify",
-    "check:public-publication": "node scripts/test-publication-proof.mjs",
-    "smoke:public-demo": "node --use-env-proxy scripts/smoke-public-demo.mjs"
+    "check:public-publication": "node scripts/test-publication-proof.mjs && node scripts/test-performance-contract.mjs && node scripts/test-request-receipt-harness.mjs",
+    "smoke:public-demo": "node --use-env-proxy scripts/smoke-public-demo.mjs",
+    "benchmark:domain": "node scripts/benchmark-proposal-join.mjs"
   },
   "dependencies": {
     "@vercel/functions": "3.10.1",

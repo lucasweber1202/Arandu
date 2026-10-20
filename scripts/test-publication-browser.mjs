@@ -26,11 +26,18 @@ const server = http.createServer((req, res) => {
 try {
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   const flow = join(dir, 'flow.json'); writeFileSync(flow, JSON.stringify({ approved_sha: sha, steps }));
-  await assert.rejects(promisify(execFile)(process.execPath, [fileURLToPath(new URL('./smoke-public-demo.mjs', import.meta.url)), `--url=http://127.0.0.1:${server.address().port}`, `--sha=${sha}`, '--local', '--browser', `--flow=${flow}`], { cwd: dir, env: { ...process.env, HTTPS_PROXY: '', https_proxy: '' } }));
+  await assert.rejects(promisify(execFile)(process.execPath, [fileURLToPath(new URL('./smoke-public-demo.mjs', import.meta.url)), `--url=http://127.0.0.1:${server.address().port}`, `--sha=${sha}`, '--local', '--browser', '--performance', `--flow=${flow}`], { cwd: dir, env: { ...process.env, HTTPS_PROXY: '', https_proxy: '' } }));
   const result = JSON.parse(readFileSync(join(dir, 'reports/public-demo/proof.json')));
   assert.equal(result.HTTP_ARTIFACT, 'PASS', result.error);
   assert.equal(result.BROWSER_DESKTOP, 'PASS', result.error);
   assert.equal(result.BROWSER_MOBILE, 'PASS', result.error);
   assert.equal(result.PUBLIC_SHAREABLE, 'NOT_PROVEN');
+  assert.equal(result.performance.kind, 'LAB_NOT_RUM');
+  assert.equal(result.performance.samples.length, 30);
+  for (const sample of result.performance.samples) {
+    assert.equal(sample.inp, 'NOT_MEASURED');
+    assert.equal(sample.p75, 'NOT_ESTIMATED_SINGLE_NAVIGATION');
+    assert.ok(sample.navigation && sample.navigation.ttfb_ms >= 0);
+  }
   console.log('Local browser regression PASS: 15 stages, desktop/mobile, reloads, verified bytes; PUBLIC_SHAREABLE remains NOT_PROVEN.');
 } finally { await new Promise(resolve => server.close(resolve)); rmSync(dir, { recursive: true, force: true }); }

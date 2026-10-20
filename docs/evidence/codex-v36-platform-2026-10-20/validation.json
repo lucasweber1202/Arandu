@@ -1,0 +1,132 @@
+{
+  "measured_at": "2026-10-20T13:34:21.287700+00:00",
+  "source_sha": "ba8f74fc1d47e04c22fc0c53f240bd924d2a3b6e",
+  "worktree": "base main plus PR diff; measurements are not a deployed new branch claim",
+  "builds": {
+    "financial": {
+      "metrics": {
+        "total": {
+          "bytes": 1102608,
+          "limit": 3000000
+        },
+        "javascript": {
+          "bytes": 513680,
+          "limit": 800000
+        },
+        "sandboxJavascript": {
+          "bytes": 0,
+          "limit": 330000
+        },
+        "css": {
+          "bytes": 109776,
+          "limit": 650000
+        },
+        "largestJavascript": {
+          "bytes": 49023,
+          "limit": 100000
+        },
+        "largestRouteJavascript": {
+          "bytes": 242369,
+          "limit": 250000
+        },
+        "largestCss": {
+          "bytes": 99379,
+          "limit": 170000
+        },
+        "largestImage": {
+          "bytes": 61066,
+          "limit": 750000
+        }
+      },
+      "warnings": [
+        "AVISO: largestRouteJavascript acima do envelope saudável (97% do hard limit): reaja antes de encostar no limite."
+      ]
+    },
+    "demo": {
+      "metrics": {
+        "total": {
+          "bytes": 1827793,
+          "limit": 3000000
+        },
+        "javascript": {
+          "bytes": 557679,
+          "limit": 800000
+        },
+        "sandboxJavascript": {
+          "bytes": 327807,
+          "limit": 330000
+        },
+        "css": {
+          "bytes": 242272,
+          "limit": 650000
+        },
+        "largestJavascript": {
+          "bytes": 89154,
+          "limit": 100000
+        },
+        "largestRouteJavascript": {
+          "bytes": 244246,
+          "limit": 250000
+        },
+        "largestCss": {
+          "bytes": 124692,
+          "limit": 170000
+        },
+        "largestImage": {
+          "bytes": 61066,
+          "limit": 750000
+        }
+      },
+      "warnings": [
+        "AVISO: sandboxJavascript acima do envelope saudável (99% do hard limit): reaja antes de encostar no limite.",
+        "AVISO: largestRouteJavascript acima do envelope saudável (98% do hard limit): reaja antes de encostar no limite."
+      ]
+    }
+  },
+  "database": {
+    "result": "PASS",
+    "scope": "full scripts/test-database.sh; isolated synthetic PostgreSQL, no managed Auth/Storage attestation",
+    "image": "postgres@sha256:0ea6700a3b4f0ae6ce746519073558aed4d88a79d8d07622a9a644946c7319c4",
+    "network": "none",
+    "cpus": 2,
+    "memory_limit_mib": 768,
+    "receipt_concurrency": {
+      "commits": 1,
+      "classified_duplicates": 5,
+      "unexpected_errors": 0,
+      "rfq_count": 1,
+      "receipt_count": 1,
+      "reconciled_reference_count": 1
+    }
+  },
+  "checks": {
+    "check_all": "PASS",
+    "financial_build": "PASS",
+    "demo_build": "PASS",
+    "build_size": "PASS",
+    "links": "PASS",
+    "security": "PASS",
+    "supply_chain": "PASS",
+    "audit_vulnerabilities": 0,
+    "domain_benchmark": "LOCAL_CPU_ONLY",
+    "load_profiles": "NOT_RUN",
+    "RUM": "NOT_MEASURED",
+    "owner_station": "NOT_PROVEN",
+    "canonical_hosted_m3": "BLOCKED",
+    "existing_public_tour_e2e": "FAIL_BASELINE_REPRODUCED"
+  },
+  "existing_public_tour_e2e": {
+    "branch": {
+      "passed": 7,
+      "failed": 1,
+      "flaky": 1,
+      "skipped_existing_keyboard_mobile": 1
+    },
+    "clean_main": {
+      "passed": 7,
+      "failed": 2,
+      "skipped_existing_keyboard_mobile": 1
+    },
+    "failure": "entry pageerror: ViewTransition opt-in disabled; unchanged tests and thresholds"
+  }
+}
