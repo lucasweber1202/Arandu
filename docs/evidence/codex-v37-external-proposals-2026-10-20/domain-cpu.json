@@ -1,9 +1,9 @@
 {
   "schema": 1,
-  "sha": "a68e907cec32091fe83720434a6a1fc335a36ef1",
+  "sha": "47af9a6396c515986b76b70d0a8e8d37fda9f6b0",
   "branch": "codex/v37-external-proposal-integrity",
   "worktree_dirty": false,
-  "measured_at": "2026-10-20T18:35:30.676Z",
+  "measured_at": "2026-10-20T18:58:03.262Z",
   "environment": "local-domain-cpu",
   "region": "not_applicable",
   "dataset": "synthetic-credit-10-v1",
@@ -14,15 +14,15 @@
   },
   "concurrent_users": 0,
   "request_pattern": "sequential domain calls; no HTTP",
-  "duration_ms": 65.13998900000001,
+  "duration_ms": 71.06598400000007,
   "warmup_calls": 25,
-  "first_measured_call_after_correctness_check_ms": 0.4821269999999913,
+  "first_measured_call_after_correctness_check_ms": 0.7184919999999693,
   "measurement": {
     "samples": 200,
     "method": "nearest-rank",
-    "p50_ms": 0.178948999999875,
-    "p95_ms": 0.35923200000002,
-    "p99_ms": 0.47014899999999216
+    "p50_ms": 0.1935920000000806,
+    "p95_ms": 0.4405540000000201,
+    "p99_ms": 0.5833689999999478
   },
   "eligible_http_5xx": {
     "result": "NOT_MEASURED",
@@ -34,12 +34,12 @@
     "arch": "x64",
     "cpus": 2,
     "memory_bytes": 10452471808,
-    "peak_rss_bytes": 50171904
+    "peak_rss_bytes": 49528832
   },
   "baseline_comparison": {
     "scope": "legacy synthetic join only",
-    "median_before_ms": 2.067137200000002,
-    "median_after_ms": 0.08741416000000754
+    "median_before_ms": 1.7690417199999957,
+    "median_after_ms": 0.08965347999999722
   },
   "proposed_targets": {
     "lcp_p75_ms": 2500,

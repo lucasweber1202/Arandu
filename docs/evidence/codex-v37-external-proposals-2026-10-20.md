@@ -9,9 +9,10 @@ A #248 estava aberta na abertura; suas normas foram lidas diretamente da branch
 `docs/v37-three-segments-bank-adoption-quality-20261020`. Após seu merge, a branch
 foi reconciliada com main275c57d. Após a integração da UX #249, novo rebase sobre
 `2bfa89878586d157d72b6723ad4beeb9cbb7a52c`, sem conflitos ou edição dos arquivos
-reservados. Componente técnico medido: `a68e907cec32091fe83720434a6a1fc335a36ef1`.
-O commit posterior deste relatório apenas registra evidências; gates da PR devem
-ser conferidos no HEAD exato publicado, sem usar aprovação da #248/#249.
+reservados. Componente técnico medido: `47af9a6396c515986b76b70d0a8e8d37fda9f6b0`.
+Os artefatos identificam o componente medido. Os gates da PR devem ser
+conferidos no HEAD exato publicado, sem usar aprovação da #248/#249 ou de
+revisões anteriores desta PR.
 
 ## Resultado e fronteiras
 
@@ -106,18 +107,18 @@ segurança certificada. Sem testes pesados em hospedagem.
 Reutilizado o benchmark #245 sem duplicar scripts:
 [domain-cpu.json](codex-v37-external-proposals-2026-10-20/domain-cpu.json).
 Dez propostas sintéticas de crédito, 25 warmups/200 medições, CPU local:
-p50≈0,179ms, p95≈0,359ms, p99≈0,470ms. O dataset é o benchmark de domínio
+p50≈0,194ms, p95≈0,441ms, p99≈0,583ms. O dataset é o benchmark de domínio
 existente, não mede ingestão/RPC/DB/Storage ou ganho de latência da feature.
 Perfis30/100 usuários e10mil contratos/100mil observações seguem NOT_RUN.
 
 EXPLAIN ANALYZE com RLS e papel authenticated/viewer em uma fixture com um
-registro, duas versões e um review: planejamento3,721ms, execução4,641ms,
+registro, duas versões e um review: planejamento4,376ms, execução3,088ms,
 uma linha, página de até26 incluindo sentinela.
 [sql-observation.json](codex-v37-external-proposals-2026-10-20/sql-observation.json).
 Observação única pequena, não p95 de API, benchmark de escala ou produção.
 Reprodução após a suíte: EXPLAIN da view filtrada pelo org/RFQ e370…010/020
 criados pelo teste de concorrência, sob o ator e370…001. O plano completo local
-fica em `/tmp/arandu-v37-query-plan.txt`; não inclui bytes de documentos.
+fica em `/tmp/arandu-v37-revision-query-plan.txt`; não inclui bytes de documentos.
 
 Consultas por RFQ/tenant e versões/reviews indexadas, limite/paginação explícitos;
 uma consulta adicional na comparação, sem N+1 de rede. Mais de500 propostas
