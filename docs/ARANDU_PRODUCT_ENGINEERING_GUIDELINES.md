@@ -1,11 +1,13 @@
 # Arandu — Diretrizes Mestras de Produto, Engenharia e Evolução
 
-**Versão 3.5 — 19 de outubro de 2026**
-**Baseline técnica de referência desta revisão:** `main` @ `18a2ccf4c759248a1d7c69127f764a0ef91d9888`
+**Versão 3.6 — 20 de outubro de 2026**
+**Baseline técnica de referência desta revisão:** `main` @ `93ba6d5fcedf1d50262ddb30ae58704c44ad066a`
 **Status:** constituição normativa de produto e engenharia
 **Escopo:** tese de produto, boundaries, arquitetura funcional, maturidade, UX, engenharia, dados, segurança, IA, integrações, operação enterprise e critérios de evolução
 
 > **Propósito.** Esta guideline define o que o Arandu é, o que não é, como deve evoluir e quais garantias não podem ser sacrificadas. Ela governa pessoas e agentes de IA que alterem o produto.
+>
+> **Adição da v3.6.** Novo §38: benchmark competitivo, adoção bilateral, sequência P0→P1-A/P1-B→piloto→integrações, contrato de performance com metas não reivindicadas, critérios de pesquisa com clientes e gates por funcionalidade. **Mantém integralmente a urgência dos P0 de 29/10 e todas as exigências de maturidade, segurança e recovery.** Plano: `docs/FINANCIAL_COMPETITIVE_EXECUTION_PLAN_2026-10-20.md`.
 >
 > **Mudança de prioridades da v3.5.** Duas entregas P0 para 29/10: Demo pública compartilhável e fiel à main aprovada; estação local canônica comprovada. Hospedagem canônica M3 permanece objetivo separado e subordinado a recovery/cutover. Regras §37 e execução em docs/PUBLIC_DEMO_2026-10-29_PRIORITY.md.
 >
@@ -1900,6 +1902,95 @@ Esta prioridade NÃO autoriza trocar ARANDU_DEPLOYMENT_KIND por ARANDU_ENV, muda
 
 ---
 
+
+# 38. Benchmark competitivo, adoção bilateral e performance baseada em evidência (v3.6)
+
+Este capítulo acrescenta critérios normativos a partir da revisão estratégica de 20/10/2026. **Não revoga, rebaixa nem posterga §37/P0-A/P0-B**, nem relaxa os gates de segurança, preservação, recovery, maturidade e autorização das seções anteriores. Sua sequência é progressiva: os preparativos que não competem por recursos com os P0 podem começar, mas funcionalidades secundárias não podem atrasar 29/10. O plano executável e o registro das hipóteses estão em \`docs/FINANCIAL_COMPETITIVE_EXECUTION_PLAN_2026-10-20.md\`; evidência de entrega/maturidade continua na Implementation Matrix.
+
+## 38.1 Tese e referência de mercado
+
+O Arandu é um **Financial Procurement Lifecycle OS B2B**, de compra e gestão do relacionamento financeiro: **necessidade → RFQ/convite → proposta comparável → aprovação e decisão humanas → contratação → acompanhamento de termos, tarifas, obrigações e performance → renovação/renegociação**. O cliente comprador controla critérios e acesso aos seus dados; a instituição convidada recebe somente os objetos autorizados. Comparar propostas é capability, **não** o moat isolado. O diferencial pretendido combina Financial Graph, memória institucional, dados tipados e rastreáveis, continuidade pós-contratação e governança.
+
+O benchmark DEVE separar quatro conjuntos: **concorrência direta** (ex.: Treasury Delta; Finpass no recorte de crédito), **procurement/intake** (Zip, ORO Labs, Ivalua), **CLM/relacionamento** (Gatekeeper), **tesouraria/fee intelligence** (Kyriba, Redbridge/HawkeyeBSB, Pagos) e **infraestrutura/banking workflows** (Nexxera, nCino). Uma capacidade anunciada em marketing externo **não equivale** a demo verificada, paridade de implantação, preço público ou desempenho medido. Novas comparações exigem fonte oficial identificável, data, jurisdição/segmento, confiança e diferença entre observado e inferido; não declarar unicidade, market share, ROI ou vantagem de performance sem evidência comparável.
+
+Arandu NÃO DEVE reconstruir TMS completo, core banking, rede transacional, pagamentos, assinatura jurídica, sistema de crédito decisório, marketplace de "melhor banco" ou benchmark de preços inventado. Construir workflows e Graph; **integrar** fontes especializadas quando autorizadas e economicamente justificadas; evitar feature war.
+
+## 38.2 Segmento inicial e jobs-to-be-done
+
+Buyer inicial: tesouraria e gestão financeira de empresas médias/grandes e grupos multi-entity com mais de uma instituição e processos recorrentes; a hipótese de nicho/porte permanece a validar. Papéis: CFO, gerente financeiro/tesouraria, analista, aprovador, administrador. Jobs mínimos: (a) estruturar demanda sem planilha informal, (b) comparar propostas com cobertura e premissas, (c) decidir com trilha defensável, (d) preservar contratos/condições, (e) não perder vencimentos/obrigações, (f) verificar tarifas e valor financeiro documentado.
+
+Provider inicial: banco, adquirente ou instituição autorizada convidada. Jobs mínimos: (a) compreender a oportunidade e prazo, (b) aceitar/recusar com pouco atrito, (c) elaborar e revisar proposta de modo seguro, (d) esclarecer dúvidas, (e) ver andamento e resultado **somente quando o comprador compartilhar**, (f) manter histórico da própria atuação. **Não presumir** que o fornecedor entrará espontaneamente nem que criará conta para cada comprador: importar proposta recebida fora da plataforma, com proveniência e confirmação humana, é capacidade importante de adoção.
+
+## 38.3 Priorização normativa e dependências
+
+Ordem estratégica **após** estabilização dos P0, sem alterar a classificação vigente da Demo canônica hospedada como P1 e Production/M5 como P2 operacional:
+
+1. **P0-A (até 29/10): distribuição pública comprovada** — SHA servido, visitante anônimo, interface atual, buyer/provider, desktop/mobile, capturas reais da Demo canônica ou reuso seguro, rótulo honesto de simulação. Cumprir §37.
+2. **P0-B (até 29/10): estação local real** — Auth/API/RLS/Storage e dados sintéticos, freeze e station READY **na máquina do owner**. Cumprir §37.
+3. **P1-A: adoção e experiência bilateral** — completar portal do provedor (D33-12), entrada por objetivo/primeiro valor (D33-09/14), jornada de contrato existente, acompanhamento por instituição, entrada/importação manual controlada de propostas externas, pesquisas com compradores e bancos (D33-16). Preparação e QA que caibam antes de 29/10 não tomam precedência sobre P0.
+4. **P1-B: Demo canônica hospedada M3** — mesmo produto \`main\`, Supabase Demo exclusivo, identidade, dados isolados, classificação/preservação, restore, migration, cutover autorizado, doctor e jornada hospedada. Pode progredir **em paralelo** a P1-A somente com owner e recursos separados; jamais alegar que P1-A ou a visita pública substituem M3.
+5. **P2-A: piloto comercial controlado** — somente com ambiente efetivamente apto, revisão jurídica, segurança, compliance, custódia/recovery, escopo de dados e autorizações aplicáveis. Avaliar ativação bilateral, recorrência, resultados e willingness to pay; não disponibilizar dados reais antecipadamente.
+6. **P2-B: integração priorizada por evidência** — começar por importação verificada de CSV/XLSX/PDF, quando juridicamente e tecnicamente admissível; avançar para ERP/TMS, extratos/fees, APIs bancárias e assinatura sob source of truth e contratos comuns. Integração real e qualidade da fonte precedem geração de inteligência; não alegar conectores que ainda não operam.
+7. **P3: novos financial product packs, benchmarking agregado e rede** — FX, garantias, cash management e network effects exigem core, validação de cliente, dados elegíveis e nova revisão legal/produto. Nenhuma expansão orientada apenas a efeito de demonstração.
+
+Os rótulos acima descrevem **decisões e propostas de produto**, não promoções automáticas M1→M6. Em conflito temporal, §37 prevalece até os dois P0 serem verificados ou declarados BLOCKED honestamente. Incidente de segurança crítico tem precedência sempre.
+
+## 38.4 Escopo funcional buyer e regras de comparação
+
+A jornada buyer DEVE permitir **primeiro valor sem proposta bancária** (cadastrar instituição, contrato existente, facilidade, tarifa ou vencimento) e mostrar ação próxima, responsável, prazo e fonte. Intake progressivo pergunta primeiro objetivo, tipo de produto e dados estritamente necessários, reaproveitando Passport e informações existentes; não bloquear o primeiro uso por campos enterprise irrelevantes.
+
+RFQ DEVE usar schema tipado por crédito/adquirência, perguntas e documentos associados, convite rastreado, versões imutáveis de propostas submetidas e decisões com snapshot. Crédito: principal, prazo, indexador, spread, amortização, CET **somente informado**, carência, garantias/covenants/tarifas quando aplicáveis. Adquirência: MDR por modalidade, PIX, mix, prazo de liquidação, antecipação, custos e suas premissas. Estimativas só com fórmula, cobertura, unidade, fonte e premissas completas (§§9–11); nunca fabricar CET, taxa de mercado ou cenário pós-fixado.
+
+Comparação preserva neutralidade, pesos **definidos pelo cliente** e cobertura de dados; comparações incompletas NÃO geram vencedor tácito. Explicar diferenças e não apenas ordenar taxas: garantias, riscos contratuais, prazo, serviço e implantação podem importar. Contratos originados de decisões e contratos importados coexistem sem criar objetos duplicados; revisões e renegociação preservam histórico. Fee/Spend/Value são ledgers distintos: diferença detectada ≠ erro confirmado ≠ economia realizada.
+
+## 38.5 Portal da instituição como workspace real
+
+O portal do provedor DEVE evoluir além do formulário de resposta e cobrir, de maneira progressiva e proporcional ao piloto: inbox de oportunidades com prazo e estado; aceite/recusa; documentos e perguntas autorizados; rascunho e revisão da própria proposta; autoria/colaboração interna autorizada; estado/resultado compartilhável; histórico da própria organização; notificações opt-in e follow-ups verificáveis. Modelos reutilizáveis de dados públicos/institucionais são aceitáveis quando não expõem outras RFQs.
+
+Em nenhum momento a instituição recebe notas internas, critérios reservados, concorrentes, propostas alheias ou dados extraídos do Passport inteiro por inferência. Compartilhamento de motivo de decisão é controle explícito do comprador. **Não construir CRM bancário integral**: prever exportações e integrações futuras com CRM do provedor. Medir aceitação, resposta, tempo de elaboração, conclusão e participação recorrente sem acesso cruzado.
+
+## 38.6 Integração, documentação e redução de trabalho manual
+
+O Arandu DEVE permitir participação de instituições que respondem por e-mail/documento, mediante importação estruturada de proposta por usuário autorizado, identificação de emissor, data, origem, documento/hash, campo, unidade, moeda, revisão e confirmação humana. Importação manual validada é distinta de envio do provedor; exibir isso claramente no histórico. PDF/XLSX/ZIP hostis e arquivos externos preservam hardening, limites e scanning existente; IA de extração não pode persistir fatos não revisados.
+
+Integrar somente quando existir fonte legalmente autorizada, contrato de esquema, sincronização idempotente, reconciliação e degraded mode. Open Finance não garante acesso a dados bancários por mera existência de API; source of truth e consentimento/legitimidade exigidos. Não importar dado externo como "atual" sem marca de frescor. Integração é priorizada pela evidência de horas manuais poupadas, cobertura e confiabilidade, não por número de conectores.
+
+## 38.7 Contrato de performance e capacidade — metas, não claims
+
+O produto DEVE **instrumentar e medir** orçamento técnico com distinção clara entre padrão externo, alvo proposto, baseline observada e SLA contratual aprovado. **Core Web Vitals (Google, referência externa)**: LCP ≤ 2,5 s, INP ≤ 200 ms e CLS ≤ 0,1 no p75 de visitas reais, segmentado por mobile/desktop. Sem tráfego suficiente, executar laboratório e declarar limitação de representatividade.
+
+**Alvos iniciais de engenharia, NÃO SLAs atuais**: API de leitura comum p95 ≤ 500 ms; escrita comum p95 ≤ 1 s; comparação de dez propostas com campos representativos p95 ≤ 2 s; erros de servidor elegíveis < 0,5%; objetivo de disponibilidade pós-operação 99,9% **apenas como hipótese**, sujeito a infraestrutura/monitoramento/custo e aprovação de compromisso. Fixar carga, endpoint, percentis, warm/cold, região, dados e concorrência no protocolo; nunca divulgar números derivados de mocks, CI efêmera ou ambiente local como desempenho de produção.
+
+Ensaios progressivos mínimos sugeridos: 10 organizações/30 usuários simultâneos, 50 organizações/100 usuários simultâneos, 10 mil contratos e 100 mil observações sintéticas, múltiplos provedores submetendo a mesma RFQ, atualização concorrente de decisão e falhas parciais de API/DB/Storage/e-mail. Esses números são **perfis propostos de teste**, não promessa de escalabilidade demonstrada. Paginação, índices, limites explícitos, tarefas assíncronas e uso cauteloso de cache devem ser preferidos a aumentar cegamente recursos ou budgets.
+
+Manter \`check:build-size\` e o envelope saudável de bundle (§24 e \`docs/FINANCIAL_BUNDLE_HEADROOM.md\`); a demo próxima ao teto NÃO autoriza aumentar limite, pular testes, copiar motor do sandbox ou remover verificações. Modularizar/lazy-load por rota antes de novas telas pesadas. Medir HTML/JS/CSS/rotas/deep links também no **domínio realmente publicado**.
+
+## 38.8 Integridade, autorização e operação são condições de aceite
+
+Nenhuma entrega de performance, integração ou experiência pode afrouxar: RBAC/RLS e entidade legal, isolamento buyer/provider, SoD, token/session/revocation, limites de documents/storage, idempotência e concorrência de decisões, trilha imutável de evidências, validação de dados externos, LGPD e fail closed. Confirmar escrita apenas depois de persistência; operações repetidas não geram contrato/proposta/decisão duplicada. Cenário de falha parcial deve expor estado honesto e permitir recuperação, sem reprocessamento perigoso.
+
+Release de cliente exige observabilidade com correlação e logs sem PII/valores de propostas, alertas significativos, versionamento reversível, backup e **restore validado** incluindo Auth/Storage/config necessários, runbooks, legal review, suporte definido e resultados M3/M4/M5 correspondentes. OWASP ASVS e WCAG 2.2 AA são referências para verificação proporcional ao produto; citar conformidade/certificação somente após auditoria apropriada.
+
+## 38.9 Validação de mercado obrigatória: comprador e instituição
+
+Testes automatizados validam comportamento, não Product-Market Fit. Antes de ampliar escopo, registrar sessões com pessoas reais de ambos os lados, sem inserir PII no repositório, conforme §35.13. **Hipóteses iniciais**, a revisar após entrevistas: cadastrar contrato e identificar próxima ação em até 10 min; RFQ simples em até 10 min com dados disponíveis; resposta do provedor em até 15 min com proposta preparada; identificar prazo/responsável sem assistência. Medir conclusão, abandono, erros, tempo e recorrência por papel. Esses tempos não são estatísticas de concorrentes nem claims comerciais.
+
+Indicadores de resultado: tempo para primeira ação útil; RFQs criadas/concluídas; taxa de instituições convidadas que respondem; tempo de resposta; propostas completas; dias até decisão; contratos/vencimentos com responsável; fee differences analisadas e resolvidas; economia **negociada separada de realizada** com evidência; retorno de comprador/provedor; intenção de renovação e disposição para pagar. Proibir registro de conteúdo sensível e dados financeiros em telemetria externa sem base jurídica e contrato.
+
+## 38.10 Gate de decisão build / integrate / defer
+
+Toda nova iniciativa ou nova capability relevante DEVE declarar: problema e persona; evidência de pesquisa vs hipótese; categoria e referência competitiva datada; contribuição para buyer/provider; job-to-be-done; capacidade já existente (e estado M); build/integrate/defer com justificativa; dados e permissões; fonte e proveniência; custo e performance; riscos e gates operacionais; teste e métrica de sucesso. Rejeitar trabalho orientado apenas a aparência, métricas sem fonte, features sem dono operacional ou sem caminho de adoção.
+
+**Critérios mínimos por iniciativa:** (1) funcional — fluxo completo buyer/provider com testes negativos; (2) qualidade — latência, acessibilidade, mobile, erro e bundle medidos; (3) operação — prova do ambiente correto; (4) mercado — hipótese testada com papel real antes de alegar adoção. Uma etapa pode ser M2 e continuar **hipótese comercial não validada**.
+
+## 38.11 Entregáveis e ownership sem conflito
+
+Atualizar \`docs/IMPLEMENTATION_MATRIX.md\` separando PRIORIDADE, IMPLEMENTAÇÃO, EVIDÊNCIA e ADOÇÃO. Preservar históricos e IDs D33; não reescrever estados legados retroativamente. O plano operacional v3.6 contém backlog por dependência e aceitação.
+
+**Claude Code**, por padrão: experiência buyer/provider, site/visita, primeiro valor, cópia e jornadas, QA visual e teste de compreensão. **Codex**, por padrão: deployment/distribuição/identidade da versão, testes externos, instrumentação, orçamento de performance, ensaios de carga, integridade e desenho de contratos para integração. Fronteiras são exemplos, não autorização de mutações: definir ownership explícito antes de cada rodada, não editar os mesmos arquivos ou worktrees, não trocar secrets nem executar cutover/reset/export/migrations hospedados sem autorização. Commits em branches próprias, PRs pequenos o suficiente para revisar, quatro gates verdes no SHA exato, sem auto-merge cego. Compatibilidade com \`AGENTS.md\`, \`CLAUDE.md\` e §37 é obrigatória.
+
+---
+
 # Apêndice A — Capability Map
 
 | Domínio | Papel |
@@ -1994,6 +2085,7 @@ Esta guideline complementa documentos especializados como:
 - `docs/FINANCIAL_OPERATIONAL_RESILIENCE.md`;
 - `docs/ARANDU_DESIGN_CONSTITUTION.md`;
 - `docs/ARANDU_COMPETITIVE_LANDSCAPE.md`;
+- `docs/FINANCIAL_COMPETITIVE_EXECUTION_PLAN_2026-10-20.md`;
 - `docs/demo/README.md`;
 - `docs/demo/RUNBOOK.md`;
 - `docs/supabase-migrations.json`.
