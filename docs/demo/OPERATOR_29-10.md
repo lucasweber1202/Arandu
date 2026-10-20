@@ -12,7 +12,7 @@ em Docker e dados **fictícios** (Vitta Foods e instituições `*.example`).
 | --- | --- | --- |
 | **A — hospedado** | `node scripts/demo/hosted-parity.mjs --url=https://arandu-demo.vercel.app --sha=<SHA completo aprovado>` diz **READY** e o roteiro pela entrada pública foi ensaiado no domínio | use B |
 | **B — estação local** | `bash scripts/demo/local.sh station` diz **READY** nesta máquina, hoje | use C |
-| **C — sem demo ao vivo** | — | Apresente capturas **ditas como capturas**; não simule operação |
+| **C — sem demo ao vivo** | — | Apresente capturas **ditas como capturas**; não simule operação. A visita pública (`/demo/visita.html`, offline em `dist/` após `npm run build:demo`) já é rotulada como *Visita informativa* e identifica os Processos A–D |
 
 Não troque de A para B no meio da reunião se B não foi preparado antes.
 
