@@ -33,3 +33,58 @@ export function relationshipContext(ctx, detail) {
     graphContextCard(ctx, { type: 'provider', id: provider.id, title: 'Garantias, documentos e relações financeiras' })
   ].filter(Boolean));
 }
+
+// ------------------------------------------------------------ workspace
+// Resumo e pendências da instituição, derivados só do que a API carregou.
+// Nada de nota, ranking ou urgência inventada: cada item diz de onde vem.
+const DAY = 86400000;
+const daysTo = (value, today) => (value ? Math.round((Date.parse(`${String(value).slice(0, 10)}T00:00:00Z`) - today) / DAY) : null);
+const LIVE_RFQ = ['open', 'collecting', 'comparing'];
+const RENEWAL_HORIZON = 90;
+
+/**
+ * Pendências do relacionamento, em ordem: vencido → próximo → em andamento → incompleto.
+ * `kind` separa o que está vencido, o que vence em breve, o que está incompleto
+ * e o que não foi informado — a tela nunca trata ausência como "em dia".
+ */
+export function relationshipAttention(detail, { today = Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate()) } = {}) {
+  const items = [];
+  for (const contract of detail.contracts || []) {
+    if (!['active', 'renewing'].includes(contract.status)) continue;
+    const days = daysTo(contract.ends_on, today);
+    const name = contract.title || CONTRACT_CATEGORIES[contract.product] || 'Contrato';
+    if (days === null) items.push({ kind: 'missing', rank: 4, title: `Término não informado: ${name}`, detail: 'Sem data de término o Arandu não acompanha renovação nem aviso prévio.', target: { type: 'contract', id: contract.id } });
+    else if (days < 0) items.push({ kind: 'overdue', rank: 0, due: days, title: `Contrato vencido: ${name}`, detail: `Término em ${formatDate(contract.ends_on)}, ainda registrado como vigente.`, target: { type: 'contract', id: contract.id } });
+    else if (days <= RENEWAL_HORIZON) items.push({ kind: 'soon', rank: 1, due: days, title: `Vence em ${days} ${days === 1 ? 'dia' : 'dias'}: ${name}`, detail: `Término em ${formatDate(contract.ends_on)}. Revise renovação e aviso prévio no contrato.`, target: { type: 'contract', id: contract.id } });
+  }
+  for (const issue of detail.issues || []) {
+    if (!['open', 'in_progress'].includes(issue.status)) continue;
+    const days = daysTo(issue.due_on, today);
+    items.push({ kind: days !== null && days < 0 ? 'overdue' : 'open', rank: days !== null && days < 0 ? 0 : 2, due: days, title: `Questão aberta: ${issue.title}`,
+      detail: days === null ? 'Sem prazo definido.' : days < 0 ? `Prazo vencido em ${formatDate(issue.due_on)}.` : `Prazo ${formatDate(issue.due_on)}.`, target: { type: 'issue', id: issue.id } });
+  }
+  for (const rfq of detail.rfqs || []) {
+    if (!LIVE_RFQ.includes(rfq.status)) continue;
+    const days = daysTo(rfq.response_deadline, today);
+    items.push({ kind: 'open', rank: 2, due: days, title: `Negociação em andamento: ${rfq.title || 'Solicitação'}`,
+      detail: `${RFQ_STATUS[rfq.status]?.label || 'Em andamento'}${rfq.response_deadline ? ` · prazo de resposta ${formatDate(rfq.response_deadline)}` : ''}.`, target: { type: 'rfq', id: rfq.id } });
+  }
+  if (!(detail.contacts || []).length) items.push({ kind: 'missing', rank: 4, title: 'Nenhum contato registrado', detail: 'Registre quem atende a empresa nesta instituição.', target: { type: 'contact' } });
+  const due = (item) => (Number.isFinite(item.due) ? item.due : 9999);
+  return items.sort((a, b) => a.rank - b.rank || due(a) - due(b));
+}
+
+/** Fatos do topo: responsável, produtos e próximo prazo — com a origem de cada um. */
+export function relationshipSummary(detail, options) {
+  const primary = (detail.contacts || []).find((row) => row.is_primary) || null;
+  const categories = new Set([...(detail.map || []).map((row) => row.category), ...(detail.contracts || []).map((row) => row.product).filter(Boolean)]);
+  const statuses = new Set((detail.relationships || []).map((row) => row.status));
+  const attention = relationshipAttention(detail, options);
+  const dated = attention.filter((item) => Number.isFinite(item.due) && item.due >= 0).sort((a, b) => a.due - b.due)[0] || null;
+  return {
+    status: statuses.has('active') ? 'Ativo' : statuses.has('prospect') ? 'Em prospecção' : statuses.size ? 'Inativo' : (detail.contracts || []).some((row) => ['active', 'renewing'].includes(row.status)) ? 'Com contrato vigente' : 'Estado não registrado',
+    contact: primary ? [primary.name, primary.title].filter(Boolean).join(' · ') : null,
+    products: [...categories].map((key) => CONTRACT_CATEGORIES[key] || productLabel(key)).filter(Boolean),
+    next: dated, attention
+  };
+}

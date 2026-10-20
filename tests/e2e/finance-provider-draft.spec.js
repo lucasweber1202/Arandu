@@ -260,3 +260,13 @@ test('convite em destaque: uma só ação principal na tela; o cartão do convit
   await expect(page.locator('#view .btn-primary')).toHaveCount(1);
   await expect(page.locator('#convites').getByRole('button', { name: 'Aceitar' })).toBeVisible();
 });
+
+test('caixa da instituição: rascunho separado do que falta responder e fronteira de visibilidade explícita', async ({ page }) => {
+  await mockProvider(page, { assignment: { ...ASSIGNMENT, has_draft: true } });
+  await page.goto('/provider/index.html');
+  await expect(page.getByRole('heading', { name: 'Rascunhos (1)' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /^Para responder/ })).toHaveCount(0);
+  await expect(page.getByRole('note')).toContainText('apenas as suas propostas');
+  await expect(page.getByRole('note')).toContainText('nunca aparecem aqui');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+});

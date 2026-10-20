@@ -373,9 +373,18 @@ function providerDrawer(ctx) {
     if (website.value && !/^https:\/\//.test(website.value)) { website.closest('.field').setError('Use um endereço https.'); return; }
     save.disabled = true;
     try {
-      await ctx.api('providers', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, ...Object.fromEntries(new FormData(form)) }) });
+      const created = await ctx.api('providers', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, ...Object.fromEntries(new FormData(form)) }) });
       dialog.close();
-      toast('Provedor cadastrado.');
+      // Primeiro valor sem a instituição no portal: o cadastro abre direto o
+      // relacionamento, onde contato, contrato e questões são os próximos passos.
+      const id = created?.row?.id;
+      toast(id ? 'Instituição cadastrada. Ela não precisa ter conta no Arandu: registre agora um contato ou um contrato existente.' : 'Instituição cadastrada.');
+      if (id) {
+        const url = new URL(location.href);
+        url.searchParams.delete('acao');
+        url.searchParams.set('provider_id', id);
+        history.replaceState(null, '', url.pathname + url.search + url.hash);
+      }
       ctx.reload();
     } catch (error) { toast(error.message, 'error'); save.disabled = false; }
   });

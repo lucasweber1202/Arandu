@@ -8,8 +8,7 @@
 import { el, icon, formatDate, formatDateTime, percent } from '../core.js';
 import { button, tag, field, drawer, toast, loading, errorState, onSubmit } from '../ui.js';
 import { CONTRACT_CATEGORIES } from '../../../lib/finance/contract-terms.mjs';
-import { FACILITY_KINDS } from '../../../lib/finance/portfolio.mjs';
-import { relationshipContext } from './relationship-context.js';
+import { relationshipContext, relationshipSummary } from './relationship-context.js';
 import { entityTree } from '../../../lib/finance/entities.mjs';
 import { loadEntities, entityName } from './entities.js';
 
@@ -25,7 +24,7 @@ function metric(label, value, definition) {
 export async function openProviderRelationship(ctx, provider) {
   const entities = await loadEntities(ctx);
   const body = el('div', { class: 'stack contract-center' }, loading('Carregando relacionamento…'));
-  const dialog = drawer({ title: provider.name, subtitle: 'Relacionamento com o provedor: fatos do histórico da sua empresa.', body, className: 'drawer-wide', onClose: () => { const url = new URL(location.href); if (url.searchParams.get('provider_id') === provider.id) { url.searchParams.delete('provider_id'); history.replaceState(null, '', url.pathname + url.search + url.hash); } } });
+  const dialog = drawer({ title: provider.name, subtitle: 'Relacionamento da sua empresa com esta instituição: contratos, negociações, contatos e pendências.', body, className: 'drawer-wide', onClose: () => { const url = new URL(location.href); if (url.searchParams.get('provider_id') === provider.id) { url.searchParams.delete('provider_id'); history.replaceState(null, '', url.pathname + url.search + url.hash); } } });
   const write = ctx.can('edit_profile');
   const load = () => ctx.api(`provider-relationship?organization_id=${encodeURIComponent(ctx.organization.id)}&provider_id=${encodeURIComponent(provider.id)}`)
     .then((detail) => body.replaceChildren(...render(detail))).catch((error) => body.replaceChildren(errorState({ error, onRetry: load })));
@@ -34,8 +33,14 @@ export async function openProviderRelationship(ctx, provider) {
   function render(detail) {
     const m = detail.metrics;
     const d = m.definitions;
-    const sections = [relationshipContext(ctx, detail), el('p', { class: 'callout callout-info compact' }, [icon('shield', { size: 14 }), el('span', { text: detail.neutrality })])];
-    sections.push(el('section', { class: 'cc-section' }, [el('h3', { text: 'Indicadores do recorte carregado' }), el('div', { class: 'portfolio-stats' }, [
+    // Nível 1–2: quem é, como está a relação e o que pede trabalho agora.
+    const summary = relationshipSummary(detail);
+    const sections = [workspaceHead(summary), attentionSection(summary.attention, detail),
+      el('section', { class: 'cc-section', 'aria-labelledby': 'rel-records' }, [el('h3', { id: 'rel-records', text: 'Contratos, limites e negociações' }), relationshipContext(ctx, detail)])];
+    // Nível 4: indicadores, mapa, relação por entidade e avaliações — consulta, não trabalho.
+    const advanced = [];
+    advanced.push(el('p', { class: 'callout callout-info compact' }, [icon('shield', { size: 14 }), el('span', { text: detail.neutrality })]));
+    advanced.push(el('section', { class: 'cc-section' }, [el('h3', { text: 'Indicadores do recorte carregado' }), el('div', { class: 'portfolio-stats' }, [
       metric('Convites', `${m.responded} de ${m.invited} respondidos`, d.response_rate),
       metric('Taxa de resposta', m.response_rate === null ? 'Sem convites' : percent(m.response_rate), d.responded),
       metric('Tempo de resposta (mediana)', m.median_response_days === null ? '—' : `${m.median_response_days} dias`, d.median_response_days),
@@ -45,7 +50,7 @@ export async function openProviderRelationship(ctx, provider) {
     ])]));
 
     // Mapa por entidade × categoria.
-    sections.push(el('section', { class: 'cc-section' }, [el('h3', { text: 'Mapa do relacionamento' }),
+    advanced.push(el('section', { class: 'cc-section' }, [el('h3', { text: 'Mapa do relacionamento' }),
       detail.map.length ? el('table', { class: 'data-table compact' }, [
         el('thead', {}, el('tr', {}, ['Entidade', 'Categoria', 'Contratos', 'Facilities', 'Limites', 'Próximo vencimento'].map((label) => el('th', { scope: 'col', text: label })))),
         el('tbody', {}, detail.map.map((row) => el('tr', {}, [
@@ -57,12 +62,12 @@ export async function openProviderRelationship(ctx, provider) {
         ])))
       ]) : el('p', { class: 'muted', text: 'Sem contratos ou facilities com este provedor no seu escopo.' })]));
 
-    if (!__ARANDU_DEMO__) sections.push(el('p', {}, el('a', {href:`/finance/performance.html?provider_id=${encodeURIComponent(provider.id)}`,text:'Performance: períodos, metas e fontes'})));
-    if (!__ARANDU_DEMO__) sections.push(el('p', {}, el('a', {href:`/finance/spend.html?provider_id=${encodeURIComponent(provider.id)}`,text:'Spend do provedor: moedas e fontes'})));
+    if (!__ARANDU_DEMO__) advanced.push(el('p', {}, el('a', {href:`/finance/performance.html?provider_id=${encodeURIComponent(provider.id)}`,text:'Performance: períodos, metas e fontes'})));
+    if (!__ARANDU_DEMO__) advanced.push(el('p', {}, el('a', {href:`/finance/spend.html?provider_id=${encodeURIComponent(provider.id)}`,text:'Spend do provedor: moedas e fontes'})));
     // Relação por entidade.
     const relList = el('ul', { class: 'plain-list' }, detail.relationships.map((row) => el('li', {}, [el('strong', { text: entityName(entities, row.legal_entity_id) }),
       el('span', { text: ` · ${REL_STATUS[row.status]}${row.categories.length ? ` · ${row.categories.map((item) => CONTRACT_CATEGORIES[item] || item).join(', ')}` : ''}${row.since_on ? ` · desde ${formatDate(row.since_on)}` : ''}` })])));
-    sections.push(el('section', { class: 'cc-section' }, [el('div', { class: 'cc-head' }, [el('h3', { text: 'Relação por entidade' }),
+    advanced.push(el('section', { class: 'cc-section' }, [el('div', { class: 'cc-head' }, [el('h3', { text: 'Relação por entidade' }),
       write && entities.rows.length ? button('Definir relação', { size: 'sm', iconName: 'edit', onClick: () => relationshipForm() }) : null]),
       detail.relationships.length ? relList : el('p', { class: 'muted', text: entities.rows.length ? 'Nenhuma relação registrada por entidade.' : 'Cadastre entidades do grupo para registrar a relação por entidade.' })]));
 
@@ -75,7 +80,7 @@ export async function openProviderRelationship(ctx, provider) {
       ]))) : el('p', { class: 'muted', text: 'Nenhum contato registrado.' })]));
 
     // Issues.
-    sections.push(el('section', { class: 'cc-section' }, [el('div', { class: 'cc-head' }, [el('h3', { text: 'Issues e follow-ups' }), write ? button('Abrir issue', { size: 'sm', iconName: 'plus', onClick: () => issueForm(detail) }) : null]),
+    sections.push(el('section', { class: 'cc-section' }, [el('div', { class: 'cc-head' }, [el('h3', { text: 'Questões e follow-ups' }), write ? button('Registrar questão', { size: 'sm', iconName: 'plus', onClick: () => issueForm(detail) }) : null]),
       detail.issues.length ? el('ul', { class: 'milestone-list', role: 'list' }, detail.issues.map((row) => {
         const [severity, tone] = ISSUE_SEVERITY[row.severity];
         const open = ['open', 'in_progress'].includes(row.status);
@@ -84,7 +89,7 @@ export async function openProviderRelationship(ctx, provider) {
           tag(severity, tone),
           write && open ? button('Resolver', { size: 'sm', onClick: () => resolveIssue(row) }) : null
         ]);
-      })) : el('p', { class: 'muted', text: 'Nenhuma issue registrada.' })]));
+      })) : el('p', { class: 'muted', text: 'Nenhuma questão registrada.' })]));
 
     // Scorecards da empresa.
     const reviews = detail.reviews.map((row) => {
@@ -92,20 +97,55 @@ export async function openProviderRelationship(ctx, provider) {
       return el('li', {}, [el('strong', { text: row.weighted_result === null ? '—' : `${Number(row.weighted_result).toLocaleString('pt-BR')} de 100` }),
         el('span', { text: ` · ${template?.name || 'Scorecard'} · ${formatDate(row.period_start)} → ${formatDate(row.period_end)} · cobertura ${percent(row.answered_weight)}${row.comment ? ` · ${row.comment}` : ''}` })]);
     });
-    sections.push(el('section', { class: 'cc-section' }, [el('div', { class: 'cc-head' }, [el('h3', { text: 'Avaliações definidas pela sua empresa' }),
+    advanced.push(el('section', { class: 'cc-section' }, [el('div', { class: 'cc-head' }, [el('h3', { text: 'Avaliações definidas pela sua empresa' }),
       write && detail.templates.length ? button('Registrar avaliação', { size: 'sm', iconName: 'plus', onClick: () => reviewForm(detail) }) : null]),
       el('p', { class: 'muted small', text: m.definitions.review }),
       reviews.length ? el('ul', { class: 'plain-list' }, reviews) : el('p', { class: 'muted', text: detail.templates.length ? 'Nenhuma avaliação registrada.' : 'Crie um scorecard em Configurações → Scorecards para avaliar provedores com critérios da sua empresa.' })]));
 
-    // Linha do tempo.
-    sections.push(el('section', { class: 'cc-section' }, [el('h3', { text: 'Linha do tempo' }),
+    // Memória: histórico sob demanda.
+    sections.push(disclosure('rel-historico', `Histórico (${detail.timeline.length})`, [
       detail.timeline.length ? el('ol', { class: 'plain-list timeline-list' }, detail.timeline.map((row) => el('li', { text: `${formatDateTime(row.at)} — ${row.text}` }))) : el('p', { class: 'muted', text: 'Sem histórico.' })]));
-    if (detail.facilities.length) sections.push(el('p', { class: 'muted small', text: `Facilities com este provedor: ${detail.facilities.map((row) => `${row.name} (${FACILITY_KINDS[row.kind]})`).join(', ')}.` }));
     // Tarifas: fatos contratado × observado, carregados sob demanda (sem score).
     const fees = el('div');
     import('./fees.js').then((m) => m.providerFeeFacts(ctx, provider.id)).then((node) => fees.replaceWith(node)).catch(() => fees.remove());
-    sections.push(fees);
+    advanced.push(fees);
+    sections.push(disclosure('rel-indicadores', 'Indicadores, mapa e avaliações', advanced));
     return sections;
+  }
+
+  function workspaceHead(summary) {
+    const fact = (label, value, missing) => el('div', {}, [el('dt', { text: label }), el('dd', { class: value ? '' : 'muted', text: value || missing })]);
+    return el('section', { class: 'rel-head', 'aria-label': 'Resumo do relacionamento' }, el('dl', { class: 'rel-facts' }, [
+      fact('Relação', summary.status, ''),
+      fact('Contato principal', summary.contact, 'Não registrado'),
+      fact('Produtos', summary.products.join(', '), 'Nenhum contrato ou limite no recorte'),
+      fact('Próximo prazo', summary.next ? summary.next.title : null, 'Nenhum prazo futuro registrado')
+    ]));
+  }
+
+  // Cada pendência leva à tela canônica do registro ou à ação permitida aqui.
+  function attentionSection(items, detail) {
+    const KIND = { overdue: ['Vencido', 'danger'], soon: ['Próximo', 'warning'], open: ['Em andamento', 'accent'], missing: ['Não informado', 'neutral'] };
+    const action = (item) => {
+      if (item.target.type === 'contract') return el('a', { class: 'btn btn-sm btn-secondary', href: ctx.href(`/finance/contracts.html?abrir=contrato#contract-${item.target.id}`), text: 'Abrir contrato' });
+      if (item.target.type === 'rfq') return el('a', { class: 'btn btn-sm btn-secondary', href: ctx.href(`/finance/rfq.html?id=${item.target.id}`), text: 'Abrir negociação' });
+      if (item.target.type === 'issue' && write) { const issue = detail.issues.find((row) => row.id === item.target.id); return button('Resolver', { size: 'sm', onClick: () => resolveIssue(issue) }); }
+      if (item.target.type === 'contact' && write) return button('Adicionar contato', { size: 'sm', iconName: 'plus', onClick: () => contactForm() });
+      return null;
+    };
+    return el('section', { class: 'cc-section rel-attention', 'aria-labelledby': 'rel-attention-title' }, [
+      el('h3', { id: 'rel-attention-title', text: 'O que pede atenção' }),
+      items.length ? el('ul', { class: 'milestone-list', role: 'list' }, items.slice(0, 6).map((item) => el('li', { class: 'milestone-row' }, [
+        tag(...KIND[item.kind]),
+        el('div', { class: 'milestone-main' }, [el('strong', { text: item.title }), el('span', { class: 'muted small', text: item.detail })]),
+        action(item)
+      ]))) : el('p', { class: 'muted', text: 'Nenhum vencimento, questão aberta ou negociação em andamento no recorte carregado. Isso não substitui a revisão dos contratos.' }),
+      items.length > 6 ? el('p', { class: 'muted small', text: `Mais ${items.length - 6} itens nas seções abaixo.` }) : null
+    ]);
+  }
+
+  function disclosure(id, title, children) {
+    return el('details', { class: 'cc-section rel-more', id }, [el('summary', { text: title }), ...children]);
   }
 
   function entityOptions(control, { allowGroup = true } = {}) {
@@ -176,17 +216,17 @@ export async function openProviderRelationship(ctx, provider) {
     const form = el('form', { class: 'field-grid', novalidate: true }, [field({ label: 'Título', control: title, required: true }), field({ label: 'Categoria', control: category }),
       field({ label: 'Severidade', control: severity }), field({ label: 'Contrato', control: contract }), entities.rows.length ? field({ label: 'Entidade', control: entity, hint: 'Com contrato, vale a entidade do contrato.' }) : null,
       field({ label: 'Prazo', control: due, optionalLabel: true }), field({ label: 'Descrição', control: description, optionalLabel: true, className: 'span-2' }),
-      el('div', { class: 'form-actions span-2' }, button('Abrir issue', { variant: 'primary', type: 'submit', iconName: 'check' }))]);
+      el('div', { class: 'form-actions span-2' }, button('Registrar questão', { variant: 'primary', type: 'submit', iconName: 'check' }))]);
     onSubmit(form, async (event) => {
       event.preventDefault();
-      if (title.value.trim().length < 3) { toast('Dê um título à issue.', 'error'); return; }
+      if (title.value.trim().length < 3) { toast('Dê um título à questão.', 'error'); return; }
       try {
         await ctx.api('provider-issues', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, provider_id: provider.id, title: title.value.trim(), category: category.value,
           severity: severity.value, contract_id: contract.value || null, legal_entity_id: contract.value ? null : entity.value || null, due_on: due.value || null, description: description.value.trim() || null }) });
-        after('Issue aberta.');
+        after('Questão registrada.');
       } catch (error) { toast(error.message, 'error'); }
     });
-    inline('Abrir issue', form);
+    inline('Registrar questão', form);
   }
 
   function resolveIssue(issue) {
@@ -195,7 +235,7 @@ export async function openProviderRelationship(ctx, provider) {
       el('div', { class: 'form-actions' }, button('Marcar como resolvida', { variant: 'primary', type: 'submit', iconName: 'check' }))]);
     onSubmit(form, async (event) => {
       event.preventDefault();
-      try { await ctx.api('provider-issues', { method: 'PATCH', body: JSON.stringify({ issue_id: issue.id, status: 'resolved', resolution: resolution.value.trim() }) }); after('Issue resolvida.'); }
+      try { await ctx.api('provider-issues', { method: 'PATCH', body: JSON.stringify({ issue_id: issue.id, status: 'resolved', resolution: resolution.value.trim() }) }); after('Questão resolvida.'); }
       catch (error) { toast(error.message, 'error'); }
     });
     inline(`Resolver: ${issue.title}`, form);

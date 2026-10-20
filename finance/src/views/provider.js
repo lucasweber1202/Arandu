@@ -98,11 +98,22 @@ export async function providerHome(ctx) {
         button('Aceitar', { variant: inviteFirst ? 'secondary' : 'primary', size: 'sm', iconName: 'check', onClick: (event) => acceptInvite(ctx, invite.demo_token, { button: event.currentTarget }) })
       ]))) }));
   }
-  const groups = [['Para responder', rows.filter((row) => ['todo', 'outdated'].includes(assignmentState(row).key))], ['Enviadas', rows.filter((row) => assignmentState(row).key === 'sent')], ['Encerradas', rows.filter((row) => assignmentState(row).key === 'closed')]];
-  for (const [title, list] of groups) {
+  // Caixa por estado: o que ainda não foi começado, o que tem rascunho, o que
+  // foi enviado e o que encerrou — cada grupo com o que falta fazer nele.
+  const key = (row) => assignmentState(row).key;
+  const groups = [
+    ['Para responder', 'Ainda sem proposta, ou a solicitação mudou depois do seu envio.', rows.filter((row) => key(row) === 'outdated' || (key(row) === 'todo' && !row.has_draft))],
+    ['Rascunhos', 'Salvos só para a sua instituição. A empresa não vê até você enviar.', rows.filter((row) => key(row) === 'todo' && row.has_draft)],
+    ['Enviadas', 'Cada alteração cria uma nova versão; as anteriores ficam no histórico da proposta.', rows.filter((row) => key(row) === 'sent')],
+    ['Encerradas', null, rows.filter((row) => key(row) === 'closed')]
+  ];
+  for (const [title, subtitle, list] of groups) {
     if (!list.length) continue;
-    root.append(card({ title, flush: true, body: el('div', { class: 'opportunity-list' }, list.map((row) => opportunityRow(ctx, row))) }));
+    root.append(card({ title: `${title} (${list.length})`, subtitle, flush: true, body: el('div', { class: 'opportunity-list' }, list.map((row) => opportunityRow(ctx, row))) }));
   }
+  // Fronteira visível: o portal mostra só o que é desta instituição.
+  if (rows.length || invites.length) root.append(el('p', { class: 'muted small provider-scope', role: 'note' }, [icon('shield', { size: 14 }),
+    el('span', { text: ` Você vê apenas as solicitações para as quais ${ctx.organization.legal_name} foi convidada, e apenas as suas propostas. Propostas de outras instituições e a comparação da empresa nunca aparecem aqui.` })]));
   if (!rows.length && !invites.length) root.append(card({ title: 'Recebeu um link de convite?', body: [el('p', { class: 'muted', text: 'Abra o link que a empresa enviou ou cole o código do convite.' }), linkButton('Aceitar convite', ctx.href('/provider/invite.html'), { iconName: 'send' })] }));
   return root;
 }

@@ -1056,6 +1056,32 @@ test('painel: até cinco pendências à vista, sem tarefas soterrando processos,
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
 });
 
+test('solicitação: próximo passo visível em qualquer aba, com atalho e quem age; comparação abre com resumo factual', async ({ page }) => {
+  await mockSession(page);
+  await page.goto(`/finance/rfq.html?id=${RFQ}#atividade`);
+  const next = page.getByRole('region', { name: 'Próximo passo' });
+  await expect(next).toBeVisible();
+  await expect(next).toContainText('Você pode agir nesta etapa.');
+  await next.getByRole('link', { name: 'Ver comparação' }).click();
+  await expect(page.getByRole('tab', { name: /Comparação/ })).toHaveAttribute('aria-selected', 'true');
+  const summary = page.getByRole('list', { name: 'Resumo da comparação' });
+  await expect(summary).toContainText('2 propostas na versão atual');
+  await expect(summary).toContainText(/condições comparáveis com valores diferentes/);
+  await expect(page.locator('#view')).not.toContainText(/melhor proposta|recomendad/i);
+  // Uma só região de próximo passo: o cartão lateral da Visão geral saiu.
+  await page.getByRole('tab', { name: 'Visão geral' }).click();
+  await expect(page.getByRole('region', { name: 'Próximo passo' })).toHaveCount(1);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+});
+
+test('solicitação para leitor: próximo passo diz quem age e não oferece ação de gestão', async ({ page }) => {
+  await mockSession(page, { viewerRole: 'viewer' });
+  await page.goto(`/finance/rfq.html?id=${RFQ}`);
+  const next = page.getByRole('region', { name: 'Próximo passo' });
+  await expect(next).toContainText('Ação de quem gerencia a solicitação; você acompanha.');
+  await expect(page.getByRole('button', { name: 'Encerrar coleta e avaliar' })).toHaveCount(0);
+});
+
 test('instituições: a coluna de verificação cabe no desktop e as contagens usam singular/plural', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name.startsWith('mobile'), 'tabela só no desktop');
   await page.setViewportSize({ width: 1440, height: 900 });

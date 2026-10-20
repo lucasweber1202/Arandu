@@ -83,6 +83,19 @@ export function comparisonMatrix(rfq, proposals, { currentRevision = rfq.revisio
   const rowsByKey = Object.fromEntries(data.rows.map(row => [row.key, row]));
   const historical = new Set();
   wrap.append(el('p', { class: 'notice-line', id: 'comparison-notice', text: data.notice }));
+  // Resumo factual antes da tabela: quantas condições diferem e quantas estão
+  // pendentes. Contagem, não juízo; nenhuma proposta é chamada de melhor.
+  {
+    const comparable = data.rows.filter(row => fieldsByKey(rfq.product)[row.key]?.comparable);
+    const differs = comparable.filter(row => row.differs).length;
+    const pending = data.rows.filter(row => row.missing_count || row.invalid_count).length;
+    wrap.append(el('ul', { class: 'comparison-summary', 'aria-label': 'Resumo da comparação' }, [
+      el('li', {}, [el('strong', { text: String(data.columns.length) }), ` ${data.columns.length === 1 ? 'proposta' : 'propostas'} na versão atual`]),
+      el('li', {}, [el('strong', { text: String(differs) }), ` de ${comparable.length} condições comparáveis com valores diferentes`]),
+      el('li', {}, [el('strong', { text: String(pending) }), ` ${pending === 1 ? 'condição com informação pendente' : 'condições com informação pendente'}`]),
+      data.context_notices.length ? el('li', {}, [el('strong', { text: String(data.context_notices.length) }), data.context_notices.length === 1 ? ' ressalva de comparabilidade' : ' ressalvas de comparabilidade']) : null
+    ].filter(Boolean)));
+  }
   if (data.context_notices.length) wrap.append(el('details', { class: 'callout callout-warning comparison-context', open: true }, [el('summary', { text: 'Condições que exigem revisão de comparabilidade' }), el('ul', {}, data.context_notices.map(text => el('li', { text }))) ]));
   // Limites técnicos do recorte ficam a um clique, não na primeira leitura.
   wrap.append(el('details', { class: 'comparison-about' }, [el('summary', { text: 'Como ler esta comparação' }),
