@@ -218,13 +218,14 @@ create or replace view public.fin_external_proposal_current with(security_invoke
  v.terms,v.channel,v.received_at,v.source_reference,v.currency,v.rfq_revision,v.recorded_by,v.recorded_at,
  v.document_id,v.document_version,v.document_sha256,v.document_mime,v.document_size,
  q.reviewed_by,q.reviewed_at,q.document_read,
- (v.document_id is null or (d.id is not null and d.removed_at is null and f.status='available')) as document_available,
+ (v.document_id is not null and d.id is not null and d.removed_at is null and coalesce(f.status='available',false)) as document_available,
  (v.rfq_revision=r.revision) as rfq_revision_matches,
  b.name as provider_name,
  'buyer_recorded_external'::text as origin,'buyer_attribution'::text as issuer_identity,
  'transcription_correspondence_only'::text as review_scope,
  'not_recorded'::text as external_validation,'not_recorded'::text as institution_acceptance,
- false as decision_allowed,'version_metadata_unverified'::text as document_hash_source
+ false as decision_allowed,'version_metadata_unverified'::text as document_hash_source,
+ case when v.document_id is null then 'not_presented' when d.id is not null and d.removed_at is null and f.status='available' then 'metadata_available' else 'unavailable' end as document_state
  from public.fin_external_proposals p
  join public.fin_external_proposal_versions v on v.proposal_id=p.id and v.version=p.current_version
  join public.fin_rfqs r on r.id=p.rfq_id

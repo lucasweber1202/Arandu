@@ -38,7 +38,9 @@ select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-0000000ea002'
 insert into ext_ids values('external',(public.fin_external_proposal_save('00000000-0000-4000-8000-0000000ec001','00000000-0000-4000-8000-0000000ed001','create-key-1',0,null,pg_temp.input())->>'id')::uuid);
 select pg_temp.assert_true((public.fin_external_proposal_save('00000000-0000-4000-8000-0000000ec001','00000000-0000-4000-8000-0000000ed001','create-key-1',0,null,pg_temp.input())->>'replayed')::boolean,'retry create reconciles');
 select pg_temp.assert_true((select count(*)=1 from public.fin_external_proposals),'one external proposal');
+select pg_temp.assert_true((select recorded_by='00000000-0000-4000-8000-0000000ea002' from public.fin_external_proposals),'recording author comes from auth uid');
 select pg_temp.assert_true((select count(*)=0 from public.fin_rfq_invites),'no invitation required');
+select pg_temp.assert_true((select not document_available and document_state='not_presented' from public.fin_external_proposal_current),'no linked document is not presented, not available');
 select pg_temp.assert_true((select not (terms ? 'cet_year') and not (terms ? 'interest_rate_month') from public.fin_external_proposal_current),'missing rates stay absent');
 select pg_temp.denied($q$select public.fin_external_proposal_save('00000000-0000-4000-8000-0000000ec001','00000000-0000-4000-8000-0000000ed001','create-key-1',0,null,pg_temp.input('{"currency":"USD"}'))$q$,'external proposal conflict');
 select pg_temp.denied($q$select public.fin_external_proposal_review((select id from ext_ids where name='external'),1,'confirm','Conferência material fictícia',true,false)$q$,'forbidden');

@@ -123,7 +123,9 @@ da proposta. O hash existente da versão documental pode ter sido informado no
 upload e não recalculado na finalização atual. Portanto é **metadado registrado**,
 rotulado `version_metadata_unverified`/`sha256_verified_against_bytes=false`,
 não prova independente de integridade dos bytes ou de autoria. Hash ausente é
-NULL. Nenhum download de arquivo é realizado por esta API.
+NULL. Nenhum download de arquivo é realizado por esta API. Sem arquivo,
+`document_state=not_presented` e `document_available=false`; isso não impede
+a análise de uma declaração manual revisada, mas nunca anuncia um anexo.
 
 Remoção posterior do documento mantém história, mas `document_available=false`
 na projeção e exclui o registro da comparação corrente. Revisão histórica não é
@@ -190,6 +192,11 @@ document_hash_source e disponibilidade. `versions[].version_state` é derivado;
 reviews é limitado às versões daquela página. Limite 1–50 (padrão25); usar
 has_more/cursor, não insinuar histórico completo ao receber uma página.
 
+Os endpoints tradicionais de lista/detalhe da RFQ e os contadores legados
+continuam descrevendo propostas do portal. Para a fila externa, carregar
+external-proposals; não inferir ausência de ofertas externas desses contadores.
+O registro externo não simula uma transição causada por envio do banco.
+
 Na comparação, `columns[].provenance` distingue fonte, autor do registro,
 recebimento, revisão, documento e limitações. Para externas não há submitted_at
 bancário; usar recorded_at da proveniência. Não desenhar botão de selecionar/
@@ -202,7 +209,9 @@ organization_forbidden; 404 external_proposal_not_found/route_not_found;
 413 payload_too_large; 422 external_comparison_limit/proposal_coverage_limit;
 429 rate limit; 503 schema_incompatible/indisponibilidade herdada. Mensagens são
 sanitizadas; não registrar termos, referências privadas ou documentos em logs.
-Ao receber conflito, recarregar versão e exigir decisão da pessoa; não repetir
+Após cada mutação, reler a projeção corrente; um recibo repetido confirma o
+resultado original, não a disponibilidade atual de um documento. Ao receber
+conflito, recarregar versão e exigir decisão da pessoa; não repetir
 com expected_version novo automaticamente. Retry de timeout mantém a mesma chave.
 
 ## Desempenho, migração e integração

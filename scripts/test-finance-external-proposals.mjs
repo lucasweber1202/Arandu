@@ -68,11 +68,12 @@ response=await call('GET',`external-proposals?organization_id=${ORG}&id=${ID}`);
 assert.equal(response.payload.versions[0].version,1);
 response=await call('POST','comparison',{rfq_id:RFQ});
 assert.equal(response.payload.comparison.columns[0].provenance.source,'buyer_recorded_external');
+assert(sent.some(request=>request.url.includes('or=(document_id.is.null,document_available.eq.true)')),'manual/no-document analysis does not falsely label a file available');
 response=await call('POST','external-proposals/confirm',{id:ID,expected_version:1,reason:'Material fictício conferido',material_reviewed:true,document_read:false});
 assert.equal(response.payload.review_id,ID);
 response=await call('POST','external-proposals/versions',{...input,id:ID,expected_version:1,request_key:'external-key-2',correction_reason:'Correção sintética justificada'});
 assert.equal(response.statusCode,201);
-for(const [path,body] of [['external-proposals',{...input,terms:{offered_amount:[]}}],['external-proposals',{...input,document_version:2}],['external-proposals',{...input,rfq_revision:1.5}],['external-proposals/versions',{...input,id:ID,expected_version:0}]]) {
+for(const [path,body] of [['external-proposals',{...input,terms:{offered_amount:[]}}],['external-proposals',{...input,document_version:2}],['external-proposals',{...input,source_reference:{forged:true}}],['external-proposals',{...input,rfq_revision:1.5}],['external-proposals',{...input,product:'acquiring'}],['external-proposals',{...input,legal_entity_id:PROVIDER}],['external-proposals/versions',{...input,id:ID,expected_version:0}]]) {
  const n=sent.filter(req=>req.url.includes('rpc/')).length;
  await assert.rejects(()=>call('POST',path,body),err=>err.status===400);
  assert.equal(sent.filter(req=>req.url.includes('rpc/')).length,n,'invalid request has no material write');
