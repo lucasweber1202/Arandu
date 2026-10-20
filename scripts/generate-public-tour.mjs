@@ -14,7 +14,9 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { TOUR_STEPS, TOUR_KINDS } from '../lib/public-tour.mjs';
 import { COMPANY_AREAS, PROVIDER_AREAS } from '../lib/finance/navigation.mjs';
 import { BUYERS, PROVIDERS } from '../lib/finance/demo-personas.mjs';
-import { COMPANY, RFQ_CREDIT, RFQ_OPEN, RFQ_ACQUIRING, RFQ_WORKING_CAPITAL_CURRENT, TASKS, LIFECYCLE, COMMENTS } from './demo/dataset.mjs';
+import * as DATASET from './demo/dataset.mjs';
+
+const { COMPANY, RFQ_CREDIT, RFQ_OPEN, RFQ_ACQUIRING, RFQ_WORKING_CAPITAL_CURRENT, TASKS, LIFECYCLE, COMMENTS } = DATASET;
 
 const OUTPUT = 'demo/visita.html';
 const CAPTURES = 'demo/visita/captures.json';
@@ -50,8 +52,30 @@ const covenantState = (covenant) => {
   return 'Aguardando dados — ausência não conta como conformidade';
 };
 
+// Processos (solicitações) citados na visita. Cada etapa com `case` mostra a
+// qual deles pertence: são negociações distintas do mesmo cenário, e a página
+// não pode sugerir continuidade entre propostas, decisões e contratos de RFQs
+// diferentes. O estágio é texto de produto; nomes e valores vêm do dataset.
+const CASES = {
+  RFQ_CREDIT: { tag: 'Processo A', stage: `Em aprovação — etapa da ${BUYERS.helena.title}` },
+  RFQ_OPEN: { tag: 'Processo B', stage: `Coleta de propostas aberta — prazo em ${days(RFQ_OPEN.deadline)}` },
+  RFQ_ACQUIRING: { tag: 'Processo C', stage: `Decidido — contrato com a ${provider(RFQ_ACQUIRING.winner)} vigente` },
+  RFQ_WORKING_CAPITAL_CURRENT: { tag: 'Processo D', stage: `Contrato com o ${provider(RFQ_WORKING_CAPITAL_CURRENT.winner)} vigente — vence em ${days(RFQ_WORKING_CAPITAL_CURRENT.contract.ends)}` }
+};
+const caseRef = (key) => {
+  if (!CASES[key] || !DATASET[key]) throw new Error(`Processo desconhecido na visita: ${key}`);
+  return `${CASES[key].tag} · ${DATASET[key].title}`;
+};
+const caseList = () => `<ol class="tour-cases">${Object.keys(CASES).map((key) => `<li><span class="tour-case-tag">${esc(CASES[key].tag)}</span><strong>${esc(DATASET[key].title)}</strong><span>${esc(CASES[key].stage)} · instituições: ${esc(DATASET[key].invited.map(provider).join(', '))}</span></li>`).join('')}</ol>`;
+const profile = Object.fromEntries(COMPANY.profile.map(([field, value]) => [field, value]));
+
 // Conteúdo de cada etapa: texto de produto + fatos tirados do dataset.
 const BODY = {
+  contexto: () => `<p>A ${esc(COMPANY.legal_name)} (${esc(COMPANY.sector.toLowerCase())}, ${esc(profile.colaboradores)} colaboradores) já tem relacionamento com várias instituições: ${esc(profile.bancos_relacionamento)}. Crédito, adquirência e tarifas foram negociados em momentos diferentes, cada um com seu contrato, prazo e responsável.</p>
+<p>Sem um lugar comum, a tesouraria depende de e-mails, planilhas e da memória de quem negociou para saber o que vence, quanto custa e por que cada escolha foi feita. O Arandu organiza esse ciclo: pedir propostas comparáveis, decidir com responsáveis definidos e acompanhar o contrato até a próxima renegociação.</p>
+<p>Esta visita passa por quatro processos diferentes do mesmo cenário — não é uma única negociação:</p>
+${caseList()}
+<p class="tour-note">Empresa, pessoas, instituições e valores fictícios. Não há métricas de economia, logos ou clientes reais nesta visita.</p>`,
   painel: () => `<p>${esc(BUYERS.juliana.name)}, ${esc(BUYERS.juliana.title.toLowerCase())} da ${esc(COMPANY.legal_name)}, começa pelo Início: o que depende dela, o que está parado esperando alguém e o que vence em breve. Nada de indicador decorativo — cada linha leva à solicitação, ao contrato ou à tarefa correspondente.</p>
 ${list([
     `Aprovação da nova linha de capital de giro na etapa da ${BUYERS.helena.title}`,
@@ -92,30 +116,30 @@ ${quote(COMMENTS.creditToAtlas)}${quote(COMMENTS.creditFromAtlas)}`,
     const weights = { mdr_credit_cash: 'crédito à vista', mdr_credit_installment: 'parcelado', anticipation_rate: 'antecipação', settlement_days: 'liquidação', terminal_rent: 'aluguel' };
     return `<p>As condições informadas pelas instituições aparecem lado a lado, campo a campo. Os pesos são da empresa; o Arandu não declara vencedor nem chama uma proposta de “melhor”.</p>
 ${table(`Comparação — ${RFQ_ACQUIRING.title}`, ['Condição', ...labels], rows.map(([label, field, format]) => [label, ...order.map((key) => format(terms[key][field]))]))}
-<p class="tour-note">Pesos registrados pela tesouraria: ${esc(Object.entries(RFQ_ACQUIRING.weights).map(([field, weight]) => `${weights[field]} ${weight}`).join(', '))}. Na nova linha de crédito, a ${esc(provider('orbe'))} não informou o CET: a comparação mostra “não informado”, sem estimar.</p>`;
+<p class="tour-note">Pesos registrados pela tesouraria: ${esc(Object.entries(RFQ_ACQUIRING.weights).map(([field, weight]) => `${weights[field]} ${weight}`).join(', '))}. Na nova linha de crédito (Processo A), a ${esc(provider('orbe'))} não informou o CET: a comparação mostra “não informado”, sem estimar.</p>`;
   },
   aprovacao: () => `<p>Quem pede não aprova a própria solicitação. A política da empresa define as etapas; cada aprovador vê valores, condições, comentários e justificativa antes de decidir.</p>
 ${table(`Aprovação — ${RFQ_CREDIT.title}`, ['Etapa', 'Situação'], [
     [`1 · ${BUYERS.carlos.name} (${BUYERS.carlos.title})`, 'Aprovada'],
     [`2 · ${BUYERS.helena.name} (${BUYERS.helena.title})`, 'Pendente — é a vez dela']
   ])}
-<p>Decisão registrada na concorrência de adquirência:</p>
+<p>Para comparar, uma decisão já concluída em outro processo (${esc(caseRef('RFQ_ACQUIRING'))}), aprovada pelo Controller e pela CFO:</p>
 <blockquote class="tour-quote"><p>${esc(RFQ_ACQUIRING.decisionRationale)}</p><footer>Justificativa da decisão · ${esc(COMPANY.trade_name)}</footer></blockquote>`,
-  contrato: () => `<p>A decisão vira contrato com vigência, aviso prévio e condições estruturadas. A partir daí o Arandu cria os marcos de renovação e as tarefas antes do vencimento.</p>
+  contrato: () => `<p>Na concorrência de adquirência (${esc(CASES.RFQ_ACQUIRING.tag)}), a decisão virou contrato com vigência, aviso prévio e condições estruturadas. A partir daí o Arandu cria os marcos de renovação e as tarefas antes do vencimento.</p>
 ${facts([
     ['Contrato', `${provider('lumina')} — adquirência, ${RFQ_ACQUIRING.proposals.lumina.at(-1).terms.contract_months} meses`],
     ['Custo contratado', contract.cost],
     ['Condições', contract.conditions],
     ['Aviso prévio', days(contract.notice)],
-    ['Renovação em andamento', `Linha do ${provider('atlas')} vence em ${days(renewal.ends)}; aviso prévio de ${days(renewal.notice)}`]
+    ['Outro contrato a renovar', `${esc(CASES.RFQ_WORKING_CAPITAL_CURRENT.tag)}: linha do ${provider('atlas')} vence em ${days(renewal.ends)}; aviso prévio de ${days(renewal.notice)}`]
   ])}`,
   continuidade: () => {
     const impl = LIFECYCLE.implementation;
-    return `<p>O valor do Arandu continua depois da assinatura: implantação, obrigações contratuais, tarifas cobradas e o histórico com cada instituição ficam no mesmo lugar, com fonte.</p>
+    return `<p>O valor do Arandu continua depois da assinatura: implantação, obrigações contratuais, tarifas cobradas e o histórico com cada instituição ficam no mesmo lugar, com fonte. Os covenants abaixo são da linha vigente do ${esc(provider('atlas'))} (${esc(CASES.RFQ_WORKING_CAPITAL_CURRENT.tag)}); implantação e tarifas são do contrato da ${esc(provider('lumina'))} (${esc(CASES.RFQ_ACQUIRING.tag)}).</p>
 ${table('Covenants e obrigações — cédula do Atlas Bank', ['Obrigação', 'Situação'], LIFECYCLE.covenants.map((covenant) => [covenant.title, covenantState(covenant)]))}
 ${facts([
-    ['Implantação', `${impl.title}: ${impl.completed.length} marcos concluídos com evidência, 1 bloqueado — ${impl.issue.title}; go-live previsto em +${impl.goLive} dias`],
-    ['Tarifas contratadas', `${LIFECYCLE.fees.service}: ${LIFECYCLE.fees.observation.volume} terminais a ${money(LIFECYCLE.fees.rate)} no contrato, ${money(LIFECYCLE.fees.observation.observed_amount)} no extrato — diferença para análise humana, não acusação nem economia`],
+    ['Implantação (Processo C)', `${impl.title}: ${impl.completed.length} marcos concluídos com evidência, 1 bloqueado — ${impl.issue.title}; go-live previsto em +${impl.goLive} dias`],
+    ['Tarifas contratadas (Processo C)', `${LIFECYCLE.fees.service}: ${LIFECYCLE.fees.observation.volume} terminais a ${money(LIFECYCLE.fees.rate)} no contrato, ${money(LIFECYCLE.fees.observation.observed_amount)} no extrato — diferença para análise humana, não acusação nem economia`],
     ['Relacionamento', `Qualificação do ${provider(LIFECYCLE.qualification.provider)} aguardando revisão interna; performance do “${LIFECYCLE.performance.title}” com liquidação medida e resposta a chamados indisponível`]
   ])}`;
   },
@@ -128,9 +152,20 @@ ${list([
   'instituicao-proposta': () => `<p>A instituição preenche a proposta nos mesmos campos da solicitação, salva rascunho, anexa documentos e envia. Uma revisão gera nova versão; a anterior continua registrada.</p>
 ${list([
     `${provider('atlas')}: versão 2 enviada após o pedido de redução da TAC`,
-    `${provider('meridian')}: rascunho salvo, ainda não enviado`,
+    `${provider('meridian')}: rascunho salvo nesta solicitação, não enviado dentro do prazo`,
     'Status visível para a instituição: enviada, em avaliação, decidida'
-  ])}`
+  ])}`,
+  'instituicao-valor': () => `<p>Para o gerente de relacionamento, uma solicitação no Arandu chega pronta para análise: o que a empresa precisa, em que prazo e com quais documentos. Isso reduz idas e vindas antes de levar o caso ao comitê.</p>
+${table('O que a instituição recebe — e o que não recebe', ['No portal da instituição', 'Situação'], [
+    ['Necessidade estruturada (valor, prazo, carência, garantias)', 'Disponível'],
+    ['Documentos que a empresa decidiu compartilhar', 'Disponível'],
+    ['Prazo da coleta e status da própria proposta', 'Disponível'],
+    ['Perguntas e pedidos de ajuste no próprio processo', 'Disponível'],
+    ['Versões anteriores da própria proposta', 'Disponível'],
+    ['Propostas de outras instituições e comparação da empresa', 'Nunca visível']
+  ])}
+<p>Na prática do cenário: ${esc(PROVIDERS.atlas.person.name)} respondeu ao pedido de redução da TAC com uma versão 2 no mesmo processo, em vez de reabrir a negociação por e-mail. A ${esc(provider('meridian'))} tem convite aceito no ${esc(CASES.RFQ_OPEN.tag)} e pode enviar a proposta até o fim do prazo.</p>
+<p class="tour-note">O Arandu não garante volume nem aprovação de crédito à instituição, e a escolha é sempre da empresa. Nesta visita pública nenhuma proposta é enviada.</p>`
 };
 
 function capture(step, captures) {
@@ -159,9 +194,10 @@ function render() {
     const audience = step.track === 'provider' ? 'Instituição financeira' : 'Empresa';
     return `<section class="tour-step" id="${step.id}" aria-labelledby="${step.id}-title" data-step="${index}">
 <p class="tour-where"><span class="tour-badge">${TOUR_KINDS[step.kind]}</span><span>${audience} · ${esc(item.area.label)} › ${esc(item.label)}</span></p>
+${step.case ? `<p class="tour-case"><span class="tour-case-tag">${esc(CASES[step.case].tag)}</span> ${esc(DATASET[step.case].title)}</p>` : ''}
 <h2 id="${step.id}-title"><span class="tour-step-n">Etapa ${stepNumber(step)} de ${TOUR_STEPS.length}</span> ${esc(step.title)}</h2>
 <div class="tour-body"><div class="tour-text">${BODY[step.id]()}</div>${capture(step, captures)}</div>
-<nav class="tour-pager" aria-label="Etapas vizinhas">${prev ? `<a class="btn" href="#${prev.id}" rel="prev">← ${esc(prev.title)}</a>` : '<a class="btn" href="#topo">← Início da visita</a>'}${next ? `<a class="btn btn-primary" href="#${next.id}" rel="next">${esc(next.title)} →</a>` : '<a class="btn btn-primary" href="#areas">Ver as cinco áreas →</a>'}</nav>
+<nav class="tour-pager" aria-label="Etapas vizinhas">${step.id === 'instituicao-proposta' ? '<a class="tour-skip" href="#areas">Pular para as cinco áreas</a>' : ''}${prev ? `<a class="btn" href="#${prev.id}" rel="prev">← ${esc(prev.title)}</a>` : '<a class="btn" href="#topo">← Início da visita</a>'}${next ? `<a class="btn btn-primary" href="#${next.id}" rel="next">${esc(next.title)} →</a>` : '<a class="btn btn-primary" href="#areas">Ver as cinco áreas →</a>'}</nav>
 </section>`;
   };
   const areas = COMPANY_AREAS.map((area) => `<li class="tour-area"><h3>${esc(area.label)}</h3><p>${esc(area.hint)}</p><ul>${area.items.filter((item) => !item.mobileOnly).map((item) => {
@@ -205,12 +241,13 @@ function render() {
 <section class="tour-intro" id="topo" aria-labelledby="tour-title">
   <p class="tour-kicker">Visita guiada · cenário fictício</p>
   <h1 id="tour-title">Uma contratação financeira, do pedido à renovação</h1>
-  <p class="tour-lede">Acompanhe a ${esc(COMPANY.legal_name)} — indústria de alimentos fictícia — numa nova linha de capital de giro e numa troca de adquirência, e veja o mesmo processo pelo lado da instituição financeira. Os dados são os do cenário que a demonstração canônica do Arandu grava pela API real.</p>
-  <a class="btn btn-primary btn-lg" href="#${TOUR_STEPS[0].id}">Começar pela etapa 1</a>
+  <p class="tour-lede">Acompanhe a ${esc(COMPANY.legal_name)} — indústria de alimentos fictícia — em processos distintos de crédito e de adquirência, cada um identificado na tela, e veja como a instituição financeira participa pelo próprio portal. Os dados são os do cenário que a demonstração canônica do Arandu grava pela API real.</p>
+  <p class="tour-start"><a class="btn btn-primary btn-lg" href="#${TOUR_STEPS[0].id}">Começar pela etapa 1</a><a class="tour-skip" href="#painel">Ir direto ao trabalho de hoje</a></p>
   <details class="tour-honesty"><summary>O que é esta visita</summary>
     <ul class="tour-list">
       <li><strong>${TOUR_KINDS.informative}:</strong> leitura das telas e dos dados do cenário. Não há login, gravação, envio a instituições nem decisão real.</li>
       <li>Empresas, pessoas, instituições e valores são fictícios; e-mails usam domínios reservados “.example”.</li>
+      <li>Cada etapa indica a qual processo pertence (A, B, C ou D). São solicitações diferentes: a comparação e o contrato de adquirência não decorrem da linha de crédito em aprovação.</li>
       <li>As imagens, quando presentes, são capturas de telas reais do produto na Demo canônica local, com commit e data na legenda.</li>
       <li>O Arandu não concede crédito, não movimenta dinheiro e não escolhe instituição: a decisão é sempre da empresa.</li>
     </ul>

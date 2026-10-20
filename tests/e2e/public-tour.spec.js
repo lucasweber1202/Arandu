@@ -17,7 +17,7 @@ test('entrada leva à visita guiada com uma ação principal', async ({ page }) 
   await expect(page.getByRole('region', { name: 'Ambiente demonstrativo' })).toContainText('dados fictícios');
   await page.waitForLoadState('networkidle');
   // Volta pelo cabeçalho: nenhum erro de transição em nenhum dos sentidos (#241).
-  await page.locator('#topo a').click();
+  await page.locator('#topo').getByRole('link', { name: 'Começar pela etapa 1' }).click();
   await page.locator('.tour-header').getByRole('link', { name: 'Início', exact: true }).click();
   await expect(page).toHaveURL(/\/demo\/index\.html$/);
   await page.waitForLoadState('networkidle');
@@ -29,8 +29,8 @@ test('a jornada completa avança e volta etapa por etapa, sem API', async ({ pag
   page.on('request', (request) => { if (request.url().includes('/api/')) api.push(request.url()); });
   await page.goto('/demo/visita.html');
   await page.getByRole('link', { name: 'Começar pela etapa 1' }).click();
-  const titles = ['O que pede atenção hoje', 'A solicitação financeira', 'Convites às instituições', 'Propostas e versões', 'Comparação lado a lado',
-    'Aprovação com responsabilidades separadas', 'O contrato registrado', 'Depois da assinatura', 'A instituição recebe o convite', 'Preparar e enviar a proposta'];
+  const titles = ['O ponto de partida', 'O que pede atenção hoje', 'A solicitação financeira', 'Convites às instituições', 'Propostas e versões', 'Comparação lado a lado',
+    'Aprovação com responsabilidades separadas', 'O contrato registrado', 'Depois da assinatura', 'A instituição recebe o convite', 'Preparar e enviar a proposta', 'Por que a instituição participa'];
   for (const [index, title] of titles.entries()) {
     const current = page.locator('.tour-step.is-current');
     await expect(current.getByRole('heading', { level: 2 })).toContainText(title);
@@ -42,8 +42,21 @@ test('a jornada completa avança e volta etapa por etapa, sem API', async ({ pag
   await page.locator('.tour-step.is-current').getByRole('link', { name: 'Ver as cinco áreas →' }).click();
   for (const area of ['Meu trabalho', 'Contratações', 'Portfólio financeiro', 'Relacionamentos', 'Governança']) await expect(page.locator('#areas')).toContainText(area);
   await page.goBack();
-  await expect(page.locator('.tour-step.is-current h2')).toContainText('Preparar e enviar a proposta');
+  await expect(page.locator('.tour-step.is-current h2')).toContainText('Por que a instituição participa');
   expect(api).toEqual([]);
+});
+
+test('cada etapa diz a qual processo pertence; processos distintos não se confundem', async ({ page }) => {
+  await page.goto('/demo/visita.html#contexto');
+  const context = page.locator('.tour-step.is-current');
+  await expect(context.locator('.tour-cases li')).toHaveCount(4);
+  await expect(context).toContainText('não é uma única negociação');
+  for (const [id, tag] of [['solicitacao', 'Processo A'], ['convites', 'Processo B'], ['comparacao', 'Processo C'], ['aprovacao', 'Processo A'], ['contrato', 'Processo C'], ['continuidade', 'Processo D']]) {
+    await page.goto(`/demo/visita.html#${id}`);
+    await expect(page.locator('.tour-step.is-current .tour-case')).toContainText(tag);
+  }
+  await page.goto('/demo/visita.html#instituicao-valor');
+  await expect(page.locator('.tour-step.is-current')).toContainText('Nunca visível');
 });
 
 test('links profundos abrem a etapa; etapa inexistente explica e volta ao início', async ({ page }) => {
@@ -77,7 +90,7 @@ test('teclado: pular para o conteúdo e navegar pelas etapas', async ({ page, br
 });
 
 test('sem rolagem horizontal na entrada e nas etapas', async ({ page }) => {
-  for (const path of ['/', '/demo/index.html', '/demo/visita.html', '/demo/visita.html#comparacao', '/demo/visita.html#continuidade', '/demo/visita.html#areas']) {
+  for (const path of ['/', '/demo/index.html', '/demo/visita.html', '/demo/visita.html#comparacao', '/demo/visita.html#continuidade', '/demo/visita.html#contexto', '/demo/visita.html#instituicao-valor', '/demo/visita.html#areas']) {
     await page.goto(path);
     await page.waitForLoadState('networkidle');
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);

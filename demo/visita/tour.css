@@ -95,3 +95,13 @@ body.tour{background:var(--bg);color:var(--text)}
 .entry-flow a:hover{border-color:var(--petrol-line);background:var(--petrol-weak)}
 .entry-sides a,.entry-modes a:not(.dl-role){color:var(--petrol)}
 @media (max-width:759px){.tour-table caption{display:block;width:100%;padding:var(--s3) var(--s4) 0}.tour-table th[scope="row"]{display:block;padding:0 0 6px;border:0;font-weight:600}}
+/* Processos da visita: rótulo de qual solicitação a etapa mostra (são distintas). */
+.tour-case{margin:0 0 var(--s3);font-size:var(--fs-sm);color:var(--text-secondary)}
+.tour-case-tag{display:inline-block;margin-right:var(--s1);padding:1px 8px;border-radius:var(--r-pill);background:var(--petrol-weak);color:var(--accent-text);font-size:var(--fs-xs);font-weight:600;white-space:nowrap}
+.tour-cases{list-style:none;margin:0;padding:0;display:grid;gap:var(--s2)}
+.tour-cases li{display:grid;gap:2px;padding:10px var(--s4);border:1px solid var(--border);border-radius:var(--r-md)}
+.tour-cases li .tour-case-tag{justify-self:start}
+.tour-cases li>span:last-child{font-size:var(--fs-sm);color:var(--text-muted)}
+.tour-start{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s3) var(--s4);margin:0}
+.tour-skip{font-size:var(--fs-sm);align-self:center}
+.tour-pager .tour-skip{flex-basis:100%;order:3}
