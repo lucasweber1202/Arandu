@@ -41,6 +41,7 @@ for (const [flow, files] of Object.entries(manifest)) {
   if (files.indexOf('docs/supabase-financial-task-accountability.sql') !== files.indexOf('docs/supabase-financial-implementation-task-labels.sql')+1) issues.push(`${flow}: responsabilidade persistida deve seguir rótulos de tarefas.`);
   if (files.indexOf('docs/supabase-financial-enterprise-integrity.sql') !== files.indexOf('docs/supabase-financial-task-accountability.sql')+1) issues.push(`${flow}: integridade enterprise deve seguir responsabilidade persistida.`);
   if (files.indexOf('docs/supabase-financial-decision-authorization.sql') !== files.indexOf('docs/supabase-financial-enterprise-integrity.sql')+1) issues.push(`${flow}: autorização da decisão deve seguir integridade enterprise.`);
+  if (files.indexOf('docs/supabase-financial-external-proposals.sql') !== files.indexOf('docs/supabase-financial-decision-authorization.sql')+1) issues.push(`${flow}: propostas externas devem seguir autorização da decisão.`);
   const sprint2 = files.indexOf('docs/supabase-sprint2-catalog-readiness.sql');
   const collections = files.indexOf('docs/arandu-mvp-collections.sql');
   const sprint5 = files.indexOf('docs/supabase-sprint5-pilot.sql');

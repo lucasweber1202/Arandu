@@ -1079,3 +1079,6 @@ console.log('Document storage: caminhos validados; pede 120 s (envio) e 60 s (do
   }
   console.log(`Exceções do banco: ${raised.size} distintas, todas traduzidas ou internas por desenho.`);
 }
+
+// Buyer-owned external ingestion uses the same financial API and CI entry point.
+await import("./test-finance-external-proposals.mjs");
