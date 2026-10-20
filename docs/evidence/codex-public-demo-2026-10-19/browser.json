@@ -1,0 +1,158 @@
+{
+  "checked_at": "2026-10-19T23:50:35.675Z",
+  "url": "https://arandu-demo.vercel.app",
+  "contract": "observed legacy sandbox; no approved UX fidelity claim",
+  "viewports": [
+    {
+      "name": "desktop",
+      "width": 1440,
+      "visited": [
+        {
+          "path": "/",
+          "status": 200,
+          "title": "Explorar demonstração | Arandu Financial Procurement"
+        },
+        {
+          "path": "/demo/finance/dashboard.html",
+          "status": 200,
+          "title": "Painel — Demonstração | Arandu Financial Procurement",
+          "overflow": false,
+          "images": true,
+          "text": "Pular para o conteúdo\nA\nArandu\nA\nAcme Indústria\nMEU TRABALHO\nInício\nAprovações\nTarefas\n3\nPROCESSOS\nN"
+        },
+        {
+          "path": "/demo/finance/approvals.html",
+          "status": 200,
+          "title": "Aprovações — Demonstração | Arandu Financial Procurement",
+          "overflow": false,
+          "images": true,
+          "text": "Pular para o conteúdo\nA\nArandu\nA\nAcme Indústria\nMEU TRABALHO\nInício\nAprovações\nTarefas\n3\nPROCESSOS\nN"
+        },
+        {
+          "path": "/demo/finance/tasks.html",
+          "status": 200,
+          "title": "Tarefas — Demonstração | Arandu Financial Procurement",
+          "overflow": false,
+          "images": true,
+          "text": "Pular para o conteúdo\nA\nArandu\nA\nAcme Indústria\nMEU TRABALHO\nInício\nAprovações\nTarefas\n3\nPROCESSOS\nN"
+        },
+        {
+          "path": "/demo/finance/rfqs.html",
+          "status": 200,
+          "title": "Solicitações — Demonstração | Arandu Financial Procurement",
+          "overflow": false,
+          "images": true,
+          "text": "Pular para o conteúdo\nA\nArandu\nA\nAcme Indústria\nMEU TRABALHO\nInício\nAprovações\nTarefas\n3\nPROCESSOS\nN"
+        },
+        {
+          "path": "/demo/finance/proposals.html",
+          "status": 200,
+          "title": "Propostas — Demonstração | Arandu Financial Procurement",
+          "overflow": false,
+          "images": true,
+          "text": "Pular para o conteúdo\nA\nArandu\nA\nAcme Indústria\nMEU TRABALHO\nInício\nAprovações\nTarefas\n3\nPROCESSOS\nN"
+        },
+        {
+          "path": "/demo/finance/contracts.html",
+          "status": 200,
+          "title": "Contratos — Demonstração | Arandu Financial Procurement",
+          "overflow": false,
+          "images": true,
+          "text": "Pular para o conteúdo\nA\nArandu\nA\nAcme Indústria\nMEU TRABALHO\nInício\nAprovações\nTarefas\n3\nPROCESSOS\nN"
+        },
+        {
+          "path": "/demo/provider/index.html",
+          "status": 200,
+          "title": "Portal do provedor — Demonstração | Arandu Financial Procurement",
+          "overflow": false,
+          "images": true,
+          "text": "Pular para o conteúdo\nA\nArandu\nInício\nMEU TRABALHO\nOportunidades\nConvites\nAceitar por código\nPORTAL "
+        },
+        {
+          "path": "/demo/provider/index.html",
+          "provider_persona_entry": true,
+          "title": "Portal do provedor — Demonstração | Arandu Financial Procurement"
+        }
+      ],
+      "errors": [
+        "Transition was aborted because of invalid state. ViewTransition opt-in disabled",
+        "Transition was aborted because of invalid state. ViewTransition opt-in disabled"
+      ]
+    },
+    {
+      "name": "mobile",
+      "width": 390,
+      "visited": [
+        {
+          "path": "/",
+          "status": 200,
+          "title": "Explorar demonstração | Arandu Financial Procurement"
+        },
+        {
+          "path": "/demo/finance/dashboard.html",
+          "status": 200,
+          "title": "Painel — Demonstração | Arandu Financial Procurement",
+          "overflow": false,
+          "images": true,
+          "text": "Pular para o conteúdo\nAcme Indústria Ltda. — DEMO\nDEMO\nSincronizado\n2\nMC\nBoa noite, Marina\n\nsegunda-"
+        },
+        {
+          "path": "/demo/finance/approvals.html",
+          "status": 200,
+          "title": "Aprovações — Demonstração | Arandu Financial Procurement",
+          "overflow": false,
+          "images": true,
+          "text": "Pular para o conteúdo\nAcme Indústria Ltda. — DEMO\nDEMO\nSincronizado\n2\nMC\nAprovações\n\nDecisões que de"
+        },
+        {
+          "path": "/demo/finance/tasks.html",
+          "status": 200,
+          "title": "Tarefas — Demonstração | Arandu Financial Procurement",
+          "overflow": false,
+          "images": true,
+          "text": "Pular para o conteúdo\nAcme Indústria Ltda. — DEMO\nDEMO\nSincronizado\n2\nMC\nTarefas\n\nPendências da equi"
+        },
+        {
+          "path": "/demo/finance/rfqs.html",
+          "status": 200,
+          "title": "Solicitações — Demonstração | Arandu Financial Procurement",
+          "overflow": false,
+          "images": true,
+          "text": "Pular para o conteúdo\nAcme Indústria Ltda. — DEMO\nDEMO\nSincronizado\n2\nMC\nSolicitações\n\nTodas as conc"
+        },
+        {
+          "path": "/demo/finance/proposals.html",
+          "status": 200,
+          "title": "Propostas — Demonstração | Arandu Financial Procurement",
+          "overflow": false,
+          "images": true,
+          "text": "Pular para o conteúdo\nAcme Indústria Ltda. — DEMO\nDEMO\nSincronizado\n2\nMC\nPropostas recebidas\n\nTodas "
+        },
+        {
+          "path": "/demo/finance/contracts.html",
+          "status": 200,
+          "title": "Contratos — Demonstração | Arandu Financial Procurement",
+          "overflow": false,
+          "images": true,
+          "text": "Pular para o conteúdo\nAcme Indústria Ltda. — DEMO\nDEMO\nSincronizado\n2\nMC\nContratos e renovações\n\nTer"
+        },
+        {
+          "path": "/demo/provider/index.html",
+          "status": 200,
+          "title": "Portal do provedor — Demonstração | Arandu Financial Procurement",
+          "overflow": false,
+          "images": true,
+          "text": "Pular para o conteúdo\nArandu\nDEMO\nPortal do provedor\n\nComece criando a organização da sua instituiçã"
+        },
+        {
+          "path": "/demo/provider/index.html",
+          "provider_persona_entry": true,
+          "title": "Portal do provedor — Demonstração | Arandu Financial Procurement"
+        }
+      ],
+      "errors": [
+        "Transition was aborted because of invalid state. ViewTransition opt-in disabled"
+      ]
+    }
+  ]
+}

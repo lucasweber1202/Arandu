@@ -4,6 +4,7 @@ import { assertPresentationModeIsSafe } from '../lib/presentation-mode.mjs';
 import { ownSiteUrl } from '../lib/public-site-url.mjs';
 import { PUBLIC_PAGES } from './seo-meta.mjs';
 import { assertDemoModeIsSafe, standaloneDemo } from '../lib/demo-mode.mjs';
+import { writePublicationManifest } from './publication-manifest.mjs';
 
 const output = process.argv.slice(2);
 if (output.length && (output.length !== 2 || output[0] !== '--output-dir')) throw new Error('Uso: copy-runtime-assets.mjs [--output-dir diretório]');
@@ -33,3 +34,4 @@ if (standaloneDemo() && assertDemoModeIsSafe()) {
   if (!html.includes('href="/produto.html">Site institucional</a>')) throw new Error('Entrada da demonstração sem link institucional reconhecível');
   writeFileSync(join(dist, 'index.html'), html);
 }
+writePublicationManifest(dist);

@@ -1,0 +1,14 @@
+{
+  "checked_at": "2026-10-19T23:57:01.823Z",
+  "url": "https://arandu-demo.vercel.app/",
+  "expected_sha": "3b3fd481d3fc05fbd42382c85b59226eccc6f518",
+  "HTTP_ARTIFACT": "FAIL",
+  "BROWSER_DESKTOP": "NOT_RUN",
+  "BROWSER_MOBILE": "NOT_RUN",
+  "PUBLIC_SHAREABLE": "FAIL",
+  "LOCAL_STATION_READY": "NOT_RUN",
+  "CANONICAL_HOSTED_M3": "BLOCKED",
+  "checks": [],
+  "local": false,
+  "error": "HTTP 404: /arandu-build.json"
+}
