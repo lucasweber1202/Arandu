@@ -189,7 +189,9 @@ da RFQ, não do formulário. `terms` é o schema do produto, sem novo catálogo.
 Detalhe/lista incluem `origin=buyer_recorded_external`, issuer_identity,
 review_scope, external_validation/institution_acceptance=not_recorded,
 document_hash_source e disponibilidade. `versions[].version_state` é derivado;
-reviews é limitado às versões daquela página. Limite 1–50 (padrão25); usar
+reviews é limitado às versões daquela página. A busca de histórico limita
+as versões ao current_version do cabeçalho já lido: uma versão concorrente
+nova não pode herdar o estado reviewed da versão anterior. Limite 1–50 (padrão25); usar
 has_more/cursor, não insinuar histórico completo ao receber uma página.
 
 Os endpoints tradicionais de lista/detalhe da RFQ e os contadores legados

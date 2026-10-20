@@ -66,6 +66,7 @@ response=await call('GET',`external-proposals?organization_id=${ORG}&rfq_id=${RF
 assert.equal(response.payload.rows[0].id,ID);assert.equal(response.payload.decision_allowed,false);
 response=await call('GET',`external-proposals?organization_id=${ORG}&id=${ID}`);
 assert.equal(response.payload.versions[0].version,1);
+assert(sent.some(request=>request.url.includes('fin_external_proposal_versions?')&&request.url.includes('version=lte.1')),'history cannot include a future unreviewed version beyond the header snapshot');
 response=await call('POST','comparison',{rfq_id:RFQ});
 assert.equal(response.payload.comparison.columns[0].provenance.source,'buyer_recorded_external');
 assert(sent.some(request=>request.url.includes('or=(document_id.is.null,document_available.eq.true)')),'manual/no-document analysis does not falsely label a file available');
