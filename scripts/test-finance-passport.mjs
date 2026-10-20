@@ -5,6 +5,42 @@ import {
   buildPassport, freshness, passportPrefill, validatePassportUsage, validatePassportValue, typedValue, reviewDays
 } from '../lib/finance/passport.mjs';
 import { PRODUCTS } from '../lib/finance/products.mjs';
+import { passportEvidence } from '../lib/api/passport-evidence.mjs';
+
+// Evidence dimensions coexist. No source, attachment or confirmation upgrades
+// an assertion into independent validation or institution acceptance.
+{
+  const original = { field_key: 'receita_anual', field_value: '100', source: 'extrato',
+    updated_by: 'writer', updated_at: '2026-10-01', verified_at: '2026-10-20', verified_by: 'reviewer',
+    document_id: 'doc', valid_until: '2026-12-31', external_validation: 'verified',
+    institution_acceptance: 'accepted', document_review: 'confirmed' };
+  const before = structuredClone(original);
+  for (const source of [...WRITABLE_SOURCES, ...RESERVED_SOURCES, 'unknown']) {
+    const report = passportEvidence([{ ...original, source }], [{ id: 'doc', current_version: 3 }]);
+    const field = report.fields[0];
+    assert.equal(report.contract, 'passport-evidence-v1');
+    assert.equal(field.source.declaration, source);
+    assert.equal(field.source.recorded_by, 'writer');
+    assert.equal(field.supporting_document.state, 'metadata_available');
+    assert.equal(field.supporting_document.current_version, 3);
+    assert.equal(field.supporting_document.version_at_recording, null);
+    assert.equal(field.currentness_confirmation.state, 'recorded');
+    assert.equal(field.currentness_confirmation.scope, 'declared_currentness_only');
+    for (const dimension of ['external_validation', 'institution_acceptance', 'document_review']) {
+      assert.equal(field[dimension], 'not_recorded', `untrusted ${dimension} cannot upgrade evidence`);
+    }
+    assert.equal(field.supporting_document.authenticity, 'not_recorded');
+    assert(!JSON.stringify(report).includes('100'), 'evidence metadata does not duplicate financial values');
+  }
+  assert.deepEqual(original, before, 'projection never rewrites the source');
+  assert.equal(passportEvidence([original], [{ id: 'doc', removed_at: '2026-10-21' }]).fields[0].supporting_document.state, 'unavailable');
+  assert.equal(passportEvidence([original]).fields[0].supporting_document.current_version, null);
+  const incomplete = passportEvidence([{ field_key: 'legacy', verified_at: '2026-10-20' }]).fields[0];
+  assert.equal(incomplete.currentness_confirmation.state, 'not_established', 'date without author is insufficient');
+  assert.equal(incomplete.source.recorded_by, null);
+  assert.equal(incomplete.supporting_document.state, 'not_linked');
+  assert.deepEqual(passportEvidence().fields, []);
+}
 
 // Financial Passport: domínio puro (catálogo, frescor, cobertura, reuso em RFQ)
 // e fronteira da API (nada fala com o Supabase real; o fetch é substituído).
@@ -193,6 +229,19 @@ for (const [body, code] of [
   await rejects('POST', 'profile', { organization_id: BUYER, ...body }, 400, code);
   assert.ok(!sent.some((entry) => entry.url.includes('rpc/')), `${code}: chegou ao banco`);
 }
+// Proveniência reservada e autoria nunca vêm de um formulário.
+for (const source of RESERVED_SOURCES) {
+  reset((entry) => buyerOrg(entry) || 'id-1');
+  await rejects('POST', 'profile', { organization_id: BUYER, field_key: 'porte', field_value: 'grande', source }, 400, 'invalid_source');
+  assert(!sent.some((entry) => entry.url.includes('rpc/')), 'reserved provenance never reaches a form write');
+}
+reset((entry) => buyerOrg(entry) || 'id-1');
+await call('POST', 'profile', { organization_id: BUYER, field_key: 'porte', field_value: 'grande',
+  updated_by: 'forged-actor', verified_by: 'forged-reviewer', verified_at: '2026-10-20',
+  external_validation: 'verified', institution_acceptance: 'accepted', evidence: { contract: 'forged' } });
+assert.deepEqual(sent.find((entry) => entry.url.endsWith('rpc/fin_passport_set_field')).body,
+  { p_org: BUYER, p_key: 'porte', p_value: 'grande', p_source: 'declarado_pela_empresa', p_document_id: null, p_valid_until: null, p_review_after_days: 365 },
+  'form cannot choose the writer, reviewer or external validation');
 // Documento vinculado segue para a RPC, que confere organização e tipo.
 reset((entry) => buyerOrg(entry) || 'id-1');
 await call('POST', 'profile', { organization_id: BUYER, field_key: 'doc_certidoes', field_value: 'Certidão federal', source: 'documento_interno', document_id: DOC, valid_until: '2026-12-31' });
@@ -227,6 +276,9 @@ reset((entry) => {
   const empresa = res.payload.passport.domains.find((domain) => domain.id === 'empresa');
   assert.equal(empresa.fields.find((field) => field.key === 'tax_identifier').value, '11222333000181');
   assert.equal(empresa.fields.find((field) => field.key === 'receita_anual').updated_by_name, 'Helena Duarte');
+  assert.equal(res.payload.evidence.contract, 'passport-evidence-v1');
+  assert.equal(res.payload.evidence.fields[0].source.recorded_by, ACTOR);
+  assert.equal(res.payload.evidence.fields[0].external_validation, 'not_recorded');
   assert.deepEqual(res.payload.documents, [{ id: DOC, title: 'Contrato social', current_version: 1 }]);
   const docQuery = sent.find((entry) => entry.url.includes('fin_private_documents')).url;
   assert.match(docQuery, /entity_type=eq\.profile/);
@@ -293,6 +345,7 @@ console.log('Financial Passport: catálogo, validação, frescor, cobertura, reu
  const res=await call('GET',`profile?organization_id=${BUYER}&legal_entity_id=${A}`);
  assert.equal(res.payload.passport.legal_entity_id,A);
  assert(!JSON.stringify(res.payload).includes('secret B'));
+ assert(!res.payload.evidence.fields.some(field => field.legal_entity_id === B));
  reset(entry=>buyerOrg(entry) || []);
  await rejects('GET',`profile?organization_id=${BUYER}&legal_entity_id=${B}`,null,404,'entity_not_found');
  assert(!sent.some(entry=>entry.url.includes('fin_company_profiles')));

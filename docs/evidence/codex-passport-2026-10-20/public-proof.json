@@ -1,0 +1,1608 @@
+{
+  "checked_at": "2026-10-20T14:37:51.144Z",
+  "url": "https://arandu-demo.vercel.app/",
+  "expected_sha": "546048985ce41901ddedce3d5259bb36ff54b0cc",
+  "HTTP_ARTIFACT": "PASS",
+  "BROWSER_DESKTOP": "PASS",
+  "BROWSER_MOBILE": "PASS",
+  "PUBLIC_SHAREABLE": "PASS",
+  "LOCAL_STATION_READY": "NOT_RUN",
+  "CANONICAL_HOSTED_M3": "BLOCKED",
+  "checks": [
+    {
+      "path": "/404.html",
+      "result": "PASS",
+      "sha256": "8abd2ef34fb6926234867a9bd816ad02445aed9e074d47a835356b0bf23ca50c"
+    },
+    {
+      "path": "/adquirencia.html",
+      "result": "PASS",
+      "sha256": "16d97afb415f3df25c25a2ba40fbe2d317c78717c7cf56119d65a8aa8c0da380"
+    },
+    {
+      "path": "/assets/404-CfvAr3ms.js",
+      "result": "PASS",
+      "sha256": "9bf373e01cdbc34814f0ed97ffc03c2d5bcbc2f771721dd6c2c64a15dae5920c"
+    },
+    {
+      "path": "/assets/app-ePCS1ALP.js",
+      "result": "PASS",
+      "sha256": "f7d581d5b2bdf472963bfc3390641e0d34dbe37c354eba653a2f4eee7a95212a"
+    },
+    {
+      "path": "/assets/boot-BRlDM788.js",
+      "result": "PASS",
+      "sha256": "58380df4c09fb6d04b00e570e706c80440d601c4ed1abe0dbc3123dbfd5b5be3"
+    },
+    {
+      "path": "/assets/boot-CdD1RaLl.css",
+      "result": "PASS",
+      "sha256": "b90207e99d9142f1f22b15e795fe0353b2ffb013a684485cb2cca5cc13e59adf"
+    },
+    {
+      "path": "/assets/builder-DRElCmmR.js",
+      "result": "PASS",
+      "sha256": "e9818e4b61c9c98d349623d8d0675e41c525ce58cebb66ba15b24a061e68112e"
+    },
+    {
+      "path": "/assets/center-CCXRh2MI.js",
+      "result": "PASS",
+      "sha256": "64ac31076d8b7230e3d1d11c1ab17bb6397a9675a89c6e46e2583a583a25ca76"
+    },
+    {
+      "path": "/assets/center-DLyqt8lA.js",
+      "result": "PASS",
+      "sha256": "a8835ddf5a4e8300eb0477730249d2625fae1e008b4b956a60934ae2a63cd106"
+    },
+    {
+      "path": "/assets/command-BM6HO-P6.js",
+      "result": "PASS",
+      "sha256": "c41a10af79c7d3ac7565be9d6eda04e43887dd8e303ba8a4f75257dbb015cda4"
+    },
+    {
+      "path": "/assets/comments-BM0a84mu.js",
+      "result": "PASS",
+      "sha256": "7807541b351ec468effc7fe91629ac6748a60d387d0ad80626ab286e3d6c7efe"
+    },
+    {
+      "path": "/assets/company-CXG96m6h.js",
+      "result": "PASS",
+      "sha256": "769b29dcc2ec12dc5ce0625f7d0fb1a03ce6e6fde85f67f5e899547b58826cd7"
+    },
+    {
+      "path": "/assets/comparison-Cmiro9QZ.webp",
+      "result": "PASS",
+      "sha256": "c59482ac97720e21045cb05e0064aa34c9ea1dc176f1a9faaf51413e7e3950c6"
+    },
+    {
+      "path": "/assets/comparison-HsX1QqON.js",
+      "result": "PASS",
+      "sha256": "e6c4a9d74bb6452d20aa48179483f7ceedfabba5dd06e911bcc345ea4dcfa39b"
+    },
+    {
+      "path": "/assets/comparison-tray-9dDY4-E6.js",
+      "result": "PASS",
+      "sha256": "842f40b0a85b379ac07608effdc331ab943fddb88360cd6144e3abd1f2644069"
+    },
+    {
+      "path": "/assets/contract-CEiQJsSo.webp",
+      "result": "PASS",
+      "sha256": "0c222f7ae84e05451577cbb894309912603bd3661175ed7aea2efb6ac323614b"
+    },
+    {
+      "path": "/assets/contract-center-BqJ3nJCa.js",
+      "result": "PASS",
+      "sha256": "8bf45b06e52566d1dbc12ea34fa08f99dd8474d667cdf32a180f35355b7d43de"
+    },
+    {
+      "path": "/assets/contract-terms-CeoEoq02.js",
+      "result": "PASS",
+      "sha256": "9eca826741602ab206b60a281c3b3e7377fc63aa5d0521f38e415afe291f088b"
+    },
+    {
+      "path": "/assets/contracts-Ca0kWrTr.js",
+      "result": "PASS",
+      "sha256": "afd335a2a84865448e855b98f2f8daf35c03881db83cff2389b643551da4d853"
+    },
+    {
+      "path": "/assets/core-DBIe0QAt.js",
+      "result": "PASS",
+      "sha256": "67b5ae0800264f97e3359f7f35dbe57f82005aa9b14641d027cd448809de2b75"
+    },
+    {
+      "path": "/assets/covenants-qrTmSiPv.js",
+      "result": "PASS",
+      "sha256": "c1c119a896e57e6716ddfba716b6204e28c6e5a5a75babd36e7af0ec7fb39e04"
+    },
+    {
+      "path": "/assets/dashboard-BoXb9km1.js",
+      "result": "PASS",
+      "sha256": "b86e232790105a4fd9e4db21eeed72c72e0a1f8fb74400693b68c9cd344527de"
+    },
+    {
+      "path": "/assets/dashboard-D6uEYjZM.js",
+      "result": "PASS",
+      "sha256": "8b8bd4efc2fe4229b5829d94eb34edab2cc8aacbd139bdf81cc0cf6af1e04b42"
+    },
+    {
+      "path": "/assets/decision-inbox-BqG2VtAC.js",
+      "result": "PASS",
+      "sha256": "4df05b63f0e7182227da1cf54d67e17b66dabee02fb8c992bc6407ea9513a508"
+    },
+    {
+      "path": "/assets/demo/index-CGDN7Vhn.js",
+      "result": "PASS",
+      "sha256": "4bcc0d126c49921a61e9259d62e08155e10eb84d0f357dec027c244f7a713319"
+    },
+    {
+      "path": "/assets/demo/visita-C-STysla.js",
+      "result": "PASS",
+      "sha256": "b89bb8afa5cef1cedc4096041b8e2c3286f4d99b4a021e04bfe450383a69ad5d"
+    },
+    {
+      "path": "/assets/documents-CAASq3ih.js",
+      "result": "PASS",
+      "sha256": "846f74d299cefe739ab4a68a0d6e87aad0113e4970c551b6e9306b3fba9456e2"
+    },
+    {
+      "path": "/assets/engine-9p7eyW4K.js",
+      "result": "PASS",
+      "sha256": "fff865afbd574dc18da47d9408b141a6f919ab5deb003a236ce5047fa9ea483b"
+    },
+    {
+      "path": "/assets/entities-B1MGgepR.js",
+      "result": "PASS",
+      "sha256": "296ca5b57d0e2b767e3e93f1364a727ef683e529eff48e384f6051354b24b6f1"
+    },
+    {
+      "path": "/assets/executive-BoPET__G.js",
+      "result": "PASS",
+      "sha256": "948887460aea50c2133f74dcdceb9b09366613a6649e45ccf31de0c43a36c9ea"
+    },
+    {
+      "path": "/assets/extractions-BWsn1Sbc.js",
+      "result": "PASS",
+      "sha256": "38456e5b8940fb37dc9ccd2a116083663a22d9456ee478a61ddf21e99ca56b9e"
+    },
+    {
+      "path": "/assets/favicon-x-CoRhvZ.svg",
+      "result": "PASS",
+      "sha256": "4d686c227f514170281ea0dbd29ebd04a9df023569a6c4c5efa125a554be9e45"
+    },
+    {
+      "path": "/assets/fees-uyKfb_2p.js",
+      "result": "PASS",
+      "sha256": "507580555b6efe4b9395346cb137a5c80875a2e6922b62cb2f47f63337751df7"
+    },
+    {
+      "path": "/assets/financial-auth-CiG5QnPs.js",
+      "result": "PASS",
+      "sha256": "06fdb2b0076b0e08d3e603acb4dd3f530282f744235d63faaa8b4e802a919084"
+    },
+    {
+      "path": "/assets/financial-demo-entry-Dts2GCOs.js",
+      "result": "PASS",
+      "sha256": "de8d3bc41400cc2bc207e12aa855e3f2bf0d97bf706d0650ce4bd388e6941b32"
+    },
+    {
+      "path": "/assets/financial-icon-180-13L4fmV4.png",
+      "result": "PASS",
+      "sha256": "31826d0e41fa7ac267b131d625e5e55fbfe0b4febc01ad52fc0f4bfb1c782325"
+    },
+    {
+      "path": "/assets/financial-public-B8EvfqwC.css",
+      "result": "PASS",
+      "sha256": "eadb5ae0a7dd36996965bd15f209b048f85138df03d23b19bfc649750912e7ca"
+    },
+    {
+      "path": "/assets/handoff-vtA1qRf2.js",
+      "result": "PASS",
+      "sha256": "b16d9c0edfd743627018877ce111a75c479f2d5d6521506d9b7888d53437f478"
+    },
+    {
+      "path": "/assets/icons-Bw26Dp4s.svg",
+      "result": "PASS",
+      "sha256": "9d6e1a5e37e0c3c8cc0b86a091475546ab8e4bb3e92785afbd76c76eaf2197fa"
+    },
+    {
+      "path": "/assets/implementations-CJ5sd6Yf.js",
+      "result": "PASS",
+      "sha256": "763e084a8a75efebed1bcdc81cec5b9914d572ea8bc6c2eac11bc798dfcdd37e"
+    },
+    {
+      "path": "/assets/intake-DeR9K_5d.js",
+      "result": "PASS",
+      "sha256": "861d2488a89b9fc9226c355ad1354f8148848689daf138dce47b7a596b8ea00b"
+    },
+    {
+      "path": "/assets/integrations-Uk1ELfZ3.js",
+      "result": "PASS",
+      "sha256": "a9cf3bb91782109d30f5919fac510176e6087f6d020dae6de2936b86620d1ee3"
+    },
+    {
+      "path": "/assets/ledger-BH2n_aVG.js",
+      "result": "PASS",
+      "sha256": "1a78feb234d9a04922a9555fc5c931f285d161e7b15c4017944d040a01693874"
+    },
+    {
+      "path": "/assets/local-first-C7KroU7Y.js",
+      "result": "PASS",
+      "sha256": "4e764402004e3692430797951d48d378c8a286c2bde8097df4d0a84131a7f857"
+    },
+    {
+      "path": "/assets/manifest-gifOfB1V.webmanifest",
+      "result": "PASS",
+      "sha256": "2d0c752109c989a74e88e5bf3ebca261bd8cc05d5883fdcecb1496a92d89ed35"
+    },
+    {
+      "path": "/assets/next-action-CS598XGw.js",
+      "result": "PASS",
+      "sha256": "14765adf73c2af2ae8a8487c61aa876c3844409f2d0dd19361109dfaef42d759"
+    },
+    {
+      "path": "/assets/opportunities-CCt--AQ4.js",
+      "result": "PASS",
+      "sha256": "c7ef4c1af8520afe7a3c62778b5ac9cc5183c1df20df1c5ca5d60e880abec6fe"
+    },
+    {
+      "path": "/assets/ops-DnJg0nGw.js",
+      "result": "PASS",
+      "sha256": "c65e9e2a3332c24160e49e02270462f1790252f1037c4a58339bd3e8946f5942"
+    },
+    {
+      "path": "/assets/passport-BSNH0ap6.js",
+      "result": "PASS",
+      "sha256": "4274b4a00a4a82aa87b7078d84edd70724dea3c24cb217cb49a418e9853415a4"
+    },
+    {
+      "path": "/assets/passport-tbJD2rmE.js",
+      "result": "PASS",
+      "sha256": "d55d9a33f13eb3af0dc407f67a9aa57a143684b68c51f893c7436fb5e96bd4c3"
+    },
+    {
+      "path": "/assets/performance-g4UqswRQ.js",
+      "result": "PASS",
+      "sha256": "460921de64dcfc29cebe97826c69299af66ccd32aa74da2af2bac2248d6107e6"
+    },
+    {
+      "path": "/assets/policy-Bx87V8qT.js",
+      "result": "PASS",
+      "sha256": "18a6228eb8a06aeb300de84408e61eb963e527e35d405245931372c7cecad7bf"
+    },
+    {
+      "path": "/assets/policy-DH6HCqGp.js",
+      "result": "PASS",
+      "sha256": "41cf251965e053e2beaf96ae422e91e2b46d06894e07e452ed2cf3933a32ef87"
+    },
+    {
+      "path": "/assets/policy-line-yraOK5Da.js",
+      "result": "PASS",
+      "sha256": "9a24f4d3e7d2ef28ee05fc19394be23c0bbec4b4a629339f1edc9af1091e23a4"
+    },
+    {
+      "path": "/assets/popover-6iDPlCc3.js",
+      "result": "PASS",
+      "sha256": "3f611ee179dd1748f3718121dcb704aece1faa4aeb3c51b7ef10f8d61d0fc24d"
+    },
+    {
+      "path": "/assets/portfolio-DNgugo-k.js",
+      "result": "PASS",
+      "sha256": "704df418ebc70b5dd4a569c9f59b50d209918151290e3675b78a9965c1d476ef"
+    },
+    {
+      "path": "/assets/portfolio-DZWP35Pg.js",
+      "result": "PASS",
+      "sha256": "48614bd1474fbe3f6bbe927574b86567e24f807f3c63d908db779669617c3bab"
+    },
+    {
+      "path": "/assets/preferences-CN4eZABx.js",
+      "result": "PASS",
+      "sha256": "47995f17966718a03f2102fdf668945faf1da1db42651f1f3fe07506202c9caf"
+    },
+    {
+      "path": "/assets/preload-helper-DHhhL8Zf.js",
+      "result": "PASS",
+      "sha256": "616967e76046f7a294c7ad1643f1ab9993561d942fd47c439a02f58b0569e70c"
+    },
+    {
+      "path": "/assets/provider-DKLJ1uT9.js",
+      "result": "PASS",
+      "sha256": "08e02d53b0bb49a5cfd3bbddaf4ab9cb518ca4a361af8a3f7b5749a722c03be2"
+    },
+    {
+      "path": "/assets/provider-portal-BgYWGUL_.js",
+      "result": "PASS",
+      "sha256": "c490f72efa6ab17db7e519a112cc0020a710a93df871c215524a0d8d14a0244b"
+    },
+    {
+      "path": "/assets/provider-relationship-CPVqOuvu.js",
+      "result": "PASS",
+      "sha256": "d746e72b871c1689e76500ac210be03e95e46a49c8b06d1035ea50d010b273a0"
+    },
+    {
+      "path": "/assets/qualifications-DURxQiLZ.js",
+      "result": "PASS",
+      "sha256": "49cc980d21d94acf921201052f31a43a2c6160bfff3318caa09f8c0153f18b7e"
+    },
+    {
+      "path": "/assets/registry-CFutxjHF.js",
+      "result": "PASS",
+      "sha256": "0d9c2ccb1697fa11a4dd1d2c29c2bd320931e59ce17feaad818756700a4e76b8"
+    },
+    {
+      "path": "/assets/rfq-C1mGOB4a.js",
+      "result": "PASS",
+      "sha256": "5cfd74df3c3e5f4a8265d13701febb1eb1267e723e2fdcd94b18c8a5e82fee4c"
+    },
+    {
+      "path": "/assets/rfq-page-C_Slcbeq.js",
+      "result": "PASS",
+      "sha256": "f4e9f90cc7486ed6543becfd310fccd87fe7a1be5363b2c9f69973aad40b66a3"
+    },
+    {
+      "path": "/assets/rfqs-D5HJxnQe.js",
+      "result": "PASS",
+      "sha256": "e8ef7c3df2d950bb77caff3d54683f4253f1e3d5f7eae99beb0f91b6e9dfbe76"
+    },
+    {
+      "path": "/assets/route-C6u47_vN.js",
+      "result": "PASS",
+      "sha256": "ba4daf27fdf76ff6de813542de03a829fe43383bacd3df87adc78b1de9d468b8"
+    },
+    {
+      "path": "/assets/saved-views-B7ROAZZz.js",
+      "result": "PASS",
+      "sha256": "da20b819e43e5d1032c21d4d4fb69c36725c73fe8d3503239fdcd9c206c43117"
+    },
+    {
+      "path": "/assets/seed-Cy4z2soV.js",
+      "result": "PASS",
+      "sha256": "56f930c25bc171491a7c6997c4a274a93a6ab4fdabb5db9edec964302206ca58"
+    },
+    {
+      "path": "/assets/settings-architecture-DTc12rtQ.js",
+      "result": "PASS",
+      "sha256": "be460b56e626866ed85768e5321c0e904093e480040ad088289fab0bec0c3ab6"
+    },
+    {
+      "path": "/assets/shared-Dp8MCTFf.js",
+      "result": "PASS",
+      "sha256": "9c57be4a6aa20e1c7e28d9cef41007a8acb4b0a287204659c14e795b2ebcc911"
+    },
+    {
+      "path": "/assets/shell-Dzpz58qX.js",
+      "result": "PASS",
+      "sha256": "9713925ee7c8d767f937e67dc66ade7ebe5d6400c2ab659db499bb3376d38983"
+    },
+    {
+      "path": "/assets/spend-B8TQEZ4w.js",
+      "result": "PASS",
+      "sha256": "5fc7e7d522cbfdeb2450cc011f5f29fb0cf8ae792946e26c9e7028146241265b"
+    },
+    {
+      "path": "/assets/sso-BEPaff3D.js",
+      "result": "PASS",
+      "sha256": "cbf8e680c10db32d680bd41a87ee111db22a6bcc52893b270d12f40fb0e684ec"
+    },
+    {
+      "path": "/assets/style-CpCACg3B.css",
+      "result": "PASS",
+      "sha256": "fe955aca608d0c2df6f0d6a515d783cc95ec603d5822e943293476c50ed9c8b0"
+    },
+    {
+      "path": "/assets/transitions-Cq2wsLBQ.js",
+      "result": "PASS",
+      "sha256": "aac4b63429aaa2a6af6acd11558e0c1edb2604a538c329028571104a5d2f43ea"
+    },
+    {
+      "path": "/assets/transitions-lQB9tF9O.css",
+      "result": "PASS",
+      "sha256": "d654bec50acd6d1c4422d4f94b19a1c4ff8541bf6f3b7ebe0de71895a252d234"
+    },
+    {
+      "path": "/assets/ui-Bly1jS1X.js",
+      "result": "PASS",
+      "sha256": "119ac81d7cd0e7834f9b5d43bb665258d6acfb228f368362a5a339a7d0e730b8"
+    },
+    {
+      "path": "/assets/usage-DItstR2y.js",
+      "result": "PASS",
+      "sha256": "252db7e78b770b7aaef2ad63c9a2ced9cb60a925c1dc6c6c97258f89d9330dc3"
+    },
+    {
+      "path": "/assets/value-WfhF2giR.js",
+      "result": "PASS",
+      "sha256": "cd0730102338bccb426f99810033bb33ece2587977070e87b266e4b2df3d438e"
+    },
+    {
+      "path": "/assets/vercel-speed-insights-C0hWaJ-P.js",
+      "result": "PASS",
+      "sha256": "c0c2484fed83e2ec262474432adf74ce751c6f8576f5a68b3e2df877b9528ee6"
+    },
+    {
+      "path": "/assets/workspace-Cmm52jV1.webp",
+      "result": "PASS",
+      "sha256": "292dbd86ec702fcf4abf3f99388db23579cdd1735c8064f1930152c1bf05bfea"
+    },
+    {
+      "path": "/assets/workspace-D8BW1O7M.js",
+      "result": "PASS",
+      "sha256": "5a94ad79a5fdc78aa031adc90df222010492dd01e0797228a41a2625e956cf32"
+    },
+    {
+      "path": "/cadastro.html",
+      "result": "PASS",
+      "sha256": "24114a7362b1c468bf6a45a151b209b3aa09108f1a19a73bd88e193289e2949d"
+    },
+    {
+      "path": "/credito.html",
+      "result": "PASS",
+      "sha256": "5c2633f0c20178a2985143235fb06f4ce177a945c0fe22e08a6b8bbd6440db8e"
+    },
+    {
+      "path": "/demo/finance/approvals.html",
+      "result": "PASS",
+      "sha256": "7f8b87755b78a1082cdb19c1d85ce3aa7b81a266e729c32977bc289ae34a9121"
+    },
+    {
+      "path": "/demo/finance/boundaries.html",
+      "result": "PASS",
+      "sha256": "33dec5271666c219d4d1c06a8af44489663f16ee840dd6630e6cff0ca70b88f6"
+    },
+    {
+      "path": "/demo/finance/contracts.html",
+      "result": "PASS",
+      "sha256": "9f57cd4409cebd8ca2267eecf32f74d7026cd1a2b44bd7169ccbbbd56aa321ee"
+    },
+    {
+      "path": "/demo/finance/dashboard.html",
+      "result": "PASS",
+      "sha256": "731471eabb01ec191303ba5742791bcfc7917d0bb11913ad3522fb807a197617"
+    },
+    {
+      "path": "/demo/finance/fees.html",
+      "result": "PASS",
+      "sha256": "e415b22bed2ef31233b429cbe1177f7ac593f483107448d5d3ff655ea909cbfb"
+    },
+    {
+      "path": "/demo/finance/index.html",
+      "result": "PASS",
+      "sha256": "517f028ebbead54b9a0a9c8bc10481f0a01c47b354f687920f65f5638cdf54bc"
+    },
+    {
+      "path": "/demo/finance/intake.html",
+      "result": "PASS",
+      "sha256": "ed3a74d375ebd29f50647d5479f83b9942227f75e4eeb48deaeab9966ecf36d4"
+    },
+    {
+      "path": "/demo/finance/integrations.html",
+      "result": "PASS",
+      "sha256": "16bfbe0870dcc42acd6d344bc75d68f856460229ab201f029a85c459a1d225fd"
+    },
+    {
+      "path": "/demo/finance/new-rfq.html",
+      "result": "PASS",
+      "sha256": "99957eb1de828610ee2e3c2f366118096d3981252f55e6632c03fc6757c5132f"
+    },
+    {
+      "path": "/demo/finance/notifications.html",
+      "result": "PASS",
+      "sha256": "bf77cf06b2b8863b92dee4b186bd56ae352b5eb6da85b9cceaf1d16967773d6c"
+    },
+    {
+      "path": "/demo/finance/opportunities.html",
+      "result": "PASS",
+      "sha256": "b0e530acfd8d38de3f3915bf3a547b1dca350fd8e16be36e9f2618a85f2fc117"
+    },
+    {
+      "path": "/demo/finance/ops.html",
+      "result": "PASS",
+      "sha256": "a09671809262c48bec80e8bca8ade6d74a3b8072923e08269bfbd0aa9eedd405"
+    },
+    {
+      "path": "/demo/finance/passport.html",
+      "result": "PASS",
+      "sha256": "f70bcac915e3ad28fc7cf9a3a0c1b9be06fcc7d4e596500f8db4b36846c40fc3"
+    },
+    {
+      "path": "/demo/finance/policies.html",
+      "result": "PASS",
+      "sha256": "6c8eff1ff62bdf9c2551009ad646608bdab1cba5d895bbb515c59af5ef375d82"
+    },
+    {
+      "path": "/demo/finance/portfolio.html",
+      "result": "PASS",
+      "sha256": "5632a9ecb9918cf10a69f6762cc38ca85f142acd5f53bd9a8475166c816e2a01"
+    },
+    {
+      "path": "/demo/finance/proposals.html",
+      "result": "PASS",
+      "sha256": "6d4d6ed9e708bc33963eca5a352a62bf3ac7c90ffee448b830fbafc491a68230"
+    },
+    {
+      "path": "/demo/finance/providers.html",
+      "result": "PASS",
+      "sha256": "b06146d8d9fa54f27276d068cd9a4b4219eef3fe2662212769bd0abb36ba4e37"
+    },
+    {
+      "path": "/demo/finance/rfq.html",
+      "result": "PASS",
+      "sha256": "9d083abe17a7f5868536b697a80ad969abfdd866bd6478216464538d303cc008"
+    },
+    {
+      "path": "/demo/finance/rfqs.html",
+      "result": "PASS",
+      "sha256": "b1b9a8de2ccdcfbd3eee8844604a775486e4078eef3399ff1d2159f90436796c"
+    },
+    {
+      "path": "/demo/finance/settings.html",
+      "result": "PASS",
+      "sha256": "d9a18d112c50ddfbf4a53cc6e63de78b2629d067215b6aa62af95c2d25591794"
+    },
+    {
+      "path": "/demo/finance/tasks.html",
+      "result": "PASS",
+      "sha256": "e24581c6993d7a2b132c7d9262c6eac49a2dcf74782e77bd46c076b641b77e56"
+    },
+    {
+      "path": "/demo/finance/usage.html",
+      "result": "PASS",
+      "sha256": "eceb48897aec5d02a5e28e64a64dafabcae9813a479c5a21b2945cad54d44d13"
+    },
+    {
+      "path": "/demo/finance/value.html",
+      "result": "PASS",
+      "sha256": "3506ac3b69fdf20b8a483fe190831fcee57a12315aa1c090610939e201afd2de"
+    },
+    {
+      "path": "/demo/index.html",
+      "result": "PASS",
+      "sha256": "44ab83f9235a016f857b14bf053b07ddd39681e1d9f9a04939f4c38f8844dd0d"
+    },
+    {
+      "path": "/demo/provider/index.html",
+      "result": "PASS",
+      "sha256": "5399c73c58374cbf155b8a90374ca7e11705ae147c83958decef6ef4889af8da"
+    },
+    {
+      "path": "/demo/provider/invite.html",
+      "result": "PASS",
+      "sha256": "a2166a26010e59b01e8efe3c528547eef0fb4d4ee9b2fb76a0683c08ac30a9f3"
+    },
+    {
+      "path": "/demo/provider/proposal.html",
+      "result": "PASS",
+      "sha256": "9be7c64a80c1dbd36266e7ce496541d4c713a9bb84b09a7051c397cc7f167a72"
+    },
+    {
+      "path": "/demo/provider/rfqs.html",
+      "result": "PASS",
+      "sha256": "a996213fb5c7297369abbdcb5ffe5182feddeca859a5a36f4434616dc1d0c4cd"
+    },
+    {
+      "path": "/demo/visita.html",
+      "result": "PASS",
+      "sha256": "30f5ffe9d4cc613772dcfa300d0d0a64eb5d773b9312224ab68a6a5f8938cc8c"
+    },
+    {
+      "path": "/favicon.svg",
+      "result": "PASS",
+      "sha256": "4d686c227f514170281ea0dbd29ebd04a9df023569a6c4c5efa125a554be9e45"
+    },
+    {
+      "path": "/finance/approvals.html",
+      "result": "PASS",
+      "sha256": "f58645d1514bb8d06864fa7d5a00558538d17362f3c8f38b7b3946b163ad801b"
+    },
+    {
+      "path": "/finance/boundaries.html",
+      "result": "PASS",
+      "sha256": "45cef0d40c4e664150ec5320bb42e7e43893c1447abc160dcc1d7746a6e20635"
+    },
+    {
+      "path": "/finance/contracts.html",
+      "result": "PASS",
+      "sha256": "89dd78b2a4fbcc494d5ad946feec3948f892d77847467a5763451df890e3564e"
+    },
+    {
+      "path": "/finance/covenants.html",
+      "result": "PASS",
+      "sha256": "b276281378ca05a96b251b73675e1211df94c5c670bd47cec3206d7cbe73f33e"
+    },
+    {
+      "path": "/finance/dashboard.html",
+      "result": "PASS",
+      "sha256": "ec1a8220efc6cd5496034e1b95a47b3db2a1150fe768b0d09c0e36ec9412d79f"
+    },
+    {
+      "path": "/finance/extractions.html",
+      "result": "PASS",
+      "sha256": "56e20e4875986ca7e03476a101885b2ce307278bd4548bec37098735f4d97c15"
+    },
+    {
+      "path": "/finance/fees.html",
+      "result": "PASS",
+      "sha256": "6eb2d5f43384f9167dc7a34ed40c7d0d97dcc8923b7616bed00148a8fbe934ba"
+    },
+    {
+      "path": "/finance/implementations.html",
+      "result": "PASS",
+      "sha256": "9dac015fdeda4e7e3a9133ebba386e0ab7dabc92297f06d711387192b90457ca"
+    },
+    {
+      "path": "/finance/index.html",
+      "result": "PASS",
+      "sha256": "c9f56494d615cbe8568bdc66a862704562853f05969c1fd5e823eb2424d80a4b"
+    },
+    {
+      "path": "/finance/new-rfq.html",
+      "result": "PASS",
+      "sha256": "38ccf4d1e66897472980c43bac1608fc5367e65b41653b237699ce578d4b555d"
+    },
+    {
+      "path": "/finance/notifications.html",
+      "result": "PASS",
+      "sha256": "2e3068a15d0d1afa818a3e9ae6b9a565a1aaad64b61b810acda51fdf46ee0167"
+    },
+    {
+      "path": "/finance/opportunities.html",
+      "result": "PASS",
+      "sha256": "703df7327a11978ec0cad004ed14290998298240824827d678c3eaf547f92d3e"
+    },
+    {
+      "path": "/finance/ops.html",
+      "result": "PASS",
+      "sha256": "eed5d94acbdb7091df71fc17f444814d7f8434b920f39df46751824d5e04fc9a"
+    },
+    {
+      "path": "/finance/passport.html",
+      "result": "PASS",
+      "sha256": "455e05debcd368c148bc6b1c023d3056a6421652c941221547c1999c53fad467"
+    },
+    {
+      "path": "/finance/performance.html",
+      "result": "PASS",
+      "sha256": "a991eac8127dc0830c455e162b7e74ec491da872e69420db46ada7672f14c2f7"
+    },
+    {
+      "path": "/finance/portfolio.html",
+      "result": "PASS",
+      "sha256": "0960cda8c985b7427c483ce410b2cce6fb2060718cb366b87e8f844f40f9b2d4"
+    },
+    {
+      "path": "/finance/proposals.html",
+      "result": "PASS",
+      "sha256": "c67e5f555d81d560c397639711ee4a89256d6f104bbb16f2726199a003fb2842"
+    },
+    {
+      "path": "/finance/providers.html",
+      "result": "PASS",
+      "sha256": "4dd1affaa46a94304541ac17ff1a2e56ba7902459f30cd3a37f7e788c6839d6c"
+    },
+    {
+      "path": "/finance/qualifications.html",
+      "result": "PASS",
+      "sha256": "13b071d2097551b7c43f400cb2db7ca6df15e08f4ffdf1ce19bcb0020e6d3e35"
+    },
+    {
+      "path": "/finance/rfq.html",
+      "result": "PASS",
+      "sha256": "f2add76aae945ec964fbf1df71ef674d361f7d38d873b0a318cec5f64be93d2b"
+    },
+    {
+      "path": "/finance/rfqs.html",
+      "result": "PASS",
+      "sha256": "028807fc7da37a964424277bd6d784bd5e47b78c51bed7aceabfdb435ad19511"
+    },
+    {
+      "path": "/finance/settings.html",
+      "result": "PASS",
+      "sha256": "b3d700aa51acd9eba23256a443f38e7890c3941f194c21793f32acd645698640"
+    },
+    {
+      "path": "/finance/spend.html",
+      "result": "PASS",
+      "sha256": "0a128dc73b4706c0d8f76dfba0154f9683e1ca5b4516859510e99345c13bf926"
+    },
+    {
+      "path": "/finance/tasks.html",
+      "result": "PASS",
+      "sha256": "a01e8bb366067c2a85e94f4facb03be47ac1e8507324558a92e224bb02765b6d"
+    },
+    {
+      "path": "/finance/value.html",
+      "result": "PASS",
+      "sha256": "a0e51a3190bd7276c7c89ca576ed6499c1e0848bc2aebc1fd39455b891a2150f"
+    },
+    {
+      "path": "/financial-icon-180.png",
+      "result": "PASS",
+      "sha256": "31826d0e41fa7ac267b131d625e5e55fbfe0b4febc01ad52fc0f4bfb1c782325"
+    },
+    {
+      "path": "/financial-icon-192.png",
+      "result": "PASS",
+      "sha256": "6f45680b1d73fb77b95ad755dfcd8890973f27e0c04b8d213817a795f296e329"
+    },
+    {
+      "path": "/financial-icon-32.png",
+      "result": "PASS",
+      "sha256": "ad1f685dac8ebae988e3b5fc3671b386756de7a4fb6c09efc3cf33f8018a304b"
+    },
+    {
+      "path": "/financial-icon-512.png",
+      "result": "PASS",
+      "sha256": "3a003a570372ac5415c2e9250e2221a1e4a158f1cb3adf559cad9fb308cb775d"
+    },
+    {
+      "path": "/financial-og.png",
+      "result": "PASS",
+      "sha256": "da05dfc7df8c30a49d8fc6adc28b1cfec78e34c0e89e81bf9cf2c87586e5bcce"
+    },
+    {
+      "path": "/index.html",
+      "result": "PASS",
+      "sha256": "829ffc3470233f39e0baa87f18dbc3d4dc0ea0fb8c96419b3f1ac2352ba87a45"
+    },
+    {
+      "path": "/limites.html",
+      "result": "PASS",
+      "sha256": "0de7be91e2913ad6cf080139349e09199e01424ba99bf42bac46aca88aec3a6b"
+    },
+    {
+      "path": "/login.html",
+      "result": "PASS",
+      "sha256": "e143a5867c7f0b9fcd2161ab5022b65d4884e601eb7832afde51e85bbc840009"
+    },
+    {
+      "path": "/manifest.webmanifest",
+      "result": "PASS",
+      "sha256": "2d0c752109c989a74e88e5bf3ebca261bd8cc05d5883fdcecb1496a92d89ed35"
+    },
+    {
+      "path": "/produto.html",
+      "result": "PASS",
+      "sha256": "7f777973fd528d9c751191b0497f4406bf53eeb9625822f7bcc50e6a1d6f15b9"
+    },
+    {
+      "path": "/provider/index.html",
+      "result": "PASS",
+      "sha256": "9c2af62e8166dc7e7587e8c27de0be68690be408a753857c55ad810966d6cefb"
+    },
+    {
+      "path": "/provider/invite.html",
+      "result": "PASS",
+      "sha256": "c30367454f11b492a1976495230962b1428dc87817fd29202a8c6b6ced39ebe0"
+    },
+    {
+      "path": "/provider/proposal.html",
+      "result": "PASS",
+      "sha256": "fc0f4402f67ab753f96b30d51bbfa2d2613bddffc08dc9996a2c84c90c3c9ba9"
+    },
+    {
+      "path": "/provider/rfqs.html",
+      "result": "PASS",
+      "sha256": "6be788bdcfc892b2706fbe79e246bd3930321fc5e332444bcfcc02ac41a70cd8"
+    },
+    {
+      "path": "/robots.txt",
+      "result": "PASS",
+      "sha256": "331ea9090db0c9f6f597bd9840fd5b171830f6e0b3ba1cb24dfa91f0c95aedc1"
+    },
+    {
+      "path": "/seguranca.html",
+      "result": "PASS",
+      "sha256": "ef9d891364cd965d0b01f1fc6a251919b4bba63774399a779ba2de339dfa1cae"
+    },
+    {
+      "path": "/site.webmanifest",
+      "result": "PASS",
+      "sha256": "2d0c752109c989a74e88e5bf3ebca261bd8cc05d5883fdcecb1496a92d89ed35"
+    },
+    {
+      "path": "/sitemap.xml",
+      "result": "PASS",
+      "sha256": "674772a3e9bf869f1920dc651dfdb7e5848d7e50173fb1cce1328c425fe05927"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "root",
+      "path": "/",
+      "result": "PASS"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "explore",
+      "path": "/demo/visita.html",
+      "result": "PASS"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "context",
+      "path": "/demo/visita.html#contexto",
+      "result": "PASS"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "financial-entry",
+      "path": "/demo/visita.html#painel",
+      "result": "PASS"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "dashboard",
+      "path": "/demo/visita.html#painel",
+      "result": "PASS"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "requests",
+      "path": "/demo/visita.html#solicitacao",
+      "result": "PASS"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "invites",
+      "path": "/demo/visita.html#convites",
+      "result": "PASS"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "proposals",
+      "path": "/demo/visita.html#propostas",
+      "result": "PASS"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "comparison",
+      "path": "/demo/visita.html#comparacao",
+      "result": "PASS"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "approval",
+      "path": "/demo/visita.html#aprovacao",
+      "result": "PASS"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "contracts",
+      "path": "/demo/visita.html#contrato",
+      "result": "PASS"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "tasks-renewals",
+      "path": "/demo/visita.html#continuidade",
+      "result": "PASS"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "provider",
+      "path": "/demo/visita.html#instituicao",
+      "result": "PASS"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "provider-proposal",
+      "path": "/demo/visita.html#instituicao-proposta",
+      "result": "PASS"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "provider-value",
+      "path": "/demo/visita.html#instituicao-valor",
+      "result": "PASS"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "areas",
+      "path": "/demo/visita.html#areas",
+      "result": "PASS"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "return",
+      "path": "/demo/index.html",
+      "result": "PASS"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "root",
+      "path": "/",
+      "result": "PASS"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "explore",
+      "path": "/demo/visita.html",
+      "result": "PASS"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "context",
+      "path": "/demo/visita.html#contexto",
+      "result": "PASS"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "financial-entry",
+      "path": "/demo/visita.html#painel",
+      "result": "PASS"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "dashboard",
+      "path": "/demo/visita.html#painel",
+      "result": "PASS"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "requests",
+      "path": "/demo/visita.html#solicitacao",
+      "result": "PASS"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "invites",
+      "path": "/demo/visita.html#convites",
+      "result": "PASS"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "proposals",
+      "path": "/demo/visita.html#propostas",
+      "result": "PASS"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "comparison",
+      "path": "/demo/visita.html#comparacao",
+      "result": "PASS"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "approval",
+      "path": "/demo/visita.html#aprovacao",
+      "result": "PASS"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "contracts",
+      "path": "/demo/visita.html#contrato",
+      "result": "PASS"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "tasks-renewals",
+      "path": "/demo/visita.html#continuidade",
+      "result": "PASS"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "provider",
+      "path": "/demo/visita.html#instituicao",
+      "result": "PASS"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "provider-proposal",
+      "path": "/demo/visita.html#instituicao-proposta",
+      "result": "PASS"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "provider-value",
+      "path": "/demo/visita.html#instituicao-valor",
+      "result": "PASS"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "areas",
+      "path": "/demo/visita.html#areas",
+      "result": "PASS"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "return",
+      "path": "/demo/index.html",
+      "result": "PASS"
+    }
+  ],
+  "local": false,
+  "build": {
+    "commit": "546048985ce41901ddedce3d5259bb36ff54b0cc",
+    "branch": "main",
+    "modality": "informative-tour-with-browser-sandbox",
+    "built_at": "2026-10-20T14:34:55.614Z"
+  },
+  "liveness_http": 200,
+  "runtime_release": {
+    "environment": null,
+    "mode": "demo",
+    "datasource": "synthetic-fixtures",
+    "misconfigured": false,
+    "branch": "main",
+    "commit": "546048985ce41901ddedce3d5259bb36ff54b0cc"
+  },
+  "performance": {
+    "kind": "LAB_NOT_RUM",
+    "environment": "public-static-laboratory",
+    "dataset": "synthetic-fixtures",
+    "volume": {
+      "artifact_files": 159
+    },
+    "concurrent_users": 1,
+    "request_pattern": "one sequential anonymous visitor per viewport; direct reload per stage; cache disabled by request interception",
+    "executor": {
+      "node": "v24.19.0",
+      "platform": "linux",
+      "arch": "x64",
+      "cpus": 2
+    },
+    "throttling": "none; viewport emulation is not a mobile device or mobile network",
+    "baseline": "NOT_AVAILABLE",
+    "p50": null,
+    "p95": null,
+    "p99": null,
+    "quantile_status": "NOT_ESTIMATED_PER_ROUTE_SINGLE_SAMPLE",
+    "eligible_backend_5xx": "NOT_MEASURED_API_NOT_EXERCISED",
+    "targets": {
+      "lcp_p75_ms": 2500,
+      "inp_p75_ms": 200,
+      "cls_p75": 0.1,
+      "read_p95_ms": 500,
+      "write_p95_ms": 1000,
+      "comparison_10_p95_ms": 2000,
+      "eligible_5xx_ratio": 0.005
+    },
+    "target_status": "HYPOTHESES_NOT_SLA",
+    "samples": [
+      {
+        "viewport": "DESKTOP",
+        "stage": "root",
+        "path": "/",
+        "measurement": "laboratory_navigation",
+        "population": "single_navigation_not_RUM",
+        "lcp_candidate_ms": 152,
+        "cls_observed": 0.6474724044067216,
+        "inp": "NOT_MEASURED",
+        "p75": "NOT_ESTIMATED_SINGLE_NAVIGATION",
+        "navigation": {
+          "ttfb_ms": 41.89999999944121,
+          "dom_content_loaded_ms": 337.70000000018626,
+          "load_ms": 342.1000000005588
+        }
+      },
+      {
+        "viewport": "DESKTOP",
+        "stage": "explore",
+        "path": "/demo/visita.html",
+        "measurement": "laboratory_navigation",
+        "population": "single_navigation_not_RUM",
+        "lcp_candidate_ms": 164,
+        "cls_observed": 0,
+        "inp": "NOT_MEASURED",
+        "p75": "NOT_ESTIMATED_SINGLE_NAVIGATION",
+        "navigation": {
+          "ttfb_ms": 45.5,
+          "dom_content_loaded_ms": 184.79999999981374,
+          "load_ms": 185.79999999981374
+        }
+      },
+      {
+        "viewport": "DESKTOP",
+        "stage": "context",
+        "path": "/demo/visita.html#contexto",
+        "measurement": "laboratory_navigation",
+        "population": "single_navigation_not_RUM",
+        "lcp_candidate_ms": 168,
+        "cls_observed": 0.14808936451099536,
+        "inp": "NOT_MEASURED",
+        "p75": "NOT_ESTIMATED_SINGLE_NAVIGATION",
+        "navigation": {
+          "ttfb_ms": 41.30000000074506,
+          "dom_content_loaded_ms": 172.70000000018626,
+          "load_ms": 174.5
+        }
+      },
+      {
+        "viewport": "DESKTOP",
+        "stage": "financial-entry",
+        "path": "/demo/visita.html#painel",
+        "measurement": "laboratory_navigation",
+        "population": "single_navigation_not_RUM",
+        "lcp_candidate_ms": 176,
+        "cls_observed": 0.3008271472318673,
+        "inp": "NOT_MEASURED",
+        "p75": "NOT_ESTIMATED_SINGLE_NAVIGATION",
+        "navigation": {
+          "ttfb_ms": 51.299999999813735,
+          "dom_content_loaded_ms": 162.09999999962747,
+          "load_ms": 162.79999999981374
+        }
+      },
+      {
+        "viewport": "DESKTOP",
+        "stage": "dashboard",
+        "path": "/demo/visita.html#painel",
+        "measurement": "laboratory_navigation",
+        "population": "single_navigation_not_RUM",
+        "lcp_candidate_ms": 152,
+        "cls_observed": 0.3008271472318673,
+        "inp": "NOT_MEASURED",
+        "p75": "NOT_ESTIMATED_SINGLE_NAVIGATION",
+        "navigation": {
+          "ttfb_ms": 62,
+          "dom_content_loaded_ms": 173.80000000074506,
+          "load_ms": 175.1000000005588
+        }
+      },
+      {
+        "viewport": "DESKTOP",
+        "stage": "requests",
+        "path": "/demo/visita.html#solicitacao",
+        "measurement": "laboratory_navigation",
+        "population": "single_navigation_not_RUM",
+        "lcp_candidate_ms": 148,
+        "cls_observed": 0.49174074074074076,
+        "inp": "NOT_MEASURED",
+        "p75": "NOT_ESTIMATED_SINGLE_NAVIGATION",
+        "navigation": {
+          "ttfb_ms": 56,
+          "dom_content_loaded_ms": 167.59999999962747,
+          "load_ms": 168.5
+        }
+      },
+      {
+        "viewport": "DESKTOP",
+        "stage": "invites",
+        "path": "/demo/visita.html#convites",
+        "measurement": "laboratory_navigation",
+        "population": "single_navigation_not_RUM",
+        "lcp_candidate_ms": 168,
+        "cls_observed": 0.36880555555555555,
+        "inp": "NOT_MEASURED",
+        "p75": "NOT_ESTIMATED_SINGLE_NAVIGATION",
+        "navigation": {
+          "ttfb_ms": 34.299999999813735,
+          "dom_content_loaded_ms": 156.30000000074506,
+          "load_ms": 162.1000000005588
+        }
+      },
+      {
+        "viewport": "DESKTOP",
+        "stage": "proposals",
+        "path": "/demo/visita.html#propostas",
+        "measurement": "laboratory_navigation",
+        "population": "single_navigation_not_RUM",
+        "lcp_candidate_ms": 164,
+        "cls_observed": 0.4950277777777778,
+        "inp": "NOT_MEASURED",
+        "p75": "NOT_ESTIMATED_SINGLE_NAVIGATION",
+        "navigation": {
+          "ttfb_ms": 47.200000000186265,
+          "dom_content_loaded_ms": 176.6000000005588,
+          "load_ms": 178
+        }
+      },
+      {
+        "viewport": "DESKTOP",
+        "stage": "comparison",
+        "path": "/demo/visita.html#comparacao",
+        "measurement": "laboratory_navigation",
+        "population": "single_navigation_not_RUM",
+        "lcp_candidate_ms": 152,
+        "cls_observed": 0.4930555555555556,
+        "inp": "NOT_MEASURED",
+        "p75": "NOT_ESTIMATED_SINGLE_NAVIGATION",
+        "navigation": {
+          "ttfb_ms": 40.90000000037253,
+          "dom_content_loaded_ms": 183.1000000005588,
+          "load_ms": 184.40000000037253
+        }
+      },
+      {
+        "viewport": "DESKTOP",
+        "stage": "approval",
+        "path": "/demo/visita.html#aprovacao",
+        "measurement": "laboratory_navigation",
+        "population": "single_navigation_not_RUM",
+        "lcp_candidate_ms": 152,
+        "cls_observed": 0.4542685185185185,
+        "inp": "NOT_MEASURED",
+        "p75": "NOT_ESTIMATED_SINGLE_NAVIGATION",
+        "navigation": {
+          "ttfb_ms": 43.799999999813735,
+          "dom_content_loaded_ms": 171.09999999962747,
+          "load_ms": 173
+        }
+      },
+      {
+        "viewport": "DESKTOP",
+        "stage": "contracts",
+        "path": "/demo/visita.html#contrato",
+        "measurement": "laboratory_navigation",
+        "population": "single_navigation_not_RUM",
+        "lcp_candidate_ms": 284,
+        "cls_observed": 0.43651851851851853,
+        "inp": "NOT_MEASURED",
+        "p75": "NOT_ESTIMATED_SINGLE_NAVIGATION",
+        "navigation": {
+          "ttfb_ms": 181.90000000037253,
+          "dom_content_loaded_ms": 297.1000000005588,
+          "load_ms": 298
+        }
+      },
+      {
+        "viewport": "DESKTOP",
+        "stage": "tasks-renewals",
+        "path": "/demo/visita.html#continuidade",
+        "measurement": "laboratory_navigation",
+        "population": "single_navigation_not_RUM",
+        "lcp_candidate_ms": 196,
+        "cls_observed": 0.4950277777777778,
+        "inp": "NOT_MEASURED",
+        "p75": "NOT_ESTIMATED_SINGLE_NAVIGATION",
+        "navigation": {
+          "ttfb_ms": 33.19999999925494,
+          "dom_content_loaded_ms": 171.6000000005588,
+          "load_ms": 172.80000000074506
+        }
+      },
+      {
+        "viewport": "DESKTOP",
+        "stage": "provider",
+        "path": "/demo/visita.html#instituicao",
+        "measurement": "laboratory_navigation",
+        "population": "single_navigation_not_RUM",
+        "lcp_candidate_ms": 164,
+        "cls_observed": 0,
+        "inp": "NOT_MEASURED",
+        "p75": "NOT_ESTIMATED_SINGLE_NAVIGATION",
+        "navigation": {
+          "ttfb_ms": 35.200000000186265,
+          "dom_content_loaded_ms": 149.70000000018626,
+          "load_ms": 152
+        }
+      },
+      {
+        "viewport": "DESKTOP",
+        "stage": "provider-proposal",
+        "path": "/demo/visita.html#instituicao-proposta",
+        "measurement": "laboratory_navigation",
+        "population": "single_navigation_not_RUM",
+        "lcp_candidate_ms": 172,
+        "cls_observed": 0.28794444444444445,
+        "inp": "NOT_MEASURED",
+        "p75": "NOT_ESTIMATED_SINGLE_NAVIGATION",
+        "navigation": {
+          "ttfb_ms": 36.5,
+          "dom_content_loaded_ms": 334.79999999981374,
+          "load_ms": 336.20000000018626
+        }
+      },
+      {
+        "viewport": "DESKTOP",
+        "stage": "provider-value",
+        "path": "/demo/visita.html#instituicao-valor",
+        "measurement": "laboratory_navigation",
+        "population": "single_navigation_not_RUM",
+        "lcp_candidate_ms": 168,
+        "cls_observed": 0.4950277777777778,
+        "inp": "NOT_MEASURED",
+        "p75": "NOT_ESTIMATED_SINGLE_NAVIGATION",
+        "navigation": {
+          "ttfb_ms": 37.69999999925494,
+          "dom_content_loaded_ms": 169.79999999981374,
+          "load_ms": 171.09999999962747
+        }
+      },
+      {
+        "viewport": "DESKTOP",
+        "stage": "areas",
+        "path": "/demo/visita.html#areas",
+        "measurement": "laboratory_navigation",
+        "population": "single_navigation_not_RUM",
+        "lcp_candidate_ms": 132,
+        "cls_observed": 0.45163888888888887,
+        "inp": "NOT_MEASURED",
+        "p75": "NOT_ESTIMATED_SINGLE_NAVIGATION",
+        "navigation": {
+          "ttfb_ms": 37.40000000037253,
+          "dom_content_loaded_ms": 178.8999999994412,
+          "load_ms": 179.8999999994412
+        }
+      },
+      {
+        "viewport": "DESKTOP",
+        "stage": "return",
+        "path": "/demo/index.html",
+        "measurement": "laboratory_navigation",
+        "population": "single_navigation_not_RUM",
+        "lcp_candidate_ms": 168,
+        "cls_observed": 0.6474724044067216,
+        "inp": "NOT_MEASURED",
+        "p75": "NOT_ESTIMATED_SINGLE_NAVIGATION",
+        "navigation": {
+          "ttfb_ms": 51.10000000055879,
+          "dom_content_loaded_ms": 246,
+          "load_ms": 248.3999999994412
+        }
+      },
+      {
+        "viewport": "MOBILE",
+        "stage": "root",
+        "path": "/",
+        "measurement": "laboratory_navigation",
+        "population": "single_navigation_not_RUM",
+        "lcp_candidate_ms": 124,
+        "cls_observed": 0.10989336492890996,
+        "inp": "NOT_MEASURED",
+        "p75": "NOT_ESTIMATED_SINGLE_NAVIGATION",
+        "navigation": {
+          "ttfb_ms": 37.299999999813735,
+          "dom_content_loaded_ms": 254.8999999994412,
+          "load_ms": 258.59999999962747
+        }
+      },
+      {
+        "viewport": "MOBILE",
+        "stage": "explore",
+        "path": "/demo/visita.html",
+        "measurement": "laboratory_navigation",
+        "population": "single_navigation_not_RUM",
+        "lcp_candidate_ms": 128,
+        "cls_observed": 0,
+        "inp": "NOT_MEASURED",
+        "p75": "NOT_ESTIMATED_SINGLE_NAVIGATION",
+        "navigation": {
+          "ttfb_ms": 35.10000000055879,
+          "dom_content_loaded_ms": 158.59999999962747,
+          "load_ms": 159.59999999962747
+        }
+      },
+      {
+        "viewport": "MOBILE",
+        "stage": "context",
+        "path": "/demo/visita.html#contexto",
+        "measurement": "laboratory_navigation",
+        "population": "single_navigation_not_RUM",
+        "lcp_candidate_ms": 144,
+        "cls_observed": 0.34998345368132233,
+        "inp": "NOT_MEASURED",
+        "p75": "NOT_ESTIMATED_SINGLE_NAVIGATION",
+        "navigation": {
+          "ttfb_ms": 43.60000000055879,
+          "dom_content_loaded_ms": 153.80000000074506,
+          "load_ms": 154.90000000037253
+        }
+      },
+      {
+        "viewport": "MOBILE",
+        "stage": "financial-entry",
+        "path": "/demo/visita.html#painel",
+        "measurement": "laboratory_navigation",
+        "population": "single_navigation_not_RUM",
+        "lcp_candidate_ms": 140,
+        "cls_observed": 0.4942095029772755,
+        "inp": "NOT_MEASURED",
+        "p75": "NOT_ESTIMATED_SINGLE_NAVIGATION",
+        "navigation": {
+          "ttfb_ms": 37.89999999944121,
+          "dom_content_loaded_ms": 159.20000000018626,
+          "load_ms": 160.29999999981374
+        }
+      },
+      {
+        "viewport": "MOBILE",
+        "stage": "dashboard",
+        "path": "/demo/visita.html#painel",
+        "measurement": "laboratory_navigation",
+        "population": "single_navigation_not_RUM",
+        "lcp_candidate_ms": 140,
+        "cls_observed": 0.7081358609794629,
+        "inp": "NOT_MEASURED",
+        "p75": "NOT_ESTIMATED_SINGLE_NAVIGATION",
+        "navigation": {
+          "ttfb_ms": 34.60000000055879,
+          "dom_content_loaded_ms": 167.1000000005588,
+          "load_ms": 168.1000000005588
+        }
+      },
+      {
+        "viewport": "MOBILE",
+        "stage": "requests",
+        "path": "/demo/visita.html#solicitacao",
+        "measurement": "laboratory_navigation",
+        "population": "single_navigation_not_RUM",
+        "lcp_candidate_ms": 332,
+        "cls_observed": 0.4942095029772755,
+        "inp": "NOT_MEASURED",
+        "p75": "NOT_ESTIMATED_SINGLE_NAVIGATION",
+        "navigation": {
+          "ttfb_ms": 222.19999999925494,
+          "dom_content_loaded_ms": 334.59999999962747,
+          "load_ms": 335.59999999962747
+        }
+      },
+      {
+        "viewport": "MOBILE",
+        "stage": "invites",
+        "path": "/demo/visita.html#convites",
+        "measurement": "laboratory_navigation",
+        "population": "single_navigation_not_RUM",
+        "lcp_candidate_ms": 120,
+        "cls_observed": 0.4942095029772755,
+        "inp": "NOT_MEASURED",
+        "p75": "NOT_ESTIMATED_SINGLE_NAVIGATION",
+        "navigation": {
+          "ttfb_ms": 32.200000000186265,
+          "dom_content_loaded_ms": 134.70000000018626,
+          "load_ms": 135.80000000074506
+        }
+      },
+      {
+        "viewport": "MOBILE",
+        "stage": "proposals",
+        "path": "/demo/visita.html#propostas",
+        "measurement": "laboratory_navigation",
+        "population": "single_navigation_not_RUM",
+        "lcp_candidate_ms": 152,
+        "cls_observed": 0.4942095029772755,
+        "inp": "NOT_MEASURED",
+        "p75": "NOT_ESTIMATED_SINGLE_NAVIGATION",
+        "navigation": {
+          "ttfb_ms": 33.89999999944121,
+          "dom_content_loaded_ms": 138.5,
+          "load_ms": 139.5
+        }
+      },
+      {
+        "viewport": "MOBILE",
+        "stage": "comparison",
+        "path": "/demo/visita.html#comparacao",
+        "measurement": "laboratory_navigation",
+        "population": "single_navigation_not_RUM",
+        "lcp_candidate_ms": 164,
+        "cls_observed": 0.4942095029772755,
+        "inp": "NOT_MEASURED",
+        "p75": "NOT_ESTIMATED_SINGLE_NAVIGATION",
+        "navigation": {
+          "ttfb_ms": 42.89999999944121,
+          "dom_content_loaded_ms": 152.59999999962747,
+          "load_ms": 153.70000000018626
+        }
+      },
+      {
+        "viewport": "MOBILE",
+        "stage": "approval",
+        "path": "/demo/visita.html#aprovacao",
+        "measurement": "laboratory_navigation",
+        "population": "single_navigation_not_RUM",
+        "lcp_candidate_ms": 148,
+        "cls_observed": 0,
+        "inp": "NOT_MEASURED",
+        "p75": "NOT_ESTIMATED_SINGLE_NAVIGATION",
+        "navigation": {
+          "ttfb_ms": 38.09999999962747,
+          "dom_content_loaded_ms": 138.70000000018626,
+          "load_ms": 140.6000000005588
+        }
+      },
+      {
+        "viewport": "MOBILE",
+        "stage": "contracts",
+        "path": "/demo/visita.html#contrato",
+        "measurement": "laboratory_navigation",
+        "population": "single_navigation_not_RUM",
+        "lcp_candidate_ms": 152,
+        "cls_observed": 0.4942095029772755,
+        "inp": "NOT_MEASURED",
+        "p75": "NOT_ESTIMATED_SINGLE_NAVIGATION",
+        "navigation": {
+          "ttfb_ms": 40.39999999944121,
+          "dom_content_loaded_ms": 145.70000000018626,
+          "load_ms": 146.79999999981374
+        }
+      },
+      {
+        "viewport": "MOBILE",
+        "stage": "tasks-renewals",
+        "path": "/demo/visita.html#continuidade",
+        "measurement": "laboratory_navigation",
+        "population": "single_navigation_not_RUM",
+        "lcp_candidate_ms": 164,
+        "cls_observed": 0.4942095029772755,
+        "inp": "NOT_MEASURED",
+        "p75": "NOT_ESTIMATED_SINGLE_NAVIGATION",
+        "navigation": {
+          "ttfb_ms": 51.89999999944121,
+          "dom_content_loaded_ms": 153.3999999994412,
+          "load_ms": 154.5
+        }
+      },
+      {
+        "viewport": "MOBILE",
+        "stage": "provider",
+        "path": "/demo/visita.html#instituicao",
+        "measurement": "laboratory_navigation",
+        "population": "single_navigation_not_RUM",
+        "lcp_candidate_ms": 132,
+        "cls_observed": 0.5078442095029773,
+        "inp": "NOT_MEASURED",
+        "p75": "NOT_ESTIMATED_SINGLE_NAVIGATION",
+        "navigation": {
+          "ttfb_ms": 35,
+          "dom_content_loaded_ms": 178,
+          "load_ms": 179.19999999925494
+        }
+      },
+      {
+        "viewport": "MOBILE",
+        "stage": "provider-proposal",
+        "path": "/demo/visita.html#instituicao-proposta",
+        "measurement": "laboratory_navigation",
+        "population": "single_navigation_not_RUM",
+        "lcp_candidate_ms": 160,
+        "cls_observed": 0.4942095029772755,
+        "inp": "NOT_MEASURED",
+        "p75": "NOT_ESTIMATED_SINGLE_NAVIGATION",
+        "navigation": {
+          "ttfb_ms": 58,
+          "dom_content_loaded_ms": 199,
+          "load_ms": 201.29999999981374
+        }
+      },
+      {
+        "viewport": "MOBILE",
+        "stage": "provider-value",
+        "path": "/demo/visita.html#instituicao-valor",
+        "measurement": "laboratory_navigation",
+        "population": "single_navigation_not_RUM",
+        "lcp_candidate_ms": 160,
+        "cls_observed": 0.4942095029772755,
+        "inp": "NOT_MEASURED",
+        "p75": "NOT_ESTIMATED_SINGLE_NAVIGATION",
+        "navigation": {
+          "ttfb_ms": 47.40000000037253,
+          "dom_content_loaded_ms": 215.29999999981374,
+          "load_ms": 216.20000000018626
+        }
+      },
+      {
+        "viewport": "MOBILE",
+        "stage": "areas",
+        "path": "/demo/visita.html#areas",
+        "measurement": "laboratory_navigation",
+        "population": "single_navigation_not_RUM",
+        "lcp_candidate_ms": 232,
+        "cls_observed": 0.4942095029772755,
+        "inp": "NOT_MEASURED",
+        "p75": "NOT_ESTIMATED_SINGLE_NAVIGATION",
+        "navigation": {
+          "ttfb_ms": 40.09999999962747,
+          "dom_content_loaded_ms": 212.79999999981374,
+          "load_ms": 213.8999999994412
+        }
+      },
+      {
+        "viewport": "MOBILE",
+        "stage": "return",
+        "path": "/demo/index.html",
+        "measurement": "laboratory_navigation",
+        "population": "single_navigation_not_RUM",
+        "lcp_candidate_ms": 172,
+        "cls_observed": 0.10989336492890996,
+        "inp": "NOT_MEASURED",
+        "p75": "NOT_ESTIMATED_SINGLE_NAVIGATION",
+        "navigation": {
+          "ttfb_ms": 50.700000000186265,
+          "dom_content_loaded_ms": 278,
+          "load_ms": 281.3999999994412
+        }
+      }
+    ]
+  },
+  "duration_ms": 54913.79387
+}
