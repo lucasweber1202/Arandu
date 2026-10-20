@@ -168,5 +168,11 @@
         }
       ]
     }
-  ]
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "main": true,
+      "docs/**": false
+    }
+  }
 }

@@ -1,5 +1,6 @@
 # Plano executável — benchmark, adoção bilateral e performance (20/10/2026)
 
+**Atualização de direção v3.7:** os §§39–44 agora tornam CORE a plataforma única com três ofertas-alvo por complexidade, o caminho buyer-first, utilidade autônoma do provedor e a Central de Relacionamentos Financeiros como composição do ciclo. Este plano continua válido como baseline operacional **histórica v3.6**, mas não deve ser lido como cobertura de packaging, adoção ou prova comercial; para próximos PRs consultar `ARANDU_SEGMENTED_PRODUCT_OPERATING_MODEL_V37.md` e `ARANDU_V37_EVIDENCE_AND_DECISION_GATES.md`. Nenhuma prioridade supera P0-A/P0-B de 29/10.
 **Status:** proposta normativa documentada em guideline v3.6 (§38), não release nem evidência de implementação.
 **Baseline:** \`main@93ba6d5fcedf1d50262ddb30ae58704c44ad066a\`.
 **Hierarquia:** \`ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md\` §§23, 24, 35–38; \`PUBLIC_DEMO_2026-10-29_PRIORITY.md\` para os dois P0; \`IMPLEMENTATION_MATRIX.md\` como registro de maturidade/provas. Segurança, neutralidade, RLS, legal, backup/restore e gates prevalecem.

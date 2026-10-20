@@ -12,6 +12,11 @@ import fs from 'node:fs';
 
 const vercel = JSON.parse(fs.readFileSync('vercel.json', 'utf8'));
 const router = fs.readFileSync('api/[...path].js', 'utf8');
+// Bloqueio seletivo de preview em branches documentais: não desligar os releases da main.
+const deploymentRules = vercel.git?.deploymentEnabled;
+assert.equal(deploymentRules?.main, true, 'Vercel deve continuar gerando deployments da main.');
+assert.equal(deploymentRules?.['docs/**'], false, 'Branches docs/* não devem gerar previews automáticos.');
+assert.notEqual(deploymentRules, false, 'Nunca desabilitar todos os deployments automáticos.');
 const SOURCE = '/api/:aranduScope/:aranduRest+';
 const HOBBY_FUNCTION_LIMIT = 12;
 

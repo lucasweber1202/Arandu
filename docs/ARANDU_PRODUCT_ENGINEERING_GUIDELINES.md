@@ -1,11 +1,13 @@
 # Arandu — Diretrizes Mestras de Produto, Engenharia e Evolução
 
-**Versão 3.6 — 20 de outubro de 2026**
-**Baseline técnica de referência desta revisão:** `main` @ `93ba6d5fcedf1d50262ddb30ae58704c44ad066a`
+**Versão 3.7 — 20 de outubro de 2026**
+**Baseline técnica de referência desta revisão:** `main` @ `dd8c6a7af7c3622441825aa1bda2e7013e25f51e` (antes da PR documental v3.7; commits posteriores exigem reconciliação)
 **Status:** constituição normativa de produto e engenharia
 **Escopo:** tese de produto, boundaries, arquitetura funcional, maturidade, UX, engenharia, dados, segurança, IA, integrações, operação enterprise e critérios de evolução
 
 > **Propósito.** Esta guideline define o que o Arandu é, o que não é, como deve evoluir e quais garantias não podem ser sacrificadas. Ela governa pessoas e agentes de IA que alterem o produto.
+>
+> **Adição da v3.7.** §§39–44 tornam CORE a plataforma única com ofertas Essencial/Gestão/Enterprise, buyer-first, utilidade institucional independente, Central de Relacionamentos Financeiros, UX/qualidade detalhada, validação comercial, monetização neutra e governança de evidências. Não afirma entrega dos novos planos e não altera os P0 de 29/10. Planos de apoio: `docs/ARANDU_SEGMENTED_PRODUCT_OPERATING_MODEL_V37.md` e `docs/ARANDU_V37_EVIDENCE_AND_DECISION_GATES.md`.
 >
 > **Adição da v3.6.** Novo §38: benchmark competitivo, adoção bilateral, sequência P0→P1-A/P1-B→piloto→integrações, contrato de performance com metas não reivindicadas, critérios de pesquisa com clientes e gates por funcionalidade. **Mantém integralmente a urgência dos P0 de 29/10 e todas as exigências de maturidade, segurança e recovery.** Plano: `docs/FINANCIAL_COMPETITIVE_EXECUTION_PLAN_2026-10-20.md`.
 >
@@ -1991,6 +1993,203 @@ Atualizar \`docs/IMPLEMENTATION_MATRIX.md\` separando PRIORIDADE, IMPLEMENTAÇÃ
 
 ---
 
+
+# 39. Tese obrigatória de produto segmentado e adoção bilateral (v3.7)
+
+**Decisão estratégica do owner, 20/10/2026:** o Arandu é UMA plataforma B2B para gerir relações, contratações, condições e o ciclo de vida de produtos financeiros empresariais, apresentada em TRÊS ofertas configuráveis — Essencial, Gestão e Enterprise — e com uma experiência própria para instituições financeiras convidadas. Esta é decisão de direção de produto e arquitetura; **não** é lançamento dos planos, preço aprovado, evidência de adesão, certificação nem autorização de conectividade bancária. A aplicação das regras de target-state ocorre por dependência e maturidade, jamais por inferência de que tudo deve ser desenvolvido agora.
+
+**Prevalência:** estes capítulos refinam §§2–4, 22, 27–30, 35 e 38 em temas de posicionamento, segmentação e descoberta. Não alteram §§3, 5, 23, 26, 36–37; preservam os P0 independentes de 29/10 (§37), M0–M6, a decisão humana, o modelo de tenant, recovery, legal review, os quatro gates e os ambientes. A antiga expressão "enterprise first" descreve o rigor de segurança e a direção arquitetural, **não proíbe empresas menores B2B**; para aquisição comercial inicial, Gestão é a hipótese preferida, a validar.
+
+## 39.1 Promessa e jobs-to-be-done
+
+A promessa de categoria é: **organizar e acompanhar relacionamentos, condições, negociações e contratos financeiros empresariais, com trabalho acionável, origem explícita e decisões humanas rastreáveis**. O Arandu não é ERP, TMS completo, banco, marketplace obrigatório ou motor de crédito. O usuário não compra "Financial Graph", "sistema operacional" ou quantidade de telas; compra menor retrabalho, controle de prazos, visibilidade de obrigações e melhor rastreabilidade das decisões — benefícios a comprovar.
+
+Três mensagens comerciais por contexto, sem garantias presumidas:
+- **Essencial:** conhecer o que a empresa contratou com bancos/adquirentes, suas condições e o próximo prazo ou ação;
+- **Gestão:** coordenar instituições, demandas, propostas, contratos e renegociações em uma operação financeira;
+- **Enterprise:** governar relações financeiras em múltiplas entidades, políticas, responsáveis e sistemas, com integração e evidências.
+
+No onboarding o produto DEVE começar pelo job do usuário (registrar contrato, monitorar vencimento, revisar condição, organizar proposta ou iniciar demanda), não por uma visita a todos os módulos. O destino deve conter uma ação concreta e retorno verificável. Quando não há dados, exibir passo útil e opcional de importação/entrada manual; nenhum gráfico fictício.
+
+## 39.2 Segmentação não equivale a faturamento
+
+Porte econômico pode ser atributo descritivo; a escolha da oferta depende principalmente de complexidade: número de relações bancárias, CNPJs/entidades, produtos e contratos ativos, frequência de revisão/renegociação, tamanho da equipe, segregação de funções, sistemas existentes, exigência de auditoria e custo de implantação. Rótulos "pequena/média/grande" **não** são enquadramento legal nem limite rígido de acesso. O cliente pode ter necessidade Enterprise com faturamento menor. Enquadramentos do BNDES/Sebrae são referenciais datados, não regras de entitlement.
+
+A segmentação comercial fica:
+| Oferta-alvo | Trabalho principal | Entrada de valor | Experiência | Hipótese de compra |
+| --- | --- | --- | --- | --- |
+| **Arandu Essencial** | organização e controle de contratos, condições e próximos prazos | primeiro contrato ou relacionamento; um próximo passo visível | guiada, baixa densidade, termos claros, configuração mínima | assinatura de baixo atrito; ainda sem preço/WTP validados |
+| **Arandu Gestão** | procurement e relacionamento recorrente com múltiplas instituições | contrato existente ou negociação organizada, depois acompanhamento | workspace completo, times, histórico, propostas e comparações | CFO/tesouraria; implantação limitada e ROI demonstrável a verificar |
+| **Arandu Enterprise** | governança de ciclo financeiro de várias entidades e fontes | perímetro aprovado, entidades, políticas e caso piloto escolhido | gestão multi-entity, políticas, integração, auditoria e suporte | compra corporativa, segurança e implantação sob contrato |
+
+**Não são três aplicações, bancos ou versões de regras financeiras.** DEVEM compartilhar identificação, entidades, instituições, contratos, RFQs, versões, comparação, decisões, Passport, Graph, trilha, schemas, APIs e infraestrutura. Diferenciação permitida: onboarding, presets de navegação e densidade, funcionalidades opcionais, cotas proporcionais, serviços e suporte, sempre com explicação, mudanças reversíveis e autorização testada no servidor. Não copiar o motor financeiro em três pacotes, criar fork/branch por cliente ou criar esquema de permissões diferente por preço.
+
+## 39.3 Invariantes dos planos
+
+RLS/RBAC, criptografia e isolamento, privacidade, acesso a dados próprios, histórico de alterações financeiras materiais, integridade, revogação, exportação aplicável, requisitos legais e resposta segura a falhas são **proteções básicas de todas as ofertas**. Nenhum tier pode reduzir segurança, rastreabilidade ou obrigações jurídicas. Políticas enterprise adicionais (SSO, alçadas customizadas, integrações e suporte) podem ter packaging próprio; permissões operacionais não se confundem com autorização de dados.
+
+Feature flags/entitlements DEVEM ser server-authoritative, por organização e quando aplicável entidade/contrato; UI é projeção, nunca enforcement. Testar downgrade, trial expirado, upgrade, inadimplência/pausa, limites e race conditions com preservação de dados e acesso/export sob política. Exceder cota não apaga contrato, não impede recuperar evidência nem faz downgrade silencioso; fornecer saída e comunicação claras. Billing, preço, tributos, política de cancelamento e monetização são DECISÕES FUTURAS, sujeitos a avaliação comercial e jurídica.
+
+## 39.4 Hipóteses concorrentes de porta de entrada
+
+Há três candidatas, sem vencedor decretado: (A) carteira de contratos, prazos e relações; (B) renegociação de adquirência e tarifas; (C) sourcing de crédito. Para cada uma testar frequência, custo de trabalho atual, valor percebido, necessidade de dados, participação de terceiros, recorrência, risco jurídico, onboarding, tempo para primeiro valor e disposição de contratar. **Gestão** é primeira hipótese de público para pesquisa, não exclusão de Essencial/Enterprise. A decisão de foco comercial deve resultar de sessões e comparação de evidências, não de estética da demo.
+
+## 39.5 Buyer-first e independência de rede
+
+Uma empresa DEVE obter primeiro valor sem provedor cadastrado no portal, sem conta bancária conectada, sem API externa ou proposta enviada pelo banco. O registro de relacionamento, contrato existente, condição, obrigação, responsável e vencimento pode gerar trabalho útil. **Nenhuma RFQ pode exigir que todos os bancos aceitem criar conta** para a empresa concluir a gestão do seu processo. O Arandu deve tolerar resposta externa registrada por comprador autorizado, rotulada de forma distinta e com prova de origem. Adoção de ambas as pontas é objetivo progressivo, não pré-condição escondida.
+
+---
+
+# 40. Instituições financeiras: utilidade própria, cooperação e neutralidade (v3.7)
+
+## 40.1 Produto institucional com custo de participação explícito
+
+A instituição é contraparte convidada e usuária de uma experiência própria, não inventário comercial revendido. Sua proposta de valor inicial é receber uma demanda compreensível, prazo e requisitos, recusar sem atrito, responder por canal seguro e preservar o contexto **da própria atuação**. Sem prova de recorrência, não chamar o portal de CRM bancário ou rede de oportunidades qualificadas. Instituição não é obrigada a aderir, pagar, instalar app, conectar sistemas ou aceitar analytics de outras organizações.
+
+Por oportunidade, medir tempo de compreensão, aceite/recusa, trabalho para responder, pedidos de esclarecimento, desistências, canal escolhido, necessidade de reentrada, resposta até prazo e intenção de reutilização. Custos adicionais de autenticação, portal, preenchimento e suporte entram na conta. **Adoção só gera valor se reduzir atrito líquido para os dois lados**.
+
+## 40.2 Escada de adesão, sem coerção
+
+1. **Participação leve:** convite vinculado à identidade e escopo, página legível, aceitar/recusar, documentação autorizada, possibilidade de resposta por canal externo; nenhum cadastro institucional completo como exigência universal.
+2. **Workspace opcional:** oportunidades próprias, autoria, rascunhos, modelos e versões, perguntas autorizadas, colaboração interna, pendências/estado, avisos opt-in e histórico da própria organização. Controle estrito de papéis e vínculo com convite.
+3. **Integração após prova:** exportação e contratos de dados para CRM/ERP/tesouraria da instituição; APIs sob consentimento/contratos, scopes, auditoria, idempotência e volume medido; não replicar seu core de crédito ou CRM.
+
+Não implementar automaticamente links anônimos de edição; a experiência de "sem conta" pode ser registro externo realizado pelo comprador ou convite seguro com autenticação proporcional, nunca bypass de identidade.
+
+## 40.3 Incentivos bilaterais e resposta fora do portal
+
+Reuso de dados de instituição deve distinguir informação institucional publicável e preço/proposta **específico de um comprador**; dados negociais não transitam entre buyers. Resposta registrada fora do portal DEVE preservar: emissor alegado, canal, data de recebimento, documento e versão/hash disponíveis, ator registrador, campos transcritos/extraídos, unidade/moeda/prazo, revisão humana, estado de confirmação e eventuais divergências. Exibir **"registrada pela empresa a partir de resposta externa"**, jamais **"enviada pelo banco"** sem evidência de envio autenticado. Evitar duplicação ao vincular documentos, contratos, propostas e eventos; permitir reconciliação e correção auditável sem reescrever versão submetida.
+
+Instituição pode não querer revelar precificação padronizada ou razões de recusa. O desenho DEVE permitir "não informado", "não aplicável", justificativa autorizada, anexos e contato, sem inventar nota negativa ou taxa. Comparação exibe cobertura e diferenças, não vencedor automático. Cada banco recebe apenas suas oportunidades e seus próprios arquivos/estados; nunca vê preços de concorrentes, notas internas, orçamento reservado, Passport integral, analytics cruzados ou decisão sem compartilhamento granular explícito do comprador.
+
+## 40.4 Governança comercial e conflitos
+
+**Hipótese inicial de monetização:** comprador paga pelo software; participação básica da instituição, sobretudo em pilotos, sem tarifa. A proposta não é licença comercial prometida. Monetização da instituição por serviços internos, integrações ou recursos opcionais exige evidência de utilidade, consentimento, parecer jurídico e separação de interesse.
+
+São VEDADOS, até revisão formal e autorização, leilão de posição, lead vendido sem autorização, resultado patrocinado, favorecimento de quem paga, inferência de "banco ideal" ou cessão de dados/propostas entre concorrentes. Qualquer receita vinculada a transação, contratação ou lead exige revisão de enquadramento regulatório, conflitos de interesse, transparência e critérios neutros. O comprador define pesos; a instituição não conhece critérios internos não compartilhados.
+
+## 40.5 Relacionamento pós-negociação
+
+Não limitar a instituição à RFQ. Explorar somente com permissão e benefício validado: esclarecimentos de implantação, troca de responsável, calendário de renovação compartilhado, estado de pendências atribuídas ao provedor, evidência de condição acordada e confirmação bilateral de fatos quando exigida. **Confirmação do banco não equivale a verdade geral**: preservar escopo, autor, data, versão e eventual divergência com o contrato. Nenhuma atualização do provedor substitui unilateralmente a decisão do comprador.
+
+---
+
+# 41. Núcleo funcional transversal e expansão disciplinada (v3.7)
+
+## 41.1 Um único ciclo de vida, independentemente da modalidade
+
+**Relacionamento → produtos/contratos existentes → condições e evidências → obrigações/prazos → necessidade/renegociação → solicitação → resposta externa ou provedor → comparação → aprovação e decisão humanas → contrato/implantação → acompanhamento e renovação → memória institucional.**
+
+Trabalho pode começar em qualquer ponto legítimo. Uma empresa nova NÃO precisa fazer RFQ para registrar um contrato; um contrato importado NÃO exige decisão fabricada; uma proposta externa NÃO implica conta de provedor; aditivo e renovação NÃO podem sobrescrever silenciosamente termos anteriores. A fonte canônica dos objetos e a timeline devem preservar essas relações sem duplicar tabelas por tier ou por pack.
+
+## 41.2 Central de Relacionamentos Financeiros como principal superfície integradora
+
+Desenho alvo: visão por instituição **e** por entidade legal, conectando contatos, produtos contratados, contas bancárias **quando autorizadas** (inventário e metadados, nunca credenciais ou execução de pagamentos), facilities/limites, propostas e revisões, contratos/aditivos, tarifas, obrigações/covenants, pendências, disputas e decisões. Possuir navegação contextual de "o que preciso fazer", sem replicar todos os dados em um novo armazenamento. Registrar fonte/vintage e diferenciar desconhecido, não aplicável, vencido, divergente, em revisão e confirmado.
+
+A Central É uma composição de capacidades existentes do Graph, portfólio, relacionamento, contratos, tarefas e sourcing; NÃO autoriza criar CRM genérico, TMS, contabilidade, ledger de dinheiro, bank account mandates, assinatura jurídica ou data lake. Contas e signatários, se um dia entrarem, exigem classificação sensível, acesso mínimo por papel/entidade, ocultação de identificadores, autorização para export, temporalidade e revisão jurídica. Referência ao banco NÃO equivale a conexão bancária ativa.
+
+## 41.3 Matriz de capacidade por complexidade e comportamento
+
+- **Essencial:** primeiro relacionamento/contrato em poucos passos, próximos prazos, termos claros, ofertas comparáveis em modo guiado, documentos e export; ações de alto risco sempre confirmadas e auditadas.
+- **Gestão:** múltiplas instituições, RFQs de crédito/adquirência, versões/convites, responsáveis, processos de aprovação, documentação e análise factual, renovações e diferença tarifária com evidência.
+- **Enterprise:** entidades/grupos, papéis/alçadas, políticas e auditoria ampliadas, SSO/SCIM quando maduro, integrações, governança de dados/consentimento, revisão de grandes portfólios e suporte de implantação.
+
+Essa matriz define **intenção de packaging**, não presença/funcionamento da feature. Um recurso só entra no plano quando seu nível M, autorização, UX, documentação, limites de carga, suporte e preço forem comprovados. Não promover capacidade por aparecer em captura ou no roadmap. UX simplificada não pode suprimir termos críticos; UX Enterprise não precisa exibir todos os comandos simultaneamente.
+
+## 41.4 Ordem de expansão por valor líquido
+
+**Preferir aprofundar:** contratos/condições existentes, relacionamento por instituição, propostas externas com origem, dossiê por finalidade, tarefas/prazos, renegociação, portal de baixa fricção e fee variance sustentada por fonte. **Integrar após evidência:** CSV/XLSX/PDF seguros, ERP, TMS, conectividade bancária via provedores autorizados e CRMs institucionais, com contrato versionado e reconciliação. **Adiar:** mais product packs (FX, seguro, garantia, leasing), benchmarking de rede, AI autônoma, extrato transacional massivo ou execução financeira sem uso demonstrado. **Evitar como core:** ERP/contabilidade genérica, conciliação bancária universal, pagamentos/PIX, underwriting, core banking, marketplace de recomendação, licenciamento de dados confidenciais.
+
+Para cada novo módulo perguntar: reduz esforço líquido de tarefa frequente? Aumenta qualidade de uma decisão verificável? Fecha lacuna no ciclo real? Cria manutenção, telas ou consentimentos desproporcionais? Se não houver ganho demonstrável, registrar DEFER.
+
+## 41.5 Passport/dossiê sem falsa certificação
+
+Passport é reuso contextual autorizado, não cadastro universal, score ou documento certificador. Separar dimensões independentes: dado declarado; documento associado e versão conhecida; revisão interna; confirmação de atualidade; validação por fonte específica; aceite por instituição em contexto e data. Nunca inferir uma dimensão de outra. Dossiê por finalidade e destinatário deve ter manifestação explícita de compartilhamento, minimização por campo/documento/entidade, vínculo de versão e escopo, trilha de destinatário, revogação quando tecnicamente possível e distinção entre revogação de acesso futuro e cópia já recebida. A instituição conserva sua diligência própria. Não introduzir saída externa de documentos sensíveis para IA sem gates do §15.
+
+---
+
+# 42. Qualidade de produto: diferenças entre uma boa e uma má plataforma (v3.7)
+
+## 42.1 Orientação, carga cognitiva e conteúdo
+
+Em qualquer tela, o usuário DEVE conseguir identificar: (a) onde está/qual entidade; (b) o que sabe e não sabe; (c) o que precisa fazer e por quê; (d) quem é responsável; (e) qual prazo e consequência; (f) se sua ação foi realmente salva. Primária contextual única por região, secundárias discretas, avançadas sob demanda; nunca sacrificar descoberta de ações críticas para obedecer literalmente à regra de um botão. Tarefas são ordenadas por urgência/escopo verificáveis, jamais por patrocinador ou rótulos inventados. Empty, loading, partial, offline e denied states são experiências deliberadas, não becos sem saída.
+
+Não exigir cadastro de tudo antes da primeira tarefa. Campo obrigatório deve ter justificativa e validação próxima; máscaras de moeda, porcentagem, prazo, datas e fusos devem preservar valor sem arredondamento silencioso; mostrar unidade, moeda, indexador, periodicidade, regime, fonte e intervalo de validade no contexto de decisão. Regras de elegibilidade e termos contratuais não devem ficar ocultos por padrão em comparação financeira.
+
+## 42.2 Jornadas e microinterações
+
+Cada fluxo material (contrato importado, RFQ, convite, proposta interna/externa, decisão, aprovação, renovação, confirmação de evidência) DEVE ter: entrada, pré-requisitos, rascunho, validação, revisão humana, confirmação da escrita, estado posterior, erro recuperável, interrupção/reentrada, permissão negada e trilha/versão. Ações irreversíveis exigem resumo de consequências e confirmação proporcional; retry idempotente nunca produz duplicidade ou promessa de sucesso antes de persistir. Erros explicam **o que ocorreu e próximo passo**, sem revelar arquitetura interna ou dados de outra organização.
+
+Mudança de papel/entidade deve conservar orientação, revalidar autorização e impedir cache de dados cruzado; não reutilizar contexto privado ao alternar tenant. Deep links devem sobreviver a refresh quando autorizado, e expiração de sessão deve oferecer recuperação segura sem perder rascunho autorizado. Teclado, leitor de tela, zoom, touch targets, motion reduzido, estados de foco, tabelas móveis e WCAG 2.2 AA são referências verificáveis, sem claim de conformidade não auditada.
+
+## 42.3 Linguagem, evidência e integridade financeira
+
+Diferenciar em todas as superfícies: **informado**, **extraído**, **revisado**, **confirmado como atual**, **validado por fonte externa**, **aceito pela instituição**, **derivado**, **estimado**, **não informado** e **não comparável**. Valores ausentes nunca equivalem a zero; datas de extração nunca equivalem automaticamente ao período econômico. Medidas de savings: negociado, observado e realizado são diferentes e não se agregam sem comparabilidade, metodologia e fonte. Uma divergência tarifária não é cobrança indevida confirmada; taxa menor isolada não prova melhor oferta.
+
+Usar linguagem humana e adaptada a Essencial/Gestão/Enterprise, com termos técnicos explicados quando necessário; não mostrar UUID, enum, query ou stack. Números financeiros exigem precisão e representação explícita, limites de arredondamento e datas coerentes com timezone do evento. Veda-se manipulação visual de rankings para favorecimento ou simulação de negócio real com fixtures sem rótulo.
+
+## 42.4 Privacidade, segurança e confiança percebida
+
+A interface deve comunicar permissões e compartilhamento antes da exposição de dados, com prévia de destinatários/campos, confirmação e histórico. URLs de convite, download e sessão não podem vazar por analytics, logs ou referer. Upload hostil, parser, anexos, integrações e IA são fronteiras de conteúdo não confiável. Identidade de membro e instituição não pode ser inferida de nome/branding; convite, organização e vínculo exigem regras de autenticação e autorização. Dados do banco concorrente não podem vazar por comparação, busca, Graph, logs, export, cache ou webhook.
+
+Degradação de dados externos DEVE ser visível e não pode marcar informação obsoleta como atual. Exclusão/retenção/consentimento e revogação seguem §19 e parecer jurídico, sem prometer apagar cópias de terceiros. Recursos opcionais pagos não removem isolamento ou proteção mínima do cliente.
+
+## 42.5 Desempenho e simplicidade operacional
+
+Velocidade não é só benchmark: medir tarefas completas, erros, chamadas redundantes, latência p95, jornada no mobile, tempo de resposta de provedor e custo de alimentação. Lazy-load de seções secundárias sem esconder falha; paginação/limites com continuidade e totalling honesto; offline/read-only explícito em queda de backend; sinais de sucesso somente após gravação. Metas de §38.7 continuam ALVOS não SLAs.
+
+Documentação/ajuda devem explicar objetivo, não implementar SOP interno do fornecedor. Alertas/notificações devem respeitar relevância, opt-in/quiet hours, dedup, unsubscribe quando aplicável e não incluir conteúdo confidencial no assunto ou push. Suporte, incidentes, export, retenção, acessibilidade, disponibilidade e cancelamento são parte da experiência — não apêndice de TI.
+
+---
+
+# 43. Evidência de mercado, monetização e seleção do foco (v3.7)
+
+## 43.1 Mercado e ICP não são fatos validados
+
+A pesquisa inicial deve incluir comprador econômico, operador diário, aprovador e contraparte institucional; identificar rotina, orçamento, decisão de compra, restrições e volume, sem PII no repositório. **Meta de descoberta**, não amostra representativa: cerca de 4 compradores por segmento (12) e 5–6 representantes de instituições, ajustada por saturação/variação do perfil. Registrar episódios reais anteriores e observar tarefas com fixtures; não considerar elogio, download, PR verde ou clique em demo como disposição real de pagar.
+
+Para cada segmento, documentar: trigger de compra, alternativa (planilha/ERP/TMS/banco), tempo manual, custo de manutenção da informação, magnitude do risco, implantação, segurança/compra, frequência, orçamento e quem aprova. Medir quatro eixos distintos por capability: **código/teste**, **operação ambiente**, **usabilidade observada**, **valor/adoção comercial**. M0–M6 permanecem canon; o eixo comercial evita falso avanço por features.
+
+## 43.2 Hipótese de preço e conflito de interesses
+
+Estratégia inicial a testar: SaaS buyer-paid; Essencial com autosserviço e custo controlado, Gestão com implantação limitada e Enterprise com serviço/integrações contratados. Não fixar preço por "porte" sem custo de servir e disposição de pagar. Avaliar receita por organização, entidades, contratos, módulos, uso e serviço; não penalizar práticas seguras nem cobrar pelo direito do cliente de recuperar seus dados. Não anunciar planos/pacotes como vendidos ou operacionais até suporte, billing, direito de uso e contratos aprovados.
+
+Portal básico gratuito para instituição é **hipótese de aquisição**, não subsídio perpétuo prometido. Serviços institucionais opcionais podem ser avaliados sem comprometer ranking, exposição, confidencialidade e neutralidade. Decisão de receita vinculada a leads/transações requer parecer jurídico humano.
+
+## 43.3 Custo operacional líquido e comportamento
+
+Para cada fluxo medir pelo menos: tempo para primeira ação útil, conclusão sem assistência, erros, reentrada, documentos/campos recolhidos, proporção de trabalho repetido, frequência/retorno, esforço de implantação, tempo do provedor e trabalho transferido de uma ponta para a outra. Benefício líquido é **tempo/risco/trabalho comprovadamente reduzido menos coleta, revisão, manutenção e mudança de processo adicionadas**. Não alegar ROI, savings ou NPS sem baseline verificável.
+
+Critérios de investigação: usuário pode entender próximo passo; consegue registrar contrato útil sem banco presente; instituição responde/recusa sem recriar seu CRM; ambos identificam fonte e validade dos dados; existe responsável operacional e uma próxima ação. Feedback negativo pode CANCELAR feature e alterar escopo. A pesquisa não precisa esperar M3 se usar fixtures consentidas; dados reais exigem todos os gates aplicáveis.
+
+## 43.4 Decisão build/integrate/defer/remove
+
+Uma proposta nova DEVE trazer: ICP/persona; episódio/problema observado; job; alternativa atual; evidence confidence; métricas de sucesso e base de comparação; dependência entre comprador e instituição; reuso de objetos; custo de implantação/suporte; segurança/privacidade/legal; autorização de dados e fonte; maturidade do requisito; concorrente/categoria e fonte datada; decisão de construir, integrar, simplificar, adiar ou remover; owner; experimento barato/reversível e condição de descarte.
+
+Não usar volume de telas, linhas de código ou número de PRs como crescimento do produto. Avanço comercial decorre de conclusão, repetição, retenção e contratação. Não expandir packs por cobertura artificial e não reconstruir módulos existentes sem evidência de falha.
+
+---
+
+# 44. Governança de execução e fronteiras da atualização v3.7
+
+## 44.1 Constituição versus planos e evidência
+
+Esta guideline fixa invariantes; `docs/ARANDU_SEGMENTED_PRODUCT_OPERATING_MODEL_V37.md` detalha as modalidades, arquitetura de experiência, mapa de capabilities, jornadas, testes e decisões propostas, marcadas como hipóteses até validação; `docs/ARANDU_V37_EVIDENCE_AND_DECISION_GATES.md` registra rubricas, pesquisas, metas e protocolo para escolhas sem inventar resultados. A `docs/IMPLEMENTATION_MATRIX.md` mantém o estado de cada capability e prova no SHA/ambiente; documentos anteriores não devem ter status históricos reescritos retroativamente.
+
+A nova visão É CORE estratégico, mas **não desloca as entregas P0-A/P0-B de 29/10**. Até a apresentação: apenas documentação, entrevistas seguras sem dados reais, correções de segurança e UX que comprovadamente fortaleçam os P0. Após os P0: validar o ICP e porta de entrada, aprofundar gestão de relacionamentos/propostas externas e adoção institucional; M3 corre em trilha isolada mediante recovery e cutover autorizado. Não fundir PR documental com migrations, deployments ou código de produção.
+
+## 44.2 Responsabilidade e gates
+
+Toda iniciativa v3.7 precisa de ID, hipótese/estado, segmento, buyer/provider, owner, reversibilidade, arquivos exclusivos, dependências, métrica, baseline, privacy review, CI/M-state, evidência de usabilidade e próximo gate. Claude Code prioriza UX e superfícies; Codex prioriza domínio, contratos de dados, isolamento, testes, performance e hospedagem, com coordenação explícita de arquivos compartilhados. Nenhum agente deve interpretar este capítulo como ordem de implementação integral. Não tocar segredo, pagamento, corte de ambiente, migration hospedada, dados reais ou alteração de acesso remoto sem autorização específica.
+
+Mudanças passam pelos quatro gates obrigatórios no HEAD exato; melhoria visual exige QA com capturas renderizadas e testes de compreensão; dado/integridade exige testes negativos, concorrência, RLS, backup/recovery proporcional. M3, M4, M5 e M6 NÃO são deduzidos da nova estratégia. A aprovação de uma PR só valida o escopo e evidências reais da própria PR.
+
+## 44.3 Condições que justificam mudar a estratégia
+
+Reavaliar foco de Gestão, modelo buyer-paid ou três ofertas se entrevistas revelarem: baixa recorrência, custo de alimentação superior ao benefício, adesão bancária inviável, dificuldade de aquisição, exigência de integração não viável, ausência de willingness-to-pay, evidência de preferência por produto mais estreito ou concentração inesperada de valor em Essencial/Enterprise. Mudança estratégica significativa exige registro de decisão e comparação de hipóteses, sem seguir a visão atual por inércia.
+
+---
+
 # Apêndice A — Capability Map
 
 | Domínio | Papel |
@@ -2086,6 +2285,8 @@ Esta guideline complementa documentos especializados como:
 - `docs/ARANDU_DESIGN_CONSTITUTION.md`;
 - `docs/ARANDU_COMPETITIVE_LANDSCAPE.md`;
 - `docs/FINANCIAL_COMPETITIVE_EXECUTION_PLAN_2026-10-20.md`;
+- `docs/ARANDU_SEGMENTED_PRODUCT_OPERATING_MODEL_V37.md`;
+- `docs/ARANDU_V37_EVIDENCE_AND_DECISION_GATES.md`;
 - `docs/demo/README.md`;
 - `docs/demo/RUNBOOK.md`;
 - `docs/supabase-migrations.json`.
