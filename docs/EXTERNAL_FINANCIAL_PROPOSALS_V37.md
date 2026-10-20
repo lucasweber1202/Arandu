@@ -157,6 +157,7 @@ antes do ACK. Todas as referências abaixo são sintéticas, não fixtures hospe
 | external-proposals/withdraw | POST | Mesmo envelope de revisão → recibo imutável de retirada |
 | external-proposals?organization_id=…&rfq_id=…&limit=25&after=… | GET | `{ok,rows,page:{has_more,next_after},decision_allowed:false,notice}`; ordem id asc, cursor UUID |
 | external-proposals?organization_id=…&id=…&limit=25&before_version=… | GET | `{ok,record,versions,reviews,page:{has_more,next_before},decision_allowed:false,notice}`; versões desc |
+| export?rfq_id=… | GET | Export factual do processo e comparação com os mesmos canais elegíveis; provenance externa preservada |
 | comparison | POST | `{rfq_id,weights?}` → comparison/weighted existentes, incluindo externas elegíveis |
 | external-proposals/decision ou /contract | POST | 409 external_decision_not_supported; nenhuma persistência |
 

@@ -21,7 +21,7 @@ correção, confirmação e retirada. Alternativa B e seus trade-offs, schema,
 autorização, contrato de frontend, exemplos, erros e regras de exibição em
 [EXTERNAL_FINANCIAL_PROPOSALS_V37.md](../EXTERNAL_FINANCIAL_PROPOSALS_V37.md).
 
-Comparison/weights reutilizados; sem instituição, convite ou submissão falsa.
+Comparison/weights e export factual da RFQ compartilham os mesmos canais elegíveis; sem instituição, convite ou submissão falsa.
 A fonte é sempre `buyer_recorded_external`. Revisão é correspondência da
 transcrição, não validação econômica, assinatura ou aceite do banco. Documento
 sem hash continua sem hash; hash documental pré-existente é metadado não

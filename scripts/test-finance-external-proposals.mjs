@@ -72,6 +72,10 @@ assert(sent.some(request=>request.url.includes('fin_external_proposal_versions?'
 response=await call('POST','comparison',{rfq_id:RFQ});
 assert.equal(response.payload.comparison.columns[0].provenance.source,'buyer_recorded_external');
 assert(sent.some(request=>request.url.includes('or=(document_id.is.null,document_available.eq.true)')),'manual/no-document analysis does not falsely label a file available');
+response=await call('GET',`export?rfq_id=${RFQ}`);
+assert.equal(response.payload.export.proposals[0].origin,'buyer_recorded_external','RFQ export must not silently omit the analyzed external channel');
+assert.equal(response.payload.export.proposals[0].provenance.institution_acceptance,'not_recorded');
+assert.equal(response.payload.export.comparison.columns[0].provenance.source,'buyer_recorded_external');
 response=await call('POST','external-proposals/confirm',{id:ID,expected_version:1,reason:'Material fictício conferido',material_reviewed:true,document_read:false});
 assert.equal(response.payload.review_id,ID);
 response=await call('POST','external-proposals/versions',{...input,id:ID,expected_version:1,request_key:'external-key-2',correction_reason:'Correção sintética justificada'});
