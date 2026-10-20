@@ -14,10 +14,9 @@ como regra de engenharia, não apenas como texto de marketing.
 
 ## Cliente e usuários
 
-Empresas brasileiras pequenas, médias e grupos empresariais menores, com
-operação financeira minimamente estruturada. Os usuários são CFO, gerente
-financeiro, tesoureiro, controller, fundador, analista financeiro, comprador
-financeiro e o administrador da conta da empresa.
+**Direção v3.7 (não representa packaging já lançado):** clientes B2B brasileiros em três perfis de complexidade, com oferta-alvo **Essencial** (pequenas operações), **Gestão** (médias) e **Enterprise** (grupos complexos). O porte serve ao posicionamento, sem determinar automaticamente entitlement, autorizações, preço ou implantação. Gestão é hipótese de segmento inicial de pesquisa, não mercado validado. O core de RFQ, contrato, instituição, decisão e evidências é o mesmo para os três públicos. Detalhes normativos: guideline §§39–44 e `ARANDU_SEGMENTED_PRODUCT_OPERATING_MODEL_V37.md`.
+
+Os usuários incluem fundador/dono, CFO, gerente financeiro, tesoureiro, controller, analista, aprovador e administrador conforme a complexidade e o papel. Instituições financeiras participam pelo portal próprio de baixo atrito, sem serem pré-requisito para o primeiro valor do comprador. A comercialização dos três planos ainda exige pesquisa, operação, pricing e parecer jurídico; não afirmar que foram lançados.
 
 Do outro lado estão os provedores: bancos, fintechs, adquirentes,
 subadquirentes, instituições de crédito, provedores de meios de pagamento e,

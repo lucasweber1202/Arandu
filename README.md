@@ -1,5 +1,6 @@
 # Arandu — Financial Procurement
 
+**Direção de produto v3.7:** uma plataforma financeira B2B com ofertas-alvo **Arandu Essencial**, **Arandu Gestão** e **Arandu Enterprise** adaptadas à complexidade do cliente, além da experiência **Arandu Instituições** para bancos e adquirentes convidados. O comprador deve obter valor mesmo sem adesão bancária; contratos, relacionamento e propostas externas com proveniência fazem parte do ciclo pretendido. Isto é **decisão estratégica**, não anúncio de planos comercializados ou novas funcionalidades prontas. Leia `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md` §§39–44, `docs/ARANDU_SEGMENTED_PRODUCT_OPERATING_MODEL_V37.md` e `docs/ARANDU_V37_EVIDENCE_AND_DECISION_GATES.md`. Até 29/10, link público fiel e estação local READY (§37) continuam P0.
 **Arandu é uma plataforma B2B de procurement financeiro.** Ela ajuda empresas a
 estruturar uma demanda financeira, solicitar propostas a vários bancos e
 provedores, comparar as condições lado a lado, decidir com aprovação interna e
@@ -101,18 +102,16 @@ Vulnerabilidades: [`SECURITY.md`](SECURITY.md).
 
 ## Ambientes
 
-Uma base de código, três ambientes. Eles diferem por branch, projeto Vercel,
-variáveis e projeto Supabase, nunca por cópias do código.
+Uma base de código e **dois ambientes hospedados permanentes planejados**: Demo e Production. Pilot é uma etapa transitória de validação, não um terceiro ambiente permanente. Todos são derivados de commits aprovados da mesma `main`; não criar forks por cliente, versão comercial ou ambiente. A configuração diferencia ambientes sem compartilhar dados ou segredos.
 
-| Ambiente | Projeto Vercel | Branch | Declarado por | Banco |
-| --- | --- | --- | --- | --- |
-| **Demo** | `arandu-demo` | `main` | `ARANDU_ENV=demo` | Supabase DEMO próprio (Vitta Foods, fictícia) |
-| **Staging/Pilot** | `arandu-pilot` | `main` | `ARANDU_ENV=pilot` | Supabase do piloto (validação) |
-| **Production** | `arandu` | `main` | `ARANDU_ENV=production` | Supabase próprio da produção |
+| Papel | Projeto Vercel | Política de código | Modalidade ou banco exigidos para a operação canônica |
+| --- | --- | --- | --- |
+| **Demo pública (P0-A)** | `arandu-demo` | `main` aprovada | Visita M2 estática e sintética enquanto M3 permanecer bloqueada; não requer Supabase para visita |
+| **Demo canônica local / hospedada M3 (P0-B/P1)** | código da mesma `main` | `ARANDU_ENV=demo` | Local: Auth/RLS/API/Storage e banco fictício; hosted: Supabase Demo exclusivo **somente após recovery e cutover autorizados** |
+| **Pilot (transição)** | `arandu-pilot` | release candidato de `main` | Etapa de validação, com dados e controles compatíveis com os gates aplicáveis |
+| **Production** | `arandu` | `main` aprovada e release governado | Ambiente próprio, legal/recovery e readiness M5 comprovados; não presumir deploy operacional |
 
-Os três ambientes publicam a **mesma `main`** e nunca compartilham banco; nenhum
-usa o projeto legado de arte. A diferença de comportamento (e-mail, webhooks,
-modelo externo, documentos reais, fixtures) vem só de `lib/runtime-mode.mjs`.
+A visita pública não atesta M3, e produção não é considerada pronta por ter código em `main`. Os destinos hospedados não podem compartilhar bancos/segredos fora da política de release. Diferenças de comportamento (e-mail, webhooks, modelo externo, documentos reais, fixtures) são governadas centralmente por `lib/runtime-mode.mjs`, não por cópias do software.
 O build recusa a topologia errada (banco trocado, branch diferente de `main`,
 sandbox em ambiente real, credencial no sandbox, produção sem ambiente
 declarado). Fluxo `feature/* → PR → main → ambientes`, release e rollback:

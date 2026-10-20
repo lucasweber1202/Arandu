@@ -1,5 +1,27 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 20/10/2026 — Decisão estratégica v3.7: segmentação tripla, adoção de instituições e qualidade integral
+
+**STATUS: NORMATIVE_DECISION / HYPOTHESIS, SEM FEATURE OU DEPLOY NOVO.** Guideline §§39–44: `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md`. Desenho de serviços e jornadas: `docs/ARANDU_SEGMENTED_PRODUCT_OPERATING_MODEL_V37.md`. Pesquisa, evidências e aceitação: `docs/ARANDU_V37_EVIDENCE_AND_DECISION_GATES.md`. Esta atualização documental NÃO muda M0–M6, **não** promove P0-A/P0-B e **não** afirma receita, clientes, plano comercial ou integração bancária.
+
+| ID | Direção core e entrega possível | Status neste registro | Gate para executar/afirmar sucesso |
+| --- | --- | --- | --- |
+| N37-SEG | Plataforma única com Essencial/Gestão/Enterprise por complexidade; mesma segurança e domínio | **DECIDIDO / PLANOS NÃO IMPLEMENTADOS** | Pesquisa ICP e jobs por porte; entitlement server-side, política comercial, QA de upgrade/downgrade e suporte |
+| N37-ICP | Gestão como primeiro candidato de investigação; Essencial/Enterprise mantidos | **HIPÓTESE NÃO VALIDADA** | Entrevistas com compradores dos três perfis e comparação de tarefas/WTP |
+| N37-BUYER | Primeiro valor sem conta de banco, usando relacionamento ou contrato existente | **TARGET; capacidades parciais já no core** | Teste humano e evidência de esforço líquido; verificar backend e UX antes de marcar concluído |
+| N37-INST | Instituição tem valor próprio: convite compreensível, resposta/recusa sem atrito, workspace opcional, integração só após prova | **VISÃO / ADOÇÃO NÃO COMPROVADA** | Sessões reais instituição; tempo, recusa, retorno, identidade/isolamento e segurança de convites |
+| N37-EXT | Propostas recebidas fora do portal com emissor, canal, arquivo/versão, autoria do comprador e revisão | **TARGET; NÃO PRESUMIR CONCLUÍDO** | RLS, anti-spoof, arquivo hostil, reconciliação, idempotência e UI honesta |
+| N37-CENTER | Central contextual por banco/entidade ligando módulos existentes sem duplicar storage | **DESENHO-ALVO, NÃO NOVA FEATURE ENTREGUE** | UX de próxima ação + composição autorizada; fonte/partial state, E2E por persona |
+| N37-TRUST | Dossiê do Passport por finalidade e destinatário, sem falsa validação | **DIREÇÃO / base de evidência #246 existente** | Policy granular, versionamento, revogação futura e parecer jurídico sobre compartilhamento |
+| N37-COST | Medir redução líquida de trabalho e custo de serviço por fluxo/porte | **HIPÓTESE SEM BASELINE DE CLIENTE** | Tarefa observada, custo de preenchimento, ciclo de retorno e comparador da alternativa |
+| N37-QUALITY | UX, permissão, erros recuperáveis, desempenho, suporte, integridade e incidentes por superfície | **CRITÉRIO NORMATIVO; NÃO CERTIFICAÇÃO** | QA, segurança, teste usuário, operação e provas no ambiente correto |
+| N37-LEGAL | Revisão de monetização, conflitos, consentimento, documentação, dados e termos | **OWNER_ACTION_REQUIRED** | Parecer humano; não usar dados reais, contratação ou anúncios de conformidade antecipadamente |
+
+**Regra de precedência:** 29/10 mantém P0-A (link público no SHA aprovado) e P0-B (station READY na máquina definitiva). M3 continua trilha técnica P1 independente e BLOCKED até seus gates. A PR v3.7 é DOCUMENTAL; não reclassificar qualquer item por sua integração. O histórico v3.6 abaixo permanece como fotografia da data, sem atualização retroativa.
+
+---
+
+
 
 
 ## 20/10/2026 — Direção v3.6: benchmark, adoção bilateral e contrato de performance
