@@ -1,0 +1,76 @@
+{
+  "schema": 1,
+  "sha": "a68e907cec32091fe83720434a6a1fc335a36ef1",
+  "branch": "codex/v37-external-proposal-integrity",
+  "worktree_dirty": false,
+  "measured_at": "2026-10-20T18:35:30.676Z",
+  "environment": "local-domain-cpu",
+  "region": "not_applicable",
+  "dataset": "synthetic-credit-10-v1",
+  "volume": {
+    "proposals": 10,
+    "contracts": 0,
+    "observations": 0
+  },
+  "concurrent_users": 0,
+  "request_pattern": "sequential domain calls; no HTTP",
+  "duration_ms": 65.13998900000001,
+  "warmup_calls": 25,
+  "first_measured_call_after_correctness_check_ms": 0.4821269999999913,
+  "measurement": {
+    "samples": 200,
+    "method": "nearest-rank",
+    "p50_ms": 0.178948999999875,
+    "p95_ms": 0.35923200000002,
+    "p99_ms": 0.47014899999999216
+  },
+  "eligible_http_5xx": {
+    "result": "NOT_MEASURED",
+    "denominator": 0
+  },
+  "executor": {
+    "node": "v24.19.0",
+    "platform": "linux",
+    "arch": "x64",
+    "cpus": 2,
+    "memory_bytes": 10452471808,
+    "peak_rss_bytes": 50171904
+  },
+  "baseline_comparison": {
+    "scope": "legacy synthetic join only",
+    "median_before_ms": 2.067137200000002,
+    "median_after_ms": 0.08741416000000754
+  },
+  "proposed_targets": {
+    "lcp_p75_ms": 2500,
+    "inp_p75_ms": 200,
+    "cls_p75": 0.1,
+    "read_p95_ms": 500,
+    "write_p95_ms": 1000,
+    "comparison_10_p95_ms": 2000,
+    "eligible_5xx_ratio": 0.005
+  },
+  "capacity_profiles": [
+    {
+      "id": "pilot-30",
+      "organizations": 10,
+      "concurrent_users": 30,
+      "result": "NOT_RUN"
+    },
+    {
+      "id": "pilot-100",
+      "organizations": 50,
+      "concurrent_users": 100,
+      "result": "NOT_RUN"
+    },
+    {
+      "id": "lifecycle-volume",
+      "contracts": 10000,
+      "observations": 100000,
+      "result": "NOT_RUN"
+    }
+  ],
+  "backend_api_latency": "NOT_MEASURED",
+  "backend_capacity": "NOT_PROVEN",
+  "limitation": "Warm CPU microbenchmark on ephemeral executor; excludes API, JWT, RLS, DB, Storage and network. Not an end-to-end p95 or production capacity claim."
+}

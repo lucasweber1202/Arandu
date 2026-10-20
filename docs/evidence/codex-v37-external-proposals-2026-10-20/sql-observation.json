@@ -1,0 +1,30 @@
+{
+  "kind": "single_local_sql_observation",
+  "component_sha": "a68e907cec32091fe83720434a6a1fc335a36ef1",
+  "environment": "disposable PostgreSQL16, network none",
+  "role": "authenticated viewer, synthetic claims",
+  "query": "select * from fin_external_proposal_current where organization_id=:synthetic_org and rfq_id=:synthetic_rfq order by id limit 26",
+  "dataset": {
+    "target_external_proposals": 1,
+    "versions": 2,
+    "reviews": 1
+  },
+  "planning_ms": 3.721,
+  "execution_ms": 4.641,
+  "returned_rows": 1,
+  "observed_indexes": [
+    "fin_document_versions_pkey",
+    "fin_external_proposal_reviews_proposal_id_version_action_key",
+    "fin_external_proposal_versions_proposal_id_request_key_key",
+    "fin_external_proposals_organization_id_id_key",
+    "fin_external_proposals_scope",
+    "fin_private_documents_pkey",
+    "fin_providers_organization_id_id_key",
+    "fin_rfq_invites_rfq_id_provider_id_key",
+    "fin_rfqs_id_product_key"
+  ],
+  "population_percentile": null,
+  "api_latency": "NOT_MEASURED",
+  "capacity": "NOT_PROVEN",
+  "limitations": "One small synthetic fixture; not RUM, hosted API, Auth broker, Storage access, workload or scalability evidence."
+}

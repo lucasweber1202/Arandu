@@ -1,0 +1,14 @@
+{
+  "classification": "synthetic_pilot_marker_upgrade",
+  "result": "VALIDATED",
+  "from": "financial-surface-hardening-1",
+  "to": "financial-external-proposals-1",
+  "migrations": 39,
+  "bundle_sha256": "db312c98d841dacd4048806b6afe35f72f037773c999ee5a2e40c79ecc6746dd",
+  "preserved_dump_sha256": "5f87998753ad20f2e621d9db288a3008b672419ae20e2fe98908012861015e6d",
+  "interruption": "ROLLED_BACK",
+  "destructive_boundary": "REFUSED_WITHOUT_RESTORE_ACK",
+  "resume": "financial-data-governance-1",
+  "history": "PRESERVED",
+  "hosted": "NOT_RUN"
+}
