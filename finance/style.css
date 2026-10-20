@@ -1315,3 +1315,22 @@ textarea.mono{width:100%;max-width:100%;min-width:0}
 .activity-disclosure>summary{cursor:pointer;padding:var(--s4) var(--s5);min-height:44px}
 .activity-disclosure>.activity{padding:0 var(--s5) var(--s4)}
 .action-more .action-list{margin-top:0}
+/* Instituição como workspace: resumo, pendências, registros; o resto sob demanda. */
+.rel-head{border:1px solid var(--border);border-radius:var(--r-md);padding:var(--s3) var(--s4);background:var(--surface-sunken)}
+.rel-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:var(--s3) var(--s4);margin:0}
+.rel-facts dt{font-size:var(--fs-xs);color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.rel-facts dd{margin:2px 0 0;font-weight:600;overflow-wrap:anywhere}
+.rel-facts dd.muted{font-weight:400}
+.rel-attention .milestone-row{grid-template-columns:auto minmax(0,1fr) auto}
+@media (max-width:640px){.rel-attention .milestone-row{grid-template-columns:minmax(0,1fr)}.rel-attention .milestone-row>.tag,.rel-attention .milestone-row>.btn{justify-self:start}}
+.rel-more>summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;align-items:center}
+.rel-more>summary:focus-visible{outline:none;box-shadow:var(--focus-ring);border-radius:var(--r-md)}
+.rel-more[open]>summary{margin-bottom:var(--s3)}
+/* Detalhe da solicitação: próximo passo acima das abas, com atalho e quem age. */
+.next-step-bar{display:flex;align-items:center;justify-content:space-between;gap:var(--s3) var(--s4);flex-wrap:wrap;margin:var(--s3) 0 var(--s4)}
+.next-step-copy{min-width:0;flex:1 1 280px}
+.next-step-who{font-size:var(--fs-xs);color:var(--text-muted);margin-top:4px}
+.next-step-link{flex:none}
+.comparison-summary{display:flex;flex-wrap:wrap;gap:var(--s2) var(--s4);margin:0 0 var(--s3);padding:0;list-style:none;font-size:var(--fs-sm);color:var(--text-secondary)}
+.comparison-summary strong{color:var(--text);font-variant-numeric:tabular-nums}
+.provider-scope{display:flex;gap:var(--s2);align-items:flex-start;margin-top:var(--s4)}

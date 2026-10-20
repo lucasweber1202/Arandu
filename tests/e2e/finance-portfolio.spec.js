@@ -140,6 +140,9 @@ test('relacionamento com provedor: fatos, neutralidade e avaliação do cliente'
   await page.goto('/finance/providers.html');
   await page.getByRole('button', { name: 'Relacionamento com Banco Um' }).click();
   const panel = page.getByRole('dialog');
+  // Indicadores e avaliações são consulta: ficam a um clique, abaixo do trabalho.
+  await expect(panel.getByText('2 de 3 respondidos')).toBeHidden();
+  await panel.getByText('Indicadores, mapa e avaliações').click();
   await expect(panel.getByText(/não classifica nem recomenda/)).toBeVisible();
   await expect(panel.getByText('2 de 3 respondidos')).toBeVisible();
   await expect(panel.getByText('Tarifa em duplicidade').first()).toBeVisible();
@@ -176,6 +179,71 @@ test('instituição: deep link reúne contratos, limites, processos e pendência
   await page.keyboard.press('Escape');
   await expect(dialog).toBeHidden();
   await expect(page).not.toHaveURL(/provider_id=/);
+});
+
+test('instituição como workspace: resumo, pendências classificadas e ação conforme o papel', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-10-20T12:00:00Z'));
+  await mockSession(page);
+  await page.goto(`/finance/providers.html?provider_id=${PROVIDER}`);
+  const dialog = page.getByRole('dialog', { name: 'Banco Um' });
+  const head = dialog.getByRole('region', { name: 'Resumo do relacionamento' });
+  await expect(head).toContainText('Ana Gerente · Corporate');
+  await expect(head).toContainText('Vence em 81 dias');
+  const attention = dialog.locator('.rel-attention');
+  const rows = attention.locator('.milestone-row');
+  // Próximo do vencimento, depois questão e negociação; término ausente é "Não informado", não "em dia".
+  await expect(rows.nth(0)).toContainText('Próximo');
+  await expect(rows.nth(0)).toContainText('Vence em 81 dias');
+  await expect(attention).toContainText('Questão aberta: Tarifa em duplicidade');
+  await expect(attention).toContainText('Negociação em andamento: Renegociação de crédito');
+  await expect(attention.locator('.milestone-row', { hasText: 'Término não informado: Contrato de crédito' })).toContainText('Não informado');
+  await expect(attention.getByRole('link', { name: 'Abrir negociação' })).toHaveAttribute('href', /finance\/rfq.html\?id=/);
+  await expect(attention.getByRole('button', { name: 'Resolver' })).toBeVisible();
+  // Nada de nota ou ranking no topo.
+  await expect(head).not.toContainText(/nota|score|melhor/i);
+  await noHorizontalOverflow(page);
+});
+
+test('instituição sem contatos nem registros: lacunas explícitas; leitor não recebe ação de escrita', async ({ page }) => {
+  await mockSession(page, 'viewer');
+  await page.route('**/api/finance/provider-relationship**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ...RELATIONSHIP, contacts: [], issues: [], contracts: [], facilities: [], rfqs: [], timeline: [] }) }));
+  await page.goto(`/finance/providers.html?provider_id=${PROVIDER}`);
+  const dialog = page.getByRole('dialog', { name: 'Banco Um' });
+  const head = dialog.getByRole('region', { name: 'Resumo do relacionamento' });
+  await expect(head).toContainText('Contato principal');
+  await expect(head).toContainText('Não registrado');
+  await expect(head).toContainText('Nenhum prazo futuro registrado');
+  await expect(dialog.locator('.rel-attention')).toContainText('Nenhum contato registrado');
+  await expect(dialog.getByRole('button', { name: 'Adicionar contato' })).toHaveCount(0);
+  await expect(dialog.getByRole('button', { name: 'Resolver' })).toHaveCount(0);
+  await noHorizontalOverflow(page);
+});
+
+test('primeiro valor sem banco: começar sugere registrar o que existe; instituição cadastrada abre o relacionamento', async ({ page }) => {
+  const providers = [];
+  const calls = await mockSession(page, 'finance_manager', { providers });
+  await page.route('**/api/finance/providers', async (route) => {
+    if (route.request().method() !== 'POST') return route.fallback();
+    providers.push({ id: PROVIDER, name: 'Banco Um', kind: 'bank', status: 'active' });
+    return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ ok: true, row: { id: PROVIDER } }) });
+  });
+  await page.goto('/finance/dashboard.html');
+  await page.getByRole('button', { name: 'Começar' }).click();
+  const panel = page.getByRole('dialog', { name: 'O que você precisa fazer?' });
+  await expect(panel).toContainText('Nenhuma instituição precisa ter conta no Arandu');
+  await expect(panel.locator('.intent-group-title').first()).toHaveText('Registrar o que já existe');
+  // Atalhos que levariam a listas vazias não aparecem.
+  await expect(panel.getByRole('link', { name: /Comparar propostas recebidas/ })).toHaveCount(0);
+  await expect(panel.getByRole('link', { name: /Renovar ou renegociar/ })).toHaveCount(0);
+  await panel.getByRole('link', { name: /Cadastrar uma instituição/ }).click();
+  const form = page.getByRole('dialog', { name: 'Cadastrar instituição' });
+  await form.getByLabel(/^Nome/).fill('Banco Um');
+  await form.getByRole('button', { name: 'Cadastrar instituição' }).click();
+  await expect(page.getByText(/não precisa ter conta no Arandu/)).toBeVisible();
+  const workspace = page.getByRole('dialog', { name: 'Banco Um' });
+  await expect(workspace.getByRole('region', { name: 'Resumo do relacionamento' })).toBeVisible();
+  await expect(page).toHaveURL(/provider_id=/);
+  expect(calls.some((call) => call.method === 'POST' && call.path === 'contract-import')).toBe(false);
 });
 
 test('instituição de outro escopo em deep link não abre relacionamento', async ({ page }) => {

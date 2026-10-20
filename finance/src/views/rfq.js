@@ -119,6 +119,9 @@ export async function rfqDetail(ctx) {
     root.append(el('div', { class: 'callout callout-success', role: 'status' }, [icon('checkCircle'), el('span', {}, [el('strong', { text: 'Solicitação criada como rascunho. ' }), 'Próximo passo: convide provedores e abra para propostas.'])]));
   }
   root.append(lifecycle(rfq, Boolean(pending)));
+  // Próximo passo acima das abas: visível em qualquer aba e no celular, com a
+  // ação que o estado permite e quem pode agir — a máquina de estados não muda.
+  root.append(nextStepCard(ctx, rfq, { pending, approvals, decision, contract, policy, governanceGap, manage }));
   if (governanceGap) root.append(governanceGapNotice(ctx, governanceGap));
 
   const tabset = tabs([
@@ -175,7 +178,7 @@ function overviewTab(ctx, rfq, { manage, pending, approvals, decision, contract,
   const documents = card({ title: 'Documentos', subtitle: 'Balanços, minutas e anexos do processo, em armazenamento privado.', id: 'documentos', body: el('div', {}, loading()) });
   import('./documents.js').then(({ documentsPanel }) => documents.querySelector('.card-body').replaceChildren(documentsPanel(ctx, {
     entityType: 'rfq', entityId: rfq.id, canUpload: manage || ctx.can('upload_document'), shareLabel: 'Visível aos provedores convidados' })));
-  grid.append(el('div', { class: 'split-main' }, [demand, passportSnapshotCard(ctx, rfq), revisions, graphContextCard(ctx, { type: 'rfq', id: rfq.id })]), el('div', { class: 'split-side' }, [nextStepCard(ctx, rfq, { pending, approvals, decision, contract, policy, governanceGap }), inviteCard, documents, reuse]));
+  grid.append(el('div', { class: 'split-main' }, [demand, passportSnapshotCard(ctx, rfq), revisions, graphContextCard(ctx, { type: 'rfq', id: rfq.id })]), el('div', { class: 'split-side' }, [inviteCard, documents, reuse]));
   return grid;
 }
 
@@ -210,7 +213,7 @@ function passportSnapshotCard(ctx, rfq) {
   return slot;
 }
 
-function nextStepCard(ctx, rfq, { pending, approvals = [], decision, contract, policy, governanceGap = null } = {}) {
+function nextStepCard(ctx, rfq, { pending, approvals = [], decision, contract, policy, governanceGap = null, manage = false } = {}) {
   // O cartão acompanha o estado real do processo, não só o status da RFQ.
   const latest = [...approvals].sort((a, b) => String(b.requested_at).localeCompare(String(a.requested_at)))[0];
   const situational = (() => {
@@ -244,7 +247,21 @@ function nextStepCard(ctx, rfq, { pending, approvals = [], decision, contract, p
     contracted: ['Contrato em acompanhamento', 'Os marcos de renovação aparecem em Contratos.'],
     cancelled: ['Solicitação cancelada', 'O histórico fica preservado para consulta.']
   }[rfq.status] || ['—', ''];
-  return el('section', { class: 'next-step', 'aria-label': 'Próximo passo' }, [el('span', { class: 'next-step-kicker', text: 'Próximo passo' }), el('p', { class: 'next-step-title', text: text[0] }), el('p', { class: 'next-step-text', text: text[1] })]);
+  // Onde agir: aba do processo correspondente. Só um atalho de navegação; as
+  // ações continuam nos lugares de sempre e o servidor decide quem pode.
+  const where = governanceGap ? null : pending ? ['#aprovacoes', 'Ver aprovação'] : {
+    draft: ['#convites', 'Ver convites'], open: ['#convites', 'Ver convites'], collecting: ['#propostas', 'Ver propostas'],
+    comparing: rfq.proposals?.length ? ['#comparacao', 'Ver comparação'] : ['#propostas', 'Ver propostas'], decided: ['#decisao', 'Ver decisão']
+  }[rfq.status] || null;
+  const viewerTurn = pending && isViewerTurn(pending, ctx.viewer?.id);
+  const who = governanceGap || ['contracted', 'cancelled'].includes(rfq.status) ? null
+    : pending ? (viewerTurn || pending.viewer_can_act ? 'Você pode agir nesta etapa.' : 'Ação de quem aprova esta etapa; você acompanha.')
+      : manage ? 'Você pode agir nesta etapa.' : 'Ação de quem gerencia a solicitação; você acompanha.';
+  return el('section', { class: 'next-step next-step-bar', 'aria-label': 'Próximo passo' }, [
+    el('div', { class: 'next-step-copy' }, [el('span', { class: 'next-step-kicker', text: 'Próximo passo' }), el('p', { class: 'next-step-title', text: text[0] }), el('p', { class: 'next-step-text', text: text[1] }),
+      who ? el('p', { class: 'next-step-who', text: who }) : null]),
+    where ? el('a', { class: 'btn btn-sm btn-secondary next-step-link', href: where[0], text: where[1] }) : null
+  ]);
 }
 
 function inviteForm(ctx, rfq) {
