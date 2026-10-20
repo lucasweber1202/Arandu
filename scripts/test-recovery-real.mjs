@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os, { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
+import { createServer } from 'node:net';
 import { createHash } from 'node:crypto';
 import { exportRecovery } from './consolidation-export.mjs';
 import { digestFile } from '../lib/recovery-transfer.mjs';
@@ -39,11 +40,35 @@ const run = (bin,args,extra={}) => {
   }
   return result.stdout;
 };
-// Portas fixas do laboratório: falha cedo e explícita se outro processo já as ocupa.
-for(const port of [55431,55432,55433,55434,55435]) {
-  const probe=spawnSync(process.execPath,['-e',`const s=require('net').createServer();s.once('error',e=>{console.error(e.code);process.exit(1)});s.listen(${port},'127.0.0.1',()=>s.close())`],{encoding:'utf8',timeout:10000});
-  if(probe.status!==0) { fs.rmSync(dir,{recursive:true,force:true}); throw new Error(`Recovery laboratory port 127.0.0.1:${port} unavailable (${(probe.stderr||'').trim() || 'probe failed'}); no validation result issued.`); }
+// Alocar a porta junto à inicialização, evitando intervalo longo TOCTOU.
+async function availableLoopbackPort() {
+  const socket=createServer();
+  const port=await new Promise((resolve,reject)=>{
+    socket.once('error',reject);
+    socket.listen(0,'127.0.0.1',()=>resolve(socket.address().port));
+  });
+  await new Promise((resolve,reject)=>socket.close(error=>error?reject(error):resolve()));
+  return port;
 }
+async function startCluster(name) {
+  const data=path.join(dir,name);
+  run('initdb',['-D',data,'-U','postgres','--auth=trust','--no-locale','--encoding=UTF8']);
+  // Entre o probe e o bind existe uma corrida mínima. Tentar outra porta
+  // somente se o erro for colisão de bind; outros erros são fatais.
+  for(let attempt=1;attempt<=4;attempt++) {
+    const port=await availableLoopbackPort();
+    const log=path.join(dir,`${name}-start-${attempt}.log`);
+    try {
+      run('pg_ctl',['-D',data,'-l',log,'-o',`-h 127.0.0.1 -p ${port} -k ${dir}`,'-w','start']);
+      started.push(data);
+      return port;
+    } catch(error) {
+      if(!/Address already in use/.test(error.message) || attempt===4) throw error;
+    }
+  }
+  throw new Error('Recovery laboratory failed to allocate a loopback PostgreSQL port.');
+}
+const ports=Object.create(null);
 const sql=(port,query)=>run('psql',['-X','-At','-v','ON_ERROR_STOP=1'],{env:{...env,PGPORT:String(port)},input:query});
 const fixture = `
 CREATE ROLE arandu_fixture_reader NOSUPERUSER NOCREATEDB NOCREATEROLE NOLOGIN;
@@ -90,12 +115,8 @@ const evidenceSql = `SELECT json_build_object(
 try {
   assert.match(run('pg_dump',['--version']),/PostgreSQL\) 17\./);
   assert.match(run('age',['--version']),/1\.3\.2/);
-  for(const [name,port] of [['source',55431],['target',55432]]) {
-    const data=path.join(dir,name);
-    run('initdb',['-D',data,'-U','postgres','--auth=trust','--no-locale','--encoding=UTF8']);
-    run('pg_ctl',['-D',data,'-l',path.join(dir,`${name}.log`),'-o',`-h 127.0.0.1 -p ${port} -k ${dir}`,'-w','start']);started.push(data);
-  }
-  sql(55431,fixture);
+  for(const name of ['source','target']) ports[name]=await startCluster(name);
+  sql(ports.source,fixture);
   const identity=path.join(dir,'identity'),wrong=path.join(dir,'wrong');
   run('age-keygen',['-o',identity]);run('age-keygen',['-o',wrong]);
   fs.chmodSync(identity,0o600);fs.chmodSync(wrong,0o600);
@@ -103,19 +124,19 @@ try {
   const output=path.join(dir,'private');fs.mkdirSync(output,{mode:0o700});
   const exportEnv={...env,
     ARANDU_RECOVERY_CONFIRM:'ARANDU-ENCRYPTED-EXPORT',ARANDU_RECOVERY_PROJECT_REF:'offgpyysgdhfemjlchod',
-    ARANDU_RECOVERY_DATABASE_URL:'postgresql://postgres@127.0.0.1:55431/postgres?sslmode=disable',
+    ARANDU_RECOVERY_DATABASE_URL:`postgresql://postgres@127.0.0.1:${ports.source}/postgres?sslmode=disable`,
     ARANDU_RECOVERY_RECIPIENT:recipient,ARANDU_RECOVERY_DIRECTORY:output};
   await assert.rejects(exportRecovery({root:process.cwd(),syntheticLocal:true,env:{...exportEnv,ARANDU_RECOVERY_RECIPIENT:'age1'+'a'.repeat(58)}}));
   assert.equal(fs.readdirSync(output).length,0,'Real age checksum rejection before export');
   // Arquivo no Storage: o pg_dump levaria só o metadado. Sem a declaração do
   // export separado dos binários o export recusa; com ela, o manifesto registra a exigência.
-  sql(55431,`INSERT INTO storage.objects VALUES(1,'synthetic-private','synthetic-file','{"size":1}');`);
+  sql(ports.source,`INSERT INTO storage.objects VALUES(1,'synthetic-private','synthetic-file','{"size":1}');`);
   await assert.rejects(exportRecovery({root:process.cwd(),syntheticLocal:true,env:exportEnv}),(e)=>e.code==='RECOVERY_STORAGE_OBJECTS_PRESENT');
   const withFiles=path.join(dir,'with-files');fs.mkdirSync(withFiles,{mode:0o700});
   const declared=await exportRecovery({root:process.cwd(),syntheticLocal:true,env:{...exportEnv,ARANDU_RECOVERY_DIRECTORY:withFiles,ARANDU_RECOVERY_STORAGE_BINARIES:'separate-export'}});
   assert.equal(declared.storage_binaries,'SEPARATE_EXPORT_REQUIRED');assert.equal(declared.source_counts.storage_objects,1);
   assert.equal(declared.snapshot_counts['storage.objects'],1);
-  sql(55431,'DELETE FROM storage.objects;');
+  sql(ports.source,'DELETE FROM storage.objects;');
   assert.equal(fs.readdirSync(output).length,0,'export recusado deixou artefato');
   const manifest=await exportRecovery({root:process.cwd(),syntheticLocal:true,env:exportEnv});
   assert.equal(manifest.storage_binaries,'NONE');
@@ -138,36 +159,36 @@ try {
   const roles=run('age',['--decrypt','--identity',identity,path.join(backup,'roles.sql.age')]);
   assert(roles.includes('CREATE ROLE arandu_fixture_reader;'));assert(!/PASSWORD '/.test(roles));
   const restoreEnv={...env,ARANDU_RESTORE_CONFIRM:'ARANDU-ISOLATED-RESTORE',ARANDU_RESTORE_BACKUP:backup,ARANDU_RESTORE_IDENTITY:identity,
-    ARANDU_RESTORE_TARGET_URL:'postgresql://postgres@127.0.0.1:55432/postgres?sslmode=disable'};
+    ARANDU_RESTORE_TARGET_URL:`postgresql://postgres@127.0.0.1:${ports.target}/postgres?sslmode=disable`};
   const code=(promise,expected)=>assert.rejects(promise,(e)=>e.code===expected);
   // Production CLI cannot treat an arbitrary/synthetic artifact as its approved source.
   await code(verifyRestore({root:process.cwd(),env:restoreEnv}),'source_identity_mismatch');
   const fingerprint = port => sql(port,`BEGIN READ ONLY; ${SCHEMA_SQL} COMMIT;`).trim().split('\n').find(v=>/^[a-f0-9]{64}$/.test(v));
-  const originalSchema = fingerprint(55431);
+  const originalSchema = fingerprint(ports.source);
   assert.equal(originalSchema,manifest.snapshot_schema_sha256);
   // Same row counts, changed marker or function body must change the fingerprint.
-  sql(55431,"UPDATE public.fin_settings SET value='wrong' WHERE key='schema_version';");
-  assert.notEqual(fingerprint(55431),originalSchema);
-  sql(55431,"UPDATE public.fin_settings SET value='synthetic-schema-1' WHERE key='schema_version';");
-  sql(55431,"CREATE OR REPLACE FUNCTION public.positive(n numeric) RETURNS boolean LANGUAGE sql IMMUTABLE AS 'select n >= 0';");
-  assert.notEqual(fingerprint(55431),originalSchema);
-  sql(55431,"CREATE OR REPLACE FUNCTION public.positive(n numeric) RETURNS boolean LANGUAGE sql IMMUTABLE AS 'select n > 0';");
-  assert.equal(fingerprint(55431),originalSchema);
+  sql(ports.source,"UPDATE public.fin_settings SET value='wrong' WHERE key='schema_version';");
+  assert.notEqual(fingerprint(ports.source),originalSchema);
+  sql(ports.source,"UPDATE public.fin_settings SET value='synthetic-schema-1' WHERE key='schema_version';");
+  sql(ports.source,"CREATE OR REPLACE FUNCTION public.positive(n numeric) RETURNS boolean LANGUAGE sql IMMUTABLE AS 'select n >= 0';");
+  assert.notEqual(fingerprint(ports.source),originalSchema);
+  sql(ports.source,"CREATE OR REPLACE FUNCTION public.positive(n numeric) RETURNS boolean LANGUAGE sql IMMUTABLE AS 'select n > 0';");
+  assert.equal(fingerprint(ports.source),originalSchema);
   for (const change of ['ALTER TABLE public.child DISABLE ROW LEVEL SECURITY;',
     'REVOKE SELECT ON public.child FROM arandu_fixture_reader;',
     'DROP POLICY reader ON public.child;',
     'ALTER TABLE public.child ALTER COLUMN amount TYPE numeric(12,2);']) {
-    const changed=sql(55431,`BEGIN; ${change} ${SCHEMA_SQL} ROLLBACK;`).trim().split('\n').find(v=>/^[a-f0-9]{64}$/.test(v));
+    const changed=sql(ports.source,`BEGIN; ${change} ${SCHEMA_SQL} ROLLBACK;`).trim().split('\n').find(v=>/^[a-f0-9]{64}$/.test(v));
     assert.match(changed,/^[a-f0-9]{64}$/);
     assert.notEqual(changed,originalSchema,change);
   }
-  assert.equal(fingerprint(55431),originalSchema);
+  assert.equal(fingerprint(ports.source),originalSchema);
   // Fail-closed antes de qualquer descriptografia ou escrita no destino.
   assert.throws(()=>loopbackTarget('postgresql://postgres:x@db.offgpyysgdhfemjlchod.supabase.co:5432/postgres'));
   await assert.rejects(verifyRestore({syntheticLocal:true,root:process.cwd(),env:{...restoreEnv,ARANDU_RESTORE_TARGET_URL:'postgresql://postgres@10.0.0.5:5432/postgres'}}));
   await assert.rejects(verifyRestore({syntheticLocal:true,root:process.cwd(),env:{...restoreEnv,ARANDU_RESTORE_CONFIRM:''}}));
   fs.chmodSync(identity,0o644);await code(verifyRestore({syntheticLocal:true,root:process.cwd(),env:restoreEnv}),'invalid_input');fs.chmodSync(identity,0o600);
-  await code(verifyRestore({syntheticLocal:true,root:process.cwd(),env:{...restoreEnv,ARANDU_RESTORE_TARGET_URL:'postgresql://postgres@127.0.0.1:55431/postgres?sslmode=disable'}}),'target_not_empty');
+  await code(verifyRestore({syntheticLocal:true,root:process.cwd(),env:{...restoreEnv,ARANDU_RESTORE_TARGET_URL:`postgresql://postgres@127.0.0.1:${ports.source}/postgres?sslmode=disable`}}),'target_not_empty');
   const tampered=path.join(dir,'tampered');fs.cpSync(backup,tampered,{recursive:true});fs.chmodSync(tampered,0o700);
   const tamperedManifest=JSON.parse(fs.readFileSync(path.join(tampered,'manifest.json'),'utf8'));
   const identityLink=path.join(dir,'identity-link');fs.symlinkSync(identity,identityLink);
@@ -199,9 +220,9 @@ try {
   await code(verifyRestore({syntheticLocal:true,root:process.cwd(),env:{...restoreEnv,ARANDU_RESTORE_IDENTITY:wrong}}),'decrypt_failed');
   // Role ausente no destino: restore em transação única aborta e reverte.
   await code(verifyRestore({syntheticLocal:true,root:process.cwd(),env:restoreEnv}),'restore_failed');
-  assert.equal(sql(55432,"select count(*) from pg_tables where schemaname='public';").trim(),'0','restore abortado deixou objetos');
+  assert.equal(sql(ports.target,"select count(*) from pg_tables where schemaname='public';").trim(),'0','restore abortado deixou objetos');
   // Explicit, reviewed role definition. Never blindly apply pg_dumpall roles.
-  sql(55432,'CREATE ROLE arandu_fixture_reader NOSUPERUSER NOCREATEDB NOCREATEROLE NOLOGIN;');
+  sql(ports.target,'CREATE ROLE arandu_fixture_reader NOSUPERUSER NOCREATEDB NOCREATEROLE NOLOGIN;');
   const record=await verifyRestore({syntheticLocal:true,root:process.cwd(),env:restoreEnv});
   assert.equal(record.reconciliation,'MATCH');assert.equal(record.tables,8);assert.equal(record.conversion,'BLOCKED');assert.equal(record.roles_file,'NOT APPLIED');
   assert.equal(record.source_counts_sha256,record.target_counts_sha256);
@@ -212,16 +233,15 @@ try {
   assert.equal(record.schema_reconciliation,'MATCH');
   assert.equal(record.source_schema_sha256,record.target_schema_sha256);
   // Empty target containing an extra function: counts MATCH cannot hide schema drift.
-  const drift=path.join(dir,'drift');run('initdb',['-D',drift,'-U','postgres','--auth=trust','--no-locale','--encoding=UTF8']);
-  run('pg_ctl',['-D',drift,'-l',path.join(dir,'drift.log'),'-o',`-h 127.0.0.1 -p 55435 -k ${dir}`,'-w','start']);started.push(drift);
-  sql(55435,"CREATE ROLE arandu_fixture_reader NOSUPERUSER NOCREATEDB NOCREATEROLE NOLOGIN; CREATE FUNCTION public.unexpected() RETURNS int LANGUAGE sql AS 'select 1';");
-  await code(verifyRestore({syntheticLocal:true,root:process.cwd(),env:{...restoreEnv,ARANDU_RESTORE_TARGET_URL:'postgresql://postgres@127.0.0.1:55435/postgres?sslmode=disable'}}),'schema_mismatch');
+  ports.drift=await startCluster('drift');
+  sql(ports.drift,"CREATE ROLE arandu_fixture_reader NOSUPERUSER NOCREATEDB NOCREATEROLE NOLOGIN; CREATE FUNCTION public.unexpected() RETURNS int LANGUAGE sql AS 'select 1';");
+  await code(verifyRestore({syntheticLocal:true,root:process.cwd(),env:{...restoreEnv,ARANDU_RESTORE_TARGET_URL:`postgresql://postgres@127.0.0.1:${ports.drift}/postgres?sslmode=disable`}}),'schema_mismatch');
   // Destino agora tem dados: segunda verificação no mesmo cluster é recusada.
   await code(verifyRestore({syntheticLocal:true,root:process.cwd(),env:restoreEnv}),'target_not_empty');
-  const before=sql(55431,evidenceSql).trim(),after=sql(55432,evidenceSql).trim();
+  const before=sql(ports.source,evidenceSql).trim(),after=sql(ports.target,evidenceSql).trim();
   assert.equal(after,before,'Data/schema/ACL/owners/RLS/defaults/Auth/Storage/migrations must match');
-  assert.equal(sql(55432,'SET ROLE arandu_fixture_reader; SELECT count(*) FROM public.child;').trim().split('\n').at(-1),'1');
-  const denied=spawnSync('psql',['-X','-v','ON_ERROR_STOP=1'],{env:{...env,PGPORT:'55432'},input:'SET ROLE arandu_fixture_reader; INSERT INTO public.child VALUES(5,2,5);',encoding:'utf8'});
+  assert.equal(sql(ports.target,'SET ROLE arandu_fixture_reader; SELECT count(*) FROM public.child;').trim().split('\n').at(-1),'1');
+  const denied=spawnSync('psql',['-X','-v','ON_ERROR_STOP=1'],{env:{...env,PGPORT:String(ports.target)},input:'SET ROLE arandu_fixture_reader; INSERT INTO public.child VALUES(5,2,5);',encoding:'utf8'});
   assert.equal(denied.error,undefined,'psql must execute before a denial can be evidence');
   assert.equal(denied.signal,null,'psql denial must not be a terminated process');
   assert.equal(denied.status,3,'ON_ERROR_STOP must report a SQL error');
@@ -240,7 +260,7 @@ try {
       assert.equal(prepareKey({env:{...opEnv,ARANDU_RECOVERY_IDENTITY_FILE:path.join(keys,'id.agekey')}}).recipient,key.recipient,'identidade regenerada');
       const store=initStore({env:{...opEnv,ARANDU_RECOVERY_DIRECTORY:storeDir},args:['--attest-persistent']});
       const privEnv={...env,ARANDU_RECOVERY_CONFIRM:'ARANDU-ENCRYPTED-EXPORT',ARANDU_RECOVERY_PROJECT_REF:'offgpyysgdhfemjlchod',
-        ARANDU_RECOVERY_DATABASE_URL:'postgresql://postgres@127.0.0.1:55431/postgres?sslmode=disable',ARANDU_RECOVERY_RECIPIENT:key.recipient,ARANDU_RECOVERY_DIRECTORY:storeDir};
+        ARANDU_RECOVERY_DATABASE_URL:`postgresql://postgres@127.0.0.1:${ports.source}/postgres?sslmode=disable`,ARANDU_RECOVERY_RECIPIENT:key.recipient,ARANDU_RECOVERY_DIRECTORY:storeDir};
       const quiet=()=>{};
       // Falhas classificadas por estágio, sem artefato parcial no store.
       await assert.rejects(privateExport({env:{...privEnv,ARANDU_RECOVERY_DATABASE_URL:'postgresql://postgres@127.0.0.1:55439/postgres?sslmode=disable'},syntheticLocal:true,log:quiet}),(e)=>e.code==='RECOVERY_CONNECTION_FAILED');
@@ -271,11 +291,10 @@ try {
       await assert.rejects(verifyExport({env:vEnv}),(e)=>e.code==='RECOVERY_DESTINATION_PERMISSIONS');
       fs.chmodSync(path.join(exportDir,'roles.sql.age'),0o600);
       // Restore isolado do MESMO export num cluster novo: só então nível 5.
-      const third=path.join(dir,'third');run('initdb',['-D',third,'-U','postgres','--auth=trust','--no-locale','--encoding=UTF8']);
-      run('pg_ctl',['-D',third,'-l',path.join(dir,'third.log'),'-o',`-h 127.0.0.1 -p 55433 -k ${dir}`,'-w','start']);started.push(third);
-      sql(55433,'CREATE ROLE arandu_fixture_reader NOSUPERUSER NOCREATEDB NOCREATEROLE NOLOGIN;');
+      ports.third=await startCluster('third');
+      sql(ports.third,'CREATE ROLE arandu_fixture_reader NOSUPERUSER NOCREATEDB NOCREATEROLE NOLOGIN;');
       const rec=await verifyRestore({syntheticLocal:true,root:process.cwd(),env:{...env,ARANDU_RESTORE_CONFIRM:'ARANDU-ISOLATED-RESTORE',ARANDU_RESTORE_BACKUP:exportDir,
-        ARANDU_RESTORE_IDENTITY:path.join(keys,'id.agekey'),ARANDU_RESTORE_TARGET_URL:'postgresql://postgres@127.0.0.1:55433/postgres?sslmode=disable'}});
+        ARANDU_RESTORE_IDENTITY:path.join(keys,'id.agekey'),ARANDU_RESTORE_TARGET_URL:`postgresql://postgres@127.0.0.1:${ports.third}/postgres?sslmode=disable`}});
       assert.equal(rec.reconciliation,'MATCH');
       const final=await verifyExport({env:vEnv});
       assert.equal(final.level,5);assert.equal(final.recovery,'RECOVERY_VERIFIED');assert.equal(final.conversion,'BLOCKED');
@@ -298,7 +317,7 @@ try {
   }
   const corrupt=Buffer.from(fs.readFileSync(cipher));corrupt[corrupt.length-1]^=1;
   const corruptResult=spawnSync('age',['--decrypt','--identity',identity],{env,input:corrupt,timeout:30000});assert.notEqual(corruptResult.status,0);
-  storageResult=await rehearseStorageSet({dir,env,sql,run,started,identity,recipient});
+  storageResult=await rehearseStorageSet({dir,env,sql,identity,recipient,sourcePort:ports.source,startCluster});
   databaseResult={classification:'synthetic_postgresql17_age_same_backup_restore',result:'VALIDATED',
     hosted_backup:'NOT RUN',supabase_compatibility:'NOT PROVEN',ciphertext:manifest.files,
     reconciliation_sha256:createHash('sha256').update(before).digest('hex')};
