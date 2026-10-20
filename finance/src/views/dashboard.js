@@ -6,6 +6,9 @@ import { memberName, currentStep, approvalSummaryLine, eventTitle, isViewerTurn,
 import { loadEntities, entitySummaryCard } from './entities.js';
 import { startButton } from './intake.js';
 
+// Pendências visíveis antes de "Mostrar mais" (Constitution §1.3: uma próxima ação clara).
+const FIRST_ITEMS = 5;
+const FIRST_TASKS = 3;
 const PIPELINE = [['draft', 'Rascunho'], ['open', 'Aberta'], ['collecting', 'Em coleta'], ['comparing', 'Em avaliação'], ['decided', 'Decidida'], ['contracted', 'Contratada']];
 
 export function greeting(name) {
@@ -149,15 +152,29 @@ export async function dashboard(ctx) {
     el('div', { class: 'card-head-text' }, [el('h2', { class: 'card-title', id: 'attention-title', text: 'Precisa de você' }),
       el('p', { class: 'card-subtitle', text: items.length ? `${items.length} ${items.length === 1 ? 'item pede' : 'itens pedem'} ação, do mais urgente ao menos urgente.` : ctx.approvalsError ? 'Parte das pendências não carregou.' : 'Nada pendente com você agora.' })])
   ]));
-  const list = el('ul', { class: 'action-list', role: 'list' }, items.slice(0, 8).map(actionRow));
+  // Poucas pendências à vista; o restante continua inteiro na mesma lista,
+  // aberto sob demanda — nada some, só deixa de competir com o mais urgente.
+  // Tarefas soltas não escondem o passo de um processo (aprovação, prazo,
+  // renovação): no máximo FIRST_TASKS delas entram no bloco visível.
+  const shown = [];
+  let shownTasks = 0;
+  for (const item of items) {
+    if (shown.length >= FIRST_ITEMS) break;
+    if (item.kind === 'Tarefa') { if (shownTasks >= FIRST_TASKS) continue; shownTasks += 1; }
+    shown.push(item);
+  }
+  const hidden = items.filter((item) => !shown.includes(item));
+  const list = el('ul', { class: 'action-list', role: 'list' }, shown.map(actionRow));
+  const rest = hidden.length ? el('details', { class: 'action-more' }, [
+    el('summary', { text: `Mostrar mais ${plural(hidden.length, 'pendência', 'pendências')}` }),
+    el('ul', { class: 'action-list', role: 'list' }, hidden.map(actionRow))]) : null;
   // Aprovações que não carregaram não podem virar "Tudo em dia".
   const approvalsMissing = ctx.approvalsError ? el('p', { class: 'callout callout-warning compact', role: 'alert' }, [icon('alert'),
     el('span', { text: 'Não conseguimos carregar as aprovações agora; pode haver pedido aguardando você. ' }),
     el('a', { href: ctx.href('/finance/approvals.html'), text: 'Abrir Aprovações' })]) : null;
   if (approvalsMissing) attention.append(approvalsMissing);
-  attention.append(items.length ? list : approvalsMissing ? el('p', { class: 'muted small', text: 'Os demais itens (prazos, renovações e tarefas) não pedem ação agora.' }) : emptyState({ title: 'Tudo em dia', text: ctx.can('create_rfq') ? 'Nenhuma aprovação, prazo ou renovação exige ação. Que tal estruturar a próxima necessidade?' : 'Nenhuma aprovação aguarda você.', iconName: 'checkCircle',
+  attention.append(items.length ? el('div', {}, [list, rest].filter(Boolean)) : approvalsMissing ? el('p', { class: 'muted small', text: 'Os demais itens (prazos, renovações e tarefas) não pedem ação agora.' }) : emptyState({ title: 'Tudo em dia', text: ctx.can('create_rfq') ? 'Nenhuma aprovação, prazo ou renovação exige ação. Que tal estruturar a próxima necessidade?' : 'Nenhuma aprovação aguarda você.', iconName: 'checkCircle',
     action: ctx.can('create_rfq') ? linkButton('Nova solicitação', ctx.href('/finance/new-rfq.html'), { iconName: 'plus' }) : null }));
-  if (items.length > 8) attention.append(el('p', { class: 'card-foot muted', text: `+ ${items.length - 8} itens de menor prioridade nas listas de solicitações, contratos e tarefas.` }));
 
   // Resumo discreto: contagens reais, nenhuma estimativa de economia.
   const active = rfqs.filter((rfq) => ['open', 'collecting', 'comparing'].includes(rfq.status));
@@ -197,7 +214,9 @@ export async function dashboard(ctx) {
   }));
   const pipelineCard = card({ title: 'Concorrências em andamento', subtitle: 'Da abertura à avaliação, com prazo e respostas.',
     actions: [linkButton('Ver todas', ctx.href('/finance/rfqs.html'), { variant: 'ghost', size: 'sm', iconName: 'arrowRight' })],
-    body: [pipeline, inFlight.length ? processes : emptyState({ title: 'Nenhuma concorrência em andamento', text: 'Solicitações abertas aparecem aqui com prazo e número de respostas.', compact: true })] });
+    body: [inFlight.length ? processes : emptyState({ title: 'Nenhuma concorrência em andamento', text: 'Solicitações abertas aparecem aqui com prazo e número de respostas.', compact: true }),
+      // Contagem por etapa é consulta, não tarefa: fica sob demanda.
+      el('details', { class: 'pipeline-more' }, [el('summary', { text: 'Ver solicitações por etapa' }), pipeline])] });
 
   // Contratos: próximos marcos.
   const upcoming = contracts.sort((a, b) => String(a.review_from).localeCompare(String(b.review_from))).slice(0, 3);
@@ -222,7 +241,7 @@ export async function dashboard(ctx) {
       action: ctx.can('create_rfq') ? linkButton('Registrar contrato existente', ctx.href('/finance/contracts.html?acao=registrar-contrato'), { size: 'sm', iconName: 'plus' }) : null }) });
 
   // Tarefas com conclusão rápida. O que já está em "Precisa de você" não se repete aqui.
-  const listed = new Set(items.slice(0, 8).map((item) => item.taskId).filter(Boolean));
+  const listed = new Set(items.map((item) => item.taskId).filter(Boolean));
   const tasks = (data.tasks || []).filter((task) => !listed.has(task.id)).slice(0, 5);
   const taskList = el('ul', { class: 'mini-list', role: 'list' });
   // Mesma regra do banco (fin_task_edit): leitor acompanha, não conclui.
@@ -254,7 +273,8 @@ export async function dashboard(ctx) {
 
   // Atividade recente da organização.
   const feed = el('ol', { class: 'activity compact' }, el('li', { class: 'muted', text: 'Carregando…' }));
-  ctx.api(`events?organization_id=${encodeURIComponent(ctx.organization.id)}`).then(({ rows }) => {
+  // Histórico é nível 4: só é buscado quando a pessoa abre a seção.
+  const loadFeed = () => ctx.api(`events?organization_id=${encodeURIComponent(ctx.organization.id)}`).then(({ rows }) => {
     feed.replaceChildren();
     // Contexto legível do objeto: título da solicitação ou instituição do contrato.
     const titles = new Map([...rfqs.map((rfq) => [rfq.id, rfq.title]), ...(data.contracts || []).map((contract) => [contract.id, contract.provider_name || contract.title])]);
@@ -276,7 +296,11 @@ export async function dashboard(ctx) {
     }
     if (!feed.children.length) feed.append(el('li', { class: 'muted', text: 'Sem atividade recente.' }));
   }).catch(() => feed.replaceChildren(el('li', { class: 'muted', text: 'Atividade indisponível no momento.' })));
-  const activityCard = card({ title: 'Atividade recente', body: feed });
+  const activity = el('details', { class: 'card activity-disclosure', id: 'atividade' }, [
+    el('summary', { class: 'card-title', text: 'Atividade recente da empresa' }), feed]);
+  let feedLoaded = false;
+  activity.addEventListener('toggle', () => { if (activity.open && !feedLoaded) { feedLoaded = true; loadFeed(); } });
+  const activityCard = activity;
 
   // Consolidado por entidade: só aparece quando o grupo tem entidades.
   const entities = await loadEntities(ctx);

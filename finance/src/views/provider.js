@@ -94,7 +94,8 @@ export async function providerHome(ctx) {
       body: el('ul', { class: 'invite-cards', role: 'list' }, invites.map((invite) => el('li', { class: 'invite-card' }, [
         el('div', {}, [el('p', { class: 'opportunity-kicker', text: [invite.buyer_name, productLabel(invite.product, { short: true })].filter(Boolean).join(' · ') }), el('p', { class: 'invite-title', text: invite.title }),
           el('p', { class: 'muted small', text: `Recebido ${timeAgo(invite.created_at)}${invite.response_deadline ? ` · prazo ${formatDate(invite.response_deadline)}` : ''}` })]),
-        button('Aceitar', { variant: 'primary', size: 'sm', iconName: 'check', onClick: (event) => acceptInvite(ctx, invite.demo_token, { button: event.currentTarget }) })
+        // A ação principal já está no destaque acima: aqui o botão não compete com ela.
+        button('Aceitar', { variant: inviteFirst ? 'secondary' : 'primary', size: 'sm', iconName: 'check', onClick: (event) => acceptInvite(ctx, invite.demo_token, { button: event.currentTarget }) })
       ]))) }));
   }
   const groups = [['Para responder', rows.filter((row) => ['todo', 'outdated'].includes(assignmentState(row).key))], ['Enviadas', rows.filter((row) => assignmentState(row).key === 'sent')], ['Encerradas', rows.filter((row) => assignmentState(row).key === 'closed')]];
