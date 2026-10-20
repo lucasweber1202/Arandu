@@ -26,7 +26,13 @@ for (const step of TOUR_STEPS) {
   assert.match(html, new RegExp(`id="${step.id}"`), `${step.id}: sem seção na página`);
 }
 for (const track of ['buyer', 'provider']) assert.ok(TOUR_STEPS.some((step) => step.track === track), `visita sem trilha ${track}`);
-for (const required of ['painel', 'solicitacao', 'convites', 'propostas', 'comparacao', 'aprovacao', 'contrato', 'continuidade']) assert.ok(ids.includes(required), `jornada sem ${required}`);
+for (const required of ['contexto', 'instituicao-valor', 'painel', 'solicitacao', 'convites', 'propostas', 'comparacao', 'aprovacao', 'contrato', 'continuidade']) assert.ok(ids.includes(required), `jornada sem ${required}`);
+// Processos distintos sempre rotulados: etapa de uma solicitação diz qual é.
+for (const step of TOUR_STEPS.filter((entry) => entry.rfq)) assert.equal(step.case, step.rfq, `${step.id}: captura de uma solicitação sem rótulo de processo`);
+for (const step of TOUR_STEPS.filter((entry) => entry.case)) {
+  const start = html.indexOf(`<section class="tour-step" id="${step.id}"`);
+  assert.ok(html.slice(start, html.indexOf('</section>', start)).includes('class="tour-case"'), `${step.id}: sem rótulo de processo`);
+}
 // Cinco áreas, com os rótulos do menu canônico.
 assert.equal(COMPANY_AREAS.length, 5);
 for (const area of COMPANY_AREAS) assert.ok(html.includes(`<h3>${area.label}</h3>`), `área ausente: ${area.label}`);
