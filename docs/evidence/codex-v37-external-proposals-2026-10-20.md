@@ -84,7 +84,7 @@ Fonte principal: `tests/database/financial-external-proposals.sql`,
 | Documentação | Documento alheio/removido recusado, versão fixada, ausência não inventa hash; removido passa a document_available=false e sai da comparação |
 | Não compartilhar concorrentes | Documento referenciado não pode virar shared; aceitar convite não concede acesso aos registros externos |
 | Histórico/decisão | Correção e retirada preservam snapshot byte-a-byte; fonte externa aparece como alternativa, não envio do banco; escolha externa canônica recusada |
-| Dados parciais/neutralidade | Ausência não vira zero; tipos/limites espelhados do catálogo; termos iguais recebem tratamento financeiro igual em ambos os canais |
+| Dados parciais/neutralidade | Recebimento desconhecido fica NULL, distinto do registro; ausência não vira zero; tipos/limites espelhados do catálogo; termos iguais recebem tratamento financeiro igual em ambos os canais |
 | Leitura concorrente | Histórico limitado à versão do cabeçalho: correção nova não herda o estado reviewed anterior |
 | Governança | Três datasets no export real, atores também classificados no snapshot de decisão, histórico na prévia de exclusão, hold ativo reconhecido, offboarding bloqueia novas mutações; retenção financeira não automatizada |
 | Rollback e reaplicação | Pré-dados reverte/reaplica nos dois caminhos; com dados recusa antes de remover objetos; reaplicar preserva versões/recibos |

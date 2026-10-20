@@ -179,8 +179,9 @@ Exemplo de criação (UUIDs devem ser de objetos autorizados reais do ambiente):
 }
 ```
 
-Canal: email/document/spreadsheet/formal_communication/manual. Data de recebimento
-com fuso, finita e não futura; não confundir com recorded_at. Documento opcional,
+Canal: email/document/spreadsheet/formal_communication/manual. Data de recebimento opcional: quando conhecida, informar com fuso, finita e
+não futura; quando desconhecida, NULL. Nunca usar recorded_at como fallback
+ou inventar horário para uma fonte que só informa o dia. Documento opcional,
 mas os dois identificadores de versão devem estar presentes juntos. Não enviar
 recorded_by/reviewed_by, hashes, instituição autenticada ou aceite como campos
 controláveis: são derivados do servidor ou desconhecidos. Produto/entidade vêm

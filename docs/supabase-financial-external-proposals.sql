@@ -18,7 +18,7 @@ create table if not exists public.fin_external_proposal_versions (
  terms jsonb not null check(jsonb_typeof(terms)='object' and octet_length(terms::text)<=32768),
  preparation_state text not null check(preparation_state in ('preparing','pending_review')),
  channel text not null check(channel in ('email','document','spreadsheet','formal_communication','manual')),
- received_at timestamptz not null, source_reference text not null check(length(trim(source_reference)) between 3 and 500 and source_reference !~ '[<>]'),
+ received_at timestamptz, source_reference text not null check(length(trim(source_reference)) between 3 and 500 and source_reference !~ '[<>]'),
  currency text check(currency ~ '^[A-Z]{3}$'), rfq_revision integer not null,
  document_id uuid, document_version integer, document_sha256 text,
  document_mime text, document_size bigint,
@@ -30,6 +30,8 @@ create table if not exists public.fin_external_proposal_versions (
  foreign key(document_id,document_version) references public.fin_document_versions(document_id,version),
  check((document_id is null) = (document_version is null))
 );
+-- Unknown receipt time remains unknown; reapply also preserves existing values.
+alter table public.fin_external_proposal_versions alter column received_at drop not null;
 create table if not exists public.fin_external_proposal_reviews (
  id uuid primary key default gen_random_uuid(), organization_id uuid not null, proposal_id uuid not null, version integer not null,
  action text not null check(action in ('confirm','withdraw')),
@@ -152,7 +154,7 @@ begin
  if p_input->>'state' is null or p_input->>'state' not in ('preparing','pending_review')
  or p_input->>'channel' is null or p_input->>'channel' not in ('email','document','spreadsheet','formal_communication','manual')
  or jsonb_typeof(p_input->'source_reference') is distinct from 'string'
- or p_input->>'received_at' is null or not isfinite((p_input->>'received_at')::timestamptz) or (p_input->>'received_at')::timestamptz > now()
+ or (p_input->>'received_at' is not null and (not isfinite((p_input->>'received_at')::timestamptz) or (p_input->>'received_at')::timestamptz > now()))
  or not public.fin_external_terms_valid(r.product,p_input->'terms') then raise exception 'invalid external input'; end if;
  if nullif(p_input->>'document_id','') is not null then
   select * into d from public.fin_private_documents where id=(p_input->>'document_id')::uuid for share;

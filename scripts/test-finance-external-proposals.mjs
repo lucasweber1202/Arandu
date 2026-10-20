@@ -62,6 +62,8 @@ let rpc=sent.find(req=>req.url.includes('rpc/fin_external_proposal_save'));
 assert.equal(rpc.body.p_expected,0);assert.equal(rpc.body.p_id,null);
 assert(!JSON.stringify(rpc.body).includes('forged'),'server-owned provenance excludes client assertions');
 assert(sent.every(req=>req.headers.Authorization==='Bearer external-user-jwt'),'all reads and RPCs use the user JWT');
+await call('POST','external-proposals',{...input,request_key:'unknown-receipt-1',received_at:null});
+assert.equal(sent.filter(request=>request.url.includes('rpc/fin_external_proposal_save')).at(-1).body.p_input.received_at,null,'unknown receipt time stays null');
 response=await call('GET',`external-proposals?organization_id=${ORG}&rfq_id=${RFQ}`);
 assert.equal(response.payload.rows[0].id,ID);assert.equal(response.payload.decision_allowed,false);
 response=await call('GET',`external-proposals?organization_id=${ORG}&id=${ID}`);

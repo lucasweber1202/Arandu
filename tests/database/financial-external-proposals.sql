@@ -6,7 +6,7 @@ create function pg_temp.denied(command text,pattern text) returns void language 
  raise exception 'unexpected success: %',command;
 end $$;
 create function pg_temp.input(extra jsonb default '{}') returns jsonb language sql as $$ select
- '{"terms":{"offered_amount":100000,"institution":"Instituição declarada"},"state":"pending_review","channel":"manual","received_at":"2026-01-01T12:00:00Z","source_reference":"Contato comercial fictício","rfq_revision":1,"currency":"BRL"}'::jsonb || extra $$;
+ '{"terms":{"offered_amount":100000,"institution":"Instituição declarada"},"state":"pending_review","channel":"manual","received_at":null,"source_reference":"Contato comercial fictício","rfq_revision":1,"currency":"BRL"}'::jsonb || extra $$;
 insert into auth.users(id,email) select ('00000000-0000-4000-8000-0000000ea00'||n)::uuid,'external-'||n||'@example.invalid' from generate_series(1,7) n;
 insert into public.fin_organizations(id,legal_name,kind,created_by) values
  ('00000000-0000-4000-8000-0000000eb001','Buyer externo DEMO','BUYER','00000000-0000-4000-8000-0000000ea001'),
@@ -39,6 +39,7 @@ insert into ext_ids values('external',(public.fin_external_proposal_save('000000
 select pg_temp.assert_true((public.fin_external_proposal_save('00000000-0000-4000-8000-0000000ec001','00000000-0000-4000-8000-0000000ed001','create-key-1',0,null,pg_temp.input())->>'replayed')::boolean,'retry create reconciles');
 select pg_temp.assert_true((select count(*)=1 from public.fin_external_proposals),'one external proposal');
 select pg_temp.assert_true((select recorded_by='00000000-0000-4000-8000-0000000ea002' from public.fin_external_proposals),'recording author comes from auth uid');
+select pg_temp.assert_true((select received_at is null and recorded_at is not null from public.fin_external_proposal_current),'unknown receipt time is not invented from recording time');
 select pg_temp.assert_true((select count(*)=0 from public.fin_rfq_invites),'no invitation required');
 select pg_temp.assert_true((select not document_available and document_state='not_presented' from public.fin_external_proposal_current),'no linked document is not presented, not available');
 select pg_temp.assert_true((select not (terms ? 'cet_year') and not (terms ? 'interest_rate_month') from public.fin_external_proposal_current),'missing rates stay absent');
