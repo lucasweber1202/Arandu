@@ -252,3 +252,11 @@ test('proposta: quem pediu aparece no topo e no resumo do celular; sem nome, nad
   await expect(page.locator('.meta-buyer')).toHaveCount(0);
   await expect(page.locator('.demand-peek-title')).toHaveText('O que a empresa pediu');
 });
+
+test('convite em destaque: uma só ação principal na tela; o cartão do convite não compete com ela', async ({ page }) => {
+  await mockProvider(page, { pendingInvites: [{ id: 'i1', title: 'Antecipação de recebíveis 2027', product: 'credit', response_deadline: '2020-01-01', created_at: '2026-10-01T10:00:00Z', demo_token: 't' }] });
+  await page.goto('/provider/index.html');
+  await expect(page.locator('#provider-status .btn-primary')).toHaveText(/Aceitar convite/);
+  await expect(page.locator('#view .btn-primary')).toHaveCount(1);
+  await expect(page.locator('#convites').getByRole('button', { name: 'Aceitar' })).toBeVisible();
+});

@@ -1031,6 +1031,31 @@ test('painel: renovações e tarefas vêm antes da inteligência de valor no cel
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
 });
 
+test('painel: até cinco pendências à vista, sem tarefas soterrando processos, o restante sob demanda; atividade só é buscada ao abrir', async ({ page }) => {
+  const data = overview();
+  data.tasks = Array.from({ length: 7 }, (_, index) => ({ id: `late-${index}`, title: `Tarefa atrasada ${index + 1}`, status: 'open', due_on: '2020-01-0' + (index + 1) }));
+  const events = [];
+  page.on('request', (request) => { if (/\/api\/finance\/events/.test(request.url())) events.push(request.url()); });
+  await mockSession(page, { data });
+  await page.goto('/finance/dashboard.html');
+  const attention = page.locator('#precisa-de-voce');
+  await expect(attention).toContainText('8 itens pedem ação');
+  // Sete tarefas vencidas não escondem o passo do processo: só três entram à vista.
+  await expect(attention.locator('.action-row:visible')).toHaveCount(4);
+  await expect(attention.locator('.action-row:visible', { hasText: 'Avaliar propostas' })).toHaveCount(1);
+  const more = attention.getByText('Mostrar mais 4 pendências');
+  await more.click();
+  await expect(attention.locator('.action-row:visible')).toHaveCount(8);
+  // Nada some: a contagem por etapa e o histórico continuam a um clique.
+  await expect(page.locator('.pipeline')).toBeHidden();
+  await page.getByText('Ver solicitações por etapa').click();
+  await expect(page.locator('.pipeline')).toBeVisible();
+  expect(events).toEqual([]);
+  await page.getByText('Atividade recente da empresa').click();
+  await expect.poll(() => events.length).toBeGreaterThan(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+});
+
 test('instituições: a coluna de verificação cabe no desktop e as contagens usam singular/plural', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name.startsWith('mobile'), 'tabela só no desktop');
   await page.setViewportSize({ width: 1440, height: 900 });

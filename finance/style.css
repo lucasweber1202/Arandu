@@ -1305,3 +1305,13 @@ textarea.mono{width:100%;max-width:100%;min-width:0}
 @media (max-width:759px){.access-scope{grid-template-columns:minmax(0,1fr)}}
 /* 320 px: sem ícone nos botões da barra do provedor, o rótulo inteiro cabe ("Revisar e enviar"). */
 @media (max-width:379px){.proposal-bar-actions .btn .icon{display:none}}
+/* Painel: o resto das pendências, a contagem por etapa e o histórico abrem sob demanda. */
+.action-more{border-top:1px solid var(--border)}
+.action-more>summary,.pipeline-more>summary{cursor:pointer;font-weight:600;font-size:var(--fs-sm);color:var(--accent-text);padding:var(--s3) var(--s5);min-height:44px;display:flex;align-items:center}
+.pipeline-more>summary{padding:var(--s3) 0}
+.action-more>summary:focus-visible,.pipeline-more>summary:focus-visible,.activity-disclosure>summary:focus-visible{outline:none;box-shadow:var(--focus-ring);border-radius:var(--r-md)}
+.pipeline-more{border-top:1px solid var(--border);margin-top:var(--s3)}
+.pipeline-more>.pipeline{margin-bottom:0}
+.activity-disclosure>summary{cursor:pointer;padding:var(--s4) var(--s5);min-height:44px}
+.activity-disclosure>.activity{padding:0 var(--s5) var(--s4)}
+.action-more .action-list{margin-top:0}

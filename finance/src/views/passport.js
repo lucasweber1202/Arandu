@@ -37,7 +37,7 @@ export function freshnessTag(state, dueOn = null) {
 }
 
 export async function passport(ctx) {
-  ctx.header({ title: 'Financial Passport', subtitle: 'O perfil financeiro reutilizável da empresa: cada dado com origem, responsável, data e revisão.' });
+  ctx.header({ title: 'Financial Passport', subtitle: 'O perfil financeiro reutilizável da empresa: cada dado com origem, responsável, data e revisão. São informações declaradas ou anexadas pela própria empresa; nenhuma instituição ou terceiro as valida aqui.' });
   if (ctx.audience !== 'company') return emptyState({ title: 'Disponível só para a empresa compradora', iconName: 'lock' });
   const org = ctx.organization.id;
   const entities = await loadEntities(ctx);
@@ -130,7 +130,7 @@ function fieldRow(ctx, item, { canEdit, documents }) {
   } else if (item.filled || item.value) {
     meta.push(el('span', { text: SOURCE_LABELS[item.source] || item.source || 'Origem não registrada' }));
     if (item.updated_at) meta.push(el('span', { text: `${item.updated_by_name ? `${item.updated_by_name}, ` : ''}${formatDate(item.updated_at)}` }));
-    if (item.verified_at) meta.push(el('span', { text: `confirmado ${timeAgo(item.verified_at)}${item.verified_by_name ? ` por ${item.verified_by_name}` : ''}` }));
+    if (item.verified_at) meta.push(el('span', { text: `confirmado como atual ${timeAgo(item.verified_at)}${item.verified_by_name ? ` por ${item.verified_by_name}` : ''} (revisão interna)` }));
     if (item.valid_until) meta.push(el('span', { text: `validade ${formatDate(item.valid_until)}` }));
     meta.push(el('span', { text: `revisão a cada ${item.review_days} dias` }));
   }
