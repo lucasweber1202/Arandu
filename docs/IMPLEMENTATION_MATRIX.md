@@ -1,6 +1,30 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
 
+
+## 20/10/2026 — Direção v3.6: benchmark, adoção bilateral e contrato de performance
+
+**Status: decisão documentada; NÃO é entrega, deploy, teste de performance ou validação com clientes.** Fonte: guideline §38 e \`docs/FINANCIAL_COMPETITIVE_EXECUTION_PLAN_2026-10-20.md\`. Preservados §37/P0-A/P0-B para apresentação de 29/10, M3 como P1 separado e os gates M1–M6. Nenhuma linha existente foi promovida de maturidade.
+
+| ID | Trabalho e risco atacado | Prioridade após os P0 | Estado real neste registro | Próxima evidência obrigatória |
+| --- | --- | --- | --- | --- |
+| N36-P0-A | Visita pública fiel ao SHA, buyer/provider, assets, responsividade e verdade de simulação | **P0-A inalterado** | URL/SHA servido e paridade externa **NOT_PROVEN** nesta revisão documental | HTTP + navegador anônimo real contra arandu-demo; screenshots, SHA e artefatos |
+| N36-P0-B | Demo canônica com backend e estação final do owner | **P0-B inalterado** | Máquina definitiva **NOT_PROVEN** | Freeze + station READY + jornada na própria máquina |
+| N36-P1-A1 | Portal instituição de baixo atrito e workspace de oportunidades; adoção bilateral | **P1-A** | D33-12 ainda precisa de validação de entrega; **nenhuma implementação neste registro** | E2E de convite, rascunho, revisão, estados, mobile e isolamento, avaliação com instituição |
+| N36-P1-A2 | Primeiro valor e onboarding por intenção, histórico por instituição | **P1-A** | D33-09/14 **PARTIAL**; pesquisa real pendente | Usuário conclui jornada por objetivo/contrato existente sem assistência; métricas sem PII |
+| N36-P1-A3 | Proposta externa com origem e confirmação humana | **P1-A** | Gap/escopo a auditar contra capacidades existentes; **não reivindicado** | Proveniência por campo, testes arquivo hostil, RLS, revisões, no duplicate, UI honesta |
+| N36-P1-A4 | Validação com usuários de ambos os lados | **P1-A** | D33-16 **OWNER_ACTION_REQUIRED** | Sessões com papéis reais, taxa de conclusão, tempo, bloqueios e hipótese reavaliada |
+| N36-P1-B | Demo hospedada canônica Auth/RLS/Storage + recovery/cutover autorizados | **P1-B**, mesmo P1 de §37 | M3 **BLOCKED/NOT_PROVEN** | Preservação, restore e provas hospedadas, sem confundir tour com backend |
+| N36-P2-A | Piloto controlado e ROI/WTP comprovados | **P2** | **NOT_STARTED / OWNER_ACTION_REQUIRED** | Liberação jurídica/operacional + métricas reais, sem afirmações comerciais inventadas |
+| N36-P2-B | Integrações de fontes com ingestão idempotente e reconciliação | **P2** | API/webhooks base em código; conectores operacionais **NOT_PROVEN** | Dados autorizados, contrato versionado, source of truth, reconciliador e testes negativos |
+| N36-P3 | FX/garantias/cash management/network/benchmark externo | **P3** | **DEFERRED** | Evidência de demanda, dados, maturidade de core e revisão jurídico-produto |
+| N36-PERF | Web Vitals, latência, escalabilidade, integridade e recovery | **Transversal — não feature** | **Metas propostas, NÃO medidas nem SLA** | Protocolo por SHA/ambiente/dataset; RUM/lab, carga escalonada e falhas parciais |
+
+**Metas de benchmark propostas, não SLAs:** Core Web Vitals p75 LCP ≤2,5s / INP ≤200ms / CLS ≤0,1 (referência web.dev); API leitura comum p95 ≤500ms; escrita p95 ≤1s; comparação de 10 propostas p95 ≤2s; erro elegível <0,5%. Escalonar carga com 10 org/30 usuários e 50 org/100 usuários, depois 10 mil contratos/100 mil observações sintéticas. Nunca declarar PASS sem medição real do ambiente e dataset especificados.
+
+**Ordem operacional imediata:** concluir e provar P0-A/P0-B; preparação de P1-A e P1-B apenas sem atrasar a apresentação, respeitando ownership e gates. Claude Code prefere UX/portal/primeiro valor; Codex prefere identidade da publicação, smoke externo, prova técnica, performance/integridade. Revisão jurídica, dados de clientes, secrets e cutover continuam sujeitos a autorização. Não executar PR de feature baseada apenas nesta tabela sem reconciliar a \`main\` atual.
+
+
 ## 19/10/2026 — Repriorização oficial: link público atualizado e estação local como dois P0
 
 **Decisão de prioridade, não prova de publicação.** A guideline v3.5 §37 e docs/PUBLIC_DEMO_2026-10-29_PRIORITY.md passam a orientar os próximos PRs. Nenhuma maturidade foi elevada por esta alteração documental.
