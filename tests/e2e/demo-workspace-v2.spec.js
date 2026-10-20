@@ -219,8 +219,8 @@ test('configurações: minha conta, empresa, governança e demonstração, com a
 
 test('roteiro "Ver processo completo" percorre o mesmo pedido pelas quatro personas', async ({ page }) => {
   await page.goto('/demo/index.html');
-  await expect(page.getByRole('link', { name: 'Explorar livremente' })).toBeVisible();
-  await expect(page.locator('.dl-flow-list li')).toHaveCount(7);
+  await expect(page.getByRole('link', { name: 'Abrir a simulação' })).toBeVisible();
+  await expect(page.locator('.entry-flow li')).toHaveCount(8);
   await page.getByRole('link', { name: 'Ver processo completo' }).click();
   await expect(page).toHaveURL(/\/demo\/finance\/dashboard\.html$/);
   const bar = page.getByRole('region', { name: 'Roteiro: processo completo' });
