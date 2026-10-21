@@ -153,6 +153,13 @@ if (loginForm && (recoveryHash.get('type') === 'recovery' || recoveryHash.has('e
 // The shared login only offers demo entry when the server exposes the capability
 // (ARANDU_ENV=demo with a DEMO database). The entry logs into the real product.
 if (loginForm) fetch('/api/auth/demo-personas',{credentials:'same-origin'}).then(async response=>{
+  if(response.status===429){
+    const {demoEntryWaiting}=await import('./financial-demo-entry.js');
+    const main=document.querySelector('#main');
+    main.classList.add('has-demo-entry');
+    main.prepend(demoEntryWaiting(Number(response.headers.get('Retry-After'))||0));
+    return;
+  }
   if(!response.ok)return;
   const data=await response.json();
   if(!Array.isArray(data.personas)||!data.personas.length)return;

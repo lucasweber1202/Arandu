@@ -49,6 +49,18 @@ function failureText(status, result, retryAfter) {
 }
 
 /**
+ * Lista de personas recusada por limite (429): a entrada não some em silêncio.
+ * Diz o motivo e quanto esperar; nada é tentado automaticamente.
+ */
+export function demoEntryWaiting(retryAfter) {
+  return node('section', { class: 'demo-entry demo-entry-waiting', id: 'demonstracao', 'aria-labelledby': 'demo-entry-title' }, [
+    node('p', { class: 'eyebrow', text: 'DEMONSTRAÇÃO' }),
+    node('h2', { id: 'demo-entry-title', text: 'Conheça o Arandu por dentro' }),
+    node('p', { class: 'demo-entry-status', role: 'status', 'data-tone': 'error', text: `${failureText(429, null, retryAfter)} Quem já está num workspace pode seguir usando "Trocar persona" no topo.` })
+  ]);
+}
+
+/**
  * Monta a escolha de persona. `personas` vem do servidor ({key, name, title});
  * `enter(key)` faz o login real e devolve {ok, status, result}. `next` (já validado
  * pela página de login) é o link que trouxe o visitante.
