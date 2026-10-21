@@ -15,6 +15,8 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
+import { createHash } from 'node:crypto';
 import { assertDemoTarget, DemoGuardError } from '../../lib/finance/demo-guard.mjs';
 import { encodeSessionValue } from '../../lib/session-cookie.mjs';
 import { BUYERS, PROVIDERS } from '../../lib/finance/demo-personas.mjs';
@@ -79,7 +81,7 @@ const git = (...argv) => { try { return execFileSync('git', argv, { cwd: root, e
 section('Identidade do código');
 const head = git('rev-parse', 'HEAD');
 const branch = git('rev-parse', '--abbrev-ref', 'HEAD');
-const dirty = git('status', '--porcelain', '--untracked-files=no');
+const dirty = git('status', '--porcelain');
 check('Commit em uso', head ? 'PASS' : 'FAIL', head ? `${head.slice(0, 12)} (${branch})` : 'repositório git não encontrado');
 check('Árvore sem alterações locais', dirty ? 'WARN' : 'PASS', dirty ? `${dirty.split('\n').length} arquivo(s) alterado(s): a Demo não corresponde exatamente ao commit` : '');
 const lastUi = Number(git('log', '-1', '--format=%ct', '--', 'finance', 'provider', 'lib/finance')) * 1000;
@@ -257,7 +259,10 @@ const verdict = (mode) => {
   const failed = relevant.filter((c) => c.status === 'FAIL');
   return { mode, ready: failed.length === 0, failed: failed.map((c) => ({ name: c.name, fix: c.fix })), skipped: relevant.filter((c) => c.status === 'SKIP').map((c) => c.name) };
 };
-const report = { generated_at: new Date().toISOString(), commit: head, branch, app: APP, smoke: SMOKE, modes: [verdict('leitura'), verdict('interativo')], sections };
+const report = { generated_at: new Date().toISOString(), commit: head, branch, app: APP, smoke: SMOKE,
+  station_evidence: { schema: 1, host: os.hostname(), clean: Boolean(head) && !dirty,
+    lockSha256: createHash('sha256').update(fs.readFileSync(path.join(root, 'package-lock.json'))).digest('hex') },
+  modes: [verdict('leitura'), verdict('interativo')], sections };
 fs.mkdirSync(OUT, { recursive: true });
 fs.writeFileSync(path.join(OUT, 'readiness.json'), `${JSON.stringify(report, null, 2)}\n`);
 const md = [`# Prontidão da Demo local — ${new Date().toLocaleString('pt-BR')}`, '', `Commit \`${head.slice(0, 12)}\` (${branch}) · app ${APP} · smoke ${SMOKE ? 'executado' : 'não executado'}`, '',

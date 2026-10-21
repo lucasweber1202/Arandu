@@ -1,0 +1,76 @@
+{
+  "schema": 1,
+  "sha": "ca8792925bc0fbd11481c707c7704ec7a93701b8",
+  "branch": "codex/v37-demo-reliability",
+  "worktree_dirty": true,
+  "measured_at": "2026-10-21T13:56:56.124Z",
+  "environment": "local-domain-cpu",
+  "region": "not_applicable",
+  "dataset": "synthetic-credit-10-v1",
+  "volume": {
+    "proposals": 10,
+    "contracts": 0,
+    "observations": 0
+  },
+  "concurrent_users": 0,
+  "request_pattern": "sequential domain calls; no HTTP",
+  "duration_ms": 226.33137400000032,
+  "warmup_calls": 25,
+  "first_measured_call_after_correctness_check_ms": 1.3718250000001717,
+  "measurement": {
+    "samples": 200,
+    "method": "nearest-rank",
+    "p50_ms": 0.2594109999995453,
+    "p95_ms": 1.6329470000000583,
+    "p99_ms": 7.658820999999989
+  },
+  "eligible_http_5xx": {
+    "result": "NOT_MEASURED",
+    "denominator": 0
+  },
+  "executor": {
+    "node": "v24.19.0",
+    "platform": "linux",
+    "arch": "x64",
+    "cpus": 2,
+    "memory_bytes": 10452471808,
+    "peak_rss_bytes": 48709632
+  },
+  "baseline_comparison": {
+    "scope": "legacy synthetic join only",
+    "median_before_ms": 4.358217239999995,
+    "median_after_ms": 0.1225554000000011
+  },
+  "proposed_targets": {
+    "lcp_p75_ms": 2500,
+    "inp_p75_ms": 200,
+    "cls_p75": 0.1,
+    "read_p95_ms": 500,
+    "write_p95_ms": 1000,
+    "comparison_10_p95_ms": 2000,
+    "eligible_5xx_ratio": 0.005
+  },
+  "capacity_profiles": [
+    {
+      "id": "pilot-30",
+      "organizations": 10,
+      "concurrent_users": 30,
+      "result": "NOT_RUN"
+    },
+    {
+      "id": "pilot-100",
+      "organizations": 50,
+      "concurrent_users": 100,
+      "result": "NOT_RUN"
+    },
+    {
+      "id": "lifecycle-volume",
+      "contracts": 10000,
+      "observations": 100000,
+      "result": "NOT_RUN"
+    }
+  ],
+  "backend_api_latency": "NOT_MEASURED",
+  "backend_capacity": "NOT_PROVEN",
+  "limitation": "Warm CPU microbenchmark on ephemeral executor; excludes API, JWT, RLS, DB, Storage and network. Not an end-to-end p95 or production capacity claim."
+}

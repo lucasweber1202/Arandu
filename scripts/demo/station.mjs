@@ -17,7 +17,8 @@ import https from 'node:https';
 import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
-import { classifyStation, REQUIREMENTS } from './station-lib.mjs';
+import { classifyStation, readinessFacts, REQUIREMENTS } from './station-lib.mjs';
+import { EXPECTED_SCHEMA_VERSION } from '../../lib/finance/pilot-doctor.mjs';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../..');
 const state = path.join(root, 'scripts/pilot-local/.state');
@@ -42,7 +43,8 @@ function gitFacts() {
 
 function hostFacts() {
   const version = fs.existsSync('/proc/version') ? fs.readFileSync('/proc/version', 'utf8') : '';
-  const signals = ['CI', 'GITHUB_ACTIONS', 'CLAUDE_CODE_REMOTE', 'CODESPACES', 'GITPOD_WORKSPACE_ID'].filter((key) => process.env[key]);
+  const signals = ['CI', 'GITHUB_ACTIONS', 'CLAUDE_CODE_REMOTE', 'CODESPACES', 'GITPOD_WORKSPACE_ID', 'CODEX_CI', 'CODEX_REMOTE'].filter((key) => process.env[key]);
+  if (fs.existsSync('/etc/codex/network-policy.json')) signals.push('CODEX_MANAGED_CLOUD');
   let diskFreeGiB = null;
   try { const s = fs.statfsSync(root); diskFreeGiB = Math.floor((s.bavail * s.bsize) / 2 ** 30); } catch { /* sem statfs */ }
   return { name: os.hostname(), platform: `${os.type()} ${os.release()}`, arch: os.arch(), wsl: /microsoft/i.test(version),
@@ -147,11 +149,13 @@ async function collect({ fast }) {
   services.storage = await probe('http://localhost:5000/status');
   services.gateway = await probeHttps('https://localhost:8443/auth/v1/health');
   const app = await probeHttps('https://localhost:4443/api/health');
-  let environment = null;
-  try { environment = JSON.parse(app.body || '{}').release?.environment || null; } catch { /* não JSON */ }
+  let release = {};
+  try { release = JSON.parse(app.body || '{}').release || {}; } catch { /* não JSON */ }
+  const environment = release.environment || null;
   services.app = { ok: app.ok, detail: app.ok ? `${app.detail} · ARANDU_ENV=${environment || '?'}` : app.detail };
 
   const marker = services.db.ok ? sql("select value from public.fin_settings where key = 'deployment_environment'") : null;
+  const schema = services.db.ok ? sql("select value from public.fin_settings where key = 'schema_version'") : null;
   const orgs = services.db.ok ? Number(sql('select count(*) from public.fin_organizations') || 0) : 0;
   const pool = {};
   for (const line of String(services.db.ok ? sql('select status, count(*) from public.fin_demo_workspaces group by 1') || '' : '').split('\n').filter(Boolean)) {
@@ -166,13 +170,8 @@ async function collect({ fast }) {
   }
 
   let readiness = null;
-  const report = path.join(root, 'reports/demo-readiness/readiness.md');
-  if (fs.existsSync(report)) {
-    const text = fs.readFileSync(report, 'utf8');
-    readiness = { ageMinutes: Math.floor((Date.now() - fs.statSync(report).mtimeMs) / 60000),
-      readMode: text.match(/Modo leitura:\s*\**\s*(PRONTO|NÃO PRONTO)/)?.[1] || null,
-      interactiveMode: text.match(/Modo interativo:\s*\**\s*(PRONTO|NÃO PRONTO)/)?.[1] || null };
-  }
+  const report = path.join(root, 'reports/demo-readiness/readiness.json');
+  try { readiness = readinessFacts(JSON.parse(fs.readFileSync(report, 'utf8'))); } catch { /* absent/malformed evidence is not READY */ }
 
   let freeze = null;
   try { freeze = JSON.parse(fs.readFileSync(freezeFile, 'utf8')); } catch { /* sem congelamento */ }
@@ -182,8 +181,8 @@ async function collect({ fast }) {
     repo: { path: root, onWindowsDrive: /^\/mnt\/[a-z]\//i.test(root), crlfFiles }, toolchain: { windows: windowsBins[0] || null }, nativeDeps, tools, git: gitFacts(), node: { version: process.version }, npm: { version: npm.ok ? npm.out : null }, deps,
     docker: { engine: docker, compose: compose.ok ? `Compose ${compose.out}` : null }, browser, cert, services,
     ports: await portFacts(Boolean(docker)),
-    db: { reachable: services.db.ok, marker, container: services.db.ok ? (orgs > 0 ? 'original' : 'contêiner sem os dados da Demo') : (health ? `banco ${health}` : 'contêiner ausente') },
-    app: { reachable: services.app.ok, environment },
+    db: { reachable: services.db.ok, marker, schema, expectedSchema: EXPECTED_SCHEMA_VERSION, container: services.db.ok ? (orgs > 0 ? 'original' : 'contêiner sem os dados da Demo') : (health ? `banco ${health}` : 'contêiner ausente') },
+    app: { reachable: services.app.ok, environment, datasource: release.datasource, misconfigured: release.misconfigured },
     pool: { ready: pool.ready || 0, claimed: pool.claimed || 0 }, seed, readiness, freeze
   };
 }

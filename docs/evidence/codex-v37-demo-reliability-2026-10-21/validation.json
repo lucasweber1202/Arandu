@@ -1,0 +1,59 @@
+{
+  "base_sha": "ca8792925bc0fbd11481c707c7704ec7a93701b8",
+  "checker_worktree": "codex/v37-demo-reliability, dirty before commit",
+  "source_sha256": {
+    "scripts/demo/station-lib.mjs": "a0b6ceb51dd5873f0dd7c23946140d503b6be23531942cc0d1641c47c6dc4860",
+    "scripts/demo/station.mjs": "eb4d07218633359a41b3070628fc89ec3a168c0057b270a6161891a12ee80db2",
+    "scripts/demo/readiness.mjs": "43a7158388e260a8f4d110d5eee005f59d4f9b93f138d9554121e9353ccabb6a",
+    "scripts/smoke-public-demo.mjs": "d57c9e4652254a859f0d033cd60b90e57c2b9a10ff17b8fb56ea5fe792978b88",
+    "scripts/publication-proof.mjs": "d3e46537677fbbd2fb10528e9ecb2b176e9744e6242601e2918fd25010f0ed31",
+    "scripts/test-demo-station.mjs": "2effacbc1ea40ce94e70b861ed370bf78b8d1c9e1c05d8102c765a2a9104d8f3",
+    "scripts/test-publication-proof.mjs": "0fe2d9603545bdb2d01e12aa5d390d57950e8cf5f2c995c609c833585098e414",
+    "scripts/test-publication-browser.mjs": "71cad3d532440ab8b6b9e71e0be7807595e570a4b1601341cf361a5f25c8cd56",
+    "scripts/test-finance-external-proposals.mjs": "2c24f7475fb5392c26297f7e8219cbaaf57130a03158ee5638e3d0bfdae40497"
+  },
+  "public": {
+    "result": "PASS",
+    "rendered_stages": 34,
+    "viewports": [
+      {
+        "width": 1440,
+        "height": 900
+      },
+      {
+        "width": 390,
+        "height": 844
+      }
+    ],
+    "artifact_files": 159,
+    "datasource": "synthetic-fixtures",
+    "canonical_hosted_m3": "BLOCKED"
+  },
+  "station": "STATION_NOT_VERIFIED",
+  "database": {
+    "result": "PASS",
+    "postgres": "17.11",
+    "synthetic_only": true,
+    "published_ports": false,
+    "fixture_removed": true,
+    "isolation_checks": 11482,
+    "leaks": 0
+  },
+  "checks": {
+    "npm_ci": "PASS",
+    "check_all": "PASS",
+    "build": "PASS",
+    "build_size": "PASS",
+    "dist_assets": "PASS",
+    "audit": "PASS: 0 vulnerabilities",
+    "sbom": "PASS",
+    "database": "PASS",
+    "station_regressions": "PASS; baseline negative fails as expected",
+    "publication_node": "PASS: 9, 0 skipped",
+    "finance_external_api": "PASS",
+    "full_local_e2e": "NOT_RUN",
+    "local_real_recovery": "NOT_RUN",
+    "hosted_recovery": "NOT_RUN"
+  },
+  "ci": "PR exact SHA checks required; see PR for final outcomes"
+}

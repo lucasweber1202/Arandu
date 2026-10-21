@@ -27,6 +27,8 @@ export function validateManifest(m, sha) {
 }
 export function publicationFailure(error) {
   if (['ACCESS_BLOCKED', 'OUTDATED_SHA'].includes(error.code)) return error.code;
+  if (/ERR_CERT_AUTHORITY_INVALID|CERTIFICATE_VERIFY_FAILED|UNABLE_TO_VERIFY_LEAF_SIGNATURE/i.test(error.message)) return 'EXECUTOR_TLS_BLOCKED';
+  if (/browserType.launch|Executable doesn't exist|Host system is missing dependencies/i.test(error.message)) return 'BROWSER_UNAVAILABLE';
   if (/fetch failed|timeout|ENOTFOUND|ECONNREFUSED/i.test(error.message)) return 'UNPROVEN';
   if (/Artifact mismatch|wrong content type|asset|artifact/i.test(error.message)) return 'ASSET_MISMATCH';
   if (/HTTP (?:404|500)|navigation link|Flow route|Arandu HTML/i.test(error.message)) return 'ROUTE_FAILURE';
@@ -47,6 +49,7 @@ export function verifyResponse(response, bytes, path, expected) {
 export async function getPublic(base, path, fetcher = fetch) {
   let url = new URL(path, base);
   const seen = new Set();
+  const redirects = [];
   for (let hop = 0; hop < 6; hop++) {
     if (url.origin !== base.origin || url.username || url.password) throw new Error('Off-origin redirect refused');
     if (seen.has(url.href)) throw new Error('Redirect loop');
@@ -56,12 +59,15 @@ export async function getPublic(base, path, fetcher = fetch) {
       const location = response.headers.get('location');
       await response.body?.cancel();
       if (!location) throw new Error('Redirect without Location');
-      url = new URL(location, url); continue;
+      const next = new URL(location, url);
+      if (next.hostname === 'vercel.com' && /(?:login|sso|auth)/i.test(next.pathname)) throw Object.assign(new Error('Anonymous access redirected to Vercel authentication'), { code: 'ACCESS_BLOCKED' });
+      redirects.push({ from: url.pathname, status: response.status, to: next.pathname });
+      url = next; continue;
     }
     if (Number(response.headers.get('content-length')) > 20_000_000) throw new Error('Response too large');
     const chunks = []; let size = 0;
     for await (const chunk of response.body || []) { size += chunk.length; if (size > 20_000_000) throw new Error('Response too large'); chunks.push(Buffer.from(chunk)); }
-    return { response, bytes: Buffer.concat(chunks), url: url.href };
+    return { response, bytes: Buffer.concat(chunks), url: url.href, redirects };
   }
   throw new Error('Too many redirects');
 }
