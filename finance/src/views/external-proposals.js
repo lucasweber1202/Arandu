@@ -6,7 +6,7 @@
 
 import { PRODUCTS } from '../../../lib/finance/products.mjs';
 import { el, icon, formatDateTime, plural } from '../core.js';
-import { card, pill, tag, button, emptyState, errorState, loading, drawer, field, catalogControl, toast, onSubmit, definitionList, confirmDialog } from '../ui.js';
+import { card, pill, tag, button, emptyState, errorState, loading, drawer, field, catalogControl, toast, onSubmit, definitionList } from '../ui.js';
 import { keyTerms, coverage, memberName } from './shared.js';
 
 // Espelho dos papéis da API (RLS e RPC continuam decidindo): só orienta a tela.
@@ -91,8 +91,8 @@ function externalCard(ctx, rfq, row, { canWrite, canReview, reload }) {
   const actions = [];
   const live = row.state !== 'withdrawn';
   if (live && canWrite) actions.push(button('Corrigir (nova versão)', { size: 'sm', iconName: 'edit', onClick: () => editor(ctx, rfq, { record: row, onSaved: reload }) }));
-  if (live && canReview && row.state === 'pending_review') actions.push(button('Conferir transcrição', { size: 'sm', variant: 'primary', iconName: 'checkCircle', onClick: () => review(ctx, row, 'confirm', reload) }));
-  if (live && canReview) actions.push(button('Retirar da análise', { size: 'sm', variant: 'ghost', iconName: 'x', onClick: () => review(ctx, row, 'withdraw', reload) }));
+  if (live && canReview && row.state === 'pending_review') actions.push(button('Conferir transcrição', { size: 'sm', variant: 'primary', iconName: 'checkCircle', onClick: () => { review(ctx, row, 'confirm', reload); } }));
+  if (live && canReview) actions.push(button('Retirar da análise', { size: 'sm', variant: 'ghost', iconName: 'x', onClick: () => { review(ctx, row, 'withdraw', reload); } }));
   const history = el('details', { class: 'proposal-details' }, el('summary', { text: 'Histórico de versões e conferências' }));
   history.addEventListener('toggle', () => { if (history.open && !history.dataset.loaded) { history.dataset.loaded = '1'; versionHistory(ctx, rfq, row, history); } });
   return el('article', { class: 'proposal-card external-card', id: `external-${row.id}` }, [
@@ -251,6 +251,12 @@ function editor(ctx, rfq, { record = null, onSaved }) {
       const result = await ctx.api(record ? 'external-proposals/versions' : 'external-proposals', { method: 'POST', body: JSON.stringify(payload) });
       toast(result.replayed ? 'Este registro já havia sido gravado; nada foi duplicado.' : `Versão ${result.version} gravada. Aguardando conferência.`);
       sheet.close();
+      // Quem pode conferir segue direto para a conferência desta versão: são
+      // duas declarações distintas, gravadas em dois passos confirmados.
+      if (!result.replayed && REVIEW_ROLES.includes(ctx.viewer?.role)) {
+        review(ctx, { id: result.id, current_version: result.version, provider_name: provider.selectedOptions[0]?.text, document_id: payload.document_id }, 'confirm', onSaved);
+        return;
+      }
       onSaved?.();
     } catch (error) {
       fail(explain(error));
@@ -260,35 +266,45 @@ function editor(ctx, rfq, { record = null, onSaved }) {
   });
 }
 
-async function review(ctx, row, action, reload) {
+// Conferência/retirada em painel próprio: erro de validação ou 409 mantém o que
+// foi digitado; nada é enviado antes das declarações completas.
+function review(ctx, row, action, reload) {
   const confirm = action === 'confirm';
   const hasDocument = Boolean(row.document_id);
   const reason = el('textarea', { rows: '3', maxlength: '1000', id: 'external-review-reason' });
   const material = el('input', { type: 'checkbox', id: 'external-material' });
   const documentRead = el('input', { type: 'checkbox', id: 'external-document-read' });
-  const error = el('p', { class: 'field-error', role: 'alert', hidden: true });
-  const body = el('div', { class: 'stack' }, [
+  const error = el('p', { class: 'field-error', role: 'alert', hidden: true, tabindex: '-1' });
+  const submit = button(confirm ? 'Confirmar conferência' : 'Retirar', { variant: confirm ? 'primary' : 'danger', type: 'submit', iconName: confirm ? 'checkCircle' : 'x' });
+  const form = el('form', { class: 'stack', id: 'external-review-form', novalidate: true }, [
     el('p', { class: 'small', text: confirm
       ? `Você confirma que a versão ${row.current_version} corresponde ao material recebido de ${row.provider_name || 'a instituição'}. Isso não valida as condições, não é aprovação de crédito e não indica aceite da instituição.`
       : 'A proposta sai da comparação corrente. Versões e conferências anteriores continuam no histórico.' }),
     field({ label: confirm ? 'Como conferiu' : 'Motivo da retirada', control: reason, required: true, hint: 'Entre 10 e 1000 caracteres.' }),
     el('label', { class: 'check-row' }, [material, el('span', { text: 'Li o material recebido para esta conferência.' })]),
     hasDocument ? el('label', { class: 'check-row' }, [documentRead, el('span', { text: 'Li o documento vinculado.' })]) : el('p', { class: 'muted small', text: 'Não há documento vinculado a esta versão.' }),
-    error
+    error, el('div', { class: 'form-actions' }, submit)
   ]);
-  const ok = await confirmDialog({ title: confirm ? 'Conferir transcrição' : 'Retirar da análise', body, confirmLabel: confirm ? 'Confirmar conferência' : 'Retirar', tone: confirm ? 'primary' : 'danger' });
-  if (!ok) return;
-  const text = reason.value.trim();
-  if (text.length < 10 || !material.checked || (confirm && hasDocument && !documentRead.checked)) {
-    toast(text.length < 10 ? 'Informe uma justificativa com pelo menos 10 caracteres. Nada foi registrado.' : 'Marque as declarações de leitura para registrar. Nada foi registrado.', 'error');
-    return;
-  }
-  try {
-    await ctx.api(`external-proposals/${action}`, { method: 'POST', body: JSON.stringify({ id: row.id, expected_version: row.current_version, reason: text, material_reviewed: true, document_read: hasDocument && documentRead.checked }) });
-    toast(confirm ? 'Conferência registrada. A proposta entra na comparação como fonte externa.' : 'Proposta retirada da análise. O histórico foi preservado.');
-  } catch (failure) {
-    toast(explain(failure), 'error');
-  }
-  reload();
+  const sheet = drawer({ title: confirm ? 'Conferir transcrição' : 'Retirar da análise', subtitle: row.provider_name || null, body: form, onClose: reload });
+  const fail = (text) => { error.textContent = text; error.hidden = false; error.focus(); };
+  onSubmit(form, async (event) => {
+    event.preventDefault();
+    error.hidden = true;
+    const text = reason.value.trim();
+    if (text.length < 10) { reason.closest('.field').setError('Escreva pelo menos 10 caracteres.'); reason.focus(); return; }
+    reason.closest('.field').setError('');
+    if (!material.checked || (confirm && hasDocument && !documentRead.checked)) return fail('Marque as declarações de leitura. Nada foi registrado.');
+    submit.disabled = true;
+    try {
+      await ctx.api(`external-proposals/${action}`, { method: 'POST', body: JSON.stringify({ id: row.id, expected_version: row.current_version, reason: text, material_reviewed: true, document_read: hasDocument && documentRead.checked }) });
+      toast(confirm ? 'Conferência registrada. A proposta entra na comparação como fonte externa.' : 'Proposta retirada da análise. O histórico foi preservado.');
+      sheet.close();
+    } catch (failure) {
+      fail(explain(failure));
+      // Conflito: a versão mudou. Não reenvia; a pessoa fecha e relê.
+      submit.disabled = ['external_proposal_conflict', 'external_proposal_state'].includes(failure?.code);
+    }
+  });
+  return sheet;
 }
 

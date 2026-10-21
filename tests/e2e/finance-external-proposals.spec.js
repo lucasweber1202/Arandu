@@ -173,3 +173,52 @@ test('comparação: coluna externa em USD sem R$, origem declarada e sem escolhe
   await expect(page.getByRole('button', { name: /Escolher|Contratar|vencedor/i })).toHaveCount(0);
   await expect(table).toBeAttached();
 });
+
+test('conferência valida no próprio painel sem perder o texto e não envia incompleta', async ({ page }) => {
+  const calls = await setup(page);
+  await open(page);
+  await page.locator(`#external-${X1}`).getByRole('button', { name: 'Conferir transcrição' }).click();
+  const sheet = page.locator('#external-review-form');
+  await sheet.getByLabel('Como conferiu').fill('Conferido contra o e-mail original.');
+  await sheet.getByRole('button', { name: 'Confirmar conferência' }).click();
+  await expect(sheet.getByText(/Marque as declarações de leitura/)).toBeVisible();
+  await expect(sheet.getByLabel('Como conferiu')).toHaveValue('Conferido contra o e-mail original.');
+  expect(calls.some((c) => c.path === 'external-proposals/confirm')).toBe(false);
+  await sheet.getByText('Li o material recebido para esta conferência.').click();
+  await sheet.getByRole('button', { name: 'Confirmar conferência' }).click();
+  await expect.poll(() => calls.filter((c) => c.path === 'external-proposals/confirm').length).toBe(1);
+});
+
+test('gestão grava e segue para conferir a versão gravada; analista só grava', async ({ page }) => {
+  const calls = await setup(page, { rows: [] });
+  await open(page);
+  const fillAndSave = async () => {
+    await page.getByRole('button', { name: 'Registrar proposta recebida' }).click();
+    const sheet = page.getByRole('dialog');
+    await sheet.getByLabel('Instituição').selectOption(P1);
+    await sheet.getByLabel('Referência do material').fill('E-mail do gerente, ref. DEMO-02');
+    await sheet.getByRole('button', { name: 'Revisar antes de gravar' }).click();
+    await sheet.getByRole('button', { name: 'Gravar para conferência' }).click();
+  };
+  await fillAndSave();
+  const review = page.locator('#external-review-form');
+  await expect(review).toContainText('versão 1');
+  await review.getByLabel('Como conferiu').fill('Conferido contra o e-mail do gerente.');
+  await review.getByText('Li o material recebido para esta conferência.').click();
+  await review.getByRole('button', { name: 'Confirmar conferência' }).click();
+  await expect.poll(() => calls.find((c) => c.path === 'external-proposals/confirm')?.body).toMatchObject({ id: X1, expected_version: 1, material_reviewed: true });
+  await page.unrouteAll();
+  await setup(page, { role: 'analyst', rows: [] });
+  await open(page);
+  await fillAndSave();
+  await expect(page.locator('#external-review-form')).toHaveCount(0);
+});
+
+test('pesos ficam disponíveis quando a comparação do servidor inclui externas conferidas', async ({ page }) => {
+  const calls = await setup(page, { rows: [record({ state: 'reviewed', currency: 'BRL' }), record({ id: '00000000-0000-4000-8000-000000000806', state: 'reviewed', currency: 'BRL', provider_name: 'Banco Dois', terms: { offered_amount: 390000, interest_rate_month: 1.5 } })] });
+  await page.goto('about:blank');
+  await page.goto(`/finance/rfq.html?id=${RFQ}#comparacao`);
+  await expect(page.locator('.matrix-external').first()).toBeAttached();
+  await expect(page.getByText('Seus critérios e pesos')).toBeVisible();
+  expect(calls.filter((c) => c.path === 'comparison').length).toBeGreaterThan(0);
+});
