@@ -17,6 +17,27 @@ const deploymentRules = vercel.git?.deploymentEnabled;
 assert.equal(deploymentRules?.main, true, 'Vercel deve continuar gerando deployments da main.');
 assert.equal(deploymentRules?.['docs/**'], false, 'Branches docs/* não devem gerar previews automáticos.');
 assert.notEqual(deploymentRules, false, 'Nunca desabilitar todos os deployments automáticos.');
+// Política anti-preview (v3.8): só a main publica automaticamente. Semântica da
+// Vercel (docs git.deploymentEnabled): padrões minimatch; branch sem regra = true;
+// se casar várias regras e ao menos uma for true, há deployment. O avaliador
+// abaixo cobre só o subconjunto usado aqui e falha diante de qualquer outro.
+const SUPPORTED = /^(?:\*\*|[A-Za-z0-9._-]+(?:\/[A-Za-z0-9._-]+)*(?:\/\*\*)?)$/;
+for (const pattern of Object.keys(deploymentRules)) assert.match(pattern, SUPPORTED, `Padrão fora do subconjunto testado: ${pattern}. Estenda o avaliador antes de usá-lo.`);
+const globMatch = (pattern, branch) => pattern === '**' ? !branch.split('/').some((part) => part.startsWith('.'))
+  : pattern.endsWith('/**') ? branch === pattern.slice(0, -3) || branch.startsWith(pattern.slice(0, -2)) : branch === pattern;
+export function deploysBranch(rules, branch) {
+  if (typeof rules === 'boolean') return rules;
+  const matched = Object.entries(rules || {}).filter(([pattern]) => globMatch(pattern, branch));
+  return matched.length ? matched.some(([, enabled]) => enabled === true) : true;
+}
+assert.equal(deploysBranch(deploymentRules, 'main'), true, 'A main precisa continuar publicando automaticamente.');
+for (const branch of ['claude/v38-consolidated-financial-workspace', 'claude/nice-ritchie-qzq10d', 'codex/v37-demo-reliability', 'feature/central', 'fix/ci-recovery-dynamic-postgres-ports',
+  'chore/test-vite-upgrade', 'agent/arandu-seo-pwa-integration', 'integration/v37-release-20261026', 'docs/runbook', 'docs/a/b', 'pilot', 'dependabot/npm_and_yarn/vite-7.1.0', 'hotfix', 'main-copy', 'release/2026-10-29'])
+  assert.equal(deploysBranch(deploymentRules, branch), false, `Branch ${branch} não deve gerar preview automático.`);
+// O avaliador reproduz o exemplo da documentação (experiment-*/*-dev não usado aqui) no caso suportado:
+assert.equal(deploysBranch({ main: true, '**': false }, 'main'), true);
+assert.equal(deploysBranch({ 'docs/**': false }, 'feature/x'), true, 'Sem regra casada a Vercel publica: por isso o "**" é necessário.');
+assert.equal(deploysBranch({ 'docs/**': false }, 'docs/x'), false);
 const SOURCE = '/api/:aranduScope/:aranduRest+';
 const HOBBY_FUNCTION_LIMIT = 12;
 
