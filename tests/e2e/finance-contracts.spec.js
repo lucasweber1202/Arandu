@@ -80,6 +80,7 @@ test('registrar contrato existente envia só termos do catálogo', async ({ page
   await form.getByLabel(/^Título/).fill('Pacote de serviços bancários');
   await form.getByLabel(/^Início/).fill('2026-01-01');
   await form.getByLabel(/^Fim/).fill('2027-12-31');
+  await form.getByLabel(/^Aviso prévio/).fill('60');
   await form.getByText('Termos estruturados').click();
   await form.getByRole('button', { name: 'Adicionar tarifa' }).click();
   await form.getByLabel('Serviço da tarifa').fill('PIX enviado');
@@ -303,6 +304,7 @@ test('contrato já registrado: recusa explicada no título e contrato principal 
   await form.getByLabel(/^Título/).fill('Capital de giro carteira');
   await form.getByLabel(/^Início/).fill('2026-01-01');
   await form.getByLabel(/^Fim/).fill('2027-12-31');
+  await form.getByLabel(/^Aviso prévio/).fill('60');
   await page.getByRole('button', { name: 'Registrar contrato', exact: true }).click();
   await expect(form.getByText(/já está na carteira/)).toBeVisible();
   expect(calls.find((call) => call.path === 'contract-import')?.body.parent_contract_id).toBe(CONTRACT);

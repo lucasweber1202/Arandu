@@ -16,6 +16,7 @@ const LAZY = {
   policy: () => import('./policy.js'),
   contractCenter: () => import('./contract-center.js'),
   relationship: () => import('./provider-relationship.js'),
+  center: () => import('./relationship-center.js'),
   integrations: () => import('./integrations.js'),
   sso: () => import('./sso.js'),
   passport: () => import('../../../lib/finance/passport.mjs')
@@ -291,8 +292,9 @@ export async function contracts(ctx) {
 export async function providers(ctx) {
   const rows = ctx.data.providers || [];
   // Memória de relacionamento (contatos, issues, avaliações da empresa, mapa).
-  const relationshipEnabled = (await loadEntities(ctx)).available;
-  if (relationshipEnabled) await need('relationship');
+  const entities = await loadEntities(ctx);
+  const relationshipEnabled = entities.available;
+  await need('center', 'contractCenter', ...(relationshipEnabled ? ['relationship'] : []));
   const manage = ctx.can('create_rfq');
   const add = manage ? button('Cadastrar instituição', { variant: 'primary', iconName: 'plus', attrs: { 'data-intent': 'cadastrar-instituicao' }, onClick: () => providerDrawer(ctx) }) : null;
   ctx.header({ title: 'Instituições', subtitle: 'Bancos, fintechs e adquirentes com quem a empresa se relaciona: contratos, vencimentos e processos de cada uma. É um cadastro da empresa, não uma atestação.', actions: add ? [add] : [] });
@@ -347,7 +349,12 @@ export async function providers(ctx) {
     else queueMicrotask(() => toast('Instituição indisponível no seu escopo carregado.', 'error'));
   }
   draw();
+  const openRelationship = relationshipEnabled ? (provider) => { const url = new URL(location.href); url.searchParams.set('provider_id', provider.id); history.replaceState(null, '', url.pathname + url.search + url.hash); mods.relationship.openProviderRelationship(ctx, provider); } : null;
+  const center = mods.center.relationshipWorkQueue(ctx, { entities, onOpenProvider: openRelationship,
+    importButton: manage ? (providerId) => mods.contractCenter.importContractButton(ctx, entities, { label: 'Registrar contrato existente', size: 'sm', providerId }) : null });
   return el('div', { class: 'list-page' }, [
+    center,
+    el('h2', { class: 'form-section-title', text: 'Todas as instituições' }),
     el('p', { class: 'callout callout-info compact', role: 'note', text: 'Recorte dos registros carregados e autorizados: até 200 instituições, 200 contratos e 200 solicitações recentes. Convites e propostas se referem a essas solicitações; rascunhos e propostas retiradas não contam. Contagens e vencimentos não representam o histórico completo.' }),
     el('div', { class: 'toolbar' }, [el('div', { class: 'toolbar-search' }, [icon('search'), search]), count]), el('div', { class: 'table-card' }, table)
   ]);
