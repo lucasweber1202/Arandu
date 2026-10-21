@@ -87,6 +87,7 @@ export function externalProposalsSection(ctx, rfq, { onChange = null } = {}) {
 
 function externalCard(ctx, rfq, row, { canWrite, canReview, reload }) {
   const cov = coverage(rfq.product, row.terms || {});
+  const missing = PRODUCTS[rfq.product].proposalFields.filter((spec) => spec.comparable && (row.terms?.[spec.key] === null || row.terms?.[spec.key] === undefined || row.terms?.[spec.key] === '')).map((spec) => spec.label.replace(/\s*\(.*\)$/, ''));
   const state = STATE[row.state] || { label: 'Estado não reconhecido', tone: 'neutral' };
   const actions = [];
   const live = row.state !== 'withdrawn';
@@ -107,10 +108,17 @@ function externalCard(ctx, rfq, row, { canWrite, canReview, reload }) {
       el('span', { class: 'coverage-inline' }, [el('span', { class: 'coverage-bar' }, el('span', { class: 'coverage-fill', style: `width:${Math.round(cov.ratio * 100)}%` })), el('span', { text: `${cov.filled} de ${cov.total} condições comparáveis informadas` })]),
       el('span', { class: 'muted small', text: row.currency ? `Moeda declarada ${row.currency}` : 'Moeda não declarada: não é convertida nem tratada como real' })
     ]),
-    el('p', { class: 'muted small meta-item' }, [icon(row.document_state === 'metadata_available' ? 'file' : 'alert', { size: 12 }), ` ${DOCUMENT_STATE[row.document_state] || DOCUMENT_STATE.not_presented}`]),
-    row.state === 'reviewed' ? el('p', { class: 'muted small', text: `Conferida por ${memberName(ctx.members, row.reviewed_by)}${row.reviewed_at ? ` em ${formatDateTime(row.reviewed_at)}` : ''}. Entra na comparação como fonte externa; não pode ser escolhida nem contratada por aqui.` })
-      : row.state === 'withdrawn' ? null
-        : el('p', { class: 'muted small', text: 'Fica fora da comparação até alguém da gestão conferir a transcrição.' }),
+    missing.length ? el('p', { class: 'small warn-text', text: `Não informado no material: ${missing.join(', ')}. Permanece em branco; não vira zero nem vantagem na comparação.` }) : null,
+    // Proveniência da versão atual: quem declarou, quem transcreveu, quem conferiu e o que a instituição não confirmou.
+    el('dl', { class: 'deflist deflist-2 external-provenance', 'aria-label': `Origem da versão ${row.current_version}` }, [
+      ['Declarada por', `${row.provider_name || 'Instituição'} (atribuição feita pela empresa)`],
+      ['Canal e recebimento', `${CHANNELS[row.channel] || 'Canal não informado'} · ${row.received_at ? formatDateTime(row.received_at) : 'data não informada'}`],
+      ['Transcrita por', row.recorded_by ? `${memberName(ctx.members, row.recorded_by)}${row.recorded_at ? ` em ${formatDateTime(row.recorded_at)}` : ''}` : 'Não informado'],
+      ['Documento', DOCUMENT_STATE[row.document_state] || DOCUMENT_STATE.not_presented],
+      ['Conferência da transcrição', row.state === 'reviewed' ? `${memberName(ctx.members, row.reviewed_by)}${row.reviewed_at ? ` em ${formatDateTime(row.reviewed_at)}` : ''} · versão ${row.current_version}` : row.state === 'withdrawn' ? 'Retirada da análise' : `Pendente para a versão ${row.current_version}`],
+      ['Confirmação da instituição', 'Não registrada: a instituição não enviou nem confirmou estes termos no Arandu']
+    ].map(([label, value]) => el('div', { class: 'deflist-row' }, [el('dt', { text: label }), el('dd', { text: value })]))),
+    el('p', { class: 'muted small', text: row.state === 'reviewed' ? 'Entra na comparação como fonte externa; não pode ser escolhida nem contratada por aqui.' : row.state === 'withdrawn' ? 'Fora da comparação corrente; o histórico continua disponível.' : 'Fica fora da comparação até alguém da gestão conferir a transcrição.' }),
     el('details', { class: 'proposal-details' }, [el('summary', { text: 'Ver todas as condições transcritas' }), definitionList(PRODUCTS[rfq.product].proposalFields.filter((spec) => spec.key !== 'institution'), row.terms || {}, { showMissing: true, currency: row.currency ?? null })]),
     history,
     actions.length ? el('div', { class: 'row-actions' }, actions) : null

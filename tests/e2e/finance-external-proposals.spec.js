@@ -134,8 +134,8 @@ test('moeda declarada é respeitada: USD nunca vira R$ e ausente fica não decla
   await expect(usd.locator('.key-terms')).toContainText('US$ 250.000');
   await expect(usd.locator('.key-terms')).not.toContainText('R$');
   await usd.getByText('Ver todas as condições transcritas').click();
-  await expect(usd.locator('.deflist')).toContainText('US$ 250.000');
-  await expect(usd.locator('.deflist')).not.toContainText('R$');
+  await expect(usd.locator('.proposal-details .deflist')).toContainText('US$ 250.000');
+  await expect(usd.locator('.proposal-details .deflist')).not.toContainText('R$');
   const unknown = page.locator('#external-00000000-0000-4000-8000-000000000803');
   await expect(unknown.locator('.key-terms')).toContainText('400.000 (moeda não declarada)');
   await expect(unknown.locator('.key-terms')).not.toContainText('R$');
@@ -221,4 +221,16 @@ test('pesos ficam disponíveis quando a comparação do servidor inclui externas
   await expect(page.locator('.matrix-external').first()).toBeAttached();
   await expect(page.getByText('Seus critérios e pesos')).toBeVisible();
   expect(calls.filter((c) => c.path === 'comparison').length).toBeGreaterThan(0);
+});
+
+test('proveniência explícita: quem declarou, transcreveu, conferiu e o que a instituição não confirmou', async ({ page }) => {
+  await setup(page, { rows: [record({ state: 'reviewed', reviewed_by: 'u1', reviewed_at: '2026-10-20T15:00:00Z', currency: 'USD' })] });
+  await open(page);
+  const prov = page.locator(`#external-${X1} .external-provenance`);
+  await expect(prov).toContainText('Banco Exemplo (atribuição feita pela empresa)');
+  await expect(prov).toContainText(/Transcrita por\s*Ana Tesouraria/);
+  await expect(prov).toContainText(/Conferência da transcrição\s*Ana Tesouraria .* versão 1/);
+  await expect(prov).toContainText('Não registrada: a instituição não enviou nem confirmou estes termos');
+  await expect(page.locator(`#external-${X1}`)).toContainText('Não informado no material: CET informado, Prazo');
+  await expect(page.locator(`#external-${X1}`).getByText(/validad[oa] pelo banco|aceit[oa] pela instituição/i)).toHaveCount(0);
 });
