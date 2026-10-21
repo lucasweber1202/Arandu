@@ -9,7 +9,7 @@ import { promisify } from 'node:util';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { digest, assertPublicBytes, writePublicationManifest } from './publication-manifest.mjs';
-import { validateManifest, verifyResponse, getPublic, validateFlow } from './publication-proof.mjs';
+import { validateManifest, verifyResponse, getPublic, validateFlow, publicationFailure } from './publication-proof.mjs';
 
 const sha = 'a'.repeat(40);
 const env = { ARANDU_DEPLOYMENT_KIND: 'demo', VERCEL: '1', VERCEL_GIT_COMMIT_SHA: sha, VERCEL_GIT_COMMIT_REF: 'main' };
@@ -59,22 +59,36 @@ test('404, protection HTML, wrong MIME and stale bytes cannot pass', () => {
 test('redirects cannot escape hosting or loop, including protocol-relative Location', async () => {
   const base = new URL('https://arandu-demo.vercel.app');
   for (const location of ['https://example.com', '//vercel.com/login', '/']) {
-    await assert.rejects(() => getPublic(base, '/', async () => new Response(null, { status: 302, headers: { Location: location } })), /Off-origin|loop/);
+    await assert.rejects(() => getPublic(base, '/', async () => new Response(null, { status: 302, headers: { Location: location } })), /Off-origin|loop|Vercel authentication/);
   }
   await assert.rejects(() => getPublic(base, '/', async () => { throw new Error('ECONNREFUSED'); }));
+});
+test('authentication redirects are ACCESS_BLOCKED and same-origin hops retain evidence', async () => {
+  const base = new URL('https://arandu-demo.vercel.app');
+  await assert.rejects(() => getPublic(base, '/', async () => new Response(null, { status: 302, headers: { Location: 'https://vercel.com/sso-api' } })), e => e.code === 'ACCESS_BLOCKED');
+  const result = await getPublic(base, '/', async url => url.pathname === '/'
+    ? new Response(null, { status: 308, headers: { Location: '/demo/index.html' } })
+    : new Response('<title>Arandu</title>'));
+  assert.equal(result.url, base.origin + '/demo/index.html');
+  assert.deepEqual(result.redirects, [{ from: '/', status: 308, to: '/demo/index.html' }]);
 });
 test('unreviewed or incomplete UI journeys cannot prove the approved experience', () => {
   assert.throws(() => validateFlow({ approved_sha: sha, steps: [] }, sha));
   assert.throws(() => validateFlow({ approved_sha: 'b'.repeat(40), steps: [] }, sha));
+});
+test('executor TLS and missing browser are classified independently of website failure', () => {
+  assert.equal(publicationFailure(new Error('page.goto: net::ERR_CERT_AUTHORITY_INVALID')), 'EXECUTOR_TLS_BLOCKED');
+  assert.equal(publicationFailure(new Error("browserType.launch: Executable doesn't exist")), 'BROWSER_UNAVAILABLE');
 });
 test('CLI verifies served bytes and refuses PUBLIC_SHAREABLE for localhost or missing routes', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'arandu-public-http-'));
   const html = Buffer.from('<title>Arandu demonstração</title>');
   const js = Buffer.from('console.log("demo")');
   const files = Object.fromEntries(['/index.html', '/demo/index.html', '/entry.js'].map(p => [p, { bytes: p.endsWith('.js') ? js.length : html.length, sha256: digest(p.endsWith('.js') ? js : html) }]));
-  let missing = false;
+  let missing = false, promoted = false;
   const server = http.createServer((req, res) => {
     const p = req.url === '/' ? '/index.html' : req.url;
+    if (promoted && p === '/painel.html') { res.setHeader('Content-Type', 'text/html'); return res.end(html); }
     if (p === '/arandu-build.json') { res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify({ schema: 1, application: 'arandu', commit: sha, branch: 'main', modality: 'browser-sandbox', datasource: 'synthetic-fixtures', backend_required: false, canonical_hosted_m3: 'BLOCKED', files })); }
     else if (!files[p] || (missing && p === '/demo/index.html')) { res.statusCode = 404; res.end(); }
     else { res.setHeader('Content-Type', p.endsWith('.js') ? 'text/javascript' : 'text/html'); res.end(p.endsWith('.js') ? js : html); }
@@ -87,7 +101,12 @@ test('CLI verifies served bytes and refuses PUBLIC_SHAREABLE for localhost or mi
     };
     const local = await run();
     assert.equal(local.HTTP_ARTIFACT, 'PASS'); assert.equal(local.PUBLIC_SHAREABLE, 'NOT_PROVEN'); assert.equal(local.CANONICAL_HOSTED_M3, 'BLOCKED');
-    missing = true;
+    assert.equal(local.ROOT_HTTP, 'PASS');
+    assert(local.checks.some(c => c.path === '/painel.html' && c.http_status === 404 && c.result === 'PASS'));
+    promoted = true;
+    const legacy = await run(); assert.equal(legacy.PUBLIC_SHAREABLE, 'FAIL'); assert.match(legacy.error, /Retired route/);
+    assert(legacy.checks.some(c => c.path === '/painel.html' && c.result === 'FAIL'));
+    promoted = false; missing = true;
     const broken = await run(); assert.equal(broken.PUBLIC_SHAREABLE, 'FAIL'); assert.match(broken.error, /404/);
   } finally { await new Promise(resolve => server.close(resolve)); rmSync(dir, { recursive: true, force: true }); }
 });

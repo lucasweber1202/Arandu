@@ -3,7 +3,7 @@
 // READY só na máquina declarada, no SHA congelado, com prontidão recente; nunca
 // num executor efêmero; alvo fora de localhost é UNSAFE mesmo com tudo verde.
 import assert from 'node:assert/strict';
-import { classifyStation } from './demo/station-lib.mjs';
+import { classifyStation, readinessFacts } from './demo/station-lib.mjs';
 
 const SHA = 'a'.repeat(40);
 const LOCK = 'b'.repeat(64);
@@ -16,9 +16,9 @@ const ready = () => ({
   docker: { engine: 'Docker 29', compose: 'Compose 5' }, browser: { ok: true }, cert: { ok: true },
   services: { db: ok, auth: ok, rest: ok, storage: ok, gateway: ok, app: ok },
   ports: [{ port: 4443, state: 'demo' }, { port: 54322, state: 'demo' }],
-  db: { reachable: true, marker: 'demo', container: 'original' }, app: { reachable: true, environment: 'demo' },
+  db: { reachable: true, marker: 'demo', schema: 'current', expectedSchema: 'current', container: 'original' }, app: { reachable: true, environment: 'demo', datasource: 'supabase', misconfigured: false },
   pool: { ready: 4, claimed: 0 }, seed: { ok: true, detail: '39/39' },
-  readiness: { readMode: 'PRONTO', interactiveMode: 'PRONTO', ageMinutes: 15 },
+  readiness: { readMode: 'PRONTO', interactiveMode: 'PRONTO', ageMinutes: 15, commit: SHA, host: 'estacao-29-10', lockSha256: LOCK, clean: true, smoke: true },
   freeze: { sha: SHA, lockSha256: LOCK, station: true, host: 'estacao-29-10' },
   repo: { path: '/home/op/Arandu', onWindowsDrive: false, crlfFiles: [] }, toolchain: { windows: null },
   nativeDeps: { ok: true, detail: 'rolldown e lightningcss carregam' }, tools: { missing: [] }
@@ -41,6 +41,20 @@ expect('freeze sem --station', (f) => { f.freeze.station = false; }, 'PREPARED',
 expect('árvore suja', (f) => { f.git.clean = false; f.git.dirty = 2; }, 'PREPARED', '2 arquivo(s)');
 expect('prontidão velha', (f) => { f.readiness.ageMinutes = 300; }, 'PREPARED', 'há 300 min');
 expect('sem prontidão', (f) => { f.readiness = null; }, 'PREPARED', 'sem relatório');
+for (const [key, value] of [['commit', 'c'.repeat(40)], ['host', 'outra-estacao'], ['lockSha256', 'd'.repeat(64)], ['clean', false], ['smoke', false], ['ageMinutes', -1], ['ageMinutes', NaN]]) {
+  expect(`readiness não vinculada: ${key}=${value}`, f => { f.readiness[key] = value; }, 'PREPARED');
+}
+const observation = { generated_at: '2026-10-21T12:00:00Z', commit: SHA, smoke: true,
+  station_evidence: { schema: 1, host: 'estacao-29-10', lockSha256: LOCK, clean: true },
+  modes: [{ mode: 'leitura', ready: true, skipped: [] }, { mode: 'interativo', ready: false, skipped: [] }] };
+const observedAt = Date.parse(observation.generated_at);
+expect('JSON novo da mesma estação', f => { f.readiness = readinessFacts(observation, observedAt + 60000); }, 'READY');
+expect('JSON copiado/touch não renova observação', f => { f.readiness = readinessFacts(observation, observedAt + 121 * 60000); }, 'PREPARED');
+expect('JSON de data futura', f => { f.readiness = readinessFacts(observation, observedAt - 1); }, 'PREPARED');
+expect('JSON com data inválida', f => { f.readiness = readinessFacts({ ...observation, generated_at: 'invalid' }); }, 'PREPARED');
+expect('JSON com smoke não executado', f => { f.readiness = readinessFacts({ ...observation, smoke: false }, observedAt); }, 'PREPARED');
+expect('JSON com leitura incompleta', f => { f.readiness = readinessFacts({ ...observation, modes: [{ mode: 'leitura', ready: true, skipped: ['smoke'] }] }, observedAt); }, 'PREPARED');
+assert.equal(readinessFacts({}), null, 'formato antigo não certifica estação');
 expect('prontidão diz leitura NÃO PRONTO', (f) => { f.readiness.readMode = 'NÃO PRONTO'; }, 'PREPARED');
 expect('seed não verificado (--fast)', (f) => { f.seed = { ok: false, skipped: true, detail: 'não verificado (--fast)' }; }, 'PREPARED', 'não verificado');
 // Requisitos ausentes bloqueiam, mesmo congelado.
@@ -49,6 +63,11 @@ expect('Docker parado', (f) => { f.docker.engine = null; f.services.db = { ok: f
 expect('Chromium do lockfile ausente', (f) => { f.browser = { ok: false, detail: 'navegador da versão do lockfile não instalado' }; }, 'BLOCKED', 'lockfile não instalado');
 expect('porta tomada por outro processo', (f) => { f.ports.push({ port: 3000, state: 'foreign' }); }, 'BLOCKED', '3000');
 expect('Storage fora', (f) => { f.services.storage = { ok: false, detail: 'ECONNREFUSED' }; }, 'BLOCKED', 'ECONNREFUSED');
+expect('health sem identidade', f => { f.app = { reachable: true }; }, 'BLOCKED');
+expect('sandbox responde health 200', f => { f.app.datasource = 'synthetic-fixtures'; }, 'BLOCKED');
+expect('runtime mal configurado', f => { f.app.misconfigured = true; }, 'BLOCKED');
+expect('schema antigo', f => { f.db.schema = 'previous'; }, 'BLOCKED', 'previous');
+expect('schema não verificado', f => { delete f.db.schema; }, 'BLOCKED', 'ausente');
 expect('banco recriado sem os dados', (f) => { f.db.container = 'contêiner sem os dados da Demo'; }, 'BLOCKED');
 expect('seed quebrado', (f) => { f.seed = { ok: false, detail: '37/39 checagens' }; }, 'BLOCKED', '37/39');
 expect('pool com 1 pronto', (f) => { f.pool.ready = 1; }, 'BLOCKED', '1 pronto');

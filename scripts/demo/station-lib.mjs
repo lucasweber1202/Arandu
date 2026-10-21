@@ -26,6 +26,22 @@ export const REQUIREMENTS = Object.freeze({
 
 const check = (id, label, status, detail, fix) => ({ id, label, status, detail, ...(fix ? { fix } : {}) });
 
+// Consume the machine-readable evidence, never Markdown mtime (copy/touch is
+// not a new observation). Missing/old formats cannot certify a station.
+export function readinessFacts(report, now = Date.now()) {
+  if (report?.station_evidence?.schema !== 1) return null;
+  const evidence = report.station_evidence;
+  const mode = (name) => report.modes?.find((m) => m.mode === name);
+  const read = mode('leitura');
+  return {
+    commit: report.commit, host: evidence.host, lockSha256: evidence.lockSha256,
+    clean: evidence.clean === true, smoke: report.smoke === true,
+    ageMinutes: (now - Date.parse(report.generated_at)) / 60000,
+    readMode: read?.ready === true && Array.isArray(read.skipped) && !read.skipped.length ? 'PRONTO' : 'NÃO PRONTO',
+    interactiveMode: mode('interativo')?.ready === true ? 'PRONTO' : 'NÃO PRONTO'
+  };
+}
+
 /** facts → { status, checks, reasons }. Nenhum fato ausente vira PASS. */
 export function classifyStation(facts) {
   const f = facts || {};
@@ -41,6 +57,10 @@ export function classifyStation(facts) {
   if (f.env?.aranduEnv && f.env.aranduEnv !== 'demo') add('arandu-env', 'ARANDU_ENV', 'UNSAFE', `ARANDU_ENV=${f.env.aranduEnv} no terminal`, 'unset ARANDU_ENV (o script da Demo define demo).');
   if (f.db?.reachable && f.db.marker !== 'demo') add('db-marker', 'Banco marcado como demonstração', 'UNSAFE', `marca do banco: ${f.db.marker || 'ausente'}`, 'Não apresente: este banco não é a Demo local.');
   if (f.app?.reachable && f.app.environment && f.app.environment !== 'demo') add('app-env', 'App em ARANDU_ENV=demo', 'UNSAFE', `app responde ${f.app.environment}`, 'bash scripts/demo/local.sh app');
+  add('app-runtime', 'App canônico com banco real', f.app?.reachable && f.app.environment === 'demo' && f.app.datasource === 'supabase' && f.app.misconfigured === false ? 'PASS' : 'BLOCKED',
+    `ambiente ${f.app?.environment || '?'} · datasource ${f.app?.datasource || '?'}`, 'bash scripts/demo/local.sh resume');
+  add('db-schema', 'Migrations compatíveis com este código', f.db?.schema && f.db.schema === f.db.expectedSchema ? 'PASS' : 'BLOCKED',
+    `marker ${f.db?.schema || 'ausente'} · esperado ${f.db?.expectedSchema || '?'}`, 'Pare e confira o schema e o SHA; não rode setup/reset para corrigir migrations.');
 
   // ------------------------------------------------ máquina
   add('os', 'Sistema e arquitetura', f.host?.platform ? 'PASS' : 'BLOCKED', f.host?.platform ? `${f.host.platform} ${f.host.arch}${f.host.wsl ? ' (WSL2)' : ''}` : 'desconhecido');
@@ -68,7 +88,7 @@ export function classifyStation(facts) {
     'Ubuntu/WSL2: sudo apt-get install -y postgresql-client openssl curl procps');
   add('line-endings', 'Scripts com fim de linha LF', (f.repo?.crlfFiles?.length || 0) === 0 ? 'PASS' : 'BLOCKED',
     f.repo?.crlfFiles?.length ? `CRLF em: ${f.repo.crlfFiles.slice(0, 3).join(', ')}${f.repo.crlfFiles.length > 3 ? '…' : ''}` : 'sem CRLF nos scripts',
-    'Cópia fora do git ou autocrlf antigo: git rm --cached -r . && git reset --hard (só com a árvore salva) ou clone de novo.');
+    'Preserve o trabalho e use um clone separado no WSL com core.autocrlf=false; não execute reset destrutivo.');
   add('native-deps', 'Módulos nativos deste sistema', f.nativeDeps?.ok ? 'PASS' : 'BLOCKED', f.nativeDeps?.detail || 'não verificado',
     'node_modules veio de outro sistema (ex.: npm do Windows): apague node_modules e rode npm ci --include=optional aqui.');
   add('browser', 'Chromium do Playwright do lockfile', f.browser?.ok ? 'PASS' : 'BLOCKED', f.browser?.detail || 'ausente', 'npx playwright install chromium');
@@ -99,9 +119,11 @@ export function classifyStation(facts) {
     f.freeze?.station ? (f.freeze.host === f.host?.name ? `máquina ${f.host?.name}` : `declarada em ${f.freeze.host}, esta é ${f.host?.name}`) : 'não declarada', 'bash scripts/demo/local.sh freeze --station (na máquina da apresentação)');
   add('ephemeral', 'Máquina persistente', f.host?.ephemeral ? 'PREPARED' : 'PASS', f.host?.ephemeral ? `executor efêmero (${f.host.ephemeral}): nunca é a estação` : 'sem sinais de CI ou sessão remota');
   const age = f.readiness?.ageMinutes;
+  const bound = f.readiness?.commit === f.git?.sha && f.readiness?.host === f.host?.name
+    && f.readiness?.lockSha256 === f.git?.lockSha256 && f.readiness?.clean === true && f.readiness?.smoke === true;
   add('readiness', `Prontidão recente (≤ ${R.readinessMaxAgeMinutes} min, Modo leitura PRONTO)`,
-    f.readiness?.readMode === 'PRONTO' && age != null && age <= R.readinessMaxAgeMinutes ? 'PASS' : 'PREPARED',
-    f.readiness ? `leitura ${f.readiness.readMode || '?'} · interativo ${f.readiness.interactiveMode || '?'} · há ${age ?? '?'} min` : 'sem relatório', 'bash scripts/demo/local.sh readiness --smoke');
+    bound && f.readiness.readMode === 'PRONTO' && Number.isFinite(age) && age >= 0 && age <= R.readinessMaxAgeMinutes ? 'PASS' : 'PREPARED',
+    f.readiness ? `leitura ${f.readiness.readMode || '?'} · interativo ${f.readiness.interactiveMode || '?'} · há ${Number.isFinite(age) ? Math.floor(age) : '?'} min · vínculo SHA/máquina/lockfile/smoke ${bound ? 'OK' : 'não comprovado'}` : 'sem relatório JSON compatível', 'bash scripts/demo/local.sh readiness --smoke');
 
   const worst = checks.reduce((acc, c) => (c.status === 'PASS' ? acc : (RANK[c.status] > RANK[acc] ? c.status : acc)), STATUS.READY);
   return { status: worst, checks, reasons: checks.filter((c) => c.status === worst && worst !== 'READY').map((c) => `${c.label}: ${c.detail}`) };

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { Readable } from 'node:stream';
+import { HttpError } from '../lib/api-core.mjs';
 import { PRODUCTS, normalizeProposal } from '../lib/finance/products.mjs';
 import { normalizeExternalTerms, externalComparisonProposal } from '../lib/finance/external-proposals.mjs';
 import { buildComparison, applyUserWeights } from '../lib/finance/comparison.mjs';
@@ -37,22 +38,24 @@ process.env.SUPABASE_URL='https://external-tests.example.invalid';
 process.env.SUPABASE_ANON_KEY='external-anon';
 delete process.env.SUPABASE_SERVICE_ROLE_KEY;
 const ORG='00000000-0000-4000-8000-000000000701', RFQ='00000000-0000-4000-8000-000000000702', ID='00000000-0000-4000-8000-000000000703', PROVIDER='00000000-0000-4000-8000-000000000704';
-let sent=[],kind='BUYER',rpcError=null,unavailable=false;
+let sent=[],kind='BUYER',rpcError=null,unavailable=false,missing=false,overflow=false,schemaMissing=false,limited=false,lastResponse;
 const row={id:ID,organization_id:ORG,rfq_id:RFQ,provider_id:PROVIDER,product:'credit',state:'reviewed',current_version:1,terms:{offered_amount:100},currency:'BRL',rfq_revision:1,document_available:true,recorded_by:'writer',reviewed_by:'reviewer'};
 globalThis.fetch=async(url,options={})=>{
  const req={url:String(url),body:options.body?JSON.parse(options.body):null,headers:options.headers};sent.push(req);
  if(unavailable) return Response.json({message:'upstream unavailable'},{status:503});
+ if(schemaMissing && req.url.includes('rpc/')) return Response.json({message:'missing RPC',code:'PGRST202'},{status:404});
  if(req.url.includes('rpc/')) return rpcError?Response.json({message:rpcError,code:'P0001'},{status:400}):Response.json(req.url.includes('_review')?ID:{id:ID,version:1,replayed:false});
  if(req.url.includes('fin_organizations')) return Response.json([{id:ORG,kind}]);
  if(req.url.includes('fin_rfqs?')) return Response.json([{id:RFQ,organization_id:ORG,product:'credit',revision:1,demand:{}}]);
- if(req.url.includes('fin_external_proposal_current?')) return Response.json([row]);
+ if(req.url.includes('fin_external_proposal_current?')) return Response.json(missing?[]:overflow?Array.from({length:501},()=>row):[row]);
  if(req.url.includes('fin_external_proposal_versions?')) return Response.json([{proposal_id:ID,version:1,terms:{offered_amount:100}}]);
  return Response.json([]);
 };
-const deps={requireUser:async()=>({user:{id:'actor'},accessToken:'external-user-jwt',headers:{}}),enforceRateLimit:async()=>{}};
+const deps={requireUser:async()=>({user:{id:'actor'},accessToken:'external-user-jwt',headers:{}}),enforceRateLimit:async()=>{if(limited)throw new HttpError(429,'Aguarde a janela.','rate_limited');}};
 async function call(method,path,body) {
  const req=Object.assign(Readable.from(body?[JSON.stringify(body)]:[]),{method,url:'/api/finance/'+path,headers:{}});
  const res={setHeader(){},end(raw){this.payload=JSON.parse(raw);}};
+ lastResponse=res;
  await handleFinance(req,res,path.split('?')[0],deps);return res;
 }
 const input={rfq_id:RFQ,provider_id:PROVIDER,request_key:'external-key-1',terms:{offered_amount:100},state:'pending_review',channel:'manual',received_at:'2026-01-01T12:00:00Z',source_reference:'Fonte fictícia',currency:'BRL',rfq_revision:1};
@@ -88,5 +91,21 @@ for(const [path,body] of [['external-proposals',{...input,terms:{offered_amount:
 for(const action of ['decision','contract']) await assert.rejects(()=>call('POST','external-proposals/'+action,{id:ID}),err=>err.status===409&&err.code==='external_decision_not_supported');
 kind='PROVIDER';await assert.rejects(()=>call('POST','external-proposals',input),err=>err.status===400);kind='BUYER';
 rpcError='external proposal conflict';await assert.rejects(()=>call('POST','external-proposals',input),err=>err.status===409&&err.code==='external_proposal_conflict');rpcError=null;
-unavailable=true;await assert.rejects(()=>call('POST','external-proposals',input));
+// Material gap in the original suite: negative statuses must never send an ACK
+// or call a write RPC after rejecting input/limits. Persistence itself is SQL-tested.
+async function rejectsWithoutAck(method,path,body,status,code) {
+ await assert.rejects(()=>call(method,path,body),error=>error.status===status&&(!code||error.code===code));
+ assert.equal(lastResponse.payload,undefined,'failure cannot acknowledge a saved proposal');
+}
+rpcError='forbidden';await rejectsWithoutAck('POST','external-proposals',input,403,'forbidden');rpcError=null;
+missing=true;await rejectsWithoutAck('GET',`external-proposals?organization_id=${ORG}&id=${ID}`,null,404,'external_proposal_not_found');missing=false;
+await rejectsWithoutAck('GET',`external-proposals/unknown?organization_id=${ORG}`,null,404,'route_not_found');
+let writes=sent.filter(r=>r.url.includes('rpc/')).length;
+await rejectsWithoutAck('POST','external-proposals',{...input,source_reference:'x'.repeat(48000)},413);
+assert.equal(sent.filter(r=>r.url.includes('rpc/')).length,writes,'oversized payload never reaches a write');
+overflow=true;await rejectsWithoutAck('POST','comparison',{rfq_id:RFQ},422,'external_comparison_limit');overflow=false;
+limited=true;writes=sent.length;await rejectsWithoutAck('POST','external-proposals',input,429,'rate_limited');limited=false;
+assert.equal(sent.length,writes,'rate limiting stops all upstream operations');
+schemaMissing=true;await rejectsWithoutAck('POST','external-proposals',input,503,'schema_incompatible');schemaMissing=false;
+unavailable=true;await rejectsWithoutAck('POST','external-proposals',input,503);
 console.log('External proposals: product/schema parity, absent values, neutral mixed comparison, user JWT, API mutation/read/pagination, conflicts and fail-closed outage passed.');

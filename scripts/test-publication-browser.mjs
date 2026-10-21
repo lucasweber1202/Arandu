@@ -39,5 +39,16 @@ try {
     assert.equal(sample.p75, 'NOT_ESTIMATED_SINGLE_NAVIGATION');
     assert.ok(sample.navigation && sample.navigation.ttfb_ms >= 0);
   }
+  // A navigation failure must name the attempted stage and viewport; NOT_RUN
+  // is reserved for the viewport that was never reached.
+  steps[1].selector = '#missing';
+  writeFileSync(flow, JSON.stringify({ approved_sha: sha, steps }));
+  await assert.rejects(promisify(execFile)(process.execPath, [fileURLToPath(new URL('./smoke-public-demo.mjs', import.meta.url)), `--url=http://127.0.0.1:${server.address().port}`, `--sha=${sha}`, '--local', '--browser', `--flow=${flow}`], { cwd: dir }));
+  const failed = JSON.parse(readFileSync(join(dir, 'reports/public-demo/proof.json')));
+  assert.equal(failed.HTTP_ARTIFACT, 'PASS');
+  assert.equal(failed.BROWSER_DESKTOP, 'FAIL');
+  assert.equal(failed.BROWSER_MOBILE, 'NOT_RUN');
+  assert.equal(failed.PUBLIC_SHAREABLE, 'FAIL');
+  assert(failed.checks.some(c => c.viewport === 'DESKTOP' && c.stage === 'explore' && c.path === '/explore.html' && c.result === 'FAIL'));
   console.log('Local browser regression PASS: 15 stages, desktop/mobile, reloads, verified bytes; PUBLIC_SHAREABLE remains NOT_PROVEN.');
 } finally { await new Promise(resolve => server.close(resolve)); rmSync(dir, { recursive: true, force: true }); }

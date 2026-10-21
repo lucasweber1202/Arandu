@@ -1,5 +1,19 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 21/10/2026 — V3.7: prova pública e identidade da prontidão local
+
+Base `main@ca879292`; branch `codex/v37-demo-reliability`. Visita pública
+no SHA completo: HTTP/assets e Chromium desktop/mobile PASS (17 etapas por
+viewport), classificada como visita informativa/simulação synthetic-fixtures,
+sem backend hospedado canônico. Station passa a exigir JSON de readiness ligado
+a SHA/máquina/lockfile/smoke e schema/runtime canônicos; negativa reproduziu READY
+indevido com relatório de outro commit na baseline. Estação definitiva Windows/WSL2:
+**STATION_NOT_VERIFIED**. Auditoria financeira sintética e PostgreSQL integral
+PASS; produção **ACCESS_BLOCKED** por 403 nos logs; M3 **BLOCKED**, atribuições
+inalteradas. Código novo M1/local; M2 exige quatro gates no HEAD próprio da PR.
+Evidência e plano operacional: [relatório V3.7](evidence/codex-v37-demo-reliability-2026-10-21.md).
+Nenhuma promoção M3–M6 ou mutação hospedada.
+
 ## 20/10/2026 — Decisão estratégica v3.7: segmentação tripla, adoção de instituições e qualidade integral
 
 **STATUS: NORMATIVE_DECISION / HYPOTHESIS, SEM FEATURE OU DEPLOY NOVO.** Guideline §§39–44: `docs/ARANDU_PRODUCT_ENGINEERING_GUIDELINES.md`. Desenho de serviços e jornadas: `docs/ARANDU_SEGMENTED_PRODUCT_OPERATING_MODEL_V37.md`. Pesquisa, evidências e aceitação: `docs/ARANDU_V37_EVIDENCE_AND_DECISION_GATES.md`. Esta atualização documental NÃO muda M0–M6, **não** promove P0-A/P0-B e **não** afirma receita, clientes, plano comercial ou integração bancária.
