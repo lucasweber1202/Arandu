@@ -77,6 +77,18 @@ export function money(value, { compact = false } = {}) {
   if (compact && Math.abs(number) >= 1e3) return `R$ ${(number / 1e3).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} mil`;
   return (Number.isInteger(number) ? BRL0 : BRL).format(number);
 }
+// Valor monetário na moeda declarada pela fonte (mesma regra de fee-presenter e
+// da comparação). Moeda ausente continua ausente: número sem símbolo e aviso,
+// nunca R$ por padrão; nada é convertido.
+export function moneyIn(value, currency) {
+  const number = Number(value);
+  if (value === null || value === undefined || value === '' || !Number.isFinite(number)) return null;
+  if (typeof currency === 'string' && /^[A-Z]{3}$/.test(currency)) {
+    try { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency, maximumFractionDigits: 2 }).format(number); } catch { /* código não reconhecido: cai no texto neutro */ }
+    return `${currency} ${number.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}`;
+  }
+  return `${number.toLocaleString('pt-BR', { maximumFractionDigits: 2 })} (moeda não declarada)`;
+}
 export function percent(value) {
   const number = Number(value);
   return Number.isFinite(number) ? `${number.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%` : '—';
@@ -100,10 +112,12 @@ export function slugKey(label) {
 }
 
 /** Valor de campo do catálogo formatado para leitura; ausência é explícita. */
-export function fieldValue(field, value) {
+// `options.currency` presente (mesmo null): dinheiro na moeda declarada da fonte.
+// Ausente: unidade do cadastro v1 (BRL), como sempre foi para propostas do portal.
+export function fieldValue(field, value, options = {}) {
   if (value === null || value === undefined || value === '') return null;
   switch (field?.type) {
-    case 'money': return money(value);
+    case 'money': return Object.hasOwn(options, 'currency') ? moneyIn(value, options.currency) : money(value);
     case 'percent': return percent(value);
     case 'bool': return value === true || value === 'true' ? 'Sim' : 'Não';
     case 'date': return formatDate(value);

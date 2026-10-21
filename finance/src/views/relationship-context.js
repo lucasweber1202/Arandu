@@ -1,5 +1,5 @@
 // Fatos dos registros existentes. Sem estado paralelo nem cálculo financeiro.
-import { el, formatDate, productLabel, CONTRACT_STATUS, RFQ_STATUS } from '../core.js';
+import { el, formatDate, productLabel, renewalStage, CONTRACT_STATUS, RFQ_STATUS } from '../core.js';
 import { CONTRACT_CATEGORIES } from '../../../lib/finance/contract-terms.mjs';
 import { FACILITY_KINDS } from '../../../lib/finance/portfolio.mjs';
 import { graphContextCard } from './graph-context.js';
@@ -55,7 +55,19 @@ export function relationshipAttention(detail, { today = Date.UTC(new Date().getU
     const name = contract.title || CONTRACT_CATEGORIES[contract.product] || 'Contrato';
     if (days === null) items.push({ kind: 'missing', rank: 4, title: `Término não informado: ${name}`, detail: 'Sem data de término o Arandu não acompanha renovação nem aviso prévio.', target: { type: 'contract', id: contract.id } });
     else if (days < 0) items.push({ kind: 'overdue', rank: 0, due: days, title: `Contrato vencido: ${name}`, detail: `Término em ${formatDate(contract.ends_on)}, ainda registrado como vigente.`, target: { type: 'contract', id: contract.id } });
-    else if (days <= RENEWAL_HORIZON) items.push({ kind: 'soon', rank: 1, due: days, title: `Vence em ${days} ${days === 1 ? 'dia' : 'dias'}: ${name}`, detail: `Término em ${formatDate(contract.ends_on)}. Revise renovação e aviso prévio no contrato.`, target: { type: 'contract', id: contract.id } });
+    else {
+      // Três datas distintas: término contratual, marco de aviso prévio
+      // registrado no cadastro e tarefas operacionais (abaixo).
+      if (contract.renewal_notice_days === null || contract.renewal_notice_days === undefined) {
+        if (days <= RENEWAL_HORIZON) items.push({ kind: 'soon', rank: 1, due: days, title: `Vence em ${days} ${days === 1 ? 'dia' : 'dias'}: ${name}`, detail: `Término em ${formatDate(contract.ends_on)}. Aviso prévio não informado no registro: nenhum marco foi calculado.`, target: { type: 'contract', id: contract.id } });
+        continue;
+      }
+      const stage = renewalStage(contract);
+      const noticeDays = daysTo(stage.deadline, today);
+      const notice = `Marco de aviso prévio: ${formatDate(stage.deadline)} (${contract.renewal_notice_days} dias registrados no cadastro; confira no documento).`;
+      if (stage.stage === 'past_notice') items.push({ kind: 'overdue', rank: 0, due: noticeDays, title: `Aviso prévio registrado já passou: ${name}`, detail: `${notice} Término contratual em ${formatDate(contract.ends_on)}.`, target: { type: 'contract', id: contract.id } });
+      else if (days <= RENEWAL_HORIZON || stage.stage === 'window') items.push({ kind: 'soon', rank: 1, due: noticeDays, title: `Decidir renovação até ${formatDate(stage.deadline)}: ${name}`, detail: `${notice} Término contratual em ${formatDate(contract.ends_on)}.`, target: { type: 'contract', id: contract.id } });
+    }
   }
   for (const issue of detail.issues || []) {
     if (!['open', 'in_progress'].includes(issue.status)) continue;
@@ -68,6 +80,11 @@ export function relationshipAttention(detail, { today = Date.UTC(new Date().getU
     const days = daysTo(rfq.response_deadline, today);
     items.push({ kind: 'open', rank: 2, due: days, title: `Negociação em andamento: ${rfq.title || 'Solicitação'}`,
       detail: `${RFQ_STATUS[rfq.status]?.label || 'Em andamento'}${rfq.response_deadline ? ` · prazo de resposta ${formatDate(rfq.response_deadline)}` : ''}.`, target: { type: 'rfq', id: rfq.id } });
+  }
+  for (const task of detail.tasks || []) {
+    const days = daysTo(task.due_on, today);
+    items.push({ kind: days !== null && days < 0 ? 'overdue' : 'open', rank: days !== null && days < 0 ? 0 : 3, due: days, title: `Tarefa: ${task.title}`,
+      detail: task.due_on ? `Prazo operacional ${formatDate(task.due_on)}${task.assignee_name ? ` · responsável ${task.assignee_name}` : ' · responsável não definido'}.` : 'Sem prazo definido.', target: { type: 'task', id: task.id } });
   }
   if (!(detail.contacts || []).length) items.push({ kind: 'missing', rank: 4, title: 'Nenhum contato registrado', detail: 'Registre quem atende a empresa nesta instituição.', target: { type: 'contact' } });
   const due = (item) => (Number.isFinite(item.due) ? item.due : 9999);

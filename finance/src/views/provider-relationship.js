@@ -11,6 +11,7 @@ import { CONTRACT_CATEGORIES } from '../../../lib/finance/contract-terms.mjs';
 import { relationshipContext, relationshipSummary } from './relationship-context.js';
 import { entityTree } from '../../../lib/finance/entities.mjs';
 import { loadEntities, entityName } from './entities.js';
+import { memberName } from './shared.js';
 
 const ISSUE_SEVERITY = { low: ['Baixa', 'neutral'], medium: ['Média', 'warning'], high: ['Alta', 'danger'] };
 const ISSUE_STATUS = { open: 'Aberta', in_progress: 'Em andamento', resolved: 'Resolvida', cancelled: 'Cancelada' };
@@ -34,8 +35,17 @@ export async function openProviderRelationship(ctx, provider) {
     const m = detail.metrics;
     const d = m.definitions;
     // Nível 1–2: quem é, como está a relação e o que pede trabalho agora.
+    // Tarefas abertas ligadas aos contratos desta instituição (overview já carregado).
+    const contractIds = new Set((detail.contracts || []).map((row) => row.id));
+    detail.tasks = (ctx.data.tasks || []).filter((task) => task.related_type === 'contract' && contractIds.has(task.related_id))
+      .map((task) => ({ ...task, assignee_name: task.assignee_id ? memberName(ctx.members, task.assignee_id) : null }));
     const summary = relationshipSummary(detail);
-    const sections = [workspaceHead(summary), attentionSection(summary.attention, detail),
+    // Começo buyer-first: sem contrato vigente, registrar o que a empresa já tem.
+    const live = (detail.contracts || []).some((row) => ['active', 'renewing'].includes(row.status));
+    const start = !live && ctx.can('create_rfq') ? el('div', { class: 'callout callout-info compact rel-start' }, [icon('briefcase', { size: 14 }),
+      el('span', { text: 'Nenhum contrato vigente registrado com esta instituição. Registre o contrato que a empresa já tem para acompanhar condições, prazo e renovação, sem depender da adesão da instituição.' }),
+      button('Registrar contrato existente', { size: 'sm', variant: 'primary', iconName: 'plus', onClick: async () => { const { importContractButton } = await import('./contract-center.js'); importContractButton(ctx, entities, { providerId: provider.id })?.click(); } })]) : null;
+    const sections = [workspaceHead(summary), start, attentionSection(summary.attention, detail),
       el('section', { class: 'cc-section', 'aria-labelledby': 'rel-records' }, [el('h3', { id: 'rel-records', text: 'Contratos, limites e negociações' }), relationshipContext(ctx, detail)])];
     // Nível 4: indicadores, mapa, relação por entidade e avaliações — consulta, não trabalho.
     const advanced = [];
@@ -110,7 +120,7 @@ export async function openProviderRelationship(ctx, provider) {
     import('./fees.js').then((m) => m.providerFeeFacts(ctx, provider.id)).then((node) => fees.replaceWith(node)).catch(() => fees.remove());
     advanced.push(fees);
     sections.push(disclosure('rel-indicadores', 'Indicadores, mapa e avaliações', advanced));
-    return sections;
+    return sections.filter(Boolean);
   }
 
   function workspaceHead(summary) {
@@ -130,6 +140,7 @@ export async function openProviderRelationship(ctx, provider) {
       if (item.target.type === 'contract') return el('a', { class: 'btn btn-sm btn-secondary', href: ctx.href(`/finance/contracts.html?abrir=contrato#contract-${item.target.id}`), text: 'Abrir contrato' });
       if (item.target.type === 'rfq') return el('a', { class: 'btn btn-sm btn-secondary', href: ctx.href(`/finance/rfq.html?id=${item.target.id}`), text: 'Abrir negociação' });
       if (item.target.type === 'issue' && write) { const issue = detail.issues.find((row) => row.id === item.target.id); return button('Resolver', { size: 'sm', onClick: () => resolveIssue(issue) }); }
+      if (item.target.type === 'task') return el('a', { class: 'btn btn-sm btn-secondary', href: ctx.href('/finance/tasks.html'), text: 'Abrir tarefas' });
       if (item.target.type === 'contact' && write) return button('Adicionar contato', { size: 'sm', iconName: 'plus', onClick: () => contactForm() });
       return null;
     };

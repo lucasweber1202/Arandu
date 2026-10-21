@@ -139,10 +139,10 @@ export function loading(label = 'Carregando…') {
 }
 
 /** Lista de definição com ausências explícitas ("Não informado"). */
-export function definitionList(fields, values, { showMissing = false, columns = 2 } = {}) {
+export function definitionList(fields, values, { showMissing = false, columns = 2, ...money } = {}) {
   const list = el('dl', { class: `deflist deflist-${columns}` });
   for (const field of fields) {
-    const formatted = fieldValue(field, values?.[field.key]);
+    const formatted = fieldValue(field, values?.[field.key], money);
     if (formatted === null && !showMissing) continue;
     list.append(el('div', { class: 'deflist-row' }, [
       el('dt', { text: field.label.replace(/\s*\((?:R\$|%)\)$/, '') }),

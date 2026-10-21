@@ -127,15 +127,15 @@ function confirmedFactsPanel(ctx, contractId, editor) {
 }
 
 /** Botão + formulário de contrato existente (carteira fora de RFQ). */
-export function importContractButton(ctx, entities, { label = 'Registrar contrato existente', variant = 'secondary' } = {}) {
+export function importContractButton(ctx, entities, { label = 'Registrar contrato existente', variant = 'secondary', providerId = null, size = null } = {}) {
   if (!ctx.can('create_rfq')) return null;
-  return button(label, { variant, iconName: 'plus', attrs: { 'data-intent': 'registrar-contrato' }, onClick: () => openImportContract(ctx, entities) });
+  return button(label, { variant, size, iconName: 'plus', attrs: { 'data-intent': 'registrar-contrato' }, onClick: () => openImportContract(ctx, entities, { providerId }) });
 }
 
 const NEW_PROVIDER = '__nova__';
 const addDays = (day, days) => new Date(Date.parse(`${day}T00:00:00Z`) + days * 86400000).toISOString().slice(0, 10);
 
-function openImportContract(ctx, entities) {
+function openImportContract(ctx, entities, { providerId: presetProvider = null } = {}) {
   const form = el('form', { class: 'stack', id: 'contract-import-form', novalidate: true });
   const category = el('select', { name: 'product' });
   for (const [value, text] of Object.entries(CONTRACT_CATEGORIES)) category.add(new Option(text, value));
@@ -147,7 +147,7 @@ function openImportContract(ctx, entities) {
       ...providers.map((row) => new Option(row.name, row.id)), new Option('+ Cadastrar nova instituição', NEW_PROVIDER));
     provider.value = selected;
   };
-  fillProviders(providers.length === 1 ? providers[0].id : '');
+  fillProviders(presetProvider && providers.some((row) => row.id === presetProvider) ? presetProvider : providers.length === 1 ? providers[0].id : '');
   const providerName = el('input', { name: 'provider_name', maxlength: '200', autocomplete: 'organization' });
   const providerKind = el('select', { name: 'provider_kind' });
   for (const [value, text] of Object.entries(PROVIDER_KINDS)) providerKind.add(new Option(text, value));
@@ -157,7 +157,8 @@ function openImportContract(ctx, entities) {
   const title = el('input', { name: 'title', maxlength: '200', required: true, placeholder: 'Ex.: Capital de giro 2026' });
   const starts = el('input', { name: 'starts_on', type: 'date', required: true });
   const ends = el('input', { name: 'ends_on', type: 'date', required: true });
-  const notice = el('input', { name: 'renewal_notice_days', type: 'number', min: '0', max: '3650', step: '1', value: '60', inputmode: 'numeric' });
+  // Sem valor presumido: aviso prévio é declaração de quem registra (contrato ou marco interno).
+  const notice = el('input', { name: 'renewal_notice_days', type: 'number', min: '0', max: '3650', step: '1', inputmode: 'numeric', placeholder: 'Ex.: 60' });
   const autoRenew = el('input', { name: 'auto_renew', type: 'checkbox' });
   const entity = el('select', { name: 'legal_entity_id' });
   if (entities.scope === 'group') entity.add(new Option('Nível de grupo', ''));
@@ -178,12 +179,12 @@ function openImportContract(ctx, entities) {
   const titleField = field({ label: 'Título', control: title, required: true, hint: 'Como a equipe reconhece o contrato.' });
   const startsField = field({ label: 'Início', control: starts, required: true });
   const endsField = field({ label: 'Fim', control: ends, required: true });
-  const noticeField = field({ label: 'Aviso prévio (dias)', control: notice, hint: 'Antecedência exigida para renovar, renegociar ou encerrar.' });
+  const noticeField = field({ label: 'Aviso prévio (dias)', control: notice, required: true, hint: 'Copie do contrato. Se ele não define, informe o marco interno que a empresa adota; o Arandu não presume um valor.' });
   // Próxima ação calculada com a mesma regra do banco: fim − aviso prévio.
   const preview = el('p', { class: 'callout compact', role: 'status', 'aria-live': 'polite', hidden: true });
   const today = new Date().toISOString().slice(0, 10);
   const updatePreview = () => {
-    const days = Number(notice.value || 60);
+    const days = notice.value === '' ? NaN : Number(notice.value);
     if (!starts.value || !ends.value || ends.value < starts.value || !Number.isInteger(days) || days < 0) { preview.hidden = true; return; }
     const review = addDays(ends.value, -days);
     preview.replaceChildren(icon(ends.value < today ? 'clock' : 'calendar', { size: 14 }), el('span', { text: ends.value < today
@@ -229,8 +230,8 @@ function openImportContract(ctx, entities) {
     check(titleField, title, title.value.trim().length < 2 ? 'Dê um título com pelo menos 2 caracteres.' : /[<>]/.test(title.value) ? 'Use texto simples, sem < ou >.' : null);
     check(startsField, starts, starts.value ? null : 'Informe a data de início.');
     check(endsField, ends, !ends.value ? 'Informe a data de fim.' : starts.value && ends.value < starts.value ? 'O fim não pode anteceder o início.' : null);
-    const days = notice.value === '' ? 60 : Number(notice.value);
-    check(noticeField, notice, Number.isInteger(days) && days >= 0 && days <= 3650 ? null : 'Use um número inteiro de 0 a 3650 dias.');
+    const days = notice.value === '' ? NaN : Number(notice.value);
+    check(noticeField, notice, notice.value === '' ? 'Informe o aviso prévio: do contrato ou o marco interno adotado pela empresa.' : Number.isInteger(days) && days >= 0 && days <= 3650 ? null : 'Use um número inteiro de 0 a 3650 dias.');
     if (errors.length) errors[0].focus();
     return !errors.length;
   };
@@ -252,12 +253,15 @@ function openImportContract(ctx, entities) {
       }
       const result = await ctx.api('contract-import', { method: 'POST', body: JSON.stringify({
         organization_id: ctx.organization.id, product: category.value, provider_id: provider.value,
-        title: title.value.trim(), starts_on: starts.value, ends_on: ends.value, renewal_notice_days: notice.value === '' ? 60 : Number(notice.value),
+        title: title.value.trim(), starts_on: starts.value, ends_on: ends.value, renewal_notice_days: Number(notice.value),
         auto_renew: autoRenew.checked, legal_entity_id: entity.value || null, parent_contract_id: parent.value || null, terms: editor.read()
       }) });
       dialog.close();
       const task = result.next_task;
       toast(task ? `Contrato registrado. Próxima ação: revisar a renovação até ${formatDate(task.due_on)} (em Tarefas).` : 'Contrato registrado na carteira, sem renovação pendente.');
+      // Fora da carteira (ex.: Central de Relacionamentos), segue para o contrato
+      // recém-gravado; a confirmação veio do servidor (id retornado).
+      if (!location.pathname.endsWith('/contracts.html')) { location.assign(ctx.href(`/finance/contracts.html?abrir=contrato#contract-${result.id}`)); return; }
       location.hash = `#contract-${result.id}`;
       ctx.reload();
     } catch (error) {

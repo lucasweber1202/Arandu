@@ -233,7 +233,11 @@ test('quick views de proposta, provedor e contrato; favoritos na barra lateral',
   await page.keyboard.press('Escape');
   await ready(page, '/demo/finance/providers.html');
   // A linha inteira abre o resumo; pelo teclado, o botão da linha faz o mesmo.
-  const region = await page.locator('tr', { hasText: 'Atlas Bank — DEMO' }).getByRole('cell', { name: 'Nacional' }).boundingBox();
+  // A Central de Relacionamentos fica acima da tabela: a linha pode estar fora da
+  // janela e o clique por coordenada precisa dela visível.
+  const cellNacional = page.locator('tr', { hasText: 'Atlas Bank — DEMO' }).getByRole('cell', { name: 'Nacional' });
+  await cellNacional.scrollIntoViewIfNeeded();
+  const region = await cellNacional.boundingBox();
   await page.mouse.click(region.x + region.width / 2, region.y + region.height / 2);
   await expect(page.getByRole('dialog', { name: 'Atlas Bank — DEMO' })).toBeVisible();
   await page.keyboard.press('Escape');

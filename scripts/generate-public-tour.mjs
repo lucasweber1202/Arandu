@@ -73,6 +73,7 @@ const profile = Object.fromEntries(COMPANY.profile.map(([field, value]) => [fiel
 const BODY = {
   contexto: () => `<p>A ${esc(COMPANY.legal_name)} (${esc(COMPANY.sector.toLowerCase())}, ${esc(profile.colaboradores)} colaboradores) já tem relacionamento com várias instituições: ${esc(profile.bancos_relacionamento)}. Crédito, adquirência e tarifas foram negociados em momentos diferentes, cada um com seu contrato, prazo e responsável.</p>
 <p>Sem um lugar comum, a tesouraria depende de e-mails, planilhas e da memória de quem negociou para saber o que vence, quanto custa e por que cada escolha foi feita. O Arandu organiza esse ciclo: pedir propostas comparáveis, decidir com responsáveis definidos e acompanhar o contrato até a próxima renegociação.</p>
+<p>O primeiro valor não depende de nenhum banco aderir: a empresa cadastra as instituições com quem já trabalha e registra os contratos existentes, com vigência e aviso prévio declarados. Na tela Instituições, o que pede ação aparece por instituição — vigência terminada, janela de renovação, negociação em andamento —, com o responsável registrado (ou a indicação de que falta) e a origem de cada informação.</p>
 <p>Esta visita passa por quatro processos diferentes do mesmo cenário — não é uma única negociação:</p>
 ${caseList()}
 <p class="tour-note">Empresa, pessoas, instituições e valores fictícios. Não há métricas de economia, logos ou clientes reais nesta visita.</p>`,
@@ -163,6 +164,7 @@ ${table('O que a instituição recebe — e o que não recebe', ['No portal da i
     ['Prazo da coleta e status da própria proposta', 'Disponível'],
     ['Perguntas e pedidos de ajuste no próprio processo', 'Disponível'],
     ['Versões anteriores da própria proposta', 'Disponível'],
+    ['Condições obrigatórias em branco e validade da própria proposta', 'Disponível'],
     ['Propostas de outras instituições e comparação da empresa', 'Nunca visível']
   ])}
 <p>Na prática do cenário: ${esc(PROVIDERS.atlas.person.name)} respondeu ao pedido de redução da TAC com uma versão 2 no mesmo processo, em vez de reabrir a negociação por e-mail. A ${esc(provider('meridian'))} tem convite aceito no ${esc(CASES.RFQ_OPEN.tag)} e pode enviar a proposta até o fim do prazo.</p>

@@ -270,3 +270,25 @@ test('caixa da instituição: rascunho separado do que falta responder e frontei
   await expect(page.getByRole('note')).toContainText('nunca aparecem aqui');
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
 });
+
+// v3.8: pendências da própria proposta no portal — sem dado da empresa ou de concorrentes.
+test('portal mostra condições obrigatórias em branco e validade da própria proposta', async ({ page }) => {
+  const soon = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
+  await mockProvider(page, { assignment: { ...ASSIGNMENT, version: 1, submitted_rfq_revision: 1, terms: { offered_amount: 900000, valid_until: soon } } });
+  await page.goto('/provider/index.html');
+  const row = page.locator(`#rfq-${ASSIGNMENT.rfq_id}`);
+  await expect(row).toContainText('Condições obrigatórias não informadas na versão enviada: Taxa, Prazo, Produto ofertado');
+  await expect(row).toContainText(/Sua proposta vale até/);
+  await expect(row).toContainText('prazo 01 de dez de 2027');
+  await expect(page.locator('#provider-status')).toContainText('Confira a validade da sua proposta');
+  for (const banned of [/concorrente/i, /ranking/i, /melhor proposta/i]) await expect(row.getByText(banned)).toHaveCount(0);
+});
+
+test('validade não informada aparece como ausente, não como em dia', async ({ page }) => {
+  await mockProvider(page, { assignment: { ...ASSIGNMENT, version: 1, submitted_rfq_revision: 1, terms: { offered_amount: 900000, interest_rate_month: 1.2, term_months: 24, product_name: 'Capital de giro' } } });
+  await page.goto('/provider/index.html');
+  const row = page.locator(`#rfq-${ASSIGNMENT.rfq_id}`);
+  await expect(row).toContainText('Validade da sua proposta não informada');
+  await expect(row).not.toContainText('Condições obrigatórias não informadas');
+  await expect(page.locator('#provider-status')).toContainText('Nada pendente agora');
+});

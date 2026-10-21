@@ -6,7 +6,7 @@
 
 import { PRODUCTS } from '../../../lib/finance/products.mjs';
 import { el, icon, formatDateTime, plural } from '../core.js';
-import { card, pill, tag, button, emptyState, errorState, loading, drawer, field, catalogControl, toast, onSubmit, definitionList, confirmDialog } from '../ui.js';
+import { card, pill, tag, button, emptyState, errorState, loading, drawer, field, catalogControl, toast, onSubmit, definitionList } from '../ui.js';
 import { keyTerms, coverage, memberName } from './shared.js';
 
 // Espelho dos papéis da API (RLS e RPC continuam decidindo): só orienta a tela.
@@ -87,12 +87,13 @@ export function externalProposalsSection(ctx, rfq, { onChange = null } = {}) {
 
 function externalCard(ctx, rfq, row, { canWrite, canReview, reload }) {
   const cov = coverage(rfq.product, row.terms || {});
+  const missing = PRODUCTS[rfq.product].proposalFields.filter((spec) => spec.comparable && (row.terms?.[spec.key] === null || row.terms?.[spec.key] === undefined || row.terms?.[spec.key] === '')).map((spec) => spec.label.replace(/\s*\(.*\)$/, ''));
   const state = STATE[row.state] || { label: 'Estado não reconhecido', tone: 'neutral' };
   const actions = [];
   const live = row.state !== 'withdrawn';
   if (live && canWrite) actions.push(button('Corrigir (nova versão)', { size: 'sm', iconName: 'edit', onClick: () => editor(ctx, rfq, { record: row, onSaved: reload }) }));
-  if (live && canReview && row.state === 'pending_review') actions.push(button('Conferir transcrição', { size: 'sm', variant: 'primary', iconName: 'checkCircle', onClick: () => review(ctx, row, 'confirm', reload) }));
-  if (live && canReview) actions.push(button('Retirar da análise', { size: 'sm', variant: 'ghost', iconName: 'x', onClick: () => review(ctx, row, 'withdraw', reload) }));
+  if (live && canReview && row.state === 'pending_review') actions.push(button('Conferir transcrição', { size: 'sm', variant: 'primary', iconName: 'checkCircle', onClick: () => { review(ctx, row, 'confirm', reload); } }));
+  if (live && canReview) actions.push(button('Retirar da análise', { size: 'sm', variant: 'ghost', iconName: 'x', onClick: () => { review(ctx, row, 'withdraw', reload); } }));
   const history = el('details', { class: 'proposal-details' }, el('summary', { text: 'Histórico de versões e conferências' }));
   history.addEventListener('toggle', () => { if (history.open && !history.dataset.loaded) { history.dataset.loaded = '1'; versionHistory(ctx, rfq, row, history); } });
   return el('article', { class: 'proposal-card external-card', id: `external-${row.id}` }, [
@@ -102,17 +103,23 @@ function externalCard(ctx, rfq, row, { canWrite, canReview, reload }) {
       el('div', { class: 'proposal-badges' }, [tag('Fonte externa'), pill(state, { size: 'sm' }), row.rfq_revision_matches === false ? tag(`Revisão ${row.rfq_revision} da solicitação`, 'warning') : null])
     ]),
     el('p', { class: 'muted small' }, [el('strong', { text: 'Referência: ' }), row.source_reference || 'não informada']),
-    keyTerms(rfq.product, row.terms || {}),
-    row.currency ? null : el('p', { class: 'muted small', text: 'O símbolo R$ acima é só o formato do cadastro: a moeda não foi declarada no material e nada foi convertido.' }),
+    keyTerms(rfq.product, row.terms || {}, { currency: row.currency ?? null }),
     el('div', { class: 'proposal-foot' }, [
       el('span', { class: 'coverage-inline' }, [el('span', { class: 'coverage-bar' }, el('span', { class: 'coverage-fill', style: `width:${Math.round(cov.ratio * 100)}%` })), el('span', { text: `${cov.filled} de ${cov.total} condições comparáveis informadas` })]),
       el('span', { class: 'muted small', text: row.currency ? `Moeda declarada ${row.currency}` : 'Moeda não declarada: não é convertida nem tratada como real' })
     ]),
-    el('p', { class: 'muted small meta-item' }, [icon(row.document_state === 'metadata_available' ? 'file' : 'alert', { size: 12 }), ` ${DOCUMENT_STATE[row.document_state] || DOCUMENT_STATE.not_presented}`]),
-    row.state === 'reviewed' ? el('p', { class: 'muted small', text: `Conferida por ${memberName(ctx.members, row.reviewed_by)}${row.reviewed_at ? ` em ${formatDateTime(row.reviewed_at)}` : ''}. Entra na comparação como fonte externa; não pode ser escolhida nem contratada por aqui.` })
-      : row.state === 'withdrawn' ? null
-        : el('p', { class: 'muted small', text: 'Fica fora da comparação até alguém da gestão conferir a transcrição.' }),
-    el('details', { class: 'proposal-details' }, [el('summary', { text: 'Ver todas as condições transcritas' }), definitionList(PRODUCTS[rfq.product].proposalFields.filter((spec) => spec.key !== 'institution'), row.terms || {}, { showMissing: true })]),
+    missing.length ? el('p', { class: 'small warn-text', text: `Não informado no material: ${missing.join(', ')}. Permanece em branco; não vira zero nem vantagem na comparação.` }) : null,
+    // Proveniência da versão atual: quem declarou, quem transcreveu, quem conferiu e o que a instituição não confirmou.
+    el('dl', { class: 'deflist deflist-2 external-provenance', 'aria-label': `Origem da versão ${row.current_version}` }, [
+      ['Declarada por', `${row.provider_name || 'Instituição'} (atribuição feita pela empresa)`],
+      ['Canal e recebimento', `${CHANNELS[row.channel] || 'Canal não informado'} · ${row.received_at ? formatDateTime(row.received_at) : 'data não informada'}`],
+      ['Transcrita por', row.recorded_by ? `${memberName(ctx.members, row.recorded_by)}${row.recorded_at ? ` em ${formatDateTime(row.recorded_at)}` : ''}` : 'Não informado'],
+      ['Documento', DOCUMENT_STATE[row.document_state] || DOCUMENT_STATE.not_presented],
+      ['Conferência da transcrição', row.state === 'reviewed' ? `${memberName(ctx.members, row.reviewed_by)}${row.reviewed_at ? ` em ${formatDateTime(row.reviewed_at)}` : ''} · versão ${row.current_version}` : row.state === 'withdrawn' ? 'Retirada da análise' : `Pendente para a versão ${row.current_version}`],
+      ['Confirmação da instituição', 'Não registrada: a instituição não enviou nem confirmou estes termos no Arandu']
+    ].map(([label, value]) => el('div', { class: 'deflist-row' }, [el('dt', { text: label }), el('dd', { text: value })]))),
+    el('p', { class: 'muted small', text: row.state === 'reviewed' ? 'Entra na comparação como fonte externa; não pode ser escolhida nem contratada por aqui.' : row.state === 'withdrawn' ? 'Fora da comparação corrente; o histórico continua disponível.' : 'Fica fora da comparação até alguém da gestão conferir a transcrição.' }),
+    el('details', { class: 'proposal-details' }, [el('summary', { text: 'Ver todas as condições transcritas' }), definitionList(PRODUCTS[rfq.product].proposalFields.filter((spec) => spec.key !== 'institution'), row.terms || {}, { showMissing: true, currency: row.currency ?? null })]),
     history,
     actions.length ? el('div', { class: 'row-actions' }, actions) : null
   ]);
@@ -163,7 +170,8 @@ function editor(ctx, rfq, { record = null, onSaved }) {
   const reference = el('input', { name: 'source_reference', type: 'text', maxlength: '500', required: true, placeholder: 'Ex.: e-mail do gerente de 12/10, assunto "Proposta capital de giro"' });
   reference.value = record?.source_reference || '';
   const currency = el('select', { name: 'currency' }, [el('option', { value: '', text: 'Não declarada no material' }), el('option', { value: 'BRL', text: 'Real (BRL)' }), el('option', { value: 'USD', text: 'Dólar (USD)' }), el('option', { value: 'EUR', text: 'Euro (EUR)' })]);
-  currency.value = record ? (record.currency || '') : 'BRL';
+  // Registro novo não presume real: a moeda vem do material ou fica não declarada.
+  currency.value = record?.currency || '';
   const documentSelect = el('select', { name: 'document' }, el('option', { value: '', text: 'Sem documento vinculado' }));
   const documentHint = el('span', { class: 'muted small', text: 'Carregando documentos internos da solicitação…' });
   ctx.api(`private-documents?organization_id=${encodeURIComponent(ctx.organization.id)}&entity_type=rfq&entity_id=${encodeURIComponent(rfq.id)}`).then(({ rows = [] }) => {
@@ -174,7 +182,9 @@ function editor(ctx, rfq, { record = null, onSaved }) {
   }).catch(() => { documentHint.textContent = 'Não foi possível listar documentos. Você pode registrar sem anexo.'; });
   const termControls = specs.map((spec) => {
     const control = catalogControl(spec, record?.terms?.[spec.key] ?? null);
-    return { spec, control, node: field({ label: spec.label, control, optionalLabel: true }) };
+    // Sem leitura "= R$ …": o valor está na moeda declarada, que pode não ser real.
+    delete control.dataset.readout;
+    return { spec, control, node: field({ label: spec.label.replace('(R$)', '(na moeda do material)'), control, optionalLabel: true }) };
   });
   const reason = el('textarea', { name: 'correction_reason', rows: '2', maxlength: '1000', minlength: '10' });
   const formError = el('p', { class: 'field-error', role: 'alert', hidden: true });
@@ -234,7 +244,7 @@ function editor(ctx, rfq, { record = null, onSaved }) {
         reference: payload.source_reference, document: documentId ? documentSelect.selectedOptions[0]?.text : 'Nenhum (não há anexo)'
       }),
       el('p', { class: 'small', text: `${plural(filled, 'condição informada', 'condições informadas')}; as demais ficam como não informadas.` }),
-      keyTerms(rfq.product, terms),
+      keyTerms(rfq.product, terms, { currency: payload.currency }),
       record ? el('p', { class: 'small' }, [el('strong', { text: 'Motivo: ' }), payload.correction_reason]) : null,
       el('p', { class: 'muted small', text: 'Depois de gravada, a versão fica aguardando conferência por alguém da gestão antes de entrar na comparação.' }),
       formError
@@ -249,6 +259,12 @@ function editor(ctx, rfq, { record = null, onSaved }) {
       const result = await ctx.api(record ? 'external-proposals/versions' : 'external-proposals', { method: 'POST', body: JSON.stringify(payload) });
       toast(result.replayed ? 'Este registro já havia sido gravado; nada foi duplicado.' : `Versão ${result.version} gravada. Aguardando conferência.`);
       sheet.close();
+      // Quem pode conferir segue direto para a conferência desta versão: são
+      // duas declarações distintas, gravadas em dois passos confirmados.
+      if (!result.replayed && REVIEW_ROLES.includes(ctx.viewer?.role)) {
+        review(ctx, { id: result.id, current_version: result.version, provider_name: provider.selectedOptions[0]?.text, document_id: payload.document_id }, 'confirm', onSaved);
+        return;
+      }
       onSaved?.();
     } catch (error) {
       fail(explain(error));
@@ -258,35 +274,45 @@ function editor(ctx, rfq, { record = null, onSaved }) {
   });
 }
 
-async function review(ctx, row, action, reload) {
+// Conferência/retirada em painel próprio: erro de validação ou 409 mantém o que
+// foi digitado; nada é enviado antes das declarações completas.
+function review(ctx, row, action, reload) {
   const confirm = action === 'confirm';
   const hasDocument = Boolean(row.document_id);
   const reason = el('textarea', { rows: '3', maxlength: '1000', id: 'external-review-reason' });
   const material = el('input', { type: 'checkbox', id: 'external-material' });
   const documentRead = el('input', { type: 'checkbox', id: 'external-document-read' });
-  const error = el('p', { class: 'field-error', role: 'alert', hidden: true });
-  const body = el('div', { class: 'stack' }, [
+  const error = el('p', { class: 'field-error', role: 'alert', hidden: true, tabindex: '-1' });
+  const submit = button(confirm ? 'Confirmar conferência' : 'Retirar', { variant: confirm ? 'primary' : 'danger', type: 'submit', iconName: confirm ? 'checkCircle' : 'x' });
+  const form = el('form', { class: 'stack', id: 'external-review-form', novalidate: true }, [
     el('p', { class: 'small', text: confirm
       ? `Você confirma que a versão ${row.current_version} corresponde ao material recebido de ${row.provider_name || 'a instituição'}. Isso não valida as condições, não é aprovação de crédito e não indica aceite da instituição.`
       : 'A proposta sai da comparação corrente. Versões e conferências anteriores continuam no histórico.' }),
     field({ label: confirm ? 'Como conferiu' : 'Motivo da retirada', control: reason, required: true, hint: 'Entre 10 e 1000 caracteres.' }),
     el('label', { class: 'check-row' }, [material, el('span', { text: 'Li o material recebido para esta conferência.' })]),
     hasDocument ? el('label', { class: 'check-row' }, [documentRead, el('span', { text: 'Li o documento vinculado.' })]) : el('p', { class: 'muted small', text: 'Não há documento vinculado a esta versão.' }),
-    error
+    error, el('div', { class: 'form-actions' }, submit)
   ]);
-  const ok = await confirmDialog({ title: confirm ? 'Conferir transcrição' : 'Retirar da análise', body, confirmLabel: confirm ? 'Confirmar conferência' : 'Retirar', tone: confirm ? 'primary' : 'danger' });
-  if (!ok) return;
-  const text = reason.value.trim();
-  if (text.length < 10 || !material.checked || (confirm && hasDocument && !documentRead.checked)) {
-    toast(text.length < 10 ? 'Informe uma justificativa com pelo menos 10 caracteres. Nada foi registrado.' : 'Marque as declarações de leitura para registrar. Nada foi registrado.', 'error');
-    return;
-  }
-  try {
-    await ctx.api(`external-proposals/${action}`, { method: 'POST', body: JSON.stringify({ id: row.id, expected_version: row.current_version, reason: text, material_reviewed: true, document_read: hasDocument && documentRead.checked }) });
-    toast(confirm ? 'Conferência registrada. A proposta entra na comparação como fonte externa.' : 'Proposta retirada da análise. O histórico foi preservado.');
-  } catch (failure) {
-    toast(explain(failure), 'error');
-  }
-  reload();
+  const sheet = drawer({ title: confirm ? 'Conferir transcrição' : 'Retirar da análise', subtitle: row.provider_name || null, body: form, onClose: reload });
+  const fail = (text) => { error.textContent = text; error.hidden = false; error.focus(); };
+  onSubmit(form, async (event) => {
+    event.preventDefault();
+    error.hidden = true;
+    const text = reason.value.trim();
+    if (text.length < 10) { reason.closest('.field').setError('Escreva pelo menos 10 caracteres.'); reason.focus(); return; }
+    reason.closest('.field').setError('');
+    if (!material.checked || (confirm && hasDocument && !documentRead.checked)) return fail('Marque as declarações de leitura. Nada foi registrado.');
+    submit.disabled = true;
+    try {
+      await ctx.api(`external-proposals/${action}`, { method: 'POST', body: JSON.stringify({ id: row.id, expected_version: row.current_version, reason: text, material_reviewed: true, document_read: hasDocument && documentRead.checked }) });
+      toast(confirm ? 'Conferência registrada. A proposta entra na comparação como fonte externa.' : 'Proposta retirada da análise. O histórico foi preservado.');
+      sheet.close();
+    } catch (failure) {
+      fail(explain(failure));
+      // Conflito: a versão mudou. Não reenvia; a pessoa fecha e relê.
+      submit.disabled = ['external_proposal_conflict', 'external_proposal_state'].includes(failure?.code);
+    }
+  });
+  return sheet;
 }
 

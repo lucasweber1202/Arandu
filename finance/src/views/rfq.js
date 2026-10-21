@@ -376,10 +376,16 @@ function comparisonTab(ctx, rfq, decision = null) {
   const proposals = rfq.proposals || [];
   const wrap = el('div', { class: 'stack' });
   const matrix = el('div', {}, loading('Carregando comparação…'));
+  const weightsSlot = el('div');
   const fetchComparison = async (weights = {}) => ctx.api('comparison', { method: 'POST', body: JSON.stringify({ rfq_id: rfq.id, weights }) });
   const load = () => {
     matrix.replaceChildren(loading('Carregando comparação…'));
-    fetchComparison().then(({ comparison }) => matrix.replaceChildren(comparisonMatrix(rfq, proposals, { model: comparison })))
+    fetchComparison().then(({ comparison }) => {
+      matrix.replaceChildren(comparisonMatrix(rfq, proposals, { model: comparison }));
+      // Com propostas externas conferidas, o servidor pode comparar mais colunas
+      // que as do portal: os pesos (mesmo motor, via servidor) ficam disponíveis.
+      if (proposals.length <= 1 && (comparison?.columns?.length || 0) > 1 && !weightsSlot.childElementCount) weightsSlot.append(panel());
+    })
       .catch(() => matrix.replaceChildren(errorState({ title: 'Comparação indisponível', error: 'As condições não puderam ser consultadas. Tente novamente.', onRetry: load })));
   };
   if (ctx.mode === 'demo') matrix.replaceChildren(comparisonMatrix(rfq, proposals));
@@ -395,10 +401,12 @@ function comparisonTab(ctx, rfq, decision = null) {
   wrap.append(matrix);
   // Processo já decidido: a conta abre com os pesos que a empresa registrou na decisão.
   const recorded = ctx.weights[rfq.id] ? null : decision?.criteria?.weights;
-  if (proposals.length > 1) wrap.append(weightsPanel(rfq, proposals, { initial: ctx.weights[rfq.id] || recorded,
+  const panel = () => weightsPanel(rfq, proposals, { initial: ctx.weights[rfq.id] || recorded,
     initialNote: recorded && Object.keys(recorded).length ? 'Pesos registrados na decisão desta solicitação.' : null,
     onApplied: (weights) => { ctx.weights[rfq.id] = weights; },
-    calculate: ctx.mode === 'demo' ? null : async weights => (await fetchComparison(weights)).weighted }));
+    calculate: ctx.mode === 'demo' ? null : async weights => (await fetchComparison(weights)).weighted });
+  if (proposals.length > 1) wrap.append(panel());
+  else wrap.append(weightsSlot);
   if (proposals.length) {
     ctx.api('signals', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, event: 'comparison_viewed', entity_type: 'rfq', entity_id: rfq.id }) }).catch(() => {});
     wrap.append(el('div', { class: 'row-actions' }, [button('Exportar processo (JSON)', { size: 'sm', iconName: 'download', attrs: { id: 'export-rfq' }, onClick: () => exportProcess(ctx, rfq) }),
