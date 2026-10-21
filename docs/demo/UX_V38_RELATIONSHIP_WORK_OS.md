@@ -88,22 +88,32 @@ Mesma API simulada nas duas builds (`main@d321901` = antes; branch = depois),
 1440 px e Pixel 7:
 `instituicoes-*`, `propostas-externas-*` (USD: R$ → US$) e `comparacao-*`.
 
-## Testes
-- `npm run check:all`: PASS. `npm run build`: PASS. `check:build-size`: PASS.
-  A rota `rfq` tem 245.860 / 250.000 bytes; na `main` são 245.750 e o aviso de 98%
-  já existe.
-- E2E chromium-desktop + Pixel 7 (`finance-*`, `presentation-journeys`, `demo-*`):
-  524 passed, 26 skipped, 50 failed.
-- As 50 falhas ficam em `demo-work-os-v3.spec.js` e `demo-workspace-v2.spec.js`. Elas
-  se reproduzem **idênticas na `main@d321901` limpa** (50 failed, mesma asserção
-  `toHaveAttribute`) e são do sandbox `/demo` (ambiente local). Esta branch não
-  toca esses arquivos.
-- Testes ajustados:
-  - `finance-contracts.spec.js`: dois cenários passam a declarar o aviso prévio
-    (antes dependiam do 60 implícito).
-  - `finance-external-proposals.spec.js`: o rótulo "Valor ofertado (R$)" virou
-    "(na moeda do material)".
-  - Nenhuma asserção foi removida.
+## Testes (executor cloud, Chromium desktop + Pixel 7)
+Firefox, WebKit e mobile-safari não estão instalados neste container; o CI roda os
+cinco motores.
+- `npm ci --include=optional`: PASS.
+- PASS: `check:all`, `build`, `check:design`, `check:security`, `check:governance`,
+  `check:vercel-routing`.
+- `check:build-size`: PASS. A rota `rfq` tem 245.860 / 250.000 bytes; na `main`
+  são 245.750 e o aviso de 98% já existe.
+- `test:e2e:finance` (23 specs, incluindo `finance-external-proposals` e
+  `finance-relationship-center`): 530 passed, 10 skipped, 0 failed.
+- `test:e2e:presentation` (build com `ARANDU_PRESENTATION_MODE=true`): 136 passed,
+  20 skipped, 0 failed.
+- `test:e2e:demo`: **não executado**. Exige stack local Supabase com o seed
+  canônico (estação), indisponível no executor cloud.
+- **Correção de relatório anterior:** as 50 falhas de `demo-work-os-v3` e
+  `demo-workspace-v2` vinham de rodá-los na config padrão, sem o build de
+  apresentação. Na suíte correta passam. Não eram falhas da `main`.
+- Teste ajustado por causa do layout:
+  - `demo-workspace.spec.js` clicava por coordenada numa linha que a Central
+    empurrou para fora da janela;
+  - agora rola até a linha antes de medir, com as mesmas asserções.
+- Outros ajustes:
+  - `finance-contracts.spec.js`: dois cenários declaram o aviso prévio;
+  - `finance-external-proposals.spec.js`: rótulo "(na moeda do material)" e
+    seletor da lista de condições.
+- Nenhuma asserção removida.
 
 ## Limitações e handoff para Codex/backend
 1. **Aviso prévio declarado × default**: `fin_contracts.renewal_notice_days` é
@@ -111,9 +121,21 @@ Mesma API simulada nas duas builds (`main@d321901` = antes; branch = depois),
    declaração. Contrato sugerido: coluna anulável ou `renewal_notice_source`
    (`declared|internal_milestone|unknown`), para a fila dizer "aviso prévio
    desconhecido".
-2. **Recusa de convite pelo portal**: não há endpoint. Nenhuma ação foi exibida.
-   Contrato esperado: `POST invites/decline {token|invite_id, reason}` auditável,
-   idempotente, sem expor a outros provedores.
+2. **Recusa de convite pelo portal**: não há endpoint. O schema aceita
+   `status='declined'`, mas não existe RPC de transição. Nenhuma ação foi exibida.
+   Para implementar:
+   - RPC `fin_decline_invite(p_invite, p_reason)`, security definer, com:
+     - membership `provider_user` da organização convidada;
+     - lock do convite;
+     - transição só de `invited|accepted` sem proposta enviada;
+     - idempotência (repetir devolve o mesmo resultado);
+     - evento de auditoria;
+     - erros sanitizados.
+   - Endpoint `POST invites/decline` autenticado, nunca por link anônimo.
+   - Migration aditiva com rollback, manifesto, testes SQL negativos (outra
+     instituição, convite revogado, concorrência com envio) e E2E.
+   - Adiado nesta rodada porque muda o conjunto de migrations aplicado pela estação
+     antes de 29/10 (risco ao P0-B).
 3. **Responsável interno do relacionamento**: só existe `owner_id` por contrato e
    solicitação. Não há dono por instituição; a ausência é mostrada.
 4. A fila usa o recorte de `overview` (200 contratos/solicitações, 100 tarefas
@@ -121,3 +143,8 @@ Mesma API simulada nas duas builds (`main@d321901` = antes; branch = depois),
    carteiras maiores.
 5. Seed da Demo canônica: sem cenário de proposta externa nem de contrato em janela
    de renovação para a apresentação. Entrar via `scripts/demo/seed.mjs` após a migration.
+
+## Política de deployments
+Ver `docs/VERCEL_PREVIEW_POLICY.md`: `"**": false` só deixa a `main` publicar
+automaticamente. A efetividade será registrada pelo comportamento real observado no
+primeiro push. Nenhuma economia é alegada antes disso.
