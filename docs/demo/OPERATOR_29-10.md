@@ -124,6 +124,7 @@ Modo interativo NÃO PRONTO e leitura PRONTO → apresente só o Modo leitura.
 - CFO, leitor e instituições: "Trocar persona" **na mesma janela**. Não abre workspace novo, mas cada troca é 1 das 12 entradas da janela de 10 min.
 - Cada janela anônima nova = um visitante novo (workspace próprio, 1 das 4 da hora).
 - Não recarregue telas em sequência; não repita cliques que gravam.
+- Orçamentos medidos no código em 21/10 (`lib/api/domains/auth.mjs`, `lib/finance/demo-workspaces.mjs`): lista de personas 30/10 min por rede; entradas 12/10 min por rede; 20 logins por conta/h; 4 workspaces novos por hora por rede; 25 ativos. Ensaio automatizado que grava dados termina **antes** da janela final.
 
 ## Se algo falhar
 
@@ -138,6 +139,7 @@ terminal** (só lê; ≈ 30 s; não consome entradas nem cota da API).
 | D. Auth indisponível | Tela: "O serviço de contas está indisponível… Sua sessão foi mantida" (503) | `station --fast`: Auth/Banco | Espere; `resume` se o contêiner parou. A sessão volta sozinha (medido) | próxima tela carrega | 503 por mais de 2 min | Entrar de novo repetidamente (cada entrada gasta 1 de 12/10 min) |
 | E. Pool sem workspace | "A demonstração está cheia" | `station`: Pool | Siga nas janelas já abertas (Trocar persona) | há janela aberta | nenhuma janela aberta → Modo leitura | Provisionar durante a reunião (≈ 11 min e ocupa o banco) |
 | F. Rate limit | "Muitas requisições…" ou "Muitas entradas…" (429, com tempo) | É o limite real (240 chamadas/pessoa ou 12 entradas/rede em 10 min) | Troque de persona (chamadas) ou espere o tempo da tela (entradas); mostre a tela atual | a espera acaba | 429 duas vezes seguidas → Modo leitura | Reiniciar o app para zerar o limite; desligar a proteção |
+| F2. Escolha de persona some do login | Login mostra "Muitas entradas em pouco tempo a partir desta rede. Tente de novo em N minutos" no lugar das personas | Limite da lista de personas: 30 consultas/10 min por rede (medido em 21/10 após ensaios seguidos) | Espere o tempo da tela; quem já está num workspace segue com "Trocar persona" | a espera acaba | sem janela aberta e sem tempo → Modo leitura | Recarregar o login em sequência; abrir janelas novas para "tentar de novo" |
 | G. Documento não abre | Download falha | Link vale 60 s | Feche e clique no documento de novo (1 vez) | abre | falha de novo → siga sem o documento | Abrir o arquivo pelo Storage ou por outra conta |
 | H. Navegador travado | Aba não responde | — | Feche só a aba e reabra na **mesma** janela anônima | volta ao workspace | janela fechada = visitante novo (1 de 4/h) | Abrir várias janelas novas |
 | I. Escrita sem confirmação | "Não confirmamos…" / "O servidor não confirmou a operação" | A operação pode ter sido gravada | "Conferir com o servidor" ou recarregue e confira a lista | o registro aparece uma vez | duplicidade aparente → pare a escrita, Modo leitura | Repetir o clique |
