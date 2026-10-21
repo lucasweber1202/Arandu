@@ -106,3 +106,29 @@ test('leitor vê a fila sem ação de registro', async ({ page }) => {
   await expect(page.locator('#relationship-center .rel-item').first()).toBeVisible();
   await expect(page.getByRole('button', { name: 'Registrar contrato existente' })).toHaveCount(0);
 });
+
+test('workspace da instituição separa término, marco de aviso prévio e tarefa operacional', async ({ page }) => {
+  await setup(page);
+  await page.route('**/api/finance/provider-relationship**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+    ok: true, provider: { id: P_ATLAS, name: 'Atlas Bank' }, neutrality: 'Fatos do histórico da empresa.', contracts: OVERVIEW.contracts.filter((row) => row.provider_id === P_ATLAS),
+    facilities: [], rfqs: [], invites: [], proposals: [], balances: [], contacts: [], issues: [], relationships: [], map: [], timeline: [], reviews: [], templates: [],
+    metrics: { invited: 0, responded: 0, response_rate: null, median_response_days: null, active_contracts: 3, open_issues: 0, median_resolution_days: null, definitions: {} } }) }));
+  await page.goto(`/finance/providers.html?provider_id=${P_ATLAS}`);
+  const attention = page.getByRole('dialog', { name: 'Atlas Bank' }).locator('.rel-attention');
+  await expect(attention).toContainText(/Decidir renovação até .*: Capital de giro 2025/);
+  await expect(attention).toContainText('60 dias registrados no cadastro; confira no documento');
+  await expect(attention).toContainText(/Término contratual em/);
+  await expect(attention).toContainText('Tarefa: Revisar renovação');
+  await expect(attention).toContainText('responsável não definido');
+  await expect(attention.getByRole('link', { name: 'Abrir tarefas' })).toBeVisible();
+});
+
+test('workspace da instituição sem contrato vigente oferece registrar o existente', async ({ page }) => {
+  await setup(page);
+  await page.route('**/api/finance/provider-relationship**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+    ok: true, provider: { id: P_NOVO, name: 'Banco Novo' }, neutrality: 'Fatos.', contracts: [], facilities: [], rfqs: [], invites: [], proposals: [], balances: [], contacts: [], issues: [], relationships: [], map: [], timeline: [], reviews: [], templates: [],
+    metrics: { invited: 0, responded: 0, response_rate: null, median_response_days: null, active_contracts: 0, open_issues: 0, median_resolution_days: null, definitions: {} } }) }));
+  await page.goto(`/finance/providers.html?provider_id=${P_NOVO}`);
+  await page.getByRole('dialog', { name: 'Banco Novo' }).locator('.rel-start').getByRole('button', { name: 'Registrar contrato existente' }).click();
+  await expect(page.locator('#contract-import-form').getByLabel(/^Instituição financeira/)).toHaveValue(P_NOVO);
+});
