@@ -1356,3 +1356,4 @@ textarea.mono{width:100%;max-width:100%;min-width:0}
 .rel-item-actions{display:flex;flex-direction:column;align-items:flex-end;gap:var(--s2)}
 .rel-missing-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--s2);padding:var(--s2) 0;border-bottom:1px solid var(--border)}
 @media (max-width:640px){.rel-item{grid-template-columns:minmax(0,1fr)}.rel-item-actions{flex-direction:row;flex-wrap:wrap;align-items:center}}
+.opportunity-pending{margin:var(--s1) 0 0}

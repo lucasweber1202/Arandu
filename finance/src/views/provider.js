@@ -20,17 +20,36 @@ function assignmentState(row) {
   if (!row.version) return { key: 'todo', label: row.has_draft ? 'Rascunho salvo' : 'Responder', tone: 'accent', icon: 'edit' };
   return { key: 'sent', label: `Enviada · v${row.version}`, tone: 'success', icon: 'send' };
 }
+// Pendências da própria proposta, a partir dos termos da versão enviada:
+// condições obrigatórias em branco e validade. Nada da empresa ou de concorrentes.
+export function proposalPending(row) {
+  const fields = PRODUCTS[row.product]?.proposalFields || [];
+  const terms = row.terms || {};
+  const blank = (value) => value === null || value === undefined || value === '';
+  const missing = row.version ? fields.filter((spec) => spec.required && spec.key !== 'institution' && blank(terms[spec.key])).map((spec) => spec.label.replace(/\s*\(.*\)$/, '')) : [];
+  const live = [...OPEN, 'comparing'].includes(row.rfq_status);
+  const days = row.version && terms.valid_until ? daysUntil(terms.valid_until) : null;
+  const validity = !row.version || !live ? null
+    : !terms.valid_until ? { tone: 'neutral', text: 'Validade da sua proposta não informada' }
+      : days < 0 ? { tone: 'danger', text: `Validade da sua proposta venceu em ${formatDate(terms.valid_until)}` }
+        : days <= 5 ? { tone: 'warning', text: `Sua proposta vale até ${formatDate(terms.valid_until)} (${relativeDays(terms.valid_until)})` }
+          : { tone: 'neutral', text: `Sua proposta vale até ${formatDate(terms.valid_until)}` };
+  return { missing, validity, expiring: Boolean(validity && validity.tone !== 'neutral') };
+}
 function proposalHref(ctx, row) { return ctx.href(`/provider/proposal.html?proposal=${encodeURIComponent(row.proposal_id)}`); }
 
 function opportunityRow(ctx, row) {
   const state = assignmentState(row);
+  const pending = proposalPending(row);
   const days = daysUntil(row.response_deadline);
   const cta = { todo: row.has_draft ? 'Continuar' : 'Responder', outdated: 'Revisar proposta', sent: row.rfq_status === 'comparing' ? 'Ver' : 'Ver ou revisar', closed: 'Ver' }[state.key];
   return el('article', { class: `opportunity state-${state.key}`, id: `rfq-${row.rfq_id}` }, [
     el('div', { class: 'opportunity-main' }, [
       el('p', { class: 'opportunity-kicker', text: [row.buyer_name, productLabel(row.product, { short: true })].filter(Boolean).join(' · ') }),
       el('h2', { class: 'opportunity-title' }, el('a', { class: 'stretched', href: proposalHref(ctx, row), text: row.title })),
-      el('p', { class: 'opportunity-meta', text: `${demandHeadline({ product: row.product, demand: row.demand })} · revisão ${row.rfq_revision || 1}` })
+      el('p', { class: 'opportunity-meta', text: `${demandHeadline({ product: row.product, demand: row.demand })} · revisão ${row.rfq_revision || 1}${OPEN.includes(row.rfq_status) ? ` · ${row.response_deadline ? `prazo ${formatDate(row.response_deadline)}` : 'sem prazo definido'}` : ''}` }),
+      pending.missing.length ? el('p', { class: 'opportunity-pending warn-text small', text: `${pending.missing.length === 1 ? 'Condição obrigatória não informada' : 'Condições obrigatórias não informadas'} na versão enviada: ${pending.missing.join(', ')}` }) : null,
+      pending.validity ? el('p', { class: `opportunity-pending small${pending.validity.tone === 'neutral' ? ' muted' : ' warn-text'}`, text: pending.validity.text }) : null
     ]),
     el('div', { class: 'opportunity-side' }, [
       pill(state, { size: 'sm' }),
@@ -80,6 +99,10 @@ export async function providerHome(ctx) {
       text: state.key === 'outdated' ? `A empresa publicou a revisão ${next.rfq_revision}. Sua proposta responde à revisão ${next.submitted_rfq_revision}.`
         : [next.buyer_name, `${next.buyer_name ? 'prazo' : 'Prazo'} ${relativeDays(next.response_deadline) || 'não definido'}`, next.has_draft ? 'rascunho salvo' : null].filter(Boolean).join(' · '),
       action: linkButton(state.key === 'outdated' ? 'Revisar proposta' : next.has_draft ? 'Continuar resposta' : 'Responder agora', proposalHref(ctx, next), { variant: 'primary', iconName: 'arrowRight' }) };
+  } else if (rows.some((row) => OPEN.includes(row.rfq_status) && proposalPending(row).expiring)) {
+    const next = rows.filter((row) => OPEN.includes(row.rfq_status) && proposalPending(row).expiring).sort((a, b) => String(a.terms?.valid_until).localeCompare(String(b.terms?.valid_until)))[0];
+    hero = { title: `Confira a validade da sua proposta: ${next.title}`, text: `${proposalPending(next).validity.text}. A coleta ainda está aberta: você pode enviar uma nova versão.`,
+      action: linkButton('Ver ou revisar proposta', proposalHref(ctx, next), { variant: 'primary', iconName: 'arrowRight' }) };
   } else {
     hero = { title: rows.length ? 'Nada pendente agora' : 'Nenhuma oportunidade ainda', text: rows.length ? 'Suas propostas foram enviadas. Você será avisado se a empresa revisar a solicitação ou comentar.' : 'Quando uma empresa convidar a sua instituição, a oportunidade aparece aqui.', action: null };
   }
