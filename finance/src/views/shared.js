@@ -57,8 +57,7 @@ function definitionTip(key) {
 
 function comparisonValue(field, value, currency) {
   if (value === null || value === undefined) return null;
-  if (field.type !== 'money') return fieldValue(field, value);
-  return currency ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency }).format(value) : `${new Intl.NumberFormat('pt-BR').format(value)} (moeda não identificada)`;
+  return fieldValue(field, value, { currency });
 }
 function valueCell(field, value, best, currency = 'BRL') {
   const formatted = comparisonValue(field, value, currency);
@@ -151,10 +150,12 @@ export function comparisonMatrix(rfq, proposals, { currentRevision = rfq.revisio
     const column = data.columns[index];
     const version = historical.has(index) ? column.previous_version : column.provenance;
     return el('details', { class: 'comparison-evidence' }, [el('summary', { text: 'Origem e contexto' }),
-      el('p', { text: `Origem: ${version?.submitted_at ? 'proposta enviada pelo provedor' : 'não disponível'}. Versão: ${version?.version ?? 'não informada'}. Envio: ${version?.submitted_at ? new Date(version.submitted_at).toLocaleString('pt-BR', { dateStyle: 'medium', timeStyle: 'short' }) : 'não informado'}. Autor: não disponível. Verificação: não verificado. Documento: sem vínculo de evidência por campo.` }),
+      el('p', { text: version?.source === 'buyer_recorded_external'
+        ? `Origem: transcrição registrada pela empresa a partir de material externo (não é envio da instituição). Versão: ${version.version ?? 'não informada'}. Registro: ${version.recorded_at ? formatDateTime(version.recorded_at) : 'não informado'}. Recebimento: ${version.received_at ? formatDateTime(version.received_at) : 'não informado'}. Conferência: correspondência da transcrição${version.reviewed_at ? ` em ${formatDateTime(version.reviewed_at)}` : ''}; não é validação nem aceite da instituição. Documento: ${version.document ? (version.document.availability === 'metadata_available' ? 'documento interno vinculado' : 'documento vinculado indisponível') : 'nenhum'}.`
+        : `Origem: ${version?.submitted_at ? 'proposta enviada pelo provedor' : 'não disponível'}. Versão: ${version?.version ?? 'não informada'}. Envio: ${version?.submitted_at ? new Date(version.submitted_at).toLocaleString('pt-BR', { dateStyle: 'medium', timeStyle: 'short' }) : 'não informado'}. Autor: não disponível. Verificação: não verificado. Documento: sem vínculo de evidência por campo.` }),
       el('p', { text: `Metodologia: condição declarada; sem cálculo pelo Arandu. ${DEFINITIONS[row.key] || ''}` }),
       ...row.context_reasons.map(text => el('p', { text })),
-      !historical.has(index) && column.changed_keys.includes(row.key) ? el('p', { text: `Versão anterior: ${fieldValue(byKey[row.key], row.previous_values[index]) ?? 'não informado'}.` }) : null
+      !historical.has(index) && column.changed_keys.includes(row.key) ? el('p', { text: `Versão anterior: ${comparisonValue(byKey[row.key], row.previous_values[index], column.currency) ?? 'não informado'}.` }) : null
     ].filter(Boolean));
   };
   function draw() {
@@ -685,7 +686,7 @@ export function lazyDocuments(ctx, entityType, entityId, label, options = {}) {
 }
 
 // Condições-chave da proposta (crédito ou adquirência), com unidade junto do valor.
-export function keyTerms(product, terms) {
+export function keyTerms(product, terms, money = {}) {
   const keys = product === 'credit' ? ['offered_amount', 'interest_rate_month', 'cet_year', 'term_months', 'grace_months']
     : ['mdr_debit', 'mdr_credit_cash', 'mdr_credit_installment', 'pix_fee', 'anticipation_rate', 'settlement_days'];
   const specs = Object.fromEntries(PRODUCTS[product].proposalFields.map((spec) => [spec.key, spec]));
@@ -693,7 +694,7 @@ export function keyTerms(product, terms) {
     // O rótulo curto perde a unidade do parênteses; ela volta junto do valor.
     const unit = (specs[key].label.match(/\(([^)]*)\)$/) || [])[1] || '';
     const suffix = { meses: ' meses', dias: ' dias', '% a.m.': ' a.m.', '% a.a.': ' a.a.' }[unit] || '';
-    const raw = fieldValue(specs[key], terms?.[key]);
+    const raw = fieldValue(specs[key], terms?.[key], money);
     const value = raw === null ? null : `${raw}${suffix}`;
     return el('div', { class: 'key-term' }, [el('dt', { text: specs[key].label.replace(/\s*\(.*\)$/, '') }), el('dd', { class: value === null ? 'missing' : '', text: value ?? '—' })]);
   }));

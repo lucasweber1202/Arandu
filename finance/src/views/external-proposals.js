@@ -102,8 +102,7 @@ function externalCard(ctx, rfq, row, { canWrite, canReview, reload }) {
       el('div', { class: 'proposal-badges' }, [tag('Fonte externa'), pill(state, { size: 'sm' }), row.rfq_revision_matches === false ? tag(`Revisão ${row.rfq_revision} da solicitação`, 'warning') : null])
     ]),
     el('p', { class: 'muted small' }, [el('strong', { text: 'Referência: ' }), row.source_reference || 'não informada']),
-    keyTerms(rfq.product, row.terms || {}),
-    row.currency ? null : el('p', { class: 'muted small', text: 'O símbolo R$ acima é só o formato do cadastro: a moeda não foi declarada no material e nada foi convertido.' }),
+    keyTerms(rfq.product, row.terms || {}, { currency: row.currency ?? null }),
     el('div', { class: 'proposal-foot' }, [
       el('span', { class: 'coverage-inline' }, [el('span', { class: 'coverage-bar' }, el('span', { class: 'coverage-fill', style: `width:${Math.round(cov.ratio * 100)}%` })), el('span', { text: `${cov.filled} de ${cov.total} condições comparáveis informadas` })]),
       el('span', { class: 'muted small', text: row.currency ? `Moeda declarada ${row.currency}` : 'Moeda não declarada: não é convertida nem tratada como real' })
@@ -112,7 +111,7 @@ function externalCard(ctx, rfq, row, { canWrite, canReview, reload }) {
     row.state === 'reviewed' ? el('p', { class: 'muted small', text: `Conferida por ${memberName(ctx.members, row.reviewed_by)}${row.reviewed_at ? ` em ${formatDateTime(row.reviewed_at)}` : ''}. Entra na comparação como fonte externa; não pode ser escolhida nem contratada por aqui.` })
       : row.state === 'withdrawn' ? null
         : el('p', { class: 'muted small', text: 'Fica fora da comparação até alguém da gestão conferir a transcrição.' }),
-    el('details', { class: 'proposal-details' }, [el('summary', { text: 'Ver todas as condições transcritas' }), definitionList(PRODUCTS[rfq.product].proposalFields.filter((spec) => spec.key !== 'institution'), row.terms || {}, { showMissing: true })]),
+    el('details', { class: 'proposal-details' }, [el('summary', { text: 'Ver todas as condições transcritas' }), definitionList(PRODUCTS[rfq.product].proposalFields.filter((spec) => spec.key !== 'institution'), row.terms || {}, { showMissing: true, currency: row.currency ?? null })]),
     history,
     actions.length ? el('div', { class: 'row-actions' }, actions) : null
   ]);
@@ -163,7 +162,8 @@ function editor(ctx, rfq, { record = null, onSaved }) {
   const reference = el('input', { name: 'source_reference', type: 'text', maxlength: '500', required: true, placeholder: 'Ex.: e-mail do gerente de 12/10, assunto "Proposta capital de giro"' });
   reference.value = record?.source_reference || '';
   const currency = el('select', { name: 'currency' }, [el('option', { value: '', text: 'Não declarada no material' }), el('option', { value: 'BRL', text: 'Real (BRL)' }), el('option', { value: 'USD', text: 'Dólar (USD)' }), el('option', { value: 'EUR', text: 'Euro (EUR)' })]);
-  currency.value = record ? (record.currency || '') : 'BRL';
+  // Registro novo não presume real: a moeda vem do material ou fica não declarada.
+  currency.value = record?.currency || '';
   const documentSelect = el('select', { name: 'document' }, el('option', { value: '', text: 'Sem documento vinculado' }));
   const documentHint = el('span', { class: 'muted small', text: 'Carregando documentos internos da solicitação…' });
   ctx.api(`private-documents?organization_id=${encodeURIComponent(ctx.organization.id)}&entity_type=rfq&entity_id=${encodeURIComponent(rfq.id)}`).then(({ rows = [] }) => {
@@ -174,7 +174,9 @@ function editor(ctx, rfq, { record = null, onSaved }) {
   }).catch(() => { documentHint.textContent = 'Não foi possível listar documentos. Você pode registrar sem anexo.'; });
   const termControls = specs.map((spec) => {
     const control = catalogControl(spec, record?.terms?.[spec.key] ?? null);
-    return { spec, control, node: field({ label: spec.label, control, optionalLabel: true }) };
+    // Sem leitura "= R$ …": o valor está na moeda declarada, que pode não ser real.
+    delete control.dataset.readout;
+    return { spec, control, node: field({ label: spec.label.replace('(R$)', '(na moeda do material)'), control, optionalLabel: true }) };
   });
   const reason = el('textarea', { name: 'correction_reason', rows: '2', maxlength: '1000', minlength: '10' });
   const formError = el('p', { class: 'field-error', role: 'alert', hidden: true });
@@ -234,7 +236,7 @@ function editor(ctx, rfq, { record = null, onSaved }) {
         reference: payload.source_reference, document: documentId ? documentSelect.selectedOptions[0]?.text : 'Nenhum (não há anexo)'
       }),
       el('p', { class: 'small', text: `${plural(filled, 'condição informada', 'condições informadas')}; as demais ficam como não informadas.` }),
-      keyTerms(rfq.product, terms),
+      keyTerms(rfq.product, terms, { currency: payload.currency }),
       record ? el('p', { class: 'small' }, [el('strong', { text: 'Motivo: ' }), payload.correction_reason]) : null,
       el('p', { class: 'muted small', text: 'Depois de gravada, a versão fica aguardando conferência por alguém da gestão antes de entrar na comparação.' }),
       formError

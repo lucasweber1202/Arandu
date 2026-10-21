@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { EXTERNAL_PROPOSAL_NOTICE } from '../../lib/finance/external-proposals.mjs';
+import { EXTERNAL_PROPOSAL_NOTICE, externalComparisonProposal } from '../../lib/finance/external-proposals.mjs';
+import { buildComparison } from '../../lib/finance/comparison.mjs';
 // Propostas recebidas fora do portal (v3.7): a interface consome o contrato real
 // de external-proposals e nunca oferece escolher/contratar a proposta externa.
 const ORG = '00000000-0000-4000-8000-0000000000a1';
@@ -34,6 +35,7 @@ async function setup(page, { role = 'admin', list = 'ok', rows = [record()], con
     }
     if (path === 'external-proposals/confirm') return json({ ok: true, review_id: 'r1', notice: EXTERNAL_PROPOSAL_NOTICE });
     if (path === 'private-documents') return json({ ok: true, rows: [] });
+    if (path === 'comparison') return json({ ok: true, comparison: buildComparison('credit', rows.filter((row) => row.state === 'reviewed').map(externalComparisonProposal), rfq.demand, { revision: 1 }) });
     if (path === 'approval-policy') return json({ ok: true, required_for_decision: false });
     return json({ ok: true, rows: [] });
   });
@@ -50,10 +52,10 @@ test('registra transcrição com revisão prévia, sem moeda inventada e sem atr
   await sheet.getByLabel('Instituição').selectOption(P1);
   await sheet.getByLabel('Moeda declarada').selectOption('');
   await sheet.getByLabel('Referência do material').fill('E-mail do gerente, ref. DEMO-01');
-  await sheet.getByLabel('Valor ofertado (R$)').fill('400000');
+  await sheet.getByLabel('Valor ofertado (na moeda do material)').fill('400000');
   await sheet.getByRole('button', { name: 'Revisar antes de gravar' }).click();
   await expect(sheet.getByText(/não é proposta autenticada pela instituição/)).toBeVisible();
-  await expect(sheet.getByText('Não declarada')).toBeVisible();
+  await expect(sheet.getByText('Não declarada', { exact: true })).toBeVisible();
   await sheet.getByRole('button', { name: 'Gravar para conferência' }).click();
   await expect.poll(() => calls.find((c) => c.path === 'external-proposals' && c.method === 'POST')?.body).toMatchObject({
     rfq_id: RFQ, provider_id: P1, state: 'pending_review', channel: 'email', currency: null, received_at: null, document_id: null, terms: { offered_amount: 400000 }, rfq_revision: 1 });
@@ -122,4 +124,52 @@ test('schema incompatível e acesso negado não viram "nenhuma proposta"', async
   await open(page);
   await expect(page.getByText(/Seu papel não permite/)).toBeVisible();
   await expect(page.getByText('Nenhuma proposta externa registrada')).toHaveCount(0);
+});
+
+// Defeitos da auditoria #253: USD exibido como R$ e registro novo presumindo BRL.
+test('moeda declarada é respeitada: USD nunca vira R$ e ausente fica não declarada', async ({ page }) => {
+  await setup(page, { rows: [record({ currency: 'USD', terms: { offered_amount: 250000, interest_rate_month: 0.9 } }), record({ id: '00000000-0000-4000-8000-000000000803', currency: null, provider_name: 'Banco Sem Moeda' }), record({ id: '00000000-0000-4000-8000-000000000804', currency: 'EUR', provider_name: 'Banco Euro', terms: { offered_amount: 1000 } })] });
+  await open(page);
+  const usd = page.locator(`#external-${X1}`);
+  await expect(usd.locator('.key-terms')).toContainText('US$ 250.000');
+  await expect(usd.locator('.key-terms')).not.toContainText('R$');
+  await usd.getByText('Ver todas as condições transcritas').click();
+  await expect(usd.locator('.deflist')).toContainText('US$ 250.000');
+  await expect(usd.locator('.deflist')).not.toContainText('R$');
+  const unknown = page.locator('#external-00000000-0000-4000-8000-000000000803');
+  await expect(unknown.locator('.key-terms')).toContainText('400.000 (moeda não declarada)');
+  await expect(unknown.locator('.key-terms')).not.toContainText('R$');
+  await expect(page.locator('#external-00000000-0000-4000-8000-000000000804 .key-terms')).toContainText('€');
+});
+
+test('registro novo não presume real; correção preserva USD e revisão mostra a moeda', async ({ page }) => {
+  const calls = await setup(page, { rows: [record({ currency: 'USD' })] });
+  await open(page);
+  await page.getByRole('button', { name: 'Registrar proposta recebida' }).click();
+  await expect(page.getByRole('dialog').getByLabel('Moeda declarada')).toHaveValue('');
+  await expect(page.getByRole('dialog').getByText(/= R\$/)).toHaveCount(0);
+  await page.getByRole('dialog').getByRole('button', { name: 'Fechar painel' }).click();
+  await page.locator(`#external-${X1}`).getByRole('button', { name: 'Corrigir (nova versão)' }).click();
+  const sheet = page.getByRole('dialog');
+  await expect(sheet.getByLabel('Moeda declarada')).toHaveValue('USD');
+  await sheet.getByLabel('Motivo da correção').fill('Taxa transcrita com erro de digitação.');
+  await sheet.getByRole('button', { name: 'Revisar antes de gravar' }).click();
+  await expect(sheet.locator('#external-review .key-terms')).toContainText('US$ 400.000');
+  await expect(sheet.locator('#external-review .key-terms')).not.toContainText('R$');
+  await sheet.getByRole('button', { name: 'Gravar nova versão' }).click();
+  await expect.poll(() => calls.find((c) => c.path === 'external-proposals/versions')?.body.currency).toBe('USD');
+});
+
+test('comparação: coluna externa em USD sem R$, origem declarada e sem escolher vencedor', async ({ page }) => {
+  await setup(page, { rows: [record({ state: 'reviewed', currency: 'USD', reviewed_at: '2026-10-20T15:00:00Z' }), record({ id: '00000000-0000-4000-8000-000000000805', state: 'reviewed', currency: 'BRL', provider_name: 'Banco Real', terms: { offered_amount: 380000, interest_rate_month: 1.4 } })] });
+  await page.goto('about:blank');
+  await page.goto(`/finance/rfq.html?id=${RFQ}#comparacao`);
+  const table = page.locator('.comparison-wide table.matrix, .compare-mobile').first();
+  await expect(page.locator('.matrix-external').first()).toContainText('Fonte externa');
+  await expect(page.getByText('US$ 400.000').first()).toBeAttached();
+  await expect(page.getByText('R$ 380.000').first()).toBeAttached();
+  await expect(page.getByText(/transcrição registrada pela empresa/).first()).toBeAttached();
+  await expect(page.getByText(/Origem: não disponível/)).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /Escolher|Contratar|vencedor/i })).toHaveCount(0);
+  await expect(table).toBeAttached();
 });
