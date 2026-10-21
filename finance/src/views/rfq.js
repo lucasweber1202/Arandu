@@ -336,7 +336,7 @@ function proposalsTab(ctx, rfq) {
   const proposals = rfq.proposals || [];
   const wrap = el('div', { class: 'stack' });
   if (!proposals.length) {
-    wrap.append(emptyState({ title: 'Nenhuma proposta recebida', text: ['draft'].includes(rfq.status) ? 'Convide provedores e abra a solicitação para começar a receber propostas.' : 'Os provedores convidados ainda estão preparando as respostas.', iconName: 'inbox' }));
+    wrap.append(emptyState({ title: 'Nenhuma proposta pelo portal', text: ['draft'].includes(rfq.status) ? 'Convide provedores e abra a solicitação para começar a receber propostas.' : 'Os provedores convidados ainda estão preparando as respostas.', iconName: 'inbox' }));
   }
   for (const proposal of proposals) {
     const cov = coverage(rfq.product, proposal.terms);
@@ -360,6 +360,14 @@ function proposalsTab(ctx, rfq) {
   const waiting = (rfq.invites || []).filter((invite) => ['invited', 'accepted'].includes(invite.status) && !proposals.some((proposal) => proposal.provider_id === invite.provider_id));
   if (waiting.length) wrap.append(card({ title: 'Ainda sem resposta', headingLevel: 3, body: el('ul', { class: 'invite-list', role: 'list' }, waiting.map((invite) =>
     el('li', { class: 'invite-row' }, [person(invite.provider_name), el('span', { class: 'muted small', text: invite.status === 'accepted' ? 'aceitou o convite e está preparando' : 'ainda não aceitou o convite' })]))) }));
+  // Ofertas recebidas fora do portal ficam em seção própria: os contadores do
+  // portal não dizem nada sobre elas (contrato v3.7).
+  if (ctx.audience === 'company') {
+    const slot = el('div', {}, loading('Carregando propostas externas…'));
+    wrap.append(slot);
+    import('./external-proposals.js').then(({ externalProposalsSection }) => slot.replaceChildren(externalProposalsSection(ctx, rfq)))
+      .catch(() => slot.replaceChildren(errorState({ title: 'Propostas externas indisponíveis', error: 'O módulo não carregou. Recarregue a página.' })));
+  }
   return wrap;
 }
 

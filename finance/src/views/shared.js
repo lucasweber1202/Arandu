@@ -164,6 +164,7 @@ export function comparisonMatrix(rfq, proposals, { currentRevision = rfq.revisio
       head.append(el('th', { scope: 'col', class: 'matrix-provider' }, [el('span', { class: 'matrix-name', text: column.provider_name }),
         el('span', { class: 'matrix-meta', text: `${historical.has(index) ? 'Consulta da versão anterior' : `v${column.version ?? '?'}`} · ${column.currency ?? 'moeda não identificada'}${column.currency_source === 'schema_brl_v1' ? ' (unidade do cadastro)' : ''}` }),
         el('span', { class: 'matrix-meta', text: coverageText(index) }),
+        column.provenance?.source === 'buyer_recorded_external' ? el('span', { class: 'matrix-flag matrix-external', text: 'Fonte externa · transcrita pela empresa · fora da decisão' }) : null,
         !historical.has(index) && column.changed_keys.length && column.previous_version ? el('span', { class: 'matrix-flag', text: `${column.changed_keys.length} ${column.changed_keys.length === 1 ? 'condição mudou' : 'condições mudaram'} desde a v${column.previous_version.version}` }) : null,
         column.revision_mismatch ? el('span', { class: 'matrix-flag', text: `Respondeu à revisão ${column.rfq_revision}` }) : null,
         column.expired ? el('span', { class: 'matrix-flag', text: 'Proposta vencida' }) : null,
