@@ -132,3 +132,32 @@ test('workspace da instituição sem contrato vigente oferece registrar o existe
   await page.getByRole('dialog', { name: 'Banco Novo' }).locator('.rel-start').getByRole('button', { name: 'Registrar contrato existente' }).click();
   await expect(page.locator('#contract-import-form').getByLabel(/^Instituição financeira/)).toHaveValue(P_NOVO);
 });
+
+test('uma negociação com várias instituições vira um item só; coleta encerrada não parece prazo perdido', async ({ page }) => {
+  const rfq = { id: '00000000-0000-4000-8000-0000000000d2', title: 'Nova linha de R$ 12 milhões', product: 'credit', status: 'comparing', revision: 1, response_deadline: day(-3), owner_name: 'Paula Nogueira',
+    invites: [{ provider_id: P_ATLAS, provider_name: 'Atlas Bank', status: 'accepted' }, { provider_id: P_NEXO, provider_name: 'Nexo Payments', status: 'accepted' }, { provider_id: P_NOVO, provider_name: 'Banco Novo', status: 'invited' }], proposals: [] };
+  await setup(page);
+  await page.route('**/api/finance/overview**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ...OVERVIEW, rfqs: [rfq], tasks: [] }) }));
+  await page.goto('/finance/providers.html');
+  const center = page.locator('#relationship-center');
+  const negotiation = center.locator('[data-situation="negotiation"]');
+  await expect(negotiation).toHaveCount(1);
+  await expect(negotiation).toContainText('Atlas Bank, Nexo Payments, Banco Novo');
+  await expect(negotiation).toContainText(/coleta encerrada \(prazo era/);
+  await expect(negotiation).toContainText('3 instituições convidadas, 2 com convite aceito');
+  await expect(negotiation.getByRole('button', { name: /Relacionamento com/ })).toHaveCount(0);
+  await center.getByLabel('Instituição').selectOption(P_NOVO);
+  await expect(center.locator('[data-situation="negotiation"]')).toHaveCount(1);
+});
+
+test('workspace usa o aviso prévio do contrato carregado quando o relacionamento não o traz', async ({ page }) => {
+  await setup(page);
+  const withoutNotice = OVERVIEW.contracts.filter((row) => row.provider_id === P_ATLAS).map(({ renewal_notice_days, ...row }) => row);
+  await page.route('**/api/finance/provider-relationship**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+    ok: true, provider: { id: P_ATLAS, name: 'Atlas Bank' }, neutrality: 'Fatos.', contracts: withoutNotice, facilities: [], rfqs: [], invites: [], proposals: [], balances: [], contacts: [], issues: [], relationships: [], map: [], timeline: [], reviews: [], templates: [],
+    metrics: { invited: 0, responded: 0, response_rate: null, median_response_days: null, active_contracts: 3, open_issues: 0, median_resolution_days: null, definitions: {} } }) }));
+  await page.goto(`/finance/providers.html?provider_id=${P_ATLAS}`);
+  const attention = page.getByRole('dialog', { name: 'Atlas Bank' }).locator('.rel-attention');
+  await expect(attention).toContainText('60 dias registrados no cadastro');
+  await expect(attention).not.toContainText('Aviso prévio não informado');
+});

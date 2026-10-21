@@ -78,8 +78,8 @@ export function relationshipAttention(detail, { today = Date.UTC(new Date().getU
   for (const rfq of detail.rfqs || []) {
     if (!LIVE_RFQ.includes(rfq.status)) continue;
     const days = daysTo(rfq.response_deadline, today);
-    items.push({ kind: 'open', rank: 2, due: days, title: `Negociação em andamento: ${rfq.title || 'Solicitação'}`,
-      detail: `${RFQ_STATUS[rfq.status]?.label || 'Em andamento'}${rfq.response_deadline ? ` · prazo de resposta ${formatDate(rfq.response_deadline)}` : ''}.`, target: { type: 'rfq', id: rfq.id } });
+    items.push({ kind: 'open', rank: 2, due: rfq.status === 'comparing' ? null : days, title: `Negociação em andamento: ${rfq.title || 'Solicitação'}`,
+      detail: `${RFQ_STATUS[rfq.status]?.label || 'Em andamento'}${!rfq.response_deadline ? '' : rfq.status === 'comparing' ? ` · coleta encerrada (prazo era ${formatDate(rfq.response_deadline)})` : ` · prazo de resposta ${formatDate(rfq.response_deadline)}`}.`, target: { type: 'rfq', id: rfq.id } });
   }
   for (const task of detail.tasks || []) {
     const days = daysTo(task.due_on, today);

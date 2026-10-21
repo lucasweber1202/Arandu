@@ -50,15 +50,17 @@ export function relationshipWorkItems({ contracts = [], rfqs = [], tasks = [], m
   }
   for (const rfq of rfqs) {
     if (!LIVE_RFQ.includes(rfq.status)) continue;
+    // Uma negociação, um item: as instituições convidadas vão juntas (o filtro por
+    // instituição continua casando cada uma). Repetir por convite enchia a fila.
     const invited = (rfq.invites || []).filter((row) => !['revoked', 'expired'].includes(row.status));
-    const providers = invited.length ? invited : [{ provider_id: null, provider_name: null }];
-    for (const invite of providers) {
-      items.push({ id: `r-${rfq.id}-${invite.provider_id || 'none'}`, situation: 'negotiation', providerId: invite.provider_id, providerName: invite.provider_name || null,
-        entityId: rfq.legal_entity_id || null, category: rfq.product || null, title: rfq.title || 'Solicitação',
-        detail: `${RFQ_STATUS[rfq.status]?.label || 'Em andamento'}${rfq.response_deadline ? ` · prazo de resposta ${formatDate(rfq.response_deadline)}` : ' · sem prazo de resposta'}${invite.provider_id ? '' : ' · nenhuma instituição convidada ainda'}.`,
-        due: rfq.response_deadline || null, who: rfq.owner_name || owner(rfq.owner_id), href: `/finance/rfq.html?id=${rfq.id}`, cta: 'Abrir negociação',
-        source: `Solicitação revisão ${rfq.revision || 1}${invite.provider_id ? ` · convite ${invite.status === 'accepted' ? 'aceito' : invite.status === 'declined' ? 'recusado' : 'enviado'}` : ''}` });
-    }
+    const names = invited.map((row) => row.provider_name).filter(Boolean);
+    const collecting = ['open', 'collecting'].includes(rfq.status);
+    const accepted = invited.filter((row) => row.status === 'accepted').length;
+    items.push({ id: `r-${rfq.id}`, situation: 'negotiation', providerId: invited[0]?.provider_id || null, providerIds: invited.map((row) => row.provider_id),
+      providerName: names.length ? names.join(', ') : null, entityId: rfq.legal_entity_id || null, category: rfq.product || null, title: rfq.title || 'Solicitação',
+      detail: `${RFQ_STATUS[rfq.status]?.label || 'Em andamento'}${!rfq.response_deadline ? ' · sem prazo de resposta' : collecting ? ` · prazo de resposta ${formatDate(rfq.response_deadline)}` : ` · coleta encerrada (prazo era ${formatDate(rfq.response_deadline)})`}${invited.length ? '' : ' · nenhuma instituição convidada ainda'}.`,
+      due: collecting ? rfq.response_deadline || null : null, who: rfq.owner_name || owner(rfq.owner_id), href: `/finance/rfq.html?id=${rfq.id}`, cta: 'Abrir negociação',
+      source: `Solicitação revisão ${rfq.revision || 1}${invited.length ? ` · ${invited.length} ${invited.length === 1 ? 'instituição convidada' : 'instituições convidadas'}, ${accepted} com convite aceito` : ''}` });
   }
   for (const task of tasks) {
     const contract = task.related_type === 'contract' ? contractsById.get(task.related_id) : null;
@@ -93,7 +95,7 @@ export function relationshipWorkQueue(ctx, { entities, onOpenProvider = null, im
   let expanded = false;
   const LIMIT = 8;
   const draw = () => {
-    const visible = items.filter((item) => (!byProvider.value || item.providerId === byProvider.value)
+    const visible = items.filter((item) => (!byProvider.value || (item.providerIds || [item.providerId]).includes(byProvider.value))
       && (!byEntity?.value || (byEntity.value === '__group__' ? !item.entityId : item.entityId === byEntity.value))
       && (!byCategory?.value || item.category === byCategory.value) && (!bySituation.value || item.situation === bySituation.value));
     const urgent = visible.filter((item) => SITUATIONS[item.situation].tone === 'danger').length;
@@ -122,7 +124,8 @@ export function relationshipWorkQueue(ctx, { entities, onOpenProvider = null, im
 
 function queueItem(ctx, item, onOpenProvider) {
   const meta = SITUATIONS[item.situation];
-  const provider = (ctx.data.providers || []).find((row) => row.id === item.providerId);
+  // Negociação com várias instituições não abre um relacionamento só.
+  const provider = item.providerIds && item.providerIds.length > 1 ? null : (ctx.data.providers || []).find((row) => row.id === item.providerId);
   return el('li', { class: `rel-item tone-${meta.tone}`, dataset: { situation: item.situation } }, [
     el('div', { class: 'rel-item-main' }, [
       el('p', { class: 'rel-item-kicker' }, [el('span', { class: `pill pill-${meta.tone} pill-sm` }, [el('span', { class: 'pill-dot', 'aria-hidden': 'true' }), el('span', { text: meta.label })]),
