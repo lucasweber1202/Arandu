@@ -106,7 +106,8 @@ ${table(`${provider('atlas')} — versões da proposta`, ['Condição', 'Versão
     ['CET informado', `${pct(atlasCredit[0].terms.cet_year)} a.a.`, `${pct(atlasCredit[1].terms.cet_year)} a.a.`],
     ['Tarifas', money(atlasCredit[0].terms.fees_amount), money(atlasCredit[1].terms.fees_amount)]
   ])}
-${quote(COMMENTS.creditToAtlas)}${quote(COMMENTS.creditFromAtlas)}`,
+${quote(COMMENTS.creditToAtlas)}${quote(COMMENTS.creditFromAtlas)}
+<p class="tour-note">Oferta recebida fora do portal, por e-mail ou documento: a equipe da empresa pode registrar a transcrição, com canal, referência e conferência por uma pessoa da gestão. Ela entra na comparação marcada como fonte externa, nunca como proposta enviada ou aceita pela instituição, e não pode ser escolhida nem contratada por esse caminho. Esse registro exige o ambiente com backend atualizado; nesta visita nada é gravado.</p>`,
   comparacao: () => {
     const rows = [['MDR débito', 'mdr_debit', pct], ['MDR crédito à vista', 'mdr_credit_cash', pct], ['MDR parcelado', 'mdr_credit_installment', pct], ['PIX', 'pix_fee', pct],
       ['Antecipação (a.m.)', 'anticipation_rate', pct], ['Liquidação', 'settlement_days', (d) => `D+${d}`], ['Aluguel por terminal', 'terminal_rent', money]];

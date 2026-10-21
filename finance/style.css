@@ -1334,3 +1334,9 @@ textarea.mono{width:100%;max-width:100%;min-width:0}
 .comparison-summary{display:flex;flex-wrap:wrap;gap:var(--s2) var(--s4);margin:0 0 var(--s3);padding:0;list-style:none;font-size:var(--fs-sm);color:var(--text-secondary)}
 .comparison-summary strong{color:var(--text);font-variant-numeric:tabular-nums}
 .provider-scope{display:flex;gap:var(--s2);align-items:flex-start;margin-top:var(--s4)}
+
+/* Propostas recebidas fora do portal (v3.7) */
+.external-history{list-style:none;margin:0;padding:0;display:grid;gap:var(--s3)}
+.external-history-item{border-left:2px solid var(--border);padding-left:var(--s3);display:grid;gap:var(--s1)}
+.external-card .proposal-name{font-size:var(--fs-md)}
+.matrix-external{background:var(--surface-muted)}
