@@ -1,6 +1,6 @@
 import { digest, assertPublicBytes } from './publication-manifest.mjs';
 
-export const STAGES = ['root', 'explore', 'financial-entry', 'dashboard', 'requests', 'invites', 'proposals', 'comparison', 'approval', 'contracts', 'tasks-renewals', 'provider', 'provider-proposal', 'areas', 'return'];
+export const STAGES = ['root', 'explore', 'financial-entry', 'dashboard', 'relationships', 'requests', 'invites', 'proposals', 'comparison', 'approval', 'contracts', 'tasks-renewals', 'provider', 'provider-proposal', 'areas', 'return'];
 // Programmatic focus can reach tabindex=-1 links that keyboard users cannot.
 // Exercise the actual Tab order, bounded so a focus trap fails deterministically.
 export async function tabToLink(page, link) {
@@ -11,7 +11,55 @@ export async function tabToLink(page, link) {
   }
   throw new Error('Navigation link is unreachable by Tab');
 }
-export function validateFlow(flow, sha) {
+export async function inspectRenderedLayout(page) {
+  const images = [];
+  let hiddenImages = 0;
+  for (const img of await page.locator('img').all()) {
+    const rendered = await img.evaluate(e => e.getClientRects().length > 0 && getComputedStyle(e).visibility !== 'hidden');
+    if (!rendered) { hiddenImages++; continue; }
+    // Real scrolling triggers native lazy loading without rewriting the DOM.
+    await img.scrollIntoViewIfNeeded({ timeout: 10000 });
+    const handle = await img.elementHandle();
+    try {
+      await page.waitForFunction(e => e.complete, handle, { timeout: 10000 });
+      await img.evaluate(e => e.decode());
+    } catch {
+      throw Object.assign(new Error('Rendered image did not load/decode'), { code: 'ASSET_MISMATCH' });
+    } finally { await handle?.dispose(); }
+    const image = await img.evaluate(e => ({ path: new URL(e.currentSrc || e.src, location.href).pathname, width: e.naturalWidth, height: e.naturalHeight }));
+    if (!image.width || !image.height) throw Object.assign(new Error('Rendered image has no pixels'), { code: 'ASSET_MISMATCH' });
+    images.push(image);
+  }
+  const layout = await page.evaluate(async () => {
+    await document.fonts.ready;
+    return { overflow: document.documentElement.scrollWidth > innerWidth + 1, fonts: [...document.fonts].every(font => font.status === 'loaded') };
+  });
+  return { ...layout, images, hidden_images: hiddenImages };
+}
+export async function awaitBrowserResponses(responses, timeoutMs = 20000) {
+  let timer;
+  try {
+    await Promise.race([Promise.all(responses), new Promise((_, reject) => {
+      timer = setTimeout(() => reject(Object.assign(new Error('Browser response verification timed out'), { code: 'UNPROVEN' })), timeoutMs);
+    })]);
+  } finally { clearTimeout(timer); }
+}
+// Transparent relay of the actual origin response, not a fixture or fallback.
+// Verify bytes before Chromium receives them and can evict them on navigation.
+export async function relayPublicArtifact(route, base, files) {
+  const req = route.request(), url = new URL(req.url());
+  if (url.origin !== base.origin || url.username || url.password || !['GET', 'HEAD'].includes(req.method()) || url.pathname.startsWith('/api/')) throw new Error('Unexpected backend, off-origin or mutating browser request');
+  const path = url.pathname === '/' ? '/index.html' : url.pathname;
+  if (!files[path]) throw new Error('Browser requested unverified artifact');
+  const response = await route.fetch({ maxRedirects: 0, timeout: 20000 });
+  try {
+    const bytes = await response.body();
+    verifyResponse({ status: response.status(), headers: new Headers(response.headers()) }, bytes, path, files[path]);
+    await route.fulfill({ response });
+    return path;
+  } finally { await response.dispose(); }
+}
+export function validateFlow(flow, sha, tourSteps = []) {
   if (flow.approved_sha !== sha || !Array.isArray(flow.steps) || flow.steps.length < STAGES.length || flow.steps.length > STAGES.length + 2) throw new Error('Flow must be reviewed for the expected SHA and cover all stages');
   const optional = new Set(['context', 'provider-value']);
   const required = flow.steps.filter(s => !optional.has(s.stage));
@@ -22,6 +70,11 @@ export function validateFlow(flow, sha) {
     if (!/^\/(?!\/)/.test(s.path) || url.origin !== 'https://arandu.invalid' || !(url.pathname === '/' || url.pathname.endsWith('.html')) || typeof s.text !== 'string' || !s.text.trim()) throw new Error('Invalid flow stage');
     if (i && typeof s.selector !== 'string') throw new Error('Each navigation step needs a real link selector');
   });
+  // Optional legacy stages are mandatory when present in the approved source.
+  // A newly added tour section must not silently disappear from release proof.
+  for (const step of tourSteps) {
+    if (!flow.steps.some(s => s.path === `/demo/visita.html#${step.id}` && s.text === step.title)) throw new Error(`Missing canonical tour stage: ${step.id}`);
+  }
 }
 export function validateManifest(m, sha) {
   if (!/^[a-f0-9]{40}$/.test(sha || '')) throw new Error('Expected full approved SHA is required');
@@ -39,6 +92,7 @@ export function publicationFailure(error) {
   if (['ACCESS_BLOCKED', 'OUTDATED_SHA'].includes(error.code)) return error.code;
   if (/ERR_CERT_AUTHORITY_INVALID|CERTIFICATE_VERIFY_FAILED|UNABLE_TO_VERIFY_LEAF_SIGNATURE/i.test(error.message)) return 'EXECUTOR_TLS_BLOCKED';
   if (/browserType.launch|Executable doesn't exist|Host system is missing dependencies/i.test(error.message)) return 'BROWSER_UNAVAILABLE';
+  if (/Network.getResponseBody|Response body is not available.*navigated away/i.test(error.message)) return 'UNPROVEN';
   if (/fetch failed|timeout|ENOTFOUND|ECONNREFUSED/i.test(error.message)) return 'UNPROVEN';
   if (/Artifact mismatch|wrong content type|asset|artifact/i.test(error.message)) return 'ASSET_MISMATCH';
   if (/HTTP (?:404|500)|navigation link|Flow route|Arandu HTML/i.test(error.message)) return 'ROUTE_FAILURE';

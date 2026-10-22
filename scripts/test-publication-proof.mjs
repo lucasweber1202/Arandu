@@ -9,7 +9,8 @@ import { promisify } from 'node:util';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { digest, assertPublicBytes, writePublicationManifest } from './publication-manifest.mjs';
-import { validateManifest, verifyResponse, getPublic, validateFlow, publicationFailure } from './publication-proof.mjs';
+import { validateManifest, verifyResponse, getPublic, validateFlow, publicationFailure, awaitBrowserResponses } from './publication-proof.mjs';
+import { TOUR_STEPS, TOUR_PAGE } from '../lib/public-tour.mjs';
 
 const sha = 'a'.repeat(40);
 const env = { ARANDU_DEPLOYMENT_KIND: 'demo', VERCEL: '1', VERCEL_GIT_COMMIT_SHA: sha, VERCEL_GIT_COMMIT_REF: 'main' };
@@ -76,9 +77,33 @@ test('unreviewed or incomplete UI journeys cannot prove the approved experience'
   assert.throws(() => validateFlow({ approved_sha: sha, steps: [] }, sha));
   assert.throws(() => validateFlow({ approved_sha: 'b'.repeat(40), steps: [] }, sha));
 });
+test('reviewed adapter covers every canonical tour step, including relationships', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'arandu-reviewed-flow-'));
+  try {
+    const output = join(dir, 'flow.json');
+    await promisify(execFile)(process.execPath, [fileURLToPath(new URL('./public-tour-proof-flow.mjs', import.meta.url)), sha, output]);
+    const flow = JSON.parse(readFileSync(output, 'utf8'));
+    for (const step of TOUR_STEPS) {
+      assert(flow.steps.some(s => s.path === `${TOUR_PAGE}#${step.id}` && s.text === step.title), `unproven canonical stage: ${step.id}`);
+    }
+    validateFlow(flow, sha, TOUR_STEPS);
+    // Even optional legacy stages must be exercised when the current source has them.
+    for (const id of ['contexto', 'relacionamentos', 'instituicao-valor']) {
+      const incomplete = { ...flow, steps: flow.steps.filter(s => s.path !== `${TOUR_PAGE}#${id}`) };
+      assert.throws(() => validateFlow(incomplete, sha, TOUR_STEPS));
+    }
+    assert.throws(() => validateFlow(flow, sha, [...TOUR_STEPS, { id: 'future-step', title: 'New canonical stage' }]), /tour stage/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
 test('executor TLS and missing browser are classified independently of website failure', () => {
   assert.equal(publicationFailure(new Error('page.goto: net::ERR_CERT_AUTHORITY_INVALID')), 'EXECUTOR_TLS_BLOCKED');
   assert.equal(publicationFailure(new Error("browserType.launch: Executable doesn't exist")), 'BROWSER_UNAVAILABLE');
+  assert.equal(publicationFailure(new Error('response.body: Protocol error (Network.getResponseBody): No resource with given identifier found')), 'UNPROVEN');
+});
+test('browser response verification is bounded and cannot turn an unresolved or failed body into PASS', async () => {
+  await awaitBrowserResponses([Promise.resolve()]);
+  await assert.rejects(awaitBrowserResponses([new Promise(() => {})], 20), e => e.code === 'UNPROVEN');
+  await assert.rejects(awaitBrowserResponses([Promise.reject(new Error('body unavailable'))]), /body unavailable/);
 });
 test('CLI verifies served bytes and refuses PUBLIC_SHAREABLE for localhost or missing routes', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'arandu-public-http-'));
