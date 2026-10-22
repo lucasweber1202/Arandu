@@ -1,6 +1,16 @@
 import { digest, assertPublicBytes } from './publication-manifest.mjs';
 
 export const STAGES = ['root', 'explore', 'financial-entry', 'dashboard', 'requests', 'invites', 'proposals', 'comparison', 'approval', 'contracts', 'tasks-renewals', 'provider', 'provider-proposal', 'areas', 'return'];
+// Programmatic focus can reach tabindex=-1 links that keyboard users cannot.
+// Exercise the actual Tab order, bounded so a focus trap fails deterministically.
+export async function tabToLink(page, link) {
+  await link.waitFor({ state: 'visible' });
+  for (let i = 0; i < 256; i++) {
+    await page.keyboard.press('Tab');
+    if (await link.evaluate(element => element === document.activeElement)) return;
+  }
+  throw new Error('Navigation link is unreachable by Tab');
+}
 export function validateFlow(flow, sha) {
   if (flow.approved_sha !== sha || !Array.isArray(flow.steps) || flow.steps.length < STAGES.length || flow.steps.length > STAGES.length + 2) throw new Error('Flow must be reviewed for the expected SHA and cover all stages');
   const optional = new Set(['context', 'provider-value']);

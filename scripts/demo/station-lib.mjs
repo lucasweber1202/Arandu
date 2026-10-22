@@ -12,6 +12,12 @@
 //   READY    — esta máquina foi declarada a estação, está no SHA congelado com
 //              árvore limpa, todos os requisitos passam e a prontidão recente
 //              disse Modo leitura PRONTO.
+import { demoPoolStatus } from '../../lib/finance/demo-entry-readiness.mjs';
+export function stationPoolFacts(rows, now = Date.now()) {
+  return { status: demoPoolStatus(rows, { total: Array.isArray(rows) ? rows.length : null, now }),
+    ready: Array.isArray(rows) ? rows.filter(r => r?.status === 'ready').length : 0,
+    claimed: Array.isArray(rows) ? rows.filter(r => r?.status === 'claimed').length : 0 };
+}
 export const STATUS = Object.freeze({ READY: 'READY', PREPARED: 'PREPARED', BLOCKED: 'BLOCKED', UNSAFE: 'UNSAFE' });
 const RANK = { READY: 0, PREPARED: 1, BLOCKED: 2, UNSAFE: 3 };
 
@@ -21,6 +27,7 @@ export const REQUIREMENTS = Object.freeze({
   minMemoryGiB: 6,      // Postgres + GoTrue + PostgREST + Storage + app + Chromium
   minDiskGiB: 10,       // imagens (~3 GB), banco e relatórios
   readinessMaxAgeMinutes: 120,
+  seedChecks: 39,
   ports: [54322, 9999, 3000, 5000, 8443, 4443]
 });
 
@@ -31,14 +38,21 @@ const check = (id, label, status, detail, fix) => ({ id, label, status, detail, 
 export function readinessFacts(report, now = Date.now()) {
   if (report?.station_evidence?.schema !== 1) return null;
   const evidence = report.station_evidence;
-  const mode = (name) => report.modes?.find((m) => m.mode === name);
-  const read = mode('leitura');
+  const modeReady = (name) => {
+    const modes = report.modes?.filter((m) => m.mode === name);
+    const mode = modes?.[0];
+    const checks = report.sections?.flatMap(s => s.checks || []).filter(c => c.modes?.includes(name));
+    return modes?.length === 1 && mode.ready === true
+      && Array.isArray(mode.failed) && !mode.failed.length
+      && Array.isArray(mode.skipped) && !mode.skipped.length
+      && checks?.length > 0 && checks.every(c => ['PASS', 'WARN'].includes(c.status));
+  };
   return {
     commit: report.commit, host: evidence.host, lockSha256: evidence.lockSha256,
     clean: evidence.clean === true, smoke: report.smoke === true,
     ageMinutes: (now - Date.parse(report.generated_at)) / 60000,
-    readMode: read?.ready === true && Array.isArray(read.skipped) && !read.skipped.length ? 'PRONTO' : 'NÃO PRONTO',
-    interactiveMode: mode('interativo')?.ready === true ? 'PRONTO' : 'NÃO PRONTO'
+    readMode: modeReady('leitura') ? 'PRONTO' : 'NÃO PRONTO',
+    interactiveMode: modeReady('interativo') ? 'PRONTO' : 'NÃO PRONTO'
   };
 }
 
@@ -59,6 +73,8 @@ export function classifyStation(facts) {
   if (f.app?.reachable && f.app.environment && f.app.environment !== 'demo') add('app-env', 'App em ARANDU_ENV=demo', 'UNSAFE', `app responde ${f.app.environment}`, 'bash scripts/demo/local.sh app');
   add('app-runtime', 'App canônico com banco real', f.app?.reachable && f.app.environment === 'demo' && f.app.datasource === 'supabase' && f.app.misconfigured === false ? 'PASS' : 'BLOCKED',
     `ambiente ${f.app?.environment || '?'} · datasource ${f.app?.datasource || '?'}`, 'bash scripts/demo/local.sh resume');
+  add('app-commit', 'SHA servido pelo app = checkout', /^[a-f0-9]{40}$/.test(f.git?.sha || '') && f.app?.commit === f.git.sha ? 'PASS' : 'BLOCKED',
+    f.app?.commit === f.git?.sha && f.app?.commit ? 'SHA integral confere' : 'SHA do processo ausente ou diferente do checkout', 'bash scripts/demo/local.sh app');
   add('db-schema', 'Migrations compatíveis com este código', f.db?.schema && f.db.schema === f.db.expectedSchema ? 'PASS' : 'BLOCKED',
     `marker ${f.db?.schema || 'ausente'} · esperado ${f.db?.expectedSchema || '?'}`, 'Pare e confira o schema e o SHA; não rode setup/reset para corrigir migrations.');
 
@@ -105,16 +121,16 @@ export function classifyStation(facts) {
     f.db?.container === 'original' ? 'dados preservados no contêiner criado pelo setup' : (f.db?.container || 'contêiner ausente'),
     'Contêiner recriado ou ausente: os dados da Demo estão nele. npm run demo:setup (≈ 20 min).');
   add('cert', 'Certificado HTTPS local', f.cert?.ok ? 'PASS' : 'BLOCKED', f.cert?.detail || 'ausente', 'npm run demo:setup recria o estado local.');
-  add('seed', 'Seed íntegro', f.seed?.ok ? 'PASS' : f.seed?.skipped ? 'PREPARED' : 'BLOCKED', f.seed?.detail || 'não verificado', 'npm run demo:local:check (e, se falhar, npm run demo:local:reset)');
+  add('seed', 'Seed íntegro', f.seed?.ok && f.seed.passed === R.seedChecks && f.seed.total === R.seedChecks ? 'PASS' : f.seed?.skipped ? 'PREPARED' : 'BLOCKED', f.seed?.detail || 'não verificado', 'npm run demo:local:check (e, se falhar, npm run demo:local:reset)');
   const ready = f.pool?.ready ?? 0;
-  add('pool', 'Pool de visitantes (≥ 2 prontos)', ready >= 2 ? 'PASS' : 'BLOCKED', `${ready} pronto(s), ${f.pool?.claimed ?? 0} em uso`, 'npm run demo:local:workspaces -- provision --count=2 (≈ 11 min)');
+  add('pool', 'Pool de visitantes (≥ 2 prontos)', Number.isSafeInteger(ready) && ready >= 2 && f.pool?.status === 'ok' ? 'PASS' : 'BLOCKED', `${ready} pronto(s), ${f.pool?.claimed ?? 0} em uso · ${f.pool?.status || 'identidade/capacidade não comprovada'}`, 'npm run demo:local:workspaces -- provision --count=2 (≈ 11 min)');
 
   // ------------------------------------------------ identidade (PREPARED)
   add('tree', 'Árvore Git limpa', f.git?.clean ? 'PASS' : 'PREPARED', f.git?.clean ? 'sem alterações locais' : `${f.git?.dirty ?? '?'} arquivo(s) alterado(s)`, 'git stash (não apague trabalho) ou volte ao SHA congelado.');
   if (!f.freeze?.sha) add('freeze', 'Versão congelada', 'PREPARED', 'nenhum congelamento nesta máquina', 'bash scripts/demo/local.sh freeze --station');
   else add('freeze', 'Versão congelada', f.freeze.sha === f.git?.sha ? 'PASS' : 'PREPARED',
     f.freeze.sha === f.git?.sha ? `HEAD = congelado ${f.freeze.sha.slice(0, 12)}` : `HEAD ${String(f.git?.sha || '?').slice(0, 12)} ≠ congelado ${f.freeze.sha.slice(0, 12)}`, 'git checkout <SHA congelado> (com a árvore limpa).');
-  if (f.freeze?.sha) add('lockfile', 'Lockfile = congelado', f.freeze.lockSha256 === f.git?.lockSha256 ? 'PASS' : 'PREPARED', f.freeze.lockSha256 === f.git?.lockSha256 ? 'igual' : 'package-lock.json mudou desde o congelamento');
+  if (f.freeze?.sha) add('lockfile', 'Lockfile = congelado', /^[a-f0-9]{64}$/.test(f.git?.lockSha256 || '') && f.freeze.lockSha256 === f.git.lockSha256 ? 'PASS' : 'PREPARED', f.freeze.lockSha256 === f.git?.lockSha256 ? 'igual' : 'package-lock.json mudou desde o congelamento');
   add('station', 'Esta é a estação declarada', f.freeze?.station && f.freeze.host === f.host?.name ? 'PASS' : 'PREPARED',
     f.freeze?.station ? (f.freeze.host === f.host?.name ? `máquina ${f.host?.name}` : `declarada em ${f.freeze.host}, esta é ${f.host?.name}`) : 'não declarada', 'bash scripts/demo/local.sh freeze --station (na máquina da apresentação)');
   add('ephemeral', 'Máquina persistente', f.host?.ephemeral ? 'PREPARED' : 'PASS', f.host?.ephemeral ? `executor efêmero (${f.host.ephemeral}): nunca é a estação` : 'sem sinais de CI ou sessão remota');

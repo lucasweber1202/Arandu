@@ -42,6 +42,9 @@ load_env() {
 }
 
 start_app() {
+  # Capture at process startup; a later checkout must not relabel a running app.
+  local app_commit
+  app_commit="$(git -C "$root" rev-parse HEAD)"
   # (Re)inicia o servidor local do app em ARANDU_ENV=demo, com o build atual.
   # Qualquer app local anterior (inclusive o de up.sh); o padrão com colchetes
   # não casa com a linha de comando de quem procura. O subshell não herda a
@@ -50,7 +53,7 @@ start_app() {
   for _ in $(seq 1 20); do pgrep -f "pilot-local/app-serve[r].mjs" >/dev/null || break; sleep 0.5; done
   ( cd "$root" && SUPABASE_URL=https://localhost:8443 SUPABASE_ANON_KEY="$ANON_KEY" SUPABASE_SERVICE_ROLE_KEY="$SERVICE_KEY" \
     ARANDU_SITE_URL=https://localhost:4443 ARANDU_ENV=demo CRON_SECRET="$CRON_SECRET" \
-    NODE_EXTRA_CA_CERTS="$state/cert.pem" node scripts/pilot-local/app-server.mjs > "$state/app.log" 2>&1 & echo $! > "$state/app.pid" ) </dev/null >/dev/null 2>&1
+    VERCEL_GIT_COMMIT_SHA="$app_commit" NODE_EXTRA_CA_CERTS="$state/cert.pem" node scripts/pilot-local/app-server.mjs > "$state/app.log" 2>&1 & echo $! > "$state/app.pid" ) </dev/null >/dev/null 2>&1
   for _ in $(seq 1 30); do curl -fsSk https://localhost:4443/api/health >/dev/null 2>&1 && return 0; sleep 1; done
   echo "O app local não respondeu em https://localhost:4443 (veja $state/app.log)."; exit 1
 }

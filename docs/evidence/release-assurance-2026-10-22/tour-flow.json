@@ -1,0 +1,124 @@
+{
+  "approved_sha": "42dd92bbb99e807b6a342195fa31cbe94d760ef9",
+  "source": "PR #241; review adapter against approved main",
+  "steps": [
+    {
+      "stage": "root",
+      "path": "/",
+      "content": "#tour-start",
+      "text": "Conhecer a plataforma"
+    },
+    {
+      "stage": "explore",
+      "path": "/demo/visita.html",
+      "selector": "#tour-start",
+      "content": "#tour-title",
+      "text": "Uma contratação financeira, do pedido à renovação"
+    },
+    {
+      "stage": "context",
+      "path": "/demo/visita.html#contexto",
+      "selector": ".tour-steps a[href=\"#contexto\"]",
+      "content": "#contexto-title",
+      "text": "O ponto de partida"
+    },
+    {
+      "stage": "financial-entry",
+      "path": "/demo/visita.html#painel",
+      "selector": ".tour-steps a[href=\"#painel\"]",
+      "content": "#painel-title",
+      "text": "O que pede atenção hoje"
+    },
+    {
+      "stage": "dashboard",
+      "path": "/demo/visita.html#painel",
+      "selector": ".tour-steps a[href=\"#painel\"]",
+      "content": "#painel-title",
+      "text": "O que pede atenção hoje"
+    },
+    {
+      "stage": "requests",
+      "path": "/demo/visita.html#solicitacao",
+      "selector": ".tour-steps a[href=\"#solicitacao\"]",
+      "content": "#solicitacao-title",
+      "text": "A solicitação financeira"
+    },
+    {
+      "stage": "invites",
+      "path": "/demo/visita.html#convites",
+      "selector": ".tour-steps a[href=\"#convites\"]",
+      "content": "#convites-title",
+      "text": "Convites às instituições"
+    },
+    {
+      "stage": "proposals",
+      "path": "/demo/visita.html#propostas",
+      "selector": ".tour-steps a[href=\"#propostas\"]",
+      "content": "#propostas-title",
+      "text": "Propostas e versões"
+    },
+    {
+      "stage": "comparison",
+      "path": "/demo/visita.html#comparacao",
+      "selector": ".tour-steps a[href=\"#comparacao\"]",
+      "content": "#comparacao-title",
+      "text": "Comparação lado a lado"
+    },
+    {
+      "stage": "approval",
+      "path": "/demo/visita.html#aprovacao",
+      "selector": ".tour-steps a[href=\"#aprovacao\"]",
+      "content": "#aprovacao-title",
+      "text": "Aprovação com responsabilidades separadas"
+    },
+    {
+      "stage": "contracts",
+      "path": "/demo/visita.html#contrato",
+      "selector": ".tour-steps a[href=\"#contrato\"]",
+      "content": "#contrato-title",
+      "text": "O contrato registrado"
+    },
+    {
+      "stage": "tasks-renewals",
+      "path": "/demo/visita.html#continuidade",
+      "selector": ".tour-steps a[href=\"#continuidade\"]",
+      "content": "#continuidade-title",
+      "text": "Depois da assinatura"
+    },
+    {
+      "stage": "provider",
+      "path": "/demo/visita.html#instituicao",
+      "selector": ".tour-steps a[href=\"#instituicao\"]",
+      "content": "#instituicao-title",
+      "text": "A instituição recebe o convite"
+    },
+    {
+      "stage": "provider-proposal",
+      "path": "/demo/visita.html#instituicao-proposta",
+      "selector": ".tour-steps a[href=\"#instituicao-proposta\"]",
+      "content": "#instituicao-proposta-title",
+      "text": "Preparar e enviar a proposta"
+    },
+    {
+      "stage": "provider-value",
+      "path": "/demo/visita.html#instituicao-valor",
+      "selector": ".tour-steps a[href=\"#instituicao-valor\"]",
+      "content": "#instituicao-valor-title",
+      "text": "Por que a instituição participa"
+    },
+    {
+      "stage": "areas",
+      "path": "/demo/visita.html#areas",
+      "selector": ".tour-steps a[href=\"#areas\"]",
+      "content": "#areas-title",
+      "text": "As cinco áreas do produto"
+    },
+    {
+      "stage": "return",
+      "path": "/demo/index.html",
+      "selector": "#areas a[href=\"/demo/index.html\"]",
+      "content": "#tour-start",
+      "text": "Conhecer a plataforma"
+    }
+  ]
+}

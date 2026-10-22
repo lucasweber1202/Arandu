@@ -1,0 +1,168 @@
+{
+  "generatedAt": "2026-10-22T13:44:19.242Z",
+  "flow": "existingDatabase",
+  "afterSchema": "financial-surface-hardening-1",
+  "stopBefore": null,
+  "finalMarker": "financial-external-proposals-1",
+  "deferredFiles": [],
+  "pendingCount": 39,
+  "bundleSha256": "a1a8d8dac98ca36133de11e7a9b40cf07c2a8f6388633734c45205946d266ea3",
+  "files": [
+    {
+      "file": "docs/supabase-financial-approval-handoff.sql",
+      "sha256": "6819a0c7d3f21242e966ef2e555984e3b3c480f725a174d52ea30793f6ab2276"
+    },
+    {
+      "file": "docs/supabase-financial-passport.sql",
+      "sha256": "1ee9d3bae3d90765ebf752cdaeefe1c1ea718d1830fe54f53d810ca354a97f98"
+    },
+    {
+      "file": "docs/supabase-financial-multi-entity.sql",
+      "sha256": "338c939f161aaa2c75d07568e60e8a13331001f5eb928d1b7884550f313e030b"
+    },
+    {
+      "file": "docs/supabase-financial-contracts-v2.sql",
+      "sha256": "aad53ba4719f0ffa2a60113095accbbcafa27776d9c23d73776aaa9b96f3a262"
+    },
+    {
+      "file": "docs/supabase-financial-relationships-portfolio.sql",
+      "sha256": "7bda39e2e1d6880eb9a288b1246ce11573b1575540c0774954dc0dd496161afc"
+    },
+    {
+      "file": "docs/supabase-financial-passport-entities.sql",
+      "sha256": "63ac8f3d7195f619f5baa318bf57b2a53cb927d9c12e4e8cfec0390b507c1fae"
+    },
+    {
+      "file": "docs/supabase-financial-graph.sql",
+      "sha256": "5b0d755ec7d18ebbf70980655355513b229c0fbd61fe9f1bec22835583081820"
+    },
+    {
+      "file": "docs/supabase-financial-policy-engine.sql",
+      "sha256": "9ef8162926914bde141bfe724f587bc5036347d528270a3923129269f2909870"
+    },
+    {
+      "file": "docs/supabase-financial-public-api.sql",
+      "sha256": "c50e7fd4067e2555256af9d0c0cf360ec4c5854f18454041fdb06d54ea1d361c"
+    },
+    {
+      "file": "docs/supabase-financial-sso.sql",
+      "sha256": "a11c0e0b0d735d7a1ddba6a3aada2bb7422df42e83533f3076c36334791b0be4"
+    },
+    {
+      "file": "docs/supabase-financial-operational-resilience.sql",
+      "sha256": "720de24bcc42cfffa577dbf20a133d56f93d264c611d232fa6c8d2bab169d1cf"
+    },
+    {
+      "file": "docs/supabase-financial-data-governance.sql",
+      "sha256": "36bc48b7b12fc2c4e70240bf333304a50a4f61cdd6285f0fc62e9e2d872e9149"
+    },
+    {
+      "file": "docs/supabase-financial-legacy-art-decommission.sql",
+      "sha256": "5ad7f56aa33279c4ad019dff30d35f7872b394b821cbb27544c1ba4f586826d1"
+    },
+    {
+      "file": "docs/supabase-financial-p0-closure.sql",
+      "sha256": "68494cdfc1ebc72930c64e058d2937bae9815f68a99f792647ff59deb9c3f5ed"
+    },
+    {
+      "file": "docs/supabase-financial-value-realization.sql",
+      "sha256": "fdc79eab1d6dd4eaad1e7d263eac656073e74c4595ca74b181c0d5e610fdd2b0"
+    },
+    {
+      "file": "docs/supabase-financial-fee-intelligence.sql",
+      "sha256": "807f50eac788fcaa3f64540a5117e09cb0f5d294f4872177850921662aecc72f"
+    },
+    {
+      "file": "docs/supabase-financial-opportunity-engine.sql",
+      "sha256": "bfb477c4e5783620d0521ee2500623197109b14ac1448e957ffff253e15a6c23"
+    },
+    {
+      "file": "docs/supabase-financial-document-intelligence.sql",
+      "sha256": "aba74dfc5a90b4b56c19e65c717c8c533d34dc90434fcc958c7c519c5e93e4f4"
+    },
+    {
+      "file": "docs/supabase-financial-provider-qualification.sql",
+      "sha256": "95b717dd938d1de546257db5236aa04497c594a061057fca6354dc6cc1f505b7"
+    },
+    {
+      "file": "docs/supabase-financial-implementation.sql",
+      "sha256": "6c30fe01db5c6804f6564ffed0fb81f2c449ced748c45911c888caf9db669e87"
+    },
+    {
+      "file": "docs/supabase-financial-covenants.sql",
+      "sha256": "f14478c8dc6d0ce990e3e254d7cef45228e2c0ab9d32e86fb0f84b37ede5157d"
+    },
+    {
+      "file": "docs/supabase-financial-provider-performance.sql",
+      "sha256": "66f7ed60c24b98c1cee7d882c371282fb81c79621a754a39006d741ccf81d6dd"
+    },
+    {
+      "file": "docs/supabase-financial-spend-intelligence.sql",
+      "sha256": "1efa3fb04282d0e6b6c69005bd2bdb278c2ec26a898031d41cbe4cafd5d86462"
+    },
+    {
+      "file": "docs/supabase-financial-opportunity-discriminator.sql",
+      "sha256": "6a0ab51cf5fd5b3f714ee8e432c6d9c7f44b55c069a58cace3965758f7c62b09"
+    },
+    {
+      "file": "docs/supabase-financial-demo-workspaces.sql",
+      "sha256": "31728b8ed4dad9bf53f3a841bfdd8cc2bc374fbb826f2a44402b37d8a326681a"
+    },
+    {
+      "file": "docs/supabase-financial-demo-pool.sql",
+      "sha256": "196f684f2936b10ee3575a2f476fa9e832d3aa7608dba9a059e0418c6568559a"
+    },
+    {
+      "file": "docs/supabase-financial-security-closure.sql",
+      "sha256": "d0b7f2759ba93a62a622fd6d427c3ce66a85a7c368eb5f10a99e1ad8f7c727fa"
+    },
+    {
+      "file": "docs/supabase-financial-request-receipts.sql",
+      "sha256": "213d8fa4f32e12a3a00c9602a556f4387b3dcf99757344296155c7d7932064cf"
+    },
+    {
+      "file": "docs/supabase-financial-followup-hardening.sql",
+      "sha256": "d0804cb5f530d31b5edab43225a12447364d96dc77971994ed847dc3bd206da3"
+    },
+    {
+      "file": "docs/supabase-financial-contract-onboarding.sql",
+      "sha256": "9bed9c6103a3378d97e33ce70dc01f57efcc2e38afc32f7479800e102c2e332b"
+    },
+    {
+      "file": "docs/supabase-financial-renewal-cycles.sql",
+      "sha256": "51643d7c5f40e7566fbcf0d9dad61cdea5a96f6365f98acc6dc5ccc56c0140a5"
+    },
+    {
+      "file": "docs/supabase-financial-decision-integrity.sql",
+      "sha256": "da77df0c6f5c7fe635df58e25190c4f857e8abb6588ba9811999cc2e47337d3c"
+    },
+    {
+      "file": "docs/supabase-financial-session-revocation.sql",
+      "sha256": "438f462095e659cb6af3de8f7c3d0454fa56befadf29cd1a69da90755d58ea28"
+    },
+    {
+      "file": "docs/supabase-financial-document-upload-authorization.sql",
+      "sha256": "75e74e423bf522aca3c9ead8a2b22b0f3612fe4494772e06767fcebc51b4554e"
+    },
+    {
+      "file": "docs/supabase-financial-implementation-task-labels.sql",
+      "sha256": "c483b60a9ea273003a635a42352d37903254f7c3ff6f26dd3d68013e48e11974"
+    },
+    {
+      "file": "docs/supabase-financial-task-accountability.sql",
+      "sha256": "f6cd33f6ddd4a03a2390974ec77585fcf33d12a28db0b7c3fe976db2c82204c2"
+    },
+    {
+      "file": "docs/supabase-financial-enterprise-integrity.sql",
+      "sha256": "c597c2054c669dfc5c761460fc60fe7b38dbd77090645a79ce37b7c33e856d2f"
+    },
+    {
+      "file": "docs/supabase-financial-decision-authorization.sql",
+      "sha256": "3e9dac0e0e65ad33701e1460e0128a43a993501dc60c5784fde39d3957fa1487"
+    },
+    {
+      "file": "docs/supabase-financial-external-proposals.sql",
+      "sha256": "bf24a513c756cf82819e85b9aff1658e656b0dacff2e1977bff27103a214a2ac"
+    }
+  ]
+}

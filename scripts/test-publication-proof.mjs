@@ -101,6 +101,7 @@ test('CLI verifies served bytes and refuses PUBLIC_SHAREABLE for localhost or mi
     };
     const local = await run();
     assert.equal(local.HTTP_ARTIFACT, 'PASS'); assert.equal(local.PUBLIC_SHAREABLE, 'NOT_PROVEN'); assert.equal(local.CANONICAL_HOSTED_M3, 'BLOCKED');
+    assert.equal(local.BROWSER_PROOF, 'BROWSER_NOT_PROVEN', 'HTTP cannot certify browser navigation');
     assert.equal(local.ROOT_HTTP, 'PASS');
     assert(local.checks.some(c => c.path === '/painel.html' && c.http_status === 404 && c.result === 'PASS'));
     promoted = true;

@@ -21,6 +21,7 @@ import { assertDemoTarget, DemoGuardError } from '../../lib/finance/demo-guard.m
 import { encodeSessionValue } from '../../lib/session-cookie.mjs';
 import { BUYERS, PROVIDERS } from '../../lib/finance/demo-personas.mjs';
 import { RFQ_OPEN, RFQ_CREDIT, RFQ_ACQUIRING, TASKS } from './dataset.mjs';
+import { DEMO_POOL_READINESS_PATH, demoPoolStatus, demoPoolTotal } from '../../lib/finance/demo-entry-readiness.mjs';
 
 const args = new Set(process.argv.slice(2));
 const SMOKE = args.has('--smoke');
@@ -108,7 +109,9 @@ check('Banco via PostgREST', restHealth.status === 200 ? 'PASS' : 'FAIL', `HTTP 
 const storage = await get(`${SB}/storage/v1/status`);
 check('Storage (documentos privados)', storage.status === 200 ? 'PASS' : 'FAIL', `HTTP ${storage.status}`, { fix: 'npm run demo:setup' });
 const alive = await get(`${APP}/api/health`);
-check('App do Arandu', alive.status === 200 && alive.json?.release?.environment === 'demo' ? 'PASS' : 'FAIL',
+check('App do Arandu', alive.status === 200 && alive.json?.release?.environment === 'demo'
+  && alive.json.release.datasource === 'supabase' && alive.json.release.misconfigured === false
+  && /^[a-f0-9]{40}$/.test(head) && alive.json.release.commit === head ? 'PASS' : 'FAIL',
   alive.json ? `ambiente ${alive.json.release?.environment}, dados ${alive.json.release?.datasource}` : `HTTP ${alive.status} ${alive.text}`, { fix: 'bash scripts/demo/local.sh app' });
 const ready = await get(`${APP}/api/health?probe=ready`);
 // A sonda de prontidão é a da implantação hospedada (topologia aprovada em
@@ -213,12 +216,18 @@ check('Nenhuma tarefa de ensaio anterior (I1–I2)', tasks.status === 200 && !li
 check('Tarefas do seed presentes', (tasks.json?.rows || []).length >= Math.min(5, TASKS.length) ? 'PASS' : 'FAIL', `${(tasks.json?.rows || []).length} abertas`, { fix: 'npm run demo:local:reset' });
 // Entrada por persona: cada janela anônima nova reivindica um workspace pronto, e o
 // servidor aceita 4 reivindicações por hora por origem (auth-demo-claim). Só lê.
-const pool = await fetch(`${SB}/rest/v1/fin_demo_workspaces?select=status,claimed_at`, { headers: { apikey: config.serviceKey, Authorization: `Bearer ${config.serviceKey}` } })
-  .then(async (response) => (response.ok ? response.json() : null)).catch(() => null);
-const readyCount = (pool || []).filter((row) => row.status === 'ready').length;
-const recentClaims = (pool || []).filter((row) => row.claimed_at && Date.parse(row.claimed_at) > Date.now() - 3600000).length;
-check('Pool de visitantes (entrada por persona)', pool && readyCount >= 2 && recentClaims <= 2 ? 'PASS' : 'FAIL',
-  pool ? `${readyCount} workspace(s) pronto(s); ${recentClaims} entrada(s) nova(s) na última hora (limite 4/h por rede)` : 'pool não lido',
+const poolResponse = await get(`${SB}/rest/v1/${DEMO_POOL_READINESS_PATH}`, { headers: {
+  apikey: config.serviceKey, Authorization: `Bearer ${config.serviceKey}`, Prefer: 'count=exact' } });
+const pool = [200, 206].includes(poolResponse.status) ? poolResponse.json : null;
+const poolStatus = demoPoolStatus(pool, { total: demoPoolTotal(poolResponse.headers.get('content-range')) });
+const readyCount = Array.isArray(pool) ? pool.filter(row => row.status === 'ready').length : 0;
+// Count all recent claims independently, including expired workspaces. A partial
+// Data API page must never understate quota consumption.
+const claims = await get(`${SB}/rest/v1/fin_demo_workspaces?select=id&claimed_at=gt.${new Date(Date.now() - 3600000).toISOString()}&limit=1`, {
+  headers: { apikey: config.serviceKey, Authorization: `Bearer ${config.serviceKey}`, Prefer: 'count=exact' } });
+const recentClaims = [200, 206].includes(claims.status) && Array.isArray(claims.json) ? demoPoolTotal(claims.headers.get('content-range')) : null;
+check('Pool de visitantes (entrada por persona)', poolStatus === 'ok' && readyCount >= 2 && recentClaims !== null && recentClaims <= 2 ? 'PASS' : 'FAIL',
+  `${readyCount} workspace(s) pronto(s); ${recentClaims ?? 'não comprovado'} entrada(s) nova(s) na última hora (limite 4/h por rede); integridade ${poolStatus}`,
   { modes: ['interativo'], fix: readyCount < 2 ? 'npm run demo:local:workspaces -- provision --count=4 (≈ 10 min por par)' : 'espere a janela de 1 h das entradas novas ou siga pelas janelas já abertas ("Trocar persona" não consome workspace)' });
 
 // ------------------------------------------------- 6. smoke das jornadas
