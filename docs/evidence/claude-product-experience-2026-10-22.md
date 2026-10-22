@@ -17,7 +17,10 @@ apresentação: STATION_NOT_VERIFIED.** Dados 100% sintéticos (seed Vitta Foods
   pegaram o limite legítimo de 240 chamadas/10 min da Juliana, por duas rodadas de
   captura seguidas; mostram a tela de 429 do produto, não regressão.
 - Visita pública: 13 etapas com capturas reais (`demo/visita/captures.json`: SHA,
-  data, base, rota, persona, dimensões), via `scripts/design/capture-tour.mjs`.
+  data, base, rota, persona, dimensões), via `scripts/design/capture-tour.mjs`, em
+  WebP codificado pelo Chromium (desktop 1120 px, celular 390 px; 24 arquivos,
+  ≈ 720 kB) para caber no orçamento de `check:build-size` do build demonstrativo.
+  A primeira versão em JPEG (2,15 MB) estourou o total (3,85 MB > 3 MB) no CI.
 
 ## Antes / depois (esta pasta)
 

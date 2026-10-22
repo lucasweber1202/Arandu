@@ -55,11 +55,33 @@ for (const persona of [...new Set(TOUR_STEPS.map((step) => step.persona))]) {
 
 const manifest = { sha, base, capturedAt: new Date().toISOString(), dataset: 'scripts/demo/seed.mjs (Vitta Foods, 39/39 checagens)', shots: {} };
 const rfqHref = {};
+// Peso: as imagens entram no pacote da demo (check:build-size). WebP pelo próprio
+// Chromium (canvas), sem dependência nova; desktop reduzido para 1120 px.
+const OUTPUT = { desktop: { width: 1120, quality: 0.55 }, mobile: { width: 390, quality: 0.55 } };
+async function webp(page, png, { width, quality }) {
+  const data = await page.evaluate(async ([src, w, q]) => {
+    const img = new Image(); img.src = src; await img.decode();
+    const canvas = Object.assign(document.createElement('canvas'), { width: w, height: Math.round(img.height * (w / img.width)) });
+    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+    return { url: canvas.toDataURL('image/webp', q), height: canvas.height };
+  }, [`data:image/png;base64,${png.toString('base64')}`, width, quality]);
+  if (!data.url.startsWith('data:image/webp')) throw new Error('Chromium sem codificador WebP.');
+  return { bytes: Buffer.from(data.url.split(',')[1], 'base64'), width, height: data.height };
+}
+// Etapas com a mesma tela (rota e persona) reaproveitam a mesma imagem.
+const seen = new Map();
 for (const [name, viewport] of Object.entries(TOUR_VIEWPORTS)) {
   for (const step of TOUR_STEPS) {
     const context = await browser.newContext({ viewport, ...(name === 'mobile' ? { isMobile: true, hasTouch: true } : {}), storageState: sessions[step.persona],
       ignoreHTTPSErrors: true, locale: 'pt-BR', timezoneId: 'America/Sao_Paulo', reducedMotion: 'reduce' });
     const page = await context.newPage();
+    const reuse = seen.get(`${name}|${step.route}|${step.persona}|${step.rfq || ''}|${step.anchor || ''}`);
+    if (reuse) {
+      manifest.shots[step.id] = { ...manifest.shots[step.id], route: reuse.route, persona: step.persona, alt: reuse.alt, [name]: reuse.view };
+      console.log(`${name.padEnd(8)} ${step.id.padEnd(22)} (mesma tela de ${reuse.from})`);
+      await context.close();
+      continue;
+    }
     let route = step.route;
     if (step.rfq) {
       if (!rfqHref[step.rfq]) {
@@ -75,11 +97,13 @@ for (const [name, viewport] of Object.entries(TOUR_VIEWPORTS)) {
     if (await page.evaluate(() => /Não foi possível carregar|Muitas tentativas|Muitas requisições/.test(document.querySelector('#view')?.textContent || ''))) {
       throw new Error(`${step.id} (${name}): a tela carregou com erro; captura inválida.`);
     }
-    const file = `${step.id}-${name}.jpg`;
-    await page.screenshot({ path: `demo/visita/${file}`, type: 'jpeg', quality: 78 });
+    const file = `${step.id}-${name}.webp`;
+    const image = await webp(page, await page.screenshot({ type: 'png' }), OUTPUT[name]);
+    await writeFile(`demo/visita/${file}`, image.bytes);
     const shot = manifest.shots[step.id] ||= { route: step.route + (step.anchor ? `#${step.anchor}` : ''), persona: step.persona,
       alt: `Tela ${labels[step.nav]} do Arandu com os dados fictícios da Vitta Foods, vista por ${(BUYERS[step.persona] || PROVIDERS[step.persona].person).name}.` };
-    shot[name] = { file, route: shot.route, persona: step.persona, width: viewport.width, height: viewport.height };
+    shot[name] = { file, route: shot.route, persona: step.persona, width: image.width, height: image.height };
+    seen.set(`${name}|${step.route}|${step.persona}|${step.rfq || ''}|${step.anchor || ''}`, { route: shot.route, alt: shot.alt, view: shot[name], from: step.id });
     console.log(`${name.padEnd(8)} ${step.id.padEnd(22)} ${route}`);
     await context.close();
   }
