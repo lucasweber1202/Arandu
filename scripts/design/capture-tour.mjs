@@ -79,7 +79,7 @@ for (const [name, viewport] of Object.entries(TOUR_VIEWPORTS)) {
     await page.screenshot({ path: `demo/visita/${file}`, type: 'jpeg', quality: 78 });
     const shot = manifest.shots[step.id] ||= { route: step.route + (step.anchor ? `#${step.anchor}` : ''), persona: step.persona,
       alt: `Tela ${labels[step.nav]} do Arandu com os dados fictícios da Vitta Foods, vista por ${(BUYERS[step.persona] || PROVIDERS[step.persona].person).name}.` };
-    shot[name] = { file, width: viewport.width, height: viewport.height };
+    shot[name] = { file, route: shot.route, persona: step.persona, width: viewport.width, height: viewport.height };
     console.log(`${name.padEnd(8)} ${step.id.padEnd(22)} ${route}`);
     await context.close();
   }

@@ -89,7 +89,7 @@ ${list([
     return `<p>O primeiro valor não depende de nenhuma instituição usar o Arandu. Em Relacionamentos › Instituições, a tesouraria registra o que já contratou e vê, por instituição, o que pede ação: renovações, negociações abertas e tarefas, com responsável e origem de cada informação.</p>
 ${list([
     `${provider('atlas')}: capital de giro vigente vence em ${days(renewal.ends)}, com aviso prévio de ${days(renewal.notice)} registrado no cadastro — a tela pede para conferir no documento`,
-    `${provider(existing.provider)}: ${existing.title.toLowerCase()}, registrada como carteira existente, sem processo de concorrência inventado`,
+    `${provider(existing.provider)}: ${existing.title.charAt(0).toLowerCase()}${existing.title.slice(1)}, registrada como carteira existente, sem processo de concorrência inventado`,
     `Tarefas ligadas a contratos aparecem na instituição; sem responsável, a tela diz "responsável não informado"`,
     'Instituições sem contrato vigente registrado ficam separadas, com o atalho para registrar o contrato existente'
   ])}
