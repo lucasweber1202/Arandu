@@ -2,8 +2,9 @@
 // Read-only anonymous proof. HTTP alone never proves rendered navigation.
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
-import { validateManifest, validateFlow, verifyResponse, getPublic, publicationFailure, tabToLink } from './publication-proof.mjs';
+import { validateManifest, validateFlow, verifyResponse, getPublic, publicationFailure, tabToLink, inspectRenderedLayout, awaitBrowserResponses, relayPublicArtifact } from './publication-proof.mjs';
 import { digest } from './publication-manifest.mjs';
+import { TOUR_STEPS } from '../lib/public-tour.mjs';
 import { installLabObservers, readLabMetrics, PERFORMANCE_TARGETS } from './performance-contract.mjs';
 
 const args = Object.fromEntries(process.argv.slice(2).map(arg => { const [k, ...v] = arg.replace(/^--/, '').split('='); return [k, v.join('=') || true]; }));
@@ -84,7 +85,7 @@ try {
     if (!args.flow) throw new Error('--browser requires --flow=<reviewed JSON>');
     const flowBytes = readFileSync(String(args.flow));
     const flow = JSON.parse(flowBytes);
-    validateFlow(flow, args.sha);
+    validateFlow(flow, args.sha, TOUR_STEPS);
     report.flow_sha256 = digest(flowBytes);
     for (const s of flow.steps) {
       const path = new URL(s.path, base).pathname;
@@ -106,27 +107,30 @@ try {
       let currentStage = 'initialization', action = 'initialization';
       const browserError = (code, detail, path = null) => errors.push({ code, stage: currentStage, action, path, detail });
       const responses = [];
+      const verified = new WeakSet(), cancelledImages = [];
+      report.browser_transport = 'actual-origin-response-relay; hashes verified before browser delivery; no synthetic response or fallback';
       await context.route('**/*', route => {
-        const req = route.request(), url = new URL(req.url());
-        if (url.origin !== base.origin || !['GET', 'HEAD'].includes(req.method()) || url.pathname.startsWith('/api/')) {
-          browserError('UNEXPECTED_BACKEND', 'Backend, off-origin or mutating browser request', url.pathname); return route.abort();
-        }
-        return route.continue();
+        const task = (async () => {
+          const req = route.request(), path = new URL(req.url()).pathname;
+          try {
+            await relayPublicArtifact(route, base, manifest.files);
+            verified.add(req);
+          } catch (error) {
+            browserError(error.code || publicationFailure(error), error.message, path);
+            try { await route.abort(); } catch { /* request may already have been cancelled; original error remains blocking */ }
+          }
+        })();
+        responses.push(task);
+        return task;
       });
       const page = await context.newPage();
       page.on('pageerror', error => browserError('JS_ERROR', error.message.slice(0, 300), new URL(page.url()).pathname));
       page.on('console', message => { if (message.type() === 'error') browserError('JS_ERROR', 'Browser console error'); });
-      page.on('response', response => {
-        responses.push((async () => {
-          try {
-            const path = new URL(response.url()).pathname;
-            const artifact = path === '/' ? '/index.html' : path;
-            if (!manifest.files[artifact]) throw new Error('Browser loaded unverified artifact');
-            verifyResponse({ status: response.status(), headers: new Headers(await response.allHeaders()) }, await response.body(), artifact, manifest.files[artifact]);
-          } catch (error) { browserError(publicationFailure(error), error.message); }
-        })());
+      page.on('requestfailed', request => {
+        if (request.resourceType() === 'image' && request.failure()?.errorText === 'net::ERR_ABORTED') {
+          cancelledImages.push({ request, stage: currentStage, action, path: new URL(request.url()).pathname });
+        } else browserError('ROUTE_FAILURE', 'Resource request failed', new URL(request.url()).pathname);
       });
-      page.on('requestfailed', request => browserError('ROUTE_FAILURE', 'Resource request failed', new URL(request.url()).pathname));
       for (let i = 0; i < flow.steps.length; i++) {
         const step = flow.steps[i], target = new URL(step.path, base).href;
         activeCheck = { viewport: name, stage: step.stage, path: step.path, url: target, result: 'RUNNING' };
@@ -141,21 +145,32 @@ try {
         const content = () => step.content ? page.locator(step.content).filter({ hasText: step.text }) : page.getByText(step.text, { exact: false }).first();
         await content().waitFor({ state: 'visible' });
         if (!/dados fictícios|simulação|demonstrativ/i.test(await page.locator('body').innerText())) throw new Error('Demo modality is not visible');
+        // Chromium discards response bodies on document navigation. Finish
+        // verifying completed requests before reload, not only at viewport end.
+        await awaitBrowserResponses(responses);
         // Reload proves direct deep links, with the same anonymous browser state.
         action = 'reload'; await page.reload({ waitUntil: 'networkidle' });
         await content().waitFor({ state: 'visible' });
-        const layout = await page.evaluate(async () => {
-          await document.fonts.ready;
-          return { overflow: document.documentElement.scrollWidth > innerWidth + 1,
-            images: [...document.images].every(img => img.complete && img.naturalWidth > 0), fonts: [...document.fonts].every(font => font.status === 'loaded') };
-        });
-        if (layout.overflow || !layout.images || !layout.fonts) throw new Error(`Layout/resource failure: ${step.stage}`);
+        const layout = await inspectRenderedLayout(page);
+        activeCheck.layout = layout;
+        const tourSection = new URL(step.path, base).hash.slice(1);
+        if (TOUR_STEPS.some(s => s.id === tourSection) && !layout.images.length) throw new Error(`Rendered tour capture missing: ${step.stage}`);
+        if (layout.overflow || !layout.fonts) throw new Error(`Layout/resource failure: ${step.stage}`);
         if (args.performance) report.performance.samples.push({ viewport: name, stage: step.stage, path: step.path, ...await page.evaluate(readLabMetrics) });
+        // Restore document top after exercising lazy images so sticky headers
+        // are captured at their actual top position in the full-page evidence.
+        await page.evaluate(() => scrollTo({ top: 0, left: 0, behavior: 'instant' }));
         const evidence = `reports/public-demo/${name.toLowerCase()}-${step.stage}.png`;
         const screenshot = await page.screenshot({ path: evidence, fullPage: true });
         Object.assign(activeCheck, { result: 'PASS', evidence, evidence_sha256: digest(screenshot), effective_url: page.url(), navigation: i ? 'keyboard-tab-enter-and-reload' : 'direct-entry-and-reload' });
+        await page.waitForLoadState('networkidle');
+        await awaitBrowserResponses(responses);
       }
-      await Promise.all(responses);
+      await awaitBrowserResponses(responses);
+      for (const { request, ...observation } of cancelledImages) {
+        if (!verified.has(request)) browserError('UNPROVEN', 'Cancelled image origin bytes were not verified', observation.path);
+        else (report.verified_image_cancellations ||= []).push({ viewport: name, ...observation, reason: 'browser cancelled delivery; origin bytes verified; every displayed image decoded separately' });
+      }
       report['BROWSER_' + name] = errors.length ? 'FAIL' : 'PASS';
       if (errors.length) report.checks.push({ viewport: name, result: 'FAIL', errors });
       await context.close();

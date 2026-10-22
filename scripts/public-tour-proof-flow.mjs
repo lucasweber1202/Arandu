@@ -12,11 +12,12 @@ const step = (stage, id, selector) => {
   return { stage, path: `${TOUR_PAGE}#${id}`, selector, content: `#${id}-title`, text: byId[id].title };
 };
 const nav = id => `.tour-steps a[href="#${id}"]`;
-const flow = { approved_sha: sha, source: 'PR #241; review adapter against approved main', steps: [
+const flow = { approved_sha: sha, source: 'Approved main; all canonical TOUR_STEPS checked against public links', steps: [
   { stage: 'root', path: '/', content: '#tour-start', text: 'Conhecer a plataforma' },
   { stage: 'explore', path: TOUR_PAGE, selector: '#tour-start', content: '#tour-title', text: 'Uma contratação financeira, do pedido à renovação' },
   step('financial-entry', 'painel', byId.contexto ? nav('painel') : '#topo a[href="#painel"]'),
   step('dashboard', 'painel', nav('painel')),
+  step('relationships', 'relacionamentos', nav('relacionamentos')),
   step('requests', 'solicitacao', nav('solicitacao')),
   step('invites', 'convites', nav('convites')),
   step('proposals', 'propostas', nav('propostas')),
@@ -32,5 +33,5 @@ const flow = { approved_sha: sha, source: 'PR #241; review adapter against appro
 // #244 adds these real source stages; do not invent paths on earlier builds.
 if (byId.contexto) flow.steps.splice(2, 0, step('context', 'contexto', nav('contexto')));
 if (byId['instituicao-valor']) flow.steps.splice(flow.steps.length - 2, 0, step('provider-value', 'instituicao-valor', nav('instituicao-valor')));
-validateFlow(flow, sha);
+validateFlow(flow, sha, TOUR_STEPS);
 writeFileSync(output, JSON.stringify(flow, null, 2) + '\n');

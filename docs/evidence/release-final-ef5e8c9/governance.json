@@ -1,0 +1,69 @@
+{
+  "release_sha": "ef5e8c92460647b2c1b58b598cd8b4970a0d796f",
+  "observed_at": "2026-10-22T17:00:02.647Z",
+  "first_parent": "9927119019a2dc74f9e4913793415d1cb53de763",
+  "pr": {
+    "number": 257,
+    "merged": true,
+    "head_sha": "75364b0e57cbdfff6d447b67a7a4ed62f0aef567",
+    "base_sha": "9927119019a2dc74f9e4913793415d1cb53de763",
+    "base_is_ancestor_of_head": true
+  },
+  "main_checks": [
+    {
+      "name": "merge-audit",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "ef5e8c92460647b2c1b58b598cd8b4970a0d796f",
+      "url": "https://github.com/lucasweber1202/Arandu/actions/runs/39812611109/job/119955065270"
+    },
+    {
+      "name": "validate",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "ef5e8c92460647b2c1b58b598cd8b4970a0d796f",
+      "url": "https://github.com/lucasweber1202/Arandu/actions/runs/39812610887/job/119944303073"
+    },
+    {
+      "name": "presentation",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "ef5e8c92460647b2c1b58b598cd8b4970a0d796f",
+      "url": "https://github.com/lucasweber1202/Arandu/actions/runs/39812610887/job/119944302939"
+    },
+    {
+      "name": "database",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "ef5e8c92460647b2c1b58b598cd8b4970a0d796f",
+      "url": "https://github.com/lucasweber1202/Arandu/actions/runs/39812610887/job/119942604934"
+    },
+    {
+      "name": "deploy-boundaries",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "ef5e8c92460647b2c1b58b598cd8b4970a0d796f",
+      "url": "https://github.com/lucasweber1202/Arandu/actions/runs/39812610887/job/119942604520"
+    }
+  ],
+  "audit": {
+    "run_id": 39812611109,
+    "original_job": 119942604540,
+    "original_failure": "push sem PR associada: pilot/main só recebem merge de PR.",
+    "rerun_job": 119955065270,
+    "rerun_attempt": 2,
+    "rerun_conclusion": "success",
+    "rerun_scope": "failed jobs only",
+    "code_changed": false,
+    "interpretation": "original audit found no matching merged PR; association present on reinspection; unchanged rerun passes. Exact upstream indexing mechanism is not established."
+  },
+  "production": {
+    "deployment": "dpl_HPdBsHfvHxTsVT4eVJ3EtqqCHKFW",
+    "github_status": "failure",
+    "vercel_scope": "lucas-projects467",
+    "deployment_details_http": 403,
+    "build_events_http": 403,
+    "root_cause": "NOT_CONFIRMED",
+    "active_assignment_count": 0
+  }
+}

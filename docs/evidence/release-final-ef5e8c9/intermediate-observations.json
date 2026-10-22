@@ -1,0 +1,173 @@
+[
+  {
+    "checked_at": "2026-10-22T16:43:24.616Z",
+    "expected_sha": "ef5e8c92460647b2c1b58b598cd8b4970a0d796f",
+    "HTTP_ARTIFACT": "PASS",
+    "BROWSER_DESKTOP": "FAIL",
+    "BROWSER_MOBILE": "NOT_RUN",
+    "PUBLIC_SHAREABLE": "FAIL",
+    "error": "Layout/resource failure: explore",
+    "failure_code": "CONTRACT_FAILURE",
+    "browser_errors": []
+  },
+  {
+    "checked_at": "2026-10-22T16:49:09.815Z",
+    "expected_sha": "ef5e8c92460647b2c1b58b598cd8b4970a0d796f",
+    "HTTP_ARTIFACT": "PASS",
+    "BROWSER_DESKTOP": "FAIL",
+    "BROWSER_MOBILE": "FAIL",
+    "PUBLIC_SHAREABLE": "FAIL",
+    "error": "Browser errors; see viewport evidence",
+    "failure_code": "CONTRACT_FAILURE",
+    "browser_errors": [
+      {
+        "viewport": "DESKTOP",
+        "result": "FAIL",
+        "errors": [
+          {
+            "code": "CONTRACT_FAILURE",
+            "stage": "invites",
+            "action": "reload",
+            "path": null,
+            "detail": "response.body: Protocol error (Network.getResponseBody): No resource with given identifier found\nResponse body is not available for a response that was navigated away from. Read response.body() before triggering any navigation."
+          },
+          {
+            "code": "CONTRACT_FAILURE",
+            "stage": "comparison",
+            "action": "reload",
+            "path": null,
+            "detail": "response.body: Protocol error (Network.getResponseBody): No resource with given identifier found\nResponse body is not available for a response that was navigated away from. Read response.body() before triggering any navigation."
+          },
+          {
+            "code": "CONTRACT_FAILURE",
+            "stage": "approval",
+            "action": "reload",
+            "path": null,
+            "detail": "response.body: Protocol error (Network.getResponseBody): No resource with given identifier found\nResponse body is not available for a response that was navigated away from. Read response.body() before triggering any navigation."
+          },
+          {
+            "code": "CONTRACT_FAILURE",
+            "stage": "tasks-renewals",
+            "action": "reload",
+            "path": null,
+            "detail": "response.body: Protocol error (Network.getResponseBody): No resource with given identifier found\nResponse body is not available for a response that was navigated away from. Read response.body() before triggering any navigation."
+          }
+        ]
+      },
+      {
+        "viewport": "MOBILE",
+        "result": "FAIL",
+        "errors": [
+          {
+            "code": "CONTRACT_FAILURE",
+            "stage": "relationships",
+            "action": "reload",
+            "path": null,
+            "detail": "response.body: Protocol error (Network.getResponseBody): No resource with given identifier found\nResponse body is not available for a response that was navigated away from. Read response.body() before triggering any navigation."
+          },
+          {
+            "code": "CONTRACT_FAILURE",
+            "stage": "requests",
+            "action": "reload",
+            "path": null,
+            "detail": "response.body: Protocol error (Network.getResponseBody): No resource with given identifier found\nResponse body is not available for a response that was navigated away from. Read response.body() before triggering any navigation."
+          },
+          {
+            "code": "CONTRACT_FAILURE",
+            "stage": "comparison",
+            "action": "reload",
+            "path": null,
+            "detail": "response.body: Protocol error (Network.getResponseBody): No resource with given identifier found\nResponse body is not available for a response that was navigated away from. Read response.body() before triggering any navigation."
+          },
+          {
+            "code": "CONTRACT_FAILURE",
+            "stage": "approval",
+            "action": "reload",
+            "path": null,
+            "detail": "response.body: Protocol error (Network.getResponseBody): No resource with given identifier found\nResponse body is not available for a response that was navigated away from. Read response.body() before triggering any navigation."
+          },
+          {
+            "code": "CONTRACT_FAILURE",
+            "stage": "provider-proposal",
+            "action": "reload",
+            "path": null,
+            "detail": "response.body: Protocol error (Network.getResponseBody): No resource with given identifier found\nResponse body is not available for a response that was navigated away from. Read response.body() before triggering any navigation."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "checked_at": "2026-10-22T16:51:59.028Z",
+    "expected_sha": "ef5e8c92460647b2c1b58b598cd8b4970a0d796f",
+    "HTTP_ARTIFACT": "PASS",
+    "BROWSER_DESKTOP": "FAIL",
+    "BROWSER_MOBILE": "FAIL",
+    "PUBLIC_SHAREABLE": "FAIL",
+    "error": "Browser errors; see viewport evidence",
+    "failure_code": "ROUTE_FAILURE",
+    "browser_errors": [
+      {
+        "viewport": "DESKTOP",
+        "result": "FAIL",
+        "errors": [
+          {
+            "code": "ROUTE_FAILURE",
+            "stage": "areas",
+            "action": "reload",
+            "path": "/assets/contexto-mobile-PSP7mBDF.webp",
+            "detail": "Resource request failed"
+          },
+          {
+            "code": "ROUTE_FAILURE",
+            "stage": "areas",
+            "action": "reload",
+            "path": "/assets/painel-mobile-Llb6Edb9.webp",
+            "detail": "Resource request failed"
+          },
+          {
+            "code": "ROUTE_FAILURE",
+            "stage": "areas",
+            "action": "reload",
+            "path": "/assets/relacionamentos-mobile-D9-WJftq.webp",
+            "detail": "Resource request failed"
+          }
+        ]
+      },
+      {
+        "viewport": "MOBILE",
+        "result": "FAIL",
+        "errors": [
+          {
+            "code": "UNPROVEN",
+            "stage": "relationships",
+            "action": "reload",
+            "path": null,
+            "detail": "response.body: Protocol error (Network.getResponseBody): No resource with given identifier found\nResponse body is not available for a response that was navigated away from. Read response.body() before triggering any navigation."
+          },
+          {
+            "code": "UNPROVEN",
+            "stage": "requests",
+            "action": "reload",
+            "path": null,
+            "detail": "response.body: Protocol error (Network.getResponseBody): No resource with given identifier found\nResponse body is not available for a response that was navigated away from. Read response.body() before triggering any navigation."
+          },
+          {
+            "code": "UNPROVEN",
+            "stage": "proposals",
+            "action": "reload",
+            "path": null,
+            "detail": "response.body: Protocol error (Network.getResponseBody): No resource with given identifier found\nResponse body is not available for a response that was navigated away from. Read response.body() before triggering any navigation."
+          },
+          {
+            "code": "UNPROVEN",
+            "stage": "provider-proposal",
+            "action": "reload",
+            "path": null,
+            "detail": "response.body: Protocol error (Network.getResponseBody): No resource with given identifier found\nResponse body is not available for a response that was navigated away from. Read response.body() before triggering any navigation."
+          }
+        ]
+      }
+    ]
+  }
+]
