@@ -79,8 +79,8 @@ Capital, Nexo Payments, Meridian Financial — **nenhuma é parceira do Arandu**
 | 1 | 1 min | `/login.html` | Entre como Juliana; aponte o selo "Ambiente de demonstração" | É o produto, não maquete; quem usa | não |
 | 2 | 1,5 min | Painel | "Precisa de você": obrigação vencida sem responsável, renovação do Atlas com aviso prévio em data absoluta, tarefa com Juliana, rascunho | Trabalho com motivo, prazo e responsável — por que voltar na semana seguinte | não |
 | 3 | 1 min | Solicitações → "Capital de giro — nova linha de R$ 12 milhões / 36 meses" | Visão geral: demanda estruturada, revisão, prazo | Necessidade financeira tipada, não e-mail solto | não |
-| 4 | 1 min | mesma RFQ, "Provedores convidados" | 3 convidados · 2 responderam; Atlas v2, Orbe v1, Meridian sem resposta | Quem recebe o quê e a situação de cada instituição | não |
-| 5 | 1,5 min | janela anônima: Eduardo (Atlas) → Portal do provedor | Oportunidades e histórico de versões do Atlas | Lado bilateral; o provedor **não** vê concorrentes, notas nem comparação | não |
+| 4 | 1 min | mesma RFQ, "Instituições convidadas" | 3 convidados · 2 responderam; Atlas v2, Orbe v1, Meridian sem resposta | Quem recebe o quê e a situação de cada instituição | não |
+| 5 | 1,5 min | janela anônima: Eduardo (Atlas) → Portal da instituição | Oportunidades e histórico de versões do Atlas | Lado bilateral; o provedor **não** vê concorrentes, notas nem comparação | não |
 | 6 | 2 min | Juliana → "Adquirência — revisão de MDR…" → Comparação | Tabela por condição, versão selecionável, cobertura, "O Arandu não recomenda instituições" | Propostas comparáveis e versões preservadas, sem vencedor do sistema | não |
 | 7 | 1 min | mesma RFQ → Aprovações / Decisão | Controller → CFO, justificativa, "Lumina Pay · proposta v2" | Decisão humana com versão analisada e trilha | não |
 | 8 | 1 min | Contratos | Cartões com vigência, aviso prévio, responsável, termos versionados; nos contratos que nasceram de concorrência (Atlas crédito, Lumina) o título da solicitação de origem aparece no topo do cartão e "Ver processo e decisão de origem" abre a aba Decisão daquele processo (até 18/10 o link não aparecia). A fiança é carteira existente: sem origem inventada | Contrato como objeto operacional, ligado à decisão que o gerou | não |
@@ -92,6 +92,22 @@ Capital, Nexo Payments, Meridian Financial — **nenhuma é parceira do Arandu**
 | — | 30 s | Fechamento | Repita a mensagem final | | |
 
 Transição buyer → provider no passo 5; volte à janela da Juliana no passo 6.
+
+### Ordem buyer-first (recomendada desde 22/10)
+
+Mesmos passos e rotas, com o relacionamento existente **antes** da demanda — a sequência da guideline v3.7 (§39.5, §41.1): problema → contrato/relação existente → demanda → proposta → comparação → aprovação → decisão → contrato → obrigação → instituição → próximo trabalho.
+
+| Ordem | Passo da tabela | Persona · rota | Resultado observável no seed | Transição |
+| --- | --- | --- | --- | --- |
+| 1 | 1–2 | Juliana · `/finance/dashboard.html` | "Precisa de você" com 4 itens (obrigação vencida sem responsável, renovação do Atlas, tarefa, rascunho) | "De onde vem isso? Dos contratos que a Vitta já tinha." |
+| 2 | 12 | Juliana · `/finance/providers.html` | Fila por instituição: tarefa vencida, janela de renovação do crédito Atlas (decidir até a data do aviso prévio), 2 negociações, tarefas da Lumina; "3 instituições sem contrato vigente registrado". "Abrir tarefa" leva à tarefa exata (`#task-…`) desde 22/10 | "A renovação do Atlas puxa uma nova necessidade" |
+| 3 | 3–4 | Juliana · Solicitações → nova linha de R$ 12 mi | Demanda tipada; "Instituições convidadas": 3 convidadas, 2 responderam | "Do outro lado, o banco" |
+| 4 | 5 | Eduardo · `/provider/index.html` ("Portal da instituição") | Só as 3 oportunidades do Atlas; aviso de que concorrentes e comparação nunca aparecem | "De volta à empresa, outra concorrência já decidida" |
+| 5 | 6–7 | Juliana · Adquirência → Comparação / Decisão | 3 propostas, versões, "O Arandu não recomenda instituições"; decisão Lumina v2 com trilha | "A decisão vira contrato" |
+| 6 | 8–11 | Juliana · Contratos → Implantação → Covenants → Renovação | Contrato com origem; implantação bloqueada (terminais); covenant conforme / aguardando dados / waiver; janela de renovação | "E quem cuida de cada coisa?" |
+| 7 | 13 | Juliana · Tarefas | Abertas por urgência, com e sem responsável | Mensagem final |
+
+Risco conhecido (22/10, dado do seed, não da tela): o covenant de Dívida líquida/EBITDA tem Juliana como responsável na tabela de Covenants, mas a **tarefa** gerada para o período vencido aparece "Sem responsável" no Painel e na Central. São registros diferentes (obrigação × tarefa); se perguntarem, explique assim e não diga que a obrigação está sem dono. Registrado para a frente técnica.
 
 ### Opcionais (se houver tempo)
 - Janela anônima com **Helena (CFO)** → Aprovações: a vez dela, com contexto. *Aprovar grava* (reset depois).

@@ -84,6 +84,17 @@ ${list([
     `Contrato do ${provider('atlas')} vence em ${days(renewal.ends)}; aviso prévio de ${days(renewal.notice)}`,
     `${openTasks.length} tarefas abertas do time, além das revisões de renovação que o produto cria ao registrar contratos`
   ])}`,
+  relacionamentos: () => {
+    const existing = LIFECYCLE.existingContract;
+    return `<p>O primeiro valor não depende de nenhuma instituição usar o Arandu. Em Relacionamentos › Instituições, a tesouraria registra o que já contratou e vê, por instituição, o que pede ação: renovações, negociações abertas e tarefas, com responsável e origem de cada informação.</p>
+${list([
+    `${provider('atlas')}: capital de giro vigente vence em ${days(renewal.ends)}, com aviso prévio de ${days(renewal.notice)} registrado no cadastro — a tela pede para conferir no documento`,
+    `${provider(existing.provider)}: ${existing.title.charAt(0).toLowerCase()}${existing.title.slice(1)}, registrada como carteira existente, sem processo de concorrência inventado`,
+    `Tarefas ligadas a contratos aparecem na instituição; sem responsável, a tela diz "responsável não informado"`,
+    'Instituições sem contrato vigente registrado ficam separadas, com o atalho para registrar o contrato existente'
+  ])}
+<p class="tour-note">Registrar contrato e instituição é cadastro da empresa: não cria conta para a instituição nem envia nada a ela.</p>`;
+  },
   solicitacao: () => `<p>Uma solicitação descreve a necessidade num formato comparável para todas as instituições. Os dados da empresa vêm do Perfil financeiro e ficam fotografados na solicitação, com origem declarada.</p>
 ${facts([
     ['Objetivo', RFQ_CREDIT.description],

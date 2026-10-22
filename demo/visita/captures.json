@@ -1,0 +1,255 @@
+{
+  "sha": "bebc553bd177f123701f35e0a650985103be7186",
+  "base": "https://localhost:4443",
+  "capturedAt": "2026-10-22T14:43:42.471Z",
+  "dataset": "scripts/demo/seed.mjs (Vitta Foods, 39/39 checagens)",
+  "shots": {
+    "contexto": {
+      "route": "/finance/portfolio.html",
+      "persona": "juliana",
+      "alt": "Tela Dívida e limites do Arandu com os dados fictícios da Vitta Foods, vista por Juliana Ramos.",
+      "desktop": {
+        "file": "contexto-desktop.webp",
+        "route": "/finance/portfolio.html",
+        "persona": "juliana",
+        "width": 1120,
+        "height": 700
+      },
+      "mobile": {
+        "file": "contexto-mobile.webp",
+        "route": "/finance/portfolio.html",
+        "persona": "juliana",
+        "width": 390,
+        "height": 844
+      }
+    },
+    "painel": {
+      "route": "/finance/dashboard.html",
+      "persona": "juliana",
+      "alt": "Tela Início do Arandu com os dados fictícios da Vitta Foods, vista por Juliana Ramos.",
+      "desktop": {
+        "file": "painel-desktop.webp",
+        "route": "/finance/dashboard.html",
+        "persona": "juliana",
+        "width": 1120,
+        "height": 700
+      },
+      "mobile": {
+        "file": "painel-mobile.webp",
+        "route": "/finance/dashboard.html",
+        "persona": "juliana",
+        "width": 390,
+        "height": 844
+      }
+    },
+    "relacionamentos": {
+      "route": "/finance/providers.html",
+      "persona": "juliana",
+      "alt": "Tela Instituições do Arandu com os dados fictícios da Vitta Foods, vista por Juliana Ramos.",
+      "desktop": {
+        "file": "relacionamentos-desktop.webp",
+        "route": "/finance/providers.html",
+        "persona": "juliana",
+        "width": 1120,
+        "height": 700
+      },
+      "mobile": {
+        "file": "relacionamentos-mobile.webp",
+        "route": "/finance/providers.html",
+        "persona": "juliana",
+        "width": 390,
+        "height": 844
+      }
+    },
+    "solicitacao": {
+      "route": "/finance/rfq.html",
+      "persona": "juliana",
+      "alt": "Tela Solicitações do Arandu com os dados fictícios da Vitta Foods, vista por Juliana Ramos.",
+      "desktop": {
+        "file": "solicitacao-desktop.webp",
+        "route": "/finance/rfq.html",
+        "persona": "juliana",
+        "width": 1120,
+        "height": 700
+      },
+      "mobile": {
+        "file": "solicitacao-mobile.webp",
+        "route": "/finance/rfq.html",
+        "persona": "juliana",
+        "width": 390,
+        "height": 844
+      }
+    },
+    "convites": {
+      "route": "/finance/rfq.html",
+      "persona": "juliana",
+      "alt": "Tela Solicitações do Arandu com os dados fictícios da Vitta Foods, vista por Juliana Ramos.",
+      "desktop": {
+        "file": "convites-desktop.webp",
+        "route": "/finance/rfq.html",
+        "persona": "juliana",
+        "width": 1120,
+        "height": 700
+      },
+      "mobile": {
+        "file": "convites-mobile.webp",
+        "route": "/finance/rfq.html",
+        "persona": "juliana",
+        "width": 390,
+        "height": 844
+      }
+    },
+    "propostas": {
+      "route": "/finance/proposals.html",
+      "persona": "juliana",
+      "alt": "Tela Propostas do Arandu com os dados fictícios da Vitta Foods, vista por Juliana Ramos.",
+      "desktop": {
+        "file": "propostas-desktop.webp",
+        "route": "/finance/proposals.html",
+        "persona": "juliana",
+        "width": 1120,
+        "height": 700
+      },
+      "mobile": {
+        "file": "propostas-mobile.webp",
+        "route": "/finance/proposals.html",
+        "persona": "juliana",
+        "width": 390,
+        "height": 844
+      }
+    },
+    "comparacao": {
+      "route": "/finance/rfq.html#comparacao",
+      "persona": "juliana",
+      "alt": "Tela Solicitações do Arandu com os dados fictícios da Vitta Foods, vista por Juliana Ramos.",
+      "desktop": {
+        "file": "comparacao-desktop.webp",
+        "route": "/finance/rfq.html#comparacao",
+        "persona": "juliana",
+        "width": 1120,
+        "height": 700
+      },
+      "mobile": {
+        "file": "comparacao-mobile.webp",
+        "route": "/finance/rfq.html#comparacao",
+        "persona": "juliana",
+        "width": 390,
+        "height": 844
+      }
+    },
+    "aprovacao": {
+      "route": "/finance/approvals.html",
+      "persona": "helena",
+      "alt": "Tela Aprovações do Arandu com os dados fictícios da Vitta Foods, vista por Helena Duarte.",
+      "desktop": {
+        "file": "aprovacao-desktop.webp",
+        "route": "/finance/approvals.html",
+        "persona": "helena",
+        "width": 1120,
+        "height": 700
+      },
+      "mobile": {
+        "file": "aprovacao-mobile.webp",
+        "route": "/finance/approvals.html",
+        "persona": "helena",
+        "width": 390,
+        "height": 844
+      }
+    },
+    "contrato": {
+      "route": "/finance/contracts.html",
+      "persona": "juliana",
+      "alt": "Tela Contratos do Arandu com os dados fictícios da Vitta Foods, vista por Juliana Ramos.",
+      "desktop": {
+        "file": "contrato-desktop.webp",
+        "route": "/finance/contracts.html",
+        "persona": "juliana",
+        "width": 1120,
+        "height": 700
+      },
+      "mobile": {
+        "file": "contrato-mobile.webp",
+        "route": "/finance/contracts.html",
+        "persona": "juliana",
+        "width": 390,
+        "height": 844
+      }
+    },
+    "continuidade": {
+      "route": "/finance/covenants.html",
+      "persona": "juliana",
+      "alt": "Tela Covenants do Arandu com os dados fictícios da Vitta Foods, vista por Juliana Ramos.",
+      "desktop": {
+        "file": "continuidade-desktop.webp",
+        "route": "/finance/covenants.html",
+        "persona": "juliana",
+        "width": 1120,
+        "height": 700
+      },
+      "mobile": {
+        "file": "continuidade-mobile.webp",
+        "route": "/finance/covenants.html",
+        "persona": "juliana",
+        "width": 390,
+        "height": 844
+      }
+    },
+    "instituicao": {
+      "route": "/provider/index.html",
+      "persona": "atlas",
+      "alt": "Tela Início do Arandu com os dados fictícios da Vitta Foods, vista por Eduardo Lima.",
+      "desktop": {
+        "file": "instituicao-desktop.webp",
+        "route": "/provider/index.html",
+        "persona": "atlas",
+        "width": 1120,
+        "height": 700
+      },
+      "mobile": {
+        "file": "instituicao-mobile.webp",
+        "route": "/provider/index.html",
+        "persona": "atlas",
+        "width": 390,
+        "height": 844
+      }
+    },
+    "instituicao-proposta": {
+      "route": "/provider/rfqs.html",
+      "persona": "atlas",
+      "alt": "Tela Oportunidades do Arandu com os dados fictícios da Vitta Foods, vista por Eduardo Lima.",
+      "desktop": {
+        "file": "instituicao-proposta-desktop.webp",
+        "route": "/provider/rfqs.html",
+        "persona": "atlas",
+        "width": 1120,
+        "height": 700
+      },
+      "mobile": {
+        "file": "instituicao-proposta-mobile.webp",
+        "route": "/provider/rfqs.html",
+        "persona": "atlas",
+        "width": 390,
+        "height": 844
+      }
+    },
+    "instituicao-valor": {
+      "route": "/provider/rfqs.html",
+      "persona": "atlas",
+      "alt": "Tela Oportunidades do Arandu com os dados fictícios da Vitta Foods, vista por Eduardo Lima.",
+      "desktop": {
+        "file": "instituicao-proposta-desktop.webp",
+        "route": "/provider/rfqs.html",
+        "persona": "atlas",
+        "width": 1120,
+        "height": 700
+      },
+      "mobile": {
+        "file": "instituicao-proposta-mobile.webp",
+        "route": "/provider/rfqs.html",
+        "persona": "atlas",
+        "width": 390,
+        "height": 844
+      }
+    }
+  }
+}

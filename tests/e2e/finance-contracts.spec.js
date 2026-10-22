@@ -828,11 +828,11 @@ test('contrato → implantação: a página diz de qual contrato a pessoa veio, 
   await noHorizontalOverflow(page);
   // Sem o filtro de contrato, a página diz que a lista deixa de ser só deste contrato.
   await page.getByLabel('Contrato', { exact: true }).selectOption('');
-  await page.getByLabel('Provedor').selectOption(PROVIDER);
+  await page.getByLabel('Instituição').selectOption(PROVIDER);
   await page.getByRole('button', { name: 'Aplicar filtros' }).click();
   await expect(origin).toContainText('Sem o filtro de contrato, a lista pode incluir outros contratos com a mesma instituição.');
   expect(requested.at(-1).has('contract_id')).toBe(false);
-  await page.getByLabel('Provedor').selectOption('');
+  await page.getByLabel('Instituição').selectOption('');
   await page.getByRole('button', { name: 'Aplicar filtros' }).click();
   await expect(origin).toContainText('Sem filtro: a lista mostra planos de implantação de todo o seu escopo, não só deste contrato.');
   await origin.getByRole('link', { name: 'Voltar ao contrato' }).click();

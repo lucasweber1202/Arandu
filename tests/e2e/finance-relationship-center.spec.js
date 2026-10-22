@@ -120,7 +120,8 @@ test('workspace da instituição separa término, marco de aviso prévio e taref
   await expect(attention).toContainText(/Término contratual em/);
   await expect(attention).toContainText('Tarefa: Revisar renovação');
   await expect(attention).toContainText('responsável não definido');
-  await expect(attention.getByRole('link', { name: 'Abrir tarefas' })).toBeVisible();
+  // Leva à tarefa específica (a lista de tarefas destaca e rola até ela), não à lista genérica.
+  await expect(attention.getByRole('link', { name: 'Abrir tarefa' })).toHaveAttribute('href', /\/finance\/tasks\.html#task-[\w-]+$/);
 });
 
 test('workspace da instituição sem contrato vigente oferece registrar o existente', async ({ page }) => {
