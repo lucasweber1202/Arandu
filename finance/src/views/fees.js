@@ -7,7 +7,7 @@ import { ledgerPage } from './ledger.js';
 export const fees = (ctx) => ledgerPage(ctx, {
   resource: 'fees', title: 'Tarifas bancárias',
   subtitle: 'Tarifa contratada × cobrança observada, com fonte, comparabilidade e revisão humana. Diferença não é acusação nem economia.',
-  filters: [['start', 'Período inicial', 'start'], ['end', 'Período final', 'end'], ['legal_entity_id', 'Entidade', 'entities'], ['provider_id', 'Provedor', 'providers'],
+  filters: [['start', 'Período inicial', 'start'], ['end', 'Período final', 'end'], ['legal_entity_id', 'Entidade', 'entities'], ['provider_id', 'Instituição', 'providers'],
     ['category', 'Serviço/categoria'], ['contract_id', 'Contrato', 'contracts'], ['currency', 'Moeda'], ['review_status', 'Estado da revisão']]
 });
 

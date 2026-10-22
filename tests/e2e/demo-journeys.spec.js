@@ -116,7 +116,7 @@ test('jornada completa: comprador → provedor → comprador → aprovador → d
   await drawer.getByLabel('Valor desejado (R$)').fill('1600000');
   await drawer.getByRole('button', { name: 'Salvar alterações' }).click();
   await expect(page.locator('.page-meta')).toContainText('Revisão 2');
-  await page.getByLabel('Convidar provedor').selectOption({ label: 'Atlas Bank — DEMO · Banco' });
+  await page.getByLabel('Convidar instituição').selectOption({ label: 'Atlas Bank — DEMO · Banco' });
   await page.getByRole('button', { name: 'Convidar', exact: true }).click();
   await expect(page.locator('#convites')).toContainText('Atlas Bank — DEMO');
   await page.getByRole('button', { name: 'Abrir para propostas' }).click();

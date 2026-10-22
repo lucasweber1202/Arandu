@@ -29,7 +29,7 @@ test('a jornada completa avança e volta etapa por etapa, sem API', async ({ pag
   page.on('request', (request) => { if (request.url().includes('/api/')) api.push(request.url()); });
   await page.goto('/demo/visita.html');
   await page.getByRole('link', { name: 'Começar pela etapa 1' }).click();
-  const titles = ['O ponto de partida', 'O que pede atenção hoje', 'A solicitação financeira', 'Convites às instituições', 'Propostas e versões', 'Comparação lado a lado',
+  const titles = ['O ponto de partida', 'O que pede atenção hoje', 'Instituições e contratos que a empresa já tem', 'A solicitação financeira', 'Convites às instituições', 'Propostas e versões', 'Comparação lado a lado',
     'Aprovação com responsabilidades separadas', 'O contrato registrado', 'Depois da assinatura', 'A instituição recebe o convite', 'Preparar e enviar a proposta', 'Por que a instituição participa'];
   for (const [index, title] of titles.entries()) {
     const current = page.locator('.tour-step.is-current');
