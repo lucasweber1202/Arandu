@@ -103,6 +103,9 @@ try {
   code(() => prepareKey({ env: env({ ARANDU_RECOVERY_IDENTITY_FILE: path.join(storeDir, 'key'), ARANDU_RECOVERY_DIRECTORY: storeDir }), args: ['--generate'] }), 'RECOVERY_IDENTITY_INVALID');
   assert(!fs.existsSync(path.join(storeDir, 'key')), 'identidade criada dentro do store');
   fs.writeFileSync(identity, 'AGE-SECRET-KEY-PLACEHOLDER\n', { mode: 0o644 });
+  // A restrictive executor umask (0077) turns creation mode 0644 into 0600.
+  // Set the deliberately unsafe fixture explicitly; production guard stays strict.
+  fs.chmodSync(identity, 0o644);
   code(() => assertIdentityFile(identity), 'RECOVERY_IDENTITY_INVALID');
   fs.chmodSync(identity, 0o600);
   assert.equal(assertIdentityFile(identity), fs.realpathSync(identity));

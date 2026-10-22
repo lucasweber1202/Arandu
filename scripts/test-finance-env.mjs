@@ -3,6 +3,9 @@
 // dedicado. Nunca imprime o valor de uma chave.
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import { cpSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { permanentSupabaseAssignmentProblem } from '../lib/deployment-topology.mjs';
 
 const key = (claims) => `eyJhbGciOiJIUzI1NiJ9.${Buffer.from(JSON.stringify(claims)).toString('base64url')}.assinatura-0123456789abcdef`;
@@ -125,4 +128,37 @@ for (const [environment, ref] of [['demo', demoRef], ['production', prodRef]]) {
 assert.match(permanentSupabaseAssignmentProblem('demo', pilotRef), /sem atribuição ativa/);
 assert.match(permanentSupabaseAssignmentProblem('production', legacyRef), /sem atribuição ativa/);
 assert.equal(permanentSupabaseAssignmentProblem('pilot', pilotRef), null);
+// Run the real CLI against a disposable hypothetical approved topology. This
+// proves structural prerequisites, never authenticated credentials or M5.
+const fixture = mkdtempSync(join(tmpdir(), 'arandu-production-env-'));
+try {
+  cpSync('lib', join(fixture, 'lib'), { recursive: true });
+  mkdirSync(join(fixture, 'scripts'));
+  cpSync('scripts/check-finance-env.mjs', join(fixture, 'scripts/check-finance-env.mjs'));
+  writeFileSync(join(fixture, 'package.json'), '{"type":"module"}');
+  const topologyFile = join(fixture, 'lib/deployment-topology.mjs');
+  const topology = readFileSync(topologyFile, 'utf8');
+  assert.match(topology, /production: Object.freeze\(\[\]\)/);
+  writeFileSync(topologyFile, topology.replace('production: Object.freeze([])', `production: Object.freeze(['${prodRef}'])`));
+  const configured = { ...base, ...production, ARANDU_SITE_URL: 'https://arandu.example.org' };
+  const check = (overrides = {}) => {
+    const env = { ...configured, ...overrides };
+    const result = spawnSync(process.execPath, ['scripts/check-finance-env.mjs'], { cwd: fixture, env, encoding: 'utf8' });
+    for (const secret of [env.SUPABASE_ANON_KEY, env.SUPABASE_SERVICE_ROLE_KEY, env.CRON_SECRET].filter(Boolean)) {
+      assert.ok(!(result.stdout + result.stderr).includes(secret), 'fixture diagnostics leaked a synthetic credential');
+    }
+    return result;
+  };
+  assert.equal(check().status, 0, 'approved isolated fixture with consistent configuration');
+  for (const name of ['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'CRON_SECRET', 'ARANDU_SITE_URL']) {
+    const result = check({ [name]: '' });
+    assert.equal(result.status, 1, `missing mandatory ${name}`);
+    assert.match(result.stdout, new RegExp(`${name} ausente`));
+  }
+  assert.equal(check({ VERCEL_GIT_COMMIT_REF: 'feature/unapproved' }).status, 1);
+  assert.equal(check({ ARANDU_PRESENTATION_MODE: 'true' }).status, 1);
+  assert.equal(check({ SUPABASE_SERVICE_ROLE_KEY: configured.SUPABASE_ANON_KEY }).status, 1);
+} finally { rmSync(fixture, { recursive: true, force: true }); }
+assert.match(permanentSupabaseAssignmentProblem('production', prodRef), /sem atribuição ativa/,
+  'fixture must not change the operational assignment');
 console.log('finance:env:check: permanentes exigem atribuição ativa aprovada; refs desconhecidos, destinos planejados e identidade não verificável bloqueados, sem imprimir segredo.');

@@ -17,8 +17,9 @@ import https from 'node:https';
 import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
-import { classifyStation, readinessFacts, REQUIREMENTS } from './station-lib.mjs';
+import { classifyStation, readinessFacts, stationPoolFacts, REQUIREMENTS } from './station-lib.mjs';
 import { EXPECTED_SCHEMA_VERSION } from '../../lib/finance/pilot-doctor.mjs';
+import { POOL_POLICY } from '../../lib/finance/demo-workspaces.mjs';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../..');
 const state = path.join(root, 'scripts/pilot-local/.state');
@@ -120,8 +121,12 @@ async function collect({ fast }) {
   try {
     const { chromium } = await import('@playwright/test');
     const exe = chromium.executablePath();
-    browser = fs.existsSync(exe) ? { ok: true, detail: path.basename(path.dirname(path.dirname(exe))) } : { ok: false, detail: 'navegador da versão do lockfile não instalado' };
-  } catch { /* sem dependências */ }
+    if (fs.existsSync(exe)) {
+      const instance = await chromium.launch({ headless: true });
+      try { browser = { ok: true, detail: `Chromium ${instance.version()} iniciado` }; }
+      finally { await instance.close(); }
+    } else browser = { ok: false, detail: 'navegador da versão do lockfile não instalado' };
+  } catch { browser = { ok: false, detail: 'Chromium do lockfile não inicia nesta máquina' }; }
 
   // Plataforma efetiva: WSL2 com repositório no disco do Windows, Node do Windows
   // vazando pelo PATH, CRLF nos scripts e node_modules de outro sistema.
@@ -157,16 +162,24 @@ async function collect({ fast }) {
   const marker = services.db.ok ? sql("select value from public.fin_settings where key = 'deployment_environment'") : null;
   const schema = services.db.ok ? sql("select value from public.fin_settings where key = 'schema_version'") : null;
   const orgs = services.db.ok ? Number(sql('select count(*) from public.fin_organizations') || 0) : 0;
-  const pool = {};
-  for (const line of String(services.db.ok ? sql('select status, count(*) from public.fin_demo_workspaces group by 1') || '' : '').split('\n').filter(Boolean)) {
-    const [status, count] = line.split('|'); pool[status] = Number(count);
-  }
+  // Validate the same bounded active/ready snapshot as hosted readiness. Counts
+  // alone cannot prove baseline, persona identities or cross-workspace isolation.
+  let pool = { status: 'inconclusive', ready: 0, claimed: 0 };
+  if (services.db.ok) try {
+    const rows = JSON.parse(sql(`select coalesce(json_agg(w), '[]'::json) from (
+      select slug,status,baseline_version,personas,user_ids,buyer_organization_id,
+        provider_organization_ids,expires_at,idle_expires_at
+      from public.fin_demo_workspaces where status='ready' or
+        (status='claimed' and expires_at>now() and idle_expires_at>now())
+      order by ready_at,id limit ${POOL_POLICY.maxTotal + 1}) w`));
+    pool = stationPoolFacts(rows);
+  } catch { /* absent/incompatible snapshot never proves capacity */ }
 
   let seed = { ok: false, skipped: fast, detail: fast ? 'não verificado (--fast)' : 'não verificado' };
   if (!fast && services.app.ok && services.db.ok) {
     const r = run('bash', [path.join(root, 'scripts/demo/local.sh'), 'check'], { timeout: 300000 });
     const line = `${r.out}\n${r.err}`.match(/(\d+)\/(\d+) checagens OK/);
-    seed = line && line[1] === line[2] && r.ok ? { ok: true, detail: `${line[1]}/${line[2]} checagens` } : { ok: false, detail: line ? `${line[1]}/${line[2]} checagens` : 'checagem falhou' };
+    seed = { ok: Boolean(line && r.ok), passed: Number(line?.[1]), total: Number(line?.[2]), detail: line ? `${line[1]}/${line[2]} checagens` : 'checagem falhou' };
   }
 
   let readiness = null;
@@ -182,8 +195,8 @@ async function collect({ fast }) {
     docker: { engine: docker, compose: compose.ok ? `Compose ${compose.out}` : null }, browser, cert, services,
     ports: await portFacts(Boolean(docker)),
     db: { reachable: services.db.ok, marker, schema, expectedSchema: EXPECTED_SCHEMA_VERSION, container: services.db.ok ? (orgs > 0 ? 'original' : 'contêiner sem os dados da Demo') : (health ? `banco ${health}` : 'contêiner ausente') },
-    app: { reachable: services.app.ok, environment, datasource: release.datasource, misconfigured: release.misconfigured },
-    pool: { ready: pool.ready || 0, claimed: pool.claimed || 0 }, seed, readiness, freeze
+    app: { reachable: services.app.ok, environment, datasource: release.datasource, misconfigured: release.misconfigured, commit: release.commit },
+    pool, seed, readiness, freeze
   };
 }
 

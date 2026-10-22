@@ -1,5 +1,36 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 22/10/2026 — Release assurance P0-A/P0-B e preparação M3
+
+Base `main@42dd92bbb99e807b6a342195fa31cbe94d760ef9` relida por fetch.
+**PUBLIC_SHAREABLE PASS** no domínio público desse SHA: HTTP/artefatos e
+Chromium 156.0.8078.4 (Playwright 1.64.1 do lockfile), 17 etapas por viewport,
+desktop/móvel, Tab/Enter real, reload, 34 capturas e hashes; 203 verificações.
+Modalidade visita informativa/sandbox synthetic-fixtures, sem backend canônico.
+Prova de 22/10 às 10:39:59 BRT não valida um SHA publicado posteriormente.
+
+Station agora recusa app com SHA diferente do checkout, seed reduzido ou sem
+denominador 39/39, pool com identidade/baseline/isolamento/capacidade inválidos
+e relatório resumido incompatível com seus detalhes. Baseline reproduziu READY
+com processo de outro SHA. **LOCAL_VALIDATED para tooling/negativos; estação
+definitiva NOT_VERIFIED**. Stack deste executor observada BLOCKED, sem setup/seed;
+não é LAB_VALIDATED da jornada canônica nem STATION_READY do proprietário.
+
+Production: status GitHub Vercel failure na base, eventos/listagem Vercel **403**
+no scope autorizado; causa inicial remota não confirmada. Configuração completa
+passa estruturalmente em topologia sintética descartável; faltas/incompatibilidades
+e refs não aprovados são recusados. Atribuições Demo/Production continuam vazias.
+Pilot read-only: marker surface-hardening, sem marker de ambiente, 41/190 nomes
+RPC exigidos presentes; 39 migrations pendentes até external-proposals-1.
+**M3/M4/M5 não promovidos**, recovery/cutover hospedados NOT_RUN.
+
+Gates locais: npm ci, check:all, build, security/governance/routing/budget e
+testes da área PASS; banco/Auth/Storage/seed locais e Firefox/WebKit NOT_RUN
+nesta rodada. CI/M2 desta alteração depende dos quatro gates no HEAD próprio
+da PR; CI da base não é herdado. Nenhum arquivo visual, migration, workflow,
+dependência, configuração ou dado hospedado alterado. Evidências, matriz M3,
+rollback e riscos: [relatório de release assurance](evidence/codex-release-assurance-2026-10-22.md).
+
 ## 21/10/2026 — V3.7: prova pública e identidade da prontidão local
 
 Base `main@ca879292`; branch `codex/v37-demo-reliability`. Visita pública

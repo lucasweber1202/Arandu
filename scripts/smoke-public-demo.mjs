@@ -2,12 +2,14 @@
 // Read-only anonymous proof. HTTP alone never proves rendered navigation.
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
-import { validateManifest, validateFlow, verifyResponse, getPublic, publicationFailure } from './publication-proof.mjs';
+import { validateManifest, validateFlow, verifyResponse, getPublic, publicationFailure, tabToLink } from './publication-proof.mjs';
+import { digest } from './publication-manifest.mjs';
 import { installLabObservers, readLabMetrics, PERFORMANCE_TARGETS } from './performance-contract.mjs';
 
 const args = Object.fromEntries(process.argv.slice(2).map(arg => { const [k, ...v] = arg.replace(/^--/, '').split('='); return [k, v.join('=') || true]; }));
 const report = { checked_at: new Date().toISOString(), url: args.url, expected_sha: args.sha,
   HTTP_ARTIFACT: 'NOT_RUN', BROWSER_DESKTOP: 'NOT_RUN', BROWSER_MOBILE: 'NOT_RUN',
+  BROWSER_PROOF: 'BROWSER_NOT_PROVEN',
   PUBLIC_SHAREABLE: 'NOT_PROVEN', LOCAL_STATION_READY: 'NOT_RUN', CANONICAL_HOSTED_M3: 'BLOCKED', checks: [] };
 let browser;
 let activeCheck = null;
@@ -80,8 +82,10 @@ try {
     targets: PERFORMANCE_TARGETS, target_status: 'HYPOTHESES_NOT_SLA', samples: [] };
   if (args.browser) {
     if (!args.flow) throw new Error('--browser requires --flow=<reviewed JSON>');
-    const flow = JSON.parse(readFileSync(String(args.flow), 'utf8'));
+    const flowBytes = readFileSync(String(args.flow));
+    const flow = JSON.parse(flowBytes);
     validateFlow(flow, args.sha);
+    report.flow_sha256 = digest(flowBytes);
     for (const s of flow.steps) {
       const path = new URL(s.path, base).pathname;
       if (!manifest.files[path === '/' ? '/index.html' : path]) throw new Error('Flow route absent from artifact');
@@ -89,6 +93,9 @@ try {
     const { chromium } = await import('@playwright/test');
     const proxy = !local && (process.env.HTTPS_PROXY || process.env.https_proxy);
     browser = await chromium.launch({ headless: true, ...(proxy ? { proxy: { server: proxy } } : {}) });
+    report.browser = { engine: 'chromium', version: browser.version(),
+      playwright: JSON.parse(readFileSync(new URL('../node_modules/@playwright/test/package.json', import.meta.url))).version,
+      lock_sha256: digest(readFileSync(new URL('../package-lock.json', import.meta.url))) };
     for (const [name, viewport] of [['DESKTOP', { width: 1440, height: 900 }], ['MOBILE', { width: 390, height: 844 }]]) {
       activeViewport = name;
       report['BROWSER_' + name] = 'RUNNING';
@@ -129,7 +136,7 @@ try {
         else {
           const link = page.locator(step.selector);
           if (await link.count() !== 1 || new URL(await link.getAttribute('href'), page.url()).href !== target) throw new Error(`Missing actual navigation link: ${step.stage}`);
-          await link.focus(); await link.press('Enter'); await page.waitForURL(target); await page.waitForLoadState('networkidle');
+          await tabToLink(page, link); await page.keyboard.press('Enter'); await page.waitForURL(target); await page.waitForLoadState('networkidle');
         }
         const content = () => step.content ? page.locator(step.content).filter({ hasText: step.text }) : page.getByText(step.text, { exact: false }).first();
         await content().waitFor({ state: 'visible' });
@@ -144,8 +151,9 @@ try {
         });
         if (layout.overflow || !layout.images || !layout.fonts) throw new Error(`Layout/resource failure: ${step.stage}`);
         if (args.performance) report.performance.samples.push({ viewport: name, stage: step.stage, path: step.path, ...await page.evaluate(readLabMetrics) });
-        await page.screenshot({ path: `reports/public-demo/${name.toLowerCase()}-${step.stage}.png`, fullPage: true });
-        Object.assign(activeCheck, { result: 'PASS', evidence: `reports/public-demo/${name.toLowerCase()}-${step.stage}.png`, navigation: 'keyboard-enter-and-reload' });
+        const evidence = `reports/public-demo/${name.toLowerCase()}-${step.stage}.png`;
+        const screenshot = await page.screenshot({ path: evidence, fullPage: true });
+        Object.assign(activeCheck, { result: 'PASS', evidence, evidence_sha256: digest(screenshot), effective_url: page.url(), navigation: i ? 'keyboard-tab-enter-and-reload' : 'direct-entry-and-reload' });
       }
       await Promise.all(responses);
       report['BROWSER_' + name] = errors.length ? 'FAIL' : 'PASS';
@@ -154,6 +162,7 @@ try {
       activeViewport = null;
     }
     if (report.BROWSER_DESKTOP !== 'PASS' || report.BROWSER_MOBILE !== 'PASS') throw Object.assign(new Error('Browser errors; see viewport evidence'), { code: report.checks.find(c => c.errors)?.errors[0]?.code });
+    report.BROWSER_PROOF = 'PASS';
     if (!local) report.PUBLIC_SHAREABLE = 'PASS';
   }
 } catch (error) {
