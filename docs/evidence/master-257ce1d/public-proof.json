@@ -1,0 +1,2586 @@
+{
+  "checked_at": "2026-10-22T22:06:23.142Z",
+  "url": "https://arandu-demo.vercel.app/",
+  "expected_sha": "257ce1dee610f03e510a3f09e68291e4f03a3a16",
+  "HTTP_ARTIFACT": "PASS",
+  "BROWSER_DESKTOP": "PASS",
+  "BROWSER_MOBILE": "PASS",
+  "BROWSER_PROOF": "PASS",
+  "PUBLIC_SHAREABLE": "PASS",
+  "LOCAL_STATION_READY": "NOT_RUN",
+  "CANONICAL_HOSTED_M3": "BLOCKED",
+  "checks": [
+    {
+      "path": "/",
+      "url": "https://arandu-demo.vercel.app/",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/",
+      "redirects": []
+    },
+    {
+      "path": "/arandu-build.json",
+      "url": "https://arandu-demo.vercel.app/arandu-build.json",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/arandu-build.json",
+      "redirects": []
+    },
+    {
+      "path": "/404.html",
+      "url": "https://arandu-demo.vercel.app/404.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/404.html",
+      "redirects": [],
+      "sha256": "47d3050a53d1c06eb7149eb862059f6c44be6bc6299e3fd011b590ba5b3a586d"
+    },
+    {
+      "path": "/adquirencia.html",
+      "url": "https://arandu-demo.vercel.app/adquirencia.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/adquirencia.html",
+      "redirects": [],
+      "sha256": "b2006b106af19e18c8570ab79807ebf8757807e711c190e2ca5368b34419726f"
+    },
+    {
+      "path": "/assets/404-BfF8Tag6.js",
+      "url": "https://arandu-demo.vercel.app/assets/404-BfF8Tag6.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/404-BfF8Tag6.js",
+      "redirects": [],
+      "sha256": "9bf373e01cdbc34814f0ed97ffc03c2d5bcbc2f771721dd6c2c64a15dae5920c"
+    },
+    {
+      "path": "/assets/app-C7_ww6A9.js",
+      "url": "https://arandu-demo.vercel.app/assets/app-C7_ww6A9.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/app-C7_ww6A9.js",
+      "redirects": [],
+      "sha256": "51d758935941306baff927e2b40071fc85a8fe53de7fb39a4564b7b7ce182e15"
+    },
+    {
+      "path": "/assets/aprovacao-desktop-neDw3K_M.webp",
+      "url": "https://arandu-demo.vercel.app/assets/aprovacao-desktop-neDw3K_M.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/aprovacao-desktop-neDw3K_M.webp",
+      "redirects": [],
+      "sha256": "87088fddfb685a292e4353d8525e703c018b4d5a5888f861b0e2faa35e88c201"
+    },
+    {
+      "path": "/assets/aprovacao-mobile-GQdSbLOa.webp",
+      "url": "https://arandu-demo.vercel.app/assets/aprovacao-mobile-GQdSbLOa.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/aprovacao-mobile-GQdSbLOa.webp",
+      "redirects": [],
+      "sha256": "ca4ab547d7c52379a1f269bd248f1aa665ecca448f429fb7a5e46fd726ac8405"
+    },
+    {
+      "path": "/assets/boot-BRlDM788.js",
+      "url": "https://arandu-demo.vercel.app/assets/boot-BRlDM788.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/boot-BRlDM788.js",
+      "redirects": [],
+      "sha256": "58380df4c09fb6d04b00e570e706c80440d601c4ed1abe0dbc3123dbfd5b5be3"
+    },
+    {
+      "path": "/assets/boot-CdD1RaLl.css",
+      "url": "https://arandu-demo.vercel.app/assets/boot-CdD1RaLl.css",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/boot-CdD1RaLl.css",
+      "redirects": [],
+      "sha256": "b90207e99d9142f1f22b15e795fe0353b2ffb013a684485cb2cca5cc13e59adf"
+    },
+    {
+      "path": "/assets/builder-B9q3QJsA.js",
+      "url": "https://arandu-demo.vercel.app/assets/builder-B9q3QJsA.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/builder-B9q3QJsA.js",
+      "redirects": [],
+      "sha256": "8071166161d23374d14e7c00138782bd469c522a2a0958726abe5ec63242628e"
+    },
+    {
+      "path": "/assets/center-0oUSVTGT.js",
+      "url": "https://arandu-demo.vercel.app/assets/center-0oUSVTGT.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/center-0oUSVTGT.js",
+      "redirects": [],
+      "sha256": "5c6e01ba48c911ba83da9e6b90fe8dcf8e51dcdf8d27ba2452cc348abecc3d00"
+    },
+    {
+      "path": "/assets/center-DLVL9ku8.js",
+      "url": "https://arandu-demo.vercel.app/assets/center-DLVL9ku8.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/center-DLVL9ku8.js",
+      "redirects": [],
+      "sha256": "f049b61bf63412cc6e7741ad37da82b2975bb913e86faa53fbb5c23a4e81f26b"
+    },
+    {
+      "path": "/assets/command-CEgoErDZ.js",
+      "url": "https://arandu-demo.vercel.app/assets/command-CEgoErDZ.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/command-CEgoErDZ.js",
+      "redirects": [],
+      "sha256": "b02b72e23e234c7347e067c4fc81bb2c65ed57f9f51783085bcc9fc5803215d8"
+    },
+    {
+      "path": "/assets/comments-B4U-ijXy.js",
+      "url": "https://arandu-demo.vercel.app/assets/comments-B4U-ijXy.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/comments-B4U-ijXy.js",
+      "redirects": [],
+      "sha256": "cad4e51d29a3956f2f7e6bd2f989c5d0c800fe7751c7bdc2759d01eb64c7a8b5"
+    },
+    {
+      "path": "/assets/company-CMamH7NI.js",
+      "url": "https://arandu-demo.vercel.app/assets/company-CMamH7NI.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/company-CMamH7NI.js",
+      "redirects": [],
+      "sha256": "f689702d88433d7ff5a10d1b1618d0e6a7c5a2c408713b515c41e8f0fa217da2"
+    },
+    {
+      "path": "/assets/comparacao-desktop-BroRdomK.webp",
+      "url": "https://arandu-demo.vercel.app/assets/comparacao-desktop-BroRdomK.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/comparacao-desktop-BroRdomK.webp",
+      "redirects": [],
+      "sha256": "fb8643a41e2cb4c61f7fe7910382446f11d19a8601bf5e75443f7261fc9a51b5"
+    },
+    {
+      "path": "/assets/comparacao-mobile-Z5GiLnD_.webp",
+      "url": "https://arandu-demo.vercel.app/assets/comparacao-mobile-Z5GiLnD_.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/comparacao-mobile-Z5GiLnD_.webp",
+      "redirects": [],
+      "sha256": "ed36be9a814052088de34ab983e46ed39f05e219baf7ed39bd572d2b23dcc3c5"
+    },
+    {
+      "path": "/assets/comparison-CP63XTpt.js",
+      "url": "https://arandu-demo.vercel.app/assets/comparison-CP63XTpt.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/comparison-CP63XTpt.js",
+      "redirects": [],
+      "sha256": "f4d4d6325b9b819f421a97d8491086f27583591843c6ad1fa7d21d4627f902a5"
+    },
+    {
+      "path": "/assets/comparison-Cmiro9QZ.webp",
+      "url": "https://arandu-demo.vercel.app/assets/comparison-Cmiro9QZ.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/comparison-Cmiro9QZ.webp",
+      "redirects": [],
+      "sha256": "c59482ac97720e21045cb05e0064aa34c9ea1dc176f1a9faaf51413e7e3950c6"
+    },
+    {
+      "path": "/assets/comparison-tray-CyX903-j.js",
+      "url": "https://arandu-demo.vercel.app/assets/comparison-tray-CyX903-j.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/comparison-tray-CyX903-j.js",
+      "redirects": [],
+      "sha256": "3dc7fa7cfb7aae132a5c841ab557f768b7fb4718aa6868f29d2ef5334e12d32e"
+    },
+    {
+      "path": "/assets/contexto-desktop-CB2YsZ5y.webp",
+      "url": "https://arandu-demo.vercel.app/assets/contexto-desktop-CB2YsZ5y.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/contexto-desktop-CB2YsZ5y.webp",
+      "redirects": [],
+      "sha256": "0f491486d5fc1bb6f47816e439d17c9951052e63ccdf13ed1887e4eb689f3bdd"
+    },
+    {
+      "path": "/assets/contexto-mobile-PSP7mBDF.webp",
+      "url": "https://arandu-demo.vercel.app/assets/contexto-mobile-PSP7mBDF.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/contexto-mobile-PSP7mBDF.webp",
+      "redirects": [],
+      "sha256": "ec8a83d426fe3b2efc5484e70934ec624ad32c2ae359376c7ee14227aa46eae0"
+    },
+    {
+      "path": "/assets/continuidade-desktop-C-8uZb5m.webp",
+      "url": "https://arandu-demo.vercel.app/assets/continuidade-desktop-C-8uZb5m.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/continuidade-desktop-C-8uZb5m.webp",
+      "redirects": [],
+      "sha256": "37cf5ab62f7c0e28c3f7aa09515bb1fc130e4ae397f11494a37a1cd331bf96f9"
+    },
+    {
+      "path": "/assets/continuidade-mobile-BBprCfFA.webp",
+      "url": "https://arandu-demo.vercel.app/assets/continuidade-mobile-BBprCfFA.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/continuidade-mobile-BBprCfFA.webp",
+      "redirects": [],
+      "sha256": "a95932bb41698359e9a01dd4d74b370c039bd23af0ea9ac5813b455977a6629e"
+    },
+    {
+      "path": "/assets/contract-CEiQJsSo.webp",
+      "url": "https://arandu-demo.vercel.app/assets/contract-CEiQJsSo.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/contract-CEiQJsSo.webp",
+      "redirects": [],
+      "sha256": "0c222f7ae84e05451577cbb894309912603bd3661175ed7aea2efb6ac323614b"
+    },
+    {
+      "path": "/assets/contract-center-NDNkkw5A.js",
+      "url": "https://arandu-demo.vercel.app/assets/contract-center-NDNkkw5A.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/contract-center-NDNkkw5A.js",
+      "redirects": [],
+      "sha256": "8fb55b39c643aeb18278bd0b78214bdeb8eca974ef50419e588137299105b531"
+    },
+    {
+      "path": "/assets/contract-terms-CeoEoq02.js",
+      "url": "https://arandu-demo.vercel.app/assets/contract-terms-CeoEoq02.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/contract-terms-CeoEoq02.js",
+      "redirects": [],
+      "sha256": "9eca826741602ab206b60a281c3b3e7377fc63aa5d0521f38e415afe291f088b"
+    },
+    {
+      "path": "/assets/contracts-BFcNACGQ.js",
+      "url": "https://arandu-demo.vercel.app/assets/contracts-BFcNACGQ.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/contracts-BFcNACGQ.js",
+      "redirects": [],
+      "sha256": "2a285f4b8f4a964b2f3d0a15e45bcbf55b6cb006c83d96bf8b63bffe46d05c3d"
+    },
+    {
+      "path": "/assets/contrato-desktop-yE5q8yST.webp",
+      "url": "https://arandu-demo.vercel.app/assets/contrato-desktop-yE5q8yST.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/contrato-desktop-yE5q8yST.webp",
+      "redirects": [],
+      "sha256": "bf2d68fa0b82c677b111198c88dcfd192d34dc2b8aea006c5d4450a07399126b"
+    },
+    {
+      "path": "/assets/contrato-mobile-D_YOMTTT.webp",
+      "url": "https://arandu-demo.vercel.app/assets/contrato-mobile-D_YOMTTT.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/contrato-mobile-D_YOMTTT.webp",
+      "redirects": [],
+      "sha256": "61f96622f8fbdcb12b672ee84a910083687586124322ab18ff36a697175af117"
+    },
+    {
+      "path": "/assets/convites-desktop-PIuq-lME.webp",
+      "url": "https://arandu-demo.vercel.app/assets/convites-desktop-PIuq-lME.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/convites-desktop-PIuq-lME.webp",
+      "redirects": [],
+      "sha256": "1e26ac722b58bef409464c9d49e06fabe84e1f9105cf503d51da25076051e23f"
+    },
+    {
+      "path": "/assets/convites-mobile-DBRvbDjW.webp",
+      "url": "https://arandu-demo.vercel.app/assets/convites-mobile-DBRvbDjW.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/convites-mobile-DBRvbDjW.webp",
+      "redirects": [],
+      "sha256": "8d2fcc7726c659d1e4143fe98648b578b5f4d0a4b2be2929e05073cfe230388e"
+    },
+    {
+      "path": "/assets/core-CBO8LKAr.js",
+      "url": "https://arandu-demo.vercel.app/assets/core-CBO8LKAr.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/core-CBO8LKAr.js",
+      "redirects": [],
+      "sha256": "05fc47f72c19bff0ee14a90cfa8f39d8e799441c4e7c182058de2583ab289622"
+    },
+    {
+      "path": "/assets/covenants-C9noAnc4.js",
+      "url": "https://arandu-demo.vercel.app/assets/covenants-C9noAnc4.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/covenants-C9noAnc4.js",
+      "redirects": [],
+      "sha256": "aecfb3b7f66e8d8e0ace5c66040850d27c64721a463c8d2bd6baeef004fcb2c4"
+    },
+    {
+      "path": "/assets/dashboard-C4vHyCnb.js",
+      "url": "https://arandu-demo.vercel.app/assets/dashboard-C4vHyCnb.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/dashboard-C4vHyCnb.js",
+      "redirects": [],
+      "sha256": "0fccb3e02dee4a857f9ee5f70b71d7651ff0444a95840243d6f52feb290be2d8"
+    },
+    {
+      "path": "/assets/dashboard-Dz1P_ACd.js",
+      "url": "https://arandu-demo.vercel.app/assets/dashboard-Dz1P_ACd.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/dashboard-Dz1P_ACd.js",
+      "redirects": [],
+      "sha256": "dd80de48de2c4490b13ccb91769edb0f9296c79ce39f11805225836fc972981d"
+    },
+    {
+      "path": "/assets/decision-inbox-DE8TBwQq.js",
+      "url": "https://arandu-demo.vercel.app/assets/decision-inbox-DE8TBwQq.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/decision-inbox-DE8TBwQq.js",
+      "redirects": [],
+      "sha256": "5752fb79bfc145f4407fc9c6e9fd185aaa60a5dc9463f9011a528f5badf14909"
+    },
+    {
+      "path": "/assets/demo/index-BZNDeDcs.js",
+      "url": "https://arandu-demo.vercel.app/assets/demo/index-BZNDeDcs.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/demo/index-BZNDeDcs.js",
+      "redirects": [],
+      "sha256": "9e4d25cfabac7f5fa2a50c5bb811a95f6d2b051d6b2322d73d4dfcde5031740a"
+    },
+    {
+      "path": "/assets/demo/visita-04Le_8zn.js",
+      "url": "https://arandu-demo.vercel.app/assets/demo/visita-04Le_8zn.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/demo/visita-04Le_8zn.js",
+      "redirects": [],
+      "sha256": "b89bb8afa5cef1cedc4096041b8e2c3286f4d99b4a021e04bfe450383a69ad5d"
+    },
+    {
+      "path": "/assets/documents-DxDIZXeJ.js",
+      "url": "https://arandu-demo.vercel.app/assets/documents-DxDIZXeJ.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/documents-DxDIZXeJ.js",
+      "redirects": [],
+      "sha256": "1077939bca7c52a5a659afad5be0919a655369b962d200c29fe81f25a8fd9a11"
+    },
+    {
+      "path": "/assets/engine-CdySGsEF.js",
+      "url": "https://arandu-demo.vercel.app/assets/engine-CdySGsEF.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/engine-CdySGsEF.js",
+      "redirects": [],
+      "sha256": "badac8ae5d1f5573753b3cf804ae25942187a0d6418c6c15ba3de1a1c7f9f726"
+    },
+    {
+      "path": "/assets/entities-CrnxF--N.js",
+      "url": "https://arandu-demo.vercel.app/assets/entities-CrnxF--N.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/entities-CrnxF--N.js",
+      "redirects": [],
+      "sha256": "55223c79f3a1aac1eb0da0713974bb8069bf737f023cf53a35c1d4fff593dc81"
+    },
+    {
+      "path": "/assets/executive-DDlNgnFN.js",
+      "url": "https://arandu-demo.vercel.app/assets/executive-DDlNgnFN.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/executive-DDlNgnFN.js",
+      "redirects": [],
+      "sha256": "16f166032610716abdbf29ab21ab28ccf78071afa9ea752454b06678875dded7"
+    },
+    {
+      "path": "/assets/external-proposals-CPVTiqjY.js",
+      "url": "https://arandu-demo.vercel.app/assets/external-proposals-CPVTiqjY.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/external-proposals-CPVTiqjY.js",
+      "redirects": [],
+      "sha256": "4d0c1c2a6df60367e02e3ec648392f5a6e6b9a0b9c2d843ec4d4d145d3e72480"
+    },
+    {
+      "path": "/assets/extractions-BDwEcYXm.js",
+      "url": "https://arandu-demo.vercel.app/assets/extractions-BDwEcYXm.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/extractions-BDwEcYXm.js",
+      "redirects": [],
+      "sha256": "906d0570acba1b3d9b8fa232c2b018ab0592c324b1b6c3452518ec9561adaccf"
+    },
+    {
+      "path": "/assets/favicon-x-CoRhvZ.svg",
+      "url": "https://arandu-demo.vercel.app/assets/favicon-x-CoRhvZ.svg",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/favicon-x-CoRhvZ.svg",
+      "redirects": [],
+      "sha256": "4d686c227f514170281ea0dbd29ebd04a9df023569a6c4c5efa125a554be9e45"
+    },
+    {
+      "path": "/assets/fees-BlMZ2pa2.js",
+      "url": "https://arandu-demo.vercel.app/assets/fees-BlMZ2pa2.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/fees-BlMZ2pa2.js",
+      "redirects": [],
+      "sha256": "32e8f918a1f43cda457958aded08e09df865256ceeded3c6a43ee93e2909faba"
+    },
+    {
+      "path": "/assets/financial-auth-GwJ-thft.js",
+      "url": "https://arandu-demo.vercel.app/assets/financial-auth-GwJ-thft.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/financial-auth-GwJ-thft.js",
+      "redirects": [],
+      "sha256": "81bc6c00502534ffd7d00f6e8cff3d57f37bcb2c3be5b446a6a9d5cb615112fe"
+    },
+    {
+      "path": "/assets/financial-demo-entry-09aB_DeP.js",
+      "url": "https://arandu-demo.vercel.app/assets/financial-demo-entry-09aB_DeP.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/financial-demo-entry-09aB_DeP.js",
+      "redirects": [],
+      "sha256": "5803365bd8cb7358fed9112b5fbb82c47ed391735b0f2f78c9b123e9b807ed06"
+    },
+    {
+      "path": "/assets/financial-icon-180-13L4fmV4.png",
+      "url": "https://arandu-demo.vercel.app/assets/financial-icon-180-13L4fmV4.png",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/financial-icon-180-13L4fmV4.png",
+      "redirects": [],
+      "sha256": "31826d0e41fa7ac267b131d625e5e55fbfe0b4febc01ad52fc0f4bfb1c782325"
+    },
+    {
+      "path": "/assets/financial-public-B8EvfqwC.css",
+      "url": "https://arandu-demo.vercel.app/assets/financial-public-B8EvfqwC.css",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/financial-public-B8EvfqwC.css",
+      "redirects": [],
+      "sha256": "eadb5ae0a7dd36996965bd15f209b048f85138df03d23b19bfc649750912e7ca"
+    },
+    {
+      "path": "/assets/handoff-C1jjdDNW.js",
+      "url": "https://arandu-demo.vercel.app/assets/handoff-C1jjdDNW.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/handoff-C1jjdDNW.js",
+      "redirects": [],
+      "sha256": "c9392ca8f03a36160bd2e23808bad58274027aabd1c1570f6ce53d96c79d99aa"
+    },
+    {
+      "path": "/assets/icons-Bw26Dp4s.svg",
+      "url": "https://arandu-demo.vercel.app/assets/icons-Bw26Dp4s.svg",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/icons-Bw26Dp4s.svg",
+      "redirects": [],
+      "sha256": "9d6e1a5e37e0c3c8cc0b86a091475546ab8e4bb3e92785afbd76c76eaf2197fa"
+    },
+    {
+      "path": "/assets/implementations-CzqOSgtP.js",
+      "url": "https://arandu-demo.vercel.app/assets/implementations-CzqOSgtP.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/implementations-CzqOSgtP.js",
+      "redirects": [],
+      "sha256": "93975ab68b96bb3bb7e5eb8d03cd4aa1502fe3a3d0b3cc96f7a5a8945e21abe0"
+    },
+    {
+      "path": "/assets/instituicao-desktop-BJFU5yUy.webp",
+      "url": "https://arandu-demo.vercel.app/assets/instituicao-desktop-BJFU5yUy.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/instituicao-desktop-BJFU5yUy.webp",
+      "redirects": [],
+      "sha256": "0b40cd6c14c24f0ffdc88bb1fdcd7481a84d94811d72484c26520394d84ae3c8"
+    },
+    {
+      "path": "/assets/instituicao-mobile-e6zyMzew.webp",
+      "url": "https://arandu-demo.vercel.app/assets/instituicao-mobile-e6zyMzew.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/instituicao-mobile-e6zyMzew.webp",
+      "redirects": [],
+      "sha256": "c8b09ed3c15764cd38cd7da4ebda01f611a375d961609c0c941ec7187385e725"
+    },
+    {
+      "path": "/assets/instituicao-proposta-desktop-CRRDWe1B.webp",
+      "url": "https://arandu-demo.vercel.app/assets/instituicao-proposta-desktop-CRRDWe1B.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/instituicao-proposta-desktop-CRRDWe1B.webp",
+      "redirects": [],
+      "sha256": "1a1c2da0133b0df08332e2f0fce953ddbcf5977eded7e548989bd3a31f3af711"
+    },
+    {
+      "path": "/assets/instituicao-proposta-mobile-C4ch-uau.webp",
+      "url": "https://arandu-demo.vercel.app/assets/instituicao-proposta-mobile-C4ch-uau.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/instituicao-proposta-mobile-C4ch-uau.webp",
+      "redirects": [],
+      "sha256": "3229894dee964e124cdee58102c71aae4d2ba091cc8bdbf9f96bf293cadba96c"
+    },
+    {
+      "path": "/assets/intake-Dn6S80Nv.js",
+      "url": "https://arandu-demo.vercel.app/assets/intake-Dn6S80Nv.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/intake-Dn6S80Nv.js",
+      "redirects": [],
+      "sha256": "c0ba01b6fd4924fb0b7a91d589418e3cd2fe263e8098569c5710f65f7d13dc0d"
+    },
+    {
+      "path": "/assets/integrations-sh7yHFIj.js",
+      "url": "https://arandu-demo.vercel.app/assets/integrations-sh7yHFIj.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/integrations-sh7yHFIj.js",
+      "redirects": [],
+      "sha256": "e5c9e72b5f24fbf9a514200bf19e905ef7153ecba476261bf483476c4ab7245a"
+    },
+    {
+      "path": "/assets/ledger-ECT3igbG.js",
+      "url": "https://arandu-demo.vercel.app/assets/ledger-ECT3igbG.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/ledger-ECT3igbG.js",
+      "redirects": [],
+      "sha256": "161d1dd85396265efb1c8c7b9717c33706f2435ab8255e9391f9c412a18837a5"
+    },
+    {
+      "path": "/assets/local-first-C7KroU7Y.js",
+      "url": "https://arandu-demo.vercel.app/assets/local-first-C7KroU7Y.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/local-first-C7KroU7Y.js",
+      "redirects": [],
+      "sha256": "4e764402004e3692430797951d48d378c8a286c2bde8097df4d0a84131a7f857"
+    },
+    {
+      "path": "/assets/manifest-gifOfB1V.webmanifest",
+      "url": "https://arandu-demo.vercel.app/assets/manifest-gifOfB1V.webmanifest",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/manifest-gifOfB1V.webmanifest",
+      "redirects": [],
+      "sha256": "2d0c752109c989a74e88e5bf3ebca261bd8cc05d5883fdcecb1496a92d89ed35"
+    },
+    {
+      "path": "/assets/next-action-CPVu_yC3.js",
+      "url": "https://arandu-demo.vercel.app/assets/next-action-CPVu_yC3.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/next-action-CPVu_yC3.js",
+      "redirects": [],
+      "sha256": "288d1b9382095aa07623676972351555750db289b1536197f64fb2b1c7ed8a6d"
+    },
+    {
+      "path": "/assets/opportunities-BfJl_GwQ.js",
+      "url": "https://arandu-demo.vercel.app/assets/opportunities-BfJl_GwQ.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/opportunities-BfJl_GwQ.js",
+      "redirects": [],
+      "sha256": "c2ba7053200b8084411a2fbdd2d862a351202c7c0872a54d251e745dec3ed35e"
+    },
+    {
+      "path": "/assets/ops-CXj1I87d.js",
+      "url": "https://arandu-demo.vercel.app/assets/ops-CXj1I87d.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/ops-CXj1I87d.js",
+      "redirects": [],
+      "sha256": "ca62e687c316fac97ae58ebaa243969ef2a2819aae685630fb76cc737e4370ae"
+    },
+    {
+      "path": "/assets/painel-desktop-iTCNI3PX.webp",
+      "url": "https://arandu-demo.vercel.app/assets/painel-desktop-iTCNI3PX.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/painel-desktop-iTCNI3PX.webp",
+      "redirects": [],
+      "sha256": "cae6b977c0e9c62ecc1f10559bc0dec28459f91516f85a743c7670e9534872fc"
+    },
+    {
+      "path": "/assets/painel-mobile-Llb6Edb9.webp",
+      "url": "https://arandu-demo.vercel.app/assets/painel-mobile-Llb6Edb9.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/painel-mobile-Llb6Edb9.webp",
+      "redirects": [],
+      "sha256": "c2d52181b5d0338ace2e7a0ddef8ebbe69e4277312295b9ba281f66c1b698728"
+    },
+    {
+      "path": "/assets/passport-BSNH0ap6.js",
+      "url": "https://arandu-demo.vercel.app/assets/passport-BSNH0ap6.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/passport-BSNH0ap6.js",
+      "redirects": [],
+      "sha256": "4274b4a00a4a82aa87b7078d84edd70724dea3c24cb217cb49a418e9853415a4"
+    },
+    {
+      "path": "/assets/passport-C8fxY-t2.js",
+      "url": "https://arandu-demo.vercel.app/assets/passport-C8fxY-t2.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/passport-C8fxY-t2.js",
+      "redirects": [],
+      "sha256": "b591f456bc975a5e2f7f12dee1c33b62a10b5f86788695c5b775b5ececd913cd"
+    },
+    {
+      "path": "/assets/performance-B5xnsTcc.js",
+      "url": "https://arandu-demo.vercel.app/assets/performance-B5xnsTcc.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/performance-B5xnsTcc.js",
+      "redirects": [],
+      "sha256": "7732e1ff7a56b4c2b43f2bc944499e6522f5ddbc3b53f535e0f2578a7f8f1fbf"
+    },
+    {
+      "path": "/assets/policy-BrReO6DQ.js",
+      "url": "https://arandu-demo.vercel.app/assets/policy-BrReO6DQ.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/policy-BrReO6DQ.js",
+      "redirects": [],
+      "sha256": "8dca8ea788c0eaae7065f0988fe15cc0282f6f0861e1d84ae30967dbd592402a"
+    },
+    {
+      "path": "/assets/policy-DH6HCqGp.js",
+      "url": "https://arandu-demo.vercel.app/assets/policy-DH6HCqGp.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/policy-DH6HCqGp.js",
+      "redirects": [],
+      "sha256": "41cf251965e053e2beaf96ae422e91e2b46d06894e07e452ed2cf3933a32ef87"
+    },
+    {
+      "path": "/assets/policy-line--rZh5dia.js",
+      "url": "https://arandu-demo.vercel.app/assets/policy-line--rZh5dia.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/policy-line--rZh5dia.js",
+      "redirects": [],
+      "sha256": "8ad3276cb8a84f29e5a71f41159c9148727ca8c28204fd57dbf0f0c9932cc7b3"
+    },
+    {
+      "path": "/assets/popover-6iDPlCc3.js",
+      "url": "https://arandu-demo.vercel.app/assets/popover-6iDPlCc3.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/popover-6iDPlCc3.js",
+      "redirects": [],
+      "sha256": "3f611ee179dd1748f3718121dcb704aece1faa4aeb3c51b7ef10f8d61d0fc24d"
+    },
+    {
+      "path": "/assets/portfolio-Bm2DHjka.js",
+      "url": "https://arandu-demo.vercel.app/assets/portfolio-Bm2DHjka.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/portfolio-Bm2DHjka.js",
+      "redirects": [],
+      "sha256": "37e89574fa9538e71760f1965d9e3bab4404b93b6dc123931e87248e704ce47c"
+    },
+    {
+      "path": "/assets/portfolio-DNgugo-k.js",
+      "url": "https://arandu-demo.vercel.app/assets/portfolio-DNgugo-k.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/portfolio-DNgugo-k.js",
+      "redirects": [],
+      "sha256": "704df418ebc70b5dd4a569c9f59b50d209918151290e3675b78a9965c1d476ef"
+    },
+    {
+      "path": "/assets/preferences-CN4eZABx.js",
+      "url": "https://arandu-demo.vercel.app/assets/preferences-CN4eZABx.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/preferences-CN4eZABx.js",
+      "redirects": [],
+      "sha256": "47995f17966718a03f2102fdf668945faf1da1db42651f1f3fe07506202c9caf"
+    },
+    {
+      "path": "/assets/preload-helper-DHhhL8Zf.js",
+      "url": "https://arandu-demo.vercel.app/assets/preload-helper-DHhhL8Zf.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/preload-helper-DHhhL8Zf.js",
+      "redirects": [],
+      "sha256": "616967e76046f7a294c7ad1643f1ab9993561d942fd47c439a02f58b0569e70c"
+    },
+    {
+      "path": "/assets/propostas-desktop-BTa8qdtT.webp",
+      "url": "https://arandu-demo.vercel.app/assets/propostas-desktop-BTa8qdtT.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/propostas-desktop-BTa8qdtT.webp",
+      "redirects": [],
+      "sha256": "faa3552e3b5767cc67782a9b7c1f25da9773a79d3e1af4517e116ed8f913ddbe"
+    },
+    {
+      "path": "/assets/propostas-mobile-PTW8Az0x.webp",
+      "url": "https://arandu-demo.vercel.app/assets/propostas-mobile-PTW8Az0x.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/propostas-mobile-PTW8Az0x.webp",
+      "redirects": [],
+      "sha256": "a23d7baca29e7d039f67657236c7f620b6abbc6c789222fb3c465d944374262a"
+    },
+    {
+      "path": "/assets/provider-CD8C9LV-.js",
+      "url": "https://arandu-demo.vercel.app/assets/provider-CD8C9LV-.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/provider-CD8C9LV-.js",
+      "redirects": [],
+      "sha256": "3b22c3f5c80bf70857ce911aacd07509c338b88b62c458ef2e5e3bd560d59bc7"
+    },
+    {
+      "path": "/assets/provider-portal-DiuVUldX.js",
+      "url": "https://arandu-demo.vercel.app/assets/provider-portal-DiuVUldX.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/provider-portal-DiuVUldX.js",
+      "redirects": [],
+      "sha256": "07608fa3cafb1de2270d1edf33254336f7c252c9495888021682bd887a7ccd70"
+    },
+    {
+      "path": "/assets/provider-relationship-nqAeH7YS.js",
+      "url": "https://arandu-demo.vercel.app/assets/provider-relationship-nqAeH7YS.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/provider-relationship-nqAeH7YS.js",
+      "redirects": [],
+      "sha256": "9564df0627589a79b7992ea8c6f0600041070e5f3d6d83a58a95ea5c38cb0d53"
+    },
+    {
+      "path": "/assets/qualifications-CvHqOg4F.js",
+      "url": "https://arandu-demo.vercel.app/assets/qualifications-CvHqOg4F.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/qualifications-CvHqOg4F.js",
+      "redirects": [],
+      "sha256": "61f78eae60d63c478b46757c12ec5e0856b43101f182e36a22c4cd1312c68855"
+    },
+    {
+      "path": "/assets/registry-CFutxjHF.js",
+      "url": "https://arandu-demo.vercel.app/assets/registry-CFutxjHF.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/registry-CFutxjHF.js",
+      "redirects": [],
+      "sha256": "0d9c2ccb1697fa11a4dd1d2c29c2bd320931e59ce17feaad818756700a4e76b8"
+    },
+    {
+      "path": "/assets/relacionamentos-desktop-YjPg7GlV.webp",
+      "url": "https://arandu-demo.vercel.app/assets/relacionamentos-desktop-YjPg7GlV.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/relacionamentos-desktop-YjPg7GlV.webp",
+      "redirects": [],
+      "sha256": "6ccfa3e7952eea1695b779cd6ac3ca896f4e8aee3ad0c3d194d56bf41c101f34"
+    },
+    {
+      "path": "/assets/relacionamentos-mobile-D9-WJftq.webp",
+      "url": "https://arandu-demo.vercel.app/assets/relacionamentos-mobile-D9-WJftq.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/relacionamentos-mobile-D9-WJftq.webp",
+      "redirects": [],
+      "sha256": "261585334a5f065e883d7ee2039e044156ad21c82264200d59fb561e9be9273f"
+    },
+    {
+      "path": "/assets/relationship-center-Da9cqD9I.js",
+      "url": "https://arandu-demo.vercel.app/assets/relationship-center-Da9cqD9I.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/relationship-center-Da9cqD9I.js",
+      "redirects": [],
+      "sha256": "797ee6cfb562358cf572504bcc42fafc3b52dfce090306e7fe1b4d46f4b52ffc"
+    },
+    {
+      "path": "/assets/rfq-BgWWMx7-.js",
+      "url": "https://arandu-demo.vercel.app/assets/rfq-BgWWMx7-.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/rfq-BgWWMx7-.js",
+      "redirects": [],
+      "sha256": "5ab3548a4c2408bc21a71abddb1ff8f1e4567404152f498b9139cab57689c301"
+    },
+    {
+      "path": "/assets/rfq-page--UEfFnXs.js",
+      "url": "https://arandu-demo.vercel.app/assets/rfq-page--UEfFnXs.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/rfq-page--UEfFnXs.js",
+      "redirects": [],
+      "sha256": "0239f91aee212eda61ac20e57807ba03d40936500ac44cbd32c093f889c08294"
+    },
+    {
+      "path": "/assets/rfqs-CH7QHLmP.js",
+      "url": "https://arandu-demo.vercel.app/assets/rfqs-CH7QHLmP.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/rfqs-CH7QHLmP.js",
+      "redirects": [],
+      "sha256": "96fd240a48cad0aa0cf96605c5503f91590748b3a6ef6963dbbd288381f1c2d2"
+    },
+    {
+      "path": "/assets/route-DCkfDM4B.js",
+      "url": "https://arandu-demo.vercel.app/assets/route-DCkfDM4B.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/route-DCkfDM4B.js",
+      "redirects": [],
+      "sha256": "731e02b4a14de96f49958a96ee9d9a4f6cd4c8239dc7c6dc93cd8f423cbbe473"
+    },
+    {
+      "path": "/assets/saved-views-B8nmKJKz.js",
+      "url": "https://arandu-demo.vercel.app/assets/saved-views-B8nmKJKz.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/saved-views-B8nmKJKz.js",
+      "redirects": [],
+      "sha256": "5cb8efe0d40452d0837fbb1061c0235a5b64a01f5744879d7d40679cddbcb431"
+    },
+    {
+      "path": "/assets/seed-Cy4z2soV.js",
+      "url": "https://arandu-demo.vercel.app/assets/seed-Cy4z2soV.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/seed-Cy4z2soV.js",
+      "redirects": [],
+      "sha256": "56f930c25bc171491a7c6997c4a274a93a6ab4fdabb5db9edec964302206ca58"
+    },
+    {
+      "path": "/assets/settings-architecture-DM7zUo_Q.js",
+      "url": "https://arandu-demo.vercel.app/assets/settings-architecture-DM7zUo_Q.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/settings-architecture-DM7zUo_Q.js",
+      "redirects": [],
+      "sha256": "c64d8cc42f487c89911e75afa00d8437d961f6656b0793e9bc561b2e42028265"
+    },
+    {
+      "path": "/assets/shared-D_z-qlOd.js",
+      "url": "https://arandu-demo.vercel.app/assets/shared-D_z-qlOd.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/shared-D_z-qlOd.js",
+      "redirects": [],
+      "sha256": "e9491df0cc54d012038e019ac3e3cdca6af62feb30b4bdfb9e64b6e51b80be1b"
+    },
+    {
+      "path": "/assets/shell-XBe1abEC.js",
+      "url": "https://arandu-demo.vercel.app/assets/shell-XBe1abEC.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/shell-XBe1abEC.js",
+      "redirects": [],
+      "sha256": "c69b6865dff31a01b919629eea83f7d9611d46f76d4e645eccc215b1ed5c6467"
+    },
+    {
+      "path": "/assets/solicitacao-desktop-prQYspeh.webp",
+      "url": "https://arandu-demo.vercel.app/assets/solicitacao-desktop-prQYspeh.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/solicitacao-desktop-prQYspeh.webp",
+      "redirects": [],
+      "sha256": "5ccae7de5ed0bac656ec786170d762c3629c87ac33f7da977373ea43f0f00ab2"
+    },
+    {
+      "path": "/assets/solicitacao-mobile-CkpZLYYV.webp",
+      "url": "https://arandu-demo.vercel.app/assets/solicitacao-mobile-CkpZLYYV.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/solicitacao-mobile-CkpZLYYV.webp",
+      "redirects": [],
+      "sha256": "d79543873ba8cdf934dfc401e397faefb5f435e968ea6a54506248b95a11c8eb"
+    },
+    {
+      "path": "/assets/spend-CnW6jRXC.js",
+      "url": "https://arandu-demo.vercel.app/assets/spend-CnW6jRXC.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/spend-CnW6jRXC.js",
+      "redirects": [],
+      "sha256": "cb356e48906b23410118da382cc53cae588a0b611b8e928cf6b40b452c13ccae"
+    },
+    {
+      "path": "/assets/sso-MiBr-8S5.js",
+      "url": "https://arandu-demo.vercel.app/assets/sso-MiBr-8S5.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/sso-MiBr-8S5.js",
+      "redirects": [],
+      "sha256": "c53bd8126a968347ee9a856d65b7827fafab95f532806ca9859d6bea3f9bd05f"
+    },
+    {
+      "path": "/assets/style-Czsa70BJ.css",
+      "url": "https://arandu-demo.vercel.app/assets/style-Czsa70BJ.css",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/style-Czsa70BJ.css",
+      "redirects": [],
+      "sha256": "0f9bece3f10fa16f4eb78a49baf077306342afda6248a4cef8107dc9064b66d7"
+    },
+    {
+      "path": "/assets/transitions-Cq2wsLBQ.js",
+      "url": "https://arandu-demo.vercel.app/assets/transitions-Cq2wsLBQ.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/transitions-Cq2wsLBQ.js",
+      "redirects": [],
+      "sha256": "aac4b63429aaa2a6af6acd11558e0c1edb2604a538c329028571104a5d2f43ea"
+    },
+    {
+      "path": "/assets/transitions-lQB9tF9O.css",
+      "url": "https://arandu-demo.vercel.app/assets/transitions-lQB9tF9O.css",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/transitions-lQB9tF9O.css",
+      "redirects": [],
+      "sha256": "d654bec50acd6d1c4422d4f94b19a1c4ff8541bf6f3b7ebe0de71895a252d234"
+    },
+    {
+      "path": "/assets/ui-DvoNaTMa.js",
+      "url": "https://arandu-demo.vercel.app/assets/ui-DvoNaTMa.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/ui-DvoNaTMa.js",
+      "redirects": [],
+      "sha256": "058a1d66ca9ef6a8d482d20bbcf712fde05adc2f19b37fc26403dc3776473695"
+    },
+    {
+      "path": "/assets/usage-XQ6q19rw.js",
+      "url": "https://arandu-demo.vercel.app/assets/usage-XQ6q19rw.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/usage-XQ6q19rw.js",
+      "redirects": [],
+      "sha256": "661e695228268d24beffd2a2b5b07d37e5dd4890b31dbae6bbec7957852dbfbe"
+    },
+    {
+      "path": "/assets/value-AgFlWfZn.js",
+      "url": "https://arandu-demo.vercel.app/assets/value-AgFlWfZn.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/value-AgFlWfZn.js",
+      "redirects": [],
+      "sha256": "ebc9bd46984439d3598af3584f78ed3d6136633f287c94a014ed547668753130"
+    },
+    {
+      "path": "/assets/vercel-speed-insights-C0hWaJ-P.js",
+      "url": "https://arandu-demo.vercel.app/assets/vercel-speed-insights-C0hWaJ-P.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/vercel-speed-insights-C0hWaJ-P.js",
+      "redirects": [],
+      "sha256": "c0c2484fed83e2ec262474432adf74ce751c6f8576f5a68b3e2df877b9528ee6"
+    },
+    {
+      "path": "/assets/workspace-Cmm52jV1.webp",
+      "url": "https://arandu-demo.vercel.app/assets/workspace-Cmm52jV1.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/workspace-Cmm52jV1.webp",
+      "redirects": [],
+      "sha256": "292dbd86ec702fcf4abf3f99388db23579cdd1735c8064f1930152c1bf05bfea"
+    },
+    {
+      "path": "/assets/workspace-DDgh89lo.js",
+      "url": "https://arandu-demo.vercel.app/assets/workspace-DDgh89lo.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/assets/workspace-DDgh89lo.js",
+      "redirects": [],
+      "sha256": "3a8f3617bb8347ef7420c7b4aed082c064310f4e4e6d2d3bbcc1921325938257"
+    },
+    {
+      "path": "/cadastro.html",
+      "url": "https://arandu-demo.vercel.app/cadastro.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/cadastro.html",
+      "redirects": [],
+      "sha256": "00edf6144d169fbaa3d7dd3bc827253c838fb75a5109f20e556bdeb04ea97736"
+    },
+    {
+      "path": "/credito.html",
+      "url": "https://arandu-demo.vercel.app/credito.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/credito.html",
+      "redirects": [],
+      "sha256": "220cd76aaa5d9d9364ba63f3e0907215292e3bf17a4deb5cf3d625ada83f3e55"
+    },
+    {
+      "path": "/demo/finance/approvals.html",
+      "url": "https://arandu-demo.vercel.app/demo/finance/approvals.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/demo/finance/approvals.html",
+      "redirects": [],
+      "sha256": "20ac8559f646ad43d3cfaa145073180d450f3b1c05040edebacb91d2f0176d0e"
+    },
+    {
+      "path": "/demo/finance/boundaries.html",
+      "url": "https://arandu-demo.vercel.app/demo/finance/boundaries.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/demo/finance/boundaries.html",
+      "redirects": [],
+      "sha256": "8a31b72e0c094801901f654461431d56a78eef27bab88d087b37cec54aa3c494"
+    },
+    {
+      "path": "/demo/finance/contracts.html",
+      "url": "https://arandu-demo.vercel.app/demo/finance/contracts.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/demo/finance/contracts.html",
+      "redirects": [],
+      "sha256": "bee06e3d7a46883dc359dbb891ea09506261efa6fb1dab2ec671ed1c57d75df1"
+    },
+    {
+      "path": "/demo/finance/dashboard.html",
+      "url": "https://arandu-demo.vercel.app/demo/finance/dashboard.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/demo/finance/dashboard.html",
+      "redirects": [],
+      "sha256": "f82a624bd713f718e3231dd91d9adb71b94ecfbad8b8330e5c0b35ef80a005c3"
+    },
+    {
+      "path": "/demo/finance/fees.html",
+      "url": "https://arandu-demo.vercel.app/demo/finance/fees.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/demo/finance/fees.html",
+      "redirects": [],
+      "sha256": "70eb0280afff52dc2744a32c159a5c816304054b7f8116236e42ba1a52db6b02"
+    },
+    {
+      "path": "/demo/finance/index.html",
+      "url": "https://arandu-demo.vercel.app/demo/finance/index.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/demo/finance/index.html",
+      "redirects": [],
+      "sha256": "17b28143fce0cf149f7645c1a30ca3da310c66ac543d31e6e5e611cf1d5b8d89"
+    },
+    {
+      "path": "/demo/finance/intake.html",
+      "url": "https://arandu-demo.vercel.app/demo/finance/intake.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/demo/finance/intake.html",
+      "redirects": [],
+      "sha256": "6207f13eed1749694026ea00fd8da1959ec70ae6eccde4d55a1a2fe6a2749d58"
+    },
+    {
+      "path": "/demo/finance/integrations.html",
+      "url": "https://arandu-demo.vercel.app/demo/finance/integrations.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/demo/finance/integrations.html",
+      "redirects": [],
+      "sha256": "235f4586bc3173647cc8ce7ca820441484bd33d459144247191e5beafd03489c"
+    },
+    {
+      "path": "/demo/finance/new-rfq.html",
+      "url": "https://arandu-demo.vercel.app/demo/finance/new-rfq.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/demo/finance/new-rfq.html",
+      "redirects": [],
+      "sha256": "6867959c40af41391dec5197c1ca5627d1bae353af281498fe2737c959882990"
+    },
+    {
+      "path": "/demo/finance/notifications.html",
+      "url": "https://arandu-demo.vercel.app/demo/finance/notifications.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/demo/finance/notifications.html",
+      "redirects": [],
+      "sha256": "2445da2f056102521c7a2b3aaf94fd45a619f08b2f6a1c8501358bc1f0af1720"
+    },
+    {
+      "path": "/demo/finance/opportunities.html",
+      "url": "https://arandu-demo.vercel.app/demo/finance/opportunities.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/demo/finance/opportunities.html",
+      "redirects": [],
+      "sha256": "053b077ad2c8fc33d8a7f6c638c73dfee71f8a13493243c3f73e8584ce8dab5f"
+    },
+    {
+      "path": "/demo/finance/ops.html",
+      "url": "https://arandu-demo.vercel.app/demo/finance/ops.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/demo/finance/ops.html",
+      "redirects": [],
+      "sha256": "bc0b705a7a18a78013cbb4cd6671f07fe54beea7a7bb9e912a8cc1a3abebb04e"
+    },
+    {
+      "path": "/demo/finance/passport.html",
+      "url": "https://arandu-demo.vercel.app/demo/finance/passport.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/demo/finance/passport.html",
+      "redirects": [],
+      "sha256": "8af1d90456cab7ba5bb383dae2bb89da69ecdf255bfce7a6e155113438ba9bb0"
+    },
+    {
+      "path": "/demo/finance/policies.html",
+      "url": "https://arandu-demo.vercel.app/demo/finance/policies.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/demo/finance/policies.html",
+      "redirects": [],
+      "sha256": "a2233591252803337a5d8f50b8ed88f8531fcb59225765f2b9b68b029bf9198c"
+    },
+    {
+      "path": "/demo/finance/portfolio.html",
+      "url": "https://arandu-demo.vercel.app/demo/finance/portfolio.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/demo/finance/portfolio.html",
+      "redirects": [],
+      "sha256": "5f426b85073f99696af04a4ce600c15c4bc3d3725842da727893c41e90dca3ae"
+    },
+    {
+      "path": "/demo/finance/proposals.html",
+      "url": "https://arandu-demo.vercel.app/demo/finance/proposals.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/demo/finance/proposals.html",
+      "redirects": [],
+      "sha256": "ac2c1d2e32e189296c48abbb0233208ec40a0cf877ac1df330d62627da108538"
+    },
+    {
+      "path": "/demo/finance/providers.html",
+      "url": "https://arandu-demo.vercel.app/demo/finance/providers.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/demo/finance/providers.html",
+      "redirects": [],
+      "sha256": "5abb3656437c6c1745615b484eb1904494ad5083ffc49cfa38d21845d97e60da"
+    },
+    {
+      "path": "/demo/finance/rfq.html",
+      "url": "https://arandu-demo.vercel.app/demo/finance/rfq.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/demo/finance/rfq.html",
+      "redirects": [],
+      "sha256": "3c30e4cba2d7bcb802def44909c6e5fe0b186e892d4784ec8872692071f7fc37"
+    },
+    {
+      "path": "/demo/finance/rfqs.html",
+      "url": "https://arandu-demo.vercel.app/demo/finance/rfqs.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/demo/finance/rfqs.html",
+      "redirects": [],
+      "sha256": "f39a36d349c0bff1d1b35af1bd941538c1a731ed25cff7cecbbee9e6f5fb7b7b"
+    },
+    {
+      "path": "/demo/finance/settings.html",
+      "url": "https://arandu-demo.vercel.app/demo/finance/settings.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/demo/finance/settings.html",
+      "redirects": [],
+      "sha256": "bd055f53d86e642e20ebd02a8fb0bd4a4b3c91cb65dc87de9066e24cde7edb16"
+    },
+    {
+      "path": "/demo/finance/tasks.html",
+      "url": "https://arandu-demo.vercel.app/demo/finance/tasks.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/demo/finance/tasks.html",
+      "redirects": [],
+      "sha256": "65dd2e6192157641b9e409ebbdf4a044d659f0780b2d1bde431c4dd2ecf22563"
+    },
+    {
+      "path": "/demo/finance/usage.html",
+      "url": "https://arandu-demo.vercel.app/demo/finance/usage.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/demo/finance/usage.html",
+      "redirects": [],
+      "sha256": "7aadd30efa1601cc19a1fb2523727ec79f685f715dc4977bbf872084db6aa195"
+    },
+    {
+      "path": "/demo/finance/value.html",
+      "url": "https://arandu-demo.vercel.app/demo/finance/value.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/demo/finance/value.html",
+      "redirects": [],
+      "sha256": "41ca98458fbce333c875aa3ca45660337fde6401fa482512282f245900271c3d"
+    },
+    {
+      "path": "/demo/index.html",
+      "url": "https://arandu-demo.vercel.app/demo/index.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/demo/index.html",
+      "redirects": [],
+      "sha256": "a23a1ad3b2106e68782f2010ca4596ca01d291e5e03e33f026f467952e2fdfaf"
+    },
+    {
+      "path": "/demo/provider/index.html",
+      "url": "https://arandu-demo.vercel.app/demo/provider/index.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/demo/provider/index.html",
+      "redirects": [],
+      "sha256": "5ed576b8225607deb9ec298c436fc071961d8a18f862c5cef078d77cbd2d7c5b"
+    },
+    {
+      "path": "/demo/provider/invite.html",
+      "url": "https://arandu-demo.vercel.app/demo/provider/invite.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/demo/provider/invite.html",
+      "redirects": [],
+      "sha256": "1193cafee7dbbbd408a10bd6efe455ffd1177c95f44edb06a7209bfac8c8178c"
+    },
+    {
+      "path": "/demo/provider/proposal.html",
+      "url": "https://arandu-demo.vercel.app/demo/provider/proposal.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/demo/provider/proposal.html",
+      "redirects": [],
+      "sha256": "233c745a2cdde4d7dcbff19be1b26e4212de93b288a9b4f6929df179d0ca6e07"
+    },
+    {
+      "path": "/demo/provider/rfqs.html",
+      "url": "https://arandu-demo.vercel.app/demo/provider/rfqs.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/demo/provider/rfqs.html",
+      "redirects": [],
+      "sha256": "26a51c673404b6921a4f9be57ca0527ef2753ad9cb79e514a468a90417e9440a"
+    },
+    {
+      "path": "/demo/visita.html",
+      "url": "https://arandu-demo.vercel.app/demo/visita.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/demo/visita.html",
+      "redirects": [],
+      "sha256": "4cd5a14ec21aa234b52b1b5d448ad0d334b8db7b20895c1875619fdc8cc5b335"
+    },
+    {
+      "path": "/favicon.svg",
+      "url": "https://arandu-demo.vercel.app/favicon.svg",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/favicon.svg",
+      "redirects": [],
+      "sha256": "4d686c227f514170281ea0dbd29ebd04a9df023569a6c4c5efa125a554be9e45"
+    },
+    {
+      "path": "/finance/approvals.html",
+      "url": "https://arandu-demo.vercel.app/finance/approvals.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/finance/approvals.html",
+      "redirects": [],
+      "sha256": "55eccfcc4471032472af8b7a1d221bdff336406a483b40b93dd47ff8a7cc9d92"
+    },
+    {
+      "path": "/finance/boundaries.html",
+      "url": "https://arandu-demo.vercel.app/finance/boundaries.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/finance/boundaries.html",
+      "redirects": [],
+      "sha256": "ed72186c6035be3272782c702e6b56f3d873bf05e90be3b1fc7cc9131d27d3d1"
+    },
+    {
+      "path": "/finance/contracts.html",
+      "url": "https://arandu-demo.vercel.app/finance/contracts.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/finance/contracts.html",
+      "redirects": [],
+      "sha256": "18ed684584f8e63d3f116a1526efee43634cd37939ace400b3b7602e92aa251e"
+    },
+    {
+      "path": "/finance/covenants.html",
+      "url": "https://arandu-demo.vercel.app/finance/covenants.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/finance/covenants.html",
+      "redirects": [],
+      "sha256": "94c4d4e85613fa816e8a369ebb932408516b97150614dbe8da4ac367f9358554"
+    },
+    {
+      "path": "/finance/dashboard.html",
+      "url": "https://arandu-demo.vercel.app/finance/dashboard.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/finance/dashboard.html",
+      "redirects": [],
+      "sha256": "ef4ae818f8016c848b5f147e029b56596ace7943e8e52c7c2a354e934fc4e6ad"
+    },
+    {
+      "path": "/finance/extractions.html",
+      "url": "https://arandu-demo.vercel.app/finance/extractions.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/finance/extractions.html",
+      "redirects": [],
+      "sha256": "f0ba4cbb000f59452ec5a7d013a606e0ef30770fdfba4de23cb83a40b046cc1a"
+    },
+    {
+      "path": "/finance/fees.html",
+      "url": "https://arandu-demo.vercel.app/finance/fees.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/finance/fees.html",
+      "redirects": [],
+      "sha256": "ff14c54e48ffb86030ca189ae307e1c8842c34191f18837c3978708add1886b4"
+    },
+    {
+      "path": "/finance/implementations.html",
+      "url": "https://arandu-demo.vercel.app/finance/implementations.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/finance/implementations.html",
+      "redirects": [],
+      "sha256": "a650d46082f0f7b11d81d9d57230a229c5304793594a4d88da7277a083758849"
+    },
+    {
+      "path": "/finance/index.html",
+      "url": "https://arandu-demo.vercel.app/finance/index.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/finance/index.html",
+      "redirects": [],
+      "sha256": "81f19d57f122b4260357b922ea5d7fe71a3f54dbf4a2cbe4af32bbe5f4de1325"
+    },
+    {
+      "path": "/finance/new-rfq.html",
+      "url": "https://arandu-demo.vercel.app/finance/new-rfq.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/finance/new-rfq.html",
+      "redirects": [],
+      "sha256": "060c4fe1174502a029d067c4f45d97243ca81cb3187ee0c715c8b1036d5ac0bc"
+    },
+    {
+      "path": "/finance/notifications.html",
+      "url": "https://arandu-demo.vercel.app/finance/notifications.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/finance/notifications.html",
+      "redirects": [],
+      "sha256": "1180388fc18ea7ebffc81341b21176e11791403520b7166e39a51890e329982d"
+    },
+    {
+      "path": "/finance/opportunities.html",
+      "url": "https://arandu-demo.vercel.app/finance/opportunities.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/finance/opportunities.html",
+      "redirects": [],
+      "sha256": "8260822f3d6b120116179fb341935a02aafc3b287dd3bfa159d5163e0e225ffd"
+    },
+    {
+      "path": "/finance/ops.html",
+      "url": "https://arandu-demo.vercel.app/finance/ops.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/finance/ops.html",
+      "redirects": [],
+      "sha256": "1c913b3729f517bf6af275d3c11f6c8eed818cb666ad1eef7d645d0c2b7fd56d"
+    },
+    {
+      "path": "/finance/passport.html",
+      "url": "https://arandu-demo.vercel.app/finance/passport.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/finance/passport.html",
+      "redirects": [],
+      "sha256": "25909e5ab49b2303e843c99e8390fdad2c179b17ad7d4080e204ad25ec617fe0"
+    },
+    {
+      "path": "/finance/performance.html",
+      "url": "https://arandu-demo.vercel.app/finance/performance.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/finance/performance.html",
+      "redirects": [],
+      "sha256": "83bb8f79b4ff1ff0a517cd7486a95266dd057851e5e203e9e8c7913287167705"
+    },
+    {
+      "path": "/finance/portfolio.html",
+      "url": "https://arandu-demo.vercel.app/finance/portfolio.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/finance/portfolio.html",
+      "redirects": [],
+      "sha256": "90e23d395fe9f9808ebc0cffea1637435cc7d67cfa46536563cc1a385fec5126"
+    },
+    {
+      "path": "/finance/proposals.html",
+      "url": "https://arandu-demo.vercel.app/finance/proposals.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/finance/proposals.html",
+      "redirects": [],
+      "sha256": "0239a50c9e80a84088b718ead91717a5f491bfafd30f65340e5be6b41175449e"
+    },
+    {
+      "path": "/finance/providers.html",
+      "url": "https://arandu-demo.vercel.app/finance/providers.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/finance/providers.html",
+      "redirects": [],
+      "sha256": "2e850cd7a26fc2274e6848d8093d74d48769e347e31711858acce5527c754a56"
+    },
+    {
+      "path": "/finance/qualifications.html",
+      "url": "https://arandu-demo.vercel.app/finance/qualifications.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/finance/qualifications.html",
+      "redirects": [],
+      "sha256": "58ff168d5eb42c9ad820c330d0a05545c6eac833e54599c22f8b625f8d89e18d"
+    },
+    {
+      "path": "/finance/rfq.html",
+      "url": "https://arandu-demo.vercel.app/finance/rfq.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/finance/rfq.html",
+      "redirects": [],
+      "sha256": "b99fd9d2409306ece7270186934f41e292b4f4d6a35f618a8cba89a0aea93a56"
+    },
+    {
+      "path": "/finance/rfqs.html",
+      "url": "https://arandu-demo.vercel.app/finance/rfqs.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/finance/rfqs.html",
+      "redirects": [],
+      "sha256": "e154d25906b35bc4393e62cb02158b18e820f51f2e6bb183d7b5490be1512f3b"
+    },
+    {
+      "path": "/finance/settings.html",
+      "url": "https://arandu-demo.vercel.app/finance/settings.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/finance/settings.html",
+      "redirects": [],
+      "sha256": "dc52a854649361697587dd46e4547c840253f9450c2ffedce60cd94add20b873"
+    },
+    {
+      "path": "/finance/spend.html",
+      "url": "https://arandu-demo.vercel.app/finance/spend.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/finance/spend.html",
+      "redirects": [],
+      "sha256": "8abd452e3f00999da842578b42f3f0e3483a71e2cd4508a50cf1d78f5d4cc6f3"
+    },
+    {
+      "path": "/finance/tasks.html",
+      "url": "https://arandu-demo.vercel.app/finance/tasks.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/finance/tasks.html",
+      "redirects": [],
+      "sha256": "2a45fbd24d5dcf425d6f8f97af876388ae0fe96e53b76de3ccf088254bf3fbed"
+    },
+    {
+      "path": "/finance/value.html",
+      "url": "https://arandu-demo.vercel.app/finance/value.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/finance/value.html",
+      "redirects": [],
+      "sha256": "89aae91d0f138024c2fdbeb73676894ad45f906e26e1f839d3b8b15262c02df3"
+    },
+    {
+      "path": "/financial-icon-180.png",
+      "url": "https://arandu-demo.vercel.app/financial-icon-180.png",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/financial-icon-180.png",
+      "redirects": [],
+      "sha256": "31826d0e41fa7ac267b131d625e5e55fbfe0b4febc01ad52fc0f4bfb1c782325"
+    },
+    {
+      "path": "/financial-icon-192.png",
+      "url": "https://arandu-demo.vercel.app/financial-icon-192.png",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/financial-icon-192.png",
+      "redirects": [],
+      "sha256": "6f45680b1d73fb77b95ad755dfcd8890973f27e0c04b8d213817a795f296e329"
+    },
+    {
+      "path": "/financial-icon-32.png",
+      "url": "https://arandu-demo.vercel.app/financial-icon-32.png",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/financial-icon-32.png",
+      "redirects": [],
+      "sha256": "ad1f685dac8ebae988e3b5fc3671b386756de7a4fb6c09efc3cf33f8018a304b"
+    },
+    {
+      "path": "/financial-icon-512.png",
+      "url": "https://arandu-demo.vercel.app/financial-icon-512.png",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/financial-icon-512.png",
+      "redirects": [],
+      "sha256": "3a003a570372ac5415c2e9250e2221a1e4a158f1cb3adf559cad9fb308cb775d"
+    },
+    {
+      "path": "/financial-og.png",
+      "url": "https://arandu-demo.vercel.app/financial-og.png",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/financial-og.png",
+      "redirects": [],
+      "sha256": "da05dfc7df8c30a49d8fc6adc28b1cfec78e34c0e89e81bf9cf2c87586e5bcce"
+    },
+    {
+      "path": "/index.html",
+      "url": "https://arandu-demo.vercel.app/index.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/index.html",
+      "redirects": [],
+      "sha256": "ceb669094262d5182fe8e9f13c7447d3e14acd4622eb2c76942532c3fde6dbab"
+    },
+    {
+      "path": "/limites.html",
+      "url": "https://arandu-demo.vercel.app/limites.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/limites.html",
+      "redirects": [],
+      "sha256": "8344872da7ea8e56feefa9673879ca384c77376c66403b5da1819bc44f446562"
+    },
+    {
+      "path": "/login.html",
+      "url": "https://arandu-demo.vercel.app/login.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/login.html",
+      "redirects": [],
+      "sha256": "321377bfc3c34d2ff7a82e6538ae3046180bee18058490febe467bc836af679c"
+    },
+    {
+      "path": "/manifest.webmanifest",
+      "url": "https://arandu-demo.vercel.app/manifest.webmanifest",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/manifest.webmanifest",
+      "redirects": [],
+      "sha256": "2d0c752109c989a74e88e5bf3ebca261bd8cc05d5883fdcecb1496a92d89ed35"
+    },
+    {
+      "path": "/produto.html",
+      "url": "https://arandu-demo.vercel.app/produto.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/produto.html",
+      "redirects": [],
+      "sha256": "ea6aaeac43cacb1cfe1e9595653d5ae0fbefbe5a87f4d90a795b0e87aafdebdd"
+    },
+    {
+      "path": "/provider/index.html",
+      "url": "https://arandu-demo.vercel.app/provider/index.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/provider/index.html",
+      "redirects": [],
+      "sha256": "d43559781ae9c9a5a188934a4ba9efa83bbd0a4043e4a1e5536aea63ad349be8"
+    },
+    {
+      "path": "/provider/invite.html",
+      "url": "https://arandu-demo.vercel.app/provider/invite.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/provider/invite.html",
+      "redirects": [],
+      "sha256": "00d7ee9591cddcd65e14a3bfa1f2b737cd1bd823ce72b71f993abb9e364fb7d3"
+    },
+    {
+      "path": "/provider/proposal.html",
+      "url": "https://arandu-demo.vercel.app/provider/proposal.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/provider/proposal.html",
+      "redirects": [],
+      "sha256": "dc26cf3126f603ae11478b05de88054e8f33ad3d6b35a4ec36e9c8788fa2e719"
+    },
+    {
+      "path": "/provider/rfqs.html",
+      "url": "https://arandu-demo.vercel.app/provider/rfqs.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/provider/rfqs.html",
+      "redirects": [],
+      "sha256": "7c6dd12d17db4f9710b0d75ffb4de411a76725d0e72fae1483157acf600a4c47"
+    },
+    {
+      "path": "/robots.txt",
+      "url": "https://arandu-demo.vercel.app/robots.txt",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/robots.txt",
+      "redirects": [],
+      "sha256": "331ea9090db0c9f6f597bd9840fd5b171830f6e0b3ba1cb24dfa91f0c95aedc1"
+    },
+    {
+      "path": "/seguranca.html",
+      "url": "https://arandu-demo.vercel.app/seguranca.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/seguranca.html",
+      "redirects": [],
+      "sha256": "19f55e0b3b2d6dec197d369cf887ee2d244df1a2b40462aa4dd406f80b8ac696"
+    },
+    {
+      "path": "/site.webmanifest",
+      "url": "https://arandu-demo.vercel.app/site.webmanifest",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/site.webmanifest",
+      "redirects": [],
+      "sha256": "2d0c752109c989a74e88e5bf3ebca261bd8cc05d5883fdcecb1496a92d89ed35"
+    },
+    {
+      "path": "/sitemap.xml",
+      "url": "https://arandu-demo.vercel.app/sitemap.xml",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/sitemap.xml",
+      "redirects": [],
+      "sha256": "674772a3e9bf869f1920dc651dfdb7e5848d7e50173fb1cce1328c425fe05927"
+    },
+    {
+      "path": "/comprar-arte.html",
+      "url": "https://arandu-demo.vercel.app/comprar-arte.html",
+      "result": "PASS",
+      "http_status": 404,
+      "effective_url": "https://arandu-demo.vercel.app/comprar-arte.html",
+      "redirects": []
+    },
+    {
+      "path": "/artistas.html",
+      "url": "https://arandu-demo.vercel.app/artistas.html",
+      "result": "PASS",
+      "http_status": 404,
+      "effective_url": "https://arandu-demo.vercel.app/artistas.html",
+      "redirects": []
+    },
+    {
+      "path": "/obra.html",
+      "url": "https://arandu-demo.vercel.app/obra.html",
+      "result": "PASS",
+      "http_status": 404,
+      "effective_url": "https://arandu-demo.vercel.app/obra.html",
+      "redirects": []
+    },
+    {
+      "path": "/certificado-autenticidade.html",
+      "url": "https://arandu-demo.vercel.app/certificado-autenticidade.html",
+      "result": "PASS",
+      "http_status": 404,
+      "effective_url": "https://arandu-demo.vercel.app/certificado-autenticidade.html",
+      "redirects": []
+    },
+    {
+      "path": "/painel.html",
+      "url": "https://arandu-demo.vercel.app/painel.html",
+      "result": "PASS",
+      "http_status": 404,
+      "effective_url": "https://arandu-demo.vercel.app/painel.html",
+      "redirects": []
+    },
+    {
+      "path": "/api/health",
+      "url": "https://arandu-demo.vercel.app/api/health",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "https://arandu-demo.vercel.app/api/health",
+      "redirects": []
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "root",
+      "path": "/",
+      "url": "https://arandu-demo.vercel.app/",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [],
+        "hidden_images": 0
+      },
+      "evidence": "../release-final-ef5e8c9/desktop-root.png",
+      "evidence_sha256": "e8a325843dac15580248b5f03b5bb7006b44ce8db180ed93e044b99fb7cc5b50",
+      "effective_url": "https://arandu-demo.vercel.app/",
+      "navigation": "direct-entry-and-reload"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "explore",
+      "path": "/demo/visita.html",
+      "url": "https://arandu-demo.vercel.app/demo/visita.html",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [],
+        "hidden_images": 13
+      },
+      "evidence": "../release-final-ef5e8c9/desktop-explore.png",
+      "evidence_sha256": "814ff3dc6e15a54ef04c93ecd80db100a2e354e756a76e8e4bccfbadd981d323",
+      "effective_url": "https://arandu-demo.vercel.app/demo/visita.html",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "context",
+      "path": "/demo/visita.html#contexto",
+      "url": "https://arandu-demo.vercel.app/demo/visita.html#contexto",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/contexto-desktop-CB2YsZ5y.webp",
+            "width": 1120,
+            "height": 700
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/desktop-context.png",
+      "evidence_sha256": "bcd49bf7033664b00860c2aae22ddc1979ca7984d842a331c7c6387cb3240b69",
+      "effective_url": "https://arandu-demo.vercel.app/demo/visita.html#contexto",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "financial-entry",
+      "path": "/demo/visita.html#painel",
+      "url": "https://arandu-demo.vercel.app/demo/visita.html#painel",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/painel-desktop-iTCNI3PX.webp",
+            "width": 1120,
+            "height": 700
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/desktop-financial-entry.png",
+      "evidence_sha256": "d8abd037fec232363499705285f826c4a30d18824666cff5cde231c3d573b8b0",
+      "effective_url": "https://arandu-demo.vercel.app/demo/visita.html#painel",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "dashboard",
+      "path": "/demo/visita.html#painel",
+      "url": "https://arandu-demo.vercel.app/demo/visita.html#painel",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/painel-desktop-iTCNI3PX.webp",
+            "width": 1120,
+            "height": 700
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/desktop-dashboard.png",
+      "evidence_sha256": "d8abd037fec232363499705285f826c4a30d18824666cff5cde231c3d573b8b0",
+      "effective_url": "https://arandu-demo.vercel.app/demo/visita.html#painel",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "relationships",
+      "path": "/demo/visita.html#relacionamentos",
+      "url": "https://arandu-demo.vercel.app/demo/visita.html#relacionamentos",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/relacionamentos-desktop-YjPg7GlV.webp",
+            "width": 1120,
+            "height": 700
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/desktop-relationships.png",
+      "evidence_sha256": "41fdd4152504abee17d3c47f70f0a3d56eda9f57dde63981741cf737bd8f66de",
+      "effective_url": "https://arandu-demo.vercel.app/demo/visita.html#relacionamentos",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "requests",
+      "path": "/demo/visita.html#solicitacao",
+      "url": "https://arandu-demo.vercel.app/demo/visita.html#solicitacao",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/solicitacao-desktop-prQYspeh.webp",
+            "width": 1120,
+            "height": 700
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/desktop-requests.png",
+      "evidence_sha256": "864ca5a6fa30f148ca33da1777e9574b64db92740375285abb455d4e4cb69dc0",
+      "effective_url": "https://arandu-demo.vercel.app/demo/visita.html#solicitacao",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "invites",
+      "path": "/demo/visita.html#convites",
+      "url": "https://arandu-demo.vercel.app/demo/visita.html#convites",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/convites-desktop-PIuq-lME.webp",
+            "width": 1120,
+            "height": 700
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/desktop-invites.png",
+      "evidence_sha256": "2bb772f408bcafabaea4b0ca2ccea7a45f25a2ed7807263674817bb264d57bcb",
+      "effective_url": "https://arandu-demo.vercel.app/demo/visita.html#convites",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "proposals",
+      "path": "/demo/visita.html#propostas",
+      "url": "https://arandu-demo.vercel.app/demo/visita.html#propostas",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/propostas-desktop-BTa8qdtT.webp",
+            "width": 1120,
+            "height": 700
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/desktop-proposals.png",
+      "evidence_sha256": "356452950d05892ef070431f37d025fe69e939529954a986373f7a800f965069",
+      "effective_url": "https://arandu-demo.vercel.app/demo/visita.html#propostas",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "comparison",
+      "path": "/demo/visita.html#comparacao",
+      "url": "https://arandu-demo.vercel.app/demo/visita.html#comparacao",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/comparacao-desktop-BroRdomK.webp",
+            "width": 1120,
+            "height": 700
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/desktop-comparison.png",
+      "evidence_sha256": "937b7cabab05decec3a11025ea1964f84fb53b61832ce82ac4a1a3c864a27c9e",
+      "effective_url": "https://arandu-demo.vercel.app/demo/visita.html#comparacao",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "approval",
+      "path": "/demo/visita.html#aprovacao",
+      "url": "https://arandu-demo.vercel.app/demo/visita.html#aprovacao",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/aprovacao-desktop-neDw3K_M.webp",
+            "width": 1120,
+            "height": 700
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/desktop-approval.png",
+      "evidence_sha256": "8a33ee590567be31e8717868a3a4a4423888126b4444106f6bc28a2395f66050",
+      "effective_url": "https://arandu-demo.vercel.app/demo/visita.html#aprovacao",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "contracts",
+      "path": "/demo/visita.html#contrato",
+      "url": "https://arandu-demo.vercel.app/demo/visita.html#contrato",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/contrato-desktop-yE5q8yST.webp",
+            "width": 1120,
+            "height": 700
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/desktop-contracts.png",
+      "evidence_sha256": "3516712278553099e0270e14110c0ef7a0b728959ccf0ecf61ab6f71c031d6eb",
+      "effective_url": "https://arandu-demo.vercel.app/demo/visita.html#contrato",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "tasks-renewals",
+      "path": "/demo/visita.html#continuidade",
+      "url": "https://arandu-demo.vercel.app/demo/visita.html#continuidade",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/continuidade-desktop-C-8uZb5m.webp",
+            "width": 1120,
+            "height": 700
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/desktop-tasks-renewals.png",
+      "evidence_sha256": "e20911184d083fd81f55e59e32fa5dfa1529415caa51bc2a7424ffd498dd807e",
+      "effective_url": "https://arandu-demo.vercel.app/demo/visita.html#continuidade",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "provider",
+      "path": "/demo/visita.html#instituicao",
+      "url": "https://arandu-demo.vercel.app/demo/visita.html#instituicao",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/instituicao-desktop-BJFU5yUy.webp",
+            "width": 1120,
+            "height": 700
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/desktop-provider.png",
+      "evidence_sha256": "0d05ca72891a747141c2e3cd4914317c090f8c7d0f3c8402c8ec1e5fee49fd9e",
+      "effective_url": "https://arandu-demo.vercel.app/demo/visita.html#instituicao",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "provider-proposal",
+      "path": "/demo/visita.html#instituicao-proposta",
+      "url": "https://arandu-demo.vercel.app/demo/visita.html#instituicao-proposta",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/instituicao-proposta-desktop-CRRDWe1B.webp",
+            "width": 1120,
+            "height": 700
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/desktop-provider-proposal.png",
+      "evidence_sha256": "05c11346593b1ecabb0b8c44b9be8e2637881110615bca6157913b9cded645fc",
+      "effective_url": "https://arandu-demo.vercel.app/demo/visita.html#instituicao-proposta",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "provider-value",
+      "path": "/demo/visita.html#instituicao-valor",
+      "url": "https://arandu-demo.vercel.app/demo/visita.html#instituicao-valor",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/instituicao-proposta-desktop-CRRDWe1B.webp",
+            "width": 1120,
+            "height": 700
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/desktop-provider-value.png",
+      "evidence_sha256": "eb3c4e1605af8b1f93606e7ed35bfc7b0730c3fc1c46484a7e47fa6cc700450f",
+      "effective_url": "https://arandu-demo.vercel.app/demo/visita.html#instituicao-valor",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "areas",
+      "path": "/demo/visita.html#areas",
+      "url": "https://arandu-demo.vercel.app/demo/visita.html#areas",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [],
+        "hidden_images": 13
+      },
+      "evidence": "../release-final-ef5e8c9/desktop-areas.png",
+      "evidence_sha256": "b752aa68868be6ccef59c9f1ee3cc74d6335e3ba934918add9159a33fe7ac6ed",
+      "effective_url": "https://arandu-demo.vercel.app/demo/visita.html#areas",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "return",
+      "path": "/demo/index.html",
+      "url": "https://arandu-demo.vercel.app/demo/index.html",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [],
+        "hidden_images": 0
+      },
+      "evidence": "../release-final-ef5e8c9/desktop-return.png",
+      "evidence_sha256": "e8a325843dac15580248b5f03b5bb7006b44ce8db180ed93e044b99fb7cc5b50",
+      "effective_url": "https://arandu-demo.vercel.app/demo/index.html",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "root",
+      "path": "/",
+      "url": "https://arandu-demo.vercel.app/",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [],
+        "hidden_images": 0
+      },
+      "evidence": "../release-final-ef5e8c9/mobile-root.png",
+      "evidence_sha256": "4e7372ad5da31a9ea864dcac4862c33bc5a230c30357c1b2e51ece4773a61022",
+      "effective_url": "https://arandu-demo.vercel.app/",
+      "navigation": "direct-entry-and-reload"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "explore",
+      "path": "/demo/visita.html",
+      "url": "https://arandu-demo.vercel.app/demo/visita.html",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [],
+        "hidden_images": 13
+      },
+      "evidence": "../release-final-ef5e8c9/mobile-explore.png",
+      "evidence_sha256": "e86c051feed47683ae61563bae71e7fef137dfa2f2e0997be48ee78d4456cd07",
+      "effective_url": "https://arandu-demo.vercel.app/demo/visita.html",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "context",
+      "path": "/demo/visita.html#contexto",
+      "url": "https://arandu-demo.vercel.app/demo/visita.html#contexto",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/contexto-mobile-PSP7mBDF.webp",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/mobile-context.png",
+      "evidence_sha256": "e5c0216073b73f650b6c12a9414aa5ff82bb3c4c808c0b6305d82edb14b87747",
+      "effective_url": "https://arandu-demo.vercel.app/demo/visita.html#contexto",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "financial-entry",
+      "path": "/demo/visita.html#painel",
+      "url": "https://arandu-demo.vercel.app/demo/visita.html#painel",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/painel-mobile-Llb6Edb9.webp",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/mobile-financial-entry.png",
+      "evidence_sha256": "6ab27d48eb05becb337eec35a93da6e13dd4dc59d97594836ce3ce5e0c53fa9c",
+      "effective_url": "https://arandu-demo.vercel.app/demo/visita.html#painel",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "dashboard",
+      "path": "/demo/visita.html#painel",
+      "url": "https://arandu-demo.vercel.app/demo/visita.html#painel",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/painel-mobile-Llb6Edb9.webp",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/mobile-dashboard.png",
+      "evidence_sha256": "6ab27d48eb05becb337eec35a93da6e13dd4dc59d97594836ce3ce5e0c53fa9c",
+      "effective_url": "https://arandu-demo.vercel.app/demo/visita.html#painel",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "relationships",
+      "path": "/demo/visita.html#relacionamentos",
+      "url": "https://arandu-demo.vercel.app/demo/visita.html#relacionamentos",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/relacionamentos-mobile-D9-WJftq.webp",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/mobile-relationships.png",
+      "evidence_sha256": "ef9311dc4f13b01005db9a947f6f75489ec1b404e24939f089e3ab149a19b0de",
+      "effective_url": "https://arandu-demo.vercel.app/demo/visita.html#relacionamentos",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "requests",
+      "path": "/demo/visita.html#solicitacao",
+      "url": "https://arandu-demo.vercel.app/demo/visita.html#solicitacao",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/solicitacao-mobile-CkpZLYYV.webp",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/mobile-requests.png",
+      "evidence_sha256": "41ef70f7b1b0ed6a1df3e73d7896e54a6f8fd878d71fd3df7092a64c9c2d6844",
+      "effective_url": "https://arandu-demo.vercel.app/demo/visita.html#solicitacao",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "invites",
+      "path": "/demo/visita.html#convites",
+      "url": "https://arandu-demo.vercel.app/demo/visita.html#convites",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/convites-mobile-DBRvbDjW.webp",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/mobile-invites.png",
+      "evidence_sha256": "617f53d78614c2739f77e8bfc3568994a4dad50274cd11be58ba76119cdd015f",
+      "effective_url": "https://arandu-demo.vercel.app/demo/visita.html#convites",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "proposals",
+      "path": "/demo/visita.html#propostas",
+      "url": "https://arandu-demo.vercel.app/demo/visita.html#propostas",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/propostas-mobile-PTW8Az0x.webp",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/mobile-proposals.png",
+      "evidence_sha256": "ce834eeeee08e6882cb1b45243ceb4245487d63ecdb4f392b391f50ca9950e65",
+      "effective_url": "https://arandu-demo.vercel.app/demo/visita.html#propostas",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "comparison",
+      "path": "/demo/visita.html#comparacao",
+      "url": "https://arandu-demo.vercel.app/demo/visita.html#comparacao",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/comparacao-mobile-Z5GiLnD_.webp",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/mobile-comparison.png",
+      "evidence_sha256": "ca98b48486c3b970588ccf7c15a4ea48be692038a3039ba98f9b536a56dc7b1a",
+      "effective_url": "https://arandu-demo.vercel.app/demo/visita.html#comparacao",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "approval",
+      "path": "/demo/visita.html#aprovacao",
+      "url": "https://arandu-demo.vercel.app/demo/visita.html#aprovacao",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/aprovacao-mobile-GQdSbLOa.webp",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/mobile-approval.png",
+      "evidence_sha256": "47cb92100493338f57d7fd3a49e5de3b7596cff7ad1b1377ec2d8da9e311931d",
+      "effective_url": "https://arandu-demo.vercel.app/demo/visita.html#aprovacao",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "contracts",
+      "path": "/demo/visita.html#contrato",
+      "url": "https://arandu-demo.vercel.app/demo/visita.html#contrato",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/contrato-mobile-D_YOMTTT.webp",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/mobile-contracts.png",
+      "evidence_sha256": "4fdfa5b62952847ba39a040d4de5bdaecba3432385a691cd7df05c4dfa21a829",
+      "effective_url": "https://arandu-demo.vercel.app/demo/visita.html#contrato",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "tasks-renewals",
+      "path": "/demo/visita.html#continuidade",
+      "url": "https://arandu-demo.vercel.app/demo/visita.html#continuidade",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/continuidade-mobile-BBprCfFA.webp",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/mobile-tasks-renewals.png",
+      "evidence_sha256": "7e150dd53e7139082cbc4ae081ed1fc4f3fc5b07449f52beebc15ed1ac40c9df",
+      "effective_url": "https://arandu-demo.vercel.app/demo/visita.html#continuidade",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "provider",
+      "path": "/demo/visita.html#instituicao",
+      "url": "https://arandu-demo.vercel.app/demo/visita.html#instituicao",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/instituicao-mobile-e6zyMzew.webp",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/mobile-provider.png",
+      "evidence_sha256": "d3d14d7cad4266838709d364fba127d3a6d2d18aa6a15d2122a8898ca8c43254",
+      "effective_url": "https://arandu-demo.vercel.app/demo/visita.html#instituicao",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "provider-proposal",
+      "path": "/demo/visita.html#instituicao-proposta",
+      "url": "https://arandu-demo.vercel.app/demo/visita.html#instituicao-proposta",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/instituicao-proposta-mobile-C4ch-uau.webp",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/mobile-provider-proposal.png",
+      "evidence_sha256": "404fd23b2689fb9d291a092a62235a28d4784c5ff41e724006e7137bd6e1bd83",
+      "effective_url": "https://arandu-demo.vercel.app/demo/visita.html#instituicao-proposta",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "provider-value",
+      "path": "/demo/visita.html#instituicao-valor",
+      "url": "https://arandu-demo.vercel.app/demo/visita.html#instituicao-valor",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/instituicao-proposta-mobile-C4ch-uau.webp",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/mobile-provider-value.png",
+      "evidence_sha256": "d08865823e6cd5dc3c365f38c25a44196b970ec7350f254d87df689a842f18ff",
+      "effective_url": "https://arandu-demo.vercel.app/demo/visita.html#instituicao-valor",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "areas",
+      "path": "/demo/visita.html#areas",
+      "url": "https://arandu-demo.vercel.app/demo/visita.html#areas",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [],
+        "hidden_images": 13
+      },
+      "evidence": "../release-final-ef5e8c9/mobile-areas.png",
+      "evidence_sha256": "3c8009ebe0eec65b6aad1ccec888fbf0d08a89eb06763e92fccd86b67c92802d",
+      "effective_url": "https://arandu-demo.vercel.app/demo/visita.html#areas",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "return",
+      "path": "/demo/index.html",
+      "url": "https://arandu-demo.vercel.app/demo/index.html",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [],
+        "hidden_images": 0
+      },
+      "evidence": "../release-final-ef5e8c9/mobile-return.png",
+      "evidence_sha256": "4e7372ad5da31a9ea864dcac4862c33bc5a230c30357c1b2e51ece4773a61022",
+      "effective_url": "https://arandu-demo.vercel.app/demo/index.html",
+      "navigation": "keyboard-tab-enter-and-reload"
+    }
+  ],
+  "local": false,
+  "ROOT_HTTP": "PASS",
+  "effective_url": "https://arandu-demo.vercel.app/",
+  "build": {
+    "commit": "257ce1dee610f03e510a3f09e68291e4f03a3a16",
+    "branch": "main",
+    "modality": "informative-tour-with-browser-sandbox",
+    "built_at": "2026-10-22T20:58:06.579Z"
+  },
+  "liveness_http": 200,
+  "runtime_release": {
+    "environment": null,
+    "mode": "demo",
+    "datasource": "synthetic-fixtures",
+    "misconfigured": false,
+    "branch": "main",
+    "commit": "257ce1dee610f03e510a3f09e68291e4f03a3a16"
+  },
+  "flow_sha256": "fce4c23a2c9adf2b1bf8c475557a950b5bb67b88f4396962b967f2e439cbd1af",
+  "browser": {
+    "engine": "chromium",
+    "version": "156.0.8078.4",
+    "playwright": "1.64.1",
+    "lock_sha256": "74185e15790a3df7112bedf5dcc1267588acf5e97a3ff53e4ecfd9b0924a1f5c"
+  },
+  "browser_transport": "actual-origin-response-relay; hashes verified before browser delivery; no synthetic response or fallback",
+  "verified_image_cancellations": [
+    {
+      "viewport": "DESKTOP",
+      "stage": "requests",
+      "action": "reload",
+      "path": "/assets/contexto-mobile-PSP7mBDF.webp",
+      "reason": "browser cancelled delivery; origin bytes verified; every displayed image decoded separately"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "requests",
+      "action": "reload",
+      "path": "/assets/painel-mobile-Llb6Edb9.webp",
+      "reason": "browser cancelled delivery; origin bytes verified; every displayed image decoded separately"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "requests",
+      "action": "reload",
+      "path": "/assets/relacionamentos-mobile-D9-WJftq.webp",
+      "reason": "browser cancelled delivery; origin bytes verified; every displayed image decoded separately"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "requests",
+      "action": "reload",
+      "path": "/assets/solicitacao-mobile-CkpZLYYV.webp",
+      "reason": "browser cancelled delivery; origin bytes verified; every displayed image decoded separately"
+    }
+  ],
+  "duration_ms": 100765.514544,
+  "capture_storage_note": "36 captures freshly rendered on 257ce1d; each byte-identical to existing stored capture, SHA-256 verified; paths reuse those bytes without duplicating binaries.",
+  "verifier_files_sha256": {
+    "scripts/smoke-public-demo.mjs": "b6297ce9e5fadae54e224c7a402016a596407c205c4d54dbeff93ce40db5d4aa",
+    "scripts/publication-proof.mjs": "37013558ce97a83353bef87db84e38471b0d3bb022b41fe63e497a56cd57c554",
+    "scripts/public-tour-proof-flow.mjs": "40b4a00682c7e2bf21ec6f4fe6336c087e06e04662fcb843b54704067d7ee90f"
+  }
+}

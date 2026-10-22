@@ -1,0 +1,2568 @@
+{
+  "checked_at": "2026-10-22T22:15:10.204Z",
+  "url": "http://127.0.0.1:4174/",
+  "expected_sha": "257ce1dee610f03e510a3f09e68291e4f03a3a16",
+  "HTTP_ARTIFACT": "PASS",
+  "BROWSER_DESKTOP": "PASS",
+  "BROWSER_MOBILE": "PASS",
+  "BROWSER_PROOF": "PASS",
+  "PUBLIC_SHAREABLE": "NOT_PROVEN",
+  "LOCAL_STATION_READY": "NOT_RUN",
+  "CANONICAL_HOSTED_M3": "BLOCKED",
+  "checks": [
+    {
+      "path": "/",
+      "url": "http://127.0.0.1:4174/",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/",
+      "redirects": []
+    },
+    {
+      "path": "/arandu-build.json",
+      "url": "http://127.0.0.1:4174/arandu-build.json",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/arandu-build.json",
+      "redirects": []
+    },
+    {
+      "path": "/404.html",
+      "url": "http://127.0.0.1:4174/404.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/404.html",
+      "redirects": [],
+      "sha256": "4be08319ac0258080e6e6023bb07a334b41f4434fddae36af2cb01b4694f9716"
+    },
+    {
+      "path": "/adquirencia.html",
+      "url": "http://127.0.0.1:4174/adquirencia.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/adquirencia.html",
+      "redirects": [],
+      "sha256": "a467c4c5b4e31e0d1263eda79e5fb245b7e171c59c7c2799ceb5d1f899c7863a"
+    },
+    {
+      "path": "/assets/404-BfF8Tag6.js",
+      "url": "http://127.0.0.1:4174/assets/404-BfF8Tag6.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/404-BfF8Tag6.js",
+      "redirects": [],
+      "sha256": "9bf373e01cdbc34814f0ed97ffc03c2d5bcbc2f771721dd6c2c64a15dae5920c"
+    },
+    {
+      "path": "/assets/app-C7_ww6A9.js",
+      "url": "http://127.0.0.1:4174/assets/app-C7_ww6A9.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/app-C7_ww6A9.js",
+      "redirects": [],
+      "sha256": "51d758935941306baff927e2b40071fc85a8fe53de7fb39a4564b7b7ce182e15"
+    },
+    {
+      "path": "/assets/aprovacao-desktop-neDw3K_M.webp",
+      "url": "http://127.0.0.1:4174/assets/aprovacao-desktop-neDw3K_M.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/aprovacao-desktop-neDw3K_M.webp",
+      "redirects": [],
+      "sha256": "87088fddfb685a292e4353d8525e703c018b4d5a5888f861b0e2faa35e88c201"
+    },
+    {
+      "path": "/assets/aprovacao-mobile-GQdSbLOa.webp",
+      "url": "http://127.0.0.1:4174/assets/aprovacao-mobile-GQdSbLOa.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/aprovacao-mobile-GQdSbLOa.webp",
+      "redirects": [],
+      "sha256": "ca4ab547d7c52379a1f269bd248f1aa665ecca448f429fb7a5e46fd726ac8405"
+    },
+    {
+      "path": "/assets/boot-BRlDM788.js",
+      "url": "http://127.0.0.1:4174/assets/boot-BRlDM788.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/boot-BRlDM788.js",
+      "redirects": [],
+      "sha256": "58380df4c09fb6d04b00e570e706c80440d601c4ed1abe0dbc3123dbfd5b5be3"
+    },
+    {
+      "path": "/assets/boot-CdD1RaLl.css",
+      "url": "http://127.0.0.1:4174/assets/boot-CdD1RaLl.css",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/boot-CdD1RaLl.css",
+      "redirects": [],
+      "sha256": "b90207e99d9142f1f22b15e795fe0353b2ffb013a684485cb2cca5cc13e59adf"
+    },
+    {
+      "path": "/assets/builder-B9q3QJsA.js",
+      "url": "http://127.0.0.1:4174/assets/builder-B9q3QJsA.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/builder-B9q3QJsA.js",
+      "redirects": [],
+      "sha256": "8071166161d23374d14e7c00138782bd469c522a2a0958726abe5ec63242628e"
+    },
+    {
+      "path": "/assets/center-0oUSVTGT.js",
+      "url": "http://127.0.0.1:4174/assets/center-0oUSVTGT.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/center-0oUSVTGT.js",
+      "redirects": [],
+      "sha256": "5c6e01ba48c911ba83da9e6b90fe8dcf8e51dcdf8d27ba2452cc348abecc3d00"
+    },
+    {
+      "path": "/assets/center-DLVL9ku8.js",
+      "url": "http://127.0.0.1:4174/assets/center-DLVL9ku8.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/center-DLVL9ku8.js",
+      "redirects": [],
+      "sha256": "f049b61bf63412cc6e7741ad37da82b2975bb913e86faa53fbb5c23a4e81f26b"
+    },
+    {
+      "path": "/assets/command-CEgoErDZ.js",
+      "url": "http://127.0.0.1:4174/assets/command-CEgoErDZ.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/command-CEgoErDZ.js",
+      "redirects": [],
+      "sha256": "b02b72e23e234c7347e067c4fc81bb2c65ed57f9f51783085bcc9fc5803215d8"
+    },
+    {
+      "path": "/assets/comments-B4U-ijXy.js",
+      "url": "http://127.0.0.1:4174/assets/comments-B4U-ijXy.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/comments-B4U-ijXy.js",
+      "redirects": [],
+      "sha256": "cad4e51d29a3956f2f7e6bd2f989c5d0c800fe7751c7bdc2759d01eb64c7a8b5"
+    },
+    {
+      "path": "/assets/company-CMamH7NI.js",
+      "url": "http://127.0.0.1:4174/assets/company-CMamH7NI.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/company-CMamH7NI.js",
+      "redirects": [],
+      "sha256": "f689702d88433d7ff5a10d1b1618d0e6a7c5a2c408713b515c41e8f0fa217da2"
+    },
+    {
+      "path": "/assets/comparacao-desktop-BroRdomK.webp",
+      "url": "http://127.0.0.1:4174/assets/comparacao-desktop-BroRdomK.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/comparacao-desktop-BroRdomK.webp",
+      "redirects": [],
+      "sha256": "fb8643a41e2cb4c61f7fe7910382446f11d19a8601bf5e75443f7261fc9a51b5"
+    },
+    {
+      "path": "/assets/comparacao-mobile-Z5GiLnD_.webp",
+      "url": "http://127.0.0.1:4174/assets/comparacao-mobile-Z5GiLnD_.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/comparacao-mobile-Z5GiLnD_.webp",
+      "redirects": [],
+      "sha256": "ed36be9a814052088de34ab983e46ed39f05e219baf7ed39bd572d2b23dcc3c5"
+    },
+    {
+      "path": "/assets/comparison-CP63XTpt.js",
+      "url": "http://127.0.0.1:4174/assets/comparison-CP63XTpt.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/comparison-CP63XTpt.js",
+      "redirects": [],
+      "sha256": "f4d4d6325b9b819f421a97d8491086f27583591843c6ad1fa7d21d4627f902a5"
+    },
+    {
+      "path": "/assets/comparison-Cmiro9QZ.webp",
+      "url": "http://127.0.0.1:4174/assets/comparison-Cmiro9QZ.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/comparison-Cmiro9QZ.webp",
+      "redirects": [],
+      "sha256": "c59482ac97720e21045cb05e0064aa34c9ea1dc176f1a9faaf51413e7e3950c6"
+    },
+    {
+      "path": "/assets/comparison-tray-CyX903-j.js",
+      "url": "http://127.0.0.1:4174/assets/comparison-tray-CyX903-j.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/comparison-tray-CyX903-j.js",
+      "redirects": [],
+      "sha256": "3dc7fa7cfb7aae132a5c841ab557f768b7fb4718aa6868f29d2ef5334e12d32e"
+    },
+    {
+      "path": "/assets/contexto-desktop-CB2YsZ5y.webp",
+      "url": "http://127.0.0.1:4174/assets/contexto-desktop-CB2YsZ5y.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/contexto-desktop-CB2YsZ5y.webp",
+      "redirects": [],
+      "sha256": "0f491486d5fc1bb6f47816e439d17c9951052e63ccdf13ed1887e4eb689f3bdd"
+    },
+    {
+      "path": "/assets/contexto-mobile-PSP7mBDF.webp",
+      "url": "http://127.0.0.1:4174/assets/contexto-mobile-PSP7mBDF.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/contexto-mobile-PSP7mBDF.webp",
+      "redirects": [],
+      "sha256": "ec8a83d426fe3b2efc5484e70934ec624ad32c2ae359376c7ee14227aa46eae0"
+    },
+    {
+      "path": "/assets/continuidade-desktop-C-8uZb5m.webp",
+      "url": "http://127.0.0.1:4174/assets/continuidade-desktop-C-8uZb5m.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/continuidade-desktop-C-8uZb5m.webp",
+      "redirects": [],
+      "sha256": "37cf5ab62f7c0e28c3f7aa09515bb1fc130e4ae397f11494a37a1cd331bf96f9"
+    },
+    {
+      "path": "/assets/continuidade-mobile-BBprCfFA.webp",
+      "url": "http://127.0.0.1:4174/assets/continuidade-mobile-BBprCfFA.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/continuidade-mobile-BBprCfFA.webp",
+      "redirects": [],
+      "sha256": "a95932bb41698359e9a01dd4d74b370c039bd23af0ea9ac5813b455977a6629e"
+    },
+    {
+      "path": "/assets/contract-CEiQJsSo.webp",
+      "url": "http://127.0.0.1:4174/assets/contract-CEiQJsSo.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/contract-CEiQJsSo.webp",
+      "redirects": [],
+      "sha256": "0c222f7ae84e05451577cbb894309912603bd3661175ed7aea2efb6ac323614b"
+    },
+    {
+      "path": "/assets/contract-center-NDNkkw5A.js",
+      "url": "http://127.0.0.1:4174/assets/contract-center-NDNkkw5A.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/contract-center-NDNkkw5A.js",
+      "redirects": [],
+      "sha256": "8fb55b39c643aeb18278bd0b78214bdeb8eca974ef50419e588137299105b531"
+    },
+    {
+      "path": "/assets/contract-terms-CeoEoq02.js",
+      "url": "http://127.0.0.1:4174/assets/contract-terms-CeoEoq02.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/contract-terms-CeoEoq02.js",
+      "redirects": [],
+      "sha256": "9eca826741602ab206b60a281c3b3e7377fc63aa5d0521f38e415afe291f088b"
+    },
+    {
+      "path": "/assets/contracts-BFcNACGQ.js",
+      "url": "http://127.0.0.1:4174/assets/contracts-BFcNACGQ.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/contracts-BFcNACGQ.js",
+      "redirects": [],
+      "sha256": "2a285f4b8f4a964b2f3d0a15e45bcbf55b6cb006c83d96bf8b63bffe46d05c3d"
+    },
+    {
+      "path": "/assets/contrato-desktop-yE5q8yST.webp",
+      "url": "http://127.0.0.1:4174/assets/contrato-desktop-yE5q8yST.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/contrato-desktop-yE5q8yST.webp",
+      "redirects": [],
+      "sha256": "bf2d68fa0b82c677b111198c88dcfd192d34dc2b8aea006c5d4450a07399126b"
+    },
+    {
+      "path": "/assets/contrato-mobile-D_YOMTTT.webp",
+      "url": "http://127.0.0.1:4174/assets/contrato-mobile-D_YOMTTT.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/contrato-mobile-D_YOMTTT.webp",
+      "redirects": [],
+      "sha256": "61f96622f8fbdcb12b672ee84a910083687586124322ab18ff36a697175af117"
+    },
+    {
+      "path": "/assets/convites-desktop-PIuq-lME.webp",
+      "url": "http://127.0.0.1:4174/assets/convites-desktop-PIuq-lME.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/convites-desktop-PIuq-lME.webp",
+      "redirects": [],
+      "sha256": "1e26ac722b58bef409464c9d49e06fabe84e1f9105cf503d51da25076051e23f"
+    },
+    {
+      "path": "/assets/convites-mobile-DBRvbDjW.webp",
+      "url": "http://127.0.0.1:4174/assets/convites-mobile-DBRvbDjW.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/convites-mobile-DBRvbDjW.webp",
+      "redirects": [],
+      "sha256": "8d2fcc7726c659d1e4143fe98648b578b5f4d0a4b2be2929e05073cfe230388e"
+    },
+    {
+      "path": "/assets/core-CBO8LKAr.js",
+      "url": "http://127.0.0.1:4174/assets/core-CBO8LKAr.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/core-CBO8LKAr.js",
+      "redirects": [],
+      "sha256": "05fc47f72c19bff0ee14a90cfa8f39d8e799441c4e7c182058de2583ab289622"
+    },
+    {
+      "path": "/assets/covenants-C9noAnc4.js",
+      "url": "http://127.0.0.1:4174/assets/covenants-C9noAnc4.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/covenants-C9noAnc4.js",
+      "redirects": [],
+      "sha256": "aecfb3b7f66e8d8e0ace5c66040850d27c64721a463c8d2bd6baeef004fcb2c4"
+    },
+    {
+      "path": "/assets/dashboard-C4vHyCnb.js",
+      "url": "http://127.0.0.1:4174/assets/dashboard-C4vHyCnb.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/dashboard-C4vHyCnb.js",
+      "redirects": [],
+      "sha256": "0fccb3e02dee4a857f9ee5f70b71d7651ff0444a95840243d6f52feb290be2d8"
+    },
+    {
+      "path": "/assets/dashboard-Dz1P_ACd.js",
+      "url": "http://127.0.0.1:4174/assets/dashboard-Dz1P_ACd.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/dashboard-Dz1P_ACd.js",
+      "redirects": [],
+      "sha256": "dd80de48de2c4490b13ccb91769edb0f9296c79ce39f11805225836fc972981d"
+    },
+    {
+      "path": "/assets/decision-inbox-DE8TBwQq.js",
+      "url": "http://127.0.0.1:4174/assets/decision-inbox-DE8TBwQq.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/decision-inbox-DE8TBwQq.js",
+      "redirects": [],
+      "sha256": "5752fb79bfc145f4407fc9c6e9fd185aaa60a5dc9463f9011a528f5badf14909"
+    },
+    {
+      "path": "/assets/demo/index-BZNDeDcs.js",
+      "url": "http://127.0.0.1:4174/assets/demo/index-BZNDeDcs.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/demo/index-BZNDeDcs.js",
+      "redirects": [],
+      "sha256": "9e4d25cfabac7f5fa2a50c5bb811a95f6d2b051d6b2322d73d4dfcde5031740a"
+    },
+    {
+      "path": "/assets/demo/visita-04Le_8zn.js",
+      "url": "http://127.0.0.1:4174/assets/demo/visita-04Le_8zn.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/demo/visita-04Le_8zn.js",
+      "redirects": [],
+      "sha256": "b89bb8afa5cef1cedc4096041b8e2c3286f4d99b4a021e04bfe450383a69ad5d"
+    },
+    {
+      "path": "/assets/documents-DxDIZXeJ.js",
+      "url": "http://127.0.0.1:4174/assets/documents-DxDIZXeJ.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/documents-DxDIZXeJ.js",
+      "redirects": [],
+      "sha256": "1077939bca7c52a5a659afad5be0919a655369b962d200c29fe81f25a8fd9a11"
+    },
+    {
+      "path": "/assets/engine-CdySGsEF.js",
+      "url": "http://127.0.0.1:4174/assets/engine-CdySGsEF.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/engine-CdySGsEF.js",
+      "redirects": [],
+      "sha256": "badac8ae5d1f5573753b3cf804ae25942187a0d6418c6c15ba3de1a1c7f9f726"
+    },
+    {
+      "path": "/assets/entities-CrnxF--N.js",
+      "url": "http://127.0.0.1:4174/assets/entities-CrnxF--N.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/entities-CrnxF--N.js",
+      "redirects": [],
+      "sha256": "55223c79f3a1aac1eb0da0713974bb8069bf737f023cf53a35c1d4fff593dc81"
+    },
+    {
+      "path": "/assets/executive-DDlNgnFN.js",
+      "url": "http://127.0.0.1:4174/assets/executive-DDlNgnFN.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/executive-DDlNgnFN.js",
+      "redirects": [],
+      "sha256": "16f166032610716abdbf29ab21ab28ccf78071afa9ea752454b06678875dded7"
+    },
+    {
+      "path": "/assets/external-proposals-CPVTiqjY.js",
+      "url": "http://127.0.0.1:4174/assets/external-proposals-CPVTiqjY.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/external-proposals-CPVTiqjY.js",
+      "redirects": [],
+      "sha256": "4d0c1c2a6df60367e02e3ec648392f5a6e6b9a0b9c2d843ec4d4d145d3e72480"
+    },
+    {
+      "path": "/assets/extractions-BDwEcYXm.js",
+      "url": "http://127.0.0.1:4174/assets/extractions-BDwEcYXm.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/extractions-BDwEcYXm.js",
+      "redirects": [],
+      "sha256": "906d0570acba1b3d9b8fa232c2b018ab0592c324b1b6c3452518ec9561adaccf"
+    },
+    {
+      "path": "/assets/favicon-x-CoRhvZ.svg",
+      "url": "http://127.0.0.1:4174/assets/favicon-x-CoRhvZ.svg",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/favicon-x-CoRhvZ.svg",
+      "redirects": [],
+      "sha256": "4d686c227f514170281ea0dbd29ebd04a9df023569a6c4c5efa125a554be9e45"
+    },
+    {
+      "path": "/assets/fees-BlMZ2pa2.js",
+      "url": "http://127.0.0.1:4174/assets/fees-BlMZ2pa2.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/fees-BlMZ2pa2.js",
+      "redirects": [],
+      "sha256": "32e8f918a1f43cda457958aded08e09df865256ceeded3c6a43ee93e2909faba"
+    },
+    {
+      "path": "/assets/financial-auth-GwJ-thft.js",
+      "url": "http://127.0.0.1:4174/assets/financial-auth-GwJ-thft.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/financial-auth-GwJ-thft.js",
+      "redirects": [],
+      "sha256": "81bc6c00502534ffd7d00f6e8cff3d57f37bcb2c3be5b446a6a9d5cb615112fe"
+    },
+    {
+      "path": "/assets/financial-demo-entry-09aB_DeP.js",
+      "url": "http://127.0.0.1:4174/assets/financial-demo-entry-09aB_DeP.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/financial-demo-entry-09aB_DeP.js",
+      "redirects": [],
+      "sha256": "5803365bd8cb7358fed9112b5fbb82c47ed391735b0f2f78c9b123e9b807ed06"
+    },
+    {
+      "path": "/assets/financial-icon-180-13L4fmV4.png",
+      "url": "http://127.0.0.1:4174/assets/financial-icon-180-13L4fmV4.png",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/financial-icon-180-13L4fmV4.png",
+      "redirects": [],
+      "sha256": "31826d0e41fa7ac267b131d625e5e55fbfe0b4febc01ad52fc0f4bfb1c782325"
+    },
+    {
+      "path": "/assets/financial-og-CN8LNJ_N.png",
+      "url": "http://127.0.0.1:4174/assets/financial-og-CN8LNJ_N.png",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/financial-og-CN8LNJ_N.png",
+      "redirects": [],
+      "sha256": "da05dfc7df8c30a49d8fc6adc28b1cfec78e34c0e89e81bf9cf2c87586e5bcce"
+    },
+    {
+      "path": "/assets/financial-public-B8EvfqwC.css",
+      "url": "http://127.0.0.1:4174/assets/financial-public-B8EvfqwC.css",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/financial-public-B8EvfqwC.css",
+      "redirects": [],
+      "sha256": "eadb5ae0a7dd36996965bd15f209b048f85138df03d23b19bfc649750912e7ca"
+    },
+    {
+      "path": "/assets/handoff-C1jjdDNW.js",
+      "url": "http://127.0.0.1:4174/assets/handoff-C1jjdDNW.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/handoff-C1jjdDNW.js",
+      "redirects": [],
+      "sha256": "c9392ca8f03a36160bd2e23808bad58274027aabd1c1570f6ce53d96c79d99aa"
+    },
+    {
+      "path": "/assets/icons-Bw26Dp4s.svg",
+      "url": "http://127.0.0.1:4174/assets/icons-Bw26Dp4s.svg",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/icons-Bw26Dp4s.svg",
+      "redirects": [],
+      "sha256": "9d6e1a5e37e0c3c8cc0b86a091475546ab8e4bb3e92785afbd76c76eaf2197fa"
+    },
+    {
+      "path": "/assets/implementations-CzqOSgtP.js",
+      "url": "http://127.0.0.1:4174/assets/implementations-CzqOSgtP.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/implementations-CzqOSgtP.js",
+      "redirects": [],
+      "sha256": "93975ab68b96bb3bb7e5eb8d03cd4aa1502fe3a3d0b3cc96f7a5a8945e21abe0"
+    },
+    {
+      "path": "/assets/instituicao-desktop-BJFU5yUy.webp",
+      "url": "http://127.0.0.1:4174/assets/instituicao-desktop-BJFU5yUy.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/instituicao-desktop-BJFU5yUy.webp",
+      "redirects": [],
+      "sha256": "0b40cd6c14c24f0ffdc88bb1fdcd7481a84d94811d72484c26520394d84ae3c8"
+    },
+    {
+      "path": "/assets/instituicao-mobile-e6zyMzew.webp",
+      "url": "http://127.0.0.1:4174/assets/instituicao-mobile-e6zyMzew.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/instituicao-mobile-e6zyMzew.webp",
+      "redirects": [],
+      "sha256": "c8b09ed3c15764cd38cd7da4ebda01f611a375d961609c0c941ec7187385e725"
+    },
+    {
+      "path": "/assets/instituicao-proposta-desktop-CRRDWe1B.webp",
+      "url": "http://127.0.0.1:4174/assets/instituicao-proposta-desktop-CRRDWe1B.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/instituicao-proposta-desktop-CRRDWe1B.webp",
+      "redirects": [],
+      "sha256": "1a1c2da0133b0df08332e2f0fce953ddbcf5977eded7e548989bd3a31f3af711"
+    },
+    {
+      "path": "/assets/instituicao-proposta-mobile-C4ch-uau.webp",
+      "url": "http://127.0.0.1:4174/assets/instituicao-proposta-mobile-C4ch-uau.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/instituicao-proposta-mobile-C4ch-uau.webp",
+      "redirects": [],
+      "sha256": "3229894dee964e124cdee58102c71aae4d2ba091cc8bdbf9f96bf293cadba96c"
+    },
+    {
+      "path": "/assets/intake-Dn6S80Nv.js",
+      "url": "http://127.0.0.1:4174/assets/intake-Dn6S80Nv.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/intake-Dn6S80Nv.js",
+      "redirects": [],
+      "sha256": "c0ba01b6fd4924fb0b7a91d589418e3cd2fe263e8098569c5710f65f7d13dc0d"
+    },
+    {
+      "path": "/assets/integrations-sh7yHFIj.js",
+      "url": "http://127.0.0.1:4174/assets/integrations-sh7yHFIj.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/integrations-sh7yHFIj.js",
+      "redirects": [],
+      "sha256": "e5c9e72b5f24fbf9a514200bf19e905ef7153ecba476261bf483476c4ab7245a"
+    },
+    {
+      "path": "/assets/ledger-ECT3igbG.js",
+      "url": "http://127.0.0.1:4174/assets/ledger-ECT3igbG.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/ledger-ECT3igbG.js",
+      "redirects": [],
+      "sha256": "161d1dd85396265efb1c8c7b9717c33706f2435ab8255e9391f9c412a18837a5"
+    },
+    {
+      "path": "/assets/local-first-C7KroU7Y.js",
+      "url": "http://127.0.0.1:4174/assets/local-first-C7KroU7Y.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/local-first-C7KroU7Y.js",
+      "redirects": [],
+      "sha256": "4e764402004e3692430797951d48d378c8a286c2bde8097df4d0a84131a7f857"
+    },
+    {
+      "path": "/assets/manifest-gifOfB1V.webmanifest",
+      "url": "http://127.0.0.1:4174/assets/manifest-gifOfB1V.webmanifest",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/manifest-gifOfB1V.webmanifest",
+      "redirects": [],
+      "sha256": "2d0c752109c989a74e88e5bf3ebca261bd8cc05d5883fdcecb1496a92d89ed35"
+    },
+    {
+      "path": "/assets/next-action-CPVu_yC3.js",
+      "url": "http://127.0.0.1:4174/assets/next-action-CPVu_yC3.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/next-action-CPVu_yC3.js",
+      "redirects": [],
+      "sha256": "288d1b9382095aa07623676972351555750db289b1536197f64fb2b1c7ed8a6d"
+    },
+    {
+      "path": "/assets/opportunities-BfJl_GwQ.js",
+      "url": "http://127.0.0.1:4174/assets/opportunities-BfJl_GwQ.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/opportunities-BfJl_GwQ.js",
+      "redirects": [],
+      "sha256": "c2ba7053200b8084411a2fbdd2d862a351202c7c0872a54d251e745dec3ed35e"
+    },
+    {
+      "path": "/assets/ops-CXj1I87d.js",
+      "url": "http://127.0.0.1:4174/assets/ops-CXj1I87d.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/ops-CXj1I87d.js",
+      "redirects": [],
+      "sha256": "ca62e687c316fac97ae58ebaa243969ef2a2819aae685630fb76cc737e4370ae"
+    },
+    {
+      "path": "/assets/painel-desktop-iTCNI3PX.webp",
+      "url": "http://127.0.0.1:4174/assets/painel-desktop-iTCNI3PX.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/painel-desktop-iTCNI3PX.webp",
+      "redirects": [],
+      "sha256": "cae6b977c0e9c62ecc1f10559bc0dec28459f91516f85a743c7670e9534872fc"
+    },
+    {
+      "path": "/assets/painel-mobile-Llb6Edb9.webp",
+      "url": "http://127.0.0.1:4174/assets/painel-mobile-Llb6Edb9.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/painel-mobile-Llb6Edb9.webp",
+      "redirects": [],
+      "sha256": "c2d52181b5d0338ace2e7a0ddef8ebbe69e4277312295b9ba281f66c1b698728"
+    },
+    {
+      "path": "/assets/passport-BSNH0ap6.js",
+      "url": "http://127.0.0.1:4174/assets/passport-BSNH0ap6.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/passport-BSNH0ap6.js",
+      "redirects": [],
+      "sha256": "4274b4a00a4a82aa87b7078d84edd70724dea3c24cb217cb49a418e9853415a4"
+    },
+    {
+      "path": "/assets/passport-C8fxY-t2.js",
+      "url": "http://127.0.0.1:4174/assets/passport-C8fxY-t2.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/passport-C8fxY-t2.js",
+      "redirects": [],
+      "sha256": "b591f456bc975a5e2f7f12dee1c33b62a10b5f86788695c5b775b5ececd913cd"
+    },
+    {
+      "path": "/assets/performance-B5xnsTcc.js",
+      "url": "http://127.0.0.1:4174/assets/performance-B5xnsTcc.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/performance-B5xnsTcc.js",
+      "redirects": [],
+      "sha256": "7732e1ff7a56b4c2b43f2bc944499e6522f5ddbc3b53f535e0f2578a7f8f1fbf"
+    },
+    {
+      "path": "/assets/policy-BrReO6DQ.js",
+      "url": "http://127.0.0.1:4174/assets/policy-BrReO6DQ.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/policy-BrReO6DQ.js",
+      "redirects": [],
+      "sha256": "8dca8ea788c0eaae7065f0988fe15cc0282f6f0861e1d84ae30967dbd592402a"
+    },
+    {
+      "path": "/assets/policy-DH6HCqGp.js",
+      "url": "http://127.0.0.1:4174/assets/policy-DH6HCqGp.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/policy-DH6HCqGp.js",
+      "redirects": [],
+      "sha256": "41cf251965e053e2beaf96ae422e91e2b46d06894e07e452ed2cf3933a32ef87"
+    },
+    {
+      "path": "/assets/policy-line--rZh5dia.js",
+      "url": "http://127.0.0.1:4174/assets/policy-line--rZh5dia.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/policy-line--rZh5dia.js",
+      "redirects": [],
+      "sha256": "8ad3276cb8a84f29e5a71f41159c9148727ca8c28204fd57dbf0f0c9932cc7b3"
+    },
+    {
+      "path": "/assets/popover-6iDPlCc3.js",
+      "url": "http://127.0.0.1:4174/assets/popover-6iDPlCc3.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/popover-6iDPlCc3.js",
+      "redirects": [],
+      "sha256": "3f611ee179dd1748f3718121dcb704aece1faa4aeb3c51b7ef10f8d61d0fc24d"
+    },
+    {
+      "path": "/assets/portfolio-Bm2DHjka.js",
+      "url": "http://127.0.0.1:4174/assets/portfolio-Bm2DHjka.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/portfolio-Bm2DHjka.js",
+      "redirects": [],
+      "sha256": "37e89574fa9538e71760f1965d9e3bab4404b93b6dc123931e87248e704ce47c"
+    },
+    {
+      "path": "/assets/portfolio-DNgugo-k.js",
+      "url": "http://127.0.0.1:4174/assets/portfolio-DNgugo-k.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/portfolio-DNgugo-k.js",
+      "redirects": [],
+      "sha256": "704df418ebc70b5dd4a569c9f59b50d209918151290e3675b78a9965c1d476ef"
+    },
+    {
+      "path": "/assets/preferences-CN4eZABx.js",
+      "url": "http://127.0.0.1:4174/assets/preferences-CN4eZABx.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/preferences-CN4eZABx.js",
+      "redirects": [],
+      "sha256": "47995f17966718a03f2102fdf668945faf1da1db42651f1f3fe07506202c9caf"
+    },
+    {
+      "path": "/assets/preload-helper-DHhhL8Zf.js",
+      "url": "http://127.0.0.1:4174/assets/preload-helper-DHhhL8Zf.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/preload-helper-DHhhL8Zf.js",
+      "redirects": [],
+      "sha256": "616967e76046f7a294c7ad1643f1ab9993561d942fd47c439a02f58b0569e70c"
+    },
+    {
+      "path": "/assets/propostas-desktop-BTa8qdtT.webp",
+      "url": "http://127.0.0.1:4174/assets/propostas-desktop-BTa8qdtT.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/propostas-desktop-BTa8qdtT.webp",
+      "redirects": [],
+      "sha256": "faa3552e3b5767cc67782a9b7c1f25da9773a79d3e1af4517e116ed8f913ddbe"
+    },
+    {
+      "path": "/assets/propostas-mobile-PTW8Az0x.webp",
+      "url": "http://127.0.0.1:4174/assets/propostas-mobile-PTW8Az0x.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/propostas-mobile-PTW8Az0x.webp",
+      "redirects": [],
+      "sha256": "a23d7baca29e7d039f67657236c7f620b6abbc6c789222fb3c465d944374262a"
+    },
+    {
+      "path": "/assets/provider-CD8C9LV-.js",
+      "url": "http://127.0.0.1:4174/assets/provider-CD8C9LV-.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/provider-CD8C9LV-.js",
+      "redirects": [],
+      "sha256": "3b22c3f5c80bf70857ce911aacd07509c338b88b62c458ef2e5e3bd560d59bc7"
+    },
+    {
+      "path": "/assets/provider-portal-DiuVUldX.js",
+      "url": "http://127.0.0.1:4174/assets/provider-portal-DiuVUldX.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/provider-portal-DiuVUldX.js",
+      "redirects": [],
+      "sha256": "07608fa3cafb1de2270d1edf33254336f7c252c9495888021682bd887a7ccd70"
+    },
+    {
+      "path": "/assets/provider-relationship-nqAeH7YS.js",
+      "url": "http://127.0.0.1:4174/assets/provider-relationship-nqAeH7YS.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/provider-relationship-nqAeH7YS.js",
+      "redirects": [],
+      "sha256": "9564df0627589a79b7992ea8c6f0600041070e5f3d6d83a58a95ea5c38cb0d53"
+    },
+    {
+      "path": "/assets/qualifications-CvHqOg4F.js",
+      "url": "http://127.0.0.1:4174/assets/qualifications-CvHqOg4F.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/qualifications-CvHqOg4F.js",
+      "redirects": [],
+      "sha256": "61f78eae60d63c478b46757c12ec5e0856b43101f182e36a22c4cd1312c68855"
+    },
+    {
+      "path": "/assets/registry-CFutxjHF.js",
+      "url": "http://127.0.0.1:4174/assets/registry-CFutxjHF.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/registry-CFutxjHF.js",
+      "redirects": [],
+      "sha256": "0d9c2ccb1697fa11a4dd1d2c29c2bd320931e59ce17feaad818756700a4e76b8"
+    },
+    {
+      "path": "/assets/relacionamentos-desktop-YjPg7GlV.webp",
+      "url": "http://127.0.0.1:4174/assets/relacionamentos-desktop-YjPg7GlV.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/relacionamentos-desktop-YjPg7GlV.webp",
+      "redirects": [],
+      "sha256": "6ccfa3e7952eea1695b779cd6ac3ca896f4e8aee3ad0c3d194d56bf41c101f34"
+    },
+    {
+      "path": "/assets/relacionamentos-mobile-D9-WJftq.webp",
+      "url": "http://127.0.0.1:4174/assets/relacionamentos-mobile-D9-WJftq.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/relacionamentos-mobile-D9-WJftq.webp",
+      "redirects": [],
+      "sha256": "261585334a5f065e883d7ee2039e044156ad21c82264200d59fb561e9be9273f"
+    },
+    {
+      "path": "/assets/relationship-center-Da9cqD9I.js",
+      "url": "http://127.0.0.1:4174/assets/relationship-center-Da9cqD9I.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/relationship-center-Da9cqD9I.js",
+      "redirects": [],
+      "sha256": "797ee6cfb562358cf572504bcc42fafc3b52dfce090306e7fe1b4d46f4b52ffc"
+    },
+    {
+      "path": "/assets/rfq-BgWWMx7-.js",
+      "url": "http://127.0.0.1:4174/assets/rfq-BgWWMx7-.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/rfq-BgWWMx7-.js",
+      "redirects": [],
+      "sha256": "5ab3548a4c2408bc21a71abddb1ff8f1e4567404152f498b9139cab57689c301"
+    },
+    {
+      "path": "/assets/rfq-page--UEfFnXs.js",
+      "url": "http://127.0.0.1:4174/assets/rfq-page--UEfFnXs.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/rfq-page--UEfFnXs.js",
+      "redirects": [],
+      "sha256": "0239f91aee212eda61ac20e57807ba03d40936500ac44cbd32c093f889c08294"
+    },
+    {
+      "path": "/assets/rfqs-CH7QHLmP.js",
+      "url": "http://127.0.0.1:4174/assets/rfqs-CH7QHLmP.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/rfqs-CH7QHLmP.js",
+      "redirects": [],
+      "sha256": "96fd240a48cad0aa0cf96605c5503f91590748b3a6ef6963dbbd288381f1c2d2"
+    },
+    {
+      "path": "/assets/route-DCkfDM4B.js",
+      "url": "http://127.0.0.1:4174/assets/route-DCkfDM4B.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/route-DCkfDM4B.js",
+      "redirects": [],
+      "sha256": "731e02b4a14de96f49958a96ee9d9a4f6cd4c8239dc7c6dc93cd8f423cbbe473"
+    },
+    {
+      "path": "/assets/saved-views-B8nmKJKz.js",
+      "url": "http://127.0.0.1:4174/assets/saved-views-B8nmKJKz.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/saved-views-B8nmKJKz.js",
+      "redirects": [],
+      "sha256": "5cb8efe0d40452d0837fbb1061c0235a5b64a01f5744879d7d40679cddbcb431"
+    },
+    {
+      "path": "/assets/seed-Cy4z2soV.js",
+      "url": "http://127.0.0.1:4174/assets/seed-Cy4z2soV.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/seed-Cy4z2soV.js",
+      "redirects": [],
+      "sha256": "56f930c25bc171491a7c6997c4a274a93a6ab4fdabb5db9edec964302206ca58"
+    },
+    {
+      "path": "/assets/settings-architecture-DM7zUo_Q.js",
+      "url": "http://127.0.0.1:4174/assets/settings-architecture-DM7zUo_Q.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/settings-architecture-DM7zUo_Q.js",
+      "redirects": [],
+      "sha256": "c64d8cc42f487c89911e75afa00d8437d961f6656b0793e9bc561b2e42028265"
+    },
+    {
+      "path": "/assets/shared-D_z-qlOd.js",
+      "url": "http://127.0.0.1:4174/assets/shared-D_z-qlOd.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/shared-D_z-qlOd.js",
+      "redirects": [],
+      "sha256": "e9491df0cc54d012038e019ac3e3cdca6af62feb30b4bdfb9e64b6e51b80be1b"
+    },
+    {
+      "path": "/assets/shell-XBe1abEC.js",
+      "url": "http://127.0.0.1:4174/assets/shell-XBe1abEC.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/shell-XBe1abEC.js",
+      "redirects": [],
+      "sha256": "c69b6865dff31a01b919629eea83f7d9611d46f76d4e645eccc215b1ed5c6467"
+    },
+    {
+      "path": "/assets/solicitacao-desktop-prQYspeh.webp",
+      "url": "http://127.0.0.1:4174/assets/solicitacao-desktop-prQYspeh.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/solicitacao-desktop-prQYspeh.webp",
+      "redirects": [],
+      "sha256": "5ccae7de5ed0bac656ec786170d762c3629c87ac33f7da977373ea43f0f00ab2"
+    },
+    {
+      "path": "/assets/solicitacao-mobile-CkpZLYYV.webp",
+      "url": "http://127.0.0.1:4174/assets/solicitacao-mobile-CkpZLYYV.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/solicitacao-mobile-CkpZLYYV.webp",
+      "redirects": [],
+      "sha256": "d79543873ba8cdf934dfc401e397faefb5f435e968ea6a54506248b95a11c8eb"
+    },
+    {
+      "path": "/assets/spend-CnW6jRXC.js",
+      "url": "http://127.0.0.1:4174/assets/spend-CnW6jRXC.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/spend-CnW6jRXC.js",
+      "redirects": [],
+      "sha256": "cb356e48906b23410118da382cc53cae588a0b611b8e928cf6b40b452c13ccae"
+    },
+    {
+      "path": "/assets/sso-MiBr-8S5.js",
+      "url": "http://127.0.0.1:4174/assets/sso-MiBr-8S5.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/sso-MiBr-8S5.js",
+      "redirects": [],
+      "sha256": "c53bd8126a968347ee9a856d65b7827fafab95f532806ca9859d6bea3f9bd05f"
+    },
+    {
+      "path": "/assets/style-Czsa70BJ.css",
+      "url": "http://127.0.0.1:4174/assets/style-Czsa70BJ.css",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/style-Czsa70BJ.css",
+      "redirects": [],
+      "sha256": "0f9bece3f10fa16f4eb78a49baf077306342afda6248a4cef8107dc9064b66d7"
+    },
+    {
+      "path": "/assets/transitions-Cq2wsLBQ.js",
+      "url": "http://127.0.0.1:4174/assets/transitions-Cq2wsLBQ.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/transitions-Cq2wsLBQ.js",
+      "redirects": [],
+      "sha256": "aac4b63429aaa2a6af6acd11558e0c1edb2604a538c329028571104a5d2f43ea"
+    },
+    {
+      "path": "/assets/transitions-lQB9tF9O.css",
+      "url": "http://127.0.0.1:4174/assets/transitions-lQB9tF9O.css",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/transitions-lQB9tF9O.css",
+      "redirects": [],
+      "sha256": "d654bec50acd6d1c4422d4f94b19a1c4ff8541bf6f3b7ebe0de71895a252d234"
+    },
+    {
+      "path": "/assets/ui-DvoNaTMa.js",
+      "url": "http://127.0.0.1:4174/assets/ui-DvoNaTMa.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/ui-DvoNaTMa.js",
+      "redirects": [],
+      "sha256": "058a1d66ca9ef6a8d482d20bbcf712fde05adc2f19b37fc26403dc3776473695"
+    },
+    {
+      "path": "/assets/usage-XQ6q19rw.js",
+      "url": "http://127.0.0.1:4174/assets/usage-XQ6q19rw.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/usage-XQ6q19rw.js",
+      "redirects": [],
+      "sha256": "661e695228268d24beffd2a2b5b07d37e5dd4890b31dbae6bbec7957852dbfbe"
+    },
+    {
+      "path": "/assets/value-AgFlWfZn.js",
+      "url": "http://127.0.0.1:4174/assets/value-AgFlWfZn.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/value-AgFlWfZn.js",
+      "redirects": [],
+      "sha256": "ebc9bd46984439d3598af3584f78ed3d6136633f287c94a014ed547668753130"
+    },
+    {
+      "path": "/assets/vercel-speed-insights-C0hWaJ-P.js",
+      "url": "http://127.0.0.1:4174/assets/vercel-speed-insights-C0hWaJ-P.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/vercel-speed-insights-C0hWaJ-P.js",
+      "redirects": [],
+      "sha256": "c0c2484fed83e2ec262474432adf74ce751c6f8576f5a68b3e2df877b9528ee6"
+    },
+    {
+      "path": "/assets/workspace-Cmm52jV1.webp",
+      "url": "http://127.0.0.1:4174/assets/workspace-Cmm52jV1.webp",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/workspace-Cmm52jV1.webp",
+      "redirects": [],
+      "sha256": "292dbd86ec702fcf4abf3f99388db23579cdd1735c8064f1930152c1bf05bfea"
+    },
+    {
+      "path": "/assets/workspace-DDgh89lo.js",
+      "url": "http://127.0.0.1:4174/assets/workspace-DDgh89lo.js",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/assets/workspace-DDgh89lo.js",
+      "redirects": [],
+      "sha256": "3a8f3617bb8347ef7420c7b4aed082c064310f4e4e6d2d3bbcc1921325938257"
+    },
+    {
+      "path": "/cadastro.html",
+      "url": "http://127.0.0.1:4174/cadastro.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/cadastro.html",
+      "redirects": [],
+      "sha256": "6fc7ef563068296ab11d52cc219a6fefe9cb445ec50fb9fb32c363fa905b83b5"
+    },
+    {
+      "path": "/credito.html",
+      "url": "http://127.0.0.1:4174/credito.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/credito.html",
+      "redirects": [],
+      "sha256": "922c7d8e43cc363a2f2f1df915644cfca8fe5cc41da0023ee5d63a482cf56abd"
+    },
+    {
+      "path": "/demo/finance/approvals.html",
+      "url": "http://127.0.0.1:4174/demo/finance/approvals.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/demo/finance/approvals.html",
+      "redirects": [],
+      "sha256": "934f704fed02b503ee329c04fad30c41e1940f6cc49ac7e299e1d4467b52ab54"
+    },
+    {
+      "path": "/demo/finance/boundaries.html",
+      "url": "http://127.0.0.1:4174/demo/finance/boundaries.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/demo/finance/boundaries.html",
+      "redirects": [],
+      "sha256": "e15cd11794c963685cf6079f8fa6024964e81a06df6bdba77ae97451f0a130c5"
+    },
+    {
+      "path": "/demo/finance/contracts.html",
+      "url": "http://127.0.0.1:4174/demo/finance/contracts.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/demo/finance/contracts.html",
+      "redirects": [],
+      "sha256": "1b0d4d742305b5792c55aced8c7fdc66361bc5e25d594968636aaf4b3a0f89dd"
+    },
+    {
+      "path": "/demo/finance/dashboard.html",
+      "url": "http://127.0.0.1:4174/demo/finance/dashboard.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/demo/finance/dashboard.html",
+      "redirects": [],
+      "sha256": "bacf405372e014af9e0fa7d77c92743edd3d6152f331493635d06ea7fbee4a06"
+    },
+    {
+      "path": "/demo/finance/fees.html",
+      "url": "http://127.0.0.1:4174/demo/finance/fees.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/demo/finance/fees.html",
+      "redirects": [],
+      "sha256": "567a49f001da15a07840026243586769f447865e9ea3079f623bdb8307f96f03"
+    },
+    {
+      "path": "/demo/finance/index.html",
+      "url": "http://127.0.0.1:4174/demo/finance/index.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/demo/finance/index.html",
+      "redirects": [],
+      "sha256": "0ac6bee15ef0f8f28446d7ca7d4fab70010020dbd89ee3aae65bbc56e6af4107"
+    },
+    {
+      "path": "/demo/finance/intake.html",
+      "url": "http://127.0.0.1:4174/demo/finance/intake.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/demo/finance/intake.html",
+      "redirects": [],
+      "sha256": "3b4baabdf9beb53c7bb84d0dab36f7e63bb190c036efd9c2ec653799203a1517"
+    },
+    {
+      "path": "/demo/finance/integrations.html",
+      "url": "http://127.0.0.1:4174/demo/finance/integrations.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/demo/finance/integrations.html",
+      "redirects": [],
+      "sha256": "a38eff10133baf59bdb277ffc3f8e60b59201034b17ce203f8d83dece9085af0"
+    },
+    {
+      "path": "/demo/finance/new-rfq.html",
+      "url": "http://127.0.0.1:4174/demo/finance/new-rfq.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/demo/finance/new-rfq.html",
+      "redirects": [],
+      "sha256": "bff5c155b040d539e8d3c2a5d8384e23bb6834dc54e4ec1166387805e389799b"
+    },
+    {
+      "path": "/demo/finance/notifications.html",
+      "url": "http://127.0.0.1:4174/demo/finance/notifications.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/demo/finance/notifications.html",
+      "redirects": [],
+      "sha256": "32f77dcdfdf367a059b9597db90b1030376ac798494a413ea2ec1ea1c2a5fb21"
+    },
+    {
+      "path": "/demo/finance/opportunities.html",
+      "url": "http://127.0.0.1:4174/demo/finance/opportunities.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/demo/finance/opportunities.html",
+      "redirects": [],
+      "sha256": "adacc8c2a55c6d603fec83679f6d0cf646c0e22eaaa160805804812057c7c9c7"
+    },
+    {
+      "path": "/demo/finance/ops.html",
+      "url": "http://127.0.0.1:4174/demo/finance/ops.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/demo/finance/ops.html",
+      "redirects": [],
+      "sha256": "8800d069e408a9680a9987d8daf44df3899ccddda1a4ff9f507093d7b3784071"
+    },
+    {
+      "path": "/demo/finance/passport.html",
+      "url": "http://127.0.0.1:4174/demo/finance/passport.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/demo/finance/passport.html",
+      "redirects": [],
+      "sha256": "f9b519493ee457c6cac34780095619dd90cedeb22faf26f67342f1a6d014f10e"
+    },
+    {
+      "path": "/demo/finance/policies.html",
+      "url": "http://127.0.0.1:4174/demo/finance/policies.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/demo/finance/policies.html",
+      "redirects": [],
+      "sha256": "ad5b4a557ec720fffb04f53faf896838ac5e11670f4c4fed5f35b1951827f77f"
+    },
+    {
+      "path": "/demo/finance/portfolio.html",
+      "url": "http://127.0.0.1:4174/demo/finance/portfolio.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/demo/finance/portfolio.html",
+      "redirects": [],
+      "sha256": "2a721e69bdcec7546fac4fe66dabd6ff83cb81e96b193257180077d7fe7815e6"
+    },
+    {
+      "path": "/demo/finance/proposals.html",
+      "url": "http://127.0.0.1:4174/demo/finance/proposals.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/demo/finance/proposals.html",
+      "redirects": [],
+      "sha256": "b818a5907918daba9d1340be20f8b1b490a6eb82c1a7f9ffb61f69f179656269"
+    },
+    {
+      "path": "/demo/finance/providers.html",
+      "url": "http://127.0.0.1:4174/demo/finance/providers.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/demo/finance/providers.html",
+      "redirects": [],
+      "sha256": "e473a594717368c90b18c4c732f5570a87d10ad04cbdb2f19db34ad8767a3ff0"
+    },
+    {
+      "path": "/demo/finance/rfq.html",
+      "url": "http://127.0.0.1:4174/demo/finance/rfq.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/demo/finance/rfq.html",
+      "redirects": [],
+      "sha256": "8e39c83f2646656a5450fc4ef4b10019ac54f6f26a8a1052bd9f75d5b33002df"
+    },
+    {
+      "path": "/demo/finance/rfqs.html",
+      "url": "http://127.0.0.1:4174/demo/finance/rfqs.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/demo/finance/rfqs.html",
+      "redirects": [],
+      "sha256": "24ca33a054e66943de0f1948bced358a0cf2b9a7f9fdf3807b9976a56e8a364e"
+    },
+    {
+      "path": "/demo/finance/settings.html",
+      "url": "http://127.0.0.1:4174/demo/finance/settings.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/demo/finance/settings.html",
+      "redirects": [],
+      "sha256": "2b28c0cc2fe0964141cd65da0e0362ee0c7c6c62788de625ed61c88c37c336a9"
+    },
+    {
+      "path": "/demo/finance/tasks.html",
+      "url": "http://127.0.0.1:4174/demo/finance/tasks.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/demo/finance/tasks.html",
+      "redirects": [],
+      "sha256": "fe54acd470a60922ab6d3c00539554c76b3d98e316f561fcbe37bbb456ab11c8"
+    },
+    {
+      "path": "/demo/finance/usage.html",
+      "url": "http://127.0.0.1:4174/demo/finance/usage.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/demo/finance/usage.html",
+      "redirects": [],
+      "sha256": "fdc9c3f7d628210b1a039008c3b273a4d5afa8cbe8d1d2df9c195afa7af13c90"
+    },
+    {
+      "path": "/demo/finance/value.html",
+      "url": "http://127.0.0.1:4174/demo/finance/value.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/demo/finance/value.html",
+      "redirects": [],
+      "sha256": "bef3fcdbc8d8c8b239dcbad882ae85359074675bbf8d10938a0cb0e51b7a6cc8"
+    },
+    {
+      "path": "/demo/index.html",
+      "url": "http://127.0.0.1:4174/demo/index.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/demo/index.html",
+      "redirects": [],
+      "sha256": "758380902eb96b5215a6eca5f77cf40e97b5d0982b0acbd01a3d593999fba256"
+    },
+    {
+      "path": "/demo/provider/index.html",
+      "url": "http://127.0.0.1:4174/demo/provider/index.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/demo/provider/index.html",
+      "redirects": [],
+      "sha256": "a53f2c6f8f5f7eabab570eb239c5042921aa92fa49a5fb4e95609c3ad10708ae"
+    },
+    {
+      "path": "/demo/provider/invite.html",
+      "url": "http://127.0.0.1:4174/demo/provider/invite.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/demo/provider/invite.html",
+      "redirects": [],
+      "sha256": "2f0dd697c380772458c09e74d9d3ff13edcdb139b07c75e846e929f7c229848a"
+    },
+    {
+      "path": "/demo/provider/proposal.html",
+      "url": "http://127.0.0.1:4174/demo/provider/proposal.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/demo/provider/proposal.html",
+      "redirects": [],
+      "sha256": "a3733eb11ffd1bda7f188cf3d47c7e787e401cf03454b908fb135fac14dc84bd"
+    },
+    {
+      "path": "/demo/provider/rfqs.html",
+      "url": "http://127.0.0.1:4174/demo/provider/rfqs.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/demo/provider/rfqs.html",
+      "redirects": [],
+      "sha256": "bfc0a324cbe757e80b3e34ca07e154bf5a02aafcbd85a5512ade918182334bd3"
+    },
+    {
+      "path": "/demo/visita.html",
+      "url": "http://127.0.0.1:4174/demo/visita.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/demo/visita.html",
+      "redirects": [],
+      "sha256": "7635fe20cf9e52a0f7cebe1d3c8e8ea6f969d1f4db0cf15eab0358634c95957c"
+    },
+    {
+      "path": "/favicon.svg",
+      "url": "http://127.0.0.1:4174/favicon.svg",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/favicon.svg",
+      "redirects": [],
+      "sha256": "4d686c227f514170281ea0dbd29ebd04a9df023569a6c4c5efa125a554be9e45"
+    },
+    {
+      "path": "/finance/approvals.html",
+      "url": "http://127.0.0.1:4174/finance/approvals.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/finance/approvals.html",
+      "redirects": [],
+      "sha256": "9264a90f108be2f5d3d3a3a197d3f1eac5947ee13ea415e11d8ab8dfb186e78a"
+    },
+    {
+      "path": "/finance/boundaries.html",
+      "url": "http://127.0.0.1:4174/finance/boundaries.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/finance/boundaries.html",
+      "redirects": [],
+      "sha256": "5d24b5aeea7be9e4375f1d1e0da97b04277b144e2d635b42f06452f6d5fc93d9"
+    },
+    {
+      "path": "/finance/contracts.html",
+      "url": "http://127.0.0.1:4174/finance/contracts.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/finance/contracts.html",
+      "redirects": [],
+      "sha256": "3b14aa8856c510a1b6df78e6004e69629c44bedf4e8eeabe1a6d22822f49e7e4"
+    },
+    {
+      "path": "/finance/covenants.html",
+      "url": "http://127.0.0.1:4174/finance/covenants.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/finance/covenants.html",
+      "redirects": [],
+      "sha256": "f6cd4babfbafea0b423ac94f3ea37a2d59b5839bd7eda3eefaee954751b40616"
+    },
+    {
+      "path": "/finance/dashboard.html",
+      "url": "http://127.0.0.1:4174/finance/dashboard.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/finance/dashboard.html",
+      "redirects": [],
+      "sha256": "5d84a4f09e8a2e09be7a9b09d995473f17a0509abc7ad7a6e753032d140d76d7"
+    },
+    {
+      "path": "/finance/extractions.html",
+      "url": "http://127.0.0.1:4174/finance/extractions.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/finance/extractions.html",
+      "redirects": [],
+      "sha256": "755c25d26bb239520b75ffdbd120c6ac4fb975e3257bc966ef95a435e0c06f9c"
+    },
+    {
+      "path": "/finance/fees.html",
+      "url": "http://127.0.0.1:4174/finance/fees.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/finance/fees.html",
+      "redirects": [],
+      "sha256": "a1f13c8d76598990427fd28bc6806537110c3266f1952aa81e15c119730f9177"
+    },
+    {
+      "path": "/finance/implementations.html",
+      "url": "http://127.0.0.1:4174/finance/implementations.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/finance/implementations.html",
+      "redirects": [],
+      "sha256": "5def60fad3059834c8dd748af027b6d7477b8accd827f05906473891cc7ea520"
+    },
+    {
+      "path": "/finance/index.html",
+      "url": "http://127.0.0.1:4174/finance/index.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/finance/index.html",
+      "redirects": [],
+      "sha256": "69cd95dc95d47e7eba85ee9d0229517666ce02712c9b6618ca67131b40edbb8a"
+    },
+    {
+      "path": "/finance/new-rfq.html",
+      "url": "http://127.0.0.1:4174/finance/new-rfq.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/finance/new-rfq.html",
+      "redirects": [],
+      "sha256": "70bb84f12eb06cb9b7151b0d05ae7c119eab3e5a69e83f95f75286fbe627226d"
+    },
+    {
+      "path": "/finance/notifications.html",
+      "url": "http://127.0.0.1:4174/finance/notifications.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/finance/notifications.html",
+      "redirects": [],
+      "sha256": "c817a730a45f7fcc2a33d015157a8fa6a59825de475ceec8a66f22a8ab067837"
+    },
+    {
+      "path": "/finance/opportunities.html",
+      "url": "http://127.0.0.1:4174/finance/opportunities.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/finance/opportunities.html",
+      "redirects": [],
+      "sha256": "a39f6e50d502dd86b05dd6b7ade16dd24c9d69f00731dcd690fe03efe19b0a00"
+    },
+    {
+      "path": "/finance/ops.html",
+      "url": "http://127.0.0.1:4174/finance/ops.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/finance/ops.html",
+      "redirects": [],
+      "sha256": "41da2226c3bf900243d5665f7b0c146a1e8c7017bcb5e7790214a129498226ad"
+    },
+    {
+      "path": "/finance/passport.html",
+      "url": "http://127.0.0.1:4174/finance/passport.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/finance/passport.html",
+      "redirects": [],
+      "sha256": "34a2233dc6afbb36a055deec1614aaeded2269c78f20621004484d0363364b14"
+    },
+    {
+      "path": "/finance/performance.html",
+      "url": "http://127.0.0.1:4174/finance/performance.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/finance/performance.html",
+      "redirects": [],
+      "sha256": "c86e90b2f8aa9f04fa79b9cf80f743ea939709a680e0b0f94d1c447198ffde78"
+    },
+    {
+      "path": "/finance/portfolio.html",
+      "url": "http://127.0.0.1:4174/finance/portfolio.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/finance/portfolio.html",
+      "redirects": [],
+      "sha256": "22dc796afa9b0826c8cf181a0570f36e46bc3aab16f71d0891a81f7b939d2955"
+    },
+    {
+      "path": "/finance/proposals.html",
+      "url": "http://127.0.0.1:4174/finance/proposals.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/finance/proposals.html",
+      "redirects": [],
+      "sha256": "abd9498e3ba2d81a01a4f962a89dba04e0dd9911bda1c192145a234587c02011"
+    },
+    {
+      "path": "/finance/providers.html",
+      "url": "http://127.0.0.1:4174/finance/providers.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/finance/providers.html",
+      "redirects": [],
+      "sha256": "f60c95355918163b8c544cf9c3baf8ee143456bc689f7dfcc073a9c48e531291"
+    },
+    {
+      "path": "/finance/qualifications.html",
+      "url": "http://127.0.0.1:4174/finance/qualifications.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/finance/qualifications.html",
+      "redirects": [],
+      "sha256": "9558bf4cddad5e2d215755823a1e99f8535c1790b065caef342d5aa4b327d79a"
+    },
+    {
+      "path": "/finance/rfq.html",
+      "url": "http://127.0.0.1:4174/finance/rfq.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/finance/rfq.html",
+      "redirects": [],
+      "sha256": "69b0a95c6baa18672c0fc124a8da87e0d4b62ea4b5c317b21b75642238468cd4"
+    },
+    {
+      "path": "/finance/rfqs.html",
+      "url": "http://127.0.0.1:4174/finance/rfqs.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/finance/rfqs.html",
+      "redirects": [],
+      "sha256": "6d7776eeed3a0d4a278f75a9ebd2e0be96dc3f327cbd369e02e05ad9bf00b34c"
+    },
+    {
+      "path": "/finance/settings.html",
+      "url": "http://127.0.0.1:4174/finance/settings.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/finance/settings.html",
+      "redirects": [],
+      "sha256": "7ab543d4d00345cc2e511b48d0a79d890fd97010d9591286a1dfd2543f6056e8"
+    },
+    {
+      "path": "/finance/spend.html",
+      "url": "http://127.0.0.1:4174/finance/spend.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/finance/spend.html",
+      "redirects": [],
+      "sha256": "f17a66fbfae9d3cef07c81cfff80d571cc7d3365ca36fbf2b955f1ce54b85ff0"
+    },
+    {
+      "path": "/finance/tasks.html",
+      "url": "http://127.0.0.1:4174/finance/tasks.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/finance/tasks.html",
+      "redirects": [],
+      "sha256": "51b535b73823cc44bf9020449188cd51fd46a0f8e863ace4f9e24a0b490d1168"
+    },
+    {
+      "path": "/finance/value.html",
+      "url": "http://127.0.0.1:4174/finance/value.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/finance/value.html",
+      "redirects": [],
+      "sha256": "bfafe57984aa6f9ca3aae108e4000e5e7d5c96d189288b95314cb23b463c988a"
+    },
+    {
+      "path": "/financial-icon-180.png",
+      "url": "http://127.0.0.1:4174/financial-icon-180.png",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/financial-icon-180.png",
+      "redirects": [],
+      "sha256": "31826d0e41fa7ac267b131d625e5e55fbfe0b4febc01ad52fc0f4bfb1c782325"
+    },
+    {
+      "path": "/financial-icon-192.png",
+      "url": "http://127.0.0.1:4174/financial-icon-192.png",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/financial-icon-192.png",
+      "redirects": [],
+      "sha256": "6f45680b1d73fb77b95ad755dfcd8890973f27e0c04b8d213817a795f296e329"
+    },
+    {
+      "path": "/financial-icon-32.png",
+      "url": "http://127.0.0.1:4174/financial-icon-32.png",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/financial-icon-32.png",
+      "redirects": [],
+      "sha256": "ad1f685dac8ebae988e3b5fc3671b386756de7a4fb6c09efc3cf33f8018a304b"
+    },
+    {
+      "path": "/financial-icon-512.png",
+      "url": "http://127.0.0.1:4174/financial-icon-512.png",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/financial-icon-512.png",
+      "redirects": [],
+      "sha256": "3a003a570372ac5415c2e9250e2221a1e4a158f1cb3adf559cad9fb308cb775d"
+    },
+    {
+      "path": "/financial-og.png",
+      "url": "http://127.0.0.1:4174/financial-og.png",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/financial-og.png",
+      "redirects": [],
+      "sha256": "da05dfc7df8c30a49d8fc6adc28b1cfec78e34c0e89e81bf9cf2c87586e5bcce"
+    },
+    {
+      "path": "/index.html",
+      "url": "http://127.0.0.1:4174/index.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/index.html",
+      "redirects": [],
+      "sha256": "bb522452d2aaf1c99bf40759471d13b8d56dfbe7e429d90c038a84ddebbc2c88"
+    },
+    {
+      "path": "/limites.html",
+      "url": "http://127.0.0.1:4174/limites.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/limites.html",
+      "redirects": [],
+      "sha256": "0cc54c7040e3d838180d370a155dd756539a339e3321e5e946f679b6fb1e48b7"
+    },
+    {
+      "path": "/login.html",
+      "url": "http://127.0.0.1:4174/login.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/login.html",
+      "redirects": [],
+      "sha256": "0bafe3fe3010bcb138a7e649eaf18b56407ee990ff687398f4acd6c6242aa97c"
+    },
+    {
+      "path": "/manifest.webmanifest",
+      "url": "http://127.0.0.1:4174/manifest.webmanifest",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/manifest.webmanifest",
+      "redirects": [],
+      "sha256": "2d0c752109c989a74e88e5bf3ebca261bd8cc05d5883fdcecb1496a92d89ed35"
+    },
+    {
+      "path": "/produto.html",
+      "url": "http://127.0.0.1:4174/produto.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/produto.html",
+      "redirects": [],
+      "sha256": "bf6edd021c437dace80491f7e430f3a7ba7da5fc2c6e4f1032d6bac26e682f99"
+    },
+    {
+      "path": "/provider/index.html",
+      "url": "http://127.0.0.1:4174/provider/index.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/provider/index.html",
+      "redirects": [],
+      "sha256": "3409aa610996a3e7df93b55ba5df8d0820585d0d9eff83c5107be6e3295e1965"
+    },
+    {
+      "path": "/provider/invite.html",
+      "url": "http://127.0.0.1:4174/provider/invite.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/provider/invite.html",
+      "redirects": [],
+      "sha256": "9b1c80a3f2cbf34361b53482582e8d70cf4094f299800be8de965be560813085"
+    },
+    {
+      "path": "/provider/proposal.html",
+      "url": "http://127.0.0.1:4174/provider/proposal.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/provider/proposal.html",
+      "redirects": [],
+      "sha256": "bc843b3dd659723f409d803b37a13a2c0932405f6f843a372f410749af33e728"
+    },
+    {
+      "path": "/provider/rfqs.html",
+      "url": "http://127.0.0.1:4174/provider/rfqs.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/provider/rfqs.html",
+      "redirects": [],
+      "sha256": "3a9375a3713d9f6a6bce220203ef2800b439b9c8cd8e8ae3c7076089152a468e"
+    },
+    {
+      "path": "/robots.txt",
+      "url": "http://127.0.0.1:4174/robots.txt",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/robots.txt",
+      "redirects": [],
+      "sha256": "331ea9090db0c9f6f597bd9840fd5b171830f6e0b3ba1cb24dfa91f0c95aedc1"
+    },
+    {
+      "path": "/seguranca.html",
+      "url": "http://127.0.0.1:4174/seguranca.html",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/seguranca.html",
+      "redirects": [],
+      "sha256": "55c56ce45740fa7b98d33606abc0aaf36402fea44bbc89a639be434a4240b8d5"
+    },
+    {
+      "path": "/site.webmanifest",
+      "url": "http://127.0.0.1:4174/site.webmanifest",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/site.webmanifest",
+      "redirects": [],
+      "sha256": "2d0c752109c989a74e88e5bf3ebca261bd8cc05d5883fdcecb1496a92d89ed35"
+    },
+    {
+      "path": "/sitemap.xml",
+      "url": "http://127.0.0.1:4174/sitemap.xml",
+      "result": "PASS",
+      "http_status": 200,
+      "effective_url": "http://127.0.0.1:4174/sitemap.xml",
+      "redirects": [],
+      "sha256": "674772a3e9bf869f1920dc651dfdb7e5848d7e50173fb1cce1328c425fe05927"
+    },
+    {
+      "path": "/comprar-arte.html",
+      "url": "http://127.0.0.1:4174/comprar-arte.html",
+      "result": "PASS",
+      "http_status": 404,
+      "effective_url": "http://127.0.0.1:4174/comprar-arte.html",
+      "redirects": []
+    },
+    {
+      "path": "/artistas.html",
+      "url": "http://127.0.0.1:4174/artistas.html",
+      "result": "PASS",
+      "http_status": 404,
+      "effective_url": "http://127.0.0.1:4174/artistas.html",
+      "redirects": []
+    },
+    {
+      "path": "/obra.html",
+      "url": "http://127.0.0.1:4174/obra.html",
+      "result": "PASS",
+      "http_status": 404,
+      "effective_url": "http://127.0.0.1:4174/obra.html",
+      "redirects": []
+    },
+    {
+      "path": "/certificado-autenticidade.html",
+      "url": "http://127.0.0.1:4174/certificado-autenticidade.html",
+      "result": "PASS",
+      "http_status": 404,
+      "effective_url": "http://127.0.0.1:4174/certificado-autenticidade.html",
+      "redirects": []
+    },
+    {
+      "path": "/painel.html",
+      "url": "http://127.0.0.1:4174/painel.html",
+      "result": "PASS",
+      "http_status": 404,
+      "effective_url": "http://127.0.0.1:4174/painel.html",
+      "redirects": []
+    },
+    {
+      "path": "/api/health",
+      "url": "http://127.0.0.1:4174/api/health",
+      "result": "PASS",
+      "http_status": 404,
+      "effective_url": "http://127.0.0.1:4174/api/health",
+      "redirects": []
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "root",
+      "path": "/",
+      "url": "http://127.0.0.1:4174/",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [],
+        "hidden_images": 0
+      },
+      "evidence": "../release-final-ef5e8c9/desktop-root.png",
+      "evidence_sha256": "e8a325843dac15580248b5f03b5bb7006b44ce8db180ed93e044b99fb7cc5b50",
+      "effective_url": "http://127.0.0.1:4174/",
+      "navigation": "direct-entry-and-reload"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "explore",
+      "path": "/demo/visita.html",
+      "url": "http://127.0.0.1:4174/demo/visita.html",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [],
+        "hidden_images": 13
+      },
+      "evidence": "../release-final-ef5e8c9/desktop-explore.png",
+      "evidence_sha256": "814ff3dc6e15a54ef04c93ecd80db100a2e354e756a76e8e4bccfbadd981d323",
+      "effective_url": "http://127.0.0.1:4174/demo/visita.html",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "context",
+      "path": "/demo/visita.html#contexto",
+      "url": "http://127.0.0.1:4174/demo/visita.html#contexto",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/contexto-desktop-CB2YsZ5y.webp",
+            "width": 1120,
+            "height": 700
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/desktop-context.png",
+      "evidence_sha256": "bcd49bf7033664b00860c2aae22ddc1979ca7984d842a331c7c6387cb3240b69",
+      "effective_url": "http://127.0.0.1:4174/demo/visita.html#contexto",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "financial-entry",
+      "path": "/demo/visita.html#painel",
+      "url": "http://127.0.0.1:4174/demo/visita.html#painel",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/painel-desktop-iTCNI3PX.webp",
+            "width": 1120,
+            "height": 700
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/desktop-financial-entry.png",
+      "evidence_sha256": "d8abd037fec232363499705285f826c4a30d18824666cff5cde231c3d573b8b0",
+      "effective_url": "http://127.0.0.1:4174/demo/visita.html#painel",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "dashboard",
+      "path": "/demo/visita.html#painel",
+      "url": "http://127.0.0.1:4174/demo/visita.html#painel",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/painel-desktop-iTCNI3PX.webp",
+            "width": 1120,
+            "height": 700
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/desktop-dashboard.png",
+      "evidence_sha256": "d8abd037fec232363499705285f826c4a30d18824666cff5cde231c3d573b8b0",
+      "effective_url": "http://127.0.0.1:4174/demo/visita.html#painel",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "relationships",
+      "path": "/demo/visita.html#relacionamentos",
+      "url": "http://127.0.0.1:4174/demo/visita.html#relacionamentos",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/relacionamentos-desktop-YjPg7GlV.webp",
+            "width": 1120,
+            "height": 700
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/desktop-relationships.png",
+      "evidence_sha256": "41fdd4152504abee17d3c47f70f0a3d56eda9f57dde63981741cf737bd8f66de",
+      "effective_url": "http://127.0.0.1:4174/demo/visita.html#relacionamentos",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "requests",
+      "path": "/demo/visita.html#solicitacao",
+      "url": "http://127.0.0.1:4174/demo/visita.html#solicitacao",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/solicitacao-desktop-prQYspeh.webp",
+            "width": 1120,
+            "height": 700
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/desktop-requests.png",
+      "evidence_sha256": "864ca5a6fa30f148ca33da1777e9574b64db92740375285abb455d4e4cb69dc0",
+      "effective_url": "http://127.0.0.1:4174/demo/visita.html#solicitacao",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "invites",
+      "path": "/demo/visita.html#convites",
+      "url": "http://127.0.0.1:4174/demo/visita.html#convites",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/convites-desktop-PIuq-lME.webp",
+            "width": 1120,
+            "height": 700
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/desktop-invites.png",
+      "evidence_sha256": "2bb772f408bcafabaea4b0ca2ccea7a45f25a2ed7807263674817bb264d57bcb",
+      "effective_url": "http://127.0.0.1:4174/demo/visita.html#convites",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "proposals",
+      "path": "/demo/visita.html#propostas",
+      "url": "http://127.0.0.1:4174/demo/visita.html#propostas",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/propostas-desktop-BTa8qdtT.webp",
+            "width": 1120,
+            "height": 700
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/desktop-proposals.png",
+      "evidence_sha256": "356452950d05892ef070431f37d025fe69e939529954a986373f7a800f965069",
+      "effective_url": "http://127.0.0.1:4174/demo/visita.html#propostas",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "comparison",
+      "path": "/demo/visita.html#comparacao",
+      "url": "http://127.0.0.1:4174/demo/visita.html#comparacao",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/comparacao-desktop-BroRdomK.webp",
+            "width": 1120,
+            "height": 700
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/desktop-comparison.png",
+      "evidence_sha256": "937b7cabab05decec3a11025ea1964f84fb53b61832ce82ac4a1a3c864a27c9e",
+      "effective_url": "http://127.0.0.1:4174/demo/visita.html#comparacao",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "approval",
+      "path": "/demo/visita.html#aprovacao",
+      "url": "http://127.0.0.1:4174/demo/visita.html#aprovacao",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/aprovacao-desktop-neDw3K_M.webp",
+            "width": 1120,
+            "height": 700
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/desktop-approval.png",
+      "evidence_sha256": "8a33ee590567be31e8717868a3a4a4423888126b4444106f6bc28a2395f66050",
+      "effective_url": "http://127.0.0.1:4174/demo/visita.html#aprovacao",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "contracts",
+      "path": "/demo/visita.html#contrato",
+      "url": "http://127.0.0.1:4174/demo/visita.html#contrato",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/contrato-desktop-yE5q8yST.webp",
+            "width": 1120,
+            "height": 700
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/desktop-contracts.png",
+      "evidence_sha256": "3516712278553099e0270e14110c0ef7a0b728959ccf0ecf61ab6f71c031d6eb",
+      "effective_url": "http://127.0.0.1:4174/demo/visita.html#contrato",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "tasks-renewals",
+      "path": "/demo/visita.html#continuidade",
+      "url": "http://127.0.0.1:4174/demo/visita.html#continuidade",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/continuidade-desktop-C-8uZb5m.webp",
+            "width": 1120,
+            "height": 700
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/desktop-tasks-renewals.png",
+      "evidence_sha256": "e20911184d083fd81f55e59e32fa5dfa1529415caa51bc2a7424ffd498dd807e",
+      "effective_url": "http://127.0.0.1:4174/demo/visita.html#continuidade",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "provider",
+      "path": "/demo/visita.html#instituicao",
+      "url": "http://127.0.0.1:4174/demo/visita.html#instituicao",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/instituicao-desktop-BJFU5yUy.webp",
+            "width": 1120,
+            "height": 700
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/desktop-provider.png",
+      "evidence_sha256": "0d05ca72891a747141c2e3cd4914317c090f8c7d0f3c8402c8ec1e5fee49fd9e",
+      "effective_url": "http://127.0.0.1:4174/demo/visita.html#instituicao",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "provider-proposal",
+      "path": "/demo/visita.html#instituicao-proposta",
+      "url": "http://127.0.0.1:4174/demo/visita.html#instituicao-proposta",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/instituicao-proposta-desktop-CRRDWe1B.webp",
+            "width": 1120,
+            "height": 700
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/desktop-provider-proposal.png",
+      "evidence_sha256": "05c11346593b1ecabb0b8c44b9be8e2637881110615bca6157913b9cded645fc",
+      "effective_url": "http://127.0.0.1:4174/demo/visita.html#instituicao-proposta",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "provider-value",
+      "path": "/demo/visita.html#instituicao-valor",
+      "url": "http://127.0.0.1:4174/demo/visita.html#instituicao-valor",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/instituicao-proposta-desktop-CRRDWe1B.webp",
+            "width": 1120,
+            "height": 700
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/desktop-provider-value.png",
+      "evidence_sha256": "eb3c4e1605af8b1f93606e7ed35bfc7b0730c3fc1c46484a7e47fa6cc700450f",
+      "effective_url": "http://127.0.0.1:4174/demo/visita.html#instituicao-valor",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "areas",
+      "path": "/demo/visita.html#areas",
+      "url": "http://127.0.0.1:4174/demo/visita.html#areas",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [],
+        "hidden_images": 13
+      },
+      "evidence": "../release-final-ef5e8c9/desktop-areas.png",
+      "evidence_sha256": "b752aa68868be6ccef59c9f1ee3cc74d6335e3ba934918add9159a33fe7ac6ed",
+      "effective_url": "http://127.0.0.1:4174/demo/visita.html#areas",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "return",
+      "path": "/demo/index.html",
+      "url": "http://127.0.0.1:4174/demo/index.html",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [],
+        "hidden_images": 0
+      },
+      "evidence": "../release-final-ef5e8c9/desktop-return.png",
+      "evidence_sha256": "e8a325843dac15580248b5f03b5bb7006b44ce8db180ed93e044b99fb7cc5b50",
+      "effective_url": "http://127.0.0.1:4174/demo/index.html",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "root",
+      "path": "/",
+      "url": "http://127.0.0.1:4174/",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [],
+        "hidden_images": 0
+      },
+      "evidence": "../release-final-ef5e8c9/mobile-root.png",
+      "evidence_sha256": "4e7372ad5da31a9ea864dcac4862c33bc5a230c30357c1b2e51ece4773a61022",
+      "effective_url": "http://127.0.0.1:4174/",
+      "navigation": "direct-entry-and-reload"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "explore",
+      "path": "/demo/visita.html",
+      "url": "http://127.0.0.1:4174/demo/visita.html",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [],
+        "hidden_images": 13
+      },
+      "evidence": "../release-final-ef5e8c9/mobile-explore.png",
+      "evidence_sha256": "e86c051feed47683ae61563bae71e7fef137dfa2f2e0997be48ee78d4456cd07",
+      "effective_url": "http://127.0.0.1:4174/demo/visita.html",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "context",
+      "path": "/demo/visita.html#contexto",
+      "url": "http://127.0.0.1:4174/demo/visita.html#contexto",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/contexto-mobile-PSP7mBDF.webp",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/mobile-context.png",
+      "evidence_sha256": "e5c0216073b73f650b6c12a9414aa5ff82bb3c4c808c0b6305d82edb14b87747",
+      "effective_url": "http://127.0.0.1:4174/demo/visita.html#contexto",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "financial-entry",
+      "path": "/demo/visita.html#painel",
+      "url": "http://127.0.0.1:4174/demo/visita.html#painel",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/painel-mobile-Llb6Edb9.webp",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/mobile-financial-entry.png",
+      "evidence_sha256": "6ab27d48eb05becb337eec35a93da6e13dd4dc59d97594836ce3ce5e0c53fa9c",
+      "effective_url": "http://127.0.0.1:4174/demo/visita.html#painel",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "dashboard",
+      "path": "/demo/visita.html#painel",
+      "url": "http://127.0.0.1:4174/demo/visita.html#painel",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/painel-mobile-Llb6Edb9.webp",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/mobile-dashboard.png",
+      "evidence_sha256": "6ab27d48eb05becb337eec35a93da6e13dd4dc59d97594836ce3ce5e0c53fa9c",
+      "effective_url": "http://127.0.0.1:4174/demo/visita.html#painel",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "relationships",
+      "path": "/demo/visita.html#relacionamentos",
+      "url": "http://127.0.0.1:4174/demo/visita.html#relacionamentos",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/relacionamentos-mobile-D9-WJftq.webp",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/mobile-relationships.png",
+      "evidence_sha256": "ef9311dc4f13b01005db9a947f6f75489ec1b404e24939f089e3ab149a19b0de",
+      "effective_url": "http://127.0.0.1:4174/demo/visita.html#relacionamentos",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "requests",
+      "path": "/demo/visita.html#solicitacao",
+      "url": "http://127.0.0.1:4174/demo/visita.html#solicitacao",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/solicitacao-mobile-CkpZLYYV.webp",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/mobile-requests.png",
+      "evidence_sha256": "41ef70f7b1b0ed6a1df3e73d7896e54a6f8fd878d71fd3df7092a64c9c2d6844",
+      "effective_url": "http://127.0.0.1:4174/demo/visita.html#solicitacao",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "invites",
+      "path": "/demo/visita.html#convites",
+      "url": "http://127.0.0.1:4174/demo/visita.html#convites",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/convites-mobile-DBRvbDjW.webp",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/mobile-invites.png",
+      "evidence_sha256": "617f53d78614c2739f77e8bfc3568994a4dad50274cd11be58ba76119cdd015f",
+      "effective_url": "http://127.0.0.1:4174/demo/visita.html#convites",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "proposals",
+      "path": "/demo/visita.html#propostas",
+      "url": "http://127.0.0.1:4174/demo/visita.html#propostas",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/propostas-mobile-PTW8Az0x.webp",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/mobile-proposals.png",
+      "evidence_sha256": "ce834eeeee08e6882cb1b45243ceb4245487d63ecdb4f392b391f50ca9950e65",
+      "effective_url": "http://127.0.0.1:4174/demo/visita.html#propostas",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "comparison",
+      "path": "/demo/visita.html#comparacao",
+      "url": "http://127.0.0.1:4174/demo/visita.html#comparacao",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/comparacao-mobile-Z5GiLnD_.webp",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/mobile-comparison.png",
+      "evidence_sha256": "ca98b48486c3b970588ccf7c15a4ea48be692038a3039ba98f9b536a56dc7b1a",
+      "effective_url": "http://127.0.0.1:4174/demo/visita.html#comparacao",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "approval",
+      "path": "/demo/visita.html#aprovacao",
+      "url": "http://127.0.0.1:4174/demo/visita.html#aprovacao",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/aprovacao-mobile-GQdSbLOa.webp",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/mobile-approval.png",
+      "evidence_sha256": "47cb92100493338f57d7fd3a49e5de3b7596cff7ad1b1377ec2d8da9e311931d",
+      "effective_url": "http://127.0.0.1:4174/demo/visita.html#aprovacao",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "contracts",
+      "path": "/demo/visita.html#contrato",
+      "url": "http://127.0.0.1:4174/demo/visita.html#contrato",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/contrato-mobile-D_YOMTTT.webp",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/mobile-contracts.png",
+      "evidence_sha256": "4fdfa5b62952847ba39a040d4de5bdaecba3432385a691cd7df05c4dfa21a829",
+      "effective_url": "http://127.0.0.1:4174/demo/visita.html#contrato",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "tasks-renewals",
+      "path": "/demo/visita.html#continuidade",
+      "url": "http://127.0.0.1:4174/demo/visita.html#continuidade",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/continuidade-mobile-BBprCfFA.webp",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/mobile-tasks-renewals.png",
+      "evidence_sha256": "7e150dd53e7139082cbc4ae081ed1fc4f3fc5b07449f52beebc15ed1ac40c9df",
+      "effective_url": "http://127.0.0.1:4174/demo/visita.html#continuidade",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "provider",
+      "path": "/demo/visita.html#instituicao",
+      "url": "http://127.0.0.1:4174/demo/visita.html#instituicao",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/instituicao-mobile-e6zyMzew.webp",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/mobile-provider.png",
+      "evidence_sha256": "d3d14d7cad4266838709d364fba127d3a6d2d18aa6a15d2122a8898ca8c43254",
+      "effective_url": "http://127.0.0.1:4174/demo/visita.html#instituicao",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "provider-proposal",
+      "path": "/demo/visita.html#instituicao-proposta",
+      "url": "http://127.0.0.1:4174/demo/visita.html#instituicao-proposta",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/instituicao-proposta-mobile-C4ch-uau.webp",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/mobile-provider-proposal.png",
+      "evidence_sha256": "404fd23b2689fb9d291a092a62235a28d4784c5ff41e724006e7137bd6e1bd83",
+      "effective_url": "http://127.0.0.1:4174/demo/visita.html#instituicao-proposta",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "provider-value",
+      "path": "/demo/visita.html#instituicao-valor",
+      "url": "http://127.0.0.1:4174/demo/visita.html#instituicao-valor",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [
+          {
+            "path": "/assets/instituicao-proposta-mobile-C4ch-uau.webp",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "hidden_images": 12
+      },
+      "evidence": "../release-final-ef5e8c9/mobile-provider-value.png",
+      "evidence_sha256": "d08865823e6cd5dc3c365f38c25a44196b970ec7350f254d87df689a842f18ff",
+      "effective_url": "http://127.0.0.1:4174/demo/visita.html#instituicao-valor",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "areas",
+      "path": "/demo/visita.html#areas",
+      "url": "http://127.0.0.1:4174/demo/visita.html#areas",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [],
+        "hidden_images": 13
+      },
+      "evidence": "../release-final-ef5e8c9/mobile-areas.png",
+      "evidence_sha256": "3c8009ebe0eec65b6aad1ccec888fbf0d08a89eb06763e92fccd86b67c92802d",
+      "effective_url": "http://127.0.0.1:4174/demo/visita.html#areas",
+      "navigation": "keyboard-tab-enter-and-reload"
+    },
+    {
+      "viewport": "MOBILE",
+      "stage": "return",
+      "path": "/demo/index.html",
+      "url": "http://127.0.0.1:4174/demo/index.html",
+      "result": "PASS",
+      "layout": {
+        "overflow": false,
+        "fonts": true,
+        "images": [],
+        "hidden_images": 0
+      },
+      "evidence": "../release-final-ef5e8c9/mobile-return.png",
+      "evidence_sha256": "4e7372ad5da31a9ea864dcac4862c33bc5a230c30357c1b2e51ece4773a61022",
+      "effective_url": "http://127.0.0.1:4174/demo/index.html",
+      "navigation": "keyboard-tab-enter-and-reload"
+    }
+  ],
+  "local": true,
+  "ROOT_HTTP": "PASS",
+  "effective_url": "http://127.0.0.1:4174/",
+  "build": {
+    "commit": "257ce1dee610f03e510a3f09e68291e4f03a3a16",
+    "branch": "main",
+    "modality": "informative-tour-with-browser-sandbox",
+    "built_at": "2026-10-22T22:14:55.977Z"
+  },
+  "liveness_http": 404,
+  "flow_sha256": "fce4c23a2c9adf2b1bf8c475557a950b5bb67b88f4396962b967f2e439cbd1af",
+  "browser": {
+    "engine": "chromium",
+    "version": "156.0.8078.4",
+    "playwright": "1.64.1",
+    "lock_sha256": "74185e15790a3df7112bedf5dcc1267588acf5e97a3ff53e4ecfd9b0924a1f5c"
+  },
+  "browser_transport": "actual-origin-response-relay; hashes verified before browser delivery; no synthetic response or fallback",
+  "verified_image_cancellations": [
+    {
+      "viewport": "DESKTOP",
+      "stage": "areas",
+      "action": "reload",
+      "path": "/assets/painel-mobile-Llb6Edb9.webp",
+      "reason": "browser cancelled delivery; origin bytes verified; every displayed image decoded separately"
+    },
+    {
+      "viewport": "DESKTOP",
+      "stage": "areas",
+      "action": "reload",
+      "path": "/assets/relacionamentos-mobile-D9-WJftq.webp",
+      "reason": "browser cancelled delivery; origin bytes verified; every displayed image decoded separately"
+    }
+  ],
+  "duration_ms": 88889.694015,
+  "scope_note": "Loopback static contingency. No backend proof. CLI exit 1 is expected because PUBLIC_SHAREABLE cannot be PASS for --local; browser and HTTP outcomes are independent."
+}

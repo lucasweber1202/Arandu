@@ -3,24 +3,37 @@
 Produto real (`main`) em `ARANDU_ENV=demo` com o seed canônico da Vitta Foods
 (`scripts/demo/seed.mjs`). Nada aqui é tela de apresentação: cada passo é uma rota
 do produto. Dados 100% fictícios (`*.example`). Ensaio técnico registrado em
-`docs/evidence/claude-financial-demo-2026-10-16.md` (Demo **local**; a Demo pública
-só vale depois da validação hospedada do Codex — não afirme o contrário).
+`docs/evidence/claude-financial-demo-2026-10-16.md` (Demo **local**; a Demo canônica hospedada
+só vale com M3 READY; visita pública M2 tem prova separada e não opera o backend).
 
 **Pergunta que a apresentação responde:** por que uma equipe financeira usaria o
 Arandu em vez de e-mail, planilhas e portais bancários desconectados?
 **Mensagem final:** *o Arandu organiza a contratação financeira e preserva as
 decisões e obrigações que surgem depois dela.*
 
-## Antes de começar (T-30 min) — prontidão verificável
+## Antes de começar — preparação antecipada e janela final
 
-1. Demo de pé: `npm run demo:setup` (primeira vez, ≈20 min) ou `npm run demo:local:reset` (≈15 min; **só quando você decidir** — nada reseta sozinho). Esperado: `39/39 checagens OK`.
-2. **Prontidão:** `bash scripts/demo/local.sh readiness --smoke` (só lê; recusa alvo não local). O relatório `reports/demo-readiness/readiness.md` diz, separadamente:
-   - **Modo leitura: PRONTO** exige commit e build identificados, Supabase local e app no ar, personas entrando, cenário semeado (39/39) e smoke das jornadas;
-   - **Modo interativo: PRONTO** exige, além disso, o estado intocado: Meridian ainda sem proposta na concorrência sazonal, etapa da CFO pendente e nenhuma tarefa de ensaio anterior. Se o Modo 2 já foi ensaiado, ele aponta `npm run demo:local:reset`.
-   "NÃO EXECUTADO" nunca é PASS. A sonda de prontidão hospedada aparece como aviso na Demo local (o banco local não faz parte da topologia hospedada) — isso não valida nem invalida a Demo pública.
-3. Rode a prontidão **≥ 10 min antes** de abrir as janelas: o diagnóstico e o reset usam a cota legítima de cada conta (no código em 19/10: 240 requisições e 60 escritas a cada 10 min por usuário; login 12/10 min por rede; 20 logins/h por conta). O roteiro inteiro da Juliana consome ~77 requisições (medido por `node scripts/demo/requests.mjs`: nenhuma chamada repetida, sem polling).
-4. Duas janelas: normal (**juliana.ramos@vittafoods.example**, gerente de tesouraria) e anônima (**eduardo.lima@atlasbank.example**, Atlas Bank; no Modo 2, **patricia.alves@meridianfinancial.example**, Meridian Financial). Opcional: **helena.duarte@vittafoods.example** (CFO) e **carlos.tavares@vittafoods.example** (Controller, leitor). Senha em `scripts/pilot-local/.state/demo.env`.
-5. Faça login nas janelas **antes**: o login tem limite legítimo por IP (12/10 min).
+O procedimento vigente está no [cartão do operador](OPERATOR_29-10.md): D-3
+prepara, ensaia em workspace descartável e congela; D-1 retoma e repõe somente
+a capacidade consumida; D-0 verifica com antecedência. `demo:setup` resemeia e
+`demo:down` apaga dados: não são comandos de retomada. Nenhum reset na sequência
+padrão ou durante a apresentação.
+
+1. Até T-60: `bash scripts/demo/local.sh resume` se necessário; depois
+   `bash scripts/demo/local.sh readiness --smoke` e `bash scripts/demo/local.sh station`.
+   Só READY na estação física, no SHA congelado, libera o Modo B.
+2. Leia os modos separadamente: leitura PRONTO permite o roteiro sem gravação;
+   interativo PRONTO exige também cenário íntegro, CFO pendente, Meridian sem
+   proposta e capacidade do pool. Não escreva no baseline após o freeze.
+3. T-30: abra **uma** janela anônima em
+   `https://localhost:4443/login.html#demonstracao`; depois nenhuma suíte,
+   readiness ou provisionamento. Comece com Juliana e use "Trocar persona"
+   nessa janela somente nos pontos do roteiro. Cada troca consome entrada;
+   nova janela consome workspace e orçamento da rede.
+4. 429: respeite o tempo exibido na mesma sessão. Não troque conta ou janela
+   para contornar o limite. Escrita incerta exige conferir o servidor.
+5. Local não READY → Modo C, visita/capturas declaradas como tais. Hospedado
+   só pode ser Modo A com M3 READY; PUBLIC_SHAREABLE de uma visita M2 não basta.
 
 ## Roteiro A (Demo hospedada) × Roteiro B (Demo local)
 
@@ -28,7 +41,7 @@ Os dois usam **o mesmo produto** (`main`), o mesmo seed e as mesmas 16 etapas ab
 
 | | Roteiro A — hospedado | Roteiro B — local (estação de apresentação) |
 | --- | --- | --- |
-| Quando vale | Só se `node scripts/demo/hosted-parity.mjs --url=<URL pública> --sha=<SHA da main>` terminar em **READY** (identidade, prontidão, entrada por persona, sessão exigida, assets e rotas lidos do servidor). `NOT_READY` = falha comprovada; `ACCESS_BLOCKED` = o verificador não tem acesso; `INCONCLUSIVE` = rede/timeout ou item não verificado. Só READY libera o Roteiro A | Sempre que a prontidão local (item 2 acima) estiver PRONTO, ensaiada **na própria estação** |
+| Quando vale | Só se `node scripts/demo/hosted-parity.mjs --url=<URL pública> --sha=<SHA da main>` terminar em **READY** (identidade, prontidão, entrada por persona, sessão exigida, assets e rotas lidos do servidor). `NOT_READY` = falha comprovada; `ACCESS_BLOCKED` = o verificador não tem acesso; `INCONCLUSIVE` = rede/timeout ou item não verificado. Só READY libera o Roteiro A | Somente com `station` READY **na própria estação**, SHA congelado e modo correspondente PRONTO |
 | Estado em 18/10 (`41513ee`) | **NÃO VALE — NOT_READY**: `arandu-demo.vercel.app` está no SHA da `main`, mas responde sem `environment`, `datasource=synthetic-fixtures`, prontidão 503, sem entrada por persona, `/api/finance/*` 404 e sandbox legado em `/demo` (bloqueio do Codex: Supabase DEMO e cutover) | Vale: Auth, API, RLS e Storage reais em Docker, seed 39/39 |
 | Entrada | Site → "Acessar plataforma" → **Conheça o Arandu por dentro** (escolha de persona) | Igual, em `https://localhost:4443/login.html#demonstracao`; ou as contas do baseline por e-mail (itens 4–5) |
 
@@ -138,7 +151,9 @@ Mesmo roteiro, com operações reais. Cada uma: mostre o **antes**, faça a
 **ação**, leia a **confirmação**, **recarregue** a página e mostre o **depois**.
 Ensaio automatizado de todas: `node scripts/demo/interactive.mjs` (só roda contra
 a Demo local; ver `docs/evidence/claude-enterprise-product-2026-10-17.md`).
-**Depois da apresentação: `npm run demo:local:reset`.**
+**Use workspace de visitante. O baseline congelado não deve receber escritas.**
+Reset não faz parte da operação padrão: exige decisão explícita de descartar
+os dados sintéticos locais identificados, fora da apresentação.
 
 | # | Quando | Persona / rota | Antes | Ação | Confirmação | Depois (após recarregar) |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -169,9 +184,9 @@ A tela nunca diz "feito" sem o servidor confirmar. Use esta tabela para decidir 
 | I4 aprovação da CFO | "Não confirmamos se a sua decisão foi registrada" = incerto; "Você não pode mais decidir…" = recusa | Só após "Conferir o pedido" | Recarregue Aprovações; se o pedido estiver em "Concluídas", siga |
 | I6/I8 proposta | Botão volta e dados ficam = recusa; sem resposta = incerto | Depois de recarregar o portal e ver o histórico de versões | Se a versão nova aparece no histórico, ela vale |
 | Qualquer | "Sua sessão expirou e nada foi registrado" | Sim | "Entrar em outra aba", volte e repita: o formulário continua preenchido |
-| Qualquer | "Muitas requisições em pouco tempo" | Sim, quando o botão liberar | Use outra janela/persona na espera; não recarregue em sequência |
+| Qualquer | "Muitas requisições em pouco tempo" | Sim, quando o botão liberar | Espere na mesma sessão; não recarregue em sequência |
 
-Reset (`npm run demo:local:reset`) só **depois** da apresentação, ou antes dela se a prontidão disser "Modo interativo: NÃO PRONTO". Nunca no meio, nunca em banco hospedado.
+Se o modo interativo não estiver pronto, siga em leitura ou Modo C. Reset somente com decisão explícita de descarte do baseline sintético local, antes de novo ensaio/freeze ou depois do evento; nunca como recuperação automática nem em banco hospedado.
 
 ### Mapa dos 20 pontos do ciclo
 
@@ -180,7 +195,7 @@ Pontos 8–13 só gravam no Modo 2 (cenário C); em leitura, mostre o histórico
 
 ## O que NÃO dizer
 - Não citar economia, ROI, ganho de tempo quantificado ou "melhor proposta".
-- Não dizer que a Demo pública está atualizada/validada (M3 hospedado é trabalho do Codex).
+- Não dizer que a Demo canônica hospedada está validada sem M3 READY; a visita pública informativa tem prova M2 separada no SHA servido.
 - Não prometer integrações com bancos, ERP ou Open Finance (não existem).
 
 ## Limitações conhecidas e plano B
@@ -190,19 +205,19 @@ O que está comprovado: **produto funcional na Demo local** (ensaios desta pasta
 material de apoio — nunca apresente como execução ao vivo.
 | Situação | Plano B |
 | --- | --- |
-| "Muitas requisições em pouco tempo" (limite legítimo) | A tela diz quanto esperar e só libera "Tentar novamente" depois; nada é perdido nem repetido sozinho. Siga com outra persona/janela enquanto isso. Prevenção: prontidão ≥10 min antes, sem recarregar telas em sequência. |
+| "Muitas requisições em pouco tempo" (limite legítimo) | A tela diz quanto esperar e só libera "Tentar novamente" depois; nada é perdido nem repetido sozinho. Espere na mesma sessão enquanto isso. Prevenção: prontidão ≥10 min antes, sem recarregar telas em sequência. |
 | Aviso "Não conseguimos carregar … desta solicitação" | Decisão e aprovação ficam bloqueadas de propósito (não se decide com informação incompleta). Aguarde e use "Recarregar". |
 | Resultado incerto ao criar tarefa | A tela não diz "criada"; use "Conferir com o servidor" — repete a mesma tentativa e nunca cria a segunda. Título igual na lista não prova nada. |
-| Demo local fora do ar / Docker não sobe | `npm run demo:setup` (≈20 min — tenha a máquina pronta antes); se falhar, use as capturas de `docs/evidence/claude-financial-demo-2026-10-16/`, `claude-enterprise-demo-2026-10-17/` e `claude-enterprise-product-2026-10-17/`, **ditas como capturas**. |
+| Demo local fora do ar / Docker não sobe | Abra Docker Desktop e use `bash scripts/demo/local.sh resume` para a stack existente; se falhar, use as capturas de `docs/evidence/claude-financial-demo-2026-10-16/`, `claude-enterprise-demo-2026-10-17/` e `claude-enterprise-product-2026-10-17/`, **ditas como capturas**. |
 | Sessão expirada no meio | Ao gravar, a tela diz "Sua sessão expirou e nada foi registrado" com "Entrar em outra aba": entre lá, volte e repita — o que estava preenchido continua. Ao navegar, "Entrar de novo". |
-| Prontidão "NÃO PRONTO" na hora | Modo interativo não pronto, leitura pronta → apresente o Modo leitura. Leitura não pronta → plano de capturas abaixo, ditas como capturas. Nunca reset em banco hospedado. |
+| Prontidão "NÃO PRONTO" na hora | Modo interativo não pronto, leitura pronta e station READY → apresente o Modo leitura. Leitura não pronta → plano de capturas abaixo, ditas como capturas. Nunca reset em banco hospedado. |
 | Operação do Modo 2 falha | A tela diz o que aconteceu e que nada foi confirmado; siga em modo leitura e explique a regra (só conta o que o servidor confirmou). |
-| Seed inconsistente após ensaio | `npm run demo:local:reset` (≈15 min; termina com `39/39 checagens OK`). Nunca rode reset em banco hospedado. |
+| Seed inconsistente após ensaio | No D-0, não resete: leitura se validada e station READY, senão Modo C. Antes do freeze, recuperação do cenário exige decisão explícita de descarte dos dados sintéticos locais e novo ensaio. |
 | Falha de login | Confira a senha em `scripts/pilot-local/.state/demo.env`. Muitas tentativas por IP (12/10 min) → espere a janela; não insista. Prontidão mostra se a persona entra pelo Auth local. |
-| Backend indisponível (telas com "Não foi possível carregar") | `bash scripts/demo/local.sh readiness`: se acusar serviço essencial fora do ar, `npm run demo:setup` (não é caso de reset). Enquanto isso, capturas **ditas como capturas**. |
-| Navegador com problema | Abra outra janela anônima (cookies limpos) ou outro navegador com o mesmo login; a Demo não guarda estado no navegador além da sessão. |
+| Backend indisponível (telas com "Não foi possível carregar") | `bash scripts/demo/local.sh readiness`: se acusar serviço essencial fora do ar, `bash scripts/demo/local.sh resume` (retomada sem resemeadura). Enquanto isso, capturas **ditas como capturas**. |
+| Navegador com problema | Reabra a aba na mesma janela anônima; fechar a janela perde o visitante e uma nova entrada consome capacidade. Persistindo, Modo C. |
 | Sem rede externa | A Demo local não depende de serviços externos depois de montada. |
-| Entrada por persona diz "A demonstração está cheia" | O pool de workspaces acabou: `npm run demo:local:workspaces -- provision --count=2` (≈ 10 min por par). Enquanto isso, entre pelas contas do baseline por e-mail. Nada foi criado. |
+| Entrada por persona diz "A demonstração está cheia" | O pool acabou: continue na sessão já aberta ou leitura validada; sem sessão disponível, Modo C. Reposição só antes da janela final, fora da apresentação. Nada foi criado. |
 | Entrada por persona diz "Muitas entradas em pouco tempo" | Limite legítimo de entradas por rede (12 a cada 10 min). Use "Trocar persona" só quando a jornada pedir; espere a janela. A tela não diz que entrou. |
 | Na página de login, "Muitas entradas em pouco tempo a partir desta rede. Tente de novo em N minutos" no lugar da escolha de persona | Limite da **lista** de personas (30 consultas a cada 10 min por rede; observado em 21/10 depois de três suítes de ensaio seguidas). Desde 21/10 a tela explica e diz quanto esperar (antes a escolha sumia sem aviso). Quem já está num workspace segue com "Trocar persona". Não recarregue a página de login em sequência |
 | "A demonstração não está disponível neste endereço" | O servidor não é de demonstração (ou a Demo hospedada não passou na verificação). Vá para o Roteiro B local. |
@@ -213,7 +228,7 @@ material de apoio — nunca apresente como execução ao vivo.
 | Estado | Condição verificável | O que apresentar |
 | --- | --- | --- |
 | **A — hospedada** | `hosted-parity.mjs` = **READY** no SHA aprovado **e** o roteiro pela entrada pública ensaiado no domínio (Codex confirma banco DEMO autorizado para escrita sintética) | Roteiro A, entrada pública, um visitante por janela anônima |
-| **B — local canônica** | Estação preparada (abaixo) com `39/39`, prontidão local "Modo leitura: PRONTO", pool com ≥ 2 workspaces livres e `demo-entry-lifecycle.spec.js` verde **nesta estação, hoje** | Roteiro B por persona (recomendado) |
+| **B — local canônica** | `station` READY no SHA congelado **nesta estação**, `39/39`, prontidão do modo escolhido e ensaio `demo-entry-lifecycle.spec.js` aprovado | Roteiro B por persona (recomendado) |
 | **C — NO-GO** | Nem A nem B comprovados | Não apresentar operação ao vivo. Capturas da evidência, **ditas como capturas**, e explicar a limitação |
 
 Um runner de CI destruído não é estação pronta; um Preview "Ready" não é Demo validada; uma resposta 200 com `synthetic-fixtures` não é a Demo canônica.
@@ -226,17 +241,12 @@ Sem conhecimento tácito: qualquer pessoa com a máquina e o repositório segue 
 
 1. Máquina com Docker, Node 24 e Chromium (Playwright). `git fetch && git checkout <SHA aprovado>`; `git rev-parse HEAD` igual ao SHA aprovado.
 2. `npm ci --include=optional` e `npm run build`.
-3. `npm run demo:setup` (≈ 20 min na primeira vez) → `39/39 checagens OK`. Senha das personas do baseline: `scripts/pilot-local/.state/demo.env` (nunca em slide, HTML ou chat).
-4. `set -a; . scripts/pilot-local/.state/demo.env; set +a` e `npm run demo:local:workspaces -- provision --count=4` (≈ 10 min por par de workspaces, medido em 18/10: 4 ≈ 21 min; deixe rodando com antecedência).
+3. `bash scripts/demo/local.sh prepare-station --provision` → `39/39 checagens OK` e pool preparado; retoma estado existente sem reset. Senha das personas do baseline: `scripts/pilot-local/.state/demo.env` (nunca em slide, HTML ou chat).
+4. `npm run demo:local:workspaces -- list`: confira os 4 prontos preparados no passo 3. Não acrescente mais 4 a cada ensaio; reponha só o consumido.
 5. Verificação: `node scripts/demo/hosted-parity.mjs --url=https://localhost:4443 --local` deve mostrar PASS em identidade, entrada por persona, sessão exigida, assets e rotas (prontidão 503 é esperada no laboratório e por isso o veredito local não é READY: ele não serve para liberar o Roteiro A).
 6. Ensaio completo, consumindo **um** workspace: `ARANDU_DEMO_LIFECYCLE_E2E=1 npx playwright test --config playwright.demo.config.js tests/e2e/demo-entry-lifecycle.spec.js --project=demo-desktop`. Verde = o roteiro inteiro gravou e releu no servidor. Reponha o workspace consumido (passo 4, `--count=1`).
-7. Reinício controlado **sem apagar dados** (executado em 19/10 depois de a estação de laboratório ser reiniciada: banco, pool e baseline sobreviveram):
-   - Docker de pé; `docker start arandu-pilot-local-db-1` se o banco aparecer `Exited` (pode sair na partida do daemon; ao subir, o log diz "directory appears to contain a database; Skipping initialization") e espere o estado `healthy`;
-   - gateway: `node scripts/pilot-local/gateway.mjs > scripts/pilot-local/.state/gateway.log 2>&1 &`;
-   - app: `bash scripts/demo/local.sh app`;
-   - confira: `npm run demo:local:check` (`39/39`), passo 5 e `npm run demo:local:workspaces -- list`.
-   **`npm run demo:down` apaga tudo** (banco, pool e senha) e `npm run demo:setup` **re-semeia** (`seed --reset`): nenhum dos dois é reinício.
-8. T-15 min: **não** rode mais testes de entrada (consomem o limite de entradas por rede, 12/10 min). Abra as janelas anônimas que vai usar.
+7. Após o ensaio e reposição, na estação definitiva: `bash scripts/demo/local.sh freeze --station`, `bash scripts/demo/local.sh readiness --smoke`, `bash scripts/demo/local.sh station`. Só READY libera B. Para reinício controlado **sem apagar dados**, abra Docker Desktop e use `bash scripts/demo/local.sh resume`; falhas de ordem de serviços seguem C3 no cartão do operador. `demo:setup` resemeia e `demo:down` apaga tudo; nenhum é reinício.
+8. T-30 min: nenhum teste, prontidão ou provisionamento. Abra uma janela anônima e siga o cartão do operador.
 9. **Orçamento de visitantes por rede:** o servidor aceita **4 workspaces novos por hora por origem** (`auth-demo-claim`). Cada janela anônima nova que escolhe persona é um workspace novo; trocar de persona na mesma janela não conta. Na hora anterior à apresentação, não use mais que 2 janelas novas em ensaios e deixe ao menos 2 para a sessão. Público na mesma rede (Wi-Fi da sala) divide o mesmo orçamento.
 
 ## Contingências da apresentação ao vivo (complemento)
@@ -248,7 +258,7 @@ Cada linha aponta o que já existe no produto ou no repositório. Nunca: limpar 
 | Vercel fora do ar (Roteiro A) | Domínio sem resposta; `hosted-parity` = INCONCLUSIVE | Roteiro B na estação preparada. Não use o sandbox como substituto |
 | Supabase DEMO fora do ar (A) | Telas com "Não foi possível carregar"; prontidão 503 | Roteiro B. Nada a resetar no hospedado |
 | Auth / login indisponível | Entrada por persona responde erro do servidor; a tela não diz que entrou | Aguarde 1 min e tente uma vez; persistindo, Roteiro B |
-| Pool esgotado / Demo cheia | "A demonstração está cheia" | B: `npm run demo:local:workspaces -- provision --count=2`; enquanto isso, contas do baseline (modo leitura) |
+| Pool esgotado / Demo cheia | "A demonstração está cheia" | B: sessão já aberta ou leitura validada; sem sessão disponível, Modo C. Repor capacidade fora da apresentação |
 | Rede lenta / timeout | Botões em "Salvando…", avisos "Não confirmamos…" | Não clique de novo. Use "Conferir com o servidor" ou recarregue e confira a lista (tarefa, aprovação, proposta) |
 | 409 / registro mudou | "A tarefa mudou enquanto você a alterava…", "Recarregue a página para resolver o conflito de rascunho" | Recarregue e mostre o estado salvo: é o produto protegendo a última versão |
 | Proposta alterada antes da aprovação | Aprovação mostra a versão analisada; comparação mostra "N condições mudaram desde a vX" | Explique: a aprovação vale para a versão vista; nova versão pede nova revisão humana |
@@ -256,7 +266,7 @@ Cada linha aponta o que já existe no produto ou no repositório. Nunca: limpar 
 | Permissão revogada no meio | "Você não pode mais decidir este pedido… Nada foi registrado" / "Esta tarefa não está mais disponível para você. Nada mudou." | Troque para a persona com o papel certo ("Trocar persona") |
 | Sessão expirada | "Sua sessão expirou e nada foi registrado" | "Entrar em outra aba", volte e repita: o formulário continua preenchido |
 | 429 de entradas | "Muitas entradas em pouco tempo… Tente de novo em N minutos" | Espere o tempo informado na mesma persona; siga narrando a tela aberta. Se a janela nova não entra (limite de **4 workspaces novos por hora** na rede), continue na janela já aberta com "Trocar persona" — ela não consome workspace novo |
-| Navegador travado | Página sem resposta | Nova janela anônima; a sessão de visitante é por janela (cookie), nada fica no navegador |
+| Navegador travado | Página sem resposta | Reabrir a aba na mesma janela anônima; fechar a janela perde o cookie e uma nova entrada consome workspace |
 | Celular incompatível | Navegador antigo sem módulos JS | Use o notebook; o produto exige navegador atual (Chrome, Safari, Firefox, Edge recentes) |
 | Fonte/asset não carregou | Página sem estilo ou sem ação | Recarregue; persistindo, `hosted-parity` mostra o asset com falha. Roteiro B |
 | Dados alterados pela apresentação anterior | Tarefa de ensaio, aprovação já feita | Por persona, cada janela anônima nova é um workspace novo e intocado; pelo baseline, `npm run demo:local:reset` **depois** |
