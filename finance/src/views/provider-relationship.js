@@ -36,6 +36,10 @@ export async function openProviderRelationship(ctx, provider) {
     const d = m.definitions;
     // Nível 1–2: quem é, como está a relação e o que pede trabalho agora.
     // Tarefas abertas ligadas aos contratos desta instituição (overview já carregado).
+    // O endpoint do relacionamento não traz o aviso prévio; o overview já
+    // carregado traz o mesmo contrato com ele. Complementa pelo id, sem inventar.
+    const known = new Map((ctx.data.contracts || []).map((row) => [row.id, row]));
+    detail.contracts = (detail.contracts || []).map((row) => (row.renewal_notice_days == null && known.get(row.id)?.renewal_notice_days != null ? { ...row, renewal_notice_days: known.get(row.id).renewal_notice_days } : row));
     const contractIds = new Set((detail.contracts || []).map((row) => row.id));
     detail.tasks = (ctx.data.tasks || []).filter((task) => task.related_type === 'contract' && contractIds.has(task.related_id))
       .map((task) => ({ ...task, assignee_name: task.assignee_id ? memberName(ctx.members, task.assignee_id) : null }));

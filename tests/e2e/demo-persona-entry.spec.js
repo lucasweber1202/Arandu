@@ -23,6 +23,18 @@ test('no persona capability keeps standard account login',async({page})=>{
  await expect(page.locator('#demonstracao')).toHaveCount(0);
 });
 
+test('persona list rate-limited (429): the entry explains the wait instead of vanishing',async({page})=>{
+ let calls=0;
+ await page.route('**/api/auth/demo-personas',r=>{calls+=1;return r.fulfill({status:429,headers:{'Retry-After':'300'},contentType:'application/json',body:JSON.stringify({error:'Muitas requisições.'})});});
+ await page.goto('/login.html');
+ const panel=page.getByRole('region',{name:'Conheça o Arandu por dentro'});
+ await expect(panel.getByRole('status')).toContainText('Muitas entradas em pouco tempo a partir desta rede. Tente de novo em 5 minutos.');
+ await expect(panel.locator('[data-persona]')).toHaveCount(0);
+ await expect(page.getByRole('heading',{name:'Entrar na conta'})).toBeVisible();
+ await page.waitForTimeout(500);
+ expect(calls).toBe(1);
+});
+
 // ------------------------------------------------------------------------
 // Entrada canônica da Demo: escolha de persona com jornada, que entra no
 // produto real pelo login do servidor e cai no portal certo.
