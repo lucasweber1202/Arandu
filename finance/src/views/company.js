@@ -110,13 +110,13 @@ function approvalContext(ctx, request, rfq) {
 
 // -------------------------------------------------------------- propostas
 export async function proposalsList(ctx) {
-  ctx.header({ title: 'Propostas recebidas', subtitle: 'Todas as respostas de provedores, com versão e revisão respondida.' });
+  ctx.header({ title: 'Propostas recebidas', subtitle: 'Respostas das instituições convidadas, com versão, validade e cobertura dos campos pedidos.' });
   const rows = [];
   for (const rfq of ctx.data.rfqs || []) for (const proposal of rfq.proposals || []) rows.push({ rfq, proposal });
   if (!rows.length) return emptyState({ title: 'Nenhuma proposta recebida ainda', text: 'Convide provedores em uma solicitação aberta. As respostas aparecem aqui.', iconName: 'inbox', action: linkButton('Ver solicitações', ctx.href('/finance/rfqs.html'), { iconName: 'arrowRight' }) });
   rows.sort((a, b) => String(b.proposal.submitted_at).localeCompare(String(a.proposal.submitted_at)));
   const table = el('table', { class: 'data-table' });
-  table.append(el('thead', {}, el('tr', {}, ['Provedor', 'Solicitação', 'Condições', 'Versão', 'Enviada', 'Validade', 'Cobertura'].map((label) => el('th', { scope: 'col', text: label })))));
+  table.append(el('thead', {}, el('tr', {}, ['Instituição', 'Solicitação', 'Condições', 'Versão', 'Enviada', 'Validade', 'Cobertura'].map((label) => el('th', { scope: 'col', text: label })))));
   const body = el('tbody');
   for (const { rfq, proposal } of rows) {
     const outdated = proposal.rfq_revision && proposal.rfq_revision < (rfq.revision || 1);
@@ -124,7 +124,7 @@ export async function proposalsList(ctx) {
     const validDays = daysUntil(proposal.terms?.valid_until);
     const live = ['open', 'collecting', 'comparing'].includes(rfq.status);
     body.append(el('tr', { class: 'row-link', dataset: { entity: 'proposal', id: proposal.id, rfq: rfq.id } }, [
-      el('td', { 'data-label': 'Provedor', class: 'cell-primary' }, [el('a', { class: 'row-title stretched', href: ctx.href(`/finance/rfq.html?id=${rfq.id}#propostas`), text: proposal.provider_name }), el('span', { class: 'row-sub', text: PROVIDER_KINDS[proposal.provider_kind] || 'Provedor' })]),
+      el('td', { 'data-label': 'Instituição', class: 'cell-primary' }, [el('a', { class: 'row-title stretched', href: ctx.href(`/finance/rfq.html?id=${rfq.id}#propostas`), text: proposal.provider_name }), el('span', { class: 'row-sub', text: PROVIDER_KINDS[proposal.provider_kind] || 'Provedor' })]),
       el('td', { 'data-label': 'Solicitação' }, [el('span', { text: rfq.title }), el('span', { class: 'row-sub', text: RFQ_STATUS[rfq.status]?.label })]),
       el('td', { 'data-label': 'Condições', class: 'small' }, termsSummary(rfq.product, proposal.terms)),
       el('td', { 'data-label': 'Versão' }, [el('span', { text: `v${proposal.version}` }),

@@ -144,7 +144,7 @@ export async function openProviderRelationship(ctx, provider) {
       if (item.target.type === 'contract') return el('a', { class: 'btn btn-sm btn-secondary', href: ctx.href(`/finance/contracts.html?abrir=contrato#contract-${item.target.id}`), text: 'Abrir contrato' });
       if (item.target.type === 'rfq') return el('a', { class: 'btn btn-sm btn-secondary', href: ctx.href(`/finance/rfq.html?id=${item.target.id}`), text: 'Abrir negociação' });
       if (item.target.type === 'issue' && write) { const issue = detail.issues.find((row) => row.id === item.target.id); return button('Resolver', { size: 'sm', onClick: () => resolveIssue(issue) }); }
-      if (item.target.type === 'task') return el('a', { class: 'btn btn-sm btn-secondary', href: ctx.href('/finance/tasks.html'), text: 'Abrir tarefas' });
+      if (item.target.type === 'task') return el('a', { class: 'btn btn-sm btn-secondary', href: ctx.href(`/finance/tasks.html#task-${item.target.id}`), text: 'Abrir tarefa' });
       if (item.target.type === 'contact' && write) return button('Adicionar contato', { size: 'sm', iconName: 'plus', onClick: () => contactForm() });
       return null;
     };

@@ -40,7 +40,7 @@ export const PAGES = [
   { path: 'finance/settings.html', view: 'settings', audience: 'company', title: 'Configurações', h1: 'Configurações', description: 'Empresa, perfil financeiro, política de aprovação, notificações e equipe.' },
   { path: 'finance/boundaries.html', view: 'boundaries', audience: 'company', title: 'Limites do produto', h1: 'Limites do produto', description: 'O que o Arandu faz e o que deliberadamente não faz.', lede: 'Esta página descreve, em linguagem direta, o que o Arandu faz e o que ele deliberadamente não faz na vertical de procurement financeiro B2B.', staticBody: 'boundaries' },
   { path: 'finance/ops.html', view: 'ops', audience: 'company', title: 'Console operacional', h1: 'Console operacional', description: 'Saúde de jobs, outbox de e-mail e envios de documentos, sem dados de clientes.', lede: 'Saúde da plataforma para operadores com segundo fator. Mostra estados, contagens e identificadores; nunca valores, termos, documentos ou conteúdo de clientes.' },
-  { path: 'provider/index.html', view: 'providerHome', audience: 'provider', title: 'Portal do provedor', h1: 'Portal do provedor', description: 'Oportunidades, convites e propostas da sua instituição.' },
+  { path: 'provider/index.html', view: 'providerHome', audience: 'provider', title: 'Portal da instituição', h1: 'Portal da instituição', description: 'Oportunidades, convites e propostas da sua instituição.' },
   { path: 'provider/rfqs.html', view: 'providerRfqs', audience: 'provider', title: 'Oportunidades', h1: 'Oportunidades', description: 'Solicitações para as quais a sua instituição foi convidada.' },
   { path: 'provider/proposal.html', view: 'providerProposal', audience: 'provider', title: 'Responder proposta', h1: 'Responder proposta', description: 'Responda à solicitação com as condições da sua instituição.' },
   { path: 'provider/invite.html', view: 'providerInvite', audience: 'provider', title: 'Aceitar convite', h1: 'Aceitar convite', description: 'Aceite o convite recebido para responder a uma solicitação.', referrer: true }
@@ -148,7 +148,7 @@ ${banner}<div class="app-shell">
       <p id="message" class="sr-only" role="status" aria-live="polite"></p>
       <div id="view">${body}</div>
     </main>
-    <footer class="app-footer"><p>Arandu — procurement financeiro B2B. <a href="${link(page.audience === 'provider' ? '/finance/dashboard.html' : '/provider/index.html')}">${page.audience === 'provider' ? 'Portal da empresa' : 'Portal do provedor'}</a> · <a href="${demo ? '/demo/index.html' : '/'}">${demo ? 'Início da demonstração' : 'Site institucional'}</a> · <a href="${link('/finance/boundaries.html')}">Limites do produto</a></p></footer>
+    <footer class="app-footer"><p>Arandu — procurement financeiro B2B. <a href="${link(page.audience === 'provider' ? '/finance/dashboard.html' : '/provider/index.html')}">${page.audience === 'provider' ? 'Portal da empresa' : 'Portal da instituição'}</a> · <a href="${demo ? '/demo/index.html' : '/'}">${demo ? 'Início da demonstração' : 'Site institucional'}</a> · <a href="${link('/finance/boundaries.html')}">Limites do produto</a></p></footer>
   </div>
 </div>
 <script type="module" src="/finance/app.js"></script>

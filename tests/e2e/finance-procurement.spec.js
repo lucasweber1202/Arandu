@@ -28,7 +28,7 @@ const COMPANY_PAGES = [
   ['/finance/ops.html', 'Console operacional']
 ];
 const PROVIDER_PAGES = [
-  ['/provider/index.html', 'Portal do provedor'],
+  ['/provider/index.html', 'Portal da instituição'],
   ['/provider/invite.html', 'Aceitar convite'],
   ['/provider/rfqs.html', 'Oportunidades'],
   ['/provider/proposal.html', 'Responder proposta']
@@ -155,8 +155,8 @@ test('a navegação entre os portais funciona por links reais, sem depender de J
   await page.goto('/finance/index.html');
   await page.getByRole('navigation', { name: 'Navegacao do portal' }).getByRole('link', { name: 'Contratos' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Contratos e renovações');
-  await page.getByRole('link', { name: 'Portal do provedor' }).click();
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Portal do provedor');
+  await page.getByRole('link', { name: 'Portal da instituição' }).click();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Portal da instituição');
   expect(await page.locator('#view').textContent()).toContain('depende de JavaScript');
   await context.close();
 });

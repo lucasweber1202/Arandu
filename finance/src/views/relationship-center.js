@@ -68,7 +68,7 @@ export function relationshipWorkItems({ contracts = [], rfqs = [], tasks = [], m
     const overdue = task.due_on && task.due_on < new Date().toISOString().slice(0, 10);
     items.push({ id: `t-${task.id}`, situation: overdue ? 'task_overdue' : 'task', providerId: contract.provider_id, providerName: contract.provider_name, entityId: contract.legal_entity_id || null,
       category: contract.product || null, title: task.title, detail: task.due_on ? `Prazo ${formatDate(task.due_on)} (${relativeDays(task.due_on)}).` : 'Sem prazo definido.',
-      due: task.due_on || null, who: owner(task.assignee_id), href: '/finance/tasks.html', cta: 'Abrir tarefas', source: `Tarefa ligada ao contrato ${contract.title || categoryLabel(contract.product)}` });
+      due: task.due_on || null, who: owner(task.assignee_id), href: `/finance/tasks.html#task-${task.id}`, cta: 'Abrir tarefa', source: `Tarefa ligada ao contrato ${contract.title || categoryLabel(contract.product)}` });
   }
   const due = (item) => item.due || '9999-12-31';
   return items.sort((a, b) => SITUATIONS[a.situation].rank - SITUATIONS[b.situation].rank || due(a).localeCompare(due(b)));

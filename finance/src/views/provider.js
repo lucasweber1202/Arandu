@@ -1,4 +1,4 @@
-// Portal do provedor: ver oportunidades, entender a demanda, responder e
+// Portal da instituição: ver oportunidades, entender a demanda, responder e
 // acompanhar. Mais simples que o portal da empresa, de propósito.
 
 import { PRODUCTS, PRODUCT_IDS } from '../../../lib/finance/products.mjs';
@@ -77,7 +77,7 @@ async function acceptInvite(ctx, token, { button: trigger = null } = {}) {
 export async function providerHome(ctx) {
   const rows = ctx.data.assignments || [];
   const invites = ctx.data.pending_invites || [];
-  ctx.header({ title: 'Portal do provedor', subtitle: `${greeting(ctx.viewer?.name)} · ${ctx.organization.legal_name}` });
+  ctx.header({ title: 'Portal da instituição', subtitle: `${greeting(ctx.viewer?.name)} · ${ctx.organization.legal_name}` });
   const root = el('div', { class: 'provider-home' });
 
   const todo = rows.filter((row) => ['todo', 'outdated'].includes(assignmentState(row).key))
