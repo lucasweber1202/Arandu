@@ -1081,4 +1081,87 @@ console.log('Document storage: caminhos validados; pede 120 s (envio) e 60 s (do
 }
 
 // Buyer-owned external ingestion uses the same financial API and CI entry point.
+const lifecycleFetch = globalThis.fetch;
 await import("./test-finance-external-proposals.mjs");
+globalThis.fetch = lifecycleFetch;
+
+// Leitura contextual não depende dos 100 primeiros processos da organização.
+for (const hidden of [false, true]) {
+  reset(entry=>{
+    if(entry.url.includes('fin_organizations')) return orgRow(BUYER,'BUYER');
+    if(entry.url.includes('fin_rfqs')) return hidden?[]:[{id:RFQ,organization_id:BUYER,product:'credit',status:'contracted'}];
+    if(entry.url.includes('fin_decisions')) return [{id:DECISION_ID,rfq_id:RFQ,proposal_id:PROPOSAL,snapshot:{proposals:[{proposal_id:PROPOSAL,version:1,terms:{offered_amount:500000}},{proposal_id:OTHER_ORG,terms:{private:'other'}}]}}];
+    if(entry.url.includes('fin_contracts')) return [{id:ACTOR,decision_id:DECISION_ID}];
+    return [];
+  });
+  if(hidden) {
+    await assert.rejects(call('GET','decisions',{url:`/api/finance/decisions?organization_id=${BUYER}&rfq_id=${RFQ}`}),e=>e.status===404);
+    assert.ok(!sent.some(e=>e.url.includes('fin_decisions')));
+  } else {
+    const out=await call('GET','decisions',{url:`/api/finance/decisions?organization_id=${BUYER}&rfq_id=${RFQ}`});
+    assert.equal(out.payload.rows[0].selected_proposal.version,1);
+    assert.equal(out.payload.rows[0].contract.decision_id,DECISION_ID);
+    assert.ok(!JSON.stringify(out.payload).includes('private'));
+    assert.ok(sent.some(e=>e.url.includes(`rfq_id=eq.${RFQ}`)&&e.url.includes('limit=2')));
+    assert.ok(sent.some(e=>e.url.includes(`decision_id=eq.${DECISION_ID}`)&&e.url.includes(`organization_id=eq.${BUYER}`)));
+    assert.ok(sent.every(e=>e.authorization==='Bearer user-jwt'));
+  }
+}
+reset(entry=>entry.url.includes('fin_organizations')?orgRow(BUYER,'BUYER'):[]);
+await assert.rejects(call('GET','decisions',{url:`/api/finance/decisions?organization_id=${BUYER}&rfq_id=invalid`}),e=>e.status===400);
+assert.ok(!sent.some(e=>e.url.includes('fin_decisions')));
+for (const invisible of [false,true]) {
+ reset(entry=>{
+  if(entry.url.includes('fin_organizations')) return orgRow(PROVIDER_ORG,'PROVIDER');
+  if(entry.url.includes('fin_proposals')) return invisible?[]:[{id:PROPOSAL,rfq_id:RFQ,product:'credit',current_version:1}];
+  if(entry.url.includes('fin_proposal_versions')) return [{proposal_id:PROPOSAL,version:1,terms:{offered_amount:500000},note:'Minha proposta'}];
+  if(entry.url.includes('fin_rfqs')) return [{id:RFQ,product:'credit',title:'Minha oportunidade'}];
+  return [];
+ });
+ const out=await call('GET','assignments',{url:`/api/finance/assignments?organization_id=${PROVIDER_ORG}&proposal_id=${PROPOSAL}`});
+ assert.equal(out.payload.rows.length,invisible?0:1);
+ assert.match(sent.find(e=>e.url.includes('fin_proposals')).url,new RegExp(`provider_organization_id=eq.${PROVIDER_ORG}.*id=eq.${PROPOSAL}.*limit=1`));
+ assert.ok(!sent.some(e=>/fin_decisions|fin_contracts/.test(e.url)));
+ assert.ok(sent.every(e=>e.authorization==='Bearer user-jwt'));
+}
+console.log('Contextual lifecycle: scoped decision/contract, immutable chosen terms and institution proposal access passed.');
+for(const scenario of ['wrong-org','duplicate','missing-snapshot']) {
+ reset(entry=>{
+  if(entry.url.includes('fin_organizations')) return orgRow(BUYER,'BUYER');
+  if(entry.url.includes('fin_rfqs')) return [{id:RFQ,organization_id:scenario==='wrong-org'?OTHER_ORG:BUYER}];
+  if(entry.url.includes('fin_decisions')) return scenario==='duplicate'?[{id:DECISION_ID},{id:OTHER_ORG}]:[{id:DECISION_ID,proposal_id:PROPOSAL}];
+  return [];
+ });
+ if(scenario==='missing-snapshot') {
+  const out=await call('GET','decisions',{url:`/api/finance/decisions?organization_id=${BUYER}&rfq_id=${RFQ}`});
+  assert.equal(out.payload.rows[0].selected_proposal,null);
+ } else await assert.rejects(call('GET','decisions',{url:`/api/finance/decisions?organization_id=${BUYER}&rfq_id=${RFQ}`}),e=>e.status===(scenario==='wrong-org'?404:409));
+}
+reset(entry=>{
+ if(entry.url.includes('fin_organizations')) return orgRow(PROVIDER_ORG,'PROVIDER');
+ if(entry.url.includes('fin_proposals')) return [{id:PROPOSAL,rfq_id:RFQ,current_version:2}];
+ return [];
+});
+await assert.rejects(call('GET','assignments',{url:`/api/finance/assignments?organization_id=${PROVIDER_ORG}&proposal_id=${PROPOSAL}`}),e=>e.status===503 && e.code==='proposal_version_unavailable');
+await assert.rejects(call('GET','assignments',{url:`/api/finance/assignments?organization_id=${PROVIDER_ORG}&proposal_id=invalid`}),e=>e.status===400);
+reset(entry=>{
+ if(entry.url.includes('fin_organizations')) return orgRow(PROVIDER_ORG,'PROVIDER');
+ return [];
+});
+await assert.rejects(call('GET','decisions',{url:`/api/finance/decisions?organization_id=${PROVIDER_ORG}&rfq_id=${RFQ}`}),e=>e.status===403);
+assert.ok(!sent.some(e=>e.url.includes('fin_decisions')||e.url.includes('fin_rfqs')));
+for(const overflow of [false,true]) {
+ reset(entry=>{
+  if(entry.url.includes('fin_rfqs')) return [{id:RFQ,organization_id:BUYER,product:'credit'}];
+  if(entry.url.includes('fin_rfq_invites')) return Array.from({length:overflow?101:1},()=>({provider_id:PROVIDER_ORG,status:'invited'}));
+  if(entry.url.includes('fin_providers')) return [{id:PROVIDER_ORG,name:'Instituição autorizada'}];
+  return [];
+ });
+ if(overflow) await assert.rejects(call('GET',`rfq/${RFQ}`),e=>e.status===422 && e.code==='invite_coverage_limit');
+ else {
+  const out=await call('GET',`rfq/${RFQ}`);
+  assert.equal(out.payload.invites[0].provider_name,'Instituição autorizada');
+  assert.ok(sent.some(e=>e.url.includes('fin_providers')&&e.url.includes(`organization_id=eq.${BUYER}`)));
+ }
+}
+console.log('Lifecycle adversarial: provider cannot read decision, invite scope and truncation fail closed passed.');

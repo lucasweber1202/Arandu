@@ -1,0 +1,124 @@
+{
+  "base_sha": "0ea9e6cf74d10e44ce5dc21f09e0c9d61a789716",
+  "branch": "feature/procurement-lifecycle-continuity",
+  "source_sha256": {
+    "finance/src/views/provider.js": "bbd8ba5db42704503b89c4d8cb9ab3a27e94a3658c88bb0991bb77db6eb1f7b2",
+    "finance/src/views/rfq.js": "f80a229affb0f79e94ac3830c09ff973edccc118a19689a1e2d38523e6ae3b21",
+    "lib/api/domains/finance.mjs": "a4a800b7d46fbff30379660857cf4cf942c702dbe67bc293f593c6b7df33c4db",
+    "scripts/pilot-local/journey.mjs": "67dc724612ba8751f1795208dae2f09b9e416daa8aa83bdedddb6b41fae52069",
+    "scripts/test-finance-api.mjs": "c383292e6f316bae0d80c2c349f1791219056743a745577dffe9002a77e1b428",
+    "tests/e2e/finance-procurement.spec.js": "b9e87c892eb1202e0fa0f74e96ee541d8beb466f3558dfe0cdc7eb696aa2e328",
+    "tests/e2e/finance-provider-draft.spec.js": "4549f7a635d7afd352375303a8abed431d70c4b3b370b444f5abce795c1ab56e",
+    "finance/src/views/contract-registration.js": "9bde7e8ce7a4a061d621b993cab4ea66575589e815a0bfb1ee2683750b850a1d"
+  },
+  "capture_origin": "Actual UI, local static normal build, intercepted fictional API/session. Chromium desktop and Pixel 7/mobile Chrome. Before: original main source. Not canonical backend.",
+  "captures_sha256": {
+    "procurement-after-chromium-desktop.png": "ad73cd3297b2397a2f108e269d0df65728e36ee0e6a87d5d812c11f6854f85d8",
+    "procurement-after-mobile-chrome.png": "a9e37e902d71757f431b751daa4a2088540767edf632e5fce32c99cae3008841",
+    "procurement-before-mobile-chrome.png": "b3cbd9698489da47cad6307910e5e85284bc5e1ccf97c74b61589c1d1e6b56e6",
+    "provider-context-before-mobile-chrome.png": "685d559158b59cf8a94b1a31ddf2bc76d3cddecc1fcc8be3385e860ed586443a",
+    "provider-context-before-chromium-desktop.png": "bb4ed2dc04ebdda304b9f60e2c6228a846ae65b223908ffdc8488292f9d566ca",
+    "provider-context-after-mobile-chrome.png": "9b144f1c243baec7496f13605ae9fa64144c8314f3a6aa4fccff31f207adfe38",
+    "provider-context-after-chromium-desktop.png": "30fb0e2fc0136c55330ffe90f575eaeb70ac81a2315b1211d667964fa029ae99",
+    "procurement-before-chromium-desktop.png": "9639438cdef0ce461b9ceacf3547d61c7a5173ad438d3e5b5ade451f33809bae"
+  },
+  "canonical_stack": {
+    "status": "NOT_RUN",
+    "reason": "Pinned Supabase PostgreSQL extraction on vfs reduced free disk from 20 GB to below 2 GB before completion; only task-owned pull cancelled. Temporary layers reclaimed. No daemon restart or removal of other task images.",
+    "harness_new_steps": "PREPARED_NOT_RUN",
+    "hosted_migrations": "NOT_RUN"
+  },
+  "baseline_failures": {
+    "log": "/tmp/arandu-procurement-before.log",
+    "sha256": "1c56f10ed0a117cb83b522b676d368000b0b506525c2a1c2088b1951fed27ef3",
+    "failed": 4
+  },
+  "local_Firefox_WebKit": "NOT_RUN; exact-HEAD CI required",
+  "physical_station": "NOT_VERIFIED",
+  "ci_at_commit_creation": "PENDING; require database, deploy-boundaries, presentation and validate on exact HEAD",
+  "created_at": "2026-10-23T18:39:40.734616+00:00",
+  "checks": [
+    {
+      "command": "npm ci --include=optional",
+      "result": "PASS",
+      "log": "/tmp/arandu-procurement-npm.log",
+      "log_sha256": "5a8ae2f3cb4367f662255acb5a59d3320d677e449abe84866a822fee99efe2e2"
+    },
+    {
+      "command": "check:all hermetic",
+      "result": "PASS",
+      "log": "/tmp/arandu-procurement-check-all-final.log",
+      "log_sha256": "3fb9c704cafd8211ebc4dde72d0e196dabe4349345850c847673754a15b25a8c"
+    },
+    {
+      "command": "normal build",
+      "result": "PASS",
+      "log": "/tmp/arandu-procurement-build-final.log",
+      "log_sha256": "dc5a1071c58a35711e1c82f12dfd223be86c096b6ba5a3b19f247f1b17475460"
+    },
+    {
+      "command": "bundle budget",
+      "result": "PASS",
+      "log": "/tmp/arandu-procurement-size-final.log",
+      "log_sha256": "a7991e5d670ff9642f7bd1c646c83e0ffdb29d8b46eecfe1b1eaf66bf3bffd32"
+    },
+    {
+      "command": "links",
+      "result": "PASS",
+      "log": "/tmp/arandu-procurement-links.log",
+      "log_sha256": "8a245d502fbbad233a6374d28e0f4846f21d3dbf37278171de37582e8b3bdfd1"
+    },
+    {
+      "command": "financial API / mocked REST",
+      "result": "PASS",
+      "log": "/tmp/arandu-procurement-api.log",
+      "log_sha256": "84e18720673ca7af02d0b8093fe3230c9880db75766d5d9708d614fe34ff790b"
+    },
+    {
+      "command": "real PostgreSQL 15.19 / full SQL",
+      "result": "PASS",
+      "log": "/tmp/arandu-procurement-database.log",
+      "log_sha256": "8be3ed0e4c5faa53cbfe95fe172c723783fcbf535790234911dd8bd5b7b5941e"
+    },
+    {
+      "command": "financial E2E desktop/mobile before final status projection",
+      "result": "PASS",
+      "log": "/tmp/arandu-procurement-finance-final.log",
+      "log_sha256": "9ca64ce6957a1a079b8f3a6007dbd0eb5eb295c23b5c6d38a0c741b465b7632a",
+      "passed": 586,
+      "skipped": 10
+    },
+    {
+      "command": "final buyer/provider E2E desktop/mobile",
+      "result": "PASS",
+      "log": "/tmp/arandu-procurement-portals-final.log",
+      "log_sha256": "3f9bcaf8be7d4eb6c47d45fc7045cdf971606d32384b4e927bd1c152384fd713",
+      "passed": 175,
+      "skipped": 3
+    },
+    {
+      "command": "presentation desktop/mobile",
+      "result": "PASS",
+      "log": "/tmp/arandu-procurement-presentation.log",
+      "log_sha256": "e35d0b9a0572a6dc15ce5fec6eb99091e168c9be3641e0ced852852a99ec0fa5",
+      "passed": 136,
+      "skipped": 20
+    }
+  ],
+  "bundle": {
+    "rfq_bytes": 245034,
+    "hard_limit": 250000,
+    "warning_retained": true
+  },
+  "postgres": {
+    "version": "15.19",
+    "image": "postgres:15",
+    "isolation": "owned container arandu-procurement-pg15, network none, no ports, tmpfs, stopped after PASS",
+    "transport": "native psql/pg_dump/pg_restore through local Docker wrapper"
+  },
+  "resolved_local_failures": {
+    "database-startup": "033054354d2f4add925f469eaae02cd97d34eec86a6fbd6373422aa703bba1ad",
+    "database-wrapper-failure": "0a1a171d1c97aa0652e6637213dad2b0b4c491e4b3154e30b260b7bfbbc3817f",
+    "finance-order-failure": "f61b9d2a00d6549344fdd50946952b57605dd7159dc7aec01c491789958028cd"
+  }
+}
