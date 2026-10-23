@@ -325,3 +325,35 @@ reset(buyer);
 await rejects('GET', 'portfolio', { url: `/api/finance/portfolio?organization_id=${ORG}&horizon_months=1000` }, 400, 'invalid_horizon');
 
 console.log('Relationship & Portfolio: visões por moeda sem soma entre moedas, saldo mais recente, ausência explícita, métricas factuais, scorecard do cliente e API aprovados.');
+
+// Trabalho contextual: parent autorizado antes de consultar tarefas; cursor ligado ao contexto/filtro.
+const contextualRows=Array.from({length:3},(_,i)=>({id:`00000000-0000-4000-8000-${String(i+1).padStart(12,'0')}`,status:'open',due_on:null,created_at:'2026-10-01T00:00:00Z',related_type:'contract',related_id:FACILITY}));
+reset(entry=>buyer(entry) ?? (entry.url.includes('fin_contracts?')?[{id:FACILITY}]:entry.url.includes('fin_tasks?')?contextualRows:[]));
+const contextualUrl=`/api/finance/tasks?organization_id=${ORG}&contract_id=${FACILITY}&status=open&limit=2`;
+const contextual=(await call('GET','tasks',{url:contextualUrl})).payload;
+assert.equal(contextual.rows.length,2);assert.equal(contextual.page.has_more,true);
+const scopedRequest=new URL(sent.find(entry=>entry.url.includes('fin_tasks?')).url);
+assert.equal(scopedRequest.searchParams.get('related_type'),'eq.contract');
+assert.equal(scopedRequest.searchParams.get('related_id'),`eq.${FACILITY}`);
+assert.ok(sent.every(entry=>entry.authorization==='Bearer user-jwt'));
+await call('GET','tasks',{url:`${contextualUrl}&cursor=${contextual.page.next_cursor}`});
+await rejects('GET','tasks',{url:`${contextualUrl.replace('status=open','status=done')}&cursor=${contextual.page.next_cursor}`},400,'invalid_task_cursor');
+await rejects('GET','tasks',{url:`${contextualUrl}&task_id=${ACTOR}`},400,'invalid_task_filter');
+reset(entry=>buyer(entry) ?? []);
+await rejects('GET','tasks',{url:contextualUrl},404,'task_context_not_found');
+assert.ok(!sent.some(entry=>entry.url.includes('fin_tasks?')));
+reset(provider);
+await rejects('GET','tasks',{url:contextualUrl},403);
+assert.ok(!sent.some(entry=>entry.url.includes('fin_tasks?')));
+
+// Revisão antiga fora da página de vinte: leitura exata continua limitada e sob o JWT.
+reset(entry=>buyer(entry) ?? []);
+await call('GET','rfq-revisions',{url:`/api/finance/rfq-revisions?organization_id=${ORG}&rfq_id=${FACILITY}&from_revision=1&to_revision=25`});
+assert.match(sent.find(entry=>entry.url.includes('fin_rfq_revisions?')).url,/revision=in\.\(1,25\).*limit=2/);
+assert.ok(sent.every(entry=>entry.authorization==='Bearer user-jwt'));
+for(const args of ['from_revision=1','from_revision=0&to_revision=25','from_revision=1&to_revision=2.5','from_revision=1&to_revision=9999999999']) {
+ reset(entry=>buyer(entry) ?? []);
+ await rejects('GET','rfq-revisions',{url:`/api/finance/rfq-revisions?organization_id=${ORG}&rfq_id=${FACILITY}&${args}`},400,'invalid_rfq_revision');
+ assert.ok(!sent.some(entry=>entry.url.includes('fin_rfq_revisions?')));
+}
+console.log('Contextual task authorization, pagination, scope-bound cursor and exact historical RFQ revision reads passed.');

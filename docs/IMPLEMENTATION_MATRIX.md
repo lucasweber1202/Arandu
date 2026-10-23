@@ -1,5 +1,24 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 23/10/2026 — Rodada intensiva: executar o trabalho no contexto do contrato
+
+Base real `main@7f2fb38`, #262 **já integrada**, quatro gates e merge-audit
+SUCCESS nessa base. As fotografias anteriores e suas restrições originais
+permanecem históricas. Nova decisão do proprietário: aprofundamento funcional
+23–27/10; estabilização/operação/apresentação em 28–29/10.
+
+Entrega em `feature/buyer-lifecycle-actions`: criar tarefa vinculada no contrato,
+concluir com releitura e acompanhar Concluídas/Canceladas; prazo e responsável
+manual sem herança. Origem autorizada da contratação e retorno à instituição
+fora do índice inicial preservam contexto. Portal recupera exatamente as duas
+revisões, inclusive além das últimas 20, com erro/retry sem perder rascunho.
+Não há novo domínio, cópia do Graph, migration ou configuração hospedada.
+
+SQL da main, incluindo #262, e RLS/concorrência validados em PostgreSQL 15.19
+real descartável; não é prova de Auth/Storage canônicos ou da estação física.
+[Implementação, antes/depois, testes e limites](evidence/lifecycle-actions-2026-10-23.md).
+CI e maturidade desta entrega dependem dos quatro gates no HEAD próprio da PR.
+
 ## 23/10/2026 — Reconciliação pós-261 e continuidade isolada para depois do evento
 
 PRs #259, #260 e #261 confirmadas por ancestralidade em `main@9b57f2a`.

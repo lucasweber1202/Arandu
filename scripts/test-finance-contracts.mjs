@@ -167,6 +167,16 @@ reset((entry) => entry.url.includes(`fin_contracts?select=*&id=eq.${CONTRACT}`) 
   assert.ok(sent.every((entry) => entry.method === 'GET'), 'detalhe só lê');
 }
 
+// A ponte para procurement vem de fontes autorizadas, sem adivinhar o RFQ pelo cache.
+for (const visible of [true,false]) {
+ reset(entry => entry.url.includes(`fin_contracts?select=*&id=eq.${CONTRACT}`) ? [{id:CONTRACT,organization_id:ORG,product:'credit',provider_id:PROVIDER,proposal_id:ACTOR}]
+  : entry.url.includes('fin_proposals?') ? [{rfq_id:TASK_ID}]
+  : entry.url.includes('fin_rfqs?') && visible ? [{id:TASK_ID,title:'Concorrência autorizada'}] : []);
+ const {payload}=await call('GET','contract-detail',{url:`/api/finance/contract-detail?id=${CONTRACT}`});
+ assert.deepEqual(payload.source_rfq,visible?{id:TASK_ID,title:'Concorrência autorizada'}:null);
+ assert.ok(sent.filter(entry=>/fin_proposals\?|fin_rfqs\?/.test(entry.url)).every(entry=>entry.url.includes(ORG)), 'source reads remain org scoped');
+}
+
 // ------------------------------------- fatos confirmados → termos do contrato
 {
   const fact = (field_key, normalized_value, extra = {}) => ({ schema_key: 'contract_terms', field_key, normalized_value, status: 'confirmed', value_state: 'present',

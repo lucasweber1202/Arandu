@@ -1,0 +1,158 @@
+{
+  "created_at": "2026-10-23T17:15:42.054232+00:00",
+  "base_sha": "7f2fb38f7a1cafd054efcc36ccee7236c73d6e1f",
+  "branch": "feature/buyer-lifecycle-actions",
+  "head": "Commit containing this artifact; post-commit smoke and exact-HEAD CI recorded on PR.",
+  "source_sha256": {
+    "finance/src/views/company.js": "bb3f57543ed2a570f9eaecdeca4b144448958dddc8c31b7ae29ad5046a50f946",
+    "finance/src/views/contract-center.js": "5776f79cae66e901f66c8f559510d12dce4d19b58b25d459f825812ae291cbc3",
+    "finance/src/views/contract-work.js": "0142983f44ec719a261c58d67b59f4fa686748d48867c7c07e3d318b1f1a7a1c",
+    "finance/src/views/provider-relationship.js": "6573c2c5b37b48a5e3d9d6037094c5eefb8bf5fa0225a2c1be12024267c79b66",
+    "finance/src/views/provider.js": "64124bd62934d3b5ceb557f659ff935d746e626a5c00b3fa8216390ab9e7234d",
+    "lib/api/domains/finance-contracts.mjs": "9e252bcc0517fcb42a90eb425d54cda5c5b1dfbf66c000c3a396a4203b2c8966",
+    "lib/api/domains/finance.mjs": "d6451b0d5a6c18884bb2c28e4f896a793e7c64eabebe2c69408484b7bad5d8ec",
+    "scripts/test-finance-contracts.mjs": "1369e289dc5a891b99cbc568b60d1f4381aec25c842d56bb2a5c5aa9e0c54d87",
+    "scripts/test-finance-portfolio.mjs": "2763bf006bb5e59f2b9cc4c7e8af773130049794a4ad0b86f5a9a09bd8990154",
+    "tests/database/financial-relationship-continuity.sql": "b25f372137294652e75a822a67001ce5dc8a62df9816e18c06ebe1102e9a715f",
+    "tests/e2e/finance-contracts.spec.js": "bfbe33a78013ec241f35a6b0890fdb519b0cf64914887a1fe763e51ab6811fe7",
+    "tests/e2e/finance-portfolio.spec.js": "d390761c393f1185bdb1b7a4c6f5982b642a55125926d41af9aa74ad9a56ae61",
+    "tests/e2e/finance-provider-draft.spec.js": "744b4f34f5dedf0c914c9b3a987e65d95141eba2aa80472bc45d4b4b00e94bd5"
+  },
+  "tests": [
+    {
+      "command": "npm ci --include=optional",
+      "result": "PASS",
+      "evidence_kind": "locked existing dependencies",
+      "log": "/tmp/arandu-lifecycle-npm.log",
+      "log_sha256": "5a8ae2f3cb4367f662255acb5a59d3320d677e449abe84866a822fee99efe2e2"
+    },
+    {
+      "command": "node scripts/run-hermetic.mjs npm run check:all",
+      "result": "PASS",
+      "evidence_kind": "local validators, including mocked transports",
+      "log": "/tmp/arandu-lifecycle-check-all-final.log",
+      "log_sha256": "b64d0896e613958c0bf269e200f671dc247417a9af7a04f94efe3df7cab4d4d5"
+    },
+    {
+      "command": "npm run build",
+      "result": "PASS",
+      "evidence_kind": "normal build",
+      "log": "/tmp/arandu-lifecycle-build-final.log",
+      "log_sha256": "03c00739205fb271f8cca2de95db6b99e69e3cfc06dd00ff8060460f89d5ca40"
+    },
+    {
+      "command": "npm run check:build-size",
+      "result": "PASS",
+      "evidence_kind": "normal build budget",
+      "log": "/tmp/arandu-lifecycle-size-final.log",
+      "log_sha256": "741053b2280d572aa1455559a69b420508e90deff41a6e5f908ed290b1088ebc",
+      "rfq_bytes": 245884,
+      "limit_bytes": 250000,
+      "warning_retained": true
+    },
+    {
+      "command": "npm run check:links",
+      "result": "PASS",
+      "evidence_kind": "static links",
+      "log": "/tmp/arandu-lifecycle-links.log",
+      "log_sha256": "8a245d502fbbad233a6374d28e0f4846f21d3dbf37278171de37582e8b3bdfd1"
+    },
+    {
+      "command": "node scripts/test-finance-portfolio.mjs",
+      "result": "PASS",
+      "evidence_kind": "real handlers / mocked REST",
+      "log": "/tmp/arandu-lifecycle-context-api.log",
+      "log_sha256": "4137bf72be9aae274b6d0a87b9896ac82552508f9a92eb86b2a290be414bebcb"
+    },
+    {
+      "command": "node scripts/test-finance-contracts.mjs",
+      "result": "PASS",
+      "evidence_kind": "real handlers / mocked REST",
+      "log": "/tmp/arandu-lifecycle-contract-api.log",
+      "log_sha256": "890529c95f1cba5873a6f0b7ff0b07f5b01fd9eddfbed1cf1e1798453de72cd8"
+    },
+    {
+      "command": "npm run test:database",
+      "result": "PASS",
+      "evidence_kind": "real isolated PostgreSQL 15.19; native psql/pg_dump/pg_restore",
+      "log": "/tmp/arandu-lifecycle-database.log",
+      "log_sha256": "ddca4db03896923dc131ce16eacf181a3abcb83bf10856b4f2019fe399176d6d"
+    },
+    {
+      "command": "financial-relationship-continuity.sql on clean, upgrade and fresh databases",
+      "result": "PASS",
+      "evidence_kind": "real RLS completion/reopen and hidden entity denial",
+      "log": "/tmp/arandu-lifecycle-context-sql.log",
+      "log_sha256": "ee8606d4dc9e98060c4ddf0a2c7b0501df41d1a94b501281a667de73cf02569d"
+    },
+    {
+      "command": "financial E2E --project=chromium-desktop --project=mobile-chrome --workers=2",
+      "result": "PASS",
+      "evidence_kind": "actual UI, intercepted fictional API",
+      "log": "/tmp/arandu-lifecycle-finance-final.log",
+      "log_sha256": "c79a18dbe4885e5f607057a82f9c8a5e01085ae49bb999def670ed7499fdea2d",
+      "passed": 564,
+      "skipped": 10
+    },
+    {
+      "command": "presentation E2E --project=chromium-desktop --project=mobile-chrome --workers=2",
+      "result": "PASS",
+      "evidence_kind": "synthetic presentation build, sequential after normal suite",
+      "log": "/tmp/arandu-lifecycle-presentation-final.log",
+      "log_sha256": "6c18f85601ac435a0ebb8a31a62c5a060494d36a5380e8448c92cd31d277d856",
+      "passed": 136,
+      "skipped": 20
+    },
+    {
+      "command": "focused lifecycle/revision/return/source E2E",
+      "result": "PASS",
+      "evidence_kind": "actual UI, intercepted fictional API",
+      "log": "/tmp/arandu-lifecycle-focused-final.log",
+      "log_sha256": "4060d0a4980f7db469016ebb3a4ee115da6e7912791e5316cfc841c3ef211607",
+      "passed": 18,
+      "skipped": 0
+    },
+    {
+      "command": "npm run check:demo-parity",
+      "result": "PASS",
+      "evidence_kind": "source/build only, not hosted proof",
+      "log": "/tmp/arandu-lifecycle-parity-final.log",
+      "log_sha256": "043104dc358259e48ddbb7fa56517f02c7a6bd9b26cafef46c9a3b77cbb549c1"
+    }
+  ],
+  "before_failures": {
+    "/tmp/arandu-lifecycle-before.log": "ab6a33d3d7df9bc840f6409401747a046b5e842691833758d822d63259d1c417",
+    "/tmp/arandu-lifecycle-provider-before.log": "9bff0396a2f734ad52a18c131b556a2bfe784b84bbe873b469531c1722e2e9be",
+    "/tmp/arandu-lifecycle-relationship-before.log": "7cd391599bf41ae549f15621ef8eb19e8bd87893743100344a72fec3cdea4b7a"
+  },
+  "captures_sha256": {
+    "lifecycle-after-chromium-desktop.png": "b939b218357b5ad50aab2ceba716e340cb0067ad86dc483f6ce4741dcc850382",
+    "lifecycle-after-mobile-chrome.png": "fc82479ef6960099d818044eea5a097bacd1898a79cd128c197fb4cf7decf47c",
+    "lifecycle-before-chromium-desktop.png": "641aae17abd5836b0ba85aefc53b480d7b59771d06e5cd7e65cbd47d9cfbba35",
+    "lifecycle-before-mobile-chrome.png": "e076a262c5a357dc5bd5cebe6ceacd23535ace1d64ec49b0fc0bba5d5c534ffc",
+    "provider-revision-after-chromium-desktop.png": "9f116f0add4542bdac1fb48c7959e56d5cc0408dfa511c2edb0ad7bec249576f",
+    "provider-revision-after-mobile-chrome.png": "73dab084616a19affed6eb5af7c7b6c8ef1367ff3f69f96b307ee468a76accaa",
+    "provider-revision-before-chromium-desktop.png": "04c83fde999fac4432a369f307934bdb085b32ed15a5ff9d4f2d8f1d44ffd8fe",
+    "provider-revision-before-mobile-chrome.png": "8d3f5b0e8ecc4896bc4baff85bd15b278f177e8b07bdb414e1eea4af512cd225"
+  },
+  "captures_origin": "Actual application UI on 127.0.0.1:4173; session/API intercepted with fictional data. Before uses original main source, after uses source hashes above. Not canonical Auth/Storage.",
+  "postgres": {
+    "version": "15.19",
+    "image_digest": "sha256:baa22e6286bf832cb147b8bb5aa9d8bc999846d69c21d11bf63f58fbeed1fa48",
+    "isolation": "own container, --network none, no host ports, tmpfs; stopped after PASS",
+    "compatibility": "same major 15 as Demo pinned Supabase PostgreSQL 15.14.1.064; full Supabase stack NOT_RUN"
+  },
+  "limitations": {
+    "local_Firefox_WebKit": "NOT_RUN; existing five CI projects required",
+    "canonical_Auth_PostgREST_Storage": "NOT_RUN; no prepared full canonical lab",
+    "physical_station": "NOT_VERIFIED",
+    "hosted_migrations": "NOT_RUN; no migration introduced",
+    "automatic_merge": "NOT_RUN"
+  },
+  "ci_at_commit_creation": "PENDING; require database, deploy-boundaries, presentation, validate on exact HEAD.",
+  "local_failures_resolved": [
+    "psql -f - transport initially discarded stdin; fixed wrapper, unchanged lock test then full PASS.",
+    "Owned stale static server prevented first presentation start; stopped only that server; unchanged config then full PASS."
+  ],
+  "interrupted_local_run": "Earlier financial run interrupted to consolidate proven return-context fix; not counted as PASS."
+}

@@ -197,12 +197,25 @@ export async function providerProposal(ctx) {
   if (!open) setStatus('info', 'Esta solicitação não está mais recebendo propostas.', assignment.version ? `Sua última versão (v${assignment.version}) continua registrada para a empresa.` : 'Nenhuma proposta foi enviada.');
   else if (state.key === 'outdated') {
     setStatus('warning', `A solicitação mudou desde a sua proposta (revisão ${assignment.submitted_rfq_revision} → ${assignment.rfq_revision}).`, 'Confira o que mudou e envie uma nova versão se necessário. A versão anterior continua registrada.');
-    ctx.api(`rfq-revisions?organization_id=${encodeURIComponent(ctx.organization.id)}&rfq_id=${encodeURIComponent(assignment.rfq_id)}`).then(({ rows: revisions }) => {
-      const before = revisions?.find((row) => row.revision === assignment.submitted_rfq_revision)?.snapshot;
-      const after = revisions?.find((row) => row.revision === assignment.rfq_revision)?.snapshot;
-      const changes = revisionDiff(assignment.product, before, after);
-      if (changes.length) status.querySelector('.callout > div').append(el('ul', { class: 'diff-list' }, changes.map((change) => el('li', {}, [el('span', { class: 'diff-label', text: `${change.label}: ` }), el('span', { class: 'diff-before', text: change.before }), ' → ', el('span', { class: 'diff-after', text: change.after })]))));
-    }).catch(() => {});
+    const review = el('div', {class:'revision-review', 'aria-live':'polite'});
+    status.querySelector('.callout > div').append(review);
+    let reading = false;
+    const loadRevisions = async () => {
+      if (reading) return;
+      reading = true;
+      review.replaceChildren(loading('Conferindo as revisões da solicitação…'));
+      try {
+        const {rows: revisions} = await ctx.api(`rfq-revisions?organization_id=${encodeURIComponent(ctx.organization.id)}&rfq_id=${encodeURIComponent(assignment.rfq_id)}&from_revision=${assignment.submitted_rfq_revision}&to_revision=${assignment.rfq_revision}`);
+        const before = revisions?.find(row => row.revision === assignment.submitted_rfq_revision)?.snapshot;
+        const after = revisions?.find(row => row.revision === assignment.rfq_revision)?.snapshot;
+        if (!before || !after) throw new Error('Não recuperamos as duas revisões autorizadas. Confira a demanda atual ao lado antes de revisar sua proposta.');
+        const changes = revisionDiff(assignment.product, before, after);
+        review.replaceChildren(changes.length ? el('ul', {class:'diff-list'}, changes.map(change => el('li', {}, [el('span', {class:'diff-label', text:`${change.label}: `}), el('span', {class:'diff-before', text:change.before}), ' → ', el('span', {class:'diff-after', text:change.after})])))
+          : el('p', {class:'small', text:'Nenhuma diferença nos campos comparáveis dessas duas revisões. Confira também os documentos e esclarecimentos atuais.'}));
+      } catch (error) { review.replaceChildren(errorState({error, onRetry:loadRevisions})); }
+      finally { reading = false; }
+    };
+    loadRevisions();
   } else if (assignment.version) setStatus('success', `Proposta enviada · versão ${assignment.version}`, `Respondendo à revisão ${assignment.submitted_rfq_revision || assignment.rfq_revision}. Alterações criam uma nova versão; a anterior continua registrada para a empresa.`);
   else if (days !== null && days < 0) setStatus('warning', 'O prazo de resposta já passou.', 'A empresa ainda não encerrou a coleta, então o envio continua possível, mas a proposta fica registrada como enviada após o prazo.');
   else setStatus('info', 'Rascunho — ainda não enviado.', 'A empresa só vê sua proposta depois que você enviar. O rascunho é salvo automaticamente e é visível apenas para a sua instituição.');

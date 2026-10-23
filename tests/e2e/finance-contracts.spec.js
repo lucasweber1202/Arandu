@@ -1007,3 +1007,102 @@ for (const status of ['open','done','cancelled','unavailable']) test(`tarefa al�
     await expect(page.getByText('Outra tarefa da primeira página',{exact:true})).toBeVisible();
   }
 });
+
+async function contractWorkServer(page,{viewer=false,unknown=false,source=false}={}) {
+  await mockSession(page);
+  const records=[],posts=[],patches=[];
+  if(source)await page.route('**/api/finance/contract-detail**',route=>route.fulfill({json:{...DETAIL,contract:{...CONTRACT_ROW,origin:'sourcing'},source_rfq:{id:PROVIDER,title:'Concorrência de capital de giro'}}}));
+  if(viewer)await page.route('**/api/finance/members**',route=>route.fulfill({json:{ok:true,viewer_id:'u1',rows:[{user_id:'u1',role:'viewer',display_name:'Leitora'}]}}));
+  await page.route('**/api/finance/tasks**',async route=>{
+    const request=route.request(),q=new URL(request.url()).searchParams;
+    if(request.method()==='POST') {
+      const body=request.postDataJSON();posts.push(body);
+      if(!records.length)records.push({...body,id:'00000000-0000-4000-8000-00000000f111',status:'open',created_at:'2026-10-23T12:00:00Z',assignee_name:null});
+      if(unknown && posts.length===1)return route.fulfill({status:503,json:{ok:false,error:'Resposta não confirmada.'}});
+      return route.fulfill({status:posts.length>1?200:201,json:{ok:true,row:records[0]}});
+    }
+    if(request.method()==='PATCH'){const body=request.postDataJSON();patches.push(body);records[0].status=body.status;return route.fulfill({json:{ok:true}});}
+    const rows=q.has('task_id')?records.filter(row=>row.id===q.get('task_id')):q.get('contract_id')===CONTRACT?records.filter(row=>row.status===q.get('status')):[];
+    return route.fulfill({json:{ok:true,rows,page:{limit:25,has_more:false,next_cursor:null}}});
+  });
+  return {records,posts,patches};
+}
+
+test('trabalho no contrato conserva vínculo e mostra conclusão no histórico', async ({page},testInfo) => {
+  const server=await contractWorkServer(page);
+  await page.goto(`/finance/contracts.html?abrir=contrato#contract-${CONTRACT}`);
+  const work=page.getByRole('region',{name:'Trabalho deste contrato'});
+  await expect(work.getByRole('heading',{name:'Trabalho deste contrato'})).toBeVisible();
+  await expect(work.getByRole('link',{name:'Relacionamento com Banco Carteira'})).toHaveAttribute('href',new RegExp(`provider_id=${PROVIDER}`));
+  await work.getByText('Registrar próxima ação',{exact:true}).click();
+  await work.getByLabel('O que precisa ser feito').fill('Conferir documento da renovação');
+  await work.getByLabel('Prazo da tarefa').fill('2026-11-10');
+  await work.getByRole('button',{name:'Registrar tarefa neste contrato'}).click();
+  await expect(work).toContainText('Tarefa registrada neste contrato');
+  expect(server.posts[0]).toMatchObject({related_type:'contract',related_id:CONTRACT,due_on:'2026-11-10'});
+  expect(server.posts[0].idempotency_key).toMatch(/^[a-f0-9-]{36}$/);
+  await work.getByRole('button',{name:'Concluir: Conferir documento da renovação',exact:true}).click();
+  await expect(work).toContainText('Tarefa concluída.');
+  await work.getByLabel('Situação das tarefas do contrato').selectOption('done');
+  await expect(work.locator('.milestone-list')).toContainText('Conferir documento da renovação');
+  await expect(work.locator('.milestone-list')).toContainText('Concluída');
+  expect(server.patches).toHaveLength(1);
+  if(process.env.LIFECYCLE_CAPTURE)await page.screenshot({path:`reports/lifecycle-${process.env.LIFECYCLE_CAPTURE}-${testInfo.project.name}.png`});
+  await work.getByRole('button',{name:'Reabrir: Conferir documento da renovação',exact:true}).click();
+  await work.getByLabel('Situação das tarefas do contrato').selectOption('open');
+  await expect(work.locator('.milestone-list')).toContainText('Conferir documento da renovação');
+  await noHorizontalOverflow(page);
+});
+
+test('registro contextual incerto confere a mesma chave; leitor não recebe ações',async({page})=>{
+  const server=await contractWorkServer(page,{unknown:true});
+  await page.goto(`/finance/contracts.html?abrir=contrato#contract-${CONTRACT}`);
+  const work=page.getByRole('region',{name:'Trabalho deste contrato'});
+  await work.getByText('Registrar próxima ação',{exact:true}).click();
+  await work.getByLabel('O que precisa ser feito').fill('Cobrar documento');
+  await work.getByRole('button',{name:'Registrar tarefa neste contrato'}).click();
+  await expect(work.getByRole('button',{name:'Conferir registro da tarefa'})).toBeVisible();
+  await expect(work.getByLabel('O que precisa ser feito')).toBeDisabled();
+  await work.getByRole('button',{name:'Conferir registro da tarefa'}).click();
+  await expect(work).toContainText('Tarefa registrada neste contrato');
+  expect(server.posts).toHaveLength(2);expect(server.posts[0]).toEqual(server.posts[1]);expect(server.records).toHaveLength(1);
+  await noHorizontalOverflow(page);
+});
+
+test('leitor acompanha trabalho do contrato sem criar ou concluir',async({page})=>{
+ await contractWorkServer(page,{viewer:true});
+ await page.goto(`/finance/contracts.html?abrir=contrato#contract-${CONTRACT}`);
+ const work=page.getByRole('region',{name:'Trabalho deste contrato'});
+ await expect(work).toContainText('Nenhuma tarefa nesta situação');
+ await expect(work.getByRole('button',{name:'Registrar tarefa neste contrato'})).toHaveCount(0);
+ await expect(work.getByLabel('O que precisa ser feito')).toHaveCount(0);
+});
+
+test('tarefas do contrato paginam, preservam linhas no erro e permitem atualizar o mesmo cursor',async({page})=>{
+ await mockSession(page);let pages=0;
+ const tasks=Array.from({length:26},(_,i)=>({id:`00000000-0000-4000-8000-${String(i+1).padStart(12,'0')}`,related_type:'contract',related_id:CONTRACT,status:'open',title:`Ação contratual ${i+1}`,created_at:'2026-10-23T12:00:00Z'}));
+ await page.route('**/api/finance/tasks**',route=>{
+  const q=new URL(route.request().url()).searchParams;
+  if(q.has('cursor')){pages++;if(pages===1)return route.fulfill({status:503,json:{ok:false,error:'Página indisponível.'}});}
+  return route.fulfill({json:{ok:true,rows:q.has('cursor')?tasks.slice(25):tasks.slice(0,25),page:{limit:25,has_more:!q.has('cursor'),next_cursor:q.has('cursor')?null:'continuation'}}});
+ });
+ await page.goto(`/finance/contracts.html?abrir=contrato#contract-${CONTRACT}`);
+ const work=page.getByRole('region',{name:'Trabalho deste contrato'});
+ await expect(work.locator('.milestone-row')).toHaveCount(25);
+ await work.getByRole('button',{name:'Mais tarefas deste contrato'}).click();
+ await expect(work).toContainText('Página indisponível');
+ await expect(work.locator('.milestone-row')).toHaveCount(25);
+ await work.getByRole('button',{name:'Mais tarefas deste contrato'}).click();
+ await expect(work.locator('.milestone-row')).toHaveCount(26);
+ await work.getByRole('button',{name:'Atualizar tarefas do contrato'}).click();
+ await expect(work.locator('.milestone-row')).toHaveCount(25);
+ await expect(work.getByRole('button',{name:'Mais tarefas deste contrato'})).toBeVisible();
+ await noHorizontalOverflow(page);
+});
+
+ test('contrato originado em procurement preserva acesso à solicitação autorizada',async({page})=>{
+  await contractWorkServer(page,{source:true});
+  await page.goto(`/finance/contracts.html?abrir=contrato#contract-${CONTRACT}`);
+  const work=page.getByRole('region',{name:'Trabalho deste contrato'});
+  await expect(work.getByRole('link',{name:'Solicitação de origem: Concorrência de capital de giro'})).toHaveAttribute('href',new RegExp(`/finance/rfq.html\\?id=${PROVIDER}`));
+ });

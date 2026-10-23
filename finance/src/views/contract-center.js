@@ -290,6 +290,12 @@ export function openContract(ctx, contract, { initialDetail = null } = {}) {
     const current = detail.contract;
     const effective = detail.effective;
     const sections = [];
+    // The legacy browser sandbox does not implement contextual task writes.
+    if (ctx.mode !== 'demo') {
+      const work = el('div', {}, loading('Carregando trabalho do contrato…'));
+      sections.push(work);
+      import('./contract-work.js').then(module => { if (work.isConnected) work.replaceWith(module.contractWork(ctx, {...current, source_rfq:detail.source_rfq})); }).catch(error => { if (work.isConnected) work.replaceChildren(errorState({error})); });
+    }
     // Termos efetivos e histórico de versões com diff factual.
     const versions = el('ol', { class: 'version-list', role: 'list' }, detail.versions.map((version) => el('li', { class: 'version-row' }, [
       el('div', { class: 'version-head' }, [tag(`v${version.version}`, 'accent'), el('strong', { text: SOURCE_LABELS[version.source] || version.source }),
