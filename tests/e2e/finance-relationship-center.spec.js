@@ -196,3 +196,66 @@ test('workspace consulta tarefas próprias, expande a fila e atualiza sem o cach
   await expect(dialog).toContainText('Relacionamento indisponível');
   await expect(dialog.locator('.rel-attention')).toHaveCount(0);
 });
+
+function pagedRelationship(extra = {}) {
+  return { ok:true, provider:{id:P_ATLAS,name:'Atlas Bank'}, neutrality:'Fatos.',
+    contracts:OVERVIEW.contracts.filter(row=>row.provider_id===P_ATLAS), tasks:[],
+    facilities:[],rfqs:[],invites:[],proposals:[],balances:[],contacts:[],issues:[],relationships:[],map:[],timeline:[],reviews:[],templates:[],
+    metrics:{invited:0,responded:0,response_rate:null,median_response_days:null,active_contracts:3,open_issues:0,median_resolution_days:null,definitions:{}}, ...extra };
+}
+
+test('relacionamento continua contratos e tarefas; erro parcial preserva o que já foi consultado', async ({page}, testInfo) => {
+  await setup(page, {role:'viewer'});
+  let taskPages=0;
+  const task={id:'page-task-1',title:'Revisar obrigação antiga',status:'open',due_on:day(-10),related_type:'contract',related_id:'outside-contract',assignee_name:null};
+  await page.route('**/api/finance/provider-relationship**', route=>{
+    const section=new URL(route.request().url()).searchParams.get('section');
+    const reply=body=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(body)});
+    if(section==='tasks') {
+      taskPages++;
+      if(taskPages===1)return reply({rows:null,page:{has_more:false}});
+      return reply({rows:[task,{...task,id:'page-task-2',title:'Conferir documento',due_on:null,assignee_name:'Ana'}],page:{limit:50,has_more:false,next_cursor:null}});
+    }
+    if(section==='contracts')return reply({rows:[{...OVERVIEW.contracts[0],id:'outside-contract',title:'Contrato anterior recuperado'}],page:{limit:50,has_more:false,next_cursor:null}});
+    return reply(pagedRelationship({tasks:[task],pages:{tasks:{limit:200,has_more:true,next_cursor:'task-next'},contracts:{limit:200,has_more:true,next_cursor:'contract-next'}}}));
+  });
+  await page.goto(`/finance/providers.html?provider_id=${P_ATLAS}`);
+  const dialog=page.getByRole('dialog',{name:'Atlas Bank'});
+  await expect(dialog.getByText('Tarefa: Revisar obrigação antiga',{exact:true})).toBeVisible();
+  if(process.env.CONTINUITY_CAPTURE)await page.screenshot({path:`reports/continuity-${process.env.CONTINUITY_CAPTURE}-${testInfo.project.name}.png`});
+  await dialog.getByRole('button',{name:'Carregar mais tarefas',exact:true}).click();
+  await expect(dialog.locator('.rel-page-error')).toContainText('Não conseguimos carregar a continuação');
+  await expect(dialog.getByText('Tarefa: Revisar obrigação antiga',{exact:true})).toBeVisible();
+  await dialog.getByRole('button',{name:'Carregar mais tarefas',exact:true}).click();
+  await expect(dialog).toContainText('Tarefa: Conferir documento');
+  await expect(dialog).toContainText('Sem prazo definido · responsável Ana');
+  await expect(dialog.getByText('Tarefa: Revisar obrigação antiga',{exact:true})).toHaveCount(1);
+  await expect(dialog.locator('.rel-tasks-pages')).toContainText('2 tarefas abertas carregadas');
+  await dialog.getByRole('button',{name:'Carregar mais contratos',exact:true}).focus();
+  await page.keyboard.press('Enter');
+  await expect(dialog.getByRole('link',{name:'Contrato anterior recuperado'})).toHaveAttribute('href',/contract-outside-contract$/);
+  await expect(dialog.locator('.rel-contracts-pages')).toContainText('4 contratos carregados');
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  await expect(dialog.getByRole('button',{name:'Registrar contrato existente'})).toHaveCount(0);
+});
+
+test('atualizar descarta página atrasada e reconsulta tarefas concluídas', async ({page}) => {
+  await setup(page);
+  let reads=0, pendingRoute;
+  await page.route('**/api/finance/provider-relationship**',route=>{
+    if(new URL(route.request().url()).searchParams.has('section')){ pendingRoute=route; return; }
+    reads++;
+    return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(pagedRelationship({tasks:reads===1?[{id:'old-task',title:'Tarefa a concluir',status:'open',due_on:day(-1)}]:[],pages:{tasks:{limit:200,has_more:reads===1,next_cursor:reads===1?'next':null},contracts:{limit:200,has_more:false,next_cursor:null}}}))});
+  });
+  await page.goto(`/finance/providers.html?provider_id=${P_ATLAS}`);
+  const dialog=page.getByRole('dialog',{name:'Atlas Bank'});
+  await dialog.getByRole('button',{name:'Carregar mais tarefas',exact:true}).click();
+  await expect.poll(()=>Boolean(pendingRoute)).toBe(true);
+  await dialog.getByRole('button',{name:'Atualizar relacionamento'}).click();
+  await expect.poll(()=>reads).toBe(2);
+  await expect(dialog).not.toContainText('Tarefa a concluir');
+  await pendingRoute.fulfill({status:200,contentType:'application/json',body:JSON.stringify({rows:[{id:'late-task',title:'Resposta obsoleta',status:'open',due_on:day(-3)}],page:{limit:50,has_more:false,next_cursor:null}})});
+  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+  await expect(dialog).not.toContainText('Resposta obsoleta');
+  await expect(dialog.locator('.rel-tasks-pages')).toContainText('0 tarefas abertas carregadas');
+});

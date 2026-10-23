@@ -1,12 +1,41 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 23/10/2026 — Reconciliação pós-261 e continuidade isolada para depois do evento
+
+PRs #259, #260 e #261 confirmadas por ancestralidade em `main@9b57f2a`.
+#261 já está **integrada**, apesar da intenção original de aguardar 29/10;
+o registro de 22/10 abaixo é histórico. Quatro gates e merge-audit SUCCESS
+na main atual; árvores do HEAD #261 e merge idênticas. Sem regressão P0
+reproduzida ou motivo técnico demonstrado para revert automático.
+
+Prova pública **nova**, no SHA `9b57f2a7434fb9ca0bc68e607a36e63334728359`:
+PUBLIC_SHAREABLE PASS, 229 verificações, 185 artefatos com hash, 36 capturas.
+Visita M2 informativa; checker canônico `hosted-parity` NOT_READY não promove
+M3. Estação física NOT_VERIFIED; cloud station BLOCKED, sem freeze.
+Production FAILURE e logs ACCESS_BLOCKED/403 no scope `lucas-projects467`;
+Demo e Pilot SUCCESS pelo status GitHub. M3/M5 continuam BLOCKED.
+
+Incremento em `codex/post-29-relationship-continuity`, **INTEGRAÇÃO SOMENTE
+APÓS 29/10/2026** e liberação humana: reproduzidas pendência omitida no
+contrato 201 e tarefa fora da primeira página perdida ao abrir seu link.
+View derivada sob RLS das fontes, paginação estável de contratos/tarefas,
+retry sem perder linhas, descarte de resposta atrasada e consulta autorizada
+da tarefa pelo link. Sem herdar owner como assignee ou duplicar Graph.
+Migration aditiva exige schema antes do app e janela para índices; rollback
+sem apagar registros. Não aplicada em hosted. Indicadores/mapa continuam do
+recorte inicial; demais limites permanecem explícitos.
+
+[Evidências, testes e comandos exatos 26/28/29](evidence/relationship-continuity-2026-10-23.md).
+CI da base não substitui os quatro gates do HEAD próprio da nova PR.
+
 ## 22/10/2026 — Trilha B: relacionamento consulta seu próprio recorte (pós-29/10)
 
 Base pública `5e5ce0c`: prova renovada PUBLIC_SHAREABLE PASS (229 verificações),
 quatro gates e merge-audit SUCCESS. Estação definitiva NOT_VERIFIED;
 `station --fast` deste cloud BLOCKED. Sem deploy manual, seed, reset ou freeze.
 
-Correção proposta, ainda **não integrada**: endpoint retorna aviso prévio e
+Fotografia histórica de 22/10, antes do merge #261 em `9b57f2a`: a correção
+era proposta e ainda não integrada naquele momento. endpoint retorna aviso prévio e
 até 200 tarefas abertas dos contratos autorizados, com assignees do mesmo tenant;
 workspace abandona o cache global, permite atualização e expande pendências.
 Sentinela explicita truncamento. Sem migration ou herança automática de owner.

@@ -73,7 +73,8 @@
     "docs/supabase-financial-task-accountability.sql",
     "docs/supabase-financial-enterprise-integrity.sql",
     "docs/supabase-financial-decision-authorization.sql",
-    "docs/supabase-financial-external-proposals.sql"
+    "docs/supabase-financial-external-proposals.sql",
+    "docs/supabase-financial-relationship-continuity.sql"
   ],
   "existingDatabase": [
     "docs/supabase-sprint1-auth-ownership.sql",
@@ -148,6 +149,7 @@
     "docs/supabase-financial-task-accountability.sql",
     "docs/supabase-financial-enterprise-integrity.sql",
     "docs/supabase-financial-decision-authorization.sql",
-    "docs/supabase-financial-external-proposals.sql"
+    "docs/supabase-financial-external-proposals.sql",
+    "docs/supabase-financial-relationship-continuity.sql"
   ]
 }
