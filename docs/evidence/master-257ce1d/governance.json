@@ -1,0 +1,98 @@
+{
+  "sha": "257ce1dee610f03e510a3f09e68291e4f03a3a16",
+  "checks": [
+    {
+      "name": "validate",
+      "head_sha": "257ce1dee610f03e510a3f09e68291e4f03a3a16",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/lucasweber1202/Arandu/actions/runs/39853310869/job/120086417453"
+    },
+    {
+      "name": "presentation",
+      "head_sha": "257ce1dee610f03e510a3f09e68291e4f03a3a16",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/lucasweber1202/Arandu/actions/runs/39853310869/job/120086417426"
+    },
+    {
+      "name": "Supabase Preview",
+      "head_sha": "257ce1dee610f03e510a3f09e68291e4f03a3a16",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/lucasweber1202/Arandu/runs/120085210961"
+    },
+    {
+      "name": "merge-audit",
+      "head_sha": "257ce1dee610f03e510a3f09e68291e4f03a3a16",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/lucasweber1202/Arandu/actions/runs/39853310871/job/120084916161"
+    },
+    {
+      "name": "database",
+      "head_sha": "257ce1dee610f03e510a3f09e68291e4f03a3a16",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/lucasweber1202/Arandu/actions/runs/39853310869/job/120084915256"
+    },
+    {
+      "name": "deploy-boundaries",
+      "head_sha": "257ce1dee610f03e510a3f09e68291e4f03a3a16",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/lucasweber1202/Arandu/actions/runs/39853310869/job/120084915086"
+    }
+  ],
+  "statuses": [
+    {
+      "context": "Vercel – arandu",
+      "state": "failure",
+      "url": "https://vercel.com/lucas-projects467/arandu/J8wCMtYk7eaohakc979yT27Vy9xF"
+    },
+    {
+      "context": "Vercel – arandu-demo",
+      "state": "success",
+      "url": "https://vercel.com/lucas-projects467/arandu-demo/GffHw7Qa7NxCkWz3jojo18RHT5RM"
+    },
+    {
+      "context": "Vercel – arandu-pilot",
+      "state": "success",
+      "url": "https://vercel.com/lucas-projects467/arandu-pilot/FRMiCAwjmvH5ct3dMUtPFNvAe3QF"
+    }
+  ],
+  "prs": [
+    {
+      "number": 259,
+      "merged_at": "2026-10-22T20:57:46Z",
+      "head": "5ae24d8b49f6f8f935a371be96f15c60637e2490",
+      "merge_commit": "257ce1dee610f03e510a3f09e68291e4f03a3a16"
+    },
+    {
+      "number": 258,
+      "merged_at": "2026-10-22T17:47:37Z",
+      "head": "155bb5598feca1a610fb7e6528a2d1e1d6ace4c5",
+      "merge_commit": "3d79ebba05bd6968480e03ba2916832ce9ba2aa8"
+    },
+    {
+      "number": 257,
+      "merged_at": "2026-10-22T16:16:25Z",
+      "head": "75364b0e57cbdfff6d447b67a7a4ed62f0aef567",
+      "merge_commit": "ef5e8c92460647b2c1b58b598cd8b4970a0d796f"
+    },
+    {
+      "number": 256,
+      "merged_at": "2026-10-22T14:28:10Z",
+      "head": "fa6d6f0fd96e771fe6d5a8d11730e0e2a8df2d30",
+      "merge_commit": "9927119019a2dc74f9e4913793415d1cb53de763"
+    },
+    {
+      "number": 255,
+      "merged_at": "2026-10-22T13:09:53Z",
+      "head": "e1d3393c0f43433c10fb84427ebd4cf0e4018d57",
+      "merge_commit": "42dd92bbb99e807b6a342195fa31cbe94d760ef9"
+    }
+  ],
+  "vercel_read": "403 on lucas-projects467 for all three deployments",
+  "lab": "BLOCKED: official PostgreSQL image layer registration failed: no space left on device; no containers or volumes created"
+}

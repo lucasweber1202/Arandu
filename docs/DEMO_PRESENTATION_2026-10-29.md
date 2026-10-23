@@ -18,6 +18,8 @@ independente precisam ser nomeados pelo owner até D-7; não foram presumidos.
 Status em 18/10: C para a apresentação. Acesso Vercel 403; Pilot ainda com
 schema antigo. Testes locais de backend/recovery não equivalem a B completo.
 Um runner destruído não hospeda a contingência. Nunca converter B em A.
+Esse registro de 18/10 é histórico; reconciliação de 22/10 e prova pública M2
+separada de M3 em [missão master](evidence/codex-master-release-2026-10-22.md).
 
 A condição "estação real preparada e testada no mesmo SHA" de B tem comando:
 `bash scripts/demo/local.sh station` (READY só na máquina declarada por
@@ -88,7 +90,7 @@ executar somente no escopo e janela aprovados. O JSON do candidato exige
 `hosted_readiness` (contrato abaixo), além das demais provas existentes.
 Nenhum resultado anterior autoriza operação hospedada sensível.
 
-## D-0 — 29/10, cerca de 30 minutos antes
+## D-0 — 29/10, até 60 minutos antes
 
 ```sh
 git rev-parse HEAD
@@ -107,7 +109,8 @@ Ler `readiness.json` e `readiness.md`, incluindo modos leitura/interativo,
 SKIP/WARN e comandos recomendados. O aviso de readiness **hospedada** na stack
 local não prova A; persona/smoke/Storage/seed falhando bloqueiam B. Concluir o
 smoke com antecedência e respeitar a janela de cota; não iniciar a sessão com
-rate limit esgotado. Não rodar reset durante a apresentação.
+rate limit esgotado. A partir de T-30, nenhuma suíte, prontidão ou provisionamento;
+seguir o cartão do operador na janela final. Não rodar reset durante a apresentação.
 
 Smoke humano: gestão abre solicitação/comparação factual; CFO encontra sua
 aprovação; provedor vê só seu convite/proposta; leitor não oferece escrita;

@@ -1,5 +1,32 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 22/10/2026 — Missão master: publicação 257ce1d e handoff operacional
+
+Main reconciliada em `257ce1dee610f03e510a3f09e68291e4f03a3a16`, PRs #255–#259
+incorporadas. Quatro gates e merge-audit **SUCCESS nesse SHA**. Prova externa
+nova: **PUBLIC_SHAREABLE PASS**, 229 verificações, 185 artefatos e 36 capturas
+recém-renderizadas, 13 etapas em desktop/mobile com Tab/Enter e deep links.
+Visita M2 informativa, `synthetic-fixtures`; não promove M3.
+
+**LOCAL_STATION_READY: STATION_NOT_VERIFIED.** Executor cloud; tentativa de
+laboratório bloqueada ao registrar camada da imagem oficial PostgreSQL
+(`no space left on device`). Nenhuma stack, seed ou jornada real executada
+nesta rodada. `station --fast` BLOCKED, sem freeze. Ensaio anterior do Claude
+continua evidência histórica local, não comprovação desta main nem do WSL2 físico.
+
+Correção operacional documental: preparar/retomar sem reset, ensaiar antes do
+freeze, reposição apenas do pool consumido, janela final sem suites e 429 sem
+contorno por persona. Cartão Windows/WSL2 e roteiro mantêm os cinco atos.
+Covenant: owner da obrigação e assignee da tarefa são objetos distintos;
+a migration de task-accountability proíbe herança automática até haver sync
+source-specific. Lacuna de orientação P1 adiada com critérios de
+correção/adversariais; nenhuma migration antes da apresentação.
+Production segue failure; leitura Vercel 403 no scope correto. M3/M5 BLOCKED,
+sem alteração de assignments, schema, segredos, billing ou deployments.
+
+Evidência, limites e próximos gates: [missão master](evidence/codex-master-release-2026-10-22.md).
+A PR documental exige CI no seu próprio HEAD; o SHA público acima não é o seu HEAD.
+
 ## 22/10/2026 — Release assurance P0-A/P0-B e preparação M3
 
 Base `main@42dd92bbb99e807b6a342195fa31cbe94d760ef9` relida por fetch.

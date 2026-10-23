@@ -1,0 +1,52 @@
+{
+  "observed_at": "2026-10-22T22:23:46.836101+00:00",
+  "source_sha": "257ce1dee610f03e510a3f09e68291e4f03a3a16",
+  "code_changes": false,
+  "local": {
+    "npm_ci": "PASS",
+    "check_all": "PASS",
+    "build": "PASS",
+    "security_governance_routing": "PASS via check:all",
+    "build_size": "PASS with existing RFQ 98% warning",
+    "links": "PASS",
+    "publication_keyboard": "PASS",
+    "financial_mock_e2e": {
+      "passed": 536,
+      "skipped": 10,
+      "failed": 0,
+      "projects": [
+        "chromium-desktop",
+        "mobile-chrome"
+      ],
+      "duration": "5.0m"
+    },
+    "presentation_e2e": {
+      "passed": 136,
+      "skipped": 20,
+      "failed": 0,
+      "projects": [
+        "chromium-desktop",
+        "mobile-chrome"
+      ],
+      "duration": "4.7m"
+    },
+    "canonical_backend_e2e": "NOT_RUN: laboratory PostgreSQL image layer registration ENOSPC",
+    "database_local": "NOT_RUN",
+    "physical_station": "STATION_NOT_VERIFIED",
+    "station_cloud": "BLOCKED exit 20"
+  },
+  "public_proof": "PASS: public-proof.json",
+  "offline_proof": "HTTP and both browsers PASS; CLI exit 1 expected for local PUBLIC_SHAREABLE NOT_PROVEN",
+  "excluded_attempts": [
+    {
+      "run": "first financial E2E",
+      "status": "DISCARDED/INTERRUPTED",
+      "reason": "presentation prebuild replaced shared dist; final run rebuilt normal first and executed independently"
+    },
+    {
+      "run": "first presentation E2E",
+      "status": "FAILED_TO_START",
+      "reason": "port 4173 occupied; final suites executed sequentially"
+    }
+  ]
+}
