@@ -81,7 +81,7 @@ export function relationshipAttention(detail, { today = Date.UTC(new Date().getU
     items.push({ kind: 'open', rank: 2, due: rfq.status === 'comparing' ? null : days, title: `Negociação em andamento: ${rfq.title || 'Solicitação'}`,
       detail: `${RFQ_STATUS[rfq.status]?.label || 'Em andamento'}${!rfq.response_deadline ? '' : rfq.status === 'comparing' ? ` · coleta encerrada (prazo era ${formatDate(rfq.response_deadline)})` : ` · prazo de resposta ${formatDate(rfq.response_deadline)}`}.`, target: { type: 'rfq', id: rfq.id } });
   }
-  for (const task of detail.tasks || []) {
+  for (const task of (detail.tasks || []).filter(row => row.status === 'open')) {
     const days = daysTo(task.due_on, today);
     items.push({ kind: days !== null && days < 0 ? 'overdue' : 'open', rank: days !== null && days < 0 ? 0 : 3, due: days, title: `Tarefa: ${task.title}`,
       detail: task.due_on ? `Prazo operacional ${formatDate(task.due_on)}${task.assignee_name ? ` · responsável ${task.assignee_name}` : ' · responsável não definido'}.` : 'Sem prazo definido.', target: { type: 'task', id: task.id } });

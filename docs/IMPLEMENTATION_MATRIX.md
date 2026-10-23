@@ -1,5 +1,20 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 22/10/2026 — Trilha B: relacionamento consulta seu próprio recorte (pós-29/10)
+
+Base pública `5e5ce0c`: prova renovada PUBLIC_SHAREABLE PASS (229 verificações),
+quatro gates e merge-audit SUCCESS. Estação definitiva NOT_VERIFIED;
+`station --fast` deste cloud BLOCKED. Sem deploy manual, seed, reset ou freeze.
+
+Correção proposta, ainda **não integrada**: endpoint retorna aviso prévio e
+até 200 tarefas abertas dos contratos autorizados, com assignees do mesmo tenant;
+workspace abandona o cache global, permite atualização e expande pendências.
+Sentinela explicita truncamento. Sem migration ou herança automática de owner.
+Suíte SQL original completa PASS em PostgreSQL 16.15 descartável, incluindo
+RLS, concorrência e upgrade com dump/restore real; não é jornada canônica.
+API/browser mocks e SQL permanecem provas distintas.
+[Evidência e limites](evidence/relationship-workspace-release-2026-10-22.md).
+
 ## 22/10/2026 — Missão master: publicação 257ce1d e handoff operacional
 
 Main reconciliada em `257ce1dee610f03e510a3f09e68291e4f03a3a16`, PRs #255–#259

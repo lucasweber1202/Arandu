@@ -11,7 +11,6 @@ import { CONTRACT_CATEGORIES } from '../../../lib/finance/contract-terms.mjs';
 import { relationshipContext, relationshipSummary } from './relationship-context.js';
 import { entityTree } from '../../../lib/finance/entities.mjs';
 import { loadEntities, entityName } from './entities.js';
-import { memberName } from './shared.js';
 
 const ISSUE_SEVERITY = { low: ['Baixa', 'neutral'], medium: ['Média', 'warning'], high: ['Alta', 'danger'] };
 const ISSUE_STATUS = { open: 'Aberta', in_progress: 'Em andamento', resolved: 'Resolvida', cancelled: 'Cancelada' };
@@ -34,22 +33,14 @@ export async function openProviderRelationship(ctx, provider) {
   function render(detail) {
     const m = detail.metrics;
     const d = m.definitions;
-    // Nível 1–2: quem é, como está a relação e o que pede trabalho agora.
-    // Tarefas abertas ligadas aos contratos desta instituição (overview já carregado).
-    // O endpoint do relacionamento não traz o aviso prévio; o overview já
-    // carregado traz o mesmo contrato com ele. Complementa pelo id, sem inventar.
-    const known = new Map((ctx.data.contracts || []).map((row) => [row.id, row]));
-    detail.contracts = (detail.contracts || []).map((row) => (row.renewal_notice_days == null && known.get(row.id)?.renewal_notice_days != null ? { ...row, renewal_notice_days: known.get(row.id).renewal_notice_days } : row));
-    const contractIds = new Set((detail.contracts || []).map((row) => row.id));
-    detail.tasks = (ctx.data.tasks || []).filter((task) => task.related_type === 'contract' && contractIds.has(task.related_id))
-      .map((task) => ({ ...task, assignee_name: task.assignee_id ? memberName(ctx.members, task.assignee_id) : null }));
     const summary = relationshipSummary(detail);
     // Começo buyer-first: sem contrato vigente, registrar o que a empresa já tem.
     const live = (detail.contracts || []).some((row) => ['active', 'renewing'].includes(row.status));
     const start = !live && ctx.can('create_rfq') ? el('div', { class: 'callout callout-info compact rel-start' }, [icon('briefcase', { size: 14 }),
       el('span', { text: 'Nenhum contrato vigente registrado com esta instituição. Registre o contrato que a empresa já tem para acompanhar condições, prazo e renovação, sem depender da adesão da instituição.' }),
       button('Registrar contrato existente', { size: 'sm', variant: 'primary', iconName: 'plus', onClick: async () => { const { importContractButton } = await import('./contract-center.js'); importContractButton(ctx, entities, { providerId: provider.id })?.click(); } })]) : null;
-    const sections = [workspaceHead(summary), start, attentionSection(summary.attention, detail),
+    const sections = [el('div', { class: 'cc-head' }, [workspaceHead(summary), button('Atualizar relacionamento', { size: 'sm', iconName: 'refresh', onClick: () => { body.replaceChildren(loading('Atualizando relacionamento…')); load(); } })]), start, attentionSection(summary.attention, detail),
+      el('p', { class: 'muted small', text: detail.coverage?.tasks_truncated ? 'Exibindo as primeiras 200 tarefas abertas dos contratos deste recorte. Consulte Tarefas para continuar a revisão.' : 'Tarefas abertas dos contratos deste recorte, consultadas ao abrir ou atualizar o relacionamento.' }),
       el('section', { class: 'cc-section', 'aria-labelledby': 'rel-records' }, [el('h3', { id: 'rel-records', text: 'Contratos, limites e negociações' }), relationshipContext(ctx, detail)])];
     // Nível 4: indicadores, mapa, relação por entidade e avaliações — consulta, não trabalho.
     const advanced = [];
@@ -148,14 +139,11 @@ export async function openProviderRelationship(ctx, provider) {
       if (item.target.type === 'contact' && write) return button('Adicionar contato', { size: 'sm', iconName: 'plus', onClick: () => contactForm() });
       return null;
     };
+    const row = (item) => el('li', { class: 'milestone-row' }, [tag(...KIND[item.kind]), el('div', { class: 'milestone-main' }, [el('strong', { text: item.title }), el('span', { class: 'muted small', text: item.detail })]), action(item)]);
     return el('section', { class: 'cc-section rel-attention', 'aria-labelledby': 'rel-attention-title' }, [
       el('h3', { id: 'rel-attention-title', text: 'O que pede atenção' }),
-      items.length ? el('ul', { class: 'milestone-list', role: 'list' }, items.slice(0, 6).map((item) => el('li', { class: 'milestone-row' }, [
-        tag(...KIND[item.kind]),
-        el('div', { class: 'milestone-main' }, [el('strong', { text: item.title }), el('span', { class: 'muted small', text: item.detail })]),
-        action(item)
-      ]))) : el('p', { class: 'muted', text: 'Nenhum vencimento, questão aberta ou negociação em andamento no recorte carregado. Isso não substitui a revisão dos contratos.' }),
-      items.length > 6 ? el('p', { class: 'muted small', text: `Mais ${items.length - 6} itens nas seções abaixo.` }) : null
+      items.length ? el('ul', { class: 'milestone-list', role: 'list' }, items.slice(0, 6).map(row)) : el('p', { class: 'muted', text: 'Nenhum vencimento, questão aberta ou negociação em andamento no recorte carregado. Isso não substitui a revisão dos contratos.' }),
+      items.length > 6 ? el('details', {}, [el('summary', { text: `Ver mais ${items.length - 6} pendências deste recorte` }), el('ul', { class: 'milestone-list' }, items.slice(6).map(row))]) : null
     ]);
   }
 
