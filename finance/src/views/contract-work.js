@@ -19,7 +19,7 @@ export function contractWork(ctx, contract) {
     el('div',{class:'toolbar'},[
       el('a',{class:'btn btn-sm btn-secondary',href:ctx.href(`/finance/providers.html?provider_id=${encodeURIComponent(contract.provider_id)}`),text:`Relacionamento com ${contract.provider_name || 'a instituição'}`}),
       contract.source_rfq ? el('a',{class:'btn btn-sm btn-secondary',href:ctx.href(`/finance/rfq.html?id=${encodeURIComponent(contract.source_rfq.id)}`),text:`Solicitação de origem: ${contract.source_rfq.title}`}) : null
-    ]),field({label:'Acompanhar tarefas',control:filter}),notice,list,more);
+    ]),field({label:'Situação das tarefas do contrato',control:filter}),notice,list,more);
   filter.addEventListener('change',()=>load());
   function render() {
     list.replaceChildren(rows.length ? el('ul',{class:'milestone-list'},rows.map(task=>el('li',{class:'milestone-row'},[
@@ -29,7 +29,7 @@ export function contractWork(ctx, contract) {
         el('span',{class:'small',text:{open:'Pendente',done:'Concluída',cancelled:'Cancelada'}[task.status] || 'Situação indisponível'})
       ]),
       el('a',{class:'btn btn-sm btn-secondary',href:ctx.href(`/finance/tasks.html#task-${task.id}`),text:'Abrir tarefa'}),
-      edit && task.status !== 'cancelled' ? button(task.status==='open'?'Concluir tarefa':'Reabrir tarefa',{size:'sm',attrs:{'aria-label':`${task.status==='open'?'Concluir':'Reabrir'}: ${task.title}`},onClick:event=>change(task,event.currentTarget)}) : null
+      edit && task.status !== 'cancelled' ? button(task.status==='open'?'Concluir tarefa':'Reabrir tarefa',{size:'sm',attrs:{'aria-label':`${task.status==='open'?'Concluir tarefa':'Reabrir tarefa'}: ${task.title}`},onClick:event=>change(task,event.currentTarget)}) : null
     ]))) : el('p',{class:'muted',text:'Nenhuma tarefa nesta situação para este contrato.'}));
     more.hidden=!cursor;
   }

@@ -104,3 +104,5 @@ conta como PASS. Não houve rerun ou push de CI para experimentar a Vercel.
   ensaiar a estação definitiva com o SHA aprovado antes de 28/10.
 - Mudança futura da main exige reavaliar publicação e estação. Esta PR não é
   prova de publicação, M3 hospedado ou Production; quatro gates não autorizam merge.
+
+Revisão de acessibilidade: nomes visíveis e acessíveis do filtro e das ações de tarefa foram alinhados; 18 E2E desktop/mobile, build, design e bundle passaram novamente. Este ajuste motivou um segundo push corretivo; os quatro gates continuam obrigatórios no novo HEAD. Capturas posteriores foram atualizadas.

@@ -6,7 +6,7 @@
   "source_sha256": {
     "finance/src/views/company.js": "bb3f57543ed2a570f9eaecdeca4b144448958dddc8c31b7ae29ad5046a50f946",
     "finance/src/views/contract-center.js": "5776f79cae66e901f66c8f559510d12dce4d19b58b25d459f825812ae291cbc3",
-    "finance/src/views/contract-work.js": "0142983f44ec719a261c58d67b59f4fa686748d48867c7c07e3d318b1f1a7a1c",
+    "finance/src/views/contract-work.js": "6b633272acfdcdec8752a618779cdf811f7fa87e272e172cd2dc50793e6895a3",
     "finance/src/views/provider-relationship.js": "6573c2c5b37b48a5e3d9d6037094c5eefb8bf5fa0225a2c1be12024267c79b66",
     "finance/src/views/provider.js": "64124bd62934d3b5ceb557f659ff935d746e626a5c00b3fa8216390ab9e7234d",
     "lib/api/domains/finance-contracts.mjs": "9e252bcc0517fcb42a90eb425d54cda5c5b1dfbf66c000c3a396a4203b2c8966",
@@ -14,7 +14,7 @@
     "scripts/test-finance-contracts.mjs": "1369e289dc5a891b99cbc568b60d1f4381aec25c842d56bb2a5c5aa9e0c54d87",
     "scripts/test-finance-portfolio.mjs": "2763bf006bb5e59f2b9cc4c7e8af773130049794a4ad0b86f5a9a09bd8990154",
     "tests/database/financial-relationship-continuity.sql": "b25f372137294652e75a822a67001ce5dc8a62df9816e18c06ebe1102e9a715f",
-    "tests/e2e/finance-contracts.spec.js": "bfbe33a78013ec241f35a6b0890fdb519b0cf64914887a1fe763e51ab6811fe7",
+    "tests/e2e/finance-contracts.spec.js": "1bce8b2edac4ecdf6d64ba54c1d03c4532f7f3844d2434d5b34958a9e34b31fa",
     "tests/e2e/finance-portfolio.spec.js": "d390761c393f1185bdb1b7a4c6f5982b642a55125926d41af9aa74ad9a56ae61",
     "tests/e2e/finance-provider-draft.spec.js": "744b4f34f5dedf0c914c9b3a987e65d95141eba2aa80472bc45d4b4b00e94bd5"
   },
@@ -126,11 +126,11 @@
     "/tmp/arandu-lifecycle-relationship-before.log": "7cd391599bf41ae549f15621ef8eb19e8bd87893743100344a72fec3cdea4b7a"
   },
   "captures_sha256": {
-    "lifecycle-after-chromium-desktop.png": "b939b218357b5ad50aab2ceba716e340cb0067ad86dc483f6ce4741dcc850382",
-    "lifecycle-after-mobile-chrome.png": "fc82479ef6960099d818044eea5a097bacd1898a79cd128c197fb4cf7decf47c",
+    "lifecycle-after-chromium-desktop.png": "52bedef60e1be8162f3a4b031726a67f7ce5b8a68ccb5418927de154ef0b37c2",
+    "lifecycle-after-mobile-chrome.png": "bef71aae6a7544fbafd20eb0b7d265918d5050f60bd7fdde0c8a872a0b572e16",
     "lifecycle-before-chromium-desktop.png": "641aae17abd5836b0ba85aefc53b480d7b59771d06e5cd7e65cbd47d9cfbba35",
     "lifecycle-before-mobile-chrome.png": "e076a262c5a357dc5bd5cebe6ceacd23535ace1d64ec49b0fc0bba5d5c534ffc",
-    "provider-revision-after-chromium-desktop.png": "9f116f0add4542bdac1fb48c7959e56d5cc0408dfa511c2edb0ad7bec249576f",
+    "provider-revision-after-chromium-desktop.png": "1a4bbe532d1d245bae4e9241c51803f4f2d00e86a83d4e7b537c91ddd05fc3fb",
     "provider-revision-after-mobile-chrome.png": "73dab084616a19affed6eb5af7c7b6c8ef1367ff3f69f96b307ee468a76accaa",
     "provider-revision-before-chromium-desktop.png": "04c83fde999fac4432a369f307934bdb085b32ed15a5ff9d4f2d8f1d44ffd8fe",
     "provider-revision-before-mobile-chrome.png": "8d3f5b0e8ecc4896bc4baff85bd15b278f177e8b07bdb414e1eea4af512cd225"
@@ -154,5 +154,15 @@
     "psql -f - transport initially discarded stdin; fixed wrapper, unchanged lock test then full PASS.",
     "Owned stale static server prevented first presentation start; stopped only that server; unchanged config then full PASS."
   ],
-  "interrupted_local_run": "Earlier financial run interrupted to consolidate proven return-context fix; not counted as PASS."
+  "interrupted_local_run": "Earlier financial run interrupted to consolidate proven return-context fix; not counted as PASS.",
+  "accessibility_followup": {
+    "reason": "Align visible and accessible names for task status filter and complete/reopen buttons. Second corrective push; four gates must pass on replacement HEAD.",
+    "passed": 18,
+    "logs": {
+      "/tmp/arandu-lifecycle-a11y-build.log": "cc9e4392a328e8571021eb645625318acdeacb3ac995f3a8059c583c38209166",
+      "/tmp/arandu-lifecycle-a11y-design.log": "4fe31001f2e192d147f479a6af7763ff8a22f6eea41bb399efcd5bbe874a95f9",
+      "/tmp/arandu-lifecycle-a11y-size.log": "5070c3d8122188e739b1fbb7903f0ec79d989cd78032a210bed5a731ec062538",
+      "/tmp/arandu-lifecycle-a11y-browser.log": "6bd9e0848bbce73b7f9fbd89b7fd4c21022a0e0662ff158cc67f7b7c07956b20"
+    }
+  }
 }

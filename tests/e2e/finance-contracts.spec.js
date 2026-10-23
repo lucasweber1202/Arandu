@@ -1033,6 +1033,8 @@ test('trabalho no contrato conserva vínculo e mostra conclusão no histórico',
   await page.goto(`/finance/contracts.html?abrir=contrato#contract-${CONTRACT}`);
   const work=page.getByRole('region',{name:'Trabalho deste contrato'});
   await expect(work.getByRole('heading',{name:'Trabalho deste contrato'})).toBeVisible();
+  await expect(work.getByText('Situação das tarefas do contrato',{exact:true})).toBeVisible();
+  await expect(work.getByRole('combobox',{name:'Situação das tarefas do contrato',exact:true})).toBeVisible();
   await expect(work.getByRole('link',{name:'Relacionamento com Banco Carteira'})).toHaveAttribute('href',new RegExp(`provider_id=${PROVIDER}`));
   await work.getByText('Registrar próxima ação',{exact:true}).click();
   await work.getByLabel('O que precisa ser feito').fill('Conferir documento da renovação');
@@ -1041,14 +1043,14 @@ test('trabalho no contrato conserva vínculo e mostra conclusão no histórico',
   await expect(work).toContainText('Tarefa registrada neste contrato');
   expect(server.posts[0]).toMatchObject({related_type:'contract',related_id:CONTRACT,due_on:'2026-11-10'});
   expect(server.posts[0].idempotency_key).toMatch(/^[a-f0-9-]{36}$/);
-  await work.getByRole('button',{name:'Concluir: Conferir documento da renovação',exact:true}).click();
+  await work.getByRole('button',{name:'Concluir tarefa: Conferir documento da renovação',exact:true}).click();
   await expect(work).toContainText('Tarefa concluída.');
   await work.getByLabel('Situação das tarefas do contrato').selectOption('done');
   await expect(work.locator('.milestone-list')).toContainText('Conferir documento da renovação');
   await expect(work.locator('.milestone-list')).toContainText('Concluída');
   expect(server.patches).toHaveLength(1);
   if(process.env.LIFECYCLE_CAPTURE)await page.screenshot({path:`reports/lifecycle-${process.env.LIFECYCLE_CAPTURE}-${testInfo.project.name}.png`});
-  await work.getByRole('button',{name:'Reabrir: Conferir documento da renovação',exact:true}).click();
+  await work.getByRole('button',{name:'Reabrir tarefa: Conferir documento da renovação',exact:true}).click();
   await work.getByLabel('Situação das tarefas do contrato').selectOption('open');
   await expect(work.locator('.milestone-list')).toContainText('Conferir documento da renovação');
   await noHorizontalOverflow(page);
