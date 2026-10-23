@@ -57,4 +57,20 @@ reset role;
 do $$ begin
  if has_table_privilege('anon','public.fin_provider_contract_tasks','SELECT') or has_table_privilege('authenticated','public.fin_provider_contract_tasks','INSERT,UPDATE,DELETE') then raise exception 'projection grants unsafe'; end if;
 end $$;
+-- The same canonical task can be executed from its contract context under RLS.
+select set_config('request.jwt.claim.sub','30000000-0000-4000-8000-000000000001',true);
+set local role authenticated;
+update public.fin_tasks set status='done' where organization_id='30000000-0000-4000-8000-000000000011' and title='Continuity task 201';
+do $$ begin
+ if not exists(select 1 from public.fin_tasks where title='Continuity task 201' and related_type='contract' and related_id='30000000-0000-4000-8000-000000001201' and status='done') then raise exception 'contextual completion not visible'; end if;
+ if exists(select 1 from public.fin_provider_contract_tasks where title='Continuity task 201' and status='open') then raise exception 'completed task stayed in open queue'; end if;
+end $$;
+update public.fin_tasks set status='open' where organization_id='30000000-0000-4000-8000-000000000011' and title='Continuity task 201';
+select set_config('request.jwt.claim.sub','30000000-0000-4000-8000-000000000003',true);
+do $$ declare affected integer; begin
+ update public.fin_tasks set status='done' where title='Continuity task 202';
+ get diagnostics affected=row_count;
+ if affected<>0 then raise exception 'restricted entity updated hidden task'; end if;
+end $$;
+reset role;
 rollback;

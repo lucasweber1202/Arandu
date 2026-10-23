@@ -342,11 +342,18 @@ export async function providers(ctx) {
     count.textContent = `${visible.length} de ${rows.length}`;
   };
   search.addEventListener('input', draw);
-  const requested = new URLSearchParams(location.search).get('provider_id');
+  const requested = new URLSearchParams(location.search).get('provider_id')?.toLowerCase();
   if (requested && relationshipEnabled) {
     const provider = rows.find(row => row.id === requested);
     if (provider) queueMicrotask(() => mods.relationship.openProviderRelationship(ctx, provider));
-    else queueMicrotask(() => toast('Instituição indisponível no seu escopo carregado.', 'error'));
+    else queueMicrotask(async () => {
+      const current = () => location.pathname.endsWith('/providers.html') && new URLSearchParams(location.search).get('provider_id')?.toLowerCase() === requested;
+      try {
+        const detail = await ctx.api(`provider-relationship?organization_id=${encodeURIComponent(ctx.organization.id)}&provider_id=${encodeURIComponent(requested)}`);
+        if (detail.provider?.id !== requested) throw new Error('Instituição indisponível.');
+        if (current()) mods.relationship.openProviderRelationship(ctx, detail.provider, {initialDetail:detail});
+      } catch { if (current()) toast('Instituição indisponível no seu escopo autorizado. Tente novamente pela lista.', 'error'); }
+    });
   }
   draw();
   const openRelationship = relationshipEnabled ? (provider) => { const url = new URL(location.href); url.searchParams.set('provider_id', provider.id); history.replaceState(null, '', url.pathname + url.search + url.hash); mods.relationship.openProviderRelationship(ctx, provider); } : null;

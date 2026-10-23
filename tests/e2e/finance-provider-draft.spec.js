@@ -292,3 +292,33 @@ test('validade não informada aparece como ausente, não como em dia', async ({ 
   await expect(row).not.toContainText('Condições obrigatórias não informadas');
   await expect(page.locator('#provider-status')).toContainText('Nada pendente agora');
 });
+
+test('revisão antiga: erro é explícito, retry recupera os dois snapshots sem perder rascunho',async({page},testInfo)=>{
+ const assignment={...ASSIGNMENT,demand:{...ASSIGNMENT.demand,amount:2000000},rfq_revision:25,submitted_rfq_revision:1,version:1,terms:{institution:'Banco Atlas S.A.'}};
+ await mockProvider(page,{assignment});let reads=0;const queries=[];
+ await page.route('**/api/finance/rfq-revisions**',route=>{
+  reads++;const q=new URL(route.request().url()).searchParams;
+  queries.push(Object.fromEntries(q));
+  if(reads===1)return route.fulfill({status:503,json:{ok:false,error:'Histórico indisponível.'}});
+  return route.fulfill({json:{ok:true,rows:[{revision:1,snapshot:{title:'Capital de giro 2027',demand:{amount:1000000}}},{revision:25,snapshot:{title:'Capital de giro 2027',demand:{amount:2000000}}}]}});
+ });
+ await page.goto(`/provider/proposal.html?proposal=${PROPOSAL}`);
+ await expect(page.locator('#proposal-form')).toBeVisible();
+ if(process.env.LIFECYCLE_CAPTURE==='before'){await page.waitForLoadState('networkidle');await page.screenshot({path:`reports/provider-revision-before-${testInfo.project.name}.png`});}
+ const review=page.locator('.revision-review');
+ await expect(review).toContainText('Histórico indisponível');
+ expect(queries[0]).toMatchObject({from_revision:'1',to_revision:'25'});
+ await page.getByLabel('Valor ofertado (R$)').fill('1700000');
+ await review.getByRole('button').click();
+ await expect(review.locator('.diff-list')).toContainText('2.000.000');
+ await expect(page.getByLabel('Valor ofertado (R$)')).toHaveValue('1700000');
+ if(process.env.LIFECYCLE_CAPTURE)await page.screenshot({path:`reports/provider-revision-${process.env.LIFECYCLE_CAPTURE}-${testInfo.project.name}.png`});
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});
+
+test('snapshot antigo não autorizado não vira ausência de alterações',async({page})=>{
+ await mockProvider(page,{assignment:{...ASSIGNMENT,rfq_revision:25,submitted_rfq_revision:1,version:1}});
+ await page.goto(`/provider/proposal.html?proposal=${PROPOSAL}`);
+ await expect(page.locator('.revision-review')).toContainText('Não recuperamos as duas revisões autorizadas');
+ await expect(page.locator('.revision-review')).not.toContainText('Nenhuma diferença');
+});

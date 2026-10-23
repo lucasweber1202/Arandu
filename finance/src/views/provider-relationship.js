@@ -21,7 +21,7 @@ function metric(label, value, definition) {
   return el('div', { class: 'portfolio-stat' }, [el('span', { class: 'portfolio-stat-label', text: label }), el('strong', { class: 'portfolio-stat-value', text: value }), el('span', { class: 'muted small', text: definition })]);
 }
 
-export async function openProviderRelationship(ctx, provider) {
+export async function openProviderRelationship(ctx, provider, {initialDetail = null} = {}) {
   const entities = await loadEntities(ctx);
   const body = el('div', { class: 'stack contract-center' }, loading('Carregando relacionamento…'));
   const dialog = drawer({ title: provider.name, subtitle: 'Relacionamento da sua empresa com esta instituição: contratos, negociações, contatos e pendências.', body, className: 'drawer-wide', onClose: () => { const url = new URL(location.href); if (url.searchParams.get('provider_id') === provider.id) { url.searchParams.delete('provider_id'); history.replaceState(null, '', url.pathname + url.search + url.hash); } } });
@@ -32,7 +32,8 @@ export async function openProviderRelationship(ctx, provider) {
     const epoch = ++generation;
     body.replaceChildren(loading('Carregando relacionamento…'));
     try {
-      const detail = await ctx.api(endpoint);
+      const detail = initialDetail || await ctx.api(endpoint);
+      initialDetail = null;
       if (epoch === generation && dialog.isConnected) body.replaceChildren(...render(detail, epoch));
     } catch (error) {
       if (epoch === generation && dialog.isConnected) body.replaceChildren(errorState({ error, onRetry: load }));

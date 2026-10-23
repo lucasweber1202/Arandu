@@ -248,10 +248,12 @@ test('primeiro valor sem banco: começar sugere registrar o que existe; institui
 
 test('instituição de outro escopo em deep link não abre relacionamento', async ({ page }) => {
   const calls = await mockSession(page);
+  await page.route('**/api/finance/provider-relationship**',route=>route.fulfill({status:404,json:{ok:false,error:'Instituição indisponível.'}}));
   await page.goto('/finance/providers.html?provider_id=00000000-0000-4000-8000-000000000099');
-  await expect(page.getByText('Instituição indisponível no seu escopo carregado.')).toBeVisible();
+  await expect(page.getByText('Instituição indisponível no seu escopo autorizado. Tente novamente pela lista.')).toBeVisible();
   await expect(page.getByRole('dialog')).toHaveCount(0);
-  expect(calls.some(call => call.path === 'provider-relationship')).toBe(false);
+  // A ausência no índice não é autorização: a consulta canônica recusou o objeto.
+  expect(calls.some(call => call.method === 'POST')).toBe(false);
 });
 
 test('facility de origem contextual recebe foco no destino autorizado', async ({ page }) => {
@@ -285,4 +287,14 @@ test('edição reutiliza instituição da própria facility fora do índice carr
   await page.goto('/finance/portfolio.html');
   await page.locator('.facility-table').getByRole('button', { name: 'Editar', exact: true }).click();
   await expect(page.getByRole('dialog', { name: 'Editar facility' }).getByLabel('Provedor')).toHaveValue(PROVIDER);
+});
+
+test('retorno ao relacionamento recupera instituição autorizada fora do índice carregado',async({page})=>{
+ await mockSession(page);
+ const target='00000000-0000-4000-8000-000000000099';
+ let reads=0;
+ await page.route('**/api/finance/provider-relationship**',route=>{reads++;return route.fulfill({json:{...RELATIONSHIP,provider:{id:target,name:'Instituição fora do índice'}}});});
+ await page.goto(`/finance/providers.html?provider_id=${target}`);
+ await expect(page.getByRole('dialog',{name:'Instituição fora do índice'})).toBeVisible();
+ expect(reads).toBe(1);
 });
