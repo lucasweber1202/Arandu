@@ -37,7 +37,16 @@ const INVITE_CLOSED = Object.freeze({
 
 export async function rfqDetail(ctx) {
   const id = new URLSearchParams(location.search).get('id');
-  const rfq = (ctx.data.rfqs || []).find((item) => item.id === id);
+  let rfq = (ctx.data.rfqs || []).find((item) => item.id === id);
+  if (!rfq && id && ctx.mode !== 'demo') {
+    try {
+      const detail = await ctx.api(`rfq/${encodeURIComponent(id)}`);
+      if (detail.rfq?.id !== id || detail.rfq.organization_id !== ctx.organization.id) throw Object.assign(new Error('Solicitação fora da organização em foco.'), {status:404});
+      rfq = {...detail.rfq, invites:detail.invites || [], proposals:detail.proposals || []};
+    } catch (error) {
+      if (error.status !== 404) return errorState({error, onRetry:()=>ctx.reload()});
+    }
+  }
   if (!rfq) {
     ctx.header({ title: 'Detalhe da solicitação', crumbs: [{ label: 'Solicitações', href: ctx.href('/finance/rfqs.html') }] });
     return emptyState({ title: id ? 'Solicitação não encontrada' : 'Escolha uma solicitação', text: id ? 'Ela pode ter sido removida ou pertencer a outra organização. Confira o link.' : 'Abra uma solicitação na lista para ver os detalhes.', iconName: 'search',
@@ -50,8 +59,8 @@ export async function rfqDetail(ctx) {
   // exigida": a tela diz o que faltou e não oferece decidir nem pedir aprovação.
   const gaps = new Set();
   const [approvals, decisions, generalPolicy, evaluation, entities] = await Promise.all([
-    ctx.loadApprovals().then((rows) => rows.filter((row) => row.rfq_id === rfq.id)),
-    ctx.api(`decisions?organization_id=${encodeURIComponent(ctx.organization.id)}`).then((result) => result.rows || []).catch(() => { gaps.add('a decisão registrada'); return []; }),
+    (ctx.mode === 'demo' ? ctx.loadApprovals() : ctx.api(`approvals?organization_id=${encodeURIComponent(ctx.organization.id)}&rfq_id=${encodeURIComponent(rfq.id)}`).then(result=>result.rows || [])).then((rows) => rows.filter((row) => row.rfq_id === rfq.id)).catch(()=>{gaps.add('as aprovações'); return [];}),
+    ctx.api(`decisions?organization_id=${encodeURIComponent(ctx.organization.id)}${ctx.mode === 'demo' ? '' : `&rfq_id=${encodeURIComponent(rfq.id)}`}`).then((result) => result.rows || []).catch(() => { gaps.add('a decisão registrada'); return []; }),
     ctx.api(`approval-policy?organization_id=${encodeURIComponent(ctx.organization.id)}`).catch(() => { gaps.add('a política de aprovação'); return { required_for_decision: false }; }),
     // Exigência pela policy v2 (sem proposta escolhida ainda): a decisão sem
     // pedido só passa quando nenhuma policy pede etapa ou bloqueio.
@@ -62,11 +71,14 @@ export async function rfqDetail(ctx) {
     // consulta de contexto depois das consultas de aprovação.
     loadEntities(ctx)
   ]);
-  if (ctx.approvalsError) gaps.add('as aprovações');
-  const governanceGap = gaps.size ? [...gaps] : null;
+  if (ctx.mode === 'demo' && ctx.approvalsError) gaps.add('as aprovações');
+  const governanceGap = gaps.size ? ['a decisão registrada', 'a política de aprovação', 'a exigência de aprovação', 'as aprovações'].filter(item=>gaps.has(item)) : null;
   const policy = { ...generalPolicy, required_for_decision: Boolean(generalPolicy.required_for_decision || evaluation?.approval_required), evaluation };
   const decision = decisions.find((row) => row.rfq_id === rfq.id) || null;
-  const contract = decision ? (ctx.data.contracts || []).find((row) => row.decision_id === decision.id) : null;
+  const contract = decision ? (Object.hasOwn(decision, 'contract') ? decision.contract : (ctx.data.contracts || []).find((row) => row.decision_id === decision.id)) : null;
+  // A decisão e seu contrato são fatos posteriores ao resumo: projetar a etapa
+  // já comprovada por esses vínculos, sem escrever nem reabrir o processo.
+  if (ctx.mode !== 'demo' && decision) rfq = {...rfq, status:contract ? 'contracted' : 'decided'};
   const pending = approvals.find((row) => row.status === 'pending') || null;
   const days = daysUntil(rfq.response_deadline);
   const live = ['open', 'collecting'].includes(rfq.status);
@@ -630,7 +642,10 @@ function decisionTab(ctx, rfq, { decision, contract, policy, approvals, manage }
   const wrap = el('div', { class: 'stack' });
   const proposals = rfq.proposals || [];
   if (decision) {
-    const chosen = proposals.find((row) => row.id === decision.proposal_id);
+    const liveChosen = proposals.find((row) => row.id === decision.proposal_id);
+    const selected = decision.selected_proposal;
+    const frozenMissing = Object.hasOwn(decision, 'selected_proposal') && !selected;
+    const chosen = selected ? {...liveChosen, ...selected, id:decision.proposal_id, provider_name:liveChosen?.provider_name || 'Instituição escolhida'} : frozenMissing ? null : liveChosen;
     const weights = Object.entries(decision.criteria?.weights || {});
     const specs = Object.fromEntries(PRODUCTS[rfq.product].proposalFields.map((item) => [item.key, item]));
     wrap.append(card({ title: 'Decisão registrada', id: 'decisao-registrada', body: [
@@ -641,10 +656,12 @@ function decisionTab(ctx, rfq, { decision, contract, policy, approvals, manage }
       ]),
       decision.rationale ? el('blockquote', { class: 'rationale' }, [el('span', { class: 'rationale-label', text: 'Justificativa' }), el('p', { text: decision.rationale })]) : null,
       el('p', { class: 'muted small', text: weights.length ? `Critérios definidos pela empresa: ${weights.map(([key, value]) => `${specs[key]?.label || key} (${value})`).join(' · ')}` : 'Decisão sem pesos registrados.' }),
+      selected ? el('p', {class:'muted small',text:`Condições preservadas no momento da decisão · proposta v${selected.version}.`}) : null,
       chosen ? keyTerms(rfq.product, chosen.terms) : null
     ] }));
     if (contract) wrap.append(card({ title: 'Contrato', body: [el('p', { text: `Vigência de ${formatDate(contract.starts_on)} a ${formatDate(contract.ends_on)} · aviso prévio de ${contract.renewal_notice_days} dias.` }),
       linkButton('Abrir ciclo de vida do contrato', ctx.href(`/finance/contracts.html#contract-${contract.id}`), { iconName: 'arrowRight', variant: 'primary' })] }));
+    else if (frozenMissing) wrap.append(emptyState({title:'Condições da decisão indisponíveis',text:'Não foi possível recuperar a proposta preservada na decisão. Recarregue e confira o histórico antes de registrar o contrato.',iconName:'alert'}));
     else if (manage) wrap.append(contractForm(ctx, rfq, decision, chosen));
     else wrap.append(emptyState({ title: 'Contrato ainda não registrado', text: 'Quem gerencia a solicitação registra o contrato com vigência e aviso prévio.', iconName: 'briefcase', compact: true }));
     return wrap;
@@ -740,41 +757,10 @@ function decisionTab(ctx, rfq, { decision, contract, policy, approvals, manage }
 }
 
 function contractForm(ctx, rfq, decision, chosen) {
-  const today = todayIso();
-  const months = Number(chosen?.terms?.term_months || chosen?.terms?.contract_months || 12);
-  const end = new Date(Date.now() + months * 30.44 * 86400000).toISOString().slice(0, 10);
-  const starts = el('input', { name: 'starts_on', type: 'date', value: today });
-  const ends = el('input', { name: 'ends_on', type: 'date', value: end });
-  const notice = el('input', { name: 'renewal_notice_days', type: 'number', min: '0', max: '3650', step: '1', value: '60' });
-  const cost = el('textarea', { name: 'cost_summary', rows: '2', maxlength: '1000' });
-  cost.value = chosen ? (rfq.product === 'credit'
-    ? `${percent(chosen.terms?.interest_rate_month)} a.m.${chosen.terms?.cet_year ? ` · CET ${percent(chosen.terms.cet_year)} a.a.` : ''} · ${chosen.terms?.term_months || '—'} meses`
-    : `MDR débito ${percent(chosen.terms?.mdr_debit)} · crédito ${percent(chosen.terms?.mdr_credit_cash)} · PIX ${percent(chosen.terms?.pix_fee)}`) : '';
-  const conditions = el('textarea', { name: 'main_conditions', rows: '2', maxlength: '4000' });
-  const reference = el('input', { name: 'document_reference', type: 'url', placeholder: 'https://…' });
-  const submit = button('Registrar contrato', { variant: 'primary', type: 'submit', iconName: 'briefcase' });
-  const form = el('form', { class: 'card', id: 'contract-form', novalidate: true }, [
-    el('div', { class: 'card-head' }, el('div', { class: 'card-head-text' }, [el('h3', { class: 'card-title', text: 'Registrar contrato' }),
-      el('p', { class: 'card-subtitle', text: 'Com vigência e aviso prévio, o Arandu cria os marcos de 90, 60 e 30 dias e a data de aviso para a renovação.' })])),
-    el('div', { class: 'card-body' }, [el('div', { class: 'field-grid' }, [
-      field({ label: 'Início da vigência', control: starts, required: true }), field({ label: 'Fim da vigência', control: ends, required: true }),
-      field({ label: 'Aviso prévio (dias)', control: notice, hint: 'Prazo contratual para avisar a não renovação.' }),
-      field({ label: 'Referência do documento', control: reference, optionalLabel: true, hint: 'Link https para o contrato no seu repositório.' }),
-      field({ label: 'Resumo do custo', control: cost, className: 'span-2' }), field({ label: 'Condições principais', control: conditions, optionalLabel: true, className: 'span-2' })
-    ]), el('div', { class: 'form-actions' }, submit)])
-  ]);
-  onSubmit(form, async (event) => {
-    event.preventDefault();
-    if (ends.value < starts.value) { ends.closest('.field').setError('O fim não pode ser antes do início.'); ends.focus(); return; }
-    if (reference.value && !/^https:\/\//.test(reference.value)) { reference.closest('.field').setError('Use um endereço https.'); reference.focus(); return; }
-    submit.disabled = true;
-    try {
-      const result = await ctx.api('contracts', { method: 'POST', body: JSON.stringify({ decision_id: decision.id, ...Object.fromEntries(new FormData(form)), renewal_notice_days: Number(notice.value) }) });
-      toast('Contrato registrado. Os marcos de renovação já estão no calendário.');
-      location.assign(ctx.href(`/finance/contracts.html#contract-${result.id}`));
-    } catch (error) { toast(error.message, 'error'); submit.disabled = false; }
-  });
-  return form;
+  const slot = el('div', {}, loading('Preparando o registro do contrato…'));
+  import('./contract-registration.js').then(module=>{if(slot.isConnected) slot.replaceChildren(module.contractForm(ctx, rfq, decision, chosen));})
+    .catch(error=>slot.replaceChildren(errorState({error, onRetry:()=>ctx.reload()})));
+  return slot;
 }
 
 // -------------------------------------------------------------- atividade

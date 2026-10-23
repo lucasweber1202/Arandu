@@ -371,6 +371,30 @@ await step('Decisão, contrato, documento do contrato e renovação', async () =
   return `RFQ em ${rfq.status}; contrato ${ctx.contract.slice(0, 8)}… termina em ${addDays(120)}`;
 });
 
+await step('Lifecycle contextual: decisão preservada, contrato, Central e tarefa concluída', async () => {
+  const context = ok(await api(people.buyer, 'GET', `/api/finance/decisions?organization_id=${ctx.buyerOrg}&rfq_id=${ctx.rfq}`), 'decisão contextual').rows;
+  must(context.length===1 && context[0].id===ctx.decision && context[0].contract?.id===ctx.contract, 'vínculo decisão/contrato ausente');
+  must(context[0].selected_proposal?.proposal_id===ctx.propB && context[0].selected_proposal.version===ctx.shownB, 'fotografia escolhida ausente');
+  must(!context[0].snapshot, 'fotografias concorrentes desnecessárias no handoff');
+  const detail = ok(await api(people.buyer, 'GET', `/api/finance/contract-detail?id=${ctx.contract}`), 'contrato');
+  must(detail.source_rfq?.id===ctx.rfq, 'origem do contrato perdida');
+  const relationship = ok(await api(people.buyer, 'GET', `/api/finance/provider-relationship?organization_id=${ctx.buyerOrg}&provider_id=${detail.contract.provider_id}`), 'Central');
+  must(relationship.contracts.some(row=>row.id===ctx.contract), 'contrato não aparece no relacionamento');
+  const task = ok(await api(people.buyer, 'POST', '/api/finance/tasks', {organization_id:ctx.buyerOrg,title:'Conferir condições contratadas',due_on:addDays(5),related_type:'contract',related_id:ctx.contract,idempotency_key:crypto.randomUUID()}), 'próxima ação').row;
+  ok(await api(people.buyer, 'PATCH', '/api/finance/tasks', {organization_id:ctx.buyerOrg,task_id:task.id,status:'done'}), 'concluir ação');
+  const done=ok(await api(people.buyer, 'GET', `/api/finance/tasks?organization_id=${ctx.buyerOrg}&contract_id=${ctx.contract}&status=done`), 'histórico de trabalho').rows;
+  must(done.some(row=>row.id===task.id && row.status==='done'), 'ação não foi persistida no contrato');
+  return 'RFQ → decisão/versionamento → contrato → instituição → tarefa concluída, com sessão e banco reais';
+});
+await step('Portal contextual: instituição lê somente sua proposta pelo link exato', async () => {
+  const own=ok(await api(people.providerA, 'GET', `/api/finance/assignments?organization_id=${ctx.orgA}&proposal_id=${ctx.propA}`), 'própria proposta').rows;
+  const other=ok(await api(people.providerA, 'GET', `/api/finance/assignments?organization_id=${ctx.orgA}&proposal_id=${ctx.propB}`), 'proposta oculta').rows;
+  must(own.length===1 && own[0].proposal_id===ctx.propA && other.length===0, 'isolamento por instituição violado');
+  const denied=await api(people.providerA, 'GET', `/api/finance/decisions?organization_id=${ctx.orgA}&rfq_id=${ctx.rfq}`);
+  must(denied.status>=400, 'portal recebeu decisão interna');
+  return 'própria proposta disponível; concorrente e decisão interna recusados';
+});
+
 // ------------------------------------------- 8. segurança entre provedores
 const B = people.providerB, O = people.outsider;
 const denied = (result) => result.status >= 400 || (Array.isArray(result.data?.rows) && result.data.rows.length === 0);

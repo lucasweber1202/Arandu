@@ -322,3 +322,37 @@ test('snapshot antigo não autorizado não vira ausência de alterações',async
  await expect(page.locator('.revision-review')).toContainText('Não recuperamos as duas revisões autorizadas');
  await expect(page.locator('.revision-review')).not.toContainText('Nenhuma diferença');
 });
+
+test('lifecycle: instituição recupera proposta autorizada fora da lista sem perder resposta',async({page},info)=>{
+  await mockProvider(page);
+  let exact=0;
+  await page.route('**/api/finance/assignments?*',route=>{
+    const scoped=new URL(route.request().url()).searchParams.get('proposal_id');
+    if(scoped) exact++;
+    return route.fulfill({json:{ok:true,rows:scoped?[ASSIGNMENT]:[]}});
+  });
+  await page.goto(`/provider/proposal.html?proposal=${PROPOSAL}`);
+  await page.waitForLoadState('networkidle');
+  if(process.env.PROCUREMENT_CAPTURE) await page.screenshot({path:`reports/provider-context-${process.env.PROCUREMENT_CAPTURE}-${info.project.name}.png`,fullPage:true});
+  await expect(page.getByRole('heading',{level:1})).toHaveText(ASSIGNMENT.title);
+  await page.getByLabel('Valor ofertado (R$)').fill('935000');
+  await expect(page.locator('#proposal-form .save-indicator')).toContainText('Rascunho salvo');
+  expect(exact).toBe(1);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth)).toBeLessThanOrEqual(1);
+});
+
+test('lifecycle: proposta não autorizada nunca abre formulário de outra instituição',async({page})=>{
+  await mockProvider(page);
+  await page.route('**/api/finance/assignments?*',route=>route.fulfill({json:{ok:true,rows:[]}}));
+  await page.goto(`/provider/proposal.html?proposal=${PROPOSAL}`);
+  await expect(page.getByText('Proposta não encontrada',{exact:true})).toBeVisible();
+  await expect(page.locator('#proposal-form')).toHaveCount(0);
+});
+
+test('lifecycle: detalhe revalida acesso em vez de usar oportunidade do resumo',async({page})=>{
+ await mockProvider(page);
+ await page.route('**/api/finance/assignments?*',route=>route.fulfill({json:{ok:true,rows:new URL(route.request().url()).searchParams.has('proposal_id')?[]:[ASSIGNMENT]}}));
+ await page.goto(`/provider/proposal.html?proposal=${PROPOSAL}`);
+ await expect(page.getByText('Proposta não encontrada',{exact:true})).toBeVisible();
+ await expect(page.locator('#proposal-form')).toHaveCount(0);
+});

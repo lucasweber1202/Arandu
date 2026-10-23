@@ -1133,3 +1133,105 @@ test('site público no celular: "Entrar" inteiro no cabeçalho, sem botão corta
     expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth), path).toBeLessThanOrEqual(1);
   }
 });
+
+// Continuidade do processo: UI real, API fictícia interceptada; não é prova canônica.
+test('lifecycle: RFQ fora do resumo abre decisão e contrato reais do processo', async ({page}, info) => {
+  const rfq={...overview().rfqs[0],organization_id:ORG,status:'contracted'};
+  await mockSession(page,{data:overview({rfqs:[],contracts:[]})});
+  const urls=[];
+  await page.route('**/api/finance/rfq/*',route=>route.fulfill({json:{ok:true,rfq,invites:[],proposals:rfq.proposals}}));
+  await page.route('**/api/finance/decisions?*',route=>{urls.push(route.request().url());return route.fulfill({json:{ok:true,rows:[{id:'decision-old',rfq_id:RFQ,proposal_id:'p1',decided_at:'2026-10-23T12:00:00Z',selected_proposal:{proposal_id:'p1',version:1,terms:rfq.proposals[0].terms},contract:{id:'contract-old',decision_id:'decision-old',starts_on:'2026-10-23',ends_on:'2029-10-23',renewal_notice_days:60}}]}});});
+  await page.goto(`/finance/rfq.html?id=${RFQ}#decisao`);
+  await page.waitForLoadState('networkidle');
+  if(process.env.PROCUREMENT_CAPTURE){await mkdir('reports',{recursive:true});await page.screenshot({path:`reports/procurement-${process.env.PROCUREMENT_CAPTURE}-${info.project.name}.png`,fullPage:true});}
+  await expect(page.getByRole('heading',{level:1})).toHaveText(rfq.title);
+  await expect(page.locator('#decisao-registrada')).toContainText('Condições preservadas no momento da decisão · proposta v1');
+  await expect(page.getByRole('link',{name:'Abrir ciclo de vida do contrato'})).toHaveAttribute('href','/finance/contracts.html#contract-contract-old');
+  await expect(page.locator('#contract-form')).toHaveCount(0);
+  expect(new URL(urls[0]).searchParams.get('rfq_id')).toBe(RFQ);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth)).toBeLessThanOrEqual(1);
+});
+
+test('lifecycle: registro incerto preserva formulário e encontra contrato sem segundo POST',async({page})=>{
+  // Outra pessoa concluiu a decisão v2 depois da leitura do resumo v1.
+  // A proposta não é revisada depois da decisão: o resumo é que ficou antigo.
+  const rfq={...overview().rfqs[0],status:'comparing'};
+  await mockSession(page,{data:overview({rfqs:[rfq]})});
+  let posts=0, registered=false;
+  const decision={id:'decision-now',rfq_id:RFQ,proposal_id:'p1',selected_proposal:{proposal_id:'p1',version:2,terms:{interest_rate_month:0.8,term_months:36}}};
+  await page.route('**/api/finance/decisions?*',route=>route.fulfill({json:{ok:true,rows:[{...decision,contract:registered?{id:'00000000-0000-4000-8000-0000000000c1',decision_id:decision.id}:null}]}}));
+  await page.route('**/api/finance/contracts',route=>{posts++;registered=true;return route.fulfill({status:503,json:{ok:false,error:'Resposta interrompida.'}});});
+  await page.goto(`/finance/rfq.html?id=${RFQ}#decisao`);
+  const form=page.locator('#contract-form');
+  await expect(form).toBeVisible();
+  await expect(page.locator('.lifecycle-step[aria-current=step]')).toContainText('Decisão');
+  await expect(form.getByLabel('Resumo do custo')).toHaveValue(/0,8.*36 meses/);
+  await form.getByLabel('Condições principais').fill('Conferido pela equipe financeira');
+  await form.getByRole('button',{name:'Registrar contrato',exact:true}).click();
+  await expect(form).toContainText('A resposta não confirmou o registro');
+  await expect(form.getByLabel('Condições principais')).toHaveValue('Conferido pela equipe financeira');
+  await expect(form.getByRole('button',{name:'Registrar contrato',exact:true})).toBeDisabled();
+  await form.getByRole('button',{name:'Conferir registro do contrato'}).click();
+  await expect(form).toContainText('Contrato localizado');
+  await expect(form.getByRole('link',{name:'Abrir ciclo de vida do contrato'})).toBeVisible();
+  expect(posts).toBe(1);
+});
+
+test('lifecycle: falha de decisão contextual bloqueia novo contrato e decisão',async({page})=>{
+  await mockSession(page,{data:overview({rfqs:[{...overview().rfqs[0],status:'decided'}]})});
+  await page.route('**/api/finance/decisions?*',route=>route.fulfill({status:503,json:{ok:false,error:'Indisponível'}}));
+  await page.goto(`/finance/rfq.html?id=${RFQ}#decisao`);
+  await expect(page.locator('.governance-gap')).toBeVisible();
+  await expect(page.locator('#contract-form, #decision-form')).toHaveCount(0);
+});
+
+test('lifecycle: RFQ oculta não abre contexto de outra organização',async({page})=>{
+  await mockSession(page,{data:overview({rfqs:[]})});
+  await page.route('**/api/finance/rfq/*',route=>route.fulfill({status:404,json:{ok:false,error:'Não encontrada'}}));
+  await page.goto(`/finance/rfq.html?id=${RFQ}`);
+  await expect(page.getByText('Solicitação não encontrada',{exact:true})).toBeVisible();
+  await expect(page.locator('#decision-form, #contract-form')).toHaveCount(0);
+});
+
+test('lifecycle: fotografia ausente não preenche contrato com condições atuais',async({page})=>{
+ await mockSession(page,{data:overview({rfqs:[{...overview().rfqs[0],status:'decided'}]})});
+ await page.route('**/api/finance/decisions?*',route=>route.fulfill({json:{ok:true,rows:[{id:'d',rfq_id:RFQ,proposal_id:'p1',selected_proposal:null,contract:null}]}}));
+ await page.goto(`/finance/rfq.html?id=${RFQ}#decisao`);
+ await expect(page.getByText('Condições da decisão indisponíveis',{exact:true})).toBeVisible();
+ await expect(page.locator('#contract-form')).toHaveCount(0);
+});
+
+test('lifecycle: falha temporária no detalhe permite tentar novamente',async({page})=>{
+ await mockSession(page,{data:overview({rfqs:[]})});
+ let failing=true;
+ const rfq={...overview().rfqs[0],organization_id:ORG};
+ await page.route('**/api/finance/rfq/*',route=>route.fulfill(failing?{status:503,json:{ok:false,error:'Temporariamente indisponível'}}:{json:{ok:true,rfq,proposals:rfq.proposals,invites:[]}}));
+ await page.goto(`/finance/rfq.html?id=${RFQ}`);
+ await expect(page.getByRole('button',{name:'Tentar novamente'})).toBeVisible();
+ failing=false;
+ await page.getByRole('button',{name:'Tentar novamente'}).click();
+ await expect(page.getByRole('heading',{level:1})).toHaveText(rfq.title);
+});
+
+test('lifecycle: conferência incerta não libera reenvio nem perde dados',async({page})=>{
+ await mockSession(page,{data:overview({rfqs:[{...overview().rfqs[0],status:'decided'}]})});
+ let failedRead=false, reads=0, posts=0;
+ await page.route('**/api/finance/decisions?*',route=>{
+  reads++;
+  return route.fulfill(failedRead?{status:503,json:{ok:false,error:'Conferência indisponível'}}:{json:{ok:true,rows:[{id:'d',rfq_id:RFQ,proposal_id:'p1',contract:null,selected_proposal:{proposal_id:'p1',version:1,terms:{term_months:24}}}]}});
+ });
+ await page.route('**/api/finance/contracts',route=>{posts++;return route.fulfill({json:{ok:true}});});
+ await page.goto(`/finance/rfq.html?id=${RFQ}#decisao`);
+ const form=page.locator('#contract-form');
+ await form.getByLabel('Condições principais').fill('Preservar estas condições');
+ await form.getByRole('button',{name:'Registrar contrato',exact:true}).click();
+ await form.getByRole('button',{name:'Conferir registro do contrato'}).click();
+ await expect(form).toContainText('O contrato ainda não foi localizado');
+ failedRead=true;
+ await form.getByRole('button',{name:'Conferir registro do contrato'}).click();
+ await expect(form.getByRole('alert')).toBeVisible();
+ await expect(form.getByRole('button',{name:'Conferir registro do contrato'})).toBeEnabled();
+ await expect(form.getByRole('button',{name:'Registrar contrato',exact:true})).toBeDisabled();
+ await expect(form.getByLabel('Condições principais')).toHaveValue('Preservar estas condições');
+ expect(posts).toBe(1);expect(reads).toBe(3);
+});

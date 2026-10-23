@@ -1,5 +1,16 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 23/10/2026 — Continuidade do processo após #263
+
+Base `main@0ea9e6c`, #263 já integrada. Incremento isolado em
+`feature/procurement-lifecycle-continuity`: links de RFQ/proposta fora do resumo,
+governança por RFQ, fotografia da decisão no registro do contrato e conferência
+após resposta incerta sem segundo envio. Mesmos domínios, permissões e RLS;
+propostas externas não ganham decisão ou contratação. Sem migration, deploy,
+configuração hospedada ou sandbox novo. Quatro gates exigidos no HEAD próprio;
+stack canônica completa NOT_RUN por capacidade de disco durante extração da
+imagem fixada. [Implementação, antes/depois e provas](evidence/procurement-continuity-2026-10-23.md).
+
 ## 23/10/2026 — Rodada intensiva: executar o trabalho no contexto do contrato
 
 Base real `main@7f2fb38`, #262 **já integrada**, quatro gates e merge-audit

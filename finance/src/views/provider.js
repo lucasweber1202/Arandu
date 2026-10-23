@@ -173,7 +173,13 @@ const REQUIRED_FIRST = {
 export async function providerProposal(ctx) {
   const rows = ctx.data.assignments || [];
   const wanted = new URLSearchParams(location.search).get('proposal');
-  const assignment = rows.find((row) => row.proposal_id === wanted) || (!wanted ? rows.find((row) => ['todo', 'outdated'].includes(assignmentState(row).key)) || rows[0] : null);
+  let assignment = rows.find((row) => row.proposal_id === wanted) || (!wanted ? rows.find((row) => ['todo', 'outdated'].includes(assignmentState(row).key)) || rows[0] : null);
+  if (wanted && ctx.mode !== 'demo') {
+    try {
+      const result = await ctx.api(`assignments?organization_id=${encodeURIComponent(ctx.organization.id)}&proposal_id=${encodeURIComponent(wanted)}`);
+      assignment = result.rows?.find(row=>row.proposal_id === wanted);
+    } catch (error) { return errorState({error, onRetry:()=>ctx.reload()}); }
+  }
   if (!assignment) {
     ctx.header({ title: 'Responder proposta', crumbs: [{ label: 'Oportunidades', href: ctx.href('/provider/rfqs.html') }] });
     return emptyState({ title: wanted ? 'Proposta não encontrada' : 'Nada para responder', text: wanted ? 'Este link não pertence à sua instituição ou a solicitação foi removida.' : 'Aceite um convite para responder a uma solicitação.', iconName: 'inbox',
