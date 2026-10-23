@@ -152,6 +152,36 @@ reset((entry) => buyer(entry)
   assert.ok(sent.every((entry) => entry.authorization === 'Bearer user-jwt'));
 }
 
+// As pendências vêm dos contratos autorizados, sem depender do overview global.
+reset((entry) => buyer(entry) ?? (
+  entry.url.includes('fin_providers?') ? [{ id: PROVIDER }] :
+  entry.url.includes('fin_contracts?') ? [{ id: FACILITY, status: 'active', renewal_notice_days: 60 }] :
+  entry.url.includes('fin_tasks?') ? Array.from({ length: 201 }, (_, i) => ({ id: `task-${i}`, status: 'open', assignee_id: ACTOR, related_id: FACILITY })) :
+  entry.url.includes('fin_members?') ? [{ user_id: ACTOR, display_name: 'Ana' }] : []));
+{
+  const { payload } = await call('GET', 'provider-relationship', { url: `/api/finance/provider-relationship?organization_id=${ORG}&provider_id=${PROVIDER}` });
+  assert.equal(payload.tasks.length, 200);
+  assert.equal(payload.tasks[0].assignee_name, 'Ana');
+  assert.equal(payload.coverage.tasks_truncated, true);
+  const taskQuery = sent.find(row => row.url.includes('fin_tasks?')).url;
+  for (const filter of [`organization_id=eq.${ORG}`, 'related_type=eq.contract', `related_id=in.(${FACILITY})`, 'status=eq.open', 'limit=201']) assert.ok(taskQuery.includes(filter), filter);
+  assert.ok(sent.find(row => row.url.includes('fin_contracts?')).url.includes('renewal_notice_days'));
+  assert.ok(sent.find(row => row.url.includes('fin_members?')).url.includes(`organization_id=eq.${ORG}`));
+  assert.ok(sent.every(row => row.authorization === 'Bearer user-jwt'));
+}
+reset((entry) => buyer(entry) ?? (entry.url.includes('fin_providers?') ? [{ id: PROVIDER }] : []));
+{
+  const { payload } = await call('GET', 'provider-relationship', { url: `/api/finance/provider-relationship?organization_id=${ORG}&provider_id=${PROVIDER}` });
+  assert.deepEqual(payload.tasks, []);
+  assert.equal(payload.coverage.tasks_truncated, false);
+  assert.ok(!sent.some(row => /fin_tasks\?|fin_members\?/.test(row.url)));
+}
+
+// Erro no recorte de tarefas falha a leitura; não vira uma lista vazia de sucesso.
+reset((entry) => buyer(entry) ?? (entry.url.includes('fin_providers?') ? [{ id: PROVIDER }] : entry.url.includes('fin_contracts?') ? [{ id: FACILITY }] : entry.url.includes('fin_tasks?') ? new Error('backend unavailable') : []));
+await assert.rejects(() => call('GET', 'provider-relationship', { url: `/api/finance/provider-relationship?organization_id=${ORG}&provider_id=${PROVIDER}` }));
+assert.ok(sent.every(row => row.authorization === 'Bearer user-jwt'));
+
 // Contato: e-mail validado, nome não carrega e-mail, corpo forjado ignorado.
 reset((entry) => buyer(entry) ?? 'c1');
 await call('POST', 'provider-contacts', { body: { organization_id: ORG, provider_id: PROVIDER, name: 'Ana Gerente', email: 'ANA@BANCO.EXAMPLE', is_primary: true, created_by: 'x' } });

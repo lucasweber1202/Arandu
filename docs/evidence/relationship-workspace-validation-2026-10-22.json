@@ -1,0 +1,104 @@
+{
+  "base_sha": "5e5ce0cdc7deb2d555341c3c0adbc8a730f4d1e7",
+  "branch": "codex/post-oct29-product-evolution",
+  "integration": "AFTER_2026-10-29",
+  "source_sha256": {
+    "lib/api/domains/finance-portfolio.mjs": "7ea151d7f648ffa6dae70a42019e6f94074023f5adda6fdeede6ffc8bd53dea5",
+    "finance/src/views/provider-relationship.js": "aa58d6440b53346ce7673ceb0552afb024f2a7a6105eac301c4ae285ecfd3357",
+    "finance/src/views/relationship-context.js": "358c6252909516c1d9cb77a0b5347fbd39adfd73759770137e03df90f2695cd2",
+    "scripts/test-finance-portfolio.mjs": "351c51bb479ecb8c2ad9fa90d4b00ff260ba8126d6398ab5752032d28bd606a6",
+    "tests/e2e/finance-relationship-center.spec.js": "bfb3c42f9cc746964edf67b12e9bc7972efb475f059c99c5b35cf5a0346e8a45"
+  },
+  "public": {
+    "sha": "5e5ce0cdc7deb2d555341c3c0adbc8a730f4d1e7",
+    "checked_at": "2026-10-23T01:22:38.978Z",
+    "verdict": "PASS",
+    "checks": 229,
+    "hashed_artifacts": 185,
+    "browser_captures": 36,
+    "proof_sha256": "9beb1368fb9887390abd27a403f534f2692510988b8231a65292c065351a26d5",
+    "modality": "informative-tour-with-browser-sandbox",
+    "datasource": "synthetic-fixtures"
+  },
+  "local": {
+    "check_all": {
+      "exit_code": 0,
+      "log_sha256": "8c90658a205e6eac6b21a953e9e8c60ec5987e83eaeb917ace1e387b1be74a87"
+    },
+    "finance": {
+      "passed": 538,
+      "skipped": 10,
+      "failed": 0,
+      "engines": [
+        "Chromium desktop",
+        "Chromium mobile"
+      ],
+      "log_sha256": "beeb7752856fe20b47853c327ea50e7bd832700b789d05fded46847256a6435f"
+    },
+    "presentation": {
+      "passed": 136,
+      "skipped": 20,
+      "failed": 0,
+      "log_sha256": "b68c3e32ec46d55727b7f644715347236f2d531b3c7a7465f3b5589ae9159a90"
+    },
+    "database": {
+      "exit_code": 0,
+      "postgres": "16.15",
+      "image_digest": "postgres@sha256:9e2cf6287f25c3151f4c9421ccce2b17f3e60061c111a29165e0d2cdd9ff0a97",
+      "log_sha256": "1a20de6f9bac2834b30cbc89a827a4feb273c65893f0a932931dfeb7c4122ac2",
+      "script_sha256": "0d7bc8264bb5594897bd03f10470205bd3252dd25a0c0abeaa7d7a9d9cbbe71d",
+      "manifest_sha256": "892dcb690f1408f889c80f38104856b611e4b9c9571b5a0bf7aadde4bb2f2a01",
+      "transport_sha256": {
+        "psql": "58f37273d075037f0e96deea87b24c85543af2d758b1c169e3ca827fb97ccae9",
+        "pg_dump": "e7e9b3545b48d82d21fdbb18fea5ff00bd542eaa19cfd05efe704a9466ff0a19",
+        "pg_restore": "bec1542beb963637b6724e72ada08a13bd4f201b9b94eb2e992bd3a32d8c21fd"
+      },
+      "synthetic_pilot_upgrade": {
+        "classification": "synthetic_pilot_marker_upgrade",
+        "result": "VALIDATED",
+        "from": "financial-surface-hardening-1",
+        "to": "financial-external-proposals-1",
+        "migrations": 39,
+        "bundle_sha256": "a1a8d8dac98ca36133de11e7a9b40cf07c2a8f6388633734c45205946d266ea3",
+        "preserved_dump_sha256": "6291072f8f8e82d2d3f8004a195fce32f8e872a58d6d52d4d3d9e2972842c253",
+        "interruption": "ROLLED_BACK",
+        "destructive_boundary": "REFUSED_WITHOUT_RESTORE_ACK",
+        "resume": "financial-data-governance-1",
+        "history": "PRESERVED",
+        "hosted": "NOT_RUN"
+      },
+      "canonical_backend": false
+    },
+    "bundle": {
+      "largest_route": "rfq",
+      "bytes": 245884,
+      "limit": 250000
+    }
+  },
+  "captures": [
+    {
+      "path": "reports/relationship-after-chromium-desktop.png",
+      "sha256": "8c223580a8cc9c688cce6cf9fd7a9a0ce9f8f56dfdc5a43372db4f83f42fbb28"
+    },
+    {
+      "path": "reports/relationship-after-mobile-chrome.png",
+      "sha256": "de75b2db1ed6f93681869c9d4a6a05039364e3b9062130dca2db19624e30a4d5"
+    },
+    {
+      "path": "reports/relationship-before-chromium-desktop.png",
+      "sha256": "ccc3c1092749438a414b0666d2c07895eca2508596857dc84262b929ef522c52"
+    },
+    {
+      "path": "reports/relationship-before-mobile-chrome.png",
+      "sha256": "86b613dacc0525b7756242436cd443e4139957bd4980e8fdbc224c5d3f6ff0a4"
+    }
+  ],
+  "not_run": [
+    "physical_station",
+    "canonical_GoTrue_PostgREST_Storage_journey",
+    "hosted_SQL",
+    "local_PG17_age_encrypted_recovery",
+    "Firefox",
+    "WebKit"
+  ]
+}

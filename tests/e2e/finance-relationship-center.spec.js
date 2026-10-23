@@ -111,7 +111,7 @@ test('workspace da instituição separa término, marco de aviso prévio e taref
   await setup(page);
   await page.route('**/api/finance/provider-relationship**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
     ok: true, provider: { id: P_ATLAS, name: 'Atlas Bank' }, neutrality: 'Fatos do histórico da empresa.', contracts: OVERVIEW.contracts.filter((row) => row.provider_id === P_ATLAS),
-    facilities: [], rfqs: [], invites: [], proposals: [], balances: [], contacts: [], issues: [], relationships: [], map: [], timeline: [], reviews: [], templates: [],
+    tasks: OVERVIEW.tasks, facilities: [], rfqs: [], invites: [], proposals: [], balances: [], contacts: [], issues: [], relationships: [], map: [], timeline: [], reviews: [], templates: [],
     metrics: { invited: 0, responded: 0, response_rate: null, median_response_days: null, active_contracts: 3, open_issues: 0, median_resolution_days: null, definitions: {} } }) }));
   await page.goto(`/finance/providers.html?provider_id=${P_ATLAS}`);
   const attention = page.getByRole('dialog', { name: 'Atlas Bank' }).locator('.rel-attention');
@@ -151,7 +151,7 @@ test('uma negociação com várias instituições vira um item só; coleta encer
   await expect(center.locator('[data-situation="negotiation"]')).toHaveCount(1);
 });
 
-test('workspace usa o aviso prévio do contrato carregado quando o relacionamento não o traz', async ({ page }) => {
+test('workspace preserva aviso ausente sem reaproveitar o resumo antigo', async ({ page }) => {
   await setup(page);
   const withoutNotice = OVERVIEW.contracts.filter((row) => row.provider_id === P_ATLAS).map(({ renewal_notice_days, ...row }) => row);
   await page.route('**/api/finance/provider-relationship**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
@@ -159,6 +159,40 @@ test('workspace usa o aviso prévio do contrato carregado quando o relacionament
     metrics: { invited: 0, responded: 0, response_rate: null, median_response_days: null, active_contracts: 3, open_issues: 0, median_resolution_days: null, definitions: {} } }) }));
   await page.goto(`/finance/providers.html?provider_id=${P_ATLAS}`);
   const attention = page.getByRole('dialog', { name: 'Atlas Bank' }).locator('.rel-attention');
-  await expect(attention).toContainText('60 dias registrados no cadastro');
-  await expect(attention).not.toContainText('Aviso prévio não informado');
+  await expect(attention).not.toContainText('60 dias registrados no cadastro');
+  await expect(attention).toContainText('Aviso prévio não informado');
+});
+
+// Resposta sintética da API: valida a interface, não substitui prova de RLS real.
+test('workspace consulta tarefas próprias, expande a fila e atualiza sem o cache global', async ({ page }, testInfo) => {
+  await setup(page);
+  let reads = 0;
+  await page.route('**/api/finance/provider-relationship**', route => {
+    reads++;
+    if (reads > 2) return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ ok: false, error: 'Relacionamento indisponível' }) });
+    const tasks = reads === 1 ? Array.from({ length: 8 }, (_, i) => ({ id: `fresh-${i}`, title: `Pendência atual ${i}`, status: 'open', due_on: day(-10 + i), related_type: 'contract', related_id: OVERVIEW.contracts[0].id, assignee_name: 'Ana', assignee_id: 'u2' })) : [];
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+      ok: true, provider: { id: P_ATLAS, name: 'Atlas Bank' }, neutrality: 'Fatos.', contracts: OVERVIEW.contracts.filter(row => row.provider_id === P_ATLAS), tasks,
+      facilities: [], rfqs: [], invites: [], proposals: [], balances: [], contacts: [], issues: [], relationships: [], map: [], timeline: [], reviews: [], templates: [], coverage: { tasks_truncated: false },
+      metrics: { invited: 0, responded: 0, response_rate: null, median_response_days: null, active_contracts: 3, open_issues: 0, median_resolution_days: null, definitions: {} }
+    }) });
+  });
+  await page.goto(`/finance/providers.html?provider_id=${P_ATLAS}`);
+  const dialog = page.getByRole('dialog', { name: 'Atlas Bank' });
+  await expect(dialog.locator('.rel-attention')).toBeVisible();
+  if (process.env.RELATIONSHIP_CAPTURE) await page.screenshot({ path: `reports/relationship-${process.env.RELATIONSHIP_CAPTURE}-${testInfo.project.name}.png`, fullPage: true });
+  await expect(dialog).toContainText('Tarefa: Pendência atual 0');
+  await expect(dialog).not.toContainText('Tarefa: Revisar renovação');
+  await dialog.getByText(/Ver mais .* pendências deste recorte/).click();
+  await expect(dialog).toContainText('Tarefa: Pendência atual 7');
+  await expect(dialog.locator('.rel-attention').getByRole('link', { name: 'Abrir tarefa' })).toHaveCount(8);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await dialog.getByRole('button', { name: 'Atualizar relacionamento' }).click();
+  await expect.poll(() => reads).toBe(2);
+  await expect(dialog).not.toContainText('Tarefa: Pendência atual');
+  await expect(dialog).not.toContainText('Tarefa: Revisar renovação');
+  await dialog.getByRole('button', { name: 'Atualizar relacionamento' }).click();
+  await expect.poll(() => reads).toBe(3);
+  await expect(dialog).toContainText('Relacionamento indisponível');
+  await expect(dialog.locator('.rel-attention')).toHaveCount(0);
 });
