@@ -115,6 +115,34 @@ async function rejects(method, path, options, status, code = null) {
 const buyer = (entry) => (entry.url.includes('fin_organizations?select=id') ? [{ id: ORG, legal_name: 'Grupo', kind: 'BUYER' }] : null);
 const provider = (entry) => (entry.url.includes('fin_organizations?select=id') ? [{ id: ORG, legal_name: 'Banco', kind: 'PROVIDER' }] : null);
 
+// O link canônico consulta uma única tarefa sob a organização e o JWT do leitor.
+for (const status of ['open', 'done', 'cancelled']) {
+  reset(entry => buyer(entry) ?? (entry.url.includes('fin_tasks?') ? [{id: FACILITY, status, assignee_id: null}] : []));
+  const {payload} = await call('GET', 'tasks', {url: `/api/finance/tasks?organization_id=${ORG}&task_id=${FACILITY}`});
+  assert.equal(payload.rows[0].status, status);
+  assert.deepEqual(payload.page, {limit: 1, has_more: false, next_cursor: null});
+  const request = sent.find(entry => entry.url.includes('fin_tasks?'));
+  const params = new URL(request.url).searchParams;
+  assert.equal(params.get('id'), `eq.${FACILITY}`);
+  assert.equal(params.get('organization_id'), `eq.${ORG}`);
+  assert.equal(params.get('limit'), '1');
+  assert.equal(params.has('status'), false);
+  assert.equal(request.authorization, 'Bearer user-jwt');
+}
+reset(entry => buyer(entry) ?? []);
+assert.deepEqual((await call('GET', 'tasks', {url: `/api/finance/tasks?organization_id=${ORG}&task_id=${FACILITY}`})).payload.rows, []);
+for (const filter of ['status=open', 'assignee_id='+ACTOR, 'unassigned=true', 'cursor=invalid']) {
+  reset(entry => buyer(entry) ?? []);
+  await rejects('GET', 'tasks', {url: `/api/finance/tasks?organization_id=${ORG}&task_id=${FACILITY}&${filter}`}, 400, 'invalid_task_filter');
+  assert.ok(!sent.some(entry => entry.url.includes('fin_tasks?')));
+}
+reset(entry => buyer(entry) ?? []);
+await rejects('GET', 'tasks', {url: `/api/finance/tasks?organization_id=${ORG}&task_id=invalid`}, 400, 'invalid_id');
+assert.ok(!sent.some(entry => entry.url.includes('fin_tasks?')));
+reset(() => []);
+await rejects('GET', 'tasks', {url: `/api/finance/tasks?organization_id=${ORG}&task_id=${FACILITY}`}, 403);
+assert.ok(!sent.some(entry => entry.url.includes('fin_tasks?')));
+
 // Provedor (organização) não alcança nada de portfólio.
 reset(provider);
 await rejects('GET', 'portfolio', { url: `/api/finance/portfolio?organization_id=${ORG}` }, 400, 'organization_kind');
@@ -156,15 +184,15 @@ reset((entry) => buyer(entry)
 reset((entry) => buyer(entry) ?? (
   entry.url.includes('fin_providers?') ? [{ id: PROVIDER }] :
   entry.url.includes('fin_contracts?') ? [{ id: FACILITY, status: 'active', renewal_notice_days: 60 }] :
-  entry.url.includes('fin_tasks?') ? Array.from({ length: 201 }, (_, i) => ({ id: `task-${i}`, status: 'open', assignee_id: ACTOR, related_id: FACILITY })) :
+  entry.url.includes('fin_provider_contract_tasks?') ? Array.from({ length: 201 }, (_, i) => ({ id: `00000000-0000-4000-8000-${String(i+1).padStart(12,'0')}`, status: 'open', due_on: null, created_at: '2026-10-01T00:00:00Z', assignee_id: ACTOR, related_id: FACILITY })) :
   entry.url.includes('fin_members?') ? [{ user_id: ACTOR, display_name: 'Ana' }] : []));
 {
   const { payload } = await call('GET', 'provider-relationship', { url: `/api/finance/provider-relationship?organization_id=${ORG}&provider_id=${PROVIDER}` });
   assert.equal(payload.tasks.length, 200);
   assert.equal(payload.tasks[0].assignee_name, 'Ana');
   assert.equal(payload.coverage.tasks_truncated, true);
-  const taskQuery = sent.find(row => row.url.includes('fin_tasks?')).url;
-  for (const filter of [`organization_id=eq.${ORG}`, 'related_type=eq.contract', `related_id=in.(${FACILITY})`, 'status=eq.open', 'limit=201']) assert.ok(taskQuery.includes(filter), filter);
+  const taskQuery = sent.find(row => row.url.includes('fin_provider_contract_tasks?')).url;
+  for (const filter of [`organization_id=eq.${ORG}`, 'related_type=eq.contract', `provider_id=eq.${PROVIDER}`, 'status=eq.open', 'limit=201']) assert.ok(taskQuery.includes(filter), filter);
   assert.ok(sent.find(row => row.url.includes('fin_contracts?')).url.includes('renewal_notice_days'));
   assert.ok(sent.find(row => row.url.includes('fin_members?')).url.includes(`organization_id=eq.${ORG}`));
   assert.ok(sent.every(row => row.authorization === 'Bearer user-jwt'));
@@ -174,13 +202,58 @@ reset((entry) => buyer(entry) ?? (entry.url.includes('fin_providers?') ? [{ id: 
   const { payload } = await call('GET', 'provider-relationship', { url: `/api/finance/provider-relationship?organization_id=${ORG}&provider_id=${PROVIDER}` });
   assert.deepEqual(payload.tasks, []);
   assert.equal(payload.coverage.tasks_truncated, false);
-  assert.ok(!sent.some(row => /fin_tasks\?|fin_members\?/.test(row.url)));
+  assert.ok(sent.some(row => row.url.includes('fin_provider_contract_tasks?')));
+  assert.ok(!sent.some(row => row.url.includes('fin_members?')));
 }
 
 // Erro no recorte de tarefas falha a leitura; não vira uma lista vazia de sucesso.
-reset((entry) => buyer(entry) ?? (entry.url.includes('fin_providers?') ? [{ id: PROVIDER }] : entry.url.includes('fin_contracts?') ? [{ id: FACILITY }] : entry.url.includes('fin_tasks?') ? new Error('backend unavailable') : []));
+reset((entry) => buyer(entry) ?? (entry.url.includes('fin_providers?') ? [{ id: PROVIDER }] : entry.url.includes('fin_contracts?') ? [{ id: FACILITY }] : entry.url.includes('fin_provider_contract_tasks?') ? new Error('backend unavailable') : []));
 await assert.rejects(() => call('GET', 'provider-relationship', { url: `/api/finance/provider-relationship?organization_id=${ORG}&provider_id=${PROVIDER}` }));
 assert.ok(sent.every(row => row.authorization === 'Bearer user-jwt'));
+
+// Uma pendência no contrato 201 não pode desaparecer pelo recorte de contratos.
+const contractBeyondPage = '00000000-0000-4000-8000-00000000c201';
+reset(entry => buyer(entry) ?? (
+ entry.url.includes('fin_providers?') ? [{ id: PROVIDER }] :
+ entry.url.includes('fin_contracts?') ? Array.from({length:201}, (_, i) => ({ id: i === 200 ? contractBeyondPage : `00000000-0000-4000-8000-${String(i+1).padStart(12,'0')}`, created_at: '2026-10-01T00:00:00Z', status: 'active' })).slice(0, Number(new URL(entry.url).searchParams.get('limit'))) :
+ entry.url.includes('fin_provider_contract_tasks?') || entry.url.includes(contractBeyondPage) && entry.url.includes('fin_tasks?') ? [{ id: FACILITY, related_id: contractBeyondPage, related_type: 'contract', title: 'Revisar obrigação fora do recorte', status: 'open', due_on: '2026-10-01', created_at: '2026-10-01T00:00:00Z' }] : []));
+{
+ const {payload} = await call('GET','provider-relationship',{url:`/api/finance/provider-relationship?organization_id=${ORG}&provider_id=${PROVIDER}`});
+ assert.equal(payload.tasks[0]?.related_id, contractBeyondPage, 'tarefa de contrato fora da primeira página precisa ser consultada');
+ assert.equal(payload.pages.contracts.has_more,true);
+ assert.equal(payload.contracts.length,200);
+}
+
+// Continuação é escopada e não repete as consultas secundárias do relacionamento.
+const pageRows = Array.from({length:3}, (_, i) => ({ id:`00000000-0000-4000-8000-${String(i+1).padStart(12,'0')}`, due_on:null, created_at:'2026-10-01T00:00:00.000Z', status:'open', assignee_id:null }));
+reset(entry => buyer(entry) ?? (entry.url.includes('fin_providers?') ? [{id:PROVIDER}] : entry.url.includes('fin_provider_contract_tasks?') ? (new URL(entry.url).searchParams.has('or') ? pageRows.slice(2) : pageRows) : []));
+{
+ const url=`/api/finance/provider-relationship?organization_id=${ORG}&provider_id=${PROVIDER}&section=tasks&limit=2`;
+ const first=(await call('GET','provider-relationship',{url})).payload;
+ assert.equal(first.rows.length,2);assert.equal(first.page.has_more,true);
+ const last=(await call('GET','provider-relationship',{url:`${url}&cursor=${first.page.next_cursor}`})).payload;
+ assert.equal(last.rows.length,1);assert.equal(last.page.has_more,false);assert.equal(last.page.next_cursor,null);
+ assert.equal(new Set([...first.rows,...last.rows].map(r=>r.id)).size,3);
+ assert.ok(new URL(sent.filter(r=>r.url.includes('fin_provider_contract_tasks?')).at(-1).url).searchParams.get('or').includes('due_on.is.null'));
+ assert.ok(!sent.some(r=>/fin_provider_contacts|fin_rfq_invites|fin_facilities|fin_members/.test(r.url)));
+ const forged=JSON.parse(Buffer.from(first.page.next_cursor,'base64url').toString());forged.provider=OTHER_PROVIDER;
+ await rejects('GET','provider-relationship',{url:`${url}&cursor=${Buffer.from(JSON.stringify(forged)).toString('base64url')}`},400,'invalid_relationship_page');
+ for(const extra of ['limit=0','limit=201','limit=1.5','section=other','cursor=bad']) await rejects('GET','provider-relationship',{url:`/api/finance/provider-relationship?organization_id=${ORG}&provider_id=${PROVIDER}&${extra}`},400,'invalid_relationship_page');
+}
+
+// Toda página revalida a organização antes de consultar dados de instituição.
+reset(()=>[]);
+for(const section of ['tasks','contracts']) await rejects('GET','provider-relationship',{url:`/api/finance/provider-relationship?organization_id=${ORG}&provider_id=${PROVIDER}&section=${section}`},403,'organization_forbidden');
+assert.ok(!sent.some(r=>r.url.includes('fin_providers?')||r.url.includes('fin_provider_contract_tasks?')));
+reset(entry=>buyer(entry)??(entry.url.includes('fin_providers?')?[{id:PROVIDER}]:entry.url.includes('fin_contracts?')?Array.from({length:3},(_,i)=>({id:`00000000-0000-4000-8000-${String(i+1).padStart(12,'0')}`,created_at:'2026-10-01T00:00:00Z'})):[]));
+{
+ const url=`/api/finance/provider-relationship?organization_id=${ORG}&provider_id=${PROVIDER}&section=contracts&limit=2`;
+ const first=(await call('GET','provider-relationship',{url})).payload;
+ assert.equal(first.rows.length,2);assert.equal(first.page.has_more,true);
+ await call('GET','provider-relationship',{url:`${url}&cursor=${first.page.next_cursor}`});
+ assert.match(new URL(sent.filter(r=>r.url.includes('fin_contracts?')).at(-1).url).searchParams.get('or'),/created_at.lt/);
+ await rejects('GET','provider-relationship',{url:`${url.replace('section=contracts','section=tasks')}&cursor=${first.page.next_cursor}`},400,'invalid_relationship_page');
+}
 
 // Contato: e-mail validado, nome não carrega e-mail, corpo forjado ignorado.
 reset((entry) => buyer(entry) ?? 'c1');

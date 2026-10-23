@@ -17,7 +17,7 @@ export function relationshipContext(ctx, detail) {
   const href = path => ctx.href(path);
   const quickLinks = [['fees', 'Tarifas e cobranças'], ['covenants', 'Obrigações e covenants'], ['opportunities', 'Renovações e oportunidades'], ['qualifications', 'Qualificação'], ['performance', 'Performance'], ['spend', 'Spend']];
   return el('div', { class: 'stack relationship-context' }, [
-    el('p', { class: 'muted small', text: `Recorte autorizado: até 200 contratos e facilities; 500 convites, propostas e solicitações; 2.000 fotografias de saldo. Indicadores e listas descrevem esse recorte, não o histórico completo. Cadastro ${provider.verification_state === 'EVIDENCIA_REGISTRADA' ? 'com evidência registrada; não é atestação de regularidade' : 'sem verificação registrada'}.` }),
+    el('p', { class: 'muted small', text: `Recorte autorizado: contratos carregados por página; até 200 facilities e 500 convites, propostas e solicitações; 2.000 fotografias de saldo. Os indicadores e o mapa descrevem o recorte inicial, não o histórico completo. As listas de contratos e tarefas permitem carregar mais. Cadastro ${provider.verification_state === 'EVIDENCIA_REGISTRADA' ? 'com evidência registrada; não é atestação de regularidade' : 'sem verificação registrada'}.` }),
     section('Contratos e condições', contracts, contract => el('li', {}, [el('a', { href: href(`/finance/contracts.html?abrir=contrato#contract-${contract.id}`), text: contract.title || [CONTRACT_CATEGORIES[contract.product] || (contract.product ? productLabel(contract.product) : ''), contract.ends_on ? `vence ${date(contract.ends_on)}` : ''].filter(Boolean).join(' · ') || 'Contrato sem título' }), el('p', { class: 'small muted', text: `${CONTRACT_STATUS[contract.status]?.label || 'Estado não informado'} · início ${date(contract.starts_on)} · término ${date(contract.ends_on)}. Abra o contrato para condições, versões, obrigações e renovação.` })]), 'Nenhum contrato disponível neste recorte.'),
     section('Facilities e limites', facilities, facility => {
       const balance = balances.get(facility.id);
@@ -84,7 +84,7 @@ export function relationshipAttention(detail, { today = Date.UTC(new Date().getU
   for (const task of (detail.tasks || []).filter(row => row.status === 'open')) {
     const days = daysTo(task.due_on, today);
     items.push({ kind: days !== null && days < 0 ? 'overdue' : 'open', rank: days !== null && days < 0 ? 0 : 3, due: days, title: `Tarefa: ${task.title}`,
-      detail: task.due_on ? `Prazo operacional ${formatDate(task.due_on)}${task.assignee_name ? ` · responsável ${task.assignee_name}` : ' · responsável não definido'}.` : 'Sem prazo definido.', target: { type: 'task', id: task.id } });
+      detail: `${task.due_on ? `Prazo operacional ${formatDate(task.due_on)}` : 'Sem prazo definido'}${task.assignee_name ? ` · responsável ${task.assignee_name}` : ' · responsável não definido'}.`, target: { type: 'task', id: task.id } });
   }
   if (!(detail.contacts || []).length) items.push({ kind: 'missing', rank: 4, title: 'Nenhum contato registrado', detail: 'Registre quem atende a empresa nesta instituição.', target: { type: 'contact' } });
   const due = (item) => (Number.isFinite(item.due) ? item.due : 9999);

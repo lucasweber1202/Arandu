@@ -491,13 +491,15 @@ export async function tasks(ctx) {
   });
 
   const url = new URL(location.href);
+  const requestedTask = /^#task-([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i.exec(location.hash)?.[1] || null;
   const filter = el('select', { class: 'input', 'aria-label': 'Mostrar tarefas' });
+  if (requestedTask) filter.add(new Option('Tarefa deste link', 'vinculada'));
   for (const [value, text] of TASK_FILTERS) filter.add(new Option(text, value));
-  filter.value = TASK_FILTERS.some(([value]) => value === url.searchParams.get('filtro')) ? url.searchParams.get('filtro') : 'abertas';
+  filter.value = [...filter.options].some(({value}) => value === url.searchParams.get('filtro')) ? url.searchParams.get('filtro') : requestedTask ? 'vinculada' : 'abertas';
   const scopeNote = el('span', { class: 'muted small', role: 'status', 'aria-live': 'polite' });
   filter.addEventListener('change', () => {
     const next = new URL(location.href);
-    if (filter.value === 'abertas') next.searchParams.delete('filtro'); else next.searchParams.set('filtro', filter.value);
+    if (filter.value === 'abertas' && !requestedTask) next.searchParams.delete('filtro'); else next.searchParams.set('filtro', filter.value);
     history.replaceState(null, '', next.pathname + next.search + next.hash);
     draw();
   });
@@ -507,6 +509,7 @@ export async function tasks(ctx) {
   const PAGE = 50;
   const query = (cursor) => {
     const q = new URLSearchParams({ organization_id: ctx.organization.id, limit: String(PAGE) });
+    if (filter.value === 'vinculada') { q.set('task_id', requestedTask); return `tasks?${q}`; }
     if (filter.value === 'concluidas') q.set('status', 'done'); else q.set('status', 'open');
     if (filter.value === 'minhas' && ctx.viewer?.id) q.set('assignee_id', ctx.viewer.id);
     if (filter.value === 'sem-responsavel') q.set('unassigned', 'true');
@@ -571,8 +574,8 @@ export async function tasks(ctx) {
     try {
       const data = await ctx.api(query(null));
       if (mine !== generation) return null;
-      loaded = data.rows || [];
-      nextCursor = data.page?.has_more ? data.page.next_cursor : null;
+      loaded = (data.rows || []).filter((row) => filter.value !== 'vinculada' || row.id === requestedTask);
+      nextCursor = filter.value !== 'vinculada' && data.page?.has_more ? data.page.next_cursor : null;
       render(focusId);
       return loaded;
     } catch (error) {
@@ -605,7 +608,7 @@ export async function tasks(ctx) {
       more.hidden = !nextCursor;
       // Abertas agrupadas por urgência (§35.8): o que venceu, o que vence nesta
       // semana e o resto. A ordem do servidor (prazo) é mantida dentro de cada grupo.
-      const grouped = filter.value !== 'concluidas';
+      const grouped = !['concluidas', 'vinculada'].includes(filter.value);
       const BUCKETS = [['overdue', 'Vencidas'], ['week', 'Próximos 7 dias'], ['later', 'Mais adiante'], ['none', 'Sem prazo']];
       const bucketOf = (task) => {
         if (task.status !== 'open' || !task.due_on) return task.due_on ? 'later' : 'none';
@@ -619,9 +622,9 @@ export async function tasks(ctx) {
       for (const task of visible) {
         const days = daysUntil(task.due_on);
         // Leitor vê o estado como texto; quem pode alterar recebe a caixa.
-        const check = canEdit ? el('input', { type: 'checkbox', checked: task.status === 'done', 'aria-label': `${task.status === 'done' ? 'Reabrir' : 'Concluir'}: ${task.title}` }) : null;
+        const check = canEdit && task.status !== 'cancelled' ? el('input', { type: 'checkbox', checked: task.status === 'done', 'aria-label': `${task.status === 'done' ? 'Reabrir' : 'Concluir'}: ${task.title}` }) : null;
         check?.addEventListener('change', () => changeStatus(task, check));
-        const state = canEdit ? null : el('span', { class: 'task-state', text: task.status === 'done' ? 'Concluída' : 'Aberta' });
+        const state = check ? null : el('span', { class: 'task-state', text: task.status === 'cancelled' ? 'Cancelada' : task.status === 'done' ? 'Concluída' : 'Aberta' });
         // Tarefa de contrato diz qual contrato e quando ele vence de fato:
         // concluir a tarefa não muda o vencimento nem o aviso prévio.
         const contract = task.related_type === 'contract' ? contractsById.get(task.related_id) : null;
@@ -641,13 +644,13 @@ export async function tasks(ctx) {
         ]));
       }
       const empty = { abertas: ['Nenhuma tarefa aberta', 'Tarefas de renovação são criadas automaticamente a partir dos contratos.'], minhas: ['Nenhuma tarefa aberta atribuída a você', 'Quando alguém atribuir uma tarefa a você, ela aparece aqui.'],
-        'sem-responsavel': ['Toda tarefa aberta tem responsável', null], concluidas: ['Nenhuma tarefa concluída', null] }[filter.value];
+        vinculada: ['Tarefa não disponível neste escopo', 'Atualize a lista ou confira o acesso à entidade desta tarefa.'], 'sem-responsavel': ['Toda tarefa aberta tem responsável', null], concluidas: ['Nenhuma tarefa concluída', null] }[filter.value];
       const list = grouped
         ? el('div', { class: 'task-list task-groups' }, BUCKETS.filter(([key]) => lists.get(key).children.length).map(([key, label]) => el('section', { class: `notice-group task-group task-group-${key}`, 'aria-label': label }, [
           el('h2', { class: 'notice-group-title', text: `${label} · ${lists.get(key).children.length}` }), lists.get(key)])))
         : single;
       box.replaceChildren(visible.length ? list : emptyState({ title: empty[0], text: empty[1], iconName: 'checkCircle', compact: true }));
-      const target = focusId ? document.getElementById(`task-${focusId}`) : location.hash.startsWith('#task-') ? document.querySelector(location.hash) : null;
+      const target = focusId ? document.getElementById(`task-${focusId}`) : requestedTask ? document.getElementById(`task-${requestedTask}`) : null;
       target?.scrollIntoView({ block: 'center' });
     }
   }

@@ -1,0 +1,231 @@
+{
+  "status": "BLOCKED",
+  "sha": "9b57f2a7434fb9ca0bc68e607a36e63334728359",
+  "at": "2026-10-23T03:57:02.059Z",
+  "checks": [
+    {
+      "id": "target",
+      "label": "Alvo só local",
+      "status": "PASS",
+      "detail": "nenhuma variável aponta para fora de localhost"
+    },
+    {
+      "id": "app-runtime",
+      "label": "App canônico com banco real",
+      "status": "BLOCKED",
+      "detail": "ambiente ? · datasource ?",
+      "fix": "bash scripts/demo/local.sh resume"
+    },
+    {
+      "id": "app-commit",
+      "label": "SHA servido pelo app = checkout",
+      "status": "BLOCKED",
+      "detail": "SHA do processo ausente ou diferente do checkout",
+      "fix": "bash scripts/demo/local.sh app"
+    },
+    {
+      "id": "db-schema",
+      "label": "Migrations compatíveis com este código",
+      "status": "BLOCKED",
+      "detail": "marker ausente · esperado financial-external-proposals-1",
+      "fix": "Pare e confira o schema e o SHA; não rode setup/reset para corrigir migrations."
+    },
+    {
+      "id": "os",
+      "label": "Sistema e arquitetura",
+      "status": "PASS",
+      "detail": "Linux 6.18.55 x64"
+    },
+    {
+      "id": "node",
+      "label": "Node.js 24",
+      "status": "PASS",
+      "detail": "v24.19.0",
+      "fix": "Instale Node 24 (nvm install 24; o .nvmrc fixa a versão)."
+    },
+    {
+      "id": "npm",
+      "label": "npm",
+      "status": "PASS",
+      "detail": "11.9.0"
+    },
+    {
+      "id": "deps",
+      "label": "Dependências do lockfile instaladas",
+      "status": "PASS",
+      "detail": "npm ls sem pendências",
+      "fix": "npm ci --include=optional"
+    },
+    {
+      "id": "cpu",
+      "label": "CPU (≥ 2)",
+      "status": "PASS",
+      "detail": "3 núcleo(s)"
+    },
+    {
+      "id": "memory",
+      "label": "Memória (≥ 6 GiB)",
+      "status": "PASS",
+      "detail": "9 GiB",
+      "fix": "Feche aplicativos; no Docker Desktop/WSL2, aumente a memória da VM."
+    },
+    {
+      "id": "disk",
+      "label": "Disco livre (≥ 10 GiB)",
+      "status": "PASS",
+      "detail": "21 GiB livres"
+    },
+    {
+      "id": "docker",
+      "label": "Docker Engine",
+      "status": "PASS",
+      "detail": "Docker 28.4.0",
+      "fix": "Inicie o Docker (Docker Desktop/WSL2 ou systemctl start docker)."
+    },
+    {
+      "id": "compose",
+      "label": "Docker Compose",
+      "status": "PASS",
+      "detail": "Compose 2.40.3"
+    },
+    {
+      "id": "host-tools",
+      "label": "Ferramentas do setup (psql, openssl, curl, pgrep)",
+      "status": "BLOCKED",
+      "detail": "ausentes: psql",
+      "fix": "Ubuntu/WSL2: sudo apt-get install -y postgresql-client openssl curl procps"
+    },
+    {
+      "id": "line-endings",
+      "label": "Scripts com fim de linha LF",
+      "status": "PASS",
+      "detail": "sem CRLF nos scripts",
+      "fix": "Preserve o trabalho e use um clone separado no WSL com core.autocrlf=false; não execute reset destrutivo."
+    },
+    {
+      "id": "native-deps",
+      "label": "Módulos nativos deste sistema",
+      "status": "PASS",
+      "detail": "rolldown e lightningcss carregam em linux-x64",
+      "fix": "node_modules veio de outro sistema (ex.: npm do Windows): apague node_modules e rode npm ci --include=optional aqui."
+    },
+    {
+      "id": "browser",
+      "label": "Chromium do Playwright do lockfile",
+      "status": "PASS",
+      "detail": "Chromium 156.0.8078.4 iniciado",
+      "fix": "npx playwright install chromium"
+    },
+    {
+      "id": "ports",
+      "label": "Portas da Demo",
+      "status": "PASS",
+      "detail": "livres ou da própria Demo",
+      "fix": "Libere as portas ou encerre a outra pilha (não rode duas Demos ao mesmo tempo)."
+    },
+    {
+      "id": "svc-db",
+      "label": "PostgreSQL",
+      "status": "BLOCKED",
+      "detail": "contêiner ausente",
+      "fix": "bash scripts/demo/local.sh resume"
+    },
+    {
+      "id": "svc-auth",
+      "label": "Auth (GoTrue)",
+      "status": "BLOCKED",
+      "detail": "ECONNREFUSED",
+      "fix": "bash scripts/demo/local.sh resume"
+    },
+    {
+      "id": "svc-rest",
+      "label": "PostgREST",
+      "status": "BLOCKED",
+      "detail": "ECONNREFUSED",
+      "fix": "bash scripts/demo/local.sh resume"
+    },
+    {
+      "id": "svc-storage",
+      "label": "Storage",
+      "status": "BLOCKED",
+      "detail": "ECONNREFUSED",
+      "fix": "bash scripts/demo/local.sh resume"
+    },
+    {
+      "id": "svc-gateway",
+      "label": "Gateway HTTPS",
+      "status": "BLOCKED",
+      "detail": "certificado local ausente",
+      "fix": "bash scripts/demo/local.sh resume"
+    },
+    {
+      "id": "svc-app",
+      "label": "App",
+      "status": "BLOCKED",
+      "detail": "certificado local ausente",
+      "fix": "bash scripts/demo/local.sh resume"
+    },
+    {
+      "id": "db-container",
+      "label": "Banco é o contêiner original",
+      "status": "BLOCKED",
+      "detail": "contêiner ausente",
+      "fix": "Contêiner recriado ou ausente: os dados da Demo estão nele. npm run demo:setup (≈ 20 min)."
+    },
+    {
+      "id": "cert",
+      "label": "Certificado HTTPS local",
+      "status": "BLOCKED",
+      "detail": "scripts/pilot-local/.state/cert.pem ausente",
+      "fix": "npm run demo:setup recria o estado local."
+    },
+    {
+      "id": "seed",
+      "label": "Seed íntegro",
+      "status": "PREPARED",
+      "detail": "não verificado (--fast)",
+      "fix": "npm run demo:local:check (e, se falhar, npm run demo:local:reset)"
+    },
+    {
+      "id": "pool",
+      "label": "Pool de visitantes (≥ 2 prontos)",
+      "status": "BLOCKED",
+      "detail": "0 pronto(s), 0 em uso · inconclusive",
+      "fix": "npm run demo:local:workspaces -- provision --count=2 (≈ 11 min)"
+    },
+    {
+      "id": "tree",
+      "label": "Árvore Git limpa",
+      "status": "PASS",
+      "detail": "sem alterações locais",
+      "fix": "git stash (não apague trabalho) ou volte ao SHA congelado."
+    },
+    {
+      "id": "freeze",
+      "label": "Versão congelada",
+      "status": "PREPARED",
+      "detail": "nenhum congelamento nesta máquina",
+      "fix": "bash scripts/demo/local.sh freeze --station"
+    },
+    {
+      "id": "station",
+      "label": "Esta é a estação declarada",
+      "status": "PREPARED",
+      "detail": "não declarada",
+      "fix": "bash scripts/demo/local.sh freeze --station (na máquina da apresentação)"
+    },
+    {
+      "id": "ephemeral",
+      "label": "Máquina persistente",
+      "status": "PREPARED",
+      "detail": "executor efêmero (CODEX_CI, CODEX_MANAGED_CLOUD): nunca é a estação"
+    },
+    {
+      "id": "readiness",
+      "label": "Prontidão recente (≤ 120 min, Modo leitura PRONTO)",
+      "status": "PREPARED",
+      "detail": "sem relatório JSON compatível",
+      "fix": "bash scripts/demo/local.sh readiness --smoke"
+    }
+  ]
+}

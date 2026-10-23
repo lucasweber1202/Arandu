@@ -26,26 +26,90 @@ export async function openProviderRelationship(ctx, provider) {
   const body = el('div', { class: 'stack contract-center' }, loading('Carregando relacionamento…'));
   const dialog = drawer({ title: provider.name, subtitle: 'Relacionamento da sua empresa com esta instituição: contratos, negociações, contatos e pendências.', body, className: 'drawer-wide', onClose: () => { const url = new URL(location.href); if (url.searchParams.get('provider_id') === provider.id) { url.searchParams.delete('provider_id'); history.replaceState(null, '', url.pathname + url.search + url.hash); } } });
   const write = ctx.can('edit_profile');
-  const load = () => ctx.api(`provider-relationship?organization_id=${encodeURIComponent(ctx.organization.id)}&provider_id=${encodeURIComponent(provider.id)}`)
-    .then((detail) => body.replaceChildren(...render(detail))).catch((error) => body.replaceChildren(errorState({ error, onRetry: load })));
+  let generation = 0;
+  const endpoint = `provider-relationship?organization_id=${encodeURIComponent(ctx.organization.id)}&provider_id=${encodeURIComponent(provider.id)}`;
+  const load = async () => {
+    const epoch = ++generation;
+    body.replaceChildren(loading('Carregando relacionamento…'));
+    try {
+      const detail = await ctx.api(endpoint);
+      if (epoch === generation && dialog.isConnected) body.replaceChildren(...render(detail, epoch));
+    } catch (error) {
+      if (epoch === generation && dialog.isConnected) body.replaceChildren(errorState({ error, onRetry: load }));
+    }
+  };
   const after = (message) => { toast(message); load(); };
 
-  function render(detail) {
+  function render(detail, epoch) {
     const m = detail.metrics;
     const d = m.definitions;
-    const summary = relationshipSummary(detail);
-    // Começo buyer-first: sem contrato vigente, registrar o que a empresa já tem.
-    const live = (detail.contracts || []).some((row) => ['active', 'renewing'].includes(row.status));
-    const start = !live && ctx.can('create_rfq') ? el('div', { class: 'callout callout-info compact rel-start' }, [icon('briefcase', { size: 14 }),
-      el('span', { text: 'Nenhum contrato vigente registrado com esta instituição. Registre o contrato que a empresa já tem para acompanhar condições, prazo e renovação, sem depender da adesão da instituição.' }),
-      button('Registrar contrato existente', { size: 'sm', variant: 'primary', iconName: 'plus', onClick: async () => { const { importContractButton } = await import('./contract-center.js'); importContractButton(ctx, entities, { providerId: provider.id })?.click(); } })]) : null;
-    const sections = [el('div', { class: 'cc-head' }, [workspaceHead(summary), button('Atualizar relacionamento', { size: 'sm', iconName: 'refresh', onClick: () => { body.replaceChildren(loading('Atualizando relacionamento…')); load(); } })]), start, attentionSection(summary.attention, detail),
-      el('p', { class: 'muted small', text: detail.coverage?.tasks_truncated ? 'Exibindo as primeiras 200 tarefas abertas dos contratos deste recorte. Consulte Tarefas para continuar a revisão.' : 'Tarefas abertas dos contratos deste recorte, consultadas ao abrir ou atualizar o relacionamento.' }),
-      el('section', { class: 'cc-section', 'aria-labelledby': 'rel-records' }, [el('h3', { id: 'rel-records', text: 'Contratos, limites e negociações' }), relationshipContext(ctx, detail)])];
+    const header = el('div', { class: 'cc-head' });
+    const startBox = el('div');
+    const attention = el('div');
+    const records = el('section', { class: 'cc-section', 'aria-labelledby': 'rel-records' });
+    const sections = [header, startBox, attention, records];
+    const pending = new Set();
+    const pageErrors = {};
+    const controls = (section) => {
+      const page = detail.pages?.[section];
+      const label = section === 'tasks' ? 'tarefas abertas carregadas' : 'contratos carregados';
+      const area = el('div', { class: `stack rel-${section}-pages` });
+      if (!page) return area;
+      area.append(el('p', { class: 'muted small', role: 'status', text: `${detail[section].length} ${label}${page.has_more ? ' · há mais nesta instituição' : ' · consulta concluída neste filtro'}. Atualize para rever alterações.` }));
+      if (!page.has_more) return area;
+      const more = button(`Carregar mais ${section === 'tasks' ? 'tarefas' : 'contratos'}`, { size: 'sm', onClick: async () => {
+        if (pending.has(section)) return;
+        pending.add(section);
+        more.disabled = true;
+        area.setAttribute('aria-busy', 'true');
+        try {
+          const next = await ctx.api(`${endpoint}&section=${section}&limit=50&cursor=${encodeURIComponent(page.next_cursor)}`);
+          if (epoch !== generation || !dialog.isConnected) return;
+          if (!Array.isArray(next.rows) || !next.rows.every(row => row && typeof row.id === 'string' && row.id) || !next.page || typeof next.page.has_more !== 'boolean'
+            || !Number.isInteger(next.page.limit) || next.page.limit < 1 || next.page.limit > 200 || next.rows.length > next.page.limit
+            || next.page.has_more && (typeof next.page.next_cursor !== 'string' || !next.page.next_cursor || next.page.next_cursor === page.next_cursor || !next.rows.length)
+            || !next.page.has_more && next.page.next_cursor !== null) {
+            throw new Error('Não conseguimos carregar a continuação do relacionamento. Tente novamente ou atualize a consulta.');
+          }
+          const rows = new Map(detail[section].map(row => [row.id, row]));
+          for (const row of next.rows) rows.set(row.id, row);
+          detail[section] = [...rows.values()].filter(row => section !== 'tasks' || row.status === 'open');
+          detail.pages[section] = next.page;
+          delete pageErrors[section];
+        } catch (error) {
+          if (epoch === generation && dialog.isConnected) pageErrors[section] = error;
+        } finally {
+          pending.delete(section);
+          if (epoch === generation && dialog.isConnected) {
+            redraw(section);
+            const target = (section === 'tasks' ? attention : records).querySelector(`.rel-${section}-pages button, .rel-${section}-pages [role="status"]`);
+            if (target) { if (!target.matches('button')) target.tabIndex = -1; target.focus({ preventScroll: true }); }
+          }
+        }
+      } });
+      more.disabled = pending.has(section);
+      if (pageErrors[section]) area.append(el('div', { class: 'rel-page-error' }, errorState({ error: pageErrors[section], onRetry: () => more.click() })));
+      area.append(more);
+      return area;
+    };
+    const redraw = (section = null) => {
+      const expanded = attention.querySelector('details')?.open;
+      const summary = relationshipSummary(detail);
+      header.replaceChildren(workspaceHead(summary), button('Atualizar relacionamento', { size: 'sm', iconName: 'refresh', onClick: load }));
+      const live = (detail.contracts || []).some(row => ['active', 'renewing'].includes(row.status));
+      const start = !live && !detail.pages?.contracts?.has_more && ctx.can('create_rfq') ? el('div', { class: 'callout callout-info compact rel-start' }, [icon('briefcase', { size: 14 }),
+        el('span', { text: 'Nenhum contrato vigente registrado com esta instituição. Registre o contrato que a empresa já tem para acompanhar condições, prazo e renovação, sem depender da adesão da instituição.' }),
+        button('Registrar contrato existente', { size: 'sm', variant: 'primary', iconName: 'plus', onClick: async () => { const { importContractButton } = await import('./contract-center.js'); importContractButton(ctx, entities, { providerId: provider.id })?.click(); } })]) : null;
+      startBox.replaceChildren(...[start].filter(Boolean));
+      attention.replaceChildren(attentionSection(summary.attention, detail), controls('tasks'));
+      if (expanded && attention.querySelector('details')) attention.querySelector('details').open = true;
+      if (section !== 'tasks') records.replaceChildren(el('h3', { id: 'rel-records', text: 'Contratos, limites e negociações' }), relationshipContext(ctx, detail), controls('contracts'));
+    };
+    redraw();
     // Nível 4: indicadores, mapa, relação por entidade e avaliações — consulta, não trabalho.
     const advanced = [];
     advanced.push(el('p', { class: 'callout callout-info compact' }, [icon('shield', { size: 14 }), el('span', { text: detail.neutrality })]));
-    advanced.push(el('section', { class: 'cc-section' }, [el('h3', { text: 'Indicadores do recorte carregado' }), el('div', { class: 'portfolio-stats' }, [
+    advanced.push(el('section', { class: 'cc-section' }, [el('h3', { text: 'Indicadores do recorte inicial' }), el('div', { class: 'portfolio-stats' }, [
       metric('Convites', `${m.responded} de ${m.invited} respondidos`, d.response_rate),
       metric('Taxa de resposta', m.response_rate === null ? 'Sem convites' : percent(m.response_rate), d.responded),
       metric('Tempo de resposta (mediana)', m.median_response_days === null ? '—' : `${m.median_response_days} dias`, d.median_response_days),
@@ -55,7 +119,7 @@ export async function openProviderRelationship(ctx, provider) {
     ])]));
 
     // Mapa por entidade × categoria.
-    advanced.push(el('section', { class: 'cc-section' }, [el('h3', { text: 'Mapa do relacionamento' }),
+    advanced.push(el('section', { class: 'cc-section' }, [el('h3', { text: 'Mapa do recorte inicial' }),
       detail.map.length ? el('table', { class: 'data-table compact' }, [
         el('thead', {}, el('tr', {}, ['Entidade', 'Categoria', 'Contratos', 'Facilities', 'Limites', 'Próximo vencimento'].map((label) => el('th', { scope: 'col', text: label })))),
         el('tbody', {}, detail.map.map((row) => el('tr', {}, [
@@ -124,7 +188,7 @@ export async function openProviderRelationship(ctx, provider) {
       fact('Relação', summary.status, ''),
       fact('Contato principal', summary.contact, 'Não registrado'),
       fact('Produtos', summary.products.join(', '), 'Nenhum contrato ou limite no recorte'),
-      fact('Próximo prazo', summary.next ? summary.next.title : null, 'Nenhum prazo futuro registrado')
+      fact('Próximo prazo no recorte', summary.next ? summary.next.title : null, 'Nenhum prazo futuro registrado')
     ]));
   }
 

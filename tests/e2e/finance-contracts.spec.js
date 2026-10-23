@@ -970,3 +970,40 @@ test('tarefas abertas agrupadas por urgência: vencidas, próximos 7 dias, mais 
   await expect(page.locator('.task-toolbar [role=status]')).toHaveText('4 tarefas carregadas · todas deste filtro');
   await noHorizontalOverflow(page);
 });
+
+for (const status of ['open','done','cancelled','unavailable']) test(`tarefa além da página inicial: ${status}`, async ({page}, testInfo) => {
+  await mockSession(page);
+  const target='00000000-0000-4000-8000-00000000f999';
+  const lookups=[];
+  await page.route('**/api/finance/tasks**',route=>{
+    const id=new URL(route.request().url()).searchParams.get('task_id');lookups.push(id);
+    const rows=id===target ? status==='unavailable'?[]:[{id:target,title:'Revisar obrigação fora da primeira página',status,due_on:'2026-12-01',assignee_id:null,related_type:'contract',related_id:CONTRACT}]
+      : [{id:'00000000-0000-4000-8000-00000000f998',title:'Outra tarefa da primeira página',status:'open',due_on:'2026-11-01'}];
+    return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true,rows,page:{limit:id?1:50,has_more:!id,next_cursor:id?null:'more'}})});
+  });
+  await page.goto(`/finance/tasks.html#task-${target}`);
+  await expect(page.getByRole('heading',{name:'Tarefas',exact:true})).toBeVisible();
+  if(process.env.TASK_LINK_CAPTURE && status==='open')await page.screenshot({path:`reports/task-link-${process.env.TASK_LINK_CAPTURE}-${testInfo.project.name}.png`});
+  await expect.poll(()=>lookups.includes(target)).toBe(true);
+  await expect(page.getByLabel('Mostrar tarefas')).toHaveValue('vinculada');
+  await expect(page.getByText('Outra tarefa da primeira página',{exact:true})).toHaveCount(0);
+  if(status==='unavailable') {
+    await expect(page.getByText('Tarefa não disponível neste escopo',{exact:true})).toBeVisible();
+    await expect(page.locator('.task-item')).toHaveCount(0);
+  } else {
+    const row=page.locator(`#task-${target}`);
+    await expect(row).toContainText('Revisar obrigação fora da primeira página');
+    if(status==='cancelled') {await expect(row).toContainText('Cancelada');await expect(row.getByRole('checkbox')).toHaveCount(0);}
+    else await expect(row.getByRole('checkbox')).toBeChecked({checked:status==='done'});
+  }
+  await noHorizontalOverflow(page);
+  if(status==='open') {
+    await page.getByLabel('Mostrar tarefas').selectOption('abertas');
+    await expect(page.getByText('Outra tarefa da primeira página',{exact:true})).toBeVisible();
+    await expect(page.locator(`#task-${target}`)).toHaveCount(0);
+    await expect(page).toHaveURL(/filtro=abertas/);
+    await page.reload();
+    await expect(page.getByLabel('Mostrar tarefas')).toHaveValue('abertas');
+    await expect(page.getByText('Outra tarefa da primeira página',{exact:true})).toBeVisible();
+  }
+});

@@ -1,0 +1,122 @@
+{
+  "url": "https://arandu-demo.vercel.app",
+  "local": false,
+  "expected_sha": "9b57f2a7434fb9ca0bc68e607a36e63334728359",
+  "checked_at": "2026-10-23T03:37:12.992Z",
+  "release": {
+    "environment": null,
+    "mode": "demo",
+    "datasource": "synthetic-fixtures",
+    "misconfigured": false,
+    "branch": "main",
+    "commit": "9b57f2a7434fb9ca0bc68e607a36e63334728359"
+  },
+  "verdict": "NOT_READY",
+  "checks": [
+    {
+      "id": "domain",
+      "result": "PASS",
+      "detail": "HTTP 200 arandu-demo.vercel.app"
+    },
+    {
+      "id": "health-alive",
+      "result": "PASS",
+      "detail": "HTTP 200"
+    },
+    {
+      "id": "environment-demo",
+      "result": "FAIL",
+      "detail": "HTTP 200 environment=ausente"
+    },
+    {
+      "id": "datasource-supabase",
+      "result": "FAIL",
+      "detail": "HTTP 200 datasource=synthetic-fixtures"
+    },
+    {
+      "id": "not-misconfigured",
+      "result": "PASS",
+      "detail": "HTTP 200 misconfigured=false"
+    },
+    {
+      "id": "release-sha",
+      "result": "PASS",
+      "detail": "HTTP 200 commit=9b57f2a7434fb9ca0bc68e607a36e63334728359 esperado=9b57f2a7434fb9ca0bc68e607a36e63334728359"
+    },
+    {
+      "id": "health-identity",
+      "result": "FAIL",
+      "detail": "HTTP 200 HEALTH_NOT_READY_OR_WRONG_ENVIRONMENT"
+    },
+    {
+      "id": "readiness-identity",
+      "result": "FAIL",
+      "detail": "HTTP 503 HEALTH_NOT_READY_OR_WRONG_ENVIRONMENT"
+    },
+    {
+      "id": "persona-entry",
+      "result": "FAIL",
+      "detail": "HTTP 404 personas=0"
+    },
+    {
+      "id": "auth-required",
+      "result": "FAIL",
+      "detail": "HTTP 404 "
+    },
+    {
+      "id": "login-canonical",
+      "result": "PASS",
+      "detail": "HTTP 200"
+    },
+    {
+      "id": "asset /assets/vercel-speed-insights.js",
+      "result": "PASS",
+      "detail": "HTTP 200 application/javascript"
+    },
+    {
+      "id": "asset /assets/preload-helper.js",
+      "result": "PASS",
+      "detail": "HTTP 200 application/javascript"
+    },
+    {
+      "id": "asset /assets/financial-auth.js",
+      "result": "PASS",
+      "detail": "HTTP 200 application/javascript"
+    },
+    {
+      "id": "asset /assets/style.css",
+      "result": "PASS",
+      "detail": "HTTP 200 text/css"
+    },
+    {
+      "id": "asset /assets/financial-public.css",
+      "result": "PASS",
+      "detail": "HTTP 200 text/css"
+    },
+    {
+      "id": "finance-shell-canonical",
+      "result": "PASS",
+      "detail": "HTTP 200"
+    },
+    {
+      "id": "route /finance/rfq.html",
+      "result": "PASS",
+      "detail": "HTTP 200"
+    },
+    {
+      "id": "route /finance/contracts.html",
+      "result": "PASS",
+      "detail": "HTTP 200"
+    },
+    {
+      "id": "route /provider/proposal.html",
+      "result": "PASS",
+      "detail": "HTTP 200"
+    },
+    {
+      "id": "no-legacy-sandbox",
+      "result": "FAIL",
+      "detail": "HTTP 200 (página servida)"
+    }
+  ]
+}

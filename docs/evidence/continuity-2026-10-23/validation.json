@@ -1,0 +1,227 @@
+{
+  "observed_at": "2026-10-23T04:31:02.941332+00:00",
+  "base_sha": "9b57f2a7434fb9ca0bc68e607a36e63334728359",
+  "branch": "codex/post-29-relationship-continuity",
+  "head_identity": "Commit containing this report; exact HEAD CI and post-commit smoke must be recorded on the PR. No self-referential SHA.",
+  "integration": "INTEGRAÇÃO SOMENTE APÓS 29/10/2026 e liberação humana posterior ao evento",
+  "tests": [
+    {
+      "command": "npm ci --include=optional",
+      "result": "PASS",
+      "exit_code": 0,
+      "evidence_kind": "local dependency install",
+      "log": "/tmp/arandu-continuity-npm.log",
+      "log_sha256": "5a8ae2f3cb4367f662255acb5a59d3320d677e449abe84866a822fee99efe2e2"
+    },
+    {
+      "command": "node scripts/run-hermetic.mjs npm run check:all",
+      "result": "PASS",
+      "exit_code": 0,
+      "evidence_kind": "local hermetic validators; includes mocks",
+      "log": "/tmp/arandu-continuity-check-all-final.log",
+      "log_sha256": "5370138ab6c388e0ca614423e316943810d563e70878ef80070fb03f415e9f38"
+    },
+    {
+      "command": "npm run build",
+      "result": "PASS",
+      "exit_code": 0,
+      "evidence_kind": "local normal build",
+      "log": "/tmp/arandu-continuity-build-final.log",
+      "log_sha256": "2e325a0601c4c6f8f1e3f1082b0dd72096ee8abc37903faef35ce47947267640"
+    },
+    {
+      "command": "npm run check:build-size",
+      "result": "PASS",
+      "exit_code": 0,
+      "evidence_kind": "local normal build budget",
+      "log": "/tmp/arandu-continuity-size-final.log",
+      "log_sha256": "b8d99e3308fe36309b8688f7b9b6b5caf3b71838aed91a8c38f3280ac0299b58",
+      "largest_route": "rfq",
+      "largest_route_javascript_bytes": 245884,
+      "limit_bytes": 250000,
+      "warning": "98% healthy envelope warning retained; no limit change"
+    },
+    {
+      "command": "npm run check:links",
+      "result": "PASS",
+      "exit_code": 0,
+      "evidence_kind": "local static links",
+      "log": "/tmp/arandu-continuity-links-final.log",
+      "log_sha256": "8a245d502fbbad233a6374d28e0f4846f21d3dbf37278171de37582e8b3bdfd1"
+    },
+    {
+      "command": "node scripts/test-finance-portfolio.mjs",
+      "result": "PASS",
+      "exit_code": 0,
+      "evidence_kind": "mock API transport, real handler",
+      "log": "/tmp/arandu-continuity-api-final.log",
+      "log_sha256": "ac973afa7ea5bf67cf0099ec0fbfa0ace4fe8ed1acc2a35f937fb9ba9a578ec8"
+    },
+    {
+      "command": "npm run test:database",
+      "result": "PASS",
+      "exit_code": 0,
+      "evidence_kind": "real disposable PostgreSQL 16.15; native psql/pg_dump/pg_restore; no hosted services",
+      "log": "/tmp/arandu-continuity-database-final.log",
+      "log_sha256": "a56bad059d900a2d3e70153341004d65904056d5719840799e45f45ef346732b",
+      "canaries": [
+        {
+          "people": 89,
+          "checks": 7961,
+          "leaks": 0
+        },
+        {
+          "people": 137,
+          "checks": 12373,
+          "leaks": 0
+        },
+        {
+          "people": 128,
+          "checks": 11482,
+          "leaks": 0
+        }
+      ],
+      "schema_upgrade": {
+        "from": "financial-surface-hardening-1",
+        "to": "financial-relationship-continuity-1",
+        "migrations": 40,
+        "history": "PRESERVED",
+        "restore": "real dump/restore",
+        "hosted": "NOT_RUN"
+      }
+    },
+    {
+      "command": "npx playwright test tests/e2e/finance-contracts.spec.js tests/e2e/finance-relationship-center.spec.js --project=chromium-desktop --project=mobile-chrome --workers=2",
+      "result": "PASS",
+      "exit_code": 0,
+      "evidence_kind": "browser with mocked API",
+      "log": "/tmp/arandu-continuity-focused-linked.log",
+      "log_sha256": "93eed9ac0755bdc9b32ad27e197611eee8b4b4cadf82c2c6173c3b003414e59b",
+      "passed": 126,
+      "skipped": 0
+    },
+    {
+      "command": "npm run test:e2e:finance -- --project=chromium-desktop --project=mobile-chrome --workers=2",
+      "result": "PASS",
+      "exit_code": 0,
+      "evidence_kind": "browser with mocked API",
+      "log": "/tmp/arandu-continuity-finance-final.log",
+      "log_sha256": "a8a160ff8e6ccd9a75f87b5948d42000df80115c9eb33c65bc909efaec7f7691",
+      "passed": 550,
+      "skipped": 10
+    },
+    {
+      "command": "npm run test:e2e:presentation -- --project=chromium-desktop --project=mobile-chrome --workers=2",
+      "result": "PASS",
+      "exit_code": 0,
+      "evidence_kind": "browser presentation/synthetic build; sequential after finance",
+      "log": "/tmp/arandu-continuity-presentation-final.log",
+      "log_sha256": "e33e0784477913a2059d22c4d3f394da3ad4e0808843be01a047c7df97c35d92",
+      "passed": 136,
+      "skipped": 20
+    },
+    {
+      "command": "npm run check:demo-parity",
+      "result": "PASS",
+      "exit_code": 0,
+      "evidence_kind": "source/build contract only; canonical hosted NOT_RUN",
+      "log": "/tmp/arandu-continuity-parity-final.log",
+      "log_sha256": "03451e02d8b1e9a3f5794d83358e8b148974699ce658d39611c81f058edf6a96"
+    },
+    {
+      "command": "npm run build:demo; public-tour.spec.js via temporary config on port 4174",
+      "result": "PASS",
+      "exit_code": 0,
+      "evidence_kind": "local static Mode C on separate clean main worktree",
+      "log": "/tmp/arandu-9b57-mode-c-browser.log",
+      "log_sha256": "0ed071d20477352e0676827c91185d147dc32422985fd108f0ef6bdcd85b1271",
+      "sha": "9b57f2a7434fb9ca0bc68e607a36e63334728359",
+      "passed": 11,
+      "skipped": 1
+    }
+  ],
+  "source_sha256": {
+    "docs/rollback/supabase-financial-relationship-continuity.rollback.sql": "097ce2f211ec627fba64bdbea60cba263721a6132da06ccaff99e6b7de6e9610",
+    "docs/supabase-financial-relationship-continuity.sql": "f23f80f98eda7d4411d1b5aee203815c4cdf73435220ce75380d2dee150cd11d",
+    "docs/supabase-migrations.json": "b297a2dd0b03778a46b9de1826b3a42ad778e710bbf8162443839a19d5835946",
+    "finance/src/views/company.js": "1e9cdde19b74441868205efee0808bda0d9c00c23e9d26c1cb8ddd143fc6d041",
+    "finance/src/views/provider-relationship.js": "496b3b55fda1e849f6b301969f000c3f6fd564249d9edfc1789423e804cc4153",
+    "finance/src/views/relationship-context.js": "653a6d7374f9015dd560c6f2176ed00f51d6a2945449796eeec97ec508945321",
+    "lib/api/domains/finance-portfolio.mjs": "0b5f04f341329b8795822133391415231731bfaf2c2ef469844bbbeaec4d0d5b",
+    "lib/api/domains/finance-relationship-pages.mjs": "6cced3d0b39723b1ee76f850650f4b99c211bbe9cd9d33679ba0b006d36e1396",
+    "lib/api/domains/finance.mjs": "1272ef13530d6f273c5c77c1f6c4c540398d3478806fbcd51d5dc92d03a3d126",
+    "lib/finance/data-governance.mjs": "563593f45f62293aeac272049938ee0001b26afbeb64df4a68443b2b2654f2d2",
+    "lib/finance/pilot-doctor.mjs": "9e37d732f0c4e299636fc7d88f9fc0ccb6cc04bdb978fccffd94ba673f7cdc55",
+    "lib/pilot-backup-preflight.mjs": "1d374d999cf2878647b151ebe6d946b4770f7da32ac217312d36e38d03364fc5",
+    "ops/sql/pilot-isolation-canary.sql": "9b8e5e0f633e9be1db1c95aa449d5f44d098afe64e47960d37932320efa9f51a",
+    "ops/sql/post-migration-probes.sql": "a17de5ba5d830f80d3b586446266232dd0401ae30429d951899207780560e823",
+    "scripts/check-migrations.mjs": "402c4542321c657dc1cea1ff4021304f9123d7c164cd02f6eacf69ec81f9d3a9",
+    "scripts/test-database.sh": "b15a2e4e036577d398cbc098a3ade31c22c7d763d484adab7f79cfffa2780413",
+    "scripts/test-finance-portfolio.mjs": "14f34181c0001a0aa5a72c29c0b5a6805c2398f6429911ef3515c603ff1d9456",
+    "scripts/test-pending-migration-bundle.mjs": "a16c0506b801db5fcf3e9340eb5e3821838810e73c34045672052b6a552defc8",
+    "scripts/test-pilot-backup-preflight.mjs": "f8e1a6ec4130210c7397c692bf76d74e7e45877692c19ebbb8c98032950bc6d1",
+    "tests/database/financial-contract-onboarding.sql": "fd844879a7e55a6666383a797900769e71a01107595d2ae39d3f412032b4512d",
+    "tests/database/financial-final-hardening.sql": "479feb0f4b0a672b181691ebeefd139289379292510178cd4f27b8283eee6830",
+    "tests/database/financial-p0-closure.sql": "c13295ff11f770565c749392fcea55c61bc23fcf5fdd489f5fb57f2c28902909",
+    "tests/database/financial-relationship-continuity.sql": "c1542bc28d8445e67db40b1aaaab9a228f824fc2f8d6f40560df01377f9e6fb2",
+    "tests/database/financial-renewal-cycles.sql": "341e937a1709aaaf8be07e334f2c3815e3951339612d73409d557c6777058b4f",
+    "tests/database/financial-security-closure.sql": "4e0fc329aec5e06bc81fd778368158a90bfab41fc0c379c98e08dea1afc10c0e",
+    "tests/database/financial-surface-hardening.sql": "9efd58c836acf94369b6d71608c95bdab0f4d2eccf28e3f6e52e0616470f9040",
+    "tests/e2e/finance-contracts.spec.js": "bfb2fb1dcd6e4d8d8a1db57aed0f8f3743934295ea05848aa616bfd28ab20a67",
+    "tests/e2e/finance-relationship-center.spec.js": "30cbeff66dc707a20ecb37336a9d0fa5ceac1961d6a78ae735fba9c83c89ba15"
+  },
+  "artifacts_sha256": {
+    "cloud-station.json": "630dcfbe8f84dc615eafa0ca64e4a477f437b0427906664228be37c2d32d383a",
+    "continuity-after-chromium-desktop.png": "0779d7c6f4b592b3be3c38abcb8a55dee1b9025b89313815419581ba80eca90e",
+    "continuity-after-mobile-chrome.png": "e686f381d355be83336a004a3bd00d29bfa76479d6d3df2043fb9a10f10254f2",
+    "continuity-before-chromium-desktop.png": "f298e09cfa76d2ed5ded802a7c685817cbee73b3ca814178dd16ed975a804a0e",
+    "continuity-before-mobile-chrome.png": "1f64322d5e8cc5dd8e50b34f30ccd30c63197ab390b93a4ab5e7462afeec4324",
+    "desktop-dashboard.png": "d8abd037fec232363499705285f826c4a30d18824666cff5cde231c3d573b8b0",
+    "hosted-parity.json": "ba925356566a4ca9fab52739c97d17e738c40f8946b25401263eea9e7e32f789",
+    "main-reconciliation.json": "cdc0ca9c490105e9a70dde2ed5dae505b8335891143af3d7a2b93d0a6af5f3b3",
+    "mobile-contracts.png": "4fdfa5b62952847ba39a040d4de5bdaecba3432385a691cd7df05c4dfa21a829",
+    "public-proof.json": "ab385219bb2c349f2c2e11b7f6378759321a85d20d9a6eafee762125264f1dd6",
+    "task-link-after-chromium-desktop.png": "ca235a2d1d8856cd39ee65e29ff6b9da8a6d6953225710ae86867299ee36f8ea",
+    "task-link-after-mobile-chrome.png": "c858d8b1ab22296fb087f558d98a950810221230d52952457d45d869ed21841e",
+    "task-link-before-chromium-desktop.png": "614950eaa842a74f5268ebf788f3e2f261626d3479ced02b14036e0f0833b408",
+    "task-link-before-mobile-chrome.png": "4c44e0b2a330b64d4f0d19e2e2c94ec9fc17a5a7b1fb455cc0f82c415e72ad14",
+    "tour-flow.json": "c9697959804514dc1e062544dc0e7834f8dcfdae79ea3a70e4197db10eaacefd"
+  },
+  "public_main": {
+    "PUBLIC_SHAREABLE": "PASS",
+    "checks": 229,
+    "hashed_artifacts": 185,
+    "screenshots": 36,
+    "browser": "Chromium 156.0.8078.4 / Playwright 1.64.1",
+    "transport": "actual-origin-response-relay; hash verified",
+    "canonical_checker": "NOT_READY, exit 1; not a failure of the M2 contract"
+  },
+  "not_verified": {
+    "LOCAL_STATION_READY": "NOT_VERIFIED; cloud station BLOCKED, exit 20; no freeze",
+    "CANONICAL_HOSTED_M3": "BLOCKED",
+    "PRODUCTION_M5": "BLOCKED / ACCESS_BLOCKED 403; failure cause unknown",
+    "local_Firefox_WebKit": "NOT_RUN",
+    "canonical_local_Auth_PostgREST_Storage": "NOT_RUN"
+  },
+  "ci_at_commit_creation": "NOT_RUN on new HEAD; base CI cannot be inherited. Observe all four exact-HEAD checks before integration candidacy.",
+  "postgres": {
+    "image": "postgres:16",
+    "version": "16.15",
+    "digest": "sha256:9e2cf6287f25c3151f4c9421ccce2b17f3e60061c111a29165e0d2cdd9ff0a97",
+    "isolation": "--network none; no host ports; tmpfs; own --rm container stopped after PASS"
+  },
+  "supabase_cli": {
+    "version": "2.79.0",
+    "archive_sha256": "624dc29c696345dcc4fbe5293925c10c163f99f2952adeaeae892200740a3a27",
+    "installation": "official temporary binary; forced checksum; no app dependency changes"
+  },
+  "reproductions": {
+    "contract_201_api": "FAIL before fix, PASS after",
+    "missing_page_control_browser": "FAIL before fix on both projects, PASS after",
+    "task_link_outside_first_page": "FAIL before fix on both projects, PASS after"
+  },
+  "development_failures_resolved": [
+    "New derived view initially missing from governance registry; registered without weakening coverage check.",
+    "Historical task-accountability rollback initially refused dependent view; harness now rolls back later projection first, without CASCADE."
+  ]
+}
