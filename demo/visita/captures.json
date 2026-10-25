@@ -1,7 +1,7 @@
 {
-  "sha": "bebc553bd177f123701f35e0a650985103be7186",
+  "sha": "7de5d478fa2b2d3140046875a903cb79358ba491",
   "base": "https://localhost:4443",
-  "capturedAt": "2026-10-22T14:43:42.471Z",
+  "capturedAt": "2026-10-25T19:08:19.578Z",
   "dataset": "scripts/demo/seed.mjs (Vitta Foods, 39/39 checagens)",
   "shots": {
     "contexto": {
