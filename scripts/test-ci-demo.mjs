@@ -9,6 +9,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { localViolations } from './ci-demo/assert-local.mjs';
 import { assessDemoRehearsal, DEMO_REHEARSAL_REQUIRED_OUTCOMES } from '../lib/demo-rehearsal-result.mjs';
+import {assessResources,inspectResources} from './ci-demo/resources.mjs';
 import { visitorJourneysPassed } from './ci-demo/assert-visitor-e2e.mjs';
 import { rehearsalOrganizationId, rehearsalSqlFailure } from '../lib/demo-rehearsal-context.mjs';
 
@@ -18,6 +19,25 @@ const runner = fs.readFileSync('scripts/ci-demo/run.sh', 'utf8');
 let passed = 0;
 const test = (name, fn) => { fn(); passed += 1; console.log(`ok - ${name}`); };
 
+test('resource preflight measures Docker filesystem and rejects vfs pressure before any pull',()=>{
+ const base={driver:'overlay2',memoryMb:8000,workspaceGiB:20,dockerGiB:20};
+ assert.equal(assessResources(base).ok,true);
+ assert.equal(assessResources({...base,driver:'vfs'}).ok,false);
+ assert.equal(assessResources({...base,driver:'vfs',dockerGiB:40}).ok,true);
+ for(const change of [{dockerGiB:4},{memoryMb:1000},{workspaceGiB:1},{dockerGiB:NaN},{minDisk:NaN},{driver:''}])assert.equal(assessResources({...base,...change}).ok,false);
+ assert.equal(assessResources({...base,driver:'vfs',minDisk:1}).requiredDisk,32,'override cannot bypass the safety floor');
+ const calls=[];
+ const run=(file,args)=>{
+  calls.push([file,...args]);
+  if(file==='docker')return JSON.stringify({Driver:'overlay2',DockerRootDir:'/different-docker-disk'});
+  return `Filesystem 1024-blocks Used Available Capacity Mounted on\n/dev/test 99999999 1 ${args.at(-1)==='/different-docker-disk'?2*1048576:20*1048576} 1% /\n`;
+ };
+ const result=inspectResources({root:'/workspace',env:{DOCKER_HOST:'unix:///var/run/docker.sock'},run});
+ assert.equal(result.dockerGiB,2);assert.equal(result.workspaceGiB,20);assert.equal(result.ok,false);
+ assert(calls.some(args=>args.includes('/different-docker-disk')));
+ assert.throws(()=>inspectResources({env:{DOCKER_HOST:'tcp://remote:2375'},run}),/remoto/);
+ assert.match(runner,/node "\$here\/resources.mjs" \| tee "\$out\/pre-pull-resources.txt"/);
+});
 test('assert-local aceita só localhost', () => {
   assert.deepEqual(localViolations({ SUPABASE_URL: 'https://localhost:8443', ARANDU_DEMO_APP_URL: 'https://127.0.0.1:4443', PILOT_DB_URL: 'postgresql://postgres:x@localhost:54322/postgres' }), []);
   assert.equal(localViolations({ SUPABASE_URL: 'https://abcdefghijklmnopqrst.supabase.co' }).length, 1);
