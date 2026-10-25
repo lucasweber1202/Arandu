@@ -13,6 +13,10 @@ Não constitui aprovação humana do release ou da apresentação.
 - Por isso não foi criada worktree de uma base antiga nem executado build antigo como prova atual. Leitura e publicação documental usam o conector GitHub, com árvore baseada na main atual.
 - Não houve edição de UI, CSS, package.json, vite.config.js, vercel.json, workflows, PR #265, migrations ou ambientes hospedados. Nenhum reset, freeze, merge, pull de imagem ou alteração de segurança.
 
+## Atualização após os checks desta PR
+
+**BLOCKED por audit:ci**: o novo run detectou advisory alto em zod transitivo da base. Os verdes anteriores são históricos; não liberar merge/freeze com base neles. [Achado, patch isolado e integração coordenada obrigatória](release-assurance-2026-10-25-security.md). O parecer anterior de preflight abaixo descreve somente código isolado; o veredito de integração de #265 agora é BLOCKED.
+
 ## Decisão executiva
 
 O candidato técnico conhecido é main `f57cbfa`, com database, deploy-boundaries, validate e presentation SUCCESS nesse SHA.
@@ -21,7 +25,7 @@ PUBLIC_SHAREABLE: NOT_PROVEN nesta rodada. LOCAL_STATION_READY: NOT_PROVEN. CANO
 
 | Área | Estado | Evidência | Risco | Próxima ação |
 |---|---|---|---|---|
-| PR #265 | READY_FOR_HUMAN_MERGE no escopo do harness Linux | Diff de quatro arquivos, HEAD d92f4b3, quatro checks SUCCESS; 23 verificações herméticas novas PASS | Não comprova Docker Desktop/WSL2 físico | Revisão/merge humano; reconciliar SHA resultante |
+| PR #265 | BLOCKED para release; preflight aprovado isoladamente | Diff de quatro arquivos, HEAD d92f4b3, verdes históricos; 23 verificações herméticas PASS; novo audit:ci FAIL | zod transitivo sinalizado; WSL2 não provado | Corrigir dependência compartilhada e revalidar antes de revisão/merge |
 | Migration #262 | SCHEMA_APP_COMPATIBLE em laboratório CI; hosted NOT_PROVEN | Job database 120604020135 da main e schema observado no ensaio canônico | Banco hospedado não inspecionado; matriz exaustiva schema antigo/app novo não repetida | Manter contrato app primeiro no rollback; verificar schema hospedado por leitura autorizada |
 | Backend canônico | PASS para cobertura existente no merge efêmero 593dea7 | Run 40014337079, 26 passos, 63 ataques, 24 sondas PASS, recovery/teardown SUCCESS | Quatro cenários browser SKIPPED; não equivale a main isolada nem a hardware | Reutilizar prova apenas para os SHAs/arquivos cobertos |
 | Demo pública | BLOCKED nesta auditoria / NOT_PROVEN | curl falha no proxy; ferramenta web também não acessa raiz/visita | SHA servido, modo, assets, teclado e navegação atuais não observados | Restaurar rede do executor e executar smoke/public-tour proof existentes no domínio |

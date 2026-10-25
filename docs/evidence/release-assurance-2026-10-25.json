@@ -4,8 +4,9 @@
   "main": "f57cbfa028a8482c4ff8a847cf7bb9377c3d00f2",
   "pr265": {
     "head": "d92f4b3383fc08ab9e6ca8807c6210432d4a382a",
-    "verdict": "READY_FOR_HUMAN_MERGE",
-    "scope": "Linux CI harness; WSL2 physical NOT_PROVEN"
+    "verdict": "BLOCKED",
+    "scope": "Linux CI harness; WSL2 physical NOT_PROVEN",
+    "preflight_code_review": "READY_FOR_HUMAN_MERGE in isolation"
   },
   "checks": {
     "d92f4b3383fc08ab9e6ca8807c6210432d4a382a": [
@@ -145,5 +146,16 @@
   "new_build": "BLOCKED",
   "new_check_all": "BLOCKED",
   "runtime_changes": [],
-  "sensitive_operations": []
+  "sensitive_operations": [],
+  "security": {
+    "status": "BLOCKED",
+    "advisory": "GHSA-mrhx-c7xc-m3w5",
+    "locked_zod": "4.1.11",
+    "patched_version_per_advisory": "4.6.6",
+    "validate_failed_head": "03ee6be4257bda9a1e255757ddea19b284cf03c5",
+    "job": 121258484577,
+    "patch": "PROPOSED_NOT_RUNTIME_VALIDATED",
+    "lockfile_regeneration": "BLOCKED_REGISTRY_NETWORK",
+    "shared_files_changed": false
+  }
 }
