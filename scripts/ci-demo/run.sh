@@ -55,19 +55,17 @@ resources() {
 
 case "$phase" in
   preflight)
-    min_mem="${CI_DEMO_MIN_MEM_MB:-6000}"; min_disk="${CI_DEMO_MIN_DISK_GB:-12}"
-    mem="$(mem_mb)"; disk="$(disk_gb)"
-    echo "memória disponível: ${mem} MB (mínimo ${min_mem}) · disco livre: ${disk} GB (mínimo ${min_disk}) · CPUs: $(nproc)" | tee "$out/preflight.txt"
+    node "$here/resources.mjs" | tee "$out/preflight.txt"
     docker version --format 'Docker {{.Server.Version}}'; docker compose version; psql --version
     command -v age >/dev/null 2>&1 || { echo "age indisponível; recovery faz parte do ensaio" >&2; exit 1; }
     command -v age-keygen >/dev/null 2>&1 || { echo "age-keygen indisponível; recovery faz parte do ensaio" >&2; exit 1; }
     node_version="$(node -p 'process.versions.node')"
     echo "Node.js $node_version"
     [ "${node_version%%.*}" = 24 ] || { echo "Node.js 24 é obrigatório para o ensaio" >&2; exit 1; }
-    [ "$mem" -ge "$min_mem" ] || { echo "memória insuficiente para Supabase + app + Chromium"; exit 1; }
-    [ "$disk" -ge "$min_disk" ] || { echo "disco insuficiente para as imagens (~7 GB descompactadas)"; exit 1; }
     ;;
   images)
+    # Recheck immediately before pull, even when this phase is invoked alone.
+    node "$here/resources.mjs" | tee "$out/pre-pull-resources.txt"
     mkdir -p "$state"; : > "$images_env"
     for entry in "${images[@]}"; do
       IFS='|' read -r key name digest hub <<< "$entry"
@@ -78,6 +76,8 @@ case "$phase" in
       for ref in "public.ecr.aws/${name}@${digest}" "docker.io/${hub:-$name}@${digest}"; do
         if timeout 600 docker pull -q "$ref" >/dev/null; then chosen="$ref"; break; fi
         echo "pull recusado: $ref"
+        # Capacity failure must stop before trying the same layers in another registry.
+        node "$here/resources.mjs" | tee -a "$out/pre-pull-resources.txt"
       done
       [ -n "$chosen" ] || { echo "imagem indisponível: $name@$digest"; exit 1; }
       echo "PILOT_LOCAL_${key}_IMAGE=$chosen" >> "$images_env"
