@@ -75,7 +75,8 @@ for (const [name, viewport] of Object.entries(TOUR_VIEWPORTS)) {
     const context = await browser.newContext({ viewport, ...(name === 'mobile' ? { isMobile: true, hasTouch: true } : {}), storageState: sessions[step.persona],
       ignoreHTTPSErrors: true, locale: 'pt-BR', timezoneId: 'America/Sao_Paulo', reducedMotion: 'reduce' });
     const page = await context.newPage();
-    const reuse = seen.get(`${name}|${step.route}|${step.persona}|${step.rfq || ''}|${step.anchor || ''}`);
+    const key = `${name}|${step.route}|${step.persona}|${step.rfq || ''}|${step.anchor || ''}|${step.contract || ''}`;
+    const reuse = seen.get(key);
     if (reuse) {
       manifest.shots[step.id] = { ...manifest.shots[step.id], route: reuse.route, persona: step.persona, alt: reuse.alt, [name]: reuse.view };
       console.log(`${name.padEnd(8)} ${step.id.padEnd(22)} (mesma tela de ${reuse.from})`);
@@ -97,13 +98,21 @@ for (const [name, viewport] of Object.entries(TOUR_VIEWPORTS)) {
     if (await page.evaluate(() => /Não foi possível carregar|Muitas tentativas|Muitas requisições/.test(document.querySelector('#view')?.textContent || ''))) {
       throw new Error(`${step.id} (${name}): a tela carregou com erro; captura inválida.`);
     }
+    if (step.contract) {
+      // Cartão do contrato do processo citado + painel "Abrir contrato" (origem,
+      // relacionamento e tarefas). Abrir o painel só lê; nada é gravado.
+      const card = page.locator('#view article.contract-card').filter({ hasText: PROVIDERS[step.contract].name }).filter({ hasText: 'Ver processo e decisão de origem' }).first();
+      await card.getByRole('button', { name: /Abrir contrato/ }).click();
+      await page.getByRole('dialog').filter({ hasText: 'Trabalho deste contrato' }).waitFor();
+      await settle(page);
+    }
     const file = `${step.id}-${name}.webp`;
     const image = await webp(page, await page.screenshot({ type: 'png' }), OUTPUT[name]);
     await writeFile(`demo/visita/${file}`, image.bytes);
     const shot = manifest.shots[step.id] ||= { route: step.route + (step.anchor ? `#${step.anchor}` : ''), persona: step.persona,
       alt: `Tela ${labels[step.nav]} do Arandu com os dados fictícios da Vitta Foods, vista por ${(BUYERS[step.persona] || PROVIDERS[step.persona].person).name}.` };
     shot[name] = { file, route: shot.route, persona: step.persona, width: image.width, height: image.height };
-    seen.set(`${name}|${step.route}|${step.persona}|${step.rfq || ''}|${step.anchor || ''}`, { route: shot.route, alt: shot.alt, view: shot[name], from: step.id });
+    seen.set(key, { route: shot.route, alt: shot.alt, view: shot[name], from: step.id });
     console.log(`${name.padEnd(8)} ${step.id.padEnd(22)} ${route}`);
     await context.close();
   }
