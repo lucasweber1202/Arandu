@@ -70,6 +70,7 @@ ciclo, não o produto inteiro.
 | Informação principal | O contrato sabe de onde veio, quem faz o quê e quando renova; ausência de dado não é conformidade |
 | Mensagem | "A decisão não encerra o relacionamento: implantação, obrigações e renovação ficam no mesmo lugar." |
 | Transição | "E do lado do banco, o que aparece?" |
+| Pergunta provável | "Por que o menu diz 18 tarefas e a tela diz 19?" — O número do menu conta o que depende de quem está logado (atribuídas a você ou sem responsável); a tela mostra todas as abertas da equipe, inclusive as do Rafael. |
 | Pergunta provável | "Concluir a tarefa muda o contrato?" — Não; a tela diz que concluir registra o trabalho, não aprova obrigação nem altera contrato. |
 | Limite | Não marcar "Concluir tarefa" (grava). Não ligar a linha de R$ 12 mi (A) ao contrato Lumina (C): são processos distintos. |
 | Plano C | `#contrato`, `#continuidade` |
@@ -79,7 +80,7 @@ ciclo, não o produto inteiro.
 | Campo | Conteúdo |
 | --- | --- |
 | Persona | "Trocar persona" → Eduardo Lima (Atlas Bank); depois volta a Juliana |
-| Rota | `/provider/index.html` → Oportunidades; retorno a `/finance/dashboard.html` |
+| Rota | `/provider/index.html` → Oportunidades → **Ver** em "Capital de giro — nova linha de R$ 12 milhões / 36 meses" (o histórico v1 → v2 fica no detalhe, não na lista); retorno a `/finance/dashboard.html` |
 | Objeto | Portal da instituição |
 | Dado esperado | Só as oportunidades do Atlas; histórico v1 → v2 da própria proposta |
 | Informação principal | A instituição vê o próprio convite, as próprias versões e o que a empresa compartilhou — nunca concorrentes, comparação ou notas internas |
