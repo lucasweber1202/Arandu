@@ -1184,6 +1184,10 @@ tr.highlighted>td,.proposal-card.highlighted,.document-row.highlighted,.comment.
 .contract-center .cc-section:first-child{border-top:0;padding-top:0}
 .cc-head{display:flex;flex-wrap:wrap;gap:var(--s3);align-items:center;justify-content:space-between}
 .cc-head h3{font-size:var(--fs-lg)}
+/* Trabalho do contrato no celular: o atalho "Solicitação de origem: <título>" quebra
+   linha em vez de alargar o painel e cortar texto e botões à direita. */
+.drawer-body>.contract-work{min-width:0}
+.contract-work .toolbar .btn{white-space:normal;text-align:left;max-width:100%;padding-block:6px;overflow-wrap:anywhere}
 .version-list,.milestone-list{list-style:none;margin:0;padding:0;display:grid;gap:var(--s2)}
 .version-row,.milestone-row{border:1px solid var(--border);border-radius:var(--r-md);padding:var(--s3);display:grid;gap:var(--s1);overflow-wrap:anywhere}
 .version-head{display:flex;flex-wrap:wrap;gap:var(--s2);align-items:center}
