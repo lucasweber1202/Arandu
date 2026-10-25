@@ -136,3 +136,30 @@ workflow (o Playwright aceita `PW_CHROMIUM` com um Chromium já instalado).
 Só depois de pelo menos três execuções independentes verdes no mesmo SHA e sem
 falha intermitente: proposta registrada no PR que introduziu o workflow; nada
 muda nos gates até decisão explícita.
+
+
+### Capacidade antes de baixar imagens (23/10/2026)
+
+O preflight mede separadamente o filesystem do workspace e o `DockerRootDir`
+retornado pelo daemon, além de `MemAvailable`. A fase `images` repete a sonda
+imediatamente antes do primeiro pull. Não basta espaço no checkout.
+
+Os pisos são 6.000 MiB de memória, 12 GiB no workspace e 12 GiB no filesystem
+Docker para drivers com snapshots; para `vfs`, o piso Docker é **32 GiB**. É uma
+margem operacional conservadora, não uma previsão do tamanho das imagens:
+na tentativa anterior, o pull fixado de PostgreSQL esgotou mais de 20 GiB sob
+`vfs`. Overrides podem elevar os pisos, nunca reduzi-los. Driver desconhecido,
+leitura inválida, daemon TCP remoto ou `DockerRootDir` inacessível bloqueiam o
+pull. Esses casos exigem um runner cuja capacidade possa ser medida.
+
+Reprodução local desta rodada: `node scripts/ci-demo/resources.mjs` retornou
+`ok:false`, driver `vfs`, 14 GiB livres no workspace e no DockerRootDir, contra
+32 GiB exigidos para o Docker. A stack canônica **não foi iniciada localmente**;
+nenhum novo download foi tentado. Não usar prune, mudança de driver ou restart
+do daemon compartilhado para contornar o bloqueio. O workflow efêmero existente
+continua sendo o caminho para executar o ensaio em um runner adequado; seu
+relatório deve identificar o SHA efetivamente testado e o resultado de cada
+componente. Os testes de fixtures do preflight não provam Auth/Storage reais.
+
+Rollback: reverter esta alteração do harness. Nenhuma migration, imagem,
+versão de serviço, segredo, configuração hospedada ou publicação foi alterada.
