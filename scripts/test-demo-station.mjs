@@ -3,7 +3,7 @@
 // READY só na máquina declarada, no SHA congelado, com prontidão recente; nunca
 // num executor efêmero; alvo fora de localhost é UNSAFE mesmo com tudo verde.
 import assert from 'node:assert/strict';
-import { classifyStation, readinessFacts, stationPoolFacts } from './demo/station-lib.mjs';
+import { classifyStation, readinessFacts, stationPoolFacts, demoContainerFacts } from './demo/station-lib.mjs';
 import { demoWorkspaceFixture } from './fixtures/demo-workspace.mjs';
 
 const SHA = 'a'.repeat(40);
@@ -133,3 +133,22 @@ const fullPool = [...validPool, ...Array.from({ length: 25 }, (_, i) => demoWork
 }))];
 expect('25 claims ativos apesar de 2 ready', f => { f.pool = stationPoolFacts(fullPool, poolNow); }, 'BLOCKED');
 expect('snapshot ausente', f => { f.pool = stationPoolFacts(null, poolNow); }, 'BLOCKED');
+
+const demoRows = ['db', 'auth', 'rest', 'storage'].map(name => `arandu-pilot-local-${name}-1\tUp 10 minutes`);
+const dockerSnapshot = rows => ({ status: 0, stdout: rows.join('\n') });
+assert.equal(demoContainerFacts(dockerSnapshot(demoRows)).ok, true);
+const unrelated = ['unrelated-worker\tRestarting (1) 5 seconds ago', 'other-db\tUp 10 minutes (unhealthy)'];
+assert.equal(demoContainerFacts(dockerSnapshot([...demoRows, ...unrelated])).ok, true, 'unrelated workloads cannot block the Demo');
+assert.equal(demoContainerFacts(dockerSnapshot(['cache', 'web', 'db', 'worker'].map(name => `${name}\tUp 10 minutes`))).ok, false, 'unrelated containers cannot replace missing Demo services');
+for (const rows of [[], demoRows.slice(1), [...demoRows, demoRows[0]], demoRows.map(row => row.replace('arandu-pilot-local-', 'arandu-pilot-local-copy-'))]) {
+  assert.equal(demoContainerFacts(dockerSnapshot(rows)).ok, false, 'missing, duplicate or different project identities fail closed');
+}
+for (const state of ['Restarting (1) 5 seconds ago', 'Exited (1)', 'Created', 'Up 10 minutes (unhealthy)', 'Up 1 second (health: starting)', '', 'not Up']) {
+  const result = demoContainerFacts(dockerSnapshot([`arandu-pilot-local-db-1\t${state}`, ...demoRows.slice(1)]));
+  assert.equal(result.ok, false, `database state ${state} must block`);
+  assert.match(result.detail, /arandu-pilot-local-db-1/);
+}
+for (const result of [{ status: 1, stdout: demoRows.join('\n') }, { status: null, stdout: demoRows.join('\n') }, undefined]) {
+  assert.equal(demoContainerFacts(result).ok, false, 'Docker failure never promotes stale stdout');
+}
+console.log('Readiness containers: exact four Demo services required; unrelated workloads ignored; unhealthy, missing and ambiguous identities fail closed.');

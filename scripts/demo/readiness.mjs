@@ -22,6 +22,7 @@ import { encodeSessionValue } from '../../lib/session-cookie.mjs';
 import { BUYERS, PROVIDERS } from '../../lib/finance/demo-personas.mjs';
 import { RFQ_OPEN, RFQ_CREDIT, RFQ_ACQUIRING, TASKS } from './dataset.mjs';
 import { DEMO_POOL_READINESS_PATH, demoPoolStatus, demoPoolTotal } from '../../lib/finance/demo-entry-readiness.mjs';
+import { demoContainerFacts } from './station-lib.mjs';
 
 const args = new Set(process.argv.slice(2));
 const SMOKE = args.has('--smoke');
@@ -97,10 +98,10 @@ check('App local iniciado depois do último commit de API', appStarted >= lastAp
 
 // ---------------------------------------------------------- 2. serviços
 section('Serviços');
-const docker = spawnSync('docker', ['ps', '--format', '{{.Names}}\t{{.Status}}'], { encoding: 'utf8' });
-const containers = docker.status === 0 ? docker.stdout.trim().split('\n').filter(Boolean) : [];
-check('Contêineres do Supabase local', containers.length >= 4 && containers.every((line) => /\bUp\b/.test(line)) ? 'PASS' : 'FAIL',
-  containers.length ? containers.map((line) => line.replace(/\t/, ': ')).join(' · ') : 'docker indisponível', { fix: 'npm run demo:setup (≈20 min) — tenha a máquina pronta antes' });
+const docker = spawnSync('docker', ['ps', '--filter', 'label=com.docker.compose.project=arandu-pilot-local', '--format', '{{.Names}}\t{{.Status}}'], { encoding: 'utf8' });
+const containers = demoContainerFacts(docker);
+check('Contêineres do Supabase local', containers.ok ? 'PASS' : 'FAIL', containers.detail,
+  { fix: 'Confira os quatro contêineres da Demo; se já existem, bash scripts/demo/local.sh resume. Não apague volumes nem execute setup/reset para corrigir este diagnóstico.' });
 const authHealth = await get(`${SB}/auth/v1/health`);
 check('Auth (GoTrue)', authHealth.status === 200 ? 'PASS' : 'FAIL', `HTTP ${authHealth.status}`, { fix: 'npm run demo:setup' });
 const restHealth = await get(`${SB}/rest/v1/`, { headers: { apikey: ANON } });
