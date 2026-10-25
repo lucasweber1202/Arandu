@@ -1,0 +1,161 @@
+{
+  "date": "2026-10-25",
+  "environment": "cloud Linux; Node 24.19.0",
+  "main": "f57cbfa028a8482c4ff8a847cf7bb9377c3d00f2",
+  "pr265": {
+    "head": "d92f4b3383fc08ab9e6ca8807c6210432d4a382a",
+    "verdict": "BLOCKED",
+    "scope": "Linux CI harness; WSL2 physical NOT_PROVEN",
+    "preflight_code_review": "READY_FOR_HUMAN_MERGE in isolation"
+  },
+  "checks": {
+    "d92f4b3383fc08ab9e6ca8807c6210432d4a382a": [
+      {
+        "name": "validate",
+        "conclusion": "success",
+        "head_sha": "d92f4b3383fc08ab9e6ca8807c6210432d4a382a",
+        "url": "https://github.com/lucasweber1202/Arandu/actions/runs/40014337078/job/120623812490"
+      },
+      {
+        "name": "presentation",
+        "conclusion": "success",
+        "head_sha": "d92f4b3383fc08ab9e6ca8807c6210432d4a382a",
+        "url": "https://github.com/lucasweber1202/Arandu/actions/runs/40014337078/job/120623812479"
+      },
+      {
+        "name": "Supabase Preview",
+        "conclusion": "skipped",
+        "head_sha": "d92f4b3383fc08ab9e6ca8807c6210432d4a382a",
+        "url": "https://github.com/lucasweber1202/Arandu/runs/120622412097"
+      },
+      {
+        "name": "deploy-boundaries",
+        "conclusion": "success",
+        "head_sha": "d92f4b3383fc08ab9e6ca8807c6210432d4a382a",
+        "url": "https://github.com/lucasweber1202/Arandu/actions/runs/40014337078/job/120622410961"
+      },
+      {
+        "name": "database",
+        "conclusion": "success",
+        "head_sha": "d92f4b3383fc08ab9e6ca8807c6210432d4a382a",
+        "url": "https://github.com/lucasweber1202/Arandu/actions/runs/40014337078/job/120622410686"
+      },
+      {
+        "name": "demo-integration",
+        "conclusion": "success",
+        "head_sha": "d92f4b3383fc08ab9e6ca8807c6210432d4a382a",
+        "url": "https://github.com/lucasweber1202/Arandu/actions/runs/40014337079/job/120622410443"
+      }
+    ],
+    "f57cbfa028a8482c4ff8a847cf7bb9377c3d00f2": [
+      {
+        "name": "presentation",
+        "conclusion": "success",
+        "head_sha": "f57cbfa028a8482c4ff8a847cf7bb9377c3d00f2",
+        "url": "https://github.com/lucasweber1202/Arandu/actions/runs/40008952431/job/120605538154"
+      },
+      {
+        "name": "validate",
+        "conclusion": "success",
+        "head_sha": "f57cbfa028a8482c4ff8a847cf7bb9377c3d00f2",
+        "url": "https://github.com/lucasweber1202/Arandu/actions/runs/40008952431/job/120605538105"
+      },
+      {
+        "name": "Supabase Preview",
+        "conclusion": "success",
+        "head_sha": "f57cbfa028a8482c4ff8a847cf7bb9377c3d00f2",
+        "url": "https://github.com/lucasweber1202/Arandu/runs/120604292951"
+      },
+      {
+        "name": "database",
+        "conclusion": "success",
+        "head_sha": "f57cbfa028a8482c4ff8a847cf7bb9377c3d00f2",
+        "url": "https://github.com/lucasweber1202/Arandu/actions/runs/40008952431/job/120604020135"
+      },
+      {
+        "name": "deploy-boundaries",
+        "conclusion": "success",
+        "head_sha": "f57cbfa028a8482c4ff8a847cf7bb9377c3d00f2",
+        "url": "https://github.com/lucasweber1202/Arandu/actions/runs/40008952431/job/120604019819"
+      },
+      {
+        "name": "merge-audit",
+        "conclusion": "success",
+        "head_sha": "f57cbfa028a8482c4ff8a847cf7bb9377c3d00f2",
+        "url": "https://github.com/lucasweber1202/Arandu/actions/runs/40008952274/job/120604019071"
+      }
+    ]
+  },
+  "canonical": {
+    "run": 40014337079,
+    "tested_sha": "593dea7c2cbaf281d9dc1a6f0e2e2748ecc08962",
+    "schema": "financial-relationship-continuity-1",
+    "journey": {
+      "steps": 26,
+      "attacks": 63,
+      "fail": 0
+    },
+    "adversarial": {
+      "pass": 24,
+      "fail": 0,
+      "skipped": 0
+    },
+    "browser": {
+      "desktop": {
+        "pass": 8,
+        "skipped": 1
+      },
+      "mobile": {
+        "pass": 6,
+        "skipped": 3
+      }
+    },
+    "recovery": "success",
+    "teardown": "success",
+    "artifact": 12530056327,
+    "artifact_digest_from_upload_log": "66aada2b8303af22485d17fdef935131c656e8b32a87ea36f6dac103a040bb6b",
+    "artifact_download_verification": "NOT_RUN"
+  },
+  "database": {
+    "job": 120604020135,
+    "sha": "f57cbfa028a8482c4ff8a847cf7bb9377c3d00f2",
+    "verdict": "SCHEMA_APP_COMPATIBLE within observed CI coverage",
+    "new_local_postgres": "NOT_RUN",
+    "exhaustive_old_schema_new_app": "NOT_PROVEN",
+    "hosted": "NOT_PROVEN"
+  },
+  "new_hermetic_test": {
+    "pass": 23,
+    "fail": 0,
+    "source_sha256": "56509d2c4ff183f7897db08ca963ca19ce87d79068bd0358c195a5826b14c0f2",
+    "test_sha256": "f3fd104099e1c02a2da2eb77b493d8a87085aaa1a11830ec2d6fd19acc3d004c",
+    "real_daemon": false
+  },
+  "release": {
+    "PUBLIC_SHAREABLE": "NOT_PROVEN",
+    "LOCAL_STATION_READY": "NOT_PROVEN",
+    "CANONICAL_HOSTED_M3": "NOT_PROVEN",
+    "PRODUCTION_M5": "NOT_PROVEN"
+  },
+  "blockers": [
+    "git fetch: proxy:8080 connection refused",
+    "public HTTP smoke blocked in executor; web tool also inaccessible, no global outage inferred",
+    "Vercel 403 scope lucas-projects467",
+    "physical Windows/WSL2 station not available"
+  ],
+  "new_build": "BLOCKED",
+  "new_check_all": "BLOCKED",
+  "runtime_changes": [],
+  "sensitive_operations": [],
+  "security": {
+    "status": "BLOCKED",
+    "advisory": "GHSA-mrhx-c7xc-m3w5",
+    "locked_zod": "4.1.11",
+    "patched_version_per_advisory": "4.6.6",
+    "validate_failed_head": "03ee6be4257bda9a1e255757ddea19b284cf03c5",
+    "job": 121258484577,
+    "patch": "PROPOSED_NOT_RUNTIME_VALIDATED",
+    "lockfile_regeneration": "BLOCKED_REGISTRY_NETWORK",
+    "shared_files_changed": false
+  }
+}
