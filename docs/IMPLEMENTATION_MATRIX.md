@@ -1,5 +1,11 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 25/10/2026 — Release assurance: reconciliação por SHA
+
+Main remota `f57cbfa028a8482c4ff8a847cf7bb9377c3d00f2`, quatro gates SUCCESS no SHA exato. PR #265 aberta em `d92f4b3`: revisão do preflight e 23 verificações herméticas PASS, READY_FOR_HUMAN_MERGE no escopo do laboratório Linux; sem merge. Run canônico `40014337079` testou merge efêmero `593dea7`, com marker `financial-relationship-continuity-1` (inclui #262), 26 passos/63 ataques/zero falhas, 24 sondas PASS, recovery/teardown SUCCESS; browser desktop 8 PASS/1 SKIP, mobile 6 PASS/3 SKIP. Não converter skips em cobertura.
+
+Migration #262 SCHEMA_APP_COMPATIBLE na cobertura CI observada; schema hospedado NOT_PROVEN. PUBLIC_SHAREABLE, LOCAL_STATION_READY, CANONICAL_HOSTED_M3 e PRODUCTION_M5 permanecem NOT_PROVEN nesta rodada. Executor tem checkout antigo e proxy recusando conexões; API Vercel retorna VERCEL_ACCESS_BLOCKED_403 no scope autorizado. Sem freeze, deploy ou alteração de ambiente. [Auditoria, limites, fontes e handoff WSL2](evidence/release-assurance-2026-10-25.md). Entradas históricas abaixo preservadas.
+
 ## 23/10/2026 — Continuidade do processo após #263
 
 Base `main@0ea9e6c`, #263 já integrada. Incremento isolado em
