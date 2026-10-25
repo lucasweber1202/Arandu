@@ -13,6 +13,21 @@
 //              árvore limpa, todos os requisitos passam e a prontidão recente
 //              disse Modo leitura PRONTO.
 import { demoPoolStatus } from '../../lib/finance/demo-entry-readiness.mjs';
+
+// Other Docker workloads must neither block nor stand in for the local Demo.
+export function demoContainerFacts(result) {
+  if (result?.status !== 0) return { ok: false, detail: 'docker indisponível' };
+  const rows = String(result.stdout || '').trim().split('\n').filter(Boolean)
+    .map(line => { const [name, ...status] = line.split('\t'); return { name, status: status.join('\t') }; });
+  const expected = ['db', 'auth', 'rest', 'storage'].map(service => `arandu-pilot-local-${service}-1`);
+  const checks = expected.map(name => {
+    const matches = rows.filter(row => row.name === name);
+    const status = matches.length === 1 ? matches[0].status : matches.length ? 'identidade duplicada' : 'ausente';
+    return { name, status, ok: matches.length === 1 && /^Up\b/.test(status) && !/\(unhealthy\)|\(health: starting\)/.test(status) };
+  });
+  return { ok: checks.every(check => check.ok), detail: checks.map(check => `${check.name}: ${check.status}`).join(' · ') };
+}
+
 export function stationPoolFacts(rows, now = Date.now()) {
   return { status: demoPoolStatus(rows, { total: Array.isArray(rows) ? rows.length : null, now }),
     ready: Array.isArray(rows) ? rows.filter(r => r?.status === 'ready').length : 0,
