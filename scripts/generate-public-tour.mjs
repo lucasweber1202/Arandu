@@ -139,6 +139,12 @@ ${table(`Aprovação — ${RFQ_CREDIT.title}`, ['Etapa', 'Situação'], [
 <p>Para comparar, uma decisão já concluída em outro processo (${esc(caseRef('RFQ_ACQUIRING'))}), aprovada pelo Controller e pela CFO:</p>
 <blockquote class="tour-quote"><p>${esc(RFQ_ACQUIRING.decisionRationale)}</p><footer>Justificativa da decisão · ${esc(COMPANY.trade_name)}</footer></blockquote>`,
   contrato: () => `<p>Na concorrência de adquirência (${esc(CASES.RFQ_ACQUIRING.tag)}), a decisão virou contrato com vigência, aviso prévio e condições estruturadas. A partir daí o Arandu cria os marcos de renovação e as tarefas antes do vencimento.</p>
+<p>Ao abrir o contrato da ${esc(provider('lumina'))}, a tela mostra de onde ele veio e o que falta fazer: a solicitação de origem, o relacionamento com a instituição e as tarefas do contrato — implantação, conferência do primeiro mês e revisão da renovação —, cada uma com prazo e responsável, ou “Sem responsável” quando ninguém foi designado.</p>
+${list([
+    'Solicitação de origem: volta ao processo e à decisão que geraram o contrato',
+    `Relacionamento com ${provider('lumina')}: contratos, prazos e tarefas por instituição`,
+    'Concluir uma tarefa registra o trabalho da equipe; não aprova obrigação nem altera o contrato'
+  ])}
 ${facts([
     ['Contrato', `${provider('lumina')} — adquirência, ${RFQ_ACQUIRING.proposals.lumina.at(-1).terms.contract_months} meses`],
     ['Custo contratado', contract.cost],

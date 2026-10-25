@@ -1108,3 +1108,16 @@ test('tarefas do contrato paginam, preservam linhas no erro e permitem atualizar
   const work=page.getByRole('region',{name:'Trabalho deste contrato'});
   await expect(work.getByRole('link',{name:'Solicitação de origem: Concorrência de capital de giro'})).toHaveAttribute('href',new RegExp(`/finance/rfq.html\\?id=${PROVIDER}`));
  });
+
+test('trabalho do contrato no celular: solicitação de origem longa quebra linha sem cortar o painel', async ({page}) => {
+  await page.setViewportSize({width:390,height:844});
+  await mockSession(page);
+  const title='Adquirência — revisão de MDR e antecipação (R$ 12 milhões/mês) com título longo de propósito';
+  await page.route('**/api/finance/contract-detail**',route=>route.fulfill({json:{...DETAIL,contract:{...CONTRACT_ROW,origin:'sourcing'},source_rfq:{id:PROVIDER,title}}}));
+  await page.goto(`/finance/contracts.html?abrir=contrato#contract-${CONTRACT}`);
+  const work=page.getByRole('region',{name:'Trabalho deste contrato'});
+  await expect(work.getByRole('link',{name:`Solicitação de origem: ${title}`})).toBeVisible();
+  const overflow=await page.locator('dialog[open]').evaluate(dialog=>[...dialog.querySelectorAll('*')].filter(node=>node.getBoundingClientRect().right>window.innerWidth+1).length);
+  expect(overflow).toBe(0);
+  await noHorizontalOverflow(page);
+});
