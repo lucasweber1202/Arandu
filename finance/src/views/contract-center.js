@@ -10,6 +10,7 @@ import { el, icon, formatDate, formatDateTime, money, percent, enumLabel, PROVID
 import { button, tag, field, drawer, toast, loading, errorState, catalogControl, confirmDialog, onSubmit } from '../ui.js';
 import { CONTRACT_CATEGORIES, MILESTONE_KINDS, RECURRENCES, FEE_UNITS, contractTermFields } from '../../../lib/finance/contract-terms.mjs';
 import { entityTree } from '../../../lib/finance/entities.mjs';
+import { selectedEntity } from './entities.js';
 
 const FEE_UNIT_LABELS = {
   per_month: 'por mês', per_transaction: 'por transação', per_item: 'por item', percent_of_volume: '% do volume',
@@ -163,6 +164,9 @@ function openImportContract(ctx, entities, { providerId: presetProvider = null }
   const entity = el('select', { name: 'legal_entity_id' });
   if (entities.scope === 'group') entity.add(new Option('Nível de grupo', ''));
   for (const row of entityTree(entities.rows)) if (row.status === 'active') entity.add(new Option(`${row.depth ? '— ' : ''}${row.short_name || row.legal_name}`, row.id));
+  // A entidade em foco na tela vira o padrão do registro (a pessoa ainda pode trocar).
+  const focused = selectedEntity();
+  if (focused && [...entity.options].some((option) => option.value === focused)) entity.value = focused;
   // Contrato principal: só do mesmo provedor (o banco recusa o resto).
   const parent = el('select', { name: 'parent_contract_id' });
   const parentField = field({ label: 'Contrato principal', control: parent, optionalLabel: true, hint: 'Para aditivo comercial ou pacote vinculado a um contrato já registrado com a mesma instituição.' });
@@ -291,6 +295,12 @@ function openImportContract(ctx, entities, { providerId: presetProvider = null }
     outcome.replaceChildren(loading('Conferindo a carteira no servidor…'));
     try {
       await ctx.reload();
+      // Instituição nova cuja resposta se perdeu: reaproveita a gravada (mesmo nome) em vez de cadastrar outra.
+      if (provider.value === NEW_PROVIDER && !providerId) {
+        const wanted = providerName.value.trim().toLocaleLowerCase('pt-BR');
+        const saved = (ctx.data.providers || []).find((row) => String(row.name || '').trim().toLocaleLowerCase('pt-BR') === wanted);
+        if (saved) { providerId = saved.id; providers.push({ id: saved.id, name: saved.name }); fillProviders(saved.id); newProvider.dataset.hidden = 'true'; fillParents(); }
+      }
       const found = (ctx.data.contracts || []).find(sameContract);
       if (found) {
         outcome.replaceChildren(el('p', { class: 'callout callout-success compact', text: 'O contrato foi gravado. Nada foi enviado de novo.' }),
@@ -298,7 +308,8 @@ function openImportContract(ctx, entities, { providerId: presetProvider = null }
         return;
       }
       uncertain = false; save.disabled = false; back.hidden = false;
-      outcome.replaceChildren(el('p', { class: 'callout callout-warning compact', text: 'O contrato não aparece nos contratos carregados. Se a carteira for maior que o recorte exibido, confira em Contratos; registrar de novo um contrato idêntico é recusado pelo servidor.' }));
+      summary();
+      outcome.replaceChildren(el('p', { class: 'callout callout-warning compact', text: `O contrato não aparece entre os ${(ctx.data.contracts || []).length} contratos carregados agora. Isso não prova que ele não foi gravado: a carteira exibida pode ser um recorte. Confirmar de novo não duplica: um contrato idêntico é recusado pelo servidor.${providerId && provider.value === providerId && newProvider.dataset.hidden === 'true' ? ' A instituição já gravada será reaproveitada.' : ''}` }));
     } catch (error) { outcome.replaceChildren(errorState({ error })); outcome.append(check); }
     finally { check.disabled = false; }
   } });

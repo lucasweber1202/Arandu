@@ -233,9 +233,8 @@ export async function contracts(ctx) {
   const context = entityContextSelect(entities, { onChange: () => ctx.rerender() });
   const importButton = mods.contractCenter.importContractButton(ctx, entities);
   ctx.header({ title: 'Contratos e renovações', subtitle: 'Termos versionados, aditivos, marcos próprios, aviso prévio e próxima ação de cada contrato.', actions: [context, importButton, refresh].filter(Boolean) });
-  if (!rows.length && (ctx.data.contracts || []).length) return emptyState({ title: 'Nenhum contrato nesta entidade', text: 'Troque a entidade em foco para ver os demais contratos que você pode ler.', iconName: 'building' });
   // Filtro de entidade sem contrato não é carteira vazia: diz o recorte e não oferece o "primeiro" registro.
-  if (!rows.length && (ctx.data.contracts || []).length) return emptyState({ title: 'Nenhum contrato nesta entidade', text: 'Há contratos carregados em outras entidades do grupo. Troque a entidade no seletor acima ou registre um contrato desta entidade.', iconName: 'briefcase',
+  if (!rows.length && (ctx.data.contracts || []).length) return emptyState({ title: 'Nenhum contrato nesta entidade', text: ctx.can('create_rfq') ? 'Há contratos carregados em outras entidades do grupo. Troque a entidade no seletor acima ou registre um contrato desta entidade.' : 'Há contratos carregados em outras entidades do grupo. Troque a entidade no seletor acima para vê-los.', iconName: 'briefcase',
     action: mods.contractCenter.importContractButton(ctx, entities) });
   if (!rows.length && !ctx.can('create_rfq')) return emptyState({ title: 'Nenhum contrato registrado ainda', text: 'Quando a equipe registrar contratos, você acompanha aqui vigência, aviso prévio e próxima ação. Registrar contratos fica com administração e gestão financeira.', iconName: 'briefcase' });
   if (!rows.length) return emptyState({ title: 'Nenhum contrato registrado ainda', text: 'Registre os contratos que a empresa já tem com vigência e aviso prévio: o Arandu abre a tarefa de revisão da renovação e acompanha os marcos. Contratos de uma concorrência no Arandu entram pela decisão.', iconName: 'briefcase',

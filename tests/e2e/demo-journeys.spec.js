@@ -128,6 +128,7 @@ test('jornada completa: comprador → provedor → comprador → aprovador → d
   await expect(page).toHaveURL(/\/demo\/provider\/index\.html/);
   const invite = page.locator('#convites li', { hasText: 'Giro E2E' });
   await invite.getByRole('button', { name: 'Aceitar' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Aceitar convite' }).click();
   await expect(page).toHaveURL(/\/demo\/provider\/proposal\.html\?proposal=/);
   await expect(page.locator('.page-meta')).toContainText('Revisão 2 da solicitação');
   const proposal = page.locator('#proposal-form');
@@ -291,6 +292,7 @@ test('provedor aceita convite do conjunto inicial, salva parcial, recarrega e v�
   await expect(page.locator('#provider-status')).toContainText('Revisão de adquirência');
   const invite = page.locator('#convites li', { hasText: 'Antecipação de recebíveis' });
   await invite.getByRole('button', { name: 'Aceitar' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Aceitar convite' }).click();
   await expect(page).toHaveURL(/\/demo\/provider\/proposal\.html\?proposal=/);
   const form = page.locator('#proposal-form');
   await form.getByLabel('Produto ofertado').fill('Antecipação Atlas QA');
