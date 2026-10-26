@@ -4,6 +4,7 @@
 // Revisão elegível habilita decisão interna canônica; continuidade contratual
 // é uma ação separada e não significa aceite ou assinatura da instituição.
 
+import { externalComparisonProposal } from '../../../lib/finance/external-proposals.mjs';
 import { PRODUCTS } from '../../../lib/finance/products.mjs';
 import { el, icon, formatDateTime, formatDate, plural } from '../core.js';
 import { card, pill, tag, button, linkButton, emptyState, errorState, loading, drawer, field, catalogControl, toast, onSubmit, definitionList } from '../ui.js';
@@ -364,3 +365,33 @@ function review(ctx, row, action, reload) {
   return sheet;
 }
 
+
+export async function loadExternalDecisionChoices(ctx,rfq) {
+      const rows=[];let after=null;
+      do {
+        const page=await ctx.api(`external-proposals?organization_id=${encodeURIComponent(ctx.organization.id)}&rfq_id=${encodeURIComponent(rfq.id)}&limit=50${after?`&after=${encodeURIComponent(after)}`:''}`);
+        rows.push(...(page.rows||[]));after=page.page?.has_more?page.page.next_after:null;
+        if (after && rows.length>=500) throw new Error('Há alternativas demais para a seleção; reduza o escopo.');
+      } while(after);
+      return {...rfq,external_proposal_count:rows.length,external_decision_alternatives:rows.filter(row=>row.decision_allowed===true).map(row=>({...externalComparisonProposal(row),provider_name:`${row.provider_name||'Instituição declarada'} · fonte externa`}))};
+}
+
+export function externalDecisionRecovery(ctx,id,requestKey,onUnconfirmed) {
+  return button('Consultar resultado da decisão',{onClick:async()=>{
+    try {
+      const result=await ctx.api(`external-proposals/result?organization_id=${encodeURIComponent(ctx.organization.id)}&id=${encodeURIComponent(id)}&operation=decision&request_key=${encodeURIComponent(requestKey)}`);
+      if(result.state==='confirmed')ctx.reload();
+      else {toast('Resultado ainda não confirmado. A próxima tentativa manterá a mesma intenção.');onUnconfirmed();}
+    } catch {toast('Consulta indisponível. O resultado continua desconhecido.','error');}
+  }});
+}
+
+export function normalizeExternalApprovals(approvals,rfq) {
+  for (const request of approvals) if (request.external_proposal_id) {
+    request.proposal_id=request.external_proposal_id;
+    if (!rfq.external_decision_error && request.status==='pending') request.stale=!(rfq.external_decision_alternatives||[]).some(row=>row.id===request.external_proposal_id&&row.version===request.proposal_version&&row.rfq_revision===request.external_rfq_revision);
+  }
+}
+
+export const externalDecisionConfirmation='Esta é uma transcrição externa conferida pela empresa. A decisão interna não autentica o emissor, não representa aceite da instituição, assinatura, concessão ou desembolso. O vínculo contratual é separado.';
+export function externalDecisionNotice(){return el('p',{class:'callout callout-info',text:'Fonte externa registrada pela empresa. Decisão interna não equivale a aceite da instituição, assinatura, concessão ou desembolso.'});}

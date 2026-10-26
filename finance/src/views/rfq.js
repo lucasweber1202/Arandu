@@ -52,17 +52,10 @@ export async function rfqDetail(ctx) {
     return emptyState({ title: id ? 'Solicitação não encontrada' : 'Escolha uma solicitação', text: id ? 'Ela pode ter sido removida ou pertencer a outra organização. Confira o link.' : 'Abra uma solicitação na lista para ver os detalhes.', iconName: 'search',
       action: linkButton('Ver solicitações', ctx.href('/finance/rfqs.html'), { iconName: 'arrowRight' }) });
   }
+  let externalUi=null;
   if (ctx.mode !== 'demo') {
-    try {
-      const rows=[];let after=null;
-      do {
-        const page=await ctx.api(`external-proposals?organization_id=${encodeURIComponent(ctx.organization.id)}&rfq_id=${encodeURIComponent(rfq.id)}&limit=50${after?`&after=${encodeURIComponent(after)}`:''}`);
-        rows.push(...(page.rows||[]));after=page.page?.has_more?page.page.next_after:null;
-        if (after && rows.length>=500) throw new Error('Há alternativas demais para a seleção; reduza o escopo.');
-      } while(after);
-      const {externalComparisonProposal}=await import('../../../lib/finance/external-proposals.mjs');
-      rfq={...rfq,external_proposal_count:rows.length,external_decision_alternatives:rows.filter(row=>row.decision_allowed===true).map(row=>({...externalComparisonProposal(row),provider_name:`${row.provider_name||'Instituição declarada'} · fonte externa`}))};
-    } catch { rfq={...rfq,external_decision_error:true,external_decision_alternatives:[]}; }
+    try { externalUi=await import('./external-proposals.js');rfq=await externalUi.loadExternalDecisionChoices(ctx,rfq); }
+    catch { rfq={...rfq,external_decision_error:true,external_decision_alternatives:[]}; }
   }
   document.title = `${rfq.title} | Arandu Financial Procurement`;
   const manage = ctx.can('create_rfq');
@@ -83,10 +76,7 @@ export async function rfqDetail(ctx) {
     // consulta de contexto depois das consultas de aprovação.
     loadEntities(ctx)
   ]);
-  for (const request of approvals) if (request.external_proposal_id) {
-    request.proposal_id=request.external_proposal_id;
-    if (!rfq.external_decision_error && request.status==='pending') request.stale=!(rfq.external_decision_alternatives||[]).some(row=>row.id===request.external_proposal_id&&row.version===request.proposal_version&&row.rfq_revision===request.external_rfq_revision);
-  }
+  externalUi?.normalizeExternalApprovals(approvals,rfq);
   if (ctx.mode === 'demo' && ctx.approvalsError) gaps.add('as aprovações');
   const governanceGap = gaps.size ? ['a decisão registrada', 'a política de aprovação', 'a exigência de aprovação', 'as aprovações'].filter(item=>gaps.has(item)) : null;
   const policy = { ...generalPolicy, required_for_decision: Boolean(generalPolicy.required_for_decision || evaluation?.approval_required), evaluation };
@@ -157,7 +147,7 @@ export async function rfqDetail(ctx) {
     { id: 'propostas', label: 'Propostas', count: proposals.length+(rfq.external_proposal_count||0), render: () => proposalsTab(ctx, rfq) },
     { id: 'comparacao', label: 'Comparação', render: () => comparisonTab(ctx, rfq, decision) },
     { id: 'aprovacoes', label: 'Aprovações', count: pending ? 1 : null, render: () => governanceGap ? governanceGapTab() : approvalsTab(ctx, rfq, approvals, { manage }) },
-    { id: 'decisao', label: 'Decisão', render: () => governanceGap ? governanceGapTab() : decisionTab(ctx, rfq, { decision, contract, policy, approvals, manage }) },
+    { id: 'decisao', label: 'Decisão', render: () => governanceGap ? governanceGapTab() : decisionTab(ctx, rfq, { decision, contract, policy, approvals, manage, externalUi }) },
     { id: 'atividade', label: 'Atividade', render: () => activityTab(ctx, rfq) }
   ], { label: 'Seções da solicitação' });
   root.append(tabset.node);
@@ -658,7 +648,7 @@ function approvalRequestForm(ctx, rfq, latest) {
 }
 
 // -------------------------------------------------------------- decisão
-function decisionTab(ctx, rfq, { decision, contract, policy, approvals, manage }) {
+function decisionTab(ctx, rfq, { decision, contract, policy, approvals, manage, externalUi }) {
   const wrap = el('div', { class: 'stack' });
   const externalRequestKey=`external-decision-${crypto.randomUUID()}`;
   const proposals = [...(rfq.proposals || []),...(rfq.external_decision_alternatives || [])];
@@ -667,7 +657,7 @@ function decisionTab(ctx, rfq, { decision, contract, policy, approvals, manage }
     const selected = decision.selected_proposal;
     const frozenMissing = Object.hasOwn(decision, 'selected_proposal') && !selected;
     const chosen = selected ? {...liveChosen, ...selected, id:decision.external_proposal_id||decision.proposal_id, provider_name:selected.provider_name||liveChosen?.provider_name || 'Instituição escolhida'} : frozenMissing ? null : liveChosen;
-    if(decision.external_proposal_id) wrap.append(el('p',{class:'callout callout-info',text:'Fonte externa registrada pela empresa. Decisão interna não equivale a aceite da instituição, assinatura, concessão ou desembolso.'}));
+    if(decision.external_proposal_id && externalUi) wrap.append(externalUi.externalDecisionNotice());
     const weights = Object.entries(decision.criteria?.weights || {});
     const specs = Object.fromEntries(PRODUCTS[rfq.product].proposalFields.map((item) => [item.key, item]));
     wrap.append(card({ title: 'Decisão registrada', id: 'decisao-registrada', body: [
@@ -684,12 +674,7 @@ function decisionTab(ctx, rfq, { decision, contract, policy, approvals, manage }
     if (contract) wrap.append(card({ title: 'Contrato', body: [el('p', { text: `Vigência de ${formatDate(contract.starts_on)} a ${formatDate(contract.ends_on)} · aviso prévio de ${contract.renewal_notice_days} dias.` }),
       linkButton('Abrir ciclo de vida do contrato', ctx.href(`/finance/contracts.html#contract-${contract.id}`), { iconName: 'arrowRight', variant: 'primary' })] }));
     else if (frozenMissing) wrap.append(emptyState({title:'Condições da decisão indisponíveis',text:'Não foi possível recuperar a proposta preservada na decisão. Recarregue e confira o histórico antes de registrar o contrato.',iconName:'alert'}));
-    else if (manage && decision.external_proposal_id) {
-      const continuation=el('div',{'aria-live':'polite'},loading('Carregando continuidade contratual…'));
-      wrap.append(continuation);
-      import('./external-proposals.js').then(({externalContractContinuation})=>continuation.replaceChildren(externalContractContinuation(ctx,rfq,decision)))
-        .catch(()=>continuation.replaceChildren(errorState({error:new Error('Não foi possível carregar a continuidade contratual.'),onRetry:()=>ctx.reload()})));
-    }
+    else if (manage && decision.external_proposal_id) wrap.append(externalUi ? externalUi.externalContractContinuation(ctx,rfq,decision) : errorState({error:new Error('Continuidade externa indisponível.'),onRetry:()=>ctx.reload()}));
     else if (manage) wrap.append(contractForm(ctx, rfq, decision, chosen));
     else wrap.append(emptyState({ title: 'Contrato ainda não registrado', text: 'Quem gerencia a solicitação registra o contrato com vigência e aviso prévio.', iconName: 'briefcase', compact: true }));
     return wrap;
@@ -763,7 +748,7 @@ function decisionTab(ctx, rfq, { decision, contract, policy, approvals, manage }
       reviewed.focus();
       return;
     }
-    if (!await confirmDialog({ title: `Registrar a escolha de ${chosen?.provider_name}?`, description: chosen?.origin==='buyer_recorded_external'?'Esta é uma transcrição externa conferida pela empresa. A decisão interna não autentica o emissor, não representa aceite da instituição, assinatura, concessão ou desembolso. O vínculo contratual é separado.':'A decisão fica registrada de forma permanente e a solicitação passa para “Decidida”. Em seguida você registra o contrato.', confirmLabel: 'Registrar decisão' })) return;
+    if (!await confirmDialog({ title: `Registrar a escolha de ${chosen?.provider_name}?`, description: chosen?.origin==='buyer_recorded_external'?externalUi.externalDecisionConfirmation:'A decisão fica registrada de forma permanente e a solicitação passa para “Decidida”. Em seguida você registra o contrato.', confirmLabel: 'Registrar decisão' })) return;
     submit.disabled = true;
     try {
       const external=chosen?.origin==='buyer_recorded_external';
@@ -781,9 +766,7 @@ function decisionTab(ctx, rfq, { decision, contract, policy, approvals, manage }
       }
       else if (chosen?.origin==='buyer_recorded_external' && (!error.status || error.status>=500)) {
         choiceError.hidden=false;choiceError.textContent='O resultado ainda é desconhecido. Consulte antes de reenviar.';
-        choiceError.append(button('Consultar resultado da decisão',{onClick:async()=>{
-          try {const result=await ctx.api(`external-proposals/result?organization_id=${encodeURIComponent(ctx.organization.id)}&id=${encodeURIComponent(chosen.id)}&operation=decision&request_key=${encodeURIComponent(externalRequestKey)}`);if(result.state==='confirmed')ctx.reload();else{toast('Resultado ainda não confirmado. A próxima tentativa manterá a mesma intenção.');submit.disabled=false;}}catch{toast('Consulta indisponível. O resultado continua desconhecido.','error');}
-        }}));
+        choiceError.append(externalUi.externalDecisionRecovery(ctx,chosen.id,externalRequestKey,()=>{submit.disabled=false;}));
       } else submit.disabled = false;
     }
   });

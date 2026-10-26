@@ -20,7 +20,7 @@ A documentação do contrato está em EXTERNAL_FINANCIAL_PROPOSALS_V37.md.
 
 - npm ci --include=optional: PASS, lockfile preservado.
 - npm run build: PASS.
-- npm run check:all: PASS na rodada inicial; repetido após documentação final.
+- npm run check:all: PASS; repetido pelos comandos exatos de vercel-build financeiro e Demo.
 - scripts/test-finance-external-proposals.mjs e suíte financeira agregada: PASS.
 - npm run test:database em PostgreSQL 16 descartável: PASS; instalação limpa,
   upgrade, aplicação repetida, rollback pré-uso, retorno da camada anterior,
@@ -54,3 +54,9 @@ altera esses arquivos em paralelo e precisa registrar sua migration após A
 integrada. Migrations aditivas e rollback próprios; rollback recusa uso material.
 Sem merge automático. Aprovação dos quatro gates deve ser verificada no SHA
 exato publicado. Não representa M3 hospedado nem pesquisa comercial.
+
+A variante Demo também foi reproduzida integralmente com ARANDU_DEPLOYMENT_KIND=demo,
+VERCEL_ENV=preview e ARANDU_SITE_URL sintética do CI. Orçamento final da RFQ:
+247792 bytes financeiro e 249664 Demo, limite 250000 preservado. As mensagens
+de proximidade do orçamento permanecem. A reorganização fica apenas nos dois
+arquivos de UI externa autorizados. Nenhuma configuração de build/CI foi alterada.
