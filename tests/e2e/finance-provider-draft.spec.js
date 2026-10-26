@@ -356,3 +356,70 @@ test('lifecycle: detalhe revalida acesso em vez de usar oportunidade do resumo',
  await expect(page.getByText('Proposta não encontrada',{exact:true})).toBeVisible();
  await expect(page.locator('#proposal-form')).toHaveCount(0);
 });
+
+// ------------------------------------------------------------ Instituições 2.0
+// Aceite e envio só viram sucesso com a resposta do servidor; resultado
+// incerto não reenvia às cegas. Sessão simulada (teste de UI).
+const INVITE = { id: 'i1', title: 'Antecipação de recebíveis 2027', product: 'credit', response_deadline: null, created_at: '2026-10-01T10:00:00Z', demo_token: 'a'.repeat(64), buyer_name: 'Grupo Vitta' };
+
+test('aceite: a confirmação explica que não é proposta nem crédito; cancelar não envia; sem prazo é dito como tal', async ({ page }) => {
+  await mockProvider(page, { pendingInvites: [INVITE] });
+  let accepts = 0;
+  await page.route('**/api/finance/invites/accept', (route) => { accepts += 1; return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, inviteId: 'x' }) }); });
+  await page.goto('/provider/index.html');
+  await expect(page.locator('#convites')).toContainText('sem prazo informado');
+  await page.locator('#convites').getByRole('button', { name: /Aceitar convite: Antecipação/ }).click();
+  const dialog = page.getByRole('dialog', { name: 'Aceitar o convite de Grupo Vitta?' });
+  await expect(dialog).toContainText('Não envia proposta, não aprova crédito');
+  await expect(dialog).toContainText('sem prazo informado');
+  await dialog.getByRole('button', { name: 'Cancelar' }).click();
+  expect(accepts).toBe(0);
+  await page.locator('#convites').getByRole('button', { name: /Aceitar convite: Antecipação/ }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Aceitar convite' }).click();
+  await expect(page).toHaveURL(/\/provider\/rfqs\.html$/);
+  expect(accepts).toBe(1);
+});
+
+test('aceite com queda de rede: nada de sucesso, botão não reenvia e a tela manda conferir', async ({ page }) => {
+  await mockProvider(page, { pendingInvites: [INVITE] });
+  let accepts = 0;
+  await page.route('**/api/finance/invites/accept', (route) => { accepts += 1; return route.abort('connectionreset'); });
+  await page.goto('/provider/index.html');
+  const accept = page.locator('#convites').getByRole('button', { name: /Aceitar convite: Antecipação/ });
+  await accept.click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Aceitar convite' }).click();
+  await expect(page.getByText(/A resposta não confirmou o aceite/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Atualizar portal' })).toBeVisible();
+  await expect(accept).toBeDisabled();
+  await expect(page.getByText(/^Convite aceito/)).toHaveCount(0);
+  expect(accepts).toBe(1);
+});
+
+test('convite já usado, expirado ou revogado: explica e orienta, sem sucesso falso', async ({ page }) => {
+  await mockProvider(page);
+  await page.route('**/api/finance/invites/accept', (route) => route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ ok: false, error: 'Este convite não é válido para esta conta: ele pode ter expirado, já ter sido usado, ter sido revogado ou ter sido enviado a outro e-mail.', code: 'invite_invalid' }) }));
+  await page.goto(`/provider/invite.html#token=${'b'.repeat(64)}`);
+  await page.getByRole('button', { name: 'Aceitar convite' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Aceitar convite' }).click();
+  await expect(page.locator('#invite-state')).toContainText('pode ter expirado');
+  await expect(page.locator('#invite-state')).toContainText('Peça um novo link à empresa');
+  await expect(page.locator('#invite-state')).toHaveClass(/callout-danger/);
+});
+
+test('envio da proposta sem confirmação: não reenvia; "Conferir envio" acha a versão registrada', async ({ page }) => {
+  const ready = { ...ASSIGNMENT, terms: { institution: 'Banco Atlas S.A.', product_name: 'Giro Atlas', offered_amount: 900000, interest_rate_month: 1.3, term_months: 24 } };
+  await mockProvider(page, { assignment: ready });
+  let sent = 0;
+  let current = ready;
+  await page.route('**/api/finance/assignments**', (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ ok: true, rows: [current] }) }));
+  await page.route('**/api/finance/proposals', (route) => { sent += 1; current = { ...ready, version: 1, submitted_rfq_revision: 1 }; return route.abort('connectionreset'); });
+  await page.goto(`/provider/proposal.html?proposal=${PROPOSAL}`);
+  await page.getByRole('button', { name: 'Revisar e enviar proposta' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Enviar proposta' }).click();
+  const status = page.locator('.proposal-status');
+  await expect(status).toContainText('O envio não foi confirmado.');
+  await expect(page.getByRole('button', { name: 'Revisar e enviar proposta' })).toBeDisabled();
+  await status.getByRole('button', { name: 'Conferir envio' }).click();
+  await expect(status).toContainText('Proposta enviada · versão 1');
+  expect(sent).toBe(1);
+});

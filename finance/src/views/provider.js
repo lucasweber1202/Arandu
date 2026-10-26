@@ -59,17 +59,39 @@ function opportunityRow(ctx, row) {
   ]);
 }
 
-async function acceptInvite(ctx, token, { button: trigger = null } = {}) {
+// Aceitar participa do processo; não envia proposta nem compromete crédito.
+// Quem confirma vê isso antes; sucesso só com a resposta do servidor.
+export const ACCEPT_MEANING = 'Aceitar libera a solicitação completa para a sua instituição e registra a participação no processo. Não envia proposta, não aprova crédito e não assume compromisso: a proposta é um envio separado, revisado antes.';
+// Offline antes do envio (status 0 sem código) nunca chegou ao servidor; queda, timeout ou 5xx depois do envio são incertos.
+const uncertainWrite = (error) => !(error.status === 0 && !error.code) && (!error.status || error.status >= 500 || ['network_error', 'timeout'].includes(error.code));
+/** Mensagem de convite que não deu certo, sem confirmar nem negar o que não se sabe. */
+export function inviteFailure(error, { retried = false } = {}) {
+  if (uncertainWrite(error)) return 'A resposta não confirmou o aceite. Atualize o portal: se a solicitação aparecer em Oportunidades, o convite já foi aceito; não é preciso aceitar de novo.';
+  if (error.code === 'invite_invalid' && retried) return 'O convite não pôde ser usado agora. Como a tentativa anterior ficou sem confirmação, ele pode já ter sido aceito por esta conta: confira em Oportunidades antes de pedir um novo link.';
+  if (error.code === 'invite_invalid' || error.code === 'invite_unavailable') return `${error.message} Peça um novo link à empresa se precisar participar.`;
+  if (error.status === 403) return 'Sua conta não pode aceitar convites por esta organização. Nada foi registrado; peça acesso a quem administra a instituição no Arandu.';
+  return error.message;
+}
+const triedInvites = new Set();
+
+async function acceptInvite(ctx, invite, { button: trigger = null } = {}) {
+  const ok = await confirmDialog({ title: invite.buyer_name ? `Aceitar o convite de ${invite.buyer_name}?` : 'Aceitar o convite?', confirmLabel: 'Aceitar convite', description: ACCEPT_MEANING,
+    body: el('p', { class: 'small', text: [invite.title, productLabel(invite.product, { short: true }), invite.response_deadline ? `prazo ${formatDate(invite.response_deadline)}` : 'sem prazo informado'].filter(Boolean).join(' · ') }) });
+  if (!ok) return false;
   if (trigger) trigger.disabled = true;
+  const retried = triedInvites.has(invite.demo_token);
+  triedInvites.add(invite.demo_token);
   try {
-    const result = await ctx.api('invites/accept', { method: 'POST', body: JSON.stringify({ token, provider_organization_id: ctx.organization.id }) });
+    const result = await ctx.api('invites/accept', { method: 'POST', body: JSON.stringify({ token: invite.demo_token, provider_organization_id: ctx.organization.id }) });
     toast('Convite aceito. A solicitação já está nas suas oportunidades.');
     if (result.proposal_id) location.assign(ctx.href(`/provider/proposal.html?proposal=${encodeURIComponent(result.proposal_id)}`));
     else location.assign(ctx.href('/provider/rfqs.html'));
     return true;
   } catch (error) {
-    toast(error.message, 'error');
-    if (trigger) trigger.disabled = false;
+    const unknown = uncertainWrite(error);
+    toast(inviteFailure(error, { retried }), 'error', unknown || retried ? { action: button('Atualizar portal', { size: 'sm', onClick: () => location.reload() }) } : undefined);
+    // Sem confirmação, o botão não volta a enviar às cegas: a pessoa atualiza e confere.
+    if (trigger) trigger.disabled = unknown;
     return false;
   }
 }
@@ -89,7 +111,7 @@ export async function providerHome(ctx) {
   const inviteFirst = invites.length && (!todo.length || deadline([...invites].sort((a, b) => deadline(a.response_deadline).localeCompare(deadline(b.response_deadline)))[0].response_deadline) <= deadline(todo[0].response_deadline));
   if (inviteFirst) {
     const invite = [...invites].sort((a, b) => deadline(a.response_deadline).localeCompare(deadline(b.response_deadline)))[0];
-    const accept = button('Aceitar convite', { variant: 'primary', iconName: 'check', onClick: (event) => acceptInvite(ctx, invite.demo_token, { button: event.currentTarget }) });
+    const accept = button('Aceitar convite', { variant: 'primary', iconName: 'check', onClick: (event) => acceptInvite(ctx, invite, { button: event.currentTarget }) });
     // buyer_name é opcional na API: sem ele, nada de comprador inventado nem "undefined".
     hero = { title: invite.buyer_name ? `Aceite o convite de ${invite.buyer_name}` : `Aceite o convite: ${invite.title}`, text: `${invite.buyer_name ? `${invite.title} · ` : ''}${productLabel(invite.product, { short: true })}${invite.response_deadline ? ` · prazo ${relativeDays(invite.response_deadline)}` : ''}`, action: accept };
   } else if (todo.length) {
@@ -113,12 +135,12 @@ export async function providerHome(ctx) {
   ]));
 
   if (invites.length) {
-    root.append(card({ id: 'convites', title: 'Convites recebidos', subtitle: 'Aceitar libera a solicitação completa para a sua instituição. Você decide depois se envia proposta.',
+    root.append(card({ id: 'convites', title: 'Convites recebidos', subtitle: 'Aceitar libera a solicitação completa e registra a participação. Não envia proposta nem aprova crédito: você decide depois se responde.',
       body: el('ul', { class: 'invite-cards', role: 'list' }, invites.map((invite) => el('li', { class: 'invite-card' }, [
         el('div', {}, [el('p', { class: 'opportunity-kicker', text: [invite.buyer_name, productLabel(invite.product, { short: true })].filter(Boolean).join(' · ') }), el('p', { class: 'invite-title', text: invite.title }),
-          el('p', { class: 'muted small', text: `Recebido ${timeAgo(invite.created_at)}${invite.response_deadline ? ` · prazo ${formatDate(invite.response_deadline)}` : ''}` })]),
+          el('p', { class: 'muted small', text: `Recebido ${timeAgo(invite.created_at)} · ${invite.response_deadline ? `prazo ${formatDate(invite.response_deadline)}` : 'sem prazo informado'}` })]),
         // A ação principal já está no destaque acima: aqui o botão não compete com ela.
-        button('Aceitar', { variant: inviteFirst ? 'secondary' : 'primary', size: 'sm', iconName: 'check', onClick: (event) => acceptInvite(ctx, invite.demo_token, { button: event.currentTarget }) })
+        button('Aceitar', { variant: inviteFirst ? 'secondary' : 'primary', size: 'sm', iconName: 'check', attrs: { 'aria-label': `Aceitar convite: ${invite.title}` }, onClick: (event) => acceptInvite(ctx, invite, { button: event.currentTarget }) })
       ]))) }));
   }
   // Caixa por estado: o que ainda não foi começado, o que tem rascunho, o que
@@ -362,10 +384,29 @@ export async function providerProposal(ctx) {
       toast(result.replay ? 'Nada mudou desde a última versão enviada.' : `Proposta enviada como versão ${result.version}.`);
       setTimeout(() => location.reload(), 600);
     } catch (error) {
-      toast(error.message, 'error');
-      submit.disabled = false;
       sending = false;
       submit.querySelector('.btn-label').replaceChildren(...submitLabel());
+      if (uncertainWrite(error)) {
+        // Envio sem confirmação: não reenviar às cegas; conferir a versão registrada no servidor.
+        const before = assignment.version || 0;
+        const check = button('Conferir envio', { size: 'sm', iconName: 'refresh', onClick: async () => {
+          check.disabled = true;
+          try {
+            const found = (await ctx.api(`assignments?organization_id=${encodeURIComponent(ctx.organization.id)}&proposal_id=${encodeURIComponent(assignment.proposal_id)}`)).rows?.find((row) => row.proposal_id === assignment.proposal_id);
+            if (!found) throw new Error('Não encontramos esta proposta para a sua instituição. Atualize a página.');
+            if ((found.version || 0) > before) { setStatus('success', `Proposta enviada · versão ${found.version}`, 'O envio foi registrado. Nada foi enviado de novo.'); setTimeout(() => location.reload(), 900); return; }
+            setStatus('info', 'O envio não foi registrado.', 'Nenhuma nova versão consta no servidor. Seus dados continuam no formulário; revise e envie quando quiser.');
+            submit.disabled = false;
+          } catch (readError) { setStatus('warning', 'Ainda não foi possível conferir o envio.', readError.message); status.querySelector('.callout > div').append(check); }
+          finally { check.disabled = false; }
+        } });
+        setStatus('warning', 'O envio não foi confirmado.', 'A proposta pode ter sido registrada. Confira antes de enviar de novo; seus dados continuam no formulário.');
+        status.querySelector('.callout > div').append(check);
+        status.scrollIntoView({ block: 'center' });
+        return;
+      }
+      toast(error.status === 403 ? 'Sua conta não pode enviar propostas por esta instituição. Nada foi enviado.' : error.message, 'error');
+      submit.disabled = false;
     }
   });
 
@@ -456,11 +497,19 @@ export async function providerInvite(ctx) {
     for (const organization of ctx.organizations) select.add(new Option(organization.legal_name, organization.id));
     select.value = ctx.organization?.id;
     const submit = button('Aceitar convite', { variant: 'primary', type: 'submit', iconName: 'check' });
+    let confirmed = false, attempts = 0;
     form.append(field({ label: 'Organização que vai responder', control: select }), el('div', { class: 'form-actions' }, submit));
     onSubmit(form, async (event) => {
       event.preventDefault();
       if (!/^[0-9a-f]{64}$/.test(tokenInput.value.trim())) { tokenInput.closest('.field').setError('O token tem 64 caracteres (0-9, a-f).'); return; }
+      if (!confirmed) {
+        const ok = await confirmDialog({ title: 'Aceitar o convite?', confirmLabel: 'Aceitar convite', description: ACCEPT_MEANING,
+          body: el('p', { class: 'small', text: `Organização que vai responder: ${select.selectedOptions[0]?.text || 'não identificada'}` }) });
+        if (!ok) return;
+      }
+      confirmed = true;
       submit.disabled = true;
+      const retried = attempts++ > 0;
       try {
         const result = await ctx.api('invites/accept', { method: 'POST', body: JSON.stringify({ token: tokenInput.value.trim(), provider_organization_id: select.value }) });
         stateNode.className = 'callout callout-success';
@@ -468,8 +517,9 @@ export async function providerInvite(ctx) {
         toast('Convite aceito.');
         location.assign(ctx.href(result.proposal_id ? `/provider/proposal.html?proposal=${encodeURIComponent(result.proposal_id)}` : '/provider/rfqs.html'));
       } catch (error) {
-        stateNode.className = 'callout callout-danger';
-        stateNode.textContent = error.status === 401 ? 'Entre na sua conta de provedor para aceitar o convite.' : error.message;
+        stateNode.className = uncertainWrite(error) ? 'callout callout-warning' : 'callout callout-danger';
+        stateNode.textContent = error.status === 401 ? 'Sua sessão expirou. Nada foi registrado; entre de novo na conta da sua instituição para aceitar.' : inviteFailure(error, { retried });
+        if (uncertainWrite(error)) stateNode.append(' ', el('a', { href: ctx.href('/provider/rfqs.html'), text: 'Conferir em Oportunidades' }));
         submit.disabled = false;
       }
     });

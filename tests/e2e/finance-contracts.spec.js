@@ -1254,3 +1254,44 @@ test('buyer-first: celular 390px, teclado do início ao fim e sem overflow', asy
   await noHorizontalOverflow(page);
   expect(calls.some((call) => call.path === 'providers' && call.method === 'POST')).toBe(false);
 });
+
+test('buyer-first: filtro de entidade sem contrato não parece carteira vazia; registro já vem na entidade em foco', async ({ page }) => {
+  const A = '00000000-0000-4000-8000-0000000000f1', B = '00000000-0000-4000-8000-0000000000f2';
+  await mockSession(page, { contracts: [{ ...CONTRACT_ROW, legal_entity_id: A }] });
+  await page.route('**/api/finance/entities**', (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ ok: true, scope: 'group', can_admin: true, base_currency: 'BRL', rows: [
+    { id: A, legal_name: 'Vitta Indústria', short_name: 'Indústria', status: 'active', parent_id: null, kind: 'legal_entity' },
+    { id: B, legal_name: 'Vitta Logística', short_name: 'Logística', status: 'active', parent_id: null, kind: 'legal_entity' }] }) }));
+  await page.addInitScript((id) => sessionStorage.setItem('arandu-finance-entity', id), B);
+  await page.goto('/finance/contracts.html');
+  await expect(page.getByText('Nenhum contrato nesta entidade')).toBeVisible();
+  await expect(page.getByText('Nenhum contrato registrado ainda')).toHaveCount(0);
+  await page.locator('.empty').getByRole('button', { name: 'Registrar contrato existente' }).click();
+  await expect(page.locator('#contract-import-form').getByLabel(/^Entidade/)).toHaveValue(B);
+});
+
+test('buyer-first: instituição gravada cuja resposta se perdeu é reaproveitada na conferência, sem segundo cadastro', async ({ page }) => {
+  const providers = [];
+  const calls = await mockSession(page, { providers, contracts: [] });
+  let providerPosts = 0;
+  await page.route('**/api/finance/providers', (route) => {
+    if (route.request().method() !== 'POST') return route.fallback();
+    providerPosts += 1;
+    providers.push({ id: NEW_PROVIDER, name: 'Banco Horizonte', status: 'active' });
+    return route.abort('connectionreset');
+  });
+  await page.goto('/finance/contracts.html');
+  await page.getByRole('button', { name: 'Registrar o primeiro contrato' }).click();
+  const form = page.locator('#contract-import-form');
+  await form.getByLabel(/^Instituição financeira/).selectOption({ label: '+ Cadastrar nova instituição' });
+  await form.getByLabel(/^Nome da instituição/).fill('Banco Horizonte');
+  await fillImport(page);
+  await page.getByRole('button', { name: 'Revisar registro', exact: true }).click();
+  await page.getByRole('button', { name: 'Confirmar registro', exact: true }).click();
+  await form.getByRole('button', { name: 'Conferir na carteira' }).click();
+  await expect(form.getByText(/Isso não prova que ele não foi gravado/)).toBeVisible();
+  await expect(form.getByText(/A instituição já gravada será reaproveitada/)).toBeVisible();
+  await expect(page.locator('#contract-import-review')).toContainText('Banco Horizonte');
+  await page.getByRole('button', { name: 'Confirmar registro', exact: true }).click();
+  await expect.poll(() => calls.find((call) => call.path === 'contract-import')?.body?.provider_id).toBe(NEW_PROVIDER);
+  expect(providerPosts).toBe(1);
+});
