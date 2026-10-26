@@ -1,5 +1,5 @@
 -- Contract import intent receipts, kept with the financial record.
--- Shared migration registration is integrated after the external-decision PR.
+-- Registered in docs/supabase-migrations.json right after supabase-financial-external-decision.sql.
 begin;
 insert into public.fin_settings(key,value)
  select 'contract_import_previous_marker',value from public.fin_settings where key='schema_version'
@@ -176,6 +176,6 @@ end $$;
 revoke all on function public.fin_contract_import_receipt_guard() from public,anon,authenticated,service_role;
 drop trigger if exists fin_contract_import_receipt on public.fin_contracts;
 create trigger fin_contract_import_receipt before update on public.fin_contracts for each row execute function public.fin_contract_import_receipt_guard();
-insert into public.fin_settings(key,value) values('schema_version','financial-contract-import-integrity-1') on conflict(key) do update set value=excluded.value,updated_at=now();
+insert into public.fin_settings(key,value) values('schema_version', 'financial-contract-import-integrity-1') on conflict(key) do update set value=excluded.value,updated_at=now();
 notify pgrst,'reload schema';
 commit;

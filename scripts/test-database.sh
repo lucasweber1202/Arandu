@@ -401,6 +401,8 @@ while IFS= read -r file; do
   apply_file "$upgrade_db" "$file"
 done < <(after_decommission)
 # Remove the later projection before rehearsing rollbacks of its source columns.
+# Contract import intents sit above external decisions: they roll back first.
+apply_file "$upgrade_db" "docs/rollback/supabase-financial-contract-import-integrity.rollback.sql"
 apply_file "$upgrade_db" "docs/rollback/supabase-financial-external-decision.rollback.sql"
 apply_file "$upgrade_db" "docs/rollback/supabase-financial-relationship-continuity.rollback.sql"
 apply_file "$upgrade_db" "docs/rollback/supabase-financial-demo-pool.rollback.sql"
@@ -609,6 +611,9 @@ node "$root_dir/tests/database/pilot-schema-upgrade.mjs" "$base_url"
 # External ingestion: additive upgrade, pre-data rollback and reapply on both paths.
 for current_db in "$upgrade_db" "$fresh_db"; do
   # Newer source adapters must be rolled back before their underlying ingestion view.
+  if [[ "$(psql "$(database_url "$current_db")" -X -qAt -v ON_ERROR_STOP=1 -c "select exists(select 1 from information_schema.columns where table_schema='public' and table_name='fin_contracts' and column_name='import_request_key')")" == t ]]; then
+    apply_file "$current_db" "docs/rollback/supabase-financial-contract-import-integrity.rollback.sql"
+  fi
   if [[ "$(psql "$(database_url "$current_db")" -X -qAt -v ON_ERROR_STOP=1 -c "select exists(select 1 from information_schema.columns where table_schema='public' and table_name='fin_decisions' and column_name='external_proposal_id')")" == t ]]; then
     apply_file "$current_db" "docs/rollback/supabase-financial-external-decision.rollback.sql"
   fi
@@ -644,5 +649,21 @@ for current_db in "$clean_db" "$upgrade_db" "$fresh_db"; do
   node "$root_dir/tests/database/external-decision-concurrency.mjs" "$(database_url "$current_db")"
 done
 
+# Contract import intents (#276) on top of external decisions: clean, upgrade and
+# fresh paths, pre-use rollback restoring the decision marker, reapply twice,
+# SQL contract and real concurrency (eight retries, revocation, used rollback refused).
+for current_db in "$clean_db" "$upgrade_db" "$fresh_db"; do
+  apply_file "$current_db" "docs/supabase-financial-contract-import-integrity.sql"
+  apply_file "$current_db" "docs/rollback/supabase-financial-contract-import-integrity.rollback.sql"
+  [[ "$(psql "$(database_url "$current_db")" -X -qAt -v ON_ERROR_STOP=1 -c "select value from public.fin_settings where key='schema_version'")" == financial-external-decision-1 ]] || { echo "Rollback da intenção contratual não restaurou o marker da decisão externa" >&2; exit 1; }
+  apply_file "$current_db" "docs/supabase-financial-contract-import-integrity.sql"
+  apply_file "$current_db" "docs/supabase-financial-contract-import-integrity.sql"
+  apply_file "$current_db" "tests/database/financial-contract-import-integrity.sql"
+  node "$root_dir/tests/database/contract-import-integrity-concurrency.mjs" "$(database_url "$current_db")"
+  apply_file "$current_db" "ops/sql/post-migration-probes.sql"
+  apply_file "$current_db" "ops/sql/pilot-isolation-canary.sql"
+  [[ "$(psql "$(database_url "$current_db")" -X -qAt -v ON_ERROR_STOP=1 -c "select value from public.fin_settings where key='schema_version'")" == financial-contract-import-integrity-1 ]] || { echo "Marker final diferente de financial-contract-import-integrity-1" >&2; exit 1; }
+done
+
 echo "Arandu Database Integration Tests"
-echo "Instalação limpa, upgrade, reaplicação, rollback, RLS, transações, pedidos, invariantes PR38, outbox, fencing de workers, retenção, procurement financeiro e operação real do piloto (convite, janela de envio, aviso de renovação), finance_ops, destinatário do convite superfície exposta ao PostgREST (fidelidade aos default privileges do Supabase, matriz adversarial entre tenants) aviso ao próximo aprovador da cadeia Financial Passport (proveniência, histórico, snapshot imutável na RFQ, negação a provedor e a outro tenant) multi-entity (escopo por entidade, RLS, guarda de escrita, consolidação, trilha, rollback) Contract Center v2 (importado com próxima ação, duplicado e principal incoerente recusados, prorrogação reabre o ciclo de renovação, decisão presa à versão vista e envio × decisão sem deadlock em duas sessões reais, sessão revogada recusada no PostgREST, termos versionados, aditivo imutável, marcos idempotentes) Policy & Approval Engine v2 (precedência grupo/entidade, versão imutável, snapshot, SoD, exceção, delegação, prazos, rollback) e Public API v1/Webhooks (credencial por hash, escopo+entidade, keyset, idempotência, outbox mínimo, lease/backoff/dead-letter/replay, rollback) e Enterprise SSO (domínio verificado, autorização fail-closed, revogação de sessões, enforcement, rollback) e Data Governance (retenção versionada com hold, lote e rerun, export isolado sem segredo, offboarding com revogação idempotente, rollback só sem uso) e aposentadoria da vertical de arte (recusa sem export reconhecido, estado final sem arte, financeiro intacto, reaplicação, instalação limpa em uma passada) aprovados."
+echo "Instalação limpa, upgrade, reaplicação, rollback, RLS, transações, pedidos, invariantes PR38, outbox, fencing de workers, retenção, procurement financeiro e operação real do piloto (convite, janela de envio, aviso de renovação), finance_ops, destinatário do convite superfície exposta ao PostgREST (fidelidade aos default privileges do Supabase, matriz adversarial entre tenants) aviso ao próximo aprovador da cadeia Financial Passport (proveniência, histórico, snapshot imutável na RFQ, negação a provedor e a outro tenant) multi-entity (escopo por entidade, RLS, guarda de escrita, consolidação, trilha, rollback) Contract Center v2 (importado com próxima ação, duplicado e principal incoerente recusados, prorrogação reabre o ciclo de renovação, decisão presa à versão vista e envio × decisão sem deadlock em duas sessões reais, sessão revogada recusada no PostgREST, termos versionados, aditivo imutável, marcos idempotentes) Policy & Approval Engine v2 (precedência grupo/entidade, versão imutável, snapshot, SoD, exceção, delegação, prazos, rollback) e Public API v1/Webhooks (credencial por hash, escopo+entidade, keyset, idempotência, outbox mínimo, lease/backoff/dead-letter/replay, rollback) e Enterprise SSO (domínio verificado, autorização fail-closed, revogação de sessões, enforcement, rollback) e Data Governance (retenção versionada com hold, lote e rerun, export isolado sem segredo, offboarding com revogação idempotente, rollback só sem uso) e aposentadoria da vertical de arte (recusa sem export reconhecido, estado final sem arte, financeiro intacto, reaplicação, instalação limpa em uma passada) e intenção persistente de registro contratual (recibo por chave, replay, conflito material, responsável elegível, oito retries concorrentes, rollback só antes do uso) aprovados."
