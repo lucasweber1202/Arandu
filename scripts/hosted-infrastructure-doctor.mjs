@@ -35,6 +35,7 @@ const conversionActions = {
   no_customer_or_personal_data: ['classification', 'data_owner', 'Classificar dados, retenção e holds; preservar até decisão específica.'],
   verified_export: ['preservation', 'recovery_operator', 'Executar export autorizado da origem classificada para destino durável; registrar hashes.'],
   real_restore: ['recovery', 'recovery_operator', 'Restaurar o mesmo export em alvo isolado e reconciliar dados, permissões e componentes gerenciados.'],
+  restore_schema_reconciliation: ['recovery', 'recovery_operator', 'Conferir fingerprint compatível do manifest e recibo do mesmo export: schema_reconciliation MATCH e hashes de origem/destino iguais ao snapshot; não preencher prova antiga por inferência.'],
   controlled_reconstruction: ['cutover', 'database_owner', 'Revisar reconstrução e rollback; obter autorização específica antes de executar.'],
   current_migration_bundle: ['schema', 'engineer', 'Regenerar o bundle canônico da árvore atual e revisar seu hash no plano.']
 };

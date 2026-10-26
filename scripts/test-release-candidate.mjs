@@ -26,8 +26,18 @@ e.stage = 'release_candidate'; e.deployment_environment = 'demo';
 e.deployment.runtime = 'demo'; e.deployment.datasource = 'supabase';
 e.demo_seed = { ...base, result: 'PASS', verification: 'PASS', reset: 'PASS', synthetic_only: true };
 const assess = e => assessReleaseCandidate(e, { commit, now });
+e.backup.schema_fingerprint_version = 1;
+e.backup.snapshot_schema_sha256 = 'e'.repeat(64);
+Object.assign(e.restore, { schema_fingerprint_version: 1, schema_reconciliation: 'MATCH', source_schema_sha256: 'e'.repeat(64), target_schema_sha256: 'e'.repeat(64) });
 assert.equal(assess(e).result, 'RELEASE CANDIDATE GO');
 const deny = change => { const next = structuredClone(e); change(next); assert.equal(assess(next).result, 'RELEASE CANDIDATE NO-GO'); };
+for (const key of ['schema_fingerprint_version', 'snapshot_schema_sha256']) deny(e => { delete e.backup[key]; });
+for (const key of ['schema_fingerprint_version', 'schema_reconciliation', 'source_schema_sha256', 'target_schema_sha256']) deny(e => { delete e.restore[key]; });
+deny(e => { e.restore.target_schema_sha256 = 'f'.repeat(64); });
+deny(e => { e.restore.source_schema_sha256 = e.restore.target_schema_sha256 = 'f'.repeat(64); });
+for (const state of ['MISMATCH', 'NOT_RUN', 'ACCESS_BLOCKED', 'INCONCLUSIVE', 'PASS']) deny(e => { e.restore.schema_reconciliation = state; });
+deny(e => { e.backup.schema_fingerprint_version = 2; });
+deny(e => { e.restore.schema_fingerprint_version = '1'; });
 for (const key of ['ci','deployment','backup','restore','migration','doctor','canary','authenticated_journey','observability','operational_exercise','demo_seed','hosted_readiness']) deny(e => { delete e[key]; });
 for (const name of HOSTED_READINESS_CHECKS) for (const state of ['FAIL','BLOCKED','NOT_RUN','INCONCLUSIVE','ACCESS_BLOCKED', undefined]) deny(e => { e.hosted_readiness.checks[name] = state; });
 for (const change of [{ ready: false }, { http_status: 503 }, { schema_version: 'financial-surface-hardening-1' },

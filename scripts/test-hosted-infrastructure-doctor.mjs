@@ -18,6 +18,9 @@ assert.equal(report.cutover_authorized, false);
 assert.equal(report.evidence_origin_authenticated, false);
 assert.equal(row(report, 'active_database_assignment').result, 'BLOCKED');
 assert.equal(row(report, 'published_readiness').result, 'NOT_RUN');
+assert.equal(row(report, 'restore_schema_reconciliation').result, 'BLOCKED');
+assert.equal(row(report, 'restore_schema_reconciliation').owner, 'recovery_operator');
+assert.equal(row(report, 'restore_schema_reconciliation').authorization_required, true);
 for (const check of report.checks) {
   for (const key of ['id', 'environment', 'category', 'severity', 'result', 'evidence', 'dependency', 'next_action', 'owner', 'authorization_required', 'automatic_safe']) assert.ok(Object.hasOwn(check, key), key);
   assert.ok(['PASS', 'FAIL', 'BLOCKED', 'NOT_RUN', 'NOT_PROVEN', 'ACCESS_BLOCKED'].includes(check.result));

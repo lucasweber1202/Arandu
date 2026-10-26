@@ -14,10 +14,22 @@ const input = { project_ref: 'offgpyysgdhfemjlchod', database_hostname: 'db.offg
 input.inventory.sha256 = inventoryDigest(input.project_ref, input.inventory);
 input.backup.inventory_sha256 = input.inventory.sha256;
 const assess = e => assessConversion(e, { environment: 'demo', now, currentBundleSha256: 'c'.repeat(64) });
+input.backup.schema_fingerprint_version = 1;
+input.backup.snapshot_schema_sha256 = 'e'.repeat(64);
+Object.assign(input.restore, { schema_fingerprint_version: 1, schema_reconciliation: 'MATCH', source_schema_sha256: 'e'.repeat(64), target_schema_sha256: 'e'.repeat(64) });
 assert.equal(assess(input).result, 'PREPARED');
 assert.equal(assessConversion(input, { environment: 'demo', now }).result, 'BLOCKED', 'missing current tree digest cannot prove a migration plan');
 assert.equal(assessConversion(input, { environment: 'demo', now, currentBundleSha256: 'd'.repeat(64) }).result, 'BLOCKED', 'old bundle must not pass against the current tree');
 const deny = change => { const e = structuredClone(input); change(e); assert.equal(assess(e).result, 'BLOCKED'); };
+for (const key of ['schema_fingerprint_version', 'snapshot_schema_sha256']) deny(e => { delete e.backup[key]; });
+for (const key of ['schema_fingerprint_version', 'schema_reconciliation', 'source_schema_sha256', 'target_schema_sha256']) deny(e => { delete e.restore[key]; });
+deny(e => { e.restore.target_schema_sha256 = 'f'.repeat(64); });
+deny(e => { e.restore.source_schema_sha256 = e.restore.target_schema_sha256 = 'f'.repeat(64); });
+for (const state of ['MISMATCH', 'NOT_RUN', 'ACCESS_BLOCKED', 'INCONCLUSIVE', 'PASS']) deny(e => { e.restore.schema_reconciliation = state; });
+for (const version of [0, 2, '1', null]) {
+ deny(e => { e.backup.schema_fingerprint_version = version; });
+ deny(e => { e.restore.schema_fingerprint_version = version; });
+}
 for (const placeholder of ['pending:verified-recovery', 'TODO:export', 'tbd', 'placeholder:rollback', 'NOT_RUN']) {
  deny(e => { e.backup.reference = placeholder; });
  deny(e => { e.plan.rollback_reference = placeholder; });
@@ -65,6 +77,11 @@ try {
   return spawnSync(process.execPath, ['scripts/check-consolidation.mjs', '--environment=demo', `--evidence=${file}`], { encoding: 'utf8', env: { PATH: process.env.PATH } });
  };
  assert.equal(check().status, 0, 'current synthetic plan should satisfy the assessment contract');
+ e.restore.target_schema_sha256 = 'f'.repeat(64);
+ const schemaMismatch = check();
+ assert.equal(schemaMismatch.status, 1, 'matching row counts cannot mask restored DDL or grants drift');
+ assert.equal(JSON.parse(schemaMismatch.stdout).checks.find(c => c.name === 'restore_schema_reconciliation').ok, false);
+ e.restore.target_schema_sha256 = e.backup.snapshot_schema_sha256;
  e.plan.bundle_sha256 = 'f'.repeat(64);
  const stale = check();
  assert.equal(stale.status, 1);
