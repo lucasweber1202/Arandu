@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { test, expect } from '@playwright/test';
 
 // Policy & Approval Engine v2 na interface publicada: governança em
@@ -353,4 +354,21 @@ test('pedido de aprovação sem resposta: não reabre o envio; sessão expirada 
   await expect(form.getByRole('link', { name: 'Entrar em outra aba' })).toHaveAttribute('target', '_blank');
   await expect(form.locator('textarea[name="rationale"]')).toHaveValue('Contexto preservado.');
   await expect(form.getByRole('button', { name: 'Solicitar aprovação' })).toBeEnabled();
+});
+
+test('RFQ: o módulo de políticas só carrega ao abrir aprovação; falha do chunk fica visível', async ({ page }) => {
+  await mockSession(page);
+  const chunks=[];
+  const profile=JSON.parse(readFileSync(new URL('../../reports/bundle-profile.json',import.meta.url),'utf8'));
+  const policyChunk=profile.chunks.find(chunk=>chunk.modules.some(module=>module.source==='finance/src/views/policy.js'));
+  expect(policyChunk).toBeTruthy();
+  await page.route(`**/${policyChunk.file}`, route=>{chunks.push(route.request().url());return route.abort('failed');});
+  await page.goto(`/finance/rfq.html?id=${RFQ}`);
+  await expect(page.getByRole('tab',{name:/Aprovações/})).toBeVisible();
+  expect(chunks).toHaveLength(0);
+  await page.getByRole('tab',{name:/Aprovações/}).click();
+  await expect(page.getByText('Não conseguimos carregar as etapas de aprovação')).toBeVisible();
+  await expect(page.getByRole('button',{name:'Tentar novamente'})).toBeVisible();
+  expect(chunks.length).toBeGreaterThan(0);
+  await noHorizontalOverflow(page);
 });

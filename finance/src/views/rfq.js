@@ -7,7 +7,6 @@ import { el, icon, money, percent, fieldValue, formatDate, formatDateTime, relat
 import { card, pill, tag, button, linkButton, emptyState, errorState, loading, tabs, definitionList, toast, confirmDialog, promptDialog, drawer, field, catalogControl, person, menu, progress, onSubmit, sessionLink } from '../ui.js';
 import { loadEntities, rfqEntityControl } from './entities.js';
 import { comparisonMatrix, weightsPanel, revisionTimeline, collaboration, activityLog, approvalSteps, approvalActions, currentStep, memberName, memberTitle, coverage, approvalSummaryLine, lazyDocuments, keyTerms, isViewerTurn } from './shared.js';
-import { planSummary, policyTimeline, stageAssignments, loadPolicies } from './policy.js';
 import { POLICY_FACTS } from '../../../lib/finance/policy.mjs';
 import { proposalChanges } from '../../../lib/finance/comparison-context.mjs';
 
@@ -447,6 +446,20 @@ async function exportProcess(ctx, rfq) {
   } catch (error) { toast(error.message, 'error'); }
 }
 
+// Policy administration is not needed to open an RFQ. Keep this module behind
+// the approval interaction; failed imports stay visible and can be retried.
+function lazyPolicyTimeline(ctx, request, options) {
+  const box = el('div', { 'aria-busy': 'true' }, loading());
+  const load = async () => {
+    box.setAttribute('aria-busy', 'true');
+    try { const { policyTimeline } = await import('./policy.js'); box.replaceChildren(policyTimeline(ctx, request, options)); }
+    catch (error) { box.replaceChildren(errorState({ error, onRetry: load })); }
+    finally { box.setAttribute('aria-busy', 'false'); }
+  };
+  load();
+  return box;
+}
+
 // ----------------------------------------------------------- aprovações
 export function approvalCard(ctx, request, rfq, { onChange, compact = false } = {}) {
   const external=request.snapshot?.selected_source;
@@ -466,7 +479,7 @@ export function approvalCard(ctx, request, rfq, { onChange, compact = false } = 
     external?el('p',{class:'callout callout-info',text:`Transcrição externa · versão ${external.current_version} · revisão da solicitação ${external.rfq_revision}. ${external.notice||'A conferência não autentica o emissor, não comprova assinatura ou aceite institucional.'}`}):null,
     request.rationale ? el('blockquote', { class: 'rationale' }, [el('span', { class: 'rationale-label', text: 'Contexto do solicitante' }), el('p', { text: request.rationale })]) : null,
     proposal && !compact ? keyTerms(rfq.product, proposal.terms,external?{currency:external.currency??null}:{}) : null,
-    request.policy_snapshot ? policyTimeline(ctx, request, { onChange }) : approvalSteps(request, ctx.members)
+    request.policy_snapshot ? lazyPolicyTimeline(ctx, request, { onChange }) : approvalSteps(request, ctx.members)
   ]);
   if (mine && !request.stale) node.append(el('div', { class: 'approval-cta' }, [el('p', { class: 'approval-your-turn' }, [icon('clock', { size: 14 }), el('span', { text: request.policy_snapshot ? 'Você é aprovador(a) de uma etapa ativa.' : 'Sua decisão é a próxima etapa.' })]), approvalActions(ctx, request, { onDone: onChange })]));
   if (request.status === 'pending' && request.policy_snapshot && ctx.can?.('create_rfq')) {
@@ -593,6 +606,14 @@ function approvalRequestForm(ctx, rfq, latest) {
       modeBox.replaceChildren(approverGroup);
       return;
     }
+    let policyUi;
+    try { policyUi = await import('./policy.js'); }
+    catch (failure) {
+      previewFailed = true;
+      modeBox.replaceChildren(errorState({ title: 'Não conseguimos carregar as etapas de aprovação', error: failure, onRetry: refresh }));
+      return;
+    }
+    const { loadPolicies, planSummary, stageAssignments } = policyUi;
     flags = ((await loadPolicies(ctx))?.flags || []).filter((flag) => flag.active);
     const keep = assignments;
     assignments = {};

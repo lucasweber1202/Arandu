@@ -1,0 +1,10 @@
+{
+  "metric": "rfq-static-route-closure-bytes",
+  "before": 249664,
+  "after": 218069,
+  "recovered": 31595,
+  "limit": 250000,
+  "headroom": 31931,
+  "beforeProfileSha256": "300358e76554eba9a62f1820fe947c59bdb693733f2454a5f5ad4f7de6c9842f",
+  "afterProfileSha256": "0ed1568891fea798abdd1bc961f5b727c60e5ef1ce9fb53dedd6b6178e77457b"
+}

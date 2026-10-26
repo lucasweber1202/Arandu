@@ -63,7 +63,7 @@ async function api(who, method, path, body) {
   const setCookie = response.headers.getSetCookie?.() || [];
   const session = setCookie.find((value) => value.startsWith('arandu_session='));
   if (who && session) who.cookie = session.split(';')[0];
-  return { status: response.status, data };
+  return { status: response.status, data, retryAfterSeconds: Number(response.headers.get('retry-after')) || null };
 }
 const ok = (result, label) => { must(result.status < 300 && result.data?.ok !== false, `${label}: ${result.status} ${result.data?.code || ''} ${result.data?.error || ''}`.trim()); return result.data; };
 const accessToken = (who) => decodeSessionValue(decodeURIComponent(who.cookie.split('=')[1])).access_token;
@@ -666,6 +666,11 @@ await attack('Anônimo grava lead pelo formulário legado de arte no banco do pi
   const table = sql("select coalesce(to_regclass('public.leads')::text, 'ausente')");
   return { ok: r.status === 404 && table === 'ausente', observed: `${show(r)}; public.leads ${table}` };
 });
+
+if (process.env.ARANDU_FINANCIAL_LAB === '1') {
+  const { financialLifecycle } = await import('../financial-lab/lifecycle.mjs');
+  await financialLifecycle({step,attack,api,ok,must,sql,people,ctx,today,addDays,upload});
+}
 
 // ----------------------------------------------------------------- relatório
 const table = (rows, columns) => [`| ${columns.join(' | ')} |`, `| ${columns.map(() => '---').join(' | ')} |`, ...rows.map((row) => `| ${columns.map((column) => String(row[column] ?? '').replace(/\|/g, '/').replace(/\n/g, ' ')).join(' | ')} |`)].join('\n');
