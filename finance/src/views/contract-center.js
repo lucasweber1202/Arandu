@@ -296,6 +296,8 @@ function openImportContract(ctx, entities, { providerId: presetProvider = null }
   // igual em cada tentativa legítima. O recibo do servidor é a única prova de
   // gravação; a carteira carregada (um recorte) nunca é usada para concluir.
   let intent = null;
+  let providerIntent = null;
+  const intentOrganization = ctx.organization.id;
   const notice_ = (tone, text) => el('p', { class: `callout callout-${tone} compact`, text });
   const openSaved = (id) => {
     dirty = false; dialog.close();
@@ -338,25 +340,39 @@ function openImportContract(ctx, entities, { providerId: presetProvider = null }
       outcome.replaceChildren(notice_('warning', message), check);
     } finally { check.disabled = false; }
   } });
-  // A instituição não tem recibo próprio: se só o cadastro dela ficou incerto
-  // (o contrato nem foi enviado), relê a lista autorizada e reaproveita a homônima.
+  // Only an authorized receipt proves identity. Never infer it from a name.
   const providerCheck = button('Conferir instituição', { variant: 'primary', iconName: 'refresh', onClick: async () => {
+    if (!providerIntent || ctx.organization.id !== intentOrganization) return;
     providerCheck.disabled = true;
-    outcome.replaceChildren(loading('Conferindo as instituições no servidor…'));
+    outcome.replaceChildren(loading('Conferindo o recibo da instituição no servidor…'));
     try {
-      await ctx.reload();
-      const wanted = providerName.value.trim().toLocaleLowerCase('pt-BR');
-      const saved = (ctx.data.providers || []).find((row) => String(row.name || '').trim().toLocaleLowerCase('pt-BR') === wanted);
-      if (saved) { providerId = saved.id; providers.push({ id: saved.id, name: saved.name }); fillProviders(saved.id); newProvider.dataset.hidden = 'true'; fillParents(); }
-      uncertain = false; save.disabled = false; back.hidden = false;
-      summary();
-      outcome.replaceChildren(notice_(saved ? 'info' : 'warning', saved ? 'A instituição já estava gravada e será reaproveitada. O contrato ainda não foi enviado: confirme para registrá-lo.' : 'A instituição não aparece na lista carregada. Confirmar tenta cadastrá-la de novo; se ela já existir com outro nome, escolha-a na lista.'));
-    } catch (error) { outcome.replaceChildren(errorState({ error })); outcome.append(providerCheck); }
-    finally { providerCheck.disabled = false; }
+      const q = new URLSearchParams({ organization_id: intentOrganization, request_key: providerIntent.key });
+      const receipt = await ctx.api(`provider-creation-result?${q}`);
+      if (receipt.state === 'pending') { outcome.replaceChildren(notice_('info', 'O cadastro ainda está sendo processado. Confira de novo em instantes.'), providerCheck); return; }
+      if (receipt.state === 'confirmed' && receipt.id && receipt.row?.id === receipt.id) {
+        providerId = receipt.id;
+        providers.push({ id: receipt.id, name: receipt.row.name }); fillProviders(receipt.id); newProvider.hidden = true; fillParents();
+        uncertain = false; save.disabled = false; back.hidden = false; summary();
+        outcome.replaceChildren(notice_('success', 'A instituição foi confirmada pelo recibo. O contrato ainda não foi enviado; confira e confirme o registro.'));
+        return;
+      }
+      if (receipt.state === 'unconfirmed') {
+        uncertain = false; save.disabled = false; back.hidden = true;
+        save.textContent = 'Enviar de novo (mesma intenção)';
+        outcome.replaceChildren(notice_('warning', 'O cadastro ainda não tem confirmação. Isso não prova recusa; enviar de novo reutiliza a mesma intenção e não duplica a instituição.'), providerCheck);
+        return;
+      }
+      throw new Error('O servidor não confirmou a situação do cadastro. Confira de novo.');
+    } catch (error) {
+      const message = error.status === 401 ? 'Sua sessão expirou. Entre de novo em outra aba e confira aqui; os dados continuam nesta tela.'
+        : error.status === 403 ? 'Seu acesso não permite conferir este cadastro. Nada foi reenviado.' : 'Não foi possível conferir agora. Os dados continuam nesta tela; tente de novo.';
+      outcome.replaceChildren(notice_('warning', message), providerCheck);
+    } finally { providerCheck.disabled = false; }
   } });
   let providerId = null;
   onSubmit(form, async (event) => {
     event.preventDefault();
+    if (ctx.organization.id !== intentOrganization) { outcome.replaceChildren(notice_('warning', 'A organização mudou. Feche este formulário e abra um cadastro na organização correta.')); save.disabled = true; return; }
     if (uncertain || save.disabled) return;
     if (!reviewing) {
       if (!validate()) return;
@@ -366,9 +382,13 @@ function openImportContract(ctx, entities, { providerId: presetProvider = null }
     outcome.replaceChildren(loading('Gravando o contrato…'));
     try {
       if (provider.value === NEW_PROVIDER && !providerId) {
-        const created = await ctx.api('providers', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, name: providerName.value.trim(), kind: providerKind.value }) });
+        const material = { organization_id: intentOrganization, name: providerName.value.trim(), kind: providerKind.value };
+        const fingerprint = JSON.stringify(material);
+        if (providerIntent && providerIntent.fingerprint !== fingerprint) throw Object.assign(new Error('Os dados desta intenção mudaram. Confira o recibo antes de iniciar outro cadastro.'), { status: 409, code: 'provider_creation_conflict' });
+        if (!providerIntent) providerIntent = { key: crypto.randomUUID(), fingerprint };
+        const created = await ctx.api('providers', { method: 'POST', body: JSON.stringify({ ...material, request_key: providerIntent.key }) });
         providerId = created.row?.id;
-        if (!providerId) throw new Error('A instituição não foi cadastrada. Tente de novo.');
+        if (!providerId) throw new Error('O servidor não confirmou o cadastro da instituição. Confira o recibo.');
         // Um novo envio depois de falha no contrato reaproveita a instituição criada.
         providers.push({ id: providerId, name: providerName.value.trim() });
         fillProviders(providerId);
@@ -404,6 +424,7 @@ function openImportContract(ctx, entities, { providerId: presetProvider = null }
       outcome.replaceChildren();
       // Recusa definitiva: nada foi gravado com esta chave; corrigir gera intenção nova.
       intent = null;
+      if (error.code === 'provider_creation_conflict') { uncertain = true; back.hidden = true; outcome.replaceChildren(notice_('warning', error.message), providerCheck); return; }
       if (error.code === 'contract_import_conflict') outcome.replaceChildren(notice_('warning', 'Este registro conflita com uma tentativa anterior de conteúdo diferente. Recarregue a carteira e confira antes de registrar.'));
       else if (error.code === 'contract_owner_unavailable') { setReviewing(false); ownerField?.setError('Esta pessoa não pode ser responsável por este contrato (papel, acesso à entidade ou conta). Escolha outra ou deixe você mesmo.'); owner.focus(); }
       else if (error.code === 'contract_duplicate') outcome.replaceChildren(notice_('warning', error.message));
