@@ -5,8 +5,8 @@
 // (decision_allowed=false): esta tela não oferece seleção nem contratação.
 
 import { PRODUCTS } from '../../../lib/finance/products.mjs';
-import { el, icon, formatDateTime, plural } from '../core.js';
-import { card, pill, tag, button, emptyState, errorState, loading, drawer, field, catalogControl, toast, onSubmit, definitionList } from '../ui.js';
+import { el, icon, formatDateTime, formatDate, plural } from '../core.js';
+import { card, pill, tag, button, linkButton, emptyState, errorState, loading, drawer, field, catalogControl, toast, onSubmit, definitionList } from '../ui.js';
 import { keyTerms, coverage, memberName } from './shared.js';
 
 // Espelho dos papéis da API (RLS e RPC continuam decidindo): só orienta a tela.
@@ -91,6 +91,10 @@ function externalCard(ctx, rfq, row, { canWrite, canReview, reload }) {
   const state = STATE[row.state] || { label: 'Estado não reconhecido', tone: 'neutral' };
   const actions = [];
   const live = row.state !== 'withdrawn';
+  if (canReview && row.decision_allowed===true) {
+    actions.push(linkButton('Selecionar na decisão', '#decisao', {size:'sm',variant:'primary',iconName:'flag'}));
+    actions.push(linkButton('Solicitar aprovação', '#aprovacoes', {size:'sm',iconName:'checkCircle'}));
+  }
   if (live && canWrite) actions.push(button('Corrigir (nova versão)', { size: 'sm', iconName: 'edit', onClick: () => editor(ctx, rfq, { record: row, onSaved: reload }) }));
   if (live && canReview && row.state === 'pending_review') actions.push(button('Conferir transcrição', { size: 'sm', variant: 'primary', iconName: 'checkCircle', onClick: () => { review(ctx, row, 'confirm', reload); } }));
   if (live && canReview) actions.push(button('Retirar da análise', { size: 'sm', variant: 'ghost', iconName: 'x', onClick: () => { review(ctx, row, 'withdraw', reload); } }));
@@ -118,11 +122,55 @@ function externalCard(ctx, rfq, row, { canWrite, canReview, reload }) {
       ['Conferência da transcrição', row.state === 'reviewed' ? `${memberName(ctx.members, row.reviewed_by)}${row.reviewed_at ? ` em ${formatDateTime(row.reviewed_at)}` : ''} · versão ${row.current_version}` : row.state === 'withdrawn' ? 'Retirada da análise' : `Pendente para a versão ${row.current_version}`],
       ['Confirmação da instituição', 'Não registrada: a instituição não enviou nem confirmou estes termos no Arandu']
     ].map(([label, value]) => el('div', { class: 'deflist-row' }, [el('dt', { text: label }), el('dd', { text: value })]))),
-    el('p', { class: 'muted small', text: row.state === 'reviewed' ? 'Entra na comparação como fonte externa; não pode ser escolhida nem contratada por aqui.' : row.state === 'withdrawn' ? 'Fora da comparação corrente; o histórico continua disponível.' : 'Fica fora da comparação até alguém da gestão conferir a transcrição.' }),
+    el('p', { class: 'muted small', text: row.state === 'reviewed' ? row.decision_allowed===true ? 'Pode ser selecionada por decisão interna da empresa, com a aprovação aplicável. O registro contratual é uma etapa separada; não há assinatura automática.' : 'A transcrição foi conferida. Confira o estado do processo, a revisão e a disponibilidade do documento antes de decidir.' : row.state === 'withdrawn' ? 'Fora da comparação corrente; o histórico continua disponível.' : 'Fica fora da comparação até alguém da gestão conferir a transcrição.' }),
     el('details', { class: 'proposal-details' }, [el('summary', { text: 'Ver todas as condições transcritas' }), definitionList(PRODUCTS[rfq.product].proposalFields.filter((spec) => spec.key !== 'institution'), row.terms || {}, { showMissing: true, currency: row.currency ?? null })]),
     history,
     actions.length ? el('div', { class: 'row-actions' }, actions) : null
   ]);
+}
+
+/** Reuses registered contracts; selecting an offer never creates a signed instrument. */
+export function externalContractContinuation(ctx, rfq, decision) {
+  const body=el('div',{class:'stack'},loading('Consultando registros contratuais…'));
+  const wrap=card({title:'Continuidade da decisão externa',body});
+  const source=decision.selected_proposal?.provenance;
+  if (!source) {body.replaceChildren(errorState({error:'A origem preservada da decisão não está disponível.',onRetry:()=>ctx.reload()}));return wrap;}
+  const requestKey=`external-link-${crypto.randomUUID()}`;
+  const select=el('select',{name:'external_contract',required:true},el('option',{value:'',text:'Selecione um contrato já registrado…'}));
+  const records=new Map();
+  const confirmed=el('input',{type:'checkbox',required:true});
+  const status=el('p',{class:'muted small',role:'status'});
+  const submit=button('Confirmar vínculo ao registro contratual',{variant:'primary',type:'submit',attrs:{id:'external-link-contract'}});
+  const form=el('form',{class:'stack'},[
+    el('p',{class:'callout callout-info',text:'A decisão é interna. Vincule somente um contrato existente legítimo da mesma instituição, entidade e produto. A assinatura e a aceitação da instituição não são verificadas pelo Arandu.'}),
+    linkButton('Registrar contrato existente na carteira',ctx.href('/finance/contracts.html'),{iconName:'arrowRight'}),
+    field({label:'Contrato registrado',control:select,required:true}),
+    el('label',{class:'check-row'},[confirmed,el('span',{text:'Conferi o registro e confirmo que corresponde à contratação desta decisão. Isso não declara uma assinatura verificada pelo Arandu.'})]),status,submit
+  ]);
+  const load=async(after=null)=>{
+    try {
+      const result=await ctx.api(`external-proposals/contracts?organization_id=${encodeURIComponent(ctx.organization.id)}&id=${encodeURIComponent(decision.external_proposal_id)}&limit=50${after?`&after=${encodeURIComponent(after)}`:''}`);
+      for(const row of result.rows||[]) {records.set(row.id,row);select.add(new Option(`${row.title||'Contrato registrado'} · ${formatDate(row.starts_on)} a ${formatDate(row.ends_on)} · ${row.currency} · versão ${row.current_version}`,row.id));}
+      status.textContent=records.size?'Confira o documento, as condições e a vigência antes de confirmar.':'Nenhum registro elegível encontrado. Registre o contrato na carteira e volte a esta solicitação.';
+      if(result.page?.has_more) {const more=button('Carregar mais contratos',{size:'sm',onClick:()=>{more.remove();load(result.page.next_after);}});form.append(more);}
+      body.replaceChildren(form);
+    } catch(error){body.replaceChildren(errorState({error,onRetry:()=>load(after)}));}
+  };
+  form.addEventListener('submit',async event=>{
+    event.preventDefault();const record=records.get(select.value);
+    if(!record||!confirmed.checked){status.textContent='Escolha o contrato e confirme a conferência do registro.';return;}
+    submit.disabled=true;
+    try {
+      await ctx.api('external-proposals/contract',{method:'POST',body:JSON.stringify({id:decision.external_proposal_id,expected_version:decision.external_proposal_version,rfq_revision:decision.external_rfq_revision,request_key:requestKey,decision_id:decision.id,contract_id:record.id,expected_contract_version:record.current_version,confirmed_contract_record:true})});
+      toast('Vínculo contratual confirmado. A assinatura não foi verificada pelo Arandu.');ctx.reload();
+    } catch(error) {
+      status.textContent=error.status&&error.status<500?explain(error):'O resultado ainda é desconhecido. Consulte antes de tentar novamente.';
+      if(!error.status||error.status>=500) form.append(button('Consultar resultado do vínculo',{onClick:async()=>{
+        try {const result=await ctx.api(`external-proposals/result?organization_id=${encodeURIComponent(ctx.organization.id)}&id=${encodeURIComponent(decision.external_proposal_id)}&operation=contract&request_key=${encodeURIComponent(requestKey)}`);if(result.state==='confirmed')ctx.reload();else{status.textContent='O vínculo ainda não foi confirmado. Uma nova tentativa conservará a mesma intenção.';submit.disabled=false;}}catch{status.textContent='A consulta falhou. O resultado continua desconhecido; nenhuma nova gravação foi enviada.';}
+      }}));else submit.disabled=false;
+    }
+  });
+  load();return wrap;
 }
 
 async function versionHistory(ctx, rfq, row, host, before = null) {

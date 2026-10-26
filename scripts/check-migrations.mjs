@@ -43,6 +43,7 @@ for (const [flow, files] of Object.entries(manifest)) {
   if (files.indexOf('docs/supabase-financial-decision-authorization.sql') !== files.indexOf('docs/supabase-financial-enterprise-integrity.sql')+1) issues.push(`${flow}: autorização da decisão deve seguir integridade enterprise.`);
   if (files.indexOf('docs/supabase-financial-relationship-continuity.sql') !== files.indexOf('docs/supabase-financial-external-proposals.sql')+1) issues.push(`${flow}: continuidade deve seguir propostas externas.`);
   if (files.indexOf('docs/supabase-financial-external-proposals.sql') !== files.indexOf('docs/supabase-financial-decision-authorization.sql')+1) issues.push(`${flow}: propostas externas devem seguir autorização da decisão.`);
+  if (files.indexOf('docs/supabase-financial-external-decision.sql') !== files.indexOf('docs/supabase-financial-relationship-continuity.sql')+1) issues.push(`${flow}: decisão externa deve seguir continuidade.`);
   const sprint2 = files.indexOf('docs/supabase-sprint2-catalog-readiness.sql');
   const collections = files.indexOf('docs/arandu-mvp-collections.sql');
   const sprint5 = files.indexOf('docs/supabase-sprint5-pilot.sql');

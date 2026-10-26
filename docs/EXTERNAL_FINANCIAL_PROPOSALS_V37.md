@@ -3,7 +3,7 @@
 Missão explícita de implementação buyer-first, 20/10/2026. Não é release
 hospedado, validação comercial, autenticação bancária ou aprovação de crédito.
 A mesma regra atende Essencial/Gestão/Enterprise, sem billing ou entitlements.
-Nenhum arquivo de interface foi alterado. UI e textos de experiência: Claude.
+A extensão de decisão altera somente external-proposals.js e o escopo externo de rfq.js; demais telas permanecem sob responsabilidade do Claude.
 
 ## Decisão de arquitetura
 
@@ -18,24 +18,51 @@ e `applyUserWeights`. Não há segunda lógica de cálculo, pesos ou negociaçã
 Os quatro estados são de preparação/revisão da transcrição, não uma cópia da
 máquina de sourcing. A instituição não precisa ter conta nem aceitar convite.
 
-**A rejeitada nesta rodada:** tornar invite_id/provider_organization_id opcionais
-na proposta canônica implicaria revisar suas constraints, aprovações, documentos,
-Graph, snapshots e contratos. Apenas aceitar NULL transferiria pressupostos de
-identidade autenticada para uma transcrição. B mantém os invariantes anteriores
-com menor superfície de regressão, ao custo de bloquear a escolha de uma
-proposta externa na decisão/contratação até uma adaptação formal posterior.
+## Extensão de decisão e continuidade
 
-**Limite deliberado de P4:** a proposta externa é analisável, mas
-`decision_allowed=false`. `POST external-proposals/decision` e `/contract`
-retornam 409 sem criar nada. A RPC canônica também recusa seu ID como proposta
-não elegível, pelas FKs/modelo atuais. Não usar conta falsa ou convite artificial.
-Quando o comprador decide uma proposta canônica, seu snapshot recebe também
-`external_alternatives` com valor/versão, origem, referência, revisão humana e
-limitações das alternativas externas revisadas naquele momento. Essa captura
-é imutável; correções/retiradas posteriores não a alteram. Aprovação de crédito,
-assinatura, concessão e desembolso nunca são deduzidos da decisão do comprador.
-Um instrumento efetivo pode ser registrado pelo fluxo já existente de contrato
-importado, mas não há conversão ou vínculo automático de uma proposta externa.
+A migration `supabase-financial-external-decision.sql`, após relationship-continuity,
+implementa referências tipadas nas decisões, aprovações e contratos canônicos.
+As FKs e identidades institucionais de `fin_proposals` permanecem intactas.
+A análise das alternativas está em `evidence/codex-v37-external-decision-design.md`.
+
+`decision_allowed` é calculado no banco: exige revisão humana da versão atual,
+RFQ na revisão correspondente e documento disponível, quando vinculado.
+O comprador seleciona a fonte externa na aba de decisão, usa a mesma policy,
+as mesmas alçadas/SoD e o mesmo motor de comparação. A aprovação continua
+sendo ato interno; nenhuma etapa autentica o emissor ou significa aceite bancário.
+
+A decisão captura versão, revisão da RFQ, termos brutos, moeda declarada,
+revisor/documento, critérios/pesos, cobertura e incomparabilidades, ator e
+limitações da transcrição. Correções posteriores preservam o snapshot.
+A continuidade é uma ação separada: vincular um contrato importado existente,
+confirmado explicitamente, da mesma organização, entidade, instituição, produto
+e moeda declarada. Não cria contrato, assinatura, crédito ou desembolso.
+
+### Comandos e recuperação
+
+Todos usam JWT do usuário. `POST external-proposals/preview` recebe `id`,
+`expected_version`, `rfq_revision`, `declared` e retorna a avaliação canônica.
+`POST /decision`, `/approval` e `/contract` exigem também `request_key`
+(8–80 caracteres alfanuméricos ou `._:-`). Decisão recebe `weights` e
+`rationale`; aprovação recebe `approver_ids` ou `assignments`, `justification`
+e `declared` conforme a policy. Vínculo recebe `decision_id`, `contract_id`,
+`expected_contract_version` e `confirmed_contract_record:true`.
+Resposta: `{ok:true,id,replayed,notice}`, 201 novo ou 200 replay.
+Mesma intenção/material retorna o ID original; payload diferente conflita.
+Versão/revisão/permissões são verificadas sob lock; não são atualizadas pelo retry.
+
+`GET /result?organization_id=…&id=…&operation=decision|approval|contract&request_key=…`
+retorna `{ok:true,state:"confirmed"|"unconfirmed",id}` sob RLS. Resultado ainda
+não confirmado não autoriza trocar a intenção. `GET /contracts` usa organização,
+ID externo, `limit` até 50 e cursor `after`; retorna candidatos importados e
+`page.has_more/next_after`, independente do overview.
+Os erros seguem os códigos estáveis de conflito, acesso e policy do domínio;
+`external_proposal_conflict` inclui versão/documento/estado incompatíveis.
+
+Migration e rollback: `financial-external-decision-1`; rollback próprio em
+`rollback/supabase-financial-external-decision.rollback.sql`, somente antes
+de uso material. Após decisão/aprovação/vínculo externo, exige forward-fix.
+Sem aplicação hospedada ou conversão de dados nesta missão.
 
 ## Persistência e segurança
 
