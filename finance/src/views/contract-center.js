@@ -179,6 +179,14 @@ function openImportContract(ctx, entities, { providerId: presetProvider = null }
   let editor = termsEditor(category.value);
   const editorSlot = el('div', {}, editor);
   category.addEventListener('change', () => { editor = termsEditor(category.value); editorSlot.replaceChildren(editor); });
+  // Responsável pelo contrato (não pela tarefa de renovação nem por aprovação).
+  // A lista é só conveniência: quem decide a elegibilidade é o servidor.
+  const OWNER_ROLES = ['admin', 'finance_manager', 'analyst'];
+  const candidates = (ctx.members || []).filter((member) => member.user_id && OWNER_ROLES.includes(member.role));
+  const owner = el('select', { name: 'owner_id' });
+  owner.add(new Option('Eu, quem está registrando', ''));
+  for (const member of candidates) if (member.user_id !== ctx.viewer?.id) owner.add(new Option(member.display_name || 'Membro da equipe', member.user_id));
+  const ownerField = candidates.length ? field({ label: 'Responsável pelo contrato', control: owner, optionalLabel: true, hint: 'Quem responde pelo relacionamento deste contrato. A tarefa de renovação tem responsável próprio, escolhido depois; aprovações seguem a regra da empresa.' }) : null;
   const providerField = field({ label: 'Instituição financeira', control: provider, required: true });
   const titleField = field({ label: 'Título', control: title, required: true, hint: 'Como a equipe reconhece o contrato.' });
   const startsField = field({ label: 'Início', control: starts, required: true });
@@ -218,7 +226,7 @@ function openImportContract(ctx, entities, { providerId: presetProvider = null }
     providerField, newProvider, titleField,
     ...(entities.rows.length ? [field({ label: 'Entidade', control: entity, hint: 'Empresa do grupo que assinou o contrato.' })] : []),
     el('div', { class: 'field-grid' }, [startsField, endsField, noticeField, el('label', { class: 'check-row' }, [autoRenew, el('span', { text: 'Renovação automática' })])]),
-    preview, parentField,
+    preview, parentField, ownerField,
     el('details', { class: 'terms-details' }, [el('summary', { text: 'Termos estruturados (opcional agora, versão 1)' }), editorSlot]),
     el('p', { class: 'callout callout-info compact' }, [icon('info', { size: 14 }), el('span', { text: 'Registre o que está no contrato assinado. O Arandu não calcula nem infere termos; correções futuras viram nova versão com justificativa.' })])
 ,
@@ -277,41 +285,74 @@ function openImportContract(ctx, entities, { providerId: presetProvider = null }
       ['Próximo prazo', deadline], parent.value ? ['Contrato principal', parent.selectedOptions[0]?.text] : null,
       ['Termos estruturados', filled ? `${filled} ${filled === 1 ? 'campo preenchido' : 'campos preenchidos'} (versão 1)` : 'Nenhum agora; podem ser estruturados depois'],
       ['Origem', 'Carteira existente, declarada pela empresa. Sem concorrência, proposta ou aprovação no Arandu.'],
-      ['Responsável', 'Definido depois, na próxima ação do contrato. Nenhum responsável é atribuído automaticamente.']
+      ['Responsável pelo contrato', owner.value ? owner.selectedOptions[0]?.text : 'Você, quem está registrando'],
+      ['Tarefa de renovação', 'Criada sem responsável automático: atribua na próxima ação do contrato.']
     ].filter(Boolean);
     review.replaceChildren(el('h3', { class: 'card-title', id: 'contract-import-review-title', text: 'Confira antes de gravar' }),
       el('dl', { class: 'deflist' }, rows.map(([label, value]) => el('div', { class: 'deflist-row' }, [el('dt', { text: label }), el('dd', { text: value })]))),
       el('p', { class: 'muted small', text: 'Nada foi gravado ainda. Confirme para registrar ou volte para corrigir.' }));
   };
-  // Resultado incerto (rede, 5xx): não reenviar às cegas; procurar o contrato na carteira recarregada.
-  const sameContract = (row) => row.provider_id === provider.value && row.title === title.value.trim() && row.starts_on === starts.value && row.ends_on === ends.value;
+  // Intenção persistente (#276): uma request_key por intenção material, reenviada
+  // igual em cada tentativa legítima. O recibo do servidor é a única prova de
+  // gravação; a carteira carregada (um recorte) nunca é usada para concluir.
+  let intent = null;
+  const notice_ = (tone, text) => el('p', { class: `callout callout-${tone} compact`, text });
   const openSaved = (id) => {
     dirty = false; dialog.close();
     const target = ctx.href(`/finance/contracts.html?abrir=contrato#contract-${id}`);
     if (location.pathname.endsWith('/contracts.html')) { history.replaceState(null, '', target); ctx.reload(); } else location.assign(target);
   };
-  const check = button('Conferir na carteira', { variant: 'primary', iconName: 'refresh', onClick: async () => {
+  // Depois de um resultado incerto, editar exige a transição explícita para um registro novo.
+  const unlock = () => { uncertain = false; save.disabled = false; back.hidden = true; save.textContent = 'Enviar de novo (mesma intenção)'; };
+  const fresh = button('Começar um registro novo', { variant: 'ghost', onClick: async () => {
+    const ok = await confirmDialog({ title: 'Começar um registro novo?', description: 'A tentativa anterior pode ter sido gravada. Um registro novo é outra intenção: se a anterior existir, a carteira terá dois contratos. Prefira conferir antes.', confirmLabel: 'Começar registro novo', tone: 'danger' });
+    if (!ok) return;
+    intent = null; uncertain = false; save.disabled = false; save.textContent = 'Revisar registro'; outcome.replaceChildren(); setReviewing(false);
+  } });
+  const check = button('Conferir registro', { variant: 'primary', iconName: 'refresh', onClick: async () => {
+    if (!intent) return;
     check.disabled = true;
-    outcome.replaceChildren(loading('Conferindo a carteira no servidor…'));
+    outcome.replaceChildren(loading('Conferindo o recibo deste registro no servidor…'));
     try {
-      await ctx.reload();
-      // Instituição nova cuja resposta se perdeu: reaproveita a gravada (mesmo nome) em vez de cadastrar outra.
-      if (provider.value === NEW_PROVIDER && !providerId) {
-        const wanted = providerName.value.trim().toLocaleLowerCase('pt-BR');
-        const saved = (ctx.data.providers || []).find((row) => String(row.name || '').trim().toLocaleLowerCase('pt-BR') === wanted);
-        if (saved) { providerId = saved.id; providers.push({ id: saved.id, name: saved.name }); fillProviders(saved.id); newProvider.dataset.hidden = 'true'; fillParents(); }
-      }
-      const found = (ctx.data.contracts || []).find(sameContract);
-      if (found) {
-        outcome.replaceChildren(el('p', { class: 'callout callout-success compact', text: 'O contrato foi gravado. Nada foi enviado de novo.' }),
-          button('Abrir o contrato registrado', { variant: 'primary', iconName: 'arrowRight', onClick: () => openSaved(found.id) }));
+      const query = new URLSearchParams({ organization_id: ctx.organization.id, request_key: intent.key });
+      if (intent.entity) query.set('legal_entity_id', intent.entity);
+      const receipt = await ctx.api(`contract-import-result?${query}`);
+      if (receipt.state === 'confirmed' && receipt.id) {
+        outcome.replaceChildren(notice_('success', 'O contrato foi gravado. Nada foi enviado de novo.'),
+          button('Abrir o contrato registrado', { variant: 'primary', iconName: 'arrowRight', onClick: () => openSaved(receipt.id) }));
         return;
       }
+      if (receipt.state === 'pending') { outcome.replaceChildren(notice_('info', 'O registro ainda está sendo processado no servidor. Nada foi reenviado; confira de novo em instantes.'), check); return; }
+      if (receipt.state === 'unconfirmed') {
+        // Sem recibo visível não é prova de rejeição: reenviar a MESMA intenção é seguro (o servidor deduplica pela chave).
+        unlock();
+        outcome.replaceChildren(notice_('warning', 'O servidor não tem confirmação deste registro agora. Isso não prova que ele foi recusado. Enviar de novo usa a mesma intenção e não duplica o contrato.'), check, fresh);
+        return;
+      }
+      throw new Error('O servidor não informou a situação do registro. Confira de novo.');
+    } catch (error) {
+      const message = error.status === 401 ? 'Sua sessão expirou. Entre de novo em outra aba e confira aqui; o preenchimento continua nesta tela.'
+        : error.status === 403 ? 'Seu acesso a esta organização ou entidade não permite conferir este registro.'
+          : error.status === 409 ? 'A situação deste registro mudou. Recarregue a carteira antes de continuar; nada foi reenviado.'
+            : error.message || 'Não foi possível conferir agora. Tente de novo.';
+      outcome.replaceChildren(notice_('warning', message), check);
+    } finally { check.disabled = false; }
+  } });
+  // A instituição não tem recibo próprio: se só o cadastro dela ficou incerto
+  // (o contrato nem foi enviado), relê a lista autorizada e reaproveita a homônima.
+  const providerCheck = button('Conferir instituição', { variant: 'primary', iconName: 'refresh', onClick: async () => {
+    providerCheck.disabled = true;
+    outcome.replaceChildren(loading('Conferindo as instituições no servidor…'));
+    try {
+      await ctx.reload();
+      const wanted = providerName.value.trim().toLocaleLowerCase('pt-BR');
+      const saved = (ctx.data.providers || []).find((row) => String(row.name || '').trim().toLocaleLowerCase('pt-BR') === wanted);
+      if (saved) { providerId = saved.id; providers.push({ id: saved.id, name: saved.name }); fillProviders(saved.id); newProvider.dataset.hidden = 'true'; fillParents(); }
       uncertain = false; save.disabled = false; back.hidden = false;
       summary();
-      outcome.replaceChildren(el('p', { class: 'callout callout-warning compact', text: `O contrato não aparece entre os ${(ctx.data.contracts || []).length} contratos carregados agora. Isso não prova que ele não foi gravado: a carteira exibida pode ser um recorte. Confirmar de novo não duplica: um contrato idêntico é recusado pelo servidor.${providerId && provider.value === providerId && newProvider.dataset.hidden === 'true' ? ' A instituição já gravada será reaproveitada.' : ''}` }));
-    } catch (error) { outcome.replaceChildren(errorState({ error })); outcome.append(check); }
-    finally { check.disabled = false; }
+      outcome.replaceChildren(notice_(saved ? 'info' : 'warning', saved ? 'A instituição já estava gravada e será reaproveitada. O contrato ainda não foi enviado: confirme para registrá-lo.' : 'A instituição não aparece na lista carregada. Confirmar tenta cadastrá-la de novo; se ela já existir com outro nome, escolha-a na lista.'));
+    } catch (error) { outcome.replaceChildren(errorState({ error })); outcome.append(providerCheck); }
+    finally { providerCheck.disabled = false; }
   } });
   let providerId = null;
   onSubmit(form, async (event) => {
@@ -334,14 +375,19 @@ function openImportContract(ctx, entities, { providerId: presetProvider = null }
         newProvider.hidden = true;
         fillParents();
       }
-      const result = await ctx.api('contract-import', { method: 'POST', body: JSON.stringify({
+      const material = {
         organization_id: ctx.organization.id, product: category.value, provider_id: provider.value,
         title: title.value.trim(), starts_on: starts.value, ends_on: ends.value, renewal_notice_days: Number(notice.value),
-        auto_renew: autoRenew.checked, legal_entity_id: entity.value || null, parent_contract_id: parent.value || null, terms: editor.read()
-      }) });
+        auto_renew: autoRenew.checked, legal_entity_id: entity.value || null, parent_contract_id: parent.value || null, terms: editor.read(),
+        ...(owner.value ? { owner_id: owner.value } : {})
+      };
+      const fingerprint = JSON.stringify(material);
+      // A mesma chave só acompanha o mesmo conteúdo material; conteúdo novo é intenção nova.
+      if (!intent || intent.fingerprint !== fingerprint) intent = { key: crypto.randomUUID(), fingerprint, entity: material.legal_entity_id };
+      const result = await ctx.api('contract-import', { method: 'POST', body: JSON.stringify({ ...material, request_key: intent.key }) });
       if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(result?.id || '')) { const unconfirmed = new Error('O servidor não confirmou o registro.'); unconfirmed.status = 502; throw unconfirmed; }
       const task = result.next_task;
-      toast(task ? `Contrato registrado. Próxima ação: revisar a renovação até ${formatDate(task.due_on)} (em Tarefas).` : 'Contrato registrado na carteira, sem renovação pendente.');
+      toast(result.replayed ? 'Este registro já estava gravado. Nada foi duplicado.' : task ? `Contrato registrado. Próxima ação: revisar a renovação até ${formatDate(task.due_on)} (em Tarefas).` : 'Contrato registrado na carteira, sem renovação pendente.');
       // A confirmação veio do servidor (id retornado): abre o contrato gravado
       // já com o trabalho dele (próxima ação, responsável, marcos).
       openSaved(result.id);
@@ -351,15 +397,17 @@ function openImportContract(ctx, entities, { providerId: presetProvider = null }
       if (error.status === 0 && !error.code) { outcome.replaceChildren(el('p', { class: 'callout callout-warning compact', text: error.message })); save.disabled = false; return; }
       if (!error.status || error.status >= 500 || ['network_error', 'timeout'].includes(error.code)) {
         uncertain = true; back.hidden = true;
-        outcome.replaceChildren(el('p', { class: 'callout callout-warning compact', text: 'A resposta não confirmou o registro. Os dados continuam nesta tela; confira a carteira antes de enviar de novo.' }), check);
+        if (!intent) { outcome.replaceChildren(notice_('warning', 'O cadastro da nova instituição não foi confirmado e o contrato ainda não foi enviado. Confira a instituição antes de continuar.'), providerCheck); return; }
+        outcome.replaceChildren(notice_('warning', 'A resposta não confirmou o registro. Os dados continuam nesta tela; confira o recibo antes de enviar de novo.'), check);
         return;
       }
       outcome.replaceChildren();
-      if (error.code === 'contract_duplicate') {
-        const existing = (ctx.data.contracts || []).find(sameContract);
-        outcome.replaceChildren(el('p', { class: 'callout callout-warning compact', text: error.message }));
-        if (existing) outcome.append(button('Abrir o contrato já registrado', { variant: 'primary', iconName: 'arrowRight', onClick: () => openSaved(existing.id) }));
-      } else if (error.status === 401) outcome.replaceChildren(el('p', { class: 'callout callout-warning compact', text: 'Sua sessão expirou. Nada foi gravado; entre de novo em outra aba e confirme aqui sem perder o preenchimento.' }));
+      // Recusa definitiva: nada foi gravado com esta chave; corrigir gera intenção nova.
+      intent = null;
+      if (error.code === 'contract_import_conflict') outcome.replaceChildren(notice_('warning', 'Este registro conflita com uma tentativa anterior de conteúdo diferente. Recarregue a carteira e confira antes de registrar.'));
+      else if (error.code === 'contract_owner_unavailable') { setReviewing(false); ownerField?.setError('Esta pessoa não pode ser responsável por este contrato (papel, acesso à entidade ou conta). Escolha outra ou deixe você mesmo.'); owner.focus(); }
+      else if (error.code === 'contract_duplicate') outcome.replaceChildren(notice_('warning', error.message));
+      else if (error.status === 401) outcome.replaceChildren(el('p', { class: 'callout callout-warning compact', text: 'Sua sessão expirou. Nada foi gravado; entre de novo em outra aba e confirme aqui sem perder o preenchimento.' }));
       else if (error.status === 403) outcome.replaceChildren(el('p', { class: 'callout callout-warning compact', text: 'Seu papel não permite registrar contratos nesta organização ou entidade. Nada foi gravado.' }));
       else {
         setReviewing(false);
@@ -434,8 +482,54 @@ export function openContract(ctx, contract, { initialDetail = null } = {}) {
         el('ul', { class: 'plain-list' }, detail.children.map((child) => el('li', { text: `${child.title || CONTRACT_CATEGORIES[child.product]} · até ${formatDate(child.ends_on)}` })))]));
     }
     if (current.parent_contract_id) sections.push(el('p', { class: 'muted small', text: 'Este contrato é filho de outro contrato da carteira.' }));
+    sections.push(ownerSection(current));
     sections.push(graphContextCard(ctx, { type: 'contract', id: current.id }));
     return sections;
+  }
+
+  // Responsável pelo contrato: troca explícita, confirmada pela releitura do servidor.
+  // Não mexe em termos, versão nem no responsável da tarefa de renovação.
+  let ownerNotice = '';
+  function ownerSection(current) {
+    const who = (id) => { const member = (ctx.members || []).find((row) => row.user_id === id); return id ? member?.display_name || (member ? 'Membro da equipe' : 'Pessoa sem acesso atual a esta organização') : 'Não informado'; };
+    const status = el('p', { class: 'muted small', role: 'status', 'aria-live': 'polite' });
+    const conflictNote = ownerNotice ? el('p', { class: 'callout callout-warning compact', role: 'alert', text: ownerNotice }) : null;
+    ownerNotice = '';
+    const section = el('section', { class: 'cc-section', 'aria-labelledby': `owner-${current.id}` }, [
+      el('div', { class: 'cc-head' }, el('h3', { id: `owner-${current.id}`, text: 'Responsável pelo contrato' })),
+      el('p', { text: who(current.owner_id) }),
+      el('p', { class: 'muted small', text: 'Responde pelo relacionamento deste contrato. Tarefas e aprovações têm responsáveis próprios.' })]);
+    if (conflictNote) section.append(conflictNote);
+    const candidates = (ctx.members || []).filter((member) => member.user_id && ['admin', 'finance_manager', 'analyst'].includes(member.role) && member.user_id !== current.owner_id);
+    if (!manage || !current.owner_id || !['active', 'renewing'].includes(current.status) || !candidates.length) return section;
+    const select = el('select', { name: 'owner_id' });
+    select.add(new Option('Escolha a pessoa', ''));
+    for (const member of candidates) select.add(new Option(member.display_name || 'Membro da equipe', member.user_id));
+    const submit = button('Alterar responsável', { size: 'sm', type: 'submit' });
+    const form = el('form', { class: 'stack', novalidate: true }, [field({ label: 'Novo responsável pelo contrato', control: select }), submit, status]);
+    onSubmit(form, async (event) => {
+      event.preventDefault();
+      if (!select.value) { select.closest('.field').setError('Escolha quem passa a responder pelo contrato.'); select.focus(); return; }
+      submit.disabled = true; select.disabled = true; status.textContent = 'Conferindo a alteração no servidor…';
+      try {
+        await ctx.api('contract-owner', { method: 'POST', body: JSON.stringify({ contract_id: current.id, expected_owner_id: current.owner_id, owner_id: select.value }) });
+        const reread = await ctx.api(`contract-detail?id=${encodeURIComponent(current.id)}`);
+        if (reread.contract?.owner_id !== select.value) throw new Error('A alteração não foi confirmada na releitura. Atualize o contrato antes de tentar de novo.');
+        toast('Responsável pelo contrato alterado.');
+        body.replaceChildren(...render(reread)); ctx.reload?.();
+      } catch (error) {
+        status.textContent = error.code === 'contract_owner_conflict' ? 'Outra pessoa alterou o responsável enquanto você escolhia. O contrato foi relido; confira antes de tentar de novo.'
+          : error.code === 'contract_owner_unavailable' ? 'Esta pessoa não pode ser responsável por este contrato (papel, acesso à entidade ou conta). Nada foi alterado.'
+            : error.status === 403 ? 'Seu papel não permite alterar o responsável deste contrato. Nada foi alterado.'
+              : !error.status || error.status >= 500 ? 'A alteração não foi confirmada. Atualize o contrato para ver o responsável registrado antes de tentar de novo.'
+                : error.message;
+        // Conflito: relê o contrato e mantém a explicação visível depois da releitura.
+        if (error.code === 'contract_owner_conflict') { ownerNotice = status.textContent; load(); }
+        submit.disabled = false; select.disabled = false;
+      }
+    });
+    section.append(el('details', { class: 'cc-history' }, [el('summary', { text: 'Alterar responsável' }), form]));
+    return section;
   }
 
   // Mesma leitura dos termos vigentes: moeda, percentual e indexador por
