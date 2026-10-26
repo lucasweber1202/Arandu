@@ -22,6 +22,19 @@ const exec=(command,args,options={})=>{
  if(r.error||r.status!==0){fs.appendFileSync(path.join(state,'commands.log'),String(r.stderr||r.error)+'\n',{mode:0o600});throw Error(`${command} failed (${r.status ?? 'spawn'}); inspect private lab log`);}
  return r.stdout;
 };
+// Fail before creating credentials or containers when a prerequisite is absent.
+for(const [name,command,args] of [
+ ['DOCKER_UNAVAILABLE','docker',[...docker,'info','--format','{{.ServerVersion}}']],
+ ['COMPOSE_UNAVAILABLE','docker',[...docker,'compose','version']],
+ ['TLS_TOOL_UNAVAILABLE','openssl',['version']]
+]){
+ const probe=spawnSync(command,args,{cwd:root,env,encoding:'utf8',timeout:15000});
+ if(probe.error||probe.status!==0){
+  const result={schema:1,scope,status:'NOT_RUN',reason:name,coverage:{postgresql:'NOT_RUN',auth_rls:'NOT_RUN',storage:'NOT_RUN',browser:'NOT_RUN',hosted:'NOT_RUN'},teardown:'NOT_NEEDED'};
+  fs.mkdirSync(path.dirname(output),{recursive:true});fs.writeFileSync(output,JSON.stringify(result,null,2)+'\n');
+  console.log(JSON.stringify(result));process.exit(2);
+ }
+}
 const secret=crypto.randomBytes(32).toString('hex');
 const jwt=role=>{const head=Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url'),body=Buffer.from(JSON.stringify({role,iss:'supabase',iat:Math.floor(Date.now()/1000),exp:Math.floor(Date.now()/1000)+86400})).toString('base64url');return `${head}.${body}.${crypto.createHmac('sha256',secret).update(`${head}.${body}`).digest('base64url')}`;};
 Object.assign(env,{JWT_SECRET:secret,PGPW:crypto.randomBytes(18).toString('hex'),ANON_KEY:jwt('anon'),SERVICE_KEY:jwt('service_role'),CRON_SECRET:crypto.randomBytes(32).toString('hex'),PILOT_LOCAL_DB_IMAGE:'postgres:16.15-bookworm',PILOT_LOCAL_AUTH_IMAGE:'supabase/gotrue:v2.181.0',PILOT_LOCAL_REST_IMAGE:'postgrest/postgrest:v12.2.9',PILOT_LOCAL_STORAGE_IMAGE:'supabase/storage-api:v1.25.3'});
