@@ -1507,3 +1507,35 @@ test('instituição: conflito material mantém dados e exige conferência; não 
   await expect(form.getByRole('button',{name:'Conferir instituição'})).toBeVisible();
   expect(posts).toBe(1);expect(calls.some(c=>c.path==='contract-import')).toBe(false);
 });
+
+test('instituição: escolher outro cadastro após recusa do contrato cria nova intenção e nunca vincula a contraparte anterior', async ({ page }) => {
+  await mockSession(page,{providers:[],contracts:[]});
+  const providers=[],contracts=[];
+  const secondProvider='00000000-0000-4000-8000-0000000000e3';
+  await page.route('**/api/finance/providers',route=>{
+    providers.push(route.request().postDataJSON());
+    const id=providers.length===1?NEW_PROVIDER:secondProvider;
+    return route.fulfill({status:201,contentType:'application/json',body:JSON.stringify({ok:true,state:'confirmed',row:{id,name:providers.at(-1).name}})});
+  });
+  await page.route('**/api/finance/contract-import',route=>{
+    contracts.push(route.request().postDataJSON());
+    return route.fulfill({status:400,contentType:'application/json',body:JSON.stringify({ok:false,code:'invalid_contract_terms',error:'Confira os termos do contrato.'})});
+  });
+  await page.goto('/finance/contracts.html');
+  await page.getByRole('button',{name:'Registrar o primeiro contrato'}).click();
+  const form=page.locator('#contract-import-form');
+  await form.getByLabel(/^Instituição financeira/).selectOption({label:'+ Cadastrar nova instituição'});
+  await form.getByLabel(/^Nome da instituição/).fill('Banco Horizonte');await fillImport(page);
+  await page.getByRole('button',{name:'Revisar registro',exact:true}).click();
+  await page.getByRole('button',{name:'Confirmar registro',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Revisar registro',exact:true})).toBeEnabled();
+  expect(contracts[0].provider_id).toBe(NEW_PROVIDER);
+  await form.getByLabel(/^Instituição financeira/).selectOption({label:'+ Cadastrar nova instituição'});
+  await form.getByLabel(/^Nome da instituição/).fill('Banco Sol');
+  await page.getByRole('button',{name:'Revisar registro',exact:true}).click();
+  await page.getByRole('button',{name:'Confirmar registro',exact:true}).click();
+  await expect.poll(()=>contracts.length).toBe(2);
+  expect(providers).toHaveLength(2);
+  expect(providers[1].request_key).not.toBe(providers[0].request_key);
+  expect(contracts[1].provider_id).toBe(secondProvider);
+});

@@ -216,6 +216,9 @@ function openImportContract(ctx, entities, { providerId: presetProvider = null }
   const review = el('section', { class: 'stack import-review', id: 'contract-import-review', 'aria-labelledby': 'contract-import-review-title', tabindex: '-1', hidden: true });
   const outcome = el('div', { class: 'stack', role: 'status', 'aria-live': 'polite' });
   provider.addEventListener('change', () => {
+    // An explicit selection starts another counterparty context. Never carry
+    // a previously confirmed ID into a later '+ new institution' choice.
+    providerId = null; providerIntent = null;
     newProvider.hidden = provider.value !== NEW_PROVIDER;
     providerField.setError('');
     fillParents();

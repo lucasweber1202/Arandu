@@ -120,3 +120,24 @@ recarregar o navegador; persistência de rascunho entre sessões é trabalho sep
 - Firefox/WebKit locais NOT_RUN; dependem dos gates publicados.
 - M3/M5 não promovidos; nenhum seed/reset, dado, segredo, assignment, migração,
   restore ou deployment hospedado foi modificado. Sem merge automático.
+
+## Revisão complementar: não herdar a contraparte anterior
+
+Após os quatro gates verdes da revisão `6daf537`, a revisão final reproduziu um
+caso adicional: criar a instituição A, receber recusa do contrato, voltar e escolher
+"Cadastrar nova instituição" para B. O estado local ainda mantinha o ID de A e
+podia enviar o segundo contrato para a contraparte anterior. O E2E novo falhou
+antes da correção (um POST de instituição, dois POSTs de contrato com o ID antigo).
+
+A escolha explícita no seletor agora invalida o ID e a intenção de contraparte do
+contexto anterior. A continua cadastrada e visível nas opções; escolher criar B
+abre outra intenção, com outra chave e seu próprio ID. Falha incerta não libera
+essa troca silenciosa: a recuperação pelo mesmo recibo continua igual.
+
+Reprodução: 1 FAIL antes do patch; cenários de instituição/recibo/conflito/troca
+corrigidos em desktop e Pixel 7: 8 PASS, sem mudar assertions ou tempos. O
+`deploy:check` completo passou depois da correção. A suíte completa de contratos
+passou antes do push: 150/150 em Chromium desktop e Pixel 7. Esta mudança não altera backend, SQL, permissões ou
+migrations. Os quatro verdes de `6daf537` são históricos; a revisão nova permanece
+draft até os quatro gates no novo HEAD. Um segundo push é necessário por este
+defeito material reproduzido, não para alterar critérios ou reexecutar CI sem código.
