@@ -26,9 +26,15 @@ const e = {
   p0_blockers: []
 };
 const assess = input => assessPilotRelease(input, { commit, now });
+e.backup.schema_fingerprint_version = 1;
+e.backup.snapshot_schema_sha256 = 'e'.repeat(64);
+Object.assign(e.restore, { schema_fingerprint_version: 1, schema_reconciliation: 'MATCH', source_schema_sha256: 'e'.repeat(64), target_schema_sha256: 'e'.repeat(64) });
 assert.equal(assess(e).result, 'PILOT GO'); // synthetic evidence tests only
 assert.equal(assess({}).result, 'PILOT NO-GO');
 const denied = change => { const next = structuredClone(e); change(next); assert.equal(assess(next).result, 'PILOT NO-GO'); };
+denied(e => { delete e.backup.snapshot_schema_sha256; });
+denied(e => { e.restore.schema_reconciliation = 'MISMATCH'; });
+denied(e => { e.restore.target_schema_sha256 = 'f'.repeat(64); });
 for (const key of ['deployment', 'backup', 'restore', 'migration', 'doctor', 'canary', 'authenticated_journey', 'observability', 'operational_exercise']) {
   denied(x => { delete x[key]; });
   denied(x => { x[key].evidence_level = 'local'; });
