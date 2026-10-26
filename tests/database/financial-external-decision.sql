@@ -6,7 +6,7 @@ create function pg_temp.denied(command text,pattern text) returns void language 
  raise exception 'unexpected success: %',command;
 end $$;
 create function pg_temp.input(extra jsonb default '{}') returns jsonb language sql as $$ select
- '{"terms":{"offered_amount":100000,"institution":"Instituição declarada"},"state":"pending_review","channel":"manual","received_at":null,"source_reference":"Contato comercial fictício","rfq_revision":1,"currency":"BRL"}'::jsonb || extra $$;
+ '{"terms":{"offered_amount":100000,"interest_rate_month":1,"term_months":168,"institution":"Instituição declarada"},"state":"pending_review","channel":"manual","received_at":null,"source_reference":"Contato comercial fictício","rfq_revision":1,"currency":"BRL"}'::jsonb || extra $$;
 insert into auth.users(id,email) select ('00000000-0000-4000-8000-0000000ea00'||n)::uuid,'external-'||n||'@example.invalid' from generate_series(1,7) n;
 insert into public.fin_organizations(id,legal_name,kind,created_by) values
  ('00000000-0000-4000-8000-0000000eb001','Buyer externo DEMO','BUYER','00000000-0000-4000-8000-0000000ea001'),
@@ -67,6 +67,10 @@ select pg_temp.denied($q$select public.fin_register_contract((select id from ext
 insert into ext_ids values('contract',public.fin_import_contract('00000000-0000-4000-8000-0000000eb001',null,'00000000-0000-4000-8000-0000000ed001','credit','Contrato externo legítimo DEMO','2026-01-01','2040-01-01',60,false,'BRL','{}',null));
 insert into ext_ids values('usd',public.fin_import_contract('00000000-0000-4000-8000-0000000eb001',null,'00000000-0000-4000-8000-0000000ed001','credit','Contrato moeda distinta DEMO','2026-01-01','2040-01-01',60,false,'USD','{}',null));
 create function pg_temp.link(k text,c text,confirmed boolean default true,v integer default 1) returns jsonb language sql as $$ select pg_temp.command('contract',k,jsonb_build_object('decision_id',(select id from ext_ids where name='decision'),'contract_id',(select id from ext_ids where name=c),'expected_contract_version',v,'confirmed_contract_record',confirmed)) $$;
+insert into ext_ids values('rate',public.fin_import_contract('00000000-0000-4000-8000-0000000eb001',null,'00000000-0000-4000-8000-0000000ed001','credit','Taxa diferente DEMO','2026-01-01','2040-01-01',60,false,'BRL','{"rate_pct_month":2}',null));
+insert into ext_ids values('term',public.fin_import_contract('00000000-0000-4000-8000-0000000eb001',null,'00000000-0000-4000-8000-0000000ed001','credit','Prazo diferente DEMO','2026-01-01','2030-01-01',60,false,'BRL','{}',null));
+select pg_temp.denied($q$select pg_temp.link('contract-wrong-rate','rate')$q$,'external contract conflict');
+select pg_temp.denied($q$select pg_temp.link('contract-wrong-term','term')$q$,'external contract conflict');
 select pg_temp.denied($q$select pg_temp.link('contract-no-confirm','contract',false)$q$,'invalid external contract confirmation');
 select pg_temp.denied($q$select pg_temp.link('contract-wrong-currency','usd')$q$,'external contract conflict');
 select pg_temp.denied($q$select pg_temp.link('contract-wrong-version','contract',true,2)$q$,'external contract conflict');

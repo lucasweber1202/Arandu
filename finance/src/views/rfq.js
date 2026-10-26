@@ -1,5 +1,3 @@
-import { externalContractContinuation } from './external-proposals.js';
-import { externalComparisonProposal } from '../../../lib/finance/external-proposals.mjs';
 import { graphContextCard } from './graph-context.js';
 // Detalhe da solicitação: contexto no topo, operação separada em abas.
 
@@ -62,6 +60,7 @@ export async function rfqDetail(ctx) {
         rows.push(...(page.rows||[]));after=page.page?.has_more?page.page.next_after:null;
         if (after && rows.length>=500) throw new Error('Há alternativas demais para a seleção; reduza o escopo.');
       } while(after);
+      const {externalComparisonProposal}=await import('../../../lib/finance/external-proposals.mjs');
       rfq={...rfq,external_proposal_count:rows.length,external_decision_alternatives:rows.filter(row=>row.decision_allowed===true).map(row=>({...externalComparisonProposal(row),provider_name:`${row.provider_name||'Instituição declarada'} · fonte externa`}))};
     } catch { rfq={...rfq,external_decision_error:true,external_decision_alternatives:[]}; }
   }
@@ -685,7 +684,12 @@ function decisionTab(ctx, rfq, { decision, contract, policy, approvals, manage }
     if (contract) wrap.append(card({ title: 'Contrato', body: [el('p', { text: `Vigência de ${formatDate(contract.starts_on)} a ${formatDate(contract.ends_on)} · aviso prévio de ${contract.renewal_notice_days} dias.` }),
       linkButton('Abrir ciclo de vida do contrato', ctx.href(`/finance/contracts.html#contract-${contract.id}`), { iconName: 'arrowRight', variant: 'primary' })] }));
     else if (frozenMissing) wrap.append(emptyState({title:'Condições da decisão indisponíveis',text:'Não foi possível recuperar a proposta preservada na decisão. Recarregue e confira o histórico antes de registrar o contrato.',iconName:'alert'}));
-    else if (manage && decision.external_proposal_id) wrap.append(externalContractContinuation(ctx,rfq,decision));
+    else if (manage && decision.external_proposal_id) {
+      const continuation=el('div',{'aria-live':'polite'},loading('Carregando continuidade contratual…'));
+      wrap.append(continuation);
+      import('./external-proposals.js').then(({externalContractContinuation})=>continuation.replaceChildren(externalContractContinuation(ctx,rfq,decision)))
+        .catch(()=>continuation.replaceChildren(errorState({error:new Error('Não foi possível carregar a continuidade contratual.'),onRetry:()=>ctx.reload()})));
+    }
     else if (manage) wrap.append(contractForm(ctx, rfq, decision, chosen));
     else wrap.append(emptyState({ title: 'Contrato ainda não registrado', text: 'Quem gerencia a solicitação registra o contrato com vigência e aviso prévio.', iconName: 'briefcase', compact: true }));
     return wrap;

@@ -36,7 +36,11 @@ revisor/documento, critérios/pesos, cobertura e incomparabilidades, ator e
 limitações da transcrição. Correções posteriores preservam o snapshot.
 A continuidade é uma ação separada: vincular um contrato importado existente,
 confirmado explicitamente, da mesma organização, entidade, instituição, produto
-e moeda declarada. Não cria contrato, assinatura, crédito ou desembolso.
+e moeda declarada. Valores explicitamente preenchidos na mesma base (principal,
+taxa mensal, spread anual, indexador, amortização e adquirência) não podem
+conflitar. Prazo de crédito usa meses de calendário a partir do início do contrato
+(com término no aniversário ou na véspera). Ausência não vira equivalência e
+taxas mensais/anuais não são convertidas. Não cria contrato, assinatura, crédito ou desembolso.
 
 ### Comandos e recuperação
 

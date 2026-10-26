@@ -110,7 +110,7 @@ create trigger fin_00_external_source before insert on public.fin_approval_reque
 
 create or replace function public.fin_external_command(p_id uuid,p_expected integer,p_revision integer,p_key text,p_operation text,p_payload jsonb)
 returns jsonb language plpgsql security definer set search_path='' as $$
-declare r public.fin_rfqs%rowtype; old_id uuid; old_hash text; h text; e jsonb; result_id uuid; d public.fin_decisions%rowtype; ct public.fin_contracts%rowtype;
+declare r public.fin_rfqs%rowtype; old_id uuid; old_hash text; h text; e jsonb; result_id uuid; d public.fin_decisions%rowtype; ct public.fin_contracts%rowtype; ct_terms jsonb; pair record;
 begin
  select r0.* into r from public.fin_rfqs r0 join public.fin_external_proposals p on p.rfq_id=r0.id where p.id=p_id for no key update of r0;
  if r.id is null then raise exception 'forbidden'; end if;
@@ -136,6 +136,7 @@ begin
   if p_payload ? 'assignments' then
    result_id:=public.fin_request_policy_approval(r.id,p_id,p_payload->'assignments',p_payload->>'rationale',p_payload->>'justification',coalesce(p_payload->'declared','{}'::jsonb));
   else
+   if jsonb_typeof(p_payload->'approver_ids') is distinct from 'array' then raise exception 'invalid external command'; end if;
    result_id:=public.fin_request_approval(r.id,p_id,array(select jsonb_array_elements_text(p_payload->'approver_ids'))::uuid[],p_payload->>'rationale');
   end if;
  else
@@ -147,6 +148,18 @@ begin
    or ct.legal_entity_id is distinct from r.legal_entity_id or ct.product<>r.product or ct.current_version<1
    or ct.current_version is distinct from (p_payload->>'expected_contract_version')::integer
    or (e->>'currency' is not null and ct.currency is distinct from e->>'currency') then raise exception 'external contract conflict'; end if;
+  select terms into ct_terms from public.fin_contract_versions where contract_id=ct.id and version=ct.current_version;
+  -- Compare only explicit values on the same basis; never convert annual/monthly rates.
+  for pair in select * from (values ('offered_amount','principal_amount'),('interest_rate_month','rate_pct_month'),
+    ('index_spread','spread_pct_year'),('index','indexer'),('amortization','amortization'),
+    ('mdr_debit','mdr_debit_pct'),('mdr_credit_cash','mdr_credit_pct'),('mdr_credit_installment','mdr_installment_pct'),('pix_fee','pix_pct'),('anticipation_rate','anticipation_pct_month'),('settlement_days','settlement_days')) m(source_key,contract_key) loop
+   if e->'terms'->pair.source_key is not null and e->'terms'->pair.source_key<>'null'::jsonb
+    and ct_terms->pair.contract_key is not null and ct_terms->pair.contract_key<>'null'::jsonb
+    and e->'terms'->pair.source_key is distinct from ct_terms->pair.contract_key then raise exception 'external contract conflict'; end if;
+  end loop;
+  if r.product='credit' and e->'terms'->>'term_months' is not null
+   and ct.ends_on not in ((ct.starts_on+make_interval(months=>(e->'terms'->>'term_months')::integer))::date,
+    (ct.starts_on+make_interval(months=>(e->'terms'->>'term_months')::integer))::date-1) then raise exception 'external contract conflict'; end if;
   if exists(select 1 from public.fin_contracts where decision_id=d.id) then raise exception 'external contract conflict'; end if;
   update public.fin_contracts set decision_id=d.id,external_proposal_id=p_id,external_proposal_version=p_expected,
    external_request_key=p_key,external_request_hash=h,updated_at=now() where id=ct.id;

@@ -40,7 +40,9 @@ A documentação do contrato está em EXTERNAL_FINANCIAL_PROPOSALS_V37.md.
 
 Ambiente: container Postgres oficial, network none, sem porta publicada, sem URL
 hospedada, fixtures exclusivamente sintéticas. Não houve migration/seed remoto.
-Falhas encontradas e corrigidas: marker não reconhecido pelo canário; ordem de
+Falhas encontradas e corrigidas: orçamento inicial de JavaScript da RFQ
+(273357 > 250000 bytes), corrigido com carregamento externo sob demanda;
+ marker não reconhecido pelo canário; ordem de
 rollback entre adapter e view externa; seleção acessível de campo obrigatório
 no teste. Rodada check:all sem permissão de loopback falhou com EPERM; repetir
 com execução local autorizada mantém todas as assertions. Nenhum gate foi reduzido.

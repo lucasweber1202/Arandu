@@ -1,8 +1,8 @@
 // Propostas recebidas fora do portal (v3.7). A empresa transcreve a oferta que
 // recebeu por e-mail, documento ou outro canal; o Arandu nunca a atribui ao banco
 // como envio autenticado. Contrato: docs/EXTERNAL_FINANCIAL_PROPOSALS_V37.md.
-// Decisão e contrato sobre proposta externa estão bloqueados no servidor
-// (decision_allowed=false): esta tela não oferece seleção nem contratação.
+// Revisão elegível habilita decisão interna canônica; continuidade contratual
+// é uma ação separada e não significa aceite ou assinatura da instituição.
 
 import { PRODUCTS } from '../../../lib/finance/products.mjs';
 import { el, icon, formatDateTime, formatDate, plural } from '../core.js';
