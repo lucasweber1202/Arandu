@@ -39,7 +39,7 @@ process.env.SUPABASE_ANON_KEY='external-anon';
 delete process.env.SUPABASE_SERVICE_ROLE_KEY;
 const ORG='00000000-0000-4000-8000-000000000701', RFQ='00000000-0000-4000-8000-000000000702', ID='00000000-0000-4000-8000-000000000703', PROVIDER='00000000-0000-4000-8000-000000000704';
 let sent=[],kind='BUYER',rpcError=null,unavailable=false,missing=false,overflow=false,schemaMissing=false,limited=false,lastResponse;
-const row={id:ID,organization_id:ORG,rfq_id:RFQ,provider_id:PROVIDER,product:'credit',state:'reviewed',current_version:1,terms:{offered_amount:100},currency:'BRL',rfq_revision:1,document_available:true,recorded_by:'writer',reviewed_by:'reviewer'};
+const row={id:ID,organization_id:ORG,rfq_id:RFQ,provider_id:PROVIDER,product:'credit',state:'reviewed',decision_allowed:true,current_version:1,terms:{offered_amount:100},currency:'BRL',rfq_revision:1,document_available:true,recorded_by:'writer',reviewed_by:'reviewer'};
 globalThis.fetch=async(url,options={})=>{
  const req={url:String(url),body:options.body?JSON.parse(options.body):null,headers:options.headers};sent.push(req);
  if(unavailable) return Response.json({message:'upstream unavailable'},{status:503});
@@ -68,7 +68,7 @@ assert(sent.every(req=>req.headers.Authorization==='Bearer external-user-jwt'),'
 await call('POST','external-proposals',{...input,request_key:'unknown-receipt-1',received_at:null});
 assert.equal(sent.filter(request=>request.url.includes('rpc/fin_external_proposal_save')).at(-1).body.p_input.received_at,null,'unknown receipt time stays null');
 response=await call('GET',`external-proposals?organization_id=${ORG}&rfq_id=${RFQ}`);
-assert.equal(response.payload.rows[0].id,ID);assert.equal(response.payload.decision_allowed,false);
+assert.equal(response.payload.rows[0].id,ID);assert.equal(response.payload.rows[0].decision_allowed,true);
 response=await call('GET',`external-proposals?organization_id=${ORG}&id=${ID}`);
 assert.equal(response.payload.versions[0].version,1);
 assert(sent.some(request=>request.url.includes('fin_external_proposal_versions?')&&request.url.includes('version=lte.1')),'history cannot include a future unreviewed version beyond the header snapshot');
@@ -88,7 +88,25 @@ for(const [path,body] of [['external-proposals',{...input,terms:{offered_amount:
  await assert.rejects(()=>call('POST',path,body),err=>err.status===400);
  assert.equal(sent.filter(req=>req.url.includes('rpc/')).length,n,'invalid request has no material write');
 }
-for(const action of ['decision','contract']) await assert.rejects(()=>call('POST','external-proposals/'+action,{id:ID}),err=>err.status===409&&err.code==='external_decision_not_supported');
+for(const action of ['decision','contract']) await assert.rejects(()=>call('POST','external-proposals/'+action,{id:ID}),err=>err.status===400);
+const intent={id:ID,expected_version:1,rfq_revision:1,request_key:'decision-intent-1',weights:{interest_rate_month:100},rationale:'Escolha sintética humana'};
+response=await call('POST','external-proposals/decision',intent);
+assert.equal(response.statusCode,201);
+const command=sent.at(-1);assert(command.url.includes('rpc/fin_external_command'));
+assert.equal(command.body.p_operation,'decision');assert.deepEqual(command.body.p_payload.criteria.weights,{interest_rate_month:100});
+assert.equal(command.body.p_payload.criteria.comparison.column.provenance.source,'buyer_recorded_external');
+assert.equal(command.body.p_payload.criteria.comparison.fields.find(row=>row.key==='cet_year').value,null);
+await assert.rejects(()=>call('POST','external-proposals/decision',{...intent,weights:{invented:1}}),err=>err.status===400);
+response=await call('POST','external-proposals/approval',{...intent,approver_ids:[PROVIDER]});
+assert.equal(response.statusCode,201);assert.equal(sent.at(-1).body.p_operation,'approval');
+response=await call('POST','external-proposals/contract',{...intent,decision_id:ID,contract_id:PROVIDER,expected_contract_version:1,confirmed_contract_record:true});
+assert.equal(response.statusCode,201);assert.equal(sent.at(-1).body.p_payload.confirmed_contract_record,true);
+response=await call('GET',`external-proposals/result?organization_id=${ORG}&id=${ID}&request_key=decision-intent-1&operation=decision`);
+assert.equal(response.payload.state,'unconfirmed');
+assert(sent.at(-1).url.includes('external_request_key=eq.decision-intent-1'));
+response=await call('GET',`external-proposals/contracts?organization_id=${ORG}&id=${ID}&limit=10`);
+assert.equal(response.payload.rows.length,0);assert(sent.at(-1).url.includes('decision_id=is.null'));
+
 kind='PROVIDER';await assert.rejects(()=>call('POST','external-proposals',input),err=>err.status===400);kind='BUYER';
 rpcError='external proposal conflict';await assert.rejects(()=>call('POST','external-proposals',input),err=>err.status===409&&err.code==='external_proposal_conflict');rpcError=null;
 // Material gap in the original suite: negative statuses must never send an ACK
