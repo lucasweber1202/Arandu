@@ -29,5 +29,5 @@ try{
 }finally{if(!holder.stdin.writableEnded)holder.stdin.end('rollback;\n');}
 await query(`update public.fin_members set role='viewer' where organization_id='${org}' and user_id='${actor}'`);
 await assert.rejects(()=>query(asUser(command())),e=>/forbidden/.test(e.stderr));
-await assert.rejects(()=>run('psql',[url,'-X','-q','-v','ON_ERROR_STOP=1','-f','docs/pending/contract-import-integrity/rollback.sql']),e=>/contract data exists: use forward-fix/.test(e.stderr));
+await assert.rejects(()=>run('psql',[url,'-X','-q','-v','ON_ERROR_STOP=1','-f','docs/rollback/supabase-financial-contract-import-integrity.rollback.sql']),e=>/contract data exists: use forward-fix/.test(e.stderr));
 console.log('Contract intent concurrency: eight retries, single contract/task, material conflict, pending receipt, revoked writer and used rollback refusal passed.');
