@@ -276,3 +276,12 @@ de uma instituição sem conta, transcrição manual parcial revisada pelo gesto
 segunda proposta autenticada em fixture distinta para comparar canais. Adicionar
 via APIs reais depois de integrar e autorizar o ambiente, sem alterar sandbox
 legado. Nenhum arquivo de seed/estação do Claude foi modificado nesta missão.
+
+## Camada seguinte: intenção de registro contratual
+
+`supabase-financial-contract-import-integrity.sql` (`financial-contract-import-integrity-1`,
+#276) vem logo depois desta migration nos dois fluxos do manifesto. Em rollback,
+a camada de intenção contratual sai primeiro
+(`rollback/supabase-financial-contract-import-integrity.rollback.sql`) e restaura
+o marker `financial-external-decision-1`; só depois esta camada pode sair.
+
