@@ -401,6 +401,7 @@ while IFS= read -r file; do
   apply_file "$upgrade_db" "$file"
 done < <(after_decommission)
 # Remove the later projection before rehearsing rollbacks of its source columns.
+apply_file "$upgrade_db" "docs/rollback/supabase-financial-external-decision.rollback.sql"
 apply_file "$upgrade_db" "docs/rollback/supabase-financial-relationship-continuity.rollback.sql"
 apply_file "$upgrade_db" "docs/rollback/supabase-financial-demo-pool.rollback.sql"
 apply_file "$upgrade_db" "docs/rollback/supabase-financial-demo-workspaces.rollback.sql"
@@ -607,6 +608,10 @@ node "$root_dir/tests/database/pilot-schema-upgrade.mjs" "$base_url"
 
 # External ingestion: additive upgrade, pre-data rollback and reapply on both paths.
 for current_db in "$upgrade_db" "$fresh_db"; do
+  # Newer source adapters must be rolled back before their underlying ingestion view.
+  if [[ "$(psql "$(database_url "$current_db")" -X -qAt -v ON_ERROR_STOP=1 -c "select exists(select 1 from information_schema.columns where table_schema='public' and table_name='fin_decisions' and column_name='external_proposal_id')")" == t ]]; then
+    apply_file "$current_db" "docs/rollback/supabase-financial-external-decision.rollback.sql"
+  fi
   apply_file "$current_db" "docs/supabase-financial-external-proposals.sql"
   apply_file "$current_db" "docs/rollback/supabase-financial-external-proposals.rollback.sql"
   apply_file "$current_db" "docs/supabase-financial-external-proposals.sql"
@@ -627,6 +632,16 @@ for current_db in "$clean_db" "$upgrade_db" "$fresh_db"; do
   apply_file "$current_db" "tests/database/financial-relationship-continuity.sql"
   apply_file "$current_db" "ops/sql/post-migration-probes.sql"
   apply_file "$current_db" "ops/sql/pilot-isolation-canary.sql"
+done
+
+# Typed external decisions: additive upgrade, guarded rollback, reapply and full flow.
+for current_db in "$clean_db" "$upgrade_db" "$fresh_db"; do
+  apply_file "$current_db" "docs/supabase-financial-external-decision.sql"
+  apply_file "$current_db" "docs/rollback/supabase-financial-external-decision.rollback.sql"
+  apply_file "$current_db" "docs/supabase-financial-external-decision.sql"
+  apply_file "$current_db" "docs/supabase-financial-external-decision.sql"
+  apply_file "$current_db" "tests/database/financial-external-decision.sql"
+  node "$root_dir/tests/database/external-decision-concurrency.mjs" "$(database_url "$current_db")"
 done
 
 echo "Arandu Database Integration Tests"

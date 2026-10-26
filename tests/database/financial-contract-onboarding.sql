@@ -42,7 +42,7 @@ do $$ begin
      or not has_function_privilege('authenticated','public.fin_import_contract(uuid,uuid,uuid,text,text,date,date,integer,boolean,text,jsonb,uuid)','EXECUTE') then
     raise exception 'concessões de fin_import_contract mudaram';
   end if;
-  if (select value from public.fin_settings where key='schema_version') not in ('financial-contract-onboarding-1', 'financial-renewal-cycles-1', 'financial-decision-integrity-1', 'financial-session-revocation-1', 'financial-document-upload-authorization-1', 'financial-implementation-task-labels-1', 'financial-task-accountability-1', 'financial-enterprise-integrity-1', 'financial-decision-authorization-1', 'financial-external-proposals-1', 'financial-relationship-continuity-1') then raise exception 'marcador de schema'; end if;
+  if (select value from public.fin_settings where key='schema_version') not in ('financial-contract-onboarding-1', 'financial-renewal-cycles-1', 'financial-decision-integrity-1', 'financial-session-revocation-1', 'financial-document-upload-authorization-1', 'financial-implementation-task-labels-1', 'financial-task-accountability-1', 'financial-enterprise-integrity-1', 'financial-decision-authorization-1', 'financial-external-proposals-1', 'financial-relationship-continuity-1', 'financial-external-decision-1') then raise exception 'marcador de schema'; end if;
 end $$;
 
 set role authenticated;

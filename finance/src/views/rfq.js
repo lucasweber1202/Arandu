@@ -52,6 +52,11 @@ export async function rfqDetail(ctx) {
     return emptyState({ title: id ? 'Solicitação não encontrada' : 'Escolha uma solicitação', text: id ? 'Ela pode ter sido removida ou pertencer a outra organização. Confira o link.' : 'Abra uma solicitação na lista para ver os detalhes.', iconName: 'search',
       action: linkButton('Ver solicitações', ctx.href('/finance/rfqs.html'), { iconName: 'arrowRight' }) });
   }
+  let externalUi=null;
+  if (ctx.mode !== 'demo') {
+    try { externalUi=await import('./external-proposals.js');rfq=await externalUi.loadExternalDecisionChoices(ctx,rfq); }
+    catch { rfq={...rfq,external_decision_error:true,external_decision_alternatives:[]}; }
+  }
   document.title = `${rfq.title} | Arandu Financial Procurement`;
   const manage = ctx.can('create_rfq');
   const proposals = rfq.proposals || [];
@@ -64,13 +69,14 @@ export async function rfqDetail(ctx) {
     ctx.api(`approval-policy?organization_id=${encodeURIComponent(ctx.organization.id)}`).catch(() => { gaps.add('a política de aprovação'); return { required_for_decision: false }; }),
     // Exigência pela policy v2 (sem proposta escolhida ainda): a decisão sem
     // pedido só passa quando nenhuma policy pede etapa ou bloqueio.
-    ['collecting', 'comparing'].includes(rfq.status) && proposals.length
+    ['collecting', 'comparing'].includes(rfq.status) && (proposals.length || rfq.external_decision_alternatives?.length)
       ? ctx.api('approval-policies/preview', { method: 'POST', body: JSON.stringify({ rfq_id: rfq.id }) }).then((out) => out.evaluation).catch((error) => { if (error.status !== 404) gaps.add('a exigência de aprovação'); return null; })
       : Promise.resolve(null),
     // Entidades não dependem da avaliação da política. Não serializar uma
     // consulta de contexto depois das consultas de aprovação.
     loadEntities(ctx)
   ]);
+  externalUi?.normalizeExternalApprovals(approvals,rfq);
   if (ctx.mode === 'demo' && ctx.approvalsError) gaps.add('as aprovações');
   const governanceGap = gaps.size ? ['a decisão registrada', 'a política de aprovação', 'a exigência de aprovação', 'as aprovações'].filter(item=>gaps.has(item)) : null;
   const policy = { ...generalPolicy, required_for_decision: Boolean(generalPolicy.required_for_decision || evaluation?.approval_required), evaluation };
@@ -138,10 +144,10 @@ export async function rfqDetail(ctx) {
 
   const tabset = tabs([
     { id: 'visao-geral', label: 'Visão geral', render: () => overviewTab(ctx, rfq, { manage, pending, approvals, decision, contract, policy, governanceGap }) },
-    { id: 'propostas', label: 'Propostas', count: proposals.length, render: () => proposalsTab(ctx, rfq) },
+    { id: 'propostas', label: 'Propostas', count: proposals.length+(rfq.external_proposal_count||0), render: () => proposalsTab(ctx, rfq) },
     { id: 'comparacao', label: 'Comparação', render: () => comparisonTab(ctx, rfq, decision) },
     { id: 'aprovacoes', label: 'Aprovações', count: pending ? 1 : null, render: () => governanceGap ? governanceGapTab() : approvalsTab(ctx, rfq, approvals, { manage }) },
-    { id: 'decisao', label: 'Decisão', render: () => governanceGap ? governanceGapTab() : decisionTab(ctx, rfq, { decision, contract, policy, approvals, manage }) },
+    { id: 'decisao', label: 'Decisão', render: () => governanceGap ? governanceGapTab() : decisionTab(ctx, rfq, { decision, contract, policy, approvals, manage, externalUi }) },
     { id: 'atividade', label: 'Atividade', render: () => activityTab(ctx, rfq) }
   ], { label: 'Seções da solicitação' });
   root.append(tabset.node);
@@ -443,7 +449,8 @@ async function exportProcess(ctx, rfq) {
 
 // ----------------------------------------------------------- aprovações
 export function approvalCard(ctx, request, rfq, { onChange, compact = false } = {}) {
-  const proposal = (rfq.proposals || []).find((row) => row.id === request.proposal_id);
+  const external=request.snapshot?.selected_source;
+  const proposal = external?{provider_name:`${external.provider_name||'Instituição declarada'} · fonte externa`,terms:external.terms,currency:external.currency}:(rfq.proposals || []).find((row) => row.id === request.proposal_id);
   const step = currentStep(request);
   const mine = request.viewer_can_act ?? (step && step.approver_id === ctx.viewer?.id);
   const summary = request.policy_snapshot ? `${(request.stages || []).filter((stage) => ['approved', 'waived'].includes(stage.status)).length} de ${(request.stages || []).length} etapas` : approvalSummaryLine(request);
@@ -456,8 +463,9 @@ export function approvalCard(ctx, request, rfq, { onChange, compact = false } = 
       pill(request.stale && request.status === 'pending' ? { label: 'Desatualizada', tone: 'danger', icon: 'alert' } : APPROVAL_STATUS[request.status])
     ]),
     request.stale ? el('p', { class: 'callout callout-warning compact' }, [icon('alert', { size: 14 }), el('span', { text: 'A solicitação ou a proposta mudou depois do pedido. Esta aprovação não vale para a versão atual; peça uma nova.' })]) : null,
+    external?el('p',{class:'callout callout-info',text:`Transcrição externa · versão ${external.current_version} · revisão da solicitação ${external.rfq_revision}. ${external.notice||'A conferência não autentica o emissor, não comprova assinatura ou aceite institucional.'}`}):null,
     request.rationale ? el('blockquote', { class: 'rationale' }, [el('span', { class: 'rationale-label', text: 'Contexto do solicitante' }), el('p', { text: request.rationale })]) : null,
-    proposal && !compact ? keyTerms(rfq.product, proposal.terms) : null,
+    proposal && !compact ? keyTerms(rfq.product, proposal.terms,external?{currency:external.currency??null}:{}) : null,
     request.policy_snapshot ? policyTimeline(ctx, request, { onChange }) : approvalSteps(request, ctx.members)
   ]);
   if (mine && !request.stale) node.append(el('div', { class: 'approval-cta' }, [el('p', { class: 'approval-your-turn' }, [icon('clock', { size: 14 }), el('span', { text: request.policy_snapshot ? 'Você é aprovador(a) de uma etapa ativa.' : 'Sua decisão é a próxima etapa.' })]), approvalActions(ctx, request, { onDone: onChange })]));
@@ -481,10 +489,10 @@ export function approvalCard(ctx, request, rfq, { onChange, compact = false } = 
 
 function approvalsTab(ctx, rfq, approvals, { manage }) {
   const wrap = el('div', { class: 'stack' });
-  const proposals = rfq.proposals || [];
+  const proposals = [...(rfq.proposals || []),...(rfq.external_decision_alternatives || [])];
   const [latest, ...older] = approvals;
   if (latest) wrap.append(approvalCard(ctx, latest, rfq, { onChange: () => ctx.reload() }));
-  const canRequest = manage && proposals.length && ['collecting', 'comparing'].includes(rfq.status) && (!latest || latest.status !== 'pending' || latest.stale) && !rfq.decision_id;
+  const canRequest = manage && proposals.length && (['collecting', 'comparing'].includes(rfq.status) || (rfq.status==='open' && rfq.external_decision_alternatives?.length)) && (!latest || latest.status !== 'pending' || latest.stale) && !rfq.decision_id;
   if (canRequest) wrap.append(approvalRequestForm(ctx, rfq, latest));
   if (!latest && !canRequest) wrap.append(emptyState({ title: 'Nenhuma aprovação solicitada', text: proposals.length ? 'Quem gerencia a solicitação pode pedir aprovação de uma proposta a um ou mais aprovadores, em ordem.' : 'A aprovação fica disponível quando houver propostas.', iconName: 'checkCircle' }));
   if (older.length) wrap.append(el('details', { class: 'history' }, [el('summary', { text: `Pedidos anteriores (${older.length})` }), ...older.map((request) => approvalCard(ctx, request, rfq, { compact: true }))]));
@@ -492,7 +500,8 @@ function approvalsTab(ctx, rfq, approvals, { manage }) {
 }
 
 function approvalRequestForm(ctx, rfq, latest) {
-  const proposals = rfq.proposals || [];
+  const externalRequestKey=`external-approval-${crypto.randomUUID()}`;
+  const proposals = [...(rfq.proposals || []),...(rfq.external_decision_alternatives || [])];
   const eligible = (ctx.members || []).filter((member) => member.user_id !== ctx.viewer?.id && member.role !== 'provider_user');
   const form = el('form', { class: 'card approval-form', id: 'approval-request', novalidate: true });
   const subtitle = el('p', { class: 'card-subtitle', text: 'Escolha a proposta e explique o porquê. A policy da empresa, quando existir, define quem aprova e em que ordem.' });
@@ -622,7 +631,8 @@ function approvalRequestForm(ctx, rfq, latest) {
       const payload = evaluation
         ? { rfq_id: rfq.id, proposal_id: proposalId, assignments, rationale: rationale.value, justification: justification.value.trim() || null, declared }
         : { rfq_id: rfq.id, proposal_id: proposalId, approver_ids: order, rationale: rationale.value };
-      await ctx.api('approvals/request', { method: 'POST', body: JSON.stringify(payload) });
+      const external=proposals.find(row=>row.id===proposalId&&row.origin==='buyer_recorded_external');
+      await ctx.api(external?'external-proposals/approval':'approvals/request', { method: 'POST', body: JSON.stringify(external?{...payload,id:external.id,expected_version:external.version,rfq_revision:rfq.revision,request_key:externalRequestKey}:payload) });
       toast(evaluation ? 'Aprovação solicitada pela policy. Os aprovadores da primeira etapa foram avisados.' : `Aprovação solicitada. ${memberName(ctx.members, order[0])} foi avisado(a).`);
       ctx.reload();
     } catch (failure) {
@@ -638,14 +648,16 @@ function approvalRequestForm(ctx, rfq, latest) {
 }
 
 // -------------------------------------------------------------- decisão
-function decisionTab(ctx, rfq, { decision, contract, policy, approvals, manage }) {
+function decisionTab(ctx, rfq, { decision, contract, policy, approvals, manage, externalUi }) {
   const wrap = el('div', { class: 'stack' });
-  const proposals = rfq.proposals || [];
+  const externalRequestKey=`external-decision-${crypto.randomUUID()}`;
+  const proposals = [...(rfq.proposals || []),...(rfq.external_decision_alternatives || [])];
   if (decision) {
     const liveChosen = proposals.find((row) => row.id === decision.proposal_id);
     const selected = decision.selected_proposal;
     const frozenMissing = Object.hasOwn(decision, 'selected_proposal') && !selected;
-    const chosen = selected ? {...liveChosen, ...selected, id:decision.proposal_id, provider_name:liveChosen?.provider_name || 'Instituição escolhida'} : frozenMissing ? null : liveChosen;
+    const chosen = selected ? {...liveChosen, ...selected, id:decision.external_proposal_id||decision.proposal_id, provider_name:selected.provider_name||liveChosen?.provider_name || 'Instituição escolhida'} : frozenMissing ? null : liveChosen;
+    if(decision.external_proposal_id && externalUi) wrap.append(externalUi.externalDecisionNotice());
     const weights = Object.entries(decision.criteria?.weights || {});
     const specs = Object.fromEntries(PRODUCTS[rfq.product].proposalFields.map((item) => [item.key, item]));
     wrap.append(card({ title: 'Decisão registrada', id: 'decisao-registrada', body: [
@@ -657,17 +669,19 @@ function decisionTab(ctx, rfq, { decision, contract, policy, approvals, manage }
       decision.rationale ? el('blockquote', { class: 'rationale' }, [el('span', { class: 'rationale-label', text: 'Justificativa' }), el('p', { text: decision.rationale })]) : null,
       el('p', { class: 'muted small', text: weights.length ? `Critérios definidos pela empresa: ${weights.map(([key, value]) => `${specs[key]?.label || key} (${value})`).join(' · ')}` : 'Decisão sem pesos registrados.' }),
       selected ? el('p', {class:'muted small',text:`Condições preservadas no momento da decisão · proposta v${selected.version}.`}) : null,
-      chosen ? keyTerms(rfq.product, chosen.terms) : null
+      chosen ? keyTerms(rfq.product, chosen.terms, decision.external_proposal_id?{currency:chosen.currency??null}:{}) : null
     ] }));
     if (contract) wrap.append(card({ title: 'Contrato', body: [el('p', { text: `Vigência de ${formatDate(contract.starts_on)} a ${formatDate(contract.ends_on)} · aviso prévio de ${contract.renewal_notice_days} dias.` }),
       linkButton('Abrir ciclo de vida do contrato', ctx.href(`/finance/contracts.html#contract-${contract.id}`), { iconName: 'arrowRight', variant: 'primary' })] }));
     else if (frozenMissing) wrap.append(emptyState({title:'Condições da decisão indisponíveis',text:'Não foi possível recuperar a proposta preservada na decisão. Recarregue e confira o histórico antes de registrar o contrato.',iconName:'alert'}));
+    else if (manage && decision.external_proposal_id) wrap.append(externalUi ? externalUi.externalContractContinuation(ctx,rfq,decision) : errorState({error:new Error('Continuidade externa indisponível.'),onRetry:()=>ctx.reload()}));
     else if (manage) wrap.append(contractForm(ctx, rfq, decision, chosen));
     else wrap.append(emptyState({ title: 'Contrato ainda não registrado', text: 'Quem gerencia a solicitação registra o contrato com vigência e aviso prévio.', iconName: 'briefcase', compact: true }));
     return wrap;
   }
+  if(rfq.external_decision_error) wrap.append(el('p',{class:'callout callout-warning',text:'As alternativas externas não puderam ser consultadas. Recarregue antes de selecionar uma fonte externa.'}));
   if (!proposals.length) { wrap.append(emptyState({ title: 'A decisão fica disponível com propostas', text: 'Assim que houver ao menos uma proposta enviada, a empresa pode registrar sua escolha.', iconName: 'flag' })); return wrap; }
-  if (!['collecting', 'comparing'].includes(rfq.status)) { wrap.append(emptyState({ title: 'Sem decisão para este estado', text: 'Decisões são registradas enquanto a solicitação está em coleta ou avaliação.', iconName: 'flag' })); return wrap; }
+  if (!['collecting', 'comparing'].includes(rfq.status) && !(rfq.status==='open'&&rfq.external_decision_alternatives?.length)) { wrap.append(emptyState({ title: 'Sem decisão para este estado', text: 'Decisões são registradas enquanto a solicitação está em coleta ou avaliação.', iconName: 'flag' })); return wrap; }
   const approved = approvals.find((row) => row.status === 'approved' && !row.stale);
   const pending = approvals.find((row) => row.status === 'pending');
   if (policy.required_for_decision && !approved) {
@@ -734,12 +748,13 @@ function decisionTab(ctx, rfq, { decision, contract, policy, approvals, manage }
       reviewed.focus();
       return;
     }
-    if (!await confirmDialog({ title: `Registrar a escolha de ${chosen?.provider_name}?`, description: 'A decisão fica registrada de forma permanente e a solicitação passa para “Decidida”. Em seguida você registra o contrato.', confirmLabel: 'Registrar decisão' })) return;
+    if (!await confirmDialog({ title: `Registrar a escolha de ${chosen?.provider_name}?`, description: chosen?.origin==='buyer_recorded_external'?externalUi.externalDecisionConfirmation:'A decisão fica registrada de forma permanente e a solicitação passa para “Decidida”. Em seguida você registra o contrato.', confirmLabel: 'Registrar decisão' })) return;
     submit.disabled = true;
     try {
-      await ctx.api('decisions', { method: 'POST', body: JSON.stringify({ rfq_id: rfq.id, proposal_id: data.get('proposal_id'), expected_version: chosen?.version, rationale: data.get('rationale'), criteria: { weights: useWeights.checked ? weights || {} : {} } }) });
+      const external=chosen?.origin==='buyer_recorded_external';
+      await ctx.api(external?'external-proposals/decision':'decisions', { method: 'POST', body: JSON.stringify(external?{id:chosen.id,expected_version:chosen.version,rfq_revision:rfq.revision,request_key:externalRequestKey,rationale:data.get('rationale'),weights:useWeights.checked?weights||{}:{}}:{ rfq_id: rfq.id, proposal_id: data.get('proposal_id'), expected_version: chosen?.version, rationale: data.get('rationale'), criteria: { weights: useWeights.checked ? weights || {} : {} } }) });
       if (ctx.decisionConflicts) delete ctx.decisionConflicts[rfq.id];
-      toast('Decisão registrada. Agora registre o contrato.');
+      toast(chosen?.origin==='buyer_recorded_external'?'Decisão interna registrada. O vínculo contratual é uma etapa separada.':'Decisão registrada. Agora registre o contrato.');
       ctx.reload();
     } catch (error) {
       toast(error.message, 'error');
@@ -749,7 +764,10 @@ function decisionTab(ctx, rfq, { decision, contract, policy, approvals, manage }
         (ctx.decisionConflicts ||= {})[rfq.id] = { proposal_id: chosen?.id, expected_version: chosen?.version };
         ctx.reload();
       }
-      else submit.disabled = false;
+      else if (chosen?.origin==='buyer_recorded_external' && (!error.status || error.status>=500)) {
+        choiceError.hidden=false;choiceError.textContent='O resultado ainda é desconhecido. Consulte antes de reenviar.';
+        choiceError.append(externalUi.externalDecisionRecovery(ctx,chosen.id,externalRequestKey,()=>{submit.disabled=false;}));
+      } else submit.disabled = false;
     }
   });
   wrap.append(form);

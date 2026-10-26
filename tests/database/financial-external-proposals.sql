@@ -97,7 +97,7 @@ select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-0000000ea005'
 select public.fin_submit_proposal('00000000-0000-4000-8000-0000000ef002','{"institution":"Instituição DEMO","product_name":"Crédito DEMO","offered_amount":100000,"interest_rate_month":1.5,"term_months":12}');
 select pg_temp.assert_true((select count(*)=0 from public.fin_external_proposals),'accepting invite does not grant external access');
 select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-0000000ea001',true);
-select pg_temp.denied($q$select public.fin_record_decision_v2('00000000-0000-4000-8000-0000000ec001',(select id from ext_ids where name='external'),2)$q$,'proposal not eligible');
+select pg_temp.denied($q$select public.fin_record_decision_v2('00000000-0000-4000-8000-0000000ec001',(select id from ext_ids where name='external'),2)$q$,'proposal not eligible|external command required');
 insert into ext_ids values('decision',public.fin_record_decision_v2('00000000-0000-4000-8000-0000000ec001','00000000-0000-4000-8000-0000000ef002',1,'{}','Decisão humana fictícia'));
 reset role;
 create temporary table ext_snapshot as select snapshot from public.fin_decisions where id=(select id from ext_ids where name='decision');

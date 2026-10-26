@@ -13,12 +13,20 @@ const record = (over = {}) => ({ id: X1, organization_id: ORG, rfq_id: RFQ, prov
   rfq_revision: 1, rfq_revision_matches: true, recorded_by: 'u1', recorded_at: '2026-10-20T12:00:00Z', document_id: null, document_version: null, document_state: 'not_presented', document_available: false,
   origin: 'buyer_recorded_external', decision_allowed: false, ...over });
 
-async function setup(page, { role = 'admin', list = 'ok', rows = [record()], conflict = false } = {}) {
+async function setup(page, { role = 'admin', list = 'ok', rows = [record()], conflict = false, flow = false, uncertain = false } = {}) {
   const calls = [];
+  let decided=false,linked=false;
+  const decisionId='00000000-0000-4000-8000-000000000901',contractId='00000000-0000-4000-8000-000000000902';
   await page.route('**/api/finance/**', async (route) => {
     const req = route.request(); const u = new URL(req.url()); const path = u.pathname.replace('/api/finance/', '');
     calls.push({ path, method: req.method(), query: Object.fromEntries(u.searchParams), body: req.postData() ? JSON.parse(req.postData()) : null });
     const json = (v, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(v) });
+    if(flow && path==='decisions') return json({ok:true,rows:decided?[{id:decisionId,rfq_id:RFQ,proposal_id:null,external_proposal_id:X1,external_proposal_version:1,external_rfq_revision:1,decided_by:'u1',decided_at:'2026-10-26T12:00:00Z',criteria:{weights:{}},selected_proposal:{provider_id:P1,provider_name:'Banco Exemplo · fonte externa',version:1,terms:rows[0].terms,currency:rows[0].currency,provenance:rows[0]},contract:linked?{id:contractId,starts_on:'2026-01-01',ends_on:'2028-01-01',renewal_notice_days:60}:null}]:[]});
+    if(flow && path==='approval-policies/preview') return json({ok:true,evaluation:{engine:'legacy',approval_required:false,stages:[],requirements:{},blockers:[]}});
+    if(flow && path==='external-proposals/decision') {decided=true;return uncertain?json({ok:false,error:'Resultado desconhecido.',code:'upstream_unavailable'},503):json({ok:true,id:decisionId,replayed:false},201);}
+    if(flow && path==='external-proposals/result') return json({ok:true,state:decided?'confirmed':'unconfirmed',id:decided?decisionId:null});
+    if(flow && path==='external-proposals/contracts') return json({ok:true,rows:[{id:contractId,title:'Contrato registrado DEMO',current_version:1,starts_on:'2026-01-01',ends_on:'2028-01-01',currency:'BRL'}],page:{has_more:false}});
+    if(flow && path==='external-proposals/contract') {linked=true;return json({ok:true,id:contractId,replayed:false},201);}
     if (path === 'organizations') return json({ ok: true, rows: [{ id: ORG, kind: 'BUYER', legal_name: 'Grupo teste' }] });
     if (path === 'overview') return json({ ok: true, organization: { id: ORG, kind: 'BUYER', legal_name: 'Grupo teste' }, providers: [{ id: P1, name: 'Banco Exemplo', status: 'active' }], contracts: [], rfqs: [rfq], tasks: [] });
     if (path === 'members') return json({ ok: true, rows: [{ user_id: 'u1', role, display_name: 'Ana Tesouraria' }], viewer_id: 'u1' });
@@ -43,6 +51,39 @@ async function setup(page, { role = 'admin', list = 'ok', rows = [record()], con
 }
 const open = async (page) => { await page.goto('about:blank'); await page.goto(`/finance/rfq.html?id=${RFQ}#propostas`); };
 
+test('fonte externa: decisão interna, confirmação persistida e vínculo contratual separado',async({page},testInfo)=>{
+  const calls=await setup(page,{flow:true,rows:[record({state:'reviewed',decision_allowed:true,currency:'BRL',reviewed_by:'u1'})]});
+  await open(page);
+  await page.locator(`#external-${X1}`).getByRole('link',{name:'Selecionar na decisão'}).click();
+  await expect(page.locator('#decision-form')).toContainText('fonte externa');
+  await page.locator('#decision-form').getByRole('button',{name:'Registrar decisão'}).click();
+  await page.getByRole('dialog').getByRole('button',{name:'Registrar decisão',exact:true}).click();
+  await expect.poll(()=>calls.filter(c=>c.path==='external-proposals/decision').length).toBe(1);
+  expect(calls.some(c=>c.path==='contracts'&&c.method==='POST')).toBe(false);
+  await expect(page.getByText('Continuidade da decisão externa',{exact:true})).toBeVisible();
+  await page.getByRole('combobox',{name:/Contrato registrado/}).selectOption('00000000-0000-4000-8000-000000000902');
+  await page.getByText('Conferi o registro e confirmo que corresponde à contratação desta decisão.',{exact:false}).click();
+  await page.locator('#external-link-contract').focus();
+  await page.keyboard.press('Enter');
+  await expect.poll(()=>calls.filter(c=>c.path==='external-proposals/contract').length).toBe(1);
+  expect(calls.find(c=>c.path==='external-proposals/contract').body).toMatchObject({id:X1,expected_version:1,rfq_revision:1,confirmed_contract_record:true,expected_contract_version:1});
+  await expect(page.getByRole('link',{name:'Abrir ciclo de vida do contrato'})).toBeVisible();
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
+  await page.screenshot({path:`reports/external-decision-${testInfo.project.name}.png`,fullPage:true});
+});
+
+test('resposta perdida: consulta a decisão sem um segundo comando cego',async({page})=>{
+  const calls=await setup(page,{flow:true,uncertain:true,rows:[record({state:'reviewed',decision_allowed:true,currency:'BRL',reviewed_by:'u1'})]});
+  await open(page);
+  await page.locator(`#external-${X1}`).getByRole('link',{name:'Selecionar na decisão'}).click();
+  await page.locator('#decision-form').getByRole('button',{name:'Registrar decisão'}).click();
+  await page.getByRole('dialog').getByRole('button',{name:'Registrar decisão',exact:true}).click();
+  await page.getByRole('button',{name:'Consultar resultado da decisão'}).click();
+  await expect(page.getByText('Continuidade da decisão externa',{exact:true})).toBeVisible();
+  expect(calls.filter(c=>c.path==='external-proposals/decision')).toHaveLength(1);
+  expect(calls.filter(c=>c.path==='external-proposals/result')).toHaveLength(1);
+});
+
 test('registra transcrição com revisão prévia, sem moeda inventada e sem atribuir ao banco', async ({ page }) => {
   const calls = await setup(page, { rows: [] });
   await open(page);
@@ -65,7 +106,7 @@ test('registra transcrição com revisão prévia, sem moeda inventada e sem atr
   expect(body.request_key).toMatch(/^ui-new-/);
 });
 
-test('conferência só para gestão; nenhuma ação de escolher ou contratar a proposta externa', async ({ page }) => {
+test('proposta ainda não conferida não permite escolher ou contratar', async ({ page }) => {
   const calls = await setup(page);
   await open(page);
   const card = page.locator(`#external-${X1}`);
