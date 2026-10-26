@@ -80,7 +80,7 @@ const contractRow = (entry) => (entry.url.includes(`fin_contracts?select=id,prod
 // Importação: só catálogo, categoria válida, datas e provedor validados antes do banco.
 const importBody = { organization_id: ORG, provider_id: PROVIDER, product: 'cash_management', title: 'Pacote de serviços', starts_on: '2026-01-01', ends_on: '2027-12-31', terms: { fees: [{ service: 'PIX enviado', unit: 'per_transaction', amount: 0.5 }] } };
 reset((entry) => buyer(entry) ?? (entry.url.includes('rpc/fin_import_contract') ? CONTRACT : []));
-await call('POST', 'contract-import', { body: { ...importBody, owner_id: 'x', origin: 'sourcing', status: 'active' } });
+await call('POST', 'contract-import', { body: { ...importBody, origin: 'sourcing', status: 'active' } });
 {
   const rpcCall = sent.find((entry) => entry.url.includes('rpc/fin_import_contract'));
   assert.deepEqual(Object.keys(rpcCall.body).sort(), ['p_auto_renew', 'p_currency', 'p_ends', 'p_entity', 'p_notice', 'p_org', 'p_parent', 'p_product', 'p_provider', 'p_starts', 'p_terms', 'p_title']);
@@ -233,3 +233,38 @@ for (const visible of [true,false]) {
 }
 
 console.log('Contract Center v2: catálogo de termos (allowlist), diff factual, termos efetivos, recorrência e API (importação, versões, aditivos, marcos) aprovados.');
+
+reset(buyer);
+await rejects('POST','contract-import',{body:{...importBody,owner_id:CONTRACT}},400,'request_key_required');
+
+// A keyed import keeps the JWT and normalized material, and returns original receipt.
+const KEY='00000000-0000-4000-8000-000000000099';
+reset(entry=>buyer(entry) ?? (entry.url.includes('rpc/fin_import_contract_intent') ? {id:CONTRACT,replayed:true,creation_version:1}:[]));
+{
+ const response=await call('POST','contract-import',{body:{...importBody,request_key:KEY,owner_id:ACTOR}});
+ assert.equal(response.statusCode,200);
+ assert.equal(response.payload.id,CONTRACT);
+ assert.equal(response.payload.replayed,true);
+ const request=sent.find(entry=>entry.url.includes('rpc/fin_import_contract_intent'));
+ assert.equal(request.authorization,'Bearer user-jwt');
+ assert.equal(request.body.p_key,KEY);assert.equal(request.body.p_owner,ACTOR);
+ assert.equal(request.body.p_input.title,importBody.title);
+}
+reset(entry=>buyer(entry) ?? (entry.url.includes('rpc/fin_contract_import_result') ? {state:'unconfirmed',id:null}:[]));
+{
+ const response=await call('GET','contract-import-result',{url:`/api/finance/contract-import-result?organization_id=${ORG}&request_key=${KEY}`});
+ assert.equal(response.statusCode,200);assert.equal(response.payload.state,'unconfirmed');
+ assert(!sent.some(entry=>entry.url.includes('overview')));
+}
+reset(entry=>buyer(entry) ?? (entry.url.includes('rpc/fin_assign_contract_owner') ? true:[]));
+{
+ const response=await call('POST','contract-owner',{body:{contract_id:CONTRACT,expected_owner_id:ACTOR,owner_id:PROVIDER}});
+ assert.equal(response.payload.changed,true);
+ assert.equal(sent.find(entry=>entry.url.includes('rpc/fin_assign_contract_owner')).authorization,'Bearer user-jwt');
+}
+reset(entry=>buyer(entry) ?? (entry.url.includes('rpc/fin_import_contract_intent') ? new Error('duplicate request'):[]));
+await rejects('POST','contract-import',{body:{...importBody,request_key:KEY}},409,'contract_import_conflict');
+reset(entry=>buyer(entry) ?? (entry.url.includes('rpc/fin_import_contract_intent') ? new Error('invalid task assignee'):[]));
+await rejects('POST','contract-import',{body:{...importBody,request_key:KEY,owner_id:ACTOR}},403,'contract_owner_unavailable');
+reset(entry=>buyer(entry) ?? (entry.url.includes('rpc/fin_assign_contract_owner') ? new Error('contract version conflict'):[]));
+await rejects('POST','contract-owner',{body:{contract_id:CONTRACT,expected_owner_id:ACTOR,owner_id:PROVIDER}},409,'contract_owner_conflict');
