@@ -311,7 +311,8 @@ test('contrato já registrado: recusa explicada no título e contrato principal 
   await page.getByRole('button', { name: 'Revisar registro', exact: true }).click();
   await page.getByRole('button', { name: 'Confirmar registro', exact: true }).click();
   await expect(form.getByText(/já está na carteira/)).toBeVisible();
-  await expect(form.getByRole('button', { name: 'Abrir o contrato já registrado' })).toBeVisible();
+  // A carteira carregada (recorte) não é usada como prova de qual contrato existe.
+  await expect(form.getByRole('button', { name: 'Abrir o contrato já registrado' })).toHaveCount(0);
   expect(calls.find((call) => call.path === 'contract-import')?.body.parent_contract_id).toBe(CONTRACT);
   await expect(page.getByRole('button', { name: 'Confirmar registro', exact: true })).toBeEnabled();
   await noHorizontalOverflow(page);
@@ -1155,7 +1156,8 @@ test('buyer-first: revisão antes de gravar declara origem, prazo e ausência de
   await expect(review).toBeFocused();
   await expect(review).toContainText('Banco Carteira');
   await expect(review).toContainText(/Revisar a renovação até .+ \(45 dias antes do fim\)/);
-  await expect(review).toContainText('Nenhum responsável é atribuído automaticamente');
+  await expect(review).toContainText('Você, quem está registrando');
+  await expect(review).toContainText('Criada sem responsável automático');
   await expect(review).toContainText('Sem concorrência, proposta ou aprovação no Arandu');
   expect(calls.some((call) => call.path === 'contract-import')).toBe(false);
   await page.getByRole('button', { name: 'Voltar e editar' }).click();
@@ -1183,30 +1185,105 @@ test('buyer-first: gravado pelo servidor abre o contrato com o trabalho dele (pr
   await expect(page.getByRole('dialog', { name: 'Conta garantida 2026' })).toBeVisible();
 });
 
-test('buyer-first: queda de rede na gravação não vira sucesso nem reenvio; conferir acha o contrato gravado', async ({ page }) => {
-  const contracts = [CONTRACT_ROW];
-  const calls = await mockSession(page, { contracts });
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+// Recibo do servidor (#276): cada estado tem sua leitura; a carteira carregada nunca é prova.
+async function receipts(page, states) {
+  const asked = [];
+  await page.route('**/api/finance/contract-import-result**', (route) => {
+    const url = new URL(route.request().url());
+    asked.push(Object.fromEntries(url.searchParams));
+    const next = states.length > 1 ? states.shift() : states[0];
+    if (typeof next === 'number') return route.fulfill({ status: next, contentType: 'application/json', body: JSON.stringify({ ok: false, error: 'x' }) });
+    return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ ok: true, ...next }) });
+  });
+  return asked;
+}
+async function lostImport(page, calls) {
   await page.route('**/api/finance/contract-import', async (route) => {
-    calls.push({ method: 'POST', path: 'contract-import' });
-    // O servidor gravou, mas a resposta se perdeu.
-    contracts.push({ ...CONTRACT_ROW, id: SAVED, title: 'Conta garantida 2026', starts_on: isoDay(-30), ends_on: isoDay(400) });
+    calls.push({ method: 'POST', path: 'contract-import', body: route.request().postDataJSON() });
     await route.abort('connectionreset');
   });
+}
+async function reachUncertain(page) {
   await page.goto('/finance/contracts.html');
   await page.getByRole('button', { name: 'Registrar contrato existente' }).click();
   const form = await fillImport(page);
   await page.getByRole('button', { name: 'Revisar registro', exact: true }).click();
   await page.getByRole('button', { name: 'Confirmar registro', exact: true }).click();
   await expect(form.getByText('A resposta não confirmou o registro.', { exact: false })).toBeVisible();
+  return form;
+}
+
+test('intenção persistente: resposta perdida após o commit; o recibo confirmed abre o contrato sem reenvio', async ({ page }) => {
+  const calls = await mockSession(page);
+  await lostImport(page, calls);
+  const asked = await receipts(page, [{ state: 'confirmed', id: SAVED, creation_version: 1, current_version: 1, owner_id: 'u1', owner_eligible: true }]);
+  const form = await reachUncertain(page);
+  const sent = calls.filter((call) => call.path === 'contract-import');
+  expect(sent).toHaveLength(1);
+  expect(sent[0].body.request_key).toMatch(UUID);
+  expect(sent[0].body).not.toHaveProperty('owner_id');
   await expect(page.getByText(/^Contrato registrado/)).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Voltar e editar' })).toBeHidden();
-  // Novo clique em Confirmar não reenvia enquanto o resultado é incerto.
   await page.getByRole('button', { name: 'Confirmar registro', exact: true }).click({ force: true });
   expect(calls.filter((call) => call.path === 'contract-import')).toHaveLength(1);
-  await form.getByRole('button', { name: 'Conferir na carteira' }).click();
+  await form.getByRole('button', { name: 'Conferir registro' }).click();
+  expect(asked[0]).toEqual({ organization_id: ORG, request_key: sent[0].body.request_key });
   await expect(form.getByText('O contrato foi gravado. Nada foi enviado de novo.')).toBeVisible();
   await form.getByRole('button', { name: 'Abrir o contrato registrado' }).click();
   await expect(page).toHaveURL(new RegExp(`#contract-${SAVED}$`));
+  expect(calls.filter((call) => call.path === 'contract-import')).toHaveLength(1);
+});
+
+test('intenção persistente: pending não reenvia; unconfirmed não conclui ausência e reenvia a MESMA chave', async ({ page }) => {
+  const calls = await mockSession(page);
+  await lostImport(page, calls);
+  await receipts(page, [{ state: 'pending', id: null }, { state: 'unconfirmed', id: null }]);
+  const form = await reachUncertain(page);
+  await form.getByRole('button', { name: 'Conferir registro' }).click();
+  await expect(form.getByText(/ainda está sendo processado/)).toBeVisible();
+  expect(calls.filter((call) => call.path === 'contract-import')).toHaveLength(1);
+  await form.getByRole('button', { name: 'Conferir registro' }).click();
+  await expect(form.getByText(/Isso não prova que ele foi recusado/)).toBeVisible();
+  // Editar depois de um resultado incerto exige transição explícita: sem "Voltar e editar".
+  await expect(page.getByRole('button', { name: 'Voltar e editar' })).toBeHidden();
+  await page.getByRole('button', { name: 'Enviar de novo (mesma intenção)' }).click();
+  const sent = calls.filter((call) => call.path === 'contract-import');
+  await expect.poll(() => calls.filter((call) => call.path === 'contract-import').length).toBe(2);
+  expect(sent[1]?.body.request_key || calls.filter((c) => c.path === 'contract-import')[1].body.request_key).toBe(calls.filter((c) => c.path === 'contract-import')[0].body.request_key);
+});
+
+test('intenção persistente: começar registro novo pede confirmação e gera chave nova; edição muda a intenção', async ({ page }) => {
+  const calls = await mockSession(page);
+  await lostImport(page, calls);
+  await receipts(page, [{ state: 'unconfirmed', id: null }]);
+  const form = await reachUncertain(page);
+  await form.getByRole('button', { name: 'Conferir registro' }).click();
+  await form.getByRole('button', { name: 'Começar um registro novo' }).click();
+  const ask = page.getByRole('dialog', { name: 'Começar um registro novo?' });
+  await expect(ask).toContainText('a carteira terá dois contratos');
+  await ask.getByRole('button', { name: 'Começar registro novo' }).click();
+  await form.getByLabel(/^Título/).fill('Conta garantida 2026 (revisado)');
+  await page.getByRole('button', { name: 'Revisar registro', exact: true }).click();
+  await page.getByRole('button', { name: 'Confirmar registro', exact: true }).click();
+  await expect.poll(() => calls.filter((call) => call.path === 'contract-import').length).toBe(2);
+  const [first, second] = calls.filter((call) => call.path === 'contract-import');
+  expect(second.body.request_key).toMatch(UUID);
+  expect(second.body.request_key).not.toBe(first.body.request_key);
+});
+
+test('intenção persistente: 401, 403, 409 e 5xx na conferência são estados distintos e preservam a tela', async ({ page }) => {
+  const calls = await mockSession(page);
+  await lostImport(page, calls);
+  await receipts(page, [401, 403, 409, 503, { state: 'confirmed', id: SAVED }]);
+  const form = await reachUncertain(page);
+  const check = form.getByRole('button', { name: 'Conferir registro' });
+  for (const text of [/Sua sessão expirou/, /não permite conferir este registro/, /A situação deste registro mudou/, /.+/]) {
+    await check.click();
+    await expect(form.locator('.callout').last()).toContainText(text);
+  }
+  await check.click();
+  await expect(form.getByText('O contrato foi gravado. Nada foi enviado de novo.')).toBeVisible();
   expect(calls.filter((call) => call.path === 'contract-import')).toHaveLength(1);
 });
 
@@ -1287,11 +1364,88 @@ test('buyer-first: instituição gravada cuja resposta se perdeu é reaproveitad
   await fillImport(page);
   await page.getByRole('button', { name: 'Revisar registro', exact: true }).click();
   await page.getByRole('button', { name: 'Confirmar registro', exact: true }).click();
-  await form.getByRole('button', { name: 'Conferir na carteira' }).click();
-  await expect(form.getByText(/Isso não prova que ele não foi gravado/)).toBeVisible();
-  await expect(form.getByText(/A instituição já gravada será reaproveitada/)).toBeVisible();
+  // O contrato nem foi enviado: a conferência é da instituição, não de um recibo.
+  expect(calls.some((call) => call.path === 'contract-import')).toBe(false);
+  await form.getByRole('button', { name: 'Conferir instituição' }).click();
+  await expect(form.getByText(/A instituição já estava gravada e será reaproveitada/)).toBeVisible();
   await expect(page.locator('#contract-import-review')).toContainText('Banco Horizonte');
   await page.getByRole('button', { name: 'Confirmar registro', exact: true }).click();
   await expect.poll(() => calls.find((call) => call.path === 'contract-import')?.body?.provider_id).toBe(NEW_PROVIDER);
   expect(providerPosts).toBe(1);
+});
+
+test('responsável pelo contrato: escolha explícita vai com a chave; recusa do servidor aponta o campo e nada é confirmado', async ({ page }) => {
+  let reply = { status: 403, body: { ok: false, error: 'x', code: 'contract_owner_unavailable' } };
+  const calls = await mockSession(page);
+  await page.route('**/api/finance/members**', (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ ok: true, viewer_id: 'u1', rows: [
+    { user_id: 'u1', role: 'finance_manager', display_name: 'Paula Nogueira' }, { user_id: 'u2', role: 'analyst', display_name: 'Rui Tavares' }, { user_id: 'u3', role: 'viewer', display_name: 'Leitor' }] }) }));
+  await page.route('**/api/finance/contract-import', (route) => { calls.push({ method: 'POST', path: 'contract-import', body: route.request().postDataJSON() }); return route.fulfill({ status: reply.status, contentType: 'application/json', body: JSON.stringify(reply.body) }); });
+  await page.route('**/api/finance/contract-detail**', (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ ...DETAIL, contract: { ...CONTRACT_ROW, id: SAVED, title: 'Conta garantida 2026', owner_id: 'u2' } }) }));
+  await page.goto('/finance/contracts.html');
+  await page.getByRole('button', { name: 'Registrar contrato existente' }).click();
+  const form = await fillImport(page);
+  const owner = form.getByLabel(/^Responsável pelo contrato/);
+  await expect(owner.locator('option')).toHaveText(['Eu, quem está registrando', 'Rui Tavares']);
+  await owner.selectOption({ label: 'Rui Tavares' });
+  await page.getByRole('button', { name: 'Revisar registro', exact: true }).click();
+  await expect(page.locator('#contract-import-review')).toContainText('Rui Tavares');
+  await page.getByRole('button', { name: 'Confirmar registro', exact: true }).click();
+  await expect(form.getByText(/Esta pessoa não pode ser responsável/)).toBeVisible();
+  await expect(owner).toBeFocused();
+  await expect(page.getByText(/^Contrato registrado/)).toHaveCount(0);
+  const first = calls.filter((call) => call.path === 'contract-import')[0].body;
+  expect(first).toMatchObject({ owner_id: 'u2' });
+  expect(first.request_key).toMatch(UUID);
+  reply = { status: 201, body: { ok: true, id: SAVED, replayed: false, creation_version: 1, owner_id: 'u2', current_version: 1, status: 'active', next_task: null } };
+  await page.getByRole('button', { name: 'Revisar registro', exact: true }).click();
+  await page.getByRole('button', { name: 'Confirmar registro', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`abrir=contrato#contract-${SAVED}$`));
+  const panel = page.getByRole('dialog', { name: 'Conta garantida 2026' });
+  await expect(panel.getByRole('heading', { name: 'Responsável pelo contrato' })).toBeVisible();
+  await expect(panel.locator('.cc-section', { hasText: 'Responsável pelo contrato' })).toContainText('Rui Tavares');
+});
+
+test('responsável pelo contrato: troca posterior só confirma após releitura; conflito concorrente relê e explica', async ({ page }) => {
+  let owner = 'u1';
+  let conflict = true;
+  await mockSession(page);
+  await page.route('**/api/finance/members**', (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ ok: true, viewer_id: 'u1', rows: [
+    { user_id: 'u1', role: 'finance_manager', display_name: 'Paula Nogueira' }, { user_id: 'u2', role: 'analyst', display_name: 'Rui Tavares' }] }) }));
+  await page.route('**/api/finance/contract-detail**', (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ ...DETAIL, contract: { ...CONTRACT_ROW, owner_id: owner } }) }));
+  const posts = [];
+  await page.route('**/api/finance/contract-owner', (route) => {
+    posts.push(route.request().postDataJSON());
+    if (conflict) { conflict = false; return route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ ok: false, error: 'x', code: 'contract_owner_conflict' }) }); }
+    owner = 'u2';
+    return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ ok: true, changed: true }) });
+  });
+  await page.goto('/finance/contracts.html');
+  await page.getByRole('button', { name: /Abrir contrato/ }).click();
+  const panel = page.getByRole('dialog');
+  const section = panel.locator('.cc-section', { hasText: 'Responsável pelo contrato' });
+  await expect(section).toContainText('Paula Nogueira');
+  await section.locator('summary', { hasText: 'Alterar responsável' }).click();
+  await section.getByLabel('Novo responsável pelo contrato').selectOption({ label: 'Rui Tavares' });
+  await section.getByRole('button', { name: 'Alterar responsável' }).click();
+  await expect(panel.getByText(/Outra pessoa alterou o responsável/)).toBeVisible();
+  expect(posts[0]).toEqual({ contract_id: CONTRACT, expected_owner_id: 'u1', owner_id: 'u2' });
+  const fresh = panel.locator('.cc-section', { hasText: 'Responsável pelo contrato' });
+  await fresh.locator('summary', { hasText: 'Alterar responsável' }).click();
+  await fresh.getByLabel('Novo responsável pelo contrato').selectOption({ label: 'Rui Tavares' });
+  await fresh.getByRole('button', { name: 'Alterar responsável' }).click();
+  await expect(page.getByText('Responsável pelo contrato alterado.')).toBeVisible();
+  await expect(panel.locator('.cc-section', { hasText: 'Responsável pelo contrato' }).locator('p').first()).toHaveText('Rui Tavares');
+});
+
+test('responsável pelo contrato: leitor vê quem responde, sem controle de alteração nem de escolha', async ({ page }) => {
+  await mockSession(page);
+  await page.route('**/api/finance/members**', (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ ok: true, viewer_id: 'u3', rows: [
+    { user_id: 'u1', role: 'finance_manager', display_name: 'Paula Nogueira' }, { user_id: 'u3', role: 'viewer', display_name: 'Leitor' }] }) }));
+  await page.route('**/api/finance/contract-detail**', (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ ...DETAIL, contract: { ...CONTRACT_ROW, owner_id: 'u1' } }) }));
+  await page.goto('/finance/contracts.html');
+  await page.getByRole('button', { name: /Abrir contrato/ }).click();
+  const section = page.getByRole('dialog').locator('.cc-section', { hasText: 'Responsável pelo contrato' });
+  await expect(section).toContainText('Paula Nogueira');
+  await expect(section.getByText('Alterar responsável')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Registrar contrato existente' })).toHaveCount(0);
 });

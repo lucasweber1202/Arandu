@@ -87,3 +87,16 @@ all prior checks for the new marker. Update this standalone runner's file paths.
 The marker is financial-contract-import-integrity-1; rollback restores the saved
 previous marker and refuses any receipt/assignment event (forward-fix required).
 Re-run common database and four gates on the integrated exact HEAD.
+
+## Integration state (2026-10-26, Claude)
+
+Integrated by `claude/practical-turing-s07mn2` (see
+`claude-v37-contract-import-completion-2026-10-26.md`). The pending artifacts were
+moved to `docs/supabase-financial-contract-import-integrity.sql` and
+`docs/rollback/supabase-financial-contract-import-integrity.rollback.sql`,
+registered after external decisions in both manifest flows, and exercised by
+`scripts/test-database.sh` on clean, upgrade and fresh databases. The UI now
+consumes `request_key`, `contract-import-result` and `contract-owner`. Do not
+re-integrate or edit these files in parallel; start new work from the
+reconciled `main`.
+
