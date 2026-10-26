@@ -85,7 +85,9 @@ test('registrar contrato existente envia só termos do catálogo', async ({ page
   await form.getByRole('button', { name: 'Adicionar tarifa' }).click();
   await form.getByLabel('Serviço da tarifa').fill('PIX enviado');
   await form.getByLabel('Valor contratado').fill('0.5');
-  await page.getByRole('button', { name: 'Registrar contrato', exact: true }).click();
+  await page.getByRole('button', { name: 'Revisar registro', exact: true }).click();
+  await expect(page.locator('#contract-import-review')).toContainText('Carteira existente, declarada pela empresa');
+  await page.getByRole('button', { name: 'Confirmar registro', exact: true }).click();
   await expect.poll(() => calls.find((call) => call.path === 'contract-import')?.body).toMatchObject({
     organization_id: ORG, product: 'cash_management', provider_id: PROVIDER, title: 'Pacote de serviços bancários', starts_on: '2026-01-01', ends_on: '2027-12-31',
     terms: { fees: [{ service: 'PIX enviado', unit: 'per_transaction', amount: 0.5 }] }
@@ -264,8 +266,9 @@ test('primeiro contrato: instituição cadastrada no próprio registro e próxim
   await form.getByLabel(/^Início/).fill(isoDay(-60));
   await form.getByLabel(/^Fim/).fill(isoDay(365));
   await form.getByLabel(/^Aviso prévio/).fill('60');
-  await expect(form.getByRole('status')).toContainText(/Próxima ação: tarefa “Revisar renovação” para \d{1,2} de .+ de \d{4}, 60 dias antes do fim\./);
-  await page.getByRole('button', { name: 'Registrar contrato', exact: true }).click();
+  await expect(page.locator('#contract-import-preview')).toContainText(/Próxima ação: tarefa “Revisar renovação” para \d{1,2} de .+ de \d{4}, 60 dias antes do fim\./);
+  await page.getByRole('button', { name: 'Revisar registro', exact: true }).click();
+  await page.getByRole('button', { name: 'Confirmar registro', exact: true }).click();
   await expect.poll(() => calls.find((call) => call.path === 'contract-import')?.body).toMatchObject({ provider_id: NEW_PROVIDER, title: 'Capital de giro 2026', renewal_notice_days: 60, parent_contract_id: null });
   expect(calls.find((call) => call.path === 'providers' && call.method === 'POST')?.body).toMatchObject({ organization_id: ORG, name: 'Banco Horizonte', kind: 'bank' });
   await expect(page.getByText(/Contrato registrado\. Próxima ação: revisar a renovação até \d{1,2} de .+ \(em Tarefas\)\./)).toBeVisible();
@@ -276,18 +279,18 @@ test('registro de contrato aponta o campo com problema e não envia dado inváli
   await page.goto('/finance/contracts.html');
   await page.getByRole('button', { name: 'Registrar contrato existente' }).click();
   const form = page.locator('#contract-import-form');
-  await page.getByRole('button', { name: 'Registrar contrato', exact: true }).click();
+  await page.getByRole('button', { name: 'Revisar registro', exact: true }).click();
   await expect(form.getByText('Dê um título com pelo menos 2 caracteres.')).toBeVisible();
   await expect(form.getByText('Informe a data de início.')).toBeVisible();
   await expect(form.getByLabel(/^Título/)).toBeFocused();
   await form.getByLabel(/^Título/).fill('Fiança bancária');
   await form.getByLabel(/^Início/).fill('2026-05-01');
   await form.getByLabel(/^Fim/).fill('2026-04-01');
-  await page.getByRole('button', { name: 'Registrar contrato', exact: true }).click();
+  await page.getByRole('button', { name: 'Revisar registro', exact: true }).click();
   await expect(form.getByText('O fim não pode anteceder o início.')).toBeVisible();
   await form.getByLabel(/^Fim/).fill('2027-04-01');
   await form.getByLabel(/^Aviso prévio/).fill('12.5');
-  await page.getByRole('button', { name: 'Registrar contrato', exact: true }).click();
+  await page.getByRole('button', { name: 'Revisar registro', exact: true }).click();
   await expect(form.getByText('Use um número inteiro de 0 a 3650 dias.')).toBeVisible();
   expect(calls.some((call) => call.path === 'contract-import')).toBe(false);
 });
@@ -305,10 +308,12 @@ test('contrato já registrado: recusa explicada no título e contrato principal 
   await form.getByLabel(/^Início/).fill('2026-01-01');
   await form.getByLabel(/^Fim/).fill('2027-12-31');
   await form.getByLabel(/^Aviso prévio/).fill('60');
-  await page.getByRole('button', { name: 'Registrar contrato', exact: true }).click();
+  await page.getByRole('button', { name: 'Revisar registro', exact: true }).click();
+  await page.getByRole('button', { name: 'Confirmar registro', exact: true }).click();
   await expect(form.getByText(/já está na carteira/)).toBeVisible();
+  await expect(form.getByRole('button', { name: 'Abrir o contrato já registrado' })).toBeVisible();
   expect(calls.find((call) => call.path === 'contract-import')?.body.parent_contract_id).toBe(CONTRACT);
-  await expect(page.getByRole('button', { name: 'Registrar contrato', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Confirmar registro', exact: true })).toBeEnabled();
   await noHorizontalOverflow(page);
 });
 
@@ -1120,4 +1125,132 @@ test('trabalho do contrato no celular: solicitação de origem longa quebra linh
   const overflow=await page.locator('dialog[open]').evaluate(dialog=>[...dialog.querySelectorAll('*')].filter(node=>node.getBoundingClientRect().right>window.innerWidth+1).length);
   expect(overflow).toBe(0);
   await noHorizontalOverflow(page);
+});
+
+// ---------------------------------------------------------------- buyer-first v3.7
+// Jornada do primeiro valor sem banco: registrar o contrato que já existe,
+// revisar antes de gravar, só confirmar com o id do servidor e seguir para o
+// contrato com a próxima ação. Sessão simulada (teste de UI); escopo, RLS e
+// idempotência no banco seguem provados em tests/database.
+const SAVED = '00000000-0000-4000-8000-0000000000d9';
+async function fillImport(page, { title = 'Conta garantida 2026', notice = '45' } = {}) {
+  const form = page.locator('#contract-import-form');
+  await form.getByLabel(/^Título/).fill(title);
+  await form.getByLabel(/^Início/).fill(isoDay(-30));
+  await form.getByLabel(/^Fim/).fill(isoDay(400));
+  if (notice !== null) await form.getByLabel(/^Aviso prévio/).fill(notice);
+  return form;
+}
+
+test('buyer-first: revisão antes de gravar declara origem, prazo e ausência de responsável; voltar preserva o preenchimento', async ({ page }) => {
+  const calls = await mockSession(page);
+  await page.goto('/finance/contracts.html');
+  await page.getByRole('button', { name: 'Registrar contrato existente' }).click();
+  const form = await fillImport(page, { notice: null });
+  // Sem aviso prévio, o prazo não é presumido.
+  await expect(page.locator('#contract-import-preview')).toHaveText('Sem aviso prévio informado, o prazo para decidir a renovação não pode ser determinado.');
+  await form.getByLabel(/^Aviso prévio/).fill('45');
+  await page.getByRole('button', { name: 'Revisar registro', exact: true }).click();
+  const review = page.locator('#contract-import-review');
+  await expect(review).toBeFocused();
+  await expect(review).toContainText('Banco Carteira');
+  await expect(review).toContainText(/Revisar a renovação até .+ \(45 dias antes do fim\)/);
+  await expect(review).toContainText('Nenhum responsável é atribuído automaticamente');
+  await expect(review).toContainText('Sem concorrência, proposta ou aprovação no Arandu');
+  expect(calls.some((call) => call.path === 'contract-import')).toBe(false);
+  await page.getByRole('button', { name: 'Voltar e editar' }).click();
+  await expect(form.getByLabel(/^Título/)).toBeFocused();
+  await expect(form.getByLabel(/^Título/)).toHaveValue('Conta garantida 2026');
+  expect(calls.some((call) => call.path === 'contract-import')).toBe(false);
+});
+
+test('buyer-first: gravado pelo servidor abre o contrato com o trabalho dele (próxima ação) e sobrevive a refresh', async ({ page }) => {
+  const contracts = [CONTRACT_ROW];
+  const calls = await mockSession(page, { contracts, importReply: { status: 201, body: { ok: true, id: SAVED, status: 'active', next_task: { id: 't1', title: 'Revisar renovação', due_on: isoDay(355) } } } });
+  await page.route('**/api/finance/contract-detail**', (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ ...DETAIL, contract: { ...CONTRACT_ROW, id: SAVED, title: 'Conta garantida 2026' } }) }));
+  await page.goto('/finance/contracts.html');
+  await page.getByRole('button', { name: 'Registrar contrato existente' }).click();
+  await fillImport(page);
+  await page.getByRole('button', { name: 'Revisar registro', exact: true }).click();
+  await page.getByRole('button', { name: 'Confirmar registro', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`contracts\\.html\\?abrir=contrato#contract-${SAVED}$`));
+  const panel = page.getByRole('dialog', { name: 'Conta garantida 2026' });
+  await expect(panel.getByRole('heading', { name: 'Trabalho deste contrato' })).toBeVisible();
+  await expect(panel.getByRole('link', { name: 'Relacionamento com Banco Carteira' })).toBeVisible();
+  expect(calls.filter((call) => call.path === 'contract-import')).toHaveLength(1);
+  // Deep link estável: refresh reabre o mesmo contrato pelo detalhe autorizado.
+  await page.reload();
+  await expect(page.getByRole('dialog', { name: 'Conta garantida 2026' })).toBeVisible();
+});
+
+test('buyer-first: queda de rede na gravação não vira sucesso nem reenvio; conferir acha o contrato gravado', async ({ page }) => {
+  const contracts = [CONTRACT_ROW];
+  const calls = await mockSession(page, { contracts });
+  await page.route('**/api/finance/contract-import', async (route) => {
+    calls.push({ method: 'POST', path: 'contract-import' });
+    // O servidor gravou, mas a resposta se perdeu.
+    contracts.push({ ...CONTRACT_ROW, id: SAVED, title: 'Conta garantida 2026', starts_on: isoDay(-30), ends_on: isoDay(400) });
+    await route.abort('connectionreset');
+  });
+  await page.goto('/finance/contracts.html');
+  await page.getByRole('button', { name: 'Registrar contrato existente' }).click();
+  const form = await fillImport(page);
+  await page.getByRole('button', { name: 'Revisar registro', exact: true }).click();
+  await page.getByRole('button', { name: 'Confirmar registro', exact: true }).click();
+  await expect(form.getByText('A resposta não confirmou o registro.', { exact: false })).toBeVisible();
+  await expect(page.getByText(/^Contrato registrado/)).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Voltar e editar' })).toBeHidden();
+  // Novo clique em Confirmar não reenvia enquanto o resultado é incerto.
+  await page.getByRole('button', { name: 'Confirmar registro', exact: true }).click({ force: true });
+  expect(calls.filter((call) => call.path === 'contract-import')).toHaveLength(1);
+  await form.getByRole('button', { name: 'Conferir na carteira' }).click();
+  await expect(form.getByText('O contrato foi gravado. Nada foi enviado de novo.')).toBeVisible();
+  await form.getByRole('button', { name: 'Abrir o contrato registrado' }).click();
+  await expect(page).toHaveURL(new RegExp(`#contract-${SAVED}$`));
+  expect(calls.filter((call) => call.path === 'contract-import')).toHaveLength(1);
+});
+
+test('buyer-first: recusa de permissão e sessão expirada explicam que nada foi gravado', async ({ page }) => {
+  let status = 403;
+  await mockSession(page);
+  await page.route('**/api/finance/contract-import', (route) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify({ ok: false, error: 'forbidden', code: 'forbidden' }) }));
+  await page.goto('/finance/contracts.html');
+  await page.getByRole('button', { name: 'Registrar contrato existente' }).click();
+  const form = await fillImport(page);
+  await page.getByRole('button', { name: 'Revisar registro', exact: true }).click();
+  await page.getByRole('button', { name: 'Confirmar registro', exact: true }).click();
+  await expect(form.getByText(/Seu papel não permite registrar contratos/)).toBeVisible();
+  status = 401;
+  await page.getByRole('button', { name: 'Confirmar registro', exact: true }).click();
+  await expect(form.getByText(/Sua sessão expirou\. Nada foi gravado/)).toBeVisible();
+  await expect(form.getByLabel(/^Título/)).toHaveValue('Conta garantida 2026');
+});
+
+test('buyer-first: leitor numa carteira vazia vê o que acontecerá, sem ação de registro', async ({ page }) => {
+  await mockSession(page, { contracts: [] });
+  await page.route('**/api/finance/members**', (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ ok: true, rows: [{ user_id: 'u1', role: 'viewer', display_name: 'Leitor' }], viewer_id: 'u1' }) }));
+  await page.goto('/finance/contracts.html');
+  await expect(page.getByText('Nenhum contrato registrado ainda')).toBeVisible();
+  await expect(page.getByText(/Registrar contratos fica com administração e gestão financeira/)).toBeVisible();
+  await expect(page.getByRole('button', { name: /Registrar/ })).toHaveCount(0);
+});
+
+test('buyer-first: celular 390px, teclado do início ao fim e sem overflow', async ({ page }) => {
+  const calls = await mockSession(page, { providers: [], contracts: [] });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/finance/contracts.html');
+  await page.getByRole('button', { name: 'Registrar o primeiro contrato' }).focus();
+  await page.keyboard.press('Enter');
+  const form = page.locator('#contract-import-form');
+  // Sem instituição cadastrada, o foco começa na escolha da instituição.
+  await expect(form.getByLabel(/^Instituição financeira/)).toBeFocused();
+  await form.getByLabel(/^Instituição financeira/).selectOption({ label: '+ Cadastrar nova instituição' });
+  await form.getByLabel(/^Nome da instituição/).fill('Banco Horizonte');
+  await fillImport(page);
+  await noHorizontalOverflow(page);
+  await page.getByRole('button', { name: 'Revisar registro', exact: true }).focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#contract-import-review')).toContainText('Banco Horizonte (nova instituição, cadastrada junto)');
+  await noHorizontalOverflow(page);
+  expect(calls.some((call) => call.path === 'providers' && call.method === 'POST')).toBe(false);
 });
