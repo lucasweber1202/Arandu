@@ -126,7 +126,7 @@
     "@playwright/test": "^1.64.1"
   },
   "overrides": {
-    "@vercel/cli-config@0.3.1": {
+    "@vercel/cli-config": {
       "zod": "4.6.6"
     }
   }
