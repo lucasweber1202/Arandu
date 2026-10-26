@@ -91,11 +91,12 @@ test('instituição sem contrato: registrar o existente já com a instituição 
   await form.getByLabel(/^Início/).fill(day(-30));
   await form.getByLabel(/^Fim/).fill(day(335));
   // Aviso prévio não é presumido: sem valor, o registro não é enviado.
-  await page.getByRole('button', { name: 'Registrar contrato', exact: true }).click();
+  await page.getByRole('button', { name: 'Revisar registro', exact: true }).click();
   await expect(form.getByText(/Informe o aviso prévio/)).toBeVisible();
   expect(calls.some((c) => c.path === 'contract-import')).toBe(false);
   await form.getByLabel(/^Aviso prévio/).fill('45');
-  await page.getByRole('button', { name: 'Registrar contrato', exact: true }).click();
+  await page.getByRole('button', { name: 'Revisar registro', exact: true }).click();
+  await page.getByRole('button', { name: 'Confirmar registro', exact: true }).click();
   await expect.poll(() => calls.find((c) => c.path === 'contract-import')?.body).toMatchObject({ provider_id: P_NOVO, renewal_notice_days: 45 });
   await expect(page).toHaveURL(/contracts\.html\?abrir=contrato#contract-00000000-0000-4000-8000-0000000000c9/);
 });

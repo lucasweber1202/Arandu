@@ -181,11 +181,16 @@ function openImportContract(ctx, entities, { providerId: presetProvider = null }
   const endsField = field({ label: 'Fim', control: ends, required: true });
   const noticeField = field({ label: 'Aviso prévio (dias)', control: notice, required: true, hint: 'Copie do contrato. Se ele não define, informe o marco interno que a empresa adota; o Arandu não presume um valor.' });
   // Próxima ação calculada com a mesma regra do banco: fim − aviso prévio.
-  const preview = el('p', { class: 'callout compact', role: 'status', 'aria-live': 'polite', hidden: true });
+  const preview = el('p', { class: 'callout compact', id: 'contract-import-preview', role: 'status', 'aria-live': 'polite', hidden: true });
   const today = new Date().toISOString().slice(0, 10);
   const updatePreview = () => {
     const days = notice.value === '' ? NaN : Number(notice.value);
-    if (!starts.value || !ends.value || ends.value < starts.value || !Number.isInteger(days) || days < 0) { preview.hidden = true; return; }
+    if (!starts.value || !ends.value || ends.value < starts.value) { preview.hidden = true; return; }
+    if (!Number.isInteger(days) || days < 0) {
+      // Sem aviso prévio declarado, o prazo de decisão não é presumido.
+      preview.replaceChildren(icon('info', { size: 14 }), el('span', { text: 'Sem aviso prévio informado, o prazo para decidir a renovação não pode ser determinado.' }));
+      preview.className = 'callout compact callout-info'; preview.hidden = false; return;
+    }
     const review = addDays(ends.value, -days);
     preview.replaceChildren(icon(ends.value < today ? 'clock' : 'calendar', { size: 14 }), el('span', { text: ends.value < today
       ? `Contrato encerrado em ${formatDate(ends.value)}: fica na memória da carteira, sem tarefa de renovação.`
@@ -196,6 +201,8 @@ function openImportContract(ctx, entities, { providerId: presetProvider = null }
     preview.hidden = false;
   };
   for (const control of [starts, ends, notice]) control.addEventListener('input', updatePreview);
+  const review = el('section', { class: 'stack import-review', id: 'contract-import-review', 'aria-labelledby': 'contract-import-review-title', tabindex: '-1', hidden: true });
+  const outcome = el('div', { class: 'stack', role: 'status', 'aria-live': 'polite' });
   provider.addEventListener('change', () => {
     newProvider.hidden = provider.value !== NEW_PROVIDER;
     providerField.setError('');
@@ -210,8 +217,24 @@ function openImportContract(ctx, entities, { providerId: presetProvider = null }
     preview, parentField,
     el('details', { class: 'terms-details' }, [el('summary', { text: 'Termos estruturados (opcional agora, versão 1)' }), editorSlot]),
     el('p', { class: 'callout callout-info compact' }, [icon('info', { size: 14 }), el('span', { text: 'Registre o que está no contrato assinado. O Arandu não calcula nem infere termos; correções futuras viram nova versão com justificativa.' })])
+,
+    review, outcome
   );
-  const save = button('Registrar contrato', { variant: 'primary', type: 'submit', iconName: 'check', attrs: { form: 'contract-import-form' } });
+  // Campos ocultos por regra (nova instituição, contrato principal) voltam ocultos ao sair da revisão.
+  const rememberHidden = () => { for (const child of form.children) if (child !== review && child !== outcome) child.dataset.hidden = String(child.hidden); };
+  // Revisão antes da gravação material: o envio só acontece depois de a pessoa
+  // conferir o resumo; a confirmação na tela só vem com o id devolvido pelo servidor.
+  const save = button('Revisar registro', { variant: 'primary', type: 'submit', iconName: 'check', attrs: { form: 'contract-import-form' } });
+  let reviewing = false, uncertain = false;
+  const back = button('Voltar e editar', { variant: 'ghost', onClick: () => setReviewing(false) });
+  back.hidden = true;
+  const setReviewing = (on) => {
+    reviewing = on;
+    for (const child of form.children) if (child !== review && child !== outcome) child.hidden = on ? true : child.dataset.hidden === 'true';
+    review.hidden = !on; back.hidden = !on || uncertain;
+    save.textContent = on ? 'Confirmar registro' : 'Revisar registro';
+    if (on) review.focus(); else { outcome.replaceChildren(); title.focus(); }
+  };
   // Formulário longo num painel: clique fora, Esc ou Cancelar com dados
   // preenchidos pedem confirmação em vez de descartar o que foi digitado.
   let dirty = false;
@@ -219,7 +242,7 @@ function openImportContract(ctx, entities, { providerId: presetProvider = null }
   form.addEventListener('change', () => { dirty = true; });
   const confirmClose = () => !dirty || confirmDialog({ title: 'Descartar o registro do contrato?', description: 'O que você preencheu ainda não foi gravado e será perdido.', confirmLabel: 'Descartar', tone: 'danger' });
   const dialog = drawer({ title: 'Registrar contrato existente', subtitle: 'Carteira atual da empresa, fora de uma concorrência no Arandu.', body: form, confirmClose,
-    footer: [button('Cancelar', { variant: 'ghost', onClick: () => dialog.dismiss() }), save] });
+    footer: [button('Cancelar', { variant: 'ghost', onClick: () => dialog.dismiss() }), back, save] });
 
   const validate = () => {
     const errors = [];
@@ -235,11 +258,60 @@ function openImportContract(ctx, entities, { providerId: presetProvider = null }
     if (errors.length) errors[0].focus();
     return !errors.length;
   };
+  const summary = () => {
+    const providerLabel = provider.value === NEW_PROVIDER ? `${providerName.value.trim()} (nova instituição, cadastrada junto)` : provider.selectedOptions[0]?.text || 'Não informada';
+    const days = Number(notice.value);
+    const reviewOn = addDays(ends.value, -days);
+    const deadline = ends.value < today ? 'Contrato encerrado: fica na memória da carteira, sem tarefa de renovação.'
+      : reviewOn <= today ? `O aviso prévio já começou (${formatDate(reviewOn)}): a revisão da renovação vence hoje.`
+      : `Revisar a renovação até ${formatDate(reviewOn)} (${days} dias antes do fim).`;
+    const filled = Object.keys(editor.read() || {}).length;
+    const rows = [
+      ['Instituição', providerLabel], ['Categoria', CONTRACT_CATEGORIES[category.value] || 'Não informada'], ['Título', title.value.trim()],
+      entities.rows.length ? ['Entidade', entity.selectedOptions[0]?.text.replace(/^— /, '') || 'Nível de grupo'] : null,
+      ['Vigência', `${formatDate(starts.value)} → ${formatDate(ends.value)}`], ['Aviso prévio', `${days} dias${autoRenew.checked ? ' · renovação automática' : ''}`],
+      ['Próximo prazo', deadline], parent.value ? ['Contrato principal', parent.selectedOptions[0]?.text] : null,
+      ['Termos estruturados', filled ? `${filled} ${filled === 1 ? 'campo preenchido' : 'campos preenchidos'} (versão 1)` : 'Nenhum agora; podem ser estruturados depois'],
+      ['Origem', 'Carteira existente, declarada pela empresa. Sem concorrência, proposta ou aprovação no Arandu.'],
+      ['Responsável', 'Definido depois, na próxima ação do contrato. Nenhum responsável é atribuído automaticamente.']
+    ].filter(Boolean);
+    review.replaceChildren(el('h3', { class: 'card-title', id: 'contract-import-review-title', text: 'Confira antes de gravar' }),
+      el('dl', { class: 'deflist' }, rows.map(([label, value]) => el('div', { class: 'deflist-row' }, [el('dt', { text: label }), el('dd', { text: value })]))),
+      el('p', { class: 'muted small', text: 'Nada foi gravado ainda. Confirme para registrar ou volte para corrigir.' }));
+  };
+  // Resultado incerto (rede, 5xx): não reenviar às cegas; procurar o contrato na carteira recarregada.
+  const sameContract = (row) => row.provider_id === provider.value && row.title === title.value.trim() && row.starts_on === starts.value && row.ends_on === ends.value;
+  const openSaved = (id) => {
+    dirty = false; dialog.close();
+    const target = ctx.href(`/finance/contracts.html?abrir=contrato#contract-${id}`);
+    if (location.pathname.endsWith('/contracts.html')) { history.replaceState(null, '', target); ctx.reload(); } else location.assign(target);
+  };
+  const check = button('Conferir na carteira', { variant: 'primary', iconName: 'refresh', onClick: async () => {
+    check.disabled = true;
+    outcome.replaceChildren(loading('Conferindo a carteira no servidor…'));
+    try {
+      await ctx.reload();
+      const found = (ctx.data.contracts || []).find(sameContract);
+      if (found) {
+        outcome.replaceChildren(el('p', { class: 'callout callout-success compact', text: 'O contrato foi gravado. Nada foi enviado de novo.' }),
+          button('Abrir o contrato registrado', { variant: 'primary', iconName: 'arrowRight', onClick: () => openSaved(found.id) }));
+        return;
+      }
+      uncertain = false; save.disabled = false; back.hidden = false;
+      outcome.replaceChildren(el('p', { class: 'callout callout-warning compact', text: 'O contrato não aparece nos contratos carregados. Se a carteira for maior que o recorte exibido, confira em Contratos; registrar de novo um contrato idêntico é recusado pelo servidor.' }));
+    } catch (error) { outcome.replaceChildren(errorState({ error })); outcome.append(check); }
+    finally { check.disabled = false; }
+  } });
   let providerId = null;
   onSubmit(form, async (event) => {
     event.preventDefault();
-    if (!validate()) return;
-    save.disabled = true;
+    if (uncertain || save.disabled) return;
+    if (!reviewing) {
+      if (!validate()) return;
+      rememberHidden(); summary(); setReviewing(true); return;
+    }
+    save.disabled = true; back.disabled = true;
+    outcome.replaceChildren(loading('Gravando o contrato…'));
     try {
       if (provider.value === NEW_PROVIDER && !providerId) {
         const created = await ctx.api('providers', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, name: providerName.value.trim(), kind: providerKind.value }) });
@@ -256,19 +328,34 @@ function openImportContract(ctx, entities, { providerId: presetProvider = null }
         title: title.value.trim(), starts_on: starts.value, ends_on: ends.value, renewal_notice_days: Number(notice.value),
         auto_renew: autoRenew.checked, legal_entity_id: entity.value || null, parent_contract_id: parent.value || null, terms: editor.read()
       }) });
-      dialog.close();
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(result?.id || '')) { const unconfirmed = new Error('O servidor não confirmou o registro.'); unconfirmed.status = 502; throw unconfirmed; }
       const task = result.next_task;
       toast(task ? `Contrato registrado. Próxima ação: revisar a renovação até ${formatDate(task.due_on)} (em Tarefas).` : 'Contrato registrado na carteira, sem renovação pendente.');
-      // Fora da carteira (ex.: Central de Relacionamentos), segue para o contrato
-      // recém-gravado; a confirmação veio do servidor (id retornado).
-      if (!location.pathname.endsWith('/contracts.html')) { location.assign(ctx.href(`/finance/contracts.html?abrir=contrato#contract-${result.id}`)); return; }
-      location.hash = `#contract-${result.id}`;
-      ctx.reload();
+      // A confirmação veio do servidor (id retornado): abre o contrato gravado
+      // já com o trabalho dele (próxima ação, responsável, marcos).
+      openSaved(result.id);
     } catch (error) {
-      if (error.code === 'contract_duplicate') titleField.setError(error.message);
-      else if (error.code === 'invalid_parent_contract') parentField.setError(error.message);
-      else if (error.code === 'invalid_period' || error.code === 'invalid_date') endsField.setError(error.message);
-      toast(error.message, 'error');
+      back.disabled = false;
+      // Offline antes do envio (sem código) não chegou ao servidor; queda/timeout depois do envio é incerto.
+      if (error.status === 0 && !error.code) { outcome.replaceChildren(el('p', { class: 'callout callout-warning compact', text: error.message })); save.disabled = false; return; }
+      if (!error.status || error.status >= 500 || ['network_error', 'timeout'].includes(error.code)) {
+        uncertain = true; back.hidden = true;
+        outcome.replaceChildren(el('p', { class: 'callout callout-warning compact', text: 'A resposta não confirmou o registro. Os dados continuam nesta tela; confira a carteira antes de enviar de novo.' }), check);
+        return;
+      }
+      outcome.replaceChildren();
+      if (error.code === 'contract_duplicate') {
+        const existing = (ctx.data.contracts || []).find(sameContract);
+        outcome.replaceChildren(el('p', { class: 'callout callout-warning compact', text: error.message }));
+        if (existing) outcome.append(button('Abrir o contrato já registrado', { variant: 'primary', iconName: 'arrowRight', onClick: () => openSaved(existing.id) }));
+      } else if (error.status === 401) outcome.replaceChildren(el('p', { class: 'callout callout-warning compact', text: 'Sua sessão expirou. Nada foi gravado; entre de novo em outra aba e confirme aqui sem perder o preenchimento.' }));
+      else if (error.status === 403) outcome.replaceChildren(el('p', { class: 'callout callout-warning compact', text: 'Seu papel não permite registrar contratos nesta organização ou entidade. Nada foi gravado.' }));
+      else {
+        setReviewing(false);
+        if (error.code === 'invalid_parent_contract') parentField.setError(error.message);
+        else if (error.code === 'invalid_period' || error.code === 'invalid_date') endsField.setError(error.message);
+        toast(error.message, 'error');
+      }
       save.disabled = false;
     }
   });

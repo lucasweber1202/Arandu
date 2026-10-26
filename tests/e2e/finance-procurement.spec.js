@@ -1235,3 +1235,19 @@ test('lifecycle: conferência incerta não libera reenvio nem perde dados',async
  await expect(form.getByLabel('Condições principais')).toHaveValue('Preservar estas condições');
  expect(posts).toBe(1);expect(reads).toBe(3);
 });
+
+test('buyer-first: organização vazia começa pelo que já existe; acompanhar só aparece com contrato registrado', async ({ page }) => {
+  await mockSession(page, { data: overview({ rfqs: [], contracts: [] }) });
+  await page.goto('/finance/dashboard.html');
+  await page.getByRole('button', { name: 'Começar' }).click();
+  let panel = page.getByRole('dialog', { name: 'O que você precisa fazer?' });
+  await expect(panel.locator('.intent-group-title').first()).toHaveText('Registrar o que já existe');
+  await expect(panel.getByText(/Nenhuma instituição precisa ter conta no Arandu/)).toBeVisible();
+  for (const name of [/Acompanhar vencimentos/, /Revisar condições de um contrato/, /Renovar ou renegociar/]) await expect(panel.getByRole('link', { name })).toHaveCount(0);
+  await mockSession(page, { data: overview({ contracts: [{ id: 'c1', provider_id: 'x1', provider_name: 'Banco Um', status: 'active', product: 'credit', starts_on: '2026-01-01', ends_on: '2027-01-01', renewal_notice_days: 60 }] }) });
+  await page.goto('/finance/dashboard.html');
+  await page.getByRole('button', { name: 'Começar' }).click();
+  panel = page.getByRole('dialog', { name: 'O que você precisa fazer?' });
+  await expect(panel.getByRole('link', { name: /Acompanhar vencimentos e próximas ações/ })).toHaveAttribute('href', /tasks\.html$/);
+  await expect(panel.getByRole('link', { name: /Revisar condições de um contrato/ })).toHaveAttribute('href', /contracts\.html$/);
+});

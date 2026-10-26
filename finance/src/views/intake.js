@@ -19,7 +19,7 @@ function arrange(ctx, intents) {
   const known = (list) => Array.isArray(list);
   const hasContracts = known(data.contracts) ? data.contracts.length > 0 : true;
   const comparing = known(data.rfqs) ? data.rfqs.some((rfq) => rfq.status === 'comparing') : true;
-  const visible = intents.filter((intent) => (intent.key !== 'compare' || comparing) && (intent.key !== 'renew' || hasContracts));
+  const visible = intents.filter((intent) => (intent.key !== 'compare' || comparing) && (!['renew', 'deadlines', 'review'].includes(intent.key) || hasContracts));
   const groups = [...new Set(visible.map((intent) => intent.group))];
   const empty = known(data.rfqs) && known(data.contracts) && !data.rfqs.length && !data.contracts.length;
   if (empty) groups.sort((a, b) => (b === 'Registrar o que já existe') - (a === 'Registrar o que já existe'));
