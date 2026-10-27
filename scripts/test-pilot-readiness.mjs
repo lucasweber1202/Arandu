@@ -129,9 +129,9 @@ await step('provedor é cadastrado pela empresa', {
   body: { organization_id: BUYER, name: 'Banco Piloto SMOKE', kind: 'bank' },
   respond: (entry) => (isOrg(entry) ? orgRow('BUYER') : [{ id: PROVIDER }]),
   check: (payload, calls) => {
-    const write = calls.find((entry) => entry.method === 'POST' && entry.url.includes('fin_providers'));
+    const write = calls.find((entry) => entry.method === 'POST' && entry.url.includes('rpc/fin_create_provider_intent'));
     // Estado de verificação nunca vem do cliente.
-    assert.ok(!('verification_state' in write.body));
+    assert.ok(!('verification_state' in write.body.p_input));
   }
 });
 

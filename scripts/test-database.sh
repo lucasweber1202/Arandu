@@ -116,6 +116,8 @@ while IFS= read -r file; do
   apply_file "$clean_db" "$file"
   apply_file "$clean_db" "$file"
 done < <(after_decommission)
+# Rehearse older migrations only after removing the unused latest receipt layer.
+apply_file "$clean_db" "docs/rollback/supabase-financial-provider-intent-integrity.rollback.sql"
 apply_file "$clean_db" "tests/database/financial-p0-closure.sql"
 apply_file "$clean_db" "tests/database/financial-value-realization.sql"
 apply_file "$clean_db" "tests/database/financial-fee-intelligence.sql"
@@ -402,6 +404,7 @@ while IFS= read -r file; do
 done < <(after_decommission)
 # Remove the later projection before rehearsing rollbacks of its source columns.
 # Contract import intents sit above external decisions: they roll back first.
+apply_file "$upgrade_db" "docs/rollback/supabase-financial-provider-intent-integrity.rollback.sql"
 apply_file "$upgrade_db" "docs/rollback/supabase-financial-contract-import-integrity.rollback.sql"
 apply_file "$upgrade_db" "docs/rollback/supabase-financial-external-decision.rollback.sql"
 apply_file "$upgrade_db" "docs/rollback/supabase-financial-relationship-continuity.rollback.sql"
@@ -560,6 +563,8 @@ apply_file "$fresh_db" "tests/database/legacy-art-decommission.sql"
 while IFS= read -r file; do
   apply_file "$fresh_db" "$file"
 done < <(after_decommission)
+# Rehearse older migrations only after removing the unused latest receipt layer.
+apply_file "$fresh_db" "docs/rollback/supabase-financial-provider-intent-integrity.rollback.sql"
 for suite in financial-procurement financial-procurement-hardening financial-pilot financial-enterprise-approvals financial-enterprise-drafts \
   financial-collaboration financial-operational-search financial-renewals financial-rfq-editor financial-rfq-revisions financial-delivery \
   financial-pilot-grade financial-pilot-operations financial-final-hardening financial-approval-handoff financial-passport \
@@ -663,6 +668,21 @@ for current_db in "$clean_db" "$upgrade_db" "$fresh_db"; do
   apply_file "$current_db" "ops/sql/post-migration-probes.sql"
   apply_file "$current_db" "ops/sql/pilot-isolation-canary.sql"
   [[ "$(psql "$(database_url "$current_db")" -X -qAt -v ON_ERROR_STOP=1 -c "select value from public.fin_settings where key='schema_version'")" == financial-contract-import-integrity-1 ]] || { echo "Marker final diferente de financial-contract-import-integrity-1" >&2; exit 1; }
+done
+
+# Provider receipts: every canonical installation path, rollback before use,
+# reapply, adversarial SQL and independent concurrent sessions.
+for current_db in "$clean_db" "$upgrade_db" "$fresh_db"; do
+  apply_file "$current_db" "docs/supabase-financial-provider-intent-integrity.sql"
+  apply_file "$current_db" "docs/rollback/supabase-financial-provider-intent-integrity.rollback.sql"
+  [[ "$(psql "$(database_url "$current_db")" -X -qAt -v ON_ERROR_STOP=1 -c "select value from public.fin_settings where key='schema_version'")" == financial-contract-import-integrity-1 ]] || exit 1
+  apply_file "$current_db" "docs/supabase-financial-provider-intent-integrity.sql"
+  apply_file "$current_db" "docs/supabase-financial-provider-intent-integrity.sql"
+  apply_file "$current_db" "tests/database/financial-provider-intent-integrity.sql"
+  node "$root_dir/tests/database/provider-intent-concurrency.mjs" "$(database_url "$current_db")"
+  apply_file "$current_db" "ops/sql/post-migration-probes.sql"
+  apply_file "$current_db" "ops/sql/pilot-isolation-canary.sql"
+  [[ "$(psql "$(database_url "$current_db")" -X -qAt -v ON_ERROR_STOP=1 -c "select value from public.fin_settings where key='schema_version'")" == financial-provider-intent-integrity-1 ]] || exit 1
 done
 
 echo "Arandu Database Integration Tests"
