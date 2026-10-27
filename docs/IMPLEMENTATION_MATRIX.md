@@ -1,5 +1,18 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 27/10/2026 — Prontidão unificada para 29/10 (pós-#280)
+
+Main `0a260b6`, CI e merge-audit SUCCESS; nenhuma PR aberta. Domínio
+arandu-demo serve byte a byte o build de `0a260b6` (188/188 hashes), mas a
+visita usava capturas de `7de5d47`, anteriores às #272–#280: recapturada da
+Demo canônica local em `0a260b6` (seed 39/39). Laboratório real em `0a260b6`:
+29/29 etapas, 65 ataques/0 falhas, Auth/RLS/Storage PASS; provider 35/35.
+Fallback GHCR para cota de registro no `prepare-station`. Sem mudança de
+produto, migration ou ambiente hospedado. Estados: PUBLIC_SHAREABLE
+NOT_PROVEN até smoke pós-merge; LOCAL_STATION PREPARED (executor), READY só
+na máquina do owner; CANONICAL_HOSTED_M3 e PRODUCTION_M5 BLOCKED.
+[Evidência](evidence/claude-unified-final-readiness-2026-10-27.md).
+
 ## 25/10/2026 — Release assurance: reconciliação por SHA
 
 Main remota `f57cbfa028a8482c4ff8a847cf7bb9377c3d00f2`, quatro gates SUCCESS no SHA exato. PR #265 aberta em `d92f4b3`: revisão do preflight e 23 verificações herméticas PASS no escopo do laboratório Linux; sem merge. **Atualização desta rodada:** validate/audit:ci no run `40222765199` falhou por GHSA-mrhx-c7xc-m3w5 (`zod@4.1.11` transitivo). Integração de release #265 agora BLOCKED até correção/revalidação; verdes de 23/10 são históricos. [Achado de segurança e patch isolado para integração coordenada](evidence/release-assurance-2026-10-25-security.md). Run canônico `40014337079` testou merge efêmero `593dea7`, com marker `financial-relationship-continuity-1` (inclui #262), 26 passos/63 ataques/zero falhas, 24 sondas PASS, recovery/teardown SUCCESS; browser desktop 8 PASS/1 SKIP, mobile 6 PASS/3 SKIP. Não converter skips em cobertura.
