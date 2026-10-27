@@ -423,3 +423,9 @@ test('envio da proposta sem confirmação: não reenvia; "Conferir envio" acha a
   await expect(status).toContainText('Proposta enviada · versão 1');
   expect(sent).toBe(1);
 });
+
+test('convite com prazo informado já passado: dito como tal, sem prometer que o aceite vale', async ({ page }) => {
+  await mockProvider(page, { pendingInvites: [{ ...INVITE, response_deadline: '2020-01-01' }] });
+  await page.goto('/provider/index.html');
+  await expect(page.locator('#convites')).toContainText('já passou; o aceite depende de o convite ainda estar válido');
+});
