@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "scope": "provider",
+  "sha": "e655a2f7ee98d485e842b14382d3126d1424ed87",
+  "coverage": {
+    "postgresql": "PASS",
+    "auth_rls": "PASS",
+    "storage": "NOT_RUN",
+    "browser": "NOT_RUN",
+    "hosted": "NOT_RUN"
+  },
+  "status": "PASS",
+  "project": "arandu-codex-financial-0b16378f",
+  "teardown": "PASS",
+  "implementationCommits": {
+    "provider": "f1bbdd5",
+    "integration": "8ad4e8f"
+  },
+  "checks": 35
+}

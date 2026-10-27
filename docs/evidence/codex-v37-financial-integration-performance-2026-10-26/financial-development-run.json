@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "sha": "71c6398534ad9199ffca9150ade2cc137395f63c",
+  "coverage": {
+    "postgresql": "PASS",
+    "auth_rls": "PASS",
+    "storage": "PASS",
+    "browser": "NOT_RUN",
+    "hosted": "NOT_RUN"
+  },
+  "status": "PASS",
+  "project": "arandu-codex-financial-3cb1f32b",
+  "teardown": "PASS",
+  "sourceState": "working-tree development run before commit 8ad4e8f; sha is checkout base, not a claim of clean HEAD validation",
+  "steps": 29,
+  "attacks": 65,
+  "failures": 0
+}
