@@ -911,7 +911,7 @@ await rejects('POST', 'providers', { body: { organization_id: BUYER, name: 'Banc
 {
   const res = await call('POST', 'providers', { body: { organization_id: BUYER, name: 'Banco X', kind: 'bank', contact_email: ' Joao@Banco.Example ' } });
   assert.equal(res.statusCode, 201);
-  assert.equal(sent.at(-1).body.contact_email, 'joao@banco.example', 'contato normalizado');
+  assert.equal(sent.at(-1).body.p_input.contact_email, 'joao@banco.example', 'contato normalizado');
 }
 
 /* Documentos privados: autorização no banco, assinatura curta no servidor, nada persistido. */
@@ -1165,3 +1165,23 @@ for(const overflow of [false,true]) {
  }
 }
 console.log('Lifecycle adversarial: provider cannot read decision, invite scope and truncation fail closed passed.');
+
+// Provider intent API boundary (fetch mocked, SQL authorization tested separately).
+{
+ const key = '00000000-0000-4000-8000-000000000099';
+ reset(e => e.url.includes('fin_organizations') ? orgRow(BUYER, 'BUYER') : {id:RFQ,state:'confirmed',replayed:true,row:{id:RFQ}});
+ const res = await call('POST','providers',{body:{organization_id:BUYER,name:'Banco Exemplo',kind:'bank',request_key:key,provider_organization_id:PROVIDER_ORG,verification_state:'EVIDENCIA_REGISTRADA'}});
+ assert.equal(res.statusCode,200); assert.equal(res.payload.id,RFQ); assert.equal(res.payload.replayed,true);
+ const write=sent.at(-1); assert.ok(write.url.includes('rpc/fin_create_provider_intent'));
+ assert.equal(write.body.p_key,key); assert.equal(write.body.p_org,BUYER);
+ assert.equal(write.body.p_input.provider_organization_id,undefined); assert.equal(write.body.p_input.verification_state,undefined);
+ assert.equal(write.authorization,'Bearer user-jwt');
+ await rejects('POST','providers',{body:{organization_id:BUYER,name:'Banco Exemplo',kind:'bank',request_key:'bad'}},400);
+ for (const state of ['confirmed','pending','unconfirmed']) {
+  reset(e=>e.url.includes('fin_organizations')?orgRow(BUYER,'BUYER'):{state,id:state==='confirmed'?RFQ:null});
+  const receipt=await call('GET','provider-creation-result',{url:`/api/finance/provider-creation-result?organization_id=${BUYER}&request_key=${key}`});
+  assert.equal(receipt.payload.state,state); assert.equal(sent.at(-1).body.p_key,key);
+ }
+ reset(e=>e.url.includes('fin_organizations')?orgRow(BUYER,'BUYER'):[]);
+ await rejects('GET','provider-creation-result',{url:`/api/finance/provider-creation-result?organization_id=${BUYER}&request_key=bad`},400);
+}

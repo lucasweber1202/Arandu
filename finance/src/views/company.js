@@ -276,7 +276,7 @@ export async function contracts(ctx) {
       el('dl', { class: 'deflist deflist-3' }, [
         ['Vigência', `${formatDate(contract.starts_on)} → ${formatDate(contract.ends_on)}`], ['Prazo do aviso prévio', `${contract.renewal_notice_days} dias antes do fim · ${formatDate(contract.review_from)}`],
         // Quem responde pelo contrato: a renovação e os marcos têm dono.
-        ['Responsável', contract.owner_id ? memberName(ctx.members, contract.owner_id) : 'Não informado'],
+        ['Responsável pelo contrato', !contract.owner_id ? 'Não informado' : (ctx.members || []).some((row) => row.user_id === contract.owner_id) ? `${memberName(ctx.members, contract.owner_id)}${contract.owner_id === ctx.viewer?.id ? ' (você)' : ''}` : 'Pessoa sem acesso atual à organização'],
         ['Custo registrado', contract.cost_summary || 'Não informado'], contract.main_conditions ? ['Condições', contract.main_conditions] : null,
         contract.document_reference ? ['Documento', contract.document_reference] : null
       ].filter(Boolean).map(([label, value]) => el('div', { class: 'deflist-row' }, [el('dt', { text: label }), el('dd', { class: value === 'Não informado' ? 'missing' : '', text: value })]))),

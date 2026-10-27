@@ -1364,10 +1364,11 @@ test('buyer-first: instituição gravada cuja resposta se perdeu é reaproveitad
   await fillImport(page);
   await page.getByRole('button', { name: 'Revisar registro', exact: true }).click();
   await page.getByRole('button', { name: 'Confirmar registro', exact: true }).click();
-  // O contrato nem foi enviado: a conferência é da instituição, não de um recibo.
+  await page.route('**/api/finance/provider-creation-result?**', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ok:true,state:'confirmed',id:NEW_PROVIDER,row:{id:NEW_PROVIDER,name:'Banco Horizonte'}}) }));
+  // The contract was not sent; only the provider's authorized receipt confirms identity.
   expect(calls.some((call) => call.path === 'contract-import')).toBe(false);
   await form.getByRole('button', { name: 'Conferir instituição' }).click();
-  await expect(form.getByText(/A instituição já estava gravada e será reaproveitada/)).toBeVisible();
+  await expect(form.getByText(/A instituição foi confirmada pelo recibo/)).toBeVisible();
   await expect(page.locator('#contract-import-review')).toContainText('Banco Horizonte');
   await page.getByRole('button', { name: 'Confirmar registro', exact: true }).click();
   await expect.poll(() => calls.find((call) => call.path === 'contract-import')?.body?.provider_id).toBe(NEW_PROVIDER);
@@ -1448,4 +1449,93 @@ test('responsável pelo contrato: leitor vê quem responde, sem controle de alte
   await expect(section).toContainText('Paula Nogueira');
   await expect(section.getByText('Alterar responsável')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Registrar contrato existente' })).toHaveCount(0);
+});
+
+test('instituição: recibo pendente, indisponível e sessão expirada preservam intenção; retry usa a mesma chave sem inferir homônima', async ({ page }) => {
+  const calls = await mockSession(page, { providers: [], contracts: [] });
+  const keys = [];
+  await page.route('**/api/finance/providers', route => {
+    if (route.request().method() !== 'POST') return route.fallback();
+    keys.push(route.request().postDataJSON().request_key);
+    if (keys.length === 1) return route.abort('connectionreset');
+    return route.fulfill({status:201,contentType:'application/json',body:JSON.stringify({ok:true,state:'confirmed',row:{id:NEW_PROVIDER,name:'Banco Horizonte'}})});
+  });
+  let reply = { status:200, body:{ok:true,state:'pending',id:null} };
+  await page.route('**/api/finance/provider-creation-result?**', route => {
+    expect(new URL(route.request().url()).searchParams.get('request_key')).toBe(keys[0]);
+    return route.fulfill({status:reply.status,contentType:'application/json',body:JSON.stringify(reply.body)});
+  });
+  await page.goto('/finance/contracts.html');
+  await page.getByRole('button', {name:'Registrar o primeiro contrato'}).click();
+  const form=page.locator('#contract-import-form');
+  await form.getByLabel(/^Instituição financeira/).selectOption({label:'+ Cadastrar nova instituição'});
+  await form.getByLabel(/^Nome da instituição/).fill('Banco Horizonte');
+  await fillImport(page);
+  await page.getByRole('button',{name:'Revisar registro',exact:true}).click();
+  await page.getByRole('button',{name:'Confirmar registro',exact:true}).click();
+  const check=form.getByRole('button',{name:'Conferir instituição'});
+  await check.click(); await expect(form).toContainText('cadastro ainda está sendo processado');
+  reply={status:503,body:{ok:false,code:'backend_unavailable'}};
+  await check.click(); await expect(form).toContainText('Não foi possível conferir agora');
+  reply={status:401,body:{ok:false,code:'session_expired'}};
+  await check.click(); await expect(form).toContainText('Sua sessão expirou');
+  reply={status:403,body:{ok:false,code:'forbidden'}};
+  await check.click(); await expect(form).toContainText('Seu acesso não permite conferir');
+  expect(keys).toHaveLength(1);
+  expect(calls.some(c=>c.path==='contract-import')).toBe(false);
+  reply={status:200,body:{ok:true,state:'unconfirmed',id:null}};
+  await check.click(); await expect(form).toContainText('Isso não prova recusa');
+  await noHorizontalOverflow(page);
+  await page.getByRole('button',{name:'Enviar de novo (mesma intenção)',exact:true}).click();
+  await expect.poll(()=>keys.length).toBe(2);
+  expect(keys[0]).toMatch(/^[0-9a-f-]{36}$/);expect(keys[1]).toBe(keys[0]);
+  await expect.poll(()=>calls.find(c=>c.path==='contract-import')?.body?.provider_id).toBe(NEW_PROVIDER);
+});
+
+test('instituição: conflito material mantém dados e exige conferência; não envia contrato', async ({ page }) => {
+  const calls=await mockSession(page,{providers:[],contracts:[]});
+  let posts=0;
+  await page.route('**/api/finance/providers',route=>{posts++;return route.fulfill({status:409,contentType:'application/json',body:JSON.stringify({ok:false,code:'provider_creation_conflict',error:'Esta intenção já foi usada com outros dados. Confira o recibo original.'})});});
+  await page.goto('/finance/contracts.html');
+  await page.getByRole('button',{name:'Registrar o primeiro contrato'}).click();
+  const form=page.locator('#contract-import-form');
+  await form.getByLabel(/^Instituição financeira/).selectOption({label:'+ Cadastrar nova instituição'});
+  await form.getByLabel(/^Nome da instituição/).fill('Banco Horizonte');await fillImport(page);
+  await page.getByRole('button',{name:'Revisar registro',exact:true}).click();
+  await page.getByRole('button',{name:'Confirmar registro',exact:true}).click();
+  await expect(form).toContainText('Esta intenção já foi usada com outros dados');
+  await expect(form.getByRole('button',{name:'Conferir instituição'})).toBeVisible();
+  expect(posts).toBe(1);expect(calls.some(c=>c.path==='contract-import')).toBe(false);
+});
+
+test('instituição: escolher outro cadastro após recusa do contrato cria nova intenção e nunca vincula a contraparte anterior', async ({ page }) => {
+  await mockSession(page,{providers:[],contracts:[]});
+  const providers=[],contracts=[];
+  const secondProvider='00000000-0000-4000-8000-0000000000e3';
+  await page.route('**/api/finance/providers',route=>{
+    providers.push(route.request().postDataJSON());
+    const id=providers.length===1?NEW_PROVIDER:secondProvider;
+    return route.fulfill({status:201,contentType:'application/json',body:JSON.stringify({ok:true,state:'confirmed',row:{id,name:providers.at(-1).name}})});
+  });
+  await page.route('**/api/finance/contract-import',route=>{
+    contracts.push(route.request().postDataJSON());
+    return route.fulfill({status:400,contentType:'application/json',body:JSON.stringify({ok:false,code:'invalid_contract_terms',error:'Confira os termos do contrato.'})});
+  });
+  await page.goto('/finance/contracts.html');
+  await page.getByRole('button',{name:'Registrar o primeiro contrato'}).click();
+  const form=page.locator('#contract-import-form');
+  await form.getByLabel(/^Instituição financeira/).selectOption({label:'+ Cadastrar nova instituição'});
+  await form.getByLabel(/^Nome da instituição/).fill('Banco Horizonte');await fillImport(page);
+  await page.getByRole('button',{name:'Revisar registro',exact:true}).click();
+  await page.getByRole('button',{name:'Confirmar registro',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Revisar registro',exact:true})).toBeEnabled();
+  expect(contracts[0].provider_id).toBe(NEW_PROVIDER);
+  await form.getByLabel(/^Instituição financeira/).selectOption({label:'+ Cadastrar nova instituição'});
+  await form.getByLabel(/^Nome da instituição/).fill('Banco Sol');
+  await page.getByRole('button',{name:'Revisar registro',exact:true}).click();
+  await page.getByRole('button',{name:'Confirmar registro',exact:true}).click();
+  await expect.poll(()=>contracts.length).toBe(2);
+  expect(providers).toHaveLength(2);
+  expect(providers[1].request_key).not.toBe(providers[0].request_key);
+  expect(contracts[1].provider_id).toBe(secondProvider);
 });
