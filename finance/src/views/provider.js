@@ -138,7 +138,7 @@ export async function providerHome(ctx) {
     root.append(card({ id: 'convites', title: 'Convites recebidos', subtitle: 'Aceitar libera a solicitação completa e registra a participação. Não envia proposta nem aprova crédito: você decide depois se responde.',
       body: el('ul', { class: 'invite-cards', role: 'list' }, invites.map((invite) => el('li', { class: 'invite-card' }, [
         el('div', {}, [el('p', { class: 'opportunity-kicker', text: [invite.buyer_name, productLabel(invite.product, { short: true })].filter(Boolean).join(' · ') }), el('p', { class: 'invite-title', text: invite.title }),
-          el('p', { class: 'muted small', text: `Recebido ${timeAgo(invite.created_at)} · ${invite.response_deadline ? `prazo ${formatDate(invite.response_deadline)}` : 'sem prazo informado'}` })]),
+          el('p', { class: 'muted small', text: `Recebido ${timeAgo(invite.created_at)} · ${!invite.response_deadline ? 'sem prazo informado' : daysUntil(invite.response_deadline) < 0 ? `o prazo informado (${formatDate(invite.response_deadline)}) já passou; o aceite depende de o convite ainda estar válido` : `prazo ${formatDate(invite.response_deadline)}`}` })]),
         // A ação principal já está no destaque acima: aqui o botão não compete com ela.
         button('Aceitar', { variant: inviteFirst ? 'secondary' : 'primary', size: 'sm', iconName: 'check', attrs: { 'aria-label': `Aceitar convite: ${invite.title}` }, onClick: (event) => acceptInvite(ctx, invite, { button: event.currentTarget }) })
       ]))) }));

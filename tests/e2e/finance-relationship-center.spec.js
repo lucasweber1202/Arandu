@@ -23,16 +23,16 @@ const OVERVIEW = {
   tasks: [{ id: '00000000-0000-4000-8000-0000000000f1', title: 'Revisar renovação', due_on: day(-2), status: 'open', related_type: 'contract', related_id: '00000000-0000-4000-8000-0000000000c1', assignee_id: null }]
 };
 
-async function setup(page, { role = 'admin' } = {}) {
+async function setup(page, { role = 'admin', overview = OVERVIEW, members = null, entities = null } = {}) {
   const calls = [];
   await page.route('**/api/finance/**', async (route) => {
     const req = route.request(); const u = new URL(req.url()); const path = u.pathname.replace('/api/finance/', '');
     calls.push({ path, method: req.method(), body: req.postData() ? JSON.parse(req.postData()) : null });
     const json = (v, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(v) });
     if (path === 'organizations') return json({ ok: true, rows: [{ id: ORG, kind: 'BUYER', legal_name: 'Grupo Vitta' }] });
-    if (path === 'overview') return json(OVERVIEW);
-    if (path === 'members') return json({ ok: true, rows: [{ user_id: 'u1', role, display_name: 'Paula Nogueira' }], viewer_id: 'u1' });
-    if (path === 'entities') return json({ ok: true, rows: [{ id: ENTITY, legal_name: 'Vitta Varejo', kind: 'subsidiary', parent_id: null }], scope: 'group', can_admin: role === 'admin' });
+    if (path === 'overview') return json(overview);
+    if (path === 'members') return json({ ok: true, rows: members || [{ user_id: 'u1', role, display_name: 'Paula Nogueira' }], viewer_id: 'u1' });
+    if (path === 'entities') return json({ ok: true, rows: entities || [{ id: ENTITY, legal_name: 'Vitta Varejo', kind: 'subsidiary', parent_id: null }], scope: 'group', can_admin: role === 'admin' });
     if (path === 'contract-import') return json({ ok: true, id: '00000000-0000-4000-8000-0000000000c9', next_task: null }, 201);
     return json({ ok: true, rows: [] });
   });
@@ -50,7 +50,7 @@ test('fila mostra o que pede ação, por urgência, com responsável, origem e d
   await expect(items.first()).toContainText('Adquirência lojas');
   await expect(center).not.toContainText('Linha longa');
   await expect(center.locator('[data-situation="window"]')).toContainText('aviso prévio de 60 dias registrado no cadastro');
-  await expect(center.locator('[data-situation="window"]')).toContainText('Responsável: Paula Nogueira');
+  await expect(center.locator('[data-situation="window"]')).toContainText('Responsável pela relação contratual: Paula Nogueira (você)');
   await expect(center.locator('[data-situation="no_end"]')).toContainText('Responsável não informado no registro');
   await expect(center.locator('[data-situation="task_overdue"]')).toContainText('Revisar renovação');
   await expect(center.locator('[data-situation="negotiation"]')).toContainText('Revisão de MDR');
@@ -259,4 +259,79 @@ test('atualizar descarta página atrasada e reconsulta tarefas concluídas', asy
   await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
   await expect(dialog).not.toContainText('Resposta obsoleta');
   await expect(dialog.locator('.rel-tasks-pages')).toContainText('0 tarefas abertas carregadas');
+});
+
+// ---------------------------------------------------------- Central 3.0
+const UNIT = '00000000-0000-4000-8000-0000000000e2';
+const OUTSIDE = '00000000-0000-4000-8000-0000000000c8';
+
+test('central 3.0: responsável por tipo, "você", pessoa sem acesso e tarefa sem responsável não se confundem', async ({ page }) => {
+  const overview = structuredClone(OVERVIEW);
+  overview.contracts[0].owner_id = 'u9';
+  overview.tasks.push({ id: '00000000-0000-4000-8000-0000000000f2', title: 'Coletar aditivo', due_on: null, status: 'open', related_type: 'contract', related_id: overview.contracts[2].id, assignee_id: 'u2' });
+  await setup(page, { overview, members: [{ user_id: 'u1', role: 'admin', display_name: 'Paula Nogueira' }, { user_id: 'u2', role: 'analyst', display_name: 'Rui Tavares' }] });
+  await page.goto('/finance/providers.html');
+  const center = page.locator('#relationship-center');
+  await expect(center.locator('[data-situation="window"]')).toContainText('Responsável pela relação contratual: pessoa sem acesso atual à organização');
+  await expect(center.locator('[data-situation="window"]')).not.toContainText(/Responsável[^.]*: Membro\b/);
+  await expect(center.locator('[data-situation="task_overdue"]')).toContainText('Tarefa sem responsável');
+  const own = center.locator('.rel-item', { hasText: 'Coletar aditivo' });
+  await expect(own).toContainText('Responsável pela tarefa: Rui Tavares');
+  await expect(own).toContainText('Sem prazo definido (não é atraso).');
+  await expect(own).toHaveAttribute('data-situation', 'task');
+  await expect(own).toContainText('Você pode agir neste item.');
+});
+
+test('central 3.0: tarefa de contrato fora do recorte aparece com link ao contrato, sem instituição inventada', async ({ page }) => {
+  const overview = structuredClone(OVERVIEW);
+  overview.tasks.push({ id: '00000000-0000-4000-8000-0000000000f3', title: 'Enviar balanço ao banco', due_on: day(3), status: 'open', related_type: 'contract', related_id: OUTSIDE, assignee_id: null });
+  await setup(page, { overview });
+  await page.goto('/finance/providers.html');
+  const item = page.locator('#relationship-center .rel-item', { hasText: 'Enviar balanço ao banco' });
+  await expect(item).toContainText('Instituição do contrato não carregada');
+  await expect(item).toContainText('Entidade não carregada');
+  await expect(item).toContainText('contrato fora dos contratos carregados');
+  await expect(item.getByRole('link', { name: 'Contrato', exact: true })).toHaveAttribute('href', new RegExp(`contracts\\.html\\?abrir=contrato#contract-${OUTSIDE}$`));
+  await expect(item.getByRole('button', { name: /Relacionamento/ })).toHaveCount(0);
+});
+
+test('central 3.0: entidade em cada item; filtro pela entidade-mãe inclui a unidade', async ({ page }) => {
+  const overview = structuredClone(OVERVIEW);
+  overview.contracts[0].legal_entity_id = UNIT;
+  await setup(page, { overview, entities: [{ id: ENTITY, legal_name: 'Vitta Varejo', kind: 'subsidiary', parent_id: null, status: 'active' }, { id: UNIT, legal_name: 'Loja Centro', kind: 'business_unit', parent_id: ENTITY, status: 'active' }] });
+  await page.goto('/finance/providers.html');
+  const center = page.locator('#relationship-center');
+  await expect(center.locator('[data-situation="expired"]')).toContainText('Vitta Varejo');
+  await center.getByLabel('Entidade').selectOption(ENTITY);
+  await expect(center.locator('[data-situation="window"]', { hasText: 'Capital de giro 2025' })).toContainText('Loja Centro');
+  await expect(center.locator('.rel-item', { hasText: 'Pacote de serviços' })).toHaveCount(0);
+});
+
+test('central 3.0: recorte no limite do resumo é declarado; "nada pendente" não vira garantia', async ({ page }) => {
+  const overview = structuredClone(OVERVIEW);
+  overview.rfqs = []; overview.tasks = [];
+  overview.contracts = Array.from({ length: 200 }, (_, i) => contract(`00000000-0000-4000-8000-${String(100000000000 + i)}`, { provider_id: P_ATLAS, provider_name: 'Atlas Bank', product: 'credit', title: `Linha ${i}`, ends_on: day(900) }));
+  await setup(page, { overview });
+  await page.goto('/finance/providers.html');
+  const center = page.locator('#relationship-center');
+  await expect(center.locator('#rel-center-scope')).toContainText('chegou ao limite em contratos');
+  await expect(center).toContainText('pode haver pendências fora dele');
+});
+
+test('central 3.0: leitor vê quem pode agir sem receber a ação como sua', async ({ page }) => {
+  await setup(page, { role: 'viewer' });
+  await page.goto('/finance/providers.html');
+  const item = page.locator('#relationship-center [data-situation="window"]');
+  await expect(item).toContainText('Pode agir: administração e gestão financeira; seu papel acompanha.');
+  await expect(page.locator('#relationship-center [data-situation="task_overdue"]')).toContainText('Pode agir: administração, gestão financeira e análise');
+});
+
+test('central 3.0: celular 390px e teclado percorrem a fila sem overflow', async ({ page }) => {
+  await setup(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/finance/providers.html');
+  const first = page.locator('#relationship-center .rel-item').first().getByRole('link').first();
+  await first.focus();
+  await expect(first).toBeFocused();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
 });
