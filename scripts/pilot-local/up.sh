@@ -43,6 +43,12 @@ if [ -z "${PILOT_LOCAL_DB_IMAGE:-}" ] && ! compose pull -q >/dev/null 2>&1; then
   echo "ECR público indisponível; usando as imagens oficiais do Docker Hub."
   export PILOT_LOCAL_DB_IMAGE=supabase/postgres:15.14.1.064 PILOT_LOCAL_AUTH_IMAGE=supabase/gotrue:v2.181.0 \
     PILOT_LOCAL_REST_IMAGE=postgrest/postgrest:v12.2.9 PILOT_LOCAL_STORAGE_IMAGE=supabase/storage-api:v1.25.3
+  # Docker Hub também tem cota (429); a Supabase publica as mesmas tags no GHCR.
+  if ! compose pull -q >/dev/null 2>&1; then
+    echo "Docker Hub indisponível; usando o espelho oficial da Supabase no GHCR."
+    export PILOT_LOCAL_DB_IMAGE=ghcr.io/supabase/postgres:15.14.1.064 PILOT_LOCAL_AUTH_IMAGE=ghcr.io/supabase/gotrue:v2.181.0 \
+      PILOT_LOCAL_REST_IMAGE=ghcr.io/supabase/postgrest:v12.2.9 PILOT_LOCAL_STORAGE_IMAGE=ghcr.io/supabase/storage-api:v1.25.3
+  fi
 fi
 compose up -d db
 for _ in $(seq 1 60); do
