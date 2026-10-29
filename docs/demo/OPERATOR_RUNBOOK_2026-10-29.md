@@ -1,5 +1,7 @@
 # Runbook do operador — dia 29/10/2026
 
+> **Planos:** A = demonstração interativa **local** · B = hospedada (**não usar**: BLOCKED) · C = **visita pública**.
+
 Cartão de bolso do dia. Os procedimentos completos, com tabela de diagnóstico,
 continuam em [OPERATOR_29-10.md](OPERATOR_29-10.md) (fonte canônica); este
 arquivo só ordena o dia e acrescenta as contingências pedidas para a sala.
@@ -56,6 +58,8 @@ Conferir `http://127.0.0.1:4174/demo/visita.html` e deixar o servidor aberto.
 | T-30 | Uma janela anônima em `https://localhost:4443/login.html#demonstracao`, aceitar certificado, **não entrar**. A partir daqui nenhum comando de prontidão, ensaio ou provisionamento |
 | T-0 | Entrar como Juliana; seguir `PRESENTATION_SCRIPT_2026-10-29.md` |
 
+Resolução: apresente em 1440×900 ou 1366×768 (ambas auditadas sem corte); zoom do navegador em 100 %.
+
 Lição reproduzida em 28/10: rodar `prepare-station`/`readiness` e logo depois
 abrir a demo derruba as primeiras telas da Juliana com 429 por alguns minutos.
 É o limite real (240 chamadas/10 min por pessoa) e **não se contorna**.
@@ -65,6 +69,7 @@ abrir a demo derruba as primeiras telas da Juliana com 429 por alguns minutos.
 | Falha | Procedimento exato |
 | --- | --- |
 | Internet caiu | Plano A não depende de internet (tudo em `localhost`). Sem estação: aba da visita offline `:4174`. Sem ela: abrir os WebP de `demo/visita/` e dizer que são capturas |
+| Máquina dormiu/reiniciou ou Docker reiniciou | `bash scripts/demo/local.sh resume`. Se falhar com "503 … schema cache" (reproduzido em 29/10), **ignore a sugestão de `demo:reset` da mensagem**: `docker restart arandu-pilot-local-rest-1` e repita `resume` (29/10: 39/39 em 7 s) |
 | Contêineres locais pararam | Outro terminal: `bash scripts/demo/local.sh station --fast`. Só o app caiu → `bash scripts/demo/local.sh app`. Docker parado → abrir Docker Desktop e `bash scripts/demo/local.sh resume`. Mais de 2 min → visita (Plano C). Nunca `demo:setup`, `demo:down` ou reset |
 | Autenticação falhou (503/401) | Esperar; a sessão volta sozinha quando Auth responde. Não entrar repetidamente (12 entradas/10 min por rede). > 2 min → visita |
 | 429 | Esperar o tempo da tela, na mesma aba, falando sobre a tela atual. Segundo 429 seguido → ato correspondente na visita |

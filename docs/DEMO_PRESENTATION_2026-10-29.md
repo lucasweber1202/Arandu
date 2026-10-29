@@ -1,5 +1,7 @@
 # Operação da apresentação — 29/10/2026
 
+> **Nomenclatura final de 29/10 (prevalece):** Plano A = demonstração financeira interativa **local**; Plano B = demonstração financeira **hospedada** (BLOCKED); Plano C = **visita pública** informativa. Fonte única: [GO_NO_GO_2026-10-29.md](demo/GO_NO_GO_2026-10-29.md). Neste registro histórico, o resultado "A" é o hospedado (**Plano B**) e "B" o local (**Plano A**).
+
 Somente dados sintéticos. Este runbook não autoriza clientes, migrations,
 export hospedado, configuração, cutover ou reset. Datas no fuso America/Sao_Paulo.
 Responsáveis funcionais: owner comercial decide interrupção/claims;

@@ -1,5 +1,7 @@
 # Roteiro da apresentação — 29/10/2026 (cinco atos)
 
+> **Planos:** A = demonstração interativa **local** · B = hospedada (**não usar**: BLOCKED) · C = **visita pública**.
+
 Versão final do roteiro comercial. Aprofunda, sem substituir:
 [ROTEIRO_COMERCIAL_5_ATOS_29-10.md](ROTEIRO_COMERCIAL_5_ATOS_29-10.md) (falas e
 perguntas prováveis), [PRESENTATION_2026-10-29.md](PRESENTATION_2026-10-29.md)
@@ -51,7 +53,7 @@ Telas e dados abaixo foram ensaiados na stack real em `d5e1612` (28/10, noite).
 | Explicar | A necessidade vira um pedido estruturado e comparável. Cada proposta pertence a quem a enviou e guarda versões |
 | Problema resolvido | Fim do "mesmo pedido por e-mail para cinco gerentes, cinco formatos de resposta" |
 | Resultado na tela | 3 convidadas: Atlas v2, Orbe v1 sem CET informado, Meridian sem proposta |
-| Cuidado | Orbe "não informou" o CET — não dizer que "não tem". Proposta transcrita pelo comprador aparece como **fonte externa**, nunca como enviada pela instituição |
+| Cuidado | Orbe "não informou" o CET — não dizer que "não tem". O cenário **não tem** proposta registrada pelo comprador: se perguntarem, responda que ela entra marcada como fonte externa e nunca como enviada pela instituição, sem prometer mostrá-la na tela |
 | Se falhar | visita `#solicitacao`, `#convites`, `#propostas` |
 
 ## Ato 4 — Comparação de propostas (2–3 min)
@@ -64,7 +66,7 @@ Telas e dados abaixo foram ensaiados na stack real em `d5e1612` (28/10, noite).
 | Explicar | O Arandu organiza os fatos de cada proposta e a origem de cada número. Pesos e critérios são da empresa |
 | Problema resolvido | Comparar condições heterogêneas sem planilha manual e sem perder versões |
 | Resultado na tela | Comparação factual; a própria tela diz que o Arandu não recomenda instituições |
-| Cuidado | Nunca "melhor proposta", "vencedora" ou "economia de X" |
+| Cuidado | Nunca "melhor proposta", "vencedora" ou "economia de X". As três aparecem como "Proposta vencida": antecipe que a validade expirou porque o processo já foi contratado |
 | Se falhar | visita `#comparacao` |
 
 ## Ato 5 — Decisão e continuidade (3 min)
@@ -77,7 +79,7 @@ Telas e dados abaixo foram ensaiados na stack real em `d5e1612` (28/10, noite).
 | Explicar | Quem pede não aprova (segregação de funções). A decisão é humana, justificada e fotografa a versão escolhida. Depois da assinatura começam implantação, covenants e renovação. A instituição vê só o que é dela |
 | Problema resolvido | Governança auditável e memória do relacionamento, não só a cotação |
 | Resultado na tela | "Aguardando você" para a CFO; contrato com solicitação de origem e tarefas; portal sem concorrentes |
-| Cuidado | O Arandu **não** concede crédito, assina contrato nem desembolsa. Não há integração bancária nem Open Finance hoje |
+| Cuidado | O Arandu **não** concede crédito, assina contrato nem desembolsa. Não há integração bancária nem Open Finance hoje. Feche o painel do contrato com **×** (o Voltar do navegador sai de Contratos). Não leia em voz alta a justificativa do Controller ("a economia de MDR compensa…"): é texto de pessoa fictícia, não cálculo do Arandu. Não clique "Concluir tarefa" |
 | Se falhar | visita `#aprovacao`, `#contrato`, `#continuidade`, `#instituicao`, `#instituicao-proposta` |
 
 Fechamento (30 s): volta ao Início da Juliana e repete o fio condutor.
@@ -90,7 +92,7 @@ Fechamento (30 s): volta ao Início da Juliana e repete o fio condutor.
 | 1–2 | Solicitação "Capital de giro" | Necessidade estruturada; propostas com dono e versão |
 | 2–3 | Comparação "Adquirência" | Fatos lado a lado; a empresa decide |
 | 3–4 | Aprovações (Helena) | Quem pede não aprova; decisão humana registrada |
-| 4–5 | Contrato Lumina → "Trabalho deste contrato" | A decisão vira trabalho e renovação |
+| 4–5 | Contratos → card Lumina Pay (linha do tempo, aviso prévio, responsável) | A decisão vira trabalho e renovação |
 
 Uma só troca de persona (Helena). Pular o portal da instituição.
 
@@ -114,3 +116,26 @@ SLA, RPO/RTO, certificação, clientes, economia/ROI, "melhor proposta",
 recomendação automática, produção pronta, ambiente hospedado operacional,
 integração com bancos, assinatura ou desembolso. Pergunta sem evidência:
 "não temos esse dado validado; não vou estimar".
+
+## Perguntas difíceis
+
+**C** = comprovado nesta versão · **H** = hipótese/plano, dizer como tal.
+
+| Pergunta | Resposta curta | Tipo |
+| --- | --- | --- |
+| Já está disponível para clientes? | Não. Hoje é demonstração com dados fictícios; o próximo passo é um piloto validado com uma empresa real | C |
+| Conecta aos bancos? | Não há integração bancária nem Open Finance. A instituição responde por um portal próprio, de baixo atrito | C |
+| O banco precisa participar? | Não. A empresa registra relacionamentos e contratos que já tem; o portal é opcional para cada instituição | C |
+| Proposta que chega por e-mail? | Pode ser registrada pelo comprador com canal e conferência, marcada como fonte externa — nunca como enviada pela instituição | C (capacidade existe; não está no cenário) |
+| O Arandu recomenda a melhor? | Não. A tela diz "O Arandu não recomenda instituições". Critérios, pesos e decisão são da empresa | C |
+| Como calcula custos e economias? | Mostra as condições informadas e o custo informado por quem enviou, com origem e versão. Não afirmamos economia sem metodologia | C |
+| Segurança? | Isolamento por empresa e por instituição no banco (RLS), papéis por pessoa, documentos em armazenamento privado com link temporário, trilha de auditoria. Sem certificação a declarar | C (sem certificação) |
+| Como a instituição vê só o dela? | Mostrar o portal do Atlas: só o próprio convite e as próprias versões, e o aviso de que não vê concorrentes | C |
+| Como funciona a aprovação? | Etapas sequenciais (Controller → CFO); quem pede não aprova; a decisão humana fotografa a versão escolhida | C |
+| Como gera receita? | Assinatura por empresa compradora, em ofertas por porte. Preço e pacotes ainda não validados com clientes | H |
+| Diferencial frente a planilha/ERP/banco? | Memória do relacionamento do pedido à renovação, comparação factual com origem, governança e o lado da instituição no mesmo fluxo; não substitui ERP nem sistema do banco | C (produto) / H (mercado) |
+| Estágio atual? | Produto funcional com backend real em ambiente local de demonstração; ambiente hospedado e produção ainda não liberados | C |
+| O que falta para o piloto? | Ambiente hospedado com recuperação comprovada, uma empresa piloto e validação com pessoas reais | C (lista) |
+| O que falta para produção? | Recuperação e cutover autorizados, validação de release e operação; sem data prometida | C (lista) |
+
+Nunca citar clientes, ROI, SLA, certificação, disponibilidade ou métricas de uso.

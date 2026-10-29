@@ -1,5 +1,7 @@
 # Cartão do operador — apresentação de 29/10/2026 (Demo canônica local)
 
+> **Nomenclatura final de 29/10 (prevalece):** Plano A = demonstração financeira interativa **local**; Plano B = demonstração financeira **hospedada** (BLOCKED); Plano C = **visita pública** informativa. Fonte única: [GO_NO_GO_2026-10-29.md](GO_NO_GO_2026-10-29.md). Este cartão já usa essa nomenclatura.
+
 Para quem vai operar a estação, sem depender de quem desenvolve. O roteiro da
 fala está em [`PRESENTATION_2026-10-29.md`](PRESENTATION_2026-10-29.md); aqui
 ficam os comandos, as checagens e o que fazer quando algo falha. Tudo é o
@@ -10,11 +12,11 @@ em Docker e dados **fictícios** (Vitta Foods e instituições `*.example`).
 
 | Plano | Vale quando | Se não vale |
 | --- | --- | --- |
-| **A — hospedado** | `node scripts/demo/hosted-parity.mjs --url=https://arandu-demo.vercel.app --sha=<SHA completo aprovado>` diz **READY** e o roteiro pela entrada pública foi ensaiado no domínio | use B |
-| **B — estação local** | `bash scripts/demo/local.sh station` diz **READY** nesta máquina, hoje | use C |
+| **A — estação local** | `bash scripts/demo/local.sh station` diz **READY** nesta máquina, hoje | use C |
+| **B — hospedado** | `node scripts/demo/hosted-parity.mjs --url=https://arandu-demo.vercel.app --sha=<SHA completo aprovado>` diz **READY** e o roteiro pela entrada pública foi ensaiado no domínio | use A |
 | **C — sem demo ao vivo** | — | Apresente capturas **ditas como capturas**; não simule operação. A visita pública (`/demo/visita.html`, offline em `dist/` após `npm run build:demo`) já é rotulada como *Visita informativa* e identifica os Processos A–D |
 
-Não troque de A para B no meio da reunião se B não foi preparado antes.
+Não troque de B para A no meio da reunião se A não foi preparado antes.
 
 ## O preflight da estação
 
@@ -143,7 +145,7 @@ terminal** (só lê; ≈ 30 s; não consome entradas nem cota da API).
 
 | Caso | Sinal | Diagnóstico seguro | Ação | Continua se | Interrompe se | Não faça |
 | --- | --- | --- | --- | --- | --- | --- |
-| A. Demo hospedada fora | `hosted-parity` ≠ READY | — | Plano B (esta estação), se `station` = READY | `station` READY | `station` ≠ READY → Plano C | Trocar de A para B no meio da reunião sem B preparado |
+| A. Demo hospedada fora | `hosted-parity` ≠ READY | — | Plano A (esta estação), se `station` = READY | `station` READY | `station` ≠ READY → Plano C | Trocar de B para A no meio da reunião sem A preparado |
 | B. Máquina reiniciou | Navegador: conexão recusada em :4443 | `station --fast`: serviços BLOCKED | `bash scripts/demo/local.sh resume` (13–25 s medidos) | resume termina em 39/39 | resume diz "contêiner ausente" | `npm run demo:setup` (re-semeia) ou `demo:down` |
 | C3. `resume`/`prepare-station` falha com "503 Could not query the database for the schema cache" ou "Gateway HTTPS não respondeu" | Depois de o daemon Docker reiniciar, PostgREST e/ou Auth subiram antes do banco (22/10: Auth em reinício contínuo até o banco ficar `healthy`, depois sozinho) | `docker ps`: banco `healthy`, rest `Up` | `docker restart arandu-pilot-local-rest-1` e repita `resume` (22/10: 39/39 na segunda tentativa) | resume 39/39 | persiste após 2 tentativas → `station` e Plano C | `demo:setup`, `demo:reset` ou `demo:down` (apagam ou re-semeiam) |
 | C. Docker parado | `station`: Docker Engine BLOCKED | Docker Desktop aberto? (WSL2: integração ligada) | Abra o Docker Desktop; depois `resume` | resume 39/39 | Docker não sobe em 2 min | Recriar contêineres |

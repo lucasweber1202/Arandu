@@ -1,5 +1,7 @@
 # Prontidão de release — apresentação de 29/10/2026
 
+> **Nomenclatura:** Plano A = demonstração financeira interativa **local**; Plano B = demonstração financeira **hospedada**; Plano C = **visita pública** informativa.
+
 Observação feita entre 2026-10-29T00:30Z e 02:20Z (noite de 28/10 em
 America/Sao_Paulo) por Claude Code em **executor efêmero de nuvem**
 (`CLAUDE_CODE_REMOTE`), não no computador do apresentador. Nenhum deploy,
@@ -87,3 +89,56 @@ serem a mesma árvore da #281):
 2. Cota da Juliana: qualquer `prepare-station`, `readiness` ou ensaio nos 10 min anteriores derruba as primeiras telas com 429 (reproduzido hoje). Mitigação: nada roda depois de T-30.
 3. Datas do seed são relativas à data do setup; prazos "em N dias" podem diferir dos citados no roteiro se o setup foi feito em outro dia.
 4. Cross-browser só coberto pelo CI, não pelo domínio público nesta rodada.
+
+## 8. Segunda auditoria independente — 29/10 (03:00–04:30Z)
+
+Mesmo tipo de executor (efêmero, reciclado entre as rodadas; não é a máquina
+do apresentador). Nenhum código, deploy, configuração ou dado hospedado alterado.
+
+### 8.1 Reconciliação
+
+| Verificação | Resultado | Evidência | Impacto | Ação |
+| --- | --- | --- | --- | --- |
+| `origin/main` | PASS — `f4f247f` (merge da #282, só docs) | `git log origin/main` | nenhum | — |
+| Código de app entre `d5e1612` e `f4f247f` | PASS — idêntico (5 arquivos de docs) | `git diff --stat d5e1612 f4f247f` | o commit aprovado de app continua `d5e1612` | — |
+| Gates da #282 (run 40805619330) | PASS — 4/4 | GitHub check runs | — | — |
+| PRs abertas / worktrees | PASS — 0 / só a principal | GitHub, `git worktree list` | — | — |
+| arandu-demo serve | PASS — `f4f247f`, `built_at` 2026-10-29T02:44Z | `arandu-build.json` | — | — |
+| Manifesto | PASS — 188/188 hashes; **byte a byte igual ao build de `d5e1612`** (0 arquivos diferentes) | comparação dos dois manifestos | a visita é exatamente a versão aprovada | — |
+| arandu-pilot / arandu (Production) | NOT_RUN — sem acesso Vercel; `*.vercel.app` adivinhados respondem 404 e não provam nada | — | nenhum: não serão usados | — |
+| Visita offline (`build:demo` + `serve:test`, rede externa bloqueada) | PASS — 13/13 etapas visíveis com imagem, 1440 e 390 | Playwright | contingência sem internet confirmada | — |
+| Visita pública, etapa a etapa (âncoras) | PASS — 13/13, 1440 e 390 | Playwright | — | — |
+
+### 8.2 Estação (ensaio no executor) e contingência real
+
+Ao reciclar o container o Docker parou. `local.sh resume` falhou com
+`503 Could not query the database for the schema cache` — exatamente o caso
+C3 do cartão — e a mensagem do seed sugeriu `npm run demo:reset`. Aplicado o
+procedimento C3 (`docker restart arandu-pilot-local-rest-1` + `resume`):
+**39/39 em 7 s**. Classificação **P1** (contorno documentado e comprovado);
+não justifica código no dia. O cartão já diz para não resetar.
+
+### 8.3 Cinco atos, desktop 1440×900 e 1366×768 (stack real, só leitura)
+
+18 telas/abas por resolução (Juliana, Helena, Eduardo): **0** erro de
+JavaScript, **0** resposta HTTP ≥ 400, **0** overflow horizontal, **0** UUID,
+data ISO ou enum na tela. Portal do Eduardo: só as próprias oportunidades e
+versões (v1 → v2), aviso "Você não vê propostas de outros provedores…";
+rotas do comprador redirecionam para o portal.
+
+### 8.4 Matriz de defeitos
+
+| ID | Tela/fluxo | Gravidade | Reprodução | Observado | Esperado | Correção/contingência | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| D1 | Retomada após reinício do Docker | P1 | parar o daemon; `local.sh resume` | 503 schema cache; mensagem sugere reset | resume volta sozinho | C3 do cartão (7 s). Correção de script no backlog | MITIGADO |
+| D2 | Comparação da Adquirência | P1 (fala) | Ato 4 → Comparação | as três propostas mostram "Proposta vencida" | — (é correto: validade expirou após a contratação) | Roteiro explica antes de abrir | MITIGADO |
+| D3 | Aprovações da Adquirência | P1 (fala) | Ato 5 → aba Aprovações | justificativa do Controller fictício: "a economia de MDR compensa…" | — (texto humano registrado) | Não ler em voz alta; não converter em claim | MITIGADO |
+| D4 | Contratos → painel do contrato | P2 | abrir contrato; botão Voltar do navegador | Voltar sai de Contratos (o painel não entra no histórico) | fechar com × | Roteiro: fechar com × | MITIGADO |
+| D5 | Aprovações (card) | P2 | Ato 5 | "Prazo de liquidação 1 dias" | "1 dia" | backlog | ABERTO |
+| D6 | Painel do contrato Atlas | P2 | Contratos → Atlas | obrigação vencida aparece como "Pendente" (em Instituições aparece "Tarefa vencida"); datas de criação sem ano | mesmo rótulo nas duas telas | backlog | ABERTO |
+| D7 | Proposta externa | P1 (roteiro) | — | o cenário semeado não tem proposta registrada pelo comprador | — | Só como resposta verbal; não prometer na tela | MITIGADO |
+| D8 | Nomenclatura de planos | P1 (operação) | documentos antigos × novos | A/B invertidos entre documentos | uma só convenção | Corrigido nesta rodada (nota em todos + cartão relabelado) | CORRIGIDO |
+| D9 | Barra lateral em páginas longas | — | rolar Contratos até o fim | fixa e íntegra em rolagem real | — | era artefato de captura full-page | NÃO É DEFEITO |
+| D10 | 429 logo após preparação | — | `prepare-station` e abrir a demo em seguida | mensagem clara, botão bloqueado até o Retry-After | — | proteção correta; janela T-30 | NÃO É DEFEITO |
+
+Nenhum P0. Decisão: **Caso A — sem alteração de código.**

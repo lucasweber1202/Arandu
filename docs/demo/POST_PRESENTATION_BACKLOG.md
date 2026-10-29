@@ -14,7 +14,14 @@ Achados da rodada de 28–29/10 estão marcados com ★.
 3. Teste com pessoas reais (tesourarias e gerentes de instituição) antes de qualquer claim comercial ou definição de ICP (Gestão continua hipótese).
 4. Recusa de convite pela instituição como API própria (adiado desde 27/10).
 5. ★ Nome do item de menu "Valor e savings": revisar contra a regra de savings com metodologia (guideline); avaliar apenas texto/rotulagem.
-6. ★ Na captura de página inteira, o fundo da barra lateral termina na altura da janela (só aparece em screenshot full-page; verificar se ocorre em rolagem real de telas longas).
+6. ~~Fundo da barra lateral em páginas longas~~ — verificado em 29/10: em rolagem real a barra é fixa e íntegra; era artefato de captura full-page. Fechado.
+
+15. ★ `local.sh resume`: reiniciar o PostgREST depois que o banco fica saudável (caso C3) e, no modo `--check` do seed, não sugerir `demo:reset` (D1).
+16. ★ Pluralização "1 dias" no prazo de liquidação (D5); rótulo "Pendente" × "Tarefa vencida" e datas de criação sem ano no painel do contrato (D6).
+17. ★ Comparação de processo já contratado: diferenciar "proposta vencida" de proposta expirada antes da decisão (D2).
+18. ★ Painel do contrato fora do histórico do navegador (Voltar sai da página) (D4).
+19. ★ Seed: justificativa do Controller fala em "economia de MDR"; trocar por texto factual para não induzir claim (D3).
+20. ★ Cenário sem proposta externa registrada pelo comprador (D7): avaliar incluí-la no seed canônico.
 
 ## P1-B — Demo hospedada M3 (trilha separada)
 
