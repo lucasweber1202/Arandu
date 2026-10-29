@@ -1,11 +1,13 @@
 # Roteiro comercial em 5 atos — 29/10/2026 (12–15 min, só leitura)
 
+> **Nomenclatura final de 29/10 (prevalece):** Plano A = demonstração financeira interativa **local**; Plano B = demonstração financeira **hospedada** (BLOCKED); Plano C = **visita pública** informativa. Fonte única: [GO_NO_GO_2026-10-29.md](GO_NO_GO_2026-10-29.md). 
+
 Complementa, sem substituir, o roteiro operacional em
 [PRESENTATION_2026-10-29.md](PRESENTATION_2026-10-29.md) e o
 [cartão do operador](OPERATOR_29-10.md) (Codex). Aqui: o que dizer, o que
 responder e onde parar. Nada neste roteiro grava dados; o seed não muda.
 
-**Modos.** B = Demo local com backend real (só com `station` READY na máquina
+**Modos.** A = Demo local com backend real (só com `station` READY na máquina
 do owner). C = visita pública `https://arandu-demo.vercel.app/demo/visita.html`
 (informativa, capturas reais da Demo canônica, nada é gravado). Cada ato tem a
 âncora da visita como plano alternativo. Nunca apresente C como operação real.

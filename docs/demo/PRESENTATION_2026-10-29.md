@@ -1,5 +1,7 @@
 # Apresentação de 29/10/2026 — roteiro executável (12–15 min)
 
+> **Nomenclatura final de 29/10 (prevalece):** Plano A = demonstração financeira interativa **local**; Plano B = demonstração financeira **hospedada** (BLOCKED); Plano C = **visita pública** informativa. Fonte única: [GO_NO_GO_2026-10-29.md](GO_NO_GO_2026-10-29.md). Neste documento anterior, "Roteiro A"/"A — hospedada" corresponde ao **Plano B** e "Roteiro B"/"B — local" ao **Plano A**; "Modo C" é o Plano C. Na tabela da jornada, A/B/C/D são **Processos** do cenário, não planos.
+
 Produto real (`main`) em `ARANDU_ENV=demo` com o seed canônico da Vitta Foods
 (`scripts/demo/seed.mjs`). Nada aqui é tela de apresentação: cada passo é uma rota
 do produto. Dados 100% fictícios (`*.example`). Ensaio técnico registrado em
