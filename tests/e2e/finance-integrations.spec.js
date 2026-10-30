@@ -101,3 +101,14 @@ test('quem não é admin não vê a seção de integrações', async ({ page }) 
   await expect(page.getByRole('heading', { name: 'Seu nome e cargo' })).toBeVisible();
   await expect(page.locator('#integracoes')).toHaveCount(0);
 });
+
+test('ERP hub: conectores aparecem como suporte planejado, sem pedir credencial nem fingir conexão', async ({ page }) => {
+  await mockSession(page);
+  await page.goto('/finance/settings.html#integracoes');
+  const hub = page.locator('#erp-hub');
+  await expect(hub.getByRole('heading', { name: 'Conectores de ERP' })).toBeVisible();
+  await expect(hub.locator('[data-state="planned"]')).toHaveCount(6);
+  await expect(hub.locator('.erp-row').filter({ hasText: 'SAP S/4HANA' })).toContainText('Suporte planejado · sem conector');
+  await expect(hub.locator('input, textarea, select')).toHaveCount(0);
+  for (const banned of [/conectado/i, /sincronizad/i]) await expect(hub.getByText(banned)).toHaveCount(0);
+});

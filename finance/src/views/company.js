@@ -232,7 +232,7 @@ export async function contracts(ctx) {
   } }) : null;
   const context = entityContextSelect(entities, { onChange: () => ctx.rerender() });
   const importButton = mods.contractCenter.importContractButton(ctx, entities);
-  ctx.header({ title: 'Contratos e renovações', subtitle: 'Termos versionados, aditivos, marcos próprios, aviso prévio e próxima ação de cada contrato.', actions: [context, importButton, refresh].filter(Boolean) });
+  ctx.header({ title: 'Contratos e renovações', subtitle: 'Termos versionados, aditivos, marcos próprios, aviso prévio e próxima ação de cada contrato.', actions: [context, button('Catálogo de produtos', { iconName: 'layers', attrs: { 'data-intent': 'catalogo' }, onClick: () => import('./product-catalog.js').then((m) => m.openProductCatalog(ctx)) }), importButton, refresh].filter(Boolean) });
   // Filtro de entidade sem contrato não é carteira vazia: diz o recorte e não oferece o "primeiro" registro.
   if (!rows.length && (ctx.data.contracts || []).length) return emptyState({ title: 'Nenhum contrato nesta entidade', text: ctx.can('create_rfq') ? 'Há contratos carregados em outras entidades do grupo. Troque a entidade no seletor acima ou registre um contrato desta entidade.' : 'Há contratos carregados em outras entidades do grupo. Troque a entidade no seletor acima para vê-los.', iconName: 'briefcase',
     action: mods.contractCenter.importContractButton(ctx, entities) });
@@ -300,7 +300,10 @@ export async function providers(ctx) {
   await need('center', 'contractCenter', ...(relationshipEnabled ? ['relationship'] : []));
   const manage = ctx.can('create_rfq');
   const add = manage ? button('Cadastrar instituição', { variant: 'primary', iconName: 'plus', attrs: { 'data-intent': 'cadastrar-instituicao' }, onClick: () => providerDrawer(ctx) }) : null;
-  ctx.header({ title: 'Instituições', subtitle: 'Bancos, fintechs e adquirentes com quem a empresa se relaciona: contratos, vencimentos e processos de cada uma. É um cadastro da empresa, não uma atestação.', actions: add ? [add] : [] });
+  // Consultas guiadas (sem IA) e catálogo: carregados só ao abrir.
+  const queries = button('Consultas', { iconName: 'search', attrs: { 'data-intent': 'consultas' }, onClick: () => import('./guided-queries.js').then((m) => m.openGuidedQueries(ctx)) });
+  const catalog = button('Catálogo de produtos', { iconName: 'layers', attrs: { 'data-intent': 'catalogo' }, onClick: () => import('./product-catalog.js').then((m) => m.openProductCatalog(ctx)) });
+  ctx.header({ title: 'Instituições', subtitle: 'Bancos, fintechs e adquirentes com quem a empresa se relaciona: contratos, vencimentos e processos de cada uma. É um cadastro da empresa, não uma atestação.', actions: [queries, catalog, add].filter(Boolean) });
   if (!rows.length) return emptyState({ title: 'Nenhuma instituição cadastrada', text: 'Registre a primeira instituição para organizar o relacionamento e as condições existentes.', iconName: 'building', action: add ? button('Cadastrar instituição', { variant: 'primary', iconName: 'plus', onClick: () => providerDrawer(ctx) }) : null });
   // Índice de relacionamento: fatos do histórico da própria empresa, em ordem alfabética (nada de ranking).
   const participation = new Map();

@@ -130,7 +130,7 @@ export async function dashboard(ctx) {
     title: 'Painel',
     subtitle: `${greeting(ctx.viewer?.name)} · ${ctx.organization.legal_name}`,
     // Entrada por objetivo: um único primário; cada intenção leva ao fluxo existente.
-    actions: [startButton(ctx)].filter(Boolean)
+    actions: [button('Consultas', { iconName: 'search', attrs: { 'data-intent': 'consultas' }, onClick: () => import('./guided-queries.js').then((m) => m.openGuidedQueries(ctx)) }), startButton(ctx)].filter(Boolean)
   });
   const approvals = await ctx.loadApprovals();
   const items = actionItems(ctx, approvals);

@@ -1376,3 +1376,13 @@ textarea.mono{width:100%;max-width:100%;min-width:0}
 .economics-errors{color:var(--danger)}
 .economics-errors p{margin:0}
 .economics-analysis td,.economics-analysis th{overflow-wrap:anywhere}
+/* Catálogo de produtos, consultas guiadas e conectores de ERP */
+.catalog-list,.guided-rows,.erp-list{list-style:none;margin:0;padding:0;display:grid;gap:var(--s3)}
+.catalog-item{display:flex;flex-wrap:wrap;justify-content:space-between;gap:var(--s3);padding:var(--s3) var(--s4);border:1px solid var(--border);border-radius:var(--r-md);background:var(--surface)}
+.catalog-item>*{min-width:0}
+.catalog-title{margin:0;font-size:var(--fs-md)}
+.tag-row{display:flex;flex-wrap:wrap;gap:var(--s2)}
+.guided-questions{display:flex;flex-wrap:wrap;gap:var(--s2)}
+.guided-questions [aria-pressed="true"]{border-color:var(--accent);color:var(--text)}
+.guided-rows p,.catalog-item p{margin:0;overflow-wrap:anywhere}
+.erp-row{display:flex;flex-wrap:wrap;justify-content:space-between;gap:var(--s2);padding:var(--s2) 0;border-bottom:1px solid var(--border)}
