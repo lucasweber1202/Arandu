@@ -70,7 +70,7 @@ function originContext(ctx, { contractId, noun, controls, filters, entities }) {
   return { node: box, update: describe };
 }
 
-export async function ledgerPage(ctx, { resource, title, subtitle, filters, scope = 'Escopo', originNoun = null }) {
+export async function ledgerPage(ctx, { resource, title, subtitle, filters, scope = 'Escopo', originNoun = null, detailExtra = null }) {
   currentCtx = ctx;
   const entities = await loadEntities(ctx);
   const params = new URL(location.href).searchParams;
@@ -146,6 +146,7 @@ export async function ledgerPage(ctx, { resource, title, subtitle, filters, scop
       const body = el('div', { class: 'stack' }, [...lines(d.lines), ...(d.links || []).map((l) => el('p', {}, el('a', { href: l.href, text: l.text }))), ...(d.sections || []).map((s) => card({ title: s.title, body: s.items.length ? el('ol', { class: 'plain-list small' }, s.items.map((text) => el('li', { text: humanizeText(ctx, text) }))) : el('p', { class: 'muted', text: s.empty }) }))]);
       if (d.graph) body.append(await graphContextCard(ctx, d.graph));
       let dialog;
+      if (detailExtra) body.append(await detailExtra(ctx, id, { manage, onDone: () => reload() }));
       const done = () => { dialog.close(); return reload(); };
       const buttons = manage ? (d.actions || []).map((form) => button(form.label, { size: 'sm', onClick: () => open(form, done) })) : [];
       dialog = drawer({ title: humanizeText(ctx, d.title), body, footer: buttons.length ? el('div', { class: 'actions' }, buttons) : null });
