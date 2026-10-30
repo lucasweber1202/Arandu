@@ -21,6 +21,7 @@ export const SITUATIONS = Object.freeze({
   window: { label: 'Janela de renovação aberta', tone: 'warning', rank: 2 },
   renewing: { label: 'Renovação em andamento', tone: 'info', rank: 3 },
   negotiation: { label: 'Negociação em andamento', tone: 'info', rank: 3 },
+  proposals_waiting: { label: 'Propostas aguardando análise', tone: 'warning', rank: 2 },
   task: { label: 'Tarefa aberta', tone: 'neutral', rank: 4 },
   no_end: { label: 'Término não informado', tone: 'warning', rank: 5 },
   // Radar: saídas do Opportunity Engine (regra da empresa + fato + fonte).
@@ -46,7 +47,7 @@ export function radarWorkItems(rows = [], { providerId = null, providerName = nu
       entityId: context ? context.legal_entity_id : null, entityUnknown: !context, signalNoProvider: Boolean(context) && !pid, category: null, title: type || 'Sinal registrado',
       detail: `${why || 'Fato registrado pela regra.'}${deadline && deadline !== '—' ? ` Prazo: ${deadline}.` : ' Sem prazo registrado.'}`,
       due: context?.deadline || null, who: null, role: 'sinal', actor: 'manage', href: `/finance/opportunities.html?id=${encodeURIComponent(id)}`, cta: action ? `Ver sinal: ${action.toLowerCase()}` : 'Ver sinal',
-      sourceHref: context?.source_href || null,
+      sourceHref: context?.source_href || null, linkedRfqHref: context?.linked_rfq_id ? `/finance/rfq.html?id=${encodeURIComponent(context.linked_rfq_id)}` : null,
       source: `Regra de oportunidade configurada pela sua empresa · estado: ${state || 'não informado'}. Ação possível é sugestão para uma pessoa avaliar, não decisão.` };
   });
 }
@@ -91,10 +92,13 @@ export function relationshipWorkItems({ contracts = [], rfqs = [], tasks = [], m
     const names = invited.map((row) => row.provider_name).filter(Boolean);
     const collecting = ['open', 'collecting'].includes(rfq.status);
     const accepted = invited.filter((row) => row.status === 'accepted').length;
-    items.push({ id: `r-${rfq.id}`, situation: 'negotiation', providerId: invited[0]?.provider_id || null, providerIds: invited.map((row) => row.provider_id),
+    // Proposta enviada e coleta encerrada: o trabalho é da empresa (comparar e decidir).
+    const submitted = (rfq.proposals || []).filter((row) => row.current_version > 0 && row.status !== 'withdrawn').length;
+    const waiting = rfq.status === 'comparing' && submitted > 0;
+    items.push({ id: `r-${rfq.id}`, situation: waiting ? 'proposals_waiting' : 'negotiation', providerId: invited[0]?.provider_id || null, providerIds: invited.map((row) => row.provider_id),
       providerName: names.length ? names.join(', ') : null, entityId: rfq.legal_entity_id || null, category: rfq.product || null, title: rfq.title || 'Solicitação',
       detail: `${RFQ_STATUS[rfq.status]?.label || 'Em andamento'}${!rfq.response_deadline ? ' · sem prazo de resposta' : collecting ? ` · prazo de resposta ${formatDate(rfq.response_deadline)}` : ` · coleta encerrada (prazo era ${formatDate(rfq.response_deadline)})`}${invited.length ? '' : ' · nenhuma instituição convidada ainda'}.`,
-      due: collecting ? rfq.response_deadline || null : null, who: rfq.owner_id ? owner(rfq.owner_id) : rfq.owner_name || null, role: 'negociação', actor: 'manage', href: `/finance/rfq.html?id=${rfq.id}`, cta: 'Abrir negociação',
+      due: collecting ? rfq.response_deadline || null : null, who: rfq.owner_id ? owner(rfq.owner_id) : rfq.owner_name || null, role: 'negociação', actor: 'manage', href: waiting ? `/finance/rfq.html?id=${rfq.id}#comparacao` : `/finance/rfq.html?id=${rfq.id}`, cta: waiting ? `Comparar ${submitted} ${submitted === 1 ? 'proposta' : 'propostas'}` : 'Abrir negociação',
       source: `Solicitação revisão ${rfq.revision || 1}${invited.length ? ` · ${invited.length} ${invited.length === 1 ? 'instituição convidada' : 'instituições convidadas'}, ${accepted} com convite aceito` : ''}` });
   }
   for (const task of tasks) {
@@ -221,6 +225,7 @@ function queueItem(ctx, item, onOpenProvider, entities) {
       renegotiateButton(ctx, item),
       item.contractHref ? el('a', { class: 'btn btn-ghost btn-sm', href: ctx.href(item.contractHref), text: 'Contrato' }) : null,
       item.sourceHref ? el('a', { class: 'btn btn-ghost btn-sm', href: ctx.href(item.sourceHref), text: 'Origem do sinal' }) : null,
+      item.linkedRfqHref ? el('a', { class: 'btn btn-ghost btn-sm', href: ctx.href(item.linkedRfqHref), text: 'Negociação ligada' }) : null,
       provider && onOpenProvider ? button('Relacionamento', { size: 'sm', variant: 'ghost', attrs: { 'aria-label': `Relacionamento com ${provider.name}` }, onClick: () => onOpenProvider(provider) }) : null
     ].filter(Boolean))
   ]);
