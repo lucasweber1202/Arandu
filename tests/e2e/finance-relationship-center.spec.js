@@ -328,10 +328,17 @@ test('central 3.0: leitor vê quem pode agir sem receber a ação como sua', asy
 
 test('central 3.0: celular 390px e teclado percorrem a fila sem overflow', async ({ page }) => {
   await setup(page);
+  // Resposta do Radar atrasada: o redesenho acontece com o foco já no link (corrida vista no WebKit).
+  let release; const gate = new Promise((resolve) => { release = resolve; });
+  await page.route('**/api/finance/opportunities?*', async (route) => { await gate; await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, rows: [], next: null, summary: [] }) }); });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/finance/providers.html');
   const first = page.locator('#relationship-center .rel-item').first().getByRole('link').first();
   await first.focus();
+  await expect(first).toBeFocused();
+  // Sinais do Radar chegam depois e redesenham a fila: o foco do teclado continua no mesmo link.
+  release();
+  await expect(page.locator('#rel-radar-note')).toContainText('Nenhum sinal ativo');
   await expect(first).toBeFocused();
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
 });

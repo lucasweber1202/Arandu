@@ -168,7 +168,12 @@ export function relationshipWorkQueue(ctx, { entities, onOpenProvider = null, im
     const urgent = visible.filter((item) => SITUATIONS[item.situation].tone === 'danger').length;
     const scope = capped.length ? ' nos registros carregados' : '';
     status.textContent = visible.length ? `${plural(visible.length, 'item pede atenção', 'itens pedem atenção')}${scope}${urgent ? `, ${urgent} com prazo vencido` : ''}. Ordem: vencido, prazo próximo, em andamento, informação ausente.` : '';
+    // Redesenho (ex.: sinais do Radar chegando depois) não pode tirar o foco de quem navega por teclado.
+    const active = list.contains(document.activeElement) ? document.activeElement : null;
+    const owner = active?.closest('[data-key]');
+    const focus = owner ? { key: owner.dataset.key, index: [...owner.querySelectorAll('a,button')].indexOf(active) } : null;
     list.replaceChildren(...visible.slice(0, expanded ? visible.length : LIMIT).map((item) => queueItem(ctx, item, onOpenProvider, entities)));
+    if (focus) [...list.querySelectorAll('[data-key]')].find((node) => node.dataset.key === focus.key)?.querySelectorAll('a,button')[focus.index]?.focus({ preventScroll: true });
     if (!visible.length) list.replaceChildren(el('li', { class: 'rel-queue-empty' }, emptyState({ compact: true, iconName: 'checkCircle', title: 'Nada pendente neste filtro',
       text: capped.length ? 'Nada pendente entre os registros carregados, mas o resumo atingiu o limite de leitura: pode haver pendências fora dele. Abra Contratos ou Tarefas para consultar a lista completa.' : 'Nenhum contrato vencido, em janela de renovação, sem término, negociação ou tarefa aberta nos registros carregados. Isso não cobre contratos que ainda não foram registrados.' })));
     more.hidden = expanded || visible.length <= LIMIT;
@@ -200,7 +205,7 @@ function queueItem(ctx, item, onOpenProvider, entities) {
   const entityText = !entities?.rows?.length || (item.role === 'sinal' && item.entityUnknown) ? null : item.entityUnknown ? 'Entidade não carregada' : entityName(entities, item.entityId);
   // Negociação com várias instituições não abre um relacionamento só.
   const provider = item.providerIds && item.providerIds.length > 1 ? null : (ctx.data.providers || []).find((row) => row.id === item.providerId);
-  return el('li', { class: `rel-item tone-${meta.tone}`, dataset: { situation: item.situation } }, [
+  return el('li', { class: `rel-item tone-${meta.tone}`, dataset: { situation: item.situation, key: item.id } }, [
     el('div', { class: 'rel-item-main' }, [
       el('p', { class: 'rel-item-kicker' }, [el('span', { class: `pill pill-${meta.tone} pill-sm` }, [el('span', { class: 'pill-dot', 'aria-hidden': 'true' }), el('span', { text: meta.label })]),
         el('span', { class: 'muted small', text: item.providerName || provider?.name || (item.signalNoProvider ? 'Sem instituição vinculada na fonte' : item.role === 'sinal' ? 'Instituição no detalhe do sinal' : item.entityUnknown ? 'Instituição do contrato não carregada' : 'Sem instituição convidada') }),
