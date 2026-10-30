@@ -24,12 +24,13 @@ Baseline: `main@5fa86b5`. Escopo de edição: `finance/src/**` e testes E2E. Nen
 - **Acesso:** Instituições (`/finance/providers.html`) → "O que pede ação nos relacionamentos".
 - **Testes:** `tests/e2e/finance-relationship-center.spec.js` (2 novos: sinal por estado/instituição com destino; erro de API). Rodado em chromium-desktop e mobile-chrome: 38 passaram. Testes com API mockada (não é E2E contra backend real).
 
-## Handoff ao Codex (contrato proposto, sem implementação)
+## Contrato do Radar (entregue em `codex/financial-intelligence-engine-20261030`)
 
 `GET /api/finance/opportunities` devolve linhas apresentadas (`{ id, cells[] }`). Para o Radar mostrar a instituição e a entidade de cada sinal sem filtro, e ordenar por prazo real:
 
 - **Entrada:** inalterada.
 - **Saída proposta, aditiva por linha:** `provider_id`, `provider_name`, `legal_entity_id`, `status`, `deadline` (ISO), `source_object_type`, `source_href` (já calculado por `sourceHref`).
+- **Implementado:** cada linha de `GET opportunities` traz agora `context` = `{ status, deadline, overdue, provider_id, legal_entity_id, source_object_type, source_href, linked_rfq_id }`, copiado da linha canônica `fin_opportunities` (sem join, sem migration). `null` = não vinculado na fonte. `provider_name` não foi incluído: a tela usa as instituições já carregadas. A Central usa esses campos para instituição, entidade, ordenação por prazo e link 'Origem do sinal'.
 - **Motivo funcional:** hoje o sinal sem filtro aparece como "Instituição no detalhe do sinal" e é ordenado só pela situação; com esses campos ele vai direto ao objeto de origem e entra no filtro por entidade.
 
 ## Ainda não feito (próximo maior impacto)

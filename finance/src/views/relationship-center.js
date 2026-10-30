@@ -34,14 +34,19 @@ const RADAR_STATUSES = ['open', 'acknowledged', 'under_review'];
  * Converte linhas já apresentadas pelo servidor (`opportunities`) em itens da
  * fila. Não recalcula nada: título, motivo, prazo, ação e estado vêm prontos.
  */
-export function radarWorkItems(rows = [], { providerId = null, providerName = null } = {}) {
-  return rows.map(({ id, cells = [], status }) => {
+export function radarWorkItems(rows = [], { providerId = null, providerName = null, providers = [] } = {}) {
+  return rows.map(({ id, cells = [], status, context = null }) => {
     const [type, why, deadline, action, state] = cells;
-    const overdue = String(deadline || '').includes('(vencido)');
-    return { id: `o-${id}`, situation: overdue ? 'signal_overdue' : status === 'under_review' ? 'signal_review' : 'signal',
-      providerId, providerIds: providerId ? [providerId] : null, providerName, entityId: null, entityUnknown: true, category: null, title: type || 'Sinal registrado',
+    const pid = context?.provider_id || providerId;
+    const overdue = context ? context.overdue : String(deadline || '').includes('(vencido)');
+    const reviewing = (context?.status || status) === 'under_review';
+    return { id: `o-${id}`, situation: overdue ? 'signal_overdue' : reviewing ? 'signal_review' : 'signal',
+      providerId: pid, providerIds: pid ? [pid] : null, providerName: (pid && providers.find((row) => row.id === pid)?.name) || (pid === providerId ? providerName : null),
+      // Com `context` a entidade é a da fonte (null = grupo); sem ele, desconhecida.
+      entityId: context ? context.legal_entity_id : null, entityUnknown: !context, signalNoProvider: Boolean(context) && !pid, category: null, title: type || 'Sinal registrado',
       detail: `${why || 'Fato registrado pela regra.'}${deadline && deadline !== '—' ? ` Prazo: ${deadline}.` : ' Sem prazo registrado.'}`,
-      due: null, who: null, role: 'sinal', actor: 'manage', href: `/finance/opportunities.html?id=${encodeURIComponent(id)}`, cta: action ? `Ver sinal: ${action.toLowerCase()}` : 'Ver sinal',
+      due: context?.deadline || null, who: null, role: 'sinal', actor: 'manage', href: `/finance/opportunities.html?id=${encodeURIComponent(id)}`, cta: action ? `Ver sinal: ${action.toLowerCase()}` : 'Ver sinal',
+      sourceHref: context?.source_href || null,
       source: `Regra de oportunidade configurada pela sua empresa · estado: ${state || 'não informado'}. Ação possível é sugestão para uma pessoa avaliar, não decisão.` };
   });
 }
@@ -128,7 +133,7 @@ export function relationshipWorkQueue(ctx, { entities, onOpenProvider = null, im
       if (seq !== radarSeq) return;
       const rows = pages.flatMap(({ status, page }) => (page.rows || []).map((row) => ({ ...row, status })));
       const more = pages.some(({ page }) => page.next);
-      items = [...base, ...radarWorkItems(rows, { providerId, providerName })].sort(order);
+      items = [...base, ...radarWorkItems(rows, { providerId, providerName, providers: ctx.data.providers || [] })].sort(order);
       radarNote.textContent = rows.length
         ? `${plural(rows.length, 'sinal ativo', 'sinais ativos')} das regras da empresa${providerName ? ` ligados a ${providerName}` : ''}${more ? ' (há mais em Oportunidades)' : ''}.${providerId ? '' : ' Filtre por instituição para ver só os sinais dela.'}`
         : `Nenhum sinal ativo das regras da empresa${providerName ? ` ligado a ${providerName}` : ''}. Sem regra ativa nada dispara.`;
@@ -192,13 +197,13 @@ const ACTORS = { manage: 'Pode agir: administração e gestão financeira', task
 function queueItem(ctx, item, onOpenProvider, entities) {
   const meta = SITUATIONS[item.situation];
   const canAct = item.actor === 'task' ? TASK_EDITORS.includes(ctx.viewer?.role) : ctx.can('create_rfq');
-  const entityText = !entities?.rows?.length || item.role === 'sinal' ? null : item.entityUnknown ? 'Entidade não carregada' : entityName(entities, item.entityId);
+  const entityText = !entities?.rows?.length || (item.role === 'sinal' && item.entityUnknown) ? null : item.entityUnknown ? 'Entidade não carregada' : entityName(entities, item.entityId);
   // Negociação com várias instituições não abre um relacionamento só.
   const provider = item.providerIds && item.providerIds.length > 1 ? null : (ctx.data.providers || []).find((row) => row.id === item.providerId);
   return el('li', { class: `rel-item tone-${meta.tone}`, dataset: { situation: item.situation } }, [
     el('div', { class: 'rel-item-main' }, [
       el('p', { class: 'rel-item-kicker' }, [el('span', { class: `pill pill-${meta.tone} pill-sm` }, [el('span', { class: 'pill-dot', 'aria-hidden': 'true' }), el('span', { text: meta.label })]),
-        el('span', { class: 'muted small', text: item.providerName || provider?.name || (item.role === 'sinal' ? 'Instituição no detalhe do sinal' : item.entityUnknown ? 'Instituição do contrato não carregada' : 'Sem instituição convidada') }),
+        el('span', { class: 'muted small', text: item.providerName || provider?.name || (item.signalNoProvider ? 'Sem instituição vinculada na fonte' : item.role === 'sinal' ? 'Instituição no detalhe do sinal' : item.entityUnknown ? 'Instituição do contrato não carregada' : 'Sem instituição convidada') }),
         entityText ? el('span', { class: 'muted small rel-item-entity', text: `· ${entityText}` }) : null]),
       el('h3', { class: 'rel-item-title', text: item.title }),
       el('p', { class: 'small', text: item.detail }),
@@ -209,6 +214,7 @@ function queueItem(ctx, item, onOpenProvider, entities) {
     el('div', { class: 'rel-item-actions' }, [
       el('a', { class: 'btn btn-secondary btn-sm', href: ctx.href(item.href) }, [el('span', { class: 'btn-label', text: item.cta }), icon('arrowRight', { size: 14 })]),
       item.contractHref ? el('a', { class: 'btn btn-ghost btn-sm', href: ctx.href(item.contractHref), text: 'Contrato' }) : null,
+      item.sourceHref ? el('a', { class: 'btn btn-ghost btn-sm', href: ctx.href(item.sourceHref), text: 'Origem do sinal' }) : null,
       provider && onOpenProvider ? button('Relacionamento', { size: 'sm', variant: 'ghost', attrs: { 'aria-label': `Relacionamento com ${provider.name}` }, onClick: () => onOpenProvider(provider) }) : null
     ].filter(Boolean))
   ]);
