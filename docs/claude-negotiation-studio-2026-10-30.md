@@ -19,11 +19,13 @@ A solicitação de renegociação não mostrava de qual contrato veio. Não havi
    - Solicitação sem origem não ganha o cartão. Falha na consulta é declarada.
 2. **Central de Relacionamentos**: "Iniciar renegociação" / "Retomar renegociação" em itens de contrato de crédito ou adquirência que estão vencidos, em janela, com aviso prévio passado ou em renovação. Há confirmação explícita e nenhuma instituição é convidada. Um erro mantém o item e informa que repetir não duplica (o endpoint é idempotente). Leitores não veem a ação.
 
+3. **Contrato (detalhe, "Trabalho deste contrato")**: nova seção "Renegociações deste contrato", lida do evento `renewal_rfq_started`. Cada renegociação aparece com link, data de início e estado; o estado aparece como "fora das solicitações carregadas" quando não foi carregado. O loop fecha nos dois sentidos: da renegociação ao contrato e do contrato às renegociações.
+
 ## Jornada para testar
 Instituições → "O que pede ação" → item em janela → **Iniciar renegociação** → rascunho com cartão de origem → convidar instituição ou registrar proposta externa → encerrar coleta → comparar → decisão → registrar contrato → **Contrato resultante** → marcos e tarefas.
 
 ## Testes
-- E2E (API simulada por mocks; não é backend real): `finance-relationship-center` (+4 testes), `finance-procurement`, `finance-external-proposals` e `finance-contracts`, em chromium-desktop e mobile-chrome: 357 passaram.
+- E2E (API simulada por mocks; não é backend real): `finance-relationship-center` (+4 testes), `finance-contracts` (+2 testes, 154 passaram após a seção nova), `finance-procurement`, `finance-external-proposals` e `finance-contracts`, em chromium-desktop e mobile-chrome: 357 passaram.
 - `npm run check:all`, `npm run check:design` e `npm run build`: passaram.
 - Não executados: capturas antes/depois (`design:capture` exige a Demo local), Firefox/WebKit e testes contra o backend real.
 

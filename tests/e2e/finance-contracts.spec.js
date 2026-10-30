@@ -1539,3 +1539,30 @@ test('instituição: escolher outro cadastro após recusa do contrato cria nova 
   expect(providers[1].request_key).not.toBe(providers[0].request_key);
   expect(contracts[1].provider_id).toBe(secondProvider);
 });
+
+test('contrato lista as renegociações iniciadas a partir dele, pela fonte de eventos', async ({page}) => {
+  await contractWorkServer(page);
+  const RFQ_ID='00000000-0000-4000-8000-00000000d777';
+  await page.route('**/api/finance/events?*',route=>{
+    const q=new URL(route.request().url()).searchParams;
+    const rows=q.get('entity_type')==='contract'&&q.get('entity_id')===CONTRACT?[{id:'e1',entity_type:'contract',entity_id:CONTRACT,event_type:'renewal_rfq_started',happened_at:'2026-10-20T12:00:00Z',metadata:{rfq_id:RFQ_ID}},{id:'e0',entity_type:'contract',entity_id:CONTRACT,event_type:'renewal_rfq_started',happened_at:'2026-10-19T12:00:00Z',metadata:{rfq_id:RFQ_ID}}]:[];
+    return route.fulfill({json:{ok:true,rows}});
+  });
+  await page.goto(`/finance/contracts.html?abrir=contrato#contract-${CONTRACT}`);
+  const box=page.locator('#contract-renegotiations');
+  await expect(box.getByRole('heading',{name:'Renegociações deste contrato'})).toBeVisible();
+  await expect(box.getByRole('link')).toHaveCount(1);
+  await expect(box.getByRole('link')).toHaveAttribute('href',new RegExp(`rfq\\.html\\?id=${RFQ_ID}`));
+  await expect(box).toContainText('estado fora das solicitações carregadas');
+});
+
+test('contrato sem renegociação diz o recorte; falha na consulta é declarada', async ({page}) => {
+  await contractWorkServer(page);
+  let fail=false;
+  await page.route('**/api/finance/events?*',route=>fail?route.fulfill({status:500,json:{ok:false}}):route.fulfill({json:{ok:true,rows:[]}}));
+  await page.goto(`/finance/contracts.html?abrir=contrato#contract-${CONTRACT}`);
+  await expect(page.locator('#contract-renegotiations')).toContainText('Nenhuma renegociação iniciada a partir deste contrato');
+  fail=true;
+  await page.reload();
+  await expect(page.locator('#contract-renegotiations')).toContainText('Não foi possível consultar as renegociações');
+});
