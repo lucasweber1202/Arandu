@@ -328,10 +328,17 @@ test('central 3.0: leitor vê quem pode agir sem receber a ação como sua', asy
 
 test('central 3.0: celular 390px e teclado percorrem a fila sem overflow', async ({ page }) => {
   await setup(page);
+  // Resposta do Radar atrasada: o redesenho acontece com o foco já no link (corrida vista no WebKit).
+  let release; const gate = new Promise((resolve) => { release = resolve; });
+  await page.route('**/api/finance/opportunities?*', async (route) => { await gate; await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, rows: [], next: null, summary: [] }) }); });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/finance/providers.html');
   const first = page.locator('#relationship-center .rel-item').first().getByRole('link').first();
   await first.focus();
+  await expect(first).toBeFocused();
+  // Sinais do Radar chegam depois e redesenham a fila: o foco do teclado continua no mesmo link.
+  release();
+  await expect(page.locator('#rel-radar-note')).toContainText('Nenhum sinal ativo');
   await expect(first).toBeFocused();
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
 });
@@ -372,4 +379,76 @@ test('radar indisponível não esconde a fila e diz o que aconteceu', async ({ p
   const center = page.locator('#relationship-center');
   await expect(center.locator('#rel-radar-note')).toContainText('Sinais das regras da empresa indisponíveis agora');
   await expect(center.locator('[data-situation="expired"]')).toContainText('Adquirência lojas');
+});
+
+// Negotiation Studio: da fila ao rascunho ligado ao contrato, com origem,
+// condições registradas, jornada e retorno — sem convidar instituição.
+test('renegociação: fila inicia pelo contrato e a solicitação mostra origem, condições, jornada e retorno', async ({ page }) => {
+  const RENEWAL = '00000000-0000-4000-8000-0000000000d9';
+  const C1 = '00000000-0000-4000-8000-0000000000c1';
+  const overview = { ...OVERVIEW, contracts: OVERVIEW.contracts.map((row) => row.id === C1 ? { ...row, main_conditions: 'CDI + 1,9% a.a.', cost_summary: null } : row),
+    rfqs: [...OVERVIEW.rfqs, { id: RENEWAL, organization_id: ORG, title: 'Renovação: Capital de giro 2025', product: 'credit', status: 'draft', revision: 1, owner_id: 'u1', invites: [], proposals: [] }] };
+  const calls = await setup(page, { overview });
+  await page.route('**/api/finance/contract-renewal-rfq', (route) => route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ ok: true, id: RENEWAL }) }));
+  await page.route('**/api/finance/events?*', (route) => {
+    const u = new URL(route.request().url());
+    const rows = u.searchParams.get('entity_id') === RENEWAL ? [{ id: 'e1', entity_type: 'rfq', entity_id: RENEWAL, event_type: 'rfq_created_from_contract', happened_at: '2026-10-30T10:00:00Z', metadata: { contract_id: C1 } }] : [];
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, rows }) });
+  });
+  await page.goto('/finance/providers.html');
+  const item = page.locator('#relationship-center [data-situation="window"]');
+  // Adquirência/crédito em janela: iniciar; tarefa e negociação não ganham o botão.
+  await expect(page.locator('#relationship-center [data-situation="negotiation"]').getByRole('button', { name: /renegociação/ })).toHaveCount(0);
+  await item.getByRole('button', { name: /Iniciar renegociação/ }).click();
+  await expect(page.getByRole('dialog')).toContainText('Nenhuma instituição é convidada automaticamente');
+  await page.getByRole('dialog').getByRole('button', { name: 'Criar rascunho' }).click();
+  await page.waitForURL(new RegExp(`rfq\\.html\\?id=${RENEWAL}&de=relacionamentos`));
+  const origin = page.locator('#negotiation-origin');
+  await expect(origin.getByRole('heading', { name: 'Renegociação de contrato existente' })).toBeVisible();
+  await expect(origin).toContainText('Atlas Bank');
+  await expect(origin).toContainText('CDI + 1,9% a.a.');
+  await expect(origin).toContainText('60 dias (confira no documento)');
+  await expect(origin.locator('dd.missing').filter({ hasText: 'Não informado' })).toHaveCount(1);
+  await expect(origin.locator('[data-step="origin"]')).toHaveAttribute('data-state', 'done');
+  await expect(origin.locator('[data-step="request"]')).toHaveAttribute('data-state', 'current');
+  await expect(origin.locator('[data-step="proposals"]')).toContainText('sem convidar a instituição');
+  await expect(origin.locator('[data-step="decision"]')).toHaveAttribute('data-state', 'todo');
+  await expect(origin.locator('[data-step="contract"]')).toContainText('Depois da decisão');
+  await expect(origin.getByRole('link', { name: 'Contrato de origem' })).toHaveAttribute('href', new RegExp(`contract-${C1}`));
+  await expect(origin.getByRole('link', { name: 'Relacionamento com Atlas Bank' })).toHaveAttribute('href', new RegExp(`provider_id=${P_ATLAS}`));
+  await expect(origin.getByRole('link', { name: 'Voltar à Central de Relacionamentos' })).toBeVisible();
+  for (const banned of [/melhor/i, /recomendad/i, /vencedor sugerido/i]) await expect(origin.getByText(banned)).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+  expect(calls.filter((c) => c.path === 'contract-renewal-rfq')).toHaveLength(0); // rota dedicada acima atendeu a chamada
+});
+
+test('renegociação: falha ao iniciar mantém o item e avisa que repetir não duplica', async ({ page }) => {
+  await setup(page);
+  await page.route('**/api/finance/contract-renewal-rfq', (route) => route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ ok: false, error: 'Serviço indisponível.' }) }));
+  await page.goto('/finance/providers.html');
+  const item = page.locator('#relationship-center [data-situation="window"]');
+  await item.getByRole('button', { name: /Iniciar renegociação/ }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Criar rascunho' }).click();
+  await expect(page.getByText(/Tentar de novo não cria duplicata/)).toBeVisible();
+  await expect(item.getByRole('button', { name: /Iniciar renegociação/ })).toBeEnabled();
+  await expect(page).toHaveURL(/providers\.html/);
+});
+
+test('renegociação: leitor vê a janela de renovação sem a ação de iniciar', async ({ page }) => {
+  await setup(page, { role: 'viewer' });
+  await page.goto('/finance/providers.html');
+  await expect(page.locator('#relationship-center [data-situation="window"]')).toBeVisible();
+  await expect(page.locator('#relationship-center').getByRole('button', { name: /renegociação/ })).toHaveCount(0);
+});
+
+test('renegociação: solicitação sem contrato de origem não ganha cartão; falha na origem é declarada', async ({ page }) => {
+  await setup(page);
+  let fail = false;
+  await page.route('**/api/finance/events?*', (route) => fail ? route.fulfill({ status: 500, contentType: 'application/json', body: '{"ok":false}' }) : route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, rows: [] }) }));
+  await page.goto('/finance/rfq.html?id=00000000-0000-4000-8000-0000000000d1');
+  await expect(page.getByRole('heading', { name: 'Revisão de MDR' }).first()).toBeVisible();
+  await expect(page.locator('#negotiation-origin')).toBeHidden();
+  fail = true;
+  await page.reload();
+  await expect(page.locator('#negotiation-origin')).toContainText('Não foi possível consultar a origem');
 });

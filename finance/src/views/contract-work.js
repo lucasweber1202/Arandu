@@ -1,4 +1,4 @@
-import {el, formatDate, formatDateTime} from '../core.js';
+import {el, formatDate, formatDateTime, RFQ_STATUS} from '../core.js';
 import {button, field, loading, errorState, toast, onSubmit} from '../ui.js';
 import {TASK_EDITORS, taskChangeError} from './shared.js';
 
@@ -19,7 +19,7 @@ export function contractWork(ctx, contract) {
     el('div',{class:'toolbar'},[
       el('a',{class:'btn btn-sm btn-secondary',href:ctx.href(`/finance/providers.html?provider_id=${encodeURIComponent(contract.provider_id)}`),text:`Relacionamento com ${contract.provider_name || 'a instituição'}`}),
       contract.source_rfq ? el('a',{class:'btn btn-sm btn-secondary',href:ctx.href(`/finance/rfq.html?id=${encodeURIComponent(contract.source_rfq.id)}`),text:`Solicitação de origem: ${contract.source_rfq.title}`}) : null
-    ]),field({label:'Situação das tarefas do contrato',control:filter}),notice,list,more);
+    ]),renegotiations(ctx, contract),field({label:'Situação das tarefas do contrato',control:filter}),notice,list,more);
   filter.addEventListener('change',()=>load());
   function render() {
     list.replaceChildren(rows.length ? el('ul',{class:'milestone-list'},rows.map(task=>el('li',{class:'milestone-row'},[
@@ -100,4 +100,20 @@ export function contractWork(ctx, contract) {
   }
   load();
   return root;
+}
+
+// Memória de renegociação: solicitações iniciadas a partir deste contrato,
+// lidas do evento canônico `renewal_rfq_started`. Sem registro, nada é sugerido.
+export function renegotiations(ctx, contract) {
+  const box=el('div',{class:'stack contract-renegotiations',id:'contract-renegotiations'},el('p',{class:'muted small',role:'status',text:'Consultando renegociações deste contrato…'}));
+  ctx.api(`events?organization_id=${encodeURIComponent(ctx.organization.id)}&entity_type=contract&entity_id=${encodeURIComponent(contract.id)}`).then(({rows=[]})=>{
+    const seen=new Set();
+    const started=rows.filter(row=>row.event_type==='renewal_rfq_started'&&row.metadata?.rfq_id&&!seen.has(row.metadata.rfq_id)&&seen.add(row.metadata.rfq_id));
+    box.replaceChildren(el('h4',{text:'Renegociações deste contrato'}), started.length ? el('ul',{class:'plain-list'},started.map(row=>{
+      const rfq=(ctx.data.rfqs||[]).find(item=>item.id===row.metadata.rfq_id);
+      return el('li',{},[el('a',{href:ctx.href(`/finance/rfq.html?id=${encodeURIComponent(row.metadata.rfq_id)}`),text:rfq?.title||'Solicitação de renegociação'}),
+        el('span',{class:'muted small',text:` · iniciada ${formatDate(row.happened_at)} · ${rfq ? RFQ_STATUS[rfq.status]?.label||'Estado não informado' : 'estado fora das solicitações carregadas'}`})]);
+    })) : el('p',{class:'muted small',text:'Nenhuma renegociação iniciada a partir deste contrato nos últimos 50 eventos registrados.'}));
+  }).catch(()=>box.replaceChildren(el('p',{class:'muted small',role:'status',text:'Não foi possível consultar as renegociações deste contrato agora.'})));
+  return box;
 }

@@ -1,4 +1,5 @@
 import { graphContextCard } from './graph-context.js';
+import { negotiationOrigin } from './negotiation-origin.js';
 // Detalhe da solicitação: contexto no topo, operação separada em abas.
 
 import { PRODUCTS } from '../../../lib/finance/products.mjs';
@@ -139,6 +140,7 @@ export async function rfqDetail(ctx) {
   // Próximo passo acima das abas: visível em qualquer aba e no celular, com a
   // ação que o estado permite e quem pode agir — a máquina de estados não muda.
   root.append(nextStepCard(ctx, rfq, { pending, approvals, decision, contract, policy, governanceGap, manage }));
+  root.append(negotiationOrigin(ctx, rfq, { decision, contract, pending }));
   if (governanceGap) root.append(governanceGapNotice(ctx, governanceGap));
 
   const tabset = tabs([
