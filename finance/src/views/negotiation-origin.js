@@ -37,9 +37,16 @@ const STATE_TEXT = { done: 'registrado', current: 'etapa atual', todo: 'ainda n�
 /** Cartão de origem: contrato, condições registradas, jornada e retorno. Assíncrono; nada se não houver origem. */
 export function negotiationOrigin(ctx, rfq, { decision = null, contract = null, pending = null } = {}) {
   const slot = el('section', { class: 'card negotiation-origin', id: 'negotiation-origin', 'aria-labelledby': 'negotiation-origin-title', hidden: true });
-  ctx.api(`events?organization_id=${encodeURIComponent(ctx.organization.id)}&entity_type=rfq&entity_id=${encodeURIComponent(rfq.id)}`).then(({ rows = [] }) => {
+  ctx.api(`events?organization_id=${encodeURIComponent(ctx.organization.id)}&entity_type=rfq&entity_id=${encodeURIComponent(rfq.id)}`).then(async ({ rows = [] }) => {
     const originId = originContractId(rows);
     if (!originId) return;
+    // Leitura canônica da continuidade (versão de origem, propostas por autoria,
+    // decisões e contratos resultantes). Falha não esconde o cartão: declara.
+    let process = null, continuityError = false;
+    try {
+      const out = await ctx.api(`contract-negotiations?contract_id=${encodeURIComponent(originId)}&rfq_id=${encodeURIComponent(rfq.id)}`);
+      process = (out.processes || []).find((row) => row.rfq?.id === rfq.id) || null;
+    } catch { continuityError = true; }
     const origin = (ctx.data.contracts || []).find((row) => row.id === originId) || null;
     const back = new URLSearchParams(location.search).get('de') === 'relacionamentos';
     const contractHref = ctx.href(`/finance/contracts.html?abrir=contrato#contract-${originId}`);
@@ -47,10 +54,18 @@ export function negotiationOrigin(ctx, rfq, { decision = null, contract = null, 
       ['Instituição', origin.provider_name || 'Não informada'], ['Condição', CONTRACT_CATEGORIES[origin.product] || productLabel(origin.product) || 'Não informada'],
       ['Estado do contrato', CONTRACT_STATUS[origin.status]?.label || 'Não informado'], ['Vigência', `${formatDate(origin.starts_on)} → ${origin.ends_on ? formatDate(origin.ends_on) : 'término não informado'}`],
       ['Aviso prévio registrado', origin.renewal_notice_days === null || origin.renewal_notice_days === undefined ? 'Não informado' : `${origin.renewal_notice_days} dias (confira no documento)`],
-      ['Termos', origin.current_version ? `Versão ${origin.current_version} registrada` : 'Termos não estruturados'],
+      ['Termos atuais', origin.current_version ? `Versão ${origin.current_version} registrada` : 'Termos não estruturados'],
+      ['Versão de referência da renegociação', process?.origin ? (process.origin.version_recorded ? `Versão ${process.origin.contract_version} (vigente quando a renegociação começou)` : 'Não registrada (renegociação anterior ao registro de versão)') : 'Não informado'],
       ['Custo registrado', origin.cost_summary || 'Não informado'], ['Condições registradas', origin.main_conditions || 'Não informado']
     ] : [];
     const journey = negotiationJourney(rfq, { origin: Boolean(originId), decision, contract, pending });
+    const names = new Map([...(ctx.data.providers || []).map((row) => [row.id, row.name]), ...(rfq.invites || []).map((row) => [row.provider_id, row.provider_name])]);
+    const authenticated = (process?.proposals || []).filter((row) => row.status !== 'withdrawn' && (row.versions || []).length).map((row) => ({ ...row, provider_name: names.get(row.provider_id) || null }));
+    const economics = el('div');
+    if ((origin?.product || process?.rfq?.product || rfq.product) === 'acquiring' && process) {
+      import('./acquiring-economics.js').then((module) => economics.replaceChildren(module.acquiringEconomicsPanel(ctx, { contract: { id: originId }, proposals: authenticated, externalCount: (process.external_proposals || []).length })))
+        .catch(() => economics.replaceChildren(el('p', { class: 'muted small', role: 'status', text: 'O módulo de análise econômica não carregou. Recarregue a página para tentar de novo.' })));
+    }
     slot.replaceChildren(
       el('div', { class: 'card-head' }, el('div', { class: 'card-head-text' }, [
         el('h2', { class: 'card-title', id: 'negotiation-origin-title', text: 'Renegociação de contrato existente' }),
@@ -62,13 +77,15 @@ export function negotiationOrigin(ctx, rfq, { decision = null, contract = null, 
           el('span', { class: 'nj-mark', 'aria-hidden': 'true' }, step.state === 'done' ? icon('check', { size: 12 }) : null),
           el('div', {}, [el('p', { class: 'nj-label' }, [el('strong', { text: step.label }), el('span', { class: 'muted small', text: ` · ${STATE_TEXT[step.state]}` })]), el('p', { class: 'muted small', text: step.text })])
         ]))),
+        continuityError ? el('p', { class: 'muted small', role: 'status', text: 'O histórico completo da renegociação (versão de origem e propostas por autoria) não pôde ser consultado agora; o restante segue disponível.' }) : null,
+        economics,
         el('nav', { class: 'row-actions', 'aria-label': 'Contexto da renegociação' }, [
           el('a', { class: 'btn btn-secondary btn-sm', href: contractHref }, [icon('briefcase', { size: 14 }), el('span', { class: 'btn-label', text: 'Contrato de origem' })]),
           origin?.provider_id ? el('a', { class: 'btn btn-ghost btn-sm', href: ctx.href(`/finance/providers.html?provider_id=${encodeURIComponent(origin.provider_id)}`) }, [el('span', { class: 'btn-label', text: `Relacionamento com ${origin.provider_name || 'a instituição'}` })]) : null,
           contract ? el('a', { class: 'btn btn-ghost btn-sm', href: ctx.href(`/finance/contracts.html?abrir=contrato#contract-${contract.id}`) }, [el('span', { class: 'btn-label', text: 'Contrato resultante' })]) : null,
           back ? el('a', { class: 'btn btn-ghost btn-sm', href: ctx.href('/finance/providers.html#relationship-center') }, [icon('arrowRight', { size: 14 }), el('span', { class: 'btn-label', text: 'Voltar à Central de Relacionamentos' })]) : null
         ].filter(Boolean))
-      ]));
+      ].filter(Boolean)));
     slot.hidden = false;
   }).catch(() => {
     slot.replaceChildren(el('p', { class: 'muted small', role: 'status', text: 'Não foi possível consultar a origem desta solicitação agora. O processo continua disponível abaixo.' }));
