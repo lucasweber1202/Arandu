@@ -61,6 +61,13 @@ const opp = { id: ID, organization_id: ORG, opportunity_type: 'contract_renewal'
 const page = presentOpportunityPage({ rows: [opp], summary: [{ status: 'open', opportunities: 1, due_30: 1, overdue: 0 }], next: null, rules: [], today: '2026-03-02' });
 assert.match(page.rows[0].cells[1], /Aviso prévio em 16\/03\/2026/);
 assert.equal(page.cards[1].actions[0].post, 'opportunities/rules');
+assert.deepEqual(Object.keys(page.rows[0].context).sort(), ['deadline', 'legal_entity_id', 'linked_rfq_id', 'overdue', 'provider_id', 'source_href', 'source_object_type', 'status']);
+assert.equal(page.rows[0].context.status, opp.status);
+assert.equal(page.rows[0].context.provider_id, opp.provider_id || null, 'provider link comes from the canonical row');
+assert.equal(page.rows[0].context.source_href, sourceHref(opp));
+const late = presentOpportunityPage({ rows: [{ ...opp, status: 'open', deadline: '2026-03-01' }, { ...opp, status: 'acted', deadline: '2026-03-01' }, { ...opp, deadline: null, provider_id: null }], summary: [], next: null, rules: [], today: '2026-03-02' });
+assert.deepEqual(late.rows.map((r) => r.context.overdue), [true, false, false], 'only active opportunities past deadline are overdue; missing deadline is not overdue');
+assert.equal(late.rows[2].context.provider_id, null, 'missing provider stays null');
 const detail = presentOpportunityDetail({ opportunity: opp, events: [], reviewers: [{ user_id: ID, display_name: 'Revisora' }] });
 assert.deepEqual(detail.actions.map((a) => a.fixed.to_status || 'rfq'), ['acknowledged', 'under_review', 'dismissed', 'rfq']);
 assert.equal(detail.actions.at(-1).fields[0][2], 'checkbox', 'RFQ draft requires explicit confirmation');

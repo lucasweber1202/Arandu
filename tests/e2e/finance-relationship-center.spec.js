@@ -345,7 +345,7 @@ test('radar traz sinais das regras da empresa para a fila, por instituição, co
   await page.route('**/api/finance/opportunities?*', async (route) => {
     const u = new URL(route.request().url()); opportunityCalls.push(Object.fromEntries(u.searchParams));
     const rows = u.searchParams.get('status') === 'open'
-      ? [{ id: OPP, cells: ['Diferença de tarifa aguardando revisão', 'Diferença de tarifa (comparável) em TED, 01/09/2026 – 30/09/2026, sem revisão iniciada.', '10/10/2026 (vencido)', 'Revisar tarifa', 'Aberta'] }] : [];
+      ? [{ id: OPP, cells: ['Diferença de tarifa aguardando revisão', 'Diferença de tarifa (comparável) em TED, 01/09/2026 – 30/09/2026, sem revisão iniciada.', '10/10/2026 (vencido)', 'Revisar tarifa', 'Aberta'], context: { status: 'open', deadline: '2026-10-10', overdue: true, provider_id: P_NEXO, legal_entity_id: ENTITY, source_object_type: 'fee_variance', source_href: '/finance/fees.html?id=v1', linked_rfq_id: null } }] : [];
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, rows, next: null, summary: [] }) });
   });
   await page.goto('/finance/providers.html');
@@ -355,6 +355,9 @@ test('radar traz sinais das regras da empresa para a fila, por instituição, co
   await expect(signal).toContainText('Regra de oportunidade configurada pela sua empresa · estado: Aberta');
   await expect(signal.getByRole('link', { name: /Ver sinal: revisar tarifa/ })).toHaveAttribute('href', new RegExp(`opportunities\\.html\\?id=${OPP}`));
   await expect(center.locator('#rel-radar-note')).toContainText('1 sinal ativo');
+  await expect(signal).toContainText('Nexo Payments');
+  await expect(signal).toContainText('Vitta Varejo');
+  await expect(signal.getByRole('link', { name: 'Origem do sinal' })).toHaveAttribute('href', /fees\.html\?id=v1/);
   expect(new Set(opportunityCalls.map((c) => c.status))).toEqual(new Set(['open', 'acknowledged', 'under_review']));
   await center.getByLabel('Instituição').selectOption(P_ATLAS);
   await expect(center.locator('#rel-radar-note')).toContainText('ligados a Atlas Bank');
