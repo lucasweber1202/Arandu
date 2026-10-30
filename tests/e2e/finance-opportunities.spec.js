@@ -90,3 +90,57 @@ test('indisponibilidade oferece recuperação sem inventar contagem', async ({ p
   await expect(page.getByRole('button', { name: 'Tentar novamente' })).toBeVisible();
   await expect(page.getByText(/ativas/)).toHaveCount(0);
 });
+
+// Radar-to-Action: resultado e conclusão confirmada pela decisão registrada.
+const RFQ = '00000000-0000-4000-8000-0000000000aa';
+const DEC = '00000000-0000-4000-8000-0000000000ab';
+const outcome = (over = {}) => ({ ok: true, opportunity: { ...renewal, status: 'acknowledged', linked_rfq_id: RFQ }, completion: [], absence: null,
+  processes: [{ rfq: { id: RFQ, title: 'Renovação: Contrato fixture', status: 'comparing', href: `/finance/rfq.html?id=${RFQ}` }, proposals: [{ id: 'p1' }], external_proposals: [{ id: 'x1' }],
+    decisions: [{ id: DEC, decided_at: '2026-03-10T15:00:00Z', rationale: 'Critérios da empresa' }], resulting_contracts: [], missing: ['resulting_contract_not_recorded'] }], ...over });
+
+test('outcome: sinal mostra negociação, decisão e etapa ausente; conclusão exige confirmação e envia a decisão', async ({ page }) => {
+  await setup(page);
+  let state = outcome(); const posts = [];
+  await page.route('**/api/finance/opportunities/outcome?*', (route) => route.fulfill({ json: state }));
+  await page.route('**/api/finance/opportunities/complete-negotiation', (route) => { posts.push(route.request().postDataJSON());
+    state = outcome({ completion: [{ id: 'ev', happened_at: '2026-03-11T10:00:00Z', metadata: { decision_id: DEC } }], opportunity: { ...renewal, status: 'acted', linked_rfq_id: RFQ } });
+    return route.fulfill({ json: { ok: true, status: 'acted', decision_id: DEC, replayed: false } }); });
+  await page.goto(`/finance/opportunities.html?id=${O1}`);
+  const box = page.locator('#opportunity-outcome');
+  await expect(box.getByRole('link', { name: 'Renovação: Contrato fixture' })).toHaveAttribute('href', new RegExp(`rfq\\.html\\?id=${RFQ}`));
+  await expect(box).toContainText('1 pelo portal, 1 registradas pela empresa (canal externo)');
+  await expect(box.locator('[data-missing="resulting_contract_not_recorded"]')).toBeVisible();
+  await box.getByRole('button', { name: 'Concluir sinal com a decisão registrada' }).click();
+  const dialog = page.getByRole('dialog').last();
+  await expect(dialog).toContainText('Não aprova, não decide e não contrata nada');
+  await dialog.locator('textarea').fill('Nova condição registrada no contrato');
+  await dialog.getByRole('button', { name: 'Registrar conclusão' }).click();
+  await expect(box.locator('[data-completed="true"]')).toBeVisible();
+  expect(posts).toEqual([{ opportunity_id: O1, decision_id: DEC, expected_status: 'acknowledged', confirmed: true, resolution: 'Nova condição registrada no contrato' }]);
+  await expect(box.getByRole('button', { name: /Concluir sinal/ })).toHaveCount(0);
+});
+
+test('outcome: resposta incerta consulta o resultado antes de nova tentativa; sem decisão não há conclusão', async ({ page }) => {
+  await setup(page);
+  let state = outcome(); let calls = 0;
+  await page.route('**/api/finance/opportunities/outcome?*', (route) => { calls += 1; return route.fulfill({ json: state }); });
+  await page.route('**/api/finance/opportunities/complete-negotiation', (route) => {
+    state = outcome({ completion: [{ id: 'ev', happened_at: '2026-03-11T10:00:00Z', metadata: { decision_id: DEC } }] });
+    return route.fulfill({ status: 504, json: { ok: false, error: 'Tempo esgotado.' } }); });
+  await page.goto(`/finance/opportunities.html?id=${O1}`);
+  const box = page.locator('#opportunity-outcome');
+  await box.getByRole('button', { name: 'Concluir sinal com a decisão registrada' }).click();
+  await page.getByRole('dialog').last().locator('textarea').fill('Concluído após decisão');
+  await page.getByRole('dialog').last().getByRole('button', { name: 'Registrar conclusão' }).click();
+  await expect(page.getByText('A conclusão foi registrada (confirmado no servidor).')).toBeVisible();
+  await expect(box.locator('[data-completed="true"]')).toBeVisible();
+  expect(calls).toBeGreaterThanOrEqual(2);
+});
+
+test('outcome: sinal sem negociação explica a ausência; leitor não conclui', async ({ page }) => {
+  await setup(page, { role: 'viewer' });
+  await page.route('**/api/finance/opportunities/outcome?*', (route) => route.fulfill({ json: { ok: true, opportunity: { ...concentration }, processes: [], completion: [], absence: 'no_linked_negotiation' } }));
+  await page.goto(`/finance/opportunities.html?id=${O2}`);
+  await expect(page.locator('#opportunity-outcome')).toContainText('nenhuma solicitação é criada automaticamente');
+  await expect(page.locator('#opportunity-outcome').getByRole('button')).toHaveCount(0);
+});

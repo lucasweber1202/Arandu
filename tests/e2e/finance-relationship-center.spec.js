@@ -408,7 +408,8 @@ test('renegociação: fila inicia pelo contrato e a solicitação mostra origem,
   await expect(origin).toContainText('Atlas Bank');
   await expect(origin).toContainText('CDI + 1,9% a.a.');
   await expect(origin).toContainText('60 dias (confira no documento)');
-  await expect(origin.locator('dd.missing').filter({ hasText: 'Não informado' })).toHaveCount(1);
+  // Custo e versão de referência (sem leitura de continuidade no mock) ficam ausentes, nunca inventados.
+  await expect(origin.locator('dd.missing').filter({ hasText: 'Não informado' })).toHaveCount(2);
   await expect(origin.locator('[data-step="origin"]')).toHaveAttribute('data-state', 'done');
   await expect(origin.locator('[data-step="request"]')).toHaveAttribute('data-state', 'current');
   await expect(origin.locator('[data-step="proposals"]')).toContainText('sem convidar a instituição');
@@ -451,4 +452,105 @@ test('renegociação: solicitação sem contrato de origem não ganha cartão; f
   fail = true;
   await page.reload();
   await expect(page.locator('#negotiation-origin')).toContainText('Não foi possível consultar a origem');
+});
+
+// Economics Experience (Bloco A): o número vem do backend; a tela valida o
+// que foi digitado, não normaliza o mix e não chama o resultado de economia.
+const C_ACQ = '00000000-0000-4000-8000-0000000000c2';
+const R_ACQ = '00000000-0000-4000-8000-0000000000d8';
+const PROP = '00000000-0000-4000-8000-0000000000e9';
+const ANALYSIS = (over = {}) => ({ valid: true, methodology: 'acquiring-processing-cost-v2', result_type: 'estimated_processing_charges', persistence: 'not_persisted',
+  profile: { period_start: '2026-09-01', period_end: '2026-09-30', currency: 'BRL', monthly_volume: 100000, share_debit: 40, share_credit_cash: 30, share_credit_installment: 20, share_pix: 10, terminals: 2, source_reference: 'Extrato setembro' },
+  sources: { contract: { id: C_ACQ, version: 3, effective_from: '2026-01-01', href: `/finance/contracts.html?abrir=contrato#contract-${C_ACQ}` }, proposal: { id: PROP, version: 2, rfq_id: R_ACQ, submitted_at: '2026-10-20T12:00:00Z', href: `/finance/rfq.html?id=${R_ACQ}` } },
+  components: [
+    { key: 'debit', unit: 'percent_of_volume', volume: 40000, share_pct: 40, contract_rate: 1.2, proposal_rate: 0.9, comparable: true, reasons: [], contract_cost: 480, proposal_cost: 360, difference: 120 },
+    { key: 'credit_cash', unit: 'percent_of_volume', volume: 30000, share_pct: 30, contract_rate: 2.5, proposal_rate: 2.3, comparable: true, reasons: [], contract_cost: 750, proposal_cost: 690, difference: 60 },
+    { key: 'credit_installment', unit: 'percent_of_volume', volume: 20000, share_pct: 20, contract_rate: 3, proposal_rate: 3.1, comparable: true, reasons: [], contract_cost: 600, proposal_cost: 620, difference: -20 },
+    { key: 'pix', unit: 'percent_of_volume', volume: 10000, share_pct: 10, contract_rate: 0.5, proposal_rate: 0.4, comparable: true, reasons: [], contract_cost: 50, proposal_cost: 40, difference: 10 },
+    { key: 'fixed_fees', unit: 'per_month', comparable: true, reasons: [], contract_cost: 100, proposal_cost: 130, difference: -30 }],
+  comparable: true, reasons: [], totals: { currency: 'BRL', unit: 'period_total', contract_cost: 1980, proposal_cost: 1840, estimated_difference: 140 },
+  conditions: { contract_settlement_days: 30, proposal_settlement_days: 2, contract_anticipation_pct_month: null, proposal_anticipation_pct_month: 1.5 },
+  limitations: ['anticipation_not_modeled', 'taxes_not_modeled', 'contract_transition_costs_not_modeled'], ...over });
+
+async function economicsSetup(page, { analysis = ANALYSIS(), proposals = null, external = [], economicsStatus = 200 } = {}) {
+  const overview = { ...OVERVIEW, rfqs: [...OVERVIEW.rfqs, { id: R_ACQ, organization_id: ORG, title: 'Renovação: Adquirência lojas', product: 'acquiring', status: 'comparing', revision: 1, owner_id: 'u1',
+    invites: [{ provider_id: P_NEXO, provider_name: 'Nexo Payments', status: 'accepted' }], proposals: [] }] };
+  await setup(page, { overview });
+  const posts = [];
+  await page.route('**/api/finance/events?*', (route) => route.fulfill({ json: { ok: true, rows: new URL(route.request().url()).searchParams.get('entity_id') === R_ACQ
+    ? [{ id: 'e1', entity_type: 'rfq', entity_id: R_ACQ, event_type: 'rfq_created_from_contract', happened_at: '2026-10-01T10:00:00Z', metadata: { contract_id: C_ACQ, contract_version: 3 } }] : [] } }));
+  await page.route('**/api/finance/contract-negotiations?*', (route) => route.fulfill({ json: { ok: true, contract: { id: C_ACQ }, processes: [{ rfq: { id: R_ACQ, product: 'acquiring' }, origin: { contract_version: 3, version_recorded: true },
+    proposals: proposals ?? [{ id: PROP, rfq_id: R_ACQ, provider_id: P_NEXO, status: 'submitted', current_version: 2, origin: 'institution_authenticated', versions: [{ version: 1, submitted_at: '2026-10-10T12:00:00Z' }, { version: 2, submitted_at: '2026-10-20T12:00:00Z' }] }],
+    external_proposals: external, approvals: [], decisions: [], resulting_contracts: [], missing: ['human_decision_not_recorded', 'resulting_contract_not_recorded'] }] } }));
+  await page.route('**/api/finance/acquiring-economics', async (route) => { posts.push(route.request().postDataJSON());
+    await route.fulfill(economicsStatus === 200 ? { json: { ok: true, analysis } } : { status: economicsStatus, json: { ok: false, error: 'Serviço indisponível.' } }); });
+  await page.goto(`/finance/rfq.html?id=${R_ACQ}`);
+  return posts;
+}
+async function fillProfile(panel, { pix = '10' } = {}) {
+  await panel.getByLabel('Proposta e versão analisada').selectOption({ index: 1 });
+  await panel.getByLabel('Mês analisado').fill('2026-09');
+  await panel.getByLabel('Moeda do volume').selectOption('BRL');
+  await panel.getByLabel('Volume financeiro mensal (cartões e PIX)').fill('100000');
+  await panel.getByLabel('Débito (% do volume)').fill('40');
+  await panel.getByLabel('Crédito à vista (% do volume)').fill('30');
+  await panel.getByLabel('Crédito parcelado (% do volume)').fill('20');
+  await panel.getByLabel('PIX (% do volume)').fill(pix);
+  await panel.getByLabel('Quantidade de terminais').fill('2');
+  await panel.getByLabel('Fonte dos volumes').fill('Extrato setembro');
+}
+
+test('economics: versão de origem, mix validado sem correção e resultado do backend explicado', async ({ page }) => {
+  const posts = await economicsSetup(page);
+  const origin = page.locator('#negotiation-origin');
+  await expect(origin).toContainText('Versão 3 (vigente quando a renegociação começou)');
+  const panel = page.locator('#acquiring-economics');
+  await expect(panel.getByLabel('Moeda do volume')).toHaveValue('');
+  await fillProfile(panel, { pix: '5' });
+  await panel.getByRole('button', { name: 'Calcular estimativa' }).click();
+  await expect(panel.getByRole('alert').first()).toContainText('O mix soma 95%');
+  expect(posts).toHaveLength(0);
+  await panel.getByLabel('PIX (% do volume)').fill('10');
+  await panel.getByRole('button', { name: 'Calcular estimativa' }).click();
+  await expect(panel.locator('[data-totals="comparable"]')).toContainText('a proposta custaria R$ 140,00 a menos no mês');
+  expect(posts[0]).toEqual({ organization_id: ORG, contract_id: C_ACQ, proposal_id: PROP, proposal_version: 2,
+    profile: { period_start: '2026-09-01', period_end: '2026-09-30', currency: 'BRL', monthly_volume: 100000, share_debit: 40, share_credit_cash: 30, share_credit_installment: 20, share_pix: 10, terminals: 2, source_reference: 'Extrato setembro' } });
+  await expect(panel.locator('[data-component="credit_installment"]')).toContainText('-R$ 20,00');
+  await expect(panel).toContainText('Antecipação de recebíveis não está no cálculo.');
+  await expect(panel).toContainText('Liquidação na proposta');
+  await expect(panel.locator('dd.missing')).toContainText(['Não informada']);
+  await expect(panel).toContainText('Nada foi gravado.');
+  for (const banned of [/economia realizada:/i, /melhor proposta/i, /recomendad/i]) await expect(panel.getByText(banned)).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+});
+
+test('economics: componente não comparável não vira total nem economia', async ({ page }) => {
+  const analysis = ANALYSIS({ comparable: false, reasons: ['contract_fixed_fees_not_declared'], totals: { currency: 'BRL', unit: 'period_total', contract_cost: null, proposal_cost: null, estimated_difference: null },
+    components: [...ANALYSIS().components.slice(0, 4), { key: 'fixed_fees', unit: 'per_month', comparable: false, reasons: ['contract_fixed_fees_not_declared'], contract_cost: null, proposal_cost: null, difference: null }] });
+  await economicsSetup(page, { analysis });
+  const panel = page.locator('#acquiring-economics');
+  await fillProfile(panel);
+  await panel.getByRole('button', { name: 'Calcular estimativa' }).click();
+  await expect(panel.locator('[data-totals="not-comparable"]')).toContainText('Sem total');
+  await expect(panel.getByText('Diferença estimada')).toHaveCount(0);
+  await expect(panel.locator('[data-component="fixed_fees"]')).toContainText('ausência não é tarifa zero');
+  await expect(panel.locator('[data-component="debit"]')).toContainText('R$ 120,00');
+});
+
+test('economics: erro de API preserva o formulário e permite repetir', async ({ page }) => {
+  await economicsSetup(page, { economicsStatus: 503 });
+  const panel = page.locator('#acquiring-economics');
+  await fillProfile(panel);
+  await panel.getByRole('button', { name: 'Calcular estimativa' }).click();
+  await expect(panel.locator('.callout-danger')).toContainText('tentar de novo não grava nada');
+  await expect(panel.getByLabel('Volume financeiro mensal (cartões e PIX)')).toHaveValue('100000');
+  await expect(panel.getByRole('button', { name: 'Calcular estimativa' })).toBeEnabled();
+});
+
+test('economics: só proposta externa → sem cálculo e com explicação', async ({ page }) => {
+  await economicsSetup(page, { proposals: [], external: [{ id: 'x1', origin: 'buyer_recorded_external', versions: [{ version: 1 }] }] });
+  const panel = page.locator('#acquiring-economics');
+  await expect(panel).toContainText('Ainda não há proposta enviada pela instituição no portal');
+  await expect(panel).toContainText('canal externo');
+  await expect(panel.getByRole('button', { name: 'Calcular estimativa' })).toHaveCount(0);
 });
