@@ -4,7 +4,7 @@
 // situação, quem pode agir, de onde vem a informação e para onde seguir.
 
 import { el, icon, formatDate, relativeDays, plural, productLabel, renewalStage, RFQ_STATUS } from '../core.js';
-import { button, emptyState } from '../ui.js';
+import { button, emptyState, confirmDialog, toast } from '../ui.js';
 import { CONTRACT_CATEGORIES } from '../../../lib/finance/contract-terms.mjs';
 import { TASK_EDITORS } from './shared.js';
 import { entityName } from './entities.js';
@@ -66,7 +66,7 @@ export function relationshipWorkItems({ contracts = [], rfqs = [], tasks = [], m
   for (const contract of contracts) {
     if (!LIVE_CONTRACT.includes(contract.status) || !contract.provider_id) continue;
     const name = contract.title || categoryLabel(contract.product);
-    const base = { providerId: contract.provider_id, providerName: contract.provider_name, entityId: contract.legal_entity_id || null, category: contract.product || null,
+    const base = { contractId: contract.id, contractStatus: contract.status, providerId: contract.provider_id, providerName: contract.provider_name, entityId: contract.legal_entity_id || null, category: contract.product || null,
       who: owner(contract.owner_id), role: 'contrato', actor: 'manage', href: `/finance/contracts.html?abrir=contrato#contract-${contract.id}`, cta: 'Abrir contrato',
       source: `Contrato ${contract.origin === 'imported' ? 'registrado pela empresa (carteira existente)' : 'registrado a partir de decisão no Arandu'}${contract.current_version ? ` · termos v${contract.current_version}` : ' · termos não estruturados'}` };
     if (!contract.ends_on) { items.push({ ...base, id: `c-${contract.id}`, situation: 'no_end', title: name, detail: 'Sem data de término o Arandu não acompanha renovação nem aviso prévio.', due: null }); continue; }
@@ -168,7 +168,12 @@ export function relationshipWorkQueue(ctx, { entities, onOpenProvider = null, im
     const urgent = visible.filter((item) => SITUATIONS[item.situation].tone === 'danger').length;
     const scope = capped.length ? ' nos registros carregados' : '';
     status.textContent = visible.length ? `${plural(visible.length, 'item pede atenção', 'itens pedem atenção')}${scope}${urgent ? `, ${urgent} com prazo vencido` : ''}. Ordem: vencido, prazo próximo, em andamento, informação ausente.` : '';
+    // Redesenho (ex.: sinais do Radar chegando depois) não pode tirar o foco de quem navega por teclado.
+    const active = list.contains(document.activeElement) ? document.activeElement : null;
+    const owner = active?.closest('[data-key]');
+    const focus = owner ? { key: owner.dataset.key, index: [...owner.querySelectorAll('a,button')].indexOf(active) } : null;
     list.replaceChildren(...visible.slice(0, expanded ? visible.length : LIMIT).map((item) => queueItem(ctx, item, onOpenProvider, entities)));
+    if (focus) [...list.querySelectorAll('[data-key]')].find((node) => node.dataset.key === focus.key)?.querySelectorAll('a,button')[focus.index]?.focus({ preventScroll: true });
     if (!visible.length) list.replaceChildren(el('li', { class: 'rel-queue-empty' }, emptyState({ compact: true, iconName: 'checkCircle', title: 'Nada pendente neste filtro',
       text: capped.length ? 'Nada pendente entre os registros carregados, mas o resumo atingiu o limite de leitura: pode haver pendências fora dele. Abra Contratos ou Tarefas para consultar a lista completa.' : 'Nenhum contrato vencido, em janela de renovação, sem término, negociação ou tarefa aberta nos registros carregados. Isso não cobre contratos que ainda não foram registrados.' })));
     more.hidden = expanded || visible.length <= LIMIT;
@@ -200,7 +205,7 @@ function queueItem(ctx, item, onOpenProvider, entities) {
   const entityText = !entities?.rows?.length || (item.role === 'sinal' && item.entityUnknown) ? null : item.entityUnknown ? 'Entidade não carregada' : entityName(entities, item.entityId);
   // Negociação com várias instituições não abre um relacionamento só.
   const provider = item.providerIds && item.providerIds.length > 1 ? null : (ctx.data.providers || []).find((row) => row.id === item.providerId);
-  return el('li', { class: `rel-item tone-${meta.tone}`, dataset: { situation: item.situation } }, [
+  return el('li', { class: `rel-item tone-${meta.tone}`, dataset: { situation: item.situation, key: item.id } }, [
     el('div', { class: 'rel-item-main' }, [
       el('p', { class: 'rel-item-kicker' }, [el('span', { class: `pill pill-${meta.tone} pill-sm` }, [el('span', { class: 'pill-dot', 'aria-hidden': 'true' }), el('span', { text: meta.label })]),
         el('span', { class: 'muted small', text: item.providerName || provider?.name || (item.signalNoProvider ? 'Sem instituição vinculada na fonte' : item.role === 'sinal' ? 'Instituição no detalhe do sinal' : item.entityUnknown ? 'Instituição do contrato não carregada' : 'Sem instituição convidada') }),
@@ -213,9 +218,35 @@ function queueItem(ctx, item, onOpenProvider, entities) {
     ]),
     el('div', { class: 'rel-item-actions' }, [
       el('a', { class: 'btn btn-secondary btn-sm', href: ctx.href(item.href) }, [el('span', { class: 'btn-label', text: item.cta }), icon('arrowRight', { size: 14 })]),
+      renegotiateButton(ctx, item),
       item.contractHref ? el('a', { class: 'btn btn-ghost btn-sm', href: ctx.href(item.contractHref), text: 'Contrato' }) : null,
       item.sourceHref ? el('a', { class: 'btn btn-ghost btn-sm', href: ctx.href(item.sourceHref), text: 'Origem do sinal' }) : null,
       provider && onOpenProvider ? button('Relacionamento', { size: 'sm', variant: 'ghost', attrs: { 'aria-label': `Relacionamento com ${provider.name}` }, onClick: () => onOpenProvider(provider) }) : null
     ].filter(Boolean))
   ]);
+}
+
+// Negotiation Studio: iniciar ou retomar a renegociação sem sair da fila. O
+// endpoint é idempotente (devolve a concorrência de renovação em andamento).
+const RENEGOTIABLE = ['credit', 'acquiring'];
+function renegotiateButton(ctx, item) {
+  if (item.role !== 'contrato' || !item.contractId || !RENEGOTIABLE.includes(item.category) || !ctx.can('create_rfq')
+    || !['window', 'past_notice', 'renewing', 'expired'].includes(item.situation)) return null;
+  const resume = item.contractStatus === 'renewing';
+  const label = resume ? 'Retomar renegociação' : 'Iniciar renegociação';
+  return button(label, { size: 'sm', variant: 'ghost', iconName: 'repeat', attrs: { 'aria-label': `${label}: ${item.title}` }, onClick: async (event) => {
+    const target = event.currentTarget;
+    if (!await confirmDialog({ title: `${label}?`, confirmLabel: resume ? 'Continuar' : 'Criar rascunho',
+      description: `Se já houver uma renegociação em andamento para este contrato${item.providerName ? ` com ${item.providerName}` : ''}, ela é aberta. Senão, criamos um rascunho ligado ao contrato; convites, propostas e decisões anteriores não são copiados e o contrato passa para “Em renovação”. Nenhuma instituição é convidada automaticamente.` })) return;
+    target.disabled = true;
+    try {
+      const result = await ctx.api('contract-renewal-rfq', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, contract_id: item.contractId }) });
+      toast('Abrindo a renegociação.');
+      location.assign(ctx.href(`/finance/rfq.html?id=${encodeURIComponent(result.id)}&de=relacionamentos`));
+    } catch (error) {
+      // Resposta incerta: o endpoint devolve a mesma solicitação se repetido.
+      toast(`${error.message || 'Não foi possível abrir a renegociação.'} Tentar de novo não cria duplicata.`, 'error');
+      target.disabled = false;
+    }
+  } });
 }
