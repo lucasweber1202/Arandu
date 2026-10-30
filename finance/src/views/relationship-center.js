@@ -4,7 +4,7 @@
 // situação, quem pode agir, de onde vem a informação e para onde seguir.
 
 import { el, icon, formatDate, relativeDays, plural, productLabel, renewalStage, RFQ_STATUS } from '../core.js';
-import { button, emptyState } from '../ui.js';
+import { button, emptyState, confirmDialog, toast } from '../ui.js';
 import { CONTRACT_CATEGORIES } from '../../../lib/finance/contract-terms.mjs';
 import { TASK_EDITORS } from './shared.js';
 import { entityName } from './entities.js';
@@ -66,7 +66,7 @@ export function relationshipWorkItems({ contracts = [], rfqs = [], tasks = [], m
   for (const contract of contracts) {
     if (!LIVE_CONTRACT.includes(contract.status) || !contract.provider_id) continue;
     const name = contract.title || categoryLabel(contract.product);
-    const base = { providerId: contract.provider_id, providerName: contract.provider_name, entityId: contract.legal_entity_id || null, category: contract.product || null,
+    const base = { contractId: contract.id, contractStatus: contract.status, providerId: contract.provider_id, providerName: contract.provider_name, entityId: contract.legal_entity_id || null, category: contract.product || null,
       who: owner(contract.owner_id), role: 'contrato', actor: 'manage', href: `/finance/contracts.html?abrir=contrato#contract-${contract.id}`, cta: 'Abrir contrato',
       source: `Contrato ${contract.origin === 'imported' ? 'registrado pela empresa (carteira existente)' : 'registrado a partir de decisão no Arandu'}${contract.current_version ? ` · termos v${contract.current_version}` : ' · termos não estruturados'}` };
     if (!contract.ends_on) { items.push({ ...base, id: `c-${contract.id}`, situation: 'no_end', title: name, detail: 'Sem data de término o Arandu não acompanha renovação nem aviso prévio.', due: null }); continue; }
@@ -213,9 +213,35 @@ function queueItem(ctx, item, onOpenProvider, entities) {
     ]),
     el('div', { class: 'rel-item-actions' }, [
       el('a', { class: 'btn btn-secondary btn-sm', href: ctx.href(item.href) }, [el('span', { class: 'btn-label', text: item.cta }), icon('arrowRight', { size: 14 })]),
+      renegotiateButton(ctx, item),
       item.contractHref ? el('a', { class: 'btn btn-ghost btn-sm', href: ctx.href(item.contractHref), text: 'Contrato' }) : null,
       item.sourceHref ? el('a', { class: 'btn btn-ghost btn-sm', href: ctx.href(item.sourceHref), text: 'Origem do sinal' }) : null,
       provider && onOpenProvider ? button('Relacionamento', { size: 'sm', variant: 'ghost', attrs: { 'aria-label': `Relacionamento com ${provider.name}` }, onClick: () => onOpenProvider(provider) }) : null
     ].filter(Boolean))
   ]);
+}
+
+// Negotiation Studio: iniciar ou retomar a renegociação sem sair da fila. O
+// endpoint é idempotente (devolve a concorrência de renovação em andamento).
+const RENEGOTIABLE = ['credit', 'acquiring'];
+function renegotiateButton(ctx, item) {
+  if (item.role !== 'contrato' || !item.contractId || !RENEGOTIABLE.includes(item.category) || !ctx.can('create_rfq')
+    || !['window', 'past_notice', 'renewing', 'expired'].includes(item.situation)) return null;
+  const resume = item.contractStatus === 'renewing';
+  const label = resume ? 'Retomar renegociação' : 'Iniciar renegociação';
+  return button(label, { size: 'sm', variant: 'ghost', iconName: 'repeat', attrs: { 'aria-label': `${label}: ${item.title}` }, onClick: async (event) => {
+    const target = event.currentTarget;
+    if (!await confirmDialog({ title: `${label}?`, confirmLabel: resume ? 'Continuar' : 'Criar rascunho',
+      description: `Se já houver uma renegociação em andamento para este contrato${item.providerName ? ` com ${item.providerName}` : ''}, ela é aberta. Senão, criamos um rascunho ligado ao contrato; convites, propostas e decisões anteriores não são copiados e o contrato passa para “Em renovação”. Nenhuma instituição é convidada automaticamente.` })) return;
+    target.disabled = true;
+    try {
+      const result = await ctx.api('contract-renewal-rfq', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, contract_id: item.contractId }) });
+      toast('Abrindo a renegociação.');
+      location.assign(ctx.href(`/finance/rfq.html?id=${encodeURIComponent(result.id)}&de=relacionamentos`));
+    } catch (error) {
+      // Resposta incerta: o endpoint devolve a mesma solicitação se repetido.
+      toast(`${error.message || 'Não foi possível abrir a renegociação.'} Tentar de novo não cria duplicata.`, 'error');
+      target.disabled = false;
+    }
+  } });
 }
