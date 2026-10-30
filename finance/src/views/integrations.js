@@ -57,7 +57,7 @@ export function integrationSettings(ctx, entities) {
     );
   };
   render();
-  return box;
+  return el('div', { class: 'stack' }, [erpHub(), box]);
 }
 
 function accountsSection(ctx, result, entityOptions, render, reveal) {
@@ -154,4 +154,18 @@ function webhooksSection(ctx, result, entityOptions, render, reveal) {
   } });
   return el('section', { class: 'stack-sm', 'aria-label': 'Webhooks' }, [el('h3', { text: 'Webhooks' }), unconfigured, reveal, list, el('div', { class: 'row-actions' }, dispatch),
     el('details', {}, [el('summary', { text: 'Novo webhook' }), form])]);
+}
+
+// ERP Integration Hub: o que existe hoje é a API pública + webhooks acima.
+// Conectores diretos por ERP ainda não existem no backend: cada um aparece
+// como "Suporte planejado", sem formulário de credencial nem estado falso.
+export const ERP_TARGETS = Object.freeze(['SAP S/4HANA', 'Oracle Fusion', 'Microsoft Dynamics 365', 'TOTVS Protheus / RM', 'Senior', 'Sankhya']);
+function erpHub() {
+  return el('section', { class: 'stack-sm erp-hub', id: 'erp-hub', 'aria-labelledby': 'erp-hub-title' }, [
+    el('h3', { id: 'erp-hub-title', text: 'Conectores de ERP' }),
+    el('p', { class: 'small', text: 'Hoje o ERP conversa com o Arandu pela API pública: uma conta de serviço com escopo e entidades lê e grava registros, e os webhooks avisam o ERP sobre decisões e contratos. Conectores prontos por ERP ainda não estão disponíveis.' }),
+    el('ul', { class: 'plain-list erp-list', 'aria-label': 'ERPs' }, ERP_TARGETS.map((name) => el('li', { class: 'erp-row', dataset: { state: 'planned' } }, [
+      el('span', { text: name }), tag('Suporte planejado · sem conector', 'neutral')]))),
+    el('p', { class: 'muted small', text: 'Nenhuma credencial de ERP é pedida nesta tela. Quando um conector existir, a conexão terá teste, prévia do mapeamento, confirmação e histórico de sincronização antes de qualquer importação.' })
+  ]);
 }

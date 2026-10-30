@@ -575,3 +575,58 @@ test('360: coleta encerrada com proposta vira trabalho de comparação; sinal mo
   await expect(signal.getByRole('link', { name: 'Negociação ligada' })).toHaveAttribute('href', new RegExp(`rfq\\.html\\?id=${R2}`));
   await expect(signal).toContainText('Sem prazo registrado');
 });
+
+// Catálogo de produtos: suporte declarado vem do código (negociação só onde há
+// formulário e motor); modalidade sem negociação oferece registrar o contrato.
+test('catálogo: busca, família, suporte real e ação apropriada por modalidade', async ({ page }) => {
+  await setup(page);
+  await page.goto('/finance/providers.html');
+  await page.getByRole('button', { name: 'Catálogo de produtos' }).click();
+  const drawerNode = page.getByRole('dialog', { name: 'Catálogo de produtos financeiros' });
+  await drawerNode.getByLabel('Buscar produto financeiro').fill('fianca');
+  const fianca = drawerNode.locator('.catalog-item').filter({ hasText: 'Fiança bancária' });
+  await expect(fianca).toContainText('Contrato existente com termos estruturados');
+  await expect(fianca).toContainText('Sem cálculo econômico');
+  await expect(fianca.getByRole('link', { name: 'Iniciar negociação' })).toHaveCount(0);
+  await expect(fianca.getByRole('link', { name: 'Registrar contrato existente' })).toHaveAttribute('href', /contracts\.html\?acao=registrar-contrato/);
+  await drawerNode.getByLabel('Buscar produto financeiro').fill('');
+  await drawerNode.getByLabel('Família').selectOption('payments');
+  const acq = drawerNode.locator('.catalog-item').filter({ hasText: 'Adquirência (cartões)' });
+  await expect(acq).toContainText('Estimativa de custo de processamento');
+  await expect(acq.getByRole('link', { name: 'Iniciar negociação' })).toHaveAttribute('href', /new-rfq\.html\?product=acquiring/);
+  await drawerNode.getByLabel('Buscar produto financeiro').fill('xyz inexistente');
+  await expect(drawerNode.getByRole('status')).toContainText('Outro produto financeiro');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+});
+
+test('catálogo: leitor vê o suporte sem ações de escrita', async ({ page }) => {
+  await setup(page, { role: 'viewer' });
+  await page.goto('/finance/providers.html');
+  await page.getByRole('button', { name: 'Catálogo de produtos' }).click();
+  await expect(page.locator('.catalog-item').first()).toBeVisible();
+  await expect(page.locator('.catalog-item').getByRole('link')).toHaveCount(0);
+});
+
+// Consultas guiadas: sem modelo de IA, a tela diz isso; cada resposta lista registros com fonte.
+test('consultas: respostas determinísticas com fonte e links; falha não inventa resposta', async ({ page }) => {
+  await setup(page);
+  let fail = false;
+  await page.route('**/api/finance/opportunities?*', (route) => fail ? route.fulfill({ status: 500, json: { ok: false } })
+    : route.fulfill({ json: { ok: true, next: null, summary: [], rows: [{ id: 'o1', cells: ['Diferença de tarifa aguardando revisão', 'TED acima do contratado.', '10/11/2026', 'Revisar tarifa', 'Em revisão'] }] } }));
+  await page.goto('/finance/providers.html');
+  await page.getByRole('button', { name: 'Consultas' }).click();
+  const d = page.getByRole('dialog', { name: 'Consultas do Arandu' });
+  await expect(d).toContainText('Não há modelo de IA generativa configurado');
+  await d.getByRole('button', { name: 'Quais contratos precisam de atenção?' }).click();
+  await expect(d.locator('.guided-answer')).toContainText('Adquirência lojas');
+  await expect(d.locator('.guided-answer').getByRole('link', { name: /Capital de giro 2025/ })).toHaveAttribute('href', /contract-00000000-0000-4000-8000-0000000000c1/);
+  await expect(d.locator('.guided-source')).toContainText('Fonte: Contratos vigentes carregados');
+  await expect(d.locator('.guided-answer')).not.toContainText('Linha longa');
+  await d.getByRole('button', { name: 'Quais instituições têm negociações em andamento?' }).click();
+  await expect(d.locator('.guided-answer').getByRole('link', { name: 'Nexo Payments' })).toHaveAttribute('href', /provider_id=/);
+  await d.getByRole('button', { name: 'Quais sinais do Radar estão em revisão?' }).click();
+  await expect(d.locator('.guided-answer').getByRole('link', { name: 'Diferença de tarifa aguardando revisão' })).toHaveAttribute('href', /opportunities\.html\?id=o1/);
+  fail = true;
+  await d.getByRole('button', { name: 'Quais sinais do Radar estão em revisão?' }).click();
+  await expect(d.getByRole('alert')).toContainText('Nenhuma resposta foi inventada');
+});
