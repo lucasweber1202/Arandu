@@ -554,3 +554,24 @@ test('economics: só proposta externa → sem cálculo e com explicação', asyn
   await expect(panel).toContainText('canal externo');
   await expect(panel.getByRole('button', { name: 'Calcular estimativa' })).toHaveCount(0);
 });
+
+// Relationship 360°: situação "propostas aguardando análise" leva direto à
+// comparação; sinal ligado a uma negociação abre a negociação.
+test('360: coleta encerrada com proposta vira trabalho de comparação; sinal mostra a negociação ligada', async ({ page }) => {
+  const R2 = '00000000-0000-4000-8000-0000000000d2';
+  const overview = { ...OVERVIEW, rfqs: [...OVERVIEW.rfqs, { id: R2, title: 'Capital de giro 2026', product: 'credit', status: 'comparing', revision: 1, response_deadline: day(-3), owner_id: 'u1',
+    invites: [{ provider_id: P_ATLAS, provider_name: 'Atlas Bank', status: 'accepted' }], proposals: [{ id: 'p1', current_version: 1, status: 'submitted' }, { id: 'p2', current_version: 1, status: 'withdrawn' }, { id: 'p3', current_version: 0, status: 'draft' }] }] };
+  await setup(page, { overview });
+  await page.route('**/api/finance/opportunities?*', (route) => route.fulfill({ json: { ok: true, next: null, summary: [], rows: new URL(route.request().url()).searchParams.get('status') === 'under_review'
+    ? [{ id: 'o1', cells: ['Renovação de contrato se aproxima', 'Aviso prévio próximo.', '—', 'Avaliar abrir processo de cotação', 'Em revisão'], context: { status: 'under_review', deadline: null, overdue: false, provider_id: P_ATLAS, legal_entity_id: null, source_object_type: 'contract', source_href: '/finance/contracts.html', linked_rfq_id: R2 } }] : [] } }));
+  await page.goto('/finance/providers.html');
+  const waiting = page.locator('#relationship-center [data-situation="proposals_waiting"]');
+  await expect(waiting).toContainText('Capital de giro 2026');
+  await expect(waiting.getByRole('link', { name: /Comparar 1 proposta/ })).toHaveAttribute('href', new RegExp(`rfq\\.html\\?id=${R2}#comparacao`));
+  // Coleta aberta sem proposta continua "em andamento".
+  await expect(page.locator('#relationship-center [data-situation="negotiation"]')).toContainText('Revisão de MDR');
+  const signal = page.locator('#relationship-center [data-situation="signal_review"]');
+  await expect(signal).toContainText('Atlas Bank');
+  await expect(signal.getByRole('link', { name: 'Negociação ligada' })).toHaveAttribute('href', new RegExp(`rfq\\.html\\?id=${R2}`));
+  await expect(signal).toContainText('Sem prazo registrado');
+});
