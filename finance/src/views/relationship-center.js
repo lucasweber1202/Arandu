@@ -22,8 +22,29 @@ export const SITUATIONS = Object.freeze({
   renewing: { label: 'Renovação em andamento', tone: 'info', rank: 3 },
   negotiation: { label: 'Negociação em andamento', tone: 'info', rank: 3 },
   task: { label: 'Tarefa aberta', tone: 'neutral', rank: 4 },
-  no_end: { label: 'Término não informado', tone: 'warning', rank: 5 }
+  no_end: { label: 'Término não informado', tone: 'warning', rank: 5 },
+  // Radar: saídas do Opportunity Engine (regra da empresa + fato + fonte).
+  signal_overdue: { label: 'Sinal com prazo vencido', tone: 'danger', rank: 1 },
+  signal_review: { label: 'Sinal em revisão', tone: 'info', rank: 3 },
+  signal: { label: 'Sinal da regra da empresa', tone: 'warning', rank: 2 }
 });
+const RADAR_STATUSES = ['open', 'acknowledged', 'under_review'];
+
+/**
+ * Converte linhas já apresentadas pelo servidor (`opportunities`) em itens da
+ * fila. Não recalcula nada: título, motivo, prazo, ação e estado vêm prontos.
+ */
+export function radarWorkItems(rows = [], { providerId = null, providerName = null } = {}) {
+  return rows.map(({ id, cells = [], status }) => {
+    const [type, why, deadline, action, state] = cells;
+    const overdue = String(deadline || '').includes('(vencido)');
+    return { id: `o-${id}`, situation: overdue ? 'signal_overdue' : status === 'under_review' ? 'signal_review' : 'signal',
+      providerId, providerIds: providerId ? [providerId] : null, providerName, entityId: null, entityUnknown: true, category: null, title: type || 'Sinal registrado',
+      detail: `${why || 'Fato registrado pela regra.'}${deadline && deadline !== '—' ? ` Prazo: ${deadline}.` : ' Sem prazo registrado.'}`,
+      due: null, who: null, role: 'sinal', actor: 'manage', href: `/finance/opportunities.html?id=${encodeURIComponent(id)}`, cta: action ? `Ver sinal: ${action.toLowerCase()}` : 'Ver sinal',
+      source: `Regra de oportunidade configurada pela sua empresa · estado: ${state || 'não informado'}. Ação possível é sugestão para uma pessoa avaliar, não decisão.` };
+  });
+}
 const categoryLabel = (key) => CONTRACT_CATEGORIES[key] || (key ? productLabel(key) : 'Categoria não informada');
 
 /** Itens de trabalho, do mais urgente ao menos; ausência nunca vira "em dia". */
@@ -83,14 +104,41 @@ export function relationshipWorkItems({ contracts = [], rfqs = [], tasks = [], m
       contractHref: `/finance/contracts.html?abrir=contrato#contract-${task.related_id}`,
       source: contract ? `Tarefa ligada ao contrato ${contract.title || categoryLabel(contract.product)}` : 'Tarefa ligada a um contrato fora dos contratos carregados nesta tela' });
   }
-  const due = (item) => item.due || '9999-12-31';
-  return items.sort((a, b) => SITUATIONS[a.situation].rank - SITUATIONS[b.situation].rank || due(a).localeCompare(due(b)));
+  return items.sort(order);
 }
+const order = (a, b) => SITUATIONS[a.situation].rank - SITUATIONS[b.situation].rank || (a.due || '9999-12-31').localeCompare(b.due || '9999-12-31');
 
 /** Fila de trabalho com filtros por instituição, entidade, condição e situação. */
 export function relationshipWorkQueue(ctx, { entities, onOpenProvider = null, importButton = null }) {
   const contracts = ctx.data.contracts || [];
-  const items = relationshipWorkItems({ contracts, rfqs: ctx.data.rfqs || [], tasks: ctx.data.tasks || [], members: ctx.members || [], viewerId: ctx.viewer?.id || null });
+  const base = relationshipWorkItems({ contracts, rfqs: ctx.data.rfqs || [], tasks: ctx.data.tasks || [], members: ctx.members || [], viewerId: ctx.viewer?.id || null });
+  let items = base;
+  // Radar: sinais vivos do Opportunity Engine, buscados por estado (e por
+  // instituição quando o filtro está ativo, porque a linha apresentada não traz o provedor).
+  const radarNote = el('p', { class: 'muted small', id: 'rel-radar-note', role: 'status' });
+  let radarSeq = 0;
+  const loadRadar = async () => {
+    const seq = ++radarSeq;
+    const providerId = byProvider.value || null;
+    const providerName = providerId ? (ctx.data.providers || []).find((row) => row.id === providerId)?.name || null : null;
+    radarNote.textContent = 'Carregando sinais das regras da empresa…';
+    try {
+      const pages = await Promise.all(RADAR_STATUSES.map((status) => ctx.api(`opportunities?${new URLSearchParams({ organization_id: ctx.organization.id, status, limit: '25', ...(providerId ? { provider_id: providerId } : {}) })}`)
+        .then((page) => ({ status, page }))));
+      if (seq !== radarSeq) return;
+      const rows = pages.flatMap(({ status, page }) => (page.rows || []).map((row) => ({ ...row, status })));
+      const more = pages.some(({ page }) => page.next);
+      items = [...base, ...radarWorkItems(rows, { providerId, providerName })].sort(order);
+      radarNote.textContent = rows.length
+        ? `${plural(rows.length, 'sinal ativo', 'sinais ativos')} das regras da empresa${providerName ? ` ligados a ${providerName}` : ''}${more ? ' (há mais em Oportunidades)' : ''}.${providerId ? '' : ' Filtre por instituição para ver só os sinais dela.'}`
+        : `Nenhum sinal ativo das regras da empresa${providerName ? ` ligado a ${providerName}` : ''}. Sem regra ativa nada dispara.`;
+    } catch {
+      if (seq !== radarSeq) return;
+      items = base;
+      radarNote.textContent = 'Sinais das regras da empresa indisponíveis agora; a fila mostra contratos, negociações e tarefas. Tente de novo pela página Oportunidades.';
+    }
+    draw();
+  };
   const capped = Object.entries(OVERVIEW_LIMITS).filter(([key, limit]) => (ctx.data[key] || []).length >= limit).map(([key]) => ({ contracts: 'contratos', tasks: 'tarefas abertas', rfqs: 'solicitações', providers: 'instituições' })[key]);
   const providers = ctx.data.providers || [];
   const withContract = new Set(contracts.filter((row) => LIVE_CONTRACT.includes(row.status)).map((row) => row.provider_id));
@@ -102,7 +150,7 @@ export function relationshipWorkQueue(ctx, { entities, onOpenProvider = null, im
   const byEntity = entities?.rows?.length ? select('Entidade', [['__group__', 'Grupo (sem entidade)'], ...entities.rows.map((row) => [row.id, entityName(entities, row.id)])]) : null;
   const categories = [...new Set(items.map((item) => item.category).filter(Boolean))];
   const byCategory = categories.length > 1 ? select('Condição', categories.map((key) => [key, categoryLabel(key)])) : null;
-  const bySituation = select('Situação', Object.entries(SITUATIONS).filter(([key]) => items.some((item) => item.situation === key)).map(([key, meta]) => [key, meta.label]));
+  const bySituation = select('Situação', Object.entries(SITUATIONS).filter(([key]) => items.some((item) => item.situation === key) || (key.startsWith('signal') && ctx.can('create_rfq'))).map(([key, meta]) => [key, meta.label]));
   const status = el('p', { class: 'muted small', role: 'status', 'aria-live': 'polite' });
   const list = el('ol', { class: 'rel-queue', 'aria-label': 'Fila de próximas ações' });
   const more = button('Mostrar todos', { size: 'sm', variant: 'ghost' });
@@ -122,7 +170,9 @@ export function relationshipWorkQueue(ctx, { entities, onOpenProvider = null, im
   };
   more.addEventListener('click', () => { expanded = true; draw(); });
   for (const control of [byProvider, byEntity, byCategory, bySituation].filter(Boolean)) control.addEventListener('change', () => { expanded = false; draw(); });
+  byProvider.addEventListener('change', () => { if (ctx.can('create_rfq')) loadRadar(); });
   draw();
+  if (ctx.can('create_rfq')) loadRadar(); else radarNote.textContent = 'Sinais das regras da empresa são revisados por administração e gestão financeira.';
   const missing = providers.filter((row) => !withContract.has(row.id));
   return el('section', { class: 'card rel-center', id: 'relationship-center', 'aria-labelledby': 'rel-center-title' }, [
     el('div', { class: 'card-head' }, el('div', { class: 'card-head-text' }, [el('h2', { class: 'card-title', id: 'rel-center-title', text: 'O que pede ação nos relacionamentos' }),
@@ -130,7 +180,7 @@ export function relationshipWorkQueue(ctx, { entities, onOpenProvider = null, im
     el('div', { class: 'card-body stack' }, [
       el('div', { class: 'rel-filters' }, [byProvider, byEntity, byCategory, bySituation].filter(Boolean)),
       capped.length ? el('p', { class: 'callout callout-info compact', role: 'note', id: 'rel-center-scope' }, [icon('info', { size: 14 }), el('span', { text: `Recorte: o resumo lê até ${OVERVIEW_LIMITS.contracts} contratos, ${OVERVIEW_LIMITS.tasks} tarefas abertas e ${OVERVIEW_LIMITS.rfqs} solicitações, e chegou ao limite em ${capped.join(', ')}. A fila mostra só o que foi carregado; as listas de Contratos e Tarefas consultam o restante.` })]) : null,
-      status, list, more,
+      status, radarNote, list, more,
       missing.length ? el('details', { class: 'rel-missing' }, [el('summary', { text: `${plural(missing.length, 'instituição sem contrato vigente registrado', 'instituições sem contrato vigente registrado')}` }),
         el('p', { class: 'muted small', text: 'Comece pelo que a empresa já tem: registre o contrato existente para acompanhar condições, prazo e renovação, mesmo que a instituição não use o Arandu.' }),
         el('ul', { class: 'plain-list' }, missing.map((row) => el('li', { class: 'rel-missing-row' }, [el('span', { text: row.name }), importButton ? importButton(row.id) : null].filter(Boolean))))]) : null
@@ -142,17 +192,17 @@ const ACTORS = { manage: 'Pode agir: administração e gestão financeira', task
 function queueItem(ctx, item, onOpenProvider, entities) {
   const meta = SITUATIONS[item.situation];
   const canAct = item.actor === 'task' ? TASK_EDITORS.includes(ctx.viewer?.role) : ctx.can('create_rfq');
-  const entityText = !entities?.rows?.length ? null : item.entityUnknown ? 'Entidade não carregada' : entityName(entities, item.entityId);
+  const entityText = !entities?.rows?.length || item.role === 'sinal' ? null : item.entityUnknown ? 'Entidade não carregada' : entityName(entities, item.entityId);
   // Negociação com várias instituições não abre um relacionamento só.
   const provider = item.providerIds && item.providerIds.length > 1 ? null : (ctx.data.providers || []).find((row) => row.id === item.providerId);
   return el('li', { class: `rel-item tone-${meta.tone}`, dataset: { situation: item.situation } }, [
     el('div', { class: 'rel-item-main' }, [
       el('p', { class: 'rel-item-kicker' }, [el('span', { class: `pill pill-${meta.tone} pill-sm` }, [el('span', { class: 'pill-dot', 'aria-hidden': 'true' }), el('span', { text: meta.label })]),
-        el('span', { class: 'muted small', text: item.providerName || provider?.name || (item.entityUnknown ? 'Instituição do contrato não carregada' : 'Sem instituição convidada') }),
+        el('span', { class: 'muted small', text: item.providerName || provider?.name || (item.role === 'sinal' ? 'Instituição no detalhe do sinal' : item.entityUnknown ? 'Instituição do contrato não carregada' : 'Sem instituição convidada') }),
         entityText ? el('span', { class: 'muted small rel-item-entity', text: `· ${entityText}` }) : null]),
       el('h3', { class: 'rel-item-title', text: item.title }),
       el('p', { class: 'small', text: item.detail }),
-      el('p', { class: 'muted small rel-item-meta' }, [icon('users', { size: 12 }), ` ${item.who ? `Responsável pela ${item.role === 'contrato' ? 'relação contratual' : item.role}: ${item.who}` : item.role === 'tarefa' ? 'Tarefa sem responsável' : 'Responsável não informado no registro'}`]),
+      el('p', { class: 'muted small rel-item-meta' }, [icon('users', { size: 12 }), ` ${item.who ? `Responsável pela ${item.role === 'contrato' ? 'relação contratual' : item.role}: ${item.who}` : item.role === 'tarefa' ? 'Tarefa sem responsável' : item.role === 'sinal' ? 'Revisor e histórico no detalhe do sinal' : 'Responsável não informado no registro'}`]),
       el('p', { class: 'muted small rel-item-meta' }, [icon('lock', { size: 12 }), ` ${canAct ? 'Você pode agir neste item.' : `${ACTORS[item.actor]}; seu papel acompanha.`}`]),
       el('p', { class: 'muted small rel-item-meta' }, [icon('file', { size: 12 }), ` Origem: ${item.source}`])
     ]),

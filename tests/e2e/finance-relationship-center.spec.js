@@ -335,3 +335,38 @@ test('central 3.0: celular 390px e teclado percorrem a fila sem overflow', async
   await expect(first).toBeFocused();
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
 });
+
+// Radar: sinais do Opportunity Engine entram na mesma fila, com motivo, estado,
+// origem (regra da empresa) e destino ao detalhe persistido. Sem decisão automática.
+test('radar traz sinais das regras da empresa para a fila, por instituição, com destino ao detalhe', async ({ page }) => {
+  const OPP = '00000000-0000-4000-8000-0000000000a9';
+  const opportunityCalls = [];
+  await setup(page);
+  await page.route('**/api/finance/opportunities?*', async (route) => {
+    const u = new URL(route.request().url()); opportunityCalls.push(Object.fromEntries(u.searchParams));
+    const rows = u.searchParams.get('status') === 'open'
+      ? [{ id: OPP, cells: ['Diferença de tarifa aguardando revisão', 'Diferença de tarifa (comparável) em TED, 01/09/2026 – 30/09/2026, sem revisão iniciada.', '10/10/2026 (vencido)', 'Revisar tarifa', 'Aberta'] }] : [];
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, rows, next: null, summary: [] }) });
+  });
+  await page.goto('/finance/providers.html');
+  const center = page.locator('#relationship-center');
+  const signal = center.locator('[data-situation="signal_overdue"]');
+  await expect(signal).toContainText('Diferença de tarifa aguardando revisão');
+  await expect(signal).toContainText('Regra de oportunidade configurada pela sua empresa · estado: Aberta');
+  await expect(signal.getByRole('link', { name: /Ver sinal: revisar tarifa/ })).toHaveAttribute('href', new RegExp(`opportunities\\.html\\?id=${OPP}`));
+  await expect(center.locator('#rel-radar-note')).toContainText('1 sinal ativo');
+  expect(new Set(opportunityCalls.map((c) => c.status))).toEqual(new Set(['open', 'acknowledged', 'under_review']));
+  await center.getByLabel('Instituição').selectOption(P_ATLAS);
+  await expect(center.locator('#rel-radar-note')).toContainText('ligados a Atlas Bank');
+  expect(opportunityCalls.some((c) => c.provider_id === P_ATLAS)).toBe(true);
+  for (const banned of [/melhor/i, /recomendad/i, /score/i]) await expect(center.getByText(banned)).toHaveCount(0);
+});
+
+test('radar indisponível não esconde a fila e diz o que aconteceu', async ({ page }) => {
+  await setup(page);
+  await page.route('**/api/finance/opportunities?*', (route) => route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ ok: false, error: 'falha' }) }));
+  await page.goto('/finance/providers.html');
+  const center = page.locator('#relationship-center');
+  await expect(center.locator('#rel-radar-note')).toContainText('Sinais das regras da empresa indisponíveis agora');
+  await expect(center.locator('[data-situation="expired"]')).toContainText('Adquirência lojas');
+});
