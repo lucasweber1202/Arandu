@@ -39,4 +39,5 @@ for (const table of NOT_REACHED_BY_DEMO.keys()) assert(tables.includes(table), `
 const order = (needle) => seed.indexOf(needle);
 assert(order("['fin_member_entity_grants'") > -1 && order("['fin_member_entity_grants'") < order("['fin_legal_entities'"), 'escopos por entidade saem antes das entidades');
 assert(order("['fin_legal_entities'") < order("['fin_members'"), 'entidades legais saem antes dos membros e da organização');
+assert(order("['fin_crm_activities'") < order("['fin_crm_processes'") && order("['fin_crm_processes'") < order("['fin_provider_contacts'"), 'atividades CRM saem antes do pipeline e dos contatos referenciados');
 console.log(`Reset da Demo cobre as ${tables.length} tabelas que referenciam a organização.`);

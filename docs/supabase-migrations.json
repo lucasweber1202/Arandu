@@ -79,7 +79,8 @@
     "docs/supabase-financial-contract-import-integrity.sql",
     "docs/supabase-financial-provider-intent-integrity.sql",
     "docs/supabase-financial-negotiation-continuity.sql",
-    "docs/supabase-financial-institutional-decline.sql"
+    "docs/supabase-financial-institutional-decline.sql",
+    "docs/supabase-financial-crm.sql"
   ],
   "existingDatabase": [
     "docs/supabase-sprint1-auth-ownership.sql",
@@ -160,6 +161,7 @@
     "docs/supabase-financial-contract-import-integrity.sql",
     "docs/supabase-financial-provider-intent-integrity.sql",
     "docs/supabase-financial-negotiation-continuity.sql",
-    "docs/supabase-financial-institutional-decline.sql"
+    "docs/supabase-financial-institutional-decline.sql",
+    "docs/supabase-financial-crm.sql"
   ]
 }
