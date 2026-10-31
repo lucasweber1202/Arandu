@@ -117,6 +117,7 @@ while IFS= read -r file; do
   apply_file "$clean_db" "$file"
 done < <(after_decommission)
 # Rehearse older migrations only after removing the unused latest receipt layer.
+apply_file "$clean_db" "docs/rollback/supabase-financial-crm.rollback.sql"
 apply_file "$clean_db" "docs/rollback/supabase-financial-institutional-decline.rollback.sql"
 apply_file "$clean_db" "docs/rollback/supabase-financial-negotiation-continuity.rollback.sql"
 apply_file "$clean_db" "docs/rollback/supabase-financial-provider-intent-integrity.rollback.sql"
@@ -406,6 +407,7 @@ while IFS= read -r file; do
 done < <(after_decommission)
 # Remove the later projection before rehearsing rollbacks of its source columns.
 # Contract import intents sit above external decisions: they roll back first.
+apply_file "$upgrade_db" "docs/rollback/supabase-financial-crm.rollback.sql"
 apply_file "$upgrade_db" "docs/rollback/supabase-financial-institutional-decline.rollback.sql"
 apply_file "$upgrade_db" "docs/rollback/supabase-financial-negotiation-continuity.rollback.sql"
 apply_file "$upgrade_db" "docs/rollback/supabase-financial-provider-intent-integrity.rollback.sql"
@@ -568,6 +570,7 @@ while IFS= read -r file; do
   apply_file "$fresh_db" "$file"
 done < <(after_decommission)
 # Rehearse older migrations only after removing the unused latest receipt layer.
+apply_file "$fresh_db" "docs/rollback/supabase-financial-crm.rollback.sql"
 apply_file "$fresh_db" "docs/rollback/supabase-financial-institutional-decline.rollback.sql"
 apply_file "$fresh_db" "docs/rollback/supabase-financial-negotiation-continuity.rollback.sql"
 apply_file "$fresh_db" "docs/rollback/supabase-financial-provider-intent-integrity.rollback.sql"
@@ -715,3 +718,15 @@ done
 
 # Three independent-session interleavings after the final schema (synthetic fixtures).
 node "$root_dir/tests/database/financial-intelligence-concurrency.mjs" "$(database_url "$fresh_db")"
+
+# CRM command surface: additive/reapply and non-destructive rollback in all flows.
+for current_db in "$clean_db" "$upgrade_db" "$fresh_db"; do
+  apply_file "$current_db" "docs/supabase-financial-crm.sql"
+  apply_file "$current_db" "docs/rollback/supabase-financial-crm.rollback.sql"
+  apply_file "$current_db" "docs/supabase-financial-crm.sql"
+  apply_file "$current_db" "docs/supabase-financial-crm.sql"
+  apply_file "$current_db" "tests/database/financial-crm.sql"
+  apply_file "$current_db" "ops/sql/post-migration-probes.sql"
+  apply_file "$current_db" "ops/sql/pilot-isolation-canary.sql"
+done
+node "$root_dir/tests/database/financial-crm-concurrency.mjs" "$(database_url "$fresh_db")"

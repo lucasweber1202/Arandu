@@ -220,6 +220,8 @@ function scopedTables(scope) {
     ['fin_scorecard_templates', null, org, []],
     ['fin_provider_issues', ['id'], org, ['created_at', 'updated_at']],
     ['fin_provider_relationships', null, org, []],
+    ['fin_crm_activities', null, org, []],
+    ['fin_crm_processes', null, org, []],
     ['fin_provider_contacts', ['id'], org, ['created_at']],
     ['fin_contract_milestone_runs', null, org, []],
     ['fin_contract_milestones', ['id'], org, ['created_at', 'updated_at']],
@@ -827,12 +829,36 @@ async function seedLifecycle() {
   await seedOpportunityRules();
 }
 
+async function seedFinancialCrm() {
+  const contact = await post(people.juliana, 'crm-contacts', {
+    organization_id: ctx.org, provider_id: ctx.providerRow.atlas, request_key: crypto.randomUUID(),
+    values: { name: 'Contato de relacionamento DEMO', title: 'Gerência de relacionamento', source_reference: 'DEMO: cadastro sintético declarado pela empresa' }
+  });
+  const process = await post(people.juliana, 'crm-processes', {
+    organization_id: ctx.org, request_key: crypto.randomUUID(),
+    values: { title: 'Revisão das condições do relacionamento DEMO', stage: 'engagement', next_action: 'Conferir condições com o contato da instituição', source_reference: 'DEMO: planejamento sintético da equipe', contact_id: contact.id, related_type: 'contract', related_id: ctx.contract.existing }
+  });
+  await post(people.juliana, 'crm-activities', {
+    organization_id: ctx.org, request_key: crypto.randomUUID(),
+    values: { kind: 'meeting', subject: 'Condições discutidas com a instituição DEMO', notes: 'Atividade sintética declarada pela empresa; não comprova comunicação real.', occurred_at: new Date().toISOString(), source_reference: 'DEMO: anotação sintética de reunião', contact_id: contact.id, process_id: process.id, related_type: 'contract', related_id: ctx.contract.existing }
+  });
+  const ownContact = await post(people.atlas, 'crm-contacts', {
+    organization_id: ctx.providerOrg.atlas, counterparty_organization_id: ctx.org, request_key: crypto.randomUUID(),
+    values: { name: 'Contato interno da instituição DEMO', source_reference: 'DEMO: cadastro privado e sintético da instituição' }
+  });
+  await post(people.atlas, 'crm-processes', {
+    organization_id: ctx.providerOrg.atlas, request_key: crypto.randomUUID(),
+    values: { title: 'Atendimento da demanda recebida DEMO', stage: 'negotiation', next_action: 'Revisar a própria proposta', source_reference: 'DEMO: demanda sintética com convite aceito', contact_id: ownContact.id, related_type: 'rfq', related_id: ctx.rfq.credit }
+  });
+}
+
 async function finishStory() {
   // Daqui em diante (cron do dia e leitura de avisos) os registros ficam com o horário real.
   closeStep();
   marks.push({ real: Date.now() + 500, narrative: Date.now() + 500 });
   await sleep(1_000);
   await seedLifecycle();
+  await seedFinancialCrm();
   // Marcos de renovação, obrigações, performance e oportunidades pelo mesmo
   // cron que roda todo dia em produção.
   if (CRON) {
@@ -987,6 +1013,12 @@ async function sanity() {
   const providerId = (key) => providers.find((row) => row.name === data.PROVIDERS[key].name)?.id;
   const relationship = async (key) => (providerId(key) ? api(juliana, 'GET', `provider-relationship?organization_id=${org.id}&provider_id=${providerId(key)}`) : null);
   const atlasRel = await relationship('atlas');
+  const crmActivities = await api(juliana, 'GET', `crm-activities?organization_id=${org.id}`);
+  check('CRM: reunião declarada vinculada ao contrato', (crmActivities.rows || []).some(row => row.kind === 'meeting' && row.related_type === 'contract' && row.subject === 'Condições discutidas com a instituição DEMO'), `${crmActivities.rows?.length || 0} atividade(s)`);
+  const atlasOrganizations = (await api(people.atlas, 'GET', 'organizations')).rows || [];
+  const atlasOrganization = atlasOrganizations.find(row => row.kind === 'PROVIDER' && row.legal_name === data.PROVIDERS.atlas.org);
+  const ownCrm = atlasOrganization ? await api(people.atlas, 'GET', `crm-processes?organization_id=${atlasOrganization.id}`) : { rows: [] };
+  check('CRM: pipeline privado da instituição', (ownCrm.rows || []).some(row => row.title === 'Atendimento da demanda recebida DEMO' && row.related_type === 'rfq'), `${ownCrm.rows?.length || 0} processo(s)`);
   check('Relacionamento do Atlas com contrato, facility e saldo', atlasRel?.contracts.length >= 1 && atlasRel.facilities.length >= 1 && atlasRel.balances.length >= 1 && atlasRel.rfqs.length >= 1,
     atlasRel ? `${atlasRel.contracts.length} contrato(s), ${atlasRel.facilities.length} facility, ${atlasRel.balances.length} saldo(s), ${atlasRel.rfqs.length} RFQ(s)` : 'ausente');
   const meridianRel = await relationship('meridian');
