@@ -470,8 +470,10 @@ export function versionHistory(assignment, spec) {
   }));
 }
 
+const DECLINE_REASONS = Object.freeze({ '': 'Sem motivo informado', not_offered: 'Não oferecemos este produto', capacity: 'Sem capacidade no momento', deadline: 'Prazo insuficiente', other: 'Outro motivo' });
+
 export async function providerInvite(ctx) {
-  ctx.header({ title: 'Aceitar convite', subtitle: 'O convite vincula a solicitação à sua instituição.' });
+  ctx.header({ title: 'Aceitar convite', subtitle: 'Aceite para ver a solicitação e preparar proposta, ou recuse sem acessar o conteúdo.' });
   let token = '';
   const hash = new URLSearchParams(String(location.hash || '').replace(/^#/, ''));
   const query = new URLSearchParams(location.search);
@@ -498,7 +500,39 @@ export async function providerInvite(ctx) {
     select.value = ctx.organization?.id;
     const submit = button('Aceitar convite', { variant: 'primary', type: 'submit', iconName: 'check' });
     let confirmed = false, attempts = 0;
-    form.append(field({ label: 'Organização que vai responder', control: select }), el('div', { class: 'form-actions' }, submit));
+    // Recusa direta (POST invites/decline): sem aceitar, sem proposta, sem acesso à solicitação.
+    const reason = el('select', { name: 'decline_reason' }, Object.entries(DECLINE_REASONS).map(([value, text]) => el('option', { value, text })));
+    const decline = button('Recusar convite', { variant: 'ghost', iconName: 'x', attrs: { 'data-intent': 'recusar-convite' } });
+    let declinePayload = null;
+    decline.addEventListener('click', async () => {
+      if (!/^[0-9a-f]{64}$/.test(tokenInput.value.trim())) { tokenInput.closest('.field').setError('O token tem 64 caracteres (0-9, a-f).'); return; }
+      // Repetição após falha reenvia o MESMO payload: o servidor reconcilia (replay), sem novo evento.
+      if (!declinePayload) {
+        const ok = await confirmDialog({ title: 'Recusar o convite?', confirmLabel: 'Recusar convite', tone: 'danger',
+          description: 'A empresa vê que a sua instituição recusou, com data e o motivo escolhido. Você não acessa a solicitação, nenhuma proposta é criada e não há como aceitar depois por este convite.',
+          body: el('div', { class: 'stack-xs' }, [el('p', { class: 'small', text: `Organização: ${select.selectedOptions[0]?.text || 'não identificada'}` }), field({ label: 'Motivo (opcional)', control: reason })]) });
+        if (!ok) return;
+        declinePayload = { token: tokenInput.value.trim(), provider_organization_id: select.value, expected_status: 'invited', confirmed: true, reason: reason.value || null };
+      }
+      decline.disabled = true; submit.disabled = true;
+      try {
+        const result = await ctx.api('invites/decline', { method: 'POST', body: JSON.stringify(declinePayload) });
+        stateNode.className = 'callout callout-success';
+        stateNode.textContent = `Convite recusado${result.declined_at ? ` em ${formatDateTime(result.declined_at)}` : ''}. A empresa vê a recusa; nenhuma proposta foi criada.${result.replayed ? ' (A recusa já estava registrada.)' : ''}`;
+        stateNode.dataset.state = 'declined';
+        form.querySelectorAll('button, input, select').forEach((node) => { node.disabled = true; });
+        toast('Convite recusado.');
+      } catch (error) {
+        const uncertain = uncertainWrite(error);
+        stateNode.className = uncertain ? 'callout callout-warning' : 'callout callout-danger';
+        stateNode.textContent = error.status === 401 ? 'Sua sessão expirou. Nada foi registrado; entre de novo para responder.'
+          : error.status === 409 ? 'Este convite não pode mais ser recusado: ele pode ter sido aceito, revogado, expirado ou pertencer a outra instituição.'
+          : uncertain ? 'Não foi possível confirmar a recusa. Tente de novo: o mesmo pedido é reenviado e não duplica o registro.' : (error.message || 'A recusa não foi registrada.');
+        if (error.status === 409 || error.status === 401) declinePayload = null;
+        decline.disabled = error.status === 409; submit.disabled = false;
+      }
+    });
+    form.append(field({ label: 'Organização que vai responder', control: select }), el('div', { class: 'form-actions' }, [submit, decline]));
     onSubmit(form, async (event) => {
       event.preventDefault();
       if (!/^[0-9a-f]{64}$/.test(tokenInput.value.trim())) { tokenInput.closest('.field').setError('O token tem 64 caracteres (0-9, a-f).'); return; }

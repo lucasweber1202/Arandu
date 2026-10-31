@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { productRegistry } from '../../lib/finance/product-registry.mjs';
 // Central de Relacionamentos 2.0 (v3.8): fila de trabalho por instituição a
 // partir de contratos, solicitações e tarefas já carregados. Nada inventado:
 // responsável ausente aparece ausente; aviso prévio é o registrado.
@@ -578,29 +579,50 @@ test('360: coleta encerrada com proposta vira trabalho de comparação; sinal mo
 
 // Catálogo de produtos: suporte declarado vem do código (negociação só onde há
 // formulário e motor); modalidade sem negociação oferece registrar o contrato.
+const serveRegistry = (page, body = { ok: true, ...productRegistry() }, status = 200) => page.route('**/api/finance/product-registry', (route) => route.fulfill({ status, json: body }));
 test('catálogo: busca, família, suporte real e ação apropriada por modalidade', async ({ page }) => {
   await setup(page);
+  await serveRegistry(page);
   await page.goto('/finance/providers.html');
   await page.getByRole('button', { name: 'Catálogo de produtos' }).click();
   const drawerNode = page.getByRole('dialog', { name: 'Catálogo de produtos financeiros' });
   await drawerNode.getByLabel('Buscar produto financeiro').fill('fianca');
   const fianca = drawerNode.locator('.catalog-item').filter({ hasText: 'Fiança bancária' });
-  await expect(fianca).toContainText('Contrato existente com termos estruturados');
+  await expect(fianca).toContainText('Registrar contrato com condições estruturadas');
   await expect(fianca).toContainText('Sem cálculo econômico');
   await expect(fianca.getByRole('link', { name: 'Iniciar negociação' })).toHaveCount(0);
   await expect(fianca.getByRole('link', { name: 'Registrar contrato existente' })).toHaveAttribute('href', /contracts\.html\?acao=registrar-contrato/);
   await drawerNode.getByLabel('Buscar produto financeiro').fill('');
-  await drawerNode.getByLabel('Família').selectOption('payments');
-  const acq = drawerNode.locator('.catalog-item').filter({ hasText: 'Adquirência (cartões)' });
-  await expect(acq).toContainText('Estimativa de custo de processamento');
+  await drawerNode.getByLabel('Família').selectOption('acquiring');
+  const acq = drawerNode.locator('.catalog-item').filter({ hasText: 'Adquirência de cartões' });
+  await expect(acq).toContainText('Comparação econômica disponível');
   await expect(acq.getByRole('link', { name: 'Iniciar negociação' })).toHaveAttribute('href', /new-rfq\.html\?product=acquiring/);
   await drawerNode.getByLabel('Buscar produto financeiro').fill('xyz inexistente');
   await expect(drawerNode.getByRole('status')).toContainText('Outro produto financeiro');
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
 });
 
+test('catálogo: as 30 modalidades e 10 famílias vêm da API; falha e versão inesperada são declaradas', async ({ page }) => {
+  await setup(page);
+  let mode = 'fail';
+  await page.route('**/api/finance/product-registry', (route) => mode === 'fail' ? route.fulfill({ status: 500, json: { ok: false } })
+    : route.fulfill({ json: { ok: true, ...productRegistry(), version: 'financial-product-registry-9' } }));
+  await page.goto('/finance/providers.html');
+  await page.getByRole('button', { name: 'Catálogo de produtos' }).click();
+  const d = page.getByRole('dialog', { name: 'Catálogo de produtos financeiros' });
+  await expect(d.getByRole('alert')).toContainText('Nenhuma modalidade foi presumida');
+  mode = 'v9';
+  await d.getByRole('button', { name: 'Tentar de novo' }).click();
+  await expect(d).toContainText('versão que esta tela ainda não conhece');
+  await expect(d.locator('.catalog-item')).toHaveCount(30);
+  await expect(d.getByLabel('Família').locator('option')).toHaveCount(11);
+  await expect(d.locator('.catalog-item[data-negotiable="true"]')).toHaveCount(8);
+  for (const banned of [/CATALOG_ONLY|RFQ_ENABLED|ECONOMICS_ENABLED/]) await expect(d.getByText(banned)).toHaveCount(0);
+});
+
 test('catálogo: leitor vê o suporte sem ações de escrita', async ({ page }) => {
   await setup(page, { role: 'viewer' });
+  await serveRegistry(page);
   await page.goto('/finance/providers.html');
   await page.getByRole('button', { name: 'Catálogo de produtos' }).click();
   await expect(page.locator('.catalog-item').first()).toBeVisible();

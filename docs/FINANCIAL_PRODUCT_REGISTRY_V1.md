@@ -11,7 +11,7 @@ Taxonomia extensível de modalidades financeiras (`lib/finance/product-registry.
 | `ECONOMICS_ENABLED` | RFQ habilitada e metodologia econômica existente (crédito: custo total declarado; adquirência: `acquiring-processing-cost-v2`) |
 | `INTEGRATION_SUPPORTED` | nunca nesta versão (não há conector específico) |
 
-Estado em v1: 30 modalidades e 10 famílias. 9 têm RFQ e economia (crédito e adquirência). As demais são `CATALOG_ONLY + STRUCTURED` em 5 categorias tipadas (credit, acquiring, guarantee, fx, cash_management) mais `other`.
+Estado em v1: 30 modalidades e 10 famílias. 8 têm RFQ e economia (5 de crédito, 3 de adquirência). As demais são `CATALOG_ONLY + STRUCTURED` em 5 categorias tipadas (credit, acquiring, guarantee, fx, cash_management) mais `other`.
 
 ## API
 `GET /api/finance/product-registry`: pública como `GET products` (sem dado de organização), rate limit `finance-products`, `no-store`. Resposta `{ok, version, families:[{code, name, description, modalities:[code]}], modalities:[{code, name, family, contract_category, rfq_product|null, support[], term_fields[], economics:{method, note}|null}], notice}`. Sem paginação (catálogo pequeno e versionado).
