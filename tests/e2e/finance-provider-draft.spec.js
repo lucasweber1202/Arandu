@@ -429,3 +429,52 @@ test('convite com prazo informado já passado: dito como tal, sem prometer que o
   await page.goto('/provider/index.html');
   await expect(page.locator('#convites')).toContainText('já passou; o aceite depende de o convite ainda estar válido');
 });
+
+// Recusa institucional (POST invites/decline, #293): confirmação, motivo do
+// catálogo, sem aceitar nem criar proposta; replay seguro após resposta incerta.
+test('recusa: confirmação com motivo, payload do contrato, estado final e nenhum aceite', async ({ page }) => {
+  await mockProvider(page);
+  const declines = []; let accepts = 0;
+  await page.route('**/api/finance/invites/accept', (route) => { accepts += 1; return route.fulfill({ json: { ok: true } }); });
+  await page.route('**/api/finance/invites/decline', (route) => { declines.push(route.request().postDataJSON());
+    return route.fulfill({ json: { ok: true, invite_id: '00000000-0000-4000-8000-0000000000e1', status: 'declined', declined_at: '2026-10-31T12:00:00Z', replayed: false } }); });
+  await page.goto(`/provider/invite.html#token=${'c'.repeat(64)}`);
+  await page.getByRole('button', { name: 'Recusar convite' }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toContainText('nenhuma proposta é criada');
+  await dialog.getByLabel('Motivo (opcional)').selectOption('capacity');
+  await dialog.getByRole('button', { name: 'Recusar convite' }).click();
+  await expect(page.locator('#invite-state')).toHaveAttribute('data-state', 'declined');
+  await expect(page.locator('#invite-state')).toContainText('nenhuma proposta foi criada');
+  expect(declines).toEqual([{ token: 'c'.repeat(64), provider_organization_id: PROVIDER, expected_status: 'invited', confirmed: true, reason: 'capacity' }]);
+  expect(accepts).toBe(0);
+  await expect(page.getByRole('button', { name: 'Aceitar convite' })).toBeDisabled();
+});
+
+test('recusa: cancelar não envia; resposta incerta reenvia o mesmo pedido e reconcilia pelo replay', async ({ page }) => {
+  await mockProvider(page);
+  const declines = [];
+  await page.route('**/api/finance/invites/decline', (route) => { declines.push(route.request().postDataJSON());
+    return declines.length === 1 ? route.abort('connectionreset') : route.fulfill({ json: { ok: true, invite_id: 'x', status: 'declined', declined_at: '2026-10-31T12:00:00Z', replayed: true } }); });
+  await page.goto(`/provider/invite.html#token=${'d'.repeat(64)}`);
+  await page.getByRole('button', { name: 'Recusar convite' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Cancelar' }).click();
+  expect(declines).toHaveLength(0);
+  await page.getByRole('button', { name: 'Recusar convite' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Recusar convite' }).click();
+  await expect(page.locator('#invite-state')).toContainText('não duplica o registro');
+  await page.getByRole('button', { name: 'Recusar convite' }).click();
+  await expect(page.locator('#invite-state')).toContainText('A recusa já estava registrada');
+  expect(declines).toHaveLength(2);
+  expect(declines[1]).toEqual(declines[0]);
+});
+
+test('recusa: convite inválido (409) explica sem revelar concorrentes e desativa a recusa', async ({ page }) => {
+  await mockProvider(page);
+  await page.route('**/api/finance/invites/decline', (route) => route.fulfill({ status: 409, json: { ok: false, error: 'Convite inválido.', code: 'invite_invalid' } }));
+  await page.goto(`/provider/invite.html#token=${'e'.repeat(64)}`);
+  await page.getByRole('button', { name: 'Recusar convite' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Recusar convite' }).click();
+  await expect(page.locator('#invite-state')).toContainText('não pode mais ser recusado');
+  await expect(page.getByRole('button', { name: 'Recusar convite' })).toBeDisabled();
+});
