@@ -4,7 +4,27 @@ Objetivo comercial: primeiro produto comercial até **31/12/2026**. Constituiç�
 
 Baseline reconciliada em 30/10: `main@53e02da90b44b328aae156360b1b16429ab8634f`; PR #285 integrada, sem reimplementar seu `context`. Pacotes desta missão em branches `codex/financial-economics-2`, `codex/negotiation-continuity-2`, `codex/institutional-decline-2`, para revisão progressiva nessa ordem. Nenhum merge automático.
 
-## Oito capacidades e estado real
+## Rebaseline de 30/10/2026 — Platform Intelligence 1.0
+
+Main observada: `f25a207c103a35ea46e4da700c077aa47ef9656e`; #287/#288 e #290–#294 presentes na história ancestral da main. Nenhuma PR aberta na consulta inicial desta missão. #293 incorporou recusa institucional à main: não há nova missão de recuperação de #289.
+
+| Frente | Escopo solicitado pelo proprietário | Evidência na baseline | Próximo aceite |
+| --- | --- | --- | --- |
+| CRM financeiro/bancário | contatos, atividades, responsáveis, pipeline, vínculos e histórico buyer/provider persistentes | provider contacts e Relationship 360 existentes; CRM completo não comprovado | operações e isolamento reais de banco, histórico e concorrência; contratos para UI |
+| Copilot generativo | modelo configurável, ferramentas autorizadas, citações, ações preparadas e confirmação | consultas guiadas existentes são determinísticas; não são LLM | orquestração testada, execução legítima quando configurada, configuração ausente explícita; sem credenciais, chamada real bloqueada |
+| Product Intelligence 2.0 | schemas especializados e modalidades com integração financeira real | #294: registry canônico de 30 modalidades/10 famílias; crédito/adquirência mais profundos | especializar família nova, unidade/fonte/versão e integração ao contrato ou negociação; não duplicar registry |
+| ERP Hub | conexão, preview, sync, dedupe, reconciliação, histórico e adapter concreto | API pública, service accounts e webhooks não equivalem a conector nativo ativo | protocolo de API oficial, persistência e falhas; leitura externa somente com autorização/credencial |
+| Economics 3.0 | propostas externas revisadas e cenários com autoria/premissas | Economics v2 + UI #290; limites do modelo de adquirência permanecem | comparação adicional com fontes, versão, moeda e incomparabilidade; sem savings automáticos |
+| Ingestão estruturada | arquivo → prévia → confirmação → system of record financeiro | cadastro de contrato/proposta externa existentes; lote de tarifas não comprovado | parsing, erros por linha, confirmação, dedupe/replay, persistência e recuperação |
+
+Estas frentes são **escopo aprovado para desenvolvimento pelo mandato**, não capacidades operacionais concluídas nesta PR documental. Código em branches de trabalho deve trazer seu próprio SHA, testes e dependências; CI da baseline não valida código novo. A revisão normativa do §45 permanece pendente do proprietário. Sem alteração hospedada autorizada por este plano.
+
+Integrações já reconciliadas: #290 conectou economics e resultado à interface; #291 evoluiu a Central 360°; #292 acrescentou catálogo visual, consultas guiadas e seção ERP; #293 incorporou a recusa institucional; #294 criou o registry backend. Presença em main não prova teste hospedado, execução de modelo ou conexão ERP. A interface de catálogo ainda deve usar a API canônica conforme contrato da #294.
+
+As seções seguintes registram a rodada anterior e suas evidências/pendências naquele momento. Não reinterpretar pendência histórica como blocker atual nem elevar evidência antiga à nova missão.
+
+## Oito capacidades — registro histórico da rodada anterior
+
 
 | Capacidade | V1 prevista e estado nesta missão | Dependência / aceite |
 | --- | --- | --- |
