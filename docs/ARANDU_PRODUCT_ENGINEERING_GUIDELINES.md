@@ -3,6 +3,7 @@
 **Versão 3.7 — 20 de outubro de 2026**
 **Baseline técnica de referência desta revisão:** `main` @ `dd8c6a7af7c3622441825aa1bda2e7013e25f51e` (antes da PR documental v3.7; commits posteriores exigem reconciliação)
 **Status:** constituição normativa de produto e engenharia
+**Proposta de ampliação em revisão:** §45, mandato do proprietário de 30/10/2026; aprovação normativa pendente, sem promoção de maturidade.
 **Escopo:** tese de produto, boundaries, arquitetura funcional, maturidade, UX, engenharia, dados, segurança, IA, integrações, operação enterprise e critérios de evolução
 
 > **Propósito.** Esta guideline define o que o Arandu é, o que não é, como deve evoluir e quais garantias não podem ser sacrificadas. Ela governa pessoas e agentes de IA que alterem o produto.
@@ -1949,7 +1950,7 @@ Comparação preserva neutralidade, pesos **definidos pelo cliente** e cobertura
 
 O portal do provedor DEVE evoluir além do formulário de resposta e cobrir, de maneira progressiva e proporcional ao piloto: inbox de oportunidades com prazo e estado; aceite/recusa; documentos e perguntas autorizados; rascunho e revisão da própria proposta; autoria/colaboração interna autorizada; estado/resultado compartilhável; histórico da própria organização; notificações opt-in e follow-ups verificáveis. Modelos reutilizáveis de dados públicos/institucionais são aceitáveis quando não expõem outras RFQs.
 
-Em nenhum momento a instituição recebe notas internas, critérios reservados, concorrentes, propostas alheias ou dados extraídos do Passport inteiro por inferência. Compartilhamento de motivo de decisão é controle explícito do comprador. **Não construir CRM bancário integral**: prever exportações e integrações futuras com CRM do provedor. Medir aceitação, resposta, tempo de elaboração, conclusão e participação recorrente sem acesso cruzado.
+Em nenhum momento a instituição recebe notas internas, critérios reservados, concorrentes, propostas alheias ou dados extraídos do Passport inteiro por inferência. Compartilhamento de motivo de decisão é controle explícito do comprador. **Restrição histórica anterior ao mandato Platform Intelligence 1.0:** não construir CRM bancário integral. A proposta delimitada do §45 reconhece a ampliação solicitada pelo proprietário, incluindo CRM financeiro integrado e interoperabilidade com CRMs externos; sua revisão normativa permanece pendente. Medir aceitação, resposta, tempo de elaboração, conclusão e participação recorrente sem acesso cruzado.
 
 ## 38.6 Integração, documentação e redução de trabalho manual
 
@@ -2052,7 +2053,7 @@ Por oportunidade, medir tempo de compreensão, aceite/recusa, trabalho para resp
 
 1. **Participação leve:** convite vinculado à identidade e escopo, página legível, aceitar/recusar, documentação autorizada, possibilidade de resposta por canal externo; nenhum cadastro institucional completo como exigência universal.
 2. **Workspace opcional:** oportunidades próprias, autoria, rascunhos, modelos e versões, perguntas autorizadas, colaboração interna, pendências/estado, avisos opt-in e histórico da própria organização. Controle estrito de papéis e vínculo com convite.
-3. **Integração após prova:** exportação e contratos de dados para CRM/ERP/tesouraria da instituição; APIs sob consentimento/contratos, scopes, auditoria, idempotência e volume medido; não replicar seu core de crédito ou CRM.
+3. **Integração após prova:** exportação e contratos de dados para CRM/ERP/tesouraria da instituição; APIs sob consentimento/contratos, scopes, auditoria, idempotência e volume medido; não replicar seu core de crédito. O CRM financeiro integrado solicitado no mandato de 30/10 e descrito no §45 complementa os objetos canônicos e preserva interoperabilidade com sistemas externos.
 
 Não implementar automaticamente links anônimos de edição; a experiência de "sem conta" pode ser registro externo realizado pelo comprador ou convite seguro com autenticação proporcional, nunca bypass de identidade.
 
@@ -2187,6 +2188,39 @@ Mudanças passam pelos quatro gates obrigatórios no HEAD exato; melhoria visual
 ## 44.3 Condições que justificam mudar a estratégia
 
 Reavaliar foco de Gestão, modelo buyer-paid ou três ofertas se entrevistas revelarem: baixa recorrência, custo de alimentação superior ao benefício, adesão bancária inviável, dificuldade de aquisição, exigência de integração não viável, ausência de willingness-to-pay, evidência de preferência por produto mais estreito ou concentração inesperada de valor em Essencial/Enterprise. Mudança estratégica significativa exige registro de decisão e comparação de hipóteses, sem seguir a visão atual por inércia.
+
+---
+
+# 45. Platform Intelligence 1.0 — ampliação delimitada para revisão do proprietário
+
+**Estado desta seção: PROPOSTA NORMATIVA, aguardando revisão e aprovação do proprietário.** Mandato executivo recebido em 30/10/2026, baseline reconciliada `main@f25a207c103a35ea46e4da700c077aa47ef9656e`. O mandato autoriza os pacotes específicos de implementação; esta proposta não declara sua integração, operação hospedada ou sucesso comercial. Os capítulos anteriores continuam como registro da estratégia que os originou, sem reclassificação retroativa.
+
+## 45.1 Quatro frentes aprovadas como escopo de desenvolvimento
+
+1. **CRM bancário financeiro integrado:** contatos, atividades declaradas, responsáveis, pipeline comercial, colaboração e histórico persistentes para comprador e instituição, dentro do próprio escopo. Reutilizar organizações, instituições, tarefas, RFQs, propostas, contratos e eventos; estágio comercial nunca substitui o estado financeiro canônico. Notas do comprador não se tornam públicas para a instituição. Uma anotação de e-mail não é confirmação de entrega.
+2. **Copilot generativo:** execução real de modelo quando houver provedor, configuração e autorização legítimos; ferramentas tipadas dos domínios, fontes autorizadas, citações reconciliadas e preparação de ação para confirmação humana. Consultas guiadas determinísticas continuam úteis e devem ser identificadas como tal. Sem modelo configurado, declarar indisponibilidade; provider falso serve apenas a testes explicitamente identificados. Não consultar SQL arbitrário nem executar decisão financeira por instrução do modelo ou do documento.
+3. **Product Intelligence especializado e expansível:** ampliar o registry canônico existente, com códigos estáveis, schemas por modalidade, unidade, moeda, fonte, vigência e versionamento. Garantias, câmbio e hedge precisam de termos próprios. Uma modalidade cadastrada não adquire RFQ, economia ou integração sem implementação e testes correspondentes. Não fabricar curvas, fluxos, preço de mercado ou fórmulas sem parâmetros.
+4. **Integrações ERP empresariais diretas:** adapters concretos sob documentação oficial e versões explícitas, autorização, configuração segura, preview, normalização, sincronização persistida, dedupe, reconciliação, histórico e suspensão/revogação. API pública consumível por terceiros não equivale a conector nativo que busca dados. Fixtures de protocolo não provam ERP ativo; sem credencial autorizada, classificar a execução externa como bloqueada.
+
+## 45.2 Uma plataforma e invariantes preservadas
+
+As frentes complementam Relationship Intelligence, Radar, Negotiation Studio, Contract Intelligence, Economics, Instituições, ingestão e Financial Graph, sobre identidade compartilhada: organização → entidade → instituição → relacionamento → produto → contrato/condições → negociação → proposta → decisão → resultado → histórico. Não criar segunda tabela de contratos, RFQs, propostas institucionais, oportunidades ou livro de economias, nem banco de grafos, vetores ou microserviços por nome de arquitetura.
+
+Permanecem integrais: buyer-first; separação buyer/provider; RLS/RBAC e escopo de entidade; privacidade, origem e autoria; revisão humana de extração; concorrência e replay; critérios/pesos/decisão do cliente; e todos os gates de identidade, Auth, Storage, recovery e operação. Não executar pagamentos, contratação, underwriting ou movimento de dinheiro. Proposta externa registrada pela empresa não se torna proposta autenticada do banco. Economia estimada não se torna realizada automaticamente.
+
+O produto continua distinto de ERP, contabilidade e TMS genéricos. Integrações alimentam fontes autorizadas; não substituem os sistemas de origem indiscriminadamente. Documentos e respostas de modelo são dados não confiáveis, não instruções para ultrapassar permissões. Segredos não vão ao frontend, ao log ou a armazenamento em texto puro. Não há autorização nova para produção, migrations hospedadas, secrets, alterações de acesso, cutover ou deploy.
+
+## 45.3 Entrega, evidência e ownership
+
+Codex: domínios, APIs, persistência, SQL, migrations/rollback, IA backend, registry, conectores, normalização, testes e contratos técnicos. Claude Code: superfícies buyer/provider, CRM/Copilot/ERP Hub visual, catálogo e E2E de UI. Contratos de API devem acompanhar implementação verificável: método, request, response, papel/escopo, proveniência, estado, paginação, erros, persistência, limites e teste; contratos propostos devem dizer que ainda não estão implementados. Arquivos compartilhados exigem coordenação, sem sobrescrever a outra frente.
+
+Pacotes revisáveis e independentes quando possível; não encerrar a missão na primeira PR, nem agrupar todos os domínios em uma PR de alto risco. Schema aditivo, manifest, probes, clean/upgrade/reapply/rollback e testes negativos; concorrência em sessões independentes quando aplicável. Os quatro gates `database`, `deploy-boundaries`, `presentation`, `validate` continuam obrigatórios no SHA correto. A aprovação desta proposta exige revisão do proprietário e não é substituída por CI verde.
+
+Estados operacionais de cada entrega: código implementado, validação local, CI no SHA, validação hospedada, bloqueado e não executado. Esses rótulos complementam M0–M6, sem substituí-los ou pular estágios. Registry estático não conclui Product Intelligence; tabela/GET isolados não concluem CRM; adapter vazio não conclui ERP; templates não concluem geração. Registrar evidência de negócio separadamente da técnica, sem claims de eficiência ou adoção por quantidade de PRs.
+
+## 45.4 V1 e dependências comerciais
+
+Objetivo comercial de 31/12/2026 permanece uma meta de planejamento, não promessa de maturidade integral de todos os conectores, produto generativo hospedado ou operação de cliente. O plano V1 distingue escopo solicitado, código, teste, ambiente, blocker externo e hipótese comercial. Rever prioridade por resultados e dependências reais, preservando o histórico dos P0, da visita pública e dos gates canônicos. READY da visita pública não equivale a M3.
 
 ---
 
