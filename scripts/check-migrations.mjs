@@ -48,6 +48,7 @@ for (const [flow, files] of Object.entries(manifest)) {
   if (files.indexOf('docs/supabase-financial-contract-import-integrity.sql') !== files.indexOf('docs/supabase-financial-external-decision.sql')+1) issues.push(`${flow}: intenção de registro contratual deve seguir a decisão externa.`);
   if (files.indexOf('docs/supabase-financial-negotiation-continuity.sql') !== files.indexOf('docs/supabase-financial-provider-intent-integrity.sql')+1) issues.push(`${flow}: continuidade da negociação deve seguir recibos de instituição.`);
   if (files.indexOf('docs/supabase-financial-institutional-decline.sql') !== files.indexOf('docs/supabase-financial-negotiation-continuity.sql')+1) issues.push(`${flow}: recusa institucional deve seguir continuidade da negociação.`);
+  if (files.indexOf('docs/supabase-financial-platform-intelligence.sql') !== files.indexOf('docs/supabase-financial-crm.sql')+1) issues.push(`${flow}: termos especializados devem seguir CRM.`);
   if (files.indexOf('docs/supabase-financial-crm.sql') !== files.indexOf('docs/supabase-financial-institutional-decline.sql')+1) issues.push(`${flow}: CRM deve seguir recusa institucional.`);
   const sprint2 = files.indexOf('docs/supabase-sprint2-catalog-readiness.sql');
   const collections = files.indexOf('docs/arandu-mvp-collections.sql');
