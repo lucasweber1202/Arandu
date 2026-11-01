@@ -30,7 +30,7 @@ begin
   v_order := array_position(array['financial-surface-hardening-1','financial-approval-handoff-1','financial-passport-1',
                                    'financial-multi-entity-1','financial-contracts-v2-1',
                                    'financial-relationships-portfolio-1','financial-passport-entities-1','financial-graph-1','financial-policy-engine-1','financial-public-api-1',
-                                   'financial-sso-1','financial-operational-resilience-1','financial-data-governance-1','financial-legacy-art-decommission-1','financial-p0-closure-1','financial-value-realization-1','financial-fee-intelligence-1','financial-opportunity-engine-1','financial-document-intelligence-1','financial-provider-qualification-1','financial-implementation-1','financial-covenants-1','financial-provider-performance-1','financial-spend-intelligence-1','financial-opportunity-discriminator-1','financial-demo-workspaces-1','financial-demo-pool-1', 'financial-security-closure-1', 'financial-request-receipts-1', 'financial-followup-hardening-1', 'financial-contract-onboarding-1', 'financial-renewal-cycles-1', 'financial-decision-integrity-1', 'financial-session-revocation-1', 'financial-document-upload-authorization-1', 'financial-implementation-task-labels-1', 'financial-task-accountability-1', 'financial-enterprise-integrity-1', 'financial-decision-authorization-1', 'financial-external-proposals-1', 'financial-relationship-continuity-1', 'financial-external-decision-1', 'financial-contract-import-integrity-1', 'financial-provider-intent-integrity-1','financial-negotiation-continuity-1','financial-institutional-decline-1'], v_schema);
+                                   'financial-sso-1','financial-operational-resilience-1','financial-data-governance-1','financial-legacy-art-decommission-1','financial-p0-closure-1','financial-value-realization-1','financial-fee-intelligence-1','financial-opportunity-engine-1','financial-document-intelligence-1','financial-provider-qualification-1','financial-implementation-1','financial-covenants-1','financial-provider-performance-1','financial-spend-intelligence-1','financial-opportunity-discriminator-1','financial-demo-workspaces-1','financial-demo-pool-1', 'financial-security-closure-1', 'financial-request-receipts-1', 'financial-followup-hardening-1', 'financial-contract-onboarding-1', 'financial-renewal-cycles-1', 'financial-decision-integrity-1', 'financial-session-revocation-1', 'financial-document-upload-authorization-1', 'financial-implementation-task-labels-1', 'financial-task-accountability-1', 'financial-enterprise-integrity-1', 'financial-decision-authorization-1', 'financial-external-proposals-1', 'financial-relationship-continuity-1', 'financial-external-decision-1', 'financial-contract-import-integrity-1', 'financial-provider-intent-integrity-1','financial-negotiation-continuity-1','financial-institutional-decline-1','financial-crm-1'], v_schema);
   if v_order is null then
     raise exception 'CANÁRIO: schema não suportado';
   end if;
@@ -48,6 +48,7 @@ begin
   if (to_regclass('public.fin_obligations') is not null) <> (v_order >= 22) then raise exception 'CANÁRIO: schema e covenants divergentes'; end if;
   if (to_regclass('public.fin_implementation_plans') is not null) <> (v_order >= 21) then raise exception 'CANÁRIO: schema e implementation divergentes'; end if;
   if (to_regclass('public.fin_qualification_requirements') is not null) <> (v_order >= 20) then raise exception 'CANÁRIO: schema e provider qualification divergentes'; end if;
+  if v_schema='financial-crm-1' and (to_regclass('public.fin_crm_activities') is null or to_regclass('public.fin_crm_processes') is null) then raise exception 'CANÁRIO: schema e CRM divergentes'; end if;
   v_passport := v_order >= 3;
   v_multi := v_order >= 4;
   v_contracts := v_order >= 5;
@@ -166,9 +167,12 @@ begin
       ('fin_implementation_issues', 'not (organization_id = any($1))'),
       ('fin_implementation_acceptances', 'not (organization_id = any($1))'),
 
+      ('fin_crm_activities', 'not (organization_id = any($1))'),
+      ('fin_crm_processes', 'not (organization_id = any($1))'),
       ('fin_governance_log', 'not (organization_id = any($1))'),
       ('fin_private_documents',  'not (organization_id = any($1) or buyer_organization_id = any($1) or (visibility = ''shared'' and rfq_id = any($2)))')
     ) t(tbl, rule) loop
+      if v_tbl in ('fin_crm_activities','fin_crm_processes') and to_regclass('public.'||v_tbl) is null then continue; end if;
       -- Before Passport, these two tables must be absent (checked above).
       -- From financial-passport-1 on every check is mandatory, including both.
       if not v_passport and v_tbl in ('fin_company_profile_history','fin_rfq_profile_snapshots') then continue; end if;
@@ -223,7 +227,8 @@ begin
           || case when v_order >= 6 then array['fin_facilities','fin_guarantees','fin_provider_relationships'] else '{}'::text[] end
           || case when v_order >= 16 then array['fin_value_records'] else '{}'::text[] end
           || case when v_order >= 17 then array['fin_fee_schedules','fin_fee_observations','fin_fee_variances'] else '{}'::text[] end
-          || case when v_order >= 18 then array['fin_opportunities'] else '{}'::text[] end loop
+          || case when v_order >= 18 then array['fin_opportunities'] else '{}'::text[] end
+          || case when to_regclass('public.fin_crm_activities') is not null then array['fin_crm_activities','fin_crm_processes'] else '{}'::text[] end loop
         execute format('select count(*) from public.%I where organization_id = $1 and not (coalesce(%s, ''00000000-0000-0000-0000-000000000000''::uuid) = any($2))',
                        v_tbl, case when v_tbl = 'fin_legal_entities' then 'id' else 'legal_entity_id' end)
           into v_count using r.organization_id, r.entities;

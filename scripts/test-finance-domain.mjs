@@ -445,3 +445,4 @@ assert.equal(applyUserWeights('credit', proposals, { interest_rate_month: 'muito
 }
 
 console.log('Financial Procurement domain: normalização, cálculos com proveniência, comparação factual, pesos do usuário e máquina de estados, empates, cobertura e CNPJ aprovados.');
+await import('./test-financial-crm.mjs');
