@@ -730,3 +730,17 @@ for current_db in "$clean_db" "$upgrade_db" "$fresh_db"; do
   apply_file "$current_db" "ops/sql/pilot-isolation-canary.sql"
 done
 node "$root_dir/tests/database/financial-crm-concurrency.mjs" "$(database_url "$fresh_db")"
+
+# Specialized product terms use the canonical contract versions. Rollback keeps
+# history but withdraws specialized writes; every install path is revalidated.
+for current_db in "$clean_db" "$upgrade_db" "$fresh_db"; do
+  apply_file "$current_db" "docs/supabase-financial-platform-intelligence.sql"
+  apply_file "$current_db" "docs/rollback/supabase-financial-platform-intelligence.rollback.sql"
+  apply_file "$current_db" "docs/supabase-financial-platform-intelligence.sql"
+  apply_file "$current_db" "docs/supabase-financial-platform-intelligence.sql"
+  apply_file "$current_db" "tests/database/financial-product-terms.sql"
+  apply_file "$current_db" "tests/database/financial-crm-institution.sql"
+  node "$root_dir/scripts/test-product-intelligence.mjs" "$(database_url "$current_db")"
+  apply_file "$current_db" "ops/sql/post-migration-probes.sql"
+  apply_file "$current_db" "ops/sql/pilot-isolation-canary.sql"
+done

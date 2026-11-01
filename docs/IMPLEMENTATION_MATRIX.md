@@ -1,5 +1,31 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 01/11/2026 — Platform Intelligence: CRM contextual, Copilot e termos especializados
+
+Base reconciliada `main@3a7d129`, sem PR aberta no início. Branch
+`feature/platform-intelligence-backend`; escopo de backend autorizado pela missão
+master, sem aprovação normativa automática do §45 e sem alteração hospedada.
+
+CRM: agenda por prazo e período, vínculo tipado/processo, pipeline sem próximo
+passo datado; visão institucional derivada de contatos/contratos/processos com
+RLS invoker, keyset e continuidade explícita. Não duplica contatos ou tarefas.
+Copilot: AI SDK 7.0.159, Gateway configurável, ferramentas fechadas sob JWT,
+fontes, limites, métricas sem conteúdo e preparação/confirmação de atividade via
+RPC CRM idempotente. Sem configuração legítima, 503; chamada externa NOT RUN.
+Produtos: fiança, spot, forward, NDF e swap nos termos versionados canônicos,
+metadata e validação SQL geradas de uma fonte. Economics: custo explícito de
+fiança por cenário, taxa/base/prazo/despesas/fontes, sem ranking ou savings.
+
+Suites específicas Node/API PASS (HTTP/modelo simulados explicitamente). SQL
+real PostgreSQL 15.15: CRM, projeção institucional, persistência/versionamento,
+isolamento e 118 casos de paridade PASS nas três instalações. `check:all`,
+`build`, `check:build-size` PASS local. Runner SQL completo encontrou teste de
+covenants dependente do dia do mês e colisão de fixtures novas com concorrência;
+ambos corrigidos nos testes, sem alterar regras financeiras. Reexecução integral
+e CI no SHA final ainda exigidos antes de M2. Sem frontend, Auth/Storage hospedados,
+LLM externo ou ERP ativo comprovados. Handoff, rollout/rollback e limites em
+[contratos de backend](PLATFORM_INTELLIGENCE_BACKEND_CONTRACTS_2026_11.md).
+
 ## 27/10/2026 — Prontidão unificada para 29/10 (pós-#280)
 
 Main `0a260b6`, CI e merge-audit SUCCESS; nenhuma PR aberta. Domínio

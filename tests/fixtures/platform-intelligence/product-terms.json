@@ -1,0 +1,7 @@
+{
+  "bank_guarantee": {"source_reference":"Contrato sintético 01", "beneficiary":"Beneficiário sintético", "currency":"BRL", "guaranteed_amount":1000000, "valid_from":"2026-01-01", "valid_until":"2027-01-01", "commission_pct_year":2, "day_count":"ACT/365F", "upfront_fee":100, "other_expenses":50},
+  "fx_spot": {"source_reference":"Contrato sintético 02", "base_currency":"USD", "quote_currency":"BRL", "base_amount":10000, "agreed_rate":5.2, "trade_on":"2026-10-01", "settles_on":"2026-10-03", "side":"buy_base"},
+  "fx_forward": {"source_reference":"Contrato sintético 03", "base_currency":"USD", "quote_currency":"BRL", "base_amount":10000, "agreed_rate":5.3, "trade_on":"2026-10-01", "settles_on":"2026-12-01", "side":"sell_base"},
+  "ndf": {"source_reference":"Contrato sintético 04", "base_currency":"USD", "quote_currency":"BRL", "base_amount":10000, "agreed_rate":5.3, "trade_on":"2026-10-01", "settles_on":"2026-12-01", "side":"sell_base", "fixing_on":"2026-11-30", "settlement_currency":"BRL", "fixing_source":"PTAX declarada no contrato"},
+  "swap": {"source_reference":"Contrato sintético 05", "currency":"BRL", "notional":1000000, "starts_on":"2026-01-01", "ends_on":"2027-01-01", "pay_index":"CDI", "receive_index":"IPCA", "pay_spread_pct_year":1, "receive_spread_pct_year":2, "day_count":"ACT/365F", "payment_frequency":"Semestral", "notional_exchange":"none"}
+}
