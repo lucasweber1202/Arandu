@@ -37,7 +37,8 @@ try{
  mismatch=true;await assert.rejects(()=>call('guarantee-economics',{...analysis,sources:[...analysis.sources,{contract_id:id(9),version:1}]}),e=>e.status===404);mismatch=false;
  hidden=true;calls=[];await assert.rejects(()=>call('guarantee-economics',analysis),e=>e.status===404);assert(!calls.some(c=>c.u.pathname.endsWith('/fin_contract_versions')));hidden=false;
  const tools=financialCopilotTools({token:'person-jwt',organizationId:org});calls=[];
- await tools.read_financial.execute({kind:'contracts',provider_id:id(5),due_after:'2026-11-01',due_before:'2027-01-30'});
+ await tools.read_financial.execute({kind:'contracts',provider_id:id(5),due_after:'2026-11-01',due_before:'2027-01-30'}, {signal:AbortSignal.abort()});
+ assert.equal(calls.at(-1).options.signal.aborted,true,'Supabase transport receives the generation deadline');
  assert.equal(calls.at(-1).u.searchParams.get('organization_id'),`eq.${org}`);assert.deepEqual(calls.at(-1).u.searchParams.getAll('ends_on'),['lte.2027-01-30','gte.2026-11-01']);
  assert(calls.every(c=>c.options.headers.Authorization==='Bearer person-jwt'));
  console.log('Platform Intelligence API: real handlers, JWT scope, source authorization, cross entity rejection, typed scenarios, unavailable LLM and explicit CRM confirmation/replay PASS (HTTP mocks).');

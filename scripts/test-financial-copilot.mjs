@@ -32,4 +32,15 @@ const values = { kind: 'follow_up', subject: 'Revisar relação', due_on: '2026-
 assert.equal((await financial.prepare_activity.schema.validate({ values })).success, true);
 const prepared = await financial.prepare_activity.execute({ values });
 assert.equal(prepared.prepared_action.confirmation_required, true); assert.equal(prepared.prepared_action.payload.organization_id, id);
+const controller = new AbortController();
+let forwarded = false;
+const cancelled = runCopilot({ question: 'Pergunta', provider: provider([call(), final('Não deve completar')]), signal: controller.signal,
+  tools: { read: { schema, description: 'Read', execute: async (_, { signal } = {}) => {
+    forwarded = signal instanceof AbortSignal;
+    if (!signal) throw new Error('missing signal');
+    return new Promise((resolve, reject) => { if (signal.aborted) reject(signal.reason); else signal.addEventListener('abort', () => reject(signal.reason), { once: true }); });
+  } } } });
+setTimeout(() => controller.abort(), 10);
+await assert.rejects(() => cancelled, e => e.code === 'copilot_timeout');
+assert(forwarded, 'generation deadline must propagate into authorized data tools');
 console.log('Copilot: SDK loop, closed tools, citations, limits, errors, injection boundaries and prepared actions PASS (mock model; external provider NOT RUN).');
