@@ -14,6 +14,8 @@ globalThis.fetch=async(url, options)=>{
  const u=new URL(url);calls.push({u,options});
  if(u.pathname.endsWith('/fin_organizations')) return Response.json([{id:org,kind:'BUYER'}]);
  if(u.pathname.endsWith('/fin_members')) return Response.json([{role:'admin'}]);
+ if(u.pathname.endsWith('/fin_providers')) return Response.json([{id:id(5),name:'Banco declarado',kind:'bank',status:'active',verification_state:'unverified'}]);
+ if(u.pathname.endsWith('/fin_crm_institution_records')) return Response.json([]);
  if(u.pathname.endsWith('/fin_contracts')) return Response.json(hidden?[]:[{id:contract,title:'Garantia declarada',product:'guarantee',legal_entity_id:mismatch&&u.searchParams.get('id')===`eq.${id(9)}`?id(10):entity}]);
  if(u.pathname.endsWith('/fin_contract_versions')) return Response.json([{version:1,effective_from:'2026-01-01',source:'import',terms:{product_terms:{schema_version:'financial-product-terms-1',modality:'bank_guarantee',values}}}]);
  if(u.pathname.endsWith('/rpc/fin_crm_command')) return conflict?Response.json({message:'crm request conflict'},{status:400}):Response.json({id:id(8),version:1,replayed:true});
@@ -40,6 +42,19 @@ try{
  await tools.read_financial.execute({kind:'contracts',provider_id:id(5),due_after:'2026-11-01',due_before:'2027-01-30'}, {signal:AbortSignal.abort()});
  assert.equal(calls.at(-1).options.signal.aborted,true,'Supabase transport receives the generation deadline');
  assert.equal(calls.at(-1).u.searchParams.get('organization_id'),`eq.${org}`);assert.deepEqual(calls.at(-1).u.searchParams.getAll('ends_on'),['lte.2027-01-30','gte.2026-11-01']);
+ await tools.read_financial.execute({kind:'providers',search:'Banco declarado'});
+ assert.equal(calls.at(-1).u.searchParams.get('name'),'ilike.*Banco declarado*');
+ assert.equal(calls.at(-1).u.searchParams.get('organization_id'),`eq.${org}`);
+ const relative=await tools.contracts_expiring.execute({days:90,provider_id:id(5)});
+ assert.equal(relative.window.days,90);
+ assert.equal(new Date(relative.window.through)-new Date(relative.window.from),90*86400000);
+ assert.deepEqual(calls.at(-1).u.searchParams.getAll('ends_on'),[`lte.${relative.window.through}`,`gte.${relative.window.from}`]);
+ await tools.institution_crm.execute({provider_id:id(5),record_type:'activity'});
+ assert(calls.some(c=>c.u.pathname.endsWith('/fin_crm_institution_records')));
+ await tools.financial_graph.execute({root_type:'organization'});
+ assert.equal(JSON.parse(calls.at(-1).options.body).p_root,org);
+ const comparison=await tools.compare_guarantees.execute({sources:analysis.sources,scenarios:analysis.scenarios});
+ assert.equal(comparison.analysis.scenarios[0].scenario.provenance,'copilot_prepared_scenario_requires_review');
  assert(calls.every(c=>c.options.headers.Authorization==='Bearer person-jwt'));
  console.log('Platform Intelligence API: real handlers, JWT scope, source authorization, cross entity rejection, typed scenarios, unavailable LLM and explicit CRM confirmation/replay PASS (HTTP mocks).');
 }finally{globalThis.fetch=original;for(const[k,v]of Object.entries(previous))if(v===undefined)delete process.env[k];else process.env[k]=v;}

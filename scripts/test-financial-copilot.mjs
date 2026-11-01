@@ -24,10 +24,19 @@ result = await runCopilot({ question: 'Pergunta', provider: provider([call(), fi
 assert(!JSON.stringify(result).includes('secret SQL'));
 await assert.rejects(() => runCopilot({ question: 'Pergunta', provider: provider([call(), final('Não deve sair')]), tools: { read: { schema, description: 'Read', execute: async () => ({ data: 'x'.repeat(49000) }) } } }), e => e.code === 'copilot_limit');
 const financial = financialCopilotTools({ token: 'user-jwt', organizationId: id });
-assert.deepEqual(Object.keys(financial), ['compare_guarantees', 'financial_graph', 'read_financial', 'contract_terms', 'prepare_activity']);
+assert.deepEqual(Object.keys(financial), ['institution_crm', 'contracts_expiring', 'compare_guarantees', 'financial_graph', 'read_financial', 'contract_terms', 'prepare_activity']);
 assert.equal((await financial.read_financial.schema.validate({ kind: 'contracts', organization_id: id })).success, false);
 assert.equal((await financial.read_financial.schema.validate({ kind: 'contracts', search: 'x),or=true' })).success, false);
 assert.equal((await financial.read_financial.schema.validate({ kind: 'contracts', id, after: id })).success, false);
+for (const [name,input] of [
+ ['institution_crm',{provider_id:id,record_type:'decision'}],
+ ['institution_crm',{provider_id:id,record_type:'activity',organization_id:id}],
+ ['contracts_expiring',{days:0}], ['contracts_expiring',{days:367}],
+ ['contracts_expiring',{days:90,organization_id:id}],
+ ['financial_graph',{root_type:'organization',root_id:'00000000-0000-4000-8000-000000000002'}]
+]) assert.equal((await financial[name].schema.validate(input)).success,false);
+assert.equal((await financial.contracts_expiring.schema.validate({days:90})).success,true);
+assert.equal((await financial.financial_graph.schema.validate({root_type:'organization'})).success,true);
 const values = { kind: 'follow_up', subject: 'Revisar relação', due_on: '2026-11-05', status: 'planned', source_reference: 'Reunião informada' };
 assert.equal((await financial.prepare_activity.schema.validate({ values })).success, true);
 const prepared = await financial.prepare_activity.execute({ values });

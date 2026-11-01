@@ -48,5 +48,12 @@
     "name": "title",
     "date": "due_on",
     "page": "tasks"
+  },
+  "providers": {
+    "table": "fin_providers",
+    "select": "id,name,kind,status,verification_state",
+    "name": "name",
+    "entity": false,
+    "page": "providers"
   }
 }

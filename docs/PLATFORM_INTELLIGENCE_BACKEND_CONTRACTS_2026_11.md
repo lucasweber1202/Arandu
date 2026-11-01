@@ -157,9 +157,11 @@ no servidor: `ARANDU_COPILOT_PROVIDER=vercel_gateway`,
 operador; não existe modelo padrão inventado. Demo bloqueia saída mesmo com
 credencial. Sem configuração completa: 503 `copilot_not_configured`.
 
-Ferramentas fechadas: `read_financial` (contratos, CRM, RFQs, propostas,
+Ferramentas fechadas: `read_financial` (instituições por nome, contratos, CRM, RFQs, propostas,
 oportunidades, tarefas), `contract_terms` (versão explícita), `financial_graph`,
-`compare_guarantees` (motor determinístico acima) e `prepare_activity` (sem escrita).
+`institution_crm` (contexto institucional autorizado), `contracts_expiring`
+(janela relativa calculada pelo servidor em UTC), `compare_guarantees` (motor
+determinístico acima; cenários preparados pelo Copilot identificados como tais) e `prepare_activity` (sem escrita).
 Organização e JWT são capturados pelo servidor; o modelo não recebe SQL,
 credencial, URL arbitrária ou ferramenta de execução. Paginação e truncamentos
 continuam explícitos. Texto da pergunta e fontes é dado não confiável.
