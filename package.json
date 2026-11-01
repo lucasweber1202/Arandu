@@ -47,6 +47,7 @@
     "demo:local:workspaces": "bash scripts/demo/local.sh workspaces",
     "demo:local:reset": "bash scripts/demo/local.sh reset",
     "demo:local:check": "bash scripts/demo/local.sh check",
+    "demo:local:platform-journey": "bash scripts/pilot-local/platform-journey.sh",
     "demo:down": "bash scripts/demo/local.sh down",
     "test:e2e:demo": "playwright test --config playwright.demo.config.js",
     "check:backend": "node scripts/check-backend.mjs && node scripts/check-api-modules.mjs && node scripts/test-api-core.mjs",
