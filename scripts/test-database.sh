@@ -746,3 +746,15 @@ for current_db in "$clean_db" "$upgrade_db" "$fresh_db"; do
 done
 node "$root_dir/tests/database/copilot-tool-columns.mjs" "$(database_url "$fresh_db")"
 node "$root_dir/tests/database/product-terms-rollback.mjs" "$(database_url "$fresh_db")"
+
+# File/ERP fee observations use canonical reconciliation and immutable receipts.
+for current_db in "$clean_db" "$upgrade_db" "$fresh_db"; do
+  apply_file "$current_db" "docs/supabase-financial-fee-ingestion.sql"
+  apply_file "$current_db" "docs/rollback/supabase-financial-fee-ingestion.rollback.sql"
+  apply_file "$current_db" "docs/supabase-financial-fee-ingestion.sql"
+  apply_file "$current_db" "docs/supabase-financial-fee-ingestion.sql"
+  apply_file "$current_db" "tests/database/financial-fee-ingestion.sql"
+  apply_file "$current_db" "ops/sql/post-migration-probes.sql"
+  apply_file "$current_db" "ops/sql/pilot-isolation-canary.sql"
+done
+node "$root_dir/tests/database/fee-import-concurrency.mjs" "$(database_url "$fresh_db")"
