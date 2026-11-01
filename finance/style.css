@@ -1423,3 +1423,18 @@ textarea.mono{width:100%;max-width:100%;min-width:0}
 .copilot-action{padding:var(--s3);border:1px dashed var(--border-strong);border-radius:var(--r-md);background:var(--surface-sunken)}
 .copilot-form-actions{display:flex;justify-content:flex-end;align-items:center;gap:var(--s2)}
 .copilot-form-actions .muted{margin-right:auto}
+/* Importação de tarifas e ERP Hub */
+.import-steps{display:flex;flex-wrap:wrap;gap:var(--s2);list-style:none;margin:0;padding:0;counter-reset:step}
+.import-steps li{counter-increment:step;font-size:var(--fs-sm);color:var(--text-muted);padding:4px 10px;border-radius:var(--r-pill);border:1px solid var(--border)}
+.import-steps li::before{content:counter(step) ". "}
+.import-steps li[aria-current=step]{color:var(--text);border-color:var(--accent);font-weight:600}
+.import-steps li[data-done=true]{color:var(--text-secondary);background:var(--surface-sunken)}
+.import-mapping{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:var(--s3)}
+.import-stats{display:flex;flex-wrap:wrap;gap:var(--s2);list-style:none;margin:0;padding:0}
+.import-preview td{vertical-align:top}
+.erp-row{display:flex;justify-content:space-between;gap:var(--s3);align-items:flex-start}
+/* Condições especializadas e simulador de fiança */
+.product-terms-fields fieldset,.scenario-row{border:1px solid var(--border);border-radius:var(--r-md);padding:var(--s3);margin:0}
+.scenario-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:var(--s2) var(--s3)}
+.guarantee-table td,.guarantee-table th{vertical-align:top}
+.cost-components{margin-top:var(--s1)}

@@ -1228,7 +1228,7 @@ test('intenção persistente: resposta perdida após o commit; o recibo confirme
   await page.getByRole('button', { name: 'Confirmar registro', exact: true }).click({ force: true });
   expect(calls.filter((call) => call.path === 'contract-import')).toHaveLength(1);
   await form.getByRole('button', { name: 'Conferir registro' }).click();
-  expect(asked[0]).toEqual({ organization_id: ORG, request_key: sent[0].body.request_key });
+  await expect.poll(() => asked[0]).toEqual({ organization_id: ORG, request_key: sent[0].body.request_key });
   await expect(form.getByText('O contrato foi gravado. Nada foi enviado de novo.')).toBeVisible();
   await form.getByRole('button', { name: 'Abrir o contrato registrado' }).click();
   await expect(page).toHaveURL(new RegExp(`#contract-${SAVED}$`));

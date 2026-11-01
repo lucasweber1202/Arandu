@@ -657,8 +657,14 @@ export function crmOrganizationPanel(ctx, { providers = [], contracts = [], onOp
     try {
       const [planned, processes] = await Promise.all([crmList(ctx, 'crm-activities', { status: 'planned' }), crmList(ctx, 'crm-processes', { status: 'active' })]);
       const today = todayIso();
-      const filter = select([['all', 'Todos os pendentes'], ['overdue', 'Vencidos'], ['today', 'Hoje'], ['unowned', 'Sem responsável'], ['mine', 'Meus']], 'all');
+      const filter = select([['all', 'Todos os pendentes'], ['overdue', 'Vencidos'], ['today', 'Hoje'], ['unowned', 'Sem responsável'], ['no_date', 'Sem prazo definido'], ['mine', 'Meus']], 'all');
       filter.setAttribute('aria-label', 'Filtrar agenda');
+      const instOptions = providers.filter((p) => [...planned.rows, ...processes.rows].some((r) => providerOf(r) === p.id));
+      const inst = select([['', 'Todas as instituições'], ...instOptions.map((p) => [p.id, p.name])], '');
+      inst.setAttribute('aria-label', 'Instituição');
+      const ownerIds = [...new Set([...planned.rows, ...processes.rows].map((r) => r.owner_id).filter(Boolean))];
+      const owner = select([['', 'Todos os responsáveis'], ...ownerIds.map((id) => [id, memberLabel(ctx, id)])], '');
+      owner.setAttribute('aria-label', 'Responsável');
       const list = el('ul', { class: 'plain-list crm-list', role: 'list' });
       const row = (kind, r) => {
         const pid = providerOf(r);
@@ -676,17 +682,18 @@ export function crmOrganizationPanel(ctx, { providers = [], contracts = [], onOp
       };
       const draw = () => {
         const v = filter.value;
-        const pick = (r) => v === 'all' || (v === 'overdue' && r.due_on && r.due_on < today) || (v === 'today' && r.due_on === today) || (v === 'unowned' && !r.owner_id) || (v === 'mine' && r.owner_id === ctx.viewer?.id);
+        const pick = (r) => (!inst.value || providerOf(r) === inst.value) && (!owner.value || r.owner_id === owner.value)
+          && (v === 'all' || (v === 'overdue' && r.due_on && r.due_on < today) || (v === 'today' && r.due_on === today) || (v === 'unowned' && !r.owner_id) || (v === 'mine' && r.owner_id === ctx.viewer?.id) || (v === 'no_date' && !r.due_on));
         const items = [...planned.rows.filter(pick).map((r) => ['activity', r]), ...processes.rows.filter((r) => !['won', 'lost'].includes(r.stage)).filter(pick).map((r) => ['process', r])]
           .sort(([, a], [, b]) => String(a.due_on || '9999').localeCompare(String(b.due_on || '9999')));
         list.replaceChildren(...items.slice(0, 50).map(([k, r]) => row(k, r)));
         if (!items.length) list.append(el('li', {}, emptyState({ compact: true, iconName: 'calendar', title: 'Nada pendente neste filtro', text: 'Registre compromissos e processos no relacionamento de cada instituição.' })));
       };
-      filter.addEventListener('change', draw);
+      for (const node of [filter, inst, owner]) node.addEventListener('change', draw);
       const stageCounts = STAGE_ORDER.slice(0, 4).map((s) => [s, processes.rows.filter((p) => p.stage === s).length]);
       root.replaceChildren(headline,
         el('ul', { class: 'pipeline', 'aria-label': 'Processos ativos por etapa' }, stageCounts.map(([s, n]) => el('li', { class: `pipeline-stage${n ? '' : ' empty'}` }, [el('span', { class: 'pipeline-count', text: String(n) }), el('span', { class: 'pipeline-label', text: STAGES[s] })]))),
-        el('div', { class: 'toolbar' }, [filter]), list,
+        el('div', { class: 'toolbar' }, [filter, inst, owner]), list,
         ...(planned.truncated || processes.truncated ? [el('p', { class: 'muted small', text: 'Mostrando os primeiros 200 registros de cada tipo.' })] : []));
       draw();
     } catch (error) {
@@ -696,4 +703,24 @@ export function crmOrganizationPanel(ctx, { providers = [], contracts = [], onOp
   };
   load();
   return root;
+}
+
+/**
+ * Relacionamento comercial vinculado a um objeto financeiro (contrato ou
+ * negociação): processos e atividades com `related_id` igual ao objeto. Leitura;
+ * a edição continua no relacionamento da instituição.
+ */
+export function crmLinkedPanel(ctx, { relatedId, providerId = null, providerName = null, noun = 'este contrato' }) {
+  const box = el('section', { class: 'cc-section crm-linked', 'aria-label': 'Relacionamento comercial vinculado' }, [el('h3', { text: 'Relacionamento comercial vinculado' }), loading('Carregando vínculos…')]);
+  Promise.all([crmList(ctx, 'crm-processes', { related_id: relatedId }, { max: 50 }), crmList(ctx, 'crm-activities', { related_id: relatedId }, { max: 50 })]).then(([processes, activities]) => {
+    const today = todayIso();
+    const items = [
+      ...processes.rows.map((p) => el('li', { class: 'crm-row', dataset: { crm: 'process' } }, [el('div', { class: 'crm-row-main' }, [el('span', { class: 'muted small', text: `Processo · ${STAGES[p.stage]}` }), el('strong', { text: p.title }), el('span', { class: 'small', text: `Próximo passo: ${p.next_action}${p.due_on ? ` · até ${formatDate(p.due_on)}` : ''} · ${memberLabel(ctx, p.owner_id)}` })])])),
+      ...activities.rows.filter((a) => ['planned', 'recorded'].includes(a.status)).map((a) => el('li', { class: `crm-row${a.status === 'planned' && a.due_on && a.due_on < today ? ' crm-row-late' : ''}`, dataset: { crm: 'activity' } }, [el('div', { class: 'crm-row-main' }, [el('span', { class: 'muted small', text: `${ACTIVITY_KINDS[a.kind] || 'Atividade'} · ${ACTIVITY_STATUS[a.status]?.[0] || ''}` }), el('strong', { text: a.subject }), el('span', { class: 'small', text: a.status === 'recorded' ? `Aconteceu em ${formatDateTime(a.occurred_at)}` : a.due_on ? `Prazo ${formatDate(a.due_on)}` : 'Sem prazo' })])]))
+    ];
+    box.replaceChildren(el('h3', { text: 'Relacionamento comercial vinculado' }),
+      items.length ? el('ul', { class: 'plain-list crm-list' }, items) : el('p', { class: 'muted small', text: `Nenhum processo ou atividade vinculado a ${noun}.` }),
+      ...(providerId ? [el('a', { class: 'btn btn-ghost btn-sm', href: ctx.href(`/finance/providers.html?provider_id=${enc(providerId)}`) }, el('span', { class: 'btn-label', text: `Abrir relacionamento${providerName ? ` com ${providerName}` : ''}` }))] : []));
+  }).catch((error) => box.replaceChildren(el('h3', { text: 'Relacionamento comercial vinculado' }), el('p', { class: 'muted small', text: error.status === 503 ? 'Registro comercial indisponível neste ambiente.' : 'Vínculos comerciais indisponíveis agora.' })));
+  return box;
 }

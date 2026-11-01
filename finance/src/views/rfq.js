@@ -141,6 +141,12 @@ export async function rfqDetail(ctx) {
   // ação que o estado permite e quem pode agir — a máquina de estados não muda.
   root.append(nextStepCard(ctx, rfq, { pending, approvals, decision, contract, policy, governanceGap, manage }));
   root.append(negotiationOrigin(ctx, rfq, { decision, contract, pending }));
+  // Processos e atividades de relacionamento vinculados a esta negociação (CRM).
+  if (ctx.mode !== 'demo') {
+    const crmSlot = el('div');
+    root.append(crmSlot);
+    import('./crm-workspace.js').then((m) => { if (crmSlot.parentNode) crmSlot.replaceWith(m.crmLinkedPanel(ctx, { relatedId: rfq.id, noun: 'esta negociação' })); }).catch(() => crmSlot.remove());
+  }
   if (governanceGap) root.append(governanceGapNotice(ctx, governanceGap));
 
   const tabset = tabs([
