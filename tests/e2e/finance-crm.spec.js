@@ -259,3 +259,19 @@ test('agenda da organização filtra por instituição, responsável e itens sem
   await expect(agenda.locator('.crm-row')).toHaveCount(1);
   await expect(agenda).toContainText('Revisão de tarifas: Levantar extratos');
 });
+
+test('jornada transversal: contrato mostra processos e atividades vinculados e volta à instituição', async ({ page }) => {
+  const base = { organization_id: ORG, source_reference: 'Comitê', version: 1 };
+  await setup(page, { initial: {
+    process: [{ ...base, id: newId(), title: 'Renovação do capital de giro', stage: 'negotiation', next_action: 'Receber minuta', status: 'active', due_on: day(5), related_type: 'contract', related_id: C1, owner_id: 'u1' }],
+    activity: [{ ...base, id: newId(), kind: 'meeting', subject: 'Reunião de renovação', status: 'recorded', occurred_at: new Date(Date.now() - 86400000).toISOString(), related_type: 'contract', related_id: C1 }] } });
+  await page.route('**/api/finance/contract-detail**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, contract: CONTRACT, effective: null, versions: [], amendments: [], milestones: [], children: [], documents: [], events: [] }) }));
+  await page.goto(`/finance/contracts.html?abrir=contrato#contract-${C1}`);
+  const linked = page.getByRole('dialog', { name: 'Capital de giro 2025' }).locator('.crm-linked');
+  await expect(linked).toContainText('Processo · Em negociação');
+  await expect(linked).toContainText('Renovação do capital de giro');
+  await expect(linked).toContainText('Reunião de renovação');
+  await linked.getByRole('link', { name: 'Abrir relacionamento com Atlas Bank' }).click();
+  await expect(page).toHaveURL(new RegExp(`providers\\.html\\?provider_id=${P_ATLAS}`));
+  await expect(page.getByRole('dialog', { name: 'Atlas Bank' }).locator('.crm-workspace')).toBeVisible();
+});

@@ -485,6 +485,11 @@ export function openContract(ctx, contract, { initialDetail = null } = {}) {
     sections.push(el('section', { class: 'cc-section' }, [el('div', { class: 'cc-head' }, [el('h3', { text: `Termos vigentes${effective ? ` (v${effective.version})` : ''}` }), termsActions]),
       termsList(current.product, effective?.terms, current.currency),
       detail.versions.length ? el('details', { class: 'cc-history' }, [el('summary', { text: `Histórico de versões (${detail.versions.length})` }), versions]) : null]));
+    if (ctx.mode !== 'demo') {
+      const crmSlot = el('div');
+      sections.push(crmSlot);
+      import('./crm-workspace.js').then((m) => { if (crmSlot.parentNode) crmSlot.replaceWith(m.crmLinkedPanel(ctx, { relatedId: current.id, providerId: current.provider_id, providerName: current.provider_name, noun: 'este contrato' })); });
+    }
     // Condições especializadas (fiança, câmbio, hedge): mesma fonte do registro canônico.
     if (ctx.mode !== 'demo') {
       const slot = el('div');
