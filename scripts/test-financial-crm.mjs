@@ -15,7 +15,7 @@ assert(validateCrmRecord('activity', { kind: 'note', subject: 'Atividade', sourc
 const originalFetch = globalThis.fetch;
 const previousEnv = Object.fromEntries(['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY'].map(key => [key, process.env[key]]));
 process.env.SUPABASE_URL = 'https://supabase.example.invalid'; process.env.SUPABASE_ANON_KEY = 'anon'; delete process.env.SUPABASE_SERVICE_ROLE_KEY;
-let calls = [], hidden = false, upstreamError = null;
+let calls = [], hidden = false, upstreamError = null, missingView = false;
 globalThis.fetch = async (url, options) => {
   const parsed = new URL(url), path = parsed.pathname, q = parsed.searchParams;
   calls.push({ path, q, options });
@@ -26,6 +26,7 @@ globalThis.fetch = async (url, options) => {
   if (path.endsWith('/fin_provider_contacts')) return Response.json(hidden ? [] : q.get('select') === 'id' ? [{ id: contact }] : [{ id: id(10), name: 'Pessoa Um' }, { id: id(11), name: 'Pessoa Dois' }]);
   if (path.endsWith('/fin_events')) return Response.json([30, 31].map(n => ({ id: id(n), happened_at: '2026-10-30T10:00:00.000000+00:00', event_type: 'crm_command_recorded', metadata: { changed_fields: ['name'] } })));
   if (path.endsWith('/rpc/fin_query_graph')) return Response.json([]);
+  if (path.endsWith('/fin_crm_institution_records') && missingView) return Response.json({ code: 'PGRST205', message: 'schema cache miss' }, { status: 404 });
   if (path.endsWith('/fin_crm_institution_records')) return Response.json([40,41].map(n => ({ id: id(n), record_type: 'activity', title: 'Interação declarada' })));
   if (path.endsWith('/fin_crm_activities')) return Response.json([40, 41].map(n => ({ id: id(n), due_on: '2026-11-03', subject: 'Interação declarada' })));
   return Response.json([]);
@@ -105,6 +106,9 @@ try {
   assert.equal(response.body.crm.activities.rows[0].title, 'Interação declarada');
   assert.equal(response.body.crm.activities.continuation.filters.provider_id, provider);
   assert.equal(response.body.crm.activities.coverage, 'explicit_institution_associations');
+  missingView = true;
+  await assert.rejects(() => call(`graph/provider?organization_id=${org}&id=${provider}&include_crm=true`), e => e.status === 503 && e.code === 'schema_incompatible');
+  missingView = false;
   assert(calls.every(c => c.options.headers.Authorization === 'Bearer crm-user-jwt'), 'all queries retain user JWT');
   console.log('CRM domain/API: typed declarations, commands, optimistic versions, scoped pagination/search/history and opt-in Graph PASS (HTTP mocks; SQL evidence separate).');
 } finally {

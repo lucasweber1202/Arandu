@@ -1,0 +1,52 @@
+{
+  "contracts": {
+    "table": "fin_contracts",
+    "select": "id,title,product,status,legal_entity_id,provider_id,starts_on,ends_on,current_version",
+    "name": "title",
+    "provider": true,
+    "date": "ends_on",
+    "page": "contracts"
+  },
+  "activities": {
+    "table": "fin_crm_activities",
+    "select": "id,subject,kind,status,due_on,owner_id,related_type,related_id,version,source_reference",
+    "name": "subject",
+    "date": "due_on",
+    "page": "providers"
+  },
+  "processes": {
+    "table": "fin_crm_processes",
+    "select": "id,title,stage,status,due_on,next_action,version,source_reference",
+    "name": "title",
+    "date": "due_on",
+    "page": "providers"
+  },
+  "rfqs": {
+    "table": "fin_rfqs",
+    "select": "id,title,product,status,revision,response_deadline",
+    "name": "title",
+    "date": "response_deadline",
+    "page": "rfq"
+  },
+  "proposals": {
+    "table": "fin_proposals",
+    "org": "buyer_organization_id",
+    "select": "id,rfq_id,status,current_version,provider_id,updated_at",
+    "provider": true,
+    "page": "proposals"
+  },
+  "opportunities": {
+    "table": "fin_opportunities",
+    "select": "id,opportunity_type,status,source_object_type,source_object_id,provider_id,legal_entity_id,last_seen_at,deadline,linked_rfq_id",
+    "provider": true,
+    "page": "opportunities",
+    "date": "deadline"
+  },
+  "tasks": {
+    "table": "fin_tasks",
+    "select": "id,title,status,due_on,related_type,related_id,assignee_id",
+    "name": "title",
+    "date": "due_on",
+    "page": "tasks"
+  }
+}
