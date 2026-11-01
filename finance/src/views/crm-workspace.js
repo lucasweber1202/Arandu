@@ -207,7 +207,9 @@ export function crmWorkspace(ctx, { provider = null, contracts = [], rfqs = [], 
     return el('div', { class: 'cc-head' }, [
       el('div', {}, [el('h3', { id: 'crm-title', text: 'Relacionamento comercial' }),
         el('p', { class: 'muted small', text: 'Contatos, reuniões, compromissos e processos registrados pela sua equipe. São declarações da organização: não comprovam envio, aceite da instituição nem mudam a negociação financeira.' })]),
-      state.loaded ? button('Atualizar', { size: 'sm', variant: 'ghost', iconName: 'refresh', onClick: load }) : null
+      el('div', { class: 'crm-actions' }, [
+        provider && ctx.mode !== 'demo' ? button('Resumir com o Copilot', { size: 'sm', variant: 'ghost', iconName: 'sparkles', onClick: () => import('./copilot.js').then((m) => m.openCopilot(ctx, { context: { type: 'provider', id: provider.id, label: provider.name }, question: 'Resuma nosso relacionamento com esta instituição: contatos, atividades pendentes, processos e contratos.' })) }) : null,
+        state.loaded ? button('Atualizar', { size: 'sm', variant: 'ghost', iconName: 'refresh', onClick: load }) : null])
     ]);
   }
 

@@ -455,6 +455,7 @@ export function openContract(ctx, contract, { initialDetail = null } = {}) {
   const after = (message) => { toast(message); load(); ctx.reload?.(); };
 
   let lastDetail = null;
+  if (ctx.mode !== 'demo') import('./copilot.js').then((m) => { m.setCopilotContext({ type: 'contract', id: contract.id, label: contract.title || contract.provider_name || 'Contrato' }); dialog.addEventListener('close', () => m.clearCopilotContext(contract.id)); });
   function render(detail) {
     lastDetail = detail;
     const current = detail.contract;
@@ -462,6 +463,12 @@ export function openContract(ctx, contract, { initialDetail = null } = {}) {
     const sections = [];
     // The legacy browser sandbox does not implement contextual task writes.
     if (ctx.mode !== 'demo') {
+      const label = current.title || current.provider_name || 'Contrato';
+      const ask = (question) => import('./copilot.js').then((m) => m.openCopilot(ctx, { context: { type: 'contract', id: current.id, label }, question }));
+      sections.push(el('div', { class: 'crm-actions contract-copilot', role: 'group', 'aria-label': 'Perguntar ao Copilot sobre este contrato' }, [
+        button('Explicar condições', { size: 'sm', variant: 'ghost', iconName: 'sparkles', onClick: () => ask('Explique as condições deste contrato com base na versão vigente dos termos.') }),
+        button('Próximos vencimentos', { size: 'sm', variant: 'ghost', onClick: () => ask('Quando vence este contrato, qual o aviso prévio registrado e o que está pendente?') }),
+        button('Histórico de relacionamento', { size: 'sm', variant: 'ghost', onClick: () => ask('Quais atividades e processos comerciais estão ligados a este contrato?') })]));
       const work = el('div', {}, loading('Carregando trabalho do contrato…'));
       sections.push(work);
       import('./contract-work.js').then(module => { if (work.isConnected) work.replaceWith(module.contractWork(ctx, {...current, source_rfq:detail.source_rfq})); }).catch(error => { if (work.isConnected) work.replaceChildren(errorState({error})); });

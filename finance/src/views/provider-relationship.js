@@ -27,6 +27,7 @@ export async function openProviderRelationship(ctx, provider, {initialDetail = n
   const body = el('div', { class: 'stack contract-center' }, loading('Carregando relacionamento…'));
   const dialog = drawer({ title: provider.name, subtitle: 'Relacionamento da sua empresa com esta instituição: contratos, negociações, contatos e pendências.', body, className: 'drawer-wide', onClose: () => { const url = new URL(location.href); if (url.searchParams.get('provider_id') === provider.id) { url.searchParams.delete('provider_id'); history.replaceState(null, '', url.pathname + url.search + url.hash); } } });
   const write = ctx.can('edit_profile');
+  import('./copilot.js').then((m) => { m.setCopilotContext({ type: 'provider', id: provider.id, label: provider.name }); dialog.addEventListener('close', () => m.clearCopilotContext(provider.id)); });
   let generation = 0;
   const endpoint = `provider-relationship?organization_id=${encodeURIComponent(ctx.organization.id)}&provider_id=${encodeURIComponent(provider.id)}`;
   const load = async () => {
