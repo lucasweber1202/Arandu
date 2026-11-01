@@ -365,8 +365,10 @@ export async function providers(ctx) {
   const openRelationship = relationshipEnabled ? (provider) => { const url = new URL(location.href); url.searchParams.set('provider_id', provider.id); history.replaceState(null, '', url.pathname + url.search + url.hash); mods.relationship.openProviderRelationship(ctx, provider); } : null;
   const center = mods.center.relationshipWorkQueue(ctx, { entities, onOpenProvider: openRelationship,
     importButton: manage ? (providerId) => mods.contractCenter.importContractButton(ctx, entities, { label: 'Registrar contrato existente', size: 'sm', providerId }) : null });
+  const agenda = relationshipEnabled ? (await import('./crm-workspace.js')).crmOrganizationPanel(ctx, { providers: rows, contracts: ctx.data.contracts || [], onOpenProvider: openRelationship }) : null;
   return el('div', { class: 'list-page' }, [
     center,
+    agenda,
     el('h2', { class: 'form-section-title', text: 'Todas as instituições' }),
     el('p', { class: 'callout callout-info compact', role: 'note', text: 'Recorte dos registros carregados e autorizados: até 200 instituições, 200 contratos e 200 solicitações recentes. Convites e propostas se referem a essas solicitações; rascunhos e propostas retiradas não contam. Contagens e vencimentos não representam o histórico completo.' }),
     el('div', { class: 'toolbar' }, [el('div', { class: 'toolbar-search' }, [icon('search'), search]), count]), el('div', { class: 'table-card' }, table)

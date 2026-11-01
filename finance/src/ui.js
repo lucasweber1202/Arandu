@@ -321,9 +321,12 @@ export function promptDialog({ title, description = null, label, minLength = 0, 
  * `confirmClose` (opcional) decide se o painel pode fechar por X, Esc, clique
  * fora ou `dialog.dismiss()`: formulário preenchido não some num clique errado.
  */
+let drawerSeq = 0;
 export function drawer({ title, subtitle = null, body, footer = null, onClose = null, className = '', confirmClose = null }) {
   const opener = document.activeElement;
-  const dialog = el('dialog', { class: `drawer ${className}`.trim(), 'aria-labelledby': 'drawer-title' });
+  // Painéis podem se empilhar (formulário sobre o relacionamento): id único por painel.
+  const titleId = document.getElementById('drawer-title') ? `drawer-title-${++drawerSeq}` : 'drawer-title';
+  const dialog = el('dialog', { class: `drawer ${className}`.trim(), 'aria-labelledby': titleId });
   let asking = false;
   const dismiss = async () => {
     if (asking) return;
@@ -333,7 +336,7 @@ export function drawer({ title, subtitle = null, body, footer = null, onClose = 
   };
   dialog.dismiss = dismiss;
   dialog.append(el('div', { class: 'drawer-head' }, [
-    el('div', {}, [el('h2', { id: 'drawer-title', class: 'drawer-title', text: title }), subtitle ? el('p', { class: 'drawer-subtitle', text: subtitle }) : null]),
+    el('div', {}, [el('h2', { id: titleId, class: 'drawer-title', text: title }), subtitle ? el('p', { class: 'drawer-subtitle', text: subtitle }) : null]),
     iconButton('x', 'Fechar painel', { onClick: dismiss })
   ]));
   dialog.append(el('div', { class: 'drawer-body' }, body));

@@ -1386,3 +1386,25 @@ textarea.mono{width:100%;max-width:100%;min-width:0}
 .guided-questions [aria-pressed="true"]{border-color:var(--accent);color:var(--text)}
 .guided-rows p,.catalog-item p{margin:0;overflow-wrap:anywhere}
 .erp-row{display:flex;flex-wrap:wrap;justify-content:space-between;gap:var(--s2);padding:var(--s2) 0;border-bottom:1px solid var(--border)}
+/* Financial Relationship Workspace (CRM): contatos, atividades, agenda, processos. */
+.crm-workspace{display:grid;gap:var(--s3)}
+.crm-actions,.crm-row-actions{display:flex;flex-wrap:wrap;gap:var(--s2)}
+.crm-tabs{flex-wrap:wrap;max-width:100%}
+.crm-list{display:grid;gap:var(--s2)}
+.crm-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:var(--s2) var(--s3);align-items:start;padding:var(--s3);border:1px solid var(--border);border-radius:var(--r-md);background:var(--surface)}
+.crm-row-main{display:grid;gap:2px;min-width:0;overflow-wrap:anywhere}
+.crm-row .crm-row-actions{grid-column:1/-1}
+.crm-row-late{border-left:3px solid var(--danger)}
+.crm-notes{margin:0;white-space:pre-wrap}
+.crm-agenda-group h4,.crm-column-title{margin:0 0 var(--s2);font-size:var(--fs-sm);display:flex;gap:var(--s2);align-items:center}
+.crm-board{display:grid;grid-template-columns:repeat(6,minmax(180px,1fr));gap:var(--s2);overflow-x:auto;padding-bottom:var(--s2)}
+.crm-column{background:var(--surface-sunken);border-radius:var(--r-md);padding:var(--s2);min-width:0}
+.crm-column ul{display:grid;gap:var(--s2)}
+.crm-card{display:grid;gap:4px;padding:var(--s2) var(--s3);background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);overflow-wrap:anywhere}
+.crm-card-title{font-weight:600;text-align:left}
+.crm-stage-field{margin-top:var(--s1)}
+.crm-org .pipeline{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:759px){.crm-board{grid-template-columns:repeat(6,minmax(220px,85vw))}.crm-org .pipeline{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.crm-tabs .segment[aria-selected=true]{background:var(--surface);color:var(--text);box-shadow:var(--shadow-sm)}
+.link-button{border:0;background:none;padding:0;color:var(--accent);font:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.link-button:focus-visible{outline:none;box-shadow:var(--focus-ring)}

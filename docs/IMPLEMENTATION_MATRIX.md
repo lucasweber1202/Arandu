@@ -1,5 +1,7 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+> **01/11/2026 — Financial Relationship Workspace (CRM visual 1.0), M1.** Interface sobre `financial-crm-v1` (#297): contatos, atividades/agenda, processos por etapa e histórico no painel da instituição, mais agenda da organização na Central. E2E com API simulada; sem validação canônica. [Detalhes, limites e handoffs](FINANCIAL_CRM_WORKSPACE_UI.md).
+
 ## 27/10/2026 — Prontidão unificada para 29/10 (pós-#280)
 
 Main `0a260b6`, CI e merge-audit SUCCESS; nenhuma PR aberta. Domínio
