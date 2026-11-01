@@ -1,5 +1,7 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+> **01/11/2026 — Financial Relationship Workspace (CRM visual 1.0), M1.** Interface sobre `financial-crm-v1` (#297): contatos, atividades/agenda, processos por etapa e histórico no painel da instituição, mais agenda da organização na Central. E2E com API simulada; sem validação canônica. [Detalhes, limites e handoffs](FINANCIAL_CRM_WORKSPACE_UI.md).
+
 ## 01/11/2026 — Ingestão de tarifas e adapter Dynamics Business Central
 
 Backend em `feature/platform-ingestion`, base inicial `main@3a7d129`;

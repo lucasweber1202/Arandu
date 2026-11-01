@@ -11,6 +11,7 @@ import { CONTRACT_CATEGORIES } from '../../../lib/finance/contract-terms.mjs';
 import { relationshipContext, relationshipSummary } from './relationship-context.js';
 import { entityTree } from '../../../lib/finance/entities.mjs';
 import { loadEntities, entityName } from './entities.js';
+import { crmWorkspace } from './crm-workspace.js';
 
 const ISSUE_SEVERITY = { low: ['Baixa', 'neutral'], medium: ['Média', 'warning'], high: ['Alta', 'danger'] };
 const ISSUE_STATUS = { open: 'Aberta', in_progress: 'Em andamento', resolved: 'Resolvida', cancelled: 'Cancelada' };
@@ -141,13 +142,9 @@ export async function openProviderRelationship(ctx, provider, {initialDetail = n
       write && entities.rows.length ? button('Definir relação', { size: 'sm', iconName: 'edit', onClick: () => relationshipForm() }) : null]),
       detail.relationships.length ? relList : el('p', { class: 'muted', text: entities.rows.length ? 'Nenhuma relação registrada por entidade.' : 'Cadastre entidades do grupo para registrar a relação por entidade.' })]));
 
-    // Contatos.
-    sections.push(el('section', { class: 'cc-section' }, [el('div', { class: 'cc-head' }, [el('h3', { text: 'Contatos' }), write ? button('Adicionar contato', { size: 'sm', iconName: 'plus', onClick: () => contactForm() }) : null]),
-      detail.contacts.length ? el('ul', { class: 'plain-list' }, detail.contacts.map((row) => el('li', { class: 'contact-row' }, [
-        el('strong', { text: row.name }), el('span', { text: [row.title, row.email, row.phone, row.legal_entity_id ? entityName(entities, row.legal_entity_id) : null].filter(Boolean).join(' · ') }),
-        row.is_primary ? tag('principal', 'accent') : null,
-        write ? button('Arquivar', { size: 'sm', variant: 'ghost', onClick: async () => { try { await ctx.api('provider-contacts', { method: 'DELETE', body: JSON.stringify({ contact_id: row.id }) }); after('Contato arquivado.'); } catch (error) { toast(error.message, 'error'); } } }) : null
-      ]))) : el('p', { class: 'muted', text: 'Nenhum contato registrado.' })]));
+    // Relacionamento comercial (CRM financial-crm-v1): contatos, atividades, agenda, processos e histórico.
+    // Substitui a lista simples de contatos: mesma tabela canônica, agora com edição versionada e fonte.
+    sections.push(crmWorkspace(ctx, { provider, contracts: detail.contracts || [], rfqs: detail.rfqs || [], entities }));
 
     // Issues.
     sections.push(el('section', { class: 'cc-section' }, [el('div', { class: 'cc-head' }, [el('h3', { text: 'Questões e follow-ups' }), write ? button('Registrar questão', { size: 'sm', iconName: 'plus', onClick: () => issueForm(detail) }) : null]),
