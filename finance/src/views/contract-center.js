@@ -485,6 +485,12 @@ export function openContract(ctx, contract, { initialDetail = null } = {}) {
     sections.push(el('section', { class: 'cc-section' }, [el('div', { class: 'cc-head' }, [el('h3', { text: `Termos vigentes${effective ? ` (v${effective.version})` : ''}` }), termsActions]),
       termsList(current.product, effective?.terms, current.currency),
       detail.versions.length ? el('details', { class: 'cc-history' }, [el('summary', { text: `Histórico de versões (${detail.versions.length})` }), versions]) : null]));
+    // Condições especializadas (fiança, câmbio, hedge): mesma fonte do registro canônico.
+    if (ctx.mode !== 'demo') {
+      const slot = el('div');
+      sections.push(slot);
+      import('./product-terms-panel.js').then((m) => { const node = m.specializedTermsSection(ctx, { contract: current, effective, contracts: ctx.data?.contracts || [], onSaved: () => after('Condições registradas.') }); if (node && slot.isConnected) slot.replaceWith(node); else slot.remove(); });
+    }
 
     // Aditivos.
     const amendments = detail.amendments.length ? el('ol', { class: 'version-list', role: 'list' }, detail.amendments.map((item) => el('li', { class: 'version-row' }, [
@@ -582,7 +588,7 @@ export function openContract(ctx, contract, { initialDetail = null } = {}) {
       event.preventDefault();
       if (current.current_version && reason.value.trim().length < 3) { toast('Explique a correção.', 'error'); return; }
       try {
-        await ctx.api('contract-terms', { method: 'POST', body: JSON.stringify({ contract_id: current.id, expected_version: current.current_version, terms: editor.read(), reason: reason.value.trim() || null }) });
+        await ctx.api('contract-terms', { method: 'POST', body: JSON.stringify({ contract_id: current.id, expected_version: current.current_version, terms: { ...editor.read(), ...(terms?.product_terms ? { product_terms: terms.product_terms } : {}) }, reason: reason.value.trim() || null }) });
         after('Termos gravados como nova versão.');
       } catch (error) { toast(error.message, 'error'); }
     });
@@ -615,7 +621,7 @@ export function openContract(ctx, contract, { initialDetail = null } = {}) {
         await ctx.api('contract-amendments', { method: 'POST', body: JSON.stringify({
           contract_id: current.id, title: title.value.trim(), effective_from: effectiveFrom.value, signed_on: signed.value || null, summary: summary.value.trim() || null,
           new_ends_on: newEnds.value || null, new_notice_days: newNotice.value === '' ? null : Number(newNotice.value),
-          ...(changeTerms.checked ? { terms: editor.read(), expected_version: current.current_version } : {})
+          ...(changeTerms.checked ? { terms: { ...editor.read(), ...(terms?.product_terms ? { product_terms: terms.product_terms } : {}) }, expected_version: current.current_version } : {})
         }) });
         after('Aditivo registrado.');
       } catch (error) { toast(error.message, 'error'); }

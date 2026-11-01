@@ -1433,3 +1433,8 @@ textarea.mono{width:100%;max-width:100%;min-width:0}
 .import-stats{display:flex;flex-wrap:wrap;gap:var(--s2);list-style:none;margin:0;padding:0}
 .import-preview td{vertical-align:top}
 .erp-row{display:flex;justify-content:space-between;gap:var(--s3);align-items:flex-start}
+/* Condições especializadas e simulador de fiança */
+.product-terms-fields fieldset,.scenario-row{border:1px solid var(--border);border-radius:var(--r-md);padding:var(--s3);margin:0}
+.scenario-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:var(--s2) var(--s3)}
+.guarantee-table td,.guarantee-table th{vertical-align:top}
+.cost-components{margin-top:var(--s1)}
