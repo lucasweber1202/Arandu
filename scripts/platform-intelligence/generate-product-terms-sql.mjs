@@ -47,6 +47,7 @@ grant execute on function public.fin_valid_product_terms(text,jsonb) to authenti
 create or replace function public.fin_check_product_terms() returns trigger language plpgsql security invoker set search_path='' as $body$
 declare category text; contract_currency text;
 begin
+ if not (new.terms ? 'product_terms') and exists(select 1 from public.fin_contract_versions v where v.contract_id=new.contract_id and v.organization_id=new.organization_id and v.version<new.version and v.terms ? 'product_terms') then raise exception 'specialized contract terms required'; end if;
  if new.terms ? 'product_terms' then
   select c.product,c.currency into category,contract_currency from public.fin_contracts c where c.id=new.contract_id and c.organization_id=new.organization_id;
   if not public.fin_valid_product_terms(category,new.terms->'product_terms') then raise exception 'invalid contract terms'; end if;

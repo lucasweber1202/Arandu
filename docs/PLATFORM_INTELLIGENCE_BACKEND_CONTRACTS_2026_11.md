@@ -89,7 +89,12 @@ precisão, convenções, fonte, metodologia e limitações. Fonte JS única:
 
 Modalidades: `bank_guarantee`, `fx_spot`, `fx_forward`, `ndf`, `swap`. Categoria
 canônica `guarantee` para fiança, `fx` para as demais (preserva a taxonomia vigente).
-Nenhuma foi habilitada para RFQ. Não há curva, preço justo ou marcação a mercado.
+O catálogo genérico de campos usado pelo editor antigo não recebe o novo tipo
+objeto. A metadata especializada é separada; até o renderer de Claude estar
+integrado, esse editor não apresenta os campos especializados. Após registrar
+esses termos via API, qualquer nova versão deve preservá-los explicitamente;
+o banco recusa omissão com 409 `specialized_contract_terms_required`, evitando
+perda silenciosa por cliente antigo. Nenhuma foi habilitada para RFQ. Não há curva, preço justo ou marcação a mercado.
 
 Nos comandos **existentes** de importação/versão/aditivo de contrato, enviar:
 

@@ -745,3 +745,4 @@ for current_db in "$clean_db" "$upgrade_db" "$fresh_db"; do
   apply_file "$current_db" "ops/sql/pilot-isolation-canary.sql"
 done
 node "$root_dir/tests/database/copilot-tool-columns.mjs" "$(database_url "$fresh_db")"
+node "$root_dir/tests/database/product-terms-rollback.mjs" "$(database_url "$fresh_db")"

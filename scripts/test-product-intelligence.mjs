@@ -2,10 +2,12 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { PRODUCT_TERMS_VERSION, PRODUCT_TERM_SCHEMAS, validateProductTerms } from '../lib/finance/product-terms.mjs';
-import { normalizeContractTerms } from '../lib/finance/contract-terms.mjs';
+import { normalizeContractTerms, contractTermFields } from '../lib/finance/contract-terms.mjs';
 import { guaranteeCost, compareGuarantees } from '../lib/finance/guarantee-economics.mjs';
 const fixtures = JSON.parse(fs.readFileSync('tests/fixtures/platform-intelligence/product-terms.json'));
 const cases = [];
+assert(!contractTermFields('guarantee').some(f => f.type === 'product_terms'), 'legacy UI field controls must not receive an unsupported object type');
+assert(contractTermFields('guarantee', { includeSpecialized: true }).some(f => f.key === 'product_terms'));
 for (const [modality, values] of Object.entries(fixtures)) {
   const category = PRODUCT_TERM_SCHEMAS[modality].category;
   const terms = { schema_version: PRODUCT_TERMS_VERSION, modality, values };

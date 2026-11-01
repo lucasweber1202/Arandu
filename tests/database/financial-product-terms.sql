@@ -51,6 +51,7 @@ do $$ declare c uuid; t jsonb; begin
  perform public.fin_record_contract_terms(c,jsonb_set(t,'{product_terms,values,commission_pct_year}','3'),1,'Correção sintética','2026-01-01');
  if (select terms#>>'{product_terms,values,commission_pct_year}' from public.fin_contract_versions where contract_id=c and version=1)<>'2' then raise exception 'historical terms overwritten'; end if;
  perform pg_temp.crm_error(format('select public.fin_record_contract_terms(%L,%L::jsonb,2,%L)',c,jsonb_set(t,'{product_terms,values,commission_pct_year}','"not-number"'),'Teste inválido'),'invalid contract terms');
+ perform pg_temp.crm_error(format('select public.fin_record_contract_terms(%L,%L::jsonb,2,%L)',c,'{"currency":"BRL"}','Editor antigo'),'specialized contract terms required');
  perform pg_temp.crm_error(format('select public.fin_record_contract_terms(%L,%L::jsonb,1,%L)',c,t,'Teste versão'),'contract version conflict');
  perform pg_temp.crm_error(format('select public.fin_record_contract_terms(%L,%L::jsonb,2,%L)',c,(select terms from pt_samples where modality='ndf'),'Teste modalidade'),'invalid contract terms');
 end $$;
