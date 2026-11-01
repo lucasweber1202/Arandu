@@ -57,7 +57,10 @@ export function integrationSettings(ctx, entities) {
     );
   };
   render();
-  return el('div', { class: 'stack' }, [erpHub(), box]);
+  // Sandbox legado sem backend: catálogo estático. Produto real: ERP Hub com o adaptador Business Central.
+  const hub = ctx.mode === 'demo' ? erpHub() : el('div', {}, loading());
+  if (ctx.mode !== 'demo') import('./erp-hub.js').then((m) => hub.replaceWith(m.erpHubSection(ctx, { contracts: ctx.data?.contracts || [] })));
+  return el('div', { class: 'stack' }, [hub, box]);
 }
 
 function accountsSection(ctx, result, entityOptions, render, reveal) {

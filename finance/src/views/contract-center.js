@@ -468,7 +468,8 @@ export function openContract(ctx, contract, { initialDetail = null } = {}) {
       sections.push(el('div', { class: 'crm-actions contract-copilot', role: 'group', 'aria-label': 'Perguntar ao Copilot sobre este contrato' }, [
         button('Explicar condições', { size: 'sm', variant: 'ghost', iconName: 'sparkles', onClick: () => ask('Explique as condições deste contrato com base na versão vigente dos termos.') }),
         button('Próximos vencimentos', { size: 'sm', variant: 'ghost', onClick: () => ask('Quando vence este contrato, qual o aviso prévio registrado e o que está pendente?') }),
-        button('Histórico de relacionamento', { size: 'sm', variant: 'ghost', onClick: () => ask('Quais atividades e processos comerciais estão ligados a este contrato?') })]));
+        button('Histórico de relacionamento', { size: 'sm', variant: 'ghost', onClick: () => ask('Quais atividades e processos comerciais estão ligados a este contrato?') }),
+        button('Importar tarifas cobradas', { size: 'sm', variant: 'ghost', iconName: 'download', onClick: () => import('./fee-import.js').then((m) => m.openFeeImport(ctx, { contracts: [current, ...(ctx.data?.contracts || []).filter((c) => c.id !== current.id)], contractId: current.id })) })]));
       const work = el('div', {}, loading('Carregando trabalho do contrato…'));
       sections.push(work);
       import('./contract-work.js').then(module => { if (work.isConnected) work.replaceWith(module.contractWork(ctx, {...current, source_rfq:detail.source_rfq})); }).catch(error => { if (work.isConnected) work.replaceChildren(errorState({error})); });

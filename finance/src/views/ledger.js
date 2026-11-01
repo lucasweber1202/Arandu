@@ -70,7 +70,7 @@ function originContext(ctx, { contractId, noun, controls, filters, entities }) {
   return { node: box, update: describe };
 }
 
-export async function ledgerPage(ctx, { resource, title, subtitle, filters, scope = 'Escopo', originNoun = null, detailExtra = null }) {
+export async function ledgerPage(ctx, { resource, title, subtitle, filters, scope = 'Escopo', originNoun = null, detailExtra = null, extraActions = null }) {
   currentCtx = ctx;
   const entities = await loadEntities(ctx);
   const params = new URL(location.href).searchParams;
@@ -124,7 +124,7 @@ export async function ledgerPage(ctx, { resource, title, subtitle, filters, scop
           if (params.get(k)) { controls[k].value = params.get(k); refetch = true; }
         }
         forms = manage ? data.forms || [] : [];
-        actions.replaceChildren(...forms.map((form) => button(form.label, { variant: form.primary ? 'primary' : 'secondary', onClick: () => open(form) })));
+        actions.replaceChildren(...(extraActions ? extraActions() : []), ...forms.map((form) => button(form.label, { variant: form.primary ? 'primary' : 'secondary', onClick: () => open(form) })));
       }
       const table = data.rows.length ? el('div', { class: 'table-scroll' }, el('table', { class: 'data-table compact' }, [
         el('thead', {}, el('tr', {}, [...data.columns, ''].map((text) => el('th', { scope: 'col', text })))),

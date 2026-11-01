@@ -12,8 +12,8 @@ Testes E2E desta missão usam **APIs simuladas** declaradas no topo de cada spec
 | 2 | CRM | Portal institucional | NÃO INICIADO | — | — | onda 2 |
 | 3 | Product Intelligence | Formulários de garantias, câmbio e hedge (`specialized_schema`) | NÃO INICIADO | backend #299 | — | onda 3 |
 | 3 | Economics | Simulador de garantias (`guarantee-economics`) | NÃO INICIADO | backend #299 | — | onda 3 |
-| 4 | Ingestão | Assistente CSV/XLSX de tarifas | NÃO INICIADO | backend #300 | — | onda 4 |
-| 4 | ERP Hub | Workspace + Business Central | NÃO INICIADO | adapter #300 | credenciais BC reais | onda 4 |
+| 4 | Ingestão | Assistente CSV/XLSX de tarifas: arquivo → colunas → mapeamento → prévia por linha → seleção → confirmação idempotente → recibo → histórico; entradas em Tarifas e no contrato | TESTADO LOCALMENTE | `tests/e2e/finance-ingestion.spec.js` (API simulada) | XLSX: cabeçalho digitado (servidor não expõe colunas antes do mapeamento) | handoff: endpoint de colunas |
+| 4 | ERP Hub | Catálogo verdadeiro (BC implementado, 6 planejados), configuração sem segredo, suspensão/revogação, prévia do ERP com revisão e confirmação | TESTADO LOCALMENTE | `tests/e2e/finance-ingestion.spec.js` (API simulada) | credencial BC aprovada no servidor — NÃO VERIFICADO | CI + merge |
 | 5 | Jornadas | Cinco jornadas transversais | NÃO INICIADO | — | — | onda 5 |
 
 ## Gate A — build do projeto Vercel `arandu`
