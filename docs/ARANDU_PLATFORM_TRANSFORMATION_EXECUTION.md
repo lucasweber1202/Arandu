@@ -22,3 +22,14 @@ Testes E2E desta missão usam **APIs simuladas** declaradas no topo de cada spec
 - `scripts/vercel-build.mjs` recusa por desenho um deploy de produção (a) sem `ARANDU_ENV`/`ARANDU_DEPLOYMENT_KIND` e (b) com `ARANDU_ENV=production` sem topologia aprovada (`check-finance-env`: Supabase/CRON/site ausentes, identidade não verificável com `ACTIVE_SUPABASE_ASSIGNMENTS` vazio). Ambos reproduzidos localmente.
 - A matriz já registrava "build de Production falha por desenho com allowlist vazia". Fazer passar exigiria afrouxar o gate ou configurar segredos — proibido sem autorização e contrário ao bloqueio de cutover (CLAUDE.md).
 - Ação do proprietário: `npx vercel inspect dpl_3voMpZJqNDEavKz6kx4QsmUU1DZo --logs` (equipe Vercel; a integração desta sessão recebe 403) para confirmar qual dos dois gates recusa, e decidir recovery/cutover de Production. Demo e Pilot não foram alterados.
+
+## Consolidação de infraestrutura (01/11/2026, `main@6a0d66c`)
+
+| Item | Estado | Evidência |
+|---|---|---|
+| Supabase Pilot `offgpyysgdhfemjlchod` (INACTIVE): auditoria, export, restore, conversão | BLOQUEADO POR INFRAESTRUTURA / AUTORIZAÇÃO | sessão sem rede para `*.supabase.co` nem credencial; ver `evidence/demo-canonical-local-2026-11-01.md` |
+| Migrations da main + Auth + Storage + seed sintético | VALIDADO EM BANCO REAL (local) | `npm run demo:setup`, `demo:local:check` 41/41 |
+| Jornadas reais: termos especializados, Economics, CRM, Copilot (confirmação), importação, ERP, isolamento | VALIDADO EM BANCO REAL (local) | `demo:local:platform-journey` 8 passos + 10 ataques, 0 falhas |
+| Jornada do piloto (`journey.sh`) | NÃO VALIDADO nesta sessão | rate limit de login esgotado; pressupõe modo pilot |
+| Vercel `arandu-demo` ligada ao Supabase canônico | BLOQUEADO POR AUTORIZAÇÃO | Vercel 403; depende do restore do Pilot |
+| Production (`igacnfjeuqhxcmfyepgj`) | PLANO | `PRODUCTION_CONVERSION_PLAN_2026-11.md`; nada executado |
