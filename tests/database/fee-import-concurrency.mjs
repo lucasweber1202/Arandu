@@ -1,0 +1,21 @@
+import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
+const database=process.argv[2];if(!database)throw new Error('local database URL required');
+const id=n=>`00000000-0000-4000-8000-000000c5${String(n).padStart(4,'0')}`;
+function sql(input){return new Promise((resolve,reject)=>{const child=spawn('psql',[database,'-X','-qAt','-v','ON_ERROR_STOP=1'],{stdio:['pipe','pipe','pipe']});let out='',err='';child.stdout.on('data',b=>out+=b);child.stderr.on('data',b=>err+=b);child.on('error',reject);child.on('close',code=>code===0?resolve(out.trim()):reject(new Error(err)));child.stdin.end(input);});}
+const setup=await sql(`insert into auth.users(id,email,email_confirmed_at) values('${id(1)}','import-concurrency@example.invalid',now());
+insert into public.fin_organizations(id,legal_name,kind,created_by) values('${id(100)}','Import concurrency','BUYER','${id(1)}');
+insert into public.fin_members(organization_id,user_id,role) values('${id(100)}','${id(1)}','admin');
+insert into public.fin_providers(id,organization_id,name,kind,created_by) values('${id(200)}','${id(100)}','Synthetic bank','bank','${id(1)}');
+set role authenticated; select set_config('request.jwt.claim.sub','${id(1)}',false);
+select public.fin_import_contract('${id(100)}',null,'${id(200)}','cash_management','Concurrent import contract',current_date-30,current_date+365,30,false,'BRL','{"currency":"BRL"}',null);`);
+const contract=setup.split('\n').at(-1);assert.match(contract,/^[a-f0-9-]{36}$/);
+const rows=`jsonb_build_array(jsonb_build_object('line',2,'values',jsonb_build_object('service','Import fixture','charging_unit','one_off','currency','BRL','period_start',current_date-1,'period_end',current_date-1,'observed_amount',10,'source_type','other_import','source_reference','Concurrent/entry-1','source_object_id','entry-1','evidence_reference','Synthetic CSV fixture')))`;
+const command=request=>`set role authenticated;select set_config('request.jwt.claim.sub','${id(1)}',false);select public.fin_import_fee_batch('${id(100)}','${contract}','${id(request)}',repeat('a',64),'Synthetic.csv',${rows},true,'{}');`;
+let results=await Promise.all(Array.from({length:8},()=>sql(command(300)).then(s=>JSON.parse(s.split('\n').at(-1)))));
+assert.equal(results.filter(r=>r.replayed===false).length,1);assert.equal(new Set(results.map(r=>r.rows[0].id)).size,1);
+results=await Promise.all(Array.from({length:8},(_,n)=>sql(command(400+n)).then(s=>JSON.parse(s.split('\n').at(-1)))));
+assert(results.every(r=>r.imported===0&&r.ignored===1));
+assert.equal(await sql(`select count(*) from public.fin_fee_observations where contract_id='${contract}';`),'1');
+assert.equal(await sql(`select count(*) from public.fin_events where organization_id='${id(100)}' and event_type='fee_import_completed';`),'9');
+console.log('Fee imports real PostgreSQL concurrency: eight identical retries → one receipt/observation; eight distinct commands → existing observation retained, no duplicate.');

@@ -2,6 +2,25 @@
 
 > **01/11/2026 — Financial Relationship Workspace (CRM visual 1.0), M1.** Interface sobre `financial-crm-v1` (#297): contatos, atividades/agenda, processos por etapa e histórico no painel da instituição, mais agenda da organização na Central. E2E com API simulada; sem validação canônica. [Detalhes, limites e handoffs](FINANCIAL_CRM_WORKSPACE_UI.md).
 
+## 01/11/2026 — Ingestão de tarifas e adapter Dynamics Business Central
+
+Backend em `feature/platform-ingestion`, base inicial `main@3a7d129`;
+reconciliação com o pacote de Platform Intelligence antes da entrega. CSV/XLSX
+com mapeamento explícito, prévia por linha, dedupe/conflitos, seleção/confirmacão,
+RPC transacional, reconciliação canônica e recibos/histórico em eventos. Configuração
+ERP versionada, suspensão/revogação e binding de credencial fora do banco;
+adapter da API oficial Business Central v2.0, recorte de conta de despesas,
+paginação/watermark/limites e bloqueio explícito sem credenciais.
+
+Testes específicos Node/API PASS (HTTP simulado). PostgreSQL 15.15 real:
+atomicidade, fontes conflitantes, replay, papel/entidade/tenant e oito sessões
+concorrentes PASS. Gates integrais e CI ainda exigidos no SHA final. Sem frontend,
+chamada ERP externa, scheduler ou OAuth/refresh administrativos comprovados;
+histórico persistente de tentativas falhadas ainda pendente. Nenhuma tabela,
+segredo ou ambiente hospedado alterado. Contrato e limites:
+[ingestão/ERP](PLATFORM_INGESTION_BACKEND_CONTRACTS_2026_11.md).
+
+
 ## 01/11/2026 — Platform Intelligence: CRM contextual, Copilot e termos especializados
 
 Base reconciliada `main@3a7d129`, sem PR aberta no início. Branch
