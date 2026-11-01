@@ -178,6 +178,12 @@ export function renderTopbar(ctx) {
       icon('search'), el('span', { class: 'search-trigger-text', text: 'Buscar' }), el('kbd', { class: 'kbd', 'aria-hidden': 'true', text: navigator.platform?.includes('Mac') ? '⌘K' : 'Ctrl K' })
     ]);
     actions.append(searchButton);
+    // Copilot: o sandbox legado (/demo, sem backend) não tem o recurso.
+    if (ctx.mode !== 'demo') {
+      const copilot = el('button', { type: 'button', id: 'copilot-trigger', class: 'btn btn-ghost btn-sm copilot-trigger', 'aria-label': 'Abrir o Copilot financeiro' }, [icon('sparkles', { size: 16 }), el('span', { class: 'copilot-trigger-text', text: 'Copilot' })]);
+      copilot.addEventListener('click', () => import('./views/copilot.js').then((m) => m.openCopilot(ctx)));
+      actions.append(copilot);
+    }
   }
   const bell = ctx.organization ? el('button', { type: 'button', id: 'notification-trigger', class: 'icon-btn bell', 'aria-haspopup': 'dialog', 'aria-expanded': 'false', 'aria-label': 'Notificações' },
     [icon('bell', { size: 18 }), el('span', { class: 'bell-badge', hidden: true })]) : null;

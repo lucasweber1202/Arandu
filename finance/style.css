@@ -1408,3 +1408,18 @@ textarea.mono{width:100%;max-width:100%;min-width:0}
 .crm-tabs .segment[aria-selected=true]{background:var(--surface);color:var(--text);box-shadow:var(--shadow-sm)}
 .link-button{border:0;background:none;padding:0;color:var(--accent);font:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
 .link-button:focus-visible{outline:none;box-shadow:var(--focus-ring)}
+/* Copilot financeiro */
+.copilot-trigger{gap:6px}
+@media (max-width:759px){.copilot-trigger-text{display:none}}
+.copilot{display:grid;gap:var(--s3)}
+.copilot-scope{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2);font-size:var(--fs-sm);color:var(--text-secondary)}
+.copilot-suggestions{display:flex;flex-wrap:wrap;gap:var(--s2)}
+.copilot-log{display:grid;gap:var(--s3)}
+.copilot-turn{display:grid;gap:var(--s2);padding:var(--s3);border:1px solid var(--border);border-radius:var(--r-md);background:var(--surface)}
+.copilot-q p,.copilot-answer{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.copilot-a{display:grid;gap:var(--s2);border-top:1px solid var(--border);padding-top:var(--s2)}
+.copilot-a-head{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.copilot-sources h4,.copilot-action h4{margin:0 0 var(--s1);font-size:var(--fs-sm)}
+.copilot-action{padding:var(--s3);border:1px dashed var(--border-strong);border-radius:var(--r-md);background:var(--surface-sunken)}
+.copilot-form-actions{display:flex;justify-content:flex-end;align-items:center;gap:var(--s2)}
+.copilot-form-actions .muted{margin-right:auto}
