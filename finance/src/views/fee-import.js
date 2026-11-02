@@ -7,7 +7,7 @@
 // tudo na confirmação. Arquivo, mapeamento e `request_key` ficam preservados
 // após falha; repetir reenvia a mesma intenção.
 
-import { el, icon, formatDate, uid, plural } from '../core.js';
+import { el, icon, formatDate, moneyIn, uid, plural } from '../core.js';
 import { button, drawer, field, toast, sessionLink, confirmDialog } from '../ui.js';
 import { CHARGING_UNITS } from '../../../lib/finance/fee-intelligence.mjs';
 
@@ -45,6 +45,15 @@ export function suggestMapping(columns) {
   return out;
 }
 const toBase64 = (bytes) => { let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000)); return btoa(s); };
+
+/** Período e valor legíveis (datas por extenso, moeda declarada pela fonte; nunca R$ por padrão). */
+export function periodText(v = {}) {
+  if (!v.period_start) return '—';
+  return `${formatDate(v.period_start)} a ${v.period_end ? formatDate(v.period_end) : 'fim não informado'}`;
+}
+export function amountText(v = {}) {
+  return moneyIn(v.observed_amount, v.currency) || '—';
+}
 
 export function importErrorMessage(error) {
   if (error?.status === 400) return 'O arquivo ou o mapeamento não foi aceito: confira formato, cabeçalho único, colunas mapeadas, limite de 100 registros e origem (letras, números e . _ : / -). Nada foi gravado.';
@@ -165,8 +174,8 @@ export function openFeeImport(ctx, { contracts = [], contractId = null } = {}) {
         return el('tr', { dataset: { line: String(r.line), state: r.state } }, [
           el('td', { 'data-label': 'Importar' }, box), el('td', { 'data-label': 'Linha', class: 'num', text: String(r.line) }),
           el('td', { 'data-label': 'Situação' }, el('span', { class: `tag tag-${tone}`, text: label })),
-          el('td', { 'data-label': 'Serviço', text: v.service || '—' }), el('td', { 'data-label': 'Período', text: v.period_start ? `${v.period_start} a ${v.period_end || '?'}` : '—' }),
-          el('td', { 'data-label': 'Valor', class: 'num', text: v.observed_amount ? `${v.currency || ''} ${v.observed_amount}`.trim() : '—' }),
+          el('td', { 'data-label': 'Serviço', text: v.service || '—' }), el('td', { 'data-label': 'Período', text: periodText(v) }),
+          el('td', { 'data-label': 'Valor', class: 'num', text: amountText(v) }),
           el('td', { 'data-label': 'Problemas' }, (r.errors || []).length ? el('ul', { class: 'plain-list small' }, r.errors.map((e) => el('li', { text: `${e.column ? `Coluna "${e.column}": ` : ''}${CODE_TEXT[e.code] || 'Problema'}${e.suggestion ? ` — ${e.suggestion}` : ''}` })))
             : r.state === 'conflicting' ? el('span', { class: 'small', text: 'Mesmo identificador de origem com valores diferentes do já registrado. Não sobrescreve: revise a origem.' }) : el('span', { class: 'muted small', text: '—' }))
         ]);
@@ -183,16 +192,18 @@ export function openFeeImport(ctx, { contracts = [], contractId = null } = {}) {
       } catch (error) {
         errBox.replaceChildren(el('span', { text: importErrorMessage(error) }), ...(sessionLink(error) ? [' ', sessionLink(error)] : []));
         errBox.hidden = false; confirm.disabled = false;
-        if (!error.status || error.status >= 500) confirm.querySelector('.btn-label').textContent = 'Repetir a mesma confirmação';
+        // Resposta incerta: a mensagem manda consultar o histórico, então ele aparece aqui, relido do servidor.
+        if (!error.status || error.status >= 500) { confirm.querySelector('.btn-label').textContent = 'Repetir a mesma confirmação'; historySlot.replaceChildren(history()); }
       }
     });
     const errBox = el('div', { class: 'callout callout-error compact', role: 'alert', hidden: true });
+    const historySlot = el('div', { class: 'import-history-slot' });
     area.replaceChildren(
       el('ul', { class: 'import-stats', 'aria-label': 'Resumo da prévia' }, Object.entries(STATE).filter(([k]) => stats[k]).map(([k, [label, tone]]) => el('li', { class: `tag tag-${tone}`, text: `${label}: ${stats[k]}` }))),
       el('p', { class: 'muted small', text: `Prévia calculada pelo servidor sobre ${plural(p.rows.length, 'registro', 'registros')}. Só linhas válidas ou já registradas podem ser selecionadas.` }),
       el('div', { class: 'toolbar' }, [filter]),
       el('div', { class: 'table-card' }, el('table', { class: 'data-table compact import-preview' }, [el('thead', {}, el('tr', {}, ['Importar', 'Linha', 'Situação', 'Serviço', 'Período', 'Valor', 'Problemas'].map((t) => el('th', { scope: 'col', text: t })))), tbody])),
-      selCount, errBox, el('div', { class: 'form-actions' }, [button('Corrigir mapeamento', { variant: 'ghost', onClick: stepTwo }), confirm]));
+      selCount, errBox, el('div', { class: 'form-actions' }, [button('Corrigir mapeamento', { variant: 'ghost', onClick: stepTwo }), confirm]), historySlot);
     draw(); sync();
   }
 

@@ -113,6 +113,11 @@ test('confirmação incerta repete a mesma chave; corrigir mapeamento preserva o
   await dialog.getByRole('button', { name: 'Confirmar importação' }).click();
   await page.getByRole('dialog', { name: /Gravar 1 linha/ }).getByRole('button', { name: 'Gravar' }).click();
   await expect(dialog.getByRole('alert')).toContainText('consulte o histórico');
+  // A mensagem manda consultar o histórico: ele aparece na própria etapa, relido do servidor.
+  await expect(dialog.getByRole('region', { name: 'Importações deste contrato' })).toContainText('tarifas.csv');
+  // Período e valor legíveis, sem data ISO nem decimal cru.
+  await expect(dialog.locator('tr[data-line="1"]')).toContainText('R$ 12,50');
+  await expect(dialog.locator('tr[data-line="1"]')).not.toContainText('2026-09-01');
   await dialog.getByRole('button', { name: 'Repetir a mesma confirmação' }).click();
   await page.getByRole('dialog', { name: /Gravar 1 linha/ }).getByRole('button', { name: 'Gravar' }).click();
   await expect(dialog).toContainText('nada foi duplicado');
@@ -176,8 +181,16 @@ test('ERP Hub: prévia real (simulada) separa revisão de importação e confirm
   await prev.getByLabel(/^Fim/).fill('2026-09-30');
   await prev.getByRole('button', { name: 'Ler o Business Central' }).click();
   await expect(prev).toContainText('requer revisão; não será importado automaticamente');
-  await prev.getByRole('button', { name: 'Confirmar 1 lançamento válido' }).click();
+  await expect(prev.locator('[data-line="1"]')).toContainText('R$ 45,00');
+  await expect(prev.locator('[data-line="1"]')).not.toContainText('2026-09-10');
+  await expect(prev.getByLabel('Importar lançamento 2')).toBeDisabled();
+  // Revisão humana: desmarcar o único válido bloqueia a confirmação.
+  await prev.getByLabel('Importar lançamento 1').uncheck();
+  await expect(prev.getByRole('button', { name: 'Confirmar 0 lançamentos selecionados' })).toBeDisabled();
+  await prev.getByLabel('Importar lançamento 1').check();
+  await prev.getByRole('button', { name: 'Confirmar 1 lançamento selecionado' }).click();
   await page.getByRole('dialog', { name: 'Gravar lançamentos selecionados?' }).getByRole('button', { name: 'Gravar' }).click();
   await expect(prev).toContainText('1 lançamento importado');
+  await expect(prev.getByRole('link', { name: 'Abrir contrato' })).toHaveAttribute('href', new RegExp(`contract-${C1}`));
   expect(calls.find((c) => c.path === 'erp-fees/confirm').body).toMatchObject({ integration_id: INT, selected_lines: [1], preview_fingerprint: 'erp-fp', confirmation: true });
 });

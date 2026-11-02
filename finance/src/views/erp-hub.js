@@ -7,9 +7,10 @@
 // a prévia é o único teste real, e só com credencial aprovada no servidor.
 // Nenhum segredo é pedido ou aceito aqui.
 
-import { el, icon, formatDateTime, uid, plural } from '../core.js';
+import { el, icon, formatDate, formatDateTime, uid, plural } from '../core.js';
 import { button, tag, field, drawer, toast, confirmDialog, sessionLink, loading, errorState } from '../ui.js';
 import { CHARGING_UNITS } from '../../../lib/finance/fee-intelligence.mjs';
+import { periodText, amountText } from './fee-import.js';
 
 const enc = encodeURIComponent;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -143,25 +144,44 @@ export function erpHubSection(ctx, { contracts = [] } = {}) {
       } catch (error) { out.replaceChildren(el('p', { class: 'callout callout-error compact', role: 'alert', text: erpErrorMessage(error) })); }
       finally { go.disabled = false; }
     });
+    const ROW_STATE = { valid: 'válido', duplicate: 'já registrado', conflicting: 'conflita com registro existente', invalid: 'inválido', incomplete: 'incompleto', pending_review: 'requer revisão; não será importado automaticamente' };
     function drawPreview() {
       const rows = preview.rows || [];
-      const selectable = rows.filter((r) => ['valid', 'duplicate'].includes(r.state));
       const stats = preview.stats || {};
-      const confirm = button(`Confirmar ${plural(selectable.filter((r) => r.state === 'valid').length, 'lançamento válido', 'lançamentos válidos')}`, { variant: 'primary', iconName: 'check' });
-      confirm.disabled = !selectable.some((r) => r.state === 'valid');
+      // Revisão humana por lançamento: começa com os válidos marcados; a pessoa pode desmarcar.
+      const selected = new Set(rows.filter((r) => r.state === 'valid').map((r) => r.line));
+      const confirm = button('', { variant: 'primary', iconName: 'check' });
+      const sync = () => {
+        confirm.querySelector('.btn-label').textContent = `Confirmar ${plural(selected.size, 'lançamento selecionado', 'lançamentos selecionados')}`;
+        confirm.disabled = !selected.size;
+      };
       confirm.addEventListener('click', async () => {
-        if (!(await confirmDialog({ title: 'Gravar lançamentos selecionados?', description: 'O Arandu lê o ERP de novo; se a origem mudou, nada é gravado e uma nova prévia é necessária.', confirmLabel: 'Gravar' }))) return;
+        if (!(await confirmDialog({ title: 'Gravar lançamentos selecionados?', description: 'O Arandu lê o ERP de novo; se a origem mudou, nada é gravado e uma nova prévia é necessária. Diferenças contra o contrato ficam para revisão humana; não são economia.', confirmLabel: 'Gravar' }))) return;
         confirm.disabled = true;
         try {
-          const r = await ctx.api('erp-fees/confirm', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, integration_id: cfg.id, period_start: start.value, period_end: end.value, confirmation: true, preview_fingerprint: preview.fingerprint, selected_lines: rows.filter((x) => x.state === 'valid').map((x) => x.line), request_key: confirmKey }) });
-          out.replaceChildren(el('p', { class: 'callout callout-success', role: 'status', text: `${r.replayed ? 'Já registrado antes; nada duplicado. ' : ''}${plural(r.imported ?? 0, 'lançamento importado', 'lançamentos importados')}, ${plural(r.ignored ?? 0, 'ignorado', 'ignorados')}.` }),
-            el('a', { class: 'btn btn-secondary btn-sm', href: ctx.href(`/finance/fees.html?contract_id=${enc(cfg.contract_id)}`) }, el('span', { class: 'btn-label', text: 'Ver tarifas do contrato' })));
-        } catch (error) { out.append(el('p', { class: 'callout callout-error compact', role: 'alert', text: erpErrorMessage(error) })); confirm.disabled = false; }
+          const r = await ctx.api('erp-fees/confirm', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, integration_id: cfg.id, period_start: start.value, period_end: end.value, confirmation: true, preview_fingerprint: preview.fingerprint, selected_lines: [...selected].sort((a, b) => a - b), request_key: confirmKey }) });
+          out.replaceChildren(el('p', { class: 'callout callout-success', role: 'status' }, [icon('checkCircle', { size: 16 }), el('span', { text: `${r.replayed ? 'Já registrado antes; nada duplicado. ' : ''}${plural(r.imported ?? 0, 'lançamento importado', 'lançamentos importados')}, ${plural(r.ignored ?? 0, 'ignorado', 'ignorados')}. Período ${formatDate(start.value)} a ${formatDate(end.value)}.` })]),
+            el('a', { class: 'btn btn-secondary btn-sm', href: ctx.href(`/finance/fees.html?contract_id=${enc(cfg.contract_id)}`) }, el('span', { class: 'btn-label', text: 'Ver tarifas do contrato' })),
+            el('a', { class: 'btn btn-ghost btn-sm', href: ctx.href(`/finance/contracts.html?abrir=contrato#contract-${cfg.contract_id}`) }, el('span', { class: 'btn-label', text: 'Abrir contrato' })));
+        } catch (error) {
+          out.querySelector('.erp-confirm-error')?.remove();
+          out.append(el('p', { class: 'callout callout-error compact erp-confirm-error', role: 'alert' }, [el('span', { text: erpErrorMessage(error) }), ...(sessionLink(error) ? [' ', sessionLink(error)] : [])]));
+          confirm.disabled = false;
+        }
       });
+      const list = el('ul', { class: 'plain-list erp-preview-rows', 'aria-label': 'Lançamentos lidos' }, rows.slice(0, 100).map((r) => {
+        const box = el('input', { type: 'checkbox', 'aria-label': `Importar lançamento ${r.line}`, disabled: r.state !== 'valid' });
+        box.checked = selected.has(r.line);
+        box.addEventListener('change', () => { if (box.checked) selected.add(r.line); else selected.delete(r.line); sync(); });
+        const v = r.values || {};
+        return el('li', { class: 'erp-preview-row small', dataset: { line: String(r.line), state: r.state } }, [
+          el('label', { class: 'checkbox' }, [box, el('span', { text: `Lançamento ${r.line} · ${v.period_start ? formatDate(v.period_start) : periodText(v)} · ${amountText(v)} · ${ROW_STATE[r.state] || 'situação não reconhecida'}` })])]);
+      }));
       out.replaceChildren(
-        el('p', { class: 'small', text: `${plural(rows.length, 'lançamento lido', 'lançamentos lidos')}${preview.coverage?.complete === false ? ' (recorte incompleto: reduza o período)' : ''}. ${Object.entries(stats).filter(([, n]) => n).map(([k, n]) => `${({ valid: 'válidos', duplicate: 'já registrados', conflicting: 'em conflito', invalid: 'inválidos', incomplete: 'incompletos', pending_review: 'para revisão (créditos, estornos ou zero)' })[k] || k}: ${n}`).join(' · ')}` }),
-        el('ul', { class: 'plain-list small' }, rows.slice(0, 100).map((r) => el('li', { text: `Linha ${r.line} · ${r.values?.period_start || ''} · ${r.values?.currency || ''} ${r.values?.observed_amount || ''} · ${({ valid: 'válido', duplicate: 'já registrado', conflicting: 'conflita com registro existente', invalid: 'inválido', incomplete: 'incompleto', pending_review: 'requer revisão; não será importado automaticamente' })[r.state] || r.state}` }))),
-        confirm);
+        el('p', { class: 'small', text: `${plural(rows.length, 'lançamento lido', 'lançamentos lidos')}${preview.coverage?.complete === false ? ' (recorte incompleto: reduza o período)' : ''}. ${Object.entries(stats).filter(([, n]) => n).map(([k, n]) => `${({ valid: 'válidos', duplicate: 'já registrados', conflicting: 'em conflito', invalid: 'inválidos', incomplete: 'incompletos', pending_review: 'para revisão (créditos, estornos ou zero)' })[k] || 'outros'}: ${n}`).join(' · ')}` }),
+        el('p', { class: 'muted small', text: 'Só lançamentos válidos podem ser marcados. Desmarque o que não pertence a este contrato antes de gravar.' }),
+        list, confirm);
+      sync();
     }
     drawer({ title: 'Prévia do Business Central', subtitle: contractName(cfg.contract_id), body: el('div', { class: 'stack' }, [
       el('p', { class: 'muted small', text: 'Leitura de até 5 páginas / 100 lançamentos da conta mapeada. Créditos, estornos e valores zero ficam para revisão, nunca viram despesa automaticamente.' }),
