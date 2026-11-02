@@ -6,7 +6,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
-import { pipeline } from 'node:stream/promises';
+import { finished } from 'node:stream/promises';
 import { digestFile } from '../lib/recovery-transfer.mjs';
 import { majorVersion, RECOVERY_REFS } from '../lib/pilot-backup-preflight.mjs';
 import { SCHEMA_SQL, SCHEMA_FINGERPRINT_VERSION, validSchemaDigest } from '../lib/recovery-schema.mjs';
@@ -92,8 +92,15 @@ export async function verifyRestore({ env = process.env, root = process.cwd(), s
     const decrypt = spawn('age', ['--decrypt', '--identity', identity, path.join(backup, 'database.dump.age')], { env: { PATH: env.PATH }, stdio: ['ignore', 'pipe', 'ignore'] });
     const consumer = spawn('pg_restore', args, { env: targetEnv, stdio: ['pipe', 'ignore', 'ignore'] });
     const done = (child) => new Promise((resolve, reject) => { child.once('error', reject); child.once('close', (code) => (code === 0 ? resolve() : reject(new Error('exit')))); });
-    consumer.stdin.on('error', () => {});
-    const tasks = [done(decrypt), done(consumer), pipeline(decrypt.stdout, consumer.stdin)];
+    // --list may exit successfully after reading only the TOC. Keep draining
+    // and discarding age's remaining plaintext so it authenticates the ENTIRE
+    // ciphertext, instead of killing it with EPIPE when pg_restore closes early.
+    // A restore error also drains, but still fails through the consumer exit.
+    const drain = () => { decrypt.stdout.unpipe(consumer.stdin); decrypt.stdout.resume(); };
+    consumer.stdin.on('error', drain);
+    consumer.once('close', drain);
+    const tasks = [done(decrypt), done(consumer), finished(decrypt.stdout)];
+    decrypt.stdout.pipe(consumer.stdin);
     try { await Promise.all(tasks); }
     catch { decrypt.kill('SIGKILL'); consumer.kill('SIGKILL'); await Promise.allSettled(tasks); return false; }
     return true;

@@ -19,7 +19,7 @@ vira Production depois da Demo. Este plano só usa ferramentas já existentes no
 | 1 | Reinventariar (contagens por tabela, colunas com PII, buckets, Auth) somente leitura | `npm run recovery:doctor`; consultas de catálogo do doctor | não | acesso de leitura |
 | 2 | Classificar os 42 registros: manter arquivado, exportar ao proprietário, ou descartar | decisão do proprietário registrada em `evidence/` | não | **proprietário decide o destino** |
 | 3 | Export criptografado (age) de banco + Auth + Storage, com fingerprints | `recovery:export:private`, `recovery:storage:export` | não | secrets do Environment `database-recovery` |
-| 4 | Restore isolado (PostgreSQL 17 descartável) e conferência de hashes/contagens | `recovery:restore`, `recovery:restore:verify`, `recovery:storage:verify` | não (alvo isolado) | — |
+| 4 | Restore isolado do mesmo export (PostgreSQL 17 descartável), hashes, schema e contagens; se houver objetos, restore/verify dos binários | `recovery:restore:verify`, `recovery:storage:restore`, `recovery:storage:verify`, `recovery:verify` | não (alvo isolado) | — |
 | 5 | Limpeza do schema de arte **somente** após 3–4 comprovados | migration de decommission existente + rollback | **sim** | autorização específica da conversão |
 | 6 | Instalar a sequência canônica (`docs/supabase-migrations.json`, `cleanInstall`/`existingDatabase`) | `scripts/check-migrations.mjs`, runner de `test:database` | sim (schema) | idem 5 |
 | 7 | Auth (URLs de redirect para o domínio de Production, MFA de operador), Storage privado | painel Supabase + `finance:env:check` | não | proprietário |

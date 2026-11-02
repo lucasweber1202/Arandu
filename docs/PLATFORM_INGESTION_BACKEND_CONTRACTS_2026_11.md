@@ -15,6 +15,14 @@ revalida membership, entidade, offboarding, contrato e intenção após locks.
 Viewer/analyst podem consultar fontes autorizadas e a prévia de arquivo, mas não
 confirmam importação; consulta externa exige admin/finance_manager.
 
+Em `fee-imports/confirm`, após confirmar a organização e antes de processar o
+arquivo/seleção, a API recusa papel sem escrita com **403 `forbidden`**, inclusive
+seleção malformada. A prévia de arquivo permanece disponível para leitura.
+`line` começa em 2 para o primeiro registro após o cabeçalho; testes de papel
+devem selecionar uma linha confirmável da prévia, sem confundir 400 de entrada
+com autorização. A RPC continua revalidando papel/entidade sob lock; revogação
+entre prévia, preflight e gravação também retorna 403 sem persistência parcial.
+
 400 entrada/mapeamento/confirmação inválidos; 403 papel/entidade; 404 fonte
 oculta/ausente; 409 intenção, origem ou versão conflitante; 422 cobertura;
 503 ERP sem configuração, indisponível, recusado ou excedendo limites. Falha não

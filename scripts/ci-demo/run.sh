@@ -121,6 +121,14 @@ case "$phase" in
     local_env; fresh_app
     PILOT_REPORT="$out/journey.md" timeout 900 node "$root/scripts/pilot-local/journey.mjs"
     ;;
+  platform)
+    local_env; fresh_app
+    status=0
+    PILOT_REPORT="$state/platform-journey.json" timeout 900 node "$root/scripts/pilot-local/platform-journey.mjs" > "$state/platform-journey.txt" 2>&1 || status=$?
+    node "$here/sanitize.mjs" "$out/platform" "$state/platform-journey.json" "$state/platform-journey.txt"
+    cat "$out/platform/platform-journey.txt"
+    exit "$status"
+    ;;
   adversarial)
     # Escreve na Demo efêmera (contratos, votos e aditivos sintéticos): roda por último.
     local_env; fresh_app
@@ -155,5 +163,5 @@ case "$phase" in
     left="$(docker ps -aq --filter label=com.docker.compose.project=arandu-pilot-local | wc -l)"
     echo "containers restantes do projeto: $left"; [ "$left" = 0 ]
     ;;
-  *) echo "uso: bash scripts/ci-demo/run.sh preflight|images|up|smoke|seed|check|e2e <projeto>|journey|adversarial|evidence|down"; exit 2 ;;
+  *) echo "uso: bash scripts/ci-demo/run.sh preflight|images|up|smoke|seed|check|e2e <projeto>|journey|platform|adversarial|evidence|down"; exit 2 ;;
 esac

@@ -75,10 +75,20 @@ test('workflow: nenhuma falha mascarada', () => {
 });
 test('workflow: timeout no job e em cada fase; concorrência limitada', () => {
   assert.match(workflow, /timeout-minutes: \d+\n    env:/);
-  for (const id of ['preflight', 'images', 'up', 'smoke', 'seed', 'check', 'pool', 'e2e_desktop', 'e2e_mobile', 'journey', 'adversarial', 'recovery']) {
+  for (const id of ['preflight', 'images', 'up', 'smoke', 'seed', 'check', 'pool', 'e2e_desktop', 'e2e_mobile', 'journey', 'platform', 'adversarial', 'recovery']) {
     assert.match(workflow, new RegExp(`id: ${id}\\n        timeout-minutes: \\d+`), `fase ${id} sem timeout`);
   }
   assert.match(workflow, /concurrency:\n  group: arandu-demo-integration\n  cancel-in-progress: false/);
+});
+test('platform phase keeps the real journey result and publishes only sanitized logs', () => {
+  const phase = runner.slice(runner.indexOf('  platform)'), runner.indexOf('  adversarial)'));
+  assert.match(phase, /local_env; fresh_app/);
+  assert.match(phase, /platform-journey\.mjs/);
+  assert.match(phase, /> "\$state\/platform-journey\.txt" 2>&1 \|\| status=\$\?/);
+  assert.match(phase, /node "\$here\/sanitize\.mjs" "\$out\/platform"/);
+  assert.match(phase, /cat "\$out\/platform\/platform-journey\.txt"/);
+  assert.match(phase, /exit "\$status"/);
+  assert.match(workflow, /run: bash scripts\/ci-demo\/run\.sh platform/);
 });
 test('preflight local falha cedo se Node não for 24 ou faltarem as ferramentas de recovery', () => {
   const preflight = runner.slice(runner.indexOf('  preflight)'), runner.indexOf('  images)'));
@@ -116,7 +126,7 @@ test('B exige SHA exato, fases críticas, evidência e cleanup; a hospedagem seg
   assert.equal(ready.maturity, 'CI_VALIDATED_ONLY');
   assert.equal(ready.hostedStatus, 'NOT_PROVEN');
   assert.equal(ready.pending.length, 0);
-  for (const [key, outcome] of [['TEARDOWN', 'failure'], ['TEARDOWN', 'skipped'], ['EVIDENCE_UPLOAD', 'failure'], ['RECOVERY', 'skipped'], ['POOL', 'skipped'], ['POOL', 'failure'], ['E2E_MOBILE', 'failure']]) {
+  for (const [key, outcome] of [['TEARDOWN', 'failure'], ['TEARDOWN', 'skipped'], ['EVIDENCE_UPLOAD', 'failure'], ['RECOVERY', 'skipped'], ['POOL', 'skipped'], ['POOL', 'failure'], ['E2E_MOBILE', 'failure'], ['PLATFORM', 'failure'], ['PLATFORM', 'skipped']]) {
     const rejected = assessDemoRehearsal({ ...outcomes, [key]: outcome, TESTED_SHA: 'a'.repeat(40) });
     assert.equal(rejected.result, 'C_NO_GO', `${key}=${outcome} não pode liberar B`);
     assert(rejected.pending.some((item) => item.key === key));

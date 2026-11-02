@@ -6,7 +6,7 @@ import path from 'node:path';
 import os, { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { createServer } from 'node:net';
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { exportRecovery } from './consolidation-export.mjs';
 import { digestFile } from '../lib/recovery-transfer.mjs';
 import { verifyRestore } from './consolidation-restore-verify.mjs';
@@ -85,6 +85,8 @@ CREATE TABLE storage.buckets(id text primary key, public boolean default false, 
 CREATE TABLE supabase_migrations.schema_migrations(version text primary key); INSERT INTO supabase_migrations.schema_migrations VALUES('synthetic-1');
 CREATE TABLE public.fin_settings(key text primary key,value text); INSERT INTO public.fin_settings VALUES('schema_version','synthetic-schema-1'),('deployment_environment','demo');
 CREATE TABLE public.parent(id integer PRIMARY KEY, label text NOT NULL);
+CREATE TABLE public.stream_payload(id integer PRIMARY KEY, payload text NOT NULL);
+INSERT INTO public.stream_payload VALUES(1,'${randomBytes(1024 * 1024).toString('hex')}');
 CREATE TABLE public.child(id integer PRIMARY KEY, parent_id integer REFERENCES public.parent(id), amount numeric CHECK(amount>0));
 INSERT INTO public.parent VALUES(1,'synthetic-alpha'),(2,'synthetic-beta'); INSERT INTO public.child VALUES(3,1,42),(4,2,84);
 CREATE INDEX child_amount_idx ON public.child(amount);
@@ -101,6 +103,7 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO arandu_fixtu
 const evidenceSql = `SELECT json_build_object(
  'data',(SELECT json_agg(row_to_json(t) ORDER BY id) FROM public.parent t),
  'child',(SELECT json_agg(row_to_json(t) ORDER BY id) FROM public.child t),
+ 'stream_payload_sha256',(SELECT encode(sha256(convert_to(payload,'UTF8')),'hex') FROM public.stream_payload WHERE id=1),
  'auth',(SELECT count(*) FROM auth.users),'storage',(SELECT count(*) FROM storage.buckets),
  'migrations',(SELECT json_agg(version ORDER BY version) FROM supabase_migrations.schema_migrations),
  'catalog',(SELECT json_agg(row_to_json(t) ORDER BY nspname,relname) FROM
@@ -150,7 +153,7 @@ try {
   assert.equal(manifest.restore,'NOT RUN');
   // Contagens tiradas no mesmo snapshot que o pg_dump importou.
   assert.equal(manifest.snapshot,'exported_snapshot_shared_with_pg_dump');
-  assert.deepEqual(manifest.snapshot_counts,{'auth.mfa_factors':0,'auth.users':1,'public.child':2,'public.fin_settings':2,'public.parent':2,'storage.buckets':1,'storage.objects':0,'supabase_migrations.schema_migrations':1});
+  assert.deepEqual(manifest.snapshot_counts,{'auth.mfa_factors':0,'auth.users':1,'public.child':2,'public.fin_settings':2,'public.parent':2,'public.stream_payload':1,'storage.buckets':1,'storage.objects':0,'supabase_migrations.schema_migrations':1});
   const pgDumpSnapshot=fs.readFileSync(path.join(dir,'source.log'),'utf8');
   assert(!/ERROR/.test(pgDumpSnapshot),'source cluster logged an error during snapshot export');
   for(const f of manifest.files)assert.deepEqual(await digestFile(path.join(backup,f.name)),{bytes:f.bytes,sha256:f.sha256});
@@ -160,7 +163,14 @@ try {
   assert.notEqual(wrongResult.status,0);assert.equal(wrongResult.stdout.length,0);
   const plain=spawnSync('age',['--decrypt','--identity',identity,cipher],{env,timeout:30000,maxBuffer:16*1024*1024});
   assert.equal(plain.status,0);assert.equal(plain.stdout.subarray(0,5).toString(),'PGDMP');
-  run('pg_restore',['--list'],{input:plain.stdout});
+  // A large, incompressible body forces --list to close its input before age
+  // has finished authenticating it. The verifier must drain, never EPIPE age.
+  assert(plain.stdout.length > 1024 * 1024, 'stream regression requires a multi-buffer dump');
+  // Here age already authenticated the complete in-memory plaintext above.
+  // pg_restore is allowed to close after its TOC (spawnSync may report EPIPE).
+  const toc=spawnSync('pg_restore',['--list'],{env,input:plain.stdout,encoding:'utf8',timeout:30000,maxBuffer:16*1024*1024});
+  assert.equal(toc.status,0);assert.match(toc.stdout,/stream_payload/);
+  if(toc.error)assert.equal(toc.error.code,'EPIPE');
   const roles=run('age',['--decrypt','--identity',identity,path.join(backup,'roles.sql.age')]);
   assert(roles.includes('CREATE ROLE arandu_fixture_reader;'));assert(!/PASSWORD '/.test(roles));
   const restoreEnv={...env,ARANDU_RESTORE_CONFIRM:'ARANDU-ISOLATED-RESTORE',ARANDU_RESTORE_BACKUP:backup,ARANDU_RESTORE_IDENTITY:identity,
@@ -222,6 +232,14 @@ try {
   tamperedManifest.schema_fingerprint_version=1;
   tamperedManifest.snapshot_counts['public.parent']=3;fs.writeFileSync(path.join(tampered,'manifest.json'),JSON.stringify(tamperedManifest));
   await code(verifyRestore({syntheticLocal:true,root:process.cwd(),env:{...restoreEnv,ARANDU_RESTORE_BACKUP:tampered}}),'invalid_manifest');
+  // A valid TOC and recomputed ciphertext hash cannot hide a corrupt age tail.
+  // --list exits early, but the verifier must drain and authenticate the tail.
+  const tamperedBytes=Buffer.from(fs.readFileSync(cipher));tamperedBytes[tamperedBytes.length-1]^=1;
+  fs.writeFileSync(path.join(tampered,'database.dump.age'),tamperedBytes);
+  const tailManifest=JSON.parse(JSON.stringify(manifest));
+  Object.assign(tailManifest.files[0],await digestFile(path.join(tampered,'database.dump.age')));
+  fs.writeFileSync(path.join(tampered,'manifest.json'),JSON.stringify(tailManifest));
+  await code(verifyRestore({syntheticLocal:true,root:process.cwd(),env:{...restoreEnv,ARANDU_RESTORE_BACKUP:tampered}}),'decrypt_failed');
   await code(verifyRestore({syntheticLocal:true,root:process.cwd(),env:{...restoreEnv,ARANDU_RESTORE_IDENTITY:wrong}}),'decrypt_failed');
   // Role ausente no destino: restore em transação única aborta e reverte.
   await code(verifyRestore({syntheticLocal:true,root:process.cwd(),env:restoreEnv}),'restore_failed');
@@ -229,7 +247,7 @@ try {
   // Explicit, reviewed role definition. Never blindly apply pg_dumpall roles.
   sql(ports.target,'CREATE ROLE arandu_fixture_reader NOSUPERUSER NOCREATEDB NOCREATEROLE NOLOGIN;');
   const record=await verifyRestore({syntheticLocal:true,root:process.cwd(),env:restoreEnv});
-  assert.equal(record.reconciliation,'MATCH');assert.equal(record.tables,8);assert.equal(record.conversion,'BLOCKED');assert.equal(record.roles_file,'NOT APPLIED');
+  assert.equal(record.reconciliation,'MATCH');assert.equal(record.tables,9);assert.equal(record.conversion,'BLOCKED');assert.equal(record.roles_file,'NOT APPLIED');
   assert.equal(record.source_counts_sha256,record.target_counts_sha256);
   const recordFile=fs.readdirSync(backup).find((f)=>f.startsWith('restore-verification-'));
   assert.equal(fs.statSync(path.join(backup,recordFile)).mode&0o777,0o600);

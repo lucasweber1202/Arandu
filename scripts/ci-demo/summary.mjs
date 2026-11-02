@@ -31,6 +31,7 @@ const phases = [
   ['E2E Chromium desktop', 'E2E_DESKTOP', playwright(read('e2e-desktop.txt'))],
   ['E2E Chromium mobile', 'E2E_MOBILE', playwright(read('e2e-mobile.txt'))],
   ['Jornada real + ataques (Auth, RLS, RFQ, propostas, aprovação, provedor)', 'JOURNEY', last(read('journey-tail.txt'), /\d+ passos, \d+ ataques, \d+ falhas\./)],
+  ['Plataforma: CRM, Copilot, tarifas, ERP, economics e viewer 403', 'PLATFORM', last(read('platform/platform-journey.txt'), /\d+ passos, \d+ ataques, \d+ falha\(s\)\./)],
   ['Sondas adversariais (sessão, entre tenants, concorrência, ciclo de renovação)', 'ADVERSARIAL', last(read('adversarial.txt'), /\d+ sondas, .*SKIPPED\./)],
   ['Recovery: banco + binários do Storage em destino isolado', 'RECOVERY', last(read('recovery.txt'), /resultado: \w+/) + ' · ' + last(read('recovery.txt'), /recovery [A-Z_]+/)],
   ['Coleta e sanitização das evidências', 'EVIDENCE', ''],
