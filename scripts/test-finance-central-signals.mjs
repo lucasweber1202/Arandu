@@ -103,4 +103,10 @@ const waiting = waitingOnInstitutions([
 assert.deepEqual(waiting.map((w) => w.id), ['r2', 'r1']);
 assert.equal(waiting[1].detail, '2 de 3 instituições convidadas sem resposta · prazo em 2 dias (05/11/2026)');
 assert.match(waiting[0].detail, /prazo encerrado há 2 dias/);
+{
+  const { brDay } = await import('../lib/finance/format.mjs');
+  assert.equal(brDay('2026-11-03'), '03/11/2026');
+  assert.equal(brDay('2026-11-03T23:59:00Z'), '03/11/2026', 'timestamp: só a data, sem fuso aplicado');
+  assert.equal(brDay(null), '—'); assert.equal(brDay('', 'sem data'), 'sem data');
+}
 console.log('central-signals: ok');

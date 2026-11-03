@@ -373,7 +373,7 @@ export async function loadExternalDecisionChoices(ctx,rfq) {
         rows.push(...(page.rows||[]));after=page.page?.has_more?page.page.next_after:null;
         if (after && rows.length>=500) throw new Error('Há alternativas demais para a seleção; reduza o escopo.');
       } while(after);
-      return {...rfq,external_proposal_count:rows.length,external_decision_alternatives:rows.filter(row=>row.decision_allowed===true).map(row=>({...externalComparisonProposal(row),provider_name:`${row.provider_name||'Instituição declarada'} · fonte externa`}))};
+      return {...rfq,external_proposal_count:rows.length,external_rows:rows,external_decision_alternatives:rows.filter(row=>row.decision_allowed===true).map(row=>({...externalComparisonProposal(row),provider_name:`${row.provider_name||'Instituição declarada'} · fonte externa`}))};
 }
 
 export function externalDecisionRecovery(ctx,id,requestKey,onUnconfirmed) {

@@ -65,6 +65,13 @@ test('quadro de respostas: por instituição, canal, de quem é a vez e navegaç
   await expect(row(PA).getByRole('link', { name: 'Relacionamento' })).toHaveAttribute('href', new RegExp(`providers\\.html\\?provider_id=${PA}`));
   await expect(board).not.toContainText(/melhor|mais vantajos|recomend/i);
   expect(calls.find((c) => c.path === 'external-proposals').query.rfq_id).toBe(RFQ);
+  // Uma única leitura da lista externa ao abrir: o quadro reutiliza a que a página já fez.
+  expect(calls.filter((c) => c.path === 'external-proposals' && c.method === 'GET')).toHaveLength(1);
+
+  // Copilot com a negociação como contexto: abre a pergunta, não executa nada.
+  await board.getByRole('button', { name: 'Resumir respostas' }).click();
+  await expect(page.getByRole('dialog').filter({ hasText: 'Capital de giro 2027' }).first()).toBeVisible();
+  await page.keyboard.press('Escape');
 
   // Do quadro à proposta externa: abre a aba Propostas e foca o cartão.
   await row(PB).getByRole('link', { name: 'Ver proposta de Boreal Banco (fonte externa)' }).click();

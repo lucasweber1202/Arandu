@@ -24,7 +24,17 @@ export function openInTab(tab, targetId) {
  * Propostas externas da negociação (mesmo contrato da seção de propostas).
  * 503 = indisponível neste ambiente; outro erro = não carregou (nunca "nenhuma").
  */
-export async function loadExternals(ctx, rfq) {
+// Uma consulta por renderização da solicitação: o quadro e "Antes de comparar"
+// compartilham o resultado. A chave é o próprio objeto da RFQ — recarregar a
+// tela cria outro objeto, então nada fica velho após gravar ou recarregar.
+const shared = new WeakMap();
+export function loadExternals(ctx, rfq) {
+  // A tela da solicitação já leu a lista completa (todas as páginas) ao abrir.
+  if (Array.isArray(rfq.external_rows)) return Promise.resolve({ rows: rfq.external_rows, more: false, problem: null });
+  if (!shared.has(rfq)) shared.set(rfq, fetchExternals(ctx, rfq));
+  return shared.get(rfq);
+}
+async function fetchExternals(ctx, rfq) {
   try {
     const result = await ctx.api(`external-proposals?organization_id=${encodeURIComponent(ctx.organization.id)}&rfq_id=${encodeURIComponent(rfq.id)}&limit=50`);
     return { rows: result.rows || [], more: Boolean(result.page?.has_more), problem: null };
@@ -55,7 +65,11 @@ function channelLine(row, channel) {
 /** Cartão "Quadro de respostas" para a visão geral. */
 export function responseBoardCard(ctx, rfq) {
   const body = el('div', {}, loading('Montando o quadro de respostas…'));
-  const node = card({ title: 'Quadro de respostas', id: 'quadro-respostas', subtitle: 'Por instituição: convite, proposta pelo portal e propostas registradas pela empresa, com de quem é a vez. Sem ordenação comercial.', body });
+  // Copilot no contexto desta negociação (mesmo contrato e fontes da tela; ação material só com confirmação).
+  const ask = ctx.mode === 'demo' ? null : el('button', { type: 'button', class: 'btn btn-sm btn-ghost', onclick: () => import('./copilot.js').then((m) => m.openCopilot(ctx, {
+    context: { type: 'rfq', id: rfq.id, label: rfq.title },
+    question: 'Resuma as respostas desta negociação: quem respondeu, por qual canal, o que ainda aguarda a instituição ou a conferência da empresa e quais condições faltam, com as fontes.' })) }, el('span', { class: 'btn-label', text: 'Resumir respostas' }));
+  const node = card({ title: 'Quadro de respostas', id: 'quadro-respostas', subtitle: 'Por instituição: convite, proposta pelo portal e propostas registradas pela empresa, com de quem é a vez. Sem ordenação comercial.', body, actions: ask ? [ask] : null });
   loadExternals(ctx, rfq).then((ext) => {
     const board = negotiationBoard({ rfq, invites: rfq.invites || [], proposals: rfq.proposals || [], externals: ext.rows, fields: PRODUCTS[rfq.product]?.proposalFields || [], today: todayIso() });
     const s = board.summary;

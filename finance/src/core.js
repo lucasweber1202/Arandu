@@ -24,12 +24,6 @@ export function el(tag, props = {}, children = []) {
   return node;
 }
 
-export function frag(children = []) {
-  const node = document.createDocumentFragment();
-  for (const child of [].concat(children)) if (child) node.append(child);
-  return node;
-}
-
 // ------------------------------------------------------------------ ícones
 const iconSprite = new URL('./icons.svg', import.meta.url).href;
 const SVG = 'http://www.w3.org/2000/svg';
@@ -106,10 +100,6 @@ export function humanizeKey(key) {
   const text = String(key || '').replaceAll('_', ' ').trim();
   return text ? text[0].toUpperCase() + text.slice(1) : '';
 }
-/** Texto livre (Faturamento anual) na chave estável usada pela API (faturamento_anual). */
-export function slugKey(label) {
-  return String(label || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').replace(/^([0-9])/, 'campo_$1').slice(0, 49);
-}
 
 /** Valor de campo do catálogo formatado para leitura; ausência é explícita. */
 // `options.currency` presente (mesmo null): dinheiro na moeda declarada da fonte.
@@ -146,6 +136,13 @@ export function formatDateTime(value) {
   if (!date) return '—';
   return date.toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).replace('.', '');
 }
+/** Saudação pelo horário local; usada no Painel e no portal da instituição. */
+export function greeting(name) {
+  const hour = new Date().getHours();
+  const period = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite';
+  return name ? `${period}, ${name.split(' ')[0]}` : period;
+}
+
 export function todayIso() {
   const now = new Date();
   return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
