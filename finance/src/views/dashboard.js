@@ -1,10 +1,11 @@
 // Painel: começa pelo que precisa da pessoa agora, não por números.
 
-import { el, icon, daysUntil, relativeDays, plural, formatDate, formatDateTime, productLabel, demandHeadline, RFQ_STATUS, timeAgo, money, renewalStage } from '../core.js';
+import { el, icon, todayIso, daysUntil, relativeDays, plural, formatDate, formatDateTime, productLabel, demandHeadline, RFQ_STATUS, timeAgo, money, renewalStage } from '../core.js';
 import { card, pill, linkButton, emptyState, person, progress, button, toast } from '../ui.js';
 import { memberName, currentStep, approvalSummaryLine, eventTitle, isViewerTurn, TASK_EDITORS, taskChangeError } from './shared.js';
 import { loadEntities, entitySummaryCard } from './entities.js';
 import { startButton } from './intake.js';
+import { relationshipSignals, feeSignals, feeWindow, shiftDay, sourceCounts, sourceOf, sortSignals } from '../../../lib/finance/central-signals.mjs';
 
 // Pendências visíveis antes de "Mostrar mais" (Constitution §1.3: uma próxima ação clara).
 const FIRST_ITEMS = 5;
@@ -110,8 +111,36 @@ export function actionItems(ctx, approvals) {
   return items.sort((a, b) => a.rank - b.rank || due(a) - due(b));
 }
 
+/**
+ * Sinais de Relacionamentos (CRM) e Tarifas para "Precisa de você". Cada fonte
+ * falha sozinha: o que não carregou vira aviso explícito, nunca "Tudo em dia".
+ * 503 = capacidade ainda não disponível neste ambiente (informativo).
+ */
+export async function crossModuleSignals(ctx, { today = todayIso() } = {}) {
+  const org = encodeURIComponent(ctx.organization.id);
+  const result = { items: [], failed: [], unavailable: [] };
+  if (ctx.mode === 'demo') return result;
+  const horizon = 2;
+  const editor = TASK_EDITORS.includes(ctx.viewer?.role);
+  const crm = (resource, params) => ctx.api(`${resource}?${new URLSearchParams({ organization_id: ctx.organization.id, limit: '100', ...params })}`);
+  const span = feeWindow(today);
+  const [activities, processes, fees] = await Promise.allSettled([
+    crm('crm-activities', { status: 'planned', sort: 'due_on.asc.nullslast,id.asc', due_before: shiftDay(today, horizon) }),
+    crm('crm-processes', { status: 'active' }),
+    ctx.can('create_rfq') ? ctx.api(`fees/summary?organization_id=${org}&start=${span.start}&end=${span.end}`) : Promise.resolve(null)
+  ]);
+  const note = (label, outcome) => { if (outcome.status === 'rejected') (outcome.reason?.status === 503 ? result.unavailable : result.failed).push(label); };
+  if (activities.status === 'rejected' || processes.status === 'rejected') note('Relacionamentos', activities.status === 'rejected' ? activities : processes);
+  else result.items.push(...relationshipSignals({ activities: activities.value.rows || [], processes: processes.value.rows || [], providers: ctx.data.providers || [],
+    contracts: ctx.data.contracts || [], viewerId: ctx.viewer?.id, editor, today, horizon }));
+  if (fees.status === 'rejected') note('Tarifas', fees);
+  else if (fees.value) result.items.push(...feeSignals(fees.value.summary || [], span));
+  for (const item of result.items) item.href = ctx.href(item.href);
+  return result;
+}
+
 function actionRow(item) {
-  return el('li', { class: `action-row tone-${item.tone}` }, [
+  return el('li', { class: `action-row tone-${item.tone}`, dataset: { source: sourceOf(item) } }, [
     el('span', { class: 'action-icon' }, icon(item.icon, { size: 16 })),
     el('div', { class: 'action-text' }, [
       el('span', { class: 'action-kind', text: item.kind }),
@@ -146,11 +175,16 @@ export async function dashboard(ctx) {
     }
   }
 
+  // Central 360°: compromissos comerciais e revisões de tarifa entram na mesma fila.
+  const signals = await crossModuleSignals(ctx).catch(() => ({ items: [], failed: ['Relacionamentos', 'Tarifas'], unavailable: [] }));
+  items.push(...signals.items);
+  sortSignals(items);
+
   const root = el('div', { class: 'dashboard' });
   const attention = el('section', { class: 'attention card', id: 'precisa-de-voce', 'aria-labelledby': 'attention-title' });
   attention.append(el('div', { class: 'card-head' }, [
     el('div', { class: 'card-head-text' }, [el('h2', { class: 'card-title', id: 'attention-title', text: 'Precisa de você' }),
-      el('p', { class: 'card-subtitle', text: items.length ? `${items.length} ${items.length === 1 ? 'item pede' : 'itens pedem'} ação, do mais urgente ao menos urgente.` : ctx.approvalsError ? 'Parte das pendências não carregou.' : 'Nada pendente com você agora.' })])
+      el('p', { class: 'card-subtitle', text: items.length ? `${items.length} ${items.length === 1 ? 'item pede' : 'itens pedem'} ação, do mais urgente ao menos urgente.` : ctx.approvalsError || signals.failed.length ? 'Parte das pendências não carregou.' : 'Nada pendente com você agora.' })])
   ]));
   // Poucas pendências à vista; o restante continua inteiro na mesma lista,
   // aberto sob demanda — nada some, só deixa de competir com o mais urgente.
@@ -168,12 +202,34 @@ export async function dashboard(ctx) {
   const rest = hidden.length ? el('details', { class: 'action-more' }, [
     el('summary', { text: `Mostrar mais ${plural(hidden.length, 'pendência', 'pendências')}` }),
     el('ul', { class: 'action-list', role: 'list' }, hidden.map(actionRow))]) : null;
+  // Filtro por origem: com mais de uma origem, a pessoa isola o que é dela
+  // (ex.: só Relacionamentos) sem sair do Painel. "Todas" volta à fila priorizada.
+  const counts = sourceCounts(items);
+  const filtered = el('ul', { class: 'action-list', role: 'list', hidden: true });
+  const chips = counts.length > 1 ? el('div', { class: 'chips attention-filter', role: 'group', 'aria-label': 'Filtrar pendências por origem' }) : null;
+  const pick = (key) => {
+    for (const chip of chips.children) chip.setAttribute('aria-pressed', String(chip.dataset.source === key));
+    const all = key === 'all';
+    list.hidden = !all; if (rest) rest.hidden = !all; filtered.hidden = all;
+    filtered.replaceChildren(...(all ? [] : items.filter((item) => sourceOf(item) === key).map(actionRow)));
+  };
+  if (chips) for (const { key, label, count } of [{ key: 'all', label: 'Todas', count: items.length }, ...counts]) {
+    const chip = el('button', { type: 'button', class: 'chip', 'aria-pressed': String(key === 'all'), dataset: { source: key } }, [label, el('span', { class: 'chip-count', text: String(count) })]);
+    chip.addEventListener('click', () => pick(key));
+    chips.append(chip);
+  }
   // Aprovações que não carregaram não podem virar "Tudo em dia".
   const approvalsMissing = ctx.approvalsError ? el('p', { class: 'callout callout-warning compact', role: 'alert' }, [icon('alert'),
     el('span', { text: 'Não conseguimos carregar as aprovações agora; pode haver pedido aguardando você. ' }),
     el('a', { href: ctx.href('/finance/approvals.html'), text: 'Abrir Aprovações' })]) : null;
   if (approvalsMissing) attention.append(approvalsMissing);
-  attention.append(items.length ? el('div', {}, [list, rest].filter(Boolean)) : approvalsMissing ? el('p', { class: 'muted small', text: 'Os demais itens (prazos, renovações e tarefas) não pedem ação agora.' }) : emptyState({ title: 'Tudo em dia', text: ctx.can('create_rfq') ? 'Nenhuma aprovação, prazo ou renovação exige ação. Que tal estruturar a próxima necessidade?' : 'Nenhuma aprovação aguarda você.', iconName: 'checkCircle',
+  // Fonte que falhou não pode virar "Tudo em dia" (mesma regra das aprovações).
+  const signalsMissing = signals.failed.length ? el('p', { class: 'callout callout-warning compact', role: 'alert', 'data-signals': 'failed' }, [icon('alert'),
+    el('span', { text: `Não conseguimos carregar ${signals.failed.join(' e ')} agora; pode haver pendência fora desta lista. ` }),
+    signals.failed.includes('Relacionamentos') ? el('a', { href: ctx.href('/finance/providers.html#crm-agenda'), text: 'Abrir agenda comercial' }) : el('a', { href: ctx.href('/finance/fees.html'), text: 'Abrir Tarifas' })]) : null;
+  const signalsOff = signals.unavailable.length ? el('p', { class: 'muted small', 'data-signals': 'unavailable', text: `${signals.unavailable.join(' e ')}: ainda não disponível neste ambiente; não entra nesta lista.` }) : null;
+  for (const node of [signalsMissing, signalsOff, chips]) if (node) attention.append(node);
+  attention.append(items.length ? el('div', {}, [list, rest, filtered].filter(Boolean)) : approvalsMissing || signalsMissing ? el('p', { class: 'muted small', text: 'Os demais itens (prazos, renovações e tarefas) não pedem ação agora.' }) : emptyState({ title: 'Tudo em dia', text: ctx.can('create_rfq') ? 'Nenhuma aprovação, prazo ou renovação exige ação. Que tal estruturar a próxima necessidade?' : 'Nenhuma aprovação aguarda você.', iconName: 'checkCircle',
     action: ctx.can('create_rfq') ? linkButton('Nova solicitação', ctx.href('/finance/new-rfq.html'), { iconName: 'plus' }) : null }));
 
   // Resumo discreto: contagens reais, nenhuma estimativa de economia.
