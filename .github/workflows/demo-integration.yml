@@ -13,16 +13,7 @@ name: Arandu Demo Integration (ephemeral)
 # ao final, aconteça o que acontecer.
 on:
   workflow_dispatch:
-  # Autoteste do próprio harness: só quando ele muda. Sem secrets.
-  pull_request:
-    paths:
-      - .github/workflows/demo-integration.yml
-      - scripts/ci-demo/**
-      - scripts/pilot-restore-drill.sh
-      - scripts/restore-schema-fingerprint.mjs
-      - lib/restore-schema-fingerprint.mjs
-      - docs/supabase-financial-crm-view-roundtrip.sql
-      - tests/database/recovery-schema-roundtrip.mjs
+  workflow_call:
 
 permissions:
   contents: read
