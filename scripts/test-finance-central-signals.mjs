@@ -94,15 +94,16 @@ assert.equal(rec[0].openReview, 2);
 assert.equal(rec[1].headline, 'Nenhuma cobrança observada no período');
 assert.ok(!/econom/i.test(JSON.stringify(rec)));
 
+const inv = (id, status) => ({ provider_id: id, status });
 const waiting = waitingOnInstitutions([
-  { id: 'r1', title: 'Capital de giro', status: 'collecting', invites: [{}, {}, {}], proposals: [{}], response_deadline: '2026-11-05' },
-  { id: 'r2', title: 'Fiança', status: 'open', invites_count: 2, proposals: [], response_deadline: '2026-11-01' },
-  { id: 'r3', title: 'Todas responderam', status: 'collecting', invites: [{}], proposals: [{}] },
-  { id: 'r4', title: 'Em avaliação', status: 'comparing', invites: [{}], proposals: [] }
+  { id: 'r1', title: 'Capital de giro', status: 'collecting', revision: 1, invites: [inv('a', 'accepted'), inv('b', 'invited'), inv('c', 'invited')], proposals: [{ provider_id: 'a', rfq_revision: 1 }], response_deadline: '2026-11-05' },
+  { id: 'r2', title: 'Fiança', status: 'open', invites: [inv('a', 'invited')], proposals: [], response_deadline: '2026-11-01' },
+  { id: 'r3', title: 'Todas responderam', status: 'collecting', invites: [inv('a', 'accepted')], proposals: [{ provider_id: 'a' }] },
+  { id: 'r4', title: 'Em avaliação', status: 'comparing', invites: [inv('a', 'invited')], proposals: [] },
+  { id: 'r5', title: 'Só recusas', status: 'collecting', invites: [inv('a', 'declined'), inv('b', 'expired')], proposals: [], response_deadline: '2026-11-20' }
 ], today);
-assert.deepEqual(waiting.map((w) => w.id), ['r2', 'r1']);
-assert.equal(waiting[1].detail, '2 de 3 instituições convidadas sem resposta · prazo em 2 dias (05/11/2026)');
-assert.match(waiting[0].detail, /prazo encerrado há 2 dias/);
+assert.deepEqual(waiting.map((w) => w.id), ['r1'], 'prazo vencido é vez da empresa; recusa/expirado não é espera');
+assert.equal(waiting[0].detail, 'Aguardando 2 de 3 instituições · prazo em 2 dias (05/11/2026)');
 {
   const { brDay } = await import('../lib/finance/format.mjs');
   assert.equal(brDay('2026-11-03'), '03/11/2026');

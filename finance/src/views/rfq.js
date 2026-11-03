@@ -8,6 +8,7 @@ import { card, pill, tag, button, linkButton, emptyState, errorState, loading, t
 import { loadEntities, rfqEntityControl } from './entities.js';
 import { comparisonMatrix, weightsPanel, revisionTimeline, collaboration, activityLog, approvalSteps, approvalActions, currentStep, memberName, memberTitle, coverage, approvalSummaryLine, lazyDocuments, keyTerms, isViewerTurn } from './shared.js';
 import { proposalChanges } from '../../../lib/finance/comparison-context.mjs';
+import { negotiationNextStep } from '../../../lib/finance/negotiation-board.mjs';
 
 const FLOW = [['draft', 'Rascunho'], ['open', 'Aberta'], ['collecting', 'Coleta'], ['comparing', 'Avaliação'], ['decided', 'Decisão'], ['contracted', 'Contrato']];
 
@@ -272,7 +273,13 @@ function nextStepCard(ctx, rfq, { pending, approvals = [], decision, contract, p
     if (rfq.status === 'decided' && contract) return ['Contrato registrado', 'Os marcos de renovação aparecem em Contratos.'];
     return null;
   })();
-  const text = situational || {
+  // Rascunho e coleta: mesma regra da lista de solicitações (prazo, quem respondeu,
+  // revisão anterior), em vez de um texto fixo por estado.
+  const canonical = !situational && ['draft', 'open', 'collecting'].includes(rfq.status) ? negotiationNextStep(rfq, todayIso()) : null;
+  const text = situational || (canonical && [canonical.text, canonical.detail || {
+    draft: 'Instituições só veem a solicitação depois de convidadas e com ela aberta.',
+    open: 'Você será avisado quando uma proposta chegar.',
+    collecting: 'Encerre a coleta quando tiver propostas suficientes para avaliar.' }[rfq.status]]) || {
     draft: ['Convide provedores e abra para propostas', 'Provedores só veem a solicitação depois de convidados e com ela aberta.'],
     open: ['Aguardando as primeiras respostas', 'Você será avisado quando uma proposta chegar.'],
     collecting: ['Acompanhe as respostas até o prazo', 'Encerre a coleta quando tiver propostas suficientes para avaliar.'],
@@ -288,7 +295,8 @@ function nextStepCard(ctx, rfq, { pending, approvals = [], decision, contract, p
     comparing: rfq.proposals?.length ? ['#comparacao', 'Ver comparação'] : ['#propostas', 'Ver propostas'], decided: ['#decisao', 'Ver decisão']
   }[rfq.status] || null;
   const viewerTurn = pending && isViewerTurn(pending, ctx.viewer?.id);
-  const who = governanceGap || ['contracted', 'cancelled'].includes(rfq.status) ? null
+  const who = canonical?.actor === 'institution' ? 'Ação das instituições convidadas; você acompanha e pode cobrar pelo relacionamento.'
+    : governanceGap || ['contracted', 'cancelled'].includes(rfq.status) ? null
     : pending ? (viewerTurn || pending.viewer_can_act ? 'Você pode agir nesta etapa.' : 'Ação de quem aprova esta etapa; você acompanha.')
       : manage ? 'Você pode agir nesta etapa.' : 'Ação de quem gerencia a solicitação; você acompanha.';
   return el('section', { class: 'next-step next-step-bar', 'aria-label': 'Próximo passo' }, [

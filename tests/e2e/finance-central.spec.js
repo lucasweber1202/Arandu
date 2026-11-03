@@ -170,9 +170,9 @@ test('instituição: agenda comercial, revisão de tarifas, conciliação e Copi
 
 test('Painel: "Aguardando instituições" mostra convites sem resposta e leva à solicitação', async ({ page }) => {
   const RFQ = '00000000-0000-4000-8000-0000000000e1';
-  await setup(page, { overview: { ...OVERVIEW, rfqs: [{ id: RFQ, title: 'Capital de giro 2027', status: 'collecting', product: 'credit', response_deadline: day(4), invites: [{ provider_id: P_ATLAS }, { provider_id: 'x' }], proposals: [], revision: 1 }] } });
+  await setup(page, { overview: { ...OVERVIEW, rfqs: [{ id: RFQ, title: 'Capital de giro 2027', status: 'collecting', product: 'credit', response_deadline: day(4), invites: [{ provider_id: P_ATLAS, status: 'accepted' }, { provider_id: 'x', status: 'invited' }], proposals: [], revision: 1 }] } });
   await page.goto('/finance/dashboard.html');
   const card = page.locator('#aguardando-terceiros');
   await expect(card.getByRole('link', { name: 'Capital de giro 2027' })).toHaveAttribute('href', new RegExp(`rfq\\.html\\?id=${RFQ}`));
-  await expect(card).toContainText('2 de 2 instituições convidadas sem resposta');
+  await expect(card).toContainText('Aguardando 2 de 2 instituições');
 });

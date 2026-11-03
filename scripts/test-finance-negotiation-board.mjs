@@ -75,3 +75,21 @@ const stale = negotiationBoard({ rfq, invites: [], proposals: [], externals: [{ 
 assert.match(stale.readiness[0].text, /registrada para outra revisão da solicitação/);
 assert.throws(() => negotiationBoard({ today: '03/11/2026' }));
 console.log('negotiation-board: ok');
+{
+  const { negotiationNextStep, ACTOR_LABEL } = await import('../lib/finance/negotiation-board.mjs');
+  const t = '2026-11-03';
+  const base = { status: 'collecting', revision: 2, response_deadline: '2026-11-10', invites: [{ provider_id: 'a', status: 'accepted' }, { provider_id: 'b', status: 'invited' }, { provider_id: 'c', status: 'declined' }], proposals: [{ provider_id: 'a', rfq_revision: 2 }] };
+  assert.deepEqual(negotiationNextStep(base, t), { actor: 'institution', text: 'Aguardando 1 de 3 instituições', detail: null }, 'recusa não conta como aguardando');
+  assert.equal(negotiationNextStep({ ...base, response_deadline: '2026-11-01' }, t).text, 'Prazo encerrado: encerrar a coleta e avaliar');
+  assert.equal(negotiationNextStep({ ...base, response_deadline: '2026-11-01' }, t).actor, 'company');
+  const all = { ...base, invites: base.invites.slice(0, 1) };
+  assert.equal(negotiationNextStep(all, t).text, 'Todas responderam: encerrar a coleta e avaliar');
+  assert.equal(negotiationNextStep({ ...all, proposals: [{ provider_id: 'a', rfq_revision: 1 }] }, t).text, 'Aguardando nova versão de 1 instituição');
+  assert.equal(negotiationNextStep({ ...base, invites: [], invites_count: 0 }, t).text, 'Convidar instituições');
+  assert.equal(negotiationNextStep({ status: 'draft', invites: [] }, t).text, 'Convidar instituições e abrir');
+  assert.equal(negotiationNextStep({ ...base, pending_approval: true }, t).actor, 'approver');
+  assert.equal(negotiationNextStep({ status: 'comparing', proposals: [] }, t).text, 'Sem proposta pelo portal: conferir propostas externas ou reabrir');
+  assert.equal(negotiationNextStep({ status: 'cancelled' }, t).actor, 'none');
+  for (const k of ['company', 'institution', 'approver', 'none']) assert.ok(ACTOR_LABEL[k]);
+  console.log('negotiation-next-step: ok');
+}
