@@ -112,3 +112,10 @@ Por ordem de ganho, sem reduzir cobertura:
 
 Não recomendado: filtrar por caminho (`paths-ignore: docs/**`) — vários checks
 de governança leem os documentos em `docs/`.
+
+## Política proporcional v6.1
+
+`ci.yml` mantém os quatro status e delega execução profunda a `ci-full.yml`
+e `demo-integration.yml` para C/D; A/B usam build/checks e Chromium dirigido.
+Main, manual e agenda semanal validam a matriz completa. Detalhes, reação a
+regressões e limites de medição em `RISK_BASED_CI.md`. Nenhum ganho medido ainda.

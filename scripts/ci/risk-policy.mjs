@@ -9,9 +9,15 @@ export function classifyChanges(changes){
   for(const path of paths){
    if(typeof path!=='string'||!path||path.startsWith('/')||path.split('/').includes('..'))throw new Error('Invalid change path');
    let level='D';
-   if(/^docs\/(?:guides|help)\/.+\.md$/.test(path))level='A';
+   const critical=/(?:auth|session|permission|rls|recovery|storage|deploy|migration|economics|product-terms|policy)/i.test(path);
+   if(critical||path.startsWith('.github/')||path.startsWith('scripts/ci/')){reasons.push({path,risk:'D'});risk='D';continue;}
+   if(/^(?:README|CHANGELOG)\.md$/.test(path))level='A';
+   else if(/^docs\/(?:guides|help)\/.+\.md$/.test(path))level='A';
+   else if(/^finance\/(?:style\.css|demo\/experience\.css|src\/icons\.svg)$/.test(path))level='A';
    else if(/^finance\/(?:styles|assets)\//.test(path)&&/\.(?:css|svg|png|jpg|webp)$/.test(path))level='A';
    else if(/^finance\/src\/.+\.js$/.test(path)||/^tests\/e2e\/.+\.spec\.js$/.test(path))level='B';
+   else if(/^lib\/finance\/.+(?:presenter|format)\.mjs$/.test(path))level='B';
+   else if(/^lib\/(?:api|finance)\/.+\.mjs$/.test(path)||/^api\//.test(path))level='C';
    else if(/^lib\/api\/domains\/finance-(?:fee-imports|crm-institution)\.mjs$/.test(path))level='C';
    reasons.push({path,risk:level});if(rank[level]>rank[risk])risk=level;
   }
