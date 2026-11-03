@@ -20,3 +20,21 @@ Lógica: `lib/finance/negotiation-board.mjs` (teste `scripts/test-finance-negoti
 ## Handoff (backend)
 1. **Lista de propostas externas por organização** — `GET external-proposals?organization_id=&state=pending_review&limit=&after=` (RLS do chamador, BUYER, paginação por `id`). Hoje exige `rfq_id`; sem isto a Central não mostra "conferências pendentes" sem fan-out por solicitação. Aceite: lista só da organização, 403 para PROVIDER, mesma forma de linha da listagem atual.
 2. **Contagem de externas no resumo da RFQ** — `external_proposal_count` já é lido pela aba; incluir `external_pending_review_count` evitaria a segunda chamada do quadro.
+
+## Próximo passo canônico (lote V6.0)
+`lib/finance/negotiation-next-step.mjs` — regra única do próximo passo em rascunho e coleta, usada na lista de Solicitações, no cartão "Próximo passo" da solicitação e no "Aguardando instituições" do Painel.
+
+| Situação (só dados que a lista carrega) | Próximo passo | Quem age |
+|---|---|---|
+| Aprovação pendente | Aguardando aprovação | Aprovadores |
+| Rascunho | Convidar instituições e abrir / Abrir para propostas | Empresa |
+| Coleta sem convite | Convidar instituições | Empresa |
+| Coleta, prazo vencido | Prazo encerrado: encerrar a coleta e avaliar | Empresa |
+| Coleta, convites vivos sem resposta | Aguardando N de M instituições (+ respostas de revisão anterior) | Instituições |
+| Coleta, todos responderam a revisões anteriores | Aguardando nova versão de N instituições | Instituições |
+| Coleta, todos responderam | Todas responderam: encerrar a coleta e avaliar | Empresa |
+| Em avaliação / decidida | Comparar, pedir aprovação e decidir / Registrar o contrato | Empresa |
+
+Convite recusado, revogado ou expirado não conta como espera (o "Aguardando instituições" do Painel contava; corrigido). Propostas externas não entram nesta regra porque a lista não as carrega — o Quadro de respostas continua sendo a visão completa (handoff 2 abaixo reduziria essa diferença).
+
+A lista ganhou o filtro "De quem é a vez" (`?vez=company|institution|approver`).

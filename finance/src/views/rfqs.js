@@ -2,7 +2,7 @@
 
 import { PRODUCTS, PRODUCT_IDS, checkAcquiringShares } from '../../../lib/finance/products.mjs';
 import { passportPrefill, SOURCE_LABELS } from '../../../lib/finance/passport.mjs';
-import { negotiationNextStep, ACTOR_LABEL } from '../../../lib/finance/negotiation-board.mjs';
+import { negotiationNextStep, ACTOR_LABEL } from '../../../lib/finance/negotiation-next-step.mjs';
 import { el, icon, fold, daysUntil, relativeDays, formatDate, formatDateTime, productLabel, demandHeadline, RFQ_STATUS, fieldValue, todayIso } from '../core.js';
 import { pill, linkButton, button, emptyState, person, progress, field, catalogControl, saveIndicator, toast, confirmDialog, tag, onSubmit } from '../ui.js';
 import { loadEntities, entityContextSelect, inContext, entityName, entityField } from './entities.js';

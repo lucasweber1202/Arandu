@@ -8,7 +8,7 @@ import { card, pill, tag, button, linkButton, emptyState, errorState, loading, t
 import { loadEntities, rfqEntityControl } from './entities.js';
 import { comparisonMatrix, weightsPanel, revisionTimeline, collaboration, activityLog, approvalSteps, approvalActions, currentStep, memberName, memberTitle, coverage, approvalSummaryLine, lazyDocuments, keyTerms, isViewerTurn } from './shared.js';
 import { proposalChanges } from '../../../lib/finance/comparison-context.mjs';
-import { negotiationNextStep } from '../../../lib/finance/negotiation-board.mjs';
+import { negotiationNextStep } from '../../../lib/finance/negotiation-next-step.mjs';
 
 const FLOW = [['draft', 'Rascunho'], ['open', 'Aberta'], ['collecting', 'Coleta'], ['comparing', 'Avaliação'], ['decided', 'Decisão'], ['contracted', 'Contrato']];
 
@@ -295,7 +295,7 @@ function nextStepCard(ctx, rfq, { pending, approvals = [], decision, contract, p
     comparing: rfq.proposals?.length ? ['#comparacao', 'Ver comparação'] : ['#propostas', 'Ver propostas'], decided: ['#decisao', 'Ver decisão']
   }[rfq.status] || null;
   const viewerTurn = pending && isViewerTurn(pending, ctx.viewer?.id);
-  const who = canonical?.actor === 'institution' ? 'Ação das instituições convidadas; você acompanha e pode cobrar pelo relacionamento.'
+  const who = canonical?.actor === 'institution' ? 'Ação das instituições convidadas; você acompanha. Para registrar um follow-up, abra o relacionamento da instituição no Quadro de respostas.'
     : governanceGap || ['contracted', 'cancelled'].includes(rfq.status) ? null
     : pending ? (viewerTurn || pending.viewer_can_act ? 'Você pode agir nesta etapa.' : 'Ação de quem aprova esta etapa; você acompanha.')
       : manage ? 'Você pode agir nesta etapa.' : 'Ação de quem gerencia a solicitação; você acompanha.';
