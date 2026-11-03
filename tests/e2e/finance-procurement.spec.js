@@ -877,7 +877,7 @@ test('aprovações que não carregaram não viram "Tudo em dia" no painel nem ca
   await page.route('**/api/finance/approvals**', (route) => route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ ok: false, error: 'Falha temporária.', requestId: 'a1b2c3d4-0000-4000-8000-000000000000' }) }));
   await page.goto('/finance/dashboard.html');
   const attention = page.locator('#precisa-de-voce');
-  await expect(attention.getByRole('alert')).toContainText('Não conseguimos carregar as aprovações agora');
+  await expect(attention.getByRole('alert').filter({ hasText: 'aprovações' })).toContainText('Não conseguimos carregar as aprovações agora');
   await expect(attention).not.toContainText('Tudo em dia');
   await page.goto('/finance/approvals.html');
   const error = page.locator('#view').getByRole('alert');

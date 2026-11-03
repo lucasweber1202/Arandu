@@ -448,6 +448,8 @@ td.urgent,td.urgent .date-rel{color:var(--danger);font-weight:600}
 /* --------------------------------------------------------------- painel */
 .dashboard{display:grid;gap:var(--s5)}
 .attention .card-body,.attention>.empty{margin:var(--s4) var(--s5) var(--s5)}
+.attention-filter{padding:var(--s3) var(--s5) 0}
+.attention>[data-signals]{margin:var(--s3) var(--s5) 0}
 .action-list{list-style:none;margin:var(--s3) 0 var(--s2);padding:0}
 .action-row{position:relative;display:flex;align-items:center;gap:var(--s3);padding:12px var(--s5);border-top:1px solid var(--border)}
 .action-row:hover{background:#fafbfc}
