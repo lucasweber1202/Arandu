@@ -176,14 +176,19 @@ const CSV = `ID;Serviço;Unidade;Moeda;Início;Fim;Valor\nJ1;Comissão de fianç
 const fileBody = () => ({ organization_id: ctx.orgA, contract_id: ctx.contract, file: { name: 'tarifas-sinteticas.csv', format: 'csv', content_base64: Buffer.from(CSV).toString('base64') }, delimiter: ';', source_reference: `Extrato sintetico ${RUN}`,
   mapping: { source_object_id: 'ID', service: 'Serviço', charging_unit: 'Unidade', currency: 'Moeda', period_start: 'Início', period_end: 'Fim', observed_amount: 'Valor' } });
 await step('Importação CSV: prévia por linha, confirmação, replay idempotente, reimportação vira duplicada e histórico', async () => {
+  const {mapping,source_reference,...inspectionBody}=fileBody();
+  const inspection=ok(await api(people.adminA,'POST',F('fee-imports/inspect'),inspectionBody),'inspeção').inspection;
+  must(inspection.row_count===3 && inspection.columns.includes('Valor') && !('rows' in inspection),'inspeção inválida');
   const p = ok(await api(people.adminA, 'POST', F('fee-imports/preview'), fileBody()), 'prévia').preview;
   const states = p.rows.map((r) => r.state).join(',');
   must(p.rows.filter((r) => r.state === 'valid').length === 2 && p.rows.some((r) => r.state === 'incomplete' || r.state === 'invalid'), `estados inesperados: ${states}`);
-  const key = uuid();
+  const key = uuid();ctx.importRequest=key;
   const confirm = { ...fileBody(), confirmation: true, preview_fingerprint: p.fingerprint, selected_lines: p.rows.filter((r) => r.state === 'valid').map((r) => r.line), request_key: key };
   const r1 = ok(await api(people.adminA, 'POST', F('fee-imports/confirm'), confirm), 'confirmação');
   const r2 = ok(await api(people.adminA, 'POST', F('fee-imports/confirm'), confirm), 'replay');
   must(r1.imported === 2 && r2.replayed === true, `recibo inesperado: ${JSON.stringify(r1).slice(0, 120)} / replay ${r2.replayed}`);
+  const receipt=ok(await api(people.adminA,'GET',F(`fee-imports/receipt?organization_id=${ctx.orgA}&contract_id=${ctx.contract}&request_key=${key}`)),'recibo por chave').receipt;
+  must(receipt.metadata.result.imported===2,'recibo não recupera resultado persistido');
   const again = ok(await api(people.adminA, 'POST', F('fee-imports/preview'), fileBody()), 'nova prévia').preview;
   must(again.rows.filter((r) => r.state === 'duplicate').length === 2, 'reimportação não reconheceu duplicadas');
   const hist = ok(await api(people.adminA, 'GET', F(`fee-imports/history?organization_id=${ctx.orgA}&contract_id=${ctx.contract}`)), 'histórico').rows;
@@ -202,6 +207,20 @@ await attack('Leitor confirma importação', '403 forbidden, nada gravado', asyn
 await attack('Organização B pré-visualiza importação no contrato de A', '404', async () => {
   const r = await api(people.adminB, 'POST', F('fee-imports/preview'), { ...fileBody(), organization_id: ctx.orgB });
   return { ok: r.status === 404 || r.status === 403, observed: `${r.status} ${r.data?.code || ''}` };
+});
+
+await attack('Outro ator consulta recibo pela chave de importação', '404 sem recibo', async () => {
+  const r=await api(people.viewerA,'GET',F(`fee-imports/receipt?organization_id=${ctx.orgA}&contract_id=${ctx.contract}&request_key=${ctx.importRequest}`));
+  return {ok:r.status===404&&!r.data.receipt,observed:`${r.status} ${r.data?.code||''}`};
+});
+await attack('Organização B inspeciona arquivo no contrato de A', '404/403 sem colunas', async () => {
+  const {mapping,source_reference,...body}=fileBody();
+  const r=await api(people.adminB,'POST',F('fee-imports/inspect'),{...body,organization_id:ctx.orgB});
+  return {ok:[403,404].includes(r.status)&&!r.data.inspection,observed:`${r.status} ${r.data?.code||''}`};
+});
+await attack('Chave sem recibo não vira sucesso vazio', '404 resultado desconhecido', async () => {
+  const r=await api(people.adminA,'GET',F(`fee-imports/receipt?organization_id=${ctx.orgA}&contract_id=${ctx.contract}&request_key=${uuid()}`));
+  return {ok:r.status===404&&r.data?.code==='fee_import_receipt_not_found'&&!r.data.receipt,observed:`${r.status} ${r.data?.code||''}`};
 });
 
 // ---------------------------------------------------------------- ERP Hub

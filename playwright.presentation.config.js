@@ -1,3 +1,4 @@
+import { ciWorkers } from './scripts/ci-resource-policy.mjs';
 import { defineConfig, devices } from '@playwright/test';
 
 /**
@@ -13,9 +14,9 @@ export default defineConfig({
   testMatch: ['**/presentation-journeys.spec.js', '**/public-tour.spec.js', '**/demo-journeys.spec.js', '**/demo-workspace.spec.js', '**/demo-workspace-next.spec.js', '**/demo-workspace-v2.spec.js', '**/demo-work-os-v3.spec.js'],
   timeout: 30000,
   fullyParallel: true,
-  // The 340-case matrix exceeded the job budget with one worker. Browser
-  // contexts are isolated per test; use two workers without dropping engines.
-  workers: process.env.CI ? 2 : undefined,
+  // Isolated browser contexts; bound parallelism by CPU and memory without
+  // dropping engines, mobile projects or retries.
+  workers: process.env.CI ? ciWorkers() : undefined,
   retries: process.env.CI ? 2 : 0,
   reporter: [['list'], ['html', { outputFolder: 'reports/playwright-presentation', open: 'never' }]],
   use: { baseURL: 'http://127.0.0.1:4173', trace: 'retain-on-failure', screenshot: 'only-on-failure' },

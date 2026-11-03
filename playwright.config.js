@@ -1,3 +1,4 @@
+import { ciWorkers } from './scripts/ci-resource-policy.mjs';
 import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './tests/e2e',
@@ -5,6 +6,7 @@ export default defineConfig({
   // própria (ARANDU_PRESENTATION_MODE=true) e tem a sua config; fica de fora
   // daqui, para que `npm run test:e2e` continue cobrindo o estado publicado.
   testIgnore: ['**/presentation-journeys.spec.js', '**/demo-journeys.spec.js', '**/demo-workspace.spec.js', '**/demo-workspace-next.spec.js', '**/demo-baseline.spec.js'], timeout: 30000, fullyParallel: true, retries: process.env.CI ? 2 : 0,
+  workers: process.env.CI ? ciWorkers() : undefined,
   reporter: [['list'], ['html', { outputFolder: 'reports/playwright', open: 'never' }]],
   use: { baseURL: 'http://127.0.0.1:4173', trace: 'retain-on-failure', screenshot: 'only-on-failure' },
   projects: [

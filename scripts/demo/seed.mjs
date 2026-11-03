@@ -20,6 +20,7 @@
 // SUPABASE_SERVICE_ROLE_KEY, ARANDU_DEMO_APP_URL, ARANDU_DEMO_PASSWORD e,
 // opcional, CRON_SECRET (marcos de renovação pelo cron real).
 import crypto from 'node:crypto';
+import { retryDelayMs } from './backpressure.mjs';
 import {
   assertDemoTarget, assertDemoDatabase, assertDemoApplication, DemoGuardError,
   DEMO_EMAIL_DOMAINS, DEMO_MARKER_KEY, DEMO_MARKER_VALUE, isDemoEmail
@@ -125,8 +126,9 @@ async function api(person, method, path, body) {
     const refreshed = (response.headers.getSetCookie?.() || []).find((value) => value.startsWith('arandu_session='));
     if (refreshed) person.cookie = refreshed.split(';')[0];
     if (response.status === 429) {
-      log(`  · limite de requisições da API atingido (${person.name}); aguardando 30 s e repetindo`);
-      await sleep(30_000);
+      const delay = retryDelayMs(response.headers.get('retry-after'));
+      log(`  · API backpressure: status=429 attempt=${attempt + 1} wait_ms=${delay}`);
+      await sleep(delay);
       continue;
     }
     if (response.status >= 300 || payload.ok === false) {
