@@ -128,6 +128,7 @@ function routeFrom(req) {
 }
 
 export default async function handler(req, res) {
+  const startedAt = performance.now();
   const requestId = safeRequestId(req.headers?.['x-request-id']);
   req.aranduRequestId = requestId;
   res.setHeader('X-Request-ID', requestId);
@@ -165,7 +166,7 @@ export default async function handler(req, res) {
       const status = [400, 401, 403, 404, 409].includes(upstream) ? upstream : 503;
       if (status >= 500) {
         await reportError({
-          service: 'arandu-finance-api', requestId, route: 'finance', status,
+          durationMs: performance.now() - startedAt, service: 'arandu-finance-api', requestId, route: 'finance', status,
           code: 'upstream_unavailable', method: req.method,
           error: new Error('Financial procurement upstream unavailable')
         });
@@ -182,7 +183,7 @@ export default async function handler(req, res) {
       ? error.message || 'Não foi possível concluir a solicitação.'
       : 'Não foi possível concluir a solicitação agora.';
     if (status >= 500) {
-      await reportError({ service: 'arandu-api', requestId, route, status, code: error?.code, method: req.method, error });
+      await reportError({ durationMs: performance.now() - startedAt, service: 'arandu-api', requestId, route, status, code: error?.code, method: req.method, error });
     }
     return json(res, status, { ok: false, error: message, requestId, ...(error?.code ? { code: error.code } : {}) });
   }

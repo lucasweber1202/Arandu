@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict';
 import { crc32 } from 'node:zlib';
-import { csvRows,feeImportPreview } from '../lib/finance/structured-ingestion.mjs';
+import { csvRows,feeImportPreview,inspectFeeImport } from '../lib/finance/structured-ingestion.mjs';
 import { xlsxRows } from '../lib/finance/extraction-providers.mjs';
 import { readDynamicsFees,dynamicsCredential } from '../lib/finance/connectors/dynamics-business-central.mjs';
 const columns=['source_object_id','service','charging_unit','currency','period_start','period_end','observed_amount'];
 const mapping=Object.fromEntries(columns.map(k=>[k,k]));
 const content=columns.join(',')+'\nentry-1,Tarifa,one_off,BRL,2026-10-01,2026-10-01,10.50\nentry-2,Tarifa,one_off,BRL,2026-10-01,2026-10-01,wrong\nentry-1,Tarifa,one_off,BRL,2026-10-01,2026-10-01,10.50\n';
 const input={bytes:Buffer.from(content),format:'csv',mapping,source_reference:'Relatório banco',today:'2026-11-01'};
+const inspected=inspectFeeImport(input);assert.deepEqual(inspected.columns,columns);assert.equal(inspected.row_count,3);assert.equal(inspected.rows,undefined);
 let preview=feeImportPreview(input);assert.deepEqual(preview.rows.map(r=>r.state),['valid','invalid','duplicate']);
 assert.equal(preview.rows[0].values.observed_amount,10.5);assert.equal(preview.fingerprint,feeImportPreview(input).fingerprint);
 assert.notEqual(preview.fingerprint,feeImportPreview({...input,source_reference:'Outro relatório'}).fingerprint);
@@ -20,6 +21,11 @@ function zip(name,value){const n=Buffer.from(name),data=Buffer.from(value),crc=c
 const sheet=zip('xl/worksheets/sheet1.xml','<worksheet><sheetData><row r="1"><c r="A1" t="inlineStr"><is><t>ID</t></is></c><c r="C1"><v>12</v></c></row></sheetData></worksheet>');
 assert.deepEqual(xlsxRows(sheet,{preserveColumns:true})[0].cells,['ID','','12']);
 assert.throws(()=>xlsxRows(zip('xl/worksheets/sheet1.xml','<row r="1"><c r="A1"><f>1+1</f><v>2</v></c></row>'),{rejectFormulas:true}),e=>e.code==='formula_not_supported');
+const inspectionSheet=zip('xl/worksheets/sheet1.xml','<worksheet><sheetData><row r="1"><c r="A1" t="inlineStr"><is><t>ID</t></is></c></row><row r="2"><c r="A2" t="inlineStr"><is><t>private-value</t></is></c></row></sheetData></worksheet>');
+assert.deepEqual(inspectFeeImport({bytes:inspectionSheet,format:'xlsx'}).columns,['ID']);
+assert(!JSON.stringify(inspectFeeImport({bytes:inspectionSheet,format:'xlsx'})).includes('private-value'));
+for(const bytes of ['a,a\n1,2','a,\n1,2','a\n"unterminated'])assert.throws(()=>inspectFeeImport({bytes:Buffer.from(bytes),format:'csv'}));
+assert.throws(()=>inspectFeeImport({bytes:zip('xl/worksheets/sheet1.xml','<row r="1"><c r="A1"><f>1+1</f><v>2</v></c></row>'),format:'xlsx'}));
 const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const settings={tenant_id:id(1),company_id:id(2),account_id:id(3),environment:'sandbox',currency:'BRL',service:'Tarifa declarada',charging_unit:'one_off'};
 assert.throws(()=>dynamicsCredential(id(9),settings,{}),e=>e.code==='erp_not_configured');

@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import { retryDelayMs } from './demo/backpressure.mjs';
+assert.equal(retryDelayMs('600'),600000);
+assert.equal(retryDelayMs('0'),1000);
+for(const value of [null,'','invalid','-1'])assert.equal(retryDelayMs(value,Date.UTC(2026,0,1)),30000);
+const now=Date.UTC(2026,0,1);
+assert.equal(retryDelayMs(new Date(now+60000).toUTCString(),now),60000);
+assert.equal(retryDelayMs(new Date(now-1000).toUTCString(),now),30000);
+assert.throws(()=>retryDelayMs('901'),/EXCEEDS_BUDGET/);
+console.log('Seed backpressure: server delay, fallback, date, bounds PASS');
