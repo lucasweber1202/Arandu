@@ -82,7 +82,8 @@
     "docs/supabase-financial-institutional-decline.sql",
     "docs/supabase-financial-crm.sql",
     "docs/supabase-financial-platform-intelligence.sql",
-    "docs/supabase-financial-fee-ingestion.sql"
+    "docs/supabase-financial-fee-ingestion.sql",
+    "docs/supabase-financial-crm-view-roundtrip.sql"
   ],
   "existingDatabase": [
     "docs/supabase-sprint1-auth-ownership.sql",
@@ -166,6 +167,7 @@
     "docs/supabase-financial-institutional-decline.sql",
     "docs/supabase-financial-crm.sql",
     "docs/supabase-financial-platform-intelligence.sql",
-    "docs/supabase-financial-fee-ingestion.sql"
+    "docs/supabase-financial-fee-ingestion.sql",
+    "docs/supabase-financial-crm-view-roundtrip.sql"
   ]
 }

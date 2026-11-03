@@ -1,0 +1,146 @@
+{
+  "offgpyysgdhfemjlchod": [
+    {
+      "name": "rls_enabled_no_policy",
+      "level": "INFO",
+      "count": 30,
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy",
+      "objects": [
+        "api_rate_limits",
+        "artist_submissions",
+        "artwork_events",
+        "audit_logs",
+        "catalog_releases",
+        "catalog_review_history",
+        "commercial_items",
+        "commercial_records",
+        "consignments",
+        "conversion_events",
+        "crm_notes",
+        "data_legal_holds",
+        "data_retention_policies",
+        "fin_invite_acceptance_denials",
+        "fin_job_runs",
+        "fin_member_invitations",
+        "fin_ops_access_log",
+        "fin_pilot_allowlist",
+        "fin_platform_operators",
+        "fin_settings",
+        "idempotency_keys",
+        "logistics_records",
+        "media_assets",
+        "newsletter_subscriptions",
+        "operational_status_history",
+        "order_status_history",
+        "pilot_events",
+        "pilot_feedback",
+        "tasks",
+        "transactional_email_outbox"
+      ]
+    },
+    {
+      "name": "authenticated_security_definer_function_executable",
+      "level": "WARN",
+      "count": 43,
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable",
+      "objects": [
+        "fin_accept_member_invitation",
+        "fin_accept_provider_invite",
+        "fin_accept_terms",
+        "fin_act_on_approval",
+        "fin_add_comment",
+        "fin_can_read_document",
+        "fin_cancel_approval",
+        "fin_clear_rfq_editor",
+        "fin_comment_authors",
+        "fin_create_organization",
+        "fin_create_rfq",
+        "fin_document_authorize_download",
+        "fin_document_begin_upload",
+        "fin_document_pending_upload",
+        "fin_document_remove",
+        "fin_has_role",
+        "fin_invite_member",
+        "fin_invite_provider",
+        "fin_is_operator",
+        "fin_mark_notifications",
+        "fin_ops_overview",
+        "fin_ops_trace",
+        "fin_process_renewals",
+        "fin_provider_can_comment",
+        "fin_provider_reads_comment",
+        "fin_record_client_event",
+        "fin_record_decision",
+        "fin_record_provider_evidence",
+        "fin_register_contract",
+        "fin_reply_comment",
+        "fin_request_approval",
+        "fin_revise_rfq",
+        "fin_save_proposal_draft",
+        "fin_save_rfq_editor",
+        "fin_search",
+        "fin_set_approval_policy",
+        "fin_set_notification_preference",
+        "fin_start_contract_rfq",
+        "fin_submit_proposal",
+        "fin_transition",
+        "fin_update_my_member_profile",
+        "fin_update_organization",
+        "fin_withdraw_proposal"
+      ]
+    }
+  ],
+  "igacnfjeuqhxcmfyepgj": [
+    {
+      "name": "rls_enabled_no_policy",
+      "level": "INFO",
+      "count": 6,
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy",
+      "objects": [
+        "artwork_events",
+        "crm_notes",
+        "media_assets",
+        "proposal_items",
+        "proposals",
+        "tasks"
+      ]
+    },
+    {
+      "name": "security_definer_view",
+      "level": "ERROR",
+      "count": 2,
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0010_security_definer_view",
+      "objects": [
+        "v_public_catalog",
+        "v_available_artworks"
+      ]
+    },
+    {
+      "name": "function_search_path_mutable",
+      "level": "WARN",
+      "count": 1,
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable",
+      "objects": [
+        "set_updated_at"
+      ]
+    },
+    {
+      "name": "anon_security_definer_function_executable",
+      "level": "WARN",
+      "count": 1,
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable",
+      "objects": [
+        "handle_new_user_profile"
+      ]
+    },
+    {
+      "name": "authenticated_security_definer_function_executable",
+      "level": "WARN",
+      "count": 1,
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable",
+      "objects": [
+        "handle_new_user_profile"
+      ]
+    }
+  ]
+}

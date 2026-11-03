@@ -18,6 +18,11 @@ on:
     paths:
       - .github/workflows/demo-integration.yml
       - scripts/ci-demo/**
+      - scripts/pilot-restore-drill.sh
+      - scripts/restore-schema-fingerprint.mjs
+      - lib/restore-schema-fingerprint.mjs
+      - docs/supabase-financial-crm-view-roundtrip.sql
+      - tests/database/recovery-schema-roundtrip.mjs
 
 permissions:
   contents: read
@@ -44,6 +49,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Setup Node
         id: node
@@ -57,6 +63,7 @@ jobs:
         env:
           HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
+          test "$(git rev-parse HEAD)" = "$HEAD_SHA"
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           echo "SHA executado (checkout): $(git rev-parse HEAD) · HEAD da PR/evento: $HEAD_SHA"
           echo "Ref: $GITHUB_REF · evento: $GITHUB_EVENT_NAME · run: $GITHUB_RUN_ID tentativa $GITHUB_RUN_ATTEMPT"
