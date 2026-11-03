@@ -448,12 +448,6 @@ export function catalogControl(spec, value = null) {
   return control;
 }
 
-export function unitSuffix(spec) {
-  if (spec.type === 'money') return 'R$';
-  if (spec.type === 'percent') return '%';
-  return null;
-}
-
 /** Linha de progresso (x de y) com texto acessível. */
 export function progress(value, total, { label = null } = {}) {
   const ratio = total ? Math.max(0, Math.min(1, value / total)) : 0;

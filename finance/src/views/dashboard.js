@@ -1,6 +1,6 @@
 // Painel: começa pelo que precisa da pessoa agora, não por números.
 
-import { el, icon, todayIso, daysUntil, relativeDays, plural, formatDate, formatDateTime, productLabel, demandHeadline, RFQ_STATUS, timeAgo, money, renewalStage } from '../core.js';
+import { greeting, el, icon, todayIso, daysUntil, relativeDays, plural, formatDate, formatDateTime, productLabel, demandHeadline, RFQ_STATUS, timeAgo, money, renewalStage } from '../core.js';
 import { card, pill, linkButton, emptyState, person, progress, button, toast } from '../ui.js';
 import { memberName, currentStep, approvalSummaryLine, eventTitle, isViewerTurn, TASK_EDITORS, taskChangeError } from './shared.js';
 import { loadEntities, entitySummaryCard } from './entities.js';
@@ -16,11 +16,6 @@ const FIRST_ITEMS = 5;
 const FIRST_TASKS = 3;
 const PIPELINE = [['draft', 'Rascunho'], ['open', 'Aberta'], ['collecting', 'Em coleta'], ['comparing', 'Em avaliação'], ['decided', 'Decidida'], ['contracted', 'Contratada']];
 
-export function greeting(name) {
-  const hour = new Date().getHours();
-  const period = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite';
-  return name ? `${period}, ${name.split(' ')[0]}` : period;
-}
 
 /**
  * Itens de ação ordenados por urgência. Cada item diz o quê, por quê e leva
@@ -413,4 +408,4 @@ function firstUse(ctx) {
       el('span', {}, [el('a', { href: ctx.href(path), text: title }), el('span', { class: 'muted', text: ` — ${text}` })]), done ? el('span', { class: 'sr-only', text: '(concluído)' }) : null]))) });
 }
 
-export { money, person, button };
+export { money, person, button, greeting };
