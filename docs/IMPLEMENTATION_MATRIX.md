@@ -1,5 +1,21 @@
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
+## 03/11/2026 — Recovery e reconciliação hospedada
+
+**TESTADO LOCALMENTE**: divergência de aliases na view CRM reproduzida com
+cleanInstall/dump/restore em PG17.11; migration aditiva preserva contrato e RLS,
+com regressões de rollback, adulteração e restore incompleto. Fingerprint mantém
+o gate e passa a proteger também agrupamento de CHECKs. Export/restore do mesmo
+backup sintético com PG17.11 + age1.3.2 PASS; não comprova Supabase hospedado.
+CI do candidato ainda deve ser consultado na PR, sem herdar o verde de #306.
+
+**BLOQUEADO**: Demo canônica/Production, preservação e cutover hospedados.
+Inventários atuais: Pilot ativo, PG17.6, 14 linhas públicas, marker antigo;
+legado ativo, 42 linhas, oito registros potencialmente pessoais. Demo pública
+continua synthetic-fixtures/readiness 503. Nenhuma alteração hospedada.
+[Provas, causa raiz, dependências e runbook](evidence/recovery-consolidation-2026-11-03.md).
+
+
 > **01/11/2026 — Financial Relationship Workspace (CRM visual 1.0), M1.** Interface sobre `financial-crm-v1` (#297): contatos, atividades/agenda, processos por etapa e histórico no painel da instituição, mais agenda da organização na Central. E2E com API simulada; sem validação canônica. [Detalhes, limites e handoffs](FINANCIAL_CRM_WORKSPACE_UI.md).
 
 ## 01/11/2026 — Ingestão de tarifas e adapter Dynamics Business Central

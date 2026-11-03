@@ -5,6 +5,15 @@ vira Production depois da Demo. Este plano só usa ferramentas já existentes no
 (`SUPABASE_ENCRYPTED_PRESERVATION.md`, `TWO_ENVIRONMENT_CONSOLIDATION.md`,
 `HOSTED_INFRASTRUCTURE_DOCTOR.md`). Nenhuma etapa destrutiva roda sem a autorização indicada.
 
+## Reconciliação de 03/11/2026
+
+Leitura atual confirma legado ACTIVE_HEALTHY/PG17.6, 42 linhas e oito registros
+com campos potencialmente pessoais; duas views SECURITY DEFINER exigem revisão.
+Build de Production no SHA f83bdeb tem um único erro: atribuição ativa ausente.
+Site/cron/chaves aparecem presentes no log; não reconfigurar por inferência.
+Preservação e conversão continuam BLOQUEADAS. Inventário, hashes dos bundles e
+sequência executável em [recovery e consolidação](evidence/recovery-consolidation-2026-11-03.md).
+
 ## Ponto de partida comprovado
 - Inventário anterior (19/10, `evidence/codex-hosted-blockers-2026-10-19.md`): 42 registros do produto de arte
   (artistas, obras, certificados, leads, reservas), **8 potencialmente pessoais**; zero tabelas `fin_*`, zero

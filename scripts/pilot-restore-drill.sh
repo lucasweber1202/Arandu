@@ -306,7 +306,12 @@ source_probe="$(q "$source_url" "$probe_sql" 2> >(redact >&2))"
 target_probe="$(q "$target" "$probe_sql")"
 # Canonização: o restore reescreve CHECKs com AND aninhado sem os parênteses
 # redundantes ((a AND b) AND c) -> (a AND b AND c); mesma árvore lógica.
-schema_fp() { if [ "$1" = "$source_url" ]; then source_dump --schema=public --schema-only --no-owner --no-acl; else pg_dump "$1" --schema=public --schema-only --no-owner --no-acl; fi | grep -v -E '^(--|\\(un)?restrict|SET |SELECT pg_catalog.set_config)' | sed -E 's/[[:space:]]+$//' | sed -E '/CONSTRAINT .* CHECK /s/[()]//g' | sha256sum | cut -d' ' -f1; }
+schema_fp() {
+  q "$1" "$(node "$root/scripts/restore-schema-fingerprint.mjs" --checks-sql)" > "$work/check-constraints.json"
+  if [ "$1" = "$source_url" ]; then source_dump --schema=public --schema-only --no-owner --no-acl;
+  else pg_dump "$1" --schema=public --schema-only --no-owner --no-acl; fi |
+    node "$root/scripts/restore-schema-fingerprint.mjs" "$work/check-constraints.json"
+}
 source_fp="$(schema_fp "$source_url" 2> >(redact >&2))"
 target_fp="$(schema_fp "$target")"
 t4=$(now_ms)

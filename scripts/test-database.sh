@@ -758,3 +758,13 @@ for current_db in "$clean_db" "$upgrade_db" "$fresh_db"; do
   apply_file "$current_db" "ops/sql/pilot-isolation-canary.sql"
 done
 node "$root_dir/tests/database/fee-import-concurrency.mjs" "$(database_url "$fresh_db")"
+
+# Stable view representation, upgrade/reapply and rollback in every path.
+for current_db in "$clean_db" "$upgrade_db" "$fresh_db"; do
+  apply_file "$current_db" "docs/supabase-financial-crm-view-roundtrip.sql"
+  apply_file "$current_db" "docs/rollback/supabase-financial-crm-view-roundtrip.rollback.sql"
+  apply_file "$current_db" "docs/supabase-financial-crm-view-roundtrip.sql"
+  apply_file "$current_db" "docs/supabase-financial-crm-view-roundtrip.sql"
+  apply_file "$current_db" "tests/database/financial-crm-institution.sql"
+done
+node "$root_dir/tests/database/recovery-schema-roundtrip.mjs" "$base_url"
