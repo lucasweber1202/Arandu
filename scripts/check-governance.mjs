@@ -114,7 +114,7 @@ if (exists('.github/workflows/ci.yml')) {
   }
   // Evaluate each browser job: setup must run on cache hit and on cache miss.
   for (const job of ['validate', 'presentation']) {
-    const section = ci.split(new RegExp(`^  ${job}:`, 'm'))[1]?.split(/^  [a-z][\w-]*:/m)[0] || '';
+    const section = read('.github/workflows/ci-full.yml').split(new RegExp(`^  ${job}:`, 'm'))[1]?.split(/^  [a-z][\w-]*:/m)[0] || '';
     const steps = section.split(/      - name:/).slice(1);
     const binarySteps = steps.filter((step) => /run: npx playwright install (?:--with-deps )?chromium firefox webkit/.test(step));
     const depsSteps = steps.filter((step) => /run: npx playwright install(?:-deps| --with-deps) chromium firefox webkit/.test(step));

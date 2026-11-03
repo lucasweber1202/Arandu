@@ -13,7 +13,7 @@ assert.equal(useUbuntuArchive('https://azure.archive.ubuntu.com/ubuntu-evil'), '
 assert.equal(useUbuntuArchive(deb822.replace('azure.archive.ubuntu.com', 'packages.microsoft.com')), deb822.replace('azure.archive.ubuntu.com', 'packages.microsoft.com'));
 assert.equal(useUbuntuArchive(useUbuntuArchive(deb822)), useUbuntuArchive(deb822));
 assert.match(networkConfig, /APT::Update::Error-Mode "any"/);
-const workflow = fs.readFileSync('.github/workflows/ci.yml', 'utf8');
+const workflow = fs.readFileSync('.github/workflows/ci-full.yml', 'utf8');
 for (const job of ['validate', 'presentation']) {
   const section = workflow.split(new RegExp(`^  ${job}:`, 'm'))[1].split(/^  [a-z][\w-]*:/m)[0];
   const steps = section.split(/      - name:/).slice(1);
