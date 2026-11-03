@@ -2,7 +2,7 @@
 // Central 360°: sinais de CRM e Tarifas em "Precisa de você". Puro, sem rede.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { relationshipSignals, feeSignals, feeWindow, sourceCounts, sourceOf, sortSignals, crmProviderOf, shiftDay } from '../lib/finance/central-signals.mjs';
+import { relationshipSignals, feeSignals, feeWindow, sourceCounts, sourceOf, sortSignals, crmProviderOf, shiftDay, feeReconciliationLines, waitingOnInstitutions } from '../lib/finance/central-signals.mjs';
 
 const today = '2026-11-03';
 const P1 = 'p1', C1 = 'c1';
@@ -76,5 +76,31 @@ assert.deepEqual(sourceCounts(all).map((c) => c.key), ['contract', 'relationship
 const dash = readFileSync('finance/src/views/dashboard.js', 'utf8');
 assert.match(dash, /crossModuleSignals/);
 assert.match(dash, /approvalsMissing \|\| signalsMissing/);
-assert.match(dash, /ctx\.mode === 'demo'\) return result/, 'sandbox legado não ganha capacidade');
+assert.match(dash, /ctx\.mode === 'demo' \|\| !\(await loadSignals\(\)\)\) return result/, 'sandbox legado não ganha capacidade');
+
+// Recorte de instituição/contrato: equipe inteira, filtrado pelo objeto.
+const scoped = relationshipSignals({ activities, processes, providers, contracts, viewerId: 'me', editor: false, today, horizon: 30, everyone: true, providerId: P1, ownerName: () => 'Rafael' });
+assert.deepEqual(scoped.map((i) => i.record.id).sort(), ['a1', 'a2', 'p1'], 'instituição: vínculo direto e via contrato; sem vínculo fica fora');
+const byContract = relationshipSignals({ activities, processes, providers, contracts, viewerId: 'me', today, horizon: 30, everyone: true, contractId: C1 });
+assert.deepEqual(byContract.map((i) => i.record.id), ['a2'], 'contrato: só registros vinculados ao contrato');
+const other = relationshipSignals({ activities: [{ ...activities[3], related_type: 'provider', related_id: P1 }], processes: [], providers, contracts, viewerId: 'me', today, horizon: 30, everyone: true, providerId: P1, ownerName: () => 'Rafael Lima' });
+assert.match(other[0].detail, /^Rafael Lima/, 'responsável nomeado, sem identificador');
+const scopedFee = feeSignals([{ currency: 'BRL', open_review: 1, above: 1, above_total: 5 }], span, { contract_id: C1 });
+assert.equal(new URL(scopedFee[0].href, 'https://x').searchParams.get('contract_id'), C1);
+
+const rec = feeReconciliationLines([{ currency: 'BRL', observations: 3, above: 1, below: 1, equal: 1, above_total: 10, below_total: 2, contracted_total: 100, observed_total: 108, not_comparable: 0, missing_reference: 0, open_review: 2, under_review: 0, closed_review: 0, schedules: 2, schedules_observed: 2 }, { currency: 'USD', observations: 0 }]);
+assert.equal(rec[0].headline, '3 cobranças observadas · 2 com diferença frente ao contratado');
+assert.equal(rec[0].openReview, 2);
+assert.equal(rec[1].headline, 'Nenhuma cobrança observada no período');
+assert.ok(!/econom/i.test(JSON.stringify(rec)));
+
+const waiting = waitingOnInstitutions([
+  { id: 'r1', title: 'Capital de giro', status: 'collecting', invites: [{}, {}, {}], proposals: [{}], response_deadline: '2026-11-05' },
+  { id: 'r2', title: 'Fiança', status: 'open', invites_count: 2, proposals: [], response_deadline: '2026-11-01' },
+  { id: 'r3', title: 'Todas responderam', status: 'collecting', invites: [{}], proposals: [{}] },
+  { id: 'r4', title: 'Em avaliação', status: 'comparing', invites: [{}], proposals: [] }
+], today);
+assert.deepEqual(waiting.map((w) => w.id), ['r2', 'r1']);
+assert.equal(waiting[1].detail, '2 de 3 instituições convidadas sem resposta · prazo em 2 dias (05/11/2026)');
+assert.match(waiting[0].detail, /prazo encerrado há 2 dias/);
 console.log('central-signals: ok');

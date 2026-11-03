@@ -5,7 +5,11 @@ import { card, pill, linkButton, emptyState, person, progress, button, toast } f
 import { memberName, currentStep, approvalSummaryLine, eventTitle, isViewerTurn, TASK_EDITORS, taskChangeError } from './shared.js';
 import { loadEntities, entitySummaryCard } from './entities.js';
 import { startButton } from './intake.js';
-import { relationshipSignals, feeSignals, feeWindow, shiftDay, sourceCounts, sourceOf, sortSignals } from '../../../lib/finance/central-signals.mjs';
+// Sinais entre módulos (CRM, tarifas, espera por instituições): carregados sob
+// demanda e fora do build de demonstração, que não tem API nem empacota o módulo.
+let S = null;
+const loadSignals = async () => { if (!S && !__ARANDU_DEMO__) S = await import('../../../lib/finance/central-signals.mjs').catch(() => null); return S; };
+const sourceOf = (item) => (S ? S.sourceOf(item) : 'negotiation');
 
 // Pendências visíveis antes de "Mostrar mais" (Constitution §1.3: uma próxima ação clara).
 const FIRST_ITEMS = 5;
@@ -119,7 +123,8 @@ export function actionItems(ctx, approvals) {
 export async function crossModuleSignals(ctx, { today = todayIso() } = {}) {
   const org = encodeURIComponent(ctx.organization.id);
   const result = { items: [], failed: [], unavailable: [] };
-  if (ctx.mode === 'demo') return result;
+  if (ctx.mode === 'demo' || !(await loadSignals())) return result;
+  const { relationshipSignals, feeSignals, feeWindow, shiftDay } = S;
   const horizon = 2;
   const editor = TASK_EDITORS.includes(ctx.viewer?.role);
   const crm = (resource, params) => ctx.api(`${resource}?${new URLSearchParams({ organization_id: ctx.organization.id, limit: '100', ...params })}`);
@@ -178,7 +183,7 @@ export async function dashboard(ctx) {
   // Central 360°: compromissos comerciais e revisões de tarifa entram na mesma fila.
   const signals = await crossModuleSignals(ctx).catch(() => ({ items: [], failed: ['Relacionamentos', 'Tarifas'], unavailable: [] }));
   items.push(...signals.items);
-  sortSignals(items);
+  if (S) S.sortSignals(items);
 
   const root = el('div', { class: 'dashboard' });
   const attention = el('section', { class: 'attention card', id: 'precisa-de-voce', 'aria-labelledby': 'attention-title' });
@@ -204,7 +209,7 @@ export async function dashboard(ctx) {
     el('ul', { class: 'action-list', role: 'list' }, hidden.map(actionRow))]) : null;
   // Filtro por origem: com mais de uma origem, a pessoa isola o que é dela
   // (ex.: só Relacionamentos) sem sair do Painel. "Todas" volta à fila priorizada.
-  const counts = sourceCounts(items);
+  const counts = S ? S.sourceCounts(items) : [];
   const filtered = el('ul', { class: 'action-list', role: 'list', hidden: true });
   const chips = counts.length > 1 ? el('div', { class: 'chips attention-filter', role: 'group', 'aria-label': 'Filtrar pendências por origem' }) : null;
   const pick = (key) => {
@@ -327,6 +332,14 @@ export async function dashboard(ctx) {
   const tasksCard = card({ title: listed.size ? 'Outras tarefas' : 'Tarefas', actions: [linkButton('Todas', ctx.href('/finance/tasks.html'), { variant: 'ghost', size: 'sm', iconName: 'arrowRight' })],
     body: tasks.length ? taskList : emptyState({ title: listed.size ? 'Nenhuma outra tarefa aberta' : 'Nenhuma tarefa aberta', text: listed.size ? 'As tarefas com prazo próximo estão em "Precisa de você".' : undefined, compact: true, iconName: 'checkCircle' }) });
 
+  // Aguardando terceiros: convites sem resposta. Espera, não tarefa de quem lê.
+  const waiting = S ? S.waitingOnInstitutions(rfqs, todayIso()) : [];
+  const waitingCard = waiting.length ? card({ title: 'Aguardando instituições', id: 'aguardando-terceiros', subtitle: 'Solicitações em coleta com convites ainda sem resposta.',
+    body: el('ul', { class: 'mini-list', role: 'list' }, waiting.slice(0, 4).map((row) => el('li', { class: 'mini-row' }, [
+      el('span', { class: 'mini-icon tone-neutral' }, icon('send', { size: 14 })),
+      el('div', { class: 'mini-main' }, [el('a', { class: 'mini-title stretched', href: ctx.href(row.href), text: row.title }), el('span', { class: 'mini-meta', text: row.detail })])
+    ]))) }) : null;
+
   // Atividade recente da organização.
   const feed = el('ol', { class: 'activity compact' }, el('li', { class: 'muted', text: 'Carregando…' }));
   // Histórico é nível 4: só é buscado quando a pessoa abre a seção.
@@ -370,7 +383,7 @@ export async function dashboard(ctx) {
     // coluna lateral desce: a inteligência de valor fica depois dela, em largura
     // total, para não empurrar renovações e tarefas para o fim da página.
     el('div', { class: 'dash-main' }, [entityCard, pipelineCard, activityCard].filter(Boolean)),
-    el('div', { class: 'dash-side' }, [contractsCard, tasksCard])
+    el('div', { class: 'dash-side' }, [waitingCard, contractsCard, tasksCard].filter(Boolean))
   ]), ...[valueCard].filter(Boolean));
   if (!rfqs.length) root.prepend(firstUse(ctx));
   return root;

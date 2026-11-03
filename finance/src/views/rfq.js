@@ -143,6 +143,8 @@ export async function rfqDetail(ctx) {
   root.append(negotiationOrigin(ctx, rfq, { decision, contract, pending }));
   // Processos e atividades de relacionamento vinculados a esta negociação (CRM).
   if (ctx.mode !== 'demo') {
+    // Copilot da negociação: pergunta sobre esta solicitação, não sobre a organização inteira.
+    import('./copilot.js').then((m) => m.setCopilotContext({ type: 'rfq', id: rfq.id, label: rfq.title })).catch(() => {});
     const crmSlot = el('div');
     root.append(crmSlot);
     import('./crm-workspace.js').then((m) => { if (crmSlot.parentNode) crmSlot.replaceWith(m.crmLinkedPanel(ctx, { relatedId: rfq.id, noun: 'esta negociação' })); }).catch(() => crmSlot.remove());

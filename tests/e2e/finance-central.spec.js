@@ -14,15 +14,16 @@ const RELATIONSHIP = { ok: true, provider: { id: P_ATLAS, name: 'Atlas Bank' }, 
   metrics: { invited: 0, responded: 0, response_rate: null, median_response_days: null, active_contracts: 1, open_issues: 0, median_resolution_days: null, definitions: {} } };
 const SUMMARY = [{ currency: 'BRL', schedules: 4, schedules_observed: 3, observations: 6, verified: 4, above: 2, above_total: 880.4, below: 0, below_total: 0, equal: 1, not_comparable: 1, missing_reference: 0, open_review: 2, under_review: 0, closed_review: 1, contracted_total: 1000, observed_total: 1880.4 }];
 
-async function setup(page, { role = 'admin', crmFails = false, feesStatus = 200 } = {}) {
-  const activities = [{ id: A1, organization_id: ORG, version: 1, kind: 'follow_up', subject: 'Retornar sobre tarifa PIX', status: 'planned', due_on: day(-1), owner_id: 'u1', source_reference: 'Reunião de 20/10', related_type: 'provider', related_id: P_ATLAS }];
+async function setup(page, { role = 'admin', crmFails = false, feesStatus = 200, overview = OVERVIEW, extraActivities = [] } = {}) {
+  const activities = [...extraActivities, { id: A1, organization_id: ORG, version: 1, kind: 'follow_up', subject: 'Retornar sobre tarifa PIX', status: 'planned', due_on: day(-1), owner_id: 'u1', source_reference: 'Reunião de 20/10', related_type: 'provider', related_id: P_ATLAS }];
   const calls = [];
   await page.route('**/api/finance/**', async (route) => {
     const req = route.request(); const u = new URL(req.url()); const path = u.pathname.replace('/api/finance/', '');
     calls.push({ path, method: req.method(), query: Object.fromEntries(u.searchParams) });
     const json = (v, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(v) });
     if (path === 'organizations') return json({ ok: true, rows: [{ id: ORG, kind: 'BUYER', legal_name: 'Grupo Vitta' }] });
-    if (path === 'overview') return json(OVERVIEW);
+    if (path === 'overview') return json(overview);
+    if (path === 'contract-detail') return json({ ok: true, contract: CONTRACT, effective: null, versions: [], amendments: [], milestones: [], children: [], documents: [], events: [] });
     if (path === 'members') return json({ ok: true, rows: [{ user_id: 'u1', role, display_name: 'Paula Nogueira' }], viewer_id: 'u1' });
     if (path === 'entities') return json({ ok: true, rows: [], scope: 'group', can_admin: role === 'admin' });
     if (path === 'provider-relationship') return json(RELATIONSHIP);
@@ -40,7 +41,8 @@ async function setup(page, { role = 'admin', crmFails = false, feesStatus = 200 
       if (path === 'crm-activities') {
         const status = u.searchParams.get('status');
         const before = u.searchParams.get('due_before');
-        return json({ ok: true, api_version: 'financial-crm-v1', rows: activities.filter((a) => (!status || a.status === status) && (!before || (a.due_on && a.due_on <= before))), next: null });
+        const related = u.searchParams.get('related_id');
+        return json({ ok: true, api_version: 'financial-crm-v1', rows: activities.filter((a) => (!status || a.status === status) && (!before || (a.due_on && a.due_on <= before)) && (!related || a.related_id === related)), next: null });
       }
       return json({ ok: true, api_version: 'financial-crm-v1', rows: [], next: null });
     }
@@ -113,4 +115,64 @@ test('leitor não recebe revisão de tarifas nem consulta o resumo', async ({ pa
   await expect(page.locator('#precisa-de-voce').getByRole('link', { name: 'Retornar sobre tarifa PIX · Atlas Bank' })).toBeVisible();
   await expect(page.locator('#precisa-de-voce').getByText(/cobranças de tarifa/)).toHaveCount(0);
   expect(calls.some((c) => c.path === 'fees/summary')).toBe(false);
+});
+
+const CONTRACT_FOLLOW_UP = { id: '00000000-0000-4000-8000-0000000000d2', organization_id: ORG, version: 1, kind: 'meeting', subject: 'Reunião de renovação do giro', status: 'planned', due_on: day(10), owner_id: 'u2', source_reference: 'Comitê', related_type: 'contract', related_id: C1 };
+
+test('contrato como ponto de entrada: próximas ações, conciliação de tarifas e volta à instituição', async ({ page }) => {
+  const { calls } = await setup(page, { extraActivities: [CONTRACT_FOLLOW_UP] });
+  await page.goto(`/finance/contracts.html?abrir=contrato#contract-${C1}`);
+  const dialog = page.getByRole('dialog', { name: 'Capital de giro' });
+  const next = dialog.locator('[data-scope="contract"]');
+  await expect(next.getByRole('heading', { name: 'Próximas ações deste contrato' })).toBeVisible();
+  // Só o compromisso vinculado ao contrato (o follow-up da instituição fica fora), com responsável nomeado.
+  await expect(next.getByText('Reunião de renovação do giro · Atlas Bank')).toBeVisible();
+  // Responsável fora da lista de membros: rótulo legível, nunca o identificador.
+  await expect(next.getByText(/Outra pessoa da equipe/)).toBeVisible();
+  await expect(next).not.toContainText('u2');
+  await expect(next.getByText('Retornar sobre tarifa PIX')).toHaveCount(0);
+  await expect(next.getByText('Revisar 2 cobranças de tarifa em BRL')).toBeVisible();
+  // Conciliação: fatos do servidor, sem claim de economia.
+  await expect(next.getByRole('heading', { name: 'Tarifas: contratado × cobrado' })).toBeVisible();
+  await expect(next.getByText('6 cobranças observadas · 2 com diferença frente ao contratado')).toBeVisible();
+  await expect(next).not.toContainText(/economia (recuperada|de|gerada)/i);
+  expect(calls.find((c) => c.path === 'fees/summary' && c.query.contract_id)?.query.contract_id).toBe(C1);
+  expect(calls.find((c) => c.path === 'crm-activities' && c.query.related_id)?.query.related_id).toBe(C1);
+  // O compromisso leva ao relacionamento da instituição (o vínculo direto fica em "Trabalho deste contrato").
+  await expect(next.getByRole('link', { name: 'Abrir', exact: true })).toHaveAttribute('href', new RegExp(`provider_id=${P_ATLAS}`));
+  await next.getByRole('link', { name: 'Revisar 2 pendentes em BRL' }).click();
+  await expect(page).toHaveURL(new RegExp(`fees\\.html\\?.*contract_id=${C1}`));
+  await expect.poll(() => calls.filter((c) => c.path === 'fees').at(-1)?.query.contract_id).toBe(C1);
+  expect(calls.filter((c) => c.path === 'fees').at(-1).query.review_status).toBe('new');
+});
+
+test('contrato: tarifas indisponíveis viram aviso e não mostram conciliação vazia', async ({ page }) => {
+  await setup(page, { feesStatus: 500 });
+  await page.goto(`/finance/contracts.html?abrir=contrato#contract-${C1}`);
+  const next = page.getByRole('dialog', { name: 'Capital de giro' }).locator('[data-scope="contract"]');
+  await expect(next.getByRole('alert')).toContainText('Não conseguimos carregar Tarifas');
+  await expect(next.getByRole('heading', { name: 'Tarifas: contratado × cobrado' })).toHaveCount(0);
+});
+
+test('instituição: agenda comercial, revisão de tarifas, conciliação e Copilot no mesmo recorte', async ({ page }) => {
+  const { calls } = await setup(page, { extraActivities: [CONTRACT_FOLLOW_UP] });
+  await page.goto(`/finance/providers.html?provider_id=${P_ATLAS}`);
+  const section = page.getByRole('dialog', { name: 'Atlas Bank' }).locator('[data-scope="provider"]');
+  await expect(section.getByRole('heading', { name: 'Agenda comercial e tarifas desta instituição' })).toBeVisible();
+  // Vínculo direto com a instituição e via contrato entram; a equipe inteira, não só quem lê.
+  await expect(section.getByText('Retornar sobre tarifa PIX · Atlas Bank')).toBeVisible();
+  await expect(section.getByText('Reunião de renovação do giro · Atlas Bank')).toBeVisible();
+  await expect(section.getByRole('button', { name: 'Ver no registro comercial' }).first()).toBeVisible();
+  await expect(section.getByRole('link', { name: 'Revisar tarifas' })).toHaveAttribute('href', new RegExp(`provider_id=${P_ATLAS}.*|review_status=new`));
+  expect(calls.find((c) => c.path === 'fees/summary' && c.query.provider_id)?.query.provider_id).toBe(P_ATLAS);
+  await expect(section.getByRole('group', { name: 'Perguntar ao Copilot sobre Atlas Bank' }).getByRole('button', { name: 'Resumir relacionamento' })).toBeVisible();
+});
+
+test('Painel: "Aguardando instituições" mostra convites sem resposta e leva à solicitação', async ({ page }) => {
+  const RFQ = '00000000-0000-4000-8000-0000000000e1';
+  await setup(page, { overview: { ...OVERVIEW, rfqs: [{ id: RFQ, title: 'Capital de giro 2027', status: 'collecting', product: 'credit', response_deadline: day(4), invites: [{ provider_id: P_ATLAS }, { provider_id: 'x' }], proposals: [], revision: 1 }] } });
+  await page.goto('/finance/dashboard.html');
+  const card = page.locator('#aguardando-terceiros');
+  await expect(card.getByRole('link', { name: 'Capital de giro 2027' })).toHaveAttribute('href', new RegExp(`rfq\\.html\\?id=${RFQ}`));
+  await expect(card).toContainText('2 de 2 instituições convidadas sem resposta');
 });

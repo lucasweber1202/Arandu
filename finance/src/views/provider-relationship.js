@@ -50,7 +50,10 @@ export async function openProviderRelationship(ctx, provider, {initialDetail = n
     const startBox = el('div');
     const attention = el('div');
     const records = el('section', { class: 'cc-section', 'aria-labelledby': 'rel-records' });
-    const sections = [header, startBox, attention, records];
+    // Agenda comercial e tarifas no recorte da instituição: mesmas fontes da Central.
+    const signals = __ARANDU_DEMO__ ? null : el('div');
+    if (signals) import('./context-signals.js').then((m) => { if (signals.parentNode) signals.replaceWith(m.providerContextSection(ctx, provider)); }).catch(() => signals.remove());
+    const sections = [header, startBox, attention, signals, records].filter(Boolean);
     const pending = new Set();
     const pageErrors = {};
     const controls = (section) => {
@@ -173,10 +176,6 @@ export async function openProviderRelationship(ctx, provider, {initialDetail = n
     // Memória: histórico sob demanda.
     sections.push(disclosure('rel-historico', `Histórico (${detail.timeline.length})`, [
       detail.timeline.length ? el('ol', { class: 'plain-list timeline-list' }, detail.timeline.map((row) => el('li', { text: `${formatDateTime(row.at)} — ${row.text}` }))) : el('p', { class: 'muted', text: 'Sem histórico.' })]));
-    // Tarifas: fatos contratado × observado, carregados sob demanda (sem score).
-    const fees = el('div');
-    import('./fees.js').then((m) => m.providerFeeFacts(ctx, provider.id)).then((node) => fees.replaceWith(node)).catch(() => fees.remove());
-    advanced.push(fees);
     sections.push(disclosure('rel-indicadores', 'Indicadores, mapa e avaliações', advanced));
     return sections.filter(Boolean);
   }
