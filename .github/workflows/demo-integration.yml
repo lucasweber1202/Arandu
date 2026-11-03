@@ -169,6 +169,11 @@ jobs:
         timeout-minutes: 16
         run: bash scripts/ci-demo/run.sh journey 2>&1 | tail -n 3 | tee "$CI_DEMO_REPORTS/journey-tail.txt"
 
+      - name: Phase 4 — Platform journey (CRM, Copilot, fees, ERP, economics, viewer 403)
+        id: platform
+        timeout-minutes: 16
+        run: bash scripts/ci-demo/run.sh platform
+
       # Escreve na Demo efêmera (contratos, aditivos, votos sintéticos): por último.
       - name: Phase 5 — Adversarial probes (session, cross-tenant, concurrency, renewal cycle)
         id: adversarial
@@ -225,6 +230,7 @@ jobs:
           E2E_DESKTOP: ${{ steps.e2e_desktop.outcome }}
           E2E_MOBILE: ${{ steps.e2e_mobile.outcome }}
           JOURNEY: ${{ steps.journey.outcome }}
+          PLATFORM: ${{ steps.platform.outcome }}
           ADVERSARIAL: ${{ steps.adversarial.outcome }}
           RECOVERY: ${{ steps.recovery.outcome }}
           EVIDENCE: ${{ steps.evidence.outcome }}

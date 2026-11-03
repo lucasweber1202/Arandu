@@ -286,6 +286,14 @@ externas de Auth/OAuth/Vault/cron nem autoriza operação hospedada ou cutover.
 
 ## Restore e rollback
 
+O verificador do mesmo export autentica o stream age **até o final**, inclusive
+quando `pg_restore --list` encerra cedo após ler o catálogo. O restante é drenado
+sem persistir plaintext; só sucesso de age e pg_restore permite prosseguir.
+Isso evita classificar um EPIPE de consumidor encerrado como chave errada e não
+aceita um catálogo válido com ciphertext adulterado no final. Regressão real
+PG17 + age usa dump maior que 1 MiB, tail adulterado com hash recalculado, role
+ausente e restore atômico com comparação de conteúdo.
+
 Não restaurar estes arquivos sobre Pilot/legado/Production nem usar o verificador
 public-only: o dump completo contém schemas gerenciados. Primeiro validar hashes,
 descriptografar com a chave privada num executor isolado aprovado, inspecionar

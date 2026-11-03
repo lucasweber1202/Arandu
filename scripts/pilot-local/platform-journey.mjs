@@ -191,11 +191,13 @@ await step('Importação CSV: prévia por linha, confirmação, replay idempoten
   must(hist.length === 1 && Number(obs) === 2, `persistência inesperada: ${hist.length} recibos, ${obs} observações`);
   return `prévia [${states}]; 2 importadas; replay mesma chave; reimportação = 2 duplicadas; 1 recibo; ${obs} observações no banco`;
 });
-await attack('Leitor confirma importação', 'recusado, nada gravado', async () => {
+await attack('Leitor confirma importação', '403 forbidden, nada gravado', async () => {
   const p = ok(await api(people.viewerA, 'POST', F('fee-imports/preview'), fileBody()), 'prévia leitor').preview;
-  const r = await api(people.viewerA, 'POST', F('fee-imports/confirm'), { ...fileBody(), confirmation: true, preview_fingerprint: p.fingerprint, selected_lines: [1], request_key: uuid() });
+  const line = p.rows.find(row => ['valid', 'duplicate'].includes(row.state))?.line;
+  must(Number.isInteger(line), 'prévia precisa conter uma linha confirmável para testar autorização');
+  const r = await api(people.viewerA, 'POST', F('fee-imports/confirm'), { ...fileBody(), confirmation: true, preview_fingerprint: p.fingerprint, selected_lines: [line], request_key: uuid() });
   const obs = sql(`select count(*) from public.fin_fee_observations where contract_id='${ctx.contract}'`);
-  return { ok: r.status >= 400 && obs === '2', observed: `${r.status} ${r.data?.code || ''}; observações continuam ${obs}` };
+  return { ok: r.status === 403 && r.data?.code === 'forbidden' && obs === '2', observed: `${r.status} ${r.data?.code || ''}; observações continuam ${obs}` };
 });
 await attack('Organização B pré-visualiza importação no contrato de A', '404', async () => {
   const r = await api(people.adminB, 'POST', F('fee-imports/preview'), { ...fileBody(), organization_id: ctx.orgB });
