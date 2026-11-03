@@ -3,12 +3,10 @@ import { negotiationOrigin } from './negotiation-origin.js';
 // Detalhe da solicitação: contexto no topo, operação separada em abas.
 
 import { PRODUCTS } from '../../../lib/finance/products.mjs';
-import { SOURCE_LABELS, fieldLabel } from '../../../lib/finance/passport.mjs';
 import { el, icon, money, percent, fieldValue, formatDate, formatDateTime, relativeDays, daysUntil, plural, productLabel, RFQ_STATUS, PROPOSAL_STATUS, APPROVAL_STATUS, PROVIDER_KINDS, todayIso, timeAgo } from '../core.js';
 import { card, pill, tag, button, linkButton, emptyState, errorState, loading, tabs, definitionList, toast, confirmDialog, promptDialog, drawer, field, catalogControl, person, menu, progress, onSubmit, sessionLink } from '../ui.js';
 import { loadEntities, rfqEntityControl } from './entities.js';
 import { comparisonMatrix, weightsPanel, revisionTimeline, collaboration, activityLog, approvalSteps, approvalActions, currentStep, memberName, memberTitle, coverage, approvalSummaryLine, lazyDocuments, keyTerms, isViewerTurn } from './shared.js';
-import { POLICY_FACTS } from '../../../lib/finance/policy.mjs';
 import { proposalChanges } from '../../../lib/finance/comparison-context.mjs';
 
 const FLOW = [['draft', 'Rascunho'], ['open', 'Aberta'], ['collecting', 'Coleta'], ['comparing', 'Avaliação'], ['decided', 'Decisão'], ['contracted', 'Contrato']];
@@ -223,8 +221,10 @@ function passportSnapshotCard(ctx, rfq) {
   const slot = el('div', { hidden: true });
   const body = el('div');
   const node = card({ title: 'Dados do Financial Passport', subtitle: 'Fotografia do perfil no momento da criação. Mudanças posteriores no Passport não alteram este processo.', id: 'passport', body });
-  ctx.api(`rfq-passport?organization_id=${encodeURIComponent(ctx.organization.id)}&rfq_id=${encodeURIComponent(rfq.id)}`).then(({ rows }) => {
+  ctx.api(`rfq-passport?organization_id=${encodeURIComponent(ctx.organization.id)}&rfq_id=${encodeURIComponent(rfq.id)}`).then(async ({ rows }) => {
     if (!rows?.length) return;
+    // Rótulos do Passport só quando há fotografia: fora do carregamento inicial da rota.
+    const { SOURCE_LABELS, fieldLabel } = await import('../../../lib/finance/passport.mjs');
     const spec = PRODUCTS[rfq.product];
     body.replaceChildren(el('ul', { class: 'passport-snapshot', role: 'list' }, rows.map((row) => {
       const demandSpec = spec.demandFields.find((item) => item.key === row.demand_key);
@@ -580,6 +580,7 @@ function approvalRequestForm(ctx, rfq, latest) {
   const proposalError = el('p', { class: 'field-error', role: 'alert', hidden: true });
   const declared = {};
   let evaluation = null;
+  let policyFacts = null;
   let previewFailed = false;
   let flags = [];
   let assignments = {};
@@ -592,7 +593,7 @@ function approvalRequestForm(ctx, rfq, latest) {
       const covenant = el('select', {}, [el('option', { value: '', text: 'Não informado (a policy assume o caso mais exigente)' }), el('option', { value: 'true', text: 'Sim' }), el('option', { value: 'false', text: 'Não' })]);
       covenant.value = declared.covenant_present === undefined ? '' : String(declared.covenant_present);
       covenant.addEventListener('change', () => { if (covenant.value === '') delete declared.covenant_present; else declared.covenant_present = covenant.value === 'true'; refresh(); });
-      parts.push(field({ label: POLICY_FACTS.covenant_present.label, control: covenant }));
+      parts.push(field({ label: policyFacts.covenant_present.label, control: covenant }));
     }
     if (flags.length) {
       const group = el('fieldset', { class: 'check-row' }, el('legend', { class: 'field-label', text: 'Sinalizadores da empresa que se aplicam a esta operação' }));
@@ -629,7 +630,8 @@ function approvalRequestForm(ctx, rfq, latest) {
       return;
     }
     let policyUi;
-    try { policyUi = await import('./policy.js'); }
+    // Fatos da policy (mesmo módulo que policy.js usa): só no modo policy, fora do carregamento inicial.
+    try { [policyUi, { POLICY_FACTS: policyFacts }] = await Promise.all([import('./policy.js'), import('../../../lib/finance/policy.mjs')]); }
     catch (failure) {
       previewFailed = true;
       modeBox.replaceChildren(errorState({ title: 'Não conseguimos carregar as etapas de aprovação', error: failure, onRetry: refresh }));

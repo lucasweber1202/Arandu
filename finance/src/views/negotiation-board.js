@@ -24,7 +24,17 @@ export function openInTab(tab, targetId) {
  * Propostas externas da negociação (mesmo contrato da seção de propostas).
  * 503 = indisponível neste ambiente; outro erro = não carregou (nunca "nenhuma").
  */
-export async function loadExternals(ctx, rfq) {
+// Uma consulta por renderização da solicitação: o quadro e "Antes de comparar"
+// compartilham o resultado. A chave é o próprio objeto da RFQ — recarregar a
+// tela cria outro objeto, então nada fica velho após gravar ou recarregar.
+const shared = new WeakMap();
+export function loadExternals(ctx, rfq) {
+  // A tela da solicitação já leu a lista completa (todas as páginas) ao abrir.
+  if (Array.isArray(rfq.external_rows)) return Promise.resolve({ rows: rfq.external_rows, more: false, problem: null });
+  if (!shared.has(rfq)) shared.set(rfq, fetchExternals(ctx, rfq));
+  return shared.get(rfq);
+}
+async function fetchExternals(ctx, rfq) {
   try {
     const result = await ctx.api(`external-proposals?organization_id=${encodeURIComponent(ctx.organization.id)}&rfq_id=${encodeURIComponent(rfq.id)}&limit=50`);
     return { rows: result.rows || [], more: Boolean(result.page?.has_more), problem: null };
