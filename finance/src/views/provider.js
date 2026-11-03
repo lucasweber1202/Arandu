@@ -2,11 +2,10 @@
 // acompanhar. Mais simples que o portal da empresa, de propósito.
 
 import { PRODUCTS, PRODUCT_IDS } from '../../../lib/finance/products.mjs';
-import { el, icon, formatDate, formatDateTime, relativeDays, daysUntil, productLabel, demandHeadline, fieldValue, PROPOSAL_STATUS, timeAgo } from '../core.js';
+import { greeting, el, icon, formatDate, formatDateTime, relativeDays, daysUntil, productLabel, demandHeadline, fieldValue, PROPOSAL_STATUS, timeAgo } from '../core.js';
 import { card, pill, tag, button, linkButton, emptyState, errorState, loading, definitionList, toast, confirmDialog, field, catalogControl, saveIndicator, onSubmit } from '../ui.js';
 import { collaboration, revisionDiff } from './shared.js';
 import { proposalChanges } from '../../../lib/finance/comparison-context.mjs';
-import { greeting } from './dashboard.js';
 
 const OPEN = ['open', 'collecting'];
 

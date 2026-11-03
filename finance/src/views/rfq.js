@@ -3,12 +3,10 @@ import { negotiationOrigin } from './negotiation-origin.js';
 // Detalhe da solicitação: contexto no topo, operação separada em abas.
 
 import { PRODUCTS } from '../../../lib/finance/products.mjs';
-import { SOURCE_LABELS, fieldLabel } from '../../../lib/finance/passport.mjs';
 import { el, icon, money, percent, fieldValue, formatDate, formatDateTime, relativeDays, daysUntil, plural, productLabel, RFQ_STATUS, PROPOSAL_STATUS, APPROVAL_STATUS, PROVIDER_KINDS, todayIso, timeAgo } from '../core.js';
 import { card, pill, tag, button, linkButton, emptyState, errorState, loading, tabs, definitionList, toast, confirmDialog, promptDialog, drawer, field, catalogControl, person, menu, progress, onSubmit, sessionLink } from '../ui.js';
 import { loadEntities, rfqEntityControl } from './entities.js';
 import { comparisonMatrix, weightsPanel, revisionTimeline, collaboration, activityLog, approvalSteps, approvalActions, currentStep, memberName, memberTitle, coverage, approvalSummaryLine, lazyDocuments, keyTerms, isViewerTurn } from './shared.js';
-import { POLICY_FACTS } from '../../../lib/finance/policy.mjs';
 import { proposalChanges } from '../../../lib/finance/comparison-context.mjs';
 
 const FLOW = [['draft', 'Rascunho'], ['open', 'Aberta'], ['collecting', 'Coleta'], ['comparing', 'Avaliação'], ['decided', 'Decisão'], ['contracted', 'Contrato']];
@@ -143,6 +141,8 @@ export async function rfqDetail(ctx) {
   root.append(negotiationOrigin(ctx, rfq, { decision, contract, pending }));
   // Processos e atividades de relacionamento vinculados a esta negociação (CRM).
   if (ctx.mode !== 'demo') {
+    // Copilot da negociação: pergunta sobre esta solicitação, não sobre a organização inteira.
+    import('./copilot.js').then((m) => m.setCopilotContext({ type: 'rfq', id: rfq.id, label: rfq.title })).catch(() => {});
     const crmSlot = el('div');
     root.append(crmSlot);
     import('./crm-workspace.js').then((m) => { if (crmSlot.parentNode) crmSlot.replaceWith(m.crmLinkedPanel(ctx, { relatedId: rfq.id, noun: 'esta negociação' })); }).catch(() => crmSlot.remove());
@@ -203,7 +203,14 @@ function overviewTab(ctx, rfq, { manage, pending, approvals, decision, contract,
   const documents = card({ title: 'Documentos', subtitle: 'Balanços, minutas e anexos do processo, em armazenamento privado.', id: 'documentos', body: el('div', {}, loading()) });
   import('./documents.js').then(({ documentsPanel }) => documents.querySelector('.card-body').replaceChildren(documentsPanel(ctx, {
     entityType: 'rfq', entityId: rfq.id, canUpload: manage || ctx.can('upload_document'), shareLabel: 'Visível aos provedores convidados' })));
-  grid.append(el('div', { class: 'split-main' }, [demand, passportSnapshotCard(ctx, rfq), revisions, graphContextCard(ctx, { type: 'rfq', id: rfq.id })]), el('div', { class: 'split-side' }, [inviteCard, documents, reuse]));
+  // Quadro de respostas (portal + propostas externas, de quem é a vez): fora do
+  // build de demonstração, que não tem API nem empacota o módulo.
+  let board = null;
+  if (!__ARANDU_DEMO__ && ctx.mode !== 'demo') {
+    board = el('div');
+    import('./negotiation-board.js').then((m) => { if (board.parentNode) board.replaceWith(m.responseBoardCard(ctx, rfq)); }).catch(() => board.remove());
+  }
+  grid.append(el('div', { class: 'split-main' }, [board, demand, passportSnapshotCard(ctx, rfq), revisions, graphContextCard(ctx, { type: 'rfq', id: rfq.id })].filter(Boolean)), el('div', { class: 'split-side' }, [inviteCard, documents, reuse]));
   return grid;
 }
 
@@ -214,8 +221,10 @@ function passportSnapshotCard(ctx, rfq) {
   const slot = el('div', { hidden: true });
   const body = el('div');
   const node = card({ title: 'Dados do Financial Passport', subtitle: 'Fotografia do perfil no momento da criação. Mudanças posteriores no Passport não alteram este processo.', id: 'passport', body });
-  ctx.api(`rfq-passport?organization_id=${encodeURIComponent(ctx.organization.id)}&rfq_id=${encodeURIComponent(rfq.id)}`).then(({ rows }) => {
+  ctx.api(`rfq-passport?organization_id=${encodeURIComponent(ctx.organization.id)}&rfq_id=${encodeURIComponent(rfq.id)}`).then(async ({ rows }) => {
     if (!rows?.length) return;
+    // Rótulos do Passport só quando há fotografia: fora do carregamento inicial da rota.
+    const { SOURCE_LABELS, fieldLabel } = await import('../../../lib/finance/passport.mjs');
     const spec = PRODUCTS[rfq.product];
     body.replaceChildren(el('ul', { class: 'passport-snapshot', role: 'list' }, rows.map((row) => {
       const demandSpec = spec.demandFields.find((item) => item.key === row.demand_key);
@@ -423,6 +432,11 @@ function comparisonTab(ctx, rfq, decision = null) {
     wrap.append(el('p', { class: 'callout callout-info compact', id: 'comparison-partial', role: 'note' }, [icon('info', { size: 14 }), el('span', { text:
       `Coleta em andamento: ${answered} de ${invited.size} ${invited.size === 1 ? 'instituição convidada enviou' : 'instituições convidadas enviaram'} proposta. Respostas ainda podem chegar ou ganhar nova versão até o encerramento da coleta${answered === 1 ? '; com uma só proposta não há comparação lado a lado' : ''}.` })]));
   }
+  if (!__ARANDU_DEMO__ && ctx.mode !== 'demo') {
+    const ready = el('div');
+    wrap.append(ready);
+    import('./negotiation-board.js').then((m) => { if (ready.parentNode) ready.replaceWith(m.readinessSection(ctx, rfq)); }).catch(() => ready.remove());
+  }
   wrap.append(matrix);
   // Processo já decidido: a conta abre com os pesos que a empresa registrou na decisão.
   const recorded = ctx.weights[rfq.id] ? null : decision?.criteria?.weights;
@@ -566,6 +580,7 @@ function approvalRequestForm(ctx, rfq, latest) {
   const proposalError = el('p', { class: 'field-error', role: 'alert', hidden: true });
   const declared = {};
   let evaluation = null;
+  let policyFacts = null;
   let previewFailed = false;
   let flags = [];
   let assignments = {};
@@ -578,7 +593,7 @@ function approvalRequestForm(ctx, rfq, latest) {
       const covenant = el('select', {}, [el('option', { value: '', text: 'Não informado (a policy assume o caso mais exigente)' }), el('option', { value: 'true', text: 'Sim' }), el('option', { value: 'false', text: 'Não' })]);
       covenant.value = declared.covenant_present === undefined ? '' : String(declared.covenant_present);
       covenant.addEventListener('change', () => { if (covenant.value === '') delete declared.covenant_present; else declared.covenant_present = covenant.value === 'true'; refresh(); });
-      parts.push(field({ label: POLICY_FACTS.covenant_present.label, control: covenant }));
+      parts.push(field({ label: policyFacts.covenant_present.label, control: covenant }));
     }
     if (flags.length) {
       const group = el('fieldset', { class: 'check-row' }, el('legend', { class: 'field-label', text: 'Sinalizadores da empresa que se aplicam a esta operação' }));
@@ -615,7 +630,8 @@ function approvalRequestForm(ctx, rfq, latest) {
       return;
     }
     let policyUi;
-    try { policyUi = await import('./policy.js'); }
+    // Fatos da policy (mesmo módulo que policy.js usa): só no modo policy, fora do carregamento inicial.
+    try { [policyUi, { POLICY_FACTS: policyFacts }] = await Promise.all([import('./policy.js'), import('../../../lib/finance/policy.mjs')]); }
     catch (failure) {
       previewFailed = true;
       modeBox.replaceChildren(errorState({ title: 'Não conseguimos carregar as etapas de aprovação', error: failure, onRetry: refresh }));

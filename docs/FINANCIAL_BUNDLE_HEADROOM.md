@@ -135,3 +135,18 @@ telas pós-contrato ≈ 88.300 cada. Teste: `scripts/test-build-size.mjs`
 
 Próximos candidatos: `rfq.js` importa `policy.js` (48 KB) estaticamente; a
 demo canônica (`ARANDU_ENV=demo`) já usa o build de produto, com 366 KB de margem.
+
+## 2026-11-03 — rotas de negociação e portal (perfil de `reports/bundle-profile.json`)
+
+Diagnóstico: nenhum módulo duplicado entre chunks; o peso é texto de interface. Os ganhos vieram de **acoplamento estático indevido** entre rotas.
+
+| Medida (build de produto) | Antes (`main@82270d4`) | Depois | Causa |
+|---|---|---|---|
+| Maior rota (`rfq`) | 230.598 | 208.424 | `passport.mjs` (fotografia do Passport, cartão secundário) e `policy.mjs` (um rótulo do modo policy) passaram a carregar sob demanda |
+| Rota do portal da instituição (`provider`) | 203.841 | 162.397 | `greeting` movido para `core.js`: o portal deixou de importar o Painel do comprador e `entities` |
+| JavaScript total do produto | 774.162 | 775.907 | +1,7 KB: fronteiras de chunk novas e o atalho do Copilot no quadro (código deslocado não é redução) |
+| JavaScript total (build de demonstração) | 793.771 | 794.624 | idem; sandbox inalterado |
+
+Também: `brDay` (`lib/finance/format.mjs`) substitui seis formatadores de data idênticos; código morto removido (`frag`, `slugKey`, `unitSuffix`, `providerFeeFacts`); a negociação lê a lista de propostas externas **uma vez** ao abrir (antes: até três leituras).
+
+Não avaliado por falta de benefício demonstrado: `company.js` (já dividido por tela), presenters do servidor além do formatador e `rfq.js` como um todo (67 KB renderizados, mas coeso por abas; dividir sem mudança funcional só deslocaria bytes).

@@ -1,5 +1,4 @@
-import { el } from '../core.js';
-import { loading, button } from '../ui.js';
+import { button } from '../ui.js';
 import { ledgerPage } from './ledger.js';
 
 // Bank Fee Intelligence: textos, rótulos e formulários compostos no servidor
@@ -13,12 +12,3 @@ export const fees = (ctx) => ledgerPage(ctx, {
   extraActions: ctx.mode === 'demo' ? null : () => [button('Importar arquivo', { iconName: 'download', attrs: { id: 'fee-import-trigger' }, onClick: () => import('./fee-import.js').then((m) => m.openFeeImport(ctx, { contracts: ctx.data.contracts || [], contractId: new URLSearchParams(location.search).get('contract_id') })) })]
 });
 
-/** Bloco factual para o painel do provedor: contagens e cobertura, sem score. */
-export async function providerFeeFacts(ctx, providerId) {
-  const box = el('section', { class: 'cc-section' }, [el('h3', { text: 'Tarifas: contratado × observado' }), loading()]);
-  try {
-    const data = await ctx.api(`fees/summary?${new URLSearchParams({ organization_id: ctx.organization.id, provider_id: providerId })}`);
-    box.replaceChildren(box.firstChild, ...data.lines.map((text) => el('p', { class: 'small', text })), el('a', { href: `/finance/fees.html?provider_id=${encodeURIComponent(providerId)}`, text: 'Abrir tarifas deste provedor' }));
-  } catch (error) { box.replaceChildren(box.firstChild, el('p', { class: 'muted', text: `Tarifas indisponíveis: ${error.message}` })); }
-  return box;
-}
