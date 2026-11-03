@@ -65,7 +65,11 @@ function channelLine(row, channel) {
 /** Cartão "Quadro de respostas" para a visão geral. */
 export function responseBoardCard(ctx, rfq) {
   const body = el('div', {}, loading('Montando o quadro de respostas…'));
-  const node = card({ title: 'Quadro de respostas', id: 'quadro-respostas', subtitle: 'Por instituição: convite, proposta pelo portal e propostas registradas pela empresa, com de quem é a vez. Sem ordenação comercial.', body });
+  // Copilot no contexto desta negociação (mesmo contrato e fontes da tela; ação material só com confirmação).
+  const ask = ctx.mode === 'demo' ? null : el('button', { type: 'button', class: 'btn btn-sm btn-ghost', onclick: () => import('./copilot.js').then((m) => m.openCopilot(ctx, {
+    context: { type: 'rfq', id: rfq.id, label: rfq.title },
+    question: 'Resuma as respostas desta negociação: quem respondeu, por qual canal, o que ainda aguarda a instituição ou a conferência da empresa e quais condições faltam, com as fontes.' })) }, el('span', { class: 'btn-label', text: 'Resumir respostas' }));
+  const node = card({ title: 'Quadro de respostas', id: 'quadro-respostas', subtitle: 'Por instituição: convite, proposta pelo portal e propostas registradas pela empresa, com de quem é a vez. Sem ordenação comercial.', body, actions: ask ? [ask] : null });
   loadExternals(ctx, rfq).then((ext) => {
     const board = negotiationBoard({ rfq, invites: rfq.invites || [], proposals: rfq.proposals || [], externals: ext.rows, fields: PRODUCTS[rfq.product]?.proposalFields || [], today: todayIso() });
     const s = board.summary;

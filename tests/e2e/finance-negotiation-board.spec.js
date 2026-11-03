@@ -68,6 +68,11 @@ test('quadro de respostas: por instituição, canal, de quem é a vez e navegaç
   // Uma única leitura da lista externa ao abrir: o quadro reutiliza a que a página já fez.
   expect(calls.filter((c) => c.path === 'external-proposals' && c.method === 'GET')).toHaveLength(1);
 
+  // Copilot com a negociação como contexto: abre a pergunta, não executa nada.
+  await board.getByRole('button', { name: 'Resumir respostas' }).click();
+  await expect(page.getByRole('dialog').filter({ hasText: 'Capital de giro 2027' }).first()).toBeVisible();
+  await page.keyboard.press('Escape');
+
   // Do quadro à proposta externa: abre a aba Propostas e foca o cartão.
   await row(PB).getByRole('link', { name: 'Ver proposta de Boreal Banco (fonte externa)' }).click();
   await expect(page).toHaveURL(/#propostas$/);
