@@ -205,7 +205,14 @@ function overviewTab(ctx, rfq, { manage, pending, approvals, decision, contract,
   const documents = card({ title: 'Documentos', subtitle: 'Balanços, minutas e anexos do processo, em armazenamento privado.', id: 'documentos', body: el('div', {}, loading()) });
   import('./documents.js').then(({ documentsPanel }) => documents.querySelector('.card-body').replaceChildren(documentsPanel(ctx, {
     entityType: 'rfq', entityId: rfq.id, canUpload: manage || ctx.can('upload_document'), shareLabel: 'Visível aos provedores convidados' })));
-  grid.append(el('div', { class: 'split-main' }, [demand, passportSnapshotCard(ctx, rfq), revisions, graphContextCard(ctx, { type: 'rfq', id: rfq.id })]), el('div', { class: 'split-side' }, [inviteCard, documents, reuse]));
+  // Quadro de respostas (portal + propostas externas, de quem é a vez): fora do
+  // build de demonstração, que não tem API nem empacota o módulo.
+  let board = null;
+  if (!__ARANDU_DEMO__ && ctx.mode !== 'demo') {
+    board = el('div');
+    import('./negotiation-board.js').then((m) => { if (board.parentNode) board.replaceWith(m.responseBoardCard(ctx, rfq)); }).catch(() => board.remove());
+  }
+  grid.append(el('div', { class: 'split-main' }, [board, demand, passportSnapshotCard(ctx, rfq), revisions, graphContextCard(ctx, { type: 'rfq', id: rfq.id })].filter(Boolean)), el('div', { class: 'split-side' }, [inviteCard, documents, reuse]));
   return grid;
 }
 
@@ -424,6 +431,11 @@ function comparisonTab(ctx, rfq, decision = null) {
     const answered = new Set(proposals.map((proposal) => proposal.provider_id)).size;
     wrap.append(el('p', { class: 'callout callout-info compact', id: 'comparison-partial', role: 'note' }, [icon('info', { size: 14 }), el('span', { text:
       `Coleta em andamento: ${answered} de ${invited.size} ${invited.size === 1 ? 'instituição convidada enviou' : 'instituições convidadas enviaram'} proposta. Respostas ainda podem chegar ou ganhar nova versão até o encerramento da coleta${answered === 1 ? '; com uma só proposta não há comparação lado a lado' : ''}.` })]));
+  }
+  if (!__ARANDU_DEMO__ && ctx.mode !== 'demo') {
+    const ready = el('div');
+    wrap.append(ready);
+    import('./negotiation-board.js').then((m) => { if (ready.parentNode) ready.replaceWith(m.readinessSection(ctx, rfq)); }).catch(() => ready.remove());
   }
   wrap.append(matrix);
   // Processo já decidido: a conta abre com os pesos que a empresa registrou na decisão.
