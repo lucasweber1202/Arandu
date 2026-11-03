@@ -490,6 +490,12 @@ export function openContract(ctx, contract, { initialDetail = null } = {}) {
       sections.push(crmSlot);
       import('./crm-workspace.js').then((m) => { if (crmSlot.parentNode) crmSlot.replaceWith(m.crmLinkedPanel(ctx, { relatedId: current.id, providerId: current.provider_id, providerName: current.provider_name, noun: 'este contrato' })); });
     }
+    // Próximas ações e conciliação de tarifas do contrato (mesmas fontes da Central).
+    if (ctx.mode !== 'demo') {
+      const nextSlot = el('div');
+      sections.splice(Math.min(1, sections.length), 0, nextSlot);
+      import('./context-signals.js').then((m) => { if (nextSlot.parentNode) nextSlot.replaceWith(m.contractContextSection(ctx, current)); }).catch(() => nextSlot.remove());
+    }
     // Condições especializadas (fiança, câmbio, hedge): mesma fonte do registro canônico.
     if (ctx.mode !== 'demo') {
       const slot = el('div');

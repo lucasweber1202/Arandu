@@ -5,7 +5,7 @@ import { card, pill, linkButton, emptyState, person, progress, button, toast } f
 import { memberName, currentStep, approvalSummaryLine, eventTitle, isViewerTurn, TASK_EDITORS, taskChangeError } from './shared.js';
 import { loadEntities, entitySummaryCard } from './entities.js';
 import { startButton } from './intake.js';
-import { relationshipSignals, feeSignals, feeWindow, shiftDay, sourceCounts, sourceOf, sortSignals } from '../../../lib/finance/central-signals.mjs';
+import { relationshipSignals, feeSignals, feeWindow, shiftDay, waitingOnInstitutions, sourceCounts, sourceOf, sortSignals } from '../../../lib/finance/central-signals.mjs';
 
 // Pendências visíveis antes de "Mostrar mais" (Constitution §1.3: uma próxima ação clara).
 const FIRST_ITEMS = 5;
@@ -327,6 +327,14 @@ export async function dashboard(ctx) {
   const tasksCard = card({ title: listed.size ? 'Outras tarefas' : 'Tarefas', actions: [linkButton('Todas', ctx.href('/finance/tasks.html'), { variant: 'ghost', size: 'sm', iconName: 'arrowRight' })],
     body: tasks.length ? taskList : emptyState({ title: listed.size ? 'Nenhuma outra tarefa aberta' : 'Nenhuma tarefa aberta', text: listed.size ? 'As tarefas com prazo próximo estão em "Precisa de você".' : undefined, compact: true, iconName: 'checkCircle' }) });
 
+  // Aguardando terceiros: convites sem resposta. Espera, não tarefa de quem lê.
+  const waiting = waitingOnInstitutions(rfqs, todayIso());
+  const waitingCard = waiting.length ? card({ title: 'Aguardando instituições', id: 'aguardando-terceiros', subtitle: 'Solicitações em coleta com convites ainda sem resposta.',
+    body: el('ul', { class: 'mini-list', role: 'list' }, waiting.slice(0, 4).map((row) => el('li', { class: 'mini-row' }, [
+      el('span', { class: 'mini-icon tone-neutral' }, icon('send', { size: 14 })),
+      el('div', { class: 'mini-main' }, [el('a', { class: 'mini-title stretched', href: ctx.href(row.href), text: row.title }), el('span', { class: 'mini-meta', text: row.detail })])
+    ]))) }) : null;
+
   // Atividade recente da organização.
   const feed = el('ol', { class: 'activity compact' }, el('li', { class: 'muted', text: 'Carregando…' }));
   // Histórico é nível 4: só é buscado quando a pessoa abre a seção.
@@ -370,7 +378,7 @@ export async function dashboard(ctx) {
     // coluna lateral desce: a inteligência de valor fica depois dela, em largura
     // total, para não empurrar renovações e tarefas para o fim da página.
     el('div', { class: 'dash-main' }, [entityCard, pipelineCard, activityCard].filter(Boolean)),
-    el('div', { class: 'dash-side' }, [contractsCard, tasksCard])
+    el('div', { class: 'dash-side' }, [waitingCard, contractsCard, tasksCard].filter(Boolean))
   ]), ...[valueCard].filter(Boolean));
   if (!rfqs.length) root.prepend(firstUse(ctx));
   return root;
