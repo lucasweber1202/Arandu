@@ -1,0 +1,69 @@
+{
+  "run_id": 41646766293,
+  "head_sha": "2d6d247de508e1eacc812457060234470e505ec7",
+  "conclusion": "success",
+  "wall_seconds": 1860,
+  "runner_minutes_estimate": 52,
+  "jobs": [
+    {
+      "name": "deploy-boundaries",
+      "conclusion": "success",
+      "duration_seconds": 185,
+      "rounded_runner_minutes": 4,
+      "dispatch_and_dependency_wait_seconds": 83,
+      "stages": {
+        "setup_or_other": 179,
+        "dependencies": 2,
+        "build": 0
+      }
+    },
+    {
+      "name": "database",
+      "conclusion": "success",
+      "duration_seconds": 347,
+      "rounded_runner_minutes": 6,
+      "dispatch_and_dependency_wait_seconds": 84,
+      "stages": {
+        "setup_or_other": 38,
+        "validation": 299,
+        "recovery": 7
+      }
+    },
+    {
+      "name": "validate",
+      "conclusion": "success",
+      "duration_seconds": 1590,
+      "rounded_runner_minutes": 27,
+      "dispatch_and_dependency_wait_seconds": 270,
+      "stages": {
+        "setup_or_other": 11,
+        "dependencies": 2,
+        "artifacts": 9,
+        "validation": 1495,
+        "build": 1,
+        "browsers": 60,
+        "browser_cache": 7
+      }
+    },
+    {
+      "name": "presentation",
+      "conclusion": "success",
+      "duration_seconds": 849,
+      "rounded_runner_minutes": 15,
+      "dispatch_and_dependency_wait_seconds": 270,
+      "stages": {
+        "setup_or_other": 5,
+        "dependencies": 2,
+        "browsers": 51,
+        "browser_cache": 6,
+        "validation": 781,
+        "artifacts": 1
+      }
+    }
+  ],
+  "limitations": [
+    "Runner minutes are per-job rounded estimates, not invoice amounts.",
+    "Dispatch/dependency wait is not an isolated runner queue measurement.",
+    "Stages classify named steps; nested work and cache hits require logs."
+  ]
+}

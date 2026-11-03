@@ -65,3 +65,10 @@ for (const method of ['GET', 'HEAD', 'POST']) {
   if (method === 'HEAD') assert.equal(body, undefined);
   if (method === 'GET') assert.deepEqual(JSON.parse(body).release, releaseIdentity());
 }
+
+for (const [status,category] of [[401,'authentication'],[403,'authorization'],[404,'not_found'],[409,'conflict'],[429,'rate_limit'],[503,'unavailable'],[400,'validation']]) {
+ const diagnostic=safeErrorEvent({status,durationMs:12.6,body:'private',organization_id:'private'});
+ assert.equal(diagnostic.category,category);assert.equal(diagnostic.duration_ms,13);
+ assert.equal(diagnostic.body,undefined);assert.equal(diagnostic.organization_id,undefined);
+}
+for(const durationMs of [-1,NaN,Infinity,'10'])assert.equal(safeErrorEvent({durationMs}).duration_ms,undefined);

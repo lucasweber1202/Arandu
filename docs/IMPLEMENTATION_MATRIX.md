@@ -1,3 +1,13 @@
+## Lote v4 — 03/11/2026, em desenvolvimento
+
+Base main37b5f4f8 com quatro gates success (41653172851). Novo lote:
+inspeção CSV/XLSX antes do mapping, recuperação de recibo por chave do ator,
+duração/categorias de erros, backpressure Retry-After e concorrência CI limitada.
+Contratos e testes locais preparados; M2 depende dos quatro gates do HEAD novo,
+sem herança da base. Evidência, medições anteriores, ownership CC/Codex e gates
+hospedados: `evidence/engineering-acceleration-v4-2026-11-03.md`.
+M3–M6 não atingidos por este lote. Nenhuma migration ou escrita hospedada.
+
 # Implementation Matrix — Arandu Financial Procurement & Vendor Management OS
 
 ## 03/11/2026 — Recovery e reconciliação hospedada

@@ -205,3 +205,36 @@ Claude: mostrar prévia, erros e origem antes da seleção; manter arquivo/mappi
 request_key após falha; exigir confirmação; mostrar diferenças como revisão, sem
 "economia realizada". UI de integração deve dizer configurada/suspensa/revogada e
 separar comprovação externa. Nenhum arquivo de frontend foi editado nesta entrega.
+
+## Handoff adicional — inspeção e resultado incerto (lote v4)
+
+`POST fee-imports/inspect` recebe somente `organization_id`, `contract_id`,
+`file:{name,format,content_base64}` e `delimiter` opcional. Usa o JWT e verifica
+acesso ao contrato antes de interpretar os bytes. Disponível aos mesmos leitores
+que a prévia. Retorna `{ok:true,inspection:{api_version,file_fingerprint,format,
+columns,row_count,fields,required_fields,limits,confirmation_required:true}}`.
+Não retorna valores de células, amostras, mapeamento inferido ou linhas financeiras.
+CSV e XLSX usam exatamente o parser/limites da prévia; fórmulas, cabeçalhos
+ambíguos e arquivos inválidos retornam 400. O frontend pode construir o seletor
+pelos nomes exatos, depois chamar `preview` com origem e mapeamento explícitos.
+A inspeção não substitui revisão nem o fingerprint da confirmação.
+
+`GET fee-imports/receipt?organization_id=UUID&contract_id=UUID&request_key=UUID`
+recupera `{ok:true,receipt:{id,actor_id,happened_at,metadata}}` da tentativa do
+**próprio ator**. `metadata.result` é o recibo persistido pela RPC canônica;
+consulta usa o índice existente organização/ator/request_key. Contrato e RLS
+continuam autoritativos. Outro ator não recupera a tentativa por essa rota;
+o histórico autorizado continua disponível separadamente. Não há nova tabela.
+
+Após timeout de confirmação, conservar bytes, mapeamento, origem e request_key.
+Consultar receipt; 200 permite apresentar o resultado persistido. **404
+`fee_import_receipt_not_found` mantém o resultado desconhecido**, pois a transação
+pode estar em curso ou a leitura indisponível. Repetir somente a mesma intenção
+com a mesma chave; não gerar outra chave, marcar falha definitiva ou presumir
+que nada foi gravado. 403/404 de escopo não autorizam revelar o recibo.
+
+Ownership: Codex mantém parser/API/ensaio; CC integra seletor, estados de espera,
+recuperação de resultado e apresentação do histórico. Nenhum arquivo de UI foi
+alterado neste lote. Regressões de API usam HTTP fixtures; a jornada real
+`scripts/pilot-local/platform-journey.mjs` também exige inspeção e consulta do
+recibo após confirmação/replay, com contagem SQL da persistência.
