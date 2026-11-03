@@ -1,0 +1,52 @@
+{
+  "observed_at": "2026-11-03T14:55:39.614Z",
+  "read_only": true,
+  "projects": [
+    {
+      "ref": "igacnfjeuqhxcmfyepgj",
+      "status": "ACTIVE_HEALTHY",
+      "region": "sa-east-1",
+      "postgres": "17.6.1.155"
+    },
+    {
+      "ref": "offgpyysgdhfemjlchod",
+      "status": "ACTIVE_HEALTHY",
+      "region": "sa-east-1",
+      "postgres": "17.6.1.166"
+    }
+  ],
+  "pilot": {
+    "observed_at": "2026-11-03 14:54:46.447107+00",
+    "auth_users": 0,
+    "storage_objects": 0,
+    "public_tables": 71,
+    "public_tables_without_rls": 0
+  },
+  "legacy": {
+    "observed_at": "2026-11-03 14:54:52.022044+00",
+    "auth_users": 0,
+    "storage_objects": 0,
+    "public_tables": 16,
+    "public_tables_without_rls": 0
+  },
+  "deployments": [
+    {
+      "name": "arandu",
+      "id": "dpl_8wWh3JheicCbBZrv2ZpC5HZR7VD2",
+      "state": "ERROR",
+      "sha": "37b5f4f8418fca5625757415130f2d96d27d0057"
+    },
+    {
+      "name": "arandu-pilot",
+      "id": "dpl_3mVTGqwjusSLYtfNmCxdidfcSBuF",
+      "state": "READY",
+      "sha": "37b5f4f8418fca5625757415130f2d96d27d0057"
+    },
+    {
+      "name": "arandu-demo",
+      "id": "dpl_9Ku5fH2FbnKvK7R3EMt8caJDxgnn",
+      "state": "READY",
+      "sha": "37b5f4f8418fca5625757415130f2d96d27d0057"
+    }
+  ]
+}

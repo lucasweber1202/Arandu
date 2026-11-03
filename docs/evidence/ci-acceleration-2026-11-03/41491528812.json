@@ -1,0 +1,34 @@
+{
+  "run_id": 41491528812,
+  "head_sha": "1ae2fa6b289b421e72252dcf83ad4621e6547188",
+  "conclusion": "failure",
+  "wall_seconds": 2063,
+  "runner_minutes_estimate": 35,
+  "jobs": [
+    {
+      "name": "demo-integration",
+      "conclusion": "failure",
+      "duration_seconds": 2060,
+      "rounded_runner_minutes": 35,
+      "dispatch_and_dependency_wait_seconds": 2,
+      "stages": {
+        "setup_or_other": 159,
+        "validation": 1,
+        "dependencies": 1,
+        "build": 0,
+        "seed": 621,
+        "pool": 1241,
+        "recovery": 27,
+        "browsers": 0,
+        "browser_cache": 0,
+        "adversarial": 0,
+        "artifacts": 5
+      }
+    }
+  ],
+  "limitations": [
+    "Runner minutes are per-job rounded estimates, not invoice amounts.",
+    "Dispatch/dependency wait is not an isolated runner queue measurement.",
+    "Stages classify named steps; nested work and cache hits require logs."
+  ]
+}

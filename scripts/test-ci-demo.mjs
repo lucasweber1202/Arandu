@@ -156,7 +156,7 @@ test('Playwright: só Chromium, um worker, sem trace', () => {
   assert.match(runner, /--workers 1 --trace off/);
 });
 test('visitantes: seed real, flags existentes e prova de execução sem skips', () => {
-  assert.match(runner, /workspaces\.mjs" provision --count=4 --concurrency=2/);
+  assert.match(runner, /workspaces\.mjs" provision --count=4 --concurrency=4/);
   assert.match(runner, /export ARANDU_DEMO_ENTRY_E2E=1 ARANDU_DEMO_WORKSPACE_E2E=1/);
   assert.match(runner, /assert-visitor-e2e\.mjs" "\$PLAYWRIGHT_JSON_OUTPUT_FILE"/);
   const report = () => ({ errors: [], suites: [{ specs: ['demo-entry-journeys.spec.js', 'demo-workspaces.spec.js'].map(file => ({ file, tests: [{ projectName: 'demo-desktop', status: 'expected', results: [{ status: 'passed' }] }] })) }] });

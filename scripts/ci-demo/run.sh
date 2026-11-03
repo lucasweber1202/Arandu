@@ -103,7 +103,7 @@ case "$phase" in
     local_env; fresh_app
     # Two existing desktop suites consume two workspaces each. Keep the real
     # seed, quotas and admission RPC; never substitute metadata-only fixtures.
-    timeout 2100 node "$root/scripts/demo/workspaces.mjs" provision --count=4 --concurrency=2
+    timeout 2100 node "$root/scripts/demo/workspaces.mjs" provision --count=4 --concurrency=4
     node "$here/verify-pool.mjs"
     ;;
   e2e)
