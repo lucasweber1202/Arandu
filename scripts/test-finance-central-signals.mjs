@@ -76,7 +76,7 @@ assert.deepEqual(sourceCounts(all).map((c) => c.key), ['contract', 'relationship
 const dash = readFileSync('finance/src/views/dashboard.js', 'utf8');
 assert.match(dash, /crossModuleSignals/);
 assert.match(dash, /approvalsMissing \|\| signalsMissing/);
-assert.match(dash, /ctx\.mode === 'demo'\) return result/, 'sandbox legado não ganha capacidade');
+assert.match(dash, /ctx\.mode === 'demo' \|\| !\(await loadSignals\(\)\)\) return result/, 'sandbox legado não ganha capacidade');
 
 // Recorte de instituição/contrato: equipe inteira, filtrado pelo objeto.
 const scoped = relationshipSignals({ activities, processes, providers, contracts, viewerId: 'me', editor: false, today, horizon: 30, everyone: true, providerId: P1, ownerName: () => 'Rafael' });

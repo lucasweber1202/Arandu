@@ -491,7 +491,8 @@ export function openContract(ctx, contract, { initialDetail = null } = {}) {
       import('./crm-workspace.js').then((m) => { if (crmSlot.parentNode) crmSlot.replaceWith(m.crmLinkedPanel(ctx, { relatedId: current.id, providerId: current.provider_id, providerName: current.provider_name, noun: 'este contrato' })); });
     }
     // Próximas ações e conciliação de tarifas do contrato (mesmas fontes da Central).
-    if (ctx.mode !== 'demo') {
+    // O build de demonstração não tem API e não empacota o módulo.
+    if (!__ARANDU_DEMO__ && ctx.mode !== 'demo') {
       const nextSlot = el('div');
       sections.splice(Math.min(1, sections.length), 0, nextSlot);
       import('./context-signals.js').then((m) => { if (nextSlot.parentNode) nextSlot.replaceWith(m.contractContextSection(ctx, current)); }).catch(() => nextSlot.remove());
