@@ -328,7 +328,7 @@ export async function dashboard(ctx) {
     ]), el('span', { class: `mini-side${days !== null && days < 0 ? ' danger' : ''}`, text: days === null ? '' : relativeDays(task.due_on) })]);
     taskList.append(row);
   }
-  const tasksCard = card({ title: listed.size ? 'Outras tarefas' : 'Tarefas', actions: [linkButton('Todas', ctx.href('/finance/tasks.html'), { variant: 'ghost', size: 'sm', iconName: 'arrowRight' })],
+  const tasksCard = card({ title: listed.size ? 'Outras tarefas' : 'Tarefas', actions: [linkButton('Radar de prazos', ctx.href('/finance/tasks.html#deadline-radar'), { variant: 'ghost', size: 'sm', iconName: 'calendar' }), linkButton('Todas', ctx.href('/finance/tasks.html'), { variant: 'ghost', size: 'sm', iconName: 'arrowRight' })],
     body: tasks.length ? taskList : emptyState({ title: listed.size ? 'Nenhuma outra tarefa aberta' : 'Nenhuma tarefa aberta', text: listed.size ? 'As tarefas com prazo próximo estão em "Precisa de você".' : undefined, compact: true, iconName: 'checkCircle' }) });
 
   // Aguardando terceiros: convites sem resposta. Espera, não tarefa de quem lê.
