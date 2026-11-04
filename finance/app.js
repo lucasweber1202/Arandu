@@ -14,7 +14,6 @@
 import { el, icon, ROLE_LABELS, needsRenewalAttention } from './src/core.js';
 import { emptyState, linkButton, errorState, loading, toast, SESSION_EXPIRED_WRITE } from './src/ui.js';
 import { renderSidebar, renderTopbar, renderMobileNav, renderDemoBanner, installCommandCenter, installNotificationCenter } from './src/shell.js';
-import { COMPANY_VIEWS } from './src/views/company.js';
 import { locate } from '../lib/finance/navigation.mjs';
 import { requestedAction } from '../lib/finance/intents.mjs';
 import { canRole } from '../lib/finance/permissions.mjs';
@@ -44,7 +43,15 @@ const VIEWS = {
   rfqs: lazy(() => import('./src/views/rfqs.js'), 'rfqList'),
   newRfq: lazy(() => import('./src/views/rfqs.js'), 'newRfq'),
   rfq: lazy(() => import('./src/views/rfq.js'), 'rfqDetail'),
-  ...Object.fromEntries(Object.entries(COMPANY_VIEWS).map(([route, [load, name]]) => [route, lazy(load, name)])),
+  // Telas da empresa: um módulo por capability (antes, um único company.js de
+  // ~52 KB servia as sete rotas).
+  approvals: lazy(() => import('./src/views/company/approvals.js'), 'approvalsInbox'),
+  proposals: lazy(() => import('./src/views/company/proposals.js'), 'proposalsList'),
+  contracts: lazy(() => import('./src/views/company/contracts.js'), 'contracts'),
+  providers: lazy(() => import('./src/views/company/providers.js'), 'providers'),
+  tasks: lazy(() => import('./src/views/company/tasks.js'), 'tasks'),
+  notifications: lazy(() => import('./src/views/company/notifications.js'), 'notifications'),
+  settings: lazy(() => import('./src/views/company/settings.js'), 'settings'),
   passport: lazy(() => import('./src/views/passport.js'), 'passport'),
   value: lazy(() => import('./src/views/value.js'), 'value'),
   fees: lazy(() => import('./src/views/fees.js'), 'fees'),

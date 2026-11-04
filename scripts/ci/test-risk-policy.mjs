@@ -94,6 +94,10 @@ assert.ok(has(sel('finance/src/views/fees.js'), 'fees', 'ingestion', 'contracts'
 assert.deepEqual(sel('finance/src/views/shared.js'), all, 'compartilhado de UI amplia para todas');
 assert.deepEqual(sel('finance/src/core.js'), all, 'core amplia para todas');
 assert.deepEqual(sel('lib/finance/format.mjs').length > sel('finance/src/views/fees.js').length, true, 'format compartilhado amplia');
+// Módulos extraídos de company.js/shared.js (v7.0) seguem os importadores reais.
+assert.ok(has(sel('finance/src/views/company/tasks.js'), 'contracts', 'procurement') && sel('finance/src/views/company/tasks.js').length < all.length, 'tarefas');
+assert.ok(has(sel('finance/src/views/shared/approvals.js'), 'policy', 'procurement'), 'aprovações compartilhadas alcançam caixa e RFQ');
+assert.ok(sel('finance/src/views/shared/people.js').length <= all.length);
 assert.deepEqual(sel('tests/e2e/finance-crm.spec.js'), ['tests/e2e/finance-crm.spec.js']);
 assert.deepEqual(sel('tests/e2e/layout-evidence.js'), all, 'helper E2E amplia');
 assert.deepEqual(suitesOf(plan([{ filename: 'lib/finance/format.mjs', status: 'removed' }])), all, 'remoção amplia');

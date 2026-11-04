@@ -61,10 +61,19 @@ export const VIEW_SPECS = Object.freeze({
   'product-catalog.js': ['product-terms'],
   'product-terms-panel.js': ['product-terms'],
   'graph-context.js': [...NEGOTIATION, ...CRM],
-  // Hub de rotas da empresa (approvals, proposals, contracts, providers, tasks,
-  // notifications, settings): suítes que visitam essas páginas.
-  'company.js': ['procurement', 'contracts', 'central', 'crm', 'relationship-center', 'copilot', 'entities',
-    'opportunities', 'portfolio', 'product-terms', 'governance', 'ingestion', 'integrations', 'policy', 'sso'],
+  // Telas da empresa (um módulo por rota): suítes que visitam cada página.
+  'company/approvals.js': ['policy', 'procurement'],
+  'company/proposals.js': ['procurement'],
+  'company/contracts.js': ['contracts', 'central', 'copilot', 'crm', 'entities', 'opportunities', 'portfolio', 'procurement', 'product-terms', 'relationship-center'],
+  'company/providers.js': ['central', 'copilot', 'crm', 'portfolio', 'procurement', 'relationship-center'],
+  'company/tasks.js': ['contracts', 'procurement'],
+  'company/notifications.js': ['procurement'],
+  'company/settings.js': ['entities', 'governance', 'ingestion', 'integrations', 'policy', 'procurement', 'sso'],
+  // Blocos compartilhados sem página própria: o impacto é o dos importadores
+  // reais (o percurso continua por eles); lista vazia não reduz a seleção.
+  'company/capabilities.js': [],
+  'shared/people.js': [], 'shared/terms.js': [], 'shared/comparison.js': [], 'shared/approvals.js': [],
+  'shared/collaboration.js': [], 'shared/tasks.js': [], 'shared/documents.js': [],
 });
 
 const IMPORT = /(?:\bimport\s*\(\s*|\bfrom\s+|^\s*import\s+)['"]([^'"]+)['"]/gm;
@@ -131,7 +140,7 @@ export function suitesForPath(file, graph) {
   while (queue.length) {
     const current = queue.shift();
     if (current.startsWith('finance/src/')) {
-      const view = current.startsWith('finance/src/views/') ? path.posix.basename(current) : null;
+      const view = current.startsWith('finance/src/views/') ? current.slice('finance/src/views/'.length) : null;
       if (!view || !VIEW_SPECS[view]) return null; // core/ui/shell/shared ou view não mapeada
       for (const name of VIEW_SPECS[view]) suites.add(spec(name));
     }

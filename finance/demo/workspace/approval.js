@@ -13,7 +13,10 @@
 import { PRODUCTS } from '../../../lib/finance/products.mjs';
 import { el, icon, money, fieldValue, formatDate, timeAgo, productLabel, demandHeadline, PROVIDER_KINDS } from '../../src/core.js';
 import { drawer, pill, linkButton } from '../../src/ui.js';
-import { comparisonMatrix, revisionTimeline, approvalSteps, approvalActions, currentStep, memberName, approvalSummaryLine } from '../../src/views/shared.js';
+import { comparisonMatrix } from '../../src/views/shared/comparison.js';
+import { revisionTimeline } from '../../src/views/shared/collaboration.js';
+import { approvalSteps, approvalActions, currentStep, approvalSummaryLine } from '../../src/views/shared/approvals.js';
+import { memberName } from '../../src/views/shared/people.js';
 import { rfqStages, timeline } from './timeline.js';
 
 const TERMS = {

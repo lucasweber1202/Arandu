@@ -52,7 +52,7 @@ assert.match(empty.cards[0].note, /Cobertura: 0\/0/);
 
 // Painel carrega a seção sob demanda e só fora da demo.
 const dash = readFileSync('finance/src/views/dashboard.js', 'utf8');
-assert.match(dash, /ctx\.mode === 'demo' \? null : await import\('\.\/executive\.js'\)/);
+assert.match(dash, /\(__ARANDU_DEMO__ && ctx\.mode === 'demo'\) \? null : await import\('\.\/executive\.js'\)/);
 assert.doesNotMatch(dash, /^import .*executive/m);
 
 // API: só JWT de quem chama, três resumos existentes, sem RPC de escrita; período validado.
