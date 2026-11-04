@@ -652,3 +652,54 @@ test('consultas: respostas determinísticas com fonte e links; falha não invent
   await d.getByRole('button', { name: 'Quais sinais do Radar estão em revisão?' }).click();
   await expect(d.getByRole('alert')).toContainText('Nenhuma resposta foi inventada');
 });
+
+// Linha do tempo do relacionamento: só eventos devolvidos pelo servidor, com
+// origem, agrupados por mês, filtráveis e com link para a tela canônica. API SIMULADA.
+test('histórico da instituição mostra origem, filtra por tipo e leva ao registro de origem', async ({ page }) => {
+  await setup(page);
+  const C1 = '00000000-0000-4000-8000-0000000000c1';
+  const RFQ = '00000000-0000-4000-8000-0000000000d1';
+  const timeline = [
+    { at: '2026-10-02T14:00:00Z', kind: 'invite', text: 'Convidado para uma solicitação', ref: RFQ },
+    { at: '2026-09-15T10:00:00Z', kind: 'issue', text: 'Issue aberta: Tarifa divergente', ref: '00000000-0000-4000-8000-0000000000e9' },
+    { at: '2026-09-20T10:00:00Z', kind: 'issue_closed', text: 'Issue resolvida: Tarifa divergente', ref: '00000000-0000-4000-8000-0000000000e9' },
+    { at: '2025-01-10', kind: 'contract', text: 'Contrato Capital de giro 2025 iniciado', ref: C1 },
+    { at: '2026-08-01T10:00:00Z', kind: 'unknown_kind', text: 'Não deve aparecer', ref: null }
+  ];
+  await page.route('**/api/finance/provider-relationship**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+    ok: true, provider: { id: P_ATLAS, name: 'Atlas Bank' }, neutrality: 'Fatos.', contracts: [], facilities: [], rfqs: [], invites: [], proposals: [], balances: [], contacts: [], issues: [], relationships: [], map: [], timeline, reviews: [], templates: [],
+    metrics: { invited: 1, responded: 0, response_rate: 0, median_response_days: null, active_contracts: 0, open_issues: 0, median_resolution_days: null, definitions: {} } }) }));
+  await page.goto(`/finance/providers.html?provider_id=${P_ATLAS}`);
+  const history = page.getByRole('dialog', { name: 'Atlas Bank' }).locator('#rel-historico');
+  await history.locator('summary').click();
+  const items = history.locator('.rel-timeline-item');
+  await expect(items).toHaveCount(4);
+  await expect(history).not.toContainText('Não deve aparecer');
+  await expect(history).toContainText('Origem: Convite para solicitação');
+  await expect(history).toContainText('4 eventos');
+  await expect(history.getByRole('link', { name: 'Convidado para uma solicitação' })).toHaveAttribute('href', `/finance/rfq.html?id=${RFQ}`);
+  await expect(history.getByRole('link', { name: 'Contrato Capital de giro 2025 iniciado' })).toHaveAttribute('href', `/finance/contracts.html?abrir=contrato#contract-${C1}`);
+  // Questão não tem tela própria: texto, sem link inventado.
+  await expect(history.getByRole('link', { name: /Tarifa divergente/ })).toHaveCount(0);
+  // Filtro agrupa questão aberta e encerrada e anuncia o recorte.
+  const filter = history.getByRole('group', { name: 'Filtrar histórico por origem' });
+  await expect(filter.getByRole('button', { name: 'Avaliações' })).toHaveCount(0);
+  await filter.getByRole('button', { name: 'Questões' }).click();
+  await expect(filter.getByRole('button', { name: 'Questões' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(items).toHaveCount(2);
+  await expect(history.getByRole('status')).toContainText('2 eventos neste filtro');
+  await filter.getByRole('button', { name: 'Tudo' }).click();
+  await expect(items).toHaveCount(4);
+});
+
+test('histórico vazio diz que não há registro, sem filtros', async ({ page }) => {
+  await setup(page);
+  await page.route('**/api/finance/provider-relationship**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+    ok: true, provider: { id: P_NOVO, name: 'Banco Novo' }, neutrality: 'Fatos.', contracts: [], facilities: [], rfqs: [], invites: [], proposals: [], balances: [], contacts: [], issues: [], relationships: [], map: [], timeline: [], reviews: [], templates: [],
+    metrics: { invited: 0, responded: 0, response_rate: null, median_response_days: null, active_contracts: 0, open_issues: 0, median_resolution_days: null, definitions: {} } }) }));
+  await page.goto(`/finance/providers.html?provider_id=${P_NOVO}`);
+  const history = page.getByRole('dialog', { name: 'Banco Novo' }).locator('#rel-historico');
+  await history.locator('summary').click();
+  await expect(history).toContainText('Nenhum evento registrado com esta instituição no Arandu.');
+  await expect(history.getByRole('group')).toHaveCount(0);
+});

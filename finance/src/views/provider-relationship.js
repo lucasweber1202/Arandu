@@ -5,13 +5,14 @@
 // atribui nota nem recomenda instituição; o scorecard é do cliente, com
 // critérios e pesos dele, e o resultado é rotulado assim.
 
-import { el, icon, formatDate, formatDateTime, percent, textSpan, textStrong, textItem } from '../core.js';
+import { el, icon, formatDate, percent, textSpan, textStrong } from '../core.js';
 import { button, tag, field, drawer, toast, loading, errorState, onSubmit, mutedText, toastError } from '../ui.js';
 import { CONTRACT_CATEGORIES } from '../../../lib/finance/contract-terms.mjs';
 import { relationshipContext, relationshipSummary } from './relationship-context.js';
 import { entityTree } from '../../../lib/finance/entities.mjs';
 import { loadEntities, entityName } from './entities.js';
 import { crmWorkspace } from './crm-workspace.js';
+import { relationshipTimeline } from './relationship-timeline.js';
 
 const ISSUE_SEVERITY = { low: ['Baixa', 'neutral'], medium: ['Média', 'warning'], high: ['Alta', 'danger'] };
 const ISSUE_STATUS = { open: 'Aberta', in_progress: 'Em andamento', resolved: 'Resolvida', cancelled: 'Cancelada' };
@@ -175,7 +176,7 @@ export async function openProviderRelationship(ctx, provider, {initialDetail = n
 
     // Memória: histórico sob demanda.
     sections.push(disclosure('rel-historico', `Histórico (${detail.timeline.length})`, [
-      detail.timeline.length ? el('ol', { class: 'plain-list timeline-list' }, detail.timeline.map((row) => textItem(`${formatDateTime(row.at)} — ${row.text}`))) : el('p', { class: 'muted', text: 'Sem histórico.' })]));
+      relationshipTimeline(ctx, detail.timeline, { limit: 60 })]));
     sections.push(disclosure('rel-indicadores', 'Indicadores, mapa e avaliações', advanced));
     return sections.filter(Boolean);
   }
