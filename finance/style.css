@@ -1457,3 +1457,4 @@ textarea.mono{width:100%;max-width:100%;min-width:0}
 .deadline-group{display:grid;gap:var(--s2);margin-top:var(--s3)}
 .deadline-group-title{display:flex;align-items:center;gap:var(--s2);font-size:var(--fs-sm);color:var(--text-secondary)}
 .deadline-item .milestone-main{min-width:0;overflow-wrap:anywhere}
+.rel-head-actions{display:flex;flex-wrap:wrap;gap:var(--s2);align-items:center}
