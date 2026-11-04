@@ -49,6 +49,7 @@ jobs:
     timeout-minutes: 75
     env:
       PILOT_LOCAL_INSTALL_FLOW: ${{ inputs.install_flow || 'cleanInstall' }}
+      ARANDU_SEED_PROFILE_DIR: ${{ github.workspace }}/reports/ci-demo/seed-profile
       CI_DEMO_REPORTS: ${{ github.workspace }}/reports/ci-demo
     steps:
       - name: Checkout

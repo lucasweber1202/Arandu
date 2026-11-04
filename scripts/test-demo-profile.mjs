@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import { seedProfiler } from './demo/profile.mjs';
+let now=0;const p=seedProfiler({clock:()=>now});
+const sensitive='private@example.invalid?token=DO_NOT_LOG';
+await p.phase('setupOrganizations',async()=>{
+ await p.request({channel:'app',method:'POST',path:'rfqs/'+sensitive,actor:'buyer.finance_manager'},async()=>{now+=10;return {response:{status:429},text:sensitive};});
+ await p.pause('backpressure',534000,async()=>{now+=534001;});
+ await p.request({channel:'app',method:'POST',path:'rfqs/'+sensitive,actor:'buyer.finance_manager'},async()=>{now+=7;return {response:{status:201}};});
+});
+await assert.rejects(p.phase('sanity',()=>p.request({channel:'app',method:'GET',path:'profile?secret='+sensitive},async()=>{now+=3;throw Error(sensitive);})),/DO_NOT_LOG/);
+const result=p.finish({success:false});
+assert.equal(result.wall_ms,534021);assert.equal(result.result,'FAIL');
+assert.equal(result.phases[1].result,'FAIL');assert.equal(result.requests[0].attempts,2);assert.equal(result.requests[0].duration_ms,17);
+assert.deepEqual(result.requests[0].statuses,{'201':1,'429':1});assert.equal(result.waits.backpressure.requested_ms,534000);assert.equal(result.waits.backpressure.elapsed_ms,534001);
+assert(!JSON.stringify(result).includes('DO_NOT_LOG'));assert(!JSON.stringify(result).includes('private@'));
+assert.equal(result.requests[0].resource,'rfqs/:id');
+console.log('Seed profiler: real elapsed/requested wait, inclusive phases, retries/failures and payload/identity redaction PASS.');
