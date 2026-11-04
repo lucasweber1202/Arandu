@@ -270,10 +270,11 @@ export function renderDemoBanner(ctx) {
 export function installCommandCenter(ctx, trigger) {
   if (!trigger || typeof HTMLDialogElement === 'undefined') return;
   let center = null;
-  // Uma importação por página; se falhar (rede), o próximo clique tenta de novo.
+  // Uma importação por página. Se o módulo falhar, o navegador guarda a falha:
+  // o aviso pede para recarregar em vez de prometer uma nova tentativa no lugar.
   const open = () => (center ||= import('./command-center.js').then((m) => m.createCommandCenter(ctx, trigger)))
     .then((c) => c.open())
-    .catch(() => { center = null; toast('A busca não carregou. Verifique a conexão e tente de novo.', 'error'); });
+    .catch(() => toast('A busca não carregou (conexão instável ou nova versão publicada). Recarregue a página para usar a busca.', 'error', { action: button('Recarregar', { size: 'sm', onClick: () => location.reload() }) }));
   trigger.addEventListener('click', open);
   document.addEventListener('keydown', (event) => {
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); open(); }

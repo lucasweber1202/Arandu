@@ -105,10 +105,23 @@ export function sessionLink(error) {
   return error?.status === 401 ? loginLink() : null;
 }
 
+// Falha de rede ou de carregamento de módulo (sem status HTTP) não expõe a
+// mensagem técnica do navegador nem a URL do arquivo.
+const MODULE_FAILURE = /dynamically imported module|module script failed|loading (?:dynamically imported )?module/i;
+const TRANSPORT_FAILURE = /failed to fetch|networkerror|load failed/i;
+/** Parte da página (módulo) que não carregou: o navegador guarda a falha, então só recarregar resolve. */
+export const moduleLoadFailed = (error) => !error?.status && MODULE_FAILURE.test(error?.message || '');
+export function readableError(error) {
+  const message = error?.message || (error ? String(error) : '');
+  if (moduleLoadFailed(error)) return 'Uma parte da página não carregou (conexão instável ou nova versão publicada). Recarregue a página para continuar.';
+  if (!error?.status && (error instanceof TypeError || TRANSPORT_FAILURE.test(message))) return 'A conexão falhou antes de concluir. Verifique a rede e tente novamente.';
+  return message;
+}
 export function errorState({ title = 'Não foi possível carregar', error = null, onRetry = null }) {
   // 429: o botão só volta depois da espera pedida pelo servidor (Retry-After
   // ou 60 s); clicar antes só gastaria a cota de novo.
-  const retry = onRetry ? button('Tentar novamente', { iconName: 'refresh', onClick: onRetry }) : null;
+  const retry = moduleLoadFailed(error) ? button('Recarregar a página', { iconName: 'refresh', onClick: () => location.reload() })
+    : onRetry ? button('Tentar novamente', { iconName: 'refresh', onClick: onRetry }) : null;
   const wait = error?.status === 429 && retry ? el('p', { class: 'muted small', role: 'status' }) : null;
   if (wait) {
     let left = Math.max(1, Number(error.retryAfter) || 60);
@@ -125,7 +138,7 @@ export function errorState({ title = 'Não foi possível carregar', error = null
   return el('div', { class: 'empty empty-error', role: 'alert' }, [
     el('span', { class: 'empty-icon' }, icon('alert', { size: 20 })),
     el('p', { class: 'empty-title', text: title }),
-    error ? el('p', { class: 'empty-text', text: error.message || String(error) }) : null,
+    error ? el('p', { class: 'empty-text', text: readableError(error) }) : null,
     retry || error?.status === 401 ? el('div', { class: 'empty-action' }, [error?.status === 401 ? loginLink('Entrar de novo') : null, retry]) : null,
     wait
   ]);
@@ -174,11 +187,15 @@ export function tabs(items, { label, initial = null, onChange = null } = {}) {
     if (!built.has(item.id)) {
       const panel = [...panels.children].find((node) => node.dataset.tab === item.id);
       built.set(item.id, true);
-      const content = item.render();
-      if (content instanceof Promise) {
-        panel.append(loading());
-        content.then((node) => panel.replaceChildren(node)).catch((error) => panel.replaceChildren(errorState({ error })));
-      } else panel.append(content);
+      // Conteúdo assíncrono (dados ou módulo da aba carregado sob demanda):
+      // falha vira erro com nova tentativa, nunca aba vazia ou presa em erro.
+      const build = () => {
+        const content = item.render();
+        if (!(content instanceof Promise)) { panel.replaceChildren(content); return; }
+        panel.replaceChildren(loading());
+        content.then((node) => panel.replaceChildren(node)).catch((error) => panel.replaceChildren(errorState({ error, onRetry: build })));
+      };
+      build();
     }
     if (push && location.hash !== `#${item.id}`) history.replaceState(null, '', `${location.pathname}${location.search}#${item.id}`);
     onChange?.(item.id);
