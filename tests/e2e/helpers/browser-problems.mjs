@@ -3,6 +3,8 @@ export function safeNetworkUrl(value) {
   try {
     const url=new URL(value);
     if(!['http:','https:'].includes(url.protocol))return '[unknown-url]';
+    // Fingerprinted files below /assets are public build outputs, not uploads.
+    if(/^\/assets\/[A-Za-z0-9._-]{1,160}\.(?:js|css|svg|png|webp|woff2?)$/.test(url.pathname))return `${url.origin}${url.pathname}${url.search?'?[redacted]':''}`;
     const pathname=url.pathname.split('/').map(part=>{
       let decoded;try{decoded=decodeURIComponent(part);}catch{return '[redacted]';}
       return /@|[A-Za-z0-9_-]{24,}|[a-f0-9]{8}-[a-f0-9-]{27,}/i.test(decoded)?'[redacted]':part;
