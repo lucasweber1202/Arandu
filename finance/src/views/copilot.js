@@ -13,7 +13,7 @@
 
 import { el, icon, formatDate, formatDateTime, uid } from '../core.js';
 import { button, drawer, field, toast, sessionLink } from '../ui.js';
-import { ACTIVITY_KINDS } from './crm-workspace.js';
+import { ACTIVITY_KINDS } from './crm/model.js';
 
 const MAX = 3000;
 let pageContext = null;

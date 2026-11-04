@@ -489,7 +489,7 @@ export function openContract(ctx, contract, { initialDetail = null } = {}) {
     if (!(__ARANDU_DEMO__ && ctx.mode === 'demo')) {
       const crmSlot = el('div');
       sections.push(crmSlot);
-      import('./crm-workspace.js').then((m) => { if (crmSlot.parentNode) crmSlot.replaceWith(m.crmLinkedPanel(ctx, { relatedId: current.id, providerId: current.provider_id, providerName: current.provider_name, noun: 'este contrato' })); });
+      import('./crm/linked-panel.js').then((m) => { if (crmSlot.parentNode) crmSlot.replaceWith(m.crmLinkedPanel(ctx, { relatedId: current.id, providerId: current.provider_id, providerName: current.provider_name, noun: 'este contrato' })); });
     }
     // Próximas ações e conciliação de tarifas do contrato (mesmas fontes da Central).
     // O build de demonstração não tem API e não empacota o módulo.

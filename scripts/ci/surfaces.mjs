@@ -74,6 +74,8 @@ export const VIEW_SPECS = Object.freeze({
   'company/capabilities.js': [],
   'shared/people.js': [], 'shared/terms.js': [], 'shared/comparison.js': [], 'shared/approvals.js': [],
   'shared/collaboration.js': [], 'shared/tasks.js': [], 'shared/documents.js': [],
+  'crm/model.js': [], 'crm/form.js': [], 'crm/organization-panel.js': CRM, 'crm/linked-panel.js': CRM,
+  'rfq/export.js': [], 'rfq/comparison-tab.js': NEGOTIATION, 'rfq/approvals-tab.js': [...NEGOTIATION, 'policy'], 'rfq/decision-tab.js': [...NEGOTIATION, 'contracts'],
 });
 
 const IMPORT = /(?:\bimport\s*\(\s*|\bfrom\s+|^\s*import\s+)['"]([^'"]+)['"]/gm;

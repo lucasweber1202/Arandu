@@ -151,7 +151,7 @@ export async function rfqDetail(ctx) {
     import('./copilot.js').then((m) => m.setCopilotContext({ type: 'rfq', id: rfq.id, label: rfq.title })).catch(() => {});
     const crmSlot = el('div');
     root.append(crmSlot);
-    import('./crm-workspace.js').then((m) => { if (crmSlot.parentNode) crmSlot.replaceWith(m.crmLinkedPanel(ctx, { relatedId: rfq.id, noun: 'esta negociação' })); }).catch(() => crmSlot.remove());
+    import('./crm/linked-panel.js').then((m) => { if (crmSlot.parentNode) crmSlot.replaceWith(m.crmLinkedPanel(ctx, { relatedId: rfq.id, noun: 'esta negociação' })); }).catch(() => crmSlot.remove());
   }
   if (governanceGap) root.append(governanceGapNotice(ctx, governanceGap));
 
