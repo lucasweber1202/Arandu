@@ -1,3 +1,4 @@
+import { PRODUCT_E2E } from '../e2e-suites.mjs';
 // Mapa de superfícies da CI proporcional (v6.2).
 //
 // Seleciona os E2E Chromium a partir das dependências REAIS do candidato:
@@ -110,7 +111,9 @@ export function buildImportGraph(root = '.') {
 }
 
 export function allFinanceSuites(root = '.') {
-  return readdirSync(path.join(root, 'tests/e2e')).filter((n) => /^finance-.*\.spec\.js$/.test(n)).map((n) => `tests/e2e/${n}`).sort();
+  const suites = PRODUCT_E2E.filter(file => file.startsWith('tests/e2e/finance-')).slice().sort();
+  for (const suite of suites) if (!existsSync(path.join(root, suite))) throw new Error(`Missing canonical suite: ${suite}`);
+  return suites;
 }
 
 /**

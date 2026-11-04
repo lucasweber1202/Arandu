@@ -1,3 +1,11 @@
+## Arquitetura backend v7 — lote em validação
+
+Base c72e6868. Extrações de tarefas e documentos preservam as rotas e a sessão
+centralizada; agrupamento linear de versões reduz CPU sem mudar consultas/RLS.
+Manifesto E2E único preserva 29 suítes e corrige omissão de SSO na listagem.
+Contratos e benchmark local em `BACKEND_ARCHITECTURE_V7.md`. M1 local; M2
+pendente do SHA candidato. Nenhuma mudança hospedada, M3–M6 não comprovados.
+
 ## Lote v4 — 03/11/2026, em desenvolvimento
 
 Base main37b5f4f8 com quatro gates success (41653172851). Novo lote:
