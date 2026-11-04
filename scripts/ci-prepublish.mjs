@@ -5,7 +5,7 @@ import { spawnSync,execFileSync } from 'node:child_process';
 import { performance } from 'node:perf_hooks';
 import { classifyChanges } from './ci/risk-policy.mjs';
 const stages=[],start=performance.now();
-const git=(...args)=>execFileSync('git',args,{encoding:'utf8',stdio:['ignore','pipe','pipe']}).trim();
+const git=(...args)=>{try{return execFileSync('git',args,{encoding:'utf8',stdio:['ignore','pipe','pipe']}).trim();}catch{throw Error('git_'+args[0].replaceAll('-','_')+'_failed');}};
 function stage(name,command,args,env=process.env) {
  const began=performance.now();
  const r=spawnSync(command,args,{env,stdio:'inherit'});
@@ -19,7 +19,7 @@ try {
  const remote=git('ls-remote','--heads','origin','refs/heads/main').split(/\s+/)[0];
  const base=git('rev-parse','origin/main');
  if(!/^[a-f0-9]{40}$/.test(remote)||remote!==base)throw Error('fetch_main_before_prepublish');
- git('merge-base','--is-ancestor',base,sha);
+ try {git('merge-base','--is-ancestor',base,sha);}catch{throw Error('main_not_ancestor');}
  if(git('status','--porcelain','--untracked-files=normal'))throw Error('commit_checkpoint_before_prepublish');
  const fields=execFileSync('git',['diff','--name-status','-z','--find-renames',`${base}...${sha}`],{encoding:'utf8'}).split('\0');
  const changes=[];
