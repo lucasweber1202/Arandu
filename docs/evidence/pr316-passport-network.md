@@ -16,8 +16,8 @@ Os logs locais não têm access log por recurso. Portanto URL, método, tipo do
 recurso e status da requisição original NÃO SÃO RECUPERÁVEIS. Não atribuir o
 erro a favicon, script, API, rate limit ou regressão sem essa evidência. O código
 é uma falha de transporte reportada pelo Chromium, não prova de HTTP 429.
-Não foi demonstrada uma causa de aplicação nem uma condição transitória
-específica; a classificação correta após os ensaios abaixo é NÃO REPRODUZIDO.
+Essa limitação histórica foi superada pela nova reprodução instrumentada abaixo;
+não é possível atribuir retroativamente a mesma URL ao artifact original.
 
 ## Comparação controlada e reprodução canônica
 
@@ -60,9 +60,9 @@ identidade local (URL de build externa removida), outra cancelada antes do seed
 para corrigir o seletor --grep ancorado. O seletor passou a ser validado por
 --list antes de preparar infraestrutura. Não contam como testes funcionais.
 
-## Correção demonstrada
+## Primeiro candidato: diagnóstico, sem resolução do transporte
 
-O problema corrigido é a perda de diagnóstico: console e requestfailed agora
+Nesse primeiro candidato foi corrigida a perda de diagnóstico: console e requestfailed agora
 identificam URL sanitizada, método, tipo, status quando existe e erro técnico.
 Consultas, credenciais da URL, tokens, corpos e headers não são persistidos.
 Assets públicos fingerprinted preservam nome para identificação exata. O flag
@@ -79,3 +79,83 @@ coletor também validado em 10 execuções de Chromium real contra transporte HT
 local (403 e conexão recusada). Esses 10 testes não são prova de Passport;
 a prova canônica é o run acima. O candidato final ainda exige os quatro checks
 oficiais verdes e integração completa no mesmo SHA.
+
+
+## Recorrência instrumentada — não resolvida pelo primeiro ensaio
+
+O candidato f4fab52778c6fb703ae00aba7b5ca40868135a7b voltou a falhar no run
+41769527859, job 126375752225, artifact 13295332022. O diagnóstico preservou
+a falha e identificou o recurso:
+
+```json
+{"kind":"requestfailed","url":"https://localhost:4443/api/finance/private-documents?[redacted]","method":"GET","resourceType":"fetch","status":null,"error":"net::ERR_TOO_MANY_RETRIES"}
+```
+
+Também houve console.error para essa mesma URL. É uma chamada de API de
+listagem de documentos da RFQ, não um arquivo estático. Nenhuma resposta HTTP
+foi recebida: não há evidência de HTTP 429, 403 ou erro do backend nesse evento.
+A origem no frontend é `rfq.js` → `documentsPanel` → `documents.js:refresh`;
+o GET usa `organization_id`, `entity_type` e `entity_id` (valores suprimidos).
+Os logs app/gateway não registraram erro correspondente. O ensaio com 14 PASS
+acima não prova estabilidade: usava metadados detalhados no console e o erro
+voltou no gate oficial. Não foi incluído filtro nem retry para ocultá-lo.
+
+A main avançou para 3dff06cf e o proprietário integrou o frontend da PR317 à
+PR316 no HEAD 8cb28e6b. Essa integração foi preservada antes do novo ensaio.
+A comparação dos 67 assets acima vale para os SHAs antigos explicitados, não
+para esse frontend novo.
+
+## Hipótese TLS e verificação isolada
+
+Chromium 156.0.8078.4, a mesma revisão 1248 do Playwright fixado no projeto,
+reinicia transações ao ignorar erros de certificado e limita reinícios em 32
+(`HttpNetworkTransaction::RestartIgnoringLastError` / `CheckMaxRestarts`).
+Uma fixture HTTPS local fez 1024 GETs com o comportamento anterior e observou
+964 erros internos de autoridade de certificado (-202), apesar de todos os
+GETs terem passado. A mesma fixture com confiança na chave pública exata do
+certificado local fez 1024 GETs e zero erro de autoridade. Essa fixture NÃO
+reproduziu ERR_TOO_MANY_RETRIES e não substitui a Demo canônica.
+
+A correção em avaliação deriva um SHA256-SPKI do certificado público já gerado
+pela stack local, somente para HTTPS em localhost/127.0.0.1/::1, com validação
+de hostname e validade. O navegador usa HTTPS estrito nesse caso; um servidor
+com outra chave continua recusado com ERR_CERT_AUTHORITY_INVALID (verificado
+no Chromium exato). Não há trust de certificado hospedado, instalação em trust
+store global, alteração de produção, retry ou relaxamento dos asserts.
+
+## Resultado do ensaio silencioso e decisão
+
+Run 41774188936, diagnóstico b51ed7972907f69fe586ed67d842d36216c4aca1,
+artifact 13297081570. Usa o backend/frontend do HEAD 8cb28e6b e compara somente
+o modo TLS do navegador; PASSPORT_NETWORK_DIAGNOSTICS desabilitado. Três lotes
+por modo, cada um com tesouraria, CFO, provedor e Passport, app reiniciado pelo
+comando oficial entre lotes. Não modifica limites de Auth nem políticas.
+
+- 24 PASS, zero FAIL/SKIP; 6 Passport (3 padrão + 3 com a chave local).
+- As 12 recusas 403 de Passport/history do provedor foram verificadas.
+- Padrão: 41 + 48 + 48 = 137 SSL_HANDSHAKE_ERROR / ERR_CERT_AUTHORITY_INVALID.
+- Chave local: 0 + 0 + 0 erros de autoridade.
+- Nenhum HTTP_TRANSACTION_RESTART_AFTER_ERROR em ambos os modos.
+- O NetLog também contém ERR_CACHE_RACE (-406) interno em notifications,
+  igualmente nos dois modos, sem falha terminal do teste. Isso não é HTTP 406.
+- ERR_TOO_MANY_RETRIES não reapareceu neste ensaio. Não foi produzido um trace
+  causal de uma transação que tenha esgotado os 32 reinícios. Atribuir a falha
+  histórica definitivamente ao certificado excederia a evidência disponível.
+- Raw NetLog excluído antes da publicação; artifact contém somente contagens e
+  metadados sanitizados, relatórios HTML e logs sem estado de sessão.
+
+A alteração adotada elimina o mecanismo de exceção de certificado observado na
+Demo canônica e mantém HTTPS estrito para a chave local. Trata uma deficiência
+demonstrada do transporte de teste; é a mitigação limitada da causa provável,
+não uma correção especulativa do backend nem prova absoluta de ausência de flake.
+A fixture concorrente complementar fez 1536 GETs por modo: zero falhas terminais
+em ambos, 1521 erros internos de certificado no padrão e zero com a chave local.
+Um certificado com outra chave foi recusado pelo Chromium com HTTPS estrito.
+
+Validação local após a integração do frontend: check:all, build, unidade TLS,
+coletor, seleção --list do Passport, sintaxe e git diff --check PASS. A configuração
+não adiciona retry, não remove console/requestfailed, não altera gates nem o
+workflow oficial da PR. O ensaio reduzido existe apenas na branch diagnóstica;
+a PR permanece sujeita à integração completa, Recovery e quatro checks no SHA
+candidato. O HEAD 8cb28e6b também passou a integração completa do run 41772806436
+antes desta alteração; isso reforça a natureza intermitente, sem provar causa.
