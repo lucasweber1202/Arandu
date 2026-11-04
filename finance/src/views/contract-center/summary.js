@@ -2,29 +2,26 @@
 // foi contratado, com quem, em qual entidade, quando, de onde veio o registro,
 // quais termos valem e quem responde. Lacunas são fatos que impedem uma decisão
 // específica (não uma nota de qualidade) e vêm com a ação autorizada, quando há.
-import { el, icon, formatDate, CONTRACT_STATUS } from '../../core.js';
+import { el, icon, formatDate, CONTRACT_STATUS, renewalStage } from '../../core.js';
 import { tag, button, mutedText } from '../../ui.js';
 import { CONTRACT_CATEGORIES } from '../../../../lib/finance/contract-terms.mjs';
 import { renewalButton } from './renewal.js';
 import { lazyDocuments } from '../shared/documents.js';
 
-const DAY = 86400000;
 const isoDay = (value) => (/^\d{4}-\d{2}-\d{2}/.test(value || '') ? value.slice(0, 10) : null);
-/** Data-limite para avisar a não renovação: fim da vigência menos o aviso prévio. */
-export function noticeDeadline(endsOn, noticeDays) {
-  const end = isoDay(endsOn);
-  if (!end || !Number.isInteger(noticeDays) || noticeDays < 0) return null;
-  return new Date(Date.parse(`${end}T00:00:00Z`) - noticeDays * DAY).toISOString().slice(0, 10);
-}
 
 /**
- * Fatos e lacunas do contrato (sem rede). `today` em AAAA-MM-DD.
+ * Fatos e lacunas do contrato (sem rede).
  * Cada lacuna diz o que ela impede; nenhuma é preenchida com valor presumido.
  */
-export function contractSummary(detail, { today, members = [] } = {}) {
+export function contractSummary(detail, { members = [] } = {}) {
   const c = detail.contract;
   const live = ['active', 'renewing'].includes(c.status);
-  const deadline = noticeDeadline(c.ends_on, c.renewal_notice_days);
+  // Mesma regra da carteira e da Central (renewalStage). Sem aviso prévio
+  // registrado, a data-limite é desconhecida: não presumimos zero dias.
+  const noticeKnown = Number.isInteger(c.renewal_notice_days) && c.renewal_notice_days >= 0;
+  const stage = renewalStage(c);
+  const deadline = noticeKnown && isoDay(c.ends_on) ? stage.deadline : null;
   const owner = c.owner_id ? members.find((m) => m.user_id === c.owner_id) : null;
   const gaps = [];
   if (!detail.effective) gaps.push({ key: 'terms', text: 'Termos não estruturados: sem eles não há comparação de tarifas cobradas nem diferença entre versões.', action: 'terms' });
@@ -38,7 +35,8 @@ export function contractSummary(detail, { today, members = [] } = {}) {
     origin: detail.source_rfq ? { kind: 'sourcing', rfq: detail.source_rfq } : { kind: c.origin === 'imported' ? 'imported' : 'manual' },
     period: [isoDay(c.starts_on), isoDay(c.ends_on)],
     deadline,
-    deadlinePassed: Boolean(deadline && today && deadline < today && live),
+    deadlinePassed: Boolean(deadline) && stage.stage === 'past_notice',
+    endPassed: live && stage.stage === 'expired',
     autoRenew: c.auto_renew === true ? 'Sim' : c.auto_renew === false ? 'Não' : 'Não informado',
     version: detail.effective?.version || null,
     owner: c.owner_id ? owner?.display_name || 'Pessoa sem acesso atual a esta organização' : null,
@@ -48,7 +46,7 @@ export function contractSummary(detail, { today, members = [] } = {}) {
 
 export function contractSummaryCard(ctx, detail, { onStructureTerms = null, onAmendment = null, entityLabel = null } = {}) {
   const c = detail.contract;
-  const s = contractSummary(detail, { today: new Date().toISOString().slice(0, 10), members: ctx.members || [] });
+  const s = contractSummary(detail, { members: ctx.members || [] });
   const row = (label, value) => el('div', { class: 'deflist-row' }, [el('dt', { text: label }), el('dd', {}, value)]);
   const origin = s.origin.kind === 'sourcing'
     ? el('a', { href: ctx.href(`/finance/rfq.html?id=${encodeURIComponent(s.origin.rfq.id)}#decisao`), text: `Negociação “${s.origin.rfq.title}”` })
@@ -78,6 +76,7 @@ export function contractSummaryCard(ctx, detail, { onStructureTerms = null, onAm
     : mutedText('Nenhuma lacuna nos campos que este resumo confere.');
   return el('section', { class: 'cc-section contract-summary', 'aria-labelledby': `summary-${c.id}` }, [
     el('div', { class: 'cc-head' }, [el('h3', { id: `summary-${c.id}`, text: 'Resumo do contrato' }), s.status ? tag(s.status.label, s.status.tone || 'neutral') : null]),
+    s.endPassed ? el('p', { class: 'callout callout-warning compact', role: 'note', text: `O fim da vigência (${formatDate(s.period[1])}) já passou e o contrato continua registrado como ${s.status?.label?.toLowerCase() || 'vigente'}. Confira a situação real antes de agir.` }) : null,
     s.deadlinePassed ? el('p', { class: 'callout callout-warning compact', role: 'note', text: `O prazo para avisar a não renovação passou em ${formatDate(s.deadline)}. Confira o contrato antes de agir.` }) : null,
     facts,
     el('h4', { class: 'small', text: 'O que falta para decidir' }), gaps,

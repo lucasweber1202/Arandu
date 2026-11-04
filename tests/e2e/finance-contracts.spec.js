@@ -1612,12 +1612,24 @@ test('resumo do contrato: termos não estruturados viram lacuna com ação; leit
 
 test('resumo do contrato: origem em negociação leva à decisão; prazo de aviso vencido é avisado sem agir sozinho', async ({ page }) => {
   const RFQ = '00000000-0000-4000-8000-0000000000c7';
-  const detail = { ...DETAIL, contract: { ...CONTRACT_ROW, origin: 'sourcing', ends_on: '2026-01-15', renewal_notice_days: 30 }, source_rfq: { id: RFQ, title: 'Capital de giro 2025' } };
+  const iso = (offset) => new Date(Date.now() + offset * 86400000).toISOString().slice(0, 10);
+  const longDate = (day) => new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${day}T00:00:00Z`)).replace('.', '');
+  // Fim daqui a 20 dias com 30 de aviso: o prazo de aviso passou há 10 dias.
+  const detail = { ...DETAIL, contract: { ...CONTRACT_ROW, origin: 'sourcing', ends_on: iso(20), renewal_notice_days: 30 }, source_rfq: { id: RFQ, title: 'Capital de giro 2025' } };
   await mockSession(page, { detail });
   await page.goto(`/finance/contracts.html?abrir=contrato#contract-${CONTRACT}`);
   const summary = page.getByRole('dialog').locator('.contract-summary');
   await expect(summary.getByRole('link', { name: 'Negociação “Capital de giro 2025”' })).toHaveAttribute('href', new RegExp(`rfq\\.html\\?id=${RFQ}#decisao`));
-  await expect(summary.getByRole('note')).toContainText('O prazo para avisar a não renovação passou em 16 de dez de 2025');
+  await expect(summary.getByRole('note')).toContainText(`O prazo para avisar a não renovação passou em ${longDate(iso(-10))}`);
+  await expect(summary.getByRole('note')).toHaveCount(1);
+
+  // Fim da vigência já passou e o cadastro ainda diz vigente: outro aviso, sem mudar o status sozinho.
+  await page.unroute('**/api/finance/**');
+  await mockSession(page, { detail: { ...detail, contract: { ...detail.contract, ends_on: iso(-5) } } });
+  await page.reload();
+  const expired = page.getByRole('dialog').locator('.contract-summary');
+  await expect(expired.getByRole('note')).toContainText('já passou e o contrato continua registrado como vigente');
+  await expect(expired.getByRole('note')).toHaveCount(1);
 });
 
 test('documentos do contrato: o módulo que não carrega vira aviso com recarga, sem painel vazio', async ({ page }) => {
