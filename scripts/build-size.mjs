@@ -5,8 +5,12 @@
 //     publicam. Mesmo código em todo build. Hard limit de JS inalterado: 800.000.
 //   * sandbox  — camada legada que só existe em build demonstrativo explícito
 //     (chunks 100% de `finance/demo/**`: motor no navegador, seed e Work OS).
-//     Congelada no tamanho medido em 06/10/2026 (327.597 bytes): não cresce, e
-//     sai inteira quando `arandu-demo` migrar para ARANDU_ENV=demo.
+//     Congelada no tamanho medido em 06/10/2026 (327.597 bytes) e corrigida em
+//     04/11/2026 para 382.400: até então o motor (`finance/demo/engine.js`,
+//     ~53,6 KB) contava como produto porque o Rollup embutia nele
+//     `lib/finance/workflow.mjs`; com o workflow em chunk próprio (vite.config.js)
+//     o motor é sandbox, como sempre foi descrito. Soma produto+sandbox inalterada
+//     (+63 B de chunk). Não cresce; sai inteira quando `arandu-demo` migrar.
 // Antes, as duas somavam contra um único teto de 800.000; com 331 bytes de
 // margem, capabilities de produto eram retiradas do build demonstrativo para
 // caber (antigo `productionOnly`). Ver docs/FINANCIAL_BUNDLE_HEADROOM.md.
@@ -17,7 +21,7 @@
 export const LIMITS = Object.freeze({
   total: 3000000,
   javascript: 800000,
-  sandboxJavascript: 330000,
+  sandboxJavascript: 382400,
   css: 650000,
   largestJavascript: 100000,
   largestRouteJavascript: 250000,

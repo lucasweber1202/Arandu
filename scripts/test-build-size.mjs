@@ -6,7 +6,7 @@ import { assessBuildSize, routeSizes, sandboxChunk, LIMITS } from './build-size.
 
 assert.equal(LIMITS.javascript, 800000, 'hard limit de JS do produto não muda');
 assert.equal(LIMITS.largestJavascript, 100000);
-assert.equal(LIMITS.sandboxJavascript, 330000, 'sandbox congelado no tamanho medido');
+assert.equal(LIMITS.sandboxJavascript, 382400, 'sandbox congelado no tamanho medido');
 
 const chunk = (file, bytes, sources, imports = []) => ({ file, bytes, imports, modules: sources.map((source) => ({ source, renderedLength: bytes })) });
 const profile = { chunks: [
@@ -35,7 +35,7 @@ const grow = (file, bytes) => ({ chunks: profile.chunks.map((item) => (item.file
 const filesOf = (p) => p.chunks.map((item) => ({ name: item.file, size: item.bytes }));
 let p = grow('assets/company.js', 801000);
 assert.match(assessBuildSize({ files: filesOf(p), profile: p }).problems.join(), /javascript: \d+ > 800000/, 'produto acima do hard limit falha mesmo sem sandbox');
-p = grow('assets/engine.js', 330001);
+p = grow('assets/engine.js', LIMITS.sandboxJavascript + 1);
 assert.match(assessBuildSize({ files: filesOf(p), profile: p }).problems.join(), /sandboxJavascript/, 'sandbox não cresce');
 p = { chunks: [...profile.chunks, chunk('assets/policy.js', 99000, ['finance/src/views/policy.js'], ['assets/company.js'])] };
 assert.match(assessBuildSize({ files: filesOf(p), profile: p }).problems.join(), /largestRouteJavascript/, 'rota que puxa capability alheia estoura o limite por rota');

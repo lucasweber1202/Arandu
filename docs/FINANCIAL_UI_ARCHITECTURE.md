@@ -88,7 +88,7 @@ Limites conhecidos: o envelope saudável (≤ 720.000) não foi atingido; o text
 de interface é ~46% do JS publicado. No build demonstrativo legado, o chunk do
 motor do sandbox (~55 KB) é contado como produto porque inclui
 `lib/finance/workflow.mjs`; contado honestamente, o sandbox passaria do teto
-congelado de 330.000. Isso só se resolve com a migração de `arandu-demo` para
+congelado (382.400 desde 04/11/2026; ver FINANCIAL_BUNDLE_HEADROOM.md). Isso só se resolve com a migração de `arandu-demo` para
 `ARANDU_ENV=demo` (cutover), que remove o sandbox do build. Ainda candidatos:
 detalhe do contrato (versões/aditivos/marcos), `policy.js`, `provider.js`.
 
