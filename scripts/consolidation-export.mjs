@@ -10,6 +10,7 @@ import { COUNTS_SQL, parseCounts, countsDigest } from '../lib/recovery-reconcili
 import { SCHEMA_SQL, SCHEMA_FINGERPRINT_VERSION, validSchemaDigest } from '../lib/recovery-schema.mjs';
 import { STORAGE_SNAPSHOT_SQL, parseInventory, storageSnapshotDigest } from '../lib/storage-recovery.mjs';
 import { recoveryFail, RecoveryError, syncPath } from '../lib/recovery-doctor.mjs';
+import { CONTENT_FINGERPRINT_VERSION, contentKey, encryptedContentKey, contentAccumulator, contentQueries, contentDigest } from '../lib/recovery-content.mjs';
 
 const SESSION_END = '__ARANDU_SNAPSHOT_STEP__';
 // Sessão read-only que exporta um snapshot e o mantém aberto: as contagens da
@@ -19,18 +20,25 @@ function snapshotSession(env) {
   let buffer = ''; let waiting = null; let failed = null;
   const settle = () => {
     if (!waiting) return;
-    const index = buffer.indexOf(`${SESSION_END}\n`);
-    if (index >= 0) { const lines = buffer.slice(0, index).split('\n').filter(Boolean); buffer = buffer.slice(index + SESSION_END.length + 1); const done = waiting; waiting = null; done.resolve(lines); }
-    else if (failed) { const done = waiting; waiting = null; done.reject(failed); }
+    let index;
+    while(waiting && (index=buffer.indexOf('\n'))>=0) {
+      const line=buffer.slice(0,index);buffer=buffer.slice(index+1);
+      if(line===SESSION_END) {const done=waiting;waiting=null;done.resolve(done.lines);break;}
+      if(line) {
+        try {if(waiting.consume)waiting.consume(line);else waiting.lines.push(line);}
+        catch {failed=new Error('Private content stream failed.');child.kill('SIGKILL');break;}
+      }
+    }
+    if(failed&&waiting){const done=waiting;waiting=null;done.reject(failed);}
   };
   child.stdout.setEncoding('utf8');
   child.stdout.on('data', (chunk) => { buffer += chunk; settle(); });
   const exited = new Promise((resolve) => child.once('close', (code) => { failed = new Error('Sessão de snapshot encerrada.'); settle(); resolve(code); }));
   child.once('error', () => { failed = new Error('Executável indisponível.'); settle(); });
   child.stdin.on('error', () => {});
-  const step = (sql) => new Promise((resolve, reject) => {
+  const step = (sql, consume = null) => new Promise((resolve, reject) => {
     if (failed) return reject(failed);
-    waiting = { resolve, reject };
+    waiting = { resolve, reject, consume, lines: [] };
     child.stdin.write(`${sql}\n\\echo ${SESSION_END}\n`);
   });
   return {
@@ -41,6 +49,7 @@ function snapshotSession(env) {
       return { snapshot, schema, counts: parseCounts(counts), inventory: parseInventory(JSON.stringify({ ...JSON.parse(inventory), references: [] })) };
     },
     async close() { child.stdin.end('commit;\n'); if (await exited !== 0) throw new Error('Sessão de snapshot falhou.'); },
+    async content(counts,key) {const acc=contentAccumulator(counts,key);await step(contentQueries(counts),line=>acc.consume(line));return acc.finish();},
     abort() { child.kill('SIGKILL'); }
   };
 }
@@ -155,6 +164,16 @@ export async function exportRecovery({ env = process.env, root = process.cwd(), 
     manifest.snapshot_counts_sha256 = countsDigest(counts);
     manifest.schema_fingerprint_version = SCHEMA_FINGERPRINT_VERSION;
     manifest.snapshot_schema_sha256 = schema;
+    // Read rows only through this same snapshot session. Stream into keyed
+    // hashes in memory; never print rows or send the secret key to PostgreSQL.
+    const key=contentKey();
+    try {
+      manifest.content_key_age=encryptedContentKey(key,env.ARANDU_RECOVERY_RECIPIENT,env);
+      manifest.content_fingerprint_version=CONTENT_FINGERPRINT_VERSION;
+      manifest.snapshot_content=await session.content(counts,key);
+      manifest.snapshot_content_sha256=contentDigest(manifest.snapshot_content);
+    } catch {recoveryFail('RECOVERY_EXPORT_FAILED','Conteúdo do snapshot não pôde ser reconciliado; detalhes privados omitidos.');}
+    finally {key.fill(0);}
     const snapshotObjects = counts['storage.objects'];
     if (!Number.isSafeInteger(snapshotObjects) || snapshotObjects !== inventory.objects.length) recoveryFail('RECOVERY_CONNECTION_FAILED', 'Inventário Storage diverge das contagens do snapshot.');
     // O preflight é anterior ao snapshot; nunca determina completude do dump.
@@ -171,6 +190,7 @@ export async function exportRecovery({ env = process.env, root = process.cwd(), 
     session = null;
     await encrypted('pg_dumpall', ['--roles-only', '--no-role-passwords'], 'roles.sql.age');
     manifest.result = 'exported_unverified';
+    manifest.operational_state='BACKUP_CREATED';
     manifest.completed_at = new Date().toISOString();
     manifest.durability = 'fsync_files_and_directory';
     writeManifest();

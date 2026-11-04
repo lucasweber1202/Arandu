@@ -29,9 +29,15 @@ const assess = input => assessPilotRelease(input, { commit, now });
 e.backup.schema_fingerprint_version = 1;
 e.backup.snapshot_schema_sha256 = 'e'.repeat(64);
 Object.assign(e.restore, { schema_fingerprint_version: 1, schema_reconciliation: 'MATCH', source_schema_sha256: 'e'.repeat(64), target_schema_sha256: 'e'.repeat(64) });
+Object.assign(e.backup, {content_fingerprint_version:1,snapshot_content_sha256:'a'.repeat(64)});
+Object.assign(e.restore, {content_fingerprint_version:1,content_reconciliation:'MATCH',source_content_sha256:'a'.repeat(64),target_content_sha256:'a'.repeat(64)});
 assert.equal(assess(e).result, 'PILOT GO'); // synthetic evidence tests only
 assert.equal(assess({}).result, 'PILOT NO-GO');
 const denied = change => { const next = structuredClone(e); change(next); assert.equal(assess(next).result, 'PILOT NO-GO'); };
+for(const key of ['content_fingerprint_version','snapshot_content_sha256']) denied(e=>{delete e.backup[key];});
+for(const key of ['content_fingerprint_version','content_reconciliation','source_content_sha256','target_content_sha256']) denied(e=>{delete e.restore[key];});
+denied(e=>{e.restore.target_content_sha256='f'.repeat(64);});
+denied(e=>{e.restore.content_reconciliation='NOT_RUN';});
 denied(e => { delete e.backup.snapshot_schema_sha256; });
 denied(e => { e.restore.schema_reconciliation = 'MISMATCH'; });
 denied(e => { e.restore.target_schema_sha256 = 'f'.repeat(64); });

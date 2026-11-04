@@ -35,18 +35,35 @@ const root = path.join(dir, 'repo'); fs.mkdirSync(root);
 const output = path.join(dir, 'private'); fs.mkdirSync(output, { mode: 0o700 });
 const bin = path.join(dir, 'bin'); fs.mkdirSync(bin);
 const trace = path.join(dir, 'trace');
-const fake = `#!/usr/bin/env node
+const fake = String.raw`#!/usr/bin/env node
 const fs = require('node:fs');
 const tracePath = ${JSON.stringify(trace)};
 const ageFailure = ${JSON.stringify(path.join(dir, 'age-failure'))};
 const name = require('node:path').basename(process.argv[1]);
 const args = process.argv.slice(2);
-fs.appendFileSync(tracePath, JSON.stringify({name,args,hostaddr:process.env.PGHOSTADDR,options:process.env.PGOPTIONS})+'\\n');
+fs.appendFileSync(tracePath, JSON.stringify({name,args,hostaddr:process.env.PGHOSTADDR,options:process.env.PGOPTIONS})+'\n');
 if(args.includes('--version')) {console.log(name==='age'?'v1.2.1':name+' (PostgreSQL) '+(process.env.TEST_MAJOR||'17')+'.6');process.exit(0);}
-if(name==='psql'&&args.includes('-f')) {let input='';process.stdin.on('data',c=>{input+=c;if(input.includes('\\\\echo ')&&!input.includes('#answered')){input+='#answered';if(process.env.TEST_SNAPSHOT==='bad'){console.log('not-a-snapshot');}else{console.log('00000003-0000001B-1');console.log(JSON.stringify({'public.fin_rfqs':3,'auth.users':2,'storage.objects':Number(process.env.TEST_SNAPSHOT_OBJECTS||0)}));console.log(JSON.stringify({buckets:Number(process.env.TEST_SNAPSHOT_OBJECTS||0)?[{id:'private',public:false}]:[],objects:Array.from({length:Number(process.env.TEST_SNAPSHOT_OBJECTS||0)},(_,i)=>({bucket:'private',name:'synthetic-'+i,size:1,mimetype:null}))}));}console.log('a'.repeat(64));console.log('__ARANDU_SNAPSHOT_STEP__');}});process.stdin.on('end',()=>{fs.appendFileSync(tracePath,JSON.stringify({name:'psql-session',args:[],stdin:input})+'\\n');process.exit(input.includes('commit;')?0:1);});return;}
+if(name==='psql'&&args.includes('-f')) {
+ let input='',pending='';const end=String.fromCharCode(92)+'echo __ARANDU_SNAPSHOT_STEP__\n';
+ process.stdin.on('data',c=>{input+=c;pending+=c;let i;
+  while((i=pending.indexOf(end))>=0){const query=pending.slice(0,i);pending=pending.slice(i+end.length);
+   if(query.includes('pg_export_snapshot()')){
+    if(process.env.TEST_SNAPSHOT==='bad')console.log('not-a-snapshot');
+    else{console.log('00000003-0000001B-1');console.log(JSON.stringify({'public.fin_rfqs':3,'auth.users':2,'storage.objects':Number(process.env.TEST_SNAPSHOT_OBJECTS||0)}));console.log(JSON.stringify({buckets:Number(process.env.TEST_SNAPSHOT_OBJECTS||0)?[{id:'private',public:false}]:[],objects:Array.from({length:Number(process.env.TEST_SNAPSHOT_OBJECTS||0)},(_,i)=>({bucket:'private',name:'synthetic-'+i,size:1,mimetype:null}))}));}
+    console.log('a'.repeat(64));
+   }else if(query.includes('to_jsonb(r)::text')){
+    for(let n=0;n<2;n++)console.log('auth.users\t'+JSON.stringify({id:n}));
+    for(let n=0;n<3;n++)console.log('public.fin_rfqs\t'+JSON.stringify({id:n}));
+    for(let n=0;n<Number(process.env.TEST_SNAPSHOT_OBJECTS||0);n++)console.log('storage.objects\t'+JSON.stringify({id:n}));
+   }
+   console.log('__ARANDU_SNAPSHOT_STEP__');
+  }
+ });
+ process.stdin.on('end',()=>{fs.appendFileSync(tracePath,JSON.stringify({name:'psql-session',args:[],stdin:input})+'\n');process.exit(input.includes('commit;')?0:1);});return;
+}
 if(name==='psql') {console.log(JSON.stringify({server_major:17,storage_objects:Number(process.env.TEST_OBJECTS||0),auth_users:0,mfa_factors:0}));process.exit(0);}
 if(name===process.env.TEST_FAIL) {console.error('private-fixture');process.exit(1);}
-if(name==='age') {let bytes=0;process.stdin.on('data',c=>bytes+=c.length);process.stdin.on('end',()=>{if(bytes && fs.existsSync(ageFailure))process.exit(1);process.stdout.write('age-encryption.org/v1\\n'+'ciphertext-fixture'.repeat(20));});}
+if(name==='age') {let bytes=0;process.stdin.on('data',c=>bytes+=c.length);process.stdin.on('end',()=>{if(bytes && fs.existsSync(ageFailure))process.exit(1);process.stdout.write('age-encryption.org/v1\n'+'ciphertext-fixture'.repeat(20));});}
 else process.stdout.write('sensitive plaintext fixture');
 `;
 for (const name of ['psql','pg_dump','pg_dumpall','pg_restore','age']) fs.writeFileSync(path.join(bin,name),fake,{mode:0o700});

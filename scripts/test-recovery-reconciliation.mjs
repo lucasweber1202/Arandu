@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import './test-recovery-content.mjs';
 import { parseCounts, compareCounts, countsDigest, loopbackTarget, COUNTS_SQL } from '../lib/recovery-reconciliation.mjs';
 
 // Contagens: só schemas reconciliados, inteiros não negativos, ordem canônica.
