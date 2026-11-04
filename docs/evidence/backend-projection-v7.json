@@ -1,0 +1,17 @@
+{
+  "scope": "Synthetic in-process projection only; not API or hosted latency",
+  "documents": 100,
+  "versions": 500,
+  "samples": 500,
+  "before": {
+    "median_ms": 0.07473199999999736,
+    "p95_ms": 0.3088860000000011
+  },
+  "after": {
+    "median_ms": 0.014630999999994287,
+    "p95_ms": 0.03502000000000294
+  },
+  "before_version_checks": 50000,
+  "after_version_visits": 500,
+  "equivalent": true
+}
