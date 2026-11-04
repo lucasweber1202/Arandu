@@ -24,10 +24,13 @@ defaults:
   run:
     shell: bash
 
-# Uma integração por vez no repositório; a seguinte espera (não cancela a atual).
+# Cada execução usa Docker, portas e volumes do PRÓPRIO runner efêmero, sem
+# secret, sem Supabase hospedado e com artifact nomeado por run_id: execuções de
+# refs diferentes são isoladas e rodam em paralelo. Serializa-se só a mesma ref
+# (push novo numa PR cancela a anterior; main/manual nunca cancelam).
 concurrency:
-  group: arandu-demo-integration
-  cancel-in-progress: false
+  group: arandu-demo-integration-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   demo-integration:

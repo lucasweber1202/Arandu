@@ -113,9 +113,11 @@ Por ordem de ganho, sem reduzir cobertura:
 Não recomendado: filtrar por caminho (`paths-ignore: docs/**`) — vários checks
 de governança leem os documentos em `docs/`.
 
-## Política proporcional v6.1
+## Política proporcional v6.2
 
-`ci.yml` mantém os quatro status e delega execução profunda a `ci-full.yml`
-e `demo-integration.yml` para C/D; A/B usam build/checks e Chromium dirigido.
-Main, manual e agenda semanal validam a matriz completa. Detalhes, reação a
-regressões e limites de medição em `RISK_BASED_CI.md`. Nenhum ganho medido ainda.
+`ci.yml` mantém os quatro status. A/B: job `fast` (build/checks/testes puros e
+Chromium dirigido). C: `fast` + `backend` (PostgreSQL real) em paralelo. D:
+`ci-full.yml` + `demo-integration.yml`. Os quatro contextos finais fazem
+checkout esparso de `scripts/ci` sem `npm ci`/cache. Main, manual e agenda
+semanal validam a matriz completa. Detalhes, medições locais e limites em
+`RISK_BASED_CI.md`; medição em runner hospedado só após o merge.

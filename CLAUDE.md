@@ -25,11 +25,14 @@
 - Não acrescente capability ao sandbox legado `/demo` (`finance/demo/`): a demo canônica é `ARANDU_ENV=demo` + `scripts/demo/seed.mjs` pela API real. Capability nova entra no seed da demo.
 - Antes de considerar uma mudança pronta, aplique a Definition of Done e os gates da seção correspondente da guideline mestra v3 (§25.4, §26), incluindo testes negativos, cross-browser/mobile quando aplicável, ausência de overflow horizontal, documentação e evidência verificável.
 
-## Política CI proporcional — decisão v6.1 do proprietário
+## Política CI proporcional — decisão v6.2 do proprietário
 
 Os quatro contextos obrigatórios são preservados. `classify` determina a
 profundidade e cada contexto verifica o resultado aplicável ao SHA candidato.
-A/B executam verificações estáticas/build e Chromium dirigido; C/D executam
-matriz integral e integração efêmera real. Main, agenda e execução manual
+A/B executam verificações estáticas/build, testes puros e Chromium dirigido
+pelo grafo de imports; C acrescenta PostgreSQL real (`test:database`); só D
+executa matriz integral e integração efêmera real. Módulo novo de lógica pura
+só entra em B se listado em `PURE_MODULES` e aprovado na verificação de pureza;
+desconhecido continua D. Main, agenda e execução manual
 mantêm validação completa. Ver `docs/RISK_BASED_CI.md`. Caminho rápido não
 substitui gates de release, validação hospedada ou aprovação de cutover.
