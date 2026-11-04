@@ -45,5 +45,10 @@ export default defineConfig({
     }
   }],
   define: { __ARANDU_DEMO__: JSON.stringify(demoMode) },
-  build: { modulePreload: false, rollupOptions: { input } }
+  build: { modulePreload: false, rollupOptions: { input, output: {
+    // Regras de workflow (lib) em chunk próprio: sem isso o Rollup as embute no
+    // motor do sandbox (único importador no navegador) e o motor inteiro passa a
+    // contar como produto no build demonstrativo (scripts/build-size.mjs).
+    manualChunks: (id) => (id.split(sep).join('/').endsWith('/lib/finance/workflow.mjs') ? 'workflow' : undefined)
+  } } }
 });
