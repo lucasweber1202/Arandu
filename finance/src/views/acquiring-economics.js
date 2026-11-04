@@ -3,7 +3,7 @@
 // acquiring-processing-cost-v2). O navegador só valida o que o usuário digitou
 // e apresenta o resultado: não calcula, não normaliza mix, não persiste.
 import { el, icon, moneyIn, formatDate, formatDateTime } from '../core.js';
-import { button, field, toast } from '../ui.js';
+import { button, field, toast, mutedText } from '../ui.js';
 
 const SLICES = [['share_debit', 'Débito'], ['share_credit_cash', 'Crédito à vista'], ['share_credit_installment', 'Crédito parcelado'], ['share_pix', 'PIX']];
 export const COMPONENT_LABELS = Object.freeze({ debit: 'Débito (MDR)', credit_cash: 'Crédito à vista (MDR)', credit_installment: 'Crédito parcelado (MDR)', pix: 'PIX', fixed_fees: 'Tarifas fixas mensais' });
@@ -60,7 +60,7 @@ export function readProfile(values) {
 export function acquiringEconomicsPanel(ctx, { contract, proposals = [], externalCount = 0 }) {
   const root = el('section', { class: 'cc-section economics-panel', id: 'acquiring-economics', 'aria-labelledby': 'acq-econ-title' });
   const head = [el('h3', { id: 'acq-econ-title', text: 'Comparar custo de processamento: contrato × proposta' }),
-    el('p', { class: 'muted small', text: 'Estimativa dos componentes declarados para um mês, com o seu volume e mix. Não é economia negociada nem realizada, não é custo financeiro total e não escolhe instituição.' })];
+    mutedText('Estimativa dos componentes declarados para um mês, com o seu volume e mix. Não é economia negociada nem realizada, não é custo financeiro total e não escolhe instituição.')];
   const choices = proposals.flatMap((p) => (p.versions || []).map((v) => ({ id: p.id, version: v.version, label: `${p.provider_name || 'Instituição'} · versão ${v.version}${v.submitted_at ? ` enviada ${formatDate(v.submitted_at)}` : ''}` })));
   if (!choices.length) {
     root.append(...head, el('p', { class: 'callout callout-info compact', role: 'note', text: `Ainda não há proposta enviada pela instituição no portal para comparar.${externalCount ? ' Propostas registradas pela empresa (canal externo) ficam na comparação da solicitação; esta análise ainda não as usa.' : ''}` }));
@@ -90,7 +90,7 @@ export function acquiringEconomicsPanel(ctx, { contract, proposals = [], externa
     if (read.errors) return;
     const choice = choices[Number(proposal.value)];
     busy = true; submit.disabled = true;
-    result.replaceChildren(el('p', { class: 'muted small', text: 'Calculando com os termos registrados…' }));
+    result.replaceChildren(mutedText('Calculando com os termos registrados…'));
     try {
       const out = await ctx.send('acquiring-economics', { organization_id: ctx.organization.id, contract_id: contract.id, proposal_id: choice.id, proposal_version: choice.version, profile: read.profile });
       result.replaceChildren(renderAnalysis(ctx, out.analysis, choice));
@@ -118,7 +118,7 @@ export function renderAnalysis(ctx, analysis, choice = null) {
       el('dl', { class: 'deflist deflist-3' }, [['Contrato vigente (estimado)', brl(t.contract_cost)], ['Proposta (estimado)', brl(t.proposal_cost)], ['Diferença estimada', brl(diff)]]
         .map(([label, value]) => el('div', { class: 'deflist-row' }, [el('dt', { text: label }), el('dd', { text: value })]))),
       el('p', { class: 'small', text: diff > 0 ? `No recorte modelado, a proposta custaria ${brl(diff)} a menos no mês que o contrato vigente.` : diff < 0 ? `No recorte modelado, a proposta custaria ${brl(-diff)} a mais no mês que o contrato vigente.` : 'No recorte modelado, contrato e proposta têm o mesmo custo estimado no mês.' }),
-      el('p', { class: 'muted small', text: 'Diferença = contrato − proposta. É estimativa de componentes declarados, não economia negociada ou realizada.' })]);
+      mutedText('Diferença = contrato − proposta. É estimativa de componentes declarados, não economia negociada ou realizada.')]);
   const rows = (analysis.components || []).map((c) => el('tr', { dataset: { component: c.key, comparable: String(Boolean(c.comparable)) } }, [
     el('th', { scope: 'row', 'data-label': 'Componente', text: COMPONENT_LABELS[c.key] || 'Componente' }),
     el('td', { 'data-label': 'Base', text: c.unit === 'per_month' ? 'Mensal' : `${brl(c.volume)} (${pct(c.share_pct)} do volume)` }),
@@ -141,7 +141,7 @@ export function renderAnalysis(ctx, analysis, choice = null) {
       el('ul', { class: 'plain-list small' }, (analysis.limitations || []).map((code) => el('li', { text: LIMITATION_LABELS[code] || 'Item não modelado.' }))),
       el('p', { class: 'small', text: `Período: ${formatDate(analysis.profile?.period_start)} a ${formatDate(analysis.profile?.period_end)} · volume ${brl(analysis.profile?.monthly_volume)} · fonte declarada: ${analysis.profile?.source_reference || 'não informada'}.` }),
       el('p', { class: 'small', text: `Contrato: termos versão ${src.contract?.version ?? 'não identificada'}${src.contract?.effective_from ? ` (vigente desde ${formatDate(src.contract.effective_from)})` : ''}${src.contract?.amendment_id ? ', via aditivo' : ''}. Proposta: versão ${src.proposal?.version ?? choice?.version ?? '—'}${src.proposal?.submitted_at ? `, enviada em ${formatDateTime(src.proposal.submitted_at)}` : ''} pela instituição no portal.` }),
-      el('p', { class: 'muted small', text: 'Fórmula por modalidade: volume × participação × taxa, arredondado a centavos. Tarifas fixas: soma das mensais declaradas no contrato; proposta = terminais × aluguel + gateway. Nada foi gravado.' }),
+      mutedText('Fórmula por modalidade: volume × participação × taxa, arredondado a centavos. Tarifas fixas: soma das mensais declaradas no contrato; proposta = terminais × aluguel + gateway. Nada foi gravado.'),
       el('nav', { class: 'row-actions' }, [src.contract?.href ? el('a', { href: ctx.href(src.contract.href), text: 'Abrir contrato' }) : null, src.proposal?.href ? el('a', { href: ctx.href(src.proposal.href), text: 'Abrir solicitação' }) : null].filter(Boolean))])
   ]);
 }

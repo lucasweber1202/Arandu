@@ -511,3 +511,8 @@ export function menu(label, items, { iconName = 'more', visibleLabel = '' } = {}
   wrap.append(trigger, list);
   return wrap;
 }
+
+/** Nota secundária (texto auxiliar em tom suave). Mesmo visual em toda tela. */
+export function mutedText(text, tag = 'p') { return el(tag, { class: 'muted small', text }); }
+/** Erro de ação em toast, sem expor mensagem técnica de rede ou de módulo. */
+export function toastError(error) { return toast(readableError(error), 'error'); }

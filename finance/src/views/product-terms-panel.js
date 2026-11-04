@@ -10,7 +10,7 @@
 //   componentes e incomparabilidade vêm do servidor. Sem ranking nem "economia".
 
 import { el, icon, formatDate } from '../core.js';
-import { button, drawer, field, toast, sessionLink, loading } from '../ui.js';
+import { button, drawer, field, toast, sessionLink, loading, mutedText } from '../ui.js';
 import { PRODUCT_TERM_SCHEMAS, PRODUCT_TERMS_VERSION, productTermMetadata } from '../../../lib/finance/product-terms.mjs';
 
 export const MODALITY_LABEL = Object.freeze({ bank_guarantee: 'Fiança bancária', fx_spot: 'Câmbio à vista (spot)', fx_forward: 'Câmbio a termo (forward)', ndf: 'NDF (termo sem entrega física)', swap: 'Swap' });
@@ -53,13 +53,13 @@ export function specializedTermsSection(ctx, { contract, effective, contracts = 
         pt?.modality === 'bank_guarantee' ? button('Simular custo da fiança', { size: 'sm', variant: 'primary', iconName: 'scale', onClick: () => openGuaranteeSimulator(ctx, { contract, contracts }) }) : null])])
   ]);
   if (!pt || !meta) {
-    section.append(el('p', { class: 'muted small', text: `Sem condições estruturadas de ${modalities.map((m) => MODALITY_LABEL[m]).join(', ')}. Registre a partir da cláusula do contrato para consultar prazos e, na fiança, simular encargos.` }));
+    section.append(mutedText(`Sem condições estruturadas de ${modalities.map((m) => MODALITY_LABEL[m]).join(', ')}. Registre a partir da cláusula do contrato para consultar prazos e, na fiança, simular encargos.`));
     return section;
   }
   section.append(
     el('p', { class: 'small' }, [el('strong', { text: MODALITY_LABEL[pt.modality] }), ` · versão ${effective.version} do contrato · fonte: ${pt.values.source_reference}`]),
     el('dl', { class: 'deflist deflist-2' }, meta.fields.filter((f) => f.key !== 'source_reference').map((f) => el('div', { class: 'deflist-row' }, [el('dt', { text: f.label }), el('dd', { text: formatTermValue(f, pt.values[f.key], pt.values) })]))),
-    el('p', { class: 'muted small', text: `Termos declarados${meta.methodology ? '' : '; esta modalidade ainda não tem cálculo econômico no Arandu'}. Sem curva, preço de mercado ou marcação a mercado. Não habilita solicitação (RFQ).` }));
+    mutedText(`Termos declarados${meta.methodology ? '' : '; esta modalidade ainda não tem cálculo econômico no Arandu'}. Sem curva, preço de mercado ou marcação a mercado. Não habilita solicitação (RFQ).`));
   return section;
 }
 
@@ -92,7 +92,7 @@ function termsForm(ctx, { contract, effective, modalities, onSaved }) {
   modality.addEventListener('change', draw);
   draw();
   const form = el('form', { class: 'stack', novalidate: true }, [
-    el('p', { class: 'muted small', text: 'Os campos seguem a modalidade. Gravar cria uma nova versão do contrato; as anteriores ficam imutáveis e os demais termos vigentes são preservados.' }),
+    mutedText('Os campos seguem a modalidade. Gravar cria uma nova versão do contrato; as anteriores ficam imutáveis e os demais termos vigentes são preservados.'),
     field({ label: 'Modalidade', control: modality, required: true, hint: current ? 'A modalidade registrada não muda; para outra, registre um novo contrato.' : null }), area,
     field({ label: 'Motivo da nova versão', control: reason, optionalLabel: true }), errors, save]);
   const dialog = drawer({ title: `${current ? 'Atualizar' : 'Registrar'} condições · ${contract.title || 'Contrato'}`, body: form, className: 'drawer-wide' });
@@ -175,7 +175,7 @@ export function analysisView(ctx, analysis) {
   const scenarios = analysis?.scenarios || [];
   const sources = scenarios[0]?.results.map((r) => r.source) || [];
   const table = el('table', { class: 'data-table compact guarantee-table' }, [
-    el('thead', {}, el('tr', {}, [el('th', { scope: 'col', text: 'Cenário' }), ...sources.map((s) => el('th', { scope: 'col' }, [s.object_type === 'contract' && s.id ? el('a', { href: ctx.href(`/finance/contracts.html?abrir=contrato#contract-${s.id}`), text: s.label || 'Contrato' }) : (s.label || 'Contrato'), el('span', { class: 'muted small', text: ` · v${s.version}` })]))])),
+    el('thead', {}, el('tr', {}, [el('th', { scope: 'col', text: 'Cenário' }), ...sources.map((s) => el('th', { scope: 'col' }, [s.object_type === 'contract' && s.id ? el('a', { href: ctx.href(`/finance/contracts.html?abrir=contrato#contract-${s.id}`), text: s.label || 'Contrato' }) : (s.label || 'Contrato'), mutedText(` · v${s.version}`, 'span')]))])),
     el('tbody', {}, scenarios.map((sc) => el('tr', {}, [
       el('th', { scope: 'row' }, [el('strong', { text: sc.scenario.label }), el('span', { class: 'muted small cell-sub', text: `${formatDate(sc.scenario.period_start)} → ${formatDate(sc.scenario.period_end)} · ${money(sc.scenario.guaranteed_amount, sc.scenario.currency)}` })]),
       ...sc.results.map((r) => el('td', { 'data-label': r.source.label || 'Contrato', dataset: { comparable: String(r.comparable) } }, r.comparable ? [

@@ -1,5 +1,5 @@
 import { el, icon, productLabel, formatDate, formatDateTime } from '../core.js';
-import { card, button, field, drawer, loading, errorState, emptyState, toast, formDrawer } from '../ui.js';
+import { card, button, field, drawer, loading, errorState, emptyState, toast, formDrawer, toastError } from '../ui.js';
 import { CONTRACT_CATEGORIES } from '../../../lib/finance/contract-terms.mjs';
 import { loadEntities, entityName } from './entities.js';
 import { graphContextCard } from './graph-context.js';
@@ -150,7 +150,7 @@ export async function ledgerPage(ctx, { resource, title, subtitle, filters, scop
       const done = () => { dialog.close(); return reload(); };
       const buttons = manage ? (d.actions || []).map((form) => button(form.label, { size: 'sm', onClick: () => open(form, done) })) : [];
       dialog = drawer({ title: humanizeText(ctx, d.title), body, footer: buttons.length ? el('div', { class: 'actions' }, buttons) : null });
-    } catch (e) { toast(e.message, 'error'); }
+    } catch (e) { toastError(e); }
   }
   const root = el('div', { class: 'stack portfolio' }, [origin?.node, card({ title: scope, body: [grid, button('Aplicar filtros', { onClick: reload })] }), result].filter(Boolean));
   await load();

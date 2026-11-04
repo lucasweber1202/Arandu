@@ -184,6 +184,9 @@ function createContext(transport) {
       }
       return transport.request(path, options);
     },
+    // Organização ativa já codificada para query string, lida na hora da chamada
+    // (troca de organização nunca reaproveita o valor anterior).
+    get orgId() { return encodeURIComponent(ctx.organization.id); },
     // Escrita JSON: mesmo caminho de ctx.api (offline, transporte, erros).
     send(path, body, method = 'POST') { return ctx.api(path, { method, body: JSON.stringify(body) }); },
     putFile(url, file) { return transport.putFile(url, file); },
@@ -197,7 +200,7 @@ function createContext(transport) {
       // approvalsError antes de dizer que não há pendência ou de liberar decisão.
       if (!ctx.approvalsPromise) {
         ctx.approvalsError = null;
-        ctx.approvalsPromise = ctx.api(`approvals?organization_id=${encodeURIComponent(ctx.organization.id)}`).then((result) => result.rows || [])
+        ctx.approvalsPromise = ctx.api(`approvals?organization_id=${ctx.orgId}`).then((result) => result.rows || [])
           .catch((error) => { ctx.approvalsError = error; return []; });
       }
       return ctx.approvalsPromise;
@@ -271,23 +274,23 @@ async function loadSession(ctx) {
   ctx.organization = ctx.organizations.find((organization) => organization.id === remembered) || ctx.organizations[0];
   if (demoPage) ctx.persona = ctx.transport.persona();
   if (audience === 'provider') {
-    const result = await ctx.api(`assignments?organization_id=${encodeURIComponent(ctx.organization.id)}`);
+    const result = await ctx.api(`assignments?organization_id=${ctx.orgId}`);
     ctx.data = { assignments: result.rows || [], pending_invites: result.pending_invites || [] };
     if (ctx.persona) {
       ctx.viewer = { id: ctx.persona.user, name: ctx.persona.name, title: ctx.persona.title, role: ctx.persona.role };
     } else {
       // Nome e cargo de quem está no portal (sem e-mail), como no espaço da empresa.
-      const members = await ctx.api(`members?organization_id=${encodeURIComponent(ctx.organization.id)}`).catch(() => ({ rows: [], viewer_id: null }));
+      const members = await ctx.api(`members?organization_id=${ctx.orgId}`).catch(() => ({ rows: [], viewer_id: null }));
       const me = (members.rows || []).find((member) => member.user_id === members.viewer_id);
       ctx.viewer = { id: members.viewer_id || null, role: me?.role || 'provider_user', name: me?.display_name || null, title: me?.title || null };
     }
     return {};
   }
   const [overview, members] = await Promise.all([
-    ctx.api(`overview?organization_id=${encodeURIComponent(ctx.organization.id)}`),
+    ctx.api(`overview?organization_id=${ctx.orgId}`),
     // Sem a lista de membros não se sabe o papel de quem entra: mostrar a tela
     // como se a pessoa não pudesse nada seria uma falsa "falta de permissão".
-    ctx.api(`members?organization_id=${encodeURIComponent(ctx.organization.id)}`)
+    ctx.api(`members?organization_id=${ctx.orgId}`)
   ]);
   ctx.data = overview;
   ctx.organization = { ...ctx.organization, ...(overview.organization || {}) };

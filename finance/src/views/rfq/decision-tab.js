@@ -4,7 +4,7 @@
 
 import { PRODUCTS } from '../../../../lib/finance/products.mjs';
 import { el, icon, fieldValue, formatDate, formatDateTime } from '../../core.js';
-import { card, button, linkButton, emptyState, errorState, loading, toast, confirmDialog, field, onSubmit } from '../../ui.js';
+import { card, button, linkButton, emptyState, errorState, loading, toast, confirmDialog, field, onSubmit, mutedText, toastError } from '../../ui.js';
 import { approvalSummaryLine } from '../shared/approvals.js';
 import { memberName } from '../shared/people.js';
 import { keyTerms } from '../shared/terms.js';
@@ -26,10 +26,10 @@ export function decisionTab(ctx, rfq, { decision, contract, policy, approvals, m
       el('div', { class: 'decision-summary' }, [
         el('span', { class: 'decision-icon' }, icon('flag', { size: 18 })),
         el('div', {}, [el('p', { class: 'decision-title', text: chosen ? `${chosen.provider_name} · proposta v${decision.proposal_version || chosen.version}` : 'Proposta escolhida' }),
-          el('p', { class: 'muted small', text: `Por ${memberName(ctx.members, decision.decided_by)} em ${formatDateTime(decision.decided_at)}` })])
+          mutedText(`Por ${memberName(ctx.members, decision.decided_by)} em ${formatDateTime(decision.decided_at)}`)])
       ]),
       decision.rationale ? el('blockquote', { class: 'rationale' }, [el('span', { class: 'rationale-label', text: 'Justificativa' }), el('p', { text: decision.rationale })]) : null,
-      el('p', { class: 'muted small', text: weights.length ? `Critérios definidos pela empresa: ${weights.map(([key, value]) => `${specs[key]?.label || key} (${value})`).join(' · ')}` : 'Decisão sem pesos registrados.' }),
+      mutedText(weights.length ? `Critérios definidos pela empresa: ${weights.map(([key, value]) => `${specs[key]?.label || key} (${value})`).join(' · ')}` : 'Decisão sem pesos registrados.'),
       selected ? el('p', {class:'muted small',text:`Condições preservadas no momento da decisão · proposta v${selected.version}.`}) : null,
       chosen ? keyTerms(rfq.product, chosen.terms, decision.external_proposal_id?{currency:chosen.currency??null}:{}) : null
     ] }));
@@ -65,7 +65,7 @@ export function decisionTab(ctx, rfq, { decision, contract, policy, approvals, m
       // Sem aprovação nem conflito, nada vem marcado quando há mais de uma
       // proposta: a decisão é um clique consciente, nunca a primeira da lista.
       el('input', { type: 'radio', name: 'proposal_id', value: proposal.id, checked: approved ? approved.proposal_id === proposal.id : conflicted ? proposal.id === conflicted.id : proposals.length === 1, disabled: locked, required: true }),
-      el('span', { class: 'radio-card-text' }, [el('strong', { text: proposal.provider_name }), el('span', { class: 'muted small', text: locked ? 'Não aprovada' : `v${proposal.version}${approved?.proposal_id === proposal.id ? ' · aprovada' : ''}` })])
+      el('span', { class: 'radio-card-text' }, [el('strong', { text: proposal.provider_name }), mutedText(locked ? 'Não aprovada' : `v${proposal.version}${approved?.proposal_id === proposal.id ? ' · aprovada' : ''}`, 'span')])
     ]));
   }
   // Conflito de versão (§36.2): o servidor recusou porque a proposta mudou
@@ -119,7 +119,7 @@ export function decisionTab(ctx, rfq, { decision, contract, policy, approvals, m
       toast(chosen?.origin==='buyer_recorded_external'?'Decisão interna registrada. O vínculo contratual é uma etapa separada.':'Decisão registrada. Agora registre o contrato.');
       ctx.reload();
     } catch (error) {
-      toast(error.message, 'error');
+      toastError(error);
       // Versão nova da proposta ou alteração simultânea: nada foi registrado; a
       // página recarrega para mostrar as condições atuais antes de decidir de novo.
       if (error.code === 'proposal_version_changed' || error.code === 'concurrent_update') {

@@ -2,7 +2,7 @@
 // Extraído de company.js (v7.0): uma capability por módulo e rota.
 
 import { el, icon, formatDate, relativeDays, daysUntil, plural, productLabel, CONTRACT_STATUS, todayIso, renewalStage } from '../../core.js';
-import { pill, tag, button, emptyState, toast, confirmDialog } from '../../ui.js';
+import { pill, tag, button, emptyState, toast, confirmDialog, mutedText, toastError } from '../../ui.js';
 import { memberName } from '../shared/people.js';
 import { lazyDocuments } from '../shared/documents.js';
 import { CONTRACT_CATEGORIES } from '../../../../lib/finance/contract-terms.mjs';
@@ -13,7 +13,7 @@ function lifecycleBar(contract) {
   const start = Date.parse(`${contract.starts_on}T00:00:00Z`);
   const end = Date.parse(`${contract.ends_on}T00:00:00Z`);
   const today = Date.parse(`${todayIso()}T00:00:00Z`);
-  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return el('p', { class: 'muted small', text: 'Datas de vigência incompletas.' });
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return mutedText('Datas de vigência incompletas.');
   const pos = (time) => `${Math.max(0, Math.min(100, ((time - start) / (end - start)) * 100)).toFixed(2)}%`;
   const notice = end - Number(contract.renewal_notice_days || 0) * 86400000;
   const opens = Date.parse(`${renewalStage(contract).opensAt}T00:00:00Z`);
@@ -82,7 +82,7 @@ export async function contracts(ctx) {
       ctx.api(`contract-detail?id=${encodeURIComponent(requestedId)}`).then(detail => {
         if (detail.contract?.id !== requestedId || detail.contract?.organization_id !== ctx.organization.id || !inContext(entities, detail.contract)) throw new Error('Contrato indisponível neste contexto.');
         mods.contractCenter.openContract(ctx, detail.contract, { initialDetail: detail });
-      }).catch(error => toast(error.message, 'error'));
+      }).catch(error => toastError(error));
     }
   }
   const manage = ctx.can('create_rfq');
@@ -93,7 +93,7 @@ export async function contracts(ctx) {
       const result = await ctx.send('renewals', { organization_id: ctx.organization.id });
       toast(result.tasks_created ? `${plural(result.tasks_created, 'tarefa de renovação criada', 'tarefas de renovação criadas')}.` : 'Marcos em dia. Nenhuma tarefa nova.');
       if (result.tasks_created) ctx.reload();
-    } catch (error) { toast(error.message, 'error'); } finally { target.disabled = false; }
+    } catch (error) { toastError(error); } finally { target.disabled = false; }
   } }) : null;
   const context = entityContextSelect(entities, { onChange: () => ctx.rerender() });
   const importButton = mods.contractCenter.importContractButton(ctx, entities);
@@ -122,7 +122,7 @@ export async function contracts(ctx) {
         const result = await ctx.send('contract-renewal-rfq', { organization_id: ctx.organization.id, contract_id: contract.id });
         toast('Abrindo a concorrência de renovação.');
         location.assign(ctx.href(`/finance/rfq.html?id=${encodeURIComponent(result.id)}`));
-      } catch (error) { toast(error.message, 'error'); target.disabled = false; }
+      } catch (error) { toastError(error); target.disabled = false; }
     } }) : null;
     // O contrato guarda a decisão (decision_id), não a solicitação: a origem é
     // a solicitação cuja decisão registrada é a deste contrato.

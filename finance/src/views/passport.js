@@ -7,7 +7,7 @@ import { graphContextCard } from './graph-context.js';
 // declarou ou anexou.
 
 import { el, icon, money, formatDate, formatDateTime, timeAgo } from '../core.js';
-import { card, tag, button, linkButton, emptyState, errorState, toast, drawer, field, progress, onSubmit } from '../ui.js';
+import { card, tag, button, linkButton, emptyState, errorState, toast, drawer, field, progress, onSubmit, mutedText, toastError } from '../ui.js';
 import { buildPassport, SOURCE_LABELS, WRITABLE_SOURCES, FRESHNESS, MIN_REVIEW_DAYS, MAX_REVIEW_DAYS, catalogField, fieldLabel } from '../../../lib/finance/passport.mjs';
 import { loadEntities } from './entities.js';
 import { lazyDocuments } from './shared/documents.js';
@@ -104,7 +104,7 @@ export async function passport(ctx) {
     const list = el('ul', { class: 'passport-fields', role: 'list' }, domain.fields.map((item) => fieldRow(ctx, item, { canEdit, documents })));
     const body = [list];
     if (domain.id === 'documentacao') {
-      body.push(el('p', { class: 'muted small', text: 'Os arquivos ficam no armazenamento privado da empresa e são baixados por link temporário. Um campo só conta como preenchido com arquivo disponível vinculado.' }));
+      body.push(mutedText('Os arquivos ficam no armazenamento privado da empresa e são baixados por link temporário. Um campo só conta como preenchido com arquivo disponível vinculado.'));
       body.push(lazyDocuments(ctx, 'profile', entityId || org, `Arquivos do perfil (${documents.length})`, { canUpload: ctx.can('upload_document') && canEdit }));
     }
     root.append(card({ id: `passport-${domain.id}`, title: domain.label, subtitle: domain.summary, body,
@@ -241,7 +241,7 @@ async function confirmField(ctx, item, trigger) {
     toast(`${item.label} confirmado como atual.`);
     ctx.reload();
   } catch (error) {
-    toast(error.message, 'error');
+    toastError(error);
     trigger.disabled = false;
   }
 }
@@ -251,7 +251,7 @@ async function showHistory(ctx, item) {
   const body = el('div', { class: 'stack' }, el('p', { class: 'muted', text: 'Carregando histórico…' }));
   drawer({ title: `Histórico — ${item.label}`, subtitle: 'Registro append-only: nenhuma linha é editada ou apagada.', body });
   try {
-    const { rows } = await ctx.api(`profile/history?organization_id=${encodeURIComponent(ctx.organization.id)}&field_key=${encodeURIComponent(item.key)}${item.legal_entity_id ? `&legal_entity_id=${encodeURIComponent(item.legal_entity_id)}` : ''}`);
+    const { rows } = await ctx.api(`profile/history?organization_id=${ctx.orgId}&field_key=${encodeURIComponent(item.key)}${item.legal_entity_id ? `&legal_entity_id=${encodeURIComponent(item.legal_entity_id)}` : ''}`);
     body.replaceChildren(rows?.length ? el('ol', { class: 'passport-history' }, rows.map((row) => el('li', { class: 'passport-history-item' }, [
       el('p', {}, [el('strong', { text: CHANGE_LABELS[row.change_type] || row.change_type }), el('span', { class: 'muted', text: ` · ${formatDateTime(row.changed_at)}${row.changed_by_name ? ` · ${row.changed_by_name}` : ''}` })]),
       row.change_type === 'updated' ? el('p', { class: 'small', text: `${passportValue({ ...item, value: row.previous_value, typed: undefined }) ?? '—'} → ${passportValue({ ...item, value: row.new_value, typed: undefined }) ?? '—'}` })
@@ -280,7 +280,7 @@ function customForm(ctx) {
       await ctx.send('profile', { organization_id: ctx.organization.id, legal_entity_id: ctx.passportEntityId || null, field_key: key, field_value: value.value, source: source.value });
       toast('Campo salvo.');
       ctx.reload();
-    } catch (error) { toast(error.message, 'error'); }
+    } catch (error) { toastError(error); }
   });
   return form;
 }

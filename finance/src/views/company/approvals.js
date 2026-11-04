@@ -3,7 +3,7 @@
 
 import { PRODUCTS } from '../../../../lib/finance/products.mjs';
 import { el, icon, formatDate, productLabel, demandHeadline, timeAgo } from '../../core.js';
-import { pill, button, linkButton, emptyState, errorState, tabs, definitionList, drawer } from '../../ui.js';
+import { pill, button, linkButton, emptyState, errorState, tabs, definitionList, drawer, mutedText } from '../../ui.js';
 import { memberName } from '../shared/people.js';
 import { currentStep, approvalSummaryLine, approvalActions, approvalSteps, isViewerTurn } from '../shared/approvals.js';
 import { comparisonMatrix } from '../shared/comparison.js';
@@ -75,10 +75,10 @@ function approvalContext(ctx, request, rfq) {
   const proposal = (rfq.proposals || []).find((item) => item.id === request.proposal_id);
   const step = currentStep(request);
   const body = [
-    el('section', { class: 'drawer-section' }, [el('h3', { text: 'Demanda' }), el('p', { class: 'muted small', text: `${productLabel(rfq.product)} · revisão ${rfq.revision || 1} · prazo de resposta ${formatDate(rfq.response_deadline)}` }),
+    el('section', { class: 'drawer-section' }, [el('h3', { text: 'Demanda' }), mutedText(`${productLabel(rfq.product)} · revisão ${rfq.revision || 1} · prazo de resposta ${formatDate(rfq.response_deadline)}`),
       rfq.description ? el('p', { class: 'prose', text: rfq.description }) : null, definitionList(PRODUCTS[rfq.product].demandFields, rfq.demand)]),
     el('section', { class: 'drawer-section' }, [el('h3', { text: 'Por que esta proposta' }), el('blockquote', { class: 'rationale' }, [el('span', { class: 'rationale-label', text: memberName(ctx.members, request.requested_by) }), el('p', { text: request.rationale || 'Sem justificativa.' })])]),
-    el('section', { class: 'drawer-section' }, [el('h3', { text: 'Comparação com as demais propostas' }), el('p', { class: 'muted small', text: `A proposta de ${proposal?.provider_name || '—'} está na primeira coluna.` }),
+    el('section', { class: 'drawer-section' }, [el('h3', { text: 'Comparação com as demais propostas' }), mutedText(`A proposta de ${proposal?.provider_name || '—'} está na primeira coluna.`),
       comparisonMatrix(rfq, [proposal, ...(rfq.proposals || []).filter((item) => item.id !== request.proposal_id)].filter(Boolean))]),
     el('section', { class: 'drawer-section' }, [el('h3', { text: 'Mudanças na solicitação' }), revisionTimeline(ctx, rfq)]),
     el('section', { class: 'drawer-section' }, [el('h3', { text: request.policy_snapshot ? 'Fluxo pela policy' : 'Etapas de aprovação' }),

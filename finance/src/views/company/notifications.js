@@ -2,7 +2,7 @@
 // Extraído de company.js (v7.0): uma capability por módulo e rota.
 
 import { el, daysUntil } from '../../core.js';
-import { button, linkButton, emptyState, errorState, loading, toast } from '../../ui.js';
+import { button, linkButton, emptyState, errorState, loading, toast, toastError } from '../../ui.js';
 import { notificationItem } from '../../shell.js';
 
 export async function notifications(ctx) {
@@ -28,13 +28,13 @@ export async function notifications(ctx) {
     markAll.disabled = !rows.some((row) => !row.read_at);
   };
   const load = async () => {
-    try { rows = (await ctx.api(`notifications?organization_id=${encodeURIComponent(ctx.organization.id)}`)).rows || []; draw(); }
+    try { rows = (await ctx.api(`notifications?organization_id=${ctx.orgId}`)).rows || []; draw(); }
     catch (error) { box.replaceChildren(errorState({ error, onRetry: load })); }
   };
   filter.addEventListener('change', draw);
   markAll.addEventListener('click', async () => {
     try { await ctx.send('notifications', { organization_id: ctx.organization.id }, 'PATCH'); toast('Todas marcadas como lidas.'); await load(); ctx.refreshBell?.(); }
-    catch (error) { toast(error.message, 'error'); }
+    catch (error) { toastError(error); }
   });
   load();
   return el('div', { class: 'stack' }, [el('div', { class: 'toolbar' }, [filter, el('span', { class: 'spacer' }), markAll]), box]);

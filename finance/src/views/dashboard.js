@@ -2,7 +2,7 @@
 // Painel: começa pelo que precisa da pessoa agora, não por números.
 
 import { greeting, el, icon, todayIso, daysUntil, relativeDays, plural, formatDate, formatDateTime, productLabel, demandHeadline, RFQ_STATUS, timeAgo, money, renewalStage } from '../core.js';
-import { card, pill, linkButton, emptyState, person, progress, button, toast } from '../ui.js';
+import { card, pill, linkButton, emptyState, person, progress, button, toast, mutedText } from '../ui.js';
 import { memberName } from './shared/people.js';
 import { currentStep, approvalSummaryLine, isViewerTurn } from './shared/approvals.js';
 import { eventTitle } from './shared/collaboration.js';
@@ -120,7 +120,7 @@ export function actionItems(ctx, approvals) {
  * 503 = capacidade ainda não disponível neste ambiente (informativo).
  */
 export async function crossModuleSignals(ctx, { today = todayIso() } = {}) {
-  const org = encodeURIComponent(ctx.organization.id);
+  const org = ctx.orgId;
   const result = { items: [], failed: [], unavailable: [] };
   if ((__ARANDU_DEMO__ && ctx.mode === 'demo') || !(await loadSignals())) return result;
   const { relationshipSignals, feeSignals, feeWindow, shiftDay } = S;
@@ -170,7 +170,7 @@ export async function dashboard(ctx) {
   // Rascunho do assistente ainda não criado: sem isso, quem sai no meio só
   // reencontra o que digitou abrindo "Nova solicitação" por acaso.
   if (ctx.can('create_rfq')) {
-    const editor = await ctx.api(`rfq-editor?organization_id=${encodeURIComponent(ctx.organization.id)}`).catch(() => null);
+    const editor = await ctx.api(`rfq-editor?organization_id=${ctx.orgId}`).catch(() => null);
     const payload = editor?.draft?.payload;
     if (payload && (payload.title || payload.product)) {
       items.push({ rank: 2, tone: 'neutral', icon: 'edit', kind: 'Rascunho em edição', title: `Continuar: ${payload.title || 'nova solicitação sem título'}`,
@@ -233,7 +233,7 @@ export async function dashboard(ctx) {
     signals.failed.includes('Relacionamentos') ? el('a', { href: ctx.href('/finance/providers.html#crm-agenda'), text: 'Abrir agenda comercial' }) : el('a', { href: ctx.href('/finance/fees.html'), text: 'Abrir Tarifas' })]) : null;
   const signalsOff = signals.unavailable.length ? el('p', { class: 'muted small', 'data-signals': 'unavailable', text: `${signals.unavailable.join(' e ')}: ainda não disponível neste ambiente; não entra nesta lista.` }) : null;
   for (const node of [signalsMissing, signalsOff, chips]) if (node) attention.append(node);
-  attention.append(items.length ? el('div', {}, [list, rest, filtered].filter(Boolean)) : approvalsMissing || signalsMissing ? el('p', { class: 'muted small', text: 'Os demais itens (prazos, renovações e tarefas) não pedem ação agora.' }) : emptyState({ title: 'Tudo em dia', text: ctx.can('create_rfq') ? 'Nenhuma aprovação, prazo ou renovação exige ação. Que tal estruturar a próxima necessidade?' : 'Nenhuma aprovação aguarda você.', iconName: 'checkCircle',
+  attention.append(items.length ? el('div', {}, [list, rest, filtered].filter(Boolean)) : approvalsMissing || signalsMissing ? mutedText('Os demais itens (prazos, renovações e tarefas) não pedem ação agora.') : emptyState({ title: 'Tudo em dia', text: ctx.can('create_rfq') ? 'Nenhuma aprovação, prazo ou renovação exige ação. Que tal estruturar a próxima necessidade?' : 'Nenhuma aprovação aguarda você.', iconName: 'checkCircle',
     action: ctx.can('create_rfq') ? linkButton('Nova solicitação', ctx.href('/finance/new-rfq.html'), { iconName: 'plus' }) : null }));
 
   // Resumo discreto: contagens reais, nenhuma estimativa de economia.
@@ -342,7 +342,7 @@ export async function dashboard(ctx) {
   // Atividade recente da organização.
   const feed = el('ol', { class: 'activity compact' }, el('li', { class: 'muted', text: 'Carregando…' }));
   // Histórico é nível 4: só é buscado quando a pessoa abre a seção.
-  const loadFeed = () => ctx.api(`events?organization_id=${encodeURIComponent(ctx.organization.id)}`).then(({ rows }) => {
+  const loadFeed = () => ctx.api(`events?organization_id=${ctx.orgId}`).then(({ rows }) => {
     feed.replaceChildren();
     // Contexto legível do objeto: título da solicitação ou instituição do contrato.
     const titles = new Map([...rfqs.map((rfq) => [rfq.id, rfq.title]), ...(data.contracts || []).map((contract) => [contract.id, contract.provider_name || contract.title])]);

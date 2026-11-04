@@ -2,14 +2,14 @@
 // Extraído de views/shared.js (v7.0): dependências específicas, sem barrel.
 
 import { el, icon, formatDateTime, timeAgo, uid, fold } from '../../core.js';
-import { button, avatar, emptyState, errorState, loading, toast, tag, onSubmit, sessionLink } from '../../ui.js';
+import { button, avatar, emptyState, errorState, loading, toast, tag, onSubmit, sessionLink, mutedText } from '../../ui.js';
 import { memberName } from './people.js';
 import { revisionDiff } from './terms.js';
 import { COMMENT_ROLES } from './tasks.js';
 
 export function revisionTimeline(ctx, rfq) {
   const box = el('div', { class: 'revisions', 'aria-live': 'polite' }, loading('Carregando revisões…'));
-  ctx.api(`rfq-revisions?organization_id=${encodeURIComponent(ctx.organization.id)}&rfq_id=${encodeURIComponent(rfq.id)}`).then(({ rows }) => {
+  ctx.api(`rfq-revisions?organization_id=${ctx.orgId}&rfq_id=${encodeURIComponent(rfq.id)}`).then(({ rows }) => {
     const list = el('ol', { class: 'timeline' });
     const ordered = [...(rows || [])].sort((a, b) => b.revision - a.revision);
     ordered.forEach((row, index) => {
@@ -22,8 +22,8 @@ export function revisionTimeline(ctx, rfq) {
           el('p', { class: 'timeline-meta', text: `${formatDateTime(row.published_at)}${row.changed_by_name ? ` · ${row.changed_by_name}` : ''}` }),
           previous ? (changes.length
             ? el('ul', { class: 'diff-list' }, changes.map((change) => el('li', {}, [el('span', { class: 'diff-label', text: `${change.label}: ` }), el('span', { class: 'diff-before', text: change.before }), ' → ', el('span', { class: 'diff-after', text: change.after })])))
-            : el('p', { class: 'muted small', text: 'Sem mudança material.' }))
-            : el('p', { class: 'muted small', text: 'Versão inicial publicada.' })
+            : mutedText('Sem mudança material.'))
+            : mutedText('Versão inicial publicada.')
         ])
       ]));
     });
@@ -194,7 +194,7 @@ export function collaboration(ctx, rfq, { provider = false } = {}) {
           el('time', { class: 'comment-time', datetime: row.created_at, title: formatDateTime(row.created_at), text: timeAgo(row.created_at) }),
           visibilityBadge(row.visibility, { provider, fromBuyer: provider && !row.author_is_provider })
         ]),
-        row.parent_id && !rowsById.has(row.parent_id) ? el('p', { class: 'muted small', text: 'Resposta da empresa a uma pergunta enviada por outra instituição.' }) : null,
+        row.parent_id && !rowsById.has(row.parent_id) ? mutedText('Resposta da empresa a uma pergunta enviada por outra instituição.') : null,
         commentBody(row.body, names)
       ])
     ]);
@@ -218,7 +218,7 @@ export function collaboration(ctx, rfq, { provider = false } = {}) {
 
   async function refresh() {
     try {
-      const result = await ctx.api(`comments?organization_id=${encodeURIComponent(ctx.organization.id)}&object_type=rfq&object_id=${encodeURIComponent(rfq.id)}`);
+      const result = await ctx.api(`comments?organization_id=${ctx.orgId}&object_type=rfq&object_id=${encodeURIComponent(rfq.id)}`);
       const rows = [...(result.rows || [])].sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
       const ids = new Set(rows.map((row) => row.id));
       rowsById = new Map(rows.map((row) => [row.id, row]));
@@ -283,7 +283,7 @@ export function eventTitle(type) { return EVENT_TITLES[type] || 'Atualização';
 
 export function activityLog(ctx, type, id) {
   const list = el('ol', { class: 'activity' }, el('li', {}, loading('Carregando histórico…')));
-  ctx.api(`events?organization_id=${encodeURIComponent(ctx.organization.id)}&entity_type=${type}&entity_id=${encodeURIComponent(id)}`).then(({ rows }) => {
+  ctx.api(`events?organization_id=${ctx.orgId}&entity_type=${type}&entity_id=${encodeURIComponent(id)}`).then(({ rows }) => {
     list.replaceChildren();
     for (const row of rows || []) {
       const detail = row.metadata?.provider ? ` · ${row.metadata.provider}` : row.metadata?.revision ? ` · revisão ${row.metadata.revision}` : '';

@@ -10,7 +10,7 @@ export function contractWork(ctx, contract) {
   const filter=el('select',{'aria-label':'Situação das tarefas do contrato',class:'input'});
   for(const [value,text] of [['open','Pendentes'],['done','Concluídas'],['cancelled','Canceladas']])filter.add(new Option(text,value));
   const edit=TASK_EDITORS.includes(ctx.viewer?.role);
-  const endpoint=`tasks?organization_id=${encodeURIComponent(ctx.organization.id)}&contract_id=${encodeURIComponent(contract.id)}&limit=25`;
+  const endpoint=`tasks?organization_id=${ctx.orgId}&contract_id=${encodeURIComponent(contract.id)}&limit=25`;
   let epoch=0, rows=[], cursor=null, busy=false;
   const more=button('Mais tarefas deste contrato',{size:'sm',onClick:()=>load(true)});
   const refresh=button('Atualizar tarefas do contrato',{size:'sm',iconName:'refresh',onClick:()=>load()});
@@ -56,7 +56,7 @@ export function contractWork(ctx, contract) {
     const wanted=task.status==='open'?'done':'open';
     try {
       await ctx.send('tasks', {organization_id:ctx.organization.id,task_id:task.id,status:wanted}, 'PATCH');
-      const result=await ctx.api(`tasks?organization_id=${encodeURIComponent(ctx.organization.id)}&task_id=${encodeURIComponent(task.id)}`);
+      const result=await ctx.api(`tasks?organization_id=${ctx.orgId}&task_id=${encodeURIComponent(task.id)}`);
       if(result.rows?.find(row=>row.id===task.id)?.status!==wanted)throw new Error('Não confirmamos a alteração. Atualize as tarefas antes de tentar novamente.');
       const message=wanted==='done'?'Tarefa concluída. Consulte Concluídas para acompanhar o registro.':'Tarefa reaberta.';
       await load();notice.textContent=message;toast(message);
@@ -106,7 +106,7 @@ export function contractWork(ctx, contract) {
 // lidas do evento canônico `renewal_rfq_started`. Sem registro, nada é sugerido.
 export function renegotiations(ctx, contract) {
   const box=el('div',{class:'stack contract-renegotiations',id:'contract-renegotiations'},el('p',{class:'muted small',role:'status',text:'Consultando renegociações deste contrato…'}));
-  ctx.api(`events?organization_id=${encodeURIComponent(ctx.organization.id)}&entity_type=contract&entity_id=${encodeURIComponent(contract.id)}`).then(({rows=[]})=>{
+  ctx.api(`events?organization_id=${ctx.orgId}&entity_type=contract&entity_id=${encodeURIComponent(contract.id)}`).then(({rows=[]})=>{
     const seen=new Set();
     const started=rows.filter(row=>row.event_type==='renewal_rfq_started'&&row.metadata?.rfq_id&&!seen.has(row.metadata.rfq_id)&&seen.add(row.metadata.rfq_id));
     box.replaceChildren(el('h4',{text:'Renegociações deste contrato'}), started.length ? el('ul',{class:'plain-list'},started.map(row=>{

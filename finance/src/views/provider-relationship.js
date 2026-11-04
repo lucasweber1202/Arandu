@@ -6,7 +6,7 @@
 // critérios e pesos dele, e o resultado é rotulado assim.
 
 import { el, icon, formatDate, formatDateTime, percent } from '../core.js';
-import { button, tag, field, drawer, toast, loading, errorState, onSubmit } from '../ui.js';
+import { button, tag, field, drawer, toast, loading, errorState, onSubmit, mutedText, toastError } from '../ui.js';
 import { CONTRACT_CATEGORIES } from '../../../lib/finance/contract-terms.mjs';
 import { relationshipContext, relationshipSummary } from './relationship-context.js';
 import { entityTree } from '../../../lib/finance/entities.mjs';
@@ -19,7 +19,7 @@ const ISSUE_CATEGORY = { service: 'Serviço', billing: 'Cobrança', implementati
 const REL_STATUS = { prospect: 'Prospecção', active: 'Ativo', inactive: 'Inativo' };
 
 function metric(label, value, definition) {
-  return el('div', { class: 'portfolio-stat' }, [el('span', { class: 'portfolio-stat-label', text: label }), el('strong', { class: 'portfolio-stat-value', text: value }), el('span', { class: 'muted small', text: definition })]);
+  return el('div', { class: 'portfolio-stat' }, [el('span', { class: 'portfolio-stat-label', text: label }), el('strong', { class: 'portfolio-stat-value', text: value }), mutedText(definition, 'span')]);
 }
 
 export async function openProviderRelationship(ctx, provider, {initialDetail = null} = {}) {
@@ -29,7 +29,7 @@ export async function openProviderRelationship(ctx, provider, {initialDetail = n
   const write = ctx.can('edit_profile');
   import('./copilot.js').then((m) => { m.setCopilotContext({ type: 'provider', id: provider.id, label: provider.name }); dialog.addEventListener('close', () => m.clearCopilotContext(provider.id)); });
   let generation = 0;
-  const endpoint = `provider-relationship?organization_id=${encodeURIComponent(ctx.organization.id)}&provider_id=${encodeURIComponent(provider.id)}`;
+  const endpoint = `provider-relationship?organization_id=${ctx.orgId}&provider_id=${encodeURIComponent(provider.id)}`;
   const load = async () => {
     const epoch = ++generation;
     body.replaceChildren(loading('Carregando relacionamento…'));
@@ -156,7 +156,7 @@ export async function openProviderRelationship(ctx, provider, {initialDetail = n
         const [severity, tone] = ISSUE_SEVERITY[row.severity];
         const open = ['open', 'in_progress'].includes(row.status);
         return el('li', { class: 'milestone-row' }, [
-          el('div', { class: 'milestone-main' }, [el('strong', { text: row.title }), el('span', { class: 'muted small', text: `${ISSUE_CATEGORY[row.category]} · ${ISSUE_STATUS[row.status]} · aberta em ${formatDate(row.opened_on)}${row.due_on ? ` · prazo ${formatDate(row.due_on)}` : ''}${row.resolution ? ` · ${row.resolution}` : ''}` })]),
+          el('div', { class: 'milestone-main' }, [el('strong', { text: row.title }), mutedText(`${ISSUE_CATEGORY[row.category]} · ${ISSUE_STATUS[row.status]} · aberta em ${formatDate(row.opened_on)}${row.due_on ? ` · prazo ${formatDate(row.due_on)}` : ''}${row.resolution ? ` · ${row.resolution}` : ''}`, 'span')]),
           tag(severity, tone),
           write && open ? button('Resolver', { size: 'sm', onClick: () => resolveIssue(row) }) : null
         ]);
@@ -170,7 +170,7 @@ export async function openProviderRelationship(ctx, provider, {initialDetail = n
     });
     advanced.push(el('section', { class: 'cc-section' }, [el('div', { class: 'cc-head' }, [el('h3', { text: 'Avaliações definidas pela sua empresa' }),
       write && detail.templates.length ? button('Registrar avaliação', { size: 'sm', iconName: 'plus', onClick: () => reviewForm(detail) }) : null]),
-      el('p', { class: 'muted small', text: m.definitions.review }),
+      mutedText(m.definitions.review),
       reviews.length ? el('ul', { class: 'plain-list' }, reviews) : el('p', { class: 'muted', text: detail.templates.length ? 'Nenhuma avaliação registrada.' : 'Crie um scorecard em Configurações → Scorecards para avaliar provedores com critérios da sua empresa.' })]));
 
     // Memória: histórico sob demanda.
@@ -201,7 +201,7 @@ export async function openProviderRelationship(ctx, provider, {initialDetail = n
       if (item.target.type === 'contact' && write) return button('Adicionar contato', { size: 'sm', iconName: 'plus', onClick: () => contactForm() });
       return null;
     };
-    const row = (item) => el('li', { class: 'milestone-row' }, [tag(...KIND[item.kind]), el('div', { class: 'milestone-main' }, [el('strong', { text: item.title }), el('span', { class: 'muted small', text: item.detail })]), action(item)]);
+    const row = (item) => el('li', { class: 'milestone-row' }, [tag(...KIND[item.kind]), el('div', { class: 'milestone-main' }, [el('strong', { text: item.title }), mutedText(item.detail, 'span')]), action(item)]);
     return el('section', { class: 'cc-section rel-attention', 'aria-labelledby': 'rel-attention-title' }, [
       el('h3', { id: 'rel-attention-title', text: 'O que pede atenção' }),
       items.length ? el('ul', { class: 'milestone-list', role: 'list' }, items.slice(0, 6).map(row)) : el('p', { class: 'muted', text: 'Nenhum vencimento, questão aberta ou negociação em andamento no recorte carregado. Isso não substitui a revisão dos contratos.' }),
@@ -240,7 +240,7 @@ export async function openProviderRelationship(ctx, provider, {initialDetail = n
         await ctx.send('provider-contacts', { organization_id: ctx.organization.id, provider_id: provider.id, name: name.value.trim(), title: title.value.trim() || null,
           email: email.value.trim() || null, phone: phone.value.trim() || null, legal_entity_id: entity.value || null, is_primary: primary.checked });
         after('Contato adicionado.');
-      } catch (error) { toast(error.message, 'error'); }
+      } catch (error) { toastError(error); }
     });
     inline('Adicionar contato', form);
   }
@@ -260,7 +260,7 @@ export async function openProviderRelationship(ctx, provider, {initialDetail = n
         await ctx.send('provider-relationships', { organization_id: ctx.organization.id, provider_id: provider.id, legal_entity_id: entity.value,
           status: status.value, categories: [...categories.querySelectorAll('input:checked')].map((input) => input.value), since_on: since.value || null });
         after('Relação registrada.');
-      } catch (error) { toast(error.message, 'error'); }
+      } catch (error) { toastError(error); }
     });
     inline('Relação por entidade', form);
   }
@@ -289,7 +289,7 @@ export async function openProviderRelationship(ctx, provider, {initialDetail = n
         await ctx.send('provider-issues', { organization_id: ctx.organization.id, provider_id: provider.id, title: title.value.trim(), category: category.value,
           severity: severity.value, contract_id: contract.value || null, legal_entity_id: contract.value ? null : entity.value || null, due_on: due.value || null, description: description.value.trim() || null });
         after('Questão registrada.');
-      } catch (error) { toast(error.message, 'error'); }
+      } catch (error) { toastError(error); }
     });
     inline('Registrar questão', form);
   }
@@ -301,7 +301,7 @@ export async function openProviderRelationship(ctx, provider, {initialDetail = n
     onSubmit(form, async (event) => {
       event.preventDefault();
       try { await ctx.send('provider-issues', { issue_id: issue.id, status: 'resolved', resolution: resolution.value.trim() }, 'PATCH'); after('Questão resolvida.'); }
-      catch (error) { toast(error.message, 'error'); }
+      catch (error) { toastError(error); }
     });
     inline(`Resolver: ${issue.title}`, form);
   }
@@ -323,7 +323,7 @@ export async function openProviderRelationship(ctx, provider, {initialDetail = n
     const form = el('form', { class: 'stack', novalidate: true }, [field({ label: 'Scorecard', control: template }), scores,
       el('div', { class: 'field-grid' }, [field({ label: 'Início do período', control: start, required: true }), field({ label: 'Fim do período', control: end, required: true })]),
       field({ label: 'Comentário', control: comment, optionalLabel: true }),
-      el('p', { class: 'muted small', text: 'O resultado é a média ponderada pelos pesos do seu scorecard, só sobre os critérios respondidos, com a cobertura exibida. Avaliação registrada não é editada.' }),
+      mutedText('O resultado é a média ponderada pelos pesos do seu scorecard, só sobre os critérios respondidos, com a cobertura exibida. Avaliação registrada não é editada.'),
       el('div', { class: 'form-actions' }, button('Registrar avaliação', { variant: 'primary', type: 'submit', iconName: 'check' }))]);
     onSubmit(form, async (event) => {
       event.preventDefault();
@@ -333,7 +333,7 @@ export async function openProviderRelationship(ctx, provider, {initialDetail = n
         await ctx.send('provider-reviews', { organization_id: ctx.organization.id, provider_id: provider.id, template_id: template.value,
           period_start: start.value, period_end: end.value, scores: values, comment: comment.value.trim() || null });
         after('Avaliação registrada.');
-      } catch (error) { toast(error.message, 'error'); }
+      } catch (error) { toastError(error); }
     });
     inline('Registrar avaliação', form);
   }
@@ -345,11 +345,11 @@ export async function openProviderRelationship(ctx, provider, {initialDetail = n
 /** Configurações → Scorecards: critérios e pesos da empresa, versionados. */
 export function scorecardSettings(ctx) {
   const box = el('div', {}, loading());
-  const load = () => ctx.api(`scorecard-templates?organization_id=${encodeURIComponent(ctx.organization.id)}`).then((result) => {
+  const load = () => ctx.api(`scorecard-templates?organization_id=${ctx.orgId}`).then((result) => {
     const active = result.rows.filter((row) => row.status === 'active');
     const list = active.length ? el('ul', { class: 'plain-list' }, active.map((row) => el('li', {}, [el('strong', { text: `${row.name} (v${row.version})` }),
       el('span', { text: ` · ${row.criteria.map((item) => `${item.label} ${item.weight}`).join(' · ')}` })]))) : el('p', { class: 'muted', text: 'Nenhum scorecard criado.' });
-    const parts = [el('p', { class: 'muted small', text: result.notice }), list];
+    const parts = [mutedText(result.notice), list];
     if (ctx.can('create_rfq')) {
       const name = el('input', { maxlength: '120', value: 'Relacionamento bancário' });
       const criteria = el('textarea', { rows: '4', placeholder: 'Um critério por linha: rótulo; peso; escala (5, 10 ou 100)', value: '' });
@@ -365,7 +365,7 @@ export function scorecardSettings(ctx) {
           toast('Scorecard salvo.');
           box.replaceChildren(loading());
           load();
-        } catch (error) { toast(error.message, 'error'); }
+        } catch (error) { toastError(error); }
       });
       parts.push(el('details', {}, [el('summary', { text: 'Criar ou nova versão de scorecard' }), form]));
     }

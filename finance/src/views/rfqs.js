@@ -5,7 +5,7 @@ import { PRODUCTS, PRODUCT_IDS, checkAcquiringShares } from '../../../lib/financ
 import { passportPrefill, SOURCE_LABELS } from '../../../lib/finance/passport.mjs';
 import { negotiationNextStep, ACTOR_LABEL } from '../../../lib/finance/negotiation-next-step.mjs';
 import { el, icon, fold, daysUntil, relativeDays, formatDate, formatDateTime, productLabel, demandHeadline, RFQ_STATUS, fieldValue, todayIso } from '../core.js';
-import { pill, linkButton, button, emptyState, person, progress, field, catalogControl, saveIndicator, toast, confirmDialog, tag, onSubmit } from '../ui.js';
+import { pill, linkButton, button, emptyState, person, progress, field, catalogControl, saveIndicator, toast, confirmDialog, tag, onSubmit, toastError } from '../ui.js';
 import { loadEntities, entityContextSelect, inContext, entityName, entityField } from './entities.js';
 
 // Próximo passo e de quem é a vez: regra única (lib/finance/negotiation-board.mjs),
@@ -438,14 +438,14 @@ export async function newRfq(ctx) {
     const reload = button('Carregar a versão da outra aba', { variant: 'primary', size: 'sm', iconName: 'refresh', onClick: () => location.reload() });
     const keep = button('Manter o que está aqui', { size: 'sm', onClick: async () => {
       try {
-        const { draft } = await ctx.api(`rfq-editor?organization_id=${encodeURIComponent(ctx.organization.id)}`);
+        const { draft } = await ctx.api(`rfq-editor?organization_id=${ctx.orgId}`);
         editorRevision = draft?.revision ?? 0;
         conflicted = false;
         dirty = true;
         conflictBox.hidden = true;
         await save();
         toast('Esta versão substituiu o rascunho da outra aba.');
-      } catch (error) { toast(error.message, 'error'); }
+      } catch (error) { toastError(error); }
     } });
     conflictBox.replaceChildren(icon('alert'), el('div', {}, [
       el('strong', { text: 'Este rascunho foi alterado em outra aba ou janela.' }),
@@ -483,7 +483,7 @@ export async function newRfq(ctx) {
     if (source.response_deadline && source.response_deadline > todayIso()) deadline.value = source.response_deadline;
     root.append(el('p', { class: 'callout callout-info' }, [icon('info'), el('span', { text: 'Dados da demanda anterior pré-preenchidos. Revise tudo antes de criar o novo rascunho. Convites, propostas e decisões não são copiados.' })]));
   }
-  ctx.api(`rfq-editor?organization_id=${encodeURIComponent(ctx.organization.id)}`).then(({ draft }) => {
+  ctx.api(`rfq-editor?organization_id=${ctx.orgId}`).then(({ draft }) => {
     editorRevision = draft?.revision ?? 0;
     if (draft?.payload && !source && !dirty && PRODUCTS[draft.payload.product]) {
       productSelect.value = draft.payload.product;
@@ -502,7 +502,7 @@ export async function newRfq(ctx) {
         try {
           await ctx.send('rfq-editor', { organization_id: ctx.organization.id, expected_revision: editorRevision }, 'DELETE');
           location.reload();
-        } catch (error) { toast(error.message, 'error'); }
+        } catch (error) { toastError(error); }
       } });
       recovered.replaceChildren(icon('refresh'), el('span', { text: `Recuperamos o rascunho que você deixou em ${formatDateTime(draft.updated_at)}.` }), discard);
       recovered.hidden = false;
@@ -555,7 +555,7 @@ export async function newRfq(ctx) {
         : ['Solicitação criada como rascunho.', ...(result.warnings || [])].join(' '));
       location.assign(ctx.href(`/finance/rfq.html?id=${encodeURIComponent(result.id)}&created=1`));
     } catch (error) {
-      toast(error.message, 'error');
+      toastError(error);
       submit.disabled = false;
       submit.querySelector('.btn-label').textContent = 'Criar solicitação';
     }

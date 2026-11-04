@@ -7,7 +7,7 @@
 // claramente não pode fazer e mostra o erro do servidor quando ele recusa.
 import { graphContextCard } from './graph-context.js';
 import { el, icon, formatDate, formatDateTime, percent } from '../core.js';
-import { button, tag, field, drawer, toast, loading, errorState, confirmDialog, onSubmit, readableError } from '../ui.js';
+import { button, tag, field, drawer, toast, loading, errorState, confirmDialog, onSubmit, readableError, mutedText, toastError } from '../ui.js';
 import { CONTRACT_CATEGORIES, MILESTONE_KINDS, RECURRENCES, contractTermFields } from '../../../lib/finance/contract-terms.mjs';
 import { termValue, termsList, termsEditor } from './contract-center/terms.js';
 
@@ -93,7 +93,7 @@ export function openContract(ctx, contract, { initialDetail = null } = {}) {
     // Termos efetivos e histórico de versões com diff factual.
     const versions = el('ol', { class: 'version-list', role: 'list' }, detail.versions.map((version) => el('li', { class: 'version-row' }, [
       el('div', { class: 'version-head' }, [tag(`v${version.version}`, 'accent'), el('strong', { text: SOURCE_LABELS[version.source] || version.source }),
-        el('span', { class: 'muted small', text: `vigência ${formatDate(version.effective_from)} · registrada ${formatDateTime(version.recorded_at)}` })]),
+        mutedText(`vigência ${formatDate(version.effective_from)} · registrada ${formatDateTime(version.recorded_at)}`, 'span')]),
       version.reason ? el('p', { class: 'small', text: `Justificativa: ${version.reason}` }) : null,
       version.changes.length ? el('ul', { class: 'diff-list' }, version.changes.map((change) => el('li', { text: `${change.label}: ${change.change === 'added' ? 'incluído' : change.change === 'removed' ? 'removido' : 'alterado'} — ${formatDiff(current, change.key, change.before)} → ${formatDiff(current, change.key, change.after)}` }))) : null
     ])));
@@ -122,7 +122,7 @@ export function openContract(ctx, contract, { initialDetail = null } = {}) {
 
     // Aditivos.
     const amendments = detail.amendments.length ? el('ol', { class: 'version-list', role: 'list' }, detail.amendments.map((item) => el('li', { class: 'version-row' }, [
-      el('div', { class: 'version-head' }, [tag(`${item.number}º aditivo`, 'neutral'), el('strong', { text: item.title }), el('span', { class: 'muted small', text: `vigência ${formatDate(item.effective_from)}${item.signed_on ? ` · assinado ${formatDate(item.signed_on)}` : ''}` })]),
+      el('div', { class: 'version-head' }, [tag(`${item.number}º aditivo`, 'neutral'), el('strong', { text: item.title }), mutedText(`vigência ${formatDate(item.effective_from)}${item.signed_on ? ` · assinado ${formatDate(item.signed_on)}` : ''}`, 'span')]),
       item.summary ? el('p', { class: 'small', text: item.summary }) : null,
       item.new_ends_on ? el('p', { class: 'small muted', text: `Fim: ${formatDate(item.previous_ends_on)} → ${formatDate(item.new_ends_on)}` }) : null,
       item.new_notice_days !== null && item.new_notice_days !== undefined ? el('p', { class: 'small muted', text: `Aviso prévio: ${item.previous_notice_days} → ${item.new_notice_days} dias` }) : null
@@ -137,7 +137,7 @@ export function openContract(ctx, contract, { initialDetail = null } = {}) {
         button(item.recurrence !== 'none' ? 'Concluir ocorrência' : 'Concluir', { size: 'sm', onClick: () => settle(item, 'done') }),
         button('Cancelar', { size: 'sm', variant: 'ghost', onClick: () => settle(item, 'cancelled') })] : [];
       return el('li', { class: 'milestone-row' }, [
-        el('div', { class: 'milestone-main' }, [el('strong', { text: item.title }), el('span', { class: 'muted small', text: `${MILESTONE_KINDS[item.kind]} · ${formatDate(item.due_on)} · avisa ${item.lead_days} dias antes · ${RECURRENCES[item.recurrence]}` })]),
+        el('div', { class: 'milestone-main' }, [el('strong', { text: item.title }), mutedText(`${MILESTONE_KINDS[item.kind]} · ${formatDate(item.due_on)} · avisa ${item.lead_days} dias antes · ${RECURRENCES[item.recurrence]}`, 'span')]),
         tag(label, tone), ...actions]);
     })) : el('p', { class: 'muted', text: 'Sem marcos próprios. Os marcos de renovação (90/60/30 dias) continuam automáticos.' });
     sections.push(el('section', { class: 'cc-section' }, [el('div', { class: 'cc-head' }, [el('h3', { text: 'Marcos e obrigações' }),
@@ -147,7 +147,7 @@ export function openContract(ctx, contract, { initialDetail = null } = {}) {
       sections.push(el('section', { class: 'cc-section' }, [el('h3', { text: 'Contratos vinculados (filhos)' }),
         el('ul', { class: 'plain-list' }, detail.children.map((child) => el('li', { text: `${child.title || CONTRACT_CATEGORIES[child.product]} · até ${formatDate(child.ends_on)}` })))]));
     }
-    if (current.parent_contract_id) sections.push(el('p', { class: 'muted small', text: 'Este contrato é filho de outro contrato da carteira.' }));
+    if (current.parent_contract_id) sections.push(mutedText('Este contrato é filho de outro contrato da carteira.'));
     sections.push(ownerSection(current));
     sections.push(graphContextCard(ctx, { type: 'contract', id: current.id }));
     return sections;
@@ -164,7 +164,7 @@ export function openContract(ctx, contract, { initialDetail = null } = {}) {
     const section = el('section', { class: 'cc-section', 'aria-labelledby': `owner-${current.id}` }, [
       el('div', { class: 'cc-head' }, el('h3', { id: `owner-${current.id}`, text: 'Responsável pelo contrato' })),
       el('p', { text: who(current.owner_id) }),
-      el('p', { class: 'muted small', text: 'Responde pelo relacionamento deste contrato. Tarefas e aprovações têm responsáveis próprios.' })]);
+      mutedText('Responde pelo relacionamento deste contrato. Tarefas e aprovações têm responsáveis próprios.')]);
     if (conflictNote) section.append(conflictNote);
     const candidates = (ctx.members || []).filter((member) => member.user_id && ['admin', 'finance_manager', 'analyst'].includes(member.role) && member.user_id !== current.owner_id);
     if (!manage || !current.owner_id || !['active', 'renewing'].includes(current.status) || !candidates.length) return section;
@@ -218,7 +218,7 @@ export function openContract(ctx, contract, { initialDetail = null } = {}) {
       try {
         await ctx.send('contract-terms', { contract_id: current.id, expected_version: current.current_version, terms: { ...editor.read(), ...(terms?.product_terms ? { product_terms: terms.product_terms } : {}) }, reason: reason.value.trim() || null });
         after('Termos gravados como nova versão.');
-      } catch (error) { toast(error.message, 'error'); }
+      } catch (error) { toastError(error); }
     });
     body.replaceChildren(el('h3', { text: current.current_version ? 'Corrigir termos' : 'Estruturar termos' }), form, button('Voltar', { variant: 'ghost', onClick: load }));
   }
@@ -252,7 +252,7 @@ export function openContract(ctx, contract, { initialDetail = null } = {}) {
           ...(changeTerms.checked ? { terms: { ...editor.read(), ...(terms?.product_terms ? { product_terms: terms.product_terms } : {}) }, expected_version: current.current_version } : {})
         });
         after('Aditivo registrado.');
-      } catch (error) { toast(error.message, 'error'); }
+      } catch (error) { toastError(error); }
     });
     body.replaceChildren(el('h3', { text: 'Registrar aditivo' }), form, button('Voltar', { variant: 'ghost', onClick: load }));
   }
@@ -282,7 +282,7 @@ export function openContract(ctx, contract, { initialDetail = null } = {}) {
         await ctx.send('contract-milestones', { contract_id: current.id, kind: kind.value, title: title.value.trim(), due_on: due.value,
           lead_days: Number(lead.value || 30), recurrence: recurrence.value, ends_after: until.value || null, owner_id: owner.value || null });
         after('Marco criado. A tarefa aparece quando a antecedência começar.');
-      } catch (error) { toast(error.message, 'error'); }
+      } catch (error) { toastError(error); }
     });
     body.replaceChildren(el('h3', { text: 'Novo marco' }), form, button('Voltar', { variant: 'ghost', onClick: load }));
   }
@@ -291,7 +291,7 @@ export function openContract(ctx, contract, { initialDetail = null } = {}) {
     try {
       const result = await ctx.send('contract-milestones', { milestone_id: item.id, action }, 'PATCH');
       after(result.status === 'scheduled' ? 'Ocorrência concluída; o marco avançou para a próxima data.' : action === 'done' ? 'Marco concluído.' : 'Marco cancelado.');
-    } catch (error) { toast(error.message, 'error'); }
+    } catch (error) { toastError(error); }
   }
 
   if (initialDetail) body.replaceChildren(...render(initialDetail));

@@ -4,7 +4,7 @@
 import { PRODUCTS } from '../../../../lib/finance/products.mjs';
 import { buildComparison, applyUserWeights, USER_WEIGHTS_NOTICE } from '../../../../lib/finance/comparison.mjs';
 import { el, icon, money, fieldValue, formatDateTime } from '../../core.js';
-import { button, emptyState, errorState, field } from '../../ui.js';
+import { button, emptyState, errorState, field, mutedText } from '../../ui.js';
 import { DEFINITIONS, fieldsByKey, definitionTip } from './terms.js';
 
 function comparisonValue(field, value, currency) {
@@ -51,7 +51,7 @@ export function comparisonMatrix(rfq, proposals, { currentRevision = rfq.revisio
   if (data.context_notices.length) wrap.append(el('details', { class: 'callout callout-warning comparison-context', open: true }, [el('summary', { text: 'Condições que exigem revisão de comparabilidade' }), el('ul', {}, data.context_notices.map(text => el('li', { text }))) ]));
   // Limites técnicos do recorte ficam a um clique, não na primeira leitura.
   wrap.append(el('details', { class: 'comparison-about' }, [el('summary', { text: 'Como ler esta comparação' }),
-    el('p', { class: 'muted small', text: 'Valores são os declarados por cada provedor, na versão indicada no cabeçalho. Campo não informado aparece como "não informado" e conta na cobertura; não é tratado como pior nem como zero. Ausência de evidência não significa verificação. Valores de versões anteriores são consulta histórica; os pesos usam a versão atual. Recorte: até 500 propostas enviadas e não retiradas; histórico de até 2.000 versões.' })]));
+    mutedText('Valores são os declarados por cada provedor, na versão indicada no cabeçalho. Campo não informado aparece como "não informado" e conta na cobertura; não é tratado como pior nem como zero. Ausência de evidência não significa verificação. Valores de versões anteriores são consulta histórica; os pesos usam a versão atual. Recorte: até 500 propostas enviadas e não retiradas; histórico de até 2.000 versões.')]));
   const filter = el('select', { 'aria-label': 'Foco da comparação' }, [
     el('option', { value: 'all', text: 'Todas as condições' }), el('option', { value: 'differences', text: 'Somente diferenças' }),
     el('option', { value: 'missing', text: 'Informações pendentes' }), el('option', { value: 'changed', text: 'Alterações de versão' })
@@ -131,7 +131,7 @@ export function comparisonMatrix(rfq, proposals, { currentRevision = rfq.revisio
     pairBody.replaceChildren();
     let count = 0;
     const chosen = [Number(pickA.value), Number(pickB.value)];
-    pairStatus.replaceChildren(...chosen.map(index => { const column = data.columns[index]; return el('p', { class: 'muted small', text: `${column.provider_name} · ${historical.has(index) ? 'versão anterior' : `v${column.version ?? '?'}`} · ${column.currency ?? 'moeda não identificada'} · ${coverageText(index)} · ${column.expired ? 'versão atual vencida' : column.validity_unknown ? 'validade não informada' : 'consulte a validade informada'}${column.revision_mismatch ? ` · respondeu à revisão ${column.rfq_revision}` : ''}` }); }));
+    pairStatus.replaceChildren(...chosen.map(index => { const column = data.columns[index]; return mutedText(`${column.provider_name} · ${historical.has(index) ? 'versão anterior' : `v${column.version ?? '?'}`} · ${column.currency ?? 'moeda não identificada'} · ${coverageText(index)} · ${column.expired ? 'versão atual vencida' : column.validity_unknown ? 'validade não informada' : 'consulte a validade informada'}${column.revision_mismatch ? ` · respondeu à revisão ${column.rfq_revision}` : ''}`); }));
     for (const [group, keys] of data.groups) {
       const rows = keys.map(key => rowsByKey[key]).filter(row => row && visible(row));
       if (!rows.length) continue;
@@ -222,8 +222,8 @@ export function weightsPanel(rfq, proposals, { onApplied = null, initial = null,
     }
     output.append(list);
     if (scored.has_low_coverage) output.append(el('p', { class: 'callout callout-warning', id: 'coverage-warning' }, [icon('alert', { size: 14 }), el('span', { text: `Há proposta pontuada sobre menos de ${(scored.coverage_threshold * 100).toFixed(0)}% do peso definido; ela aparece por último e não é comparável com uma proposta completa.` })]));
-    if (!scored.ranking_meaningful) output.append(el('p', { class: 'muted small', text: 'Com menos de duas propostas comparáveis, a ordem não diz nada.' }));
-    output.append(el('p', { class: 'muted small', text: `Pesos: ${scored.criteria.map((item) => `${item.label} ${(item.share * 100).toFixed(0)}%`).join(' · ')}` }));
+    if (!scored.ranking_meaningful) output.append(mutedText('Com menos de duas propostas comparáveis, a ordem não diz nada.'));
+    output.append(mutedText(`Pesos: ${scored.criteria.map((item) => `${item.label} ${(item.share * 100).toFixed(0)}%`).join(' · ')}`));
   };
   form.addEventListener('submit', (event) => { event.preventDefault(); run(); });
   panel.append(el('div', { class: 'card-body' }, [initialNote ? el('p', { class: 'muted small', id: 'weights-origin', text: initialNote }) : null, form, output].filter(Boolean)));

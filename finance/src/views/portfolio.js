@@ -7,7 +7,7 @@ import { graphContextCard } from './graph-context.js';
 // ausência. Nenhuma métrica é nota, risco ou recomendação.
 
 import { el, icon, formatDate, percent, enumLabel, plural } from '../core.js';
-import { card, button, tag, field, drawer, toast, emptyState, errorState, loading, onSubmit } from '../ui.js';
+import { card, button, tag, field, drawer, toast, emptyState, errorState, loading, onSubmit, mutedText, toastError } from '../ui.js';
 import { FACILITY_KINDS, GUARANTEE_KINDS } from '../../../lib/finance/portfolio.mjs';
 import { INDEXERS, AMORTIZATION } from '../../../lib/finance/contract-terms.mjs';
 import { entityTree } from '../../../lib/finance/entities.mjs';
@@ -21,11 +21,11 @@ function amount(value, currency) {
 }
 
 function stat(label, value, hint) {
-  return el('div', { class: 'portfolio-stat' }, [el('span', { class: 'portfolio-stat-label', text: label }), el('strong', { class: 'portfolio-stat-value', text: value }), hint ? el('span', { class: 'muted small', text: hint }) : null]);
+  return el('div', { class: 'portfolio-stat' }, [el('span', { class: 'portfolio-stat-label', text: label }), el('strong', { class: 'portfolio-stat-value', text: value }), hint ? mutedText(hint, 'span') : null]);
 }
 
 function shareList(rows, currency, labelOf = (row) => row.key) {
-  if (!rows.length) return el('p', { class: 'muted small', text: 'Sem saldo conhecido.' });
+  if (!rows.length) return mutedText('Sem saldo conhecido.');
   return el('ul', { class: 'share-list', role: 'list' }, rows.map((row) => el('li', { class: 'share-row' }, [
     el('span', { class: 'share-label', text: labelOf(row) }),
     el('span', { class: 'share-bar', 'aria-hidden': 'true' }, el('span', { class: 'share-fill', style: `width:${Math.max(2, Math.min(100, row.share_pct || 0))}%` })),
@@ -38,7 +38,7 @@ function currencyCard(view, definitions) {
     el('thead', {}, el('tr', {}, ['Ano', 'Cronograma declarado', 'Saldo no vencimento final'].map((label) => el('th', { scope: 'col', text: label })))),
     el('tbody', {}, view.maturity_wall.map((row) => el('tr', {}, [el('td', { 'data-label': 'Ano', text: row.year }), el('td', { 'data-label': 'Cronograma declarado', text: amount(row.scheduled, view.currency) }),
       el('td', { 'data-label': 'Saldo no vencimento final', text: amount(row.final_balance, view.currency) })])))
-  ])) : el('p', { class: 'muted small', text: 'Sem vencimentos futuros com cronograma ou saldo conhecido.' });
+  ])) : mutedText('Sem vencimentos futuros com cronograma ou saldo conhecido.');
   return card({
     title: `Portfólio em ${view.currency}`, subtitle: `${plural(view.facilities, 'facility ativa', 'facilities ativas')}`, className: 'portfolio-currency',
     body: [
@@ -49,11 +49,11 @@ function currencyCard(view, definitions) {
         stat('Saldo devedor conhecido', amount(view.outstanding, view.currency), view.outstanding_unknown ? `${view.outstanding_unknown} facility(ies) sem saldo registrado` : null)
       ]),
       el('div', { class: 'portfolio-grid' }, [
-        el('section', {}, [el('h3', { text: 'Vencimentos por ano' }), wall, el('p', { class: 'muted small', text: definitions.maturity_wall })]),
+        el('section', {}, [el('h3', { text: 'Vencimentos por ano' }), wall, mutedText(definitions.maturity_wall)]),
         el('section', {}, [el('h3', { text: 'Mix de indexadores' }), shareList(view.indexer_mix, view.currency, (row) => (row.key === 'nao_informado' ? 'Não informado' : row.key.toUpperCase())),
-          el('p', { class: 'muted small', text: definitions.indexer_mix })]),
+          mutedText(definitions.indexer_mix)]),
         el('section', {}, [el('h3', { text: 'Participação por provedor (saldo)' }), shareList(view.provider_concentration.outstanding, view.currency, (row) => row.provider),
-          el('p', { class: 'muted small', text: definitions.provider_concentration })])
+          mutedText(definitions.provider_concentration)])
       ])
     ]
   });
@@ -70,7 +70,7 @@ export async function portfolio(ctx) {
   let horizon = 12;
   const load = async () => {
     try {
-      const result = await ctx.api(`portfolio?organization_id=${encodeURIComponent(ctx.organization.id)}&horizon_months=${horizon}`);
+      const result = await ctx.api(`portfolio?organization_id=${ctx.orgId}&horizon_months=${horizon}`);
       root.replaceChildren(...render(result));
     } catch (error) {
       root.replaceChildren(error.status === 404 ? emptyState({ title: 'Portfólio indisponível neste ambiente', iconName: 'layers', text: 'A visão de dívida e limites não está disponível aqui.' }) : errorState({ error, onRetry: load }));
@@ -106,7 +106,7 @@ export async function portfolio(ctx) {
       title: 'Garantias comprometidas', subtitle: result.views.definitions.committed_guarantees,
       body: [
         ...result.views.guarantees.map((view) => el('div', { class: 'guarantee-summary' }, [el('strong', { text: `${view.currency}: ${amount(view.committed, view.currency)} em ${plural(view.count, 'garantia ativa', 'garantias ativas')}` }),
-          view.unknown_amount ? el('span', { class: 'muted small', text: ` · ${view.unknown_amount} sem valor registrado` }) : null])),
+          view.unknown_amount ? mutedText(` · ${view.unknown_amount} sem valor registrado`, 'span') : null])),
         guarantees.length ? el('ul', { class: 'plain-list guarantee-list' }, guarantees.map((row) => el('li', {}, [
           el('strong', { text: GUARANTEE_KINDS[row.kind] || row.kind }), el('span', { text: ` · ${row.description} · ${amount(row.committed_amount, row.currency)} · ${entityName(entities, row.legal_entity_id)}` }),
           row.status !== 'active' ? tag(row.status === 'released' ? 'liberada' : 'expirada') : null,
@@ -117,7 +117,7 @@ export async function portfolio(ctx) {
     if (result.views.review_due.length) {
       out.push(el('p', { class: 'callout callout-warning' }, [icon('alert'), el('span', { text: `${result.views.review_due.length} facility(ies) com dado vencido para revisão: ${result.views.review_due.map((row) => row.name).join(', ')}. Confirme ou atualize.` })]));
     }
-    out.push(el('p', { class: 'muted small', text: result.boundary }));
+    out.push(mutedText(result.boundary));
     return out;
   }
 
@@ -147,7 +147,7 @@ function facilityTable(ctx, entities, facilities, result) {
       el('td', { 'data-label': 'Ações' }, [button('Relações', { size: 'sm', onClick: () => drawer({ title: facility.name, body: graphContextCard(ctx, { type: 'facility', id: facility.id }) }) }), manage ? el('div', { class: 'row-actions' }, [
         button('Saldo', { size: 'sm', onClick: () => balanceForm(ctx, facility) }),
         button('Cronograma', { size: 'sm', variant: 'ghost', onClick: () => scheduleForm(ctx, facility) }),
-        button('Confirmar', { size: 'sm', variant: 'ghost', onClick: async () => { try { await ctx.send('facilities/confirm', { facility_id: facility.id }); toast('Dado confirmado como atual.'); ctx.reload(); } catch (error) { toast(error.message, 'error'); } } }),
+        button('Confirmar', { size: 'sm', variant: 'ghost', onClick: async () => { try { await ctx.send('facilities/confirm', { facility_id: facility.id }); toast('Dado confirmado como atual.'); ctx.reload(); } catch (error) { toastError(error); } } }),
         button('Editar', { size: 'sm', variant: 'ghost', onClick: () => facilityForm(ctx, entities, facility) })
       ]) : null])
     ]));
@@ -175,7 +175,7 @@ function submitDrawer({ title, subtitle, form, onSubmit, label }) {
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     save.disabled = true;
-    try { if (await onSubmit()) dialog.close(); } catch (error) { toast(error.message, 'error'); } finally { save.disabled = false; }
+    try { if (await onSubmit()) dialog.close(); } catch (error) { toastError(error); } finally { save.disabled = false; }
   });
   return dialog;
 }
@@ -261,7 +261,7 @@ function scheduleForm(ctx, facility) {
   };
   addRow();
   const form = el('form', { class: 'stack', id: 'schedule-form', novalidate: true }, [
-    el('p', { class: 'muted small', text: `Cronograma declarado de amortização (versão atual: ${facility.schedule_version || 0}). Registrar substitui como nova versão; a anterior continua no histórico.` }),
+    mutedText(`Cronograma declarado de amortização (versão atual: ${facility.schedule_version || 0}). Registrar substitui como nova versão; a anterior continua no histórico.`),
     rows, button('Adicionar parcela', { size: 'sm', iconName: 'plus', onClick: addRow })]);
   return submitDrawer({ title: `Cronograma de ${facility.name}`, form, label: 'Registrar cronograma', onSubmit: async () => {
     const items = [...rows.children].map((row) => row.read()).filter(Boolean);

@@ -8,7 +8,7 @@
 import { externalComparisonProposal } from '../../../lib/finance/external-proposals.mjs';
 import { PRODUCTS } from '../../../lib/finance/products.mjs';
 import { el, icon, formatDateTime, formatDate, plural } from '../core.js';
-import { card, pill, tag, button, linkButton, emptyState, errorState, loading, drawer, field, catalogControl, toast, onSubmit, definitionList } from '../ui.js';
+import { card, pill, tag, button, linkButton, emptyState, errorState, loading, drawer, field, catalogControl, toast, onSubmit, definitionList, mutedText } from '../ui.js';
 import { keyTerms, coverage } from './shared/terms.js';
 import { memberName } from './shared/people.js';
 
@@ -69,7 +69,7 @@ export function externalProposalsSection(ctx, rfq, { onChange = null } = {}) {
     body.replaceChildren(loading('Carregando propostas externas…'));
     let result;
     try {
-      result = await ctx.api(`external-proposals?organization_id=${encodeURIComponent(ctx.organization.id)}&rfq_id=${encodeURIComponent(rfq.id)}&limit=25`);
+      result = await ctx.api(`external-proposals?organization_id=${ctx.orgId}&rfq_id=${encodeURIComponent(rfq.id)}&limit=25`);
     } catch (error) {
       body.replaceChildren(unavailable(error)
         ? el('p', { class: 'callout callout-info compact', id: 'external-unavailable', role: 'status' }, [icon('info', { size: 14 }), el('span', { text: 'O registro de propostas externas não está disponível neste ambiente. As propostas enviadas pelo portal continuam abaixo.' })])
@@ -81,7 +81,7 @@ export function externalProposalsSection(ctx, rfq, { onChange = null } = {}) {
     if (canWrite && open) nodes.push(el('div', { class: 'row-actions' }, button('Registrar proposta recebida', { variant: 'secondary', iconName: 'plus', attrs: { id: 'external-new' }, onClick: () => editor(ctx, rfq, { onSaved: () => { load(); onChange?.(); } }) })));
     if (!rows.length) nodes.push(emptyState({ compact: true, iconName: 'inbox', title: 'Nenhuma proposta externa registrada', text: canWrite ? 'Recebeu condições fora do portal? Registre a transcrição para comparar com as demais.' : 'Quando a equipe registrar uma oferta recebida fora do portal, ela aparece aqui.' }));
     for (const row of rows) nodes.push(externalCard(ctx, rfq, row, { canWrite: canWrite && open, canReview, reload: () => { load(); onChange?.(); } }));
-    if (result.page?.has_more) nodes.push(el('p', { class: 'muted small', text: 'Há mais registros além destes 25. Exporte o processo para a lista completa.' }));
+    if (result.page?.has_more) nodes.push(mutedText('Há mais registros além destes 25. Exporte o processo para a lista completa.'));
     body.replaceChildren(...nodes);
   };
   load();
@@ -106,14 +106,14 @@ function externalCard(ctx, rfq, row, { canWrite, canReview, reload }) {
   return el('article', { class: 'proposal-card external-card', id: `external-${row.id}` }, [
     el('header', { class: 'proposal-head' }, [
       el('div', {}, [el('h4', { class: 'proposal-name', text: row.provider_name || 'Instituição cadastrada' }),
-        el('p', { class: 'muted small', text: `${CHANNELS[row.channel] || 'Canal não informado'} · ${row.received_at ? `recebida em ${formatDateTime(row.received_at)}` : 'data de recebimento não informada'} · versão ${row.current_version}` })]),
+        mutedText(`${CHANNELS[row.channel] || 'Canal não informado'} · ${row.received_at ? `recebida em ${formatDateTime(row.received_at)}` : 'data de recebimento não informada'} · versão ${row.current_version}`)]),
       el('div', { class: 'proposal-badges' }, [tag('Fonte externa'), pill(state, { size: 'sm' }), row.rfq_revision_matches === false ? tag(`Revisão ${row.rfq_revision} da solicitação`, 'warning') : null])
     ]),
     el('p', { class: 'muted small' }, [el('strong', { text: 'Referência: ' }), row.source_reference || 'não informada']),
     keyTerms(rfq.product, row.terms || {}, { currency: row.currency ?? null }),
     el('div', { class: 'proposal-foot' }, [
       el('span', { class: 'coverage-inline' }, [el('span', { class: 'coverage-bar' }, el('span', { class: 'coverage-fill', style: `width:${Math.round(cov.ratio * 100)}%` })), el('span', { text: `${cov.filled} de ${cov.total} condições comparáveis informadas` })]),
-      el('span', { class: 'muted small', text: row.currency ? `Moeda declarada ${row.currency}` : 'Moeda não declarada: não é convertida nem tratada como real' })
+      mutedText(row.currency ? `Moeda declarada ${row.currency}` : 'Moeda não declarada: não é convertida nem tratada como real', 'span')
     ]),
     missing.length ? el('p', { class: 'small warn-text', text: `Não informado no material: ${missing.join(', ')}. Permanece em branco; não vira zero nem vantagem na comparação.` }) : null,
     // Proveniência da versão atual: quem declarou, quem transcreveu, quem conferiu e o que a instituição não confirmou.
@@ -125,7 +125,7 @@ function externalCard(ctx, rfq, row, { canWrite, canReview, reload }) {
       ['Conferência da transcrição', row.state === 'reviewed' ? `${memberName(ctx.members, row.reviewed_by)}${row.reviewed_at ? ` em ${formatDateTime(row.reviewed_at)}` : ''} · versão ${row.current_version}` : row.state === 'withdrawn' ? 'Retirada da análise' : `Pendente para a versão ${row.current_version}`],
       ['Confirmação da instituição', 'Não registrada: a instituição não enviou nem confirmou estes termos no Arandu']
     ].map(([label, value]) => el('div', { class: 'deflist-row' }, [el('dt', { text: label }), el('dd', { text: value })]))),
-    el('p', { class: 'muted small', text: row.state === 'reviewed' ? row.decision_allowed===true ? 'Pode ser selecionada por decisão interna da empresa, com a aprovação aplicável. O registro contratual é uma etapa separada; não há assinatura automática.' : 'A transcrição foi conferida. Confira o estado do processo, a revisão e a disponibilidade do documento antes de decidir.' : row.state === 'withdrawn' ? 'Fora da comparação corrente; o histórico continua disponível.' : 'Fica fora da comparação até alguém da gestão conferir a transcrição.' }),
+    mutedText(row.state === 'reviewed' ? row.decision_allowed===true ? 'Pode ser selecionada por decisão interna da empresa, com a aprovação aplicável. O registro contratual é uma etapa separada; não há assinatura automática.' : 'A transcrição foi conferida. Confira o estado do processo, a revisão e a disponibilidade do documento antes de decidir.' : row.state === 'withdrawn' ? 'Fora da comparação corrente; o histórico continua disponível.' : 'Fica fora da comparação até alguém da gestão conferir a transcrição.'),
     el('details', { class: 'proposal-details' }, [el('summary', { text: 'Ver todas as condições transcritas' }), definitionList(PRODUCTS[rfq.product].proposalFields.filter((spec) => spec.key !== 'institution'), row.terms || {}, { showMissing: true, currency: row.currency ?? null })]),
     history,
     actions.length ? el('div', { class: 'row-actions' }, actions) : null
@@ -152,7 +152,7 @@ export function externalContractContinuation(ctx, rfq, decision) {
   ]);
   const load=async(after=null)=>{
     try {
-      const result=await ctx.api(`external-proposals/contracts?organization_id=${encodeURIComponent(ctx.organization.id)}&id=${encodeURIComponent(decision.external_proposal_id)}&limit=50${after?`&after=${encodeURIComponent(after)}`:''}`);
+      const result=await ctx.api(`external-proposals/contracts?organization_id=${ctx.orgId}&id=${encodeURIComponent(decision.external_proposal_id)}&limit=50${after?`&after=${encodeURIComponent(after)}`:''}`);
       for(const row of result.rows||[]) {records.set(row.id,row);select.add(new Option(`${row.title||'Contrato registrado'} · ${formatDate(row.starts_on)} a ${formatDate(row.ends_on)} · ${row.currency} · versão ${row.current_version}`,row.id));}
       status.textContent=records.size?'Confira o documento, as condições e a vigência antes de confirmar.':'Nenhum registro elegível encontrado. Registre o contrato na carteira e volte a esta solicitação.';
       if(result.page?.has_more) {const more=button('Carregar mais contratos',{size:'sm',onClick:()=>{more.remove();load(result.page.next_after);}});form.append(more);}
@@ -169,7 +169,7 @@ export function externalContractContinuation(ctx, rfq, decision) {
     } catch(error) {
       status.textContent=error.status&&error.status<500?explain(error):'O resultado ainda é desconhecido. Consulte antes de tentar novamente.';
       if(!error.status||error.status>=500) form.append(button('Consultar resultado do vínculo',{onClick:async()=>{
-        try {const result=await ctx.api(`external-proposals/result?organization_id=${encodeURIComponent(ctx.organization.id)}&id=${encodeURIComponent(decision.external_proposal_id)}&operation=contract&request_key=${encodeURIComponent(requestKey)}`);if(result.state==='confirmed')ctx.reload();else{status.textContent='O vínculo ainda não foi confirmado. Uma nova tentativa conservará a mesma intenção.';submit.disabled=false;}}catch{status.textContent='A consulta falhou. O resultado continua desconhecido; nenhuma nova gravação foi enviada.';}
+        try {const result=await ctx.api(`external-proposals/result?organization_id=${ctx.orgId}&id=${encodeURIComponent(decision.external_proposal_id)}&operation=contract&request_key=${encodeURIComponent(requestKey)}`);if(result.state==='confirmed')ctx.reload();else{status.textContent='O vínculo ainda não foi confirmado. Uma nova tentativa conservará a mesma intenção.';submit.disabled=false;}}catch{status.textContent='A consulta falhou. O resultado continua desconhecido; nenhuma nova gravação foi enviada.';}
       }}));else submit.disabled=false;
     }
   });
@@ -180,11 +180,11 @@ async function versionHistory(ctx, rfq, row, host, before = null) {
   const list = el('div', { class: 'stack' }, loading('Carregando histórico…'));
   host.append(list);
   try {
-    const result = await ctx.api(`external-proposals?organization_id=${encodeURIComponent(ctx.organization.id)}&id=${encodeURIComponent(row.id)}&limit=10${before ? `&before_version=${before}` : ''}`);
+    const result = await ctx.api(`external-proposals?organization_id=${ctx.orgId}&id=${encodeURIComponent(row.id)}&limit=10${before ? `&before_version=${before}` : ''}`);
     const reviews = result.reviews || [];
     list.replaceChildren(el('ol', { class: 'external-history', role: 'list' }, (result.versions || []).map((version) => el('li', { class: 'external-history-item' }, [
       el('p', {}, [el('strong', { text: `Versão ${version.version}` }), ' · ', pill(STATE[version.version_state] || STATE.preparing, { size: 'sm' })]),
-      el('p', { class: 'muted small', text: `Registrada por ${memberName(ctx.members, version.recorded_by)} em ${formatDateTime(version.recorded_at)} · ${CHANNELS[version.channel] || 'canal não informado'}` }),
+      mutedText(`Registrada por ${memberName(ctx.members, version.recorded_by)} em ${formatDateTime(version.recorded_at)} · ${CHANNELS[version.channel] || 'canal não informado'}`),
       version.correction_reason ? el('p', { class: 'small' }, [el('strong', { text: 'Motivo da correção: ' }), version.correction_reason]) : null,
       ...reviews.filter((item) => item.version === version.version).map((item) => el('p', { class: 'small' }, [
         el('strong', { text: item.action === 'confirm' ? 'Conferida: ' : 'Retirada: ' }),
@@ -224,8 +224,8 @@ function editor(ctx, rfq, { record = null, onSaved }) {
   // Registro novo não presume real: a moeda vem do material ou fica não declarada.
   currency.value = record?.currency || '';
   const documentSelect = el('select', { name: 'document' }, el('option', { value: '', text: 'Sem documento vinculado' }));
-  const documentHint = el('span', { class: 'muted small', text: 'Carregando documentos internos da solicitação…' });
-  ctx.api(`private-documents?organization_id=${encodeURIComponent(ctx.organization.id)}&entity_type=rfq&entity_id=${encodeURIComponent(rfq.id)}`).then(({ rows = [] }) => {
+  const documentHint = mutedText('Carregando documentos internos da solicitação…', 'span');
+  ctx.api(`private-documents?organization_id=${ctx.orgId}&entity_type=rfq&entity_id=${encodeURIComponent(rfq.id)}`).then(({ rows = [] }) => {
     const usable = rows.filter((doc) => doc.visibility === 'internal' && doc.versions?.some((version) => version.version === doc.current_version && version.completed_at));
     for (const doc of usable) documentSelect.add(new Option(`${doc.title} · versão ${doc.current_version}`, `${doc.id}|${doc.current_version}`));
     if (record?.document_id) documentSelect.value = `${record.document_id}|${record.document_version}`;
@@ -297,7 +297,7 @@ function editor(ctx, rfq, { record = null, onSaved }) {
       el('p', { class: 'small', text: `${plural(filled, 'condição informada', 'condições informadas')}; as demais ficam como não informadas.` }),
       keyTerms(rfq.product, terms, { currency: payload.currency }),
       record ? el('p', { class: 'small' }, [el('strong', { text: 'Motivo: ' }), payload.correction_reason]) : null,
-      el('p', { class: 'muted small', text: 'Depois de gravada, a versão fica aguardando conferência por alguém da gestão antes de entrar na comparação.' }),
+      mutedText('Depois de gravada, a versão fica aguardando conferência por alguém da gestão antes de entrar na comparação.'),
       formError
     ]));
     next.hidden = true; back.hidden = false; save.hidden = false; save.focus();
@@ -341,7 +341,7 @@ function review(ctx, row, action, reload) {
       : 'A proposta sai da comparação corrente. Versões e conferências anteriores continuam no histórico.' }),
     field({ label: confirm ? 'Como conferiu' : 'Motivo da retirada', control: reason, required: true, hint: 'Entre 10 e 1000 caracteres.' }),
     el('label', { class: 'check-row' }, [material, el('span', { text: 'Li o material recebido para esta conferência.' })]),
-    hasDocument ? el('label', { class: 'check-row' }, [documentRead, el('span', { text: 'Li o documento vinculado.' })]) : el('p', { class: 'muted small', text: 'Não há documento vinculado a esta versão.' }),
+    hasDocument ? el('label', { class: 'check-row' }, [documentRead, el('span', { text: 'Li o documento vinculado.' })]) : mutedText('Não há documento vinculado a esta versão.'),
     error, el('div', { class: 'form-actions' }, submit)
   ]);
   const sheet = drawer({ title: confirm ? 'Conferir transcrição' : 'Retirar da análise', subtitle: row.provider_name || null, body: form, onClose: reload });
@@ -371,7 +371,7 @@ function review(ctx, row, action, reload) {
 export async function loadExternalDecisionChoices(ctx,rfq) {
       const rows=[];let after=null;
       do {
-        const page=await ctx.api(`external-proposals?organization_id=${encodeURIComponent(ctx.organization.id)}&rfq_id=${encodeURIComponent(rfq.id)}&limit=50${after?`&after=${encodeURIComponent(after)}`:''}`);
+        const page=await ctx.api(`external-proposals?organization_id=${ctx.orgId}&rfq_id=${encodeURIComponent(rfq.id)}&limit=50${after?`&after=${encodeURIComponent(after)}`:''}`);
         rows.push(...(page.rows||[]));after=page.page?.has_more?page.page.next_after:null;
         if (after && rows.length>=500) throw new Error('Há alternativas demais para a seleção; reduza o escopo.');
       } while(after);
@@ -381,7 +381,7 @@ export async function loadExternalDecisionChoices(ctx,rfq) {
 export function externalDecisionRecovery(ctx,id,requestKey,onUnconfirmed) {
   return button('Consultar resultado da decisão',{onClick:async()=>{
     try {
-      const result=await ctx.api(`external-proposals/result?organization_id=${encodeURIComponent(ctx.organization.id)}&id=${encodeURIComponent(id)}&operation=decision&request_key=${encodeURIComponent(requestKey)}`);
+      const result=await ctx.api(`external-proposals/result?organization_id=${ctx.orgId}&id=${encodeURIComponent(id)}&operation=decision&request_key=${encodeURIComponent(requestKey)}`);
       if(result.state==='confirmed')ctx.reload();
       else {toast('Resultado ainda não confirmado. A próxima tentativa manterá a mesma intenção.');onUnconfirmed();}
     } catch {toast('Consulta indisponível. O resultado continua desconhecido.','error');}

@@ -2,7 +2,7 @@
 // Extraído de views/crm-workspace.js (v7.0).
 
 import { el, formatDate, todayIso } from '../../core.js';
-import { button, tag, loading, errorState, emptyState } from '../../ui.js';
+import { button, tag, loading, errorState, emptyState, mutedText } from '../../ui.js';
 import { ACTIVITY_KINDS, STAGES, STAGE_ORDER, crmErrorMessage, memberLabel, crmList } from './model.js';
 import { select } from './form.js';
 
@@ -12,7 +12,7 @@ export function crmOrganizationPanel(ctx, { providers = [], contracts = [], onOp
   const contractProvider = new Map(contracts.map((c) => [c.id, c.provider_id]));
   const providerOf = (row) => row.related_type === 'provider' ? row.related_id : row.related_type === 'contract' ? contractProvider.get(row.related_id) : null;
   const headline = el('div', { class: 'cc-head' }, [el('div', {}, [el('h2', { id: 'crm-org-title', class: 'card-title', text: 'Agenda e processos comerciais' }),
-    el('p', { class: 'muted small', text: 'Compromissos pendentes e processos ativos registrados pela equipe, de todas as instituições do seu escopo.' })])]);
+    mutedText('Compromissos pendentes e processos ativos registrados pela equipe, de todas as instituições do seu escopo.')])]);
   const load = async () => {
     root.replaceChildren(headline, loading('Carregando agenda…'));
     try {
@@ -33,7 +33,7 @@ export function crmOrganizationPanel(ctx, { providers = [], contracts = [], onOp
         const late = due && due < today;
         return el('li', { class: `crm-row${late ? ' crm-row-late' : ''}`, dataset: { crm: kind } }, [
           el('div', { class: 'crm-row-main' }, [
-            el('span', { class: 'muted small', text: kind === 'activity' ? ACTIVITY_KINDS[r.kind] : `Processo · ${STAGES[r.stage]}` }),
+            mutedText(kind === 'activity' ? ACTIVITY_KINDS[r.kind] : `Processo · ${STAGES[r.stage]}`, 'span'),
             el('strong', { text: kind === 'activity' ? r.subject : `${r.title}: ${r.next_action}` }),
             el('span', { class: 'small', text: [due ? `${late ? 'Venceu em' : 'Prazo'} ${formatDate(due)}` : 'Sem prazo', `responsável: ${memberLabel(ctx, r.owner_id)}`, pid && providerName.get(pid) ? providerName.get(pid) : null].filter(Boolean).join(' · ') })
           ]),
@@ -55,7 +55,7 @@ export function crmOrganizationPanel(ctx, { providers = [], contracts = [], onOp
       root.replaceChildren(headline,
         el('ul', { class: 'pipeline', 'aria-label': 'Processos ativos por etapa' }, stageCounts.map(([s, n]) => el('li', { class: `pipeline-stage${n ? '' : ' empty'}` }, [el('span', { class: 'pipeline-count', text: String(n) }), el('span', { class: 'pipeline-label', text: STAGES[s] })]))),
         el('div', { class: 'toolbar' }, [filter, inst, owner]), list,
-        ...(planned.truncated || processes.truncated ? [el('p', { class: 'muted small', text: 'Mostrando os primeiros 200 registros de cada tipo.' })] : []));
+        ...(planned.truncated || processes.truncated ? [mutedText('Mostrando os primeiros 200 registros de cada tipo.')] : []));
       draw();
     } catch (error) {
       if (error.status === 503) { root.replaceChildren(headline, el('p', { class: 'callout callout-info compact', text: 'O registro comercial ainda não está disponível neste ambiente.' })); return; }

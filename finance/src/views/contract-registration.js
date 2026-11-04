@@ -34,7 +34,7 @@ export function contractForm(ctx, rfq, decision, chosen) {
     reading = true; check.disabled = true;
     feedback.replaceChildren(loading('Conferindo o registro no servidor…'));
     try {
-      const result = await ctx.api(`decisions?organization_id=${encodeURIComponent(ctx.organization.id)}&rfq_id=${encodeURIComponent(rfq.id)}`);
+      const result = await ctx.api(`decisions?organization_id=${ctx.orgId}&rfq_id=${encodeURIComponent(rfq.id)}`);
       const found = result.rows?.find(row=>row.id===decision.id)?.contract;
       if (found?.id && found.decision_id===decision.id) {
         feedback.replaceChildren(el('p',{text:'Contrato localizado. O registro foi preservado sem novo envio.'}),linkButton('Abrir ciclo de vida do contrato',ctx.href(`/finance/contracts.html#contract-${found.id}`),{variant:'primary'}));

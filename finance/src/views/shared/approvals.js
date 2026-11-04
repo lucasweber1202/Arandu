@@ -2,7 +2,7 @@
 // Extraído de views/shared.js (v7.0): dependências específicas, sem barrel.
 
 import { el, icon, timeAgo, APPROVAL_STATUS } from '../../core.js';
-import { button, pill, toast, promptDialog, confirmDialog, field } from '../../ui.js';
+import { button, pill, toast, promptDialog, confirmDialog, field, toastError } from '../../ui.js';
 import { memberName, memberTitle } from './people.js';
 
 export function approvalSteps(request, members) {
@@ -67,7 +67,7 @@ export function approvalActions(ctx, request, { onDone }) {
       toast({ approved: result.status === 'pending' ? 'Aprovação registrada. O próximo aprovador foi avisado.' : 'Aprovação registrada.', rejected: 'Rejeição registrada.', changes_requested: 'Pedido de alterações registrado.' }[action]);
       onDone?.();
     } catch (error) {
-      toast(error.message, 'error');
+      toastError(error);
       // Recusa de acesso (papel ou membresia mudou, #215) é definitiva: repetir não
       // adianta. Resultado incerto (rede, 5xx) pede conferir antes de votar de novo.
       const refused = error.status === 403 || error.status === 404;

@@ -4,10 +4,11 @@ import { el, formatDate, productLabel, renewalStage, CONTRACT_STATUS, RFQ_STATUS
 import { CONTRACT_CATEGORIES } from '../../../lib/finance/contract-terms.mjs';
 import { FACILITY_KINDS } from '../../../lib/finance/portfolio.mjs';
 import { graphContextCard } from './graph-context.js';
+import { mutedText } from '../ui.js';
 
 const amount = (value, currency) => value === null || value === undefined ? 'Não informado' : new Intl.NumberFormat('pt-BR', { style: 'currency', currency }).format(value);
 const date = value => value ? formatDate(value) : 'Não informada';
-const section = (title, rows, render, empty) => el('section', { class: 'cc-section' }, [el('h3', { text: title }), rows.length ? el('ul', { class: 'plain-list' }, rows.map(render)) : el('p', { class: 'muted small', text: empty })]);
+const section = (title, rows, render, empty) => el('section', { class: 'cc-section' }, [el('h3', { text: title }), rows.length ? el('ul', { class: 'plain-list' }, rows.map(render)) : mutedText(empty)]);
 export function relationshipContext(ctx, detail) {
   const provider = detail.provider;
   const contracts = detail.contracts || [];
@@ -18,7 +19,7 @@ export function relationshipContext(ctx, detail) {
   const href = path => ctx.href(path);
   const quickLinks = [['fees', 'Tarifas e cobranças'], ['covenants', 'Obrigações e covenants'], ['opportunities', 'Renovações e oportunidades'], ['qualifications', 'Qualificação'], ['performance', 'Performance'], ['spend', 'Spend']];
   return el('div', { class: 'stack relationship-context' }, [
-    el('p', { class: 'muted small', text: `Recorte autorizado: contratos carregados por página; até 200 facilities e 500 convites, propostas e solicitações; 2.000 fotografias de saldo. Os indicadores e o mapa descrevem o recorte inicial, não o histórico completo. As listas de contratos e tarefas permitem carregar mais. Cadastro ${provider.verification_state === 'EVIDENCIA_REGISTRADA' ? 'com evidência registrada; não é atestação de regularidade' : 'sem verificação registrada'}.` }),
+    mutedText(`Recorte autorizado: contratos carregados por página; até 200 facilities e 500 convites, propostas e solicitações; 2.000 fotografias de saldo. Os indicadores e o mapa descrevem o recorte inicial, não o histórico completo. As listas de contratos e tarefas permitem carregar mais. Cadastro ${provider.verification_state === 'EVIDENCIA_REGISTRADA' ? 'com evidência registrada; não é atestação de regularidade' : 'sem verificação registrada'}.`),
     section('Contratos e condições', contracts, contract => el('li', {}, [el('a', { href: href(`/finance/contracts.html?abrir=contrato#contract-${contract.id}`), text: contract.title || [CONTRACT_CATEGORIES[contract.product] || (contract.product ? productLabel(contract.product) : ''), contract.ends_on ? `vence ${date(contract.ends_on)}` : ''].filter(Boolean).join(' · ') || 'Contrato sem título' }), el('p', { class: 'small muted', text: `${CONTRACT_STATUS[contract.status]?.label || 'Estado não informado'} · início ${date(contract.starts_on)} · término ${date(contract.ends_on)}. Abra o contrato para condições, versões, obrigações e renovação.` })]), 'Nenhum contrato disponível neste recorte.'),
     section('Facilities e limites', facilities, facility => {
       const balance = balances.get(facility.id);

@@ -8,7 +8,7 @@
 // Nenhum segredo é pedido ou aceito aqui.
 
 import { el, icon, formatDate, formatDateTime, uid, plural } from '../core.js';
-import { button, tag, field, drawer, toast, confirmDialog, sessionLink, loading, errorState } from '../ui.js';
+import { button, tag, field, drawer, toast, confirmDialog, sessionLink, loading, errorState, mutedText } from '../ui.js';
 import { CHARGING_UNITS } from '../../../lib/finance/fee-intelligence.mjs';
 import { periodText, amountText } from './fee-import.js';
 
@@ -43,7 +43,7 @@ export function erpHubSection(ctx, { contracts = [] } = {}) {
     el('p', { class: 'small', text: 'Além da API pública e dos webhooks, o Arandu tem um adaptador de leitura para o Business Central. "Configurada" registra o mapeamento; a conexão só é comprovada quando uma prévia lê dados reais com credencial aprovada no servidor.' })
   ];
   const catalog = el('ul', { class: 'plain-list erp-list', 'aria-label': 'ERPs' }, ERP_CATALOG.map((erp) => el('li', { class: 'erp-row', dataset: { state: erp.state } }, [
-    el('div', {}, [el('span', { text: erp.name }), erp.detail ? el('p', { class: 'muted small', text: erp.detail }) : null]),
+    el('div', {}, [el('span', { text: erp.name }), erp.detail ? mutedText(erp.detail) : null]),
     erp.state === 'implemented' ? tag('Adaptador implementado · leitura', 'info') : tag('Suporte planejado · sem conector', 'neutral')])));
   const list = el('div', { class: 'stack-sm' });
   const load = async () => {
@@ -53,8 +53,8 @@ export function erpHubSection(ctx, { contracts = [] } = {}) {
       const rows = out.rows || [];
       list.replaceChildren(
         el('h4', { class: 'small', text: `Integrações Business Central (${rows.length})` }),
-        rows.length ? el('ul', { class: 'plain-list crm-list' }, rows.map(row)) : el('p', { class: 'muted small', text: 'Nenhuma integração configurada.' }),
-        admin ? button('Configurar Business Central', { size: 'sm', iconName: 'plus', onClick: () => configure() }) : el('p', { class: 'muted small', text: 'Somente administração configura integrações.' }));
+        rows.length ? el('ul', { class: 'plain-list crm-list' }, rows.map(row)) : mutedText('Nenhuma integração configurada.'),
+        admin ? button('Configurar Business Central', { size: 'sm', iconName: 'plus', onClick: () => configure() }) : mutedText('Somente administração configura integrações.'));
     } catch (error) {
       list.replaceChildren(error.status === 503 ? el('p', { class: 'callout callout-info compact', text: 'Integrações de ERP ainda não estão disponíveis neste ambiente.' }) : errorState({ title: 'Integrações indisponíveis', error: { ...error, message: erpErrorMessage(error) }, onRetry: load }));
     }
@@ -66,7 +66,7 @@ export function erpHubSection(ctx, { contracts = [] } = {}) {
       el('div', { class: 'crm-row-main' }, [
         el('strong', { text: contractName(cfg.contract_id) }),
         el('span', { class: 'small', text: `Ambiente ${s.environment || '—'} · serviço "${s.service || '—'}" · ${s.currency || '—'} · ${CHARGING_UNITS[s.charging_unit] || s.charging_unit || '—'}` }),
-        el('span', { class: 'muted small', text: `Versão ${cfg.version}${cfg.updated_at || cfg.happened_at ? ` · ${formatDateTime(cfg.updated_at || cfg.happened_at)}` : ''} · conexão externa ${cfg.connection_state === 'not_tested' || !cfg.connection_state ? 'não testada' : 'informada pelo servidor'}` })
+        mutedText(`Versão ${cfg.version}${cfg.updated_at || cfg.happened_at ? ` · ${formatDateTime(cfg.updated_at || cfg.happened_at)}` : ''} · conexão externa ${cfg.connection_state === 'not_tested' || !cfg.connection_state ? 'não testada' : 'informada pelo servidor'}`, 'span')
       ]),
       tag(label, tone),
       el('div', { class: 'crm-row-actions' }, [
@@ -179,12 +179,12 @@ export function erpHubSection(ctx, { contracts = [] } = {}) {
       }));
       out.replaceChildren(
         el('p', { class: 'small', text: `${plural(rows.length, 'lançamento lido', 'lançamentos lidos')}${preview.coverage?.complete === false ? ' (recorte incompleto: reduza o período)' : ''}. ${Object.entries(stats).filter(([, n]) => n).map(([k, n]) => `${({ valid: 'válidos', duplicate: 'já registrados', conflicting: 'em conflito', invalid: 'inválidos', incomplete: 'incompletos', pending_review: 'para revisão (créditos, estornos ou zero)' })[k] || 'outros'}: ${n}`).join(' · ')}` }),
-        el('p', { class: 'muted small', text: 'Só lançamentos válidos podem ser marcados. Desmarque o que não pertence a este contrato antes de gravar.' }),
+        mutedText('Só lançamentos válidos podem ser marcados. Desmarque o que não pertence a este contrato antes de gravar.'),
         list, confirm);
       sync();
     }
     drawer({ title: 'Prévia do Business Central', subtitle: contractName(cfg.contract_id), body: el('div', { class: 'stack' }, [
-      el('p', { class: 'muted small', text: 'Leitura de até 5 páginas / 100 lançamentos da conta mapeada. Créditos, estornos e valores zero ficam para revisão, nunca viram despesa automaticamente.' }),
+      mutedText('Leitura de até 5 páginas / 100 lançamentos da conta mapeada. Créditos, estornos e valores zero ficam para revisão, nunca viram despesa automaticamente.'),
       field({ label: 'Início do período', control: start, required: true }), field({ label: 'Fim do período', control: end, required: true }), go, out]) });
   }
   root.append(...head, catalog, list);

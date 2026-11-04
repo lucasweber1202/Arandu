@@ -5,7 +5,7 @@ import { negotiationOrigin } from './negotiation-origin.js';
 
 import { PRODUCTS } from '../../../lib/finance/products.mjs';
 import { el, icon, fieldValue, formatDate, relativeDays, daysUntil, plural, productLabel, RFQ_STATUS, PROPOSAL_STATUS, PROVIDER_KINDS, todayIso, timeAgo } from '../core.js';
-import { card, pill, tag, button, linkButton, emptyState, errorState, loading, tabs, definitionList, toast, confirmDialog, drawer, field, catalogControl, person, menu, progress, onSubmit } from '../ui.js';
+import { card, pill, tag, button, linkButton, emptyState, errorState, loading, tabs, definitionList, toast, confirmDialog, drawer, field, catalogControl, person, menu, progress, onSubmit, mutedText, toastError } from '../ui.js';
 import { loadEntities, rfqEntityControl } from './entities.js';
 import { revisionTimeline, collaboration, activityLog } from './shared/collaboration.js';
 import { currentStep, isViewerTurn } from './shared/approvals.js';
@@ -68,9 +68,9 @@ export async function rfqDetail(ctx) {
   // exigida": a tela diz o que faltou e não oferece decidir nem pedir aprovação.
   const gaps = new Set();
   const [approvals, decisions, generalPolicy, evaluation, entities] = await Promise.all([
-    ((__ARANDU_DEMO__ && ctx.mode === 'demo') ? ctx.loadApprovals() : ctx.api(`approvals?organization_id=${encodeURIComponent(ctx.organization.id)}&rfq_id=${encodeURIComponent(rfq.id)}`).then(result=>result.rows || [])).then((rows) => rows.filter((row) => row.rfq_id === rfq.id)).catch(()=>{gaps.add('as aprovações'); return [];}),
-    ctx.api(`decisions?organization_id=${encodeURIComponent(ctx.organization.id)}${(__ARANDU_DEMO__ && ctx.mode === 'demo') ? '' : `&rfq_id=${encodeURIComponent(rfq.id)}`}`).then((result) => result.rows || []).catch(() => { gaps.add('a decisão registrada'); return []; }),
-    ctx.api(`approval-policy?organization_id=${encodeURIComponent(ctx.organization.id)}`).catch(() => { gaps.add('a política de aprovação'); return { required_for_decision: false }; }),
+    ((__ARANDU_DEMO__ && ctx.mode === 'demo') ? ctx.loadApprovals() : ctx.api(`approvals?organization_id=${ctx.orgId}&rfq_id=${encodeURIComponent(rfq.id)}`).then(result=>result.rows || [])).then((rows) => rows.filter((row) => row.rfq_id === rfq.id)).catch(()=>{gaps.add('as aprovações'); return [];}),
+    ctx.api(`decisions?organization_id=${ctx.orgId}${(__ARANDU_DEMO__ && ctx.mode === 'demo') ? '' : `&rfq_id=${encodeURIComponent(rfq.id)}`}`).then((result) => result.rows || []).catch(() => { gaps.add('a decisão registrada'); return []; }),
+    ctx.api(`approval-policy?organization_id=${ctx.orgId}`).catch(() => { gaps.add('a política de aprovação'); return { required_for_decision: false }; }),
     // Exigência pela policy v2 (sem proposta escolhida ainda): a decisão sem
     // pedido só passa quando nenhuma policy pede etapa ou bloqueio.
     ['collecting', 'comparing'].includes(rfq.status) && (proposals.length || rfq.external_decision_alternatives?.length)
@@ -100,7 +100,7 @@ export async function rfqDetail(ctx) {
       await ctx.send('transition', { kind: 'rfq', id: rfq.id, from: rfq.status, status });
       toast({ open: 'Solicitação aberta para propostas.', comparing: 'Coleta encerrada. Propostas prontas para avaliação.', collecting: 'Coleta reaberta.', cancelled: 'Solicitação cancelada.' }[status] || 'Estado atualizado.');
       ctx.reload();
-    } catch (error) { toast(error.message, 'error'); }
+    } catch (error) { toastError(error); }
   };
   const actions = [];
   if (manage) {
@@ -204,7 +204,7 @@ function overviewTab(ctx, rfq, { manage, pending, approvals, decision, contract,
     body: [invites.length ? inviteList : emptyState({ title: 'Convide pelo menos três provedores', text: 'Com menos de três propostas, a comparação diz pouco.', iconName: 'users', compact: true }),
       manage && ['draft', 'open', 'collecting'].includes(rfq.status) ? inviteForm(ctx, rfq) : null] });
 
-  const reuse = card({ title: 'Reaproveitar', id: 'reaproveitar', body: [el('p', { class: 'muted small', text: 'Comece outra solicitação com esta demanda. Convites, propostas e decisões não são copiados.' }),
+  const reuse = card({ title: 'Reaproveitar', id: 'reaproveitar', body: [mutedText('Comece outra solicitação com esta demanda. Convites, propostas e decisões não são copiados.'),
     linkButton('Criar nova solicitação com estes dados', ctx.href(`/finance/new-rfq.html?clone=${encodeURIComponent(rfq.id)}`), { size: 'sm', iconName: 'repeat' })] });
   const documents = card({ title: 'Documentos', subtitle: 'Balanços, minutas e anexos do processo, em armazenamento privado.', id: 'documentos', body: el('div', {}, loading()) });
   import('./documents.js').then(({ documentsPanel }) => documents.querySelector('.card-body').replaceChildren(documentsPanel(ctx, {
@@ -227,7 +227,7 @@ function passportSnapshotCard(ctx, rfq) {
   const slot = el('div', { hidden: true });
   const body = el('div');
   const node = card({ title: 'Dados do Financial Passport', subtitle: 'Fotografia do perfil no momento da criação. Mudanças posteriores no Passport não alteram este processo.', id: 'passport', body });
-  ctx.api(`rfq-passport?organization_id=${encodeURIComponent(ctx.organization.id)}&rfq_id=${encodeURIComponent(rfq.id)}`).then(async ({ rows }) => {
+  ctx.api(`rfq-passport?organization_id=${ctx.orgId}&rfq_id=${encodeURIComponent(rfq.id)}`).then(async ({ rows }) => {
     if (!rows?.length) return;
     // Rótulos do Passport só quando há fotografia: fora do carregamento inicial da rota.
     const { SOURCE_LABELS, fieldLabel } = await import('../../../lib/finance/passport.mjs');
@@ -314,7 +314,7 @@ function nextStepCard(ctx, rfq, { pending, approvals = [], decision, contract, p
 function inviteForm(ctx, rfq) {
   const invited = new Set((rfq.invites || []).filter((row) => ['invited', 'accepted'].includes(row.status)).map((row) => row.provider_id));
   const options = (ctx.data.providers || []).filter((provider) => provider.status === 'active' && !invited.has(provider.id));
-  if (!options.length) return el('p', { class: 'muted small', text: 'Todos os provedores cadastrados já foram convidados. Cadastre outros em Provedores.' });
+  if (!options.length) return mutedText('Todos os provedores cadastrados já foram convidados. Cadastre outros em Provedores.');
   const select = el('select', { name: 'provider_id' });
   for (const provider of options) select.add(new Option(`${provider.name} · ${PROVIDER_KINDS[provider.kind] || 'tipo não informado'}`, provider.id));
   const submit = button('Convidar', { variant: 'secondary', type: 'submit', size: 'sm', iconName: 'send' });
@@ -335,7 +335,7 @@ function inviteForm(ctx, rfq) {
           body: el('input', { class: 'input mono', readonly: true, value: `${location.origin}/provider/invite.html#token=${result.invitationToken}`, 'aria-label': 'Link de convite' }) });
       }
       ctx.reload();
-    } catch (error) { toast(error.message, 'error'); submit.disabled = false; }
+    } catch (error) { toastError(error); submit.disabled = false; }
   });
   return form;
 }
@@ -391,7 +391,7 @@ function proposalsTab(ctx, rfq) {
     const details = el('details', { class: 'proposal-details' }, [el('summary', { text: 'Ver todas as condições' }), definitionList(PRODUCTS[rfq.product].proposalFields.filter((item) => item.key !== 'institution'), proposal.terms, { showMissing: true })]);
     wrap.append(el('article', { class: 'proposal-card', id: `proposal-${proposal.id}` }, [
       el('header', { class: 'proposal-head' }, [
-        el('div', {}, [el('h3', { class: 'proposal-name', text: proposal.provider_name }), el('p', { class: 'muted small', text: `${PROVIDER_KINDS[proposal.provider_kind] || 'Provedor'} · enviada ${timeAgo(proposal.submitted_at)} · versão ${proposal.version}${proposal.versions_count > 1 ? ` de ${proposal.versions_count}` : ''}` })]),
+        el('div', {}, [el('h3', { class: 'proposal-name', text: proposal.provider_name }), mutedText(`${PROVIDER_KINDS[proposal.provider_kind] || 'Provedor'} · enviada ${timeAgo(proposal.submitted_at)} · versão ${proposal.version}${proposal.versions_count > 1 ? ` de ${proposal.versions_count}` : ''}`)]),
         el('div', { class: 'proposal-badges' }, [pill(PROPOSAL_STATUS[proposal.status], { size: 'sm' }), proposal.rfq_revision ? tag(`Respondeu à rev. ${proposal.rfq_revision}`, outdated ? 'warning' : 'neutral') : null])
       ]),
       outdated ? el('p', { class: 'callout callout-warning compact' }, [icon('alert', { size: 14 }), el('span', { text: `Esta proposta foi enviada antes da revisão ${rfq.revision}. As condições respondem à revisão ${proposal.rfq_revision}.` })]) : null,
@@ -406,7 +406,7 @@ function proposalsTab(ctx, rfq) {
   // Convite recusado, revogado ou expirado não está "aguardando".
   const waiting = (rfq.invites || []).filter((invite) => ['invited', 'accepted'].includes(invite.status) && !proposals.some((proposal) => proposal.provider_id === invite.provider_id));
   if (waiting.length) wrap.append(card({ title: 'Ainda sem resposta', headingLevel: 3, body: el('ul', { class: 'invite-list', role: 'list' }, waiting.map((invite) =>
-    el('li', { class: 'invite-row' }, [person(invite.provider_name), el('span', { class: 'muted small', text: invite.status === 'accepted' ? 'aceitou o convite e está preparando' : 'ainda não aceitou o convite' })]))) }));
+    el('li', { class: 'invite-row' }, [person(invite.provider_name), mutedText(invite.status === 'accepted' ? 'aceitou o convite e está preparando' : 'ainda não aceitou o convite', 'span')]))) }));
   // Ofertas recebidas fora do portal ficam em seção própria: os contadores do
   // portal não dizem nada sobre elas (contrato v3.7).
   if (ctx.audience === 'company') {

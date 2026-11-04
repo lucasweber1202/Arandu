@@ -3,7 +3,7 @@
 // Extraído de views/rfq.js (v7.0).
 
 import { el, icon } from '../../core.js';
-import { button, errorState, loading } from '../../ui.js';
+import { button, errorState, loading, mutedText } from '../../ui.js';
 import { comparisonMatrix, weightsPanel } from '../shared/comparison.js';
 import { exportProcess } from './export.js';
 
@@ -50,7 +50,7 @@ export function comparisonTab(ctx, rfq, decision = null) {
   if (proposals.length) {
     ctx.send('signals', { organization_id: ctx.organization.id, event: 'comparison_viewed', entity_type: 'rfq', entity_id: rfq.id }).catch(() => {});
     wrap.append(el('div', { class: 'row-actions' }, [button('Exportar processo (JSON)', { size: 'sm', iconName: 'download', attrs: { id: 'export-rfq' }, onClick: () => exportProcess(ctx, rfq) }),
-      el('span', { class: 'muted small', text: 'Registro factual: demanda, propostas, critérios e decisão, com datas. Sem recomendação.' })]));
+      mutedText('Registro factual: demanda, propostas, critérios e decisão, com datas. Sem recomendação.', 'span')]));
   }
   return wrap;
 }

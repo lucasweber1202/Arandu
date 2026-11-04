@@ -8,7 +8,7 @@
 // após falha; repetir reenvia a mesma intenção.
 
 import { el, icon, formatDate, moneyIn, uid, plural } from '../core.js';
-import { button, drawer, field, toast, sessionLink, confirmDialog } from '../ui.js';
+import { button, drawer, field, toast, sessionLink, confirmDialog, mutedText } from '../ui.js';
 import { CHARGING_UNITS } from '../../../lib/finance/fee-intelligence.mjs';
 
 export const IMPORT_LIMITS = Object.freeze({ bytes: 65536, rows: 100, columns: 40 });
@@ -83,7 +83,7 @@ export function openFeeImport(ctx, { contracts = [], contractId = null } = {}) {
     setStep(1);
     const next = button('Ler colunas', { variant: 'primary', iconName: 'arrowRight', onClick: readFile });
     area.replaceChildren(
-      el('p', { class: 'muted small', text: `Formatos: CSV (UTF-8) ou XLSX sem fórmulas. Até ${IMPORT_LIMITS.bytes / 1024} KiB, ${IMPORT_LIMITS.rows} registros e ${IMPORT_LIMITS.columns} colunas; primeira linha é o cabeçalho. Nada é gravado antes da sua confirmação.` }),
+      mutedText(`Formatos: CSV (UTF-8) ou XLSX sem fórmulas. Até ${IMPORT_LIMITS.bytes / 1024} KiB, ${IMPORT_LIMITS.rows} registros e ${IMPORT_LIMITS.columns} colunas; primeira linha é o cabeçalho. Nada é gravado antes da sua confirmação.`),
       field({ label: 'Contrato das tarifas', control: contract, required: true, hint: 'A cobrança observada é comparada às tarifas contratadas deste contrato.' }),
       field({ label: 'Arquivo', control: fileInput, required: true }), delimiterField,
       field({ label: 'Origem do arquivo', control: source, required: true, hint: 'Use sempre o mesmo nome para o mesmo conjunto externo: é parte da chave contra duplicidade.' }),
@@ -177,7 +177,7 @@ export function openFeeImport(ctx, { contracts = [], contractId = null } = {}) {
           el('td', { 'data-label': 'Serviço', text: v.service || '—' }), el('td', { 'data-label': 'Período', text: periodText(v) }),
           el('td', { 'data-label': 'Valor', class: 'num', text: amountText(v) }),
           el('td', { 'data-label': 'Problemas' }, (r.errors || []).length ? el('ul', { class: 'plain-list small' }, r.errors.map((e) => el('li', { text: `${e.column ? `Coluna "${e.column}": ` : ''}${CODE_TEXT[e.code] || 'Problema'}${e.suggestion ? ` — ${e.suggestion}` : ''}` })))
-            : r.state === 'conflicting' ? el('span', { class: 'small', text: 'Mesmo identificador de origem com valores diferentes do já registrado. Não sobrescreve: revise a origem.' }) : el('span', { class: 'muted small', text: '—' }))
+            : r.state === 'conflicting' ? el('span', { class: 'small', text: 'Mesmo identificador de origem com valores diferentes do já registrado. Não sobrescreve: revise a origem.' }) : mutedText('—', 'span'))
         ]);
       }));
     };
@@ -200,7 +200,7 @@ export function openFeeImport(ctx, { contracts = [], contractId = null } = {}) {
     const historySlot = el('div', { class: 'import-history-slot' });
     area.replaceChildren(
       el('ul', { class: 'import-stats', 'aria-label': 'Resumo da prévia' }, Object.entries(STATE).filter(([k]) => stats[k]).map(([k, [label, tone]]) => el('li', { class: `tag tag-${tone}`, text: `${label}: ${stats[k]}` }))),
-      el('p', { class: 'muted small', text: `Prévia calculada pelo servidor sobre ${plural(p.rows.length, 'registro', 'registros')}. Só linhas válidas ou já registradas podem ser selecionadas.` }),
+      mutedText(`Prévia calculada pelo servidor sobre ${plural(p.rows.length, 'registro', 'registros')}. Só linhas válidas ou já registradas podem ser selecionadas.`),
       el('div', { class: 'toolbar' }, [filter]),
       el('div', { class: 'table-card' }, el('table', { class: 'data-table compact import-preview' }, [el('thead', {}, el('tr', {}, ['Importar', 'Linha', 'Situação', 'Serviço', 'Período', 'Valor', 'Problemas'].map((t) => el('th', { scope: 'col', text: t })))), tbody])),
       selCount, errBox, el('div', { class: 'form-actions' }, [button('Corrigir mapeamento', { variant: 'ghost', onClick: stepTwo }), confirm]), historySlot);
@@ -216,7 +216,7 @@ export function openFeeImport(ctx, { contracts = [], contractId = null } = {}) {
     area.replaceChildren(
       el('div', { class: 'callout callout-success', role: 'status' }, [icon('checkCircle', { size: 16 }), el('span', { text: `${receipt.replayed ? 'Esta importação já tinha sido registrada; nada foi duplicado. ' : ''}${plural(imported, 'linha importada', 'linhas importadas')}, ${plural(ignored, 'linha ignorada (já registrada)', 'linhas ignoradas (já registradas)')}.` })]),
       ...(rows.length ? [el('ul', { class: 'plain-list small' }, rows.map((r) => el('li', { text: `Linha ${r.line}: ${r.state === 'imported' ? 'importada' : 'já existia, ignorada'}` })))] : []),
-      el('p', { class: 'muted small', text: 'As cobranças observadas entram em Tarifas bancárias, comparadas às tarifas do contrato. Diferenças aguardam revisão humana.' }),
+      mutedText('As cobranças observadas entram em Tarifas bancárias, comparadas às tarifas do contrato. Diferenças aguardam revisão humana.'),
       el('div', { class: 'form-actions' }, [
         el('a', { class: 'btn btn-secondary', href: ctx.href(`/finance/fees.html?contract_id=${enc(contract.value)}`) }, el('span', { class: 'btn-label', text: 'Ver tarifas do contrato' })),
         el('a', { class: 'btn btn-ghost', href: ctx.href(`/finance/contracts.html?abrir=contrato#contract-${contract.value}`) }, el('span', { class: 'btn-label', text: 'Abrir contrato' })),
@@ -227,8 +227,8 @@ export function openFeeImport(ctx, { contracts = [], contractId = null } = {}) {
     const box = el('section', { class: 'stack-sm', 'aria-label': 'Importações deste contrato' }, [el('h3', { class: 'small', text: 'Importações anteriores deste contrato' })]);
     ctx.api(`fee-imports/history?organization_id=${enc(ctx.organization.id)}&contract_id=${enc(contract.value)}&limit=25`).then((out) => {
       const rows = out.rows || [];
-      box.append(rows.length ? el('ul', { class: 'plain-list small' }, rows.map((r) => el('li', { text: `${formatDate(r.happened_at)} · ${r.metadata?.file_name || 'arquivo'} · ${plural(r.metadata?.imported ?? 0, 'importada', 'importadas')}` }))) : el('p', { class: 'muted small', text: 'Nenhuma importação anterior.' }));
-    }).catch(() => box.append(el('p', { class: 'muted small', text: 'Histórico indisponível agora.' })));
+      box.append(rows.length ? el('ul', { class: 'plain-list small' }, rows.map((r) => el('li', { text: `${formatDate(r.happened_at)} · ${r.metadata?.file_name || 'arquivo'} · ${plural(r.metadata?.imported ?? 0, 'importada', 'importadas')}` }))) : mutedText('Nenhuma importação anterior.'));
+    }).catch(() => box.append(mutedText('Histórico indisponível agora.')));
     return box;
   }
 

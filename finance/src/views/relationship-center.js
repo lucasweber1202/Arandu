@@ -4,7 +4,7 @@
 // situação, quem pode agir, de onde vem a informação e para onde seguir.
 
 import { el, icon, formatDate, relativeDays, plural, productLabel, renewalStage, RFQ_STATUS } from '../core.js';
-import { button, emptyState, confirmDialog, toast } from '../ui.js';
+import { button, emptyState, confirmDialog, toast, mutedText } from '../ui.js';
 import { CONTRACT_CATEGORIES } from '../../../lib/finance/contract-terms.mjs';
 import { TASK_EDITORS } from './shared/tasks.js';
 import { entityName } from './entities.js';
@@ -196,7 +196,7 @@ export function relationshipWorkQueue(ctx, { entities, onOpenProvider = null, im
       capped.length ? el('p', { class: 'callout callout-info compact', role: 'note', id: 'rel-center-scope' }, [icon('info', { size: 14 }), el('span', { text: `Recorte: o resumo lê até ${OVERVIEW_LIMITS.contracts} contratos, ${OVERVIEW_LIMITS.tasks} tarefas abertas e ${OVERVIEW_LIMITS.rfqs} solicitações, e chegou ao limite em ${capped.join(', ')}. A fila mostra só o que foi carregado; as listas de Contratos e Tarefas consultam o restante.` })]) : null,
       status, radarNote, list, more,
       missing.length ? el('details', { class: 'rel-missing' }, [el('summary', { text: `${plural(missing.length, 'instituição sem contrato vigente registrado', 'instituições sem contrato vigente registrado')}` }),
-        el('p', { class: 'muted small', text: 'Comece pelo que a empresa já tem: registre o contrato existente para acompanhar condições, prazo e renovação, mesmo que a instituição não use o Arandu.' }),
+        mutedText('Comece pelo que a empresa já tem: registre o contrato existente para acompanhar condições, prazo e renovação, mesmo que a instituição não use o Arandu.'),
         el('ul', { class: 'plain-list' }, missing.map((row) => el('li', { class: 'rel-missing-row' }, [el('span', { text: row.name }), importButton ? importButton(row.id) : null].filter(Boolean))))]) : null
     ].filter(Boolean))
   ]);
@@ -212,7 +212,7 @@ function queueItem(ctx, item, onOpenProvider, entities) {
   return el('li', { class: `rel-item tone-${meta.tone}`, dataset: { situation: item.situation, key: item.id } }, [
     el('div', { class: 'rel-item-main' }, [
       el('p', { class: 'rel-item-kicker' }, [el('span', { class: `pill pill-${meta.tone} pill-sm` }, [el('span', { class: 'pill-dot', 'aria-hidden': 'true' }), el('span', { text: meta.label })]),
-        el('span', { class: 'muted small', text: item.providerName || provider?.name || (item.signalNoProvider ? 'Sem instituição vinculada na fonte' : item.role === 'sinal' ? 'Instituição no detalhe do sinal' : item.entityUnknown ? 'Instituição do contrato não carregada' : 'Sem instituição convidada') }),
+        mutedText(item.providerName || provider?.name || (item.signalNoProvider ? 'Sem instituição vinculada na fonte' : item.role === 'sinal' ? 'Instituição no detalhe do sinal' : item.entityUnknown ? 'Instituição do contrato não carregada' : 'Sem instituição convidada'), 'span'),
         entityText ? el('span', { class: 'muted small rel-item-entity', text: `· ${entityText}` }) : null]),
       el('h3', { class: 'rel-item-title', text: item.title }),
       el('p', { class: 'small', text: item.detail }),

@@ -3,7 +3,7 @@
 // (lib/finance/central-signals.mjs): o que aparece aqui é o que a Central
 // mostra, filtrado pelo objeto aberto — nenhuma agenda ou cálculo paralelo.
 import { el, icon, todayIso, renewalStage, formatDate, relativeDays } from '../core.js';
-import { tag, loading } from '../ui.js';
+import { tag, loading, mutedText } from '../ui.js';
 import { TASK_EDITORS } from './shared/tasks.js';
 import { relationshipSignals, feeSignals, feeWindow, feeReconciliationLines } from '../../../lib/finance/central-signals.mjs';
 
@@ -54,7 +54,7 @@ function signalRow(ctx, item, { local = false } = {}) {
   // No recorte do próprio objeto, o destino do CRM é o relacionamento — o mesmo da Central.
   return el('li', { class: 'milestone-row', dataset: { source: item.source } }, [
     tag(...(item.source === 'fees' ? ['Revisão', 'warning'] : TONE[item.tone] || TONE.neutral)),
-    el('div', { class: 'milestone-main' }, [el('strong', { text: item.title }), el('span', { class: 'muted small', text: `${item.kind} · ${item.detail}` })]),
+    el('div', { class: 'milestone-main' }, [el('strong', { text: item.title }), mutedText(`${item.kind} · ${item.detail}`, 'span')]),
     // Dentro da própria instituição o registro comercial já está aberto: rola até ele.
     local && item.source === 'relationship'
       ? el('button', { type: 'button', class: 'btn btn-sm btn-secondary', onclick: () => document.querySelector('.crm-workspace')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }, el('span', { class: 'btn-label', text: 'Ver no registro comercial' }))
@@ -65,7 +65,7 @@ function signalRow(ctx, item, { local = false } = {}) {
 function sourceNotes(result) {
   return [
     result.failed.length ? el('p', { class: 'callout callout-warning compact', role: 'alert' }, [icon('alert', { size: 14 }), el('span', { text: `Não conseguimos carregar ${result.failed.join(' e ')}; pode haver pendência fora desta lista.` })]) : null,
-    result.unavailable.length ? el('p', { class: 'muted small', text: `${result.unavailable.join(' e ')}: ainda não disponível neste ambiente.` }) : null
+    result.unavailable.length ? mutedText(`${result.unavailable.join(' e ')}: ainda não disponível neste ambiente.`) : null
   ].filter(Boolean);
 }
 
@@ -77,10 +77,10 @@ function reconciliationBlock(ctx, result, { contractId = null, providerId = null
     el('p', {}, [el('strong', { text: `${line.currency}: ` }), line.headline]),
     el('ul', { class: 'plain-list small' }, line.facts.map((text) => el('li', { text }))),
     line.openReview ? el('a', { class: 'btn btn-sm btn-secondary', href: ctx.href(`/finance/fees.html?${new URLSearchParams({ ...scope, review_status: 'new', currency: line.currency, start: result.span.start, end: result.span.end })}`), text: `Revisar ${line.openReview} pendente${line.openReview === 1 ? '' : 's'} em ${line.currency}` }) : null
-  ])) : [el('p', { class: 'muted small', text: 'Sem tarifa contratada ou cobrança observada neste recorte nos últimos 12 meses. Sem dado não é zero.' })];
+  ])) : [mutedText('Sem tarifa contratada ou cobrança observada neste recorte nos últimos 12 meses. Sem dado não é zero.')];
   return el('section', { class: 'cc-section', 'aria-labelledby': `fee-rec-${contractId || providerId}` }, [
     el('div', { class: 'cc-head' }, [el('h3', { id: `fee-rec-${contractId || providerId}`, text: 'Tarifas: contratado × cobrado' }), el('a', { class: 'btn btn-sm btn-ghost', href: ctx.href(all), text: 'Ver cobranças' })]),
-    el('p', { class: 'muted small', text: 'Últimos 12 meses. A comparação é calculada e congelada pelo servidor; diferença não é erro nem economia até uma pessoa revisar.' }),
+    mutedText('Últimos 12 meses. A comparação é calculada e congelada pelo servidor; diferença não é erro nem economia até uma pessoa revisar.'),
     ...body
   ]);
 }
@@ -95,7 +95,7 @@ export function contractContextSection(ctx, contract) {
       el('section', { class: 'cc-section', 'aria-labelledby': `next-${contract.id}` }, [
         el('h3', { id: `next-${contract.id}`, text: 'Próximas ações deste contrato' }), ...sourceNotes(result),
         items.length ? el('ul', { class: 'milestone-list', role: 'list' }, items.map((item) => signalRow(ctx, item)))
-          : el('p', { class: 'muted small', text: result.failed.length ? 'As demais fontes não indicam ação agora.' : `Nenhuma renovação, compromisso comercial nos próximos ${HORIZON} dias ou revisão de tarifa pendente.` })
+          : mutedText(result.failed.length ? 'As demais fontes não indicam ação agora.' : `Nenhuma renovação, compromisso comercial nos próximos ${HORIZON} dias ou revisão de tarifa pendente.`)
       ]),
       result.failed.includes('Tarifas') || result.unavailable.includes('Tarifas') ? null : reconciliationBlock(ctx, result, { contractId: contract.id })
     );
@@ -115,7 +115,7 @@ export function providerContextSection(ctx, provider) {
       el('button', { type: 'button', class: 'btn btn-sm btn-ghost', onclick: () => ask('Quais cobranças de tarifa desta instituição estão acima da referência contratada e qual o estado da revisão?') }, el('span', { class: 'btn-label', text: 'Tarifas em revisão' }))]);
     box.replaceChildren(el('h3', { id: 'rel-signals-title', text: 'Agenda comercial e tarifas desta instituição' }), copilot, ...sourceNotes(result),
       result.items.length ? el('ul', { class: 'milestone-list', role: 'list' }, result.items.map((item) => signalRow(ctx, item, { local: true })))
-        : el('p', { class: 'muted small', text: `Nenhum compromisso ou processo comercial nos próximos ${HORIZON} dias e nenhuma revisão de tarifa pendente.` }),
+        : mutedText(`Nenhum compromisso ou processo comercial nos próximos ${HORIZON} dias e nenhuma revisão de tarifa pendente.`),
       result.failed.includes('Tarifas') || result.unavailable.includes('Tarifas') ? null : reconciliationBlock(ctx, result, { providerId: provider.id }));
   });
   return box;

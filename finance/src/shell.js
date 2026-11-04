@@ -3,7 +3,7 @@
 // móvel, busca (Ctrl/Cmd+K), central de notificações e faixa da demonstração.
 
 import { el, icon, timeAgo, RFQ_STATUS, CONTRACT_STATUS, formatDate } from './core.js';
-import { avatar, iconButton, button, toast, confirmDialog } from './ui.js';
+import { avatar, iconButton, button, toast, confirmDialog, toastError } from './ui.js';
 import { areasFor, navItems, locate } from '../../lib/finance/navigation.mjs';
 
 // Monograma do Arandu: "A" em traço com a barra em petróleo (mesmo desenho do
@@ -366,7 +366,7 @@ export function installNotificationCenter(ctx, bell) {
   };
   const refresh = async () => {
     try {
-      const result = await ctx.api(`notifications?organization_id=${encodeURIComponent(ctx.organization.id)}`);
+      const result = await ctx.api(`notifications?organization_id=${ctx.orgId}`);
       rows = result.rows || [];
       draw();
     } catch (error) {
@@ -382,7 +382,7 @@ export function installNotificationCenter(ctx, bell) {
       rows = rows.map((row) => ({ ...row, read_at: row.read_at || new Date().toISOString() }));
       draw();
       toast('Notificações marcadas como lidas.');
-    } catch (error) { toast(error.message, 'error'); markAll.disabled = false; }
+    } catch (error) { toastError(error); markAll.disabled = false; }
   });
   panel.append(
     el('div', { class: 'notification-head' }, [el('h2', { class: 'notification-title', text: 'Notificações' }), filter]),

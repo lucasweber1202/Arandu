@@ -3,7 +3,7 @@
 // Extraído de views/rfq.js (v7.0).
 
 import { el, icon, money, percent, APPROVAL_STATUS, timeAgo } from '../../core.js';
-import { pill, button, emptyState, errorState, loading, toast, confirmDialog, promptDialog, field, person, onSubmit, sessionLink } from '../../ui.js';
+import { pill, button, emptyState, errorState, loading, toast, confirmDialog, promptDialog, field, person, onSubmit, sessionLink, mutedText, toastError } from '../../ui.js';
 import { approvalSteps, approvalActions, currentStep, approvalSummaryLine } from '../shared/approvals.js';
 import { memberName, memberTitle } from '../shared/people.js';
 import { keyTerms } from '../shared/terms.js';
@@ -46,14 +46,14 @@ export function approvalCard(ctx, request, rfq, { onChange, compact = false } = 
       const reason = await promptDialog({ title: 'Substituir o pedido?', description: 'O pedido atual é encerrado como substituído (por exemplo, para reavaliar sob a versão nova da policy). Nada muda sozinho: depois você pede uma nova aprovação.', label: 'Motivo', minLength: 3, confirmLabel: 'Substituir', tone: 'danger' });
       if (reason === null) return;
       try { await ctx.send('approvals/supersede', { request_id: request.id, reason }); toast('Pedido substituído. Solicite uma nova aprovação.'); onChange?.(); }
-      catch (error) { toast(error.message, 'error'); }
+      catch (error) { toastError(error); }
     } })));
   }
   if (request.status === 'pending' && request.requested_by === ctx.viewer?.id) {
     node.append(el('div', { class: 'row-actions' }, button('Cancelar pedido de aprovação', { variant: 'ghost', size: 'sm', iconName: 'x', onClick: async () => {
       if (!await confirmDialog({ title: 'Cancelar o pedido?', description: 'Os aprovadores deixam de ver a pendência. O histórico é mantido.', confirmLabel: 'Cancelar pedido', tone: 'danger' })) return;
       try { await ctx.send('approvals/cancel', { request_id: request.id }); toast('Pedido de aprovação cancelado.'); onChange?.(); }
-      catch (error) { toast(error.message, 'error'); }
+      catch (error) { toastError(error); }
     } })));
   }
   return node;
@@ -88,7 +88,7 @@ export function approvalRequestForm(ctx, rfq, latest) {
   proposals.forEach((proposal) => {
     proposalGroup.append(el('label', { class: 'radio-card' }, [
       el('input', { type: 'radio', name: 'proposal_id', value: proposal.id, checked: single, required: true }),
-      el('span', { class: 'radio-card-text' }, [el('strong', { text: proposal.provider_name }), el('span', { class: 'muted small', text: `v${proposal.version} · ${rfq.product === 'credit' ? `${percent(proposal.terms?.interest_rate_month)} a.m. · ${money(proposal.terms?.offered_amount, { compact: true })}` : `MDR crédito ${percent(proposal.terms?.mdr_credit_cash)} · PIX ${percent(proposal.terms?.pix_fee)}`}` })])
+      el('span', { class: 'radio-card-text' }, [el('strong', { text: proposal.provider_name }), mutedText(`v${proposal.version} · ${rfq.product === 'credit' ? `${percent(proposal.terms?.interest_rate_month)} a.m. · ${money(proposal.terms?.offered_amount, { compact: true })}` : `MDR crédito ${percent(proposal.terms?.mdr_credit_cash)} · PIX ${percent(proposal.terms?.pix_fee)}`}`, 'span')])
     ]));
   });
 

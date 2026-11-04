@@ -2,14 +2,14 @@
 // Extraído de views/crm-workspace.js (v7.0).
 
 import { el, uid } from '../../core.js';
-import { button, field, drawer, toast, confirmDialog, onSubmit, sessionLink } from '../../ui.js';
+import { button, field, drawer, toast, confirmDialog, onSubmit, sessionLink, mutedText } from '../../ui.js';
 import { crmErrorMessage, memberLabel, writers } from './model.js';
 
 export function crmForm({ title, intro = null, fields, send, done, onSaved, onConflict = null }) {
   const requestKey = uid();
   const errors = el('div', { class: 'callout callout-error', role: 'alert', hidden: true });
   const save = button('Gravar', { variant: 'primary', type: 'submit' });
-  const form = el('form', { class: 'stack crm-form', novalidate: true }, [intro ? el('p', { class: 'muted small', text: intro }) : null]);
+  const form = el('form', { class: 'stack crm-form', novalidate: true }, [intro ? mutedText(intro) : null]);
   const wrapped = fields.filter(Boolean).map((spec) => {
     const wrap = field({ label: spec.label, control: spec.control, hint: spec.hint || null, required: Boolean(spec.required), optionalLabel: !spec.required && !spec.noOptional });
     if (spec.hidden) wrap.hidden = true;

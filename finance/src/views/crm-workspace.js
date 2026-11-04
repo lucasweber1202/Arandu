@@ -14,7 +14,7 @@
 //   pessoa digitou preservado e opção de recarregar;
 // - sucesso só depois da resposta do servidor.
 import { el, icon, formatDate, formatDateTime, todayIso, uid, plural, productLabel } from '../core.js';
-import { button, tag, field, drawer, toast, loading, errorState, emptyState, confirmDialog } from '../ui.js';
+import { button, tag, field, drawer, toast, loading, errorState, emptyState, confirmDialog, mutedText } from '../ui.js';
 import { ACTIVITY_KINDS, ACTIVITY_STATUS, STAGES, STAGE_ORDER, REFERENCE_LABEL, EVENT_TEXT, FIELD_TEXT, crmErrorMessage, enc, memberLabel, canWriteCrm, localDateTime, isoWithZone, crmList } from './crm/model.js';
 import { crmForm, input, textarea, select, ownerOptions } from './crm/form.js';
 
@@ -62,7 +62,7 @@ export function crmWorkspace(ctx, { provider = null, contracts = [], rfqs = [], 
   function head() {
     return el('div', { class: 'cc-head' }, [
       el('div', {}, [el('h3', { id: 'crm-title', text: 'Relacionamento comercial' }),
-        el('p', { class: 'muted small', text: 'Contatos, reuniões, compromissos e processos registrados pela sua equipe. São declarações da organização: não comprovam envio, aceite da instituição nem mudam a negociação financeira.' })]),
+        mutedText('Contatos, reuniões, compromissos e processos registrados pela sua equipe. São declarações da organização: não comprovam envio, aceite da instituição nem mudam a negociação financeira.')]),
       el('div', { class: 'crm-actions' }, [
         provider && !(__ARANDU_DEMO__ && ctx.mode === 'demo') ? button('Resumir com o Copilot', { size: 'sm', variant: 'ghost', iconName: 'sparkles', onClick: () => import('./copilot.js').then((m) => m.openCopilot(ctx, { context: { type: 'provider', id: provider.id, label: provider.name }, question: 'Resuma nosso relacionamento com esta instituição: contatos, atividades pendentes, processos e contratos.' })) }) : null,
         state.loaded ? button('Atualizar', { size: 'sm', variant: 'ghost', iconName: 'refresh', onClick: load }) : null])
@@ -103,7 +103,7 @@ export function crmWorkspace(ctx, { provider = null, contracts = [], rfqs = [], 
       button('Novo contato', { size: 'sm', iconName: 'plus', onClick: () => contactForm() }),
       button('Registrar atividade', { size: 'sm', iconName: 'calendar', onClick: () => activityForm() }),
       button('Novo processo', { size: 'sm', variant: 'primary', iconName: 'flag', onClick: () => processForm() })
-    ]) : el('p', { class: 'muted small', text: 'Seu acesso permite consultar o relacionamento comercial, sem registrar ou alterar.' });
+    ]) : mutedText('Seu acesso permite consultar o relacionamento comercial, sem registrar ou alterar.');
     root.replaceChildren(head(), actions,
       ...(state.truncated ? [el('p', { class: 'callout callout-info compact', role: 'note', text: 'Há mais registros do que o recorte carregado (vínculos com até 30 contratos, negociações e contatos). Use a busca para localizar um registro específico.' })] : []),
       tabsBar, panel);
@@ -136,8 +136,8 @@ export function crmWorkspace(ctx, { provider = null, contracts = [], rfqs = [], 
     return el('li', { class: 'crm-row', id: `crm-contact-${c.id}`, dataset: { crm: 'contact' } }, [
       el('div', { class: 'crm-row-main' }, [
         el('strong', { text: c.name }),
-        el('span', { class: 'muted small', text: [c.title, c.email, c.phone, entities && c.legal_entity_id ? entities.byId?.get(c.legal_entity_id)?.legal_name : null].filter(Boolean).join(' · ') || 'Sem cargo ou contato informado' }),
-        el('span', { class: 'muted small', text: `Responsável: ${memberLabel(ctx, c.owner_id)} · ${plural(acts, 'atividade', 'atividades')} · fonte: ${c.source_reference || 'não informada (registro anterior)'}` })
+        mutedText([c.title, c.email, c.phone, entities && c.legal_entity_id ? entities.byId?.get(c.legal_entity_id)?.legal_name : null].filter(Boolean).join(' · ') || 'Sem cargo ou contato informado', 'span'),
+        mutedText(`Responsável: ${memberLabel(ctx, c.owner_id)} · ${plural(acts, 'atividade', 'atividades')} · fonte: ${c.source_reference || 'não informada (registro anterior)'}`, 'span')
       ]),
       c.archived_at ? tag('Arquivado', 'neutral') : null,
       el('div', { class: 'crm-row-actions' }, [
@@ -218,7 +218,7 @@ export function crmWorkspace(ctx, { provider = null, contracts = [], rfqs = [], 
     const when = a.status === 'recorded' ? `Aconteceu em ${formatDateTime(a.occurred_at)}` : a.due_on ? `${late ? 'Venceu em' : 'Prazo'} ${formatDate(a.due_on)}` : 'Sem prazo';
     return el('li', { class: `crm-row${late ? ' crm-row-late' : ''}`, id: `crm-activity-${a.id}`, dataset: { crm: 'activity', status: a.status } }, [
       el('div', { class: 'crm-row-main' }, [
-        el('span', { class: 'muted small', text: ACTIVITY_KINDS[a.kind] || 'Atividade' }),
+        mutedText(ACTIVITY_KINDS[a.kind] || 'Atividade', 'span'),
         el('strong', { text: a.subject }),
         el('span', { class: 'small', text: [when, contact ? `com ${contact.name}` : null, `responsável: ${memberLabel(ctx, a.owner_id)}`].filter(Boolean).join(' · ') }),
         a.notes ? el('p', { class: 'small crm-notes', text: a.notes }) : null,
@@ -329,13 +329,13 @@ export function crmWorkspace(ctx, { provider = null, contracts = [], rfqs = [], 
     return el('div', { class: 'stack crm-agenda' }, [
       unowned ? el('p', { class: 'callout callout-warning compact', text: `${plural(unowned, 'item pendente', 'itens pendentes')} sem responsável definido.` }) : null,
       ...groups.filter(([, rows]) => rows.length).map(([title, rows, hint]) => el('section', { class: 'crm-agenda-group', 'aria-label': title }, [
-        el('h4', { text: `${title} (${rows.length})` }), hint ? el('p', { class: 'muted small', text: hint }) : null,
+        el('h4', { text: `${title} (${rows.length})` }), hint ? mutedText(hint) : null,
         el('ul', { class: 'plain-list crm-list', role: 'list' }, rows.map(activityRow))
       ])),
       processDue.length ? el('section', { class: 'crm-agenda-group', 'aria-label': 'Próximos passos de processos' }, [
         el('h4', { text: `Próximos passos de processos (${processDue.length})` }),
         el('ul', { class: 'plain-list crm-list', role: 'list' }, processDue.map((p) => el('li', { class: `crm-row${p.due_on < today ? ' crm-row-late' : ''}` }, [
-          el('div', { class: 'crm-row-main' }, [el('strong', { text: p.next_action }), el('span', { class: 'muted small', text: `${p.title} · ${STAGES[p.stage]} · ${p.due_on < today ? 'venceu em' : 'até'} ${formatDate(p.due_on)} · ${memberLabel(ctx, p.owner_id)}` })])
+          el('div', { class: 'crm-row-main' }, [el('strong', { text: p.next_action }), mutedText(`${p.title} · ${STAGES[p.stage]} · ${p.due_on < today ? 'venceu em' : 'até'} ${formatDate(p.due_on)} · ${memberLabel(ctx, p.owner_id)}`, 'span')])
         ])))
       ]) : null
     ]);
@@ -373,7 +373,7 @@ export function crmWorkspace(ctx, { provider = null, contracts = [], rfqs = [], 
     layout.addEventListener('change', draw); showArchived.addEventListener('change', draw);
     draw();
     return el('div', { class: 'stack' }, [
-      el('p', { class: 'muted small', text: 'Etapas comerciais são declarações da equipe. "Ganho" não fecha contrato, não aprova proposta e não registra economia.' }),
+      mutedText('Etapas comerciais são declarações da equipe. "Ganho" não fecha contrato, não aprova proposta e não registra economia.'),
       el('div', { class: 'toolbar' }, [layout, el('label', { class: 'checkbox', for: 'crm-show-archived' }, [showArchived, ' Mostrar arquivados'])]), area]);
   }
   function processCard(p) {
@@ -386,7 +386,7 @@ export function crmWorkspace(ctx, { provider = null, contracts = [], rfqs = [], 
     return el('li', { class: 'crm-card', id: `crm-process-${p.id}`, dataset: { crm: 'process', stage: p.stage } }, [
       el('button', { type: 'button', class: 'link-button crm-card-title', text: p.title, onclick: () => processDetail(p) }),
       el('span', { class: 'small', text: `Próximo passo: ${p.next_action}${p.due_on ? ` · até ${formatDate(p.due_on)}` : ''}` }),
-      el('span', { class: 'muted small', text: `Responsável: ${memberLabel(ctx, p.owner_id)}` }),
+      mutedText(`Responsável: ${memberLabel(ctx, p.owner_id)}`, 'span'),
       p.related_type ? (href ? el('a', { class: 'small', href, text: linkLabel(p.related_type, p.related_id) }) : el('span', { class: 'small', text: linkLabel(p.related_type, p.related_id) })) : null,
       p.outcome ? el('span', { class: 'small', text: `Resultado declarado: ${p.outcome}` }) : null,
       p.status === 'archived' ? tag('Arquivado', 'neutral') : null,
@@ -416,9 +416,9 @@ export function crmWorkspace(ctx, { provider = null, contracts = [], rfqs = [], 
         ['Etapa', STAGES[p.stage]], ['Responsável', memberLabel(ctx, p.owner_id)], ['Próximo passo', p.next_action], ['Data relevante', p.due_on ? formatDate(p.due_on) : 'Não informada'],
         ['Contato', contact?.name || 'Não informado'], ['Fonte', p.source_reference], ['Resultado declarado', p.outcome || 'Ainda sem resultado'], ['Situação', p.status === 'archived' ? 'Arquivado' : 'Ativo']
       ].map(([k, v]) => el('div', { class: 'deflist-row' }, [el('dt', { text: k }), el('dd', { text: v })]))),
-      p.related_type ? el('p', {}, ['Objeto financeiro vinculado: ', href ? el('a', { href, text: linkLabel(p.related_type, p.related_id) }) : linkLabel(p.related_type, p.related_id)]) : el('p', { class: 'muted small', text: 'Sem objeto financeiro vinculado.' }),
+      p.related_type ? el('p', {}, ['Objeto financeiro vinculado: ', href ? el('a', { href, text: linkLabel(p.related_type, p.related_id) }) : linkLabel(p.related_type, p.related_id)]) : mutedText('Sem objeto financeiro vinculado.'),
       el('h3', { text: `Atividades do processo (${acts.length})` }),
-      acts.length ? el('ul', { class: 'plain-list crm-list' }, acts.map((a) => el('li', { text: `${ACTIVITY_KINDS[a.kind]} · ${a.subject} · ${a.status === 'recorded' ? formatDateTime(a.occurred_at) : a.due_on ? `prazo ${formatDate(a.due_on)}` : 'sem prazo'}` }))) : el('p', { class: 'muted small', text: 'Nenhuma atividade vinculada.' }),
+      acts.length ? el('ul', { class: 'plain-list crm-list' }, acts.map((a) => el('li', { text: `${ACTIVITY_KINDS[a.kind]} · ${a.subject} · ${a.status === 'recorded' ? formatDateTime(a.occurred_at) : a.due_on ? `prazo ${formatDate(a.due_on)}` : 'sem prazo'}` }))) : mutedText('Nenhuma atividade vinculada.'),
       el('div', { class: 'crm-row-actions' }, [
         write && p.status === 'active' ? button('Editar processo', { size: 'sm', iconName: 'edit', onClick: () => { dialog.close(); processForm(p); } }) : null,
         write && p.status === 'active' ? button('Registrar atividade', { size: 'sm', onClick: () => { dialog.close(); activityForm({ process_id: p.id, contact_id: p.contact_id || '' }); } }) : null,
@@ -473,11 +473,11 @@ export function crmWorkspace(ctx, { provider = null, contracts = [], rfqs = [], 
       const rows = page.rows || [];
       box.replaceChildren(rows.length ? el('ol', { class: 'timeline crm-history', role: 'list' }, rows.map((e) => el('li', { class: 'timeline-item' }, [
         el('strong', { text: EVENT_TEXT[e.event_type || e.type] || 'Atualização registrada' }),
-        el('span', { class: 'muted small', text: [formatDateTime(e.happened_at), e.actor_id ? memberLabel(ctx, e.actor_id) : null].filter(Boolean).join(' · ') }),
+        mutedText([formatDateTime(e.happened_at), e.actor_id ? memberLabel(ctx, e.actor_id) : null].filter(Boolean).join(' · '), 'span'),
         changedFields(e) ? el('span', { class: 'small', text: changedFields(e) }) : null,
-        e.payload?.source_reference ? el('span', { class: 'muted small', text: `Fonte: ${e.payload.source_reference}` }) : null
-      ]))) : el('p', { class: 'muted small', text: 'Nenhum evento registrado para este item.' }),
-      ...(page.next ? [el('p', { class: 'muted small', text: 'Exibindo os 50 primeiros eventos.' })] : []));
+        e.payload?.source_reference ? mutedText(`Fonte: ${e.payload.source_reference}`, 'span') : null
+      ]))) : mutedText('Nenhum evento registrado para este item.'),
+      ...(page.next ? [mutedText('Exibindo os 50 primeiros eventos.')] : []));
     }).catch((error) => box.replaceChildren(errorState({ title: 'Histórico indisponível', error: { ...error, message: crmErrorMessage(error) } })));
     return box;
   }

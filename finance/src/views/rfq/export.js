@@ -3,7 +3,7 @@
 // Extraído de views/rfq.js (v7.0).
 
 import { el } from '../../core.js';
-import { toast } from '../../ui.js';
+import { toast, toastError } from '../../ui.js';
 
 export async function exportProcess(ctx, rfq) {
   try {
@@ -16,5 +16,5 @@ export async function exportProcess(ctx, rfq) {
     link.remove();
     URL.revokeObjectURL(url);
     toast('Exportação gerada neste navegador.');
-  } catch (error) { toast(error.message, 'error'); }
+  } catch (error) { toastError(error); }
 }

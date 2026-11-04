@@ -85,7 +85,7 @@ export function createCommandCenter(ctx, trigger) {
     render(local, 'Buscando…');
     timer = setTimeout(async () => {
       try {
-        const response = await ctx.api(`search?organization_id=${encodeURIComponent(ctx.organization.id)}&q=${encodeURIComponent(term)}`);
+        const response = await ctx.api(`search?organization_id=${ctx.orgId}&q=${encodeURIComponent(term)}`);
         if (current !== sequence || !dialog.open) return;
         const seen = new Set();
         const rows = (response.rows || []).map((row) => ({ kind: row.kind, title: row.title, detail: readableDetail(row.detail), href: ctx.href(row.href) }))

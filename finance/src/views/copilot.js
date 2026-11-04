@@ -12,7 +12,7 @@
 // - Sem histórico persistido: a conversa vive só nesta aba.
 
 import { el, icon, formatDate, formatDateTime, uid } from '../core.js';
-import { button, drawer, field, toast, sessionLink } from '../ui.js';
+import { button, drawer, field, toast, sessionLink, mutedText } from '../ui.js';
 import { ACTIVITY_KINDS } from './crm/model.js';
 
 const MAX = 3000;
@@ -115,10 +115,10 @@ export function openCopilot(ctx, { context = pageContext, question = '' } = {}) 
   form.addEventListener('submit', (event) => { event.preventDefault(); if (!send.disabled) ask(input.value); });
 
   function turnNode(turn) {
-    const head = el('div', { class: 'copilot-q' }, [el('strong', { text: 'Você' }), turn.scope ? el('span', { class: 'muted small', text: ` · sobre ${turn.scope}` }) : null, el('p', { text: turn.question })]);
+    const head = el('div', { class: 'copilot-q' }, [el('strong', { text: 'Você' }), turn.scope ? mutedText(` · sobre ${turn.scope}`, 'span') : null, el('p', { text: turn.question })]);
     const box = el('article', { class: 'copilot-turn', dataset: { state: turn.state } }, [head]);
     if (turn.state === 'loading') box.append(el('p', { class: 'muted small copilot-loading', role: 'status' }, [icon('clock', { size: 14 }), ' Consultando seus registros autorizados…']));
-    if (turn.state === 'cancelled') box.append(el('p', { class: 'muted small', text: 'Pergunta cancelada nesta tela. Consultas não gravam nada.' }));
+    if (turn.state === 'cancelled') box.append(mutedText('Pergunta cancelada nesta tela. Consultas não gravam nada.'));
     if (turn.state === 'error') {
       const info = copilotErrorMessage(turn.error);
       box.append(el('div', { class: 'callout callout-warning compact', role: 'alert' }, [el('strong', { text: info.title }), el('p', { class: 'small', text: info.text }),
@@ -135,22 +135,22 @@ export function openCopilot(ctx, { context = pageContext, question = '' } = {}) 
     const sources = Array.isArray(r.sources) ? r.sources : [];
     const actions = Array.isArray(r.prepared_actions) ? r.prepared_actions : [];
     return el('div', { class: 'copilot-a' }, [
-      el('div', { class: 'copilot-a-head' }, [icon('sparkles', { size: 14 }), el('strong', { text: 'Copilot' }), el('span', { class: 'muted small', text: ' · texto gerado por IA a partir das fontes abaixo; confira antes de decidir' })]),
+      el('div', { class: 'copilot-a-head' }, [icon('sparkles', { size: 14 }), el('strong', { text: 'Copilot' }), mutedText(' · texto gerado por IA a partir das fontes abaixo; confira antes de decidir', 'span')]),
       el('p', { class: 'copilot-answer', text: r.answer || '' }),
       sources.length ? el('section', { class: 'copilot-sources', 'aria-label': 'Fontes' }, [el('h4', { text: `Fontes (${sources.length})` }),
         el('ol', { class: 'plain-list' }, sources.map((s) => {
           const href = sourceHref(ctx, s);
           const meta = [TYPE_LABEL[s.object_type] || 'Registro', s.version != null ? `versão ${s.version}` : null, s.updated_at ? `atualizado em ${formatDate(s.updated_at)}` : null].filter(Boolean).join(' · ');
-          return el('li', {}, [href ? el('a', { href, text: s.label || 'Registro' }) : el('span', { text: s.label || 'Registro' }), el('span', { class: 'muted small', text: ` — ${meta}` })]);
+          return el('li', {}, [href ? el('a', { href, text: s.label || 'Registro' }) : el('span', { text: s.label || 'Registro' }), mutedText(` — ${meta}`, 'span')]);
         }))])
-        : el('p', { class: 'muted small', text: actions.length ? 'Nenhuma fonte consultada: a ação abaixo é só uma proposta para sua revisão.' : 'Sem fontes: a resposta não afirma fatos financeiros.' }),
+        : mutedText(actions.length ? 'Nenhuma fonte consultada: a ação abaixo é só uma proposta para sua revisão.' : 'Sem fontes: a resposta não afirma fatos financeiros.'),
       ...actions.map(actionNode),
       el('p', { class: 'muted small copilot-meta', text: 'Conversa não é salva: uma nova pergunta consulta as fontes de novo.' })
     ]);
   }
   function actionNode(action) {
     if (action?.prepared_action) action = action.prepared_action;
-    if (action?.type !== 'create_crm_activity' || !action.payload?.values) return el('p', { class: 'muted small', text: 'O Copilot sugeriu uma ação que esta tela ainda não sabe revisar. Nada foi executado.' });
+    if (action?.type !== 'create_crm_activity' || !action.payload?.values) return mutedText('O Copilot sugeriu uma ação que esta tela ainda não sabe revisar. Nada foi executado.');
     const v = action.payload.values;
     return el('section', { class: 'copilot-action', 'aria-label': 'Atividade preparada para revisão' }, [
       el('h4', { text: 'Atividade preparada — ainda não gravada' }),
@@ -158,7 +158,7 @@ export function openCopilot(ctx, { context = pageContext, question = '' } = {}) 
         ['Tipo', ACTIVITY_KINDS[v.kind] || 'Atividade'], ['Assunto', v.subject], ['Prazo', v.due_on ? formatDate(v.due_on) : v.occurred_at ? `Aconteceu em ${formatDateTime(v.occurred_at)}` : 'Sem prazo'],
         ['Situação', v.status === 'planned' ? 'Compromisso planejado' : v.status === 'recorded' ? 'Já realizada' : 'Planejada'], ['Observações', v.notes || '—'], ['Fonte', v.source_reference]
       ].map(([k, value]) => el('div', { class: 'deflist-row' }, [el('dt', { text: k }), el('dd', { text: value || '—' })]))),
-      el('p', { class: 'muted small', text: action.notice || 'Vínculos, responsável e estado são autorizados de novo na confirmação.' }),
+      mutedText(action.notice || 'Vínculos, responsável e estado são autorizados de novo na confirmação.'),
       el('div', { class: 'crm-row-actions' }, [button('Revisar e confirmar', { size: 'sm', variant: 'primary', iconName: 'check', onClick: () => reviewAction(ctx, action) })])
     ]);
   }
@@ -190,7 +190,7 @@ export function reviewAction(ctx, action) {
   const errors = el('div', { class: 'callout callout-error', role: 'alert', hidden: true });
   const save = button('Confirmar e gravar', { variant: 'primary', type: 'submit' });
   const form = el('form', { class: 'stack', novalidate: true }, [
-    el('p', { class: 'muted small', text: 'Revise os campos. A atividade só é registrada depois que você confirmar; o banco autoriza novamente vínculos e responsável.' }), ...fields, errors, save]);
+    mutedText('Revise os campos. A atividade só é registrada depois que você confirmar; o banco autoriza novamente vínculos e responsável.'), ...fields, errors, save]);
   const dialog = drawer({ title: 'Revisar atividade preparada', body: form });
   let pending = false;
   form.addEventListener('submit', async (event) => {

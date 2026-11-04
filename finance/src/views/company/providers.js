@@ -2,7 +2,7 @@
 // Extraído de company.js (v7.0): uma capability por módulo e rota.
 
 import { el, icon, formatDate, relativeDays, plural, PROVIDER_KINDS, fold } from '../../core.js';
-import { tag, button, emptyState, toast, drawer, field, person, onSubmit } from '../../ui.js';
+import { tag, button, emptyState, toast, drawer, field, person, onSubmit, toastError } from '../../ui.js';
 import { loadEntities } from '../entities.js';
 import { mods, need } from './capabilities.js';
 
@@ -69,7 +69,7 @@ export async function providers(ctx) {
     else queueMicrotask(async () => {
       const current = () => location.pathname.endsWith('/providers.html') && new URLSearchParams(location.search).get('provider_id')?.toLowerCase() === requested;
       try {
-        const detail = await ctx.api(`provider-relationship?organization_id=${encodeURIComponent(ctx.organization.id)}&provider_id=${encodeURIComponent(requested)}`);
+        const detail = await ctx.api(`provider-relationship?organization_id=${ctx.orgId}&provider_id=${encodeURIComponent(requested)}`);
         if (detail.provider?.id !== requested) throw new Error('Instituição indisponível.');
         if (current()) mods.relationship.openProviderRelationship(ctx, detail.provider, {initialDetail:detail});
       } catch { if (current()) toast('Instituição indisponível no seu escopo autorizado. Tente novamente pela lista.', 'error'); }
@@ -122,7 +122,7 @@ function providerDrawer(ctx) {
         history.replaceState(null, '', url.pathname + url.search + url.hash);
       }
       ctx.reload();
-    } catch (error) { toast(error.message, 'error'); save.disabled = false; }
+    } catch (error) { toastError(error); save.disabled = false; }
   });
   name.focus();
 }

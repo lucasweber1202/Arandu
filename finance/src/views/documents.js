@@ -5,7 +5,7 @@
 // gerada na hora e nunca guardada. A tela só vê metadados.
 
 import { el, icon, formatDateTime } from '../core.js';
-import { button, emptyState, errorState, loading, toast, confirmDialog, field, onSubmit } from '../ui.js';
+import { button, emptyState, errorState, loading, toast, confirmDialog, field, onSubmit, mutedText, toastError } from '../ui.js';
 import { memberName } from './shared/people.js';
 
 const TYPES = {
@@ -56,7 +56,7 @@ export function documentsPanel(ctx, { entityType, entityId, canUpload = false, s
       const result = await ctx.send('private-documents/download', { document_id: row.id, version });
       if (result.url) window.location.assign(result.url);
       else toast(result.notice || 'Download registrado.', 'info');
-    } catch (error) { toast(error.message, 'error'); }
+    } catch (error) { toastError(error); }
   };
 
   const upload = async ({ file, title, visibility, documentId = null }) => {
@@ -102,7 +102,7 @@ export function documentsPanel(ctx, { entityType, entityId, canUpload = false, s
       canUpload && ours ? button('Remover', { size: 'sm', variant: 'ghost', iconName: 'x', onClick: async () => {
         if (!await confirmDialog({ title: `Remover “${row.title}”?`, description: 'O documento some da lista para todos. As versões enviadas continuam guardadas para auditoria e o registro da remoção fica na trilha.', confirmLabel: 'Remover documento', tone: 'danger' })) return;
         try { await ctx.send('private-documents/remove', { document_id: row.id }); toast('Documento removido. O histórico foi preservado.'); refresh(); }
-        catch (error) { toast(error.message, 'error'); }
+        catch (error) { toastError(error); }
       } }) : null
     ]);
     const history = older.length ? el('details', { class: 'document-history' }, [
@@ -125,7 +125,7 @@ export function documentsPanel(ctx, { entityType, entityId, canUpload = false, s
 
   const refresh = () => {
     list.replaceChildren(el('li', {}, loading('Carregando documentos…')));
-    ctx.api(`private-documents?organization_id=${encodeURIComponent(ctx.organization.id)}&entity_type=${entityType}&entity_id=${encodeURIComponent(entityId)}`).then(({ rows }) => {
+    ctx.api(`private-documents?organization_id=${ctx.orgId}&entity_type=${entityType}&entity_id=${encodeURIComponent(entityId)}`).then(({ rows }) => {
       const visible = (rows || []).filter((row) => (row.versions || []).length);
       list.replaceChildren(...(visible.length ? visible.map(renderRow) : [el('li', {}, emptyState({ title: 'Nenhum documento anexado', text: canUpload ? 'Anexe balanços, minutas ou propostas em PDF, planilha ou imagem.' : null, compact: true, iconName: 'file' }))]));
     }).catch((error) => list.replaceChildren(el('li', {}, errorState({ title: 'Documentos indisponíveis', error }))));
@@ -162,7 +162,7 @@ export function documentsPanel(ctx, { entityType, entityId, canUpload = false, s
     });
     section.append(el('details', { class: 'document-add' }, [el('summary', {}, [icon('plus', { size: 14 }), el('span', { text: 'Anexar documento' })]), form]));
   }
-  section.append(status, el('p', { class: 'muted small', text: 'Arquivos ficam em armazenamento privado. Cada download gera um link temporário e fica registrado na trilha.' }));
+  section.append(status, mutedText('Arquivos ficam em armazenamento privado. Cada download gera um link temporário e fica registrado na trilha.'));
   refresh();
   return section;
 }

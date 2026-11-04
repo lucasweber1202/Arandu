@@ -3,7 +3,7 @@
 // Nomes, famílias, categorias e suporte vêm do servidor; o navegador não
 // mantém taxonomia própria nem calcula nada.
 import { el, icon } from '../core.js';
-import { drawer, tag, button } from '../ui.js';
+import { drawer, tag, button, mutedText } from '../ui.js';
 import { CONTRACT_CATEGORIES } from '../../../lib/finance/contract-terms.mjs';
 
 export const EXPECTED_REGISTRY = 'financial-product-registry-1';
@@ -49,11 +49,11 @@ function catalogBody(ctx, registry, presetFamily) {
       const negotiable = m.support.includes('RFQ_ENABLED') && m.rfq_product;
       const structured = m.support.includes('STRUCTURED');
       return el('li', { class: 'catalog-item', dataset: { code: m.code, negotiable: String(Boolean(negotiable)) } }, [
-        el('div', { class: 'stack-xs' }, [el('p', { class: 'muted small', text: families.get(m.family)?.name || 'Família não informada' }), el('h3', { class: 'catalog-title', text: m.name }),
+        el('div', { class: 'stack-xs' }, [mutedText(families.get(m.family)?.name || 'Família não informada'), el('h3', { class: 'catalog-title', text: m.name }),
           structured ? el('p', { class: 'small', text: `Registrado como: ${CONTRACT_CATEGORIES[m.contract_category] || 'Outro produto financeiro'}.` }) : null,
           el('div', { class: 'tag-row' }, m.support.filter((s) => SUPPORT_TEXT[s]).map((s) => tag(SUPPORT_TEXT[s].label, SUPPORT_TEXT[s].tone))),
-          m.economics?.note ? el('p', { class: 'muted small', text: `Como a comparação funciona: ${m.economics.note}` }) : null,
-          !negotiable ? el('p', { class: 'muted small', text: structured ? 'Negociação no Arandu ainda não disponível para esta modalidade: registre o contrato existente para acompanhar prazos, condições e renovação. Sem cálculo econômico.' : 'Apenas descrita no catálogo: ainda sem condições estruturadas.' }) : null
+          m.economics?.note ? mutedText(`Como a comparação funciona: ${m.economics.note}`) : null,
+          !negotiable ? mutedText(structured ? 'Negociação no Arandu ainda não disponível para esta modalidade: registre o contrato existente para acompanhar prazos, condições e renovação. Sem cálculo econômico.' : 'Apenas descrita no catálogo: ainda sem condições estruturadas.') : null
         ].filter(Boolean)),
         manage ? el('div', { class: 'row-actions' }, [
           negotiable ? el('a', { class: 'btn btn-primary btn-sm', href: ctx.href(`/finance/new-rfq.html?product=${encodeURIComponent(m.rfq_product)}`) }, [el('span', { class: 'btn-label', text: 'Iniciar negociação' }), icon('arrowRight', { size: 14 })]) : null,
@@ -69,6 +69,6 @@ function catalogBody(ctx, registry, presetFamily) {
   return [
     registry.version !== EXPECTED_REGISTRY ? el('p', { class: 'callout callout-warning compact', role: 'note', text: 'O catálogo do servidor está numa versão que esta tela ainda não conhece. Os dados aparecem como recebidos; confira o suporte antes de agir.' }) : null,
     el('div', { class: 'rel-filters' }, [search, family]), status, list,
-    registry.notice ? el('p', { class: 'muted small', text: registry.notice }) : null
+    registry.notice ? mutedText(registry.notice) : null
   ].filter(Boolean);
 }

@@ -2,7 +2,7 @@
 // Extraído de views/contract-center.js (v7.0).
 
 import { el, icon, formatDate, PROVIDER_KINDS } from '../../core.js';
-import { button, field, drawer, toast, loading, confirmDialog, onSubmit } from '../../ui.js';
+import { button, field, drawer, toast, loading, confirmDialog, onSubmit, mutedText, toastError } from '../../ui.js';
 import { CONTRACT_CATEGORIES } from '../../../../lib/finance/contract-terms.mjs';
 import { entityTree } from '../../../../lib/finance/entities.mjs';
 import { selectedEntity } from '../entities.js';
@@ -30,7 +30,7 @@ export function openImportContract(ctx, entities, { providerId: presetProvider =
   for (const [value, text] of Object.entries(PROVIDER_KINDS)) providerKind.add(new Option(text, value));
   const providerNameField = field({ label: 'Nome da instituição', control: providerName, required: true });
   const newProvider = el('fieldset', { class: 'stack inline-create', hidden: true }, [el('legend', { class: 'small', text: 'Nova instituição' }), providerNameField,
-    field({ label: 'Tipo', control: providerKind }), el('p', { class: 'muted small', text: 'Cadastrada junto com o contrato. Contato, site e evidências ficam em Provedores.' })]);
+    field({ label: 'Tipo', control: providerKind }), mutedText('Cadastrada junto com o contrato. Contato, site e evidências ficam em Provedores.')]);
   const title = el('input', { name: 'title', maxlength: '200', required: true, placeholder: 'Ex.: Capital de giro 2026' });
   const starts = el('input', { name: 'starts_on', type: 'date', required: true });
   const ends = el('input', { name: 'ends_on', type: 'date', required: true });
@@ -169,7 +169,7 @@ export function openImportContract(ctx, entities, { providerId: presetProvider =
     ].filter(Boolean);
     review.replaceChildren(el('h3', { class: 'card-title', id: 'contract-import-review-title', text: 'Confira antes de gravar' }),
       el('dl', { class: 'deflist' }, rows.map(([label, value]) => el('div', { class: 'deflist-row' }, [el('dt', { text: label }), el('dd', { text: value })]))),
-      el('p', { class: 'muted small', text: 'Nada foi gravado ainda. Confirme para registrar ou volte para corrigir.' }));
+      mutedText('Nada foi gravado ainda. Confirme para registrar ou volte para corrigir.'));
   };
   // Intenção persistente (#276): uma request_key por intenção material, reenviada
   // igual em cada tentativa legítima. O recibo do servidor é a única prova de
@@ -313,7 +313,7 @@ export function openImportContract(ctx, entities, { providerId: presetProvider =
         setReviewing(false);
         if (error.code === 'invalid_parent_contract') parentField.setError(error.message);
         else if (error.code === 'invalid_period' || error.code === 'invalid_date') endsField.setError(error.message);
-        toast(error.message, 'error');
+        toastError(error);
       }
       save.disabled = false;
     }

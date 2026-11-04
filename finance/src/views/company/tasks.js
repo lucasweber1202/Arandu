@@ -2,7 +2,7 @@
 // Extraído de company.js (v7.0): uma capability por módulo e rota.
 
 import { el, icon, formatDate, relativeDays, daysUntil, ROLE_LABELS, todayIso } from '../../core.js';
-import { card, button, emptyState, errorState, loading, toast, confirmDialog, field, onSubmit } from '../../ui.js';
+import { card, button, emptyState, errorState, loading, toast, confirmDialog, field, onSubmit, toastError } from '../../ui.js';
 import { TASK_EDITORS, taskChangeError } from '../shared/tasks.js';
 import { CONTRACT_CATEGORIES } from '../../../../lib/finance/contract-terms.mjs';
 
@@ -88,7 +88,7 @@ export async function tasks(ctx) {
       } else {
         pending = null;
         pendingNote.hidden = true;
-        toast(error.message, 'error');
+        toastError(error);
       }
     } finally { submitting = false; submit.disabled = false; }
   });
