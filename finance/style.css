@@ -1451,3 +1451,9 @@ textarea.mono{width:100%;max-width:100%;min-width:0}
 .rel-timeline-when{font-size:var(--fs-sm);color:var(--text-secondary);white-space:nowrap}
 .rel-timeline-body{display:grid;gap:2px;min-width:0;overflow-wrap:anywhere}
 @media (max-width:520px){.rel-timeline-item{grid-template-columns:1fr;gap:2px}}
+/* Radar de prazos: grupos por janela, item com origem e responsável. */
+.deadline-radar{margin-top:var(--s5)}
+.deadline-radar h3{display:flex;align-items:center;gap:var(--s2)}
+.deadline-group{display:grid;gap:var(--s2);margin-top:var(--s3)}
+.deadline-group-title{display:flex;align-items:center;gap:var(--s2);font-size:var(--fs-sm);color:var(--text-secondary)}
+.deadline-item .milestone-main{min-width:0;overflow-wrap:anywhere}
