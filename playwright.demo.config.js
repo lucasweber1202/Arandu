@@ -1,3 +1,5 @@
+import {existsSync,readFileSync} from 'node:fs';
+import {localDemoCertificateArgs} from './scripts/ci-demo/browser-tls.mjs';
 import { defineConfig, devices } from '@playwright/test';
 
 /**
@@ -12,6 +14,10 @@ import { defineConfig, devices } from '@playwright/test';
  * A jornada é só de leitura: pode rodar quantas vezes for preciso sem reset.
  */
 const executablePath = process.env.PW_CHROMIUM || undefined;
+const baseURL = process.env.ARANDU_DEMO_APP_URL || 'https://localhost:4443';
+const certFile = new URL('./scripts/pilot-local/.state/cert.pem', import.meta.url);
+const certificateArgs = process.env.PASSPORT_TLS_MODE === 'pinned' ? localDemoCertificateArgs(baseURL, existsSync(certFile) ? readFileSync(certFile) : null) : [];
+const netlogArgs = process.env.PASSPORT_NETLOG_FILE ? ['--log-net-log='+process.env.PASSPORT_NETLOG_FILE,'--net-log-capture-mode=Default'] : [];
 export default defineConfig({
   testDir: './tests/e2e',
   testMatch: ['**/demo-baseline.spec.js', '**/demo-workspaces.spec.js', '**/demo-entry-journeys.spec.js', '**/demo-entry-lifecycle.spec.js'],
@@ -21,10 +27,10 @@ export default defineConfig({
   retries: 0,
   reporter: [['list'], ['html', { outputFolder: 'reports/playwright-demo', open: 'never' }]],
   use: {
-    baseURL: process.env.ARANDU_DEMO_APP_URL || 'https://localhost:4443',
-    ignoreHTTPSErrors: true, locale: 'pt-BR', timezoneId: 'America/Sao_Paulo',
+    baseURL,
+    ignoreHTTPSErrors: certificateArgs.length === 0, locale: 'pt-BR', timezoneId: 'America/Sao_Paulo',
     trace: 'retain-on-failure', screenshot: 'only-on-failure',
-    launchOptions: executablePath ? { executablePath } : {}
+    launchOptions: { ...(executablePath ? { executablePath } : {}), args: [...certificateArgs,...netlogArgs] }
   },
   projects: [
     { name: 'demo-desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } } },
