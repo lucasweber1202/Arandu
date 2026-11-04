@@ -768,3 +768,8 @@ for current_db in "$clean_db" "$upgrade_db" "$fresh_db"; do
   apply_file "$current_db" "tests/database/financial-crm-institution.sql"
 done
 node "$root_dir/tests/database/recovery-schema-roundtrip.mjs" "$base_url"
+# Additional direct financial install: full catalog/ACL equivalence to history,
+# fresh secret, negative guards, post-migration probes and isolation canary.
+ARANDU_DATABASE_TEST_URL="$base_url" node "$root_dir/scripts/financial-baseline.mjs"
+node "$root_dir/scripts/test-financial-baseline.mjs"
+ARANDU_DATABASE_TEST_URL="$base_url" node "$root_dir/tests/database/legacy-seed-review.mjs"

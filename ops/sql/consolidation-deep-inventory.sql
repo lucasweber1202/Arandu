@@ -1,0 +1,18 @@
+begin isolation level repeatable read read only;
+set local row_security=off;
+select jsonb_build_object(
+ 'server_version',current_setting('server_version'),'database_bytes',pg_database_size(current_database()),
+ 'schemas',(select jsonb_agg(nspname order by nspname) from pg_namespace where nspname !~ '^pg_' and nspname <> 'information_schema'),
+ 'tables',(select jsonb_agg(jsonb_build_object('name',c.relname,'rows',(xpath('/row/n/text()',query_to_xml(format('select count(*) n from public.%I',c.relname),false,true,'')))[1]::text::bigint,'bytes',pg_total_relation_size(c.oid),'rls',c.relrowsecurity,'force_rls',c.relforcerowsecurity) order by c.relname) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind in ('r','p')),
+ 'routines',(select jsonb_agg(jsonb_build_object('name',p.proname,'arguments',pg_get_function_identity_arguments(p.oid),'security_definer',p.prosecdef,'config',p.proconfig,'anon_execute',has_function_privilege('anon',p.oid,'execute'),'authenticated_execute',has_function_privilege('authenticated',p.oid,'execute'),'profiles_reference',p.prosrc ~ '\mprofiles\M','definition_md5',md5(pg_get_functiondef(p.oid))) order by p.proname,p.oid) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.prokind='f'),
+ 'triggers',(select jsonb_agg(jsonb_build_object('table',n.nspname||'.'||c.relname,'name',t.tgname,'function',p.proname,'enabled',t.tgenabled) order by n.nspname,c.relname,t.tgname) from pg_trigger t join pg_class c on c.oid=t.tgrelid join pg_namespace n on n.oid=c.relnamespace join pg_proc p on p.oid=t.tgfoid where not t.tgisinternal and n.nspname in ('public','auth')),
+ 'views',(select jsonb_agg(jsonb_build_object('name',c.relname,'options',c.reloptions,'definition_md5',md5(pg_get_viewdef(c.oid))) order by c.relname) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind in ('v','m')),
+ 'indexes',(select jsonb_agg(jsonb_build_object('name',i.relname,'table',c.relname,'definition',pg_get_indexdef(i.oid),'scans',s.idx_scan) order by i.relname) from pg_index x join pg_class i on i.oid=x.indexrelid join pg_class c on c.oid=x.indrelid join pg_namespace n on n.oid=c.relnamespace left join pg_stat_user_indexes s on s.indexrelid=i.oid where n.nspname='public'),
+ 'foreign_keys',(select jsonb_agg(jsonb_build_object('name',k.conname,'table',c.relname,'target',k.confrelid::regclass::text,'definition',pg_get_constraintdef(k.oid)) order by c.relname,k.conname) from pg_constraint k join pg_class c on c.oid=k.conrelid join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and k.contype='f'),
+ 'policies',(select jsonb_agg(jsonb_build_object('table',tablename,'name',policyname,'roles',roles,'command',cmd,'using',qual,'check',with_check) order by tablename,policyname) from pg_policies where schemaname in ('public','storage')),
+ 'extensions',(select jsonb_agg(jsonb_build_object('name',extname,'version',extversion) order by extname) from pg_extension),
+ 'auth',jsonb_build_object('users',(select count(*) from auth.users),'identities',(select count(*) from auth.identities),'sessions',(select count(*) from auth.sessions),'mfa',(select count(*) from auth.mfa_factors)),
+ 'storage',jsonb_build_object('objects',(select count(*) from storage.objects),'buckets',(select jsonb_agg(jsonb_build_object('id',id,'public',public,'file_size_limit',file_size_limit,'allowed_mime_types',allowed_mime_types) order by id) from storage.buckets)),
+ 'statistics',jsonb_build_object('reset',(select stats_reset from pg_stat_database where datname=current_database()),'pg_stat_statements',exists(select 1 from pg_extension where extname='pg_stat_statements'))
+) as inventory;
+rollback;

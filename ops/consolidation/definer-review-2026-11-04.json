@@ -1,0 +1,2420 @@
+{
+  "ref": "offgpyysgdhfemjlchod",
+  "observed_at": "2026-11-04T14:32:54.760Z",
+  "classification": "read_only_hosted_vs_canonical_definer_review",
+  "canonical_marker": "financial-crm-view-roundtrip-1",
+  "hosted_changes": "NONE",
+  "summary": {
+    "routines": 43,
+    "by_action": {
+      "RETAIN_REVIEWED_BOUNDARY": 27,
+      "UPGRADE_BODY_DRIFT": 15,
+      "UPGRADE_CLOSE_OLD_ENTRYPOINT": 1
+    }
+  },
+  "routines": [
+    {
+      "name": "fin_accept_member_invitation",
+      "result": "uuid",
+      "body_md5": "7bc7d1bb19258bd4b2e9b3486efb4941",
+      "arguments": "p_token text",
+      "anon_execute": false,
+      "role_reference": false,
+      "auth_uid_reference": true,
+      "organization_reference": true,
+      "purpose": "Aceitar convite por token único, email Auth confirmado e destinatário persistido; não recebe papel do cliente.",
+      "authorization_helpers": [],
+      "organization_user_validation": "Confirmed Auth email + single-use token bound to persisted invitation",
+      "definer_need": "Intentional access to RLS/protected membership, workflow or audit data; SECURITY DEFINER must remain constrained by internal guards and grants.",
+      "privilege_escalation_risk": "Bypasses table RLS as owner; signature alone is not authorization. Reject forged org/actor/role, stale state and other-tenant objects.",
+      "canonical": {
+        "name": "fin_accept_member_invitation",
+        "config": [
+          "search_path=\"\""
+        ],
+        "body_md5": "7bc7d1bb19258bd4b2e9b3486efb4941",
+        "arguments": "p_token text",
+        "anon_execute": false,
+        "authenticated_execute": true
+      },
+      "hosted_body_matches_canonical": true,
+      "action": "RETAIN_REVIEWED_BOUNDARY",
+      "source_locations": [
+        "docs/supabase-financial-procurement.sql:322",
+        "docs/supabase-financial-procurement.sql:545",
+        "docs/supabase-financial-procurement.sql:558",
+        "docs/supabase-financial-pilot-surface-hardening.sql:113",
+        "docs/supabase-financial-pilot-surface-hardening.sql:133",
+        "docs/supabase-financial-pilot-surface-hardening.sql:134"
+      ],
+      "negative_test_locations": [
+        "tests/database/financial-surface-hardening.sql:12",
+        "tests/database/financial-surface-hardening.sql:226",
+        "tests/database/financial-surface-hardening.sql:234",
+        "tests/database/financial-surface-hardening.sql:240"
+      ],
+      "test_status": "Current canonical SQL suites PASS_LOCAL; hosted negative mutations NOT_RUN. A name occurrence is a location, not proof by itself."
+    },
+    {
+      "name": "fin_accept_provider_invite",
+      "result": "uuid",
+      "body_md5": "25d74a45a6d5e4bccec4935d73d8c378",
+      "arguments": "p_token text, p_provider_org uuid",
+      "anon_execute": false,
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true,
+      "purpose": "Aceitar convite de RFQ dentro da organização do provedor autenticado.",
+      "authorization_helpers": [
+        "fin_has_role"
+      ],
+      "organization_user_validation": "Membership/role helper plus object scope; inspect exact body and adversarial tests",
+      "definer_need": "Intentional access to RLS/protected membership, workflow or audit data; SECURITY DEFINER must remain constrained by internal guards and grants.",
+      "privilege_escalation_risk": "Bypasses table RLS as owner; signature alone is not authorization. Reject forged org/actor/role, stale state and other-tenant objects.",
+      "canonical": {
+        "name": "fin_accept_provider_invite",
+        "config": [
+          "search_path=\"\""
+        ],
+        "body_md5": "25d74a45a6d5e4bccec4935d73d8c378",
+        "arguments": "p_token text, p_provider_org uuid",
+        "anon_execute": false,
+        "authenticated_execute": true
+      },
+      "hosted_body_matches_canonical": true,
+      "action": "RETAIN_REVIEWED_BOUNDARY",
+      "source_locations": [
+        "docs/supabase-financial-procurement.sql:366",
+        "docs/supabase-financial-procurement.sql:547",
+        "docs/supabase-financial-procurement.sql:560",
+        "docs/supabase-financial-procurement-hardening.sql:260",
+        "docs/supabase-financial-pilot-operations.sql:35",
+        "docs/supabase-financial-pilot-operations.sql:78",
+        "docs/supabase-financial-pilot-operations.sql:79",
+        "docs/supabase-financial-final-hardening.sql:116",
+        "docs/supabase-financial-final-hardening.sql:174",
+        "docs/supabase-financial-final-hardening.sql:175"
+      ],
+      "negative_test_locations": [
+        "tests/database/financial-crm.sql:79",
+        "tests/database/financial-decision-integrity.sql:59",
+        "tests/database/financial-final-hardening.sql:63",
+        "tests/database/financial-final-hardening.sql:65",
+        "tests/database/financial-final-hardening.sql:67",
+        "tests/database/financial-final-hardening.sql:69",
+        "tests/database/financial-final-hardening.sql:72",
+        "tests/database/financial-final-hardening.sql:75",
+        "tests/database/financial-final-hardening.sql:80",
+        "tests/database/financial-final-hardening.sql:82",
+        "tests/database/financial-final-hardening.sql:90",
+        "tests/database/financial-final-hardening.sql:99",
+        "tests/database/financial-institutional-decline.sql:56",
+        "tests/database/financial-institutional-decline.sql:57",
+        "tests/database/financial-negotiation-continuity.sql:44",
+        "tests/database/financial-pilot-operations.sql:41",
+        "tests/database/financial-pilot-operations.sql:45",
+        "tests/database/financial-pilot-operations.sql:55",
+        "tests/database/financial-pilot-operations.sql:62",
+        "tests/database/financial-pilot-operations.sql:70",
+        "tests/database/financial-procurement-hardening.sql:114",
+        "tests/database/financial-procurement-hardening.sql:116",
+        "tests/database/financial-procurement.sql:147",
+        "tests/database/financial-procurement.sql:155",
+        "tests/database/financial-procurement.sql:163",
+        "tests/database/financial-procurement.sql:166",
+        "tests/database/financial-procurement.sql:173",
+        "tests/database/financial-procurement.sql:193",
+        "tests/database/financial-surface-hardening.sql:12",
+        "tests/database/financial-surface-hardening.sql:175",
+        "tests/database/financial-surface-hardening.sql:177",
+        "tests/database/financial-surface-hardening.sql:284"
+      ],
+      "test_status": "Current canonical SQL suites PASS_LOCAL; hosted negative mutations NOT_RUN. A name occurrence is a location, not proof by itself."
+    },
+    {
+      "name": "fin_accept_terms",
+      "result": "void",
+      "body_md5": "b0d7f6e8f0bbc3807ffa41a5386c5254",
+      "arguments": "p_org uuid, p_version text, p_context text",
+      "anon_execute": false,
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true,
+      "purpose": "Registrar aceite próprio de termos da organização autorizada.",
+      "authorization_helpers": [
+        "fin_has_role"
+      ],
+      "organization_user_validation": "Membership/role helper plus object scope; inspect exact body and adversarial tests",
+      "definer_need": "Intentional access to RLS/protected membership, workflow or audit data; SECURITY DEFINER must remain constrained by internal guards and grants.",
+      "privilege_escalation_risk": "Bypasses table RLS as owner; signature alone is not authorization. Reject forged org/actor/role, stale state and other-tenant objects.",
+      "canonical": {
+        "name": "fin_accept_terms",
+        "config": [
+          "search_path=\"\""
+        ],
+        "body_md5": "b0d7f6e8f0bbc3807ffa41a5386c5254",
+        "arguments": "p_org uuid, p_version text, p_context text",
+        "anon_execute": false,
+        "authenticated_execute": true
+      },
+      "hosted_body_matches_canonical": true,
+      "action": "RETAIN_REVIEWED_BOUNDARY",
+      "source_locations": [
+        "docs/supabase-financial-pilot.sql:75",
+        "docs/supabase-financial-pilot.sql:126",
+        "docs/supabase-financial-pilot.sql:130"
+      ],
+      "negative_test_locations": [
+        "tests/database/financial-pilot.sql:91",
+        "tests/database/financial-pilot.sql:101",
+        "tests/database/financial-pilot.sql:108",
+        "tests/database/financial-pilot.sql:117",
+        "tests/database/financial-surface-hardening.sql:12",
+        "tests/database/financial-surface-hardening.sql:267"
+      ],
+      "test_status": "Current canonical SQL suites PASS_LOCAL; hosted negative mutations NOT_RUN. A name occurrence is a location, not proof by itself."
+    },
+    {
+      "name": "fin_act_on_approval",
+      "result": "text",
+      "body_md5": "92b9d904775ef0a57b7b2557af9a521f",
+      "arguments": "p_request uuid, p_action text, p_comment text",
+      "anon_execute": false,
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true,
+      "purpose": "Executar ação humana na etapa atribuída, com estado e alçada autorizados.",
+      "authorization_helpers": [
+        "fin_has_role"
+      ],
+      "organization_user_validation": "Membership/role helper plus object scope; inspect exact body and adversarial tests",
+      "definer_need": "Intentional access to RLS/protected membership, workflow or audit data; SECURITY DEFINER must remain constrained by internal guards and grants.",
+      "privilege_escalation_risk": "Bypasses table RLS as owner; signature alone is not authorization. Reject forged org/actor/role, stale state and other-tenant objects.",
+      "canonical": {
+        "name": "fin_act_on_approval",
+        "config": [
+          "search_path=\"\""
+        ],
+        "body_md5": "7c713c0dbf5ffd5bc22253cd2e12b659",
+        "arguments": "p_request uuid, p_action text, p_comment text",
+        "anon_execute": false,
+        "authenticated_execute": true
+      },
+      "hosted_body_matches_canonical": false,
+      "action": "UPGRADE_BODY_DRIFT",
+      "source_locations": [
+        "docs/supabase-financial-enterprise-approvals.sql:83",
+        "docs/supabase-financial-enterprise-approvals.sql:190",
+        "docs/supabase-financial-enterprise-approvals.sql:191",
+        "docs/supabase-financial-policy-engine.sql:1097",
+        "docs/supabase-financial-policy-engine.sql:1446",
+        "docs/supabase-financial-policy-engine.sql:1454"
+      ],
+      "negative_test_locations": [
+        "tests/database/financial-approval-handoff.sql:49",
+        "tests/database/financial-approval-handoff.sql:64",
+        "tests/database/financial-enterprise-approvals.sql:87",
+        "tests/database/financial-enterprise-approvals.sql:92",
+        "tests/database/financial-enterprise-approvals.sql:96",
+        "tests/database/financial-enterprise-approvals.sql:101",
+        "tests/database/financial-multi-entity.sql:251",
+        "tests/database/financial-multi-entity.sql:259",
+        "tests/database/financial-multi-entity.sql:263",
+        "tests/database/financial-surface-hardening.sql:13",
+        "tests/database/financial-surface-hardening.sql:297"
+      ],
+      "test_status": "Current canonical SQL suites PASS_LOCAL; hosted negative mutations NOT_RUN. A name occurrence is a location, not proof by itself."
+    },
+    {
+      "name": "fin_add_comment",
+      "result": "uuid",
+      "body_md5": "77e3a4bbc840e330342737b6580208e5",
+      "arguments": "p_type text, p_id uuid, p_visibility text, p_body text, p_mention_ids uuid[], p_client_id uuid",
+      "anon_execute": false,
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true,
+      "purpose": "Criar comentário apenas no objeto/tenant compartilhado autorizado.",
+      "authorization_helpers": [
+        "fin_comment_object_org",
+        "fin_has_role",
+        "fin_provider_can_comment"
+      ],
+      "organization_user_validation": "Membership/role helper plus object scope; inspect exact body and adversarial tests",
+      "definer_need": "Intentional access to RLS/protected membership, workflow or audit data; SECURITY DEFINER must remain constrained by internal guards and grants.",
+      "privilege_escalation_risk": "Bypasses table RLS as owner; signature alone is not authorization. Reject forged org/actor/role, stale state and other-tenant objects.",
+      "canonical": {
+        "name": "fin_add_comment",
+        "config": [
+          "search_path=\"\""
+        ],
+        "body_md5": "77e3a4bbc840e330342737b6580208e5",
+        "arguments": "p_type text, p_id uuid, p_visibility text, p_body text, p_mention_ids uuid[], p_client_id uuid",
+        "anon_execute": false,
+        "authenticated_execute": true
+      },
+      "hosted_body_matches_canonical": true,
+      "action": "RETAIN_REVIEWED_BOUNDARY",
+      "source_locations": [
+        "docs/supabase-financial-collaboration.sql:86",
+        "docs/supabase-financial-collaboration.sql:187",
+        "docs/supabase-financial-collaboration.sql:189",
+        "docs/supabase-financial-delivery.sql:37",
+        "docs/supabase-financial-pilot-grade.sql:51"
+      ],
+      "negative_test_locations": [
+        "tests/database/financial-collaboration.sql:18",
+        "tests/database/financial-collaboration.sql:19",
+        "tests/database/financial-collaboration.sql:21",
+        "tests/database/financial-collaboration.sql:24",
+        "tests/database/financial-collaboration.sql:27",
+        "tests/database/financial-collaboration.sql:31",
+        "tests/database/financial-collaboration.sql:55",
+        "tests/database/financial-collaboration.sql:59",
+        "tests/database/financial-collaboration.sql:75",
+        "tests/database/financial-delivery.sql:12",
+        "tests/database/financial-delivery.sql:13",
+        "tests/database/financial-delivery.sql:64",
+        "tests/database/financial-delivery.sql:87",
+        "tests/database/financial-multi-entity.sql:201",
+        "tests/database/financial-multi-entity.sql:205",
+        "tests/database/financial-pilot-grade.sql:36",
+        "tests/database/financial-pilot-grade.sql:44",
+        "tests/database/financial-surface-hardening.sql:13",
+        "tests/database/financial-surface-hardening.sql:184",
+        "tests/database/financial-surface-hardening.sql:188",
+        "tests/database/financial-surface-hardening.sql:256",
+        "tests/database/financial-surface-hardening.sql:273",
+        "tests/database/financial-surface-hardening.sql:275",
+        "tests/database/financial-surface-hardening.sql:276"
+      ],
+      "test_status": "Current canonical SQL suites PASS_LOCAL; hosted negative mutations NOT_RUN. A name occurrence is a location, not proof by itself."
+    },
+    {
+      "name": "fin_can_read_document",
+      "result": "boolean",
+      "body_md5": "9f30bdbd14e993978a0a07bf2fcc1b29",
+      "arguments": "p_document uuid",
+      "anon_execute": false,
+      "role_reference": true,
+      "auth_uid_reference": false,
+      "organization_reference": true,
+      "purpose": "Helper booleano de acesso ao documento, via organização ou compartilhamento explícito com provedor.",
+      "authorization_helpers": [
+        "fin_has_role",
+        "fin_provider_can_comment"
+      ],
+      "organization_user_validation": "Membership/role helper plus object scope; inspect exact body and adversarial tests",
+      "definer_need": "Intentional access to RLS/protected membership, workflow or audit data; SECURITY DEFINER must remain constrained by internal guards and grants.",
+      "privilege_escalation_risk": "Bypasses table RLS as owner; signature alone is not authorization. Reject forged org/actor/role, stale state and other-tenant objects.",
+      "canonical": {
+        "name": "fin_can_read_document",
+        "config": [
+          "search_path=\"\""
+        ],
+        "body_md5": "9ef7dd03eaac29956daf12ca342bb72f",
+        "arguments": "p_document uuid",
+        "anon_execute": false,
+        "authenticated_execute": true
+      },
+      "hosted_body_matches_canonical": false,
+      "action": "UPGRADE_BODY_DRIFT",
+      "source_locations": [
+        "docs/supabase-financial-pilot-grade.sql:185",
+        "docs/supabase-financial-pilot-grade.sql:196",
+        "docs/supabase-financial-pilot-grade.sql:197",
+        "docs/supabase-financial-pilot-grade.sql:201",
+        "docs/supabase-financial-pilot-grade.sql:204",
+        "docs/supabase-financial-pilot-grade.sql:319",
+        "docs/supabase-financial-multi-entity.sql:414",
+        "docs/supabase-financial-passport-entities.sql:213",
+        "docs/supabase-financial-passport-entities.sql:253",
+        "docs/supabase-financial-policy-engine.sql:1162",
+        "docs/supabase-financial-document-intelligence.sql:103",
+        "docs/supabase-financial-document-intelligence.sql:109",
+        "docs/supabase-financial-document-intelligence.sql:177",
+        "docs/supabase-financial-document-intelligence.sql:200",
+        "docs/supabase-financial-document-intelligence.sql:271",
+        "docs/supabase-financial-provider-qualification.sql:288",
+        "docs/supabase-financial-implementation.sql:148",
+        "docs/supabase-financial-implementation.sql:190",
+        "docs/supabase-financial-covenants.sql:130",
+        "docs/supabase-financial-security-closure.sql:13",
+        "docs/supabase-financial-security-closure.sql:50",
+        "docs/supabase-financial-followup-hardening.sql:28",
+        "docs/supabase-financial-followup-hardening.sql:30",
+        "docs/supabase-financial-followup-hardening.sql:212",
+        "docs/supabase-financial-external-proposals.sql:163",
+        "docs/supabase-financial-external-proposals.sql:205"
+      ],
+      "negative_test_locations": [
+        "tests/database/financial-surface-hardening.sql:13"
+      ],
+      "test_status": "Current canonical SQL suites PASS_LOCAL; hosted negative mutations NOT_RUN. A name occurrence is a location, not proof by itself."
+    },
+    {
+      "name": "fin_cancel_approval",
+      "result": "void",
+      "body_md5": "57d785681cb06b9209c88d28f358c7bd",
+      "arguments": "p_request uuid",
+      "anon_execute": false,
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true,
+      "purpose": "Cancelar solicitação de aprovação sob papel e estado permitidos.",
+      "authorization_helpers": [
+        "fin_has_role"
+      ],
+      "organization_user_validation": "Membership/role helper plus object scope; inspect exact body and adversarial tests",
+      "definer_need": "Intentional access to RLS/protected membership, workflow or audit data; SECURITY DEFINER must remain constrained by internal guards and grants.",
+      "privilege_escalation_risk": "Bypasses table RLS as owner; signature alone is not authorization. Reject forged org/actor/role, stale state and other-tenant objects.",
+      "canonical": {
+        "name": "fin_cancel_approval",
+        "config": [
+          "search_path=\"\""
+        ],
+        "body_md5": "18c001384e6e26559a0bfd34865454a8",
+        "arguments": "p_request uuid",
+        "anon_execute": false,
+        "authenticated_execute": true
+      },
+      "hosted_body_matches_canonical": false,
+      "action": "UPGRADE_BODY_DRIFT",
+      "source_locations": [
+        "docs/supabase-financial-enterprise-approvals.sql:110",
+        "docs/supabase-financial-enterprise-approvals.sql:190",
+        "docs/supabase-financial-enterprise-approvals.sql:191",
+        "docs/supabase-financial-policy-engine.sql:1102",
+        "docs/supabase-financial-policy-engine.sql:1447",
+        "docs/supabase-financial-policy-engine.sql:1455"
+      ],
+      "negative_test_locations": [
+        "tests/database/financial-policy-engine.sql:407",
+        "tests/database/financial-surface-hardening.sql:14"
+      ],
+      "test_status": "Current canonical SQL suites PASS_LOCAL; hosted negative mutations NOT_RUN. A name occurrence is a location, not proof by itself."
+    },
+    {
+      "name": "fin_clear_rfq_editor",
+      "result": "void",
+      "body_md5": "b336205dcb9715c6c3ba96f3a991d5d4",
+      "arguments": "p_org uuid, p_expected integer",
+      "anon_execute": false,
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true,
+      "purpose": "Remover rascunho do editor no escopo autorizado da RFQ.",
+      "authorization_helpers": [
+        "fin_has_role"
+      ],
+      "organization_user_validation": "Membership/role helper plus object scope; inspect exact body and adversarial tests",
+      "definer_need": "Intentional access to RLS/protected membership, workflow or audit data; SECURITY DEFINER must remain constrained by internal guards and grants.",
+      "privilege_escalation_risk": "Bypasses table RLS as owner; signature alone is not authorization. Reject forged org/actor/role, stale state and other-tenant objects.",
+      "canonical": {
+        "name": "fin_clear_rfq_editor",
+        "config": [
+          "search_path=\"\""
+        ],
+        "body_md5": "b336205dcb9715c6c3ba96f3a991d5d4",
+        "arguments": "p_org uuid, p_expected integer",
+        "anon_execute": false,
+        "authenticated_execute": true
+      },
+      "hosted_body_matches_canonical": true,
+      "action": "RETAIN_REVIEWED_BOUNDARY",
+      "source_locations": [
+        "docs/supabase-financial-rfq-editor.sql:39",
+        "docs/supabase-financial-rfq-editor.sql:46",
+        "docs/supabase-financial-rfq-editor.sql:47"
+      ],
+      "negative_test_locations": [
+        "tests/database/financial-rfq-editor.sql:28",
+        "tests/database/financial-surface-hardening.sql:14"
+      ],
+      "test_status": "Current canonical SQL suites PASS_LOCAL; hosted negative mutations NOT_RUN. A name occurrence is a location, not proof by itself."
+    },
+    {
+      "name": "fin_comment_authors",
+      "result": "TABLE(author_id uuid, display_name text, organization_name text, organization_kind text)",
+      "body_md5": "8421be1a517711af8b8963337e971d3c",
+      "arguments": "p_type text, p_id uuid",
+      "anon_execute": false,
+      "role_reference": true,
+      "auth_uid_reference": false,
+      "organization_reference": true,
+      "purpose": "Projetar autores somente de comentários que o chamador pode ler.",
+      "authorization_helpers": [
+        "fin_has_role",
+        "fin_provider_reads_comment"
+      ],
+      "organization_user_validation": "Membership/role helper plus object scope; inspect exact body and adversarial tests",
+      "definer_need": "Intentional access to RLS/protected membership, workflow or audit data; SECURITY DEFINER must remain constrained by internal guards and grants.",
+      "privilege_escalation_risk": "Bypasses table RLS as owner; signature alone is not authorization. Reject forged org/actor/role, stale state and other-tenant objects.",
+      "canonical": {
+        "name": "fin_comment_authors",
+        "config": [
+          "search_path=\"\""
+        ],
+        "body_md5": "94e17184fd2343bf3d4e9b46fa0518cb",
+        "arguments": "p_type text, p_id uuid",
+        "anon_execute": false,
+        "authenticated_execute": true
+      },
+      "hosted_body_matches_canonical": false,
+      "action": "UPGRADE_BODY_DRIFT",
+      "source_locations": [
+        "docs/supabase-financial-pilot-grade.sql:116",
+        "docs/supabase-financial-pilot-grade.sql:128",
+        "docs/supabase-financial-pilot-grade.sql:129",
+        "docs/supabase-financial-multi-entity.sql:476"
+      ],
+      "negative_test_locations": [
+        "tests/database/financial-multi-entity.sql:298",
+        "tests/database/financial-pilot-grade.sql:52",
+        "tests/database/financial-pilot-grade.sql:100",
+        "tests/database/financial-surface-hardening.sql:14"
+      ],
+      "test_status": "Current canonical SQL suites PASS_LOCAL; hosted negative mutations NOT_RUN. A name occurrence is a location, not proof by itself."
+    },
+    {
+      "name": "fin_create_organization",
+      "result": "uuid",
+      "body_md5": "f4ae903e473446423387711880635118",
+      "arguments": "p_name text, p_kind text, p_country text",
+      "anon_execute": false,
+      "role_reference": false,
+      "auth_uid_reference": true,
+      "organization_reference": true,
+      "purpose": "Criar nova organização com o próprio ator como membro; gate de acesso e bloqueio de conta.",
+      "authorization_helpers": [
+        "fin_pilot_access_allowed"
+      ],
+      "organization_user_validation": "Self-created organization, persisted actor and pilot access gate",
+      "definer_need": "Intentional access to RLS/protected membership, workflow or audit data; SECURITY DEFINER must remain constrained by internal guards and grants.",
+      "privilege_escalation_risk": "Bypasses table RLS as owner; signature alone is not authorization. Reject forged org/actor/role, stale state and other-tenant objects.",
+      "canonical": {
+        "name": "fin_create_organization",
+        "config": [
+          "search_path=\"\""
+        ],
+        "body_md5": "f4ae903e473446423387711880635118",
+        "arguments": "p_name text, p_kind text, p_country text",
+        "anon_execute": false,
+        "authenticated_execute": true
+      },
+      "hosted_body_matches_canonical": true,
+      "action": "RETAIN_REVIEWED_BOUNDARY",
+      "source_locations": [
+        "docs/supabase-financial-procurement.sql:289",
+        "docs/supabase-financial-procurement.sql:543",
+        "docs/supabase-financial-procurement.sql:556",
+        "docs/supabase-financial-pilot.sql:50"
+      ],
+      "negative_test_locations": [
+        "tests/database/financial-decision-integrity.sql:41",
+        "tests/database/financial-decision-integrity.sql:43",
+        "tests/database/financial-decision-integrity.sql:45",
+        "tests/database/financial-pilot.sql:39",
+        "tests/database/financial-pilot.sql:59",
+        "tests/database/financial-pilot.sql:68",
+        "tests/database/financial-pilot.sql:71",
+        "tests/database/financial-procurement-hardening.sql:26",
+        "tests/database/financial-procurement-hardening.sql:28",
+        "tests/database/financial-procurement-hardening.sql:30",
+        "tests/database/financial-procurement.sql:70",
+        "tests/database/financial-procurement.sql:72",
+        "tests/database/financial-procurement.sql:74",
+        "tests/database/financial-procurement.sql:76",
+        "tests/database/financial-surface-hardening.sql:15",
+        "tests/database/financial-surface-hardening.sql:217",
+        "tests/database/financial-surface-hardening.sql:283"
+      ],
+      "test_status": "Current canonical SQL suites PASS_LOCAL; hosted negative mutations NOT_RUN. A name occurrence is a location, not proof by itself."
+    },
+    {
+      "name": "fin_create_rfq",
+      "result": "uuid",
+      "body_md5": "d3c3007d3f3c95982c6b9bac860e5703",
+      "arguments": "p_org uuid, p_product text, p_title text, p_description text, p_demand jsonb, p_deadline date",
+      "anon_execute": false,
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true,
+      "purpose": "Criar RFQ sob papel da organização e escopo da entidade.",
+      "authorization_helpers": [
+        "fin_has_role"
+      ],
+      "organization_user_validation": "Membership/role helper plus object scope; inspect exact body and adversarial tests",
+      "definer_need": "Intentional access to RLS/protected membership, workflow or audit data; SECURITY DEFINER must remain constrained by internal guards and grants.",
+      "privilege_escalation_risk": "Bypasses table RLS as owner; signature alone is not authorization. Reject forged org/actor/role, stale state and other-tenant objects.",
+      "canonical": {
+        "name": "fin_create_rfq",
+        "config": [
+          "search_path=\"\""
+        ],
+        "body_md5": "d3c3007d3f3c95982c6b9bac860e5703",
+        "arguments": "p_org uuid, p_product text, p_title text, p_description text, p_demand jsonb, p_deadline date",
+        "anon_execute": false,
+        "authenticated_execute": true
+      },
+      "hosted_body_matches_canonical": true,
+      "action": "RETAIN_REVIEWED_BOUNDARY",
+      "source_locations": [
+        "docs/supabase-financial-procurement.sql:700",
+        "docs/supabase-financial-procurement.sql:719",
+        "docs/supabase-financial-procurement.sql:720",
+        "docs/supabase-financial-passport.sql:253",
+        "docs/supabase-financial-passport.sql:254",
+        "docs/supabase-financial-multi-entity.sql:597",
+        "docs/supabase-financial-passport-entities.sql:155",
+        "docs/supabase-financial-passport-entities.sql:156"
+      ],
+      "negative_test_locations": [
+        "tests/database/financial-decision-integrity.sql:54",
+        "tests/database/financial-institutional-decline.sql:25",
+        "tests/database/financial-multi-entity.sql:117",
+        "tests/database/financial-multi-entity.sql:122",
+        "tests/database/financial-procurement-hardening.sql:103",
+        "tests/database/financial-procurement-hardening.sql:253",
+        "tests/database/financial-procurement.sql:39",
+        "tests/database/financial-procurement.sql:109",
+        "tests/database/financial-request-receipts.sql:26",
+        "tests/database/financial-surface-hardening.sql:15",
+        "tests/database/financial-surface-hardening.sql:279",
+        "tests/database/financial-surface-hardening.sql:280",
+        "tests/database/financial-surface-hardening.sql:290"
+      ],
+      "test_status": "Current canonical SQL suites PASS_LOCAL; hosted negative mutations NOT_RUN. A name occurrence is a location, not proof by itself."
+    },
+    {
+      "name": "fin_document_authorize_download",
+      "result": "TABLE(bucket text, path text, mime_type text, title text, version integer)",
+      "body_md5": "ab39afa89e9e6235f545a550cbb8c305",
+      "arguments": "p_document uuid, p_version integer",
+      "anon_execute": false,
+      "role_reference": false,
+      "auth_uid_reference": true,
+      "organization_reference": true,
+      "purpose": "Autorizar URL de download somente após acesso ao documento e registrar evento.",
+      "authorization_helpers": [
+        "fin_can_read_document"
+      ],
+      "organization_user_validation": "Delegated authorization helper, not a missing-guard verdict",
+      "definer_need": "Intentional access to RLS/protected membership, workflow or audit data; SECURITY DEFINER must remain constrained by internal guards and grants.",
+      "privilege_escalation_risk": "Bypasses table RLS as owner; signature alone is not authorization. Reject forged org/actor/role, stale state and other-tenant objects.",
+      "canonical": {
+        "name": "fin_document_authorize_download",
+        "config": [
+          "search_path=\"\""
+        ],
+        "body_md5": "ab39afa89e9e6235f545a550cbb8c305",
+        "arguments": "p_document uuid, p_version integer",
+        "anon_execute": false,
+        "authenticated_execute": true
+      },
+      "hosted_body_matches_canonical": true,
+      "action": "RETAIN_REVIEWED_BOUNDARY",
+      "source_locations": [
+        "docs/supabase-financial-pilot-grade.sql:314",
+        "docs/supabase-financial-pilot-grade.sql:329",
+        "docs/supabase-financial-pilot-grade.sql:330"
+      ],
+      "negative_test_locations": [
+        "tests/database/financial-pilot-grade.sql:257",
+        "tests/database/financial-pilot-grade.sql:259",
+        "tests/database/financial-pilot-grade.sql:262",
+        "tests/database/financial-pilot-grade.sql:270",
+        "tests/database/financial-pilot-grade.sql:273",
+        "tests/database/financial-pilot-grade.sql:281",
+        "tests/database/financial-pilot-grade.sql:292",
+        "tests/database/financial-pilot-grade.sql:311",
+        "tests/database/financial-surface-hardening.sql:16",
+        "tests/database/financial-surface-hardening.sql:287"
+      ],
+      "test_status": "Current canonical SQL suites PASS_LOCAL; hosted negative mutations NOT_RUN. A name occurrence is a location, not proof by itself."
+    },
+    {
+      "name": "fin_document_begin_upload",
+      "result": "TABLE(document_id uuid, version integer, bucket text, path text)",
+      "body_md5": "5111323889f4f5a868324fe3d3291095",
+      "arguments": "p_org uuid, p_entity_type text, p_entity_id uuid, p_title text, p_visibility text, p_mime text, p_size bigint, p_sha256 text, p_document_id uuid",
+      "anon_execute": false,
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true,
+      "purpose": "Reservar versão de upload sob papel, entidade, MIME, tamanho e objeto autorizados.",
+      "authorization_helpers": [
+        "fin_document_mime_allowed",
+        "fin_has_role"
+      ],
+      "organization_user_validation": "Membership/role helper plus object scope; inspect exact body and adversarial tests",
+      "definer_need": "Intentional access to RLS/protected membership, workflow or audit data; SECURITY DEFINER must remain constrained by internal guards and grants.",
+      "privilege_escalation_risk": "Bypasses table RLS as owner; signature alone is not authorization. Reject forged org/actor/role, stale state and other-tenant objects.",
+      "canonical": {
+        "name": "fin_document_begin_upload",
+        "config": [
+          "search_path=\"\""
+        ],
+        "body_md5": "06d58544f27843e16dd995e88e579701",
+        "arguments": "p_org uuid, p_entity_type text, p_entity_id uuid, p_title text, p_visibility text, p_mime text, p_size bigint, p_sha256 text, p_document_id uuid",
+        "anon_execute": false,
+        "authenticated_execute": true
+      },
+      "hosted_body_matches_canonical": false,
+      "action": "UPGRADE_BODY_DRIFT",
+      "source_locations": [
+        "docs/supabase-financial-pilot-grade.sql:218",
+        "docs/supabase-financial-pilot-grade.sql:272",
+        "docs/supabase-financial-pilot-grade.sql:273",
+        "docs/supabase-financial-passport-entities.sql:197"
+      ],
+      "negative_test_locations": [
+        "tests/database/financial-document-intelligence.sql:49",
+        "tests/database/financial-document-upload-authorization.sql:23",
+        "tests/database/financial-document-upload-authorization.sql:115",
+        "tests/database/financial-external-decision.sql:100",
+        "tests/database/financial-external-proposals.sql:111",
+        "tests/database/financial-external-proposals.sql:136",
+        "tests/database/financial-pilot-grade.sql:157",
+        "tests/database/financial-pilot-grade.sql:161",
+        "tests/database/financial-pilot-grade.sql:165",
+        "tests/database/financial-pilot-grade.sql:169",
+        "tests/database/financial-pilot-grade.sql:173",
+        "tests/database/financial-pilot-grade.sql:183",
+        "tests/database/financial-pilot-grade.sql:193",
+        "tests/database/financial-pilot-grade.sql:196",
+        "tests/database/financial-pilot-grade.sql:204",
+        "tests/database/financial-pilot-grade.sql:226",
+        "tests/database/financial-pilot-grade.sql:241",
+        "tests/database/financial-pilot-operations.sql:91",
+        "tests/database/financial-pilot-operations.sql:92",
+        "tests/database/financial-surface-hardening.sql:16",
+        "tests/database/financial-surface-hardening.sql:265",
+        "tests/database/financial-surface-hardening.sql:266",
+        "tests/database/financial-surface-hardening.sql:274"
+      ],
+      "test_status": "Current canonical SQL suites PASS_LOCAL; hosted negative mutations NOT_RUN. A name occurrence is a location, not proof by itself."
+    },
+    {
+      "name": "fin_document_pending_upload",
+      "result": "TABLE(bucket text, path text, mime_type text, size_bytes bigint)",
+      "body_md5": "c46257ffabc63d8321c6bb2432a2e46b",
+      "arguments": "p_document uuid, p_version integer",
+      "anon_execute": false,
+      "role_reference": false,
+      "auth_uid_reference": true,
+      "organization_reference": false,
+      "purpose": "Consultar upload próprio pendente e recente; versão canônica acrescenta lock/revalidação da autorização.",
+      "authorization_helpers": [],
+      "organization_user_validation": "uploaded_by=auth.uid(), pending status and ten-minute TTL; canonical authorization recheck differs",
+      "definer_need": "Intentional access to RLS/protected membership, workflow or audit data; SECURITY DEFINER must remain constrained by internal guards and grants.",
+      "privilege_escalation_risk": "Bypasses table RLS as owner; signature alone is not authorization. Reject forged org/actor/role, stale state and other-tenant objects.",
+      "canonical": {
+        "name": "fin_document_pending_upload",
+        "config": [
+          "search_path=\"\""
+        ],
+        "body_md5": "64ecf54fba1329af956fff7864e257ed",
+        "arguments": "p_document uuid, p_version integer",
+        "anon_execute": false,
+        "authenticated_execute": true
+      },
+      "hosted_body_matches_canonical": false,
+      "action": "UPGRADE_BODY_DRIFT",
+      "source_locations": [
+        "docs/supabase-financial-pilot-grade.sql:276",
+        "docs/supabase-financial-pilot-grade.sql:282",
+        "docs/supabase-financial-pilot-grade.sql:283",
+        "docs/supabase-financial-pilot-operations.sql:82",
+        "docs/supabase-financial-pilot-operations.sql:89",
+        "docs/supabase-financial-pilot-operations.sql:90",
+        "docs/supabase-financial-document-upload-authorization.sql:55",
+        "docs/supabase-financial-document-upload-authorization.sql:67",
+        "docs/supabase-financial-document-upload-authorization.sql:68"
+      ],
+      "negative_test_locations": [
+        "tests/database/financial-document-upload-authorization.sql:26",
+        "tests/database/financial-document-upload-authorization.sql:33",
+        "tests/database/financial-document-upload-authorization.sql:52",
+        "tests/database/financial-document-upload-authorization.sql:66",
+        "tests/database/financial-document-upload-authorization.sql:81",
+        "tests/database/financial-document-upload-authorization.sql:117",
+        "tests/database/financial-document-upload-authorization.sql:124",
+        "tests/database/financial-document-upload-authorization.sql:131",
+        "tests/database/financial-pilot-grade.sql:186",
+        "tests/database/financial-pilot-operations.sql:99",
+        "tests/database/financial-pilot-operations.sql:102",
+        "tests/database/financial-surface-hardening.sql:17"
+      ],
+      "test_status": "Current canonical SQL suites PASS_LOCAL; hosted negative mutations NOT_RUN. A name occurrence is a location, not proof by itself."
+    },
+    {
+      "name": "fin_document_remove",
+      "result": "void",
+      "body_md5": "4cca6772b4e3cb6ae9b04be26d2da83f",
+      "arguments": "p_document uuid",
+      "anon_execute": false,
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true,
+      "purpose": "Retirar documento sob papel e escopo autorizados, preservando referência histórica.",
+      "authorization_helpers": [
+        "fin_has_role"
+      ],
+      "organization_user_validation": "Membership/role helper plus object scope; inspect exact body and adversarial tests",
+      "definer_need": "Intentional access to RLS/protected membership, workflow or audit data; SECURITY DEFINER must remain constrained by internal guards and grants.",
+      "privilege_escalation_risk": "Bypasses table RLS as owner; signature alone is not authorization. Reject forged org/actor/role, stale state and other-tenant objects.",
+      "canonical": {
+        "name": "fin_document_remove",
+        "config": [
+          "search_path=\"\""
+        ],
+        "body_md5": "af921ccd1039870f92f8eeabdca7cd1a",
+        "arguments": "p_document uuid",
+        "anon_execute": false,
+        "authenticated_execute": true
+      },
+      "hosted_body_matches_canonical": false,
+      "action": "UPGRADE_BODY_DRIFT",
+      "source_locations": [
+        "docs/supabase-financial-pilot-grade.sql:333",
+        "docs/supabase-financial-pilot-grade.sql:348",
+        "docs/supabase-financial-pilot-grade.sql:349",
+        "docs/supabase-financial-security-closure.sql:11",
+        "docs/supabase-financial-security-closure.sql:42",
+        "docs/supabase-financial-security-closure.sql:43",
+        "docs/supabase-financial-security-closure.sql:60",
+        "docs/supabase-financial-security-closure.sql:61"
+      ],
+      "negative_test_locations": [
+        "tests/database/financial-pilot-grade.sql:301",
+        "tests/database/financial-pilot-grade.sql:306",
+        "tests/database/financial-security-closure.sql:70",
+        "tests/database/financial-security-closure.sql:77",
+        "tests/database/financial-surface-hardening.sql:17"
+      ],
+      "test_status": "Current canonical SQL suites PASS_LOCAL; hosted negative mutations NOT_RUN. A name occurrence is a location, not proof by itself."
+    },
+    {
+      "name": "fin_has_role",
+      "result": "boolean",
+      "body_md5": "2ac879a8bef2962f0dc72c2aefcad4cc",
+      "arguments": "p_org uuid, p_roles text[]",
+      "anon_execute": false,
+      "role_reference": false,
+      "auth_uid_reference": true,
+      "organization_reference": true,
+      "purpose": "Helper de membership em fin_members, ator Auth e papéis persistidos; não usa papel informado pelo cliente.",
+      "authorization_helpers": [],
+      "organization_user_validation": "Delegated authorization helper, not a missing-guard verdict",
+      "definer_need": "Intentional access to RLS/protected membership, workflow or audit data; SECURITY DEFINER must remain constrained by internal guards and grants.",
+      "privilege_escalation_risk": "Bypasses table RLS as owner; signature alone is not authorization. Reject forged org/actor/role, stale state and other-tenant objects.",
+      "canonical": {
+        "name": "fin_has_role",
+        "config": [
+          "search_path=\"\""
+        ],
+        "body_md5": "2ac879a8bef2962f0dc72c2aefcad4cc",
+        "arguments": "p_org uuid, p_roles text[]",
+        "anon_execute": false,
+        "authenticated_execute": true
+      },
+      "hosted_body_matches_canonical": true,
+      "action": "RETAIN_REVIEWED_BOUNDARY",
+      "source_locations": [
+        "docs/supabase-financial-procurement.sql:278",
+        "docs/supabase-financial-procurement.sql:311",
+        "docs/supabase-financial-procurement.sql:350",
+        "docs/supabase-financial-procurement.sql:371",
+        "docs/supabase-financial-procurement.sql:404",
+        "docs/supabase-financial-procurement.sql:431",
+        "docs/supabase-financial-procurement.sql:449",
+        "docs/supabase-financial-procurement.sql:462",
+        "docs/supabase-financial-procurement.sql:489",
+        "docs/supabase-financial-procurement.sql:527",
+        "docs/supabase-financial-procurement.sql:542",
+        "docs/supabase-financial-procurement.sql:555",
+        "docs/supabase-financial-procurement.sql:579",
+        "docs/supabase-financial-procurement.sql:623",
+        "docs/supabase-financial-procurement.sql:625",
+        "docs/supabase-financial-procurement.sql:628",
+        "docs/supabase-financial-procurement.sql:630",
+        "docs/supabase-financial-procurement.sql:632",
+        "docs/supabase-financial-procurement.sql:633",
+        "docs/supabase-financial-procurement.sql:636",
+        "docs/supabase-financial-procurement.sql:638",
+        "docs/supabase-financial-procurement.sql:640",
+        "docs/supabase-financial-procurement.sql:641",
+        "docs/supabase-financial-procurement.sql:647",
+        "docs/supabase-financial-procurement.sql:651",
+        "docs/supabase-financial-procurement.sql:656",
+        "docs/supabase-financial-procurement.sql:657",
+        "docs/supabase-financial-procurement.sql:663",
+        "docs/supabase-financial-procurement.sql:668",
+        "docs/supabase-financial-procurement.sql:671",
+        "docs/supabase-financial-procurement.sql:673",
+        "docs/supabase-financial-procurement.sql:676",
+        "docs/supabase-financial-procurement.sql:678",
+        "docs/supabase-financial-procurement.sql:681",
+        "docs/supabase-financial-procurement.sql:683",
+        "docs/supabase-financial-procurement.sql:685",
+        "docs/supabase-financial-procurement.sql:686",
+        "docs/supabase-financial-procurement.sql:689",
+        "docs/supabase-financial-procurement.sql:706",
+        "docs/supabase-financial-procurement-hardening.sql:38",
+        "docs/supabase-financial-procurement-hardening.sql:67",
+        "docs/supabase-financial-procurement-hardening.sql:96",
+        "docs/supabase-financial-procurement-hardening.sql:120",
+        "docs/supabase-financial-procurement-hardening.sql:161",
+        "docs/supabase-financial-procurement-hardening.sql:206",
+        "docs/supabase-financial-procurement-hardening.sql:265",
+        "docs/supabase-financial-pilot.sql:78",
+        "docs/supabase-financial-pilot.sql:98",
+        "docs/supabase-financial-pilot.sql:119",
+        "docs/supabase-financial-pilot.sql:211",
+        "docs/supabase-financial-enterprise-approvals.sql:42",
+        "docs/supabase-financial-enterprise-approvals.sql:45",
+        "docs/supabase-financial-enterprise-approvals.sql:54",
+        "docs/supabase-financial-enterprise-approvals.sql:93",
+        "docs/supabase-financial-enterprise-approvals.sql:118",
+        "docs/supabase-financial-enterprise-approvals.sql:138",
+        "docs/supabase-financial-enterprise-approvals.sql:142",
+        "docs/supabase-financial-enterprise-approvals.sql:162",
+        "docs/supabase-financial-enterprise-drafts.sql:18",
+        "docs/supabase-financial-enterprise-drafts.sql:29",
+        "docs/supabase-financial-collaboration.sql:68",
+        "docs/supabase-financial-collaboration.sql:70",
+        "docs/supabase-financial-collaboration.sql:76",
+        "docs/supabase-financial-collaboration.sql:81",
+        "docs/supabase-financial-collaboration.sql:84",
+        "docs/supabase-financial-collaboration.sql:97",
+        "docs/supabase-financial-collaboration.sql:138",
+        "docs/supabase-financial-collaboration.sql:149",
+        "docs/supabase-financial-operational-search.sql:7",
+        "docs/supabase-financial-renewals.sql:19",
+        "docs/supabase-financial-renewals.sql:25",
+        "docs/supabase-financial-renewals.sql:68",
+        "docs/supabase-financial-rfq-editor.sql:17",
+        "docs/supabase-financial-rfq-editor.sql:24",
+        "docs/supabase-financial-rfq-editor.sql:42",
+        "docs/supabase-financial-rfq-revisions.sql:19",
+        "docs/supabase-financial-rfq-revisions.sql:77",
+        "docs/supabase-financial-delivery.sql:33",
+        "docs/supabase-financial-pilot-grade.sql:34",
+        "docs/supabase-financial-pilot-grade.sql:46",
+        "docs/supabase-financial-pilot-grade.sql:124",
+        "docs/supabase-financial-pilot-grade.sql:190",
+        "docs/supabase-financial-pilot-grade.sql:193",
+        "docs/supabase-financial-pilot-grade.sql:235",
+        "docs/supabase-financial-pilot-grade.sql:243",
+        "docs/supabase-financial-pilot-grade.sql:245",
+        "docs/supabase-financial-pilot-grade.sql:339",
+        "docs/supabase-financial-pilot-grade.sql:341",
+        "docs/supabase-financial-pilot-operations.sql:40",
+        "docs/supabase-financial-final-hardening.sql:89",
+        "docs/supabase-financial-final-hardening.sql:121",
+        "docs/supabase-financial-passport.sql:18",
+        "docs/supabase-financial-passport.sql:64",
+        "docs/supabase-financial-passport.sql:140",
+        "docs/supabase-financial-passport.sql:187",
+        "docs/supabase-financial-passport.sql:226",
+        "docs/supabase-financial-multi-entity.sql:157",
+        "docs/supabase-financial-multi-entity.sql:175",
+        "docs/supabase-financial-multi-entity.sql:298",
+        "docs/supabase-financial-multi-entity.sql:311",
+        "docs/supabase-financial-multi-entity.sql:347",
+        "docs/supabase-financial-multi-entity.sql:356",
+        "docs/supabase-financial-multi-entity.sql:361",
+        "docs/supabase-financial-multi-entity.sql:362",
+        "docs/supabase-financial-multi-entity.sql:366",
+        "docs/supabase-financial-multi-entity.sql:371",
+        "docs/supabase-financial-multi-entity.sql:372",
+        "docs/supabase-financial-multi-entity.sql:375",
+        "docs/supabase-financial-multi-entity.sql:381",
+        "docs/supabase-financial-multi-entity.sql:385",
+        "docs/supabase-financial-multi-entity.sql:388",
+        "docs/supabase-financial-multi-entity.sql:391",
+        "docs/supabase-financial-multi-entity.sql:394",
+        "docs/supabase-financial-multi-entity.sql:398",
+        "docs/supabase-financial-multi-entity.sql:401",
+        "docs/supabase-financial-multi-entity.sql:403",
+        "docs/supabase-financial-multi-entity.sql:409",
+        "docs/supabase-financial-multi-entity.sql:419",
+        "docs/supabase-financial-multi-entity.sql:423",
+        "docs/supabase-financial-multi-entity.sql:434",
+        "docs/supabase-financial-multi-entity.sql:484",
+        "docs/supabase-financial-multi-entity.sql:496",
+        "docs/supabase-financial-multi-entity.sql:524",
+        "docs/supabase-financial-multi-entity.sql:550",
+        "docs/supabase-financial-multi-entity.sql:563",
+        "docs/supabase-financial-multi-entity.sql:636",
+        "docs/supabase-financial-multi-entity.sql:657",
+        "docs/supabase-financial-contracts-v2.sql:174",
+        "docs/supabase-financial-contracts-v2.sql:177",
+        "docs/supabase-financial-contracts-v2.sql:180",
+        "docs/supabase-financial-contracts-v2.sql:183",
+        "docs/supabase-financial-contracts-v2.sql:372",
+        "docs/supabase-financial-relationships-portfolio.sql:308",
+        "docs/supabase-financial-relationships-portfolio.sql:333",
+        "docs/supabase-financial-relationships-portfolio.sql:336",
+        "docs/supabase-financial-relationships-portfolio.sql:339",
+        "docs/supabase-financial-relationships-portfolio.sql:367",
+        "docs/supabase-financial-relationships-portfolio.sql:392",
+        "docs/supabase-financial-relationships-portfolio.sql:474",
+        "docs/supabase-financial-passport-entities.sql:30",
+        "docs/supabase-financial-passport-entities.sql:215",
+        "docs/supabase-financial-passport-entities.sql:223",
+        "docs/supabase-financial-passport-entities.sql:225",
+        "docs/supabase-financial-passport-entities.sql:258",
+        "docs/supabase-financial-passport-entities.sql:262",
+        "docs/supabase-financial-passport-entities.sql:268",
+        "docs/supabase-financial-passport-entities.sql:278",
+        "docs/supabase-financial-graph.sql:39",
+        "docs/supabase-financial-graph.sql:51",
+        "docs/supabase-financial-policy-engine.sql:420",
+        "docs/supabase-financial-policy-engine.sql:424",
+        "docs/supabase-financial-policy-engine.sql:428",
+        "docs/supabase-financial-policy-engine.sql:431",
+        "docs/supabase-financial-policy-engine.sql:432",
+        "docs/supabase-financial-policy-engine.sql:688",
+        "docs/supabase-financial-policy-engine.sql:729",
+        "docs/supabase-financial-policy-engine.sql:750",
+        "docs/supabase-financial-policy-engine.sql:766",
+        "docs/supabase-financial-policy-engine.sql:778",
+        "docs/supabase-financial-policy-engine.sql:798",
+        "docs/supabase-financial-policy-engine.sql:811",
+        "docs/supabase-financial-policy-engine.sql:833",
+        "docs/supabase-financial-policy-engine.sql:918",
+        "docs/supabase-financial-policy-engine.sql:1014",
+        "docs/supabase-financial-policy-engine.sql:1110",
+        "docs/supabase-financial-policy-engine.sql:1130",
+        "docs/supabase-financial-policy-engine.sql:1150",
+        "docs/supabase-financial-policy-engine.sql:1190",
+        "docs/supabase-financial-policy-engine.sql:1212",
+        "docs/supabase-financial-policy-engine.sql:1225",
+        "docs/supabase-financial-policy-engine.sql:1248",
+        "docs/supabase-financial-policy-engine.sql:1268",
+        "docs/supabase-financial-policy-engine.sql:1323",
+        "docs/supabase-financial-public-api.sql:189",
+        "docs/supabase-financial-public-api.sql:192",
+        "docs/supabase-financial-public-api.sql:195",
+        "docs/supabase-financial-public-api.sql:198",
+        "docs/supabase-financial-public-api.sql:201",
+        "docs/supabase-financial-public-api.sql:217",
+        "docs/supabase-financial-public-api.sql:243",
+        "docs/supabase-financial-public-api.sql:266",
+        "docs/supabase-financial-public-api.sql:282",
+        "docs/supabase-financial-public-api.sql:303",
+        "docs/supabase-financial-public-api.sql:324",
+        "docs/supabase-financial-public-api.sql:344",
+        "docs/supabase-financial-public-api.sql:361",
+        "docs/supabase-financial-sso.sql:84",
+        "docs/supabase-financial-sso.sql:86",
+        "docs/supabase-financial-sso.sql:89",
+        "docs/supabase-financial-sso.sql:98",
+        "docs/supabase-financial-sso.sql:132",
+        "docs/supabase-financial-sso.sql:168",
+        "docs/supabase-financial-sso.sql:186",
+        "docs/supabase-financial-sso.sql:210",
+        "docs/supabase-financial-operational-resilience.sql:133",
+        "docs/supabase-financial-operational-resilience.sql:172",
+        "docs/supabase-financial-data-governance.sql:229",
+        "docs/supabase-financial-data-governance.sql:232",
+        "docs/supabase-financial-data-governance.sql:235",
+        "docs/supabase-financial-data-governance.sql:238",
+        "docs/supabase-financial-data-governance.sql:241",
+        "docs/supabase-financial-data-governance.sql:247",
+        "docs/supabase-financial-p0-closure.sql:118",
+        "docs/supabase-financial-value-realization.sql:79",
+        "docs/supabase-financial-value-realization.sql:214",
+        "docs/supabase-financial-value-realization.sql:226",
+        "docs/supabase-financial-value-realization.sql:338",
+        "docs/supabase-financial-value-realization.sql:350",
+        "docs/supabase-financial-fee-intelligence.sql:543",
+        "docs/supabase-financial-fee-intelligence.sql:563",
+        "docs/supabase-financial-fee-intelligence.sql:734",
+        "docs/supabase-financial-fee-intelligence.sql:746",
+        "docs/supabase-financial-opportunity-engine.sql:175",
+        "docs/supabase-financial-opportunity-engine.sql:210",
+        "docs/supabase-financial-opportunity-engine.sql:451",
+        "docs/supabase-financial-opportunity-engine.sql:512",
+        "docs/supabase-financial-opportunity-engine.sql:526",
+        "docs/supabase-financial-opportunity-engine.sql:683",
+        "docs/supabase-financial-opportunity-engine.sql:695",
+        "docs/supabase-financial-document-intelligence.sql:107",
+        "docs/supabase-financial-document-intelligence.sql:173",
+        "docs/supabase-financial-document-intelligence.sql:201",
+        "docs/supabase-financial-document-intelligence.sql:270",
+        "docs/supabase-financial-document-intelligence.sql:272",
+        "docs/supabase-financial-provider-qualification.sql:135",
+        "docs/supabase-financial-provider-qualification.sql:217",
+        "docs/supabase-financial-provider-qualification.sql:247",
+        "docs/supabase-financial-implementation.sql:297",
+        "docs/supabase-financial-implementation.sql:427",
+        "docs/supabase-financial-implementation.sql:439",
+        "docs/supabase-financial-covenants.sql:345",
+        "docs/supabase-financial-covenants.sql:479",
+        "docs/supabase-financial-covenants.sql:491",
+        "docs/supabase-financial-covenants.sql:710",
+        "docs/supabase-financial-provider-performance.sql:69",
+        "docs/supabase-financial-provider-performance.sql:94",
+        "docs/supabase-financial-provider-performance.sql:216",
+        "docs/supabase-financial-provider-performance.sql:330",
+        "docs/supabase-financial-provider-performance.sql:466",
+        "docs/supabase-financial-provider-performance.sql:479",
+        "docs/supabase-financial-spend-intelligence.sql:77",
+        "docs/supabase-financial-spend-intelligence.sql:180",
+        "docs/supabase-financial-spend-intelligence.sql:319",
+        "docs/supabase-financial-spend-intelligence.sql:331",
+        "docs/supabase-financial-security-closure.sql:36",
+        "docs/supabase-financial-security-closure.sql:39",
+        "docs/supabase-financial-security-closure.sql:51",
+        "docs/supabase-financial-security-closure.sql:53",
+        "docs/supabase-financial-security-closure.sql:143",
+        "docs/supabase-financial-request-receipts.sql:34",
+        "docs/supabase-financial-followup-hardening.sql:215",
+        "docs/supabase-financial-followup-hardening.sql:228",
+        "docs/supabase-financial-renewal-cycles.sql:118",
+        "docs/supabase-financial-decision-integrity.sql:35",
+        "docs/supabase-financial-decision-integrity.sql:73",
+        "docs/supabase-financial-enterprise-integrity.sql:47",
+        "docs/supabase-financial-external-decision.sql:235",
+        "docs/supabase-financial-external-decision.sql:249",
+        "docs/supabase-financial-external-decision.sql:332",
+        "docs/supabase-financial-external-decision.sql:379",
+        "docs/supabase-financial-external-decision.sql:470",
+        "docs/supabase-financial-external-decision.sql:529",
+        "docs/supabase-financial-external-decision.sql:602",
+        "docs/supabase-financial-provider-intent-integrity.sql:22",
+        "docs/supabase-financial-institutional-decline.sql:10",
+        "docs/supabase-financial-crm.sql:58",
+        "docs/supabase-financial-crm.sql:226",
+        "docs/supabase-financial-fee-ingestion.sql:35",
+        "docs/supabase-financial-fee-ingestion.sql:39",
+        "docs/supabase-financial-fee-ingestion.sql:132"
+      ],
+      "negative_test_locations": [
+        "tests/database/financial-surface-hardening.sql:18"
+      ],
+      "test_status": "Current canonical SQL suites PASS_LOCAL; hosted negative mutations NOT_RUN. A name occurrence is a location, not proof by itself."
+    },
+    {
+      "name": "fin_invite_member",
+      "result": "text",
+      "body_md5": "8c0456bdedf4cc416f781836d68737fe",
+      "arguments": "p_org uuid, p_email text, p_role text",
+      "anon_execute": false,
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true,
+      "purpose": "Convidar membro com papel permitido por administrador da organização.",
+      "authorization_helpers": [
+        "fin_has_role"
+      ],
+      "organization_user_validation": "Membership/role helper plus object scope; inspect exact body and adversarial tests",
+      "definer_need": "Intentional access to RLS/protected membership, workflow or audit data; SECURITY DEFINER must remain constrained by internal guards and grants.",
+      "privilege_escalation_risk": "Bypasses table RLS as owner; signature alone is not authorization. Reject forged org/actor/role, stale state and other-tenant objects.",
+      "canonical": {
+        "name": "fin_invite_member",
+        "config": [
+          "search_path=\"\""
+        ],
+        "body_md5": "8c0456bdedf4cc416f781836d68737fe",
+        "arguments": "p_org uuid, p_email text, p_role text",
+        "anon_execute": false,
+        "authenticated_execute": true
+      },
+      "hosted_body_matches_canonical": true,
+      "action": "RETAIN_REVIEWED_BOUNDARY",
+      "source_locations": [
+        "docs/supabase-financial-procurement.sql:307",
+        "docs/supabase-financial-procurement.sql:544",
+        "docs/supabase-financial-procurement.sql:557"
+      ],
+      "negative_test_locations": [
+        "tests/database/financial-surface-hardening.sql:18",
+        "tests/database/financial-surface-hardening.sql:173",
+        "tests/database/financial-surface-hardening.sql:258",
+        "tests/database/financial-surface-hardening.sql:293",
+        "tests/database/financial-surface-hardening.sql:295"
+      ],
+      "test_status": "Current canonical SQL suites PASS_LOCAL; hosted negative mutations NOT_RUN. A name occurrence is a location, not proof by itself."
+    },
+    {
+      "name": "fin_invite_provider",
+      "result": "text",
+      "body_md5": "0c79cbe6ceba8c2af7813a5fc3bcf11d",
+      "arguments": "p_rfq uuid, p_provider uuid",
+      "anon_execute": false,
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true,
+      "purpose": "Convidar provedor para RFQ autorizada e enfileirar email transacional.",
+      "authorization_helpers": [
+        "fin_enqueue_email",
+        "fin_has_role",
+        "fin_setting"
+      ],
+      "organization_user_validation": "Membership/role helper plus object scope; inspect exact body and adversarial tests",
+      "definer_need": "Intentional access to RLS/protected membership, workflow or audit data; SECURITY DEFINER must remain constrained by internal guards and grants.",
+      "privilege_escalation_risk": "Bypasses table RLS as owner; signature alone is not authorization. Reject forged org/actor/role, stale state and other-tenant objects.",
+      "canonical": {
+        "name": "fin_invite_provider",
+        "config": [
+          "search_path=\"\""
+        ],
+        "body_md5": "0c79cbe6ceba8c2af7813a5fc3bcf11d",
+        "arguments": "p_rfq uuid, p_provider uuid",
+        "anon_execute": false,
+        "authenticated_execute": true
+      },
+      "hosted_body_matches_canonical": true,
+      "action": "RETAIN_REVIEWED_BOUNDARY",
+      "source_locations": [
+        "docs/supabase-financial-procurement.sql:344",
+        "docs/supabase-financial-procurement.sql:546",
+        "docs/supabase-financial-procurement.sql:559",
+        "docs/supabase-financial-pilot.sql:204",
+        "docs/supabase-financial-final-hardening.sql:82",
+        "docs/supabase-financial-final-hardening.sql:113",
+        "docs/supabase-financial-final-hardening.sql:114"
+      ],
+      "negative_test_locations": [
+        "tests/database/financial-crm.sql:39",
+        "tests/database/financial-decision-integrity.sql:57",
+        "tests/database/financial-final-hardening.sql:46",
+        "tests/database/financial-final-hardening.sql:47",
+        "tests/database/financial-final-hardening.sql:48",
+        "tests/database/financial-final-hardening.sql:49",
+        "tests/database/financial-followup-hardening.sql:73",
+        "tests/database/financial-followup-hardening.sql:85",
+        "tests/database/financial-followup-hardening.sql:95",
+        "tests/database/financial-followup-hardening.sql:99",
+        "tests/database/financial-institutional-decline.sql:27",
+        "tests/database/financial-multi-entity.sql:200",
+        "tests/database/financial-negotiation-continuity.sql:42",
+        "tests/database/financial-pilot-operations.sql:35",
+        "tests/database/financial-pilot-operations.sql:36",
+        "tests/database/financial-pilot-operations.sql:37",
+        "tests/database/financial-procurement-hardening.sql:108",
+        "tests/database/financial-procurement-hardening.sql:110",
+        "tests/database/financial-procurement.sql:137",
+        "tests/database/financial-procurement.sql:139",
+        "tests/database/financial-surface-hardening.sql:18",
+        "tests/database/financial-surface-hardening.sql:171",
+        "tests/database/financial-surface-hardening.sql:172",
+        "tests/database/financial-surface-hardening.sql:253",
+        "tests/database/financial-surface-hardening.sql:291"
+      ],
+      "test_status": "Current canonical SQL suites PASS_LOCAL; hosted negative mutations NOT_RUN. A name occurrence is a location, not proof by itself."
+    },
+    {
+      "name": "fin_is_operator",
+      "result": "boolean",
+      "body_md5": "dc3e6a16393986b227cebb8dd9410806",
+      "arguments": "",
+      "anon_execute": false,
+      "role_reference": false,
+      "auth_uid_reference": true,
+      "organization_reference": false,
+      "purpose": "Helper de papel de plataforma atribuído em tabela protegida; separado de papel empresarial.",
+      "authorization_helpers": [
+        "fin_platform_role"
+      ],
+      "organization_user_validation": "Delegated authorization helper, not a missing-guard verdict",
+      "definer_need": "Intentional access to RLS/protected membership, workflow or audit data; SECURITY DEFINER must remain constrained by internal guards and grants.",
+      "privilege_escalation_risk": "Bypasses table RLS as owner; signature alone is not authorization. Reject forged org/actor/role, stale state and other-tenant objects.",
+      "canonical": {
+        "name": "fin_is_operator",
+        "config": [
+          "search_path=\"\""
+        ],
+        "body_md5": "dc3e6a16393986b227cebb8dd9410806",
+        "arguments": "",
+        "anon_execute": false,
+        "authenticated_execute": true
+      },
+      "hosted_body_matches_canonical": true,
+      "action": "RETAIN_REVIEWED_BOUNDARY",
+      "source_locations": [
+        "docs/supabase-financial-pilot-grade.sql:465",
+        "docs/supabase-financial-pilot-grade.sql:469",
+        "docs/supabase-financial-pilot-grade.sql:470",
+        "docs/supabase-financial-final-hardening.sql:45",
+        "docs/supabase-financial-final-hardening.sql:50",
+        "docs/supabase-financial-final-hardening.sql:51"
+      ],
+      "negative_test_locations": [
+        "tests/database/financial-final-hardening.sql:138",
+        "tests/database/financial-final-hardening.sql:165",
+        "tests/database/financial-surface-hardening.sql:18"
+      ],
+      "test_status": "Current canonical SQL suites PASS_LOCAL; hosted negative mutations NOT_RUN. A name occurrence is a location, not proof by itself."
+    },
+    {
+      "name": "fin_mark_notifications",
+      "result": "integer",
+      "body_md5": "1fde1809773028199a91a0de78effc3b",
+      "arguments": "p_org uuid, p_ids uuid[]",
+      "anon_execute": false,
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true,
+      "purpose": "Marcar notificações do próprio usuário na organização autorizada.",
+      "authorization_helpers": [
+        "fin_has_role"
+      ],
+      "organization_user_validation": "Membership/role helper plus object scope; inspect exact body and adversarial tests",
+      "definer_need": "Intentional access to RLS/protected membership, workflow or audit data; SECURITY DEFINER must remain constrained by internal guards and grants.",
+      "privilege_escalation_risk": "Bypasses table RLS as owner; signature alone is not authorization. Reject forged org/actor/role, stale state and other-tenant objects.",
+      "canonical": {
+        "name": "fin_mark_notifications",
+        "config": [
+          "search_path=\"\""
+        ],
+        "body_md5": "1fde1809773028199a91a0de78effc3b",
+        "arguments": "p_org uuid, p_ids uuid[]",
+        "anon_execute": false,
+        "authenticated_execute": true
+      },
+      "hosted_body_matches_canonical": true,
+      "action": "RETAIN_REVIEWED_BOUNDARY",
+      "source_locations": [
+        "docs/supabase-financial-collaboration.sql:134",
+        "docs/supabase-financial-collaboration.sql:187",
+        "docs/supabase-financial-collaboration.sql:190"
+      ],
+      "negative_test_locations": [
+        "tests/database/financial-collaboration.sql:45",
+        "tests/database/financial-collaboration.sql:46",
+        "tests/database/financial-collaboration.sql:64",
+        "tests/database/financial-surface-hardening.sql:19",
+        "tests/database/financial-surface-hardening.sql:263"
+      ],
+      "test_status": "Current canonical SQL suites PASS_LOCAL; hosted negative mutations NOT_RUN. A name occurrence is a location, not proof by itself."
+    },
+    {
+      "name": "fin_ops_overview",
+      "result": "jsonb",
+      "body_md5": "f577ebf57fc2f5c68b8e0b6d2a913374",
+      "arguments": "",
+      "anon_execute": false,
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": false,
+      "purpose": "Visão operacional minimizada, restrita ao operador de plataforma.",
+      "authorization_helpers": [
+        "fin_require_operator",
+        "fin_setting"
+      ],
+      "organization_user_validation": "Membership/role helper plus object scope; inspect exact body and adversarial tests",
+      "definer_need": "Intentional access to RLS/protected membership, workflow or audit data; SECURITY DEFINER must remain constrained by internal guards and grants.",
+      "privilege_escalation_risk": "Bypasses table RLS as owner; signature alone is not authorization. Reject forged org/actor/role, stale state and other-tenant objects.",
+      "canonical": {
+        "name": "fin_ops_overview",
+        "config": [
+          "search_path=\"\""
+        ],
+        "body_md5": "fef9562b51d5601ff2acc7e56dfbef4c",
+        "arguments": "",
+        "anon_execute": false,
+        "authenticated_execute": true
+      },
+      "hosted_body_matches_canonical": false,
+      "action": "UPGRADE_BODY_DRIFT",
+      "source_locations": [
+        "docs/supabase-financial-pilot-grade.sql:410",
+        "docs/supabase-financial-pilot-grade.sql:442",
+        "docs/supabase-financial-pilot-grade.sql:443",
+        "docs/supabase-financial-final-hardening.sql:178",
+        "docs/supabase-financial-final-hardening.sql:212",
+        "docs/supabase-financial-final-hardening.sql:213",
+        "docs/supabase-financial-operational-resilience.sql:247",
+        "docs/supabase-financial-data-governance.sql:883",
+        "docs/supabase-financial-data-governance.sql:944",
+        "docs/supabase-financial-data-governance.sql:953"
+      ],
+      "negative_test_locations": [
+        "tests/database/financial-data-governance-rollback.sql:8",
+        "tests/database/financial-final-hardening.sql:135",
+        "tests/database/financial-final-hardening.sql:143",
+        "tests/database/financial-final-hardening.sql:150",
+        "tests/database/financial-final-hardening.sql:158",
+        "tests/database/financial-final-hardening.sql:166",
+        "tests/database/financial-pilot-grade.sql:342",
+        "tests/database/financial-pilot-grade.sql:356",
+        "tests/database/financial-pilot-grade.sql:364",
+        "tests/database/financial-surface-hardening.sql:19",
+        "tests/database/financial-surface-hardening.sql:281"
+      ],
+      "test_status": "Current canonical SQL suites PASS_LOCAL; hosted negative mutations NOT_RUN. A name occurrence is a location, not proof by itself."
+    },
+    {
+      "name": "fin_ops_trace",
+      "result": "jsonb",
+      "body_md5": "6a074b74e55edca760b3af3c72c884fc",
+      "arguments": "p_request_id text, p_entity_id uuid",
+      "anon_execute": false,
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true,
+      "purpose": "Trace operacional restrito ao operador, com trilha de acesso.",
+      "authorization_helpers": [
+        "fin_require_operator"
+      ],
+      "organization_user_validation": "Membership/role helper plus object scope; inspect exact body and adversarial tests",
+      "definer_need": "Intentional access to RLS/protected membership, workflow or audit data; SECURITY DEFINER must remain constrained by internal guards and grants.",
+      "privilege_escalation_risk": "Bypasses table RLS as owner; signature alone is not authorization. Reject forged org/actor/role, stale state and other-tenant objects.",
+      "canonical": {
+        "name": "fin_ops_trace",
+        "config": [
+          "search_path=\"\""
+        ],
+        "body_md5": "6a074b74e55edca760b3af3c72c884fc",
+        "arguments": "p_request_id text, p_entity_id uuid",
+        "anon_execute": false,
+        "authenticated_execute": true
+      },
+      "hosted_body_matches_canonical": true,
+      "action": "RETAIN_REVIEWED_BOUNDARY",
+      "source_locations": [
+        "docs/supabase-financial-pilot-grade.sql:447",
+        "docs/supabase-financial-pilot-grade.sql:462",
+        "docs/supabase-financial-pilot-grade.sql:463",
+        "docs/supabase-financial-final-hardening.sql:215",
+        "docs/supabase-financial-final-hardening.sql:234",
+        "docs/supabase-financial-final-hardening.sql:235"
+      ],
+      "negative_test_locations": [
+        "tests/database/financial-final-hardening.sql:169",
+        "tests/database/financial-pilot-grade.sql:369",
+        "tests/database/financial-pilot-grade.sql:371",
+        "tests/database/financial-pilot-grade.sql:374",
+        "tests/database/financial-surface-hardening.sql:19",
+        "tests/database/financial-surface-hardening.sql:286"
+      ],
+      "test_status": "Current canonical SQL suites PASS_LOCAL; hosted negative mutations NOT_RUN. A name occurrence is a location, not proof by itself."
+    },
+    {
+      "name": "fin_process_renewals",
+      "result": "integer",
+      "body_md5": "6756a65eb03bf4f6ed426280cb87bb84",
+      "arguments": "p_org uuid, p_day date",
+      "anon_execute": false,
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true,
+      "purpose": "Materializar marcos/tarefas idempotentes dos contratos autorizados, com janela de data limitada.",
+      "authorization_helpers": [
+        "fin_has_role"
+      ],
+      "organization_user_validation": "Membership/role helper plus object scope; inspect exact body and adversarial tests",
+      "definer_need": "Intentional access to RLS/protected membership, workflow or audit data; SECURITY DEFINER must remain constrained by internal guards and grants.",
+      "privilege_escalation_risk": "Bypasses table RLS as owner; signature alone is not authorization. Reject forged org/actor/role, stale state and other-tenant objects.",
+      "canonical": {
+        "name": "fin_process_renewals",
+        "config": [
+          "search_path=\"\""
+        ],
+        "body_md5": "c85a95ed0ab5cc5fee90504f50b61137",
+        "arguments": "p_org uuid, p_day date",
+        "anon_execute": false,
+        "authenticated_execute": true
+      },
+      "hosted_body_matches_canonical": false,
+      "action": "UPGRADE_BODY_DRIFT",
+      "source_locations": [
+        "docs/supabase-financial-renewals.sql:21",
+        "docs/supabase-financial-renewals.sql:78",
+        "docs/supabase-financial-renewals.sql:79",
+        "docs/supabase-financial-multi-entity.sql:653",
+        "docs/supabase-financial-multi-entity.sql:749",
+        "docs/supabase-financial-multi-entity.sql:750",
+        "docs/supabase-financial-renewal-cycles.sql:114",
+        "docs/supabase-financial-renewal-cycles.sql:224",
+        "docs/supabase-financial-renewal-cycles.sql:225"
+      ],
+      "negative_test_locations": [
+        "tests/database/financial-multi-entity.sql:270",
+        "tests/database/financial-multi-entity.sql:290",
+        "tests/database/financial-renewal-cycles.sql:37",
+        "tests/database/financial-renewal-cycles.sql:113",
+        "tests/database/financial-renewal-cycles.sql:116",
+        "tests/database/financial-renewal-cycles.sql:117",
+        "tests/database/financial-renewals.sql:9",
+        "tests/database/financial-renewals.sql:11",
+        "tests/database/financial-renewals.sql:23",
+        "tests/database/financial-surface-hardening.sql:20",
+        "tests/database/financial-surface-hardening.sql:262"
+      ],
+      "test_status": "Current canonical SQL suites PASS_LOCAL; hosted negative mutations NOT_RUN. A name occurrence is a location, not proof by itself."
+    },
+    {
+      "name": "fin_provider_can_comment",
+      "result": "boolean",
+      "body_md5": "37fdc46065cddf9006b6c8ee7c386bbb",
+      "arguments": "p_type text, p_id uuid",
+      "anon_execute": false,
+      "role_reference": true,
+      "auth_uid_reference": false,
+      "organization_reference": true,
+      "purpose": "Helper de participação explícita de provedor no objeto, sem acesso ao tenant inteiro.",
+      "authorization_helpers": [
+        "fin_has_role"
+      ],
+      "organization_user_validation": "Membership/role helper plus object scope; inspect exact body and adversarial tests",
+      "definer_need": "Intentional access to RLS/protected membership, workflow or audit data; SECURITY DEFINER must remain constrained by internal guards and grants.",
+      "privilege_escalation_risk": "Bypasses table RLS as owner; signature alone is not authorization. Reject forged org/actor/role, stale state and other-tenant objects.",
+      "canonical": {
+        "name": "fin_provider_can_comment",
+        "config": [
+          "search_path=\"\""
+        ],
+        "body_md5": "37fdc46065cddf9006b6c8ee7c386bbb",
+        "arguments": "p_type text, p_id uuid",
+        "anon_execute": false,
+        "authenticated_execute": true
+      },
+      "hosted_body_matches_canonical": true,
+      "action": "RETAIN_REVIEWED_BOUNDARY",
+      "source_locations": [
+        "docs/supabase-financial-collaboration.sql:63",
+        "docs/supabase-financial-collaboration.sql:77",
+        "docs/supabase-financial-collaboration.sql:99",
+        "docs/supabase-financial-collaboration.sql:186",
+        "docs/supabase-financial-collaboration.sql:192",
+        "docs/supabase-financial-rfq-revisions.sql:19",
+        "docs/supabase-financial-delivery.sql:34",
+        "docs/supabase-financial-pilot-grade.sql:21",
+        "docs/supabase-financial-pilot-grade.sql:192",
+        "docs/supabase-financial-multi-entity.sql:388",
+        "docs/supabase-financial-multi-entity.sql:422",
+        "docs/supabase-financial-passport-entities.sql:261"
+      ],
+      "negative_test_locations": [
+        "tests/database/financial-surface-hardening.sql:20"
+      ],
+      "test_status": "Current canonical SQL suites PASS_LOCAL; hosted negative mutations NOT_RUN. A name occurrence is a location, not proof by itself."
+    },
+    {
+      "name": "fin_provider_reads_comment",
+      "result": "boolean",
+      "body_md5": "e9723ee588158c50c19bf4be1cd266f7",
+      "arguments": "p_org uuid, p_author uuid, p_type text, p_id uuid",
+      "anon_execute": false,
+      "role_reference": false,
+      "auth_uid_reference": true,
+      "organization_reference": true,
+      "purpose": "Helper de leitura de comentário do provedor segundo compartilhamento.",
+      "authorization_helpers": [
+        "fin_provider_can_comment"
+      ],
+      "organization_user_validation": "Delegated authorization helper, not a missing-guard verdict",
+      "definer_need": "Intentional access to RLS/protected membership, workflow or audit data; SECURITY DEFINER must remain constrained by internal guards and grants.",
+      "privilege_escalation_risk": "Bypasses table RLS as owner; signature alone is not authorization. Reject forged org/actor/role, stale state and other-tenant objects.",
+      "canonical": {
+        "name": "fin_provider_reads_comment",
+        "config": [
+          "search_path=\"\""
+        ],
+        "body_md5": "e9723ee588158c50c19bf4be1cd266f7",
+        "arguments": "p_org uuid, p_author uuid, p_type text, p_id uuid",
+        "anon_execute": false,
+        "authenticated_execute": true
+      },
+      "hosted_body_matches_canonical": true,
+      "action": "RETAIN_REVIEWED_BOUNDARY",
+      "source_locations": [
+        "docs/supabase-financial-pilot-grade.sql:19",
+        "docs/supabase-financial-pilot-grade.sql:29",
+        "docs/supabase-financial-pilot-grade.sql:30",
+        "docs/supabase-financial-pilot-grade.sql:35",
+        "docs/supabase-financial-pilot-grade.sql:48",
+        "docs/supabase-financial-pilot-grade.sql:125",
+        "docs/supabase-financial-multi-entity.sql:410",
+        "docs/supabase-financial-multi-entity.sql:485"
+      ],
+      "negative_test_locations": [
+        "tests/database/financial-surface-hardening.sql:21"
+      ],
+      "test_status": "Current canonical SQL suites PASS_LOCAL; hosted negative mutations NOT_RUN. A name occurrence is a location, not proof by itself."
+    },
+    {
+      "name": "fin_record_client_event",
+      "result": "void",
+      "body_md5": "c9d7ac1b1ff9ffd88590bed6087a1bcd",
+      "arguments": "p_org uuid, p_entity_type text, p_entity_id uuid, p_event text",
+      "anon_execute": false,
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true,
+      "purpose": "Evento da lista fechada, com organization_id autorizado e actor_id da sessão.",
+      "authorization_helpers": [
+        "fin_has_role"
+      ],
+      "organization_user_validation": "Membership/role helper plus object scope; inspect exact body and adversarial tests",
+      "definer_need": "Intentional access to RLS/protected membership, workflow or audit data; SECURITY DEFINER must remain constrained by internal guards and grants.",
+      "privilege_escalation_risk": "Bypasses table RLS as owner; signature alone is not authorization. Reject forged org/actor/role, stale state and other-tenant objects.",
+      "canonical": {
+        "name": "fin_record_client_event",
+        "config": [
+          "search_path=\"\""
+        ],
+        "body_md5": "c9d7ac1b1ff9ffd88590bed6087a1bcd",
+        "arguments": "p_org uuid, p_entity_type text, p_entity_id uuid, p_event text",
+        "anon_execute": false,
+        "authenticated_execute": true
+      },
+      "hosted_body_matches_canonical": true,
+      "action": "RETAIN_REVIEWED_BOUNDARY",
+      "source_locations": [
+        "docs/supabase-financial-pilot.sql:95",
+        "docs/supabase-financial-pilot.sql:127",
+        "docs/supabase-financial-pilot.sql:131"
+      ],
+      "negative_test_locations": [
+        "tests/database/financial-pilot.sql:130",
+        "tests/database/financial-pilot.sql:139",
+        "tests/database/financial-pilot.sql:150",
+        "tests/database/financial-surface-hardening.sql:21",
+        "tests/database/financial-surface-hardening.sql:261"
+      ],
+      "test_status": "Current canonical SQL suites PASS_LOCAL; hosted negative mutations NOT_RUN. A name occurrence is a location, not proof by itself."
+    },
+    {
+      "name": "fin_record_decision",
+      "result": "uuid",
+      "body_md5": "8b7757e39a63ef4e4e0ebe2614aaf986",
+      "arguments": "p_rfq uuid, p_proposal uuid, p_criteria jsonb, p_rationale text",
+      "anon_execute": false,
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true,
+      "purpose": "Decisão humana/snapshot financeiro; entrada antiga é fechada no contrato canônico mais recente.",
+      "authorization_helpers": [
+        "fin_has_role"
+      ],
+      "organization_user_validation": "Membership/role helper plus object scope; inspect exact body and adversarial tests",
+      "definer_need": "Intentional access to RLS/protected membership, workflow or audit data; SECURITY DEFINER must remain constrained by internal guards and grants.",
+      "privilege_escalation_risk": "Bypasses table RLS as owner; signature alone is not authorization. Reject forged org/actor/role, stale state and other-tenant objects.",
+      "canonical": {
+        "name": "fin_record_decision",
+        "config": [
+          "search_path=\"\""
+        ],
+        "body_md5": "c82f08fbdca4f5525ed6f5fb65d5519e",
+        "arguments": "p_rfq uuid, p_proposal uuid, p_criteria jsonb, p_rationale text",
+        "anon_execute": false,
+        "authenticated_execute": false
+      },
+      "hosted_body_matches_canonical": false,
+      "action": "UPGRADE_CLOSE_OLD_ENTRYPOINT",
+      "source_locations": [
+        "docs/supabase-financial-procurement.sql:482",
+        "docs/supabase-financial-procurement.sql:551",
+        "docs/supabase-financial-procurement.sql:564",
+        "docs/supabase-financial-procurement-hardening.sql:11",
+        "docs/supabase-financial-procurement-hardening.sql:154",
+        "docs/supabase-financial-enterprise-approvals.sql:155",
+        "docs/supabase-financial-policy-engine.sql:1260",
+        "docs/supabase-financial-policy-engine.sql:1450",
+        "docs/supabase-financial-policy-engine.sql:1458",
+        "docs/supabase-financial-decision-integrity.sql:3",
+        "docs/supabase-financial-decision-integrity.sql:78",
+        "docs/supabase-financial-enterprise-integrity.sql:5",
+        "docs/supabase-financial-enterprise-integrity.sql:9",
+        "docs/supabase-financial-external-decision.sql:462",
+        "docs/supabase-financial-external-decision.sql:534"
+      ],
+      "negative_test_locations": [
+        "tests/database/decision-entrypoint.sql:15",
+        "tests/database/financial-enterprise-integrity.sql:4",
+        "tests/database/financial-enterprise-integrity.sql:5",
+        "tests/database/financial-enterprise-integrity.sql:6",
+        "tests/database/financial-enterprise-integrity.sql:17",
+        "tests/database/financial-procurement.sql:40",
+        "tests/database/financial-surface-hardening.sql:22",
+        "tests/database/financial-surface-hardening.sql:255",
+        "tests/database/financial-surface-hardening.sql:278"
+      ],
+      "test_status": "Current canonical SQL suites PASS_LOCAL; hosted negative mutations NOT_RUN. A name occurrence is a location, not proof by itself."
+    },
+    {
+      "name": "fin_record_provider_evidence",
+      "result": "void",
+      "body_md5": "667055be78793a477d2ae01015e6ff6c",
+      "arguments": "p_provider uuid, p_authority text, p_registry text, p_evidence_url text, p_checked_at date",
+      "anon_execute": false,
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true,
+      "purpose": "Registrar evidência declarada do provedor no tenant autorizado, sem alegar verificação externa.",
+      "authorization_helpers": [
+        "fin_has_role"
+      ],
+      "organization_user_validation": "Membership/role helper plus object scope; inspect exact body and adversarial tests",
+      "definer_need": "Intentional access to RLS/protected membership, workflow or audit data; SECURITY DEFINER must remain constrained by internal guards and grants.",
+      "privilege_escalation_risk": "Bypasses table RLS as owner; signature alone is not authorization. Reject forged org/actor/role, stale state and other-tenant objects.",
+      "canonical": {
+        "name": "fin_record_provider_evidence",
+        "config": [
+          "search_path=\"\""
+        ],
+        "body_md5": "667055be78793a477d2ae01015e6ff6c",
+        "arguments": "p_provider uuid, p_authority text, p_registry text, p_evidence_url text, p_checked_at date",
+        "anon_execute": false,
+        "authenticated_execute": true
+      },
+      "hosted_body_matches_canonical": true,
+      "action": "RETAIN_REVIEWED_BOUNDARY",
+      "source_locations": [
+        "docs/supabase-financial-procurement-hardening.sql:60",
+        "docs/supabase-financial-procurement-hardening.sql:229",
+        "docs/supabase-financial-procurement-hardening.sql:233"
+      ],
+      "negative_test_locations": [
+        "tests/database/financial-procurement-hardening.sql:77",
+        "tests/database/financial-procurement-hardening.sql:85",
+        "tests/database/financial-procurement-hardening.sql:93",
+        "tests/database/financial-surface-hardening.sql:22"
+      ],
+      "test_status": "Current canonical SQL suites PASS_LOCAL; hosted negative mutations NOT_RUN. A name occurrence is a location, not proof by itself."
+    },
+    {
+      "name": "fin_register_contract",
+      "result": "uuid",
+      "body_md5": "4857b8c7c2c7ad8ed8eff33ff738ecb7",
+      "arguments": "p_decision uuid, p_starts date, p_ends date, p_notice integer, p_cost text, p_conditions text, p_reference text",
+      "anon_execute": false,
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true,
+      "purpose": "Registrar contrato decorrente de decisão autorizada, sem assinatura ou movimento de recursos.",
+      "authorization_helpers": [
+        "fin_has_role"
+      ],
+      "organization_user_validation": "Membership/role helper plus object scope; inspect exact body and adversarial tests",
+      "definer_need": "Intentional access to RLS/protected membership, workflow or audit data; SECURITY DEFINER must remain constrained by internal guards and grants.",
+      "privilege_escalation_risk": "Bypasses table RLS as owner; signature alone is not authorization. Reject forged org/actor/role, stale state and other-tenant objects.",
+      "canonical": {
+        "name": "fin_register_contract",
+        "config": [
+          "search_path=\"\""
+        ],
+        "body_md5": "0e93654de4a93efd6988370d5c314d56",
+        "arguments": "p_decision uuid, p_starts date, p_ends date, p_notice integer, p_cost text, p_conditions text, p_reference text",
+        "anon_execute": false,
+        "authenticated_execute": true
+      },
+      "hosted_body_matches_canonical": false,
+      "action": "UPGRADE_BODY_DRIFT",
+      "source_locations": [
+        "docs/supabase-financial-procurement.sql:519",
+        "docs/supabase-financial-procurement.sql:552",
+        "docs/supabase-financial-procurement.sql:565",
+        "docs/supabase-financial-procurement-hardening.sql:11",
+        "docs/supabase-financial-procurement-hardening.sql:198",
+        "docs/supabase-financial-pilot-operations.sql:27",
+        "docs/supabase-financial-contract-onboarding.sql:5",
+        "docs/supabase-financial-external-decision.sql:593"
+      ],
+      "negative_test_locations": [
+        "tests/database/financial-external-decision.sql:66",
+        "tests/database/financial-multi-entity.sql:269",
+        "tests/database/financial-negotiation-continuity.sql:69",
+        "tests/database/financial-pilot-operations.sql:120",
+        "tests/database/financial-procurement-hardening.sql:226",
+        "tests/database/financial-procurement-hardening.sql:234",
+        "tests/database/financial-procurement.sql:311",
+        "tests/database/financial-renewals.sql:8",
+        "tests/database/financial-surface-hardening.sql:23"
+      ],
+      "test_status": "Current canonical SQL suites PASS_LOCAL; hosted negative mutations NOT_RUN. A name occurrence is a location, not proof by itself."
+    },
+    {
+      "name": "fin_reply_comment",
+      "result": "uuid",
+      "body_md5": "6ba5d8c3cd53a45b89149c15ec8d2497",
+      "arguments": "p_parent uuid, p_body text, p_mention_ids uuid[], p_client_id uuid",
+      "anon_execute": false,
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true,
+      "purpose": "Responder comentário autorizado e notificar apenas participantes autorizados.",
+      "authorization_helpers": [
+        "fin_add_comment",
+        "fin_has_role",
+        "fin_provider_reads_comment"
+      ],
+      "organization_user_validation": "Membership/role helper plus object scope; inspect exact body and adversarial tests",
+      "definer_need": "Intentional access to RLS/protected membership, workflow or audit data; SECURITY DEFINER must remain constrained by internal guards and grants.",
+      "privilege_escalation_risk": "Bypasses table RLS as owner; signature alone is not authorization. Reject forged org/actor/role, stale state and other-tenant objects.",
+      "canonical": {
+        "name": "fin_reply_comment",
+        "config": [
+          "search_path=\"\""
+        ],
+        "body_md5": "6ba5d8c3cd53a45b89149c15ec8d2497",
+        "arguments": "p_parent uuid, p_body text, p_mention_ids uuid[], p_client_id uuid",
+        "anon_execute": false,
+        "authenticated_execute": true
+      },
+      "hosted_body_matches_canonical": true,
+      "action": "RETAIN_REVIEWED_BOUNDARY",
+      "source_locations": [
+        "docs/supabase-financial-delivery.sql:24",
+        "docs/supabase-financial-delivery.sql:50",
+        "docs/supabase-financial-delivery.sql:51",
+        "docs/supabase-financial-pilot-grade.sql:39",
+        "docs/supabase-financial-pilot-grade.sql:64",
+        "docs/supabase-financial-pilot-grade.sql:65"
+      ],
+      "negative_test_locations": [
+        "tests/database/financial-delivery.sql:19",
+        "tests/database/financial-delivery.sql:22",
+        "tests/database/financial-delivery.sql:25",
+        "tests/database/financial-delivery.sql:29",
+        "tests/database/financial-delivery.sql:45",
+        "tests/database/financial-delivery.sql:48",
+        "tests/database/financial-pilot-grade.sql:55",
+        "tests/database/financial-surface-hardening.sql:23",
+        "tests/database/financial-surface-hardening.sql:288"
+      ],
+      "test_status": "Current canonical SQL suites PASS_LOCAL; hosted negative mutations NOT_RUN. A name occurrence is a location, not proof by itself."
+    },
+    {
+      "name": "fin_request_approval",
+      "result": "uuid",
+      "body_md5": "ec6a88b079ea9b6a08b39a479508bb8b",
+      "arguments": "p_rfq uuid, p_proposal uuid, p_approvers uuid[], p_rationale text",
+      "anon_execute": false,
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true,
+      "purpose": "Abrir workflow de aprovação da RFQ autorizada, com política/estado atuais.",
+      "authorization_helpers": [
+        "fin_has_role"
+      ],
+      "organization_user_validation": "Membership/role helper plus object scope; inspect exact body and adversarial tests",
+      "definer_need": "Intentional access to RLS/protected membership, workflow or audit data; SECURITY DEFINER must remain constrained by internal guards and grants.",
+      "privilege_escalation_risk": "Bypasses table RLS as owner; signature alone is not authorization. Reject forged org/actor/role, stale state and other-tenant objects.",
+      "canonical": {
+        "name": "fin_request_approval",
+        "config": [
+          "search_path=\"\""
+        ],
+        "body_md5": "651f73be35c88582ba34dcce74647324",
+        "arguments": "p_rfq uuid, p_proposal uuid, p_approvers uuid[], p_rationale text",
+        "anon_execute": false,
+        "authenticated_execute": true
+      },
+      "hosted_body_matches_canonical": false,
+      "action": "UPGRADE_BODY_DRIFT",
+      "source_locations": [
+        "docs/supabase-financial-enterprise-approvals.sql:47",
+        "docs/supabase-financial-enterprise-approvals.sql:190",
+        "docs/supabase-financial-enterprise-approvals.sql:191",
+        "docs/supabase-financial-policy-engine.sql:911",
+        "docs/supabase-financial-policy-engine.sql:1446",
+        "docs/supabase-financial-policy-engine.sql:1454",
+        "docs/supabase-financial-external-decision.sql:140",
+        "docs/supabase-financial-external-decision.sql:325"
+      ],
+      "negative_test_locations": [
+        "tests/database/financial-approval-handoff.sql:35",
+        "tests/database/financial-enterprise-approvals.sql:55",
+        "tests/database/financial-enterprise-approvals.sql:60",
+        "tests/database/financial-enterprise-approvals.sql:66",
+        "tests/database/financial-enterprise-approvals.sql:78",
+        "tests/database/financial-multi-entity.sql:247",
+        "tests/database/financial-multi-entity.sql:248",
+        "tests/database/financial-policy-engine-rollback.sql:1",
+        "tests/database/financial-policy-engine.sql:218",
+        "tests/database/financial-surface-hardening.sql:24",
+        "tests/database/financial-surface-hardening.sql:254"
+      ],
+      "test_status": "Current canonical SQL suites PASS_LOCAL; hosted negative mutations NOT_RUN. A name occurrence is a location, not proof by itself."
+    },
+    {
+      "name": "fin_revise_rfq",
+      "result": "integer",
+      "body_md5": "48ff843ff7d30ce16638ef074a8b4957",
+      "arguments": "p_rfq uuid, p_expected integer, p_title text, p_description text, p_demand jsonb, p_deadline date",
+      "anon_execute": false,
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true,
+      "purpose": "Revisar solicitação sob papel, entidade e estado permitidos.",
+      "authorization_helpers": [
+        "fin_has_role"
+      ],
+      "organization_user_validation": "Membership/role helper plus object scope; inspect exact body and adversarial tests",
+      "definer_need": "Intentional access to RLS/protected membership, workflow or audit data; SECURITY DEFINER must remain constrained by internal guards and grants.",
+      "privilege_escalation_risk": "Bypasses table RLS as owner; signature alone is not authorization. Reject forged org/actor/role, stale state and other-tenant objects.",
+      "canonical": {
+        "name": "fin_revise_rfq",
+        "config": [
+          "search_path=\"\""
+        ],
+        "body_md5": "48ff843ff7d30ce16638ef074a8b4957",
+        "arguments": "p_rfq uuid, p_expected integer, p_title text, p_description text, p_demand jsonb, p_deadline date",
+        "anon_execute": false,
+        "authenticated_execute": true
+      },
+      "hosted_body_matches_canonical": true,
+      "action": "RETAIN_REVIEWED_BOUNDARY",
+      "source_locations": [
+        "docs/supabase-financial-rfq-revisions.sql:70",
+        "docs/supabase-financial-rfq-revisions.sql:92",
+        "docs/supabase-financial-rfq-revisions.sql:93"
+      ],
+      "negative_test_locations": [
+        "tests/database/financial-external-decision.sql:110",
+        "tests/database/financial-negotiation-continuity.sql:40",
+        "tests/database/financial-procurement-hardening.sql:256",
+        "tests/database/financial-rfq-revisions.sql:13",
+        "tests/database/financial-rfq-revisions.sql:16",
+        "tests/database/financial-rfq-revisions.sql:53",
+        "tests/database/financial-rfq-revisions.sql:56",
+        "tests/database/financial-rfq-revisions.sql:72",
+        "tests/database/financial-rfq-revisions.sql:81",
+        "tests/database/financial-rfq-revisions.sql:84",
+        "tests/database/financial-surface-hardening.sql:24",
+        "tests/database/financial-surface-hardening.sql:252"
+      ],
+      "test_status": "Current canonical SQL suites PASS_LOCAL; hosted negative mutations NOT_RUN. A name occurrence is a location, not proof by itself."
+    },
+    {
+      "name": "fin_save_proposal_draft",
+      "result": "integer",
+      "body_md5": "bcb7957ddce831b7d4751b9b504c7732",
+      "arguments": "p_proposal uuid, p_terms jsonb, p_expected_revision integer, p_base_version integer",
+      "anon_execute": false,
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true,
+      "purpose": "Salvar rascunho institucional sob membership de provedor e convite da RFQ.",
+      "authorization_helpers": [
+        "fin_has_role"
+      ],
+      "organization_user_validation": "Membership/role helper plus object scope; inspect exact body and adversarial tests",
+      "definer_need": "Intentional access to RLS/protected membership, workflow or audit data; SECURITY DEFINER must remain constrained by internal guards and grants.",
+      "privilege_escalation_risk": "Bypasses table RLS as owner; signature alone is not authorization. Reject forged org/actor/role, stale state and other-tenant objects.",
+      "canonical": {
+        "name": "fin_save_proposal_draft",
+        "config": [
+          "search_path=\"\""
+        ],
+        "body_md5": "bcb7957ddce831b7d4751b9b504c7732",
+        "arguments": "p_proposal uuid, p_terms jsonb, p_expected_revision integer, p_base_version integer",
+        "anon_execute": false,
+        "authenticated_execute": true
+      },
+      "hosted_body_matches_canonical": true,
+      "action": "RETAIN_REVIEWED_BOUNDARY",
+      "source_locations": [
+        "docs/supabase-financial-enterprise-drafts.sql:20",
+        "docs/supabase-financial-enterprise-drafts.sql:46",
+        "docs/supabase-financial-enterprise-drafts.sql:47"
+      ],
+      "negative_test_locations": [
+        "tests/database/financial-enterprise-drafts.sql:31",
+        "tests/database/financial-enterprise-drafts.sql:35",
+        "tests/database/financial-enterprise-drafts.sql:39",
+        "tests/database/financial-enterprise-drafts.sql:50",
+        "tests/database/financial-enterprise-drafts.sql:62",
+        "tests/database/financial-surface-hardening.sql:25",
+        "tests/database/financial-surface-hardening.sql:271"
+      ],
+      "test_status": "Current canonical SQL suites PASS_LOCAL; hosted negative mutations NOT_RUN. A name occurrence is a location, not proof by itself."
+    },
+    {
+      "name": "fin_save_rfq_editor",
+      "result": "TABLE(revision integer, updated_at timestamp with time zone)",
+      "body_md5": "c3d0da0d77fc8cfaab0404f151cda2a5",
+      "arguments": "p_org uuid, p_payload jsonb, p_expected integer",
+      "anon_execute": false,
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true,
+      "purpose": "Salvar editor da solicitação sob papel e escopo de entidade.",
+      "authorization_helpers": [
+        "fin_has_role"
+      ],
+      "organization_user_validation": "Membership/role helper plus object scope; inspect exact body and adversarial tests",
+      "definer_need": "Intentional access to RLS/protected membership, workflow or audit data; SECURITY DEFINER must remain constrained by internal guards and grants.",
+      "privilege_escalation_risk": "Bypasses table RLS as owner; signature alone is not authorization. Reject forged org/actor/role, stale state and other-tenant objects.",
+      "canonical": {
+        "name": "fin_save_rfq_editor",
+        "config": [
+          "search_path=\"\""
+        ],
+        "body_md5": "c3d0da0d77fc8cfaab0404f151cda2a5",
+        "arguments": "p_org uuid, p_payload jsonb, p_expected integer",
+        "anon_execute": false,
+        "authenticated_execute": true
+      },
+      "hosted_body_matches_canonical": true,
+      "action": "RETAIN_REVIEWED_BOUNDARY",
+      "source_locations": [
+        "docs/supabase-financial-rfq-editor.sql:19",
+        "docs/supabase-financial-rfq-editor.sql:46",
+        "docs/supabase-financial-rfq-editor.sql:47"
+      ],
+      "negative_test_locations": [
+        "tests/database/financial-rfq-editor.sql:7",
+        "tests/database/financial-rfq-editor.sql:10",
+        "tests/database/financial-rfq-editor.sql:13",
+        "tests/database/financial-rfq-editor.sql:23",
+        "tests/database/financial-surface-hardening.sql:25",
+        "tests/database/financial-surface-hardening.sql:264"
+      ],
+      "test_status": "Current canonical SQL suites PASS_LOCAL; hosted negative mutations NOT_RUN. A name occurrence is a location, not proof by itself."
+    },
+    {
+      "name": "fin_search",
+      "result": "TABLE(kind text, id uuid, title text, detail text, href text)",
+      "body_md5": "f3b8e4c6dd6abc66774d43490f29c442",
+      "arguments": "p_org uuid, p_query text, p_kind text, p_limit integer, p_offset integer",
+      "anon_execute": false,
+      "role_reference": true,
+      "auth_uid_reference": false,
+      "organization_reference": true,
+      "purpose": "Buscar projeções financeiras restritas ao tenant/papel/entidade, sem SQL arbitrário.",
+      "authorization_helpers": [
+        "fin_has_role"
+      ],
+      "organization_user_validation": "Membership/role helper plus object scope; inspect exact body and adversarial tests",
+      "definer_need": "Intentional access to RLS/protected membership, workflow or audit data; SECURITY DEFINER must remain constrained by internal guards and grants.",
+      "privilege_escalation_risk": "Bypasses table RLS as owner; signature alone is not authorization. Reject forged org/actor/role, stale state and other-tenant objects.",
+      "canonical": {
+        "name": "fin_search",
+        "config": [
+          "search_path=\"\""
+        ],
+        "body_md5": "970bcde441a7ab1fbca93ab6206816e6",
+        "arguments": "p_org uuid, p_query text, p_kind text, p_limit integer, p_offset integer",
+        "anon_execute": false,
+        "authenticated_execute": true
+      },
+      "hosted_body_matches_canonical": false,
+      "action": "UPGRADE_BODY_DRIFT",
+      "source_locations": [
+        "docs/supabase-financial-operational-search.sql:2",
+        "docs/supabase-financial-operational-search.sql:43",
+        "docs/supabase-financial-operational-search.sql:44",
+        "docs/supabase-financial-multi-entity.sql:429",
+        "docs/supabase-financial-implementation.sql:292",
+        "docs/supabase-financial-implementation.sql:341",
+        "docs/supabase-financial-implementation.sql:342",
+        "docs/supabase-financial-covenants.sql:340",
+        "docs/supabase-financial-covenants.sql:391",
+        "docs/supabase-financial-covenants.sql:392",
+        "docs/supabase-financial-provider-performance.sql:325",
+        "docs/supabase-financial-spend-intelligence.sql:175"
+      ],
+      "negative_test_locations": [
+        "tests/database/financial-covenants.sql:56",
+        "tests/database/financial-implementation.sql:57",
+        "tests/database/financial-implementation.sql:71",
+        "tests/database/financial-multi-entity.sql:160",
+        "tests/database/financial-operational-search.sql:6",
+        "tests/database/financial-operational-search.sql:9",
+        "tests/database/financial-operational-search.sql:16",
+        "tests/database/financial-operational-search.sql:24",
+        "tests/database/financial-opportunity-engine.sql:220",
+        "tests/database/financial-provider-performance.sql:59",
+        "tests/database/financial-surface-hardening.sql:26",
+        "tests/database/financial-surface-hardening.sql:257"
+      ],
+      "test_status": "Current canonical SQL suites PASS_LOCAL; hosted negative mutations NOT_RUN. A name occurrence is a location, not proof by itself."
+    },
+    {
+      "name": "fin_set_approval_policy",
+      "result": "void",
+      "body_md5": "24af275be4e0c4a8db04bd5c253c3a31",
+      "arguments": "p_org uuid, p_required boolean",
+      "anon_execute": false,
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true,
+      "purpose": "Alterar política da organização sob papel administrativo autorizado.",
+      "authorization_helpers": [
+        "fin_has_role"
+      ],
+      "organization_user_validation": "Membership/role helper plus object scope; inspect exact body and adversarial tests",
+      "definer_need": "Intentional access to RLS/protected membership, workflow or audit data; SECURITY DEFINER must remain constrained by internal guards and grants.",
+      "privilege_escalation_risk": "Bypasses table RLS as owner; signature alone is not authorization. Reject forged org/actor/role, stale state and other-tenant objects.",
+      "canonical": {
+        "name": "fin_set_approval_policy",
+        "config": [
+          "search_path=\"\""
+        ],
+        "body_md5": "24af275be4e0c4a8db04bd5c253c3a31",
+        "arguments": "p_org uuid, p_required boolean",
+        "anon_execute": false,
+        "authenticated_execute": true
+      },
+      "hosted_body_matches_canonical": true,
+      "action": "RETAIN_REVIEWED_BOUNDARY",
+      "source_locations": [
+        "docs/supabase-financial-enterprise-approvals.sql:139",
+        "docs/supabase-financial-enterprise-approvals.sql:151",
+        "docs/supabase-financial-enterprise-approvals.sql:152"
+      ],
+      "negative_test_locations": [
+        "tests/database/financial-enterprise-approvals.sql:38",
+        "tests/database/financial-external-decision.sql:48",
+        "tests/database/financial-surface-hardening.sql:26",
+        "tests/database/financial-surface-hardening.sql:260",
+        "tests/database/financial-surface-hardening.sql:296"
+      ],
+      "test_status": "Current canonical SQL suites PASS_LOCAL; hosted negative mutations NOT_RUN. A name occurrence is a location, not proof by itself."
+    },
+    {
+      "name": "fin_set_notification_preference",
+      "result": "void",
+      "body_md5": "34cd9cb9242a6c26b5ac8467bcddbf2f",
+      "arguments": "p_org uuid, p_event text, p_in_app boolean, p_email boolean",
+      "anon_execute": false,
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true,
+      "purpose": "Preferência de notificação do próprio usuário na organização.",
+      "authorization_helpers": [
+        "fin_has_role"
+      ],
+      "organization_user_validation": "Membership/role helper plus object scope; inspect exact body and adversarial tests",
+      "definer_need": "Intentional access to RLS/protected membership, workflow or audit data; SECURITY DEFINER must remain constrained by internal guards and grants.",
+      "privilege_escalation_risk": "Bypasses table RLS as owner; signature alone is not authorization. Reject forged org/actor/role, stale state and other-tenant objects.",
+      "canonical": {
+        "name": "fin_set_notification_preference",
+        "config": [
+          "search_path=\"\""
+        ],
+        "body_md5": "16a65fbc979f6bf03f911ec3ee4bb1e0",
+        "arguments": "p_org uuid, p_event text, p_in_app boolean, p_email boolean",
+        "anon_execute": false,
+        "authenticated_execute": true
+      },
+      "hosted_body_matches_canonical": false,
+      "action": "UPGRADE_BODY_DRIFT",
+      "source_locations": [
+        "docs/supabase-financial-collaboration.sql:146",
+        "docs/supabase-financial-collaboration.sql:188",
+        "docs/supabase-financial-collaboration.sql:190",
+        "docs/supabase-financial-p0-closure.sql:115"
+      ],
+      "negative_test_locations": [
+        "tests/database/financial-delivery.sql:58",
+        "tests/database/financial-p0-closure.sql:124",
+        "tests/database/financial-p0-closure.sql:125",
+        "tests/database/financial-pilot-grade.sql:107",
+        "tests/database/financial-pilot-grade.sql:108",
+        "tests/database/financial-pilot-grade.sql:109",
+        "tests/database/financial-pilot-grade.sql:110",
+        "tests/database/financial-surface-hardening.sql:27"
+      ],
+      "test_status": "Current canonical SQL suites PASS_LOCAL; hosted negative mutations NOT_RUN. A name occurrence is a location, not proof by itself."
+    },
+    {
+      "name": "fin_start_contract_rfq",
+      "result": "uuid",
+      "body_md5": "20eb7a848f001a963543e7c305d2b9aa",
+      "arguments": "p_contract uuid",
+      "anon_execute": false,
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true,
+      "purpose": "Iniciar RFQ de renovação a partir de contrato autorizado, sem award automático.",
+      "authorization_helpers": [
+        "fin_has_role"
+      ],
+      "organization_user_validation": "Membership/role helper plus object scope; inspect exact body and adversarial tests",
+      "definer_need": "Intentional access to RLS/protected membership, workflow or audit data; SECURITY DEFINER must remain constrained by internal guards and grants.",
+      "privilege_escalation_risk": "Bypasses table RLS as owner; signature alone is not authorization. Reject forged org/actor/role, stale state and other-tenant objects.",
+      "canonical": {
+        "name": "fin_start_contract_rfq",
+        "config": [
+          "search_path=\"\""
+        ],
+        "body_md5": "67385491afe6c267f1e2d8bf1aaff418",
+        "arguments": "p_contract uuid",
+        "anon_execute": false,
+        "authenticated_execute": true
+      },
+      "hosted_body_matches_canonical": false,
+      "action": "UPGRADE_BODY_DRIFT",
+      "source_locations": [
+        "docs/supabase-financial-renewals.sql:59",
+        "docs/supabase-financial-renewals.sql:78",
+        "docs/supabase-financial-renewals.sql:79",
+        "docs/supabase-financial-multi-entity.sql:693",
+        "docs/supabase-financial-multi-entity.sql:749",
+        "docs/supabase-financial-multi-entity.sql:750",
+        "docs/supabase-financial-contracts-v2.sql:409",
+        "docs/supabase-financial-contracts-v2.sql:455",
+        "docs/supabase-financial-contracts-v2.sql:463",
+        "docs/supabase-financial-opportunity-engine.sql:499",
+        "docs/supabase-financial-contract-onboarding.sql:31",
+        "docs/supabase-financial-contract-onboarding.sql:109",
+        "docs/supabase-financial-contract-onboarding.sql:142",
+        "docs/supabase-financial-contract-onboarding.sql:143"
+      ],
+      "negative_test_locations": [
+        "tests/database/financial-contract-onboarding.sql:140",
+        "tests/database/financial-contract-onboarding.sql:141",
+        "tests/database/financial-contract-onboarding.sql:144",
+        "tests/database/financial-contract-onboarding.sql:146",
+        "tests/database/financial-contract-onboarding.sql:156",
+        "tests/database/financial-contracts-v2.sql:193",
+        "tests/database/financial-contracts-v2.sql:194",
+        "tests/database/financial-multi-entity.sql:296",
+        "tests/database/financial-multi-entity.sql:311",
+        "tests/database/financial-negotiation-continuity.sql:36",
+        "tests/database/financial-renewals.sql:14",
+        "tests/database/financial-surface-hardening.sql:27"
+      ],
+      "test_status": "Current canonical SQL suites PASS_LOCAL; hosted negative mutations NOT_RUN. A name occurrence is a location, not proof by itself."
+    },
+    {
+      "name": "fin_submit_proposal",
+      "result": "integer",
+      "body_md5": "4fe99824a59137761913fa95d7d6e851",
+      "arguments": "p_proposal uuid, p_terms jsonb, p_note text",
+      "anon_execute": false,
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true,
+      "purpose": "Submeter versão de proposta do provedor convidado, com autoria e estado.",
+      "authorization_helpers": [
+        "fin_has_role"
+      ],
+      "organization_user_validation": "Membership/role helper plus object scope; inspect exact body and adversarial tests",
+      "definer_need": "Intentional access to RLS/protected membership, workflow or audit data; SECURITY DEFINER must remain constrained by internal guards and grants.",
+      "privilege_escalation_risk": "Bypasses table RLS as owner; signature alone is not authorization. Reject forged org/actor/role, stale state and other-tenant objects.",
+      "canonical": {
+        "name": "fin_submit_proposal",
+        "config": [
+          "search_path=\"\""
+        ],
+        "body_md5": "baba9be68337fcfee979107bbc4ed361",
+        "arguments": "p_proposal uuid, p_terms jsonb, p_note text",
+        "anon_execute": false,
+        "authenticated_execute": true
+      },
+      "hosted_body_matches_canonical": false,
+      "action": "UPGRADE_BODY_DRIFT",
+      "source_locations": [
+        "docs/supabase-financial-procurement.sql:397",
+        "docs/supabase-financial-procurement.sql:548",
+        "docs/supabase-financial-procurement.sql:561",
+        "docs/supabase-financial-procurement-hardening.sql:113",
+        "docs/supabase-financial-decision-integrity.sql:22",
+        "docs/supabase-financial-decision-integrity.sql:81",
+        "docs/supabase-financial-decision-integrity.sql:82"
+      ],
+      "negative_test_locations": [
+        "tests/database/financial-decision-integrity.sql:61",
+        "tests/database/financial-decision-integrity.sql:63",
+        "tests/database/financial-decision-integrity.sql:108",
+        "tests/database/financial-enterprise-drafts.sql:55",
+        "tests/database/financial-external-proposals.sql:97",
+        "tests/database/financial-negotiation-continuity.sql:46",
+        "tests/database/financial-procurement-hardening.sql:127",
+        "tests/database/financial-procurement-hardening.sql:129",
+        "tests/database/financial-procurement-hardening.sql:137",
+        "tests/database/financial-procurement-hardening.sql:143",
+        "tests/database/financial-procurement-hardening.sql:210",
+        "tests/database/financial-procurement.sql:218",
+        "tests/database/financial-procurement.sql:220",
+        "tests/database/financial-procurement.sql:224",
+        "tests/database/financial-rfq-revisions.sql:63",
+        "tests/database/financial-surface-hardening.sql:28",
+        "tests/database/financial-surface-hardening.sql:183",
+        "tests/database/financial-surface-hardening.sql:186",
+        "tests/database/financial-surface-hardening.sql:270"
+      ],
+      "test_status": "Current canonical SQL suites PASS_LOCAL; hosted negative mutations NOT_RUN. A name occurrence is a location, not proof by itself."
+    },
+    {
+      "name": "fin_transition",
+      "result": "void",
+      "body_md5": "1b0fdac0e7ff6f868704b7c0fe28ad5d",
+      "arguments": "p_kind text, p_id uuid, p_status text",
+      "anon_execute": false,
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true,
+      "purpose": "Transição de RFQ por papel e estado financeiro válidos.",
+      "authorization_helpers": [
+        "fin_has_role"
+      ],
+      "organization_user_validation": "Membership/role helper plus object scope; inspect exact body and adversarial tests",
+      "definer_need": "Intentional access to RLS/protected membership, workflow or audit data; SECURITY DEFINER must remain constrained by internal guards and grants.",
+      "privilege_escalation_risk": "Bypasses table RLS as owner; signature alone is not authorization. Reject forged org/actor/role, stale state and other-tenant objects.",
+      "canonical": {
+        "name": "fin_transition",
+        "config": [
+          "search_path=\"\""
+        ],
+        "body_md5": "1b0fdac0e7ff6f868704b7c0fe28ad5d",
+        "arguments": "p_kind text, p_id uuid, p_status text",
+        "anon_execute": false,
+        "authenticated_execute": true
+      },
+      "hosted_body_matches_canonical": true,
+      "action": "RETAIN_REVIEWED_BOUNDARY",
+      "source_locations": [
+        "docs/supabase-financial-procurement.sql:442",
+        "docs/supabase-financial-procurement.sql:550",
+        "docs/supabase-financial-procurement.sql:563"
+      ],
+      "negative_test_locations": [
+        "tests/database/financial-decision-integrity.sql:56",
+        "tests/database/financial-institutional-decline.sql:26",
+        "tests/database/financial-multi-entity.sql:197",
+        "tests/database/financial-multi-entity.sql:204",
+        "tests/database/financial-negotiation-continuity.sql:41",
+        "tests/database/financial-negotiation-continuity.sql:48",
+        "tests/database/financial-procurement-hardening.sql:106",
+        "tests/database/financial-procurement-hardening.sql:255",
+        "tests/database/financial-procurement.sql:117",
+        "tests/database/financial-procurement.sql:125",
+        "tests/database/financial-procurement.sql:133",
+        "tests/database/financial-procurement.sql:280",
+        "tests/database/financial-procurement.sql:321",
+        "tests/database/financial-procurement.sql:324",
+        "tests/database/financial-procurement.sql:326",
+        "tests/database/financial-surface-hardening.sql:28",
+        "tests/database/financial-surface-hardening.sql:251",
+        "tests/database/financial-surface-hardening.sql:277",
+        "tests/database/financial-surface-hardening.sql:285",
+        "tests/database/financial-surface-hardening.sql:292"
+      ],
+      "test_status": "Current canonical SQL suites PASS_LOCAL; hosted negative mutations NOT_RUN. A name occurrence is a location, not proof by itself."
+    },
+    {
+      "name": "fin_update_my_member_profile",
+      "result": "void",
+      "body_md5": "04707ed5c82c82f6ceddcd566520c554",
+      "arguments": "p_org uuid, p_display_name text, p_job_title text",
+      "anon_execute": false,
+      "role_reference": false,
+      "auth_uid_reference": true,
+      "organization_reference": true,
+      "purpose": "Atualizar somente display_name/job_title da própria membership, nunca role.",
+      "authorization_helpers": [],
+      "organization_user_validation": "UPDATE constrained by organization_id and user_id=auth.uid()",
+      "definer_need": "Intentional access to RLS/protected membership, workflow or audit data; SECURITY DEFINER must remain constrained by internal guards and grants.",
+      "privilege_escalation_risk": "Bypasses table RLS as owner; signature alone is not authorization. Reject forged org/actor/role, stale state and other-tenant objects.",
+      "canonical": {
+        "name": "fin_update_my_member_profile",
+        "config": [
+          "search_path=\"\""
+        ],
+        "body_md5": "04707ed5c82c82f6ceddcd566520c554",
+        "arguments": "p_org uuid, p_display_name text, p_job_title text",
+        "anon_execute": false,
+        "authenticated_execute": true
+      },
+      "hosted_body_matches_canonical": true,
+      "action": "RETAIN_REVIEWED_BOUNDARY",
+      "source_locations": [
+        "docs/supabase-financial-pilot-grade.sql:103",
+        "docs/supabase-financial-pilot-grade.sql:112",
+        "docs/supabase-financial-pilot-grade.sql:113"
+      ],
+      "negative_test_locations": [
+        "tests/database/financial-pilot-grade.sql:86",
+        "tests/database/financial-pilot-grade.sql:92",
+        "tests/database/financial-pilot-grade.sql:96",
+        "tests/database/financial-surface-hardening.sql:28",
+        "tests/database/financial-surface-hardening.sql:268"
+      ],
+      "test_status": "Current canonical SQL suites PASS_LOCAL; hosted negative mutations NOT_RUN. A name occurrence is a location, not proof by itself."
+    },
+    {
+      "name": "fin_update_organization",
+      "result": "void",
+      "body_md5": "0f12a6636998df5c65b40ecaad07b57e",
+      "arguments": "p_org uuid, p_trade_name text, p_tax_identifier text, p_sector text, p_revenue_band text",
+      "anon_execute": false,
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true,
+      "purpose": "Alterar organização sob papel administrativo persistido.",
+      "authorization_helpers": [
+        "fin_has_role"
+      ],
+      "organization_user_validation": "Membership/role helper plus object scope; inspect exact body and adversarial tests",
+      "definer_need": "Intentional access to RLS/protected membership, workflow or audit data; SECURITY DEFINER must remain constrained by internal guards and grants.",
+      "privilege_escalation_risk": "Bypasses table RLS as owner; signature alone is not authorization. Reject forged org/actor/role, stale state and other-tenant objects.",
+      "canonical": {
+        "name": "fin_update_organization",
+        "config": [
+          "search_path=\"\""
+        ],
+        "body_md5": "0f12a6636998df5c65b40ecaad07b57e",
+        "arguments": "p_org uuid, p_trade_name text, p_tax_identifier text, p_sector text, p_revenue_band text",
+        "anon_execute": false,
+        "authenticated_execute": true
+      },
+      "hosted_body_matches_canonical": true,
+      "action": "RETAIN_REVIEWED_BOUNDARY",
+      "source_locations": [
+        "docs/supabase-financial-procurement-hardening.sql:33",
+        "docs/supabase-financial-procurement-hardening.sql:228",
+        "docs/supabase-financial-procurement-hardening.sql:232"
+      ],
+      "negative_test_locations": [
+        "tests/database/financial-procurement-hardening.sql:39",
+        "tests/database/financial-procurement-hardening.sql:48",
+        "tests/database/financial-procurement-hardening.sql:56",
+        "tests/database/financial-surface-hardening.sql:29",
+        "tests/database/financial-surface-hardening.sql:259"
+      ],
+      "test_status": "Current canonical SQL suites PASS_LOCAL; hosted negative mutations NOT_RUN. A name occurrence is a location, not proof by itself."
+    },
+    {
+      "name": "fin_withdraw_proposal",
+      "result": "void",
+      "body_md5": "b5f5be3d042901532c981409d52d7282",
+      "arguments": "p_proposal uuid",
+      "anon_execute": false,
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true,
+      "purpose": "Retirar proposta somente do provedor autorizado e no estado permitido.",
+      "authorization_helpers": [
+        "fin_has_role"
+      ],
+      "organization_user_validation": "Membership/role helper plus object scope; inspect exact body and adversarial tests",
+      "definer_need": "Intentional access to RLS/protected membership, workflow or audit data; SECURITY DEFINER must remain constrained by internal guards and grants.",
+      "privilege_escalation_risk": "Bypasses table RLS as owner; signature alone is not authorization. Reject forged org/actor/role, stale state and other-tenant objects.",
+      "canonical": {
+        "name": "fin_withdraw_proposal",
+        "config": [
+          "search_path=\"\""
+        ],
+        "body_md5": "b5f5be3d042901532c981409d52d7282",
+        "arguments": "p_proposal uuid",
+        "anon_execute": false,
+        "authenticated_execute": true
+      },
+      "hosted_body_matches_canonical": true,
+      "action": "RETAIN_REVIEWED_BOUNDARY",
+      "source_locations": [
+        "docs/supabase-financial-procurement.sql:425",
+        "docs/supabase-financial-procurement.sql:549",
+        "docs/supabase-financial-procurement.sql:562"
+      ],
+      "negative_test_locations": [
+        "tests/database/financial-procurement.sql:335",
+        "tests/database/financial-surface-hardening.sql:29",
+        "tests/database/financial-surface-hardening.sql:272"
+      ],
+      "test_status": "Current canonical SQL suites PASS_LOCAL; hosted negative mutations NOT_RUN. A name occurrence is a location, not proof by itself."
+    }
+  ]
+}

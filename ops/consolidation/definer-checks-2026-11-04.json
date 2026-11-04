@@ -1,0 +1,593 @@
+{
+  "ref": "offgpyysgdhfemjlchod",
+  "observed_at": "2026-11-04T14:32:54.760Z",
+  "scope": "read-only lexical signals, not authorization proof; helper_calls can also match INSERT column lists",
+  "routines": [
+    {
+      "name": "fin_accept_member_invitation",
+      "result": "uuid",
+      "body_md5": "7bc7d1bb19258bd4b2e9b3486efb4941",
+      "arguments": "p_token text",
+      "anon_execute": false,
+      "helper_calls": null,
+      "role_reference": false,
+      "auth_uid_reference": true,
+      "organization_reference": true
+    },
+    {
+      "name": "fin_accept_provider_invite",
+      "result": "uuid",
+      "body_md5": "25d74a45a6d5e4bccec4935d73d8c378",
+      "arguments": "p_token text, p_provider_org uuid",
+      "anon_execute": false,
+      "helper_calls": [
+        "fin_has_role"
+      ],
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true
+    },
+    {
+      "name": "fin_accept_terms",
+      "result": "void",
+      "body_md5": "b0d7f6e8f0bbc3807ffa41a5386c5254",
+      "arguments": "p_org uuid, p_version text, p_context text",
+      "anon_execute": false,
+      "helper_calls": [
+        "fin_has_role"
+      ],
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true
+    },
+    {
+      "name": "fin_act_on_approval",
+      "result": "text",
+      "body_md5": "92b9d904775ef0a57b7b2557af9a521f",
+      "arguments": "p_request uuid, p_action text, p_comment text",
+      "anon_execute": false,
+      "helper_calls": [
+        "fin_events",
+        "fin_has_role"
+      ],
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true
+    },
+    {
+      "name": "fin_add_comment",
+      "result": "uuid",
+      "body_md5": "77e3a4bbc840e330342737b6580208e5",
+      "arguments": "p_type text, p_id uuid, p_visibility text, p_body text, p_mention_ids uuid[], p_client_id uuid",
+      "anon_execute": false,
+      "helper_calls": [
+        "fin_comment_object_org",
+        "fin_comments",
+        "fin_events",
+        "fin_has_role",
+        "fin_notifications",
+        "fin_provider_can_comment"
+      ],
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true
+    },
+    {
+      "name": "fin_can_read_document",
+      "result": "boolean",
+      "body_md5": "9f30bdbd14e993978a0a07bf2fcc1b29",
+      "arguments": "p_document uuid",
+      "anon_execute": false,
+      "helper_calls": [
+        "fin_has_role",
+        "fin_provider_can_comment"
+      ],
+      "role_reference": true,
+      "auth_uid_reference": false,
+      "organization_reference": true
+    },
+    {
+      "name": "fin_cancel_approval",
+      "result": "void",
+      "body_md5": "57d785681cb06b9209c88d28f358c7bd",
+      "arguments": "p_request uuid",
+      "anon_execute": false,
+      "helper_calls": [
+        "fin_events",
+        "fin_has_role"
+      ],
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true
+    },
+    {
+      "name": "fin_clear_rfq_editor",
+      "result": "void",
+      "body_md5": "b336205dcb9715c6c3ba96f3a991d5d4",
+      "arguments": "p_org uuid, p_expected integer",
+      "anon_execute": false,
+      "helper_calls": [
+        "fin_has_role"
+      ],
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true
+    },
+    {
+      "name": "fin_comment_authors",
+      "result": "TABLE(author_id uuid, display_name text, organization_name text, organization_kind text)",
+      "body_md5": "8421be1a517711af8b8963337e971d3c",
+      "arguments": "p_type text, p_id uuid",
+      "anon_execute": false,
+      "helper_calls": [
+        "fin_has_role",
+        "fin_provider_reads_comment"
+      ],
+      "role_reference": true,
+      "auth_uid_reference": false,
+      "organization_reference": true
+    },
+    {
+      "name": "fin_create_organization",
+      "result": "uuid",
+      "body_md5": "f4ae903e473446423387711880635118",
+      "arguments": "p_name text, p_kind text, p_country text",
+      "anon_execute": false,
+      "helper_calls": [
+        "fin_pilot_access_allowed"
+      ],
+      "role_reference": false,
+      "auth_uid_reference": true,
+      "organization_reference": true
+    },
+    {
+      "name": "fin_create_rfq",
+      "result": "uuid",
+      "body_md5": "d3c3007d3f3c95982c6b9bac860e5703",
+      "arguments": "p_org uuid, p_product text, p_title text, p_description text, p_demand jsonb, p_deadline date",
+      "anon_execute": false,
+      "helper_calls": [
+        "fin_has_role"
+      ],
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true
+    },
+    {
+      "name": "fin_document_authorize_download",
+      "result": "TABLE(bucket text, path text, mime_type text, title text, version integer)",
+      "body_md5": "ab39afa89e9e6235f545a550cbb8c305",
+      "arguments": "p_document uuid, p_version integer",
+      "anon_execute": false,
+      "helper_calls": [
+        "fin_can_read_document",
+        "fin_events"
+      ],
+      "role_reference": false,
+      "auth_uid_reference": true,
+      "organization_reference": true
+    },
+    {
+      "name": "fin_document_begin_upload",
+      "result": "TABLE(document_id uuid, version integer, bucket text, path text)",
+      "body_md5": "5111323889f4f5a868324fe3d3291095",
+      "arguments": "p_org uuid, p_entity_type text, p_entity_id uuid, p_title text, p_visibility text, p_mime text, p_size bigint, p_sha256 text, p_document_id uuid",
+      "anon_execute": false,
+      "helper_calls": [
+        "fin_document_mime_allowed",
+        "fin_has_role"
+      ],
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true
+    },
+    {
+      "name": "fin_document_pending_upload",
+      "result": "TABLE(bucket text, path text, mime_type text, size_bytes bigint)",
+      "body_md5": "c46257ffabc63d8321c6bb2432a2e46b",
+      "arguments": "p_document uuid, p_version integer",
+      "anon_execute": false,
+      "helper_calls": null,
+      "role_reference": false,
+      "auth_uid_reference": true,
+      "organization_reference": false
+    },
+    {
+      "name": "fin_document_remove",
+      "result": "void",
+      "body_md5": "4cca6772b4e3cb6ae9b04be26d2da83f",
+      "arguments": "p_document uuid",
+      "anon_execute": false,
+      "helper_calls": [
+        "fin_events",
+        "fin_has_role"
+      ],
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true
+    },
+    {
+      "name": "fin_has_role",
+      "result": "boolean",
+      "body_md5": "2ac879a8bef2962f0dc72c2aefcad4cc",
+      "arguments": "p_org uuid, p_roles text[]",
+      "anon_execute": false,
+      "helper_calls": null,
+      "role_reference": false,
+      "auth_uid_reference": true,
+      "organization_reference": true
+    },
+    {
+      "name": "fin_invite_member",
+      "result": "text",
+      "body_md5": "8c0456bdedf4cc416f781836d68737fe",
+      "arguments": "p_org uuid, p_email text, p_role text",
+      "anon_execute": false,
+      "helper_calls": [
+        "fin_has_role"
+      ],
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true
+    },
+    {
+      "name": "fin_invite_provider",
+      "result": "text",
+      "body_md5": "0c79cbe6ceba8c2af7813a5fc3bcf11d",
+      "arguments": "p_rfq uuid, p_provider uuid",
+      "anon_execute": false,
+      "helper_calls": [
+        "fin_enqueue_email",
+        "fin_has_role",
+        "fin_setting"
+      ],
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true
+    },
+    {
+      "name": "fin_is_operator",
+      "result": "boolean",
+      "body_md5": "dc3e6a16393986b227cebb8dd9410806",
+      "arguments": "",
+      "anon_execute": false,
+      "helper_calls": [
+        "fin_platform_role"
+      ],
+      "role_reference": false,
+      "auth_uid_reference": true,
+      "organization_reference": false
+    },
+    {
+      "name": "fin_mark_notifications",
+      "result": "integer",
+      "body_md5": "1fde1809773028199a91a0de78effc3b",
+      "arguments": "p_org uuid, p_ids uuid[]",
+      "anon_execute": false,
+      "helper_calls": [
+        "fin_has_role"
+      ],
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true
+    },
+    {
+      "name": "fin_ops_overview",
+      "result": "jsonb",
+      "body_md5": "f577ebf57fc2f5c68b8e0b6d2a913374",
+      "arguments": "",
+      "anon_execute": false,
+      "helper_calls": [
+        "fin_require_operator",
+        "fin_setting"
+      ],
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": false
+    },
+    {
+      "name": "fin_ops_trace",
+      "result": "jsonb",
+      "body_md5": "6a074b74e55edca760b3af3c72c884fc",
+      "arguments": "p_request_id text, p_entity_id uuid",
+      "anon_execute": false,
+      "helper_calls": [
+        "fin_require_operator"
+      ],
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true
+    },
+    {
+      "name": "fin_process_renewals",
+      "result": "integer",
+      "body_md5": "6756a65eb03bf4f6ed426280cb87bb84",
+      "arguments": "p_org uuid, p_day date",
+      "anon_execute": false,
+      "helper_calls": [
+        "fin_events",
+        "fin_has_role",
+        "fin_notifications",
+        "fin_renewal_milestones",
+        "fin_tasks"
+      ],
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true
+    },
+    {
+      "name": "fin_provider_can_comment",
+      "result": "boolean",
+      "body_md5": "37fdc46065cddf9006b6c8ee7c386bbb",
+      "arguments": "p_type text, p_id uuid",
+      "anon_execute": false,
+      "helper_calls": [
+        "fin_has_role"
+      ],
+      "role_reference": true,
+      "auth_uid_reference": false,
+      "organization_reference": true
+    },
+    {
+      "name": "fin_provider_reads_comment",
+      "result": "boolean",
+      "body_md5": "e9723ee588158c50c19bf4be1cd266f7",
+      "arguments": "p_org uuid, p_author uuid, p_type text, p_id uuid",
+      "anon_execute": false,
+      "helper_calls": [
+        "fin_provider_can_comment"
+      ],
+      "role_reference": false,
+      "auth_uid_reference": true,
+      "organization_reference": true
+    },
+    {
+      "name": "fin_record_client_event",
+      "result": "void",
+      "body_md5": "c9d7ac1b1ff9ffd88590bed6087a1bcd",
+      "arguments": "p_org uuid, p_entity_type text, p_entity_id uuid, p_event text",
+      "anon_execute": false,
+      "helper_calls": [
+        "fin_has_role"
+      ],
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true
+    },
+    {
+      "name": "fin_record_decision",
+      "result": "uuid",
+      "body_md5": "8b7757e39a63ef4e4e0ebe2614aaf986",
+      "arguments": "p_rfq uuid, p_proposal uuid, p_criteria jsonb, p_rationale text",
+      "anon_execute": false,
+      "helper_calls": [
+        "fin_decisions",
+        "fin_events",
+        "fin_has_role"
+      ],
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true
+    },
+    {
+      "name": "fin_record_provider_evidence",
+      "result": "void",
+      "body_md5": "667055be78793a477d2ae01015e6ff6c",
+      "arguments": "p_provider uuid, p_authority text, p_registry text, p_evidence_url text, p_checked_at date",
+      "anon_execute": false,
+      "helper_calls": [
+        "fin_has_role"
+      ],
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true
+    },
+    {
+      "name": "fin_register_contract",
+      "result": "uuid",
+      "body_md5": "4857b8c7c2c7ad8ed8eff33ff738ecb7",
+      "arguments": "p_decision uuid, p_starts date, p_ends date, p_notice integer, p_cost text, p_conditions text, p_reference text",
+      "anon_execute": false,
+      "helper_calls": [
+        "fin_has_role"
+      ],
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true
+    },
+    {
+      "name": "fin_reply_comment",
+      "result": "uuid",
+      "body_md5": "6ba5d8c3cd53a45b89149c15ec8d2497",
+      "arguments": "p_parent uuid, p_body text, p_mention_ids uuid[], p_client_id uuid",
+      "anon_execute": false,
+      "helper_calls": [
+        "fin_add_comment",
+        "fin_has_role",
+        "fin_notifications",
+        "fin_provider_reads_comment"
+      ],
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true
+    },
+    {
+      "name": "fin_request_approval",
+      "result": "uuid",
+      "body_md5": "ec6a88b079ea9b6a08b39a479508bb8b",
+      "arguments": "p_rfq uuid, p_proposal uuid, p_approvers uuid[], p_rationale text",
+      "anon_execute": false,
+      "helper_calls": [
+        "fin_approval_requests",
+        "fin_approval_steps",
+        "fin_events",
+        "fin_has_role"
+      ],
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true
+    },
+    {
+      "name": "fin_revise_rfq",
+      "result": "integer",
+      "body_md5": "48ff843ff7d30ce16638ef074a8b4957",
+      "arguments": "p_rfq uuid, p_expected integer, p_title text, p_description text, p_demand jsonb, p_deadline date",
+      "anon_execute": false,
+      "helper_calls": [
+        "fin_events",
+        "fin_has_role"
+      ],
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true
+    },
+    {
+      "name": "fin_save_proposal_draft",
+      "result": "integer",
+      "body_md5": "bcb7957ddce831b7d4751b9b504c7732",
+      "arguments": "p_proposal uuid, p_terms jsonb, p_expected_revision integer, p_base_version integer",
+      "anon_execute": false,
+      "helper_calls": [
+        "fin_has_role",
+        "fin_proposal_drafts"
+      ],
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true
+    },
+    {
+      "name": "fin_save_rfq_editor",
+      "result": "TABLE(revision integer, updated_at timestamp with time zone)",
+      "body_md5": "c3d0da0d77fc8cfaab0404f151cda2a5",
+      "arguments": "p_org uuid, p_payload jsonb, p_expected integer",
+      "anon_execute": false,
+      "helper_calls": [
+        "fin_has_role",
+        "fin_rfq_editor_drafts"
+      ],
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true
+    },
+    {
+      "name": "fin_search",
+      "result": "TABLE(kind text, id uuid, title text, detail text, href text)",
+      "body_md5": "f3b8e4c6dd6abc66774d43490f29c442",
+      "arguments": "p_org uuid, p_query text, p_kind text, p_limit integer, p_offset integer",
+      "anon_execute": false,
+      "helper_calls": [
+        "fin_has_role"
+      ],
+      "role_reference": true,
+      "auth_uid_reference": false,
+      "organization_reference": true
+    },
+    {
+      "name": "fin_set_approval_policy",
+      "result": "void",
+      "body_md5": "24af275be4e0c4a8db04bd5c253c3a31",
+      "arguments": "p_org uuid, p_required boolean",
+      "anon_execute": false,
+      "helper_calls": [
+        "fin_approval_policies",
+        "fin_events",
+        "fin_has_role"
+      ],
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true
+    },
+    {
+      "name": "fin_set_notification_preference",
+      "result": "void",
+      "body_md5": "34cd9cb9242a6c26b5ac8467bcddbf2f",
+      "arguments": "p_org uuid, p_event text, p_in_app boolean, p_email boolean",
+      "anon_execute": false,
+      "helper_calls": [
+        "fin_has_role",
+        "fin_notification_preferences"
+      ],
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true
+    },
+    {
+      "name": "fin_start_contract_rfq",
+      "result": "uuid",
+      "body_md5": "20eb7a848f001a963543e7c305d2b9aa",
+      "arguments": "p_contract uuid",
+      "anon_execute": false,
+      "helper_calls": [
+        "fin_events",
+        "fin_has_role",
+        "fin_rfqs"
+      ],
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true
+    },
+    {
+      "name": "fin_submit_proposal",
+      "result": "integer",
+      "body_md5": "4fe99824a59137761913fa95d7d6e851",
+      "arguments": "p_proposal uuid, p_terms jsonb, p_note text",
+      "anon_execute": false,
+      "helper_calls": [
+        "fin_has_role"
+      ],
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true
+    },
+    {
+      "name": "fin_transition",
+      "result": "void",
+      "body_md5": "1b0fdac0e7ff6f868704b7c0fe28ad5d",
+      "arguments": "p_kind text, p_id uuid, p_status text",
+      "anon_execute": false,
+      "helper_calls": [
+        "fin_has_role"
+      ],
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true
+    },
+    {
+      "name": "fin_update_my_member_profile",
+      "result": "void",
+      "body_md5": "04707ed5c82c82f6ceddcd566520c554",
+      "arguments": "p_org uuid, p_display_name text, p_job_title text",
+      "anon_execute": false,
+      "helper_calls": null,
+      "role_reference": false,
+      "auth_uid_reference": true,
+      "organization_reference": true
+    },
+    {
+      "name": "fin_update_organization",
+      "result": "void",
+      "body_md5": "0f12a6636998df5c65b40ecaad07b57e",
+      "arguments": "p_org uuid, p_trade_name text, p_tax_identifier text, p_sector text, p_revenue_band text",
+      "anon_execute": false,
+      "helper_calls": [
+        "fin_has_role"
+      ],
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true
+    },
+    {
+      "name": "fin_withdraw_proposal",
+      "result": "void",
+      "body_md5": "b5f5be3d042901532c981409d52d7282",
+      "arguments": "p_proposal uuid",
+      "anon_execute": false,
+      "helper_calls": [
+        "fin_has_role"
+      ],
+      "role_reference": true,
+      "auth_uid_reference": true,
+      "organization_reference": true
+    }
+  ]
+}

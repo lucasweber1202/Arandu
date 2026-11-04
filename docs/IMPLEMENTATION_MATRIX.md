@@ -1,3 +1,16 @@
+## 04/11/2026 — Consolidação financeira e baseline direta
+
+M1/E1: snapshot financeiro adicional substitui 84 migrations na instalação nova,
+com compilação sintética, prefixo/hash verificáveis e equivalência de catálogo,
+ACL/RLS/constraints/triggers/configuração estrutural/bucket. A cadeia histórica
+continua para upgrade/recovery. Recusa dados/trigger Auth existentes e detecta
+adulterações de autorização. SQL PG17.11 e recovery age do mesmo backup sintético
+PASS_LOCAL; hosted não alterado. Inventários renovados e matriz de 608 componentes,
+incluindo 43 definidoras autenticadas; nenhuma promoção de M2–M6 antecipada.
+Demo/Production continuam bloqueadas por classificação, preservação, restore
+e aprovação. [Evidência e retomada](evidence/financial-consolidation-2026-11-04.md),
+[caminhos de instalação](FINANCIAL_BASELINE.md). CI exige os quatro gates no SHA próprio.
+
 ## Arquitetura backend v7 — lote em validação
 
 Base c72e6868. Extrações de tarefas e documentos preservam as rotas e a sessão

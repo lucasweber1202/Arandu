@@ -2,14 +2,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
+import { financialBaselineFiles } from '../lib/migration-baseline.mjs';
 
 const root = process.cwd();
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'docs/supabase-migrations.json'), 'utf8'));
 const flowArgument = process.argv.find((argument) => argument.startsWith('--flow='));
 const flow = flowArgument ? flowArgument.split('=')[1] : 'cleanInstall';
-let files = manifest[flow];
+let files = flow === 'financialBaseline' ? financialBaselineFiles(root, manifest) : manifest[flow];
 if (!Array.isArray(files)) {
-  console.error(`Fluxo inválido: ${flow}. Use ${Object.keys(manifest).join(' ou ')}.`);
+  console.error(`Fluxo inválido: ${flow}. Use ${[...Object.keys(manifest), 'financialBaseline'].join(' ou ')}.`);
   process.exit(1);
 }
 

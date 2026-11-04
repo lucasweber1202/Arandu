@@ -14,6 +14,9 @@ here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 root="$(cd "$here/../.." && pwd)"
 state="$here/.state"
 project="arandu-pilot-local"
+# Validate before keys, containers or writes. Command substitution propagates
+# planner failure through set -e; process substitution would silently swallow it.
+migration_files="$(cd "$root" && node scripts/local-migration-plan.mjs)"
 mkdir -p "$state"
 
 if [ ! -f "$state/.env" ]; then
@@ -73,7 +76,7 @@ cd "$root"
 while IFS= read -r file; do
   psql "$db_url" -q -v ON_ERROR_STOP=1 -f "$file" > /dev/null
   echo "migration aplicada: $file"
-done < <(node -e "for (const f of require('./docs/supabase-migrations.json').cleanInstall) console.log(f)")
+done <<< "$migration_files"
 psql "$db_url" -Atc "select 'bucket '||id||' public='||public||' limite='||file_size_limit||' tipos='||array_length(allowed_mime_types,1) from storage.buckets where id='fin-documents'"
 
 [ -d dist ] || npm run build

@@ -1,5 +1,9 @@
 # Reconciliação de schema e rollout hospedado
 
+Instalação em schema vazio também pode usar a
+[baseline financeira verificada](FINANCIAL_BASELINE.md). O caminho novo não se
+aplica ao Pilot/legado existentes nem substitui preservação/restore ou aprovação.
+
 Preparação executável e ensaiada em dados sintéticos; **não é aprovação de
 operação hospedada**. Topologia permanente: Demo e Production, independentes;
 Pilot é transitório. Não alterar assignments para fazer um check passar.

@@ -1,0 +1,502 @@
+{
+  "ref": "igacnfjeuqhxcmfyepgj",
+  "observed_at": "2026-11-04T13:49:05.838Z",
+  "types": {
+    "security": [
+      {
+        "name": "rls_enabled_no_policy",
+        "level": "INFO",
+        "count": 6,
+        "findings": [
+          {
+            "detail": "Table \\`public.artwork_events\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "artwork_events",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.669Z"
+          },
+          {
+            "detail": "Table \\`public.crm_notes\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "crm_notes",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.669Z"
+          },
+          {
+            "detail": "Table \\`public.media_assets\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "media_assets",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.669Z"
+          },
+          {
+            "detail": "Table \\`public.proposal_items\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "proposal_items",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.669Z"
+          },
+          {
+            "detail": "Table \\`public.proposals\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "proposals",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.669Z"
+          },
+          {
+            "detail": "Table \\`public.tasks\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "tasks",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.669Z"
+          }
+        ],
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy"
+      },
+      {
+        "name": "security_definer_view",
+        "level": "ERROR",
+        "count": 2,
+        "findings": [
+          {
+            "detail": "View \\`public.v_public_catalog\\` is defined with the SECURITY DEFINER property",
+            "metadata": {
+              "name": "v_public_catalog",
+              "type": "view",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.669Z"
+          },
+          {
+            "detail": "View \\`public.v_available_artworks\\` is defined with the SECURITY DEFINER property",
+            "metadata": {
+              "name": "v_available_artworks",
+              "type": "view",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.669Z"
+          }
+        ],
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0010_security_definer_view"
+      },
+      {
+        "name": "function_search_path_mutable",
+        "level": "WARN",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "Function \\`public.set_updated_at\\` has a role mutable search_path",
+            "metadata": {
+              "name": "set_updated_at",
+              "type": "function",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.669Z"
+          }
+        ],
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable"
+      },
+      {
+        "name": "anon_security_definer_function_executable",
+        "level": "WARN",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "Function `public.handle_new_user_profile()` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/handle_new_user_profile`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "handle_new_user_profile",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:31.669Z"
+          }
+        ],
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable"
+      },
+      {
+        "name": "authenticated_security_definer_function_executable",
+        "level": "WARN",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "Function `public.handle_new_user_profile()` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/handle_new_user_profile`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "handle_new_user_profile",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:31.669Z"
+          }
+        ],
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable"
+      }
+    ],
+    "performance": [
+      {
+        "name": "unindexed_foreign_keys",
+        "level": "INFO",
+        "count": 7,
+        "findings": [
+          {
+            "detail": "Table \\`public.artwork_events\\` has a foreign key \\`artwork_events_artwork_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "artwork_events",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "artwork_events_artwork_id_fkey",
+              "fkey_columns": [
+                2
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:32.086Z"
+          },
+          {
+            "detail": "Table \\`public.certificates\\` has a foreign key \\`certificates_artist_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "certificates",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "certificates_artist_id_fkey",
+              "fkey_columns": [
+                5
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:32.086Z"
+          },
+          {
+            "detail": "Table \\`public.proposal_items\\` has a foreign key \\`proposal_items_artwork_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "proposal_items",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "proposal_items_artwork_id_fkey",
+              "fkey_columns": [
+                3
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:32.086Z"
+          },
+          {
+            "detail": "Table \\`public.proposals\\` has a foreign key \\`proposals_company_brief_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "proposals",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "proposals_company_brief_id_fkey",
+              "fkey_columns": [
+                4
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:32.086Z"
+          },
+          {
+            "detail": "Table \\`public.proposals\\` has a foreign key \\`proposals_lead_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "proposals",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "proposals_lead_id_fkey",
+              "fkey_columns": [
+                3
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:32.086Z"
+          },
+          {
+            "detail": "Table \\`public.reservations\\` has a foreign key \\`reservations_lead_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "reservations",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "reservations_lead_id_fkey",
+              "fkey_columns": [
+                3
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:32.086Z"
+          },
+          {
+            "detail": "Table \\`public.saved_selections\\` has a foreign key \\`saved_selections_lead_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "saved_selections",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "saved_selections_lead_id_fkey",
+              "fkey_columns": [
+                3
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:32.086Z"
+          }
+        ],
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0001_unindexed_foreign_keys"
+      },
+      {
+        "name": "auth_rls_initplan",
+        "level": "WARN",
+        "count": 2,
+        "findings": [
+          {
+            "detail": "Table \\`public.profiles\\` has a row level security policy \\`profiles_select_own\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+            "metadata": {
+              "name": "profiles",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.086Z"
+          },
+          {
+            "detail": "Table \\`public.profiles\\` has a row level security policy \\`profiles_update_own\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+            "metadata": {
+              "name": "profiles",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.086Z"
+          }
+        ],
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0003_auth_rls_initplan"
+      },
+      {
+        "name": "unused_index",
+        "level": "INFO",
+        "count": 24,
+        "findings": [
+          {
+            "detail": "Index \\`idx_artists_status\\` on table \\`public.artists\\` has not been used",
+            "metadata": {
+              "name": "artists",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.086Z"
+          },
+          {
+            "detail": "Index \\`idx_artists_slug\\` on table \\`public.artists\\` has not been used",
+            "metadata": {
+              "name": "artists",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.086Z"
+          },
+          {
+            "detail": "Index \\`idx_artworks_artist_id\\` on table \\`public.artworks\\` has not been used",
+            "metadata": {
+              "name": "artworks",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.086Z"
+          },
+          {
+            "detail": "Index \\`idx_artworks_status\\` on table \\`public.artworks\\` has not been used",
+            "metadata": {
+              "name": "artworks",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.086Z"
+          },
+          {
+            "detail": "Index \\`idx_artworks_published\\` on table \\`public.artworks\\` has not been used",
+            "metadata": {
+              "name": "artworks",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.086Z"
+          },
+          {
+            "detail": "Index \\`idx_artworks_slug\\` on table \\`public.artworks\\` has not been used",
+            "metadata": {
+              "name": "artworks",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.086Z"
+          },
+          {
+            "detail": "Index \\`idx_certificates_code\\` on table \\`public.certificates\\` has not been used",
+            "metadata": {
+              "name": "certificates",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.086Z"
+          },
+          {
+            "detail": "Index \\`idx_certificates_artwork_id\\` on table \\`public.certificates\\` has not been used",
+            "metadata": {
+              "name": "certificates",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.086Z"
+          },
+          {
+            "detail": "Index \\`idx_leads_status\\` on table \\`public.leads\\` has not been used",
+            "metadata": {
+              "name": "leads",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.086Z"
+          },
+          {
+            "detail": "Index \\`idx_leads_email\\` on table \\`public.leads\\` has not been used",
+            "metadata": {
+              "name": "leads",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.086Z"
+          },
+          {
+            "detail": "Index \\`idx_company_briefs_status\\` on table \\`public.company_briefs\\` has not been used",
+            "metadata": {
+              "name": "company_briefs",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.086Z"
+          },
+          {
+            "detail": "Index \\`idx_artist_submissions_status\\` on table \\`public.artist_submissions\\` has not been used",
+            "metadata": {
+              "name": "artist_submissions",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.086Z"
+          },
+          {
+            "detail": "Index \\`idx_saved_selections_public_token\\` on table \\`public.saved_selections\\` has not been used",
+            "metadata": {
+              "name": "saved_selections",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.086Z"
+          },
+          {
+            "detail": "Index \\`idx_saved_selections_status\\` on table \\`public.saved_selections\\` has not been used",
+            "metadata": {
+              "name": "saved_selections",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.086Z"
+          },
+          {
+            "detail": "Index \\`idx_reservations_artwork_id\\` on table \\`public.reservations\\` has not been used",
+            "metadata": {
+              "name": "reservations",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.086Z"
+          },
+          {
+            "detail": "Index \\`idx_reservations_status\\` on table \\`public.reservations\\` has not been used",
+            "metadata": {
+              "name": "reservations",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.086Z"
+          },
+          {
+            "detail": "Index \\`idx_proposals_status\\` on table \\`public.proposals\\` has not been used",
+            "metadata": {
+              "name": "proposals",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.086Z"
+          },
+          {
+            "detail": "Index \\`idx_proposals_public_token\\` on table \\`public.proposals\\` has not been used",
+            "metadata": {
+              "name": "proposals",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.086Z"
+          },
+          {
+            "detail": "Index \\`idx_proposal_items_proposal_id\\` on table \\`public.proposal_items\\` has not been used",
+            "metadata": {
+              "name": "proposal_items",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.086Z"
+          },
+          {
+            "detail": "Index \\`idx_crm_notes_entity\\` on table \\`public.crm_notes\\` has not been used",
+            "metadata": {
+              "name": "crm_notes",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.086Z"
+          },
+          {
+            "detail": "Index \\`idx_tasks_entity\\` on table \\`public.tasks\\` has not been used",
+            "metadata": {
+              "name": "tasks",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.086Z"
+          },
+          {
+            "detail": "Index \\`idx_tasks_status_due\\` on table \\`public.tasks\\` has not been used",
+            "metadata": {
+              "name": "tasks",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.086Z"
+          },
+          {
+            "detail": "Index \\`idx_profiles_profile_type\\` on table \\`public.profiles\\` has not been used",
+            "metadata": {
+              "name": "profiles",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.086Z"
+          },
+          {
+            "detail": "Index \\`idx_profiles_email\\` on table \\`public.profiles\\` has not been used",
+            "metadata": {
+              "name": "profiles",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.086Z"
+          }
+        ],
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0005_unused_index"
+      }
+    ]
+  }
+}

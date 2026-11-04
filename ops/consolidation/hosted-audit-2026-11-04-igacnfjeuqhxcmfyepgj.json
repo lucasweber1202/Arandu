@@ -1,0 +1,779 @@
+{
+  "observed_at": "2026-11-04T13:37:43.932Z",
+  "ref": "igacnfjeuqhxcmfyepgj",
+  "classification": "metadata_only_not_backup",
+  "inventory": {
+    "auth": {
+      "mfa": 0,
+      "users": 0,
+      "sessions": 0,
+      "identities": 0
+    },
+    "views": [
+      {
+        "name": "v_artworks_full",
+        "options": null,
+        "definition_md5": "4635526ba132e35f66acfd4505fd5fef"
+      },
+      {
+        "name": "v_available_artworks",
+        "options": null,
+        "definition_md5": "2179ca0f0f094ff4e728bf8e5982c85d"
+      },
+      {
+        "name": "v_public_catalog",
+        "options": null,
+        "definition_md5": "45ea1a4aa4e9fb3d22851df4f856c122"
+      },
+      {
+        "name": "v_quality_issues",
+        "options": null,
+        "definition_md5": "f0c880428d7fd81dc26404c22ad49a4a"
+      },
+      {
+        "name": "v_sales_pipeline",
+        "options": null,
+        "definition_md5": "c50e2f6f6e135683082312dffd4f737c"
+      }
+    ],
+    "tables": [
+      {
+        "rls": true,
+        "name": "artist_submissions",
+        "rows": 0,
+        "bytes": 24576,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "artists",
+        "rows": 12,
+        "bytes": 114688,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "artwork_events",
+        "rows": 0,
+        "bytes": 16384,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "artworks",
+        "rows": 22,
+        "bytes": 180224,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "certificates",
+        "rows": 5,
+        "bytes": 81920,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "company_briefs",
+        "rows": 0,
+        "bytes": 24576,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "crm_notes",
+        "rows": 0,
+        "bytes": 24576,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "leads",
+        "rows": 2,
+        "bytes": 65536,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "media_assets",
+        "rows": 0,
+        "bytes": 16384,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "newsletter_subscriptions",
+        "rows": 0,
+        "bytes": 16384,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "profiles",
+        "rows": 0,
+        "bytes": 32768,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "proposal_items",
+        "rows": 0,
+        "bytes": 24576,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "proposals",
+        "rows": 0,
+        "bytes": 49152,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "reservations",
+        "rows": 1,
+        "bytes": 65536,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "saved_selections",
+        "rows": 0,
+        "bytes": 40960,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "tasks",
+        "rows": 0,
+        "bytes": 32768,
+        "force_rls": false
+      }
+    ],
+    "indexes": [
+      {
+        "name": "artist_submissions_pkey",
+        "scans": 0,
+        "table": "artist_submissions",
+        "definition": "CREATE UNIQUE INDEX artist_submissions_pkey ON public.artist_submissions USING btree (id)"
+      },
+      {
+        "name": "artists_pkey",
+        "scans": 0,
+        "table": "artists",
+        "definition": "CREATE UNIQUE INDEX artists_pkey ON public.artists USING btree (id)"
+      },
+      {
+        "name": "artists_slug_key",
+        "scans": 0,
+        "table": "artists",
+        "definition": "CREATE UNIQUE INDEX artists_slug_key ON public.artists USING btree (slug)"
+      },
+      {
+        "name": "artwork_events_pkey",
+        "scans": 0,
+        "table": "artwork_events",
+        "definition": "CREATE UNIQUE INDEX artwork_events_pkey ON public.artwork_events USING btree (id)"
+      },
+      {
+        "name": "artworks_pkey",
+        "scans": 0,
+        "table": "artworks",
+        "definition": "CREATE UNIQUE INDEX artworks_pkey ON public.artworks USING btree (id)"
+      },
+      {
+        "name": "artworks_slug_key",
+        "scans": 0,
+        "table": "artworks",
+        "definition": "CREATE UNIQUE INDEX artworks_slug_key ON public.artworks USING btree (slug)"
+      },
+      {
+        "name": "certificates_code_key",
+        "scans": 0,
+        "table": "certificates",
+        "definition": "CREATE UNIQUE INDEX certificates_code_key ON public.certificates USING btree (code)"
+      },
+      {
+        "name": "certificates_pkey",
+        "scans": 0,
+        "table": "certificates",
+        "definition": "CREATE UNIQUE INDEX certificates_pkey ON public.certificates USING btree (id)"
+      },
+      {
+        "name": "company_briefs_pkey",
+        "scans": 0,
+        "table": "company_briefs",
+        "definition": "CREATE UNIQUE INDEX company_briefs_pkey ON public.company_briefs USING btree (id)"
+      },
+      {
+        "name": "crm_notes_pkey",
+        "scans": 0,
+        "table": "crm_notes",
+        "definition": "CREATE UNIQUE INDEX crm_notes_pkey ON public.crm_notes USING btree (id)"
+      },
+      {
+        "name": "idx_artist_submissions_status",
+        "scans": 0,
+        "table": "artist_submissions",
+        "definition": "CREATE INDEX idx_artist_submissions_status ON public.artist_submissions USING btree (status)"
+      },
+      {
+        "name": "idx_artists_slug",
+        "scans": 0,
+        "table": "artists",
+        "definition": "CREATE INDEX idx_artists_slug ON public.artists USING btree (slug)"
+      },
+      {
+        "name": "idx_artists_status",
+        "scans": 0,
+        "table": "artists",
+        "definition": "CREATE INDEX idx_artists_status ON public.artists USING btree (status)"
+      },
+      {
+        "name": "idx_artworks_artist_id",
+        "scans": 0,
+        "table": "artworks",
+        "definition": "CREATE INDEX idx_artworks_artist_id ON public.artworks USING btree (artist_id)"
+      },
+      {
+        "name": "idx_artworks_published",
+        "scans": 0,
+        "table": "artworks",
+        "definition": "CREATE INDEX idx_artworks_published ON public.artworks USING btree (published)"
+      },
+      {
+        "name": "idx_artworks_slug",
+        "scans": 0,
+        "table": "artworks",
+        "definition": "CREATE INDEX idx_artworks_slug ON public.artworks USING btree (slug)"
+      },
+      {
+        "name": "idx_artworks_status",
+        "scans": 0,
+        "table": "artworks",
+        "definition": "CREATE INDEX idx_artworks_status ON public.artworks USING btree (status)"
+      },
+      {
+        "name": "idx_certificates_artwork_id",
+        "scans": 0,
+        "table": "certificates",
+        "definition": "CREATE INDEX idx_certificates_artwork_id ON public.certificates USING btree (artwork_id)"
+      },
+      {
+        "name": "idx_certificates_code",
+        "scans": 0,
+        "table": "certificates",
+        "definition": "CREATE INDEX idx_certificates_code ON public.certificates USING btree (code)"
+      },
+      {
+        "name": "idx_company_briefs_status",
+        "scans": 0,
+        "table": "company_briefs",
+        "definition": "CREATE INDEX idx_company_briefs_status ON public.company_briefs USING btree (status)"
+      },
+      {
+        "name": "idx_crm_notes_entity",
+        "scans": 0,
+        "table": "crm_notes",
+        "definition": "CREATE INDEX idx_crm_notes_entity ON public.crm_notes USING btree (entity_type, entity_id)"
+      },
+      {
+        "name": "idx_leads_email",
+        "scans": 0,
+        "table": "leads",
+        "definition": "CREATE INDEX idx_leads_email ON public.leads USING btree (email)"
+      },
+      {
+        "name": "idx_leads_status",
+        "scans": 0,
+        "table": "leads",
+        "definition": "CREATE INDEX idx_leads_status ON public.leads USING btree (status)"
+      },
+      {
+        "name": "idx_profiles_email",
+        "scans": 0,
+        "table": "profiles",
+        "definition": "CREATE INDEX idx_profiles_email ON public.profiles USING btree (email)"
+      },
+      {
+        "name": "idx_profiles_profile_type",
+        "scans": 0,
+        "table": "profiles",
+        "definition": "CREATE INDEX idx_profiles_profile_type ON public.profiles USING btree (profile_type)"
+      },
+      {
+        "name": "idx_proposal_items_proposal_id",
+        "scans": 0,
+        "table": "proposal_items",
+        "definition": "CREATE INDEX idx_proposal_items_proposal_id ON public.proposal_items USING btree (proposal_id)"
+      },
+      {
+        "name": "idx_proposals_public_token",
+        "scans": 0,
+        "table": "proposals",
+        "definition": "CREATE INDEX idx_proposals_public_token ON public.proposals USING btree (public_token)"
+      },
+      {
+        "name": "idx_proposals_status",
+        "scans": 0,
+        "table": "proposals",
+        "definition": "CREATE INDEX idx_proposals_status ON public.proposals USING btree (status)"
+      },
+      {
+        "name": "idx_reservations_artwork_id",
+        "scans": 0,
+        "table": "reservations",
+        "definition": "CREATE INDEX idx_reservations_artwork_id ON public.reservations USING btree (artwork_id)"
+      },
+      {
+        "name": "idx_reservations_status",
+        "scans": 0,
+        "table": "reservations",
+        "definition": "CREATE INDEX idx_reservations_status ON public.reservations USING btree (status)"
+      },
+      {
+        "name": "idx_saved_selections_public_token",
+        "scans": 0,
+        "table": "saved_selections",
+        "definition": "CREATE INDEX idx_saved_selections_public_token ON public.saved_selections USING btree (public_token)"
+      },
+      {
+        "name": "idx_saved_selections_status",
+        "scans": 0,
+        "table": "saved_selections",
+        "definition": "CREATE INDEX idx_saved_selections_status ON public.saved_selections USING btree (status)"
+      },
+      {
+        "name": "idx_tasks_entity",
+        "scans": 0,
+        "table": "tasks",
+        "definition": "CREATE INDEX idx_tasks_entity ON public.tasks USING btree (entity_type, entity_id)"
+      },
+      {
+        "name": "idx_tasks_status_due",
+        "scans": 0,
+        "table": "tasks",
+        "definition": "CREATE INDEX idx_tasks_status_due ON public.tasks USING btree (status, due_at)"
+      },
+      {
+        "name": "leads_pkey",
+        "scans": 0,
+        "table": "leads",
+        "definition": "CREATE UNIQUE INDEX leads_pkey ON public.leads USING btree (id)"
+      },
+      {
+        "name": "media_assets_pkey",
+        "scans": 0,
+        "table": "media_assets",
+        "definition": "CREATE UNIQUE INDEX media_assets_pkey ON public.media_assets USING btree (id)"
+      },
+      {
+        "name": "newsletter_subscriptions_pkey",
+        "scans": 0,
+        "table": "newsletter_subscriptions",
+        "definition": "CREATE UNIQUE INDEX newsletter_subscriptions_pkey ON public.newsletter_subscriptions USING btree (id)"
+      },
+      {
+        "name": "profiles_pkey",
+        "scans": 0,
+        "table": "profiles",
+        "definition": "CREATE UNIQUE INDEX profiles_pkey ON public.profiles USING btree (id)"
+      },
+      {
+        "name": "proposal_items_pkey",
+        "scans": 0,
+        "table": "proposal_items",
+        "definition": "CREATE UNIQUE INDEX proposal_items_pkey ON public.proposal_items USING btree (id)"
+      },
+      {
+        "name": "proposals_pkey",
+        "scans": 0,
+        "table": "proposals",
+        "definition": "CREATE UNIQUE INDEX proposals_pkey ON public.proposals USING btree (id)"
+      },
+      {
+        "name": "proposals_proposal_number_key",
+        "scans": 0,
+        "table": "proposals",
+        "definition": "CREATE UNIQUE INDEX proposals_proposal_number_key ON public.proposals USING btree (proposal_number)"
+      },
+      {
+        "name": "proposals_public_token_key",
+        "scans": 0,
+        "table": "proposals",
+        "definition": "CREATE UNIQUE INDEX proposals_public_token_key ON public.proposals USING btree (public_token)"
+      },
+      {
+        "name": "reservations_pkey",
+        "scans": 0,
+        "table": "reservations",
+        "definition": "CREATE UNIQUE INDEX reservations_pkey ON public.reservations USING btree (id)"
+      },
+      {
+        "name": "saved_selections_pkey",
+        "scans": 0,
+        "table": "saved_selections",
+        "definition": "CREATE UNIQUE INDEX saved_selections_pkey ON public.saved_selections USING btree (id)"
+      },
+      {
+        "name": "saved_selections_public_token_key",
+        "scans": 0,
+        "table": "saved_selections",
+        "definition": "CREATE UNIQUE INDEX saved_selections_public_token_key ON public.saved_selections USING btree (public_token)"
+      },
+      {
+        "name": "tasks_pkey",
+        "scans": 0,
+        "table": "tasks",
+        "definition": "CREATE UNIQUE INDEX tasks_pkey ON public.tasks USING btree (id)"
+      }
+    ],
+    "schemas": [
+      "auth",
+      "extensions",
+      "graphql",
+      "graphql_public",
+      "pgbouncer",
+      "public",
+      "realtime",
+      "storage",
+      "vault"
+    ],
+    "storage": {
+      "buckets": null,
+      "objects": 0
+    },
+    "policies": [
+      {
+        "name": "artist_submissions_public_insert",
+        "check": "true",
+        "roles": [
+          "anon",
+          "authenticated"
+        ],
+        "table": "artist_submissions",
+        "using": null,
+        "command": "INSERT"
+      },
+      {
+        "name": "artists_public_read",
+        "check": null,
+        "roles": [
+          "anon",
+          "authenticated"
+        ],
+        "table": "artists",
+        "using": "(status = 'published'::text)",
+        "command": "SELECT"
+      },
+      {
+        "name": "artworks_public_read",
+        "check": null,
+        "roles": [
+          "anon",
+          "authenticated"
+        ],
+        "table": "artworks",
+        "using": "((published = true) AND (status = ANY (ARRAY['available'::text, 'in_conversation'::text, 'reserved'::text, 'sold'::text])))",
+        "command": "SELECT"
+      },
+      {
+        "name": "certificates_public_valid_read",
+        "check": null,
+        "roles": [
+          "anon",
+          "authenticated"
+        ],
+        "table": "certificates",
+        "using": "(verification_status = 'valid'::text)",
+        "command": "SELECT"
+      },
+      {
+        "name": "company_briefs_public_insert",
+        "check": "true",
+        "roles": [
+          "anon",
+          "authenticated"
+        ],
+        "table": "company_briefs",
+        "using": null,
+        "command": "INSERT"
+      },
+      {
+        "name": "leads_public_insert",
+        "check": "true",
+        "roles": [
+          "anon",
+          "authenticated"
+        ],
+        "table": "leads",
+        "using": null,
+        "command": "INSERT"
+      },
+      {
+        "name": "newsletter_public_insert",
+        "check": "true",
+        "roles": [
+          "anon",
+          "authenticated"
+        ],
+        "table": "newsletter_subscriptions",
+        "using": null,
+        "command": "INSERT"
+      },
+      {
+        "name": "profiles_select_own",
+        "check": null,
+        "roles": [
+          "authenticated"
+        ],
+        "table": "profiles",
+        "using": "(auth.uid() = id)",
+        "command": "SELECT"
+      },
+      {
+        "name": "profiles_update_own",
+        "check": "(auth.uid() = id)",
+        "roles": [
+          "authenticated"
+        ],
+        "table": "profiles",
+        "using": "(auth.uid() = id)",
+        "command": "UPDATE"
+      },
+      {
+        "name": "reservations_public_insert",
+        "check": "true",
+        "roles": [
+          "anon",
+          "authenticated"
+        ],
+        "table": "reservations",
+        "using": null,
+        "command": "INSERT"
+      },
+      {
+        "name": "selections_public_insert",
+        "check": "true",
+        "roles": [
+          "anon",
+          "authenticated"
+        ],
+        "table": "saved_selections",
+        "using": null,
+        "command": "INSERT"
+      },
+      {
+        "name": "selections_public_token_read",
+        "check": null,
+        "roles": [
+          "anon",
+          "authenticated"
+        ],
+        "table": "saved_selections",
+        "using": "((public_token IS NOT NULL) AND (status = ANY (ARRAY['open'::text, 'sent'::text, 'reviewed'::text])))",
+        "command": "SELECT"
+      }
+    ],
+    "routines": [
+      {
+        "name": "handle_new_user_profile",
+        "config": [
+          "search_path=public"
+        ],
+        "arguments": "",
+        "anon_execute": true,
+        "definition_md5": "30c7e7fc2c6c0194d2b4e26173d1d5de",
+        "security_definer": true,
+        "profiles_reference": true,
+        "authenticated_execute": true
+      },
+      {
+        "name": "set_updated_at",
+        "config": null,
+        "arguments": "",
+        "anon_execute": true,
+        "definition_md5": "8de7ae383447503e8949149bfb3f0efb",
+        "security_definer": false,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      }
+    ],
+    "triggers": [
+      {
+        "name": "trg_auth_user_profile",
+        "table": "auth.users",
+        "enabled": "O",
+        "function": "handle_new_user_profile"
+      },
+      {
+        "name": "trg_artist_submissions_updated_at",
+        "table": "public.artist_submissions",
+        "enabled": "O",
+        "function": "set_updated_at"
+      },
+      {
+        "name": "trg_artists_updated_at",
+        "table": "public.artists",
+        "enabled": "O",
+        "function": "set_updated_at"
+      },
+      {
+        "name": "trg_artworks_updated_at",
+        "table": "public.artworks",
+        "enabled": "O",
+        "function": "set_updated_at"
+      },
+      {
+        "name": "trg_certificates_updated_at",
+        "table": "public.certificates",
+        "enabled": "O",
+        "function": "set_updated_at"
+      },
+      {
+        "name": "trg_company_briefs_updated_at",
+        "table": "public.company_briefs",
+        "enabled": "O",
+        "function": "set_updated_at"
+      },
+      {
+        "name": "trg_leads_updated_at",
+        "table": "public.leads",
+        "enabled": "O",
+        "function": "set_updated_at"
+      },
+      {
+        "name": "trg_profiles_updated_at",
+        "table": "public.profiles",
+        "enabled": "O",
+        "function": "set_updated_at"
+      },
+      {
+        "name": "trg_proposals_updated_at",
+        "table": "public.proposals",
+        "enabled": "O",
+        "function": "set_updated_at"
+      },
+      {
+        "name": "trg_reservations_updated_at",
+        "table": "public.reservations",
+        "enabled": "O",
+        "function": "set_updated_at"
+      },
+      {
+        "name": "trg_saved_selections_updated_at",
+        "table": "public.saved_selections",
+        "enabled": "O",
+        "function": "set_updated_at"
+      },
+      {
+        "name": "trg_tasks_updated_at",
+        "table": "public.tasks",
+        "enabled": "O",
+        "function": "set_updated_at"
+      }
+    ],
+    "extensions": [
+      {
+        "name": "pg_stat_statements",
+        "version": "1.11"
+      },
+      {
+        "name": "pgcrypto",
+        "version": "1.3"
+      },
+      {
+        "name": "plpgsql",
+        "version": "1.0"
+      },
+      {
+        "name": "supabase_vault",
+        "version": "0.3.1"
+      },
+      {
+        "name": "uuid-ossp",
+        "version": "1.1"
+      }
+    ],
+    "statistics": {
+      "reset": null,
+      "pg_stat_statements": true
+    },
+    "foreign_keys": [
+      {
+        "name": "artwork_events_artwork_id_fkey",
+        "table": "artwork_events",
+        "target": "artworks",
+        "definition": "FOREIGN KEY (artwork_id) REFERENCES artworks(id)"
+      },
+      {
+        "name": "artworks_artist_id_fkey",
+        "table": "artworks",
+        "target": "artists",
+        "definition": "FOREIGN KEY (artist_id) REFERENCES artists(id)"
+      },
+      {
+        "name": "certificates_artist_id_fkey",
+        "table": "certificates",
+        "target": "artists",
+        "definition": "FOREIGN KEY (artist_id) REFERENCES artists(id)"
+      },
+      {
+        "name": "certificates_artwork_id_fkey",
+        "table": "certificates",
+        "target": "artworks",
+        "definition": "FOREIGN KEY (artwork_id) REFERENCES artworks(id)"
+      },
+      {
+        "name": "profiles_id_fkey",
+        "table": "profiles",
+        "target": "auth.users",
+        "definition": "FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE"
+      },
+      {
+        "name": "proposal_items_artwork_id_fkey",
+        "table": "proposal_items",
+        "target": "artworks",
+        "definition": "FOREIGN KEY (artwork_id) REFERENCES artworks(id)"
+      },
+      {
+        "name": "proposal_items_proposal_id_fkey",
+        "table": "proposal_items",
+        "target": "proposals",
+        "definition": "FOREIGN KEY (proposal_id) REFERENCES proposals(id) ON DELETE CASCADE"
+      },
+      {
+        "name": "proposals_company_brief_id_fkey",
+        "table": "proposals",
+        "target": "company_briefs",
+        "definition": "FOREIGN KEY (company_brief_id) REFERENCES company_briefs(id)"
+      },
+      {
+        "name": "proposals_lead_id_fkey",
+        "table": "proposals",
+        "target": "leads",
+        "definition": "FOREIGN KEY (lead_id) REFERENCES leads(id)"
+      },
+      {
+        "name": "reservations_artwork_id_fkey",
+        "table": "reservations",
+        "target": "artworks",
+        "definition": "FOREIGN KEY (artwork_id) REFERENCES artworks(id)"
+      },
+      {
+        "name": "reservations_lead_id_fkey",
+        "table": "reservations",
+        "target": "leads",
+        "definition": "FOREIGN KEY (lead_id) REFERENCES leads(id)"
+      },
+      {
+        "name": "saved_selections_lead_id_fkey",
+        "table": "saved_selections",
+        "target": "leads",
+        "definition": "FOREIGN KEY (lead_id) REFERENCES leads(id)"
+      }
+    ],
+    "database_bytes": 12340371,
+    "server_version": "17.6"
+  }
+}
