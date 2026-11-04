@@ -102,7 +102,10 @@ export async function openProviderRelationship(ctx, provider, {initialDetail = n
     const redraw = (section = null) => {
       const expanded = attention.querySelector('details')?.open;
       const summary = relationshipSummary(detail);
-      header.replaceChildren(workspaceHead(summary), button('Atualizar relacionamento', { size: 'sm', iconName: 'refresh', onClick: load }));
+      header.replaceChildren(workspaceHead(summary, detail.timeline || []), el('div', { class: 'rel-head-actions' }, [
+        // Caixa de trabalho já filtrada por esta instituição (prazos, tarefas e aprovações).
+        el('a', { class: 'btn btn-sm btn-secondary', href: ctx.href(`/finance/tasks.html?provider_id=${encodeURIComponent(provider.id)}#deadline-radar`) }, [icon('calendar', { size: 14 }), textSpan(' Prazos desta instituição')]),
+        button('Atualizar relacionamento', { size: 'sm', iconName: 'refresh', onClick: load })]));
       const live = (detail.contracts || []).some(row => ['active', 'renewing'].includes(row.status));
       const start = !live && !detail.pages?.contracts?.has_more && ctx.can('create_rfq') ? el('div', { class: 'callout callout-info compact rel-start' }, [icon('briefcase', { size: 14 }),
         textSpan('Nenhum contrato vigente registrado com esta instituição. Registre o contrato que a empresa já tem para acompanhar condições, prazo e renovação, sem depender da adesão da instituição.'),
@@ -181,13 +184,16 @@ export async function openProviderRelationship(ctx, provider, {initialDetail = n
     return sections.filter(Boolean);
   }
 
-  function workspaceHead(summary) {
+  function workspaceHead(summary, timeline) {
+    // Último evento registrado no Arandu (linha do tempo do servidor), com a origem; nunca inferido.
+    const last = timeline.find((row) => row?.at && row.text);
     const fact = (label, value, missing) => el('div', {}, [el('dt', { text: label }), el('dd', { class: value ? '' : 'muted', text: value || missing })]);
     return el('section', { class: 'rel-head', 'aria-label': 'Resumo do relacionamento' }, el('dl', { class: 'rel-facts' }, [
       fact('Relação', summary.status, ''),
       fact('Contato principal', summary.contact, 'Não registrado'),
       fact('Produtos', summary.products.join(', '), 'Nenhum contrato ou limite no recorte'),
-      fact('Próximo prazo no recorte', summary.next ? summary.next.title : null, 'Nenhum prazo futuro registrado')
+      fact('Próximo prazo no recorte', summary.next ? summary.next.title : null, 'Nenhum prazo futuro registrado'),
+      fact('Último registro no Arandu', last ? `${formatDate(String(last.at).slice(0, 10))} · ${last.text}` : null, 'Nenhum evento registrado')
     ]));
   }
 
