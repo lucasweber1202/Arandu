@@ -1,7 +1,7 @@
 // Instituições cadastradas, fila de relacionamento e cadastro.
 // Extraído de company.js (v7.0): uma capability por módulo e rota.
 
-import { el, icon, formatDate, relativeDays, plural, PROVIDER_KINDS, fold } from '../../core.js';
+import { el, icon, formatDate, relativeDays, plural, PROVIDER_KINDS, fold, textSpan } from '../../core.js';
 import { tag, button, emptyState, toast, drawer, field, person, onSubmit, toastError } from '../../ui.js';
 import { loadEntities } from '../entities.js';
 import { mods, need } from './capabilities.js';
@@ -47,11 +47,11 @@ export async function providers(ctx) {
       body.append(el('tr', { id: `provider-${provider.id}`, dataset: { entity: 'provider', id: provider.id } }, [
         el('td', { 'data-label': 'Provedor', class: 'cell-primary' }, [person(provider.name, provider.website || null),
           relationshipEnabled ? button('Relacionamento', { size: 'sm', variant: 'ghost', iconName: 'users', attrs: { 'aria-label': `Relacionamento com ${provider.name}` }, onClick: () => { const url = new URL(location.href); url.searchParams.set('provider_id', provider.id); history.replaceState(null, '', url.pathname + url.search + url.hash); mods.relationship.openProviderRelationship(ctx, provider); } }) : null]),
-        el('td', { 'data-label': 'Tipo e região' }, [el('span', { text: PROVIDER_KINDS[provider.kind] || 'Tipo não informado' }), el('span', { class: 'cell-sub muted small', text: provider.region || 'Região não informada' })]),
+        el('td', { 'data-label': 'Tipo e região' }, [textSpan(PROVIDER_KINDS[provider.kind] || 'Tipo não informado'), el('span', { class: 'cell-sub muted small', text: provider.region || 'Região não informada' })]),
         el('td', { 'data-label': 'Contratos vigentes', class: 'num', text: String((liveContracts.get(provider.id) || []).length) }),
         el('td', { 'data-label': 'Próximo vencimento' }, (() => {
           const next = (liveContracts.get(provider.id) || []).map((contract) => contract.ends_on).filter(Boolean).sort()[0];
-          return next ? [el('span', { text: formatDate(next) }), el('span', { class: 'cell-sub muted small', text: relativeDays(next) })] : el('span', { class: 'muted', text: (liveContracts.get(provider.id) || []).length ? 'Vencimento não informado' : 'Nenhum no recorte carregado' });
+          return next ? [textSpan(formatDate(next)), el('span', { class: 'cell-sub muted small', text: relativeDays(next) })] : el('span', { class: 'muted', text: (liveContracts.get(provider.id) || []).length ? 'Vencimento não informado' : 'Nenhum no recorte carregado' });
         })()),
         el('td', { 'data-label': 'Processos', text: `${plural(participation.get(provider.id) || 0, 'convite', 'convites')} · ${plural(proposalsBy.get(provider.id) || 0, 'proposta', 'propostas')}` }),
         el('td', { 'data-label': 'Verificação' }, provider.verification_state === 'EVIDENCIA_REGISTRADA'
@@ -100,7 +100,7 @@ function providerDrawer(ctx) {
   const nameField = field({ label: 'Nome', control: name, required: true });
   form.append(nameField, field({ label: 'Tipo', control: kind }), field({ label: 'Região de atuação', control: region, optionalLabel: true }),
     field({ label: 'Site', control: website, optionalLabel: true, hint: 'Somente https.' }), field({ label: 'Notas internas', control: notes, optionalLabel: true, hint: 'Visíveis apenas para a sua empresa.' }),
-    el('p', { class: 'callout callout-info compact' }, [icon('shield', { size: 14 }), el('span', { text: 'O Arandu não afirma que um provedor é regulado sem autoridade, registro, evidência e data de consulta.' })]));
+    el('p', { class: 'callout callout-info compact' }, [icon('shield', { size: 14 }), textSpan('O Arandu não afirma que um provedor é regulado sem autoridade, registro, evidência e data de consulta.')]));
   const save = button('Cadastrar instituição', { variant: 'primary', type: 'submit', iconName: 'check', attrs: { form: 'provider-form' } });
   const dialog = drawer({ title: 'Cadastrar instituição', body: form, footer: [button('Cancelar', { variant: 'ghost', onClick: () => dialog.close() }), save] });
   onSubmit(form, async (event) => {

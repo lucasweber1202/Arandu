@@ -1,7 +1,7 @@
 // Assistente de registro de contrato existente. Carregado só ao acionar o registro.
 // Extraído de views/contract-center.js (v7.0).
 
-import { el, icon, formatDate, PROVIDER_KINDS } from '../../core.js';
+import { el, icon, formatDate, PROVIDER_KINDS, textSpan } from '../../core.js';
 import { button, field, drawer, toast, loading, confirmDialog, onSubmit, mutedText, toastError } from '../../ui.js';
 import { CONTRACT_CATEGORIES } from '../../../../lib/finance/contract-terms.mjs';
 import { entityTree } from '../../../../lib/finance/entities.mjs';
@@ -76,15 +76,15 @@ export function openImportContract(ctx, entities, { providerId: presetProvider =
     if (!starts.value || !ends.value || ends.value < starts.value) { preview.hidden = true; return; }
     if (!Number.isInteger(days) || days < 0) {
       // Sem aviso prévio declarado, o prazo de decisão não é presumido.
-      preview.replaceChildren(icon('info', { size: 14 }), el('span', { text: 'Sem aviso prévio informado, o prazo para decidir a renovação não pode ser determinado.' }));
+      preview.replaceChildren(icon('info', { size: 14 }), textSpan('Sem aviso prévio informado, o prazo para decidir a renovação não pode ser determinado.'));
       preview.className = 'callout compact callout-info'; preview.hidden = false; return;
     }
     const review = addDays(ends.value, -days);
-    preview.replaceChildren(icon(ends.value < today ? 'clock' : 'calendar', { size: 14 }), el('span', { text: ends.value < today
+    preview.replaceChildren(icon(ends.value < today ? 'clock' : 'calendar', { size: 14 }), textSpan(ends.value < today
       ? `Contrato encerrado em ${formatDate(ends.value)}: fica na memória da carteira, sem tarefa de renovação.`
       : review <= today
         ? `O prazo do aviso prévio já começou (${formatDate(review)}). O contrato entra em renovação e a tarefa “Revisar renovação” vence hoje.`
-        : `Próxima ação: tarefa “Revisar renovação” para ${formatDate(review)}, ${days} dias antes do fim.` }));
+        : `Próxima ação: tarefa “Revisar renovação” para ${formatDate(review)}, ${days} dias antes do fim.`));
     preview.className = `callout compact ${ends.value >= today && review <= today ? 'callout-warning' : 'callout-info'}`;
     preview.hidden = false;
   };
@@ -104,10 +104,10 @@ export function openImportContract(ctx, entities, { providerId: presetProvider =
     field({ label: 'Categoria', control: category }),
     providerField, newProvider, titleField,
     ...(entities.rows.length ? [field({ label: 'Entidade', control: entity, hint: 'Empresa do grupo que assinou o contrato.' })] : []),
-    el('div', { class: 'field-grid' }, [startsField, endsField, noticeField, el('label', { class: 'check-row' }, [autoRenew, el('span', { text: 'Renovação automática' })])]),
+    el('div', { class: 'field-grid' }, [startsField, endsField, noticeField, el('label', { class: 'check-row' }, [autoRenew, textSpan('Renovação automática')])]),
     preview, parentField, ownerField,
     el('details', { class: 'terms-details' }, [el('summary', { text: 'Termos estruturados (opcional agora, versão 1)' }), editorSlot]),
-    el('p', { class: 'callout callout-info compact' }, [icon('info', { size: 14 }), el('span', { text: 'Registre o que está no contrato assinado. O Arandu não calcula nem infere termos; correções futuras viram nova versão com justificativa.' })])
+    el('p', { class: 'callout callout-info compact' }, [icon('info', { size: 14 }), textSpan('Registre o que está no contrato assinado. O Arandu não calcula nem infere termos; correções futuras viram nova versão com justificativa.')])
 ,
     review, outcome
   );

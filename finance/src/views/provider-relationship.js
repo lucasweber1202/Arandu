@@ -5,7 +5,7 @@
 // atribui nota nem recomenda instituição; o scorecard é do cliente, com
 // critérios e pesos dele, e o resultado é rotulado assim.
 
-import { el, icon, formatDate, formatDateTime, percent } from '../core.js';
+import { el, icon, formatDate, formatDateTime, percent, textSpan, textStrong, textItem } from '../core.js';
 import { button, tag, field, drawer, toast, loading, errorState, onSubmit, mutedText, toastError } from '../ui.js';
 import { CONTRACT_CATEGORIES } from '../../../lib/finance/contract-terms.mjs';
 import { relationshipContext, relationshipSummary } from './relationship-context.js';
@@ -104,7 +104,7 @@ export async function openProviderRelationship(ctx, provider, {initialDetail = n
       header.replaceChildren(workspaceHead(summary), button('Atualizar relacionamento', { size: 'sm', iconName: 'refresh', onClick: load }));
       const live = (detail.contracts || []).some(row => ['active', 'renewing'].includes(row.status));
       const start = !live && !detail.pages?.contracts?.has_more && ctx.can('create_rfq') ? el('div', { class: 'callout callout-info compact rel-start' }, [icon('briefcase', { size: 14 }),
-        el('span', { text: 'Nenhum contrato vigente registrado com esta instituição. Registre o contrato que a empresa já tem para acompanhar condições, prazo e renovação, sem depender da adesão da instituição.' }),
+        textSpan('Nenhum contrato vigente registrado com esta instituição. Registre o contrato que a empresa já tem para acompanhar condições, prazo e renovação, sem depender da adesão da instituição.'),
         button('Registrar contrato existente', { size: 'sm', variant: 'primary', iconName: 'plus', onClick: async () => { const { importContractButton } = await import('./contract-center.js'); importContractButton(ctx, entities, { providerId: provider.id })?.click(); } })]) : null;
       startBox.replaceChildren(...[start].filter(Boolean));
       attention.replaceChildren(attentionSection(summary.attention, detail), controls('tasks'));
@@ -114,7 +114,7 @@ export async function openProviderRelationship(ctx, provider, {initialDetail = n
     redraw();
     // Nível 4: indicadores, mapa, relação por entidade e avaliações — consulta, não trabalho.
     const advanced = [];
-    advanced.push(el('p', { class: 'callout callout-info compact' }, [icon('shield', { size: 14 }), el('span', { text: detail.neutrality })]));
+    advanced.push(el('p', { class: 'callout callout-info compact' }, [icon('shield', { size: 14 }), textSpan(detail.neutrality)]));
     advanced.push(el('section', { class: 'cc-section' }, [el('h3', { text: 'Indicadores do recorte inicial' }), el('div', { class: 'portfolio-stats' }, [
       metric('Convites', `${m.responded} de ${m.invited} respondidos`, d.response_rate),
       metric('Taxa de resposta', m.response_rate === null ? 'Sem convites' : percent(m.response_rate), d.responded),
@@ -140,8 +140,8 @@ export async function openProviderRelationship(ctx, provider, {initialDetail = n
     if (!__ARANDU_DEMO__) advanced.push(el('p', {}, el('a', {href:`/finance/performance.html?provider_id=${encodeURIComponent(provider.id)}`,text:'Performance: períodos, metas e fontes'})));
     if (!__ARANDU_DEMO__) advanced.push(el('p', {}, el('a', {href:`/finance/spend.html?provider_id=${encodeURIComponent(provider.id)}`,text:'Spend do provedor: moedas e fontes'})));
     // Relação por entidade.
-    const relList = el('ul', { class: 'plain-list' }, detail.relationships.map((row) => el('li', {}, [el('strong', { text: entityName(entities, row.legal_entity_id) }),
-      el('span', { text: ` · ${REL_STATUS[row.status]}${row.categories.length ? ` · ${row.categories.map((item) => CONTRACT_CATEGORIES[item] || item).join(', ')}` : ''}${row.since_on ? ` · desde ${formatDate(row.since_on)}` : ''}` })])));
+    const relList = el('ul', { class: 'plain-list' }, detail.relationships.map((row) => el('li', {}, [textStrong(entityName(entities, row.legal_entity_id)),
+      textSpan(` · ${REL_STATUS[row.status]}${row.categories.length ? ` · ${row.categories.map((item) => CONTRACT_CATEGORIES[item] || item).join(', ')}` : ''}${row.since_on ? ` · desde ${formatDate(row.since_on)}` : ''}`)])));
     advanced.push(el('section', { class: 'cc-section' }, [el('div', { class: 'cc-head' }, [el('h3', { text: 'Relação por entidade' }),
       write && entities.rows.length ? button('Definir relação', { size: 'sm', iconName: 'edit', onClick: () => relationshipForm() }) : null]),
       detail.relationships.length ? relList : el('p', { class: 'muted', text: entities.rows.length ? 'Nenhuma relação registrada por entidade.' : 'Cadastre entidades do grupo para registrar a relação por entidade.' })]));
@@ -156,7 +156,7 @@ export async function openProviderRelationship(ctx, provider, {initialDetail = n
         const [severity, tone] = ISSUE_SEVERITY[row.severity];
         const open = ['open', 'in_progress'].includes(row.status);
         return el('li', { class: 'milestone-row' }, [
-          el('div', { class: 'milestone-main' }, [el('strong', { text: row.title }), mutedText(`${ISSUE_CATEGORY[row.category]} · ${ISSUE_STATUS[row.status]} · aberta em ${formatDate(row.opened_on)}${row.due_on ? ` · prazo ${formatDate(row.due_on)}` : ''}${row.resolution ? ` · ${row.resolution}` : ''}`, 'span')]),
+          el('div', { class: 'milestone-main' }, [textStrong(row.title), mutedText(`${ISSUE_CATEGORY[row.category]} · ${ISSUE_STATUS[row.status]} · aberta em ${formatDate(row.opened_on)}${row.due_on ? ` · prazo ${formatDate(row.due_on)}` : ''}${row.resolution ? ` · ${row.resolution}` : ''}`, 'span')]),
           tag(severity, tone),
           write && open ? button('Resolver', { size: 'sm', onClick: () => resolveIssue(row) }) : null
         ]);
@@ -165,8 +165,8 @@ export async function openProviderRelationship(ctx, provider, {initialDetail = n
     // Scorecards da empresa.
     const reviews = detail.reviews.map((row) => {
       const template = detail.templates.find((item) => item.id === row.template_id);
-      return el('li', {}, [el('strong', { text: row.weighted_result === null ? '—' : `${Number(row.weighted_result).toLocaleString('pt-BR')} de 100` }),
-        el('span', { text: ` · ${template?.name || 'Scorecard'} · ${formatDate(row.period_start)} → ${formatDate(row.period_end)} · cobertura ${percent(row.answered_weight)}${row.comment ? ` · ${row.comment}` : ''}` })]);
+      return el('li', {}, [textStrong(row.weighted_result === null ? '—' : `${Number(row.weighted_result).toLocaleString('pt-BR')} de 100`),
+        textSpan(` · ${template?.name || 'Scorecard'} · ${formatDate(row.period_start)} → ${formatDate(row.period_end)} · cobertura ${percent(row.answered_weight)}${row.comment ? ` · ${row.comment}` : ''}`)]);
     });
     advanced.push(el('section', { class: 'cc-section' }, [el('div', { class: 'cc-head' }, [el('h3', { text: 'Avaliações definidas pela sua empresa' }),
       write && detail.templates.length ? button('Registrar avaliação', { size: 'sm', iconName: 'plus', onClick: () => reviewForm(detail) }) : null]),
@@ -175,7 +175,7 @@ export async function openProviderRelationship(ctx, provider, {initialDetail = n
 
     // Memória: histórico sob demanda.
     sections.push(disclosure('rel-historico', `Histórico (${detail.timeline.length})`, [
-      detail.timeline.length ? el('ol', { class: 'plain-list timeline-list' }, detail.timeline.map((row) => el('li', { text: `${formatDateTime(row.at)} — ${row.text}` }))) : el('p', { class: 'muted', text: 'Sem histórico.' })]));
+      detail.timeline.length ? el('ol', { class: 'plain-list timeline-list' }, detail.timeline.map((row) => textItem(`${formatDateTime(row.at)} — ${row.text}`))) : el('p', { class: 'muted', text: 'Sem histórico.' })]));
     sections.push(disclosure('rel-indicadores', 'Indicadores, mapa e avaliações', advanced));
     return sections.filter(Boolean);
   }
@@ -201,7 +201,7 @@ export async function openProviderRelationship(ctx, provider, {initialDetail = n
       if (item.target.type === 'contact' && write) return button('Adicionar contato', { size: 'sm', iconName: 'plus', onClick: () => contactForm() });
       return null;
     };
-    const row = (item) => el('li', { class: 'milestone-row' }, [tag(...KIND[item.kind]), el('div', { class: 'milestone-main' }, [el('strong', { text: item.title }), mutedText(item.detail, 'span')]), action(item)]);
+    const row = (item) => el('li', { class: 'milestone-row' }, [tag(...KIND[item.kind]), el('div', { class: 'milestone-main' }, [textStrong(item.title), mutedText(item.detail, 'span')]), action(item)]);
     return el('section', { class: 'cc-section rel-attention', 'aria-labelledby': 'rel-attention-title' }, [
       el('h3', { id: 'rel-attention-title', text: 'O que pede atenção' }),
       items.length ? el('ul', { class: 'milestone-list', role: 'list' }, items.slice(0, 6).map(row)) : el('p', { class: 'muted', text: 'Nenhum vencimento, questão aberta ou negociação em andamento no recorte carregado. Isso não substitui a revisão dos contratos.' }),
@@ -232,7 +232,7 @@ export async function openProviderRelationship(ctx, provider, {initialDetail = n
     const primary = el('input', { type: 'checkbox' });
     const form = el('form', { class: 'field-grid', novalidate: true }, [field({ label: 'Nome', control: name, required: true }), field({ label: 'Cargo', control: title, optionalLabel: true }),
       field({ label: 'E-mail', control: email, optionalLabel: true }), field({ label: 'Telefone', control: phone, optionalLabel: true }),
-      entities.rows.length ? field({ label: 'Entidade', control: entity }) : null, el('label', { class: 'check-row' }, [primary, el('span', { text: 'Contato principal' })]),
+      entities.rows.length ? field({ label: 'Entidade', control: entity }) : null, el('label', { class: 'check-row' }, [primary, textSpan('Contato principal')]),
       el('div', { class: 'form-actions span-2' }, button('Salvar contato', { variant: 'primary', type: 'submit', iconName: 'check' }))]);
     onSubmit(form, async (event) => {
       event.preventDefault();
@@ -250,7 +250,7 @@ export async function openProviderRelationship(ctx, provider, {initialDetail = n
     const status = el('select');
     for (const [value, label] of Object.entries(REL_STATUS)) status.add(new Option(label, value));
     const categories = el('fieldset', { class: 'scope-entities' }, [el('legend', { class: 'small', text: 'Categorias atendidas' }),
-      ...Object.entries(CONTRACT_CATEGORIES).map(([value, label]) => el('label', { class: 'check-row' }, [el('input', { type: 'checkbox', value }), el('span', { text: label })]))]);
+      ...Object.entries(CONTRACT_CATEGORIES).map(([value, label]) => el('label', { class: 'check-row' }, [el('input', { type: 'checkbox', value }), textSpan(label)]))]);
     const since = el('input', { type: 'date' });
     const form = el('form', { class: 'stack', novalidate: true }, [field({ label: 'Entidade', control: entity }), field({ label: 'Estado', control: status }), categories,
       field({ label: 'Relacionamento desde', control: since, optionalLabel: true }), el('div', { class: 'form-actions' }, button('Salvar relação', { variant: 'primary', type: 'submit', iconName: 'check' }))]);
@@ -347,8 +347,8 @@ export function scorecardSettings(ctx) {
   const box = el('div', {}, loading());
   const load = () => ctx.api(`scorecard-templates?organization_id=${ctx.orgId}`).then((result) => {
     const active = result.rows.filter((row) => row.status === 'active');
-    const list = active.length ? el('ul', { class: 'plain-list' }, active.map((row) => el('li', {}, [el('strong', { text: `${row.name} (v${row.version})` }),
-      el('span', { text: ` · ${row.criteria.map((item) => `${item.label} ${item.weight}`).join(' · ')}` })]))) : el('p', { class: 'muted', text: 'Nenhum scorecard criado.' });
+    const list = active.length ? el('ul', { class: 'plain-list' }, active.map((row) => el('li', {}, [textStrong(`${row.name} (v${row.version})`),
+      textSpan(` · ${row.criteria.map((item) => `${item.label} ${item.weight}`).join(' · ')}`)]))) : el('p', { class: 'muted', text: 'Nenhum scorecard criado.' });
     const parts = [mutedText(result.notice), list];
     if (ctx.can('create_rfq')) {
       const name = el('input', { maxlength: '120', value: 'Relacionamento bancário' });

@@ -7,7 +7,7 @@
 
 import { externalComparisonProposal } from '../../../lib/finance/external-proposals.mjs';
 import { PRODUCTS } from '../../../lib/finance/products.mjs';
-import { el, icon, formatDateTime, formatDate, plural } from '../core.js';
+import { el, icon, formatDateTime, formatDate, plural, textSpan, textStrong } from '../core.js';
 import { card, pill, tag, button, linkButton, emptyState, errorState, loading, drawer, field, catalogControl, toast, onSubmit, definitionList, mutedText } from '../ui.js';
 import { keyTerms, coverage } from './shared/terms.js';
 import { memberName } from './shared/people.js';
@@ -62,7 +62,7 @@ export function externalProposalsSection(ctx, rfq, { onChange = null } = {}) {
   // botão que pareça gravar.
   if ((__ARANDU_DEMO__ && ctx.mode === 'demo')) {
     body.append(el('p', { class: 'callout callout-info compact', id: 'external-demo-note', role: 'note' }, [icon('info', { size: 14 }),
-      el('span', { text: 'Nesta demonstração sem servidor, o registro de propostas externas não é gravado. No ambiente com backend, a equipe registra a transcrição, confere com o material recebido e a inclui na comparação, sem permitir escolher ou contratar essa proposta por aqui.' })]));
+      textSpan('Nesta demonstração sem servidor, o registro de propostas externas não é gravado. No ambiente com backend, a equipe registra a transcrição, confere com o material recebido e a inclui na comparação, sem permitir escolher ou contratar essa proposta por aqui.')]));
     return section;
   }
   const load = async () => {
@@ -72,7 +72,7 @@ export function externalProposalsSection(ctx, rfq, { onChange = null } = {}) {
       result = await ctx.api(`external-proposals?organization_id=${ctx.orgId}&rfq_id=${encodeURIComponent(rfq.id)}&limit=25`);
     } catch (error) {
       body.replaceChildren(unavailable(error)
-        ? el('p', { class: 'callout callout-info compact', id: 'external-unavailable', role: 'status' }, [icon('info', { size: 14 }), el('span', { text: 'O registro de propostas externas não está disponível neste ambiente. As propostas enviadas pelo portal continuam abaixo.' })])
+        ? el('p', { class: 'callout callout-info compact', id: 'external-unavailable', role: 'status' }, [icon('info', { size: 14 }), textSpan('O registro de propostas externas não está disponível neste ambiente. As propostas enviadas pelo portal continuam abaixo.')])
         : errorState({ title: 'Propostas externas indisponíveis', error: error.status === 403 ? explain(error) : 'Não foi possível consultar. Isso não significa que não existam propostas externas.', onRetry: load }));
       return;
     }
@@ -109,10 +109,10 @@ function externalCard(ctx, rfq, row, { canWrite, canReview, reload }) {
         mutedText(`${CHANNELS[row.channel] || 'Canal não informado'} · ${row.received_at ? `recebida em ${formatDateTime(row.received_at)}` : 'data de recebimento não informada'} · versão ${row.current_version}`)]),
       el('div', { class: 'proposal-badges' }, [tag('Fonte externa'), pill(state, { size: 'sm' }), row.rfq_revision_matches === false ? tag(`Revisão ${row.rfq_revision} da solicitação`, 'warning') : null])
     ]),
-    el('p', { class: 'muted small' }, [el('strong', { text: 'Referência: ' }), row.source_reference || 'não informada']),
+    el('p', { class: 'muted small' }, [textStrong('Referência: '), row.source_reference || 'não informada']),
     keyTerms(rfq.product, row.terms || {}, { currency: row.currency ?? null }),
     el('div', { class: 'proposal-foot' }, [
-      el('span', { class: 'coverage-inline' }, [el('span', { class: 'coverage-bar' }, el('span', { class: 'coverage-fill', style: `width:${Math.round(cov.ratio * 100)}%` })), el('span', { text: `${cov.filled} de ${cov.total} condições comparáveis informadas` })]),
+      el('span', { class: 'coverage-inline' }, [el('span', { class: 'coverage-bar' }, el('span', { class: 'coverage-fill', style: `width:${Math.round(cov.ratio * 100)}%` })), textSpan(`${cov.filled} de ${cov.total} condições comparáveis informadas`)]),
       mutedText(row.currency ? `Moeda declarada ${row.currency}` : 'Moeda não declarada: não é convertida nem tratada como real', 'span')
     ]),
     missing.length ? el('p', { class: 'small warn-text', text: `Não informado no material: ${missing.join(', ')}. Permanece em branco; não vira zero nem vantagem na comparação.` }) : null,
@@ -183,11 +183,11 @@ async function versionHistory(ctx, rfq, row, host, before = null) {
     const result = await ctx.api(`external-proposals?organization_id=${ctx.orgId}&id=${encodeURIComponent(row.id)}&limit=10${before ? `&before_version=${before}` : ''}`);
     const reviews = result.reviews || [];
     list.replaceChildren(el('ol', { class: 'external-history', role: 'list' }, (result.versions || []).map((version) => el('li', { class: 'external-history-item' }, [
-      el('p', {}, [el('strong', { text: `Versão ${version.version}` }), ' · ', pill(STATE[version.version_state] || STATE.preparing, { size: 'sm' })]),
+      el('p', {}, [textStrong(`Versão ${version.version}`), ' · ', pill(STATE[version.version_state] || STATE.preparing, { size: 'sm' })]),
       mutedText(`Registrada por ${memberName(ctx.members, version.recorded_by)} em ${formatDateTime(version.recorded_at)} · ${CHANNELS[version.channel] || 'canal não informado'}`),
-      version.correction_reason ? el('p', { class: 'small' }, [el('strong', { text: 'Motivo da correção: ' }), version.correction_reason]) : null,
+      version.correction_reason ? el('p', { class: 'small' }, [textStrong('Motivo da correção: '), version.correction_reason]) : null,
       ...reviews.filter((item) => item.version === version.version).map((item) => el('p', { class: 'small' }, [
-        el('strong', { text: item.action === 'confirm' ? 'Conferida: ' : 'Retirada: ' }),
+        textStrong(item.action === 'confirm' ? 'Conferida: ' : 'Retirada: '),
         `${item.reason} — ${memberName(ctx.members, item.reviewed_by)}, ${formatDateTime(item.reviewed_at)}${item.document_read ? ' · documento lido pelo revisor' : ''}`]))
     ]))));
     if (result.page?.has_more) list.append(button('Ver versões anteriores', { size: 'sm', onClick: (event) => { event.currentTarget.remove(); versionHistory(ctx, rfq, row, host, result.page.next_before); } }));
@@ -240,7 +240,7 @@ function editor(ctx, rfq, { record = null, onSaved }) {
   const reason = el('textarea', { name: 'correction_reason', rows: '2', maxlength: '1000', minlength: '10' });
   const formError = el('p', { class: 'field-error', role: 'alert', hidden: true });
   const form = el('form', { id: 'external-form', novalidate: true, class: 'stack' }, [
-    el('p', { class: 'callout callout-info compact', role: 'note' }, [icon('info', { size: 14 }), el('span', { text: 'Você está registrando a transcrição de uma oferta que recebeu. O Arandu não a trata como enviada ou confirmada pela instituição. Deixe em branco o que o material não informa: campo vazio permanece "não informado", nunca zero.' })]),
+    el('p', { class: 'callout callout-info compact', role: 'note' }, [icon('info', { size: 14 }), textSpan('Você está registrando a transcrição de uma oferta que recebeu. O Arandu não a trata como enviada ou confirmada pela instituição. Deixe em branco o que o material não informa: campo vazio permanece "não informado", nunca zero.')]),
     el('fieldset', { class: 'stack' }, [el('legend', { text: 'Origem' }), el('div', { class: 'field-grid' }, [
       field({ label: 'Instituição', control: provider, required: true, hint: record ? 'A instituição de um registro não muda; corrija criando outro registro.' : 'Cadastre a instituição em Instituições se ela ainda não estiver na lista.' }),
       field({ label: 'Canal de recebimento', control: channel, required: true }),
@@ -284,7 +284,7 @@ function editor(ctx, rfq, { record = null, onSaved }) {
     };
     const filled = Object.keys(terms).length;
     step.replaceChildren(el('div', { class: 'stack', id: 'external-review' }, [
-      el('p', { class: 'callout callout-warning compact', role: 'note' }, [icon('alert', { size: 14 }), el('span', { text: 'Confira: isto grava uma transcrição feita pela sua empresa. Ela não é proposta autenticada pela instituição, nem aprovação de crédito ou aceite.' })]),
+      el('p', { class: 'callout callout-warning compact', role: 'note' }, [icon('alert', { size: 14 }), textSpan('Confira: isto grava uma transcrição feita pela sua empresa. Ela não é proposta autenticada pela instituição, nem aprovação de crédito ou aceite.')]),
       definitionList([
         { key: 'institution', label: 'Instituição', type: 'text' }, { key: 'channel', label: 'Canal', type: 'text' },
         { key: 'received', label: 'Recebida em', type: 'text' }, { key: 'currency', label: 'Moeda', type: 'text' },
@@ -296,7 +296,7 @@ function editor(ctx, rfq, { record = null, onSaved }) {
       }),
       el('p', { class: 'small', text: `${plural(filled, 'condição informada', 'condições informadas')}; as demais ficam como não informadas.` }),
       keyTerms(rfq.product, terms, { currency: payload.currency }),
-      record ? el('p', { class: 'small' }, [el('strong', { text: 'Motivo: ' }), payload.correction_reason]) : null,
+      record ? el('p', { class: 'small' }, [textStrong('Motivo: '), payload.correction_reason]) : null,
       mutedText('Depois de gravada, a versão fica aguardando conferência por alguém da gestão antes de entrar na comparação.'),
       formError
     ]));
@@ -340,8 +340,8 @@ function review(ctx, row, action, reload) {
       ? `Você confirma que a versão ${row.current_version} corresponde ao material recebido de ${row.provider_name || 'a instituição'}. Isso não valida as condições, não é aprovação de crédito e não indica aceite da instituição.`
       : 'A proposta sai da comparação corrente. Versões e conferências anteriores continuam no histórico.' }),
     field({ label: confirm ? 'Como conferiu' : 'Motivo da retirada', control: reason, required: true, hint: 'Entre 10 e 1000 caracteres.' }),
-    el('label', { class: 'check-row' }, [material, el('span', { text: 'Li o material recebido para esta conferência.' })]),
-    hasDocument ? el('label', { class: 'check-row' }, [documentRead, el('span', { text: 'Li o documento vinculado.' })]) : mutedText('Não há documento vinculado a esta versão.'),
+    el('label', { class: 'check-row' }, [material, textSpan('Li o material recebido para esta conferência.')]),
+    hasDocument ? el('label', { class: 'check-row' }, [documentRead, textSpan('Li o documento vinculado.')]) : mutedText('Não há documento vinculado a esta versão.'),
     error, el('div', { class: 'form-actions' }, submit)
   ]);
   const sheet = drawer({ title: confirm ? 'Conferir transcrição' : 'Retirar da análise', subtitle: row.provider_name || null, body: form, onClose: reload });

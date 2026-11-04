@@ -2,7 +2,7 @@
 // Aba Aprovações: pedidos, etapas, ações e formulário de pedido. Carregada ao abrir a aba.
 // Extraído de views/rfq.js (v7.0).
 
-import { el, icon, money, percent, APPROVAL_STATUS, timeAgo } from '../../core.js';
+import { el, icon, money, percent, APPROVAL_STATUS, timeAgo, textSpan, textStrong } from '../../core.js';
 import { pill, button, emptyState, errorState, loading, toast, confirmDialog, promptDialog, field, person, onSubmit, sessionLink, mutedText, toastError } from '../../ui.js';
 import { approvalSteps, approvalActions, currentStep, approvalSummaryLine } from '../shared/approvals.js';
 import { memberName, memberTitle } from '../shared/people.js';
@@ -34,13 +34,13 @@ export function approvalCard(ctx, request, rfq, { onChange, compact = false } = 
       ]),
       pill(request.stale && request.status === 'pending' ? { label: 'Desatualizada', tone: 'danger', icon: 'alert' } : APPROVAL_STATUS[request.status])
     ]),
-    request.stale ? el('p', { class: 'callout callout-warning compact' }, [icon('alert', { size: 14 }), el('span', { text: 'A solicitação ou a proposta mudou depois do pedido. Esta aprovação não vale para a versão atual; peça uma nova.' })]) : null,
+    request.stale ? el('p', { class: 'callout callout-warning compact' }, [icon('alert', { size: 14 }), textSpan('A solicitação ou a proposta mudou depois do pedido. Esta aprovação não vale para a versão atual; peça uma nova.')]) : null,
     external?el('p',{class:'callout callout-info',text:`Transcrição externa · versão ${external.current_version} · revisão da solicitação ${external.rfq_revision}. ${external.notice||'A conferência não autentica o emissor, não comprova assinatura ou aceite institucional.'}`}):null,
     request.rationale ? el('blockquote', { class: 'rationale' }, [el('span', { class: 'rationale-label', text: 'Contexto do solicitante' }), el('p', { text: request.rationale })]) : null,
     proposal && !compact ? keyTerms(rfq.product, proposal.terms,external?{currency:external.currency??null}:{}) : null,
     request.policy_snapshot ? lazyPolicyTimeline(ctx, request, { onChange }) : approvalSteps(request, ctx.members)
   ]);
-  if (mine && !request.stale) node.append(el('div', { class: 'approval-cta' }, [el('p', { class: 'approval-your-turn' }, [icon('clock', { size: 14 }), el('span', { text: request.policy_snapshot ? 'Você é aprovador(a) de uma etapa ativa.' : 'Sua decisão é a próxima etapa.' })]), approvalActions(ctx, request, { onDone: onChange })]));
+  if (mine && !request.stale) node.append(el('div', { class: 'approval-cta' }, [el('p', { class: 'approval-your-turn' }, [icon('clock', { size: 14 }), textSpan(request.policy_snapshot ? 'Você é aprovador(a) de uma etapa ativa.' : 'Sua decisão é a próxima etapa.')]), approvalActions(ctx, request, { onDone: onChange })]));
   if (request.status === 'pending' && request.policy_snapshot && ctx.can?.('create_rfq')) {
     node.append(el('div', { class: 'row-actions' }, button('Substituir este pedido', { variant: 'ghost', size: 'sm', iconName: 'edit', onClick: async () => {
       const reason = await promptDialog({ title: 'Substituir o pedido?', description: 'O pedido atual é encerrado como substituído (por exemplo, para reavaliar sob a versão nova da policy). Nada muda sozinho: depois você pede uma nova aprovação.', label: 'Motivo', minLength: 3, confirmLabel: 'Substituir', tone: 'danger' });
@@ -88,7 +88,7 @@ export function approvalRequestForm(ctx, rfq, latest) {
   proposals.forEach((proposal) => {
     proposalGroup.append(el('label', { class: 'radio-card' }, [
       el('input', { type: 'radio', name: 'proposal_id', value: proposal.id, checked: single, required: true }),
-      el('span', { class: 'radio-card-text' }, [el('strong', { text: proposal.provider_name }), mutedText(`v${proposal.version} · ${rfq.product === 'credit' ? `${percent(proposal.terms?.interest_rate_month)} a.m. · ${money(proposal.terms?.offered_amount, { compact: true })}` : `MDR crédito ${percent(proposal.terms?.mdr_credit_cash)} · PIX ${percent(proposal.terms?.pix_fee)}`}`, 'span')])
+      el('span', { class: 'radio-card-text' }, [textStrong(proposal.provider_name), mutedText(`v${proposal.version} · ${rfq.product === 'credit' ? `${percent(proposal.terms?.interest_rate_month)} a.m. · ${money(proposal.terms?.offered_amount, { compact: true })}` : `MDR crédito ${percent(proposal.terms?.mdr_credit_cash)} · PIX ${percent(proposal.terms?.pix_fee)}`}`, 'span')])
     ]));
   });
 
@@ -137,7 +137,7 @@ export function approvalRequestForm(ctx, rfq, latest) {
       for (const flag of flags) {
         const box = el('input', { type: 'checkbox', value: flag.key, checked: (declared.flags || []).includes(flag.key) });
         box.addEventListener('change', () => { declared.flags = [...group.querySelectorAll('input:checked')].map((input) => input.value); refresh(); });
-        group.append(el('label', { class: 'check-option' }, [box, el('span', { text: flag.label })]));
+        group.append(el('label', { class: 'check-option' }, [box, textSpan(flag.label)]));
       }
       parts.push(group, el('p', { class: 'field-hint', text: 'A declaração fica gravada no pedido, com seu nome.' }));
     }

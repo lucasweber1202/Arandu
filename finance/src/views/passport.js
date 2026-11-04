@@ -6,7 +6,7 @@ import { graphContextCard } from './graph-context.js';
 // não calcula nada sobre a empresa: só organiza o que a própria empresa
 // declarou ou anexou.
 
-import { el, icon, money, formatDate, formatDateTime, timeAgo } from '../core.js';
+import { el, icon, money, formatDate, formatDateTime, timeAgo, textSpan, textStrong } from '../core.js';
 import { card, tag, button, linkButton, emptyState, errorState, toast, drawer, field, progress, onSubmit, mutedText, toastError } from '../ui.js';
 import { buildPassport, SOURCE_LABELS, WRITABLE_SOURCES, FRESHNESS, MIN_REVIEW_DAYS, MAX_REVIEW_DAYS, catalogField, fieldLabel } from '../../../lib/finance/passport.mjs';
 import { loadEntities } from './entities.js';
@@ -88,14 +88,14 @@ export async function passport(ctx) {
   root.append(card({
     title: 'Cobertura',
     subtitle: `${view.coverage.filled} de ${view.coverage.relevant} campos do catálogo preenchidos.`,
-    body: [summary, el('p', { class: 'muted small passport-notice' }, [icon('info', { size: 14 }), el('span', { text: view.notice })])]
+    body: [summary, el('p', { class: 'muted small passport-notice' }, [icon('info', { size: 14 }), textSpan(view.notice)])]
   }));
 
   if (view.attention.length) {
     root.append(el('div', { class: 'callout callout-warning', role: 'status' }, [icon('alert'), el('div', {}, [
       el('p', { class: 'callout-title', text: `${view.attention.length} campo${view.attention.length > 1 ? 's' : ''} pede${view.attention.length > 1 ? 'm' : ''} revisão antes do próximo uso` }),
       el('ul', { class: 'passport-attention' }, view.attention.map((item) => el('li', {}, [
-        el('a', { href: `#field-${item.key}`, text: item.label }), el('span', { text: ' · ' }), freshnessTag(item.freshness, item.due_on)
+        el('a', { href: `#field-${item.key}`, text: item.label }), textSpan(' · '), freshnessTag(item.freshness, item.due_on)
       ])))
     ])]));
   }
@@ -124,15 +124,15 @@ export async function passport(ctx) {
 
 function fieldRow(ctx, item, { canEdit, documents }) {
   const shown = passportValue(item);
-  const meta = [el('span', { text: item.scope === 'entity' ? 'Entidade legal' : item.inherited ? 'Default do grupo (herdado)' : 'Grupo' })];
+  const meta = [textSpan(item.scope === 'entity' ? 'Entidade legal' : item.inherited ? 'Default do grupo (herdado)' : 'Grupo')];
   if (item.origin === 'organization') {
-    meta.push(el('span', { text: item.filled ? SOURCE_LABELS.cadastro_organizacao : 'Não informado no cadastro' }));
+    meta.push(textSpan(item.filled ? SOURCE_LABELS.cadastro_organizacao : 'Não informado no cadastro'));
   } else if (item.filled || item.value) {
-    meta.push(el('span', { text: SOURCE_LABELS[item.source] || item.source || 'Origem não registrada' }));
-    if (item.updated_at) meta.push(el('span', { text: `${item.updated_by_name ? `${item.updated_by_name}, ` : ''}${formatDate(item.updated_at)}` }));
-    if (item.verified_at) meta.push(el('span', { text: `confirmado como atual ${timeAgo(item.verified_at)}${item.verified_by_name ? ` por ${item.verified_by_name}` : ''} (revisão interna)` }));
-    if (item.valid_until) meta.push(el('span', { text: `validade ${formatDate(item.valid_until)}` }));
-    meta.push(el('span', { text: `revisão a cada ${item.review_days} dias` }));
+    meta.push(textSpan(SOURCE_LABELS[item.source] || item.source || 'Origem não registrada'));
+    if (item.updated_at) meta.push(textSpan(`${item.updated_by_name ? `${item.updated_by_name}, ` : ''}${formatDate(item.updated_at)}`));
+    if (item.verified_at) meta.push(textSpan(`confirmado como atual ${timeAgo(item.verified_at)}${item.verified_by_name ? ` por ${item.verified_by_name}` : ''} (revisão interna)`));
+    if (item.valid_until) meta.push(textSpan(`validade ${formatDate(item.valid_until)}`));
+    meta.push(textSpan(`revisão a cada ${item.review_days} dias`));
   }
   const actions = [];
   if (item.origin === 'organization') {
@@ -153,7 +153,7 @@ function fieldRow(ctx, item, { canEdit, documents }) {
       el('span', { class: 'passport-label', text: item.label }),
       valueNode,
       item.typed === false ? el('span', { class: 'passport-warning', text: 'Formato livre: não preenche solicitações até ser revisado.' }) : null,
-      item.document ? el('span', { class: 'passport-doc' }, [icon('file', { size: 12 }), el('span', { text: `${item.document.title} · v${item.document.version}` })]) : null,
+      item.document ? el('span', { class: 'passport-doc' }, [icon('file', { size: 12 }), textSpan(`${item.document.title} · v${item.document.version}`)]) : null,
       item.document_missing ? el('span', { class: 'passport-warning', text: 'Arquivo vinculado removido: vincule outro arquivo.' }) : null,
       meta.length ? el('span', { class: 'passport-meta' }, meta) : null
     ]),
@@ -253,7 +253,7 @@ async function showHistory(ctx, item) {
   try {
     const { rows } = await ctx.api(`profile/history?organization_id=${ctx.orgId}&field_key=${encodeURIComponent(item.key)}${item.legal_entity_id ? `&legal_entity_id=${encodeURIComponent(item.legal_entity_id)}` : ''}`);
     body.replaceChildren(rows?.length ? el('ol', { class: 'passport-history' }, rows.map((row) => el('li', { class: 'passport-history-item' }, [
-      el('p', {}, [el('strong', { text: CHANGE_LABELS[row.change_type] || row.change_type }), el('span', { class: 'muted', text: ` · ${formatDateTime(row.changed_at)}${row.changed_by_name ? ` · ${row.changed_by_name}` : ''}` })]),
+      el('p', {}, [textStrong(CHANGE_LABELS[row.change_type] || row.change_type), el('span', { class: 'muted', text: ` · ${formatDateTime(row.changed_at)}${row.changed_by_name ? ` · ${row.changed_by_name}` : ''}` })]),
       row.change_type === 'updated' ? el('p', { class: 'small', text: `${passportValue({ ...item, value: row.previous_value, typed: undefined }) ?? '—'} → ${passportValue({ ...item, value: row.new_value, typed: undefined }) ?? '—'}` })
         : el('p', { class: 'small', text: passportValue({ ...item, value: row.new_value, typed: undefined }) ?? '—' }),
       el('p', { class: 'small muted', text: `Origem: ${SOURCE_LABELS[row.new_source] || row.new_source || '—'}${row.previous_source && row.previous_source !== row.new_source ? ` (antes: ${SOURCE_LABELS[row.previous_source] || row.previous_source})` : ''}` })

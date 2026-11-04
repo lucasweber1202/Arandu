@@ -1,7 +1,7 @@
 /* global __ARANDU_DEMO__ */
 // Painel: começa pelo que precisa da pessoa agora, não por números.
 
-import { greeting, el, icon, todayIso, daysUntil, relativeDays, plural, formatDate, formatDateTime, productLabel, demandHeadline, RFQ_STATUS, timeAgo, money, renewalStage } from '../core.js';
+import { greeting, el, icon, todayIso, daysUntil, relativeDays, plural, formatDate, formatDateTime, productLabel, demandHeadline, RFQ_STATUS, timeAgo, money, renewalStage, textSpan, textStrong } from '../core.js';
 import { card, pill, linkButton, emptyState, person, progress, button, toast, mutedText } from '../ui.js';
 import { memberName } from './shared/people.js';
 import { currentStep, approvalSummaryLine, isViewerTurn } from './shared/approvals.js';
@@ -152,7 +152,7 @@ function actionRow(item) {
       el('span', { class: 'action-detail', text: item.detail })
     ]),
     item.when ? el('span', { class: 'action-when', text: item.when }) : null,
-    el('span', { class: 'action-cta', 'aria-hidden': 'true' }, [el('span', { text: item.cta }), icon('chevronRight', { size: 14 })])
+    el('span', { class: 'action-cta', 'aria-hidden': 'true' }, [textSpan(item.cta), icon('chevronRight', { size: 14 })])
   ]);
 }
 
@@ -224,12 +224,12 @@ export async function dashboard(ctx) {
   }
   // Aprovações que não carregaram não podem virar "Tudo em dia".
   const approvalsMissing = ctx.approvalsError ? el('p', { class: 'callout callout-warning compact', role: 'alert' }, [icon('alert'),
-    el('span', { text: 'Não conseguimos carregar as aprovações agora; pode haver pedido aguardando você. ' }),
+    textSpan('Não conseguimos carregar as aprovações agora; pode haver pedido aguardando você. '),
     el('a', { href: ctx.href('/finance/approvals.html'), text: 'Abrir Aprovações' })]) : null;
   if (approvalsMissing) attention.append(approvalsMissing);
   // Fonte que falhou não pode virar "Tudo em dia" (mesma regra das aprovações).
   const signalsMissing = signals.failed.length ? el('p', { class: 'callout callout-warning compact', role: 'alert', 'data-signals': 'failed' }, [icon('alert'),
-    el('span', { text: `Não conseguimos carregar ${signals.failed.join(' e ')} agora; pode haver pendência fora desta lista. ` }),
+    textSpan(`Não conseguimos carregar ${signals.failed.join(' e ')} agora; pode haver pendência fora desta lista. `),
     signals.failed.includes('Relacionamentos') ? el('a', { href: ctx.href('/finance/providers.html#crm-agenda'), text: 'Abrir agenda comercial' }) : el('a', { href: ctx.href('/finance/fees.html'), text: 'Abrir Tarifas' })]) : null;
   const signalsOff = signals.unavailable.length ? el('p', { class: 'muted small', 'data-signals': 'unavailable', text: `${signals.unavailable.join(' e ')}: ainda não disponível neste ambiente; não entra nesta lista.` }) : null;
   for (const node of [signalsMissing, signalsOff, chips]) if (node) attention.append(node);
@@ -360,7 +360,7 @@ export async function dashboard(ctx) {
       const providerEvent = /^(proposal_|provider_invited|invite_accepted)/.test(row.event_type);
       const context = (providerEvent && row.metadata?.provider) || titles.get(row.entity_id) || '';
       feed.append(el('li', { class: 'activity-item' }, [el('span', { class: 'activity-dot', 'aria-hidden': 'true' }), el('span', { class: 'activity-text' }, [
-        el('strong', { text: label }), count > 1 ? ` (${count})` : '', context ? ` · ${context}` : '']), el('time', { class: 'activity-time', datetime: row.happened_at, text: timeAgo(row.happened_at) })]));
+        textStrong(label), count > 1 ? ` (${count})` : '', context ? ` · ${context}` : '']), el('time', { class: 'activity-time', datetime: row.happened_at, text: timeAgo(row.happened_at) })]));
     }
     if (!feed.children.length) feed.append(el('li', { class: 'muted', text: 'Sem atividade recente.' }));
   }).catch(() => feed.replaceChildren(el('li', { class: 'muted', text: 'Atividade indisponível no momento.' })));

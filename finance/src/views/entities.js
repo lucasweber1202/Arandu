@@ -7,7 +7,7 @@ import { graphContextCard } from './graph-context.js';
 // contexto nunca amplia acesso. Sem entidades cadastradas (ou num transporte
 // que não as conhece), tudo continua funcionando como antes.
 
-import { el, icon, formatDate } from '../core.js';
+import { el, icon, formatDate, textSpan, textStrong } from '../core.js';
 import { card, button, tag, field, emptyState, errorState, loading, toast, confirmDialog, person, drawer, onSubmit, mutedText, toastError } from '../ui.js';
 import { entityLabel, entityTree } from '../../../lib/finance/entities.mjs';
 
@@ -102,7 +102,7 @@ export function entitySummaryCard(ctx) {
     const body = el('tbody');
     for (const row of rows) {
       body.append(el('tr', { class: row.depth ? 'entity-child' : '' }, [
-        el('td', { 'data-label': 'Entidade', class: 'cell-primary' }, [el('span', { text: `${row.depth ? '— ' : ''}${row.label}` }), row.status === 'archived' ? tag('arquivada') : null, row.key !== 'group' ? button('Relações', { size: 'sm', onClick: () => drawer({ title: row.label, body: graphContextCard(ctx, { type: 'entity', id: row.key }) }) }) : null]),
+        el('td', { 'data-label': 'Entidade', class: 'cell-primary' }, [textSpan(`${row.depth ? '— ' : ''}${row.label}`), row.status === 'archived' ? tag('arquivada') : null, row.key !== 'group' ? button('Relações', { size: 'sm', onClick: () => drawer({ title: row.label, body: graphContextCard(ctx, { type: 'entity', id: row.key }) }) }) : null]),
         el('td', { 'data-label': 'Moeda', text: row.currency || '—' }),
         el('td', { 'data-label': 'Processos em aberto', text: String(row.rfqs_open) }),
         el('td', { 'data-label': 'Decididos', text: String(row.rfqs_decided) }),
@@ -135,7 +135,7 @@ export function entitySettings(ctx, entities) {
     } }) : null;
     list.append(el('li', { class: `entity-row depth-${row.depth}`, dataset: { entity: 'legal_entity', id: row.id } }, [
       el('span', { class: 'entity-row-main' }, [
-        el('strong', { text: row.legal_name }),
+        textStrong(row.legal_name),
         mutedText([row.kind === 'business_unit' ? 'Unidade de negócio' : 'Entidade legal', row.short_name, row.tax_identifier ? `CNPJ ${String(row.tax_identifier).replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5')}` : null, `${row.country} · ${row.currency}`].filter(Boolean).join(' · '), 'span')
       ]),
       row.status === 'archived' ? tag(`arquivada em ${formatDate(row.archived_at)}`) : tag('ativa', 'success'),
@@ -217,7 +217,7 @@ export function memberScopes(ctx, entities) {
         const boxes = el('fieldset', { class: 'scope-entities' }, [el('legend', { class: 'small', text: 'Entidades (a concessão de uma entidade cobre as unidades abaixo dela)' }),
           ...active.map((entity) => el('label', { class: 'check-row' }, [
             el('input', { type: 'checkbox', name: 'entity_ids', value: entity.id, checked: member.entity_ids.includes(entity.id) }),
-            el('span', { text: `${entity.depth ? '— ' : ''}${entity.short_name || entity.legal_name}` })]))]);
+            textSpan(`${entity.depth ? '— ' : ''}${entity.short_name || entity.legal_name}`)]))]);
         boxes.hidden = scope.value !== 'entities';
         scope.addEventListener('change', () => { boxes.hidden = scope.value !== 'entities'; });
         editor.append(scope, boxes, button('Salvar escopo', { size: 'sm', type: 'submit', iconName: 'check' }));
@@ -237,7 +237,7 @@ export function memberScopes(ctx, entities) {
       }
       list.append(row);
     }
-    box.replaceChildren(list, entities.canAdmin ? null : el('p', { class: 'muted small' }, [icon('lock', { size: 14 }), el('span', { text: ' Somente administradores do grupo alteram escopos.' })]));
+    box.replaceChildren(list, entities.canAdmin ? null : el('p', { class: 'muted small' }, [icon('lock', { size: 14 }), textSpan(' Somente administradores do grupo alteram escopos.')]));
   }).catch((error) => box.replaceChildren(errorState({ error })));
   return box;
 }
@@ -246,7 +246,7 @@ export function memberScopes(ctx, entities) {
 export function rfqEntityControl(ctx, entities, rfq) {
   if (!entities.rows.length) return null;
   const editable = ctx.can('create_rfq') && ['draft', 'open', 'collecting', 'comparing'].includes(rfq.status);
-  const current = el('span', { class: 'entity-current' }, [icon('building', { size: 14 }), el('span', { text: entityName(entities, rfq.legal_entity_id) })]);
+  const current = el('span', { class: 'entity-current' }, [icon('building', { size: 14 }), textSpan(entityName(entities, rfq.legal_entity_id))]);
   if (!editable) return current;
   const select = el('select', { 'aria-label': 'Reatribuir entidade' });
   if (entities.scope === 'group') select.add(new Option('Nível de grupo', ''));

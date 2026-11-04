@@ -4,7 +4,7 @@
 // duração, reservada antes pelo servidor; o download também usa URL assinada,
 // gerada na hora e nunca guardada. A tela só vê metadados.
 
-import { el, icon, formatDateTime } from '../core.js';
+import { el, icon, formatDateTime, textSpan, textStrong } from '../core.js';
 import { button, emptyState, errorState, loading, toast, confirmDialog, field, onSubmit, mutedText, toastError } from '../ui.js';
 import { memberName } from './shared/people.js';
 
@@ -95,7 +95,7 @@ export function documentsPanel(ctx, { entityType, entityId, canUpload = false, s
     const shared = row.visibility === 'shared';
     const ours = row.organization_id === ctx.organization.id;
     const visibility = el('span', { class: `visibility visibility-${shared ? 'shared' : 'internal'}` }, [icon(shared ? 'eye' : 'lock', { size: 12 }),
-      el('span', { text: shared ? (ours ? (shareLabel || 'Compartilhado') : 'Compartilhado com você') : ownerLabel })]);
+      textSpan(shared ? (ours ? (shareLabel || 'Compartilhado') : 'Compartilhado com você') : ownerLabel)]);
     const actions = el('div', { class: 'document-actions' }, [
       current ? button('Baixar', { size: 'sm', iconName: 'download', onClick: () => download(row, current.version), attrs: { 'aria-label': `Baixar ${row.title}, versão ${current.version}` } }) : null,
       canUpload && ours ? versionInput(row) : null,
@@ -108,14 +108,14 @@ export function documentsPanel(ctx, { entityType, entityId, canUpload = false, s
     const history = older.length ? el('details', { class: 'document-history' }, [
       el('summary', { text: `${older.length} ${older.length === 1 ? 'versão anterior' : 'versões anteriores'}` }),
       el('ul', { role: 'list' }, older.map((version) => el('li', {}, [
-        el('span', { text: `v${version.version} · ${fileSize(version.size_bytes)} · ${formatDateTime(version.completed_at)} · ${people(version.uploaded_by)}` }),
+        textSpan(`v${version.version} · ${fileSize(version.size_bytes)} · ${formatDateTime(version.completed_at)} · ${people(version.uploaded_by)}`),
         button('Baixar', { size: 'sm', variant: 'ghost', iconName: 'download', onClick: () => download(row, version.version), attrs: { 'aria-label': `Baixar ${row.title}, versão ${version.version}` } })
       ])))
     ]) : null;
     return el('li', { class: 'document-row', id: `document-${row.id}` }, [
       el('span', { class: 'document-icon', 'aria-hidden': 'true' }, icon('file', { size: 18 })),
       el('div', { class: 'document-main' }, [
-        el('p', { class: 'document-title' }, [el('strong', { text: row.title }), current ? el('span', { class: 'tag tag-neutral', text: `v${current.version}` }) : null]),
+        el('p', { class: 'document-title' }, [textStrong(row.title), current ? el('span', { class: 'tag tag-neutral', text: `v${current.version}` }) : null]),
         el('p', { class: 'document-meta', text: current ? `${TYPES[current.mime_type] || 'Arquivo'} · ${fileSize(current.size_bytes)} · ${formatDateTime(current.completed_at)} · ${ours ? people(current.uploaded_by) : 'enviado pela outra parte'}` : 'Envio em andamento' }),
         visibility, history
       ]),
@@ -148,8 +148,8 @@ export function documentsPanel(ctx, { entityType, entityId, canUpload = false, s
     });
     const choices = shareLabel ? el('fieldset', { class: 'visibility-choice' }, [
       el('legend', { class: 'field-label', text: 'Quem pode ver' }),
-      el('label', { class: 'radio-row' }, [el('input', { type: 'radio', name: 'visibility', value: 'internal', checked: true }), icon('lock', { size: 14 }), el('span', { text: ownerLabel })]),
-      el('label', { class: 'radio-row' }, [el('input', { type: 'radio', name: 'visibility', value: 'shared' }), icon('eye', { size: 14 }), el('span', { text: shareLabel })])
+      el('label', { class: 'radio-row' }, [el('input', { type: 'radio', name: 'visibility', value: 'internal', checked: true }), icon('lock', { size: 14 }), textSpan(ownerLabel)]),
+      el('label', { class: 'radio-row' }, [el('input', { type: 'radio', name: 'visibility', value: 'shared' }), icon('eye', { size: 14 }), textSpan(shareLabel)])
     ]) : null;
     const submit = button('Anexar documento', { type: 'submit', variant: 'primary', size: 'sm', iconName: 'plus' });
     form.append(field({ label: 'Arquivo', control: fileInput, hint: 'PDF, JPG, PNG, XLSX ou DOCX até 10 MB.' }), field({ label: 'Nome do documento', control: titleInput }), choices, submit);
@@ -160,7 +160,7 @@ export function documentsPanel(ctx, { entityType, entityId, canUpload = false, s
       submit.disabled = false;
       if (ok) { form.reset(); titleEdited = false; }
     });
-    section.append(el('details', { class: 'document-add' }, [el('summary', {}, [icon('plus', { size: 14 }), el('span', { text: 'Anexar documento' })]), form]));
+    section.append(el('details', { class: 'document-add' }, [el('summary', {}, [icon('plus', { size: 14 }), textSpan('Anexar documento')]), form]));
   }
   section.append(status, mutedText('Arquivos ficam em armazenamento privado. Cada download gera um link temporário e fica registrado na trilha.'));
   refresh();

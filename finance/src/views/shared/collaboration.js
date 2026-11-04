@@ -1,7 +1,7 @@
 // Comentários, visibilidade, histórico de eventos e linha do tempo de revisões.
 // Extraído de views/shared.js (v7.0): dependências específicas, sem barrel.
 
-import { el, icon, formatDateTime, timeAgo, uid, fold } from '../../core.js';
+import { el, icon, formatDateTime, timeAgo, uid, fold, textSpan, textStrong } from '../../core.js';
 import { button, avatar, emptyState, errorState, loading, toast, tag, onSubmit, sessionLink, mutedText } from '../../ui.js';
 import { memberName } from './people.js';
 import { revisionDiff } from './terms.js';
@@ -18,7 +18,7 @@ export function revisionTimeline(ctx, rfq) {
       list.append(el('li', { class: `timeline-item${row.revision === rfq.revision ? ' current' : ''}` }, [
         el('span', { class: 'timeline-dot', 'aria-hidden': 'true' }),
         el('div', { class: 'timeline-content' }, [
-          el('p', { class: 'timeline-title' }, [el('strong', { text: `Revisão ${row.revision}` }), row.revision === rfq.revision ? tag('atual', 'accent') : null]),
+          el('p', { class: 'timeline-title' }, [textStrong(`Revisão ${row.revision}`), row.revision === rfq.revision ? tag('atual', 'accent') : null]),
           el('p', { class: 'timeline-meta', text: `${formatDateTime(row.published_at)}${row.changed_by_name ? ` · ${row.changed_by_name}` : ''}` }),
           previous ? (changes.length
             ? el('ul', { class: 'diff-list' }, changes.map((change) => el('li', {}, [el('span', { class: 'diff-label', text: `${change.label}: ` }), el('span', { class: 'diff-before', text: change.before }), ' → ', el('span', { class: 'diff-after', text: change.after })])))
@@ -41,7 +41,7 @@ export function visibilityBadge(visibility, { provider = false, fromBuyer = fals
   const meta = VISIBILITY[visibility] || VISIBILITY.internal;
   const label = provider && visibility === 'provider_visible'
     ? (fromBuyer ? 'Da empresa a todos os provedores convidados' : 'Visível à empresa compradora') : meta.label;
-  return el('span', { class: `visibility visibility-${meta.tone}` }, [icon(meta.icon, { size: 12 }), el('span', { text: label })]);
+  return el('span', { class: `visibility visibility-${meta.tone}` }, [icon(meta.icon, { size: 12 }), textSpan(label)]);
 }
 
 /** Destaca menções conhecidas sem interpretar o texto como HTML. */
@@ -81,16 +81,16 @@ export function collaboration(ctx, rfq, { provider = false } = {}) {
     let visibility = parent ? parent.visibility : (provider ? 'provider_visible' : 'internal');
     const help = el('p', { class: 'composer-help' });
     const setHelp = () => {
-      help.replaceChildren(visibilityBadge(visibility, { provider }), el('span', { text: visibility === 'internal'
+      help.replaceChildren(visibilityBadge(visibility, { provider }), textSpan(visibility === 'internal'
         ? ' Só pessoas da sua empresa leem. Provedores nunca veem.'
-        : provider ? ' A empresa compradora lê. Outros provedores não veem.' : ' Todos os provedores convidados para esta solicitação leem.' }));
+        : provider ? ' A empresa compradora lê. Outros provedores não veem.' : ' Todos os provedores convidados para esta solicitação leem.'));
     };
     const controls = el('div', { class: 'composer-controls' });
     if (!provider && !parent) {
       const group = el('div', { class: 'segmented visibility-choice', role: 'radiogroup', 'aria-label': 'Quem pode ler' });
       for (const value of ['internal', 'provider_visible']) {
         const meta = VISIBILITY[value];
-        const option = el('button', { type: 'button', role: 'radio', class: 'segment', 'aria-checked': String(value === visibility), dataset: { visibility: value } }, [icon(meta.icon, { size: 14 }), el('span', { text: meta.label })]);
+        const option = el('button', { type: 'button', role: 'radio', class: 'segment', 'aria-checked': String(value === visibility), dataset: { visibility: value } }, [icon(meta.icon, { size: 14 }), textSpan(meta.label)]);
         option.addEventListener('click', () => {
           visibility = value;
           for (const node of group.children) node.setAttribute('aria-checked', String(node.dataset.visibility === value));
@@ -126,7 +126,7 @@ export function collaboration(ctx, rfq, { provider = false } = {}) {
       suggestions.hidden = !list.length;
       pickIndex = 0;
       list.forEach((member, index) => {
-        const option = el('li', { role: 'option', class: 'mention-option', 'aria-selected': String(index === 0), id: `mention-${member.user_id}` }, [avatar(member.display_name, { size: 'xs' }), el('span', { text: member.display_name }), el('span', { class: 'muted', text: member.title || '' })]);
+        const option = el('li', { role: 'option', class: 'mention-option', 'aria-selected': String(index === 0), id: `mention-${member.user_id}` }, [avatar(member.display_name, { size: 'xs' }), textSpan(member.display_name), el('span', { class: 'muted', text: member.title || '' })]);
         option.addEventListener('mousedown', (event) => { event.preventDefault(); pick(member); });
         suggestions.append(option);
       });
@@ -203,7 +203,7 @@ export function collaboration(ctx, rfq, { provider = false } = {}) {
     // origem; sem acesso à origem (pergunta de outra instituição), não há resposta.
     const target = row.parent_id ? rowsById.get(row.parent_id) : row;
     if (target && canComment) {
-      const reply = el('button', { type: 'button', class: 'link-btn' }, [icon('reply', { size: 14 }), el('span', { text: 'Responder' })]);
+      const reply = el('button', { type: 'button', class: 'link-btn' }, [icon('reply', { size: 14 }), textSpan('Responder')]);
       reply.addEventListener('click', () => {
         if (main.querySelector('.composer-reply')) return;
         const form = composer(target);
@@ -232,7 +232,7 @@ export function collaboration(ctx, rfq, { provider = false } = {}) {
     }
   }
   section.append(thread, canComment ? composer() : el('p', { class: 'callout callout-info compact', id: 'comment-readonly' }, [icon('lock', { size: 14 }),
-    el('span', { text: 'Seu papel lê os comentários deste processo. Comentar e mencionar fica com análise, gestão financeira e administração.' })]));
+    textSpan('Seu papel lê os comentários deste processo. Comentar e mencionar fica com análise, gestão financeira e administração.')]));
   refresh();
   return section;
 }
@@ -289,7 +289,7 @@ export function activityLog(ctx, type, id) {
       const detail = row.metadata?.provider ? ` · ${row.metadata.provider}` : row.metadata?.revision ? ` · revisão ${row.metadata.revision}` : '';
       list.append(el('li', { class: 'activity-item' }, [
         el('span', { class: 'activity-dot', 'aria-hidden': 'true' }),
-        el('span', { class: 'activity-text' }, [el('strong', { text: row.actor_name || 'Membro da equipe' }), ` ${eventPhrase(row.event_type)}${detail}`]),
+        el('span', { class: 'activity-text' }, [textStrong(row.actor_name || 'Membro da equipe'), ` ${eventPhrase(row.event_type)}${detail}`]),
         el('time', { class: 'activity-time', datetime: row.happened_at, text: formatDateTime(row.happened_at) })
       ]));
     }

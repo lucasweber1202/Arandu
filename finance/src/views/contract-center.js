@@ -6,7 +6,7 @@
 // quem escreve (papel + escopo de entidade); a tela só esconde o que a pessoa
 // claramente não pode fazer e mostra o erro do servidor quando ele recusa.
 import { graphContextCard } from './graph-context.js';
-import { el, icon, formatDate, formatDateTime, percent } from '../core.js';
+import { el, icon, formatDate, formatDateTime, percent, textSpan, textStrong, textItem } from '../core.js';
 import { button, tag, field, drawer, toast, loading, errorState, confirmDialog, onSubmit, readableError, mutedText, toastError } from '../ui.js';
 import { CONTRACT_CATEGORIES, MILESTONE_KINDS, RECURRENCES, contractTermFields } from '../../../lib/finance/contract-terms.mjs';
 import { termValue, termsList, termsEditor } from './contract-center/terms.js';
@@ -34,10 +34,10 @@ function confirmedFactsPanel(ctx, contractId, editor) {
     const unusable = out.unusable || [];
     if (!suggestions.length && !conflicts.length && !unusable.length) return;
     const status = el('p', { class: 'small', role: 'status', 'aria-live': 'polite' });
-    const parts = [icon('file', { size: 14 }), el('span', { text: suggestions.length
+    const parts = [icon('file', { size: 14 }), textSpan(suggestions.length
       ? `${suggestions.length} ${suggestions.length === 1 ? 'valor confirmado' : 'valores confirmados'} na revisão de documentos deste contrato.`
       : conflicts.length ? 'Há valores confirmados em documentos deste contrato que não concordam entre si.'
-        : 'Há valores confirmados em documentos deste contrato que não preenchem os termos sozinhos.' })];
+        : 'Há valores confirmados em documentos deste contrato que não preenchem os termos sozinhos.')];
     if (suggestions.length) parts.push(button('Preencher campos vazios', { size: 'sm', onClick: () => {
       let filled = 0, kept = 0;
       for (const item of suggestions) {
@@ -48,9 +48,9 @@ function confirmedFactsPanel(ctx, contractId, editor) {
         kept ? `${kept} mantido(s) como você digitou.` : null, 'Revise antes de gravar.'].filter(Boolean).join(' ');
     } }));
     const conflictList = conflicts.length ? el('ul', { class: 'plain-list small' }, conflicts.map((item) =>
-      el('li', { text: `${item.label}: ${item.reason === 'currency_mismatch' ? 'documentos em moedas diferentes' : `valores diferentes (${item.values.map((v) => (typeof v.value === 'number' ? v.value.toLocaleString('pt-BR') : v.value)).join(' × ')})`}; preencha a partir do contrato assinado.` }))) : null;
+      textItem(`${item.label}: ${item.reason === 'currency_mismatch' ? 'documentos em moedas diferentes' : `valores diferentes (${item.values.map((v) => (typeof v.value === 'number' ? v.value.toLocaleString('pt-BR') : v.value)).join(' × ')})`}; preencha a partir do contrato assinado.`))) : null;
     // Unidade ou formato que não serve ao campo: dito, nunca convertido nem descartado em silêncio.
-    const unusableList = unusable.length ? el('ul', { class: 'plain-list small' }, unusable.map((item) => el('li', { text: unusableText(item) }))) : null;
+    const unusableList = unusable.length ? el('ul', { class: 'plain-list small' }, unusable.map((item) => textItem(unusableText(item)))) : null;
     panel.replaceChildren(el('div', { class: 'stack' }, [el('div', { class: 'callout-line' }, parts), conflictList, unusableList, status].filter(Boolean)));
     panel.hidden = false;
   }).catch(() => {});
@@ -95,10 +95,10 @@ export function openContract(ctx, contract, { initialDetail = null } = {}) {
     }
     // Termos efetivos e histórico de versões com diff factual.
     const versions = el('ol', { class: 'version-list', role: 'list' }, detail.versions.map((version) => el('li', { class: 'version-row' }, [
-      el('div', { class: 'version-head' }, [tag(`v${version.version}`, 'accent'), el('strong', { text: SOURCE_LABELS[version.source] || version.source }),
+      el('div', { class: 'version-head' }, [tag(`v${version.version}`, 'accent'), textStrong(SOURCE_LABELS[version.source] || version.source),
         mutedText(`vigência ${formatDate(version.effective_from)} · registrada ${formatDateTime(version.recorded_at)}`, 'span')]),
       version.reason ? el('p', { class: 'small', text: `Justificativa: ${version.reason}` }) : null,
-      version.changes.length ? el('ul', { class: 'diff-list' }, version.changes.map((change) => el('li', { text: `${change.label}: ${change.change === 'added' ? 'incluído' : change.change === 'removed' ? 'removido' : 'alterado'} — ${formatDiff(current, change.key, change.before)} → ${formatDiff(current, change.key, change.after)}` }))) : null
+      version.changes.length ? el('ul', { class: 'diff-list' }, version.changes.map((change) => textItem(`${change.label}: ${change.change === 'added' ? 'incluído' : change.change === 'removed' ? 'removido' : 'alterado'} — ${formatDiff(current, change.key, change.before)} → ${formatDiff(current, change.key, change.after)}`))) : null
     ])));
     const termsActions = manage ? button(current.current_version ? 'Corrigir termos (nova versão)' : 'Estruturar termos', { size: 'sm', iconName: 'edit', onClick: () => termsForm(current, effective?.terms || {}) }) : null;
     sections.push(el('section', { class: 'cc-section' }, [el('div', { class: 'cc-head' }, [el('h3', { text: `Termos vigentes${effective ? ` (v${effective.version})` : ''}` }), termsActions]),
@@ -125,7 +125,7 @@ export function openContract(ctx, contract, { initialDetail = null } = {}) {
 
     // Aditivos.
     const amendments = detail.amendments.length ? el('ol', { class: 'version-list', role: 'list' }, detail.amendments.map((item) => el('li', { class: 'version-row' }, [
-      el('div', { class: 'version-head' }, [tag(`${item.number}º aditivo`, 'neutral'), el('strong', { text: item.title }), mutedText(`vigência ${formatDate(item.effective_from)}${item.signed_on ? ` · assinado ${formatDate(item.signed_on)}` : ''}`, 'span')]),
+      el('div', { class: 'version-head' }, [tag(`${item.number}º aditivo`, 'neutral'), textStrong(item.title), mutedText(`vigência ${formatDate(item.effective_from)}${item.signed_on ? ` · assinado ${formatDate(item.signed_on)}` : ''}`, 'span')]),
       item.summary ? el('p', { class: 'small', text: item.summary }) : null,
       item.new_ends_on ? el('p', { class: 'small muted', text: `Fim: ${formatDate(item.previous_ends_on)} → ${formatDate(item.new_ends_on)}` }) : null,
       item.new_notice_days !== null && item.new_notice_days !== undefined ? el('p', { class: 'small muted', text: `Aviso prévio: ${item.previous_notice_days} → ${item.new_notice_days} dias` }) : null
@@ -140,7 +140,7 @@ export function openContract(ctx, contract, { initialDetail = null } = {}) {
         button(item.recurrence !== 'none' ? 'Concluir ocorrência' : 'Concluir', { size: 'sm', onClick: () => settle(item, 'done') }),
         button('Cancelar', { size: 'sm', variant: 'ghost', onClick: () => settle(item, 'cancelled') })] : [];
       return el('li', { class: 'milestone-row' }, [
-        el('div', { class: 'milestone-main' }, [el('strong', { text: item.title }), mutedText(`${MILESTONE_KINDS[item.kind]} · ${formatDate(item.due_on)} · avisa ${item.lead_days} dias antes · ${RECURRENCES[item.recurrence]}`, 'span')]),
+        el('div', { class: 'milestone-main' }, [textStrong(item.title), mutedText(`${MILESTONE_KINDS[item.kind]} · ${formatDate(item.due_on)} · avisa ${item.lead_days} dias antes · ${RECURRENCES[item.recurrence]}`, 'span')]),
         tag(label, tone), ...actions]);
     })) : el('p', { class: 'muted', text: 'Sem marcos próprios. Os marcos de renovação (90/60/30 dias) continuam automáticos.' });
     sections.push(el('section', { class: 'cc-section' }, [el('div', { class: 'cc-head' }, [el('h3', { text: 'Marcos e obrigações' }),
@@ -148,7 +148,7 @@ export function openContract(ctx, contract, { initialDetail = null } = {}) {
 
     if (detail.children.length) {
       sections.push(el('section', { class: 'cc-section' }, [el('h3', { text: 'Contratos vinculados (filhos)' }),
-        el('ul', { class: 'plain-list' }, detail.children.map((child) => el('li', { text: `${child.title || CONTRACT_CATEGORIES[child.product]} · até ${formatDate(child.ends_on)}` })))]));
+        el('ul', { class: 'plain-list' }, detail.children.map((child) => textItem(`${child.title || CONTRACT_CATEGORIES[child.product]} · até ${formatDate(child.ends_on)}`)))]));
     }
     if (current.parent_contract_id) sections.push(mutedText('Este contrato é filho de outro contrato da carteira.'));
     sections.push(ownerSection(current));
@@ -242,7 +242,7 @@ export function openContract(ctx, contract, { initialDetail = null } = {}) {
       el('div', { class: 'field-grid' }, [field({ label: 'Vigência a partir de', control: effectiveFrom, required: true }), field({ label: 'Assinado em', control: signed, optionalLabel: true }),
         field({ label: 'Novo fim do contrato', control: newEnds, optionalLabel: true, hint: `Atual: ${formatDate(current.ends_on)}` }), field({ label: 'Novo aviso prévio (dias)', control: newNotice, optionalLabel: true, hint: `Atual: ${current.renewal_notice_days} dias` })]),
       field({ label: 'O que mudou', control: summary, optionalLabel: true }),
-      el('label', { class: 'check-row' }, [changeTerms, el('span', { text: 'O aditivo altera termos estruturados (gera nova versão)' })]), editor,
+      el('label', { class: 'check-row' }, [changeTerms, textSpan('O aditivo altera termos estruturados (gera nova versão)')]), editor,
       el('div', { class: 'form-actions' }, button('Registrar aditivo', { variant: 'primary', type: 'submit', iconName: 'check' }))]);
     onSubmit(form, async (event) => {
       event.preventDefault();

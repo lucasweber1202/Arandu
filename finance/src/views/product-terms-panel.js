@@ -9,7 +9,7 @@
 // - O simulador só envia contrato+versão e cenários declarados; o cálculo,
 //   componentes e incomparabilidade vêm do servidor. Sem ranking nem "economia".
 
-import { el, icon, formatDate } from '../core.js';
+import { el, icon, formatDate, textSpan, textStrong, textItem } from '../core.js';
 import { button, drawer, field, toast, sessionLink, loading, mutedText } from '../ui.js';
 import { PRODUCT_TERM_SCHEMAS, PRODUCT_TERMS_VERSION, productTermMetadata } from '../../../lib/finance/product-terms.mjs';
 
@@ -57,7 +57,7 @@ export function specializedTermsSection(ctx, { contract, effective, contracts = 
     return section;
   }
   section.append(
-    el('p', { class: 'small' }, [el('strong', { text: MODALITY_LABEL[pt.modality] }), ` · versão ${effective.version} do contrato · fonte: ${pt.values.source_reference}`]),
+    el('p', { class: 'small' }, [textStrong(MODALITY_LABEL[pt.modality]), ` · versão ${effective.version} do contrato · fonte: ${pt.values.source_reference}`]),
     el('dl', { class: 'deflist deflist-2' }, meta.fields.filter((f) => f.key !== 'source_reference').map((f) => el('div', { class: 'deflist-row' }, [el('dt', { text: f.label }), el('dd', { text: formatTermValue(f, pt.values[f.key], pt.values) })]))),
     mutedText(`Termos declarados${meta.methodology ? '' : '; esta modalidade ainda não tem cálculo econômico no Arandu'}. Sem curva, preço de mercado ou marcação a mercado. Não habilita solicitação (RFQ).`));
   return section;
@@ -119,9 +119,9 @@ function termsForm(ctx, { contract, effective, modalities, onSaved }) {
       await ctx.send('contract-terms', { contract_id: contract.id, expected_version: contract.current_version, terms: { ...(effective?.terms || {}), ...(currency ? { currency } : {}), product_terms }, reason: reason.value.trim() || null });
       dialog.close(); toast('Condições registradas em nova versão do contrato.'); onSaved?.();
     } catch (error) {
-      errors.replaceChildren(el('span', { text: error.status === 409 ? 'O contrato mudou desde que você o abriu, ou a versão perderia termos especializados. Nada foi sobrescrito: recarregue o contrato.'
+      errors.replaceChildren(textSpan(error.status === 409 ? 'O contrato mudou desde que você o abriu, ou a versão perderia termos especializados. Nada foi sobrescrito: recarregue o contrato.'
         : error.status === 400 ? 'O servidor recusou as condições: confira datas (início antes do fim), moedas diferentes no par, casas decimais e campos obrigatórios. Nada foi gravado.'
-          : error.status === 403 ? 'Seu acesso não permite alterar este contrato.' : (error.message || 'Não foi possível gravar.') }), ...(sessionLink(error) ? [' ', sessionLink(error)] : []));
+          : error.status === 403 ? 'Seu acesso não permite alterar este contrato.' : (error.message || 'Não foi possível gravar.')), ...(sessionLink(error) ? [' ', sessionLink(error)] : []));
       errors.hidden = false; save.disabled = false;
     } finally { pending = false; }
   });
@@ -177,19 +177,19 @@ export function analysisView(ctx, analysis) {
   const table = el('table', { class: 'data-table compact guarantee-table' }, [
     el('thead', {}, el('tr', {}, [el('th', { scope: 'col', text: 'Cenário' }), ...sources.map((s) => el('th', { scope: 'col' }, [s.object_type === 'contract' && s.id ? el('a', { href: ctx.href(`/finance/contracts.html?abrir=contrato#contract-${s.id}`), text: s.label || 'Contrato' }) : (s.label || 'Contrato'), mutedText(` · v${s.version}`, 'span')]))])),
     el('tbody', {}, scenarios.map((sc) => el('tr', {}, [
-      el('th', { scope: 'row' }, [el('strong', { text: sc.scenario.label }), el('span', { class: 'muted small cell-sub', text: `${formatDate(sc.scenario.period_start)} → ${formatDate(sc.scenario.period_end)} · ${money(sc.scenario.guaranteed_amount, sc.scenario.currency)}` })]),
+      el('th', { scope: 'row' }, [textStrong(sc.scenario.label), el('span', { class: 'muted small cell-sub', text: `${formatDate(sc.scenario.period_start)} → ${formatDate(sc.scenario.period_end)} · ${money(sc.scenario.guaranteed_amount, sc.scenario.currency)}` })]),
       ...sc.results.map((r) => el('td', { 'data-label': r.source.label || 'Contrato', dataset: { comparable: String(r.comparable) } }, r.comparable ? [
         el('strong', { class: 'num', text: money(r.total, r.currency) }),
         el('ul', { class: 'plain-list small cost-components' }, [
-          el('li', { text: `Comissão: ${money(r.components.commission, r.currency)} (${r.inputs.days} dias / base ${r.inputs.basis}, ${formatTermValue({ unit: 'percent_per_year', type: 'number' }, r.inputs.commission_pct_year)})` }),
-          el('li', { text: `Despesa inicial: ${money(r.components.upfront_fee, r.currency)}` }), el('li', { text: `Outras despesas: ${money(r.components.other_expenses, r.currency)}` })])
-      ] : [el('span', { class: 'tag tag-warning', text: 'Não comparável' }), el('ul', { class: 'plain-list small' }, (r.reasons || []).map((x) => el('li', { text: REASON[x] || 'Condição não suportada.' })))]))
+          textItem(`Comissão: ${money(r.components.commission, r.currency)} (${r.inputs.days} dias / base ${r.inputs.basis}, ${formatTermValue({ unit: 'percent_per_year', type: 'number' }, r.inputs.commission_pct_year)})`),
+          textItem(`Despesa inicial: ${money(r.components.upfront_fee, r.currency)}`), textItem(`Outras despesas: ${money(r.components.other_expenses, r.currency)}`)])
+      ] : [el('span', { class: 'tag tag-warning', text: 'Não comparável' }), el('ul', { class: 'plain-list small' }, (r.reasons || []).map((x) => textItem(REASON[x] || 'Condição não suportada.')))]))
     ])))
   ]);
   return el('section', { class: 'stack-sm', 'aria-label': 'Resultado da simulação' }, [
     el('div', { class: 'table-card' }, table),
     el('details', {}, [el('summary', { text: 'Metodologia e limites' }), el('p', { class: 'small', text: 'Comissão = valor do cenário × taxa anual ÷ 100 × dias corridos ÷ base (360 ou 365, conforme a convenção do contrato). Período [início, fim) em dias UTC. Despesas iniciais só entram quando o cenário começa no início da vigência. Componentes arredondados a centavos.' }),
-      el('ul', { class: 'plain-list small' }, [el('li', { text: 'Somente encargos explícitos da fiança: não inclui tributos, custo de garantia real, funding ou perda esperada.' }), el('li', { text: 'Compara versões declaradas como cenário: não é aprovação, contratação nem economia realizada.' }), el('li', { text: 'Sem ordenação de instituições; a decisão é da empresa.' })]),
+      el('ul', { class: 'plain-list small' }, [textItem('Somente encargos explícitos da fiança: não inclui tributos, custo de garantia real, funding ou perda esperada.'), textItem('Compara versões declaradas como cenário: não é aprovação, contratação nem economia realizada.'), textItem('Sem ordenação de instituições; a decisão é da empresa.')]),
       el('p', { class: 'muted small' }, [icon('info', { size: 12 }), ' Resultado não é salvo.'])])
   ]);
 }

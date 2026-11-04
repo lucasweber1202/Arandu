@@ -4,7 +4,7 @@ import { negotiationOrigin } from './negotiation-origin.js';
 // Detalhe da solicitação: contexto no topo, operação separada em abas.
 
 import { PRODUCTS } from '../../../lib/finance/products.mjs';
-import { el, icon, fieldValue, formatDate, relativeDays, daysUntil, plural, productLabel, RFQ_STATUS, PROPOSAL_STATUS, PROVIDER_KINDS, todayIso, timeAgo } from '../core.js';
+import { el, icon, fieldValue, formatDate, relativeDays, daysUntil, plural, productLabel, RFQ_STATUS, PROPOSAL_STATUS, PROVIDER_KINDS, todayIso, timeAgo, textSpan, textStrong } from '../core.js';
 import { card, pill, tag, button, linkButton, emptyState, errorState, loading, tabs, definitionList, toast, confirmDialog, drawer, field, catalogControl, person, menu, progress, onSubmit, mutedText, toastError } from '../ui.js';
 import { loadEntities, rfqEntityControl } from './entities.js';
 import { revisionTimeline, collaboration, activityLog } from './shared/collaboration.js';
@@ -127,18 +127,18 @@ export async function rfqDetail(ctx) {
     title: rfq.title,
     meta: [
       tag(productLabel(rfq.product, { short: true })), pill(pending ? { label: 'Em aprovação', tone: 'warning', icon: 'clock' } : RFQ_STATUS[rfq.status]),
-      el('span', { class: 'meta-item', title: 'Revisão publicada atual' }, [icon('repeat', { size: 14 }), el('span', { text: `Revisão ${rfq.revision || 1}` })]),
-      el('span', { class: 'meta-item' }, [icon('users', { size: 14 }), el('span', { text: rfq.owner_name || memberName(ctx.members, rfq.owner_id) })]),
+      el('span', { class: 'meta-item', title: 'Revisão publicada atual' }, [icon('repeat', { size: 14 }), textSpan(`Revisão ${rfq.revision || 1}`)]),
+      el('span', { class: 'meta-item' }, [icon('users', { size: 14 }), textSpan(rfq.owner_name || memberName(ctx.members, rfq.owner_id))]),
       entities.rows.length ? el('span', { class: 'meta-item meta-entity' }, rfqEntityControl(ctx, entities, rfq)) : null,
       el('span', { class: `meta-item${live && days !== null && days <= 2 ? ' urgent' : ''}` }, [icon('calendar', { size: 14 }),
-        el('span', { text: rfq.response_deadline ? `Prazo de resposta ${formatDate(rfq.response_deadline)}${live ? ` · ${relativeDays(rfq.response_deadline)}` : ''}` : 'Sem prazo definido' })])
+        textSpan(rfq.response_deadline ? `Prazo de resposta ${formatDate(rfq.response_deadline)}${live ? ` · ${relativeDays(rfq.response_deadline)}` : ''}` : 'Sem prazo definido')])
     ],
     actions
   });
 
   const root = el('div', { class: 'detail' });
   if (new URLSearchParams(location.search).get('created')) {
-    root.append(el('div', { class: 'callout callout-success', role: 'status' }, [icon('checkCircle'), el('span', {}, [el('strong', { text: 'Solicitação criada como rascunho. ' }), 'Próximo passo: convide provedores e abra para propostas.'])]));
+    root.append(el('div', { class: 'callout callout-success', role: 'status' }, [icon('checkCircle'), el('span', {}, [textStrong('Solicitação criada como rascunho. '), 'Próximo passo: convide provedores e abra para propostas.'])]));
   }
   root.append(lifecycle(rfq, Boolean(pending)));
   // Próximo passo acima das abas: visível em qualquer aba e no celular, com a
@@ -170,7 +170,7 @@ export async function rfqDetail(ctx) {
 function governanceGapNotice(ctx, gaps) {
   const list = gaps.length > 1 ? `${gaps.slice(0, -1).join(', ')} e ${gaps.at(-1)}` : gaps[0];
   return el('div', { class: 'callout callout-warning governance-gap', role: 'alert' }, [icon('alert'), el('div', { class: 'stack' }, [
-    el('strong', { text: `Não conseguimos carregar ${list} desta solicitação.` }),
+    textStrong(`Não conseguimos carregar ${list} desta solicitação.`),
     el('p', { text: 'Enquanto isso, decisão e aprovação ficam indisponíveis nesta tela para não agir sobre informação incompleta. Nada foi alterado.' }),
     el('div', {}, button('Recarregar', { size: 'sm', iconName: 'refresh', onClick: () => ctx.reload() }))
   ])]);
@@ -352,7 +352,7 @@ function editDrawer(ctx, rfq) {
   for (const item of spec.demandFields) grid.append(field({ label: item.label, control: catalogControl(item, rfq.demand?.[item.key]), required: Boolean(item.required) }));
   form.append(grid);
   const willNotify = rfq.status !== 'draft' && (rfq.invites || []).length;
-  const status = el('p', { class: 'callout callout-info', role: 'status' }, [icon('info'), el('span', { text: `Você está editando a revisão ${rfq.revision || 1}. ${willNotify ? 'Uma mudança material cria a revisão ' + ((rfq.revision || 1) + 1) + ' e avisa os provedores convidados. Propostas já enviadas continuam ligadas à revisão que responderam.' : 'Enquanto é rascunho, nenhum provedor é avisado.'}` })]);
+  const status = el('p', { class: 'callout callout-info', role: 'status' }, [icon('info'), textSpan(`Você está editando a revisão ${rfq.revision || 1}. ${willNotify ? 'Uma mudança material cria a revisão ' + ((rfq.revision || 1) + 1) + ' e avisa os provedores convidados. Propostas já enviadas continuam ligadas à revisão que responderam.' : 'Enquanto é rascunho, nenhum provedor é avisado.'}`)]);
   const save = button(rfq.status === 'draft' ? 'Salvar alterações' : 'Publicar revisão', { variant: 'primary', type: 'submit', iconName: 'check' });
   const dialog = drawer({ title: 'Editar solicitação', subtitle: rfq.title, body: [status, form], footer: [button('Cancelar', { variant: 'ghost', onClick: () => dialog.close() }), save] });
   save.setAttribute('form', 'revision-form');
@@ -373,7 +373,7 @@ function editDrawer(ctx, rfq) {
       save.disabled = false;
       save.querySelector('.btn-label').textContent = rfq.status === 'draft' ? 'Salvar alterações' : 'Publicar revisão';
       status.className = 'callout callout-danger';
-      status.replaceChildren(...[icon('alert'), el('span', { text: error.message }), error.status === 409 ? button('Recarregar versão atual', { size: 'sm', onClick: () => location.reload() }) : null].filter(Boolean));
+      status.replaceChildren(...[icon('alert'), textSpan(error.message), error.status === 409 ? button('Recarregar versão atual', { size: 'sm', onClick: () => location.reload() }) : null].filter(Boolean));
     }
   });
 }
@@ -394,11 +394,11 @@ function proposalsTab(ctx, rfq) {
         el('div', {}, [el('h3', { class: 'proposal-name', text: proposal.provider_name }), mutedText(`${PROVIDER_KINDS[proposal.provider_kind] || 'Provedor'} · enviada ${timeAgo(proposal.submitted_at)} · versão ${proposal.version}${proposal.versions_count > 1 ? ` de ${proposal.versions_count}` : ''}`)]),
         el('div', { class: 'proposal-badges' }, [pill(PROPOSAL_STATUS[proposal.status], { size: 'sm' }), proposal.rfq_revision ? tag(`Respondeu à rev. ${proposal.rfq_revision}`, outdated ? 'warning' : 'neutral') : null])
       ]),
-      outdated ? el('p', { class: 'callout callout-warning compact' }, [icon('alert', { size: 14 }), el('span', { text: `Esta proposta foi enviada antes da revisão ${rfq.revision}. As condições respondem à revisão ${proposal.rfq_revision}.` })]) : null,
+      outdated ? el('p', { class: 'callout callout-warning compact' }, [icon('alert', { size: 14 }), textSpan(`Esta proposta foi enviada antes da revisão ${rfq.revision}. As condições respondem à revisão ${proposal.rfq_revision}.`)]) : null,
       keyTerms(rfq.product, proposal.terms),
-      el('div', { class: 'proposal-foot' }, [el('span', { class: 'coverage-inline' }, [el('span', { class: 'coverage-bar' }, el('span', { class: 'coverage-fill', style: `width:${Math.round(cov.ratio * 100)}%` })), el('span', { text: `${cov.filled} de ${cov.total} condições comparáveis informadas` })]),
+      el('div', { class: 'proposal-foot' }, [el('span', { class: 'coverage-inline' }, [el('span', { class: 'coverage-bar' }, el('span', { class: 'coverage-fill', style: `width:${Math.round(cov.ratio * 100)}%` })), textSpan(`${cov.filled} de ${cov.total} condições comparáveis informadas`)]),
         proposal.terms?.valid_until ? el('span', { class: `muted small${daysUntil(proposal.terms.valid_until) < 5 ? ' warn-text' : ''}`, text: `Válida até ${formatDate(proposal.terms.valid_until)}` }) : null]),
-      proposal.note ? el('p', { class: 'proposal-note' }, [icon('message', { size: 14 }), el('span', { text: proposal.note })]) : null,
+      proposal.note ? el('p', { class: 'proposal-note' }, [icon('message', { size: 14 }), textSpan(proposal.note)]) : null,
       details,
       lazyDocuments(ctx, 'proposal', proposal.id, 'Documentos enviados pelo provedor')
     ]));

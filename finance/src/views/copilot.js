@@ -11,7 +11,7 @@
 //   guiadas determinísticas; nunca apresenta texto determinístico como IA.
 // - Sem histórico persistido: a conversa vive só nesta aba.
 
-import { el, icon, formatDate, formatDateTime, uid } from '../core.js';
+import { el, icon, formatDate, formatDateTime, uid, textSpan, textStrong } from '../core.js';
 import { button, drawer, field, toast, sessionLink, mutedText } from '../ui.js';
 import { ACTIVITY_KINDS } from './crm/model.js';
 
@@ -71,7 +71,7 @@ export function openCopilot(ctx, { context = pageContext, question = '' } = {}) 
   const scopeChip = el('div', { class: 'copilot-scope' });
   const drawScope = () => {
     scopeChip.replaceChildren(icon('layers', { size: 14 }),
-      el('span', { text: useContext && context ? `Contexto: ${CONTEXT_NOUN[context.type] || 'o registro'} ${context.label}` : `Contexto: toda a organização (${ctx.organization.legal_name})` }),
+      textSpan(useContext && context ? `Contexto: ${CONTEXT_NOUN[context.type] || 'o registro'} ${context.label}` : `Contexto: toda a organização (${ctx.organization.legal_name})`),
       ...(context ? [button(useContext ? 'Remover contexto' : `Usar ${context.label}`, { size: 'sm', variant: 'ghost', onClick: () => { useContext = !useContext; drawScope(); drawSuggestions(); } })] : []));
   };
   const suggestions = el('div', { class: 'copilot-suggestions', role: 'group', 'aria-label': 'Sugestões de pergunta' });
@@ -115,13 +115,13 @@ export function openCopilot(ctx, { context = pageContext, question = '' } = {}) 
   form.addEventListener('submit', (event) => { event.preventDefault(); if (!send.disabled) ask(input.value); });
 
   function turnNode(turn) {
-    const head = el('div', { class: 'copilot-q' }, [el('strong', { text: 'Você' }), turn.scope ? mutedText(` · sobre ${turn.scope}`, 'span') : null, el('p', { text: turn.question })]);
+    const head = el('div', { class: 'copilot-q' }, [textStrong('Você'), turn.scope ? mutedText(` · sobre ${turn.scope}`, 'span') : null, el('p', { text: turn.question })]);
     const box = el('article', { class: 'copilot-turn', dataset: { state: turn.state } }, [head]);
     if (turn.state === 'loading') box.append(el('p', { class: 'muted small copilot-loading', role: 'status' }, [icon('clock', { size: 14 }), ' Consultando seus registros autorizados…']));
     if (turn.state === 'cancelled') box.append(mutedText('Pergunta cancelada nesta tela. Consultas não gravam nada.'));
     if (turn.state === 'error') {
       const info = copilotErrorMessage(turn.error);
-      box.append(el('div', { class: 'callout callout-warning compact', role: 'alert' }, [el('strong', { text: info.title }), el('p', { class: 'small', text: info.text }),
+      box.append(el('div', { class: 'callout callout-warning compact', role: 'alert' }, [textStrong(info.title), el('p', { class: 'small', text: info.text }),
         el('div', { class: 'crm-row-actions' }, [
           info.retry ? button('Tentar novamente', { size: 'sm', iconName: 'refresh', onClick: () => { turns.splice(turns.indexOf(turn), 1); box.remove(); turn.retry(); } }) : null,
           info.guided ? button('Abrir consultas guiadas', { size: 'sm', iconName: 'search', onClick: () => import('./guided-queries.js').then((m) => m.openGuidedQueries(ctx, context?.type === 'provider' && useContext ? { providerId: context.id, providerName: context.label } : {})) }) : null,
@@ -135,13 +135,13 @@ export function openCopilot(ctx, { context = pageContext, question = '' } = {}) 
     const sources = Array.isArray(r.sources) ? r.sources : [];
     const actions = Array.isArray(r.prepared_actions) ? r.prepared_actions : [];
     return el('div', { class: 'copilot-a' }, [
-      el('div', { class: 'copilot-a-head' }, [icon('sparkles', { size: 14 }), el('strong', { text: 'Copilot' }), mutedText(' · texto gerado por IA a partir das fontes abaixo; confira antes de decidir', 'span')]),
+      el('div', { class: 'copilot-a-head' }, [icon('sparkles', { size: 14 }), textStrong('Copilot'), mutedText(' · texto gerado por IA a partir das fontes abaixo; confira antes de decidir', 'span')]),
       el('p', { class: 'copilot-answer', text: r.answer || '' }),
       sources.length ? el('section', { class: 'copilot-sources', 'aria-label': 'Fontes' }, [el('h4', { text: `Fontes (${sources.length})` }),
         el('ol', { class: 'plain-list' }, sources.map((s) => {
           const href = sourceHref(ctx, s);
           const meta = [TYPE_LABEL[s.object_type] || 'Registro', s.version != null ? `versão ${s.version}` : null, s.updated_at ? `atualizado em ${formatDate(s.updated_at)}` : null].filter(Boolean).join(' · ');
-          return el('li', {}, [href ? el('a', { href, text: s.label || 'Registro' }) : el('span', { text: s.label || 'Registro' }), mutedText(` — ${meta}`, 'span')]);
+          return el('li', {}, [href ? el('a', { href, text: s.label || 'Registro' }) : textSpan(s.label || 'Registro'), mutedText(` — ${meta}`, 'span')]);
         }))])
         : mutedText(actions.length ? 'Nenhuma fonte consultada: a ação abaixo é só uma proposta para sua revisão.' : 'Sem fontes: a resposta não afirma fatos financeiros.'),
       ...actions.map(actionNode),
@@ -213,10 +213,10 @@ export function reviewAction(ctx, action) {
       toast(result.replayed ? 'Esta atividade já tinha sido registrada; nada foi duplicado.' : 'Atividade registrada.', 'success',
         provider ? { action: el('a', { class: 'btn btn-sm btn-ghost', href: ctx.href(`/finance/providers.html?provider_id=${encodeURIComponent(provider)}`), text: 'Abrir instituição' }) } : {});
     } catch (error) {
-      errors.replaceChildren(el('span', { text: error.status === 409 ? 'Esta confirmação já foi usada com outro conteúdo. Nada foi sobrescrito.'
+      errors.replaceChildren(textSpan(error.status === 409 ? 'Esta confirmação já foi usada com outro conteúdo. Nada foi sobrescrito.'
         : error.status === 400 ? 'O banco recusou a atividade: confira assunto, fonte, prazo e vínculo. Nada foi gravado.'
           : error.status === 403 ? 'Seu acesso não permite registrar esta atividade.'
-            : !error.status || error.status >= 500 ? 'Sem confirmação do servidor. Pode ter sido gravada: repetir aqui reenvia a mesma ação, sem duplicar.' : (error.message || 'Não foi possível gravar.') }), ...(sessionLink(error) ? [' ', sessionLink(error)] : []));
+            : !error.status || error.status >= 500 ? 'Sem confirmação do servidor. Pode ter sido gravada: repetir aqui reenvia a mesma ação, sem duplicar.' : (error.message || 'Não foi possível gravar.')), ...(sessionLink(error) ? [' ', sessionLink(error)] : []));
       errors.hidden = false;
       save.disabled = false;
       if (!error.status || error.status >= 500) save.querySelector('.btn-label').textContent = 'Repetir a mesma confirmação';

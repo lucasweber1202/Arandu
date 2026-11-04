@@ -2,7 +2,7 @@
 // Todo número vem de POST /api/finance/acquiring-economics (metodologia
 // acquiring-processing-cost-v2). O navegador só valida o que o usuário digitou
 // e apresenta o resultado: não calcula, não normaliza mix, não persiste.
-import { el, icon, moneyIn, formatDate, formatDateTime } from '../core.js';
+import { el, icon, moneyIn, formatDate, formatDateTime, textSpan, textItem } from '../core.js';
 import { button, field, toast, mutedText } from '../ui.js';
 
 const SLICES = [['share_debit', 'Débito'], ['share_credit_cash', 'Crédito à vista'], ['share_credit_installment', 'Crédito parcelado'], ['share_pix', 'PIX']];
@@ -108,12 +108,12 @@ export function acquiringEconomicsPanel(ctx, { contract, proposals = [], externa
 
 export function renderAnalysis(ctx, analysis, choice = null) {
   if (!analysis || analysis.valid === false) return el('div', { class: 'stack' }, [el('p', { class: 'callout callout-warning compact', role: 'note', text: 'Não foi possível comparar com o perfil informado.' }),
-    el('ul', { class: 'plain-list small' }, (analysis?.reasons || []).map((code) => el('li', { text: reasonText(code) })))]);
+    el('ul', { class: 'plain-list small' }, (analysis?.reasons || []).map((code) => textItem(reasonText(code))))]);
   const t = analysis.totals || {};
   const comparable = analysis.comparable === true && t.estimated_difference !== null && t.estimated_difference !== undefined;
   const diff = t.estimated_difference;
   const headline = !comparable
-    ? el('p', { class: 'callout callout-warning', role: 'status', dataset: { totals: 'not-comparable' } }, [icon('alert', { size: 16 }), el('span', { text: ' Sem total: ao menos um componente não é comparável. Os componentes com dados suficientes aparecem abaixo.' })])
+    ? el('p', { class: 'callout callout-warning', role: 'status', dataset: { totals: 'not-comparable' } }, [icon('alert', { size: 16 }), textSpan(' Sem total: ao menos um componente não é comparável. Os componentes com dados suficientes aparecem abaixo.')])
     : el('div', { class: 'economics-totals', role: 'status', dataset: { totals: 'comparable' } }, [
       el('dl', { class: 'deflist deflist-3' }, [['Contrato vigente (estimado)', brl(t.contract_cost)], ['Proposta (estimado)', brl(t.proposal_cost)], ['Diferença estimada', brl(diff)]]
         .map(([label, value]) => el('div', { class: 'deflist-row' }, [el('dt', { text: label }), el('dd', { text: value })]))),
@@ -138,7 +138,7 @@ export function renderAnalysis(ctx, analysis, choice = null) {
       ['Antecipação no contrato (% a.m.)', pct(cond.contract_anticipation_pct_month)], ['Antecipação na proposta (% a.m.)', pct(cond.proposal_anticipation_pct_month)]
     ].map(([label, value]) => el('div', { class: 'deflist-row' }, [el('dt', { text: label }), el('dd', { class: /Não informad/.test(value) ? 'missing' : '', text: value })])))]),
     el('details', { class: 'economics-method', open: !comparable }, [el('summary', { text: 'O que não está no cálculo e de onde vêm os números' }),
-      el('ul', { class: 'plain-list small' }, (analysis.limitations || []).map((code) => el('li', { text: LIMITATION_LABELS[code] || 'Item não modelado.' }))),
+      el('ul', { class: 'plain-list small' }, (analysis.limitations || []).map((code) => textItem(LIMITATION_LABELS[code] || 'Item não modelado.'))),
       el('p', { class: 'small', text: `Período: ${formatDate(analysis.profile?.period_start)} a ${formatDate(analysis.profile?.period_end)} · volume ${brl(analysis.profile?.monthly_volume)} · fonte declarada: ${analysis.profile?.source_reference || 'não informada'}.` }),
       el('p', { class: 'small', text: `Contrato: termos versão ${src.contract?.version ?? 'não identificada'}${src.contract?.effective_from ? ` (vigente desde ${formatDate(src.contract.effective_from)})` : ''}${src.contract?.amendment_id ? ', via aditivo' : ''}. Proposta: versão ${src.proposal?.version ?? choice?.version ?? '—'}${src.proposal?.submitted_at ? `, enviada em ${formatDateTime(src.proposal.submitted_at)}` : ''} pela instituição no portal.` }),
       mutedText('Fórmula por modalidade: volume × participação × taxa, arredondado a centavos. Tarifas fixas: soma das mensais declaradas no contrato; proposta = terminais × aluguel + gateway. Nada foi gravado.'),

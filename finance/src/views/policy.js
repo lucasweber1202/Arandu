@@ -7,7 +7,7 @@
 // seções recolhidas. Num transporte que não conhece o engine (demonstração),
 // tudo cai no fluxo de aprovação manual de antes.
 
-import { el, icon, formatDateTime, timeAgo, ROLE_LABELS } from '../core.js';
+import { el, icon, formatDateTime, timeAgo, ROLE_LABELS, textSpan, textStrong } from '../core.js';
 import { button, tag, pill, field, emptyState, errorState, loading, toast, confirmDialog, promptDialog, drawer, onSubmit, mutedText, toastError } from '../ui.js';
 import { memberName, memberTitle } from './shared/people.js';
 import {
@@ -109,7 +109,7 @@ function policyCard(ctx, { policy, scope, options, canAdmin, onChange }) {
   const history = (policy?.versions || []).filter((version) => version.status !== 'draft');
   if (history.length) {
     body.push(el('details', { class: 'history' }, [el('summary', { text: `Histórico de versões (${history.length})` }), el('ol', { class: 'plain-list policy-history' }, history.map((version) => el('li', {}, [
-      el('strong', { text: `v${version.version}` }), el('span', { text: ` · ${({ active: 'ativa', superseded: 'substituída', retired: 'aposentada' })[version.status] || version.status}` }),
+      textStrong(`v${version.version}`), textSpan(` · ${({ active: 'ativa', superseded: 'substituída', retired: 'aposentada' })[version.status] || version.status}`),
       mutedText(` · ativada ${formatDateTime(version.activated_at)} por ${memberName(ctx.members, version.activated_by)}${version.ended_at ? ` · encerrada ${formatDateTime(version.ended_at)}` : ''}`, 'span'),
       version.change_note ? mutedText(` · “${version.change_note}”`, 'span') : null
     ])))]));
@@ -120,7 +120,7 @@ function policyCard(ctx, { policy, scope, options, canAdmin, onChange }) {
 function documentSummary(document, options) {
   const rules = el('ol', { class: 'policy-rules' }, (document.rules || []).map((rule) => {
     const described = describeRule(rule, options);
-    return el('li', { class: 'policy-rule' }, [el('strong', { text: rule.label }), mutedText(`Quando: ${described.when}`, 'span'),
+    return el('li', { class: 'policy-rule' }, [textStrong(rule.label), mutedText(`Quando: ${described.when}`, 'span'),
       el('ul', { class: 'plain-list small' }, described.requires.map((text) => el('li', { text })))]);
   }));
   const extras = [];
@@ -149,7 +149,7 @@ function checkboxGroup(legend, values, selected, onChange, labels = ROLE_LABELS)
   for (const value of values) {
     const box = el('input', { type: 'checkbox', checked: selected.includes(value), value });
     box.addEventListener('change', () => onChange([...group.querySelectorAll('input:checked')].map((input) => input.value)));
-    group.append(el('label', { class: 'check-option' }, [box, el('span', { text: labels[value] || value })]));
+    group.append(el('label', { class: 'check-option' }, [box, textSpan(labels[value] || value)]));
   }
   return group;
 }
@@ -176,7 +176,7 @@ function stageEditor(stage, { onRemove, onChange }) {
     ]),
     checkboxGroup('Papéis que podem aprovar', POLICY_ROLES, stage.roles, (roles) => { stage.roles = roles; }),
     field({ label: 'Escopo de quem aprova', control: scope }),
-    el('label', { class: 'check-option' }, [delegation, el('span', { text: 'Permite substituto por delegação (o substituto também precisa cumprir papel e escopo)' })]),
+    el('label', { class: 'check-option' }, [delegation, textSpan('Permite substituto por delegação (o substituto também precisa cumprir papel e escopo)')]),
     el('div', { class: 'row-actions' }, button('Remover etapa', { size: 'sm', variant: 'ghost', iconName: 'x', onClick: onRemove }))
   ]);
 }
@@ -241,7 +241,7 @@ function requirementEditor(block) {
   justification.addEventListener('change', () => { if (justification.checked) block.requirements.justification = true; else delete block.requirements.justification; });
   return el('div', { class: 'policy-inline' }, [
     field({ label: 'Mínimo de propostas', control: min, optionalLabel: true, hint: 'Abaixo disso, só com exceção aprovada.' }),
-    el('label', { class: 'check-option' }, [justification, el('span', { text: 'Exige justificativa de quem pede' })])
+    el('label', { class: 'check-option' }, [justification, textSpan('Exige justificativa de quem pede')])
   ]);
 }
 
@@ -362,8 +362,8 @@ function governanceEditor(document) {
   return el('section', { class: 'card' }, el('div', { class: 'card-body stack-sm' }, [
     el('h4', { text: 'Segregação de funções, exceções e prazos' }),
     mutedText('Sempre valem: quem pede não aprova; ninguém ocupa duas etapas do mesmo pedido; só membros da empresa compradora aprovam.'),
-    el('label', { class: 'check-option' }, [rcd, el('span', { text: 'Quem pede a aprovação não registra a decisão' })]),
-    el('label', { class: 'check-option' }, [dnsfa, el('span', { text: 'Quem decide não pode ser o único aprovador da etapa final' })]),
+    el('label', { class: 'check-option' }, [rcd, textSpan('Quem pede a aprovação não registra a decisão')]),
+    el('label', { class: 'check-option' }, [dnsfa, textSpan('Quem decide não pode ser o único aprovador da etapa final')]),
     checkboxGroup('Quem decide exceções desta policy', POLICY_ROLES, document.exception_approver_roles || ['admin'], (roles) => { document.exception_approver_roles = roles; }),
     checkboxGroup('Quem recebe escalação de prazo', POLICY_ROLES, document.escalation_roles || ['admin'], (roles) => { document.escalation_roles = roles; }),
     field({ label: 'Validade do pedido (horas)', control: numberInput(document.expire_after_hours, { min: 1, max: 2160, placeholder: 'sem validade', onInput: (value) => { document.expire_after_hours = value; } }), optionalLabel: true,
@@ -384,8 +384,8 @@ function simulationForm(ctx, options, onRun) {
   const form = el('form', { class: 'stack-sm', novalidate: true }, [
     el('div', { class: 'policy-inline' }, [field({ label: 'Produto', control: product }), field({ label: 'Moeda', control: currency }), field({ label: 'Valor', control: amount })]),
     el('div', { class: 'policy-inline' }, [field({ label: 'Propostas', control: proposals }), field({ label: 'Prazo (meses)', control: duration }), field({ label: 'Entidade', control: entity })]),
-    el('div', { class: 'check-row' }, [el('label', { class: 'check-option' }, [providerNew, el('span', { text: 'Provedor novo' })]),
-      el('label', { class: 'check-option' }, [guarantee, el('span', { text: 'Garantia exigida' })]), el('label', { class: 'check-option' }, [covenant, el('span', { text: 'Covenant presente' })])]),
+    el('div', { class: 'check-row' }, [el('label', { class: 'check-option' }, [providerNew, textSpan('Provedor novo')]),
+      el('label', { class: 'check-option' }, [guarantee, textSpan('Garantia exigida')]), el('label', { class: 'check-option' }, [covenant, textSpan('Covenant presente')])]),
     button('Simular', { type: 'submit', size: 'sm', iconName: 'checkCircle' })
   ]);
   form.addEventListener('submit', (event) => {
@@ -411,7 +411,7 @@ function flagSettings(ctx, flags, onChange) {
   form.addEventListener('submit', (event) => { event.preventDefault(); persist({ key: key.value.trim(), label: label.value.trim(), kind: kind.value, active: true }); });
   return el('details', {}, [el('summary', { text: `Sinalizadores de exceção, risco e compliance (${flags.length})` }),
     mutedText('Definidos pela sua empresa. Quem pede a aprovação os declara; a declaração fica gravada no pedido. Regras podem exigir etapas quando um sinalizador estiver presente.'),
-    el('ul', { class: 'plain-list' }, flags.map((flag) => el('li', {}, [el('strong', { text: flag.label }), mutedText(` · ${flag.key} · ${FLAG_KINDS[flag.kind] || flag.kind}`, 'span'), flag.active ? null : tag('inativo'),
+    el('ul', { class: 'plain-list' }, flags.map((flag) => el('li', {}, [textStrong(flag.label), mutedText(` · ${flag.key} · ${FLAG_KINDS[flag.kind] || flag.kind}`, 'span'), flag.active ? null : tag('inativo'),
       button(flag.active ? 'Desativar' : 'Reativar', { size: 'sm', variant: 'ghost', onClick: () => persist({ key: flag.key, label: flag.label, kind: flag.kind, active: !flag.active }) })]))),
     form]);
 }
@@ -423,7 +423,7 @@ export function delegationSettings(ctx) {
     const now = Date.now();
     const list = (rows || []).length ? el('ul', { class: 'plain-list' }, rows.map((row) => {
       const live = !row.revoked_at && Date.parse(row.starts_at) <= now && Date.parse(row.ends_at) > now;
-      return el('li', {}, [el('strong', { text: `${memberName(ctx.members, row.delegator_id)} → ${memberName(ctx.members, row.delegate_id)}` }),
+      return el('li', {}, [textStrong(`${memberName(ctx.members, row.delegator_id)} → ${memberName(ctx.members, row.delegate_id)}`),
         mutedText(` · ${formatDateTime(row.starts_at)} a ${formatDateTime(row.ends_at)} · ${row.reason}`, 'span'),
         row.revoked_at ? tag('revogada') : live ? tag('vigente', 'success') : tag('agendada', 'info'),
         !row.revoked_at && (row.delegator_id === ctx.viewer?.id || ctx.viewer?.role === 'admin') ? button('Revogar', { size: 'sm', variant: 'ghost', onClick: async () => {
@@ -456,10 +456,10 @@ export function planSummary(ctx, evaluation, { simulation = false, stages = null
   if (!evaluation) return el('span');
   const parts = [];
   const policies = (evaluation.policies || []).map((policy) => `${policy.name} v${policy.version} (${policy.scope === 'group' ? 'grupo' : 'entidade'})`);
-  parts.push(el('p', { class: 'small' }, [el('strong', { text: simulation ? 'Simulação: ' : 'Policy aplicável: ' }), el('span', { text: policies.length ? policies.join(' + ') : 'nenhuma policy ativa' })]));
+  parts.push(el('p', { class: 'small' }, [textStrong(simulation ? 'Simulação: ' : 'Policy aplicável: '), textSpan(policies.length ? policies.join(' + ') : 'nenhuma policy ativa')]));
   const matched = evaluation.matched || [];
   if (matched.length) {
-    parts.push(el('ul', { class: 'plain-list small' }, matched.map((rule) => el('li', {}, [icon('flag', { size: 12 }), el('span', { text: ` ${rule.label}` }),
+    parts.push(el('ul', { class: 'plain-list small' }, matched.map((rule) => el('li', {}, [icon('flag', { size: 12 }), textSpan(` ${rule.label}`),
       rule.conservative ? el('span', { class: 'muted', text: ` — acionada por falta de dado: ${(rule.unknown_facts || []).map((fact) => UNKNOWN_FACT_LABELS[fact] || fact).join(', ')}` }) : null]))));
   }
   const plan = stages || evaluation.stages || [];
@@ -475,7 +475,7 @@ export function planSummary(ctx, evaluation, { simulation = false, stages = null
     parts.push(mutedText('Nenhuma etapa de aprovação exigida pela policy.'));
   }
   for (const blocker of evaluation.blockers || []) {
-    parts.push(el('p', { class: 'callout callout-warning compact' }, [icon('alert', { size: 14 }), el('span', { text: `A regra exige ao menos ${blocker.required} propostas; há ${blocker.actual}. Só segue com exceção aprovada.` })]));
+    parts.push(el('p', { class: 'callout callout-warning compact' }, [icon('alert', { size: 14 }), textSpan(`A regra exige ao menos ${blocker.required} propostas; há ${blocker.actual}. Só segue com exceção aprovada.`)]));
   }
   if (evaluation.requirements?.justification) parts.push(mutedText('A policy exige justificativa de quem pede.'));
   return el('div', { class: 'policy-plan-box stack-sm' }, parts);
@@ -494,7 +494,7 @@ export function policyTimeline(ctx, request, { onChange } = {}) {
     return el('li', { class: `step step-${STAGE_TONE[stage.status] || 'neutral'}` }, [
       el('span', { class: 'step-icon' }, icon(stage.status === 'approved' ? 'checkCircle' : stage.status === 'active' ? 'clock' : stage.status === 'rejected' ? 'x' : 'more', { size: 14 })),
       el('span', { class: 'step-body' }, [
-        el('span', { class: 'step-who' }, [el('strong', { text: `${stage.sequence}. ${stage.label}` }), el('span', { class: 'muted', text: ` · ${STAGE_STATUS_LABELS[stage.status] || stage.status}${due}${stage.escalated_at ? ' · escalada' : ''}` })]),
+        el('span', { class: 'step-who' }, [textStrong(`${stage.sequence}. ${stage.label}`), el('span', { class: 'muted', text: ` · ${STAGE_STATUS_LABELS[stage.status] || stage.status}${due}${stage.escalated_at ? ' · escalada' : ''}` })]),
         el('span', { class: 'step-state', text: `${stage.min_approvals} de ${people.length} indicado(s): ${people.map((step) => {
           const acted = step.acted_by && step.acted_by !== step.approver_id ? ` (por ${memberName(ctx.members, step.acted_by)}, delegação)` : '';
           const verb = { approved: 'aprovou', rejected: 'rejeitou', changes_requested: 'devolveu', not_required: 'não precisou', waived: 'dispensado', expired: 'expirou', superseded: 'substituído', cancelled: 'encerrado' }[step.status] || 'aguardando';
@@ -504,12 +504,12 @@ export function policyTimeline(ctx, request, { onChange } = {}) {
       ])
     ]);
   });
-  const header = el('p', { class: 'small' }, [el('strong', { text: 'Policy: ' }), el('span', { text: (snapshot.policies || []).map((policy) => `${policy.name} v${policy.version}`).join(' + ') || '—' }),
+  const header = el('p', { class: 'small' }, [textStrong('Policy: '), textSpan((snapshot.policies || []).map((policy) => `${policy.name} v${policy.version}`).join(' + ') || '—'),
     el('span', { class: 'muted', text: ` · avaliada ${formatDateTime(request.evaluated_at || snapshot.evaluated_at)}${request.expires_at ? ` · válida até ${formatDateTime(request.expires_at)}` : ''}` })]);
   const rules = el('details', {}, [el('summary', { text: `Regras acionadas (${(snapshot.matched || []).length})` }), planSummary(ctx, snapshot, { stages: [] })]);
   const exceptions = exceptionList(ctx, request, { onChange });
   return el('section', { class: 'policy-timeline stack-sm', 'aria-label': 'Fluxo de aprovação pela policy' }, [header, el('ol', { class: 'steps-list' }, items), exceptions, rules,
-    request.justification ? el('p', { class: 'small' }, [el('strong', { text: 'Justificativa: ' }), el('span', { text: request.justification })]) : null,
+    request.justification ? el('p', { class: 'small' }, [textStrong('Justificativa: '), textSpan(request.justification)]) : null,
     request.resolution_note ? mutedText(`Encerramento: ${request.resolution_note}`) : null]);
 }
 
@@ -523,7 +523,7 @@ function exceptionList(ctx, request, { onChange }) {
       const rule = (snapshot.matched || []).find((row) => row.policy_version_id === item.policy_version_id && row.rule_id === item.rule_id);
       const canDecide = item.status === 'requested' && request.status === 'pending' && ![item.requested_by, request.requested_by].includes(ctx.viewer?.id);
       return el('li', { class: 'stack-xs' }, [
-        el('span', {}, [pill({ label: EXCEPTION_STATUS_LABELS[item.status] || item.status, tone: EXCEPTION_TONE[item.status] || 'neutral' }), el('strong', { text: ` ${rule?.label || item.rule_id}` })]),
+        el('span', {}, [pill({ label: EXCEPTION_STATUS_LABELS[item.status] || item.status, tone: EXCEPTION_TONE[item.status] || 'neutral' }), textStrong(` ${rule?.label || item.rule_id}`)]),
         el('span', { class: 'small', text: `${EXCEPTION_REASON_CODES[item.reason_code] || item.reason_code}: ${item.reason} — pedida por ${memberName(ctx.members, item.requested_by)} ${timeAgo(item.created_at)}` }),
         (item.evidence || []).length ? mutedText(`Evidências: ${item.evidence.map((ev) => ev.label + (ev.reference ? ` (${ev.reference})` : '')).join('; ')}`, 'span') : null,
         item.decided_at ? mutedText(`Decidida por ${memberName(ctx.members, item.decided_by)} ${timeAgo(item.decided_at)}: “${item.decision_comment}”`, 'span') : null,
@@ -590,7 +590,7 @@ export function stageAssignments(ctx, stages, assignments) {
         const list = assignments[stage.key];
         if (box2.checked) list.push(member.user_id); else list.splice(list.indexOf(member.user_id), 1);
       });
-      group.append(el('label', { class: 'approver-option' }, [box2, el('span', { class: 'order-badge', 'aria-hidden': 'true' }), el('span', { text: `${member.display_name || memberName(ctx.members, member.user_id)} · ${member.title || memberTitle(ctx.members, member.user_id) || ROLE_LABELS[member.role]}` })]));
+      group.append(el('label', { class: 'approver-option' }, [box2, el('span', { class: 'order-badge', 'aria-hidden': 'true' }), textSpan(`${member.display_name || memberName(ctx.members, member.user_id)} · ${member.title || memberTitle(ctx.members, member.user_id) || ROLE_LABELS[member.role]}`)]));
     }
     if (!candidates.length) group.append(mutedText('Nenhum membro com o papel e o escopo desta etapa. Ajuste o escopo de acesso ou a policy.'));
     box.append(group);

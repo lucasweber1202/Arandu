@@ -3,7 +3,7 @@
 // nenhum armazenamento, cálculo financeiro ou ranking novo. Cada item diz a
 // situação, quem pode agir, de onde vem a informação e para onde seguir.
 
-import { el, icon, formatDate, relativeDays, plural, productLabel, renewalStage, RFQ_STATUS } from '../core.js';
+import { el, icon, formatDate, relativeDays, plural, productLabel, renewalStage, RFQ_STATUS, textSpan } from '../core.js';
 import { button, emptyState, confirmDialog, toast, mutedText } from '../ui.js';
 import { CONTRACT_CATEGORIES } from '../../../lib/finance/contract-terms.mjs';
 import { TASK_EDITORS } from './shared/tasks.js';
@@ -193,11 +193,11 @@ export function relationshipWorkQueue(ctx, { entities, onOpenProvider = null, im
       el('p', { class: 'card-subtitle', text: 'Contratos, renovações, negociações e tarefas de cada instituição, com quem pode agir e a origem da informação.' })])),
     el('div', { class: 'card-body stack' }, [
       el('div', { class: 'rel-filters' }, [byProvider, byEntity, byCategory, bySituation].filter(Boolean)),
-      capped.length ? el('p', { class: 'callout callout-info compact', role: 'note', id: 'rel-center-scope' }, [icon('info', { size: 14 }), el('span', { text: `Recorte: o resumo lê até ${OVERVIEW_LIMITS.contracts} contratos, ${OVERVIEW_LIMITS.tasks} tarefas abertas e ${OVERVIEW_LIMITS.rfqs} solicitações, e chegou ao limite em ${capped.join(', ')}. A fila mostra só o que foi carregado; as listas de Contratos e Tarefas consultam o restante.` })]) : null,
+      capped.length ? el('p', { class: 'callout callout-info compact', role: 'note', id: 'rel-center-scope' }, [icon('info', { size: 14 }), textSpan(`Recorte: o resumo lê até ${OVERVIEW_LIMITS.contracts} contratos, ${OVERVIEW_LIMITS.tasks} tarefas abertas e ${OVERVIEW_LIMITS.rfqs} solicitações, e chegou ao limite em ${capped.join(', ')}. A fila mostra só o que foi carregado; as listas de Contratos e Tarefas consultam o restante.`)]) : null,
       status, radarNote, list, more,
       missing.length ? el('details', { class: 'rel-missing' }, [el('summary', { text: `${plural(missing.length, 'instituição sem contrato vigente registrado', 'instituições sem contrato vigente registrado')}` }),
         mutedText('Comece pelo que a empresa já tem: registre o contrato existente para acompanhar condições, prazo e renovação, mesmo que a instituição não use o Arandu.'),
-        el('ul', { class: 'plain-list' }, missing.map((row) => el('li', { class: 'rel-missing-row' }, [el('span', { text: row.name }), importButton ? importButton(row.id) : null].filter(Boolean))))]) : null
+        el('ul', { class: 'plain-list' }, missing.map((row) => el('li', { class: 'rel-missing-row' }, [textSpan(row.name), importButton ? importButton(row.id) : null].filter(Boolean))))]) : null
     ].filter(Boolean))
   ]);
 }
@@ -211,7 +211,7 @@ function queueItem(ctx, item, onOpenProvider, entities) {
   const provider = item.providerIds && item.providerIds.length > 1 ? null : (ctx.data.providers || []).find((row) => row.id === item.providerId);
   return el('li', { class: `rel-item tone-${meta.tone}`, dataset: { situation: item.situation, key: item.id } }, [
     el('div', { class: 'rel-item-main' }, [
-      el('p', { class: 'rel-item-kicker' }, [el('span', { class: `pill pill-${meta.tone} pill-sm` }, [el('span', { class: 'pill-dot', 'aria-hidden': 'true' }), el('span', { text: meta.label })]),
+      el('p', { class: 'rel-item-kicker' }, [el('span', { class: `pill pill-${meta.tone} pill-sm` }, [el('span', { class: 'pill-dot', 'aria-hidden': 'true' }), textSpan(meta.label)]),
         mutedText(item.providerName || provider?.name || (item.signalNoProvider ? 'Sem instituição vinculada na fonte' : item.role === 'sinal' ? 'Instituição no detalhe do sinal' : item.entityUnknown ? 'Instituição do contrato não carregada' : 'Sem instituição convidada'), 'span'),
         entityText ? el('span', { class: 'muted small rel-item-entity', text: `· ${entityText}` }) : null]),
       el('h3', { class: 'rel-item-title', text: item.title }),

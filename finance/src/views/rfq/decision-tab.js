@@ -3,7 +3,7 @@
 // Extraído de views/rfq.js (v7.0).
 
 import { PRODUCTS } from '../../../../lib/finance/products.mjs';
-import { el, icon, fieldValue, formatDate, formatDateTime } from '../../core.js';
+import { el, icon, fieldValue, formatDate, formatDateTime, textSpan, textStrong, textItem } from '../../core.js';
 import { card, button, linkButton, emptyState, errorState, loading, toast, confirmDialog, field, onSubmit, mutedText, toastError } from '../../ui.js';
 import { approvalSummaryLine } from '../shared/approvals.js';
 import { memberName } from '../shared/people.js';
@@ -48,7 +48,7 @@ export function decisionTab(ctx, rfq, { decision, contract, policy, approvals, m
   const pending = approvals.find((row) => row.status === 'pending');
   if (policy.required_for_decision && !approved) {
     wrap.append(el('div', { class: 'callout callout-warning' }, [icon('lock'), el('div', {}, [
-      el('strong', { text: 'Sua empresa exige aprovação antes da decisão.' }),
+      textStrong('Sua empresa exige aprovação antes da decisão.'),
       el('p', { text: pending ? `Há um pedido em andamento (${approvalSummaryLine(pending)}). A decisão libera quando ele for aprovado.` : 'Solicite a aprovação da proposta escolhida na aba Aprovações.' }),
       linkButton(pending ? 'Acompanhar aprovação' : 'Solicitar aprovação', '#aprovacoes', { size: 'sm', iconName: 'arrowRight' })
     ])]));
@@ -65,7 +65,7 @@ export function decisionTab(ctx, rfq, { decision, contract, policy, approvals, m
       // Sem aprovação nem conflito, nada vem marcado quando há mais de uma
       // proposta: a decisão é um clique consciente, nunca a primeira da lista.
       el('input', { type: 'radio', name: 'proposal_id', value: proposal.id, checked: approved ? approved.proposal_id === proposal.id : conflicted ? proposal.id === conflicted.id : proposals.length === 1, disabled: locked, required: true }),
-      el('span', { class: 'radio-card-text' }, [el('strong', { text: proposal.provider_name }), mutedText(locked ? 'Não aprovada' : `v${proposal.version}${approved?.proposal_id === proposal.id ? ' · aprovada' : ''}`, 'span')])
+      el('span', { class: 'radio-card-text' }, [textStrong(proposal.provider_name), mutedText(locked ? 'Não aprovada' : `v${proposal.version}${approved?.proposal_id === proposal.id ? ' · aprovada' : ''}`, 'span')])
     ]));
   }
   // Conflito de versão (§36.2): o servidor recusou porque a proposta mudou
@@ -76,12 +76,12 @@ export function decisionTab(ctx, rfq, { decision, contract, policy, approvals, m
     const before = conflicted.previous_version?.version === conflict.expected_version ? conflicted.previous_version : null;
     const fields = PRODUCTS[rfq.product].proposalFields;
     const changes = before ? proposalChanges(rfq.product, conflicted, before).map((key) => fields.find((item) => item.key === key)).filter(Boolean)
-      .map((spec) => el('li', { text: `${spec.label}: ${fieldValue(spec, before.terms?.[spec.key]) ?? 'não informado'} → ${fieldValue(spec, conflicted.terms?.[spec.key]) ?? 'não informado'}` })) : [];
+      .map((spec) => textItem(`${spec.label}: ${fieldValue(spec, before.terms?.[spec.key]) ?? 'não informado'} → ${fieldValue(spec, conflicted.terms?.[spec.key]) ?? 'não informado'}`)) : [];
     return el('div', { class: 'callout callout-warning', id: 'decision-conflict', role: 'alert' }, [icon('alert'), el('div', { class: 'stack' }, [
-      el('strong', { text: `A proposta de ${conflicted.provider_name} mudou para a versão ${conflicted.version} enquanto você decidia. Nada foi registrado.` }),
+      textStrong(`A proposta de ${conflicted.provider_name} mudou para a versão ${conflicted.version} enquanto você decidia. Nada foi registrado.`),
       changes.length ? el('ul', { class: 'conflict-changes' }, changes)
         : el('p', { text: `A versão que você viu (v${conflict.expected_version}) não está mais disponível para comparação nesta tela. Confira as condições atuais na aba Comparação.` }),
-      el('label', { class: 'check' }, [reviewed, el('span', { text: `Revisei as condições da versão ${conflicted.version} e quero seguir com a decisão` })])
+      el('label', { class: 'check' }, [reviewed, textSpan(`Revisei as condições da versão ${conflicted.version} e quero seguir com a decisão`)])
     ])]);
   })() : null;
   const choiceError = el('p', { class: 'field-error', role: 'alert', hidden: true });
@@ -93,7 +93,7 @@ export function decisionTab(ctx, rfq, { decision, contract, policy, approvals, m
   form.append(el('div', { class: 'card-head' }, el('div', { class: 'card-head-text' }, [el('h3', { class: 'card-title', text: 'Registrar decisão' }),
     el('p', { class: 'card-subtitle', text: 'A decisão é da empresa. O Arandu guarda quem decidiu, quando, a proposta e uma fotografia de todas as propostas deste momento.' })])),
   el('div', { class: 'card-body stack' }, [conflictNode, group, choiceError, field({ label: 'Justificativa', control: rationale, optionalLabel: true }),
-    weights ? el('label', { class: 'check' }, [useWeights, el('span', { text: 'Registrar os pesos aplicados na comparação como critério desta decisão' })]) : null,
+    weights ? el('label', { class: 'check' }, [useWeights, textSpan('Registrar os pesos aplicados na comparação como critério desta decisão')]) : null,
     el('div', { class: 'form-actions' }, submit)]));
   onSubmit(form, async (event) => {
     event.preventDefault();

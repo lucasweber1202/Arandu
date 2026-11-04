@@ -3,7 +3,7 @@
 // acompanhar. Mais simples que o portal da empresa, de propósito.
 
 import { PRODUCTS, PRODUCT_IDS } from '../../../lib/finance/products.mjs';
-import { greeting, el, icon, formatDate, formatDateTime, relativeDays, daysUntil, productLabel, demandHeadline, fieldValue, PROPOSAL_STATUS, timeAgo } from '../core.js';
+import { greeting, el, icon, formatDate, formatDateTime, relativeDays, daysUntil, productLabel, demandHeadline, fieldValue, PROPOSAL_STATUS, timeAgo, textSpan, textStrong } from '../core.js';
 import { card, pill, tag, button, linkButton, emptyState, errorState, loading, definitionList, toast, confirmDialog, field, catalogControl, saveIndicator, onSubmit, mutedText } from '../ui.js';
 import { collaboration } from './shared/collaboration.js';
 import { revisionDiff } from './shared/terms.js';
@@ -54,8 +54,8 @@ function opportunityRow(ctx, row) {
     ]),
     el('div', { class: 'opportunity-side' }, [
       pill(state, { size: 'sm' }),
-      OPEN.includes(row.rfq_status) && row.response_deadline ? el('span', { class: `opportunity-deadline${days !== null && days <= 2 ? ' urgent' : ''}` }, [icon('clock', { size: 12 }), el('span', { text: `Prazo ${relativeDays(row.response_deadline)}` })]) : null,
-      el('span', { class: 'opportunity-cta', 'aria-hidden': 'true' }, [el('span', { text: cta }), icon('chevronRight', { size: 14 })])
+      OPEN.includes(row.rfq_status) && row.response_deadline ? el('span', { class: `opportunity-deadline${days !== null && days <= 2 ? ' urgent' : ''}` }, [icon('clock', { size: 12 }), textSpan(`Prazo ${relativeDays(row.response_deadline)}`)]) : null,
+      el('span', { class: 'opportunity-cta', 'aria-hidden': 'true' }, [textSpan(cta), icon('chevronRight', { size: 14 })])
     ])
   ]);
 }
@@ -159,7 +159,7 @@ export async function providerHome(ctx) {
   }
   // Fronteira visível: o portal mostra só o que é desta instituição.
   if (rows.length || invites.length) root.append(el('p', { class: 'muted small provider-scope', role: 'note' }, [icon('shield', { size: 14 }),
-    el('span', { text: ` Você vê apenas as solicitações para as quais ${ctx.organization.legal_name} foi convidada, e apenas as suas propostas. Propostas de outras instituições e a comparação da empresa nunca aparecem aqui.` })]));
+    textSpan(` Você vê apenas as solicitações para as quais ${ctx.organization.legal_name} foi convidada, e apenas as suas propostas. Propostas de outras instituições e a comparação da empresa nunca aparecem aqui.`)]));
   if (!rows.length && !invites.length) root.append(card({ title: 'Recebeu um link de convite?', body: [el('p', { class: 'muted', text: 'Abra o link que a empresa enviou ou cole o código do convite.' }), linkButton('Aceitar convite', ctx.href('/provider/invite.html'), { iconName: 'send' })] }));
   return root;
 }
@@ -178,7 +178,7 @@ export async function providerRfqs(ctx) {
   };
   for (const [value, label] of options) {
     const count = value ? rows.filter((row) => assignmentState(row).key === value || (value === 'todo' && assignmentState(row).key === 'outdated')).length : rows.length;
-    const chip = el('button', { type: 'button', class: 'chip', 'aria-pressed': String(value === active), dataset: { value } }, [el('span', { text: label }), el('span', { class: 'chip-count', text: String(count) })]);
+    const chip = el('button', { type: 'button', class: 'chip', 'aria-pressed': String(value === active), dataset: { value } }, [textSpan(label), el('span', { class: 'chip-count', text: String(count) })]);
     chip.addEventListener('click', () => { active = value; for (const node of filters.children) node.setAttribute('aria-pressed', String(node.dataset.value === value)); draw(); });
     filters.append(chip);
   }
@@ -215,14 +215,14 @@ export async function providerProposal(ctx) {
   ctx.header({ crumbs: [{ label: 'Oportunidades', href: ctx.href('/provider/rfqs.html') }, { label: assignment.title }], title: assignment.title,
     // Quem pediu vem no topo, também no celular: a instituição responde sabendo a quem.
     meta: [tag(productLabel(assignment.product, { short: true })), pill(state),
-      assignment.buyer_name ? el('span', { class: 'meta-item meta-buyer' }, [icon('building', { size: 14 }), el('span', { text: `Solicitado por ${assignment.buyer_name}` })]) : null,
-      el('span', { class: 'meta-item' }, [icon('repeat', { size: 14 }), el('span', { text: `Revisão ${assignment.rfq_revision || 1} da solicitação` })]),
-      assignment.response_deadline ? el('span', { class: `meta-item${open && days !== null && days <= 2 ? ' urgent' : ''}` }, [icon('calendar', { size: 14 }), el('span', { text: `Prazo ${formatDate(assignment.response_deadline)}${open ? ` · ${relativeDays(assignment.response_deadline)}` : ''}` })]) : null] });
+      assignment.buyer_name ? el('span', { class: 'meta-item meta-buyer' }, [icon('building', { size: 14 }), textSpan(`Solicitado por ${assignment.buyer_name}`)]) : null,
+      el('span', { class: 'meta-item' }, [icon('repeat', { size: 14 }), textSpan(`Revisão ${assignment.rfq_revision || 1} da solicitação`)]),
+      assignment.response_deadline ? el('span', { class: `meta-item${open && days !== null && days <= 2 ? ' urgent' : ''}` }, [icon('calendar', { size: 14 }), textSpan(`Prazo ${formatDate(assignment.response_deadline)}${open ? ` · ${relativeDays(assignment.response_deadline)}` : ''}`)]) : null] });
   const root = el('div', { class: 'split provider-proposal' });
 
   // Estado da proposta em linguagem direta.
   const status = el('div', { class: 'proposal-status', role: 'status' });
-  const setStatus = (kind, title, text) => status.replaceChildren(el('div', { class: `callout callout-${kind}` }, [icon(kind === 'success' ? 'checkCircle' : kind === 'warning' ? 'alert' : 'info'), el('div', {}, [el('strong', { text: title }), text ? el('p', { text }) : null])]));
+  const setStatus = (kind, title, text) => status.replaceChildren(el('div', { class: `callout callout-${kind}` }, [icon(kind === 'success' ? 'checkCircle' : kind === 'warning' ? 'alert' : 'info'), el('div', {}, [textStrong(title), text ? el('p', { text }) : null])]));
   if (!open) setStatus('info', 'Esta solicitação não está mais recebendo propostas.', assignment.version ? `Sua última versão (v${assignment.version}) continua registrada para a empresa.` : 'Nenhuma proposta foi enviada.');
   else if (state.key === 'outdated') {
     setStatus('warning', `A solicitação mudou desde a sua proposta (revisão ${assignment.submitted_rfq_revision} → ${assignment.rfq_revision}).`, 'Confira o que mudou e envie uma nova versão se necessário. A versão anterior continua registrada.');
@@ -274,7 +274,7 @@ export async function providerProposal(ctx) {
   const indicator = saveIndicator('idle', 'Rascunho ainda não salvo');
   const saveButton = button('Salvar agora', { size: 'sm', iconName: 'check', attrs: { id: 'save-draft' } });
   // O nome acessível é completo; no celular o texto visível encurta para caber em uma linha.
-  const submitLabel = () => [el('span', { text: 'Revisar e enviar' }), el('span', { class: 'label-extra', text: ' proposta' })];
+  const submitLabel = () => [textSpan('Revisar e enviar'), el('span', { class: 'label-extra', text: ' proposta' })];
   const submit = el('button', { type: 'submit', class: 'btn btn-primary', 'aria-label': 'Revisar e enviar proposta' }, [icon('send'), el('span', { class: 'btn-label' }, submitLabel())]);
   form.append(el('div', { class: 'proposal-bar' }, [el('div', { class: 'proposal-bar-status' }, [completion, indicator.node]), el('div', { class: 'proposal-bar-actions' }, [saveButton, submit])]),
     mutedText('Depois do envio, cada alteração cria uma nova versão. A empresa vê todas as versões, com data e a revisão da solicitação que cada uma respondeu.'));
@@ -289,7 +289,7 @@ export async function providerProposal(ctx) {
   const updateCompletion = () => {
     const current = values();
     const missing = required.filter((item) => current[item.key] === undefined);
-    completion.replaceChildren(icon(missing.length ? 'edit' : 'checkCircle', { size: 14 }), el('span', { text: missing.length ? `${required.length - missing.length} de ${required.length} campos obrigatórios · falta ${missing.map((item) => item.label.replace(/\s*\(.*\)$/, '')).join(', ')}` : 'Campos obrigatórios completos' }));
+    completion.replaceChildren(icon(missing.length ? 'edit' : 'checkCircle', { size: 14 }), textSpan(missing.length ? `${required.length - missing.length} de ${required.length} campos obrigatórios · falta ${missing.map((item) => item.label.replace(/\s*\(.*\)$/, '')).join(', ')}` : 'Campos obrigatórios completos'));
   };
   updateCompletion();
   if (!open) { for (const control of form.querySelectorAll('input,select,textarea,button')) control.disabled = true; }
@@ -434,7 +434,7 @@ export async function providerProposal(ctx) {
     card({ title: 'O que a empresa quer', subtitle: `${assignment.buyer_name || 'Empresa compradora'} · revisão ${assignment.rfq_revision || 1}`, body: [
       assignment.description ? el('p', { class: 'prose', text: assignment.description }) : null,
       definitionList(PRODUCTS[assignment.product].demandFields, assignment.demand, { columns: 1 }),
-      el('p', { class: 'callout callout-info compact' }, [icon('lock', { size: 14 }), el('span', { text: 'Você não vê propostas de outros provedores, notas internas nem a comparação da empresa.' })])
+      el('p', { class: 'callout callout-info compact' }, [icon('lock', { size: 14 }), textSpan('Você não vê propostas de outros provedores, notas internas nem a comparação da empresa.')])
     ] }),
     buyerDocs,
     history,
@@ -459,7 +459,7 @@ export function versionHistory(assignment, spec) {
     const changes = hasTerms && previous?.terms ? proposalChanges(assignment.product, entry, previous).map((key) => fields[key]).filter(Boolean) : [];
     return el('li', { class: 'timeline-item', id: `versao-${entry.version}` }, [
       el('span', { class: 'timeline-dot', 'aria-hidden': 'true' }), el('div', { class: 'timeline-content' }, [
-        el('p', { class: 'timeline-title' }, [el('strong', { text: `Versão ${entry.version}` }), entry.rfq_revision ? tag(`responde à rev. ${entry.rfq_revision}`) : null]),
+        el('p', { class: 'timeline-title' }, [textStrong(`Versão ${entry.version}`), entry.rfq_revision ? tag(`responde à rev. ${entry.rfq_revision}`) : null]),
         el('p', { class: 'timeline-meta', text: `Enviada ${formatDateTime(entry.submitted_at)}` }),
         entry.note ? mutedText(`Nota: ${entry.note}`) : null,
         previous && hasTerms && previous.terms ? (changes.length
@@ -492,7 +492,7 @@ export async function providerInvite(ctx) {
   const tokenInput = el('input', { name: 'token', value: token, minlength: '64', maxlength: '64', autocomplete: 'off', spellcheck: 'false', class: 'mono' });
   form.append(field({ label: 'Token do convite', control: tokenInput, hint: '64 caracteres. Chega por e-mail ou pelo link que a empresa enviou.' }));
   if (ctx.signedOut) {
-    form.append(el('div', { class: 'callout callout-info' }, [icon('lock'), el('span', { text: 'Entre na conta da sua instituição para aceitar.' }), linkButton('Entrar', `/login.html?next=${encodeURIComponent('/provider/invite.html')}`, { size: 'sm', variant: 'primary' })]));
+    form.append(el('div', { class: 'callout callout-info' }, [icon('lock'), textSpan('Entre na conta da sua instituição para aceitar.'), linkButton('Entrar', `/login.html?next=${encodeURIComponent('/provider/invite.html')}`, { size: 'sm', variant: 'primary' })]));
   } else if (!ctx.organizations?.length) {
     form.append(el('p', { class: 'callout callout-warning', text: 'Esta conta ainda não pertence a nenhuma organização provedora. Crie a organização da sua instituição antes de aceitar: o convite é vinculado a ela.' }));
   } else {

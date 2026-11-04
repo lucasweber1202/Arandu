@@ -1,7 +1,7 @@
 // Etapas, vez de quem aprova, ações e resumo de pedidos de aprovação.
 // Extraído de views/shared.js (v7.0): dependências específicas, sem barrel.
 
-import { el, icon, timeAgo, APPROVAL_STATUS } from '../../core.js';
+import { el, icon, timeAgo, APPROVAL_STATUS, textSpan, textStrong } from '../../core.js';
 import { button, pill, toast, promptDialog, confirmDialog, field, toastError } from '../../ui.js';
 import { memberName, memberTitle } from './people.js';
 
@@ -14,7 +14,7 @@ export function approvalSteps(request, members) {
     list.append(el('li', { class: `step step-${meta[2]}` }, [
       el('span', { class: 'step-icon' }, icon(meta[0], { size: 14 })),
       el('span', { class: 'step-body' }, [
-        el('span', { class: 'step-who' }, [el('strong', { text: memberName(members, step.approver_id) }), el('span', { class: 'muted', text: ` · ${memberTitle(members, step.approver_id)}` })]),
+        el('span', { class: 'step-who' }, [textStrong(memberName(members, step.approver_id)), el('span', { class: 'muted', text: ` · ${memberTitle(members, step.approver_id)}` })]),
         el('span', { class: 'step-state', text: `${meta[1]}${step.acted_at ? ` · ${timeAgo(step.acted_at)}` : ''}` }),
         step.comment ? el('span', { class: 'step-comment', text: `“${step.comment}”` }) : null
       ])
@@ -74,7 +74,7 @@ export function approvalActions(ctx, request, { onDone }) {
       const unknown = !error.status || error.status >= 500;
       if (refused || unknown) {
         actions.replaceChildren(el('p', { class: 'callout callout-warning compact', role: 'alert' }, [
-          el('span', { text: refused ? 'Você não pode mais decidir este pedido (o acesso mudou ou a etapa não é mais sua). Nada foi registrado. ' : 'Não confirmamos se a sua decisão foi registrada. Confira o pedido antes de decidir de novo. ' }),
+          textSpan(refused ? 'Você não pode mais decidir este pedido (o acesso mudou ou a etapa não é mais sua). Nada foi registrado. ' : 'Não confirmamos se a sua decisão foi registrada. Confira o pedido antes de decidir de novo. '),
           button(refused ? 'Recarregar' : 'Conferir o pedido', { size: 'sm', iconName: 'refresh', onClick: () => onDone?.() })
         ]));
         return;

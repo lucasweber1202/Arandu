@@ -1,7 +1,7 @@
 // Contratos: ciclo de vida, próxima ação e entrada para o centro de contrato.
 // Extraído de company.js (v7.0): uma capability por módulo e rota.
 
-import { el, icon, formatDate, relativeDays, daysUntil, plural, productLabel, CONTRACT_STATUS, todayIso, renewalStage } from '../../core.js';
+import { el, icon, formatDate, relativeDays, daysUntil, plural, productLabel, CONTRACT_STATUS, todayIso, renewalStage, textSpan } from '../../core.js';
 import { pill, tag, button, emptyState, toast, confirmDialog, mutedText, toastError } from '../../ui.js';
 import { memberName } from '../shared/people.js';
 import { lazyDocuments } from '../shared/documents.js';
@@ -65,8 +65,8 @@ function contractLifecycleLinks(ctx, contract) {
   const query = new URLSearchParams({ contract_id: contract.id, contrato: contract.id });
   const who = contract.provider_name || 'esta instituição';
   return el('nav', { class: 'contract-lifecycle-links', 'aria-label': `Pós-contratação do contrato com ${who}` }, [
-    el('a', { class: 'contract-link', href: ctx.href(`/finance/implementations.html?${query}`) }, [el('span', { text: 'Implantação deste contrato' }), icon('arrowRight', { size: 14 })]),
-    el('a', { class: 'contract-link', href: ctx.href(`/finance/covenants.html?${query}`) }, [el('span', { text: 'Covenants e obrigações deste contrato' }), icon('arrowRight', { size: 14 })])
+    el('a', { class: 'contract-link', href: ctx.href(`/finance/implementations.html?${query}`) }, [textSpan('Implantação deste contrato'), icon('arrowRight', { size: 14 })]),
+    el('a', { class: 'contract-link', href: ctx.href(`/finance/covenants.html?${query}`) }, [textSpan('Covenants e obrigações deste contrato'), icon('arrowRight', { size: 14 })])
   ]);
 }
 
@@ -138,7 +138,7 @@ export async function contracts(ctx) {
       ].filter(Boolean).map(([label, value]) => el('div', { class: 'deflist-row' }, [el('dt', { text: label }), el('dd', { class: value === 'Não informado' ? 'missing' : '', text: value })]))),
       el('div', { class: 'contract-open' }, [button('Abrir contrato: termos, aditivos e marcos', { size: 'sm', iconName: 'file', onClick: () => mods.contractCenter.openContract(ctx, contract) }),
         contract.origin === 'imported' ? tag('Carteira existente') : null, contract.current_version ? tag(`Termos v${contract.current_version}`, 'accent') : tag('Termos não estruturados', 'warning'),
-        source ? el('a', { class: 'contract-link contract-origin', href: ctx.href(`/finance/rfq.html?id=${source.id}#decisao`) }, [el('span', { text: 'Ver processo e decisão de origem' }), icon('arrowRight', { size: 14 })]) : null]),
+        source ? el('a', { class: 'contract-link contract-origin', href: ctx.href(`/finance/rfq.html?id=${source.id}#decisao`) }, [textSpan('Ver processo e decisão de origem'), icon('arrowRight', { size: 14 })]) : null]),
       lazyDocuments(ctx, 'contract', contract.id, 'Documentos do contrato', { canUpload: ctx.can('upload_document') }),
       contractLifecycleLinks(ctx, contract)
     ]));

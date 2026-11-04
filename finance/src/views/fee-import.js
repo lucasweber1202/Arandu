@@ -7,7 +7,7 @@
 // tudo na confirmação. Arquivo, mapeamento e `request_key` ficam preservados
 // após falha; repetir reenvia a mesma intenção.
 
-import { el, icon, formatDate, moneyIn, uid, plural } from '../core.js';
+import { el, icon, formatDate, moneyIn, uid, plural, textSpan, textItem } from '../core.js';
 import { button, drawer, field, toast, sessionLink, confirmDialog, mutedText } from '../ui.js';
 import { CHARGING_UNITS } from '../../../lib/finance/fee-intelligence.mjs';
 
@@ -138,7 +138,7 @@ export function openFeeImport(ctx, { contracts = [], contractId = null } = {}) {
       const dup = Object.values(mapping).filter((v, i, a) => a.indexOf(v) !== i);
       if (missing.length || dup.length) { err.textContent = missing.length ? `Mapeie: ${missing.join(', ')}.` : `A coluna "${dup[0]}" foi usada em mais de um campo.`; err.hidden = false; return; }
       err.hidden = true; state.mapping = mapping; go.disabled = true;
-      try { await runPreview(); } catch (error) { err.replaceChildren(el('span', { text: importErrorMessage(error) }), ...(sessionLink(error) ? [' ', sessionLink(error)] : [])); err.hidden = false; } finally { go.disabled = false; }
+      try { await runPreview(); } catch (error) { err.replaceChildren(textSpan(importErrorMessage(error)), ...(sessionLink(error) ? [' ', sessionLink(error)] : [])); err.hidden = false; } finally { go.disabled = false; }
     } });
     area.replaceChildren(
       el('p', { class: 'small', text: state.columns.length ? `Arquivo ${state.file.name}: ${plural(state.columns.length, 'coluna lida', 'colunas lidas')}. Relacione cada campo financeiro a uma coluna; colunas não mapeadas não são importadas.` : `Planilha ${state.file.name}: informe o nome exato de cada coluna do cabeçalho (a primeira planilha é lida pelo servidor na prévia).` }),
@@ -176,7 +176,7 @@ export function openFeeImport(ctx, { contracts = [], contractId = null } = {}) {
           el('td', { 'data-label': 'Situação' }, el('span', { class: `tag tag-${tone}`, text: label })),
           el('td', { 'data-label': 'Serviço', text: v.service || '—' }), el('td', { 'data-label': 'Período', text: periodText(v) }),
           el('td', { 'data-label': 'Valor', class: 'num', text: amountText(v) }),
-          el('td', { 'data-label': 'Problemas' }, (r.errors || []).length ? el('ul', { class: 'plain-list small' }, r.errors.map((e) => el('li', { text: `${e.column ? `Coluna "${e.column}": ` : ''}${CODE_TEXT[e.code] || 'Problema'}${e.suggestion ? ` — ${e.suggestion}` : ''}` })))
+          el('td', { 'data-label': 'Problemas' }, (r.errors || []).length ? el('ul', { class: 'plain-list small' }, r.errors.map((e) => textItem(`${e.column ? `Coluna "${e.column}": ` : ''}${CODE_TEXT[e.code] || 'Problema'}${e.suggestion ? ` — ${e.suggestion}` : ''}`)))
             : r.state === 'conflicting' ? el('span', { class: 'small', text: 'Mesmo identificador de origem com valores diferentes do já registrado. Não sobrescreve: revise a origem.' }) : mutedText('—', 'span'))
         ]);
       }));
@@ -190,7 +190,7 @@ export function openFeeImport(ctx, { contracts = [], contractId = null } = {}) {
         const out = await ctx.send('fee-imports/confirm', { ...body(), confirmation: true, preview_fingerprint: p.fingerprint, selected_lines: [...state.selected].sort((a, b) => a - b), request_key: state.confirmKey });
         stepFour(out.receipt || out);
       } catch (error) {
-        errBox.replaceChildren(el('span', { text: importErrorMessage(error) }), ...(sessionLink(error) ? [' ', sessionLink(error)] : []));
+        errBox.replaceChildren(textSpan(importErrorMessage(error)), ...(sessionLink(error) ? [' ', sessionLink(error)] : []));
         errBox.hidden = false; confirm.disabled = false;
         // Resposta incerta: a mensagem manda consultar o histórico, então ele aparece aqui, relido do servidor.
         if (!error.status || error.status >= 500) { confirm.querySelector('.btn-label').textContent = 'Repetir a mesma confirmação'; historySlot.replaceChildren(history()); }
@@ -214,8 +214,8 @@ export function openFeeImport(ctx, { contracts = [], contractId = null } = {}) {
     const imported = receipt.imported ?? rows.filter((r) => r.state === 'imported').length;
     const ignored = receipt.ignored ?? rows.filter((r) => r.state === 'ignored').length;
     area.replaceChildren(
-      el('div', { class: 'callout callout-success', role: 'status' }, [icon('checkCircle', { size: 16 }), el('span', { text: `${receipt.replayed ? 'Esta importação já tinha sido registrada; nada foi duplicado. ' : ''}${plural(imported, 'linha importada', 'linhas importadas')}, ${plural(ignored, 'linha ignorada (já registrada)', 'linhas ignoradas (já registradas)')}.` })]),
-      ...(rows.length ? [el('ul', { class: 'plain-list small' }, rows.map((r) => el('li', { text: `Linha ${r.line}: ${r.state === 'imported' ? 'importada' : 'já existia, ignorada'}` })))] : []),
+      el('div', { class: 'callout callout-success', role: 'status' }, [icon('checkCircle', { size: 16 }), textSpan(`${receipt.replayed ? 'Esta importação já tinha sido registrada; nada foi duplicado. ' : ''}${plural(imported, 'linha importada', 'linhas importadas')}, ${plural(ignored, 'linha ignorada (já registrada)', 'linhas ignoradas (já registradas)')}.`)]),
+      ...(rows.length ? [el('ul', { class: 'plain-list small' }, rows.map((r) => textItem(`Linha ${r.line}: ${r.state === 'imported' ? 'importada' : 'já existia, ignorada'}`)))] : []),
       mutedText('As cobranças observadas entram em Tarifas bancárias, comparadas às tarifas do contrato. Diferenças aguardam revisão humana.'),
       el('div', { class: 'form-actions' }, [
         el('a', { class: 'btn btn-secondary', href: ctx.href(`/finance/fees.html?contract_id=${enc(contract.value)}`) }, el('span', { class: 'btn-label', text: 'Ver tarifas do contrato' })),
@@ -227,7 +227,7 @@ export function openFeeImport(ctx, { contracts = [], contractId = null } = {}) {
     const box = el('section', { class: 'stack-sm', 'aria-label': 'Importações deste contrato' }, [el('h3', { class: 'small', text: 'Importações anteriores deste contrato' })]);
     ctx.api(`fee-imports/history?organization_id=${enc(ctx.organization.id)}&contract_id=${enc(contract.value)}&limit=25`).then((out) => {
       const rows = out.rows || [];
-      box.append(rows.length ? el('ul', { class: 'plain-list small' }, rows.map((r) => el('li', { text: `${formatDate(r.happened_at)} · ${r.metadata?.file_name || 'arquivo'} · ${plural(r.metadata?.imported ?? 0, 'importada', 'importadas')}` }))) : mutedText('Nenhuma importação anterior.'));
+      box.append(rows.length ? el('ul', { class: 'plain-list small' }, rows.map((r) => textItem(`${formatDate(r.happened_at)} · ${r.metadata?.file_name || 'arquivo'} · ${plural(r.metadata?.imported ?? 0, 'importada', 'importadas')}`))) : mutedText('Nenhuma importação anterior.'));
     }).catch(() => box.append(mutedText('Histórico indisponível agora.')));
     return box;
   }

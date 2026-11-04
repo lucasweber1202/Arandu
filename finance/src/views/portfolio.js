@@ -6,7 +6,7 @@ import { graphContextCard } from './graph-context.js';
 // é por moeda — nada é somado entre moedas. Ausência de dado aparece como
 // ausência. Nenhuma métrica é nota, risco ou recomendação.
 
-import { el, icon, formatDate, percent, enumLabel, plural } from '../core.js';
+import { el, icon, formatDate, percent, enumLabel, plural, textSpan, textStrong } from '../core.js';
 import { card, button, tag, field, drawer, toast, emptyState, errorState, loading, onSubmit, mutedText, toastError } from '../ui.js';
 import { FACILITY_KINDS, GUARANTEE_KINDS } from '../../../lib/finance/portfolio.mjs';
 import { INDEXERS, AMORTIZATION } from '../../../lib/finance/contract-terms.mjs';
@@ -85,7 +85,7 @@ export async function portfolio(ctx) {
     }
     const filtered = facilities.length !== result.facilities.length;
     const out = [];
-    if (filtered) out.push(el('p', { class: 'callout callout-info compact' }, [icon('info', { size: 14 }), el('span', { text: 'Os totais por moeda consideram todo o seu escopo de acesso; a lista abaixo segue a entidade em foco.' })]));
+    if (filtered) out.push(el('p', { class: 'callout callout-info compact' }, [icon('info', { size: 14 }), textSpan('Os totais por moeda consideram todo o seu escopo de acesso; a lista abaixo segue a entidade em foco.')]));
     out.push(...result.views.currencies.map((view) => currencyCard(view, result.views.definitions)));
 
     const horizonSelect = el('select', { 'aria-label': 'Horizonte de refinanciamento' });
@@ -96,7 +96,7 @@ export async function portfolio(ctx) {
       title: 'Janelas de refinanciamento', subtitle: result.views.definitions.refinancing_window, actions: [horizonSelect],
       body: result.views.refinancing_windows.length ? el('ul', { class: 'mini-list', role: 'list' }, result.views.refinancing_windows.map((row) => el('li', { class: 'mini-row' }, [
         el('span', { class: 'mini-icon tone-warning' }, icon('calendar', { size: 14 })),
-        el('div', { class: 'mini-main' }, [el('strong', { text: row.name }), el('span', { class: 'mini-meta', text: `${row.provider || 'Provedor'} · ${entityName(entities, row.legal_entity_id)} · saldo ${amount(row.outstanding, row.currency)}${row.as_of ? ` em ${formatDate(row.as_of)}` : ''}` })]),
+        el('div', { class: 'mini-main' }, [textStrong(row.name), el('span', { class: 'mini-meta', text: `${row.provider || 'Provedor'} · ${entityName(entities, row.legal_entity_id)} · saldo ${amount(row.outstanding, row.currency)}${row.as_of ? ` em ${formatDate(row.as_of)}` : ''}` })]),
         el('span', { class: 'mini-side warn', text: formatDate(row.maturity_on) })
       ]))) : el('p', { class: 'muted', text: 'Nenhum vencimento final no horizonte escolhido.' })
     }));
@@ -105,17 +105,17 @@ export async function portfolio(ctx) {
     out.push(card({
       title: 'Garantias comprometidas', subtitle: result.views.definitions.committed_guarantees,
       body: [
-        ...result.views.guarantees.map((view) => el('div', { class: 'guarantee-summary' }, [el('strong', { text: `${view.currency}: ${amount(view.committed, view.currency)} em ${plural(view.count, 'garantia ativa', 'garantias ativas')}` }),
+        ...result.views.guarantees.map((view) => el('div', { class: 'guarantee-summary' }, [textStrong(`${view.currency}: ${amount(view.committed, view.currency)} em ${plural(view.count, 'garantia ativa', 'garantias ativas')}`),
           view.unknown_amount ? mutedText(` · ${view.unknown_amount} sem valor registrado`, 'span') : null])),
         guarantees.length ? el('ul', { class: 'plain-list guarantee-list' }, guarantees.map((row) => el('li', {}, [
-          el('strong', { text: GUARANTEE_KINDS[row.kind] || row.kind }), el('span', { text: ` · ${row.description} · ${amount(row.committed_amount, row.currency)} · ${entityName(entities, row.legal_entity_id)}` }),
+          textStrong(GUARANTEE_KINDS[row.kind] || row.kind), textSpan(` · ${row.description} · ${amount(row.committed_amount, row.currency)} · ${entityName(entities, row.legal_entity_id)}`),
           row.status !== 'active' ? tag(row.status === 'released' ? 'liberada' : 'expirada') : null,
           manage ? button('Editar', { size: 'sm', variant: 'ghost', onClick: () => guaranteeForm(ctx, entities, row, result) }) : null
         ]))) : el('p', { class: 'muted', text: 'Nenhuma garantia registrada.' })
       ]
     }));
     if (result.views.review_due.length) {
-      out.push(el('p', { class: 'callout callout-warning' }, [icon('alert'), el('span', { text: `${result.views.review_due.length} facility(ies) com dado vencido para revisão: ${result.views.review_due.map((row) => row.name).join(', ')}. Confirme ou atualize.` })]));
+      out.push(el('p', { class: 'callout callout-warning' }, [icon('alert'), textSpan(`${result.views.review_due.length} facility(ies) com dado vencido para revisão: ${result.views.review_due.map((row) => row.name).join(', ')}. Confirme ou atualize.`)]));
     }
     out.push(mutedText(result.boundary));
     return out;
@@ -138,7 +138,7 @@ function facilityTable(ctx, entities, facilities, result) {
   for (const facility of facilities) {
     const snapshot = latest.get(facility.id);
     body.append(el('tr', { id: `facility-${facility.id}`, tabindex: '-1', dataset: { entity: 'facility', id: facility.id } }, [
-      el('td', { 'data-label': 'Facility', class: 'cell-primary' }, [el('strong', { text: facility.name }), el('span', { class: 'row-sub', text: `${FACILITY_KINDS[facility.kind]} · ${facility.provider_name}${facility.indexer ? ` · ${facility.indexer.toUpperCase()}${facility.spread_pct_year !== null && facility.spread_pct_year !== undefined ? ` + ${percent(facility.spread_pct_year)} a.a.` : ''}` : ''}` })]),
+      el('td', { 'data-label': 'Facility', class: 'cell-primary' }, [textStrong(facility.name), el('span', { class: 'row-sub', text: `${FACILITY_KINDS[facility.kind]} · ${facility.provider_name}${facility.indexer ? ` · ${facility.indexer.toUpperCase()}${facility.spread_pct_year !== null && facility.spread_pct_year !== undefined ? ` + ${percent(facility.spread_pct_year)} a.a.` : ''}` : ''}` })]),
       el('td', { 'data-label': 'Entidade', text: entityName(entities, facility.legal_entity_id) }),
       el('td', { 'data-label': 'Limite / principal', text: facility.approved_limit !== null && facility.approved_limit !== undefined ? amount(facility.approved_limit, facility.currency) : amount(facility.principal_amount, facility.currency) }),
       el('td', { 'data-label': 'Último saldo / uso', text: snapshot ? `${amount(snapshot.outstanding_amount ?? snapshot.used_limit_amount, facility.currency)} em ${formatDate(snapshot.as_of)} (${SOURCES[snapshot.source] || snapshot.source})` : 'Sem fotografia registrada' }),

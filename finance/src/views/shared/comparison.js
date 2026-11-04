@@ -3,7 +3,7 @@
 
 import { PRODUCTS } from '../../../../lib/finance/products.mjs';
 import { buildComparison, applyUserWeights, USER_WEIGHTS_NOTICE } from '../../../../lib/finance/comparison.mjs';
-import { el, icon, money, fieldValue, formatDateTime } from '../../core.js';
+import { el, icon, money, fieldValue, formatDateTime, textSpan, textStrong } from '../../core.js';
 import { button, emptyState, errorState, field, mutedText } from '../../ui.js';
 import { DEFINITIONS, fieldsByKey, definitionTip } from './terms.js';
 
@@ -16,7 +16,7 @@ function valueCell(field, value, best, currency = 'BRL') {
   const formatted = comparisonValue(field, value, currency);
   const cell = el('td', { class: `num${formatted === null ? ' missing' : ''}${best ? ' best' : ''}` });
   if (formatted === null) { cell.append(el('span', { class: 'missing-text', text: 'não informado' })); return cell; }
-  cell.append(el('span', { text: formatted }));
+  cell.append(textSpan(formatted));
   if (best) {
     const why = field.direction === 'lower_is_better' ? 'menor valor informado' : 'maior valor informado';
     cell.append(el('span', { class: 'best-mark', title: why }, [icon(field.direction === 'lower_is_better' ? 'chevronDown' : 'chevronUp', { size: 12 }), el('span', { class: 'best-why', text: why })]));
@@ -42,10 +42,10 @@ export function comparisonMatrix(rfq, proposals, { currentRevision = rfq.revisio
     const differs = comparable.filter(row => row.differs).length;
     const pending = data.rows.filter(row => row.missing_count || row.invalid_count).length;
     wrap.append(el('ul', { class: 'comparison-summary', 'aria-label': 'Resumo da comparação' }, [
-      el('li', {}, [el('strong', { text: String(data.columns.length) }), ` ${data.columns.length === 1 ? 'proposta' : 'propostas'} na versão atual`]),
-      el('li', {}, [el('strong', { text: String(differs) }), ` de ${comparable.length} condições comparáveis com valores diferentes`]),
-      el('li', {}, [el('strong', { text: String(pending) }), ` ${pending === 1 ? 'condição com informação pendente' : 'condições com informação pendente'}`]),
-      data.context_notices.length ? el('li', {}, [el('strong', { text: String(data.context_notices.length) }), data.context_notices.length === 1 ? ' ressalva de comparabilidade' : ' ressalvas de comparabilidade']) : null
+      el('li', {}, [textStrong(String(data.columns.length)), ` ${data.columns.length === 1 ? 'proposta' : 'propostas'} na versão atual`]),
+      el('li', {}, [textStrong(String(differs)), ` de ${comparable.length} condições comparáveis com valores diferentes`]),
+      el('li', {}, [textStrong(String(pending)), ` ${pending === 1 ? 'condição com informação pendente' : 'condições com informação pendente'}`]),
+      data.context_notices.length ? el('li', {}, [textStrong(String(data.context_notices.length)), data.context_notices.length === 1 ? ' ressalva de comparabilidade' : ' ressalvas de comparabilidade']) : null
     ].filter(Boolean)));
   }
   if (data.context_notices.length) wrap.append(el('details', { class: 'callout callout-warning comparison-context', open: true }, [el('summary', { text: 'Condições que exigem revisão de comparabilidade' }), el('ul', {}, data.context_notices.map(text => el('li', { text }))) ]));
@@ -58,15 +58,15 @@ export function comparisonMatrix(rfq, proposals, { currentRevision = rfq.revisio
   ]);
   const detail = el('select', { 'aria-label': 'Detalhamento da comparação' }, [el('option', { value: 'detail', text: 'Visão detalhada' }), el('option', { value: 'summary', text: 'Visão resumida' })]);
   const controls = el('div', { class: 'comparison-controls' }, [
-    el('label', { class: 'comparison-control' }, [el('span', { text: 'Mostrar' }), filter]),
-    el('label', { class: 'comparison-control' }, [el('span', { text: 'Detalhe' }), detail])]);
+    el('label', { class: 'comparison-control' }, [textSpan('Mostrar'), filter]),
+    el('label', { class: 'comparison-control' }, [textSpan('Detalhe'), detail])]);
   wrap.append(controls);
   const versions = el('div', { class: 'comparison-versions' });
   data.columns.forEach((column, index) => {
     const select = el('select', { 'aria-label': `Versão de ${column.provider_name}` }, el('option', { value: 'current', text: column.version ? `Versão ${column.version} · atual` : 'Versão não informada' }));
     if (column.previous_version) select.append(el('option', { value: 'previous', text: `Versão ${column.previous_version.version} · anterior` }));
     select.addEventListener('change', () => { select.value === 'previous' ? historical.add(index) : historical.delete(index); draw(); });
-    versions.append(el('label', { class: 'comparison-version' }, [el('span', { text: column.provider_name }), select]));
+    versions.append(el('label', { class: 'comparison-version' }, [textSpan(column.provider_name), select]));
   });
   wrap.append(versions);
   const wide = el('div', { class: 'matrix-scroll comparison-wide', tabindex: '0', role: 'region', 'aria-label': 'Tabela de comparação de propostas' });
@@ -140,7 +140,7 @@ export function comparisonMatrix(rfq, proposals, { currentRevision = rfq.revisio
       const section = el('section', { class: 'pair-group' }, el('h4', { class: 'pair-title', text: group }));
       for (const row of rows) {
         const field = byKey[row.key];
-        const label = el('th', { scope: 'row', class: 'matrix-label' }, [el('span', { text: field.type === 'money' ? row.label.replace('(R$)', '(moeda da coluna)') : row.label }), definitionTip(row.key),
+        const label = el('th', { scope: 'row', class: 'matrix-label' }, [textSpan(field.type === 'money' ? row.label.replace('(R$)', '(moeda da coluna)') : row.label), definitionTip(row.key),
           row.context_reasons.length ? el('span', { class: 'matrix-meta', text: 'Bases incompatíveis' }) : null]);
         const tr = el('tr', { 'data-condition': row.key }, label);
         data.columns.forEach((column, index) => {
@@ -153,7 +153,7 @@ export function comparisonMatrix(rfq, proposals, { currentRevision = rfq.revisio
           tr.append(cell);
         });
         body.append(tr);
-        section.append(el('div', { class: 'pair-row', 'data-condition': row.key }, [el('span', { class: 'pair-label', text: field.type === 'money' ? row.label.replace('(R$)', '(moeda da coluna)') : row.label }), ...chosen.map(index => el('div', { class: `pair-value${!historical.size && row.highlights.includes(data.columns[index].id) ? ' best' : ''}` }, [el('span', { text: state(row, index) === 'invalid' ? 'dado inválido; requer revisão' : comparisonValue(field, value(row, index), data.columns[index].currency) ?? 'não informado' }), changedMark(row, index), evidence(row, index)].filter(Boolean)))]));
+        section.append(el('div', { class: 'pair-row', 'data-condition': row.key }, [el('span', { class: 'pair-label', text: field.type === 'money' ? row.label.replace('(R$)', '(moeda da coluna)') : row.label }), ...chosen.map(index => el('div', { class: `pair-value${!historical.size && row.highlights.includes(data.columns[index].id) ? ' best' : ''}` }, [textSpan(state(row, index) === 'invalid' ? 'dado inválido; requer revisão' : comparisonValue(field, value(row, index), data.columns[index].currency) ?? 'não informado'), changedMark(row, index), evidence(row, index)].filter(Boolean)))]));
       }
       pairBody.append(section);
     }
@@ -163,7 +163,7 @@ export function comparisonMatrix(rfq, proposals, { currentRevision = rfq.revisio
       const tr = el('tr', {}, el('th', { scope: 'row', text: rfq.product === 'credit' ? 'Custo total estimado' : 'Custo mensal estimado' }));
       data.columns.forEach(column => {
         const estimate = data.estimates[column.id];
-        tr.append(el('td', { class: 'num' }, [el('span', { text: estimate.estimate ? money(estimate.total_cost) : estimate.reason }),
+        tr.append(el('td', { class: 'num' }, [textSpan(estimate.estimate ? money(estimate.total_cost) : estimate.reason),
           estimate.estimate ? el('details', { class: 'comparison-evidence' }, [el('summary', { text: 'Metodologia e premissas' }), el('p', { text: [estimate.formula, ...(estimate.assumptions || [])].filter(Boolean).join(' · ') })]) : null].filter(Boolean)));
       });
       body.append(tr);
@@ -209,7 +209,7 @@ export function weightsPanel(rfq, proposals, { onApplied = null, initial = null,
     for (const item of scored.excluded_criteria || []) output.append(el('p', { class: 'callout callout-warning', text: `${item.label}: excluído do cálculo. ${item.reasons.join(' ')}` }));
     if (!scored.applied) { output.append(el('p', { class: 'muted', text: scored.notice })); return; }
     onApplied?.(weights);
-    output.append(el('p', { class: 'weights-notice', id: 'weights-notice' }, [icon('info', { size: 14 }), el('strong', { text: USER_WEIGHTS_NOTICE })]));
+    output.append(el('p', { class: 'weights-notice', id: 'weights-notice' }, [icon('info', { size: 14 }), textStrong(USER_WEIGHTS_NOTICE)]));
     const list = el('ol', { class: 'score-list' });
     const max = Math.max(...scored.results.map((item) => item.score ?? 0), 0.0001);
     for (const item of scored.results) {
@@ -221,7 +221,7 @@ export function weightsPanel(rfq, proposals, { onApplied = null, initial = null,
       ]));
     }
     output.append(list);
-    if (scored.has_low_coverage) output.append(el('p', { class: 'callout callout-warning', id: 'coverage-warning' }, [icon('alert', { size: 14 }), el('span', { text: `Há proposta pontuada sobre menos de ${(scored.coverage_threshold * 100).toFixed(0)}% do peso definido; ela aparece por último e não é comparável com uma proposta completa.` })]));
+    if (scored.has_low_coverage) output.append(el('p', { class: 'callout callout-warning', id: 'coverage-warning' }, [icon('alert', { size: 14 }), textSpan(`Há proposta pontuada sobre menos de ${(scored.coverage_threshold * 100).toFixed(0)}% do peso definido; ela aparece por último e não é comparável com uma proposta completa.`)]));
     if (!scored.ranking_meaningful) output.append(mutedText('Com menos de duas propostas comparáveis, a ordem não diz nada.'));
     output.append(mutedText(`Pesos: ${scored.criteria.map((item) => `${item.label} ${(item.share * 100).toFixed(0)}%`).join(' · ')}`));
   };

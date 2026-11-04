@@ -5,7 +5,7 @@
 // resposta da criação; a tela não guarda nenhum dos dois. Docs:
 // docs/FINANCIAL_PUBLIC_API.md.
 
-import { el, icon, formatDateTime } from '../core.js';
+import { el, icon, formatDateTime, textSpan, textStrong } from '../core.js';
 import { button, tag, field, emptyState, errorState, loading, toast, confirmDialog, onSubmit, mutedText, toastError } from '../ui.js';
 import { SCOPE_LABELS, API_SCOPES, WEBHOOK_EVENTS } from '../../../lib/finance/api-catalog.mjs';
 
@@ -23,12 +23,12 @@ function revealOnce(label, value, notice) {
   const copy = button('Copiar', { size: 'sm', iconName: 'check', onClick: async () => {
     try { await navigator.clipboard.writeText(value); toast('Copiado.'); } catch { toast('Copie manualmente o valor exibido.', 'error'); }
   } });
-  return el('div', { class: 'callout callout-warning stack-xs', role: 'status' }, [el('strong', { text: label }), code, el('span', { class: 'small', text: notice }), copy]);
+  return el('div', { class: 'callout callout-warning stack-xs', role: 'status' }, [textStrong(label), code, el('span', { class: 'small', text: notice }), copy]);
 }
 
 function checkboxes(legend, values, labels, selected = []) {
   const group = el('fieldset', { class: 'check-row' }, el('legend', { class: 'field-label', text: legend }));
-  for (const value of values) group.append(el('label', { class: 'check-option' }, [el('input', { type: 'checkbox', value, checked: selected.includes(value) }), el('span', { text: labels[value] || value })]));
+  for (const value of values) group.append(el('label', { class: 'check-option' }, [el('input', { type: 'checkbox', value, checked: selected.includes(value) }), textSpan(labels[value] || value)]));
   return group;
 }
 const checked = (group) => [...group.querySelectorAll('input:checked')].map((input) => input.value);
@@ -78,7 +78,7 @@ function accountsSection(ctx, result, entityOptions, render, reveal) {
         } }) : null]);
     });
     return el('li', { class: 'card' }, el('div', { class: 'card-body stack-sm' }, [
-      el('div', { class: 'policy-head' }, [el('strong', { text: account.name }), tag(active ? 'ativa' : account.status === 'revoked' ? 'revogada' : 'desativada', active ? 'success' : 'neutral')]),
+      el('div', { class: 'policy-head' }, [textStrong(account.name), tag(active ? 'ativa' : account.status === 'revoked' ? 'revogada' : 'desativada', active ? 'success' : 'neutral')]),
       el('span', { class: 'small', text: `Escopos: ${account.scopes.map((scope) => SCOPE_LABELS[scope] || scope).join(', ')}` }),
       el('span', { class: 'small muted', text: account.entity_scope === 'group' ? 'Alcance: todas as entidades do grupo' : `Alcance: ${account.entity_ids.length} entidade(s)` }),
       el('span', { class: 'small muted', text: `Último uso: ${account.last_used_at ? formatDateTime(account.last_used_at) : 'nunca'}` }),
@@ -121,7 +121,7 @@ function accountsSection(ctx, result, entityOptions, render, reveal) {
 
 function webhooksSection(ctx, result, entityOptions, render, reveal) {
   const unconfigured = result.secrets_configured === false
-    ? el('p', { class: 'callout callout-warning compact' }, [icon('alert', { size: 14 }), el('span', { text: 'Webhooks indisponíveis neste ambiente: a chave de cifragem dos segredos (ARANDU_WEBHOOK_SECRET_KEY) não está configurada. Peça ao responsável pelo ambiente.' })])
+    ? el('p', { class: 'callout callout-warning compact' }, [icon('alert', { size: 14 }), textSpan('Webhooks indisponíveis neste ambiente: a chave de cifragem dos segredos (ARANDU_WEBHOOK_SECRET_KEY) não está configurada. Peça ao responsável pelo ambiente.')])
     : null;
   const list = (result.rows || []).length ? el('ul', { class: 'plain-list' }, result.rows.map((hook) => el('li', { class: 'card' }, el('div', { class: 'card-body stack-sm' }, [
     el('div', { class: 'policy-head' }, [el('code', { class: 'mono', text: hook.url }), tag(hook.status === 'active' ? 'ativo' : hook.status === 'disabled_failing' ? 'desativado por falhas' : 'desativado', hook.status === 'active' ? 'success' : 'warning')]),
@@ -169,7 +169,7 @@ function erpHub() {
     el('h3', { id: 'erp-hub-title', text: 'Conectores de ERP' }),
     el('p', { class: 'small', text: 'Hoje o ERP conversa com o Arandu pela API pública: uma conta de serviço com escopo e entidades lê e grava registros, e os webhooks avisam o ERP sobre decisões e contratos. Conectores prontos por ERP ainda não estão disponíveis.' }),
     el('ul', { class: 'plain-list erp-list', 'aria-label': 'ERPs' }, ERP_TARGETS.map((name) => el('li', { class: 'erp-row', dataset: { state: 'planned' } }, [
-      el('span', { text: name }), tag('Suporte planejado · sem conector', 'neutral')]))),
+      textSpan(name), tag('Suporte planejado · sem conector', 'neutral')]))),
     mutedText('Nenhuma credencial de ERP é pedida nesta tela. Quando um conector existir, a conexão terá teste, prévia do mapeamento, confirmação e histórico de sincronização antes de qualquer importação.')
   ]);
 }

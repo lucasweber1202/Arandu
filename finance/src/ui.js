@@ -3,7 +3,7 @@
 // Pequenos, sem framework, todos acessíveis por teclado. Cada um devolve um nó
 // pronto; nenhum injeta HTML a partir de dado.
 
-import { el, icon, initials, fieldValue, enumLabel } from './core.js';
+import { el, icon, initials, fieldValue, enumLabel, textSpan } from './core.js';
 
 export function button(label, { variant = 'secondary', iconName = null, type = 'button', size = null, onClick = null, attrs = {} } = {}) {
   const node = el('button', { type, class: `btn btn-${variant}${size ? ` btn-${size}` : ''}`, ...attrs },
@@ -60,7 +60,7 @@ export function iconButton(name, label, { onClick = null, attrs = {} } = {}) {
 export function pill(meta, { size = null } = {}) {
   const info = meta || { label: '—', tone: 'neutral' };
   return el('span', { class: `pill pill-${info.tone || 'neutral'}${size ? ` pill-${size}` : ''}` },
-    [info.icon ? icon(info.icon, { size: 12 }) : el('span', { class: 'pill-dot', 'aria-hidden': 'true' }), el('span', { text: info.label })]);
+    [info.icon ? icon(info.icon, { size: 12 }) : el('span', { class: 'pill-dot', 'aria-hidden': 'true' }), textSpan(info.label)]);
 }
 export function tag(text, tone = 'neutral') { return el('span', { class: `tag tag-${tone}`, text }); }
 
@@ -202,7 +202,7 @@ export function tabs(items, { label, initial = null, onChange = null } = {}) {
   };
   for (const item of items) {
     const tab = el('button', { type: 'button', role: 'tab', id: `tab-${item.id}`, class: 'tab', 'aria-controls': `panel-${item.id}`, dataset: { tab: item.id } },
-      [el('span', { text: item.label }), item.count !== undefined && item.count !== null ? el('span', { class: 'tab-count', text: String(item.count) }) : null]);
+      [textSpan(item.label), item.count !== undefined && item.count !== null ? el('span', { class: 'tab-count', text: String(item.count) }) : null]);
     tab.addEventListener('click', () => select(item.id));
     tab.addEventListener('keydown', (event) => {
       const index = buttons.indexOf(tab);
@@ -268,7 +268,7 @@ export function saveIndicator(initial = 'idle', text = '') {
   const set = (state, label) => {
     node.dataset.state = state;
     const iconName = { saving: 'refresh', saved: 'checkCircle', error: 'alert', conflict: 'alert', dirty: 'edit', idle: 'clock', offline: 'alert' }[state] || 'clock';
-    node.replaceChildren(icon(iconName, { size: 14 }), el('span', { text: label }));
+    node.replaceChildren(icon(iconName, { size: 14 }), textSpan(label));
   };
   set(initial, text);
   return { node, set };
@@ -477,14 +477,14 @@ export function menu(label, items, { iconName = 'more', visibleLabel = '' } = {}
   const wrap = el('div', { class: 'menu' });
   // Com rótulo visível o menu deixa de ser um ícone solto fácil de ignorar.
   const trigger = visibleLabel
-    ? el('button', { type: 'button', class: 'btn', 'aria-haspopup': 'menu', 'aria-expanded': 'false', 'aria-label': label, title: label }, [el('span', { text: visibleLabel }), icon('chevronDown', { size: 16 })])
+    ? el('button', { type: 'button', class: 'btn', 'aria-haspopup': 'menu', 'aria-expanded': 'false', 'aria-label': label, title: label }, [textSpan(visibleLabel), icon('chevronDown', { size: 16 })])
     : el('button', { type: 'button', class: 'btn btn-ghost btn-icon-only', 'aria-haspopup': 'menu', 'aria-expanded': 'false', 'aria-label': label, title: label }, icon(iconName));
   const list = el('div', { class: 'menu-list', role: 'menu', hidden: true });
   const closeMenu = () => { list.hidden = true; trigger.setAttribute('aria-expanded', 'false'); };
   for (const item of items.filter(Boolean)) {
     const entry = item.href
-      ? el('a', { role: 'menuitem', class: 'menu-item', href: item.href }, [icon(item.icon || 'arrowRight'), el('span', { text: item.label })])
-      : el('button', { type: 'button', role: 'menuitem', class: `menu-item${item.danger ? ' danger' : ''}` }, [icon(item.icon || 'arrowRight'), el('span', { text: item.label })]);
+      ? el('a', { role: 'menuitem', class: 'menu-item', href: item.href }, [icon(item.icon || 'arrowRight'), textSpan(item.label)])
+      : el('button', { type: 'button', role: 'menuitem', class: `menu-item${item.danger ? ' danger' : ''}` }, [icon(item.icon || 'arrowRight'), textSpan(item.label)]);
     if (item.onClick) entry.addEventListener('click', () => { closeMenu(); item.onClick(); });
     list.append(entry);
   }

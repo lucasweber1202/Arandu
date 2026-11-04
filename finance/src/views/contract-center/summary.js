@@ -2,7 +2,7 @@
 // foi contratado, com quem, em qual entidade, quando, de onde veio o registro,
 // quais termos valem e quem responde. Lacunas são fatos que impedem uma decisão
 // específica (não uma nota de qualidade) e vêm com a ação autorizada, quando há.
-import { el, icon, formatDate, CONTRACT_STATUS, renewalStage } from '../../core.js';
+import { el, icon, formatDate, CONTRACT_STATUS, renewalStage, textSpan } from '../../core.js';
 import { tag, button, mutedText } from '../../ui.js';
 import { CONTRACT_CATEGORIES } from '../../../../lib/finance/contract-terms.mjs';
 import { renewalButton } from './renewal.js';
@@ -72,7 +72,7 @@ export function contractSummaryCard(ctx, detail, { onStructureTerms = null, onAm
   };
   const gaps = s.gaps.length
     ? el('ul', { class: 'contract-gaps', 'aria-label': 'Lacunas que impedem decisões' }, s.gaps.map((gap) => el('li', { class: 'contract-gap', dataset: { gap: gap.key } }, [
-      icon('alert', { size: 14 }), el('span', { text: gap.text }), actionFor(gap)])))
+      icon('alert', { size: 14 }), textSpan(gap.text), actionFor(gap)])))
     : mutedText('Nenhuma lacuna nos campos que este resumo confere.');
   return el('section', { class: 'cc-section contract-summary', 'aria-labelledby': `summary-${c.id}` }, [
     el('div', { class: 'cc-head' }, [el('h3', { id: `summary-${c.id}`, text: 'Resumo do contrato' }), s.status ? tag(s.status.label, s.status.tone || 'neutral') : null]),
