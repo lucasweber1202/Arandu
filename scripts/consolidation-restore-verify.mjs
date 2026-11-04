@@ -12,6 +12,7 @@ import { majorVersion, RECOVERY_REFS } from '../lib/pilot-backup-preflight.mjs';
 import { SCHEMA_SQL, SCHEMA_FINGERPRINT_VERSION, validSchemaDigest } from '../lib/recovery-schema.mjs';
 import { COUNTS_SQL, parseCounts, compareCounts, countsDigest, loopbackTarget } from '../lib/recovery-reconciliation.mjs';
 import { syncPath, assertIdentityFile } from '../lib/recovery-doctor.mjs';
+import { CONTENT_FINGERPRINT_VERSION, validateContentManifest, contentDigest, decryptedContentKey, fingerprintContent, compareContent } from '../lib/recovery-content.mjs';
 
 export class RestoreVerificationError extends Error {
   constructor(code, message) { super(message); this.code = code; }
@@ -63,6 +64,10 @@ export async function verifyRestore({ env = process.env, root = process.cwd(), s
   if (manifest.snapshot !== 'exported_snapshot_shared_with_pg_dump' || !manifest.snapshot_counts) fail('invalid_manifest', 'Export sem contagens do snapshot do dump: reconciliação impossível; refaça o export.');
   const sourceCounts = parseCounts(JSON.stringify(manifest.snapshot_counts));
   if (manifest.snapshot_counts_sha256 !== countsDigest(sourceCounts)) fail('invalid_manifest', 'Contagens do manifest adulteradas.');
+  let sourceContent;
+  try {
+    sourceContent=validateContentManifest(manifest);
+  } catch {fail('invalid_manifest','Export sem reconciliação íntegra de conteúdo; preserve o backup e produza nova evidência, sem inventar hashes.');}
   if (manifest.files.length !== 2 || new Set(manifest.files.map(f => f.name)).size !== 2) fail('invalid_manifest', 'Conjunto de artefatos inválido.');
   const expected = new Map(manifest.files.map((f) => [f.name, f]));
   for (const name of ['database.dump.age', 'roles.sql.age']) {
@@ -115,15 +120,24 @@ export async function verifyRestore({ env = process.env, root = process.cwd(), s
   const targetSchema = sql(`begin read only;\n${SCHEMA_SQL}\ncommit;`);
   if (!validSchemaDigest(targetSchema)) fail('tooling', 'Fingerprint do destino inválido.');
   const schemaMatch = targetSchema === manifest.snapshot_schema_sha256;
+  let targetContent;
+  let key;
+  try {key=decryptedContentKey(manifest.content_key_age,identity,env);targetContent=await fingerprintContent(targetEnv,restoredCounts,key);}
+  catch {fail('content_verification_failed','Verificação privada do conteúdo falhou; conversão continua bloqueada.');}
+  finally {key?.fill(0);}
+  const contentComparison=compareContent(sourceContent,targetContent);
   const record = {
     format_version: 1, export_project_ref: manifest.project_ref, export_started_at: manifest.started_at,
     verified_at: new Date().toISOString(), restore_seconds: Math.round((Date.now() - started.getTime()) / 1000),
-    target: 'loopback_disposable_postgresql17', restore: 'RESTORED_ISOLATED', reconciliation: schemaMatch ? comparison.result : 'MISMATCH',
+    target: 'loopback_disposable_postgresql17', restore: 'RESTORED_ISOLATED', reconciliation: schemaMatch && contentComparison.result==='MATCH' ? comparison.result : 'MISMATCH',
     row_reconciliation: comparison.result,
     tables: comparison.tables, differences: comparison.differences, source_counts_sha256: manifest.snapshot_counts_sha256,
     target_counts_sha256: countsDigest(restoredCounts), files: manifest.files.map(({ name, bytes, sha256 }) => ({ name, bytes, sha256 })),
     schema_fingerprint_version: SCHEMA_FINGERPRINT_VERSION, schema_reconciliation: schemaMatch ? 'MATCH' : 'MISMATCH',
     source_schema_sha256: manifest.snapshot_schema_sha256, target_schema_sha256: targetSchema,
+    content_fingerprint_version:CONTENT_FINGERPRINT_VERSION,content_reconciliation:contentComparison.result,
+    source_content_sha256:manifest.snapshot_content_sha256,target_content_sha256:contentDigest(targetContent),
+    content_differences:contentComparison.differences,
     roles_file: 'NOT APPLIED', conversion: 'BLOCKED',
     supabase_services: 'NOT PROVEN (Auth/Storage como serviços exigem imagem Supabase e jornada; contagens cobrem só os metadados)'
   };
@@ -131,6 +145,7 @@ export async function verifyRestore({ env = process.env, root = process.cwd(), s
   fs.writeFileSync(recordFile, JSON.stringify(record, null, 2) + '\n', { mode: 0o600, flag: 'wx' });
   try { syncPath(recordFile); syncPath(backup); } catch { fail('tooling', 'Registro de verificação não pôde ser gravado de forma durável.'); }
   if (!schemaMatch) fail('schema_mismatch', 'Schema divergente; registro gravado, conversão continua bloqueada.');
+  if(contentComparison.result!=='MATCH')fail('content_mismatch','Conteúdo divergente apesar das contagens; registro gravado e conversão bloqueada.');
   if (comparison.result !== 'MATCH') fail('reconciliation_mismatch', `Reconciliação divergente em ${comparison.differences.length} tabela(s); registro gravado, conversão continua bloqueada.`);
   return record;
 }

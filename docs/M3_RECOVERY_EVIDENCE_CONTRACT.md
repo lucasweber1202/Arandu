@@ -54,3 +54,14 @@ serviços gerenciados Auth/Storage, segredos ou integrações. Esses itens mant�
 seus gates separados. PREPARED não autoriza executar conversão; teste hermético
 não constitui M3 hospedado. Reverter a correção removeria uma proteção, sem
 reverter banco; preferir forward-fix se houver problema no avaliador.
+
+## Conteúdo do mesmo snapshot (v1)
+
+`restore_content_reconciliation` exige `backup.content_fingerprint_version=1`,
+`backup.snapshot_content_sha256` válido, `restore.content_fingerprint_version=1`,
+`restore.content_reconciliation=MATCH` e ambos `restore.source_content_sha256` /
+`restore.target_content_sha256` iguais ao digest do export. Copiar apenas esses
+campos sanitizados do manifest/recibo verificados; nunca copiar a chave cifrada,
+linhas ou conteúdo para evidência pública. Identidade, tempo, hashes dos arquivos,
+classificação e probes anteriores continuam obrigatórios. Igualdade de contagens
+não substitui essa prova. O doctor fornece owner/próxima ação próprios.

@@ -14,6 +14,7 @@ import {
 } from '../lib/storage-recovery.mjs';
 import { exportStorage, restoreStorage, verifyStorage, signJwt, storageEvidence, permissionProbe, parseTargetMembers } from './storage-recovery.mjs';
 import { initStore, verifyExport } from './recovery.mjs';
+import { contentDigest } from '../lib/recovery-content.mjs';
 import { countsDigest } from '../lib/recovery-reconciliation.mjs';
 import { diagnoseRecovery } from '../lib/recovery-doctor.mjs';
 
@@ -251,14 +252,17 @@ try {
     const dbExport = path.join(storeDir, 'arandu-local-export'); fs.mkdirSync(dbExport, { mode: 0o700 });
     const dbFiles = ['database.dump.age', 'roles.sql.age'].map((n, i) => { const b = Buffer.alloc(200 + i, i + 7); fs.writeFileSync(path.join(dbExport, n), b, { mode: 0o600 }); return { name: n, bytes: b.length, sha256: sha256(b) }; });
     const counts = { 'public.fin_private_documents': 2, 'storage.objects': 2 };
+    const content=Object.fromEntries(Object.entries(counts).map(([table,rows])=>[table,{rows,sha256:'c'.repeat(64)}]));
     const started = new Date(Date.now() - 60000).toISOString(), completed = new Date(Date.now() - 50000).toISOString();
     const dbManifest = { format_version: 1, classification: 'synthetic_encrypted_export', project_ref: null, started_at: started, completed_at: completed,
       result: 'exported_unverified', storage: { strategy: 'private-store', store_id: store.store_id }, snapshot: 'exported_snapshot_shared_with_pg_dump',
+      content_fingerprint_version:1, snapshot_content:content,snapshot_content_sha256:contentDigest(content), content_key_age:Buffer.from('age-encryption.org/v1\n'+'x'.repeat(160)).toString('base64'),
       schema_fingerprint_version: 1, snapshot_schema_sha256: 'a'.repeat(64),
       storage_snapshot_inventory_sha256: storageSnapshotDigest(inventory), snapshot_counts: counts, snapshot_counts_sha256: countsDigest(counts), source_counts: { storage_objects: 2 }, storage_binaries: 'SEPARATE_EXPORT_REQUIRED', files: dbFiles };
     fs.writeFileSync(path.join(dbExport, 'manifest.json'), JSON.stringify(dbManifest), { mode: 0o600 });
     const dbRecord = { format_version: 1, restore: 'RESTORED_ISOLATED', reconciliation: 'MATCH', differences: [], tables: 2, target: 'loopback_disposable_postgresql17',
       roles_file: 'NOT APPLIED', export_project_ref: null, export_started_at: started, source_counts_sha256: dbManifest.snapshot_counts_sha256,
+      content_fingerprint_version:1,content_reconciliation:'MATCH',source_content_sha256:dbManifest.snapshot_content_sha256,target_content_sha256:dbManifest.snapshot_content_sha256,content_differences:[],
       schema_fingerprint_version: 1, schema_reconciliation: 'MATCH', source_schema_sha256: dbManifest.snapshot_schema_sha256, target_schema_sha256: dbManifest.snapshot_schema_sha256,
       target_counts_sha256: dbManifest.snapshot_counts_sha256, files: dbFiles, verified_at: new Date(Date.now() - 40000).toISOString() };
     fs.writeFileSync(path.join(dbExport, 'restore-verification-2026-10-15T00-00-00-000Z.json'), JSON.stringify(dbRecord), { mode: 0o600 });
@@ -289,6 +293,9 @@ try {
     fs.renameSync(path.join(home, 'detached-storage'), path.join(sx, 'storage'));
     result = await verify();
     assert.deepEqual([result.level, result.recovery, result.completeness, result.storage_binaries], [5, 'RECOVERY_VERIFIED', 'COMPLETE', 'RESTORE_VERIFIED']);
+    assert.equal(result.operational_state,'RESTORE_VERIFIED');
+    assert.equal(result.milestones.RESTORE_VERIFIED,'PASS');
+    assert.equal(result.milestones.FULL_RECOVERY_VERIFIED,'NOT_PROVEN');
     // Prova anterior não avaliava restrições de upload; não herda nível 5.
     fs.writeFileSync(recordFile, JSON.stringify({ ...sRecord, reconciliation_version: undefined }));
     assert.equal((await verify()).recovery, 'RECOVERY_DATABASE_ONLY');

@@ -1,3 +1,4 @@
+import './test-retirement-classification.mjs';
 import assert from 'node:assert/strict';
 import { assessConversion, inventoryDigest } from '../lib/consolidation-readiness.mjs';
 import fs from 'node:fs';
@@ -17,10 +18,16 @@ const assess = e => assessConversion(e, { environment: 'demo', now, currentBundl
 input.backup.schema_fingerprint_version = 1;
 input.backup.snapshot_schema_sha256 = 'e'.repeat(64);
 Object.assign(input.restore, { schema_fingerprint_version: 1, schema_reconciliation: 'MATCH', source_schema_sha256: 'e'.repeat(64), target_schema_sha256: 'e'.repeat(64) });
+Object.assign(input.backup, {content_fingerprint_version:1,snapshot_content_sha256:'a'.repeat(64)});
+Object.assign(input.restore, {content_fingerprint_version:1,content_reconciliation:'MATCH',source_content_sha256:'a'.repeat(64),target_content_sha256:'a'.repeat(64)});
 assert.equal(assess(input).result, 'PREPARED');
 assert.equal(assessConversion(input, { environment: 'demo', now }).result, 'BLOCKED', 'missing current tree digest cannot prove a migration plan');
 assert.equal(assessConversion(input, { environment: 'demo', now, currentBundleSha256: 'd'.repeat(64) }).result, 'BLOCKED', 'old bundle must not pass against the current tree');
 const deny = change => { const e = structuredClone(input); change(e); assert.equal(assess(e).result, 'BLOCKED'); };
+for(const key of ['content_fingerprint_version','snapshot_content_sha256']) deny(e=>{delete e.backup[key];});
+for(const key of ['content_fingerprint_version','content_reconciliation','source_content_sha256','target_content_sha256']) deny(e=>{delete e.restore[key];});
+deny(e=>{e.restore.target_content_sha256='f'.repeat(64);});
+deny(e=>{e.restore.content_reconciliation='NOT_RUN';});
 for (const key of ['schema_fingerprint_version', 'snapshot_schema_sha256']) deny(e => { delete e.backup[key]; });
 for (const key of ['schema_fingerprint_version', 'schema_reconciliation', 'source_schema_sha256', 'target_schema_sha256']) deny(e => { delete e.restore[key]; });
 deny(e => { e.restore.target_schema_sha256 = 'f'.repeat(64); });

@@ -82,3 +82,7 @@ try {
   }
 } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 console.log('Hosted doctor: existing contracts, current-bundle binding, SHA/freshness, no liveness/fixture GO, no mutation and redaction verified.');
+
+const readable={...observation,http_status:200,metadata_read:true,observed_deployment_commit:context.commit};
+assert.equal(row(diagnoseHostedInfrastructure({...context,vercelObservation:readable}),'vercel_inspection').result,'PASS');
+for(const change of [{metadata_read:false},{observed_deployment_commit:'b'.repeat(40)},{observed_at:'2026-01-01T00:00:00Z'}])assert.equal(row(diagnoseHostedInfrastructure({...context,vercelObservation:{...readable,...change}}),'vercel_inspection').result,'NOT_PROVEN');

@@ -1,0 +1,253 @@
+{
+  "observed_at": "2026-11-04T17:37:31.431Z",
+  "project_ref": "offgpyysgdhfemjlchod",
+  "classification": "column_metadata_only_not_backup",
+  "columns": [
+    {
+      "type": "text",
+      "table": "api_rate_limits",
+      "column": "scope"
+    },
+    {
+      "type": "text",
+      "table": "api_rate_limits",
+      "column": "fingerprint"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "api_rate_limits",
+      "column": "window_start"
+    },
+    {
+      "type": "integer",
+      "table": "api_rate_limits",
+      "column": "request_count"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "api_rate_limits",
+      "column": "expires_at"
+    },
+    {
+      "type": "text",
+      "table": "catalog_releases",
+      "column": "id"
+    },
+    {
+      "type": "text",
+      "table": "catalog_releases",
+      "column": "dataset_version"
+    },
+    {
+      "type": "text",
+      "table": "catalog_releases",
+      "column": "dataset_kind"
+    },
+    {
+      "type": "boolean",
+      "table": "catalog_releases",
+      "column": "verified_ready"
+    },
+    {
+      "type": "text",
+      "table": "catalog_releases",
+      "column": "verified_by"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "catalog_releases",
+      "column": "verified_at"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "catalog_releases",
+      "column": "write_verified_at"
+    },
+    {
+      "type": "text",
+      "table": "catalog_releases",
+      "column": "write_verified_by"
+    },
+    {
+      "type": "text",
+      "table": "catalog_releases",
+      "column": "notes"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "catalog_releases",
+      "column": "created_at"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "catalog_releases",
+      "column": "updated_at"
+    },
+    {
+      "type": "text",
+      "table": "curated_collections",
+      "column": "id"
+    },
+    {
+      "type": "text",
+      "table": "curated_collections",
+      "column": "slug"
+    },
+    {
+      "type": "text",
+      "table": "curated_collections",
+      "column": "title"
+    },
+    {
+      "type": "text",
+      "table": "curated_collections",
+      "column": "summary"
+    },
+    {
+      "type": "text",
+      "table": "curated_collections",
+      "column": "curatorial_axis"
+    },
+    {
+      "type": "text",
+      "table": "curated_collections",
+      "column": "audience"
+    },
+    {
+      "type": "text",
+      "table": "curated_collections",
+      "column": "status"
+    },
+    {
+      "type": "integer",
+      "table": "curated_collections",
+      "column": "position"
+    },
+    {
+      "type": "text",
+      "table": "curated_collections",
+      "column": "hero_image_url"
+    },
+    {
+      "type": "jsonb",
+      "table": "curated_collections",
+      "column": "payload"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "curated_collections",
+      "column": "created_at"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "curated_collections",
+      "column": "updated_at"
+    },
+    {
+      "type": "uuid",
+      "table": "fin_job_runs",
+      "column": "id"
+    },
+    {
+      "type": "text",
+      "table": "fin_job_runs",
+      "column": "job"
+    },
+    {
+      "type": "text",
+      "table": "fin_job_runs",
+      "column": "status"
+    },
+    {
+      "type": "integer",
+      "table": "fin_job_runs",
+      "column": "processed"
+    },
+    {
+      "type": "text",
+      "table": "fin_job_runs",
+      "column": "request_id"
+    },
+    {
+      "type": "text",
+      "table": "fin_job_runs",
+      "column": "error_code"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "fin_job_runs",
+      "column": "started_at"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "fin_job_runs",
+      "column": "finished_at"
+    },
+    {
+      "type": "text",
+      "table": "fin_settings",
+      "column": "key"
+    },
+    {
+      "type": "text",
+      "table": "fin_settings",
+      "column": "value"
+    },
+    {
+      "type": "uuid",
+      "table": "fin_settings",
+      "column": "updated_by"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "fin_settings",
+      "column": "updated_at"
+    },
+    {
+      "type": "uuid",
+      "table": "profiles",
+      "column": "id"
+    },
+    {
+      "type": "text",
+      "table": "profiles",
+      "column": "email"
+    },
+    {
+      "type": "text",
+      "table": "profiles",
+      "column": "full_name"
+    },
+    {
+      "type": "text",
+      "table": "profiles",
+      "column": "profile_type"
+    },
+    {
+      "type": "text",
+      "table": "profiles",
+      "column": "phone"
+    },
+    {
+      "type": "text",
+      "table": "profiles",
+      "column": "city"
+    },
+    {
+      "type": "text",
+      "table": "profiles",
+      "column": "state"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "profiles",
+      "column": "created_at"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "profiles",
+      "column": "updated_at"
+    }
+  ],
+  "scope": "nonempty_public_tables_and_legacy_auth_profile"
+}

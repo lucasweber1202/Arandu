@@ -1,0 +1,51 @@
+{
+  "project_ref": "offgpyysgdhfemjlchod",
+  "jobs": {
+    "total": 4,
+    "failed": 0,
+    "running": 0,
+    "succeeded": 4
+  },
+  "storage": {
+    "objects": 0,
+    "declared_object_bytes": 0,
+    "objects_without_valid_declared_size": 0
+  },
+  "connections": {
+    "database_total": 7,
+    "database_active": 1
+  },
+  "limitations": [
+    "Database counters include other clients and this observation; reset invalidates deltas",
+    "Relation and row estimates are not billed storage",
+    "Storage bytes are declared metadata, not binary readback",
+    "No provider egress, billing, Auth MAU or quota usage inferred",
+    "Job totals are cumulative retained rows, not a freshness/readiness proof"
+  ],
+  "observed_at": "2026-11-04T17:49:39.581057+00:00",
+  "egress_bytes": null,
+  "auth_sessions": 0,
+  "classification": "aggregate_capacity_observation_not_billing",
+  "database_bytes": 16149651,
+  "quota_headroom": null,
+  "database_counters": {
+    "commits": 123847,
+    "deadlocks": 0,
+    "rollbacks": 12,
+    "blocks_hit": 4364252,
+    "temp_bytes": 0,
+    "blocks_read": 3178,
+    "stats_reset": null
+  },
+  "public_index_bytes": 1728512,
+  "public_maintenance": {
+    "deletes": 0,
+    "inserts": 0,
+    "updates": 0,
+    "vacuum_runs": 0,
+    "dead_rows_estimate": 0,
+    "live_rows_estimate": 0
+  },
+  "provider_billed_usage": null,
+  "public_relation_bytes": 2342912
+}

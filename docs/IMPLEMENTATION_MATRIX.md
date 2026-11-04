@@ -1,3 +1,16 @@
+## 04/11/2026 — Operação, conteúdo do recovery e upgrade histórico
+
+M1 / evidência local: recovery verifica conteúdo privado no mesmo snapshot/backup,
+com teste de dump adulterado que conserva contagens/schema; novos gates em
+conversão/release. Worksheets das 42/14 linhas vinculam decisões humanas a
+inventário/colunas/dependências, sem autorizar descarte. Upgrade exercita falha
+atômica/retomada, dados financeiros preservados e Auth após aposentadoria; ataques
+de revogação entram nos três caminhos SQL. Leitura de contrato paraleliza origem
+da RFQ com JWT/RLS intactos. Capacidade e Vercel observados somente leitura;
+Demo segue fixtures/readiness 503 e Production bloqueada pelo gate correto.
+Recovery/cutover hospedados NOT_RUN. [Evidência e handoff único](evidence/hosted-operations-2026-11-04.md).
+CI do novo HEAD deve comprovar os quatro gates e integração profunda; não herda #321.
+
 ## 04/11/2026 — Consolidação financeira e baseline direta
 
 M1/E1: snapshot financeiro adicional substitui 84 migrations na instalação nova,

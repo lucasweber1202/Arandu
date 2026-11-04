@@ -370,4 +370,15 @@ test('sondas adversariais: sonda sem pré-condição é SKIPPED e FAIL derruba a
   assert.match(source, /process\.exit\(failed\.length \? 1 : 0\)/);
   assert.doesNotMatch(source, /status: 'PASS', evidence: 'n\/a'/);
 });
+
+test('risk-D integration exercises direct baseline without dropping historical SQL or any service phase',()=>{
+ const entry=fs.readFileSync('.github/workflows/ci.yml','utf8');
+ assert.match(entry,/uses: \.\/\.github\/workflows\/demo-integration\.yml[\s\S]*?install_flow: financialBaseline/);
+ assert.match(workflow,/PILOT_LOCAL_INSTALL_FLOW: \$\{\{ inputs\.install_flow \|\| 'cleanInstall' \}\}/);
+ assert.match(workflow,/run: node scripts\/local-migration-plan\.mjs > \/dev\/null/);
+ assert(workflow.indexOf('Validate installation path before provisioning')<workflow.indexOf('Preflight (memory'));
+ assert.match(workflow,/options: \[cleanInstall, financialBaseline\]/);
+ const database=fs.readFileSync('scripts/test-database.sh','utf8');
+ assert.match(database,/financial-baseline\.mjs/);assert.match(database,/pilot-upgrade-rehearse\.mjs/);
+});
 console.log(`${passed} testes da integração efêmera OK`);

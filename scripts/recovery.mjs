@@ -19,6 +19,7 @@ import { digestFile } from '../lib/recovery-transfer.mjs';
 import { RECOVERY_REFS } from '../lib/pilot-backup-preflight.mjs';
 import { countsDigest, parseCounts } from '../lib/recovery-reconciliation.mjs';
 import { SCHEMA_FINGERPRINT_VERSION, validSchemaDigest } from '../lib/recovery-schema.mjs';
+import { CONTENT_FINGERPRINT_VERSION, validateContentManifest } from '../lib/recovery-content.mjs';
 import { recoveryCompleteness } from '../lib/storage-recovery.mjs';
 import { storageEvidence } from './storage-recovery.mjs';
 import {
@@ -119,6 +120,10 @@ export function restoreRecords(directory, manifest) {
       manifest.schema_fingerprint_version === SCHEMA_FINGERPRINT_VERSION && validSchemaDigest(manifest.snapshot_schema_sha256) &&
       r.schema_fingerprint_version === SCHEMA_FINGERPRINT_VERSION && r.schema_reconciliation === 'MATCH' &&
       r.source_schema_sha256 === manifest.snapshot_schema_sha256 && r.target_schema_sha256 === manifest.snapshot_schema_sha256 &&
+      manifest.content_fingerprint_version===CONTENT_FINGERPRINT_VERSION &&
+      r.content_fingerprint_version===CONTENT_FINGERPRINT_VERSION && r.content_reconciliation==='MATCH' &&
+      r.source_content_sha256===manifest.snapshot_content_sha256 && r.target_content_sha256===manifest.snapshot_content_sha256 &&
+      Array.isArray(r.content_differences)&&r.content_differences.length===0 &&
       JSON.stringify(r.files) === JSON.stringify(files) && Date.parse(r.verified_at) >= Date.parse(manifest.completed_at || manifest.started_at);
     return valid ? [{ name, verified_at: r.verified_at }] : [];
   });
@@ -154,6 +159,8 @@ export async function verifyExport({ env = process.env, root = process.cwd() } =
     const actual = await digestFile(read(entry.name));
     if (actual.bytes !== entry.bytes || actual.sha256 !== entry.sha256) recoveryFail('RECOVERY_READBACK_FAILED', 'Hash ou tamanho divergente do manifest.');
   }
+  try {validateContentManifest(manifest);}
+  catch {recoveryFail('RECOVERY_MANIFEST_INVALID','Manifest sem prova íntegra do conteúdo do snapshot; backup preservado, completude não comprovada.');}
   const restored = restoreRecords(real, manifest).length > 0;
   // Banco restaurado não basta: com arquivos na origem, exige os binários
   // exportados neste export e restaurados/reconciliados (scripts/storage-recovery.mjs).
@@ -169,6 +176,8 @@ export async function verifyExport({ env = process.env, root = process.cwd() } =
     store_id: marker.store_id, retention_days: marker.retention_days, integrity: 'VERIFIED', files: manifest.files,
     storage_objects: storageObjects ?? null, storage_binaries: storageObjects > 0 ? (storage.length ? 'RESTORE_VERIFIED' : 'NOT_VERIFIED') : 'NONE',
     completeness, level: complete ? 5 : 4,
+    operational_state:complete?'RESTORE_VERIFIED':'BACKUP_VERIFIED',
+    milestones:{BACKUP_CREATED:'PASS',BACKUP_VERIFIED:'PASS',RESTORE_VERIFIED:complete?'PASS':'NOT_PROVEN',FULL_RECOVERY_VERIFIED:'NOT_PROVEN'},
     // COMPLETE is scoped to reconciled database/Storage artifacts, never the
     // managed environment. Auth rows alone do not restore GoTrue/OAuth/MFA.
     verified_scope: 'postgresql_and_storage_artifacts', environment_recovery: 'NOT_PROVEN',

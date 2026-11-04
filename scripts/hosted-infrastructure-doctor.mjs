@@ -36,6 +36,7 @@ const conversionActions = {
   verified_export: ['preservation', 'recovery_operator', 'Executar export autorizado da origem classificada para destino durável; registrar hashes.'],
   real_restore: ['recovery', 'recovery_operator', 'Restaurar o mesmo export em alvo isolado e reconciliar dados, permissões e componentes gerenciados.'],
   restore_schema_reconciliation: ['recovery', 'recovery_operator', 'Conferir fingerprint compatível do manifest e recibo do mesmo export: schema_reconciliation MATCH e hashes de origem/destino iguais ao snapshot; não preencher prova antiga por inferência.'],
+  restore_content_reconciliation: ['recovery', 'recovery_operator', 'Comparar conteúdo do mesmo snapshot e backup com chave cifrada; contagens iguais não comprovam valores iguais.'],
   controlled_reconstruction: ['cutover', 'database_owner', 'Revisar reconstrução e rollback; obter autorização específica antes de executar.'],
   current_migration_bundle: ['schema', 'engineer', 'Regenerar o bundle canônico da árvore atual e revisar seu hash no plano.']
 };
@@ -94,9 +95,12 @@ export function diagnoseHostedInfrastructure({ environment, commit, inventory, c
 
   const vercelBound = identity(vercelObservation);
   const vercelStatus = vercelObservation?.http_status;
-  add('vercel_inspection', 'access', vercelBound && [401, 403].includes(vercelStatus) ? 'ACCESS_BLOCKED' : 'NOT_PROVEN',
-    'Habilitar leitura no team lucas-projects467 para os três projetos; depois ler configuração, escopos e primeira falha de logs.',
-    'vercel_team_owner', true, false, { source: 'vercel-inspection', identity_bound: Boolean(vercelBound), ...(vercelBound && [401, 403].includes(vercelStatus) ? { http_status: vercelStatus } : {}) });
+  const vercelReadable = vercelBound && vercelStatus === 200 && vercelObservation.metadata_read === true
+    && vercelObservation.observed_deployment_commit === commit;
+  add('vercel_inspection', 'access', vercelReadable ? 'PASS' : vercelBound && [401, 403].includes(vercelStatus) ? 'ACCESS_BLOCKED' : 'NOT_PROVEN',
+    'Ler projeto, deployment e metadados de configuração no team lucas-projects467; vincular o deployment ao SHA observado, sem descriptografar variáveis.',
+    'deployment_operator', false, true, { source: 'vercel-inspection', identity_bound: Boolean(vercelBound), metadata_only: true,
+      ...(vercelBound && [200,401,403].includes(vercelStatus) ? { http_status: vercelStatus } : {}) });
 
   const healthBound = identity(healthObservation) && fresh(healthObservation?.observed_at, 300000);
   const publicHealth = healthBound ? assessPublicHealth(healthObservation.payload, { environment, commit, readiness: true }) : null;

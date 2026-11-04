@@ -12,6 +12,7 @@ import { digestFile } from '../lib/recovery-transfer.mjs';
 import { verifyRestore } from './consolidation-restore-verify.mjs';
 import { SCHEMA_SQL } from '../lib/recovery-schema.mjs';
 import { loopbackTarget } from '../lib/recovery-reconciliation.mjs';
+import { decryptedContentKey,fingerprintContent,contentDigest } from '../lib/recovery-content.mjs';
 import { initStore, prepareKey, privateExport, verifyExport } from './recovery.mjs';
 import { rehearseStorageSet } from './recovery-storage-fixture.mjs';
 
@@ -181,6 +182,33 @@ try {
   const fingerprint = port => sql(port,`BEGIN READ ONLY; ${SCHEMA_SQL} COMMIT;`).trim().split('\n').find(v=>/^[a-f0-9]{64}$/.test(v));
   const originalSchema = fingerprint(ports.source);
   assert.equal(originalSchema,manifest.snapshot_schema_sha256);
+  const verificationKey=decryptedContentKey(manifest.content_key_age,identity,env);
+  assert(!JSON.stringify(manifest).includes(verificationKey.toString('hex')),'Content key leaked in manifest');
+  assert(!fs.readFileSync(path.join(dir,'source.log'),'utf8').includes(verificationKey.toString('hex')),'Content key was sent to PostgreSQL logs');
+  const contentAtSource=()=>fingerprintContent({...env,PGPORT:String(ports.source)},manifest.snapshot_counts,verificationKey);
+  assert.equal(contentDigest(await contentAtSource()),manifest.snapshot_content_sha256);
+  // A valid different dump with the SAME schema/counts must not be accepted as
+  // the content captured by this export. No plaintext file is ever written.
+  sql(ports.source,"UPDATE public.parent SET label='synthetic-changed' WHERE id=1;");
+  assert.equal(fingerprint(ports.source),originalSchema,'Value mutation must leave schema fingerprint unchanged');
+  assert.notEqual(contentDigest(await contentAtSource()),manifest.snapshot_content_sha256);
+  const alteredDump=spawnSync('pg_dump',['-Fc'],{env:{...env,PGPORT:String(ports.source)},maxBuffer:32*1024*1024});
+  assert.equal(alteredDump.status,0);
+  const alteredCipher=spawnSync('age',['--encrypt','--recipient',recipient],{env,input:alteredDump.stdout,maxBuffer:32*1024*1024});
+  assert.equal(alteredCipher.status,0);
+  sql(ports.source,"UPDATE public.parent SET label='synthetic-alpha' WHERE id=1;");
+  assert.equal(contentDigest(await contentAtSource()),manifest.snapshot_content_sha256);
+  verificationKey.fill(0);
+  const alteredBackup=path.join(dir,'altered-content');fs.cpSync(backup,alteredBackup,{recursive:true});fs.chmodSync(alteredBackup,0o700);
+  fs.writeFileSync(path.join(alteredBackup,'database.dump.age'),alteredCipher.stdout);
+  const alteredManifest=structuredClone(manifest);Object.assign(alteredManifest.files[0],await digestFile(path.join(alteredBackup,'database.dump.age')));
+  fs.writeFileSync(path.join(alteredBackup,'manifest.json'),JSON.stringify(alteredManifest));
+  ports.contentDrift=await startCluster('content-drift');
+  sql(ports.contentDrift,'CREATE ROLE arandu_fixture_reader NOSUPERUSER NOCREATEDB NOCREATEROLE NOLOGIN;');
+  await code(verifyRestore({syntheticLocal:true,root:process.cwd(),env:{...restoreEnv,ARANDU_RESTORE_BACKUP:alteredBackup,ARANDU_RESTORE_TARGET_URL:`postgresql://postgres@127.0.0.1:${ports.contentDrift}/postgres?sslmode=disable`}}),'content_mismatch');
+  const contentRecord=JSON.parse(fs.readFileSync(path.join(alteredBackup,fs.readdirSync(alteredBackup).find(f=>f.startsWith('restore-verification-'))),'utf8'));
+  assert.equal(contentRecord.row_reconciliation,'MATCH');assert.equal(contentRecord.schema_reconciliation,'MATCH');
+  assert.equal(contentRecord.content_reconciliation,'MISMATCH');assert.equal(contentRecord.reconciliation,'MISMATCH');
   // Same row counts, changed marker or function body must change the fingerprint.
   sql(ports.source,"UPDATE public.fin_settings SET value='wrong' WHERE key='schema_version';");
   assert.notEqual(fingerprint(ports.source),originalSchema);
@@ -255,6 +283,8 @@ try {
   assert(!fs.readFileSync(path.join(backup,recordFile),'utf8').includes('synthetic-alpha'),'registro com conteúdo de dados');
   assert.equal(record.schema_reconciliation,'MATCH');
   assert.equal(record.source_schema_sha256,record.target_schema_sha256);
+  assert.equal(record.content_reconciliation,'MATCH');
+  assert.equal(record.source_content_sha256,record.target_content_sha256);
   // Empty target containing an extra function: counts MATCH cannot hide schema drift.
   ports.drift=await startCluster('drift');
   sql(ports.drift,"CREATE ROLE arandu_fixture_reader NOSUPERUSER NOCREATEDB NOCREATEROLE NOLOGIN; CREATE FUNCTION public.unexpected() RETURNS int LANGUAGE sql AS 'select 1';");
@@ -296,6 +326,9 @@ try {
       assert.equal(verification.integrity,'VERIFIED');assert.equal(verification.level,4);assert.equal(verification.recovery,'RECOVERY_RESTORE_NOT_VERIFIED');
       assert.equal(pm.storage.store_id,store.store_id);assert.equal(pm.durability,'fsync_files_and_directory');
       assert.equal(verification.state,'RECOVERY_EXPORT_VERIFIED');
+      assert.equal(pm.operational_state,'BACKUP_CREATED');
+      assert.equal(verification.operational_state,'BACKUP_VERIFIED');
+      assert.deepEqual(verification.milestones,{BACKUP_CREATED:'PASS',BACKUP_VERIFIED:'PASS',RESTORE_VERIFIED:'NOT_PROVEN',FULL_RECOVERY_VERIFIED:'NOT_PROVEN'});
       const exportDir=path.join(storeDir,verification.export);
       const vEnv={...opEnv,ARANDU_RECOVERY_BACKUP:exportDir};
       assert.equal((await verifyExport({env:vEnv})).level,4);
