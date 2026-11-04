@@ -1,10 +1,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { financialBaselineFiles } from '../lib/migration-baseline.mjs';
 
 const root = process.cwd();
 const manifestPath = path.join(root, 'docs/supabase-migrations.json');
 const issues = [];
 const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+try { financialBaselineFiles(root, manifest); } catch (error) { issues.push(error.message); }
 
 for (const [flow, files] of Object.entries(manifest)) {
   if (!Array.isArray(files) || !files.length) {

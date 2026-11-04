@@ -61,6 +61,26 @@ try {
  const resumeMarker=psql(target,"select value from public.fin_settings where key='schema_version';").trim();
  assert.equal(resumeMarker,'financial-data-governance-1');
  const resume=execFileSync(process.execPath,['scripts/build-supabase-migration-bundle.mjs','--flow=existingDatabase',`--after-schema=${resumeMarker}`,'--stdout'],{encoding:'utf8',maxBuffer:8*1024*1024});
+ const retirementFile='docs/supabase-financial-legacy-art-decommission.sql';
+ const retirementSql=readFileSync(retirementFile,'utf8');
+ const memberFunction=psql(target,"select pg_get_functiondef('public.fin_member_default_name()'::regprocedure)");
+ const authTriggers=psql(target,"select count(*) from pg_trigger where tgrelid='auth.users'::regclass and not tgisinternal");
+ for(const ack of ['invalid','export-verified:']) {
+   const invalid=spawnSync('psql',[String(target),'-XAtq','-v','ON_ERROR_STOP=1','-f','-'],{input:`set arandu.legacy_art_decommission_ack='${ack}';\n${retirementSql}`,encoding:'utf8'});
+   assert.notEqual(invalid.status,0);assert.match(invalid.stderr,/legacy art data present/);
+   assert.equal(psql(target,"select value from public.fin_settings where key='schema_version'" ).trim(),resumeMarker);
+ }
+ // An unexpected financial dependency must abort without CASCADE and roll back
+ // the replacement member-name function, Auth trigger removal and evidence.
+ psql(target,'create view public.fin_unexpected_legacy_dependency as select count(*) as n from public.artists;');
+ const dependency=spawnSync('psql',[String(target),'-XAtq','-v','ON_ERROR_STOP=1','-f','-'],{
+   input:`set arandu.legacy_art_decommission_ack='export-verified:synthetic-local-restore-${dumpSha}';\n${retirementSql}`,encoding:'utf8',maxBuffer:16*1024*1024});
+ assert.notEqual(dependency.status,0);assert.match(dependency.stderr,/depend/);
+ assert.equal(psql(target,"select value from public.fin_settings where key='schema_version'").trim(),resumeMarker);
+ assert.equal(psql(target,"select pg_get_functiondef('public.fin_member_default_name()'::regprocedure)"),memberFunction);
+ assert.equal(psql(target,"select count(*) from pg_trigger where tgrelid='auth.users'::regclass and not tgisinternal"),authTriggers);
+ assert.equal(fingerprint(),preserved,'Refused retirement changed financial history');
+ psql(target,'drop view public.fin_unexpected_legacy_dependency;');
  psql(target,`set arandu.legacy_art_decommission_ack='export-verified:synthetic-local-restore-${dumpSha}';\n${resume}`);
  assert.equal(fingerprint(),preserved,'Upgrade changed immutable proposal history');
  apply('ops/sql/post-migration-probes.sql');
