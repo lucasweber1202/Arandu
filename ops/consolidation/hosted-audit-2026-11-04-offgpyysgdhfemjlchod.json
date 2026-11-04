@@ -1,0 +1,4672 @@
+{
+  "observed_at": "2026-11-04T13:37:44.847Z",
+  "ref": "offgpyysgdhfemjlchod",
+  "classification": "metadata_only_not_backup",
+  "inventory": {
+    "auth": {
+      "mfa": 0,
+      "users": 0,
+      "sessions": 0,
+      "identities": 0
+    },
+    "views": [
+      {
+        "name": "v_artworks_full",
+        "options": [
+          "security_invoker=on"
+        ],
+        "definition_md5": "4635526ba132e35f66acfd4505fd5fef"
+      },
+      {
+        "name": "v_available_artworks",
+        "options": [
+          "security_invoker=on"
+        ],
+        "definition_md5": "2179ca0f0f094ff4e728bf8e5982c85d"
+      },
+      {
+        "name": "v_catalog_editorial_readiness",
+        "options": [
+          "security_invoker=on"
+        ],
+        "definition_md5": "ff296a802bdf826b27de51fa038f0295"
+      },
+      {
+        "name": "v_catalog_readiness",
+        "options": [
+          "security_invoker=on"
+        ],
+        "definition_md5": "9cd8f6e84ad4a44a7ff832f12a027d5a"
+      },
+      {
+        "name": "v_commercial_pipeline",
+        "options": [
+          "security_invoker=on"
+        ],
+        "definition_md5": "b4fca0418e49b1126abc61a3941e8554"
+      },
+      {
+        "name": "v_mvp_artist_pipeline",
+        "options": [
+          "security_invoker=on"
+        ],
+        "definition_md5": "eb7c8f92f67f3c70c17172321b6134d8"
+      },
+      {
+        "name": "v_mvp_artwork_price_bands",
+        "options": [
+          "security_invoker=on"
+        ],
+        "definition_md5": "2393b00c57af8d88edb36eb4d68d34de"
+      },
+      {
+        "name": "v_mvp_certificate_readiness",
+        "options": [
+          "security_invoker=on"
+        ],
+        "definition_md5": "d471782ee8557b06bbd1f2e14bacae95"
+      },
+      {
+        "name": "v_mvp_commercial_pipeline",
+        "options": [
+          "security_invoker=on"
+        ],
+        "definition_md5": "5da0b7982c0c9ce1036c28548972d494"
+      },
+      {
+        "name": "v_mvp_operational_dashboard",
+        "options": [
+          "security_invoker=on"
+        ],
+        "definition_md5": "0750c93bf0af1433a6516c6dd338d6e5"
+      },
+      {
+        "name": "v_mvp_submission_pipeline",
+        "options": [
+          "security_invoker=on"
+        ],
+        "definition_md5": "3f879b7cb330540d0f38165aff2027a3"
+      },
+      {
+        "name": "v_mvp_validation_scorecard",
+        "options": [
+          "security_invoker=on"
+        ],
+        "definition_md5": "05ab90da57d29177dd41dc1a75ea8af5"
+      },
+      {
+        "name": "v_public_artists",
+        "options": [
+          "security_invoker=on"
+        ],
+        "definition_md5": "34be9ff19ec06a34c7d9c206d357a02c"
+      },
+      {
+        "name": "v_public_catalog",
+        "options": [
+          "security_invoker=on"
+        ],
+        "definition_md5": "4090bf8d4f71bbfbda8f68028cdb4366"
+      },
+      {
+        "name": "v_public_collection_items",
+        "options": [
+          "security_invoker=on"
+        ],
+        "definition_md5": "03327497d657e15a80afe0de41b2e1b8"
+      },
+      {
+        "name": "v_public_collections",
+        "options": [
+          "security_invoker=on"
+        ],
+        "definition_md5": "9ab93c350af0037ea75a4e0c49fce8c3"
+      },
+      {
+        "name": "v_quality_issues",
+        "options": [
+          "security_invoker=on"
+        ],
+        "definition_md5": "f0c880428d7fd81dc26404c22ad49a4a"
+      },
+      {
+        "name": "v_sales_pipeline",
+        "options": [
+          "security_invoker=on"
+        ],
+        "definition_md5": "c50e2f6f6e135683082312dffd4f737c"
+      }
+    ],
+    "tables": [
+      {
+        "rls": true,
+        "name": "api_rate_limits",
+        "rows": 2,
+        "bytes": 32768,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "artist_accounts",
+        "rows": 0,
+        "bytes": 40960,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "artist_submissions",
+        "rows": 0,
+        "bytes": 24576,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "artists",
+        "rows": 0,
+        "bytes": 49152,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "artwork_events",
+        "rows": 0,
+        "bytes": 16384,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "artworks",
+        "rows": 0,
+        "bytes": 65536,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "audit_logs",
+        "rows": 0,
+        "bytes": 24576,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "catalog_releases",
+        "rows": 1,
+        "bytes": 32768,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "catalog_review_history",
+        "rows": 0,
+        "bytes": 24576,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "certificates",
+        "rows": 0,
+        "bytes": 40960,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "collection_artworks",
+        "rows": 0,
+        "bytes": 32768,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "commercial_items",
+        "rows": 0,
+        "bytes": 32768,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "commercial_records",
+        "rows": 0,
+        "bytes": 40960,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "company_briefs",
+        "rows": 0,
+        "bytes": 32768,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "consignments",
+        "rows": 0,
+        "bytes": 40960,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "conversion_events",
+        "rows": 0,
+        "bytes": 24576,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "crm_notes",
+        "rows": 0,
+        "bytes": 24576,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "curated_collections",
+        "rows": 4,
+        "bytes": 65536,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "data_legal_holds",
+        "rows": 0,
+        "bytes": 32768,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "data_retention_policies",
+        "rows": 0,
+        "bytes": 16384,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "fin_approval_policies",
+        "rows": 0,
+        "bytes": 8192,
+        "force_rls": true
+      },
+      {
+        "rls": true,
+        "name": "fin_approval_requests",
+        "rows": 0,
+        "bytes": 40960,
+        "force_rls": true
+      },
+      {
+        "rls": true,
+        "name": "fin_approval_steps",
+        "rows": 0,
+        "bytes": 40960,
+        "force_rls": true
+      },
+      {
+        "rls": true,
+        "name": "fin_comments",
+        "rows": 0,
+        "bytes": 40960,
+        "force_rls": true
+      },
+      {
+        "rls": true,
+        "name": "fin_company_profiles",
+        "rows": 0,
+        "bytes": 32768,
+        "force_rls": true
+      },
+      {
+        "rls": true,
+        "name": "fin_contracts",
+        "rows": 0,
+        "bytes": 40960,
+        "force_rls": true
+      },
+      {
+        "rls": true,
+        "name": "fin_decisions",
+        "rows": 0,
+        "bytes": 49152,
+        "force_rls": true
+      },
+      {
+        "rls": true,
+        "name": "fin_document_versions",
+        "rows": 0,
+        "bytes": 24576,
+        "force_rls": true
+      },
+      {
+        "rls": true,
+        "name": "fin_documents",
+        "rows": 0,
+        "bytes": 24576,
+        "force_rls": true
+      },
+      {
+        "rls": true,
+        "name": "fin_events",
+        "rows": 0,
+        "bytes": 32768,
+        "force_rls": true
+      },
+      {
+        "rls": true,
+        "name": "fin_invite_acceptance_denials",
+        "rows": 0,
+        "bytes": 24576,
+        "force_rls": true
+      },
+      {
+        "rls": true,
+        "name": "fin_job_runs",
+        "rows": 4,
+        "bytes": 49152,
+        "force_rls": true
+      },
+      {
+        "rls": true,
+        "name": "fin_member_invitations",
+        "rows": 0,
+        "bytes": 24576,
+        "force_rls": true
+      },
+      {
+        "rls": true,
+        "name": "fin_members",
+        "rows": 0,
+        "bytes": 16384,
+        "force_rls": true
+      },
+      {
+        "rls": true,
+        "name": "fin_notification_preferences",
+        "rows": 0,
+        "bytes": 16384,
+        "force_rls": true
+      },
+      {
+        "rls": true,
+        "name": "fin_notifications",
+        "rows": 0,
+        "bytes": 32768,
+        "force_rls": true
+      },
+      {
+        "rls": true,
+        "name": "fin_ops_access_log",
+        "rows": 0,
+        "bytes": 16384,
+        "force_rls": true
+      },
+      {
+        "rls": true,
+        "name": "fin_organizations",
+        "rows": 0,
+        "bytes": 24576,
+        "force_rls": true
+      },
+      {
+        "rls": true,
+        "name": "fin_pilot_allowlist",
+        "rows": 0,
+        "bytes": 24576,
+        "force_rls": true
+      },
+      {
+        "rls": true,
+        "name": "fin_platform_operators",
+        "rows": 0,
+        "bytes": 16384,
+        "force_rls": true
+      },
+      {
+        "rls": true,
+        "name": "fin_private_documents",
+        "rows": 0,
+        "bytes": 32768,
+        "force_rls": true
+      },
+      {
+        "rls": true,
+        "name": "fin_proposal_drafts",
+        "rows": 0,
+        "bytes": 16384,
+        "force_rls": true
+      },
+      {
+        "rls": true,
+        "name": "fin_proposal_versions",
+        "rows": 0,
+        "bytes": 32768,
+        "force_rls": true
+      },
+      {
+        "rls": true,
+        "name": "fin_proposals",
+        "rows": 0,
+        "bytes": 57344,
+        "force_rls": true
+      },
+      {
+        "rls": true,
+        "name": "fin_providers",
+        "rows": 0,
+        "bytes": 24576,
+        "force_rls": true
+      },
+      {
+        "rls": true,
+        "name": "fin_renewal_milestones",
+        "rows": 0,
+        "bytes": 32768,
+        "force_rls": true
+      },
+      {
+        "rls": true,
+        "name": "fin_rfq_editor_drafts",
+        "rows": 0,
+        "bytes": 16384,
+        "force_rls": true
+      },
+      {
+        "rls": true,
+        "name": "fin_rfq_invites",
+        "rows": 0,
+        "bytes": 65536,
+        "force_rls": true
+      },
+      {
+        "rls": true,
+        "name": "fin_rfq_revisions",
+        "rows": 0,
+        "bytes": 24576,
+        "force_rls": true
+      },
+      {
+        "rls": true,
+        "name": "fin_rfqs",
+        "rows": 0,
+        "bytes": 49152,
+        "force_rls": true
+      },
+      {
+        "rls": true,
+        "name": "fin_settings",
+        "rows": 3,
+        "bytes": 32768,
+        "force_rls": true
+      },
+      {
+        "rls": true,
+        "name": "fin_tasks",
+        "rows": 0,
+        "bytes": 24576,
+        "force_rls": true
+      },
+      {
+        "rls": true,
+        "name": "fin_terms_acceptances",
+        "rows": 0,
+        "bytes": 24576,
+        "force_rls": true
+      },
+      {
+        "rls": true,
+        "name": "idempotency_keys",
+        "rows": 0,
+        "bytes": 24576,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "leads",
+        "rows": 0,
+        "bytes": 40960,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "logistics_records",
+        "rows": 0,
+        "bytes": 32768,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "media_assets",
+        "rows": 0,
+        "bytes": 16384,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "newsletter_subscriptions",
+        "rows": 0,
+        "bytes": 16384,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "operational_status_history",
+        "rows": 0,
+        "bytes": 24576,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "order_status_history",
+        "rows": 0,
+        "bytes": 24576,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "orders",
+        "rows": 0,
+        "bytes": 49152,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "pilot_events",
+        "rows": 0,
+        "bytes": 40960,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "pilot_feedback",
+        "rows": 0,
+        "bytes": 40960,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "privacy_requests",
+        "rows": 0,
+        "bytes": 24576,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "profiles",
+        "rows": 0,
+        "bytes": 32768,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "proposal_items",
+        "rows": 0,
+        "bytes": 32768,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "proposals",
+        "rows": 0,
+        "bytes": 57344,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "reservations",
+        "rows": 0,
+        "bytes": 49152,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "saved_selections",
+        "rows": 0,
+        "bytes": 49152,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "tasks",
+        "rows": 0,
+        "bytes": 32768,
+        "force_rls": false
+      },
+      {
+        "rls": true,
+        "name": "transactional_email_outbox",
+        "rows": 0,
+        "bytes": 40960,
+        "force_rls": false
+      }
+    ],
+    "indexes": [
+      {
+        "name": "api_rate_limits_pkey",
+        "scans": 0,
+        "table": "api_rate_limits",
+        "definition": "CREATE UNIQUE INDEX api_rate_limits_pkey ON public.api_rate_limits USING btree (scope, fingerprint, window_start)"
+      },
+      {
+        "name": "artist_accounts_pkey",
+        "scans": 0,
+        "table": "artist_accounts",
+        "definition": "CREATE UNIQUE INDEX artist_accounts_pkey ON public.artist_accounts USING btree (id)"
+      },
+      {
+        "name": "artist_submissions_pkey",
+        "scans": 0,
+        "table": "artist_submissions",
+        "definition": "CREATE UNIQUE INDEX artist_submissions_pkey ON public.artist_submissions USING btree (id)"
+      },
+      {
+        "name": "artists_pkey",
+        "scans": 0,
+        "table": "artists",
+        "definition": "CREATE UNIQUE INDEX artists_pkey ON public.artists USING btree (id)"
+      },
+      {
+        "name": "artists_slug_key",
+        "scans": 0,
+        "table": "artists",
+        "definition": "CREATE UNIQUE INDEX artists_slug_key ON public.artists USING btree (slug)"
+      },
+      {
+        "name": "artwork_events_pkey",
+        "scans": 0,
+        "table": "artwork_events",
+        "definition": "CREATE UNIQUE INDEX artwork_events_pkey ON public.artwork_events USING btree (id)"
+      },
+      {
+        "name": "artworks_pkey",
+        "scans": 0,
+        "table": "artworks",
+        "definition": "CREATE UNIQUE INDEX artworks_pkey ON public.artworks USING btree (id)"
+      },
+      {
+        "name": "artworks_slug_key",
+        "scans": 0,
+        "table": "artworks",
+        "definition": "CREATE UNIQUE INDEX artworks_slug_key ON public.artworks USING btree (slug)"
+      },
+      {
+        "name": "audit_logs_pkey",
+        "scans": 0,
+        "table": "audit_logs",
+        "definition": "CREATE UNIQUE INDEX audit_logs_pkey ON public.audit_logs USING btree (id)"
+      },
+      {
+        "name": "catalog_releases_pkey",
+        "scans": 0,
+        "table": "catalog_releases",
+        "definition": "CREATE UNIQUE INDEX catalog_releases_pkey ON public.catalog_releases USING btree (id)"
+      },
+      {
+        "name": "catalog_review_history_pkey",
+        "scans": 0,
+        "table": "catalog_review_history",
+        "definition": "CREATE UNIQUE INDEX catalog_review_history_pkey ON public.catalog_review_history USING btree (id)"
+      },
+      {
+        "name": "certificates_code_key",
+        "scans": 0,
+        "table": "certificates",
+        "definition": "CREATE UNIQUE INDEX certificates_code_key ON public.certificates USING btree (code)"
+      },
+      {
+        "name": "certificates_pkey",
+        "scans": 0,
+        "table": "certificates",
+        "definition": "CREATE UNIQUE INDEX certificates_pkey ON public.certificates USING btree (id)"
+      },
+      {
+        "name": "collection_artworks_pkey",
+        "scans": 0,
+        "table": "collection_artworks",
+        "definition": "CREATE UNIQUE INDEX collection_artworks_pkey ON public.collection_artworks USING btree (collection_id, artwork_id)"
+      },
+      {
+        "name": "commercial_items_pkey",
+        "scans": 0,
+        "table": "commercial_items",
+        "definition": "CREATE UNIQUE INDEX commercial_items_pkey ON public.commercial_items USING btree (id)"
+      },
+      {
+        "name": "commercial_records_commercial_number_key",
+        "scans": 0,
+        "table": "commercial_records",
+        "definition": "CREATE UNIQUE INDEX commercial_records_commercial_number_key ON public.commercial_records USING btree (commercial_number)"
+      },
+      {
+        "name": "commercial_records_pkey",
+        "scans": 0,
+        "table": "commercial_records",
+        "definition": "CREATE UNIQUE INDEX commercial_records_pkey ON public.commercial_records USING btree (id)"
+      },
+      {
+        "name": "company_briefs_pkey",
+        "scans": 0,
+        "table": "company_briefs",
+        "definition": "CREATE UNIQUE INDEX company_briefs_pkey ON public.company_briefs USING btree (id)"
+      },
+      {
+        "name": "consignments_pkey",
+        "scans": 0,
+        "table": "consignments",
+        "definition": "CREATE UNIQUE INDEX consignments_pkey ON public.consignments USING btree (id)"
+      },
+      {
+        "name": "conversion_events_pkey",
+        "scans": 0,
+        "table": "conversion_events",
+        "definition": "CREATE UNIQUE INDEX conversion_events_pkey ON public.conversion_events USING btree (id)"
+      },
+      {
+        "name": "crm_notes_pkey",
+        "scans": 0,
+        "table": "crm_notes",
+        "definition": "CREATE UNIQUE INDEX crm_notes_pkey ON public.crm_notes USING btree (id)"
+      },
+      {
+        "name": "curated_collections_pkey",
+        "scans": 0,
+        "table": "curated_collections",
+        "definition": "CREATE UNIQUE INDEX curated_collections_pkey ON public.curated_collections USING btree (id)"
+      },
+      {
+        "name": "curated_collections_slug_key",
+        "scans": 0,
+        "table": "curated_collections",
+        "definition": "CREATE UNIQUE INDEX curated_collections_slug_key ON public.curated_collections USING btree (slug)"
+      },
+      {
+        "name": "data_legal_holds_pkey",
+        "scans": 0,
+        "table": "data_legal_holds",
+        "definition": "CREATE UNIQUE INDEX data_legal_holds_pkey ON public.data_legal_holds USING btree (id)"
+      },
+      {
+        "name": "data_retention_policies_pkey",
+        "scans": 0,
+        "table": "data_retention_policies",
+        "definition": "CREATE UNIQUE INDEX data_retention_policies_pkey ON public.data_retention_policies USING btree (data_class)"
+      },
+      {
+        "name": "fin_approval_one_pending",
+        "scans": 0,
+        "table": "fin_approval_requests",
+        "definition": "CREATE UNIQUE INDEX fin_approval_one_pending ON public.fin_approval_requests USING btree (rfq_id) WHERE (status = 'pending'::text)"
+      },
+      {
+        "name": "fin_approval_org_inbox",
+        "scans": 0,
+        "table": "fin_approval_requests",
+        "definition": "CREATE INDEX fin_approval_org_inbox ON public.fin_approval_requests USING btree (organization_id, status, requested_at DESC)"
+      },
+      {
+        "name": "fin_approval_policies_pkey",
+        "scans": 0,
+        "table": "fin_approval_policies",
+        "definition": "CREATE UNIQUE INDEX fin_approval_policies_pkey ON public.fin_approval_policies USING btree (organization_id)"
+      },
+      {
+        "name": "fin_approval_requests_organization_id_id_key",
+        "scans": 0,
+        "table": "fin_approval_requests",
+        "definition": "CREATE UNIQUE INDEX fin_approval_requests_organization_id_id_key ON public.fin_approval_requests USING btree (organization_id, id)"
+      },
+      {
+        "name": "fin_approval_requests_pkey",
+        "scans": 0,
+        "table": "fin_approval_requests",
+        "definition": "CREATE UNIQUE INDEX fin_approval_requests_pkey ON public.fin_approval_requests USING btree (id)"
+      },
+      {
+        "name": "fin_approval_step_inbox",
+        "scans": 0,
+        "table": "fin_approval_steps",
+        "definition": "CREATE INDEX fin_approval_step_inbox ON public.fin_approval_steps USING btree (approver_id, status, request_id)"
+      },
+      {
+        "name": "fin_approval_steps_pkey",
+        "scans": 0,
+        "table": "fin_approval_steps",
+        "definition": "CREATE UNIQUE INDEX fin_approval_steps_pkey ON public.fin_approval_steps USING btree (id)"
+      },
+      {
+        "name": "fin_approval_steps_request_id_approver_id_key",
+        "scans": 0,
+        "table": "fin_approval_steps",
+        "definition": "CREATE UNIQUE INDEX fin_approval_steps_request_id_approver_id_key ON public.fin_approval_steps USING btree (request_id, approver_id)"
+      },
+      {
+        "name": "fin_approval_steps_request_id_position_key",
+        "scans": 0,
+        "table": "fin_approval_steps",
+        "definition": "CREATE UNIQUE INDEX fin_approval_steps_request_id_position_key ON public.fin_approval_steps USING btree (request_id, \"position\")"
+      },
+      {
+        "name": "fin_comments_object_recent",
+        "scans": 0,
+        "table": "fin_comments",
+        "definition": "CREATE INDEX fin_comments_object_recent ON public.fin_comments USING btree (organization_id, object_type, object_id, created_at DESC, id DESC)"
+      },
+      {
+        "name": "fin_comments_organization_id_id_key",
+        "scans": 0,
+        "table": "fin_comments",
+        "definition": "CREATE UNIQUE INDEX fin_comments_organization_id_id_key ON public.fin_comments USING btree (organization_id, id)"
+      },
+      {
+        "name": "fin_comments_parent",
+        "scans": 0,
+        "table": "fin_comments",
+        "definition": "CREATE INDEX fin_comments_parent ON public.fin_comments USING btree (parent_id) WHERE (parent_id IS NOT NULL)"
+      },
+      {
+        "name": "fin_comments_pkey",
+        "scans": 0,
+        "table": "fin_comments",
+        "definition": "CREATE UNIQUE INDEX fin_comments_pkey ON public.fin_comments USING btree (id)"
+      },
+      {
+        "name": "fin_company_profiles_organization_id_field_key_key",
+        "scans": 0,
+        "table": "fin_company_profiles",
+        "definition": "CREATE UNIQUE INDEX fin_company_profiles_organization_id_field_key_key ON public.fin_company_profiles USING btree (organization_id, field_key)"
+      },
+      {
+        "name": "fin_company_profiles_organization_id_id_key",
+        "scans": 0,
+        "table": "fin_company_profiles",
+        "definition": "CREATE UNIQUE INDEX fin_company_profiles_organization_id_id_key ON public.fin_company_profiles USING btree (organization_id, id)"
+      },
+      {
+        "name": "fin_company_profiles_pkey",
+        "scans": 0,
+        "table": "fin_company_profiles",
+        "definition": "CREATE UNIQUE INDEX fin_company_profiles_pkey ON public.fin_company_profiles USING btree (id)"
+      },
+      {
+        "name": "fin_contracts_one_per_decision",
+        "scans": 0,
+        "table": "fin_contracts",
+        "definition": "CREATE UNIQUE INDEX fin_contracts_one_per_decision ON public.fin_contracts USING btree (decision_id)"
+      },
+      {
+        "name": "fin_contracts_organization_id_id_key",
+        "scans": 0,
+        "table": "fin_contracts",
+        "definition": "CREATE UNIQUE INDEX fin_contracts_organization_id_id_key ON public.fin_contracts USING btree (organization_id, id)"
+      },
+      {
+        "name": "fin_contracts_pkey",
+        "scans": 0,
+        "table": "fin_contracts",
+        "definition": "CREATE UNIQUE INDEX fin_contracts_pkey ON public.fin_contracts USING btree (id)"
+      },
+      {
+        "name": "fin_contracts_renewal_idx",
+        "scans": 0,
+        "table": "fin_contracts",
+        "definition": "CREATE INDEX fin_contracts_renewal_idx ON public.fin_contracts USING btree (organization_id, ends_on)"
+      },
+      {
+        "name": "fin_decisions_one_per_rfq",
+        "scans": 0,
+        "table": "fin_decisions",
+        "definition": "CREATE UNIQUE INDEX fin_decisions_one_per_rfq ON public.fin_decisions USING btree (rfq_id)"
+      },
+      {
+        "name": "fin_decisions_organization_id_id_key",
+        "scans": 0,
+        "table": "fin_decisions",
+        "definition": "CREATE UNIQUE INDEX fin_decisions_organization_id_id_key ON public.fin_decisions USING btree (organization_id, id)"
+      },
+      {
+        "name": "fin_decisions_organization_id_id_proposal_id_key",
+        "scans": 0,
+        "table": "fin_decisions",
+        "definition": "CREATE UNIQUE INDEX fin_decisions_organization_id_id_proposal_id_key ON public.fin_decisions USING btree (organization_id, id, proposal_id)"
+      },
+      {
+        "name": "fin_decisions_pkey",
+        "scans": 0,
+        "table": "fin_decisions",
+        "definition": "CREATE UNIQUE INDEX fin_decisions_pkey ON public.fin_decisions USING btree (id)"
+      },
+      {
+        "name": "fin_decisions_proposal_id_key",
+        "scans": 0,
+        "table": "fin_decisions",
+        "definition": "CREATE UNIQUE INDEX fin_decisions_proposal_id_key ON public.fin_decisions USING btree (proposal_id)"
+      },
+      {
+        "name": "fin_document_versions_pkey",
+        "scans": 0,
+        "table": "fin_document_versions",
+        "definition": "CREATE UNIQUE INDEX fin_document_versions_pkey ON public.fin_document_versions USING btree (document_id, version)"
+      },
+      {
+        "name": "fin_document_versions_storage_path_key",
+        "scans": 0,
+        "table": "fin_document_versions",
+        "definition": "CREATE UNIQUE INDEX fin_document_versions_storage_path_key ON public.fin_document_versions USING btree (storage_path)"
+      },
+      {
+        "name": "fin_documents_organization_id_id_key",
+        "scans": 0,
+        "table": "fin_documents",
+        "definition": "CREATE UNIQUE INDEX fin_documents_organization_id_id_key ON public.fin_documents USING btree (organization_id, id)"
+      },
+      {
+        "name": "fin_documents_pkey",
+        "scans": 0,
+        "table": "fin_documents",
+        "definition": "CREATE UNIQUE INDEX fin_documents_pkey ON public.fin_documents USING btree (id)"
+      },
+      {
+        "name": "fin_events_org_idx",
+        "scans": 0,
+        "table": "fin_events",
+        "definition": "CREATE INDEX fin_events_org_idx ON public.fin_events USING btree (organization_id, happened_at DESC)"
+      },
+      {
+        "name": "fin_events_organization_id_id_key",
+        "scans": 0,
+        "table": "fin_events",
+        "definition": "CREATE UNIQUE INDEX fin_events_organization_id_id_key ON public.fin_events USING btree (organization_id, id)"
+      },
+      {
+        "name": "fin_events_pkey",
+        "scans": 0,
+        "table": "fin_events",
+        "definition": "CREATE UNIQUE INDEX fin_events_pkey ON public.fin_events USING btree (id)"
+      },
+      {
+        "name": "fin_invite_acceptance_denials_pkey",
+        "scans": 0,
+        "table": "fin_invite_acceptance_denials",
+        "definition": "CREATE UNIQUE INDEX fin_invite_acceptance_denials_pkey ON public.fin_invite_acceptance_denials USING btree (id)"
+      },
+      {
+        "name": "fin_invite_denials_recent",
+        "scans": 0,
+        "table": "fin_invite_acceptance_denials",
+        "definition": "CREATE INDEX fin_invite_denials_recent ON public.fin_invite_acceptance_denials USING btree (happened_at DESC)"
+      },
+      {
+        "name": "fin_invites_provider_idx",
+        "scans": 0,
+        "table": "fin_rfq_invites",
+        "definition": "CREATE INDEX fin_invites_provider_idx ON public.fin_rfq_invites USING btree (provider_organization_id, status)"
+      },
+      {
+        "name": "fin_job_runs_pkey",
+        "scans": 0,
+        "table": "fin_job_runs",
+        "definition": "CREATE UNIQUE INDEX fin_job_runs_pkey ON public.fin_job_runs USING btree (id)"
+      },
+      {
+        "name": "fin_job_runs_recent",
+        "scans": 0,
+        "table": "fin_job_runs",
+        "definition": "CREATE INDEX fin_job_runs_recent ON public.fin_job_runs USING btree (job, finished_at DESC)"
+      },
+      {
+        "name": "fin_member_invitations_pkey",
+        "scans": 0,
+        "table": "fin_member_invitations",
+        "definition": "CREATE UNIQUE INDEX fin_member_invitations_pkey ON public.fin_member_invitations USING btree (id)"
+      },
+      {
+        "name": "fin_member_invitations_token_hash_key",
+        "scans": 0,
+        "table": "fin_member_invitations",
+        "definition": "CREATE UNIQUE INDEX fin_member_invitations_token_hash_key ON public.fin_member_invitations USING btree (token_hash)"
+      },
+      {
+        "name": "fin_members_pkey",
+        "scans": 0,
+        "table": "fin_members",
+        "definition": "CREATE UNIQUE INDEX fin_members_pkey ON public.fin_members USING btree (organization_id, user_id)"
+      },
+      {
+        "name": "fin_notification_preferences_pkey",
+        "scans": 0,
+        "table": "fin_notification_preferences",
+        "definition": "CREATE UNIQUE INDEX fin_notification_preferences_pkey ON public.fin_notification_preferences USING btree (organization_id, user_id, event_type)"
+      },
+      {
+        "name": "fin_notifications_inbox",
+        "scans": 0,
+        "table": "fin_notifications",
+        "definition": "CREATE INDEX fin_notifications_inbox ON public.fin_notifications USING btree (organization_id, user_id, read_at, created_at DESC)"
+      },
+      {
+        "name": "fin_notifications_pkey",
+        "scans": 0,
+        "table": "fin_notifications",
+        "definition": "CREATE UNIQUE INDEX fin_notifications_pkey ON public.fin_notifications USING btree (id)"
+      },
+      {
+        "name": "fin_notifications_user_id_event_type_event_id_key",
+        "scans": 0,
+        "table": "fin_notifications",
+        "definition": "CREATE UNIQUE INDEX fin_notifications_user_id_event_type_event_id_key ON public.fin_notifications USING btree (user_id, event_type, event_id)"
+      },
+      {
+        "name": "fin_ops_access_log_pkey",
+        "scans": 0,
+        "table": "fin_ops_access_log",
+        "definition": "CREATE UNIQUE INDEX fin_ops_access_log_pkey ON public.fin_ops_access_log USING btree (id)"
+      },
+      {
+        "name": "fin_organizations_id_kind_key",
+        "scans": 0,
+        "table": "fin_organizations",
+        "definition": "CREATE UNIQUE INDEX fin_organizations_id_kind_key ON public.fin_organizations USING btree (id, kind)"
+      },
+      {
+        "name": "fin_organizations_pkey",
+        "scans": 0,
+        "table": "fin_organizations",
+        "definition": "CREATE UNIQUE INDEX fin_organizations_pkey ON public.fin_organizations USING btree (id)"
+      },
+      {
+        "name": "fin_pilot_allowlist_pattern_key",
+        "scans": 0,
+        "table": "fin_pilot_allowlist",
+        "definition": "CREATE UNIQUE INDEX fin_pilot_allowlist_pattern_key ON public.fin_pilot_allowlist USING btree (pattern)"
+      },
+      {
+        "name": "fin_pilot_allowlist_pkey",
+        "scans": 0,
+        "table": "fin_pilot_allowlist",
+        "definition": "CREATE UNIQUE INDEX fin_pilot_allowlist_pkey ON public.fin_pilot_allowlist USING btree (id)"
+      },
+      {
+        "name": "fin_platform_operators_pkey",
+        "scans": 0,
+        "table": "fin_platform_operators",
+        "definition": "CREATE UNIQUE INDEX fin_platform_operators_pkey ON public.fin_platform_operators USING btree (user_id)"
+      },
+      {
+        "name": "fin_private_documents_entity",
+        "scans": 0,
+        "table": "fin_private_documents",
+        "definition": "CREATE INDEX fin_private_documents_entity ON public.fin_private_documents USING btree (entity_type, entity_id)"
+      },
+      {
+        "name": "fin_private_documents_pkey",
+        "scans": 0,
+        "table": "fin_private_documents",
+        "definition": "CREATE UNIQUE INDEX fin_private_documents_pkey ON public.fin_private_documents USING btree (id)"
+      },
+      {
+        "name": "fin_private_documents_rfq",
+        "scans": 0,
+        "table": "fin_private_documents",
+        "definition": "CREATE INDEX fin_private_documents_rfq ON public.fin_private_documents USING btree (rfq_id) WHERE (rfq_id IS NOT NULL)"
+      },
+      {
+        "name": "fin_proposal_drafts_pkey",
+        "scans": 0,
+        "table": "fin_proposal_drafts",
+        "definition": "CREATE UNIQUE INDEX fin_proposal_drafts_pkey ON public.fin_proposal_drafts USING btree (proposal_id)"
+      },
+      {
+        "name": "fin_proposal_versions_pkey",
+        "scans": 0,
+        "table": "fin_proposal_versions",
+        "definition": "CREATE UNIQUE INDEX fin_proposal_versions_pkey ON public.fin_proposal_versions USING btree (id)"
+      },
+      {
+        "name": "fin_proposal_versions_proposal_id_id_key",
+        "scans": 0,
+        "table": "fin_proposal_versions",
+        "definition": "CREATE UNIQUE INDEX fin_proposal_versions_proposal_id_id_key ON public.fin_proposal_versions USING btree (proposal_id, id)"
+      },
+      {
+        "name": "fin_proposal_versions_proposal_id_version_key",
+        "scans": 0,
+        "table": "fin_proposal_versions",
+        "definition": "CREATE UNIQUE INDEX fin_proposal_versions_proposal_id_version_key ON public.fin_proposal_versions USING btree (proposal_id, version)"
+      },
+      {
+        "name": "fin_proposals_buyer_organization_id_id_key",
+        "scans": 0,
+        "table": "fin_proposals",
+        "definition": "CREATE UNIQUE INDEX fin_proposals_buyer_organization_id_id_key ON public.fin_proposals USING btree (buyer_organization_id, id)"
+      },
+      {
+        "name": "fin_proposals_id_provider_organization_id_key",
+        "scans": 0,
+        "table": "fin_proposals",
+        "definition": "CREATE UNIQUE INDEX fin_proposals_id_provider_organization_id_key ON public.fin_proposals USING btree (id, provider_organization_id)"
+      },
+      {
+        "name": "fin_proposals_invite_id_key",
+        "scans": 0,
+        "table": "fin_proposals",
+        "definition": "CREATE UNIQUE INDEX fin_proposals_invite_id_key ON public.fin_proposals USING btree (invite_id)"
+      },
+      {
+        "name": "fin_proposals_pkey",
+        "scans": 0,
+        "table": "fin_proposals",
+        "definition": "CREATE UNIQUE INDEX fin_proposals_pkey ON public.fin_proposals USING btree (id)"
+      },
+      {
+        "name": "fin_proposals_rfq_id_id_key",
+        "scans": 0,
+        "table": "fin_proposals",
+        "definition": "CREATE UNIQUE INDEX fin_proposals_rfq_id_id_key ON public.fin_proposals USING btree (rfq_id, id)"
+      },
+      {
+        "name": "fin_proposals_rfq_idx",
+        "scans": 0,
+        "table": "fin_proposals",
+        "definition": "CREATE INDEX fin_proposals_rfq_idx ON public.fin_proposals USING btree (rfq_id, status)"
+      },
+      {
+        "name": "fin_providers_organization_id_id_key",
+        "scans": 0,
+        "table": "fin_providers",
+        "definition": "CREATE UNIQUE INDEX fin_providers_organization_id_id_key ON public.fin_providers USING btree (organization_id, id)"
+      },
+      {
+        "name": "fin_providers_pkey",
+        "scans": 0,
+        "table": "fin_providers",
+        "definition": "CREATE UNIQUE INDEX fin_providers_pkey ON public.fin_providers USING btree (id)"
+      },
+      {
+        "name": "fin_renewal_milestones_contract_id_milestone_key",
+        "scans": 0,
+        "table": "fin_renewal_milestones",
+        "definition": "CREATE UNIQUE INDEX fin_renewal_milestones_contract_id_milestone_key ON public.fin_renewal_milestones USING btree (contract_id, milestone)"
+      },
+      {
+        "name": "fin_renewal_milestones_org",
+        "scans": 0,
+        "table": "fin_renewal_milestones",
+        "definition": "CREATE INDEX fin_renewal_milestones_org ON public.fin_renewal_milestones USING btree (organization_id, contract_id)"
+      },
+      {
+        "name": "fin_renewal_milestones_pkey",
+        "scans": 0,
+        "table": "fin_renewal_milestones",
+        "definition": "CREATE UNIQUE INDEX fin_renewal_milestones_pkey ON public.fin_renewal_milestones USING btree (id)"
+      },
+      {
+        "name": "fin_rfq_editor_drafts_pkey",
+        "scans": 0,
+        "table": "fin_rfq_editor_drafts",
+        "definition": "CREATE UNIQUE INDEX fin_rfq_editor_drafts_pkey ON public.fin_rfq_editor_drafts USING btree (organization_id, user_id)"
+      },
+      {
+        "name": "fin_rfq_invites_buyer_organization_id_id_key",
+        "scans": 0,
+        "table": "fin_rfq_invites",
+        "definition": "CREATE UNIQUE INDEX fin_rfq_invites_buyer_organization_id_id_key ON public.fin_rfq_invites USING btree (buyer_organization_id, id)"
+      },
+      {
+        "name": "fin_rfq_invites_buyer_organization_id_rfq_id_id_key",
+        "scans": 0,
+        "table": "fin_rfq_invites",
+        "definition": "CREATE UNIQUE INDEX fin_rfq_invites_buyer_organization_id_rfq_id_id_key ON public.fin_rfq_invites USING btree (buyer_organization_id, rfq_id, id)"
+      },
+      {
+        "name": "fin_rfq_invites_id_provider_organization_id_key",
+        "scans": 0,
+        "table": "fin_rfq_invites",
+        "definition": "CREATE UNIQUE INDEX fin_rfq_invites_id_provider_organization_id_key ON public.fin_rfq_invites USING btree (id, provider_organization_id)"
+      },
+      {
+        "name": "fin_rfq_invites_pkey",
+        "scans": 0,
+        "table": "fin_rfq_invites",
+        "definition": "CREATE UNIQUE INDEX fin_rfq_invites_pkey ON public.fin_rfq_invites USING btree (id)"
+      },
+      {
+        "name": "fin_rfq_invites_rfq_id_provider_id_key",
+        "scans": 0,
+        "table": "fin_rfq_invites",
+        "definition": "CREATE UNIQUE INDEX fin_rfq_invites_rfq_id_provider_id_key ON public.fin_rfq_invites USING btree (rfq_id, provider_id)"
+      },
+      {
+        "name": "fin_rfq_invites_token_hash_key",
+        "scans": 0,
+        "table": "fin_rfq_invites",
+        "definition": "CREATE UNIQUE INDEX fin_rfq_invites_token_hash_key ON public.fin_rfq_invites USING btree (token_hash)"
+      },
+      {
+        "name": "fin_rfq_revisions_org",
+        "scans": 0,
+        "table": "fin_rfq_revisions",
+        "definition": "CREATE INDEX fin_rfq_revisions_org ON public.fin_rfq_revisions USING btree (organization_id, rfq_id, revision DESC)"
+      },
+      {
+        "name": "fin_rfq_revisions_pkey",
+        "scans": 0,
+        "table": "fin_rfq_revisions",
+        "definition": "CREATE UNIQUE INDEX fin_rfq_revisions_pkey ON public.fin_rfq_revisions USING btree (rfq_id, revision)"
+      },
+      {
+        "name": "fin_rfqs_id_product_key",
+        "scans": 0,
+        "table": "fin_rfqs",
+        "definition": "CREATE UNIQUE INDEX fin_rfqs_id_product_key ON public.fin_rfqs USING btree (id, product)"
+      },
+      {
+        "name": "fin_rfqs_org_status_idx",
+        "scans": 0,
+        "table": "fin_rfqs",
+        "definition": "CREATE INDEX fin_rfqs_org_status_idx ON public.fin_rfqs USING btree (organization_id, status, created_at DESC)"
+      },
+      {
+        "name": "fin_rfqs_organization_id_id_key",
+        "scans": 0,
+        "table": "fin_rfqs",
+        "definition": "CREATE UNIQUE INDEX fin_rfqs_organization_id_id_key ON public.fin_rfqs USING btree (organization_id, id)"
+      },
+      {
+        "name": "fin_rfqs_organization_id_id_product_key",
+        "scans": 0,
+        "table": "fin_rfqs",
+        "definition": "CREATE UNIQUE INDEX fin_rfqs_organization_id_id_product_key ON public.fin_rfqs USING btree (organization_id, id, product)"
+      },
+      {
+        "name": "fin_rfqs_pkey",
+        "scans": 0,
+        "table": "fin_rfqs",
+        "definition": "CREATE UNIQUE INDEX fin_rfqs_pkey ON public.fin_rfqs USING btree (id)"
+      },
+      {
+        "name": "fin_settings_pkey",
+        "scans": 7,
+        "table": "fin_settings",
+        "definition": "CREATE UNIQUE INDEX fin_settings_pkey ON public.fin_settings USING btree (key)"
+      },
+      {
+        "name": "fin_tasks_organization_id_id_key",
+        "scans": 0,
+        "table": "fin_tasks",
+        "definition": "CREATE UNIQUE INDEX fin_tasks_organization_id_id_key ON public.fin_tasks USING btree (organization_id, id)"
+      },
+      {
+        "name": "fin_tasks_pkey",
+        "scans": 0,
+        "table": "fin_tasks",
+        "definition": "CREATE UNIQUE INDEX fin_tasks_pkey ON public.fin_tasks USING btree (id)"
+      },
+      {
+        "name": "fin_terms_acceptances_organization_id_user_id_terms_version_key",
+        "scans": 0,
+        "table": "fin_terms_acceptances",
+        "definition": "CREATE UNIQUE INDEX fin_terms_acceptances_organization_id_user_id_terms_version_key ON public.fin_terms_acceptances USING btree (organization_id, user_id, terms_version)"
+      },
+      {
+        "name": "fin_terms_acceptances_pkey",
+        "scans": 0,
+        "table": "fin_terms_acceptances",
+        "definition": "CREATE UNIQUE INDEX fin_terms_acceptances_pkey ON public.fin_terms_acceptances USING btree (id)"
+      },
+      {
+        "name": "idempotency_keys_pkey",
+        "scans": 0,
+        "table": "idempotency_keys",
+        "definition": "CREATE UNIQUE INDEX idempotency_keys_pkey ON public.idempotency_keys USING btree (scope, key_hash)"
+      },
+      {
+        "name": "idx_artist_accounts_user",
+        "scans": 0,
+        "table": "artist_accounts",
+        "definition": "CREATE INDEX idx_artist_accounts_user ON public.artist_accounts USING btree (user_id, status)"
+      },
+      {
+        "name": "idx_artist_submissions_status",
+        "scans": 0,
+        "table": "artist_submissions",
+        "definition": "CREATE INDEX idx_artist_submissions_status ON public.artist_submissions USING btree (status)"
+      },
+      {
+        "name": "idx_artists_catalog_verification",
+        "scans": 0,
+        "table": "artists",
+        "definition": "CREATE INDEX idx_artists_catalog_verification ON public.artists USING btree (status, identity_verified, verified_at)"
+      },
+      {
+        "name": "idx_artists_slug",
+        "scans": 0,
+        "table": "artists",
+        "definition": "CREATE INDEX idx_artists_slug ON public.artists USING btree (slug)"
+      },
+      {
+        "name": "idx_artists_status",
+        "scans": 0,
+        "table": "artists",
+        "definition": "CREATE INDEX idx_artists_status ON public.artists USING btree (status)"
+      },
+      {
+        "name": "idx_artworks_artist_id",
+        "scans": 0,
+        "table": "artworks",
+        "definition": "CREATE INDEX idx_artworks_artist_id ON public.artworks USING btree (artist_id)"
+      },
+      {
+        "name": "idx_artworks_catalog_verification",
+        "scans": 0,
+        "table": "artworks",
+        "definition": "CREATE INDEX idx_artworks_catalog_verification ON public.artworks USING btree (published, status, catalog_verified_at)"
+      },
+      {
+        "name": "idx_artworks_published",
+        "scans": 0,
+        "table": "artworks",
+        "definition": "CREATE INDEX idx_artworks_published ON public.artworks USING btree (published)"
+      },
+      {
+        "name": "idx_artworks_slug",
+        "scans": 0,
+        "table": "artworks",
+        "definition": "CREATE INDEX idx_artworks_slug ON public.artworks USING btree (slug)"
+      },
+      {
+        "name": "idx_artworks_status",
+        "scans": 0,
+        "table": "artworks",
+        "definition": "CREATE INDEX idx_artworks_status ON public.artworks USING btree (status)"
+      },
+      {
+        "name": "idx_audit_entity",
+        "scans": 0,
+        "table": "audit_logs",
+        "definition": "CREATE INDEX idx_audit_entity ON public.audit_logs USING btree (entity_type, entity_id, created_at DESC)"
+      },
+      {
+        "name": "idx_catalog_review_entity",
+        "scans": 0,
+        "table": "catalog_review_history",
+        "definition": "CREATE INDEX idx_catalog_review_entity ON public.catalog_review_history USING btree (entity_type, entity_id, created_at DESC)"
+      },
+      {
+        "name": "idx_certificates_artwork_id",
+        "scans": 0,
+        "table": "certificates",
+        "definition": "CREATE INDEX idx_certificates_artwork_id ON public.certificates USING btree (artwork_id)"
+      },
+      {
+        "name": "idx_certificates_code",
+        "scans": 0,
+        "table": "certificates",
+        "definition": "CREATE INDEX idx_certificates_code ON public.certificates USING btree (code)"
+      },
+      {
+        "name": "idx_collection_artworks_artwork",
+        "scans": 0,
+        "table": "collection_artworks",
+        "definition": "CREATE INDEX idx_collection_artworks_artwork ON public.collection_artworks USING btree (artwork_id)"
+      },
+      {
+        "name": "idx_collection_artworks_collection",
+        "scans": 0,
+        "table": "collection_artworks",
+        "definition": "CREATE INDEX idx_collection_artworks_collection ON public.collection_artworks USING btree (collection_id, \"position\")"
+      },
+      {
+        "name": "idx_commercial_items_artwork",
+        "scans": 0,
+        "table": "commercial_items",
+        "definition": "CREATE INDEX idx_commercial_items_artwork ON public.commercial_items USING btree (artwork_id)"
+      },
+      {
+        "name": "idx_commercial_items_record",
+        "scans": 0,
+        "table": "commercial_items",
+        "definition": "CREATE INDEX idx_commercial_items_record ON public.commercial_items USING btree (commercial_record_id)"
+      },
+      {
+        "name": "idx_commercial_records_lead",
+        "scans": 0,
+        "table": "commercial_records",
+        "definition": "CREATE INDEX idx_commercial_records_lead ON public.commercial_records USING btree (lead_id)"
+      },
+      {
+        "name": "idx_commercial_records_status",
+        "scans": 0,
+        "table": "commercial_records",
+        "definition": "CREATE INDEX idx_commercial_records_status ON public.commercial_records USING btree (status)"
+      },
+      {
+        "name": "idx_company_briefs_status",
+        "scans": 0,
+        "table": "company_briefs",
+        "definition": "CREATE INDEX idx_company_briefs_status ON public.company_briefs USING btree (status)"
+      },
+      {
+        "name": "idx_company_briefs_user_id",
+        "scans": 0,
+        "table": "company_briefs",
+        "definition": "CREATE INDEX idx_company_briefs_user_id ON public.company_briefs USING btree (user_id, created_at DESC)"
+      },
+      {
+        "name": "idx_consignments_artist",
+        "scans": 0,
+        "table": "consignments",
+        "definition": "CREATE INDEX idx_consignments_artist ON public.consignments USING btree (artist_id)"
+      },
+      {
+        "name": "idx_consignments_artwork",
+        "scans": 0,
+        "table": "consignments",
+        "definition": "CREATE INDEX idx_consignments_artwork ON public.consignments USING btree (artwork_id)"
+      },
+      {
+        "name": "idx_consignments_status",
+        "scans": 0,
+        "table": "consignments",
+        "definition": "CREATE INDEX idx_consignments_status ON public.consignments USING btree (status)"
+      },
+      {
+        "name": "idx_conversion_type_created",
+        "scans": 0,
+        "table": "conversion_events",
+        "definition": "CREATE INDEX idx_conversion_type_created ON public.conversion_events USING btree (event_type, created_at DESC)"
+      },
+      {
+        "name": "idx_crm_notes_entity",
+        "scans": 0,
+        "table": "crm_notes",
+        "definition": "CREATE INDEX idx_crm_notes_entity ON public.crm_notes USING btree (entity_type, entity_id)"
+      },
+      {
+        "name": "idx_curated_collections_status",
+        "scans": 0,
+        "table": "curated_collections",
+        "definition": "CREATE INDEX idx_curated_collections_status ON public.curated_collections USING btree (status, \"position\")"
+      },
+      {
+        "name": "idx_data_legal_holds_lookup",
+        "scans": 0,
+        "table": "data_legal_holds",
+        "definition": "CREATE INDEX idx_data_legal_holds_lookup ON public.data_legal_holds USING btree (data_class, entity_id, released_at)"
+      },
+      {
+        "name": "idx_idempotency_expiry",
+        "scans": 0,
+        "table": "idempotency_keys",
+        "definition": "CREATE INDEX idx_idempotency_expiry ON public.idempotency_keys USING btree (expires_at)"
+      },
+      {
+        "name": "idx_leads_email",
+        "scans": 0,
+        "table": "leads",
+        "definition": "CREATE INDEX idx_leads_email ON public.leads USING btree (email)"
+      },
+      {
+        "name": "idx_leads_status",
+        "scans": 0,
+        "table": "leads",
+        "definition": "CREATE INDEX idx_leads_status ON public.leads USING btree (status)"
+      },
+      {
+        "name": "idx_leads_user_id",
+        "scans": 0,
+        "table": "leads",
+        "definition": "CREATE INDEX idx_leads_user_id ON public.leads USING btree (user_id, created_at DESC)"
+      },
+      {
+        "name": "idx_logistics_records_commercial",
+        "scans": 0,
+        "table": "logistics_records",
+        "definition": "CREATE INDEX idx_logistics_records_commercial ON public.logistics_records USING btree (commercial_record_id)"
+      },
+      {
+        "name": "idx_logistics_records_status",
+        "scans": 0,
+        "table": "logistics_records",
+        "definition": "CREATE INDEX idx_logistics_records_status ON public.logistics_records USING btree (status)"
+      },
+      {
+        "name": "idx_operational_status_entity",
+        "scans": 0,
+        "table": "operational_status_history",
+        "definition": "CREATE INDEX idx_operational_status_entity ON public.operational_status_history USING btree (entity_type, entity_id, created_at DESC)"
+      },
+      {
+        "name": "idx_order_status_history_order_created",
+        "scans": 0,
+        "table": "order_status_history",
+        "definition": "CREATE INDEX idx_order_status_history_order_created ON public.order_status_history USING btree (order_id, created_at DESC)"
+      },
+      {
+        "name": "idx_orders_status",
+        "scans": 0,
+        "table": "orders",
+        "definition": "CREATE INDEX idx_orders_status ON public.orders USING btree (status, payment_status, fulfillment_status)"
+      },
+      {
+        "name": "idx_orders_user_created",
+        "scans": 0,
+        "table": "orders",
+        "definition": "CREATE INDEX idx_orders_user_created ON public.orders USING btree (user_id, created_at DESC)"
+      },
+      {
+        "name": "idx_pilot_events_created_at",
+        "scans": 0,
+        "table": "pilot_events",
+        "definition": "CREATE INDEX idx_pilot_events_created_at ON public.pilot_events USING btree (created_at DESC)"
+      },
+      {
+        "name": "idx_pilot_events_session",
+        "scans": 0,
+        "table": "pilot_events",
+        "definition": "CREATE INDEX idx_pilot_events_session ON public.pilot_events USING btree (session_id, created_at)"
+      },
+      {
+        "name": "idx_pilot_events_type",
+        "scans": 0,
+        "table": "pilot_events",
+        "definition": "CREATE INDEX idx_pilot_events_type ON public.pilot_events USING btree (event_type, created_at DESC)"
+      },
+      {
+        "name": "idx_pilot_feedback_blockers",
+        "scans": 0,
+        "table": "pilot_feedback",
+        "definition": "CREATE INDEX idx_pilot_feedback_blockers ON public.pilot_feedback USING btree (severity, blocker_status, created_at DESC) WHERE (severity = ANY (ARRAY['high'::text, 'critical'::text]))"
+      },
+      {
+        "name": "idx_pilot_feedback_created_at",
+        "scans": 0,
+        "table": "pilot_feedback",
+        "definition": "CREATE INDEX idx_pilot_feedback_created_at ON public.pilot_feedback USING btree (created_at DESC)"
+      },
+      {
+        "name": "idx_pilot_feedback_session",
+        "scans": 0,
+        "table": "pilot_feedback",
+        "definition": "CREATE INDEX idx_pilot_feedback_session ON public.pilot_feedback USING btree (session_id, created_at)"
+      },
+      {
+        "name": "idx_privacy_user_status",
+        "scans": 0,
+        "table": "privacy_requests",
+        "definition": "CREATE INDEX idx_privacy_user_status ON public.privacy_requests USING btree (user_id, status, created_at DESC)"
+      },
+      {
+        "name": "idx_profiles_email",
+        "scans": 0,
+        "table": "profiles",
+        "definition": "CREATE INDEX idx_profiles_email ON public.profiles USING btree (email)"
+      },
+      {
+        "name": "idx_profiles_profile_type",
+        "scans": 0,
+        "table": "profiles",
+        "definition": "CREATE INDEX idx_profiles_profile_type ON public.profiles USING btree (profile_type)"
+      },
+      {
+        "name": "idx_proposal_items_proposal_id",
+        "scans": 0,
+        "table": "proposal_items",
+        "definition": "CREATE INDEX idx_proposal_items_proposal_id ON public.proposal_items USING btree (proposal_id)"
+      },
+      {
+        "name": "idx_proposals_public_token",
+        "scans": 0,
+        "table": "proposals",
+        "definition": "CREATE INDEX idx_proposals_public_token ON public.proposals USING btree (public_token)"
+      },
+      {
+        "name": "idx_proposals_status",
+        "scans": 0,
+        "table": "proposals",
+        "definition": "CREATE INDEX idx_proposals_status ON public.proposals USING btree (status)"
+      },
+      {
+        "name": "idx_proposals_user_created",
+        "scans": 0,
+        "table": "proposals",
+        "definition": "CREATE INDEX idx_proposals_user_created ON public.proposals USING btree (user_id, created_at DESC)"
+      },
+      {
+        "name": "idx_reservations_artwork_id",
+        "scans": 0,
+        "table": "reservations",
+        "definition": "CREATE INDEX idx_reservations_artwork_id ON public.reservations USING btree (artwork_id)"
+      },
+      {
+        "name": "idx_reservations_status",
+        "scans": 0,
+        "table": "reservations",
+        "definition": "CREATE INDEX idx_reservations_status ON public.reservations USING btree (status)"
+      },
+      {
+        "name": "idx_reservations_user_id",
+        "scans": 0,
+        "table": "reservations",
+        "definition": "CREATE INDEX idx_reservations_user_id ON public.reservations USING btree (user_id, created_at DESC)"
+      },
+      {
+        "name": "idx_saved_selections_public_token",
+        "scans": 0,
+        "table": "saved_selections",
+        "definition": "CREATE INDEX idx_saved_selections_public_token ON public.saved_selections USING btree (public_token)"
+      },
+      {
+        "name": "idx_saved_selections_status",
+        "scans": 0,
+        "table": "saved_selections",
+        "definition": "CREATE INDEX idx_saved_selections_status ON public.saved_selections USING btree (status)"
+      },
+      {
+        "name": "idx_saved_selections_user_id",
+        "scans": 0,
+        "table": "saved_selections",
+        "definition": "CREATE INDEX idx_saved_selections_user_id ON public.saved_selections USING btree (user_id, updated_at DESC)"
+      },
+      {
+        "name": "idx_tasks_entity",
+        "scans": 0,
+        "table": "tasks",
+        "definition": "CREATE INDEX idx_tasks_entity ON public.tasks USING btree (entity_type, entity_id)"
+      },
+      {
+        "name": "idx_tasks_status_due",
+        "scans": 0,
+        "table": "tasks",
+        "definition": "CREATE INDEX idx_tasks_status_due ON public.tasks USING btree (status, due_at)"
+      },
+      {
+        "name": "idx_transactional_email_outbox_lease",
+        "scans": 0,
+        "table": "transactional_email_outbox",
+        "definition": "CREATE INDEX idx_transactional_email_outbox_lease ON public.transactional_email_outbox USING btree (status, lease_expires_at, next_attempt_at, created_at)"
+      },
+      {
+        "name": "idx_transactional_email_outbox_ready",
+        "scans": 0,
+        "table": "transactional_email_outbox",
+        "definition": "CREATE INDEX idx_transactional_email_outbox_ready ON public.transactional_email_outbox USING btree (status, next_attempt_at, created_at) WHERE (status = ANY (ARRAY['pending'::text, 'retry'::text, 'processing'::text]))"
+      },
+      {
+        "name": "leads_pkey",
+        "scans": 0,
+        "table": "leads",
+        "definition": "CREATE UNIQUE INDEX leads_pkey ON public.leads USING btree (id)"
+      },
+      {
+        "name": "logistics_records_pkey",
+        "scans": 0,
+        "table": "logistics_records",
+        "definition": "CREATE UNIQUE INDEX logistics_records_pkey ON public.logistics_records USING btree (id)"
+      },
+      {
+        "name": "media_assets_pkey",
+        "scans": 0,
+        "table": "media_assets",
+        "definition": "CREATE UNIQUE INDEX media_assets_pkey ON public.media_assets USING btree (id)"
+      },
+      {
+        "name": "newsletter_subscriptions_pkey",
+        "scans": 0,
+        "table": "newsletter_subscriptions",
+        "definition": "CREATE UNIQUE INDEX newsletter_subscriptions_pkey ON public.newsletter_subscriptions USING btree (id)"
+      },
+      {
+        "name": "operational_status_history_pkey",
+        "scans": 0,
+        "table": "operational_status_history",
+        "definition": "CREATE UNIQUE INDEX operational_status_history_pkey ON public.operational_status_history USING btree (id)"
+      },
+      {
+        "name": "order_status_history_pkey",
+        "scans": 0,
+        "table": "order_status_history",
+        "definition": "CREATE UNIQUE INDEX order_status_history_pkey ON public.order_status_history USING btree (id)"
+      },
+      {
+        "name": "orders_order_number_key",
+        "scans": 0,
+        "table": "orders",
+        "definition": "CREATE UNIQUE INDEX orders_order_number_key ON public.orders USING btree (order_number)"
+      },
+      {
+        "name": "orders_pkey",
+        "scans": 0,
+        "table": "orders",
+        "definition": "CREATE UNIQUE INDEX orders_pkey ON public.orders USING btree (id)"
+      },
+      {
+        "name": "pilot_events_pkey",
+        "scans": 0,
+        "table": "pilot_events",
+        "definition": "CREATE UNIQUE INDEX pilot_events_pkey ON public.pilot_events USING btree (id)"
+      },
+      {
+        "name": "pilot_feedback_pkey",
+        "scans": 0,
+        "table": "pilot_feedback",
+        "definition": "CREATE UNIQUE INDEX pilot_feedback_pkey ON public.pilot_feedback USING btree (id)"
+      },
+      {
+        "name": "privacy_requests_pkey",
+        "scans": 0,
+        "table": "privacy_requests",
+        "definition": "CREATE UNIQUE INDEX privacy_requests_pkey ON public.privacy_requests USING btree (id)"
+      },
+      {
+        "name": "profiles_pkey",
+        "scans": 0,
+        "table": "profiles",
+        "definition": "CREATE UNIQUE INDEX profiles_pkey ON public.profiles USING btree (id)"
+      },
+      {
+        "name": "proposal_items_pkey",
+        "scans": 0,
+        "table": "proposal_items",
+        "definition": "CREATE UNIQUE INDEX proposal_items_pkey ON public.proposal_items USING btree (id)"
+      },
+      {
+        "name": "proposals_pkey",
+        "scans": 0,
+        "table": "proposals",
+        "definition": "CREATE UNIQUE INDEX proposals_pkey ON public.proposals USING btree (id)"
+      },
+      {
+        "name": "proposals_proposal_number_key",
+        "scans": 0,
+        "table": "proposals",
+        "definition": "CREATE UNIQUE INDEX proposals_proposal_number_key ON public.proposals USING btree (proposal_number)"
+      },
+      {
+        "name": "proposals_public_token_key",
+        "scans": 0,
+        "table": "proposals",
+        "definition": "CREATE UNIQUE INDEX proposals_public_token_key ON public.proposals USING btree (public_token)"
+      },
+      {
+        "name": "reservations_pkey",
+        "scans": 0,
+        "table": "reservations",
+        "definition": "CREATE UNIQUE INDEX reservations_pkey ON public.reservations USING btree (id)"
+      },
+      {
+        "name": "saved_selections_pkey",
+        "scans": 0,
+        "table": "saved_selections",
+        "definition": "CREATE UNIQUE INDEX saved_selections_pkey ON public.saved_selections USING btree (id)"
+      },
+      {
+        "name": "saved_selections_public_token_key",
+        "scans": 0,
+        "table": "saved_selections",
+        "definition": "CREATE UNIQUE INDEX saved_selections_public_token_key ON public.saved_selections USING btree (public_token)"
+      },
+      {
+        "name": "tasks_pkey",
+        "scans": 0,
+        "table": "tasks",
+        "definition": "CREATE UNIQUE INDEX tasks_pkey ON public.tasks USING btree (id)"
+      },
+      {
+        "name": "transactional_email_outbox_idempotency_key_key",
+        "scans": 0,
+        "table": "transactional_email_outbox",
+        "definition": "CREATE UNIQUE INDEX transactional_email_outbox_idempotency_key_key ON public.transactional_email_outbox USING btree (idempotency_key)"
+      },
+      {
+        "name": "transactional_email_outbox_pkey",
+        "scans": 0,
+        "table": "transactional_email_outbox",
+        "definition": "CREATE UNIQUE INDEX transactional_email_outbox_pkey ON public.transactional_email_outbox USING btree (id)"
+      },
+      {
+        "name": "uq_artist_accounts_active_artist",
+        "scans": 0,
+        "table": "artist_accounts",
+        "definition": "CREATE UNIQUE INDEX uq_artist_accounts_active_artist ON public.artist_accounts USING btree (artist_id) WHERE (status = 'active'::text)"
+      },
+      {
+        "name": "uq_artist_accounts_active_user",
+        "scans": 0,
+        "table": "artist_accounts",
+        "definition": "CREATE UNIQUE INDEX uq_artist_accounts_active_user ON public.artist_accounts USING btree (user_id) WHERE (status = 'active'::text)"
+      },
+      {
+        "name": "uq_data_legal_hold_active",
+        "scans": 0,
+        "table": "data_legal_holds",
+        "definition": "CREATE UNIQUE INDEX uq_data_legal_hold_active ON public.data_legal_holds USING btree (data_class, entity_id) WHERE (released_at IS NULL)"
+      },
+      {
+        "name": "uq_orders_reservation",
+        "scans": 0,
+        "table": "orders",
+        "definition": "CREATE UNIQUE INDEX uq_orders_reservation ON public.orders USING btree (reservation_id) WHERE (reservation_id IS NOT NULL)"
+      },
+      {
+        "name": "uq_proposal_items_artwork",
+        "scans": 0,
+        "table": "proposal_items",
+        "definition": "CREATE UNIQUE INDEX uq_proposal_items_artwork ON public.proposal_items USING btree (proposal_id, artwork_id) WHERE (artwork_id IS NOT NULL)"
+      },
+      {
+        "name": "uq_reservations_one_active_artwork",
+        "scans": 0,
+        "table": "reservations",
+        "definition": "CREATE UNIQUE INDEX uq_reservations_one_active_artwork ON public.reservations USING btree (artwork_id) WHERE (status = ANY (ARRAY['requested'::text, 'confirmed'::text]))"
+      }
+    ],
+    "schemas": [
+      "auth",
+      "extensions",
+      "graphql",
+      "graphql_public",
+      "pgbouncer",
+      "public",
+      "realtime",
+      "storage",
+      "supabase_migrations",
+      "vault"
+    ],
+    "storage": {
+      "buckets": [
+        {
+          "id": "fin-documents",
+          "public": false,
+          "file_size_limit": 10485760,
+          "allowed_mime_types": [
+            "application/pdf",
+            "image/jpeg",
+            "image/png",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          ]
+        }
+      ],
+      "objects": 0
+    },
+    "policies": [
+      {
+        "name": "artist_accounts_select_own",
+        "check": null,
+        "roles": [
+          "authenticated"
+        ],
+        "table": "artist_accounts",
+        "using": "(auth.uid() = user_id)",
+        "command": "SELECT"
+      },
+      {
+        "name": "artists_public_read",
+        "check": null,
+        "roles": [
+          "anon",
+          "authenticated"
+        ],
+        "table": "artists",
+        "using": "((status = 'published'::text) AND (identity_verified = true) AND (publishing_consent_at IS NOT NULL) AND (verified_at IS NOT NULL) AND (COALESCE(source_reference, ''::text) <> ''::text) AND (EXISTS ( SELECT 1\n   FROM catalog_releases release\n  WHERE ((release.id = 'production'::text) AND (release.dataset_kind = 'real'::text) AND (release.verified_ready = true) AND (release.verified_at IS NOT NULL) AND (release.write_verified_at IS NOT NULL)))))",
+        "command": "SELECT"
+      },
+      {
+        "name": "artworks_public_read",
+        "check": null,
+        "roles": [
+          "anon",
+          "authenticated"
+        ],
+        "table": "artworks",
+        "using": "((published = true) AND (status = ANY (ARRAY['available'::text, 'in_conversation'::text, 'reserved'::text])) AND (image_authorized_at IS NOT NULL) AND (price_verified_at IS NOT NULL) AND (availability_verified_at IS NOT NULL) AND (catalog_verified_at IS NOT NULL) AND (COALESCE(source_reference, ''::text) <> ''::text) AND (price > (0)::numeric) AND (COALESCE(main_image_url, ''::text) <> ''::text) AND (EXISTS ( SELECT 1\n   FROM artists artist\n  WHERE ((artist.id = artworks.artist_id) AND (artist.status = 'published'::text) AND (artist.identity_verified = true) AND (artist.publishing_consent_at IS NOT NULL) AND (artist.verified_at IS NOT NULL) AND (COALESCE(artist.source_reference, ''::text) <> ''::text)))) AND (EXISTS ( SELECT 1\n   FROM catalog_releases release\n  WHERE ((release.id = 'production'::text) AND (release.dataset_kind = 'real'::text) AND (release.verified_ready = true) AND (release.verified_at IS NOT NULL) AND (release.write_verified_at IS NOT NULL)))))",
+        "command": "SELECT"
+      },
+      {
+        "name": "certificates_public_valid_read",
+        "check": null,
+        "roles": [
+          "anon",
+          "authenticated"
+        ],
+        "table": "certificates",
+        "using": "(verification_status = 'valid'::text)",
+        "command": "SELECT"
+      },
+      {
+        "name": "collection_artworks_public_read",
+        "check": null,
+        "roles": [
+          "anon",
+          "authenticated"
+        ],
+        "table": "collection_artworks",
+        "using": "true",
+        "command": "SELECT"
+      },
+      {
+        "name": "company_briefs_select_own",
+        "check": null,
+        "roles": [
+          "authenticated"
+        ],
+        "table": "company_briefs",
+        "using": "(auth.uid() = user_id)",
+        "command": "SELECT"
+      },
+      {
+        "name": "curated_collections_public_read",
+        "check": null,
+        "roles": [
+          "anon",
+          "authenticated"
+        ],
+        "table": "curated_collections",
+        "using": "(status = 'published'::text)",
+        "command": "SELECT"
+      },
+      {
+        "name": "fin_approval_policy_read",
+        "check": null,
+        "roles": [
+          "authenticated"
+        ],
+        "table": "fin_approval_policies",
+        "using": "fin_has_role(organization_id)",
+        "command": "SELECT"
+      },
+      {
+        "name": "fin_approval_request_read",
+        "check": null,
+        "roles": [
+          "authenticated"
+        ],
+        "table": "fin_approval_requests",
+        "using": "fin_has_role(organization_id)",
+        "command": "SELECT"
+      },
+      {
+        "name": "fin_approval_step_read",
+        "check": null,
+        "roles": [
+          "authenticated"
+        ],
+        "table": "fin_approval_steps",
+        "using": "(EXISTS ( SELECT 1\n   FROM fin_approval_requests r\n  WHERE ((r.id = fin_approval_steps.request_id) AND fin_has_role(r.organization_id))))",
+        "command": "SELECT"
+      },
+      {
+        "name": "fin_comment_read",
+        "check": null,
+        "roles": [
+          "authenticated"
+        ],
+        "table": "fin_comments",
+        "using": "(fin_has_role(organization_id) OR ((visibility = 'provider_visible'::text) AND fin_provider_reads_comment(organization_id, author_id, object_type, object_id)))",
+        "command": "SELECT"
+      },
+      {
+        "name": "fin_profile_edit",
+        "check": "(fin_has_role(organization_id, ARRAY['admin'::text, 'finance_manager'::text, 'analyst'::text]) AND (updated_by = auth.uid()))",
+        "roles": [
+          "authenticated"
+        ],
+        "table": "fin_company_profiles",
+        "using": "fin_has_role(organization_id, ARRAY['admin'::text, 'finance_manager'::text, 'analyst'::text])",
+        "command": "UPDATE"
+      },
+      {
+        "name": "fin_profile_read",
+        "check": null,
+        "roles": [
+          "authenticated"
+        ],
+        "table": "fin_company_profiles",
+        "using": "fin_has_role(organization_id)",
+        "command": "SELECT"
+      },
+      {
+        "name": "fin_profile_write",
+        "check": "(fin_has_role(organization_id, ARRAY['admin'::text, 'finance_manager'::text, 'analyst'::text]) AND (updated_by = auth.uid()))",
+        "roles": [
+          "authenticated"
+        ],
+        "table": "fin_company_profiles",
+        "using": null,
+        "command": "INSERT"
+      },
+      {
+        "name": "fin_contract_read",
+        "check": null,
+        "roles": [
+          "authenticated"
+        ],
+        "table": "fin_contracts",
+        "using": "fin_has_role(organization_id)",
+        "command": "SELECT"
+      },
+      {
+        "name": "fin_decision_read",
+        "check": null,
+        "roles": [
+          "authenticated"
+        ],
+        "table": "fin_decisions",
+        "using": "fin_has_role(organization_id)",
+        "command": "SELECT"
+      },
+      {
+        "name": "fin_document_version_read",
+        "check": null,
+        "roles": [
+          "authenticated"
+        ],
+        "table": "fin_document_versions",
+        "using": "((status = 'available'::text) AND fin_can_read_document(document_id))",
+        "command": "SELECT"
+      },
+      {
+        "name": "fin_document_read",
+        "check": null,
+        "roles": [
+          "authenticated"
+        ],
+        "table": "fin_documents",
+        "using": "fin_has_role(organization_id)",
+        "command": "SELECT"
+      },
+      {
+        "name": "fin_document_write",
+        "check": "(fin_has_role(organization_id, ARRAY['admin'::text, 'finance_manager'::text, 'analyst'::text]) AND (created_by = auth.uid()))",
+        "roles": [
+          "authenticated"
+        ],
+        "table": "fin_documents",
+        "using": null,
+        "command": "INSERT"
+      },
+      {
+        "name": "fin_event_read",
+        "check": null,
+        "roles": [
+          "authenticated"
+        ],
+        "table": "fin_events",
+        "using": "fin_has_role(organization_id)",
+        "command": "SELECT"
+      },
+      {
+        "name": "fin_member_read",
+        "check": null,
+        "roles": [
+          "authenticated"
+        ],
+        "table": "fin_members",
+        "using": "fin_has_role(organization_id)",
+        "command": "SELECT"
+      },
+      {
+        "name": "fin_notification_preference_read",
+        "check": null,
+        "roles": [
+          "authenticated"
+        ],
+        "table": "fin_notification_preferences",
+        "using": "((user_id = auth.uid()) AND fin_has_role(organization_id))",
+        "command": "SELECT"
+      },
+      {
+        "name": "fin_notification_read",
+        "check": null,
+        "roles": [
+          "authenticated"
+        ],
+        "table": "fin_notifications",
+        "using": "((user_id = auth.uid()) AND fin_has_role(organization_id))",
+        "command": "SELECT"
+      },
+      {
+        "name": "fin_org_read",
+        "check": null,
+        "roles": [
+          "authenticated"
+        ],
+        "table": "fin_organizations",
+        "using": "fin_has_role(id)",
+        "command": "SELECT"
+      },
+      {
+        "name": "fin_private_document_read",
+        "check": null,
+        "roles": [
+          "authenticated"
+        ],
+        "table": "fin_private_documents",
+        "using": "fin_can_read_document(id)",
+        "command": "SELECT"
+      },
+      {
+        "name": "fin_proposal_draft_read",
+        "check": null,
+        "roles": [
+          "authenticated"
+        ],
+        "table": "fin_proposal_drafts",
+        "using": "fin_has_role(provider_organization_id, ARRAY['admin'::text, 'provider_user'::text])",
+        "command": "SELECT"
+      },
+      {
+        "name": "fin_proposal_version_read",
+        "check": null,
+        "roles": [
+          "authenticated"
+        ],
+        "table": "fin_proposal_versions",
+        "using": "(EXISTS ( SELECT 1\n   FROM fin_proposals p\n  WHERE ((p.id = fin_proposal_versions.proposal_id) AND (fin_has_role(p.buyer_organization_id) OR fin_has_role(p.provider_organization_id)))))",
+        "command": "SELECT"
+      },
+      {
+        "name": "fin_proposal_read",
+        "check": null,
+        "roles": [
+          "authenticated"
+        ],
+        "table": "fin_proposals",
+        "using": "(fin_has_role(buyer_organization_id) OR fin_has_role(provider_organization_id))",
+        "command": "SELECT"
+      },
+      {
+        "name": "fin_provider_edit",
+        "check": "fin_has_role(organization_id, ARRAY['admin'::text, 'finance_manager'::text])",
+        "roles": [
+          "authenticated"
+        ],
+        "table": "fin_providers",
+        "using": "fin_has_role(organization_id, ARRAY['admin'::text, 'finance_manager'::text])",
+        "command": "UPDATE"
+      },
+      {
+        "name": "fin_provider_read",
+        "check": null,
+        "roles": [
+          "authenticated"
+        ],
+        "table": "fin_providers",
+        "using": "fin_has_role(organization_id)",
+        "command": "SELECT"
+      },
+      {
+        "name": "fin_provider_write",
+        "check": "(fin_has_role(organization_id, ARRAY['admin'::text, 'finance_manager'::text]) AND (created_by = auth.uid()))",
+        "roles": [
+          "authenticated"
+        ],
+        "table": "fin_providers",
+        "using": null,
+        "command": "INSERT"
+      },
+      {
+        "name": "fin_renewal_read",
+        "check": null,
+        "roles": [
+          "authenticated"
+        ],
+        "table": "fin_renewal_milestones",
+        "using": "fin_has_role(organization_id)",
+        "command": "SELECT"
+      },
+      {
+        "name": "fin_rfq_editor_read",
+        "check": null,
+        "roles": [
+          "authenticated"
+        ],
+        "table": "fin_rfq_editor_drafts",
+        "using": "((user_id = auth.uid()) AND fin_has_role(organization_id, ARRAY['admin'::text, 'finance_manager'::text]))",
+        "command": "SELECT"
+      },
+      {
+        "name": "fin_invite_read",
+        "check": null,
+        "roles": [
+          "authenticated"
+        ],
+        "table": "fin_rfq_invites",
+        "using": "(fin_has_role(buyer_organization_id) OR ((provider_organization_id IS NOT NULL) AND fin_has_role(provider_organization_id)))",
+        "command": "SELECT"
+      },
+      {
+        "name": "fin_rfq_revision_read",
+        "check": null,
+        "roles": [
+          "authenticated"
+        ],
+        "table": "fin_rfq_revisions",
+        "using": "(fin_has_role(organization_id) OR fin_provider_can_comment('rfq'::text, rfq_id))",
+        "command": "SELECT"
+      },
+      {
+        "name": "fin_rfq_read",
+        "check": null,
+        "roles": [
+          "authenticated"
+        ],
+        "table": "fin_rfqs",
+        "using": "(fin_has_role(organization_id) OR (EXISTS ( SELECT 1\n   FROM fin_rfq_invites i\n  WHERE ((i.rfq_id = fin_rfqs.id) AND (i.status = 'accepted'::text) AND (i.provider_organization_id IS NOT NULL) AND fin_has_role(i.provider_organization_id)))))",
+        "command": "SELECT"
+      },
+      {
+        "name": "fin_task_edit",
+        "check": "fin_has_role(organization_id, ARRAY['admin'::text, 'finance_manager'::text, 'analyst'::text])",
+        "roles": [
+          "authenticated"
+        ],
+        "table": "fin_tasks",
+        "using": "fin_has_role(organization_id, ARRAY['admin'::text, 'finance_manager'::text, 'analyst'::text])",
+        "command": "UPDATE"
+      },
+      {
+        "name": "fin_task_read",
+        "check": null,
+        "roles": [
+          "authenticated"
+        ],
+        "table": "fin_tasks",
+        "using": "fin_has_role(organization_id)",
+        "command": "SELECT"
+      },
+      {
+        "name": "fin_task_write",
+        "check": "(fin_has_role(organization_id, ARRAY['admin'::text, 'finance_manager'::text, 'analyst'::text]) AND (created_by = auth.uid()))",
+        "roles": [
+          "authenticated"
+        ],
+        "table": "fin_tasks",
+        "using": null,
+        "command": "INSERT"
+      },
+      {
+        "name": "fin_terms_read",
+        "check": null,
+        "roles": [
+          "authenticated"
+        ],
+        "table": "fin_terms_acceptances",
+        "using": "fin_has_role(organization_id)",
+        "command": "SELECT"
+      },
+      {
+        "name": "leads_select_own",
+        "check": null,
+        "roles": [
+          "authenticated"
+        ],
+        "table": "leads",
+        "using": "(auth.uid() = user_id)",
+        "command": "SELECT"
+      },
+      {
+        "name": "orders_select_own",
+        "check": null,
+        "roles": [
+          "authenticated"
+        ],
+        "table": "orders",
+        "using": "(auth.uid() = user_id)",
+        "command": "SELECT"
+      },
+      {
+        "name": "privacy_requests_select_own",
+        "check": null,
+        "roles": [
+          "authenticated"
+        ],
+        "table": "privacy_requests",
+        "using": "(auth.uid() = user_id)",
+        "command": "SELECT"
+      },
+      {
+        "name": "profiles_select_own",
+        "check": null,
+        "roles": [
+          "authenticated"
+        ],
+        "table": "profiles",
+        "using": "(auth.uid() = id)",
+        "command": "SELECT"
+      },
+      {
+        "name": "profiles_update_own",
+        "check": "(auth.uid() = id)",
+        "roles": [
+          "authenticated"
+        ],
+        "table": "profiles",
+        "using": "(auth.uid() = id)",
+        "command": "UPDATE"
+      },
+      {
+        "name": "proposal_items_select_own",
+        "check": null,
+        "roles": [
+          "authenticated"
+        ],
+        "table": "proposal_items",
+        "using": "(EXISTS ( SELECT 1\n   FROM proposals proposal\n  WHERE ((proposal.id = proposal_items.proposal_id) AND (proposal.user_id = auth.uid()))))",
+        "command": "SELECT"
+      },
+      {
+        "name": "proposals_select_own",
+        "check": null,
+        "roles": [
+          "authenticated"
+        ],
+        "table": "proposals",
+        "using": "(auth.uid() = user_id)",
+        "command": "SELECT"
+      },
+      {
+        "name": "reservations_select_own",
+        "check": null,
+        "roles": [
+          "authenticated"
+        ],
+        "table": "reservations",
+        "using": "(auth.uid() = user_id)",
+        "command": "SELECT"
+      },
+      {
+        "name": "selections_delete_own",
+        "check": null,
+        "roles": [
+          "authenticated"
+        ],
+        "table": "saved_selections",
+        "using": "(auth.uid() = user_id)",
+        "command": "DELETE"
+      },
+      {
+        "name": "selections_select_own",
+        "check": null,
+        "roles": [
+          "authenticated"
+        ],
+        "table": "saved_selections",
+        "using": "(auth.uid() = user_id)",
+        "command": "SELECT"
+      },
+      {
+        "name": "selections_update_own",
+        "check": "(auth.uid() = user_id)",
+        "roles": [
+          "authenticated"
+        ],
+        "table": "saved_selections",
+        "using": "(auth.uid() = user_id)",
+        "command": "UPDATE"
+      }
+    ],
+    "routines": [
+      {
+        "name": "acquire_idempotency",
+        "config": [
+          "search_path=public"
+        ],
+        "arguments": "p_scope text, p_key_hash text, p_identity_hash text, p_request_hash text, p_lock_seconds integer, p_ttl_seconds integer",
+        "anon_execute": false,
+        "definition_md5": "994ab6d96bfaebb7b0fe24b0a2ba21cc",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "apply_catalog_review_atomic",
+        "config": [
+          "search_path=public"
+        ],
+        "arguments": "p_entity_type text, p_entity_id text, p_next_status text, p_checklist jsonb, p_note text, p_actor_ref text, p_actor_role text, p_request_id text",
+        "anon_execute": false,
+        "definition_md5": "14d162e678edf4cf7d2736eedfa39500",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "apply_operational_status_atomic",
+        "config": [
+          "search_path=public"
+        ],
+        "arguments": "p_entity_type text, p_entity_id text, p_next_status text, p_note text, p_actor_ref text, p_actor_role text, p_request_id text",
+        "anon_execute": false,
+        "definition_md5": "102f74d96b8df4999a249bc97f61411b",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "arandu_safe_audit_state",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_row jsonb",
+        "anon_execute": false,
+        "definition_md5": "a92debc84b6582db3a6d7449d6ced31e",
+        "security_definer": false,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "audit_privileged_mutation",
+        "config": [
+          "search_path=public"
+        ],
+        "arguments": "",
+        "anon_execute": false,
+        "definition_md5": "1323efac3eb02737f4a411582a69e06a",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "claim_transactional_email_batch",
+        "config": [
+          "search_path=public"
+        ],
+        "arguments": "p_worker_ref text, p_limit integer",
+        "anon_execute": false,
+        "definition_md5": "9c2b19fe122af08d93f90d7b86fe6839",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "claim_transactional_email_batch_v2",
+        "config": [
+          "search_path=public"
+        ],
+        "arguments": "p_worker_ref text, p_limit integer",
+        "anon_execute": false,
+        "definition_md5": "6abe9ea758c003e8eb7959ee93fbcee7",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "cleanup_idempotency",
+        "config": [
+          "search_path=public"
+        ],
+        "arguments": "p_dry_run boolean",
+        "anon_execute": false,
+        "definition_md5": "74ee174da31c62390884e90e904e70f5",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "complete_idempotency",
+        "config": [
+          "search_path=public"
+        ],
+        "arguments": "p_scope text, p_key_hash text, p_identity_hash text, p_request_hash text, p_response_status integer, p_response_body jsonb",
+        "anon_execute": false,
+        "definition_md5": "4db33bfefd9ee8ebd231a1eb6260c33c",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "complete_transactional_email",
+        "config": [
+          "search_path=public"
+        ],
+        "arguments": "p_id uuid, p_provider text, p_provider_reference text",
+        "anon_execute": false,
+        "definition_md5": "33ee758dc82fceefccce51b59c5dac58",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "complete_transactional_email_v2",
+        "config": [
+          "search_path=public"
+        ],
+        "arguments": "p_id uuid, p_claim_token uuid, p_provider text, p_provider_reference text",
+        "anon_execute": false,
+        "definition_md5": "2da7ce88e11569830fb71b7d4d793e7f",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "consume_rate_limit",
+        "config": [
+          "search_path=public"
+        ],
+        "arguments": "p_scope text, p_fingerprint text, p_limit integer, p_window_seconds integer",
+        "anon_execute": false,
+        "definition_md5": "da2251ded126476ebd1a3dfaf206026f",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "create_commercial_record_atomic",
+        "config": [
+          "search_path=public"
+        ],
+        "arguments": "p_artwork_ids text[], p_proposal_id uuid, p_reservation_id uuid, p_lead_id uuid, p_client text, p_email text, p_whatsapp text, p_currency text, p_platform_fee_rate numeric, p_policy_version text, p_policy_snapshot jsonb, p_notes text, p_actor_ref text, p_actor_role text, p_request_id text, p_idempotency_scope text, p_idempotency_key_hash text, p_identity_hash text, p_request_hash text",
+        "anon_execute": false,
+        "definition_md5": "f9620b1cdb2c180e0945e5a3496b6de9",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "create_legal_hold",
+        "config": [
+          "search_path=public"
+        ],
+        "arguments": "p_data_class text, p_entity_id text, p_reason_reference text, p_actor_ref text",
+        "anon_execute": false,
+        "definition_md5": "c075edddd1aadc35e6666ef2bbad307d",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "create_order_atomic",
+        "config": [
+          "search_path=public"
+        ],
+        "arguments": "p_reservation_id uuid, p_proposal_id uuid, p_commercial_record_id uuid, p_actor_ref text, p_actor_role text, p_request_id text, p_idempotency_scope text, p_idempotency_key_hash text, p_identity_hash text, p_request_hash text",
+        "anon_execute": false,
+        "definition_md5": "755e96547a6b0f89f0f3fff1c7ac4b8c",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "create_proposal_atomic",
+        "config": [
+          "search_path=public"
+        ],
+        "arguments": "p_artwork_ids text[], p_user_id uuid, p_lead_id uuid, p_company_brief_id uuid, p_client text, p_space text, p_goal text, p_budget text, p_deadline text, p_notes text, p_currency text, p_platform_fee_rate numeric, p_policy_version text, p_policy_snapshot jsonb, p_actor_type text, p_actor_ref text, p_request_id text, p_idempotency_scope text, p_idempotency_key_hash text, p_identity_hash text, p_request_hash text",
+        "anon_execute": false,
+        "definition_md5": "92f6d491cee493daff03f83667c4f48c",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "create_reservation_atomic",
+        "config": [
+          "search_path=public"
+        ],
+        "arguments": "p_artwork_id text, p_user_id uuid, p_visitor_ref text, p_name text, p_whatsapp text, p_deadline text, p_notes text, p_expires_at timestamp with time zone, p_currency text, p_policy_version text, p_policy_snapshot jsonb, p_origin text, p_actor_type text, p_actor_ref text, p_request_id text, p_idempotency_scope text, p_idempotency_key_hash text, p_identity_hash text, p_request_hash text",
+        "anon_execute": false,
+        "definition_md5": "51cc010a02c75bfd76524d62a7d8f3e5",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "enqueue_order_email_events",
+        "config": [
+          "search_path=public"
+        ],
+        "arguments": "",
+        "anon_execute": false,
+        "definition_md5": "d8f2ac5f13eee310d85d6bfa6925891b",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "enqueue_transactional_email_for_user",
+        "config": [
+          "search_path=public, extensions"
+        ],
+        "arguments": "p_user_id uuid, p_event_type text, p_entity_type text, p_entity_id text, p_template text, p_payload jsonb, p_request_id text, p_idempotency_key text",
+        "anon_execute": false,
+        "definition_md5": "76be56b9e98a920c4b870cb9a1fcd119",
+        "security_definer": true,
+        "profiles_reference": true,
+        "authenticated_execute": false
+      },
+      {
+        "name": "execute_data_retention",
+        "config": [
+          "search_path=public"
+        ],
+        "arguments": "p_data_class text, p_dry_run boolean, p_actor_ref text, p_decision_reference text",
+        "anon_execute": false,
+        "definition_md5": "cdef38bb1bd434c250a8cad6fe8fe83a",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "expire_reservations",
+        "config": [
+          "search_path=public"
+        ],
+        "arguments": "p_dry_run boolean, p_actor_ref text, p_request_id text",
+        "anon_execute": false,
+        "definition_md5": "26d4eaf8f3d63ceb08678c967550efc0",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "fail_idempotency",
+        "config": [
+          "search_path=public"
+        ],
+        "arguments": "p_scope text, p_key_hash text, p_identity_hash text, p_request_hash text, p_error_code text",
+        "anon_execute": false,
+        "definition_md5": "70626747235cdd31706c7d2adb46f7d3",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "fail_transactional_email",
+        "config": [
+          "search_path=public"
+        ],
+        "arguments": "p_id uuid, p_error_code text, p_retry_after_seconds integer",
+        "anon_execute": false,
+        "definition_md5": "6a5853d135f5b8a5cc37d41597a32388",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "fail_transactional_email_v2",
+        "config": [
+          "search_path=public"
+        ],
+        "arguments": "p_id uuid, p_claim_token uuid, p_error_code text, p_retry_after_seconds integer",
+        "anon_execute": false,
+        "definition_md5": "fffca28f04be69b5b225afdbb5c02658",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "fin_accept_member_invitation",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_token text",
+        "anon_execute": false,
+        "definition_md5": "0f903d8b4bf45f4b0df98d47edbe6379",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_accept_provider_invite",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_token text, p_provider_org uuid",
+        "anon_execute": false,
+        "definition_md5": "d666e08bafda95be58209b5bc4f7919c",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_accept_terms",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_org uuid, p_version text, p_context text",
+        "anon_execute": false,
+        "definition_md5": "f0643847282bd327a13989fa116d4376",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_act_on_approval",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_request uuid, p_action text, p_comment text",
+        "anon_execute": false,
+        "definition_md5": "d8ff6d2e5a2ba5fba97ce16674917f1c",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_add_comment",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_type text, p_id uuid, p_visibility text, p_body text, p_mention_ids uuid[], p_client_id uuid",
+        "anon_execute": false,
+        "definition_md5": "4b636ad91bfbed1d95ee7e94c5cdbfd0",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_apply_notification_preference",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "",
+        "anon_execute": false,
+        "definition_md5": "63247c6881c36f47d56b0a1ba5547e40",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "fin_can_read_document",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_document uuid",
+        "anon_execute": false,
+        "definition_md5": "22d9917a7f226ffe303e489a0d02e071",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_cancel_approval",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_request uuid",
+        "anon_execute": false,
+        "definition_md5": "dd4a1e38950ab7165dabdfca20b5dce5",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_capture_rfq_revision",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "",
+        "anon_execute": false,
+        "definition_md5": "91afabc7e8a28ce544abdba8e28731bb",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "fin_clear_rfq_editor",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_org uuid, p_expected integer",
+        "anon_execute": false,
+        "definition_md5": "e272f4fc21e358a850b94907ed337675",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_clear_submitted_draft",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "",
+        "anon_execute": false,
+        "definition_md5": "d84a9275a2b55e96b1c1b5f8fe027733",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "fin_comment_authors",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_type text, p_id uuid",
+        "anon_execute": false,
+        "definition_md5": "b088afcbd0cba5a54373e4a60d3b4cd6",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_comment_object_org",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_type text, p_id uuid",
+        "anon_execute": false,
+        "definition_md5": "e002686c18c5aa74e1537b10c496e105",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "fin_create_organization",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_name text, p_kind text, p_country text",
+        "anon_execute": false,
+        "definition_md5": "29ce0095dc82407bf663855c2b5b22f0",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_create_rfq",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_org uuid, p_product text, p_title text, p_description text, p_demand jsonb, p_deadline date",
+        "anon_execute": false,
+        "definition_md5": "e40b0bb55706fcb2879a90af6bf58d58",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_document_authorize_download",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_document uuid, p_version integer",
+        "anon_execute": false,
+        "definition_md5": "f1dcad3014668bb0a0d4f6293f00a4df",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_document_begin_upload",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_org uuid, p_entity_type text, p_entity_id uuid, p_title text, p_visibility text, p_mime text, p_size bigint, p_sha256 text, p_document_id uuid",
+        "anon_execute": false,
+        "definition_md5": "541757783cb1cae08a4e94d3a4ce0d97",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_document_finalize_upload",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_document uuid, p_version integer, p_size bigint, p_mime text",
+        "anon_execute": false,
+        "definition_md5": "e0ecd8ce9796a5b4c50e5078af257be2",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "fin_document_mime_allowed",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_mime text",
+        "anon_execute": true,
+        "definition_md5": "512d43d427df2ffeefae4b6af82dfcf6",
+        "security_definer": false,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_document_pending_upload",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_document uuid, p_version integer",
+        "anon_execute": false,
+        "definition_md5": "092a4f5750d07f3205fd11712b864588",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_document_remove",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_document uuid",
+        "anon_execute": false,
+        "definition_md5": "ff1ca40407f73ee875634398354f5d64",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_enqueue_email",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_template text, p_recipient text, p_entity_type text, p_entity_id uuid, p_payload jsonb, p_idempotency_key text",
+        "anon_execute": false,
+        "definition_md5": "3f9bc1be0805b2c05b881c630b7c128b",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "fin_enqueue_notification_email",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "",
+        "anon_execute": false,
+        "definition_md5": "d552b299b2e6314227d90350a3adebaf",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "fin_has_role",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_org uuid, p_roles text[]",
+        "anon_execute": false,
+        "definition_md5": "8ed55ea5d650d2f605a62ffdf6e71e1a",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_invite_member",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_org uuid, p_email text, p_role text",
+        "anon_execute": false,
+        "definition_md5": "1e1a599bf19a5fd59e5c2d75f73468b9",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_invite_provider",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_rfq uuid, p_provider uuid",
+        "anon_execute": false,
+        "definition_md5": "f05998f0588e32c565abb45384c66880",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_is_operator",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "",
+        "anon_execute": false,
+        "definition_md5": "a9c5327f83d6c8effbe4e008573f0e37",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_jwt_aal",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "",
+        "anon_execute": true,
+        "definition_md5": "7713643562419936c9fc944ef2c29cf3",
+        "security_definer": false,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_log_rfq_revision",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "",
+        "anon_execute": false,
+        "definition_md5": "1760830c88a9a3b31e2069588cdf1e3a",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "fin_mark_notifications",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_org uuid, p_ids uuid[]",
+        "anon_execute": false,
+        "definition_md5": "a9064176cec71a73473b3066034857a2",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_member_default_name",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "",
+        "anon_execute": false,
+        "definition_md5": "17c1210feb8fb2f479d7349eefda6f2f",
+        "security_definer": true,
+        "profiles_reference": true,
+        "authenticated_execute": false
+      },
+      {
+        "name": "fin_notify_event",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "",
+        "anon_execute": false,
+        "definition_md5": "2996a276148046d638f289a9eaa96fd1",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "fin_ops_overview",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "",
+        "anon_execute": false,
+        "definition_md5": "2ca052cbe59ea600cf650e0a525e955e",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_ops_trace",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_request_id text, p_entity_id uuid",
+        "anon_execute": false,
+        "definition_md5": "0d98add067326ca58dfc34c1951181ff",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_pilot_access_allowed",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_email text",
+        "anon_execute": false,
+        "definition_md5": "6e52363faca197e332865f2da3dd1f28",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "fin_platform_role",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "",
+        "anon_execute": false,
+        "definition_md5": "16ed5f3d56ae1048e5acbd6c98c7a009",
+        "security_definer": false,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_process_renewals",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_org uuid, p_day date",
+        "anon_execute": false,
+        "definition_md5": "0a0f1b628ddf73912db6a190434e9cb6",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_provider_can_comment",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_type text, p_id uuid",
+        "anon_execute": false,
+        "definition_md5": "5ab9629a2b7c4e9f3ad863e67061e6df",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_provider_reads_comment",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_org uuid, p_author uuid, p_type text, p_id uuid",
+        "anon_execute": false,
+        "definition_md5": "4059b683329def9367ef46d8bdc5d2e5",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_record_client_event",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_org uuid, p_entity_type text, p_entity_id uuid, p_event text",
+        "anon_execute": false,
+        "definition_md5": "5486b0c4340a8642b818f4caa7ee5779",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_record_decision",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_rfq uuid, p_proposal uuid, p_criteria jsonb, p_rationale text",
+        "anon_execute": false,
+        "definition_md5": "3dd83d71e0a7d64e2561281b0dad824a",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_record_job_run",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_job text, p_status text, p_processed integer, p_request_id text, p_error_code text, p_started_at timestamp with time zone",
+        "anon_execute": false,
+        "definition_md5": "1f94b1615ab7135ea7a593033fe68158",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "fin_record_provider_evidence",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_provider uuid, p_authority text, p_registry text, p_evidence_url text, p_checked_at date",
+        "anon_execute": false,
+        "definition_md5": "75f96167d9036aee5c1d2248e39970e1",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_register_contract",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_decision uuid, p_starts date, p_ends date, p_notice integer, p_cost text, p_conditions text, p_reference text",
+        "anon_execute": false,
+        "definition_md5": "467bf4a90422376303a1326729f0d7d9",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_reply_comment",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_parent uuid, p_body text, p_mention_ids uuid[], p_client_id uuid",
+        "anon_execute": false,
+        "definition_md5": "92565dfa4a003d93caf54353d361a262",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_request_approval",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_rfq uuid, p_proposal uuid, p_approvers uuid[], p_rationale text",
+        "anon_execute": false,
+        "definition_md5": "c3c8147d8a3bb4b190b0a2caaf27360e",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_require_operator",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "",
+        "anon_execute": false,
+        "definition_md5": "a7daec116a5106b4e10e132c263742e5",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "fin_resolve_provider_invite_token",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_invite uuid",
+        "anon_execute": false,
+        "definition_md5": "2f0dc6aa897d86493ad20e182c0e0b3f",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "fin_revise_rfq",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_rfq uuid, p_expected integer, p_title text, p_description text, p_demand jsonb, p_deadline date",
+        "anon_execute": false,
+        "definition_md5": "c55951b27e3261026b23a04dab12058c",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_run_renewal_schedule",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_day date",
+        "anon_execute": false,
+        "definition_md5": "58347117bb6b722dfccdf35802a26d33",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "fin_save_proposal_draft",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_proposal uuid, p_terms jsonb, p_expected_revision integer, p_base_version integer",
+        "anon_execute": false,
+        "definition_md5": "2659800bada23fa67a655d63278f0e1c",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_save_rfq_editor",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_org uuid, p_payload jsonb, p_expected integer",
+        "anon_execute": false,
+        "definition_md5": "fc039dc958f3d9d672ae408c9d02bf4c",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_search",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_org uuid, p_query text, p_kind text, p_limit integer, p_offset integer",
+        "anon_execute": false,
+        "definition_md5": "e6482563ef48ea72e9d2669f8d58d893",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_seed_rfq_revision",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "",
+        "anon_execute": false,
+        "definition_md5": "aaa891e8db0fd85e70daa3e9ee1a94a8",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "fin_set_approval_policy",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_org uuid, p_required boolean",
+        "anon_execute": false,
+        "definition_md5": "2ed4411d923b340caca175c9f8474f7b",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_set_notification_preference",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_org uuid, p_event text, p_in_app boolean, p_email boolean",
+        "anon_execute": false,
+        "definition_md5": "af7f2a0bd374095a1513d1b4a28b6f8e",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_setting",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_key text, p_default text",
+        "anon_execute": false,
+        "definition_md5": "a8cea5511e3f2b83acfd9ea745ad6e58",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "fin_stamp_proposal_rfq_revision",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "",
+        "anon_execute": false,
+        "definition_md5": "3d0da97d01f0ae79ed0c0603a5fd063d",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "fin_start_contract_rfq",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_contract uuid",
+        "anon_execute": false,
+        "definition_md5": "7091616e3adc8a6c2a040180969aa5bb",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_submit_proposal",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_proposal uuid, p_terms jsonb, p_note text",
+        "anon_execute": false,
+        "definition_md5": "2bdee02b58d3232ca9dd676d6f721f18",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_transition",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_kind text, p_id uuid, p_status text",
+        "anon_execute": false,
+        "definition_md5": "249f22ab8e0fab59bcc90dcfa19b41d0",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_update_my_member_profile",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_org uuid, p_display_name text, p_job_title text",
+        "anon_execute": false,
+        "definition_md5": "9e53145cb2fd4e4120ca6f71b8295e2d",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_update_organization",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_org uuid, p_trade_name text, p_tax_identifier text, p_sector text, p_revenue_band text",
+        "anon_execute": false,
+        "definition_md5": "4f163fffa804884c83c85aeabecdae94",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "fin_update_rfq_demand",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_rfq uuid, p_title text, p_description text, p_demand jsonb, p_deadline date",
+        "anon_execute": false,
+        "definition_md5": "52ba8fd374d6de790e9c85c6f08cfdcf",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "fin_withdraw_proposal",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_proposal uuid",
+        "anon_execute": false,
+        "definition_md5": "3fac5a78df16ddd52b93571390a1a9ba",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": true
+      },
+      {
+        "name": "handle_new_user_profile",
+        "config": [
+          "search_path=public"
+        ],
+        "arguments": "",
+        "anon_execute": false,
+        "definition_md5": "757d556e1310e4ee9064ff6dbf18b07d",
+        "security_definer": true,
+        "profiles_reference": true,
+        "authenticated_execute": false
+      },
+      {
+        "name": "is_under_legal_hold",
+        "config": [
+          "search_path=public"
+        ],
+        "arguments": "p_data_class text, p_entity_id text",
+        "anon_execute": false,
+        "definition_md5": "25502b6e2d3aa9502ae579e9d81fba8d",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "link_artist_account_atomic",
+        "config": [
+          "search_path=public"
+        ],
+        "arguments": "p_user_id uuid, p_artist_id text, p_actor_ref text, p_actor_role text, p_request_id text",
+        "anon_execute": false,
+        "definition_md5": "ea1862ba4c0b1edcb71fe6b5606f63fe",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "log_operational_status_change",
+        "config": [
+          "search_path=public"
+        ],
+        "arguments": "",
+        "anon_execute": false,
+        "definition_md5": "363dc1806f17792b6062dd0e7091402a",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "operational_transition_allowed",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "p_entity text, p_from text, p_to text",
+        "anon_execute": false,
+        "definition_md5": "6aad24974f351aafc515506d32fdf7d5",
+        "security_definer": false,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "protect_order_history_append_only",
+        "config": [
+          "search_path=public"
+        ],
+        "arguments": "",
+        "anon_execute": false,
+        "definition_md5": "6d58f94c84874786627ca109698e84eb",
+        "security_definer": false,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "protect_order_immutable_fields",
+        "config": [
+          "search_path=public"
+        ],
+        "arguments": "",
+        "anon_execute": false,
+        "definition_md5": "86d68de3dad0aaae4417ec722db57a8f",
+        "security_definer": false,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "release_legal_hold",
+        "config": [
+          "search_path=public"
+        ],
+        "arguments": "p_data_class text, p_entity_id text, p_release_reference text, p_actor_ref text",
+        "anon_execute": false,
+        "definition_md5": "37072da38b143f44974b369809145dd9",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "revoke_artist_account_atomic",
+        "config": [
+          "search_path=public"
+        ],
+        "arguments": "p_user_id uuid, p_actor_ref text, p_actor_role text, p_request_id text",
+        "anon_execute": false,
+        "definition_md5": "d6e73e39b8ca36727c3d687ae885d345",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "set_updated_at",
+        "config": [
+          "search_path=\"\""
+        ],
+        "arguments": "",
+        "anon_execute": false,
+        "definition_md5": "63f977f8e2e3db6a119fcbe248bf3314",
+        "security_definer": false,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "transition_order_atomic",
+        "config": [
+          "search_path=public"
+        ],
+        "arguments": "p_order_id uuid, p_status text, p_payment_status text, p_fulfillment_status text, p_certificate_status text, p_actor_ref text, p_actor_role text, p_request_id text",
+        "anon_execute": false,
+        "definition_md5": "9bcd54fd49357d59eba6c7e970971d34",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      },
+      {
+        "name": "transition_order_atomic",
+        "config": [
+          "search_path=public"
+        ],
+        "arguments": "p_order_id uuid, p_status text, p_payment_status text, p_fulfillment_status text, p_certificate_status text, p_tracking_code text, p_shipping_provider text, p_justification text, p_actor_ref text, p_actor_role text, p_request_id text",
+        "anon_execute": false,
+        "definition_md5": "9bb1a09e47c293feb023b6e873a01bc2",
+        "security_definer": true,
+        "profiles_reference": false,
+        "authenticated_execute": false
+      }
+    ],
+    "triggers": [
+      {
+        "name": "trg_auth_user_profile",
+        "table": "auth.users",
+        "enabled": "O",
+        "function": "handle_new_user_profile"
+      },
+      {
+        "name": "trg_arandu_audit",
+        "table": "public.artist_submissions",
+        "enabled": "O",
+        "function": "audit_privileged_mutation"
+      },
+      {
+        "name": "trg_arandu_operational_status",
+        "table": "public.artist_submissions",
+        "enabled": "O",
+        "function": "log_operational_status_change"
+      },
+      {
+        "name": "trg_artist_submissions_updated_at",
+        "table": "public.artist_submissions",
+        "enabled": "O",
+        "function": "set_updated_at"
+      },
+      {
+        "name": "trg_arandu_audit",
+        "table": "public.artists",
+        "enabled": "O",
+        "function": "audit_privileged_mutation"
+      },
+      {
+        "name": "trg_arandu_operational_status",
+        "table": "public.artists",
+        "enabled": "O",
+        "function": "log_operational_status_change"
+      },
+      {
+        "name": "trg_artists_updated_at",
+        "table": "public.artists",
+        "enabled": "O",
+        "function": "set_updated_at"
+      },
+      {
+        "name": "trg_arandu_audit",
+        "table": "public.artworks",
+        "enabled": "O",
+        "function": "audit_privileged_mutation"
+      },
+      {
+        "name": "trg_arandu_operational_status",
+        "table": "public.artworks",
+        "enabled": "O",
+        "function": "log_operational_status_change"
+      },
+      {
+        "name": "trg_artworks_updated_at",
+        "table": "public.artworks",
+        "enabled": "O",
+        "function": "set_updated_at"
+      },
+      {
+        "name": "trg_catalog_releases_updated_at",
+        "table": "public.catalog_releases",
+        "enabled": "O",
+        "function": "set_updated_at"
+      },
+      {
+        "name": "trg_arandu_audit",
+        "table": "public.certificates",
+        "enabled": "O",
+        "function": "audit_privileged_mutation"
+      },
+      {
+        "name": "trg_arandu_operational_status",
+        "table": "public.certificates",
+        "enabled": "O",
+        "function": "log_operational_status_change"
+      },
+      {
+        "name": "trg_certificates_updated_at",
+        "table": "public.certificates",
+        "enabled": "O",
+        "function": "set_updated_at"
+      },
+      {
+        "name": "trg_arandu_audit",
+        "table": "public.commercial_items",
+        "enabled": "O",
+        "function": "audit_privileged_mutation"
+      },
+      {
+        "name": "trg_arandu_audit",
+        "table": "public.commercial_records",
+        "enabled": "O",
+        "function": "audit_privileged_mutation"
+      },
+      {
+        "name": "trg_commercial_records_updated_at",
+        "table": "public.commercial_records",
+        "enabled": "O",
+        "function": "set_updated_at"
+      },
+      {
+        "name": "trg_arandu_audit",
+        "table": "public.company_briefs",
+        "enabled": "O",
+        "function": "audit_privileged_mutation"
+      },
+      {
+        "name": "trg_arandu_operational_status",
+        "table": "public.company_briefs",
+        "enabled": "O",
+        "function": "log_operational_status_change"
+      },
+      {
+        "name": "trg_company_briefs_updated_at",
+        "table": "public.company_briefs",
+        "enabled": "O",
+        "function": "set_updated_at"
+      },
+      {
+        "name": "trg_consignments_updated_at",
+        "table": "public.consignments",
+        "enabled": "O",
+        "function": "set_updated_at"
+      },
+      {
+        "name": "trg_arandu_audit",
+        "table": "public.crm_notes",
+        "enabled": "O",
+        "function": "audit_privileged_mutation"
+      },
+      {
+        "name": "trg_curated_collections_updated_at",
+        "table": "public.curated_collections",
+        "enabled": "O",
+        "function": "set_updated_at"
+      },
+      {
+        "name": "fin_notify_event",
+        "table": "public.fin_events",
+        "enabled": "O",
+        "function": "fin_notify_event"
+      },
+      {
+        "name": "fin_member_default_name",
+        "table": "public.fin_members",
+        "enabled": "O",
+        "function": "fin_member_default_name"
+      },
+      {
+        "name": "fin_apply_notification_preference",
+        "table": "public.fin_notifications",
+        "enabled": "O",
+        "function": "fin_apply_notification_preference"
+      },
+      {
+        "name": "fin_enqueue_notification_email",
+        "table": "public.fin_notifications",
+        "enabled": "O",
+        "function": "fin_enqueue_notification_email"
+      },
+      {
+        "name": "fin_clear_submitted_draft",
+        "table": "public.fin_proposal_versions",
+        "enabled": "O",
+        "function": "fin_clear_submitted_draft"
+      },
+      {
+        "name": "fin_stamp_proposal_rfq_revision",
+        "table": "public.fin_proposal_versions",
+        "enabled": "O",
+        "function": "fin_stamp_proposal_rfq_revision"
+      },
+      {
+        "name": "fin_capture_rfq_revision",
+        "table": "public.fin_rfqs",
+        "enabled": "O",
+        "function": "fin_capture_rfq_revision"
+      },
+      {
+        "name": "fin_log_rfq_revision",
+        "table": "public.fin_rfqs",
+        "enabled": "O",
+        "function": "fin_log_rfq_revision"
+      },
+      {
+        "name": "fin_seed_rfq_revision",
+        "table": "public.fin_rfqs",
+        "enabled": "O",
+        "function": "fin_seed_rfq_revision"
+      },
+      {
+        "name": "trg_arandu_audit",
+        "table": "public.leads",
+        "enabled": "O",
+        "function": "audit_privileged_mutation"
+      },
+      {
+        "name": "trg_arandu_operational_status",
+        "table": "public.leads",
+        "enabled": "O",
+        "function": "log_operational_status_change"
+      },
+      {
+        "name": "trg_leads_updated_at",
+        "table": "public.leads",
+        "enabled": "O",
+        "function": "set_updated_at"
+      },
+      {
+        "name": "trg_logistics_records_updated_at",
+        "table": "public.logistics_records",
+        "enabled": "O",
+        "function": "set_updated_at"
+      },
+      {
+        "name": "trg_arandu_audit",
+        "table": "public.media_assets",
+        "enabled": "O",
+        "function": "audit_privileged_mutation"
+      },
+      {
+        "name": "trg_order_status_history_append_only",
+        "table": "public.order_status_history",
+        "enabled": "O",
+        "function": "protect_order_history_append_only"
+      },
+      {
+        "name": "trg_arandu_audit",
+        "table": "public.orders",
+        "enabled": "O",
+        "function": "audit_privileged_mutation"
+      },
+      {
+        "name": "trg_orders_immutable_fields",
+        "table": "public.orders",
+        "enabled": "O",
+        "function": "protect_order_immutable_fields"
+      },
+      {
+        "name": "trg_orders_transactional_email",
+        "table": "public.orders",
+        "enabled": "O",
+        "function": "enqueue_order_email_events"
+      },
+      {
+        "name": "trg_orders_updated_at",
+        "table": "public.orders",
+        "enabled": "O",
+        "function": "set_updated_at"
+      },
+      {
+        "name": "trg_arandu_audit",
+        "table": "public.privacy_requests",
+        "enabled": "O",
+        "function": "audit_privileged_mutation"
+      },
+      {
+        "name": "trg_profiles_updated_at",
+        "table": "public.profiles",
+        "enabled": "O",
+        "function": "set_updated_at"
+      },
+      {
+        "name": "trg_arandu_audit",
+        "table": "public.proposal_items",
+        "enabled": "O",
+        "function": "audit_privileged_mutation"
+      },
+      {
+        "name": "trg_arandu_audit",
+        "table": "public.proposals",
+        "enabled": "O",
+        "function": "audit_privileged_mutation"
+      },
+      {
+        "name": "trg_arandu_operational_status",
+        "table": "public.proposals",
+        "enabled": "O",
+        "function": "log_operational_status_change"
+      },
+      {
+        "name": "trg_proposals_updated_at",
+        "table": "public.proposals",
+        "enabled": "O",
+        "function": "set_updated_at"
+      },
+      {
+        "name": "trg_arandu_audit",
+        "table": "public.reservations",
+        "enabled": "O",
+        "function": "audit_privileged_mutation"
+      },
+      {
+        "name": "trg_arandu_operational_status",
+        "table": "public.reservations",
+        "enabled": "O",
+        "function": "log_operational_status_change"
+      },
+      {
+        "name": "trg_reservations_updated_at",
+        "table": "public.reservations",
+        "enabled": "O",
+        "function": "set_updated_at"
+      },
+      {
+        "name": "trg_arandu_audit",
+        "table": "public.saved_selections",
+        "enabled": "O",
+        "function": "audit_privileged_mutation"
+      },
+      {
+        "name": "trg_saved_selections_updated_at",
+        "table": "public.saved_selections",
+        "enabled": "O",
+        "function": "set_updated_at"
+      },
+      {
+        "name": "trg_arandu_audit",
+        "table": "public.tasks",
+        "enabled": "O",
+        "function": "audit_privileged_mutation"
+      },
+      {
+        "name": "trg_arandu_operational_status",
+        "table": "public.tasks",
+        "enabled": "O",
+        "function": "log_operational_status_change"
+      },
+      {
+        "name": "trg_tasks_updated_at",
+        "table": "public.tasks",
+        "enabled": "O",
+        "function": "set_updated_at"
+      }
+    ],
+    "extensions": [
+      {
+        "name": "pg_stat_statements",
+        "version": "1.11"
+      },
+      {
+        "name": "pgcrypto",
+        "version": "1.3"
+      },
+      {
+        "name": "plpgsql",
+        "version": "1.0"
+      },
+      {
+        "name": "supabase_vault",
+        "version": "0.3.1"
+      },
+      {
+        "name": "uuid-ossp",
+        "version": "1.1"
+      }
+    ],
+    "statistics": {
+      "reset": null,
+      "pg_stat_statements": true
+    },
+    "foreign_keys": [
+      {
+        "name": "artist_accounts_artist_id_fkey",
+        "table": "artist_accounts",
+        "target": "artists",
+        "definition": "FOREIGN KEY (artist_id) REFERENCES artists(id) ON DELETE CASCADE"
+      },
+      {
+        "name": "artist_accounts_user_id_fkey",
+        "table": "artist_accounts",
+        "target": "auth.users",
+        "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+      },
+      {
+        "name": "artwork_events_artwork_id_fkey",
+        "table": "artwork_events",
+        "target": "artworks",
+        "definition": "FOREIGN KEY (artwork_id) REFERENCES artworks(id)"
+      },
+      {
+        "name": "artworks_artist_id_fkey",
+        "table": "artworks",
+        "target": "artists",
+        "definition": "FOREIGN KEY (artist_id) REFERENCES artists(id)"
+      },
+      {
+        "name": "certificates_artist_id_fkey",
+        "table": "certificates",
+        "target": "artists",
+        "definition": "FOREIGN KEY (artist_id) REFERENCES artists(id)"
+      },
+      {
+        "name": "certificates_artwork_id_fkey",
+        "table": "certificates",
+        "target": "artworks",
+        "definition": "FOREIGN KEY (artwork_id) REFERENCES artworks(id)"
+      },
+      {
+        "name": "collection_artworks_artwork_id_fkey",
+        "table": "collection_artworks",
+        "target": "artworks",
+        "definition": "FOREIGN KEY (artwork_id) REFERENCES artworks(id) ON DELETE CASCADE"
+      },
+      {
+        "name": "collection_artworks_collection_id_fkey",
+        "table": "collection_artworks",
+        "target": "curated_collections",
+        "definition": "FOREIGN KEY (collection_id) REFERENCES curated_collections(id) ON DELETE CASCADE"
+      },
+      {
+        "name": "commercial_items_artist_id_fkey",
+        "table": "commercial_items",
+        "target": "artists",
+        "definition": "FOREIGN KEY (artist_id) REFERENCES artists(id)"
+      },
+      {
+        "name": "commercial_items_artwork_id_fkey",
+        "table": "commercial_items",
+        "target": "artworks",
+        "definition": "FOREIGN KEY (artwork_id) REFERENCES artworks(id)"
+      },
+      {
+        "name": "commercial_items_commercial_record_id_fkey",
+        "table": "commercial_items",
+        "target": "commercial_records",
+        "definition": "FOREIGN KEY (commercial_record_id) REFERENCES commercial_records(id) ON DELETE CASCADE"
+      },
+      {
+        "name": "commercial_records_lead_id_fkey",
+        "table": "commercial_records",
+        "target": "leads",
+        "definition": "FOREIGN KEY (lead_id) REFERENCES leads(id)"
+      },
+      {
+        "name": "commercial_records_proposal_id_fkey",
+        "table": "commercial_records",
+        "target": "proposals",
+        "definition": "FOREIGN KEY (proposal_id) REFERENCES proposals(id)"
+      },
+      {
+        "name": "commercial_records_reservation_id_fkey",
+        "table": "commercial_records",
+        "target": "reservations",
+        "definition": "FOREIGN KEY (reservation_id) REFERENCES reservations(id)"
+      },
+      {
+        "name": "company_briefs_user_id_fkey",
+        "table": "company_briefs",
+        "target": "auth.users",
+        "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL"
+      },
+      {
+        "name": "consignments_artist_id_fkey",
+        "table": "consignments",
+        "target": "artists",
+        "definition": "FOREIGN KEY (artist_id) REFERENCES artists(id)"
+      },
+      {
+        "name": "consignments_artwork_id_fkey",
+        "table": "consignments",
+        "target": "artworks",
+        "definition": "FOREIGN KEY (artwork_id) REFERENCES artworks(id)"
+      },
+      {
+        "name": "conversion_events_user_id_fkey",
+        "table": "conversion_events",
+        "target": "auth.users",
+        "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL"
+      },
+      {
+        "name": "fin_approval_policies_organization_id_fkey",
+        "table": "fin_approval_policies",
+        "target": "fin_organizations",
+        "definition": "FOREIGN KEY (organization_id) REFERENCES fin_organizations(id)"
+      },
+      {
+        "name": "fin_approval_policies_updated_by_fkey",
+        "table": "fin_approval_policies",
+        "target": "auth.users",
+        "definition": "FOREIGN KEY (updated_by) REFERENCES auth.users(id)"
+      },
+      {
+        "name": "fin_approval_requests_organization_id_rfq_id_fkey",
+        "table": "fin_approval_requests",
+        "target": "fin_rfqs",
+        "definition": "FOREIGN KEY (organization_id, rfq_id) REFERENCES fin_rfqs(organization_id, id)"
+      },
+      {
+        "name": "fin_approval_requests_requested_by_fkey",
+        "table": "fin_approval_requests",
+        "target": "auth.users",
+        "definition": "FOREIGN KEY (requested_by) REFERENCES auth.users(id)"
+      },
+      {
+        "name": "fin_approval_requests_rfq_id_proposal_id_fkey",
+        "table": "fin_approval_requests",
+        "target": "fin_proposals",
+        "definition": "FOREIGN KEY (rfq_id, proposal_id) REFERENCES fin_proposals(rfq_id, id)"
+      },
+      {
+        "name": "fin_approval_steps_approver_id_fkey",
+        "table": "fin_approval_steps",
+        "target": "auth.users",
+        "definition": "FOREIGN KEY (approver_id) REFERENCES auth.users(id)"
+      },
+      {
+        "name": "fin_approval_steps_request_id_fkey",
+        "table": "fin_approval_steps",
+        "target": "fin_approval_requests",
+        "definition": "FOREIGN KEY (request_id) REFERENCES fin_approval_requests(id)"
+      },
+      {
+        "name": "fin_comments_author_id_fkey",
+        "table": "fin_comments",
+        "target": "auth.users",
+        "definition": "FOREIGN KEY (author_id) REFERENCES auth.users(id)"
+      },
+      {
+        "name": "fin_comments_organization_id_fkey",
+        "table": "fin_comments",
+        "target": "fin_organizations",
+        "definition": "FOREIGN KEY (organization_id) REFERENCES fin_organizations(id)"
+      },
+      {
+        "name": "fin_comments_parent_fk",
+        "table": "fin_comments",
+        "target": "fin_comments",
+        "definition": "FOREIGN KEY (organization_id, parent_id) REFERENCES fin_comments(organization_id, id)"
+      },
+      {
+        "name": "fin_company_profiles_organization_id_fkey",
+        "table": "fin_company_profiles",
+        "target": "fin_organizations",
+        "definition": "FOREIGN KEY (organization_id) REFERENCES fin_organizations(id)"
+      },
+      {
+        "name": "fin_company_profiles_updated_by_fkey",
+        "table": "fin_company_profiles",
+        "target": "auth.users",
+        "definition": "FOREIGN KEY (updated_by) REFERENCES auth.users(id)"
+      },
+      {
+        "name": "fin_contracts_organization_id_decision_id_proposal_id_fkey",
+        "table": "fin_contracts",
+        "target": "fin_decisions",
+        "definition": "FOREIGN KEY (organization_id, decision_id, proposal_id) REFERENCES fin_decisions(organization_id, id, proposal_id)"
+      },
+      {
+        "name": "fin_contracts_organization_id_provider_id_fkey",
+        "table": "fin_contracts",
+        "target": "fin_providers",
+        "definition": "FOREIGN KEY (organization_id, provider_id) REFERENCES fin_providers(organization_id, id)"
+      },
+      {
+        "name": "fin_contracts_owner_id_fkey",
+        "table": "fin_contracts",
+        "target": "auth.users",
+        "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id)"
+      },
+      {
+        "name": "fin_decisions_decided_by_fkey",
+        "table": "fin_decisions",
+        "target": "auth.users",
+        "definition": "FOREIGN KEY (decided_by) REFERENCES auth.users(id)"
+      },
+      {
+        "name": "fin_decisions_organization_id_proposal_id_fkey",
+        "table": "fin_decisions",
+        "target": "fin_proposals",
+        "definition": "FOREIGN KEY (organization_id, proposal_id) REFERENCES fin_proposals(buyer_organization_id, id)"
+      },
+      {
+        "name": "fin_decisions_organization_id_rfq_id_fkey",
+        "table": "fin_decisions",
+        "target": "fin_rfqs",
+        "definition": "FOREIGN KEY (organization_id, rfq_id) REFERENCES fin_rfqs(organization_id, id)"
+      },
+      {
+        "name": "fin_decisions_rfq_id_proposal_id_fkey",
+        "table": "fin_decisions",
+        "target": "fin_proposals",
+        "definition": "FOREIGN KEY (rfq_id, proposal_id) REFERENCES fin_proposals(rfq_id, id)"
+      },
+      {
+        "name": "fin_document_versions_document_id_fkey",
+        "table": "fin_document_versions",
+        "target": "fin_private_documents",
+        "definition": "FOREIGN KEY (document_id) REFERENCES fin_private_documents(id)"
+      },
+      {
+        "name": "fin_document_versions_uploaded_by_fkey",
+        "table": "fin_document_versions",
+        "target": "auth.users",
+        "definition": "FOREIGN KEY (uploaded_by) REFERENCES auth.users(id)"
+      },
+      {
+        "name": "fin_documents_created_by_fkey",
+        "table": "fin_documents",
+        "target": "auth.users",
+        "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+      },
+      {
+        "name": "fin_documents_organization_id_fkey",
+        "table": "fin_documents",
+        "target": "fin_organizations",
+        "definition": "FOREIGN KEY (organization_id) REFERENCES fin_organizations(id)"
+      },
+      {
+        "name": "fin_events_actor_id_fkey",
+        "table": "fin_events",
+        "target": "auth.users",
+        "definition": "FOREIGN KEY (actor_id) REFERENCES auth.users(id)"
+      },
+      {
+        "name": "fin_events_organization_id_fkey",
+        "table": "fin_events",
+        "target": "fin_organizations",
+        "definition": "FOREIGN KEY (organization_id) REFERENCES fin_organizations(id)"
+      },
+      {
+        "name": "fin_invite_acceptance_denials_invite_id_fkey",
+        "table": "fin_invite_acceptance_denials",
+        "target": "fin_rfq_invites",
+        "definition": "FOREIGN KEY (invite_id) REFERENCES fin_rfq_invites(id) ON DELETE CASCADE"
+      },
+      {
+        "name": "fin_invite_acceptance_denials_user_id_fkey",
+        "table": "fin_invite_acceptance_denials",
+        "target": "auth.users",
+        "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id)"
+      },
+      {
+        "name": "fin_member_invitations_created_by_fkey",
+        "table": "fin_member_invitations",
+        "target": "auth.users",
+        "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+      },
+      {
+        "name": "fin_member_invitations_organization_id_fkey",
+        "table": "fin_member_invitations",
+        "target": "fin_organizations",
+        "definition": "FOREIGN KEY (organization_id) REFERENCES fin_organizations(id)"
+      },
+      {
+        "name": "fin_members_organization_id_fkey",
+        "table": "fin_members",
+        "target": "fin_organizations",
+        "definition": "FOREIGN KEY (organization_id) REFERENCES fin_organizations(id)"
+      },
+      {
+        "name": "fin_members_user_id_fkey",
+        "table": "fin_members",
+        "target": "auth.users",
+        "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id)"
+      },
+      {
+        "name": "fin_notification_preferences_organization_id_fkey",
+        "table": "fin_notification_preferences",
+        "target": "fin_organizations",
+        "definition": "FOREIGN KEY (organization_id) REFERENCES fin_organizations(id)"
+      },
+      {
+        "name": "fin_notification_preferences_user_id_fkey",
+        "table": "fin_notification_preferences",
+        "target": "auth.users",
+        "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id)"
+      },
+      {
+        "name": "fin_notifications_organization_id_fkey",
+        "table": "fin_notifications",
+        "target": "fin_organizations",
+        "definition": "FOREIGN KEY (organization_id) REFERENCES fin_organizations(id)"
+      },
+      {
+        "name": "fin_notifications_user_id_fkey",
+        "table": "fin_notifications",
+        "target": "auth.users",
+        "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id)"
+      },
+      {
+        "name": "fin_ops_access_log_user_id_fkey",
+        "table": "fin_ops_access_log",
+        "target": "auth.users",
+        "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id)"
+      },
+      {
+        "name": "fin_organizations_created_by_fkey",
+        "table": "fin_organizations",
+        "target": "auth.users",
+        "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+      },
+      {
+        "name": "fin_pilot_allowlist_created_by_fkey",
+        "table": "fin_pilot_allowlist",
+        "target": "auth.users",
+        "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+      },
+      {
+        "name": "fin_platform_operators_user_id_fkey",
+        "table": "fin_platform_operators",
+        "target": "auth.users",
+        "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id)"
+      },
+      {
+        "name": "fin_private_documents_buyer_organization_id_fkey",
+        "table": "fin_private_documents",
+        "target": "fin_organizations",
+        "definition": "FOREIGN KEY (buyer_organization_id) REFERENCES fin_organizations(id)"
+      },
+      {
+        "name": "fin_private_documents_created_by_fkey",
+        "table": "fin_private_documents",
+        "target": "auth.users",
+        "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+      },
+      {
+        "name": "fin_private_documents_organization_id_fkey",
+        "table": "fin_private_documents",
+        "target": "fin_organizations",
+        "definition": "FOREIGN KEY (organization_id) REFERENCES fin_organizations(id)"
+      },
+      {
+        "name": "fin_private_documents_removed_by_fkey",
+        "table": "fin_private_documents",
+        "target": "auth.users",
+        "definition": "FOREIGN KEY (removed_by) REFERENCES auth.users(id)"
+      },
+      {
+        "name": "fin_proposal_drafts_proposal_id_provider_organization_id_fkey",
+        "table": "fin_proposal_drafts",
+        "target": "fin_proposals",
+        "definition": "FOREIGN KEY (proposal_id, provider_organization_id) REFERENCES fin_proposals(id, provider_organization_id)"
+      },
+      {
+        "name": "fin_proposal_drafts_updated_by_fkey",
+        "table": "fin_proposal_drafts",
+        "target": "auth.users",
+        "definition": "FOREIGN KEY (updated_by) REFERENCES auth.users(id)"
+      },
+      {
+        "name": "fin_proposal_versions_proposal_id_fkey",
+        "table": "fin_proposal_versions",
+        "target": "fin_proposals",
+        "definition": "FOREIGN KEY (proposal_id) REFERENCES fin_proposals(id)"
+      },
+      {
+        "name": "fin_proposal_versions_submitted_by_fkey",
+        "table": "fin_proposal_versions",
+        "target": "auth.users",
+        "definition": "FOREIGN KEY (submitted_by) REFERENCES auth.users(id)"
+      },
+      {
+        "name": "fin_proposals_buyer_organization_id_rfq_id_fkey",
+        "table": "fin_proposals",
+        "target": "fin_rfqs",
+        "definition": "FOREIGN KEY (buyer_organization_id, rfq_id) REFERENCES fin_rfqs(organization_id, id)"
+      },
+      {
+        "name": "fin_proposals_invite_id_provider_organization_id_fkey",
+        "table": "fin_proposals",
+        "target": "fin_rfq_invites",
+        "definition": "FOREIGN KEY (invite_id, provider_organization_id) REFERENCES fin_rfq_invites(id, provider_organization_id)"
+      },
+      {
+        "name": "fin_proposals_provider_organization_id_fkey",
+        "table": "fin_proposals",
+        "target": "fin_organizations",
+        "definition": "FOREIGN KEY (provider_organization_id) REFERENCES fin_organizations(id)"
+      },
+      {
+        "name": "fin_proposals_rfq_id_product_fkey",
+        "table": "fin_proposals",
+        "target": "fin_rfqs",
+        "definition": "FOREIGN KEY (rfq_id, product) REFERENCES fin_rfqs(id, product)"
+      },
+      {
+        "name": "fin_providers_created_by_fkey",
+        "table": "fin_providers",
+        "target": "auth.users",
+        "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+      },
+      {
+        "name": "fin_providers_organization_id_fkey",
+        "table": "fin_providers",
+        "target": "fin_organizations",
+        "definition": "FOREIGN KEY (organization_id) REFERENCES fin_organizations(id)"
+      },
+      {
+        "name": "fin_providers_provider_organization_id_fkey",
+        "table": "fin_providers",
+        "target": "fin_organizations",
+        "definition": "FOREIGN KEY (provider_organization_id) REFERENCES fin_organizations(id)"
+      },
+      {
+        "name": "fin_renewal_milestones_organization_id_contract_id_fkey",
+        "table": "fin_renewal_milestones",
+        "target": "fin_contracts",
+        "definition": "FOREIGN KEY (organization_id, contract_id) REFERENCES fin_contracts(organization_id, id)"
+      },
+      {
+        "name": "fin_renewal_milestones_task_id_fkey",
+        "table": "fin_renewal_milestones",
+        "target": "fin_tasks",
+        "definition": "FOREIGN KEY (task_id) REFERENCES fin_tasks(id)"
+      },
+      {
+        "name": "fin_rfq_editor_drafts_organization_id_fkey",
+        "table": "fin_rfq_editor_drafts",
+        "target": "fin_organizations",
+        "definition": "FOREIGN KEY (organization_id) REFERENCES fin_organizations(id)"
+      },
+      {
+        "name": "fin_rfq_editor_drafts_user_id_fkey",
+        "table": "fin_rfq_editor_drafts",
+        "target": "auth.users",
+        "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id)"
+      },
+      {
+        "name": "fin_rfq_invites_buyer_organization_id_provider_id_fkey",
+        "table": "fin_rfq_invites",
+        "target": "fin_providers",
+        "definition": "FOREIGN KEY (buyer_organization_id, provider_id) REFERENCES fin_providers(organization_id, id)"
+      },
+      {
+        "name": "fin_rfq_invites_buyer_organization_id_rfq_id_fkey",
+        "table": "fin_rfq_invites",
+        "target": "fin_rfqs",
+        "definition": "FOREIGN KEY (buyer_organization_id, rfq_id) REFERENCES fin_rfqs(organization_id, id)"
+      },
+      {
+        "name": "fin_rfq_invites_created_by_fkey",
+        "table": "fin_rfq_invites",
+        "target": "auth.users",
+        "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+      },
+      {
+        "name": "fin_rfq_invites_provider_organization_id_fkey",
+        "table": "fin_rfq_invites",
+        "target": "fin_organizations",
+        "definition": "FOREIGN KEY (provider_organization_id) REFERENCES fin_organizations(id)"
+      },
+      {
+        "name": "fin_rfq_revisions_changed_by_fkey",
+        "table": "fin_rfq_revisions",
+        "target": "auth.users",
+        "definition": "FOREIGN KEY (changed_by) REFERENCES auth.users(id)"
+      },
+      {
+        "name": "fin_rfq_revisions_organization_id_fkey",
+        "table": "fin_rfq_revisions",
+        "target": "fin_organizations",
+        "definition": "FOREIGN KEY (organization_id) REFERENCES fin_organizations(id)"
+      },
+      {
+        "name": "fin_rfq_revisions_rfq_id_fkey",
+        "table": "fin_rfq_revisions",
+        "target": "fin_rfqs",
+        "definition": "FOREIGN KEY (rfq_id) REFERENCES fin_rfqs(id)"
+      },
+      {
+        "name": "fin_rfqs_organization_id_fkey",
+        "table": "fin_rfqs",
+        "target": "fin_organizations",
+        "definition": "FOREIGN KEY (organization_id) REFERENCES fin_organizations(id)"
+      },
+      {
+        "name": "fin_rfqs_owner_id_fkey",
+        "table": "fin_rfqs",
+        "target": "auth.users",
+        "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id)"
+      },
+      {
+        "name": "fin_settings_updated_by_fkey",
+        "table": "fin_settings",
+        "target": "auth.users",
+        "definition": "FOREIGN KEY (updated_by) REFERENCES auth.users(id)"
+      },
+      {
+        "name": "fin_tasks_created_by_fkey",
+        "table": "fin_tasks",
+        "target": "auth.users",
+        "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+      },
+      {
+        "name": "fin_tasks_organization_id_fkey",
+        "table": "fin_tasks",
+        "target": "fin_organizations",
+        "definition": "FOREIGN KEY (organization_id) REFERENCES fin_organizations(id)"
+      },
+      {
+        "name": "fin_terms_acceptances_organization_id_fkey",
+        "table": "fin_terms_acceptances",
+        "target": "fin_organizations",
+        "definition": "FOREIGN KEY (organization_id) REFERENCES fin_organizations(id)"
+      },
+      {
+        "name": "fin_terms_acceptances_user_id_fkey",
+        "table": "fin_terms_acceptances",
+        "target": "auth.users",
+        "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id)"
+      },
+      {
+        "name": "leads_user_id_fkey",
+        "table": "leads",
+        "target": "auth.users",
+        "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL"
+      },
+      {
+        "name": "logistics_records_artwork_id_fkey",
+        "table": "logistics_records",
+        "target": "artworks",
+        "definition": "FOREIGN KEY (artwork_id) REFERENCES artworks(id)"
+      },
+      {
+        "name": "logistics_records_commercial_record_id_fkey",
+        "table": "logistics_records",
+        "target": "commercial_records",
+        "definition": "FOREIGN KEY (commercial_record_id) REFERENCES commercial_records(id) ON DELETE CASCADE"
+      },
+      {
+        "name": "order_status_history_order_id_fkey",
+        "table": "order_status_history",
+        "target": "orders",
+        "definition": "FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE"
+      },
+      {
+        "name": "orders_artist_id_fkey",
+        "table": "orders",
+        "target": "artists",
+        "definition": "FOREIGN KEY (artist_id) REFERENCES artists(id) ON DELETE SET NULL"
+      },
+      {
+        "name": "orders_artwork_id_fkey",
+        "table": "orders",
+        "target": "artworks",
+        "definition": "FOREIGN KEY (artwork_id) REFERENCES artworks(id) ON DELETE RESTRICT"
+      },
+      {
+        "name": "orders_commercial_record_id_fkey",
+        "table": "orders",
+        "target": "commercial_records",
+        "definition": "FOREIGN KEY (commercial_record_id) REFERENCES commercial_records(id) ON DELETE SET NULL"
+      },
+      {
+        "name": "orders_proposal_id_fkey",
+        "table": "orders",
+        "target": "proposals",
+        "definition": "FOREIGN KEY (proposal_id) REFERENCES proposals(id) ON DELETE SET NULL"
+      },
+      {
+        "name": "orders_reservation_id_fkey",
+        "table": "orders",
+        "target": "reservations",
+        "definition": "FOREIGN KEY (reservation_id) REFERENCES reservations(id) ON DELETE RESTRICT"
+      },
+      {
+        "name": "orders_user_id_fkey",
+        "table": "orders",
+        "target": "auth.users",
+        "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL"
+      },
+      {
+        "name": "pilot_events_user_id_fkey",
+        "table": "pilot_events",
+        "target": "auth.users",
+        "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL"
+      },
+      {
+        "name": "pilot_feedback_user_id_fkey",
+        "table": "pilot_feedback",
+        "target": "auth.users",
+        "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL"
+      },
+      {
+        "name": "privacy_requests_user_id_fkey",
+        "table": "privacy_requests",
+        "target": "auth.users",
+        "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+      },
+      {
+        "name": "profiles_id_fkey",
+        "table": "profiles",
+        "target": "auth.users",
+        "definition": "FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE"
+      },
+      {
+        "name": "proposal_items_artwork_id_fkey",
+        "table": "proposal_items",
+        "target": "artworks",
+        "definition": "FOREIGN KEY (artwork_id) REFERENCES artworks(id)"
+      },
+      {
+        "name": "proposal_items_proposal_id_fkey",
+        "table": "proposal_items",
+        "target": "proposals",
+        "definition": "FOREIGN KEY (proposal_id) REFERENCES proposals(id) ON DELETE CASCADE"
+      },
+      {
+        "name": "proposals_company_brief_id_fkey",
+        "table": "proposals",
+        "target": "company_briefs",
+        "definition": "FOREIGN KEY (company_brief_id) REFERENCES company_briefs(id)"
+      },
+      {
+        "name": "proposals_lead_id_fkey",
+        "table": "proposals",
+        "target": "leads",
+        "definition": "FOREIGN KEY (lead_id) REFERENCES leads(id)"
+      },
+      {
+        "name": "proposals_user_id_fkey",
+        "table": "proposals",
+        "target": "auth.users",
+        "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL"
+      },
+      {
+        "name": "reservations_artwork_id_fkey",
+        "table": "reservations",
+        "target": "artworks",
+        "definition": "FOREIGN KEY (artwork_id) REFERENCES artworks(id)"
+      },
+      {
+        "name": "reservations_lead_id_fkey",
+        "table": "reservations",
+        "target": "leads",
+        "definition": "FOREIGN KEY (lead_id) REFERENCES leads(id)"
+      },
+      {
+        "name": "reservations_user_id_fkey",
+        "table": "reservations",
+        "target": "auth.users",
+        "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL"
+      },
+      {
+        "name": "saved_selections_lead_id_fkey",
+        "table": "saved_selections",
+        "target": "leads",
+        "definition": "FOREIGN KEY (lead_id) REFERENCES leads(id)"
+      },
+      {
+        "name": "saved_selections_user_id_fkey",
+        "table": "saved_selections",
+        "target": "auth.users",
+        "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL"
+      }
+    ],
+    "database_bytes": 16149651,
+    "server_version": "17.6"
+  }
+}

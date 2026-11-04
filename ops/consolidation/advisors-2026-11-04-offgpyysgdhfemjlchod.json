@@ -1,0 +1,2556 @@
+{
+  "ref": "offgpyysgdhfemjlchod",
+  "observed_at": "2026-11-04T13:49:06.720Z",
+  "types": {
+    "security": [
+      {
+        "name": "rls_enabled_no_policy",
+        "level": "INFO",
+        "count": 30,
+        "findings": [
+          {
+            "detail": "Table \\`public.api_rate_limits\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "api_rate_limits",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Table \\`public.artist_submissions\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "artist_submissions",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Table \\`public.artwork_events\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "artwork_events",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Table \\`public.audit_logs\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "audit_logs",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Table \\`public.catalog_releases\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "catalog_releases",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Table \\`public.catalog_review_history\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "catalog_review_history",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Table \\`public.commercial_items\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "commercial_items",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Table \\`public.commercial_records\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "commercial_records",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Table \\`public.consignments\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "consignments",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Table \\`public.conversion_events\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "conversion_events",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Table \\`public.crm_notes\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "crm_notes",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Table \\`public.data_legal_holds\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "data_legal_holds",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Table \\`public.data_retention_policies\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "data_retention_policies",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Table \\`public.fin_invite_acceptance_denials\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "fin_invite_acceptance_denials",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Table \\`public.fin_job_runs\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "fin_job_runs",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Table \\`public.fin_member_invitations\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "fin_member_invitations",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Table \\`public.fin_ops_access_log\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "fin_ops_access_log",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Table \\`public.fin_pilot_allowlist\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "fin_pilot_allowlist",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Table \\`public.fin_platform_operators\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "fin_platform_operators",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Table \\`public.fin_settings\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "fin_settings",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Table \\`public.idempotency_keys\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "idempotency_keys",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Table \\`public.logistics_records\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "logistics_records",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Table \\`public.media_assets\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "media_assets",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Table \\`public.newsletter_subscriptions\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "newsletter_subscriptions",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Table \\`public.operational_status_history\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "operational_status_history",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Table \\`public.order_status_history\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "order_status_history",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Table \\`public.pilot_events\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "pilot_events",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Table \\`public.pilot_feedback\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "pilot_feedback",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Table \\`public.tasks\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "tasks",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Table \\`public.transactional_email_outbox\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "transactional_email_outbox",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          }
+        ],
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy"
+      },
+      {
+        "name": "authenticated_security_definer_function_executable",
+        "level": "WARN",
+        "count": 43,
+        "findings": [
+          {
+            "detail": "Function `public.fin_accept_member_invitation(p_token text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/fin_accept_member_invitation`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "fin_accept_member_invitation",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_token text",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Function `public.fin_accept_provider_invite(p_token text, p_provider_org uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/fin_accept_provider_invite`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "fin_accept_provider_invite",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_token text, p_provider_org uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Function `public.fin_accept_terms(p_org uuid, p_version text, p_context text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/fin_accept_terms`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "fin_accept_terms",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_org uuid, p_version text, p_context text",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Function `public.fin_act_on_approval(p_request uuid, p_action text, p_comment text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/fin_act_on_approval`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "fin_act_on_approval",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_request uuid, p_action text, p_comment text",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Function `public.fin_add_comment(p_type text, p_id uuid, p_visibility text, p_body text, p_mention_ids uuid[], p_client_id uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/fin_add_comment`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "fin_add_comment",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_type text, p_id uuid, p_visibility text, p_body text, p_mention_ids uuid[], p_client_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Function `public.fin_can_read_document(p_document uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/fin_can_read_document`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "fin_can_read_document",
+              "schema": "public",
+              "language": "sql",
+              "arguments": "p_document uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Function `public.fin_cancel_approval(p_request uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/fin_cancel_approval`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "fin_cancel_approval",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_request uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Function `public.fin_clear_rfq_editor(p_org uuid, p_expected integer)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/fin_clear_rfq_editor`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "fin_clear_rfq_editor",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_org uuid, p_expected integer",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Function `public.fin_comment_authors(p_type text, p_id uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/fin_comment_authors`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "fin_comment_authors",
+              "schema": "public",
+              "language": "sql",
+              "arguments": "p_type text, p_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Function `public.fin_create_organization(p_name text, p_kind text, p_country text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/fin_create_organization`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "fin_create_organization",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_name text, p_kind text, p_country text",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Function `public.fin_create_rfq(p_org uuid, p_product text, p_title text, p_description text, p_demand jsonb, p_deadline date)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/fin_create_rfq`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "fin_create_rfq",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_org uuid, p_product text, p_title text, p_description text, p_demand jsonb, p_deadline date",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Function `public.fin_document_authorize_download(p_document uuid, p_version integer)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/fin_document_authorize_download`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "fin_document_authorize_download",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_document uuid, p_version integer",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Function `public.fin_document_begin_upload(p_org uuid, p_entity_type text, p_entity_id uuid, p_title text, p_visibility text, p_mime text, p_size bigint, p_sha256 text, p_document_id uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/fin_document_begin_upload`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "fin_document_begin_upload",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_org uuid, p_entity_type text, p_entity_id uuid, p_title text, p_visibility text, p_mime text, p_size bigint, p_sha256 text, p_document_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Function `public.fin_document_pending_upload(p_document uuid, p_version integer)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/fin_document_pending_upload`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "fin_document_pending_upload",
+              "schema": "public",
+              "language": "sql",
+              "arguments": "p_document uuid, p_version integer",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Function `public.fin_document_remove(p_document uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/fin_document_remove`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "fin_document_remove",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_document uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Function `public.fin_has_role(p_org uuid, p_roles text[])` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/fin_has_role`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "fin_has_role",
+              "schema": "public",
+              "language": "sql",
+              "arguments": "p_org uuid, p_roles text[]",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Function `public.fin_invite_member(p_org uuid, p_email text, p_role text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/fin_invite_member`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "fin_invite_member",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_org uuid, p_email text, p_role text",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Function `public.fin_invite_provider(p_rfq uuid, p_provider uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/fin_invite_provider`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "fin_invite_provider",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_rfq uuid, p_provider uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Function `public.fin_is_operator()` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/fin_is_operator`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "fin_is_operator",
+              "schema": "public",
+              "language": "sql",
+              "arguments": "",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Function `public.fin_mark_notifications(p_org uuid, p_ids uuid[])` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/fin_mark_notifications`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "fin_mark_notifications",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_org uuid, p_ids uuid[]",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Function `public.fin_ops_overview()` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/fin_ops_overview`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "fin_ops_overview",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Function `public.fin_ops_trace(p_request_id text, p_entity_id uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/fin_ops_trace`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "fin_ops_trace",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_request_id text, p_entity_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Function `public.fin_process_renewals(p_org uuid, p_day date)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/fin_process_renewals`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "fin_process_renewals",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_org uuid, p_day date",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Function `public.fin_provider_can_comment(p_type text, p_id uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/fin_provider_can_comment`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "fin_provider_can_comment",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_type text, p_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Function `public.fin_provider_reads_comment(p_org uuid, p_author uuid, p_type text, p_id uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/fin_provider_reads_comment`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "fin_provider_reads_comment",
+              "schema": "public",
+              "language": "sql",
+              "arguments": "p_org uuid, p_author uuid, p_type text, p_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Function `public.fin_record_client_event(p_org uuid, p_entity_type text, p_entity_id uuid, p_event text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/fin_record_client_event`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "fin_record_client_event",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_org uuid, p_entity_type text, p_entity_id uuid, p_event text",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Function `public.fin_record_decision(p_rfq uuid, p_proposal uuid, p_criteria jsonb, p_rationale text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/fin_record_decision`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "fin_record_decision",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_rfq uuid, p_proposal uuid, p_criteria jsonb, p_rationale text",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Function `public.fin_record_provider_evidence(p_provider uuid, p_authority text, p_registry text, p_evidence_url text, p_checked_at date)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/fin_record_provider_evidence`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "fin_record_provider_evidence",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_provider uuid, p_authority text, p_registry text, p_evidence_url text, p_checked_at date",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Function `public.fin_register_contract(p_decision uuid, p_starts date, p_ends date, p_notice integer, p_cost text, p_conditions text, p_reference text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/fin_register_contract`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "fin_register_contract",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_decision uuid, p_starts date, p_ends date, p_notice integer, p_cost text, p_conditions text, p_reference text",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Function `public.fin_reply_comment(p_parent uuid, p_body text, p_mention_ids uuid[], p_client_id uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/fin_reply_comment`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "fin_reply_comment",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_parent uuid, p_body text, p_mention_ids uuid[], p_client_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Function `public.fin_request_approval(p_rfq uuid, p_proposal uuid, p_approvers uuid[], p_rationale text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/fin_request_approval`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "fin_request_approval",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_rfq uuid, p_proposal uuid, p_approvers uuid[], p_rationale text",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Function `public.fin_revise_rfq(p_rfq uuid, p_expected integer, p_title text, p_description text, p_demand jsonb, p_deadline date)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/fin_revise_rfq`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "fin_revise_rfq",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_rfq uuid, p_expected integer, p_title text, p_description text, p_demand jsonb, p_deadline date",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Function `public.fin_save_proposal_draft(p_proposal uuid, p_terms jsonb, p_expected_revision integer, p_base_version integer)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/fin_save_proposal_draft`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "fin_save_proposal_draft",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_proposal uuid, p_terms jsonb, p_expected_revision integer, p_base_version integer",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Function `public.fin_save_rfq_editor(p_org uuid, p_payload jsonb, p_expected integer)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/fin_save_rfq_editor`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "fin_save_rfq_editor",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_org uuid, p_payload jsonb, p_expected integer",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Function `public.fin_search(p_org uuid, p_query text, p_kind text, p_limit integer, p_offset integer)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/fin_search`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "fin_search",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_org uuid, p_query text, p_kind text, p_limit integer, p_offset integer",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Function `public.fin_set_approval_policy(p_org uuid, p_required boolean)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/fin_set_approval_policy`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "fin_set_approval_policy",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_org uuid, p_required boolean",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Function `public.fin_set_notification_preference(p_org uuid, p_event text, p_in_app boolean, p_email boolean)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/fin_set_notification_preference`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "fin_set_notification_preference",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_org uuid, p_event text, p_in_app boolean, p_email boolean",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Function `public.fin_start_contract_rfq(p_contract uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/fin_start_contract_rfq`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "fin_start_contract_rfq",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_contract uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Function `public.fin_submit_proposal(p_proposal uuid, p_terms jsonb, p_note text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/fin_submit_proposal`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "fin_submit_proposal",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_proposal uuid, p_terms jsonb, p_note text",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Function `public.fin_transition(p_kind text, p_id uuid, p_status text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/fin_transition`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "fin_transition",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_kind text, p_id uuid, p_status text",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Function `public.fin_update_my_member_profile(p_org uuid, p_display_name text, p_job_title text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/fin_update_my_member_profile`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "fin_update_my_member_profile",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_org uuid, p_display_name text, p_job_title text",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Function `public.fin_update_organization(p_org uuid, p_trade_name text, p_tax_identifier text, p_sector text, p_revenue_band text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/fin_update_organization`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "fin_update_organization",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_org uuid, p_trade_name text, p_tax_identifier text, p_sector text, p_revenue_band text",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          },
+          {
+            "detail": "Function `public.fin_withdraw_proposal(p_proposal uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/fin_withdraw_proposal`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "fin_withdraw_proposal",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_proposal uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-11-04T13:42:32.186Z"
+          }
+        ],
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable"
+      }
+    ],
+    "performance": [
+      {
+        "name": "unindexed_foreign_keys",
+        "level": "INFO",
+        "count": 66,
+        "findings": [
+          {
+            "detail": "Table \\`public.artwork_events\\` has a foreign key \\`artwork_events_artwork_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "artwork_events",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "artwork_events_artwork_id_fkey",
+              "fkey_columns": [
+                2
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.certificates\\` has a foreign key \\`certificates_artist_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "certificates",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "certificates_artist_id_fkey",
+              "fkey_columns": [
+                5
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.commercial_items\\` has a foreign key \\`commercial_items_artist_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "commercial_items",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "commercial_items_artist_id_fkey",
+              "fkey_columns": [
+                4
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.commercial_records\\` has a foreign key \\`commercial_records_proposal_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "commercial_records",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "commercial_records_proposal_id_fkey",
+              "fkey_columns": [
+                3
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.commercial_records\\` has a foreign key \\`commercial_records_reservation_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "commercial_records",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "commercial_records_reservation_id_fkey",
+              "fkey_columns": [
+                4
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.conversion_events\\` has a foreign key \\`conversion_events_user_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "conversion_events",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "conversion_events_user_id_fkey",
+              "fkey_columns": [
+                3
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_approval_policies\\` has a foreign key \\`fin_approval_policies_updated_by_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_approval_policies",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_approval_policies_updated_by_fkey",
+              "fkey_columns": [
+                3
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_approval_requests\\` has a foreign key \\`fin_approval_requests_organization_id_rfq_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_approval_requests",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_approval_requests_organization_id_rfq_id_fkey",
+              "fkey_columns": [
+                2,
+                3
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_approval_requests\\` has a foreign key \\`fin_approval_requests_requested_by_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_approval_requests",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_approval_requests_requested_by_fkey",
+              "fkey_columns": [
+                7
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_approval_requests\\` has a foreign key \\`fin_approval_requests_rfq_id_proposal_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_approval_requests",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_approval_requests_rfq_id_proposal_id_fkey",
+              "fkey_columns": [
+                3,
+                4
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_comments\\` has a foreign key \\`fin_comments_author_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_comments",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_comments_author_id_fkey",
+              "fkey_columns": [
+                5
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_comments\\` has a foreign key \\`fin_comments_parent_fk\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_comments",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_comments_parent_fk",
+              "fkey_columns": [
+                2,
+                9
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_company_profiles\\` has a foreign key \\`fin_company_profiles_updated_by_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_company_profiles",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_company_profiles_updated_by_fkey",
+              "fkey_columns": [
+                8
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_contracts\\` has a foreign key \\`fin_contracts_organization_id_decision_id_proposal_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_contracts",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_contracts_organization_id_decision_id_proposal_id_fkey",
+              "fkey_columns": [
+                2,
+                3,
+                4
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_contracts\\` has a foreign key \\`fin_contracts_organization_id_provider_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_contracts",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_contracts_organization_id_provider_id_fkey",
+              "fkey_columns": [
+                2,
+                5
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_contracts\\` has a foreign key \\`fin_contracts_owner_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_contracts",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_contracts_owner_id_fkey",
+              "fkey_columns": [
+                14
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_decisions\\` has a foreign key \\`fin_decisions_decided_by_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_decisions",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_decisions_decided_by_fkey",
+              "fkey_columns": [
+                5
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_decisions\\` has a foreign key \\`fin_decisions_organization_id_proposal_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_decisions",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_decisions_organization_id_proposal_id_fkey",
+              "fkey_columns": [
+                2,
+                4
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_decisions\\` has a foreign key \\`fin_decisions_organization_id_rfq_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_decisions",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_decisions_organization_id_rfq_id_fkey",
+              "fkey_columns": [
+                2,
+                3
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_decisions\\` has a foreign key \\`fin_decisions_rfq_id_proposal_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_decisions",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_decisions_rfq_id_proposal_id_fkey",
+              "fkey_columns": [
+                3,
+                4
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_document_versions\\` has a foreign key \\`fin_document_versions_uploaded_by_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_document_versions",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_document_versions_uploaded_by_fkey",
+              "fkey_columns": [
+                9
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_documents\\` has a foreign key \\`fin_documents_created_by_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_documents",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_documents_created_by_fkey",
+              "fkey_columns": [
+                8
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_events\\` has a foreign key \\`fin_events_actor_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_events",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_events_actor_id_fkey",
+              "fkey_columns": [
+                6
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_invite_acceptance_denials\\` has a foreign key \\`fin_invite_acceptance_denials_invite_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_invite_acceptance_denials",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_invite_acceptance_denials_invite_id_fkey",
+              "fkey_columns": [
+                2
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_invite_acceptance_denials\\` has a foreign key \\`fin_invite_acceptance_denials_user_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_invite_acceptance_denials",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_invite_acceptance_denials_user_id_fkey",
+              "fkey_columns": [
+                4
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_member_invitations\\` has a foreign key \\`fin_member_invitations_created_by_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_member_invitations",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_member_invitations_created_by_fkey",
+              "fkey_columns": [
+                6
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_member_invitations\\` has a foreign key \\`fin_member_invitations_organization_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_member_invitations",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_member_invitations_organization_id_fkey",
+              "fkey_columns": [
+                2
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_members\\` has a foreign key \\`fin_members_user_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_members",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_members_user_id_fkey",
+              "fkey_columns": [
+                2
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_notification_preferences\\` has a foreign key \\`fin_notification_preferences_user_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_notification_preferences",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_notification_preferences_user_id_fkey",
+              "fkey_columns": [
+                2
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_ops_access_log\\` has a foreign key \\`fin_ops_access_log_user_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_ops_access_log",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_ops_access_log_user_id_fkey",
+              "fkey_columns": [
+                2
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_organizations\\` has a foreign key \\`fin_organizations_created_by_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_organizations",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_organizations_created_by_fkey",
+              "fkey_columns": [
+                9
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_pilot_allowlist\\` has a foreign key \\`fin_pilot_allowlist_created_by_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_pilot_allowlist",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_pilot_allowlist_created_by_fkey",
+              "fkey_columns": [
+                4
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_private_documents\\` has a foreign key \\`fin_private_documents_buyer_organization_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_private_documents",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_private_documents_buyer_organization_id_fkey",
+              "fkey_columns": [
+                3
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_private_documents\\` has a foreign key \\`fin_private_documents_created_by_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_private_documents",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_private_documents_created_by_fkey",
+              "fkey_columns": [
+                10
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_private_documents\\` has a foreign key \\`fin_private_documents_organization_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_private_documents",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_private_documents_organization_id_fkey",
+              "fkey_columns": [
+                2
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_private_documents\\` has a foreign key \\`fin_private_documents_removed_by_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_private_documents",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_private_documents_removed_by_fkey",
+              "fkey_columns": [
+                13
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_proposal_drafts\\` has a foreign key \\`fin_proposal_drafts_proposal_id_provider_organization_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_proposal_drafts",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_proposal_drafts_proposal_id_provider_organization_id_fkey",
+              "fkey_columns": [
+                1,
+                2
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_proposal_drafts\\` has a foreign key \\`fin_proposal_drafts_updated_by_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_proposal_drafts",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_proposal_drafts_updated_by_fkey",
+              "fkey_columns": [
+                6
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_proposal_versions\\` has a foreign key \\`fin_proposal_versions_submitted_by_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_proposal_versions",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_proposal_versions_submitted_by_fkey",
+              "fkey_columns": [
+                6
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_proposals\\` has a foreign key \\`fin_proposals_buyer_organization_id_rfq_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_proposals",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_proposals_buyer_organization_id_rfq_id_fkey",
+              "fkey_columns": [
+                4,
+                3
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_proposals\\` has a foreign key \\`fin_proposals_invite_id_provider_organization_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_proposals",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_proposals_invite_id_provider_organization_id_fkey",
+              "fkey_columns": [
+                2,
+                6
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_proposals\\` has a foreign key \\`fin_proposals_provider_organization_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_proposals",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_proposals_provider_organization_id_fkey",
+              "fkey_columns": [
+                6
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_proposals\\` has a foreign key \\`fin_proposals_rfq_id_product_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_proposals",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_proposals_rfq_id_product_fkey",
+              "fkey_columns": [
+                3,
+                7
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_providers\\` has a foreign key \\`fin_providers_created_by_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_providers",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_providers_created_by_fkey",
+              "fkey_columns": [
+                20
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_providers\\` has a foreign key \\`fin_providers_provider_organization_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_providers",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_providers_provider_organization_id_fkey",
+              "fkey_columns": [
+                3
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_renewal_milestones\\` has a foreign key \\`fin_renewal_milestones_task_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_renewal_milestones",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_renewal_milestones_task_id_fkey",
+              "fkey_columns": [
+                5
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_rfq_editor_drafts\\` has a foreign key \\`fin_rfq_editor_drafts_user_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_rfq_editor_drafts",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_rfq_editor_drafts_user_id_fkey",
+              "fkey_columns": [
+                2
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_rfq_invites\\` has a foreign key \\`fin_rfq_invites_buyer_organization_id_provider_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_rfq_invites",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_rfq_invites_buyer_organization_id_provider_id_fkey",
+              "fkey_columns": [
+                2,
+                4
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_rfq_invites\\` has a foreign key \\`fin_rfq_invites_created_by_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_rfq_invites",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_rfq_invites_created_by_fkey",
+              "fkey_columns": [
+                10
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_rfq_revisions\\` has a foreign key \\`fin_rfq_revisions_changed_by_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_rfq_revisions",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_rfq_revisions_changed_by_fkey",
+              "fkey_columns": [
+                5
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_rfqs\\` has a foreign key \\`fin_rfqs_owner_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_rfqs",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_rfqs_owner_id_fkey",
+              "fkey_columns": [
+                7
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_settings\\` has a foreign key \\`fin_settings_updated_by_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_settings",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_settings_updated_by_fkey",
+              "fkey_columns": [
+                3
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_tasks\\` has a foreign key \\`fin_tasks_created_by_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_tasks",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_tasks_created_by_fkey",
+              "fkey_columns": [
+                8
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_terms_acceptances\\` has a foreign key \\`fin_terms_acceptances_user_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "fin_terms_acceptances",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "fin_terms_acceptances_user_id_fkey",
+              "fkey_columns": [
+                3
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.logistics_records\\` has a foreign key \\`logistics_records_artwork_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "logistics_records",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "logistics_records_artwork_id_fkey",
+              "fkey_columns": [
+                3
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.orders\\` has a foreign key \\`orders_artist_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "orders",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "orders_artist_id_fkey",
+              "fkey_columns": [
+                8
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.orders\\` has a foreign key \\`orders_artwork_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "orders",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "orders_artwork_id_fkey",
+              "fkey_columns": [
+                7
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.orders\\` has a foreign key \\`orders_commercial_record_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "orders",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "orders_commercial_record_id_fkey",
+              "fkey_columns": [
+                6
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.orders\\` has a foreign key \\`orders_proposal_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "orders",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "orders_proposal_id_fkey",
+              "fkey_columns": [
+                5
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.pilot_events\\` has a foreign key \\`pilot_events_user_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "pilot_events",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "pilot_events_user_id_fkey",
+              "fkey_columns": [
+                3
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.pilot_feedback\\` has a foreign key \\`pilot_feedback_user_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "pilot_feedback",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "pilot_feedback_user_id_fkey",
+              "fkey_columns": [
+                3
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.proposal_items\\` has a foreign key \\`proposal_items_artwork_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "proposal_items",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "proposal_items_artwork_id_fkey",
+              "fkey_columns": [
+                3
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.proposals\\` has a foreign key \\`proposals_company_brief_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "proposals",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "proposals_company_brief_id_fkey",
+              "fkey_columns": [
+                4
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.proposals\\` has a foreign key \\`proposals_lead_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "proposals",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "proposals_lead_id_fkey",
+              "fkey_columns": [
+                3
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.reservations\\` has a foreign key \\`reservations_lead_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "reservations",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "reservations_lead_id_fkey",
+              "fkey_columns": [
+                4
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.saved_selections\\` has a foreign key \\`saved_selections_lead_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+            "metadata": {
+              "name": "saved_selections",
+              "type": "table",
+              "schema": "public",
+              "fkey_name": "saved_selections_lead_id_fkey",
+              "fkey_columns": [
+                4
+              ]
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          }
+        ],
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0001_unindexed_foreign_keys"
+      },
+      {
+        "name": "auth_rls_initplan",
+        "level": "WARN",
+        "count": 21,
+        "findings": [
+          {
+            "detail": "Table \\`public.profiles\\` has a row level security policy \\`profiles_select_own\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+            "metadata": {
+              "name": "profiles",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.profiles\\` has a row level security policy \\`profiles_update_own\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+            "metadata": {
+              "name": "profiles",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.leads\\` has a row level security policy \\`leads_select_own\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+            "metadata": {
+              "name": "leads",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.company_briefs\\` has a row level security policy \\`company_briefs_select_own\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+            "metadata": {
+              "name": "company_briefs",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.reservations\\` has a row level security policy \\`reservations_select_own\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+            "metadata": {
+              "name": "reservations",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.saved_selections\\` has a row level security policy \\`selections_select_own\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+            "metadata": {
+              "name": "saved_selections",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.saved_selections\\` has a row level security policy \\`selections_update_own\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+            "metadata": {
+              "name": "saved_selections",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.saved_selections\\` has a row level security policy \\`selections_delete_own\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+            "metadata": {
+              "name": "saved_selections",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.proposals\\` has a row level security policy \\`proposals_select_own\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+            "metadata": {
+              "name": "proposals",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.proposal_items\\` has a row level security policy \\`proposal_items_select_own\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+            "metadata": {
+              "name": "proposal_items",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.privacy_requests\\` has a row level security policy \\`privacy_requests_select_own\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+            "metadata": {
+              "name": "privacy_requests",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.orders\\` has a row level security policy \\`orders_select_own\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+            "metadata": {
+              "name": "orders",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.artist_accounts\\` has a row level security policy \\`artist_accounts_select_own\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+            "metadata": {
+              "name": "artist_accounts",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_company_profiles\\` has a row level security policy \\`fin_profile_write\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+            "metadata": {
+              "name": "fin_company_profiles",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_company_profiles\\` has a row level security policy \\`fin_profile_edit\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+            "metadata": {
+              "name": "fin_company_profiles",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_providers\\` has a row level security policy \\`fin_provider_write\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+            "metadata": {
+              "name": "fin_providers",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_documents\\` has a row level security policy \\`fin_document_write\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+            "metadata": {
+              "name": "fin_documents",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_tasks\\` has a row level security policy \\`fin_task_write\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+            "metadata": {
+              "name": "fin_tasks",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_notifications\\` has a row level security policy \\`fin_notification_read\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+            "metadata": {
+              "name": "fin_notifications",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_notification_preferences\\` has a row level security policy \\`fin_notification_preference_read\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+            "metadata": {
+              "name": "fin_notification_preferences",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Table \\`public.fin_rfq_editor_drafts\\` has a row level security policy \\`fin_rfq_editor_read\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+            "metadata": {
+              "name": "fin_rfq_editor_drafts",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          }
+        ],
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0003_auth_rls_initplan"
+      },
+      {
+        "name": "unused_index",
+        "level": "INFO",
+        "count": 78,
+        "findings": [
+          {
+            "detail": "Index \\`idx_artists_status\\` on table \\`public.artists\\` has not been used",
+            "metadata": {
+              "name": "artists",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_artists_slug\\` on table \\`public.artists\\` has not been used",
+            "metadata": {
+              "name": "artists",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_artworks_artist_id\\` on table \\`public.artworks\\` has not been used",
+            "metadata": {
+              "name": "artworks",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_artworks_status\\` on table \\`public.artworks\\` has not been used",
+            "metadata": {
+              "name": "artworks",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_artworks_published\\` on table \\`public.artworks\\` has not been used",
+            "metadata": {
+              "name": "artworks",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_artworks_slug\\` on table \\`public.artworks\\` has not been used",
+            "metadata": {
+              "name": "artworks",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_certificates_code\\` on table \\`public.certificates\\` has not been used",
+            "metadata": {
+              "name": "certificates",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_certificates_artwork_id\\` on table \\`public.certificates\\` has not been used",
+            "metadata": {
+              "name": "certificates",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_leads_status\\` on table \\`public.leads\\` has not been used",
+            "metadata": {
+              "name": "leads",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_leads_email\\` on table \\`public.leads\\` has not been used",
+            "metadata": {
+              "name": "leads",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_leads_user_id\\` on table \\`public.leads\\` has not been used",
+            "metadata": {
+              "name": "leads",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_company_briefs_status\\` on table \\`public.company_briefs\\` has not been used",
+            "metadata": {
+              "name": "company_briefs",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_company_briefs_user_id\\` on table \\`public.company_briefs\\` has not been used",
+            "metadata": {
+              "name": "company_briefs",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_artist_submissions_status\\` on table \\`public.artist_submissions\\` has not been used",
+            "metadata": {
+              "name": "artist_submissions",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_saved_selections_public_token\\` on table \\`public.saved_selections\\` has not been used",
+            "metadata": {
+              "name": "saved_selections",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_saved_selections_status\\` on table \\`public.saved_selections\\` has not been used",
+            "metadata": {
+              "name": "saved_selections",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_saved_selections_user_id\\` on table \\`public.saved_selections\\` has not been used",
+            "metadata": {
+              "name": "saved_selections",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_reservations_artwork_id\\` on table \\`public.reservations\\` has not been used",
+            "metadata": {
+              "name": "reservations",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_reservations_status\\` on table \\`public.reservations\\` has not been used",
+            "metadata": {
+              "name": "reservations",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_reservations_user_id\\` on table \\`public.reservations\\` has not been used",
+            "metadata": {
+              "name": "reservations",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_proposals_status\\` on table \\`public.proposals\\` has not been used",
+            "metadata": {
+              "name": "proposals",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_proposals_public_token\\` on table \\`public.proposals\\` has not been used",
+            "metadata": {
+              "name": "proposals",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_proposal_items_proposal_id\\` on table \\`public.proposal_items\\` has not been used",
+            "metadata": {
+              "name": "proposal_items",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_crm_notes_entity\\` on table \\`public.crm_notes\\` has not been used",
+            "metadata": {
+              "name": "crm_notes",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_tasks_entity\\` on table \\`public.tasks\\` has not been used",
+            "metadata": {
+              "name": "tasks",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_tasks_status_due\\` on table \\`public.tasks\\` has not been used",
+            "metadata": {
+              "name": "tasks",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_profiles_profile_type\\` on table \\`public.profiles\\` has not been used",
+            "metadata": {
+              "name": "profiles",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_profiles_email\\` on table \\`public.profiles\\` has not been used",
+            "metadata": {
+              "name": "profiles",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_artists_catalog_verification\\` on table \\`public.artists\\` has not been used",
+            "metadata": {
+              "name": "artists",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_artworks_catalog_verification\\` on table \\`public.artworks\\` has not been used",
+            "metadata": {
+              "name": "artworks",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_curated_collections_status\\` on table \\`public.curated_collections\\` has not been used",
+            "metadata": {
+              "name": "curated_collections",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_collection_artworks_collection\\` on table \\`public.collection_artworks\\` has not been used",
+            "metadata": {
+              "name": "collection_artworks",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_collection_artworks_artwork\\` on table \\`public.collection_artworks\\` has not been used",
+            "metadata": {
+              "name": "collection_artworks",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_pilot_events_created_at\\` on table \\`public.pilot_events\\` has not been used",
+            "metadata": {
+              "name": "pilot_events",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_pilot_events_session\\` on table \\`public.pilot_events\\` has not been used",
+            "metadata": {
+              "name": "pilot_events",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_pilot_events_type\\` on table \\`public.pilot_events\\` has not been used",
+            "metadata": {
+              "name": "pilot_events",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_pilot_feedback_created_at\\` on table \\`public.pilot_feedback\\` has not been used",
+            "metadata": {
+              "name": "pilot_feedback",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_pilot_feedback_session\\` on table \\`public.pilot_feedback\\` has not been used",
+            "metadata": {
+              "name": "pilot_feedback",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_pilot_feedback_blockers\\` on table \\`public.pilot_feedback\\` has not been used",
+            "metadata": {
+              "name": "pilot_feedback",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_catalog_review_entity\\` on table \\`public.catalog_review_history\\` has not been used",
+            "metadata": {
+              "name": "catalog_review_history",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_audit_entity\\` on table \\`public.audit_logs\\` has not been used",
+            "metadata": {
+              "name": "audit_logs",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_privacy_user_status\\` on table \\`public.privacy_requests\\` has not been used",
+            "metadata": {
+              "name": "privacy_requests",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_conversion_type_created\\` on table \\`public.conversion_events\\` has not been used",
+            "metadata": {
+              "name": "conversion_events",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_commercial_records_status\\` on table \\`public.commercial_records\\` has not been used",
+            "metadata": {
+              "name": "commercial_records",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_commercial_records_lead\\` on table \\`public.commercial_records\\` has not been used",
+            "metadata": {
+              "name": "commercial_records",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_commercial_items_record\\` on table \\`public.commercial_items\\` has not been used",
+            "metadata": {
+              "name": "commercial_items",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_commercial_items_artwork\\` on table \\`public.commercial_items\\` has not been used",
+            "metadata": {
+              "name": "commercial_items",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_consignments_artist\\` on table \\`public.consignments\\` has not been used",
+            "metadata": {
+              "name": "consignments",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_consignments_artwork\\` on table \\`public.consignments\\` has not been used",
+            "metadata": {
+              "name": "consignments",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_consignments_status\\` on table \\`public.consignments\\` has not been used",
+            "metadata": {
+              "name": "consignments",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_logistics_records_commercial\\` on table \\`public.logistics_records\\` has not been used",
+            "metadata": {
+              "name": "logistics_records",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_logistics_records_status\\` on table \\`public.logistics_records\\` has not been used",
+            "metadata": {
+              "name": "logistics_records",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_proposals_user_created\\` on table \\`public.proposals\\` has not been used",
+            "metadata": {
+              "name": "proposals",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_idempotency_expiry\\` on table \\`public.idempotency_keys\\` has not been used",
+            "metadata": {
+              "name": "idempotency_keys",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_orders_user_created\\` on table \\`public.orders\\` has not been used",
+            "metadata": {
+              "name": "orders",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_orders_status\\` on table \\`public.orders\\` has not been used",
+            "metadata": {
+              "name": "orders",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_order_status_history_order_created\\` on table \\`public.order_status_history\\` has not been used",
+            "metadata": {
+              "name": "order_status_history",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_transactional_email_outbox_ready\\` on table \\`public.transactional_email_outbox\\` has not been used",
+            "metadata": {
+              "name": "transactional_email_outbox",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_data_legal_holds_lookup\\` on table \\`public.data_legal_holds\\` has not been used",
+            "metadata": {
+              "name": "data_legal_holds",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_operational_status_entity\\` on table \\`public.operational_status_history\\` has not been used",
+            "metadata": {
+              "name": "operational_status_history",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_artist_accounts_user\\` on table \\`public.artist_accounts\\` has not been used",
+            "metadata": {
+              "name": "artist_accounts",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`idx_transactional_email_outbox_lease\\` on table \\`public.transactional_email_outbox\\` has not been used",
+            "metadata": {
+              "name": "transactional_email_outbox",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`fin_rfqs_org_status_idx\\` on table \\`public.fin_rfqs\\` has not been used",
+            "metadata": {
+              "name": "fin_rfqs",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`fin_invites_provider_idx\\` on table \\`public.fin_rfq_invites\\` has not been used",
+            "metadata": {
+              "name": "fin_rfq_invites",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`fin_proposals_rfq_idx\\` on table \\`public.fin_proposals\\` has not been used",
+            "metadata": {
+              "name": "fin_proposals",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`fin_contracts_renewal_idx\\` on table \\`public.fin_contracts\\` has not been used",
+            "metadata": {
+              "name": "fin_contracts",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`fin_events_org_idx\\` on table \\`public.fin_events\\` has not been used",
+            "metadata": {
+              "name": "fin_events",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`fin_approval_org_inbox\\` on table \\`public.fin_approval_requests\\` has not been used",
+            "metadata": {
+              "name": "fin_approval_requests",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`fin_approval_step_inbox\\` on table \\`public.fin_approval_steps\\` has not been used",
+            "metadata": {
+              "name": "fin_approval_steps",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`fin_comments_object_recent\\` on table \\`public.fin_comments\\` has not been used",
+            "metadata": {
+              "name": "fin_comments",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`fin_notifications_inbox\\` on table \\`public.fin_notifications\\` has not been used",
+            "metadata": {
+              "name": "fin_notifications",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`fin_renewal_milestones_org\\` on table \\`public.fin_renewal_milestones\\` has not been used",
+            "metadata": {
+              "name": "fin_renewal_milestones",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`fin_rfq_revisions_org\\` on table \\`public.fin_rfq_revisions\\` has not been used",
+            "metadata": {
+              "name": "fin_rfq_revisions",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`fin_comments_parent\\` on table \\`public.fin_comments\\` has not been used",
+            "metadata": {
+              "name": "fin_comments",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`fin_private_documents_entity\\` on table \\`public.fin_private_documents\\` has not been used",
+            "metadata": {
+              "name": "fin_private_documents",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`fin_private_documents_rfq\\` on table \\`public.fin_private_documents\\` has not been used",
+            "metadata": {
+              "name": "fin_private_documents",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`fin_job_runs_recent\\` on table \\`public.fin_job_runs\\` has not been used",
+            "metadata": {
+              "name": "fin_job_runs",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          },
+          {
+            "detail": "Index \\`fin_invite_denials_recent\\` on table \\`public.fin_invite_acceptance_denials\\` has not been used",
+            "metadata": {
+              "name": "fin_invite_acceptance_denials",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-11-04T13:42:31.757Z"
+          }
+        ],
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0005_unused_index"
+      }
+    ]
+  }
+}

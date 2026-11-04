@@ -19,7 +19,7 @@
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 
-const roots = ['supabase', 'docs', 'docs/rollback', 'tests/database'].filter((dir) => existsSync(dir));
+const roots = ['supabase', 'docs', 'docs/baselines', 'docs/rollback', 'tests/database'].filter((dir) => existsSync(dir));
 const files = roots
   .flatMap((dir) => readdirSync(dir).filter((entry) => entry.endsWith('.sql')).map((entry) => join(dir, entry)))
   .sort();
@@ -49,7 +49,7 @@ for (const file of files) {
     const header = match[0];
     if (!/security\s+definer/i.test(header)) continue;
     definers += 1;
-    if (!/set\s+search_path\s*=/i.test(header)) {
+    if (!/set\s+search_path\s*(?:=|to\b)/i.test(header)) {
       problems.push(`${file}: função "${match[1]}" é security definer sem "set search_path".`);
     }
   }
