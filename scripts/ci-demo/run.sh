@@ -88,7 +88,7 @@ case "$phase" in
     set -a; . "$images_env"; set +a
     [ -d "$root/dist" ] || { echo "dist/ ausente: rode npm run build antes"; exit 1; }
     timeout 600 env PILOT_LOCAL_ARANDU_ENV=demo bash "$root/scripts/pilot-local/up.sh" | grep -v '^migration aplicada' || exit 1
-    echo "migrations aplicadas: $(node -p "require('$root/docs/supabase-migrations.json').cleanInstall.length")"
+    echo "migrations aplicadas: $(node "$root/scripts/local-migration-plan.mjs" | wc -l)"
     bash "$root/scripts/demo/local.sh" password
     local_env; fresh_app
     for service in db auth rest storage; do

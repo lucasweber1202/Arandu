@@ -30,3 +30,11 @@ for(const arg of ['--after-schema=financial-surface-hardening-1','--stop-before=
   assert.notEqual(r.status,0);assert.equal(r.stdout,'');
 }
 console.log('Financial baseline: exact historical prefix/digest, future suffix, tamper refusal, no marker skipping and no intermediate marketplace tables PASS.');
+const localPlan=flow=>spawnSync(process.execPath,['scripts/local-migration-plan.mjs'],{env:{...process.env,PILOT_LOCAL_INSTALL_FLOW:flow},encoding:'utf8'});
+assert.equal(localPlan('cleanInstall').stdout.trim().split('\n').length,manifest.cleanInstall.length);
+assert.deepEqual(localPlan('financialBaseline').stdout.trim().split('\n'),financialBaselineFiles(process.cwd(),manifest));
+assert.notEqual(localPlan('existingDatabase').status,0);
+const invalidStartup=spawnSync('bash',['scripts/pilot-local/up.sh'],{env:{...process.env,PILOT_LOCAL_INSTALL_FLOW:'invalid'},encoding:'utf8'});
+assert.notEqual(invalidStartup.status,0);
+assert.match(invalidStartup.stderr,/Local install flow must/);
+console.log('Local stack: explicit baseline/history selection and invalid plan refusal before provisioning PASS.');

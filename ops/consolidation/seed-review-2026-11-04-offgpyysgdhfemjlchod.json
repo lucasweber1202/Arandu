@@ -1,0 +1,13 @@
+{
+  "ref": "offgpyysgdhfemjlchod",
+  "observed_at": "2026-11-04T14:38:34.658Z",
+  "scope": "read_only_seed_content_counts_not_provenance_or_approval",
+  "seed_review": {
+    "conversion": "BLOCKED",
+    "classification": "REQUIRES_OWNER_DECISION",
+    "catalog_releases_matching_seed_rows": 1,
+    "catalog_releases_modified_exempt_rows": 0,
+    "curated_collections_matching_seed_rows": 4,
+    "curated_collections_modified_exempt_rows": 0
+  }
+}

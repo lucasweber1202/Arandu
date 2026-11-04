@@ -772,3 +772,4 @@ node "$root_dir/tests/database/recovery-schema-roundtrip.mjs" "$base_url"
 # fresh secret, negative guards, post-migration probes and isolation canary.
 ARANDU_DATABASE_TEST_URL="$base_url" node "$root_dir/scripts/financial-baseline.mjs"
 node "$root_dir/scripts/test-financial-baseline.mjs"
+ARANDU_DATABASE_TEST_URL="$base_url" node "$root_dir/tests/database/legacy-seed-review.mjs"

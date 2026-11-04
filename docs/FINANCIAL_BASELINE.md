@@ -98,3 +98,17 @@ Dados reais exigem backup restaurável, decisão de retenção e aprovação esp
 O novo caminho continua opt-in até validação na stack Supabase completa; os
 scripts da Demo e os caminhos históricos não foram substituídos silenciosamente.
 PostgreSQL com schemas auth/storage sintéticos não comprova esses serviços.
+
+O laboratório existente também aceita seleção explícita, antes de gerar chaves
+ou provisionar contêineres:
+
+```sh
+PILOT_LOCAL_INSTALL_FLOW=financialBaseline npm run demo:setup
+```
+
+Usar somente em laboratório **novo e descartável** com capacidade suficiente.
+O padrão continua `cleanInstall`; um flow desconhecido falha antes de qualquer
+provisionamento. `scripts/local-migration-plan.mjs` propaga erros do descritor/hash,
+sem escondê-los em process substitution do shell. A contagem impressa pelo runner
+reflete o plano realmente selecionado. Mesmos Auth/Storage/seed/jornadas depois
+da instalação, sem alterar workflows nem reduzir os checks históricos.

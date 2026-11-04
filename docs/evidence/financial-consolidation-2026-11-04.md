@@ -134,3 +134,22 @@ Não houve seed, alteração de Auth, env, segredo, deployment ou migration host
 
 Custos adicionais contratados: **R$ 0**. Nenhum projeto, plano, serviço pago ou
 armazenamento novo foi criado. Merge e cutover não executados.
+
+## Continuação após publicação da PR #321
+
+Branch publicada integralmente no HEAD `e6c9b80a`, depois de incorporar a #320
+(`main@87d635da`) sem conflitos. 21 arquivos no primeiro lote, sem perda dos
+artefatos locais. No HEAD publicado: check:all/build/build-size e baseline com
+todos os negativos novamente PASS_LOCAL; medição 12.251 / 2.958 ms. CI run
+`41848022718`: subjobs `full / database` e `full / deploy-boundaries` SUCCESS;
+validate/presentation e integração ainda em execução na observação inicial.
+Os quatro contextos agregados finais dependem da integração integral. Esse resultado não é
+herdado pelo commit posterior deste complemento.
+
+Continuação segura implementada: benchmark de leitura/escrita com 100 mil tarefas,
+EXPLAIN/WAL e índice candidato descartado; comparação individual das 43 definidoras
+(27 corpos iguais, 15 diferentes, uma entrada antiga fechada no canônico); auditoria
+somente de contagens das exceções de seeds, com regressão SQL de conteúdo alterado;
+seleção explícita de baseline no laboratório e falha de plano antes de provisioning.
+Detalhes e reprodução em [capacidade e definidoras](../FINANCIAL_CAPACITY_AND_DEFINERS.md).
+Nenhuma migration, índice ou alteração de Auth/RLS/grant foi aplicada aos projetos.
