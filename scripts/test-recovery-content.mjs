@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { randomBytes } from 'node:crypto';
-import { contentAccumulator,contentDigest,compareContent,parseContent,contentQueries } from '../lib/recovery-content.mjs';
+import { contentAccumulator,contentDigest,compareContent,parseContent,contentQueries,validateContentManifest } from '../lib/recovery-content.mjs';
 const key=randomBytes(32);
 const fingerprint=rows=>{const a=contentAccumulator({'public.fixture':rows.length},key);for(const r of rows)a.consume('public.fixture\t'+r);return a.finish();};
 const a='{"id":1,"name":"synthetic-alpha","amount":9007199254740993}';
@@ -19,3 +19,8 @@ assert.throws(()=>contentAccumulator({'public.fixture':1},key).consume('public.o
 assert.match(contentQueries({'public.fixture':1}),/from "public"\."fixture" r/);
 assert(!contentQueries({'public.fixture':1}).includes(key.toString('hex')));
 console.log('Recovery content: keyed multiset, duplicate preservation, row order, exact numeric text, changed values and private output PASS.');
+
+const manifest={content_fingerprint_version:1,snapshot_content:fingerprint([a,b]),snapshot_counts:{'public.fixture':2},content_key_age:Buffer.from('age-encryption.org/v1\n'+'x'.repeat(160)).toString('base64')};
+manifest.snapshot_content_sha256=contentDigest(manifest.snapshot_content);
+assert.deepEqual(validateContentManifest(manifest),manifest.snapshot_content);
+for(const changed of [{snapshot_counts:{'public.fixture':3}},{content_key_age:''},{content_key_age:Buffer.alloc(160).toString('base64')},{content_fingerprint_version:0},{snapshot_content_sha256:'f'.repeat(64)}])assert.throws(()=>validateContentManifest({...manifest,...changed}));

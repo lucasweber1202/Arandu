@@ -19,7 +19,7 @@ import { digestFile } from '../lib/recovery-transfer.mjs';
 import { RECOVERY_REFS } from '../lib/pilot-backup-preflight.mjs';
 import { countsDigest, parseCounts } from '../lib/recovery-reconciliation.mjs';
 import { SCHEMA_FINGERPRINT_VERSION, validSchemaDigest } from '../lib/recovery-schema.mjs';
-import { CONTENT_FINGERPRINT_VERSION, contentDigest } from '../lib/recovery-content.mjs';
+import { CONTENT_FINGERPRINT_VERSION, validateContentManifest } from '../lib/recovery-content.mjs';
 import { recoveryCompleteness } from '../lib/storage-recovery.mjs';
 import { storageEvidence } from './storage-recovery.mjs';
 import {
@@ -159,7 +159,7 @@ export async function verifyExport({ env = process.env, root = process.cwd() } =
     const actual = await digestFile(read(entry.name));
     if (actual.bytes !== entry.bytes || actual.sha256 !== entry.sha256) recoveryFail('RECOVERY_READBACK_FAILED', 'Hash ou tamanho divergente do manifest.');
   }
-  try {if(manifest.content_fingerprint_version!==CONTENT_FINGERPRINT_VERSION||contentDigest(manifest.snapshot_content)!==manifest.snapshot_content_sha256)throw new Error();}
+  try {validateContentManifest(manifest);}
   catch {recoveryFail('RECOVERY_MANIFEST_INVALID','Manifest sem prova íntegra do conteúdo do snapshot; backup preservado, completude não comprovada.');}
   const restored = restoreRecords(real, manifest).length > 0;
   // Banco restaurado não basta: com arquivos na origem, exige os binários

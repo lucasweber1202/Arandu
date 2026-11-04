@@ -1,3 +1,4 @@
+import './test-retirement-classification.mjs';
 import assert from 'node:assert/strict';
 import { assessConversion, inventoryDigest } from '../lib/consolidation-readiness.mjs';
 import fs from 'node:fs';

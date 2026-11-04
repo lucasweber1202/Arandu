@@ -12,7 +12,7 @@ import { majorVersion, RECOVERY_REFS } from '../lib/pilot-backup-preflight.mjs';
 import { SCHEMA_SQL, SCHEMA_FINGERPRINT_VERSION, validSchemaDigest } from '../lib/recovery-schema.mjs';
 import { COUNTS_SQL, parseCounts, compareCounts, countsDigest, loopbackTarget } from '../lib/recovery-reconciliation.mjs';
 import { syncPath, assertIdentityFile } from '../lib/recovery-doctor.mjs';
-import { CONTENT_FINGERPRINT_VERSION, parseContent, contentDigest, decryptedContentKey, fingerprintContent, compareContent } from '../lib/recovery-content.mjs';
+import { CONTENT_FINGERPRINT_VERSION, validateContentManifest, contentDigest, decryptedContentKey, fingerprintContent, compareContent } from '../lib/recovery-content.mjs';
 
 export class RestoreVerificationError extends Error {
   constructor(code, message) { super(message); this.code = code; }
@@ -66,9 +66,7 @@ export async function verifyRestore({ env = process.env, root = process.cwd(), s
   if (manifest.snapshot_counts_sha256 !== countsDigest(sourceCounts)) fail('invalid_manifest', 'Contagens do manifest adulteradas.');
   let sourceContent;
   try {
-    sourceContent=parseContent(manifest.snapshot_content);
-    if(manifest.content_fingerprint_version!==CONTENT_FINGERPRINT_VERSION||contentDigest(sourceContent)!==manifest.snapshot_content_sha256)throw new Error();
-    if(JSON.stringify(Object.fromEntries(Object.entries(sourceContent).map(([t,r])=>[t,r.rows])))!==JSON.stringify(sourceCounts))throw new Error();
+    sourceContent=validateContentManifest(manifest);
   } catch {fail('invalid_manifest','Export sem reconciliação íntegra de conteúdo; preserve o backup e produza nova evidência, sem inventar hashes.');}
   if (manifest.files.length !== 2 || new Set(manifest.files.map(f => f.name)).size !== 2) fail('invalid_manifest', 'Conjunto de artefatos inválido.');
   const expected = new Map(manifest.files.map((f) => [f.name, f]));

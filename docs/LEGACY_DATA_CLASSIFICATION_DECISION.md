@@ -66,3 +66,34 @@ universo de PII. Não há prova de dados hospedados fictícios nesta rodada.
 5. Só produzir evidência aceita por consolidation:check quando a condição factual
    correspondente estiver comprovada. Um formulário assinado não altera as
    contagens ou a topologia; autorização de cutover é outra decisão.
+
+## Worksheet executável por objeto (04/11/2026)
+
+`node scripts/classify-retirement-data.mjs <hosted-audit.json> <columns.json>
+[decisions-private.json]` lê somente documentos de metadados limitados, não conecta
+nem executa SQL. Os relatórios `ops/consolidation/classification-2026-11-04-*.json`
+reconciliam 42/14 linhas com os inventários de #321 e os nomes/tipos de colunas
+consultados nesta rodada. A consulta não leu valores. Colunas registradas cobrem
+tabelas não vazias e `profiles`; tabelas vazias não recebem parecer de ausência de
+PII. FKs e triggers são metadados técnicos; consumidores externos exigem revisão.
+
+Cada objeto registra categoria, campos potencialmente pessoais, campos opacos
+(texto/JSON/arrays), dependências, efeito no trigger Auth e critérios de retenção /
+descarte. Sinais por nome/tipo ampliam a revisão; não provam PII nem ficção.
+`api_rate_limits`, `fin_job_runs` e `fin_settings` continuam operacionais e sem
+proveniência/retencão comprovada. Seeds editoriais permanecem sem decisão humana.
+
+O documento privado opcional tem `project_ref`, `inventory_sha256` do worksheet e
+`objects` indexado pelo nome da tabela. Para cada objeto com linhas, registrar
+`classification` (`personal|customer|synthetic|operational`), `disposition`
+(`retain|review_disposal`), `legal_hold` booleano, `decided_at` posterior ao inventário e referências sanitizadas
+`provenance_reference`, `retention_reference`, `custody_reference`,
+`decision_reference`, `decider_reference`. Referências resolvem documentos em
+custódia privada; não incluir conteúdo ou nomes. Valores extras nunca são ecoados.
+
+A decisão é vinculada ao digest integral dos metadados e contagens; mudança ou
+idade acima de 24h retorna `UNCLASSIFIED`. Hold produz `LEGAL_HOLD`, retenção
+`RETAIN`, pedido de revisão `DISPOSAL_REVIEW_REQUESTED`. Mesmo com classificação
+registrada, `deletion_authorized` e `conversion_authorized` permanecem false.
+O worksheet não é entrada substituta dos gates existentes e não zera contagens
+pessoais/cliente. Nenhuma decisão foi fornecida nesta rodada.

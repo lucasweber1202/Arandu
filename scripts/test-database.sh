@@ -773,3 +773,8 @@ node "$root_dir/tests/database/recovery-schema-roundtrip.mjs" "$base_url"
 ARANDU_DATABASE_TEST_URL="$base_url" node "$root_dir/scripts/financial-baseline.mjs"
 node "$root_dir/scripts/test-financial-baseline.mjs"
 ARANDU_DATABASE_TEST_URL="$base_url" node "$root_dir/tests/database/legacy-seed-review.mjs"
+
+# Current-schema catalog + same-session membership/entity revocation attacks.
+for current_db in "$clean_db" "$upgrade_db" "$fresh_db"; do
+  apply_file "$current_db" "tests/database/financial-privilege-revalidation.sql"
+done

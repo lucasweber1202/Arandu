@@ -499,3 +499,32 @@ não consequência de um teste ou failure path.
 keys/secrets, Realtime ou dependências externas. Evidência sintética de HTTP
 não equivale ao Storage gerenciado; restore real/classificação e aprovação
 específica continuam bloqueando cutover quando aplicáveis.
+
+## Prova privada do conteúdo (v1, operação de 04/11/2026)
+
+Contagens e schema iguais não detectam mudança de valores. Novos exports
+calculam `snapshot_content` dentro da mesma transação/snapshot usado pelo dump.
+Cada linha serializada pelo PostgreSQL recebe HMAC-SHA256 com chave aleatória
+por export, nunca enviada ao PostgreSQL, ao argv ou aos logs. O acumulador por
+tabela conserva multiplicidade e independe da ordem física. Datas, timezone,
+intervalos, floats e bytea usam configurações fixas; o texto numérico original
+não é arredondado por JavaScript. O fluxo não persiste linhas em claro.
+
+A chave é cifrada pelo mesmo recipient age em `content_key_age` no manifest;
+nenhum terceiro artefato ou destino é necessário. Ela é zerada em memória após
+uso. Os campos `content_fingerprint_version=1`, `snapshot_content` e seu digest
+são validados antes do restore, incluindo cobertura exata das tabelas/contagens
+e formato do envelope age. No alvo isolado, o verificador descriptografa a chave
+em memória, recalcula o conteúdo e registra `content_reconciliation`,
+`source_content_sha256`, `target_content_sha256` e diferenças apenas por tabela.
+O teste real inclui outro dump válido com uma célula alterada, mesmo schema e
+contagens: é recusado com `content_mismatch`. Isso detecta corrupção/substituição
+incoerente; não autentica a custódia de um manifest arbitrariamente reescrito.
+
+`verify` distingue `BACKUP_VERIFIED` de `RESTORE_VERIFIED` nos milestones; export
+concluído registra somente `BACKUP_CREATED`. `FULL_RECOVERY_VERIFIED` continua
+`NOT_PROVEN`: Auth/Storage gerenciados, configuração externa, credenciais e
+consumidores exigem evidências próprias. Nível técnico 5 não aprova conversão.
+Backups antigos são preservados; ausência da prova de conteúdo exige novo export
+para esta verificação, sem preencher hashes antigos por inferência. Os gates de
+conversão/release passam a exigir `restore_content_reconciliation` além do schema.

@@ -1,0 +1,804 @@
+{
+  "tool": "arandu-retirement-classification",
+  "project_ref": "igacnfjeuqhxcmfyepgj",
+  "observed_at": "2026-11-04T13:37:43.932Z",
+  "inventory_sha256": "a0c8177156a7324aa559124cc97d81661d542ee57cea1f913bcad5c2f35baa40",
+  "inventory_fresh": true,
+  "decisions_bound": false,
+  "public_rows": 42,
+  "result": "OWNER_DECISION_REQUIRED",
+  "executes_mutation": false,
+  "conversion_authorized": false,
+  "deletion_authorized": false,
+  "objects": [
+    {
+      "table": "artist_submissions",
+      "rows": 0,
+      "category": "unclassified_object",
+      "potential_personal_fields": [],
+      "opaque_fields_requiring_private_review": [],
+      "dependencies": [],
+      "triggers": [
+        {
+          "table": "public.artist_submissions",
+          "function": "set_updated_at"
+        }
+      ],
+      "owner_evidence": null,
+      "status": "EMPTY_AT_SNAPSHOT",
+      "classification": "unknown",
+      "retention": "NOT_PROVEN",
+      "preservation": "ENCRYPTED_SAME_BACKUP_RESTORE_REQUIRED",
+      "disposal_criteria": [
+        "owner_classification",
+        "retention_satisfied",
+        "no_legal_hold",
+        "verified_recovery",
+        "separate_specific_authorization"
+      ],
+      "required_owner_fields": [
+        "classification",
+        "disposition",
+        "legal_hold",
+        "decided_at",
+        "provenance_reference",
+        "retention_reference",
+        "custody_reference",
+        "decision_reference",
+        "decider_reference"
+      ],
+      "deletion_authorized": false
+    },
+    {
+      "table": "artists",
+      "rows": 12,
+      "category": "artist_identity_and_rights",
+      "potential_personal_fields": [
+        "name",
+        "legal_name"
+      ],
+      "opaque_fields_requiring_private_review": [
+        "id",
+        "name",
+        "legal_name",
+        "slug",
+        "city",
+        "state",
+        "region",
+        "languages",
+        "curatorial_axes",
+        "profile",
+        "trajectory",
+        "statement",
+        "portfolio_url",
+        "instagram",
+        "status",
+        "artist_level",
+        "image_url",
+        "studio_image_url",
+        "payload"
+      ],
+      "dependencies": [
+        {
+          "table": "artworks",
+          "target": "artists"
+        },
+        {
+          "table": "certificates",
+          "target": "artists"
+        }
+      ],
+      "triggers": [
+        {
+          "table": "public.artists",
+          "function": "set_updated_at"
+        }
+      ],
+      "owner_evidence": null,
+      "status": "UNCLASSIFIED",
+      "classification": "unknown",
+      "retention": "NOT_PROVEN",
+      "preservation": "ENCRYPTED_SAME_BACKUP_RESTORE_REQUIRED",
+      "disposal_criteria": [
+        "owner_classification",
+        "retention_satisfied",
+        "no_legal_hold",
+        "verified_recovery",
+        "separate_specific_authorization"
+      ],
+      "required_owner_fields": [
+        "classification",
+        "disposition",
+        "legal_hold",
+        "decided_at",
+        "provenance_reference",
+        "retention_reference",
+        "custody_reference",
+        "decision_reference",
+        "decider_reference"
+      ],
+      "deletion_authorized": false
+    },
+    {
+      "table": "artwork_events",
+      "rows": 0,
+      "category": "unclassified_object",
+      "potential_personal_fields": [],
+      "opaque_fields_requiring_private_review": [],
+      "dependencies": [
+        {
+          "table": "artwork_events",
+          "target": "artworks"
+        }
+      ],
+      "triggers": [],
+      "owner_evidence": null,
+      "status": "EMPTY_AT_SNAPSHOT",
+      "classification": "unknown",
+      "retention": "NOT_PROVEN",
+      "preservation": "ENCRYPTED_SAME_BACKUP_RESTORE_REQUIRED",
+      "disposal_criteria": [
+        "owner_classification",
+        "retention_satisfied",
+        "no_legal_hold",
+        "verified_recovery",
+        "separate_specific_authorization"
+      ],
+      "required_owner_fields": [
+        "classification",
+        "disposition",
+        "legal_hold",
+        "decided_at",
+        "provenance_reference",
+        "retention_reference",
+        "custody_reference",
+        "decision_reference",
+        "decider_reference"
+      ],
+      "deletion_authorized": false
+    },
+    {
+      "table": "artworks",
+      "rows": 22,
+      "category": "catalog_and_rights",
+      "potential_personal_fields": [],
+      "opaque_fields_requiring_private_review": [
+        "id",
+        "slug",
+        "title",
+        "artist_id",
+        "language",
+        "type",
+        "technique",
+        "support",
+        "year",
+        "dimensions",
+        "price_label",
+        "status",
+        "edition",
+        "thumb",
+        "main_image_url",
+        "detail_image_url",
+        "room_image_url",
+        "recommended_for",
+        "tags",
+        "moods",
+        "spaces",
+        "search",
+        "summary",
+        "curatorial_reading",
+        "logistics",
+        "payload"
+      ],
+      "dependencies": [
+        {
+          "table": "artwork_events",
+          "target": "artworks"
+        },
+        {
+          "table": "artworks",
+          "target": "artists"
+        },
+        {
+          "table": "certificates",
+          "target": "artworks"
+        },
+        {
+          "table": "proposal_items",
+          "target": "artworks"
+        },
+        {
+          "table": "reservations",
+          "target": "artworks"
+        }
+      ],
+      "triggers": [
+        {
+          "table": "public.artworks",
+          "function": "set_updated_at"
+        }
+      ],
+      "owner_evidence": null,
+      "status": "UNCLASSIFIED",
+      "classification": "unknown",
+      "retention": "NOT_PROVEN",
+      "preservation": "ENCRYPTED_SAME_BACKUP_RESTORE_REQUIRED",
+      "disposal_criteria": [
+        "owner_classification",
+        "retention_satisfied",
+        "no_legal_hold",
+        "verified_recovery",
+        "separate_specific_authorization"
+      ],
+      "required_owner_fields": [
+        "classification",
+        "disposition",
+        "legal_hold",
+        "decided_at",
+        "provenance_reference",
+        "retention_reference",
+        "custody_reference",
+        "decision_reference",
+        "decider_reference"
+      ],
+      "deletion_authorized": false
+    },
+    {
+      "table": "certificates",
+      "rows": 5,
+      "category": "certificate_and_recipient",
+      "potential_personal_fields": [
+        "issued_to",
+        "issued_email"
+      ],
+      "opaque_fields_requiring_private_review": [
+        "code",
+        "verification_status",
+        "artwork_id",
+        "artist_id",
+        "issued_to",
+        "issued_email",
+        "certificate_hash",
+        "certificate_notes",
+        "payload"
+      ],
+      "dependencies": [
+        {
+          "table": "certificates",
+          "target": "artists"
+        },
+        {
+          "table": "certificates",
+          "target": "artworks"
+        }
+      ],
+      "triggers": [
+        {
+          "table": "public.certificates",
+          "function": "set_updated_at"
+        }
+      ],
+      "owner_evidence": null,
+      "status": "UNCLASSIFIED",
+      "classification": "unknown",
+      "retention": "NOT_PROVEN",
+      "preservation": "ENCRYPTED_SAME_BACKUP_RESTORE_REQUIRED",
+      "disposal_criteria": [
+        "owner_classification",
+        "retention_satisfied",
+        "no_legal_hold",
+        "verified_recovery",
+        "separate_specific_authorization"
+      ],
+      "required_owner_fields": [
+        "classification",
+        "disposition",
+        "legal_hold",
+        "decided_at",
+        "provenance_reference",
+        "retention_reference",
+        "custody_reference",
+        "decision_reference",
+        "decider_reference"
+      ],
+      "deletion_authorized": false
+    },
+    {
+      "table": "company_briefs",
+      "rows": 0,
+      "category": "unclassified_object",
+      "potential_personal_fields": [],
+      "opaque_fields_requiring_private_review": [],
+      "dependencies": [
+        {
+          "table": "proposals",
+          "target": "company_briefs"
+        }
+      ],
+      "triggers": [
+        {
+          "table": "public.company_briefs",
+          "function": "set_updated_at"
+        }
+      ],
+      "owner_evidence": null,
+      "status": "EMPTY_AT_SNAPSHOT",
+      "classification": "unknown",
+      "retention": "NOT_PROVEN",
+      "preservation": "ENCRYPTED_SAME_BACKUP_RESTORE_REQUIRED",
+      "disposal_criteria": [
+        "owner_classification",
+        "retention_satisfied",
+        "no_legal_hold",
+        "verified_recovery",
+        "separate_specific_authorization"
+      ],
+      "required_owner_fields": [
+        "classification",
+        "disposition",
+        "legal_hold",
+        "decided_at",
+        "provenance_reference",
+        "retention_reference",
+        "custody_reference",
+        "decision_reference",
+        "decider_reference"
+      ],
+      "deletion_authorized": false
+    },
+    {
+      "table": "crm_notes",
+      "rows": 0,
+      "category": "unclassified_object",
+      "potential_personal_fields": [],
+      "opaque_fields_requiring_private_review": [],
+      "dependencies": [],
+      "triggers": [],
+      "owner_evidence": null,
+      "status": "EMPTY_AT_SNAPSHOT",
+      "classification": "unknown",
+      "retention": "NOT_PROVEN",
+      "preservation": "ENCRYPTED_SAME_BACKUP_RESTORE_REQUIRED",
+      "disposal_criteria": [
+        "owner_classification",
+        "retention_satisfied",
+        "no_legal_hold",
+        "verified_recovery",
+        "separate_specific_authorization"
+      ],
+      "required_owner_fields": [
+        "classification",
+        "disposition",
+        "legal_hold",
+        "decided_at",
+        "provenance_reference",
+        "retention_reference",
+        "custody_reference",
+        "decision_reference",
+        "decider_reference"
+      ],
+      "deletion_authorized": false
+    },
+    {
+      "table": "leads",
+      "rows": 2,
+      "category": "commercial_contact",
+      "potential_personal_fields": [
+        "name",
+        "email",
+        "whatsapp"
+      ],
+      "opaque_fields_requiring_private_review": [
+        "type",
+        "name",
+        "email",
+        "whatsapp",
+        "company",
+        "message",
+        "source_page",
+        "status",
+        "payload"
+      ],
+      "dependencies": [
+        {
+          "table": "proposals",
+          "target": "leads"
+        },
+        {
+          "table": "reservations",
+          "target": "leads"
+        },
+        {
+          "table": "saved_selections",
+          "target": "leads"
+        }
+      ],
+      "triggers": [
+        {
+          "table": "public.leads",
+          "function": "set_updated_at"
+        }
+      ],
+      "owner_evidence": null,
+      "status": "UNCLASSIFIED",
+      "classification": "unknown",
+      "retention": "NOT_PROVEN",
+      "preservation": "ENCRYPTED_SAME_BACKUP_RESTORE_REQUIRED",
+      "disposal_criteria": [
+        "owner_classification",
+        "retention_satisfied",
+        "no_legal_hold",
+        "verified_recovery",
+        "separate_specific_authorization"
+      ],
+      "required_owner_fields": [
+        "classification",
+        "disposition",
+        "legal_hold",
+        "decided_at",
+        "provenance_reference",
+        "retention_reference",
+        "custody_reference",
+        "decision_reference",
+        "decider_reference"
+      ],
+      "deletion_authorized": false
+    },
+    {
+      "table": "media_assets",
+      "rows": 0,
+      "category": "unclassified_object",
+      "potential_personal_fields": [],
+      "opaque_fields_requiring_private_review": [],
+      "dependencies": [],
+      "triggers": [],
+      "owner_evidence": null,
+      "status": "EMPTY_AT_SNAPSHOT",
+      "classification": "unknown",
+      "retention": "NOT_PROVEN",
+      "preservation": "ENCRYPTED_SAME_BACKUP_RESTORE_REQUIRED",
+      "disposal_criteria": [
+        "owner_classification",
+        "retention_satisfied",
+        "no_legal_hold",
+        "verified_recovery",
+        "separate_specific_authorization"
+      ],
+      "required_owner_fields": [
+        "classification",
+        "disposition",
+        "legal_hold",
+        "decided_at",
+        "provenance_reference",
+        "retention_reference",
+        "custody_reference",
+        "decision_reference",
+        "decider_reference"
+      ],
+      "deletion_authorized": false
+    },
+    {
+      "table": "newsletter_subscriptions",
+      "rows": 0,
+      "category": "unclassified_object",
+      "potential_personal_fields": [],
+      "opaque_fields_requiring_private_review": [],
+      "dependencies": [],
+      "triggers": [],
+      "owner_evidence": null,
+      "status": "EMPTY_AT_SNAPSHOT",
+      "classification": "unknown",
+      "retention": "NOT_PROVEN",
+      "preservation": "ENCRYPTED_SAME_BACKUP_RESTORE_REQUIRED",
+      "disposal_criteria": [
+        "owner_classification",
+        "retention_satisfied",
+        "no_legal_hold",
+        "verified_recovery",
+        "separate_specific_authorization"
+      ],
+      "required_owner_fields": [
+        "classification",
+        "disposition",
+        "legal_hold",
+        "decided_at",
+        "provenance_reference",
+        "retention_reference",
+        "custody_reference",
+        "decision_reference",
+        "decider_reference"
+      ],
+      "deletion_authorized": false
+    },
+    {
+      "table": "profiles",
+      "rows": 0,
+      "category": "unclassified_object",
+      "potential_personal_fields": [
+        "email",
+        "full_name",
+        "phone"
+      ],
+      "opaque_fields_requiring_private_review": [
+        "email",
+        "full_name",
+        "profile_type",
+        "phone",
+        "city",
+        "state"
+      ],
+      "dependencies": [
+        {
+          "table": "profiles",
+          "target": "auth.users"
+        }
+      ],
+      "triggers": [
+        {
+          "table": "auth.users",
+          "function": "handle_new_user_profile"
+        },
+        {
+          "table": "public.profiles",
+          "function": "set_updated_at"
+        }
+      ],
+      "owner_evidence": null,
+      "status": "EMPTY_AT_SNAPSHOT",
+      "classification": "unknown",
+      "retention": "NOT_PROVEN",
+      "preservation": "ENCRYPTED_SAME_BACKUP_RESTORE_REQUIRED",
+      "disposal_criteria": [
+        "owner_classification",
+        "retention_satisfied",
+        "no_legal_hold",
+        "verified_recovery",
+        "separate_specific_authorization"
+      ],
+      "required_owner_fields": [
+        "classification",
+        "disposition",
+        "legal_hold",
+        "decided_at",
+        "provenance_reference",
+        "retention_reference",
+        "custody_reference",
+        "decision_reference",
+        "decider_reference"
+      ],
+      "deletion_authorized": false
+    },
+    {
+      "table": "proposal_items",
+      "rows": 0,
+      "category": "unclassified_object",
+      "potential_personal_fields": [],
+      "opaque_fields_requiring_private_review": [],
+      "dependencies": [
+        {
+          "table": "proposal_items",
+          "target": "artworks"
+        },
+        {
+          "table": "proposal_items",
+          "target": "proposals"
+        }
+      ],
+      "triggers": [],
+      "owner_evidence": null,
+      "status": "EMPTY_AT_SNAPSHOT",
+      "classification": "unknown",
+      "retention": "NOT_PROVEN",
+      "preservation": "ENCRYPTED_SAME_BACKUP_RESTORE_REQUIRED",
+      "disposal_criteria": [
+        "owner_classification",
+        "retention_satisfied",
+        "no_legal_hold",
+        "verified_recovery",
+        "separate_specific_authorization"
+      ],
+      "required_owner_fields": [
+        "classification",
+        "disposition",
+        "legal_hold",
+        "decided_at",
+        "provenance_reference",
+        "retention_reference",
+        "custody_reference",
+        "decision_reference",
+        "decider_reference"
+      ],
+      "deletion_authorized": false
+    },
+    {
+      "table": "proposals",
+      "rows": 0,
+      "category": "unclassified_object",
+      "potential_personal_fields": [],
+      "opaque_fields_requiring_private_review": [],
+      "dependencies": [
+        {
+          "table": "proposal_items",
+          "target": "proposals"
+        },
+        {
+          "table": "proposals",
+          "target": "company_briefs"
+        },
+        {
+          "table": "proposals",
+          "target": "leads"
+        }
+      ],
+      "triggers": [
+        {
+          "table": "public.proposals",
+          "function": "set_updated_at"
+        }
+      ],
+      "owner_evidence": null,
+      "status": "EMPTY_AT_SNAPSHOT",
+      "classification": "unknown",
+      "retention": "NOT_PROVEN",
+      "preservation": "ENCRYPTED_SAME_BACKUP_RESTORE_REQUIRED",
+      "disposal_criteria": [
+        "owner_classification",
+        "retention_satisfied",
+        "no_legal_hold",
+        "verified_recovery",
+        "separate_specific_authorization"
+      ],
+      "required_owner_fields": [
+        "classification",
+        "disposition",
+        "legal_hold",
+        "decided_at",
+        "provenance_reference",
+        "retention_reference",
+        "custody_reference",
+        "decision_reference",
+        "decider_reference"
+      ],
+      "deletion_authorized": false
+    },
+    {
+      "table": "reservations",
+      "rows": 1,
+      "category": "commercial_commitment",
+      "potential_personal_fields": [
+        "name",
+        "whatsapp"
+      ],
+      "opaque_fields_requiring_private_review": [
+        "artwork_id",
+        "name",
+        "whatsapp",
+        "deadline",
+        "notes",
+        "status",
+        "payload"
+      ],
+      "dependencies": [
+        {
+          "table": "reservations",
+          "target": "artworks"
+        },
+        {
+          "table": "reservations",
+          "target": "leads"
+        }
+      ],
+      "triggers": [
+        {
+          "table": "public.reservations",
+          "function": "set_updated_at"
+        }
+      ],
+      "owner_evidence": null,
+      "status": "UNCLASSIFIED",
+      "classification": "unknown",
+      "retention": "NOT_PROVEN",
+      "preservation": "ENCRYPTED_SAME_BACKUP_RESTORE_REQUIRED",
+      "disposal_criteria": [
+        "owner_classification",
+        "retention_satisfied",
+        "no_legal_hold",
+        "verified_recovery",
+        "separate_specific_authorization"
+      ],
+      "required_owner_fields": [
+        "classification",
+        "disposition",
+        "legal_hold",
+        "decided_at",
+        "provenance_reference",
+        "retention_reference",
+        "custody_reference",
+        "decision_reference",
+        "decider_reference"
+      ],
+      "deletion_authorized": false
+    },
+    {
+      "table": "saved_selections",
+      "rows": 0,
+      "category": "unclassified_object",
+      "potential_personal_fields": [],
+      "opaque_fields_requiring_private_review": [],
+      "dependencies": [
+        {
+          "table": "saved_selections",
+          "target": "leads"
+        }
+      ],
+      "triggers": [
+        {
+          "table": "public.saved_selections",
+          "function": "set_updated_at"
+        }
+      ],
+      "owner_evidence": null,
+      "status": "EMPTY_AT_SNAPSHOT",
+      "classification": "unknown",
+      "retention": "NOT_PROVEN",
+      "preservation": "ENCRYPTED_SAME_BACKUP_RESTORE_REQUIRED",
+      "disposal_criteria": [
+        "owner_classification",
+        "retention_satisfied",
+        "no_legal_hold",
+        "verified_recovery",
+        "separate_specific_authorization"
+      ],
+      "required_owner_fields": [
+        "classification",
+        "disposition",
+        "legal_hold",
+        "decided_at",
+        "provenance_reference",
+        "retention_reference",
+        "custody_reference",
+        "decision_reference",
+        "decider_reference"
+      ],
+      "deletion_authorized": false
+    },
+    {
+      "table": "tasks",
+      "rows": 0,
+      "category": "unclassified_object",
+      "potential_personal_fields": [],
+      "opaque_fields_requiring_private_review": [],
+      "dependencies": [],
+      "triggers": [
+        {
+          "table": "public.tasks",
+          "function": "set_updated_at"
+        }
+      ],
+      "owner_evidence": null,
+      "status": "EMPTY_AT_SNAPSHOT",
+      "classification": "unknown",
+      "retention": "NOT_PROVEN",
+      "preservation": "ENCRYPTED_SAME_BACKUP_RESTORE_REQUIRED",
+      "disposal_criteria": [
+        "owner_classification",
+        "retention_satisfied",
+        "no_legal_hold",
+        "verified_recovery",
+        "separate_specific_authorization"
+      ],
+      "required_owner_fields": [
+        "classification",
+        "disposition",
+        "legal_hold",
+        "decided_at",
+        "provenance_reference",
+        "retention_reference",
+        "custody_reference",
+        "decision_reference",
+        "decider_reference"
+      ],
+      "deletion_authorized": false
+    }
+  ]
+}

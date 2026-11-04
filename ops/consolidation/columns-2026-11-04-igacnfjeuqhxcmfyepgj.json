@@ -1,0 +1,508 @@
+{
+  "observed_at": "2026-11-04T17:37:30.642Z",
+  "project_ref": "igacnfjeuqhxcmfyepgj",
+  "classification": "column_metadata_only_not_backup",
+  "columns": [
+    {
+      "type": "text",
+      "table": "artists",
+      "column": "id"
+    },
+    {
+      "type": "text",
+      "table": "artists",
+      "column": "name"
+    },
+    {
+      "type": "text",
+      "table": "artists",
+      "column": "legal_name"
+    },
+    {
+      "type": "text",
+      "table": "artists",
+      "column": "slug"
+    },
+    {
+      "type": "text",
+      "table": "artists",
+      "column": "city"
+    },
+    {
+      "type": "text",
+      "table": "artists",
+      "column": "state"
+    },
+    {
+      "type": "text",
+      "table": "artists",
+      "column": "region"
+    },
+    {
+      "type": "ARRAY",
+      "table": "artists",
+      "column": "languages"
+    },
+    {
+      "type": "ARRAY",
+      "table": "artists",
+      "column": "curatorial_axes"
+    },
+    {
+      "type": "text",
+      "table": "artists",
+      "column": "profile"
+    },
+    {
+      "type": "text",
+      "table": "artists",
+      "column": "trajectory"
+    },
+    {
+      "type": "text",
+      "table": "artists",
+      "column": "statement"
+    },
+    {
+      "type": "text",
+      "table": "artists",
+      "column": "portfolio_url"
+    },
+    {
+      "type": "text",
+      "table": "artists",
+      "column": "instagram"
+    },
+    {
+      "type": "text",
+      "table": "artists",
+      "column": "status"
+    },
+    {
+      "type": "text",
+      "table": "artists",
+      "column": "artist_level"
+    },
+    {
+      "type": "text",
+      "table": "artists",
+      "column": "image_url"
+    },
+    {
+      "type": "text",
+      "table": "artists",
+      "column": "studio_image_url"
+    },
+    {
+      "type": "jsonb",
+      "table": "artists",
+      "column": "payload"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "artists",
+      "column": "created_at"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "artists",
+      "column": "updated_at"
+    },
+    {
+      "type": "text",
+      "table": "artworks",
+      "column": "id"
+    },
+    {
+      "type": "text",
+      "table": "artworks",
+      "column": "slug"
+    },
+    {
+      "type": "text",
+      "table": "artworks",
+      "column": "title"
+    },
+    {
+      "type": "text",
+      "table": "artworks",
+      "column": "artist_id"
+    },
+    {
+      "type": "text",
+      "table": "artworks",
+      "column": "language"
+    },
+    {
+      "type": "text",
+      "table": "artworks",
+      "column": "type"
+    },
+    {
+      "type": "text",
+      "table": "artworks",
+      "column": "technique"
+    },
+    {
+      "type": "text",
+      "table": "artworks",
+      "column": "support"
+    },
+    {
+      "type": "text",
+      "table": "artworks",
+      "column": "year"
+    },
+    {
+      "type": "text",
+      "table": "artworks",
+      "column": "dimensions"
+    },
+    {
+      "type": "numeric",
+      "table": "artworks",
+      "column": "price"
+    },
+    {
+      "type": "text",
+      "table": "artworks",
+      "column": "price_label"
+    },
+    {
+      "type": "text",
+      "table": "artworks",
+      "column": "status"
+    },
+    {
+      "type": "text",
+      "table": "artworks",
+      "column": "edition"
+    },
+    {
+      "type": "integer",
+      "table": "artworks",
+      "column": "edition_size"
+    },
+    {
+      "type": "boolean",
+      "table": "artworks",
+      "column": "certificate"
+    },
+    {
+      "type": "text",
+      "table": "artworks",
+      "column": "thumb"
+    },
+    {
+      "type": "text",
+      "table": "artworks",
+      "column": "main_image_url"
+    },
+    {
+      "type": "text",
+      "table": "artworks",
+      "column": "detail_image_url"
+    },
+    {
+      "type": "text",
+      "table": "artworks",
+      "column": "room_image_url"
+    },
+    {
+      "type": "ARRAY",
+      "table": "artworks",
+      "column": "recommended_for"
+    },
+    {
+      "type": "ARRAY",
+      "table": "artworks",
+      "column": "tags"
+    },
+    {
+      "type": "ARRAY",
+      "table": "artworks",
+      "column": "moods"
+    },
+    {
+      "type": "ARRAY",
+      "table": "artworks",
+      "column": "spaces"
+    },
+    {
+      "type": "text",
+      "table": "artworks",
+      "column": "search"
+    },
+    {
+      "type": "text",
+      "table": "artworks",
+      "column": "summary"
+    },
+    {
+      "type": "text",
+      "table": "artworks",
+      "column": "curatorial_reading"
+    },
+    {
+      "type": "boolean",
+      "table": "artworks",
+      "column": "first_artwork"
+    },
+    {
+      "type": "jsonb",
+      "table": "artworks",
+      "column": "logistics"
+    },
+    {
+      "type": "jsonb",
+      "table": "artworks",
+      "column": "payload"
+    },
+    {
+      "type": "boolean",
+      "table": "artworks",
+      "column": "published"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "artworks",
+      "column": "created_at"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "artworks",
+      "column": "updated_at"
+    },
+    {
+      "type": "uuid",
+      "table": "certificates",
+      "column": "id"
+    },
+    {
+      "type": "text",
+      "table": "certificates",
+      "column": "code"
+    },
+    {
+      "type": "text",
+      "table": "certificates",
+      "column": "verification_status"
+    },
+    {
+      "type": "text",
+      "table": "certificates",
+      "column": "artwork_id"
+    },
+    {
+      "type": "text",
+      "table": "certificates",
+      "column": "artist_id"
+    },
+    {
+      "type": "text",
+      "table": "certificates",
+      "column": "issued_to"
+    },
+    {
+      "type": "text",
+      "table": "certificates",
+      "column": "issued_email"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "certificates",
+      "column": "issued_at"
+    },
+    {
+      "type": "text",
+      "table": "certificates",
+      "column": "certificate_hash"
+    },
+    {
+      "type": "text",
+      "table": "certificates",
+      "column": "certificate_notes"
+    },
+    {
+      "type": "jsonb",
+      "table": "certificates",
+      "column": "payload"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "certificates",
+      "column": "created_at"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "certificates",
+      "column": "updated_at"
+    },
+    {
+      "type": "uuid",
+      "table": "leads",
+      "column": "id"
+    },
+    {
+      "type": "text",
+      "table": "leads",
+      "column": "type"
+    },
+    {
+      "type": "text",
+      "table": "leads",
+      "column": "name"
+    },
+    {
+      "type": "text",
+      "table": "leads",
+      "column": "email"
+    },
+    {
+      "type": "text",
+      "table": "leads",
+      "column": "whatsapp"
+    },
+    {
+      "type": "text",
+      "table": "leads",
+      "column": "company"
+    },
+    {
+      "type": "text",
+      "table": "leads",
+      "column": "message"
+    },
+    {
+      "type": "text",
+      "table": "leads",
+      "column": "source_page"
+    },
+    {
+      "type": "text",
+      "table": "leads",
+      "column": "status"
+    },
+    {
+      "type": "jsonb",
+      "table": "leads",
+      "column": "payload"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "leads",
+      "column": "created_at"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "leads",
+      "column": "updated_at"
+    },
+    {
+      "type": "uuid",
+      "table": "profiles",
+      "column": "id"
+    },
+    {
+      "type": "text",
+      "table": "profiles",
+      "column": "email"
+    },
+    {
+      "type": "text",
+      "table": "profiles",
+      "column": "full_name"
+    },
+    {
+      "type": "text",
+      "table": "profiles",
+      "column": "profile_type"
+    },
+    {
+      "type": "text",
+      "table": "profiles",
+      "column": "phone"
+    },
+    {
+      "type": "text",
+      "table": "profiles",
+      "column": "city"
+    },
+    {
+      "type": "text",
+      "table": "profiles",
+      "column": "state"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "profiles",
+      "column": "created_at"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "profiles",
+      "column": "updated_at"
+    },
+    {
+      "type": "uuid",
+      "table": "reservations",
+      "column": "id"
+    },
+    {
+      "type": "text",
+      "table": "reservations",
+      "column": "artwork_id"
+    },
+    {
+      "type": "uuid",
+      "table": "reservations",
+      "column": "lead_id"
+    },
+    {
+      "type": "text",
+      "table": "reservations",
+      "column": "name"
+    },
+    {
+      "type": "text",
+      "table": "reservations",
+      "column": "whatsapp"
+    },
+    {
+      "type": "text",
+      "table": "reservations",
+      "column": "deadline"
+    },
+    {
+      "type": "text",
+      "table": "reservations",
+      "column": "notes"
+    },
+    {
+      "type": "text",
+      "table": "reservations",
+      "column": "status"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "reservations",
+      "column": "expires_at"
+    },
+    {
+      "type": "jsonb",
+      "table": "reservations",
+      "column": "payload"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "reservations",
+      "column": "created_at"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "reservations",
+      "column": "updated_at"
+    }
+  ],
+  "scope": "nonempty_public_tables_and_legacy_auth_profile"
+}

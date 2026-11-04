@@ -53,7 +53,7 @@ let responder = () => [];
 globalThis.fetch = async (url, options = {}) => {
   const entry = { url: String(url), method: options.method || 'GET', body: options.body ? JSON.parse(options.body) : null, authorization: options.headers?.Authorization };
   sent.push(entry);
-  const result = responder(entry);
+  const result = await responder(entry);
   if (result instanceof Error) return new Response(JSON.stringify({ message: result.message }), { status: 400, headers: { 'Content-Type': 'application/json' } });
   return new Response(JSON.stringify(result), { status: 200, headers: { 'Content-Type': 'application/json' } });
 };
@@ -175,6 +175,25 @@ for (const visible of [true,false]) {
  const {payload}=await call('GET','contract-detail',{url:`/api/finance/contract-detail?id=${CONTRACT}`});
  assert.deepEqual(payload.source_rfq,visible?{id:TASK_ID,title:'Concorrência autorizada'}:null);
  assert.ok(sent.filter(entry=>/fin_proposals\?|fin_rfqs\?/.test(entry.url)).every(entry=>entry.url.includes(ORG)), 'source reads remain org scoped');
+}
+
+// A slow versions request must not serialize the independent provenance reads.
+{
+ let releaseVersions;
+ const versionsBlocked=new Promise(resolve=>{releaseVersions=resolve;});
+ reset(async entry=>{
+   if(entry.url.includes(`fin_contracts?select=*&id=eq.${CONTRACT}`))return [{id:CONTRACT,organization_id:ORG,product:'credit',provider_id:PROVIDER,proposal_id:ACTOR}];
+   if(entry.url.includes('fin_contract_versions?')){await versionsBlocked;return [];}
+   if(entry.url.includes('fin_proposals?'))return [{rfq_id:TASK_ID}];
+   return [];
+ });
+ const pending=call('GET','contract-detail',{url:`/api/finance/contract-detail?id=${CONTRACT}`});
+ try {
+   // Wait a bounded number of event-loop turns, without timing assertions.
+   for(let i=0;i<20&&!sent.some(e=>e.url.includes('fin_rfqs?'));i++)await new Promise(resolve=>setImmediate(resolve));
+   assert(sent.some(e=>e.url.includes('fin_rfqs?')),'Provenance should run before the versions read completes');
+   assert(sent.every(e=>e.authorization==='Bearer user-jwt'));
+ } finally {releaseVersions();await pending;}
 }
 
 // ------------------------------------- fatos confirmados → termos do contrato
