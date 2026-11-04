@@ -1,65 +1,240 @@
 name: Arandu Demo Integration (ephemeral)
+
+# Demo canônica integral em infraestrutura efêmera: Supabase real (Postgres,
+# GoTrue, PostgREST, Storage) em Docker no próprio runner, app do Arandu em
+# ARANDU_ENV=demo e a Vitta Foods semeada pelos scripts oficiais. Não é um dos
+# quatro gates obrigatórios e não substitui nenhum deles; ver
+# docs/DEMO_EPHEMERAL_INTEGRATION.md.
+#
+# Garantias: nenhum secret do repositório ou de environment é lido; nenhuma
+# conexão com Supabase hospedado (os refs conhecidos são bloqueados no
+# /etc/hosts do runner e toda URL passa por scripts/ci-demo/assert-local.mjs);
+# nada é publicado além de relatórios sanitizados; os serviços são descartados
+# ao final, aconteça o que acontecer.
 on:
   workflow_dispatch:
+  workflow_call:
+
 permissions:
   contents: read
+
+# Sem isto o Actions usa `bash -e {0}`, sem pipefail: `run.sh fase | tee` sairia
+# com o código do tee e uma fase reprovada apareceria como PASS.
 defaults:
   run:
     shell: bash
+
+# Cada execução usa Docker, portas e volumes do PRÓPRIO runner efêmero, sem
+# secret, sem Supabase hospedado e com artifact nomeado por run_id: execuções de
+# refs diferentes são isoladas e rodam em paralelo. Serializa-se só a mesma ref
+# (push novo numa PR cancela a anterior; main/manual nunca cancelam).
+concurrency:
+  group: arandu-demo-integration-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
-  passport-diagnostic:
+  demo-integration:
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    timeout-minutes: 75
     env:
-      CI_DEMO_REPORTS: ${{ github.workspace }}/reports/passport-diagnostic
+      CI_DEMO_REPORTS: ${{ github.workspace }}/reports/ci-demo
     steps:
-      - name: Checkout exact diagnostic commit
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          fetch-depth: 0
-      - name: Node 24
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Setup Node
+        id: node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: 24
           cache: npm
-      - name: Identify source and require runner capacity
-        run: |
-          git rev-parse HEAD
-          node scripts/ci-demo/resources.mjs
-          psql --version
-      - name: Block hosted Supabase
-        run: |
-          node --input-type=module -e "import {ACTIVE_SUPABASE_ASSIGNMENTS as a} from './lib/deployment-topology.mjs'; for(const ref of new Set(Object.values(a).flat().filter(Boolean))) console.log('0.0.0.0 '+ref+'.supabase.co'); for(const host of ['supabase.com','api.supabase.com','api.supabase.io']) console.log('0.0.0.0 '+host);" | sudo tee -a /etc/hosts > /dev/null
-      - name: Install pinned dependencies and build
-        run: npm ci --include=optional && npm run build
-      - name: Verify the exact Passport selector before preparing infrastructure
-        run: npx playwright test --config playwright.demo.config.js tests/e2e/demo-baseline.spec.js --project demo-desktop --grep 'Financial Passport:' --list
-      - name: Pull pinned Supabase images
-        run: bash scripts/ci-demo/run.sh images
-      - name: Start canonical local stack
-        run: bash scripts/ci-demo/run.sh up
-      - name: Canonical smoke and seed
-        run: |
-          bash scripts/ci-demo/run.sh smoke
-          bash scripts/ci-demo/run.sh seed 2>&1 | grep -v '@' | tee reports/passport-diagnostic/seed.txt
-          bash scripts/ci-demo/run.sh check 2>&1 | grep -v '@' | tee reports/passport-diagnostic/check.txt
-      - name: Chromium only
-        run: |
-          sudo "$(command -v node)" scripts/configure-ci-apt.mjs
-          npx playwright install --with-deps chromium
-      - name: Compare candidate and main Passport with real sessions
+
+      - name: Tested commit
+        id: tested_commit
         env:
-          PASSPORT_NETWORK_DIAGNOSTICS: '1'
-        run: bash scripts/ci-demo/passport-diagnostic.sh
-      - name: Teardown
-        if: always()
-        run: bash scripts/ci-demo/run.sh down
-      - name: Retain sanitized reports without traces or session state
-        if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$HEAD_SHA"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "SHA executado (checkout): $(git rev-parse HEAD) · HEAD da PR/evento: $HEAD_SHA"
+          echo "Ref: $GITHUB_REF · evento: $GITHUB_EVENT_NAME · run: $GITHUB_RUN_ID tentativa $GITHUB_RUN_ATTEMPT"
+
+      - name: Preflight (memory, disk, Docker, psql)
+        id: preflight
+        timeout-minutes: 3
+        run: |
+          if ! command -v psql >/dev/null 2>&1 || ! command -v age >/dev/null 2>&1 || ! command -v age-keygen >/dev/null 2>&1; then
+            sudo apt-get update && sudo apt-get install -y postgresql-client age
+          fi
+          bash scripts/ci-demo/run.sh preflight
+
+      # Defesa em profundidade: mesmo uma URL errada não alcança um Supabase
+      # hospedado conhecido (refs de lib/deployment-topology.mjs).
+      - name: Block hosted Supabase projects on this runner
+        id: block_hosted
+        timeout-minutes: 2
+        run: |
+          node --input-type=module -e "
+            import { ACTIVE_SUPABASE_ASSIGNMENTS as a } from './lib/deployment-topology.mjs';
+            const refs = [...new Set(Object.values(a).flat().filter(Boolean))];
+            for (const ref of refs) console.log('0.0.0.0 ' + ref + '.supabase.co');
+            for (const host of ['supabase.com', 'api.supabase.com', 'api.supabase.io']) console.log('0.0.0.0 ' + host);
+          " | sudo tee -a /etc/hosts > /dev/null
+          echo "hosts bloqueados: $(grep -c '^0.0.0.0 ' /etc/hosts)"
+
+      - name: Install dependencies (lockfile)
+        id: install
+        timeout-minutes: 10
+        run: npm ci --include=optional
+
+      - name: Build
+        id: build
+        timeout-minutes: 5
+        run: npm run build
+
+      - name: Pull pinned Supabase images (tag + digest)
+        id: images
+        timeout-minutes: 15
+        run: bash scripts/ci-demo/run.sh images
+
+      - name: Phase 1 — Supabase up, migrations, app in demo mode
+        id: up
+        timeout-minutes: 12
+        run: bash scripts/ci-demo/run.sh up
+
+      - name: Phase 1 — Smoke (DB, Auth, PostgREST, Storage, API, RLS)
+        id: smoke
+        timeout-minutes: 6
+        run: bash scripts/ci-demo/run.sh smoke 2>&1 | tee "$CI_DEMO_REPORTS/smoke.txt"
+
+      - name: Phase 2 — Official demo seed (Vitta Foods)
+        id: seed
+        timeout-minutes: 26
+        run: bash scripts/ci-demo/run.sh seed 2>&1 | grep -v '@' | tee "$CI_DEMO_REPORTS/seed.txt"
+
+      - name: Phase 2 — Seed sanity checks (read-only re-check)
+        id: check
+        timeout-minutes: 6
+        run: bash scripts/ci-demo/run.sh check 2>&1 | grep -v '@' | tee "$CI_DEMO_REPORTS/seed-check.txt"
+
+      - name: Phase 2 — Provision and verify four real visitor workspaces
+        id: pool
+        timeout-minutes: 36
+        run: bash scripts/ci-demo/run.sh pool 2>&1 | grep -v '@' | tee "$CI_DEMO_REPORTS/pool.txt"
+
+      # Snapshot canônico após o seed e pool verificados, antes das fases mutantes.
+      # journey cadastra três fatores MFA; este drill não preserva MFA e seu
+      # preflight deve continuar recusando fatores existentes, sem apagá-los.
+      # Somente leitura na origem; restaura num Supabase descartável à parte.
+      - name: Phase 2 — Recovery drill (database + Storage binaries, isolated restore)
+        id: recovery
+        timeout-minutes: 20
+        run: bash scripts/ci-demo/run.sh recovery 2>&1 | grep -v '@' | tee "$CI_DEMO_REPORTS/recovery.txt"
+
+      - name: Playwright version
+        id: playwright_version
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      # Só restauração: reaproveita o cache do CI principal, sem gravar outro.
+      - name: Restore Playwright browsers
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          name: passport-diagnostic-${{ github.run_id }}
-          path: reports/passport-diagnostic
+          path: ~/.cache/ms-playwright
+          key: playwright-ubuntu-24.04-${{ runner.arch }}-${{ steps.playwright_version.outputs.version }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            playwright-ubuntu-24.04-${{ runner.arch }}-${{ steps.playwright_version.outputs.version }}-
+
+      - name: Install Chromium only
+        id: install_chromium
+        timeout-minutes: 15
+        env:
+          DEBIAN_FRONTEND: noninteractive
+          PLAYWRIGHT_DOWNLOAD_CONNECTION_TIMEOUT: '60000'
+        run: npx playwright install --with-deps chromium
+
+      - name: Phase 3 — Demo E2E, Chromium desktop (1 worker)
+        id: e2e_desktop
+        timeout-minutes: 16
+        run: bash scripts/ci-demo/run.sh e2e demo-desktop 2>&1 | tee "$CI_DEMO_REPORTS/e2e-desktop.txt"
+
+      - name: Phase 3 — Demo E2E, Chromium mobile (1 worker)
+        id: e2e_mobile
+        timeout-minutes: 16
+        run: bash scripts/ci-demo/run.sh e2e demo-mobile 2>&1 | tee "$CI_DEMO_REPORTS/e2e-mobile.txt"
+
+      - name: Phase 4 — Real journey and attacks (Auth, RLS, RFQ, proposals, approval, provider, Storage, cron)
+        id: journey
+        timeout-minutes: 16
+        run: bash scripts/ci-demo/run.sh journey 2>&1 | tail -n 3 | tee "$CI_DEMO_REPORTS/journey-tail.txt"
+
+      - name: Phase 4 — Platform journey (CRM, Copilot, fees, ERP, economics, viewer 403)
+        id: platform
+        timeout-minutes: 16
+        run: bash scripts/ci-demo/run.sh platform
+
+      # Escreve na Demo efêmera (contratos, aditivos, votos sintéticos): por último.
+      - name: Phase 5 — Adversarial probes (session, cross-tenant, concurrency, renewal cycle)
+        id: adversarial
+        timeout-minutes: 12
+        run: bash scripts/ci-demo/run.sh adversarial 2>&1 | tee "$CI_DEMO_REPORTS/adversarial.txt"
+
+      - name: Collect sanitized evidence
+        id: evidence
+        if: always()
+        timeout-minutes: 3
+        run: bash scripts/ci-demo/run.sh evidence
+
+      - name: Teardown (containers, volumes, keys)
+        id: teardown
+        if: always()
+        timeout-minutes: 5
+        run: bash scripts/ci-demo/run.sh down 2>&1 | tee "$CI_DEMO_REPORTS/teardown.txt"
+
+      # Só relatórios sanitizados: sem trace, sem dump de banco, sem .state.
+      - name: Upload sanitized evidence
+        id: evidence_upload
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: arandu-demo-integration-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            reports/ci-demo
+            reports/playwright-demo
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 14
+
+      # A decisão vem depois do teardown e do arquivo de evidências. Um run
+      # anterior ao cleanup podia listar todas as jornadas como PASS enquanto
+      # os recursos temporários ainda estavam em uso ou o cleanup falhava.
+      - name: Final Demo rehearsal decision
+        if: always()
+        env:
+          NODE: ${{ steps.node.outcome }}
+          TESTED_SHA: ${{ steps.tested_commit.outputs.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          TESTED_COMMIT: ${{ steps.tested_commit.outcome }}
+          PREFLIGHT: ${{ steps.preflight.outcome }}
+          BLOCK_HOSTED: ${{ steps.block_hosted.outcome }}
+          INSTALL: ${{ steps.install.outcome }}
+          BUILD: ${{ steps.build.outcome }}
+          IMAGES: ${{ steps.images.outcome }}
+          UP: ${{ steps.up.outcome }}
+          SMOKE: ${{ steps.smoke.outcome }}
+          SEED: ${{ steps.seed.outcome }}
+          CHECK: ${{ steps.check.outcome }}
+          POOL: ${{ steps.pool.outcome }}
+          PLAYWRIGHT_VERSION: ${{ steps.playwright_version.outcome }}
+          INSTALL_CHROMIUM: ${{ steps.install_chromium.outcome }}
+          E2E_DESKTOP: ${{ steps.e2e_desktop.outcome }}
+          E2E_MOBILE: ${{ steps.e2e_mobile.outcome }}
+          JOURNEY: ${{ steps.journey.outcome }}
+          PLATFORM: ${{ steps.platform.outcome }}
+          ADVERSARIAL: ${{ steps.adversarial.outcome }}
+          RECOVERY: ${{ steps.recovery.outcome }}
+          EVIDENCE: ${{ steps.evidence.outcome }}
+          TEARDOWN: ${{ steps.teardown.outcome }}
+          EVIDENCE_UPLOAD: ${{ steps.evidence_upload.outcome }}
+        run: node scripts/ci-demo/summary.mjs >> "$GITHUB_STEP_SUMMARY"
