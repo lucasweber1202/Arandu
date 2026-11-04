@@ -23,7 +23,9 @@ const DEMO_BUILD = typeof __ARANDU_DEMO__ !== 'undefined' && __ARANDU_DEMO__ ===
 document.documentElement.classList.add('js');
 const view = document.body.dataset.view || 'dashboard';
 const audience = document.body.dataset.audience || 'company';
-const demoPage = document.body.dataset.mode === 'demo';
+// Páginas /demo/ só existem no build demonstrativo: no produto a constante de
+// build elimina transporte local, personas e banner do sandbox legado.
+const demoPage = DEMO_BUILD && document.body.dataset.mode === 'demo';
 const root = document.querySelector('#view');
 
 // Cada tela é carregada sob demanda: uma página baixa só o código que exibe.
@@ -34,7 +36,6 @@ const lazy = (load, name) => {
   renderView.preload = preload;
   return renderView;
 };
-const company = () => import('./src/views/company.js');
 const providerViews = () => import('./src/views/provider.js');
 const VIEWS = {
   home: lazy(() => import('./src/views/dashboard.js'), 'dashboard'),
@@ -42,13 +43,20 @@ const VIEWS = {
   rfqs: lazy(() => import('./src/views/rfqs.js'), 'rfqList'),
   newRfq: lazy(() => import('./src/views/rfqs.js'), 'newRfq'),
   rfq: lazy(() => import('./src/views/rfq.js'), 'rfqDetail'),
-  approvals: lazy(company, 'approvalsInbox'), proposals: lazy(company, 'proposalsList'), contracts: lazy(company, 'contracts'),
+  // Telas da empresa: um módulo por capability (antes, um único company.js de
+  // ~52 KB servia as sete rotas).
+  approvals: lazy(() => import('./src/views/company/approvals.js'), 'approvalsInbox'),
+  proposals: lazy(() => import('./src/views/company/proposals.js'), 'proposalsList'),
+  contracts: lazy(() => import('./src/views/company/contracts.js'), 'contracts'),
+  providers: lazy(() => import('./src/views/company/providers.js'), 'providers'),
+  tasks: lazy(() => import('./src/views/company/tasks.js'), 'tasks'),
+  notifications: lazy(() => import('./src/views/company/notifications.js'), 'notifications'),
+  settings: lazy(() => import('./src/views/company/settings.js'), 'settings'),
   passport: lazy(() => import('./src/views/passport.js'), 'passport'),
   value: lazy(() => import('./src/views/value.js'), 'value'),
   fees: lazy(() => import('./src/views/fees.js'), 'fees'),
   opportunities: lazy(() => import('./src/views/opportunities.js'), 'opportunities'),
   portfolio: lazy(() => import('./src/views/portfolio.js'), 'portfolio'),
-  providers: lazy(company, 'providers'), tasks: lazy(company, 'tasks'), notifications: lazy(company, 'notifications'), settings: lazy(company, 'settings'),
   providerHome: lazy(providerViews, 'providerHome'), providerRfqs: lazy(providerViews, 'providerRfqs'),
   providerProposal: lazy(providerViews, 'providerProposal'), providerInvite: lazy(providerViews, 'providerInvite'),
   // Página estática: o conteúdo já está no HTML; só o shell é montado.
@@ -176,6 +184,11 @@ function createContext(transport) {
       }
       return transport.request(path, options);
     },
+    // Organização ativa já codificada para query string, lida na hora da chamada
+    // (troca de organização nunca reaproveita o valor anterior).
+    get orgId() { return encodeURIComponent(ctx.organization.id); },
+    // Escrita JSON: mesmo caminho de ctx.api (offline, transporte, erros).
+    send(path, body, method = 'POST') { return ctx.api(path, { method, body: JSON.stringify(body) }); },
     putFile(url, file) { return transport.putFile(url, file); },
     can(permission) {
       return canRole(ctx.viewer?.role, permission);
@@ -187,7 +200,7 @@ function createContext(transport) {
       // approvalsError antes de dizer que não há pendência ou de liberar decisão.
       if (!ctx.approvalsPromise) {
         ctx.approvalsError = null;
-        ctx.approvalsPromise = ctx.api(`approvals?organization_id=${encodeURIComponent(ctx.organization.id)}`).then((result) => result.rows || [])
+        ctx.approvalsPromise = ctx.api(`approvals?organization_id=${ctx.orgId}`).then((result) => result.rows || [])
           .catch((error) => { ctx.approvalsError = error; return []; });
       }
       return ctx.approvalsPromise;
@@ -195,7 +208,8 @@ function createContext(transport) {
     header: setHeader,
     reload: () => render({ refresh: true }),
     rerender: (options) => render(options),
-    async switchPersona(key) {
+    // Troca de persona só existe no sandbox legado (build demonstrativo).
+    switchPersona: DEMO_BUILD ? async (key) => {
       transport.setPersona(key);
       const persona = transport.persona();
       const stay = persona.audience === audience && audience === 'company' && view !== 'newRfq';
@@ -209,7 +223,7 @@ function createContext(transport) {
       const target = persona.audience === 'provider' ? '/provider/index.html' : '/finance/dashboard.html';
       // Mesma página: recarrega (mudar só a âncora não recarregaria o conteúdo).
       setTimeout(() => (stay ? location.reload() : location.assign(ctx.href(target))), 250);
-    }
+    } : null
   };
   return ctx;
 }
@@ -260,23 +274,23 @@ async function loadSession(ctx) {
   ctx.organization = ctx.organizations.find((organization) => organization.id === remembered) || ctx.organizations[0];
   if (demoPage) ctx.persona = ctx.transport.persona();
   if (audience === 'provider') {
-    const result = await ctx.api(`assignments?organization_id=${encodeURIComponent(ctx.organization.id)}`);
+    const result = await ctx.api(`assignments?organization_id=${ctx.orgId}`);
     ctx.data = { assignments: result.rows || [], pending_invites: result.pending_invites || [] };
     if (ctx.persona) {
       ctx.viewer = { id: ctx.persona.user, name: ctx.persona.name, title: ctx.persona.title, role: ctx.persona.role };
     } else {
       // Nome e cargo de quem está no portal (sem e-mail), como no espaço da empresa.
-      const members = await ctx.api(`members?organization_id=${encodeURIComponent(ctx.organization.id)}`).catch(() => ({ rows: [], viewer_id: null }));
+      const members = await ctx.api(`members?organization_id=${ctx.orgId}`).catch(() => ({ rows: [], viewer_id: null }));
       const me = (members.rows || []).find((member) => member.user_id === members.viewer_id);
       ctx.viewer = { id: members.viewer_id || null, role: me?.role || 'provider_user', name: me?.display_name || null, title: me?.title || null };
     }
     return {};
   }
   const [overview, members] = await Promise.all([
-    ctx.api(`overview?organization_id=${encodeURIComponent(ctx.organization.id)}`),
+    ctx.api(`overview?organization_id=${ctx.orgId}`),
     // Sem a lista de membros não se sabe o papel de quem entra: mostrar a tela
     // como se a pessoa não pudesse nada seria uma falsa "falta de permissão".
-    ctx.api(`members?organization_id=${encodeURIComponent(ctx.organization.id)}`)
+    ctx.api(`members?organization_id=${ctx.orgId}`)
   ]);
   ctx.data = overview;
   ctx.organization = { ...ctx.organization, ...(overview.organization || {}) };
@@ -331,7 +345,7 @@ function createOrganizationView(ctx) {
     event.preventDefault();
     submit.disabled = true;
     try {
-      const result = await ctx.api('organizations', { method: 'POST', body: JSON.stringify({ legal_name: name.value, country: 'BR', kind: buyer ? 'BUYER' : 'PROVIDER' }) });
+      const result = await ctx.send('organizations', { legal_name: name.value, country: 'BR', kind: buyer ? 'BUYER' : 'PROVIDER' });
       try { sessionStorage.setItem('arandu-finance-org', result.id); } catch { /* sem memória */ }
       toast('Organização criada. Você é o administrador dela.');
       render({ refresh: true });
@@ -450,8 +464,8 @@ async function boot() {
   }
   if (!VIEWS[view]) return;
   await render();
-  if (ctx.mode === 'demo' && transport.recovered?.()) toast('O estado salvo da demonstração era inválido ou de outra versão e foi restaurado para o conjunto inicial.', 'info');
-  if (ctx.mode === 'demo' && !transport.persistent?.()) toast('Este navegador não permite guardar dados locais: a demonstração funciona, mas não sobrevive a recarregar a página.', 'info');
+  if ((__ARANDU_DEMO__ && ctx.mode === 'demo') && transport.recovered?.()) toast('O estado salvo da demonstração era inválido ou de outra versão e foi restaurado para o conjunto inicial.', 'info');
+  if ((__ARANDU_DEMO__ && ctx.mode === 'demo') && !transport.persistent?.()) toast('Este navegador não permite guardar dados locais: a demonstração funciona, mas não sobrevive a recarregar a página.', 'info');
 }
 
 window.addEventListener('pageshow', (event) => { if (event.persisted && window.__aranduCtx) render({ refresh: true }); });

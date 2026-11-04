@@ -1,5 +1,5 @@
 import { el } from '../core.js';
-import { card, button, field, loading, errorState } from '../ui.js';
+import { card, button, field, loading, errorState, mutedText } from '../ui.js';
 import { entityName } from './entities.js';
 
 // Value Intelligence no Painel: cartões compostos no servidor (valor, tarifas,
@@ -18,7 +18,7 @@ export function executiveSection(ctx, entities) {
       const data = await ctx.api(`executive?${q}`);
       // Blocos planos em grade: um fato por bloco, nota de cobertura e o link que leva ao trabalho.
       out.replaceChildren(el('div', { class: 'exec-grid' }, data.cards.map((c) => el('section', { class: 'exec-block' }, [
-        el('h3', { class: 'exec-title', text: c.title }), ...c.lines.map((text) => el('p', { class: 'exec-line', text })), el('p', { class: 'muted small', text: c.note }),
+        el('h3', { class: 'exec-title', text: c.title }), ...c.lines.map((text) => el('p', { class: 'exec-line', text })), mutedText(c.note),
         el('p', { class: 'exec-links' }, c.links.flatMap((l, i) => [i ? ' · ' : null, el('a', { href: ctx.href(l.href), text: l.text })]))]))));
     } catch (error) { out.replaceChildren(errorState({ error, onRetry: load })); }
   };

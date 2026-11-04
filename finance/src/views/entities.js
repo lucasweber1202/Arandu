@@ -8,7 +8,7 @@ import { graphContextCard } from './graph-context.js';
 // que não as conhece), tudo continua funcionando como antes.
 
 import { el, icon, formatDate } from '../core.js';
-import { card, button, tag, field, emptyState, errorState, loading, toast, confirmDialog, person, drawer, onSubmit } from '../ui.js';
+import { card, button, tag, field, emptyState, errorState, loading, toast, confirmDialog, person, drawer, onSubmit, mutedText, toastError } from '../ui.js';
 import { entityLabel, entityTree } from '../../../lib/finance/entities.mjs';
 
 const CONTEXT_KEY = 'arandu-finance-entity';
@@ -18,7 +18,7 @@ export const GROUP = 'group';
 /** Carrega (uma vez por página) as entidades que a pessoa enxerga. */
 export function loadEntities(ctx) {
   if (ctx.audience !== 'company' || !ctx.organization) return Promise.resolve(emptyEntities());
-  ctx.entitiesPromise ||= ctx.api(`entities?organization_id=${encodeURIComponent(ctx.organization.id)}`)
+  ctx.entitiesPromise ||= ctx.api(`entities?organization_id=${ctx.orgId}`)
     .then((result) => {
       const rows = result.rows || [];
       return { rows, byId: new Map(rows.map((row) => [row.id, row])), scope: result.scope || 'group', canAdmin: Boolean(result.can_admin), baseCurrency: result.base_currency || null, available: true };
@@ -93,7 +93,7 @@ export function entityField(entities, { value = selectedEntity() } = {}) {
 /** Consolidado por entidade, sobre o que a pessoa pode ler. */
 export function entitySummaryCard(ctx) {
   const box = el('div', {}, loading('Carregando consolidado por entidade…'));
-  ctx.api(`entity-summary?organization_id=${encodeURIComponent(ctx.organization.id)}`).then((result) => {
+  ctx.api(`entity-summary?organization_id=${ctx.orgId}`).then((result) => {
     const rows = result.rows || [];
     if (!rows.length) { box.replaceChildren(emptyState({ title: 'Nenhuma entidade no seu escopo', compact: true, iconName: 'building' })); return; }
     const table = el('table', { class: 'data-table entity-summary-table' });
@@ -112,7 +112,7 @@ export function entitySummaryCard(ctx) {
       ]));
     }
     table.append(body);
-    box.replaceChildren(el('div', { class: 'table-scroll' }, table), el('p', { class: 'muted small', text: `${result.definition}${result.truncated ? ' Lista truncada em 5.000 registros.' : ''}` }));
+    box.replaceChildren(el('div', { class: 'table-scroll' }, table), mutedText(`${result.definition}${result.truncated ? ' Lista truncada em 5.000 registros.' : ''}`));
   }).catch((error) => box.replaceChildren(errorState({ error })));
   return card({ title: 'Consolidado por entidade', subtitle: 'Somente o que o seu escopo permite ler. Unidades aparecem abaixo da entidade legal.', body: [box, graphContextCard(ctx, { type: 'organization', id: ctx.organization.id })], className: 'entity-summary' });
 }
@@ -130,13 +130,13 @@ export function entitySettings(ctx, entities) {
   for (const row of tree) {
     const archive = admin && row.status === 'active' ? button('Arquivar', { size: 'sm', variant: 'ghost', iconName: 'x', onClick: async () => {
       if (!await confirmDialog({ title: `Arquivar ${row.short_name || row.legal_name}?`, description: 'Processos e contratos existentes continuam com o histórico. A entidade deixa de aceitar processos novos e novas concessões de escopo.', confirmLabel: 'Arquivar', tone: 'danger' })) return;
-      try { await ctx.api('entities', { method: 'PATCH', body: JSON.stringify({ entity_id: row.id, status: 'archived' }) }); toast('Entidade arquivada.'); ctx.reload(); }
-      catch (error) { toast(error.message, 'error'); }
+      try { await ctx.send('entities', { entity_id: row.id, status: 'archived' }, 'PATCH'); toast('Entidade arquivada.'); ctx.reload(); }
+      catch (error) { toastError(error); }
     } }) : null;
     list.append(el('li', { class: `entity-row depth-${row.depth}`, dataset: { entity: 'legal_entity', id: row.id } }, [
       el('span', { class: 'entity-row-main' }, [
         el('strong', { text: row.legal_name }),
-        el('span', { class: 'muted small', text: [row.kind === 'business_unit' ? 'Unidade de negócio' : 'Entidade legal', row.short_name, row.tax_identifier ? `CNPJ ${String(row.tax_identifier).replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5')}` : null, `${row.country} · ${row.currency}`].filter(Boolean).join(' · ') })
+        mutedText([row.kind === 'business_unit' ? 'Unidade de negócio' : 'Entidade legal', row.short_name, row.tax_identifier ? `CNPJ ${String(row.tax_identifier).replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5')}` : null, `${row.country} · ${row.currency}`].filter(Boolean).join(' · '), 'span')
       ]),
       row.status === 'archived' ? tag(`arquivada em ${formatDate(row.archived_at)}`) : tag('ativa', 'success'),
       archive
@@ -152,8 +152,8 @@ export function entitySettings(ctx, entities) {
       button('Salvar moeda', { type: 'submit', iconName: 'check' })]);
     onSubmit(baseForm, async (event) => {
       event.preventDefault();
-      try { await ctx.api('entities/currency', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, base_currency: base.value.trim().toUpperCase() }) }); toast('Moeda base atualizada.'); }
-      catch (error) { toast(error.message, 'error'); }
+      try { await ctx.send('entities/currency', { organization_id: ctx.organization.id, base_currency: base.value.trim().toUpperCase() }); toast('Moeda base atualizada.'); }
+      catch (error) { toastError(error); }
     });
 
     const kind = el('select', { name: 'kind' });
@@ -184,10 +184,10 @@ export function entitySettings(ctx, entities) {
       if (body.kind !== 'business_unit') delete body.parent_id;
       for (const [key, value] of Object.entries(body)) if (value === '') delete body[key];
       try {
-        await ctx.api('entities', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, ...body }) });
+        await ctx.send('entities', { organization_id: ctx.organization.id, ...body });
         toast('Entidade cadastrada.');
         ctx.reload();
-      } catch (error) { toast(error.message, 'error'); }
+      } catch (error) { toastError(error); }
     });
     root.append(baseForm, el('details', { class: 'entity-create', open: !tree.length }, [el('summary', { text: 'Cadastrar entidade ou unidade' }), form]));
   }
@@ -198,16 +198,16 @@ export function entitySettings(ctx, entities) {
 export function memberScopes(ctx, entities) {
   const box = el('div', {}, loading());
   if (!entities.available || !entities.rows.length) {
-    box.replaceChildren(el('p', { class: 'muted small', text: 'Sem entidades cadastradas, todos os membros enxergam o grupo inteiro, como hoje.' }));
+    box.replaceChildren(mutedText('Sem entidades cadastradas, todos os membros enxergam o grupo inteiro, como hoje.'));
     return box;
   }
-  ctx.api(`entity-scopes?organization_id=${encodeURIComponent(ctx.organization.id)}`).then((result) => {
+  ctx.api(`entity-scopes?organization_id=${ctx.orgId}`).then((result) => {
     const active = entityTree(entities.rows).filter((row) => row.status === 'active');
     const list = el('ul', { class: 'member-list', role: 'list' });
     for (const member of result.rows || []) {
       const restricted = member.entity_scope === 'entities';
       const summary = restricted ? (member.entity_ids.length ? member.entity_ids.map((id) => entityName(entities, id)).join(', ') : 'Entidades do seu escopo') : 'Grupo inteiro';
-      const row = el('li', { class: 'member-row scope-row' }, [person(member.display_name || 'Membro', member.title || null), tag(restricted ? 'Escopo restrito' : 'Tesouraria do grupo', restricted ? 'warning' : 'accent'), el('span', { class: 'muted small', text: summary })]);
+      const row = el('li', { class: 'member-row scope-row' }, [person(member.display_name || 'Membro', member.title || null), tag(restricted ? 'Escopo restrito' : 'Tesouraria do grupo', restricted ? 'warning' : 'accent'), mutedText(summary, 'span')]);
       if (entities.canAdmin && member.role !== 'admin') {
         const editor = el('form', { class: 'scope-editor', novalidate: true });
         const scope = el('select', { name: 'scope', 'aria-label': `Escopo de ${member.display_name || 'membro'}` });
@@ -226,14 +226,14 @@ export function memberScopes(ctx, entities) {
           const ids = [...editor.querySelectorAll('input[name="entity_ids"]:checked')].map((input) => input.value);
           if (scope.value === 'entities' && !ids.length) { toast('Escolha ao menos uma entidade para o escopo restrito.', 'error'); return; }
           try {
-            await ctx.api('entity-scopes', { method: 'PUT', body: JSON.stringify({ organization_id: ctx.organization.id, user_id: member.user_id, scope: scope.value, entity_ids: ids }) });
+            await ctx.send('entity-scopes', { organization_id: ctx.organization.id, user_id: member.user_id, scope: scope.value, entity_ids: ids }, 'PUT');
             toast('Escopo atualizado. A mudança vale na próxima leitura dessa pessoa.');
             ctx.reload();
-          } catch (error) { toast(error.message, 'error'); }
+          } catch (error) { toastError(error); }
         });
         row.append(el('details', { class: 'scope-details' }, [el('summary', { text: 'Alterar escopo' }), editor]));
       } else if (member.role === 'admin') {
-        row.append(el('span', { class: 'muted small', text: 'Administradores são sempre do grupo.' }));
+        row.append(mutedText('Administradores são sempre do grupo.', 'span'));
       }
       list.append(row);
     }
@@ -255,8 +255,8 @@ export function rfqEntityControl(ctx, entities, rfq) {
   const save = button('Reatribuir', { size: 'sm', onClick: async () => {
     if (select.value === (rfq.legal_entity_id || '')) return;
     if (!await confirmDialog({ title: 'Reatribuir a entidade do processo?', description: 'Quem enxerga o processo passa a ser definido pela nova entidade. A mudança fica registrada na trilha e não é possível depois da decisão.', confirmLabel: 'Reatribuir' })) return;
-    try { await ctx.api('rfq-entity', { method: 'POST', body: JSON.stringify({ rfq_id: rfq.id, legal_entity_id: select.value || null }) }); toast('Entidade reatribuída.'); ctx.reload(); }
-    catch (error) { toast(error.message, 'error'); }
+    try { await ctx.send('rfq-entity', { rfq_id: rfq.id, legal_entity_id: select.value || null }); toast('Entidade reatribuída.'); ctx.reload(); }
+    catch (error) { toastError(error); }
   } });
   return el('span', { class: 'entity-control' }, [current, el('details', { class: 'inline-details' }, [el('summary', { text: 'Alterar' }), el('span', { class: 'inline-form' }, [select, save])])]);
 }
@@ -271,8 +271,8 @@ export function contractEntityControl(ctx, entities, contract) {
   const save = button('Atribuir entidade', { size: 'sm', onClick: async () => {
     if (!select.value) { toast('Escolha a entidade do contrato.', 'error'); return; }
     if (!await confirmDialog({ title: 'Atribuir entidade ao contrato?', description: 'A atribuição é feita uma única vez e fica na trilha. Mudanças materiais posteriores entram como aditivo.', confirmLabel: 'Atribuir' })) return;
-    try { await ctx.api('contract-entity', { method: 'POST', body: JSON.stringify({ contract_id: contract.id, legal_entity_id: select.value }) }); toast('Entidade atribuída ao contrato.'); ctx.reload(); }
-    catch (error) { toast(error.message, 'error'); }
+    try { await ctx.send('contract-entity', { contract_id: contract.id, legal_entity_id: select.value }); toast('Entidade atribuída ao contrato.'); ctx.reload(); }
+    catch (error) { toastError(error); }
   } });
   return el('span', { class: 'entity-control' }, [tag('Nível de grupo', 'accent'), select, save]);
 }

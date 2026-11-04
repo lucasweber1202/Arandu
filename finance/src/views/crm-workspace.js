@@ -1,3 +1,4 @@
+/* global __ARANDU_DEMO__ */
 // Financial Relationship Workspace (CRM visual 1.0).
 //
 // Consome somente o contrato `financial-crm-v1` (docs/FINANCIAL_CRM_V1.md):
@@ -12,156 +13,11 @@
 // - PATCH sempre com `expected_version`; 409 vira conflito legível, com o que a
 //   pessoa digitou preservado e opção de recarregar;
 // - sucesso só depois da resposta do servidor.
-
 import { el, icon, formatDate, formatDateTime, todayIso, uid, plural, productLabel } from '../core.js';
-import { button, tag, field, drawer, toast, loading, errorState, emptyState, confirmDialog, onSubmit, sessionLink } from '../ui.js';
+import { button, tag, field, drawer, toast, loading, errorState, emptyState, confirmDialog, mutedText } from '../ui.js';
+import { ACTIVITY_KINDS, ACTIVITY_STATUS, STAGES, STAGE_ORDER, REFERENCE_LABEL, EVENT_TEXT, FIELD_TEXT, crmErrorMessage, enc, memberLabel, canWriteCrm, localDateTime, isoWithZone, crmList } from './crm/model.js';
+import { crmForm, input, textarea, select, ownerOptions } from './crm/form.js';
 
-export const ACTIVITY_KINDS = Object.freeze({
-  meeting: 'Reunião', call: 'Ligação', commercial_interaction: 'Interação comercial', note: 'Nota interna',
-  follow_up: 'Follow-up', commitment: 'Compromisso', email_record: 'E-mail (anotação)'
-});
-export const ACTIVITY_STATUS = Object.freeze({ recorded: ['Realizada', 'success'], planned: ['Planejada', 'info'], cancelled: ['Cancelada', 'neutral'], archived: ['Arquivada', 'neutral'] });
-export const STAGES = Object.freeze({
-  prospect: 'Prospecção', qualification: 'Qualificação', engagement: 'Relacionamento ativo',
-  negotiation: 'Em negociação', won: 'Ganho (declarado)', lost: 'Encerrado sem acordo'
-});
-const STAGE_ORDER = Object.keys(STAGES);
-const REFERENCE_LABEL = { provider: 'Instituição', contract: 'Contrato', rfq: 'Negociação', opportunity: 'Oportunidade', proposal: 'Proposta', task: 'Tarefa' };
-const EVENT_TEXT = {
-  crm_contact_created: 'Contato registrado', crm_contact_updated: 'Contato atualizado', crm_activity_created: 'Atividade registrada',
-  crm_activity_updated: 'Atividade atualizada', crm_process_created: 'Processo criado', crm_process_updated: 'Processo atualizado'
-};
-const FIELD_TEXT = {
-  name: 'nome', title: 'cargo ou título', email: 'e-mail', phone: 'telefone', owner_id: 'responsável', source_reference: 'fonte', status: 'estado',
-  kind: 'tipo', subject: 'assunto', notes: 'observações', occurred_at: 'data em que aconteceu', due_on: 'prazo', contact_id: 'contato', process_id: 'processo',
-  related_type: 'vínculo', related_id: 'vínculo', stage: 'etapa', next_action: 'próximo passo', outcome: 'resultado'
-};
-
-/** Mensagem legível para os erros do contrato CRM; nunca texto técnico. */
-export function crmErrorMessage(error) {
-  if (!error) return 'Não foi possível concluir. Tente novamente.';
-  if (error.status === 409) return 'Outra pessoa alterou este registro depois que você o abriu, ou esta mesma ação já foi enviada com outro conteúdo. Nada foi sobrescrito: recarregue para ver a versão atual.';
-  if (error.status === 403) return 'Seu acesso não permite esta ação nesta organização ou entidade. Peça a quem administra o Arandu.';
-  if (error.status === 404) return 'Registro indisponível no seu escopo. Ele pode ter sido arquivado ou pertencer a outra entidade.';
-  if (error.status === 503) return 'O registro comercial ainda não está disponível neste ambiente. Nada foi gravado.';
-  if (error.status === 400) return 'Confira os campos obrigatórios, a fonte e o vínculo escolhido. Nada foi gravado.';
-  if (error.status === 401) return error.message;
-  if (!error.status || error.status >= 500) return 'Não recebemos confirmação do servidor. Pode ter sido gravado: confira a lista antes de repetir. Repetir aqui reenvia a mesma ação, sem duplicar.';
-  return error.message || 'Não foi possível concluir.';
-}
-
-const enc = encodeURIComponent;
-const memberLabel = (ctx, id) => {
-  if (!id) return 'Sem responsável';
-  const row = (ctx.members || []).find((m) => m.user_id === id);
-  if (!row) return 'Pessoa sem acesso atual';
-  return `${row.display_name || row.email || 'Pessoa da equipe'}${id === ctx.viewer?.id ? ' (você)' : ''}`;
-};
-const writers = (ctx) => (ctx.members || []).filter((m) => m.user_id && ['admin', 'finance_manager', 'analyst', 'provider_user'].includes(m.role));
-/** Escrita no CRM: buyer admin/gestão/analista; instituição admin/usuário da instituição (contrato §Transporte). */
-export function canWriteCrm(ctx) {
-  const role = ctx.viewer?.role || (ctx.members || []).find((m) => m.user_id === ctx.viewer?.id)?.role;
-  return ['admin', 'finance_manager', 'analyst', 'provider_user'].includes(role);
-}
-function localDateTime(value) {
-  const d = value ? new Date(value) : new Date();
-  const pad = (n) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-/** datetime-local → ISO com fuso (o contrato exige timezone explícito). */
-function isoWithZone(local) {
-  const d = new Date(local);
-  if (!Number.isFinite(d.getTime())) return null;
-  const off = -d.getTimezoneOffset();
-  const sign = off >= 0 ? '+' : '-';
-  const pad = (n) => String(Math.trunc(Math.abs(n))).padStart(2, '0');
-  return `${local.length === 16 ? `${local}:00` : local}${sign}${pad(off / 60)}:${pad(off % 60)}`;
-}
-
-/** Lê todas as páginas de um recurso CRM (até `max` linhas), seguindo `next`. */
-export async function crmList(ctx, resource, params = {}, { max = 200 } = {}) {
-  const rows = [];
-  let after = null;
-  do {
-    const q = new URLSearchParams({ organization_id: ctx.organization.id, limit: '100', ...params });
-    if (after) q.set('after', after);
-    const page = await ctx.api(`${resource}?${q}`);
-    rows.push(...(page.rows || []));
-    after = page.next;
-  } while (after && rows.length < max);
-  return { rows, truncated: Boolean(after) };
-}
-
-// ----------------------------------------------------------------- formulário
-/**
- * Formulário CRM em painel. `fields`: [{ key, label, control, required, hint, read }].
- * Uma chave idempotente por abertura; a mesma chave é reenviada se a pessoa
- * repetir após falha incerta. Fecha só com confirmação do servidor.
- */
-function crmForm({ title, intro = null, fields, send, done, onSaved, onConflict = null }) {
-  const requestKey = uid();
-  const errors = el('div', { class: 'callout callout-error', role: 'alert', hidden: true });
-  const save = button('Gravar', { variant: 'primary', type: 'submit' });
-  const form = el('form', { class: 'stack crm-form', novalidate: true }, [intro ? el('p', { class: 'muted small', text: intro }) : null]);
-  const wrapped = fields.filter(Boolean).map((spec) => {
-    const wrap = field({ label: spec.label, control: spec.control, hint: spec.hint || null, required: Boolean(spec.required), optionalLabel: !spec.required && !spec.noOptional });
-    if (spec.hidden) wrap.hidden = true;
-    spec.wrap = wrap;
-    form.append(wrap);
-    return spec;
-  });
-  form.append(errors, el('div', { class: 'form-actions' }, [save]));
-  let dirty = false;
-  form.addEventListener('input', () => { dirty = true; });
-  const dialog = drawer({ title, body: form, confirmClose: async () => !dirty || confirmDialog({ title: 'Descartar o que foi preenchido?', description: 'Nada deste formulário foi gravado.', confirmLabel: 'Descartar', tone: 'danger' }) });
-  onSubmit(form, async (event) => {
-    event.preventDefault();
-    errors.hidden = true;
-    let firstInvalid = null;
-    const values = {};
-    for (const spec of wrapped) {
-      if (spec.wrap.hidden) { spec.wrap.setError(''); continue; }
-      const raw = spec.read ? spec.read() : (spec.control.value.trim() === '' ? null : spec.control.value.trim());
-      const problem = spec.required && (raw === null || raw === '') ? `Informe ${spec.label.toLowerCase()}.` : spec.validate?.(raw) || '';
-      spec.wrap.setError(problem);
-      if (problem && !firstInvalid) firstInvalid = spec.control;
-      if (raw !== undefined && !(raw === null && spec.skipNull)) values[spec.key] = raw;
-    }
-    if (firstInvalid) { firstInvalid.focus(); return; }
-    try {
-      const result = await send(values, requestKey);
-      dirty = false;
-      dialog.close();
-      toast(result?.replayed ? `${done} (a mesma ação já havia sido registrada; nada foi duplicado)` : done);
-      onSaved?.(result);
-    } catch (error) {
-      errors.replaceChildren(el('span', { text: crmErrorMessage(error) }), ...(sessionLink(error) ? [' ', sessionLink(error)] : []),
-        ...(error.status === 409 && onConflict ? [' ', button('Recarregar dados', { size: 'sm', iconName: 'refresh', onClick: () => { dirty = false; dialog.close(); onConflict(); } })] : []));
-      errors.hidden = false;
-      if (!error.status || error.status >= 500) save.querySelector('.btn-label').textContent = 'Repetir a mesma ação';
-    }
-  });
-  return dialog;
-}
-const input = (attrs = {}) => el('input', { class: 'input', ...attrs });
-const textarea = (attrs = {}) => el('textarea', { class: 'input', rows: '3', ...attrs });
-function select(options, value = '') {
-  const node = el('select', { class: 'input' });
-  for (const [v, label] of options) node.add(new Option(label, v, false, v === value));
-  node.value = value ?? '';
-  return node;
-}
-const ownerOptions = (ctx) => [['', 'Sem responsável definido'], ...writers(ctx).map((m) => [m.user_id, memberLabel(ctx, m.user_id)])];
-
-// ------------------------------------------------------------- workspace
-/**
- * Workspace de relacionamento de UMA instituição: contatos, atividades/agenda,
- * processos comerciais e histórico. `links`: contratos e negociações da
- * instituição já autorizados no painel, usados como vínculos possíveis.
- *
- * Buyer: escopo é `provider` (cadastro do comprador). Instituição: escopo é a
- * própria organização, com `counterparty` opcional (convite aceito).
- */
 export function crmWorkspace(ctx, { provider = null, contracts = [], rfqs = [], entities = null, counterparty = null } = {}) {
   const write = canWriteCrm(ctx);
   const root = el('section', { class: 'cc-section crm-workspace', 'aria-labelledby': 'crm-title' });
@@ -206,9 +62,9 @@ export function crmWorkspace(ctx, { provider = null, contracts = [], rfqs = [], 
   function head() {
     return el('div', { class: 'cc-head' }, [
       el('div', {}, [el('h3', { id: 'crm-title', text: 'Relacionamento comercial' }),
-        el('p', { class: 'muted small', text: 'Contatos, reuniões, compromissos e processos registrados pela sua equipe. São declarações da organização: não comprovam envio, aceite da instituição nem mudam a negociação financeira.' })]),
+        mutedText('Contatos, reuniões, compromissos e processos registrados pela sua equipe. São declarações da organização: não comprovam envio, aceite da instituição nem mudam a negociação financeira.')]),
       el('div', { class: 'crm-actions' }, [
-        provider && ctx.mode !== 'demo' ? button('Resumir com o Copilot', { size: 'sm', variant: 'ghost', iconName: 'sparkles', onClick: () => import('./copilot.js').then((m) => m.openCopilot(ctx, { context: { type: 'provider', id: provider.id, label: provider.name }, question: 'Resuma nosso relacionamento com esta instituição: contatos, atividades pendentes, processos e contratos.' })) }) : null,
+        provider && !(__ARANDU_DEMO__ && ctx.mode === 'demo') ? button('Resumir com o Copilot', { size: 'sm', variant: 'ghost', iconName: 'sparkles', onClick: () => import('./copilot.js').then((m) => m.openCopilot(ctx, { context: { type: 'provider', id: provider.id, label: provider.name }, question: 'Resuma nosso relacionamento com esta instituição: contatos, atividades pendentes, processos e contratos.' })) }) : null,
         state.loaded ? button('Atualizar', { size: 'sm', variant: 'ghost', iconName: 'refresh', onClick: load }) : null])
     ]);
   }
@@ -247,7 +103,7 @@ export function crmWorkspace(ctx, { provider = null, contracts = [], rfqs = [], 
       button('Novo contato', { size: 'sm', iconName: 'plus', onClick: () => contactForm() }),
       button('Registrar atividade', { size: 'sm', iconName: 'calendar', onClick: () => activityForm() }),
       button('Novo processo', { size: 'sm', variant: 'primary', iconName: 'flag', onClick: () => processForm() })
-    ]) : el('p', { class: 'muted small', text: 'Seu acesso permite consultar o relacionamento comercial, sem registrar ou alterar.' });
+    ]) : mutedText('Seu acesso permite consultar o relacionamento comercial, sem registrar ou alterar.');
     root.replaceChildren(head(), actions,
       ...(state.truncated ? [el('p', { class: 'callout callout-info compact', role: 'note', text: 'Há mais registros do que o recorte carregado (vínculos com até 30 contratos, negociações e contatos). Use a busca para localizar um registro específico.' })] : []),
       tabsBar, panel);
@@ -280,8 +136,8 @@ export function crmWorkspace(ctx, { provider = null, contracts = [], rfqs = [], 
     return el('li', { class: 'crm-row', id: `crm-contact-${c.id}`, dataset: { crm: 'contact' } }, [
       el('div', { class: 'crm-row-main' }, [
         el('strong', { text: c.name }),
-        el('span', { class: 'muted small', text: [c.title, c.email, c.phone, entities && c.legal_entity_id ? entities.byId?.get(c.legal_entity_id)?.legal_name : null].filter(Boolean).join(' · ') || 'Sem cargo ou contato informado' }),
-        el('span', { class: 'muted small', text: `Responsável: ${memberLabel(ctx, c.owner_id)} · ${plural(acts, 'atividade', 'atividades')} · fonte: ${c.source_reference || 'não informada (registro anterior)'}` })
+        mutedText([c.title, c.email, c.phone, entities && c.legal_entity_id ? entities.byId?.get(c.legal_entity_id)?.legal_name : null].filter(Boolean).join(' · ') || 'Sem cargo ou contato informado', 'span'),
+        mutedText(`Responsável: ${memberLabel(ctx, c.owner_id)} · ${plural(acts, 'atividade', 'atividades')} · fonte: ${c.source_reference || 'não informada (registro anterior)'}`, 'span')
       ]),
       c.archived_at ? tag('Arquivado', 'neutral') : null,
       el('div', { class: 'crm-row-actions' }, [
@@ -317,9 +173,9 @@ export function crmWorkspace(ctx, { provider = null, contracts = [], rfqs = [], 
         if (row) {
           const changed = Object.fromEntries(Object.entries(values).filter(([k, v]) => k === 'source_reference' || (row[k] ?? null) !== v));
           if (Object.keys(changed).length === 1) return Promise.reject(Object.assign(new Error('Nenhum campo foi alterado.'), { status: 422, message: 'Nenhum campo foi alterado.' }));
-          return ctx.api('crm-contacts', { method: 'PATCH', body: JSON.stringify({ organization_id: ctx.organization.id, id: row.id, expected_version: row.version, request_key: key, values: changed }) });
+          return ctx.send('crm-contacts', { organization_id: ctx.organization.id, id: row.id, expected_version: row.version, request_key: key, values: changed }, 'PATCH');
         }
-        return ctx.api('crm-contacts', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, legal_entity_id: entity?.value || null, provider_id: provider?.id || null, counterparty_organization_id: counterparty?.id || null, request_key: key, values }) });
+        return ctx.send('crm-contacts', { organization_id: ctx.organization.id, legal_entity_id: entity?.value || null, provider_id: provider?.id || null, counterparty_organization_id: counterparty?.id || null, request_key: key, values });
       }
     });
   }
@@ -330,7 +186,7 @@ export function crmWorkspace(ctx, { provider = null, contracts = [], rfqs = [], 
     if (!ok) return;
     const source = archiving ? 'Arquivado pela equipe na Central de Relacionamentos' : 'Reativado pela equipe na Central de Relacionamentos';
     try {
-      await ctx.api(resource, { method: 'PATCH', body: JSON.stringify({ organization_id: ctx.organization.id, id: row.id, expected_version: row.version, request_key: uid(), values: { status, source_reference: source } }) });
+      await ctx.send(resource, { organization_id: ctx.organization.id, id: row.id, expected_version: row.version, request_key: uid(), values: { status, source_reference: source } }, 'PATCH');
       toast(archiving ? 'Registro arquivado.' : 'Registro reativado.');
       reload();
     } catch (error) { toast(crmErrorMessage(error), 'error'); if (error.status === 409) reload(); }
@@ -362,7 +218,7 @@ export function crmWorkspace(ctx, { provider = null, contracts = [], rfqs = [], 
     const when = a.status === 'recorded' ? `Aconteceu em ${formatDateTime(a.occurred_at)}` : a.due_on ? `${late ? 'Venceu em' : 'Prazo'} ${formatDate(a.due_on)}` : 'Sem prazo';
     return el('li', { class: `crm-row${late ? ' crm-row-late' : ''}`, id: `crm-activity-${a.id}`, dataset: { crm: 'activity', status: a.status } }, [
       el('div', { class: 'crm-row-main' }, [
-        el('span', { class: 'muted small', text: ACTIVITY_KINDS[a.kind] || 'Atividade' }),
+        mutedText(ACTIVITY_KINDS[a.kind] || 'Atividade', 'span'),
         el('strong', { text: a.subject }),
         el('span', { class: 'small', text: [when, contact ? `com ${contact.name}` : null, `responsável: ${memberLabel(ctx, a.owner_id)}`].filter(Boolean).join(' · ') }),
         a.notes ? el('p', { class: 'small crm-notes', text: a.notes }) : null,
@@ -381,7 +237,7 @@ export function crmWorkspace(ctx, { provider = null, contracts = [], rfqs = [], 
     const ok = await confirmDialog({ title: status === 'cancelled' ? `Cancelar "${a.subject}"?` : 'Confirmar', description: 'A atividade continua no histórico como cancelada.', confirmLabel: 'Cancelar compromisso', tone: 'danger' });
     if (!ok) return;
     try {
-      await ctx.api('crm-activities', { method: 'PATCH', body: JSON.stringify({ organization_id: ctx.organization.id, id: a.id, expected_version: a.version, request_key: uid(), values: { status, source_reference: 'Cancelado pela equipe na Central de Relacionamentos' } }) });
+      await ctx.send('crm-activities', { organization_id: ctx.organization.id, id: a.id, expected_version: a.version, request_key: uid(), values: { status, source_reference: 'Cancelado pela equipe na Central de Relacionamentos' } }, 'PATCH');
       toast('Compromisso cancelado.'); reload();
     } catch (error) { toast(crmErrorMessage(error), 'error'); if (error.status === 409) reload(); }
   }
@@ -397,7 +253,7 @@ export function crmWorkspace(ctx, { provider = null, contracts = [], rfqs = [], 
         { key: 'source_reference', label: 'Fonte', control: source, required: true }
       ],
       done: 'Atividade registrada como realizada.', onSaved: reload, onConflict: reload,
-      send: (values, key) => ctx.api('crm-activities', { method: 'PATCH', body: JSON.stringify({ organization_id: ctx.organization.id, id: a.id, expected_version: a.version, request_key: key, values: { ...values, status: 'recorded' } }) })
+      send: (values, key) => ctx.send('crm-activities', { organization_id: ctx.organization.id, id: a.id, expected_version: a.version, request_key: key, values: { ...values, status: 'recorded' } }, 'PATCH')
     });
   }
   function referenceSelect(current = null) {
@@ -446,12 +302,12 @@ export function crmWorkspace(ctx, { provider = null, contracts = [], rfqs = [], 
         if (row) {
           const changed = Object.fromEntries(Object.entries(body).filter(([k, v]) => k === 'source_reference' || (row[k] ?? null) !== v));
           if (Object.keys(changed).length === 1) return Promise.reject(Object.assign(new Error('Nenhum campo foi alterado.'), { status: 422 }));
-          return ctx.api('crm-activities', { method: 'PATCH', body: JSON.stringify({ organization_id: ctx.organization.id, id: row.id, expected_version: row.version, request_key: key, values: changed }) });
+          return ctx.send('crm-activities', { organization_id: ctx.organization.id, id: row.id, expected_version: row.version, request_key: key, values: changed }, 'PATCH');
         }
         const ref = readReference(reference)();
         if (ref.related_type) Object.assign(body, ref);
         for (const k of ['occurred_at', 'due_on']) if (body[k] === undefined || body[k] === null) delete body[k];
-        return ctx.api('crm-activities', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, legal_entity_id: null, request_key: key, values: body }) });
+        return ctx.send('crm-activities', { organization_id: ctx.organization.id, legal_entity_id: null, request_key: key, values: body });
       }
     });
     sync();
@@ -473,13 +329,13 @@ export function crmWorkspace(ctx, { provider = null, contracts = [], rfqs = [], 
     return el('div', { class: 'stack crm-agenda' }, [
       unowned ? el('p', { class: 'callout callout-warning compact', text: `${plural(unowned, 'item pendente', 'itens pendentes')} sem responsável definido.` }) : null,
       ...groups.filter(([, rows]) => rows.length).map(([title, rows, hint]) => el('section', { class: 'crm-agenda-group', 'aria-label': title }, [
-        el('h4', { text: `${title} (${rows.length})` }), hint ? el('p', { class: 'muted small', text: hint }) : null,
+        el('h4', { text: `${title} (${rows.length})` }), hint ? mutedText(hint) : null,
         el('ul', { class: 'plain-list crm-list', role: 'list' }, rows.map(activityRow))
       ])),
       processDue.length ? el('section', { class: 'crm-agenda-group', 'aria-label': 'Próximos passos de processos' }, [
         el('h4', { text: `Próximos passos de processos (${processDue.length})` }),
         el('ul', { class: 'plain-list crm-list', role: 'list' }, processDue.map((p) => el('li', { class: `crm-row${p.due_on < today ? ' crm-row-late' : ''}` }, [
-          el('div', { class: 'crm-row-main' }, [el('strong', { text: p.next_action }), el('span', { class: 'muted small', text: `${p.title} · ${STAGES[p.stage]} · ${p.due_on < today ? 'venceu em' : 'até'} ${formatDate(p.due_on)} · ${memberLabel(ctx, p.owner_id)}` })])
+          el('div', { class: 'crm-row-main' }, [el('strong', { text: p.next_action }), mutedText(`${p.title} · ${STAGES[p.stage]} · ${p.due_on < today ? 'venceu em' : 'até'} ${formatDate(p.due_on)} · ${memberLabel(ctx, p.owner_id)}`, 'span')])
         ])))
       ]) : null
     ]);
@@ -517,7 +373,7 @@ export function crmWorkspace(ctx, { provider = null, contracts = [], rfqs = [], 
     layout.addEventListener('change', draw); showArchived.addEventListener('change', draw);
     draw();
     return el('div', { class: 'stack' }, [
-      el('p', { class: 'muted small', text: 'Etapas comerciais são declarações da equipe. "Ganho" não fecha contrato, não aprova proposta e não registra economia.' }),
+      mutedText('Etapas comerciais são declarações da equipe. "Ganho" não fecha contrato, não aprova proposta e não registra economia.'),
       el('div', { class: 'toolbar' }, [layout, el('label', { class: 'checkbox', for: 'crm-show-archived' }, [showArchived, ' Mostrar arquivados'])]), area]);
   }
   function processCard(p) {
@@ -530,7 +386,7 @@ export function crmWorkspace(ctx, { provider = null, contracts = [], rfqs = [], 
     return el('li', { class: 'crm-card', id: `crm-process-${p.id}`, dataset: { crm: 'process', stage: p.stage } }, [
       el('button', { type: 'button', class: 'link-button crm-card-title', text: p.title, onclick: () => processDetail(p) }),
       el('span', { class: 'small', text: `Próximo passo: ${p.next_action}${p.due_on ? ` · até ${formatDate(p.due_on)}` : ''}` }),
-      el('span', { class: 'muted small', text: `Responsável: ${memberLabel(ctx, p.owner_id)}` }),
+      mutedText(`Responsável: ${memberLabel(ctx, p.owner_id)}`, 'span'),
       p.related_type ? (href ? el('a', { class: 'small', href, text: linkLabel(p.related_type, p.related_id) }) : el('span', { class: 'small', text: linkLabel(p.related_type, p.related_id) })) : null,
       p.outcome ? el('span', { class: 'small', text: `Resultado declarado: ${p.outcome}` }) : null,
       p.status === 'archived' ? tag('Arquivado', 'neutral') : null,
@@ -546,7 +402,7 @@ export function crmWorkspace(ctx, { provider = null, contracts = [], rfqs = [], 
       if (!outcome) { revert(); return; }
     }
     try {
-      await ctx.api('crm-processes', { method: 'PATCH', body: JSON.stringify({ organization_id: ctx.organization.id, id: p.id, expected_version: p.version, request_key: uid(), values: { stage: next, ...(outcome ? { outcome } : {}), source_reference: 'Etapa atualizada pela equipe na Central de Relacionamentos' } }) });
+      await ctx.send('crm-processes', { organization_id: ctx.organization.id, id: p.id, expected_version: p.version, request_key: uid(), values: { stage: next, ...(outcome ? { outcome } : {}), source_reference: 'Etapa atualizada pela equipe na Central de Relacionamentos' } }, 'PATCH');
       toast(`Etapa atualizada para ${STAGES[next]}.`);
       reload();
     } catch (error) { revert(); toast(crmErrorMessage(error), 'error'); if (error.status === 409) reload(); }
@@ -560,9 +416,9 @@ export function crmWorkspace(ctx, { provider = null, contracts = [], rfqs = [], 
         ['Etapa', STAGES[p.stage]], ['Responsável', memberLabel(ctx, p.owner_id)], ['Próximo passo', p.next_action], ['Data relevante', p.due_on ? formatDate(p.due_on) : 'Não informada'],
         ['Contato', contact?.name || 'Não informado'], ['Fonte', p.source_reference], ['Resultado declarado', p.outcome || 'Ainda sem resultado'], ['Situação', p.status === 'archived' ? 'Arquivado' : 'Ativo']
       ].map(([k, v]) => el('div', { class: 'deflist-row' }, [el('dt', { text: k }), el('dd', { text: v })]))),
-      p.related_type ? el('p', {}, ['Objeto financeiro vinculado: ', href ? el('a', { href, text: linkLabel(p.related_type, p.related_id) }) : linkLabel(p.related_type, p.related_id)]) : el('p', { class: 'muted small', text: 'Sem objeto financeiro vinculado.' }),
+      p.related_type ? el('p', {}, ['Objeto financeiro vinculado: ', href ? el('a', { href, text: linkLabel(p.related_type, p.related_id) }) : linkLabel(p.related_type, p.related_id)]) : mutedText('Sem objeto financeiro vinculado.'),
       el('h3', { text: `Atividades do processo (${acts.length})` }),
-      acts.length ? el('ul', { class: 'plain-list crm-list' }, acts.map((a) => el('li', { text: `${ACTIVITY_KINDS[a.kind]} · ${a.subject} · ${a.status === 'recorded' ? formatDateTime(a.occurred_at) : a.due_on ? `prazo ${formatDate(a.due_on)}` : 'sem prazo'}` }))) : el('p', { class: 'muted small', text: 'Nenhuma atividade vinculada.' }),
+      acts.length ? el('ul', { class: 'plain-list crm-list' }, acts.map((a) => el('li', { text: `${ACTIVITY_KINDS[a.kind]} · ${a.subject} · ${a.status === 'recorded' ? formatDateTime(a.occurred_at) : a.due_on ? `prazo ${formatDate(a.due_on)}` : 'sem prazo'}` }))) : mutedText('Nenhuma atividade vinculada.'),
       el('div', { class: 'crm-row-actions' }, [
         write && p.status === 'active' ? button('Editar processo', { size: 'sm', iconName: 'edit', onClick: () => { dialog.close(); processForm(p); } }) : null,
         write && p.status === 'active' ? button('Registrar atividade', { size: 'sm', onClick: () => { dialog.close(); activityForm({ process_id: p.id, contact_id: p.contact_id || '' }); } }) : null,
@@ -601,11 +457,11 @@ export function crmWorkspace(ctx, { provider = null, contracts = [], rfqs = [], 
         if (row) {
           const changed = Object.fromEntries(Object.entries(values).filter(([k, v]) => k === 'source_reference' || (row[k] ?? null) !== v));
           if (Object.keys(changed).length === 1) return Promise.reject(Object.assign(new Error('Nenhum campo foi alterado.'), { status: 422 }));
-          return ctx.api('crm-processes', { method: 'PATCH', body: JSON.stringify({ organization_id: ctx.organization.id, id: row.id, expected_version: row.version, request_key: key, values: changed }) });
+          return ctx.send('crm-processes', { organization_id: ctx.organization.id, id: row.id, expected_version: row.version, request_key: key, values: changed }, 'PATCH');
         }
         const body = { ...values, ...Object.fromEntries(Object.entries(readReference(reference)()).filter(([, v]) => v)) };
         if (!['won', 'lost'].includes(body.stage) && body.outcome == null) delete body.outcome;
-        return ctx.api('crm-processes', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, legal_entity_id: null, request_key: key, values: body }) });
+        return ctx.send('crm-processes', { organization_id: ctx.organization.id, legal_entity_id: null, request_key: key, values: body });
       }
     });
   }
@@ -617,11 +473,11 @@ export function crmWorkspace(ctx, { provider = null, contracts = [], rfqs = [], 
       const rows = page.rows || [];
       box.replaceChildren(rows.length ? el('ol', { class: 'timeline crm-history', role: 'list' }, rows.map((e) => el('li', { class: 'timeline-item' }, [
         el('strong', { text: EVENT_TEXT[e.event_type || e.type] || 'Atualização registrada' }),
-        el('span', { class: 'muted small', text: [formatDateTime(e.happened_at), e.actor_id ? memberLabel(ctx, e.actor_id) : null].filter(Boolean).join(' · ') }),
+        mutedText([formatDateTime(e.happened_at), e.actor_id ? memberLabel(ctx, e.actor_id) : null].filter(Boolean).join(' · '), 'span'),
         changedFields(e) ? el('span', { class: 'small', text: changedFields(e) }) : null,
-        e.payload?.source_reference ? el('span', { class: 'muted small', text: `Fonte: ${e.payload.source_reference}` }) : null
-      ]))) : el('p', { class: 'muted small', text: 'Nenhum evento registrado para este item.' }),
-      ...(page.next ? [el('p', { class: 'muted small', text: 'Exibindo os 50 primeiros eventos.' })] : []));
+        e.payload?.source_reference ? mutedText(`Fonte: ${e.payload.source_reference}`, 'span') : null
+      ]))) : mutedText('Nenhum evento registrado para este item.'),
+      ...(page.next ? [mutedText('Exibindo os 50 primeiros eventos.')] : []));
     }).catch((error) => box.replaceChildren(errorState({ title: 'Histórico indisponível', error: { ...error, message: crmErrorMessage(error) } })));
     return box;
   }
@@ -645,82 +501,3 @@ export function crmWorkspace(ctx, { provider = null, contracts = [], rfqs = [], 
  * compromissos planejados e processos ativos, com nome da instituição quando
  * o vínculo é a própria instituição. Leitura apenas; ações abrem a instituição.
  */
-export function crmOrganizationPanel(ctx, { providers = [], contracts = [], onOpenProvider = null } = {}) {
-  const root = el('section', { class: 'card crm-org', id: 'crm-agenda', 'aria-labelledby': 'crm-org-title' });
-  const providerName = new Map(providers.map((p) => [p.id, p.name]));
-  const contractProvider = new Map(contracts.map((c) => [c.id, c.provider_id]));
-  const providerOf = (row) => row.related_type === 'provider' ? row.related_id : row.related_type === 'contract' ? contractProvider.get(row.related_id) : null;
-  const headline = el('div', { class: 'cc-head' }, [el('div', {}, [el('h2', { id: 'crm-org-title', class: 'card-title', text: 'Agenda e processos comerciais' }),
-    el('p', { class: 'muted small', text: 'Compromissos pendentes e processos ativos registrados pela equipe, de todas as instituições do seu escopo.' })])]);
-  const load = async () => {
-    root.replaceChildren(headline, loading('Carregando agenda…'));
-    try {
-      const [planned, processes] = await Promise.all([crmList(ctx, 'crm-activities', { status: 'planned' }), crmList(ctx, 'crm-processes', { status: 'active' })]);
-      const today = todayIso();
-      const filter = select([['all', 'Todos os pendentes'], ['overdue', 'Vencidos'], ['today', 'Hoje'], ['unowned', 'Sem responsável'], ['no_date', 'Sem prazo definido'], ['mine', 'Meus']], 'all');
-      filter.setAttribute('aria-label', 'Filtrar agenda');
-      const instOptions = providers.filter((p) => [...planned.rows, ...processes.rows].some((r) => providerOf(r) === p.id));
-      const inst = select([['', 'Todas as instituições'], ...instOptions.map((p) => [p.id, p.name])], '');
-      inst.setAttribute('aria-label', 'Instituição');
-      const ownerIds = [...new Set([...planned.rows, ...processes.rows].map((r) => r.owner_id).filter(Boolean))];
-      const owner = select([['', 'Todos os responsáveis'], ...ownerIds.map((id) => [id, memberLabel(ctx, id)])], '');
-      owner.setAttribute('aria-label', 'Responsável');
-      const list = el('ul', { class: 'plain-list crm-list', role: 'list' });
-      const row = (kind, r) => {
-        const pid = providerOf(r);
-        const due = r.due_on;
-        const late = due && due < today;
-        return el('li', { class: `crm-row${late ? ' crm-row-late' : ''}`, dataset: { crm: kind } }, [
-          el('div', { class: 'crm-row-main' }, [
-            el('span', { class: 'muted small', text: kind === 'activity' ? ACTIVITY_KINDS[r.kind] : `Processo · ${STAGES[r.stage]}` }),
-            el('strong', { text: kind === 'activity' ? r.subject : `${r.title}: ${r.next_action}` }),
-            el('span', { class: 'small', text: [due ? `${late ? 'Venceu em' : 'Prazo'} ${formatDate(due)}` : 'Sem prazo', `responsável: ${memberLabel(ctx, r.owner_id)}`, pid && providerName.get(pid) ? providerName.get(pid) : null].filter(Boolean).join(' · ') })
-          ]),
-          late ? tag('Vencido', 'danger') : null,
-          pid && onOpenProvider && providers.find((p) => p.id === pid) ? button('Abrir instituição', { size: 'sm', variant: 'ghost', attrs: { 'aria-label': `Abrir relacionamento com ${providerName.get(pid)}` }, onClick: () => onOpenProvider(providers.find((p) => p.id === pid)) }) : null
-        ]);
-      };
-      const draw = () => {
-        const v = filter.value;
-        const pick = (r) => (!inst.value || providerOf(r) === inst.value) && (!owner.value || r.owner_id === owner.value)
-          && (v === 'all' || (v === 'overdue' && r.due_on && r.due_on < today) || (v === 'today' && r.due_on === today) || (v === 'unowned' && !r.owner_id) || (v === 'mine' && r.owner_id === ctx.viewer?.id) || (v === 'no_date' && !r.due_on));
-        const items = [...planned.rows.filter(pick).map((r) => ['activity', r]), ...processes.rows.filter((r) => !['won', 'lost'].includes(r.stage)).filter(pick).map((r) => ['process', r])]
-          .sort(([, a], [, b]) => String(a.due_on || '9999').localeCompare(String(b.due_on || '9999')));
-        list.replaceChildren(...items.slice(0, 50).map(([k, r]) => row(k, r)));
-        if (!items.length) list.append(el('li', {}, emptyState({ compact: true, iconName: 'calendar', title: 'Nada pendente neste filtro', text: 'Registre compromissos e processos no relacionamento de cada instituição.' })));
-      };
-      for (const node of [filter, inst, owner]) node.addEventListener('change', draw);
-      const stageCounts = STAGE_ORDER.slice(0, 4).map((s) => [s, processes.rows.filter((p) => p.stage === s).length]);
-      root.replaceChildren(headline,
-        el('ul', { class: 'pipeline', 'aria-label': 'Processos ativos por etapa' }, stageCounts.map(([s, n]) => el('li', { class: `pipeline-stage${n ? '' : ' empty'}` }, [el('span', { class: 'pipeline-count', text: String(n) }), el('span', { class: 'pipeline-label', text: STAGES[s] })]))),
-        el('div', { class: 'toolbar' }, [filter, inst, owner]), list,
-        ...(planned.truncated || processes.truncated ? [el('p', { class: 'muted small', text: 'Mostrando os primeiros 200 registros de cada tipo.' })] : []));
-      draw();
-    } catch (error) {
-      if (error.status === 503) { root.replaceChildren(headline, el('p', { class: 'callout callout-info compact', text: 'O registro comercial ainda não está disponível neste ambiente.' })); return; }
-      root.replaceChildren(headline, errorState({ title: 'Agenda indisponível', error: { ...error, message: crmErrorMessage(error) }, onRetry: load }));
-    }
-  };
-  load();
-  return root;
-}
-
-/**
- * Relacionamento comercial vinculado a um objeto financeiro (contrato ou
- * negociação): processos e atividades com `related_id` igual ao objeto. Leitura;
- * a edição continua no relacionamento da instituição.
- */
-export function crmLinkedPanel(ctx, { relatedId, providerId = null, providerName = null, noun = 'este contrato' }) {
-  const box = el('section', { class: 'cc-section crm-linked', 'aria-label': 'Relacionamento comercial vinculado' }, [el('h3', { text: 'Relacionamento comercial vinculado' }), loading('Carregando vínculos…')]);
-  Promise.all([crmList(ctx, 'crm-processes', { related_id: relatedId }, { max: 50 }), crmList(ctx, 'crm-activities', { related_id: relatedId }, { max: 50 })]).then(([processes, activities]) => {
-    const today = todayIso();
-    const items = [
-      ...processes.rows.map((p) => el('li', { class: 'crm-row', dataset: { crm: 'process' } }, [el('div', { class: 'crm-row-main' }, [el('span', { class: 'muted small', text: `Processo · ${STAGES[p.stage]}` }), el('strong', { text: p.title }), el('span', { class: 'small', text: `Próximo passo: ${p.next_action}${p.due_on ? ` · até ${formatDate(p.due_on)}` : ''} · ${memberLabel(ctx, p.owner_id)}` })])])),
-      ...activities.rows.filter((a) => ['planned', 'recorded'].includes(a.status)).map((a) => el('li', { class: `crm-row${a.status === 'planned' && a.due_on && a.due_on < today ? ' crm-row-late' : ''}`, dataset: { crm: 'activity' } }, [el('div', { class: 'crm-row-main' }, [el('span', { class: 'muted small', text: `${ACTIVITY_KINDS[a.kind] || 'Atividade'} · ${ACTIVITY_STATUS[a.status]?.[0] || ''}` }), el('strong', { text: a.subject }), el('span', { class: 'small', text: a.status === 'recorded' ? `Aconteceu em ${formatDateTime(a.occurred_at)}` : a.due_on ? `Prazo ${formatDate(a.due_on)}` : 'Sem prazo' })])]))
-    ];
-    box.replaceChildren(el('h3', { text: 'Relacionamento comercial vinculado' }),
-      items.length ? el('ul', { class: 'plain-list crm-list' }, items) : el('p', { class: 'muted small', text: `Nenhum processo ou atividade vinculado a ${noun}.` }),
-      ...(providerId ? [el('a', { class: 'btn btn-ghost btn-sm', href: ctx.href(`/finance/providers.html?provider_id=${enc(providerId)}`) }, el('span', { class: 'btn-label', text: `Abrir relacionamento${providerName ? ` com ${providerName}` : ''}` }))] : []));
-  }).catch((error) => box.replaceChildren(el('h3', { text: 'Relacionamento comercial vinculado' }), el('p', { class: 'muted small', text: error.status === 503 ? 'Registro comercial indisponível neste ambiente.' : 'Vínculos comerciais indisponíveis agora.' })));
-  return box;
-}

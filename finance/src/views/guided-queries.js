@@ -3,7 +3,7 @@
 // carregou (ou sobre a API existente), com a fonte e o recorte declarados.
 // Nenhum texto é gerado por IA e nenhuma ação é executada daqui.
 import { el, icon, formatDate, plural, RFQ_STATUS } from '../core.js';
-import { button, drawer } from '../ui.js';
+import { button, drawer, mutedText } from '../ui.js';
 import { relationshipWorkItems, OVERVIEW_LIMITS } from './relationship-center.js';
 import { CONTRACT_CATEGORIES } from '../../../lib/finance/contract-terms.mjs';
 
@@ -51,7 +51,7 @@ export function guidedQuestions(ctx, { providerId = null } = {}) {
 
 export function openGuidedQueries(ctx, { providerId = null, providerName = null } = {}) {
   const questions = guidedQuestions(ctx, { providerId });
-  const answer = el('div', { class: 'stack guided-answer', 'aria-live': 'polite' }, el('p', { class: 'muted small', text: 'Escolha uma pergunta. A resposta lista os registros e diz de onde vieram.' }));
+  const answer = el('div', { class: 'stack guided-answer', 'aria-live': 'polite' }, mutedText('Escolha uma pergunta. A resposta lista os registros e diz de onde vieram.'));
   let seq = 0;
   const ask = async (q, target) => {
     const mine = ++seq;
@@ -61,7 +61,7 @@ export function openGuidedQueries(ctx, { providerId = null, providerName = null 
       const out = await q.run();
       if (mine !== seq) return;
       answer.replaceChildren(el('h3', { class: 'small', text: q.label }),
-        out.rows.length ? el('ol', { class: 'plain-list guided-rows' }, out.rows.map((row) => el('li', {}, [el('a', { href: ctx.href(row.href), text: row.title }), el('p', { class: 'muted small', text: row.detail })])))
+        out.rows.length ? el('ol', { class: 'plain-list guided-rows' }, out.rows.map((row) => el('li', {}, [el('a', { href: ctx.href(row.href), text: row.title }), mutedText(row.detail)])))
           : el('p', { class: 'small', text: out.empty },),
         el('p', { class: 'muted small guided-source' }, [icon('file', { size: 12 }), ` Fonte: ${out.source}${out.rows.length ? ` ${plural(out.rows.length, 'registro', 'registros')}.` : ''}`]));
     } catch (error) {

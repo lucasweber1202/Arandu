@@ -3,7 +3,7 @@
 // conclusão registrada) e conclui só com confirmação humana explícita,
 // vinculada a uma decisão já registrada. Nada é concluído automaticamente.
 import { el, formatDateTime, RFQ_STATUS } from '../core.js';
-import { button, promptDialog, toast } from '../ui.js';
+import { button, promptDialog, toast, mutedText } from '../ui.js';
 
 const MISSING = { human_decision_not_recorded: 'Decisão humana ainda não registrada.', resulting_contract_not_recorded: 'Contrato resultante ainda não registrado.' };
 const ABSENCE = {
@@ -24,7 +24,7 @@ export function opportunityOutcome(ctx, id, { manage = false, onDone = null } = 
     if (absence) parts.push(el('p', { class: 'callout callout-info compact', role: 'note', text: ABSENCE[absence] || 'Sem negociação registrada para este sinal.' }));
     for (const p of processes) parts.push(el('div', { class: 'stack', dataset: { process: p.rfq?.id || '' } }, [
       el('p', {}, [el('a', { href: ctx.href(p.rfq?.href || `/finance/rfq.html?id=${encodeURIComponent(p.rfq?.id || '')}`), text: p.rfq?.title || 'Solicitação ligada' }),
-        el('span', { class: 'muted small', text: ` · ${RFQ_STATUS[p.rfq?.status]?.label || 'Estado não informado'} · ${(p.proposals || []).length} pelo portal, ${(p.external_proposals || []).length} registradas pela empresa (canal externo)` })]),
+        mutedText(` · ${RFQ_STATUS[p.rfq?.status]?.label || 'Estado não informado'} · ${(p.proposals || []).length} pelo portal, ${(p.external_proposals || []).length} registradas pela empresa (canal externo)`, 'span')]),
       ...(p.decisions || []).map((d) => el('p', { class: 'small', text: `Decisão humana registrada em ${formatDateTime(d.decided_at)}${d.rationale ? `: ${d.rationale}` : '.'}` })),
       ...(p.resulting_contracts || []).map((c) => el('p', { class: 'small' }, [el('span', { text: 'Contrato resultante: ' }), el('a', { href: ctx.href(c.href), text: c.title || 'Abrir contrato' })])),
       ...(p.missing || []).map((code) => el('p', { class: 'muted small', dataset: { missing: code }, text: MISSING[code] || 'Etapa sem registro.' }))
@@ -33,8 +33,8 @@ export function opportunityOutcome(ctx, id, { manage = false, onDone = null } = 
     else if (COMPLETABLE.includes(opportunity.status) && decisions.length && manage) {
       const decision = decisions.at(-1);
       parts.push(button('Concluir sinal com a decisão registrada', { size: 'sm', variant: 'primary', onClick: () => complete(opportunity, decision) }));
-    } else if (!absence && !decisions.length) parts.push(el('p', { class: 'muted small', text: 'O sinal só pode ser concluído por esta via depois que uma pessoa registrar a decisão da negociação.' }));
-    else if (decisions.length && !COMPLETABLE.includes(opportunity.status)) parts.push(el('p', { class: 'muted small', text: 'Para concluir pela decisão, o sinal precisa estar "Ciente" ou "Em revisão".' }));
+    } else if (!absence && !decisions.length) parts.push(mutedText('O sinal só pode ser concluído por esta via depois que uma pessoa registrar a decisão da negociação.'));
+    else if (decisions.length && !COMPLETABLE.includes(opportunity.status)) parts.push(mutedText('Para concluir pela decisão, o sinal precisa estar "Ciente" ou "Em revisão".'));
     root.replaceChildren(...parts);
   };
   let busy = false;
@@ -46,7 +46,7 @@ export function opportunityOutcome(ctx, id, { manage = false, onDone = null } = 
     if (!resolution) return;
     busy = true;
     try {
-      const out = await ctx.api('opportunities/complete-negotiation', { method: 'POST', body: JSON.stringify({ opportunity_id: id, decision_id: decision.id, expected_status: opportunity.status, confirmed: true, resolution }) });
+      const out = await ctx.send('opportunities/complete-negotiation', { opportunity_id: id, decision_id: decision.id, expected_status: opportunity.status, confirmed: true, resolution });
       toast(out.replayed ? 'Esta conclusão já estava registrada.' : 'Conclusão registrada.');
       render(await load()); onDone?.();
     } catch (error) {

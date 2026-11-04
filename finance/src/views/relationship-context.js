@@ -1,12 +1,14 @@
+/* global __ARANDU_DEMO__ */
 // Fatos dos registros existentes. Sem estado paralelo nem cálculo financeiro.
 import { el, formatDate, productLabel, renewalStage, CONTRACT_STATUS, RFQ_STATUS } from '../core.js';
 import { CONTRACT_CATEGORIES } from '../../../lib/finance/contract-terms.mjs';
 import { FACILITY_KINDS } from '../../../lib/finance/portfolio.mjs';
 import { graphContextCard } from './graph-context.js';
+import { mutedText } from '../ui.js';
 
 const amount = (value, currency) => value === null || value === undefined ? 'Não informado' : new Intl.NumberFormat('pt-BR', { style: 'currency', currency }).format(value);
 const date = value => value ? formatDate(value) : 'Não informada';
-const section = (title, rows, render, empty) => el('section', { class: 'cc-section' }, [el('h3', { text: title }), rows.length ? el('ul', { class: 'plain-list' }, rows.map(render)) : el('p', { class: 'muted small', text: empty })]);
+const section = (title, rows, render, empty) => el('section', { class: 'cc-section' }, [el('h3', { text: title }), rows.length ? el('ul', { class: 'plain-list' }, rows.map(render)) : mutedText(empty)]);
 export function relationshipContext(ctx, detail) {
   const provider = detail.provider;
   const contracts = detail.contracts || [];
@@ -17,7 +19,7 @@ export function relationshipContext(ctx, detail) {
   const href = path => ctx.href(path);
   const quickLinks = [['fees', 'Tarifas e cobranças'], ['covenants', 'Obrigações e covenants'], ['opportunities', 'Renovações e oportunidades'], ['qualifications', 'Qualificação'], ['performance', 'Performance'], ['spend', 'Spend']];
   return el('div', { class: 'stack relationship-context' }, [
-    el('p', { class: 'muted small', text: `Recorte autorizado: contratos carregados por página; até 200 facilities e 500 convites, propostas e solicitações; 2.000 fotografias de saldo. Os indicadores e o mapa descrevem o recorte inicial, não o histórico completo. As listas de contratos e tarefas permitem carregar mais. Cadastro ${provider.verification_state === 'EVIDENCIA_REGISTRADA' ? 'com evidência registrada; não é atestação de regularidade' : 'sem verificação registrada'}.` }),
+    mutedText(`Recorte autorizado: contratos carregados por página; até 200 facilities e 500 convites, propostas e solicitações; 2.000 fotografias de saldo. Os indicadores e o mapa descrevem o recorte inicial, não o histórico completo. As listas de contratos e tarefas permitem carregar mais. Cadastro ${provider.verification_state === 'EVIDENCIA_REGISTRADA' ? 'com evidência registrada; não é atestação de regularidade' : 'sem verificação registrada'}.`),
     section('Contratos e condições', contracts, contract => el('li', {}, [el('a', { href: href(`/finance/contracts.html?abrir=contrato#contract-${contract.id}`), text: contract.title || [CONTRACT_CATEGORIES[contract.product] || (contract.product ? productLabel(contract.product) : ''), contract.ends_on ? `vence ${date(contract.ends_on)}` : ''].filter(Boolean).join(' · ') || 'Contrato sem título' }), el('p', { class: 'small muted', text: `${CONTRACT_STATUS[contract.status]?.label || 'Estado não informado'} · início ${date(contract.starts_on)} · término ${date(contract.ends_on)}. Abra o contrato para condições, versões, obrigações e renovação.` })]), 'Nenhum contrato disponível neste recorte.'),
     section('Facilities e limites', facilities, facility => {
       const balance = balances.get(facility.id);
@@ -29,7 +31,7 @@ export function relationshipContext(ctx, detail) {
       const proposals = (detail.proposals || []).filter(row => row.rfq_id === rfq.id);
       return el('li', {}, [el('a', { href: href(`/finance/rfq.html?id=${rfq.id}`), text: rfq.title || 'Solicitação' }), el('p', { class: 'small muted', text: `${RFQ_STATUS[rfq.status]?.label || 'Estado não informado'} · prazo ${date(rfq.response_deadline)} · ${invites.length} convite(s) carregado(s) · ${proposals.filter(row => row.current_version > 0 && row.status !== 'withdrawn').length} proposta(s) submetida(s) não retirada(s). Abra o processo para revisão, decisão e contratação.` })]);
     }, 'Nenhuma solicitação disponível neste recorte.'),
-    ctx.mode === 'demo' ? null : el('nav', { class: 'row-actions', 'aria-label': 'Jornadas desta instituição' }, quickLinks.map(([page, text]) => el('a', { href: href(`/finance/${page}.html?provider_id=${encodeURIComponent(provider.id)}`), text }))),
+    (__ARANDU_DEMO__ && ctx.mode === 'demo') ? null : el('nav', { class: 'row-actions', 'aria-label': 'Jornadas desta instituição' }, quickLinks.map(([page, text]) => el('a', { href: href(`/finance/${page}.html?provider_id=${encodeURIComponent(provider.id)}`), text }))),
     graphContextCard(ctx, { type: 'provider', id: provider.id, title: 'Garantias, documentos e relações financeiras' })
   ].filter(Boolean));
 }

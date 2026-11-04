@@ -7,7 +7,7 @@
 // Docs: docs/FINANCIAL_DATA_GOVERNANCE.md.
 
 import { el, icon, formatDateTime, formatDate } from '../core.js';
-import { button, linkButton, tag, field, emptyState, errorState, loading, toast, confirmDialog, promptDialog, onSubmit } from '../ui.js';
+import { button, linkButton, tag, field, emptyState, errorState, loading, toast, confirmDialog, promptDialog, onSubmit, mutedText, toastError } from '../ui.js';
 
 const CLASS_LABEL = {
   TEMPORARY_OPERATIONAL: 'Avisos no aplicativo', WEBHOOK_DELIVERY: 'Entregas de webhook encerradas',
@@ -23,21 +23,21 @@ const OFFBOARDING_LABEL = {
 };
 const SCOPE_LABEL = { organization: 'Organização inteira', retention_class: 'Classe de retenção', legal_entity: 'Entidade', rfq: 'Solicitação', contract: 'Contrato', provider: 'Provedor' };
 
-function post(ctx, path, body) { return ctx.api(path, { method: 'POST', body: JSON.stringify(body) }); }
+function post(ctx, path, body) { return ctx.send(path, body); }
 function bytes(value) { return value >= 1e6 ? `${(value / 1e6).toFixed(1)} MB` : `${Math.max(1, Math.round((value || 0) / 1e3))} kB`; }
 
 export function governanceSettings(ctx) {
   const box = el('div', { class: 'stack governance-settings' }, loading());
   const render = async () => {
     let data;
-    try { data = await ctx.api(`governance?organization_id=${encodeURIComponent(ctx.organization.id)}`); } catch (error) {
+    try { data = await ctx.api(`governance?organization_id=${ctx.orgId}`); } catch (error) {
       box.replaceChildren(error?.status === 403 || error?.code === 'forbidden'
-        ? el('p', { class: 'muted small', text: 'Governança de dados é administrada por quem tem papel de administração do grupo.' })
+        ? mutedText('Governança de dados é administrada por quem tem papel de administração do grupo.')
         : errorState({ error }));
       return;
     }
     box.replaceChildren(
-      el('p', { class: 'muted small', text: 'Quais dados a sua organização tem aqui, por quanto tempo ficam e como saem. Registros de decisão, contratos, aprovações e trilha de auditoria não são apagados por rotina: eles só saem pelo offboarding controlado, sem legal hold ativo. Isto não é parecer jurídico; prazos legais dependem da revisão da sua empresa.' }),
+      mutedText('Quais dados a sua organização tem aqui, por quanto tempo ficam e como saem. Registros de decisão, contratos, aprovações e trilha de auditoria não são apagados por rotina: eles só saem pelo offboarding controlado, sem legal hold ativo. Isto não é parecer jurídico; prazos legais dependem da revisão da sua empresa.'),
       summarySection(data),
       retentionSection(ctx, data, render),
       holdSection(ctx, data, render),
@@ -76,14 +76,14 @@ function retentionSection(ctx, data, render) {
       el('span', { class: 'small muted', text: `${entry.action === 'anonymize' ? 'Anonimiza' : 'Apaga'} após o prazo. Limites técnicos: ${entry.min_days} a ${entry.max_days} dias.` }),
       active ? el('div', { class: 'row-actions' }, button('Aposentar política', { size: 'sm', onClick: async () => {
         if (!await confirmDialog({ title: 'Aposentar política?', description: 'A retenção automática desta classe para; a versão continua no histórico.', confirmLabel: 'Aposentar' })) return;
-        try { await post(ctx, 'governance/retention-retire', { policy_id: active.id }); toast('Política aposentada.'); render(); } catch (error) { toast(error.message, 'error'); }
+        try { await post(ctx, 'governance/retention-retire', { policy_id: active.id }); toast('Política aposentada.'); render(); } catch (error) { toastError(error); }
       } })) : null,
       ...drafts.map((draft) => el('div', { class: 'row-actions' }, [tag(`rascunho v${draft.version}: ${draft.retention_days} dias`, 'neutral'),
         button('Ativar', { size: 'sm', variant: 'primary', onClick: async () => {
-          try { await post(ctx, 'governance/retention-activate', { policy_id: draft.id }); toast('Política ativada; vale a partir de agora.'); render(); } catch (error) { toast(error.message, 'error'); }
+          try { await post(ctx, 'governance/retention-activate', { policy_id: draft.id }); toast('Política ativada; vale a partir de agora.'); render(); } catch (error) { toastError(error); }
         } }),
         button('Descartar', { size: 'sm', variant: 'ghost', onClick: async () => {
-          try { await post(ctx, 'governance/retention-retire', { policy_id: draft.id }); toast('Rascunho descartado.'); render(); } catch (error) { toast(error.message, 'error'); }
+          try { await post(ctx, 'governance/retention-retire', { policy_id: draft.id }); toast('Rascunho descartado.'); render(); } catch (error) { toastError(error); }
         } })]))
     ]));
   });
@@ -100,7 +100,7 @@ function retentionSection(ctx, data, render) {
     try {
       await post(ctx, 'governance/retention-policies', { organization_id: ctx.organization.id, retention_class: select.value, retention_days: Number(days.value), reason: reason.value, decision_reference: ref.value });
       toast('Rascunho criado. Ative para começar a valer.'); render();
-    } catch (error) { toast(error.message, 'error'); }
+    } catch (error) { toastError(error); }
   });
 
   const previewSlot = el('div', { class: 'stack-sm', 'aria-live': 'polite' });
@@ -112,7 +112,7 @@ function retentionSection(ctx, data, render) {
         ? `${CLASS_LABEL[item.retention_class] || item.retention_class}: retida por legal hold.`
         : `${CLASS_LABEL[item.retention_class] || item.retention_class}: ${item.eligible} registro(s) elegível(is) pela política v${item.policy_version}.` })))
         : el('p', { class: 'small muted', text: 'Nenhuma política ativa: nada sairia.' }));
-    } catch (error) { toast(error.message, 'error'); }
+    } catch (error) { toastError(error); }
   } });
 
   return el('section', { class: 'stack-sm', 'aria-labelledby': 'gov-retention' }, [
@@ -133,7 +133,7 @@ function holdSection(ctx, data, render) {
     hold.status === 'active' ? el('div', { class: 'row-actions' }, button('Liberar hold', { size: 'sm', onClick: async () => {
       const reason = await promptDialog({ title: 'Liberar legal hold', label: 'Motivo da liberação', minLength: 10, confirmLabel: 'Liberar' });
       if (!reason) return;
-      try { await post(ctx, 'governance/legal-holds-release', { hold_id: hold.id, reason }); toast('Hold liberado.'); render(); } catch (error) { toast(error.message, 'error'); }
+      try { await post(ctx, 'governance/legal-holds-release', { hold_id: hold.id, reason }); toast('Hold liberado.'); render(); } catch (error) { toastError(error); }
     } })) : null
   ])))) : emptyState({ title: 'Nenhum legal hold', text: 'Use quando houver disputa, auditoria ou obrigação formal de preservação.', compact: true, iconName: 'shield' });
 
@@ -154,7 +154,7 @@ function holdSection(ctx, data, render) {
     try {
       await post(ctx, 'governance/legal-holds', { organization_id: ctx.organization.id, scope_type: scope.value, scope_class: scopeClass.value, scope_id: scopeId.value.trim(), reason: reason.value, reference: ref.value });
       toast('Legal hold criado.'); render();
-    } catch (error) { toast(error.message, 'error'); }
+    } catch (error) { toastError(error); }
   });
   return el('section', { class: 'stack-sm', 'aria-labelledby': 'gov-holds' }, [el('h3', { id: 'gov-holds', text: 'Legal hold' }),
     el('p', { class: 'small muted', text: 'Enquanto houver hold ativo, a retenção automática da organização fica suspensa e a exclusão do offboarding não é agendada.' }), list, form]);
@@ -197,7 +197,7 @@ async function downloadByDataset(exportId, trigger) {
     }
     toast('Conjuntos baixados e conferidos com o manifesto.');
   } catch (error) {
-    toast(error.message, 'error');
+    toastError(error);
   } finally {
     if (trigger) trigger.disabled = false;
   }
@@ -220,7 +220,7 @@ function exportSection(ctx, data, render) {
     ]));
   })) : emptyState({ title: 'Nenhum export', text: 'Pacote com os dados da organização para portabilidade ou auditoria.', compact: true });
   const request = button('Pedir export dos dados', { size: 'sm', iconName: 'download', onClick: async () => {
-    try { const result = await post(ctx, 'governance/exports', { organization_id: ctx.organization.id }); toast(result.notice || 'Export pedido.'); render(); } catch (error) { toast(error.message, 'error'); }
+    try { const result = await post(ctx, 'governance/exports', { organization_id: ctx.organization.id }); toast(result.notice || 'Export pedido.'); render(); } catch (error) { toastError(error); }
   } });
   return el('section', { class: 'stack-sm', 'aria-labelledby': 'gov-export' }, [el('h3', { id: 'gov-export', text: 'Export e portabilidade' }),
     el('p', { class: 'small muted', text: 'Inclui organização, entidades, membros (sem e-mail), Passport, solicitações, propostas, decisões, contratos, provedores, facilities, garantias, policies, aprovações, tarefas, trilha e metadados de documentos. Não inclui hashes de token, segredos de webhook, verificação de domínio, caminhos internos de storage nem os arquivos de documentos.' }),
@@ -235,14 +235,14 @@ function offboardingSection(ctx, data, render) {
       button('Iniciar offboarding', { size: 'sm', variant: 'danger', onClick: async () => {
         const reason = await promptDialog({ title: 'Iniciar offboarding', description: 'Nada é revogado agora. Os próximos passos pedem confirmação.', label: 'Motivo', minLength: 10, confirmLabel: 'Registrar pedido', tone: 'danger' });
         if (!reason) return;
-        try { await post(ctx, 'governance/offboarding', { organization_id: ctx.organization.id, reason }); toast('Pedido de offboarding registrado.'); render(); } catch (error) { toast(error.message, 'error'); }
+        try { await post(ctx, 'governance/offboarding', { organization_id: ctx.organization.id, reason }); toast('Pedido de offboarding registrado.'); render(); } catch (error) { toastError(error); }
       } }));
   } else {
     body.push(el('div', { class: 'policy-head' }, [el('strong', { text: 'Offboarding' }), tag(OFFBOARDING_LABEL[current.status] || current.status, 'warning')]),
       el('span', { class: 'small muted', text: `Pedido em ${formatDateTime(current.requested_at)}${current.retention_until ? ` · retenção até ${formatDate(current.retention_until)}` : ''}` }));
     const act = (action, payload = {}) => post(ctx, 'governance/offboarding-action', { request_id: current.id, action, ...payload });
     const actions = [];
-    if (current.status === 'requested') actions.push(button('Gerar export final', { size: 'sm', iconName: 'download', onClick: async () => { try { await act('request_export'); toast('Export final na fila.'); render(); } catch (error) { toast(error.message, 'error'); } } }));
+    if (current.status === 'requested') actions.push(button('Gerar export final', { size: 'sm', iconName: 'download', onClick: async () => { try { await act('request_export'); toast('Export final na fila.'); render(); } catch (error) { toastError(error); } } }));
     if (['export_ready', 'requested'].includes(current.status)) {
       const days = el('input', { type: 'number', min: '0', max: '3650', inputmode: 'numeric', placeholder: 'Ex.: 90' });
       const ref = el('input', { maxlength: '120', placeholder: 'Contrato ou parecer', autocomplete: 'off' });
@@ -253,11 +253,11 @@ function offboardingSection(ctx, data, render) {
           const ok = await confirmDialog({ title: 'Revogar todos os acessos?', tone: 'danger', confirmLabel: 'Revogar agora',
             description: `${waived ? 'Você está seguindo SEM export final. ' : ''}Todas as pessoas (inclusive você), contas de serviço, tokens, webhooks, SSO e convites desta organização perdem acesso imediatamente. Os dados ficam preservados durante a janela de retenção.` });
           if (!ok) return;
-          try { await act('confirm_revocation', { retention_days: Number(days.value), decision_reference: ref.value.trim(), export_waived: waived, confirm: true }); toast('Acessos revogados.'); ctx.reload(); } catch (error) { toast(error.message, 'error'); }
+          try { await act('confirm_revocation', { retention_days: Number(days.value), decision_reference: ref.value.trim(), export_waived: waived, confirm: true }); toast('Acessos revogados.'); ctx.reload(); } catch (error) { toastError(error); }
         } }));
     }
     if (['requested', 'export_pending', 'export_ready'].includes(current.status)) actions.push(button('Cancelar offboarding', { size: 'sm', variant: 'ghost', onClick: async () => {
-      try { await act('cancel'); toast('Offboarding cancelado.'); render(); } catch (error) { toast(error.message, 'error'); }
+      try { await act('cancel'); toast('Offboarding cancelado.'); render(); } catch (error) { toastError(error); }
     } }));
     body.push(el('div', { class: 'stack-sm' }, actions));
   }

@@ -6,7 +6,7 @@
 // docs/FINANCIAL_SSO.md.
 
 import { el, icon, formatDateTime } from '../core.js';
-import { button, tag, field, emptyState, errorState, loading, toast, confirmDialog, onSubmit } from '../ui.js';
+import { button, tag, field, emptyState, errorState, loading, toast, confirmDialog, onSubmit, mutedText, toastError } from '../ui.js';
 
 const STATUS_LABEL = { draft: 'rascunho', testing: 'em teste', active: 'ativa', disabled: 'desativada' };
 const STATUS_TONE = { draft: 'neutral', testing: 'info', active: 'success', disabled: 'warning' };
@@ -18,7 +18,7 @@ const REASON_LABEL = {
   connection_inactive: 'conexão inativa', state_invalid: 'tentativa expirada ou inválida', broker_failed: 'provedor não concluiu', email_unverified: 'e-mail não confirmado'
 };
 
-function post(ctx, path, body) { return ctx.api(path, { method: 'POST', body: JSON.stringify(body) }); }
+function post(ctx, path, body) { return ctx.send(path, body); }
 
 export function ssoSettings(ctx) {
   const box = el('div', { class: 'stack sso-settings' }, loading());
@@ -26,14 +26,14 @@ export function ssoSettings(ctx) {
   const reveal = el('div', { class: 'reveal-slot' });
   const render = async () => {
     let data;
-    try { data = await ctx.api(`sso?organization_id=${encodeURIComponent(ctx.organization.id)}`); } catch (error) {
+    try { data = await ctx.api(`sso?organization_id=${ctx.orgId}`); } catch (error) {
       box.replaceChildren(error?.status === 403 || error?.code === 'forbidden'
-        ? el('p', { class: 'muted small', text: 'SSO é administrado por quem tem papel de administração.' })
+        ? mutedText('SSO é administrado por quem tem papel de administração.')
         : errorState({ error }));
       return;
     }
     box.replaceChildren(
-      el('p', { class: 'muted small', text: 'Login pelo provedor corporativo (Microsoft Entra ID, Okta, Google Workspace e outros, via SAML ou OIDC). A conta continua precisando de convite: SSO autentica, o papel e as entidades continuam definidos aqui. Enquanto a conexão não estiver ativa, o login por senha + MFA continua valendo.' }),
+      mutedText('Login pelo provedor corporativo (Microsoft Entra ID, Okta, Google Workspace e outros, via SAML ou OIDC). A conta continua precisando de convite: SSO autentica, o papel e as entidades continuam definidos aqui. Enquanto a conexão não estiver ativa, o login por senha + MFA continua valendo.'),
       environmentNotice(data),
       domainsSection(ctx, data, render, reveal),
       connectionsSection(ctx, data, render),
@@ -59,14 +59,14 @@ function domainsSection(ctx, data, render, reveal) {
     const select = el('select', { 'aria-label': `Conexão do domínio ${domain.domain}` }, [el('option', { value: '', text: 'Sem conexão' }),
       ...connections.map((connection) => el('option', { value: connection.id, text: connection.display_name, selected: connection.id === domain.connection_id }))]);
     select.addEventListener('change', async () => {
-      try { await post(ctx, 'sso/domains-link', { domain: domain.domain, connection_id: select.value || null }); toast('Domínio atualizado.'); render(); } catch (error) { toast(error.message, 'error'); render(); }
+      try { await post(ctx, 'sso/domains-link', { domain: domain.domain, connection_id: select.value || null }); toast('Domínio atualizado.'); render(); } catch (error) { toastError(error); render(); }
     });
     return el('li', { class: 'card' }, el('div', { class: 'card-body stack-sm' }, [
       el('div', { class: 'policy-head' }, [el('code', { class: 'mono', text: domain.domain }), tag(domain.status === 'verified' ? 'verificado' : domain.status === 'pending' ? 'aguardando TXT' : 'revogado', domain.status === 'verified' ? 'success' : 'warning')]),
       domain.verified_at ? el('span', { class: 'small muted', text: `Verificado em ${formatDateTime(domain.verified_at)}` }) : null,
       el('div', { class: 'row-actions' }, [
         domain.status === 'pending' ? button('Verificar no DNS', { size: 'sm', iconName: 'check', onClick: async () => {
-          try { await post(ctx, 'sso/domains-verify', { organization_id: ctx.organization.id, domain: domain.domain }); toast('Domínio verificado.'); render(); } catch (error) { toast(error.message, 'error'); }
+          try { await post(ctx, 'sso/domains-verify', { organization_id: ctx.organization.id, domain: domain.domain }); toast('Domínio verificado.'); render(); } catch (error) { toastError(error); }
         } }) : null,
         domain.status === 'verified' && connections.length ? field({ label: 'Conexão', control: select }) : null
       ])
@@ -87,7 +87,7 @@ function domainsSection(ctx, data, render, reveal) {
         el('span', { class: 'small', text: out.notice })]));
       input.value = '';
       toast('Domínio reivindicado.'); render();
-    } catch (error) { toast(error.message, 'error'); }
+    } catch (error) { toastError(error); }
   });
   return el('section', { class: 'stack-sm', 'aria-label': 'Domínios' }, [el('h3', { text: 'Domínios verificados' }), reveal, list,
     el('details', {}, [el('summary', { text: 'Reivindicar domínio' }), form])]);
@@ -103,7 +103,7 @@ function connectionsSection(ctx, data, render) {
     const readiness = connection.readiness;
     const setStatus = (status, enforce = false, confirm = null) => async () => {
       if (confirm && !await confirmDialog(confirm)) return;
-      try { await post(ctx, 'sso/status', { connection_id: connection.id, status, enforce }); toast('Conexão atualizada.'); render(); } catch (error) { toast(error.message, 'error'); }
+      try { await post(ctx, 'sso/status', { connection_id: connection.id, status, enforce }); toast('Conexão atualizada.'); render(); } catch (error) { toastError(error); }
     };
     return el('li', { class: 'card' }, el('div', { class: 'card-body stack-sm' }, [
       el('div', { class: 'policy-head' }, [el('strong', { text: connection.display_name }), tag(STATUS_LABEL[connection.status] || connection.status, STATUS_TONE[connection.status] || 'neutral'),
@@ -119,7 +119,7 @@ function connectionsSection(ctx, data, render) {
         connection.status !== 'disabled' ? button('Desativar', { size: 'sm', variant: 'danger-ghost', onClick: setStatus('disabled', false, { title: `Desativar ${connection.display_name}?`, description: 'O login volta a ser por e-mail, senha e MFA para estes domínios. O histórico continua.', confirmLabel: 'Desativar', tone: 'danger' }) }) : null,
         connection.status === 'active' ? button('Revogar sessões', { size: 'sm', variant: 'danger-ghost', onClick: async () => {
           if (!await confirmDialog({ title: 'Revogar todas as sessões SSO?', description: 'Quem entrou por esta conexão precisa entrar de novo no próximo acesso.', confirmLabel: 'Revogar sessões', tone: 'danger' })) return;
-          try { await post(ctx, 'sso/revoke-sessions', { connection_id: connection.id }); toast('Sessões revogadas.'); render(); } catch (error) { toast(error.message, 'error'); }
+          try { await post(ctx, 'sso/revoke-sessions', { connection_id: connection.id }); toast('Sessões revogadas.'); render(); } catch (error) { toastError(error); }
         } }) : null
       ])
     ]));
@@ -144,7 +144,7 @@ function connectionsSection(ctx, data, render) {
       await post(ctx, 'sso/connections', { organization_id: ctx.organization.id, display_name: name.value.trim(), protocol: protocol.value, provider_ref: providerRef.value.trim(),
         metadata_url: metadata.value.trim(), issuer: protocol.value === 'oidc' ? issuer.value.trim() : '', audience: protocol.value === 'oidc' ? audience.value.trim() : '', max_session_hours: Number(hours.value) });
       toast('Conexão salva como rascunho.'); render();
-    } catch (error) { toast(error.message, 'error'); }
+    } catch (error) { toastError(error); }
   });
   return el('section', { class: 'stack-sm', 'aria-label': 'Conexões SSO' }, [el('h3', { text: 'Conexões' }), list, el('details', {}, [el('summary', { text: 'Nova conexão' }), form])]);
 }

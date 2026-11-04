@@ -1,8 +1,9 @@
+/* global __ARANDU_DEMO__ */
 // Quadro de respostas e "Antes de comparar" da negociação (lib/finance/
 // negotiation-board.mjs). Lê o que a tela já carregou (convites e propostas do
 // portal) e a lista canônica de propostas externas; não grava nada.
 import { el, icon, todayIso } from '../core.js';
-import { card, pill, tag, loading } from '../ui.js';
+import { card, pill, tag, loading, mutedText } from '../ui.js';
 import { PRODUCTS } from '../../../lib/finance/products.mjs';
 import { negotiationBoard } from '../../../lib/finance/negotiation-board.mjs';
 
@@ -36,7 +37,7 @@ export function loadExternals(ctx, rfq) {
 }
 async function fetchExternals(ctx, rfq) {
   try {
-    const result = await ctx.api(`external-proposals?organization_id=${encodeURIComponent(ctx.organization.id)}&rfq_id=${encodeURIComponent(rfq.id)}&limit=50`);
+    const result = await ctx.api(`external-proposals?organization_id=${ctx.orgId}&rfq_id=${encodeURIComponent(rfq.id)}&limit=50`);
     return { rows: result.rows || [], more: Boolean(result.page?.has_more), problem: null };
   } catch (error) {
     return { rows: [], more: false, problem: error.status === 503 ? 'unavailable' : 'failed' };
@@ -44,9 +45,9 @@ async function fetchExternals(ctx, rfq) {
 }
 
 function externalNote(ext) {
-  if (ext.problem === 'unavailable') return el('p', { class: 'muted small', text: 'Propostas externas: registro ainda não disponível neste ambiente; o quadro mostra só o portal.' });
+  if (ext.problem === 'unavailable') return mutedText('Propostas externas: registro ainda não disponível neste ambiente; o quadro mostra só o portal.');
   if (ext.problem === 'failed') return el('p', { class: 'callout callout-warning compact', role: 'alert' }, [icon('alert', { size: 14 }), el('span', { text: 'As propostas externas não carregaram. Isso não significa que não existam: o quadro mostra só o portal.' })]);
-  if (ext.more) return el('p', { class: 'muted small', text: 'Há mais de 50 propostas externas; o quadro mostra as primeiras.' });
+  if (ext.more) return mutedText('Há mais de 50 propostas externas; o quadro mostra as primeiras.');
   return null;
 }
 
@@ -66,7 +67,7 @@ function channelLine(row, channel) {
 export function responseBoardCard(ctx, rfq) {
   const body = el('div', {}, loading('Montando o quadro de respostas…'));
   // Copilot no contexto desta negociação (mesmo contrato e fontes da tela; ação material só com confirmação).
-  const ask = ctx.mode === 'demo' ? null : el('button', { type: 'button', class: 'btn btn-sm btn-ghost', onclick: () => import('./copilot.js').then((m) => m.openCopilot(ctx, {
+  const ask = (__ARANDU_DEMO__ && ctx.mode === 'demo') ? null : el('button', { type: 'button', class: 'btn btn-sm btn-ghost', onclick: () => import('./copilot.js').then((m) => m.openCopilot(ctx, {
     context: { type: 'rfq', id: rfq.id, label: rfq.title },
     question: 'Resuma as respostas desta negociação: quem respondeu, por qual canal, o que ainda aguarda a instituição ou a conferência da empresa e quais condições faltam, com as fontes.' })) }, el('span', { class: 'btn-label', text: 'Resumir respostas' }));
   const node = card({ title: 'Quadro de respostas', id: 'quadro-respostas', subtitle: 'Por instituição: convite, proposta pelo portal e propostas registradas pela empresa, com de quem é a vez. Sem ordenação comercial.', body, actions: ask ? [ask] : null });
@@ -79,11 +80,11 @@ export function responseBoardCard(ctx, rfq) {
       return el('li', { class: 'milestone-row board-row', dataset: { provider: row.providerId, ball: row.ball } }, [
         pill({ label: row.ballLabel, tone, icon: ic }, { size: 'sm' }),
         el('div', { class: 'milestone-main' }, [
-          el('strong', { text: row.name }), el('span', { class: 'muted small', text: row.status }),
+          el('strong', { text: row.name }), mutedText(row.status, 'span'),
           row.channels.length ? el('ul', { class: 'plain-list' }, row.channels.map((c) => channelLine(row, c))) : null,
           ...row.notes.map((text) => el('span', { class: 'small warn-text', text }))
         ]),
-        ctx.mode === 'demo' ? null : el('a', { class: 'btn btn-sm btn-ghost', href: ctx.href(row.relationshipHref), text: 'Relacionamento' })
+        (__ARANDU_DEMO__ && ctx.mode === 'demo') ? null : el('a', { class: 'btn btn-sm btn-ghost', href: ctx.href(row.relationshipHref), text: 'Relacionamento' })
       ]);
     }));
     body.replaceChildren(...[externalNote(ext), head, board.rows.length ? list : el('p', { class: 'muted', text: 'Nenhuma instituição convidada e nenhuma proposta registrada ainda.' })].filter(Boolean));

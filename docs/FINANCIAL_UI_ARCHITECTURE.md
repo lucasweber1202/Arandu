@@ -34,3 +34,60 @@ A lista de RFQs filtra por título, produto e status. O comprador pode pré-pree
 A busca não é server-side nem paginada; `overview` ainda limita a quantidade de registros. Não foram acrescentados approvals multinível, upload privado, autosave no servidor, notificações in-app ou console operacional. Nenhum desses fluxos deve ser anunciado como disponível. A inspeção visual manual do preview protegido e a validação com usuários de piloto continuam separadas dos testes automáticos.
 
 A suíte `test:e2e:presentation` agora é um job explícito da CI e cobre a prévia financeira rotulada, ausência de escrita ao explorar pesos, navegação sem Arte, mobile e reutilização de demanda. Os testes do antigo acervo foram substituídos porque aquelas páginas não fazem parte do build financeiro publicado.
+
+## Arquitetura frontend v7.0 (04/11/2026)
+
+Objetivo: cada página baixa só o que usa, sem segundo sistema de CRM, negociação
+ou contrato e sem mover regra financeira para a tela. `finance/app.js` continua
+o coordenador de rotas (lista explícita exigida por `check-demo-parity`).
+
+| Antes | Depois | Responsabilidade |
+|---|---|---|
+| `views/company.js` (~80 KB, 7 rotas num chunk) | `views/company/{approvals,proposals,contracts,providers,tasks,notifications,settings}.js` + `capabilities.js` | uma tela por módulo; capabilities secundárias (policy, contrato, relacionamento, SSO, passport) sob demanda |
+| `views/shared.js` (importado por quase todas as telas, com o motor de comparação) | `views/shared/{people,terms,comparison,approvals,collaboration,tasks,documents}.js` | imports específicos, sem barrel; só RFQ/caixa de aprovação carregam comparação |
+| `views/rfq.js` (todas as abas) | `rfq.js` (visão geral, próximo passo, propostas) + `rfq/{comparison-tab,approvals-tab,decision-tab,export}.js` | abas carregadas na primeira abertura; `tabs()` não reconstrói nem relê ao alternar |
+| `views/crm-workspace.js` (Copilot e painéis puxavam o CRM inteiro) | `crm-workspace.js` + `crm/{model,form,organization-panel,linked-panel}.js` | fonte única do vocabulário/leitura; RFQ e contrato só baixam o painel vinculado |
+| `views/contract-center.js` | + `contract-center/{terms,import}.js` | assistente de registro de contrato existente só ao acionar |
+| busca Ctrl/Cmd+K no shell | `src/command-center.js` | atalho e botão instalados no shell; diálogo/busca baixados na primeira abertura |
+
+Padrões introduzidos: `ctx.send(path, body, method)` (escrita JSON pelo mesmo
+caminho de `ctx.api`), `ctx.orgId` (organização ativa codificada, lida na hora
+da chamada), `mutedText()` e `toastError()` em `ui.js`. Ramos do sandbox legado
+(`ctx.mode === 'demo'`, `demoPage`, troca de persona) ficam condicionados à
+constante de build `__ARANDU_DEMO__`: idênticos no build demonstrativo e
+eliminados do produto. `core.js` deixou de importar `PRODUCTS` (rótulos já
+existiam em `CATEGORY_LABELS`; paridade verificada no E2E).
+
+Estados: falha ao carregar um módulo (rede ou deploy novo) nunca mostra a
+mensagem técnica do navegador; como o navegador guarda a falha do `import()`,
+a ação oferecida é **Recarregar a página**, não uma nova tentativa que falharia
+de novo (`readableError`/`moduleLoadFailed`). Falhas de dados mantêm
+**Tentar novamente** no lugar; `tabs()` passa a oferecê-la para abas assíncronas.
+
+Medições locais (build de produção, bytes publicados; `reports/bundle-profile.json`):
+
+| Medida | Base `c72e686` | v7.0 |
+|---|---:|---:|
+| JS total do produto (Oficial/Staging/Demo canônica) | 778.633 | 767.171 |
+| Margem até 800.000 | 21.367 (97,3%) | 32.829 (95,9%) |
+| JS do build demonstrativo legado (parte produto) | 797.453 | 793.504 |
+| Sandbox legado | 327.553 | 327.946 |
+| Maior chunk | 55.561 (`rfq`) | 55.828 (`crm-workspace`+relacionamento) |
+| Maior rota (`rfq`) | 210.846 | 158.299 |
+| Carga inicial (app + shell) | 83.055 | ~62.300 |
+
+Carga efetiva por página (app + tela + módulos que a tela carrega ao abrir):
+contratos 241.725 → ~118.400; instituições 325.685 → ~193.200; aprovações
+249.306 → ~170.000; configurações 329.880 → ~217.100; notificações 205.734 →
+~64.300; Copilot 136.033 → ~78.700; RFQ com painel CRM 250.875 → ~163.000.
+Splitting aumenta a “cola” entre chunks (~18 KB no total); o ganho total veio de
+código do sandbox eliminado do produto, `ctx.send`/`ctx.orgId`/`mutedText`/
+`toastError` e do desacoplamento de `PRODUCTS`.
+
+Limites conhecidos: o envelope saudável (≤ 720.000) não foi atingido; o texto
+de interface é ~46% do JS publicado. No build demonstrativo legado, o chunk do
+motor do sandbox (~55 KB) é contado como produto porque inclui
+`lib/finance/workflow.mjs`; contado honestamente, o sandbox passaria do teto
+congelado de 330.000. Isso só se resolve com a migração de `arandu-demo` para
+`ARANDU_ENV=demo` (cutover), que remove o sandbox do build. Ainda candidatos:
+detalhe do contrato (versões/aditivos/marcos), `policy.js`, `provider.js`.
