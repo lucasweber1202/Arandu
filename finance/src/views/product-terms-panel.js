@@ -10,7 +10,7 @@
 //   componentes e incomparabilidade vêm do servidor. Sem ranking nem "economia".
 
 import { el, icon, formatDate } from '../core.js';
-import { button, drawer, field, toast, sessionLink, loading } from '../ui.js';
+import { button, drawer, field, toast, sessionLink, loading, mutedText } from '../ui.js';
 import { PRODUCT_TERM_SCHEMAS, PRODUCT_TERMS_VERSION, productTermMetadata } from '../../../lib/finance/product-terms.mjs';
 
 export const MODALITY_LABEL = Object.freeze({ bank_guarantee: 'Fiança bancária', fx_spot: 'Câmbio à vista (spot)', fx_forward: 'Câmbio a termo (forward)', ndf: 'NDF (termo sem entrega física)', swap: 'Swap' });
@@ -53,13 +53,13 @@ export function specializedTermsSection(ctx, { contract, effective, contracts = 
         pt?.modality === 'bank_guarantee' ? button('Simular custo da fiança', { size: 'sm', variant: 'primary', iconName: 'scale', onClick: () => openGuaranteeSimulator(ctx, { contract, contracts }) }) : null])])
   ]);
   if (!pt || !meta) {
-    section.append(el('p', { class: 'muted small', text: `Sem condições estruturadas de ${modalities.map((m) => MODALITY_LABEL[m]).join(', ')}. Registre a partir da cláusula do contrato para consultar prazos e, na fiança, simular encargos.` }));
+    section.append(mutedText(`Sem condições estruturadas de ${modalities.map((m) => MODALITY_LABEL[m]).join(', ')}. Registre a partir da cláusula do contrato para consultar prazos e, na fiança, simular encargos.`));
     return section;
   }
   section.append(
     el('p', { class: 'small' }, [el('strong', { text: MODALITY_LABEL[pt.modality] }), ` · versão ${effective.version} do contrato · fonte: ${pt.values.source_reference}`]),
     el('dl', { class: 'deflist deflist-2' }, meta.fields.filter((f) => f.key !== 'source_reference').map((f) => el('div', { class: 'deflist-row' }, [el('dt', { text: f.label }), el('dd', { text: formatTermValue(f, pt.values[f.key], pt.values) })]))),
-    el('p', { class: 'muted small', text: `Termos declarados${meta.methodology ? '' : '; esta modalidade ainda não tem cálculo econômico no Arandu'}. Sem curva, preço de mercado ou marcação a mercado. Não habilita solicitação (RFQ).` }));
+    mutedText(`Termos declarados${meta.methodology ? '' : '; esta modalidade ainda não tem cálculo econômico no Arandu'}. Sem curva, preço de mercado ou marcação a mercado. Não habilita solicitação (RFQ).`));
   return section;
 }
 
@@ -92,7 +92,7 @@ function termsForm(ctx, { contract, effective, modalities, onSaved }) {
   modality.addEventListener('change', draw);
   draw();
   const form = el('form', { class: 'stack', novalidate: true }, [
-    el('p', { class: 'muted small', text: 'Os campos seguem a modalidade. Gravar cria uma nova versão do contrato; as anteriores ficam imutáveis e os demais termos vigentes são preservados.' }),
+    mutedText('Os campos seguem a modalidade. Gravar cria uma nova versão do contrato; as anteriores ficam imutáveis e os demais termos vigentes são preservados.'),
     field({ label: 'Modalidade', control: modality, required: true, hint: current ? 'A modalidade registrada não muda; para outra, registre um novo contrato.' : null }), area,
     field({ label: 'Motivo da nova versão', control: reason, optionalLabel: true }), errors, save]);
   const dialog = drawer({ title: `${current ? 'Atualizar' : 'Registrar'} condições · ${contract.title || 'Contrato'}`, body: form, className: 'drawer-wide' });
@@ -116,7 +116,7 @@ function termsForm(ctx, { contract, effective, modalities, onSaved }) {
     const product_terms = { schema_version: PRODUCT_TERMS_VERSION, modality: modality.value, values };
     const currency = values.currency || values.base_currency || effective?.terms?.currency;
     try {
-      await ctx.api('contract-terms', { method: 'POST', body: JSON.stringify({ contract_id: contract.id, expected_version: contract.current_version, terms: { ...(effective?.terms || {}), ...(currency ? { currency } : {}), product_terms }, reason: reason.value.trim() || null }) });
+      await ctx.send('contract-terms', { contract_id: contract.id, expected_version: contract.current_version, terms: { ...(effective?.terms || {}), ...(currency ? { currency } : {}), product_terms }, reason: reason.value.trim() || null });
       dialog.close(); toast('Condições registradas em nova versão do contrato.'); onSaved?.();
     } catch (error) {
       errors.replaceChildren(el('span', { text: error.status === 409 ? 'O contrato mudou desde que você o abriu, ou a versão perderia termos especializados. Nada foi sobrescrito: recarregue o contrato.'
@@ -158,7 +158,7 @@ export function openGuaranteeSimulator(ctx, { contract, contracts = [] }) {
     if (bad) { result.replaceChildren(el('p', { class: 'callout callout-error compact', role: 'alert', text: bad })); return; }
     run.disabled = true; result.replaceChildren(loading('Calculando…'));
     try {
-      const out = await ctx.api('guarantee-economics', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, sources, scenarios: list }) });
+      const out = await ctx.send('guarantee-economics', { organization_id: ctx.organization.id, sources, scenarios: list });
       result.replaceChildren(analysisView(ctx, out.analysis));
     } catch (error) {
       result.replaceChildren(el('p', { class: 'callout callout-error compact', role: 'alert', text: error.status === 404 ? 'Um dos contratos não está disponível neste contexto (precisa ser fiança da mesma entidade).' : error.status === 400 ? 'Fontes ou cenários recusados pelo servidor: confira datas, moeda, valor e premissa.' : 'Não foi possível calcular agora. Nada foi gravado.' }));
@@ -175,7 +175,7 @@ export function analysisView(ctx, analysis) {
   const scenarios = analysis?.scenarios || [];
   const sources = scenarios[0]?.results.map((r) => r.source) || [];
   const table = el('table', { class: 'data-table compact guarantee-table' }, [
-    el('thead', {}, el('tr', {}, [el('th', { scope: 'col', text: 'Cenário' }), ...sources.map((s) => el('th', { scope: 'col' }, [s.object_type === 'contract' && s.id ? el('a', { href: ctx.href(`/finance/contracts.html?abrir=contrato#contract-${s.id}`), text: s.label || 'Contrato' }) : (s.label || 'Contrato'), el('span', { class: 'muted small', text: ` · v${s.version}` })]))])),
+    el('thead', {}, el('tr', {}, [el('th', { scope: 'col', text: 'Cenário' }), ...sources.map((s) => el('th', { scope: 'col' }, [s.object_type === 'contract' && s.id ? el('a', { href: ctx.href(`/finance/contracts.html?abrir=contrato#contract-${s.id}`), text: s.label || 'Contrato' }) : (s.label || 'Contrato'), mutedText(` · v${s.version}`, 'span')]))])),
     el('tbody', {}, scenarios.map((sc) => el('tr', {}, [
       el('th', { scope: 'row' }, [el('strong', { text: sc.scenario.label }), el('span', { class: 'muted small cell-sub', text: `${formatDate(sc.scenario.period_start)} → ${formatDate(sc.scenario.period_end)} · ${money(sc.scenario.guaranteed_amount, sc.scenario.currency)}` })]),
       ...sc.results.map((r) => el('td', { 'data-label': r.source.label || 'Contrato', dataset: { comparable: String(r.comparable) } }, r.comparable ? [

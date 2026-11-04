@@ -13,7 +13,7 @@
 
 import { el, icon, formatDateTime, timeAgo } from '../../src/core.js';
 import { button } from '../../src/ui.js';
-import { revisionDiff } from '../../src/views/shared.js';
+import { revisionDiff } from '../../src/views/shared/terms.js';
 import { opportunityNext } from './next-action.js';
 import { nextInline } from './work-ui.js';
 import { handoffButton } from './handoff.js';

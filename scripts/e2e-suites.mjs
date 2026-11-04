@@ -28,5 +28,6 @@ export const PRODUCT_E2E = Object.freeze([
   "tests/e2e/finance-covenants.spec.js",
   "tests/e2e/finance-performance.spec.js",
   "tests/e2e/finance-spend.spec.js",
+  "tests/e2e/finance-frontend-architecture.spec.js",
   "tests/e2e/demo-persona-entry.spec.js"
 ]);

@@ -34,7 +34,7 @@ export function contractForm(ctx, rfq, decision, chosen) {
     reading = true; check.disabled = true;
     feedback.replaceChildren(loading('Conferindo o registro no servidor…'));
     try {
-      const result = await ctx.api(`decisions?organization_id=${encodeURIComponent(ctx.organization.id)}&rfq_id=${encodeURIComponent(rfq.id)}`);
+      const result = await ctx.api(`decisions?organization_id=${ctx.orgId}&rfq_id=${encodeURIComponent(rfq.id)}`);
       const found = result.rows?.find(row=>row.id===decision.id)?.contract;
       if (found?.id && found.decision_id===decision.id) {
         feedback.replaceChildren(el('p',{text:'Contrato localizado. O registro foi preservado sem novo envio.'}),linkButton('Abrir ciclo de vida do contrato',ctx.href(`/finance/contracts.html#contract-${found.id}`),{variant:'primary'}));
@@ -51,7 +51,7 @@ export function contractForm(ctx, rfq, decision, chosen) {
     if (reference.value && !/^https:\/\//.test(reference.value)) { reference.closest('.field').setError('Use um endereço https.'); reference.focus(); return; }
     submit.disabled = true;
     try {
-      const result = await ctx.api('contracts', { method: 'POST', body: JSON.stringify({ decision_id: decision.id, ...Object.fromEntries(new FormData(form)), renewal_notice_days: Number(notice.value) }) });
+      const result = await ctx.send('contracts', { decision_id: decision.id, ...Object.fromEntries(new FormData(form)), renewal_notice_days: Number(notice.value) });
       if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(result.id || '')) throw new Error('Não foi possível confirmar o registro do contrato.');
       toast('Contrato registrado. Os marcos de renovação já estão no calendário.');
       location.assign(ctx.href(`/finance/contracts.html#contract-${result.id}`));

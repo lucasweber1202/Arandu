@@ -8,7 +8,9 @@
 import { el, icon, daysUntil, relativeDays, formatDate, formatDateTime, productLabel, demandHeadline, RFQ_STATUS, CONTRACT_STATUS, ROLE_LABELS, PROVIDER_KINDS, timeAgo, money, renewalStage, humanizeKey } from '../../src/core.js';
 import { pill, linkButton, button, emptyState, progress, toast, avatar } from '../../src/ui.js';
 import { greeting } from '../../src/views/dashboard.js';
-import { memberName, currentStep, approvalSummaryLine, eventTitle } from '../../src/views/shared.js';
+import { memberName } from '../../src/views/shared/people.js';
+import { currentStep, approvalSummaryLine } from '../../src/views/shared/approvals.js';
+import { eventTitle } from '../../src/views/shared/collaboration.js';
 import { DEFAULT_DASHBOARDS } from './personas.js';
 import { PRESETS, PRESET_ORDER, applyPreset } from './presets.js';
 import { dashboardLayout, saveDashboardLayout, resetDashboardLayout, readState } from './preferences.js';

@@ -1,10 +1,12 @@
+/* global __ARANDU_DEMO__ */
 // Portal da instituição: ver oportunidades, entender a demanda, responder e
 // acompanhar. Mais simples que o portal da empresa, de propósito.
 
 import { PRODUCTS, PRODUCT_IDS } from '../../../lib/finance/products.mjs';
 import { greeting, el, icon, formatDate, formatDateTime, relativeDays, daysUntil, productLabel, demandHeadline, fieldValue, PROPOSAL_STATUS, timeAgo } from '../core.js';
-import { card, pill, tag, button, linkButton, emptyState, errorState, loading, definitionList, toast, confirmDialog, field, catalogControl, saveIndicator, onSubmit } from '../ui.js';
-import { collaboration, revisionDiff } from './shared.js';
+import { card, pill, tag, button, linkButton, emptyState, errorState, loading, definitionList, toast, confirmDialog, field, catalogControl, saveIndicator, onSubmit, mutedText } from '../ui.js';
+import { collaboration } from './shared/collaboration.js';
+import { revisionDiff } from './shared/terms.js';
 import { proposalChanges } from '../../../lib/finance/comparison-context.mjs';
 
 const OPEN = ['open', 'collecting'];
@@ -81,7 +83,7 @@ async function acceptInvite(ctx, invite, { button: trigger = null } = {}) {
   const retried = triedInvites.has(invite.demo_token);
   triedInvites.add(invite.demo_token);
   try {
-    const result = await ctx.api('invites/accept', { method: 'POST', body: JSON.stringify({ token: invite.demo_token, provider_organization_id: ctx.organization.id }) });
+    const result = await ctx.send('invites/accept', { token: invite.demo_token, provider_organization_id: ctx.organization.id });
     toast('Convite aceito. A solicitação já está nas suas oportunidades.');
     if (result.proposal_id) location.assign(ctx.href(`/provider/proposal.html?proposal=${encodeURIComponent(result.proposal_id)}`));
     else location.assign(ctx.href('/provider/rfqs.html'));
@@ -137,7 +139,7 @@ export async function providerHome(ctx) {
     root.append(card({ id: 'convites', title: 'Convites recebidos', subtitle: 'Aceitar libera a solicitação completa e registra a participação. Não envia proposta nem aprova crédito: você decide depois se responde.',
       body: el('ul', { class: 'invite-cards', role: 'list' }, invites.map((invite) => el('li', { class: 'invite-card' }, [
         el('div', {}, [el('p', { class: 'opportunity-kicker', text: [invite.buyer_name, productLabel(invite.product, { short: true })].filter(Boolean).join(' · ') }), el('p', { class: 'invite-title', text: invite.title }),
-          el('p', { class: 'muted small', text: `Recebido ${timeAgo(invite.created_at)} · ${!invite.response_deadline ? 'sem prazo informado' : daysUntil(invite.response_deadline) < 0 ? `o prazo informado (${formatDate(invite.response_deadline)}) já passou; o aceite depende de o convite ainda estar válido` : `prazo ${formatDate(invite.response_deadline)}`}` })]),
+          mutedText(`Recebido ${timeAgo(invite.created_at)} · ${!invite.response_deadline ? 'sem prazo informado' : daysUntil(invite.response_deadline) < 0 ? `o prazo informado (${formatDate(invite.response_deadline)}) já passou; o aceite depende de o convite ainda estar válido` : `prazo ${formatDate(invite.response_deadline)}`}`)]),
         // A ação principal já está no destaque acima: aqui o botão não compete com ela.
         button('Aceitar', { variant: inviteFirst ? 'secondary' : 'primary', size: 'sm', iconName: 'check', attrs: { 'aria-label': `Aceitar convite: ${invite.title}` }, onClick: (event) => acceptInvite(ctx, invite, { button: event.currentTarget }) })
       ]))) }));
@@ -195,9 +197,9 @@ export async function providerProposal(ctx) {
   const rows = ctx.data.assignments || [];
   const wanted = new URLSearchParams(location.search).get('proposal');
   let assignment = rows.find((row) => row.proposal_id === wanted) || (!wanted ? rows.find((row) => ['todo', 'outdated'].includes(assignmentState(row).key)) || rows[0] : null);
-  if (wanted && ctx.mode !== 'demo') {
+  if (wanted && !(__ARANDU_DEMO__ && ctx.mode === 'demo')) {
     try {
-      const result = await ctx.api(`assignments?organization_id=${encodeURIComponent(ctx.organization.id)}&proposal_id=${encodeURIComponent(wanted)}`);
+      const result = await ctx.api(`assignments?organization_id=${ctx.orgId}&proposal_id=${encodeURIComponent(wanted)}`);
       assignment = result.rows?.find(row=>row.proposal_id === wanted);
     } catch (error) { return errorState({error, onRetry:()=>ctx.reload()}); }
   }
@@ -232,7 +234,7 @@ export async function providerProposal(ctx) {
       reading = true;
       review.replaceChildren(loading('Conferindo as revisões da solicitação…'));
       try {
-        const {rows: revisions} = await ctx.api(`rfq-revisions?organization_id=${encodeURIComponent(ctx.organization.id)}&rfq_id=${encodeURIComponent(assignment.rfq_id)}&from_revision=${assignment.submitted_rfq_revision}&to_revision=${assignment.rfq_revision}`);
+        const {rows: revisions} = await ctx.api(`rfq-revisions?organization_id=${ctx.orgId}&rfq_id=${encodeURIComponent(assignment.rfq_id)}&from_revision=${assignment.submitted_rfq_revision}&to_revision=${assignment.rfq_revision}`);
         const before = revisions?.find(row => row.revision === assignment.submitted_rfq_revision)?.snapshot;
         const after = revisions?.find(row => row.revision === assignment.rfq_revision)?.snapshot;
         if (!before || !after) throw new Error('Não recuperamos as duas revisões autorizadas. Confira a demanda atual ao lado antes de revisar sua proposta.');
@@ -275,7 +277,7 @@ export async function providerProposal(ctx) {
   const submitLabel = () => [el('span', { text: 'Revisar e enviar' }), el('span', { class: 'label-extra', text: ' proposta' })];
   const submit = el('button', { type: 'submit', class: 'btn btn-primary', 'aria-label': 'Revisar e enviar proposta' }, [icon('send'), el('span', { class: 'btn-label' }, submitLabel())]);
   form.append(el('div', { class: 'proposal-bar' }, [el('div', { class: 'proposal-bar-status' }, [completion, indicator.node]), el('div', { class: 'proposal-bar-actions' }, [saveButton, submit])]),
-    el('p', { class: 'muted small', text: 'Depois do envio, cada alteração cria uma nova versão. A empresa vê todas as versões, com data e a revisão da solicitação que cada uma respondeu.' }));
+    mutedText('Depois do envio, cada alteração cria uma nova versão. A empresa vê todas as versões, com data e a revisão da solicitação que cada uma respondeu.'));
 
   const required = spec.proposalFields.filter((item) => item.required);
   const values = () => {
@@ -309,7 +311,7 @@ export async function providerProposal(ctx) {
     indicator.set('saving', 'Salvando…');
     chain = chain.then(async () => {
       await ready;
-      const result = await ctx.api('proposal-draft', { method: 'PATCH', body: JSON.stringify({ proposal_id: assignment.proposal_id, terms, expected_revision: revision, base_version: assignment.version || 0 }) });
+      const result = await ctx.send('proposal-draft', { proposal_id: assignment.proposal_id, terms, expected_revision: revision, base_version: assignment.version || 0 }, 'PATCH');
       revision = result.revision;
       indicator.set(dirty ? 'dirty' : 'saved', dirty ? 'Alterações não salvas…' : `Rascunho salvo às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`);
     }).catch((error) => {
@@ -353,7 +355,7 @@ export async function providerProposal(ctx) {
     window.addEventListener('beforeunload', (event) => {
       if (!pendingChanges()) return;
       if (dirty) save();
-      if (ctx.mode !== 'demo') event.preventDefault();
+      if (!(__ARANDU_DEMO__ && ctx.mode === 'demo')) event.preventDefault();
     });
   }
 
@@ -379,7 +381,7 @@ export async function providerProposal(ctx) {
     sending = true;
     submit.querySelector('.btn-label').textContent = 'Enviando…';
     try {
-      const result = await ctx.api('proposals', { method: 'POST', body: JSON.stringify({ proposal_id: assignment.proposal_id, terms, note: note.value || null }) });
+      const result = await ctx.send('proposals', { proposal_id: assignment.proposal_id, terms, note: note.value || null });
       toast(result.replay ? 'Nada mudou desde a última versão enviada.' : `Proposta enviada como versão ${result.version}.`);
       setTimeout(() => location.reload(), 600);
     } catch (error) {
@@ -391,7 +393,7 @@ export async function providerProposal(ctx) {
         const check = button('Conferir envio', { size: 'sm', iconName: 'refresh', onClick: async () => {
           check.disabled = true;
           try {
-            const found = (await ctx.api(`assignments?organization_id=${encodeURIComponent(ctx.organization.id)}&proposal_id=${encodeURIComponent(assignment.proposal_id)}`)).rows?.find((row) => row.proposal_id === assignment.proposal_id);
+            const found = (await ctx.api(`assignments?organization_id=${ctx.orgId}&proposal_id=${encodeURIComponent(assignment.proposal_id)}`)).rows?.find((row) => row.proposal_id === assignment.proposal_id);
             if (!found) throw new Error('Não encontramos esta proposta para a sua instituição. Atualize a página.');
             if ((found.version || 0) > before) { setStatus('success', `Proposta enviada · versão ${found.version}`, 'O envio foi registrado. Nada foi enviado de novo.'); setTimeout(() => location.reload(), 900); return; }
             setStatus('info', 'O envio não foi registrado.', 'Nenhuma nova versão consta no servidor. Seus dados continuam no formulário; revise e envie quando quiser.');
@@ -411,7 +413,7 @@ export async function providerProposal(ctx) {
 
   // No celular o resumo do pedido vem antes do formulário: ninguém responde sem saber o que foi pedido.
   const peek = el('details', { class: 'demand-peek card' }, [
-    el('summary', {}, [el('span', { class: 'demand-peek-title', text: assignment.buyer_name ? `O que ${assignment.buyer_name} pediu` : 'O que a empresa pediu' }), el('span', { class: 'muted small', text: demandHeadline({ product: assignment.product, demand: assignment.demand }) })]),
+    el('summary', {}, [el('span', { class: 'demand-peek-title', text: assignment.buyer_name ? `O que ${assignment.buyer_name} pediu` : 'O que a empresa pediu' }), mutedText(demandHeadline({ product: assignment.product, demand: assignment.demand }), 'span')]),
     el('div', { class: 'card-body' }, definitionList(PRODUCTS[assignment.product].demandFields, assignment.demand, { columns: 1 }))
   ]);
   // Processo sem coleta aberta: nada editável na tela, só o que foi enviado.
@@ -459,11 +461,11 @@ export function versionHistory(assignment, spec) {
       el('span', { class: 'timeline-dot', 'aria-hidden': 'true' }), el('div', { class: 'timeline-content' }, [
         el('p', { class: 'timeline-title' }, [el('strong', { text: `Versão ${entry.version}` }), entry.rfq_revision ? tag(`responde à rev. ${entry.rfq_revision}`) : null]),
         el('p', { class: 'timeline-meta', text: `Enviada ${formatDateTime(entry.submitted_at)}` }),
-        entry.note ? el('p', { class: 'muted small', text: `Nota: ${entry.note}` }) : null,
+        entry.note ? mutedText(`Nota: ${entry.note}`) : null,
         previous && hasTerms && previous.terms ? (changes.length
           ? el('ul', { class: 'diff-list small', 'aria-label': `Mudanças desde a versão ${previous.version}` }, changes.map((item) => el('li', {}, [el('span', { class: 'diff-label', text: `${item.label}: ` }),
             el('span', { class: 'diff-before', text: show(item, previous.terms[item.key]) }), ' → ', el('span', { class: 'diff-after', text: show(item, entry.terms[item.key]) })])))
-          : el('p', { class: 'muted small', text: `Mesmas condições da versão ${previous.version}.` })) : null,
+          : mutedText(`Mesmas condições da versão ${previous.version}.`)) : null,
         hasTerms ? el('details', { class: 'version-terms' }, [el('summary', { text: 'Condições desta versão' }), definitionList(spec.proposalFields, entry.terms, { showMissing: true, columns: 1 })]) : null
       ])]);
   }));
@@ -515,7 +517,7 @@ export async function providerInvite(ctx) {
       }
       decline.disabled = true; submit.disabled = true;
       try {
-        const result = await ctx.api('invites/decline', { method: 'POST', body: JSON.stringify(declinePayload) });
+        const result = await ctx.send('invites/decline', declinePayload);
         stateNode.className = 'callout callout-success';
         stateNode.textContent = `Convite recusado${result.declined_at ? ` em ${formatDateTime(result.declined_at)}` : ''}. A empresa vê a recusa; nenhuma proposta foi criada.${result.replayed ? ' (A recusa já estava registrada.)' : ''}`;
         stateNode.dataset.state = 'declined';
@@ -544,7 +546,7 @@ export async function providerInvite(ctx) {
       submit.disabled = true;
       const retried = attempts++ > 0;
       try {
-        const result = await ctx.api('invites/accept', { method: 'POST', body: JSON.stringify({ token: tokenInput.value.trim(), provider_organization_id: select.value }) });
+        const result = await ctx.send('invites/accept', { token: tokenInput.value.trim(), provider_organization_id: select.value });
         stateNode.className = 'callout callout-success';
         stateNode.textContent = 'Convite aceito. A solicitação já aparece nas suas oportunidades.';
         toast('Convite aceito.');
@@ -557,7 +559,7 @@ export async function providerInvite(ctx) {
       }
     });
   }
-  return el('div', { class: 'narrow' }, card({ body: [stateNode, form, el('p', { class: 'muted small', text: 'O convite vale uma vez e expira. Ele vincula a solicitação à organização provedora da qual você é membro — não é possível responder em nome de outra instituição.' })] }));
+  return el('div', { class: 'narrow' }, card({ body: [stateNode, form, mutedText('O convite vale uma vez e expira. Ele vincula a solicitação à organização provedora da qual você é membro — não é possível responder em nome de outra instituição.')] }));
 }
 
 export { loading, errorState, PROPOSAL_STATUS };

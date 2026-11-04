@@ -36,8 +36,8 @@ function mfaForm(ctx) {
     if (!/^[0-9]{6}$/.test(code.value.trim())) { status.textContent = 'Digite os 6 dígitos mostrados no aplicativo.'; code.focus(); return; }
     status.textContent = 'Verificando…';
     try {
-      const challenge = await ctx.api('ops/mfa', { method: 'POST', body: JSON.stringify({ step: 'challenge' }) });
-      await ctx.api('ops/mfa', { method: 'POST', body: JSON.stringify({ step: 'verify', factor_id: challenge.factor_id, challenge_id: challenge.challenge_id, code: code.value.trim() }) });
+      const challenge = await ctx.send('ops/mfa', { step: 'challenge' });
+      await ctx.send('ops/mfa', { step: 'verify', factor_id: challenge.factor_id, challenge_id: challenge.challenge_id, code: code.value.trim() });
       location.reload();
     } catch (error) {
       status.textContent = error.code === 'mfa_not_enrolled'

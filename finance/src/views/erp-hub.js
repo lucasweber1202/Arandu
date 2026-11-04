@@ -8,7 +8,7 @@
 // Nenhum segredo é pedido ou aceito aqui.
 
 import { el, icon, formatDate, formatDateTime, uid, plural } from '../core.js';
-import { button, tag, field, drawer, toast, confirmDialog, sessionLink, loading, errorState } from '../ui.js';
+import { button, tag, field, drawer, toast, confirmDialog, sessionLink, loading, errorState, mutedText } from '../ui.js';
 import { CHARGING_UNITS } from '../../../lib/finance/fee-intelligence.mjs';
 import { periodText, amountText } from './fee-import.js';
 
@@ -43,7 +43,7 @@ export function erpHubSection(ctx, { contracts = [] } = {}) {
     el('p', { class: 'small', text: 'Além da API pública e dos webhooks, o Arandu tem um adaptador de leitura para o Business Central. "Configurada" registra o mapeamento; a conexão só é comprovada quando uma prévia lê dados reais com credencial aprovada no servidor.' })
   ];
   const catalog = el('ul', { class: 'plain-list erp-list', 'aria-label': 'ERPs' }, ERP_CATALOG.map((erp) => el('li', { class: 'erp-row', dataset: { state: erp.state } }, [
-    el('div', {}, [el('span', { text: erp.name }), erp.detail ? el('p', { class: 'muted small', text: erp.detail }) : null]),
+    el('div', {}, [el('span', { text: erp.name }), erp.detail ? mutedText(erp.detail) : null]),
     erp.state === 'implemented' ? tag('Adaptador implementado · leitura', 'info') : tag('Suporte planejado · sem conector', 'neutral')])));
   const list = el('div', { class: 'stack-sm' });
   const load = async () => {
@@ -53,8 +53,8 @@ export function erpHubSection(ctx, { contracts = [] } = {}) {
       const rows = out.rows || [];
       list.replaceChildren(
         el('h4', { class: 'small', text: `Integrações Business Central (${rows.length})` }),
-        rows.length ? el('ul', { class: 'plain-list crm-list' }, rows.map(row)) : el('p', { class: 'muted small', text: 'Nenhuma integração configurada.' }),
-        admin ? button('Configurar Business Central', { size: 'sm', iconName: 'plus', onClick: () => configure() }) : el('p', { class: 'muted small', text: 'Somente administração configura integrações.' }));
+        rows.length ? el('ul', { class: 'plain-list crm-list' }, rows.map(row)) : mutedText('Nenhuma integração configurada.'),
+        admin ? button('Configurar Business Central', { size: 'sm', iconName: 'plus', onClick: () => configure() }) : mutedText('Somente administração configura integrações.'));
     } catch (error) {
       list.replaceChildren(error.status === 503 ? el('p', { class: 'callout callout-info compact', text: 'Integrações de ERP ainda não estão disponíveis neste ambiente.' }) : errorState({ title: 'Integrações indisponíveis', error: { ...error, message: erpErrorMessage(error) }, onRetry: load }));
     }
@@ -66,7 +66,7 @@ export function erpHubSection(ctx, { contracts = [] } = {}) {
       el('div', { class: 'crm-row-main' }, [
         el('strong', { text: contractName(cfg.contract_id) }),
         el('span', { class: 'small', text: `Ambiente ${s.environment || '—'} · serviço "${s.service || '—'}" · ${s.currency || '—'} · ${CHARGING_UNITS[s.charging_unit] || s.charging_unit || '—'}` }),
-        el('span', { class: 'muted small', text: `Versão ${cfg.version}${cfg.updated_at || cfg.happened_at ? ` · ${formatDateTime(cfg.updated_at || cfg.happened_at)}` : ''} · conexão externa ${cfg.connection_state === 'not_tested' || !cfg.connection_state ? 'não testada' : 'informada pelo servidor'}` })
+        mutedText(`Versão ${cfg.version}${cfg.updated_at || cfg.happened_at ? ` · ${formatDateTime(cfg.updated_at || cfg.happened_at)}` : ''} · conexão externa ${cfg.connection_state === 'not_tested' || !cfg.connection_state ? 'não testada' : 'informada pelo servidor'}`, 'span')
       ]),
       tag(label, tone),
       el('div', { class: 'crm-row-actions' }, [
@@ -84,7 +84,7 @@ export function erpHubSection(ctx, { contracts = [] } = {}) {
       confirmLabel: status === 'revoked' ? 'Revogar' : status === 'suspended' ? 'Suspender' : 'Reativar', tone: status === 'configured' ? 'primary' : 'danger' });
     if (!ok) return;
     try {
-      await ctx.api('erp-fees/configure', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, integration_id: cfg.id, contract_id: cfg.contract_id, expected_version: cfg.version, request_key: uid(), status, settings: cfg.settings }) });
+      await ctx.send('erp-fees/configure', { organization_id: ctx.organization.id, integration_id: cfg.id, contract_id: cfg.contract_id, expected_version: cfg.version, request_key: uid(), status, settings: cfg.settings });
       toast(status === 'revoked' ? 'Integração revogada.' : status === 'suspended' ? 'Integração suspensa.' : 'Integração reativada.'); load();
     } catch (error) { toast(erpErrorMessage(error), 'error'); if (error.status === 409) load(); }
   }
@@ -123,8 +123,8 @@ export function erpHubSection(ctx, { contracts = [] } = {}) {
       if (bad) { bad.focus(); return; }
       save.disabled = true; err.hidden = true;
       try {
-        await ctx.api('erp-fees/configure', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, integration_id: cfg?.id || (configure.id ||= uid()), contract_id: cfg?.contract_id || contract.value, expected_version: cfg?.version || 0, request_key: key, status: cfg?.status || 'configured',
-          settings: { tenant_id: tenant.value.trim(), environment: env.value.trim(), company_id: company.value.trim(), account_id: account.value.trim(), currency: currency.value.trim(), service: service.value.trim(), charging_unit: unit.value } }) });
+        await ctx.send('erp-fees/configure', { organization_id: ctx.organization.id, integration_id: cfg?.id || (configure.id ||= uid()), contract_id: cfg?.contract_id || contract.value, expected_version: cfg?.version || 0, request_key: key, status: cfg?.status || 'configured',
+          settings: { tenant_id: tenant.value.trim(), environment: env.value.trim(), company_id: company.value.trim(), account_id: account.value.trim(), currency: currency.value.trim(), service: service.value.trim(), charging_unit: unit.value } });
         configure.id = null; dialog.close(); toast('Configuração gravada. Conexão ainda não testada: gere uma prévia.'); load();
       } catch (error) { err.replaceChildren(el('span', { text: erpErrorMessage(error) }), ...(sessionLink(error) ? [' ', sessionLink(error)] : [])); err.hidden = false; save.disabled = false; }
     });
@@ -139,7 +139,7 @@ export function erpHubSection(ctx, { contracts = [] } = {}) {
       if (!start.value || !end.value || end.value < start.value) { out.replaceChildren(el('p', { class: 'callout callout-error compact', role: 'alert', text: 'Informe um período válido (início ≤ fim).' })); return; }
       go.disabled = true; out.replaceChildren(loading('Consultando o ERP…'));
       try {
-        preview = (await ctx.api('erp-fees/preview', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, integration_id: cfg.id, period_start: start.value, period_end: end.value }) })).preview;
+        preview = (await ctx.send('erp-fees/preview', { organization_id: ctx.organization.id, integration_id: cfg.id, period_start: start.value, period_end: end.value })).preview;
         drawPreview();
       } catch (error) { out.replaceChildren(el('p', { class: 'callout callout-error compact', role: 'alert', text: erpErrorMessage(error) })); }
       finally { go.disabled = false; }
@@ -159,7 +159,7 @@ export function erpHubSection(ctx, { contracts = [] } = {}) {
         if (!(await confirmDialog({ title: 'Gravar lançamentos selecionados?', description: 'O Arandu lê o ERP de novo; se a origem mudou, nada é gravado e uma nova prévia é necessária. Diferenças contra o contrato ficam para revisão humana; não são economia.', confirmLabel: 'Gravar' }))) return;
         confirm.disabled = true;
         try {
-          const r = await ctx.api('erp-fees/confirm', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, integration_id: cfg.id, period_start: start.value, period_end: end.value, confirmation: true, preview_fingerprint: preview.fingerprint, selected_lines: [...selected].sort((a, b) => a - b), request_key: confirmKey }) });
+          const r = await ctx.send('erp-fees/confirm', { organization_id: ctx.organization.id, integration_id: cfg.id, period_start: start.value, period_end: end.value, confirmation: true, preview_fingerprint: preview.fingerprint, selected_lines: [...selected].sort((a, b) => a - b), request_key: confirmKey });
           out.replaceChildren(el('p', { class: 'callout callout-success', role: 'status' }, [icon('checkCircle', { size: 16 }), el('span', { text: `${r.replayed ? 'Já registrado antes; nada duplicado. ' : ''}${plural(r.imported ?? 0, 'lançamento importado', 'lançamentos importados')}, ${plural(r.ignored ?? 0, 'ignorado', 'ignorados')}. Período ${formatDate(start.value)} a ${formatDate(end.value)}.` })]),
             el('a', { class: 'btn btn-secondary btn-sm', href: ctx.href(`/finance/fees.html?contract_id=${enc(cfg.contract_id)}`) }, el('span', { class: 'btn-label', text: 'Ver tarifas do contrato' })),
             el('a', { class: 'btn btn-ghost btn-sm', href: ctx.href(`/finance/contracts.html?abrir=contrato#contract-${cfg.contract_id}`) }, el('span', { class: 'btn-label', text: 'Abrir contrato' })));
@@ -179,12 +179,12 @@ export function erpHubSection(ctx, { contracts = [] } = {}) {
       }));
       out.replaceChildren(
         el('p', { class: 'small', text: `${plural(rows.length, 'lançamento lido', 'lançamentos lidos')}${preview.coverage?.complete === false ? ' (recorte incompleto: reduza o período)' : ''}. ${Object.entries(stats).filter(([, n]) => n).map(([k, n]) => `${({ valid: 'válidos', duplicate: 'já registrados', conflicting: 'em conflito', invalid: 'inválidos', incomplete: 'incompletos', pending_review: 'para revisão (créditos, estornos ou zero)' })[k] || 'outros'}: ${n}`).join(' · ')}` }),
-        el('p', { class: 'muted small', text: 'Só lançamentos válidos podem ser marcados. Desmarque o que não pertence a este contrato antes de gravar.' }),
+        mutedText('Só lançamentos válidos podem ser marcados. Desmarque o que não pertence a este contrato antes de gravar.'),
         list, confirm);
       sync();
     }
     drawer({ title: 'Prévia do Business Central', subtitle: contractName(cfg.contract_id), body: el('div', { class: 'stack' }, [
-      el('p', { class: 'muted small', text: 'Leitura de até 5 páginas / 100 lançamentos da conta mapeada. Créditos, estornos e valores zero ficam para revisão, nunca viram despesa automaticamente.' }),
+      mutedText('Leitura de até 5 páginas / 100 lançamentos da conta mapeada. Créditos, estornos e valores zero ficam para revisão, nunca viram despesa automaticamente.'),
       field({ label: 'Início do período', control: start, required: true }), field({ label: 'Fim do período', control: end, required: true }), go, out]) });
   }
   root.append(...head, catalog, list);
