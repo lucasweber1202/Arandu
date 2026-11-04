@@ -150,3 +150,37 @@ Diagnóstico: nenhum módulo duplicado entre chunks; o peso é texto de interfac
 Também: `brDay` (`lib/finance/format.mjs`) substitui seis formatadores de data idênticos; código morto removido (`frag`, `slugKey`, `unitSuffix`, `providerFeeFacts`); a negociação lê a lista de propostas externas **uma vez** ao abrir (antes: até três leituras).
 
 Não avaliado por falta de benefício demonstrado: `company.js` (já dividido por tela), presenters do servidor além do formatador e `rfq.js` como um todo (67 KB renderizados, mas coeso por abas; dividir sem mudança funcional só deslocaria bytes).
+
+## Correção de 04/11/2026 — motor do sandbox contado como produto
+
+**Sintoma.** Depois da #323, o build demonstrativo (`ARANDU_DEMO_MODE=true npm run build`)
+falhou com `javascript: 803721 > 800000`, enquanto o build regular ficou em 777.284.
+Antes da #323, a Demo estava em 798.352 (99,8% do teto).
+
+**Causa medida.** No navegador, `lib/finance/workflow.mjs` (1.763 B) só é importado por
+`finance/demo/engine.js`. O Rollup embutia o módulo no chunk do motor (55.418 B), e
+`sandboxChunk()` só classifica como sandbox os chunks 100% `finance/demo/**`. Com isso,
+o motor inteiro contava como **produto** no build Demo. Esse era o grosso da diferença
+de ~26 KB entre os dois builds. Os +5.344 B do Radar de Prazos (#323) apenas
+ultrapassaram o teto.
+
+**Correção.** `vite.config.js` coloca `workflow.mjs` em chunk próprio (`manualChunks`).
+O algoritmo de medição não mudou e o teto de produto (800.000) também não. O teto do
+sandbox foi corrigido para o tamanho real medido do sandbox com o motor: 382.400.
+
+| Build | Produto antes | Produto depois | Sandbox antes | Sandbox depois |
+|---|---:|---:|---:|---:|
+| Demo (`ARANDU_DEMO_MODE=true`) | 803.721 (FALHA) | 749.336 | 327.941 / 330.000 | 382.389 / 382.400 |
+| Regular (`npm run build`) | 777.284 | 777.284 | 0 | 0 |
+
+A soma produto+sandbox da Demo passou de 1.131.662 para 1.131.725 (+63 B de cabeçalho
+do chunk novo). Nenhum byte de produto foi removido nem escondido. O sandbox continua
+congelado e sai inteiro com a migração de `arandu-demo`.
+
+**Lacuna de detecção (handoff para o dono dos workflows).** O job `fast` de
+`.github/workflows/ci.yml` (riscos A/B/C) roda só `npm run build && npm run
+check:build-size`. O orçamento do build demonstrativo só é medido no caminho `full`
+(risco D). Proposta proporcional: no `fast`, quando o diff tocar `finance/**`,
+`lib/finance/**`, `demo/**` ou `vite.config.js`, rodar também
+`ARANDU_DEMO_MODE=true npm run build && npm run check:build-size`. Isso custa um build
+Vite (~2 s local) e não exige Playwright extra.
