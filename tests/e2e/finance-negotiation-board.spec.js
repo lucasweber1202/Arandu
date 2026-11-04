@@ -23,14 +23,14 @@ const rfq = { id: RFQ, organization_id: ORG, title: 'Capital de giro 2027', prod
 const external = { id: XB, organization_id: ORG, rfq_id: RFQ, provider_id: PB, provider_name: 'Boreal Banco', product: 'credit', state: 'pending_review', current_version: 1, terms: { offered_amount: 450000 }, channel: 'email', received_at: null,
   source_reference: 'E-mail do gerente', currency: null, rfq_revision: 2, rfq_revision_matches: true, recorded_by: 'u1', recorded_at: '2026-10-20T12:00:00Z', document_id: null, document_state: 'not_presented', document_available: false, origin: 'buyer_recorded_external', decision_allowed: false };
 
-async function setup(page, { externals = 'ok', role = 'admin' } = {}) {
+async function setup(page, { externals = 'ok', role = 'admin', rfqs = [rfq] } = {}) {
   const calls = [];
   await page.route('**/api/finance/**', async (route) => {
     const req = route.request(); const u = new URL(req.url()); const path = u.pathname.replace('/api/finance/', '');
     calls.push({ path, method: req.method(), query: Object.fromEntries(u.searchParams) });
     const json = (v, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(v) });
     if (path === 'organizations') return json({ ok: true, rows: [{ id: ORG, kind: 'BUYER', legal_name: 'Grupo Vitta' }] });
-    if (path === 'overview') return json({ ok: true, organization: { id: ORG, kind: 'BUYER', legal_name: 'Grupo Vitta' }, providers: [{ id: PA, name: 'Atlas Bank', status: 'active' }, { id: PB, name: 'Boreal Banco', status: 'active' }, { id: PC, name: 'Cais Financeira', status: 'active' }], contracts: [], rfqs: [rfq], tasks: [] });
+    if (path === 'overview') return json({ ok: true, organization: { id: ORG, kind: 'BUYER', legal_name: 'Grupo Vitta' }, providers: [{ id: PA, name: 'Atlas Bank', status: 'active' }, { id: PB, name: 'Boreal Banco', status: 'active' }, { id: PC, name: 'Cais Financeira', status: 'active' }], contracts: [], rfqs, tasks: [] });
     if (path === 'members') return json({ ok: true, rows: [{ user_id: 'u1', role, display_name: 'Ana Tesouraria' }], viewer_id: 'u1' });
     if (path === 'entities') return json({ ok: true, rows: [], scope: 'group', can_admin: role === 'admin' });
     if (path === 'external-proposals' && req.method() === 'GET') {
@@ -111,4 +111,34 @@ test('quadro de respostas cabe na largura do celular', async ({ page }) => {
   await expect(page.locator('#quadro-respostas [data-provider]').first()).toBeVisible();
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(0);
+});
+
+test('lista de solicitações: próximo passo canônico, de quem é a vez e filtro que vai para a URL', async ({ page }) => {
+  const LATE = '00000000-0000-4000-8000-000000000703';
+  const late = { ...rfq, id: LATE, title: 'Fiança 2027', response_deadline: day(-2), proposals: [rfq.proposals[0]] };
+  await setup(page, { rfqs: [rfq, late] });
+  await page.goto('/finance/rfqs.html');
+  const row = (id) => page.locator(`tr[data-id="${id}"]`);
+  await expect(row(RFQ)).toContainText('Aguardando 1 de 3 instituições');
+  await expect(row(RFQ)).toContainText('1 resposta é de revisão anterior');
+  await expect(row(RFQ)).toContainText('Instituições');
+  await expect(row(LATE)).toContainText('Prazo encerrado: encerrar a coleta e avaliar');
+  await expect(row(LATE)).toContainText('Empresa');
+  const filter = page.getByLabel('Filtrar por de quem é a vez');
+  await filter.selectOption('company');
+  await expect(row(RFQ)).toBeHidden();
+  await expect(row(LATE)).toBeVisible();
+  await expect(page).toHaveURL(/[?&]vez=company/);
+  // Deep link preserva o filtro.
+  await page.goto('/finance/rfqs.html?vez=institution');
+  await expect(row(LATE)).toBeHidden();
+  await expect(row(RFQ)).toBeVisible();
+});
+
+test('cartão Próximo passo usa a mesma regra da lista e diz quem age', async ({ page }) => {
+  await setup(page);
+  await page.goto(`/finance/rfq.html?id=${RFQ}`);
+  const next = page.getByRole('region', { name: 'Próximo passo' });
+  await expect(next).toContainText('Aguardando 1 de 3 instituições');
+  await expect(next).toContainText('Ação das instituições convidadas; você acompanha');
 });

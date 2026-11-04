@@ -2,19 +2,14 @@
 
 import { PRODUCTS, PRODUCT_IDS, checkAcquiringShares } from '../../../lib/finance/products.mjs';
 import { passportPrefill, SOURCE_LABELS } from '../../../lib/finance/passport.mjs';
+import { negotiationNextStep, ACTOR_LABEL } from '../../../lib/finance/negotiation-next-step.mjs';
 import { el, icon, fold, daysUntil, relativeDays, formatDate, formatDateTime, productLabel, demandHeadline, RFQ_STATUS, fieldValue, todayIso } from '../core.js';
 import { pill, linkButton, button, emptyState, person, progress, field, catalogControl, saveIndicator, toast, confirmDialog, tag, onSubmit } from '../ui.js';
 import { loadEntities, entityContextSelect, inContext, entityName, entityField } from './entities.js';
 
-const NEXT_ACTION = {
-  draft: 'Convidar e abrir', open: 'Aguardar respostas', collecting: 'Acompanhar respostas', comparing: 'Avaliar e decidir',
-  decided: 'Registrar contrato', contracted: 'Acompanhar contrato', closed: '—', cancelled: '—'
-};
-function nextAction(rfq) {
-  if (rfq.pending_approval) return 'Aguardando aprovação';
-  if (['open', 'collecting'].includes(rfq.status) && !(rfq.invites || []).length && !rfq.invites_count) return 'Convidar provedores';
-  return NEXT_ACTION[rfq.status] || '—';
-}
+// Próximo passo e de quem é a vez: regra única (lib/finance/negotiation-board.mjs),
+// a mesma do cartão "Próximo passo" da solicitação.
+const ACTOR_TONE = { company: 'accent', institution: 'neutral', approver: 'warning', none: 'neutral' };
 
 export async function rfqList(ctx) {
   const entities = await loadEntities(ctx);
@@ -52,9 +47,15 @@ export async function rfqList(ctx) {
   const sort = el('select', { class: 'input', 'aria-label': 'Ordenar solicitações' });
   for (const [value, label] of [['deadline', 'Prazo mais próximo'], ['recent', 'Mais recentes'], ['responses', 'Mais respostas']]) sort.add(new Option(label, value));
   sort.value = params.get('sort') || 'deadline';
+  const today = todayIso();
+  const steps = new Map(rfqs.map((rfq) => [rfq.id, negotiationNextStep(rfq, today)]));
+  const actor = el('select', { class: 'input', 'aria-label': 'Filtrar por de quem é a vez' });
+  actor.add(new Option('De quem é a vez: todos', ''));
+  for (const key of ['company', 'institution', 'approver']) actor.add(new Option(`Aguardando: ${ACTOR_LABEL[key]} (${rfqs.filter((rfq) => steps.get(rfq.id).actor === key).length})`, key));
+  actor.value = ['company', 'institution', 'approver'].includes(params.get('vez')) ? params.get('vez') : '';
   const entitySelect = entityContextSelect(entities, { label: 'Filtrar por entidade' });
   const count = el('span', { class: 'result-count', role: 'status', 'aria-live': 'polite' });
-  const clear = button('Limpar filtros', { variant: 'ghost', size: 'sm', onClick: () => { search.value = ''; product.value = ''; owner.value = ''; activeStatus = ''; for (const node of status.children) node.setAttribute('aria-pressed', String(node.dataset.status === '')); draw(); } });
+  const clear = button('Limpar filtros', { variant: 'ghost', size: 'sm', onClick: () => { search.value = ''; product.value = ''; owner.value = ''; actor.value = ''; activeStatus = ''; for (const node of status.children) node.setAttribute('aria-pressed', String(node.dataset.status === '')); draw(); } });
 
   const table = el('table', { class: 'data-table rfq-table' });
   table.append(el('thead', {}, el('tr', {}, ['Solicitação', 'Status', 'Responsável', 'Prazo', 'Respostas', 'Próxima ação'].map((label) => el('th', { scope: 'col', text: label })))));
@@ -67,7 +68,8 @@ export async function rfqList(ctx) {
     const visible = rfqs.filter((rfq) => (!activeStatus || rfq.status === activeStatus)
       && (!product.value || rfq.product === product.value) && (!owner.value || rfq.owner_id === owner.value)
       && (!term || fold(`${rfq.title} ${rfq.description || ''}`).includes(term))
-      && (!entitySelect || inContext(entities, rfq, entitySelect.value)));
+      && (!entitySelect || inContext(entities, rfq, entitySelect.value))
+      && (!actor.value || steps.get(rfq.id).actor === actor.value));
     visible.sort((a, b) => sort.value === 'recent' ? String(b.created_at).localeCompare(String(a.created_at))
       : sort.value === 'responses' ? (b.proposals || []).length - (a.proposals || []).length
         : String(['open', 'collecting', 'comparing', 'draft'].includes(a.status) ? a.response_deadline || '9999' : 'z').localeCompare(String(['open', 'collecting', 'comparing', 'draft'].includes(b.status) ? b.response_deadline || '9999' : 'z')));
@@ -87,7 +89,9 @@ export async function rfqList(ctx) {
           ? el('span', { class: 'date-cell' }, [el('span', { text: formatDate(rfq.response_deadline, { withYear: false }) }), live ? el('span', { class: 'date-rel', text: relativeDays(rfq.response_deadline) }) : null])
           : el('span', { class: 'muted', text: 'sem prazo' })),
         el('td', { 'data-label': 'Respostas' }, invited || (rfq.proposals || []).length ? progress((rfq.proposals || []).length, Math.max(invited, (rfq.proposals || []).length), { label: `${(rfq.proposals || []).length} de ${invited} provedores responderam` }) : el('span', { class: 'muted', text: 'sem convites' })),
-        el('td', { 'data-label': 'Próxima ação', class: 'next-action' }, [el('span', { text: nextAction(rfq) }), icon('chevronRight', { size: 14 })])
+        el('td', { 'data-label': 'Próxima ação', class: 'next-action' }, (() => { const step = steps.get(rfq.id); return [
+          el('span', { class: 'next-action-text' }, [el('span', { text: step.text }), step.detail ? el('span', { class: 'row-sub', text: step.detail }) : null]),
+          step.actor !== 'none' ? tag(ACTOR_LABEL[step.actor], ACTOR_TONE[step.actor]) : null, icon('chevronRight', { size: 14 })]; })())
       ]));
     }
     count.textContent = `${visible.length} de ${rfqs.length}`;
@@ -99,11 +103,12 @@ export async function rfqList(ctx) {
     if (product.value) next.set('product', product.value);
     if (owner.value) next.set('owner', owner.value);
     if (sort.value !== 'deadline') next.set('sort', sort.value);
+    if (actor.value) next.set('vez', actor.value);
     history.replaceState(null, '', `${location.pathname}${next.toString() ? `?${next}` : ''}`);
   }
-  for (const control of [search, product, owner, sort, entitySelect].filter(Boolean)) control.addEventListener(control === search ? 'input' : 'change', draw);
+  for (const control of [search, product, owner, sort, entitySelect, actor].filter(Boolean)) control.addEventListener(control === search ? 'input' : 'change', draw);
   root.append(
-    el('div', { class: 'toolbar' }, [el('div', { class: 'toolbar-search' }, [icon('search'), search]), entitySelect, product, owner, sort, count].filter(Boolean)),
+    el('div', { class: 'toolbar' }, [el('div', { class: 'toolbar-search' }, [icon('search'), search]), entitySelect, product, owner, actor, sort, count].filter(Boolean)),
     el('div', { class: 'toolbar-chips' }, status),
     el('div', { class: 'table-card' }, [table, empty])
   );
