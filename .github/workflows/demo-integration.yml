@@ -11,7 +11,6 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     env:
-      ARANDU_SITE_URL: https://arandu.example.com
       CI_DEMO_REPORTS: ${{ github.workspace }}/reports/passport-diagnostic
     steps:
       - name: Checkout exact diagnostic commit
