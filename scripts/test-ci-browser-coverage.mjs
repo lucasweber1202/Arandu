@@ -1,0 +1,26 @@
+import assert from 'node:assert/strict';
+import { assessBrowserCoverage } from './ci-browser-coverage.mjs';
+import { packReceipt,unpackReceipt } from './ci-browser-receipt.mjs';
+import { BROWSER_GROUPS } from './ci-browser-groups.mjs';
+const sha='a'.repeat(40);
+const cases=Object.values(BROWSER_GROUPS).flat().map((project,i)=>({id:String(i),file:'tests/e2e/finance-contracts.spec.js',line:i+1,project,expected_status:'passed'}));
+const plan={sha,mode:'plan',result:'passed',cases};
+const receipts=Object.entries(BROWSER_GROUPS).map(([group,projects])=>({sha,group,mode:'execution',result:'passed',cases:cases.filter(c=>projects.includes(c.project)),results:cases.filter(c=>projects.includes(c.project)).map(c=>({...c,retry:0,status:'passed',duration_ms:10}))}));
+assert.equal(assessBrowserCoverage(plan,receipts,sha).result,'PASS');
+const fail=(mutate,code)=>{const copy=structuredClone(receipts);mutate(copy);const r=assessBrowserCoverage(plan,copy,sha);assert.equal(r.result,'FAIL');assert(r.failures.includes(code),JSON.stringify(r));};
+fail(r=>r.pop(),'missing_groups');
+fail(r=>r[0].cases.pop(),'missing_planned_cases');
+fail(r=>r[0].results.pop(),'missing_or_invalid_attempt');
+fail(r=>r[0].sha='b'.repeat(40),'invalid_receipt');
+fail(r=>r[0].cases.push(r[0].cases[0]),'unexpected_or_duplicate_case');
+fail(r=>r[0].results[0].status='timedOut','unexpected_result');
+fail(r=>r[0].results[0].status='skipped','silent_skip');
+fail(r=>{r[0].results[0].status='failed';r[0].results[0].expected_status='failed';},'unexpected_result');
+const explicit=structuredClone(receipts);explicit[0].results[0].status='skipped';explicit[0].results[0].explicit_skip=true;
+const skipped=assessBrowserCoverage(plan,explicit,sha);assert.equal(skipped.result,'PASS');assert.equal(skipped.skipped,1);assert.equal(skipped.passed,4,'SKIPPED must never count as PASS');
+const flaky=structuredClone(receipts);flaky[0].results[0].status='failed';flaky[0].results.push({...flaky[0].results[0],retry:1,status:'passed'});assert.equal(assessBrowserCoverage(plan,flaky,sha).flaky,1);
+assert.equal(assessBrowserCoverage({...plan,sha:'b'.repeat(40)},receipts,sha).result,'FAIL');
+console.log('Browser receipts: exact SHA, every project/case once, retry attempts, explicit skips separate, dropped/duplicated/mismatched cases fail closed PASS.');
+
+assert.deepEqual(unpackReceipt(packReceipt(plan)),plan);
+for(const value of ['', 'plain-json', 'x'.repeat(500001)])assert.throws(()=>unpackReceipt(value));

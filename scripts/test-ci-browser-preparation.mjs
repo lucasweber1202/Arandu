@@ -14,16 +14,22 @@ assert.equal(useUbuntuArchive(deb822.replace('azure.archive.ubuntu.com', 'packag
 assert.equal(useUbuntuArchive(useUbuntuArchive(deb822)), useUbuntuArchive(deb822));
 assert.match(networkConfig, /APT::Update::Error-Mode "any"/);
 const workflow = fs.readFileSync('.github/workflows/ci-full.yml', 'utf8');
-for (const job of ['validate', 'presentation']) {
-  const section = workflow.split(new RegExp(`^  ${job}:`, 'm'))[1].split(/^  [a-z][\w-]*:/m)[0];
-  const steps = section.split(/      - name:/).slice(1);
-  const verify = steps.findIndex((step) => step.includes('node scripts/verify-ci-browsers.mjs'));
-  assert.ok(verify >= 0, `${job} must probe all engines`);
-  assert.doesNotMatch(steps[verify], /\n\s+if:|continue-on-error:/, `${job} browser verification is mandatory`);
-  for (const [index, step] of steps.entries()) {
-    if (!/run: npm run test:e2e(?::finance|:presentation)/.test(step)) continue;
-    assert.ok(index > verify, `${job} suite must follow verification`);
-    assert.doesNotMatch(step, /if:.*!cancelled\(\)|continue-on-error:/, `${job} suite must fail closed after preparation failure`);
-  }
+const browserWorkflow=fs.readFileSync('.github/workflows/ci-browser.yml','utf8');
+for (const [job,section] of [['browser',browserWorkflow],['presentation',workflow.split(/^  presentation:/m)[1].split(/^  [a-z][\w-]*:/m)[0]]]) {
+  const steps=section.split(/      - name:/).slice(1);
+  const verify=steps.findIndex(step=>step.includes('node scripts/verify-ci-browsers.mjs'));
+  assert.ok(verify>=0,`${job} must probe all engines`);
+  assert.doesNotMatch(steps[verify],/\n\s+if:|continue-on-error:/,`${job} browser verification is mandatory`);
+  const tests=steps.findIndex(step=>/run: (?:npm run test:e2e:presentation|node scripts\/run-ci-browser-group\.mjs)/.test(step));
+  assert.ok(tests>verify,`${job} suite must follow verification`);
+  assert.doesNotMatch(steps[tests],/if:.*!cancelled\(\)|continue-on-error:/,`${job} suite fails closed`);
 }
+for(const job of ['validate','validate-mobile']) {
+ const section=workflow.split(new RegExp(`^  ${job}:`,'m'))[1].split(/^  [a-z][\w-]*:/m)[0];
+ assert.match(section,/needs: validate-source/);assert.match(section,/uses: \.\/\.github\/workflows\/ci-browser\.yml/);
+}
+assert.match(workflow,/needs: \[validate-source, validate, validate-mobile\]/);
+assert.match(workflow,/node scripts\/ci-browser-coverage\.mjs --job-outputs/);
+assert.match(workflow,/Cheap explicit Demo build and unchanged budgets before browsers/);
+assert.doesNotMatch(workflow.split(/^  browser-coverage:/m)[1].split(/^  presentation:/m)[0],/continue-on-error:/);
 console.log('CI browser preparation: signed source preservation, transport scope, idempotence and suite fail-fast PASS.');

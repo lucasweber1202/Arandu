@@ -1,3 +1,14 @@
+## 04/11/2026 — CI Acceleration 7.0 em validação
+
+M1: dois grupos balanceados preservam cinco projetos de browser; recibos por
+caso/SHA com união exata, preflight dos dois builds e quatro contexts intactos.
+Profiler de seed mede HTTP, fases e espera 429 sem payload. Perfil histórico de
+três runs separa wall-clock, fila e runner-minutes. Conectividade/radar entram
+no catálogo completo, com detector de omissão. Ganho em runner e redução do seed
+ainda NOT_PROVEN; não elevar M2 por planejamento local.
+[Contrato e métricas](CI_ACCELERATION_V7.md). Hosted continua bloqueado pelas
+pré-condições específicas de preservação e autorização.
+
 ## 04/11/2026 — Operação, conteúdo do recovery e upgrade histórico
 
 M1 / evidência local: recovery verifica conteúdo privado no mesmo snapshot/backup,
