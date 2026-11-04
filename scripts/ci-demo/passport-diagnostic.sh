@@ -27,7 +27,7 @@ for variant in candidate main; do
   if [ "$status" -ne 0 ]; then result=1; fi
   export PLAYWRIGHT_HTML_OUTPUT_DIR="$out/$variant-repeats"
   set +e
-  npx playwright test --config playwright.demo.config.js tests/e2e/demo-baseline.spec.js --project demo-desktop --grep '^Financial Passport:' --repeat-each 3 --workers 1 --trace off --reporter=list,html 2>&1 | tee "$out/$variant-repeats.txt"
+  npx playwright test --config playwright.demo.config.js tests/e2e/demo-baseline.spec.js --project demo-desktop --grep 'Financial Passport:' --repeat-each 3 --workers 1 --trace off --reporter=list,html 2>&1 | tee "$out/$variant-repeats.txt"
   status=${PIPESTATUS[0]}
   set -e
   if [ "$status" -ne 0 ]; then result=1; fi

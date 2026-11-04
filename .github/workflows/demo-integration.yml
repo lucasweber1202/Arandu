@@ -33,6 +33,8 @@ jobs:
           node --input-type=module -e "import {ACTIVE_SUPABASE_ASSIGNMENTS as a} from './lib/deployment-topology.mjs'; for(const ref of new Set(Object.values(a).flat().filter(Boolean))) console.log('0.0.0.0 '+ref+'.supabase.co'); for(const host of ['supabase.com','api.supabase.com','api.supabase.io']) console.log('0.0.0.0 '+host);" | sudo tee -a /etc/hosts > /dev/null
       - name: Install pinned dependencies and build
         run: npm ci --include=optional && npm run build
+      - name: Verify the exact Passport selector before preparing infrastructure
+        run: npx playwright test --config playwright.demo.config.js tests/e2e/demo-baseline.spec.js --project demo-desktop --grep 'Financial Passport:' --list
       - name: Pull pinned Supabase images
         run: bash scripts/ci-demo/run.sh images
       - name: Start canonical local stack
