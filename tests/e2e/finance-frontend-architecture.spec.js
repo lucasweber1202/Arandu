@@ -99,3 +99,24 @@ test('busca: falha ao carregar o módulo avisa sem detalhe técnico e recarregar
   await page.keyboard.press('Control+k');
   await expect(page.getByRole('dialog', { name: 'Buscar no espaço da empresa' })).toBeVisible();
 });
+
+test('375 px: páginas reorganizadas sem rolagem horizontal e com alvos de toque utilizáveis', async ({ page }) => {
+  await setup(page);
+  await page.setViewportSize({ width: 375, height: 760 });
+  const pages = ['/finance/dashboard.html', `/finance/rfq.html?id=${RFQ}`, `/finance/rfq.html?id=${RFQ}#comparacao`, `/finance/rfq.html?id=${RFQ}#aprovacoes`,
+    `/finance/rfq.html?id=${RFQ}#decisao`, '/finance/contracts.html', '/finance/providers.html', '/finance/tasks.html', '/finance/approvals.html',
+    '/finance/proposals.html', '/finance/notifications.html', '/finance/settings.html'];
+  for (const path of pages) {
+    await page.goto(path);
+    await expect(page.locator('#app, main').first()).toBeVisible();
+    await page.waitForLoadState('networkidle');
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(overflow, `${path}: rolagem horizontal`).toBeLessThanOrEqual(0);
+    // Botões visíveis do conteúdo principal com altura mínima de toque (24 px, WCAG 2.2 AA).
+    expect(await page.locator('main button:visible, main a.btn:visible').count(), `${path}: nenhuma ação verificada`).toBeGreaterThan(0);
+    const small = await page.evaluate(() => [...document.querySelectorAll('main button, main a.btn')]
+      .filter((b) => b.offsetParent && b.getBoundingClientRect().height > 0 && b.getBoundingClientRect().height < 24)
+      .map((b) => (b.textContent || b.getAttribute('aria-label') || '').trim().slice(0, 40)));
+    expect(small, `${path}: alvos menores que 24 px`).toEqual([]);
+  }
+});
