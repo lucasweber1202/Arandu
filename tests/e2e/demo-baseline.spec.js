@@ -3,6 +3,7 @@
 // (npm run demo:setup). Só leitura, exceto a jornada de responsáveis de tarefa,
 // que devolve o responsável original e cancela a tarefa que cria.
 import { test, expect } from '@playwright/test';
+import { watchBrowserProblems } from './helpers/browser-problems.mjs';
 
 const PASSWORD = process.env.ARANDU_DEMO_PASSWORD;
 const PEOPLE = {
@@ -15,13 +16,7 @@ const PEOPLE = {
 
 test.skip(!PASSWORD, 'Defina ARANDU_DEMO_PASSWORD (scripts/pilot-local/.state/demo.env) para rodar a jornada da demonstração.');
 
-function watch(page) {
-  const problems = [];
-  page.on('pageerror', (error) => problems.push(`pageerror: ${error.message}`));
-  page.on('console', (message) => { if (message.type() === 'error') problems.push(`console: ${message.text()}`); });
-  page.on('response', (response) => { if (response.status() >= 400 && new URL(response.url()).pathname.startsWith('/api/')) problems.push(`${response.status()} ${new URL(response.url()).pathname}`); });
-  return problems;
-}
+const watch = watchBrowserProblems;
 
 async function login(page, who) {
   await page.goto('/login.html');
