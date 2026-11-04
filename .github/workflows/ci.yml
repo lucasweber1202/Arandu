@@ -11,11 +11,16 @@ permissions:
 concurrency:
   group: arandu-ci-${{ github.ref }}
   cancel-in-progress: true
+# Política v6.2 (docs/RISK_BASED_CI.md): A/B → fast; C → fast + backend
+# (PostgreSQL real); D → full (matriz integral) + integration (Demo efêmera).
+# Main, agenda e execução manual são sempre D.
 jobs:
   classify:
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     outputs:
       risk: ${{ steps.policy.outputs.risk }}
+      path: ${{ steps.policy.outputs.path }}
       deep: ${{ steps.policy.outputs.deep }}
       sha: ${{ steps.policy.outputs.sha }}
       suites: ${{ steps.policy.outputs.suites }}
@@ -24,24 +29,25 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
+      # Classificação usa só módulos nativos do Node: sem npm ci nem cache.
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: 24
-          cache: npm
       - id: policy
         run: node scripts/ci/classify-event.mjs
   full:
     needs: classify
-    if: needs.classify.outputs.deep == 'true'
+    if: needs.classify.outputs.risk == 'D'
     uses: ./.github/workflows/ci-full.yml
   integration:
     needs: classify
-    if: needs.classify.outputs.deep == 'true'
+    if: needs.classify.outputs.risk == 'D'
     uses: ./.github/workflows/demo-integration.yml
   fast:
     needs: classify
-    if: needs.classify.outputs.deep == 'false'
+    if: contains(fromJSON('["A","B","C"]'), needs.classify.outputs.risk)
     runs-on: ubuntu-24.04
+    timeout-minutes: 40
     env:
       ARANDU_SITE_URL: https://arandu.example.com
       CI_SUITES: ${{ needs.classify.outputs.suites }}
@@ -55,27 +61,84 @@ jobs:
           cache: npm
       - run: npm ci --include=optional
       - run: npm run audit:ci
+      # Inclui todos os testes de lógica pura (check:finance) e governança.
       - run: npm run check:all
       - run: npm run build
       - run: npm run check:build-size
       - run: npm run check:dist-assets && npm run check:seo:dist
       - run: npm run check:financial-surface && npm run check:financial-navigation
-      - run: npx playwright install --with-deps chromium
-      - run: node scripts/ci/targeted-browser.mjs
+      - name: Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+      # Só Chromium neste caminho; o cache evita o download a cada PR.
+      - name: Restore Chromium
+        id: browser-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-ubuntu-24.04-${{ runner.arch }}-${{ steps.playwright.outputs.version }}
+      - name: Install Chromium and system dependencies
+        run: npx playwright install --with-deps chromium
+      - name: Save Chromium
+        if: steps.browser-cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ steps.browser-cache.outputs.cache-primary-key }}
+      - name: Targeted journeys, Chromium desktop and mobile
+        run: node scripts/ci/targeted-browser.mjs
       - run: npm run pretest:e2e:presentation
       - run: npx playwright test --config playwright.presentation.config.js tests/e2e/public-tour.spec.js --project=chromium-desktop --project=mobile-chrome
+  # Classe C: backend não crítico precisa de banco real (schema limpo, upgrade,
+  # rollback, RLS e transações), mas não de Recovery real, Firefox/WebKit
+  # integrais nem da Demo Integration.
+  backend:
+    needs: classify
+    if: needs.classify.outputs.risk == 'C'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 24
+      - name: PostgreSQL client
+        run: |
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update && sudo apt-get install -y postgresql-client
+          fi
+          psql --version
+      - name: Clean install, upgrade, rollback, RLS and transaction tests
+        env:
+          ARANDU_DATABASE_TEST_URL: postgresql://postgres:postgres@localhost:5432/postgres
+        run: npm run test:database
+  # Contexto obrigatório: só verifica resultados reais no SHA candidato.
+  # Checkout esparso de scripts/ci e Node do runner: sem npm nem cache.
   database:
-    needs: [classify, fast, full, integration]
+    needs: [classify, fast, backend, full, integration]
     if: ${{ always() }}
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
-        with:
-          node-version: 24
-          cache: npm
+          sparse-checkout: scripts/ci
       - name: Verify required validation and explicit applicability
         env:
           CLASSIFY_RESULT: ${{ needs.classify.result }}
@@ -83,21 +146,22 @@ jobs:
           DEEP: ${{ needs.classify.outputs.deep }}
           ANALYZED_SHA: ${{ needs.classify.outputs.sha }}
           FAST_RESULT: ${{ needs.fast.result }}
-          DEMO_RESULT: ${{ needs.integration.result }}
+          BACKEND_RESULT: ${{ needs.backend.result }}
           FULL_RESULT: ${{ needs.full.result }}
+          DEMO_RESULT: ${{ needs.integration.result }}
         run: node scripts/ci/check-result.mjs
+  # Contexto obrigatório: só verifica resultados reais no SHA candidato.
+  # Checkout esparso de scripts/ci e Node do runner: sem npm nem cache.
   deploy-boundaries:
-    needs: [classify, fast, full, integration]
+    needs: [classify, fast, backend, full, integration]
     if: ${{ always() }}
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
-        with:
-          node-version: 24
-          cache: npm
+          sparse-checkout: scripts/ci
       - name: Verify required validation and explicit applicability
         env:
           CLASSIFY_RESULT: ${{ needs.classify.result }}
@@ -105,21 +169,22 @@ jobs:
           DEEP: ${{ needs.classify.outputs.deep }}
           ANALYZED_SHA: ${{ needs.classify.outputs.sha }}
           FAST_RESULT: ${{ needs.fast.result }}
-          DEMO_RESULT: ${{ needs.integration.result }}
+          BACKEND_RESULT: ${{ needs.backend.result }}
           FULL_RESULT: ${{ needs.full.result }}
+          DEMO_RESULT: ${{ needs.integration.result }}
         run: node scripts/ci/check-result.mjs
+  # Contexto obrigatório: só verifica resultados reais no SHA candidato.
+  # Checkout esparso de scripts/ci e Node do runner: sem npm nem cache.
   validate:
-    needs: [classify, fast, full, integration]
+    needs: [classify, fast, backend, full, integration]
     if: ${{ always() }}
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
-        with:
-          node-version: 24
-          cache: npm
+          sparse-checkout: scripts/ci
       - name: Verify required validation and explicit applicability
         env:
           CLASSIFY_RESULT: ${{ needs.classify.result }}
@@ -127,21 +192,22 @@ jobs:
           DEEP: ${{ needs.classify.outputs.deep }}
           ANALYZED_SHA: ${{ needs.classify.outputs.sha }}
           FAST_RESULT: ${{ needs.fast.result }}
-          DEMO_RESULT: ${{ needs.integration.result }}
+          BACKEND_RESULT: ${{ needs.backend.result }}
           FULL_RESULT: ${{ needs.full.result }}
+          DEMO_RESULT: ${{ needs.integration.result }}
         run: node scripts/ci/check-result.mjs
+  # Contexto obrigatório: só verifica resultados reais no SHA candidato.
+  # Checkout esparso de scripts/ci e Node do runner: sem npm nem cache.
   presentation:
-    needs: [classify, fast, full, integration]
+    needs: [classify, fast, backend, full, integration]
     if: ${{ always() }}
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
-        with:
-          node-version: 24
-          cache: npm
+          sparse-checkout: scripts/ci
       - name: Verify required validation and explicit applicability
         env:
           CLASSIFY_RESULT: ${{ needs.classify.result }}
@@ -149,6 +215,7 @@ jobs:
           DEEP: ${{ needs.classify.outputs.deep }}
           ANALYZED_SHA: ${{ needs.classify.outputs.sha }}
           FAST_RESULT: ${{ needs.fast.result }}
-          DEMO_RESULT: ${{ needs.integration.result }}
+          BACKEND_RESULT: ${{ needs.backend.result }}
           FULL_RESULT: ${{ needs.full.result }}
+          DEMO_RESULT: ${{ needs.integration.result }}
         run: node scripts/ci/check-result.mjs
