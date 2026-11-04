@@ -10,6 +10,7 @@ import { el, icon, formatDate, formatDateTime, percent } from '../core.js';
 import { button, tag, field, drawer, toast, loading, errorState, confirmDialog, onSubmit, readableError, mutedText, toastError } from '../ui.js';
 import { CONTRACT_CATEGORIES, MILESTONE_KINDS, RECURRENCES, contractTermFields } from '../../../lib/finance/contract-terms.mjs';
 import { termValue, termsList, termsEditor } from './contract-center/terms.js';
+import { contractSummaryCard } from './contract-center/summary.js';
 
 const SOURCE_LABELS = { registration: 'Estruturação inicial', correction: 'Correção', amendment: 'Aditivo', import: 'Importação da carteira' };
 const MILESTONE_STATUS = { scheduled: ['Agendado', 'info'], done: ['Concluído', 'success'], cancelled: ['Cancelado', 'neutral'] };
@@ -76,7 +77,9 @@ export function openContract(ctx, contract, { initialDetail = null } = {}) {
     lastDetail = detail;
     const current = detail.contract;
     const effective = detail.effective;
-    const sections = [];
+    const sections = [contractSummaryCard(ctx, detail, {
+      onStructureTerms: () => termsForm(current, effective?.terms || {}),
+      onAmendment: () => amendmentForm(current, effective?.terms || {}) })];
     // The legacy browser sandbox does not implement contextual task writes.
     if (!(__ARANDU_DEMO__ && ctx.mode === 'demo')) {
       const label = current.title || current.provider_name || 'Contrato';
