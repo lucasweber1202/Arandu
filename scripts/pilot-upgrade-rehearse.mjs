@@ -15,13 +15,19 @@ const boundaryIndex=manifest.cleanInstall.indexOf(boundary);
 if(index>=boundaryIndex)throw new Error('Rehearse requires a marker before the destructive boundary.');
 const db=`arandu_rehearsal_${randomBytes(6).toString('hex')}`;
 const local=new URL(base);local.pathname=`/${db}`;
-function sql(args,url=local.href,{expectFailure=false,expectedError='legacy art data present'}={}) {
- const r=spawnSync('psql',[url,'-X','-v','ON_ERROR_STOP=1',...args],{encoding:'utf8',maxBuffer:32*1024*1024});
+function sql(args,url=local.href,{expectFailure=false,expectedError='legacy art data present',input}={}) {
+ const r=spawnSync('psql',[url,'-X','-v','ON_ERROR_STOP=1',...args],{encoding:'utf8',input,maxBuffer:32*1024*1024});
  if(expectFailure){if(r.status===0||!r.stderr?.includes(expectedError))throw new Error('Destructive gate did not refuse the fixture as expected.');return;}
  if(r.error||r.status!==0)throw new Error(`Local rehearsal failed (${r.error?.code||'SQL'}); no hosted database was touched.`);
  return r.stdout.trim();
 }
 function file(f){sql(['-f',f]);}
+function bundle(after,stop) {
+ const args=['scripts/build-supabase-migration-bundle.mjs','--flow=existingDatabase',`--after-schema=${after}`,...(stop?[`--stop-before=${stop}`]:[]),'--stdout'];
+ const r=spawnSync(process.execPath,args,{encoding:'utf8',maxBuffer:8*1024*1024});
+ if(r.error||r.status!==0||!r.stdout)throw new Error('Reviewed upgrade bundle unavailable.');
+ return r.stdout;
+}
 let created=false;
 try {
  sql(['-c',`create database ${db}`],base);created=true;
@@ -36,12 +42,12 @@ try {
  // Inject an actual SQL failure inside the compiler's first atomic migration.
  // Neither its DDL nor marker may survive; resume uses the observed old marker.
  // Compile to stdout only: no persistent generated bundle in the worktree.
- const atomic=spawnSync(process.execPath,['scripts/build-supabase-migration-bundle.mjs','--flow=existingDatabase',`--after-schema=${marker}`,`--stop-before=${manifest.cleanInstall[index+2]}`,'--stdout'],{encoding:'utf8',maxBuffer:8*1024*1024});
- if(atomic.status!==0||!/^commit;$/mi.test(atomic.stdout))throw new Error('Atomic first stage unavailable.');
- const failedSql=atomic.stdout.replace(/^commit;$/mi,'select 1/0;\ncommit;');
+ const atomic=bundle(marker,manifest.cleanInstall[index+2]);
+ if(!/^commit;$/mi.test(atomic))throw new Error('Atomic first stage unavailable.');
+ const failedSql=atomic.replace(/^commit;$/mi,'select 1/0;\ncommit;');
  sql(['-c',failedSql],local.href,{expectFailure:true,expectedError:'division by zero'});
  if(sql(['-Atc',"select value from public.fin_settings where key='schema_version'"])!==marker)throw new Error('Failed migration changed resume marker.');
- for(const f of manifest.cleanInstall.slice(index+1,boundaryIndex))file(f);
+ sql(['-f','-'],local.href,{input:bundle(marker,boundary)});
  file('tests/database/legacy-art-fixture.sql');
  file('tests/database/legacy-art-decommission-before.sql');
  const beforeRefusal=sql(['-Atc',"select value from public.fin_settings where key='schema_version'"]);
@@ -50,7 +56,8 @@ try {
  // ONLY synthetic local fixtures: this acknowledgement is never sent to Pilot.
  sql(['-c',"set arandu.legacy_art_decommission_ack='export-verified:local-synthetic-fixture'",'-f',boundary]);
  file('tests/database/legacy-art-decommission.sql');
- for(const f of manifest.cleanInstall.slice(boundaryIndex+1))file(f);
+ const retiredMarker=sql(['-Atc',"select value from public.fin_settings where key='schema_version'"]);
+ sql(['-f','-'],local.href,{input:bundle(retiredMarker)});
  for(const f of ['financial-value-realization','financial-fee-intelligence','financial-opportunity-engine','financial-document-intelligence','financial-provider-qualification','financial-implementation','financial-covenants','financial-provider-performance','financial-spend-intelligence','financial-opportunity-discriminator'])file(`tests/database/${f}.sql`);
  file('tests/database/financial-privilege-revalidation.sql');
  sql(['-c',`do $$begin

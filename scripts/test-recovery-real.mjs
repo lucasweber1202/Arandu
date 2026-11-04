@@ -326,6 +326,9 @@ try {
       assert.equal(verification.integrity,'VERIFIED');assert.equal(verification.level,4);assert.equal(verification.recovery,'RECOVERY_RESTORE_NOT_VERIFIED');
       assert.equal(pm.storage.store_id,store.store_id);assert.equal(pm.durability,'fsync_files_and_directory');
       assert.equal(verification.state,'RECOVERY_EXPORT_VERIFIED');
+      assert.equal(pm.operational_state,'BACKUP_CREATED');
+      assert.equal(verification.operational_state,'BACKUP_VERIFIED');
+      assert.deepEqual(verification.milestones,{BACKUP_CREATED:'PASS',BACKUP_VERIFIED:'PASS',RESTORE_VERIFIED:'NOT_PROVEN',FULL_RECOVERY_VERIFIED:'NOT_PROVEN'});
       const exportDir=path.join(storeDir,verification.export);
       const vEnv={...opEnv,ARANDU_RECOVERY_BACKUP:exportDir};
       assert.equal((await verifyExport({env:vEnv})).level,4);

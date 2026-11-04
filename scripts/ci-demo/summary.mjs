@@ -21,7 +21,7 @@ const phases = [
   ['Instalação pelo lockfile', 'INSTALL', ''],
   ['Build do produto', 'BUILD', ''],
   ['Imagens fixadas (tag + digest)', 'IMAGES', read('images.env').trim().split('\n').filter(Boolean).length + ' imagem(ns)'],
-  ['Supabase + migrations + app demo', 'UP', ''],
+  ['Supabase + migrations + app demo', 'UP', ['cleanInstall','financialBaseline'].includes(process.env.PILOT_LOCAL_INSTALL_FLOW || 'cleanInstall') ? (process.env.PILOT_LOCAL_INSTALL_FLOW || 'cleanInstall') : 'INVALID_INSTALL_FLOW'],
   ['Smoke: banco, Auth, PostgREST, Storage, API, RLS', 'SMOKE', last(read('smoke.txt'), /\d+\/\d+ verificações PASS\./)],
   ['Seed oficial da Vitta Foods', 'SEED', last(read('seed.txt'), /\d+\/\d+ checagens OK\./)],
   ['Sanidade do seed (releitura)', 'CHECK', last(read('seed-check.txt'), /\d+\/\d+ checagens OK\./)],

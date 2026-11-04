@@ -778,3 +778,6 @@ ARANDU_DATABASE_TEST_URL="$base_url" node "$root_dir/tests/database/legacy-seed-
 for current_db in "$clean_db" "$upgrade_db" "$fresh_db"; do
   apply_file "$current_db" "tests/database/financial-privilege-revalidation.sql"
 done
+# Historical Pilot marker: interrupted atomic migration, exact resume marker,
+# guarded retirement, old/new Auth trigger and pre-existing financial data.
+ARANDU_DATABASE_TEST_URL="$base_url" node "$root_dir/scripts/pilot-upgrade-rehearse.mjs"

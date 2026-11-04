@@ -94,3 +94,53 @@ Isso é só evidência técnica; os 14 registros do Pilot e os 42 legados contin
 dependentes da decisão de classificação/preservação. Conteúdo alterado em um
 ID isento deve bloquear a suposição de seed e voltar à revisão do data owner.
 Não executar a aposentadoria apoiado apenas na sua guarda sintática de ack.
+
+## Matriz ampliada de operação (mesmo dia, nova missão)
+
+`node scripts/benchmark-financial-workloads.mjs` cria outro banco loopback,
+instala a baseline e remove o banco em finally. São 20 tenants, dois escopos de
+entidade no tenant consultado e 1.000 / 10.000 / 100.000 tarefas. Testa status
+open/done, vencimento, cursor completo (data/criação/id + NULLS LAST), usuário
+restrito a entidade, filtro explícito de entidade e ausência de membership.
+Não força planner, desliga RLS ou remove índices existentes. Cada cenário compara
+os resultados ordenados antes/depois. Quatro leitores simultâneos reconciliam a
+mesma página; as escritas autenticadas são revertidas. Nenhum conteúdo hospedado.
+
+Um warmup + cinco EXPLAIN ANALYZE BUFFERS WAL por consulta/fase. O relatório
+`ops/consolidation/workload-matrix-2026-11-04.json` conserva as cinco amostras e o
+plano mediano, incluindo buffers, WAL e triggers. VACUUM ANALYZE medido após a
+mesma carga de 6.000 inserts revertidos em cada fase; reset de heap entre tamanhos
+é setup fora da medição. Resultados desta execução PG17.11:
+
+| Medida, ms (antes → candidato) | 1.000 tarefas | 10.000 | 100.000 |
+|---|---:|---:|---:|
+| Página open, mediana SQL | 8,505 → 12,415 | 97,761 → 87,724 | 1.203,576 → 53,377 |
+| Cursor, mediana SQL | 7,182 → 6,352 | 72,660 → 100,793 | 800,654 → 60,311 |
+| Filtro de entidade, mediana SQL | 6,710 → 5,065 | 44,736 → 52,127 | 450,041 → 510,552 |
+| INSERT 1.000, mediana SQL | 42,775 → 47,328 | 41,787 → 43,620 | 48,273 → 56,305 |
+| Quatro leitores, parede incl. psql | 56,863 → 58,127 | 312,430 → 259,105 | 4.980,037 → 162,274 |
+| VACUUM ANALYZE, parede incl. psql | 17,000 → 17,574 | 38,179 → 42,773 | 158,084 → 187,121 |
+| Bytes alocados no candidato | 319.488 | 1.261.568 | 7.749.632 |
+
+**Decisão: não adotar neste lote.** Ganho grande no perfil open/cursor de maior
+volume não se repete em todos os tamanhos/predicados; há regressão no recorte de
+entidade, no cursor médio e na página pequena, além de custo de escrita/espaço.
+Volumes hospedados atuais são 42/14 linhas públicas totais. Não há distribuição
+real de tráfego que justifique escolher o tradeoff agora. Candidato removido com
+o banco, zero migrations/índices adicionados. Não remover os índices existentes.
+
+As medidas são laboratório quente e não p95, commit latency, egress ou throughput
+hospedado. Concurrency/VACUUM têm uma observação de parede por fase, sem intervalo
+de confiança; WAL varia com checkpoints/full-page images e não é projeção linear
+de cobrança. A comparação não autoriza atribuir toda variação de tempo ao índice.
+
+## Capacidade sem serviço adicional
+
+`ops/sql/financial-capacity.sql` usa transação somente leitura e timeout de 15s.
+Agrega banco/índices, counters e stats_reset, estimativas de manutenção, conexões,
+sessões, bytes declarados de Storage e status retidos de jobs. Foi executado nos
+dois projetos; snapshots sanitizados estão em `capacity-2026-11-04-*.json`.
+Ausência de tabela retorna null, não consumo zero. Bytes Storage são metadados,
+não leitura de binários. Counters com reset desconhecido não comprovam taxas.
+Quotas, egress, Auth MAU, fatura e headroom permanecem null: não inventar limites
+ou cobrança a partir de contagens. Não foi criado cron/serviço de monitoramento.

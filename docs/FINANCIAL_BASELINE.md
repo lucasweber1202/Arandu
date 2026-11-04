@@ -112,3 +112,14 @@ provisionamento. `scripts/local-migration-plan.mjs` propaga erros do descritor/h
 sem escondê-los em process substitution do shell. A contagem impressa pelo runner
 reflete o plano realmente selecionado. Mesmos Auth/Storage/seed/jornadas depois
 da instalação, sem alterar workflows nem reduzir os checks históricos.
+
+## Integração com serviços reais no CI
+
+Após a missão de operação de 04/11/2026, o job risk-D `integration` seleciona
+explicitamente `financialBaseline` em `demo-integration.yml`: mesmas fases de
+GoTrue, PostgREST, Storage, seed, browser, jornadas, ataques, recovery e teardown.
+Não cria segundo job integral nem terceiro Supabase. `full/database` conserva
+clean install/upgrade/reapply/rollback históricos e equivalência da baseline.
+O dispatch manual continua com default `cleanInstall` e opção explícita
+`financialBaseline`; seleção inválida aborta antes de provisionar. Logs/summary
+identificam o caminho testado. Nenhuma seleção é permissão para banco hospedado.

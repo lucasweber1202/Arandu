@@ -1,0 +1,180 @@
+{
+  "observed_at": "2026-11-04T17:52:21.957Z",
+  "classification": "vercel_metadata_and_public_health_only",
+  "commit": "1614217f273ba0992c9fcffeab0980a465924bf4",
+  "mutations_performed": false,
+  "projects": [
+    {
+      "project": "arandu-demo",
+      "configuration_metadata_read": true,
+      "values_decrypted": false,
+      "hidden_production_count": 0,
+      "variables": [
+        {
+          "name": "ARANDU_DEPLOYMENT_KIND",
+          "type": "plain",
+          "target": [
+            "production"
+          ]
+        }
+      ],
+      "deployment": {
+        "id": "dpl_6ZBnigiLPACgQ2sNqqBeqJ2Ui2we",
+        "state": "READY",
+        "commit": "1614217f273ba0992c9fcffeab0980a465924bf4"
+      }
+    },
+    {
+      "project": "arandu-pilot",
+      "configuration_metadata_read": true,
+      "values_decrypted": false,
+      "hidden_production_count": 0,
+      "variables": [
+        {
+          "name": "ARANDU_INFRASTRUCTURE_STATUS",
+          "type": "plain",
+          "target": [
+            "production"
+          ]
+        },
+        {
+          "name": "SUPABASE_URL",
+          "type": "plain",
+          "target": [
+            "production"
+          ]
+        },
+        {
+          "name": "SUPABASE_ANON_KEY",
+          "type": "sensitive",
+          "target": [
+            "production"
+          ]
+        },
+        {
+          "name": "SUPABASE_SERVICE_ROLE_KEY",
+          "type": "sensitive",
+          "target": [
+            "production"
+          ]
+        },
+        {
+          "name": "ARANDU_ENV",
+          "type": "plain",
+          "target": [
+            "production"
+          ]
+        },
+        {
+          "name": "ARANDU_SITE_URL",
+          "type": "plain",
+          "target": [
+            "production"
+          ]
+        },
+        {
+          "name": "ARANDU_PILOT_ALLOWLIST_CONFIRMED",
+          "type": "plain",
+          "target": [
+            "production"
+          ]
+        },
+        {
+          "name": "CRON_SECRET",
+          "type": "sensitive",
+          "target": [
+            "production"
+          ]
+        }
+      ],
+      "deployment": {
+        "id": "dpl_45C2X9VU1AKCtHrv6QF3bT2sifrL",
+        "state": "READY",
+        "commit": "1614217f273ba0992c9fcffeab0980a465924bf4"
+      }
+    },
+    {
+      "project": "arandu",
+      "configuration_metadata_read": true,
+      "values_decrypted": false,
+      "hidden_production_count": 0,
+      "variables": [
+        {
+          "name": "ARANDU_SITE_URL",
+          "type": "sensitive",
+          "target": [
+            "production"
+          ]
+        },
+        {
+          "name": "CRON_SECRET",
+          "type": "sensitive",
+          "target": [
+            "production"
+          ]
+        },
+        {
+          "name": "ARANDU_ENV",
+          "type": "plain",
+          "target": [
+            "production"
+          ]
+        },
+        {
+          "name": "SUPABASE_SERVICE_ROLE_KEY",
+          "type": "sensitive",
+          "target": [
+            "production"
+          ]
+        },
+        {
+          "name": "SUPABASE_ANON_KEY",
+          "type": "sensitive",
+          "target": [
+            "production"
+          ]
+        },
+        {
+          "name": "SUPABASE_URL",
+          "type": "sensitive",
+          "target": [
+            "production"
+          ]
+        },
+        {
+          "name": "ARANDU_SITE_URL",
+          "type": "sensitive",
+          "target": [
+            "preview"
+          ]
+        }
+      ],
+      "deployment": {
+        "id": "dpl_5BW2SvmNWdDnAqCi4wZW29152QKg",
+        "state": "ERROR",
+        "commit": "1614217f273ba0992c9fcffeab0980a465924bf4"
+      }
+    }
+  ],
+  "production_first_failure": "Legacy Supabase has no active production assignment; preservation, restore, classification and cutover PR required",
+  "demo": {
+    "health_http_status": 200,
+    "readiness_http_status": 503,
+    "datasource": "synthetic-fixtures",
+    "canonical_hosted_journey": "NOT_RUN",
+    "m3": "NOT_PROVEN"
+  },
+  "recovery": {
+    "executor_database_credentials": "NOT_CONFIGURED",
+    "age_recipient": "NOT_CONFIGURED",
+    "approved_durable_destination": "NOT_CONFIGURED",
+    "custody_and_retention": "NOT_PROVIDED",
+    "hosted_export": "NOT_RUN",
+    "hosted_restore": "NOT_RUN"
+  },
+  "concurrent_frontend": {
+    "pr": 323,
+    "head": "142f230d53901da6ecf17ff1aa33a0725f12959a",
+    "backend_contract_change": false
+  }
+}

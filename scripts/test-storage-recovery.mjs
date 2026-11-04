@@ -293,6 +293,9 @@ try {
     fs.renameSync(path.join(home, 'detached-storage'), path.join(sx, 'storage'));
     result = await verify();
     assert.deepEqual([result.level, result.recovery, result.completeness, result.storage_binaries], [5, 'RECOVERY_VERIFIED', 'COMPLETE', 'RESTORE_VERIFIED']);
+    assert.equal(result.operational_state,'RESTORE_VERIFIED');
+    assert.equal(result.milestones.RESTORE_VERIFIED,'PASS');
+    assert.equal(result.milestones.FULL_RECOVERY_VERIFIED,'NOT_PROVEN');
     // Prova anterior não avaliava restrições de upload; não herda nível 5.
     fs.writeFileSync(recordFile, JSON.stringify({ ...sRecord, reconciliation_version: undefined }));
     assert.equal((await verify()).recovery, 'RECOVERY_DATABASE_ONLY');

@@ -43,6 +43,10 @@ jobs:
     needs: classify
     if: needs.classify.outputs.risk == 'D'
     uses: ./.github/workflows/demo-integration.yml
+    with:
+      # Historical clean/upgrade/reapply/rollback remains in full/database.
+      # Real GoTrue/PostgREST/Storage journeys now exercise the direct baseline.
+      install_flow: financialBaseline
   fast:
     needs: classify
     if: contains(fromJSON('["A","B","C"]'), needs.classify.outputs.risk)
