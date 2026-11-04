@@ -1,3 +1,4 @@
+/* global __ARANDU_DEMO__ */
 import { button } from '../ui.js';
 import { ledgerPage } from './ledger.js';
 
@@ -9,6 +10,6 @@ export const fees = (ctx) => ledgerPage(ctx, {
   filters: [['start', 'Período inicial', 'start'], ['end', 'Período final', 'end'], ['legal_entity_id', 'Entidade', 'entities'], ['provider_id', 'Instituição', 'providers'],
     ['category', 'Serviço/categoria'], ['contract_id', 'Contrato', 'contracts'], ['currency', 'Moeda'], ['review_status', 'Estado da revisão']],
   // Importação CSV/XLSX (financial-fee-import-v1): prévia é aberta a quem vê o contrato; confirmar exige gestão.
-  extraActions: ctx.mode === 'demo' ? null : () => [button('Importar arquivo', { iconName: 'download', attrs: { id: 'fee-import-trigger' }, onClick: () => import('./fee-import.js').then((m) => m.openFeeImport(ctx, { contracts: ctx.data.contracts || [], contractId: new URLSearchParams(location.search).get('contract_id') })) })]
+  extraActions: (__ARANDU_DEMO__ && ctx.mode === 'demo') ? null : () => [button('Importar arquivo', { iconName: 'download', attrs: { id: 'fee-import-trigger' }, onClick: () => import('./fee-import.js').then((m) => m.openFeeImport(ctx, { contracts: ctx.data.contracts || [], contractId: new URLSearchParams(location.search).get('contract_id') })) })]
 });
 

@@ -9,7 +9,7 @@
 // pessoa · ação · momento · objeto · detalhe · origem.
 
 import { el, timeAgo, formatDateTime } from '../../../src/core.js';
-import { eventPhrase } from '../../../src/views/shared.js';
+import { eventPhrase } from '../../../src/views/shared/collaboration.js';
 import { auditLog, ORIGINS, on } from '../platform/bus.js';
 
 const FILTERS = [['all', 'Tudo'], ['changes', 'Alterações'], ['proposals', 'Propostas'], ['approvals', 'Aprovações'], ['comments', 'Comentários']];

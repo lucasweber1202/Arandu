@@ -15,7 +15,9 @@
 import { PRODUCTS } from '../../../lib/finance/products.mjs';
 import { el, icon, money, fieldValue, formatDate, timeAgo, productLabel, demandHeadline, PROVIDER_KINDS } from '../../src/core.js';
 import { drawer, linkButton, emptyState, button, confirmDialog, promptDialog, toast } from '../../src/ui.js';
-import { approvalSteps, memberName, revisionTimeline } from '../../src/views/shared.js';
+import { approvalSteps } from '../../src/views/shared/approvals.js';
+import { memberName } from '../../src/views/shared/people.js';
+import { revisionTimeline } from '../../src/views/shared/collaboration.js';
 import { optimistic, registerExecutor } from './platform/sync.js';
 import { emit } from './platform/bus.js';
 import { mark, track } from './platform/telemetry.js';

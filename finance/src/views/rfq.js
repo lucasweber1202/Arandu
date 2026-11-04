@@ -1,14 +1,19 @@
+/* global __ARANDU_DEMO__ */
 import { graphContextCard } from './graph-context.js';
 import { negotiationOrigin } from './negotiation-origin.js';
 // Detalhe da solicitação: contexto no topo, operação separada em abas.
 
 import { PRODUCTS } from '../../../lib/finance/products.mjs';
-import { el, icon, money, percent, fieldValue, formatDate, formatDateTime, relativeDays, daysUntil, plural, productLabel, RFQ_STATUS, PROPOSAL_STATUS, APPROVAL_STATUS, PROVIDER_KINDS, todayIso, timeAgo } from '../core.js';
-import { card, pill, tag, button, linkButton, emptyState, errorState, loading, tabs, definitionList, toast, confirmDialog, promptDialog, drawer, field, catalogControl, person, menu, progress, onSubmit, sessionLink } from '../ui.js';
+import { el, icon, fieldValue, formatDate, relativeDays, daysUntil, plural, productLabel, RFQ_STATUS, PROPOSAL_STATUS, PROVIDER_KINDS, todayIso, timeAgo } from '../core.js';
+import { card, pill, tag, button, linkButton, emptyState, errorState, loading, tabs, definitionList, toast, confirmDialog, drawer, field, catalogControl, person, menu, progress, onSubmit, mutedText, toastError } from '../ui.js';
 import { loadEntities, rfqEntityControl } from './entities.js';
-import { comparisonMatrix, weightsPanel, revisionTimeline, collaboration, activityLog, approvalSteps, approvalActions, currentStep, memberName, memberTitle, coverage, approvalSummaryLine, lazyDocuments, keyTerms, isViewerTurn } from './shared.js';
-import { proposalChanges } from '../../../lib/finance/comparison-context.mjs';
+import { revisionTimeline, collaboration, activityLog } from './shared/collaboration.js';
+import { currentStep, isViewerTurn } from './shared/approvals.js';
+import { memberName } from './shared/people.js';
+import { coverage, keyTerms } from './shared/terms.js';
+import { lazyDocuments } from './shared/documents.js';
 import { negotiationNextStep } from '../../../lib/finance/negotiation-next-step.mjs';
+import { exportProcess } from './rfq/export.js';
 
 const FLOW = [['draft', 'Rascunho'], ['open', 'Aberta'], ['collecting', 'Coleta'], ['comparing', 'Avaliação'], ['decided', 'Decisão'], ['contracted', 'Contrato']];
 
@@ -37,7 +42,7 @@ const INVITE_CLOSED = Object.freeze({
 export async function rfqDetail(ctx) {
   const id = new URLSearchParams(location.search).get('id');
   let rfq = (ctx.data.rfqs || []).find((item) => item.id === id);
-  if (!rfq && id && ctx.mode !== 'demo') {
+  if (!rfq && id && !(__ARANDU_DEMO__ && ctx.mode === 'demo')) {
     try {
       const detail = await ctx.api(`rfq/${encodeURIComponent(id)}`);
       if (detail.rfq?.id !== id || detail.rfq.organization_id !== ctx.organization.id) throw Object.assign(new Error('Solicitação fora da organização em foco.'), {status:404});
@@ -52,7 +57,7 @@ export async function rfqDetail(ctx) {
       action: linkButton('Ver solicitações', ctx.href('/finance/rfqs.html'), { iconName: 'arrowRight' }) });
   }
   let externalUi=null;
-  if (ctx.mode !== 'demo') {
+  if (!(__ARANDU_DEMO__ && ctx.mode === 'demo')) {
     try { externalUi=await import('./external-proposals.js');rfq=await externalUi.loadExternalDecisionChoices(ctx,rfq); }
     catch { rfq={...rfq,external_decision_error:true,external_decision_alternatives:[]}; }
   }
@@ -63,27 +68,27 @@ export async function rfqDetail(ctx) {
   // exigida": a tela diz o que faltou e não oferece decidir nem pedir aprovação.
   const gaps = new Set();
   const [approvals, decisions, generalPolicy, evaluation, entities] = await Promise.all([
-    (ctx.mode === 'demo' ? ctx.loadApprovals() : ctx.api(`approvals?organization_id=${encodeURIComponent(ctx.organization.id)}&rfq_id=${encodeURIComponent(rfq.id)}`).then(result=>result.rows || [])).then((rows) => rows.filter((row) => row.rfq_id === rfq.id)).catch(()=>{gaps.add('as aprovações'); return [];}),
-    ctx.api(`decisions?organization_id=${encodeURIComponent(ctx.organization.id)}${ctx.mode === 'demo' ? '' : `&rfq_id=${encodeURIComponent(rfq.id)}`}`).then((result) => result.rows || []).catch(() => { gaps.add('a decisão registrada'); return []; }),
-    ctx.api(`approval-policy?organization_id=${encodeURIComponent(ctx.organization.id)}`).catch(() => { gaps.add('a política de aprovação'); return { required_for_decision: false }; }),
+    ((__ARANDU_DEMO__ && ctx.mode === 'demo') ? ctx.loadApprovals() : ctx.api(`approvals?organization_id=${ctx.orgId}&rfq_id=${encodeURIComponent(rfq.id)}`).then(result=>result.rows || [])).then((rows) => rows.filter((row) => row.rfq_id === rfq.id)).catch(()=>{gaps.add('as aprovações'); return [];}),
+    ctx.api(`decisions?organization_id=${ctx.orgId}${(__ARANDU_DEMO__ && ctx.mode === 'demo') ? '' : `&rfq_id=${encodeURIComponent(rfq.id)}`}`).then((result) => result.rows || []).catch(() => { gaps.add('a decisão registrada'); return []; }),
+    ctx.api(`approval-policy?organization_id=${ctx.orgId}`).catch(() => { gaps.add('a política de aprovação'); return { required_for_decision: false }; }),
     // Exigência pela policy v2 (sem proposta escolhida ainda): a decisão sem
     // pedido só passa quando nenhuma policy pede etapa ou bloqueio.
     ['collecting', 'comparing'].includes(rfq.status) && (proposals.length || rfq.external_decision_alternatives?.length)
-      ? ctx.api('approval-policies/preview', { method: 'POST', body: JSON.stringify({ rfq_id: rfq.id }) }).then((out) => out.evaluation).catch((error) => { if (error.status !== 404) gaps.add('a exigência de aprovação'); return null; })
+      ? ctx.send('approval-policies/preview', { rfq_id: rfq.id }).then((out) => out.evaluation).catch((error) => { if (error.status !== 404) gaps.add('a exigência de aprovação'); return null; })
       : Promise.resolve(null),
     // Entidades não dependem da avaliação da política. Não serializar uma
     // consulta de contexto depois das consultas de aprovação.
     loadEntities(ctx)
   ]);
   externalUi?.normalizeExternalApprovals(approvals,rfq);
-  if (ctx.mode === 'demo' && ctx.approvalsError) gaps.add('as aprovações');
+  if ((__ARANDU_DEMO__ && ctx.mode === 'demo') && ctx.approvalsError) gaps.add('as aprovações');
   const governanceGap = gaps.size ? ['a decisão registrada', 'a política de aprovação', 'a exigência de aprovação', 'as aprovações'].filter(item=>gaps.has(item)) : null;
   const policy = { ...generalPolicy, required_for_decision: Boolean(generalPolicy.required_for_decision || evaluation?.approval_required), evaluation };
   const decision = decisions.find((row) => row.rfq_id === rfq.id) || null;
   const contract = decision ? (Object.hasOwn(decision, 'contract') ? decision.contract : (ctx.data.contracts || []).find((row) => row.decision_id === decision.id)) : null;
   // A decisão e seu contrato são fatos posteriores ao resumo: projetar a etapa
   // já comprovada por esses vínculos, sem escrever nem reabrir o processo.
-  if (ctx.mode !== 'demo' && decision) rfq = {...rfq, status:contract ? 'contracted' : 'decided'};
+  if (!(__ARANDU_DEMO__ && ctx.mode === 'demo') && decision) rfq = {...rfq, status:contract ? 'contracted' : 'decided'};
   const pending = approvals.find((row) => row.status === 'pending') || null;
   const days = daysUntil(rfq.response_deadline);
   const live = ['open', 'collecting'].includes(rfq.status);
@@ -92,10 +97,10 @@ export async function rfqDetail(ctx) {
   const transition = async (status, { title, description, tone = 'primary', confirmLabel }) => {
     if (!await confirmDialog({ title, description, confirmLabel, tone })) return;
     try {
-      await ctx.api('transition', { method: 'POST', body: JSON.stringify({ kind: 'rfq', id: rfq.id, from: rfq.status, status }) });
+      await ctx.send('transition', { kind: 'rfq', id: rfq.id, from: rfq.status, status });
       toast({ open: 'Solicitação aberta para propostas.', comparing: 'Coleta encerrada. Propostas prontas para avaliação.', collecting: 'Coleta reaberta.', cancelled: 'Solicitação cancelada.' }[status] || 'Estado atualizado.');
       ctx.reload();
-    } catch (error) { toast(error.message, 'error'); }
+    } catch (error) { toastError(error); }
   };
   const actions = [];
   if (manage) {
@@ -141,21 +146,21 @@ export async function rfqDetail(ctx) {
   root.append(nextStepCard(ctx, rfq, { pending, approvals, decision, contract, policy, governanceGap, manage }));
   root.append(negotiationOrigin(ctx, rfq, { decision, contract, pending }));
   // Processos e atividades de relacionamento vinculados a esta negociação (CRM).
-  if (ctx.mode !== 'demo') {
+  if (!(__ARANDU_DEMO__ && ctx.mode === 'demo')) {
     // Copilot da negociação: pergunta sobre esta solicitação, não sobre a organização inteira.
     import('./copilot.js').then((m) => m.setCopilotContext({ type: 'rfq', id: rfq.id, label: rfq.title })).catch(() => {});
     const crmSlot = el('div');
     root.append(crmSlot);
-    import('./crm-workspace.js').then((m) => { if (crmSlot.parentNode) crmSlot.replaceWith(m.crmLinkedPanel(ctx, { relatedId: rfq.id, noun: 'esta negociação' })); }).catch(() => crmSlot.remove());
+    import('./crm/linked-panel.js').then((m) => { if (crmSlot.parentNode) crmSlot.replaceWith(m.crmLinkedPanel(ctx, { relatedId: rfq.id, noun: 'esta negociação' })); }).catch(() => crmSlot.remove());
   }
   if (governanceGap) root.append(governanceGapNotice(ctx, governanceGap));
 
   const tabset = tabs([
     { id: 'visao-geral', label: 'Visão geral', render: () => overviewTab(ctx, rfq, { manage, pending, approvals, decision, contract, policy, governanceGap }) },
     { id: 'propostas', label: 'Propostas', count: proposals.length+(rfq.external_proposal_count||0), render: () => proposalsTab(ctx, rfq) },
-    { id: 'comparacao', label: 'Comparação', render: () => comparisonTab(ctx, rfq, decision) },
-    { id: 'aprovacoes', label: 'Aprovações', count: pending ? 1 : null, render: () => governanceGap ? governanceGapTab() : approvalsTab(ctx, rfq, approvals, { manage }) },
-    { id: 'decisao', label: 'Decisão', render: () => governanceGap ? governanceGapTab() : decisionTab(ctx, rfq, { decision, contract, policy, approvals, manage, externalUi }) },
+    { id: 'comparacao', label: 'Comparação', render: () => import('./rfq/comparison-tab.js').then((m) => m.comparisonTab(ctx, rfq, decision)) },
+    { id: 'aprovacoes', label: 'Aprovações', count: pending ? 1 : null, render: () => governanceGap ? governanceGapTab() : import('./rfq/approvals-tab.js').then((m) => m.approvalsTab(ctx, rfq, approvals, { manage })) },
+    { id: 'decisao', label: 'Decisão', render: () => governanceGap ? governanceGapTab() : import('./rfq/decision-tab.js').then((m) => m.decisionTab(ctx, rfq, { decision, contract, policy, approvals, manage, externalUi })) },
     { id: 'atividade', label: 'Atividade', render: () => activityTab(ctx, rfq) }
   ], { label: 'Seções da solicitação' });
   root.append(tabset.node);
@@ -199,7 +204,7 @@ function overviewTab(ctx, rfq, { manage, pending, approvals, decision, contract,
     body: [invites.length ? inviteList : emptyState({ title: 'Convide pelo menos três provedores', text: 'Com menos de três propostas, a comparação diz pouco.', iconName: 'users', compact: true }),
       manage && ['draft', 'open', 'collecting'].includes(rfq.status) ? inviteForm(ctx, rfq) : null] });
 
-  const reuse = card({ title: 'Reaproveitar', id: 'reaproveitar', body: [el('p', { class: 'muted small', text: 'Comece outra solicitação com esta demanda. Convites, propostas e decisões não são copiados.' }),
+  const reuse = card({ title: 'Reaproveitar', id: 'reaproveitar', body: [mutedText('Comece outra solicitação com esta demanda. Convites, propostas e decisões não são copiados.'),
     linkButton('Criar nova solicitação com estes dados', ctx.href(`/finance/new-rfq.html?clone=${encodeURIComponent(rfq.id)}`), { size: 'sm', iconName: 'repeat' })] });
   const documents = card({ title: 'Documentos', subtitle: 'Balanços, minutas e anexos do processo, em armazenamento privado.', id: 'documentos', body: el('div', {}, loading()) });
   import('./documents.js').then(({ documentsPanel }) => documents.querySelector('.card-body').replaceChildren(documentsPanel(ctx, {
@@ -207,7 +212,7 @@ function overviewTab(ctx, rfq, { manage, pending, approvals, decision, contract,
   // Quadro de respostas (portal + propostas externas, de quem é a vez): fora do
   // build de demonstração, que não tem API nem empacota o módulo.
   let board = null;
-  if (!__ARANDU_DEMO__ && ctx.mode !== 'demo') {
+  if (!__ARANDU_DEMO__ && !(__ARANDU_DEMO__ && ctx.mode === 'demo')) {
     board = el('div');
     import('./negotiation-board.js').then((m) => { if (board.parentNode) board.replaceWith(m.responseBoardCard(ctx, rfq)); }).catch(() => board.remove());
   }
@@ -222,7 +227,7 @@ function passportSnapshotCard(ctx, rfq) {
   const slot = el('div', { hidden: true });
   const body = el('div');
   const node = card({ title: 'Dados do Financial Passport', subtitle: 'Fotografia do perfil no momento da criação. Mudanças posteriores no Passport não alteram este processo.', id: 'passport', body });
-  ctx.api(`rfq-passport?organization_id=${encodeURIComponent(ctx.organization.id)}&rfq_id=${encodeURIComponent(rfq.id)}`).then(async ({ rows }) => {
+  ctx.api(`rfq-passport?organization_id=${ctx.orgId}&rfq_id=${encodeURIComponent(rfq.id)}`).then(async ({ rows }) => {
     if (!rows?.length) return;
     // Rótulos do Passport só quando há fotografia: fora do carregamento inicial da rota.
     const { SOURCE_LABELS, fieldLabel } = await import('../../../lib/finance/passport.mjs');
@@ -309,7 +314,7 @@ function nextStepCard(ctx, rfq, { pending, approvals = [], decision, contract, p
 function inviteForm(ctx, rfq) {
   const invited = new Set((rfq.invites || []).filter((row) => ['invited', 'accepted'].includes(row.status)).map((row) => row.provider_id));
   const options = (ctx.data.providers || []).filter((provider) => provider.status === 'active' && !invited.has(provider.id));
-  if (!options.length) return el('p', { class: 'muted small', text: 'Todos os provedores cadastrados já foram convidados. Cadastre outros em Provedores.' });
+  if (!options.length) return mutedText('Todos os provedores cadastrados já foram convidados. Cadastre outros em Provedores.');
   const select = el('select', { name: 'provider_id' });
   for (const provider of options) select.add(new Option(`${provider.name} · ${PROVIDER_KINDS[provider.kind] || 'tipo não informado'}`, provider.id));
   const submit = button('Convidar', { variant: 'secondary', type: 'submit', size: 'sm', iconName: 'send' });
@@ -318,9 +323,9 @@ function inviteForm(ctx, rfq) {
     event.preventDefault();
     submit.disabled = true;
     try {
-      const result = await ctx.api('invites/send', { method: 'POST', body: JSON.stringify({ rfq_id: rfq.id, provider_id: select.value }) });
+      const result = await ctx.send('invites/send', { rfq_id: rfq.id, provider_id: select.value });
       const name = select.selectedOptions[0].textContent.split(' · ')[0];
-      if (ctx.mode === 'demo') {
+      if ((__ARANDU_DEMO__ && ctx.mode === 'demo')) {
         toast(`Convite simulado para ${name}. Nenhum e-mail foi enviado. Troque para “Provedor” no topo para responder como a Atlas.`, 'info');
       } else if (result.invitationToken) {
         const description = result.recipient_mode === 'organization_open'
@@ -330,7 +335,7 @@ function inviteForm(ctx, rfq) {
           body: el('input', { class: 'input mono', readonly: true, value: `${location.origin}/provider/invite.html#token=${result.invitationToken}`, 'aria-label': 'Link de convite' }) });
       }
       ctx.reload();
-    } catch (error) { toast(error.message, 'error'); submit.disabled = false; }
+    } catch (error) { toastError(error); submit.disabled = false; }
   });
   return form;
 }
@@ -360,7 +365,7 @@ function editDrawer(ctx, rfq) {
     save.disabled = true;
     save.querySelector('.btn-label').textContent = 'Publicando…';
     try {
-      const result = await ctx.api('rfqs', { method: 'PATCH', body: JSON.stringify({ rfq_id: rfq.id, expected_revision: rfq.revision || 1, title: entries.title, description: entries.description, response_deadline: entries.response_deadline, demand }) });
+      const result = await ctx.send('rfqs', { rfq_id: rfq.id, expected_revision: rfq.revision || 1, title: entries.title, description: entries.description, response_deadline: entries.response_deadline, demand }, 'PATCH');
       dialog.close();
       toast(result.revision > (rfq.revision || 1) ? `Revisão ${result.revision} publicada.` : 'Nenhuma mudança material: a revisão continua a mesma.');
       ctx.reload();
@@ -386,7 +391,7 @@ function proposalsTab(ctx, rfq) {
     const details = el('details', { class: 'proposal-details' }, [el('summary', { text: 'Ver todas as condições' }), definitionList(PRODUCTS[rfq.product].proposalFields.filter((item) => item.key !== 'institution'), proposal.terms, { showMissing: true })]);
     wrap.append(el('article', { class: 'proposal-card', id: `proposal-${proposal.id}` }, [
       el('header', { class: 'proposal-head' }, [
-        el('div', {}, [el('h3', { class: 'proposal-name', text: proposal.provider_name }), el('p', { class: 'muted small', text: `${PROVIDER_KINDS[proposal.provider_kind] || 'Provedor'} · enviada ${timeAgo(proposal.submitted_at)} · versão ${proposal.version}${proposal.versions_count > 1 ? ` de ${proposal.versions_count}` : ''}` })]),
+        el('div', {}, [el('h3', { class: 'proposal-name', text: proposal.provider_name }), mutedText(`${PROVIDER_KINDS[proposal.provider_kind] || 'Provedor'} · enviada ${timeAgo(proposal.submitted_at)} · versão ${proposal.version}${proposal.versions_count > 1 ? ` de ${proposal.versions_count}` : ''}`)]),
         el('div', { class: 'proposal-badges' }, [pill(PROPOSAL_STATUS[proposal.status], { size: 'sm' }), proposal.rfq_revision ? tag(`Respondeu à rev. ${proposal.rfq_revision}`, outdated ? 'warning' : 'neutral') : null])
       ]),
       outdated ? el('p', { class: 'callout callout-warning compact' }, [icon('alert', { size: 14 }), el('span', { text: `Esta proposta foi enviada antes da revisão ${rfq.revision}. As condições respondem à revisão ${proposal.rfq_revision}.` })]) : null,
@@ -401,7 +406,7 @@ function proposalsTab(ctx, rfq) {
   // Convite recusado, revogado ou expirado não está "aguardando".
   const waiting = (rfq.invites || []).filter((invite) => ['invited', 'accepted'].includes(invite.status) && !proposals.some((proposal) => proposal.provider_id === invite.provider_id));
   if (waiting.length) wrap.append(card({ title: 'Ainda sem resposta', headingLevel: 3, body: el('ul', { class: 'invite-list', role: 'list' }, waiting.map((invite) =>
-    el('li', { class: 'invite-row' }, [person(invite.provider_name), el('span', { class: 'muted small', text: invite.status === 'accepted' ? 'aceitou o convite e está preparando' : 'ainda não aceitou o convite' })]))) }));
+    el('li', { class: 'invite-row' }, [person(invite.provider_name), mutedText(invite.status === 'accepted' ? 'aceitou o convite e está preparando' : 'ainda não aceitou o convite', 'span')]))) }));
   // Ofertas recebidas fora do portal ficam em seção própria: os contadores do
   // portal não dizem nada sobre elas (contrato v3.7).
   if (ctx.audience === 'company') {
@@ -414,427 +419,6 @@ function proposalsTab(ctx, rfq) {
 }
 
 // ------------------------------------------------------------ comparação
-function comparisonTab(ctx, rfq, decision = null) {
-  const proposals = rfq.proposals || [];
-  const wrap = el('div', { class: 'stack' });
-  const matrix = el('div', {}, loading('Carregando comparação…'));
-  const weightsSlot = el('div');
-  const fetchComparison = async (weights = {}) => ctx.api('comparison', { method: 'POST', body: JSON.stringify({ rfq_id: rfq.id, weights }) });
-  const load = () => {
-    matrix.replaceChildren(loading('Carregando comparação…'));
-    fetchComparison().then(({ comparison }) => {
-      matrix.replaceChildren(comparisonMatrix(rfq, proposals, { model: comparison }));
-      // Com propostas externas conferidas, o servidor pode comparar mais colunas
-      // que as do portal: os pesos (mesmo motor, via servidor) ficam disponíveis.
-      if (proposals.length <= 1 && (comparison?.columns?.length || 0) > 1 && !weightsSlot.childElementCount) weightsSlot.append(panel());
-    })
-      .catch(() => matrix.replaceChildren(errorState({ title: 'Comparação indisponível', error: 'As condições não puderam ser consultadas. Tente novamente.', onRetry: load })));
-  };
-  if (ctx.mode === 'demo') matrix.replaceChildren(comparisonMatrix(rfq, proposals));
-  else load();
-  // Coleta aberta: a matriz é parcial. Diz quantas convidadas responderam, sem
-  // tratar quem ainda não enviou como pior nem antecipar o resultado.
-  if (['open', 'collecting'].includes(rfq.status)) {
-    const invited = new Set([...(rfq.invites || []).filter((invite) => ['invited', 'accepted'].includes(invite.status)).map((invite) => invite.provider_id), ...proposals.map((proposal) => proposal.provider_id)]);
-    const answered = new Set(proposals.map((proposal) => proposal.provider_id)).size;
-    wrap.append(el('p', { class: 'callout callout-info compact', id: 'comparison-partial', role: 'note' }, [icon('info', { size: 14 }), el('span', { text:
-      `Coleta em andamento: ${answered} de ${invited.size} ${invited.size === 1 ? 'instituição convidada enviou' : 'instituições convidadas enviaram'} proposta. Respostas ainda podem chegar ou ganhar nova versão até o encerramento da coleta${answered === 1 ? '; com uma só proposta não há comparação lado a lado' : ''}.` })]));
-  }
-  if (!__ARANDU_DEMO__ && ctx.mode !== 'demo') {
-    const ready = el('div');
-    wrap.append(ready);
-    import('./negotiation-board.js').then((m) => { if (ready.parentNode) ready.replaceWith(m.readinessSection(ctx, rfq)); }).catch(() => ready.remove());
-  }
-  wrap.append(matrix);
-  // Processo já decidido: a conta abre com os pesos que a empresa registrou na decisão.
-  const recorded = ctx.weights[rfq.id] ? null : decision?.criteria?.weights;
-  const panel = () => weightsPanel(rfq, proposals, { initial: ctx.weights[rfq.id] || recorded,
-    initialNote: recorded && Object.keys(recorded).length ? 'Pesos registrados na decisão desta solicitação.' : null,
-    onApplied: (weights) => { ctx.weights[rfq.id] = weights; },
-    calculate: ctx.mode === 'demo' ? null : async weights => (await fetchComparison(weights)).weighted });
-  if (proposals.length > 1) wrap.append(panel());
-  else wrap.append(weightsSlot);
-  if (proposals.length) {
-    ctx.api('signals', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, event: 'comparison_viewed', entity_type: 'rfq', entity_id: rfq.id }) }).catch(() => {});
-    wrap.append(el('div', { class: 'row-actions' }, [button('Exportar processo (JSON)', { size: 'sm', iconName: 'download', attrs: { id: 'export-rfq' }, onClick: () => exportProcess(ctx, rfq) }),
-      el('span', { class: 'muted small', text: 'Registro factual: demanda, propostas, critérios e decisão, com datas. Sem recomendação.' })]));
-  }
-  return wrap;
-}
-
-async function exportProcess(ctx, rfq) {
-  try {
-    const result = await ctx.api(`export?rfq_id=${encodeURIComponent(rfq.id)}`);
-    const blob = new Blob([JSON.stringify(result.export, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = el('a', { href: url, download: `arandu-${ctx.mode === 'demo' ? 'demo-' : ''}rfq-${rfq.id.slice(0, 8)}.json` });
-    document.body.append(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
-    toast('Exportação gerada neste navegador.');
-  } catch (error) { toast(error.message, 'error'); }
-}
-
-// Policy administration is not needed to open an RFQ. Keep this module behind
-// the approval interaction; failed imports stay visible and can be retried.
-function lazyPolicyTimeline(ctx, request, options) {
-  const box = el('div', { 'aria-busy': 'true' }, loading());
-  const load = async () => {
-    box.setAttribute('aria-busy', 'true');
-    try { const { policyTimeline } = await import('./policy.js'); box.replaceChildren(policyTimeline(ctx, request, options)); }
-    catch (error) { box.replaceChildren(errorState({ error, onRetry: load })); }
-    finally { box.setAttribute('aria-busy', 'false'); }
-  };
-  load();
-  return box;
-}
-
-// ----------------------------------------------------------- aprovações
-export function approvalCard(ctx, request, rfq, { onChange, compact = false } = {}) {
-  const external=request.snapshot?.selected_source;
-  const proposal = external?{provider_name:`${external.provider_name||'Instituição declarada'} · fonte externa`,terms:external.terms,currency:external.currency}:(rfq.proposals || []).find((row) => row.id === request.proposal_id);
-  const step = currentStep(request);
-  const mine = request.viewer_can_act ?? (step && step.approver_id === ctx.viewer?.id);
-  const summary = request.policy_snapshot ? `${(request.stages || []).filter((stage) => ['approved', 'waived'].includes(stage.status)).length} de ${(request.stages || []).length} etapas` : approvalSummaryLine(request);
-  const node = el('article', { class: `approval-card${mine ? ' mine' : ''}`, id: `request-${request.id}` }, [
-    el('header', { class: 'approval-head' }, [
-      el('div', {}, [
-        el('p', { class: 'approval-kicker', text: `${summary} · solicitado por ${memberName(ctx.members, request.requested_by)} ${timeAgo(request.requested_at)}` }),
-        el('h3', { class: 'approval-title', text: proposal ? `${proposal.provider_name} · proposta v${request.proposal_version}` : `Proposta v${request.proposal_version}` })
-      ]),
-      pill(request.stale && request.status === 'pending' ? { label: 'Desatualizada', tone: 'danger', icon: 'alert' } : APPROVAL_STATUS[request.status])
-    ]),
-    request.stale ? el('p', { class: 'callout callout-warning compact' }, [icon('alert', { size: 14 }), el('span', { text: 'A solicitação ou a proposta mudou depois do pedido. Esta aprovação não vale para a versão atual; peça uma nova.' })]) : null,
-    external?el('p',{class:'callout callout-info',text:`Transcrição externa · versão ${external.current_version} · revisão da solicitação ${external.rfq_revision}. ${external.notice||'A conferência não autentica o emissor, não comprova assinatura ou aceite institucional.'}`}):null,
-    request.rationale ? el('blockquote', { class: 'rationale' }, [el('span', { class: 'rationale-label', text: 'Contexto do solicitante' }), el('p', { text: request.rationale })]) : null,
-    proposal && !compact ? keyTerms(rfq.product, proposal.terms,external?{currency:external.currency??null}:{}) : null,
-    request.policy_snapshot ? lazyPolicyTimeline(ctx, request, { onChange }) : approvalSteps(request, ctx.members)
-  ]);
-  if (mine && !request.stale) node.append(el('div', { class: 'approval-cta' }, [el('p', { class: 'approval-your-turn' }, [icon('clock', { size: 14 }), el('span', { text: request.policy_snapshot ? 'Você é aprovador(a) de uma etapa ativa.' : 'Sua decisão é a próxima etapa.' })]), approvalActions(ctx, request, { onDone: onChange })]));
-  if (request.status === 'pending' && request.policy_snapshot && ctx.can?.('create_rfq')) {
-    node.append(el('div', { class: 'row-actions' }, button('Substituir este pedido', { variant: 'ghost', size: 'sm', iconName: 'edit', onClick: async () => {
-      const reason = await promptDialog({ title: 'Substituir o pedido?', description: 'O pedido atual é encerrado como substituído (por exemplo, para reavaliar sob a versão nova da policy). Nada muda sozinho: depois você pede uma nova aprovação.', label: 'Motivo', minLength: 3, confirmLabel: 'Substituir', tone: 'danger' });
-      if (reason === null) return;
-      try { await ctx.api('approvals/supersede', { method: 'POST', body: JSON.stringify({ request_id: request.id, reason }) }); toast('Pedido substituído. Solicite uma nova aprovação.'); onChange?.(); }
-      catch (error) { toast(error.message, 'error'); }
-    } })));
-  }
-  if (request.status === 'pending' && request.requested_by === ctx.viewer?.id) {
-    node.append(el('div', { class: 'row-actions' }, button('Cancelar pedido de aprovação', { variant: 'ghost', size: 'sm', iconName: 'x', onClick: async () => {
-      if (!await confirmDialog({ title: 'Cancelar o pedido?', description: 'Os aprovadores deixam de ver a pendência. O histórico é mantido.', confirmLabel: 'Cancelar pedido', tone: 'danger' })) return;
-      try { await ctx.api('approvals/cancel', { method: 'POST', body: JSON.stringify({ request_id: request.id }) }); toast('Pedido de aprovação cancelado.'); onChange?.(); }
-      catch (error) { toast(error.message, 'error'); }
-    } })));
-  }
-  return node;
-}
-
-function approvalsTab(ctx, rfq, approvals, { manage }) {
-  const wrap = el('div', { class: 'stack' });
-  const proposals = [...(rfq.proposals || []),...(rfq.external_decision_alternatives || [])];
-  const [latest, ...older] = approvals;
-  if (latest) wrap.append(approvalCard(ctx, latest, rfq, { onChange: () => ctx.reload() }));
-  const canRequest = manage && proposals.length && (['collecting', 'comparing'].includes(rfq.status) || (rfq.status==='open' && rfq.external_decision_alternatives?.length)) && (!latest || latest.status !== 'pending' || latest.stale) && !rfq.decision_id;
-  if (canRequest) wrap.append(approvalRequestForm(ctx, rfq, latest));
-  if (!latest && !canRequest) wrap.append(emptyState({ title: 'Nenhuma aprovação solicitada', text: proposals.length ? 'Quem gerencia a solicitação pode pedir aprovação de uma proposta a um ou mais aprovadores, em ordem.' : 'A aprovação fica disponível quando houver propostas.', iconName: 'checkCircle' }));
-  if (older.length) wrap.append(el('details', { class: 'history' }, [el('summary', { text: `Pedidos anteriores (${older.length})` }), ...older.map((request) => approvalCard(ctx, request, rfq, { compact: true }))]));
-  return wrap;
-}
-
-function approvalRequestForm(ctx, rfq, latest) {
-  const externalRequestKey=`external-approval-${crypto.randomUUID()}`;
-  const proposals = [...(rfq.proposals || []),...(rfq.external_decision_alternatives || [])];
-  const eligible = (ctx.members || []).filter((member) => member.user_id !== ctx.viewer?.id && member.role !== 'provider_user');
-  const form = el('form', { class: 'card approval-form', id: 'approval-request', novalidate: true });
-  const subtitle = el('p', { class: 'card-subtitle', text: 'Escolha a proposta e explique o porquê. A policy da empresa, quando existir, define quem aprova e em que ordem.' });
-  form.append(el('div', { class: 'card-head' }, el('div', { class: 'card-head-text' }, [
-    el('h3', { class: 'card-title', text: latest && latest.status !== 'pending' ? 'Solicitar nova aprovação' : 'Solicitar aprovação' }), subtitle
-  ])));
-  const body = el('div', { class: 'card-body stack' });
-  const proposalGroup = el('fieldset', { class: 'radio-cards' }, el('legend', { class: 'field-label', text: 'Proposta para aprovação' }));
-  // Nenhuma proposta vem marcada quando há escolha: a ordem da lista não é
-  // recomendação (Constitution §1.2) e a escolha é sempre de quem pede.
-  const single = proposals.length === 1;
-  proposals.forEach((proposal) => {
-    proposalGroup.append(el('label', { class: 'radio-card' }, [
-      el('input', { type: 'radio', name: 'proposal_id', value: proposal.id, checked: single, required: true }),
-      el('span', { class: 'radio-card-text' }, [el('strong', { text: proposal.provider_name }), el('span', { class: 'muted small', text: `v${proposal.version} · ${rfq.product === 'credit' ? `${percent(proposal.terms?.interest_rate_month)} a.m. · ${money(proposal.terms?.offered_amount, { compact: true })}` : `MDR crédito ${percent(proposal.terms?.mdr_credit_cash)} · PIX ${percent(proposal.terms?.pix_fee)}`}` })])
-    ]));
-  });
-
-  // Modo manual (sem policy): aprovadores em ordem, como antes.
-  const order = [];
-  const approverGroup = el('fieldset', { class: 'approver-pick' }, el('legend', { class: 'field-label', text: 'Aprovadores, na ordem em que devem decidir' }));
-  const orderNote = el('p', { class: 'field-hint', text: 'Marque na ordem desejada. O solicitante não pode aprovar o próprio pedido.' });
-  for (const member of eligible) {
-    const box = el('input', { type: 'checkbox', value: member.user_id, name: 'approver' });
-    const badge = el('span', { class: 'order-badge', 'aria-hidden': 'true' });
-    box.addEventListener('change', () => {
-      if (box.checked) order.push(member.user_id); else order.splice(order.indexOf(member.user_id), 1);
-      for (const input of approverGroup.querySelectorAll('input')) {
-        const position = order.indexOf(input.value);
-        input.closest('label').querySelector('.order-badge').textContent = position >= 0 ? String(position + 1) : '';
-      }
-    });
-    approverGroup.append(el('label', { class: 'approver-option' }, [box, badge, person(member.display_name || memberName(ctx.members, member.user_id), member.title || memberTitle(ctx.members, member.user_id))]));
-  }
-  if (!eligible.length) approverGroup.append(el('p', { class: 'muted', text: 'Convide outro membro da empresa para poder solicitar aprovação.' }));
-  approverGroup.append(orderNote);
-
-  // Modo policy: prévia do plano, indicação por etapa, fatos declarados.
-  const modeBox = el('div', { class: 'stack' }, single ? loading('Conferindo a policy da empresa…')
-    : el('p', { class: 'muted small', id: 'approval-choose-first', text: 'Escolha a proposta para ver quem aprova: a policy da empresa, quando existe, depende da operação escolhida.' }));
-  const proposalError = el('p', { class: 'field-error', role: 'alert', hidden: true });
-  const declared = {};
-  let evaluation = null;
-  let policyFacts = null;
-  let previewFailed = false;
-  let flags = [];
-  let assignments = {};
-  const justification = el('textarea', { name: 'justification', rows: '3', maxlength: '2000', placeholder: 'Ex.: única instituição com linha disponível no prazo da operação.' });
-  const justificationField = field({ label: 'Justificativa exigida pela policy', control: justification, hint: 'Ao menos 10 caracteres. Fica gravada no pedido.' });
-  const declaredBox = () => {
-    const needsCovenant = (evaluation.unknown_facts || []).includes('covenant_present') || declared.covenant_present !== undefined;
-    const parts = [];
-    if (needsCovenant) {
-      const covenant = el('select', {}, [el('option', { value: '', text: 'Não informado (a policy assume o caso mais exigente)' }), el('option', { value: 'true', text: 'Sim' }), el('option', { value: 'false', text: 'Não' })]);
-      covenant.value = declared.covenant_present === undefined ? '' : String(declared.covenant_present);
-      covenant.addEventListener('change', () => { if (covenant.value === '') delete declared.covenant_present; else declared.covenant_present = covenant.value === 'true'; refresh(); });
-      parts.push(field({ label: policyFacts.covenant_present.label, control: covenant }));
-    }
-    if (flags.length) {
-      const group = el('fieldset', { class: 'check-row' }, el('legend', { class: 'field-label', text: 'Sinalizadores da empresa que se aplicam a esta operação' }));
-      for (const flag of flags) {
-        const box = el('input', { type: 'checkbox', value: flag.key, checked: (declared.flags || []).includes(flag.key) });
-        box.addEventListener('change', () => { declared.flags = [...group.querySelectorAll('input:checked')].map((input) => input.value); refresh(); });
-        group.append(el('label', { class: 'check-option' }, [box, el('span', { text: flag.label })]));
-      }
-      parts.push(group, el('p', { class: 'field-hint', text: 'A declaração fica gravada no pedido, com seu nome.' }));
-    }
-    return parts.length ? el('div', { class: 'stack-sm' }, parts) : null;
-  };
-  const refresh = async () => {
-    const proposalId = new FormData(form).get('proposal_id');
-    try {
-      const out = await ctx.api('approval-policies/preview', { method: 'POST', body: JSON.stringify({ rfq_id: rfq.id, proposal_id: proposalId, declared }) });
-      evaluation = out.evaluation;
-      previewFailed = false;
-    } catch (failure) {
-      // Prévia que falhou não é "sem policy": cair no modo de aprovadores livres
-      // poderia pedir aprovação fora das etapas exigidas. Nada é enviado até a
-      // policy ser conferida de novo. 404 = ambiente sem policies (sandbox legado).
-      evaluation = null;
-      previewFailed = failure.status !== 404;
-      if (previewFailed) {
-        modeBox.replaceChildren(errorState({ title: 'Não conseguimos conferir a policy de aprovação desta proposta', error: failure, onRetry: refresh }));
-        return;
-      }
-    }
-    const policyMode = evaluation?.engine === 'policy' && ((evaluation.stages || []).length || (evaluation.blockers || []).length);
-    if (!policyMode) {
-      evaluation = null;
-      modeBox.replaceChildren(approverGroup);
-      return;
-    }
-    let policyUi;
-    // Fatos da policy (mesmo módulo que policy.js usa): só no modo policy, fora do carregamento inicial.
-    try { [policyUi, { POLICY_FACTS: policyFacts }] = await Promise.all([import('./policy.js'), import('../../../lib/finance/policy.mjs')]); }
-    catch (failure) {
-      previewFailed = true;
-      modeBox.replaceChildren(errorState({ title: 'Não conseguimos carregar as etapas de aprovação', error: failure, onRetry: refresh }));
-      return;
-    }
-    const { loadPolicies, planSummary, stageAssignments } = policyUi;
-    flags = ((await loadPolicies(ctx))?.flags || []).filter((flag) => flag.active);
-    const keep = assignments;
-    assignments = {};
-    for (const stage of evaluation.stages || []) assignments[stage.key] = (keep[stage.key] || []).slice();
-    subtitle.textContent = 'A policy da empresa define as etapas abaixo. Indique quem aprova cada uma; o banco confere papel, escopo e segregação de funções.';
-    modeBox.replaceChildren(planSummary(ctx, evaluation), declaredBox() || el('span'), stageAssignments(ctx, evaluation.stages || [], assignments),
-      evaluation.requirements?.justification ? justificationField : el('span'));
-  };
-  proposalGroup.addEventListener('change', () => { proposalError.hidden = true; refresh(); });
-
-  const rationale = el('textarea', { name: 'rationale', rows: '4', maxlength: '4000', placeholder: 'Ex.: menor custo total estimado e valor integral; garantias validadas com o jurídico.' });
-  const rationaleField = field({ label: 'Contexto para quem aprova', control: rationale, required: true, hint: 'Quem aprova vê este texto junto com a proposta e a comparação.' });
-  const error = el('p', { class: 'field-error', role: 'alert', hidden: true });
-  const submit = button('Solicitar aprovação', { variant: 'primary', type: 'submit', iconName: 'send' });
-  body.append(proposalGroup, proposalError, modeBox, rationaleField, error, el('div', { class: 'form-actions' }, submit));
-  form.append(body);
-  onSubmit(form, async (event) => {
-    event.preventDefault();
-    error.hidden = true;
-    if (proposals.length && !new FormData(form).get('proposal_id')) {
-      proposalError.textContent = 'Escolha a proposta que vai para aprovação.';
-      proposalError.hidden = false;
-      proposalGroup.querySelector('input')?.focus();
-      return;
-    }
-    if (!rationale.value.trim()) { rationaleField.setError('Explique o contexto para quem vai aprovar.'); rationale.focus(); return; }
-    const proposalId = new FormData(form).get('proposal_id');
-    if (previewFailed) { error.textContent = 'A policy desta proposta ainda não foi conferida. Use "Tentar novamente" acima; nada foi enviado.'; error.hidden = false; return; }
-    if (evaluation) {
-      const missing = (evaluation.stages || []).find((stage) => (assignments[stage.key] || []).length < stage.min_approvals);
-      if (missing) { error.textContent = `Indique ${missing.min_approvals} aprovador(es) para "${missing.label}".`; error.hidden = false; return; }
-      if (evaluation.requirements?.justification && justification.value.trim().length < 10) { justificationField.setError('A policy exige justificativa com ao menos 10 caracteres.'); justification.focus(); return; }
-    } else if (!order.length) { error.textContent = 'Escolha pelo menos um aprovador.'; error.hidden = false; return; }
-    submit.disabled = true;
-    try {
-      const payload = evaluation
-        ? { rfq_id: rfq.id, proposal_id: proposalId, assignments, rationale: rationale.value, justification: justification.value.trim() || null, declared }
-        : { rfq_id: rfq.id, proposal_id: proposalId, approver_ids: order, rationale: rationale.value };
-      const external=proposals.find(row=>row.id===proposalId&&row.origin==='buyer_recorded_external');
-      await ctx.api(external?'external-proposals/approval':'approvals/request', { method: 'POST', body: JSON.stringify(external?{...payload,id:external.id,expected_version:external.version,rfq_revision:rfq.revision,request_key:externalRequestKey}:payload) });
-      toast(evaluation ? 'Aprovação solicitada pela policy. Os aprovadores da primeira etapa foram avisados.' : `Aprovação solicitada. ${memberName(ctx.members, order[0])} foi avisado(a).`);
-      ctx.reload();
-    } catch (failure) {
-      error.replaceChildren(failure.message, ...(sessionLink(failure) ? [' ', sessionLink(failure)] : []));
-      error.hidden = false;
-      // Resultado incerto: o pedido pode ter sido aberto. Conferir antes de pedir de novo.
-      if (!failure.status || failure.status >= 500) error.append(' ', button('Recarregar e conferir', { size: 'sm', iconName: 'refresh', onClick: () => ctx.reload() }));
-      else submit.disabled = false;
-    }
-  });
-  if (single) queueMicrotask(refresh);
-  return form;
-}
-
-// -------------------------------------------------------------- decisão
-function decisionTab(ctx, rfq, { decision, contract, policy, approvals, manage, externalUi }) {
-  const wrap = el('div', { class: 'stack' });
-  const externalRequestKey=`external-decision-${crypto.randomUUID()}`;
-  const proposals = [...(rfq.proposals || []),...(rfq.external_decision_alternatives || [])];
-  if (decision) {
-    const liveChosen = proposals.find((row) => row.id === decision.proposal_id);
-    const selected = decision.selected_proposal;
-    const frozenMissing = Object.hasOwn(decision, 'selected_proposal') && !selected;
-    const chosen = selected ? {...liveChosen, ...selected, id:decision.external_proposal_id||decision.proposal_id, provider_name:selected.provider_name||liveChosen?.provider_name || 'Instituição escolhida'} : frozenMissing ? null : liveChosen;
-    if(decision.external_proposal_id && externalUi) wrap.append(externalUi.externalDecisionNotice());
-    const weights = Object.entries(decision.criteria?.weights || {});
-    const specs = Object.fromEntries(PRODUCTS[rfq.product].proposalFields.map((item) => [item.key, item]));
-    wrap.append(card({ title: 'Decisão registrada', id: 'decisao-registrada', body: [
-      el('div', { class: 'decision-summary' }, [
-        el('span', { class: 'decision-icon' }, icon('flag', { size: 18 })),
-        el('div', {}, [el('p', { class: 'decision-title', text: chosen ? `${chosen.provider_name} · proposta v${decision.proposal_version || chosen.version}` : 'Proposta escolhida' }),
-          el('p', { class: 'muted small', text: `Por ${memberName(ctx.members, decision.decided_by)} em ${formatDateTime(decision.decided_at)}` })])
-      ]),
-      decision.rationale ? el('blockquote', { class: 'rationale' }, [el('span', { class: 'rationale-label', text: 'Justificativa' }), el('p', { text: decision.rationale })]) : null,
-      el('p', { class: 'muted small', text: weights.length ? `Critérios definidos pela empresa: ${weights.map(([key, value]) => `${specs[key]?.label || key} (${value})`).join(' · ')}` : 'Decisão sem pesos registrados.' }),
-      selected ? el('p', {class:'muted small',text:`Condições preservadas no momento da decisão · proposta v${selected.version}.`}) : null,
-      chosen ? keyTerms(rfq.product, chosen.terms, decision.external_proposal_id?{currency:chosen.currency??null}:{}) : null
-    ] }));
-    if (contract) wrap.append(card({ title: 'Contrato', body: [el('p', { text: `Vigência de ${formatDate(contract.starts_on)} a ${formatDate(contract.ends_on)} · aviso prévio de ${contract.renewal_notice_days} dias.` }),
-      linkButton('Abrir ciclo de vida do contrato', ctx.href(`/finance/contracts.html#contract-${contract.id}`), { iconName: 'arrowRight', variant: 'primary' })] }));
-    else if (frozenMissing) wrap.append(emptyState({title:'Condições da decisão indisponíveis',text:'Não foi possível recuperar a proposta preservada na decisão. Recarregue e confira o histórico antes de registrar o contrato.',iconName:'alert'}));
-    else if (manage && decision.external_proposal_id) wrap.append(externalUi ? externalUi.externalContractContinuation(ctx,rfq,decision) : errorState({error:new Error('Continuidade externa indisponível.'),onRetry:()=>ctx.reload()}));
-    else if (manage) wrap.append(contractForm(ctx, rfq, decision, chosen));
-    else wrap.append(emptyState({ title: 'Contrato ainda não registrado', text: 'Quem gerencia a solicitação registra o contrato com vigência e aviso prévio.', iconName: 'briefcase', compact: true }));
-    return wrap;
-  }
-  if(rfq.external_decision_error) wrap.append(el('p',{class:'callout callout-warning',text:'As alternativas externas não puderam ser consultadas. Recarregue antes de selecionar uma fonte externa.'}));
-  if (!proposals.length) { wrap.append(emptyState({ title: 'A decisão fica disponível com propostas', text: 'Assim que houver ao menos uma proposta enviada, a empresa pode registrar sua escolha.', iconName: 'flag' })); return wrap; }
-  if (!['collecting', 'comparing'].includes(rfq.status) && !(rfq.status==='open'&&rfq.external_decision_alternatives?.length)) { wrap.append(emptyState({ title: 'Sem decisão para este estado', text: 'Decisões são registradas enquanto a solicitação está em coleta ou avaliação.', iconName: 'flag' })); return wrap; }
-  const approved = approvals.find((row) => row.status === 'approved' && !row.stale);
-  const pending = approvals.find((row) => row.status === 'pending');
-  if (policy.required_for_decision && !approved) {
-    wrap.append(el('div', { class: 'callout callout-warning' }, [icon('lock'), el('div', {}, [
-      el('strong', { text: 'Sua empresa exige aprovação antes da decisão.' }),
-      el('p', { text: pending ? `Há um pedido em andamento (${approvalSummaryLine(pending)}). A decisão libera quando ele for aprovado.` : 'Solicite a aprovação da proposta escolhida na aba Aprovações.' }),
-      linkButton(pending ? 'Acompanhar aprovação' : 'Solicitar aprovação', '#aprovacoes', { size: 'sm', iconName: 'arrowRight' })
-    ])]));
-    return wrap;
-  }
-  if (!manage) { wrap.append(emptyState({ title: 'Nenhuma decisão registrada', text: 'Quem gerencia a solicitação registra a decisão.', iconName: 'flag' })); return wrap; }
-  const conflict = ctx.decisionConflicts?.[rfq.id];
-  const conflicted = conflict ? proposals.find((row) => row.id === conflict.proposal_id) : null;
-  const form = el('form', { class: 'card', id: 'decision-form', novalidate: true });
-  const group = el('fieldset', { class: 'radio-cards' }, el('legend', { class: 'field-label', text: 'Proposta escolhida' }));
-  for (const proposal of proposals) {
-    const locked = approved && approved.proposal_id !== proposal.id;
-    group.append(el('label', { class: `radio-card${locked ? ' disabled' : ''}` }, [
-      // Sem aprovação nem conflito, nada vem marcado quando há mais de uma
-      // proposta: a decisão é um clique consciente, nunca a primeira da lista.
-      el('input', { type: 'radio', name: 'proposal_id', value: proposal.id, checked: approved ? approved.proposal_id === proposal.id : conflicted ? proposal.id === conflicted.id : proposals.length === 1, disabled: locked, required: true }),
-      el('span', { class: 'radio-card-text' }, [el('strong', { text: proposal.provider_name }), el('span', { class: 'muted small', text: locked ? 'Não aprovada' : `v${proposal.version}${approved?.proposal_id === proposal.id ? ' · aprovada' : ''}` })])
-    ]));
-  }
-  // Conflito de versão (§36.2): o servidor recusou porque a proposta mudou
-  // enquanto a pessoa decidia. Nada foi gravado; antes de tentar de novo, a tela
-  // mostra o que mudou e pede confirmação explícita das condições atuais.
-  const reviewed = el('input', { type: 'checkbox', name: 'reviewed_current_version', required: true });
-  const conflictNode = conflicted && conflicted.version !== conflict.expected_version ? (() => {
-    const before = conflicted.previous_version?.version === conflict.expected_version ? conflicted.previous_version : null;
-    const fields = PRODUCTS[rfq.product].proposalFields;
-    const changes = before ? proposalChanges(rfq.product, conflicted, before).map((key) => fields.find((item) => item.key === key)).filter(Boolean)
-      .map((spec) => el('li', { text: `${spec.label}: ${fieldValue(spec, before.terms?.[spec.key]) ?? 'não informado'} → ${fieldValue(spec, conflicted.terms?.[spec.key]) ?? 'não informado'}` })) : [];
-    return el('div', { class: 'callout callout-warning', id: 'decision-conflict', role: 'alert' }, [icon('alert'), el('div', { class: 'stack' }, [
-      el('strong', { text: `A proposta de ${conflicted.provider_name} mudou para a versão ${conflicted.version} enquanto você decidia. Nada foi registrado.` }),
-      changes.length ? el('ul', { class: 'conflict-changes' }, changes)
-        : el('p', { text: `A versão que você viu (v${conflict.expected_version}) não está mais disponível para comparação nesta tela. Confira as condições atuais na aba Comparação.` }),
-      el('label', { class: 'check' }, [reviewed, el('span', { text: `Revisei as condições da versão ${conflicted.version} e quero seguir com a decisão` })])
-    ])]);
-  })() : null;
-  const choiceError = el('p', { class: 'field-error', role: 'alert', hidden: true });
-  group.addEventListener('change', () => { choiceError.hidden = true; });
-  const rationale = el('textarea', { name: 'rationale', rows: '3', maxlength: '4000', 'aria-label': 'Justificativa da decisão' });
-  const weights = ctx.weights[rfq.id];
-  const useWeights = el('input', { type: 'checkbox', name: 'use_weights', checked: Boolean(weights) });
-  const submit = button('Registrar decisão', { variant: 'primary', type: 'submit', iconName: 'flag' });
-  form.append(el('div', { class: 'card-head' }, el('div', { class: 'card-head-text' }, [el('h3', { class: 'card-title', text: 'Registrar decisão' }),
-    el('p', { class: 'card-subtitle', text: 'A decisão é da empresa. O Arandu guarda quem decidiu, quando, a proposta e uma fotografia de todas as propostas deste momento.' })])),
-  el('div', { class: 'card-body stack' }, [conflictNode, group, choiceError, field({ label: 'Justificativa', control: rationale, optionalLabel: true }),
-    weights ? el('label', { class: 'check' }, [useWeights, el('span', { text: 'Registrar os pesos aplicados na comparação como critério desta decisão' })]) : null,
-    el('div', { class: 'form-actions' }, submit)]));
-  onSubmit(form, async (event) => {
-    event.preventDefault();
-    const data = new FormData(form);
-    const chosen = proposals.find((row) => row.id === data.get('proposal_id'));
-    if (!chosen) {
-      choiceError.textContent = 'Escolha a proposta da decisão.';
-      choiceError.hidden = false;
-      group.querySelector('input:not(:disabled)')?.focus();
-      return;
-    }
-    if (conflictNode && chosen?.id === conflicted.id && !reviewed.checked) {
-      toast(`Confirme que revisou a versão ${conflicted.version} antes de registrar a decisão.`, 'error');
-      reviewed.focus();
-      return;
-    }
-    if (!await confirmDialog({ title: `Registrar a escolha de ${chosen?.provider_name}?`, description: chosen?.origin==='buyer_recorded_external'?externalUi.externalDecisionConfirmation:'A decisão fica registrada de forma permanente e a solicitação passa para “Decidida”. Em seguida você registra o contrato.', confirmLabel: 'Registrar decisão' })) return;
-    submit.disabled = true;
-    try {
-      const external=chosen?.origin==='buyer_recorded_external';
-      await ctx.api(external?'external-proposals/decision':'decisions', { method: 'POST', body: JSON.stringify(external?{id:chosen.id,expected_version:chosen.version,rfq_revision:rfq.revision,request_key:externalRequestKey,rationale:data.get('rationale'),weights:useWeights.checked?weights||{}:{}}:{ rfq_id: rfq.id, proposal_id: data.get('proposal_id'), expected_version: chosen?.version, rationale: data.get('rationale'), criteria: { weights: useWeights.checked ? weights || {} : {} } }) });
-      if (ctx.decisionConflicts) delete ctx.decisionConflicts[rfq.id];
-      toast(chosen?.origin==='buyer_recorded_external'?'Decisão interna registrada. O vínculo contratual é uma etapa separada.':'Decisão registrada. Agora registre o contrato.');
-      ctx.reload();
-    } catch (error) {
-      toast(error.message, 'error');
-      // Versão nova da proposta ou alteração simultânea: nada foi registrado; a
-      // página recarrega para mostrar as condições atuais antes de decidir de novo.
-      if (error.code === 'proposal_version_changed' || error.code === 'concurrent_update') {
-        (ctx.decisionConflicts ||= {})[rfq.id] = { proposal_id: chosen?.id, expected_version: chosen?.version };
-        ctx.reload();
-      }
-      else if (chosen?.origin==='buyer_recorded_external' && (!error.status || error.status>=500)) {
-        choiceError.hidden=false;choiceError.textContent='O resultado ainda é desconhecido. Consulte antes de reenviar.';
-        choiceError.append(externalUi.externalDecisionRecovery(ctx,chosen.id,externalRequestKey,()=>{submit.disabled=false;}));
-      } else submit.disabled = false;
-    }
-  });
-  wrap.append(form);
-  return wrap;
-}
-
-function contractForm(ctx, rfq, decision, chosen) {
-  const slot = el('div', {}, loading('Preparando o registro do contrato…'));
-  import('./contract-registration.js').then(module=>{if(slot.isConnected) slot.replaceChildren(module.contractForm(ctx, rfq, decision, chosen));})
-    .catch(error=>slot.replaceChildren(errorState({error, onRetry:()=>ctx.reload()})));
-  return slot;
-}
-
-// -------------------------------------------------------------- atividade
 function activityTab(ctx, rfq) {
   return el('div', { class: 'split' }, [
     el('div', { class: 'split-main' }, card({ title: 'Conversa do processo', subtitle: 'Cada comentário mostra quem pode lê-lo.', body: collaboration(ctx, rfq) })),
@@ -843,3 +427,4 @@ function activityTab(ctx, rfq) {
 }
 
 export { progress, loading, errorState };
+

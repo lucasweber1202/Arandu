@@ -8,8 +8,8 @@
 // tudo cai no fluxo de aprovação manual de antes.
 
 import { el, icon, formatDateTime, timeAgo, ROLE_LABELS } from '../core.js';
-import { button, tag, pill, field, emptyState, errorState, loading, toast, confirmDialog, promptDialog, drawer, onSubmit } from '../ui.js';
-import { memberName, memberTitle } from './shared.js';
+import { button, tag, pill, field, emptyState, errorState, loading, toast, confirmDialog, promptDialog, drawer, onSubmit, mutedText, toastError } from '../ui.js';
+import { memberName, memberTitle } from './shared/people.js';
 import {
   POLICY_FACTS, POLICY_ROLES, STAGE_SCOPES, PRODUCTS, PROVIDER_STATUS, STEP_REASON_CODES, EXCEPTION_REASON_CODES, FLAG_KINDS,
   APPROVAL_STATUS_LABELS, STAGE_STATUS_LABELS, EXCEPTION_STATUS_LABELS, UNKNOWN_FACT_LABELS,
@@ -24,7 +24,7 @@ const clone = (value) => JSON.parse(JSON.stringify(value));
 /** Carrega policies, versões e sinalizadores (uma vez por página). */
 export function loadPolicies(ctx) {
   if (ctx.audience !== 'company' || !ctx.organization) return Promise.resolve(null);
-  ctx.policiesPromise ||= ctx.api(`approval-policies?organization_id=${encodeURIComponent(ctx.organization.id)}`).catch(() => null);
+  ctx.policiesPromise ||= ctx.api(`approval-policies?organization_id=${ctx.orgId}`).catch(() => null);
   return ctx.policiesPromise;
 }
 
@@ -57,16 +57,16 @@ export function policySettings(ctx, entities) {
       list.append(policyCard(ctx, { policy, scope, options, canAdmin: result.can_admin, onChange: render }));
     }
     if (!list.children.length) list.append(emptyState({ title: 'Nenhuma policy ativa', text: 'Sem policy, vale a regra geral abaixo e o pedido de aprovação com aprovadores escolhidos em ordem.', compact: true, iconName: 'shield' }));
-    const intro = el('p', { class: 'muted small', text: 'Precedência: a policy do grupo vale para todas as entidades; a da entidade (ou da entidade-mãe de uma unidade) acrescenta etapas e nunca remove as do grupo. Sem regra casada, vale o fallback da policy. Versão ativada é imutável; pedido em andamento segue a versão gravada nele.' });
+    const intro = mutedText('Precedência: a policy do grupo vale para todas as entidades; a da entidade (ou da entidade-mãe de uma unidade) acrescenta etapas e nunca remove as do grupo. Sem regra casada, vale o fallback da policy. Versão ativada é imutável; pedido em andamento segue a versão gravada nele.');
     const parts = [intro, list];
     if (result.can_admin) parts.push(flagSettings(ctx, result.flags || [], render));
     if (ctx.can?.('create_rfq')) {
       parts.push(el('div', { class: 'row-actions' }, button('Processar prazos de aprovação agora', { size: 'sm', iconName: 'clock', onClick: async () => {
         try {
-          const out = await ctx.api('approval-policies/process-deadlines', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id }) });
+          const out = await ctx.send('approval-policies/process-deadlines', { organization_id: ctx.organization.id });
           toast(out.processed ? `${out.processed} pendência(s) de prazo tratada(s): escaladas ou expiradas.` : 'Nenhum prazo vencido.');
-        } catch (error) { toast(error.message, 'error'); }
-      } })), el('p', { class: 'muted small', text: 'A rotina diária também processa prazos. Escalar avisa e cria tarefa; nada é aprovado por tempo.' }));
+        } catch (error) { toastError(error); }
+      } })), mutedText('A rotina diária também processa prazos. Escalar avisa e cria tarefa; nada é aprovado por tempo.'));
     }
     box.replaceChildren(...parts);
   };
@@ -80,7 +80,7 @@ function policyCard(ctx, { policy, scope, options, canAdmin, onChange }) {
   const head = el('div', { class: 'policy-head' }, [
     el('div', { class: 'policy-head-text' }, [
       el('h3', { class: 'policy-title', text: policy?.name || scope.label }),
-      el('p', { class: 'muted small', text: `${scope.label}${active ? ` · versão ${active.version} ativa desde ${formatDateTime(active.activated_at)}` : policy?.status === 'retired' ? ' · aposentada' : ' · sem versão ativa'}` })
+      mutedText(`${scope.label}${active ? ` · versão ${active.version} ativa desde ${formatDateTime(active.activated_at)}` : policy?.status === 'retired' ? ' · aposentada' : ' · sem versão ativa'}`)
     ]),
     el('div', { class: 'policy-tags' }, [active ? tag(`v${active.version}`, 'success') : tag('Sem policy', 'neutral'), draft ? tag(`Rascunho v${draft.version}`, 'warning') : null])
   ]);
@@ -92,16 +92,16 @@ function policyCard(ctx, { policy, scope, options, canAdmin, onChange }) {
     if (draft) {
       actions.append(button(`Ativar v${draft.version}`, { size: 'sm', variant: 'primary', iconName: 'check', onClick: async () => {
         if (!await confirmDialog({ title: `Ativar a versão ${draft.version}?`, description: 'Ela passa a valer para pedidos novos. Pedidos em andamento continuam na versão gravada neles. Depois de ativada, a versão não pode ser editada.', confirmLabel: 'Ativar' })) return;
-        try { await ctx.api('approval-policies/activate', { method: 'POST', body: JSON.stringify({ version_id: draft.id }) }); toast(`Versão ${draft.version} ativada.`); onChange(); } catch (error) { toast(error.message, 'error'); }
+        try { await ctx.send('approval-policies/activate', { version_id: draft.id }); toast(`Versão ${draft.version} ativada.`); onChange(); } catch (error) { toastError(error); }
       } }), button('Descartar rascunho', { size: 'sm', variant: 'ghost', iconName: 'x', onClick: async () => {
         if (!await confirmDialog({ title: 'Descartar o rascunho?', confirmLabel: 'Descartar', tone: 'danger' })) return;
-        try { await ctx.api('approval-policies/discard', { method: 'POST', body: JSON.stringify({ version_id: draft.id }) }); toast('Rascunho descartado.'); onChange(); } catch (error) { toast(error.message, 'error'); }
+        try { await ctx.send('approval-policies/discard', { version_id: draft.id }); toast('Rascunho descartado.'); onChange(); } catch (error) { toastError(error); }
       } }));
     }
     if (active) {
       actions.append(button('Aposentar', { size: 'sm', variant: 'danger-ghost', iconName: 'x', onClick: async () => {
         if (!await confirmDialog({ title: 'Aposentar esta policy?', description: 'Pedidos novos deixam de seguir esta policy (vale a do grupo ou a regra geral). Pedidos em andamento continuam na versão gravada.', confirmLabel: 'Aposentar', tone: 'danger' })) return;
-        try { await ctx.api('approval-policies/retire', { method: 'POST', body: JSON.stringify({ policy_id: policy.id }) }); toast('Policy aposentada.'); onChange(); } catch (error) { toast(error.message, 'error'); }
+        try { await ctx.send('approval-policies/retire', { policy_id: policy.id }); toast('Policy aposentada.'); onChange(); } catch (error) { toastError(error); }
       } }));
     }
   }
@@ -110,8 +110,8 @@ function policyCard(ctx, { policy, scope, options, canAdmin, onChange }) {
   if (history.length) {
     body.push(el('details', { class: 'history' }, [el('summary', { text: `Histórico de versões (${history.length})` }), el('ol', { class: 'plain-list policy-history' }, history.map((version) => el('li', {}, [
       el('strong', { text: `v${version.version}` }), el('span', { text: ` · ${({ active: 'ativa', superseded: 'substituída', retired: 'aposentada' })[version.status] || version.status}` }),
-      el('span', { class: 'muted small', text: ` · ativada ${formatDateTime(version.activated_at)} por ${memberName(ctx.members, version.activated_by)}${version.ended_at ? ` · encerrada ${formatDateTime(version.ended_at)}` : ''}` }),
-      version.change_note ? el('span', { class: 'muted small', text: ` · “${version.change_note}”` }) : null
+      mutedText(` · ativada ${formatDateTime(version.activated_at)} por ${memberName(ctx.members, version.activated_by)}${version.ended_at ? ` · encerrada ${formatDateTime(version.ended_at)}` : ''}`, 'span'),
+      version.change_note ? mutedText(` · “${version.change_note}”`, 'span') : null
     ])))]));
   }
   return el('article', { class: 'card policy-card' }, el('div', { class: 'card-body stack' }, body));
@@ -120,7 +120,7 @@ function policyCard(ctx, { policy, scope, options, canAdmin, onChange }) {
 function documentSummary(document, options) {
   const rules = el('ol', { class: 'policy-rules' }, (document.rules || []).map((rule) => {
     const described = describeRule(rule, options);
-    return el('li', { class: 'policy-rule' }, [el('strong', { text: rule.label }), el('span', { class: 'muted small', text: `Quando: ${described.when}` }),
+    return el('li', { class: 'policy-rule' }, [el('strong', { text: rule.label }), mutedText(`Quando: ${described.when}`, 'span'),
       el('ul', { class: 'plain-list small' }, described.requires.map((text) => el('li', { text })))]);
   }));
   const extras = [];
@@ -129,7 +129,7 @@ function documentSummary(document, options) {
   if (document.sod?.decider_not_sole_final_approver === false) extras.push('A pessoa que decide pode ser a única aprovadora da etapa final.');
   if (document.expire_after_hours) extras.push(`Pedido expira em ${document.expire_after_hours} h sem conclusão.`);
   extras.push(`Exceções decididas por: ${(document.exception_approver_roles || ['admin']).map((role) => ROLE_LABELS[role] || role).join(', ')}.`);
-  return el('div', { class: 'stack-sm' }, [(document.rules || []).length ? rules : el('p', { class: 'muted small', text: 'Sem regras; só o fallback.' }),
+  return el('div', { class: 'stack-sm' }, [(document.rules || []).length ? rules : mutedText('Sem regras; só o fallback.'),
     el('ul', { class: 'plain-list small muted' }, extras.map((text) => el('li', { text })))]);
 }
 
@@ -325,8 +325,8 @@ export function openPolicyEditor(ctx, { policy, scope, base, options, onChange }
     const checked = validatePolicyDocument(payload);
     if (!checked.ok) { error.textContent = checked.error; error.hidden = false; return null; }
     try {
-      const out = await ctx.api('approval-policies', { method: 'POST', body: JSON.stringify({
-        organization_id: ctx.organization.id, legal_entity_id: scope.id, name: name.value.trim(), document: payload, change_note: note.value.trim() || null }) });
+      const out = await ctx.send('approval-policies', {
+        organization_id: ctx.organization.id, legal_entity_id: scope.id, name: name.value.trim(), document: payload, change_note: note.value.trim() || null });
       savedVersion = out.version_id;
       toast('Rascunho salvo. Ative quando estiver pronto.');
       onChange?.();
@@ -338,7 +338,7 @@ export function openPolicyEditor(ctx, { policy, scope, base, options, onChange }
     const version = savedVersion || await save();
     if (!version) return;
     try {
-      const out = await ctx.api('approval-policies/simulate', { method: 'POST', body: JSON.stringify({ version_id: version, facts }) });
+      const out = await ctx.send('approval-policies/simulate', { version_id: version, facts });
       simulation.replaceChildren(planSummary(ctx, out.evaluation, { simulation: true }));
     } catch (failure) { simulation.replaceChildren(errorState({ error: failure })); }
   });
@@ -361,7 +361,7 @@ function governanceEditor(document) {
   dnsfa.addEventListener('change', () => { document.sod.decider_not_sole_final_approver = dnsfa.checked; });
   return el('section', { class: 'card' }, el('div', { class: 'card-body stack-sm' }, [
     el('h4', { text: 'Segregação de funções, exceções e prazos' }),
-    el('p', { class: 'muted small', text: 'Sempre valem: quem pede não aprova; ninguém ocupa duas etapas do mesmo pedido; só membros da empresa compradora aprovam.' }),
+    mutedText('Sempre valem: quem pede não aprova; ninguém ocupa duas etapas do mesmo pedido; só membros da empresa compradora aprovam.'),
     el('label', { class: 'check-option' }, [rcd, el('span', { text: 'Quem pede a aprovação não registra a decisão' })]),
     el('label', { class: 'check-option' }, [dnsfa, el('span', { text: 'Quem decide não pode ser o único aprovador da etapa final' })]),
     checkboxGroup('Quem decide exceções desta policy', POLICY_ROLES, document.exception_approver_roles || ['admin'], (roles) => { document.exception_approver_roles = roles; }),
@@ -403,15 +403,15 @@ function flagSettings(ctx, flags, onChange) {
   const label = el('input', { maxlength: '120', placeholder: 'Ex.: Revisão de sanções' });
   const kind = el('select', {}, Object.entries(FLAG_KINDS).map(([value, text]) => el('option', { value, text })));
   const persist = async (body) => {
-    try { await ctx.api('approval-policies/flags', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, ...body }) }); toast('Sinalizador salvo.'); onChange(); }
-    catch (error) { toast(error.message, 'error'); }
+    try { await ctx.send('approval-policies/flags', { organization_id: ctx.organization.id, ...body }); toast('Sinalizador salvo.'); onChange(); }
+    catch (error) { toastError(error); }
   };
   const form = el('form', { class: 'policy-inline', novalidate: true }, [field({ label: 'Chave', control: key }), field({ label: 'Nome', control: label }), field({ label: 'Tipo', control: kind }),
     button('Adicionar', { type: 'submit', size: 'sm', iconName: 'plus' })]);
   form.addEventListener('submit', (event) => { event.preventDefault(); persist({ key: key.value.trim(), label: label.value.trim(), kind: kind.value, active: true }); });
   return el('details', {}, [el('summary', { text: `Sinalizadores de exceção, risco e compliance (${flags.length})` }),
-    el('p', { class: 'muted small', text: 'Definidos pela sua empresa. Quem pede a aprovação os declara; a declaração fica gravada no pedido. Regras podem exigir etapas quando um sinalizador estiver presente.' }),
-    el('ul', { class: 'plain-list' }, flags.map((flag) => el('li', {}, [el('strong', { text: flag.label }), el('span', { class: 'muted small', text: ` · ${flag.key} · ${FLAG_KINDS[flag.kind] || flag.kind}` }), flag.active ? null : tag('inativo'),
+    mutedText('Definidos pela sua empresa. Quem pede a aprovação os declara; a declaração fica gravada no pedido. Regras podem exigir etapas quando um sinalizador estiver presente.'),
+    el('ul', { class: 'plain-list' }, flags.map((flag) => el('li', {}, [el('strong', { text: flag.label }), mutedText(` · ${flag.key} · ${FLAG_KINDS[flag.kind] || flag.kind}`, 'span'), flag.active ? null : tag('inativo'),
       button(flag.active ? 'Desativar' : 'Reativar', { size: 'sm', variant: 'ghost', onClick: () => persist({ key: flag.key, label: flag.label, kind: flag.kind, active: !flag.active }) })]))),
     form]);
 }
@@ -419,17 +419,17 @@ function flagSettings(ctx, flags, onChange) {
 // ------------------------------------------------------------- delegações
 export function delegationSettings(ctx) {
   const box = el('div', { class: 'stack-sm' }, loading());
-  const render = () => ctx.api(`approval-delegations?organization_id=${encodeURIComponent(ctx.organization.id)}`).then(({ rows }) => {
+  const render = () => ctx.api(`approval-delegations?organization_id=${ctx.orgId}`).then(({ rows }) => {
     const now = Date.now();
     const list = (rows || []).length ? el('ul', { class: 'plain-list' }, rows.map((row) => {
       const live = !row.revoked_at && Date.parse(row.starts_at) <= now && Date.parse(row.ends_at) > now;
       return el('li', {}, [el('strong', { text: `${memberName(ctx.members, row.delegator_id)} → ${memberName(ctx.members, row.delegate_id)}` }),
-        el('span', { class: 'muted small', text: ` · ${formatDateTime(row.starts_at)} a ${formatDateTime(row.ends_at)} · ${row.reason}` }),
+        mutedText(` · ${formatDateTime(row.starts_at)} a ${formatDateTime(row.ends_at)} · ${row.reason}`, 'span'),
         row.revoked_at ? tag('revogada') : live ? tag('vigente', 'success') : tag('agendada', 'info'),
         !row.revoked_at && (row.delegator_id === ctx.viewer?.id || ctx.viewer?.role === 'admin') ? button('Revogar', { size: 'sm', variant: 'ghost', onClick: async () => {
-          try { await ctx.api('approval-delegations/revoke', { method: 'POST', body: JSON.stringify({ delegation_id: row.id }) }); toast('Delegação revogada.'); render(); } catch (error) { toast(error.message, 'error'); }
+          try { await ctx.send('approval-delegations/revoke', { delegation_id: row.id }); toast('Delegação revogada.'); render(); } catch (error) { toastError(error); }
         } }) : null]);
-    })) : el('p', { class: 'muted small', text: 'Nenhuma delegação registrada.' });
+    })) : mutedText('Nenhuma delegação registrada.');
     const delegate = el('select', {}, [el('option', { value: '', text: 'Escolha quem substitui você…' }), ...(ctx.members || []).filter((member) => member.user_id !== ctx.viewer?.id && member.role !== 'provider_user')
       .map((member) => el('option', { value: member.user_id, text: `${member.display_name || memberName(ctx.members, member.user_id)} · ${ROLE_LABELS[member.role] || member.role}` }))]);
     const ends = el('input', { type: 'date' });
@@ -440,12 +440,12 @@ export function delegationSettings(ctx) {
       event.preventDefault();
       if (!delegate.value || !ends.value) { toast('Escolha o substituto e a data final.', 'error'); return; }
       try {
-        await ctx.api('approval-delegations', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, delegate_id: delegate.value, starts_at: new Date().toISOString(), ends_at: `${ends.value}T23:59:00`, reason: reason.value.trim() }) });
+        await ctx.send('approval-delegations', { organization_id: ctx.organization.id, delegate_id: delegate.value, starts_at: new Date().toISOString(), ends_at: `${ends.value}T23:59:00`, reason: reason.value.trim() });
         toast('Delegação registrada.'); render();
-      } catch (error) { toast(error.message, 'error'); }
+      } catch (error) { toastError(error); }
     });
-    box.replaceChildren(el('p', { class: 'muted small', text: 'Durante a delegação, o substituto pode votar nas suas etapas que admitem delegação — desde que ele mesmo tenha o papel e o acesso à entidade exigidos, e não participe de outra etapa do mesmo pedido. A trilha registra o voto em seu nome.' }), list, form);
-  }).catch(() => box.replaceChildren(el('p', { class: 'muted small', text: 'Delegação indisponível neste ambiente.' })));
+    box.replaceChildren(mutedText('Durante a delegação, o substituto pode votar nas suas etapas que admitem delegação — desde que ele mesmo tenha o papel e o acesso à entidade exigidos, e não participe de outra etapa do mesmo pedido. A trilha registra o voto em seu nome.'), list, form);
+  }).catch(() => box.replaceChildren(mutedText('Delegação indisponível neste ambiente.')));
   render();
   return box;
 }
@@ -472,12 +472,12 @@ export function planSummary(ctx, evaluation, { simulation = false, stages = null
       group.length > 1 ? tag('em paralelo', 'info') : null
     ]))));
   } else {
-    parts.push(el('p', { class: 'muted small', text: 'Nenhuma etapa de aprovação exigida pela policy.' }));
+    parts.push(mutedText('Nenhuma etapa de aprovação exigida pela policy.'));
   }
   for (const blocker of evaluation.blockers || []) {
     parts.push(el('p', { class: 'callout callout-warning compact' }, [icon('alert', { size: 14 }), el('span', { text: `A regra exige ao menos ${blocker.required} propostas; há ${blocker.actual}. Só segue com exceção aprovada.` })]));
   }
-  if (evaluation.requirements?.justification) parts.push(el('p', { class: 'muted small', text: 'A policy exige justificativa de quem pede.' }));
+  if (evaluation.requirements?.justification) parts.push(mutedText('A policy exige justificativa de quem pede.'));
   return el('div', { class: 'policy-plan-box stack-sm' }, parts);
 }
 
@@ -510,7 +510,7 @@ export function policyTimeline(ctx, request, { onChange } = {}) {
   const exceptions = exceptionList(ctx, request, { onChange });
   return el('section', { class: 'policy-timeline stack-sm', 'aria-label': 'Fluxo de aprovação pela policy' }, [header, el('ol', { class: 'steps-list' }, items), exceptions, rules,
     request.justification ? el('p', { class: 'small' }, [el('strong', { text: 'Justificativa: ' }), el('span', { text: request.justification })]) : null,
-    request.resolution_note ? el('p', { class: 'muted small', text: `Encerramento: ${request.resolution_note}` }) : null]);
+    request.resolution_note ? mutedText(`Encerramento: ${request.resolution_note}`) : null]);
 }
 
 function exceptionList(ctx, request, { onChange }) {
@@ -525,13 +525,13 @@ function exceptionList(ctx, request, { onChange }) {
       return el('li', { class: 'stack-xs' }, [
         el('span', {}, [pill({ label: EXCEPTION_STATUS_LABELS[item.status] || item.status, tone: EXCEPTION_TONE[item.status] || 'neutral' }), el('strong', { text: ` ${rule?.label || item.rule_id}` })]),
         el('span', { class: 'small', text: `${EXCEPTION_REASON_CODES[item.reason_code] || item.reason_code}: ${item.reason} — pedida por ${memberName(ctx.members, item.requested_by)} ${timeAgo(item.created_at)}` }),
-        (item.evidence || []).length ? el('span', { class: 'muted small', text: `Evidências: ${item.evidence.map((ev) => ev.label + (ev.reference ? ` (${ev.reference})` : '')).join('; ')}` }) : null,
-        item.decided_at ? el('span', { class: 'muted small', text: `Decidida por ${memberName(ctx.members, item.decided_by)} ${timeAgo(item.decided_at)}: “${item.decision_comment}”` }) : null,
+        (item.evidence || []).length ? mutedText(`Evidências: ${item.evidence.map((ev) => ev.label + (ev.reference ? ` (${ev.reference})` : '')).join('; ')}`, 'span') : null,
+        item.decided_at ? mutedText(`Decidida por ${memberName(ctx.members, item.decided_by)} ${timeAgo(item.decided_at)}: “${item.decision_comment}”`, 'span') : null,
         canDecide ? el('div', { class: 'row-actions' }, [
           button('Aprovar exceção', { size: 'sm', variant: 'primary', onClick: () => decideException(ctx, item, 'approved', onChange) }),
           button('Rejeitar exceção', { size: 'sm', variant: 'danger-ghost', onClick: () => decideException(ctx, item, 'rejected', onChange) })]) : null,
         item.status === 'requested' && item.requested_by === ctx.viewer?.id ? button('Cancelar exceção', { size: 'sm', variant: 'ghost', onClick: async () => {
-          try { await ctx.api('approval-exceptions/cancel', { method: 'POST', body: JSON.stringify({ exception_id: item.id }) }); toast('Exceção cancelada.'); onChange?.(); } catch (error) { toast(error.message, 'error'); }
+          try { await ctx.send('approval-exceptions/cancel', { exception_id: item.id }); toast('Exceção cancelada.'); onChange?.(); } catch (error) { toastError(error); }
         } }) : null
       ]);
     })));
@@ -547,10 +547,10 @@ async function decideException(ctx, item, decision, onChange) {
     confirmLabel: decision === 'approved' ? 'Aprovar exceção' : 'Rejeitar exceção', tone: decision === 'approved' ? 'primary' : 'danger' });
   if (comment === null) return;
   try {
-    const out = await ctx.api('approval-exceptions/decide', { method: 'POST', body: JSON.stringify({ exception_id: item.id, decision, comment }) });
+    const out = await ctx.send('approval-exceptions/decide', { exception_id: item.id, decision, comment });
     toast(out.request_status === 'approved' ? 'Exceção aprovada; o pedido foi concluído.' : decision === 'approved' ? 'Exceção aprovada.' : 'Exceção rejeitada.');
     onChange?.();
-  } catch (error) { toast(error.message, 'error'); }
+  } catch (error) { toastError(error); }
 }
 
 function requestException(ctx, request, onChange) {
@@ -566,8 +566,8 @@ function requestException(ctx, request, onChange) {
     footer: [button('Enviar pedido de exceção', { variant: 'primary', iconName: 'send', onClick: async () => {
       const target = matched[Number(rule.value)];
       try {
-        await ctx.api('approval-exceptions', { method: 'POST', body: JSON.stringify({ request_id: request.id, policy_version_id: target.policy_version_id, rule_id: target.rule_id, reason_code: code.value,
-          reason: reason.value.trim(), evidence: evidence.value.trim() ? [{ label: 'Referência', reference: evidence.value.trim() }] : [] }) });
+        await ctx.send('approval-exceptions', { request_id: request.id, policy_version_id: target.policy_version_id, rule_id: target.rule_id, reason_code: code.value,
+          reason: reason.value.trim(), evidence: evidence.value.trim() ? [{ label: 'Referência', reference: evidence.value.trim() }] : [] });
         toast('Exceção pedida. Quem decide exceções desta policy vê o pedido no processo.');
         dialog.close();
         onChange?.();
@@ -592,7 +592,7 @@ export function stageAssignments(ctx, stages, assignments) {
       });
       group.append(el('label', { class: 'approver-option' }, [box2, el('span', { class: 'order-badge', 'aria-hidden': 'true' }), el('span', { text: `${member.display_name || memberName(ctx.members, member.user_id)} · ${member.title || memberTitle(ctx.members, member.user_id) || ROLE_LABELS[member.role]}` })]));
     }
-    if (!candidates.length) group.append(el('p', { class: 'muted small', text: 'Nenhum membro com o papel e o escopo desta etapa. Ajuste o escopo de acesso ou a policy.' }));
+    if (!candidates.length) group.append(mutedText('Nenhum membro com o papel e o escopo desta etapa. Ajuste o escopo de acesso ou a policy.'));
     box.append(group);
   }
   return box;

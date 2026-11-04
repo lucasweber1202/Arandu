@@ -4,6 +4,7 @@
 // registro aparece ausente, nunca concluída.
 import { el, icon, formatDate, plural, productLabel, CONTRACT_STATUS, RFQ_STATUS } from '../core.js';
 import { CONTRACT_CATEGORIES } from '../../../lib/finance/contract-terms.mjs';
+import { mutedText } from '../ui.js';
 
 /** Contrato de origem a partir dos eventos da solicitação (mais recente vence). */
 export function originContractId(events = []) {
@@ -37,7 +38,7 @@ const STATE_TEXT = { done: 'registrado', current: 'etapa atual', todo: 'ainda n�
 /** Cartão de origem: contrato, condições registradas, jornada e retorno. Assíncrono; nada se não houver origem. */
 export function negotiationOrigin(ctx, rfq, { decision = null, contract = null, pending = null } = {}) {
   const slot = el('section', { class: 'card negotiation-origin', id: 'negotiation-origin', 'aria-labelledby': 'negotiation-origin-title', hidden: true });
-  ctx.api(`events?organization_id=${encodeURIComponent(ctx.organization.id)}&entity_type=rfq&entity_id=${encodeURIComponent(rfq.id)}`).then(async ({ rows = [] }) => {
+  ctx.api(`events?organization_id=${ctx.orgId}&entity_type=rfq&entity_id=${encodeURIComponent(rfq.id)}`).then(async ({ rows = [] }) => {
     const originId = originContractId(rows);
     if (!originId) return;
     // Leitura canônica da continuidade (versão de origem, propostas por autoria,
@@ -75,7 +76,7 @@ export function negotiationOrigin(ctx, rfq, { decision = null, contract = null, 
           : el('p', { class: 'callout callout-info compact', role: 'note', text: 'O contrato de origem está registrado, mas fora dos contratos carregados nesta tela. Abra o contrato para ver condições e versões.' }),
         el('ol', { class: 'negotiation-journey', 'aria-label': 'Jornada da renegociação' }, journey.map((step) => el('li', { class: `nj-step nj-${step.state}`, dataset: { step: step.key, state: step.state } }, [
           el('span', { class: 'nj-mark', 'aria-hidden': 'true' }, step.state === 'done' ? icon('check', { size: 12 }) : null),
-          el('div', {}, [el('p', { class: 'nj-label' }, [el('strong', { text: step.label }), el('span', { class: 'muted small', text: ` · ${STATE_TEXT[step.state]}` })]), el('p', { class: 'muted small', text: step.text })])
+          el('div', {}, [el('p', { class: 'nj-label' }, [el('strong', { text: step.label }), mutedText(` · ${STATE_TEXT[step.state]}`, 'span')]), mutedText(step.text)])
         ]))),
         continuityError ? el('p', { class: 'muted small', role: 'status', text: 'O histórico completo da renegociação (versão de origem e propostas por autoria) não pôde ser consultado agora; o restante segue disponível.' }) : null,
         economics,

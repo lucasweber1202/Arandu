@@ -368,7 +368,10 @@ test('RFQ: o módulo de políticas só carrega ao abrir aprovação; falha do ch
   expect(chunks).toHaveLength(0);
   await page.getByRole('tab',{name:/Aprovações/}).click();
   await expect(page.getByText('Não conseguimos carregar as etapas de aprovação')).toBeVisible();
-  await expect(page.getByRole('button',{name:'Tentar novamente'})).toBeVisible();
+  // O navegador guarda a falha do módulo: a ação oferecida é recarregar, sem
+  // expor a URL do chunk nem prometer nova tentativa que falharia de novo.
+  await expect(page.getByRole('button',{name:'Recarregar a página'})).toBeVisible();
+  await expect(page.getByText(/dynamically|assets\//)).toHaveCount(0);
   expect(chunks.length).toBeGreaterThan(0);
   await noHorizontalOverflow(page);
 });

@@ -91,7 +91,7 @@ for (const kind of SEARCH_KINDS) assert.ok(SEARCH_KIND_LABELS[kind], `rótulo au
   assert.equal(canRole(null, 'create_rfq'), false, 'sem papel confirmado não oferece escrita');
   assert.equal(requestedAction('?acao=registrar-contrato'), 'registrar-contrato');
   for (const bad of ['?acao=logout', '?acao=%5Bdata-intent%5D', '?acao=', '']) assert.equal(requestedAction(bad), null, bad);
-  const sources = ['finance/src/views/contract-center.js', 'finance/src/views/company.js', 'finance/src/views/portfolio.js'].map((file) => readFileSync(file, 'utf8')).join('\n');
+  const sources = ['finance/src/views/contract-center.js', 'finance/src/views/company/providers.js', 'finance/src/views/portfolio.js'].map((file) => readFileSync(file, 'utf8')).join('\n');
   for (const action of INTENT_ACTIONS) assert.ok(sources.includes(`'data-intent': '${action}'`), `sem botão para ${action}`);
   for (const intent of INTENTS.filter((item) => item.path.includes('acao='))) assert.ok(INTENT_ACTIONS.includes(new URLSearchParams(intent.path.split('?')[1]).get('acao')));
 }

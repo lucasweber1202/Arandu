@@ -1,8 +1,12 @@
+/* global __ARANDU_DEMO__ */
 // Painel: começa pelo que precisa da pessoa agora, não por números.
 
 import { greeting, el, icon, todayIso, daysUntil, relativeDays, plural, formatDate, formatDateTime, productLabel, demandHeadline, RFQ_STATUS, timeAgo, money, renewalStage } from '../core.js';
-import { card, pill, linkButton, emptyState, person, progress, button, toast } from '../ui.js';
-import { memberName, currentStep, approvalSummaryLine, eventTitle, isViewerTurn, TASK_EDITORS, taskChangeError } from './shared.js';
+import { card, pill, linkButton, emptyState, person, progress, button, toast, mutedText } from '../ui.js';
+import { memberName } from './shared/people.js';
+import { currentStep, approvalSummaryLine, isViewerTurn } from './shared/approvals.js';
+import { eventTitle } from './shared/collaboration.js';
+import { TASK_EDITORS, taskChangeError } from './shared/tasks.js';
 import { loadEntities, entitySummaryCard } from './entities.js';
 import { startButton } from './intake.js';
 // Sinais entre módulos (CRM, tarifas, espera por instituições): carregados sob
@@ -116,9 +120,9 @@ export function actionItems(ctx, approvals) {
  * 503 = capacidade ainda não disponível neste ambiente (informativo).
  */
 export async function crossModuleSignals(ctx, { today = todayIso() } = {}) {
-  const org = encodeURIComponent(ctx.organization.id);
+  const org = ctx.orgId;
   const result = { items: [], failed: [], unavailable: [] };
-  if (ctx.mode === 'demo' || !(await loadSignals())) return result;
+  if ((__ARANDU_DEMO__ && ctx.mode === 'demo') || !(await loadSignals())) return result;
   const { relationshipSignals, feeSignals, feeWindow, shiftDay } = S;
   const horizon = 2;
   const editor = TASK_EDITORS.includes(ctx.viewer?.role);
@@ -166,7 +170,7 @@ export async function dashboard(ctx) {
   // Rascunho do assistente ainda não criado: sem isso, quem sai no meio só
   // reencontra o que digitou abrindo "Nova solicitação" por acaso.
   if (ctx.can('create_rfq')) {
-    const editor = await ctx.api(`rfq-editor?organization_id=${encodeURIComponent(ctx.organization.id)}`).catch(() => null);
+    const editor = await ctx.api(`rfq-editor?organization_id=${ctx.orgId}`).catch(() => null);
     const payload = editor?.draft?.payload;
     if (payload && (payload.title || payload.product)) {
       items.push({ rank: 2, tone: 'neutral', icon: 'edit', kind: 'Rascunho em edição', title: `Continuar: ${payload.title || 'nova solicitação sem título'}`,
@@ -229,7 +233,7 @@ export async function dashboard(ctx) {
     signals.failed.includes('Relacionamentos') ? el('a', { href: ctx.href('/finance/providers.html#crm-agenda'), text: 'Abrir agenda comercial' }) : el('a', { href: ctx.href('/finance/fees.html'), text: 'Abrir Tarifas' })]) : null;
   const signalsOff = signals.unavailable.length ? el('p', { class: 'muted small', 'data-signals': 'unavailable', text: `${signals.unavailable.join(' e ')}: ainda não disponível neste ambiente; não entra nesta lista.` }) : null;
   for (const node of [signalsMissing, signalsOff, chips]) if (node) attention.append(node);
-  attention.append(items.length ? el('div', {}, [list, rest, filtered].filter(Boolean)) : approvalsMissing || signalsMissing ? el('p', { class: 'muted small', text: 'Os demais itens (prazos, renovações e tarefas) não pedem ação agora.' }) : emptyState({ title: 'Tudo em dia', text: ctx.can('create_rfq') ? 'Nenhuma aprovação, prazo ou renovação exige ação. Que tal estruturar a próxima necessidade?' : 'Nenhuma aprovação aguarda você.', iconName: 'checkCircle',
+  attention.append(items.length ? el('div', {}, [list, rest, filtered].filter(Boolean)) : approvalsMissing || signalsMissing ? mutedText('Os demais itens (prazos, renovações e tarefas) não pedem ação agora.') : emptyState({ title: 'Tudo em dia', text: ctx.can('create_rfq') ? 'Nenhuma aprovação, prazo ou renovação exige ação. Que tal estruturar a próxima necessidade?' : 'Nenhuma aprovação aguarda você.', iconName: 'checkCircle',
     action: ctx.can('create_rfq') ? linkButton('Nova solicitação', ctx.href('/finance/new-rfq.html'), { iconName: 'plus' }) : null }));
 
   // Resumo discreto: contagens reais, nenhuma estimativa de economia.
@@ -309,7 +313,7 @@ export async function dashboard(ctx) {
       check.disabled = true;
       row.setAttribute('aria-busy', 'true');
       try {
-        await ctx.api('tasks', { method: 'PATCH', body: JSON.stringify({ organization_id: ctx.organization.id, task_id: task.id, status: 'done' }) });
+        await ctx.send('tasks', { organization_id: ctx.organization.id, task_id: task.id, status: 'done' }, 'PATCH');
         // Desde #206 o 200 confirma a linha gravada; sem alteração a API devolve 404 (tratado abaixo).
         row.classList.add('done');
         toast('Tarefa concluída.');
@@ -338,7 +342,7 @@ export async function dashboard(ctx) {
   // Atividade recente da organização.
   const feed = el('ol', { class: 'activity compact' }, el('li', { class: 'muted', text: 'Carregando…' }));
   // Histórico é nível 4: só é buscado quando a pessoa abre a seção.
-  const loadFeed = () => ctx.api(`events?organization_id=${encodeURIComponent(ctx.organization.id)}`).then(({ rows }) => {
+  const loadFeed = () => ctx.api(`events?organization_id=${ctx.orgId}`).then(({ rows }) => {
     feed.replaceChildren();
     // Contexto legível do objeto: título da solicitação ou instituição do contrato.
     const titles = new Map([...rfqs.map((rfq) => [rfq.id, rfq.title]), ...(data.contracts || []).map((contract) => [contract.id, contract.provider_name || contract.title])]);
@@ -371,7 +375,7 @@ export async function dashboard(ctx) {
   const entityCard = entities.rows.length ? entitySummaryCard(ctx) : null;
   // Inteligência de valor só no produto real (a demo não simula esses SoR);
   // carregada sob demanda para não pesar no bundle do Painel.
-  const valueCard = ctx.mode === 'demo' ? null : await import('./executive.js').then((m) => m.executiveSection(ctx, entities)).catch(() => null);
+  const valueCard = (__ARANDU_DEMO__ && ctx.mode === 'demo') ? null : await import('./executive.js').then((m) => m.executiveSection(ctx, entities)).catch(() => null);
   root.append(attention, summary, el('div', { class: 'dash-grid' }, [
     // Trabalho antes de painel (Constitution §1.3, guideline §35.8): processos,
     // renovações e tarefas vêm antes dos indicadores de portfólio. No celular a
