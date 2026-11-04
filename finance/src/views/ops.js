@@ -2,7 +2,7 @@
 // Só estados, contagens e identificadores chegam aqui — o banco não devolve
 // valores, termos, títulos, e-mails, payloads nem documentos.
 
-import { el, icon, formatDateTime, timeAgo } from '../core.js';
+import { el, icon, formatDateTime, timeAgo, textSpan } from '../core.js';
 import { card, tag, button, emptyState, errorState, field, toast, onSubmit } from '../ui.js';
 
 const STATUS_TONE = { running: 'warning', succeeded: 'success', failed: 'danger', delivered: 'success', pending: 'neutral', processing: 'neutral', retry: 'warning', dead: 'danger' };
@@ -66,8 +66,8 @@ export async function opsConsole(ctx) {
   }
   const { overview = {}, health = {} } = data;
   const root = el('div', { class: 'ops' });
-  if (data.demo) root.append(el('p', { class: 'callout callout-info' }, [icon('info'), el('span', { text: 'Números de exemplo da demonstração. No ambiente real, estes dados vêm do banco e exigem operador com MFA.' })]));
-  root.append(el('p', { class: 'callout callout-neutral compact' }, [icon('lock', { size: 14 }), el('span', { text: 'Sem valores de propostas, termos financeiros, documentos ou conteúdo de clientes. Cada acesso a este console fica registrado.' })]));
+  if (data.demo) root.append(el('p', { class: 'callout callout-info' }, [icon('info'), textSpan('Números de exemplo da demonstração. No ambiente real, estes dados vêm do banco e exigem operador com MFA.')]));
+  root.append(el('p', { class: 'callout callout-neutral compact' }, [icon('lock', { size: 14 }), textSpan('Sem valores de propostas, termos financeiros, documentos ou conteúdo de clientes. Cada acesso a este console fica registrado.')]));
 
   const lastSuccess = overview.last_renewal_success;
   const stale = !lastSuccess || Date.now() - Date.parse(lastSuccess) > 26 * 3600000;

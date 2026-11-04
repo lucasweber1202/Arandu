@@ -5,7 +5,7 @@
 // bem-sucedido registrado. O registro TXT aparece uma única vez. Docs:
 // docs/FINANCIAL_SSO.md.
 
-import { el, icon, formatDateTime } from '../core.js';
+import { el, icon, formatDateTime, textSpan, textStrong } from '../core.js';
 import { button, tag, field, emptyState, errorState, loading, toast, confirmDialog, onSubmit, mutedText, toastError } from '../ui.js';
 
 const STATUS_LABEL = { draft: 'rascunho', testing: 'em teste', active: 'ativa', disabled: 'desativada' };
@@ -50,7 +50,7 @@ function environmentNotice(data) {
   if (!data.broker_configured) missing.push('o broker de SSO (Supabase Auth com SSO habilitado; ARANDU_SSO_BROKER=supabase)');
   if (!missing.length) return null;
   return el('p', { class: 'callout callout-warning compact' }, [icon('alert', { size: 14 }),
-    el('span', { text: `Neste ambiente falta ${missing.join(' e ')}. Dá para configurar e verificar domínios, mas nenhuma conexão fica operacional até o responsável pelo ambiente concluir isso.` })]);
+    textSpan(`Neste ambiente falta ${missing.join(' e ')}. Dá para configurar e verificar domínios, mas nenhuma conexão fica operacional até o responsável pelo ambiente concluir isso.`)]);
 }
 
 function domainsSection(ctx, data, render, reveal) {
@@ -81,7 +81,7 @@ function domainsSection(ctx, data, render, reveal) {
     try {
       const out = await post(ctx, 'sso/domains', { organization_id: ctx.organization.id, domain: input.value.trim() });
       reveal.replaceChildren(el('div', { class: 'callout callout-warning stack-xs', role: 'status' }, [
-        el('strong', { text: `Registro TXT para ${out.domain}` }),
+        textStrong(`Registro TXT para ${out.domain}`),
         el('span', { class: 'small', text: 'Nome' }), el('code', { class: 'mono secret-once', text: out.record.name }),
         el('span', { class: 'small', text: 'Valor' }), el('code', { class: 'mono secret-once', text: out.record.value }),
         el('span', { class: 'small', text: out.notice })]));
@@ -95,7 +95,7 @@ function domainsSection(ctx, data, render, reveal) {
 
 function readinessList(readiness) {
   return el('ul', { class: 'plain-list small sso-readiness', 'aria-label': 'Prontidão' }, readiness.checks.map((check) => el('li', {}, [
-    tag(CHECK_LABEL[check.status] || check.status, CHECK_TONE[check.status] || 'neutral'), el('span', { text: ` ${check.detail}` })])));
+    tag(CHECK_LABEL[check.status] || check.status, CHECK_TONE[check.status] || 'neutral'), textSpan(` ${check.detail}`)])));
 }
 
 function connectionsSection(ctx, data, render) {
@@ -106,7 +106,7 @@ function connectionsSection(ctx, data, render) {
       try { await post(ctx, 'sso/status', { connection_id: connection.id, status, enforce }); toast('Conexão atualizada.'); render(); } catch (error) { toastError(error); }
     };
     return el('li', { class: 'card' }, el('div', { class: 'card-body stack-sm' }, [
-      el('div', { class: 'policy-head' }, [el('strong', { text: connection.display_name }), tag(STATUS_LABEL[connection.status] || connection.status, STATUS_TONE[connection.status] || 'neutral'),
+      el('div', { class: 'policy-head' }, [textStrong(connection.display_name), tag(STATUS_LABEL[connection.status] || connection.status, STATUS_TONE[connection.status] || 'neutral'),
         connection.enforce_sso ? tag('SSO exigido', 'info') : null, readiness.operational ? tag('operacional', 'success') : tag('não operacional', 'neutral')]),
       el('span', { class: 'small muted', text: `${connection.protocol.toUpperCase()} · broker ${connection.broker === 'mock' ? 'de teste (nunca ativa)' : 'Supabase Auth'} · sessão máxima ${connection.max_session_hours} h${connection.provider_ref ? ` · ${connection.provider_ref}` : ''}` }),
       connection.sessions_valid_after ? el('span', { class: 'small muted', text: `Sessões anteriores a ${formatDateTime(connection.sessions_valid_after)} foram revogadas.` }) : null,

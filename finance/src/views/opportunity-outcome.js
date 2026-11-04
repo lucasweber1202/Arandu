@@ -2,7 +2,7 @@
 // Lê GET opportunities/outcome (processo, decisão, contrato resultante e
 // conclusão registrada) e conclui só com confirmação humana explícita,
 // vinculada a uma decisão já registrada. Nada é concluído automaticamente.
-import { el, formatDateTime, RFQ_STATUS } from '../core.js';
+import { el, formatDateTime, RFQ_STATUS, textSpan } from '../core.js';
 import { button, promptDialog, toast, mutedText } from '../ui.js';
 
 const MISSING = { human_decision_not_recorded: 'Decisão humana ainda não registrada.', resulting_contract_not_recorded: 'Contrato resultante ainda não registrado.' };
@@ -26,7 +26,7 @@ export function opportunityOutcome(ctx, id, { manage = false, onDone = null } = 
       el('p', {}, [el('a', { href: ctx.href(p.rfq?.href || `/finance/rfq.html?id=${encodeURIComponent(p.rfq?.id || '')}`), text: p.rfq?.title || 'Solicitação ligada' }),
         mutedText(` · ${RFQ_STATUS[p.rfq?.status]?.label || 'Estado não informado'} · ${(p.proposals || []).length} pelo portal, ${(p.external_proposals || []).length} registradas pela empresa (canal externo)`, 'span')]),
       ...(p.decisions || []).map((d) => el('p', { class: 'small', text: `Decisão humana registrada em ${formatDateTime(d.decided_at)}${d.rationale ? `: ${d.rationale}` : '.'}` })),
-      ...(p.resulting_contracts || []).map((c) => el('p', { class: 'small' }, [el('span', { text: 'Contrato resultante: ' }), el('a', { href: ctx.href(c.href), text: c.title || 'Abrir contrato' })])),
+      ...(p.resulting_contracts || []).map((c) => el('p', { class: 'small' }, [textSpan('Contrato resultante: '), el('a', { href: ctx.href(c.href), text: c.title || 'Abrir contrato' })])),
       ...(p.missing || []).map((code) => el('p', { class: 'muted small', dataset: { missing: code }, text: MISSING[code] || 'Etapa sem registro.' }))
     ]));
     if (done) parts.push(el('p', { class: 'callout callout-success compact', role: 'status', dataset: { completed: 'true' }, text: `Conclusão registrada em ${formatDateTime(done.happened_at)}, vinculada à decisão humana${done.metadata?.decision_id ? ' desta negociação' : ''}.` }));

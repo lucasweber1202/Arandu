@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { test, expect } from '@playwright/test';
 
 // Contract & Renewal Center v2 na interface publicada. A sessão é simulada
@@ -1565,4 +1566,80 @@ test('contrato sem renegociação diz o recorte; falha na consulta é declarada'
   fail=true;
   await page.reload();
   await expect(page.locator('#contract-renegotiations')).toContainText('Não foi possível consultar as renegociações');
+});
+
+// Resumo operacional do contrato (v8): fatos do contract-detail, lacunas que
+// impedem decisões e ações autorizadas. APIs SIMULADAS; não é backend real.
+test('resumo do contrato: instituição, vigência, data-limite do aviso, origem da carteira e termos vigentes', async ({ page }) => {
+  await mockSession(page);
+  await page.goto(`/finance/contracts.html?abrir=contrato#contract-${CONTRACT}`);
+  const summary = page.getByRole('dialog').locator('.contract-summary');
+  await expect(summary.getByRole('heading', { name: 'Resumo do contrato' })).toBeVisible();
+  await expect(summary.getByRole('link', { name: 'Banco Carteira' })).toHaveAttribute('href', new RegExp(`providers\\.html\\?provider_id=${PROVIDER}`));
+  // 31/12/2027 menos 90 dias = 02/10/2027 (derivado, não digitado).
+  await expect(summary).toContainText('até 02 de out de 2027 (90 dias antes do fim)');
+  await expect(summary).toContainText('Contrato existente registrado na carteira (sem negociação no Arandu)');
+  await expect(summary).toContainText('Versão 2');
+  // Sem responsável e sem referência documental: lacunas com o que impedem.
+  await expect(summary.locator('[data-gap="owner"]')).toContainText('ninguém recebe os avisos de renovação');
+  await expect(summary.locator('[data-gap="document"]')).toBeVisible();
+  await expect(summary.locator('[data-gap="terms"]')).toHaveCount(0);
+  await expect(summary.getByRole('button', { name: 'Iniciar nova concorrência' })).toBeVisible();
+  await noHorizontalOverflow(page);
+});
+
+test('resumo do contrato: termos não estruturados viram lacuna com ação; leitor vê a lacuna sem ação', async ({ page }) => {
+  const detail = { ...DETAIL, contract: { ...CONTRACT_ROW, current_version: null, renewal_notice_days: null, owner_id: 'u1', document_reference: 'https://exemplo.invalid/contrato.pdf' }, effective: null, versions: [] };
+  await mockSession(page, { detail });
+  await page.goto(`/finance/contracts.html?abrir=contrato#contract-${CONTRACT}`);
+  const summary = page.getByRole('dialog').locator('.contract-summary');
+  await expect(summary.locator('[data-gap="terms"]')).toContainText('sem eles não há comparação de tarifas');
+  await expect(summary.locator('[data-gap="notice"]')).toContainText('data-limite para avisar a não renovação é desconhecida');
+  await expect(summary).toContainText('Não calculável');
+  await expect(summary).toContainText('Paula Nogueira');
+  await expect(summary.locator('[data-gap="owner"], [data-gap="document"]')).toHaveCount(0);
+  await summary.locator('[data-gap="terms"]').getByRole('button', { name: 'Estruturar termos' }).click();
+  await expect(page.getByRole('button', { name: 'Gravar versão 1' })).toBeVisible();
+
+  await page.unroute('**/api/finance/**');
+  await mockSession(page, { detail });
+  await page.route('**/api/finance/members**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, rows: [{ user_id: 'u1', role: 'viewer', display_name: 'Paula Nogueira' }], viewer_id: 'u1' }) }));
+  await page.reload();
+  const readOnly = page.getByRole('dialog').locator('.contract-summary');
+  await expect(readOnly.locator('[data-gap="terms"]')).toBeVisible();
+  await expect(readOnly.getByRole('button')).toHaveCount(0);
+});
+
+test('resumo do contrato: origem em negociação leva à decisão; prazo de aviso vencido é avisado sem agir sozinho', async ({ page }) => {
+  const RFQ = '00000000-0000-4000-8000-0000000000c7';
+  const iso = (offset) => new Date(Date.now() + offset * 86400000).toISOString().slice(0, 10);
+  const longDate = (day) => new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${day}T00:00:00Z`)).replace('.', '');
+  // Fim daqui a 20 dias com 30 de aviso: o prazo de aviso passou há 10 dias.
+  const detail = { ...DETAIL, contract: { ...CONTRACT_ROW, origin: 'sourcing', ends_on: iso(20), renewal_notice_days: 30 }, source_rfq: { id: RFQ, title: 'Capital de giro 2025' } };
+  await mockSession(page, { detail });
+  await page.goto(`/finance/contracts.html?abrir=contrato#contract-${CONTRACT}`);
+  const summary = page.getByRole('dialog').locator('.contract-summary');
+  await expect(summary.getByRole('link', { name: 'Negociação “Capital de giro 2025”' })).toHaveAttribute('href', new RegExp(`rfq\\.html\\?id=${RFQ}#decisao`));
+  await expect(summary.getByRole('note')).toContainText(`O prazo para avisar a não renovação passou em ${longDate(iso(-10))}`);
+  await expect(summary.getByRole('note')).toHaveCount(1);
+
+  // Fim da vigência já passou e o cadastro ainda diz vigente: outro aviso, sem mudar o status sozinho.
+  await page.unroute('**/api/finance/**');
+  await mockSession(page, { detail: { ...detail, contract: { ...detail.contract, ends_on: iso(-5) } } });
+  await page.reload();
+  const expired = page.getByRole('dialog').locator('.contract-summary');
+  await expect(expired.getByRole('note')).toContainText('já passou e o contrato continua registrado como vigente');
+  await expect(expired.getByRole('note')).toHaveCount(1);
+});
+
+test('documentos do contrato: o módulo que não carrega vira aviso com recarga, sem painel vazio', async ({ page }) => {
+  await mockSession(page);
+  const profile = JSON.parse(readFileSync(new URL('../../reports/bundle-profile.json', import.meta.url), 'utf8'));
+  const chunk = profile.chunks.find((c) => c.modules.some((m) => m.source === 'finance/src/views/documents.js'));
+  await page.route(`**/${chunk.file}`, (route) => route.abort('internetdisconnected'));
+  await page.goto(`/finance/contracts.html?abrir=contrato#contract-${CONTRACT}`);
+  const panel = page.getByRole('dialog').locator('.contract-summary details.lazy-documents');
+  await panel.locator('summary').click();
+  await expect(panel.getByRole('alert')).toContainText('Uma parte da página não carregou');
+  await expect(panel.getByRole('button', { name: 'Recarregar a página' })).toBeVisible();
 });

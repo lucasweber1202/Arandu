@@ -2,7 +2,7 @@
 // Estrutura do espaço de trabalho: barra lateral, barra superior, navegação
 // móvel, busca (Ctrl/Cmd+K), central de notificações e faixa da demonstração.
 
-import { el, icon, timeAgo, RFQ_STATUS, CONTRACT_STATUS, formatDate } from './core.js';
+import { el, icon, timeAgo, RFQ_STATUS, CONTRACT_STATUS, formatDate, textSpan, textStrong } from './core.js';
 import { avatar, iconButton, button, toast, confirmDialog, toastError } from './ui.js';
 import { areasFor, navItems, locate } from '../../lib/finance/navigation.mjs';
 
@@ -101,7 +101,7 @@ export function renderSidebar(ctx, counts = {}) {
     workspace.append(select);
   }
   const foot = el('div', { class: 'side-foot' }, [
-    el('a', { class: 'side-minor', href: ctx.href('/finance/boundaries.html') }, [icon('shield', { size: 16 }), el('span', { text: 'Limites do produto' })]),
+    el('a', { class: 'side-minor', href: ctx.href('/finance/boundaries.html') }, [icon('shield', { size: 16 }), textSpan('Limites do produto')]),
     ctx.viewer ? el('div', { class: 'side-user' }, [avatar(ctx.viewer.name || 'Você', { size: 'sm' }), el('span', { class: 'side-user-text' }, [
       el('span', { class: 'side-user-name', text: ctx.viewer.name || 'Sua conta' }),
       el('span', { class: 'side-user-role', text: ctx.viewer.title || ctx.viewer.roleLabel || '' })
@@ -136,12 +136,12 @@ function openMoreSheet(ctx, counts) {
     const headingId = `sheet-area-${area.key}`;
     const list = el('ul', { role: 'list', class: 'sheet-list', 'aria-labelledby': headingId });
     for (const item of area.items) {
-      list.append(el('li', {}, el('a', { href: ctx.href(item.path), class: 'sheet-link', 'aria-current': item.key === activeKey(ctx) ? 'page' : null }, [icon(item.icon, { size: 18 }), el('span', { text: item.label }),
+      list.append(el('li', {}, el('a', { href: ctx.href(item.path), class: 'sheet-link', 'aria-current': item.key === activeKey(ctx) ? 'page' : null }, [icon(item.icon, { size: 18 }), textSpan(item.label),
         counts[item.key] ? el('span', { class: 'side-count', text: String(counts[item.key]) }) : null])));
     }
     body.append(el('p', { class: 'sheet-heading', id: headingId, text: area.label }), list);
   }
-  body.append(el('ul', { role: 'list', class: 'sheet-list' }, el('li', {}, el('a', { href: ctx.href('/finance/boundaries.html'), class: 'sheet-link' }, [icon('shield', { size: 18 }), el('span', { text: 'Limites do produto' })]))));
+  body.append(el('ul', { role: 'list', class: 'sheet-list' }, el('li', {}, el('a', { href: ctx.href('/finance/boundaries.html'), class: 'sheet-link' }, [icon('shield', { size: 18 }), textSpan('Limites do produto')]))));
   sheet.append(el('div', { class: 'sheet-head' }, [el('span', { class: 'sheet-title', text: ctx.organization?.legal_name || 'Arandu' }), iconButton('x', 'Fechar', { onClick: () => sheet.close() })]), body);
   sheet.addEventListener('close', () => sheet.remove());
   sheet.addEventListener('click', (event) => { if (event.target === sheet) sheet.close(); });
@@ -164,7 +164,7 @@ export function renderTopbar(ctx) {
     [brandMark(), el('span', { class: 'topbar-org', text: ctx.organization?.legal_name || 'Arandu' })]);
   const actions = el('div', { class: 'topbar-actions' });
   // No celular a faixa da demonstração rola para fora da tela: este selo fica sempre visível.
-  if ((__ARANDU_DEMO__ && ctx.mode === 'demo')) actions.append(el('span', { class: 'demo-chip', title: 'Ambiente demonstrativo. Dados fictícios.' }, [icon('info', { size: 12 }), el('span', { text: 'Demo · dados fictícios' })]));
+  if ((__ARANDU_DEMO__ && ctx.mode === 'demo')) actions.append(el('span', { class: 'demo-chip', title: 'Ambiente demonstrativo. Dados fictícios.' }, [icon('info', { size: 12 }), textSpan('Demo · dados fictícios')]));
   // Ambiente de demonstração com banco próprio: o produto real, com empresa fictícia.
   // A troca de persona volta à entrada por persona: o servidor abre nova sessão no
   // MESMO workspace do visitante (POST /api/auth/demo-login), nunca no navegador.
@@ -194,10 +194,10 @@ export function renderTopbar(ctx) {
     const panel = el('div', { class: 'account-menu', hidden: true }, [
       el('p', { class: 'account-name', text: ctx.viewer.name || 'Sua conta' }),
       el('p', { class: 'account-detail', text: [ctx.viewer.title, ctx.organization?.legal_name].filter(Boolean).join(' · ') }),
-      ctx.audience === 'company' ? el('a', { class: 'menu-item', href: ctx.href('/finance/settings.html') }, [icon('settings'), el('span', { text: 'Configurações' })]) : null,
+      ctx.audience === 'company' ? el('a', { class: 'menu-item', href: ctx.href('/finance/settings.html') }, [icon('settings'), textSpan('Configurações')]) : null,
       (__ARANDU_DEMO__ && ctx.mode === 'demo')
-        ? el('a', { class: 'menu-item', href: '/demo/index.html' }, [icon('swap'), el('span', { text: 'Sair da demonstração' })])
-        : el('button', { type: 'button', class: 'menu-item', id: 'logout' }, [icon('logout'), el('span', { text: 'Sair' })])
+        ? el('a', { class: 'menu-item', href: '/demo/index.html' }, [icon('swap'), textSpan('Sair da demonstração')])
+        : el('button', { type: 'button', class: 'menu-item', id: 'logout' }, [icon('logout'), textSpan('Sair')])
     ]);
     trigger.addEventListener('click', () => { panel.hidden = !panel.hidden; trigger.setAttribute('aria-expanded', String(!panel.hidden)); });
     document.addEventListener('click', (event) => { if (!account.contains(event.target)) { panel.hidden = true; trigger.setAttribute('aria-expanded', 'false'); } });
@@ -224,7 +224,7 @@ export function renderDemoBanner(ctx) {
   const persona = ctx.persona;
   const banner = el('div', { class: 'demo-banner', role: 'region', 'aria-label': 'Ambiente demonstrativo' });
   const text = el('p', { class: 'demo-text' }, [
-    icon('info', { size: 16 }), el('strong', { text: 'Ambiente demonstrativo' }),
+    icon('info', { size: 16 }), textStrong('Ambiente demonstrativo'),
     el('span', { class: 'demo-sub', text: 'Dados fictícios. Nenhuma operação financeira real será executada.' })
   ]);
   const group = el('div', { class: 'persona-switch', role: 'radiogroup', 'aria-label': 'Visualizar como' });
@@ -246,7 +246,7 @@ export function renderDemoBanner(ctx) {
     group.append(option);
   }
   const who = el('span', { class: 'persona-who', text: persona ? `${persona.name} · ${persona.title}` : '' });
-  const reset = el('button', { type: 'button', class: 'demo-reset', id: 'demo-reset' }, [icon('refresh', { size: 14 }), el('span', { text: 'Restaurar demonstração' })]);
+  const reset = el('button', { type: 'button', class: 'demo-reset', id: 'demo-reset' }, [icon('refresh', { size: 14 }), textSpan('Restaurar demonstração')]);
   reset.addEventListener('click', async () => {
     const ok = await confirmDialog({
       title: 'Restaurar a demonstração?',
@@ -388,8 +388,8 @@ export function installNotificationCenter(ctx, bell) {
     el('div', { class: 'notification-head' }, [el('h2', { class: 'notification-title', text: 'Notificações' }), filter]),
     list,
     el('div', { class: 'notification-foot' }, [markAll,
-      el('a', { class: 'btn btn-ghost btn-sm', href: ctx.href(ctx.audience === 'provider' ? '/provider/index.html' : '/finance/notifications.html') }, [el('span', { text: 'Ver todas' })]),
-      ctx.audience === 'company' ? el('a', { class: 'btn btn-ghost btn-sm', href: ctx.href('/finance/settings.html#notificacoes') }, [icon('settings'), el('span', { text: 'Preferências' })]) : null])
+      el('a', { class: 'btn btn-ghost btn-sm', href: ctx.href(ctx.audience === 'provider' ? '/provider/index.html' : '/finance/notifications.html') }, [textSpan('Ver todas')]),
+      ctx.audience === 'company' ? el('a', { class: 'btn btn-ghost btn-sm', href: ctx.href('/finance/settings.html#notificacoes') }, [icon('settings'), textSpan('Preferências')]) : null])
   );
   const close = () => { panel.hidden = true; bell.setAttribute('aria-expanded', 'false'); };
   bell.addEventListener('click', () => {

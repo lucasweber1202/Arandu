@@ -1,4 +1,4 @@
-import { el, icon, productLabel, formatDate, formatDateTime } from '../core.js';
+import { el, icon, productLabel, formatDate, formatDateTime, textSpan, textStrong, textItem } from '../core.js';
 import { card, button, field, drawer, loading, errorState, emptyState, toast, formDrawer, toastError } from '../ui.js';
 import { CONTRACT_CATEGORIES } from '../../../lib/finance/contract-terms.mjs';
 import { loadEntities, entityName } from './entities.js';
@@ -59,11 +59,11 @@ function originContext(ctx, { contractId, noun, controls, filters, entities }) {
         ? `Sem filtro: a lista mostra ${noun} de todo o seu escopo, não só deste contrato.`
         : `Filtro aplicado: ${applied.join(' · ')}. Sem o filtro de contrato, a lista pode incluir outros contratos${sameProvider ? ' com a mesma instituição' : ''}.`;
     box.replaceChildren(icon('info', { size: 16 }), el('div', {}, [
-      el('p', {}, [el('strong', { text: 'Vindo do contrato: ' }), el('span', { text: contract
+      el('p', {}, [textStrong('Vindo do contrato: '), textSpan(contract
         ? `${CONTRACT_CATEGORIES[contract.product] || productLabel(contract.product)} com ${contract.provider_name || 'instituição não informada'}${contract.legal_entity_id ? ` · ${entityName(entities, contract.legal_entity_id)}` : ''}${contract.ends_on ? ` · vence ${formatDate(contract.ends_on)}` : ''}`
-        : 'contrato fora da lista carregada nesta sessão' })]),
+        : 'contrato fora da lista carregada nesta sessão')]),
       el('p', { class: 'small', text: scopeText }),
-      el('a', { class: 'contract-link', href: ctx.href(`/finance/contracts.html${contract ? `#contract-${contract.id}` : ''}`) }, [el('span', { text: contract ? 'Voltar ao contrato' : 'Abrir contratos' }), icon('arrowRight', { size: 14 })])
+      el('a', { class: 'contract-link', href: ctx.href(`/finance/contracts.html${contract ? `#contract-${contract.id}` : ''}`) }, [textSpan(contract ? 'Voltar ao contrato' : 'Abrir contratos'), icon('arrowRight', { size: 14 })])
     ]));
   };
   describe();
@@ -143,7 +143,7 @@ export async function ledgerPage(ctx, { resource, title, subtitle, filters, scop
   async function detail(id) {
     try {
       const d = await ctx.api(`${resource}/detail?${new URLSearchParams({ id, organization_id: ctx.organization.id })}`);
-      const body = el('div', { class: 'stack' }, [...lines(d.lines), ...(d.links || []).map((l) => el('p', {}, el('a', { href: l.href, text: l.text }))), ...(d.sections || []).map((s) => card({ title: s.title, body: s.items.length ? el('ol', { class: 'plain-list small' }, s.items.map((text) => el('li', { text: humanizeText(ctx, text) }))) : el('p', { class: 'muted', text: s.empty }) }))]);
+      const body = el('div', { class: 'stack' }, [...lines(d.lines), ...(d.links || []).map((l) => el('p', {}, el('a', { href: l.href, text: l.text }))), ...(d.sections || []).map((s) => card({ title: s.title, body: s.items.length ? el('ol', { class: 'plain-list small' }, s.items.map((text) => textItem(humanizeText(ctx, text)))) : el('p', { class: 'muted', text: s.empty }) }))]);
       if (d.graph) body.append(await graphContextCard(ctx, d.graph));
       let dialog;
       if (detailExtra) body.append(await detailExtra(ctx, id, { manage, onDone: () => reload() }));

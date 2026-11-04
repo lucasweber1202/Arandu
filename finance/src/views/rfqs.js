@@ -4,7 +4,7 @@
 import { PRODUCTS, PRODUCT_IDS, checkAcquiringShares } from '../../../lib/finance/products.mjs';
 import { passportPrefill, SOURCE_LABELS } from '../../../lib/finance/passport.mjs';
 import { negotiationNextStep, ACTOR_LABEL } from '../../../lib/finance/negotiation-next-step.mjs';
-import { el, icon, fold, daysUntil, relativeDays, formatDate, formatDateTime, productLabel, demandHeadline, RFQ_STATUS, fieldValue, todayIso } from '../core.js';
+import { el, icon, fold, daysUntil, relativeDays, formatDate, formatDateTime, productLabel, demandHeadline, RFQ_STATUS, fieldValue, todayIso, textSpan, textStrong, textItem } from '../core.js';
 import { pill, linkButton, button, emptyState, person, progress, field, catalogControl, saveIndicator, toast, confirmDialog, tag, onSubmit, toastError } from '../ui.js';
 import { loadEntities, entityContextSelect, inContext, entityName, entityField } from './entities.js';
 
@@ -32,7 +32,7 @@ export async function rfqList(ctx) {
   let activeStatus = params.get('status') || '';
   for (const [value, label] of statuses) {
     const count = value ? rfqs.filter((rfq) => rfq.status === value).length : rfqs.length;
-    const chip = el('button', { type: 'button', class: 'chip', 'aria-pressed': String(value === activeStatus), dataset: { status: value } }, [el('span', { text: label }), el('span', { class: 'chip-count', text: String(count) })]);
+    const chip = el('button', { type: 'button', class: 'chip', 'aria-pressed': String(value === activeStatus), dataset: { status: value } }, [textSpan(label), el('span', { class: 'chip-count', text: String(count) })]);
     chip.addEventListener('click', () => { activeStatus = value; for (const node of status.children) node.setAttribute('aria-pressed', String(node.dataset.status === value)); draw(); });
     status.append(chip);
   }
@@ -87,11 +87,11 @@ export async function rfqList(ctx) {
         el('td', { 'data-label': 'Status' }, pill(RFQ_STATUS[rfq.status], { size: 'sm' })),
         el('td', { 'data-label': 'Responsável' }, person(rfq.owner_name || 'Membro')),
         el('td', { 'data-label': 'Prazo', class: live && days !== null && days <= 2 ? 'urgent' : '' }, rfq.response_deadline
-          ? el('span', { class: 'date-cell' }, [el('span', { text: formatDate(rfq.response_deadline, { withYear: false }) }), live ? el('span', { class: 'date-rel', text: relativeDays(rfq.response_deadline) }) : null])
+          ? el('span', { class: 'date-cell' }, [textSpan(formatDate(rfq.response_deadline, { withYear: false })), live ? el('span', { class: 'date-rel', text: relativeDays(rfq.response_deadline) }) : null])
           : el('span', { class: 'muted', text: 'sem prazo' })),
         el('td', { 'data-label': 'Respostas' }, invited || (rfq.proposals || []).length ? progress((rfq.proposals || []).length, Math.max(invited, (rfq.proposals || []).length), { label: `${(rfq.proposals || []).length} de ${invited} provedores responderam` }) : el('span', { class: 'muted', text: 'sem convites' })),
         el('td', { 'data-label': 'Próxima ação', class: 'next-action' }, (() => { const step = steps.get(rfq.id); return [
-          el('span', { class: 'next-action-text' }, [el('span', { text: step.text }), step.detail ? el('span', { class: 'row-sub', text: step.detail }) : null]),
+          el('span', { class: 'next-action-text' }, [textSpan(step.text), step.detail ? el('span', { class: 'row-sub', text: step.detail }) : null]),
           step.actor !== 'none' ? tag(ACTOR_LABEL[step.actor], ACTOR_TONE[step.actor]) : null, icon('chevronRight', { size: 14 })]; })())
       ]));
     }
@@ -152,7 +152,7 @@ export async function newRfq(ctx) {
   const source = (ctx.data.rfqs || []).find((rfq) => rfq.id === params.get('clone')) || null;
   const profile = ctx.data.profile || [];
   const root = el('div', { class: 'wizard' });
-  if (params.get('clone') && !source) root.append(el('p', { class: 'callout callout-warning' }, [icon('alert'), el('span', { text: 'A solicitação de origem não está disponível nesta organização. Comece uma nova demanda sem dados copiados.' })]));
+  if (params.get('clone') && !source) root.append(el('p', { class: 'callout callout-warning' }, [icon('alert'), textSpan('A solicitação de origem não está disponível nesta organização. Comece uma nova demanda sem dados copiados.')]));
 
   const form = el('form', { id: 'rfq-form', class: 'wizard-form', novalidate: true });
   const stepper = el('ol', { class: 'steps stepper', 'aria-label': 'Etapas da solicitação' });
@@ -257,7 +257,7 @@ export async function newRfq(ctx) {
     const total = Object.values(values).reduce((sum, value) => sum + value, 0);
     meter.dataset.state = !Object.keys(values).length ? 'idle' : result.errors.length ? 'error' : result.warnings.length ? 'warn' : 'ok';
     meter.replaceChildren(icon(meter.dataset.state === 'ok' ? 'checkCircle' : meter.dataset.state === 'idle' ? 'info' : 'alert', { size: 14 }),
-      el('span', { text: Object.keys(values).length ? `Mix declarado: ${total.toLocaleString('pt-BR')}% de 100%` : 'Preencha as fatias do mix de recebimentos (devem somar 100%).' }));
+      textSpan(Object.keys(values).length ? `Mix declarado: ${total.toLocaleString('pt-BR')}% de 100%` : 'Preencha as fatias do mix de recebimentos (devem somar 100%).'));
   }
 
   // Revisão.
@@ -284,7 +284,7 @@ export async function newRfq(ctx) {
         ...spec.demandFields.filter((item) => !NEED_KEYS[data.product].includes(item.key) && data.demand[item.key] !== undefined).map((item) => [item.label, fieldValue(item, data.demand[item.key])])]]
     ];
     for (const [label, step, rows] of sections) {
-      const edit = el('button', { type: 'button', class: 'link-btn', 'aria-label': `Editar ${label}` }, [icon('edit', { size: 14 }), el('span', { text: 'Editar' })]);
+      const edit = el('button', { type: 'button', class: 'link-btn', 'aria-label': `Editar ${label}` }, [icon('edit', { size: 14 }), textSpan('Editar')]);
       edit.addEventListener('click', () => show(step, { focus: true }));
       review.append(el('section', { class: 'review-block' }, [
         el('div', { class: 'review-head' }, [el('h3', { text: label }), edit]),
@@ -297,7 +297,7 @@ export async function newRfq(ctx) {
         el('ul', { class: 'plain-list' }, data.passport_fields.map(({ demand_key: key }) => {
           const item = passportUsed.get(key);
           const kept = String(data.demand[key]) === String(item.value);
-          return el('li', { text: `${spec.demandFields.find((entry) => entry.key === key)?.label || key}: ${kept ? 'mantido como no Passport' : 'alterado nesta solicitação'} (${SOURCE_LABELS[item.source] || item.source}${item.updated_at ? `, ${formatDate(item.updated_at)}` : ''}${item.freshness === 'stale' ? ', desatualizado' : ''}).` });
+          return textItem(`${spec.demandFields.find((entry) => entry.key === key)?.label || key}: ${kept ? 'mantido como no Passport' : 'alterado nesta solicitação'} (${SOURCE_LABELS[item.source] || item.source}${item.updated_at ? `, ${formatDate(item.updated_at)}` : ''}${item.freshness === 'stale' ? ', desatualizado' : ''}).`);
         })),
         el('p', { class: 'small muted', text: 'A solicitação guarda esta fotografia. Mudanças futuras no Passport não alteram este processo.' })
       ]));
@@ -305,8 +305,8 @@ export async function newRfq(ctx) {
     let blocked = false;
     if (data.product === 'acquiring') {
       const shares = checkAcquiringShares(Object.fromEntries(Object.entries(data.demand).map(([key, value]) => [key, Number(value)])));
-      for (const message of shares.errors) review.append(el('p', { class: 'callout callout-danger' }, [icon('alert'), el('span', { text: message })]));
-      for (const message of shares.warnings) review.append(el('p', { class: 'callout callout-warning' }, [icon('alert'), el('span', { text: message })]));
+      for (const message of shares.errors) review.append(el('p', { class: 'callout callout-danger' }, [icon('alert'), textSpan(message)]));
+      for (const message of shares.warnings) review.append(el('p', { class: 'callout callout-warning' }, [icon('alert'), textSpan(message)]));
       blocked = !shares.ok;
     }
     submit.disabled = blocked;
@@ -341,7 +341,7 @@ export async function newRfq(ctx) {
   function validate(step) {
     const problems = checkStep(step, { mark: true });
     if (problems.length) {
-      errorSummary.replaceChildren(icon('alert'), el('span', { text: `${problems.length === 1 ? 'Corrija 1 campo' : `Corrija ${problems.length} campos`} para continuar: ${problems.map((item) => item.label).join(', ')}.` }));
+      errorSummary.replaceChildren(icon('alert'), textSpan(`${problems.length === 1 ? 'Corrija 1 campo' : `Corrija ${problems.length} campos`} para continuar: ${problems.map((item) => item.label).join(', ')}.`));
       errorSummary.hidden = false;
       problems[0].control.focus();
       return false;
@@ -380,7 +380,7 @@ export async function newRfq(ctx) {
   const summary = el('aside', { class: 'wizard-summary', 'aria-label': 'Resumo da solicitação' }, [
     el('div', { class: 'summary-head' }, [el('h2', { class: 'summary-title', text: 'Resumo' }), indicator.node]),
     summaryBody, retry,
-    el('p', { class: 'summary-foot' }, [icon('lock', { size: 12 }), el('span', { text: 'Só a sua empresa vê o rascunho. Provedores recebem a solicitação apenas quando convidados.' })])
+    el('p', { class: 'summary-foot' }, [icon('lock', { size: 12 }), textSpan('Só a sua empresa vê o rascunho. Provedores recebem a solicitação apenas quando convidados.')])
   ]);
   function updateSummary() {
     const data = payload();
@@ -388,7 +388,7 @@ export async function newRfq(ctx) {
     const required = spec.demandFields.filter((item) => item.required);
     const filled = required.filter((item) => data.demand[item.key] !== undefined).length + (data.title.length >= 3 ? 1 : 0);
     summaryBody.replaceChildren(
-      el('p', { class: 'summary-product' }, [icon(data.product === 'credit' ? 'briefcase' : 'layers', { size: 14 }), el('span', { text: spec.label })]),
+      el('p', { class: 'summary-product' }, [icon(data.product === 'credit' ? 'briefcase' : 'layers', { size: 14 }), textSpan(spec.label)]),
       el('p', { class: 'summary-name', text: data.title || 'Sem título ainda' }),
       el('dl', { class: 'summary-list' }, spec.demandFields.filter((item) => data.demand[item.key] !== undefined).slice(0, 6).map((item) =>
         el('div', {}, [el('dt', { text: item.label }), el('dd', { text: fieldValue(item, data.demand[item.key]) })]))),
@@ -448,7 +448,7 @@ export async function newRfq(ctx) {
       } catch (error) { toastError(error); }
     } });
     conflictBox.replaceChildren(icon('alert'), el('div', {}, [
-      el('strong', { text: 'Este rascunho foi alterado em outra aba ou janela.' }),
+      textStrong('Este rascunho foi alterado em outra aba ou janela.'),
       el('p', { text: 'Para não apagar o trabalho feito lá, esta aba parou de salvar. Escolha qual versão continua.' }),
       el('div', { class: 'callout-actions' }, [reload, keep])
     ]));
@@ -481,7 +481,7 @@ export async function newRfq(ctx) {
       if (input && value !== null && value !== undefined) { input.value = String(value); input.dispatchEvent(new Event('field:sync')); }
     }
     if (source.response_deadline && source.response_deadline > todayIso()) deadline.value = source.response_deadline;
-    root.append(el('p', { class: 'callout callout-info' }, [icon('info'), el('span', { text: 'Dados da demanda anterior pré-preenchidos. Revise tudo antes de criar o novo rascunho. Convites, propostas e decisões não são copiados.' })]));
+    root.append(el('p', { class: 'callout callout-info' }, [icon('info'), textSpan('Dados da demanda anterior pré-preenchidos. Revise tudo antes de criar o novo rascunho. Convites, propostas e decisões não são copiados.')]));
   }
   ctx.api(`rfq-editor?organization_id=${ctx.orgId}`).then(({ draft }) => {
     editorRevision = draft?.revision ?? 0;
@@ -504,7 +504,7 @@ export async function newRfq(ctx) {
           location.reload();
         } catch (error) { toastError(error); }
       } });
-      recovered.replaceChildren(icon('refresh'), el('span', { text: `Recuperamos o rascunho que você deixou em ${formatDateTime(draft.updated_at)}.` }), discard);
+      recovered.replaceChildren(icon('refresh'), textSpan(`Recuperamos o rascunho que você deixou em ${formatDateTime(draft.updated_at)}.`), discard);
       recovered.hidden = false;
       // Retoma na primeira etapa ainda incompleta, não de volta ao início.
       let resume = 0;
@@ -564,7 +564,7 @@ export async function newRfq(ctx) {
 
   const nav = el('div', { class: 'wizard-nav' }, [back, el('span', { class: 'spacer' }), next, submit]);
   form.append(nav);
-  const mobileSummary = el('details', { class: 'wizard-summary-mobile' }, [el('summary', {}, [el('span', { text: 'Resumo e salvamento' })])]);
+  const mobileSummary = el('details', { class: 'wizard-summary-mobile' }, [el('summary', {}, [textSpan('Resumo e salvamento')])]);
   root.append(recovered, conflictBox, el('div', { class: 'wizard-layout' }, [
     el('div', { class: 'wizard-main card' }, [stepper, progressBar, errorSummary, form]),
     summary

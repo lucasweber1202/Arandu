@@ -2,7 +2,7 @@
 // Quadro de respostas e "Antes de comparar" da negociação (lib/finance/
 // negotiation-board.mjs). Lê o que a tela já carregou (convites e propostas do
 // portal) e a lista canônica de propostas externas; não grava nada.
-import { el, icon, todayIso } from '../core.js';
+import { el, icon, todayIso, textSpan, textStrong } from '../core.js';
 import { card, pill, tag, loading, mutedText } from '../ui.js';
 import { PRODUCTS } from '../../../lib/finance/products.mjs';
 import { negotiationBoard } from '../../../lib/finance/negotiation-board.mjs';
@@ -46,7 +46,7 @@ async function fetchExternals(ctx, rfq) {
 
 function externalNote(ext) {
   if (ext.problem === 'unavailable') return mutedText('Propostas externas: registro ainda não disponível neste ambiente; o quadro mostra só o portal.');
-  if (ext.problem === 'failed') return el('p', { class: 'callout callout-warning compact', role: 'alert' }, [icon('alert', { size: 14 }), el('span', { text: 'As propostas externas não carregaram. Isso não significa que não existam: o quadro mostra só o portal.' })]);
+  if (ext.problem === 'failed') return el('p', { class: 'callout callout-warning compact', role: 'alert' }, [icon('alert', { size: 14 }), textSpan('As propostas externas não carregaram. Isso não significa que não existam: o quadro mostra só o portal.')]);
   if (ext.more) return mutedText('Há mais de 50 propostas externas; o quadro mostra as primeiras.');
   return null;
 }
@@ -80,7 +80,7 @@ export function responseBoardCard(ctx, rfq) {
       return el('li', { class: 'milestone-row board-row', dataset: { provider: row.providerId, ball: row.ball } }, [
         pill({ label: row.ballLabel, tone, icon: ic }, { size: 'sm' }),
         el('div', { class: 'milestone-main' }, [
-          el('strong', { text: row.name }), mutedText(row.status, 'span'),
+          textStrong(row.name), mutedText(row.status, 'span'),
           row.channels.length ? el('ul', { class: 'plain-list' }, row.channels.map((c) => channelLine(row, c))) : null,
           ...row.notes.map((text) => el('span', { class: 'small warn-text', text }))
         ]),

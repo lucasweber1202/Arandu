@@ -1,7 +1,7 @@
 // Formulário de registro do CRM com conflito de revisão e campos comuns.
 // Extraído de views/crm-workspace.js (v7.0).
 
-import { el, uid } from '../../core.js';
+import { el, uid, textSpan } from '../../core.js';
 import { button, field, drawer, toast, confirmDialog, onSubmit, sessionLink, mutedText } from '../../ui.js';
 import { crmErrorMessage, memberLabel, writers } from './model.js';
 
@@ -42,7 +42,7 @@ export function crmForm({ title, intro = null, fields, send, done, onSaved, onCo
       toast(result?.replayed ? `${done} (a mesma ação já havia sido registrada; nada foi duplicado)` : done);
       onSaved?.(result);
     } catch (error) {
-      errors.replaceChildren(el('span', { text: crmErrorMessage(error) }), ...(sessionLink(error) ? [' ', sessionLink(error)] : []),
+      errors.replaceChildren(textSpan(crmErrorMessage(error)), ...(sessionLink(error) ? [' ', sessionLink(error)] : []),
         ...(error.status === 409 && onConflict ? [' ', button('Recarregar dados', { size: 'sm', iconName: 'refresh', onClick: () => { dirty = false; dialog.close(); onConflict(); } })] : []));
       errors.hidden = false;
       if (!error.status || error.status >= 500) save.querySelector('.btn-label').textContent = 'Repetir a mesma ação';

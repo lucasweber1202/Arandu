@@ -1,7 +1,7 @@
 // Entrada por objetivo (Guideline v3.3 §35.10): "O que você precisa fazer?"
 // leva ao fluxo existente certo. A lista vem de lib/finance/intents.mjs e só
 // mostra o que o papel de quem usa permite executar.
-import { el, icon } from '../core.js';
+import { el, icon, textSpan } from '../core.js';
 import { button, drawer } from '../ui.js';
 import { intentsFor } from '../../../lib/finance/intents.mjs';
 
@@ -31,7 +31,7 @@ function openIntents(ctx, intents) {
   const { visible, groups, empty } = arrange(ctx, intents);
   intents = visible;
   if (empty) body.append(el('p', { class: 'callout callout-info compact' }, [icon('info', { size: 14 }),
-    el('span', { text: 'Comece pelo que a empresa já tem: um contrato ou uma instituição registrados aqui já passam a ter prazo, aviso prévio e próxima ação. Nenhuma instituição precisa ter conta no Arandu para isso.' })]));
+    textSpan('Comece pelo que a empresa já tem: um contrato ou uma instituição registrados aqui já passam a ter prazo, aviso prévio e próxima ação. Nenhuma instituição precisa ter conta no Arandu para isso.')]));
   for (const group of groups) {
     const id = `intent-group-${group.normalize('NFD').replace(/[^a-z]/gi, '').toLowerCase()}`;
     body.append(el('section', { class: 'intent-group', 'aria-labelledby': id }, [

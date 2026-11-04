@@ -2,7 +2,7 @@
 // Extraído de company.js (v7.0): uma capability por módulo e rota.
 
 import { PRODUCTS } from '../../../../lib/finance/products.mjs';
-import { el, icon, formatDate, productLabel, demandHeadline, timeAgo } from '../../core.js';
+import { el, icon, formatDate, productLabel, demandHeadline, timeAgo, textSpan } from '../../core.js';
 import { pill, button, linkButton, emptyState, errorState, tabs, definitionList, drawer, mutedText } from '../../ui.js';
 import { memberName } from '../shared/people.js';
 import { currentStep, approvalSummaryLine, approvalActions, approvalSteps, isViewerTurn } from '../shared/approvals.js';
@@ -37,13 +37,13 @@ export async function approvalsInbox(ctx) {
     const open = () => approvalContext(ctx, request, rfq);
     return el('article', { class: `inbox-row${isMine ? ' mine' : ''}`, id: `request-${request.id}` }, [
       el('div', { class: 'inbox-main' }, [
-        el('p', { class: 'inbox-kicker' }, [el('span', { text: productLabel(rfq.product, { short: true }) }), el('span', { text: ' · ' }), el('span', { text: demandHeadline(rfq) })]),
+        el('p', { class: 'inbox-kicker' }, [textSpan(productLabel(rfq.product, { short: true })), textSpan(' · '), textSpan(demandHeadline(rfq))]),
         el('h2', { class: 'inbox-title' }, el('a', { href: ctx.href(`/finance/rfq.html?id=${rfq.id}#aprovacoes`), text: rfq.title })),
         el('p', { class: 'inbox-meta', text: `Solicitado por ${memberName(ctx.members, request.requested_by)} ${timeAgo(request.requested_at)}` }),
-        el('p', { class: 'inbox-proposal' }, [icon('inbox', { size: 14 }), el('span', { text: proposal ? `${proposal.provider_name} — proposta selecionada (v${request.proposal_version})` : 'Proposta selecionada' })]),
+        el('p', { class: 'inbox-proposal' }, [icon('inbox', { size: 14 }), textSpan(proposal ? `${proposal.provider_name} — proposta selecionada (v${request.proposal_version})` : 'Proposta selecionada')]),
         // Quem decide vê valor, taxa e prazo antes do botão, sem abrir outra tela.
         isMine && !request.stale && proposal ? keyTerms(rfq.product, proposal.terms) : null,
-        el('p', { class: 'inbox-progress' }, [dots, el('span', { text: request.status === 'pending' ? `${approvalSummaryLine(request)} · ${(request.steps || []).filter((item) => item.status === 'approved').length} de ${total} aprovadores` : `${(request.steps || []).filter((item) => item.status === 'approved').length} de ${total} aprovaram` })])
+        el('p', { class: 'inbox-progress' }, [dots, textSpan(request.status === 'pending' ? `${approvalSummaryLine(request)} · ${(request.steps || []).filter((item) => item.status === 'approved').length} de ${total} aprovadores` : `${(request.steps || []).filter((item) => item.status === 'approved').length} de ${total} aprovaram`)])
       ]),
       el('div', { class: 'inbox-side' }, [
         pill(request.stale && request.status === 'pending' ? { label: 'Desatualizada', tone: 'danger', icon: 'alert' } : isMine ? { label: 'Aguardando você', tone: 'warning', icon: 'clock' } : { pending: { label: 'Em andamento', tone: 'info', icon: 'clock' } }[request.status] || { label: { approved: 'Aprovada', rejected: 'Rejeitada', changes_requested: 'Alterações pedidas', cancelled: 'Cancelada', expired: 'Expirada', superseded: 'Substituída' }[request.status], tone: request.status === 'approved' ? 'success' : request.status === 'rejected' ? 'danger' : 'neutral' }),

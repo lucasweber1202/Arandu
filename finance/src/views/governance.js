@@ -6,7 +6,7 @@
 // afirma conformidade jurídica, e nenhum prazo vem preenchido pelo produto.
 // Docs: docs/FINANCIAL_DATA_GOVERNANCE.md.
 
-import { el, icon, formatDateTime, formatDate } from '../core.js';
+import { el, icon, formatDateTime, formatDate, textSpan, textStrong, textItem } from '../core.js';
 import { button, linkButton, tag, field, emptyState, errorState, loading, toast, confirmDialog, promptDialog, onSubmit, mutedText, toastError } from '../ui.js';
 
 const CLASS_LABEL = {
@@ -55,11 +55,11 @@ function summarySection(data) {
   return el('section', { class: 'stack-sm', 'aria-labelledby': 'gov-summary' }, [
     el('h3', { id: 'gov-summary', text: 'Resumo' }),
     el('ul', { class: 'plain-list governance-facts' }, [
-      el('li', { text: `${catalog.tables ?? 0} tabelas classificadas · ${catalog.personal_data_tables ?? 0} com dado pessoal · ${catalog.credential_tables ?? 0} com material de credencial (nunca exportado).` }),
-      el('li', { text: `${(catalog.export_datasets || []).length} conjuntos no export portável (JSON com manifesto e checksum por conjunto).` }),
-      el('li', { text: `Legal holds ativos: ${data.summary?.active_holds ?? 0}.` }),
-      el('li', { text: offboarding ? `Offboarding em andamento: ${OFFBOARDING_LABEL[offboarding.status] || offboarding.status}.` : 'Nenhum offboarding em andamento.' }),
-      el('li', { text: data.summary?.last_retention ? `Última execução de retenção: ${formatDateTime(data.summary.last_retention)}.` : 'A retenção automática ainda não executou para esta organização.' })
+      textItem(`${catalog.tables ?? 0} tabelas classificadas · ${catalog.personal_data_tables ?? 0} com dado pessoal · ${catalog.credential_tables ?? 0} com material de credencial (nunca exportado).`),
+      textItem(`${(catalog.export_datasets || []).length} conjuntos no export portável (JSON com manifesto e checksum por conjunto).`),
+      textItem(`Legal holds ativos: ${data.summary?.active_holds ?? 0}.`),
+      textItem(offboarding ? `Offboarding em andamento: ${OFFBOARDING_LABEL[offboarding.status] || offboarding.status}.` : 'Nenhum offboarding em andamento.'),
+      textItem(data.summary?.last_retention ? `Última execução de retenção: ${formatDateTime(data.summary.last_retention)}.` : 'A retenção automática ainda não executou para esta organização.')
     ])
   ]);
 }
@@ -71,7 +71,7 @@ function retentionSection(ctx, data, render) {
     const active = policies.find((p) => p.retention_class === entry.retention_class && p.status === 'active');
     const drafts = policies.filter((p) => p.retention_class === entry.retention_class && p.status === 'draft');
     return el('li', { class: 'card' }, el('div', { class: 'card-body stack-sm' }, [
-      el('div', { class: 'policy-head' }, [el('strong', { text: CLASS_LABEL[entry.retention_class] || entry.retention_class }),
+      el('div', { class: 'policy-head' }, [textStrong(CLASS_LABEL[entry.retention_class] || entry.retention_class),
         active ? tag(`${active.retention_days} dias · v${active.version}`, 'success') : tag('sem retenção automática', 'neutral')]),
       el('span', { class: 'small muted', text: `${entry.action === 'anonymize' ? 'Anonimiza' : 'Apaga'} após o prazo. Limites técnicos: ${entry.min_days} a ${entry.max_days} dias.` }),
       active ? el('div', { class: 'row-actions' }, button('Aposentar política', { size: 'sm', onClick: async () => {
@@ -126,7 +126,7 @@ function retentionSection(ctx, data, render) {
 function holdSection(ctx, data, render) {
   const holds = data.holds || [];
   const list = holds.length ? el('ul', { class: 'plain-list' }, holds.map((hold) => el('li', { class: 'card' }, el('div', { class: 'card-body stack-sm' }, [
-    el('div', { class: 'policy-head' }, [el('strong', { text: SCOPE_LABEL[hold.scope_type] || hold.scope_type }),
+    el('div', { class: 'policy-head' }, [textStrong(SCOPE_LABEL[hold.scope_type] || hold.scope_type),
       tag(hold.status === 'active' ? 'ativo' : 'liberado', hold.status === 'active' ? 'warning' : 'neutral')]),
     el('span', { class: 'small', text: hold.reason }),
     el('span', { class: 'small muted', text: `Criado em ${formatDateTime(hold.created_at)}${hold.reference ? ` · ${hold.reference}` : ''}${hold.released_at ? ` · liberado em ${formatDateTime(hold.released_at)}` : ''}` }),
@@ -209,7 +209,7 @@ function exportSection(ctx, data, render) {
   const list = exports.length ? el('ul', { class: 'plain-list' }, exports.map((item) => {
     const href = `/api/finance/governance/export-download?export_id=${encodeURIComponent(item.id)}`;
     return el('li', { class: 'card' }, el('div', { class: 'card-body stack-sm' }, [
-      el('div', { class: 'policy-head' }, [el('strong', { text: item.purpose === 'offboarding' ? 'Export do offboarding' : 'Export portável' }), tag(EXPORT_LABEL[item.status] || item.status, EXPORT_TONE[item.status] || 'neutral')]),
+      el('div', { class: 'policy-head' }, [textStrong(item.purpose === 'offboarding' ? 'Export do offboarding' : 'Export portável'), tag(EXPORT_LABEL[item.status] || item.status, EXPORT_TONE[item.status] || 'neutral')]),
       el('span', { class: 'small muted', text: `Pedido em ${formatDateTime(item.requested_at)}${item.status === 'ready' ? ` · ${item.dataset_count} conjuntos, ${item.row_count} registros, ${bytes(item.byte_size)} · disponível até ${formatDateTime(item.expires_at)}` : ''}${item.error_code ? ` · ${item.error_code}` : ''}` }),
       item.status === 'ready' ? (item.byte_size <= max
         ? linkButton('Baixar pacote (JSON)', href, { size: 'sm', iconName: 'download', attrs: { download: '' } })
@@ -238,7 +238,7 @@ function offboardingSection(ctx, data, render) {
         try { await post(ctx, 'governance/offboarding', { organization_id: ctx.organization.id, reason }); toast('Pedido de offboarding registrado.'); render(); } catch (error) { toastError(error); }
       } }));
   } else {
-    body.push(el('div', { class: 'policy-head' }, [el('strong', { text: 'Offboarding' }), tag(OFFBOARDING_LABEL[current.status] || current.status, 'warning')]),
+    body.push(el('div', { class: 'policy-head' }, [textStrong('Offboarding'), tag(OFFBOARDING_LABEL[current.status] || current.status, 'warning')]),
       el('span', { class: 'small muted', text: `Pedido em ${formatDateTime(current.requested_at)}${current.retention_until ? ` · retenção até ${formatDate(current.retention_until)}` : ''}` }));
     const act = (action, payload = {}) => post(ctx, 'governance/offboarding-action', { request_id: current.id, action, ...payload });
     const actions = [];
@@ -262,5 +262,5 @@ function offboardingSection(ctx, data, render) {
     body.push(el('div', { class: 'stack-sm' }, actions));
   }
   return el('section', { class: 'stack-sm', 'aria-labelledby': 'gov-offboarding' }, [el('h3', { id: 'gov-offboarding', text: 'Offboarding da organização' }), ...body,
-    el('p', { class: 'small muted' }, [icon('alert', { size: 14 }), el('span', { text: ' Exclusão física só depois da janela, sem legal hold, por procedimento operacional registrado. Cópias de backup seguem a política do provedor de banco e não são apagadas pela interface.' })])]);
+    el('p', { class: 'small muted' }, [icon('alert', { size: 14 }), textSpan(' Exclusão física só depois da janela, sem legal hold, por procedimento operacional registrado. Cópias de backup seguem a política do provedor de banco e não são apagadas pela interface.')])]);
 }

@@ -1,7 +1,7 @@
 // Tarefas operacionais: criação, atribuição, filtros e conclusão.
 // Extraído de company.js (v7.0): uma capability por módulo e rota.
 
-import { el, icon, formatDate, relativeDays, daysUntil, ROLE_LABELS, todayIso } from '../../core.js';
+import { el, icon, formatDate, relativeDays, daysUntil, ROLE_LABELS, todayIso, textSpan } from '../../core.js';
 import { card, button, emptyState, errorState, loading, toast, confirmDialog, field, onSubmit, toastError } from '../../ui.js';
 import { TASK_EDITORS, taskChangeError } from '../shared/tasks.js';
 import { CONTRACT_CATEGORIES } from '../../../../lib/finance/contract-terms.mjs';
@@ -80,7 +80,7 @@ export async function tasks(ctx) {
         const rows = await draw();
         const sameTitle = (rows || []).filter((row) => row.title === pending.body.title && row.status === 'open').length;
         pendingNote.replaceChildren(
-          el('span', { text: `Não confirmamos se a tarefa foi criada. ${sameTitle ? `A lista mostra ${sameTitle === 1 ? 'uma tarefa aberta' : `${sameTitle} tarefas abertas`} com este título, mas o título sozinho não prova que é a sua. ` : ''}Use “Conferir com o servidor”: ele repete a mesma tentativa e nunca cria uma segunda tarefa.` }),
+          textSpan(`Não confirmamos se a tarefa foi criada. ${sameTitle ? `A lista mostra ${sameTitle === 1 ? 'uma tarefa aberta' : `${sameTitle} tarefas abertas`} com este título, mas o título sozinho não prova que é a sua. ` : ''}Use “Conferir com o servidor”: ele repete a mesma tentativa e nunca cria uma segunda tarefa.`),
           ' ',
           button('Conferir com o servidor', { size: 'sm', iconName: 'refresh', onClick: () => form.requestSubmit() })
         );
@@ -243,7 +243,7 @@ export async function tasks(ctx) {
           check, el('div', { class: 'task-main' }, [state, el('span', { class: 'task-title', text: task.title }),
             el('span', { class: 'task-meta' }, [el('span', { class: 'sr-only', text: 'Responsável: ' }), canAssign && task.status === 'open' ? null : owner, canAssign && task.status === 'open' ? null : (related ? ' · ' : null), related].filter(Boolean)), contractDue]),
           canAssign && task.status === 'open' ? el('label', { class: 'task-owner-field' }, [el('span', { class: 'sr-only', text: 'Responsável' }), ownerNode]) : null,
-          task.due_on ? el('span', { class: `task-due${task.status === 'open' && days < 0 ? ' overdue' : task.status === 'open' && days <= 2 ? ' soon' : ''}` }, [icon('calendar', { size: 12 }), el('span', { text: `${formatDate(task.due_on, { withYear: false })}${task.status === 'open' ? ` · ${relativeDays(task.due_on)}` : ''}` })]) : el('span', { class: 'task-due muted', text: 'sem prazo' })
+          task.due_on ? el('span', { class: `task-due${task.status === 'open' && days < 0 ? ' overdue' : task.status === 'open' && days <= 2 ? ' soon' : ''}` }, [icon('calendar', { size: 12 }), textSpan(`${formatDate(task.due_on, { withYear: false })}${task.status === 'open' ? ` · ${relativeDays(task.due_on)}` : ''}`)]) : el('span', { class: 'task-due muted', text: 'sem prazo' })
         ]));
       }
       const empty = { abertas: ['Nenhuma tarefa aberta', 'Tarefas de renovação são criadas automaticamente a partir dos contratos.'], minhas: ['Nenhuma tarefa aberta atribuída a você', 'Quando alguém atribuir uma tarefa a você, ela aparece aqui.'],
@@ -258,7 +258,7 @@ export async function tasks(ctx) {
     }
   }
   draw();
-  const readOnly = el('p', { class: 'callout callout-info compact task-readonly' }, [icon('lock', { size: 14 }), el('span', { text: 'Seu papel acompanha as tarefas da equipe: criar, concluir e reabrir ficam com administradores, gestores financeiros e analistas.' })]);
+  const readOnly = el('p', { class: 'callout callout-info compact task-readonly' }, [icon('lock', { size: 14 }), textSpan('Seu papel acompanha as tarefas da equipe: criar, concluir e reabrir ficam com administradores, gestores financeiros e analistas.')]);
   root.append(card({ body: canEdit ? form : readOnly }), el('div', { class: 'toolbar task-toolbar' }, [field({ label: 'Mostrar', control: filter }), scopeNote]), card({ flush: true, body: box }), el('div', { class: 'task-more' }, more));
   return root;
 }

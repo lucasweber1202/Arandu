@@ -272,3 +272,8 @@ export function renewalStage(contract) {
 export function needsRenewalAttention(contract) {
   return ['window', 'past_notice'].includes(renewalStage(contract).stage);
 }
+
+/** Elementos só com texto (sempre como texto, nunca HTML). */
+export const textSpan = (text) => el('span', { text });
+export const textStrong = (text) => el('strong', { text });
+export const textItem = (text) => el('li', { text });

@@ -1,7 +1,7 @@
 // Propostas recebidas em todas as solicitações da organização.
 // Extraído de company.js (v7.0): uma capability por módulo e rota.
 
-import { el, formatDate, relativeDays, daysUntil, RFQ_STATUS, PROPOSAL_STATUS, PROVIDER_KINDS } from '../../core.js';
+import { el, formatDate, relativeDays, daysUntil, RFQ_STATUS, PROPOSAL_STATUS, PROVIDER_KINDS, textSpan } from '../../core.js';
 import { linkButton, emptyState } from '../../ui.js';
 import { coverage, termsSummary } from '../shared/terms.js';
 
@@ -21,13 +21,13 @@ export async function proposalsList(ctx) {
     const live = ['open', 'collecting', 'comparing'].includes(rfq.status);
     body.append(el('tr', { class: 'row-link', dataset: { entity: 'proposal', id: proposal.id, rfq: rfq.id } }, [
       el('td', { 'data-label': 'Instituição', class: 'cell-primary' }, [el('a', { class: 'row-title stretched', href: ctx.href(`/finance/rfq.html?id=${rfq.id}#propostas`), text: proposal.provider_name }), el('span', { class: 'row-sub', text: PROVIDER_KINDS[proposal.provider_kind] || 'Provedor' })]),
-      el('td', { 'data-label': 'Solicitação' }, [el('span', { text: rfq.title }), el('span', { class: 'row-sub', text: RFQ_STATUS[rfq.status]?.label })]),
+      el('td', { 'data-label': 'Solicitação' }, [textSpan(rfq.title), el('span', { class: 'row-sub', text: RFQ_STATUS[rfq.status]?.label })]),
       el('td', { 'data-label': 'Condições', class: 'small' }, termsSummary(rfq.product, proposal.terms)),
-      el('td', { 'data-label': 'Versão' }, [el('span', { text: `v${proposal.version}` }),
+      el('td', { 'data-label': 'Versão' }, [textSpan(`v${proposal.version}`),
         // Retirada ou em preparação não pode parecer resposta válida.
         proposal.status && !['submitted', 'revised'].includes(proposal.status) ? el('span', { class: 'row-sub warn-text', text: PROPOSAL_STATUS[proposal.status]?.label || 'Situação desconhecida' }) : null, proposal.rfq_revision ? el('span', { class: `row-sub${outdated ? ' warn-text' : ''}`, text: `rev. ${proposal.rfq_revision}${outdated ? ` (atual ${rfq.revision})` : ''}` }) : null]),
       // Resposta depois do prazo informado é registrada como tal (fato, não juízo).
-      el('td', { 'data-label': 'Enviada' }, [el('span', { text: formatDate(proposal.submitted_at) }),
+      el('td', { 'data-label': 'Enviada' }, [textSpan(formatDate(proposal.submitted_at)),
         rfq.response_deadline && proposal.submitted_at && String(proposal.submitted_at).slice(0, 10) > rfq.response_deadline ? el('span', { class: 'row-sub warn-text', text: 'após o prazo de resposta' }) : null]),
       // Validade só é alerta enquanto o processo ainda decide; em processo encerrado
       // é registro histórico (com ano), sem vermelho de urgência.

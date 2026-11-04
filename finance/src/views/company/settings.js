@@ -1,7 +1,7 @@
 // Configurações da organização, preferências e acessos avançados.
 // Extraído de company.js (v7.0): uma capability por módulo e rota.
 
-import { el, icon, money, percent, formatDateTime, CONTRACT_STATUS, PROPOSAL_STATUS, ROLE_LABELS } from '../../core.js';
+import { el, icon, money, percent, formatDateTime, CONTRACT_STATUS, PROPOSAL_STATUS, ROLE_LABELS, textSpan, textStrong } from '../../core.js';
 import { card, tag, button, linkButton, emptyState, errorState, loading, toast, field, person, avatar, onSubmit, mutedText, toastError } from '../../ui.js';
 import { memberName } from '../shared/people.js';
 import { loadEntities, entitySettings, memberScopes } from '../entities.js';
@@ -122,7 +122,7 @@ export async function settings(ctx) {
         toast(toggle.checked ? 'Aprovação agora é obrigatória antes de decidir.' : 'Aprovação passou a ser opcional.');
       } catch (error) { toggle.checked = !toggle.checked; toastError(error); } finally { toggle.disabled = false; }
     });
-    policyBox.replaceChildren(el('label', { class: 'switch-row' }, [toggle, el('span', {}, [el('strong', { text: 'Exigir aprovação antes de registrar qualquer decisão' }),
+    policyBox.replaceChildren(el('label', { class: 'switch-row' }, [toggle, el('span', {}, [textStrong('Exigir aprovação antes de registrar qualquer decisão'),
       mutedText(policy.updated_at ? ` Atualizada em ${formatDateTime(policy.updated_at)}.` : ' Nenhuma exigência configurada.', 'span')])]),
     ctx.viewer?.role && ctx.viewer.role !== 'admin' ? mutedText(`Somente administradores alteram esta regra.${(__ARANDU_DEMO__ && ctx.mode === 'demo') ? ' Troque para a persona Admin para experimentar.' : ''}`) : mutedText('Mudanças ficam registradas na trilha da organização.'));
   }).catch((error) => policyBox.replaceChildren(errorState({ error })));
@@ -171,9 +171,9 @@ export async function settings(ctx) {
       body.append(el('tr', {}, [el('th', { scope: 'row', text: label }), el('td', {}, inApp), el('td', {}, email)]));
     }
     grid.append(body);
-    prefBox.replaceChildren(grid, el('p', { class: 'callout callout-info compact' }, [icon('info', { size: 14 }), el('span', { text: (__ARANDU_DEMO__ && ctx.mode === 'demo')
+    prefBox.replaceChildren(grid, el('p', { class: 'callout callout-info compact' }, [icon('info', { size: 14 }), textSpan((__ARANDU_DEMO__ && ctx.mode === 'demo')
       ? 'Na demonstração nenhum e-mail é enviado: a preferência é guardada e o envio é apenas simulado.'
-      : 'O envio por e-mail depende do provedor de e-mail configurado no ambiente. Sem ele, a preferência é guardada e nada é enviado.' })]));
+      : 'O envio por e-mail depende do provedor de e-mail configurado no ambiente. Sem ele, a preferência é guardada e nada é enviado.')]));
   }).catch((error) => prefBox.replaceChildren(errorState({ error })));
   add('notificacoes', 'Notificações', 'Escolha o que chega até você. Os avisos nunca incluem condições financeiras no e-mail.', prefBox);
 

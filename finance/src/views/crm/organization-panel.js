@@ -1,7 +1,7 @@
 // Agenda de relacionamento da organização (tela de instituições).
 // Extraído de views/crm-workspace.js (v7.0).
 
-import { el, formatDate, todayIso } from '../../core.js';
+import { el, formatDate, todayIso, textStrong } from '../../core.js';
 import { button, tag, loading, errorState, emptyState, mutedText } from '../../ui.js';
 import { ACTIVITY_KINDS, STAGES, STAGE_ORDER, crmErrorMessage, memberLabel, crmList } from './model.js';
 import { select } from './form.js';
@@ -34,7 +34,7 @@ export function crmOrganizationPanel(ctx, { providers = [], contracts = [], onOp
         return el('li', { class: `crm-row${late ? ' crm-row-late' : ''}`, dataset: { crm: kind } }, [
           el('div', { class: 'crm-row-main' }, [
             mutedText(kind === 'activity' ? ACTIVITY_KINDS[r.kind] : `Processo · ${STAGES[r.stage]}`, 'span'),
-            el('strong', { text: kind === 'activity' ? r.subject : `${r.title}: ${r.next_action}` }),
+            textStrong(kind === 'activity' ? r.subject : `${r.title}: ${r.next_action}`),
             el('span', { class: 'small', text: [due ? `${late ? 'Venceu em' : 'Prazo'} ${formatDate(due)}` : 'Sem prazo', `responsável: ${memberLabel(ctx, r.owner_id)}`, pid && providerName.get(pid) ? providerName.get(pid) : null].filter(Boolean).join(' · ') })
           ]),
           late ? tag('Vencido', 'danger') : null,
