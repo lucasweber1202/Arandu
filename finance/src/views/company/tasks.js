@@ -260,6 +260,15 @@ export async function tasks(ctx) {
   draw();
   const readOnly = el('p', { class: 'callout callout-info compact task-readonly' }, [icon('lock', { size: 14 }), textSpan('Seu papel acompanha as tarefas da equipe: criar, concluir e reabrir ficam com administradores, gestores financeiros e analistas.')]);
   root.append(card({ body: canEdit ? form : readOnly }), el('div', { class: 'toolbar task-toolbar' }, [field({ label: 'Mostrar', control: filter }), scopeNote]), card({ flush: true, body: box }), el('div', { class: 'task-more' }, more));
+  // Radar de prazos: contratos, solicitações e tarefas da visão geral já carregada,
+  // sob demanda (o módulo não pesa na lista de tarefas).
+  const radarSlot = el('div', { class: 'deadline-radar-slot' });
+  root.append(radarSlot);
+  import('../deadline-radar.js').then((m) => { if (radarSlot.parentNode) { const radar = m.deadlineRadar(ctx);
+    radarSlot.replaceWith(radar);
+    // Link direto (Painel → "Radar de prazos"): leva o foco ao radar quando ele chega.
+    if (location.hash === '#deadline-radar') { radar.setAttribute('tabindex', '-1'); radar.scrollIntoView({ block: 'start' }); radar.focus({ preventScroll: true }); } } })
+    .catch(() => radarSlot.replaceWith(el('p', { class: 'callout callout-warning compact', role: 'alert', text: 'O radar de prazos não carregou. Recarregue a página para tentar de novo; a lista de tarefas acima não foi afetada.' })));
   return root;
 }
 
