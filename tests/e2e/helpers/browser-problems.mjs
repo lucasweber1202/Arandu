@@ -13,7 +13,7 @@ export function safeNetworkUrl(value) {
 export function technicalError(value) {
   return String(value||'').match(/net::ERR_[A-Z_]+/)?.[0] || '[details redacted]';
 }
-export function watchBrowserProblems(page) {
+export function watchBrowserProblems(page, { onNetwork = () => {} } = {}) {
   const problems=[];
   const requests=new Map();
   const metadata=request=>({url:safeNetworkUrl(request.url()),method:request.method(),resourceType:request.resourceType(),status:null,error:null});
@@ -24,6 +24,7 @@ export function watchBrowserProblems(page) {
   page.on('requestfailed',request=>{
     const record={...metadata(request),error:technicalError(request.failure()?.errorText)};
     requests.set(request.url(),record);
+    onNetwork({kind:'requestfailed',...record});
     // Preserve console assertions. This event also supplies metadata when the
     // browser reports the console failure without a useful resource location.
     if(record.error==='net::ERR_TOO_MANY_RETRIES')problems.push(JSON.stringify({kind:'requestfailed',...record}));
@@ -38,6 +39,7 @@ export function watchBrowserProblems(page) {
   page.on('response',response=>{
     const record={...metadata(response.request()),status:response.status()};
     requests.set(response.url(),record);
+    onNetwork({kind:'response',...record});
     if(response.status()>=400 && new URL(response.url()).pathname.startsWith('/api/'))problems.push(JSON.stringify({kind:'response',...record}));
   });
   return problems;

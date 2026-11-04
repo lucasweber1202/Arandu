@@ -16,7 +16,9 @@ const PEOPLE = {
 
 test.skip(!PASSWORD, 'Defina ARANDU_DEMO_PASSWORD (scripts/pilot-local/.state/demo.env) para rodar a jornada da demonstração.');
 
-const watch = watchBrowserProblems;
+const watch = page => watchBrowserProblems(page, {
+  onNetwork: event => { if (process.env.PASSPORT_NETWORK_DIAGNOSTICS === '1') console.log('PASSPORT_NETWORK ' + JSON.stringify(event)); }
+});
 
 async function login(page, who) {
   await page.goto('/login.html');
